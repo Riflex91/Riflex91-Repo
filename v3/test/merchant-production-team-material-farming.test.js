@@ -8,6 +8,8 @@ const { ControlledPartyLogistics, Action } = require('../src/party/controlled-pa
 const { BrainStateEncoderV2 } = require('../src/brain/strategic-brain-v2');
 const {
   bestDirectMaterialFarmSource,
+  bestExchangeMaterialFarmSource,
+  bestMaterialFarmSource,
   estimateBlockedProductionCandidate,
   chooseProductionTeamFarmObjective
 } = require('../src/party/production-material-acquisition');
@@ -76,6 +78,30 @@ test('production material source estimates team farm time from drops and observe
   assert.equal(source.evidence, 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR');
   assert.equal(source.unitsPerHour, 10);
   assert.equal(source.expectedHours, 1);
+});
+
+test('production material acquisition can farm an exchange input for a recipe material', () => {
+  const runtime = runtimeForDrops(0.5);
+  const gameData = runtime.adapter.getGameData();
+  gameData.items.shard = { type: 'material', g: 1 };
+  gameData.items.shell = { type: 'material', g: 1, e: 20 };
+  gameData.drops.monsters.crab = [[1, 'shell', 1]];
+  gameData.drops.shell = [[1, 'shard', 1]];
+  gameData.monsters.crab = { hp: 100, attack: 10 };
+  gameData.maps.beach = { monsters: [{ type: 'crab', boundary: [0, 0, 100, 100] }] };
+
+  const exchange = bestExchangeMaterialFarmSource(runtime, 'shard', 2, { fallbackKillsPerHour: 20 });
+  assert.ok(exchange);
+  assert.equal(exchange.kind, 'EXCHANGE_MATERIAL_DROP');
+  assert.equal(exchange.material, 'shell');
+  assert.equal(exchange.targetMaterial, 'shard');
+  assert.equal(exchange.requiredPerExchange, 20);
+  assert.equal(exchange.quantity, 40);
+  assert.equal(exchange.expectedHours, 2);
+
+  const chosen = bestMaterialFarmSource(runtime, 'shard', 2, { fallbackKillsPerHour: 20 });
+  assert.equal(chosen.kind, 'EXCHANGE_MATERIAL_DROP');
+  assert.equal(chosen.material, 'shell');
 });
 
 test('production material acquisition keeps a 100h+ recipe valid but deprioritized', () => {
@@ -260,6 +286,80 @@ test('strategic brain keeps character level a minor context signal', () => {
   assert.equal(encoded.values.levelNorm, 0.15);
   assert.ok(encoded.values.attackNorm > encoded.values.levelNorm);
   assert.equal(encoded.values.gearHealth, 1);
+});
+
+test('active production material objective is not overwritten by an elixir farm objective', () => {
+  const logistics = Object.create(ControlledPartyLogistics.prototype);
+  logistics.now = () => 1000;
+  logistics.runtime = {
+    farmer: {
+      materialObjective: {
+        kind: 'PRODUCTION_MATERIAL',
+        material: 'wood',
+        monster: 'goo',
+        expiresAt: 60000
+      }
+    }
+  };
+  logistics.stats = { messagesReceived: 0, messagesRejected: 0 };
+  logistics._validEnvelope = () => true;
+  logistics._merchantName = () => 'Merchant';
+  logistics._isMerchant = () => false;
+
+  const accepted = logistics.receive('Merchant', {
+    action: Action.ELIXIR_FARM_OBJECTIVE,
+    expiresAt: 60000,
+    monster: 'crab',
+    material: 'shell',
+    elixirName: 'elixirdex0',
+    map: 'main',
+    x: 0,
+    y: 0
+  });
+
+  assert.equal(accepted, true);
+  assert.equal(logistics.runtime.farmer.materialObjective.kind, 'PRODUCTION_MATERIAL');
+  assert.equal(logistics.runtime.farmer.materialObjective.material, 'wood');
+});
+
+test('production material objective replaces a lower-priority elixir material objective for the whole team', () => {
+  const logistics = Object.create(ControlledPartyLogistics.prototype);
+  logistics.now = () => 1000;
+  logistics.runtime = {
+    farmer: {
+      materialObjective: {
+        kind: 'ELIXIR_MATERIAL',
+        material: 'shell',
+        monster: 'crab',
+        expiresAt: 60000
+      }
+    }
+  };
+  logistics.stats = { messagesReceived: 0, messagesRejected: 0 };
+  logistics._validEnvelope = () => true;
+  logistics._merchantName = () => 'Merchant';
+  logistics._isMerchant = () => false;
+
+  const accepted = logistics.receive('Merchant', {
+    action: Action.PRODUCTION_MATERIAL_OBJECTIVE,
+    objectiveId: 'production-material:goodbow:R1:wood',
+    output: 'goodbow',
+    recipient: 'R1',
+    material: 'wood',
+    targetMaterial: 'wood',
+    acquisitionKind: 'DIRECT_MATERIAL_DROP',
+    requiredQuantity: 10,
+    expiresAt: 60000,
+    monster: 'goo',
+    map: 'main',
+    x: 50,
+    y: 50
+  });
+
+  assert.equal(accepted, true);
+  assert.equal(logistics.runtime.farmer.materialObjective.kind, 'PRODUCTION_MATERIAL');
+  assert.equal(logistics.runtime.farmer.materialObjective.material, 'wood');
+  assert.equal(logistics.runtime.farmer.materialObjective.output, 'goodbow');
 });
 
 test('production material objective is broadcast identically to every farmer, never split', () => {
