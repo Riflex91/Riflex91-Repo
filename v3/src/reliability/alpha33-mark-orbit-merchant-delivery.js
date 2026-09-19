@@ -1249,7 +1249,7 @@ class Alpha33MarkOrbitMerchantDelivery {
             sourceAgeMs: 0,
             speedEstimate: Math.max(0, finite(visible.speed, row.motion && row.motion.speedEstimate || 0)),
             uncertainty: 0,
-            errorBudget: visible.moving === true ? this.farmerMovingPositionMaxError : this.farmerPositionFreshMs
+            errorBudget: visible.moving === true ? this.farmerMovingPositionMaxError : 0
           }
         };
       }
