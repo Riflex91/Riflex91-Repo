@@ -7,7 +7,7 @@
     {
       "kennung": "WISSEN_BEREIT",
       "erfuellt": false,
-      "grund": "Wissensarchitektur, Quellenbaselines, Drift-/Revalidierungsregeln und WissensZugriffPort-Zielvertrag sind R2-ratifiziert. erfuellt bleibt false, bis die spaeteren Runtime-/Live-Wissensports und verbleibenden Hardening-Nachweise umgesetzt sind.",
+      "grund": "R3: Wissenswaechter schreibt nicht mehr direkt auf main; Knowledge-Branch/PR-Pfad, strenges Entwicklungs-Wissensgate, Quellenhash-Drift und Roh-Snapshot-Guard sind technisch abgesichert. erfuellt bleibt false, bis R6 der read-only WissensZugriffPort und Runtime-Snapshot-Pinning implementiert/nachgewiesen sind.",
       "nachweise": [
         "v5/wissensbasis/README.md",
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
@@ -18,7 +18,9 @@
         "v5/dokumentation/LIVE-WISSEN-SSD-VERTRAG.md",
         "v5/wissensbasis/live/README.md"
       ],
-      "r2VertragRatifiziert": true
+      "r2VertragRatifiziert": true,
+      "r3NachweisVorhanden": true,
+      "r3AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "P0_RESEARCH_BEREIT",
@@ -54,12 +56,14 @@
     {
       "kennung": "INVARIANTEN_BEREIT",
       "erfuellt": false,
-      "grund": "Alle 55 V4-Invarianten sind einzeln uebernommen/verschaerft/ersetzt; neue R2-Invarianten sind ratifiziert. erfuellt bleibt bis technische Guards/Tests die Regeln erzwingen false.",
+      "grund": "R3: zentrale Architektur-, Host-, Default-Deny-, Mehrfach-Verriegelungs-, Namensraum- und Dependency-Invarianten besitzen statische Guards/Negativtests. erfuellt bleibt false, bis die spaeteren Runtime-Phasen alle sicherheitskritischen Invarianten technisch erzwingen.",
       "nachweise": [
         "v5/invarianten/invarianten.json"
       ],
       "r2VertragRatifiziert": true,
-      "r2RatifiziertAm": "2026-09-19"
+      "r2RatifiziertAm": "2026-09-19",
+      "r3NachweisVorhanden": true,
+      "r3AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "ZUSTANDSMASCHINEN_BEREIT",
@@ -95,7 +99,7 @@
     {
       "kennung": "TESTSTRATEGIE_BEREIT",
       "erfuellt": false,
-      "grund": "Determinismus-, Simulator-, Replay-, Fault- und Fitnessstrategie sind R2-ratifiziert. erfuellt bleibt bis R3/R4 das Testlabor technisch vorhanden ist false.",
+      "grund": "R3: deterministisches bounded Replay-Grundgeruest, Negativtests, Headless-no-write-Tests und Build-Provenienz sind technisch vorhanden. erfuellt bleibt false, bis R4 Determinismus/Replay als Core vollständig implementiert und bewiesen hat.",
       "nachweise": [
         "v5/fitness/fitness-regeln.json",
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
@@ -103,39 +107,47 @@
         "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md"
       ],
       "r2VertragRatifiziert": true,
-      "r2RatifiziertAm": "2026-09-19"
+      "r2RatifiziertAm": "2026-09-19",
+      "r3NachweisVorhanden": true,
+      "r3AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "SECURITY_BEREIT",
       "erfuellt": false,
-      "grund": "Security-/Trust-Boundary-, Bridge-, Secret-, Default-Deny- und Mehrfach-Verriegelungsvertraege sind R2-ratifiziert. erfuellt bleibt false, bis R3 die statischen/API-/Bypass-Guards technisch nachweist.",
+      "grund": "R3: Static-/Secret-/Host-API-/Default-Deny-/Mehrfach-Verriegelungs- und Knowledge-Path-Guards sind technisch nachgewiesen. erfuellt bleibt false, bis spaetere Authority-, Fencing-, Execution- und Betriebsgrenzen implementiert sind.",
       "nachweise": [
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md"
       ],
-      "r2VertragRatifiziert": true
+      "r2VertragRatifiziert": true,
+      "r3NachweisVorhanden": true,
+      "r3AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "BETRIEBSMODELL_BEREIT",
       "erfuellt": false,
-      "grund": "Operator-, Stop-, Failure-Domain-, Backpressure- und SSD-Betriebsregeln sind R2-ratifiziert. erfuellt bleibt bis die zugehoerigen Runtime-/Operations-Guards implementiert sind false.",
+      "grund": "R3: D:-SSD-/Volume-Gesundheit, 15-Prozent-Reserve und bounded asynchroner Writer sind als Host-/Grundlagenmechanismen vorhanden. erfuellt bleibt false, bis spaetere Runtime-/Recovery-/Operations-Phasen die Betriebsvertraege komplett implementieren.",
       "nachweise": [
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
         "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md"
       ],
       "r2VertragRatifiziert": true,
-      "r2RatifiziertAm": "2026-09-19"
+      "r2RatifiziertAm": "2026-09-19",
+      "r3NachweisVorhanden": true,
+      "r3AbgeschlossenAm": "2026-09-20"
     }
   ],
   "offeneBlocker": [
-    "R3 Build-/Static-/Dependency-/Host-Grenzen und Negativtests implementieren",
-    "R3 Headless-No-Write-Grundstruktur und Mehrfach-Verriegelungs-Bypass-Guards nachweisen",
-    "R3 strengen Entwicklungs-Wissensgate fuer echte Implementierung technisch erzwingen",
-    "R3 minimale GitHub-Rechte und Knowledge-PR-Hardening nachweisen",
-    "R4 Determinismus-/Replay-Grundgeruest implementieren",
-    "R5/R6 Persistenz-, WissensZugriffPort- und Live-Wissens-Runtime-Vertraege technisch umsetzen",
-    "Weitere blockierende Roadmap-Phasen R3 bis R11 abschliessen, bevor Vertical Slice/Gameplay freigegeben wird"
+    "R4 deterministischen Core mit injizierbarer Uhr, Zufall, IDs und Sequenzen implementieren",
+    "R4 Replay aus identischer gepinnter Evidence deterministisch beweisen",
+    "R5 Persistenzports, Schema-Migrationen, Crash-/Volume-Failure und durable Journal technisch umsetzen",
+    "R6 WissensZugriffPort, Snapshot-Pinning und Runtime-World-Truth-Evidence technisch umsetzen",
+    "R7 bis R11 Authority, Scheduler, Transaction Kernel, Recovery und Observability abschliessen",
+    "Gameplay-Runtime erst nach expliziter Laufzeitfreigabe und spaeterem Roadmap-Gate beginnen",
+    "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
   "r2Status": "RATIFIZIERT",
-  "r2AbgeschlossenAm": "2026-09-19"
+  "r2AbgeschlossenAm": "2026-09-19",
+  "r3Status": "ABGESCHLOSSEN",
+  "r3AbgeschlossenAm": "2026-09-20"
 }
