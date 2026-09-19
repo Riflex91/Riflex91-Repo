@@ -104,19 +104,19 @@ public sealed class GitArbeitskopie
 
         if (wissensBranchVorhanden)
         {
-            var basisRebase = await GitHubAnmeldung.FuehreGitAusAsync(
-                ["rebase", $"origin/{BasisBranch}"],
+            var basisMerge = await GitHubAnmeldung.FuehreGitAusAsync(
+                ["merge", "--no-edit", $"origin/{BasisBranch}"],
                 _wurzel,
                 cancellationToken,
                 TimeSpan.FromMinutes(2));
-            if (!basisRebase.Erfolgreich)
+            if (!basisMerge.Erfolgreich)
             {
                 await GitHubAnmeldung.FuehreGitAusAsync(
-                    ["rebase", "--abort"],
+                    ["merge", "--abort"],
                     _wurzel,
                     cancellationToken,
                     TimeSpan.FromSeconds(30));
-                throw new InvalidOperationException("GIT_WISSENSBRANCH_BASIS_KONFLIKT:" + basisRebase.Fehlerausgabe);
+                throw new InvalidOperationException("GIT_WISSENSBRANCH_BASIS_KONFLIKT:" + basisMerge.Fehlerausgabe);
             }
         }
 
@@ -237,8 +237,8 @@ public sealed class GitArbeitskopie
 
         // Der Waechter darf ausschliesslich innerhalb von v5/wissensbasis schreiben.
         // Er pusht niemals direkt auf main, sondern nur auf den dedizierten Knowledge-Branch.
-        // Wenn main waehrend des Laufs weiterlief, wird main vor dem Push integriert.
-        // Vor und nach dem Rebase wird fail-closed verifiziert, dass der eigene Commit
+        // Wenn main waehrend des Laufs weiterlief, wird main vor dem Push per normalem Merge integriert.
+        // Vor und nach der Integration wird fail-closed verifiziert, dass der eigene Commit
         // keine Datei ausserhalb der Wissensbasis enthaelt. Force-Push ist verboten.
         VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
             ["fetch", "origin", BasisBranch],
@@ -246,20 +246,20 @@ public sealed class GitArbeitskopie
             cancellationToken,
             TimeSpan.FromMinutes(2)), "GIT_FETCH_VOR_PUSH_FEHLGESCHLAGEN");
 
-        var rebase = await GitHubAnmeldung.FuehreGitAusAsync(
-            ["rebase", $"origin/{BasisBranch}"],
+        var merge = await GitHubAnmeldung.FuehreGitAusAsync(
+            ["merge", "--no-edit", $"origin/{BasisBranch}"],
             _wurzel,
             cancellationToken,
             TimeSpan.FromMinutes(2));
 
-        if (!rebase.Erfolgreich)
+        if (!merge.Erfolgreich)
         {
             await GitHubAnmeldung.FuehreGitAusAsync(
-                ["rebase", "--abort"],
+                ["merge", "--abort"],
                 _wurzel,
                 cancellationToken,
                 TimeSpan.FromSeconds(30));
-            throw new InvalidOperationException("GIT_REBASE_KONFLIKT:" + rebase.Fehlerausgabe);
+            throw new InvalidOperationException("GIT_MAIN_MERGE_KONFLIKT:" + merge.Fehlerausgabe);
         }
 
         await VerifiziereLetztenCommitAsync(cancellationToken);
