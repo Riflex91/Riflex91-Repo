@@ -52,6 +52,10 @@ const dateien = [
   'werkzeuge/block8-6-live-paket.js',
   'laufzeit/tests/block8-6-live-paket.test.mjs',
   'dokumentation/BLOCK-8-6-9-LIVE-PAKET.md',
+  'werkzeuge/block8-6-soak-paket-bauen.mjs',
+  'werkzeuge/block8-6-soak-paket.js',
+  'laufzeit/tests/block8-6-soak-paket.test.mjs',
+  'dokumentation/BLOCK-8-6-9-SOAK-PAKET.md',
   'dokumentation/BLOCK-8-6-9-RELEASE-CANDIDATE.json',
   'dokumentation/BLOCK-8-6-9-RELEASE-CANDIDATE.md',
   'dokumentation/BLOCK-8-6-9-CANDIDATE-DEPLOYMENT-NACHWEIS.md',
@@ -1048,7 +1052,10 @@ for (const pflicht of [
   '600000 ms = 10 Minuten',
   'recoveryNachweis=true',
   'block9Freigegeben=false',
-  'finalen Candidate-SHA festhalten'
+  'Source-locked 10-Minuten-Soakpaket',
+  'My_Ranger1',
+  'My_Ranger2',
+  'akzeptierten Remote-Heartbeat'
 ]) {
   if (!freigabeDokument.includes(pflicht)) throw new Error('Block-8.6.9-Freigabe-Dokumentation fehlt: ' + pflicht);
 }
@@ -1107,8 +1114,8 @@ for (const pflicht of [
 }
 
 const packageJson = JSON.parse(await readFile(path.join(wurzel, 'package.json'), 'utf8'));
-if (packageJson.scripts?.['block8-6-struktur:pruefen'] !== 'node werkzeuge/block8-6-struktur-pruefen.mjs && npm run block8-6-candidate:pruefen && npm run block8-6-release-bindung:pruefen && npm run block8-6-schatten-paket:pruefen && npm run block8-6-live-paket:pruefen') {
-  throw new Error('package.json muss den Block-8.6-Strukturguard inklusive Candidate-, Release-Bindungs-, Schatten- und Livepaketpruefung anbieten.');
+if (packageJson.scripts?.['block8-6-struktur:pruefen'] !== 'node werkzeuge/block8-6-struktur-pruefen.mjs && npm run block8-6-candidate:pruefen && npm run block8-6-release-bindung:pruefen && npm run block8-6-schatten-paket:pruefen && npm run block8-6-live-paket:pruefen && npm run block8-6-soak-paket:pruefen') {
+  throw new Error('package.json muss den Block-8.6-Strukturguard inklusive Candidate-, Release-Bindungs-, Schatten-, Live- und Soakpaketpruefung anbieten.');
 }
 if (packageJson.scripts?.['block8-6-release-bindung:pruefen'] !== 'node werkzeuge/block8-6-release-bindung-pruefen.mjs') {
   throw new Error('package.json muss die Block-8.6-Release-Bindungspruefung anbieten.');
@@ -1125,6 +1132,34 @@ if (packageJson.scripts?.['block8-6-live-paket:bauen'] !== 'node werkzeuge/block
 if (packageJson.scripts?.['block8-6-live-paket:pruefen'] !== 'node werkzeuge/block8-6-live-paket-bauen.mjs --pruefen && node --check werkzeuge/block8-6-live-paket.js') {
   throw new Error('package.json muss die source-locked Block-8.6-Livepaket-Pruefung anbieten.');
 }
+if (packageJson.scripts?.['block8-6-soak-paket:bauen'] !== 'node werkzeuge/block8-6-soak-paket-bauen.mjs') {
+  throw new Error('package.json muss den Block-8.6-Soakpaket-Build anbieten.');
+}
+if (packageJson.scripts?.['block8-6-soak-paket:pruefen'] !== 'node werkzeuge/block8-6-soak-paket-bauen.mjs --pruefen && node --check werkzeuge/block8-6-soak-paket.js') {
+  throw new Error('package.json muss die source-locked Block-8.6-Soakpaket-Pruefung anbieten.');
+}
+
+const soakPaket = await readFile(path.join(wurzel, 'werkzeuge/block8-6-soak-paket.js'), 'utf8');
+for (const pflicht of [
+  'ca0dfee7685563c8b6003469300c8fd08777b053',
+  'b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5',
+  'block8-6-schatten-1789822653521',
+  'fba08a78942b6d2de9da482bf44df6aac6f8c91349fa13484423554195a886a7',
+  'becc261eef26a674fe460befcd77dbeca8e9d3ed0fe1901ee026b216e979d4e2',
+  'BLOCK8-6-SOAK-STARTEN:block8-6-schatten-1789822653521',
+  "modus: 'soak'",
+  'soakDauerMillisekunden: 600000',
+  'sampleMillisekunden: 5000',
+  'recoveryReplayVerified: true',
+  'runtime.starte()',
+  "titel: '3 · Soak starten'",
+  'remoteLivenessNeu >= 1',
+  'capNachher.senden.versuche === 0',
+  'capNachher.senden.fehler === 0'
+]) {
+  if (!soakPaket.includes(pflicht)) throw new Error('Block-8.6-Soakpaket fehlt: ' + pflicht);
+}
+
 
 const livePaket = await readFile(path.join(wurzel, 'werkzeuge/block8-6-live-paket.js'), 'utf8');
 for (const pflicht of [
@@ -1167,4 +1202,4 @@ if (!String(packageJson.scripts?.pruefen ?? '').includes('npm run block8-6-struk
   throw new Error('npm run pruefen muss den Block-8.6-Strukturguard ausfuehren.');
 }
 
-console.log('Block 8.6.1 bis 8.6.9 geprueft: Capability Truth bis Replay, exakt gebundener/deployed Candidate, real bestandener Schatten und kontrolliert live; nur Soak bleibt offen.');
+console.log('Block 8.6.1 bis 8.6.9 geprueft: Capability Truth bis Replay, exakt gebundener/deployed Candidate, real bestandener Schatten und kontrolliert live sowie source-locked 10-Minuten-Soakpaket; realer Soak bleibt offen.');

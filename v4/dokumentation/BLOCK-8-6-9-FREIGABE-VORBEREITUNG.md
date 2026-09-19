@@ -374,17 +374,26 @@ Der Live-Knopf bleibt bis zu einem bestaetigten fehlerfreien Produktionsheartbea
 
 Der reale kontrollierte Live-Nachweis ist inzwischen bidirektional bestanden und in `BLOCK-8-6-9-LIVE-FREIGABE-NACHWEIS.json` kanonisch gebunden. Als naechste Stufe folgt ausschliesslich der Soak.
 
+## Source-locked 10-Minuten-Soakpaket
+
+Nach dem real bestandenen bidirektionalen Controlled-Live-Nachweis steht die letzte reale Block-8.6-Stufe bereit:
+
+`v4/werkzeuge/block8-6-soak-paket.js`
+
+Das Paket bindet exakt Candidate, Schattennachweis und beide Live-Report-Hashes. Es laeuft **600000 ms** mit **5000 ms** Sampling.
+
+Zur Schliessung der noch offenen Empfangsbeobachtung soll das Paket auf `My_Ranger1` und `My_Ranger2` parallel laufen. PASS verlangt zusaetzlich mindestens einen neu beobachteten akzeptierten Remote-Heartbeat pro Sitzung. Es erzeugt selbst keine neuen Capability-Sendungen.
+
+Der reale Soak bleibt bis zu zwei tatsaechlichen PASS-Berichten offen.
+
 ## Naechster operativer Schritt
 
-Nach Merge dieses Vorbereitungsstands:
+Nach Merge dieses Paket-PRs:
 
-1. finalen Candidate-SHA festhalten,
-2. Modulzahl/Bytes/SHA-256 aus dem exakten CI-Build uebernehmen,
-3. Candidate-Manifest + isolierten manuellen Publish-Workflow binden,
-4. immutable Candidate veroeffentlichen und HTTPS verifizieren,
-5. Offline-Freigabenachweis kanonisieren,
-6. Schattenpaket fuer genau diesen Candidate erzeugen,
-7. realen Schattenlauf ausfuehren,
-8. danach kontrolliert live,
-9. danach 10-Minuten-Soak,
-10. erst bei vier bestandenen Stufen Block 8.6 abschliessen und Block 9 freigeben.
+1. auf beiden Rangern einen frischen Codekontext oeffnen,
+2. auf beiden `block8-6-soak-paket.js` starten,
+3. auf beiden den Soak-Preflight abwarten,
+4. auf beiden **3 · Soak starten** mit `BLOCK8-6-SOAK-STARTEN:block8-6-schatten-1789822653521` bestaetigen,
+5. beide Sitzungen mindestens 10 Minuten ungestoert laufen lassen,
+6. beide PASS-Gesamtberichte sichern,
+7. erst danach Soak-Evidenz kanonisieren und Block 8.6 / Block 9 freigeben.
