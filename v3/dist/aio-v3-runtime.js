@@ -133,6 +133,7 @@ const { ContentSafetyGate, ContentDisposition } = require('./farmer/content-safe
 const { partyProfile, capabilitiesFor } = require('./party/capabilities');
 const { CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE } = require('./party/character-registry');
 const { FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, createPullLearningFingerprint } = require('./party/fingerprints');
+const { MOVING_TARGET_FRESHNESS_MODE, deriveMotion, positionFreshness, cleanMotion } = require('./party/moving-target-freshness');
 const { PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION } = require('./party/performance-store');
 const { PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS } = require('./party/orchestrator');
 const { PaladinAuraPolicy, AURAS } = require('./party/paladin-aura-policy');
@@ -545,7 +546,7 @@ module.exports = {
   EncounterLifecycle, installEncounterLifecycle, ENCOUNTER_LIFECYCLE_MODE, ENCOUNTER_OUTCOME_SCHEMA_VERSION, EncounterLifecycleState, EncounterOutcome,
   FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor, CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE,
-  FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, createPullLearningFingerprint, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
+  FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, createPullLearningFingerprint, MOVING_TARGET_FRESHNESS_MODE, deriveMotion, positionFreshness, cleanMotion, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
   PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, PaladinAuraPolicy, AURAS, PartyTelemetryBridge, TELEMETRY_PROTOCOL,
   PartyTransitionController, TransitionState, PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction,
   PartyLifecycleStore, PartyLifecycleState, PARTY_LIFECYCLE_SCHEMA_VERSION, PARTY_LIFECYCLE_MODE,
@@ -10984,7 +10985,7 @@ this.log.version = RELEASE_VERSION; this.partyDecisionMs = Math.max(2000, Math.m
     this.partyPerformance = options.partyPerformance || new PartyPerformanceStore({ root: this.root, storage: options.partyPerformanceStorage || options.storage, log: this.log, now: this.now, capacity: options.partyPerformanceCapacity, halfLifeMs: options.partyPerformanceHalfLifeMs, minSaveMs: options.partyPerformanceSaveMs }); this.partyPerformance.load();
     this.partyOrchestrator = options.partyOrchestrator || new PartyOrchestrator({ now: this.now, log: this.log, weights: options.partyScoreWeights, minScoreGain: options.partyMinScoreGain, minSwitchIntervalMs: options.partyMinSwitchIntervalMs, minRecommendedConfidence: options.partyMinRecommendedConfidence, maxCandidates: options.partyMaxCandidates, explorationEnabled: options.partyExplorationEnabled === true }); this.auraPolicy = options.auraPolicy || new PaladinAuraPolicy({ now: this.now, minHoldMs: options.partyAuraMinHoldMs });
     const roster = this.characterRegistry.status().characters || []; const configuredMerchant = options.partyMerchantName || roster.find((row) => row.ctype === 'merchant')?.name || null;
-    this.partyTelemetry = options.partyTelemetry || new PartyTelemetryBridge({ root: this.root, adapter: this.adapter, now: this.now, log: this.log, merchantName: configuredMerchant, trustedNames: roster.map((row) => row.name), sendIntervalMs: options.partyTelemetrySendMs, reportTtlMs: options.partyTelemetryTtlMs, capacity: options.partyTelemetryCapacity }); this.partyTelemetry.installReceiver();
+    this.partyTelemetry = options.partyTelemetry || new PartyTelemetryBridge({ root: this.root, adapter: this.adapter, now: this.now, log: this.log, merchantName: configuredMerchant, trustedNames: roster.map((row) => row.name), sendIntervalMs: options.partyTelemetrySendMs, movingSendIntervalMs: options.partyTelemetryMovingSendMs, reportTtlMs: options.partyTelemetryTtlMs, capacity: options.partyTelemetryCapacity }); this.partyTelemetry.installReceiver();
     this.partyTransitions = options.partyTransitions || new PartyTransitionController({ root: this.root, adapter: this.adapter, now: this.now, log: this.log, liveEnabled: options.partyTransitionsEnabled === true, merchantName: configuredMerchant, codeSlots: options.partyCodeSlots, stepTimeoutMs: options.partyTransitionStepTimeoutMs, transitionLeaseMs: options.partyTransitionLeaseMs, pollMs: options.partyTransitionPollMs });
     this.backgroundExecution = options.backgroundExecution || new BackgroundExecutionGuard({ root: this.root, now: this.now, log: this.log, expectedTickMs: this.tickMs, driftThresholdMs: options.backgroundDriftThresholdMs, rearmCooldownMs: options.backgroundRearmCooldownMs, enabled: options.backgroundExecutionGuardEnabled !== false });
 }
@@ -11537,12 +11538,16 @@ function sameMap(a, b) {
 }
 
 function cleanMotion(raw = {}) {
-  const mode = String(raw.mode || '').toUpperCase();
-  const validMode = ['STABLE', 'MOVING', 'KITE'].includes(mode) ? mode : null;
+  const requestedMode = String(raw.mode || '').toUpperCase();
+  const moving = raw.moving === true;
+  const kiteActive = raw.kiteActive === true;
+  let mode = ['STABLE', 'MOVING', 'KITE'].includes(requestedMode) ? requestedMode : null;
+  if (kiteActive) mode = 'KITE';
+  else if (moving && mode !== 'KITE') mode = 'MOVING';
   return {
-    mode: validMode,
-    moving: raw.moving === true,
-    kiteActive: raw.kiteActive === true,
+    mode,
+    moving,
+    kiteActive,
     declaredSpeed: Math.max(0, finite(raw.declaredSpeed, finite(raw.speed, 0))),
     observedSpeed: Math.max(0, finite(raw.observedSpeed, 0)),
     speedEstimate: Math.max(0, finite(raw.speedEstimate, 0)),
@@ -11604,11 +11609,13 @@ function positionFreshness(row, now = Date.now(), options = {}) {
     speedEstimate: row && row.speed
   });
   const mode = motion.mode || (motion.kiteActive ? 'KITE' : motion.moving ? 'MOVING' : 'STABLE');
+  const movingFallbackSpeed = Math.max(1, finite(options.movingFallbackSpeed, 40));
   const speedEstimate = Math.max(
     0,
     motion.speedEstimate,
     mode !== 'STABLE' ? motion.declaredSpeed : 0,
-    mode !== 'STABLE' ? finite(row && row.speed, 0) : 0
+    mode !== 'STABLE' ? finite(row && row.speed, 0) : 0,
+    mode !== 'STABLE' ? movingFallbackSpeed : 0
   );
   const uncertainty = mode === 'STABLE' ? 0 : speedEstimate * sourceAgeMs / 1000;
   const errorBudget = mode === 'KITE' ? kiteMaxError : movingMaxError;
@@ -22749,6 +22756,8 @@ function composeAlpha20_5MerchantRuntime(options = {}) {
 this.merchantServicePlanner = options.merchantServicePlanner || new MerchantServicePlanner({
       now: this.now,
       reportTtlMs: options.merchantServiceReportTtlMs,
+      movingPositionMaxError: options.merchantServiceMovingPositionMaxError,
+      kitePositionMaxError: options.merchantServiceKitePositionMaxError,
       criticalPotionCount: options.merchantServiceCriticalPotionCount,
       lowPotionCount: options.merchantServiceLowPotionCount,
       targetPotionCount: options.merchantServiceTargetPotionCount,
@@ -58608,7 +58617,6 @@ class Alpha33MarkOrbitMerchantDelivery {
 
   _resolveFarmerPosition(row) {
     if (!row || row.runtimeActive !== true || row.available === false || row.dead === true) return null;
-    if (!row.map || finite(row.x) == null || finite(row.y) == null) return null;
     const now = this.now();
     const visible = rawPlayerByName(this.runtime, row.name);
     if (visible) {
@@ -58632,10 +58640,14 @@ class Alpha33MarkOrbitMerchantDelivery {
             sourceAgeMs: 0,
             speedEstimate: Math.max(0, finite(visible.speed, row.motion && row.motion.speedEstimate || 0)),
             uncertainty: 0,
-            errorBudget: visible.moving === true ? this.farmerMovingPositionMaxError : this.farmerPositionFreshMs
+            errorBudget: visible.moving === true ? this.farmerMovingPositionMaxError : 0
           }
         };
       }
+    }
+    if (!row.map || finite(row.x) == null || finite(row.y) == null) {
+      this.stats.staleFarmerPositionsRejected += 1;
+      return null;
     }
     const freshness = positionFreshness(row, now, {
       staticTtlMs: this.farmerPositionFreshMs,
