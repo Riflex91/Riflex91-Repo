@@ -7,7 +7,7 @@
     {
       "kennung": "WISSEN_BEREIT",
       "erfuellt": false,
-      "grund": "R6 Zwischenstand: 9/13 MUSS-Anforderungen und 6/7 Fitnessregeln sind technisch nachgewiesen. Der produktive deutsche Anzeigekatalog deckt 7/7 Klassen, 11/11 Events, 60/60 kanonische Action Contracts und 102/102 kanonische sichtbare V5-Zustaende ab. Offen bleiben insbesondere 129 Skills inklusive Beschreibungen, 628 Items, 129 Monster mit offizieller-deutscher/Originalname-Revalidierung sowie die vollstaendige Definition und Abdeckung von NPC- und Quest-Quellenmengen. Der lokale Windows-Bridge-Deploymentstand bleibt separat zu verifizieren.",
+      "grund": "R6 Zwischenstand: 9/13 MUSS-Anforderungen und 6/7 Fitnessregeln sind technisch nachgewiesen. Der produktive deutsche Anzeigekatalog deckt 7/7 Klassen, 11/11 Events, 60/60 Action Contracts, 102/102 sichtbare V5-Zustaende, 135/135 aktuelle offizielle NPC-Definitionen und 12/12 daraus abgeleitete Quest-Kennungen ab. Offen bleiben 129 Skills inklusive deutscher Beschreibungen, 628 Items sowie 129 Monster mit offizieller-deutscher/Originalname-Revalidierung. Die NPC-Quelle ist auf den aktuellen offiziellen Blob a99d3b18... gepinnt; ihre Aufnahme in den automatischen Wissenswaechter bleibt als Revalidierungsverbesserung offen. Der lokale Windows-Bridge-Deploymentstand bleibt separat zu verifizieren.",
       "nachweise": [
         "v5/wissensbasis/README.md",
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",

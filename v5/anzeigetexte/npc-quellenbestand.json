@@ -1,0 +1,974 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "quelle": {
+    "repository": "kaansoral/adventureland_mongodb",
+    "pfad": "design/npcs.js",
+    "blobSha": "a99d3b18c5099a1824d0bd0c780bd2eabf1d53cb",
+    "vertrauen": "OFFICIAL",
+    "abgerufenAm": "2026-09-20"
+  },
+  "definitionsAnzahl": 135,
+  "questAnzahl": 12,
+  "definitionen": [
+    {
+      "externeKennung": "anniversary_baker",
+      "originalName": "Mira",
+      "rolle": "anniversary_crafter",
+      "questKennung": "anniversary_baker",
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "antip2w",
+      "originalName": "Mr. Dworf",
+      "rolle": "merchant",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "appearance",
+      "originalName": "Haila",
+      "rolle": "cx",
+      "questKennung": "cx",
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "armors",
+      "originalName": null,
+      "rolle": "merchant",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "basics",
+      "originalName": "Gabriel",
+      "rolle": "merchant",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "bean",
+      "originalName": "Bean",
+      "rolle": "events",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "bouncer",
+      "originalName": "Wogue",
+      "rolle": "bouncer",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen0",
+      "originalName": "Kane",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen1",
+      "originalName": "Kilgore",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen10",
+      "originalName": "Caroline",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen11",
+      "originalName": "Baron",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen12",
+      "originalName": "Marven",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen13",
+      "originalName": "Divian",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen14",
+      "originalName": "Violet",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen15",
+      "originalName": "Timmy",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen16",
+      "originalName": "Cunn",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen17",
+      "originalName": "Rook",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen18",
+      "originalName": "Patch",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen19",
+      "originalName": "Moss",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen2",
+      "originalName": "Stewart",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen20",
+      "originalName": "Wick",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen21",
+      "originalName": "Brio",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen22",
+      "originalName": "Merrit",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen3",
+      "originalName": "Reny",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen4",
+      "originalName": "Angel",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen5",
+      "originalName": "Grundur",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen6",
+      "originalName": "Fredric",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen7",
+      "originalName": "Lucy",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen8",
+      "originalName": "Wyr",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "citizen9",
+      "originalName": "Lilith",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "compound",
+      "originalName": null,
+      "rolle": "compound",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "craftsman",
+      "originalName": "Joe",
+      "rolle": "craftsman",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "exchange",
+      "originalName": "Xyn",
+      "rolle": "exchange",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "fancypots",
+      "originalName": "Ernis",
+      "rolle": "merchant",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "favors",
+      "originalName": "Favoré",
+      "rolle": "favors",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "firstc",
+      "originalName": null,
+      "rolle": "companion",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "fisherman",
+      "originalName": "Tristian",
+      "rolle": "quest",
+      "questKennung": "seashell",
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "friendtokens",
+      "originalName": "Fvona",
+      "rolle": "friendtokens",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "funtokens",
+      "originalName": "Tricksy",
+      "rolle": "funtokens",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "gemmerchant",
+      "originalName": "Mine Heathcliff",
+      "rolle": "quest",
+      "questKennung": "gemfragment",
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "goldnpc",
+      "originalName": "Mr. Rich",
+      "rolle": "gold",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "guard",
+      "originalName": "Guard",
+      "rolle": "guard",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "holo",
+      "originalName": "Z",
+      "rolle": "resort",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "holo0",
+      "originalName": "Green",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "holo1",
+      "originalName": "Pink",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "holo2",
+      "originalName": "Purple",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "holo3",
+      "originalName": "Scarf",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "holo4",
+      "originalName": "Twig",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "holo5",
+      "originalName": "Bobo",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "items0",
+      "originalName": "Gabrielle",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "items1",
+      "originalName": "Gabriella",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "items10",
+      "originalName": "X10",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items11",
+      "originalName": "X11",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items12",
+      "originalName": "X12",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items13",
+      "originalName": "X13",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items14",
+      "originalName": "X14",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items15",
+      "originalName": "X15",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items16",
+      "originalName": "X16",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items17",
+      "originalName": "X17",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items18",
+      "originalName": "X18",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items19",
+      "originalName": "X19",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items2",
+      "originalName": "Ledia",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "items20",
+      "originalName": "X20",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items21",
+      "originalName": "X21",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items22",
+      "originalName": "X22",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items23",
+      "originalName": "X23",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items24",
+      "originalName": "X24",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items25",
+      "originalName": "X25",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items26",
+      "originalName": "X26",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items27",
+      "originalName": "X27",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items28",
+      "originalName": "X28",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items29",
+      "originalName": "X29",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items3",
+      "originalName": "Lidia",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "items30",
+      "originalName": "X30",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items31",
+      "originalName": "X31",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items32",
+      "originalName": "X32",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items33",
+      "originalName": "X33",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items34",
+      "originalName": "X34",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items35",
+      "originalName": "X35",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items36",
+      "originalName": "X36",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items37",
+      "originalName": "X37",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items38",
+      "originalName": "X38",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items39",
+      "originalName": "X39",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items4",
+      "originalName": "Christie",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "items40",
+      "originalName": "X40",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items41",
+      "originalName": "X41",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items42",
+      "originalName": "X42",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items43",
+      "originalName": "X43",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items44",
+      "originalName": "X44",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items45",
+      "originalName": "X45",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items46",
+      "originalName": "X46",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items47",
+      "originalName": "X47",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items5",
+      "originalName": "Christina",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "items6",
+      "originalName": "Jane",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "items7",
+      "originalName": "Janet",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "items8",
+      "originalName": "X8",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "items9",
+      "originalName": "X9",
+      "rolle": "items",
+      "questKennung": null,
+      "erzeugt": true
+    },
+    {
+      "externeKennung": "jailer",
+      "originalName": "Jailord",
+      "rolle": "jailer",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "leathermerchant",
+      "originalName": "Landon",
+      "rolle": "quest",
+      "questKennung": "leather",
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "lichteaser",
+      "originalName": null,
+      "rolle": "tease",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "locksmith",
+      "originalName": "Smith",
+      "rolle": "locksmith",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "lostandfound",
+      "originalName": "Ron",
+      "rolle": "lostandfound",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "lotterylady",
+      "originalName": "Rose",
+      "rolle": "lottery",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "mcollector",
+      "originalName": "Cole",
+      "rolle": "mcollector",
+      "questKennung": "mcollector",
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "mistletoe",
+      "originalName": "Faith",
+      "rolle": "quest",
+      "questKennung": "mistletoe",
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "monsterhunter",
+      "originalName": "Daisy",
+      "rolle": "monstertokens",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "newupgrade",
+      "originalName": "Cue",
+      "rolle": "newupgrade",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "newyear_tree",
+      "originalName": "New Year Tree",
+      "rolle": "newyear_tree",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "ornaments",
+      "originalName": "Jayson",
+      "rolle": "quest",
+      "questKennung": "ornament",
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "pete",
+      "originalName": "Pete",
+      "rolle": "petkeeper",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "pots",
+      "originalName": null,
+      "rolle": "merchant",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "premium",
+      "originalName": "Garwyn",
+      "rolle": "premium",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "princess",
+      "originalName": "Princess",
+      "rolle": "citizen",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "pvp",
+      "originalName": "Ace",
+      "rolle": "pvp_announcer",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "pvpblocker",
+      "originalName": null,
+      "rolle": "blocker",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "pvptokens",
+      "originalName": "Gn. Spence",
+      "rolle": "pvptokens",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "pwincess",
+      "originalName": "Wynifreed",
+      "rolle": "quest",
+      "questKennung": "lostearring",
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "rewards",
+      "originalName": "Werdars",
+      "rolle": "rewards",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "santa",
+      "originalName": "Santa",
+      "rolle": "santa",
+      "questKennung": "candycane",
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "scrolls",
+      "originalName": "Lucas",
+      "rolle": "merchant",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "scrollsmith",
+      "originalName": "Sir Bob",
+      "rolle": "scrollsmith",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "secondhands",
+      "originalName": "Ponty",
+      "rolle": "secondhands",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "shellsguy",
+      "originalName": "Mr. Dworf",
+      "rolle": "shells",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "ship",
+      "originalName": null,
+      "rolle": "ship",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "shrine",
+      "originalName": null,
+      "rolle": "shrine",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "standmerchant",
+      "originalName": "Divian",
+      "rolle": "standmerchant",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "tavern",
+      "originalName": "Jaqk",
+      "rolle": "tavern",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "tbartender",
+      "originalName": "Jaqk",
+      "rolle": "merchant",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "thief",
+      "originalName": "Crun",
+      "rolle": "merchant",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "transporter",
+      "originalName": "Alia",
+      "rolle": "transport",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "wbartender",
+      "originalName": "Warin",
+      "rolle": "merchant",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "weapons",
+      "originalName": null,
+      "rolle": "merchant",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "witch",
+      "originalName": "Witch",
+      "rolle": "witch",
+      "questKennung": "witch",
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "wizardrepeater",
+      "originalName": "Wizard",
+      "rolle": "repeater",
+      "questKennung": null,
+      "erzeugt": false
+    },
+    {
+      "externeKennung": "wnpc",
+      "originalName": "Wizard",
+      "rolle": "thesearch",
+      "questKennung": "glitch",
+      "erzeugt": false
+    }
+  ],
+  "questKennungen": [
+    "anniversary_baker",
+    "candycane",
+    "cx",
+    "gemfragment",
+    "glitch",
+    "leather",
+    "lostearring",
+    "mcollector",
+    "mistletoe",
+    "ornament",
+    "seashell",
+    "witch"
+  ]
+}

@@ -143,10 +143,48 @@ kategorien.STATUS = {
   fehlendErste50: fehlendeStatus.slice(0, 50),
 };
 
-const weiterePflichtKategorien = {
-  NICHTSPIELERFIGUR: "QUELLENMENGE_NOCH_ZU_DEFINIEREN",
-  AUFGABE: "QUELLENMENGE_NOCH_ZU_DEFINIEREN",
+const npcQuelle = JSON.parse(liesText("anzeigetexte/npc-quellenbestand.json"));
+const erwarteteNpcs = npcQuelle.definitionen.map(definition => definition.externeKennung);
+const npcEintraege = (katalog.eintraege ?? [])
+  .filter(eintrag => eintrag.kategorie === "NICHTSPIELERFIGUR" && eintragGueltig(eintrag, {
+    kategorie: "NICHTSPIELERFIGUR",
+    brauchtBeschreibung: false,
+  }));
+const npcKennungen = new Set(npcEintraege.map(eintrag => eintrag.externeKennung));
+const fehlendeNpcs = erwarteteNpcs.filter(kennung => !npcKennungen.has(kennung));
+kategorien.NICHTSPIELERFIGUR = {
+  quelle: npcQuelle.quelle.repository + ":" + npcQuelle.quelle.pfad,
+  quelleBlobSha: npcQuelle.quelle.blobSha,
+  erwartet: erwarteteNpcs.length,
+  abgedeckt: erwarteteNpcs.length - fehlendeNpcs.length,
+  abdeckungProzent: erwarteteNpcs.length === 0
+    ? 100
+    : ((erwarteteNpcs.length - fehlendeNpcs.length) * 100) / erwarteteNpcs.length,
+  fehlendAnzahl: fehlendeNpcs.length,
+  fehlendErste50: fehlendeNpcs.slice(0, 50),
 };
+
+const erwarteteAufgaben = npcQuelle.questKennungen;
+const aufgabenEintraege = (katalog.eintraege ?? [])
+  .filter(eintrag => eintrag.kategorie === "AUFGABE" && eintragGueltig(eintrag, {
+    kategorie: "AUFGABE",
+    brauchtBeschreibung: false,
+  }));
+const aufgabenKennungen = new Set(aufgabenEintraege.map(eintrag => eintrag.externeKennung));
+const fehlendeAufgaben = erwarteteAufgaben.filter(kennung => !aufgabenKennungen.has(kennung));
+kategorien.AUFGABE = {
+  quelle: npcQuelle.quelle.repository + ":" + npcQuelle.quelle.pfad,
+  quelleBlobSha: npcQuelle.quelle.blobSha,
+  erwartet: erwarteteAufgaben.length,
+  abgedeckt: erwarteteAufgaben.length - fehlendeAufgaben.length,
+  abdeckungProzent: erwarteteAufgaben.length === 0
+    ? 100
+    : ((erwarteteAufgaben.length - fehlendeAufgaben.length) * 100) / erwarteteAufgaben.length,
+  fehlendAnzahl: fehlendeAufgaben.length,
+  fehlendErste50: fehlendeAufgaben.slice(0, 50),
+};
+
+const weiterePflichtKategorien = {};
 
 const quellenKategorienBereit = Object.values(kategorien)
   .every(kategorie => kategorie.fehlendAnzahl === 0);

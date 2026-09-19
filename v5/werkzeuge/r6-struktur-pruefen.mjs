@@ -33,6 +33,7 @@ for (const pfad of [
   "anzeigetexte/katalog.schema.json",
   "werkzeuge/r6-anzeigekatalog-abdeckung.mjs",
   "anzeigetexte/katalog.json",
+  "anzeigetexte/npc-quellenbestand.json",
   "grundlage/tests/r6-anzeigekatalog.test.mjs",
   "grundlage/quelle/anzeige/anzeigekatalog.ts",
 ]) {
@@ -76,10 +77,16 @@ if (abdeckung.kategorien?.KLASSE?.erwartet !== 7
     || abdeckung.kategorien?.KLASSE?.abgedeckt !== 7) {
   fehler("Aktuelle sieben Klassen muessen 7/7 im produktiven Anzeigekatalog abgedeckt sein.");
 }
-for (const [kategorie, erwartet] of [["EREIGNIS", 11], ["AKTION", 60], ["STATUS", 102]]) {
+for (const [kategorie, erwartet] of [
+  ["EREIGNIS", 11],
+  ["AKTION", 60],
+  ["STATUS", 102],
+  ["NICHTSPIELERFIGUR", 135],
+  ["AUFGABE", 12],
+]) {
   const wert = abdeckung.kategorien?.[kategorie];
   if (!wert || wert.erwartet !== erwartet || wert.abgedeckt !== erwartet || wert.fehlendAnzahl !== 0) {
-    fehler("Aktuelle Events Aktionen und Status muessen vollstaendig abgedeckt sein: " + kategorie);
+    fehler("Aktuelle Events Aktionen Status NPCs und Aufgaben muessen vollstaendig abgedeckt sein: " + kategorie);
   }
 }
 
