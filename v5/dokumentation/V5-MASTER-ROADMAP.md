@@ -18,6 +18,15 @@ Das Ziel ist nicht, Fehler magisch auszuschliessen. Das Ziel ist ein System, in 
 
 **Keine Phase wird nur deshalb freigegeben, weil "es funktioniert".** Sie wird erst freigegeben, wenn ihre Invarianten beweisbar eingehalten werden.
 
+### Verbindliche Sprache und Narrensicherheit
+
+Der Standard `DEUTSCHE_NAMEN_UND_NARRENSICHERHEIT.md` ist fuer V5 bindend.
+
+- Alle von uns kontrollierten Funktionen, Typen, Variablen, Zustaende, Ereignisse, Fehlergruende, Capabilities, Workflows, Transaktionen, Schemafelder, internen Protokollfelder, Ordner und Dateien verwenden deutsche Fachbegriffe.
+- Englische/externe Namen sind nur an unvermeidbaren Systemgrenzen erlaubt und werden dort sofort normalisiert oder gekapselt.
+- V4-Narrensicherheit ist nur das Mindestniveau. V5 verwendet Default-Deny, typisierte Freigaben, Live-Revalidierung, Persist-before-action, Ergebnisnachweis, Reconciliation und negative Bypass-Tests als Mehrfach-Verriegelung.
+- Fuer riskante Mutationen soll kein einzelner Fach-/Planungsfehler allein bis zum Game Write reichen.
+
 ## 1. Ausgangslage
 
 Aktueller Wissensstand:
@@ -148,6 +157,9 @@ Lieferobjekte:
 - Modul-/Port-/Layer-Abhaengigkeitsgraph;
 - Threat-/Failure-Modell;
 - Naming/Schema/Versioning-Konventionen;
+- vollstaendige deutsche V5-Domaenensprache gemaess `DEUTSCHE_NAMEN_UND_NARRENSICHERHEIT.md`;
+- Migrationsplan fuer bestehende eigene englische V5-Schema-/Statusbezeichner vor Runtime-Nutzung;
+- Mehrfach-Verriegelungs-Invarianten fuer riskante Mutationen;
 - ADR-Regeln.
 
 Mindestens neue V5-Regeln:
@@ -163,7 +175,10 @@ Mindestens neue V5-Regeln:
 Exit Gate:
 - keine ungeklärte Kernownership;
 - keine zyklische Layer-Abhaengigkeit;
-- alle 30 V3-Fehler haben eine strukturelle Gegenmassnahme in Roadmap/Verfassung.
+- alle 30 V3-Fehler haben eine strukturelle Gegenmassnahme in Roadmap/Verfassung;
+- deutsche Domaenensprache und erlaubte externe Ausnahmen sind abschliessend festgelegt;
+- kritische Zustaende sind geschlossene, fail-closed Modelle;
+- Mehrfach-Verriegelung fuer hohe Risiken ist verbindlich.
 
 ## R3 – Repository, Build, Guards und Host-Grenzen
 
@@ -179,6 +194,9 @@ Bauen:
 - no-V3/V4-runtime-import Guard;
 - secrets Guard;
 - bounded-collection Guard;
+- deutscher-Namensraum-Guard fuer neue V5-Runtime-Bezeichner soweit statisch pruefbar;
+- Guard gegen Ausfuehrer ohne typisierte Ausfuehrungsfreigabe;
+- Guard/Negativtests gegen Bypass der Mehrfach-Verriegelung;
 - Host/Runtime API Allowlist;
 - Feature/Capability Flags default-off;
 - CI auf exaktem Head;
@@ -191,6 +209,8 @@ Host-Regel:
 
 Exit Gate:
 - Guards schlagen in absichtlichen Negativtests sicher fehl;
+- neue V5-Runtime-Bezeichner halten die deutsche Domaenensprache ein;
+- mutierende Capabilities sind default-off und nicht ohne typisierte Freigabe erreichbar;
 - leere V5 Runtime kann headless starten/stoppen ohne Gameplay Writes.
 
 ## R4 – Deterministischer Core
