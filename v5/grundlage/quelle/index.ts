@@ -28,3 +28,6 @@ export * from "./persistenz/begrenztes-json.js";
 export * from "./persistenz/speicherdruck.js";
 export * from "./persistenz/speicherziel.js";
 export * from "./persistenz/postfach.js";
+export * from "./persistenz/live-wissens-speicher.js";
+export * from "./persistenz/dateibasierte-persistenz.js";
+export * from "./persistenz/retention.js";
