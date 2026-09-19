@@ -73,3 +73,20 @@ Informationen aus Community- oder unbekannten Quellen werden nicht automatisch z
 Der Wissenswaechter darf nur Webkandidaten speichern, deren Bezug zu **Adventure Land - The Code MMORPG** technisch bestaetigt wurde. Suchmaschinen-Query und Trefferposition gelten ausdruecklich nicht als Beweis. Offizielle Adventure-Land-Adressen werden direkt erkannt; andere Treffer muessen einen Vorfilter bestehen und anschliessend im tatsaechlich abgerufenen Seiteninhalt eindeutige Spielmerkmale enthalten. Unklare oder nicht erreichbare Ergebnisse werden fail-closed verworfen.
 
 Jeder neu gespeicherte Kandidat traegt einen `ADVENTURE_LAND_...`-Relevanznachweis. Kandidaten aus aelteren, breiteren Suchlaeufen ohne diesen Nachweis werden automatisch aus der Kandidatenliste entfernt.
+
+
+### Bot-Livewissen als Live Truth
+
+Die Windows Bridge kann einen lokal konfigurierten Bot-Ausgabeordner von der SSD in die Wissensbasis spiegeln. Diese Daten werden als vom Bot erzeugte Live-Evidence mit dem Status `LIVE_VERIFIZIERT_DURCH_BOT` abgelegt und sind von Web-Kandidaten getrennt.
+
+Ablage:
+
+```text
+v5/wissensbasis/datenbank/live-verifiziert/
+  manifest.json
+  aktuell/**
+```
+
+Die relative Bot-Unterordnerstruktur bleibt erhalten, damit die spaetere V5-Ordnerstruktur heute noch nicht festgelegt werden muss. Der absolute lokale SSD-Pfad ist absichtlich **kein Bestandteil** der Wissensbasis und wird nie ins Repo geschrieben.
+
+Wichtig: `LIVE_VERIFIZIERT_DURCH_BOT` beschreibt die Herkunft aus dem vom Betreiber konfigurierten Bot-Liveordner. Gameplay-Autoritaet entsteht trotzdem weiterhin nur durch frische Laufzeitpruefungen und die bestehenden Admission-/Safety-Gates.
