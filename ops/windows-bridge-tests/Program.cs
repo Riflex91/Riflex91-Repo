@@ -58,6 +58,17 @@ Assert(!GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/../dokumen
 Assert(WebQuellenEntdecker.BestimmeVertrauensklasse("https://adventure.land/allnotes") == "OFFIZIELL", "OFFICIAL_SITE_CLASSIFIED");
 Assert(WebQuellenEntdecker.BestimmeVertrauensklasse("https://github.com/kaansoral/adventureland_mongodb") == "OFFIZIELL", "OFFICIAL_REPO_CLASSIFIED");
 Assert(WebQuellenEntdecker.BestimmeVertrauensklasse("https://github.com/example/adventure-land-bot") == "COMMUNITY", "COMMUNITY_REPO_CLASSIFIED");
+Assert(WebQuellenEntdecker.IstOffizielleAdventureLandAdresse("https://adventure.land/allnotes"), "ADVENTURE_LAND_OFFICIAL_ADDRESS");
+Assert(WebQuellenEntdecker.IstOffizielleAdventureLandAdresse("https://store.steampowered.com/app/777150/Adventure_Land__The_Code_MMORPG/"), "STEAM_777150_OFFICIAL_ADDRESS");
+Assert(WebQuellenEntdecker.HatDirektenAdventureLandSpielbezug("Adventure Land - The Code MMORPG"), "CANONICAL_GAME_NAME_RELEVANT");
+Assert(WebQuellenEntdecker.HatDirektenAdventureLandSpielbezug("Community tools for https://adventure.land and its MMORPG"), "OFFICIAL_DOMAIN_REFERENCE_RELEVANT");
+Assert(!WebQuellenEntdecker.HatDirektenAdventureLandSpielbezug("Adventure Land amusement park family tickets"), "UNRELATED_ADVENTURE_LAND_REJECTED");
+Assert(!WebQuellenEntdecker.HatAusreichendenAdventureLandHinweis("https://adventure.com/", "Adventure.com | Travel Media Website of the Year", ""), "TRAVEL_RESULT_REJECTED");
+Assert(!WebQuellenEntdecker.HatAusreichendenAdventureLandHinweis("https://adventure-shop.at/", "Adventure Shop", ""), "ADVENTURE_SHOP_REJECTED");
+Assert(!WebQuellenEntdecker.HatAusreichendenAdventureLandHinweis("https://de.wikipedia.org/wiki/Adventure", "Adventure – Wikipedia", ""), "GENERIC_ADVENTURE_REJECTED");
+Assert(WebQuellenEntdecker.HatAusreichendenAdventureLandHinweis("https://github.com/example/adventure-land-bot", "example/adventure-land-bot", ""), "GITHUB_ADVENTURE_LAND_PREFILTER_ALLOWED");
+Assert(!WebQuellenEntdecker.IstGueltigeWebAdresse("http://127.0.0.1:9222/internal"), "LOOPBACK_WEB_RESULT_REJECTED");
+Assert(!WebQuellenEntdecker.IstGueltigeWebAdresse("http://192.168.1.20/private"), "PRIVATE_IPV4_WEB_RESULT_REJECTED");
 
 (defaults with { PreferredBrowser = "Brave" }).Validate();
 (defaults with { PreferredBrowser = "Edge" }).Validate();
