@@ -382,6 +382,11 @@ function installMerchantProduction(runtime, options = {}) {
       if (!entry || String(entry.name || '') !== String(demand.item || '')) continue;
       if (Math.max(0, Math.floor(n(entry.level, 0))) !== Math.max(0, Math.floor(n(demand.fromLevel, 0)))) continue;
       if (String(entry.disposition || '') !== expectedDisposition) continue;
+      const reasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
+      if (reasons.includes('FUTURE_FARMER_GEAR_PROGRESSION')
+        || reasons.includes('ACTIVE_GEAR_GOAL_EXACT_ITEM')
+        || reasons.includes('ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED')) continue;
+      if (String(demand.family || '') === 'UPGRADE' && !reasons.includes('PRODUCTION_MATERIAL_MUTATION_DEMAND')) continue;
       out.push(index);
       if (out.length >= required) break;
     }
