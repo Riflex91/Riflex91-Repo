@@ -56,7 +56,11 @@ function installMerchantProduction(runtime, options = {}) {
     maxTeamFarmHours: Math.max(0.25, n(options.merchantProductionMaxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS)),
     fallbackKillsPerHour: Math.max(1, n(options.merchantProductionFallbackKillsPerHour, DEFAULT_FALLBACK_KILLS_PER_HOUR)),
     materialObjectiveTtlMs: Math.max(60000, Math.min(60 * 60 * 1000, n(options.merchantProductionMaterialObjectiveTtlMs, 15 * 60 * 1000))),
-    lastMaterialFarmDecision: null
+    mutationDemandTtlMs: Math.max(30000, Math.min(15 * 60 * 1000, n(options.merchantProductionMutationDemandTtlMs, 5 * 60 * 1000))),
+    lastMaterialFarmDecision: null,
+    lastMutationDemand: null,
+    mutationExecutions: 0,
+    mutationHolds: 0
   };
 
   function taskCoordinator() { return runtime.merchantTaskCoordinator || null; }
@@ -262,6 +266,245 @@ function installMerchantProduction(runtime, options = {}) {
     }).finally(() => { state.executionPending = false; });
     return true;
   }
+  function mutationCandidateForPlan(plan) {
+    if (!plan || plan.state !== 'BLOCKED') return null;
+    const rows = Array.isArray(plan.blockedCandidates) && plan.blockedCandidates.length
+      ? plan.blockedCandidates
+      : plan.target
+        ? [{ candidate: plan.target, steps: plan.steps || [], blockers: plan.blockers || [] }]
+        : [];
+    for (const row of rows) {
+      if (!row || !row.candidate) continue;
+      const blockers = Array.isArray(row.blockers) ? row.blockers : [];
+      const hardBlocker = blockers.find((blocker) => blocker && ![
+        'MATERIAL_MUTATION_REQUIRED',
+        'MATERIAL_FARM_REQUIRED'
+      ].includes(String(blocker.reason || '')));
+      if (hardBlocker) continue;
+      const step = (Array.isArray(row.steps) ? row.steps : []).find((candidateStep) => candidateStep && [
+        ProductionStepKind.UPGRADE_REQUIRED,
+        ProductionStepKind.COMPOUND_REQUIRED
+      ].includes(candidateStep.kind));
+      if (!step) continue;
+      return { candidate: clone(row.candidate), step: clone(step) };
+    }
+    return null;
+  }
+
+  function clearProductionMutationDemand(reason = 'PRODUCTION_MUTATION_NO_LONGER_REQUIRED') {
+    runtime.productionMaterialMutationDemand = null;
+    state.lastMutationDemand = {
+      at: runtime.now(),
+      active: false,
+      reason
+    };
+    return true;
+  }
+
+  function setProductionMutationDemand(plan, selection) {
+    const step = selection && selection.step;
+    const candidate = selection && selection.candidate;
+    if (!step || !candidate) return null;
+    const family = step.kind === ProductionStepKind.COMPOUND_REQUIRED ? 'COMPOUND'
+      : step.kind === ProductionStepKind.UPGRADE_REQUIRED ? 'UPGRADE'
+        : null;
+    if (!family) return null;
+    const demand = {
+      schemaVersion: 1,
+      kind: 'PRODUCTION_MATERIAL_MUTATION',
+      family,
+      item: String(step.name || ''),
+      fromLevel: Math.max(0, Math.floor(n(step.fromLevel, Math.max(0, n(step.level, 1) - 1)))),
+      targetLevel: Math.max(1, Math.floor(n(step.targetLevel, step.level))),
+      output: String(candidate.output || ''),
+      recipient: String(candidate.recipient || ''),
+      slot: candidate.slot || null,
+      quantity: Math.max(1, Math.floor(n(step.quantity, 1))),
+      inputQuantity: Math.max(1, Math.floor(n(step.inputQuantity, family === 'COMPOUND' ? 3 : 1))),
+      scrollName: step.scrollName || null,
+      acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE',
+      createdAt: runtime.now(),
+      expiresAt: runtime.now() + state.mutationDemandTtlMs
+    };
+    runtime.productionMaterialMutationDemand = demand;
+    state.lastMutationDemand = { at: runtime.now(), active: true, reason: 'PRODUCTION_MUTATION_REQUIRED', demand: clone(demand), planId: plan && plan.id || null };
+    return demand;
+  }
+
+  function refreshInventoryLedgerForMutationDemand() {
+    const ledger = runtime.inventoryLedger;
+    const c = character();
+    if (!ledger || typeof ledger.observe !== 'function' || !c) return false;
+    let registry = null;
+    try { registry = runtime.characterRegistry && runtime.characterRegistry.status ? runtime.characterRegistry.status() : null; } catch (_) { registry = null; }
+    const characters = Array.isArray(registry && registry.characters) ? registry.characters.map((row) => clone(row)) : [];
+    const liveInventory = (Array.isArray(c.items) ? c.items : []).map((item, index) => item ? { ...clone(item), index } : null).filter(Boolean);
+    const liveRow = {
+      ...(characters.find((row) => row && String(row.name || '') === String(c.name || '')) || {}),
+      name: c.name,
+      ctype: c.ctype || c.type,
+      stateConfidence: 1,
+      inventory: liveInventory
+    };
+    const merged = characters.filter((row) => row && String(row.name || '') !== String(c.name || ''));
+    merged.push(liveRow);
+    let gameData = {};
+    try { gameData = runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {}; } catch (_) { gameData = {}; }
+    try {
+      ledger.observe({
+        observedAt: runtime.now(),
+        registry: { ...(registry || {}), characters: merged },
+        gameData,
+        contentDrift: runtime.contentDrift,
+        liveCharacter: c
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function mutationInputIndices(demand) {
+    const c = character();
+    const ledger = runtime.inventoryLedger;
+    if (!c || !ledger || typeof ledger.get !== 'function' || !demand) return [];
+    const required = String(demand.family || '') === 'COMPOUND' ? 3 : 1;
+    const expectedDisposition = String(demand.family || '') === 'COMPOUND' ? 'RESERVE_COMPOUND' : 'RESERVE_UPGRADE';
+    const out = [];
+    const items = Array.isArray(c.items) ? c.items : [];
+    for (let index = 0; index < items.length; index += 1) {
+      const item = items[index];
+      if (!item || String(item.name || '') !== String(demand.item || '')) continue;
+      if (Math.max(0, Math.floor(n(item.level, 0))) !== Math.max(0, Math.floor(n(demand.fromLevel, 0)))) continue;
+      if (item.locked || item.l || item.special || item.p) continue;
+      let entry = null;
+      try { entry = ledger.get(c.name, index); } catch (_) { entry = null; }
+      if (!entry || String(entry.name || '') !== String(demand.item || '')) continue;
+      if (Math.max(0, Math.floor(n(entry.level, 0))) !== Math.max(0, Math.floor(n(demand.fromLevel, 0)))) continue;
+      if (String(entry.disposition || '') !== expectedDisposition) continue;
+      const reasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
+      if (reasons.includes('FUTURE_FARMER_GEAR_PROGRESSION')
+        || reasons.includes('ACTIVE_GEAR_GOAL_EXACT_ITEM')
+        || reasons.includes('ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED')) continue;
+      if (String(demand.family || '') === 'UPGRADE' && !reasons.includes('PRODUCTION_MATERIAL_MUTATION_DEMAND')) continue;
+      out.push(index);
+      if (out.length >= required) break;
+    }
+    return out;
+  }
+
+  function scheduleProductionMutation(plan) {
+    if (!plan || plan.state !== 'BLOCKED' || state.executionPending || collectionBusy()) return false;
+    if (runtime.now() < state.pausedUntil) return false;
+    const selection = mutationCandidateForPlan(plan);
+    if (!selection) return false;
+    const lockPlan = { ...clone(plan), target: clone(selection.candidate) };
+    const lock = acquireTask(lockPlan, 'PRODUCTION_CHAIN');
+    if (!lock.acquired) return false;
+
+    clearProductionMaterialObjective('PRODUCTION_MUTATION_STEP_READY');
+    const demand = setProductionMutationDemand(plan, selection);
+    if (!demand) {
+      releaseTask('PRODUCTION_MUTATION_DEMAND_INVALID');
+      return false;
+    }
+
+    const convergence = runtime.alpha27CombatMerchantConvergence;
+    const merchant = convergence && convergence.merchant;
+    if (!merchant || typeof merchant.executeEconomyRequest !== 'function') {
+      state.mutationHolds += 1;
+      state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      state.lastExecution = { at: runtime.now(), planId: plan.id, kind: selection.step.kind, result: { executed: false, committed: false, reason: 'ALPHA27_MUTATION_AUTHORITY_UNAVAILABLE' } };
+      clearProductionMutationDemand('ALPHA27_MUTATION_AUTHORITY_UNAVAILABLE');
+      releaseTask('PRODUCTION_MUTATION_AUTHORITY_UNAVAILABLE');
+      return true;
+    }
+    try {
+      if (typeof merchant.ensureAutonomousAuthorities === 'function') merchant.ensureAutonomousAuthorities();
+    } catch (_) {}
+    if (!refreshInventoryLedgerForMutationDemand()) {
+      state.mutationHolds += 1;
+      state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      state.lastExecution = { at: runtime.now(), planId: plan.id, kind: selection.step.kind, result: { executed: false, committed: false, reason: 'PRODUCTION_MUTATION_LEDGER_REFRESH_FAILED' } };
+      clearProductionMutationDemand('PRODUCTION_MUTATION_LEDGER_REFRESH_FAILED');
+      releaseTask('PRODUCTION_MUTATION_LEDGER_REFRESH_FAILED');
+      return true;
+    }
+
+    const indices = mutationInputIndices(demand);
+    const requiredInputs = demand.family === 'COMPOUND' ? 3 : 1;
+    if (indices.length < requiredInputs) {
+      state.mutationHolds += 1;
+      state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      state.lastExecution = {
+        at: runtime.now(),
+        planId: plan.id,
+        kind: selection.step.kind,
+        result: { executed: false, committed: false, reason: 'PRODUCTION_MUTATION_INPUT_NOT_LEDGER_AUTHORIZED', requiredInputs, authorizedInputs: indices.length }
+      };
+      clearProductionMutationDemand('PRODUCTION_MUTATION_INPUT_NOT_LEDGER_AUTHORIZED');
+      releaseTask('PRODUCTION_MUTATION_INPUT_NOT_LEDGER_AUTHORIZED');
+      return true;
+    }
+
+    const request = {
+      type: demand.family,
+      character: character().name,
+      index: indices[0],
+      indices,
+      metadata: {
+        source: 'MERCHANT_PRODUCTION_ACQUISITION_V2',
+        lifecycle: 'PRODUCTION_MATERIAL_ACQUISITION',
+        productionMaterialAcquisition: true,
+        output: demand.output,
+        recipient: demand.recipient,
+        targetLevel: demand.targetLevel,
+        fromLevel: demand.fromLevel,
+        requiredRecipeQuantity: demand.quantity,
+        acquisitionGraph: demand.acquisitionGraph,
+        scrollPolicy: 'ITEM_GRADE_DEFAULT'
+      }
+    };
+
+    state.executionPending = true;
+    state.mutationExecutions += 1;
+    Promise.resolve(merchant.executeEconomyRequest(request)).then((acted) => {
+      state.lastExecution = {
+        at: runtime.now(),
+        planId: plan.id,
+        kind: selection.step.kind,
+        result: {
+          executed: acted === true,
+          committed: null,
+          reason: acted === true ? 'ALPHA27_PRODUCTION_MUTATION_EXECUTED_REPLAN_REQUIRED' : 'ALPHA27_PRODUCTION_MUTATION_NOT_EXECUTED',
+          request: clone(request)
+        }
+      };
+      if (acted !== true) {
+        state.mutationHolds += 1;
+        state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      }
+    }).catch((error) => {
+      state.mutationHolds += 1;
+      state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      state.lastExecution = {
+        at: runtime.now(),
+        planId: plan.id,
+        kind: selection.step.kind,
+        result: {
+          executed: false,
+          committed: false,
+          reason: 'UNHANDLED_PRODUCTION_MUTATION_ERROR',
+          error: error && typeof error === 'object' ? { reason: error.reason || error.code || error.message || 'STRUCTURED_ERROR', message: error.message || null } : String(error)
+        }
+      };
+    }).finally(() => {
+      clearProductionMutationDemand('PRODUCTION_MUTATION_ATTEMPT_COMPLETE_REPLAN');
+      state.executionPending = false;
+    });
+    return true;
+  }
+
   function setProductionExchangeDemand(source = null, targetMaterial = null, expiresAt = null) {
     const existing = Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : [];
     const retained = existing.filter((row) => row && String(row.reason || '') !== 'PRODUCTION_MATERIAL');
@@ -395,6 +638,9 @@ function installMerchantProduction(runtime, options = {}) {
     if (task && task.owner !== 'PRODUCTION') {
       return { state: 'HOLD', reason: 'MERCHANT_TASK_OWNED_BY_OTHER_SUBSYSTEM', task: clone(task) };
     }
+    if (state.executionPending) {
+      return { state: 'HOLD', reason: 'MERCHANT_PRODUCTION_EXECUTION_PENDING', task: clone(task) };
+    }
     if (ensureBankCatalog()) return { state: 'HOLD', reason: 'BANK_CATALOG_REFRESH_IN_PROGRESS' };
 
     const active = currentTask();
@@ -409,8 +655,16 @@ function installMerchantProduction(runtime, options = {}) {
     }
 
     const plan = evaluate();
-    if (plan && plan.state === 'READY') clearProductionMaterialObjective('PRODUCTION_CHAIN_READY');
-    else if (plan && plan.state === 'BLOCKED') publishProductionMaterialObjective(plan);
+    if (plan && plan.state === 'READY') {
+      clearProductionMutationDemand('PRODUCTION_CHAIN_READY');
+      clearProductionMaterialObjective('PRODUCTION_CHAIN_READY');
+    } else if (plan && plan.state === 'BLOCKED') {
+      if (scheduleProductionMutation(plan)) return plan;
+      clearProductionMutationDemand('NO_ACTIONABLE_PRODUCTION_MUTATION');
+      publishProductionMaterialObjective(plan);
+    } else {
+      clearProductionMutationDemand('PRODUCTION_PLAN_NOT_BLOCKED');
+    }
     if (schedule(plan)) return plan;
 
     if (plan && plan.state !== 'READY' && !collectionBusy() && !state.executionPending) {
@@ -445,7 +699,7 @@ function installMerchantProduction(runtime, options = {}) {
     executor.configure({ enabled: config.enabled === true, ack: config.ack, allowBuy: config.allowBuy === true, allowBank: config.allowBank === true, allowCraft: config.allowCraft === true, allowExchange: config.allowExchange === true });
     return status();
   }
-  function disable(reason = 'OPERATOR_DISABLED') { executor.disable(reason); return status(); }
+  function disable(reason = 'OPERATOR_DISABLED') { clearProductionMutationDemand(reason); executor.disable(reason); return status(); }
   function reconcile() { return executor.reconcile(); }
   function status() {
     return {
@@ -481,6 +735,13 @@ function installMerchantProduction(runtime, options = {}) {
         gearBenefitPrimary: true,
         characterLevelUsedForStrengthRanking: false,
         exchangeBackedMaterialAcquisition: true,
+        leveledRecipeMaterialAcquisition: true,
+        acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE',
+        mutationAuthority: 'ALPHA27_ATOMIC_ONLY',
+        mutationDemandTtlMs: state.mutationDemandTtlMs,
+        lastMutationDemand: clone(state.lastMutationDemand),
+        mutationExecutions: state.mutationExecutions,
+        mutationHolds: state.mutationHolds,
         lastDecision: clone(state.lastMaterialFarmDecision)
       },
       taskCoordinator: taskCoordinator() && typeof taskCoordinator().status === 'function' ? taskCoordinator().status() : null,
