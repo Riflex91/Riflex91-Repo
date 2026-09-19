@@ -1,4 +1,4 @@
-function automationCatalog(){
+export const DASHBOARD_FRAGMENT_4 = `function automationCatalog(){
   const chars=overview&&overview.characters||[];
   const merchant=chars.find(row=>String(row.status&&row.status.character&&row.status.character.ctype||'').toLowerCase()==='merchant');
   const candidates=[merchant].concat(chars).filter(Boolean);
@@ -42,7 +42,7 @@ async function saveItemPermission(name,action,value){
   if(value==='auto')delete row[action];else row[action]=value==='true';if(Object.keys(row).length)all[name]=row;else delete all[name];
   try{const j=await api('/api/v3/settings',{method:'PATCH',admin:true,body:{account:settings.account||'default',expectedRevision:settings.settings&&settings.settings.revision,patch:{'economy.itemPermissions':all}}});settings=j;dirty={};renderSettings();renderAutomation();document.querySelectorAll('.item-permission-menu').forEach(el=>el.remove());toast('Item-Regel gespeichert. Der Bot übernimmt sie beim nächsten Cloud-Sync.')}catch(e){toast(e.message,true)}
 }
-export const DASHBOARD_FRAGMENT_4 = `function actionLabel(a){const map={continue:'Position halten',change_farm_target:'Farmziel wechseln',replan_merchant:'Merchant neu planen',explore:'Erkunden',wait:'Warten'};return map[String(a||'')]||String(a||'Strategie analysieren')}
+function actionLabel(a){const map={continue:'Position halten',change_farm_target:'Farmziel wechseln',replan_merchant:'Merchant neu planen',explore:'Erkunden',wait:'Warten'};return map[String(a||'')]||String(a||'Strategie analysieren')}
 function renderBrain(){
   if(!brain||!brain.brain){$('brainRoot').innerHTML='<div class="empty">Noch kein Merchant-Brain-State vorhanden.</div>';return}
   const b=brain.brain,q=b.quality||{},st=b.student||{},t=b.teacher||{},l=b.league||{},cur=b.current||{},sd=cur.student||{},td=cur.teacher||{},usage=brain.usage||{};
