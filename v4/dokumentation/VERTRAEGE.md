@@ -113,3 +113,15 @@ Ein Vorfall verweist auf Beweise und Wiederholungsdaten. Er ist kein freier Text
 ## EntwicklungsAufgabe
 
 Fakten und Vermutungen bleiben getrennt. Eine Entwicklungsaufgabe darf ausdruecklich weitere Daten verlangen, statt voreilig eine Codeaenderung zu fordern.
+
+## SkillKatalog
+
+Ein `SkillKatalog` ist die versionierte, normalisierte read-only Sicht auf Adventure Lands aktuell beobachtetes `G.skills`. Er traegt eine stabile Generation, einen fachlichen Fingerprint und genau einen der Zustaende `bereit`, `veraltet`, `drift` oder `blockiert`.
+
+Der fachliche Fingerprint verwendet V4s zentrale `kanonisiereJson(...)`-Darstellung zusammen mit `berechneSha256(...)`. Der Skill-Katalog fuehrt keine eigene zweite Kanonisierung oder Hash-Funktion.
+
+Live-Erkennung ist keine Automationsfreigabe: Das Feld `automationValidated` bleibt fuer neue oder unbekannte Skills `false`, bis ihre Semantik in V4 ausdruecklich validiert wurde. Unbekannte Daten erzeugen keine zusaetzliche Autoritaet.
+
+Die `technischeReadiness` ist in Block 8.6.1 bewusst charakterunabhaengig `unbekannt` und besitzt `aktionsFreigabe: false`. Charakterbezogene Readiness aus Level, Equipment, Material, aktuellem Zustand und SkillPolicy wird erst in Block 8.6.4 abgeleitet.
+
+Der Katalog selbst besitzt immer `spielAutoritaet: false`. Ein zweiter identischer Snapshot nach fachlicher Drift macht den Katalog nicht automatisch wieder produktionsbereit; die Revalidierung muss den exakt aktuellen Fingerprint bestaetigen.
