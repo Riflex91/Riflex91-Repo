@@ -115,7 +115,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## economy
 
-**12 Dateien · 4377 Zeilen**
+**13 Dateien · 4650 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -123,11 +123,12 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/economy/bank-expansion-transactions.js` | 289 |
 | `src/economy/controlled-bank-consolidation-executor.js` | 285 |
 | `src/economy/controlled-bank-expansion-executor.js` | 184 |
-| `src/economy/controlled-merchant-executor.js` | 619 |
+| `src/economy/controlled-merchant-executor.js` | 599 |
 | `src/economy/controlled-merchant-space-recovery-hardened.js` | 159 |
 | `src/economy/controlled-merchant-space-recovery.js` | 420 |
-| `src/economy/gear-progression.js` | 600 |
-| `src/economy/inventory-ledger.js` | 448 |
+| `src/economy/gear-progression.js` | 605 |
+| `src/economy/inventory-ledger.js` | 455 |
+| `src/economy/item-economic-evaluator.js` | 281 |
 | `src/economy/merchant-space-recovery-journal.js` | 400 |
 | `src/economy/sell-safety.js` | 134 |
 | `src/economy/transaction-engine.js` | 424 |
@@ -275,7 +276,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 17189 Zeilen**
+**50 Dateien · 17224 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -289,23 +290,23 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha21-progression-intelligence.js` | 432 |
 | `src/reliability/alpha23-combat-stability-hotfix.js` | 40 |
 | `src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js` | 520 |
-| `src/reliability/alpha25-control-center-brain.js` | 512 |
+| `src/reliability/alpha25-control-center-brain.js` | 524 |
 | `src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js` | 302 |
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
 | `src/reliability/alpha27-atomic-core.js` | 50 |
 | `src/reliability/alpha27-atomic-economy.js` | 502 |
-| `src/reliability/alpha27-atomic-ledger.js` | 248 |
+| `src/reliability/alpha27-atomic-ledger.js` | 297 |
 | `src/reliability/alpha27-atomic-service.js` | 338 |
 | `src/reliability/alpha27-atomic-transaction-engine.js` | 179 |
-| `src/reliability/alpha27-atomic-transactions.js` | 253 |
+| `src/reliability/alpha27-atomic-transactions.js` | 263 |
 | `src/reliability/alpha27-bank-recovery.js` | 493 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 331 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 806 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 790 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
-| `src/reliability/alpha27-merchant-planning.js` | 706 |
+| `src/reliability/alpha27-merchant-planning.js` | 686 |
 | `src/reliability/alpha27-merchant-service.js` | 188 |
 | `src/reliability/alpha27-merchant-travel-intelligence.js` | 393 |
 | `src/reliability/alpha27-utils.js` | 149 |
