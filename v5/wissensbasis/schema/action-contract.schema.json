@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "v5-action-contract.schema.json",
+  "title": "V5 Adventure Land Action Contract",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "publicFunction",
+    "status",
+    "family",
+    "effectDomains",
+    "client",
+    "server",
+    "valueRisk",
+    "idempotency",
+    "unknownOutcomePolicy",
+    "resourceDomains",
+    "liveRevalidation",
+    "dangerFlags",
+    "postconditions",
+    "notes",
+    "volatility",
+    "sourceRefs"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^AL-ACTION-[A-Z0-9-]+$"
+    },
+    "publicFunction": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "VERIFIED_SOURCE_SNAPSHOT",
+        "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+        "PARTIAL_RESEARCH"
+      ]
+    },
+    "family": {
+      "type": "string",
+      "minLength": 1
+    },
+    "effectDomains": {
+      "type": "array"
+    },
+    "client": {
+      "type": "object",
+      "required": [
+        "correlationType",
+        "requestId"
+      ]
+    },
+    "server": {
+      "type": "object",
+      "required": [
+        "executionModel"
+      ]
+    },
+    "valueRisk": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ]
+    },
+    "idempotency": {
+      "enum": [
+        "NON_IDEMPOTENT",
+        "CONDITIONALLY_IDEMPOTENT",
+        "IDEMPOTENCY_GUARDED",
+        "UNKNOWN"
+      ]
+    },
+    "unknownOutcomePolicy": {
+      "enum": [
+        "RECONCILE_NO_BLIND_RETRY",
+        "REOBSERVE_BEFORE_RETRY",
+        "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED"
+      ]
+    },
+    "resourceDomains": {
+      "type": "array"
+    },
+    "liveRevalidation": {
+      "type": "array"
+    },
+    "dangerFlags": {
+      "type": "array"
+    },
+    "postconditions": {
+      "type": "array"
+    },
+    "notes": {
+      "type": "array"
+    },
+    "volatility": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "UNKNOWN"
+      ]
+    },
+    "sourceRefs": {
+      "type": "array",
+      "minItems": 1
+    }
+  }
+}
