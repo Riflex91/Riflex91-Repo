@@ -57,6 +57,8 @@ function recipeFor(gameData, name) {
     output: String(name),
     outputQuantity: Math.max(1, Math.floor(finite(raw.q, finite(raw.quantity, 1)))),
     cost: Math.max(0, Math.floor(finite(raw.cost, 0))),
+    quest: raw.quest == null ? null : String(raw.quest),
+    specialOutput: raw.output && typeof raw.output === 'object' ? clone(raw.output) : null,
     items
   };
 }
