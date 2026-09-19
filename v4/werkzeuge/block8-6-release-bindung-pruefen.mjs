@@ -9,11 +9,13 @@ const manifestPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-RELEASE-CAN
 const workflowPfad = path.join(repoWurzel, '.github', 'workflows', 'release-v4-block8-6-candidate.yml');
 const dokumentPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-RELEASE-CANDIDATE.md');
 const deploymentDokumentPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-CANDIDATE-DEPLOYMENT-NACHWEIS.md');
+const schattenNachweisPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-SCHATTEN-FREIGABE-NACHWEIS.json');
 
 const manifest = JSON.parse(await readFile(manifestPfad, 'utf8'));
 const workflow = await readFile(workflowPfad, 'utf8');
 const dokument = await readFile(dokumentPfad, 'utf8');
 const deploymentDokument = await readFile(deploymentDokumentPfad, 'utf8');
+const schattenNachweis = JSON.parse(await readFile(schattenNachweisPfad, 'utf8'));
 
 const erwartet = Object.freeze({
   releaseSha: 'ca0dfee7685563c8b6003469300c8fd08777b053',
@@ -50,17 +52,19 @@ if (manifest.offlineReplayVerified !== true) {
 for (const feld of ['deploymentPerformed', 'publicHttpsVerified']) {
   if (manifest[feld] !== true) throw new Error('Bestaetigter Deployment-/HTTPS-Nachweis fehlt fuer ' + feld + '.');
 }
+if (manifest.adventureLandShadowVerified !== true) {
+  throw new Error('Realer Adventure-Land-Schattennachweis muss kanonisch bestanden sein.');
+}
 for (const feld of [
-  'adventureLandShadowVerified',
   'adventureLandControlledLiveVerified',
   'adventureLandSoakVerified',
   'block86Completed',
   'block9Freigegeben'
 ]) {
-  if (manifest[feld] !== false) throw new Error('Reale Adventure-Land-Freigabe muss bis zum separaten Nachweis false bleiben: ' + feld + '.');
+  if (manifest[feld] !== false) throw new Error('Spaetere Block-8.6-Freigabe muss bis zum separaten Nachweis false bleiben: ' + feld + '.');
 }
-if (manifest.nextOperationalStep !== 'adventure_land_shadow') {
-  throw new Error('Naechster operativer Schritt muss adventure_land_shadow sein.');
+if (manifest.nextOperationalStep !== 'adventure_land_controlled_live') {
+  throw new Error('Naechster operativer Schritt muss adventure_land_controlled_live sein.');
 }
 
 const alt = manifest.immutableRuntime115;
@@ -105,6 +109,51 @@ if (!deployment ||
     deployment.conclusion !== 'success' ||
     deployment.completedAt !== '2026-09-19T12:05:07Z') {
   throw new Error('Deployment-/HTTPS-Evidenz ist nicht exakt an den erfolgreichen Block-8.6-Run gebunden.');
+}
+
+const shadow = manifest.shadowEvidence;
+if (!shadow ||
+    shadow.source !== 'chat_paste' ||
+    shadow.reportFile !== 'Eingefügter Text(20260919-125742).txt' ||
+    shadow.reportBytes !== 678718 ||
+    shadow.reportSha256 !== '77f911e5c27bf9c960c66a7cff41ad87f09e30d087af175963e7cb45e9ede217' ||
+    shadow.reportCreatedAt !== '2026-09-19T12:57:39.627Z' ||
+    shadow.performedAt !== 1789822656778 ||
+    shadow.laufKennung !== 'block8-6-schatten-1789822653521' ||
+    shadow.paketVersion !== '1.0.0' ||
+    shadow.runnerVersion !== '1.0.0' ||
+    shadow.katalogFingerprint !== '2299d0025c1e85725c2a75601832009aa2b78afa56a9f8a771d17528416c5268' ||
+    shadow.capabilityFingerprint !== '20c2cf00b529b2b6c281a2ca349d14a501d4b49d24353122eeadb547bbd4038d' ||
+    shadow.evidenceFile !== 'BLOCK-8-6-9-SCHATTEN-FREIGABE-NACHWEIS.json') {
+  throw new Error('Schatten-Evidenz ist nicht exakt an den realen PASS-Bericht gebunden.');
+}
+if (schattenNachweis.schemaVersion !== 1 ||
+    schattenNachweis.releaseSha !== manifest.releaseSha ||
+    schattenNachweis.candidateSha256 !== manifest.sha256 ||
+    schattenNachweis.candidateBytes !== manifest.bytes ||
+    schattenNachweis.nachweis?.ergebnis !== 'bestanden' ||
+    schattenNachweis.nachweis?.spielAktionAusgefuehrt !== false ||
+    schattenNachweis.reportEvidence?.sha256 !== '77f911e5c27bf9c960c66a7cff41ad87f09e30d087af175963e7cb45e9ede217' ||
+    schattenNachweis.runtimeEvidence?.runtimeVersion !== '1.1.5' ||
+    schattenNachweis.runtimeEvidence?.aktivFreigegeben !== false ||
+    schattenNachweis.runtimeEvidence?.empfangInstalliert !== false ||
+    schattenNachweis.runtimeEvidence?.heartbeatVersuche !== 0 ||
+    schattenNachweis.runtimeEvidence?.heartbeatErfolge !== 0 ||
+    schattenNachweis.runtimeEvidence?.heartbeatFehler !== 0 ||
+    schattenNachweis.capabilityEvidence?.capabilityVersion !== '1.0.0' ||
+    schattenNachweis.capabilityEvidence?.aktivFreigegeben !== false ||
+    schattenNachweis.capabilityEvidence?.remoteBeobachtungInstalliert !== false ||
+    schattenNachweis.capabilityEvidence?.capabilityEmpfangInstalliert !== false ||
+    schattenNachweis.capabilityEvidence?.sendeVersuche !== 0 ||
+    schattenNachweis.capabilityEvidence?.sendeErfolge !== 0 ||
+    schattenNachweis.capabilityEvidence?.sendeFehler !== 0 ||
+    schattenNachweis.capabilityEvidence?.katalogFingerprint !== '2299d0025c1e85725c2a75601832009aa2b78afa56a9f8a771d17528416c5268' ||
+    schattenNachweis.capabilityEvidence?.capabilityFingerprint !== '20c2cf00b529b2b6c281a2ca349d14a501d4b49d24353122eeadb547bbd4038d' ||
+    schattenNachweis.capabilityEvidence?.lokalerSnapshotFingerprint !== '20c2cf00b529b2b6c281a2ca349d14a501d4b49d24353122eeadb547bbd4038d' ||
+    schattenNachweis.schattenUebergabe?.aenderungsKennung !== 'git:ca0dfee7685563c8b6003469300c8fd08777b053' ||
+    schattenNachweis.auswertungErwartet?.naechsteStufe !== 'kontrolliert_live' ||
+    schattenNachweis.auswertungErwartet?.block9Freigegeben !== false) {
+  throw new Error('Kanonischer Block-8.6-Schattennachweis besitzt unerwartete Werte.');
 }
 
 const gebaut = await baueBlock86Candidate({ schreiben: false });
@@ -197,13 +246,14 @@ if (remoteObjectOps.length !== 3) {
 for (const pflicht of [
   'finaler Block-8.6-Candidate technisch gebunden',
   'immutable veröffentlicht und öffentlich per HTTPS verifiziert',
+  'realer Schatten bestanden',
   '`ca0dfee7685563c8b6003469300c8fd08777b053`',
   '51 Module',
   '396471 Bytes',
   '`b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5`',
   'deploymentPerformed=true',
   'publicHttpsVerified=true',
-  'adventureLandShadowVerified=false',
+  'adventureLandShadowVerified=true',
   'adventureLandControlledLiveVerified=false',
   'adventureLandSoakVerified=false',
   'block9Freigegeben=false',
@@ -225,11 +275,24 @@ for (const pflicht of [
 ]) {
   if (!deploymentDokument.includes(pflicht)) throw new Error('Block-8.6-Deployment-Nachweis fehlt: ' + pflicht);
 }
+for (const pflicht of [
+  'block8-6-schatten-1789822653521',
+  '77f911e5c27bf9c960c66a7cff41ad87f09e30d087af175963e7cb45e9ede217',
+  '2299d0025c1e85725c2a75601832009aa2b78afa56a9f8a771d17528416c5268',
+  '20c2cf00b529b2b6c281a2ca349d14a501d4b49d24353122eeadb547bbd4038d',
+  '"heartbeatVersuche": 0',
+  '"sendeVersuche": 0',
+  '"naechsteStufe": "kontrolliert_live"'
+]) {
+  if (!JSON.stringify(schattenNachweis, null, 2).includes(pflicht)) {
+    throw new Error('Block-8.6-Schattennachweis fehlt: ' + pflicht);
+  }
+}
 
 console.log(
   'Block 8.6.9 Release-Bindung geprueft: exakter gruener Candidate ' +
   manifest.releaseSha +
   ', 51 Module / 396471 Bytes / SHA-256 ' +
   manifest.sha256 +
-  '; Offline/Replay sowie Deployment/HTTPS gebunden; Schatten/Live/Soak bleiben gesperrt.'
+  '; Offline/Replay, Deployment/HTTPS und realer Schatten gebunden; kontrolliert live/Soak bleiben gesperrt.'
 );
