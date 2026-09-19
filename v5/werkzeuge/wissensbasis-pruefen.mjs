@@ -11,6 +11,7 @@ const manifest = readJson('manifest.json');
 const sourcesDoc = readJson(manifest.sources.registry);
 const factsDocs = manifest.facts.map(readJson);
 const questionDocs = manifest.questions.map(readJson);
+const contractDocs = (manifest.contracts ?? []).map(readJson);
 const revalidation = readJson(manifest.revalidation);
 
 const sources = new Map(sourcesDoc.sources.map((s) => [s.id, s]));
@@ -29,6 +30,23 @@ for (const fact of factList) {
   if (!Array.isArray(fact.sourceRefs) || fact.sourceRefs.length === 0) fail(`${fact.id}: keine SourceRefs`);
   for (const ref of fact.sourceRefs) if (!sources.has(ref.sourceId)) fail(`${fact.id}: unbekannte Source ${ref.sourceId}`);
   facts.set(fact.id, fact);
+}
+
+const contractList = contractDocs.flatMap((d) => d.contracts ?? []);
+const contractIds = new Set();
+const contractFunctions = new Set();
+const validContractStatus = new Set(['VERIFIED_SOURCE_SNAPSHOT','LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT','PARTIAL_RESEARCH']);
+for (const contract of contractList) {
+  if (!contract.id || contractIds.has(contract.id)) fail(`Ungueltige/doppelte Contract-ID: ${contract.id}`);
+  if (!contract.publicFunction || contractFunctions.has(contract.publicFunction)) fail(`Ungueltige/doppelte Public Function: ${contract.publicFunction}`);
+  if (!validContractStatus.has(contract.status)) fail(`${contract.id}: ungueltiger Contract-Status ${contract.status}`);
+  if (!Array.isArray(contract.sourceRefs) || contract.sourceRefs.length === 0) fail(`${contract.id}: keine SourceRefs`);
+  for (const ref of contract.sourceRefs) if (!sources.has(ref.sourceId)) fail(`${contract.id}: unbekannte Source ${ref.sourceId}`);
+  if (contract.status === 'LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT' && contract.unknownOutcomePolicy !== 'DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED') {
+    fail(`${contract.id}: Live-only Contract darf nicht zur Automation freigegeben sein`);
+  }
+  contractIds.add(contract.id);
+  contractFunctions.add(contract.publicFunction);
 }
 
 for (const fact of factList) {
@@ -62,5 +80,5 @@ if (!Array.isArray(revalidation.p0Research) || revalidation.p0Research.some((x) 
   fail('Revalidierungsqueue P0 unvollstaendig.');
 }
 
-console.log(`[V5-WISSEN] OK: ${facts.size} Facts, ${questionIds.size} offene Fragen, ${sources.size} Quellen.`);
+console.log(`[V5-WISSEN] OK: ${facts.size} Facts, ${contractIds.size} Action Contracts, ${questionIds.size} offene Fragen, ${sources.size} Quellen.`);
 console.log(`[V5-WISSEN] Raw Research SHA256: ${hash}`);

@@ -1,0 +1,3329 @@
+{
+  "schemaVersion": 1,
+  "researchId": "V5-P0-01",
+  "snapshot": {
+    "retrievedAt": "2026-09-19",
+    "officialRepoCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+  },
+  "summary": {
+    "total": 60,
+    "sourceVerified": 52,
+    "liveDocOnly": 8
+  },
+  "contracts": [
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-ACTIVATE",
+      "publicFunction": "activate",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "booster",
+      "effectDomains": [
+        "inventory_item_state"
+      ],
+      "client": {
+        "transportEvent": "booster",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "booster",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "booster",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory"
+      ],
+      "liveRevalidation": [
+        "character",
+        "inventory"
+      ],
+      "dangerFlags": [
+        "INVENTORY_INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "target booster remains locatable with activated expiry/state"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-SHIFT",
+      "publicFunction": "shift",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "booster",
+      "effectDomains": [
+        "inventory_item_identity",
+        "character_multiplier_state"
+      ],
+      "client": {
+        "transportEvent": "booster",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "booster",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "booster",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory"
+      ],
+      "liveRevalidation": [
+        "character",
+        "inventory"
+      ],
+      "dangerFlags": [
+        "INVENTORY_INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "booster name equals requested mode"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-THROW-ITEM",
+      "publicFunction": "throw_item",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "item_destruction",
+      "effectDomains": [
+        "inventory"
+      ],
+      "client": {
+        "transportEvent": "throw",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "throw",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "throw",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory"
+      ],
+      "liveRevalidation": [
+        "character",
+        "inventory"
+      ],
+      "dangerFlags": [
+        "DESTRUCTIVE",
+        "INVENTORY_INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "thrown quantity removed from inventory"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-BANK-DEPOSIT",
+      "publicFunction": "bank_deposit",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "bank",
+      "effectDomains": [
+        "gold",
+        "bank_gold"
+      ],
+      "client": {
+        "transportEvent": "bank",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "bank",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "bank",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "account:bank_lease",
+        "character:inventory"
+      ],
+      "liveRevalidation": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "ACCOUNT_SHARED_STATE",
+        "BANK_MOUNT_REQUIRED"
+      ],
+      "postconditions": [
+        "bank operation deposit reflected in fresh bank/character state"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-BANK-WITHDRAW",
+      "publicFunction": "bank_withdraw",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "bank",
+      "effectDomains": [
+        "gold",
+        "bank_gold"
+      ],
+      "client": {
+        "transportEvent": "bank",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "bank",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "bank",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "account:bank_lease",
+        "character:inventory"
+      ],
+      "liveRevalidation": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "ACCOUNT_SHARED_STATE",
+        "BANK_MOUNT_REQUIRED"
+      ],
+      "postconditions": [
+        "bank operation withdraw reflected in fresh bank/character state"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-BANK-STORE",
+      "publicFunction": "bank_store",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "bank",
+      "effectDomains": [
+        "inventory",
+        "bank_inventory"
+      ],
+      "client": {
+        "transportEvent": "bank",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "bank",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "bank",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "account:bank_lease",
+        "character:inventory"
+      ],
+      "liveRevalidation": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "ACCOUNT_SHARED_STATE",
+        "BANK_MOUNT_REQUIRED"
+      ],
+      "postconditions": [
+        "bank operation swap reflected in fresh bank/character state"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-BANK-RETRIEVE",
+      "publicFunction": "bank_retrieve",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "bank",
+      "effectDomains": [
+        "inventory",
+        "bank_inventory"
+      ],
+      "client": {
+        "transportEvent": "bank",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "bank",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "bank",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "account:bank_lease",
+        "character:inventory"
+      ],
+      "liveRevalidation": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "ACCOUNT_SHARED_STATE",
+        "BANK_MOUNT_REQUIRED"
+      ],
+      "postconditions": [
+        "bank operation swap reflected in fresh bank/character state"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-BANK-SWAP",
+      "publicFunction": "bank_swap",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "bank",
+      "effectDomains": [
+        "inventory",
+        "bank_inventory"
+      ],
+      "client": {
+        "transportEvent": "bank",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "bank",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "bank",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "account:bank_lease",
+        "character:inventory"
+      ],
+      "liveRevalidation": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "ACCOUNT_SHARED_STATE",
+        "BANK_MOUNT_REQUIRED"
+      ],
+      "postconditions": [
+        "bank operation move reflected in fresh bank/character state"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-OPEN-BANK-PACK",
+      "publicFunction": "open_bank_pack",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "bank",
+      "effectDomains": [
+        "gold_or_shells",
+        "bank_capacity"
+      ],
+      "client": {
+        "transportEvent": "bank",
+        "correlationType": "MIXED",
+        "correlationChannel": "bank",
+        "requestId": true,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "bank",
+        "executionModel": "MIXED_ATOMIC_OR_ASYNC_BACKEND_TX",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "account:bank_lease",
+        "account:currency"
+      ],
+      "liveRevalidation": [
+        "character",
+        "bank",
+        "account_currency"
+      ],
+      "dangerFlags": [
+        "MIXED_CORRELATION",
+        "ASYNC_BACKEND_TX",
+        "BANK_MOUNT_REQUIRED"
+      ],
+      "postconditions": [
+        "requested pack exists and currency delta matches server result"
+      ],
+      "notes": [
+        "Gold path uses bank FIFO deferred; shells path uses request_id and backend transaction."
+      ],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-BUY",
+      "publicFunction": "buy",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "npc_purchase",
+      "effectDomains": [
+        "gold_or_shells",
+        "inventory"
+      ],
+      "client": {
+        "transportEvent": null,
+        "correlationType": "ROUTER",
+        "correlationChannel": null,
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": null,
+        "executionModel": "ROUTER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:gold",
+        "account:shells"
+      ],
+      "liveRevalidation": [
+        "item_definition",
+        "vendor_reachability",
+        "inventory_capacity",
+        "currency"
+      ],
+      "dangerFlags": [
+        "ROUTES_BY_ITEM_DEFINITION"
+      ],
+      "postconditions": [
+        "delegated gold/shell purchase postcondition holds"
+      ],
+      "notes": [
+        "Routes to buy_with_shells for eligible cash items, otherwise buy_with_gold."
+      ],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-BUY-WITH-GOLD",
+      "publicFunction": "buy_with_gold",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "npc_purchase",
+      "effectDomains": [
+        "gold",
+        "inventory"
+      ],
+      "client": {
+        "transportEvent": "buy",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "buy",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "buy",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:gold"
+      ],
+      "liveRevalidation": [
+        "vendor_reachability",
+        "inventory_capacity",
+        "gold",
+        "item_definition"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "INVENTORY_INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "gold decreased by server cost",
+        "purchased quantity exists in inventory"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-BUY-WITH-SHELLS",
+      "publicFunction": "buy_with_shells",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "premium_purchase",
+      "effectDomains": [
+        "shells",
+        "inventory"
+      ],
+      "client": {
+        "transportEvent": "buy_with_cash",
+        "correlationType": "REQUEST_ID",
+        "correlationChannel": "buy_with_cash",
+        "requestId": true,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "buy_with_cash",
+        "executionModel": "ASYNC_BACKEND_TX",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "account:shells",
+        "character:inventory"
+      ],
+      "liveRevalidation": [
+        "account_currency",
+        "inventory_capacity",
+        "item_definition"
+      ],
+      "dangerFlags": [
+        "ASYNC_BACKEND_TX",
+        "UNKNOWN_AFTER_DISCONNECT"
+      ],
+      "postconditions": [
+        "shell balance decreased by server cost",
+        "purchased quantity exists"
+      ],
+      "notes": [],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-BUY-SECONDHAND",
+      "publicFunction": "buy_secondhand",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "recovered_market",
+      "effectDomains": [
+        "gold",
+        "inventory",
+        "market_listing"
+      ],
+      "client": {
+        "transportEvent": "sbuy",
+        "correlationType": "REQUEST_ID",
+        "correlationChannel": "sbuy",
+        "requestId": true,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "sbuy",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:gold",
+        "character:inventory",
+        "market:listing"
+      ],
+      "liveRevalidation": [
+        "listing_rid",
+        "inventory_capacity",
+        "gold",
+        "npc_reachability"
+      ],
+      "dangerFlags": [
+        "RID_GUARD",
+        "MARKET_DRIFT",
+        "UNKNOWN_AFTER_TIMEOUT"
+      ],
+      "postconditions": [
+        "RID purchase succeeded",
+        "gold delta matches cost",
+        "item present"
+      ],
+      "notes": [
+        "Server response is correlated by request_id and secondhands place."
+      ],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-BUY-LOST-AND-FOUND",
+      "publicFunction": "buy_lost_and_found",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "recovered_market",
+      "effectDomains": [
+        "gold",
+        "inventory",
+        "market_listing"
+      ],
+      "client": {
+        "transportEvent": "sbuy",
+        "correlationType": "REQUEST_ID",
+        "correlationChannel": "sbuy",
+        "requestId": true,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "sbuy",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:gold",
+        "character:inventory",
+        "market:listing"
+      ],
+      "liveRevalidation": [
+        "listing_rid",
+        "inventory_capacity",
+        "gold",
+        "npc_reachability"
+      ],
+      "dangerFlags": [
+        "RID_GUARD",
+        "MARKET_DRIFT",
+        "UNKNOWN_AFTER_TIMEOUT"
+      ],
+      "postconditions": [
+        "RID purchase succeeded",
+        "gold delta matches cost",
+        "item present"
+      ],
+      "notes": [
+        "Server response is correlated by request_id and lostandfound place."
+      ],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-SELL",
+      "publicFunction": "sell",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "npc_sale",
+      "effectDomains": [
+        "inventory",
+        "gold"
+      ],
+      "client": {
+        "transportEvent": "sell",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "sell",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "sell",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:gold"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "merchant_reachability"
+      ],
+      "dangerFlags": [
+        "DESTRUCTIVE",
+        "INVENTORY_INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "sold quantity removed",
+        "gold increased by returned value"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-TRADE",
+      "publicFunction": "trade",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "player_market_listing",
+      "effectDomains": [
+        "inventory",
+        "trade_slot"
+      ],
+      "client": {
+        "transportEvent": "equip",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "equip",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "equip",
+        "executionModel": "STATE_LISTING",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:trade_slots"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "trade_slot"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "RID_CREATED",
+        "INVENTORY_INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "trade slot contains intended item/quantity/price and fresh rid"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-WISHLIST",
+      "publicFunction": "wishlist",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "player_market_listing",
+      "effectDomains": [
+        "trade_slot"
+      ],
+      "client": {
+        "transportEvent": "trade_wishlist",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "trade_wishlist",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "trade_wishlist",
+        "executionModel": "STATE_LISTING",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:trade_slots"
+      ],
+      "liveRevalidation": [
+        "trade_slot"
+      ],
+      "dangerFlags": [],
+      "postconditions": [
+        "wishlist slot reflects intended item/level/quantity/price"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-TRADE-BUY",
+      "publicFunction": "trade_buy",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "player_market_trade",
+      "effectDomains": [
+        "buyer_gold",
+        "seller_gold",
+        "seller_trade_slot",
+        "buyer_inventory"
+      ],
+      "client": {
+        "transportEvent": "trade_buy",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "trade_buy",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "trade_buy",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:gold",
+        "character:inventory",
+        "market:listing"
+      ],
+      "liveRevalidation": [
+        "target_entity",
+        "listing_rid",
+        "quantity",
+        "inventory_capacity",
+        "gold"
+      ],
+      "dangerFlags": [
+        "RID_GUARD",
+        "NON_IDEMPOTENT_TRANSFER"
+      ],
+      "postconditions": [
+        "buyer item delta",
+        "buyer gold delta",
+        "seller listing/quantity delta"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-TRADE-SELL",
+      "publicFunction": "trade_sell",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "player_market_trade",
+      "effectDomains": [
+        "seller_inventory",
+        "seller_gold",
+        "buyer_gold",
+        "buyer_inventory",
+        "buyer_trade_slot"
+      ],
+      "client": {
+        "transportEvent": "trade_sell",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "trade_sell",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "trade_sell",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:gold",
+        "market:buy_listing"
+      ],
+      "liveRevalidation": [
+        "target_entity",
+        "listing_rid",
+        "physical_item_match",
+        "quantity"
+      ],
+      "dangerFlags": [
+        "RID_GUARD",
+        "NON_IDEMPOTENT_TRANSFER",
+        "SERVER_SELECTS_MATCHING_ITEM"
+      ],
+      "postconditions": [
+        "seller item delta",
+        "seller gold delta",
+        "buyer inventory delta"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-GIVEAWAY",
+      "publicFunction": "giveaway",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "giveaway",
+      "effectDomains": [
+        "inventory",
+        "trade_slot",
+        "future_item_transfer"
+      ],
+      "client": {
+        "transportEvent": "equip",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "equip",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "equip",
+        "executionModel": "STATE_LISTING",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:trade_slots"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "trade_slot"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "VALUE_COMMITMENT"
+      ],
+      "postconditions": [
+        "giveaway listing exists with fresh rid"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-JOIN-GIVEAWAY",
+      "publicFunction": "join_giveaway",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "giveaway",
+      "effectDomains": [
+        "giveaway_registry"
+      ],
+      "client": {
+        "transportEvent": "join_giveaway",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "join_giveaway",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "join_giveaway",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "MEDIUM",
+      "idempotency": "CONDITIONALLY_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "market:giveaway"
+      ],
+      "liveRevalidation": [
+        "target_entity",
+        "listing_rid"
+      ],
+      "dangerFlags": [
+        "RID_GUARD"
+      ],
+      "postconditions": [
+        "auth id registered on same giveaway rid"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-EQUIP",
+      "publicFunction": "equip",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "equipment",
+      "effectDomains": [
+        "inventory",
+        "equipment"
+      ],
+      "client": {
+        "transportEvent": "equip",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "equip",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "equip",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:equipment"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "equipment_slots"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "INVENTORY_INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "requested item is in resolved equipment slot"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-EQUIP-BATCH",
+      "publicFunction": "equip_batch",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "equipment",
+      "effectDomains": [
+        "inventory",
+        "equipment"
+      ],
+      "client": {
+        "transportEvent": "equip_batch",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "equip_batch",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "equip_batch",
+        "executionModel": "PARTIAL_BATCH",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:equipment"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identities",
+        "equipment_slots"
+      ],
+      "dangerFlags": [
+        "PARTIAL_COMPLETION",
+        "INVENTORY_INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "reconcile every requested equipment slot against desired end-state"
+      ],
+      "notes": [
+        "Server mutates entries sequentially and stops at first invalid entry; earlier equips remain applied."
+      ],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-UNEQUIP",
+      "publicFunction": "unequip",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "equipment",
+      "effectDomains": [
+        "inventory",
+        "equipment"
+      ],
+      "client": {
+        "transportEvent": "unequip",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "unequip",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "unequip",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:equipment"
+      ],
+      "liveRevalidation": [
+        "inventory_capacity",
+        "equipment_slot"
+      ],
+      "dangerFlags": [],
+      "postconditions": [
+        "slot empty",
+        "unequipped item present in inventory"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-CONSUME",
+      "publicFunction": "consume",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "consumable",
+      "effectDomains": [
+        "inventory",
+        "character_state"
+      ],
+      "client": {
+        "transportEvent": "equip",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "equip",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "equip",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "item_usability"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "DESTRUCTIVE"
+      ],
+      "postconditions": [
+        "consumed quantity delta and expected effect/state"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-SWAP",
+      "publicFunction": "swap",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "inventory_layout",
+      "effectDomains": [
+        "inventory_slots"
+      ],
+      "client": {
+        "transportEvent": "imove",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "imove",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "imove",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "MEDIUM",
+      "idempotency": "CONDITIONALLY_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory"
+      ],
+      "liveRevalidation": [
+        "inventory_slots"
+      ],
+      "dangerFlags": [
+        "PLACEHOLDER_REJECTED",
+        "INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "slots/stacks match server result"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-SPLIT",
+      "publicFunction": "split",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "inventory_layout",
+      "effectDomains": [
+        "inventory_slots",
+        "quantity"
+      ],
+      "client": {
+        "transportEvent": "split",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "split",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "split",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "MEDIUM",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "inventory_capacity"
+      ],
+      "dangerFlags": [
+        "INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "source and new stack quantities sum to original quantity"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-DESTROY",
+      "publicFunction": "destroy",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "item_destruction",
+      "effectDomains": [
+        "inventory"
+      ],
+      "client": {
+        "transportEvent": "destroy",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "destroy",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "destroy",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity"
+      ],
+      "dangerFlags": [
+        "DESTRUCTIVE",
+        "INVENTORY_INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "destroyed quantity removed unless special server outcome replaces it"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-DISMANTLE",
+      "publicFunction": "dismantle",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "item_transformation",
+      "effectDomains": [
+        "inventory",
+        "gold"
+      ],
+      "client": {
+        "transportEvent": "dismantle",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "dismantle",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "dismantle",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:gold"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "inventory_capacity",
+        "gold",
+        "dismantle_definition"
+      ],
+      "dangerFlags": [
+        "DESTRUCTIVE",
+        "RANDOM_OUTPUT_POSSIBLE",
+        "INVENTORY_INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "input removed",
+        "gold cost applied",
+        "outputs reconciled"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-DESTAT-ITEM",
+      "publicFunction": "destat_item",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "item_transformation",
+      "effectDomains": [
+        "inventory_item_properties",
+        "inventory",
+        "gold"
+      ],
+      "client": {
+        "transportEvent": "destat",
+        "correlationType": "REQUEST_ID",
+        "correlationChannel": "destat",
+        "requestId": true,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "destat",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:gold"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "inventory_capacity",
+        "gold"
+      ],
+      "dangerFlags": [
+        "DESTRUCTIVE_PROPERTY_CHANGE",
+        "REQUEST_ID_SUPPORTED"
+      ],
+      "postconditions": [
+        "stat_type removed",
+        "scroll refund quantity present",
+        "gold cost applied"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-LOCK-ITEM",
+      "publicFunction": "lock_item",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "item_safety",
+      "effectDomains": [
+        "inventory_item_lock_state",
+        "gold"
+      ],
+      "client": {
+        "transportEvent": "locksmith",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "locksmith",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "locksmith",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:gold"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "lock_state",
+        "gold"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "item lock/seal state equals server result",
+        "gold delta reconciled"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-SEAL-ITEM",
+      "publicFunction": "seal_item",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "item_safety",
+      "effectDomains": [
+        "inventory_item_lock_state",
+        "gold"
+      ],
+      "client": {
+        "transportEvent": "locksmith",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "locksmith",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "locksmith",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:gold"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "lock_state",
+        "gold"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "item lock/seal state equals server result",
+        "gold delta reconciled"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-UNLOCK-ITEM",
+      "publicFunction": "unlock_item",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "item_safety",
+      "effectDomains": [
+        "inventory_item_lock_state",
+        "gold"
+      ],
+      "client": {
+        "transportEvent": "locksmith",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "locksmith",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "locksmith",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:gold"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "lock_state",
+        "gold"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "item lock/seal state equals server result",
+        "gold delta reconciled"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-UPGRADE",
+      "publicFunction": "upgrade",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "item_improvement",
+      "effectDomains": [
+        "inventory",
+        "scroll",
+        "offering",
+        "item_level_or_loss",
+        "character_q"
+      ],
+      "client": {
+        "transportEvent": "upgrade",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "upgrade",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "upgrade",
+        "executionModel": "MULTI_PHASE_Q",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "item:target",
+        "item:scroll",
+        "item:offering",
+        "character:q:upgrade"
+      ],
+      "liveRevalidation": [
+        "physical_item_identity",
+        "clevel",
+        "scroll",
+        "offering",
+        "service_reachability",
+        "character_q"
+      ],
+      "dangerFlags": [
+        "PLACEHOLDER_Q",
+        "NON_IDEMPOTENT",
+        "ITEM_LOSS_POSSIBLE",
+        "UNKNOWN_AFTER_DISCONNECT"
+      ],
+      "postconditions": [
+        "q.upgrade cleared",
+        "placeholder resolved",
+        "target result and scroll/offering deltas reconciled"
+      ],
+      "notes": [],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-COMPOUND",
+      "publicFunction": "compound",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "item_improvement",
+      "effectDomains": [
+        "inventory",
+        "three_input_items",
+        "scroll",
+        "offering",
+        "result_or_loss",
+        "character_q"
+      ],
+      "client": {
+        "transportEvent": "compound",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "compound",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "compound",
+        "executionModel": "MULTI_PHASE_Q",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "item:input1",
+        "item:input2",
+        "item:input3",
+        "item:scroll",
+        "item:offering",
+        "character:q:compound"
+      ],
+      "liveRevalidation": [
+        "three_physical_item_identities",
+        "clevel",
+        "scroll",
+        "offering",
+        "service_reachability",
+        "character_q"
+      ],
+      "dangerFlags": [
+        "PLACEHOLDER_Q",
+        "MULTI_ITEM_DESTRUCTIVE",
+        "ITEM_LOSS_POSSIBLE",
+        "UNKNOWN_AFTER_DISCONNECT"
+      ],
+      "postconditions": [
+        "q.compound cleared",
+        "placeholder resolved",
+        "three inputs/result and consumables reconciled"
+      ],
+      "notes": [],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-CRAFT",
+      "publicFunction": "craft",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "craft",
+      "effectDomains": [
+        "inventory_inputs",
+        "inventory_output",
+        "gold"
+      ],
+      "client": {
+        "transportEvent": "craft",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "craft",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "craft",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:gold",
+        "recipe:inputs"
+      ],
+      "liveRevalidation": [
+        "recipe_definition",
+        "physical_inputs",
+        "gold",
+        "inventory_capacity",
+        "service_or_quest_reachability"
+      ],
+      "dangerFlags": [
+        "MULTI_INPUT_DESTRUCTIVE",
+        "SHARED_FIFO_CHANNEL",
+        "RECIPE_DRIFT"
+      ],
+      "postconditions": [
+        "all required inputs reduced",
+        "gold cost applied",
+        "output present"
+      ],
+      "notes": [],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-AUTO-CRAFT",
+      "publicFunction": "auto_craft",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "craft",
+      "effectDomains": [
+        "inventory_inputs",
+        "inventory_output",
+        "gold"
+      ],
+      "client": {
+        "transportEvent": "craft",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "craft",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "craft",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "character:gold",
+        "recipe:inputs"
+      ],
+      "liveRevalidation": [
+        "recipe_definition",
+        "physical_inputs",
+        "gold",
+        "inventory_capacity",
+        "service_or_quest_reachability"
+      ],
+      "dangerFlags": [
+        "MULTI_INPUT_DESTRUCTIVE",
+        "SHARED_FIFO_CHANNEL",
+        "RECIPE_DRIFT"
+      ],
+      "postconditions": [
+        "all required inputs reduced",
+        "gold cost applied",
+        "output present"
+      ],
+      "notes": [],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-EXCHANGE",
+      "publicFunction": "exchange",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "exchange",
+      "effectDomains": [
+        "inventory_input",
+        "placeholder",
+        "random_reward",
+        "character_q"
+      ],
+      "client": {
+        "transportEvent": "exchange",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "exchange",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "exchange",
+        "executionModel": "MULTI_PHASE_Q",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "item:exchange_input",
+        "character:q:exchange"
+      ],
+      "liveRevalidation": [
+        "physical_item_identity",
+        "exchange_definition",
+        "inventory_capacity",
+        "service_or_quest_reachability",
+        "character_q"
+      ],
+      "dangerFlags": [
+        "PLACEHOLDER_Q",
+        "INPUT_CONSUMED_BEFORE_FINAL_REWARD",
+        "UNKNOWN_AFTER_DISCONNECT"
+      ],
+      "postconditions": [
+        "q.exchange cleared",
+        "placeholder resolved to reward/terminal state",
+        "input delta reconciled"
+      ],
+      "notes": [],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-EXCHANGE-BUY",
+      "publicFunction": "exchange_buy",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "token_exchange",
+      "effectDomains": [
+        "token_inventory",
+        "inventory_output"
+      ],
+      "client": {
+        "transportEvent": "exchange_buy",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "exchange_buy",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "exchange_buy",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "item:token"
+      ],
+      "liveRevalidation": [
+        "token_quantity",
+        "token_table",
+        "inventory_capacity",
+        "npc_reachability"
+      ],
+      "dangerFlags": [
+        "TOKEN_TABLE_DRIFT",
+        "INVENTORY_INDEX_DRIFT"
+      ],
+      "postconditions": [
+        "token delta and output item delta reconciled"
+      ],
+      "notes": [],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-LOOT",
+      "publicFunction": "loot",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "loot",
+      "effectDomains": [
+        "inventory",
+        "gold",
+        "chest_state"
+      ],
+      "client": {
+        "transportEvent": "open_chest",
+        "correlationType": "PROMISE_WRAPPER",
+        "correlationChannel": "chest",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "open_chest",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "world:chest"
+      ],
+      "liveRevalidation": [
+        "chest_exists",
+        "inventory_capacity"
+      ],
+      "dangerFlags": [
+        "WORLD_OBJECT_DRIFT",
+        "MULTI_REWARD"
+      ],
+      "postconditions": [
+        "chest gone/claimed",
+        "received items/gold reflected"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-OPEN-STAND",
+      "publicFunction": "open_stand",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "merchant_stand",
+      "effectDomains": [
+        "stand_state",
+        "inventory_item_block_state"
+      ],
+      "client": {
+        "transportEvent": "merchant",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "merchant",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "merchant",
+        "executionModel": "STATE_LISTING",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "MEDIUM",
+      "idempotency": "CONDITIONALLY_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:stand"
+      ],
+      "liveRevalidation": [
+        "stand_item",
+        "stand_state"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL"
+      ],
+      "postconditions": [
+        "stand open/closed state matches request"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-CLOSE-STAND",
+      "publicFunction": "close_stand",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "merchant_stand",
+      "effectDomains": [
+        "stand_state",
+        "inventory_item_block_state"
+      ],
+      "client": {
+        "transportEvent": "merchant",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "merchant",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "merchant",
+        "executionModel": "STATE_LISTING",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "MEDIUM",
+      "idempotency": "CONDITIONALLY_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:stand"
+      ],
+      "liveRevalidation": [
+        "stand_item",
+        "stand_state"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL"
+      ],
+      "postconditions": [
+        "stand open/closed state matches request"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-SEND-GOLD",
+      "publicFunction": "send_gold",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "direct_transfer",
+      "effectDomains": [
+        "gold",
+        "recipient_state"
+      ],
+      "client": {
+        "transportEvent": "send",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "send",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "send",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:gold",
+        "transfer:recipient"
+      ],
+      "liveRevalidation": [
+        "recipient_entity",
+        "same_map",
+        "distance",
+        "available_value"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "NON_IDEMPOTENT_TRANSFER",
+        "UNKNOWN_AFTER_DISCONNECT"
+      ],
+      "postconditions": [
+        "gold sender delta",
+        "recipient settlement evidence"
+      ],
+      "notes": [],
+      "volatility": "LOW",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-SEND-ITEM",
+      "publicFunction": "send_item",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "direct_transfer",
+      "effectDomains": [
+        "inventory",
+        "recipient_state"
+      ],
+      "client": {
+        "transportEvent": "send",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "send",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "send",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "transfer:recipient"
+      ],
+      "liveRevalidation": [
+        "recipient_entity",
+        "same_map",
+        "distance",
+        "physical_item_identity"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "NON_IDEMPOTENT_TRANSFER",
+        "UNKNOWN_AFTER_DISCONNECT"
+      ],
+      "postconditions": [
+        "inventory sender delta",
+        "recipient settlement evidence"
+      ],
+      "notes": [],
+      "volatility": "LOW",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-SEND-CX",
+      "publicFunction": "send_cx",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "direct_transfer",
+      "effectDomains": [
+        "cosmetic_inventory",
+        "recipient_state"
+      ],
+      "client": {
+        "transportEvent": "send",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "send",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "send",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:cosmetic_inventory",
+        "transfer:recipient"
+      ],
+      "liveRevalidation": [
+        "recipient_entity",
+        "same_map",
+        "distance",
+        "available_value"
+      ],
+      "dangerFlags": [
+        "SHARED_FIFO_CHANNEL",
+        "NON_IDEMPOTENT_TRANSFER",
+        "UNKNOWN_AFTER_DISCONNECT"
+      ],
+      "postconditions": [
+        "cosmetic_inventory sender delta",
+        "recipient settlement evidence"
+      ],
+      "notes": [],
+      "volatility": "LOW",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-SEND-MAIL",
+      "publicFunction": "send_mail",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "mail",
+      "effectDomains": [
+        "gold",
+        "optional_inventory_item",
+        "persistent_mail"
+      ],
+      "client": {
+        "transportEvent": "mail",
+        "correlationType": "MIXED",
+        "correlationChannel": "mail",
+        "requestId": true,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "mail",
+        "executionModel": "ASYNC_BACKEND_TX",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:gold",
+        "character:inventory",
+        "mail:recipient"
+      ],
+      "liveRevalidation": [
+        "gold",
+        "slot0_item_if_attached",
+        "recipient"
+      ],
+      "dangerFlags": [
+        "ASYNC_BACKEND_TX",
+        "VALUE_DEBIT_BEFORE_FINAL_VALIDATION",
+        "ITEM_REMOVAL_BEFORE_BACKEND_COMMIT",
+        "UNKNOWN_AFTER_DISCONNECT"
+      ],
+      "postconditions": [
+        "mail_sent request_id result OR explicit failure",
+        "sender gold/item and persistent mail reconciled"
+      ],
+      "notes": [
+        "Server deducts base postage before some later validations; item mail can remove slot-0 item before backend transaction finishes."
+      ],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-TAKE-MAIL-ITEM",
+      "publicFunction": "take_mail_item",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "mail",
+      "effectDomains": [
+        "persistent_mail_claim",
+        "inventory"
+      ],
+      "client": {
+        "transportEvent": "mail_take_item",
+        "correlationType": "REQUEST_ID",
+        "correlationChannel": "mail_take_item",
+        "requestId": true,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "mail_take_item",
+        "executionModel": "ASYNC_BACKEND_TX_WITH_CLAIM",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "IDEMPOTENCY_GUARDED",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory",
+        "mail:item_claim"
+      ],
+      "liveRevalidation": [
+        "mail_claim",
+        "inventory_capacity"
+      ],
+      "dangerFlags": [
+        "CLAIM_PROTOCOL",
+        "ASYNC_BACKEND_TX",
+        "UNKNOWN_AFTER_DISCONNECT"
+      ],
+      "postconditions": [
+        "mail claim terminal",
+        "item present exactly once or claim released"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-DONATE-GOLD",
+      "publicFunction": "donate_gold",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "donation",
+      "effectDomains": [
+        "gold",
+        "server_gold",
+        "merchant_xp_or_reward"
+      ],
+      "client": {
+        "transportEvent": "donate",
+        "correlationType": "REQUEST_ID",
+        "correlationChannel": "donate",
+        "requestId": true,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "donate",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:gold"
+      ],
+      "liveRevalidation": [
+        "gold",
+        "npc_reachability"
+      ],
+      "dangerFlags": [
+        "NON_IDEMPOTENT_VALUE_SINK"
+      ],
+      "postconditions": [
+        "gold delta",
+        "server response reward/xp state"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-PLAY-SLOTS",
+      "publicFunction": "play_slots",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "tavern_game",
+      "effectDomains": [
+        "gold",
+        "character_q",
+        "future_game_reward"
+      ],
+      "client": {
+        "transportEvent": "bet",
+        "correlationType": "REQUEST_ID",
+        "correlationChannel": "slots",
+        "requestId": true,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "bet",
+        "executionModel": "MULTI_PHASE_Q",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:gold",
+        "character:q:slots"
+      ],
+      "liveRevalidation": [
+        "gold",
+        "tavern_presence",
+        "q.slots"
+      ],
+      "dangerFlags": [
+        "VALUE_DEBIT_BEFORE_GAME_COMPLETION",
+        "UNKNOWN_AFTER_DISCONNECT"
+      ],
+      "postconditions": [
+        "q.slots terminal",
+        "gold/reward reconciled"
+      ],
+      "notes": [],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-BET-DICE",
+      "publicFunction": "bet_dice",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "tavern_game",
+      "effectDomains": [
+        "gold",
+        "active_bet",
+        "future_game_reward"
+      ],
+      "client": {
+        "transportEvent": "bet",
+        "correlationType": "REQUEST_ID",
+        "correlationChannel": "dice",
+        "requestId": true,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "bet",
+        "executionModel": "MULTI_PHASE_SERVER_GAME",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:gold",
+        "tavern:bet"
+      ],
+      "liveRevalidation": [
+        "gold",
+        "tavern_state",
+        "existing_bets"
+      ],
+      "dangerFlags": [
+        "VALUE_DEBIT_BEFORE_GAME_COMPLETION",
+        "UNKNOWN_AFTER_DISCONNECT"
+      ],
+      "postconditions": [
+        "bet result correlated by request_id and gold/reward reconciled"
+      ],
+      "notes": [],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-BLESS-SERVER",
+      "publicFunction": "bless_server",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "premium_server_service",
+      "effectDomains": [
+        "shells",
+        "server_blessing_state"
+      ],
+      "client": {
+        "transportEvent": "bless_server",
+        "correlationType": "MIXED",
+        "correlationChannel": "bless_server",
+        "requestId": true,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "bless_server",
+        "executionModel": "ASYNC_BACKEND_TX",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "account:shells",
+        "server:blessing"
+      ],
+      "liveRevalidation": [
+        "shell_balance",
+        "server_blessing_state"
+      ],
+      "dangerFlags": [
+        "ASYNC_BACKEND_TX",
+        "UNKNOWN_AFTER_DISCONNECT"
+      ],
+      "postconditions": [
+        "request_id bless_result",
+        "shell delta and server blessing state reconciled"
+      ],
+      "notes": [],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-EQUIP-CX",
+      "publicFunction": "equip_cx",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "cosmetics",
+      "effectDomains": [
+        "cosmetic_equipment_state"
+      ],
+      "client": {
+        "transportEvent": "cx",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "cx",
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": "cx",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "MEDIUM",
+      "idempotency": "CONDITIONALLY_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:cosmetics"
+      ],
+      "liveRevalidation": [
+        "owned_cosmetics"
+      ],
+      "dangerFlags": [],
+      "postconditions": [
+        "character cosmetic state equals requested selection"
+      ],
+      "notes": [],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-RUNNER"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-BET-WHEEL",
+      "publicFunction": "bet_wheel",
+      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "family": "tavern_game",
+      "effectDomains": [
+        "gold_or_game_stake",
+        "game_state"
+      ],
+      "client": {
+        "transportEvent": null,
+        "correlationType": "UNKNOWN",
+        "correlationChannel": null,
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": null,
+        "executionModel": "UNKNOWN_LIVE",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
+      "resourceDomains": [],
+      "liveRevalidation": [
+        "LIVE_MCP_CONTRACT_REQUIRED"
+      ],
+      "dangerFlags": [
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+      ],
+      "postconditions": [
+        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+      ],
+      "notes": [
+        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+      ],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-OFFICIAL-CODE-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-OFFICIAL-NOTES"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-POKER-JOIN",
+      "publicFunction": "poker_join",
+      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "family": "tavern_game",
+      "effectDomains": [
+        "gold_or_game_stake",
+        "game_state"
+      ],
+      "client": {
+        "transportEvent": null,
+        "correlationType": "UNKNOWN",
+        "correlationChannel": null,
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": null,
+        "executionModel": "UNKNOWN_LIVE",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
+      "resourceDomains": [],
+      "liveRevalidation": [
+        "LIVE_MCP_CONTRACT_REQUIRED"
+      ],
+      "dangerFlags": [
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+      ],
+      "postconditions": [
+        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+      ],
+      "notes": [
+        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+      ],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-OFFICIAL-CODE-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-OFFICIAL-NOTES"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-POKER-ACT",
+      "publicFunction": "poker_act",
+      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "family": "tavern_game",
+      "effectDomains": [
+        "gold_or_game_stake",
+        "game_state"
+      ],
+      "client": {
+        "transportEvent": null,
+        "correlationType": "UNKNOWN",
+        "correlationChannel": null,
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": null,
+        "executionModel": "UNKNOWN_LIVE",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
+      "resourceDomains": [],
+      "liveRevalidation": [
+        "LIVE_MCP_CONTRACT_REQUIRED"
+      ],
+      "dangerFlags": [
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+      ],
+      "postconditions": [
+        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+      ],
+      "notes": [
+        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+      ],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-OFFICIAL-CODE-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-OFFICIAL-NOTES"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-POKER-LEAVE",
+      "publicFunction": "poker_leave",
+      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "family": "tavern_game",
+      "effectDomains": [
+        "gold_or_game_stake",
+        "game_state"
+      ],
+      "client": {
+        "transportEvent": null,
+        "correlationType": "UNKNOWN",
+        "correlationChannel": null,
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": null,
+        "executionModel": "UNKNOWN_LIVE",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
+      "resourceDomains": [],
+      "liveRevalidation": [
+        "LIVE_MCP_CONTRACT_REQUIRED"
+      ],
+      "dangerFlags": [
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+      ],
+      "postconditions": [
+        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+      ],
+      "notes": [
+        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+      ],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-OFFICIAL-CODE-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-OFFICIAL-NOTES"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-POKER-SIT-IN",
+      "publicFunction": "poker_sit_in",
+      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "family": "tavern_game",
+      "effectDomains": [
+        "gold_or_game_stake",
+        "game_state"
+      ],
+      "client": {
+        "transportEvent": null,
+        "correlationType": "UNKNOWN",
+        "correlationChannel": null,
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": null,
+        "executionModel": "UNKNOWN_LIVE",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
+      "resourceDomains": [],
+      "liveRevalidation": [
+        "LIVE_MCP_CONTRACT_REQUIRED"
+      ],
+      "dangerFlags": [
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+      ],
+      "postconditions": [
+        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+      ],
+      "notes": [
+        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+      ],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-OFFICIAL-CODE-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-OFFICIAL-NOTES"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-POKER-SIT-OUT",
+      "publicFunction": "poker_sit_out",
+      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "family": "tavern_game",
+      "effectDomains": [
+        "gold_or_game_stake",
+        "game_state"
+      ],
+      "client": {
+        "transportEvent": null,
+        "correlationType": "UNKNOWN",
+        "correlationChannel": null,
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": null,
+        "executionModel": "UNKNOWN_LIVE",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
+      "resourceDomains": [],
+      "liveRevalidation": [
+        "LIVE_MCP_CONTRACT_REQUIRED"
+      ],
+      "dangerFlags": [
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+      ],
+      "postconditions": [
+        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+      ],
+      "notes": [
+        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+      ],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-OFFICIAL-CODE-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-OFFICIAL-NOTES"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-CAVE-BUY",
+      "publicFunction": "cave_buy",
+      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "family": "cave_economy",
+      "effectDomains": [
+        "cave_currency",
+        "inventory"
+      ],
+      "client": {
+        "transportEvent": null,
+        "correlationType": "UNKNOWN",
+        "correlationChannel": null,
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": null,
+        "executionModel": "UNKNOWN_LIVE",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
+      "resourceDomains": [],
+      "liveRevalidation": [
+        "LIVE_MCP_CONTRACT_REQUIRED"
+      ],
+      "dangerFlags": [
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+      ],
+      "postconditions": [
+        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+      ],
+      "notes": [
+        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+      ],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-OFFICIAL-CODE-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-OFFICIAL-NOTES"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-DESTROY-ITEM",
+      "publicFunction": "destroy_item",
+      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "family": "item_destruction",
+      "effectDomains": [
+        "inventory"
+      ],
+      "client": {
+        "transportEvent": null,
+        "correlationType": "UNKNOWN",
+        "correlationChannel": null,
+        "requestId": false,
+        "wrapperNotes": null
+      },
+      "server": {
+        "handlerEvent": null,
+        "executionModel": "UNKNOWN_LIVE",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "HIGH",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
+      "resourceDomains": [],
+      "liveRevalidation": [
+        "LIVE_MCP_CONTRACT_REQUIRED"
+      ],
+      "dangerFlags": [
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+      ],
+      "postconditions": [
+        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+      ],
+      "notes": [
+        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+      ],
+      "volatility": "HIGH",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-OFFICIAL-CODE-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-OFFICIAL-NOTES"
+        }
+      ]
+    }
+  ]
+}
