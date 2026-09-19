@@ -26,6 +26,16 @@ function makeEngine(now = () => 1000) {
       const row = { id, type: request.type, state: 'RESERVED', character: request.character, index: request.index, quantity: request.quantity || 1, reservationKey: entry.key, item: entry.name, level: entry.level || 0, disposition: entry.disposition, leaseExpiresAt: now() + 30000 };
       this.transactions.set(id, row); this.reservations.set(entry.key, id); return { accepted: true, transaction: { ...row } };
     },
+    cancel(id, reason = 'OPERATOR_CANCELLED') {
+      const row = this.transactions.get(String(id));
+      if (!row) return { cancelled: false, reason: 'TRANSACTION_NOT_FOUND' };
+      if (['COMMITTED', 'FAILED_SAFE', 'ABORTED'].includes(String(row.state || ''))) return { cancelled: false, reason: 'TRANSACTION_ALREADY_TERMINAL', transaction: { ...row } };
+      row.state = 'ABORTED';
+      row.reason = String(reason || 'OPERATOR_CANCELLED');
+      row.leaseExpiresAt = null;
+      this._release(row);
+      return { cancelled: true, transaction: { ...row } };
+    },
     get(id) { const row = this.transactions.get(String(id)); return row ? JSON.parse(JSON.stringify(row)) : null; },
     list() { return [...this.transactions.values()].map((x) => JSON.parse(JSON.stringify(x))); },
     transition(id, state, reason) { const row = this.transactions.get(String(id)); if (!row) return false; row.state = state; row.reason = reason; return true; },
