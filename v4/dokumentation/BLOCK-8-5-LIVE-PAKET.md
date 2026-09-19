@@ -9,8 +9,9 @@ Die 8.5.9-Reihenfolge steht jetzt auf:
 - Offline: **bestanden**
 - Schatten: **bestanden**
 - Kontrolliert live: **bestanden**
-- Soak: **offen**
-- Block 9: **gesperrt**
+- Soak: **bestanden**
+- Historisches 8.5-Gate: **vollstaendig bestanden**
+- Naechster Entwicklungsblock: **8.6**
 
 Der reale Schattenlauf ist kanonisch in:
 

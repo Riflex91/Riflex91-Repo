@@ -260,7 +260,7 @@ Der finale Nachweisstand steht in `BLOCK-8-ABSCHLUSSSTATUS.md` und `BLOCK-8-ABSC
 
 ## Block 8.5 – Instrumentierung, Ingame-HUD-Basis und Recovery-Vereinheitlichung
 
-Status: **Schritte 8.5.1 bis 8.5.8 implementiert; 8.5.9-Freigabe-Gate implementiert. Deployment/HTTPS, Offline, Schatten und kontrolliert live sind fuer den finalen Block-8.5-Candidate bestanden; nur der reale 10-Minuten-Soak ist noch offen. Block 8.6 und Block 9 bleiben bis zum bestandenen Soak gesperrt.**
+Status: **abgeschlossen am 19. September 2026. Schritte 8.5.1 bis 8.5.9 sind implementiert und fuer denselben Runtime-1.1.5-Candidate operativ bestanden: Deployment/HTTPS, Offline, Schatten, kontrolliert live und 10-Minuten-Soak. Naechster Entwicklungsblock ist verbindlich Block 8.6; Block 9 bleibt bis zu dessen eigener Freigabe gesperrt.**
 
 Ziel: Die bereits vorhandenen V4-Faehigkeiten werden vor Haendler-, Bank- und Wirtschaftslogik einheitlich beobachtbar, erklaerbar, sicher bedienbar und wiederanlauffaehig gemacht.
 
@@ -295,7 +295,7 @@ Abschlusspruefung:
 - Schliessen oder Fehler des HUD veraendert die laufende Bot-Logik nicht
 - Reconnect, Neustart, veraltete Daten und unterbrochene Arbeit besitzen einen getesteten sicheren Recovery-Pfad
 - alle bestehenden Block-1-bis-8-Pruefungen bleiben gruen
-- vor Beginn von Block 8.6 werden Offline, Schattenbetrieb, begrenzter kontrollierter Live-Test und Soak fuer denselben finalen Aenderungsstand nachgewiesen; das read-only Freigabe-Gate darf keine Stufe ueberspringen
+- vor Beginn von Block 8.6 werden Offline, Schattenbetrieb, begrenzter kontrollierter Live-Test und Soak fuer denselben finalen Aenderungsstand nachgewiesen; das read-only Freigabe-Gate darf keine Stufe ueberspringen — **erfuellt**
 
 ## Block 8.6 – Live Skill Catalog und Capability Truth
 

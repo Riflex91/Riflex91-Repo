@@ -133,7 +133,7 @@ Abgenommen sind:
 
 Die neue Recovery-Abnahmesuite verbindet die bereits vorhandenen Sicherheitsgrenzen, ohne eine neue Recovery-Engine einzufuehren. Checkpoints bleiben nach Runtime-Neustart reine Abgleichsdaten mit `wiederaufnahmeErlaubt: false`, `abgleichErforderlich: true` und `aktionsAutoritaet: false`. Unterbrochene normale Arbeit wird nach Fortsetzen nicht wiederbelebt, doppelte Bedienanfragen bleiben idempotent, stale/ungueltige Zustaende werden blockiert und RuntimeGesundheit behaelt `automatischerNeustart: false`. Historische Block-8-Reconnect- und Browser-Hintergrundnachweise bleiben unveraendert und werden als bestehende Regressionen weiter mitgeprueft.
 
-### Schritt 8.5.9 – Freigabestufen — **GATE IMPLEMENTIERT, OPERATIVE FREIGABE OFFEN**
+### Schritt 8.5.9 – Freigabestufen — **VOLLSTAENDIG BESTANDEN**
 
 Fuer neue oder wesentlich geaenderte Laufzeitpfade gilt weiterhin verbindlich:
 
@@ -144,15 +144,15 @@ Fuer neue oder wesentlich geaenderte Laufzeitpfade gilt weiterhin verbindlich:
 
 Implementiert ist jetzt ein read-only Freigabe-Gate mit `FreigabeNachweis` und `werteFreigabestufenAus(...)`. Alle Stufen muessen zum selben Laufzeitpfad und exakt demselben `aenderungsKennung`-Stand gehoeren. Fehlende oder fehlgeschlagene Vorstufen blockieren spaetere Nachweise; historische Nachweise eines anderen Aenderungsstands duerfen nicht wiederverwendet werden. Das Ergebnis besitzt keine Spiel- oder Neustartautoritaet und setzt `block9Freigegeben: true` ausschliesslich nach vier bestandenen sequenziellen Stufen.
 
-Die Freigabemechanik ist damit implementiert. Offline, der reale strikte Schattennachweis und der kontrollierte Live-Nachweis fuer den finalen Block-8.5-Laufzeitstand sind inzwischen bestanden. Nur der reale Soak fehlt noch; bis dahin bleibt Block 9 gesperrt.
+Die Freigabemechanik ist implementiert und operativ vollstaendig bestanden. Offline, der reale strikte Schattennachweis, der kontrollierte Live-Nachweis und der 10-Minuten-Soak fuer den finalen Block-8.5-Laufzeitstand sind fuer denselben Candidate bestanden.
 
 Dafuer ist nun zusaetzlich ein Adventure-Land-Nachweisrunner vorbereitet, der ausschliesslich die immutable Runtime 1.1.5 des Candidates akzeptiert. Schatten laeuft strikt in einer gesperrten, **nicht gestarteten** Runtime mit 0 Heartbeat-/CM-Sendeversuchen und nur read-only Diagnose. Kontrolliert live und Soak laufen bewusst in einer separaten aktiven Sitzung mit importierter `schattenUebergabe`; dort wird `spielAktionAusgefuehrt: true` dokumentiert, weil die Produktionsruntime ihren Heartbeat ueber `send_cm(...)` betreibt. Der Runner selbst ruft keine Adventure-Land-Spielaktionsfunktion direkt auf und veroeffentlicht oder laedt selbst keine Runtime.
 
-Der Runtime-1.1.5-Build ist als reproduzierbarer Release-Candidate an `88185523c81687dc16f9647ca5e7568c5e2c228c` und `aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c` gebunden. Deployment und oeffentliche HTTPS-Verifikation sind durch Run `35402650432` fuer exakt diesen Candidate bestaetigt. Schatten und kontrolliert live sind real bestanden und kanonisch gebunden; nur Soak bleibt offen.
+Der Runtime-1.1.5-Build ist als reproduzierbarer Release-Candidate an `88185523c81687dc16f9647ca5e7568c5e2c228c` und `aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c` gebunden. Deployment und oeffentliche HTTPS-Verifikation sind durch Run `35402650432` fuer exakt diesen Candidate bestaetigt. Schatten, kontrolliert live und Soak sind real bestanden und kanonisch gebunden.
 
-Die Freigabestufe **Offline** ist fuer exakt denselben Candidate bestanden. Der reale strikte Schattenlauf und der kontrollierte Live-Lauf unter `block8-5-schatten-1789775266269` sind ebenfalls bestanden und kanonisch dokumentiert. Die Freigabeauswertung fordert damit als naechste Stufe `soak`; Block 9 bleibt gesperrt.
+Die Freigabestufe **Offline** ist fuer exakt denselben Candidate bestanden. Der reale strikte Schattenlauf, der kontrollierte Live-Lauf und der Soak unter `block8-5-schatten-1789775266269` sind ebenfalls bestanden und kanonisch dokumentiert. Die Freigabeauswertung liefert `naechsteStufe: null`, `freigabeVollstaendig: true` und `block9Freigegeben: true`. Nach dem aktualisierten Fahrplan folgt trotzdem zuerst Block 8.6.
 
-Der bestandene Schattenlauf wurde mit `block8-5-schatten-paket.js` und der bestandene kontrollierte Live-Lauf mit `block8-5-live-paket.js` ausgefuehrt. Fuer die letzte Stufe ist nun `block8-5-soak-paket.js` als separates source-locked Copy/Paste-Paket vorbereitet. Es bindet beide kanonischen Vorstufen und entsperrt **3 · Soak starten** erst nach einem bestaetigten echten Produktionsheartbeat in einer frischen Sitzung.
+Der bestandene Schattenlauf wurde mit `block8-5-schatten-paket.js`, der kontrollierte Live-Lauf mit `block8-5-live-paket.js` und der bestandene 10-Minuten-Soak mit `block8-5-soak-paket.js` ausgefuehrt. Der finale Soak-Nachweis ist in `BLOCK-8-5-SOAK-FREIGABE-NACHWEIS.json` kanonisch gebunden.
 
 Ein isolierter manueller V4-only Release-Workflow ist fuer zukuenftige V4-Releases vorbereitet, damit eine Veroeffentlichung kein V3, keinen Worker, kein D1 und keine Lifecycle-Regel veraendert. Dieser neue Workflow selbst wurde noch nicht ausgefuehrt; fuer den aktuellen Candidate ist kein erneuter Release erforderlich.
 

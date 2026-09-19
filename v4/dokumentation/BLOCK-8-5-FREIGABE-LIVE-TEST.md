@@ -1,6 +1,6 @@
 # Block 8.5 – Freigabestufen · Adventure-Land-Nachweisrunner
 
-Status: **Runner implementiert; Candidate Deployment/HTTPS, Offline, Schatten und kontrolliert live sind bestanden. Soak ist die letzte offene Stufe.**
+Status: **Runner implementiert und alle realen 8.5.9-Stufen fuer den Candidate bestanden. Der finale Soak-Nachweis ist kanonisch dokumentiert.**
 
 ## Zweck
 
@@ -43,7 +43,7 @@ Der Runner laedt oder veroeffentlicht selbst keine Runtime.
 
 Der exakte Build-/Release-Nachweis fuer Runtime 1.1.5 liegt vor. Der reale Schattenlauf gegen diesen immutable Candidate ist inzwischen bestanden und kanonisch dokumentiert.
 
-Offline, Schatten und kontrolliert live sind fuer `git:88185523c81687dc16f9647ca5e7568c5e2c228c` kanonisch bestanden. Der reale Live-Nachweis steht in `BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.json`; damit ist `soak` die naechste und letzte offene Stufe.
+Offline, Schatten, kontrolliert live und Soak sind fuer `git:88185523c81687dc16f9647ca5e7568c5e2c228c` kanonisch bestanden. Der finale Soak-Nachweis steht in `BLOCK-8-5-SOAK-FREIGABE-NACHWEIS.json`; damit ist die 8.5.9-Freigabekette vollstaendig.
 
 ## Konfiguration
 
@@ -276,8 +276,8 @@ prueft unter anderem:
 
 Der Runner ist vorbereitet und offline abgesichert.
 
-Der reale Schattenlauf und der kontrollierte Live-Lauf sind **bestanden**. Das Candidate-Manifest setzt deshalb `adventureLandShadowVerified: true` und `adventureLandControlledLiveVerified: true`; Soak bleibt `false`.
+Der reale Schattenlauf, der kontrollierte Live-Lauf und der 10-Minuten-Soak sind **bestanden**. Das Candidate-Manifest setzt deshalb `adventureLandShadowVerified: true`, `adventureLandControlledLiveVerified: true` und `adventureLandSoakVerified: true`.
 
-Der historische Runner 1.1.0 bleibt unveraendert als reproduzierbare Basis des bestandenen Live-Berichts. Fuer die letzte Stufe steht deshalb ein separates source-locked `block8-5-soak-paket.js` bereit, das den kanonischen Schatten- und Live-Nachweis importiert.
+Der historische Runner 1.1.0 bleibt unveraendert als reproduzierbare Basis des bestandenen Live-Berichts. Der finale Soak wurde mit dem separaten source-locked `block8-5-soak-paket.js` ausgefuehrt und in `BLOCK-8-5-SOAK-FREIGABE-NACHWEIS.json` kanonisch dokumentiert.
 
-Block 9 bleibt bis zum realen Soak-Nachweis gesperrt.
+Das historische 8.5-Gate ist damit vollstaendig bestanden. Laut aktualisiertem Fahrplan folgt jetzt Block 8.6; Block 9 beginnt erst nach dessen eigener Freigabe.

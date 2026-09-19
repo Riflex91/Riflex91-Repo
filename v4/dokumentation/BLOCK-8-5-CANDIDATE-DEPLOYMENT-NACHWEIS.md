@@ -1,6 +1,6 @@
 # Block 8.5 – Runtime 1.1.5 Candidate-Deploymentnachweis
 
-Status: **Deployment/HTTPS fuer den exakten Candidate bestaetigt; Adventure-Land-Schatten und kontrolliert live inzwischen real bestanden; Soak weiterhin offen.**
+Status: **Deployment/HTTPS fuer den exakten Candidate bestaetigt; Adventure-Land-Schatten, kontrolliert live und 10-Minuten-Soak real bestanden. Block 8.5 ist operativ abgeschlossen.**
 
 ## Exakter Candidate
 

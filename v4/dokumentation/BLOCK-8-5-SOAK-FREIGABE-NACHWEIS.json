@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "laufzeitPfadKennung": "block8.5-basisbedienung-runtime",
+  "aenderungsKennung": "git:88185523c81687dc16f9647ca5e7568c5e2c228c",
+  "nachweis": {
+    "schemaVersion": 1,
+    "laufzeitPfadKennung": "block8.5-basisbedienung-runtime",
+    "aenderungsKennung": "git:88185523c81687dc16f9647ca5e7568c5e2c228c",
+    "stufe": "soak",
+    "nachweisKennung": "block8-5-schatten-1789775266269:soak",
+    "ergebnis": "bestanden",
+    "durchgefuehrtAm": 1789802325319,
+    "deterministisch": false,
+    "spielAktionAusgefuehrt": true,
+    "begrenzt": false,
+    "telemetrieNachweis": true,
+    "recoveryNachweis": true,
+    "gesamtauswertungBestanden": true
+  },
+  "reportEvidence": {
+    "quelle": "chat_paste",
+    "test": "V4 Block 8.5.9 · 10-Minuten-Soak",
+    "kennung": "block8-5-soak-block8-5-schatten-1789775266269",
+    "guiVersion": "1.0.0",
+    "status": "PASS",
+    "statusText": "Soak-Test bestanden: 10 Minuten Telemetrie stabil, Produktionsheartbeat fortgeschritten, Recovery-Grenzen unveraendert.",
+    "erstelltAm": "2026-09-19T07:28:36.564Z",
+    "launcherBereitAm": "2026-09-19T07:08:38.059Z",
+    "confirmationInitiallyBlocked": true
+  },
+  "runtimeEvidence": {
+    "runtimeVersion": "1.1.5",
+    "runtimeUrl": "https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/88185523c81687dc16f9647ca5e7568c5e2c228c/aio-v4-runtime.js",
+    "runtimeSha256": "95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f",
+    "generationPreflight": 0,
+    "heartbeatVersuchePreflight": 1,
+    "heartbeatErfolgePreflight": 1,
+    "heartbeatFehlerPreflight": 0,
+    "schattenNachweisKennung": "block8-5-schatten-1789775266269:schatten",
+    "liveNachweisKennung": "block8-5-schatten-1789775266269:kontrolliert_live"
+  },
+  "soakEvidence": {
+    "gestartetAm": 1789801725312,
+    "beendetAm": 1789802325319,
+    "dauerMillisekunden": 600000,
+    "sampleMillisekunden": 5000,
+    "samples": 120,
+    "erwarteteSamples": 118,
+    "fehler": [],
+    "generationVorher": 0,
+    "generationNachher": 0,
+    "heartbeatErfolgeVorher": 4,
+    "heartbeatErfolgeNachher": 304,
+    "heartbeatFehlerVorher": 0,
+    "heartbeatFehlerNachher": 0
+  },
+  "auswertungErwartet": {
+    "offline": "bestanden",
+    "schatten": "bestanden",
+    "kontrolliertLive": "bestanden",
+    "soak": "bestanden",
+    "naechsteStufe": null,
+    "freigabeVollstaendig": true,
+    "block9Freigegeben": true,
+    "spielAutoritaet": false,
+    "neustartAutoritaet": false
+  },
+  "roadmap": {
+    "block85Abgeschlossen": true,
+    "naechsterEntwicklungsblock": "8.6",
+    "block9StartNachRoadmapFreigegeben": false,
+    "grund": "Das historische Block-8.5-Gate ist vollstaendig bestanden; der aktualisierte V4-Fahrplan schiebt Block 8.6 verbindlich vor Block 9."
+  }
+}

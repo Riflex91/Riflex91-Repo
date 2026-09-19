@@ -1,6 +1,6 @@
 # Block 8.6 – Live Skill Catalog und Capability Truth
 
-Status: **geplant; Start erst nach bestandenem Block-8.5-Soak.**
+Status: **naechster Entwicklungsblock; Block-8.5-Soak bestanden, Implementierung darf beginnen.**
 
 ## Ziel
 

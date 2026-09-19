@@ -1,6 +1,6 @@
 # Block 8.5 – Separates 10-Minuten-Soak-Paket
 
-Status: **source-locked Soak-Paket vorbereitet; realer Soak-Nachweis noch nicht ausgefuehrt.**
+Status: **source-locked Soak-Paket real ausgefuehrt; 10-Minuten-Soak bestanden und kanonisch dokumentiert.**
 
 ## Freigabestand
 
@@ -8,8 +8,9 @@ Status: **source-locked Soak-Paket vorbereitet; realer Soak-Nachweis noch nicht 
 - Offline: **bestanden**
 - Schatten: **bestanden**
 - Kontrolliert live: **bestanden**
-- Soak: **offen**
-- Block 9: **gesperrt**
+- Soak: **bestanden**
+- Historisches 8.5-Gate: **vollstaendig bestanden**
+- Naechster Entwicklungsblock laut Fahrplan: **8.6**
 
 Der kontrollierte Live-Nachweis steht in:
 
@@ -107,6 +108,8 @@ Nur bei vollstaendigem PASS setzt der erzeugte Soak-Nachweis gleichzeitig:
 
 7. Die Sitzung fuer die vollen 10 Minuten laufen lassen.
 8. Nach PASS **Gesamtbericht kopieren** und als finalen 8.5.9-Nachweis sichern.
+
+Dieser reale Lauf wurde inzwischen erfolgreich ausgefuehrt. Der kanonische Nachweis steht in `BLOCK-8-5-SOAK-FREIGABE-NACHWEIS.json`.
 
 ## Fail-safe
 

@@ -1,6 +1,6 @@
 # Block 8.5 – formaler V3 -> V4 Wissenstransfer
 
-Status: **gestartet am 18. September 2026**.
+Status: **dokumentarisch abgeschlossen am 19. September 2026; alle fuer Block 8.5 relevanten V3-Prinzipien sind umgesetzt oder einem spaeteren V4-Block zugeordnet.**
 
 ## Zweck
 
