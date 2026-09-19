@@ -234,3 +234,23 @@ Remote-Diagnoseevidenz wird an Charakterkennung **und** Charaktername gebunden. 
 `CapabilityStatusSicht` besitzt immer `nurLesen: true`, `spielAutoritaet: false`, `bedienAutoritaet: false` und `neustartAutoritaet: false`.
 
 Das separate Block-8.6-Capability-HUD ist eine reine Darstellungsschicht. Es darf keine Fachlogik, Spielaktion, Policy-Schreiboperation, Kommunikationssendung oder Neustartaktion enthalten.
+
+
+## CapabilityWiederholung
+
+`CapabilityWiederholungsMaschine` ist der deterministische Offline-Wiederholungsweg fuer Block 8.6.
+
+Ein Replay-Datensatz enthaelt ausschliesslich serialisierbare aufgezeichnete Charakter-, Katalog-, Equipment-, Policy-, Liveness- und Remote-Snapshot-Eingaben. Die Maschine erzeugt daraus isolierte read-only Adventure-Land-Lesefenster und fuehrt die echten Block-8.6-Komponenten erneut aus.
+
+Pro Charakter bleiben ueber Replay-Schritte erhalten:
+
+- Skill-Katalog-Audit und Revalidierungsprofil,
+- SkillPolicy-Persistenz,
+- Capability-Generation/Fingerprint,
+- letzter erfolgreicher Capability-Snapshot.
+
+Remote-Snapshots koennen als `aktuell`, `vorheriger` oder `fehlend` eingespeist werden. Dadurch werden stale Snapshot-/Heartbeat-Kombinationen reproduzierbar durch denselben Block-8.6.5-Vertrauenspfad geprueft.
+
+Jeder Lauf besitzt einen SHA-256-`eingabeFingerabdruck`, pro Schritt einen `schrittFingerabdruck` und einen `ausgabeFingerabdruck`, jeweils ueber kanonisches V4-JSON. Die Variantenkennung veraendert den Ausgabe-Fingerprint nicht.
+
+Der Replay-Pfad besitzt keine Adventure-Land-Spielaktionsfunktionen und immer `aktionsAutoritaet: false`. Er darf weder `Date.now()` noch `Math.random()` als fachliche Eingabe verwenden.

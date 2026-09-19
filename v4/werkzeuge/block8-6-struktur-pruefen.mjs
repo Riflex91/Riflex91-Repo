@@ -32,7 +32,11 @@ const dateien = [
   'laufzeit/tests/capability-status.test.mjs',
   'laufzeit/tests/capability-hud.test.mjs',
   'werkzeuge/block8-6-capability-hud.js',
+  'laufzeit/quelle/vertraege/capability-wiederholung.ts',
+  'laufzeit/quelle/wiederholung/capability-wiederholung.ts',
+  'laufzeit/tests/capability-wiederholung.test.mjs',
   'dokumentation/BLOCK-8-6-1-SKILL-KATALOG.md',
+  'dokumentation/BLOCK-8-6-8-REPLAY-REGRESSION.md',
   'dokumentation/BLOCK-8-6-7-STATUS-HUD-DIAGNOSE.md',
   'dokumentation/BLOCK-8-6-6-CAPABILITY-GRUPPENWAHL.md',
   'dokumentation/BLOCK-8-6-5-CAPABILITY-SYNC.md',
@@ -315,9 +319,11 @@ for (const pflicht of [
   "export * from './vertraege/capability-gruppenwahl.js';",
   "export * from './spiellogik/capability-gruppenwahl.js';",
   "export * from './vertraege/capability-status.js';",
-  "export * from './telemetrie/capability-status.js';"
+  "export * from './telemetrie/capability-status.js';",
+  "export * from './vertraege/capability-wiederholung.js';",
+  "export * from './wiederholung/capability-wiederholung.js';"
 ]) {
-  if (!index.includes(pflicht)) throw new Error('V4-Index exportiert Block 8.6.3 bis 8.6.7 nicht: ' + pflicht);
+  if (!index.includes(pflicht)) throw new Error('V4-Index exportiert Block 8.6.3 bis 8.6.8 nicht: ' + pflicht);
 }
 
 
@@ -761,6 +767,90 @@ for (const [name, quelle] of [
   }
 }
 
+
+const capabilityReplayVertrag = await readFile(path.join(wurzel, 'laufzeit/quelle/vertraege/capability-wiederholung.ts'), 'utf8');
+for (const pflicht of [
+  'CAPABILITY_WIEDERHOLUNG_SCHEMA_VERSION = 1',
+  'CAPABILITY_WIEDERHOLUNG_MAX_SCHRITTE = 256',
+  'CAPABILITY_WIEDERHOLUNG_MAX_CHARAKTERE = 16',
+  "['aktuell', 'vorheriger', 'fehlend']",
+  'eingabeFingerabdruck',
+  'ausgabeFingerabdruck',
+  'schrittFingerabdruck',
+  'aktionsAutoritaet: false'
+]) {
+  if (!capabilityReplayVertrag.includes(pflicht)) throw new Error('Block-8.6.8-CapabilityReplay-Vertrag fehlt: ' + pflicht);
+}
+
+const capabilityReplayQuelle = await readFile(path.join(wurzel, 'laufzeit/quelle/wiederholung/capability-wiederholung.ts'), 'utf8');
+for (const pflicht of [
+  'CapabilityWiederholungsMaschine',
+  'AdventureLandSkillKatalogAuditSteuerung',
+  'SkillPolicySpeicher',
+  'CharakterFaehigkeitenResolver',
+  'erstelleCapabilitySyncSnapshot',
+  'pruefeRemoteCapabilityVertrauen',
+  'koordiniereGruppe',
+  'waehleCapabilityBasierteGruppenrollen',
+  'erstelleCapabilityStatusSicht',
+  'kanonisiereJson',
+  'berechneSha256',
+  "remoteSnapshotQuelle === 'aktuell'",
+  "remoteSnapshotQuelle === 'vorheriger'",
+  'aktionsAutoritaet: false as const'
+]) {
+  if (!capabilityReplayQuelle.includes(pflicht)) throw new Error('Block-8.6.8-CapabilityReplay-Logik fehlt: ' + pflicht);
+}
+for (const verboten of [
+  /\buse_skill\s*\(/,
+  /\battack\s*\(/,
+  /\bmove\s*\(/,
+  /\bsmart_move\s*\(/,
+  /\bsend_cm\s*\(/,
+  /Date\.now\s*\(/,
+  /Math\.random\s*\(/
+]) {
+  if (verboten.test(capabilityReplayQuelle)) throw new Error('Block 8.6.8 Replay darf keine Live-Aktion, Echtzeituhr oder Zufallsquelle einfuehren: ' + verboten);
+}
+
+const capabilityReplayTests = await readFile(path.join(wurzel, 'laufzeit/tests/capability-wiederholung.test.mjs'), 'utf8');
+for (const pflicht of [
+  'gleiche Inputs erzeugen identische Capability-, Leader- und Ausgabe-Fingerprints',
+  'zwei Ranger behalten getrennte 3shot/5shot-Policies und reale Leaderwahl',
+  'Level-Up schaltet bekannten 5shot strukturell frei, Skill AUS bleibt trotz technischer Readiness harte Sperre',
+  'Equipmentverlust entzieht Readiness und kann Leader deterministisch wechseln',
+  'unbekannter neuer Skill bleibt nach expliziter Katalog-Revalidierung sichtbar aber nicht automatisierbar',
+  'alter Remote-Snapshot bleibt trotz neuem aktivem Lebensnachweis stale und fail-closed',
+  'Katalog-Fingerprint-Mismatch blockiert Remote-Capability und verhindert Klassenfallback',
+  'Connection-Gap und Recovery bleiben bis expliziter Revalidierung fail-closed',
+  'Replay-Ausgabe bleibt read-only ohne Spielaktionsautoritaet auf allen Ebenen',
+  'unbounded oder zeitlich nicht monotone Datensaetze werden abgewiesen'
+]) {
+  if (!capabilityReplayTests.includes(pflicht)) throw new Error('Block-8.6.8-CapabilityReplay-Test fehlt: ' + pflicht);
+}
+
+const capabilityReplayDokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-8-REPLAY-REGRESSION.md'), 'utf8');
+for (const pflicht of [
+  'Goldener Pflichtlauf',
+  'zwei Ranger',
+  'SkillPolicy AUS',
+  'Equipmentverlust',
+  'unbekannter neuer Skill',
+  'stale Remote-Capability',
+  'Catalog-Fingerprint-Mismatch',
+  'Connection-Gap',
+  'Recovery ohne Revalidierung',
+  'gleiche Inputs -> gleicher Capability-/Leader-/Ausgabe-Fingerprint',
+  '**8.6.9 – Freigabe: Offline → Schatten → kontrolliert live → Soak.**'
+]) {
+  if (!capabilityReplayDokument.includes(pflicht)) throw new Error('Block-8.6.8-Dokumentation fehlt: ' + pflicht);
+}
+
+const bestehendeWiederholungsMaschine = await readFile(path.join(wurzel, 'laufzeit/quelle/wiederholung/wiederholungs-maschine.ts'), 'utf8');
+if (bestehendeWiederholungsMaschine.includes('CapabilityWiederholungsMaschine') || bestehendeWiederholungsMaschine.includes('capability-wiederholung')) {
+  throw new Error('Block 8.6.8 darf die bestehende generische Block-5-Wiederholungsmaschine nicht rueckwirkend verdrahten.');
+}
+
 const plan = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-PLAN.md'), 'utf8');
 for (const pflicht of [
   '8.6.1 – Skill-Katalog-Vertrag und Live-Lesequelle — **IMPLEMENTIERT**',
@@ -770,9 +860,10 @@ for (const pflicht of [
   '8.6.5 – Cross-Client Capability Sync — **IMPLEMENTIERT**',
   '8.6.6 – Capability-basierte Leader- und Aufgabenwahl — **IMPLEMENTIERT**',
   '8.6.7 – Status, HUD und Diagnose — **IMPLEMENTIERT**',
-  'Naechster Implementierungsschritt: **8.6.8 – Replay und Regression**'
+  '8.6.8 – Replay und Regression — **IMPLEMENTIERT**',
+  'Naechster Implementierungsschritt: **8.6.9 – Freigabe**'
 ]) {
-  if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.7-Stand: ${pflicht}`);
+  if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.8-Stand: ${pflicht}`);
 }
 
 const vertraege = await readFile(path.join(wurzel, 'dokumentation/VERTRAEGE.md'), 'utf8');
@@ -799,9 +890,13 @@ for (const pflicht of [
   '## CapabilityStatus',
   '`nurLesen: true`',
   '`bedienAutoritaet: false`',
-  '`neustartAutoritaet: false`'
+  '`neustartAutoritaet: false`',
+  '## CapabilityWiederholung',
+  '`eingabeFingerabdruck`',
+  '`schrittFingerabdruck`',
+  '`ausgabeFingerabdruck`'
 ]) {
-  if (!vertraege.includes(pflicht)) throw new Error(`V4-Vertragsdokumentation fehlt fuer Block 8.6.1 bis 8.6.7: ${pflicht}`);
+  if (!vertraege.includes(pflicht)) throw new Error(`V4-Vertragsdokumentation fehlt fuer Block 8.6.1 bis 8.6.8: ${pflicht}`);
 }
 
 const packageJson = JSON.parse(await readFile(path.join(wurzel, 'package.json'), 'utf8'));
@@ -812,4 +907,4 @@ if (!String(packageJson.scripts?.pruefen ?? '').includes('npm run block8-6-struk
   throw new Error('npm run pruefen muss den Block-8.6-Strukturguard ausfuehren.');
 }
 
-console.log('Block 8.6.1 bis 8.6.7 geprueft: Capability Truth, Sync, Gruppenwahl sowie read-only Status/HUD/Diagnose ohne neue Fach- oder Spielaktionsautoritaet.');
+console.log('Block 8.6.1 bis 8.6.8 geprueft: Capability Truth, Sync, Gruppenwahl, Status/HUD sowie deterministisches Replay ohne neue Spielaktionsautoritaet.');
