@@ -196,3 +196,24 @@ Fuer jede Player-Market-Capability:
 - [ ] trade_sell reproduziert die echte serverseitige Inventarauswahl.
 - [ ] nicht-fungible server-eligible Itemambiguitaet blockiert den Verkauf.
 - [ ] Gold/Inventory/Listing Resource Claims wirken kanalübergreifend.
+
+
+## P. Upgrade / Compound
+
+Fuer jede Upgrade-/Compound-Capability:
+
+- [ ] Preview ist klar von realer Mutation getrennt.
+- [ ] physische Inputs/Scroll/Offering werden vor Send erneut revalidiert.
+- [ ] q/Placeholder ist ein expliziter Transaction-State.
+- [ ] Same-Intent-Retry nach moeglichem Send ist ausgeschlossen.
+- [ ] Consumables und massproduction-Conditions bleiben bis Settlement geclaimt.
+- [ ] upgrade_fail wird pfadspezifisch reconciliert.
+- [ ] scroll4-Failure wird als Item-erhaltend getestet.
+- [ ] Material-Offering-Failure wird als Item-erhaltend getestet.
+- [ ] pscroll-Postcondition prueft stat_type statt Level+1.
+- [ ] Offering-only-Postcondition prueft Grace/Shiny statt Level+1.
+- [ ] Compound-Success und -Failure pruefen alle drei gepinnten Input-Identitaeten.
+- [ ] Booster-Compound prueft final level/extra/expires.
+- [ ] Crash/Disconnect waehrend q fuehrt zu UNKNOWN/RECONCILE ohne Retry.
+- [ ] Response allein kann keinen Commit erzeugen; frische Inventory-Postcondition ist Pflicht.
+- [ ] Upgrade- und Compound-Channel sind jeweils FIFO-serialisiert und Inventory-Claims wirken kanalübergreifend.
