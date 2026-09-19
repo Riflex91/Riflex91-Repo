@@ -52,14 +52,15 @@ function autoExchangeEligible(row, meta = {}) {
   return true;
 }
 
-function autoBankEligible(row, meta = {}) {
+function autoBankEligible(row, meta = {}, totalQuantity = 0) {
   if (!row || row.locked || row.special || Number(row.level || 0) !== 0) return false;
   const name = String(row.name || '').toLowerCase();
   if (/^(hpot|mpot|c?scroll[0-9])/.test(name)) return false;
   if (isEquipmentLike(meta)) return false;
   if (meta.upgrade || meta.compound || finite(meta.e, 0) > 0 || meta.exchange || meta.exchanges) return false;
   if (meta.quest || meta.event || meta.cash || meta.soulbound || meta.offering || meta.throw || meta.ignore) return false;
-  return Math.max(1, Math.floor(finite(row.q, 1))) > 1 || Math.max(1, Math.floor(finite(meta.s, 1))) > 1;
+  const stackLimit = Math.max(0, Math.floor(finite(meta.s, 0)));
+  return stackLimit > 1 && Math.max(0, Math.floor(finite(totalQuantity, 0))) > stackLimit;
 }
 
 function asSet(value) {
@@ -180,7 +181,7 @@ class InventoryLedger {
     return blockers;
   }
 
-  _baseDisposition(row, gameData, contentDrift, counts, reservationRemaining = new Map()) {
+  _baseDisposition(row, gameData, contentDrift, counts, reservationRemaining = new Map(), bankWorkingStockRemaining = new Map()) {
     const reasons = [];
     const meta = gameData && gameData.items && gameData.items[row.name];
     if (row.locked || row.special) return { disposition: ItemDisposition.KEEP, reasons: [row.locked ? 'ITEM_LOCKED' : 'ITEM_SPECIAL'] };
@@ -224,7 +225,16 @@ class InventoryLedger {
     if (autoExchangeEligible(row, meta)) {
       return { disposition: ItemDisposition.EXCHANGE, reasons: ['AUTONOMOUS_EXCHANGE_METADATA'] };
     }
-    if (autoBankEligible(row, meta)) {
+    if (autoBankEligible(row, meta, same)) {
+      const key = stackKey(row.name, row.level);
+      const stackLimit = Math.max(1, Math.floor(finite(meta.s, 1)));
+      const remaining = bankWorkingStockRemaining.has(key)
+        ? Math.max(0, bankWorkingStockRemaining.get(key))
+        : Math.min(same, stackLimit);
+      if (remaining > 0) {
+        bankWorkingStockRemaining.set(key, Math.max(0, remaining - Math.max(1, Math.floor(finite(row.q, 1)))));
+        return { disposition: ItemDisposition.UNDECIDED, reasons: ['AUTONOMOUS_LOCAL_WORKING_STOCK'] };
+      }
       return { disposition: ItemDisposition.BANK, reasons: ['AUTONOMOUS_SAFE_SURPLUS_BANK'] };
     }
 
@@ -287,13 +297,14 @@ class InventoryLedger {
 
     this.entries.clear();
     const progressionRemaining = new Map([...this.progressionReservationCounts.entries()].map(([key, value]) => [key, Math.max(0, Math.floor(finite(value && value.quantity, 0)))]));
+    const bankWorkingStockRemaining = new Map();
     let hpReserved = 0;
     let mpReserved = 0;
     let truncated = 0;
     let sellProtected = 0;
     for (const row of raw) {
       if (this.entries.size >= this.capacity) { truncated += 1; continue; }
-      const classified = this._baseDisposition(row, gameData, contentDrift, countsByCharacter.get(row.character) || new Map(), progressionRemaining);
+      const classified = this._baseDisposition(row, gameData, contentDrift, countsByCharacter.get(row.character) || new Map(), progressionRemaining, bankWorkingStockRemaining);
       let disposition = classified.disposition;
       const reasons = classified.reasons.slice();
       if (classified.sellProtected === true) sellProtected += 1;
