@@ -47,13 +47,13 @@ test('item permission setting is hidden, structured and sanitizes invalid action
 });
 
 
-test('Automation UI uses a persisted Adventure Land Atlas view and dedicated catalog source', () => {
-  assert.match(DASHBOARD_HTML, /data-automation-view="atlas"/);
-  assert.match(DASHBOARD_HTML, /data-automation-view="details"/);
-  assert.match(DASHBOARD_HTML, /aioV3AutomationView/);
-  assert.match(DASHBOARD_HTML, /automation-atlas-item/);
+test('Automation UI has no Atlas-specific view and uses the catalog endpoint', () => {
+  assert.doesNotMatch(DASHBOARD_HTML, /data-automation-view=/);
+  assert.doesNotMatch(DASHBOARD_HTML, /aioV3AutomationView/);
+  assert.doesNotMatch(DASHBOARD_HTML, /automation-atlas-/);
+  assert.doesNotMatch(DASHBOARD_HTML, /Atlas =/);
   assert.match(DASHBOARD_HTML, /\/api\/v3\/automation-catalog/);
-  assert.match(DASHBOARD_HTML, /eigener Katalogkanal/);
+  assert.match(DASHBOARD_HTML, /offizielle Spieldaten/);
 });
 
 test('Automation search normalizes and token-matches the complete item metadata', () => {
