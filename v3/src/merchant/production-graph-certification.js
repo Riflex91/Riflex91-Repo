@@ -274,17 +274,89 @@ class ProductionGraphSoakAuditor {
     this.committedOrder = [];
     this.activeTargetIdentity = null;
     this.maxTrackedCommitted = 0;
+    this.root = options.root || globalThis;
+    this.storage = options.storage || null;
+    this.storageKey = options.storageKey || 'aio-v3-production-graph-soak-v1';
+    this.persistEvery = Math.max(1, Math.min(1000, Math.floor(finite(options.persistEvery, 25) || 25)));
+    this.persisted = 0;
+    this.loads = 0;
+    this._dirty = false;
+    this._load();
+  }
+
+  _get() {
+    try {
+      if (this.storage && typeof this.storage.get === 'function') return this.storage.get(this.storageKey);
+      const ls = this.root && this.root.localStorage;
+      return ls && typeof ls.getItem === 'function' ? ls.getItem(this.storageKey) : null;
+    } catch (_) { return null; }
+  }
+
+  _set(value) {
+    try {
+      const text = JSON.stringify(value);
+      if (this.storage && typeof this.storage.set === 'function') return this.storage.set(this.storageKey, text) !== false;
+      const ls = this.root && this.root.localStorage;
+      if (ls && typeof ls.setItem === 'function') {
+        ls.setItem(this.storageKey, text);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  _load() {
+    const raw = this._get();
+    if (!raw) return false;
+    try {
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!data || Number(data.schemaVersion) !== 1) return false;
+      this.samples = Math.max(0, Math.floor(finite(data.samples, 0) || 0));
+      this.violations = (Array.isArray(data.violations) ? data.violations : []).slice(-this.capacity).map(clone);
+      this.committedOrder = (Array.isArray(data.committedOrder) ? data.committedOrder : [])
+        .map((value) => String(value || ''))
+        .filter(Boolean)
+        .slice(-this.committedCapacity);
+      this.seenCommitted = new Set(this.committedOrder);
+      this.activeTargetIdentity = data.activeTargetIdentity ? String(data.activeTargetIdentity) : null;
+      this.maxTrackedCommitted = Math.max(this.seenCommitted.size, Math.floor(finite(data.maxTrackedCommitted, 0) || 0));
+      this.loads += 1;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  _persist(force = false) {
+    if (!force) return false;
+    const ok = this._set({
+      schemaVersion: 1,
+      samples: this.samples,
+      violations: this.violations.slice(-this.capacity),
+      committedOrder: this.committedOrder.slice(-this.committedCapacity),
+      activeTargetIdentity: this.activeTargetIdentity,
+      maxTrackedCommitted: this.maxTrackedCommitted
+    });
+    if (ok) this.persisted += 1;
+    this._dirty = false;
+    return ok;
+  }
+
+  flush() {
+    return this._persist(true);
   }
 
   _violate(code, sample, detail = {}) {
     const row = { seq: this.samples, code, phase: sample && sample.phase || null, ...clone(detail) };
     this.violations.push(row);
     if (this.violations.length > this.capacity) this.violations.splice(0, this.violations.length - this.capacity);
+    this._dirty = true;
     return row;
   }
 
   observe(sample = {}) {
     this.samples += 1;
+    if (this.samples % this.persistEvery === 0) this._dirty = true;
     const phase = String(sample.phase || '');
     const targetIdentity = sample.targetIdentity || null;
     const terminal = ['COMPLETED', 'ABORTED', 'FAILED_SAFE'].includes(phase);
@@ -292,8 +364,14 @@ class ProductionGraphSoakAuditor {
     if (targetIdentity && this.activeTargetIdentity && targetIdentity !== this.activeTargetIdentity && !sample.targetTransitionAuthorized) {
       this._violate('TARGET_IDENTITY_CHANGED_WITHOUT_TERMINAL_REPLAN', sample, { previous: this.activeTargetIdentity, next: targetIdentity });
     }
-    if (targetIdentity && !terminal) this.activeTargetIdentity = targetIdentity;
-    if (terminal) this.activeTargetIdentity = null;
+    if (targetIdentity && !terminal && targetIdentity !== this.activeTargetIdentity) {
+      this.activeTargetIdentity = targetIdentity;
+      this._dirty = true;
+    }
+    if (terminal && this.activeTargetIdentity !== null) {
+      this.activeTargetIdentity = null;
+      this._dirty = true;
+    }
 
     if (sample.recoveryPending === true && sample.gameplayActionExecuted === true) {
       this._violate('GAMEPLAY_ACTION_DURING_RECOVERY_PENDING', sample);
@@ -307,6 +385,7 @@ class ProductionGraphSoakAuditor {
       else {
         this.seenCommitted.add(key);
         this.committedOrder.push(key);
+        this._dirty = true;
         while (this.committedOrder.length > this.committedCapacity) {
           const oldest = this.committedOrder.shift();
           this.seenCommitted.delete(oldest);
@@ -343,6 +422,7 @@ class ProductionGraphSoakAuditor {
       if (sample.mutationDemandActive === true) this._violate('ORPHAN_MUTATION_DEMAND_AFTER_COMPLETION', sample);
     }
 
+    this._persist(this._dirty);
     return this.status();
   }
 
@@ -357,7 +437,14 @@ class ProductionGraphSoakAuditor {
       violations: this.violations.slice(-100).map(clone),
       committedKeysTracked: this.seenCommitted.size,
       committedCapacity: this.committedCapacity,
-      bounded: this.violations.length <= this.capacity && this.seenCommitted.size <= this.committedCapacity
+      bounded: this.violations.length <= this.capacity && this.seenCommitted.size <= this.committedCapacity,
+      persistence: {
+        enabled: !!(this.storage || this.root && this.root.localStorage),
+        storageKey: this.storageKey,
+        persistEvery: this.persistEvery,
+        loads: this.loads,
+        writes: this.persisted
+      }
     };
   }
 }

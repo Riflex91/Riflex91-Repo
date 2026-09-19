@@ -127,6 +127,35 @@ Regression coverage includes:
 - bounded soak/dedupe state;
 - final recipient settlement before a new Production plan.
 
-## Real-soak handoff
+## Controlled real Production soak
 
-A later controlled real Production soak should feed the same observation schema instead of inventing a second certification definition. The exact PR-head CI gate must remain green before merge, and real-soak evidence should record the resulting coverage report, soak status and certification-gate payload together.
+The Merchant Production controller now feeds the same E2E auditor automatically from trusted live Runtime state. No second certification definition is introduced.
+
+Runtime entry point:
+
+`runtime.productionRealSoakStatus()`
+
+The observer is diagnostic only:
+
+- `actionAuthority:false`;
+- it does not enable or execute gameplay actions;
+- it does not change the existing log format or add required log lines;
+- it observes only when Production-relevant Runtime state exists;
+- the first relevant live observation also runs the Production Acquisition Coverage Audit;
+- committed Merchant Production operations are attached once by their persisted operation ID;
+- restart/recovery, handoff, event activity, P90 farm decisions, recipient settlement and post-completion cleanup are projected into the existing soak schema when trustworthy Runtime evidence is available.
+
+The soak auditor persists a bounded checkpoint containing the sample count, violation journal, active target identity and bounded irreversible-operation dedupe window. This keeps the certification meaningful across Browser/Bot restarts without allowing unbounded storage growth. Checkpoint writes are throttled and forced for important state changes such as newly observed irreversible commits or invariant violations.
+
+A separate persisted observer cursor prevents the same already-observed committed operation from being re-submitted as a new real action after restart.
+
+Real-soak evidence should be evaluated together:
+
+- `runtime.auditProductionCoverage()`;
+- `runtime.productionRealSoakStatus()`;
+- `runtime.productionCertificationGate()`;
+- the normal operational logs.
+
+The normal logs remain unchanged. Log handoffs should still be reviewed broadly for all detectable runtime faults, not only Production certification failures.
+
+Fresh-main sync note: the real-soak observer remains source-compatible with parallel V3 merchant-autonomy changes; the generated runtime bundle must always be rebuilt from the merged source state before release.
