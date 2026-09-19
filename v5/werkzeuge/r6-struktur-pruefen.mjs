@@ -76,6 +76,12 @@ if (abdeckung.kategorien?.KLASSE?.erwartet !== 7
     || abdeckung.kategorien?.KLASSE?.abgedeckt !== 7) {
   fehler("Aktuelle sieben Klassen muessen 7/7 im produktiven Anzeigekatalog abgedeckt sein.");
 }
+for (const [kategorie, erwartet] of [["EREIGNIS", 11], ["AKTION", 60], ["STATUS", 102]]) {
+  const wert = abdeckung.kategorien?.[kategorie];
+  if (!wert || wert.erwartet !== erwartet || wert.abgedeckt !== erwartet || wert.fehlendAnzahl !== 0) {
+    fehler("Aktuelle Events Aktionen und Status muessen vollstaendig abgedeckt sein: " + kategorie);
+  }
+}
 
 const typen = fs.readFileSync("grundlage/quelle/wissen/typen.ts", "utf8");
 for (const name of ["DefinitionsWissen","SpielBeobachtung","LiveVerifizierterFakt","AbgeglicheneWeltWahrheit"]) {

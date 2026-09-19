@@ -1,50 +1,720 @@
 {
   "schemaVersion": 1,
-  "katalogVersion": 1,
+  "katalogVersion": 2,
   "eintraege": [
     {
       "schemaVersion": 1,
-      "katalogVersion": 1,
-      "externeKennung": "warrior",
-      "kategorie": "KLASSE",
-      "deutscherAnzeigename": "Krieger",
+      "katalogVersion": 2,
       "quellenStatus": "DEUTSCH_GEPRUEFT",
       "revalidiertAm": "2026-09-20",
-      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+      "externeKennung": "activate",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Booster aktivieren",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
     },
     {
       "schemaVersion": 1,
-      "katalogVersion": 1,
-      "externeKennung": "paladin",
-      "kategorie": "KLASSE",
-      "deutscherAnzeigename": "Paladin",
+      "katalogVersion": 2,
       "quellenStatus": "DEUTSCH_GEPRUEFT",
       "revalidiertAm": "2026-09-20",
-      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+      "externeKennung": "auto_craft",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Automatisch herstellen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
     },
     {
       "schemaVersion": 1,
-      "katalogVersion": 1,
-      "externeKennung": "rogue",
-      "kategorie": "KLASSE",
-      "deutscherAnzeigename": "Schurke",
+      "katalogVersion": 2,
       "quellenStatus": "DEUTSCH_GEPRUEFT",
       "revalidiertAm": "2026-09-20",
-      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+      "externeKennung": "bank_deposit",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Gold einzahlen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
     },
     {
       "schemaVersion": 1,
-      "katalogVersion": 1,
-      "externeKennung": "ranger",
-      "kategorie": "KLASSE",
-      "deutscherAnzeigename": "Waldläufer",
+      "katalogVersion": 2,
       "quellenStatus": "DEUTSCH_GEPRUEFT",
       "revalidiertAm": "2026-09-20",
-      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+      "externeKennung": "bank_retrieve",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Gegenstand entnehmen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
     },
     {
       "schemaVersion": 1,
-      "katalogVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "bank_store",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Gegenstand einlagern",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "bank_swap",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Bankplätze tauschen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "bank_withdraw",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Gold abheben",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "bet_dice",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Auf Würfel setzen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "bet_wheel",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Am Glücksrad setzen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "bless_server",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Server segnen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "buy",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Kaufen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "buy_lost_and_found",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Fundsache kaufen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "buy_secondhand",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Gebraucht kaufen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "buy_with_gold",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Mit Gold kaufen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "buy_with_shells",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Mit Muscheln kaufen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "cave_buy",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "In der Höhle kaufen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "close_stand",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Verkaufsstand schließen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "compound",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Zusammenfügen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "consume",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Verbrauchen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "craft",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Herstellen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "destat_item",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Gegenstandseigenschaft entfernen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "destroy",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Zerstören",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "destroy_item",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Gegenstand zerstören",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "dismantle",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Zerlegen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "donate_gold",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Gold spenden",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "equip",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Ausrüsten",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "equip_batch",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Mehrere Gegenstände ausrüsten",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "equip_cx",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Kosmetik ausrüsten",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "exchange",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Eintauschen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "exchange_buy",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Mit Tauschmarke kaufen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "giveaway",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Verlosung erstellen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "join_giveaway",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "An Verlosung teilnehmen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "lock_item",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Gegenstand sperren",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "loot",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Beute aufnehmen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "open_bank_pack",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Bankfach öffnen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "open_stand",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Verkaufsstand öffnen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "play_slots",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Spielautomaten spielen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "poker_act",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Pokerzug ausführen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "poker_join",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Pokerrunde beitreten",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "poker_leave",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Pokerrunde verlassen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "poker_sit_in",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Am Pokertisch einsteigen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "poker_sit_out",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Am Pokertisch aussetzen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "seal_item",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Gegenstand versiegeln",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "sell",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Verkaufen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "send_cx",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Kosmetik senden",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "send_gold",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Gold senden",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "send_item",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Gegenstand senden",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "send_mail",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Post senden",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "shift",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Booster wechseln",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "split",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Stapel teilen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "swap",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Inventarplätze tauschen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "take_mail_item",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Postgegenstand entnehmen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "throw_item",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Gegenstand wegwerfen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "trade",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Handelsangebot erstellen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "trade_buy",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Von Spieler kaufen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "trade_sell",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "An Spieler verkaufen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "unequip",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Ablegen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "unlock_item",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Gegenstand entsperren",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "upgrade",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Aufwerten",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "wishlist",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Kaufgesuch erstellen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@f3e2941390ae5c3752e442693274c795128bdb06"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "abtesting",
+      "kategorie": "EREIGNIS",
+      "deutscherAnzeigename": "A/B-Test",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-EVENTS.txt@006659897eb714616f8e4a2043790f516758be37"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "anniversary",
+      "kategorie": "EREIGNIS",
+      "deutscherAnzeigename": "Zehn Jahre Adventure Land",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-EVENTS.txt@006659897eb714616f8e4a2043790f516758be37"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "crabxx",
+      "kategorie": "EREIGNIS",
+      "deutscherAnzeigename": "Gigakrabbe",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-EVENTS.txt@006659897eb714616f8e4a2043790f516758be37"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "egghunt",
+      "kategorie": "EREIGNIS",
+      "deutscherAnzeigename": "Eiersuche",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-EVENTS.txt@006659897eb714616f8e4a2043790f516758be37"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "franky",
+      "kategorie": "EREIGNIS",
+      "deutscherAnzeigename": "Franky",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-EVENTS.txt@006659897eb714616f8e4a2043790f516758be37"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "goobrawl",
+      "kategorie": "EREIGNIS",
+      "deutscherAnzeigename": "Goo-Rauferei",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-EVENTS.txt@006659897eb714616f8e4a2043790f516758be37"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "halloween",
+      "kategorie": "EREIGNIS",
+      "deutscherAnzeigename": "Halloween",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-EVENTS.txt@006659897eb714616f8e4a2043790f516758be37"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "holidayseason",
+      "kategorie": "EREIGNIS",
+      "deutscherAnzeigename": "Festtagssaison",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-EVENTS.txt@006659897eb714616f8e4a2043790f516758be37"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "icegolem",
+      "kategorie": "EREIGNIS",
+      "deutscherAnzeigename": "Eisgolem",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-EVENTS.txt@006659897eb714616f8e4a2043790f516758be37"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "lunarnewyear",
+      "kategorie": "EREIGNIS",
+      "deutscherAnzeigename": "Mondneujahr",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-EVENTS.txt@006659897eb714616f8e4a2043790f516758be37"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "valentines",
+      "kategorie": "EREIGNIS",
+      "deutscherAnzeigename": "Valentinstag",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-EVENTS.txt@006659897eb714616f8e4a2043790f516758be37"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
       "externeKennung": "mage",
       "kategorie": "KLASSE",
       "deutscherAnzeigename": "Magier",
@@ -54,7 +724,27 @@
     },
     {
       "schemaVersion": 1,
-      "katalogVersion": 1,
+      "katalogVersion": 2,
+      "externeKennung": "merchant",
+      "kategorie": "KLASSE",
+      "deutscherAnzeigename": "Händler",
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "externeKennung": "paladin",
+      "kategorie": "KLASSE",
+      "deutscherAnzeigename": "Paladin",
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
       "externeKennung": "priest",
       "kategorie": "KLASSE",
       "deutscherAnzeigename": "Priester",
@@ -64,13 +754,1053 @@
     },
     {
       "schemaVersion": 1,
-      "katalogVersion": 1,
-      "externeKennung": "merchant",
+      "katalogVersion": 2,
+      "externeKennung": "ranger",
       "kategorie": "KLASSE",
-      "deutscherAnzeigename": "Händler",
+      "deutscherAnzeigename": "Waldläufer",
       "quellenStatus": "DEUTSCH_GEPRUEFT",
       "revalidiertAm": "2026-09-20",
       "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "externeKennung": "rogue",
+      "kategorie": "KLASSE",
+      "deutscherAnzeigename": "Schurke",
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "externeKennung": "warrior",
+      "kategorie": "KLASSE",
+      "deutscherAnzeigename": "Krieger",
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ABGEBROCHEN",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Abgebrochen",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ABGELAUFEN",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Abgelaufen",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ABGELEHNT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Abgelehnt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ABGESCHLOSSEN",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Abgeschlossen",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ABGLEICH",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Abgleich",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ABGLEICH_ERFORDERLICH",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Abgleich erforderlich",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ABGLEICH_LAEUFT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Abgleich läuft",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "AENDERUNG_ERKANNT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Änderung erkannt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "AENDERUNGSSATZ_ERSTELLT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Änderungssatz erstellt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "AKTIV",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Aktiv",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ANGEFORDERT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Angefordert",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ANGELEGT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Angelegt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ARCHIVIERT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Archiviert",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "AUS",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Aus",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "AUSFUEHRUNG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Ausführung",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "AUSWERTUNG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Auswertung",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "BEDARF_ERFASST",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Bedarf erfasst",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "BEDIENER_ERFORDERLICH",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Bediener erforderlich",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "BEOBACHTET",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Beobachtet",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "BEOBACHTUNG_WIRD_AUFGEBAUT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Beobachtung wird aufgebaut",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "BEOBACHTUNG_WIRD_ERNEUERT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Beobachtung wird erneürt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "BEREIT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Bereit",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "BESTAETIGT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Bestätigt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "BRANCH_AKTUALISIERT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Zweig aktualisiert",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "CI_LAEUFT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Automatische Prüfung läuft",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "DEGRADIERT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Degradiert",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "EINGABEN_RESERVIERT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Eingaben reserviert",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "EINGEGANGEN",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Eingegangen",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "EMPFAENGER_ABGLEICH",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Empfänger abgleich",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "EMPFAENGER_BESTAETIGT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Empfänger bestätigt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ENTZOGEN",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Entzogen",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ERFOLGREICH",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Erfolgreich",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ERFUELLT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Erfüllt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ERGEBNIS_BESTAETIGT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Ergebnis bestätigt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ERGEBNIS_ERWARTET",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Ergebnis erwartet",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "ERGEBNIS_UNBEKANNT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Ergebnis unbekannt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "EVIDENZ_GESAMMELT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Evidenz gesammelt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "FEHLER",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Fehler",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "FEHLGESCHLAGEN",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Fehlgeschlagen",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "FREI",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Frei",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "GEFUNDEN",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Gefunden",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "GEPLANT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Geplant",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "GESENDET",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Gesendet",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "GESPERRT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Gesperrt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "GESTOPPT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Gestoppt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "GETRENNT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Getrennt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "GIT_SYNCHRONISIERUNG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Git-Synchronisierung",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "GIT_VORBEREITUNG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Git-Vorbereitung",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "HERSTELLUNG_BEREIT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Herstellung bereit",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "HERSTELLUNG_BESTAETIGT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Herstellung bestätigt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "HERSTELLUNG_LAEUFT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Herstellung läuft",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "INHALT_ERFASST",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Inhalt erfasst",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "INTENT_GESPEICHERT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Absicht gespeichert",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "KANDIDAT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Kandidat",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "KEINE_NEUE_ARBEIT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Keine neü arbeit",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "KRITISCH_GESPERRT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Kritisch gesperrt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "LAEUFT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Läuft",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "LIEFERUNG_BEREIT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Lieferung bereit",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "LIEFERUNG_LAEUFT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Lieferung läuft",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "MATERIALIEN_RESERVIERT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Materialien reserviert",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "MATERIALPLAN",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Materialplan",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "NEU_PRUEFUNG_ERFORDERLICH",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Neu prüfung erforderlich",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "NEUVERBINDUNG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Neuverbindung",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "NICHT_AUSGEFUEHRT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Nicht ausgeführt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "NICHT_ERREICHBAR",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Nicht erreichbar",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "NORMALISIERT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Normalisiert",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "PAUSIERT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Pausiert",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "PFADPRUEFUNG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Pfadprüfung",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "POSTCONDITION_BEOBACHTET",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Nachbedingung beobachtet",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "PR_OFFEN",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Änderungsantrag offen",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "PRUEFUNG_ERFORDERLICH",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Prüfung erforderlich",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "Q_PLACEHOLDER_AKTIV",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Platzhalter aktiv",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "QUARANTAENE",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Quarantäne",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "QUELLEN_PRUEFUNG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Qüllen prüfung",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "QUELLENPRUEFUNG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Qüllenprüfung",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "RESSOURCEN_GESPERRT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Ressourcen gesperrt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "RESSOURCENPLAN",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Ressourcenplan",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "RESTPLAN_ERFORDERLICH",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Restplan erforderlich",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "SCHEMAPRUEFUNG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Schemaprüfung",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "SERVER_ERGEBNIS_ERHALTEN",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Server ergebnis erhalten",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "SICHER_FEHLGESCHLAGEN",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Sicher fehlgeschlagen",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "SICHER_UNTERBRECHBAR",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Sicher unterbrechbar",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "STALE",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Veraltet",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "STARTET",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Startet",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "STOPP_ANGEFORDERT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Stopp angefordert",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "TEILERFUELLT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Teilerfüllt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "UEBERNAHME_BEREIT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Übernahme bereit",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "UEBERNOMMEN",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Übernommen",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "UNBEKANNT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Unbekannt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "VALIDIERUNG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Validierung",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "VERAENDERT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Verändert",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "VERALTET",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Veraltet",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "VERGEBEN",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Vergeben",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "VERGLEICH",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Vergleich",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "VERLAENGERUNG_FAELLIG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Verlängerung fällig",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "VORAUSSETZUNGEN_BESTAETIGT",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Voraussetzungen bestätigt",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "VORBEREITUNG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Vorbereitung",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "WARTET",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Wartet",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "WARTET_AUF_BEOBACHTUNG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Wartet auf beobachtung",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "WARTET_AUF_VORAUSSETZUNG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Wartet auf voraussetzung",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "WIDERSPRUCH",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Widerspruch",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 2,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "externeKennung": "WIDERSPRUCH_PRUEFUNG",
+      "kategorie": "STATUS",
+      "deutscherAnzeigename": "Widerspruch prüfung",
+      "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
     }
   ]
 }

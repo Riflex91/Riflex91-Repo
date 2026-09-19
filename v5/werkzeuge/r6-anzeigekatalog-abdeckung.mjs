@@ -100,11 +100,52 @@ for (const quelle of quellen) {
   };
 }
 
+const actionContracts = JSON.parse(liesText("wissensbasis/vertraege/action-contracts.json"));
+const erwarteteAktionen = actionContracts.contracts.map(vertrag => vertrag.publicFunction);
+const aktionsEintraege = (katalog.eintraege ?? [])
+  .filter(eintrag => eintrag.kategorie === "AKTION" && eintragGueltig(eintrag, {
+    kategorie: "AKTION",
+    brauchtBeschreibung: false,
+  }));
+const aktionsKennungen = new Set(aktionsEintraege.map(eintrag => eintrag.externeKennung));
+const fehlendeAktionen = erwarteteAktionen.filter(kennung => !aktionsKennungen.has(kennung));
+kategorien.AKTION = {
+  quelle: "wissensbasis/vertraege/action-contracts.json",
+  quelleSha256: sha256(liesText("wissensbasis/vertraege/action-contracts.json")),
+  erwartet: erwarteteAktionen.length,
+  abgedeckt: erwarteteAktionen.length - fehlendeAktionen.length,
+  abdeckungProzent: erwarteteAktionen.length === 0
+    ? 100
+    : ((erwarteteAktionen.length - fehlendeAktionen.length) * 100) / erwarteteAktionen.length,
+  fehlendAnzahl: fehlendeAktionen.length,
+  fehlendErste50: fehlendeAktionen.slice(0, 50),
+};
+
+const zustandsdaten = JSON.parse(liesText("zustaende/zustandsautomaten.json"));
+const automaten = zustandsdaten.automaten ?? zustandsdaten.zustandsautomaten ?? [];
+const erwarteteStatus = [...new Set(automaten.flatMap(automat => automat.zustaende ?? []))].sort();
+const statusEintraege = (katalog.eintraege ?? [])
+  .filter(eintrag => eintrag.kategorie === "STATUS" && eintragGueltig(eintrag, {
+    kategorie: "STATUS",
+    brauchtBeschreibung: false,
+  }));
+const statusKennungen = new Set(statusEintraege.map(eintrag => eintrag.externeKennung));
+const fehlendeStatus = erwarteteStatus.filter(kennung => !statusKennungen.has(kennung));
+kategorien.STATUS = {
+  quelle: "zustaende/zustandsautomaten.json",
+  quelleSha256: sha256(liesText("zustaende/zustandsautomaten.json")),
+  erwartet: erwarteteStatus.length,
+  abgedeckt: erwarteteStatus.length - fehlendeStatus.length,
+  abdeckungProzent: erwarteteStatus.length === 0
+    ? 100
+    : ((erwarteteStatus.length - fehlendeStatus.length) * 100) / erwarteteStatus.length,
+  fehlendAnzahl: fehlendeStatus.length,
+  fehlendErste50: fehlendeStatus.slice(0, 50),
+};
+
 const weiterePflichtKategorien = {
   NICHTSPIELERFIGUR: "QUELLENMENGE_NOCH_ZU_DEFINIEREN",
   AUFGABE: "QUELLENMENGE_NOCH_ZU_DEFINIEREN",
-  AKTION: "KATALOGABDECKUNG_NOCH_OFFEN",
-  STATUS: "KATALOGABDECKUNG_NOCH_OFFEN",
 };
 
 const quellenKategorienBereit = Object.values(kategorien)
