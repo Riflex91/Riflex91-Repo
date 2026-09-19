@@ -118,8 +118,8 @@ test('Debug monitor uses a larger responsive bottom-right layout', () => {
   assert.equal(ui.titleNode.textContent, 'AiO v3 - 3.0-132');
   assert.equal(ui.logBox, null);
   assert.equal(ui.body.children.length, 6);
-  assert.deepEqual(ui.body.children.map((row) => row.children[0] && row.children[0].textContent), ['Name', 'Level', 'HP', 'MP', 'Inventar', 'Aufgabe']);
-  assert.equal(ui.body.children[4].children[1].textContent, '1 / 42');
+  assert.deepEqual(ui.body.children.map((row) => row.children[0] && row.children[0].textContent), ['Name', 'Level', 'HP', 'MP', 'Inventarplätze', 'Aufgabe']);
+  assert.equal(ui.body.children[4].children[1].textContent, '41 frei / 42');
   assert.equal(ui.body.children[5].children[1].textContent, 'Farmen');
   assert.equal(ui.copyButton.textContent, 'Log kopieren');
   assert.equal(ui.status().actionAuthority, false);
