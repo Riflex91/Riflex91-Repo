@@ -52,6 +52,8 @@ class TeamCombatCohesionHotfix {
       leaderSelections: 0,
       followerMirrors: 0,
       sharedAggroSelections: 0,
+      logicalTargetHolds: 0,
+      logicalTargetChanges: 0,
       soloTargetBlocks: 0,
       oversizedTargetBlocks: 0,
       incompleteTeamBlocks: 0,
@@ -270,50 +272,165 @@ class TeamCombatCohesionHotfix {
       const snapshot = context && context.snapshot;
       const team = this._team(snapshot);
       if (!team.self || lower(team.self.ctype) === 'merchant') return null;
+
+      // Target authority is intentionally resolved before readiness gates.
+      // Supply/cohesion/team-readiness decide what a member may DO with the
+      // target; they must not erase a target the leader already selected.
+      const sharedAggro = this._sharedAggro(context, team);
+      if (sharedAggro) {
+        this.stats.sharedAggroSelections += 1;
+        if (typeof this.farmer._setLogicalTeamTarget === 'function') {
+          this.farmer._setLogicalTeamTarget(sharedAggro.id, sharedAggro.mtype, {
+            source: 'team-shared-aggro',
+            leaderName: team.leaderName
+          });
+        }
+        this.lastDecision = {
+          at: this.now(),
+          action: 'TARGET_SHARED_AGGRO',
+          reason: 'PARTY_MEMBER_UNDER_ATTACK',
+          targetId: String(sharedAggro.id),
+          targetType: sharedAggro.mtype,
+          leaderName: team.leaderName
+        };
+        return {
+          target: sharedAggro,
+          ranking: {
+            monster: sharedAggro.mtype,
+            score: Number.MAX_SAFE_INTEGER,
+            source: 'team-shared-aggro'
+          }
+        };
+      }
+
+      if (team.selfName !== team.leaderName) {
+        if (!team.leaderTargetId) {
+          if (typeof this.farmer._setLogicalTeamTarget === 'function') this.farmer._setLogicalTeamTarget(null);
+          this.stats.soloTargetBlocks += 1;
+          this.lastDecision = {
+            at: this.now(),
+            action: 'TARGET_HOLD',
+            reason: 'WAITING_FOR_TEAM_LEADER_TARGET',
+            leaderName: team.leaderName
+          };
+          return null;
+        }
+
+        const leaderTarget = (snapshot.entities || []).find((entity) => entity
+          && String(entity.id) === String(team.leaderTargetId));
+        const targetType = leaderTarget && leaderTarget.mtype || null;
+        const previousLogical = this.farmer.logicalTeamTargetId;
+        if (typeof this.farmer._setLogicalTeamTarget === 'function') {
+          this.farmer._setLogicalTeamTarget(team.leaderTargetId, targetType, {
+            source: 'team-leader-authority',
+            leaderName: team.leaderName
+          });
+        }
+        if (previousLogical !== String(team.leaderTargetId)) this.stats.logicalTargetChanges += 1;
+
+        if (!leaderTarget) {
+          this.stats.logicalTargetHolds += 1;
+          if (typeof this.farmer._holdTargetSelection === 'function') {
+            this.farmer._holdTargetSelection('LEADER_TARGET_NOT_LOCALLY_VISIBLE', {
+              leaderName: team.leaderName,
+              targetId: team.leaderTargetId
+            });
+          }
+          this._followLeader(context, team, 'LEADER_TARGET_NOT_LOCALLY_VISIBLE');
+          this.lastDecision = {
+            ...(this.lastDecision || {}),
+            at: this.now(),
+            action: this.lastDecision && this.lastDecision.action === 'FORMATION_FOLLOW'
+              ? this.lastDecision.action
+              : 'TARGET_HOLD',
+            reason: 'LEADER_TARGET_NOT_LOCALLY_VISIBLE',
+            leaderName: team.leaderName,
+            targetId: team.leaderTargetId
+          };
+          return null;
+        }
+
+        if (!this._candidateAllowed(context, leaderTarget)) {
+          this.stats.logicalTargetHolds += 1;
+          this.stats.soloTargetBlocks += 1;
+          if (typeof this.farmer._holdTargetSelection === 'function') {
+            this.farmer._holdTargetSelection('LEADER_TARGET_NOT_LOCALLY_SAFE', {
+              leaderName: team.leaderName,
+              targetId: team.leaderTargetId,
+              targetType
+            });
+          }
+          this.lastDecision = {
+            at: this.now(),
+            action: 'TARGET_HOLD',
+            reason: 'LEADER_TARGET_NOT_LOCALLY_SAFE',
+            leaderName: team.leaderName,
+            targetId: team.leaderTargetId,
+            targetType
+          };
+          return null;
+        }
+
+        this.stats.followerMirrors += 1;
+        this.lastDecision = {
+          at: this.now(),
+          action: 'TARGET_MIRROR',
+          reason: 'TEAM_LEADER_TARGET',
+          leaderName: team.leaderName,
+          targetId: String(leaderTarget.id),
+          targetType: leaderTarget.mtype
+        };
+        return {
+          target: leaderTarget,
+          ranking: {
+            monster: leaderTarget.mtype,
+            score: Number.MAX_SAFE_INTEGER - 1,
+            source: 'team-leader-target'
+          }
+        };
+      }
+
+      // Only the leader's NEW target selection is gated by readiness.
       const block = this._teamBlockReason(snapshot, team, true);
       if (block) {
         if (block === 'TEAM_NOT_COHESIVE') this.stats.cohesionBlocks += 1;
         else if (block === 'LOCAL_POTION_SUPPLY_INCOMPLETE') this.stats.supplyBlocks += 1;
         else if (block === 'TEAM_HP_TOPOFF_REQUIRED' || block === 'TEAM_MP_TOPOFF_REQUIRED') this.stats.recoveryBlocks += 1;
         else this.stats.incompleteTeamBlocks += 1;
-        this.lastDecision = { at: this.now(), action: 'TARGET_HOLD', reason: block, leaderName: team.leaderName, maxPairDistance: team.maxPairDistance };
+        this.lastDecision = {
+          at: this.now(),
+          action: 'TARGET_HOLD',
+          reason: block,
+          leaderName: team.leaderName,
+          maxPairDistance: team.maxPairDistance
+        };
         return null;
-      }
-
-      const sharedAggro = this._sharedAggro(context, team);
-      if (sharedAggro) {
-        this.stats.sharedAggroSelections += 1;
-        this.lastDecision = { at: this.now(), action: 'TARGET_SHARED_AGGRO', reason: 'PARTY_MEMBER_UNDER_ATTACK', targetId: String(sharedAggro.id), targetType: sharedAggro.mtype, leaderName: team.leaderName };
-        return { target: sharedAggro, ranking: { monster: sharedAggro.mtype, score: Number.MAX_SAFE_INTEGER, source: 'team-shared-aggro' } };
-      }
-
-      if (team.selfName !== team.leaderName) {
-        if (!team.leaderTargetId) {
-          this.stats.soloTargetBlocks += 1;
-          this.lastDecision = { at: this.now(), action: 'TARGET_HOLD', reason: 'WAITING_FOR_TEAM_LEADER_TARGET', leaderName: team.leaderName };
-          return null;
-        }
-        const leaderTarget = (snapshot.entities || []).find((entity) => entity && String(entity.id) === String(team.leaderTargetId));
-        if (!leaderTarget || !this._candidateAllowed(context, leaderTarget)) {
-          this.stats.soloTargetBlocks += 1;
-          this.lastDecision = { at: this.now(), action: 'TARGET_HOLD', reason: 'LEADER_TARGET_NOT_LOCALLY_SAFE_OR_VISIBLE', leaderName: team.leaderName, targetId: team.leaderTargetId };
-          return null;
-        }
-        this.stats.followerMirrors += 1;
-        this.lastDecision = { at: this.now(), action: 'TARGET_MIRROR', reason: 'TEAM_LEADER_TARGET', leaderName: team.leaderName, targetId: String(leaderTarget.id), targetType: leaderTarget.mtype };
-        return { target: leaderTarget, ranking: { monster: leaderTarget.mtype, score: Number.MAX_SAFE_INTEGER - 1, source: 'team-leader-target' } };
       }
 
       const selection = baseSelect(context);
       if (!selection || !selection.target) return selection;
       if (this._oversizedNewTarget(selection.target, team)) {
         this.stats.oversizedTargetBlocks += 1;
-        this.lastDecision = { at: this.now(), action: 'TARGET_HOLD', reason: 'NEW_TARGET_TOO_LARGE_FOR_ROUTINE_TEAM_PULL', targetId: String(selection.target.id), targetType: selection.target.mtype, targetMaxHp: selection.target.max_hp };
+        this.lastDecision = {
+          at: this.now(),
+          action: 'TARGET_HOLD',
+          reason: 'NEW_TARGET_TOO_LARGE_FOR_ROUTINE_TEAM_PULL',
+          targetId: String(selection.target.id),
+          targetType: selection.target.mtype,
+          targetMaxHp: selection.target.max_hp
+        };
         this._event('TEAM_NEW_TARGET_REJECTED', 'warn', 'NEW_TARGET_TOO_LARGE_FOR_ROUTINE_TEAM_PULL', { ...this.lastDecision });
         return null;
       }
       this.stats.leaderSelections += 1;
-      this.lastDecision = { at: this.now(), action: 'TARGET_LEADER_SELECT', reason: 'TEAM_COHESIVE', leaderName: team.leaderName, targetId: String(selection.target.id), targetType: selection.target.mtype };
+      this.lastDecision = {
+        at: this.now(),
+        action: 'TARGET_LEADER_SELECT',
+        reason: 'TEAM_COHESIVE',
+        leaderName: team.leaderName,
+        targetId: String(selection.target.id),
+        targetType: selection.target.mtype
+      };
       return selection;
     };
     this.farmer.__teamCohesionTargetSelectionInstalled = true;
@@ -440,8 +557,14 @@ class TeamCombatCohesionHotfix {
         if (gate.team && gate.team.selfName !== gate.team.leaderName) this._followLeader(context, gate.team, gate.reason);
         else this.stats.leaderHolds += 1;
         if (gate.reason === 'FOLLOWER_TARGET_DIFFERS_FROM_LEADER') {
+          if (gate.team && gate.team.leaderTargetId && typeof this.farmer._setLogicalTeamTarget === 'function') {
+            this.farmer._setLogicalTeamTarget(gate.team.leaderTargetId, null, {
+              source: 'team-target-change',
+              leaderName: gate.team.leaderName
+            });
+          }
           this.farmer._clearTarget('TEAM_TARGET_CHANGED');
-          this.farmer._transition('REASSESS', 'TEAM_TARGET_CHANGED');
+          this.farmer._transition('SELECT_TARGET', 'TEAM_TARGET_CHANGED');
         }
         this.lastDecision = { ...(this.lastDecision || {}), at: this.now(), action: this.lastDecision && this.lastDecision.action === 'FORMATION_FOLLOW' ? this.lastDecision.action : 'COMBAT_HOLD', reason: gate.reason, phase: 'TRAVEL', leaderName: gate.team && gate.team.leaderName || null };
         return;
@@ -455,8 +578,14 @@ class TeamCombatCohesionHotfix {
         if (gate.team && gate.team.selfName !== gate.team.leaderName) this._followLeader(context, gate.team, gate.reason);
         else this.stats.leaderHolds += 1;
         if (gate.reason === 'FOLLOWER_TARGET_DIFFERS_FROM_LEADER') {
+          if (gate.team && gate.team.leaderTargetId && typeof this.farmer._setLogicalTeamTarget === 'function') {
+            this.farmer._setLogicalTeamTarget(gate.team.leaderTargetId, null, {
+              source: 'team-target-change',
+              leaderName: gate.team.leaderName
+            });
+          }
           this.farmer._clearTarget('TEAM_TARGET_CHANGED');
-          this.farmer._transition('REASSESS', 'TEAM_TARGET_CHANGED');
+          this.farmer._transition('SELECT_TARGET', 'TEAM_TARGET_CHANGED');
         }
         this.lastDecision = { ...(this.lastDecision || {}), at: this.now(), action: this.lastDecision && this.lastDecision.action === 'FORMATION_FOLLOW' ? this.lastDecision.action : 'COMBAT_HOLD', reason: gate.reason, phase: 'ENGAGE', leaderName: gate.team && gate.team.leaderName || null };
         return;
