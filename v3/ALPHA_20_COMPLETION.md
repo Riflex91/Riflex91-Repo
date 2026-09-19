@@ -17,10 +17,15 @@ Release: `3.0.0-alpha.20.0`
 - Live-gate prep merge parents: core `main` `63d16e2798f1275a7f1bcc8f9028c27d0789e0a6` + exact certified prep head `8d3dce7f5a5dda11eb532e64addf152343da8b3f`.
 - Alpha.20 genuine four-character production live gate: **PASSED / CONFIRMATION ELIGIBLE**.
 - Production result: `pass:true`, `confirmationEligible:true`, `confirmationBlockers:[]`.
-- Separate documentation-only confirmation PR: **IN PROGRESS**.
-- Alpha.20 remains **NOT FULL CONFIRMED** until the confirmation PR exact final head passes full CI, is SHA-bound merged, and final `main`/tree/both parents are verified.
+- Separate documentation-only confirmation PR #73: **MERGED / EXACT-HEAD CERTIFIED**.
+- Exact certified confirmation head: `682b61bf92f8e4bbabb85c713da2779cbbdf8d71`.
+- Confirmation-head `release-v3-alpha` workflow: **SUCCESS**.
+- Confirmation merge on `main`: `b557443dd169e36cde763d214f76a9a30ba08e59`.
+- Confirmation merge tree: `a1b510d015f376ad4c513b1decafe4c65249336e`.
+- Confirmation merge parents: live-gate `main` `bce44c2e12b779222e414e754bb7412ee6168e21` + exact certified confirmation head `682b61bf92f8e4bbabb85c713da2779cbbdf8d71`.
+- Alpha.20 production confirmation: **FULL CONFIRMED**.
 
-Default runtime remains `shadow`. Party transition, Development rotation and Paladin aura authority remain independently default-off. Strategic Brain gameplay authority, cross-map party routing, broad `smart_move()` autonomy and server changes remain disabled.
+For the Alpha.20 certification contract, the default runtime remained `shadow`, controlled party/Development/aura authority remained independently default-off, and the Strategic Brain had no direct gameplay authority. Later releases may add separately gated capabilities; this file records the historical Alpha.20 certification boundary.
 
 ## Goal
 
@@ -227,9 +232,9 @@ Alpha.20 becomes **FULL CONFIRMED** only after:
 3. combined four-character live-gate preparation exact-head certified and SHA-bound merged — **DONE**
 4. one genuine production four-character live gate completes with `confirmationEligible:true` — **DONE**
 5. complete result/log review confirms lifecycle, transition, aura-boundary, circuit, default-off and unexpected-action invariants — **DONE**
-6. separate documentation-only confirmation PR records the evidence — **IN PROGRESS**
-7. confirmation PR exact final head passes full CI — **PENDING**
-8. confirmation PR is SHA-bound merged — **PENDING**
-9. final `main`, tree and both parents are verified — **PENDING**
+6. separate documentation-only confirmation PR records the evidence — **DONE** via PR #73
+7. confirmation PR exact final head passes full CI — **DONE** for `682b61bf92f8e4bbabb85c713da2779cbbdf8d71`
+8. confirmation PR is SHA-bound merged — **DONE** as `b557443dd169e36cde763d214f76a9a30ba08e59`
+9. final `main`, tree and both parents are verified — **DONE**: tree `a1b510d015f376ad4c513b1decafe4c65249336e`, parents `bce44c2e12b779222e414e754bb7412ee6168e21` + `682b61bf92f8e4bbabb85c713da2779cbbdf8d71`
 
-Until step 9, Alpha.20 must not be described as FULL CONFIRMED.
+Alpha.20 therefore satisfies its historical **FULL CONFIRMED** definition. This closure does not by itself certify later v3 releases for continuous 24/7 production; that is the purpose of Architecture Step 14.
