@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<script src="/js/phrases.js?v=16846"></script>
+<script src="/phrases/en.js?v=16846"></script>
+<script>
+	var language_account = false;
+	var language_initialized = false;
+	var language_source = "default";
+	document.documentElement.lang = phrase.language;
+</script>
+
+<script src="/js/language_picker.js?v=16846"></script>
+<script>
+	if (window.desktop) {
+		initialize_desktop_language();
+	} else if (!language_initialized) {
+		var detected_language = phrase.detect(navigator.languages || [navigator.language]);
+		language_cookie(detected_language, "detected");
+		if (detected_language != phrase.language) location.reload();
+	}
+</script>
+
+		<title>Adventure Mcp — Adventure Land Docs</title>
+		<meta name="description" content="Adventure Land guides, CODE references, game data, items, monsters, skills, and systems." />
+<link rel="canonical" href="https://adventure.land/docs/guide/tracktrix/null/adventure-mcp" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Adventure Land" />
+<meta property="og:url" content="https://adventure.land/docs/guide/tracktrix/null/adventure-mcp" />
+<meta property="og:image" content="https://adventure.land/images/first_logo.png" />
+<meta property="og:image:width" content="1539" />
+<meta property="og:image:height" content="1539" />
+<meta property="og:image:alt" content="Adventure Land game world and logo" />
+<meta property="og:title" content="Adventure Mcp — Adventure Land Docs" />
+<meta property="og:description" content="Adventure Land guides, CODE references, game data, items, monsters, skills, and systems." />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Adventure Mcp — Adventure Land Docs" />
+<meta name="twitter:description" content="Adventure Land guides, CODE references, game data, items, monsters, skills, and systems." />
+<meta name="twitter:image" content="https://adventure.land/images/first_logo.png" />
+<meta name="twitter:image:alt" content="Adventure Land game world and logo" />
+
+		<link rel="apple-touch-icon-precomposed" href="/images/docs.png" /> <!-- 152 -->
+		<link rel="icon" href="/images/docs.png" /> <!-- 32 -->
+		<!--[if IE]><link rel="shortcut icon" href="/images/docs.png"><![endif]--> <!-- .ico -->
+		<meta name="msapplication-TileImage" content="/images/docs.png"> <!-- 144 -->
+		<meta name="mobile-web-app-capable" content="yes"> <meta name="apple-mobile-web-app-capable" content="yes">
+		<script src="/js/jquery/jquery-3.2.0.min.js"></script>
+		
+			<script src="/js/codemirror/5.65.1/codemirror.js"></script>
+			<link href="/js/codemirror/5.65.1/codemirror.css" rel="stylesheet" type="text/css"/>
+			<link href="/js/codemirror/pixel.css" rel="stylesheet" type="text/css"/>
+			<script src="/js/codemirror/5.65.1/javascript.js"></script>
+			<script src="/js/codemirror/5.65.1/xml.js"></script>
+		<script src="/js/keyboard.js?v=16846"></script>
+		
+		
+		<script src="/js/common_functions.js?v=16846"></script>
+		<script src="/js/old_common_functions.js?v=16846"></script>
+		<script src="/js/functions.js?v=16846"></script>
+		<script src="/js/html.js?v=16846"></script>
+		<script src="/js/progression/sources.js?v=16846"></script>
+		<link href="/css/common.css?v=16846" rel="stylesheet" type="text/css"/>
+		<link href="/css/index.css?v=16846" rel="stylesheet" type="text/css"/>
+		<script src="/data.js?v=16846&amp;cache=1"></script>
+		<style>
+			html, body{
+				background: black;
+				color: white;
+				font-family: var(--pixel-font, pixel);
+				font-size: 32px;
+				overflow: auto;
+			}
+		</style>
+		<!-- base.html - for simple usages [19/11/18] -->
+	</head>
+	<body>
+		<script>
+			function on_resize()
+			{
+				width=$(window).width();
+				height=$(window).height();
+				position_modals();
+			}
+			on_resize();
+			function first_things_first()
+			{
+				on_resize();
+				window.onresize=on_resize;
+				$(document).on('click','a.eexternal',function(event) {
+					if(!is_electron) return;
+					event.preventDefault();
+					require('electron').shell.openExternal(this.href);
+				});
+			}
+			$(function(){
+				first_things_first();
+			});
+		</script>
+		
+	<style>
+		body {
+			background-image: url("/images/docs.png");
+			background-repeat: repeat;
+			margin:0; padding:0;
+		}
+	</style>
+	<div style="position: fixed; top: 0px; left: 0px; z-index: 9999999" class='showwithmodals'>
+		<div class="gamebutton" onclick='pcs(); hide_modal();'>&lt; Back</div>
+	</div>
+	<div id="boosterguide" style="display:none">
+	<!-- <div class="gamebutton gamebutton-small" style="position: absolute; top: 5px; right: 5px">Updated December 16th</div> -->
+	<div style="font-size: 24px; color: #F4F4F4">
+		<div class="gamebutton gamebutton-large" style="border-color: #E56369">Boosters</div> <div class="mb5"></div>
+		<div class="gamebutton gamebutton-small mr5 mt5 mb5">Activation and Usage</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> After pressing the "ACTIVATE" button. The booster item lasts 30 days. The booster item works from a character's inventory, it is not equipped or consumed. The effect can be observed from the "STATS" interface. The item can be transfered between characters or sold through merchanting.</div>
+		<!-- <div class="gamebutton gamebutton-small mr5 mt10 mb5">Increased Limits</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> While the free character limit is 1, characters with an active booster item are able to exceed this limit. Even with booster items, the upper limit for multi-characters is 3. So minimally, with 2 stones, you can play the game with a 3-character party.</div> -->
+		<div class="gamebutton gamebutton-small mr5 mt10 mb5">Optimal Strategy</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> Don't loot chests, keep the Booster in XP mode.</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> While battling a boss, shift the Booster to Luck mode.</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> When there are enough chests around, shift the Booster to Gold mode and loot.</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> This way, you can benefit from all 3 bonuses with 1 stone.</div>
+		<div class="mr5 mt10 mb5" style="border-color: #32A3B0; font-size: 0px">
+			<span class='bitems'></span>
+			<span class='bitem1'></span>
+			<span class='bitem2'></span>
+			<span class='bitem3'></span>
+			<span class='bitem4'></span>
+			<span class='bitem5'></span>
+			<span class='bitemo'></span>
+		</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> You can combine boosters as you combine accessories. The combination succeeds 100%, however, if you use a "Primordial Essence" for the combination, It triggers a proc-chance routine.</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> You start with a 12% chance, as you succeed, your booster becomes a higher level booster, and the routine internally repeats with half the chance. So you can even receive an +5 booster, instead of an +1!</div>
+		<div class="gamebutton gamebutton-small mr5 mt10 mb5" style="border-color: #32A3B0">CODE</div>
+		<div class="gray mb5"><span style="color: #F4F4F4">&gt;</span> You can use the activate and shift functions in CODE.</div>
+		<div class="gray mb5"><span class='label'>shift(0,'xpbooster')</span></div>
+		<div class="gray mb5"><span class='label'>shift(0,'luckbooster')</span></div>
+		<div class="gray mb5"><span class='label'>shift(0,'goldbooster')</span></div>
+		<div class="gray mb5"><span style="color: #F4F4F4">&gt;</span> Above calls be used to shift a booster in 0th inventory slot.</div>
+		<div class="gray mb5"><span style="color: #F4F4F4">&gt;</span> Implementing the optimal strategy is left as an exercise to the reader.</div>
+	</div>
+	<div class="oncreate" onclick="booster_modal_logic();"></div>
+</div>
+	<div id="shellsinfo" style="display:none">
+	<!-- <div class="gamebutton gamebutton-small" style="position: absolute; top: 5px; right: 5px">Updated December 16th</div> -->
+	<div style="font-size: 24px; color: #F4F4F4">
+		<div class="gamebutton gamebutton-large" style="border-color: #5DAC40">SHELLS</div> <div class="mb5"></div>
+		
+		<div class="gamebutton gamebutton-small mr5 mt5 mb5">Where to Find</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> You can get shells by farming green Goo's, from exchangeable items as rare rewards and through various other hidden and non-hidden ways in-game.</div>
+		<div class="gamebutton gamebutton-small mr5 mt10 mb5">Original Plan</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> Adventure Land aims to cover operating costs and generate long-term revenue by selling <a href="https://adventure.land/shells" target="_blank">SHELLS</a> as a premium currency. It will be for cosmetic items, possibly extra bank storage and some rare account operations, like character transfers. <span style='color:#D0D0D0'>Keeping the game non-p2w is a top priority</span>, so SHELLS won't affect in-game performance.</div>
+		<div class="gamebutton gamebutton-small mr5 mt10 mb5">After Steam Early Access</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> Adventure Land performs really well on Steam so far, as an indie-developer, one of my biggest concerns was being cash positive. If it continues like this, and I hope it does, it might even be possible to introduce cosmetics through in-game achievements and gold only.</div>
+	</div>
+</div>
+
+	<div id="keymapguide" style="display:none">
+	<div style="font-size: 24px; color: #F4F4F4">
+		<div class="gamebutton gamebutton-large" style="border-color: #32A3B0">Skillbar and Keymap</div> <div class="mb5"></div>
+
+		<div class="gamebutton gamebutton-small mr5 mt5 mb5">Skillbar and Configuration</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> Skillbar is the small vertical bar you see on the right side of the screen, above the game logs. You can configure your skillbar through Code. Changes you make are saved and persisted for your Character, on your system locally.</div>
+		<div class="mr5 mt10 mb5" style="border-color: #32A3B0; font-size: 0px">
+			<span class='skb1'></span>
+			<span class='skb2'></span>
+			<span class='skb3'></span>
+			<span class='skb4'></span>
+			<span class='skb5'></span>
+			<span class='skbX'></span>
+			<span class='skbY'></span>
+		</div>
+		<div class="gray mb5 mt5"><span class='label'>set_skillbar("1","2","3","4","5","X","Y");</span></div>
+		<div class="gray mb5"><span class='label'>set_skillbar(["1","2","3","4","5","X","Y"]);</span></div>
+
+		<div class="gamebutton gamebutton-small mr5 mt10 mb5">Keymap and Configuration</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> Keymap is for mapping keypresses to skills, abilities and actions. Similar to the skillbar, you can change your keymap from Code, and the changes are persisted locally.</div>
+		<div class="gray mb5 mt10"><span class='label'>map_key("1","use_hp");</span></div>
+		<div class="gray mb5"><span class='label'>map_key("2","snippet","say('Woohoo')");</span></div>
+		<div class="gray mb5"><span class='label'>map_key("X","supershot");</span></div>
+		<div class="gray mb5"><span class='label'>unmap_key("X");</span></div>
+		<div class="gray mb5"><span class='label clickable'  onclick="show_snippet('reset_mappings()')">reset_mappings();</span> &lt;- DEFAULTS THINGS</div>
+		<div class="gray mb5 mt5 clickable" onclick="show_json(G.skills)"><span class='label'>show_json(G.skills);</span> &lt;- CLICK TO RUN!</div>
+
+
+		<div class="gamebutton gamebutton-small mr5 mt10 mb5">Mappable Keys</div>
+		<div class="mr5 mt10 mb5 skbkeys">
+		</div>
+
+		<div class="gamebutton gamebutton-small mr5 mt10 mb5 clickable" onclick="show_snippet()">Snippets</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> Snippets are small code pieces that are either evaluated inside your own Code, or on a blank runner if your Code isn't running.</div>
+		<div class="gray mb5 mt10 clickable" onclick="show_snippet(snip_wl_code)"><span class='label'>map_key("Q","snippet","smart_move('winterland')");</span> &lt;- CLICK TO TEST!</div>
+
+		<div class="gamebutton gamebutton-small mr5 mt10 mb5">Mapping Items</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> Items can be mapped manually to keys, or by dragging and dropping an item to a key slot. Pressing that key, activates, uses or equips the item.</div>
+		<div class="gray mb5 mt10"><span class='label'>map_key("SPACE",{"name":"stand0","type":"item"});</span></div>
+
+		<div class="gamebutton gamebutton-small mr5 mt10 mb5">Map New Keys</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> You can map to unmapped keys by including the `keycode` argument in your mappings. You can learn keycodes from: <a href="http://keycode.info" class='eexternal' target="_blank" style="color: #469ECF; text-decoration: none">keycode.info</a></div>
+		<div class="gray mb5 mt10"><span class='label'>map_key("DOT",{"name":"pure_eval","code":"ping()",keycode:190});</span></div>
+
+		<div class="gamebutton gamebutton-small mr5 mt10 mb5 clickable" onclick="show_snippet()">Advanced Usages</div>
+		<div class="gray"><span style="color: #F4F4F4">&gt;</span> You can override game's default keymappings, add new functionalities to keypresses using the "pure_eval" skill, unlike "snippet", "pure_eval" runs Javascript code inside the game window, so be careful using "pure_eval". You can change any rendered icon to one of your choosing. Ps. There's a list of icons in: G.skills.snippet.skins</div>
+		<div class="gray mb5 mt10 clickable" onclick="show_snippet(snip_esc_code)"><span class='label'>//Example code that overrides ESC</span></div>
+
+	</div>
+	<div class="oncreate" onclick="keymap_modal_logic();"></div>
+</div>
+	<table width=100% height="95%" class='hidewithmodals'>
+		<tr><td align="center">
+			<div style='width:420px; margin-top: 100px'>
+				<div class='gamebutton block mb5' onclick='pcs(); render_guide();'><span style='color: #9083BC'>&gt;</span> Game Guide <span style='color: #9083BC'>&lt;</span></div>
+				
+				<!-- <div class='gamebutton block mb5' onclick='pcs(); render_code_articles()'><span style='color: #E78E4E'>&gt;</span> Learn CODE <span style='color: #E78E4E'>&lt;</span></div> -->
+				<div class='gamebutton block mb5' onclick='pcs(); render_code_docs()'> <span style='color: #78C13F'>&gt;</span> CODE Docs  <span style='color: #78C13F'>&lt;</span></div>
+				<div class='gamebutton block mb5' onclick='pcs(); render_others()'> <span style='color: #F0D748'>&gt;</span> Other Systems  <span style='color: #F0D748'>&lt;</span></div>
+			</div>
+		</td></tr>
+	</table>
+
+	<iframe src="/runner" id="maincode" style="border: none; background-color: black; margin-top: -5px; height: 1px; width: 1px; overflow: hidden; pointer-events: none"></iframe>
+
+	<script>
+		var code_active=false,no_html=false,mode={},inside="docs",code=false,tracker={},ctarget=null,xtarget=null;
+		var page={title:"Docs",url:"/docs"};
+		var modal_opacity=0;
+		function add_log(){};
+		var path=["guide","tracktrix","null","adventure-mcp"];
+		if(path.length)
+		{
+			if(path[0]=="code")
+			{
+				if(path[1]!="learn") render_code_docs();
+				if(path[1]=="functions")
+				{
+					render_functions_directory();
+					if(path[2])
+					{
+						var n=path[2];
+						function the_call()
+						{
+							if(code_active) render_function_reference(n);
+							else setTimeout(function(){ the_call() },10);
+						}
+						if(in_arr(n,G.docs.documented))
+							api_call("load_article",{name:n,func:true});
+						else
+							the_call();
+					}
+				}
+				else if(path[1]=="data")
+				{
+					render_data_reference();
+					if(path[2]) render_data_reference([],path[2]);
+				}
+				else if(path[1]=="monster")
+				{
+					open_article("data-monster","/docs/code/monster/reference");
+				}
+				else if(path[1]=="game")
+				{
+					open_article("events-game","/docs/code/game/events");
+				}
+				else if(path[1]=="server")
+				{
+					open_article("data-server-status","/docs/code/server/status");
+				}
+				else if(path[1]=="character")
+				{
+					if(path[2]=="events") open_article("events-character","/docs/code/character/events");
+					else open_article("data-character","/docs/code/character/reference");
+				}
+				else if(path[1]=="links")
+				{
+					render_useful_links();
+				}
+				else if(path[1]=="learn")
+				{
+					render_code_articles();
+					if(path[2])
+					{
+						var suffix="",docs=G.docs.articles,cpath=[];
+						for(var i=2;i<path.length;i++)
+						{
+							var step=path[i],ref=[];
+							if(!step) continue;
+							cpath.push(step);
+							for(var j=0;j<docs.length;j++)
+								if(docs[j][0]==step)
+								{
+									ref=docs[j];
+									docs=docs[j][3];
+									break;
+								}
+							if(!docs)
+							{
+								open_article(step,"/docs/code/learn"+suffix+"/"+step);
+								break;
+							}
+							else
+							{
+								render_code_articles(cpath,ref[1],ref[2]);
+								suffix+="/"+step;
+							}
+						}
+					}
+				}
+			}
+			else if(path[0]=="guide")
+			{
+				render_guide();
+				if(path[1]=="all")
+				{
+					if(path[2]=="items")
+					{
+						render_all_items();
+						if(path[3]) render_item_info(path[3]);
+					}
+					else if(path[2]=="monsters")
+					{
+						render_all_monsters();
+						if(path[3]) render_monster_info(path[3]);
+					}
+					else if(path[2]=="skills_and_conditions")
+					{
+						render_all_skills_and_conditions();
+					}
+					else if(path[2]=="recipes")
+					{
+						render_all_recipes();
+					}
+					else if(path[2]=="cosmetics")
+					{
+						render_all_cosmetics();
+					}
+					else if(path[2]=="events")
+					{
+						render_all_events();
+					}
+				}
+				else if(path[1])
+				{
+					var suffix="",docs=G.docs.guide,cpath=[];
+					for(var i=1;i<path.length;i++)
+					{
+						var step=path[i],ref=[];
+						if(!step) continue;
+						cpath.push(step);
+						for(var j=0;j<docs.length;j++)
+							if(docs[j][0]==step)
+							{
+								ref=docs[j];
+								docs=docs[j][4];
+								break;
+							}
+						if(!docs)
+						{
+							open_guide(step,"/docs/guide"+suffix+"/"+step);
+							break;
+						}
+						else
+						{
+							render_guide(cpath,ref[1],ref[2]);
+							suffix+="/"+step;
+						}
+					}
+				}
+			}
+			else if(path[0]=="ref")
+			{
+				render_others();
+				if(path[1]=="keymapping") show_modal($("#keymapguide").html(),{url:"/docs/ref/keymapping"});
+				else if(path[1]=="boosters") show_modal($("#boosterguide").html(),{url:"/docs/ref/boosters"});
+				else if(path[1]=="shells") show_modal($("#shellsinfo").html(),{url:"/docs/ref/shells"});
+				else if(path[1]=="holidayseason") open_guide("event-holidayseason","/docs/ref/holidayseason");
+				else if(path[1]=="halloween") open_guide("event-halloween","/docs/ref/halloween");
+				else if(path[1]=="cnewyear") open_guide("event-cnewyear","/docs/ref/cnewyear");
+				else if(path[1]=="valentines") open_guide("event-valentines","/docs/ref/valentines");
+				else if(path[1]=="egghunt") open_guide("event-egghunt","/docs/ref/egghunt");
+				else open_guide(path[1],"/docs/ref/"+path[1]);
+			}
+			else if(path[0]=="tutorial")
+			{
+				render_tutorial_index();
+				if(path[1])
+				{
+					for(var i=0;i<G.docs.tutorial.length;i++)
+						if(G.docs.tutorial[i].key==path[1]) open_tutorial(i);
+					for(var i=0;i<(G.docs.merchant_tutorial||[]).length;i++)
+						if(G.docs.merchant_tutorial[i].key==path[1]) open_tutorial(i,"merchant");
+				}
+			}
+		}
+	</script>
+
+	</body>
+</html>

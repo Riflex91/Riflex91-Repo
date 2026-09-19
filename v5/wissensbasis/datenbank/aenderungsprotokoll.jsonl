@@ -1,0 +1,210 @@
+{
+  "kennung": "AL-OFFICIAL-MCP",
+  "titel": "Adventure Land \u2014 MCP / AI Guide",
+  "adresse": "https://adventure.land/docs/guide/tracktrix/null/adventure-mcp",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "46c6e3f14d3f9981c43253648e109af174008459002b221ae71fdff4cb6a9aee",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-OFFICIAL-CODE-FUNCTIONS",
+  "titel": "Adventure Land \u2014 CODE Functions",
+  "adresse": "https://adventure.land/docs/code/functions",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "2de0a3534fbcb64057e44cdb5eda0678d2f36948b15b172132a0d11be97b4246",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-OFFICIAL-NOTES",
+  "titel": "Adventure Land \u2014 Update Notes",
+  "adresse": "https://adventure.land/allnotes",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "d0c0ba5e8c4c9195566fa30fe5f866b90077f8560f525ac8a06f7cfe74017bad",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-OFFICIAL-DOCS-HUB",
+  "titel": "Adventure Land \u2014 Website / Docs Hub",
+  "adresse": "https://adventure.land/",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "53050c0668ad44b9de597374c448d6da987d8c00da256256542574f2af435494",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-OFFICIAL-REPO",
+  "titel": "kaansoral/adventureland_mongodb",
+  "adresse": "https://github.com/kaansoral/adventureland_mongodb",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "13069d0a2d69f071a0fb6bd78915c987f0cb058881f8ea09a9173de920ada7e5",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-SRC-RUNNER",
+  "titel": "runner_functions.js",
+  "adresse": "https://github.com/kaansoral/adventureland_mongodb/blob/main/js/runner_functions.js",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "f3899079d1d61ff8a933ffc1150bd22d28d2e2b2284b31ca030310bd117a3bfb",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-SRC-GAME",
+  "titel": "game.js",
+  "adresse": "https://github.com/kaansoral/adventureland_mongodb/blob/main/js/game.js",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "bf77e2834ea9bf094fe0932177acb63459570a594c8f413d7b290a21a656c2f6",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-SRC-FUNCTIONS",
+  "titel": "functions.js",
+  "adresse": "https://github.com/kaansoral/adventureland_mongodb/blob/main/js/functions.js",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "a4580007800b0782c02737c3d9e36b64bc65d54babf1e5926b71ed2ef164ee0f",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-SRC-COMMON",
+  "titel": "old_common_functions.js",
+  "adresse": "https://github.com/kaansoral/adventureland_mongodb/blob/main/js/old_common_functions.js",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "6e6c5376ce2043357722655a02960d62ec7dcb472ebbfc9ef259676391b6d309",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-SRC-SERVER",
+  "titel": "server.js",
+  "adresse": "https://github.com/kaansoral/adventureland_mongodb/blob/main/node/server.js",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "de67e4df0820c1dc801fd30a82354dd36fb9c1e43aee8680fbe6562abf27278d",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-SRC-SERVER-FUNCTIONS",
+  "titel": "server_functions.js",
+  "adresse": "https://github.com/kaansoral/adventureland_mongodb/blob/main/node/server_functions.js",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "c01a12756af1b0e29c8792255251addec64e5993ac90ecacab2c1b83c960043f",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-DATA-CLASSES",
+  "titel": "design/classes.js",
+  "adresse": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/classes.js",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "77f3500a08eb890747780366320895a464a440b02648a5ddd466cc369eb0b16a",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-DATA-SKILLS",
+  "titel": "design/skills.js",
+  "adresse": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/skills.js",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "277e62115f1036321bc428bc15b04322e8c9d97ff4c026ff2286359c159b7e97",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-DATA-ITEMS",
+  "titel": "design/items.js",
+  "adresse": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/items.js",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "3b0b6aeeb2e932cfd4be7a069f50eb771c563b89659f5239d85becd6d74178ed",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-DATA-MONSTERS",
+  "titel": "design/monsters.js",
+  "adresse": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/monsters.js",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "608b8408c8f66b45a4326c94975021eaa34434e70364352ae39d7b7f9057fb71",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-DATA-MAPS",
+  "titel": "design/maps.js",
+  "adresse": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/maps.js",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "5158d37f9f252ae3c1a34763ba4f3ab7de546b1ff8448fc2f87fa2246ee92ac1",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-DATA-EVENTS",
+  "titel": "design/events.js",
+  "adresse": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/events.js",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "c56603b36964527df809ee711675ff0644c2fa21e4f4f56d57c7dd3e0ef68afe",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "AL-DATA-RECIPES",
+  "titel": "design/recipes.js",
+  "adresse": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/recipes.js",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "db12a2ddbe96a9f80142957164a32df2dade8f6ba36b1ad80079caf437618361",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "COMM-MONITORING",
+  "titel": "adventureland-community/monitoring",
+  "adresse": "https://github.com/adventureland-community/monitoring",
+  "vertrauen": "COMMUNITY",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "2cd2805ac80d77fef693c9d6476aaff6d2b8e5ded3ed89cebc213e3907fab0e4",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "COMM-GRIMERY",
+  "titel": "grimery/Adventure.Land",
+  "adresse": "https://github.com/grimery/Adventure.Land",
+  "vertrauen": "COMMUNITY",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "07c5b58b5999ecc78b3bede48f33ee3b0d610d2b60681480f934f0d9b274d666",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}
+{
+  "kennung": "COMM-ALCLIENT",
+  "titel": "earthiverse/ALClient",
+  "adresse": "https://github.com/earthiverse/ALClient",
+  "vertrauen": "COMMUNITY",
+  "vorherigerInhaltSha256": null,
+  "neuerInhaltSha256": "defc82fd2e6187f0b705c76e9bd4a499405a655e835726a1dae54f8aeedd84f6",
+  "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
+  "art": "NEU_ERFASST"
+}

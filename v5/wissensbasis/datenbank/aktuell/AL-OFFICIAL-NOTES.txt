@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<script src="/js/phrases.js?v=16846"></script>
+<script src="/phrases/en.js?v=16846"></script>
+<script>
+	var language_account = false;
+	var language_initialized = false;
+	var language_source = "default";
+	document.documentElement.lang = phrase.language;
+</script>
+
+<script src="/js/language_picker.js?v=16846"></script>
+<script>
+	if (window.desktop) {
+		initialize_desktop_language();
+	} else if (!language_initialized) {
+		var detected_language = phrase.detect(navigator.languages || [navigator.language]);
+		language_cookie(detected_language, "detected");
+		if (detected_language != phrase.language) location.reload();
+	}
+</script>
+
+		<title>Adventure Land - Update Notes</title>
+		<link rel="apple-touch-icon-precomposed" href="/images/favicon.png" /> <!-- 152 -->
+		<link rel="icon" href="/images/favicon.png" /> <!-- 32 -->
+		<!--[if IE]><link rel="shortcut icon" href="/images/favicon.png"><![endif]--> <!-- .ico -->
+		<meta name="msapplication-TileImage" content="/images/favicon.png"> <!-- 144 -->
+		<script src="/js/jquery/jquery-3.2.0.min.js"></script>
+		<script src="/js/common_functions.js?v=16846"></script>
+		<script src="/js/old_common_functions.js?v=16846"></script>
+		<script src="/js/functions.js?v=16846"></script>
+		<link href="/css/common.css?v=16846" rel="stylesheet" type="text/css"/>
+		<link href="/css/index.css?v=16846" rel="stylesheet" type="text/css"/>
+		<style>
+			html{
+				background: black;
+			}
+			html,pre,body{
+				font-family: var(--pixel-font, pixel);
+				color: #CECECE;
+				font-size: 24px;
+				/*text-shadow: 0 0 1px rgba(0, 0, 0, 0.4);*/
+				margin: 0;
+				padding: 0;
+			}
+			pre{
+				white-space: pre-wrap;
+				white-space: -moz-pre-wrap;
+				white-space: -pre-wrap;
+				white-space: -o-pre-wrap;
+				word-wrap: break-word;
+			}
+			body{
+				overflow-y:scroll;
+			}
+			.big{
+				color:#E0676D;
+			}
+			.feature{
+				color:#7BB18F;
+			}
+			.warning{
+				color:#D6627F;
+			}
+			#devlogs{
+				margin: 20px 20px 40px 20px;
+			}
+			#devlogs p{
+				margin-bottom: 4px;
+				margin-top: 4px;
+			}
+			#devheader{
+				margin-top: 15px;
+			}
+			#devheader,.devtitle{
+				color: #939393;
+			}
+			.devlink{
+				color: #C64C4C;
+				color: #D85C61;
+			}
+			.devbig{
+
+			}
+		</style>
+		
+			<script>
+				(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+				(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+				m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+				})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+				ga('create', 'UA-81826565-1', 'auto');
+				ga('send', 'pageview');
+			</script>
+		
+	</head>
+	<body>
+		<div id="devlogs" class="update-notes">
+			<div class="update-notes-title">Update Notes</div>
+			<div class="update-notes-subtitle">Last Update [16/09/26]</div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/09/26]</span><span>The Tavern now has Fortune&#39;s Wheel, three-reel slots, and a five-seat Texas Hold&#39;em table. Poker blinds follow the server. Buy in for 40 to 200 big blinds; leaving cashes out after the hand. CODE can play with bet_wheel(), play_slots(), poker_join() and poker_act().</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/09/26]</span><span>Enter the Cave of Many Dreams with your party. Explore changing floors, earn 10× enemy XP and spend cave gold at merchants. Find axes and scythes, or trade Cave Amber to craft rare equipment. Dying inside costs no XP or gold.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/09/26]</span><span>Call the Cavalry through Tracktrix for help with level 3+ monsters. Four sentries split between battles and help lower-level adventurers first.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/09/26]</span><span>Rime Djinn now haunt Frozen Cove. Break their shells together, earn Tracker rewards, and gather Rimeglass for three new pieces of equipment.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/09/26]</span><span>The Progression Guide suggests equipment projects, useful farms and live opportunities, from your first Goo fights onward. Choose a goal above HP and MP, or turn the guide off beside Tutorial in Settings. CODE can read the same advice with get_progression().</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/09/26]</span><span>Fixed failed logins that could leave characters stuck online and prevent reconnecting.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/09/26]</span><span>Patched tutorial progress: earlier actions and more ways of completing tasks now count. Compounding practice is optional, so collecting accessories no longer blocks later lessons.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[09/09/26]</span><span>Steam clients now include game images to reduce downloads and remember your language.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/09/26]</span><span>Hub opens with server chat, keeps private conversations together, and lets you chat as any of your characters, even while they are offline.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/09/26]</span><span>New players, returning adventurers and Lone Wolves earn extra monster rewards for their contribution. Click a bonus condition or open GUIDE → Encouragement Bonuses for the rates and CODE example. Daisy also offers easier hunts until your account&#39;s highest character reaches level 60.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/09/26]</span><span>Merrit visits settled shops in Mainland with stackable Market Parcels and occasional SHELLS. Exchange parcels for supplies, four rare T3 armor pieces or a spear. Keep stands clear of fixed NPCs and neighboring shops; INFO explains her visits and rewards.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/09/26]</span><span>Celebrate ten years of Adventure Land: find featured players, trade six cake flavors, and visit Mira for anniversary equipment, returning prizes, and two new emotes.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/09/26]</span><span>Gloam Pendant now grants less Dexterity, Intelligence, and skill MP reduction while retaining its full MP growth.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/09/26]</span><span>Paladins can cleanse and protect friendlies, rally them with Fortitude and Courage, and carry one of four level-scaled auras. Aether Shield restores MP from magical wounds, while Guardian&#39;s Oath restores MP from shared damage. Shield Slam turns Armor and MP into a crushing shield strike. Five Paladin-only items form the Oathkeeper Set through material, crafting, token, and Skeletor rewards.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/09/26]</span><span>Home servers now offer themed material drops from more cooperative monsters. Quickly switching non-merchant characters between servers causes 30 minutes of Realm Fatigue, temporarily pausing home contribution bonuses and home-only drops while normal rewards continue.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/09/26]</span><span>Mainframe CODE can now run up to four characters together in one isolated machine. Shared groups renew for 1 Shell every 60, 50, 45, or 40 minutes based on the number of active characters.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[31/08/26]</span><span>Level 90 Mages can now use Arcane Needle with a wand, dealing reduced damage while piercing resistance and reflection with normal attack effects.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[30/08/26]</span><span>Steam owners now receive 250 free Mainframe hours shared across their linked Adventure Land accounts, with automatic Shell renewal after the free time is used.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/08/26]</span><span>Expanded the Tutorial and Game Guide with clear manual and optional CODE paths, nearby INFO guides for world services, and complete CODE access for duels, recovered-item shops, tavern games, item de-statting, and strange interactions.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/08/26]</span><span>Added Mainframe: run saved CODE in isolated, network-free machines for 1 Shell per hour, with game API and MCP controls.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/08/26]</span><span>Added five new Citizens across Desertland, Cyberland, the Mystical Forest, the Underground Tunnel, and the Tavern, each with their own routines and reactions.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/08/26]</span><span>Improved Steam client compatibility on Linux and restored mouse item dragging on Windows.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/08/26]</span><span>Added new Steam clients for Windows and Linux alongside the macOS client, with more reliable Steam login, clearer diagnostics, and in-client Shells purchases.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/08/26]</span><span>Corrected armor tier progression across the new equipment collection.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/08/26]</span><span>Drop Egg and Rising Hearts now unlock and work like other Emotes.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/08/26]</span><span>Released the new Steam client for macOS with in-client Shells purchases, all active Shells bonuses, smoother reloads, and separate music and sound-effect volume controls.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/08/26]</span><span>Added the New Misc. cosmetic box with gravestones and eleven unlockable emotes, including friendly flourishes, a self-cast Pocket Storm, and the solo Mirror Disco. Jumps are wordless, Head Wiggle is subtler and works on full character looks, Joy bursts into a bright pixel rainbow, and the emotes have matching sounds.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/08/26]</span><span>Added 40 new items and Fan of Knives, with new crafting, shop, PvP Token, Ent, and material acquisition paths.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/08/26]</span><span>Added the Worldroot Crook, a Priest-only T4 staff crafted from a Harbringer +8 and rare materials, with Intelligence, Strength, and resistance piercing.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/08/26]</span><span>Major CODE update: all public asynchronous functions now settle on real server results, with complete documentation, live server.status data, and optional MessagePack transport for custom clients.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/08/26]</span><span>All update notes going back to 2016 are now available in-game, with the latest notes always shown.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/07/26]</span><span>New, more capable US Server</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/07/26]</span><span>Coming Soon: Adventure Land&#39;s 10th year anniversary event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/06/26]</span><span>Fixed unlocking of free bank slots</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/06/26]</span><span>Fixed the underground bank door</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/06/26]</span><span>Coming soon (likely close to July) Adventure Land&#39;s 10th year anniversary event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/03/26]</span><span>Web access fix for new users, no more &#39;authfail&#39; condition.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/03/26]</span><span>Moved over to adventureland_mongodb!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/03/26]</span><span>Tripled fcape drop rate.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/02/26]</span><span>5X Co-op contribution points for home server characters</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/02/26]</span><span>Overdrop logic for co-op events</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/02/26]</span><span>Smoothed coop contributions</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/02/26]</span><span>Event update, new drops!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/02/26]</span><span>Valentine&#39;s Day Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/02/26]</span><span>Lunar New Year Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/02/26]</span><span>PR: fix monster dimensions #211</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/02/26]</span><span>PR: Fix miss so that it uses the value from the attack, instead of the attacker #220</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/02/26]</span><span>PR: Update reject_deferred calls to include place for death and disappear events #227</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/02/26]</span><span>PR: Update the two scaling healing skills to accurately reflect their output #223</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/02/26]</span><span>PR: Add flag for implicit targets, and the implicit targets functionality #225</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/02/26]</span><span>PR: Pass the target parameter to consume_mp for more skills #222</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/01/26]</span><span>PR: Bring resistance piercing to parity with armor piercing #204</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/01/26]</span><span>PR: Mass exchange #216</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/01/26]</span><span>PR: add achievements to protectors #213</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/01/26]</span><span>PR: New kill_credit emit #215</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/01/26]</span><span>PR: add crypt monster achievements #214</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/01/26]</span><span>New JSON API to save bandwidth (Internal)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/01/26]</span><span>(Slight chance something might break)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/12/25]</span><span>New Item: Orb of Temporal Forces</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/12/25]</span><span>Happy Holidays!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/12/25]</span><span>Added back the tunes prompt</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/11/25]</span><span>PR: Fix compounding of old items that are missing a .level attribute #205</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/10/25]</span><span>Fallen NPC&#39;s now revive</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/10/25]</span><span>PR: Update server.js (Fix missing y value for spawned jr&#39;s) #199</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/10/25]</span><span>PR: Buff Fallen drop rate #200</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>Halloween Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>20% more shells with purchases during the spooky season!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>New server blessing system to generate income</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: Make slenderman warp more often #160</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: improve date functions #176</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: simplify distance calculation #179</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: Fix display of Orb of Adventures #183</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: Fix Sanguine Amulet #185</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: Fix display of Frozen to correctly show speed reduction, fix value in G.conditions.poisoned to reflect actual frequency multiplier #188</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: Explanations for all conditions #189</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: Stop orbs from spamming game events #190</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: New &#39;spawns&#39; mechanic #192</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: Allow a quantity of items to drop from chests #193</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: Home server specific drops #194</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: Hallo-ween boss incentives #195</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: Compoundable spooky amulet #196</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: Amulet of Spooks Fix #197</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/10/25]</span><span>PR: Fix for new spawn mechanic #198</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/06/25]</span><span>Monsters with the stationary flag no longer move</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/06/25]</span><span>added the npcs&#39;s to the bank_u floor #177</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/06/25]</span><span>Resist orbs #178</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/06/25]</span><span>moved gpurplepro spawn area #180</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/06/25]</span><span>make xmage stages humanoid #182</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/04/25]</span><span>Easter: Egg Hunt, Wabbit Chase</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/04/25]</span><span>New zones, items and monsters from the community!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/04/25]</span><span>Github PR: Fix Orange Snake causing Wabbit to spawn out of bounds #175</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/04/25]</span><span>Github PR: Content patch 1 #166</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/04/25]</span><span>Github PR: Item Changes #165</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/02/25]</span><span>Poison passive ability for items</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/02/25]</span><span>PR: add cooldown time when failing to equip (use) potion #154</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/02/25]</span><span>PR: Showing a skill tooltip now also shows weapon type requirement #121</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/02/25]</span><span>PR: Normalize Dead Weapon Drop Rates #159</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/02/25]</span><span>PR: Destat NPC #119</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/10/24]</span><span>Halloween Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/10/24]</span><span>Merged PR&#39;s from Github live.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/10/24]</span><span>.luckm Fix</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/04/24]</span><span>Cost reduction trial</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/04/24]</span><span>Add skill information to miss/evade/avoid hit events #129</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/04/24]</span><span>Fix Poison Coat duration #126</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/04/24]</span><span>Fix Spear of the Dead scaling #124</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/04/24]</span><span>return information about what items were swapped #122</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/03/24]</span><span>Easter: Egg Hunt, Wabbit Chase</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/03/24]</span><span>Fix bug regarding shiny items #115</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/03/24]</span><span>Add respawn time to game response #117</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/03/24]</span><span>Fix Piercing Shot to actually grant Armor Piercing #123</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/03/24]</span><span>Fix bug with Giveaways #125</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/03/24]</span><span>Move xscorpion spawn so it is inside bounds #127</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/02/24]</span><span>Included PR&#39;s:</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/02/24]</span><span>Introduce tags for some debuffs #81</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/02/24]</span><span>Reward messages now correctly show when an item was fished or mined #84</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/02/24]</span><span>Fixed URL in GitHub link #101</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/02/24]</span><span>Fix small bug with async code snippets #102</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/02/24]</span><span>Mob respawn adjustment through .grow #103</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/02/24]</span><span>Fix infinite range for curse, cburst, and 3shot/5shot #104</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/02/24]</span><span>Improve Computer and Super Computer UI #106</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/02/24]</span><span>Change equip_batch&#39;s base cost from 1 to 0.5 #108</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/02/24]</span><span>Fix throw skill to pierce immunity #109</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/02/24]</span><span>Testing a more performant instance type to run the backend</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/02/24]</span><span>Shells Bonus!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/02/24]</span><span>Valentines Day Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/02/24]</span><span>All major issues fixed</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/01/24]</span><span>Switched to Python3</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/01/24]</span><span>Lunar New Year Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/01/24]</span><span>Adding Python3 compatibility</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/01/24]</span><span>Upcoming: Lunar New Year Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/12/23]</span><span>Happy Holidays!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/12/23]</span><span>Skill related pull requests from the community merged.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/12/23]</span><span>Holiday season on Adventure Land!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/11/23]</span><span>Fixes to compound / cm exploits (Github)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/11/23]</span><span>+13 item announcements (Github)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/11/23]</span><span>Adventure Land is now open source!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/10/23]</span><span>Halloween Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/10/23]</span><span>Open sourcing the game this weekend!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/07/23]</span><span>Patches and serious bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/06/23]</span><span>Internal bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/03/23]</span><span>Wabbit balancing, agitate fix</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/03/23]</span><span>Easter: Egg Hunt, Wabbit Chase</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/03/23]</span><span>Small bugfixes from #suggestions</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/02/23]</span><span>Bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/02/23]</span><span>New detailed call report on call cost disconnects</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/02/23]</span><span>Valentines Day Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/02/23]</span><span>Giveaway fix, it&#39;s possible to not be in the server or in the game and win prizes again</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/02/23]</span><span>Patched possible race conditions where a monster can die again after death, mainly an inbound projectile from reflection</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/01/23]</span><span>Small bugfixes and temporary patches to Tiger</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/01/23]</span><span>Tiger no longer jumps to non-homers</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/01/23]</span><span>Dragold HP increased and added Full Guard</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/01/23]</span><span>Lunar New Year Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[09/01/23]</span><span>Each $20 in shells purchase will fractionally count towards the open source counter from now on</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/12/22]</span><span>Bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/11/22]</span><span>Happy Holidays!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/11/22]</span><span>Reduced 3shot/5shot MP costs</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/11/22]</span><span>Fixed Snowman&#39;s Full Guard / Avoidance</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/11/22]</span><span>Cyber Days: 35% Bonus Shells</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/11/22]</span><span>Condition durations are fixed</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/10/22]</span><span>Halloween Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/10/22]</span><span>Changes of the last 2 weeks are live</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/09/22]</span><span>All NPC&#39;s are live now</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/09/22]</span><span>Citizens started receiving new features, some seek a certain type of players, some attack monsters, some heal nearby players</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/09/22]</span><span>New NPC: Cunn - can follow a player between maps!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/09/22]</span><span>New Skill: Merchant&#39;s Frenzy</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/09/22]</span><span>When it&#39;s all done, each NPC will be documented, for now it&#39;s uo to you to discover what they do!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/09/22]</span><span>Many bugfixes and improvements, including timeout corrections on attack frequency changes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/09/22]</span><span>New Rogue Skill: Pickpocket</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/09/22]</span><span>split() function and mouse middle click to split a stack</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/09/22]</span><span>Locked items do not stack</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/09/22]</span><span>PVP marked items only stack with PVP marked items</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/09/22]</span><span>Reworked spawns from monsters, now they only spawn at nearby players who attacked the monster</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/09/22]</span><span>Party DPS now has a difficulty multiplier from monsters, even indirect skills/contributions factor in the difficulty</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/09/22]</span><span>Many bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/08/22]</span><span>Monsters now get bored and disengage based on their rage level</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/08/22]</span><span>Nerfed the Dark Mage</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/08/22]</span><span>Bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/08/22]</span><span>Every non-instant CODE function returns a Promise now!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/08/22]</span><span>Most socket methods and Code functions are refactored, all the major ones are responding with a Promise now</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/08/22]</span><span>Many new Code functions, game and character events!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/08/22]</span><span>parent.socket.emit(&#39;set_home&#39;) to set your characters home server!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/08/22]</span><span>Removed all unused boosters from the game</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/08/22]</span><span>use_skill returns a Promise now</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/08/22]</span><span>Citizens are being improved</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/08/22]</span><span>Quite a bit changed internally, there might be broken Promise&#39;s</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/08/22]</span><span>Even more skill changes, mainly cooldown and MP related. Enriched G.skills quite a bit more.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/08/22]</span><span>Day / Night cycle, sleeping monsters and server time!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/08/22]</span><span>New Paladin Skills: Smash and Purify</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/08/22]</span><span>Nightly Events: Ice Golem and Franky</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/08/22]</span><span>Even more skill changes, mainly cooldown related. Enriched G.skills quite a bit more.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/08/22]</span><span>Refactored how skills, attacks and projectiles are handled. There might be bugs, no major observable changes. G Data is enhanced.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/08/22]</span><span>Balanced the events</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/08/22]</span><span>New Map: Frozen Cove</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[30/07/22]</span><span>New Daily Event: A/B Testing</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[30/07/22]</span><span>New Craftable Item: Ghastly Bat Fang</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/07/22]</span><span>First Daily Events: Giga Crab and Goo Brawl!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/07/22]</span><span>Snippet&#39;s can now have await&#39;s in them</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/07/22]</span><span>Drop info at the Monster Inspect UI</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/07/22]</span><span>Bow of the Weaver received the Weave ability</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/07/22]</span><span>Friend Token for inviting new people to Adventure Land!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/07/22]</span><span>Crafting and dismantling now propagate properties and materials with different properties don&#39;t stack.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/07/22]</span><span>New Monster: Rainbow Goo!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/07/22]</span><span>Monster objects can now have `.drops` attributes, modified brawl Goo&#39;s have them</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[20/07/22]</span><span>New Servers&amp;Limits rule</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[20/07/22]</span><span>vorb and cyber&#39;s attributes changed</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[20/07/22]</span><span>No more G.inflation, new G.multipliers</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[20/07/22]</span><span>New Dynamic: Hop Sickness</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[20/07/22]</span><span>Many bugfixes - mainly from Discord channels, if you don&#39;t see a thumbs up on an important issue, feel free to revive the thread</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[20/07/22]</span><span>Snowflakes recipe</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[20/07/22]</span><span>Working On: Daily Events</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/05/22]</span><span>Fixed blink / magiport etc. causing the attack cooldown to extend</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/05/22]</span><span>Added skill cooldown resets to transports</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/05/22]</span><span>Auth related fixes and improvements</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[09/04/22]</span><span>Easter: Egg Hunt, Wabbit Chase</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/03/22]</span><span>Small bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/03/22]</span><span>Going to a new map now increases the attack cooldown</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/02/22]</span><span>Ice Skates received a bonus on Winterland</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/02/22]</span><span>Tiger Helmet received a bonus for Rogue&#39;s</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/02/22]</span><span>Both changes are experimental</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/02/22]</span><span>Valentine&#39;s Day Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/02/22]</span><span>New: Year of the Tiger Hunt (Updated)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/01/22]</span><span>New: Year of the Tiger Hunt</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/01/22]</span><span>Coming This Weekend: Valentine&#39;s Day Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/01/22]</span><span>Lunar New Year Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/01/22]</span><span>Coming Soon: Year of the Tiger Hunt</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/01/22]</span><span>Lunar New Year event coming soon!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/12/21]</span><span>3 new items and Grinch/Snowman drops changed</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/12/21]</span><span>MacOS help page: /macos</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/12/21]</span><span>New exchange algorithm that makes it exponentially less likely to get a repetitive cosmetic (power of 10)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/12/21]</span><span>30% more shells with purchases during the holiday season!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/12/21]</span><span>Minor Grinch co-op re-balancing</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/11/21]</span><span>Happy Holidays!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/11/21]</span><span>Start of the Holiday Season</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/11/21]</span><span>Bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[30/10/21]</span><span>New Slenderman dynamics</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[30/10/21]</span><span>Stomp doesn&#39;t pierce spell immunity now, instead skills that pierce spell immunity has the .pierces_immunity flag</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/10/21]</span><span>New boss and drops for the event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/10/21]</span><span>New tutorial step: Bank</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/10/21]</span><span>New Drop: Lolipop Mace&#39;s</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/10/21]</span><span>Explosion/Blast now affected by armor/resistance</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/10/21]</span><span>Halloween Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/10/21]</span><span>New Tiered Halloween Buff</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/10/21]</span><span>New Boss, Items, Cosmetics Coming Soon!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/09/21]</span><span>Bugfixes and upgrading socket.io to 4.2.0</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/09/21]</span><span>New URL route: https://adventure.land/server/EU/II/</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/08/21]</span><span>Moving to new servers</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/07/21]</span><span>Bugfixes and upgrade/compound calculate calls now include a lot more information</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[09/05/21]</span><span>New Tutorial Steps!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/05/21]</span><span>New Dungeon: Lair of the Dark Mage</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/05/21]</span><span>New Monster: Ice Golem</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/05/21]</span><span>New Announcement: When a new player joins the game!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/04/21]</span><span>New Emotion: Single Heart</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/04/21]</span><span>New Article: Code Slots and Files</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/04/21]</span><span>Heals don&#39;t reflect any more, also fixed a bug where heals were contributed as damage/tanking, increased the tanking multiplier contribution to balance the missing points</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/04/21]</span><span>New Skill: Mining!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/04/21]</span><span>(Another very very early release)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/04/21]</span><span>Bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/03/21]</span><span>New Feature: Emotions!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/03/21]</span><span>Fishing Rod is now craftable, doesn&#39;t break yet</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/03/21]</span><span>Mobbing damage is now capped at +20% or 300 damage, whichever is higher</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/03/21]</span><span>Easter: Egg Hunt, Wabbit Chase</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/03/21]</span><span>Avoidance / Blast-Explosion bugfix</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/03/21]</span><span>New Merchant Skill: Fishing</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/03/21]</span><span>Fishing is a very very very early prototype - new zones and drops will arrive with time - animation is a placeholder too</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/03/21]</span><span>New Merchant Skill: Mass Production++</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/03/21]</span><span>New Rare Monster: Cute Bee</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/02/21]</span><span>New Major Zone: The Crypt</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/02/21]</span><span>New Dynamic: Courage</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/02/21]</span><span>New Merchant Skill: Mass Production</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/02/21]</span><span>Character renaming fixed, new item images</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/01/21]</span><span>Dragold rebalance and Lunar Mace</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/01/21]</span><span>Lunar New Year Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/01/21]</span><span>Upcoming new seasonal priest weapon</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/01/21]</span><span>New elixirs from the Witch!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/01/21]</span><span>Bugfixes and Mail/Messages Improvements</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/01/21]</span><span>First iteration of the Tutorial is live!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/01/21]</span><span>Simplified CONF</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/01/21]</span><span>Newcomer Mode is gone and everyone sees the simplest interface now</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/12/20]</span><span>New CODE Docs UI</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/12/20]</span><span>Started merging the Code articles with Guide</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/12/20]</span><span>Merchants can now have more trade slots, based on level to begin with</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/12/20]</span><span>New: Explosion and Blast properties</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/12/20]</span><span>New Items: Poucher (Bow), Blaster (Staff)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/12/20]</span><span>New Crafting NPC: Witch</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/12/20]</span><span>New Potion: Snake Oil</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/12/20]</span><span>New crafting/collecting recipes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/12/20]</span><span>Inspect Buttons</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/12/20]</span><span>New Misc Item: Exoskeletal Arm</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/12/20]</span><span>New Set: MP X - 3 New Items</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/12/20]</span><span>New Attribute: Skill MP Reduction</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/12/20]</span><span>New Code Function: trade_sell</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/12/20]</span><span>New Item: Diamond Key</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/12/20]</span><span>New throttled announcement logic</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/12/20]</span><span>New Items and functional Snowballs!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/12/20]</span><span>Holiday Season on Adventure Land!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/12/20]</span><span>Grinch is now co-op</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/12/20]</span><span>New Items!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/12/20]</span><span>Monsters now have 5% MP by default</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/12/20]</span><span>Chests now correctly show up when you move to another map and come back</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/12/20]</span><span>Holiday Season is starting (slowly :)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/12/20]</span><span>Irradiated Goo&#39;s Boosted!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/12/20]</span><span>Fire / Freeze Resistance added with placeholder dynamics</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/12/20]</span><span>+ New things coming soon!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/11/20]</span><span>Preparing for the Holiday Season</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/10/20]</span><span>New Halloween drops!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/10/20]</span><span>Halloween event is starting!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[30/08/20]</span><span>Cross-server and offline PM&#39;s</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[30/08/20]</span><span>Players are now sorted based on online status and age</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/08/20]</span><span>Chat is now server-wide rather than local!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/08/20]</span><span>New typing bubble and Chat tab in COM</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/08/20]</span><span>Observers now auto focus and travel</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/08/20]</span><span>New HP bars!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[20/08/20]</span><span>Smarter monsters!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[20/08/20]</span><span>New name tags!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/08/20]</span><span>Balancing + Burn formula changes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/08/20]</span><span>New Cosmetics!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/08/20]</span><span>New Code Functions</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/08/20]</span><span>New Game/Character Code Events</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/08/20]</span><span>Agile Party Requests</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/07/20]</span><span>Equal party share for your own characters within a party</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/07/20]</span><span>Minor re-balancing, new items</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/07/20]</span><span>New prototype monster: Black Scorpion</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/07/20]</span><span>Work in Progress</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/07/20]</span><span>Bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/07/20]</span><span>New System: Traps</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/07/20]</span><span>New System: Item Mailing</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/07/20]</span><span>Event on Sunday: Hardcore!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/07/20]</span><span>New Tracktrix Scoring System</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/06/20]</span><span>New Items: Orb of Testing, Fiery Cape</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[09/06/20]</span><span>New slot aware Code UI</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/06/20]</span><span>New interface with more information when you are disconnected due to call limits</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/06/20]</span><span>Reload times are lowered significantly, disconnected characters reload in seconds now</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/06/20]</span><span>Reloading characters no longer appear Active, they are AFK now</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/06/20]</span><span>iframe characters (/start) are now disconnect/reconnect safe, previously, if they reconnected individually, their flags weren&#39;t persisted (code, bot flags)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/06/20]</span><span>Several small improvements/fixes related to the code changes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/06/20]</span><span>Major new feature, dynamically maintained local code files!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/06/20]</span><span>Just type /codes to open the folder</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/05/20]</span><span>Cosmetics improvements, dead weapon recipes, new basic weapons</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/05/20]</span><span>New Monster: Pink Goblin</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/05/20]</span><span>New Bank Levels: Underground, Basement - Unlocked with keys</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/05/20]</span><span>Cosmetic hairs available!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/04/20]</span><span>New minor drops, cosmetic drops from Mr. and Ms. Dracul</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/04/20]</span><span>All classes are converted to use the cosmetics system!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/04/20]</span><span>Some new drops and recipes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/04/20]</span><span>Progress on All Skills / Conditions and All Recipes tabs</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/04/20]</span><span>Primordial Essence now costs 27.42M</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/04/20]</span><span>Many new weapons and two hand warrior weapons balanced</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/04/20]</span><span>Refining the weapons</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[09/04/20]</span><span>New character and weapon glow logic</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/04/20]</span><span>Improved weapon logic</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/04/20]</span><span>Egg Hunt Event + Wabbit Chase</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/04/20]</span><span>Egg Hunt: Eggs drop from all maps</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/04/20]</span><span>A bunch of small changes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/04/20]</span><span>move, xmove, smart_move now return Promise&#39;s</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/04/20]</span><span>New abilities: regen_hp, regen_mp</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/03/20]</span><span>Upgraded our in-house Map Editor and revamped our core map data format</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/03/20]</span><span>Maps can now have more dynamic and fine tuned animations, like chimney smokes etc.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/03/20]</span><span>Map Editor received a zoning feature, previously it was all manual, this will more easily allow some monster packs to have more complex polygonal zones</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/03/20]</span><span>NEW: Click on your in-game characters to observe/command them!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/03/20]</span><span>Working on a mobile companion app</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/03/20]</span><span>Added &#39;Performance Settings&#39;</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/03/20]</span><span>Getting disconnected no longer removes everything on the page, along with the new performance settings, turning &#39;Pre-Cached Maps&#39; off makes the game playable on almost all devices</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/02/20]</span><span>Boosted gold drops</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/02/20]</span><span>Added the mushroom staff</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/02/20]</span><span>Updated interface internals, inventory items now only update individually, focused characters properties and items also update individually too</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/02/20]</span><span>As a result, the game should be more pleasent to interact with, even if you are spamming changes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/02/20]</span><span>Boosters nerfed but if you activate or morph them, they become slightly better legacy versions</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/02/20]</span><span>Mystery box has a drop table</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/02/20]</span><span>/player /character pages now show detailed item information too</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/02/20]</span><span>Fixed some issues related to party invites/requests etc. that disappear from the chat</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/02/20]</span><span>&#39;All Merchants&#39; items are clickable now!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/02/20]</span><span>New gold drop dynamics</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/02/20]</span><span>Snowman, Love Goo no longer affected by damage return</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/02/20]</span><span>Warp Vest, Power Glove gets their abilities</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/02/20]</span><span>Some other small changes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/02/20]</span><span>Valentine&#39;s Day Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/02/20]</span><span>New Monster Stat: Avoidance</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/01/20]</span><span>T-Shirt Roll released</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/01/20]</span><span>New Frost Bow animation</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/01/20]</span><span>Lunar New Year Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/01/20]</span><span>Full list of changes on &#39;Early Access: Week 52 in Review&#39;</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/01/20]</span><span>New Event Boss: Dragold</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/01/20]</span><span>Chinese New Year Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/01/20]</span><span>Upcoming Opponent: Dragold</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/12/19]</span><span>Fire Bow, Fiery Gloves, Burn</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/12/19]</span><span>Code slot persistence</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/12/19]</span><span>Details on Week 47 in Review</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/12/19]</span><span>Season continues, Grinch arrives</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/12/19]</span><span>Holiday Season on Adventure Land!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[07/12/19]</span><span>Many small changes, more on the way</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/11/19]</span><span>New Map: Underground [Tunnel]</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/11/19]</span><span>New System: Account-wide Achievements</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/11/19]</span><span>With this change to the achievements system the dynamics shift quite a bit: so might revert this addition - or apply a possible solution</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/11/19]</span><span>Details on Week in Review [40]</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/10/19]</span><span>New Page: /docs</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/10/19]</span><span>All game and code documents, guides, articles and references are now linkable! When you open a linkable reference on the browser, you can copy-paste the url to more quickly help others find solutions!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/10/19]</span><span>New Code Functions: get, set</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/10/19]</span><span>S.snowman and S.franky are now populated whenever they are alive!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/10/19]</span><span>New System: Mailing!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/10/19]</span><span>New Code Function: safe_log</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/10/19]</span><span>Halloween Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/10/19]</span><span>Town is now Mainland!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/10/19]</span><span>Renovated Spooky Forest</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/10/19]</span><span>New Item: Bow of the Feared Ranger</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[09/10/19]</span><span>New Attack System: Delayed Hits</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[09/10/19]</span><span>New Animations</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[09/10/19]</span><span>Referrer rewards are now instant!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/09/19]</span><span>Trial: New Attack Animations</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/09/19]</span><span>Resistance Ring and Armor Ring are available at Mr. T</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/09/19]</span><span>Bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/09/19]</span><span>Disclaimer: The projectiles themselves are there just for testing, they are currently very basic, polished/specialised ones are in the works</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/09/19]</span><span>Trial: Rendered Weapons</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/09/19]</span><span>New Interface: COM &gt; Realm &gt; All Merchants (prototype)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/09/19]</span><span>New Code Article: CODE &gt; LEARN &gt; Advanced Topics &gt; API Call System</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/08/19]</span><span>New Item: Orb of Beginnings</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/08/19]</span><span>Quiver and Orb of Beginnings are available from Mr. T</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/08/19]</span><span>Bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/08/19]</span><span>Every item now includes and &#39;Information [i]&#39; section!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/08/19]</span><span>Guide has new &#39;All Items&#39; and &#39;All Monsters&#39; sections</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/08/19]</span><span>2 new monsters and Porcupine now has a regular spawn</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/08/19]</span><span>New Quest/NPC: Mr. T and Item Collecting</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/08/19]</span><span>New Orb&#39;s and new material drops</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/08/19]</span><span>High attack monsters can now attack and move more dynamically</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/08/19]</span><span>This update is very unbalanced, time and feedback will refine the new additions</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/07/19]</span><span>DOCS Search</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/07/19]</span><span>The first monster achievements draft is complete! (thanks to Trexnamedtom)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/07/19]</span><span>Tracktrix no longer requires kills/exchanges to show drop tables</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/07/19]</span><span>Travel is evolving, aiming for a mini-map, currently shows NPCs and Monsters too</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/07/19]</span><span>New cosmetics to test, including beards</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/07/19]</span><span>Tracktrix has a new tab, Exchanges!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/07/19]</span><span>Exchange rates and drop rates are now discoverable!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/07/19]</span><span>Getting 100 monster kills unlocks monster drop rates</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/07/19]</span><span>Exchanging 100 items unlocks exchange drop rates</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/07/19]</span><span>Computer links with Tracktrix to unlock all rates</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/06/19]</span><span>QOL Improvements!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/06/19]</span><span>Ability to focus characters instead of targeting, when you click/focus someone or yourself manually, the code targeting no longer overrides you!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/06/19]</span><span>When inventory refreshes, it no longer closes open items</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/06/19]</span><span>When inventory refreshes, it no longer resets upgrade, compound or exchange</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/06/19]</span><span>Revamped Upgrade System!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/06/19]</span><span>DOCS &gt; &#39;Character Reference&#39; documents the new .q attribute</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/06/19]</span><span>New attributes: Fortitude, Manasteal</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/06/19]</span><span>New in PVP: 90% less XP loss!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/06/19]</span><span>Arena is now a Safe PVP zone in PVE servers</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/06/19]</span><span>A slight early rework to upgrades and compounds</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/06/19]</span><span>Improved Monster Hunt quest and smart_move now travels to random monster packs each time</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/06/19]</span><span>MP Cost system revamped</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/06/19]</span><span>Achievement and aggro bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[30/05/19]</span><span>The Monster Hunt quest is live!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[30/05/19]</span><span>You can exchange a Tracktrix for just 10 Monster Hunt tokens!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[30/05/19]</span><span>New Runner Function: find_npc(&#39;monsterhunter&#39;)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/05/19]</span><span>New Item: Tracktrix</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/05/19]</span><span>New System: Monster Achievements</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/05/19]</span><span>Pretty soon every monster will receive their own achievements</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/05/19]</span><span>Tracktrix curently costs 120M at the Premium Items NPC</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/05/19]</span><span>Once the Tutorial system is complete, it will be an easy to acquire item</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/05/19]</span><span>[Internal] Re-wrote and simplified the limitations system, the initial issues with same-network connections should be fixed now</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/05/19]</span><span>Working on the new Guide</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/05/19]</span><span>The new limits system is live</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/05/19]</span><span>The updated Guide has information on the new system</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/05/19]</span><span>Check out the Discord announcement for details</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/04/19]</span><span>Duelland is here!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/04/19]</span><span>/challenge someone or a party to duel!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/04/19]</span><span>New Feature: Giveaways!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/04/19]</span><span>Buy a Hat of Generosity from Divian to run giveaways, while you have an active giveaway, the hat appears on your character!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/04/19]</span><span>Warning: The minutes are capped internally, if the gold value of the giveaway is low, the giveaway will only run for 5 minutes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/04/19]</span><span>New mechanic: Monsters can have spawn buffs, Wabbit starts with a 1000 armor/resistance buff for 5 minutes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/04/19]</span><span>New system: Server broadcasts special engagements and countdowns</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/04/19]</span><span>New system: Monsters drop to 1HP before the new 20 second server shutdown cooldown</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/04/19]</span><span>New mechanic: A buff for defeating the Wabbit!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/04/19]</span><span>Easter: Egg Hunt, Wabbit Chase</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/04/19]</span><span>Egg Hunt: Eggs drop from all monsters!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/04/19]</span><span>Craft the eggs you find into baskets and exchange your baskets for random goodies!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/04/19]</span><span>Coming soon: A buff for defeating the Wabbit</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/03/19]</span><span>New Ranger Skill: Hunter&#39;s Mark</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/03/19]</span><span>New Ranger Skill: Piercing Shot</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/03/19]</span><span>Working on the cosmetics system</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/03/19]</span><span>Critical bugfix</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/03/19]</span><span>Updated attack() function, documentation, Promise response, game/character events</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/03/19]</span><span>At the moment, working on several things at once, this update might&#39;ve broken some things</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/03/19]</span><span>New Rogue Skill: Mental Burst</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/03/19]</span><span>New Monster: Ent</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/03/19]</span><span>New Monster Skill: Tangle</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/03/19]</span><span>New Item: Wooden Sword</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/03/19]</span><span>Working on the tutorial, first working protoype is ready</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/03/19]</span><span>There&#39;s a new internal system, a secondary database entity for accounts, eased the tutorial implementation, paves the path for a future mail system as it enables careless write operations</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/03/19]</span><span>Fixed some old animations causing characters to get stuck on edges, new animations only displace characters visually</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/03/19]</span><span>Working on the tutorial system</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/03/19]</span><span>New: Wanderer&#39;s Set</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/03/19]</span><span>Collect different parts of the set from different maps!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/03/19]</span><span>Updated buy and upgrade functions</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/03/19]</span><span>They return Promise&#39;s now, also check out their new/updated documentation, looking for feedback</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/03/19]</span><span>In the process of refactoring functions and events</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/03/19]</span><span>Updated SKILLS interface</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/03/19]</span><span>New X button</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/03/19]</span><span>No more PING button</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/03/19]</span><span>New Vitality, Strength, HP dynamics</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/03/19]</span><span>CODE and DOCS changes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/03/19]</span><span>For a full list of recent updates, read &quot;Week 5 in Review&quot; on Steam!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/03/19]</span><span>Elixir crafting recipes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/03/19]</span><span>DOCS improvements</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/03/19]</span><span>Ongoing internal refactorings, refinements</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/02/19]</span><span>Bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/02/19]</span><span>Craftable Tri-Stone rings!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/02/19]</span><span>Improved Code DOCS</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/02/19]</span><span>New Drop: Spider Silk</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/02/19]</span><span>New Magiport Mechanic!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/02/19]</span><span>Gold Earrings become rare at +2 now and can be dismantled</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/02/19]</span><span>For a full list of updates, read &quot;Week 3 in Review&quot; on Steam!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/02/19]</span><span>Valentine&#39;s Day Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/02/19]</span><span>Small bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/02/19]</span><span>Working on improving the Code Docs</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/02/19]</span><span>Fixed external links</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/02/19]</span><span>New function: change_server(&#39;EU&#39;,&#39;II&#39;)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/02/19]</span><span>Chinese New Year Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/02/19]</span><span>New items: Firecrackers, Dragon Dagger</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/02/19]</span><span>Red envelopes drop globally!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/02/19]</span><span>New COM Tab: Realm</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[30/01/19]</span><span>Nerfed high level monsters</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/01/19]</span><span>Steam Release!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/01/19]</span><span>Upcoming Event: Chinese New Year</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/01/19]</span><span>Upcoming Event: Valentine&#39;s Day</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/01/19]</span><span>Pre-Steam Testing</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/01/19]</span><span>A small break</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/12/18]</span><span>New Shield!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[20/12/18]</span><span>New event items and crafting recipes!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[20/12/18]</span><span>Item ability %&#39;s don&#39;t stack yet</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/12/18]</span><span>Multiple players can now play the Mac App Store version of Adventure Land over the same network!!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/12/18]</span><span>Improvements to the MacOS Client</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/12/18]</span><span>Santa Hat works as a cosmetic item during the holiday season!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/12/18]</span><span>Happy Holidays!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/12/18]</span><span>New items on the way!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/12/18]</span><span>Release preparations completed!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/12/18]</span><span>Bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/12/18]</span><span>Perfect name tags!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/12/18]</span><span>No more blurring when stopped at regular zoom levels</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/12/18]</span><span>New Vampire Rats, one new item!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/11/18]</span><span>Small changes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/11/18]</span><span>Better name tags! (font rendering-wise)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/11/18]</span><span>Dynamic packs aimed to support new players</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/11/18]</span><span>Leveling up monsters [New dynamics]</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/11/18]</span><span>A new easter egg mechanic, related to character looks</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/11/18]</span><span>Share and Recruit</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/11/18]</span><span>New EU Server</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/11/18]</span><span>New Music / Slightly Improved FX</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/11/18]</span><span>Preparing for release</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/11/18]</span><span>HTTPS / SSL switch</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/11/18]</span><span>COM now includes a Characters tab</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/11/18]</span><span>New/fixed gold/xp dynamics</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/11/18]</span><span>Party xp share amount softened</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/11/18]</span><span>Jack-o Lantern: Scare</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/11/18]</span><span>Last day of the Halloween Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/10/18]</span><span>Mr. Pumpkin, Mr. Green and Phoenix are now cooperative!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/10/18]</span><span>Halloween Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/10/18]</span><span>Couple of new items coming soon</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/10/18]</span><span>New inventory dynamics, you can receive, loot or store stackable items when your inventory is full, and more!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/10/18]</span><span>bank_deposit, bank_withdraw, bank_store CODE functions</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/10/18]</span><span>New party dynamics! (Improved)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/10/18]</span><span>/request chat command</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/10/18]</span><span>Pressing a party name in COM requests to join the party</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/10/18]</span><span>Party limit is now temporarily 8</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/10/18]</span><span>Modified (Fixed) the &#39;Call Costs&#39; logic</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/10/18]</span><span>Character now has a &#39;cc&#39; property</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/10/18]</span><span>You can monitor character.cc and make sure it&#39;s below 180</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/10/18]</span><span>Preview of a CODE Documentation system</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/10/18]</span><span>New party dynamics!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/10/18]</span><span>Big changes to how things are drawn, there might be some issues</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/10/18]</span><span>Combined/combo damages are capped now</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/09/18]</span><span>Started working on the Guilds system</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/09/18]</span><span>Moved onto the Cosmetics system</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/09/18]</span><span>Good progress on Cosmetics so far</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/09/18]</span><span>Renovated the town</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/09/18]</span><span>Underground connections finalised</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/09/18]</span><span>New game-side + code-side door conditions</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/09/18]</span><span>Moved to dedicated servers from cloud servers, cheaper, faster</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[05/09/18]</span><span>Only Americas to test crowded server dynamics better</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/08/18]</span><span>Improved Holo Resort</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/08/18]</span><span>New Server Tax</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/08/18]</span><span>New Tavern Game: Dice</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/08/18]</span><span>Improved servers to handle extreme/rare network situations better, hopefully</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/08/18]</span><span>Characters no longer free themselves in 12 minutes if they get stuck</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/08/18]</span><span>Small improvements, some new content, small bugfixes, a new hidden mechanic</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/08/18]</span><span>Email Change + Re-Verification</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/08/18]</span><span>Character Sorting + Transfers</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[09/08/18]</span><span>New NPC Locksmith in Desertland</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/08/18]</span><span>New Anti-P2W NPC</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/08/18]</span><span>Different approach to Gold/Shells Conversion</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/08/18]</span><span>Minor changes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/08/18]</span><span>Movement system re-structured internally</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/08/18]</span><span>If you get falsely jailed, please report on Discord/#feedback</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/08/18]</span><span>Check out the Automatron with the Portal ability</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/07/18]</span><span>Buying Listings [Wishlist]</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/07/18]</span><span>Frozen Staff</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/07/18]</span><span>Revised Upgrade System</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/07/18]</span><span>Re-Written Movement Boundary System</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/07/18]</span><span>New Second Hands NPC</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/07/18]</span><span>New Skills and Mapping System</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/07/18]</span><span>Several Hidden Mechanics</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/07/18]</span><span>New Content Coming Soon</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/02/18]</span><span>Bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/02/18]</span><span>Chinese New Year Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/02/18]</span><span>Valentines Day Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/02/18]</span><span>Preparing to launch daily events again</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/02/18]</span><span>New NPC: Mr. Dworf!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/02/18]</span><span>New item gold dynamics</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/02/18]</span><span>JS events for trades</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/01/18]</span><span>Some Performance Improvements</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/01/18]</span><span>Happy New Year!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/01/18]</span><span>Last Days of the Event!!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/01/18]</span><span>Working on the Steam Release</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/01/18]</span><span>Prototyping New Features</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/12/17]</span><span>XMAS Times and Buffs!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/12/17]</span><span>New Xmas themed items!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/12/17]</span><span>New Feature: Buffs</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[14/12/17]</span><span>Make sure to interact with our Xmas Tree near the Bank!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/12/17]</span><span>XMAS Times and New Skills!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/12/17]</span><span>New skills: 3-Shot, 5-Shot, Controlled Burst</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/12/17]</span><span>Xmas events are starting</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/12/17]</span><span>New Xmas events and items will be introduced along the way</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/12/17]</span><span>You can finally exchange your candies!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/12/17]</span><span>Steam Release coming soon</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/12/17]</span><span>Heads Up: Xmas drops are global</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[Late 2017]</span><span>Crafting system in preview!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[Late 2017]</span><span>Updated premium item prices</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[Late 2017]</span><span>New Booster dynamics</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[Late 2017]</span><span>(Explained on &#39;HOW TO USE&#39;)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[Late 2017]</span><span>Spooky Town and accompanying events are starting</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[Late 2017]</span><span>Current deployment is premature, but you can access some of the new/exciting content, there are new things to discover!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[09/10/17]</span><span>Gifts, gifts, gifts!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/08/17]</span><span>Anniversary Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/08/17]</span><span>Start collecting gifts [Global]</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/08/17]</span><span>Ice Roamer&#39;s, Arctic Bee&#39;s and Big Pom Pom&#39;s now drop Essence of Frost&#39;s</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/08/17]</span><span>Preparing our Anniversary Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/08/17]</span><span>Hardcore Server Event: Runs until someone reaches level 82, the reward is 8200 shells + a new look!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/08/17]</span><span>First citizens are in-game</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/08/17]</span><span>Preparing for the Steam release, we are a bit behind schedule tho :)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/08/17]</span><span>Hoping to introduce some of the new things in the coming days</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/07/17]</span><span>New NPCs: Citizens</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/07/17]</span><span>Working on Autonomous NPCs and Pets</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/07/17]</span><span>Fixed a ~Major Memory Leak</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/07/17]</span><span>The Ancient Computer regains it&#39;s capabilities, some new content in-game, nothing major yet</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/06/17]</span><span>Third Hardcore Server Trial</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/06/17]</span><span>Testing new items, weapons before the normal servers are updated with new content</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[09/06/17]</span><span>Second Hardcore Server Trial</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[09/06/17]</span><span>Prototyping Pets</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/05/17]</span><span>New Game Mode: Hardcore!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/05/17]</span><span>Testing the new Hardcore mode</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/04/17]</span><span>Started updating the GUIDE</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/04/17]</span><span>Work in progress</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/04/17]</span><span>The &#39;-&#39; key now both opens and focuses the CODE Editor</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[21/04/17]</span><span>The Easter event is over, thanks for participating!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/04/17]</span><span>Easter: Egg Hunt, Wabbit Chase</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/04/17]</span><span>Egg Hunt: Eggs drop from all monsters in New Town, Spooky Forest and Winterland</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/04/17]</span><span>New Feature: Crafting</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/04/17]</span><span>Get exciting new items by exchanging your baskets of eggs</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/04/17]</span><span>Preparing the Easter Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/04/17]</span><span>Fixed a memory leak that appeared after a Chrome change</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/03/17]</span><span>New features: Auto Reload, Code Persistence!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/03/17]</span><span>Improved disconnection dynamics to prevent/reduce deaths</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/03/17]</span><span>New feature: Auto Reload</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/03/17]</span><span>New feature: Code Persistence!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/03/17]</span><span>New character selection interface</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/03/17]</span><span>New feature: Auto Reload!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/03/17]</span><span>Re-connects you automatically if you disconnect, make sure to read about it on Discord, you can disable it from CONF or CODE</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/03/17]</span><span>Several server fixes and improvements</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/03/17]</span><span>If you haven&#39;t done so, check out the new /snippet chat command and the new code functions</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/03/17]</span><span>New Chat Commands: /eval /snippet</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/03/17]</span><span>New Code Routines: send_item, send_gold, destroy_item</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/03/17]</span><span>New Chat Command: /eval</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/03/17]</span><span>New Zone and Quest: The Mansion!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/03/17]</span><span>Game received significant improvements</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/03/17]</span><span>It&#39;s no longer possible to buy, sell, upgrade, trade, transport over long distances</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[13/03/17]</span><span>Check out the examples folder on Github, especially do_potion_runs.js</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/03/17]</span><span>New routines that prevent line violations and issue penalties</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/03/17]</span><span>Added stacking to bank operations</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/03/17]</span><span>Only Europas servers are updated</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/03/17]</span><span>Daily event system and the first event &#39;A/B Testing&#39; is ready for testing</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/02/17]</span><span>Memory usage improvements</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/02/17]</span><span>Completed the Smart Move routine</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/02/17]</span><span>Check out runner_functions.js and phoenix_hunter.js on Github</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[24/02/17]</span><span>Looking for feedback before I add the server limitations</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/02/17]</span><span>on_disappear Code callback</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/02/17]</span><span>Small bugfixes, improvements</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/02/17]</span><span>First version of the Communicator is live, along with the Friends system.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/02/17]</span><span>Love Goo now has a chance to drop the &#39;Hand of Midas&#39;!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/02/17]</span><span>Valentine&#39;s Day Event!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/02/17]</span><span>New Mage Skill: Light</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/02/17]</span><span>New Rogue Skill: A Poisonous Touch</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/02/17]</span><span>New Code Functions: use, can_use, send_cm, on_cm, on_game_event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[03/02/17]</span><span>Experimental: Reduced Attack Speeds</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/02/17]</span><span>This is an intermediary update. Preparing for the Valentine&#39;s Day event.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[01/02/17]</span><span>Skills system received some improvements. New CODE methods arriving soon.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/01/17]</span><span>Preparing new skills. If you have any requests, let me know on Discord/#feedback</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[26/01/17]</span><span>New Item: Poison Sack - Drops from Poisio&#39;s</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/01/17]</span><span>Improved Code Save/Load</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/01/17]</span><span>New Code Save/Load Interface</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/01/17]</span><span>Improved HP Amulet and Belt</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[19/01/17]</span><span>Efficient Draws Are On By Default</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/01/17]</span><span>Converted all items to the new versions</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/01/17]</span><span>Minor patches</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/01/17]</span><span>New Town and Quests!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/01/17]</span><span>New Town, New Quests, New Items</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/01/17]</span><span>New Features, Bugfixes</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[15/01/17]</span><span>Tavern Prototype</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[06/01/17]</span><span>New town coming soon</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/12/16]</span><span>Preparing the new town</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/12/16]</span><span>New looks for base items</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[29/12/16]</span><span>Xmas drops will skyrocket soon</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/12/16]</span><span>New, Unlocklable Bank Slots</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/12/16]</span><span>New Booster Items</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/12/16]</span><span>Improved Taunt</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/12/16]</span><span>Minor Bugfixes, Improvements</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/12/16]</span><span>Winterland and XMAS!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/12/16]</span><span>First Elixir, First Orb, First Cape&#39;s</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/12/16]</span><span>Many Xmas themed items</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/12/16]</span><span>Quests, Improved monsters</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/12/16]</span><span>And a lot more!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[11/12/16]</span><span>Heads Up: Xmas drops are global</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/12/16]</span><span>Preparing for the Xmas Event</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[08/12/16]</span><span>Apologies for the issue that disconnected everyone</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/11/16]</span><span>New Attribute: Vitality!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/11/16]</span><span>Added Evasion, Reflection, Crit</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/11/16]</span><span>Improved PVP, Added Limits, XP/Gold loss is now dynamic and balanced</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/11/16]</span><span>Stacking multiple characters into one place and tagging multiple monsters received penalties</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/11/16]</span><span>Added a small Sales Tax :)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/11/16]</span><span>New Class: Merchant!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/11/16]</span><span>New Chat Dialogs</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/11/16]</span><span>Prototype Skills Bar</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/11/16]</span><span>Better STATS / PARTY Interface</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/11/16]</span><span>New limit: 4 Characters, 2 Regular, 1 PVP and 1 Merchant</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/11/16]</span><span>Party Chat and Whisper</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/11/16]</span><span>A Final &#39;Rare&#39; Grade for Items</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/11/16]</span><span>A Multitude of CODE Features</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[02/11/16]</span><span>Performance Improvements</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[30/10/16]</span><span>A game improvement that aims to fix issues related to stacking and not-disappearing monsters.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/10/16]</span><span>New animation for Rogue&#39;s: Smoke</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/10/16]</span><span>New teleport animations</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/10/16]</span><span>6 seconds invincibility when you spawn or respawn inside a PVP zone.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[27/10/16]</span><span>Chat commands to save, load, run code&#39;s, the ability to respawn with code + various other code features</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/10/16]</span><span>Initial chat commands: /list</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/10/16]</span><span>Rewritten the CODE system</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/10/16]</span><span>Backslash &#92; toggles CODE</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[22/10/16]</span><span>CODE exceptions are now logged at game logs</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/10/16]</span><span>The Halloween Zone!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[18/10/16]</span><span>Fill your inventory with candy, enjoy the new items, new monsters, generous drops!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/10/16]</span><span>New classes, Rogue and Ranger!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[10/10/16]</span><span>Currently in the process of extending the game, taking the time to do it right, but until then, try out the new classes :]</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/10/16]</span><span>New and First Item Ability: Stun!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/10/16]</span><span>The Spear received Armor Piercing.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[04/10/16]</span><span>New preview skill for Priests, Curse, press &#39;R&#39; to test it :]</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/09/16]</span><span>New Item/Ability &#39;Merchant Stand&#39;!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[28/09/16]</span><span>New preview skill for Warriors, &#39;Charge&#39;, press &#39;R&#39; to test it :]</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[25/09/16]</span><span>Lifesteal attribute and new item &quot;Dracul&#39;s Cape&quot;!</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/09/16]</span><span>New PVP Servers, Dynamics</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/09/16]</span><span>New Item: Tome of Protection.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[23/09/16]</span><span>Misc. skills for a limited time, press &#39;R&#39; with Mage and &#39;Q&#39; with Warrior :]</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[17/09/16]</span><span>New PVP animation, and dynamics, can&#39;t escape for 3.6 seconds after being hit.</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[16/09/16]</span><span>Launched the premium currency SHELLS and first premium items. SHELLS drop from monsters too. Not telling which one(s) :]</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/09/16]</span><span>Implemented &quot;aggressiveness&quot; for monsters. Bee&#39;s sting :)</span></div>
+			
+				<div class="update-notes-entry"><span class="update-notes-date">[12/09/16]</span><span>Added the &quot;lines&quot; feature. Draws a line between entities on attack, heal. Should especially be useful for PVP.</span></div>
+			
+		</div>
+	</body>
+</html>
