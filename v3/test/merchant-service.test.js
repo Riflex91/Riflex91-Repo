@@ -6,6 +6,7 @@ const { MerchantServicePlanner, MerchantServicePlanKind } = require('../src/merc
 const { ControlledMerchantServiceExecutor, CONTROLLED_MERCHANT_SERVICE_ACK } = require('../src/merchant/controlled-merchant-service-executor');
 const { RouteCostEstimator } = require('../src/travel/route-cost-estimator');
 const { PartyTelemetryBridge, potionSummary } = require('../src/party/telemetry-bridge');
+const { deriveMotion, positionFreshness } = require('../src/party/moving-target-freshness');
 const index = require('../src');
 
 function memoryStorage(seed = {}) {
@@ -99,6 +100,59 @@ test('stale and emergency farmer reports never trigger a merchant service trip',
   assert.equal(unsafe.kind, MerchantServicePlanKind.HOLD);
 });
 
+// Live regression: the Merchant previously chased a Ranger coordinate observed about 2.9 seconds earlier during kiting.
+test('motion-aware freshness rejects a 2.9s-old kiting position while accepting the same-age stationary position', () => {
+  const now = 600000;
+  const staticFresh = positionFreshness({
+    name: 'StationaryFarmer', at: now - 2900, map: 'main', x: -1038, y: 1138,
+    motion: { mode: 'STABLE', moving: false, kiteActive: false, speedEstimate: 0 }
+  }, now, { staticTtlMs: 5000, movingMaxError: 70, kiteMaxError: 55 });
+  assert.equal(staticFresh.fresh, true);
+
+  const kiteStale = positionFreshness({
+    name: 'KitingFarmer', at: now - 2900, map: 'main', x: -1038, y: 1138,
+    motion: { mode: 'KITE', moving: true, kiteActive: true, declaredSpeed: 55, speedEstimate: 55 }
+  }, now, { staticTtlMs: 5000, movingMaxError: 70, kiteMaxError: 55 });
+  assert.equal(kiteStale.fresh, false);
+  assert.equal(kiteStale.reason, 'KITE_POSITION_UNCERTAINTY_EXCEEDED');
+  assert.ok(kiteStale.uncertainty > 150);
+});
+
+test('motion history derives observed speed from displacement instead of trusting timestamp age alone', () => {
+  const previous = { at: 1000, sourceAt: 1000, map: 'main', x: 0, y: 0, motion: { mode: 'STABLE' } };
+  const current = { at: 2000, sourceAt: 2000, map: 'main', x: 60, y: 0, speed: 55, moving: true };
+  const motion = deriveMotion(previous, current);
+  assert.equal(motion.mode, 'MOVING');
+  assert.equal(motion.observedSpeed, 60);
+  assert.equal(motion.speedEstimate, 60);
+});
+
+test('merchant service planner rejects motion-stale kiting reports before planning travel', () => {
+  const now = 700000;
+  const planner = new MerchantServicePlanner({
+    now: () => now,
+    reportTtlMs: 5000,
+    movingPositionMaxError: 70,
+    kitePositionMaxError: 55
+  });
+  const staleKiter = report(now - 2900, {
+    motion: { mode: 'KITE', moving: true, kiteActive: true, declaredSpeed: 55, speedEstimate: 55 }
+  });
+  const blocked = planner.plan({ merchant: merchant(), reports: [staleKiter], standOpen: false });
+  assert.equal(blocked.kind, MerchantServicePlanKind.STAND_OPEN);
+  assert.equal(planner.status().stats.motionStaleReports, 1);
+
+  const freshKiter = report(now - 700, {
+    x: 300,
+    y: 100,
+    motion: { mode: 'KITE', moving: true, kiteActive: true, declaredSpeed: 55, speedEstimate: 55 }
+  });
+  const allowed = planner.plan({ merchant: merchant(), reports: [freshKiter], standOpen: false, deliveryDistance: 10 });
+  assert.equal(allowed.kind, MerchantServicePlanKind.SERVICE_TRAVEL);
+  assert.equal(allowed.positionFreshness.fresh, true);
+  assert.ok(allowed.positionFreshness.uncertainty < 55);
+});
+
 test('party telemetry reports position, free slots and potion stock without changing protocol', () => {
   const bridge = new PartyTelemetryBridge({ now: () => 1000 });
   const runtime = {
@@ -108,6 +162,7 @@ test('party telemetry reports position, free slots and potion stock without chan
   };
   const built = bridge.buildLocalReport(runtime);
   assert.equal(built.protocol, 1);
+  assert.equal(built.motion.mode, 'STABLE');
   assert.equal(built.x, 12); assert.equal(built.y, 34);
   assert.equal(built.supplies.freeSlots, 4);
   assert.equal(built.supplies.hpPotions, 25);

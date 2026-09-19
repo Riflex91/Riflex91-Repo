@@ -133,6 +133,7 @@ const { ContentSafetyGate, ContentDisposition } = require('./farmer/content-safe
 const { partyProfile, capabilitiesFor } = require('./party/capabilities');
 const { CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE } = require('./party/character-registry');
 const { FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, createPullLearningFingerprint } = require('./party/fingerprints');
+const { MOVING_TARGET_FRESHNESS_MODE, deriveMotion, positionFreshness, cleanMotion } = require('./party/moving-target-freshness');
 const { PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION } = require('./party/performance-store');
 const { PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS } = require('./party/orchestrator');
 const { PaladinAuraPolicy, AURAS } = require('./party/paladin-aura-policy');
@@ -545,7 +546,7 @@ module.exports = {
   EncounterLifecycle, installEncounterLifecycle, ENCOUNTER_LIFECYCLE_MODE, ENCOUNTER_OUTCOME_SCHEMA_VERSION, EncounterLifecycleState, EncounterOutcome,
   FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor, CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE,
-  FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, createPullLearningFingerprint, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
+  FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, createPullLearningFingerprint, MOVING_TARGET_FRESHNESS_MODE, deriveMotion, positionFreshness, cleanMotion, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
   PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, PaladinAuraPolicy, AURAS, PartyTelemetryBridge, TELEMETRY_PROTOCOL,
   PartyTransitionController, TransitionState, PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction,
   PartyLifecycleStore, PartyLifecycleState, PARTY_LIFECYCLE_SCHEMA_VERSION, PARTY_LIFECYCLE_MODE,
@@ -10984,7 +10985,7 @@ this.log.version = RELEASE_VERSION; this.partyDecisionMs = Math.max(2000, Math.m
     this.partyPerformance = options.partyPerformance || new PartyPerformanceStore({ root: this.root, storage: options.partyPerformanceStorage || options.storage, log: this.log, now: this.now, capacity: options.partyPerformanceCapacity, halfLifeMs: options.partyPerformanceHalfLifeMs, minSaveMs: options.partyPerformanceSaveMs }); this.partyPerformance.load();
     this.partyOrchestrator = options.partyOrchestrator || new PartyOrchestrator({ now: this.now, log: this.log, weights: options.partyScoreWeights, minScoreGain: options.partyMinScoreGain, minSwitchIntervalMs: options.partyMinSwitchIntervalMs, minRecommendedConfidence: options.partyMinRecommendedConfidence, maxCandidates: options.partyMaxCandidates, explorationEnabled: options.partyExplorationEnabled === true }); this.auraPolicy = options.auraPolicy || new PaladinAuraPolicy({ now: this.now, minHoldMs: options.partyAuraMinHoldMs });
     const roster = this.characterRegistry.status().characters || []; const configuredMerchant = options.partyMerchantName || roster.find((row) => row.ctype === 'merchant')?.name || null;
-    this.partyTelemetry = options.partyTelemetry || new PartyTelemetryBridge({ root: this.root, adapter: this.adapter, now: this.now, log: this.log, merchantName: configuredMerchant, trustedNames: roster.map((row) => row.name), sendIntervalMs: options.partyTelemetrySendMs, reportTtlMs: options.partyTelemetryTtlMs, capacity: options.partyTelemetryCapacity }); this.partyTelemetry.installReceiver();
+    this.partyTelemetry = options.partyTelemetry || new PartyTelemetryBridge({ root: this.root, adapter: this.adapter, now: this.now, log: this.log, merchantName: configuredMerchant, trustedNames: roster.map((row) => row.name), sendIntervalMs: options.partyTelemetrySendMs, movingSendIntervalMs: options.partyTelemetryMovingSendMs, reportTtlMs: options.partyTelemetryTtlMs, capacity: options.partyTelemetryCapacity }); this.partyTelemetry.installReceiver();
     this.partyTransitions = options.partyTransitions || new PartyTransitionController({ root: this.root, adapter: this.adapter, now: this.now, log: this.log, liveEnabled: options.partyTransitionsEnabled === true, merchantName: configuredMerchant, codeSlots: options.partyCodeSlots, stepTimeoutMs: options.partyTransitionStepTimeoutMs, transitionLeaseMs: options.partyTransitionLeaseMs, pollMs: options.partyTransitionPollMs });
     this.backgroundExecution = options.backgroundExecution || new BackgroundExecutionGuard({ root: this.root, now: this.now, log: this.log, expectedTickMs: this.tickMs, driftThresholdMs: options.backgroundDriftThresholdMs, rearmCooldownMs: options.backgroundRearmCooldownMs, enabled: options.backgroundExecutionGuardEnabled !== false });
 }
@@ -11354,6 +11355,7 @@ module.exports = { PaladinAuraPolicy, AURAS };
 
 const { GameAdapter } = require('../game/adapter');
 const { buildCapabilitySnapshot, sanitizeCapabilitySnapshot } = require('../autonomy/capability-sync');
+const { deriveMotion, cleanMotion } = require('./moving-target-freshness');
 
 const TELEMETRY_PROTOCOL = 1;
 function finite(value) { const n = Number(value); return Number.isFinite(n) ? n : null; }
@@ -11404,7 +11406,7 @@ function potionSummary(inventory = []) {
 }
 class PartyTelemetryBridge {
   constructor(options = {}) {
-    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: options.mode === 'shadow' ? 'shadow' : 'active' }); this.merchantName = options.merchantName || null; this.trustedNames = new Set((options.trustedNames || []).map(String)); this.sendIntervalMs = Math.max(2000, Math.min(60000, Number(options.sendIntervalMs) || 5000)); this.reportTtlMs = Math.max(this.sendIntervalMs * 2, Math.min(5 * 60 * 1000, Number(options.reportTtlMs) || 20000)); this.capacity = Math.max(4, Math.min(64, Number(options.capacity) || 16)); this.lastSentAt = 0; this.reports = new Map(); this.stats = { sent: 0, peerSent: 0, merchantSent: 0, received: 0, rejected: 0, sendFailures: 0, expired: 0, capabilityReports: 0, encounterOutcomeReports: 0 }; this.installed = false; this.previousOnCm = null;
+    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: options.mode === 'shadow' ? 'shadow' : 'active' }); this.merchantName = options.merchantName || null; this.trustedNames = new Set((options.trustedNames || []).map(String)); this.sendIntervalMs = Math.max(2000, Math.min(60000, Number(options.sendIntervalMs) || 5000)); this.movingSendIntervalMs = Math.max(750, Math.min(this.sendIntervalMs, Number(options.movingSendIntervalMs) || 1200)); this.reportTtlMs = Math.max(this.sendIntervalMs * 2, Math.min(5 * 60 * 1000, Number(options.reportTtlMs) || 20000)); this.capacity = Math.max(4, Math.min(64, Number(options.capacity) || 16)); this.lastSentAt = 0; this.reports = new Map(); this.stats = { sent: 0, peerSent: 0, merchantSent: 0, received: 0, rejected: 0, sendFailures: 0, expired: 0, capabilityReports: 0, encounterOutcomeReports: 0 }; this.installed = false; this.previousOnCm = null;
   }
   _event(event, data = {}, severity = 'info', reason = null) { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'party-telemetry', event, severity, reason, data }); }
   setTrustedNames(names) { this.trustedNames = new Set((names || []).filter(Boolean).map(String)); return [...this.trustedNames].sort(); }
@@ -11419,18 +11421,23 @@ class PartyTelemetryBridge {
     const level = Math.max(0, finite(report.level) || 0);
     const capabilities = sanitizeCapabilitySnapshot(report.capabilities, { name, ctype, level });
     const encounterOutcome = cleanEncounterOutcome(report.encounterOutcome, name, this.now(), Math.max(60000, this.reportTtlMs * 6));
-    return { protocol: TELEMETRY_PROTOCOL, name, ctype, level, map: report.map == null ? null : String(report.map), x: finite(report.x), y: finite(report.y), targetMonster: report.targetMonster == null ? null : String(report.targetMonster), hpRatio: clamp(report.hpRatio, 0, 1), mpRatio: clamp(report.mpRatio, 0, 1), rip: report.rip === true, active: report.active !== false, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: Math.max(0, finite(supplies.inventorySize) || 0), inventoryUsed: Math.max(0, finite(supplies.inventoryUsed) || 0), freeSlots: Math.max(0, finite(supplies.freeSlots) || 0), hpPotions: Math.max(0, finite(supplies.hpPotions) || 0), mpPotions: Math.max(0, finite(supplies.mpPotions) || 0), preferredHpPotion: cleanPotionName(supplies.preferredHpPotion, 'hpot'), preferredMpPotion: cleanPotionName(supplies.preferredMpPotion, 'mpot') }, safety: { retreat: safety.retreat === true, emergency: safety.emergency === true, movementCircuitOpen: safety.movementCircuitOpen === true, skillFailureBackoffs: Math.max(0, finite(safety.skillFailureBackoffs) || 0) }, capabilities, encounterOutcome, at };
+    const motion = cleanMotion(report.motion || {});
+    return { protocol: TELEMETRY_PROTOCOL, name, ctype, level, map: report.map == null ? null : String(report.map), x: finite(report.x), y: finite(report.y), targetMonster: report.targetMonster == null ? null : String(report.targetMonster), hpRatio: clamp(report.hpRatio, 0, 1), mpRatio: clamp(report.mpRatio, 0, 1), rip: report.rip === true, active: report.active !== false, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: Math.max(0, finite(supplies.inventorySize) || 0), inventoryUsed: Math.max(0, finite(supplies.inventoryUsed) || 0), freeSlots: Math.max(0, finite(supplies.freeSlots) || 0), hpPotions: Math.max(0, finite(supplies.hpPotions) || 0), mpPotions: Math.max(0, finite(supplies.mpPotions) || 0), preferredHpPotion: cleanPotionName(supplies.preferredHpPotion, 'hpot'), preferredMpPotion: cleanPotionName(supplies.preferredMpPotion, 'mpot') }, safety: { retreat: safety.retreat === true, emergency: safety.emergency === true, movementCircuitOpen: safety.movementCircuitOpen === true, skillFailureBackoffs: Math.max(0, finite(safety.skillFailureBackoffs) || 0) }, motion, capabilities, encounterOutcome, at };
   }
-  receive(sender, data) { const clean = this._cleanReport(data, sender); if (!clean) { this.stats.rejected += 1; return false; } if (!this.reports.has(clean.name) && this.reports.size >= this.capacity) { const oldest = [...this.reports.entries()].sort((a, b) => a[1].at - b[1].at)[0]; if (oldest) this.reports.delete(oldest[0]); } this.reports.set(clean.name, clean); this.stats.received += 1; if (clean.capabilities) this.stats.capabilityReports += 1; if (clean.encounterOutcome) this.stats.encounterOutcomeReports += 1; return true; }
+  receive(sender, data) { const clean = this._cleanReport(data, sender); if (!clean) { this.stats.rejected += 1; return false; } const previous = this.reports.get(clean.name) || null; clean.motion = deriveMotion(previous, { ...clean, speed: clean.motion && clean.motion.declaredSpeed, moving: clean.motion && clean.motion.moving, kiteActive: clean.motion && clean.motion.kiteActive }); if (!this.reports.has(clean.name) && this.reports.size >= this.capacity) { const oldest = [...this.reports.entries()].sort((a, b) => a[1].at - b[1].at)[0]; if (oldest) this.reports.delete(oldest[0]); } this.reports.set(clean.name, clean); this.stats.received += 1; if (clean.capabilities) this.stats.capabilityReports += 1; if (clean.encounterOutcome) this.stats.encounterOutcomeReports += 1; return true; }
   buildLocalReport(runtime) {
     const c = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || this._character(); if (!c) return null; const perf = runtime && runtime.performance && runtime.performance.status().current; const rates = perf && perf.rates || {}; const farmer = runtime && typeof runtime.farmerStatus === 'function' ? runtime.farmerStatus() : {}; const movement = runtime && runtime.adapter && typeof runtime.adapter.stabilityStatus === 'function' ? runtime.adapter.stabilityStatus().movement : null; const local = runtime && runtime.localFarming && typeof runtime.localFarming.status === 'function' ? runtime.localFarming.status() : null; const inventory = Array.isArray(c.inventory) ? c.inventory : []; const rawSize = finite(c.isize); const size = Math.max(0, Math.floor(rawSize == null ? inventory.length : rawSize)); const boundedInventory = inventory.slice(0, size); const used = boundedInventory.filter(Boolean).length; const potions = potionSummary(boundedInventory);
     const encounterOutcome = cleanEncounterOutcome(runtime && (runtime.lastEncounterOutcome || runtime.encounterLifecycle && runtime.encounterLifecycle.lastOutcome), c.name, this.now(), Math.max(60000, this.reportTtlMs * 6));
-    return { type: 'aio-v3-party-report', protocol: TELEMETRY_PROTOCOL, name: c.name, ctype: c.ctype, level: c.level, map: c.map, x: finite(c.x != null ? c.x : c.real_x), y: finite(c.y != null ? c.y : c.real_y), targetMonster: farmer && farmer.targetType || local && local.currentPlan && local.currentPlan.monster || null, hpRatio: c.max_hp > 0 ? c.hp / c.max_hp : 0, mpRatio: c.max_mp > 0 ? c.mp / c.max_mp : 0, rip: !!c.rip, active: true, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: size, inventoryUsed: used, freeSlots: Math.max(0, size - used), ...potions }, safety: { retreat: !!(runtime && runtime.pendingEmergencyRetreat), emergency: !!(runtime && runtime.lastEmergencyDisengage && this.now() - runtime.lastEmergencyDisengage.at < 10000), movementCircuitOpen: !!(movement && movement.circuitOpen), skillFailureBackoffs: Array.isArray(farmer && farmer.skillUsage && farmer.skillUsage.activeFailureBackoffs) ? farmer.skillUsage.activeFailureBackoffs.length : 0 }, capabilities: buildCapabilitySnapshot(runtime, c), encounterOutcome, at: this.now() };
+    const lastKite = runtime && runtime.farmer && runtime.farmer.lastKiteMove || farmer && farmer.kiting && farmer.kiting.lastMove || null;
+    const kiteActive = !!(lastKite && this.now() - (finite(lastKite.at) || 0) <= Math.max(1500, this.movingSendIntervalMs * 2));
+    const motion = { mode: kiteActive ? 'KITE' : c.moving ? 'MOVING' : 'STABLE', moving: c.moving === true || kiteActive, kiteActive, declaredSpeed: Math.max(0, finite(c.speed) || 0) };
+    return { type: 'aio-v3-party-report', protocol: TELEMETRY_PROTOCOL, name: c.name, ctype: c.ctype, level: c.level, map: c.map, x: finite(c.x != null ? c.x : c.real_x), y: finite(c.y != null ? c.y : c.real_y), targetMonster: farmer && farmer.targetType || local && local.currentPlan && local.currentPlan.monster || null, hpRatio: c.max_hp > 0 ? c.hp / c.max_hp : 0, mpRatio: c.max_mp > 0 ? c.mp / c.max_mp : 0, rip: !!c.rip, active: true, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: size, inventoryUsed: used, freeSlots: Math.max(0, size - used), ...potions }, safety: { retreat: !!(runtime && runtime.pendingEmergencyRetreat), emergency: !!(runtime && runtime.lastEmergencyDisengage && this.now() - runtime.lastEmergencyDisengage.at < 10000), movementCircuitOpen: !!(movement && movement.circuitOpen), skillFailureBackoffs: Array.isArray(farmer && farmer.skillUsage && farmer.skillUsage.activeFailureBackoffs) ? farmer.skillUsage.activeFailureBackoffs.length : 0 }, motion, capabilities: buildCapabilitySnapshot(runtime, c), encounterOutcome, at: this.now() };
   }
   tick(runtime) {
     this.prune();
     const c = this._character();
-    if (!c || (this.merchantName && String(c.name) === String(this.merchantName)) || this.now() - this.lastSentAt < this.sendIntervalMs) return false;
+    const farmer = runtime && runtime.farmer; const lastKite = farmer && farmer.lastKiteMove || null; const motionActive = !!(c && (c.moving === true || lastKite && this.now() - (finite(lastKite.at) || 0) <= Math.max(1500, this.movingSendIntervalMs * 2))); const intervalMs = motionActive ? this.movingSendIntervalMs : this.sendIntervalMs;
+    if (!c || (this.merchantName && String(c.name) === String(this.merchantName)) || this.now() - this.lastSentAt < intervalMs) return false;
     const runtimeAdapter = runtime && runtime.adapter;
     const adapter = runtimeAdapter && typeof runtimeAdapter.command === 'function' ? runtimeAdapter : this.adapter;
     if (!adapter || typeof adapter.command !== 'function') return false;
@@ -11491,9 +11498,168 @@ class PartyTelemetryBridge {
     this.prune(); const wanted = names.length ? new Set(names.map(String)) : null; const reports = [...this.reports.values()].filter((report) => !wanted || wanted.has(report.name)); const out = { freshReports: reports.length, xpPerHour: 0, goldPerHour: 0, killsPerHour: 0, deathsPerHour: 0, potionsPerHour: 0, damageTakenPerHour: 0, minHpRatio: reports.length ? 1 : null, minMpRatio: reports.length ? 1 : null, retreats: 0, emergencies: 0, movementCircuits: 0, skillFailureBackoffs: 0, reports: reports.map((report) => ({ ...report })) };
     for (const report of reports) { for (const key of ['xpPerHour', 'goldPerHour', 'killsPerHour', 'deathsPerHour', 'potionsPerHour', 'damageTakenPerHour']) out[key] += report.rates[key]; out.minHpRatio = Math.min(out.minHpRatio, report.hpRatio); out.minMpRatio = Math.min(out.minMpRatio, report.mpRatio); if (report.safety.retreat) out.retreats += 1; if (report.safety.emergency) out.emergencies += 1; if (report.safety.movementCircuitOpen) out.movementCircuits += 1; out.skillFailureBackoffs += report.safety.skillFailureBackoffs; } return out;
   }
-  status() { this.prune(); const reports = [...this.reports.values()].sort((a, b) => b.at - a.at); return { protocol: TELEMETRY_PROTOCOL, merchantName: this.merchantName, sendIntervalMs: this.sendIntervalMs, reportTtlMs: this.reportTtlMs, trustedNames: [...this.trustedNames].sort(), reports, capabilityReports: reports.filter((row) => !!row.capabilities).map((row) => ({ name: row.name, ctype: row.ctype, at: row.at, catalog: row.capabilities.catalog, combatMode: row.capabilities.combatMode, skills: row.capabilities.skills.length })), encounterOutcomes: reports.filter((row) => !!row.encounterOutcome).map((row) => ({ name: row.name, encounterId: row.encounterOutcome.encounterId, outcome: row.encounterOutcome.outcome, endedAt: row.encounterOutcome.endedAt })), stats: { ...this.stats } }; }
+  status() { this.prune(); const reports = [...this.reports.values()].sort((a, b) => b.at - a.at); return { protocol: TELEMETRY_PROTOCOL, merchantName: this.merchantName, sendIntervalMs: this.sendIntervalMs, movingSendIntervalMs: this.movingSendIntervalMs, reportTtlMs: this.reportTtlMs, trustedNames: [...this.trustedNames].sort(), reports, capabilityReports: reports.filter((row) => !!row.capabilities).map((row) => ({ name: row.name, ctype: row.ctype, at: row.at, catalog: row.capabilities.catalog, combatMode: row.capabilities.combatMode, skills: row.capabilities.skills.length })), encounterOutcomes: reports.filter((row) => !!row.encounterOutcome).map((row) => ({ name: row.name, encounterId: row.encounterOutcome.encounterId, outcome: row.encounterOutcome.outcome, endedAt: row.encounterOutcome.endedAt })), stats: { ...this.stats } }; }
 }
 module.exports = { PartyTelemetryBridge, TELEMETRY_PROTOCOL, potionSummary, cleanEncounterOutcome };
+
+},
+"src/party/moving-target-freshness.js": function(require,module,exports){
+'use strict';
+
+const MOVING_TARGET_FRESHNESS_MODE = 'motion-aware-position-freshness-v1';
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp(value, min, max) {
+  const n = finite(value, min);
+  return Math.max(min, Math.min(max, n));
+}
+
+function point(value) {
+  return {
+    x: finite(value && (value.real_x != null ? value.real_x : value.x)),
+    y: finite(value && (value.real_y != null ? value.real_y : value.y))
+  };
+}
+
+function distance(a, b) {
+  const pa = point(a);
+  const pb = point(b);
+  if ([pa.x, pa.y, pb.x, pb.y].some((value) => value == null)) return null;
+  return Math.hypot(pa.x - pb.x, pa.y - pb.y);
+}
+
+function sameMap(a, b) {
+  if (!a || !b || !a.map || !b.map) return true;
+  return String(a.map) === String(b.map);
+}
+
+function cleanMotion(raw = {}) {
+  const requestedMode = String(raw.mode || '').toUpperCase();
+  const moving = raw.moving === true;
+  const kiteActive = raw.kiteActive === true;
+  let mode = ['STABLE', 'MOVING', 'KITE'].includes(requestedMode) ? requestedMode : null;
+  if (kiteActive) mode = 'KITE';
+  else if (moving && mode !== 'KITE') mode = 'MOVING';
+  return {
+    mode,
+    moving,
+    kiteActive,
+    declaredSpeed: Math.max(0, finite(raw.declaredSpeed, finite(raw.speed, 0))),
+    observedSpeed: Math.max(0, finite(raw.observedSpeed, 0)),
+    speedEstimate: Math.max(0, finite(raw.speedEstimate, 0)),
+    displacement: Math.max(0, finite(raw.displacement, 0)),
+    sampleMs: Math.max(0, finite(raw.sampleMs, 0))
+  };
+}
+
+function deriveMotion(previous, current, options = {}) {
+  const minObservedSpeed = Math.max(1, finite(options.minObservedSpeed, 6));
+  const movingFallbackSpeed = Math.max(minObservedSpeed, finite(options.movingFallbackSpeed, 40));
+  const declaredSpeed = Math.max(0, finite(current && (current.speed != null ? current.speed : current.declaredSpeed), 0));
+  const movingSignal = !!(current && (current.moving === true || current.kiteActive === true || current.motion && current.motion.moving === true));
+  const kiteSignal = !!(current && (current.kiteActive === true || current.motion && current.motion.kiteActive === true));
+
+  const currentAt = finite(current && (current.sourceAt != null ? current.sourceAt : current.at));
+  const previousAt = finite(previous && (previous.sourceAt != null ? previous.sourceAt : previous.at));
+  const sampleMs = currentAt != null && previousAt != null ? Math.max(0, currentAt - previousAt) : 0;
+  const displacement = previous && current && sampleMs > 0 && sameMap(previous, current)
+    ? Math.max(0, finite(distance(previous, current), 0))
+    : 0;
+  const observedSpeed = sampleMs >= 150 ? displacement / (sampleMs / 1000) : 0;
+
+  let mode = 'STABLE';
+  if (kiteSignal) mode = 'KITE';
+  else if (movingSignal || observedSpeed >= minObservedSpeed) mode = 'MOVING';
+
+  const speedEstimate = mode === 'STABLE'
+    ? 0
+    : Math.max(observedSpeed, declaredSpeed, movingFallbackSpeed);
+
+  return {
+    mode,
+    moving: mode !== 'STABLE',
+    kiteActive: mode === 'KITE',
+    declaredSpeed: Number(declaredSpeed.toFixed(3)),
+    observedSpeed: Number(observedSpeed.toFixed(3)),
+    speedEstimate: Number(speedEstimate.toFixed(3)),
+    displacement: Number(displacement.toFixed(3)),
+    sampleMs
+  };
+}
+
+function positionFreshness(row, now = Date.now(), options = {}) {
+  const staticTtlMs = Math.max(500, finite(options.staticTtlMs, 5000));
+  const movingMaxError = Math.max(10, finite(options.movingMaxError, 70));
+  const kiteMaxError = Math.max(10, Math.min(movingMaxError, finite(options.kiteMaxError, 55)));
+  const futureSkewMs = Math.max(0, finite(options.futureSkewMs, 1000));
+  const sourceAt = finite(row && (row.positionObservedAt != null ? row.positionObservedAt : row.sourceAt != null ? row.sourceAt : row.at));
+  const receivedAt = finite(row && row.at, sourceAt);
+  const sourceAgeMs = sourceAt == null ? Infinity : Math.max(0, finite(now, Date.now()) - sourceAt);
+  const receivedAgeMs = receivedAt == null ? Infinity : Math.max(0, finite(now, Date.now()) - receivedAt);
+  const futureSkew = sourceAt != null && sourceAt - finite(now, Date.now()) > futureSkewMs;
+
+  const motion = cleanMotion(row && row.motion || {
+    mode: row && row.kiteActive === true ? 'KITE' : row && row.moving === true ? 'MOVING' : 'STABLE',
+    moving: row && row.moving === true,
+    kiteActive: row && row.kiteActive === true,
+    speedEstimate: row && row.speed
+  });
+  const mode = motion.mode || (motion.kiteActive ? 'KITE' : motion.moving ? 'MOVING' : 'STABLE');
+  const movingFallbackSpeed = Math.max(1, finite(options.movingFallbackSpeed, 40));
+  const speedEstimate = Math.max(
+    0,
+    motion.speedEstimate,
+    mode !== 'STABLE' ? motion.declaredSpeed : 0,
+    mode !== 'STABLE' ? finite(row && row.speed, 0) : 0,
+    mode !== 'STABLE' ? movingFallbackSpeed : 0
+  );
+  const uncertainty = mode === 'STABLE' ? 0 : speedEstimate * sourceAgeMs / 1000;
+  const errorBudget = mode === 'KITE' ? kiteMaxError : movingMaxError;
+
+  let reason = 'POSITION_FRESH';
+  let fresh = true;
+  if (sourceAt == null || receivedAt == null) {
+    fresh = false;
+    reason = 'POSITION_TIMESTAMP_MISSING';
+  } else if (futureSkew) {
+    fresh = false;
+    reason = 'POSITION_TIMESTAMP_FUTURE_SKEW';
+  } else if (sourceAgeMs > staticTtlMs || receivedAgeMs > staticTtlMs) {
+    fresh = false;
+    reason = 'POSITION_TTL_EXCEEDED';
+  } else if (mode !== 'STABLE' && uncertainty > errorBudget) {
+    fresh = false;
+    reason = mode === 'KITE' ? 'KITE_POSITION_UNCERTAINTY_EXCEEDED' : 'MOVING_POSITION_UNCERTAINTY_EXCEEDED';
+  }
+
+  return {
+    schemaVersion: 1,
+    mode: MOVING_TARGET_FRESHNESS_MODE,
+    fresh,
+    reason,
+    motionMode: mode,
+    sourceAt,
+    receivedAt,
+    sourceAgeMs: Number.isFinite(sourceAgeMs) ? Math.round(sourceAgeMs) : null,
+    receivedAgeMs: Number.isFinite(receivedAgeMs) ? Math.round(receivedAgeMs) : null,
+    speedEstimate: Number(speedEstimate.toFixed(3)),
+    uncertainty: Number(uncertainty.toFixed(3)),
+    errorBudget
+  };
+}
+
+module.exports = {
+  MOVING_TARGET_FRESHNESS_MODE,
+  deriveMotion,
+  positionFreshness,
+  cleanMotion,
+  distance,
+  point
+};
 
 },
 "src/party/transition-controller.js": function(require,module,exports){
@@ -22590,6 +22756,8 @@ function composeAlpha20_5MerchantRuntime(options = {}) {
 this.merchantServicePlanner = options.merchantServicePlanner || new MerchantServicePlanner({
       now: this.now,
       reportTtlMs: options.merchantServiceReportTtlMs,
+      movingPositionMaxError: options.merchantServiceMovingPositionMaxError,
+      kitePositionMaxError: options.merchantServiceKitePositionMaxError,
       criticalPotionCount: options.merchantServiceCriticalPotionCount,
       lowPotionCount: options.merchantServiceLowPotionCount,
       targetPotionCount: options.merchantServiceTargetPotionCount,
@@ -22972,6 +23140,8 @@ module.exports = { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CO
 "src/merchant/merchant-service-planner.js": function(require,module,exports){
 'use strict';
 
+const { positionFreshness } = require('../party/moving-target-freshness');
+
 const MERCHANT_SERVICE_PLANNER_MODE = 'shadow-merchant-service-planner';
 
 const MerchantServicePlanKind = Object.freeze({
@@ -23016,6 +23186,8 @@ class MerchantServicePlanner {
   constructor(options = {}) {
     this.now = options.now || (() => Date.now());
     this.reportTtlMs = Math.max(5000, Math.min(5 * 60 * 1000, finite(options.reportTtlMs, 25000)));
+    this.movingPositionMaxError = Math.max(20, Math.min(250, finite(options.movingPositionMaxError, 70)));
+    this.kitePositionMaxError = Math.max(15, Math.min(this.movingPositionMaxError, finite(options.kitePositionMaxError, 55)));
     this.criticalPotionCount = Math.max(0, Math.min(5000, finite(options.criticalPotionCount, 40)));
     this.lowPotionCount = Math.max(this.criticalPotionCount, Math.min(10000, finite(options.lowPotionCount, 120)));
     this.targetPotionCount = Math.max(this.lowPotionCount, Math.min(20000, finite(options.targetPotionCount, 240)));
@@ -23026,7 +23198,7 @@ class MerchantServicePlanner {
     this.standWhenIdle = options.standWhenIdle !== false;
     this.sequence = 0;
     this.lastPlan = null;
-    this.stats = { plans: 0, service: 0, stand: 0, holds: 0, staleReports: 0, unsafeTargets: 0 };
+    this.stats = { plans: 0, service: 0, stand: 0, holds: 0, staleReports: 0, motionStaleReports: 0, unsafeTargets: 0 };
   }
 
   _id() {
@@ -23091,6 +23263,7 @@ class MerchantServicePlanner {
   _serviceContext(selected) {
     return {
       sourceReportAt: finite(selected && selected.report && selected.report.at),
+      positionFreshness: selected && selected.positionFreshness ? clone(selected.positionFreshness) : null,
       target: {
         name: selected.report.name,
         map: selected.report.map || null,
@@ -23118,6 +23291,11 @@ class MerchantServicePlanner {
         this.stats.staleReports += 1;
         continue;
       }
+      const freshness = positionFreshness(report, now, { staticTtlMs: this.reportTtlMs, movingMaxError: this.movingPositionMaxError, kiteMaxError: this.kitePositionMaxError });
+      if (!freshness.fresh) {
+        this.stats.motionStaleReports += 1;
+        continue;
+      }
       if (report.rip === true || report.active === false) continue;
       const need = this._need(report);
       if (!need) continue;
@@ -23125,7 +23303,7 @@ class MerchantServicePlanner {
         this.stats.unsafeTargets += 1;
         continue;
       }
-      candidates.push({ report, need });
+      candidates.push({ report, need, positionFreshness: freshness });
     }
 
     // For equal-priority supply emergencies, serve the most depleted Farmer
@@ -23186,6 +23364,8 @@ class MerchantServicePlanner {
       liveExecutionAllowed: false,
       thresholds: {
         reportTtlMs: this.reportTtlMs,
+        movingPositionMaxError: this.movingPositionMaxError,
+        kitePositionMaxError: this.kitePositionMaxError,
         criticalPotionCount: this.criticalPotionCount,
         lowPotionCount: this.lowPotionCount,
         targetPotionCount: this.targetPotionCount,
@@ -57213,6 +57393,7 @@ module.exports = {
 'use strict';
 
 const { hasIncomingAggro } = require('./alpha20-33-combat-logistics-regression-hotfix');
+const { deriveMotion, positionFreshness } = require('../party/moving-target-freshness');
 
 const ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE = 'alpha33-mark-orbit-merchant-delivery-v2';
 const FARMER_STATE_ACTION = 'FARMER_STATE';
@@ -57269,6 +57450,25 @@ function rawEntity(runtime, id) {
   for (const pool of pools) {
     for (const entity of Object.values(pool || {})) {
       if (entity && String(entity.id) === wanted) return entity;
+    }
+  }
+  return null;
+}
+
+function rawPlayerByName(runtime, name) {
+  const wanted = cleanName(name);
+  if (!wanted) return null;
+  const root = runtime && runtime.root || globalThis;
+  const parent = root && root.parent || root;
+  const pools = [parent && parent.entities, root && root.entities];
+  for (const pool of pools) {
+    for (const entity of Object.values(pool || {})) {
+      if (!entity || entity.mtype || entity.dead === true || entity.rip === true) continue;
+      const entityName = cleanName(entity.name || entity.id);
+      if (entityName !== wanted) continue;
+      const p = point(entity);
+      if (p.x == null || p.y == null) continue;
+      return entity;
     }
   }
   return null;
@@ -57352,6 +57552,8 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.trainingRadiusMax = Math.max(this.trainingRadiusMin, Math.min(600, finite(options.trainingRadiusMax, 320)));
     this.farmerStateIntervalMs = Math.max(1200, Math.min(10000, finite(options.farmerStateIntervalMs, 2200)));
     this.farmerPositionFreshMs = Math.max(2000, Math.min(12000, finite(options.farmerPositionFreshMs, 5000)));
+    this.farmerMovingPositionMaxError = Math.max(20, Math.min(250, finite(options.farmerMovingPositionMaxError, 70)));
+    this.farmerKitePositionMaxError = Math.max(15, Math.min(this.farmerMovingPositionMaxError, finite(options.farmerKitePositionMaxError, 55)));
     this.farmerGearGoalFreshMs = Math.max(5000, Math.min(120000, finite(options.farmerGearGoalFreshMs, 30000)));
     this.gearDeliveryIntentTtlMs = Math.max(5000, Math.min(120000, finite(options.gearDeliveryIntentTtlMs, 30000)));
     this.gearDeliveryIntentAckTimeoutMs = Math.max(100, Math.min(5000, finite(options.gearDeliveryIntentAckTimeoutMs, 1200)));
@@ -57417,7 +57619,11 @@ class Alpha33MarkOrbitMerchantDelivery {
       merchantRendezvousFailed: 0,
       merchantRendezvousAlreadyNear: 0,
       staleFarmerPositionsRejected: 0,
+      motionStaleFarmerPositionsRejected: 0,
+      liveVisibleFarmerPositionsUsed: 0,
       farmerStateRefreshRequests: 0,
+      movingFarmerRefreshRequests: 0,
+      collectionTravelRetargets: 0,
       collectionRoutesStarted: 0,
       collectionRoutesCompleted: 0,
       collectionBatchStartsByEntries: 0,
@@ -58200,6 +58406,9 @@ class Alpha33MarkOrbitMerchantDelivery {
     const inventoryFreeSlots = Math.max(0, inventoryCapacity - inventoryOccupied);
     const inventoryPressure = inventoryCapacity > 0 ? inventoryOccupied / inventoryCapacity : 0;
     const pickupItems = pickupItemsView(logistics, inventory);
+    const farmer = this.runtime.farmer || null;
+    const lastKite = farmer && farmer.lastKiteMove || null;
+    const kiteActive = !!(lastKite && this.now() - finite(lastKite.at, 0) <= Math.max(1500, this.farmerStateIntervalMs * 2));
     return {
       runtimeActive: true,
       at: this.now(),
@@ -58209,6 +58418,10 @@ class Alpha33MarkOrbitMerchantDelivery {
       map: sc.map || live.map || null,
       x: finite(sc.x != null ? sc.x : (live.real_x != null ? live.real_x : live.x)),
       y: finite(sc.y != null ? sc.y : (live.real_y != null ? live.real_y : live.y)),
+      speed: Math.max(0, finite(sc.speed != null ? sc.speed : live.speed, 0)),
+      moving: sc.moving === true || live.moving === true || kiteActive,
+      kiteActive,
+      farmerState: farmer && farmer.state ? String(farmer.state) : null,
       rip: !!(sc.rip || live.rip),
       gear,
       pickupItems,
@@ -58282,6 +58495,10 @@ class Alpha33MarkOrbitMerchantDelivery {
       map: data && data.map || null,
       x: finite(data && data.x),
       y: finite(data && data.y),
+      speed: Math.max(0, finite(data && data.speed, 0)),
+      moving: data && data.moving === true,
+      kiteActive: data && data.kiteActive === true,
+      farmerState: data && data.farmerState ? String(data.farmerState).slice(0, 32) : null,
       online: true,
       available: !(data && data.rip),
       dead: !!(data && data.rip),
@@ -58295,7 +58512,9 @@ class Alpha33MarkOrbitMerchantDelivery {
       inventoryFreeSlots,
       inventoryPressure
     };
-    this.farmerStates.set(name, { ...row, at: now, sourceAt: finite(data && data.at, now), runtimeActive: data && data.runtimeActive === true });
+    const sourceAt = finite(data && data.at, now);
+    const motion = deriveMotion(previous, { ...row, at: now, sourceAt, speed: row.speed, moving: row.moving, kiteActive: row.kiteActive });
+    this.farmerStates.set(name, { ...row, at: now, sourceAt, runtimeActive: data && data.runtimeActive === true, motion });
     this.stats.farmerStateReceived += 1;
     const registry = this.runtime.characterRegistry;
     if (registry && typeof registry._merge === 'function') {
@@ -58396,19 +58615,63 @@ class Alpha33MarkOrbitMerchantDelivery {
     return true;
   }
 
-  _freshFarmerRows() {
+  _resolveFarmerPosition(row) {
+    if (!row || row.runtimeActive !== true || row.available === false || row.dead === true) return null;
     const now = this.now();
+    const visible = rawPlayerByName(this.runtime, row.name);
+    if (visible) {
+      const p = point(visible);
+      if (p.x != null && p.y != null) {
+        this.stats.liveVisibleFarmerPositionsUsed += 1;
+        return {
+          ...row,
+          map: visible.map || row.map,
+          x: p.x,
+          y: p.y,
+          speed: Math.max(0, finite(visible.speed, row.speed || 0)),
+          moving: visible.moving === true,
+          positionSource: 'LIVE_VISIBLE',
+          positionObservedAt: now,
+          positionFreshness: {
+            fresh: true,
+            reason: 'LIVE_VISIBLE_POSITION',
+            motionMode: visible.moving === true ? 'MOVING' : row.motion && row.motion.mode || 'STABLE',
+            sourceAt: now,
+            sourceAgeMs: 0,
+            speedEstimate: Math.max(0, finite(visible.speed, row.motion && row.motion.speedEstimate || 0)),
+            uncertainty: 0,
+            errorBudget: visible.moving === true ? this.farmerMovingPositionMaxError : 0
+          }
+        };
+      }
+    }
+    if (!row.map || finite(row.x) == null || finite(row.y) == null) {
+      this.stats.staleFarmerPositionsRejected += 1;
+      return null;
+    }
+    const freshness = positionFreshness(row, now, {
+      staticTtlMs: this.farmerPositionFreshMs,
+      movingMaxError: this.farmerMovingPositionMaxError,
+      kiteMaxError: this.farmerKitePositionMaxError
+    });
+    if (!freshness.fresh) {
+      this.stats.staleFarmerPositionsRejected += 1;
+      if (String(freshness.reason || '').includes('UNCERTAINTY')) this.stats.motionStaleFarmerPositionsRejected += 1;
+      return null;
+    }
+    return {
+      ...row,
+      positionSource: 'PARTY_STATE',
+      positionObservedAt: freshness.sourceAt,
+      positionFreshness: freshness
+    };
+  }
+
+  _freshFarmerRows() {
     const rows = [];
     for (const row of this.farmerStates.values()) {
-      if (!row || row.runtimeActive !== true || row.available === false || row.dead === true) continue;
-      if (!row.map || finite(row.x) == null || finite(row.y) == null) continue;
-      const receivedAge = Math.max(0, now - finite(row.at, 0));
-      const sourceAge = Math.max(0, now - finite(row.sourceAt, 0));
-      if (receivedAge > this.farmerPositionFreshMs || sourceAge > this.farmerPositionFreshMs) {
-        this.stats.staleFarmerPositionsRejected += 1;
-        continue;
-      }
-      rows.push(row);
+      const resolved = this._resolveFarmerPosition(row);
+      if (resolved) rows.push(resolved);
     }
     return rows;
   }
@@ -58425,6 +58688,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       if (now - last < this.farmerStateIntervalMs) continue;
       this.farmerStateRefreshAt.set(String(name), now);
       this.stats.farmerStateRefreshRequests += 1;
+      const stale = this.farmerStates.get(String(name));
+      if (stale && stale.motion && stale.motion.mode !== 'STABLE') this.stats.movingFarmerRefreshRequests += 1;
       Promise.resolve(logistics._send(name, 'STATUS_REQUEST', {
         at: now,
         reason: 'MERCHANT_COLLECTION_FRESH_POSITION_REQUIRED'
@@ -58482,7 +58747,9 @@ class Alpha33MarkOrbitMerchantDelivery {
       rows: selected.rows.map((row) => ({ ...row, gear: undefined })),
       pickupEntryCount: selected.pickupEntryCount,
       pickupQuantity: selected.pickupQuantity,
-      observedAt: selected.freshestAt,
+      observedAt: finite(target.positionObservedAt, selected.freshestAt),
+      positionSource: target.positionSource || 'PARTY_STATE',
+      positionFreshness: target.positionFreshness ? { ...target.positionFreshness } : null,
       oldestPickupSince: selected.oldestPickupSince,
       maxInventoryPressure: selected.maxInventoryPressure,
       minInventoryFreeSlots: selected.minInventoryFreeSlots
@@ -58861,7 +59128,35 @@ class Alpha33MarkOrbitMerchantDelivery {
 
   async _travelToFreshCandidate(merchant, candidate, follow = false) {
     if (!candidate || !merchant || !merchant.atomic || typeof merchant.atomic.namedServiceTravel !== 'function') return false;
-    const destination = { map: candidate.map, x: candidate.x, y: candidate.y };
+    let resolved = candidate;
+    if (candidate.targetName) {
+      const row = this.farmerStates.get(String(candidate.targetName));
+      const latest = this._resolveFarmerPosition(row);
+      if (!latest) {
+        this._requestFarmerStateRefresh();
+        merchant.lastMerchantPlan = {
+          at: this.now(),
+          action: 'HOLD',
+          reason: 'WAITING_FOR_MOTION_FRESH_FARMER_POSITION',
+          workers: candidate.names.slice(),
+          targetName: candidate.targetName
+        };
+        return false;
+      }
+      const moved = String(latest.map || '') !== String(candidate.map || '')
+        || Math.hypot(Number(latest.x) - Number(candidate.x), Number(latest.y) - Number(candidate.y)) > 5;
+      if (moved) this.stats.collectionTravelRetargets += 1;
+      resolved = {
+        ...candidate,
+        map: latest.map,
+        x: latest.x,
+        y: latest.y,
+        observedAt: latest.positionObservedAt || latest.sourceAt || latest.at,
+        positionSource: latest.positionSource || 'PARTY_STATE',
+        positionFreshness: latest.positionFreshness || null
+      };
+    }
+    const destination = { map: resolved.map, x: resolved.x, y: resolved.y };
     this.merchantRendezvousBusy = true;
     this.lastMerchantRendezvousAt = this.now();
     this.stats.merchantRendezvousAttempts += 1;
@@ -58871,19 +59166,22 @@ class Alpha33MarkOrbitMerchantDelivery {
       action: 'SERVICE_TRAVEL',
       reason: follow ? 'FOLLOW_FRESH_FARMER_COLLECTION_POSITION' : 'PARTY_LOGISTICS_RENDEZVOUS',
       destination,
-      workers: candidate.names.slice(),
-      pendingTransfers: candidate.pickupEntryCount
+      workers: resolved.names.slice(),
+      pendingTransfers: resolved.pickupEntryCount,
+      targetName: resolved.targetName || null,
+      positionSource: resolved.positionSource || null,
+      positionFreshness: resolved.positionFreshness || null
     };
     try {
       const result = await merchant.atomic.namedServiceTravel(destination);
       const ok = result === true || !!(result && result.ok === true);
-      this.lastMerchantRendezvous = { at: this.now(), destination, ok, result: result && result.reason || null, workers: candidate.names.slice() };
+      this.lastMerchantRendezvous = { at: this.now(), destination, ok, result: result && result.reason || null, workers: resolved.names.slice(), targetName: resolved.targetName || null, positionSource: resolved.positionSource || null };
       if (ok) this.stats.merchantRendezvousCompleted += 1;
       else this.stats.merchantRendezvousFailed += 1;
       return ok;
     } catch (error) {
       this.stats.merchantRendezvousFailed += 1;
-      this.lastMerchantRendezvous = { at: this.now(), destination, ok: false, result: String(error && error.message || error).slice(0, 160), workers: candidate.names.slice() };
+      this.lastMerchantRendezvous = { at: this.now(), destination, ok: false, result: String(error && error.message || error).slice(0, 160), workers: resolved.names.slice(), targetName: resolved.targetName || null, positionSource: resolved.positionSource || null };
       return false;
     } finally {
       this.merchantRendezvousBusy = false;
@@ -59200,6 +59498,8 @@ class Alpha33MarkOrbitMerchantDelivery {
         trainingRadiusMax: this.trainingRadiusMax,
         farmerStateIntervalMs: this.farmerStateIntervalMs,
         farmerPositionFreshMs: this.farmerPositionFreshMs,
+        farmerMovingPositionMaxError: this.farmerMovingPositionMaxError,
+        farmerKitePositionMaxError: this.farmerKitePositionMaxError,
         farmerGearGoalFreshMs: this.farmerGearGoalFreshMs,
         gearDeliveryIntentTtlMs: this.gearDeliveryIntentTtlMs,
         gearDeliveryIntentAckTimeoutMs: this.gearDeliveryIntentAckTimeoutMs,
@@ -59227,6 +59527,10 @@ class Alpha33MarkOrbitMerchantDelivery {
         map: row.map,
         at: row.at,
         sourceAt: row.sourceAt,
+        speed: row.speed || 0,
+        moving: row.moving === true,
+        kiteActive: row.kiteActive === true,
+        motion: row.motion ? { ...row.motion } : null,
         runtimeActive: row.runtimeActive,
         gearSlots: Object.keys(row.gear || {}).length,
         pickupEntryCount: row.pickupEntryCount || 0,

@@ -1,5 +1,7 @@
 'use strict';
 
+const { positionFreshness } = require('../party/moving-target-freshness');
+
 const MERCHANT_SERVICE_PLANNER_MODE = 'shadow-merchant-service-planner';
 
 const MerchantServicePlanKind = Object.freeze({
@@ -44,6 +46,8 @@ class MerchantServicePlanner {
   constructor(options = {}) {
     this.now = options.now || (() => Date.now());
     this.reportTtlMs = Math.max(5000, Math.min(5 * 60 * 1000, finite(options.reportTtlMs, 25000)));
+    this.movingPositionMaxError = Math.max(20, Math.min(250, finite(options.movingPositionMaxError, 70)));
+    this.kitePositionMaxError = Math.max(15, Math.min(this.movingPositionMaxError, finite(options.kitePositionMaxError, 55)));
     this.criticalPotionCount = Math.max(0, Math.min(5000, finite(options.criticalPotionCount, 40)));
     this.lowPotionCount = Math.max(this.criticalPotionCount, Math.min(10000, finite(options.lowPotionCount, 120)));
     this.targetPotionCount = Math.max(this.lowPotionCount, Math.min(20000, finite(options.targetPotionCount, 240)));
@@ -54,7 +58,7 @@ class MerchantServicePlanner {
     this.standWhenIdle = options.standWhenIdle !== false;
     this.sequence = 0;
     this.lastPlan = null;
-    this.stats = { plans: 0, service: 0, stand: 0, holds: 0, staleReports: 0, unsafeTargets: 0 };
+    this.stats = { plans: 0, service: 0, stand: 0, holds: 0, staleReports: 0, motionStaleReports: 0, unsafeTargets: 0 };
   }
 
   _id() {
@@ -119,6 +123,7 @@ class MerchantServicePlanner {
   _serviceContext(selected) {
     return {
       sourceReportAt: finite(selected && selected.report && selected.report.at),
+      positionFreshness: selected && selected.positionFreshness ? clone(selected.positionFreshness) : null,
       target: {
         name: selected.report.name,
         map: selected.report.map || null,
@@ -146,6 +151,11 @@ class MerchantServicePlanner {
         this.stats.staleReports += 1;
         continue;
       }
+      const freshness = positionFreshness(report, now, { staticTtlMs: this.reportTtlMs, movingMaxError: this.movingPositionMaxError, kiteMaxError: this.kitePositionMaxError });
+      if (!freshness.fresh) {
+        this.stats.motionStaleReports += 1;
+        continue;
+      }
       if (report.rip === true || report.active === false) continue;
       const need = this._need(report);
       if (!need) continue;
@@ -153,7 +163,7 @@ class MerchantServicePlanner {
         this.stats.unsafeTargets += 1;
         continue;
       }
-      candidates.push({ report, need });
+      candidates.push({ report, need, positionFreshness: freshness });
     }
 
     // For equal-priority supply emergencies, serve the most depleted Farmer
@@ -214,6 +224,8 @@ class MerchantServicePlanner {
       liveExecutionAllowed: false,
       thresholds: {
         reportTtlMs: this.reportTtlMs,
+        movingPositionMaxError: this.movingPositionMaxError,
+        kitePositionMaxError: this.kitePositionMaxError,
         criticalPotionCount: this.criticalPotionCount,
         lowPotionCount: this.lowPotionCount,
         targetPotionCount: this.targetPotionCount,

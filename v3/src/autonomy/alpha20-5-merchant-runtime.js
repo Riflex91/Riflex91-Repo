@@ -19,6 +19,8 @@ function composeAlpha20_5MerchantRuntime(options = {}) {
 this.merchantServicePlanner = options.merchantServicePlanner || new MerchantServicePlanner({
       now: this.now,
       reportTtlMs: options.merchantServiceReportTtlMs,
+      movingPositionMaxError: options.merchantServiceMovingPositionMaxError,
+      kitePositionMaxError: options.merchantServiceKitePositionMaxError,
       criticalPotionCount: options.merchantServiceCriticalPotionCount,
       lowPotionCount: options.merchantServiceLowPotionCount,
       targetPotionCount: options.merchantServiceTargetPotionCount,

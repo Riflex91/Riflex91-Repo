@@ -1,6 +1,7 @@
 'use strict';
 
 const { hasIncomingAggro } = require('./alpha20-33-combat-logistics-regression-hotfix');
+const { deriveMotion, positionFreshness } = require('../party/moving-target-freshness');
 
 const ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE = 'alpha33-mark-orbit-merchant-delivery-v2';
 const FARMER_STATE_ACTION = 'FARMER_STATE';
@@ -57,6 +58,25 @@ function rawEntity(runtime, id) {
   for (const pool of pools) {
     for (const entity of Object.values(pool || {})) {
       if (entity && String(entity.id) === wanted) return entity;
+    }
+  }
+  return null;
+}
+
+function rawPlayerByName(runtime, name) {
+  const wanted = cleanName(name);
+  if (!wanted) return null;
+  const root = runtime && runtime.root || globalThis;
+  const parent = root && root.parent || root;
+  const pools = [parent && parent.entities, root && root.entities];
+  for (const pool of pools) {
+    for (const entity of Object.values(pool || {})) {
+      if (!entity || entity.mtype || entity.dead === true || entity.rip === true) continue;
+      const entityName = cleanName(entity.name || entity.id);
+      if (entityName !== wanted) continue;
+      const p = point(entity);
+      if (p.x == null || p.y == null) continue;
+      return entity;
     }
   }
   return null;
@@ -140,6 +160,8 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.trainingRadiusMax = Math.max(this.trainingRadiusMin, Math.min(600, finite(options.trainingRadiusMax, 320)));
     this.farmerStateIntervalMs = Math.max(1200, Math.min(10000, finite(options.farmerStateIntervalMs, 2200)));
     this.farmerPositionFreshMs = Math.max(2000, Math.min(12000, finite(options.farmerPositionFreshMs, 5000)));
+    this.farmerMovingPositionMaxError = Math.max(20, Math.min(250, finite(options.farmerMovingPositionMaxError, 70)));
+    this.farmerKitePositionMaxError = Math.max(15, Math.min(this.farmerMovingPositionMaxError, finite(options.farmerKitePositionMaxError, 55)));
     this.farmerGearGoalFreshMs = Math.max(5000, Math.min(120000, finite(options.farmerGearGoalFreshMs, 30000)));
     this.gearDeliveryIntentTtlMs = Math.max(5000, Math.min(120000, finite(options.gearDeliveryIntentTtlMs, 30000)));
     this.gearDeliveryIntentAckTimeoutMs = Math.max(100, Math.min(5000, finite(options.gearDeliveryIntentAckTimeoutMs, 1200)));
@@ -205,7 +227,11 @@ class Alpha33MarkOrbitMerchantDelivery {
       merchantRendezvousFailed: 0,
       merchantRendezvousAlreadyNear: 0,
       staleFarmerPositionsRejected: 0,
+      motionStaleFarmerPositionsRejected: 0,
+      liveVisibleFarmerPositionsUsed: 0,
       farmerStateRefreshRequests: 0,
+      movingFarmerRefreshRequests: 0,
+      collectionTravelRetargets: 0,
       collectionRoutesStarted: 0,
       collectionRoutesCompleted: 0,
       collectionBatchStartsByEntries: 0,
@@ -988,6 +1014,9 @@ class Alpha33MarkOrbitMerchantDelivery {
     const inventoryFreeSlots = Math.max(0, inventoryCapacity - inventoryOccupied);
     const inventoryPressure = inventoryCapacity > 0 ? inventoryOccupied / inventoryCapacity : 0;
     const pickupItems = pickupItemsView(logistics, inventory);
+    const farmer = this.runtime.farmer || null;
+    const lastKite = farmer && farmer.lastKiteMove || null;
+    const kiteActive = !!(lastKite && this.now() - finite(lastKite.at, 0) <= Math.max(1500, this.farmerStateIntervalMs * 2));
     return {
       runtimeActive: true,
       at: this.now(),
@@ -997,6 +1026,10 @@ class Alpha33MarkOrbitMerchantDelivery {
       map: sc.map || live.map || null,
       x: finite(sc.x != null ? sc.x : (live.real_x != null ? live.real_x : live.x)),
       y: finite(sc.y != null ? sc.y : (live.real_y != null ? live.real_y : live.y)),
+      speed: Math.max(0, finite(sc.speed != null ? sc.speed : live.speed, 0)),
+      moving: sc.moving === true || live.moving === true || kiteActive,
+      kiteActive,
+      farmerState: farmer && farmer.state ? String(farmer.state) : null,
       rip: !!(sc.rip || live.rip),
       gear,
       pickupItems,
@@ -1070,6 +1103,10 @@ class Alpha33MarkOrbitMerchantDelivery {
       map: data && data.map || null,
       x: finite(data && data.x),
       y: finite(data && data.y),
+      speed: Math.max(0, finite(data && data.speed, 0)),
+      moving: data && data.moving === true,
+      kiteActive: data && data.kiteActive === true,
+      farmerState: data && data.farmerState ? String(data.farmerState).slice(0, 32) : null,
       online: true,
       available: !(data && data.rip),
       dead: !!(data && data.rip),
@@ -1083,7 +1120,9 @@ class Alpha33MarkOrbitMerchantDelivery {
       inventoryFreeSlots,
       inventoryPressure
     };
-    this.farmerStates.set(name, { ...row, at: now, sourceAt: finite(data && data.at, now), runtimeActive: data && data.runtimeActive === true });
+    const sourceAt = finite(data && data.at, now);
+    const motion = deriveMotion(previous, { ...row, at: now, sourceAt, speed: row.speed, moving: row.moving, kiteActive: row.kiteActive });
+    this.farmerStates.set(name, { ...row, at: now, sourceAt, runtimeActive: data && data.runtimeActive === true, motion });
     this.stats.farmerStateReceived += 1;
     const registry = this.runtime.characterRegistry;
     if (registry && typeof registry._merge === 'function') {
@@ -1184,19 +1223,63 @@ class Alpha33MarkOrbitMerchantDelivery {
     return true;
   }
 
-  _freshFarmerRows() {
+  _resolveFarmerPosition(row) {
+    if (!row || row.runtimeActive !== true || row.available === false || row.dead === true) return null;
     const now = this.now();
+    const visible = rawPlayerByName(this.runtime, row.name);
+    if (visible) {
+      const p = point(visible);
+      if (p.x != null && p.y != null) {
+        this.stats.liveVisibleFarmerPositionsUsed += 1;
+        return {
+          ...row,
+          map: visible.map || row.map,
+          x: p.x,
+          y: p.y,
+          speed: Math.max(0, finite(visible.speed, row.speed || 0)),
+          moving: visible.moving === true,
+          positionSource: 'LIVE_VISIBLE',
+          positionObservedAt: now,
+          positionFreshness: {
+            fresh: true,
+            reason: 'LIVE_VISIBLE_POSITION',
+            motionMode: visible.moving === true ? 'MOVING' : row.motion && row.motion.mode || 'STABLE',
+            sourceAt: now,
+            sourceAgeMs: 0,
+            speedEstimate: Math.max(0, finite(visible.speed, row.motion && row.motion.speedEstimate || 0)),
+            uncertainty: 0,
+            errorBudget: visible.moving === true ? this.farmerMovingPositionMaxError : 0
+          }
+        };
+      }
+    }
+    if (!row.map || finite(row.x) == null || finite(row.y) == null) {
+      this.stats.staleFarmerPositionsRejected += 1;
+      return null;
+    }
+    const freshness = positionFreshness(row, now, {
+      staticTtlMs: this.farmerPositionFreshMs,
+      movingMaxError: this.farmerMovingPositionMaxError,
+      kiteMaxError: this.farmerKitePositionMaxError
+    });
+    if (!freshness.fresh) {
+      this.stats.staleFarmerPositionsRejected += 1;
+      if (String(freshness.reason || '').includes('UNCERTAINTY')) this.stats.motionStaleFarmerPositionsRejected += 1;
+      return null;
+    }
+    return {
+      ...row,
+      positionSource: 'PARTY_STATE',
+      positionObservedAt: freshness.sourceAt,
+      positionFreshness: freshness
+    };
+  }
+
+  _freshFarmerRows() {
     const rows = [];
     for (const row of this.farmerStates.values()) {
-      if (!row || row.runtimeActive !== true || row.available === false || row.dead === true) continue;
-      if (!row.map || finite(row.x) == null || finite(row.y) == null) continue;
-      const receivedAge = Math.max(0, now - finite(row.at, 0));
-      const sourceAge = Math.max(0, now - finite(row.sourceAt, 0));
-      if (receivedAge > this.farmerPositionFreshMs || sourceAge > this.farmerPositionFreshMs) {
-        this.stats.staleFarmerPositionsRejected += 1;
-        continue;
-      }
-      rows.push(row);
+      const resolved = this._resolveFarmerPosition(row);
+      if (resolved) rows.push(resolved);
     }
     return rows;
   }
@@ -1213,6 +1296,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       if (now - last < this.farmerStateIntervalMs) continue;
       this.farmerStateRefreshAt.set(String(name), now);
       this.stats.farmerStateRefreshRequests += 1;
+      const stale = this.farmerStates.get(String(name));
+      if (stale && stale.motion && stale.motion.mode !== 'STABLE') this.stats.movingFarmerRefreshRequests += 1;
       Promise.resolve(logistics._send(name, 'STATUS_REQUEST', {
         at: now,
         reason: 'MERCHANT_COLLECTION_FRESH_POSITION_REQUIRED'
@@ -1270,7 +1355,9 @@ class Alpha33MarkOrbitMerchantDelivery {
       rows: selected.rows.map((row) => ({ ...row, gear: undefined })),
       pickupEntryCount: selected.pickupEntryCount,
       pickupQuantity: selected.pickupQuantity,
-      observedAt: selected.freshestAt,
+      observedAt: finite(target.positionObservedAt, selected.freshestAt),
+      positionSource: target.positionSource || 'PARTY_STATE',
+      positionFreshness: target.positionFreshness ? { ...target.positionFreshness } : null,
       oldestPickupSince: selected.oldestPickupSince,
       maxInventoryPressure: selected.maxInventoryPressure,
       minInventoryFreeSlots: selected.minInventoryFreeSlots
@@ -1649,7 +1736,35 @@ class Alpha33MarkOrbitMerchantDelivery {
 
   async _travelToFreshCandidate(merchant, candidate, follow = false) {
     if (!candidate || !merchant || !merchant.atomic || typeof merchant.atomic.namedServiceTravel !== 'function') return false;
-    const destination = { map: candidate.map, x: candidate.x, y: candidate.y };
+    let resolved = candidate;
+    if (candidate.targetName) {
+      const row = this.farmerStates.get(String(candidate.targetName));
+      const latest = this._resolveFarmerPosition(row);
+      if (!latest) {
+        this._requestFarmerStateRefresh();
+        merchant.lastMerchantPlan = {
+          at: this.now(),
+          action: 'HOLD',
+          reason: 'WAITING_FOR_MOTION_FRESH_FARMER_POSITION',
+          workers: candidate.names.slice(),
+          targetName: candidate.targetName
+        };
+        return false;
+      }
+      const moved = String(latest.map || '') !== String(candidate.map || '')
+        || Math.hypot(Number(latest.x) - Number(candidate.x), Number(latest.y) - Number(candidate.y)) > 5;
+      if (moved) this.stats.collectionTravelRetargets += 1;
+      resolved = {
+        ...candidate,
+        map: latest.map,
+        x: latest.x,
+        y: latest.y,
+        observedAt: latest.positionObservedAt || latest.sourceAt || latest.at,
+        positionSource: latest.positionSource || 'PARTY_STATE',
+        positionFreshness: latest.positionFreshness || null
+      };
+    }
+    const destination = { map: resolved.map, x: resolved.x, y: resolved.y };
     this.merchantRendezvousBusy = true;
     this.lastMerchantRendezvousAt = this.now();
     this.stats.merchantRendezvousAttempts += 1;
@@ -1659,19 +1774,22 @@ class Alpha33MarkOrbitMerchantDelivery {
       action: 'SERVICE_TRAVEL',
       reason: follow ? 'FOLLOW_FRESH_FARMER_COLLECTION_POSITION' : 'PARTY_LOGISTICS_RENDEZVOUS',
       destination,
-      workers: candidate.names.slice(),
-      pendingTransfers: candidate.pickupEntryCount
+      workers: resolved.names.slice(),
+      pendingTransfers: resolved.pickupEntryCount,
+      targetName: resolved.targetName || null,
+      positionSource: resolved.positionSource || null,
+      positionFreshness: resolved.positionFreshness || null
     };
     try {
       const result = await merchant.atomic.namedServiceTravel(destination);
       const ok = result === true || !!(result && result.ok === true);
-      this.lastMerchantRendezvous = { at: this.now(), destination, ok, result: result && result.reason || null, workers: candidate.names.slice() };
+      this.lastMerchantRendezvous = { at: this.now(), destination, ok, result: result && result.reason || null, workers: resolved.names.slice(), targetName: resolved.targetName || null, positionSource: resolved.positionSource || null };
       if (ok) this.stats.merchantRendezvousCompleted += 1;
       else this.stats.merchantRendezvousFailed += 1;
       return ok;
     } catch (error) {
       this.stats.merchantRendezvousFailed += 1;
-      this.lastMerchantRendezvous = { at: this.now(), destination, ok: false, result: String(error && error.message || error).slice(0, 160), workers: candidate.names.slice() };
+      this.lastMerchantRendezvous = { at: this.now(), destination, ok: false, result: String(error && error.message || error).slice(0, 160), workers: resolved.names.slice(), targetName: resolved.targetName || null, positionSource: resolved.positionSource || null };
       return false;
     } finally {
       this.merchantRendezvousBusy = false;
@@ -1988,6 +2106,8 @@ class Alpha33MarkOrbitMerchantDelivery {
         trainingRadiusMax: this.trainingRadiusMax,
         farmerStateIntervalMs: this.farmerStateIntervalMs,
         farmerPositionFreshMs: this.farmerPositionFreshMs,
+        farmerMovingPositionMaxError: this.farmerMovingPositionMaxError,
+        farmerKitePositionMaxError: this.farmerKitePositionMaxError,
         farmerGearGoalFreshMs: this.farmerGearGoalFreshMs,
         gearDeliveryIntentTtlMs: this.gearDeliveryIntentTtlMs,
         gearDeliveryIntentAckTimeoutMs: this.gearDeliveryIntentAckTimeoutMs,
@@ -2015,6 +2135,10 @@ class Alpha33MarkOrbitMerchantDelivery {
         map: row.map,
         at: row.at,
         sourceAt: row.sourceAt,
+        speed: row.speed || 0,
+        moving: row.moving === true,
+        kiteActive: row.kiteActive === true,
+        motion: row.motion ? { ...row.motion } : null,
         runtimeActive: row.runtimeActive,
         gearSlots: Object.keys(row.gear || {}).length,
         pickupEntryCount: row.pickupEntryCount || 0,

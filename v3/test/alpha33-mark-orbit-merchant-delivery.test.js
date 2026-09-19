@@ -523,6 +523,147 @@ test('Alpha33 collection route travels only to fresh Farmer pickup positions and
   assert.ok(hotfix.stats.staleFarmerPositionsRejected >= 1);
 });
 
+
+test('Alpha33 rejects a 2.9s-old kiting Farmer position even though it is inside the flat TTL', () => {
+  const now = 80000;
+  let refreshes = 0;
+  const runtime = {
+    now: () => now,
+    log: quietLog(),
+    root: {
+      character: { name: 'My_Merchant', ctype: 'merchant', map: 'main', x: 0, y: 0 },
+      parent: { entities: {} }
+    },
+    controlledPartyLogistics: {
+      _trustedNames: () => ['My_Ranger1'],
+      _send: async () => { refreshes += 1; return { sent: true }; }
+    }
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime, {
+    farmerPositionFreshMs: 5000,
+    farmerMovingPositionMaxError: 70,
+    farmerKitePositionMaxError: 55,
+    farmerStateIntervalMs: 1200
+  });
+  hotfix._acceptFarmerState('My_Ranger1', {
+    at: now - 2900,
+    runtimeActive: true,
+    ctype: 'ranger',
+    map: 'main',
+    x: -1038,
+    y: 1138,
+    speed: 55,
+    moving: true,
+    kiteActive: true,
+    pickupItems: [{ name: 'seashell', level: 0, quantity: 5 }]
+  });
+
+  assert.equal(hotfix._merchantRendezvousCandidate(), null);
+  assert.ok(hotfix.stats.motionStaleFarmerPositionsRejected >= 1);
+  hotfix._requestFarmerStateRefresh();
+  assert.ok(hotfix.stats.movingFarmerRefreshRequests >= 1);
+  assert.equal(refreshes, 1);
+});
+
+test('Alpha33 visible Farmer position overrides an older kiting state coordinate', () => {
+  const now = 90000;
+  const visible = {
+    id: 'r1', name: 'My_Ranger1', type: 'character', map: 'main',
+    real_x: -900, real_y: 1300, speed: 55, moving: true
+  };
+  const runtime = {
+    now: () => now,
+    log: quietLog(),
+    root: {
+      character: { name: 'My_Merchant', ctype: 'merchant', map: 'main', x: 0, y: 0 },
+      parent: { entities: { r1: visible } }
+    }
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime, {
+    farmerPositionFreshMs: 5000,
+    farmerKitePositionMaxError: 55
+  });
+  hotfix._acceptFarmerState('My_Ranger1', {
+    at: now - 2900,
+    runtimeActive: true,
+    ctype: 'ranger',
+    map: 'main',
+    x: -1038,
+    y: 1138,
+    speed: 55,
+    moving: true,
+    kiteActive: true,
+    pickupItems: [{ name: 'seashell', level: 0, quantity: 5 }]
+  });
+
+  const candidate = hotfix._merchantRendezvousCandidate();
+  assert.ok(candidate);
+  assert.equal(candidate.x, -900);
+  assert.equal(candidate.y, 1300);
+  assert.equal(candidate.positionSource, 'LIVE_VISIBLE');
+  assert.equal(candidate.positionFreshness.reason, 'LIVE_VISIBLE_POSITION');
+  assert.ok(hotfix.stats.liveVisibleFarmerPositionsUsed >= 1);
+});
+
+test('Alpha33 re-resolves the moving Farmer immediately before collection travel', async () => {
+  const now = 100000;
+  let travelled = null;
+  const visible = {
+    id: 'r1', name: 'My_Ranger1', type: 'character', map: 'main',
+    real_x: -850, real_y: 1360, speed: 55, moving: true
+  };
+  const runtime = {
+    now: () => now,
+    log: quietLog(),
+    root: {
+      character: { name: 'My_Merchant', ctype: 'merchant', map: 'main', x: 0, y: 0 },
+      parent: { entities: { r1: visible } }
+    }
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime, {
+    farmerPositionFreshMs: 5000,
+    farmerKitePositionMaxError: 55
+  });
+  hotfix._acceptFarmerState('My_Ranger1', {
+    at: now,
+    runtimeActive: true,
+    ctype: 'ranger',
+    map: 'main',
+    x: -1038,
+    y: 1138,
+    speed: 55,
+    moving: true,
+    kiteActive: true,
+    pickupItems: [{ name: 'seashell', level: 0, quantity: 5 }]
+  });
+
+  const merchant = {
+    lastMerchantPlan: null,
+    atomic: {
+      namedServiceTravel: async (destination) => {
+        travelled = destination;
+        return { ok: true };
+      }
+    }
+  };
+  const oldCandidate = {
+    map: 'main',
+    x: -1038,
+    y: 1138,
+    targetName: 'My_Ranger1',
+    names: ['My_Ranger1'],
+    pickupEntryCount: 1,
+    pickupQuantity: 5,
+    observedAt: now
+  };
+
+  const ok = await hotfix._travelToFreshCandidate(merchant, oldCandidate, true);
+  assert.equal(ok, true);
+  assert.deepEqual(travelled, { map: 'main', x: -850, y: 1360 });
+  assert.equal(merchant.lastMerchantPlan.positionSource, 'LIVE_VISIBLE');
+  assert.equal(hotfix.stats.collectionTravelRetargets, 1);
+});
+
 // Live alpha.20.114 regression: one advertised pickup item with 30 free slots
 // must not trigger a broad BANK sweep before Farmer rendezvous. This assertion
 // also guards the final generated-bundle head used by pull-request CI.
