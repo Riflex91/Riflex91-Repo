@@ -32,12 +32,16 @@ function sameMap(a, b) {
 }
 
 function cleanMotion(raw = {}) {
-  const mode = String(raw.mode || '').toUpperCase();
-  const validMode = ['STABLE', 'MOVING', 'KITE'].includes(mode) ? mode : null;
+  const requestedMode = String(raw.mode || '').toUpperCase();
+  const moving = raw.moving === true;
+  const kiteActive = raw.kiteActive === true;
+  let mode = ['STABLE', 'MOVING', 'KITE'].includes(requestedMode) ? requestedMode : null;
+  if (kiteActive) mode = 'KITE';
+  else if (moving && mode !== 'KITE') mode = 'MOVING';
   return {
-    mode: validMode,
-    moving: raw.moving === true,
-    kiteActive: raw.kiteActive === true,
+    mode,
+    moving,
+    kiteActive,
     declaredSpeed: Math.max(0, finite(raw.declaredSpeed, finite(raw.speed, 0))),
     observedSpeed: Math.max(0, finite(raw.observedSpeed, 0)),
     speedEstimate: Math.max(0, finite(raw.speedEstimate, 0)),
