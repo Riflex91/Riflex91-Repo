@@ -138,6 +138,90 @@ var mitSecret = JsonSerializer.Serialize(new Dictionary<string, object?>
 });
 ExpectInvalidLiveFakt(mitSecret, "LIVE_WISSEN_GEHEIMNISFELD_VERBOTEN");
 
+if (Directory.Exists(@"D:\"))
+{
+    var testKennung = Guid.NewGuid().ToString("N");
+    var liveRoot = Path.Combine(@"D:\", "AioBotLiveWissenSmoke-" + testKennung);
+    var gitRoot = Path.Combine(@"D:\", "AioBotLiveWissenGitSmoke-" + testKennung);
+
+    try
+    {
+        Directory.CreateDirectory(Path.Combine(liveRoot, "aktuell", "monster"));
+        Directory.CreateDirectory(Path.Combine(gitRoot, "v5", "wissensbasis"));
+
+        await File.WriteAllTextAsync(
+            Path.Combine(liveRoot, "manifest.json"),
+            JsonSerializer.Serialize(new Dictionary<string, object?>
+            {
+                ["schemaVersion"] = 1,
+                ["format"] = LiveWissensImportDienst.LokalesFormat,
+                ["spiel"] = LiveWissensImportDienst.KanonischerSpielname,
+                ["aktuellVerzeichnis"] = "aktuell"
+            }, BridgeConfig.JsonOptions));
+
+        var generation = 1L;
+        var statusBereit = JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["schemaVersion"] = 1,
+            ["spiel"] = LiveWissensImportDienst.KanonischerSpielname,
+            ["generation"] = generation,
+            ["zustand"] = "BEREIT",
+            ["aktualisiertAm"] = DateTimeOffset.UtcNow.ToString("O")
+        }, BridgeConfig.JsonOptions);
+        await File.WriteAllTextAsync(Path.Combine(liveRoot, "status.json"), statusBereit);
+
+        await File.WriteAllTextAsync(
+            Path.Combine(liveRoot, "aktuell", "monster", "frog.json"),
+            gueltigerLiveFakt);
+
+        var liveConfig = defaults with
+        {
+            LiveWissensdatenbankPfad = liveRoot,
+            LiveWissensimportAktiv = true
+        };
+        liveConfig.Validate();
+
+        var importer = new LiveWissensImportDienst(liveConfig, new GitArbeitskopie(gitRoot));
+        var import = await importer.ImportiereAsync();
+
+        Assert(import.Zustand == "IMPORTIERT", "LIVE_IMPORT_SUCCESS");
+        Assert(import.Generation == generation, "LIVE_IMPORT_GENERATION");
+        Assert(import.Dateien == 1, "LIVE_IMPORT_FILE_COUNT");
+        Assert(!string.IsNullOrWhiteSpace(import.SnapshotSha256), "LIVE_IMPORT_HASH");
+        Assert(File.Exists(Path.Combine(gitRoot, "v5", "wissensbasis", "live", "snapshot", "aktuell", "monster", "frog.json")), "LIVE_IMPORT_MIRRORED_FACT");
+        Assert(File.Exists(Path.Combine(gitRoot, "v5", "wissensbasis", "live", "snapshot", "import.json")), "LIVE_IMPORT_METADATA");
+
+        var importJson = await File.ReadAllTextAsync(Path.Combine(gitRoot, "v5", "wissensbasis", "live", "snapshot", "import.json"));
+        Assert(!importJson.Contains(liveRoot, StringComparison.OrdinalIgnoreCase), "LIVE_IMPORT_LOCAL_PATH_NOT_LEAKED");
+
+        var vorherigerFakt = await File.ReadAllTextAsync(Path.Combine(gitRoot, "v5", "wissensbasis", "live", "snapshot", "aktuell", "monster", "frog.json"));
+
+        var statusSchreibt = JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["schemaVersion"] = 1,
+            ["spiel"] = LiveWissensImportDienst.KanonischerSpielname,
+            ["generation"] = generation + 1,
+            ["zustand"] = "SCHREIBT",
+            ["aktualisiertAm"] = DateTimeOffset.UtcNow.ToString("O")
+        }, BridgeConfig.JsonOptions);
+        await File.WriteAllTextAsync(Path.Combine(liveRoot, "status.json"), statusSchreibt);
+        await File.WriteAllTextAsync(
+            Path.Combine(liveRoot, "aktuell", "monster", "frog.json"),
+            gueltigerLiveFakt.Replace("monster.frog.spawn", "monster.frog.neu", StringComparison.Ordinal));
+
+        var waehrendSchreiben = await importer.ImportiereAsync();
+        Assert(waehrendSchreiben.Zustand == "WARTET_AUF_BOT", "LIVE_IMPORT_WRITING_BLOCKED");
+
+        var nachherFakt = await File.ReadAllTextAsync(Path.Combine(gitRoot, "v5", "wissensbasis", "live", "snapshot", "aktuell", "monster", "frog.json"));
+        Assert(nachherFakt == vorherigerFakt, "LIVE_IMPORT_LAST_VALID_SNAPSHOT_PRESERVED");
+    }
+    finally
+    {
+        if (Directory.Exists(liveRoot)) Directory.Delete(liveRoot, recursive: true);
+        if (Directory.Exists(gitRoot)) Directory.Delete(gitRoot, recursive: true);
+    }
+}
+
 (defaults with { PreferredBrowser = "Brave" }).Validate();
 (defaults with { PreferredBrowser = "Edge" }).Validate();
 (defaults with { PreferredBrowser = "Chrome" }).Validate();
