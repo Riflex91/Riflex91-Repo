@@ -16,6 +16,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       const meta = gameData && gameData.items && row && row.name ? gameData.items[row.name] : null;
       if (!row || !row.name || !meta || typeof meta !== 'object') return base;
       const name = String(row.name);
+      const permission = (action) => typeof ledger._permission === 'function' ? ledger._permission(name, action) : null;
       if (/^(hpot|mpot|scroll|cscroll)/i.test(name)) return { disposition: 'KEEP', reasons: [...(base.reasons || []), 'AUTONOMOUS_SERVICE_RESOURCE'] };
       if (meta.quest || meta.q || meta.event || meta.cash || meta.cash_item || meta.soulbound || meta.soul_bound || meta.exchange || meta.e) {
         return { disposition: 'KEEP', reasons: [...(base.reasons || []), 'AUTONOMOUS_PROTECTED_METADATA'] };
@@ -62,6 +63,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       if (!futureFarmerProtection && productionDemandActive) {
         const family = String(productionDemand.family || '').toUpperCase();
         if (family === 'UPGRADE'
+          && permission('upgrade') !== false
           && meta.upgrade
           && level < this.options.maxUpgradeLevel
           && grade < 4
@@ -74,6 +76,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           };
         }
         if (family === 'COMPOUND'
+          && permission('compound') !== false
           && meta.compound
           && level < this.options.maxCompoundLevel
           && grade < 4
@@ -94,7 +97,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       }
 
       if (futureFarmerProtection) {
-        if (meta.compound && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.compoundValueCap) {
+        if (permission('compound') !== false && meta.compound && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.compoundValueCap) {
           return same >= 3
             ? {
                 disposition: 'RESERVE_COMPOUND',
@@ -107,7 +110,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
                 futureFarmerProtection: clone(futureFarmerProtection)
               };
         }
-        if (meta.upgrade && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.upgradeValueCap) {
+        if (permission('upgrade') !== false && meta.upgrade && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.upgradeValueCap) {
           return {
             disposition: 'RESERVE_UPGRADE',
             reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_PROGRESSION', 'AUTONOMOUS_UPGRADE_CONTINUATION'],
@@ -125,7 +128,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       // exposes compound/upgrade metadata as objects, not necessarily boolean true.
       // A complete compound set is actionable now; an incomplete level-0 set is
       // retained until a third copy arrives instead of being hidden in the bank.
-      if (meta.compound) {
+      if (meta.compound && permission('compound') !== false) {
         if (same >= 3 && level < this.options.maxCompoundLevel && grade < 4 && (value != null && value <= this.options.compoundValueCap)) {
           return {
             disposition: 'RESERVE_COMPOUND',
@@ -145,6 +148,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
               reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
             };
           }
+          if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED', 'AUTONOMOUS_COMPOUND_RESULT'] };
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
@@ -159,7 +163,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       // sale gate to dispose of low-value results. Re-evaluation is required
       // after every observed level change, so a newly useful item immediately
       // leaves this fallback and moves into the Farmer +5 progression path.
-      if (meta.upgrade) {
+      if (meta.upgrade && permission('upgrade') !== false) {
         if (!futureSellSafety || futureSellSafety.checked !== true) {
           return {
             disposition: 'KEEP',
@@ -180,6 +184,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           };
         }
         if (level >= economicTargetLevel && level > 0 && grade < 4 && underKeepValue) {
+          if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED', 'AUTONOMOUS_UPGRADE_RESULT'] };
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
@@ -195,14 +200,16 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           : [];
       } catch (_) { blockers = ['SELL_SAFETY_RESOLVER_FAILED']; }
       const bank = level > 0 || meta.upgrade || meta.compound || blockers.length > 0 || (value != null && value >= this.options.keepValue);
-      if (bank) {
+      if (bank && permission('bank') !== false) {
         this.stats.autoLedgerBankClassifications += 1;
         return {
           disposition: 'BANK',
           reasons: [...baseReasons, blockers.length ? 'AUTONOMOUS_SELL_SAFETY_BANK' : meta.upgrade || meta.compound ? 'AUTONOMOUS_PROGRESSION_ITEM_BANK' : level > 0 ? 'AUTONOMOUS_LEVELED_ITEM_BANK' : 'AUTONOMOUS_VALUE_KEEP_BANK', ...blockers]
         };
       }
+      if (bank && permission('bank') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_BANK_DENIED'] };
       if (level === 0 && blockers.length === 0) {
+        if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED'] };
         this.stats.autoLedgerSellClassifications += 1;
         return { disposition: 'SELL', reasons: [...baseReasons, 'AUTONOMOUS_LOW_RISK_SURPLUS'] };
       }
