@@ -21,6 +21,8 @@ Vor der ersten Runtime-Implementierung werden:
 ## Einstieg
 
 - `dokumentation/ADR-0001-V5-NEUSTART.md` – Architekturentscheidung V5.
-- `dokumentation/V5-MASTER-ROADMAP.md` – Entwicklungsreihenfolge.
+- `dokumentation/V5-MASTER-ROADMAP.md` – verbindliche Entwicklungsreihenfolge mit Gates.
+- `dokumentation/V5-DEFINITION-OF-DONE.md` – Pflichtkriterien fuer jede Capability.
+- `roadmap/gates.json` – maschinenlesbarer Roadmap-/Abhaengigkeitszustand.
 - `wissensbasis/README.md` – Regeln der lebenden Wissensbasis.
 - `wissensbasis/manifest.json` – maschinenlesbarer Einstiegspunkt.
