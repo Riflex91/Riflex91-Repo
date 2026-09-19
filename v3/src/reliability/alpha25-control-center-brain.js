@@ -303,7 +303,11 @@ function installAdventureLandItemSprites(runtime, cloud) {
       snapshot.itemSprites = itemSpriteCatalog(runtime);
       snapshot.equipmentShades = equipmentShadeCatalog(runtime);
       const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
-      if (liveCharacter && String(liveCharacter.ctype || '').toLowerCase() === 'merchant') snapshot.automationCatalog = itemAutomationCatalog(runtime);
+      if (liveCharacter && String(liveCharacter.ctype || '').toLowerCase() === 'merchant') {
+        snapshot.automationCatalog = itemAutomationCatalog(runtime);
+        snapshot.automationCatalogVersion = ADVENTURE_LAND_ITEM_SURFACE_VERSION;
+        snapshot.automationCatalogCount = snapshot.automationCatalog.length;
+      }
       if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
         snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
       }
