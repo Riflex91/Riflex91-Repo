@@ -192,7 +192,7 @@ class Alpha25ControlCenterBrain {
     installAdventureLandItemSprites(runtime, this.cloud);
     this.lastCycleAt = 0;
     this.progressionPolicyTarget = runtime.alpha27CombatMerchantConvergence || null;
-    this.stats = { ticks: 0, outcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0, lateProgressionPolicySyncs: 0 };
+    this.stats = { ticks: 0, outcomes: 0, remoteEncounterOutcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0, lateProgressionPolicySyncs: 0 };
     this.controlPlane.applyHot(runtime);
     this._applyExtendedSettings();
     if (this.cloud.autoEnableSuggested && this.cloud.status().ready && this.controlPlane.get('cloud.enabled', false) !== true) {
@@ -260,6 +260,25 @@ class Alpha25ControlCenterBrain {
   beforeTick() {
     this.stats.ticks += 1;
     this._syncLateProgressionPolicy();
+    let encounterOutcome = null;
+    const character = this.runtime && this.runtime.lastSnapshot && this.runtime.lastSnapshot.character;
+    if (character && String(character.ctype || '').toLowerCase() === 'merchant'
+      && this.runtime.partyTelemetry && typeof this.runtime.partyTelemetry.encounterOutcomes === 'function'
+      && this.brain && typeof this.brain.ingestEncounterOutcome === 'function') {
+      try {
+        const rows = Object.values(this.runtime.partyTelemetry.encounterOutcomes() || {})
+          .filter((row) => row && row.encounterId)
+          .sort((a, b) => Number(b.endedAt || 0) - Number(a.endedAt || 0));
+        if (rows.length) {
+          const accepted = this.brain.ingestEncounterOutcome(rows[0], { remote: true });
+          if (accepted && accepted.accepted === true) {
+            encounterOutcome = accepted;
+            this.stats.remoteEncounterOutcomes += 1;
+            if (this.cloud && Array.isArray(this.cloud.pendingFeedback)) this.cloud.pendingFeedback.push(accepted);
+          }
+        }
+      } catch (_) {}
+    }
     const outcome = this.brain && typeof this.brain.tickOutcome === 'function' ? this.brain.tickOutcome() : null;
     if (outcome) {
       this.stats.outcomes += 1;
@@ -274,7 +293,7 @@ class Alpha25ControlCenterBrain {
         if (this.log) this.log.emit({ component: 'alpha25-control-center', event: 'CLOUD_CONTROL_PROMISE_REJECTED', severity: 'warn', reason: String(error && error.message || error).slice(0, 240) });
       });
     }
-    return !!outcome;
+    return !!outcome || !!encounterOutcome;
   }
 
   patchSettings(values = {}, source = 'local-api') {
