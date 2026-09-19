@@ -11,6 +11,7 @@ const {
   POTION_TARGET_COUNT,
   POTION_REQUEST_BELOW,
   POTION_LOW_WATERMARK,
+  POTION_OPPORTUNISTIC_BELOW,
   MERCHANT_POTION_RESERVE
 } = require('../src/reliability/p0-potion-policy-4500');
 
@@ -76,6 +77,66 @@ function makeService(root) {
 
 // A request starts only below 200, but once triggered the same Farmer is fully
 // topped up in both potion families to avoid another Merchant trip shortly after.
+test('opportunistic route supply ignores Farmers above 4000 and never starts standalone travel', async () => {
+  const root = rootForMerchant();
+  let serviceExecutions = 0;
+  const planner = new MerchantServicePlanner({ now: () => 100000, merchantPotionReserve: 80 });
+  const runtime = runtimeBase(root, {
+    merchantServicePlanner: planner,
+    partyTelemetry: {
+      status: () => ({ reports: [{ ...report(4210, 4196), at: 99950 }] })
+    },
+    controlledMerchantService: {
+      execute: async () => { serviceExecutions += 1; return { executed: true, committed: true }; }
+    }
+  });
+  runtime.p0RegroupSupplyRecovery = new P0RegroupSupplyRecovery(runtime);
+  const policy = installP0PotionPolicy4500(runtime);
+
+  assert.equal(POTION_OPPORTUNISTIC_BELOW, 4000);
+  assert.equal(policy.opportunisticBelow, 4000);
+  assert.equal(policy.opportunisticRouteTravelAllowed, false);
+
+  const compatibility = policy.startOpportunisticService(['My_Ranger1'], 'FARMER_COLLECTION_ROUTE');
+  assert.equal(compatibility.started, false);
+  assert.equal(compatibility.reason, 'OPPORTUNISTIC_POTION_SERVICE_PIGGYBACK_ONLY');
+
+  const result = await policy.deliverOpportunisticNearby(['My_Ranger1'], 'FARMER_COLLECTION_ROUTE');
+  assert.equal(result.attempted, false);
+  assert.equal(result.reason, 'ROUTE_FARMERS_ABOVE_OPPORTUNISTIC_THRESHOLD');
+  assert.equal(serviceExecutions, 0);
+  assert.equal(policy.serviceChain, null);
+});
+
+test('opportunistic route supply tops a sub-4000 Farmer only after the Merchant is already nearby', async () => {
+  const root = rootForMerchant();
+  root.character.items = [{ name: 'hpot0', q: 1000 }, { name: 'mpot0', q: 1000 }];
+  root.parent.entities.r1 = { name: 'My_Ranger1', map: 'main', x: 20, y: 0, real_x: 20, real_y: 0 };
+  installImmediateSend(root);
+
+  const planner = new MerchantServicePlanner({ now: () => 100000, merchantPotionReserve: 80 });
+  const service = makeService(root);
+  const runtime = runtimeBase(root, {
+    merchantServicePlanner: planner,
+    controlledMerchantService: service,
+    partyTelemetry: {
+      status: () => ({ reports: [{ ...report(3900, 4200), at: 99950 }] })
+    }
+  });
+  runtime.p0RegroupSupplyRecovery = new P0RegroupSupplyRecovery(runtime);
+  installP0PotionBundleDeltaFix(runtime);
+  const policy = installP0PotionPolicy4500(runtime);
+
+  const result = await policy.deliverOpportunisticNearby(['My_Ranger1'], 'FARMER_COLLECTION_ROUTE');
+  assert.equal(result.attempted, true);
+  assert.equal(result.committed, 1);
+  assert.equal(result.results.length, 1);
+  assert.deepEqual(result.results[0].deliveries.map((row) => [row.itemName, row.quantity]), [['hpot0', 600]]);
+  assert.equal(total(root, 'hpot0'), 400);
+  assert.equal(total(root, 'mpot0'), 1000);
+  assert.equal(policy.serviceChain, null, 'piggyback delivery must not create a travel/service chain');
+});
+
 test('critical request triggers a full 4500 HP and MP top-up for that Farmer', () => {
   const root = rootForMerchant();
   const planner = new MerchantServicePlanner({ now: () => 100000, merchantPotionReserve: 80 });
