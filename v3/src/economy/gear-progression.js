@@ -218,7 +218,7 @@ class GearProgressionEvaluator {
     const protection = this.futureProtectionFor(character, index, name, level);
     return {
       ...clone(evaluation),
-      checked: evaluation.checkedFarmerCount > 0 && evaluation.blockedByUnknownContent !== true,
+      checked: evaluation.checkedCharacterCount > 0 && evaluation.blockedByUnknownContent !== true,
       protected: !!protection,
       protection
     };
@@ -248,7 +248,10 @@ class GearProgressionEvaluator {
         const meta = gameData.items && gameData.items[item.name];
         if (!meta || typeof meta !== 'object') continue;
         const slots = candidateSlots(meta);
-        if (!slots.length) continue;
+        // Every known inventory item participates in the sell-safety evaluation.
+        // Non-gear items simply have no candidate slots, which makes the
+        // "can this become a character upgrade?" answer a completed NO instead
+        // of leaving disposal stuck in an unknown state.
         candidates.push({ sourceCharacter: source.name, item, meta, slots });
       }
     }
@@ -267,6 +270,7 @@ class GearProgressionEvaluator {
         evaluatedAt: now,
         maxProbeLevel: this.maxProbeLevel,
         checkedFarmerCount: 0,
+        checkedCharacterCount: 0,
         blockedByUnknownContent: false
       });
     }
@@ -279,16 +283,18 @@ class GearProgressionEvaluator {
           : null;
         const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
 
-        // Incompatibility is itself a completed Farmer-value check. Counting it
-        // prevents impossible gear (for example Ranger + shield) from becoming
-        // permanently "unknown future Farmer value" in the later sell lifecycle.
-        if (isFarmerTarget && evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
-          this.futureFarmerEvaluation.get(evaluationKey).checkedFarmerCount += 1;
+        // Every party character is part of the pre-sale gear question. A
+        // structural incompatibility (including non-equipment with no slots) is
+        // still a completed check and therefore a valid "no upgrade" answer.
+        if (evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
+          const evaluation = this.futureFarmerEvaluation.get(evaluationKey);
+          evaluation.checkedCharacterCount += 1;
+          if (isFarmerTarget) evaluation.checkedFarmerCount += 1;
         }
         if (!compatible(candidate.meta, character)) continue;
         if (this._unsafe(context.contentDrift, candidate.item.name)) {
           blockedUnknownContent += 1;
-          if (isFarmerTarget && evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
+          if (evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
             this.futureFarmerEvaluation.get(evaluationKey).blockedByUnknownContent = true;
           }
           continue;
@@ -342,8 +348,7 @@ class GearProgressionEvaluator {
             progressionTargetLevel,
             nextMutationLevel
           };
-          if (isFarmerTarget
-            && progressionTargetLevel > observedLevel
+          if (progressionTargetLevel > observedLevel
             && Number.isInteger(Number(candidate.item.index))) {
             const protectionKey = `${candidate.sourceCharacter}:${Number(candidate.item.index)}`;
             const existingProtection = this.futureFarmerProtection.get(protectionKey);
@@ -363,7 +368,7 @@ class GearProgressionEvaluator {
               observedMeaningful: row.observedMeaningful,
               observedImprovement: finite(row.observedDelta && row.observedDelta.improvement, 0),
               observedSurvivalImprovement: finite(row.observedDelta && row.observedDelta.survivalImprovement, 0),
-              reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL'
+              reason: isFarmerTarget ? 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL' : 'FUTURE_MERCHANT_GEAR_UPGRADE_POTENTIAL'
             };
             if (!existingProtection
               || protection.targetLevel < existingProtection.targetLevel
