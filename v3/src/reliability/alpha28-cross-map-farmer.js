@@ -2,6 +2,7 @@
 
 const { contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
 const { GameAdapter } = require('../game/adapter');
+const { createPartyFingerprint } = require('../party/fingerprints');
 
 const SHARED_OBJECTIVE = '__AIO_V3_ALPHA21_OBJECTIVE';
 const CROSS_MAP_RECEIVER = 'alpha28.progression.crossmap';
@@ -54,6 +55,20 @@ class Alpha28CrossMapFarmerProgression {
   _team(snapshot) {
     try { return this.runtime.teamCombatCohesionHotfix && this.runtime.teamCombatCohesionHotfix._team(snapshot); } catch (_) { return null; }
   }
+  _partyIdentity(snapshot = this.runtime.lastSnapshot, team = null) {
+    try {
+      if (this.runtime && typeof this.runtime._currentMembers === 'function') {
+        const members = this.runtime._currentMembers(snapshot);
+        if (Array.isArray(members) && members.length) return createPartyFingerprint(members);
+      }
+    } catch (_) {}
+    const resolvedTeam = team || (snapshot && this._team(snapshot));
+    if (resolvedTeam && Array.isArray(resolvedTeam.members) && resolvedTeam.members.length) {
+      try { return createPartyFingerprint(resolvedTeam.members); } catch (_) {}
+    }
+    const c = snapshot && snapshot.character;
+    try { return c ? createPartyFingerprint([c]) : null; } catch (_) { return null; }
+  }
   _transport() {
     return this.runtime.partyAccountCommunication && this.runtime.partyAccountCommunication.transport || null;
   }
@@ -105,9 +120,15 @@ class Alpha28CrossMapFarmerProgression {
     if (!objective || !team || !objective.id || objective.expiresAt <= this.now()) return false;
     if (String(objective.leaderName || '') !== String(team.leaderName || '')) return false;
     if (objective.crossMapAuthorizedBy !== 'alpha28-controlled-farmer-travel') return false;
+    const kind = this._objectiveKind(objective);
+    if (kind === PROGRESSION_KIND) {
+      const identity = this._partyIdentity(this.runtime.lastSnapshot, team);
+      if (!identity || !identity.key || !objective.partyIdentityFingerprint
+        || String(objective.partyIdentityFingerprint) !== String(identity.key)) return false;
+    }
     const gameData = this.runtime.adapter && this.runtime.adapter.getGameData ? this.runtime.adapter.getGameData() || {} : {};
     if (!gameData.maps || !Object.prototype.hasOwnProperty.call(gameData.maps, objective.map)) return false;
-    if (this._objectiveKind(objective) === TEAM_REGROUP_KIND) {
+    if (kind === TEAM_REGROUP_KIND) {
       if (!Number.isFinite(Number(objective.x)) || !Number.isFinite(Number(objective.y))) return false;
       if (team.leader && team.leader.map && String(team.leader.map) !== String(objective.map)) return false;
       return true;
@@ -202,12 +223,21 @@ class Alpha28CrossMapFarmerProgression {
     const selected = decision && decision.action === 'RECOMMEND' && decision.reason === 'CROSS_MAP_PROGRESSION_REQUIRES_AUTHORIZED_FARMER_TRAVEL' ? decision.target : null;
     if (!selected || selected.map === snapshot.character.map) return null;
     const existing = this.parent && this.parent[SHARED_OBJECTIVE];
-    if (existing && this._objectiveKind(existing) === PROGRESSION_KIND && existing.expiresAt > this.now() && existing.map === selected.map && existing.monster === selected.monster && String(existing.leaderName) === String(team.leaderName)) return existing;
+    if (existing
+      && this._objectiveKind(existing) === PROGRESSION_KIND
+      && existing.expiresAt > this.now()
+      && existing.map === selected.map
+      && existing.monster === selected.monster
+      && String(existing.leaderName) === String(team.leaderName)
+      && this._objectiveValid(existing, team)) return existing;
+    const identity = this._partyIdentity(snapshot, team);
+    if (!identity || !identity.key) return null;
     const objective = {
       id: `alpha28-crossmap-${this.now()}-${selected.id}`,
       kind: PROGRESSION_KIND,
       leaderName: team.leaderName,
       partyFingerprint: progression && progression._party ? progression._party(snapshot).fingerprint : null,
+      partyIdentityFingerprint: identity.key,
       map: selected.map,
       monster: selected.monster,
       spawnIndex: selected.spawnIndex,
