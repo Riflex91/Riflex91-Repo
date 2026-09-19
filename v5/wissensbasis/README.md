@@ -142,3 +142,12 @@ v5/wissensbasis/vertraege/bank-concurrency.json
 ```
 
 Er bindet die serverseitige Single-Mount-Semantik an eine V5-`account:bank` Lease des Account Coordinators. Character-lokaler `bank`-Channel und accountweite Lease sind getrennte Pflichtschichten.
+
+
+## P0-04 Player-Market Lifecycle
+
+Der kanonische Vertrag fuer Sell Listings, Wishlists, RID, Partial Fills und die physische Server-Auswahl bei trade_sell liegt unter:
+
+v5/wissensbasis/vertraege/trade-lifecycle.json
+
+Besonders wichtig: RID bleibt bei Partial Fill stabil und ist keine Quantity-Version. Bei trade_sell bestimmt der Server das erste passende physische Inventarobjekt.
