@@ -78,6 +78,24 @@ Pflicht:
 - nicht-fungible Ambiguitaet bei server-eligible Items blockiert trade_sell;
 - FIFO-Channels ersetzen keine Gold-/Inventory-/Listing-Resource-Claims.
 
+## Upgrade / Compound Mehrphasenvertrag
+
+Der Vertrag P0-05-UPGRADE-COMPOUND.md und wissensbasis/vertraege/upgrade-compound.json ist verbindlich.
+
+Pflicht:
+- calculate=true ist nur PlanningEvidence und darf keinen echten Versuch autorisieren;
+- exakte physische Target-/Input-/Scroll-/Offering-Identitaeten werden unmittelbar vor Send erneut geprueft;
+- q/Placeholder kennzeichnet einen akzeptierten in-flight Wertvorgang;
+- nach moeglichem Send existiert kein Same-Intent-Retry;
+- Upgrade-/Compound-Consumables und massproduction-Conditions bleiben bis Settlement geclaimt;
+- upgrade_fail ist pfadabhaengig und wird nur mit Inventory-Postcondition ausgewertet;
+- scroll4- und Material-Offering-Failure erhalten das Zielitem;
+- pscroll und Offering-only besitzen eigene nicht-Level-Postconditions;
+- Compound-Failure verliert alle drei Inputs, Success erzeugt genau einen terminal zu beobachtenden Hauptoutput;
+- Booster-Compound wird aus finalem level/extra/expires reconciliert;
+- Server-Preview-Chance wird mit Input-/Source-Fingerprint gespeichert und nicht als zeitlose vollstaendige effektive Erfolgswahrscheinlichkeit interpretiert;
+- getrennte FIFO-Channels ersetzen keine kanalübergreifenden Inventory-/Consumable-Claims.
+
 ## Persistenz und Migration
 
 Pflicht:

@@ -105,12 +105,54 @@
     {
       "id": "V5-P0-05",
       "title": "Upgrade-/Compound-Formeln, Resultcodes und Disconnect-Semantik",
-      "status": "IN_PROGRESS"
+      "status": "DONE",
+      "progress": {
+        "updatedAt": "2026-09-19",
+        "preview": "SERVER_CALCULATED_NO_MUTATION",
+        "upgradePaths": [
+          "USCROLL",
+          "PSCROLL",
+          "PRIMORDIAL_OFFERING_ONLY",
+          "MATERIAL_OFFERING_ONLY"
+        ],
+        "qPlaceholder": "ACCEPTED_IN_FLIGHT_MUTATION",
+        "outcomeTiming": "OUTCOME_BRANCH_SELECTED_BEFORE_Q_COMPLETES",
+        "scroll4Failure": "TARGET_PRESERVED_WITH_UPGRADE_FAIL",
+        "materialOfferingFailure": "TARGET_PRESERVED_WITH_UPGRADE_FAIL",
+        "compoundFailure": "ALL_THREE_INPUTS_LOST",
+        "boosterCompound": "BASE_NEAR_CERTAIN_PLUS_RECURSIVE_12_PERCENT_HALVING_EXTRA_LEVEL_PROC",
+        "sameIntentRetryAfterPossibleSend": "NEVER",
+        "invariantsAdded": [
+          "V5-INV-066",
+          "V5-INV-067",
+          "V5-INV-068",
+          "V5-INV-069",
+          "V5-INV-070",
+          "V5-INV-071",
+          "V5-INV-072",
+          "V5-INV-073",
+          "V5-INV-074",
+          "V5-INV-075"
+        ],
+        "hazardsAdded": [
+          "V5-GEF-131",
+          "V5-GEF-132",
+          "V5-GEF-133",
+          "V5-GEF-134",
+          "V5-GEF-135",
+          "V5-GEF-136",
+          "V5-GEF-137",
+          "V5-GEF-138",
+          "V5-GEF-139",
+          "V5-GEF-140"
+        ],
+        "note": "Upgrade/compound are multi-phase value transactions. Consumables/input mutation and stored outcome occur before timer completion; response success/failure must be interpreted with path-specific inventory postconditions."
+      }
     },
     {
       "id": "V5-P0-06",
       "title": "Exchange-/Craft-Sonderfaelle und Outputspace",
-      "status": "OPEN"
+      "status": "IN_PROGRESS"
     },
     {
       "id": "V5-P0-07",

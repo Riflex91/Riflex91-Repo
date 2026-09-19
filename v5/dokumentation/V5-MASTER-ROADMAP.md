@@ -37,7 +37,7 @@ Aktueller Wissensstand:
 - V5 Knowledge Base: 38 Facts, 38 offene Fragen.
 - Von 38 offenen Fragen: 24 P0, 7 P1, 7 P2.
 - Action Contracts: 60 erfasst; 53 gegen den offiziellen Repo-Snapshot verifiziert, 6 gegen den aktuell deployten offiziellen Live-Clientcontract verifiziert, 1 (`cave_buy`) wegen nicht öffentlich belegbarer interner Transportsemantik explizit für Automation gesperrt.
-- P0-01 bis P0-04 sind DONE; P0-05 ist IN_PROGRESS; P0-06 bis P0-07 sind offen.
+- P0-01 bis P0-05 sind DONE; P0-06 ist IN_PROGRESS; P0-07 ist offen.
 - Adventure Land kann Production vor dem oeffentlichen Source-Snapshot bewegen; Live-MCP/Live-Daten haben fuer Contract-Revalidierung Vorrang.
 - Fuer V5 steht eine dedizierte 1-TB-SSD als lokales Adventure-Land-Datenfundament zur Verfuegung; Standardwurzel ist `D:\\AdventureLand-V5`.
 
@@ -153,8 +153,19 @@ Exit Gate:
 - P0-02: 60/60 Actions besitzen genau einen Recovery Contract; Same-Intent-Retry nach moeglichem Send ist verboten.
 - P0-03: Adventure Land erzwingt einen accountweiten Single-Bank-Mount. V5 modelliert deshalb genau eine `account:bank` Lease im Account Coordinator, gehalten ueber die gesamte Banksitzung. Jeder Raw Bank Write benoetigt zusaetzlich den lokalen `bank`-Action-Channel des Lease-Owners. Disconnect/Crash gibt die Lease nicht automatisch frei; `bank_opx`/already_in_bank ist ein externes Fence; BankSnapshots sind Mount-/Lease-Epoch-gebunden.
 - P0-04: DONE – RID schützt Listing-Replacement, rotiert aber nicht bei Partial Fill; `trade_sell` nutzt serverseitige physische Itemauswahl.
-- P0-05: IN_PROGRESS.
-- P0-06 bis P0-07: OPEN.
+- P0-05: DONE – Upgrade/Compound sind mehrphasige Werttransaktionen; q/Placeholder bedeutet accepted in-flight, Outcome kann vor Timerende feststehen, `upgrade_fail` ist pfadabhängig und Compound-Failure verliert alle drei Inputs.
+- P0-06: IN_PROGRESS.
+- P0-07: OPEN.
+
+### P0-05 Upgrade/Compound
+- `calculate=true` ist serverseitige Preview ohne Mutation;
+- echter Start konsumiert Consumables/Inputs vor Timerende und erzeugt q/Placeholder;
+- der Outcome-Zweig kann serverseitig bereits vor q-Abschluss feststehen;
+- `upgrade_fail` ist pfadabhaengig: normaler Scroll kann vernichten, `scroll4` und Material-Offering-Failure erhalten das Item;
+- pscroll und Offering-only besitzen eigene nicht-Level-Postconditions;
+- Compound-Failure verliert alle drei Inputs; Success liefert einen terminal zu beobachtenden Output;
+- Booster-Compound kann ueber rekursive 12%/6%/3%... Procs mehrere Extra-Level erhalten;
+- Preview-Threshold wird wegen Grace-/Slot-Roll-Mechanik nicht als zeitlose vollstaendige effektive Wahrscheinlichkeit behandelt.
 
 P0 Exit Gate:
 - jede wertveraendernde Public Function hat einen verifizierten Contract oder bleibt explizit disabled;

@@ -15,6 +15,7 @@ const contractDocs = (manifest.contracts ?? []).map(readJson);
 const recoveryDocs = (manifest.recoveryContracts ?? []).map(readJson);
 const bankConcurrency = manifest.bankConcurrency ? readJson(manifest.bankConcurrency) : null;
 const tradeLifecycle = manifest.tradeLifecycle ? readJson(manifest.tradeLifecycle) : null;
+const upgradeCompound = manifest.upgradeCompound ? readJson(manifest.upgradeCompound) : null;
 const revalidation = readJson(manifest.revalidation);
 
 const sources = new Map(sourcesDoc.sources.map((s) => [s.id, s]));
@@ -221,6 +222,60 @@ for (const fn of ['trade_buy','trade_sell']) {
 }
 if (!Array.isArray(tradeLifecycle.invariants) || tradeLifecycle.invariants.length < 10) {
   fail('P0-04 Trade-Invarianten unvollstaendig.');
+}
+
+if (!upgradeCompound
+    || upgradeCompound.schemaVersion !== 1
+    || upgradeCompound.researchId !== 'V5-P0-05'
+    || upgradeCompound.status !== 'DONE') {
+  fail('P0-05 Upgrade-/Compound-Vertrag fehlt oder ist ungueltig.');
+}
+if (upgradeCompound.shared?.preview?.consumesNothing !== true
+    || upgradeCompound.shared?.preview?.startsQ !== false
+    || upgradeCompound.shared?.preview?.createsPlaceholder !== false) {
+  fail('P0-05 Preview-Semantik ist ungueltig.');
+}
+if (upgradeCompound.upgrade?.normalUpgradeScroll?.failureSemantics?.ultimateScroll4?.includes('preserved') !== true
+    && !upgradeCompound.upgrade?.normalUpgradeScroll?.failureSemantics?.ultimateScroll4?.includes('preserves')) {
+  fail('P0-05 scroll4-Preservation fehlt.');
+}
+if (upgradeCompound.upgrade?.offeringOnly?.materialOffering?.allowedOnlyAtLevelZero !== true
+    || !upgradeCompound.upgrade?.offeringOnly?.materialOffering?.outcome?.includes('preserves')) {
+  fail('P0-05 Material-Offering-Failure-Semantik fehlt.');
+}
+if (upgradeCompound.compound?.failureSemantics?.length < 2
+    || !upgradeCompound.compound.failureSemantics.some((x) => x.includes('all three'))) {
+  fail('P0-05 Compound-Failure muss alle drei Inputs abbilden.');
+}
+if (upgradeCompound.compound?.boosterSpecialCase?.offeringProcStart !== 0.12) {
+  fail('P0-05 Booster-Proc-Start muss 0.12 sein.');
+}
+if (upgradeCompound.recovery?.criticalBoundary?.length < 20
+    || upgradeCompound.recovery?.crashOrDisconnect !== 'UNKNOWN -> REOBSERVE -> RECONCILE; never resend the same attempt.') {
+  fail('P0-05 Recovery-Grenze ist unvollstaendig.');
+}
+const upgradeAction = contractList.find((x) => x.publicFunction === 'upgrade');
+const compoundAction = contractList.find((x) => x.publicFunction === 'compound');
+if (!upgradeAction?.dangerFlags?.includes('PATH_DEPENDENT_UPGRADE_FAIL')
+    || !upgradeAction?.dangerFlags?.includes('SCROLL4_FAILURE_PRESERVES_ITEM')
+    || !upgradeAction?.dangerFlags?.includes('MATERIAL_OFFERING_FAILURE_PRESERVES_ITEM')
+    || !upgradeAction?.dangerFlags?.includes('OUTCOME_PRESELECTED_BEFORE_Q_COMPLETES')) {
+  fail('P0-05 Upgrade ActionContract bildet Sonderpfade nicht vollstaendig ab.');
+}
+if (!compoundAction?.dangerFlags?.includes('SECOND_AND_THIRD_INPUTS_REMOVED_AT_START')
+    || !compoundAction?.dangerFlags?.includes('BOOSTER_RECURSIVE_EXTRA_LEVEL_PROC')
+    || !compoundAction?.dangerFlags?.includes('OUTCOME_PRESELECTED_BEFORE_Q_COMPLETES')) {
+  fail('P0-05 Compound ActionContract bildet Mehrphasen-/Booster-Semantik nicht vollstaendig ab.');
+}
+for (const fn of ['upgrade','compound']) {
+  const recovery = recoveryList.find((x) => x.publicFunction === fn);
+  if (recovery?.recoveryClass !== 'MULTI_PHASE_Q_RECONCILE') fail(`P0-05 ${fn}: falsche Recovery-Klasse`);
+  if (!recovery?.settlementRules?.stillPending?.some((x) => x.includes('q.') || x.includes('placeholder'))) {
+    fail(`P0-05 ${fn}: Recovery muss q/Placeholder als STILL_PENDING modellieren`);
+  }
+}
+if (!Array.isArray(upgradeCompound.invariants) || upgradeCompound.invariants.length < 15) {
+  fail('P0-05 Upgrade-/Compound-Invarianten unvollstaendig.');
 }
 
 for (const fact of factList) {
@@ -464,6 +519,7 @@ if (fs.existsSync(liveSnapshot)) {
 console.log(`[V5-WISSEN] OK: ${facts.size} Facts, ${contractIds.size} Action Contracts, ${recoveryIds.size} Recovery Contracts, ${questionIds.size} offene Fragen, ${sources.size} Quellen.`);
 console.log(`[V5-WISSEN] Bank-Concurrency: ${bankConcurrency.serverModel.concurrencyScope} -> ${bankConcurrency.v5Policy.authorityOwner}.`);
 console.log(`[V5-WISSEN] Trade-Lifecycle: RID partial=${tradeLifecycle.ridSemantics.rotatesOnPartialFill ? 'ROTATES' : 'STABLE'}, raw RID=${tradeLifecycle.ridSemantics.v5RequiresRidField ? 'REQUIRED' : 'OPTIONAL'}.`);
+console.log(`[V5-WISSEN] Upgrade/Compound: preview=${upgradeCompound.shared.preview.consumesNothing ? 'READ_ONLY' : 'MUTATING'}, q=${upgradeCompound.recovery.criticalBoundary ? 'TRANSACTION_BOUNDARY' : 'UNKNOWN'}.`);
 console.log(`[V5-WISSEN] Waechter: ${quellenstatus.quellen.length} Quellen, ${kandidaten.kandidaten.length} Kandidaten, ${protokollZeilen.length} Aenderungseintraege.`);
 console.log(`[V5-WISSEN] Live-Wissen: ${fs.existsSync(liveSnapshot) ? liveDateien + ' validierte Dateien' : 'vorbereitet, noch kein Bot-Snapshot'}.`);
 console.log(`[V5-WISSEN] Raw Research SHA256: ${hash}`);

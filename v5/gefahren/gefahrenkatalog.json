@@ -3,7 +3,7 @@
   "stand": "2026-09-19",
   "methode": "FMEA_AEHNLICH",
   "regel": "Hohe Risikowerte reduzieren nicht die Pflicht zur Behandlung niedrigerer Safety-Risiken; jede Gefahr braucht vor betroffener Live-Autoritaet eine wirksame Gegenmassnahme.",
-  "anzahl": 130,
+  "anzahl": 140,
   "gefahren": [
     {
       "kennung": "V5-GEF-001",
@@ -1889,6 +1889,165 @@
         "R8",
         "R9",
         "R13",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-131",
+      "titel": "Preview-Chance wird als Execution-Freigabe verwendet obwohl Inputs nach Preview gedriftet sind",
+      "kategorie": "PRODUCTION",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Preview nur PlanningEvidence; komplette physische Revalidation vor Send",
+      "betroffenePhasen": [
+        "R6",
+        "R9",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-132",
+      "titel": "Placeholder/q wird als noch unentschiedener Roll interpretiert und derselbe Upgrade-/Compound-Versuch erneut gesendet",
+      "kategorie": "RECOVERY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 5,
+      "risikowert": 75,
+      "status": "OFFEN",
+      "strategie": "q/placeholder = accepted in-flight; UNKNOWN-Reconciliation ohne Same-Intent-Retry",
+      "betroffenePhasen": [
+        "R9",
+        "R10",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-133",
+      "titel": "upgrade_fail wird pauschal als Itemverlust interpretiert",
+      "kategorie": "PRODUCTION",
+      "schweregrad": 5,
+      "eintritt": 4,
+      "entdeckbarkeit": 4,
+      "risikowert": 80,
+      "status": "OFFEN",
+      "strategie": "Pfadspezifische Postcondition fuer normalen Scroll, scroll4 und Material-Offering",
+      "betroffenePhasen": [
+        "R10",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-134",
+      "titel": "Stat-Scroll oder Offering-only Upgrade wird faelschlich als Levelerhoehung verbucht",
+      "kategorie": "PRODUCTION",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Typed UpgradePath mit stat/grace/shiny-spezifischen Postconditions",
+      "betroffenePhasen": [
+        "R4",
+        "R9",
+        "R10",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-135",
+      "titel": "Compound-Restart rekonstruiert entfernte Input2/Input3 als nicht verbraucht und startet erneut",
+      "kategorie": "RECOVERY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 5,
+      "risikowert": 75,
+      "status": "OFFEN",
+      "strategie": "Drei physische Input-Identitaeten durable pinnen; q/placeholder als Mutation-started",
+      "betroffenePhasen": [
+        "R5",
+        "R9",
+        "R10",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-136",
+      "titel": "Scroll/Offering oder massproduction-Condition wird waehrend laufendem q parallel anderweitig eingeplant",
+      "kategorie": "RESSOURCE",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Claims ueber Consumables/Conditions bis Settlement",
+      "betroffenePhasen": [
+        "R8",
+        "R9",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-137",
+      "titel": "Bot verwendet preview.chance als vollstaendige effektive Upgrade-Wahrscheinlichkeit und ignoriert serverseitigen Slot-Roll-Modifier",
+      "kategorie": "LEARNING",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 5,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "ChanceEvidence mit Source/Input-Fingerprint und getrenntem Roll-Modifier-Modell",
+      "betroffenePhasen": [
+        "R6",
+        "R18"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-138",
+      "titel": "Booster-Compound wird als deterministisches +1 verbucht und Extra-Level/Expiry gehen in Ledger verloren",
+      "kategorie": "PRODUCTION",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Finalen Booster-Output inklusive extra/level/expires vollstaendig reconciliieren",
+      "betroffenePhasen": [
+        "R10",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-139",
+      "titel": "Upgrade und Compound laufen parallel auf ueberlappenden Inventarressourcen weil sie verschiedene FIFO-Channels haben",
+      "kategorie": "RESSOURCE",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 5,
+      "risikowert": 75,
+      "status": "OFFEN",
+      "strategie": "Globale physische Item-/Inventory-Claims kanalübergreifend",
+      "betroffenePhasen": [
+        "R8",
+        "R9",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-140",
+      "titel": "Terminale Promise-Antwort wird ohne frische Inventory-Postcondition als Commit akzeptiert",
+      "kategorie": "RECOVERY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Response nur Evidence; Commit erst nach pfadspezifischer Postcondition",
+      "betroffenePhasen": [
+        "R9",
+        "R10",
         "R15"
       ]
     }
