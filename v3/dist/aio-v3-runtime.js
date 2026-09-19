@@ -36540,6 +36540,8 @@ class ProgressionIntelligence {
       mode: ALPHA21_PROGRESSION_MODE,
       policy: {
         hardLevelGuide: false,
+        gearDominantStrengthModel: true,
+        characterLevelRole: 'MINOR_CONTEXT_AND_COMPATIBILITY_GATE',
         livePerformanceDriven: true,
         deterministicLeaderOwnsPromotion: true,
         followerIndependentPromotion: false,
@@ -47156,7 +47158,12 @@ class BrainStateEncoderV2 {
     } catch (_) {}
     const capabilityContext = brainCapabilityContext(runtime);
     const values = {
-      hpRatio: ratio(character.hp, character.max_hp), mpRatio: ratio(character.mp, character.max_mp), levelNorm: clamp(finite(character.level, 1) / 120), rangeNorm: clamp(finite(character.range, 0) / 250), speedNorm: clamp(finite(character.speed, 0) / 120), attackNorm: clamp(finite(character.attack, 0) / 2500),
+      // Adventure Land progression is gear-dominant: character level is useful
+      // context and an equip/content gate, but it is not a reliable proxy for
+      // combat strength. Keep the legacy feature for model compatibility while
+      // deliberately bounding its influence; live combat stats, gear pressure
+      // and measured performance carry the real strength signal.
+      hpRatio: ratio(character.hp, character.max_hp), mpRatio: ratio(character.mp, character.max_mp), levelNorm: clamp(finite(character.level, 1) / 120) * 0.15, rangeNorm: clamp(finite(character.range, 0) / 250), speedNorm: clamp(finite(character.speed, 0) / 120), attackNorm: clamp(finite(character.attack, 0) / 2500),
       partyPresentRatio: clamp(party.length / 4), partyAliveRatio: party.length ? clamp(alive.length / party.length) : 0.25, partyCohesion: meta.partyCohesion == null ? (party.length >= 3 ? 0.8 : 0.4) : clamp(meta.partyCohesion), selfAggro: clamp(selfAggro / 3), visibleHostiles: clamp(hostiles.length / 12),
       targetHpRatio: liveTarget ? ratio(liveTarget.hp, liveTarget.max_hp || liveTarget.hp, 1) : 0.5, riskHeadroom: clamp((riskThreshold - riskScore + 1) / 1.5), deathSafety: clamp(1 - deaths), xpRate: clamp(Math.max(0, finite(target && target.xpPerHour, finite(rates.xpPerHour, 0))) / maxXp), goldRate: clamp(Math.max(0, finite(target && target.goldPerHour, finite(rates.goldPerHour, 0))) / maxGold),
       freeSlotsRatio: slots.ratio, inventoryHealth: clamp(0.25 + slots.ratio * 0.75), merchantIdle: merchantBusy ? 0 : 1, marketLiquidity: currentMarketLiquidity(runtime), gearHealth: clamp(1 - gearGoals / 20), travelEfficiency: clamp(1 - travelSeconds / Math.max(30, finite(meta.maxTravelSeconds, 600))), worldConfidence: worldConfidence(runtime), knowledgeFreshness: meta.knowledgeFreshness == null ? 0.7 : clamp(meta.knowledgeFreshness),
