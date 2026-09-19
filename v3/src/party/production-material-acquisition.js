@@ -2,8 +2,17 @@
 
 const { directDropChance, rewardChanceForExchange } = require('./elixir-policy');
 const { spawnType, spawnCenter, contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
+const { probabilisticFarmTime, probabilisticOperations, PROBABILISTIC_FARM_TIME_MODEL } = require('./probabilistic-farm-time');
+const {
+  questDestination,
+  sourceEventDescriptor,
+  isExchangeBackedSource,
+  isQuestBackedSource,
+  isEventBackedSource,
+  sourceKind
+} = require('./acquisition-source-evidence');
 
-const PRODUCTION_MATERIAL_ACQUISITION_MODE = 'team-production-material-acquisition-v1';
+const PRODUCTION_MATERIAL_ACQUISITION_MODE = 'team-production-material-acquisition-v3';
 const DEFAULT_MAX_TEAM_FARM_HOURS = 12;
 const DEFAULT_FALLBACK_KILLS_PER_HOUR = 20;
 
@@ -28,18 +37,26 @@ function currentPartyFingerprintKey(runtime) {
   return null;
 }
 
-function bestMeasuredKillsPerHour(runtime, monster) {
+function bestMeasuredKillRate(runtime, monster) {
   const world = runtime && runtime.world;
   if (!world) return null;
   const fingerprint = currentPartyFingerprintKey(runtime);
   if (fingerprint && typeof world.performanceFor === 'function') {
     try {
       const current = world.performanceFor(monster, fingerprint);
-      if (current && finite(current.seconds, 0) >= 60 && finite(current.killsPerHour, 0) > 0) return finite(current.killsPerHour, 0);
+      if (current && finite(current.seconds, 0) >= 60 && finite(current.killsPerHour, 0) > 0) {
+        return {
+          killsPerHour: finite(current.killsPerHour, 0),
+          seconds: finite(current.seconds, 0),
+          kills: finite(current.kills, 0),
+          fingerprint,
+          evidence: 'MEASURED_CURRENT_TEAM_KILLS_PER_HOUR'
+        };
+      }
     } catch (_) {}
     // Do not borrow kill rates from a different party composition. The whole
-    // farmer team acts together, so unknown current-team throughput must fall
-    // back to the conservative estimate instead.
+    // Farmer team acts together, so unknown current-team throughput falls back
+    // to the conservative estimate instead.
     return null;
   }
   if (!(world.performance instanceof Map)) return null;
@@ -47,11 +64,21 @@ function bestMeasuredKillsPerHour(runtime, monster) {
     .filter((row) => row && row.monster === monster && finite(row.seconds, 0) >= 60)
     .map((row) => {
       const hours = finite(row.seconds, 0) / 3600;
-      return { kph: hours > 0 ? finite(row.kills, 0) / hours : 0, seconds: finite(row.seconds, 0) };
+      return {
+        killsPerHour: hours > 0 ? finite(row.kills, 0) / hours : 0,
+        seconds: finite(row.seconds, 0),
+        kills: finite(row.kills, 0),
+        evidence: 'MEASURED_TEAM_KILLS_PER_HOUR'
+      };
     })
-    .filter((row) => row.kph > 0)
-    .sort((a, b) => b.seconds - a.seconds || b.kph - a.kph);
-  return rows.length ? rows[0].kph : null;
+    .filter((row) => row.killsPerHour > 0)
+    .sort((a, b) => b.seconds - a.seconds || b.killsPerHour - a.killsPerHour);
+  return rows[0] || null;
+}
+
+function bestMeasuredKillsPerHour(runtime, monster) {
+  const row = bestMeasuredKillRate(runtime, monster);
+  return row ? row.killsPerHour : null;
 }
 
 function partyHeldQuantity(runtime, name, level = 0) {
