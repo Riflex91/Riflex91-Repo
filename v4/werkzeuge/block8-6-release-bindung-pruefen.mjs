@@ -345,7 +345,7 @@ if (remoteObjectOps.length !== 3) {
 }
 for (const pflicht of [
   'finaler Block-8.6-Candidate technisch gebunden',
-  'immutable veröffentlicht, öffentlich per HTTPS verifiziert, realer Schatten, kontrolliert live und Soak bestanden',
+  'Offline/Replay, realer Schatten, kontrolliert live und 10-Minuten-Soak sind bestanden',
   '`ca0dfee7685563c8b6003469300c8fd08777b053`',
   '51 Module',
   '396471 Bytes',
