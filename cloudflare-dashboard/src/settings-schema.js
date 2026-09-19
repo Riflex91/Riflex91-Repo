@@ -3,6 +3,7 @@ export const SETTINGS_SCHEMA_VERSION = 2;
 const n = (key, category, label, description, value, min, max, step, hot = true) => ({ key, category, label, description, type: 'number', default: value, min, max, step, hot });
 const b = (key, category, label, description, value, locked = false, hot = true) => ({ key, category, label, description, type: 'boolean', default: value, locked, hot });
 const s = (key, category, label, description, value, values, hot = true) => ({ key, category, label, description, type: 'select', default: value, values, hot });
+const p = (key, category, label, description, value = {}, hot = true) => ({ key, category, label, description, type: 'item-permissions', default: value, hot, hidden: true });
 
 export const SETTINGS_SCHEMA = Object.freeze([
   n('runtime.tickMs','Runtime','Runtime-Tick','Wie oft der Bot seine Umgebung prüft und neue Entscheidungen trifft. Ein kleinerer Wert reagiert schneller, belastet das Spiel aber stärker.',250,100,2000,50,false),
@@ -67,6 +68,7 @@ export const SETTINGS_SCHEMA = Object.freeze([
   n('economy.compoundCap','Economy, Gear & Markt','Compound Kostenlimit','So viel Gold darf ein automatisches Zusammenfügen von Items höchstens innerhalb des vorgesehenen Budgets kosten.',500000,0,100000000,50000,true),
   n('economy.maxUpgrade','Economy, Gear & Markt','Max Upgrade Level','Bis zu diesem Ergebnis-Level darf der Bot normale, freigegebene Upgrades automatisch durchführen. Die aktuelle v3-Progressionspolicy erlaubt höchstens +7.',2,0,7,1,true),
   n('economy.maxCompound','Economy, Gear & Markt','Max Compound Level','Bis zu diesem Ergebnis-Level darf der Bot normale, freigegebene Compounds automatisch durchführen. Die aktuelle v3-Progressionspolicy erlaubt höchstens +10.',1,0,10,1,true),
+  p('economy.itemPermissions','Economy, Gear & Markt','Item-Berechtigungen','Per-Item Freigaben aus dem Inventar-Kontextmenü.',{},true),
   n('economy.marketMaxTrackedItems','Economy, Gear & Markt','Beobachtete Markt-Items','Wie viele verschiedene Item-Arten der Bot gleichzeitig mit Preisverlauf speichern darf.',96,24,256,8,false),
   n('economy.marketMaxSamples','Economy, Gear & Markt','Preisbeobachtungen pro Item','Wie viele ältere Preisbeobachtungen pro Item für Marktwert und Preisentwicklung gespeichert werden.',48,8,128,4,false),
   n('economy.gearGoalFreshMs','Economy, Gear & Markt','Alter von Ausrüstungszielen','Wie lange ein berechnetes Ausrüstungsziel ohne neue Bestätigung als aktuell gilt.',30000,5000,180000,5000,false),
@@ -101,11 +103,27 @@ export const SETTINGS_SCHEMA = Object.freeze([
 ]);
 
 export const SETTINGS_BY_KEY = new Map(SETTINGS_SCHEMA.map((row) => [row.key, row]));
-export const defaultSettings = () => Object.fromEntries(SETTINGS_SCHEMA.map((row) => [row.key, row.default]));
+export const defaultSettings = () => Object.fromEntries(SETTINGS_SCHEMA.map((row) => [row.key, row.type === 'item-permissions' ? normalizeItemPermissions(row.default) : row.default]));
+
+function normalizeItemPermissions(value) {
+  let source = value;
+  if (typeof source === 'string') { try { source = JSON.parse(source); } catch (_) { source = {}; } }
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return {};
+  const out = {};
+  for (const [rawName, row] of Object.entries(source).slice(0, 512)) {
+    const name = String(rawName || '').trim().slice(0, 120);
+    if (!name || !row || typeof row !== 'object' || Array.isArray(row)) continue;
+    const next = {};
+    for (const action of ['sell', 'bank', 'compound', 'upgrade']) if (typeof row[action] === 'boolean') next[action] = row[action];
+    if (Object.keys(next).length) out[name] = next;
+  }
+  return out;
+}
 
 export function normalizeSetting(def, value) {
   if (!def) return undefined;
   if (def.locked) return def.default;
+  if (def.type === 'item-permissions') return normalizeItemPermissions(value);
   if (def.type === 'boolean') return value === true || value === 'true' || value === 1;
   if (def.type === 'select') return def.values.includes(String(value)) ? String(value) : def.default;
   let x = Number(value); if (!Number.isFinite(x)) x = Number(def.default); if (def.min != null) x = Math.max(def.min, x); if (def.max != null) x = Math.min(def.max, x); return x;

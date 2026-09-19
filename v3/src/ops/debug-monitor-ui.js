@@ -699,53 +699,9 @@ class DebugMonitorUI {
   refresh() {
     if (!this.container || !this.monitor) return false;
     const doc = this._doc();
-    if (!doc || !this.body) return false;
-    const summary = this.monitor.summary();
-    while (this.body.firstChild) this.body.removeChild(this.body.firstChild);
-    const char = summary.character || {};
-    const sup = summary.supervisor || {};
-    const economy = summary.economy || {};
-    const travel = summary.travel || {};
-    const inventory = summary.inventory || {};
-    const controlledEconomy = economy.controlled || {};
-    const controlledTravel = travel.controlled || {};
-    const runStatus = this._runStatus();
-    let runtimeStatus = null;
-    try { runtimeStatus = this.monitor.runtime && typeof this.monitor.runtime.status === 'function' ? this.monitor.runtime.status() : null; } catch (_) {}
-    const merchantService = runtimeStatus && runtimeStatus.merchantService || null;
-    const controlledService = merchantService && merchantService.controlled || {};
-    const serviceExecution = merchantService && merchantService.lastExecution || controlledService.lastAction || null;
-    const serviceKind = serviceExecution && (serviceExecution.kind || serviceExecution.planKind || serviceExecution.action) || '—';
-    const serviceRaw = Number(controlledService.stats && controlledService.stats.rawActions) || 0;
-    const serviceCircuit = controlledService.circuit && controlledService.circuit.open ? 'OPEN' : 'ok';
-    const standOpen = !!(this.root && this.root.character && this.root.character.stand);
-    const sessionDuration = Math.max(0, Number(summary.generatedAt || 0) - Number(summary.startedAt || 0));
-    const runLabel = runStatus
-      ? `${runStatus.state}${runStatus.state === 'STOPPED_BLOCKED' && runStatus.blockers.length ? ` · ${runStatus.blockers.slice(0, 2).join(', ')}` : ''}`
-      : (summary.running ? 'RUNNING' : 'STOPPED');
-    const serviceLabel = !merchantService ? '—' : controlledService.enabled
-      ? `AN · Stand:${controlledService.allowStand ? 'on' : 'off'}${standOpen ? '/offen' : '/zu'} · Delivery:${controlledService.allowDelivery ? 'on' : 'off'}${controlledService.busy ? ' · BUSY' : ''}`
-      : `AUS · Stand:${standOpen ? 'offen' : 'zu'}`;
-
-    const rows = [
-      ['Version / Modus', `${summary.version || '—'} / ${summary.mode || '—'}`],
-      ['Bot', runLabel],
-      ['Session', this._formatDuration(sessionDuration)],
-      ['Charakter', `${char.name || '—'} (${char.ctype || '—'}) L${char.level || 0}`],
-      ['Map', `${char.map || '—'} @ ${Math.round(char.x || 0)}, ${Math.round(char.y || 0)}`],
-      ['Supervisor', `${sup.state || '—'}${sup.reasons && sup.reasons.length ? ` · ${sup.reasons.slice(0, 2).join(', ')}` : ''}`],
-      ['Merchant live', controlledEconomy.enabled ? `AN · SELL:${controlledEconomy.sellEnabled ? 'on' : 'off'} BANK:${controlledEconomy.bankEnabled ? 'on' : 'off'}` : 'AUS'],
-      ['Merchant Service', serviceLabel],
-      ['Service Aktion', merchantService ? `${serviceKind} · Raw ${serviceRaw} · Circuit ${serviceCircuit}` : '—'],
-      ['Travel live', controlledTravel.enabled ? `AN${controlledTravel.busy ? ' · BUSY' : ''}` : 'AUS'],
-      ['Transaktionen', `aktiv ${economy.activeTransactions || 0} · recovery ${economy.recoveringTransactions || 0}`],
-      ['Travel', `aktiv ${travel.active || 0} · Circuit ${travel.circuit && travel.circuit.open ? 'OPEN' : 'ok'}`],
-      ['Inventar', `Einträge ${inventory.totalEntries || 0}${inventory.stale ? ' · STALE' : ''}`],
-      ['Log', `Fehler ${summary.recentSignals.errors || 0} · Warn ${summary.recentSignals.warnings || 0}`]
-    ];
-    for (const [label, value] of rows) this.body.appendChild(this._row(doc, label, value));
+    if (!doc) return false;
     if (this.logBox) this.logBox.textContent = this._eventsText();
-    this._updateRunButton(runStatus);
+    this._updateRunButton();
     this._updateSkillsButton();
     if (this.skillsPanelOpen) this._renderSkillsPanel();
     return true;
@@ -810,6 +766,7 @@ class DebugMonitorUI {
     box.appendChild(this.skillsPanel);
 
     this.body = doc.createElement('div');
+    this.body.setAttribute('aria-hidden', 'true');
     box.appendChild(this.body);
 
     this.logBox = doc.createElement('pre');

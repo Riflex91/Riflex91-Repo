@@ -1,4 +1,48 @@
-export const DASHBOARD_FRAGMENT_4 = `function actionLabel(a){const map={continue:'Position halten',change_farm_target:'Farmziel wechseln',replan_merchant:'Merchant neu planen',explore:'Erkunden',wait:'Warten'};return map[String(a||'')]||String(a||'Strategie analysieren')}
+export const DASHBOARD_FRAGMENT_4 = `function automationCatalog(){
+  const chars=overview&&overview.characters||[];
+  const merchant=chars.find(row=>String(row.status&&row.status.character&&row.status.character.ctype||'').toLowerCase()==='merchant');
+  const candidates=[merchant].concat(chars).filter(Boolean);
+  for(const row of candidates){const list=row.status&&row.status.automationCatalog;if(Array.isArray(list)&&list.length)return list}
+  return []
+}
+function itemPermissionsValue(){
+  const vals=settings&&settings.settings&&settings.settings.values||{};
+  const raw=dirty['economy.itemPermissions']!==undefined?dirty['economy.itemPermissions']:vals['economy.itemPermissions'];
+  return raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{}
+}
+function itemPermission(name,action){const row=itemPermissionsValue()[name];return row&&typeof row[action]==='boolean'?row[action]:null}
+function itemPermissionText(v){return v===true?'erlaubt':v===false?'verboten':'auto'}
+function itemProtection(item){const reasons=[];if(item&&item.locked)reasons.push('im Inventar gesperrt');if(item&&item.special)reasons.push('Spezial-Item');if(item&&item.quest)reasons.push('Quest-Item');if(item&&item.cash)reasons.push('Cash-Item');if(item&&item.soulbound)reasons.push('seelengebunden');return reasons}
+function automationClassCanUse(item,ctype){if(!ctype)return true;const ct=String(ctype).toLowerCase(),classes=Array.isArray(item&&item.classes)?item.classes.map(x=>String(x).toLowerCase()):[];if(classes.length&&!classes.includes(ct))return false;const wt=String(item&&item.wtype||'').toLowerCase(),allowed={ranger:['bow','crossbow'],rogue:['dagger','claw','fist'],mage:['staff','wand'],priest:['staff','wand','mace'],warrior:['sword','axe','mace','hammer','spear','dagger'],paladin:['sword','mace','hammer','axe'],merchant:['staff','sword','dagger']};return !wt||!allowed[ct]||allowed[ct].includes(wt)}
+function permissionBadges(name){return ['sell','bank','compound','upgrade'].map(a=>{const v=itemPermission(name,a),label={sell:'Verkaufen',bank:'Bank',compound:'Kombinieren',upgrade:'Verbessern'}[a];return '<span class="automation-perm '+(v===true?'allow':v===false?'deny':'auto')+'">'+label+': '+itemPermissionText(v)+'</span>'}).join('')}
+function fillAutomationSelect(id,values,allLabel){const el=$(id);if(!el)return;const current=el.value;el.innerHTML='<option value="">'+esc(allLabel)+'</option>'+values.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');el.value=values.includes(current)?current:''}
+function renderAutomation(){
+  const root=$('automationGrid');if(!root)return;
+  const all=automationCatalog(),types=[...new Set(all.map(x=>String(x.type||'')).filter(Boolean))].sort(),npcs=[...new Set(all.flatMap(x=>(x.npc||[]).map(n=>String(n&&n.npc||'')).filter(Boolean)))].sort();
+  fillAutomationSelect('automationType',types,'Alle Typen');fillAutomationSelect('automationNpc',npcs,'Alle NPCs');
+  const q=String($('automationSearch')&&$('automationSearch').value||'').trim().toLowerCase(),type=$('automationType')&&$('automationType').value||'',ct=$('automationClass')&&$('automationClass').value||'',npc=$('automationNpc')&&$('automationNpc').value||'',cap=$('automationCapability')&&$('automationCapability').value||'',minRaw=$('automationLevelMin')&&$('automationLevelMin').value,maxRaw=$('automationLevelMax')&&$('automationLevelMax').value,min=minRaw===''?null:Number(minRaw),max=maxRaw===''?null:Number(maxRaw);
+  const rows=all.filter(item=>{
+    const hay=[item.id,item.name,item.type,item.wtype,(item.classes||[]).join(' '),(item.npc||[]).map(x=>x.npc+' '+(x.map||'')).join(' ')].join(' ').toLowerCase();
+    if(q&&!hay.includes(q))return false;if(type&&String(item.type||'')!==type)return false;if(ct&&!automationClassCanUse(item,ct))return false;if(npc&&!(item.npc||[]).some(x=>String(x&&x.npc||'')===npc))return false;
+    if(min!=null&&(!Number.isFinite(Number(item.level))||Number(item.level)<min))return false;if(max!=null&&(!Number.isFinite(Number(item.level))||Number(item.level)>max))return false;
+    if(cap==='upgrade'&&!item.upgrade)return false;if(cap==='compound'&&!item.compound)return false;if(cap==='npc'&&!(item.npc||[]).length)return false;if(cap==='protected'&&!itemProtection(item).length)return false;return true
+  });
+  $('automationCount').textContent=rows.length+' / '+all.length+' Items';
+  if(!all.length){root.innerHTML='<div class="empty">Der vollständige Itemkatalog ist noch nicht vom Merchant synchronisiert worden.</div>';return}
+  root.innerHTML=rows.map(item=>{const prot=itemProtection(item),npcText=(item.npc||[]).map(x=>x.npc+(x.map?' @ '+x.map:'')).join(', '),classText=(item.classes||[]).length?(item.classes||[]).join(', '):'alle/über Waffentyp',level=item.level==null?'–':item.level;return '<article class="automation-item" data-item-name="'+esc(item.id)+'" data-item-protected="'+esc(prot.join(', '))+'"><div class="automation-item-head"><div><b>'+esc(item.name||item.id)+'</b><small>'+esc(item.id)+' · '+esc(item.type||'Item')+'</small></div><button class="btn ghost" data-open-item-perm="'+esc(item.id)+'">Regeln</button></div>'+(prot.length?'<div class="automation-warning">⚠ Geschützt/Spezial: '+esc(prot.join(', '))+'</div>':'')+'<div class="automation-meta"><span>Level '+esc(level)+'</span><span>Klasse '+esc(classText)+'</span><span>NPC '+esc(npcText||'–')+'</span><span>'+(item.upgrade?'verbesserbar':'')+(item.upgrade&&item.compound?' · ':'')+(item.compound?'kombinierbar':'')+'</span></div><div class="automation-perms">'+permissionBadges(item.id)+'</div></article>'}).join('')||'<div class="empty">Keine Items passen zu den Filtern.</div>'
+}
+function openItemPermissionMenu(name,meta,x,y){
+  if(!name)return;document.querySelectorAll('.item-permission-menu').forEach(el=>el.remove());
+  const catalog=automationCatalog(),item=catalog.find(row=>String(row.id)===String(name))||{},merged=Object.assign({},item,meta||{}),protectedReasons=itemProtection(merged),el=document.createElement('div');el.className='item-permission-menu';el.style.left=Math.max(8,Math.min(window.innerWidth-360,Number(x)||20))+'px';el.style.top=Math.max(8,Math.min(window.innerHeight-390,Number(y)||20))+'px';
+  el.innerHTML='<div class="item-permission-title"><b>'+esc(item.name||name)+'</b><small>'+esc(name)+'</small></div>'+(protectedReasons.length?'<div class="automation-warning">⚠ Geschützt/gesperrt: '+esc(protectedReasons.join(', '))+'. Ein explizites Erlauben überschreibt die normale Auto-Sperre; Transaktions- und Spiel-Sicherheitsprüfungen bleiben aktiv.</div>':'')+['sell','bank','compound','upgrade'].map(a=>{const labels={sell:'Verkaufen',bank:'In Bank legen',compound:'Kombinieren',upgrade:'Verbessern'},v=itemPermission(name,a);return '<div class="item-permission-row"><span><b>'+labels[a]+'</b><small>Aktuell: '+itemPermissionText(v)+'</small></span><div><button data-perm-action="'+a+'" data-perm-value="true" data-perm-name="'+esc(name)+'" class="'+(v===true?'selected allow':'')+'">Erlauben</button><button data-perm-action="'+a+'" data-perm-value="false" data-perm-name="'+esc(name)+'" class="'+(v===false?'selected deny':'')+'">Verbieten</button><button data-perm-action="'+a+'" data-perm-value="auto" data-perm-name="'+esc(name)+'" class="'+(v===null?'selected':'')+'">Auto</button></div></div>'}).join('');document.body.appendChild(el)
+}
+async function saveItemPermission(name,action,value){
+  if(!adminKey){toast('ADMIN_KEY erforderlich, um Item-Regeln zu ändern.',true);return}
+  const vals=settings&&settings.settings&&settings.settings.values||{},all=JSON.parse(JSON.stringify(vals['economy.itemPermissions']||{})),row=Object.assign({},all[name]||{});
+  if(value==='auto')delete row[action];else row[action]=value==='true';if(Object.keys(row).length)all[name]=row;else delete all[name];
+  try{const j=await api('/api/v3/settings',{method:'PATCH',admin:true,body:{account:settings.account||'default',expectedRevision:settings.settings&&settings.settings.revision,patch:{'economy.itemPermissions':all}}});settings=j;dirty={};renderSettings();renderAutomation();document.querySelectorAll('.item-permission-menu').forEach(el=>el.remove());toast('Item-Regel gespeichert. Der Bot übernimmt sie beim nächsten Cloud-Sync.')}catch(e){toast(e.message,true)}
+}
+function actionLabel(a){const map={continue:'Position halten',change_farm_target:'Farmziel wechseln',replan_merchant:'Merchant neu planen',explore:'Erkunden',wait:'Warten'};return map[String(a||'')]||String(a||'Strategie analysieren')}
 function renderBrain(){
   if(!brain||!brain.brain){$('brainRoot').innerHTML='<div class="empty">Noch kein Merchant-Brain-State vorhanden.</div>';return}
   const b=brain.brain,q=b.quality||{},st=b.student||{},t=b.teacher||{},l=b.league||{},cur=b.current||{},sd=cur.student||{},td=cur.teacher||{},usage=brain.usage||{};
@@ -23,7 +67,7 @@ function controlInput(def,value){const dis=def.locked?' disabled':'';if(def.type
 function saveOpenState(){try{localStorage.setItem('aioV3SettingsOpen',JSON.stringify(openCats))}catch(e){}}
 function renderSettings(){
   if(!settings)return;
-  const q=($('settingsSearch').value||'').trim().toLowerCase(),defs=settings.schema||[],vals=settings.settings&&settings.settings.values||{},groups={};
+  const q=($('settingsSearch').value||'').trim().toLowerCase(),defs=(settings.schema||[]).filter(d=>!d.hidden),vals=settings.settings&&settings.settings.values||{},groups={};
   defs.filter(d=>!q||[d.key,d.category,d.label,d.description].join(' ').toLowerCase().includes(q)).forEach(d=>(groups[d.category]||(groups[d.category]=[])).push(d));
   $('settingsRevision').textContent='Revision '+fmt(settings.settings&&settings.settings.revision);
   const changed=Object.keys(dirty).length;$('dirtyPill').textContent=changed+' Änderung'+(changed===1?'':'en');$('dirtyPill').className='pill '+(changed?'warn':'');
@@ -34,27 +78,6 @@ function renderSettings(){
 }
 function readSetting(el){return el.type==='checkbox'?el.checked:el.type==='number'?Number(el.value):el.value}
 function dbMetric(label,value,hint){return '<div class="dbbox"><div><span>'+esc(label)+'</span>'+(hint?'<br><em>'+esc(hint)+'</em>':'')+'</div><b>'+esc(value==null?'–':fmt(value))+'</b></div>'}
-function renderData(db){
-  const available=db.available!==false;
-  $('dbRoot').innerHTML=
-    '<section class="data-category"><div class="head"><i>⚡</i><div><b>Live-Zustand</b><small>Was der Bot gerade weiß und tut</small></div></div><div class="db-list">'+
-      dbMetric('Runtime Snapshots',db.runtimeStatuses,'D1 · aktueller Zustand je Charakter')+
-      dbMetric('Brain States',db.brainStates,'D1 · lernender Zustand')+
-    '</div></section>'+
-    '<section class="data-category"><div class="head"><i>🧠</i><div><b>Lernen & Entscheidungen</b><small>Warum sich das Verhalten verändert</small></div></div><div class="db-list">'+
-      dbMetric('Brain Decisions',db.brainDecisions,'Teacher / Strategie')+
-      dbMetric('Learning Outcomes',db.learningEvents,'Rewards und Feedback')+
-    '</div></section>'+
-    '<section class="data-category"><div class="head"><i>🛡</i><div><b>Diagnose & Audit</b><small>Nur nachvollziehbare, wichtige Historie</small></div></div><div class="db-list">'+
-      dbMetric('Wichtige Events',db.events,'D1 · gefilterte Meldungen')+
-      dbMetric('Settings Audits',db.settingAudits,'Änderungshistorie')+
-    '</div></section>'+
-    '<section class="data-category"><div class="head"><i>☁</i><div><b>Cloud & Langzeitgedächtnis</b><small>Speicher nach Aufgabe getrennt</small></div></div><div class="db-list">'+
-      '<div class="dbbox"><div><span>Cloudflare D1</span><br><em>'+esc(available?'online · kompakter Betriebszustand':'degraded / quota fallback')+'</em></div><b>'+esc(available?'ONLINE':'DEGRADED')+'</b></div>'+
-      '<div class="dbbox"><div><span>Cloudflare R2</span><br><em>Roh-Logarchiv · wichtige Diagnose</em></div><b>ARCHIV</b></div>'+
-      '<div class="dbbox"><div><span>Supabase</span><br><em>Aio-bot · externe Telemetrie / Debug-Daten</em></div><b>EXTERN</b></div>'+
-    '</div></section>'
-}
 function eventLevel(e){const s=String(e.severity||'info').toLowerCase();if(['error','critical','fatal','emergency','alert'].includes(s))return 'critical';if(['warn','warning'].includes(s))return 'warn';return 'ok'}
 function isImportantEvent(e){
   const level=eventLevel(e);if(level!=='ok')return true;
@@ -81,7 +104,7 @@ async function load(){
     overview=results[0];settings=results[1];brain=results[2];health=results[3];
     $('login').classList.add('hidden');$('app').classList.remove('hidden');$('top').classList.remove('hidden');
     $('syncPill').className='pill good';$('syncPill').innerHTML='<i class="dot"></i>'+when(Date.now());
-    renderOverview();renderBrain();renderSettings()
+    renderOverview();renderBrain();renderSettings();renderAutomation()
   }catch(e){
     $('syncPill').className='pill bad';$('syncPill').innerHTML='<i class="dot"></i>Fehler';
     $('loginError').innerHTML='<div class="error">'+esc(e.message)+'</div>'
@@ -99,6 +122,10 @@ $('collapseSettings').onclick=()=>{document.querySelectorAll('.settingscat').for
 $('discardSettings').onclick=()=>{dirty={};renderSettings();renderEconomy(overview&&overview.characters||[]);toast('Änderungen verworfen.')};
 $('saveSettings').onclick=async()=>{try{const j=await api('/api/v3/settings',{method:'PATCH',admin:true,body:{account:settings.account||'default',expectedRevision:settings.settings&&settings.settings.revision,patch:dirty}});dirty={};settings=j;renderSettings();await load();toast('Einstellungen gespeichert.')}catch(e){$('settingsNotice').innerHTML='<div class="error">'+esc(e.message)+'</div>';toast(e.message,true)}};
 $('reloadEvents').onclick=loadEvents;
+['automationSearch','automationType','automationClass','automationNpc','automationLevelMin','automationLevelMax','automationCapability'].forEach(id=>{const el=$(id);if(el){el.oninput=renderAutomation;el.onchange=renderAutomation}});
+document.addEventListener('contextmenu',e=>{const node=e.target.closest&&e.target.closest('.automation-item[data-item-name],.al-slot.filled[data-item-name]');if(!node)return;e.preventDefault();openItemPermissionMenu(node.dataset.itemName,{locked:node.dataset.itemLocked==='true',special:node.dataset.itemSpecial==='true'},e.clientX,e.clientY)});
+document.addEventListener('click',e=>{const open=e.target.closest&&e.target.closest('[data-open-item-perm]');if(open){const card=open.closest('.automation-item');openItemPermissionMenu(open.dataset.openItemPerm,{special:card&&card.dataset.itemProtected?true:false},e.clientX,e.clientY);return}const perm=e.target.closest&&e.target.closest('[data-perm-action]');if(perm){saveItemPermission(perm.dataset.permName,perm.dataset.permAction,perm.dataset.permValue);return}if(!e.target.closest||!e.target.closest('.item-permission-menu'))document.querySelectorAll('.item-permission-menu').forEach(el=>el.remove())});
+
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();const page=document.querySelector('.page[data-page="settings"]');if(page&&page.classList.contains('active'))$('settingsSearch').focus()}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'&&Object.keys(dirty).length&&adminKey){e.preventDefault();$('saveSettings').click()}});
 if(readKey)load();
 setInterval(()=>{if(readKey&&!document.hidden)load()},3000);

@@ -85,6 +85,43 @@ test('central ledger processes low-risk progression before bank fallback', () =>
   assert.equal(classify('unknown'), 'UNDECIDED');
 });
 
+test('central ledger respects explicit operator denials before autonomous fallbacks', () => {
+  const denied = {
+    material: { sell: false },
+    sword: { upgrade: false },
+    ring: { compound: false },
+    rare: { bank: false }
+  };
+  const ledger = makeLedger([], {
+    _permission(name, action) {
+      const row = denied[name];
+      return row && typeof row[action] === 'boolean' ? row[action] : null;
+    }
+  });
+  const gameData = {
+    items: {
+      material: { g: 10 },
+      sword: { g: 10, upgrade: { attack: 1 }, grades: [] },
+      ring: { g: 10, type: 'ring', compound: { dex: 1 }, grades: [] },
+      rare: { g: 20000 }
+    },
+    monsters: {}, maps: {}
+  };
+  const runtime = makeRuntime({ ledger, gameData });
+  new Alpha27CombatMerchantConvergence(runtime, { keepValue: 1000 });
+  runtime.gearProgression.futureProtectionFor = () => null;
+  runtime.gearProgression.futureSellSafetyFor = () => ({ checked: true, protected: false });
+  const counts = new Map([['ring:0', 3]]);
+  const classify = (name, level = 0) => ledger._baseDisposition({ name, level }, gameData, runtime.contentDrift, counts);
+
+  assert.equal(classify('material').disposition, 'KEEP');
+  assert.ok(classify('material').reasons.includes('OPERATOR_SELL_DENIED'));
+  assert.equal(classify('sword').disposition, 'BANK');
+  assert.equal(classify('ring').disposition, 'BANK');
+  assert.equal(classify('rare').disposition, 'KEEP');
+  assert.ok(classify('rare').reasons.includes('OPERATOR_BANK_DENIED'));
+});
+
 test('atomic compound reserves and releases all three inputs together', () => {
   const entries = [0, 1, 2].map((index) => ({ character: 'Merchant', index, name: 'ring', level: 0, disposition: 'RESERVE_COMPOUND' }));
   const ledger = makeLedger(entries);

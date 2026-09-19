@@ -16,9 +16,19 @@ export const DASHBOARD_FRAGMENT_3 = `  <p>Verbinde dich mit dem v3-Dashboard. De
     <div class="chargrid" id="characterCards"></div>
   </section>
 
-  <section class="page" data-page="combat">
-    <div class="pagehead"><div><h1>Party & Kampf</h1><p>Kohäsion, Kiting, Tank-Erkennung, Risiko und Ziel-Effizienz.</p></div></div>
-    <div class="grid" id="combatGrid"></div>
+  <section class="page" data-page="automation">
+    <div class="pagehead"><div><h1>Automation</h1><p>Alle bekannten Adventure-Land-Items und Materialien suchen, filtern und pro Aktion freigeben oder sperren.</p></div><span class="pill" id="automationCount">0 Items</span></div>
+    <div class="automation-toolbar">
+      <input id="automationSearch" placeholder="Item oder Material suchen …">
+      <select id="automationType"><option value="">Alle Typen</option></select>
+      <select id="automationClass"><option value="">Alle Klassen</option><option>warrior</option><option>paladin</option><option>priest</option><option>ranger</option><option>rogue</option><option>mage</option><option>merchant</option></select>
+      <select id="automationNpc"><option value="">Alle NPCs</option></select>
+      <input id="automationLevelMin" type="number" min="0" placeholder="Level min">
+      <input id="automationLevelMax" type="number" min="0" placeholder="Level max">
+      <select id="automationCapability"><option value="">Alle Fähigkeiten</option><option value="upgrade">Verbesserbar</option><option value="compound">Kombinierbar</option><option value="npc">Beim NPC</option><option value="protected">Geschützt/Spezial</option></select>
+    </div>
+    <div class="notice">Rechtsklick auf ein Item öffnet dieselben Regeln wie im Charakter-Inventar: Auto / Erlauben / Verbieten für Verkaufen, Bank, Kombinieren und Verbessern.</div>
+    <div id="automationGrid" class="automation-grid"></div>
   </section>
 
   <section class="page" data-page="economy">
@@ -52,17 +62,13 @@ export const DASHBOARD_FRAGMENT_3 = `  <p>Verbinde dich mit dem v3-Dashboard. De
     <div class="events" id="eventsRoot"></div>
   </section>
 
-  <section class="page" data-page="data">
-    <div class="pagehead"><div><h1>Daten & Datenbanken</h1><p>Nach Zweck geordnet: Live-Zustand, Lernen, Diagnose und Langzeitgedächtnis.</p></div></div>
-    <div class="data-categories" id="dbRoot"></div>
-  </section>
 </div>
 </main>
 
 <div id="toast" class="toast hidden"></div>
 <script>
 (function(){
-const pages=[['overview','Übersicht'],['characters','Charaktere'],['combat','Party & Kampf'],['economy','Merchant & Economy'],['brain','Gehirn'],['settings','Einstellungen'],['events','Events'],['data','Daten']];
+const pages=[['overview','Übersicht'],['characters','Charaktere'],['automation','Automation'],['economy','Merchant & Economy'],['brain','Gehirn'],['settings','Einstellungen'],['events','Events']];
 const categoryIcons={'Runtime':'⏱','Party & Formation':'👥','Kampf & Risiko':'⚔','Fernkampf & Kiting':'🏹','Skills & Ressourcen':'✨','Farming & Ziele':'🎯','Travel & Recovery':'🧭','Merchant & Service':'🧳','Economy, Gear & Markt':'💰','Gehirn & Lernen':'🧠','Cloud & Telemetrie':'☁'};
 let readKey=sessionStorage.getItem('aioV3ReadKey')||'',adminKey=sessionStorage.getItem('aioV3AdminKey')||'',overview=null,settings=null,brain=null,health=null,dirty={},eventFingerprint='';
 let openCats={};try{openCats=JSON.parse(localStorage.getItem('aioV3SettingsOpen')||'{}')||{}}catch(e){}
@@ -110,7 +116,6 @@ function renderQuotaDeck(){
   requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll('.capacity-fill[data-width]').forEach(el=>{el.style.width=el.dataset.width+'%'})))
 }
 function settingValue(key,fallback){const vals=settings&&settings.settings&&settings.settings.values||{};return dirty[key]!==undefined?dirty[key]:(vals[key]===undefined?fallback:vals[key])}
-function renderOverview(){if(!overview)return;const chars=overview.characters||[];$('overviewTime').textContent='Stand '+new Date(overview.now||Date.now()).toLocaleTimeString('de-DE');$('characterCards').innerHTML=chars.length?chars.map(charCard).join(''):'<div class="empty">Noch keine v3 Runtime-Snapshots.</div>';renderQuotaDeck();renderCombat(chars);renderEconomy(chars);renderData(overview.database||{})}
-function renderCombat(chars){const farmers=chars.filter(x=>String(x.status&&x.status.character&&x.status.character.ctype||'').toLowerCase()!=='merchant');$('combatGrid').innerHTML=farmers.map(x=>{const s=x.status||{},a24=s.combat&&s.combat.alpha24||{},tank=a24.currentTankAssessment||{},st=a24.stats||{},f=s.farmer||{};return '<div class="card"><h3>'+esc(s.character&&s.character.name||x.character)+'</h3><div class="line"><span>Range</span><b>'+fmt(s.character&&s.character.range)+'</b></div><div class="line"><span>Tank erkannt</span><b>'+esc(tank.name||'–')+' · '+esc(tank.combatStyle||'–')+'</b></div><div class="line"><span>Kite Confidence</span><b>'+fmt(100*Number(tank.kiteConfidence||0))+'%</b></div><div class="line"><span>Ziel</span><b>'+esc(f.targetType||'–')+'</b></div><div class="line"><span>Range-Moves</span><b>'+fmt(st.rangedFirePositionMoves)+'</b></div><div class="line"><span>Kite Risk Overrides</span><b>'+fmt(st.kiteRiskOverrides)+'</b></div><div class="line"><span>TTK Rejects</span><b>'+fmt(st.killTimeRejects)+'</b></div></div>'}).join('')||'<div class="empty">Keine Farmer-Daten.</div>'}
+function renderOverview(){if(!overview)return;const chars=overview.characters||[];$('overviewTime').textContent='Stand '+new Date(overview.now||Date.now()).toLocaleTimeString('de-DE');$('characterCards').innerHTML=chars.length?chars.map(charCard).join(''):'<div class="empty">Noch keine v3 Runtime-Snapshots.</div>';renderQuotaDeck();renderAutomation();renderEconomy(chars)}
 function renderEconomy(chars){const m=chars.find(x=>String(x.status&&x.status.character&&x.status.character.ctype||'').toLowerCase()==='merchant');if(!m){$('economyGrid').innerHTML='<div class="empty">Merchant noch nicht synchronisiert.</div>';return}const s=m.status||{},e=s.economy||{},home=e.homeService||{},mh=e.marketHistory||{},go=e.gearOptimization||{},tr=e.transferQueue||{},conv=s.alpha27||s.combat&&s.combat.alpha27||{},risk=conv.merchant&&conv.merchant.risk||{};const upgrade=risk.maxUpgradeLevel!=null?risk.maxUpgradeLevel:settingValue('economy.maxUpgrade',2),compound=risk.maxCompoundLevel!=null?risk.maxCompoundLevel:settingValue('economy.maxCompound',1);$('economyGrid').innerHTML=[['Home Service',home.phase||'–','Grund: '+(home.phaseReason||'–')],['Account Pool',fmt(e.accountItemPool&&e.accountItemPool.itemCount)+' Items',fmt(e.accountItemPool&&e.accountItemPool.uniqueItems)+' unique'],['Gear Optimizer',fmt(go.assignments)+' Assignments',fmt(go.multiHop)+' Multi-Hop'],['Transfer Queue',fmt(tr.total)+' Jobs',fmt(tr.readyMerchantToTarget)+' bereit'],['Market History',fmt(mh.trackedItems)+' Items','Save Errors '+fmt(mh.stats&&mh.stats.saveErrors)],['Capacity',e.capacityPlan?fmt(e.capacityPlan.effectiveFreeSlots)+' frei':'–',e.capacityPlan&&e.capacityPlan.shouldBank?'Bank nötig':'kein Bankdruck'],['Upgrade-Limit','+'+fmt(upgrade),'Hard Cap +7'],['Compound-Limit','+'+fmt(compound),'Hard Cap +10']].map(x=>'<div class="card"><h3>'+x[0]+'</h3><div class="metric">'+esc(x[1])+'</div><div class="sub">'+esc(x[2])+'</div></div>').join('')}
 `;

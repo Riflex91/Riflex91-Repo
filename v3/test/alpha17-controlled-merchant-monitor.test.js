@@ -358,12 +358,31 @@ test('Session Monitor exports the complete retained redacted log and copies it w
   for (let i = 0; i < 150; i += 1) log.emit({ component: 'test', event: 'ROW', data: { i, token: `secret-${i}` } });
   let copied = null;
   const root = { navigator: { clipboard: { async writeText(text) { copied = text; } } } };
-  const runtime = { log, status: () => ({ version: '3.0.0-alpha.17.0', running: true, mode: 'shadow', character: character(), inventory: {}, economy: {}, travel: {}, supervisor: {}, party: {}, gearProgression: {} }) };
+  const runtime = {
+    log,
+    currentPartyFingerprint: { key: 'party-test' },
+    currentEncounterFingerprint: { key: 'encounter-test' },
+    strategicBrainV2: { status: () => ({ mode: 'brain-v2', quality: { state: 'healthy' } }) },
+    adaptivePullLearner: { status: () => ({ samples: 12, confidence: 0.8 }) },
+    encounterLifecycle: { status: () => ({ active: false, history: 4 }) },
+    partyPerformance: { status: () => ({ records: 3 }) },
+    status: () => ({ version: '3.0.0-alpha.17.0', running: true, mode: 'shadow', character: character(), inventory: {}, economy: {}, travel: {}, supervisor: {}, party: {}, gearProgression: {} })
+  };
+  log.emit({ component: 'travel', event: 'ROUTE_FAILED', severity: 'warn', reason: 'NO_PATH' });
+  log.emit({ component: 'travel', event: 'ROUTE_FAILED', severity: 'warn', reason: 'NO_PATH' });
   const monitor = new SessionMonitor({ root, runtime, log, now: () => 999 });
   const bundle = JSON.parse(monitor.exportSession());
   assert.equal(bundle.eventLog.retained, 120);
   assert.equal(bundle.eventLog.completeRetainedLog, true);
   assert.equal(bundle.eventLog.events[0].data.token, '[redacted]');
+  assert.equal(bundle.brain.mode, 'brain-v2');
+  assert.equal(bundle.learning.partyFingerprint.key, 'party-test');
+  assert.equal(bundle.learning.encounterFingerprint.key, 'encounter-test');
+  assert.equal(bundle.learning.adaptivePull.samples, 12);
+  assert.equal(bundle.learning.encounterLifecycle.history, 4);
+  assert.equal(bundle.learning.partyPerformance.records, 3);
+  assert.ok(bundle.diagnosticSignals.priority.some((row) => row.event === 'ROUTE_FAILED'));
+  assert.ok(bundle.diagnosticSignals.repeated.some((row) => row.event === 'ROUTE_FAILED' && row.count >= 2));
   const result = await monitor.copyToClipboard();
   assert.equal(result.copied, true);
   assert.equal(result.method, 'navigator.clipboard');
@@ -384,6 +403,9 @@ test('Debug monitor GUI exposes a wired Log kopieren button while remaining read
   assert.equal(typeof ui.copyButton.onclick, 'function');
   assert.equal(ui.status().actionAuthority, false);
   assert.equal(ui.status().directGameplayActionAccess, false);
+  assert.ok(ui.body);
+  assert.equal(ui.body.children.length, 0);
+  assert.ok(ui.logBox);
   ui.destroy();
 });
 

@@ -74,14 +74,37 @@ test('command center exposes an alternate touch-first mobile interface', () => {
   assert.match(DASHBOARD_HTML, /📱 Mobil/);
 });
 
-test('command center keeps the cognitive brain, simplified settings and important-event filters', () => {
+test('command center keeps brain/settings/events and removes obsolete combat/data pages', () => {
   assert.match(DASHBOARD_HTML, /THOUGHT STREAM/);
   assert.match(DASHBOARD_HTML, /COMMAND AUTHORITY/);
   assert.match(DASHBOARD_HTML, /function isImportantEvent/);
   assert.match(DASHBOARD_HTML, /KRITISCH/);
   assert.match(DASHBOARD_HTML, /WARNUNG/);
-  assert.match(DASHBOARD_HTML, /Live-Zustand/);
-  assert.match(DASHBOARD_HTML, /Lernen & Entscheidungen/);
-  assert.match(DASHBOARD_HTML, /Diagnose & Audit/);
-  assert.match(DASHBOARD_HTML, /Cloud & Langzeitgedächtnis/);
+  assert.doesNotMatch(DASHBOARD_HTML, /data-page="combat"/);
+  assert.doesNotMatch(DASHBOARD_HTML, /data-page="data"/);
+  assert.doesNotMatch(DASHBOARD_HTML, />Party & Kampf</);
+  assert.doesNotMatch(DASHBOARD_HTML, />Daten & Datenbanken</);
+});
+
+test('Automation exposes the full item-policy workflow and inventory right-click hooks', () => {
+  assert.match(DASHBOARD_HTML, /data-page="automation"/);
+  assert.match(DASHBOARD_HTML, />Automation</);
+  assert.match(DASHBOARD_HTML, /id="automationSearch"/);
+  assert.match(DASHBOARD_HTML, /id="automationType"/);
+  assert.match(DASHBOARD_HTML, /id="automationClass"/);
+  assert.match(DASHBOARD_HTML, /id="automationNpc"/);
+  assert.match(DASHBOARD_HTML, /id="automationLevelMin"/);
+  assert.match(DASHBOARD_HTML, /id="automationLevelMax"/);
+  assert.match(DASHBOARD_HTML, /id="automationCapability"/);
+  assert.match(DASHBOARD_HTML, /Verkaufen/);
+  assert.match(DASHBOARD_HTML, /In Bank legen/);
+  assert.match(DASHBOARD_HTML, /Kombinieren/);
+  assert.match(DASHBOARD_HTML, /Verbessern/);
+  assert.match(DASHBOARD_HTML, /Auto/);
+  assert.match(DASHBOARD_HTML, /Erlauben/);
+  assert.match(DASHBOARD_HTML, /Verbieten/);
+  assert.match(DASHBOARD_HTML, /Geschützt\/gesperrt/);
+  assert.match(DASHBOARD_HTML, /contextmenu/);
+  assert.match(DASHBOARD_HTML, /data-item-name/);
+  assert.match(DASHBOARD_HTML, /economy\.itemPermissions/);
 });
