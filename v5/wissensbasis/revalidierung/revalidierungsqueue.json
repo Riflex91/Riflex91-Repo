@@ -198,7 +198,49 @@
     {
       "id": "V5-P0-07",
       "title": "Request-/Call-Cost- und Rate-Limit-Modell",
-      "status": "IN_PROGRESS"
+      "status": "DONE",
+      "progress": {
+        "updatedAt": "2026-09-19",
+        "resource": "character:socket_call_budget",
+        "serverWindowMs": 4000,
+        "serverLimit": 200,
+        "v5PlannedBudget": 100,
+        "reserve": 100,
+        "directSocketActionContracts": 58,
+        "deferredTechnicalMax": 3200,
+        "managedMutatingFifoMaxInFlight": 1,
+        "safetiesEnabled": true,
+        "mcpRateLimitsSeparated": true,
+        "mainframeCpuSeparated": true,
+        "ccreportRole": "DIAGNOSTIC_ONLY",
+        "invariantsAdded": [
+          "V5-INV-087",
+          "V5-INV-088",
+          "V5-INV-089",
+          "V5-INV-090",
+          "V5-INV-091",
+          "V5-INV-092",
+          "V5-INV-093",
+          "V5-INV-094",
+          "V5-INV-095",
+          "V5-INV-096",
+          "V5-INV-097",
+          "V5-INV-098"
+        ],
+        "hazardsAdded": [
+          "V5-GEF-152",
+          "V5-GEF-153",
+          "V5-GEF-154",
+          "V5-GEF-155",
+          "V5-GEF-156",
+          "V5-GEF-157",
+          "V5-GEF-158",
+          "V5-GEF-159",
+          "V5-GEF-160",
+          "V5-GEF-161"
+        ],
+        "note": "P0-07 geschlossen: gewichtetes character-globales Socket-Budget, Deferred-/Safety-Grenzen, externe MCP-Token-Buckets und Mainframe-CPU sind getrennt. Unbekannte interne Zusatzkosten bleiben konservativ reserviert; limitdc nach moeglichem Send wird reconciled statt retried."
+      }
     }
   ],
   "highVolatilityTopics": [
