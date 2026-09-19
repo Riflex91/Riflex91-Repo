@@ -261,7 +261,23 @@ function installMerchantProduction(runtime, options = {}) {
     }).finally(() => { state.executionPending = false; });
     return true;
   }
+  function setProductionExchangeDemand(source = null, targetMaterial = null, expiresAt = null) {
+    const existing = Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : [];
+    const retained = existing.filter((row) => row && String(row.reason || '') !== 'PRODUCTION_MATERIAL');
+    if (source && source.kind === 'EXCHANGE_MATERIAL_DROP' && source.material) {
+      retained.push({
+        item: String(source.material),
+        target: String(source.targetMaterial || targetMaterial || ''),
+        reason: 'PRODUCTION_MATERIAL',
+        expiresAt: Number(expiresAt) || runtime.now() + state.materialObjectiveTtlMs
+      });
+    }
+    runtime.merchantExchangeDemands = retained;
+    return true;
+  }
+
   function clearProductionMaterialObjective(reason = 'PRODUCTION_MATERIAL_OBJECTIVE_NO_LONGER_REQUIRED') {
+    setProductionExchangeDemand(null);
     const logistics = runtime.controlledPartyLogistics;
     if (!logistics || typeof logistics.clearProductionMaterialObjective !== 'function') return false;
     return logistics.clearProductionMaterialObjective(reason);
@@ -290,14 +306,24 @@ function installMerchantProduction(runtime, options = {}) {
     const selected = decision.selected;
     const material = selected.nextMaterial;
     const source = material.source;
+    const expiresAt = runtime.now() + state.materialObjectiveTtlMs;
+    setProductionExchangeDemand(source, material.name, expiresAt);
+    const farmMaterial = source.kind === 'EXCHANGE_MATERIAL_DROP' ? source.material : material.name;
+    const farmQuantity = source.kind === 'EXCHANGE_MATERIAL_DROP'
+      ? Math.max(1, Math.floor(n(source.farmQuantity, n(source.requiredPerExchange, 1))))
+      : Math.max(1, Math.floor(n(material.remainingToFarm, material.quantity)));
     return logistics.publishProductionMaterialObjective({
-      objectiveId: `production-material:${selected.target.output}:${selected.target.recipient || ''}:${material.name}`,
+      objectiveId: `production-material:${selected.target.output}:${selected.target.recipient || ''}:${farmMaterial}`,
       output: selected.target.output,
       recipient: selected.target.recipient || null,
       slot: selected.target.slot || null,
-      material: material.name,
-      level: material.level,
-      requiredQuantity: material.quantity,
+      material: farmMaterial,
+      targetMaterial: material.name,
+      acquisitionKind: source.kind,
+      level: source.kind === 'EXCHANGE_MATERIAL_DROP' ? 0 : material.level,
+      requiredQuantity: farmQuantity,
+      exchangeRequired: source.requiredPerExchange || null,
+      exchangeRewardPerOperation: source.rewardPerExchange || null,
       monster: source.monster,
       map: source.map,
       x: source.x,
@@ -308,7 +334,7 @@ function installMerchantProduction(runtime, options = {}) {
       maxTeamFarmHours: selected.maxTeamFarmHours,
       utilityPerFarmHour: selected.utilityPerFarmHour,
       evidence: source.evidence,
-      expiresAt: runtime.now() + state.materialObjectiveTtlMs
+      expiresAt
     });
   }
 
@@ -406,6 +432,11 @@ function installMerchantProduction(runtime, options = {}) {
         maxTeamFarmHours: state.maxTeamFarmHours,
         fallbackKillsPerHour: state.fallbackKillsPerHour,
         objectiveTtlMs: state.materialObjectiveTtlMs,
+        longPathsAreDeferredNotBlocked: true,
+        preferredFarmHoursThreshold: state.maxTeamFarmHours,
+        gearBenefitPrimary: true,
+        characterLevelUsedForStrengthRanking: false,
+        exchangeBackedMaterialAcquisition: true,
         lastDecision: clone(state.lastMaterialFarmDecision)
       },
       taskCoordinator: taskCoordinator() && typeof taskCoordinator().status === 'function' ? taskCoordinator().status() : null,
