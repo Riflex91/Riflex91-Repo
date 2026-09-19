@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.20.139 | generated | remote runtime | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.140 | generated | remote runtime | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -1144,7 +1144,7 @@ module.exports = { Runtime, VERSION };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.139';
+const RELEASE_VERSION = '3.0.0-alpha.20.140';
 
 module.exports = { RELEASE_VERSION };
 
