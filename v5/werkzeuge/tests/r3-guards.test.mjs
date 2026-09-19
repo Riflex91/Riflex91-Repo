@@ -85,3 +85,18 @@ test("Node fs bleibt ausserhalb der Persistenzadapter-Grenze verboten", () => {
     "DIREKTER_DATEISYSTEMZUGRIFF",
   );
 });
+
+test("SSD Adapter ist im Scheduler Hot Path verboten", () => {
+  erwartet(
+    "scheduler/quelle/planer.ts",
+    'import x from "../../grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs";',
+    "SSD_HOT_PATH_ZUGRIFF",
+  );
+});
+
+test("Persistenzkoordination ausserhalb des Hot Paths darf typisierte Adaptergrenze nutzen", () => {
+  assert.ok(!pruefeQuelltext(
+    "persistenz/quelle/koordination.ts",
+    'import x from "../../grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs";',
+  ).includes("SSD_HOT_PATH_ZUGRIFF"));
+});
