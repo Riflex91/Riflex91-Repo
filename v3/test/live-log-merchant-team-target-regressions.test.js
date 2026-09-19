@@ -1,5 +1,7 @@
 'use strict';
 
+// CI anchor: verify source, generated runtime bundle, Merchant liveness fixes, and team-target replication together.
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
