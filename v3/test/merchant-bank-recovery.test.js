@@ -154,7 +154,10 @@ test('bank recovery travels to bank only when the bounded probe is due', async (
   fx.root.character.bank = null;
   fx.root.character.map = 'main';
   fx.setNow(2000);
-  assert.equal(recovery.plan(), null);
+  const visibilityHold = recovery.plan();
+  assert.equal(visibilityHold.action, 'HOLD');
+  assert.equal(visibilityHold.reason, 'BANK_RECOVERY_WAITING_FOR_BANK_VISIBILITY');
+  assert.equal(visibilityHold.keepTask, true);
 });
 
 // Live regression: ringsj had the largest ready backlog but was starved by lexical group selection.
