@@ -63,6 +63,8 @@ export class NodeLiveWissensDateisystem {
       await handle.close();
       handle = undefined;
       await fs.rename(temp, ziel);
+      await this.#syncDatei(ziel);
+      await this.#syncVerzeichnis(path.dirname(ziel));
     } catch (fehler) {
       try {
         if (handle !== undefined) await handle.close();
@@ -78,9 +80,57 @@ export class NodeLiveWissensDateisystem {
     }
   }
 
+  async haengeTextDurable(relativerPfad, inhalt) {
+    const ziel = this.#ziel(relativerPfad);
+    let handle;
+    try {
+      await fs.mkdir(path.dirname(ziel), { recursive: true });
+      handle = await fs.open(ziel, "a");
+      await handle.writeFile(inhalt, "utf8");
+      await handle.sync();
+      await handle.close();
+      handle = undefined;
+      await this.#syncVerzeichnis(path.dirname(ziel));
+    } catch (fehler) {
+      try {
+        if (handle !== undefined) await handle.close();
+      } catch {
+        // Original error wins.
+      }
+      throw mappeDateisystemFehler(fehler);
+    }
+  }
+
+  async erstelleExklusivDurable(relativerPfad, inhalt) {
+    const ziel = this.#ziel(relativerPfad);
+    let handle;
+    try {
+      await fs.mkdir(path.dirname(ziel), { recursive: true });
+      handle = await fs.open(ziel, "wx");
+      await handle.writeFile(inhalt, "utf8");
+      await handle.sync();
+      await handle.close();
+      handle = undefined;
+      await this.#syncVerzeichnis(path.dirname(ziel));
+      return true;
+    } catch (fehler) {
+      try {
+        if (handle !== undefined) await handle.close();
+      } catch {
+        // Original error wins.
+      }
+      if (fehler && typeof fehler === "object" && fehler.code === "EEXIST") {
+        return false;
+      }
+      throw mappeDateisystemFehler(fehler);
+    }
+  }
+
   async entferneDurable(relativerPfad) {
     try {
-      await fs.rm(this.#ziel(relativerPfad), { force: true });
+      const ziel = this.#ziel(relativerPfad);
+      await fs.rm(ziel, { force: true });
+      await this.#syncVerzeichnis(path.dirname(ziel));
     } catch (fehler) {
       throw mappeDateisystemFehler(fehler);
     }
@@ -124,6 +174,26 @@ export class NodeLiveWissensDateisystem {
     } catch (fehler) {
       if (fehler && typeof fehler === "object" && fehler.code === "ENOENT") return undefined;
       throw mappeDateisystemFehler(fehler);
+    }
+  }
+
+  async #syncDatei(ziel) {
+    const handle = await fs.open(ziel, "r");
+    try {
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+  }
+
+  async #syncVerzeichnis(verzeichnis) {
+    if (process.platform === "win32") return;
+    let handle;
+    try {
+      handle = await fs.open(verzeichnis, "r");
+      await handle.sync();
+    } finally {
+      if (handle !== undefined) await handle.close();
     }
   }
 
