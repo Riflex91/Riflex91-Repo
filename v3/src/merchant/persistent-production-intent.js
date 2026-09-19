@@ -174,9 +174,9 @@ class PersistentProductionIntent {
       this.active.planId = clean(details.plan.id);
       this.active.planState = clean(details.plan.state);
     }
-    if (Object.prototype.hasOwnProperty.call(details, 'progress')) this.active.progress = clone(details.progress);
-    if (Object.prototype.hasOwnProperty.call(details, 'material')) this.active.material = clone(details.material);
-    if (Object.prototype.hasOwnProperty.call(details, 'lastExecution')) this.active.lastExecution = clone(details.lastExecution);
+    if (Object.prototype.hasOwnProperty.call(details, 'progress') && details.progress !== undefined) this.active.progress = clone(details.progress);
+    if (Object.prototype.hasOwnProperty.call(details, 'material') && details.material !== undefined) this.active.material = clone(details.material);
+    if (Object.prototype.hasOwnProperty.call(details, 'lastExecution') && details.lastExecution !== undefined) this.active.lastExecution = clone(details.lastExecution);
     if (details.recoveryPending != null) this.active.recoveryPending = details.recoveryPending === true;
     this.stats.updated += 1;
     return this._persist();
