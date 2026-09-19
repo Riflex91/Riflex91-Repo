@@ -172,7 +172,7 @@ The dedicated browser profile is under:
 
 ## Config migration
 
-Config version 5 removes the old FTPS/bplaced settings from `settings.json`. Loading an older Bridge config migrates it to version 5; obsolete FTPS fields are not written back. The old FTP library and FTPS credential store are no longer part of the Windows Bridge project.
+Config version 5 removed the old FTPS/bplaced settings from `settings.json`. Config version 6 adds the Wissenswaechter settings with a fixed 60-minute interval and the V5 Wissensbasis scope. Loading an older Bridge config migrates it to the current version; obsolete FTPS fields are not written back. The old FTP library and FTPS credential store are no longer part of the Windows Bridge project.
 
 ## Build
 
@@ -211,3 +211,40 @@ Run:
 - no FTP/FTPS library or bplaced-specific configuration remains in the Windows Bridge;
 - no service-role key is present in the desktop app;
 - no generic evaluate/invoke or remote-shell surface is exposed.
+
+
+## GitHub-Anmeldung und Wissenswaechter
+
+Die Bridge kann sich ueber den mit Git for Windows ausgelieferten Git Credential Manager bei GitHub anmelden. Der Login verwendet den Browser-OAuth-Flow; die Bridge speichert selbst weder GitHub-Passwort noch GitHub-Token in `settings.json`.
+
+Der Wissenswaechter ist standardmaessig aktiviert und laeuft einmal pro Stunde. Ein zusaetzlicher manueller Lauf kann jederzeit ueber die Oberflaeche gestartet werden.
+
+### Harte Repo-Grenze
+
+Der Waechter darf ausschliesslich in folgendem Bereich lesen und schreiben:
+
+```text
+v5/wissensbasis/**
+```
+
+Technische Verriegelungen:
+
+- der lokale Clone wird mit `--filter=blob:none --sparse --no-checkout` angelegt;
+- Sparse Checkout wird auf genau `v5/wissensbasis` gesetzt;
+- alle Dateipfade werden vor lokalem Zugriff gegen diese Wurzel validiert;
+- vor dem Commit werden alle gestageten Pfade verifiziert;
+- nach einem Rebase wird der erzeugte Commit nochmals verifiziert;
+- Pfade ausserhalb von `v5/wissensbasis/**` fuehren zum Abbruch;
+- es gibt keinen Force-Push.
+
+Automatisch erzeugte Laufdaten liegen standardmaessig unter:
+
+```text
+v5/wissensbasis/datenbank/**
+```
+
+Der gesamte erlaubte Lese- und Schreibbereich bleibt jedoch `v5/wissensbasis/**`.
+
+### Quellenverarbeitung
+
+Pro Lauf werden die registrierten Quellen aus `v5/wissensbasis/quellen/quellen.json` geprueft. Inhalte werden per SHA-256 verglichen. Zusaetzlich sucht die Bridge nach neuen Adventure-Land-Quellen. Neue oder nicht offizielle Quellen werden als Kandidaten gespeichert und nicht automatisch zu bestaetigten Fakten erhoben.
