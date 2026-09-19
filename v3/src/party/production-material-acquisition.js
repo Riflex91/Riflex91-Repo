@@ -300,7 +300,9 @@ function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, opti
       }
       : probabilisticOperations({
         requiredRewards: need,
-        rewardUnitsPerOperation: rewardPerExchange
+        rewardUnitsPerOperation: rewardPerExchange,
+        successProbability: rewardProfile.probability,
+        unitsPerSuccess: rewardProfile.unitsPerSuccess
       });
     const expectedExchangeOperations = operations.expectedOperations;
     const p50ExchangeOperations = operations.p50Operations;
