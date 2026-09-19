@@ -51,12 +51,42 @@
     {
       "id": "V5-P0-03",
       "title": "Bank-Concurrency mehrerer eigener Characters",
-      "status": "IN_PROGRESS"
+      "status": "DONE",
+      "progress": {
+        "updatedAt": "2026-09-19",
+        "serverModel": "ACCOUNT_GLOBAL_SINGLE_BANK_MOUNT",
+        "serverFence": [
+          "owner.server",
+          "owner.mounted_to",
+          "bank_opx"
+        ],
+        "v5AuthorityOwner": "ACCOUNT_COORDINATOR",
+        "leaseResource": "account:bank",
+        "invariantsAdded": [
+          "V5-INV-051",
+          "V5-INV-052",
+          "V5-INV-053",
+          "V5-INV-054",
+          "V5-INV-055",
+          "V5-INV-056",
+          "V5-INV-057"
+        ],
+        "hazardsAdded": [
+          "V5-GEF-116",
+          "V5-GEF-117",
+          "V5-GEF-118",
+          "V5-GEF-119",
+          "V5-GEF-120",
+          "V5-GEF-121",
+          "V5-GEF-122"
+        ],
+        "note": "Official server source enforces one mounted bank character per account. V5 mirrors this with an account-wide Coordinator lease plus character-local bank channel and fail-closed external fencing."
+      }
     },
     {
       "id": "V5-P0-04",
       "title": "Trade Listing Lifecycle, RID und Partial Sale",
-      "status": "OPEN"
+      "status": "IN_PROGRESS"
     },
     {
       "id": "V5-P0-05",
