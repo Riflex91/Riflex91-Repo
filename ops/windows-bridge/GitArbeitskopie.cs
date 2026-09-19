@@ -29,7 +29,16 @@ public sealed class GitArbeitskopie
                 Directory.Delete(_wurzel, recursive: true);
 
             var clone = await GitHubAnmeldung.FuehreGitAusAsync(
-                ["clone", "--branch", ZielBranch, "--single-branch", RepositoryUrl, _wurzel],
+                [
+                    "clone",
+                    "--filter=blob:none",
+                    "--sparse",
+                    "--no-checkout",
+                    "--branch", ZielBranch,
+                    "--single-branch",
+                    RepositoryUrl,
+                    _wurzel
+                ],
                 cancellationToken: cancellationToken,
                 timeout: TimeSpan.FromMinutes(3));
             VerlangeErfolg(clone, "GIT_CLONE_FEHLGESCHLAGEN");
