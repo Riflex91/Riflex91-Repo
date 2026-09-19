@@ -596,8 +596,60 @@ function installMerchantProduction(runtime, options = {}) {
     });
     state.lastMaterialFarmDecision = { at: runtime.now(), ...clone(decision) };
     if (!decision.selected || !decision.selected.nextMaterial || !decision.selected.nextMaterial.source) {
-      const awaitingTransfer = (decision.evaluated || []).some((row) => row && row.reason === 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER');
-      if (awaitingTransfer) return true;
+      const awaitingTransfer = (decision.evaluated || []).find((row) => row && row.reason === 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER');
+      if (awaitingTransfer) {
+        const materials = Array.isArray(awaitingTransfer.materials) ? awaitingTransfer.materials : [];
+        const previous = logistics.lastProductionMaterialObjective || null;
+        const preferred = previous && materials.find((row) => row && row.awaitingTransfer === true
+          && String(row.handoffMaterial || row.name || '') === String(previous.material || '')
+          && Math.max(0, Math.floor(n(row.handoffLevel, row.level))) === Math.max(0, Math.floor(n(previous.level, 0))));
+        const material = preferred || materials.find((row) => row && row.awaitingTransfer === true);
+        if (!material) return true;
+        const handoffMaterial = String(material.handoffMaterial || material.name || '');
+        const handoffLevel = Math.max(0, Math.floor(n(material.handoffLevel, material.level)));
+        const handoffQuantity = Math.max(1, Math.floor(n(material.handoffQuantity, material.quantity)));
+        const heldByFarmers = Math.max(handoffQuantity, Math.floor(n(material.heldByFarmers, material.alreadyOnFarmers)));
+        const expiresAt = runtime.now() + state.materialObjectiveTtlMs;
+        const source = material.source || null;
+        setProductionExchangeDemand(source && source.kind === 'EXCHANGE_MATERIAL_DROP' ? source : null, material.name, expiresAt);
+        const handoffPlan = { ...clone(plan), target: clone(awaitingTransfer.target || {
+          output: awaitingTransfer.output,
+          recipient: awaitingTransfer.recipient,
+          slot: awaitingTransfer.slot
+        }) };
+        persistIntentForTarget(handoffPlan, handoffPlan.target, 'MATERIAL_READY_FOR_HANDOFF', {
+          reason: 'TARGET_QUANTITY_HELD_BY_FARMERS',
+          material: {
+            material: handoffMaterial,
+            targetMaterial: material.name,
+            level: handoffLevel,
+            requiredQuantity: handoffQuantity,
+            heldByFarmers,
+            acquisitionKind: source && source.kind || 'DIRECT_MATERIAL_DROP'
+          },
+          progress: {
+            requiredQuantity: handoffQuantity,
+            heldByFarmers,
+            remainingToFarm: 0,
+            transferPending: true
+          }
+        });
+        if (typeof logistics.publishProductionMaterialHandoffReady !== 'function') return true;
+        return logistics.publishProductionMaterialHandoffReady({
+          objectiveId: previous && previous.objectiveId || `production-material:${awaitingTransfer.output || ''}:${awaitingTransfer.recipient || ''}:${handoffMaterial}`,
+          output: awaitingTransfer.output,
+          recipient: awaitingTransfer.recipient || null,
+          slot: awaitingTransfer.slot || null,
+          material: handoffMaterial,
+          targetMaterial: material.name,
+          acquisitionKind: source && source.kind || 'DIRECT_MATERIAL_DROP',
+          level: handoffLevel,
+          requiredQuantity: handoffQuantity,
+          heldByFarmers,
+          expiresAt
+        });
+      }
+      persistIntentForTarget(plan, plan.target, 'BLOCKED', { reason: 'NO_KNOWN_PRODUCTION_MATERIAL_FARM_PATH' });
       clearProductionMaterialObjective('NO_KNOWN_PRODUCTION_MATERIAL_FARM_PATH');
       return false;
     }
@@ -610,6 +662,26 @@ function installMerchantProduction(runtime, options = {}) {
     const farmQuantity = source.kind === 'EXCHANGE_MATERIAL_DROP'
       ? Math.max(1, Math.floor(n(source.farmQuantity, n(source.requiredPerExchange, 1))))
       : Math.max(1, Math.floor(n(material.remainingToFarm, material.quantity)));
+    const farmPlan = { ...clone(plan), target: clone(selected.target) };
+    persistIntentForTarget(farmPlan, selected.target, 'FARMING_MATERIAL', {
+      reason: selected.reason,
+      material: {
+        material: farmMaterial,
+        targetMaterial: material.name,
+        level: source.kind === 'EXCHANGE_MATERIAL_DROP' ? 0 : material.level,
+        requiredQuantity: farmQuantity,
+        acquisitionKind: source.kind,
+        monster: source.monster,
+        map: source.map
+      },
+      progress: {
+        requiredQuantity: farmQuantity,
+        heldByFarmers: Math.max(0, Math.floor(n(source.alreadyOnFarmers, material.alreadyOnFarmers))),
+        remainingToFarm: Math.max(0, Math.floor(n(source.farmQuantity, material.remainingToFarm))),
+        expectedHours: source.expectedHours,
+        totalExpectedHours: selected.totalExpectedHours
+      }
+    });
     return logistics.publishProductionMaterialObjective({
       objectiveId: `production-material:${selected.target.output}:${selected.target.recipient || ''}:${farmMaterial}`,
       output: selected.target.output,
