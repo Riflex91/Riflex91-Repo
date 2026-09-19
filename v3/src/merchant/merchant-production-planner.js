@@ -563,12 +563,13 @@ class MerchantProductionPlanner {
       const reserved = Math.max(0, Math.floor(finite(protectedReservations[itemKey(item.name, 0)], 0)));
       const local = Math.max(1, Math.floor(finite(item.q, 1)));
       const usable = Math.max(0, local - reserved);
-      const demandedQuest = demand && demand.quest ? String(demand.quest) : null;
+      const productionDemand = !!(demand && String(demand.reason || '') === 'PRODUCTION_MATERIAL');
+      const demandedQuest = productionDemand && demand.quest ? String(demand.quest) : null;
       const metaQuest = meta.quest ? String(meta.quest) : null;
-      if (demandedQuest && demandedQuest !== metaQuest) continue;
+      if (productionDemand && demandedQuest && demandedQuest !== metaQuest) continue;
       const quest = demandedQuest || metaQuest;
       const questTarget = quest ? questDestination(gameData, quest) : null;
-      if (quest && !questTarget) continue;
+      if (productionDemand && quest && !questTarget) continue;
       const destination = quest || 'exchange';
       const exchangeReason = demand && demand.eventKey && quest
         ? 'EVENT_QUEST_EXCHANGE_REQUIREMENT_SATISFIED'
@@ -615,12 +616,13 @@ class MerchantProductionPlanner {
       const local = itemQuantity(inventory, row.name, 0);
       const reserved = Math.max(0, Math.floor(finite(protectedReservations[itemKey(row.name, 0)], 0)));
       if (Math.max(0, local - reserved) >= required) continue;
-      const demandedQuest = demand && demand.quest ? String(demand.quest) : null;
+      const productionDemand = !!(demand && String(demand.reason || '') === 'PRODUCTION_MATERIAL');
+      const demandedQuest = productionDemand && demand.quest ? String(demand.quest) : null;
       const metaQuest = meta.quest ? String(meta.quest) : null;
-      if (demandedQuest && demandedQuest !== metaQuest) continue;
+      if (productionDemand && demandedQuest && demandedQuest !== metaQuest) continue;
       const quest = demandedQuest || metaQuest;
       const questTarget = quest ? questDestination(gameData, quest) : null;
-      if (quest && !questTarget) continue;
+      if (productionDemand && quest && !questTarget) continue;
       const destination = quest || 'exchange';
       candidates.push({
         name: row.name, required, available: Math.max(0, local - reserved), operations: Math.floor(row.quantity / required), destination,
