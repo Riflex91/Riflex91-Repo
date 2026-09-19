@@ -41,7 +41,8 @@
     "schema/bank-concurrency.schema.json",
     "schema/trade-lifecycle.schema.json",
     "schema/upgrade-compound.schema.json",
-    "schema/exchange-craft.schema.json"
+    "schema/exchange-craft.schema.json",
+    "schema/call-budget.schema.json"
   ],
   "legacyIndex": "legacy/V3-V4-QUELLEN.md",
   "counts": {
@@ -65,7 +66,8 @@
     "officialRepoCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
   },
   "contracts": [
-    "vertraege/action-contracts.json"
+    "vertraege/action-contracts.json",
+    "vertraege/call-budget.json"
   ],
   "laufendeDatenbank": {
     "schemaVersion": 1,
@@ -153,5 +155,19 @@
     "currentCraftDuplicateIngredientNames": 0,
     "anniversaryCraftSeparatePath": true,
     "leveledCompoundDismantleThreeOutput": true
+  },
+  "callBudget": "vertraege/call-budget.json",
+  "callBudgetResearch": {
+    "status": "P0_07_DONE",
+    "sourceSnapshot": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "serverWindowMs": 4000,
+    "serverLimit": 200,
+    "v5PlannedBudget": 100,
+    "reserve": 100,
+    "characterGlobal": true,
+    "managedMutatingFifoMaxInFlight": 1,
+    "safetiesEnabled": true,
+    "mcpSeparated": true,
+    "mainframeCpuSeparated": true
   }
 }
