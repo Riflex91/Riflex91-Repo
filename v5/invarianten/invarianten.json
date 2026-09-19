@@ -4,8 +4,8 @@
   "status": "RATIFIZIERUNG_OFFEN",
   "zusammenfassung": {
     "ausV4": 55,
-    "neuV5": 50,
-    "gesamt": 105
+    "neuV5": 57,
+    "gesamt": 112
   },
   "regel": "Alle 55 V4-Invarianten muessen in R2 explizit UEBERNEHMEN, VERSCHAERFEN oder ERSETZEN erhalten. Keine darf still entfallen.",
   "invarianten": [
@@ -953,6 +953,69 @@
       "ratifizierungsStatus": "V5_VERBINDLICH",
       "v5Entscheidung": "UEBERNEHMEN",
       "begruendung": "Lokale live verifizierte Wissensdatenbank muss sicher persistiert und gespiegelt werden"
+    },
+    {
+      "kennung": "V5-INV-051",
+      "herkunft": "V5_NEU",
+      "aussage": "Bank-Autoritaet ist accountweit und wird ausschliesslich vom Account Coordinator vergeben.",
+      "geplanteDurchsetzung": "AccountCoordinator BankLease Registry + Dependency Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "P0-03 zeigt eine serverseitig accountweite Single-Mount-Semantik; character-lokale Banklocks waeren fachlich falsch."
+    },
+    {
+      "kennung": "V5-INV-052",
+      "herkunft": "V5_NEU",
+      "aussage": "Zu jedem Zeitpunkt existiert hoechstens eine aktive account:bank-Lease je Account.",
+      "geplanteDurchsetzung": "Accountweite Lease + Epoch/Fencing + Test",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Adventure Land selbst erlaubt nur einen gemounteten Bank-Character je Account."
+    },
+    {
+      "kennung": "V5-INV-053",
+      "herkunft": "V5_NEU",
+      "aussage": "Jeder rohe Bank-Write benoetigt gleichzeitig die aktuelle account:bank-Lease und den lokalen bank-Action-Channel des Lease-Owners.",
+      "geplanteDurchsetzung": "Execution Admission Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Accountweite Ownership und character-lokale FIFO-Korrelation sind zwei getrennte Schutzschichten."
+    },
+    {
+      "kennung": "V5-INV-054",
+      "herkunft": "V5_NEU",
+      "aussage": "Disconnect, Prozesscrash oder verlorene Liveness gibt eine account:bank-Lease nicht automatisch frei.",
+      "geplanteDurchsetzung": "Recovery State Machine + Reconciliation",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Der Server kann owner.mounted_to noch halten; automatischer Handover koennte einen stale Owner mit neuer Arbeit ueberlappen."
+    },
+    {
+      "kennung": "V5-INV-055",
+      "herkunft": "V5_NEU",
+      "aussage": "Bank-Snapshots sind an die erfolgreiche Mount-/Lease-Epoch gebunden und duerfen nach Remount/Handover nicht wiederverwendet werden.",
+      "geplanteDurchsetzung": "Epoch-gebundene BankEvidence + Freshness Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "player.user ist eine beim Mount geladene accountweite Bankkopie und kann nach einer anderen Banksitzung stale sein."
+    },
+    {
+      "kennung": "V5-INV-056",
+      "herkunft": "V5_NEU",
+      "aussage": "bank_opx/already_in_bank ist ein externes Fencing-Signal und darf nicht durch Retry, Force oder lokale Lease-Ueberschreibung umgangen werden.",
+      "geplanteDurchsetzung": "External Fence Handler + Quarantaene",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Der Server meldet damit einen bereits gemounteten Character beziehungsweise eine bestehende Account-Bankbelegung."
+    },
+    {
+      "kennung": "V5-INV-057",
+      "herkunft": "V5_NEU",
+      "aussage": "Eine Shell-Bankpack-Freischaltung behaelt Bank-Lease und bank-Channel bis Backend-Terminalresultat und frischer Postcondition.",
+      "geplanteDurchsetzung": "Transaction/Recovery Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Der Server kann zunaechst in_progress bestaetigen und erst spaeter bank_new_pack/bank_new_pack_failed liefern."
     }
   ]
 }
