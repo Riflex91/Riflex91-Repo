@@ -27,7 +27,7 @@ function sammle(verzeichnis) {
 const fehler = [];
 for (const basis of quellWurzeln) {
   for (const datei of sammle(basis)) {
-    const relativ = path.relative(basis, datei).replaceAll("\\", "/");
+    const relativ = path.relative(wurzel, datei).replaceAll("\\", "/");
     const text = fs.readFileSync(datei, "utf8");
     for (const grund of pruefeQuelltext(relativ, text)) {
       fehler.push(path.relative(wurzel, datei).replaceAll("\\", "/") + ": " + grund);
