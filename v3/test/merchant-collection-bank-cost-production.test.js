@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { MerchantProductionPlanner, ProductionStepKind } = require('../src/merchant/merchant-production-planner');
+const { MerchantTaskCoordinator } = require('../src/merchant/merchant-task-coordinator');
 const { PersistentBankCatalog } = require('../src/merchant/persistent-bank-catalog');
 const { installMerchantProduction } = require('../src/merchant/merchant-production-controller');
 const { ControlledPartyLogistics } = require('../src/party/controlled-party-logistics');
@@ -137,6 +138,156 @@ test('merchant production auto-enables scoped BUY/BANK/CRAFT authority in active
   assert.equal(status.controlled.allowBank, true);
   assert.equal(status.controlled.allowCraft, true);
   assert.equal(status.autoLiveEnabled, true);
+});
+
+// Live alpha.20.116 regression: an exchange demand that first retrieves its
+// material from bank must keep one EXCHANGE_BATCH lease through the final exchange.
+// Keep this assertion on the final user-authored PR head after bundle generation.
+test('production exchange bank-retrieve preparation cannot deadlock on its own task key', async () => {
+  let now = 1000;
+  let exchangeCalls = 0;
+  const executedKinds = [];
+  const storage = memoryStorage();
+  const coordinator = new MerchantTaskCoordinator({ now: () => now, defaultLeaseMs: 600000 });
+  const root = {
+    character: {
+      name: 'My_Merchant',
+      ctype: 'merchant',
+      map: 'bank',
+      gold: 20000000,
+      isize: 42,
+      items: [],
+      bank: { items0: [{ name: 'seashell', level: 0, q: 23 }] }
+    },
+    parent: { entities: {} },
+    G: { items: { seashell: { type: 'material', s: 9999 } }, craft: {}, maps: {}, npcs: {} },
+    localStorage: { getItem: storage.get, setItem: storage.set }
+  };
+  const blockedPlan = {
+    id: 'base-blocked',
+    state: 'BLOCKED',
+    reason: 'NO_CURRENTLY_EXECUTABLE_PRODUCTION_CHAIN',
+    reservations: {}
+  };
+  const demand = { item: 'seashell', target: 'elixirdex0', reason: 'ELIXIR_SUPPLY', expiresAt: 999999 };
+  const retrievePlan = {
+    id: 'exchange-retrieve',
+    state: 'READY',
+    reason: 'BANK_MATERIAL_READY',
+    exchangeDemand: demand,
+    target: { item: 'seashell', destination: 'seashell', required: 20, operations: 1 },
+    reservations: {},
+    nextStep: {
+      kind: ProductionStepKind.BANK_RETRIEVE,
+      name: 'seashell',
+      level: 0,
+      quantity: 23,
+      destination: 'bank'
+    }
+  };
+  const exchangePlan = {
+    id: 'exchange-final',
+    state: 'READY',
+    reason: 'NPC_EXCHANGE_READY',
+    exchangeDemand: demand,
+    target: { item: 'seashell', destination: 'seashell', required: 20, operations: 1 },
+    reservations: {},
+    nextStep: {
+      kind: ProductionStepKind.EXCHANGE,
+      name: 'seashell',
+      level: 0,
+      quantity: 20,
+      destination: 'seashell'
+    }
+  };
+  const planner = {
+    plan: () => blockedPlan,
+    planExchange: () => {
+      exchangeCalls += 1;
+      if (exchangeCalls === 1) return retrievePlan;
+      if (exchangeCalls === 2) return exchangePlan;
+      return null;
+    },
+    status: () => ({ lastPlan: null })
+  };
+  const bankCatalog = {
+    observe: () => true,
+    needsRefresh: () => false,
+    status: () => ({ usable: true, snapshot: { packs: ['items0'] } })
+  };
+  const executor = {
+    status: () => ({ enabled: true, busy: false }),
+    execute: async (_plan, step) => {
+      executedKinds.push(step.kind);
+      return {
+        executed: true,
+        committed: true,
+        reason: step.kind === ProductionStepKind.BANK_RETRIEVE
+          ? 'BANK_RETRIEVE_DELTA_VERIFIED'
+          : 'EXCHANGE_INPUT_DELTA_VERIFIED'
+      };
+    },
+    configure: () => {},
+    disable: () => {},
+    reconcile: () => ({})
+  };
+  const runtime = {
+    root,
+    now: () => now,
+    log: { emit() {} },
+    adapter: { mode: 'active', getGameData: () => root.G },
+    globalSupervisor: { status: () => ({ state: 'HEALTHY' }) },
+    characterRegistry: { status: () => ({ characters: [] }) },
+    contentDrift: { requiresRevalidation: () => false },
+    merchantTaskCoordinator: coordinator,
+    merchantExchangeDemands: [demand],
+    alpha27CombatMerchantConvergence: {
+      atomic: {
+        merchantBusy: false,
+        serviceTravelBusy: false,
+        namedServiceTravel: async () => ({ ok: true })
+      }
+    },
+    _merchantCollectionSessionActive: () => false,
+    tick() {},
+    status() { return {}; },
+    exportDiagnostics() { return '{}'; },
+    setMode(mode) { this.adapter.mode = mode; return mode; },
+    stop() {},
+    _liveEnableGate: () => ({ allowed: true })
+  };
+
+  const controller = installMerchantProduction(runtime, { storage, planner, bankCatalog, executor });
+
+  const first = controller.cycle();
+  assert.equal(first.nextStep.kind, ProductionStepKind.BANK_RETRIEVE);
+  await new Promise((resolve) => setImmediate(resolve));
+  let active = coordinator.current();
+  assert.ok(active);
+  assert.equal(active.owner, 'PRODUCTION');
+  assert.equal(active.kind, 'EXCHANGE_BATCH');
+  assert.equal(active.key, 'production:exchange:seashell:elixirdex0');
+  assert.equal(coordinator.status().stats.blocked, 0);
+
+  now += 3500;
+  const second = controller.cycle();
+  assert.equal(second.nextStep.kind, ProductionStepKind.EXCHANGE);
+  await new Promise((resolve) => setImmediate(resolve));
+  active = coordinator.current();
+  assert.ok(active);
+  assert.equal(active.kind, 'EXCHANGE_BATCH');
+  assert.equal(active.key, 'production:exchange:seashell:elixirdex0');
+  assert.equal(coordinator.status().stats.blocked, 0, 'exchange continuation must never block on its own preparatory lease');
+  assert.ok(coordinator.status().stats.continued >= 1);
+
+  now += 3500;
+  controller.cycle();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(coordinator.current(), null);
+  assert.deepEqual(executedKinds, [ProductionStepKind.BANK_RETRIEVE, ProductionStepKind.EXCHANGE]);
+  assert.equal(coordinator.status().stats.acquired, 1);
+  assert.equal(coordinator.status().stats.released, 1);
+  assert.equal(coordinator.status().stats.blocked, 0);
 });
 
 test('Farmer runtime never acquires Merchant production or BANK_CATALOG work', async () => {
