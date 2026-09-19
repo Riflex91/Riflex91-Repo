@@ -1,8 +1,8 @@
 # Block 8.6 – Live Skill Catalog und Capability Truth
 
-Status: **Block 8.6 aktiv; 8.6.1 und 8.6.2 implementiert, naechster Implementierungsschritt 8.6.3.**
+Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.3 implementiert, naechster Implementierungsschritt 8.6.4.**
 
-Naechster Implementierungsschritt: **8.6.3 – Per-Character SkillPolicy und Slider**
+Naechster Implementierungsschritt: **8.6.4 – CharakterFaehigkeiten**
 
 ## Ziel
 
@@ -79,7 +79,7 @@ Abnahme:
 
 Umsetzungsnachweis: `BLOCK-8-6-2-AUDIT-REVALIDIERUNG.md`.
 
-## 8.6.3 – Per-Character SkillPolicy und Slider
+## 8.6.3 – Per-Character SkillPolicy und Slider — **IMPLEMENTIERT**
 
 Pro Charakter werden nur passende, validierte Skills konfigurierbar.
 
@@ -99,6 +99,8 @@ Regeln:
 - unbekannte Controls werden blockiert,
 - Persistenz ist versioniert,
 - Katalogdrift invalidiert keine historischen Daten, kann aber aktuelle Ausfuehrungsfreigabe entziehen.
+
+Umsetzungsnachweis: `BLOCK-8-6-3-SKILL-POLICY.md`.
 
 ## 8.6.4 – CharakterFaehigkeiten
 
