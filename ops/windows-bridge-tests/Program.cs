@@ -46,7 +46,12 @@ Assert(defaults.WissenswaechterMaxKandidaten == 1000, "WISSENSWAECHTER_CANDIDATE
 Assert(CdpBackblazeConfigurator.GlobalConfigName == "AIO_V3_BACKBLAZE_CONFIG", "BACKBLAZE_GLOBAL_NAME");
 Assert(CdpWebDashboardConfigurator.CloudStorageKey == "aio-v3:cloud-control:v1", "WEB_DASHBOARD_CLOUD_STORAGE_KEY");
 Assert(CdpWebDashboardConfigurator.ControlStorageKey == "aio-v3:control-plane-config:v1", "WEB_DASHBOARD_CONTROL_STORAGE_KEY");
+Assert(GitArbeitskopie.WissensbasisPfad == "v5/wissensbasis", "WISSENSWAECHTER_SCOPE_PATH");
 Assert(GitArbeitskopie.DatenbankPfad == "v5/wissensbasis/datenbank", "WISSENSWAECHTER_DATABASE_PATH");
+Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/quellen/quellen.json"), "KNOWLEDGE_READ_ALLOWED");
+Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/datenbank/quellenstatus.json"), "DATABASE_WITHIN_SCOPE_ALLOWED");
+Assert(!GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/dokumentation/V5-MASTER-ROADMAP.md"), "ROADMAP_OUTSIDE_SCOPE_BLOCKED");
+Assert(!GitArbeitskopie.IstErlaubterWissensbasisPfad("ops/windows-bridge/MainWindow.xaml"), "OPS_OUTSIDE_SCOPE_BLOCKED");
 Assert(GitArbeitskopie.IstErlaubterDatenbankPfad("v5/wissensbasis/datenbank/quellenstatus.json"), "DATABASE_CHILD_ALLOWED");
 Assert(GitArbeitskopie.IstErlaubterDatenbankPfad("v5\\wissensbasis\\datenbank\\aktuell\\quelle.txt"), "DATABASE_WINDOWS_PATH_ALLOWED");
 Assert(!GitArbeitskopie.IstErlaubterDatenbankPfad("v5/wissensbasis/fakten/adventure-land-kern.json"), "FACTS_OUTSIDE_DATABASE_BLOCKED");
