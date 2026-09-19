@@ -1,5 +1,5 @@
 import { AdventureLandLesezugriff } from './adventure-land-lesezugriff.js';
-import type { AdventureLandDatenQuelle, GelesenerAdventureLandWert } from './adventure-land-lesezugriff.js';
+import type { AdventureLandDatenQuelle, AdventureLandRohdaten, GelesenerAdventureLandWert } from './adventure-land-lesezugriff.js';
 import { berechneSha256 } from '../telemetrie/sha256.js';
 import { kanonisiereJson } from '../wiederholung/kanonisches-json.js';
 import {
@@ -266,11 +266,18 @@ export class AdventureLandSkillKatalogLesequelle {
   }
 
   public liesKatalog(aufgenommenAm: number): Readonly<SkillKatalog> {
+    return this.liesKatalogAusRohdaten(this.datenQuelle.liesRohdaten(), aufgenommenAm);
+  }
+
+  public liesKatalogAusRohdaten(
+    rohDaten: AdventureLandRohdaten,
+    aufgenommenAm: number
+  ): Readonly<SkillKatalog> {
     if (!Number.isFinite(aufgenommenAm) || aufgenommenAm < 0) throw new Error('aufgenommenAm muss eine endliche, nichtnegative Zahl sein.');
     this.letzteAufnahme = aufgenommenAm;
     let eintraege: readonly SkillKatalogEintrag[];
     try {
-      eintraege = normalisiereSkills(skillsAusG(this.datenQuelle.liesRohdaten().spielDaten));
+      eintraege = normalisiereSkills(skillsAusG(rohDaten.spielDaten));
     } catch (fehler) {
       return this.blockiere(`Adventure-Land-Skilldaten konnten nicht sicher gelesen oder normalisiert werden: ${fehlerText(fehler)}`);
     }
@@ -315,6 +322,14 @@ export class AdventureLandSkillKatalogLesequelle {
     this.zustand = this.fingerprint === null ? 'blockiert' : 'veraltet';
     this.grund = normalisiert;
     this.bestaetigungErforderlich = true;
+    return this.status();
+  }
+
+  public markiereDrift(grund: string): Readonly<SkillKatalog> {
+    const normalisiert = grund.trim();
+    if (normalisiert.length === 0) throw new Error('Skill-Katalog-Drift benoetigt einen Grund.');
+    if (this.fingerprint === null) throw new Error('Skill-Katalog-Drift kann ohne beobachteten Fingerprint nicht markiert werden.');
+    this.setzeDrift(normalisiert);
     return this.status();
   }
 
