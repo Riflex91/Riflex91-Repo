@@ -50,7 +50,11 @@ public sealed class LiveWissensImportDienst
         "accesskey",
         "authorization",
         "cookie",
-        "session"
+        "session",
+        "localpath",
+        "lokalerpfad",
+        "filesystempath",
+        "dateipfad"
     ];
 
     private readonly BridgeConfig _config;
@@ -83,6 +87,8 @@ public sealed class LiveWissensImportDienst
 
         var manifestBytes = await LiesBegrenztAsync(manifestPfad, _config.LiveWissensMaxDateiBytes, cancellationToken);
         var statusVorherBytes = await LiesBegrenztAsync(statusPfad, _config.LiveWissensMaxDateiBytes, cancellationToken);
+        VerweigereLokalenPfadImInhalt(manifestBytes, wurzel);
+        VerweigereLokalenPfadImInhalt(statusVorherBytes, wurzel);
         var manifest = ParseManifest(manifestBytes);
         var statusVorher = ParseStatus(statusVorherBytes);
 
@@ -113,6 +119,7 @@ public sealed class LiveWissensImportDienst
                 throw new InvalidOperationException("LIVE_WISSEN_RELATIVER_PFAD_UNGUELTIG");
 
             var bytes = await LiesBegrenztAsync(datei, _config.LiveWissensMaxDateiBytes, cancellationToken);
+            VerweigereLokalenPfadImInhalt(bytes, wurzel);
             ValidiereLiveFaktJson(bytes);
             gesamtBytes += bytes.LongLength;
 
@@ -126,6 +133,7 @@ public sealed class LiveWissensImportDienst
         }
 
         var statusNachherBytes = await LiesBegrenztAsync(statusPfad, _config.LiveWissensMaxDateiBytes, cancellationToken);
+        VerweigereLokalenPfadImInhalt(statusNachherBytes, wurzel);
         var statusNachher = ParseStatus(statusNachherBytes);
         if (!string.Equals(statusNachher.Zustand, "BEREIT", StringComparison.Ordinal)
             || statusNachher.Generation != statusVorher.Generation
@@ -423,6 +431,13 @@ public sealed class LiveWissensImportDienst
                 _ => null
             };
         }
+    }
+
+    private static void VerweigereLokalenPfadImInhalt(byte[] bytes, string wurzel)
+    {
+        var text = Encoding.UTF8.GetString(bytes);
+        if (text.Contains(wurzel, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("LIVE_WISSEN_LOKALER_PFAD_IM_INHALT_VERBOTEN");
     }
 
     private static void VerweigereGeheimnisEigenschaften(JsonElement element)
