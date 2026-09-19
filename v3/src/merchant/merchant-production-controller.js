@@ -17,7 +17,8 @@ const { PROBABILISTIC_FARM_TIME_MODEL } = require('../party/probabilistic-farm-t
 const { eventEntryActive } = require('../party/acquisition-source-evidence');
 const {
   ProductionAcquisitionCoverageAudit,
-  ProductionGraphSoakAuditor
+  ProductionGraphSoakAuditor,
+  productionGraphCertificationGate
 } = require('./production-graph-certification');
 
 const MERCHANT_PRODUCTION_CONTROLLER_MODE = 'merchant-production-controller-v1';
@@ -1221,6 +1222,11 @@ function installMerchantProduction(runtime, options = {}) {
       productionIntent: productionIntent.status(),
       productionCoverageAudit: productionCoverageAudit.status(),
       productionSoakAudit: productionSoakAuditor.status(),
+      productionCertificationGate: productionGraphCertificationGate({
+        coverage: productionCoverageAudit.status(),
+        soak: productionSoakAuditor.status(),
+        minSoakSamples: options.merchantProductionCertificationMinSoakSamples || 5000
+      }),
       roleEligible: isMerchant(),
       autoLiveEnabled: isMerchant(),
       nonMerchantSideEffectsBlocked: true,
@@ -1305,11 +1311,20 @@ function installMerchantProduction(runtime, options = {}) {
     return productionSoakAuditor.observe(sample);
   }
 
+  function productionCertificationGate() {
+    return productionGraphCertificationGate({
+      coverage: productionCoverageAudit.status(),
+      soak: productionSoakAuditor.status(),
+      minSoakSamples: options.merchantProductionCertificationMinSoakSamples || 5000
+    });
+  }
+
   runtime.merchantProductionPlanner = planner;
   runtime.productionAcquisitionCoverageAudit = productionCoverageAudit;
   runtime.productionGraphSoakAuditor = productionSoakAuditor;
   runtime.auditProductionCoverage = auditProductionCoverage;
   runtime.observeProductionSoakSample = observeProductionSoakSample;
+  runtime.productionCertificationGate = productionCertificationGate;
   runtime.merchantBankCatalog = bankCatalog;
   runtime.persistentProductionIntent = productionIntent;
   runtime.controlledMerchantProduction = executor;
@@ -1328,6 +1343,7 @@ function installMerchantProduction(runtime, options = {}) {
     productionSoakAuditor,
     auditProductionCoverage,
     observeProductionSoakSample,
+    productionCertificationGate,
     evaluate,
     cycle,
     configure,
