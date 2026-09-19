@@ -88,11 +88,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## control
 
-**5 Dateien · 1063 Zeilen**
+**5 Dateien · 1102 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/control/cloud-control-plane.js` | 268 |
+| `src/control/cloud-control-plane.js` | 307 |
 | `src/control/cloud-free-tier-budget.js` | 90 |
 | `src/control/cloud-long-term-persistence.js` | 408 |
 | `src/control/cloud-presence-decoupling.js` | 87 |

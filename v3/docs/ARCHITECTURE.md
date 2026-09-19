@@ -13,7 +13,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | brain | 4 | 1157 |
 | composition | 2 | 193 |
 | content | 3 | 447 |
-| control | 5 | 1063 |
+| control | 5 | 1102 |
 | core | 8 | 704 |
 | economy | 13 | 4663 |
 | farmer | 21 | 4589 |
