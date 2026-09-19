@@ -207,3 +207,30 @@ Fehlende Capability-Daten werden nicht durch Klasse, Level oder alte grobe Leben
 Die Auswahl ist lexikographisch und nachvollziehbar. Safety kommt vor Capability-Eignung, Capability-Eignung vor Freshness und Charakterkennung/-name dienen nur als finale Tie-Breaker. Klasse und Level sind keine Ranking-Merkmale.
 
 Auch die positive Rollenentscheidung besitzt immer `aktionsAutoritaet: false`. Die separate Koordinationsautoritaet ist keine Adventure-Land-Spielaktionsautoritaet.
+
+
+## CapabilityStatus
+
+`CapabilityStatusSicht` ist die read-only Diagnoseprojektion fuer Block 8.6.
+
+Sie uebernimmt bestehende Ausgaben aus Skill-Katalog-Audit, `CharakterFaehigkeiten`, `SkillPolicy`, Capability-Sync und `CapabilityGruppenwahl` und macht sie oberflaechengeeignet sichtbar.
+
+Die Projektion darf keine Skill-, Trust-, Safety-, Leader- oder Aufgabenentscheidung neu berechnen. Sie darf ausschliesslich bereits vorhandene Zustaende sortieren, zaehlen, vergleichen und erklaeren.
+
+Sichtbar bleiben insbesondere:
+
+- Katalogzustand, Generation und Fingerprint,
+- letzte erfolgreiche Audit-/Revalidierungsevidenz,
+- Drift-/Stale-/Blockiergrund,
+- Skill aktiv/gesamt und relevante Slider,
+- lokale Capability-Zaehler und Target-Capacities,
+- Remote-Liveness/Freshness und Catalog-Agreement,
+- Remote-/Gruppenausschlussgruende,
+- capability-basierte Leader-/Aufgabenentscheidung,
+- deterministische Diagnosecodes.
+
+Remote-Diagnoseevidenz wird an Charakterkennung **und** Charaktername gebunden. Ein fremder oder gespoofter Empfang darf die Anzeige eines anderen Teilnehmers nicht ersetzen.
+
+`CapabilityStatusSicht` besitzt immer `nurLesen: true`, `spielAutoritaet: false`, `bedienAutoritaet: false` und `neustartAutoritaet: false`.
+
+Das separate Block-8.6-Capability-HUD ist eine reine Darstellungsschicht. Es darf keine Fachlogik, Spielaktion, Policy-Schreiboperation, Kommunikationssendung oder Neustartaktion enthalten.
