@@ -64,8 +64,8 @@ test('central ledger processes low-risk progression before bank fallback', () =>
       material: { g: 10 },
       sword: { g: 10, upgrade: { attack: 1 }, grades: [] },
       ring: { g: 10, type: 'ring', compound: { dex: 1 }, grades: [] },
-      scroll0: { g: 1 },
-      cscroll0: { g: 1 },
+      scroll0: { g: 0 },
+      cscroll0: { g: 0 },
       rare: { g: 20000 }
     },
     monsters: {}, maps: {}
