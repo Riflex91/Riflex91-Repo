@@ -15,6 +15,10 @@ const {
 } = require('../party/production-material-acquisition');
 const { PROBABILISTIC_FARM_TIME_MODEL } = require('../party/probabilistic-farm-time');
 const { eventEntryActive } = require('../party/acquisition-source-evidence');
+const {
+  ProductionAcquisitionCoverageAudit,
+  ProductionGraphSoakAuditor
+} = require('./production-graph-certification');
 
 const MERCHANT_PRODUCTION_CONTROLLER_MODE = 'merchant-production-controller-v1';
 
@@ -41,6 +45,13 @@ function installMerchantProduction(runtime, options = {}) {
     now: runtime.now,
     storage: options.merchantProductionStorage || options.storage,
     storageKey: options.merchantProductionIntentStorageKey
+  });
+  const productionCoverageAudit = options.productionCoverageAudit || new ProductionAcquisitionCoverageAudit(runtime, {
+    maxDepth: options.merchantProductionCoverageMaxDepth,
+    fallbackKillsPerHour: options.merchantProductionFallbackKillsPerHour
+  });
+  const productionSoakAuditor = options.productionSoakAuditor || new ProductionGraphSoakAuditor({
+    capacity: options.merchantProductionSoakViolationCapacity
   });
   const executor = options.executor || new ControlledMerchantProductionExecutor({
     root: runtime.root,
@@ -1121,6 +1132,8 @@ function installMerchantProduction(runtime, options = {}) {
       },
       bankCatalog: bankCatalog.status(),
       productionIntent: productionIntent.status(),
+      productionCoverageAudit: productionCoverageAudit.status(),
+      productionSoakAudit: productionSoakAuditor.status(),
       roleEligible: isMerchant(),
       autoLiveEnabled: isMerchant(),
       nonMerchantSideEffectsBlocked: true,
@@ -1194,7 +1207,19 @@ function installMerchantProduction(runtime, options = {}) {
   const baseStop = runtime.stop.bind(runtime);
   runtime.stop = function merchantProductionStop() { disable('RUNTIME_STOP'); return baseStop(); };
 
+  function auditProductionCoverage() {
+    return productionCoverageAudit.auditAllGear();
+  }
+
+  function observeProductionSoakSample(sample = {}) {
+    return productionSoakAuditor.observe(sample);
+  }
+
   runtime.merchantProductionPlanner = planner;
+  runtime.productionAcquisitionCoverageAudit = productionCoverageAudit;
+  runtime.productionGraphSoakAuditor = productionSoakAuditor;
+  runtime.auditProductionCoverage = auditProductionCoverage;
+  runtime.observeProductionSoakSample = observeProductionSoakSample;
   runtime.merchantBankCatalog = bankCatalog;
   runtime.persistentProductionIntent = productionIntent;
   runtime.controlledMerchantProduction = executor;
@@ -1204,7 +1229,23 @@ function installMerchantProduction(runtime, options = {}) {
   runtime.evaluateMerchantProduction = cycle;
   runtime.merchantProductionStatus = status;
 
-  const controller = { planner, executor, bankCatalog, productionIntent, evaluate, cycle, configure, disable, reconcile, status, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK };
+  const controller = {
+    planner,
+    executor,
+    bankCatalog,
+    productionIntent,
+    productionCoverageAudit,
+    productionSoakAuditor,
+    auditProductionCoverage,
+    observeProductionSoakSample,
+    evaluate,
+    cycle,
+    configure,
+    disable,
+    reconcile,
+    status,
+    ack: CONTROLLED_MERCHANT_PRODUCTION_ACK
+  };
   runtime.__merchantProductionController = controller;
   return controller;
 }
