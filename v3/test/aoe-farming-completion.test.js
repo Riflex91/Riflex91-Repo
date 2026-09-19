@@ -1,5 +1,7 @@
 'use strict';
 
+// Final integration gate: generated runtime bundle must remain unchanged on this user-authored PR head.
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
