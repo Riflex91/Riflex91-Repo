@@ -1,0 +1,3931 @@
+{
+  "schemaVersion": 1,
+  "researchId": "V5-P0-02",
+  "status": "DONE",
+  "generatedAt": "2026-09-19",
+  "basis": {
+    "actionContracts": "v5/wissensbasis/vertraege/action-contracts.json",
+    "principle": "Recovery policy is a V5 safety policy derived from verified action contracts; it is not a claim that the game exposes transactional rollback.",
+    "actionContractCount": 60
+  },
+  "globalRules": {
+    "unknownIsPersistedState": true,
+    "timeoutIsFailureProof": false,
+    "disconnectIsFailureProof": false,
+    "absenceOfPostconditionIsNotNotAppliedProof": true,
+    "sameIntentRetryAfterPossibleSend": "NEVER",
+    "positiveProofRequiredForNotApplied": true,
+    "restartStateForNonTerminalWork": "RECONCILE_REQUIRED",
+    "partialCompletion": "REPLAN_REMAINDER_AS_NEW_INTENT",
+    "unresolved": "QUARANTINE_OR_OPERATOR_NO_SEND",
+    "preSendException": "Only when durable journal evidence proves SEND_NOT_ATTEMPTED may the scheduler re-attempt the same intent after fresh admission."
+  },
+  "summary": {
+    "total": 60,
+    "verifiedRecoveryPolicy": 59,
+    "disabledWithActionContract": 1,
+    "byRecoveryClass": {
+      "STATE_REOBSERVE": 24,
+      "ACCOUNT_SHARED_STATE": 5,
+      "MIXED_PATH_RECONCILE": 1,
+      "ROUTER_DELEGATE": 1,
+      "ASYNC_BACKEND_RECONCILE": 3,
+      "RID_TRADE_RECONCILE": 4,
+      "LISTING_STATE_RECONCILE": 5,
+      "PARTIAL_BATCH_REPLAN": 1,
+      "MULTI_PHASE_Q_RECONCILE": 4,
+      "DUAL_VALUE_SETTLEMENT": 3,
+      "CLAIM_BACKEND_RECONCILE": 1,
+      "REQUEST_RESPONSE_GAME_RECONCILE": 6,
+      "DEFERRED_SETTLEMENT_RECONCILE": 1,
+      "DISABLED": 1
+    }
+  },
+  "actions": [
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-ACTIVATE",
+      "actionContractId": "AL-ACTION-ACTIVATE",
+      "publicFunction": "activate",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "character",
+        "inventory"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-ACTIVATE (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: target booster remains locatable with activated expiry/state"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-SHIFT",
+      "actionContractId": "AL-ACTION-SHIFT",
+      "publicFunction": "shift",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "character",
+        "inventory"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-SHIFT (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: booster name equals requested mode"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-THROW-ITEM",
+      "actionContractId": "AL-ACTION-THROW-ITEM",
+      "publicFunction": "throw_item",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "character",
+        "inventory"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-THROW-ITEM (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: thrown quantity removed from inventory"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-BANK-DEPOSIT",
+      "actionContractId": "AL-ACTION-BANK-DEPOSIT",
+      "publicFunction": "bank_deposit",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "ACCOUNT_SHARED_STATE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh character state and fresh account-bank state jointly satisfy the exact deposit/withdraw/store/retrieve/swap/unlock postcondition.",
+          "Observed pack/currency/inventory deltas are mutually consistent."
+        ],
+        "notApplied": [
+          "Fresh character and bank observations both match the pinned pre-state for all affected values/items/packs."
+        ],
+        "partial": [
+          "Character and bank views disagree, only one side changed, or an unlock/currency effect is visible without the matching counterpart."
+        ],
+        "stillPending": [
+          "An authoritative backend/request result explicitly marks the chosen bank path as in progress."
+        ],
+        "unresolved": [
+          "Bank mount/state is unavailable or fresh dual-state reconciliation cannot distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-BANK-DEPOSIT (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: bank operation deposit reflected in fresh bank/character state"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-BANK-WITHDRAW",
+      "actionContractId": "AL-ACTION-BANK-WITHDRAW",
+      "publicFunction": "bank_withdraw",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "ACCOUNT_SHARED_STATE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh character state and fresh account-bank state jointly satisfy the exact deposit/withdraw/store/retrieve/swap/unlock postcondition.",
+          "Observed pack/currency/inventory deltas are mutually consistent."
+        ],
+        "notApplied": [
+          "Fresh character and bank observations both match the pinned pre-state for all affected values/items/packs."
+        ],
+        "partial": [
+          "Character and bank views disagree, only one side changed, or an unlock/currency effect is visible without the matching counterpart."
+        ],
+        "stillPending": [
+          "An authoritative backend/request result explicitly marks the chosen bank path as in progress."
+        ],
+        "unresolved": [
+          "Bank mount/state is unavailable or fresh dual-state reconciliation cannot distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-BANK-WITHDRAW (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: bank operation withdraw reflected in fresh bank/character state"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-BANK-STORE",
+      "actionContractId": "AL-ACTION-BANK-STORE",
+      "publicFunction": "bank_store",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "ACCOUNT_SHARED_STATE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh character state and fresh account-bank state jointly satisfy the exact deposit/withdraw/store/retrieve/swap/unlock postcondition.",
+          "Observed pack/currency/inventory deltas are mutually consistent."
+        ],
+        "notApplied": [
+          "Fresh character and bank observations both match the pinned pre-state for all affected values/items/packs."
+        ],
+        "partial": [
+          "Character and bank views disagree, only one side changed, or an unlock/currency effect is visible without the matching counterpart."
+        ],
+        "stillPending": [
+          "An authoritative backend/request result explicitly marks the chosen bank path as in progress."
+        ],
+        "unresolved": [
+          "Bank mount/state is unavailable or fresh dual-state reconciliation cannot distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-BANK-STORE (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: bank operation swap reflected in fresh bank/character state"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-BANK-RETRIEVE",
+      "actionContractId": "AL-ACTION-BANK-RETRIEVE",
+      "publicFunction": "bank_retrieve",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "ACCOUNT_SHARED_STATE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh character state and fresh account-bank state jointly satisfy the exact deposit/withdraw/store/retrieve/swap/unlock postcondition.",
+          "Observed pack/currency/inventory deltas are mutually consistent."
+        ],
+        "notApplied": [
+          "Fresh character and bank observations both match the pinned pre-state for all affected values/items/packs."
+        ],
+        "partial": [
+          "Character and bank views disagree, only one side changed, or an unlock/currency effect is visible without the matching counterpart."
+        ],
+        "stillPending": [
+          "An authoritative backend/request result explicitly marks the chosen bank path as in progress."
+        ],
+        "unresolved": [
+          "Bank mount/state is unavailable or fresh dual-state reconciliation cannot distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-BANK-RETRIEVE (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: bank operation swap reflected in fresh bank/character state"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-BANK-SWAP",
+      "actionContractId": "AL-ACTION-BANK-SWAP",
+      "publicFunction": "bank_swap",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "ACCOUNT_SHARED_STATE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh character state and fresh account-bank state jointly satisfy the exact deposit/withdraw/store/retrieve/swap/unlock postcondition.",
+          "Observed pack/currency/inventory deltas are mutually consistent."
+        ],
+        "notApplied": [
+          "Fresh character and bank observations both match the pinned pre-state for all affected values/items/packs."
+        ],
+        "partial": [
+          "Character and bank views disagree, only one side changed, or an unlock/currency effect is visible without the matching counterpart."
+        ],
+        "stillPending": [
+          "An authoritative backend/request result explicitly marks the chosen bank path as in progress."
+        ],
+        "unresolved": [
+          "Bank mount/state is unavailable or fresh dual-state reconciliation cannot distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-BANK-SWAP (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: bank operation move reflected in fresh bank/character state"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-OPEN-BANK-PACK",
+      "actionContractId": "AL-ACTION-OPEN-BANK-PACK",
+      "publicFunction": "open_bank_pack",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "MIXED_PATH_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "character",
+        "bank",
+        "account_currency"
+      ],
+      "settlementRules": {
+        "committed": [
+          "The durable selected path is known and its path-specific settlement predicate is committed: bank-state reconciliation for gold path or backend/account reconciliation for shells path."
+        ],
+        "notApplied": [
+          "The durable selected path is known and fresh path-specific evidence proves no mutation was applied."
+        ],
+        "partial": [
+          "The selected path shows only a subset of its required value/state effects."
+        ],
+        "stillPending": [
+          "The selected path exposes an authoritative in-progress backend/request state."
+        ],
+        "unresolved": [
+          "The chosen path was not durably recorded before a possible send or path-specific state cannot be reconciled."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-OPEN-BANK-PACK (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: requested pack exists and currency delta matches server result"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-BUY",
+      "actionContractId": "AL-ACTION-BUY",
+      "publicFunction": "buy",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "ROUTER_DELEGATE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "item_definition",
+        "vendor_reachability",
+        "inventory_capacity",
+        "currency"
+      ],
+      "settlementRules": {
+        "committed": [
+          "The router itself is not a settlement boundary; the persisted selected child ActionContract/RecoveryContract reaches COMMITTED."
+        ],
+        "notApplied": [
+          "The selected child recovery reaches NOT_APPLIED, or durable journal evidence proves no child send was ever attempted."
+        ],
+        "partial": [
+          "The selected child recovery reaches PARTIAL."
+        ],
+        "stillPending": [
+          "The selected child recovery reaches STILL_PENDING."
+        ],
+        "unresolved": [
+          "No durable child-route identity exists after a possible child send, or the selected child recovery is UNRESOLVED."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-BUY (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: delegated gold/shell purchase postcondition holds"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-BUY-WITH-GOLD",
+      "actionContractId": "AL-ACTION-BUY-WITH-GOLD",
+      "publicFunction": "buy_with_gold",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "vendor_reachability",
+        "inventory_capacity",
+        "gold",
+        "item_definition"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-BUY-WITH-GOLD (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: gold decreased by server cost",
+        "Action postcondition: purchased quantity exists in inventory"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-BUY-WITH-SHELLS",
+      "actionContractId": "AL-ACTION-BUY-WITH-SHELLS",
+      "publicFunction": "buy_with_shells",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "ASYNC_BACKEND_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "account_currency",
+        "inventory_capacity",
+        "item_definition"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh account/character/backend-visible state proves the intended durable value/service effect.",
+          "Any debited currency/item and resulting backend effect are mutually consistent."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows all affected balances/items/backend-visible target state remain at the pinned pre-state."
+        ],
+        "partial": [
+          "A debit/removal is visible without the intended backend/service/delivery effect, or vice versa."
+        ],
+        "stillPending": [
+          "A correlated backend/request state explicitly remains in progress."
+        ],
+        "unresolved": [
+          "Backend completion cannot be proven and value may already have changed."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-BUY-WITH-SHELLS (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: shell balance decreased by server cost",
+        "Action postcondition: purchased quantity exists"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-BUY-SECONDHAND",
+      "actionContractId": "AL-ACTION-BUY-SECONDHAND",
+      "publicFunction": "buy_secondhand",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "RID_TRADE_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "listing_rid",
+        "inventory_capacity",
+        "gold",
+        "npc_reachability"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh own gold/inventory state proves the intended trade delta and the listing/RID transition is compatible with that trade.",
+          "Never use a stale RID as evidence that a second send is safe."
+        ],
+        "notApplied": [
+          "Fresh own gold/inventory state matches the pinned pre-state and fresh listing evidence proves no owned-value transfer occurred.",
+          "If the old RID changed/disappeared due to another actor, replan from current listing truth rather than retry."
+        ],
+        "partial": [
+          "Own value/inventory changed but the intended item/gold settlement cannot be fully reconciled."
+        ],
+        "stillPending": [
+          "Only if a correlated authoritative trade/backend state explicitly reports in-progress."
+        ],
+        "unresolved": [
+          "Listing drift plus ambiguous own-state deltas prevents proving whether this intent traded."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-BUY-SECONDHAND (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: RID purchase succeeded",
+        "Action postcondition: gold delta matches cost",
+        "Action postcondition: item present"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-BUY-LOST-AND-FOUND",
+      "actionContractId": "AL-ACTION-BUY-LOST-AND-FOUND",
+      "publicFunction": "buy_lost_and_found",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "RID_TRADE_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "listing_rid",
+        "inventory_capacity",
+        "gold",
+        "npc_reachability"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh own gold/inventory state proves the intended trade delta and the listing/RID transition is compatible with that trade.",
+          "Never use a stale RID as evidence that a second send is safe."
+        ],
+        "notApplied": [
+          "Fresh own gold/inventory state matches the pinned pre-state and fresh listing evidence proves no owned-value transfer occurred.",
+          "If the old RID changed/disappeared due to another actor, replan from current listing truth rather than retry."
+        ],
+        "partial": [
+          "Own value/inventory changed but the intended item/gold settlement cannot be fully reconciled."
+        ],
+        "stillPending": [
+          "Only if a correlated authoritative trade/backend state explicitly reports in-progress."
+        ],
+        "unresolved": [
+          "Listing drift plus ambiguous own-state deltas prevents proving whether this intent traded."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-BUY-LOST-AND-FOUND (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: RID purchase succeeded",
+        "Action postcondition: gold delta matches cost",
+        "Action postcondition: item present"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-SELL",
+      "actionContractId": "AL-ACTION-SELL",
+      "publicFunction": "sell",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_item_identity",
+        "merchant_reachability"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-SELL (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: sold quantity removed",
+        "Action postcondition: gold increased by returned value"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-TRADE",
+      "actionContractId": "AL-ACTION-TRADE",
+      "publicFunction": "trade",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "LISTING_STATE_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_item_identity",
+        "trade_slot"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh listing/stand/giveaway state matches the intended listing-state mutation, including RID/price/quantity where applicable."
+        ],
+        "notApplied": [
+          "Fresh listing state proves the intended listing mutation is absent and the underlying item/value state matches the pinned pre-state."
+        ],
+        "partial": [
+          "A listing exists but differs from the intended parameters, or listing and underlying inventory/value state disagree."
+        ],
+        "stillPending": [
+          "An authoritative listing transition is explicitly in progress."
+        ],
+        "unresolved": [
+          "Listing identity/RID or underlying inventory state is stale or contradictory."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-TRADE (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: trade slot contains intended item/quantity/price and fresh rid"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-WISHLIST",
+      "actionContractId": "AL-ACTION-WISHLIST",
+      "publicFunction": "wishlist",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "LISTING_STATE_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "trade_slot"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh listing/stand/giveaway state matches the intended listing-state mutation, including RID/price/quantity where applicable."
+        ],
+        "notApplied": [
+          "Fresh listing state proves the intended listing mutation is absent and the underlying item/value state matches the pinned pre-state."
+        ],
+        "partial": [
+          "A listing exists but differs from the intended parameters, or listing and underlying inventory/value state disagree."
+        ],
+        "stillPending": [
+          "An authoritative listing transition is explicitly in progress."
+        ],
+        "unresolved": [
+          "Listing identity/RID or underlying inventory state is stale or contradictory."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-WISHLIST (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: wishlist slot reflects intended item/level/quantity/price"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-TRADE-BUY",
+      "actionContractId": "AL-ACTION-TRADE-BUY",
+      "publicFunction": "trade_buy",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "RID_TRADE_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "target_entity",
+        "listing_rid",
+        "quantity",
+        "inventory_capacity",
+        "gold"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh own gold/inventory state proves the intended trade delta and the listing/RID transition is compatible with that trade.",
+          "Never use a stale RID as evidence that a second send is safe."
+        ],
+        "notApplied": [
+          "Fresh own gold/inventory state matches the pinned pre-state and fresh listing evidence proves no owned-value transfer occurred.",
+          "If the old RID changed/disappeared due to another actor, replan from current listing truth rather than retry."
+        ],
+        "partial": [
+          "Own value/inventory changed but the intended item/gold settlement cannot be fully reconciled."
+        ],
+        "stillPending": [
+          "Only if a correlated authoritative trade/backend state explicitly reports in-progress."
+        ],
+        "unresolved": [
+          "Listing drift plus ambiguous own-state deltas prevents proving whether this intent traded."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-TRADE-BUY (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: buyer item delta",
+        "Action postcondition: buyer gold delta",
+        "Action postcondition: seller listing/quantity delta"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-TRADE-SELL",
+      "actionContractId": "AL-ACTION-TRADE-SELL",
+      "publicFunction": "trade_sell",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "RID_TRADE_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "target_entity",
+        "listing_rid",
+        "physical_item_match",
+        "quantity"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh own gold/inventory state proves the intended trade delta and the listing/RID transition is compatible with that trade.",
+          "Never use a stale RID as evidence that a second send is safe."
+        ],
+        "notApplied": [
+          "Fresh own gold/inventory state matches the pinned pre-state and fresh listing evidence proves no owned-value transfer occurred.",
+          "If the old RID changed/disappeared due to another actor, replan from current listing truth rather than retry."
+        ],
+        "partial": [
+          "Own value/inventory changed but the intended item/gold settlement cannot be fully reconciled."
+        ],
+        "stillPending": [
+          "Only if a correlated authoritative trade/backend state explicitly reports in-progress."
+        ],
+        "unresolved": [
+          "Listing drift plus ambiguous own-state deltas prevents proving whether this intent traded."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-TRADE-SELL (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: seller item delta",
+        "Action postcondition: seller gold delta",
+        "Action postcondition: buyer inventory delta"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-GIVEAWAY",
+      "actionContractId": "AL-ACTION-GIVEAWAY",
+      "publicFunction": "giveaway",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "LISTING_STATE_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_item_identity",
+        "trade_slot"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh listing/stand/giveaway state matches the intended listing-state mutation, including RID/price/quantity where applicable."
+        ],
+        "notApplied": [
+          "Fresh listing state proves the intended listing mutation is absent and the underlying item/value state matches the pinned pre-state."
+        ],
+        "partial": [
+          "A listing exists but differs from the intended parameters, or listing and underlying inventory/value state disagree."
+        ],
+        "stillPending": [
+          "An authoritative listing transition is explicitly in progress."
+        ],
+        "unresolved": [
+          "Listing identity/RID or underlying inventory state is stale or contradictory."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-GIVEAWAY (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: giveaway listing exists with fresh rid"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-JOIN-GIVEAWAY",
+      "actionContractId": "AL-ACTION-JOIN-GIVEAWAY",
+      "publicFunction": "join_giveaway",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "target_entity",
+        "listing_rid"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-JOIN-GIVEAWAY (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: auth id registered on same giveaway rid"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-EQUIP",
+      "actionContractId": "AL-ACTION-EQUIP",
+      "publicFunction": "equip",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_item_identity",
+        "equipment_slots"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-EQUIP (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: requested item is in resolved equipment slot"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-EQUIP-BATCH",
+      "actionContractId": "AL-ACTION-EQUIP-BATCH",
+      "publicFunction": "equip_batch",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "PARTIAL_BATCH_REPLAN",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_item_identities",
+        "equipment_slots"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh equipment/inventory state satisfies the complete desired batch end-state."
+        ],
+        "notApplied": [
+          "Fresh equipment/inventory state proves that none of the batch entries changed from the pinned pre-state."
+        ],
+        "partial": [
+          "At least one requested batch entry is applied and at least one requested entry is not applied.",
+          "Persist the exact achieved subset and compute a new desired-state diff; never replay the original batch."
+        ],
+        "stillPending": [
+          "Only if an authoritative batch-processing marker exists; otherwise a missing final result is reconciled as PARTIAL/UNRESOLVED from state."
+        ],
+        "unresolved": [
+          "The exact subset cannot be reconstructed from fresh equipment/inventory evidence."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-EQUIP-BATCH (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: reconcile every requested equipment slot against desired end-state"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-UNEQUIP",
+      "actionContractId": "AL-ACTION-UNEQUIP",
+      "publicFunction": "unequip",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_capacity",
+        "equipment_slot"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-UNEQUIP (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: slot empty",
+        "Action postcondition: unequipped item present in inventory"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-CONSUME",
+      "actionContractId": "AL-ACTION-CONSUME",
+      "publicFunction": "consume",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_item_identity",
+        "item_usability"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-CONSUME (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: consumed quantity delta and expected effect/state"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-SWAP",
+      "actionContractId": "AL-ACTION-SWAP",
+      "publicFunction": "swap",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_slots"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-SWAP (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: slots/stacks match server result"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-SPLIT",
+      "actionContractId": "AL-ACTION-SPLIT",
+      "publicFunction": "split",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_item_identity",
+        "inventory_capacity"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-SPLIT (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: source and new stack quantities sum to original quantity"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-DESTROY",
+      "actionContractId": "AL-ACTION-DESTROY",
+      "publicFunction": "destroy",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_item_identity"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-DESTROY (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: destroyed quantity removed unless special server outcome replaces it"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-DISMANTLE",
+      "actionContractId": "AL-ACTION-DISMANTLE",
+      "publicFunction": "dismantle",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_item_identity",
+        "inventory_capacity",
+        "gold",
+        "dismantle_definition"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-DISMANTLE (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: input removed",
+        "Action postcondition: gold cost applied",
+        "Action postcondition: outputs reconciled"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-DESTAT-ITEM",
+      "actionContractId": "AL-ACTION-DESTAT-ITEM",
+      "publicFunction": "destat_item",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_item_identity",
+        "inventory_capacity",
+        "gold"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-DESTAT-ITEM (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: stat_type removed",
+        "Action postcondition: scroll refund quantity present",
+        "Action postcondition: gold cost applied"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-LOCK-ITEM",
+      "actionContractId": "AL-ACTION-LOCK-ITEM",
+      "publicFunction": "lock_item",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_item_identity",
+        "lock_state",
+        "gold"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-LOCK-ITEM (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: item lock/seal state equals server result",
+        "Action postcondition: gold delta reconciled"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-SEAL-ITEM",
+      "actionContractId": "AL-ACTION-SEAL-ITEM",
+      "publicFunction": "seal_item",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_item_identity",
+        "lock_state",
+        "gold"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-SEAL-ITEM (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: item lock/seal state equals server result",
+        "Action postcondition: gold delta reconciled"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-UNLOCK-ITEM",
+      "actionContractId": "AL-ACTION-UNLOCK-ITEM",
+      "publicFunction": "unlock_item",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_item_identity",
+        "lock_state",
+        "gold"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-UNLOCK-ITEM (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: item lock/seal state equals server result",
+        "Action postcondition: gold delta reconciled"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-UPGRADE",
+      "actionContractId": "AL-ACTION-UPGRADE",
+      "publicFunction": "upgrade",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "MULTI_PHASE_Q_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "physical_item_identity",
+        "clevel",
+        "scroll",
+        "offering",
+        "service_reachability",
+        "character_q"
+      ],
+      "settlementRules": {
+        "committed": [
+          "The action-specific q/placeholder is no longer active and fresh terminal inventory/value state satisfies the action-contract postconditions.",
+          "Consumed inputs, resulting item/reward, and any failure/loss outcome are reconciled as one terminal domain result."
+        ],
+        "notApplied": [
+          "Fresh evidence proves all pinned inputs/currency/items remain unchanged and no action-specific q/placeholder exists.",
+          "Lack of a reward alone is never proof of NOT_APPLIED."
+        ],
+        "partial": [
+          "Inputs/value were consumed or transformed but terminal output/reward/loss cannot yet be reconciled."
+        ],
+        "stillPending": [
+          "The action-specific q state or placeholder is still present and attributable to this intent."
+        ],
+        "unresolved": [
+          "The q/placeholder disappeared but terminal inputs/outputs cannot be reconciled unambiguously."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-UPGRADE (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: q.upgrade cleared",
+        "Action postcondition: placeholder resolved",
+        "Action postcondition: target result and scroll/offering deltas reconciled"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-COMPOUND",
+      "actionContractId": "AL-ACTION-COMPOUND",
+      "publicFunction": "compound",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "MULTI_PHASE_Q_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "three_physical_item_identities",
+        "clevel",
+        "scroll",
+        "offering",
+        "service_reachability",
+        "character_q"
+      ],
+      "settlementRules": {
+        "committed": [
+          "The action-specific q/placeholder is no longer active and fresh terminal inventory/value state satisfies the action-contract postconditions.",
+          "Consumed inputs, resulting item/reward, and any failure/loss outcome are reconciled as one terminal domain result."
+        ],
+        "notApplied": [
+          "Fresh evidence proves all pinned inputs/currency/items remain unchanged and no action-specific q/placeholder exists.",
+          "Lack of a reward alone is never proof of NOT_APPLIED."
+        ],
+        "partial": [
+          "Inputs/value were consumed or transformed but terminal output/reward/loss cannot yet be reconciled."
+        ],
+        "stillPending": [
+          "The action-specific q state or placeholder is still present and attributable to this intent."
+        ],
+        "unresolved": [
+          "The q/placeholder disappeared but terminal inputs/outputs cannot be reconciled unambiguously."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-COMPOUND (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: q.compound cleared",
+        "Action postcondition: placeholder resolved",
+        "Action postcondition: three inputs/result and consumables reconciled"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-CRAFT",
+      "actionContractId": "AL-ACTION-CRAFT",
+      "publicFunction": "craft",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "recipe_definition",
+        "physical_inputs",
+        "gold",
+        "inventory_capacity",
+        "service_or_quest_reachability"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-CRAFT (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: all required inputs reduced",
+        "Action postcondition: gold cost applied",
+        "Action postcondition: output present"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-AUTO-CRAFT",
+      "actionContractId": "AL-ACTION-AUTO-CRAFT",
+      "publicFunction": "auto_craft",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "recipe_definition",
+        "physical_inputs",
+        "gold",
+        "inventory_capacity",
+        "service_or_quest_reachability"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-AUTO-CRAFT (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: all required inputs reduced",
+        "Action postcondition: gold cost applied",
+        "Action postcondition: output present"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-EXCHANGE",
+      "actionContractId": "AL-ACTION-EXCHANGE",
+      "publicFunction": "exchange",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "MULTI_PHASE_Q_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "physical_item_identity",
+        "exchange_definition",
+        "inventory_capacity",
+        "service_or_quest_reachability",
+        "character_q"
+      ],
+      "settlementRules": {
+        "committed": [
+          "The action-specific q/placeholder is no longer active and fresh terminal inventory/value state satisfies the action-contract postconditions.",
+          "Consumed inputs, resulting item/reward, and any failure/loss outcome are reconciled as one terminal domain result."
+        ],
+        "notApplied": [
+          "Fresh evidence proves all pinned inputs/currency/items remain unchanged and no action-specific q/placeholder exists.",
+          "Lack of a reward alone is never proof of NOT_APPLIED."
+        ],
+        "partial": [
+          "Inputs/value were consumed or transformed but terminal output/reward/loss cannot yet be reconciled."
+        ],
+        "stillPending": [
+          "The action-specific q state or placeholder is still present and attributable to this intent."
+        ],
+        "unresolved": [
+          "The q/placeholder disappeared but terminal inputs/outputs cannot be reconciled unambiguously."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-EXCHANGE (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: q.exchange cleared",
+        "Action postcondition: placeholder resolved to reward/terminal state",
+        "Action postcondition: input delta reconciled"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-EXCHANGE-BUY",
+      "actionContractId": "AL-ACTION-EXCHANGE-BUY",
+      "publicFunction": "exchange_buy",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "token_quantity",
+        "token_table",
+        "inventory_capacity",
+        "npc_reachability"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-EXCHANGE-BUY (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: token delta and output item delta reconciled"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-LOOT",
+      "actionContractId": "AL-ACTION-LOOT",
+      "publicFunction": "loot",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "chest_exists",
+        "inventory_capacity"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-LOOT (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: chest gone/claimed",
+        "Action postcondition: received items/gold reflected"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-OPEN-STAND",
+      "actionContractId": "AL-ACTION-OPEN-STAND",
+      "publicFunction": "open_stand",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "LISTING_STATE_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "stand_item",
+        "stand_state"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh listing/stand/giveaway state matches the intended listing-state mutation, including RID/price/quantity where applicable."
+        ],
+        "notApplied": [
+          "Fresh listing state proves the intended listing mutation is absent and the underlying item/value state matches the pinned pre-state."
+        ],
+        "partial": [
+          "A listing exists but differs from the intended parameters, or listing and underlying inventory/value state disagree."
+        ],
+        "stillPending": [
+          "An authoritative listing transition is explicitly in progress."
+        ],
+        "unresolved": [
+          "Listing identity/RID or underlying inventory state is stale or contradictory."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-OPEN-STAND (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: stand open/closed state matches request"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-CLOSE-STAND",
+      "actionContractId": "AL-ACTION-CLOSE-STAND",
+      "publicFunction": "close_stand",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "LISTING_STATE_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "stand_item",
+        "stand_state"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh listing/stand/giveaway state matches the intended listing-state mutation, including RID/price/quantity where applicable."
+        ],
+        "notApplied": [
+          "Fresh listing state proves the intended listing mutation is absent and the underlying item/value state matches the pinned pre-state."
+        ],
+        "partial": [
+          "A listing exists but differs from the intended parameters, or listing and underlying inventory/value state disagree."
+        ],
+        "stillPending": [
+          "An authoritative listing transition is explicitly in progress."
+        ],
+        "unresolved": [
+          "Listing identity/RID or underlying inventory state is stale or contradictory."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-CLOSE-STAND (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: stand open/closed state matches request"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-SEND-GOLD",
+      "actionContractId": "AL-ACTION-SEND-GOLD",
+      "publicFunction": "send_gold",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "DUAL_VALUE_SETTLEMENT",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "recipient_entity",
+        "same_map",
+        "distance",
+        "available_value"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh sender-side state proves the exact intended debit/removal under exclusive resource ownership.",
+          "If the recipient is owned/observable, fresh recipient-side state also proves the matching credit/receipt; otherwise recipient settlement remains explicitly unobservable."
+        ],
+        "notApplied": [
+          "Fresh sender-side state proves the transferred gold/item/cosmetic remains unchanged from the pinned pre-state.",
+          "If recipient state is observable, it also shows no matching receipt."
+        ],
+        "partial": [
+          "Sender-side value changed but recipient settlement cannot be proven or contradicts the intended transfer.",
+          "Never resend the original transfer while recipient settlement is ambiguous."
+        ],
+        "stillPending": [
+          "A correlated authoritative transport/backend state explicitly reports the transfer as in progress; otherwise use UNRESOLVED."
+        ],
+        "unresolved": [
+          "Sender/recipient evidence cannot rule out a completed transfer."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-SEND-GOLD (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: gold sender delta",
+        "Action postcondition: recipient settlement evidence"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-SEND-ITEM",
+      "actionContractId": "AL-ACTION-SEND-ITEM",
+      "publicFunction": "send_item",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "DUAL_VALUE_SETTLEMENT",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "recipient_entity",
+        "same_map",
+        "distance",
+        "physical_item_identity"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh sender-side state proves the exact intended debit/removal under exclusive resource ownership.",
+          "If the recipient is owned/observable, fresh recipient-side state also proves the matching credit/receipt; otherwise recipient settlement remains explicitly unobservable."
+        ],
+        "notApplied": [
+          "Fresh sender-side state proves the transferred gold/item/cosmetic remains unchanged from the pinned pre-state.",
+          "If recipient state is observable, it also shows no matching receipt."
+        ],
+        "partial": [
+          "Sender-side value changed but recipient settlement cannot be proven or contradicts the intended transfer.",
+          "Never resend the original transfer while recipient settlement is ambiguous."
+        ],
+        "stillPending": [
+          "A correlated authoritative transport/backend state explicitly reports the transfer as in progress; otherwise use UNRESOLVED."
+        ],
+        "unresolved": [
+          "Sender/recipient evidence cannot rule out a completed transfer."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-SEND-ITEM (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: inventory sender delta",
+        "Action postcondition: recipient settlement evidence"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-SEND-CX",
+      "actionContractId": "AL-ACTION-SEND-CX",
+      "publicFunction": "send_cx",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "DUAL_VALUE_SETTLEMENT",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "recipient_entity",
+        "same_map",
+        "distance",
+        "available_value"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh sender-side state proves the exact intended debit/removal under exclusive resource ownership.",
+          "If the recipient is owned/observable, fresh recipient-side state also proves the matching credit/receipt; otherwise recipient settlement remains explicitly unobservable."
+        ],
+        "notApplied": [
+          "Fresh sender-side state proves the transferred gold/item/cosmetic remains unchanged from the pinned pre-state.",
+          "If recipient state is observable, it also shows no matching receipt."
+        ],
+        "partial": [
+          "Sender-side value changed but recipient settlement cannot be proven or contradicts the intended transfer.",
+          "Never resend the original transfer while recipient settlement is ambiguous."
+        ],
+        "stillPending": [
+          "A correlated authoritative transport/backend state explicitly reports the transfer as in progress; otherwise use UNRESOLVED."
+        ],
+        "unresolved": [
+          "Sender/recipient evidence cannot rule out a completed transfer."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-SEND-CX (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: cosmetic_inventory sender delta",
+        "Action postcondition: recipient settlement evidence"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-SEND-MAIL",
+      "actionContractId": "AL-ACTION-SEND-MAIL",
+      "publicFunction": "send_mail",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "ASYNC_BACKEND_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "gold",
+        "slot0_item_if_attached",
+        "recipient"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh account/character/backend-visible state proves the intended durable value/service effect.",
+          "Any debited currency/item and resulting backend effect are mutually consistent."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows all affected balances/items/backend-visible target state remain at the pinned pre-state."
+        ],
+        "partial": [
+          "A debit/removal is visible without the intended backend/service/delivery effect, or vice versa."
+        ],
+        "stillPending": [
+          "A correlated backend/request state explicitly remains in progress."
+        ],
+        "unresolved": [
+          "Backend completion cannot be proven and value may already have changed."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-SEND-MAIL (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: mail_sent request_id result OR explicit failure",
+        "Action postcondition: sender gold/item and persistent mail reconciled"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-TAKE-MAIL-ITEM",
+      "actionContractId": "AL-ACTION-TAKE-MAIL-ITEM",
+      "publicFunction": "take_mail_item",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "CLAIM_BACKEND_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "mail_claim",
+        "inventory_capacity"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh claim/mail state proves the claim is consumed and fresh recipient inventory proves the expected item/value receipt."
+        ],
+        "notApplied": [
+          "The exact claim remains available and recipient inventory/value remains unchanged from the pinned pre-state."
+        ],
+        "partial": [
+          "The claim is consumed/locked but the expected recipient item/value cannot be proven."
+        ],
+        "stillPending": [
+          "The claim protocol explicitly exposes an in-progress/claimed-but-not-final state."
+        ],
+        "unresolved": [
+          "Claim state and recipient inventory cannot be reconciled to one terminal outcome."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-TAKE-MAIL-ITEM (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: mail claim terminal",
+        "Action postcondition: item present exactly once or claim released"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-DONATE-GOLD",
+      "actionContractId": "AL-ACTION-DONATE-GOLD",
+      "publicFunction": "donate_gold",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "gold",
+        "npc_reachability"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-DONATE-GOLD (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: gold delta",
+        "Action postcondition: server response reward/xp state"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-PLAY-SLOTS",
+      "actionContractId": "AL-ACTION-PLAY-SLOTS",
+      "publicFunction": "play_slots",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "MULTI_PHASE_Q_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "gold",
+        "tavern_presence",
+        "q.slots"
+      ],
+      "settlementRules": {
+        "committed": [
+          "The action-specific q/placeholder is no longer active and fresh terminal inventory/value state satisfies the action-contract postconditions.",
+          "Consumed inputs, resulting item/reward, and any failure/loss outcome are reconciled as one terminal domain result."
+        ],
+        "notApplied": [
+          "Fresh evidence proves all pinned inputs/currency/items remain unchanged and no action-specific q/placeholder exists.",
+          "Lack of a reward alone is never proof of NOT_APPLIED."
+        ],
+        "partial": [
+          "Inputs/value were consumed or transformed but terminal output/reward/loss cannot yet be reconciled."
+        ],
+        "stillPending": [
+          "The action-specific q state or placeholder is still present and attributable to this intent."
+        ],
+        "unresolved": [
+          "The q/placeholder disappeared but terminal inputs/outputs cannot be reconciled unambiguously."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-PLAY-SLOTS (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: q.slots terminal",
+        "Action postcondition: gold/reward reconciled"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-BET-DICE",
+      "actionContractId": "AL-ACTION-BET-DICE",
+      "publicFunction": "bet_dice",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "REQUEST_RESPONSE_GAME_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "gold",
+        "tavern_state",
+        "existing_bets"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh purse/stack/game state proves the terminal wager/action result and all value deltas are consistent with the intended game action.",
+          "A correlated response may support settlement but never replaces postcondition observation for value-changing outcomes."
+        ],
+        "notApplied": [
+          "Fresh value state matches the pinned pre-state and no active spin/hand/q/game marker attributable to the intent exists."
+        ],
+        "partial": [
+          "Stake/stack/value changed but the game outcome or corresponding reward/cash state is not terminally reconciled."
+        ],
+        "stillPending": [
+          "Fresh live game state shows an active spin, hand, q, seat transition, or other authoritative in-progress marker attributable to the intent."
+        ],
+        "unresolved": [
+          "A wager/action may have been accepted but terminal value/game state cannot be reconstructed."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-BET-DICE (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: bet result correlated by request_id and gold/reward reconciled"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-BLESS-SERVER",
+      "actionContractId": "AL-ACTION-BLESS-SERVER",
+      "publicFunction": "bless_server",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "ASYNC_BACKEND_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "shell_balance",
+        "server_blessing_state"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh account/character/backend-visible state proves the intended durable value/service effect.",
+          "Any debited currency/item and resulting backend effect are mutually consistent."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows all affected balances/items/backend-visible target state remain at the pinned pre-state."
+        ],
+        "partial": [
+          "A debit/removal is visible without the intended backend/service/delivery effect, or vice versa."
+        ],
+        "stillPending": [
+          "A correlated backend/request state explicitly remains in progress."
+        ],
+        "unresolved": [
+          "Backend completion cannot be proven and value may already have changed."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-BLESS-SERVER (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: request_id bless_result",
+        "Action postcondition: shell delta and server blessing state reconciled"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-EQUIP-CX",
+      "actionContractId": "AL-ACTION-EQUIP-CX",
+      "publicFunction": "equip_cx",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "owned_cosmetics"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-EQUIP-CX (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: character cosmetic state equals requested selection"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-BET-WHEEL",
+      "actionContractId": "AL-ACTION-BET-WHEEL",
+      "publicFunction": "bet_wheel",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "REQUEST_RESPONSE_GAME_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "character_gold",
+        "wheel_side",
+        "wheel_active_spin"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh purse/stack/game state proves the terminal wager/action result and all value deltas are consistent with the intended game action.",
+          "A correlated response may support settlement but never replaces postcondition observation for value-changing outcomes."
+        ],
+        "notApplied": [
+          "Fresh value state matches the pinned pre-state and no active spin/hand/q/game marker attributable to the intent exists."
+        ],
+        "partial": [
+          "Stake/stack/value changed but the game outcome or corresponding reward/cash state is not terminally reconciled."
+        ],
+        "stillPending": [
+          "Fresh live game state shows an active spin, hand, q, seat transition, or other authoritative in-progress marker attributable to the intent."
+        ],
+        "unresolved": [
+          "A wager/action may have been accepted but terminal value/game state cannot be reconstructed."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-BET-WHEEL (VERIFIED_LIVE_DEPLOYED_CONTRACT) and its verified effect/postcondition model.",
+        "Action postcondition: matching game_response has place=wheel and the exact request_id",
+        "Action postcondition: result classifies won/side/result/slice/wager/payout/net/edge",
+        "Action postcondition: fresh character gold reconciles the wager/payout before any new wager intent"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-POKER-JOIN",
+      "actionContractId": "AL-ACTION-POKER-JOIN",
+      "publicFunction": "poker_join",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "REQUEST_RESPONSE_GAME_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "character_gold",
+        "poker_table",
+        "poker_seat",
+        "poker_hand_state"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh purse/stack/game state proves the terminal wager/action result and all value deltas are consistent with the intended game action.",
+          "A correlated response may support settlement but never replaces postcondition observation for value-changing outcomes."
+        ],
+        "notApplied": [
+          "Fresh value state matches the pinned pre-state and no active spin/hand/q/game marker attributable to the intent exists."
+        ],
+        "partial": [
+          "Stake/stack/value changed but the game outcome or corresponding reward/cash state is not terminally reconciled."
+        ],
+        "stillPending": [
+          "Fresh live game state shows an active spin, hand, q, seat transition, or other authoritative in-progress marker attributable to the intent."
+        ],
+        "unresolved": [
+          "A wager/action may have been accepted but terminal value/game state cannot be reconstructed."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-POKER-JOIN (VERIFIED_LIVE_DEPLOYED_CONTRACT) and its verified effect/postcondition model.",
+        "Action postcondition: matching game_response has place=poker and exact request_id",
+        "Action postcondition: fresh poker table confirms expected seat/stack/buyin/blinds state",
+        "Action postcondition: fresh purse gold and poker stack reconcile the buy-in or rebuy"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-POKER-ACT",
+      "actionContractId": "AL-ACTION-POKER-ACT",
+      "publicFunction": "poker_act",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "REQUEST_RESPONSE_GAME_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "poker_table",
+        "poker_hand_state",
+        "acting_seat",
+        "deadline",
+        "can_raise",
+        "poker_stack"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh purse/stack/game state proves the terminal wager/action result and all value deltas are consistent with the intended game action.",
+          "A correlated response may support settlement but never replaces postcondition observation for value-changing outcomes."
+        ],
+        "notApplied": [
+          "Fresh value state matches the pinned pre-state and no active spin/hand/q/game marker attributable to the intent exists."
+        ],
+        "partial": [
+          "Stake/stack/value changed but the game outcome or corresponding reward/cash state is not terminally reconciled."
+        ],
+        "stillPending": [
+          "Fresh live game state shows an active spin, hand, q, seat transition, or other authoritative in-progress marker attributable to the intent."
+        ],
+        "unresolved": [
+          "A wager/action may have been accepted but terminal value/game state cannot be reconstructed."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-POKER-ACT (VERIFIED_LIVE_DEPLOYED_CONTRACT) and its verified effect/postcondition model.",
+        "Action postcondition: matching game_response has place=poker and exact request_id",
+        "Action postcondition: response action/amount/stack/pot is reconciled against a fresh poker table state before any follow-up act"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-POKER-LEAVE",
+      "actionContractId": "AL-ACTION-POKER-LEAVE",
+      "publicFunction": "poker_leave",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "DEFERRED_SETTLEMENT_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "poker_table",
+        "poker_hand_state",
+        "poker_seat",
+        "character_gold"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh poker table state proves the seat is gone and fresh character gold proves the stack has been cashed out."
+        ],
+        "notApplied": [
+          "Fresh table state proves the seat remains active with no leave-pending transition and no purse/stack settlement occurred."
+        ],
+        "partial": [
+          "Seat removal and returned-gold settlement disagree or only one side is observable."
+        ],
+        "stillPending": [
+          "The leave response/state reports leaving=true, the hand is still active, or disconnect cash-out delay has not yet elapsed."
+        ],
+        "unresolved": [
+          "The seat disappeared but the returned stack cannot be reconciled, or delayed cash-out timing/state is ambiguous."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-POKER-LEAVE (VERIFIED_LIVE_DEPLOYED_CONTRACT) and its verified effect/postcondition model.",
+        "Action postcondition: matching response either reports leaving=true or reports returned gold",
+        "Action postcondition: if leaving=true, transaction remains unsettled until fresh table state confirms seat removal/cash-out and purse gold reflects settlement",
+        "Action postcondition: after disconnect, reconcile delayed automatic cash-out before any new join/leave value intent"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-POKER-SIT-IN",
+      "actionContractId": "AL-ACTION-POKER-SIT-IN",
+      "publicFunction": "poker_sit_in",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "REQUEST_RESPONSE_GAME_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "poker_table",
+        "poker_seat",
+        "poker_stack"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh purse/stack/game state proves the terminal wager/action result and all value deltas are consistent with the intended game action.",
+          "A correlated response may support settlement but never replaces postcondition observation for value-changing outcomes."
+        ],
+        "notApplied": [
+          "Fresh value state matches the pinned pre-state and no active spin/hand/q/game marker attributable to the intent exists."
+        ],
+        "partial": [
+          "Stake/stack/value changed but the game outcome or corresponding reward/cash state is not terminally reconciled."
+        ],
+        "stillPending": [
+          "Fresh live game state shows an active spin, hand, q, seat transition, or other authoritative in-progress marker attributable to the intent."
+        ],
+        "unresolved": [
+          "A wager/action may have been accepted but terminal value/game state cannot be reconstructed."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-POKER-SIT-IN (VERIFIED_LIVE_DEPLOYED_CONTRACT) and its verified effect/postcondition model.",
+        "Action postcondition: matching game_response has place=poker and exact request_id",
+        "Action postcondition: fresh poker table confirms own seat out=false and sufficient stack remains"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-POKER-SIT-OUT",
+      "actionContractId": "AL-ACTION-POKER-SIT-OUT",
+      "publicFunction": "poker_sit_out",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "REQUEST_RESPONSE_GAME_RECONCILE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "poker_table",
+        "poker_seat",
+        "poker_stack",
+        "character_gold"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh purse/stack/game state proves the terminal wager/action result and all value deltas are consistent with the intended game action.",
+          "A correlated response may support settlement but never replaces postcondition observation for value-changing outcomes."
+        ],
+        "notApplied": [
+          "Fresh value state matches the pinned pre-state and no active spin/hand/q/game marker attributable to the intent exists."
+        ],
+        "partial": [
+          "Stake/stack/value changed but the game outcome or corresponding reward/cash state is not terminally reconciled."
+        ],
+        "stillPending": [
+          "Fresh live game state shows an active spin, hand, q, seat transition, or other authoritative in-progress marker attributable to the intent."
+        ],
+        "unresolved": [
+          "A wager/action may have been accepted but terminal value/game state cannot be reconstructed."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-POKER-SIT-OUT (VERIFIED_LIVE_DEPLOYED_CONTRACT) and its verified effect/postcondition model.",
+        "Action postcondition: matching game_response has place=poker and exact request_id and reports out=true",
+        "Action postcondition: fresh poker table confirms own seat out=true",
+        "Action postcondition: if sit-out persists, later automatic cash-out is reconciled before any new value-changing poker intent"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-CAVE-BUY",
+      "actionContractId": "AL-ACTION-CAVE-BUY",
+      "publicFunction": "cave_buy",
+      "status": "DISABLED_WITH_ACTION_CONTRACT",
+      "recoveryClass": "DISABLED",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "cave_session",
+        "cave_gold",
+        "merchant_room",
+        "original_party_roster",
+        "recipient_inventory"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Not applicable: execution is forbidden while the action contract is disabled."
+        ],
+        "notApplied": [
+          "No send may occur; any observed mutation must be treated as external/unmanaged evidence."
+        ],
+        "partial": [
+          "Not applicable for managed execution; quarantine if such evidence appears."
+        ],
+        "stillPending": [
+          "Not applicable for managed execution; quarantine if such evidence appears."
+        ],
+        "unresolved": [
+          "Remain disabled until the exact action/transport contract is verified and a new reviewed recovery policy is published."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-CAVE-BUY (EXPLICITLY_DISABLED_PENDING_EXACT_CONTRACT) and its verified effect/postcondition model.",
+        "Action postcondition: automation disabled until cave_request transport/correlation/timeout contract is verified",
+        "Action postcondition: when eventually enabled, cave-gold delta, sold shop state and exact random recipient inventory must all reconcile"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-DESTROY-ITEM",
+      "actionContractId": "AL-ACTION-DESTROY-ITEM",
+      "publicFunction": "destroy_item",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "inventory_item_identity"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
+          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+        ],
+        "notApplied": [
+          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
+          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+        ],
+        "partial": [
+          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
+          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+        ],
+        "unresolved": [
+          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-DESTROY-ITEM (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
+        "Action postcondition: destroyed item/quantity no longer exists at the re-resolved physical inventory identity"
+      ]
+    }
+  ]
+}

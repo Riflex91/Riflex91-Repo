@@ -94,7 +94,7 @@ Pflichtreihenfolge fuer Entwicklung:
 3. `datenbank/quellenstatus.json`;
 4. relevante Aenderungen aus `datenbank/aenderungsprotokoll.jsonl`;
 5. Revalidierungsqueue/offene Fragen;
-6. relevante Facts und Action Contracts;
+6. relevante Facts, Action Contracts und Recovery Contracts;
 7. bei Bedarf die aktuellen Roh-Snapshots unter `datenbank/aktuell/**`.
 
 Die vollstaendigen Regeln stehen in:
@@ -108,7 +108,7 @@ v5/entwicklungsregeln/wissensnutzung.json
 
 - `datenbank/aktuell/**` = aktuelle Evidence, **keine direkte Gameplay-API**.
 - `datenbank/kandidaten.json` = Recherchehinweise, **keine Entwicklungs- oder Gameplay-Autoritaet**, unabhaengig von ihrer Vertrauensklasse.
-- Facts/Contracts = kanonische Entwicklungsbasis nach Revalidierung.
+- Facts/Action Contracts/Recovery Contracts = kanonische Entwicklungsbasis nach Revalidierung.
 - unmittelbar vor Game Writes gewinnt weiterhin frische Live Truth.
 
 Spaetere Runtime-Module greifen nicht direkt auf GitHub-TXT-Dateien zu. Sie verwenden einen validierten, read-only `WissensZugriffPort` mit einem versionierten `WissensSnapshot`.
