@@ -47006,6 +47006,66 @@ function equipmentShadeCatalog(runtime) {
   return catalog;
 }
 
+function itemNpcCatalog(gameData) {
+  const byItem = new Map();
+  const add = (item, npc, map) => {
+    const name = String(item || '').trim();
+    if (!name) return;
+    const rows = byItem.get(name) || [];
+    const key = `${String(npc || 'npc')}|${String(map || '')}`;
+    if (!rows.some((row) => row.key === key)) rows.push({ key, npc: String(npc || 'npc'), map: map || null });
+    byItem.set(name, rows);
+  };
+  for (const [mapId, map] of Object.entries(gameData && gameData.maps || {})) {
+    for (const raw of Array.isArray(map && (map.npcs || map.NPCs)) ? (map.npcs || map.NPCs) : []) {
+      const npcId = Array.isArray(raw) ? raw[0] : raw && (raw.id || raw.npc);
+      const def = gameData && gameData.npcs && gameData.npcs[npcId] || {};
+      const stock = [].concat(def.items || def.sells || []);
+      for (const row of stock) add(Array.isArray(row) ? row[0] : row && row.name || row, npcId, mapId);
+    }
+  }
+  return byItem;
+}
+
+function itemAutomationCatalog(runtime, maxItems = 3000) {
+  const gameData = { items: {}, maps: {}, npcs: {}, positions: {}, imagesets: {} };
+  for (const source of gameDataSources(runtime)) {
+    Object.assign(gameData.items, source && source.items || {});
+    Object.assign(gameData.maps, source && source.maps || {});
+    Object.assign(gameData.npcs, source && source.npcs || {});
+    Object.assign(gameData.positions, source && source.positions || {});
+    Object.assign(gameData.imagesets, source && source.imagesets || {});
+  }
+  const npcByItem = itemNpcCatalog(gameData);
+  const rows = [];
+  for (const [id, def] of Object.entries(gameData.items || {}).slice(0, maxItems)) {
+    if (!def || typeof def !== 'object' || Array.isArray(def)) continue;
+    const classes = [].concat(def.class || def.classes || []).map((value) => String(value || '').toLowerCase()).filter(Boolean);
+    const level = Number(def.level != null ? def.level : def.req != null ? def.req : def.requirement);
+    rows.push({
+      id,
+      name: def.name || id,
+      type: def.type || null,
+      wtype: def.wtype || null,
+      level: Number.isFinite(level) ? level : null,
+      grade: Number.isFinite(Number(def.grade)) ? Number(def.grade) : null,
+      classes,
+      npc: (npcByItem.get(id) || []).map(({ npc, map }) => ({ npc, map })),
+      upgrade: def.upgrade === true,
+      compound: def.compound === true,
+      exchange: !!(def.exchange || def.e),
+      quest: !!(def.quest || def.q),
+      cash: !!def.cash,
+      soulbound: !!def.soulbound,
+      special: !!def.special,
+      goldValue: Number.isFinite(Number(def.g)) ? Number(def.g) : null,
+      skin: def.skin_c || def.skin || null
+    });
+  }
+  rows.sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)));
+  return rows;
+}
+
 function installAdventureLandItemSprites(runtime, cloud) {
   if (!cloud || cloud.__adventureLandItemSpritesInstalled || typeof cloud._runtimeSnapshot !== 'function') return false;
   const originalRuntimeSnapshot = cloud._runtimeSnapshot.bind(cloud);
@@ -47015,6 +47075,7 @@ function installAdventureLandItemSprites(runtime, cloud) {
       snapshot.itemSprites = itemSpriteCatalog(runtime);
       snapshot.equipmentShades = equipmentShadeCatalog(runtime);
       const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
+      if (liveCharacter && String(liveCharacter.ctype || '').toLowerCase() === 'merchant') snapshot.automationCatalog = itemAutomationCatalog(runtime);
       if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
         snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
       }
@@ -47223,6 +47284,7 @@ module.exports = {
   adventureLandAssetUrl,
   itemSpriteCatalog,
   equipmentShadeCatalog,
+  itemAutomationCatalog,
   installAdventureLandItemSprites
 };
 },
@@ -47304,6 +47366,7 @@ const DEFINITIONS = Object.freeze([
   { key: 'economy.compoundCap', category: 'Economy, Gear & Markt', label: 'Compound Kostenlimit', description: 'Maximaler konservativer Budgetrahmen für Compound-Kandidaten.', type: 'number', default: 500000, min: 0, max: 100000000, step: 50000, hot: true },
   { key: 'economy.maxUpgrade', category: 'Economy, Gear & Markt', label: 'Max Upgrade Level', description: 'Maximales Ergebnislevel autonomer Upgrades. Aktuelle v3-Progressionsgrenze: +7.', type: 'number', default: 2, min: 0, max: 7, step: 1, hot: true },
   { key: 'economy.maxCompound', category: 'Economy, Gear & Markt', label: 'Max Compound Level', description: 'Maximales Ergebnislevel autonomer Compounds. Aktuelle v3-Progressionsgrenze: +10.', type: 'number', default: 1, min: 0, max: 10, step: 1, hot: true },
+  { key: 'economy.itemPermissions', category: 'Economy, Gear & Markt', label: 'Item-Berechtigungen', description: 'Per-Item Freigaben aus dem Inventar-Kontextmenü.', type: 'item-permissions', default: {}, hot: true, hidden: true },
   { key: 'economy.marketMaxTrackedItems', category: 'Economy, Gear & Markt', label: 'Markt-History Items', description: 'Maximal persistent beobachtete Item-Arten.', type: 'number', default: 96, min: 24, max: 256, step: 8, hot: false },
   { key: 'economy.marketMaxSamples', category: 'Economy, Gear & Markt', label: 'Markt-Samples/Item', description: 'Maximale historische Beobachtungen je Item.', type: 'number', default: 48, min: 8, max: 128, step: 4, hot: false },
   { key: 'economy.gearGoalFreshMs', category: 'Economy, Gear & Markt', label: 'Gear-Goal Frische', description: 'Maximales Alter eines Ausrüstungsziels für Transfers.', type: 'number', default: 30000, min: 5000, max: 180000, step: 5000, hot: false },
@@ -47349,14 +47412,29 @@ function setPath(root, path, value) {
   let cur = root; for (let i = 0; i < parts.length - 1; i += 1) { if (!cur || !(parts[i] in cur)) return false; cur = cur[parts[i]]; }
   if (!cur || !(parts[parts.length - 1] in cur)) return false; cur[parts[parts.length - 1]] = value; return true;
 }
+function normalizeItemPermissions(value) {
+  let source = value;
+  if (typeof source === 'string') { try { source = JSON.parse(source); } catch (_) { source = {}; } }
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return {};
+  const out = {};
+  for (const [rawName, row] of Object.entries(source).slice(0, 512)) {
+    const name = String(rawName || '').trim().slice(0, 120);
+    if (!name || !row || typeof row !== 'object' || Array.isArray(row)) continue;
+    const next = {};
+    for (const action of ['sell', 'bank', 'compound', 'upgrade']) if (typeof row[action] === 'boolean') next[action] = row[action];
+    if (Object.keys(next).length) out[name] = next;
+  }
+  return out;
+}
 function normalize(def, value) {
   if (def.locked) return def.default;
+  if (def.type === 'item-permissions') return normalizeItemPermissions(value);
   if (def.type === 'boolean') return value === true || value === 'true' || value === 1;
   if (def.type === 'number') { let n = finite(value, def.default); if (def.min != null) n = Math.max(def.min, n); if (def.max != null) n = Math.min(def.max, n); return n; }
   if (def.type === 'select') return Array.isArray(def.values) && def.values.includes(String(value)) ? String(value) : def.default;
   return value == null ? def.default : String(value);
 }
-function defaults() { const out = {}; for (const def of DEFINITIONS) out[def.key] = def.default; return out; }
+function defaults() { const out = {}; for (const def of DEFINITIONS) out[def.key] = def.type === 'item-permissions' ? normalizeItemPermissions(def.default) : def.default; return out; }
 function sanitize(values = {}) { const out = defaults(); for (const [key, value] of Object.entries(values || {})) { const def = BY_KEY.get(key); if (def) out[key] = normalize(def, value); } return out; }
 function storage(root = globalThis) { try { return root && (root.localStorage || root.parent && root.parent.localStorage) || null; } catch (_) { return null; } }
 function loadStored(root = globalThis) {
