@@ -42578,10 +42578,14 @@ class MerchantProductionPlanner {
       : [];
     const bankPool = bank.length ? bank : catalogRows;
     const lockedExchangeItem = input.productionTaskTarget && input.productionTaskTarget.exchangeItem ? String(input.productionTaskTarget.exchangeItem) : null;
-    const explicitDemands = (Array.isArray(input.exchangeDemands) ? input.exchangeDemands : [])
-      .filter((row) => row && row.item && (!row.expiresAt || row.expiresAt > this.now()))
+    const rawExplicitDemands = (Array.isArray(input.exchangeDemands) ? input.exchangeDemands : [])
+      .filter((row) => row && row.item && (!row.expiresAt || row.expiresAt > this.now()));
+    const explicitDemands = rawExplicitDemands
       .filter((row) => !row.eventKey || eventEntryActive(input.eventState || {}, row.eventKey, this.now()));
     const demandByItem = new Map(explicitDemands.map((row) => [String(row.item), row]));
+    const reservedExplicitExchangeItems = new Set(rawExplicitDemands
+      .filter((row) => String(row.reason || '') === 'PRODUCTION_MATERIAL' || row.eventKey)
+      .map((row) => String(row.item)));
 
     // Anything that Adventure Land itself marks with a positive exchange
     // requirement (G.items[name].e) is legitimate autonomous cleanup work once
@@ -42590,7 +42594,7 @@ class MerchantProductionPlanner {
     for (const item of inventory) if (item && item.name && levelOf(item) === 0) exchangeableNames.add(String(item.name));
     for (const row of bankPool) if (row && row.name && row.level === 0) exchangeableNames.add(String(row.name));
     for (const name of exchangeableNames) {
-      if (demandByItem.has(name)) continue;
+      if (demandByItem.has(name) || reservedExplicitExchangeItems.has(name)) continue;
       const meta = gameData.items && gameData.items[name];
       const required = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
       if (!meta || required <= 0) continue;
