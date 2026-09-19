@@ -1,0 +1,74 @@
+# V5 Definition of Done
+
+Diese Checkliste gilt fuer **jede** neue mutierende Capability und fuer jede Aenderung, die Safety, Recovery, Persistenz, Scheduling oder Authority beeinflusst.
+
+## A. Wissen und Contract
+
+- [ ] Betroffene Fact-/Knowledge-IDs bekannt.
+- [ ] Quelle/Version/Freshness dokumentiert.
+- [ ] Action Contract verifiziert.
+- [ ] Bei Drift ist Capability fail-closed.
+- [ ] ADR vorhanden, falls Architektursemantik geaendert wird.
+
+## B. Ownership und Grenzen
+
+- [ ] Genau ein mutierender Owner.
+- [ ] Fachmodul kennt keine rohe Adventure-Land-Mutation.
+- [ ] Port/Capability versioniert.
+- [ ] Keine fremden Runtime-Objekte als implizite API.
+- [ ] Disable-/Rollback-Pfad vorhanden.
+
+## C. Workflow und Ressourcen
+
+- [ ] Workflow/Action besitzt stabile ID.
+- [ ] PriorityClass/Deadline definiert.
+- [ ] Ressourcen und Lock-Reihenfolge definiert.
+- [ ] Safe-Preemption-Points explizit.
+- [ ] Lease/Fencing fuer langlebige Locks.
+- [ ] Keine unbounded Retry-/Wait-Schleife.
+
+## D. Transaktion und Recovery
+
+- [ ] Persist-before-action fuer irreversible Mutation.
+- [ ] Idempotency/Dedupe Strategy.
+- [ ] Server Result Classification.
+- [ ] Domain Postcondition.
+- [ ] UNKNOWN Outcome.
+- [ ] Reconcile Strategy.
+- [ ] Partial Completion behandelt.
+- [ ] Restart waehrend jeder kritischen Phase getestet.
+- [ ] Operator Stop waehrend In-Flight getestet.
+
+## E. Tests
+
+- [ ] Static/Dependency Guards.
+- [ ] Unit Tests.
+- [ ] Property/Invariant Tests.
+- [ ] State-Machine Tests.
+- [ ] Deterministic Replay.
+- [ ] Fault Injection.
+- [ ] Negative Tests.
+- [ ] Migration Tests, falls Persistenz betroffen.
+- [ ] Memory/Queue Bounds geprueft.
+
+## F. Observability
+
+- [ ] Why/Owner/Evidence/Locks sichtbar.
+- [ ] Workflowphase sichtbar.
+- [ ] Transactionstate sichtbar.
+- [ ] Retry/Circuit/Budget sichtbar.
+- [ ] Failure/Unknown unterscheidbar.
+- [ ] Kritische Alerts persistent gespult.
+
+## G. Live-Freigabe
+
+- [ ] Shadow: 0 unerwartete Writes.
+- [ ] Controlled Live mit minimalem Scope.
+- [ ] Postcondition-Evidence gespeichert.
+- [ ] Fault-/Recovery-Nachweis fuer Live-Pfad.
+- [ ] Soak passend zum Risiko.
+- [ ] PR exakt auf Head gruen.
+- [ ] Branch nicht hinter aktuellem main.
+- [ ] Keine unbeabsichtigten V3/V4-Aenderungen.
+
+**Nicht alle Checkboxen = nicht fertig.**
