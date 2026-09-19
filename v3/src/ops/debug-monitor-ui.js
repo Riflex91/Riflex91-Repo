@@ -765,7 +765,9 @@ class DebugMonitorUI {
     this._setStyle(this.skillsPanel, { display: 'none', marginBottom: '10px', padding: '8px', background: '#11151b', border: '1px solid #374151', borderRadius: '5px' });
     box.appendChild(this.skillsPanel);
 
-    this.body = null;
+    this.body = doc.createElement('div');
+    this.body.setAttribute('aria-hidden', 'true');
+    box.appendChild(this.body);
 
     this.logBox = doc.createElement('pre');
     this._setStyle(this.logBox, {
