@@ -19,7 +19,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## autonomy
 
-**32 Dateien · 8342 Zeilen**
+**32 Dateien · 8401 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -31,7 +31,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha12-hardened-runtime.js` | 160 |
 | `src/autonomy/alpha12-runtime.js` | 87 |
 | `src/autonomy/alpha13-runtime.js` | 141 |
-| `src/autonomy/alpha14-runtime.js` | 116 |
+| `src/autonomy/alpha14-runtime.js` | 175 |
 | `src/autonomy/alpha15-runtime.js` | 105 |
 | `src/autonomy/alpha16-runtime.js` | 77 |
 | `src/autonomy/alpha17-runtime.js` | 308 |
@@ -115,7 +115,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## economy
 
-**13 Dateien · 4663 Zeilen**
+**13 Dateien · 4722 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -126,8 +126,8 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/economy/controlled-merchant-executor.js` | 599 |
 | `src/economy/controlled-merchant-space-recovery-hardened.js` | 159 |
 | `src/economy/controlled-merchant-space-recovery.js` | 420 |
-| `src/economy/gear-progression.js` | 618 |
-| `src/economy/inventory-ledger.js` | 455 |
+| `src/economy/gear-progression.js` | 644 |
+| `src/economy/inventory-ledger.js` | 488 |
 | `src/economy/item-economic-evaluator.js` | 281 |
 | `src/economy/merchant-space-recovery-journal.js` | 400 |
 | `src/economy/sell-safety.js` | 134 |
@@ -135,7 +135,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## farmer
 
-**21 Dateien · 4589 Zeilen**
+**21 Dateien · 4623 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -147,7 +147,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/farmer/farm-area-pressure-hotfix.js` | 304 |
 | `src/farmer/farmer-fsm.js` | 686 |
 | `src/farmer/farmer-local-plan-priority.js` | 104 |
-| `src/farmer/farmer-resource-topoff-hotfix.js` | 339 |
+| `src/farmer/farmer-resource-topoff-hotfix.js` | 373 |
 | `src/farmer/farmer-target-efficiency-hotfix.js` | 221 |
 | `src/farmer/farmer-terrain-navigation-hotfix.js` | 508 |
 | `src/farmer/farmer-travel-safety-hotfix.js` | 138 |
@@ -224,7 +224,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**38 Dateien · 10595 Zeilen**
+**39 Dateien · 10883 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -247,6 +247,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/elixir-policy.js` | 225 |
 | `src/party/fingerprints.js` | 93 |
 | `src/party/lifecycle-store.js` | 289 |
+| `src/party/merchant-party-history.js` | 288 |
 | `src/party/moving-target-freshness.js` | 156 |
 | `src/party/orchestrator-base.js` | 56 |
 | `src/party/orchestrator.js` | 59 |
@@ -277,7 +278,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 17243 Zeilen**
+**50 Dateien · 17348 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -300,14 +301,14 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-atomic-service.js` | 338 |
 | `src/reliability/alpha27-atomic-transaction-engine.js` | 179 |
 | `src/reliability/alpha27-atomic-transactions.js` | 263 |
-| `src/reliability/alpha27-bank-recovery.js` | 493 |
+| `src/reliability/alpha27-bank-recovery.js` | 575 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 331 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
 | `src/reliability/alpha27-merchant-autonomy.js` | 790 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
-| `src/reliability/alpha27-merchant-planning.js` | 686 |
+| `src/reliability/alpha27-merchant-planning.js` | 709 |
 | `src/reliability/alpha27-merchant-service.js` | 188 |
 | `src/reliability/alpha27-merchant-travel-intelligence.js` | 393 |
 | `src/reliability/alpha27-utils.js` | 149 |
