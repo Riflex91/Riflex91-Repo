@@ -268,7 +268,10 @@ Bauen:
 - processed-evidence/dedupe cursor;
 - outbox/inbox fuer kritische externe Zustellung;
 - retention/compaction;
-- crash-safe write order.
+- crash-safe write order;
+- `LiveWissensSpeicherPort` fuer die lokale SSD-Datenbank auf `D:\\AdventureLand-V5\\wissensdatenbank`;
+- atomarer `SCHREIBT -> BEREIT`-Generationswriter fuer Live-Wissen;
+- bounded Dateianzahl/Dateigroesse und Disk-Full-/Zugriffsfehlerbehandlung.
 
 Pflicht:
 `persist intent -> send action -> observe -> commit/reconcile`
