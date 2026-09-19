@@ -18,9 +18,13 @@ function clone(value) {
 
 function currentPartyFingerprintKey(runtime) {
   const raw = runtime && runtime.currentPartyFingerprint;
-  if (!raw) return null;
-  if (typeof raw === 'string') return raw;
-  if (raw && typeof raw.key === 'string') return raw.key;
+  if (typeof raw === 'string' && raw) return raw;
+  if (raw && typeof raw.key === 'string' && raw.key) return raw.key;
+  try {
+    const snapshot = runtime && runtime.lastSnapshot;
+    const profile = snapshot && runtime && typeof runtime._partyProfile === 'function' ? runtime._partyProfile(snapshot) : null;
+    if (profile && typeof profile.fingerprint === 'string' && profile.fingerprint) return profile.fingerprint;
+  } catch (_) {}
   return null;
 }
 
@@ -33,6 +37,10 @@ function bestMeasuredKillsPerHour(runtime, monster) {
       const current = world.performanceFor(monster, fingerprint);
       if (current && finite(current.seconds, 0) >= 60 && finite(current.killsPerHour, 0) > 0) return finite(current.killsPerHour, 0);
     } catch (_) {}
+    // Do not borrow kill rates from a different party composition. The whole
+    // farmer team acts together, so unknown current-team throughput must fall
+    // back to the conservative estimate instead.
+    return null;
   }
   if (!(world.performance instanceof Map)) return null;
   const rows = [...world.performance.values()]
