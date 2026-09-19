@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "EXT-RESEARCH-2026-09-19",
+      "type": "RESEARCH_SNAPSHOT",
+      "title": "Adventure Land External Research 2026-09-19",
+      "location": "v5/wissensbasis/quellen/externe-recherche/2026-09-19-adventure-land-research.md",
+      "retrievedAt": "2026-09-19",
+      "trust": "MIXED_WITH_PER_FACT_CLASSIFICATION",
+      "snapshot": {
+        "sourceSha256": "44fa8411828b1622dde6c91d7ea8b1a3e710d5dc934da426378f535be857a229",
+        "bytes": 80304,
+        "lines": 2107
+      },
+      "immutableSnapshot": true
+    },
+    {
+      "id": "AL-OFFICIAL-MCP",
+      "type": "OFFICIAL_DOC",
+      "title": "Adventure Land — MCP / AI Guide",
+      "url": "https://adventure.land/docs/guide/tracktrix/null/adventure-mcp",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-OFFICIAL-CODE-FUNCTIONS",
+      "type": "OFFICIAL_DOC",
+      "title": "Adventure Land — CODE Functions",
+      "url": "https://adventure.land/docs/code/functions",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-OFFICIAL-NOTES",
+      "type": "OFFICIAL_DOC",
+      "title": "Adventure Land — Update Notes",
+      "url": "https://adventure.land/allnotes",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-OFFICIAL-DOCS-HUB",
+      "type": "OFFICIAL_DOC",
+      "title": "Adventure Land — Website / Docs Hub",
+      "url": "https://adventure.land/",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-OFFICIAL-REPO",
+      "type": "OFFICIAL_REPOSITORY",
+      "title": "kaansoral/adventureland_mongodb",
+      "url": "https://github.com/kaansoral/adventureland_mongodb",
+      "trust": "OFFICIAL",
+      "snapshot": {
+        "commit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      }
+    },
+    {
+      "id": "AL-SRC-RUNNER",
+      "type": "OFFICIAL_SOURCE",
+      "title": "runner_functions.js",
+      "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/js/runner_functions.js",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-SRC-GAME",
+      "type": "OFFICIAL_SOURCE",
+      "title": "game.js",
+      "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/js/game.js",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-SRC-COMMON",
+      "type": "OFFICIAL_SOURCE",
+      "title": "old_common_functions.js",
+      "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/js/old_common_functions.js",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-SRC-SERVER",
+      "type": "OFFICIAL_SOURCE",
+      "title": "server.js",
+      "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/node/server.js",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-SRC-SERVER-FUNCTIONS",
+      "type": "OFFICIAL_SOURCE",
+      "title": "server_functions.js",
+      "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/node/server_functions.js",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-DATA-CLASSES",
+      "type": "OFFICIAL_GAME_DATA",
+      "title": "design/classes.js",
+      "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/classes.js",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-DATA-SKILLS",
+      "type": "OFFICIAL_GAME_DATA",
+      "title": "design/skills.js",
+      "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/skills.js",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-DATA-ITEMS",
+      "type": "OFFICIAL_GAME_DATA",
+      "title": "design/items.js",
+      "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/items.js",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-DATA-MONSTERS",
+      "type": "OFFICIAL_GAME_DATA",
+      "title": "design/monsters.js",
+      "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/monsters.js",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-DATA-MAPS",
+      "type": "OFFICIAL_GAME_DATA",
+      "title": "design/maps.js",
+      "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/maps.js",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-DATA-EVENTS",
+      "type": "OFFICIAL_GAME_DATA",
+      "title": "design/events.js",
+      "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/events.js",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-DATA-RECIPES",
+      "type": "OFFICIAL_GAME_DATA",
+      "title": "design/recipes.js",
+      "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/recipes.js",
+      "trust": "OFFICIAL"
+    },
+    {
+      "id": "COMM-MONITORING",
+      "type": "COMMUNITY_REPOSITORY",
+      "title": "adventureland-community/monitoring",
+      "url": "https://github.com/adventureland-community/monitoring",
+      "trust": "COMMUNITY"
+    },
+    {
+      "id": "COMM-GRIMERY",
+      "type": "COMMUNITY_REPOSITORY",
+      "title": "grimery/Adventure.Land",
+      "url": "https://github.com/grimery/Adventure.Land",
+      "trust": "COMMUNITY"
+    },
+    {
+      "id": "COMM-ALCLIENT",
+      "type": "COMMUNITY_REPOSITORY",
+      "title": "earthiverse/ALClient",
+      "url": "https://github.com/earthiverse/ALClient",
+      "trust": "COMMUNITY"
+    }
+  ]
+}
