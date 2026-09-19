@@ -140,6 +140,105 @@ test('merchant production auto-enables scoped BUY/BANK/CRAFT authority in active
   assert.equal(status.autoLiveEnabled, true);
 });
 
+test('persisted recovering exchange reconciles before any new production plan or travel', () => {
+  let reconciles = 0;
+  let plannerCalls = 0;
+  let travelCalls = 0;
+  let recovering = true;
+  const storage = memoryStorage();
+  const root = {
+    character: {
+      name: 'My_Merchant',
+      ctype: 'merchant',
+      map: 'main',
+      gold: 20000000,
+      isize: 42,
+      items: [{ name: 'anniversarygift', level: 0, q: 167 }]
+    },
+    parent: { entities: {} },
+    G: { items: { anniversarygift: { type: 'material', e: 1 } }, craft: {}, maps: {}, npcs: {} },
+    localStorage: { getItem: storage.get, setItem: storage.set }
+  };
+  const planner = {
+    plan: () => { plannerCalls += 1; return { id: 'blocked', state: 'BLOCKED', reason: 'NO_CURRENTLY_EXECUTABLE_PRODUCTION_CHAIN', reservations: {} }; },
+    planMaterialConsolidation: () => null,
+    planExchange: () => { plannerCalls += 1; return null; },
+    status: () => ({ lastPlan: null })
+  };
+  const bankCatalog = {
+    observe: () => true,
+    needsRefresh: () => false,
+    status: () => ({ usable: true, snapshot: { packs: [] } })
+  };
+  const executor = {
+    status: () => ({
+      enabled: true,
+      busy: false,
+      activeOperation: recovering ? {
+        schemaVersion: 1,
+        id: 'persisted-exchange',
+        planId: 'old-plan',
+        kind: 'EXCHANGE',
+        item: 'anniversarygift',
+        state: 'RECOVERING',
+        action: 'exchange',
+        expectedInventoryMax: 167
+      } : {
+        schemaVersion: 1,
+        id: 'persisted-exchange',
+        planId: 'old-plan',
+        kind: 'EXCHANGE',
+        item: 'anniversarygift',
+        state: 'COMMITTED'
+      }
+    }),
+    reconcile: () => {
+      reconciles += 1;
+      recovering = false;
+      return { reconciled: true, committed: true, reason: 'RESTART_RECONCILIATION_VERIFIED' };
+    },
+    execute: async () => { throw new Error('must not execute before reconciliation'); },
+    configure: () => {},
+    disable: () => {}
+  };
+  const runtime = {
+    root,
+    now: () => 1000,
+    log: { emit() {} },
+    adapter: { mode: 'active', getGameData: () => root.G },
+    globalSupervisor: { status: () => ({ state: 'HEALTHY' }) },
+    characterRegistry: { status: () => ({ characters: [] }) },
+    contentDrift: { requiresRevalidation: () => false },
+    alpha27CombatMerchantConvergence: {
+      atomic: {
+        merchantBusy: false,
+        serviceTravelBusy: false,
+        namedServiceTravel: async () => { travelCalls += 1; return { ok: true }; }
+      }
+    },
+    _merchantCollectionSessionActive: () => false,
+    tick() {},
+    status() { return {}; },
+    exportDiagnostics() { return '{}'; },
+    setMode(mode) { this.adapter.mode = mode; return mode; },
+    stop() {},
+    _liveEnableGate: () => ({ allowed: true })
+  };
+
+  const controller = installMerchantProduction(runtime, { storage, planner, bankCatalog, executor });
+  const first = controller.cycle();
+
+  assert.equal(first.state, 'HOLD');
+  assert.equal(first.reason, 'PRODUCTION_RESTART_RECONCILED_COMMITTED');
+  assert.equal(reconciles, 1);
+  assert.equal(plannerCalls, 0, 'no fresh production/exchange plan may run before reconciliation');
+  assert.equal(travelCalls, 0, 'reconciliation must happen before any travel');
+
+  controller.cycle();
+  assert.ok(plannerCalls > 0, 'normal planning resumes on the next cycle');
+  assert.equal(reconciles, 1);
+});
+
 // Live alpha.20.116 regression: an exchange demand that first retrieves its
 // material from bank must keep one EXCHANGE_BATCH lease through the final exchange.
 // Keep this assertion on the final user-authored PR head after bundle generation.

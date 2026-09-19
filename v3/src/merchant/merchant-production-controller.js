@@ -348,6 +348,49 @@ function installMerchantProduction(runtime, options = {}) {
       return { state: 'HOLD', reason: 'MERCHANT_PRODUCTION_ROLE_MISMATCH' };
     }
     ensureAutoEnabled();
+
+    // Persisted non-terminal production must be reconciled before any fresh
+    // task acquisition, bank refresh, production planning, or travel. Without
+    // this gate a restarted exchange remains RECOVERING forever while every
+    // newly planned exchange is rejected with PRODUCTION_RECONCILIATION_REQUIRED.
+    const controlledAtStart = executor.status();
+    const recoveringOperation = controlledAtStart && controlledAtStart.activeOperation;
+    if (recoveringOperation && String(recoveringOperation.state || '') === 'RECOVERING') {
+      const reconciliation = executor.reconcile();
+      state.lastExecution = {
+        at: runtime.now(),
+        planId: recoveringOperation.planId || null,
+        kind: recoveringOperation.kind || 'RECONCILE',
+        result: clone(reconciliation)
+      };
+      if (reconciliation && reconciliation.reconciled === true && reconciliation.committed !== true) {
+        const activeProductionTask = currentTask();
+        if (activeProductionTask && activeProductionTask.owner === 'PRODUCTION') {
+          releaseTask('PRODUCTION_RESTART_RECONCILIATION_FAILED_SAFE', {
+            operation: clone(recoveringOperation),
+            reconciliation: clone(reconciliation)
+          });
+        }
+        state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      }
+      if (runtime.log && typeof runtime.log.emit === 'function') {
+        runtime.log.emit({
+          component: 'merchant-production',
+          event: 'PRODUCTION_RESTART_RECONCILED',
+          severity: reconciliation && reconciliation.committed === true ? 'info' : 'warn',
+          reason: reconciliation && reconciliation.reason || 'PRODUCTION_RECONCILIATION_COMPLETED',
+          data: { operation: clone(recoveringOperation), reconciliation: clone(reconciliation) }
+        });
+      }
+      return {
+        state: 'HOLD',
+        reason: reconciliation && reconciliation.committed === true
+          ? 'PRODUCTION_RESTART_RECONCILED_COMMITTED'
+          : 'PRODUCTION_RESTART_RECONCILED_FAILED_SAFE',
+        reconciliation: clone(reconciliation)
+      };
+    }
+
     const task = currentTask();
     if (task && task.owner !== 'PRODUCTION') {
       return { state: 'HOLD', reason: 'MERCHANT_TASK_OWNED_BY_OTHER_SUBSYSTEM', task: clone(task) };

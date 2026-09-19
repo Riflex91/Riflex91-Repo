@@ -1616,20 +1616,9 @@ class Alpha33MarkOrbitMerchantDelivery {
   _startCollectionRoute(candidate, batchDecision = null) {
     if (!candidate || !candidate.pickupEntryCount) return false;
 
-    // A collection trip is already a planned Farmer visit. Before taking the
-    // RENDEZVOUS lock, let the existing potion service chain top up those same
-    // Farmers and aggregate the required shop purchase. This avoids a second
-    // Merchant trip while preserving Alpha27 as the sole supply-chain owner.
-    const potionPolicy = this.runtime.p0PotionPolicy4500;
-    if (potionPolicy && typeof potionPolicy.startOpportunisticService === 'function') {
-      const service = potionPolicy.startOpportunisticService(candidate.names || [], 'FARMER_COLLECTION_ROUTE');
-      if (service && service.started === true) {
-        this.stats.opportunisticPotionRouteStarts += 1;
-        this._event('MERCHANT_COLLECTION_ROUTE_DEFERRED_FOR_POTION_BUNDLE', 'info', service.reason, service);
-        return false;
-      }
-    }
-
+    // Collection owns the trip. Potion top-ups may only piggyback once the
+    // Merchant has actually reached the Farmers; they must never replace this
+    // route with a standalone service journey.
     this.collectionCapacityBlockedIndexes.clear();
     const coordinator = this._collectionCoordinator();
     const lock = coordinator && typeof coordinator.acquire === 'function'
@@ -1651,6 +1640,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       drainedSince: null,
       batchReason: batchDecision && batchDecision.reason || null,
       stage: 'PREPARE_CAPACITY',
+      potionPiggybackAttempted: false,
+      potionPiggybackResult: null,
       farmers: candidate.names.slice(),
       targetMap: candidate.map,
       targetX: candidate.x,
@@ -1982,6 +1973,32 @@ class Alpha33MarkOrbitMerchantDelivery {
         await this._travelToFreshCandidate(merchant, candidate, true);
         return true;
       }
+
+      if (route.potionPiggybackAttempted !== true) {
+        route.potionPiggybackAttempted = true;
+        const potionPolicy = this.runtime.p0PotionPolicy4500;
+        if (potionPolicy && typeof potionPolicy.deliverOpportunisticNearby === 'function') {
+          try {
+            const result = await potionPolicy.deliverOpportunisticNearby(route.farmers || candidate.names || [], 'FARMER_COLLECTION_ROUTE');
+            route.potionPiggybackResult = result || null;
+            if (result && result.attempted === true) {
+              this.stats.opportunisticPotionRouteStarts += 1;
+              this._event('MERCHANT_COLLECTION_ROUTE_POTION_PIGGYBACK', 'info', result.reason || 'OPPORTUNISTIC_ROUTE_POTION_DELIVERY_ATTEMPTED', {
+                routeId: route.id,
+                workers: (route.farmers || []).slice(),
+                result
+              });
+            }
+          } catch (error) {
+            route.potionPiggybackResult = { attempted: true, committed: 0, reason: 'OPPORTUNISTIC_POTION_PIGGYBACK_FAILED', error: String(error && error.message || error).slice(0, 160) };
+            this._event('MERCHANT_COLLECTION_ROUTE_POTION_PIGGYBACK', 'warn', 'OPPORTUNISTIC_POTION_PIGGYBACK_FAILED', {
+              routeId: route.id,
+              error: route.potionPiggybackResult.error
+            });
+          }
+        }
+      }
+
       if (candidate.pickupEntryCount <= 0 || candidate.pickupQuantity <= 0) {
         if (this.now() - route.lastProgressAt >= this.collectionSettleMs) return this._finishCollectionRoute('FARMER_PICKUP_DRAINED');
       } else {
@@ -2105,7 +2122,8 @@ class Alpha33MarkOrbitMerchantDelivery {
         collectionReturnsToEconomyAfterDrainedSettle: true,
         criticalPartySupplyPreemptsCollectionRoute: true,
         criticalPartySupplySuspendsAndResumesCollection: true,
-        plannedFarmerRouteBundlesPotionServiceFirst: true,
+        plannedFarmerRoutePiggybacksPotionDeliveryAtDestination: true,
+        plannedFarmerRouteNeverCreatesStandalonePotionTravel: true,
         rejectedOrTimedOutLootIsExcludedFromPickupTelemetry: true,
         merchantCapacityPreparedFromTotalFarmerPickupDemand: true,
         merchantCollectionMaximizesSafeFreeSlotsBeforeDeparture: false,
