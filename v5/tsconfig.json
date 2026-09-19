@@ -3,7 +3,7 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "rootDir": "laufzeit/quelle",
+    "rootDir": "grundlage/quelle",
     "outDir": "erzeugt",
     "strict": true,
     "noUncheckedIndexedAccess": true,
@@ -20,6 +20,6 @@
     ]
   },
   "include": [
-    "laufzeit/quelle/**/*.ts"
+    "grundlage/quelle/**/*.ts"
   ]
 }
