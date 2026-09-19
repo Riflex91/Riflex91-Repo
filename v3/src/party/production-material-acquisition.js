@@ -348,8 +348,11 @@ function chooseProductionTeamFarmObjective(runtime, blockedCandidates = [], opti
     evaluated: evaluated.map((row) => ({
       output: row.candidate && row.candidate.candidate && row.candidate.candidate.output || null,
       recipient: row.candidate && row.candidate.candidate && row.candidate.candidate.recipient || null,
+      slot: row.candidate && row.candidate.candidate && row.candidate.candidate.slot || null,
+      target: clone(row.candidate && row.candidate.candidate || null),
       eligible: row.estimate && row.estimate.eligible === true,
       reason: row.estimate && row.estimate.reason || 'UNKNOWN',
+      materials: clone(row.estimate && row.estimate.materials || []),
       totalExpectedHours: row.estimate && Number.isFinite(row.estimate.totalExpectedHours) ? row.estimate.totalExpectedHours : null,
       maxTeamFarmHours: row.estimate && row.estimate.maxTeamFarmHours || Math.max(0.25, finite(options.maxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS)),
       longPath: row.estimate && row.estimate.longPath === true,
