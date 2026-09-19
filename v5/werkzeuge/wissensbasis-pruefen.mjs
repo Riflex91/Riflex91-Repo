@@ -14,6 +14,7 @@ const questionDocs = manifest.questions.map(readJson);
 const contractDocs = (manifest.contracts ?? []).map(readJson);
 const recoveryDocs = (manifest.recoveryContracts ?? []).map(readJson);
 const bankConcurrency = manifest.bankConcurrency ? readJson(manifest.bankConcurrency) : null;
+const tradeLifecycle = manifest.tradeLifecycle ? readJson(manifest.tradeLifecycle) : null;
 const revalidation = readJson(manifest.revalidation);
 
 const sources = new Map(sourcesDoc.sources.map((s) => [s.id, s]));
@@ -177,6 +178,49 @@ for (const fn of ['bank_deposit','bank_withdraw','bank_store','bank_retrieve','b
 }
 if (recoveryList.find((x) => x.publicFunction === 'open_bank_pack')?.recoveryClass !== 'MIXED_PATH_RECONCILE') {
   fail('P0-03 open_bank_pack braucht MIXED_PATH_RECONCILE.');
+}
+
+if (!tradeLifecycle
+    || tradeLifecycle.schemaVersion !== 1
+    || tradeLifecycle.researchId !== 'V5-P0-04'
+    || tradeLifecycle.status !== 'DONE') {
+  fail('P0-04 Trade-Lifecycle-Vertrag fehlt oder ist ungueltig.');
+}
+if (tradeLifecycle.ridSemantics?.rotatesOnPartialFill !== false
+    || tradeLifecycle.ridSemantics?.v5RequiresRidField !== true
+    || tradeLifecycle.ridSemantics?.serverRequiresRidField !== false) {
+  fail('P0-04 RID-Semantik ist ungueltig.');
+}
+if (tradeLifecycle.partialFillSemantics?.requestIsAllOrFailForRequestedQuantity !== true
+    || tradeLifecycle.partialFillSemantics?.noAutomaticServerDownsize !== true
+    || tradeLifecycle.partialFillSemantics?.ridAfterPartialFill !== 'UNCHANGED') {
+  fail('P0-04 Partial-Fill-Semantik ist ungueltig.');
+}
+if (tradeLifecycle.tradeSell?.serverItemSelection?.clientSpecifiesInventoryIndex !== false
+    || tradeLifecycle.tradeSell?.serverItemSelection?.scanDirection !== 'inventory index 0 upward'
+    || tradeLifecycle.tradeSell?.serverItemSelection?.v5Rule?.length < 20) {
+  fail('P0-04 trade_sell Server-Itemauswahl ist unvollstaendig.');
+}
+const tradeBuyAction = contractList.find((x) => x.publicFunction === 'trade_buy');
+const tradeSellAction = contractList.find((x) => x.publicFunction === 'trade_sell');
+if (!tradeBuyAction?.dangerFlags?.includes('RID_NOT_QUANTITY_VERSION')
+    || !tradeBuyAction?.dangerFlags?.includes('RAW_SERVER_RID_CHECK_IS_CONDITIONAL')) {
+  fail('P0-04 trade_buy ActionContract bildet RID-Risiken nicht ab.');
+}
+if (!tradeSellAction?.dangerFlags?.includes('SERVER_SELECTS_FIRST_MATCHING_ITEM')
+    || !tradeSellAction?.dangerFlags?.includes('PHYSICAL_ITEM_VARIANT_AMBIGUITY')
+    || !tradeSellAction?.dangerFlags?.includes('RID_NOT_QUANTITY_VERSION')) {
+  fail('P0-04 trade_sell ActionContract bildet physische Itemauswahl/RID nicht ab.');
+}
+for (const fn of ['trade_buy','trade_sell']) {
+  const recovery = recoveryList.find((x) => x.publicFunction === fn);
+  if (recovery?.recoveryClass !== 'RID_TRADE_RECONCILE') fail(`P0-04 ${fn}: falsche Recovery-Klasse`);
+  if (!recovery?.settlementRules?.committed?.some((x) => x.includes('Remote') || x.includes('remote'))) {
+    fail(`P0-04 ${fn}: Recovery muss Remote-Listing nur als sekundaere Evidence behandeln`);
+  }
+}
+if (!Array.isArray(tradeLifecycle.invariants) || tradeLifecycle.invariants.length < 10) {
+  fail('P0-04 Trade-Invarianten unvollstaendig.');
 }
 
 for (const fact of factList) {
@@ -419,6 +463,7 @@ if (fs.existsSync(liveSnapshot)) {
 
 console.log(`[V5-WISSEN] OK: ${facts.size} Facts, ${contractIds.size} Action Contracts, ${recoveryIds.size} Recovery Contracts, ${questionIds.size} offene Fragen, ${sources.size} Quellen.`);
 console.log(`[V5-WISSEN] Bank-Concurrency: ${bankConcurrency.serverModel.concurrencyScope} -> ${bankConcurrency.v5Policy.authorityOwner}.`);
+console.log(`[V5-WISSEN] Trade-Lifecycle: RID partial=${tradeLifecycle.ridSemantics.rotatesOnPartialFill ? 'ROTATES' : 'STABLE'}, raw RID=${tradeLifecycle.ridSemantics.v5RequiresRidField ? 'REQUIRED' : 'OPTIONAL'}.`);
 console.log(`[V5-WISSEN] Waechter: ${quellenstatus.quellen.length} Quellen, ${kandidaten.kandidaten.length} Kandidaten, ${protokollZeilen.length} Aenderungseintraege.`);
 console.log(`[V5-WISSEN] Live-Wissen: ${fs.existsSync(liveSnapshot) ? liveDateien + ' validierte Dateien' : 'vorbereitet, noch kein Bot-Snapshot'}.`);
 console.log(`[V5-WISSEN] Raw Research SHA256: ${hash}`);
