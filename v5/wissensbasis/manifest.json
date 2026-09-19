@@ -37,7 +37,8 @@
     "schema/live-manifest.schema.json",
     "schema/live-status.schema.json",
     "schema/live-fakt.schema.json",
-    "schema/recovery-contract.schema.json"
+    "schema/recovery-contract.schema.json",
+    "schema/bank-concurrency.schema.json"
   ],
   "legacyIndex": "legacy/V3-V4-QUELLEN.md",
   "counts": {
@@ -109,5 +110,13 @@
     "disabledActions": [
       "cave_buy"
     ]
+  },
+  "bankConcurrency": "vertraege/bank-concurrency.json",
+  "bankResearch": {
+    "status": "P0_03_DONE",
+    "sourceSnapshot": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "accountWideSingleMount": true,
+    "v5AuthorityOwner": "ACCOUNT_COORDINATOR",
+    "leaseResource": "account:bank"
   }
 }

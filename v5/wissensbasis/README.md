@@ -131,3 +131,14 @@ v5/wissensbasis/live/snapshot/**
 Der vollstaendige Vertrag steht in `v5/dokumentation/LIVE-WISSEN-SSD-VERTRAG.md`.
 
 Live-Wissen ist besonders starke Evidence fuer den **konkret beobachteten Zustand**, darf aber nicht automatisch zu einer allgemeinen Spielregel verallgemeinert werden und bleibt ohne frische Runtime-Admission keine ExecutionAuthority.
+
+
+## P0-03 Bank-Concurrency
+
+Der kanonische maschinenlesbare Vertrag fuer accountweite Bankownership liegt unter:
+
+```text
+v5/wissensbasis/vertraege/bank-concurrency.json
+```
+
+Er bindet die serverseitige Single-Mount-Semantik an eine V5-`account:bank` Lease des Account Coordinators. Character-lokaler `bank`-Channel und accountweite Lease sind getrennte Pflichtschichten.
