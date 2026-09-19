@@ -63,8 +63,7 @@ export class NodeLiveWissensDateisystem {
       await handle.close();
       handle = undefined;
       await fs.rename(temp, ziel);
-      await this.#syncDatei(ziel);
-      await this.#syncVerzeichnis(path.dirname(ziel));
+      await this.#syncVerzeichnisBestEffort(path.dirname(ziel));
     } catch (fehler) {
       try {
         if (handle !== undefined) await handle.close();
@@ -90,7 +89,7 @@ export class NodeLiveWissensDateisystem {
       await handle.sync();
       await handle.close();
       handle = undefined;
-      await this.#syncVerzeichnis(path.dirname(ziel));
+      await this.#syncVerzeichnisBestEffort(path.dirname(ziel));
     } catch (fehler) {
       try {
         if (handle !== undefined) await handle.close();
@@ -111,7 +110,7 @@ export class NodeLiveWissensDateisystem {
       await handle.sync();
       await handle.close();
       handle = undefined;
-      await this.#syncVerzeichnis(path.dirname(ziel));
+      await this.#syncVerzeichnisBestEffort(path.dirname(ziel));
       return true;
     } catch (fehler) {
       try {
@@ -130,7 +129,7 @@ export class NodeLiveWissensDateisystem {
     try {
       const ziel = this.#ziel(relativerPfad);
       await fs.rm(ziel, { force: true });
-      await this.#syncVerzeichnis(path.dirname(ziel));
+      await this.#syncVerzeichnisBestEffort(path.dirname(ziel));
     } catch (fehler) {
       throw mappeDateisystemFehler(fehler);
     }
@@ -177,21 +176,15 @@ export class NodeLiveWissensDateisystem {
     }
   }
 
-  async #syncDatei(ziel) {
-    const handle = await fs.open(ziel, "r");
-    try {
-      await handle.sync();
-    } finally {
-      await handle.close();
-    }
-  }
-
-  async #syncVerzeichnis(verzeichnis) {
+  async #syncVerzeichnisBestEffort(verzeichnis) {
     if (process.platform === "win32") return;
     let handle;
     try {
       handle = await fs.open(verzeichnis, "r");
       await handle.sync();
+    } catch {
+      // Der Commit-Punkt ist der Rename nach fsync der Temp-Datei.
+      // Verzeichnis-fsync ist eine zusaetzliche POSIX-Haertung, kein zweiter Commit-Punkt.
     } finally {
       if (handle !== undefined) await handle.close();
     }
