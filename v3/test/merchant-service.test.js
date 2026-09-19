@@ -100,6 +100,7 @@ test('stale and emergency farmer reports never trigger a merchant service trip',
   assert.equal(unsafe.kind, MerchantServicePlanKind.HOLD);
 });
 
+// Live regression: the Merchant previously chased a Ranger coordinate observed about 2.9 seconds earlier during kiting.
 test('motion-aware freshness rejects a 2.9s-old kiting position while accepting the same-age stationary position', () => {
   const now = 600000;
   const staticFresh = positionFreshness({
