@@ -30731,7 +30731,9 @@ const Action = Object.freeze({
   TRANSFER_COMMIT: 'TRANSFER_COMMIT',
   STOP_FULL: 'STOP_FULL',
   RENDEZVOUS: 'RENDEZVOUS',
-  ELIXIR_FARM_OBJECTIVE: 'ELIXIR_FARM_OBJECTIVE'
+  ELIXIR_FARM_OBJECTIVE: 'ELIXIR_FARM_OBJECTIVE',
+  PRODUCTION_MATERIAL_OBJECTIVE: 'PRODUCTION_MATERIAL_OBJECTIVE',
+  PRODUCTION_MATERIAL_CLEAR: 'PRODUCTION_MATERIAL_CLEAR'
 });
 
 function finite(value, fallback = null) {
@@ -30822,7 +30824,8 @@ class ControlledPartyLogistics {
       rejectedLootBackoffMs: Math.max(5000, Math.min(10 * 60 * 1000, finite(options.rejectedLootBackoffMs, 120000))),
       elixirRenewLeadMs: Math.max(60000, finite(options.elixirRenewLeadMs, 10 * 60 * 1000)),
       elixirRequestIntervalMs: Math.max(30000, finite(options.elixirRequestIntervalMs, 5 * 60 * 1000)),
-      elixirFarmObjectiveTtlMs: Math.max(60000, finite(options.elixirFarmObjectiveTtlMs, 15 * 60 * 1000))
+      elixirFarmObjectiveTtlMs: Math.max(60000, finite(options.elixirFarmObjectiveTtlMs, 15 * 60 * 1000)),
+      productionMaterialPublishCooldownMs: Math.max(5000, finite(options.productionMaterialPublishCooldownMs, 30000))
     };
 
     this.sequence = 0;
@@ -30833,6 +30836,8 @@ class ControlledPartyLogistics {
     this.lastElixirEquipAt = -Infinity;
     this.pendingElixirEquip = null;
     this.lastElixirFarmObjective = null;
+    this.lastProductionMaterialObjective = null;
+    this.lastProductionMaterialPublishAt = -Infinity;
     this.lastStatusRequestAt = -Infinity;
     this.lastTransferAt = -Infinity;
     this.lastRendezvousMoveAt = -Infinity;
@@ -30882,7 +30887,9 @@ class ControlledPartyLogistics {
       elixirTransfers: 0,
       elixirEquips: 0,
       elixirEquipVerified: 0,
-      elixirFarmObjectives: 0
+      elixirFarmObjectives: 0,
+      productionMaterialObjectives: 0,
+      productionMaterialClears: 0
     };
     this.install();
   }
@@ -31150,6 +31157,19 @@ class ControlledPartyLogistics {
     return gameData.items && gameData.items[name] || null;
   }
 
+  _productionMaterialMatch(item) {
+    if (!item || !item.name) return false;
+    const level = Math.max(0, Math.floor(finite(item.level, 0)));
+    const objective = this._isMerchant()
+      ? this.lastProductionMaterialObjective
+      : this.runtime && this.runtime.farmer && this.runtime.farmer.materialObjective;
+    if (!objective || String(objective.kind || '') !== 'PRODUCTION_MATERIAL' && !this._isMerchant()) return false;
+    if (this._isMerchant() && !objective.material) return false;
+    if (Number(objective.expiresAt || 0) <= this.now()) return false;
+    return String(objective.material || '') === String(item.name)
+      && Math.max(0, Math.floor(finite(objective.level, 0))) === level;
+  }
+
   _safeLootDescriptor(item) {
     if (!item || !item.name) return { ok: false, reason: 'ITEM_UNKNOWN' };
     const name = String(item.name);
@@ -31161,11 +31181,19 @@ class ControlledPartyLogistics {
     // Farmer -> Merchant is a central-processing transfer, not a SELL decision.
     // Progression/equipment signals therefore must not block the handoff. Only
     // genuinely character-bound/special-purpose metadata stays on the Farmer.
-    const hardSignals = ['quest', 'exchange', 'event', 'cash', 'soulbound', 'offering', 'throw', 'ignore'];
+    // An explicitly requested production material may bypass generic event/
+    // exchange protection, but never true binding/quest/special restrictions.
+    const productionMaterial = this._productionMaterialMatch(item);
+    const absoluteSignals = ['quest', 'cash', 'soulbound', 'offering', 'throw', 'ignore'];
+    const conditionalSignals = productionMaterial ? [] : ['exchange', 'event'];
+    const hardSignals = absoluteSignals.concat(conditionalSignals);
     const hardBlockers = hardSignals.filter((key) => meta[key] === true || (meta[key] != null && meta[key] !== false && meta[key] !== 0 && meta[key] !== ''));
     if (hardBlockers.length) return { ok: false, reason: 'FARMER_ITEM_HARD_PROTECTED', blockers: hardBlockers };
 
     const level = Math.max(0, Math.floor(finite(item.level, 0)));
+    if (productionMaterial) {
+      return { ok: true, name, level, quantity: Math.max(1, Math.floor(finite(item.q, 1))), metadataType: meta.type || null, merchantLifecycle: 'REQUESTED_PRODUCTION_MATERIAL' };
+    }
     const gearTypes = new Set(['weapon', 'helmet', 'coat', 'pants', 'shoes', 'gloves', 'ring', 'earring', 'amulet', 'belt', 'shield', 'quiver', 'cape', 'orb', 'source']);
     const processableGear = !!(meta.upgrade || meta.compound || gearTypes.has(String(meta.type || '').toLowerCase()));
     if (processableGear) {
@@ -31179,7 +31207,12 @@ class ControlledPartyLogistics {
 
   _safeLootCandidate(snapshot) {
     const inventory = snapshot && snapshot.character && snapshot.character.inventory || [];
-    for (const item of inventory) {
+    const ordered = inventory.slice().sort((a, b) => {
+      const ap = a && this._productionMaterialMatch(a) ? 1 : 0;
+      const bp = b && this._productionMaterialMatch(b) ? 1 : 0;
+      return bp - ap || finite(a && a.index, 9999) - finite(b && b.index, 9999);
+    });
+    for (const item of ordered) {
       if (!item) continue;
       if (this._lootBlocked(item)) continue;
       const safe = this._safeLootDescriptor(item);
@@ -31328,6 +31361,8 @@ class ControlledPartyLogistics {
       if (expiresAt == null || expiresAt <= this.now()) return false;
       const farmer = this.runtime && this.runtime.farmer;
       if (!farmer) return false;
+      const activeMaterial = farmer.materialObjective;
+      if (activeMaterial && activeMaterial.kind === 'PRODUCTION_MATERIAL' && Number(activeMaterial.expiresAt || 0) > this.now()) return true;
       farmer.materialObjective = {
         kind: 'ELIXIR_MATERIAL',
         monster: cleanName(data.monster),
@@ -31340,6 +31375,55 @@ class ControlledPartyLogistics {
         expectedHours: finite(data.expectedHours),
         expiresAt
       };
+      return true;
+    }
+
+    if (action === Action.PRODUCTION_MATERIAL_OBJECTIVE) {
+      if (!merchant || from !== merchant || this._isMerchant()) return false;
+      const expiresAt = finite(data.expiresAt);
+      if (expiresAt == null || expiresAt <= this.now()) return false;
+      const farmer = this.runtime && this.runtime.farmer;
+      const monster = cleanName(data.monster);
+      const material = cleanName(data.material);
+      const map = cleanName(data.map);
+      if (!farmer || !monster || !material || !map) return false;
+      farmer.materialObjective = {
+        kind: 'PRODUCTION_MATERIAL',
+        objectiveId: cleanName(data.objectiveId),
+        monster,
+        material,
+        targetMaterial: cleanName(data.targetMaterial),
+        acquisitionKind: cleanName(data.acquisitionKind),
+        level: Math.max(0, Math.floor(finite(data.level, 0))),
+        requiredQuantity: Math.max(1, Math.floor(finite(data.requiredQuantity, 1))),
+        exchangeRequired: finite(data.exchangeRequired),
+        exchangeRewardPerOperation: finite(data.exchangeRewardPerOperation),
+        output: cleanName(data.output),
+        recipient: cleanName(data.recipient),
+        slot: cleanName(data.slot),
+        map,
+        x: finite(data.x),
+        y: finite(data.y),
+        spawnIndex: finite(data.spawnIndex),
+        expectedHours: finite(data.expectedHours),
+        totalExpectedHours: finite(data.totalExpectedHours),
+        maxTeamFarmHours: finite(data.maxTeamFarmHours),
+        utilityPerFarmHour: finite(data.utilityPerFarmHour),
+        evidence: cleanName(data.evidence),
+        expiresAt
+      };
+      return true;
+    }
+
+    if (action === Action.PRODUCTION_MATERIAL_CLEAR) {
+      if (!merchant || from !== merchant || this._isMerchant()) return false;
+      const farmer = this.runtime && this.runtime.farmer;
+      if (!farmer || !farmer.materialObjective || farmer.materialObjective.kind !== 'PRODUCTION_MATERIAL') return true;
+      const objectiveId = cleanName(data.objectiveId);
+      if (objectiveId && farmer.materialObjective.objectiveId && objectiveId !== farmer.materialObjective.objectiveId) return true;
+      farmer.materialObjective = null;
+      const crossMap = this.runtime && this.runtime.alpha28LiveAuthorityLiveness && this.runtime.alpha28LiveAuthorityLiveness.crossMap;
+      if (crossMap && typeof crossMap.clearMaterialObjective === 'function') crossMap.clearMaterialObjective('PRODUCTION_MATERIAL', objectiveId);
       return true;
     }
 
@@ -31673,6 +31757,81 @@ class ControlledPartyLogistics {
     };
   }
 
+  publishProductionMaterialObjective(objective = {}) {
+    if (!this._isMerchant()) return false;
+    const now = this.now();
+    const normalized = {
+      objectiveId: cleanName(objective.objectiveId),
+      output: cleanName(objective.output),
+      recipient: cleanName(objective.recipient),
+      slot: cleanName(objective.slot),
+      material: cleanName(objective.material),
+      targetMaterial: cleanName(objective.targetMaterial),
+      acquisitionKind: cleanName(objective.acquisitionKind),
+      level: Math.max(0, Math.floor(finite(objective.level, 0))),
+      requiredQuantity: Math.max(1, Math.floor(finite(objective.requiredQuantity, 1))),
+      exchangeRequired: finite(objective.exchangeRequired),
+      exchangeRewardPerOperation: finite(objective.exchangeRewardPerOperation),
+      monster: cleanName(objective.monster),
+      map: cleanName(objective.map),
+      x: finite(objective.x),
+      y: finite(objective.y),
+      spawnIndex: finite(objective.spawnIndex),
+      expectedHours: finite(objective.expectedHours),
+      totalExpectedHours: finite(objective.totalExpectedHours),
+      maxTeamFarmHours: finite(objective.maxTeamFarmHours),
+      utilityPerFarmHour: finite(objective.utilityPerFarmHour),
+      evidence: cleanName(objective.evidence),
+      createdAt: now,
+      expiresAt: finite(objective.expiresAt, now + 15 * 60 * 1000)
+    };
+    if (!normalized.objectiveId || !normalized.material || !normalized.monster || !normalized.map || normalized.expiresAt <= now) return false;
+    const previous = this.lastProductionMaterialObjective;
+    const same = previous
+      && previous.objectiveId === normalized.objectiveId
+      && previous.material === normalized.material
+      && previous.monster === normalized.monster
+      && previous.requiredQuantity === normalized.requiredQuantity
+      && previous.expiresAt > now;
+    if (same && now - this.lastProductionMaterialPublishAt < this.config.productionMaterialPublishCooldownMs) return true;
+
+    this.lastProductionMaterialObjective = clone(normalized);
+    this.lastProductionMaterialPublishAt = now;
+    for (const name of this._trustedNames()) {
+      if (name === this._localName()) continue;
+      Promise.resolve(this._send(name, Action.PRODUCTION_MATERIAL_OBJECTIVE, normalized)).catch(() => {});
+    }
+    this.stats.productionMaterialObjectives += 1;
+    this._event('PRODUCTION_MATERIAL_OBJECTIVE_PUBLISHED', 'info', 'TEAM_FARMS_ONE_MATERIAL_TOGETHER', normalized);
+    return true;
+  }
+
+  clearProductionMaterialObjective(reason = 'PRODUCTION_MATERIAL_OBJECTIVE_COMPLETE') {
+    if (!this._isMerchant()) return false;
+    const previous = this.lastProductionMaterialObjective;
+    if (!previous) return false;
+    const payload = {
+      objectiveId: previous.objectiveId,
+      material: previous.material,
+      output: previous.output,
+      reason: String(reason || 'PRODUCTION_MATERIAL_OBJECTIVE_COMPLETE')
+    };
+    for (const name of this._trustedNames()) {
+      if (name === this._localName()) continue;
+      Promise.resolve(this._send(name, Action.PRODUCTION_MATERIAL_CLEAR, payload)).catch(() => {});
+    }
+    this.lastProductionMaterialObjective = null;
+    this.stats.productionMaterialClears += 1;
+    this._event('PRODUCTION_MATERIAL_OBJECTIVE_CLEARED', 'info', payload.reason, payload);
+    if (this.lastElixirFarmObjective && Number(this.lastElixirFarmObjective.expiresAt || 0) > this.now()) {
+      for (const name of this._trustedNames()) {
+        if (name === this._localName()) continue;
+        Promise.resolve(this._send(name, Action.ELIXIR_FARM_OBJECTIVE, this.lastElixirFarmObjective)).catch(() => {});
+      }
+    }
+    return true;
+  }
+
   _maybePublishElixirFarmObjective(request) {
     if (!request || !request.elixirName) return false;
     if (this.lastElixirFarmObjective && this.lastElixirFarmObjective.expiresAt > this.now() && this.lastElixirFarmObjective.elixirName === request.elixirName) return false;
@@ -31699,12 +31858,16 @@ class ControlledPartyLogistics {
       this._send(name, Action.ELIXIR_FARM_OBJECTIVE, objective);
     }
     if (this.runtime) {
-      this.runtime.merchantExchangeDemands = [{
+      const existing = Array.isArray(this.runtime.merchantExchangeDemands) ? this.runtime.merchantExchangeDemands : [];
+      const retained = existing.filter((row) => row && String(row.reason || '') !== 'ELIXIR_SUPPLY');
+      const next = {
         item: farm.kind === 'EXCHANGE_MATERIAL_DROP' ? farm.material : null,
         target: request.elixirName,
         reason: 'ELIXIR_SUPPLY',
         expiresAt: objective.expiresAt
-      }].filter((row) => row.item);
+      };
+      if (next.item) retained.push(next);
+      this.runtime.merchantExchangeDemands = retained;
     }
     this.stats.elixirFarmObjectives += 1;
     this._event('ELIXIR_FARM_OBJECTIVE_PUBLISHED', 'info', plan.reason, objective);
@@ -31907,6 +32070,8 @@ class ControlledPartyLogistics {
         merchantSupplyAllowlist: ['hpot0', 'mpot0', 'class-appropriate-elixir'],
         farmerElixirAutoUseAfterExpiry: true,
         elixirFarmObjectiveAutomatic: true,
+        productionMaterialObjectiveAutomatic: true,
+        productionMaterialTeamPolicy: 'ALL_FARMERS_SAME_OBJECTIVE',
         farmerLootPolicy: 'merchant-central-processing-nonbound-items',
         farmerProgressionGearTransfer: true,
         farmerGoldTransfer: true,
@@ -31926,6 +32091,7 @@ class ControlledPartyLogistics {
       pendingSupply: clone(this.pendingSupply),
       pendingElixirEquip: clone(this.pendingElixirEquip),
       lastElixirFarmObjective: clone(this.lastElixirFarmObjective),
+      lastProductionMaterialObjective: clone(this.lastProductionMaterialObjective),
       supplyRequests: [...this.supplyRequests.values()].map(clone),
       rendezvousRequests: [...this.rendezvousRequests.values()].map(clone),
       activeLootGrants: [...this.activeLootGrants.values()].map(clone),
@@ -36854,6 +37020,8 @@ class ProgressionIntelligence {
       mode: ALPHA21_PROGRESSION_MODE,
       policy: {
         hardLevelGuide: false,
+        gearDominantStrengthModel: true,
+        characterLevelRole: 'MINOR_CONTEXT_AND_COMPATIBILITY_GATE',
         livePerformanceDriven: true,
         deterministicLeaderOwnsPromotion: true,
         followerIndependentPromotion: false,
@@ -41623,6 +41791,7 @@ class MerchantProductionPlanner {
     this.minImprovementRatio = Math.max(0, Math.min(1, finite(options.minImprovementRatio, 0.04)));
     this.goldReserve = Math.max(0, Math.floor(finite(options.goldReserve, 1000000)));
     this.maxBuyQuantity = Math.max(1, Math.min(10000, Math.floor(finite(options.maxBuyQuantity, 1000))));
+    this.candidateScanLimit = Math.max(16, Math.min(128, Math.floor(finite(options.candidateScanLimit, 64))));
     this.explicitTargets = Array.isArray(options.targets) ? options.targets.filter(Boolean).map(String) : [];
     this.sequence = 0;
     this.lastPlan = null;
@@ -42075,13 +42244,17 @@ class MerchantProductionPlanner {
     if (!candidates.length) return this._hold(lockedOutput ? 'LOCKED_PRODUCTION_TARGET_COMPLETE_OR_UNAVAILABLE' : 'NO_CRAFTED_GEAR_IMPROVEMENT');
 
     let bestBlocked = null;
-    for (const candidate of candidates.slice(0, 32)) {
+    const blockedCandidates = [];
+    for (const candidate of candidates.slice(0, this.candidateScanLimit)) {
       if (input.contentDrift && typeof input.contentDrift.requiresRevalidation === 'function') {
         try { if (input.contentDrift.requiresRevalidation('items', candidate.output)) continue; } catch (_) { continue; }
       }
       const built = this._buildCandidate(candidate, input);
       if (!bestBlocked) bestBlocked = built;
-      if (!built.ready) continue;
+      if (!built.ready) {
+        blockedCandidates.push(built);
+        continue;
+      }
       const plan = {
         schemaVersion: 1,
         id: this._id(),
@@ -42121,7 +42294,18 @@ class MerchantProductionPlanner {
       reservations: bestBlocked ? bestBlocked.reservations : {},
       blockers: bestBlocked ? bestBlocked.blockers : [{ reason: 'NO_CANDIDATE' }],
       totalGold: bestBlocked ? bestBlocked.totalGold : 0,
-      goldReserve: this.goldReserve
+      goldReserve: this.goldReserve,
+      blockedCandidates: blockedCandidates.slice(0, this.candidateScanLimit).map((row) => ({
+        candidate: clone(row.candidate),
+        steps: clone(row.steps),
+        blockers: clone(row.blockers),
+        reservations: clone(row.reservations),
+        totalGold: row.totalGold,
+        availableGold: row.availableGold,
+        goldReserve: row.goldReserve,
+        bankSource: row.bankSource,
+        costStrategy: row.costStrategy
+      }))
     };
     this.lastPlan = plan;
     this.stats.plans += 1;
@@ -42140,6 +42324,7 @@ class MerchantProductionPlanner {
       minImprovementRatio: this.minImprovementRatio,
       goldReserve: this.goldReserve,
       maxBuyQuantity: this.maxBuyQuantity,
+      candidateScanLimit: this.candidateScanLimit,
       explicitTargets: this.explicitTargets.slice(),
       costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V1',
       sourcePriority: ['LOCAL_ZERO_COST', 'BANK_ZERO_GOLD_COST', 'MIN(VENDOR_GOLD,CULLED_RECIPE_GRAPH)', 'FARM_REQUIRED'],
@@ -43526,11 +43711,12 @@ class Alpha28CrossMapFarmerProgression {
     const farmer = this.runtime.farmer;
     const material = farmer && farmer.materialObjective;
     if (material && material.expiresAt > this.now() && material.map && material.monster && material.map !== snapshot.character.map) {
+      const materialKind = String(material.kind || 'MATERIAL');
       const existing = this.parent && this.parent[SHARED_OBJECTIVE];
-      if (existing && this._objectiveKind(existing) === 'ELIXIR_MATERIAL' && existing.expiresAt > this.now() && existing.map === material.map && existing.monster === material.monster && String(existing.leaderName) === String(team.leaderName)) return existing;
+      if (existing && this._objectiveKind(existing) === materialKind && existing.expiresAt > this.now() && existing.map === material.map && existing.monster === material.monster && String(existing.leaderName) === String(team.leaderName)) return existing;
       const objective = {
-        id: `alpha28-elixir-material-${this.now()}-${material.monster}`,
-        kind: 'ELIXIR_MATERIAL',
+        id: `alpha28-material-${this.now()}-${material.monster}`,
+        kind: materialKind,
         leaderName: team.leaderName,
         partyFingerprint: null,
         map: material.map,
@@ -43540,6 +43726,12 @@ class Alpha28CrossMapFarmerProgression {
         y: material.y,
         material: material.material || null,
         elixirName: material.elixirName || null,
+        productionObjectiveId: material.objectiveId || null,
+        output: material.output || null,
+        recipient: material.recipient || null,
+        requiredQuantity: material.requiredQuantity || null,
+        expectedHours: material.expectedHours || null,
+        totalExpectedHours: material.totalExpectedHours || null,
         createdAt: this.now(),
         expiresAt: material.expiresAt,
         readiness: null,
@@ -43549,7 +43741,7 @@ class Alpha28CrossMapFarmerProgression {
       if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(objective);
       this._publishCrossMap(team, objective);
       this.stats.crossMapObjectivesPublished += 1;
-      this.event('ALPHA28_CROSS_MAP_OBJECTIVE_PUBLISHED', 'warn', 'ELIXIR_MATERIAL_FARM_TRAVEL_AUTHORIZED', { objective: clone(objective) });
+      this.event('ALPHA28_CROSS_MAP_OBJECTIVE_PUBLISHED', 'warn', 'TEAM_MATERIAL_FARM_TRAVEL_AUTHORIZED', { objective: clone(objective) });
       return objective;
     }
 
@@ -43581,6 +43773,19 @@ class Alpha28CrossMapFarmerProgression {
     this.stats.crossMapObjectivesPublished += 1;
     this.event('ALPHA28_CROSS_MAP_OBJECTIVE_PUBLISHED', 'warn', 'LIVE_READINESS_AND_CONTROLLED_TRAVEL_AUTHORIZED', { objective: clone(objective) });
     return objective;
+  }
+
+  clearMaterialObjective(kind = 'PRODUCTION_MATERIAL', productionObjectiveId = null) {
+    const wantedKind = String(kind || 'PRODUCTION_MATERIAL');
+    const matches = (objective) => {
+      if (!objective || this._objectiveKind(objective) !== wantedKind) return false;
+      if (!productionObjectiveId) return true;
+      return String(objective.productionObjectiveId || '') === String(productionObjectiveId);
+    };
+    if (matches(this.receivedObjective)) this.receivedObjective = null;
+    const shared = this.parent && this.parent[SHARED_OBJECTIVE];
+    if (matches(shared) && this.parent) this.parent[SHARED_OBJECTIVE] = null;
+    return true;
   }
 
   _sharedObjective(team) {
@@ -47435,7 +47640,12 @@ class BrainStateEncoderV2 {
     } catch (_) {}
     const capabilityContext = brainCapabilityContext(runtime);
     const values = {
-      hpRatio: ratio(character.hp, character.max_hp), mpRatio: ratio(character.mp, character.max_mp), levelNorm: clamp(finite(character.level, 1) / 120), rangeNorm: clamp(finite(character.range, 0) / 250), speedNorm: clamp(finite(character.speed, 0) / 120), attackNorm: clamp(finite(character.attack, 0) / 2500),
+      // Adventure Land progression is gear-dominant: character level is useful
+      // context and an equip/content gate, but it is not a reliable proxy for
+      // combat strength. Keep the legacy feature for model compatibility while
+      // deliberately bounding its influence; live combat stats, gear pressure
+      // and measured performance carry the real strength signal.
+      hpRatio: ratio(character.hp, character.max_hp), mpRatio: ratio(character.mp, character.max_mp), levelNorm: clamp(finite(character.level, 1) / 120) * 0.15, rangeNorm: clamp(finite(character.range, 0) / 250), speedNorm: clamp(finite(character.speed, 0) / 120), attackNorm: clamp(finite(character.attack, 0) / 2500),
       partyPresentRatio: clamp(party.length / 4), partyAliveRatio: party.length ? clamp(alive.length / party.length) : 0.25, partyCohesion: meta.partyCohesion == null ? (party.length >= 3 ? 0.8 : 0.4) : clamp(meta.partyCohesion), selfAggro: clamp(selfAggro / 3), visibleHostiles: clamp(hostiles.length / 12),
       targetHpRatio: liveTarget ? ratio(liveTarget.hp, liveTarget.max_hp || liveTarget.hp, 1) : 0.5, riskHeadroom: clamp((riskThreshold - riskScore + 1) / 1.5), deathSafety: clamp(1 - deaths), xpRate: clamp(Math.max(0, finite(target && target.xpPerHour, finite(rates.xpPerHour, 0))) / maxXp), goldRate: clamp(Math.max(0, finite(target && target.goldPerHour, finite(rates.goldPerHour, 0))) / maxGold),
       freeSlotsRatio: slots.ratio, inventoryHealth: clamp(0.25 + slots.ratio * 0.75), merchantIdle: merchantBusy ? 0 : 1, marketLiquidity: currentMarketLiquidity(runtime), gearHealth: clamp(1 - gearGoals / 20), travelEfficiency: clamp(1 - travelSeconds / Math.max(30, finite(meta.maxTravelSeconds, 600))), worldConfidence: worldConfidence(runtime), knowledgeFreshness: meta.knowledgeFreshness == null ? 0.7 : clamp(meta.knowledgeFreshness),
@@ -47791,7 +48001,7 @@ class StrategicBrainV2 {
 
   teacherRequest(trigger = 'periodic') {
     if (!this.lastObservation) return null;
-    return { schemaVersion: 2, trigger, brainMode: this._cfg('brain.mode', 'shadow'), quality: this.lastObservation.quality, student: this.lastObservation.student, inputs: this.lastObservation.inputs, deterministicTeacher: this.lastObservation.teacher && this.lastObservation.teacher.source === 'deterministic' ? this.lastObservation.teacher : null, party: this.runtime && this.runtime.characterRegistry && this.runtime.characterRegistry.status ? this.runtime.characterRegistry.status() : null, capabilityLearning: brainCapabilityContext(this.runtime).detail, encounterOutcome: this._latestEncounterOutcome(), economy: this.runtime && this.runtime.economyEquipmentAutonomyV2 && this.runtime.economyEquipmentAutonomyV2.status ? this.runtime.economyEquipmentAutonomyV2.status() : null, performance: performanceStatus(this.runtime), policies: { survivalFirst: true, directActionAuthority: false, deterministicSafetyCannotBeOverridden: true, adaptivePullCannotExceedHardCapacity: true } };
+    return { schemaVersion: 2, trigger, brainMode: this._cfg('brain.mode', 'shadow'), quality: this.lastObservation.quality, student: this.lastObservation.student, inputs: this.lastObservation.inputs, deterministicTeacher: this.lastObservation.teacher && this.lastObservation.teacher.source === 'deterministic' ? this.lastObservation.teacher : null, party: this.runtime && this.runtime.characterRegistry && this.runtime.characterRegistry.status ? this.runtime.characterRegistry.status() : null, capabilityLearning: brainCapabilityContext(this.runtime).detail, encounterOutcome: this._latestEncounterOutcome(), economy: this.runtime && this.runtime.economyEquipmentAutonomyV2 && this.runtime.economyEquipmentAutonomyV2.status ? this.runtime.economyEquipmentAutonomyV2.status() : null, performance: performanceStatus(this.runtime), policies: { survivalFirst: true, gearDominantStrengthModel: true, characterLevelStrengthRole: 'MINOR_CONTEXT_ONLY', directActionAuthority: false, deterministicSafetyCannotBeOverridden: true, adaptivePullCannotExceedHardCapacity: true } };
   }
 
   shouldAskTeacher() {
@@ -47821,7 +48031,7 @@ class StrategicBrainV2 {
       teacher: { remoteAvailable: !!this.remoteTeacher, lastAt: this.remoteTeacherAt, ageMs: this.remoteTeacherAt ? this.now() - this.remoteTeacherAt : null, lastDecision: safeClone(this.remoteTeacher), shouldAsk: this.shouldAskTeacher() }, quality,
       league: { generation: this.league.generation, hasChampion: !!this.league.champion, championLoss: this.league.championLoss, promotions: this.league.promotions, rollbacks: this.league.rollbacks, rejections: this.league.rejections, lastEvent: this.league.lastEvent, lastEventAt: this.league.lastEventAt, lastReason: this.league.lastReason },
       current: this.lastObservation, lastRecommendation: this.lastObservation, lastEncounterOutcome: safeClone(this.lastEncounterOutcome), pendingOutcome: this.pendingOutcome ? { startedAt: this.pendingOutcome.startedAt, dueAt: this.pendingOutcome.dueAt, action: this.pendingOutcome.action, target: this.pendingOutcome.target } : null,
-      diary: { entries: this.diary.slice(-40), total: this.diary.length }, persistence: { key: STORAGE_KEY, disabled: this.persistenceDisabled, lastError: this.persistenceError }, stats: { ...this.stats }, policies: { strategicOnly: true, deterministicCombatSafetyAuthoritative: true, dangerousContentCannotBeOverridden: true, commandCharacterAuthorityWidened: false, cloudFailureSafe: true } };
+      diary: { entries: this.diary.slice(-40), total: this.diary.length }, persistence: { key: STORAGE_KEY, disabled: this.persistenceDisabled, lastError: this.persistenceError }, stats: { ...this.stats }, policies: { strategicOnly: true, gearDominantStrengthModel: true, characterLevelStrengthRole: 'MINOR_CONTEXT_ONLY', deterministicCombatSafetyAuthoritative: true, dangerousContentCannotBeOverridden: true, commandCharacterAuthorityWidened: false, cloudFailureSafe: true } };
   }
 }
 
@@ -54233,6 +54443,7 @@ const { MerchantProductionPlanner, ProductionStepKind } = require('./merchant-pr
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_ACK } = require('./controlled-merchant-production-executor');
 const { PersistentBankCatalog } = require('./persistent-bank-catalog');
 const { bufferedInteractionRange, interactionMaxRange, INTERACTION_SAFETY_FACTOR } = require('../reliability/alpha27-atomic-service');
+const { chooseProductionTeamFarmObjective, DEFAULT_MAX_TEAM_FARM_HOURS, DEFAULT_FALLBACK_KILLS_PER_HOUR } = require('../party/production-material-acquisition');
 
 const MERCHANT_PRODUCTION_CONTROLLER_MODE = 'merchant-production-controller-v1';
 
@@ -54250,6 +54461,7 @@ function installMerchantProduction(runtime, options = {}) {
     minImprovementRatio: options.merchantProductionMinImprovementRatio,
     goldReserve: options.merchantProductionGoldReserve,
     maxBuyQuantity: options.merchantProductionMaxBuyQuantity,
+    candidateScanLimit: options.merchantProductionCandidateScanLimit,
     targets: options.merchantProductionTargets
   });
   const bankCatalog = options.bankCatalog || new PersistentBankCatalog({ root: runtime.root, now: runtime.now, storage: options.merchantProductionStorage || options.storage, storageKey: options.merchantBankCatalogStorageKey, maxAgeMs: options.merchantBankCatalogMaxAgeMs });
@@ -54279,7 +54491,11 @@ function installMerchantProduction(runtime, options = {}) {
     lastExecution: null,
     executionPending: false,
     pausedUntil: 0,
-    failureCooldownMs: Math.max(5000, Math.min(30 * 60 * 1000, n(options.merchantProductionFailureCooldownMs, 120000)))
+    failureCooldownMs: Math.max(5000, Math.min(30 * 60 * 1000, n(options.merchantProductionFailureCooldownMs, 120000))),
+    maxTeamFarmHours: Math.max(0.25, n(options.merchantProductionMaxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS)),
+    fallbackKillsPerHour: Math.max(1, n(options.merchantProductionFallbackKillsPerHour, DEFAULT_FALLBACK_KILLS_PER_HOUR)),
+    materialObjectiveTtlMs: Math.max(60000, Math.min(60 * 60 * 1000, n(options.merchantProductionMaterialObjectiveTtlMs, 15 * 60 * 1000))),
+    lastMaterialFarmDecision: null
   };
 
   function taskCoordinator() { return runtime.merchantTaskCoordinator || null; }
@@ -54485,6 +54701,83 @@ function installMerchantProduction(runtime, options = {}) {
     }).finally(() => { state.executionPending = false; });
     return true;
   }
+  function setProductionExchangeDemand(source = null, targetMaterial = null, expiresAt = null) {
+    const existing = Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : [];
+    const retained = existing.filter((row) => row && String(row.reason || '') !== 'PRODUCTION_MATERIAL');
+    if (source && source.kind === 'EXCHANGE_MATERIAL_DROP' && source.material) {
+      retained.push({
+        item: String(source.material),
+        target: String(source.targetMaterial || targetMaterial || ''),
+        reason: 'PRODUCTION_MATERIAL',
+        expiresAt: Number(expiresAt) || runtime.now() + state.materialObjectiveTtlMs
+      });
+    }
+    runtime.merchantExchangeDemands = retained;
+    return true;
+  }
+
+  function clearProductionMaterialObjective(reason = 'PRODUCTION_MATERIAL_OBJECTIVE_NO_LONGER_REQUIRED') {
+    setProductionExchangeDemand(null);
+    const logistics = runtime.controlledPartyLogistics;
+    if (!logistics || typeof logistics.clearProductionMaterialObjective !== 'function') return false;
+    return logistics.clearProductionMaterialObjective(reason);
+  }
+
+  function publishProductionMaterialObjective(plan) {
+    if (!plan || plan.state !== 'BLOCKED') return false;
+    const logistics = runtime.controlledPartyLogistics;
+    if (!logistics || typeof logistics.publishProductionMaterialObjective !== 'function') return false;
+    const blockedCandidates = Array.isArray(plan.blockedCandidates) && plan.blockedCandidates.length
+      ? plan.blockedCandidates
+      : plan.target
+        ? [{ candidate: plan.target, steps: plan.steps || [], blockers: plan.blockers || [] }]
+        : [];
+    const decision = chooseProductionTeamFarmObjective(runtime, blockedCandidates, {
+      maxTeamFarmHours: state.maxTeamFarmHours,
+      fallbackKillsPerHour: state.fallbackKillsPerHour
+    });
+    state.lastMaterialFarmDecision = { at: runtime.now(), ...clone(decision) };
+    if (!decision.selected || !decision.selected.nextMaterial || !decision.selected.nextMaterial.source) {
+      const awaitingTransfer = (decision.evaluated || []).some((row) => row && row.reason === 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER');
+      if (awaitingTransfer) return true;
+      clearProductionMaterialObjective('NO_KNOWN_PRODUCTION_MATERIAL_FARM_PATH');
+      return false;
+    }
+    const selected = decision.selected;
+    const material = selected.nextMaterial;
+    const source = material.source;
+    const expiresAt = runtime.now() + state.materialObjectiveTtlMs;
+    setProductionExchangeDemand(source, material.name, expiresAt);
+    const farmMaterial = source.kind === 'EXCHANGE_MATERIAL_DROP' ? source.material : material.name;
+    const farmQuantity = source.kind === 'EXCHANGE_MATERIAL_DROP'
+      ? Math.max(1, Math.floor(n(source.farmQuantity, n(source.requiredPerExchange, 1))))
+      : Math.max(1, Math.floor(n(material.remainingToFarm, material.quantity)));
+    return logistics.publishProductionMaterialObjective({
+      objectiveId: `production-material:${selected.target.output}:${selected.target.recipient || ''}:${farmMaterial}`,
+      output: selected.target.output,
+      recipient: selected.target.recipient || null,
+      slot: selected.target.slot || null,
+      material: farmMaterial,
+      targetMaterial: material.name,
+      acquisitionKind: source.kind,
+      level: source.kind === 'EXCHANGE_MATERIAL_DROP' ? 0 : material.level,
+      requiredQuantity: farmQuantity,
+      exchangeRequired: source.requiredPerExchange || null,
+      exchangeRewardPerOperation: source.rewardPerExchange || null,
+      monster: source.monster,
+      map: source.map,
+      x: source.x,
+      y: source.y,
+      spawnIndex: source.spawnIndex,
+      expectedHours: source.expectedHours,
+      totalExpectedHours: selected.totalExpectedHours,
+      maxTeamFarmHours: selected.maxTeamFarmHours,
+      utilityPerFarmHour: selected.utilityPerFarmHour,
+      evidence: source.evidence,
+      expiresAt
+    });
+  }
+
   function cycle() {
     // Merchant production is installed in the shared runtime on every owned
     // character, but only the Merchant may acquire production tasks or travel
@@ -54512,6 +54805,8 @@ function installMerchantProduction(runtime, options = {}) {
     }
 
     const plan = evaluate();
+    if (plan && plan.state === 'READY') clearProductionMaterialObjective('PRODUCTION_CHAIN_READY');
+    else if (plan && plan.state === 'BLOCKED') publishProductionMaterialObjective(plan);
     if (schedule(plan)) return plan;
 
     if (plan && plan.state !== 'READY' && !collectionBusy() && !state.executionPending) {
@@ -54571,6 +54866,19 @@ function installMerchantProduction(runtime, options = {}) {
       alpha27Busy: alpha27Busy(),
       pausedUntil: state.pausedUntil || null,
       failureCooldownMs: state.failureCooldownMs,
+      teamMaterialFarmPolicy: {
+        teamActsTogether: true,
+        multiFarmerSplit: false,
+        maxTeamFarmHours: state.maxTeamFarmHours,
+        fallbackKillsPerHour: state.fallbackKillsPerHour,
+        objectiveTtlMs: state.materialObjectiveTtlMs,
+        longPathsAreDeferredNotBlocked: true,
+        preferredFarmHoursThreshold: state.maxTeamFarmHours,
+        gearBenefitPrimary: true,
+        characterLevelUsedForStrengthRanking: false,
+        exchangeBackedMaterialAcquisition: true,
+        lastDecision: clone(state.lastMaterialFarmDecision)
+      },
       taskCoordinator: taskCoordinator() && typeof taskCoordinator().status === 'function' ? taskCoordinator().status() : null,
       nonPreemptiveTaskOwner: 'PRODUCTION',
       explicitAckRequired: CONTROLLED_MERCHANT_PRODUCTION_ACK
@@ -54728,6 +55036,387 @@ class PersistentBankCatalog {
 }
 
 module.exports = { PersistentBankCatalog, PERSISTENT_BANK_CATALOG_MODE };
+
+},
+"src/party/production-material-acquisition.js": function(require,module,exports){
+'use strict';
+
+const { directDropChance, rewardChanceForExchange } = require('./elixir-policy');
+const { spawnType, spawnCenter, contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
+
+const PRODUCTION_MATERIAL_ACQUISITION_MODE = 'team-production-material-acquisition-v1';
+const DEFAULT_MAX_TEAM_FARM_HOURS = 12;
+const DEFAULT_FALLBACK_KILLS_PER_HOUR = 20;
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clone(value) {
+  try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+function currentPartyFingerprintKey(runtime) {
+  const raw = runtime && runtime.currentPartyFingerprint;
+  if (typeof raw === 'string' && raw) return raw;
+  if (raw && typeof raw.key === 'string' && raw.key) return raw.key;
+  try {
+    const snapshot = runtime && runtime.lastSnapshot;
+    const profile = snapshot && runtime && typeof runtime._partyProfile === 'function' ? runtime._partyProfile(snapshot) : null;
+    if (profile && typeof profile.fingerprint === 'string' && profile.fingerprint) return profile.fingerprint;
+  } catch (_) {}
+  return null;
+}
+
+function bestMeasuredKillsPerHour(runtime, monster) {
+  const world = runtime && runtime.world;
+  if (!world) return null;
+  const fingerprint = currentPartyFingerprintKey(runtime);
+  if (fingerprint && typeof world.performanceFor === 'function') {
+    try {
+      const current = world.performanceFor(monster, fingerprint);
+      if (current && finite(current.seconds, 0) >= 60 && finite(current.killsPerHour, 0) > 0) return finite(current.killsPerHour, 0);
+    } catch (_) {}
+    // Do not borrow kill rates from a different party composition. The whole
+    // farmer team acts together, so unknown current-team throughput must fall
+    // back to the conservative estimate instead.
+    return null;
+  }
+  if (!(world.performance instanceof Map)) return null;
+  const rows = [...world.performance.values()]
+    .filter((row) => row && row.monster === monster && finite(row.seconds, 0) >= 60)
+    .map((row) => {
+      const hours = finite(row.seconds, 0) / 3600;
+      return { kph: hours > 0 ? finite(row.kills, 0) / hours : 0, seconds: finite(row.seconds, 0) };
+    })
+    .filter((row) => row.kph > 0)
+    .sort((a, b) => b.seconds - a.seconds || b.kph - a.kph);
+  return rows.length ? rows[0].kph : null;
+}
+
+function partyHeldQuantity(runtime, name, level = 0) {
+  const registry = runtime && runtime.characterRegistry;
+  let status = null;
+  try { status = registry && typeof registry.status === 'function' ? registry.status() : null; } catch (_) { status = null; }
+  const rows = Array.isArray(status && status.characters) ? status.characters : [];
+  let total = 0;
+  for (const character of rows) {
+    if (!character || String(character.ctype || character.type || '').toLowerCase() === 'merchant') continue;
+    const inventory = Array.isArray(character.inventory) ? character.inventory : Array.isArray(character.items) ? character.items : [];
+    for (const item of inventory) {
+      if (!item || String(item.name || '') !== String(name || '')) continue;
+      if (Math.max(0, Math.floor(finite(item.level, 0))) !== Math.max(0, Math.floor(finite(level, 0)))) continue;
+      total += Math.max(1, Math.floor(finite(item.q, 1)));
+    }
+  }
+  return total;
+}
+
+function quantityInRows(rows, name, level = 0) {
+  let total = 0;
+  for (const item of Array.isArray(rows) ? rows : []) {
+    if (!item || String(item.name || '') !== String(name || '')) continue;
+    if (Math.max(0, Math.floor(finite(item.level, 0))) !== Math.max(0, Math.floor(finite(level, 0)))) continue;
+    total += Math.max(1, Math.floor(finite(item.q != null ? item.q : item.quantity, 1)));
+  }
+  return total;
+}
+
+function merchantHeldQuantity(runtime, name, level = 0) {
+  const root = runtime && runtime.root || {};
+  const character = root.character || root.parent && root.parent.character || {};
+  const inventory = Array.isArray(character.items) ? character.items : Array.isArray(character.inventory) ? character.inventory : [];
+  let total = quantityInRows(inventory, name, level);
+  const liveBank = character.bank && typeof character.bank === 'object' ? character.bank : null;
+  if (liveBank) {
+    for (const rows of Object.values(liveBank)) total += quantityInRows(rows, name, level);
+    return total;
+  }
+  try {
+    const catalog = runtime && runtime.merchantBankCatalog && typeof runtime.merchantBankCatalog.status === 'function'
+      ? runtime.merchantBankCatalog.status()
+      : null;
+    const rows = catalog && catalog.usable === true && catalog.snapshot && Array.isArray(catalog.snapshot.rows)
+      ? catalog.snapshot.rows
+      : [];
+    total += quantityInRows(rows, name, level);
+  } catch (_) {}
+  return total;
+}
+
+function sourceSafe(runtime, monster, spawn) {
+  if (!runtime || !monster || !spawn || !spawn.map) return false;
+  try {
+    if (!isApprovedDisposition(contentDisposition(runtime.world, monster))) return false;
+  } catch (_) { return false; }
+  const drift = runtime.contentDrift;
+  if (drift && typeof drift.requiresRevalidation === 'function') {
+    try {
+      if (drift.requiresRevalidation('monsters', monster)) return false;
+      if (drift.requiresRevalidation('maps', spawn.map)) return false;
+    } catch (_) { return false; }
+  }
+  return true;
+}
+
+function knownSpawns(gameData, monster) {
+  const out = [];
+  const maps = gameData && gameData.maps || {};
+  for (const [map, meta] of Object.entries(maps)) {
+    const raw = meta && meta.monsters;
+    const spawns = Array.isArray(raw) ? raw : raw && typeof raw === 'object' ? Object.values(raw) : [];
+    for (let index = 0; index < spawns.length; index += 1) {
+      const entry = spawns[index];
+      if (String(spawnType(entry) || '') !== String(monster || '')) continue;
+      const center = spawnCenter(entry);
+      if (!center) continue;
+      out.push({ map, spawnIndex: index, x: center.x, y: center.y });
+    }
+  }
+  return out;
+}
+
+function bestDirectMaterialFarmSource(runtime, material, quantity, options = {}) {
+  const name = String(material == null ? '' : material).trim();
+  const need = Math.max(1, Math.floor(finite(quantity, 1)));
+  if (!name) return null;
+  const gameData = runtime && runtime.adapter && typeof runtime.adapter.getGameData === 'function'
+    ? runtime.adapter.getGameData() || {}
+    : {};
+  const monsters = gameData && gameData.drops && gameData.drops.monsters || {};
+  const fallbackKillsPerHour = Math.max(1, finite(options.fallbackKillsPerHour, DEFAULT_FALLBACK_KILLS_PER_HOUR));
+  const candidates = [];
+
+  for (const monster of Object.keys(monsters)) {
+    const yieldPerKill = directDropChance(gameData, monster, name);
+    if (!(yieldPerKill > 0)) continue;
+    const spawns = knownSpawns(gameData, monster);
+    if (!spawns.length) continue;
+    const measuredKillsPerHour = bestMeasuredKillsPerHour(runtime, monster);
+    const killsPerHour = measuredKillsPerHour || fallbackKillsPerHour;
+    const unitsPerHour = yieldPerKill * killsPerHour;
+    if (!(unitsPerHour > 0)) continue;
+    for (const spawn of spawns) {
+      if (!sourceSafe(runtime, monster, spawn)) continue;
+      candidates.push({
+        kind: 'DIRECT_MATERIAL_DROP',
+        material: name,
+        quantity: need,
+        monster,
+        yieldPerKill,
+        killsPerHour,
+        measuredKillsPerHour,
+        evidence: measuredKillsPerHour ? 'MEASURED_KILLS_PER_HOUR' : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR',
+        unitsPerHour,
+        expectedHours: need / unitsPerHour,
+        ...spawn
+      });
+    }
+  }
+
+  candidates.sort((a, b) => a.expectedHours - b.expectedHours
+    || (b.measuredKillsPerHour != null ? 1 : 0) - (a.measuredKillsPerHour != null ? 1 : 0)
+    || b.unitsPerHour - a.unitsPerHour
+    || a.monster.localeCompare(b.monster)
+    || a.map.localeCompare(b.map)
+    || a.spawnIndex - b.spawnIndex);
+  return candidates[0] || null;
+}
+
+function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, options = {}) {
+  const desired = String(desiredMaterial == null ? '' : desiredMaterial).trim();
+  const need = Math.max(1, Math.floor(finite(quantity, 1)));
+  if (!desired) return null;
+  const gameData = runtime && runtime.adapter && typeof runtime.adapter.getGameData === 'function'
+    ? runtime.adapter.getGameData() || {}
+    : {};
+  const items = gameData.items || {};
+  const fallbackKillsPerHour = Math.max(1, finite(options.fallbackKillsPerHour, DEFAULT_FALLBACK_KILLS_PER_HOUR));
+  const candidates = [];
+
+  for (const [exchangeItem, meta] of Object.entries(items)) {
+    const requiredPerExchange = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
+    if (requiredPerExchange <= 0) continue;
+    const rewardPerExchange = rewardChanceForExchange(gameData, exchangeItem, desired);
+    if (!(rewardPerExchange > 0)) continue;
+    const expectedExchangeOperations = need / rewardPerExchange;
+    const expectedInputUnits = Math.max(requiredPerExchange, Math.ceil(expectedExchangeOperations * requiredPerExchange));
+    const alreadyOnFarmers = partyHeldQuantity(runtime, exchangeItem, 0);
+    const alreadyOnMerchantOrBank = merchantHeldQuantity(runtime, exchangeItem, 0);
+    const farmInputUnits = Math.max(0, expectedInputUnits - alreadyOnFarmers - alreadyOnMerchantOrBank);
+
+    const monsters = gameData && gameData.drops && gameData.drops.monsters || {};
+    for (const monster of Object.keys(monsters)) {
+      const inputYieldPerKill = directDropChance(gameData, monster, exchangeItem);
+      if (!(inputYieldPerKill > 0)) continue;
+      const spawns = knownSpawns(gameData, monster);
+      if (!spawns.length) continue;
+      const measuredKillsPerHour = bestMeasuredKillsPerHour(runtime, monster);
+      const killsPerHour = measuredKillsPerHour || fallbackKillsPerHour;
+      const inputUnitsPerHour = inputYieldPerKill * killsPerHour;
+      if (!(inputUnitsPerHour > 0)) continue;
+      const desiredUnitsPerHour = (inputUnitsPerHour / requiredPerExchange) * rewardPerExchange;
+      if (!(desiredUnitsPerHour > 0)) continue;
+
+      for (const spawn of spawns) {
+        if (!sourceSafe(runtime, monster, spawn)) continue;
+        candidates.push({
+          kind: 'EXCHANGE_MATERIAL_DROP',
+          material: exchangeItem,
+          targetMaterial: desired,
+          quantity: expectedInputUnits,
+          farmQuantity: farmInputUnits,
+          requiredPerExchange,
+          rewardPerExchange,
+          expectedExchangeOperations,
+          inputYieldPerKill,
+          killsPerHour,
+          measuredKillsPerHour,
+          evidence: measuredKillsPerHour ? 'MEASURED_KILLS_PER_HOUR' : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR',
+          unitsPerHour: inputUnitsPerHour,
+          targetUnitsPerHour: desiredUnitsPerHour,
+          expectedHours: farmInputUnits / inputUnitsPerHour,
+          alreadyOnFarmers,
+          alreadyOnMerchantOrBank,
+          ...spawn
+        });
+      }
+    }
+  }
+
+  candidates.sort((a, b) => a.expectedHours - b.expectedHours
+    || (b.measuredKillsPerHour != null ? 1 : 0) - (a.measuredKillsPerHour != null ? 1 : 0)
+    || b.targetUnitsPerHour - a.targetUnitsPerHour
+    || a.material.localeCompare(b.material)
+    || a.monster.localeCompare(b.monster));
+  return candidates[0] || null;
+}
+
+function bestMaterialFarmSource(runtime, desiredMaterial, quantity, options = {}) {
+  const direct = bestDirectMaterialFarmSource(runtime, desiredMaterial, quantity, options);
+  const exchange = bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, options);
+  if (!direct) return exchange;
+  if (!exchange) return direct;
+  return exchange.expectedHours < direct.expectedHours ? exchange : direct;
+}
+
+function aggregateFarmSteps(steps = []) {
+  const grouped = new Map();
+  for (const step of Array.isArray(steps) ? steps : []) {
+    if (!step || String(step.kind || '') !== 'FARM_REQUIRED' || !step.name) continue;
+    const level = Math.max(0, Math.floor(finite(step.level, 0)));
+    const key = `${String(step.name)}|${level}`;
+    const current = grouped.get(key) || { name: String(step.name), level, quantity: 0 };
+    current.quantity += Math.max(1, Math.floor(finite(step.quantity, 1)));
+    grouped.set(key, current);
+  }
+  return [...grouped.values()];
+}
+
+function estimateBlockedProductionCandidate(runtime, blockedCandidate, options = {}) {
+  if (!blockedCandidate || !blockedCandidate.candidate) return { eligible: false, reason: 'CANDIDATE_UNAVAILABLE' };
+  const materialSteps = aggregateFarmSteps(blockedCandidate.steps);
+  if (!materialSteps.length) return { eligible: false, reason: 'NO_FARM_REQUIRED_MATERIALS' };
+  const nonMaterialBlockers = (blockedCandidate.blockers || []).filter((row) => row && row.reason !== 'MATERIAL_FARM_REQUIRED');
+  if (nonMaterialBlockers.length) return { eligible: false, reason: 'NON_MATERIAL_BLOCKER', blockers: clone(nonMaterialBlockers) };
+
+  const materials = [];
+  for (const step of materialSteps) {
+    if (step.level !== 0) {
+      return { eligible: false, reason: 'LEVELED_MATERIAL_REQUIRES_PROGRESSION', material: clone(step) };
+    }
+    const alreadyOnFarmers = partyHeldQuantity(runtime, step.name, step.level);
+    const remainingToFarm = Math.max(0, step.quantity - alreadyOnFarmers);
+    if (remainingToFarm <= 0) {
+      materials.push({ ...clone(step), alreadyOnFarmers, remainingToFarm: 0, source: null, awaitingTransfer: true });
+      continue;
+    }
+    const source = bestMaterialFarmSource(runtime, step.name, remainingToFarm, options);
+    if (!source) return { eligible: false, reason: 'NO_SAFE_DIRECT_FARM_SOURCE', material: { ...clone(step), alreadyOnFarmers, remainingToFarm } };
+    materials.push({ ...clone(step), alreadyOnFarmers, remainingToFarm, source });
+  }
+
+  if (materials.every((row) => row.awaitingTransfer === true)) {
+    return { eligible: false, reason: 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER', materials };
+  }
+
+  const totalExpectedHours = materials.reduce((sum, row) => sum + (row.source ? finite(row.source.expectedHours, Infinity) : 0), 0);
+  if (!Number.isFinite(totalExpectedHours)) return { eligible: false, reason: 'FARM_TIME_ESTIMATE_UNAVAILABLE', materials };
+  const maxTeamFarmHours = Math.max(0.25, finite(options.maxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS));
+  const longPath = totalExpectedHours > maxTeamFarmHours;
+
+  const target = blockedCandidate.candidate;
+  const benefit = Math.max(
+    0.001,
+    finite(target.improvement, 0)
+      + Math.max(0, finite(target.survivalImprovement, 0))
+      + Math.max(0, finite(target.speedImprovement, 0)) * 10
+  );
+  const utilityPerFarmHour = benefit / Math.max(0.01, totalExpectedHours);
+  const nextMaterial = materials.filter((row) => row.source).sort((a, b) =>
+    finite(b.source && b.source.expectedHours, 0) - finite(a.source && a.source.expectedHours, 0)
+    || a.name.localeCompare(b.name)
+  )[0];
+
+  return {
+    eligible: true,
+    reason: longPath ? 'LONG_TEAM_FARM_PATH_DEPRIORITIZED' : 'TEAM_FARM_PATH_WITHIN_PRIORITY_BUDGET',
+    target: clone(target),
+    materials,
+    nextMaterial,
+    totalExpectedHours,
+    maxTeamFarmHours,
+    longPath,
+    priorityTier: longPath ? 1 : 0,
+    benefit,
+    utilityPerFarmHour
+  };
+}
+
+function chooseProductionTeamFarmObjective(runtime, blockedCandidates = [], options = {}) {
+  const evaluated = (Array.isArray(blockedCandidates) ? blockedCandidates : [])
+    .map((candidate) => ({ candidate, estimate: estimateBlockedProductionCandidate(runtime, candidate, options) }));
+  const eligible = evaluated
+    .filter((row) => row.estimate && row.estimate.eligible)
+    .sort((a, b) => finite(a.estimate.priorityTier, 0) - finite(b.estimate.priorityTier, 0)
+      || b.estimate.utilityPerFarmHour - a.estimate.utilityPerFarmHour
+      || a.estimate.totalExpectedHours - b.estimate.totalExpectedHours
+      || finite(b.estimate.benefit, 0) - finite(a.estimate.benefit, 0)
+      || String(a.estimate.target && a.estimate.target.output || '').localeCompare(String(b.estimate.target && b.estimate.target.output || '')));
+  return {
+    selected: eligible.length ? clone(eligible[0].estimate) : null,
+    evaluated: evaluated.map((row) => ({
+      output: row.candidate && row.candidate.candidate && row.candidate.candidate.output || null,
+      recipient: row.candidate && row.candidate.candidate && row.candidate.candidate.recipient || null,
+      eligible: row.estimate && row.estimate.eligible === true,
+      reason: row.estimate && row.estimate.reason || 'UNKNOWN',
+      totalExpectedHours: row.estimate && Number.isFinite(row.estimate.totalExpectedHours) ? row.estimate.totalExpectedHours : null,
+      maxTeamFarmHours: row.estimate && row.estimate.maxTeamFarmHours || Math.max(0.25, finite(options.maxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS)),
+      longPath: row.estimate && row.estimate.longPath === true,
+      priorityTier: row.estimate && Number.isFinite(row.estimate.priorityTier) ? row.estimate.priorityTier : null,
+      utilityPerFarmHour: row.estimate && Number.isFinite(row.estimate.utilityPerFarmHour) ? row.estimate.utilityPerFarmHour : null
+    }))
+  };
+}
+
+module.exports = {
+  PRODUCTION_MATERIAL_ACQUISITION_MODE,
+  DEFAULT_MAX_TEAM_FARM_HOURS,
+  DEFAULT_FALLBACK_KILLS_PER_HOUR,
+  currentPartyFingerprintKey,
+  bestMeasuredKillsPerHour,
+  partyHeldQuantity,
+  quantityInRows,
+  merchantHeldQuantity,
+  knownSpawns,
+  bestDirectMaterialFarmSource,
+  bestExchangeMaterialFarmSource,
+  bestMaterialFarmSource,
+  aggregateFarmSteps,
+  estimateBlockedProductionCandidate,
+  chooseProductionTeamFarmObjective
+};
 
 },
 "src/production-live-services.js": function(require,module,exports){

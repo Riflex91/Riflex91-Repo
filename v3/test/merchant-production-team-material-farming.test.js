@@ -1,0 +1,404 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+
+const { MerchantProductionPlanner, ProductionStepKind } = require('../src/merchant/merchant-production-planner');
+const { ControlledPartyLogistics, Action } = require('../src/party/controlled-party-logistics');
+const { BrainStateEncoderV2 } = require('../src/brain/strategic-brain-v2');
+const {
+  bestDirectMaterialFarmSource,
+  bestExchangeMaterialFarmSource,
+  bestMaterialFarmSource,
+  estimateBlockedProductionCandidate,
+  chooseProductionTeamFarmObjective
+} = require('../src/party/production-material-acquisition');
+
+function runtimeForDrops(dropChance = 0.5) {
+  const gameData = {
+    items: {
+      weakbow: { type: 'weapon', attack: 1, class: ['ranger'], g: 10 },
+      goodbow: { type: 'weapon', attack: 20, class: ['ranger'], g: 1000 },
+      wood: { type: 'material', g: 10 }
+    },
+    craft: {
+      goodbow: { cost: 100, items: [[10, 'wood', 0]] }
+    },
+    drops: {
+      monsters: {
+        goo: [[dropChance, 'wood', 1]]
+      }
+    },
+    monsters: {
+      goo: { hp: 100, attack: 10 }
+    },
+    maps: {
+      main: {
+        monsters: [{ type: 'goo', boundary: [0, 0, 100, 100] }]
+      }
+    },
+    npcs: {}
+  };
+  return {
+    adapter: { getGameData: () => gameData },
+    world: {
+      performance: new Map(),
+      fact: () => ({ value: 'APPROVED' })
+    },
+    contentDrift: { requiresRevalidation: () => false }
+  };
+}
+
+function blockedCandidate(quantity = 10, improvement = 20) {
+  return {
+    candidate: {
+      output: 'goodbow',
+      recipient: 'R1',
+      slot: 'mainhand',
+      improvement,
+      survivalImprovement: 0,
+      speedImprovement: 0
+    },
+    steps: [{
+      kind: ProductionStepKind.FARM_REQUIRED,
+      name: 'wood',
+      level: 0,
+      quantity
+    }],
+    blockers: [{ reason: 'MATERIAL_FARM_REQUIRED', name: 'wood', level: 0, quantity }]
+  };
+}
+
+test('production material source estimates team farm time from drops and observed/fallback kill rate', () => {
+  const runtime = runtimeForDrops(0.5);
+  const source = bestDirectMaterialFarmSource(runtime, 'wood', 10, { fallbackKillsPerHour: 20 });
+  assert.ok(source);
+  assert.equal(source.monster, 'goo');
+  assert.equal(source.map, 'main');
+  assert.equal(source.evidence, 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR');
+  assert.equal(source.unitsPerHour, 10);
+  assert.equal(source.expectedHours, 1);
+});
+
+test('production material acquisition can farm an exchange input for a recipe material', () => {
+  const runtime = runtimeForDrops(0.5);
+  const gameData = runtime.adapter.getGameData();
+  gameData.items.shard = { type: 'material', g: 1 };
+  gameData.items.shell = { type: 'material', g: 1, e: 20 };
+  gameData.drops.monsters.crab = [[1, 'shell', 1]];
+  gameData.drops.shell = [[1, 'shard', 1]];
+  gameData.monsters.crab = { hp: 100, attack: 10 };
+  gameData.maps.beach = { monsters: [{ type: 'crab', boundary: [0, 0, 100, 100] }] };
+
+  const exchange = bestExchangeMaterialFarmSource(runtime, 'shard', 2, { fallbackKillsPerHour: 20 });
+  assert.ok(exchange);
+  assert.equal(exchange.kind, 'EXCHANGE_MATERIAL_DROP');
+  assert.equal(exchange.material, 'shell');
+  assert.equal(exchange.targetMaterial, 'shard');
+  assert.equal(exchange.requiredPerExchange, 20);
+  assert.equal(exchange.quantity, 40);
+  assert.equal(exchange.expectedHours, 2);
+
+  const chosen = bestMaterialFarmSource(runtime, 'shard', 2, { fallbackKillsPerHour: 20 });
+  assert.equal(chosen.kind, 'EXCHANGE_MATERIAL_DROP');
+  assert.equal(chosen.material, 'shell');
+});
+
+test('production material acquisition keeps a 100h+ recipe valid but deprioritized', () => {
+  const runtime = runtimeForDrops(0.001);
+  const estimate = estimateBlockedProductionCandidate(runtime, blockedCandidate(10, 1000), {
+    maxTeamFarmHours: 12,
+    fallbackKillsPerHour: 20
+  });
+  assert.equal(estimate.eligible, true);
+  assert.equal(estimate.reason, 'LONG_TEAM_FARM_PATH_DEPRIORITIZED');
+  assert.equal(estimate.longPath, true);
+  assert.equal(estimate.priorityTier, 1);
+  assert.ok(estimate.totalExpectedHours > 100);
+  assert.equal(estimate.maxTeamFarmHours, 12);
+});
+
+test('production material acquisition rejects leveled ingredients instead of pretending they can be directly farmed', () => {
+  const runtime = runtimeForDrops(0.5);
+  const candidate = blockedCandidate(3, 50);
+  candidate.steps[0].level = 2;
+  candidate.blockers[0].level = 2;
+  const estimate = estimateBlockedProductionCandidate(runtime, candidate, { maxTeamFarmHours: 12 });
+  assert.equal(estimate.eligible, false);
+  assert.equal(estimate.reason, 'LEVELED_MATERIAL_REQUIRES_PROGRESSION');
+});
+
+test('production material chooser puts <=12h paths ahead of a much stronger 100h+ recipe', () => {
+  const runtime = runtimeForDrops(0.5);
+  const gameData = runtime.adapter.getGameData();
+  gameData.items.rare = { type: 'material', g: 1 };
+  gameData.drops.monsters.rarebeast = [[0.001, 'rare', 1]];
+  gameData.monsters.rarebeast = { hp: 100, attack: 10 };
+  gameData.maps.rare = { monsters: [{ type: 'rarebeast', boundary: [0, 0, 100, 100] }] };
+
+  const short = blockedCandidate(10, 50);
+  short.candidate.output = 'practicalbow';
+
+  const veryLong = blockedCandidate(10, 100000);
+  veryLong.candidate.output = 'legendarybow';
+  veryLong.steps[0].name = 'rare';
+  veryLong.blockers[0].name = 'rare';
+
+  const decision = chooseProductionTeamFarmObjective(runtime, [veryLong, short], {
+    maxTeamFarmHours: 12,
+    fallbackKillsPerHour: 20
+  });
+
+  assert.ok(decision.selected);
+  assert.equal(decision.selected.target.output, 'practicalbow');
+  const legendary = decision.evaluated.find((row) => row.output === 'legendarybow');
+  assert.ok(legendary);
+  assert.equal(legendary.longPath, true);
+  assert.equal(legendary.priorityTier, 1);
+});
+
+test('production material chooser still selects a long path when no shorter valid path remains', () => {
+  const runtime = runtimeForDrops(0.001);
+  const only = blockedCandidate(10, 1000);
+  only.candidate.output = 'only-long-path';
+  const decision = chooseProductionTeamFarmObjective(runtime, [only], {
+    maxTeamFarmHours: 12,
+    fallbackKillsPerHour: 20
+  });
+  assert.ok(decision.selected);
+  assert.equal(decision.selected.target.output, 'only-long-path');
+  assert.equal(decision.selected.longPath, true);
+  assert.equal(decision.selected.priorityTier, 1);
+});
+
+test('production material chooser favors worthwhile benefit per preferred team farm hour', () => {
+  const runtime = runtimeForDrops(0.5);
+  const slow = blockedCandidate(100, 1000);
+  slow.candidate.output = 'slowbow';
+  const efficient = blockedCandidate(10, 100);
+  efficient.candidate.output = 'efficientbow';
+  const decision = chooseProductionTeamFarmObjective(runtime, [slow, efficient], {
+    maxTeamFarmHours: 12,
+    fallbackKillsPerHour: 20
+  });
+  assert.ok(decision.selected);
+  assert.equal(decision.selected.target.output, 'efficientbow');
+  assert.equal(decision.selected.nextMaterial.name, 'wood');
+});
+
+test('production planner exposes all blocked recipe candidates for bounded farm-path selection', () => {
+  const runtime = runtimeForDrops(0.5);
+  const gameData = runtime.adapter.getGameData();
+  delete gameData.npcs;
+  const planner = new MerchantProductionPlanner({ now: () => 1000, goldReserve: 0 });
+  const plan = planner.plan({
+    character: { name: 'Merchant', ctype: 'merchant', gold: 10000, items: [], bank: {} },
+    registry: {
+      characters: [{
+        name: 'R1',
+        ctype: 'ranger',
+        level: 80,
+        gear: { mainhand: { name: 'weakbow', level: 0 } },
+        inventory: []
+      }]
+    },
+    gameData,
+    inCombat: false,
+    economyEmergency: false,
+    controlledBusy: false
+  });
+  assert.equal(plan.state, 'BLOCKED');
+  assert.ok(Array.isArray(plan.blockedCandidates));
+  assert.ok(plan.blockedCandidates.length >= 1);
+  assert.equal(plan.blockedCandidates[0].steps.some((step) => step.kind === ProductionStepKind.FARM_REQUIRED), true);
+});
+
+test('material already on farmers is treated as transfer-pending instead of more farming', () => {
+  const runtime = runtimeForDrops(0.5);
+  runtime.characterRegistry = {
+    status: () => ({
+      characters: [
+        { name: 'Merchant', ctype: 'merchant', inventory: [] },
+        { name: 'R1', ctype: 'ranger', inventory: [{ name: 'wood', level: 0, q: 6 }] },
+        { name: 'R2', ctype: 'priest', inventory: [{ name: 'wood', level: 0, q: 4 }] }
+      ]
+    })
+  };
+  const estimate = estimateBlockedProductionCandidate(runtime, blockedCandidate(10, 100), {
+    maxTeamFarmHours: 12,
+    fallbackKillsPerHour: 20
+  });
+  assert.equal(estimate.eligible, false);
+  assert.equal(estimate.reason, 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER');
+});
+
+test('explicit production material may bypass generic exchange protection but not binding protection', () => {
+  const farmer = Object.create(ControlledPartyLogistics.prototype);
+  farmer.now = () => 1000;
+  farmer.root = { G: { items: { token: { type: 'material', exchange: true }, bound: { type: 'material', exchange: true, soulbound: true } } } };
+  farmer.parent = farmer.root;
+  farmer.runtime = {
+    farmer: {
+      materialObjective: {
+        kind: 'PRODUCTION_MATERIAL',
+        material: 'token',
+        level: 0,
+        expiresAt: 60000
+      }
+    }
+  };
+  farmer._isMerchant = () => false;
+
+  assert.equal(farmer._safeLootDescriptor({ name: 'token', level: 0, q: 5 }).ok, true);
+  assert.equal(farmer._safeLootDescriptor({ name: 'bound', level: 0, q: 1 }).ok, false);
+
+  const merchant = Object.create(ControlledPartyLogistics.prototype);
+  merchant.now = () => 1000;
+  merchant.root = farmer.root;
+  merchant.parent = merchant.root;
+  merchant.runtime = {};
+  merchant.lastProductionMaterialObjective = { material: 'token', level: 0, expiresAt: 60000 };
+  merchant._isMerchant = () => true;
+  assert.equal(merchant._safeLootDescriptor({ name: 'token', level: 0, q: 5 }).ok, true);
+});
+
+test('strategic brain keeps character level a minor context signal', () => {
+  const encoder = new BrainStateEncoderV2();
+  const encoded = encoder.encode({
+    performance: { status: () => ({ current: { rates: {} } }) },
+    gearProgression: { list: () => [] },
+    world: { status: () => ({ confidence: 1 }) },
+    combatRisk: { threshold: 0.65 },
+    log: { list: () => [] }
+  }, {
+    snapshot: {
+      character: {
+        name: 'R1', ctype: 'ranger', level: 120,
+        hp: 1000, max_hp: 1000, mp: 1000, max_mp: 1000,
+        attack: 1000, range: 120, speed: 60, isize: 42, inventory: []
+      },
+      party: [],
+      entities: []
+    },
+    candidates: []
+  });
+
+  assert.equal(encoded.values.levelNorm, 0.15);
+  assert.ok(encoded.values.attackNorm > encoded.values.levelNorm);
+  assert.equal(encoded.values.gearHealth, 1);
+});
+
+test('active production material objective is not overwritten by an elixir farm objective', () => {
+  const logistics = Object.create(ControlledPartyLogistics.prototype);
+  logistics.now = () => 1000;
+  logistics.runtime = {
+    farmer: {
+      materialObjective: {
+        kind: 'PRODUCTION_MATERIAL',
+        material: 'wood',
+        monster: 'goo',
+        expiresAt: 60000
+      }
+    }
+  };
+  logistics.stats = { messagesReceived: 0, messagesRejected: 0 };
+  logistics._validEnvelope = () => true;
+  logistics._merchantName = () => 'Merchant';
+  logistics._isMerchant = () => false;
+
+  const accepted = logistics.receive('Merchant', {
+    action: Action.ELIXIR_FARM_OBJECTIVE,
+    expiresAt: 60000,
+    monster: 'crab',
+    material: 'shell',
+    elixirName: 'elixirdex0',
+    map: 'main',
+    x: 0,
+    y: 0
+  });
+
+  assert.equal(accepted, true);
+  assert.equal(logistics.runtime.farmer.materialObjective.kind, 'PRODUCTION_MATERIAL');
+  assert.equal(logistics.runtime.farmer.materialObjective.material, 'wood');
+});
+
+test('production material objective replaces a lower-priority elixir material objective for the whole team', () => {
+  const logistics = Object.create(ControlledPartyLogistics.prototype);
+  logistics.now = () => 1000;
+  logistics.runtime = {
+    farmer: {
+      materialObjective: {
+        kind: 'ELIXIR_MATERIAL',
+        material: 'shell',
+        monster: 'crab',
+        expiresAt: 60000
+      }
+    }
+  };
+  logistics.stats = { messagesReceived: 0, messagesRejected: 0 };
+  logistics._validEnvelope = () => true;
+  logistics._merchantName = () => 'Merchant';
+  logistics._isMerchant = () => false;
+
+  const accepted = logistics.receive('Merchant', {
+    action: Action.PRODUCTION_MATERIAL_OBJECTIVE,
+    objectiveId: 'production-material:goodbow:R1:wood',
+    output: 'goodbow',
+    recipient: 'R1',
+    material: 'wood',
+    targetMaterial: 'wood',
+    acquisitionKind: 'DIRECT_MATERIAL_DROP',
+    requiredQuantity: 10,
+    expiresAt: 60000,
+    monster: 'goo',
+    map: 'main',
+    x: 50,
+    y: 50
+  });
+
+  assert.equal(accepted, true);
+  assert.equal(logistics.runtime.farmer.materialObjective.kind, 'PRODUCTION_MATERIAL');
+  assert.equal(logistics.runtime.farmer.materialObjective.material, 'wood');
+  assert.equal(logistics.runtime.farmer.materialObjective.output, 'goodbow');
+});
+
+test('production material objective is broadcast identically to every farmer, never split', () => {
+  const sent = [];
+  const logistics = Object.create(ControlledPartyLogistics.prototype);
+  logistics.now = () => 1000;
+  logistics.config = { productionMaterialPublishCooldownMs: 30000 };
+  logistics.stats = { productionMaterialObjectives: 0, productionMaterialClears: 0 };
+  logistics.lastProductionMaterialObjective = null;
+  logistics.lastProductionMaterialPublishAt = -Infinity;
+  logistics._isMerchant = () => true;
+  logistics._localName = () => 'Merchant';
+  logistics._trustedNames = () => ['Merchant', 'R1', 'R2', 'R3'];
+  logistics._send = (name, action, data) => {
+    sent.push({ name, action, data: JSON.parse(JSON.stringify(data)) });
+    return Promise.resolve({ delivered: true });
+  };
+  logistics._event = () => {};
+
+  const published = logistics.publishProductionMaterialObjective({
+    objectiveId: 'production-material:goodbow:R1:wood',
+    output: 'goodbow',
+    recipient: 'R1',
+    material: 'wood',
+    requiredQuantity: 10,
+    monster: 'goo',
+    map: 'main',
+    x: 50,
+    y: 50,
+    expectedHours: 1,
+    totalExpectedHours: 1,
+    maxTeamFarmHours: 12,
+    expiresAt: 60000
+  });
+
+  assert.equal(published, true);
+  assert.deepEqual(sent.map((row) => row.name).sort(), ['R1', 'R2', 'R3']);
+  assert.equal(sent.every((row) => row.action === Action.PRODUCTION_MATERIAL_OBJECTIVE), true);
+  assert.equal(new Set(sent.map((row) => row.data.objectiveId)).size, 1);
+  assert.equal(new Set(sent.map((row) => row.data.monster)).size, 1);
+  assert.equal(logistics.stats.productionMaterialObjectives, 1);
+});

@@ -4,6 +4,7 @@ const { MerchantProductionPlanner, ProductionStepKind } = require('./merchant-pr
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_ACK } = require('./controlled-merchant-production-executor');
 const { PersistentBankCatalog } = require('./persistent-bank-catalog');
 const { bufferedInteractionRange, interactionMaxRange, INTERACTION_SAFETY_FACTOR } = require('../reliability/alpha27-atomic-service');
+const { chooseProductionTeamFarmObjective, DEFAULT_MAX_TEAM_FARM_HOURS, DEFAULT_FALLBACK_KILLS_PER_HOUR } = require('../party/production-material-acquisition');
 
 const MERCHANT_PRODUCTION_CONTROLLER_MODE = 'merchant-production-controller-v1';
 
@@ -21,6 +22,7 @@ function installMerchantProduction(runtime, options = {}) {
     minImprovementRatio: options.merchantProductionMinImprovementRatio,
     goldReserve: options.merchantProductionGoldReserve,
     maxBuyQuantity: options.merchantProductionMaxBuyQuantity,
+    candidateScanLimit: options.merchantProductionCandidateScanLimit,
     targets: options.merchantProductionTargets
   });
   const bankCatalog = options.bankCatalog || new PersistentBankCatalog({ root: runtime.root, now: runtime.now, storage: options.merchantProductionStorage || options.storage, storageKey: options.merchantBankCatalogStorageKey, maxAgeMs: options.merchantBankCatalogMaxAgeMs });
@@ -50,7 +52,11 @@ function installMerchantProduction(runtime, options = {}) {
     lastExecution: null,
     executionPending: false,
     pausedUntil: 0,
-    failureCooldownMs: Math.max(5000, Math.min(30 * 60 * 1000, n(options.merchantProductionFailureCooldownMs, 120000)))
+    failureCooldownMs: Math.max(5000, Math.min(30 * 60 * 1000, n(options.merchantProductionFailureCooldownMs, 120000))),
+    maxTeamFarmHours: Math.max(0.25, n(options.merchantProductionMaxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS)),
+    fallbackKillsPerHour: Math.max(1, n(options.merchantProductionFallbackKillsPerHour, DEFAULT_FALLBACK_KILLS_PER_HOUR)),
+    materialObjectiveTtlMs: Math.max(60000, Math.min(60 * 60 * 1000, n(options.merchantProductionMaterialObjectiveTtlMs, 15 * 60 * 1000))),
+    lastMaterialFarmDecision: null
   };
 
   function taskCoordinator() { return runtime.merchantTaskCoordinator || null; }
@@ -256,6 +262,83 @@ function installMerchantProduction(runtime, options = {}) {
     }).finally(() => { state.executionPending = false; });
     return true;
   }
+  function setProductionExchangeDemand(source = null, targetMaterial = null, expiresAt = null) {
+    const existing = Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : [];
+    const retained = existing.filter((row) => row && String(row.reason || '') !== 'PRODUCTION_MATERIAL');
+    if (source && source.kind === 'EXCHANGE_MATERIAL_DROP' && source.material) {
+      retained.push({
+        item: String(source.material),
+        target: String(source.targetMaterial || targetMaterial || ''),
+        reason: 'PRODUCTION_MATERIAL',
+        expiresAt: Number(expiresAt) || runtime.now() + state.materialObjectiveTtlMs
+      });
+    }
+    runtime.merchantExchangeDemands = retained;
+    return true;
+  }
+
+  function clearProductionMaterialObjective(reason = 'PRODUCTION_MATERIAL_OBJECTIVE_NO_LONGER_REQUIRED') {
+    setProductionExchangeDemand(null);
+    const logistics = runtime.controlledPartyLogistics;
+    if (!logistics || typeof logistics.clearProductionMaterialObjective !== 'function') return false;
+    return logistics.clearProductionMaterialObjective(reason);
+  }
+
+  function publishProductionMaterialObjective(plan) {
+    if (!plan || plan.state !== 'BLOCKED') return false;
+    const logistics = runtime.controlledPartyLogistics;
+    if (!logistics || typeof logistics.publishProductionMaterialObjective !== 'function') return false;
+    const blockedCandidates = Array.isArray(plan.blockedCandidates) && plan.blockedCandidates.length
+      ? plan.blockedCandidates
+      : plan.target
+        ? [{ candidate: plan.target, steps: plan.steps || [], blockers: plan.blockers || [] }]
+        : [];
+    const decision = chooseProductionTeamFarmObjective(runtime, blockedCandidates, {
+      maxTeamFarmHours: state.maxTeamFarmHours,
+      fallbackKillsPerHour: state.fallbackKillsPerHour
+    });
+    state.lastMaterialFarmDecision = { at: runtime.now(), ...clone(decision) };
+    if (!decision.selected || !decision.selected.nextMaterial || !decision.selected.nextMaterial.source) {
+      const awaitingTransfer = (decision.evaluated || []).some((row) => row && row.reason === 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER');
+      if (awaitingTransfer) return true;
+      clearProductionMaterialObjective('NO_KNOWN_PRODUCTION_MATERIAL_FARM_PATH');
+      return false;
+    }
+    const selected = decision.selected;
+    const material = selected.nextMaterial;
+    const source = material.source;
+    const expiresAt = runtime.now() + state.materialObjectiveTtlMs;
+    setProductionExchangeDemand(source, material.name, expiresAt);
+    const farmMaterial = source.kind === 'EXCHANGE_MATERIAL_DROP' ? source.material : material.name;
+    const farmQuantity = source.kind === 'EXCHANGE_MATERIAL_DROP'
+      ? Math.max(1, Math.floor(n(source.farmQuantity, n(source.requiredPerExchange, 1))))
+      : Math.max(1, Math.floor(n(material.remainingToFarm, material.quantity)));
+    return logistics.publishProductionMaterialObjective({
+      objectiveId: `production-material:${selected.target.output}:${selected.target.recipient || ''}:${farmMaterial}`,
+      output: selected.target.output,
+      recipient: selected.target.recipient || null,
+      slot: selected.target.slot || null,
+      material: farmMaterial,
+      targetMaterial: material.name,
+      acquisitionKind: source.kind,
+      level: source.kind === 'EXCHANGE_MATERIAL_DROP' ? 0 : material.level,
+      requiredQuantity: farmQuantity,
+      exchangeRequired: source.requiredPerExchange || null,
+      exchangeRewardPerOperation: source.rewardPerExchange || null,
+      monster: source.monster,
+      map: source.map,
+      x: source.x,
+      y: source.y,
+      spawnIndex: source.spawnIndex,
+      expectedHours: source.expectedHours,
+      totalExpectedHours: selected.totalExpectedHours,
+      maxTeamFarmHours: selected.maxTeamFarmHours,
+      utilityPerFarmHour: selected.utilityPerFarmHour,
+      evidence: source.evidence,
+      expiresAt
+    });
+  }
+
   function cycle() {
     // Merchant production is installed in the shared runtime on every owned
     // character, but only the Merchant may acquire production tasks or travel
@@ -283,6 +366,8 @@ function installMerchantProduction(runtime, options = {}) {
     }
 
     const plan = evaluate();
+    if (plan && plan.state === 'READY') clearProductionMaterialObjective('PRODUCTION_CHAIN_READY');
+    else if (plan && plan.state === 'BLOCKED') publishProductionMaterialObjective(plan);
     if (schedule(plan)) return plan;
 
     if (plan && plan.state !== 'READY' && !collectionBusy() && !state.executionPending) {
@@ -342,6 +427,19 @@ function installMerchantProduction(runtime, options = {}) {
       alpha27Busy: alpha27Busy(),
       pausedUntil: state.pausedUntil || null,
       failureCooldownMs: state.failureCooldownMs,
+      teamMaterialFarmPolicy: {
+        teamActsTogether: true,
+        multiFarmerSplit: false,
+        maxTeamFarmHours: state.maxTeamFarmHours,
+        fallbackKillsPerHour: state.fallbackKillsPerHour,
+        objectiveTtlMs: state.materialObjectiveTtlMs,
+        longPathsAreDeferredNotBlocked: true,
+        preferredFarmHoursThreshold: state.maxTeamFarmHours,
+        gearBenefitPrimary: true,
+        characterLevelUsedForStrengthRanking: false,
+        exchangeBackedMaterialAcquisition: true,
+        lastDecision: clone(state.lastMaterialFarmDecision)
+      },
       taskCoordinator: taskCoordinator() && typeof taskCoordinator().status === 'function' ? taskCoordinator().status() : null,
       nonPreemptiveTaskOwner: 'PRODUCTION',
       explicitAckRequired: CONTROLLED_MERCHANT_PRODUCTION_ACK
