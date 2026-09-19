@@ -73,3 +73,40 @@ Informationen aus Community- oder unbekannten Quellen werden nicht automatisch z
 Der Wissenswaechter darf nur Webkandidaten speichern, deren Bezug zu **Adventure Land - The Code MMORPG** technisch bestaetigt wurde. Suchmaschinen-Query und Trefferposition gelten ausdruecklich nicht als Beweis. Offizielle Adventure-Land-Adressen werden direkt erkannt; andere Treffer muessen einen Vorfilter bestehen und anschliessend im tatsaechlich abgerufenen Seiteninhalt eindeutige Spielmerkmale enthalten. Unklare oder nicht erreichbare Ergebnisse werden fail-closed verworfen.
 
 Jeder neu gespeicherte Kandidat traegt einen `ADVENTURE_LAND_...`-Relevanznachweis. Kandidaten aus aelteren, breiteren Suchlaeufen ohne diesen Nachweis werden automatisch aus der Kandidatenliste entfernt.
+
+
+## Verbindlicher Zugriff fuer Entwicklung und spaetere Runtime
+
+Der kanonische Einstiegspunkt ist immer:
+
+```text
+v5/wissensbasis/manifest.json
+```
+
+Der Manifest beschreibt sowohl die strukturierte Wissensschicht als auch die laufenden Daten des Wissenswaechters.
+
+Pflichtreihenfolge fuer Entwicklung:
+
+1. `manifest.json`;
+2. `datenbank/letzter-lauf.json`;
+3. `datenbank/quellenstatus.json`;
+4. relevante Aenderungen aus `datenbank/aenderungsprotokoll.jsonl`;
+5. Revalidierungsqueue/offene Fragen;
+6. relevante Facts und Action Contracts;
+7. bei Bedarf die aktuellen Roh-Snapshots unter `datenbank/aktuell/**`.
+
+Die vollstaendigen Regeln stehen in:
+
+```text
+v5/dokumentation/ENTWICKLUNGS-WISSENSGATE.md
+v5/entwicklungsregeln/wissensnutzung.json
+```
+
+### Wichtige Autoritaetsgrenzen
+
+- `datenbank/aktuell/**` = aktuelle Evidence, **keine direkte Gameplay-API**.
+- `datenbank/kandidaten.json` = Recherchehinweise, **keine Entwicklungs- oder Gameplay-Autoritaet**, unabhaengig von ihrer Vertrauensklasse.
+- Facts/Contracts = kanonische Entwicklungsbasis nach Revalidierung.
+- unmittelbar vor Game Writes gewinnt weiterhin frische Live Truth.
+
+Spaetere Runtime-Module greifen nicht direkt auf GitHub-TXT-Dateien zu. Sie verwenden einen validierten, read-only `WissensZugriffPort` mit einem versionierten `WissensSnapshot`.

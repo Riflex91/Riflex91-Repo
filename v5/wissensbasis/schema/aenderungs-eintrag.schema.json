@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "V5 Wissenswaechter Aenderungseintrag",
+  "type": "object",
+  "required": [
+    "kennung",
+    "titel",
+    "adresse",
+    "vertrauen",
+    "neuerInhaltSha256",
+    "erkanntAm",
+    "art"
+  ],
+  "properties": {
+    "kennung": {
+      "type": "string",
+      "minLength": 1
+    },
+    "titel": {
+      "type": "string",
+      "minLength": 1
+    },
+    "adresse": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vertrauen": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vorherigerInhaltSha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "neuerInhaltSha256": {
+      "type": "string",
+      "minLength": 1
+    },
+    "erkanntAm": {
+      "type": "string"
+    },
+    "art": {
+      "enum": [
+        "NEU_ERFASST",
+        "INHALT_GEAENDERT"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

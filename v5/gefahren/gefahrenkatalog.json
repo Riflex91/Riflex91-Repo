@@ -3,7 +3,7 @@
   "stand": "2026-09-19",
   "methode": "FMEA_AEHNLICH",
   "regel": "Hohe Risikowerte reduzieren nicht die Pflicht zur Behandlung niedrigerer Safety-Risiken; jede Gefahr braucht vor betroffener Live-Autoritaet eine wirksame Gegenmassnahme.",
-  "anzahl": 98,
+  "anzahl": 106,
   "gefahren": [
     {
       "kennung": "V5-GEF-001",
@@ -1395,6 +1395,123 @@
       "betroffenePhasen": [
         "R0",
         "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-099",
+      "titel": "Entwicklung erfolgt gegen veraltetes oder ungeprueftes Adventure-Land-Wissen",
+      "kategorie": "WISSEN",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Frische-Wissensgate vor Planung und Merge",
+      "betroffenePhasen": [
+        "R2",
+        "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-100",
+      "titel": "Themenfremder automatisch gefundener Kandidat beeinflusst Architektur oder Gameplay",
+      "kategorie": "WISSEN",
+      "schweregrad": 4,
+      "eintritt": 4,
+      "entdeckbarkeit": 3,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Kandidaten besitzen null Autoritaet und brauchen Verifikation",
+      "betroffenePhasen": [
+        "R0"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-101",
+      "titel": "Gameplay-Modul parst Roh-Snapshots oder GitHub-Dateien direkt und umgeht typisierte Wissensgrenzen",
+      "kategorie": "ARCHITEKTUR",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Read-only WissensZugriffPort + Dependency Guard",
+      "betroffenePhasen": [
+        "R6",
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-102",
+      "titel": "Relevante offizielle Quelle aendert sich nach Planungs-/Branchbeginn und die Implementierung wird nicht neu bewertet",
+      "kategorie": "WISSEN",
+      "schweregrad": 5,
+      "eintritt": 4,
+      "entdeckbarkeit": 4,
+      "risikowert": 80,
+      "status": "OFFEN",
+      "strategie": "Hash-Baseline + Rebase auf aktuellen main + Revalidierung",
+      "betroffenePhasen": [
+        "R2",
+        "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-103",
+      "titel": "Wissenswaechter ist zu alt oder fehlerhaft, trotzdem wird Implementierung gemergt",
+      "kategorie": "PROZESS",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "180-Minuten-Blockiergrenze + Quellenhealth-Gate",
+      "betroffenePhasen": [
+        "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-104",
+      "titel": "Neuer Knowledge-Stand deutet eine bereits laufende irreversible Transaktion still um",
+      "kategorie": "TRANSAKTION",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "WissensSnapshot-Pinning + Replan erst nach Settlement",
+      "betroffenePhasen": [
+        "R8",
+        "R10"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-105",
+      "titel": "Entwickler oder Bot erraten Knowledge-Pfade und brechen bei Strukturveraenderung oder lesen die falsche Schicht",
+      "kategorie": "ARCHITEKTUR",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Manifest als einziger kanonischer Einstiegspunkt",
+      "betroffenePhasen": [
+        "R0",
+        "R6"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-106",
+      "titel": "Maschinendatei der Wissensdatenbank ist syntaktisch ungueltig oder semantisch nicht eindeutig konsumierbar",
+      "kategorie": "WISSEN",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Schemas + Knowledge-Validator + echtes JSONL",
+      "betroffenePhasen": [
+        "R0"
       ]
     }
   ]

@@ -16,6 +16,8 @@ const zustaende = liesJson('v5/zustaende/zustandsautomaten.json');
 const fitness = liesJson('v5/fitness/fitness-regeln.json');
 const bereitschaft = liesJson('v5/bereitschaft/laufzeit-bereitschaft.json');
 const anzeige = liesJson('v5/anzeigetexte/regelwerk.json');
+const entwicklungsWissen = liesJson('v5/entwicklungsregeln/wissensnutzung.json');
+const quellenfreigaben = liesJson('v5/entwicklungsregeln/quellenfreigaben.json');
 
 const anforderungsKennungen = eindeutig(anforderungen.anforderungen.map(x => x.kennung), 'Anforderungen');
 const gefahrenKennungen = eindeutig(gefahren.gefahren.map(x => x.kennung), 'Gefahren');
@@ -38,6 +40,15 @@ if (anzeige.kategorien.monster.deutschPflicht !== 'WENN_OFFIZIELLE_DEUTSCHE_SPIE
 if (anzeige.kategorien.monster.englischerRohFallbackErlaubt !== true) {
   fehler('Originaler Monstername muss bei fehlender offizieller deutscher Bezeichnung erlaubt sein.');
 }
+if (entwicklungsWissen.manifestPfad !== 'v5/wissensbasis/manifest.json') {
+  fehler('Entwicklungs-Wissensgate zeigt nicht auf den kanonischen Manifest.');
+}
+if (entwicklungsWissen.frische?.blockiereImplementierungNachMinuten !== 180) {
+  fehler('Wissensgate-Blockierfenster muss aktuell 180 Minuten betragen.');
+}
+eindeutig(quellenfreigaben.quellenfreigaben.map(x => x.kennung), 'Quellenfreigaben');
+if (!quellenfreigaben.quellenfreigaben.length) fehler('Quellenfreigaben fehlen.');
+
 for (const [kategorie, regel] of Object.entries(anzeige.kategorien)) {
   if (kategorie !== 'monster' && regel.englischerRohFallbackErlaubt !== false) {
     fehler('Unerlaubter englischer Rohfallback in Kategorie ' + kategorie);
@@ -89,7 +100,11 @@ if (bereitschaft.status !== 'FREIGEGEBEN' && allesErfuellt) fehler('Alle Pflicht
 for (const pfad of [
   'v5/dokumentation/WISSENSWAECHTER-VERTRAG.md',
   'v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md',
-  'v5/dokumentation/DEUTSCHE_NAMEN_UND_NARRENSICHERHEIT.md'
+  'v5/dokumentation/DEUTSCHE_NAMEN_UND_NARRENSICHERHEIT.md',
+  'v5/dokumentation/ENTWICKLUNGS-WISSENSGATE.md',
+  'v5/entwicklungsregeln/wissensnutzung.json',
+  'v5/entwicklungsregeln/quellenfreigaben.json',
+  'v5/werkzeuge/entwicklungs-wissensgate.mjs'
 ]) {
   if (!fs.existsSync(pfad)) fehler('Pflichtdokument fehlt: ' + pfad);
 }

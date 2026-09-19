@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-19",
+  "status": "VERBINDLICH",
+  "manifestPfad": "v5/wissensbasis/manifest.json",
+  "grundsatz": "V5-Entwicklung verwendet immer den aktuellen validierten Wissensstand. Kandidaten und Roh-Snapshots besitzen keine direkte Gameplay-Autoritaet.",
+  "frische": {
+    "erwartetesIntervallMinuten": 60,
+    "warnNachMinuten": 120,
+    "blockiereImplementierungNachMinuten": 180
+  },
+  "autoritaetsstufen": [
+    {
+      "stufe": "A",
+      "art": "OFFIZIELLE_AKTUELLE_EVIDENZ",
+      "entwicklungsAutoritaet": "HOCH",
+      "gameplayAutoritaet": "KEINE_OHNE_LIVE_ADMISSION"
+    },
+    {
+      "stufe": "B",
+      "art": "STRUKTURIERTE_V5_WISSENSBASIS",
+      "entwicklungsAutoritaet": "KANONISCH_NACH_REVALIDIERUNG",
+      "gameplayAutoritaet": "PLANUNG_NUR"
+    },
+    {
+      "stufe": "C",
+      "art": "ARCHIVIERTE_RESEARCH_EVIDENZ",
+      "entwicklungsAutoritaet": "KONTEXT",
+      "gameplayAutoritaet": "KEINE"
+    },
+    {
+      "stufe": "D",
+      "art": "COMMUNITY_EVIDENZ",
+      "entwicklungsAutoritaet": "HINWEIS",
+      "gameplayAutoritaet": "KEINE"
+    },
+    {
+      "stufe": "E",
+      "art": "KANDIDATEN",
+      "entwicklungsAutoritaet": "KEINE",
+      "gameplayAutoritaet": "KEINE"
+    }
+  ],
+  "pflichtDateien": [
+    "v5/wissensbasis/manifest.json",
+    "v5/wissensbasis/datenbank/letzter-lauf.json",
+    "v5/wissensbasis/datenbank/quellenstatus.json",
+    "v5/wissensbasis/datenbank/aenderungsprotokoll.jsonl",
+    "v5/wissensbasis/datenbank/kandidaten.json",
+    "v5/wissensbasis/revalidierung/revalidierungsqueue.json"
+  ],
+  "quellengruppen": {
+    "vertragKritisch": [
+      "AL-OFFICIAL-MCP",
+      "AL-OFFICIAL-CODE-FUNCTIONS",
+      "AL-SRC-RUNNER",
+      "AL-SRC-FUNCTIONS",
+      "AL-SRC-SERVER",
+      "AL-SRC-SERVER-FUNCTIONS"
+    ],
+    "community": [
+      "COMM-MONITORING",
+      "COMM-GRIMERY",
+      "COMM-ALCLIENT"
+    ],
+    "globaleReviewBlocker": [
+      "AL-OFFICIAL-NOTES",
+      "AL-OFFICIAL-REPO"
+    ],
+    "signalNur": [
+      "AL-OFFICIAL-DOCS-HUB"
+    ]
+  },
+  "domaenenQuellen": {
+    "kern": [
+      "AL-OFFICIAL-MCP",
+      "AL-OFFICIAL-CODE-FUNCTIONS",
+      "AL-SRC-RUNNER",
+      "AL-SRC-FUNCTIONS",
+      "AL-SRC-SERVER",
+      "AL-SRC-SERVER-FUNCTIONS",
+      "AL-OFFICIAL-NOTES"
+    ],
+    "merchant": [
+      "AL-OFFICIAL-CODE-FUNCTIONS",
+      "AL-SRC-RUNNER",
+      "AL-SRC-FUNCTIONS",
+      "AL-SRC-SERVER",
+      "AL-SRC-SERVER-FUNCTIONS",
+      "AL-DATA-ITEMS",
+      "AL-DATA-RECIPES",
+      "AL-OFFICIAL-NOTES"
+    ],
+    "inventar": [
+      "AL-SRC-RUNNER",
+      "AL-SRC-FUNCTIONS",
+      "AL-SRC-SERVER",
+      "AL-DATA-ITEMS"
+    ],
+    "bank": [
+      "AL-OFFICIAL-CODE-FUNCTIONS",
+      "AL-SRC-RUNNER",
+      "AL-SRC-SERVER",
+      "AL-SRC-SERVER-FUNCTIONS",
+      "AL-DATA-MAPS"
+    ],
+    "markt": [
+      "AL-OFFICIAL-CODE-FUNCTIONS",
+      "AL-SRC-RUNNER",
+      "AL-SRC-SERVER",
+      "AL-SRC-SERVER-FUNCTIONS",
+      "AL-DATA-ITEMS"
+    ],
+    "produktion": [
+      "AL-OFFICIAL-CODE-FUNCTIONS",
+      "AL-SRC-RUNNER",
+      "AL-SRC-SERVER",
+      "AL-DATA-ITEMS",
+      "AL-DATA-RECIPES",
+      "AL-DATA-EVENTS"
+    ],
+    "kampf": [
+      "AL-SRC-RUNNER",
+      "AL-SRC-FUNCTIONS",
+      "AL-SRC-SERVER",
+      "AL-DATA-CLASSES",
+      "AL-DATA-SKILLS",
+      "AL-DATA-MONSTERS",
+      "AL-DATA-MAPS"
+    ],
+    "navigation": [
+      "AL-SRC-RUNNER",
+      "AL-SRC-GAME",
+      "AL-DATA-MAPS",
+      "AL-DATA-EVENTS"
+    ],
+    "welt": [
+      "AL-OFFICIAL-NOTES",
+      "AL-SRC-GAME",
+      "AL-SRC-SERVER",
+      "AL-DATA-MAPS",
+      "AL-DATA-MONSTERS",
+      "AL-DATA-EVENTS"
+    ],
+    "oberflaeche": [
+      "AL-DATA-CLASSES",
+      "AL-DATA-SKILLS",
+      "AL-DATA-ITEMS",
+      "AL-DATA-MONSTERS",
+      "AL-DATA-EVENTS"
+    ],
+    "gruppe": [
+      "AL-OFFICIAL-CODE-FUNCTIONS",
+      "AL-SRC-RUNNER",
+      "AL-SRC-SERVER"
+    ]
+  },
+  "implementierungsPfade": [
+    "v5/laufzeit/",
+    "v5/ausfuehrung/",
+    "v5/beobachtung/",
+    "v5/persistenz/",
+    "v5/module/",
+    "v5/scheduler/",
+    "v5/merchant/",
+    "v5/gruppe/",
+    "v5/kampf/",
+    "v5/navigation/",
+    "v5/welt/",
+    "v5/lernen/",
+    "v5/host/"
+  ],
+  "mergeRegeln": [
+    "BRANCH_ENTHAELT_AKTUELLEN_MAIN",
+    "WISSENSWAECHTER_FRISCH",
+    "OFFIZIELLE_UEBERWACHTE_QUELLEN_FEHLERFREI",
+    "KEINE_UNERKLAERTE_KUERZUNG_OFFIZIELLER_QUELLEN",
+    "RELEVANTE_DRIFT_BEWERTET",
+    "BETROFFENE_FACTS_UND_CONTRACTS_REVALIDIERT_ODER_CAPABILITY_GESPERRT",
+    "STRENGER_WISSENSGATE_GRUEN"
+  ],
+  "runtimeZugriff": {
+    "direktGitHubAusGameplayModul": false,
+    "direktRohsnapshotAusGameplayModul": false,
+    "portName": "WissensZugriffPort",
+    "nurLesen": true,
+    "snapshotPinning": true,
+    "liveAdmissionBleibtPflicht": true
+  },
+  "kandidaten": {
+    "entwicklungsAutoritaet": false,
+    "gameplayAutoritaet": false,
+    "erlaubteWirkung": "RECHERCHEAUFGABE_ERZEUGEN"
+  },
+  "aenderungsprotokoll": {
+    "pfad": "v5/wissensbasis/datenbank/aenderungsprotokoll.jsonl",
+    "format": "JSONL",
+    "genauEinJsonObjektProZeile": true
+  },
+  "pfadDomaenen": {
+    "v5/laufzeit/": [
+      "kern"
+    ],
+    "v5/ausfuehrung/": [
+      "kern"
+    ],
+    "v5/beobachtung/": [
+      "kern",
+      "welt"
+    ],
+    "v5/persistenz/": [
+      "kern"
+    ],
+    "v5/module/": [
+      "kern"
+    ],
+    "v5/scheduler/": [
+      "kern"
+    ],
+    "v5/merchant/": [
+      "merchant"
+    ],
+    "v5/gruppe/": [
+      "gruppe"
+    ],
+    "v5/kampf/": [
+      "kampf"
+    ],
+    "v5/navigation/": [
+      "navigation"
+    ],
+    "v5/welt/": [
+      "welt"
+    ],
+    "v5/oberflaeche/": [
+      "oberflaeche"
+    ],
+    "v5/lernen/": [
+      "kern"
+    ],
+    "v5/host/": [
+      "kern"
+    ]
+  }
+}

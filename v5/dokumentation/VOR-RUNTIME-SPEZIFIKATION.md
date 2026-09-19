@@ -24,7 +24,8 @@ Vor dem ersten Runtime-Code muessen fachlich geprueft sein:
 13. Fehlerdomaenenmodell;
 14. Wissenswaechter-/Git-Sicherheitsvertrag;
 15. Auswahlkriterien fuer Vertical Slice 0;
-16. formales Laufzeit-Bereitschaftsgate.
+16. formales Laufzeit-Bereitschaftsgate;
+17. verbindlicher Entwicklungs-Wissensgate mit Frische-, Quellenhealth- und Driftpruefung.
 
 ## Persistenz und Migration
 
@@ -65,7 +66,10 @@ CI muss spaeter mindestens verhindern:
 - Ausfuehrer ohne typisierte Freigabe;
 - Host/Dashboard/Bridge Gameplay-Autoritaet;
 - unerlaubte englische Sichttexte;
-- Knowledge-Sync ausserhalb der Allowlist.
+- Knowledge-Sync ausserhalb der Allowlist;
+- Implementierung bei stale/fehlerhaftem oder unbewertet gedriftetem relevanten Wissen;
+- direkter Gameplay-Zugriff auf `wissensbasis/datenbank/aktuell/**`;
+- Verwendung von Kandidaten als Entwicklungs- oder Gameplay-Autoritaet.
 
 Jeder Guard benoetigt ein Negativfixture, das beweist, dass der Guard wirklich fehlschlaegt.
 

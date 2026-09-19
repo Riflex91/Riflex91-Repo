@@ -29,7 +29,11 @@
     "schema/fact.schema.json",
     "schema/quelle.schema.json",
     "schema/offene-frage.schema.json",
-    "schema/action-contract.schema.json"
+    "schema/action-contract.schema.json",
+    "schema/letzter-lauf.schema.json",
+    "schema/quellenstatus.schema.json",
+    "schema/kandidat.schema.json",
+    "schema/aenderungs-eintrag.schema.json"
   ],
   "legacyIndex": "legacy/V3-V4-QUELLEN.md",
   "counts": {
@@ -49,5 +53,21 @@
   },
   "contracts": [
     "vertraege/action-contracts.json"
-  ]
+  ],
+  "laufendeDatenbank": {
+    "schemaVersion": 1,
+    "letzterLauf": "datenbank/letzter-lauf.json",
+    "quellenstatus": "datenbank/quellenstatus.json",
+    "aenderungsprotokoll": "datenbank/aenderungsprotokoll.jsonl",
+    "kandidaten": "datenbank/kandidaten.json",
+    "aktuelleSnapshotsVerzeichnis": "datenbank/aktuell",
+    "aenderungsprotokollFormat": "JSONL_EIN_OBJEKT_PRO_ZEILE"
+  },
+  "konsumentenVertrag": {
+    "entwicklungsWissensgate": "../entwicklungsregeln/wissensnutzung.json",
+    "entwicklungsDokument": "../dokumentation/ENTWICKLUNGS-WISSENSGATE.md",
+    "runtimeZielport": "WissensZugriffPort",
+    "kandidatenBesitzenAutoritaet": false,
+    "rohSnapshotsBesitzenGameplayAutoritaet": false
+  }
 }

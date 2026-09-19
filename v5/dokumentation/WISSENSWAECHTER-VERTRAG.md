@@ -212,3 +212,22 @@ Vor V5-Readiness bleiben aber zwei Haertungen offen:
    Der aktuelle Login ueber Git Credential Manager und Browser-OAuth ist funktional und speichert das Token nicht selbst in der Bridge. Fuer V5-Readiness muss aber zusaetzlich bewiesen sein, dass die verwendete Authentisierung nur die minimal erforderlichen Repository-Rechte besitzt. Bevorzugt ist eine auf dieses Repository begrenzte GitHub App oder eine nachweislich gleich eng begrenzte Alternative.
 
 Diese Punkte sind keine Aussage, dass die aktuelle Bridge unsicher sei. Sie markieren die Differenz zwischen einem bereits guten Schutz und dem absichtlich strengeren V5-Narrensicherheitsniveau.
+
+
+## Konsumentenvertrag fuer Entwicklung und Runtime
+
+Die Daten des Wissenswaechters werden nicht isoliert konsumiert.
+
+Verbindliche Regeln:
+
+- Einstieg immer ueber `v5/wissensbasis/manifest.json`;
+- Frische zuerst ueber `datenbank/letzter-lauf.json` und `quellenstatus.json` pruefen;
+- relevante Drift vor Codeaenderungen bewerten;
+- Kandidaten besitzen null Autoritaet;
+- Roh-Snapshots sind Evidence, keine Runtime-API;
+- strukturierte Facts/Contracts muessen bei Drift revalidiert werden;
+- echte V5-Implementierung benoetigt den strengen Entwicklungs-Wissensgate;
+- spaetere Runtime liest Knowledge nur ueber einen typisierten read-only `WissensZugriffPort`;
+- laufende irreversible Workflows pinnen ihren WissensSnapshot und werden durch neue GitHub-Daten nicht still umgedeutet.
+
+Die vollstaendige Regel ist in `ENTWICKLUNGS-WISSENSGATE.md` und `entwicklungsregeln/wissensnutzung.json` festgelegt.

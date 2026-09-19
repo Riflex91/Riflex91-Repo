@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "V5 Wissenswaechter letzter Lauf",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "gestartetAm",
+    "beendetAm",
+    "intervallMinuten",
+    "gepruefteQuellen",
+    "geaenderteQuellen",
+    "neueKandidaten",
+    "registrierteQuellen",
+    "uploadStatus"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "gestartetAm": {
+      "type": "string"
+    },
+    "beendetAm": {
+      "type": "string"
+    },
+    "intervallMinuten": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "gepruefteQuellen": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "geaenderteQuellen": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "neueKandidaten": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "registrierteQuellen": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "uploadStatus": {
+      "type": "string"
+    },
+    "sicherheitsHinweis": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

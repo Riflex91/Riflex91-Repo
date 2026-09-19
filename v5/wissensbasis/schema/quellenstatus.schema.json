@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "V5 Wissenswaechter Quellenstatus",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "erzeugtAm",
+    "quellen"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "erzeugtAm": {
+      "type": "string"
+    },
+    "quellen": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kennung",
+          "titel",
+          "adresse",
+          "vertrauen",
+          "letztePruefung",
+          "httpStatus",
+          "inhaltSha256",
+          "bytes",
+          "gekuerzt"
+        ],
+        "properties": {
+          "kennung": {
+            "type": "string",
+            "minLength": 1
+          },
+          "titel": {
+            "type": "string",
+            "minLength": 1
+          },
+          "adresse": {
+            "type": "string",
+            "minLength": 1
+          },
+          "vertrauen": {
+            "type": "string",
+            "minLength": 1
+          },
+          "abrufAdresse": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "letztePruefung": {
+            "type": "string"
+          },
+          "httpStatus": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "inhaltSha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "eTag": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "letzteAenderung": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "gekuerzt": {
+            "type": "boolean"
+          },
+          "fehler": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

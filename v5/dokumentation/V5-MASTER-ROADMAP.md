@@ -81,7 +81,11 @@ Eine neue Phase oder neue Live-Autoritaet ist gesperrt, wenn mindestens eines gi
 - Shadow/Replay zeigt unerwartete Game Writes;
 - Test-, Fault- oder Certification-Evidence fehlt;
 - PR-Head ist nicht exakt verifiziert oder Branch ist hinter aktuellem `main`;
-- `v5/bereitschaft/laufzeit-bereitschaft.json` meldet nicht `FREIGEGEBEN`, sobald echter V5-Runtime-Code begonnen werden soll.
+- `v5/bereitschaft/laufzeit-bereitschaft.json` meldet nicht `FREIGEGEBEN`, sobald echter V5-Runtime-Code begonnen werden soll;
+- der strenge Entwicklungs-Wissensgate ist fuer echte Implementierung nicht gruen;
+- der letzte Wissenswaechterlauf ist fuer Implementierung aelter als 180 Minuten;
+- eine fuer die Domaene relevante offizielle Quelle ist unbewertet gedriftet, fehlerhaft oder gekuerzt;
+- der Implementierungsbranch enthaelt nicht den aktuellen `main` inklusive letzter Knowledge-Commits.
 
 ## R0 – Lebende Wissensbasis
 
@@ -167,6 +171,9 @@ Lieferobjekte:
 - Wissenswaechter-/Git-Sicherheitsvertrag ratifiziert;
 - Persistenz-, Determinismus-, Security-, Operator-, Fehlerdomaenen- und Simulatorstrategie ratifiziert;
 - formales Laufzeit-Bereitschaftsgate vorbereitet;
+- Entwicklungs-Wissensgate und bewertete Quellenhash-Baselines ratifiziert;
+- Zugriffspfad `manifest -> laufende Datenbank -> strukturierte Wissensbasis -> Evidence` verbindlich;
+- spaeterer read-only `WissensZugriffPort` und WissensSnapshot-Pinning festgelegt;
 - ADR-Regeln.
 
 Mindestens neue V5-Regeln:
@@ -188,7 +195,9 @@ Exit Gate:
 - Mehrfach-Verriegelung fuer hohe Risiken ist verbindlich;
 - Wissenswaechter ist als Evidence-System ohne Gameplay-Autoritaet abgegrenzt;
 - 100-%-Deutsch-Regel fuer uebersetzungspflichtige Sichttexte ist verbindlich; Monster-Ausnahme ist exakt definiert;
-- formale Vor-Runtime-Artefakte sind konsistent und der Bereitschaftsvalidator ist gruen.
+- formale Vor-Runtime-Artefakte sind konsistent und der Bereitschaftsvalidator ist gruen;
+- Kandidaten besitzen nachweislich keine Entwicklungs-/Gameplay-Autoritaet;
+- laufende Waechterdateien sind schema-/maschinenlesbar und das Aenderungsprotokoll ist echtes JSONL.
 
 ## R3 – Repository, Build, Guards und Host-Grenzen
 
@@ -210,7 +219,10 @@ Bauen:
 - Host/Runtime API Allowlist;
 - Feature/Capability Flags default-off;
 - CI auf exaktem Head;
-- ADR-/Schema-/Knowledge-Pruefungen.
+- ADR-/Schema-/Knowledge-Pruefungen;
+- Entwicklungs-Wissensgate in CI;
+- Quellenhash-Drift-Gate;
+- Guard gegen direkten Runtime-Zugriff auf Roh-Snapshots.
 
 Host-Regel:
 - Host startet/stoppt/ueberwacht Prozesse und transportiert Daten.
@@ -221,7 +233,8 @@ Exit Gate:
 - Guards schlagen in absichtlichen Negativtests sicher fehl;
 - neue V5-Runtime-Bezeichner halten die deutsche Domaenensprache ein;
 - mutierende Capabilities sind default-off und nicht ohne typisierte Freigabe erreichbar;
-- leere V5 Runtime kann headless starten/stoppen ohne Gameplay Writes.
+- leere V5 Runtime kann headless starten/stoppen ohne Gameplay Writes;
+- strenger Wissensgate blockiert stale/gedriftete/unfreigegebene Wissensgrundlagen.
 
 ## R4 – Deterministischer Core
 

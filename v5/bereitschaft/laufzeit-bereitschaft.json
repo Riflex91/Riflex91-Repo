@@ -7,10 +7,14 @@
     {
       "kennung": "WISSEN_BEREIT",
       "erfuellt": false,
-      "grund": "Lebende Wissensbasis und stündlicher Bridge-Wissenswaechter existieren. Fuer V5-Zielniveau fehlen noch Knowledge-Branch/PR-Gate statt direktem main-Push, verifizierte Least-Privilege-GitHub-Rechte sowie Anzeigenkatalog-Integration.",
+      "grund": "Lebende Wissensbasis und erster stündlicher Wächterlauf existieren. Manifest, laufende Datenbank, Quellenhash-Baselines und Entwicklungs-Wissensgate sind integriert. Offen bleiben R1/R2-Revalidierung, Runtime-Freigaben der relevanten Quellen sowie die bereits dokumentierten Git-Sync-/Least-Privilege-Haertungen.",
       "nachweise": [
         "v5/wissensbasis/README.md",
-        "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md"
+        "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
+        "v5/dokumentation/ENTWICKLUNGS-WISSENSGATE.md",
+        "v5/entwicklungsregeln/wissensnutzung.json",
+        "v5/entwicklungsregeln/quellenfreigaben.json",
+        "v5/werkzeuge/entwicklungs-wissensgate.mjs"
       ]
     },
     {
@@ -68,7 +72,8 @@
       "grund": "Testleiter/Fitness-/Fault-Strategie ist definiert; konkrete Harnesses und Negativfixtures folgen in R3/R11.",
       "nachweise": [
         "v5/fitness/fitness-regeln.json",
-        "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md"
+        "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
+        "v5/werkzeuge/entwicklungs-wissensgate.mjs"
       ]
     },
     {
@@ -97,6 +102,8 @@
     "GitHub-Wissenswaechter mit Pfad-/Secret-/Auth-Tests fertigstellen",
     "R2-Verfassung/Migrationsmatrix abschliessen",
     "Wissenswaechter von direktem main-Push auf unabhaengig geprueften Knowledge-Branch/PR-Pfad haerten",
-    "GitHub-Login des Wissenswaechters auf minimale Repository-Rechte begrenzen und nachweisen"
+    "GitHub-Login des Wissenswaechters auf minimale Repository-Rechte begrenzen und nachweisen",
+    "Relevante offizielle Quellen nach R1/R2 explizit fuer Implementierung freigeben",
+    "Strengen Entwicklungs-Wissensgate vor erster Runtime-Implementierung erfolgreich nachweisen"
   ]
 }
