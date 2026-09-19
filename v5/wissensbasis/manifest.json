@@ -28,13 +28,17 @@
   "schemas": [
     "schema/fact.schema.json",
     "schema/quelle.schema.json",
-    "schema/offene-frage.schema.json"
+    "schema/offene-frage.schema.json",
+    "schema/action-contract.schema.json"
   ],
   "legacyIndex": "legacy/V3-V4-QUELLEN.md",
   "counts": {
     "externalCoreFacts": 38,
     "openQuestions": 38,
-    "registeredSources": 21
+    "registeredSources": 22,
+    "actionContracts": 60,
+    "sourceVerifiedActionContracts": 52,
+    "liveDocOnlyActionContracts": 8
   },
   "externalResearchSnapshot": {
     "date": "2026-09-19",
@@ -42,5 +46,8 @@
     "bytes": 80304,
     "lines": 2107,
     "officialRepoCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
-  }
+  },
+  "contracts": [
+    "vertraege/action-contracts.json"
+  ]
 }
