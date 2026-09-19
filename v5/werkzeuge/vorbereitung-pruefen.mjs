@@ -18,6 +18,8 @@ const bereitschaft = liesJson('v5/bereitschaft/laufzeit-bereitschaft.json');
 const anzeige = liesJson('v5/anzeigetexte/regelwerk.json');
 const entwicklungsWissen = liesJson('v5/entwicklungsregeln/wissensnutzung.json');
 const quellenfreigaben = liesJson('v5/entwicklungsregeln/quellenfreigaben.json');
+const wissensManifest = liesJson('v5/wissensbasis/manifest.json');
+const liveWissenRegel = entwicklungsWissen.liveWissen;
 
 const anforderungsKennungen = eindeutig(anforderungen.anforderungen.map(x => x.kennung), 'Anforderungen');
 const gefahrenKennungen = eindeutig(gefahren.gefahren.map(x => x.kennung), 'Gefahren');
@@ -48,6 +50,23 @@ if (entwicklungsWissen.frische?.blockiereImplementierungNachMinuten !== 180) {
 }
 eindeutig(quellenfreigaben.quellenfreigaben.map(x => x.kennung), 'Quellenfreigaben');
 if (!quellenfreigaben.quellenfreigaben.length) fehler('Quellenfreigaben fehlen.');
+if (!liveWissenRegel
+    || liveWissenRegel.lokalerStandardpfad !== 'D:\\AdventureLand-V5\\wissensdatenbank'
+    || liveWissenRegel.githubSnapshot !== 'v5/wissensbasis/live/snapshot'
+    || liveWissenRegel.bridgeRolle !== 'READ_ONLY_VALIDIEREN_UND_SPIEGELN'
+    || liveWissenRegel.botRolle !== 'ALLEINIGER_FACHLICHER_WRITER'
+    || liveWissenRegel.executionAuthority !== false) {
+  fehler('Live-Wissensnutzungsregel unvollstaendig oder unsicher.');
+}
+if (!wissensManifest.liveWissen
+    || wissensManifest.liveWissen.lokalerStandardpfad !== 'D:\\AdventureLand-V5\\wissensdatenbank'
+    || wissensManifest.liveWissen.snapshotPfad !== 'live/snapshot') {
+  fehler('Wissensmanifest enthaelt keinen gueltigen Live-Wissensbereich.');
+}
+if (!anforderungsKennungen.has('V5-ANF-WISSEN-029')
+    || !invariantenKennungen.has('V5-INV-050')) {
+  fehler('Live-Wissensanforderungen/Invarianten fehlen.');
+}
 
 for (const [kategorie, regel] of Object.entries(anzeige.kategorien)) {
   if (kategorie !== 'monster' && regel.englischerRohFallbackErlaubt !== false) {
@@ -102,6 +121,8 @@ for (const pfad of [
   'v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md',
   'v5/dokumentation/DEUTSCHE_NAMEN_UND_NARRENSICHERHEIT.md',
   'v5/dokumentation/ENTWICKLUNGS-WISSENSGATE.md',
+  'v5/dokumentation/LIVE-WISSEN-SSD-VERTRAG.md',
+  'v5/wissensbasis/live/README.md',
   'v5/entwicklungsregeln/wissensnutzung.json',
   'v5/entwicklungsregeln/quellenfreigaben.json',
   'v5/werkzeuge/entwicklungs-wissensgate.mjs'
