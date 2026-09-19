@@ -183,6 +183,54 @@
       "titel": "Wissensbasis-Manifest exponiert die komplette laufende Datenbank und ist einziger Konsumenteneinstieg",
       "phase": "R0",
       "durchsetzung": "MANIFEST_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-031",
+      "titel": "Windows Bridge akzeptiert lokale Live-Wissenspfade nur unter D:\\\\ und nie die Laufwerkswurzel",
+      "phase": "R0",
+      "durchsetzung": "LIVE_WISSEN_PFAD_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-032",
+      "titel": "Bridge traversiert keine Reparse Points/Junctions/Symlinks im Live-Wissensbaum",
+      "phase": "R0",
+      "durchsetzung": "REPARSE_NEGATIVTEST"
+    },
+    {
+      "kennung": "V5-FIT-033",
+      "titel": "Bridge importiert nur manifest.json, status.json und aktuell/**/*.json",
+      "phase": "R0",
+      "durchsetzung": "LIVE_IMPORT_ALLOWLIST_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-034",
+      "titel": "Live-Snapshot wird nur bei stabilem BEREIT-Status derselben Generation importiert",
+      "phase": "R0",
+      "durchsetzung": "GENERATION_STABILITAETS_TEST"
+    },
+    {
+      "kennung": "V5-FIT-035",
+      "titel": "Live-Fakten muessen Adventure Land, LIVE_VERIFIZIERT und LIVE_SPIEL-Evidence ausweisen",
+      "phase": "R6",
+      "durchsetzung": "LIVE_FAKT_SCHEMA_UND_VERIFIER_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-036",
+      "titel": "Live-Wissen mit Secret-/Token-/Credential-Feldern wird abgewiesen",
+      "phase": "R0",
+      "durchsetzung": "REKURSIVER_SECRET_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-037",
+      "titel": "Gameplay-Code besitzt keine direkte GitHub-/Dateisystem-ExecutionAuthority aus live/snapshot",
+      "phase": "R6",
+      "durchsetzung": "WISSENSZUGRIFFPORT_UND_AUTHORITY_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-038",
+      "titel": "GitHub-Livewissen bleibt bounded und enthaelt keine hochfrequente Rohtelemetrie",
+      "phase": "R6",
+      "durchsetzung": "DATEI_ANZAHL_GROESSE_UND_RETENTION_GUARD"
     }
   ]
 }
