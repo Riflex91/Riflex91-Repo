@@ -2,6 +2,7 @@
 
 const ALPHA31_PARTY_ROLE_LIVENESS_MODE = 'alpha31-party-role-liveness-v1';
 const MERCHANT_TRAVEL_ATTESTATION_SOURCE = 'trusted-owned-merchant-service';
+const MELEE_KITING_DISABLED_CLASSES = new Set(['warrior', 'paladin', 'rogue']);
 
 function finite(value, fallback = null) {
   const n = Number(value);
@@ -71,6 +72,7 @@ class Alpha31PartyRoleLivenessHotfix {
       aggroOrbitEscapeMoves: 0,
       aggroOrbitNoWaypoint: 0,
       aggroEmergencyTerrainEscapes: 0,
+      meleeKitingBypasses: 0,
       visiblePartyPositionRefreshes: 0,
       followerSmartRegroups: 0,
       followerSmartRetargets: 0,
@@ -239,6 +241,19 @@ class Alpha31PartyRoleLivenessHotfix {
       if (!character || !target || character.rip || character.dead || this.runtime.pendingEmergencyRetreat) return decision;
       if (!target.target || String(target.target) !== String(character.name || '')) return decision;
       if (!liveMonster(target)) return decision;
+
+      const ctype = String(character.ctype || character.type || '').toLowerCase();
+      if (MELEE_KITING_DISABLED_CLASSES.has(ctype)) {
+        this.stats.meleeKitingBypasses += 1;
+        return {
+          ...decision,
+          shouldMove: false,
+          reason: 'MELEE_KITING_DISABLED',
+          meleeKitingDisabled: true,
+          alpha31SafeOrbit: false,
+          alpha31EmergencyTerrainEscape: false
+        };
+      }
 
       this.stats.aggroOrbitEvaluations += 1;
       const waypoint = this._orbitWaypoint(character, target);
