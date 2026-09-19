@@ -1853,29 +1853,27 @@
         "POSTCONDITION_CONTRADICTION"
       ],
       "reobserveSources": [
-        "inventory_item_identity",
-        "inventory_capacity",
-        "gold",
-        "dismantle_definition"
+        "fresh exact input identity",
+        "fresh gold",
+        "all possible dismantle outputs",
+        "selected dismantle path"
       ],
       "settlementRules": {
         "committed": [
-          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
-          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+          "Pinned input is consumed exactly once, gold cost is applied, and all path-specific outputs are reconciled.",
+          "Leveled compound path requires exactly three downgraded copies; normal path accepts only outputs allowed by its probabilistic table."
         ],
         "notApplied": [
-          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
-          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+          "Fresh positive evidence proves exact input identity and gold unchanged and no allowed output delta appeared."
         ],
         "partial": [
-          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
-          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+          "Input/gold changed but expected path-specific outputs cannot be fully reconstructed."
         ],
         "stillPending": [
-          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+          "Only authoritative pending state qualifies; dismantle handler itself is synchronous."
         ],
         "unresolved": [
-          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+          "Output randomness or external inventory mutations prevent exact settlement."
         ]
       },
       "retryPolicy": {
@@ -1903,7 +1901,8 @@
         "Derived from AL-ACTION-DISMANTLE (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
         "Action postcondition: input removed",
         "Action postcondition: gold cost applied",
-        "Action postcondition: outputs reconciled"
+        "Action postcondition: outputs reconciled",
+        "P0-06: leveled compound special dismantle has deterministic three-output semantics and must be distinguished from normal probabilistic dismantle."
       ]
     },
     {
@@ -2334,30 +2333,27 @@
         "POSTCONDITION_CONTRADICTION"
       ],
       "reobserveSources": [
-        "recipe_definition",
-        "physical_inputs",
-        "gold",
-        "inventory_capacity",
-        "service_or_quest_reachability"
+        "fresh gold",
+        "all pinned physical input identities/quantities",
+        "fresh configured output identity/properties/data",
+        "recipe definition"
       ],
       "settlementRules": {
         "committed": [
-          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
-          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+          "Exact recipe gold cost is applied, every planned physical input quantity is consumed, and exactly the configured output is reconciled.",
+          "Output property/data is compatible with the normal or anniversary craft path."
         ],
         "notApplied": [
-          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
-          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+          "Fresh positive evidence proves gold and every pinned input quantity unchanged and no configured output appeared."
         ],
         "partial": [
-          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
-          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+          "Some gold/input mutation is visible without a fully reconciled configured output or full input consumption."
         ],
         "stillPending": [
-          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+          "Only an authoritative explicit pending marker qualifies; normal and anniversary craft handlers are synchronous."
         ],
         "unresolved": [
-          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+          "Input/gold/output evidence cannot distinguish applied from externally confounded state."
         ]
       },
       "retryPolicy": {
@@ -2385,7 +2381,8 @@
         "Derived from AL-ACTION-CRAFT (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
         "Action postcondition: all required inputs reduced",
         "Action postcondition: gold cost applied",
-        "Action postcondition: output present"
+        "Action postcondition: output present",
+        "P0-06: normal craft and anniversary craft have different physical-input planning semantics; recovery records the selected path."
       ]
     },
     {
@@ -2403,30 +2400,27 @@
         "POSTCONDITION_CONTRADICTION"
       ],
       "reobserveSources": [
-        "recipe_definition",
-        "physical_inputs",
-        "gold",
-        "inventory_capacity",
-        "service_or_quest_reachability"
+        "fresh gold",
+        "all pinned physical input identities/quantities",
+        "fresh configured output identity/properties/data",
+        "recipe definition"
       ],
       "settlementRules": {
         "committed": [
-          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
-          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+          "Exact recipe gold cost is applied, every planned physical input quantity is consumed, and exactly the configured output is reconciled.",
+          "Output property/data is compatible with the normal or anniversary craft path."
         ],
         "notApplied": [
-          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
-          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+          "Fresh positive evidence proves gold and every pinned input quantity unchanged and no configured output appeared."
         ],
         "partial": [
-          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
-          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+          "Some gold/input mutation is visible without a fully reconciled configured output or full input consumption."
         ],
         "stillPending": [
-          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+          "Only an authoritative explicit pending marker qualifies; normal and anniversary craft handlers are synchronous."
         ],
         "unresolved": [
-          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+          "Input/gold/output evidence cannot distinguish applied from externally confounded state."
         ]
       },
       "retryPolicy": {
@@ -2454,7 +2448,9 @@
         "Derived from AL-ACTION-AUTO-CRAFT (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
         "Action postcondition: all required inputs reduced",
         "Action postcondition: gold cost applied",
-        "Action postcondition: output present"
+        "Action postcondition: output present",
+        "P0-06: normal craft and anniversary craft have different physical-input planning semantics; recovery records the selected path.",
+        "P0-06: pin the exact first-match stacks selected immediately before send; do not recover from recipe names alone."
       ]
     },
     {
@@ -2472,29 +2468,35 @@
         "POSTCONDITION_CONTRADICTION"
       ],
       "reobserveSources": [
-        "physical_item_identity",
-        "exchange_definition",
-        "inventory_capacity",
-        "service_or_quest_reachability",
-        "character_q"
+        "fresh pinned input identity/quantity",
+        "character.q.exchange",
+        "exchange placeholder",
+        "full fresh inventory diff",
+        "gold",
+        "shells",
+        "account cosmetics/acx",
+        "massexchange conditions",
+        "pinned drop table graph"
       ],
       "settlementRules": {
         "committed": [
-          "The action-specific q/placeholder is no longer active and fresh terminal inventory/value state satisfies the action-contract postconditions.",
-          "Consumed inputs, resulting item/reward, and any failure/loss outcome are reconciled as one terminal domain result."
+          "q.exchange and attributable placeholder are gone and exact input quantity was consumed exactly once.",
+          "All allowed reward domains from the pinned drop-table graph are reconciled, including non-item outcomes.",
+          "Any inventory reward is found by full inventory diff/identity, not solely by the original placeholder slot."
         ],
         "notApplied": [
-          "Fresh evidence proves all pinned inputs/currency/items remain unchanged and no action-specific q/placeholder exists.",
-          "Lack of a reward alone is never proof of NOT_APPLIED."
+          "Fresh positive evidence proves the pinned input quantity/identity and all reward domains remain at pre-state, with no q.exchange/placeholder.",
+          "Relevant massexchange conditions also remain unchanged."
         ],
         "partial": [
-          "Inputs/value were consumed or transformed but terminal output/reward/loss cannot yet be reconciled."
+          "Input/condition was consumed or q/placeholder existed, but full terminal reward-domain settlement cannot be reconstructed.",
+          "Promise reward undefined or missing item in placeholder slot is not itself a failure or NOT_APPLIED proof."
         ],
         "stillPending": [
-          "The action-specific q state or placeholder is still present and attributable to this intent."
+          "Fresh q.exchange or attributable placeholder remains; wait/reobserve without send."
         ],
         "unresolved": [
-          "The q/placeholder disappeared but terminal inputs/outputs cannot be reconciled unambiguously."
+          "Input is consumed and q/placeholder is gone but reward could have landed in an unreconciled domain or overflow state."
         ]
       },
       "retryPolicy": {
@@ -2522,7 +2524,9 @@
         "Derived from AL-ACTION-EXCHANGE (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
         "Action postcondition: q.exchange cleared",
         "Action postcondition: placeholder resolved to reward/terminal state",
-        "Action postcondition: input delta reconciled"
+        "Action postcondition: input delta reconciled",
+        "P0-06: exchange wrapper reward/num is incomplete evidence because item may stack elsewhere and terminal reward may be gold/shells/cosmetics/empty/recursive.",
+        "P0-06: outputspace uses a conservative pinned drop-graph bound; generic add_item overflow is not an allowed planned state."
       ]
     },
     {
@@ -2540,29 +2544,25 @@
         "POSTCONDITION_CONTRADICTION"
       ],
       "reobserveSources": [
-        "token_quantity",
-        "token_table",
-        "inventory_capacity",
-        "npc_reachability"
+        "exact token stack identity/q",
+        "fresh inventory reward identity/data/quantity",
+        "token table"
       ],
       "settlementRules": {
         "committed": [
-          "Fresh authoritative observations satisfy every action-contract postcondition for the intended mutation.",
-          "All relevant effect domains are consistent with the intended delta and contain no contradictory evidence."
+          "Pinned token stack decreased by exact configured price (or disappeared on full consume) and exact reward item/data/quantity is present."
         ],
         "notApplied": [
-          "Positive fresh evidence shows every relevant effect domain still equals the pinned pre-state.",
-          "No competing mutation under the held resource/fencing scope can explain an unseen equivalent change."
+          "Pinned token stack q and reward inventory both positively match pre-state."
         ],
         "partial": [
-          "Only a strict subset of intended postconditions/effect-domain deltas is observed; do not complete or resend the original intent.",
-          "Create a new remainder plan only after the partial state is itself reconciled and journaled."
+          "Token delta occurred without exact reward proof, or reward appeared without matching token delta."
         ],
         "stillPending": [
-          "Only classify STILL_PENDING when authoritative live state explicitly exposes an in-progress marker for this action; absence of a result alone is not pending proof."
+          "Only authoritative server/transport evidence may mark pending; handler itself is synchronous."
         ],
         "unresolved": [
-          "Evidence is stale, unavailable, contradictory, or insufficient to distinguish applied from not-applied."
+          "Token/reward inventory evidence is stale or externally confounded."
         ]
       },
       "retryPolicy": {
@@ -2588,7 +2588,8 @@
       ],
       "notes": [
         "Derived from AL-ACTION-EXCHANGE-BUY (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
-        "Action postcondition: token delta and output item delta reconciled"
+        "Action postcondition: token delta and output item delta reconciled",
+        "P0-06: data.q is an optimistic full-stack snapshot checked by server safety_check."
       ]
     },
     {

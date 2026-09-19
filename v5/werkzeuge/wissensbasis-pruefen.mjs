@@ -16,6 +16,7 @@ const recoveryDocs = (manifest.recoveryContracts ?? []).map(readJson);
 const bankConcurrency = manifest.bankConcurrency ? readJson(manifest.bankConcurrency) : null;
 const tradeLifecycle = manifest.tradeLifecycle ? readJson(manifest.tradeLifecycle) : null;
 const upgradeCompound = manifest.upgradeCompound ? readJson(manifest.upgradeCompound) : null;
+const exchangeCraft = manifest.exchangeCraft ? readJson(manifest.exchangeCraft) : null;
 const revalidation = readJson(manifest.revalidation);
 
 const sources = new Map(sourcesDoc.sources.map((s) => [s.id, s]));
@@ -278,6 +279,64 @@ if (!Array.isArray(upgradeCompound.invariants) || upgradeCompound.invariants.len
   fail('P0-05 Upgrade-/Compound-Invarianten unvollstaendig.');
 }
 
+if (!exchangeCraft
+    || exchangeCraft.schemaVersion !== 1
+    || exchangeCraft.researchId !== 'V5-P0-06'
+    || exchangeCraft.status !== 'DONE') {
+  fail('P0-06 Exchange-/Craft-Vertrag fehlt oder ist ungueltig.');
+}
+if (exchangeCraft.inventoryInsertion?.addItemBehavior?.overflowIfNoStackOrEmptySlot !== true
+    || exchangeCraft.v5Policy?.noPlannedOverflow !== true) {
+  fail('P0-06 add_item-Overflow-Semantik oder V5-Policy ist ungueltig.');
+}
+if (!exchangeCraft.exchange?.rewardDomains?.includes('gold')
+    || !exchangeCraft.exchange?.rewardDomains?.includes('shells')
+    || !exchangeCraft.exchange?.rewardDomains?.includes('account_cosmetics')
+    || !exchangeCraft.exchange?.rewardDomains?.includes('recursive_drop')) {
+  fail('P0-06 Exchange-Reward-Domaenen unvollstaendig.');
+}
+if (!exchangeCraft.exchange?.publicWrapper?.limitation?.includes('not a complete reward ledger')) {
+  fail('P0-06 Exchange Public-Wrapper-Limit fehlt.');
+}
+if (exchangeCraft.exchangeBuy?.optimisticGuard?.includes('item.q == data.q') !== true) {
+  fail('P0-06 exchange_buy q-Safety-Guard fehlt.');
+}
+if (exchangeCraft.craft?.normalCraft?.currentRecipeDuplicateIngredientNames !== 0) {
+  fail('P0-06 aktuelle Normal-Craft-Annahme zu Duplicate Ingredients stimmt nicht.');
+}
+if (!exchangeCraft.craft?.anniversaryCraft?.multiStackSupport?.includes('stacks')
+    || !exchangeCraft.craft?.anniversaryCraft?.trustedPlanning?.includes('full live inventory')) {
+  fail('P0-06 Anniversary Multi-Stack-/Trusted-Plan-Semantik fehlt.');
+}
+if (exchangeCraft.dismantle?.leveledCompoundPath?.outputspace?.includes('player.esize >= 2') !== true) {
+  fail('P0-06 Leveled-Compound-Dismantle Outputspace fehlt.');
+}
+const exchangeAction = contractList.find((x) => x.publicFunction === 'exchange');
+const exchangeBuyAction = contractList.find((x) => x.publicFunction === 'exchange_buy');
+const dismantleAction = contractList.find((x) => x.publicFunction === 'dismantle');
+if (!exchangeAction?.dangerFlags?.includes('PROMISE_REWARD_NOT_COMPLETE_LEDGER')
+    || !exchangeAction?.dangerFlags?.includes('RECURSIVE_DROP_TABLE')
+    || !exchangeAction?.dangerFlags?.includes('SERVER_ADD_ITEM_OVERFLOW_POSSIBLE')) {
+  fail('P0-06 Exchange ActionContract bildet Reward-/Overflow-Risiken nicht ab.');
+}
+if (!exchangeBuyAction?.dangerFlags?.includes('FULL_STACK_Q_SAFETY_CHECK')) {
+  fail('P0-06 exchange_buy ActionContract bildet Token-q-Guard nicht ab.');
+}
+if (!dismantleAction?.dangerFlags?.includes('LEVELED_COMPOUND_THREE_OUTPUT_SPECIAL')
+    || !dismantleAction?.dangerFlags?.includes('SERVER_SPECIAL_PATH_BYPASSES_NORMAL_LOCK_BLOCK_CHECK')) {
+  fail('P0-06 Dismantle ActionContract bildet Sonderpfad nicht ab.');
+}
+if (recoveryList.find((x) => x.publicFunction === 'exchange')?.recoveryClass !== 'MULTI_PHASE_Q_RECONCILE') {
+  fail('P0-06 exchange braucht MULTI_PHASE_Q_RECONCILE.');
+}
+for (const fn of ['exchange_buy','craft','auto_craft','dismantle']) {
+  const recovery = recoveryList.find((x) => x.publicFunction === fn);
+  if (!recovery) fail(`P0-06 Recovery Contract fehlt fuer ${fn}`);
+}
+if (!Array.isArray(exchangeCraft.invariants) || exchangeCraft.invariants.length < 16) {
+  fail('P0-06 Exchange-/Craft-Invarianten unvollstaendig.');
+}
+
 for (const fact of factList) {
   for (const id of [...fact.supersedes, ...fact.supersededBy]) {
     if (!facts.has(id)) fail(`${fact.id}: Supersede-Referenz auf unbekannten Fact ${id}`);
@@ -520,6 +579,7 @@ console.log(`[V5-WISSEN] OK: ${facts.size} Facts, ${contractIds.size} Action Con
 console.log(`[V5-WISSEN] Bank-Concurrency: ${bankConcurrency.serverModel.concurrencyScope} -> ${bankConcurrency.v5Policy.authorityOwner}.`);
 console.log(`[V5-WISSEN] Trade-Lifecycle: RID partial=${tradeLifecycle.ridSemantics.rotatesOnPartialFill ? 'ROTATES' : 'STABLE'}, raw RID=${tradeLifecycle.ridSemantics.v5RequiresRidField ? 'REQUIRED' : 'OPTIONAL'}.`);
 console.log(`[V5-WISSEN] Upgrade/Compound: preview=${upgradeCompound.shared.preview.consumesNothing ? 'READ_ONLY' : 'MUTATING'}, q=${upgradeCompound.recovery.criticalBoundary ? 'TRANSACTION_BOUNDARY' : 'UNKNOWN'}.`);
+console.log(`[V5-WISSEN] Exchange/Craft: plannedOverflow=${exchangeCraft.v5Policy.noPlannedOverflow ? 'FORBIDDEN' : 'ALLOWED'}, duplicateIngredients=${exchangeCraft.craft.normalCraft.currentRecipeDuplicateIngredientNames}.`);
 console.log(`[V5-WISSEN] Waechter: ${quellenstatus.quellen.length} Quellen, ${kandidaten.kandidaten.length} Kandidaten, ${protokollZeilen.length} Aenderungseintraege.`);
 console.log(`[V5-WISSEN] Live-Wissen: ${fs.existsSync(liveSnapshot) ? liveDateien + ' validierte Dateien' : 'vorbereitet, noch kein Bot-Snapshot'}.`);
 console.log(`[V5-WISSEN] Raw Research SHA256: ${hash}`);

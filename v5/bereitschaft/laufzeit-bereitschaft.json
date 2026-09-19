@@ -22,7 +22,7 @@
     {
       "kennung": "P0_RESEARCH_BEREIT",
       "erfuellt": false,
-      "grund": "P0-01 bis P0-05 sind abgeschlossen. Action-/Recovery-Vertraege, Bank-Concurrency, Player-Market RID/Partial-Fill sowie exakte Upgrade-/Compound-Mehrphasen- und Recovery-Semantik sind geschlossen. P0-06 ist IN_PROGRESS; P0-07 ist offen.",
+      "grund": "P0-01 bis P0-06 sind abgeschlossen. Action-/Recovery-, Bank-, Markt-, Upgrade/Compound- sowie Exchange/Craft/Outputspace-Semantik sind geschlossen. P0-07 Request-/Call-Cost-/Rate-Limit-Modell ist IN_PROGRESS.",
       "nachweise": [
         "v5/wissensbasis/revalidierung/revalidierungsqueue.json",
         "v5/dokumentation/P0-02-RECOVERY-UNKNOWN-MATRIX.md",
@@ -32,7 +32,9 @@
         "v5/dokumentation/P0-04-TRADE-LISTING-RID-PARTIAL.md",
         "v5/wissensbasis/vertraege/trade-lifecycle.json",
         "v5/dokumentation/P0-05-UPGRADE-COMPOUND.md",
-        "v5/wissensbasis/vertraege/upgrade-compound.json"
+        "v5/wissensbasis/vertraege/upgrade-compound.json",
+        "v5/dokumentation/P0-06-EXCHANGE-CRAFT-OUTPUTSPACE.md",
+        "v5/wissensbasis/vertraege/exchange-craft.json"
       ]
     },
     {

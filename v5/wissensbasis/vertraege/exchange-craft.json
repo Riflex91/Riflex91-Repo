@@ -1,0 +1,261 @@
+{
+  "schemaVersion": 1,
+  "researchId": "V5-P0-06",
+  "status": "DONE",
+  "sourceSnapshot": {
+    "officialRepo": "kaansoral/adventureland_mongodb",
+    "commit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "files": [
+      "node/server.js",
+      "node/server_functions.js",
+      "node/logic/anniversary_event.js",
+      "js/functions.js",
+      "js/runner_functions.js",
+      "js/old_common_functions.js",
+      "design/recipes.js",
+      "docs/functions/exchange.html",
+      "docs/functions/exchange_buy.html",
+      "docs/functions/craft.html",
+      "docs/functions/auto_craft.html",
+      "docs/functions/dismantle.html"
+    ],
+    "liveClientUrls": [
+      "https://adventure.land/js/functions.js",
+      "https://adventure.land/js/runner_functions.js"
+    ],
+    "liveClientVerifiedAt": "2026-09-19"
+  },
+  "inventoryInsertion": {
+    "addItemBehavior": {
+      "prefersCompatibleStack": true,
+      "thenFirstEmptySlot": true,
+      "overflowIfNoStackOrEmptySlot": true,
+      "overflowMechanism": "player.items.push(new_item) and player.esize--",
+      "consequence": "Server-side add_item can retain an item beyond nominal bag capacity; V5 must not rely on overflow as normal outputspace."
+    },
+    "canAddItem": {
+      "trueWhen": "at least one nominal empty slot exists OR compatible stack can accept the item",
+      "use": "preflight guard used by synchronous value-changing handlers"
+    },
+    "canAddItems": {
+      "supportsStackAggregation": true,
+      "supportsFreedSpaceArgument": true,
+      "consequence": "Dismantle can conservatively reserve capacity for all potential outputs before mutation."
+    },
+    "v5Rule": "Every planned transformation computes a conservative post-mutation outputspace proof before send. Server overflow is emergency evidence to reconcile, not a planned capacity mechanism."
+  },
+  "exchange": {
+    "publicFunction": "async exchange(item_num)",
+    "rawClientChannel": "exchange",
+    "executionModel": "MULTI_PHASE_Q",
+    "startValidation": [
+      "no existing player.q.exchange",
+      "not in bank",
+      "exact input slot exists",
+      "input not locked",
+      "exchange definition and drop table exist",
+      "service/quest distance valid unless computer",
+      "required exchange quantity available"
+    ],
+    "startOutputspace": {
+      "serverRule": "When player.esize<=0 and input stack quantity is not exactly 1, reject inventory_full before mutation.",
+      "consequence": "Even if def.e would fully consume a stack larger than one, current server source still rejects at zero free slots.",
+      "placeholderReservation": "After consuming def.e, server adds one placeholder item and stores its slot in q.exchange.num."
+    },
+    "mutationStart": [
+      "exchange statistic increments",
+      "consume def.e of pinned input",
+      "add placeholder",
+      "consume massexchange/mass exchange plus condition when present",
+      "create q.exchange with drop id, input name, consumed quantity and placeholder slot",
+      "return {success:false,in_progress:true,num}"
+    ],
+    "timing": "hardcore 400ms; otherwise 3000..5999ms random; massexchange halves and massexchangepp divides by ten.",
+    "completion": [
+      "delete q.exchange",
+      "clear placeholder at recorded slot if still present",
+      "resolve drop table via server exchange(player,dropId,args)",
+      "reward can affect inventory, gold, shells, account cosmetics, nothing, or recursively another drop table",
+      "item reward is inserted using generic add_item and may stack into another slot rather than q.exchange.num"
+    ],
+    "rewardDomains": [
+      "inventory",
+      "gold",
+      "shells",
+      "account_cosmetics",
+      "empty",
+      "recursive_drop"
+    ],
+    "multiOutputSpecialCase": "sixcake adds three anniversarygift items after its selected drop and may additionally add a rare cxjar; generic add_item retains overflow if capacity is insufficient.",
+    "publicWrapper": {
+      "behavior": "Waits while character.q.exchange or recorded placeholder remains, up to about 30 seconds, and rejects on disconnect/timeout.",
+      "returns": "{success:true,reward:name,num} where name is whatever item is found in the recorded placeholder slot after completion, if any.",
+      "limitation": "The wrapper return is not a complete reward ledger. Stackable rewards may merge into another slot; gold/shells/cosmetics/empty have no item name; recursive/special rewards may affect multiple domains."
+    },
+    "recovery": {
+      "primaryEvidence": [
+        "pinned exchange input quantity/identity delta",
+        "q.exchange and placeholder lifecycle",
+        "full fresh inventory diff",
+        "gold delta",
+        "shells delta",
+        "account cosmetic/acx delta when relevant",
+        "mass exchange condition delta"
+      ],
+      "rule": "Promise reward/num is supporting evidence only. Commit requires full reward-domain reconciliation against the pinned drop-table contract."
+    }
+  },
+  "exchangeBuy": {
+    "publicFunction": "exchange_buy(token,name)",
+    "channel": "exchange_buy",
+    "executionModel": "ATOMIC_HANDLER",
+    "clientSelection": "item_position(token) chooses a token inventory slot; wrapper sends the entire observed token stack q as data.q.",
+    "optimisticGuard": "Server requires current item.q == data.q; mismatch returns safety_check.",
+    "pricing": [
+      "price < 1 means one token produces q=parseInt(1/price) output quantity",
+      "price >= 1 consumes exactly configured token quantity",
+      "reward names containing '-' can encode item.data"
+    ],
+    "outputspace": [
+      "If token stack is not fully consumed, server requires can_add_item(output) before mutation.",
+      "If token stack is exactly consumed, the freed token slot is sufficient and no separate free slot is required."
+    ],
+    "mutationOrder": [
+      "validate table/lock/q/distance/cost/outputspace",
+      "consume tokens",
+      "add output",
+      "resend",
+      "success response"
+    ],
+    "recovery": "Fresh exact token-stack delta plus output item/data/quantity is settlement evidence; data.q is a stack-version safety value, not requested purchase quantity."
+  },
+  "craft": {
+    "publicFunctions": [
+      "craft",
+      "auto_craft"
+    ],
+    "channel": "craft",
+    "normalCraft": {
+      "protocol": "Client sends up to nine [gridPosition,inventoryIndex] entries; server derives recipe from sorted item names/levels via D.craftmap.",
+      "currentRecipeDuplicateIngredientNames": 0,
+      "quantityModel": "For each current recipe ingredient name, server expects the required quantity in the selected single stack. quantity/place maps are keyed by ingredient name.",
+      "driftRule": "If a future normal recipe introduces duplicate ingredient names, craft is quarantined until protocol semantics are revalidated.",
+      "autoCraft": "Client scans from inventory index 0 and chooses the first unlocked/unblocked/non-giveaway stack with matching name/level and enough quantity for each recipe ingredient.",
+      "outputspace": [
+        "If any selected ingredient stack is consumed completely, server treats that as one freed output slot.",
+        "Otherwise server requires can_add_item(output) before mutation."
+      ],
+      "mutationOrder": [
+        "all item/lock/recipe/range/gold/quantity/outputspace checks",
+        "subtract recipe gold",
+        "consume each selected ingredient",
+        "add one output",
+        "resend",
+        "success response"
+      ],
+      "outputProperties": [
+        "non-misc input property p values are collected and one may be randomly inherited by output",
+        "add_item is called with r:1, so upgrade/compound outputs can independently receive rare shiny property through add_item logic"
+      ],
+      "executionModel": "SYNCHRONOUS_ATOMIC_HANDLER"
+    },
+    "anniversaryCraft": {
+      "route": "If resolved recipe.quest == 'anniversary_baker', normal handler delegates to anniversary_craft.",
+      "seasonal": true,
+      "trustedPlanning": "Server ignores the client-provided quantity claims after recipe identification and planCraft scans the full live inventory against the trusted recipe.",
+      "multiStackSupport": "planCraft can satisfy one recipe requirement across multiple eligible stacks and accumulates exact take per inventory index.",
+      "itemEligibility": "name, optional level, unlocked, unblocked, not giveaway",
+      "outputspace": "If any planned input stack is fully consumed, that freed slot is sufficient; otherwise can_add_item(output) must succeed.",
+      "mutationOrder": [
+        "validate season/NPC/recipe",
+        "build full trusted take plan",
+        "validate outputspace",
+        "subtract gold",
+        "consume planned indices/counts",
+        "add exactly one configured output",
+        "resend",
+        "success response"
+      ],
+      "outputSpecial": "recipe.output may override output name/data, e.g. makeawishjar -> cxjar with data='makeawish'.",
+      "currentAnniversaryRecipeCount": 10,
+      "executionModel": "SYNCHRONOUS_ATOMIC_HANDLER"
+    }
+  },
+  "dismantle": {
+    "publicFunction": "dismantle(item_num)",
+    "channel": "dismantle",
+    "executionModel": "SYNCHRONOUS_ATOMIC_HANDLER_WITH_TWO_PATHS",
+    "leveledCompoundPath": {
+      "trigger": "item exists, item.level is truthy, and item definition compound=true",
+      "excludes": "booster",
+      "cost": "min(50,000,000, calculate_item_value(item)*10)",
+      "outputspace": "requires player.esize >= 2 before mutation; consuming one input then adding three outputs is net +2 slots",
+      "notableServerBehavior": "This special branch executes before the normal locked/blocked checks.",
+      "v5Policy": "V5 is stricter: locked or blocked/giveaway/value-protected items are denied even if server special branch would accept them.",
+      "mutation": [
+        "subtract gold",
+        "consume one input",
+        "add three copies at level-1",
+        "each copy grace=floor(original grace/3)"
+      ],
+      "propertyLoss": "Special outputs are reconstructed from name/level/grace; arbitrary original item property p is not copied by this branch."
+    },
+    "definitionPath": {
+      "requirements": [
+        "G.dismantle entry exists",
+        "input unlocked",
+        "input unblocked",
+        "gold sufficient"
+      ],
+      "outputspace": "Before mutation, can_add_items is run against pseudo-items for every possible dismantle output, counting one freed slot if the input quantity is exactly one.",
+      "probabilisticOutputs": "Entries with quantity/probability <1 may be skipped by random roll; preflight nevertheless reserves capacity conservatively for them.",
+      "mutation": [
+        "subtract gold",
+        "consume one input",
+        "roll each dismantle output",
+        "add all successful outputs"
+      ],
+      "propertyPropagation": "Non-misc input p is copied to produced items through add_item p argument."
+    },
+    "recovery": "Because both paths are synchronous but non-idempotent, UNKNOWN reconciles exact input identity, gold cost and all possible outputs; no same-intent retry."
+  },
+  "v5Policy": {
+    "noPlannedOverflow": true,
+    "outputspaceClasses": [
+      "DETERMINISTIC_ONE_OUTPUT",
+      "DETERMINISTIC_MULTI_OUTPUT",
+      "PROBABILISTIC_BOUNDED_OUTPUT",
+      "RECURSIVE_DROP_OUTPUT"
+    ],
+    "exchangeOutputspace": "Compute a conservative bounded reward-domain/output-slot requirement from the pinned D.drops graph. If the graph cannot be bounded or has drifted, deny automation until revalidated.",
+    "atomicTransforms": "Craft, exchange_buy and dismantle must prove server-equivalent preflight capacity before send.",
+    "exactPhysicalInputs": true,
+    "claims": [
+      "all selected physical input identities",
+      "gold/token quantities",
+      "inventory output capacity",
+      "q/placeholder for exchange",
+      "massexchange/massproduction-related conditions when applicable"
+    ],
+    "inventoryIndexRule": "All physical inventory indexes are re-resolved from pinned identities immediately before execution; stale numeric indexes do not carry authority.",
+    "postconditionRule": "Commit from full inventory/value/account-domain deltas, never solely from Promise output slot/name."
+  },
+  "invariants": [
+    "Generic add_item overflow is never used as a planned V5 capacity strategy.",
+    "Every transformation proves conservative outputspace before send.",
+    "Exchange q/placeholder proves accepted in-flight mutation after input consumption.",
+    "Exchange Promise reward/num is not a complete reward ledger.",
+    "Exchange settlement observes inventory, gold, shells, cosmetics and empty outcome domains allowed by the pinned drop table.",
+    "Recursive exchange drop graphs must be bounded and version-pinned before automated execution.",
+    "Every exchange follow-up after UNKNOWN reconciles the original input and all reward domains; no same-intent retry.",
+    "exchange_buy pins exact physical token stack and its entire observed q because server safety_check compares that value.",
+    "Normal craft inputs are exact physical stacks and current recipes contain no duplicate ingredient names; recipe drift introducing duplicates quarantines craft.",
+    "Normal auto_craft server protocol requires each current ingredient quantity in one selected stack.",
+    "Anniversary craft is a separate trusted server-planned path that may consume one requirement across multiple stacks.",
+    "Craft gold/input/output mutation remains one synchronous settlement domain.",
+    "Leveled compound dismantle is a special three-output path requiring net two extra slots.",
+    "V5 denies locked/blocked/value-protected leveled compound dismantle even though the server special path precedes normal lock/block checks.",
+    "Normal dismantle outputspace is computed conservatively across all possible probabilistic outputs.",
+    "No physical inventory index is reused without fresh identity resolution immediately before send."
+  ]
+}

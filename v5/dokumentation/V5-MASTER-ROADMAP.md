@@ -37,7 +37,7 @@ Aktueller Wissensstand:
 - V5 Knowledge Base: 38 Facts, 38 offene Fragen.
 - Von 38 offenen Fragen: 24 P0, 7 P1, 7 P2.
 - Action Contracts: 60 erfasst; 53 gegen den offiziellen Repo-Snapshot verifiziert, 6 gegen den aktuell deployten offiziellen Live-Clientcontract verifiziert, 1 (`cave_buy`) wegen nicht öffentlich belegbarer interner Transportsemantik explizit für Automation gesperrt.
-- P0-01 bis P0-05 sind DONE; P0-06 ist IN_PROGRESS; P0-07 ist offen.
+- P0-01 bis P0-06 sind DONE; P0-07 ist IN_PROGRESS.
 - Adventure Land kann Production vor dem oeffentlichen Source-Snapshot bewegen; Live-MCP/Live-Daten haben fuer Contract-Revalidierung Vorrang.
 - Fuer V5 steht eine dedizierte 1-TB-SSD als lokales Adventure-Land-Datenfundament zur Verfuegung; Standardwurzel ist `D:\\AdventureLand-V5`.
 
@@ -154,8 +154,8 @@ Exit Gate:
 - P0-03: Adventure Land erzwingt einen accountweiten Single-Bank-Mount. V5 modelliert deshalb genau eine `account:bank` Lease im Account Coordinator, gehalten ueber die gesamte Banksitzung. Jeder Raw Bank Write benoetigt zusaetzlich den lokalen `bank`-Action-Channel des Lease-Owners. Disconnect/Crash gibt die Lease nicht automatisch frei; `bank_opx`/already_in_bank ist ein externes Fence; BankSnapshots sind Mount-/Lease-Epoch-gebunden.
 - P0-04: DONE – RID schützt Listing-Replacement, rotiert aber nicht bei Partial Fill; `trade_sell` nutzt serverseitige physische Itemauswahl.
 - P0-05: DONE – Upgrade/Compound sind mehrphasige Werttransaktionen; q/Placeholder bedeutet accepted in-flight, Outcome kann vor Timerende feststehen, `upgrade_fail` ist pfadabhängig und Compound-Failure verliert alle drei Inputs.
-- P0-06: IN_PROGRESS.
-- P0-07: OPEN.
+- P0-06: DONE – Outputspace ist Transaction Safety; Exchange besitzt Multi-Domain-/rekursive Rewards, Craft getrennte Normal-/Anniversary-Pfade und Dismantle einen speziellen Drei-Output-Compound-Pfad.
+- P0-07: IN_PROGRESS.
 
 ### P0-05 Upgrade/Compound
 - `calculate=true` ist serverseitige Preview ohne Mutation;
@@ -166,6 +166,17 @@ Exit Gate:
 - Compound-Failure verliert alle drei Inputs; Success liefert einen terminal zu beobachtenden Output;
 - Booster-Compound kann ueber rekursive 12%/6%/3%... Procs mehrere Extra-Level erhalten;
 - Preview-Threshold wird wegen Grace-/Slot-Roll-Mechanik nicht als zeitlose vollstaendige effektive Wahrscheinlichkeit behandelt.
+
+### P0-06 Exchange/Craft/Outputspace
+- generischer `add_item`-Overflow ist kein geplanter V5-Kapazitaetsmechanismus;
+- Exchange ist Multi-Phase und kann Inventory, Gold, Shells, Cosmetics, Empty oder rekursive Rewards erzeugen;
+- Public `exchange().reward/num` ist nur Teil-Evidence;
+- rekursive Drop-Graphs muessen bounded/versioniert sein;
+- `exchange_buy` pinnt den exakten Token-Stack samt kompletter q;
+- Normal Craft pinnt exakte Single-Stack-Inputs; aktuelle Recipes besitzen keine Duplicate-Ingredient-Namen;
+- Anniversary Craft ist ein separater trusted Multi-Stack-Pfad;
+- Leveled-Compound-Dismantle erzeugt drei Level-1-Kopien und wird von V5 strenger als vom Server gegen Lock/Value geschuetzt;
+- probabilistische Dismantle-Ausgaben werden fuer Outputspace konservativ als moegliche Outputs behandelt.
 
 P0 Exit Gate:
 - jede wertveraendernde Public Function hat einen verifizierten Contract oder bleibt explizit disabled;

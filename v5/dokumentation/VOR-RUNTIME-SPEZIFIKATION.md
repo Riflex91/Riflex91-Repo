@@ -96,6 +96,24 @@ Pflicht:
 - Server-Preview-Chance wird mit Input-/Source-Fingerprint gespeichert und nicht als zeitlose vollstaendige effektive Erfolgswahrscheinlichkeit interpretiert;
 - getrennte FIFO-Channels ersetzen keine kanalübergreifenden Inventory-/Consumable-Claims.
 
+## Exchange / Craft / Outputspace
+
+Der Vertrag P0-06-EXCHANGE-CRAFT-OUTPUTSPACE.md und wissensbasis/vertraege/exchange-craft.json ist verbindlich.
+
+Pflicht:
+- generic add_item overflow darf nicht als geplanter Outputspace verwendet werden;
+- jede Transformation besitzt eine serveraequivalente oder konservativere Outputspace-Pruefung;
+- Exchange ist Multi-Phase und sein Promise reward/num ist kein vollstaendiges Reward-Ledger;
+- Exchange-Recovery beobachtet alle durch den gepinnten Drop-Graph erlaubten Reward-Domaenen;
+- rekursive Drop-Graphs muessen bounded und versioniert sein;
+- exchange_buy pinnt den exakten Token-Stack und dessen komplette q;
+- Normal Craft pinnt exakte physische Stacks und gilt nur fuer die verifizierte Recipe-Shape ohne Duplicate Ingredient Names;
+- Anniversary Craft wird als eigener trusted Multi-Stack-Pfad behandelt;
+- auto_craft reproduziert die erste passende Stack-Auswahl unmittelbar vor Send;
+- Leveled-Compound-Dismantle verwendet eine eigene Drei-Output-Postcondition und strengere V5-Lock-/Value-Regeln;
+- probabilistische Dismantle-Ausgaben werden fuer Outputspace konservativ vollstaendig beruecksichtigt;
+- Promise-Result erzeugt keinen Commit ohne frische Domain-Postcondition.
+
 ## Persistenz und Migration
 
 Pflicht:

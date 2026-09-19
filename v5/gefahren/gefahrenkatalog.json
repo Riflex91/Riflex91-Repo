@@ -3,7 +3,7 @@
   "stand": "2026-09-19",
   "methode": "FMEA_AEHNLICH",
   "regel": "Hohe Risikowerte reduzieren nicht die Pflicht zur Behandlung niedrigerer Safety-Risiken; jede Gefahr braucht vor betroffener Live-Autoritaet eine wirksame Gegenmassnahme.",
-  "anzahl": 140,
+  "anzahl": 151,
   "gefahren": [
     {
       "kennung": "V5-GEF-001",
@@ -2047,6 +2047,186 @@
       "strategie": "Response nur Evidence; Commit erst nach pfadspezifischer Postcondition",
       "betroffenePhasen": [
         "R9",
+        "R10",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-141",
+      "titel": "Bot plant absichtlich mit add_item-Overflow ausserhalb der nominalen Bag-Kapazitaet",
+      "kategorie": "INVENTAR",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Konservativer Outputspace-Guard; Overflow nur als Recovery-Anomalie",
+      "betroffenePhasen": [
+        "R7",
+        "R8",
+        "R9",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-142",
+      "titel": "Exchange-Promise reward/num wird als vollstaendiges Reward-Ledger missverstanden",
+      "kategorie": "RECOVERY",
+      "schweregrad": 5,
+      "eintritt": 4,
+      "entdeckbarkeit": 5,
+      "risikowert": 100,
+      "status": "OFFEN",
+      "strategie": "Alle gepinnten Reward-Domaenen per Fresh-State-Diff reconciliieren",
+      "betroffenePhasen": [
+        "R6",
+        "R10",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-143",
+      "titel": "Rekursiver Exchange-Drop-Graph driftet und erzeugt unbekannte Output-/Kapazitaetssemantik",
+      "kategorie": "WISSEN",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Versionierter bounded DropGraph; Drift quarantiniert betroffene Exchange",
+      "betroffenePhasen": [
+        "R1",
+        "R6",
+        "R9",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-144",
+      "titel": "Exchange wird nach Disconnect erneut gesendet obwohl Input bereits konsumiert und q gestartet wurde",
+      "kategorie": "RECOVERY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 5,
+      "risikowert": 75,
+      "status": "OFFEN",
+      "strategie": "q/Placeholder = accepted in-flight; Multi-Domain-Reconciliation, kein Retry",
+      "betroffenePhasen": [
+        "R9",
+        "R10",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-145",
+      "titel": "exchange_buy arbeitet auf gedriftetem Token-Stack und verbraucht unerwarteten Bestand",
+      "kategorie": "INVENTAR",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Exakten Token-Stack + volle q pinnen und unmittelbar vor Send revalidieren",
+      "betroffenePhasen": [
+        "R6",
+        "R9",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-146",
+      "titel": "Neues Craft-Rezept mit doppeltem Ingredient-Namen bricht bisherige quantity/place-Annahme",
+      "kategorie": "WISSEN",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Recipe-Shape-Drift Gate; Craft quarantinieren bis Revalidierung",
+      "betroffenePhasen": [
+        "R1",
+        "R6",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-147",
+      "titel": "auto_craft waehlt nach Inventardrift einen anderen physischen Stack als der Planner",
+      "kategorie": "INVENTAR",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "First-match-Auswahl unmittelbar vor Send simulieren und physische IDs claimen",
+      "betroffenePhasen": [
+        "R7",
+        "R8",
+        "R9",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-148",
+      "titel": "Anniversary Craft wird wie Normal Craft behandelt und Multi-Stack-/Output-data-Semantik geht verloren",
+      "kategorie": "PRODUCTION",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Typed CraftPath NORMAL vs ANNIVERSARY_TRUSTED_PLAN",
+      "betroffenePhasen": [
+        "R4",
+        "R9",
+        "R10",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-149",
+      "titel": "Leveled Compound Dismantle zerlegt ein gelocktes oder value-protected Item weil Server-Sonderpfad Lock-Checks umgeht",
+      "kategorie": "INVENTAR",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 5,
+      "risikowert": 75,
+      "status": "OFFEN",
+      "strategie": "V5-eigener Lock/Block/Value-Guard vor Dismantle",
+      "betroffenePhasen": [
+        "R7",
+        "R9",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-150",
+      "titel": "Probabilistische Dismantle-Ausgaben werden bei Outputspace nur nach Erwartungswert statt Worst Case geplant",
+      "kategorie": "INVENTAR",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Alle moeglichen Outputs konservativ reservieren",
+      "betroffenePhasen": [
+        "R8",
+        "R9",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-151",
+      "titel": "Craft-/Dismantle-Outputproperties werden beim Settlement ignoriert und wertrelevante p/data-Aenderung geht verloren",
+      "kategorie": "INVENTAR",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Postconditions pruefen Output name/level/q/p/data und erlaubte Zufallsproperties",
+      "betroffenePhasen": [
+        "R6",
         "R10",
         "R15"
       ]

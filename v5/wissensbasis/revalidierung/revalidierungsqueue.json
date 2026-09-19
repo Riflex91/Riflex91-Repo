@@ -152,12 +152,53 @@
     {
       "id": "V5-P0-06",
       "title": "Exchange-/Craft-Sonderfaelle und Outputspace",
-      "status": "IN_PROGRESS"
+      "status": "DONE",
+      "progress": {
+        "updatedAt": "2026-09-19",
+        "exchange": "MULTI_PHASE_Q_MULTI_REWARD_DOMAIN",
+        "exchangeWrapperLedger": "INCOMPLETE_SUPPORTING_EVIDENCE",
+        "genericAddItemOverflow": "FORBIDDEN_AS_PLANNED_CAPACITY",
+        "exchangeBuy": "ATOMIC_FULL_TOKEN_STACK_Q_GUARD",
+        "normalCraft": "ATOMIC_SINGLE_STACK_PER_INGREDIENT",
+        "currentDuplicateIngredientNames": 0,
+        "anniversaryCraft": "SEPARATE_TRUSTED_MULTI_STACK_PLAN",
+        "dismantle": [
+          "LEVELED_COMPOUND_THREE_OUTPUT",
+          "NORMAL_PROBABILISTIC_OUTPUT"
+        ],
+        "invariantsAdded": [
+          "V5-INV-076",
+          "V5-INV-077",
+          "V5-INV-078",
+          "V5-INV-079",
+          "V5-INV-080",
+          "V5-INV-081",
+          "V5-INV-082",
+          "V5-INV-083",
+          "V5-INV-084",
+          "V5-INV-085",
+          "V5-INV-086"
+        ],
+        "hazardsAdded": [
+          "V5-GEF-141",
+          "V5-GEF-142",
+          "V5-GEF-143",
+          "V5-GEF-144",
+          "V5-GEF-145",
+          "V5-GEF-146",
+          "V5-GEF-147",
+          "V5-GEF-148",
+          "V5-GEF-149",
+          "V5-GEF-150",
+          "V5-GEF-151"
+        ],
+        "note": "Outputspace is transaction safety. Exchange settlement spans all pinned reward domains; craft has normal and anniversary paths; dismantle has leveled-compound and normal probabilistic paths."
+      }
     },
     {
       "id": "V5-P0-07",
       "title": "Request-/Call-Cost- und Rate-Limit-Modell",
-      "status": "OPEN"
+      "status": "IN_PROGRESS"
     }
   ],
   "highVolatilityTopics": [
