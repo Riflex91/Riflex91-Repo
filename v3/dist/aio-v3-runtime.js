@@ -11354,6 +11354,7 @@ module.exports = { PaladinAuraPolicy, AURAS };
 
 const { GameAdapter } = require('../game/adapter');
 const { buildCapabilitySnapshot, sanitizeCapabilitySnapshot } = require('../autonomy/capability-sync');
+const { deriveMotion, cleanMotion } = require('./moving-target-freshness');
 
 const TELEMETRY_PROTOCOL = 1;
 function finite(value) { const n = Number(value); return Number.isFinite(n) ? n : null; }
@@ -11404,7 +11405,7 @@ function potionSummary(inventory = []) {
 }
 class PartyTelemetryBridge {
   constructor(options = {}) {
-    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: options.mode === 'shadow' ? 'shadow' : 'active' }); this.merchantName = options.merchantName || null; this.trustedNames = new Set((options.trustedNames || []).map(String)); this.sendIntervalMs = Math.max(2000, Math.min(60000, Number(options.sendIntervalMs) || 5000)); this.reportTtlMs = Math.max(this.sendIntervalMs * 2, Math.min(5 * 60 * 1000, Number(options.reportTtlMs) || 20000)); this.capacity = Math.max(4, Math.min(64, Number(options.capacity) || 16)); this.lastSentAt = 0; this.reports = new Map(); this.stats = { sent: 0, peerSent: 0, merchantSent: 0, received: 0, rejected: 0, sendFailures: 0, expired: 0, capabilityReports: 0, encounterOutcomeReports: 0 }; this.installed = false; this.previousOnCm = null;
+    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: options.mode === 'shadow' ? 'shadow' : 'active' }); this.merchantName = options.merchantName || null; this.trustedNames = new Set((options.trustedNames || []).map(String)); this.sendIntervalMs = Math.max(2000, Math.min(60000, Number(options.sendIntervalMs) || 5000)); this.movingSendIntervalMs = Math.max(750, Math.min(this.sendIntervalMs, Number(options.movingSendIntervalMs) || 1200)); this.reportTtlMs = Math.max(this.sendIntervalMs * 2, Math.min(5 * 60 * 1000, Number(options.reportTtlMs) || 20000)); this.capacity = Math.max(4, Math.min(64, Number(options.capacity) || 16)); this.lastSentAt = 0; this.reports = new Map(); this.stats = { sent: 0, peerSent: 0, merchantSent: 0, received: 0, rejected: 0, sendFailures: 0, expired: 0, capabilityReports: 0, encounterOutcomeReports: 0 }; this.installed = false; this.previousOnCm = null;
   }
   _event(event, data = {}, severity = 'info', reason = null) { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'party-telemetry', event, severity, reason, data }); }
   setTrustedNames(names) { this.trustedNames = new Set((names || []).filter(Boolean).map(String)); return [...this.trustedNames].sort(); }
@@ -11419,18 +11420,23 @@ class PartyTelemetryBridge {
     const level = Math.max(0, finite(report.level) || 0);
     const capabilities = sanitizeCapabilitySnapshot(report.capabilities, { name, ctype, level });
     const encounterOutcome = cleanEncounterOutcome(report.encounterOutcome, name, this.now(), Math.max(60000, this.reportTtlMs * 6));
-    return { protocol: TELEMETRY_PROTOCOL, name, ctype, level, map: report.map == null ? null : String(report.map), x: finite(report.x), y: finite(report.y), targetMonster: report.targetMonster == null ? null : String(report.targetMonster), hpRatio: clamp(report.hpRatio, 0, 1), mpRatio: clamp(report.mpRatio, 0, 1), rip: report.rip === true, active: report.active !== false, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: Math.max(0, finite(supplies.inventorySize) || 0), inventoryUsed: Math.max(0, finite(supplies.inventoryUsed) || 0), freeSlots: Math.max(0, finite(supplies.freeSlots) || 0), hpPotions: Math.max(0, finite(supplies.hpPotions) || 0), mpPotions: Math.max(0, finite(supplies.mpPotions) || 0), preferredHpPotion: cleanPotionName(supplies.preferredHpPotion, 'hpot'), preferredMpPotion: cleanPotionName(supplies.preferredMpPotion, 'mpot') }, safety: { retreat: safety.retreat === true, emergency: safety.emergency === true, movementCircuitOpen: safety.movementCircuitOpen === true, skillFailureBackoffs: Math.max(0, finite(safety.skillFailureBackoffs) || 0) }, capabilities, encounterOutcome, at };
+    const motion = cleanMotion(report.motion || {});
+    return { protocol: TELEMETRY_PROTOCOL, name, ctype, level, map: report.map == null ? null : String(report.map), x: finite(report.x), y: finite(report.y), targetMonster: report.targetMonster == null ? null : String(report.targetMonster), hpRatio: clamp(report.hpRatio, 0, 1), mpRatio: clamp(report.mpRatio, 0, 1), rip: report.rip === true, active: report.active !== false, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: Math.max(0, finite(supplies.inventorySize) || 0), inventoryUsed: Math.max(0, finite(supplies.inventoryUsed) || 0), freeSlots: Math.max(0, finite(supplies.freeSlots) || 0), hpPotions: Math.max(0, finite(supplies.hpPotions) || 0), mpPotions: Math.max(0, finite(supplies.mpPotions) || 0), preferredHpPotion: cleanPotionName(supplies.preferredHpPotion, 'hpot'), preferredMpPotion: cleanPotionName(supplies.preferredMpPotion, 'mpot') }, safety: { retreat: safety.retreat === true, emergency: safety.emergency === true, movementCircuitOpen: safety.movementCircuitOpen === true, skillFailureBackoffs: Math.max(0, finite(safety.skillFailureBackoffs) || 0) }, motion, capabilities, encounterOutcome, at };
   }
-  receive(sender, data) { const clean = this._cleanReport(data, sender); if (!clean) { this.stats.rejected += 1; return false; } if (!this.reports.has(clean.name) && this.reports.size >= this.capacity) { const oldest = [...this.reports.entries()].sort((a, b) => a[1].at - b[1].at)[0]; if (oldest) this.reports.delete(oldest[0]); } this.reports.set(clean.name, clean); this.stats.received += 1; if (clean.capabilities) this.stats.capabilityReports += 1; if (clean.encounterOutcome) this.stats.encounterOutcomeReports += 1; return true; }
+  receive(sender, data) { const clean = this._cleanReport(data, sender); if (!clean) { this.stats.rejected += 1; return false; } const previous = this.reports.get(clean.name) || null; clean.motion = deriveMotion(previous, { ...clean, speed: clean.motion && clean.motion.declaredSpeed, moving: clean.motion && clean.motion.moving, kiteActive: clean.motion && clean.motion.kiteActive }); if (!this.reports.has(clean.name) && this.reports.size >= this.capacity) { const oldest = [...this.reports.entries()].sort((a, b) => a[1].at - b[1].at)[0]; if (oldest) this.reports.delete(oldest[0]); } this.reports.set(clean.name, clean); this.stats.received += 1; if (clean.capabilities) this.stats.capabilityReports += 1; if (clean.encounterOutcome) this.stats.encounterOutcomeReports += 1; return true; }
   buildLocalReport(runtime) {
     const c = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || this._character(); if (!c) return null; const perf = runtime && runtime.performance && runtime.performance.status().current; const rates = perf && perf.rates || {}; const farmer = runtime && typeof runtime.farmerStatus === 'function' ? runtime.farmerStatus() : {}; const movement = runtime && runtime.adapter && typeof runtime.adapter.stabilityStatus === 'function' ? runtime.adapter.stabilityStatus().movement : null; const local = runtime && runtime.localFarming && typeof runtime.localFarming.status === 'function' ? runtime.localFarming.status() : null; const inventory = Array.isArray(c.inventory) ? c.inventory : []; const rawSize = finite(c.isize); const size = Math.max(0, Math.floor(rawSize == null ? inventory.length : rawSize)); const boundedInventory = inventory.slice(0, size); const used = boundedInventory.filter(Boolean).length; const potions = potionSummary(boundedInventory);
     const encounterOutcome = cleanEncounterOutcome(runtime && (runtime.lastEncounterOutcome || runtime.encounterLifecycle && runtime.encounterLifecycle.lastOutcome), c.name, this.now(), Math.max(60000, this.reportTtlMs * 6));
-    return { type: 'aio-v3-party-report', protocol: TELEMETRY_PROTOCOL, name: c.name, ctype: c.ctype, level: c.level, map: c.map, x: finite(c.x != null ? c.x : c.real_x), y: finite(c.y != null ? c.y : c.real_y), targetMonster: farmer && farmer.targetType || local && local.currentPlan && local.currentPlan.monster || null, hpRatio: c.max_hp > 0 ? c.hp / c.max_hp : 0, mpRatio: c.max_mp > 0 ? c.mp / c.max_mp : 0, rip: !!c.rip, active: true, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: size, inventoryUsed: used, freeSlots: Math.max(0, size - used), ...potions }, safety: { retreat: !!(runtime && runtime.pendingEmergencyRetreat), emergency: !!(runtime && runtime.lastEmergencyDisengage && this.now() - runtime.lastEmergencyDisengage.at < 10000), movementCircuitOpen: !!(movement && movement.circuitOpen), skillFailureBackoffs: Array.isArray(farmer && farmer.skillUsage && farmer.skillUsage.activeFailureBackoffs) ? farmer.skillUsage.activeFailureBackoffs.length : 0 }, capabilities: buildCapabilitySnapshot(runtime, c), encounterOutcome, at: this.now() };
+    const lastKite = runtime && runtime.farmer && runtime.farmer.lastKiteMove || farmer && farmer.kiting && farmer.kiting.lastMove || null;
+    const kiteActive = !!(lastKite && this.now() - (finite(lastKite.at) || 0) <= Math.max(1500, this.movingSendIntervalMs * 2));
+    const motion = { mode: kiteActive ? 'KITE' : c.moving ? 'MOVING' : 'STABLE', moving: c.moving === true || kiteActive, kiteActive, declaredSpeed: Math.max(0, finite(c.speed) || 0) };
+    return { type: 'aio-v3-party-report', protocol: TELEMETRY_PROTOCOL, name: c.name, ctype: c.ctype, level: c.level, map: c.map, x: finite(c.x != null ? c.x : c.real_x), y: finite(c.y != null ? c.y : c.real_y), targetMonster: farmer && farmer.targetType || local && local.currentPlan && local.currentPlan.monster || null, hpRatio: c.max_hp > 0 ? c.hp / c.max_hp : 0, mpRatio: c.max_mp > 0 ? c.mp / c.max_mp : 0, rip: !!c.rip, active: true, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: size, inventoryUsed: used, freeSlots: Math.max(0, size - used), ...potions }, safety: { retreat: !!(runtime && runtime.pendingEmergencyRetreat), emergency: !!(runtime && runtime.lastEmergencyDisengage && this.now() - runtime.lastEmergencyDisengage.at < 10000), movementCircuitOpen: !!(movement && movement.circuitOpen), skillFailureBackoffs: Array.isArray(farmer && farmer.skillUsage && farmer.skillUsage.activeFailureBackoffs) ? farmer.skillUsage.activeFailureBackoffs.length : 0 }, motion, capabilities: buildCapabilitySnapshot(runtime, c), encounterOutcome, at: this.now() };
   }
   tick(runtime) {
     this.prune();
     const c = this._character();
-    if (!c || (this.merchantName && String(c.name) === String(this.merchantName)) || this.now() - this.lastSentAt < this.sendIntervalMs) return false;
+    const farmer = runtime && runtime.farmer; const lastKite = farmer && farmer.lastKiteMove || null; const motionActive = !!(c && (c.moving === true || lastKite && this.now() - (finite(lastKite.at) || 0) <= Math.max(1500, this.movingSendIntervalMs * 2))); const intervalMs = motionActive ? this.movingSendIntervalMs : this.sendIntervalMs;
+    if (!c || (this.merchantName && String(c.name) === String(this.merchantName)) || this.now() - this.lastSentAt < intervalMs) return false;
     const runtimeAdapter = runtime && runtime.adapter;
     const adapter = runtimeAdapter && typeof runtimeAdapter.command === 'function' ? runtimeAdapter : this.adapter;
     if (!adapter || typeof adapter.command !== 'function') return false;
@@ -11491,9 +11497,162 @@ class PartyTelemetryBridge {
     this.prune(); const wanted = names.length ? new Set(names.map(String)) : null; const reports = [...this.reports.values()].filter((report) => !wanted || wanted.has(report.name)); const out = { freshReports: reports.length, xpPerHour: 0, goldPerHour: 0, killsPerHour: 0, deathsPerHour: 0, potionsPerHour: 0, damageTakenPerHour: 0, minHpRatio: reports.length ? 1 : null, minMpRatio: reports.length ? 1 : null, retreats: 0, emergencies: 0, movementCircuits: 0, skillFailureBackoffs: 0, reports: reports.map((report) => ({ ...report })) };
     for (const report of reports) { for (const key of ['xpPerHour', 'goldPerHour', 'killsPerHour', 'deathsPerHour', 'potionsPerHour', 'damageTakenPerHour']) out[key] += report.rates[key]; out.minHpRatio = Math.min(out.minHpRatio, report.hpRatio); out.minMpRatio = Math.min(out.minMpRatio, report.mpRatio); if (report.safety.retreat) out.retreats += 1; if (report.safety.emergency) out.emergencies += 1; if (report.safety.movementCircuitOpen) out.movementCircuits += 1; out.skillFailureBackoffs += report.safety.skillFailureBackoffs; } return out;
   }
-  status() { this.prune(); const reports = [...this.reports.values()].sort((a, b) => b.at - a.at); return { protocol: TELEMETRY_PROTOCOL, merchantName: this.merchantName, sendIntervalMs: this.sendIntervalMs, reportTtlMs: this.reportTtlMs, trustedNames: [...this.trustedNames].sort(), reports, capabilityReports: reports.filter((row) => !!row.capabilities).map((row) => ({ name: row.name, ctype: row.ctype, at: row.at, catalog: row.capabilities.catalog, combatMode: row.capabilities.combatMode, skills: row.capabilities.skills.length })), encounterOutcomes: reports.filter((row) => !!row.encounterOutcome).map((row) => ({ name: row.name, encounterId: row.encounterOutcome.encounterId, outcome: row.encounterOutcome.outcome, endedAt: row.encounterOutcome.endedAt })), stats: { ...this.stats } }; }
+  status() { this.prune(); const reports = [...this.reports.values()].sort((a, b) => b.at - a.at); return { protocol: TELEMETRY_PROTOCOL, merchantName: this.merchantName, sendIntervalMs: this.sendIntervalMs, movingSendIntervalMs: this.movingSendIntervalMs, reportTtlMs: this.reportTtlMs, trustedNames: [...this.trustedNames].sort(), reports, capabilityReports: reports.filter((row) => !!row.capabilities).map((row) => ({ name: row.name, ctype: row.ctype, at: row.at, catalog: row.capabilities.catalog, combatMode: row.capabilities.combatMode, skills: row.capabilities.skills.length })), encounterOutcomes: reports.filter((row) => !!row.encounterOutcome).map((row) => ({ name: row.name, encounterId: row.encounterOutcome.encounterId, outcome: row.encounterOutcome.outcome, endedAt: row.encounterOutcome.endedAt })), stats: { ...this.stats } }; }
 }
 module.exports = { PartyTelemetryBridge, TELEMETRY_PROTOCOL, potionSummary, cleanEncounterOutcome };
+
+},
+"src/party/moving-target-freshness.js": function(require,module,exports){
+'use strict';
+
+const MOVING_TARGET_FRESHNESS_MODE = 'motion-aware-position-freshness-v1';
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp(value, min, max) {
+  const n = finite(value, min);
+  return Math.max(min, Math.min(max, n));
+}
+
+function point(value) {
+  return {
+    x: finite(value && (value.real_x != null ? value.real_x : value.x)),
+    y: finite(value && (value.real_y != null ? value.real_y : value.y))
+  };
+}
+
+function distance(a, b) {
+  const pa = point(a);
+  const pb = point(b);
+  if ([pa.x, pa.y, pb.x, pb.y].some((value) => value == null)) return null;
+  return Math.hypot(pa.x - pb.x, pa.y - pb.y);
+}
+
+function sameMap(a, b) {
+  if (!a || !b || !a.map || !b.map) return true;
+  return String(a.map) === String(b.map);
+}
+
+function cleanMotion(raw = {}) {
+  const mode = String(raw.mode || '').toUpperCase();
+  const validMode = ['STABLE', 'MOVING', 'KITE'].includes(mode) ? mode : null;
+  return {
+    mode: validMode,
+    moving: raw.moving === true,
+    kiteActive: raw.kiteActive === true,
+    declaredSpeed: Math.max(0, finite(raw.declaredSpeed, finite(raw.speed, 0))),
+    observedSpeed: Math.max(0, finite(raw.observedSpeed, 0)),
+    speedEstimate: Math.max(0, finite(raw.speedEstimate, 0)),
+    displacement: Math.max(0, finite(raw.displacement, 0)),
+    sampleMs: Math.max(0, finite(raw.sampleMs, 0))
+  };
+}
+
+function deriveMotion(previous, current, options = {}) {
+  const minObservedSpeed = Math.max(1, finite(options.minObservedSpeed, 6));
+  const movingFallbackSpeed = Math.max(minObservedSpeed, finite(options.movingFallbackSpeed, 40));
+  const declaredSpeed = Math.max(0, finite(current && (current.speed != null ? current.speed : current.declaredSpeed), 0));
+  const movingSignal = !!(current && (current.moving === true || current.kiteActive === true || current.motion && current.motion.moving === true));
+  const kiteSignal = !!(current && (current.kiteActive === true || current.motion && current.motion.kiteActive === true));
+
+  const currentAt = finite(current && (current.sourceAt != null ? current.sourceAt : current.at));
+  const previousAt = finite(previous && (previous.sourceAt != null ? previous.sourceAt : previous.at));
+  const sampleMs = currentAt != null && previousAt != null ? Math.max(0, currentAt - previousAt) : 0;
+  const displacement = previous && current && sampleMs > 0 && sameMap(previous, current)
+    ? Math.max(0, finite(distance(previous, current), 0))
+    : 0;
+  const observedSpeed = sampleMs >= 150 ? displacement / (sampleMs / 1000) : 0;
+
+  let mode = 'STABLE';
+  if (kiteSignal) mode = 'KITE';
+  else if (movingSignal || observedSpeed >= minObservedSpeed) mode = 'MOVING';
+
+  const speedEstimate = mode === 'STABLE'
+    ? 0
+    : Math.max(observedSpeed, declaredSpeed, movingFallbackSpeed);
+
+  return {
+    mode,
+    moving: mode !== 'STABLE',
+    kiteActive: mode === 'KITE',
+    declaredSpeed: Number(declaredSpeed.toFixed(3)),
+    observedSpeed: Number(observedSpeed.toFixed(3)),
+    speedEstimate: Number(speedEstimate.toFixed(3)),
+    displacement: Number(displacement.toFixed(3)),
+    sampleMs
+  };
+}
+
+function positionFreshness(row, now = Date.now(), options = {}) {
+  const staticTtlMs = Math.max(500, finite(options.staticTtlMs, 5000));
+  const movingMaxError = Math.max(10, finite(options.movingMaxError, 70));
+  const kiteMaxError = Math.max(10, Math.min(movingMaxError, finite(options.kiteMaxError, 55)));
+  const futureSkewMs = Math.max(0, finite(options.futureSkewMs, 1000));
+  const sourceAt = finite(row && (row.positionObservedAt != null ? row.positionObservedAt : row.sourceAt != null ? row.sourceAt : row.at));
+  const receivedAt = finite(row && row.at, sourceAt);
+  const sourceAgeMs = sourceAt == null ? Infinity : Math.max(0, finite(now, Date.now()) - sourceAt);
+  const receivedAgeMs = receivedAt == null ? Infinity : Math.max(0, finite(now, Date.now()) - receivedAt);
+  const futureSkew = sourceAt != null && sourceAt - finite(now, Date.now()) > futureSkewMs;
+
+  const motion = cleanMotion(row && row.motion || {
+    mode: row && row.kiteActive === true ? 'KITE' : row && row.moving === true ? 'MOVING' : 'STABLE',
+    moving: row && row.moving === true,
+    kiteActive: row && row.kiteActive === true,
+    speedEstimate: row && row.speed
+  });
+  const mode = motion.mode || (motion.kiteActive ? 'KITE' : motion.moving ? 'MOVING' : 'STABLE');
+  const speedEstimate = Math.max(
+    0,
+    motion.speedEstimate,
+    mode !== 'STABLE' ? motion.declaredSpeed : 0,
+    mode !== 'STABLE' ? finite(row && row.speed, 0) : 0
+  );
+  const uncertainty = mode === 'STABLE' ? 0 : speedEstimate * sourceAgeMs / 1000;
+  const errorBudget = mode === 'KITE' ? kiteMaxError : movingMaxError;
+
+  let reason = 'POSITION_FRESH';
+  let fresh = true;
+  if (sourceAt == null || receivedAt == null) {
+    fresh = false;
+    reason = 'POSITION_TIMESTAMP_MISSING';
+  } else if (futureSkew) {
+    fresh = false;
+    reason = 'POSITION_TIMESTAMP_FUTURE_SKEW';
+  } else if (sourceAgeMs > staticTtlMs || receivedAgeMs > staticTtlMs) {
+    fresh = false;
+    reason = 'POSITION_TTL_EXCEEDED';
+  } else if (mode !== 'STABLE' && uncertainty > errorBudget) {
+    fresh = false;
+    reason = mode === 'KITE' ? 'KITE_POSITION_UNCERTAINTY_EXCEEDED' : 'MOVING_POSITION_UNCERTAINTY_EXCEEDED';
+  }
+
+  return {
+    schemaVersion: 1,
+    mode: MOVING_TARGET_FRESHNESS_MODE,
+    fresh,
+    reason,
+    motionMode: mode,
+    sourceAt,
+    receivedAt,
+    sourceAgeMs: Number.isFinite(sourceAgeMs) ? Math.round(sourceAgeMs) : null,
+    receivedAgeMs: Number.isFinite(receivedAgeMs) ? Math.round(receivedAgeMs) : null,
+    speedEstimate: Number(speedEstimate.toFixed(3)),
+    uncertainty: Number(uncertainty.toFixed(3)),
+    errorBudget
+  };
+}
+
+module.exports = {
+  MOVING_TARGET_FRESHNESS_MODE,
+  deriveMotion,
+  positionFreshness,
+  cleanMotion,
+  distance,
+  point
+};
 
 },
 "src/party/transition-controller.js": function(require,module,exports){
@@ -22972,6 +23131,8 @@ module.exports = { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CO
 "src/merchant/merchant-service-planner.js": function(require,module,exports){
 'use strict';
 
+const { positionFreshness } = require('../party/moving-target-freshness');
+
 const MERCHANT_SERVICE_PLANNER_MODE = 'shadow-merchant-service-planner';
 
 const MerchantServicePlanKind = Object.freeze({
@@ -23016,6 +23177,8 @@ class MerchantServicePlanner {
   constructor(options = {}) {
     this.now = options.now || (() => Date.now());
     this.reportTtlMs = Math.max(5000, Math.min(5 * 60 * 1000, finite(options.reportTtlMs, 25000)));
+    this.movingPositionMaxError = Math.max(20, Math.min(250, finite(options.movingPositionMaxError, 70)));
+    this.kitePositionMaxError = Math.max(15, Math.min(this.movingPositionMaxError, finite(options.kitePositionMaxError, 55)));
     this.criticalPotionCount = Math.max(0, Math.min(5000, finite(options.criticalPotionCount, 40)));
     this.lowPotionCount = Math.max(this.criticalPotionCount, Math.min(10000, finite(options.lowPotionCount, 120)));
     this.targetPotionCount = Math.max(this.lowPotionCount, Math.min(20000, finite(options.targetPotionCount, 240)));
@@ -23026,7 +23189,7 @@ class MerchantServicePlanner {
     this.standWhenIdle = options.standWhenIdle !== false;
     this.sequence = 0;
     this.lastPlan = null;
-    this.stats = { plans: 0, service: 0, stand: 0, holds: 0, staleReports: 0, unsafeTargets: 0 };
+    this.stats = { plans: 0, service: 0, stand: 0, holds: 0, staleReports: 0, motionStaleReports: 0, unsafeTargets: 0 };
   }
 
   _id() {
@@ -23091,6 +23254,7 @@ class MerchantServicePlanner {
   _serviceContext(selected) {
     return {
       sourceReportAt: finite(selected && selected.report && selected.report.at),
+      positionFreshness: selected && selected.positionFreshness ? clone(selected.positionFreshness) : null,
       target: {
         name: selected.report.name,
         map: selected.report.map || null,
@@ -23118,6 +23282,11 @@ class MerchantServicePlanner {
         this.stats.staleReports += 1;
         continue;
       }
+      const freshness = positionFreshness(report, now, { staticTtlMs: this.reportTtlMs, movingMaxError: this.movingPositionMaxError, kiteMaxError: this.kitePositionMaxError });
+      if (!freshness.fresh) {
+        this.stats.motionStaleReports += 1;
+        continue;
+      }
       if (report.rip === true || report.active === false) continue;
       const need = this._need(report);
       if (!need) continue;
@@ -23125,7 +23294,7 @@ class MerchantServicePlanner {
         this.stats.unsafeTargets += 1;
         continue;
       }
-      candidates.push({ report, need });
+      candidates.push({ report, need, positionFreshness: freshness });
     }
 
     // For equal-priority supply emergencies, serve the most depleted Farmer
@@ -23186,6 +23355,8 @@ class MerchantServicePlanner {
       liveExecutionAllowed: false,
       thresholds: {
         reportTtlMs: this.reportTtlMs,
+        movingPositionMaxError: this.movingPositionMaxError,
+        kitePositionMaxError: this.kitePositionMaxError,
         criticalPotionCount: this.criticalPotionCount,
         lowPotionCount: this.lowPotionCount,
         targetPotionCount: this.targetPotionCount,
