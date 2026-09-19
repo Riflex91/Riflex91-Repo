@@ -246,7 +246,10 @@ class InventoryLedger {
           sellProtected: true
         };
       }
-      return { disposition: ItemDisposition.SELL, reasons: ['OPERATOR_SELL_ALLOWLIST'] };
+      // Legacy allowlists are also capability grants. Alpha27 must still ask
+      // whether the physical item can become a party upgrade and run the same
+      // economic decision before creating SELL authority.
+      return { disposition: ItemDisposition.UNDECIDED, reasons: ['OPERATOR_SELL_ALLOWLIST_CAPABILITY'] };
     }
 
     return { disposition: ItemDisposition.UNDECIDED, reasons };
