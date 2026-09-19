@@ -1,6 +1,7 @@
 'use strict';
 
 // CI anchor: runtime bundles are generated from source; this test-only comment intentionally leaves them unchanged.
+// Main-sync CI anchor: verifies the regenerated bundle against the current main without altering behavior.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
