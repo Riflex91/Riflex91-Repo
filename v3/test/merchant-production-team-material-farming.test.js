@@ -171,7 +171,7 @@ test('production material chooser still selects a long path when no shorter vali
   assert.equal(decision.selected.priorityTier, 1);
 });
 
-test('production material chooser favors worthwhile benefit per bounded team farm hour', () => {
+test('production material chooser favors worthwhile benefit per preferred team farm hour', () => {
   const runtime = runtimeForDrops(0.5);
   const slow = blockedCandidate(100, 1000);
   slow.candidate.output = 'slowbow';
