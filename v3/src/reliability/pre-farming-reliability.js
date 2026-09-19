@@ -98,6 +98,51 @@ class ObservableBankCapacityManager extends BankCapacityManager {
   observe(context = {}) {
     const character = context.character || {};
     if (!hasObservableBankSnapshot(character)) {
+      const persisted = context.bankCatalog && context.bankCatalog.usable === true
+        ? context.bankCatalog.snapshot
+        : null;
+      const capacities = persisted && persisted.packCapacities && typeof persisted.packCapacities === 'object'
+        ? persisted.packCapacities
+        : null;
+      if (persisted && Array.isArray(persisted.rows) && capacities && Object.keys(capacities).length) {
+        const syntheticBank = {};
+        for (const [pack, rawCapacity] of Object.entries(capacities)) {
+          const capacity = Math.max(0, Math.floor(finiteObserved(rawCapacity) ?? 0));
+          if (!/^items\d+$/.test(String(pack)) || capacity <= 0) continue;
+          syntheticBank[pack] = Array(capacity).fill(null);
+        }
+        for (const row of persisted.rows) {
+          const pack = row && String(row.pack || '');
+          const index = Math.floor(finiteObserved(row && row.index) ?? -1);
+          if (!syntheticBank[pack] || index < 0 || index >= syntheticBank[pack].length || !row.name) continue;
+          syntheticBank[pack][index] = {
+            name: String(row.name),
+            level: Math.max(0, Math.floor(finiteObserved(row.level) ?? 0)),
+            q: Math.max(1, Math.floor(finiteObserved(row.quantity) ?? 1))
+          };
+        }
+        if (Object.keys(syntheticBank).length) {
+          const result = super.observe({
+            ...context,
+            character: { ...character, bank: syntheticBank }
+          });
+          this.observabilityState = 'PLANNING_ONLY';
+          this.notObservableReason = 'LIVE_BANK_SNAPSHOT_UNAVAILABLE_USING_PERSISTED_CATALOG';
+          this.lastObservation = {
+            ...result,
+            observable: true,
+            observationState: 'PLANNING_ONLY',
+            reason: this.notObservableReason,
+            catalogSource: 'persisted-bank-catalog',
+            planningOnly: true,
+            liveBankVisible: false,
+            actionAuthority: false,
+            physicalActionAuthority: false,
+            persistedObservedAt: finiteObserved(persisted.observedAt)
+          };
+          return clone(this.lastObservation);
+        }
+      }
       const previous = this.observabilityState;
       this.observabilityState = 'NOT_OBSERVABLE';
       this.notObservableReason = 'BANK_SNAPSHOT_UNAVAILABLE';
@@ -163,7 +208,19 @@ class ObservableBankCapacityManager extends BankCapacityManager {
       };
       return clone(this.lastPlan);
     }
-    return super.planSpace(request, { ...context, observation });
+    const plan = super.planSpace(request, { ...context, observation });
+    if (observation.planningOnly === true) {
+      this.lastPlan = {
+        ...plan,
+        planningOnly: true,
+        requiresLiveBankRevalidation: true,
+        actionAuthority: false,
+        executionAuthority: false,
+        observationSource: 'persisted-bank-catalog'
+      };
+      return clone(this.lastPlan);
+    }
+    return plan;
   }
 
   status() {

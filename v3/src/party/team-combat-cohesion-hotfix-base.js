@@ -1,6 +1,7 @@
 'use strict';
 
 const TEAM_COMBAT_COHESION_MODE = 'cohesion-first-team-combat-v1';
+const TEAM_TARGET_STATE_ACTION = 'TEAM_TARGET_STATE';
 
 function finite(value) {
   const number = Number(value);
@@ -44,6 +45,11 @@ class TeamCombatCohesionHotfix {
     this.minNewFightHpRatio = Math.max(0.65, Math.min(0.99, Number(options.minNewFightHpRatio) || 0.90));
     this.minNewFightMpRatio = Math.max(0.20, Math.min(0.99, Number(options.minNewFightMpRatio) || 0.75));
     this.maxNewTargetHpVsTeam = Math.max(0.5, Math.min(3, Number(options.maxNewTargetHpVsTeam) || 1.25));
+    this.teamTargetTtlMs = Math.max(1000, Math.min(10000, Number(options.teamTargetTtlMs) || 3000));
+    this.teamTargetBroadcastIntervalMs = Math.max(250, Math.min(this.teamTargetTtlMs / 2, Number(options.teamTargetBroadcastIntervalMs) || 750));
+    this.lastTeamTargetBroadcastAt = -Infinity;
+    this.lastTeamTargetBroadcastSignature = null;
+    this.replicatedLeaderTarget = null;
     this.lastFormationMoveAt = -Infinity;
     this.lastDecision = null;
     this.lastTeam = null;
@@ -68,10 +74,17 @@ class TeamCombatCohesionHotfix {
       localFarmLeaderWaits: 0,
       combatFormationHolds: 0,
       hardKiteTetherBlocks: 0,
-      hardKiteTetherRecoveryMoves: 0
+      hardKiteTetherRecoveryMoves: 0,
+      teamTargetStatesSent: 0,
+      teamTargetStateSendFailures: 0,
+      teamTargetStatesReceived: 0,
+      teamTargetStateRejected: 0,
+      teamTargetReplicatedFallbacks: 0,
+      teamTargetReplicatedStale: 0
     };
     this.installed = false;
     this._tuneKiting();
+    this.teamTargetReplicationInstalled = this._installTeamTargetReplication();
     this._installTargetSelection();
     this._installCombatMovementGates();
     this._installLocalFarmTeamMovement();
@@ -94,6 +107,8 @@ class TeamCombatCohesionHotfix {
       minNewFightHpRatio: this.minNewFightHpRatio,
       minNewFightMpRatio: this.minNewFightMpRatio,
       maxNewTargetHpVsTeam: this.maxNewTargetHpVsTeam,
+      teamTargetTtlMs: this.teamTargetTtlMs,
+      teamTargetBroadcastIntervalMs: this.teamTargetBroadcastIntervalMs,
       kiteTooCloseFactor: 0.52,
       kiteDesiredFactor: 0.70,
       kiteMaxStepFactor: 0.32
@@ -106,6 +121,115 @@ class TeamCombatCohesionHotfix {
       try { return new Set((bootstrap.trustedRosterNames() || []).map(String)); } catch (_) {}
     }
     return null;
+  }
+
+  _ensureTeamTargetReplication() {
+    if (!this.teamTargetReplicationInstalled && this.runtime && this.runtime.controlledPartyLogistics) {
+      this.teamTargetReplicationInstalled = this._installTeamTargetReplication();
+    }
+    return this.teamTargetReplicationInstalled === true;
+  }
+
+  _selectTeamLeader(members) {
+    return members && members[0] || null;
+  }
+
+  _freshReplicatedLeaderTarget(leaderName) {
+    const row = this.replicatedLeaderTarget;
+    if (!row || String(row.leaderName || '') !== String(leaderName || '')) return null;
+    if (finite(row.expiresAt) == null || row.expiresAt <= this.now()) {
+      this.replicatedLeaderTarget = null;
+      this.stats.teamTargetReplicatedStale += 1;
+      return null;
+    }
+    return row;
+  }
+
+  _resolveLeaderTarget(leader) {
+    this._ensureTeamTargetReplication();
+    if (!leader) return { targetId: null, targetType: null, source: null };
+    if (leader.target != null) {
+      return { targetId: String(leader.target), targetType: null, source: 'LOCAL_LEADER_VIEW' };
+    }
+    const replicated = this._freshReplicatedLeaderTarget(leader.name);
+    if (!replicated) return { targetId: null, targetType: null, source: null };
+    this.stats.teamTargetReplicatedFallbacks += 1;
+    return {
+      targetId: replicated.targetId == null ? null : String(replicated.targetId),
+      targetType: replicated.targetType || null,
+      source: 'TRUSTED_LEADER_REPLICATION'
+    };
+  }
+
+  _installTeamTargetReplication() {
+    const logistics = this.runtime && this.runtime.controlledPartyLogistics;
+    if (!logistics || logistics.__teamTargetReplicationInstalled || typeof logistics.receive !== 'function'
+      || typeof logistics._validEnvelope !== 'function' || typeof logistics._send !== 'function') return false;
+    const baseReceive = logistics.receive.bind(logistics);
+    logistics.receive = (sender, data) => {
+      if (!data || String(data.action || '') !== TEAM_TARGET_STATE_ACTION) return baseReceive(sender, data);
+      const from = String(sender || data.sender || '');
+      if (!logistics._validEnvelope(from, data)) {
+        this.stats.teamTargetStateRejected += 1;
+        return false;
+      }
+      const snapshot = this.runtime.lastSnapshot;
+      const members = snapshot && snapshot.character ? this._combatMembers(snapshot) : [];
+      const leader = this._selectTeamLeader(members);
+      if (!leader || String(leader.name || '') !== from) {
+        this.stats.teamTargetStateRejected += 1;
+        return false;
+      }
+      const at = finite(data.at);
+      const expiresAt = finite(data.expiresAt);
+      const now = this.now();
+      if (at == null || expiresAt == null || expiresAt <= now || at > now + 500
+        || now - at > this.teamTargetTtlMs || expiresAt - at > this.teamTargetTtlMs + 500) {
+        this.stats.teamTargetStateRejected += 1;
+        return false;
+      }
+      this.replicatedLeaderTarget = {
+        leaderName: from,
+        targetId: data.targetId == null ? null : String(data.targetId),
+        targetType: data.targetType == null ? null : String(data.targetType),
+        at,
+        expiresAt
+      };
+      this.stats.teamTargetStatesReceived += 1;
+      return true;
+    };
+    logistics.__teamTargetReplicationInstalled = true;
+    return true;
+  }
+
+  _broadcastLeaderTarget(team, snapshot) {
+    this._ensureTeamTargetReplication();
+    const logistics = this.runtime && this.runtime.controlledPartyLogistics;
+    if (!this.teamTargetReplicationInstalled || !logistics || typeof logistics._send !== 'function'
+      || !team || !team.leader || team.selfName !== team.leaderName) return false;
+    const now = this.now();
+    const targetId = team.leader.target == null ? null : String(team.leader.target);
+    const target = targetId == null ? null : (snapshot && snapshot.entities || []).find((row) => row && String(row.id) === targetId) || null;
+    const targetType = target && target.mtype || null;
+    const signature = `${team.leaderName}|${targetId == null ? 'null' : targetId}|${targetType || ''}`;
+    if (signature === this.lastTeamTargetBroadcastSignature
+      && now - this.lastTeamTargetBroadcastAt < this.teamTargetBroadcastIntervalMs) return false;
+    this.lastTeamTargetBroadcastSignature = signature;
+    this.lastTeamTargetBroadcastAt = now;
+    const payload = {
+      leaderName: team.leaderName,
+      targetId,
+      targetType,
+      expiresAt: now + this.teamTargetTtlMs
+    };
+    for (const name of team.names || []) {
+      if (!name || name === team.selfName) continue;
+      Promise.resolve(logistics._send(name, TEAM_TARGET_STATE_ACTION, payload)).then((result) => {
+        if (result && result.delivered === true) this.stats.teamTargetStatesSent += 1;
+        else this.stats.teamTargetStateSendFailures += 1;
+      }).catch(() => { this.stats.teamTargetStateSendFailures += 1; });
+    }
+    return true;
   }
 
   _rawParty() {
@@ -167,7 +291,7 @@ class TeamCombatCohesionHotfix {
   _team(snapshot) {
     const members = this._combatMembers(snapshot);
     const selfName = snapshot && snapshot.character && snapshot.character.name || null;
-    const leader = members[0] || null;
+    const leader = this._selectTeamLeader(members);
     const self = members.find((row) => row.name === selfName) || null;
     const complete = members.length === this.requiredCombatMembers;
     const alive = complete && members.every((row) => !row.rip);
@@ -185,7 +309,8 @@ class TeamCombatCohesionHotfix {
     const knownMpRatios = members.map((row) => ratio(row.mp, row.max_mp)).filter((value) => value != null);
     const healthReady = knownHpRatios.every((value) => value >= this.minNewFightHpRatio);
     const manaReady = knownMpRatios.every((value) => value >= this.minNewFightMpRatio);
-    const leaderTargetId = leader && leader.target != null ? String(leader.target) : null;
+    const leaderTarget = this._resolveLeaderTarget(leader);
+    const leaderTargetId = leaderTarget.targetId;
     const state = {
       members,
       names: members.map((row) => row.name),
@@ -194,6 +319,8 @@ class TeamCombatCohesionHotfix {
       leader,
       leaderName: leader && leader.name || null,
       leaderTargetId,
+      leaderTargetType: leaderTarget.targetType,
+      leaderTargetSource: leaderTarget.source,
       complete,
       alive,
       sameMap,
@@ -207,6 +334,7 @@ class TeamCombatCohesionHotfix {
     };
     this.lastTeam = state;
     this._syncOrbitDirection(state);
+    this._broadcastLeaderTarget(state, snapshot);
     return state;
   }
 
@@ -318,7 +446,7 @@ class TeamCombatCohesionHotfix {
 
         const leaderTarget = (snapshot.entities || []).find((entity) => entity
           && String(entity.id) === String(team.leaderTargetId));
-        const targetType = leaderTarget && leaderTarget.mtype || null;
+        const targetType = leaderTarget && leaderTarget.mtype || team.leaderTargetType || null;
         const previousLogical = this.farmer.logicalTeamTargetId;
         if (typeof this.farmer._setLogicalTeamTarget === 'function') {
           this.farmer._setLogicalTeamTarget(team.leaderTargetId, targetType, {
@@ -696,12 +824,16 @@ class TeamCombatCohesionHotfix {
         merchantExcluded: true,
         hardKiteTeamTether: true,
         formationMovementSuppressedDuringActiveSharedCombat: true,
-        sharedAggroCombatMayContinueOutsideCohesionRadius: true
+        sharedAggroCombatMayContinueOutsideCohesionRadius: true,
+        trustedLeaderTargetReplication: true,
+        replicatedTargetStillRequiresLocalSafety: true
       },
       team: team ? {
         names: team.names,
         leaderName: team.leaderName,
         leaderTargetId: team.leaderTargetId,
+        leaderTargetType: team.leaderTargetType || null,
+        leaderTargetSource: team.leaderTargetSource || null,
         complete: team.complete,
         alive: team.alive,
         sameMap: team.sameMap,
@@ -711,6 +843,8 @@ class TeamCombatCohesionHotfix {
         healthReady: team.healthReady,
         manaReady: team.manaReady
       } : null,
+      replicatedLeaderTarget: this._freshReplicatedLeaderTarget(this.lastTeam && this.lastTeam.leaderName) ? { ...this.replicatedLeaderTarget } : null,
+      teamTargetReplicationInstalled: this.teamTargetReplicationInstalled,
       lastDecision: this.lastDecision ? { ...this.lastDecision } : null,
       stats: { ...this.stats }
     };
@@ -724,5 +858,6 @@ function installTeamCombatCohesionHotfix(runtime, options = {}) {
 module.exports = {
   TeamCombatCohesionHotfix,
   installTeamCombatCohesionHotfix,
-  TEAM_COMBAT_COHESION_MODE
+  TEAM_COMBAT_COHESION_MODE,
+  TEAM_TARGET_STATE_ACTION
 };

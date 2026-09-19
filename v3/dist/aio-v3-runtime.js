@@ -17249,6 +17249,9 @@ class Alpha18Runtime extends Alpha17Runtime {
     const result = this.bankCapacity.observe({
       character,
       bankPacks: this._bankPacks(),
+      bankCatalog: this.merchantBankCatalog && typeof this.merchantBankCatalog.status === 'function'
+        ? this.merchantBankCatalog.status()
+        : null,
       gameData: this.adapter.getGameData() || {},
       contentDrift: this.contentDrift,
       observedAt: this.now()
@@ -17314,7 +17317,13 @@ class Alpha18Runtime extends Alpha17Runtime {
   planBankExpansion(request = {}) {
     const plan = request.plan && request.plan.action === 'EXPAND_BANK_PACK' ? request.plan : this.planBankSpace(request);
     if (!plan || plan.action !== 'EXPAND_BANK_PACK') return { accepted: false, reason: 'NO_SAFE_EXPANSION_PLAN', plan: clone(plan) };
-    return this.bankExpansionTransactions.plan(plan, { observation: this.bankCapacity.status().observation });
+    const observation = this.bankCapacity.status().observation;
+    if (plan.requiresLiveBankRevalidation === true
+      || plan.planningOnly === true
+      || observation && observation.planningOnly === true) {
+      return { accepted: false, reason: 'LIVE_BANK_REVALIDATION_REQUIRED', plan: clone(plan) };
+    }
+    return this.bankExpansionTransactions.plan(plan, { observation });
   }
 
   configureControlledBankExpansion(config = {}) {
@@ -17332,7 +17341,15 @@ class Alpha18Runtime extends Alpha17Runtime {
     return this.controlledBankExpansion.configure(config);
   }
 
-  executeBankExpansion(id) { return this.controlledBankExpansion.execute(id); }
+  executeBankExpansion(id) {
+    const character = this._liveCharacter();
+    const observation = this.bankCapacity.status().observation;
+    if (!character || !character.bank || typeof character.bank !== 'object'
+      || observation && observation.planningOnly === true) {
+      return { executed: false, committed: false, reason: 'LIVE_BANK_REVALIDATION_REQUIRED' };
+    }
+    return this.controlledBankExpansion.execute(id);
+  }
   runAlpha18CombinedLiveGate(config = {}) { return this.alpha18LiveGate.run(config); }
   alpha18LiveGateStatus() { return this.alpha18LiveGate.status(); }
   alpha18LiveGateResult() { return this.alpha18LiveGate.result(); }
@@ -27769,6 +27786,51 @@ class ObservableBankCapacityManager extends BankCapacityManager {
   observe(context = {}) {
     const character = context.character || {};
     if (!hasObservableBankSnapshot(character)) {
+      const persisted = context.bankCatalog && context.bankCatalog.usable === true
+        ? context.bankCatalog.snapshot
+        : null;
+      const capacities = persisted && persisted.packCapacities && typeof persisted.packCapacities === 'object'
+        ? persisted.packCapacities
+        : null;
+      if (persisted && Array.isArray(persisted.rows) && capacities && Object.keys(capacities).length) {
+        const syntheticBank = {};
+        for (const [pack, rawCapacity] of Object.entries(capacities)) {
+          const capacity = Math.max(0, Math.floor(finiteObserved(rawCapacity) ?? 0));
+          if (!/^items\d+$/.test(String(pack)) || capacity <= 0) continue;
+          syntheticBank[pack] = Array(capacity).fill(null);
+        }
+        for (const row of persisted.rows) {
+          const pack = row && String(row.pack || '');
+          const index = Math.floor(finiteObserved(row && row.index) ?? -1);
+          if (!syntheticBank[pack] || index < 0 || index >= syntheticBank[pack].length || !row.name) continue;
+          syntheticBank[pack][index] = {
+            name: String(row.name),
+            level: Math.max(0, Math.floor(finiteObserved(row.level) ?? 0)),
+            q: Math.max(1, Math.floor(finiteObserved(row.quantity) ?? 1))
+          };
+        }
+        if (Object.keys(syntheticBank).length) {
+          const result = super.observe({
+            ...context,
+            character: { ...character, bank: syntheticBank }
+          });
+          this.observabilityState = 'PLANNING_ONLY';
+          this.notObservableReason = 'LIVE_BANK_SNAPSHOT_UNAVAILABLE_USING_PERSISTED_CATALOG';
+          this.lastObservation = {
+            ...result,
+            observable: true,
+            observationState: 'PLANNING_ONLY',
+            reason: this.notObservableReason,
+            catalogSource: 'persisted-bank-catalog',
+            planningOnly: true,
+            liveBankVisible: false,
+            actionAuthority: false,
+            physicalActionAuthority: false,
+            persistedObservedAt: finiteObserved(persisted.observedAt)
+          };
+          return clone(this.lastObservation);
+        }
+      }
       const previous = this.observabilityState;
       this.observabilityState = 'NOT_OBSERVABLE';
       this.notObservableReason = 'BANK_SNAPSHOT_UNAVAILABLE';
@@ -27834,7 +27896,19 @@ class ObservableBankCapacityManager extends BankCapacityManager {
       };
       return clone(this.lastPlan);
     }
-    return super.planSpace(request, { ...context, observation });
+    const plan = super.planSpace(request, { ...context, observation });
+    if (observation.planningOnly === true) {
+      this.lastPlan = {
+        ...plan,
+        planningOnly: true,
+        requiresLiveBankRevalidation: true,
+        actionAuthority: false,
+        executionAuthority: false,
+        observationSource: 'persisted-bank-catalog'
+      };
+      return clone(this.lastPlan);
+    }
+    return plan;
   }
 
   status() {
@@ -30338,11 +30412,15 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
     }).sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  _selectTeamLeader(members) {
+    return selectCombatLeader(members);
+  }
+
   _team(snapshot) {
     const expectedNames = this._expectedCombatNames();
     const members = this._combatMembers(snapshot);
     const selfName = snapshot && snapshot.character && snapshot.character.name || null;
-    const leader = selectCombatLeader(members);
+    const leader = this._selectTeamLeader(members);
     const self = members.find((row) => row.name === selfName) || null;
     const topologyKnown = Array.isArray(expectedNames) && expectedNames.length >= 1 && expectedNames.length <= 3;
     const combatTypesValid = topologyKnown && members.every((row) => SUPPORTED_COMBAT_CLASSES.has(lower(row.ctype)));
@@ -30367,7 +30445,8 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
     const knownMpRatios = members.map((row) => ratio(row.mp, row.max_mp)).filter((value) => value != null);
     const healthReady = knownHpRatios.every((value) => value >= this.minNewFightHpRatio);
     const manaReady = knownMpRatios.every((value) => value >= this.minNewFightMpRatio);
-    const leaderTargetId = leader && leader.target != null ? String(leader.target) : null;
+    const leaderTarget = this._resolveLeaderTarget(leader);
+    const leaderTargetId = leaderTarget.targetId;
     const state = {
       members,
       names: members.map((row) => row.name),
@@ -30377,6 +30456,8 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
       leader,
       leaderName: leader && leader.name || null,
       leaderTargetId,
+      leaderTargetType: leaderTarget.targetType,
+      leaderTargetSource: leaderTarget.source,
       leaderPolicy: COMBAT_LEADER_POLICY,
       leaderPriority: leader ? combatLeaderPriority(leader) : null,
       complete,
@@ -30392,6 +30473,7 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
     };
     this.lastTeam = state;
     this._syncOrbitDirection(state);
+    this._broadcastLeaderTarget(state, snapshot);
     return state;
   }
 
@@ -30472,7 +30554,8 @@ module.exports = {
   TEAM_COMBAT_COHESION_MODE: base.TEAM_COMBAT_COHESION_MODE,
   COMBAT_LEADER_POLICY,
   COMBAT_LEADER_CLASS_PRIORITY,
-  selectCombatLeader
+  selectCombatLeader,
+  TEAM_TARGET_STATE_ACTION: base.TEAM_TARGET_STATE_ACTION
 };
 
 },
@@ -30480,6 +30563,7 @@ module.exports = {
 'use strict';
 
 const TEAM_COMBAT_COHESION_MODE = 'cohesion-first-team-combat-v1';
+const TEAM_TARGET_STATE_ACTION = 'TEAM_TARGET_STATE';
 
 function finite(value) {
   const number = Number(value);
@@ -30523,6 +30607,11 @@ class TeamCombatCohesionHotfix {
     this.minNewFightHpRatio = Math.max(0.65, Math.min(0.99, Number(options.minNewFightHpRatio) || 0.90));
     this.minNewFightMpRatio = Math.max(0.20, Math.min(0.99, Number(options.minNewFightMpRatio) || 0.75));
     this.maxNewTargetHpVsTeam = Math.max(0.5, Math.min(3, Number(options.maxNewTargetHpVsTeam) || 1.25));
+    this.teamTargetTtlMs = Math.max(1000, Math.min(10000, Number(options.teamTargetTtlMs) || 3000));
+    this.teamTargetBroadcastIntervalMs = Math.max(250, Math.min(this.teamTargetTtlMs / 2, Number(options.teamTargetBroadcastIntervalMs) || 750));
+    this.lastTeamTargetBroadcastAt = -Infinity;
+    this.lastTeamTargetBroadcastSignature = null;
+    this.replicatedLeaderTarget = null;
     this.lastFormationMoveAt = -Infinity;
     this.lastDecision = null;
     this.lastTeam = null;
@@ -30547,10 +30636,17 @@ class TeamCombatCohesionHotfix {
       localFarmLeaderWaits: 0,
       combatFormationHolds: 0,
       hardKiteTetherBlocks: 0,
-      hardKiteTetherRecoveryMoves: 0
+      hardKiteTetherRecoveryMoves: 0,
+      teamTargetStatesSent: 0,
+      teamTargetStateSendFailures: 0,
+      teamTargetStatesReceived: 0,
+      teamTargetStateRejected: 0,
+      teamTargetReplicatedFallbacks: 0,
+      teamTargetReplicatedStale: 0
     };
     this.installed = false;
     this._tuneKiting();
+    this.teamTargetReplicationInstalled = this._installTeamTargetReplication();
     this._installTargetSelection();
     this._installCombatMovementGates();
     this._installLocalFarmTeamMovement();
@@ -30573,6 +30669,8 @@ class TeamCombatCohesionHotfix {
       minNewFightHpRatio: this.minNewFightHpRatio,
       minNewFightMpRatio: this.minNewFightMpRatio,
       maxNewTargetHpVsTeam: this.maxNewTargetHpVsTeam,
+      teamTargetTtlMs: this.teamTargetTtlMs,
+      teamTargetBroadcastIntervalMs: this.teamTargetBroadcastIntervalMs,
       kiteTooCloseFactor: 0.52,
       kiteDesiredFactor: 0.70,
       kiteMaxStepFactor: 0.32
@@ -30585,6 +30683,115 @@ class TeamCombatCohesionHotfix {
       try { return new Set((bootstrap.trustedRosterNames() || []).map(String)); } catch (_) {}
     }
     return null;
+  }
+
+  _ensureTeamTargetReplication() {
+    if (!this.teamTargetReplicationInstalled && this.runtime && this.runtime.controlledPartyLogistics) {
+      this.teamTargetReplicationInstalled = this._installTeamTargetReplication();
+    }
+    return this.teamTargetReplicationInstalled === true;
+  }
+
+  _selectTeamLeader(members) {
+    return members && members[0] || null;
+  }
+
+  _freshReplicatedLeaderTarget(leaderName) {
+    const row = this.replicatedLeaderTarget;
+    if (!row || String(row.leaderName || '') !== String(leaderName || '')) return null;
+    if (finite(row.expiresAt) == null || row.expiresAt <= this.now()) {
+      this.replicatedLeaderTarget = null;
+      this.stats.teamTargetReplicatedStale += 1;
+      return null;
+    }
+    return row;
+  }
+
+  _resolveLeaderTarget(leader) {
+    this._ensureTeamTargetReplication();
+    if (!leader) return { targetId: null, targetType: null, source: null };
+    if (leader.target != null) {
+      return { targetId: String(leader.target), targetType: null, source: 'LOCAL_LEADER_VIEW' };
+    }
+    const replicated = this._freshReplicatedLeaderTarget(leader.name);
+    if (!replicated) return { targetId: null, targetType: null, source: null };
+    this.stats.teamTargetReplicatedFallbacks += 1;
+    return {
+      targetId: replicated.targetId == null ? null : String(replicated.targetId),
+      targetType: replicated.targetType || null,
+      source: 'TRUSTED_LEADER_REPLICATION'
+    };
+  }
+
+  _installTeamTargetReplication() {
+    const logistics = this.runtime && this.runtime.controlledPartyLogistics;
+    if (!logistics || logistics.__teamTargetReplicationInstalled || typeof logistics.receive !== 'function'
+      || typeof logistics._validEnvelope !== 'function' || typeof logistics._send !== 'function') return false;
+    const baseReceive = logistics.receive.bind(logistics);
+    logistics.receive = (sender, data) => {
+      if (!data || String(data.action || '') !== TEAM_TARGET_STATE_ACTION) return baseReceive(sender, data);
+      const from = String(sender || data.sender || '');
+      if (!logistics._validEnvelope(from, data)) {
+        this.stats.teamTargetStateRejected += 1;
+        return false;
+      }
+      const snapshot = this.runtime.lastSnapshot;
+      const members = snapshot && snapshot.character ? this._combatMembers(snapshot) : [];
+      const leader = this._selectTeamLeader(members);
+      if (!leader || String(leader.name || '') !== from) {
+        this.stats.teamTargetStateRejected += 1;
+        return false;
+      }
+      const at = finite(data.at);
+      const expiresAt = finite(data.expiresAt);
+      const now = this.now();
+      if (at == null || expiresAt == null || expiresAt <= now || at > now + 500
+        || now - at > this.teamTargetTtlMs || expiresAt - at > this.teamTargetTtlMs + 500) {
+        this.stats.teamTargetStateRejected += 1;
+        return false;
+      }
+      this.replicatedLeaderTarget = {
+        leaderName: from,
+        targetId: data.targetId == null ? null : String(data.targetId),
+        targetType: data.targetType == null ? null : String(data.targetType),
+        at,
+        expiresAt
+      };
+      this.stats.teamTargetStatesReceived += 1;
+      return true;
+    };
+    logistics.__teamTargetReplicationInstalled = true;
+    return true;
+  }
+
+  _broadcastLeaderTarget(team, snapshot) {
+    this._ensureTeamTargetReplication();
+    const logistics = this.runtime && this.runtime.controlledPartyLogistics;
+    if (!this.teamTargetReplicationInstalled || !logistics || typeof logistics._send !== 'function'
+      || !team || !team.leader || team.selfName !== team.leaderName) return false;
+    const now = this.now();
+    const targetId = team.leader.target == null ? null : String(team.leader.target);
+    const target = targetId == null ? null : (snapshot && snapshot.entities || []).find((row) => row && String(row.id) === targetId) || null;
+    const targetType = target && target.mtype || null;
+    const signature = `${team.leaderName}|${targetId == null ? 'null' : targetId}|${targetType || ''}`;
+    if (signature === this.lastTeamTargetBroadcastSignature
+      && now - this.lastTeamTargetBroadcastAt < this.teamTargetBroadcastIntervalMs) return false;
+    this.lastTeamTargetBroadcastSignature = signature;
+    this.lastTeamTargetBroadcastAt = now;
+    const payload = {
+      leaderName: team.leaderName,
+      targetId,
+      targetType,
+      expiresAt: now + this.teamTargetTtlMs
+    };
+    for (const name of team.names || []) {
+      if (!name || name === team.selfName) continue;
+      Promise.resolve(logistics._send(name, TEAM_TARGET_STATE_ACTION, payload)).then((result) => {
+        if (result && result.delivered === true) this.stats.teamTargetStatesSent += 1;
+        else this.stats.teamTargetStateSendFailures += 1;
+      }).catch(() => { this.stats.teamTargetStateSendFailures += 1; });
+    }
+    return true;
   }
 
   _rawParty() {
@@ -30646,7 +30853,7 @@ class TeamCombatCohesionHotfix {
   _team(snapshot) {
     const members = this._combatMembers(snapshot);
     const selfName = snapshot && snapshot.character && snapshot.character.name || null;
-    const leader = members[0] || null;
+    const leader = this._selectTeamLeader(members);
     const self = members.find((row) => row.name === selfName) || null;
     const complete = members.length === this.requiredCombatMembers;
     const alive = complete && members.every((row) => !row.rip);
@@ -30664,7 +30871,8 @@ class TeamCombatCohesionHotfix {
     const knownMpRatios = members.map((row) => ratio(row.mp, row.max_mp)).filter((value) => value != null);
     const healthReady = knownHpRatios.every((value) => value >= this.minNewFightHpRatio);
     const manaReady = knownMpRatios.every((value) => value >= this.minNewFightMpRatio);
-    const leaderTargetId = leader && leader.target != null ? String(leader.target) : null;
+    const leaderTarget = this._resolveLeaderTarget(leader);
+    const leaderTargetId = leaderTarget.targetId;
     const state = {
       members,
       names: members.map((row) => row.name),
@@ -30673,6 +30881,8 @@ class TeamCombatCohesionHotfix {
       leader,
       leaderName: leader && leader.name || null,
       leaderTargetId,
+      leaderTargetType: leaderTarget.targetType,
+      leaderTargetSource: leaderTarget.source,
       complete,
       alive,
       sameMap,
@@ -30686,6 +30896,7 @@ class TeamCombatCohesionHotfix {
     };
     this.lastTeam = state;
     this._syncOrbitDirection(state);
+    this._broadcastLeaderTarget(state, snapshot);
     return state;
   }
 
@@ -30797,7 +31008,7 @@ class TeamCombatCohesionHotfix {
 
         const leaderTarget = (snapshot.entities || []).find((entity) => entity
           && String(entity.id) === String(team.leaderTargetId));
-        const targetType = leaderTarget && leaderTarget.mtype || null;
+        const targetType = leaderTarget && leaderTarget.mtype || team.leaderTargetType || null;
         const previousLogical = this.farmer.logicalTeamTargetId;
         if (typeof this.farmer._setLogicalTeamTarget === 'function') {
           this.farmer._setLogicalTeamTarget(team.leaderTargetId, targetType, {
@@ -31175,12 +31386,16 @@ class TeamCombatCohesionHotfix {
         merchantExcluded: true,
         hardKiteTeamTether: true,
         formationMovementSuppressedDuringActiveSharedCombat: true,
-        sharedAggroCombatMayContinueOutsideCohesionRadius: true
+        sharedAggroCombatMayContinueOutsideCohesionRadius: true,
+        trustedLeaderTargetReplication: true,
+        replicatedTargetStillRequiresLocalSafety: true
       },
       team: team ? {
         names: team.names,
         leaderName: team.leaderName,
         leaderTargetId: team.leaderTargetId,
+        leaderTargetType: team.leaderTargetType || null,
+        leaderTargetSource: team.leaderTargetSource || null,
         complete: team.complete,
         alive: team.alive,
         sameMap: team.sameMap,
@@ -31190,6 +31405,8 @@ class TeamCombatCohesionHotfix {
         healthReady: team.healthReady,
         manaReady: team.manaReady
       } : null,
+      replicatedLeaderTarget: this._freshReplicatedLeaderTarget(this.lastTeam && this.lastTeam.leaderName) ? { ...this.replicatedLeaderTarget } : null,
+      teamTargetReplicationInstalled: this.teamTargetReplicationInstalled,
       lastDecision: this.lastDecision ? { ...this.lastDecision } : null,
       stats: { ...this.stats }
     };
@@ -31203,7 +31420,8 @@ function installTeamCombatCohesionHotfix(runtime, options = {}) {
 module.exports = {
   TeamCombatCohesionHotfix,
   installTeamCombatCohesionHotfix,
-  TEAM_COMBAT_COHESION_MODE
+  TEAM_COMBAT_COHESION_MODE,
+  TEAM_TARGET_STATE_ACTION
 };
 
 },
@@ -40137,9 +40355,62 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
     return { ok: true, requested, destination: npcId, npcId, source: 'NPC_ID_FALLBACK' };
   }
 
+  _serviceTravelBackoffKey(destination, tx = null) {
+    const input = tx ? (transactionInputs(tx)[0] || {}) : {};
+    const requested = destination && typeof destination === 'object'
+      ? `${String(destination.map || '')}:${finite(destination.x, 'x')}:${finite(destination.y, 'y')}`
+      : String(destination == null ? '' : destination);
+    const type = String(tx && tx.type || '').toUpperCase();
+    const character = String(tx && tx.character || '');
+    const item = String(tx && (tx.item || input.item) || input.item || '');
+    const level = levelOf(tx && tx.level != null ? tx : input);
+    const rawIndex = input.index != null ? input.index : tx && tx.index;
+    const index = Number.isFinite(Number(rawIndex)) ? Number(rawIndex) : 'x';
+    return `${requested}|${type}|${character}|${item}|${level}|${index}`;
+  }
+
+  serviceTravelBackoffFor(destination, tx = null) {
+    if (!(this.serviceTravelBackoffs instanceof Map)) this.serviceTravelBackoffs = new Map();
+    const now = this.now();
+    for (const [key, row] of this.serviceTravelBackoffs.entries()) {
+      if (!row || finite(row.expiresAt, 0) <= now) this.serviceTravelBackoffs.delete(key);
+    }
+    const key = this._serviceTravelBackoffKey(destination, tx);
+    const row = this.serviceTravelBackoffs.get(key) || null;
+    if (!row) return null;
+    return { ...clone(row), key, active: true, remainingMs: Math.max(0, row.expiresAt - now) };
+  }
+
+  _armServiceTravelBackoff(destination, tx, reason) {
+    if (!/interrupted/i.test(String(reason || ''))) return null;
+    if (!(this.serviceTravelBackoffs instanceof Map)) this.serviceTravelBackoffs = new Map();
+    const now = this.now();
+    const durationMs = Math.max(3000, Math.min(30000, finite(this.options && this.options.serviceTravelInterruptedBackoffMs, 8000)));
+    const key = this._serviceTravelBackoffKey(destination, tx);
+    const row = {
+      at: now,
+      expiresAt: now + durationMs,
+      reason: 'SERVICE_TRAVEL_INTERRUPTED_BACKOFF',
+      sourceReason: String(reason || 'interrupted'),
+      destination: clone(destination),
+      transactionId: tx && tx.id || null,
+      type: tx && tx.type || null,
+      item: tx && tx.item || null
+    };
+    this.serviceTravelBackoffs.set(key, row);
+    this.stats.serviceTravelBackoffsArmed = (this.stats.serviceTravelBackoffsArmed || 0) + 1;
+    this._event('ALPHA27_SERVICE_TRAVEL_BACKOFF_ARMED', 'warn', row.reason, { ...clone(row), key, durationMs });
+    return { ...clone(row), key, active: true };
+  }
+
   async namedServiceTravel(destination, tx = null) {
     if (this.serviceTravelBusy) return { ok: false, reason: 'SERVICE_TRAVEL_BUSY' };
     if (!this.merchantActive() || !this.supervisorAllowed() || this.merchantInCombat()) return { ok: false, reason: 'SERVICE_TRAVEL_SAFETY_HOLD' };
+    const travelBackoff = this.serviceTravelBackoffFor(destination, tx);
+    if (travelBackoff) {
+      this.stats.serviceTravelBackoffBlocks = (this.stats.serviceTravelBackoffBlocks || 0) + 1;
+      return { ok: false, reason: 'SERVICE_TRAVEL_BACKOFF_ACTIVE', retryAt: travelBackoff.expiresAt, backoff: travelBackoff };
+    }
     const resolved = this.resolveServiceDestination(destination);
     if (!resolved.ok) {
       const reason = resolved.reason || 'SERVICE_DESTINATION_RESOLUTION_FAILED';
@@ -40223,6 +40494,7 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
         const result = await this.runtime.executeTravelPlan(planned.plan.id);
         if (!result || result.completed !== true) {
           const reason = result && result.reason || 'CONTROLLED_SERVICE_TRAVEL_FAILED';
+          this._armServiceTravelBackoff(resolved.requested != null ? resolved.requested : destination, tx, reason);
           if (tx) this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
           this.stats.failedSafe += 1;
           this._event('ALPHA27_SERVICE_TRAVEL_FAILED_SAFE', 'error', reason, { transactionId: tx && tx.id || null, requestedDestination: resolved.requested, resolvedDestination: clone(target), npcId: resolved.npcId, resolutionSource: resolved.source });
@@ -40246,6 +40518,7 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
       try { await Promise.resolve(stop.fn.call(stop.owner, 'smart')); } catch (_) {}
       const details = errorDetails(error);
       const reason = details.reason || 'SERVICE_TRAVEL_FAILED';
+      this._armServiceTravelBackoff(resolved.requested != null ? resolved.requested : destination, tx, reason);
       if (tx) this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
       this.stats.failedSafe += 1;
       this._event('ALPHA27_SERVICE_TRAVEL_FAILED_SAFE', 'error', reason, { transactionId: tx && tx.id || null, requestedDestination: resolved.requested, resolvedDestination: clone(target), npcId: resolved.npcId, resolutionSource: resolved.source, error: details });
@@ -41943,7 +42216,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       return true;
     }
 
-    if (finalization.state === 'READY') return this.deliverGearGoal();
+    if (finalization.state === 'READY') return this.deliverGearGoal({ finalization });
     return false;
   }
 
@@ -42009,6 +42282,35 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     if (supplyPlan) {
       this.holdForCriticalPartySupply(supplyPlan);
       return false;
+    }
+
+    const workspaceBank = typeof this.planWorkspaceBank === 'function' ? this.planWorkspaceBank() : null;
+    if (workspaceBank && !this.transactionFamilyOpen('BANK')) {
+      const currentTask = this._taskCurrent();
+      if (currentTask && currentTask.owner === 'ALPHA27' && currentTask.kind === 'PROGRESSION_BATCH') {
+        this._taskRelease(currentTask.key, 'WORKSPACE_PRESSURE_PREEMPTS_PROGRESSION', {
+          freeSlots: workspaceBank.metadata && workspaceBank.metadata.freeSlots,
+          workspaceSlots: workspaceBank.metadata && workspaceBank.metadata.workspaceSlots
+        });
+      }
+      const remainingTask = this._taskCurrent();
+      if (!remainingTask || remainingTask.owner === 'ALPHA27' && remainingTask.kind === 'DISPOSAL') {
+        const lock = this._taskAcquire('DISPOSAL', 'alpha27:workspace-bank', {
+          type: 'BANK',
+          reason: 'WORKSPACE_RESERVE_RECOVERY'
+        });
+        if (lock.acquired) {
+          this.stats.workspaceReserveBankPreemptions = (this.stats.workspaceReserveBankPreemptions || 0) + 1;
+          this.lastMerchantPlan = {
+            at: this.now(),
+            action: 'WORKSPACE_BANK_RECOVERY',
+            reason: 'WORKSPACE_RESERVE_VIOLATED',
+            request: clone(workspaceBank)
+          };
+          try { return await this.executeEconomyRequest(workspaceBank); }
+          finally { this._taskRelease('alpha27:workspace-bank', 'WORKSPACE_BANK_STEP_COMPLETE'); }
+        }
+      }
     }
 
     let task = this._taskCurrent();
@@ -42208,6 +42510,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       partySupplyChainRefreshes: this.stats.partySupplyChainRefreshes || 0,
       partySupplyChainReleases: this.stats.partySupplyChainReleases || 0,
       progressionTaskNoProgressReleases: this.stats.progressionTaskNoProgressReleases || 0,
+      workspaceReserveBankPreemptions: this.stats.workspaceReserveBankPreemptions || 0,
       lastPartySupplyChainRelease: clone(this.lastPartySupplyChainRelease || null),
       atomicTransactions: true,
       realUpgrade: true,
@@ -42271,6 +42574,17 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       ready: 0,
       lowerTierDeliveriesPrevented: 0
     };
+  }
+
+  _mutationTravelBackoff(type, character, item, level, index) {
+    if (!this.atomic || typeof this.atomic.serviceTravelBackoffFor !== 'function') return null;
+    return this.atomic.serviceTravelBackoffFor('newupgrade', {
+      type,
+      character,
+      item,
+      level,
+      index
+    });
   }
 
   _liveGearItemForGoal(goal) {
@@ -42370,6 +42684,16 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     const candidateEntry = rows.find((row) => Number(row.index) === Number(candidate.item.index)) || null;
 
     const makeRequest = (group, level, feederPreparation = false) => {
+      const travelBackoff = this._mutationTravelBackoff('COMPOUND', c.name, candidate.item.name, level, group[0] && group[0].index);
+      if (travelBackoff) {
+        return {
+          hold: true,
+          reason: 'GEAR_FINALIZATION_SERVICE_TRAVEL_BACKOFF',
+          retryAt: travelBackoff.expiresAt,
+          travelBackoff,
+          targetLevel: reachable.reachableLevel
+        };
+      }
       const budget = this.atomic.mutationAttemptBudget({ type: 'COMPOUND', character: c.name, item: candidate.item.name, level });
       if (!budget.allowed) {
         return {
@@ -42470,6 +42794,10 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     }
     if (this.atomic.mutationRetryBlocked(entry, 'UPGRADE')) {
       return { blocked: true, reason: 'GEAR_FINALIZATION_UPGRADE_RETRY_BLOCKED', targetLevel };
+    }
+    const travelBackoff = this._mutationTravelBackoff('UPGRADE', c.name, item.name, level, entry.index);
+    if (travelBackoff) {
+      return { hold: true, reason: 'GEAR_FINALIZATION_SERVICE_TRAVEL_BACKOFF', retryAt: travelBackoff.expiresAt, travelBackoff, targetLevel };
     }
     const budget = this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: item.name, level });
     if (!budget.allowed) {
@@ -42630,7 +42958,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     } catch (_) { return null; }
   }
 
-  async deliverGearGoal() {
+  async deliverGearGoal(options = {}) {
     const candidate = this.gearDeliveryCandidate();
     if (!candidate) return false;
     const { goal, item } = candidate;
@@ -42682,7 +43010,23 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       sourceReportAt,
       target: { name: goal.character, map: c.map, x: target.x, y: target.y },
       delivery: { itemName: goal.item, quantity: 1 },
-      metadata: { alpha27GearGoal: goal.id, itemLevel: levelOf(item) }
+      metadata: {
+        alpha27GearGoal: goal.id,
+        itemLevel: levelOf(item),
+        alpha27SafeIntermediateDelivery: !!(
+          options
+          && options.finalization
+          && options.finalization.state === 'READY'
+          && ['RISK_GATE_PREFERS_SAFE_CURRENT_PARTY_UPGRADE', 'HIGHEST_CURRENT_SAFE_LEVEL_REACHED'].includes(String(options.finalization.reason || ''))
+          && options.finalization.candidate
+          && options.finalization.candidate.goal
+          && String(options.finalization.candidate.goal.id || '') === String(goal.id || '')
+          && options.finalization.candidate.item
+          && String(options.finalization.candidate.item.name || '') === String(item.name || '')
+          && levelOf(options.finalization.candidate.item) === levelOf(item)
+        ),
+        alpha27FinalizationReason: options && options.finalization ? String(options.finalization.reason || '') : null
+      }
     };
     const result = await service.execute(plan);
     if (result && result.committed === true && goal.id != null) {
@@ -42734,6 +43078,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     for (const goal of goals) {
       const entry = ledger.list(1000).find((row) => row && row.character === c.name && row.name === goal.item && levelOf(row) === levelOf({ level: goal.observedLevel }) && EXPECTED_DISPOSITIONS.UPGRADE.has(String(row.disposition || '')));
       if (!entry || this.atomic.mutationRetryBlocked(entry, 'UPGRADE')) continue;
+      if (this._mutationTravelBackoff('UPGRADE', c.name, entry.name, levelOf(entry), entry.index)) continue;
       const meta = gd.items && gd.items[entry.name];
       if (!meta || !meta.upgrade || levelOf(entry) >= this.options.maxUpgradeLevel || gradeForLevel(meta, levelOf(entry)) >= 4) continue;
       const budget = this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: entry.name, level: levelOf(entry) });
@@ -42772,6 +43117,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         if (gradeForLevel(meta, level) >= 4) return false;
         const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
         if (value > this.options.upgradeValueCap) return false;
+        if (this._mutationTravelBackoff('UPGRADE', c.name, entry.name, level, entry.index)) return false;
         return this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: entry.name, level }).allowed;
       });
     if (!fallback) return null;
@@ -42823,16 +43169,18 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       .map((rows) => {
         const identity = `${rows[0].name}:${levelOf(rows[0])}`;
         const budget = this.atomic.mutationAttemptBudget({ type: 'COMPOUND', character: c.name, item: rows[0].name, level: levelOf(rows[0]) });
+        const travelBackoff = this._mutationTravelBackoff('COMPOUND', c.name, rows[0].name, levelOf(rows[0]), rows[0].index);
         return {
           rows,
           identity,
           completeSets: Math.floor(rows.length / 3),
           mutationBudget: budget,
+          travelBackoff,
           previousSelections: this.compoundSelectionCounts.get(identity) || 0,
           repeated: identity === this.lastCompoundIdentity
         };
       })
-      .filter((candidate) => candidate.mutationBudget && candidate.mutationBudget.allowed)
+      .filter((candidate) => candidate.mutationBudget && candidate.mutationBudget.allowed && !candidate.travelBackoff)
       .sort((a, b) => (
         // Drain the largest actionable backlog first, but never repeatedly starve
         // another identity merely because its item name sorts later (ringsj was
@@ -42858,6 +43206,44 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         compoundIdentity: picked.identity,
         completeSetsBefore: picked.completeSets,
         fairSelectionCount: picked.previousSelections + 1
+      }
+    };
+  }
+
+  planWorkspaceBank() {
+    const c = characterOf(this.runtime);
+    const ledger = this.runtime.inventoryLedger;
+    if (!c || !ledger || typeof ledger.status !== 'function' || typeof ledger.list !== 'function') return null;
+    const status = ledger.status();
+    const inventory = status && status.summary && status.summary.selfInventory || null;
+    const freeSlots = finite(inventory && inventory.freeSlots);
+    const workspaceSlots = Math.max(1, Math.floor(finite(inventory && inventory.workspaceSlots, finite(status && status.workspaceSlots, 3))));
+    if (freeSlots == null || freeSlots >= workspaceSlots) return null;
+
+    const bank = ledger.list(1000).find((row) => row
+      && row.character === c.name
+      && row.disposition === 'BANK');
+    if (!bank) return null;
+
+    const reasons = Array.isArray(bank.reasons) ? bank.reasons.map(String) : [];
+    const offlinePartyGearReserve = reasons.includes('OFFLINE_PARTY_GEAR_RESERVE');
+    return {
+      type: 'BANK',
+      character: c.name,
+      index: bank.index,
+      quantity: Math.max(1, finite(bank.q, 1)),
+      metadata: {
+        source: 'ALPHA27_WORKSPACE_RESERVE_RECOVERY',
+        workspaceReserveRecovery: true,
+        freeSlots,
+        workspaceSlots,
+        offlinePartyGearReserve,
+        bankUntilPartyReturn: offlinePartyGearReserve,
+        targetCharacter: offlinePartyGearReserve && bank.reservation ? bank.reservation.targetCharacter || null : null,
+        targetSlot: offlinePartyGearReserve && bank.reservation ? bank.reservation.targetSlot || null : null,
+        gearGoalIds: offlinePartyGearReserve && bank.reservation && Array.isArray(bank.reservation.goalIds)
+          ? bank.reservation.goalIds.slice(0, 32)
+          : []
       }
     };
   }
@@ -43191,7 +43577,21 @@ class Alpha27MerchantCore {
       const goals = this.runtime.gearProgression && typeof this.runtime.gearProgression.list === 'function' ? this.runtime.gearProgression.list(256) : [];
       const goal = goals.find((row) => row && String(row.id) === String(goalId));
       const targetName = plan.target && String(plan.target.name || '');
-      if (!goal || goal.character !== targetName || goal.item !== itemName || levelOf({ level: goal.observedLevel }) !== itemLevel || goal.projectedUpgradeRequired) return { executed: false, committed: false, reason: 'GEAR_GOAL_NOT_CURRENT' };
+      const safeIntermediate = !!(
+        plan
+        && plan.metadata
+        && plan.metadata.alpha27SafeIntermediateDelivery === true
+        && ['RISK_GATE_PREFERS_SAFE_CURRENT_PARTY_UPGRADE', 'HIGHEST_CURRENT_SAFE_LEVEL_REACHED'].includes(String(plan.metadata.alpha27FinalizationReason || ''))
+        && goal
+        && goal.observedMeaningful === true
+      );
+      if (!goal
+        || goal.character !== targetName
+        || goal.item !== itemName
+        || levelOf({ level: goal.observedLevel }) !== itemLevel
+        || (goal.projectedUpgradeRequired && !safeIntermediate)) {
+        return { executed: false, committed: false, reason: 'GEAR_GOAL_NOT_CURRENT' };
+      }
       if (typeof service._trusted === 'function' && !service._trusted(targetName)) return { executed: false, committed: false, reason: 'UNTRUSTED_DELIVERY_TARGET' };
       if (this.runtime.contentDrift && typeof this.runtime.contentDrift.requiresRevalidation === 'function' && this.runtime.contentDrift.requiresRevalidation('items', itemName)) return { executed: false, committed: false, reason: 'ITEM_REQUIRES_REVALIDATION' };
       const target = typeof service._visibleTarget === 'function' ? service._visibleTarget(targetName) : null;
@@ -59237,6 +59637,7 @@ class PersistentBankCatalog {
     if (!c || !c.bank || typeof c.bank !== 'object') return false;
     const rows = bankRows(c.bank);
     const packs = Object.keys(c.bank).filter((key) => /^items\d+$/.test(key) && Array.isArray(c.bank[key])).sort();
+    const packCapacities = Object.fromEntries(packs.map((pack) => [pack, c.bank[pack].length]));
     const quantities = {};
     for (const row of rows) {
       const key = `${row.name}|${row.level}`;
@@ -59247,6 +59648,7 @@ class PersistentBankCatalog {
       observedAt: this.now(),
       character: c.name || null,
       packs,
+      packCapacities,
       rows: clone(rows),
       quantities,
       source: 'LIVE_BANK'
@@ -65355,9 +65757,9 @@ class Alpha33MarkOrbitMerchantDelivery {
 
     if (typeof merchant.deliverGearGoal === 'function') {
       const baseDeliver = merchant.deliverGearGoal.bind(merchant);
-      merchant.deliverGearGoal = async () => {
+      merchant.deliverGearGoal = async (...args) => {
         const candidate = merchant.gearDeliveryCandidate();
-        if (!candidate || !candidate.goal || !candidate.item) return baseDeliver();
+        if (!candidate || !candidate.goal || !candidate.item) return baseDeliver(...args);
         const logistics = this.runtime.controlledPartyLogistics;
         if (!logistics || typeof logistics._send !== 'function') return baseDeliver();
         const goal = candidate.goal;
@@ -65407,7 +65809,7 @@ class Alpha33MarkOrbitMerchantDelivery {
           this._noteGearHold(stateAfterAck.safe ? 'GEAR_GOAL_CHANGED_AFTER_INTENT_ACK' : stateAfterAck.reason, goal);
           return false;
         }
-        return baseDeliver();
+        return baseDeliver(...args);
       };
     }
     merchant.__alpha33GearDeliverySafetyInstalled = true;

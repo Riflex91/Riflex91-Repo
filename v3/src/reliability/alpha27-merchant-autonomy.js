@@ -495,7 +495,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       return true;
     }
 
-    if (finalization.state === 'READY') return this.deliverGearGoal();
+    if (finalization.state === 'READY') return this.deliverGearGoal({ finalization });
     return false;
   }
 
@@ -561,6 +561,35 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     if (supplyPlan) {
       this.holdForCriticalPartySupply(supplyPlan);
       return false;
+    }
+
+    const workspaceBank = typeof this.planWorkspaceBank === 'function' ? this.planWorkspaceBank() : null;
+    if (workspaceBank && !this.transactionFamilyOpen('BANK')) {
+      const currentTask = this._taskCurrent();
+      if (currentTask && currentTask.owner === 'ALPHA27' && currentTask.kind === 'PROGRESSION_BATCH') {
+        this._taskRelease(currentTask.key, 'WORKSPACE_PRESSURE_PREEMPTS_PROGRESSION', {
+          freeSlots: workspaceBank.metadata && workspaceBank.metadata.freeSlots,
+          workspaceSlots: workspaceBank.metadata && workspaceBank.metadata.workspaceSlots
+        });
+      }
+      const remainingTask = this._taskCurrent();
+      if (!remainingTask || remainingTask.owner === 'ALPHA27' && remainingTask.kind === 'DISPOSAL') {
+        const lock = this._taskAcquire('DISPOSAL', 'alpha27:workspace-bank', {
+          type: 'BANK',
+          reason: 'WORKSPACE_RESERVE_RECOVERY'
+        });
+        if (lock.acquired) {
+          this.stats.workspaceReserveBankPreemptions = (this.stats.workspaceReserveBankPreemptions || 0) + 1;
+          this.lastMerchantPlan = {
+            at: this.now(),
+            action: 'WORKSPACE_BANK_RECOVERY',
+            reason: 'WORKSPACE_RESERVE_VIOLATED',
+            request: clone(workspaceBank)
+          };
+          try { return await this.executeEconomyRequest(workspaceBank); }
+          finally { this._taskRelease('alpha27:workspace-bank', 'WORKSPACE_BANK_STEP_COMPLETE'); }
+        }
+      }
     }
 
     let task = this._taskCurrent();
@@ -760,6 +789,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       partySupplyChainRefreshes: this.stats.partySupplyChainRefreshes || 0,
       partySupplyChainReleases: this.stats.partySupplyChainReleases || 0,
       progressionTaskNoProgressReleases: this.stats.progressionTaskNoProgressReleases || 0,
+      workspaceReserveBankPreemptions: this.stats.workspaceReserveBankPreemptions || 0,
       lastPartySupplyChainRelease: clone(this.lastPartySupplyChainRelease || null),
       atomicTransactions: true,
       realUpgrade: true,

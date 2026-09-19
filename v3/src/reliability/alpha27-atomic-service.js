@@ -114,9 +114,62 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
     return { ok: true, requested, destination: npcId, npcId, source: 'NPC_ID_FALLBACK' };
   }
 
+  _serviceTravelBackoffKey(destination, tx = null) {
+    const input = tx ? (transactionInputs(tx)[0] || {}) : {};
+    const requested = destination && typeof destination === 'object'
+      ? `${String(destination.map || '')}:${finite(destination.x, 'x')}:${finite(destination.y, 'y')}`
+      : String(destination == null ? '' : destination);
+    const type = String(tx && tx.type || '').toUpperCase();
+    const character = String(tx && tx.character || '');
+    const item = String(tx && (tx.item || input.item) || input.item || '');
+    const level = levelOf(tx && tx.level != null ? tx : input);
+    const rawIndex = input.index != null ? input.index : tx && tx.index;
+    const index = Number.isFinite(Number(rawIndex)) ? Number(rawIndex) : 'x';
+    return `${requested}|${type}|${character}|${item}|${level}|${index}`;
+  }
+
+  serviceTravelBackoffFor(destination, tx = null) {
+    if (!(this.serviceTravelBackoffs instanceof Map)) this.serviceTravelBackoffs = new Map();
+    const now = this.now();
+    for (const [key, row] of this.serviceTravelBackoffs.entries()) {
+      if (!row || finite(row.expiresAt, 0) <= now) this.serviceTravelBackoffs.delete(key);
+    }
+    const key = this._serviceTravelBackoffKey(destination, tx);
+    const row = this.serviceTravelBackoffs.get(key) || null;
+    if (!row) return null;
+    return { ...clone(row), key, active: true, remainingMs: Math.max(0, row.expiresAt - now) };
+  }
+
+  _armServiceTravelBackoff(destination, tx, reason) {
+    if (!/interrupted/i.test(String(reason || ''))) return null;
+    if (!(this.serviceTravelBackoffs instanceof Map)) this.serviceTravelBackoffs = new Map();
+    const now = this.now();
+    const durationMs = Math.max(3000, Math.min(30000, finite(this.options && this.options.serviceTravelInterruptedBackoffMs, 8000)));
+    const key = this._serviceTravelBackoffKey(destination, tx);
+    const row = {
+      at: now,
+      expiresAt: now + durationMs,
+      reason: 'SERVICE_TRAVEL_INTERRUPTED_BACKOFF',
+      sourceReason: String(reason || 'interrupted'),
+      destination: clone(destination),
+      transactionId: tx && tx.id || null,
+      type: tx && tx.type || null,
+      item: tx && tx.item || null
+    };
+    this.serviceTravelBackoffs.set(key, row);
+    this.stats.serviceTravelBackoffsArmed = (this.stats.serviceTravelBackoffsArmed || 0) + 1;
+    this._event('ALPHA27_SERVICE_TRAVEL_BACKOFF_ARMED', 'warn', row.reason, { ...clone(row), key, durationMs });
+    return { ...clone(row), key, active: true };
+  }
+
   async namedServiceTravel(destination, tx = null) {
     if (this.serviceTravelBusy) return { ok: false, reason: 'SERVICE_TRAVEL_BUSY' };
     if (!this.merchantActive() || !this.supervisorAllowed() || this.merchantInCombat()) return { ok: false, reason: 'SERVICE_TRAVEL_SAFETY_HOLD' };
+    const travelBackoff = this.serviceTravelBackoffFor(destination, tx);
+    if (travelBackoff) {
+      this.stats.serviceTravelBackoffBlocks = (this.stats.serviceTravelBackoffBlocks || 0) + 1;
+      return { ok: false, reason: 'SERVICE_TRAVEL_BACKOFF_ACTIVE', retryAt: travelBackoff.expiresAt, backoff: travelBackoff };
+    }
     const resolved = this.resolveServiceDestination(destination);
     if (!resolved.ok) {
       const reason = resolved.reason || 'SERVICE_DESTINATION_RESOLUTION_FAILED';
@@ -200,6 +253,7 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
         const result = await this.runtime.executeTravelPlan(planned.plan.id);
         if (!result || result.completed !== true) {
           const reason = result && result.reason || 'CONTROLLED_SERVICE_TRAVEL_FAILED';
+          this._armServiceTravelBackoff(resolved.requested != null ? resolved.requested : destination, tx, reason);
           if (tx) this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
           this.stats.failedSafe += 1;
           this._event('ALPHA27_SERVICE_TRAVEL_FAILED_SAFE', 'error', reason, { transactionId: tx && tx.id || null, requestedDestination: resolved.requested, resolvedDestination: clone(target), npcId: resolved.npcId, resolutionSource: resolved.source });
@@ -223,6 +277,7 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
       try { await Promise.resolve(stop.fn.call(stop.owner, 'smart')); } catch (_) {}
       const details = errorDetails(error);
       const reason = details.reason || 'SERVICE_TRAVEL_FAILED';
+      this._armServiceTravelBackoff(resolved.requested != null ? resolved.requested : destination, tx, reason);
       if (tx) this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
       this.stats.failedSafe += 1;
       this._event('ALPHA27_SERVICE_TRAVEL_FAILED_SAFE', 'error', reason, { transactionId: tx && tx.id || null, requestedDestination: resolved.requested, resolvedDestination: clone(target), npcId: resolved.npcId, resolutionSource: resolved.source, error: details });

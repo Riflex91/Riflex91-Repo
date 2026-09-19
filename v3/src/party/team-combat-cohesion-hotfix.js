@@ -104,11 +104,15 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
     }).sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  _selectTeamLeader(members) {
+    return selectCombatLeader(members);
+  }
+
   _team(snapshot) {
     const expectedNames = this._expectedCombatNames();
     const members = this._combatMembers(snapshot);
     const selfName = snapshot && snapshot.character && snapshot.character.name || null;
-    const leader = selectCombatLeader(members);
+    const leader = this._selectTeamLeader(members);
     const self = members.find((row) => row.name === selfName) || null;
     const topologyKnown = Array.isArray(expectedNames) && expectedNames.length >= 1 && expectedNames.length <= 3;
     const combatTypesValid = topologyKnown && members.every((row) => SUPPORTED_COMBAT_CLASSES.has(lower(row.ctype)));
@@ -133,7 +137,8 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
     const knownMpRatios = members.map((row) => ratio(row.mp, row.max_mp)).filter((value) => value != null);
     const healthReady = knownHpRatios.every((value) => value >= this.minNewFightHpRatio);
     const manaReady = knownMpRatios.every((value) => value >= this.minNewFightMpRatio);
-    const leaderTargetId = leader && leader.target != null ? String(leader.target) : null;
+    const leaderTarget = this._resolveLeaderTarget(leader);
+    const leaderTargetId = leaderTarget.targetId;
     const state = {
       members,
       names: members.map((row) => row.name),
@@ -143,6 +148,8 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
       leader,
       leaderName: leader && leader.name || null,
       leaderTargetId,
+      leaderTargetType: leaderTarget.targetType,
+      leaderTargetSource: leaderTarget.source,
       leaderPolicy: COMBAT_LEADER_POLICY,
       leaderPriority: leader ? combatLeaderPriority(leader) : null,
       complete,
@@ -158,6 +165,7 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
     };
     this.lastTeam = state;
     this._syncOrbitDirection(state);
+    this._broadcastLeaderTarget(state, snapshot);
     return state;
   }
 
@@ -238,5 +246,6 @@ module.exports = {
   TEAM_COMBAT_COHESION_MODE: base.TEAM_COMBAT_COHESION_MODE,
   COMBAT_LEADER_POLICY,
   COMBAT_LEADER_CLASS_PRIORITY,
-  selectCombatLeader
+  selectCombatLeader,
+  TEAM_TARGET_STATE_ACTION: base.TEAM_TARGET_STATE_ACTION
 };

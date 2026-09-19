@@ -23,6 +23,17 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     };
   }
 
+  _mutationTravelBackoff(type, character, item, level, index) {
+    if (!this.atomic || typeof this.atomic.serviceTravelBackoffFor !== 'function') return null;
+    return this.atomic.serviceTravelBackoffFor('newupgrade', {
+      type,
+      character,
+      item,
+      level,
+      index
+    });
+  }
+
   _liveGearItemForGoal(goal) {
     const inventory = inventoryOf(this.root);
     const matches = inventory.filter((row) => row
@@ -120,6 +131,16 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     const candidateEntry = rows.find((row) => Number(row.index) === Number(candidate.item.index)) || null;
 
     const makeRequest = (group, level, feederPreparation = false) => {
+      const travelBackoff = this._mutationTravelBackoff('COMPOUND', c.name, candidate.item.name, level, group[0] && group[0].index);
+      if (travelBackoff) {
+        return {
+          hold: true,
+          reason: 'GEAR_FINALIZATION_SERVICE_TRAVEL_BACKOFF',
+          retryAt: travelBackoff.expiresAt,
+          travelBackoff,
+          targetLevel: reachable.reachableLevel
+        };
+      }
       const budget = this.atomic.mutationAttemptBudget({ type: 'COMPOUND', character: c.name, item: candidate.item.name, level });
       if (!budget.allowed) {
         return {
@@ -220,6 +241,10 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     }
     if (this.atomic.mutationRetryBlocked(entry, 'UPGRADE')) {
       return { blocked: true, reason: 'GEAR_FINALIZATION_UPGRADE_RETRY_BLOCKED', targetLevel };
+    }
+    const travelBackoff = this._mutationTravelBackoff('UPGRADE', c.name, item.name, level, entry.index);
+    if (travelBackoff) {
+      return { hold: true, reason: 'GEAR_FINALIZATION_SERVICE_TRAVEL_BACKOFF', retryAt: travelBackoff.expiresAt, travelBackoff, targetLevel };
     }
     const budget = this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: item.name, level });
     if (!budget.allowed) {
@@ -380,7 +405,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     } catch (_) { return null; }
   }
 
-  async deliverGearGoal() {
+  async deliverGearGoal(options = {}) {
     const candidate = this.gearDeliveryCandidate();
     if (!candidate) return false;
     const { goal, item } = candidate;
@@ -432,7 +457,23 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       sourceReportAt,
       target: { name: goal.character, map: c.map, x: target.x, y: target.y },
       delivery: { itemName: goal.item, quantity: 1 },
-      metadata: { alpha27GearGoal: goal.id, itemLevel: levelOf(item) }
+      metadata: {
+        alpha27GearGoal: goal.id,
+        itemLevel: levelOf(item),
+        alpha27SafeIntermediateDelivery: !!(
+          options
+          && options.finalization
+          && options.finalization.state === 'READY'
+          && ['RISK_GATE_PREFERS_SAFE_CURRENT_PARTY_UPGRADE', 'HIGHEST_CURRENT_SAFE_LEVEL_REACHED'].includes(String(options.finalization.reason || ''))
+          && options.finalization.candidate
+          && options.finalization.candidate.goal
+          && String(options.finalization.candidate.goal.id || '') === String(goal.id || '')
+          && options.finalization.candidate.item
+          && String(options.finalization.candidate.item.name || '') === String(item.name || '')
+          && levelOf(options.finalization.candidate.item) === levelOf(item)
+        ),
+        alpha27FinalizationReason: options && options.finalization ? String(options.finalization.reason || '') : null
+      }
     };
     const result = await service.execute(plan);
     if (result && result.committed === true && goal.id != null) {
@@ -484,6 +525,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     for (const goal of goals) {
       const entry = ledger.list(1000).find((row) => row && row.character === c.name && row.name === goal.item && levelOf(row) === levelOf({ level: goal.observedLevel }) && EXPECTED_DISPOSITIONS.UPGRADE.has(String(row.disposition || '')));
       if (!entry || this.atomic.mutationRetryBlocked(entry, 'UPGRADE')) continue;
+      if (this._mutationTravelBackoff('UPGRADE', c.name, entry.name, levelOf(entry), entry.index)) continue;
       const meta = gd.items && gd.items[entry.name];
       if (!meta || !meta.upgrade || levelOf(entry) >= this.options.maxUpgradeLevel || gradeForLevel(meta, levelOf(entry)) >= 4) continue;
       const budget = this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: entry.name, level: levelOf(entry) });
@@ -522,6 +564,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         if (gradeForLevel(meta, level) >= 4) return false;
         const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
         if (value > this.options.upgradeValueCap) return false;
+        if (this._mutationTravelBackoff('UPGRADE', c.name, entry.name, level, entry.index)) return false;
         return this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: entry.name, level }).allowed;
       });
     if (!fallback) return null;
@@ -573,16 +616,18 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       .map((rows) => {
         const identity = `${rows[0].name}:${levelOf(rows[0])}`;
         const budget = this.atomic.mutationAttemptBudget({ type: 'COMPOUND', character: c.name, item: rows[0].name, level: levelOf(rows[0]) });
+        const travelBackoff = this._mutationTravelBackoff('COMPOUND', c.name, rows[0].name, levelOf(rows[0]), rows[0].index);
         return {
           rows,
           identity,
           completeSets: Math.floor(rows.length / 3),
           mutationBudget: budget,
+          travelBackoff,
           previousSelections: this.compoundSelectionCounts.get(identity) || 0,
           repeated: identity === this.lastCompoundIdentity
         };
       })
-      .filter((candidate) => candidate.mutationBudget && candidate.mutationBudget.allowed)
+      .filter((candidate) => candidate.mutationBudget && candidate.mutationBudget.allowed && !candidate.travelBackoff)
       .sort((a, b) => (
         // Drain the largest actionable backlog first, but never repeatedly starve
         // another identity merely because its item name sorts later (ringsj was
@@ -608,6 +653,44 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         compoundIdentity: picked.identity,
         completeSetsBefore: picked.completeSets,
         fairSelectionCount: picked.previousSelections + 1
+      }
+    };
+  }
+
+  planWorkspaceBank() {
+    const c = characterOf(this.runtime);
+    const ledger = this.runtime.inventoryLedger;
+    if (!c || !ledger || typeof ledger.status !== 'function' || typeof ledger.list !== 'function') return null;
+    const status = ledger.status();
+    const inventory = status && status.summary && status.summary.selfInventory || null;
+    const freeSlots = finite(inventory && inventory.freeSlots);
+    const workspaceSlots = Math.max(1, Math.floor(finite(inventory && inventory.workspaceSlots, finite(status && status.workspaceSlots, 3))));
+    if (freeSlots == null || freeSlots >= workspaceSlots) return null;
+
+    const bank = ledger.list(1000).find((row) => row
+      && row.character === c.name
+      && row.disposition === 'BANK');
+    if (!bank) return null;
+
+    const reasons = Array.isArray(bank.reasons) ? bank.reasons.map(String) : [];
+    const offlinePartyGearReserve = reasons.includes('OFFLINE_PARTY_GEAR_RESERVE');
+    return {
+      type: 'BANK',
+      character: c.name,
+      index: bank.index,
+      quantity: Math.max(1, finite(bank.q, 1)),
+      metadata: {
+        source: 'ALPHA27_WORKSPACE_RESERVE_RECOVERY',
+        workspaceReserveRecovery: true,
+        freeSlots,
+        workspaceSlots,
+        offlinePartyGearReserve,
+        bankUntilPartyReturn: offlinePartyGearReserve,
+        targetCharacter: offlinePartyGearReserve && bank.reservation ? bank.reservation.targetCharacter || null : null,
+        targetSlot: offlinePartyGearReserve && bank.reservation ? bank.reservation.targetSlot || null : null,
+        gearGoalIds: offlinePartyGearReserve && bank.reservation && Array.isArray(bank.reservation.goalIds)
+          ? bank.reservation.goalIds.slice(0, 32)
+          : []
       }
     };
   }

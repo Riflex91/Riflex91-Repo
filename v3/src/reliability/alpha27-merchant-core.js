@@ -39,7 +39,21 @@ class Alpha27MerchantCore {
       const goals = this.runtime.gearProgression && typeof this.runtime.gearProgression.list === 'function' ? this.runtime.gearProgression.list(256) : [];
       const goal = goals.find((row) => row && String(row.id) === String(goalId));
       const targetName = plan.target && String(plan.target.name || '');
-      if (!goal || goal.character !== targetName || goal.item !== itemName || levelOf({ level: goal.observedLevel }) !== itemLevel || goal.projectedUpgradeRequired) return { executed: false, committed: false, reason: 'GEAR_GOAL_NOT_CURRENT' };
+      const safeIntermediate = !!(
+        plan
+        && plan.metadata
+        && plan.metadata.alpha27SafeIntermediateDelivery === true
+        && ['RISK_GATE_PREFERS_SAFE_CURRENT_PARTY_UPGRADE', 'HIGHEST_CURRENT_SAFE_LEVEL_REACHED'].includes(String(plan.metadata.alpha27FinalizationReason || ''))
+        && goal
+        && goal.observedMeaningful === true
+      );
+      if (!goal
+        || goal.character !== targetName
+        || goal.item !== itemName
+        || levelOf({ level: goal.observedLevel }) !== itemLevel
+        || (goal.projectedUpgradeRequired && !safeIntermediate)) {
+        return { executed: false, committed: false, reason: 'GEAR_GOAL_NOT_CURRENT' };
+      }
       if (typeof service._trusted === 'function' && !service._trusted(targetName)) return { executed: false, committed: false, reason: 'UNTRUSTED_DELIVERY_TARGET' };
       if (this.runtime.contentDrift && typeof this.runtime.contentDrift.requiresRevalidation === 'function' && this.runtime.contentDrift.requiresRevalidation('items', itemName)) return { executed: false, committed: false, reason: 'ITEM_REQUIRES_REVALIDATION' };
       const target = typeof service._visibleTarget === 'function' ? service._visibleTarget(targetName) : null;

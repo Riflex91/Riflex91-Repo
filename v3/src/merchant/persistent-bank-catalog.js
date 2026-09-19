@@ -57,6 +57,7 @@ class PersistentBankCatalog {
     if (!c || !c.bank || typeof c.bank !== 'object') return false;
     const rows = bankRows(c.bank);
     const packs = Object.keys(c.bank).filter((key) => /^items\d+$/.test(key) && Array.isArray(c.bank[key])).sort();
+    const packCapacities = Object.fromEntries(packs.map((pack) => [pack, c.bank[pack].length]));
     const quantities = {};
     for (const row of rows) {
       const key = `${row.name}|${row.level}`;
@@ -67,6 +68,7 @@ class PersistentBankCatalog {
       observedAt: this.now(),
       character: c.name || null,
       packs,
+      packCapacities,
       rows: clone(rows),
       quantities,
       source: 'LIVE_BANK'
