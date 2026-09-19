@@ -56,7 +56,26 @@
       "required": [
         "correlationType",
         "requestId"
-      ]
+      ],
+      "properties": {
+        "requestId": {
+          "enum": [
+            true,
+            false,
+            "UNKNOWN"
+          ]
+        },
+        "correlationType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transportEvent": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
     },
     "server": {
       "type": "object",
