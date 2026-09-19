@@ -304,8 +304,9 @@ if (exchangeCraft.exchangeBuy?.optimisticGuard?.includes('item.q == data.q') !==
 if (exchangeCraft.craft?.normalCraft?.currentRecipeDuplicateIngredientNames !== 0) {
   fail('P0-06 aktuelle Normal-Craft-Annahme zu Duplicate Ingredients stimmt nicht.');
 }
-if (exchangeCraft.craft?.anniversaryCraft?.multiStackSupport?.includes('multiple stacks') !== true) {
-  fail('P0-06 Anniversary Multi-Stack-Semantik fehlt.');
+if (!exchangeCraft.craft?.anniversaryCraft?.multiStackSupport?.includes('stacks')
+    || !exchangeCraft.craft?.anniversaryCraft?.trustedPlanning?.includes('full live inventory')) {
+  fail('P0-06 Anniversary Multi-Stack-/Trusted-Plan-Semantik fehlt.');
 }
 if (exchangeCraft.dismantle?.leveledCompoundPath?.outputspace?.includes('player.esize >= 2') !== true) {
   fail('P0-06 Leveled-Compound-Dismantle Outputspace fehlt.');
