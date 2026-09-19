@@ -16,9 +16,25 @@ function clone(value) {
   try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
 }
 
+function currentPartyFingerprintKey(runtime) {
+  const raw = runtime && runtime.currentPartyFingerprint;
+  if (!raw) return null;
+  if (typeof raw === 'string') return raw;
+  if (raw && typeof raw.key === 'string') return raw.key;
+  return null;
+}
+
 function bestMeasuredKillsPerHour(runtime, monster) {
   const world = runtime && runtime.world;
-  if (!world || !(world.performance instanceof Map)) return null;
+  if (!world) return null;
+  const fingerprint = currentPartyFingerprintKey(runtime);
+  if (fingerprint && typeof world.performanceFor === 'function') {
+    try {
+      const current = world.performanceFor(monster, fingerprint);
+      if (current && finite(current.seconds, 0) >= 60 && finite(current.killsPerHour, 0) > 0) return finite(current.killsPerHour, 0);
+    } catch (_) {}
+  }
+  if (!(world.performance instanceof Map)) return null;
   const rows = [...world.performance.values()]
     .filter((row) => row && row.monster === monster && finite(row.seconds, 0) >= 60)
     .map((row) => {
@@ -28,6 +44,24 @@ function bestMeasuredKillsPerHour(runtime, monster) {
     .filter((row) => row.kph > 0)
     .sort((a, b) => b.seconds - a.seconds || b.kph - a.kph);
   return rows.length ? rows[0].kph : null;
+}
+
+function partyHeldQuantity(runtime, name, level = 0) {
+  const registry = runtime && runtime.characterRegistry;
+  let status = null;
+  try { status = registry && typeof registry.status === 'function' ? registry.status() : null; } catch (_) { status = null; }
+  const rows = Array.isArray(status && status.characters) ? status.characters : [];
+  let total = 0;
+  for (const character of rows) {
+    if (!character || String(character.ctype || character.type || '').toLowerCase() === 'merchant') continue;
+    const inventory = Array.isArray(character.inventory) ? character.inventory : Array.isArray(character.items) ? character.items : [];
+    for (const item of inventory) {
+      if (!item || String(item.name || '') !== String(name || '')) continue;
+      if (Math.max(0, Math.floor(finite(item.level, 0))) !== Math.max(0, Math.floor(finite(level, 0)))) continue;
+      total += Math.max(1, Math.floor(finite(item.q, 1)));
+    }
+  }
+  return total;
 }
 
 function sourceSafe(runtime, monster, spawn) {
@@ -112,12 +146,22 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
     if (step.level !== 0) {
       return { eligible: false, reason: 'LEVELED_MATERIAL_REQUIRES_PROGRESSION', material: clone(step) };
     }
-    const source = bestDirectMaterialFarmSource(runtime, step.name, step.quantity, options);
-    if (!source) return { eligible: false, reason: 'NO_SAFE_DIRECT_FARM_SOURCE', material: clone(step) };
-    materials.push({ ...clone(step), source });
+    const alreadyOnFarmers = partyHeldQuantity(runtime, step.name, step.level);
+    const remainingToFarm = Math.max(0, step.quantity - alreadyOnFarmers);
+    if (remainingToFarm <= 0) {
+      materials.push({ ...clone(step), alreadyOnFarmers, remainingToFarm: 0, source: null, awaitingTransfer: true });
+      continue;
+    }
+    const source = bestDirectMaterialFarmSource(runtime, step.name, remainingToFarm, options);
+    if (!source) return { eligible: false, reason: 'NO_SAFE_DIRECT_FARM_SOURCE', material: { ...clone(step), alreadyOnFarmers, remainingToFarm } };
+    materials.push({ ...clone(step), alreadyOnFarmers, remainingToFarm, source });
   }
 
-  const totalExpectedHours = materials.reduce((sum, row) => sum + finite(row.source && row.source.expectedHours, Infinity), 0);
+  if (materials.every((row) => row.awaitingTransfer === true)) {
+    return { eligible: false, reason: 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER', materials };
+  }
+
+  const totalExpectedHours = materials.reduce((sum, row) => sum + (row.source ? finite(row.source.expectedHours, Infinity) : 0), 0);
   if (!Number.isFinite(totalExpectedHours)) return { eligible: false, reason: 'FARM_TIME_ESTIMATE_UNAVAILABLE', materials };
   const maxTeamFarmHours = Math.max(0.25, finite(options.maxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS));
   const longPath = totalExpectedHours > maxTeamFarmHours;
@@ -130,7 +174,7 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
       + Math.max(0, finite(target.speedImprovement, 0)) * 10
   );
   const utilityPerFarmHour = benefit / Math.max(0.01, totalExpectedHours);
-  const nextMaterial = materials.slice().sort((a, b) =>
+  const nextMaterial = materials.filter((row) => row.source).sort((a, b) =>
     finite(b.source && b.source.expectedHours, 0) - finite(a.source && a.source.expectedHours, 0)
     || a.name.localeCompare(b.name)
   )[0];
@@ -180,7 +224,9 @@ module.exports = {
   PRODUCTION_MATERIAL_ACQUISITION_MODE,
   DEFAULT_MAX_TEAM_FARM_HOURS,
   DEFAULT_FALLBACK_KILLS_PER_HOUR,
+  currentPartyFingerprintKey,
   bestMeasuredKillsPerHour,
+  partyHeldQuantity,
   bestDirectMaterialFarmSource,
   aggregateFarmSteps,
   estimateBlockedProductionCandidate,
