@@ -72,3 +72,22 @@ Wichtige Artefakte:
 - `.github/workflows/v5-r3.yml` – exakter-Head R3-CI.
 
 Aktuelle Phase ist R4. Das Gameplay-Runtime-Gesamtgate bleibt GESPERRT.
+
+
+## R4 – Deterministischer Core
+
+R4 ist abgeschlossen. Der deterministische no-write Core liegt weiterhin unter `grundlage/**`; das Gameplay-Runtime-Gesamtgate bleibt GESPERRT.
+
+Wichtige Artefakte:
+- `roadmap/r4-abschluss.json` – maschinenlesbarer R4-Abschluss;
+- `grundlage/quelle/determinismus/**` – Uhr-, Zufalls-, Kennungs- und Sequenzports;
+- `grundlage/quelle/kern/domaenen-ereignis.ts` – immutable Events mit Korrelation/Kausalitaet;
+- `grundlage/quelle/kern/geschlossener-zustandsautomat.ts` – fail-closed Automatenkern;
+- `grundlage/quelle/kern/kanonische-serialisierung.ts` – deterministische Serialisierung;
+- `grundlage/quelle/testlabor/replay-format.ts` – versioniertes Replay-Format;
+- `grundlage/tests/r4-determinismus.test.mjs` – Determinismus-/Replay-Beweise;
+- `werkzeuge/r4-zustandsmodelle-pruefen.mjs` – 13/13 Automatenvalidierung;
+- `architektur/adr/ADR-002-DETERMINISTISCHER-CORE.md` – Architekturentscheidung;
+- `.github/workflows/v5-r4.yml` – exaktes-Head R4-CI.
+
+Aktuelle Phase ist R5.
