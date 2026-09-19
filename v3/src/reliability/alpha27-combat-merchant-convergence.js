@@ -6,6 +6,7 @@ const { Alpha27AtomicEconomy } = require('./alpha27-atomic-economy');
 const { Alpha27MerchantAutonomy } = require('./alpha27-merchant-autonomy');
 const { installAlpha28LiveAuthorityLiveness } = require('./alpha28-live-authority-liveness');
 const { installMerchantTaskCoordinator } = require('../merchant/merchant-task-coordinator');
+const { installMerchantRouteStability } = require('../merchant/merchant-route-stability');
 
 const ALPHA27_MODE = 'alpha27-combat-merchant-convergence-v1';
 
@@ -182,6 +183,7 @@ class Alpha27CombatMerchantConvergence {
     this.legacyProgressionGradeGuardInstalled = installLegacyProgressionGradeGuard(runtime);
     this.stats = initialStats();
     this.taskCoordinator = installMerchantTaskCoordinator(runtime, options);
+    this.routeStability = installMerchantRouteStability(runtime, options);
     const shared = { now: this.now, log: this.log, options: this.options, stats: this.stats, taskCoordinator: this.taskCoordinator };
     this.combat = new Alpha27CombatOwnership(runtime, shared);
     this.atomic = new Alpha27AtomicEconomy(runtime, shared);
@@ -241,6 +243,7 @@ class Alpha27CombatMerchantConvergence {
       merchant: {
         autonomous: true,
         taskCoordinator: this.taskCoordinator ? this.taskCoordinator.status() : null,
+        routeStability: this.routeStability ? this.routeStability.status() : null,
         centralLedgerPlanner: true,
         atomicTransactions: true,
         realUpgrade: true,
