@@ -208,3 +208,13 @@
   "erkanntAm": "2026-09-19T18:42:40.6948256+00:00",
   "art": "NEU_ERFASST"
 }
+{
+  "kennung": "AL-OFFICIAL-DOCS-HUB",
+  "titel": "Adventure Land \u2014 Website / Docs Hub",
+  "adresse": "https://adventure.land/",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": "53050c0668ad44b9de597374c448d6da987d8c00da256256542574f2af435494",
+  "neuerInhaltSha256": "641df3a6cf5df059b4d2b89a3a1f5c271de8d9c83d9d003c7bda6adeacbd33f3",
+  "erkanntAm": "2026-09-19T18:42:59.8065086+00:00",
+  "art": "INHALT_GEAENDERT"
+}

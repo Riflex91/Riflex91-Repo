@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "gestartetAm": "2026-09-19T18:42:40.6948256+00:00",
-  "beendetAm": "2026-09-19T18:42:48.2017863+00:00",
+  "gestartetAm": "2026-09-19T18:42:59.8065086+00:00",
+  "beendetAm": "2026-09-19T18:43:02.160289+00:00",
   "intervallMinuten": 60,
   "gepruefteQuellen": 21,
-  "geaenderteQuellen": 21,
-  "neueKandidaten": 10,
+  "geaenderteQuellen": 1,
+  "neueKandidaten": 0,
   "registrierteQuellen": 21,
   "uploadStatus": "GITHUB_PUSH_GEPLANT",
   "sicherheitsHinweis": "Automatische Funde sind Evidence/Kandidaten. Community-Funde werden nicht automatisch zu bestaetigten Fakten."
