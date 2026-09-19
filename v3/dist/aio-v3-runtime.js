@@ -26829,6 +26829,9 @@ module.exports = {
 const COMBAT_CLASSES = new Set(['warrior', 'paladin', 'rogue', 'ranger', 'mage', 'priest']);
 const ACTIVE_CHARACTER_STATES = new Set(['self', 'starting', 'loading', 'active', 'code']);
 
+// Account identity comes from get_characters(); get_active_characters() is only
+// a same-account runner/liveness compatibility source and never invents names.
+
 function cleanName(value) {
   const name = String(value == null ? '' : value).trim();
   return name || null;
