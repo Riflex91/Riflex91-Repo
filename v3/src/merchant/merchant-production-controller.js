@@ -727,7 +727,7 @@ function installMerchantProduction(runtime, options = {}) {
             transferPending: true,
             p50Hours: source && source.p50Hours || 0,
             p90Hours: source && source.p90Hours || 0,
-            probabilityConfidence: source && source.probabilityConfidence == null ? null : source.probabilityConfidence
+            probabilityConfidence: source && source.probabilityConfidence != null ? source.probabilityConfidence : null
           }
         });
         if (typeof logistics.publishProductionMaterialHandoffReady !== 'function') return true;
@@ -748,7 +748,7 @@ function installMerchantProduction(runtime, options = {}) {
           eventType: source && source.eventType || null,
           eventEndsAt: source && source.eventEndsAt || null,
           timeModel: source && source.timeModel || PROBABILISTIC_FARM_TIME_MODEL,
-          probabilityConfidence: source && source.probabilityConfidence == null ? null : source.probabilityConfidence,
+          probabilityConfidence: source && source.probabilityConfidence != null ? source.probabilityConfidence : null,
           graphNode: clone(source && source.graphNode || null),
           expiresAt
         });
