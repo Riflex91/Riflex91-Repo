@@ -5,6 +5,9 @@ const anforderungen = lies("anforderungen/anforderungen.json").anforderungen
 const fitness = lies("fitness/fitness-regeln.json").regeln.filter(x => x.phase === "R6");
 const bereitschaft = lies("bereitschaft/laufzeit-bereitschaft.json");
 const anzeigekatalogAbdeckung = lies("r6-anzeigekatalog-abdeckung.json");
+const skillUebersetzungen = lies("anzeigetexte/skill-uebersetzungen.json");
+const itemUebersetzungen = lies("anzeigetexte/item-uebersetzungen.json");
+const monsterLokalisierung = lies("anzeigetexte/monster-lokalisierungspruefung.json");
 const nachweis = {
   schemaVersion: 1,
   phase: "R6",
@@ -16,6 +19,13 @@ const nachweis = {
   r6MussAnforderungen: anforderungen.length,
   r6Fitnessregeln: fitness.length,
   anforderungenNachgewiesen: anforderungen.filter(x => x.status === "R6_NACHGEWIESEN").length,
+  produktiverAnzeigekatalog: {
+    skillUebersetzungen: skillUebersetzungen.uebersetzteEintraege,
+    itemQuellvorkommen: itemUebersetzungen.quellenVorkommen,
+    itemEindeutigeKennungen: itemUebersetzungen.eindeutigeKennungen,
+    monsterLokalisierung: monsterLokalisierung.monsterQuelle.eintraege,
+    monsterFallback: monsterLokalisierung.fallback,
+  },
   anzeigekatalogAbdeckung: {
     status: anzeigekatalogAbdeckung.status,
     skills: anzeigekatalogAbdeckung.kategorien.FAEHIGKEIT,

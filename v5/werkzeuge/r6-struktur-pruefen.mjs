@@ -33,6 +33,9 @@ for (const pfad of [
   "anzeigetexte/katalog.schema.json",
   "werkzeuge/r6-anzeigekatalog-abdeckung.mjs",
   "anzeigetexte/katalog.json",
+  "anzeigetexte/monster-lokalisierungspruefung.json",
+  "anzeigetexte/item-uebersetzungen.json",
+  "anzeigetexte/skill-uebersetzungen.json",
   "anzeigetexte/npc-quellenbestand.json",
   "grundlage/tests/r6-anzeigekatalog.test.mjs",
   "grundlage/quelle/anzeige/anzeigekatalog.ts",
@@ -78,6 +81,9 @@ if (abdeckung.kategorien?.KLASSE?.erwartet !== 7
   fehler("Aktuelle sieben Klassen muessen 7/7 im produktiven Anzeigekatalog abgedeckt sein.");
 }
 for (const [kategorie, erwartet] of [
+  ["FAEHIGKEIT", 129],
+  ["GEGENSTAND", 628],
+  ["MONSTER", 129],
   ["EREIGNIS", 11],
   ["AKTION", 60],
   ["STATUS", 102],
@@ -86,7 +92,7 @@ for (const [kategorie, erwartet] of [
 ]) {
   const wert = abdeckung.kategorien?.[kategorie];
   if (!wert || wert.erwartet !== erwartet || wert.abgedeckt !== erwartet || wert.fehlendAnzahl !== 0) {
-    fehler("Aktuelle Events Aktionen Status NPCs und Aufgaben muessen vollstaendig abgedeckt sein: " + kategorie);
+    fehler("Produktive Skill Item Monster Abdeckung sowie Events Aktionen Status NPCs und Aufgaben muss vollstaendig sein: " + kategorie);
   }
 }
 
@@ -210,5 +216,24 @@ for (const exportPfad of [
   "./wissen/live-wissens-publizierer.js","./wissen/beobachtungs-evidence-ablage.js",
 ]) {
   if (!index.includes(exportPfad)) fehler("Index-Export fehlt: " + exportPfad);
+}
+const produktiverKatalog = lies("anzeigetexte/katalog.json");
+if (produktiverKatalog.katalogVersion < 4) fehler("Produktiver Anzeigekatalog muss mindestens Version 4 sein.");
+const katalogAnzahl = kategorie => produktiverKatalog.eintraege.filter(e => e.kategorie === kategorie).length;
+if (katalogAnzahl("FAEHIGKEIT") !== 129
+    || katalogAnzahl("GEGENSTAND") !== 626
+    || katalogAnzahl("MONSTER") !== 129) {
+  fehler("Produktiver Anzeigekatalog hat unerwartete Skill/Item/Monster-Anzahl.");
+}
+if (produktiverKatalog.eintraege
+    .filter(e => e.kategorie === "FAEHIGKEIT")
+    .some(e => !e.deutscherAnzeigename?.trim() || !e.deutscheBeschreibung?.trim())) {
+  fehler("Produktiver Skill-Katalog enthaelt Luecken.");
+}
+if (produktiverKatalog.eintraege
+    .filter(e => e.kategorie === "MONSTER")
+    .some(e => !["DEUTSCH_OFFIZIELL","ORIGINALNAME_ERLAUBT"].includes(e.quellenStatus)
+      || !e.originalName?.trim())) {
+  fehler("Produktiver Monster-Katalog verletzt die Quellenregel.");
 }
 console.log("[V5-R6-STRUKTUR] OK / Runtime-Gate:", bereitschaft.status);

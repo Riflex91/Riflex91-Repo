@@ -3,6 +3,9 @@ import fs from "node:fs";
 
 const liesText = pfad => fs.readFileSync(pfad, "utf8");
 const katalog = JSON.parse(liesText("anzeigetexte/katalog.json"));
+const skillUebersetzungen = JSON.parse(liesText("anzeigetexte/skill-uebersetzungen.json"));
+const itemUebersetzungen = JSON.parse(liesText("anzeigetexte/item-uebersetzungen.json"));
+const monsterLokalisierung = JSON.parse(liesText("anzeigetexte/monster-lokalisierungspruefung.json"));
 
 const quellen = [
   {
@@ -65,6 +68,22 @@ function eintragGueltig(eintrag, quelle) {
     return false;
   }
   return true;
+}
+
+if (skillUebersetzungen.erwarteteEintraege !== 129
+    || skillUebersetzungen.uebersetzteEintraege !== 129
+    || skillUebersetzungen.eintraege?.length !== 129) {
+  throw new Error("[V5-R6-ANZEIGEKATALOG] Skill-Uebersetzungsartefakt muss 129/129 enthalten.");
+}
+if (itemUebersetzungen.quellenVorkommen !== 628
+    || itemUebersetzungen.eindeutigeKennungen !== 626
+    || itemUebersetzungen.eintraege?.length !== 626) {
+  throw new Error("[V5-R6-ANZEIGEKATALOG] Item-Uebersetzungsartefakt muss 628 Vorkommen / 626 effektive IDs enthalten.");
+}
+if (monsterLokalisierung.monsterQuelle?.eintraege !== 129
+    || monsterLokalisierung.monster?.length !== 129
+    || monsterLokalisierung.fallback !== "ORIGINALNAME_ERLAUBT") {
+  throw new Error("[V5-R6-ANZEIGEKATALOG] Monster-Lokalisierungsnachweis muss 129 Monster und die revalidierte Originalname-Regel enthalten.");
 }
 
 const doppelt = new Set();
@@ -190,6 +209,16 @@ const quellenKategorienBereit = Object.values(kategorien)
   .every(kategorie => kategorie.fehlendAnzahl === 0);
 const weitereBereit = Object.values(weiterePflichtKategorien)
   .every(status => status === "BEREIT");
+
+if (kategorien.FAEHIGKEIT?.erwartet !== 129 || kategorien.FAEHIGKEIT?.fehlendAnzahl !== 0) {
+  throw new Error("[V5-R6-ANZEIGEKATALOG] Skills muessen 129/129 abgedeckt sein.");
+}
+if (kategorien.GEGENSTAND?.erwartet !== 628 || kategorien.GEGENSTAND?.fehlendAnzahl !== 0) {
+  throw new Error("[V5-R6-ANZEIGEKATALOG] Item-Quellvorkommen muessen 628/628 abgedeckt sein.");
+}
+if (kategorien.MONSTER?.erwartet !== 129 || kategorien.MONSTER?.fehlendAnzahl !== 0) {
+  throw new Error("[V5-R6-ANZEIGEKATALOG] Monster muessen 129/129 abgedeckt sein.");
+}
 
 const bericht = {
   schemaVersion: 1,
