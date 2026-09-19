@@ -238,7 +238,8 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     } catch (_) { projectedGoal = null; }
     if (!projectedGoal) return { hold: true, reason: 'GEAR_FINALIZATION_PROJECTED_GOAL_PENDING', targetLevel };
 
-    const stepwiseFarmerProgression = String(projectedGoal.character || '') !== String(c.name || '');
+    const farmerPlus5 = String(projectedGoal.character || '') !== String(c.name || '')
+      && Math.floor(finite(projectedGoal.targetLevel, 0)) === 5;
     return {
       request: {
         type: 'UPGRADE',
@@ -252,7 +253,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
           targetCharacter: projectedGoal.character,
           targetSlot: projectedGoal.slot,
           lifecycle: 'FARMER_GEAR_DELIVERY_FINALIZATION',
-          upgradeLifecycle: stepwiseFarmerProgression ? 'FARMER_STEPWISE_RISK_MANAGED' : 'PARTY_GEAR_GOAL',
+          upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : 'PARTY_GEAR_GOAL',
           scrollPolicy: 'ITEM_GRADE_DEFAULT',
           targetedGearFinalization: true
         }
@@ -495,7 +496,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
           targetLevel: goal.targetLevel,
           targetCharacter: goal.character,
           lifecycle: 'PARTY_GEAR_GOAL',
-          upgradeLifecycle: stepwiseFarmerProgression ? 'FARMER_STEPWISE_RISK_MANAGED' : 'PARTY_GEAR_GOAL',
+          upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : 'PARTY_GEAR_GOAL',
           scrollPolicy: 'ITEM_GRADE_DEFAULT'
         }
       };
