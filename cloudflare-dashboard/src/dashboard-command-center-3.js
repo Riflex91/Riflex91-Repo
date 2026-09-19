@@ -33,6 +33,7 @@ export const DASHBOARD_FRAGMENT_3 = `  <p>Verbinde dich mit dem v3-Dashboard. De
       <span class="sub">Gilt global für automatische Compounds · Hard Cap +10</span>
     </div>
     <div class="notice">Rechtsklick auf ein Item öffnet dieselben Regeln wie im Charakter-Inventar: Auto / Erlauben / Verbieten für Verkaufen, Bank, Kombinieren und Verbessern.</div>
+    <div id="automationCatalogHealth" class="notice">Item-Datenbank wird geprüft …</div>
     <div id="automationGrid" class="automation-grid"></div>
   </section>
 
