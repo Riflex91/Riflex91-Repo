@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "laufzeitPfadKennung": "block8.5-basisbedienung-runtime",
+  "aenderungsKennung": "git:88185523c81687dc16f9647ca5e7568c5e2c228c",
+  "nachweis": {
+    "schemaVersion": 1,
+    "laufzeitPfadKennung": "block8.5-basisbedienung-runtime",
+    "aenderungsKennung": "git:88185523c81687dc16f9647ca5e7568c5e2c228c",
+    "stufe": "kontrolliert_live",
+    "nachweisKennung": "block8-5-schatten-1789775266269:kontrolliert_live",
+    "ergebnis": "bestanden",
+    "durchgefuehrtAm": 1789776285337,
+    "deterministisch": false,
+    "spielAktionAusgefuehrt": true,
+    "begrenzt": true,
+    "telemetrieNachweis": false,
+    "recoveryNachweis": false,
+    "gesamtauswertungBestanden": false
+  },
+  "reportEvidence": {
+    "quelle": "chat_paste",
+    "erstelltAm": "2026-09-19T00:04:55.339Z",
+    "status": "PASS",
+    "statusText": "Kontrollierter Live-Test bestanden: genau eine sichere Pause und bestaetigte Fortsetzung; Produktionsheartbeat blieb aktiv.",
+    "laufKennung": "block8-5-schatten-1789775266269",
+    "runnerVersion": "1.1.0",
+    "confirmationInitiallyBlocked": true
+  },
+  "runtimeEvidence": {
+    "runtimeVersion": "1.1.5",
+    "runtimeSha256": "95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f",
+    "runtimeUrl": "https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/88185523c81687dc16f9647ca5e7568c5e2c228c/aio-v4-runtime.js",
+    "aktivFreigegeben": true,
+    "empfangInstalliert": true,
+    "heartbeatAktiv": true,
+    "heartbeatVersuchePreflight": 1,
+    "heartbeatErfolgePreflight": 1,
+    "heartbeatFehlerPreflight": 0,
+    "generationPreflight": 0,
+    "schattenNachweisKennung": "block8-5-schatten-1789775266269:schatten"
+  },
+  "bedienEvidence": {
+    "gestartetAm": 1789776285337,
+    "generationVorher": 0,
+    "generationNachPause": 1,
+    "generationNachFortsetzen": 2,
+    "pauseStatus": "ausgefuehrt",
+    "fortsetzenStatus": "ausgefuehrt",
+    "heartbeatErfolgeVorher": 17,
+    "heartbeatErfolgeNachPause": 17,
+    "heartbeatErfolgeNachFortsetzen": 17
+  },
+  "liveUebergabe": {
+    "schemaVersion": 1,
+    "laufzeitPfadKennung": "block8.5-basisbedienung-runtime",
+    "aenderungsKennung": "git:88185523c81687dc16f9647ca5e7568c5e2c228c",
+    "laufKennung": "block8-5-schatten-1789775266269",
+    "runtimeVersion": "1.1.5",
+    "runtimeSha256": "95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f",
+    "runtimeUrl": "https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/88185523c81687dc16f9647ca5e7568c5e2c228c/aio-v4-runtime.js",
+    "generationVorher": 0,
+    "generationNachPause": 1,
+    "generationNachFortsetzen": 2,
+    "heartbeatErfolgePreflight": 1,
+    "heartbeatFehlerPreflight": 0,
+    "pauseStatus": "ausgefuehrt",
+    "fortsetzenStatus": "ausgefuehrt",
+    "nachweis": {
+      "schemaVersion": 1,
+      "laufzeitPfadKennung": "block8.5-basisbedienung-runtime",
+      "aenderungsKennung": "git:88185523c81687dc16f9647ca5e7568c5e2c228c",
+      "stufe": "kontrolliert_live",
+      "nachweisKennung": "block8-5-schatten-1789775266269:kontrolliert_live",
+      "ergebnis": "bestanden",
+      "durchgefuehrtAm": 1789776285337,
+      "deterministisch": false,
+      "spielAktionAusgefuehrt": true,
+      "begrenzt": true,
+      "telemetrieNachweis": false,
+      "recoveryNachweis": false,
+      "gesamtauswertungBestanden": false
+    }
+  },
+  "auswertungErwartet": {
+    "offline": "bestanden",
+    "schatten": "bestanden",
+    "kontrolliertLive": "bestanden",
+    "naechsteStufe": "soak",
+    "freigabeVollstaendig": false,
+    "block9Freigegeben": false
+  }
+}

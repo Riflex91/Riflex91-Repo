@@ -72,7 +72,14 @@ const dateien = [
   'werkzeuge/block8-5-live-paket-bauen.mjs',
   'werkzeuge/block8-5-live-paket.js',
   'laufzeit/tests/block8-5-live-paket.test.mjs',
-  'dokumentation/BLOCK-8-5-LIVE-PAKET.md'
+  'dokumentation/BLOCK-8-5-LIVE-PAKET.md',
+  'dokumentation/BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.json',
+  'laufzeit/tests/block8-5-kontrolliert-live-freigabe-nachweis.test.mjs',
+  'dokumentation/BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.md',
+  'werkzeuge/block8-5-soak-paket-bauen.mjs',
+  'werkzeuge/block8-5-soak-paket.js',
+  'laufzeit/tests/block8-5-soak-paket.test.mjs',
+  'dokumentation/BLOCK-8-5-SOAK-PAKET.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -964,7 +971,7 @@ for (const pflicht of [
 const freigabeDokument = await readFile(path.join(wurzel, dateien[43]), 'utf8');
 for (const pflicht of [
   '8.5.9 Freigabe-Gate implementiert',
-  'Offline und realer Schattenlauf fuer den exakten Candidate bestanden',
+  'Offline, Schatten und kontrolliert live fuer den exakten Candidate bestanden',
   'Offline-Test oder Wiederholung',
   'Schattenbetrieb ohne echte Spielaktion',
   'begrenzter kontrollierter Live-Test',
@@ -1140,7 +1147,7 @@ for (const [feld, erwartet] of Object.entries({
   deploymentPerformed: true,
   publicHttpsVerified: true,
   adventureLandShadowVerified: true,
-  adventureLandControlledLiveVerified: false,
+  adventureLandControlledLiveVerified: true,
   adventureLandSoakVerified: false,
   block9Freigegeben: false
 })) {
@@ -1172,6 +1179,9 @@ for (const pflicht of [
   'shadowEvidence',
   '78af6a837af689e786c5166d49624f194ad72d888f76f7712012073c1675d8c1',
   'adventureLandControlledLiveVerified',
+  'controlledLiveEvidence',
+  '1789776285337',
+  'chat_paste',
   'adventureLandSoakVerified',
   'block9Freigegeben',
   'name: release-v4-runtime-immutable',
@@ -1205,7 +1215,7 @@ for (const pflicht of [
   'deploymentPerformed: true',
   'publicHttpsVerified: true',
   'adventureLandShadowVerified: true',
-  'adventureLandControlledLiveVerified: false',
+  'adventureLandControlledLiveVerified: true',
   'adventureLandSoakVerified: false',
   'block9Freigegeben: false',
   'Block 9 gesperrt'
@@ -1306,7 +1316,7 @@ for (const pflicht of [
   'deploymentPerformed: true',
   'publicHttpsVerified: true',
   'adventureLandShadowVerified: true',
-  'adventureLandControlledLiveVerified: false',
+  'adventureLandControlledLiveVerified: true',
   'adventureLandSoakVerified: false',
   'block9Freigegeben: false',
   'Block 9 bleibt'
@@ -1741,10 +1751,11 @@ for (const pflicht of [
 
 const livePaketDokument = await readFile(path.join(wurzel, dateien[68]), 'utf8');
 for (const pflicht of [
-  'source-locked Live-Paket vorbereitet',
+  'source-locked Live-Paket verwendet',
   'Offline: **bestanden**',
   'Schatten: **bestanden**',
-  'Kontrolliert live: **offen**',
+  'Kontrolliert live: **bestanden**',
+  'Soak: **offen**',
   'block8-5-live-paket.js',
   'My_Ranger1',
   'My_Ranger2',
@@ -1759,4 +1770,233 @@ for (const pflicht of [
   }
 }
 
-console.log('Block 8.5.1 bis 8.5.9 geprueft: Candidate-Deployment/HTTPS, Offline und realer Schattennachweis sind bestanden; das source-locked Live-Paket bindet den vollstaendigen Schattennachweis und entsperrt kontrolliert live erst nach bestaetigtem Produktionsheartbeat; Soak und Block 9 bleiben gesperrt.');
+const kontrolliertLiveFreigabeRoh = await readFile(path.join(wurzel, dateien[69]), 'utf8');
+const kontrolliertLiveFreigabe = JSON.parse(kontrolliertLiveFreigabeRoh);
+for (const [feld, erwartet] of Object.entries({
+  schemaVersion: 1,
+  laufzeitPfadKennung: 'block8.5-basisbedienung-runtime',
+  aenderungsKennung: 'git:88185523c81687dc16f9647ca5e7568c5e2c228c'
+})) {
+  if (kontrolliertLiveFreigabe[feld] !== erwartet) {
+    throw new Error(`Kontrolliert-Live-Freigabenachweis besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+for (const [feld, erwartet] of Object.entries({
+  stufe: 'kontrolliert_live',
+  nachweisKennung: 'block8-5-schatten-1789775266269:kontrolliert_live',
+  ergebnis: 'bestanden',
+  durchgefuehrtAm: 1789776285337,
+  deterministisch: false,
+  spielAktionAusgefuehrt: true,
+  begrenzt: true,
+  telemetrieNachweis: false,
+  recoveryNachweis: false,
+  gesamtauswertungBestanden: false
+})) {
+  if (kontrolliertLiveFreigabe.nachweis?.[feld] !== erwartet) {
+    throw new Error(`Kontrolliert-Live-Nachweis besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+for (const [feld, erwartet] of Object.entries({
+  quelle: 'chat_paste',
+  status: 'PASS',
+  laufKennung: 'block8-5-schatten-1789775266269',
+  runnerVersion: '1.1.0',
+  confirmationInitiallyBlocked: true
+})) {
+  if (kontrolliertLiveFreigabe.reportEvidence?.[feld] !== erwartet) {
+    throw new Error(`Kontrolliert-Live-Berichtevidenz besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+for (const [feld, erwartet] of Object.entries({
+  runtimeVersion: '1.1.5',
+  runtimeSha256: '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f',
+  aktivFreigegeben: true,
+  empfangInstalliert: true,
+  heartbeatAktiv: true,
+  heartbeatVersuchePreflight: 1,
+  heartbeatErfolgePreflight: 1,
+  heartbeatFehlerPreflight: 0,
+  generationPreflight: 0,
+  schattenNachweisKennung: 'block8-5-schatten-1789775266269:schatten'
+})) {
+  if (kontrolliertLiveFreigabe.runtimeEvidence?.[feld] !== erwartet) {
+    throw new Error(`Kontrolliert-Live-Runtimeevidenz besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+for (const [feld, erwartet] of Object.entries({
+  generationVorher: 0,
+  generationNachPause: 1,
+  generationNachFortsetzen: 2,
+  pauseStatus: 'ausgefuehrt',
+  fortsetzenStatus: 'ausgefuehrt',
+  heartbeatErfolgeVorher: 17,
+  heartbeatErfolgeNachPause: 17,
+  heartbeatErfolgeNachFortsetzen: 17
+})) {
+  if (kontrolliertLiveFreigabe.bedienEvidence?.[feld] !== erwartet) {
+    throw new Error(`Kontrolliert-Live-Bedienevidenz besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+if (
+  typeof kontrolliertLiveFreigabe.liveUebergabe?.nachweis !== 'object' ||
+  kontrolliertLiveFreigabe.liveUebergabe.nachweis.nachweisKennung !== kontrolliertLiveFreigabe.nachweis.nachweisKennung ||
+  kontrolliertLiveFreigabe.liveUebergabe.generationVorher !== 0 ||
+  kontrolliertLiveFreigabe.liveUebergabe.generationNachPause !== 1 ||
+  kontrolliertLiveFreigabe.liveUebergabe.generationNachFortsetzen !== 2
+) {
+  throw new Error('Kanonische kontrolliert-live-Uebergabe muss den vollstaendigen 0->1->2-Nachweis enthalten.');
+}
+for (const [feld, erwartet] of Object.entries({
+  offline: 'bestanden',
+  schatten: 'bestanden',
+  kontrolliertLive: 'bestanden',
+  naechsteStufe: 'soak',
+  freigabeVollstaendig: false,
+  block9Freigegeben: false
+})) {
+  if (kontrolliertLiveFreigabe.auswertungErwartet?.[feld] !== erwartet) {
+    throw new Error(`Kontrolliert-Live-Freigabeauswertung besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+if (
+  runtimeReleaseKandidat.controlledLiveEvidence?.source !== kontrolliertLiveFreigabe.reportEvidence.quelle ||
+  runtimeReleaseKandidat.controlledLiveEvidence?.performedAt !== kontrolliertLiveFreigabe.nachweis.durchgefuehrtAm ||
+  runtimeReleaseKandidat.controlledLiveEvidence?.laufKennung !== kontrolliertLiveFreigabe.reportEvidence.laufKennung
+) {
+  throw new Error('Candidate-Manifest ist nicht exakt an den kanonischen kontrollierten Live-Nachweis gebunden.');
+}
+
+const kontrolliertLiveFreigabeTests = await readFile(path.join(wurzel, dateien[70]), 'utf8');
+for (const pflicht of [
+  'kontrollierter Live-Nachweis ist exakt an Candidate und bestandenen Lauf gebunden',
+  'Live-Nachweis bestaetigt echten Heartbeat und genau eine sichere Pause/Fortsetzung',
+  'kanonische Live-Uebergabe ist vollstaendig und fuer Soak geeignet',
+  'Offline plus Schatten plus Live geben als naechstes Soak frei',
+  "assert.equal(status.naechsteStufe, 'soak')"
+]) {
+  if (!kontrolliertLiveFreigabeTests.includes(pflicht)) {
+    throw new Error(`Kontrolliert-Live-Freigabenachweis-Test fehlt: ${pflicht}`);
+  }
+}
+
+const kontrolliertLiveFreigabeDokument = await readFile(path.join(wurzel, dateien[71]), 'utf8');
+for (const pflicht of [
+  'Stufe 3 kontrolliert live fuer den exakten Runtime-1.1.5-Candidate real bestanden',
+  'BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.json',
+  'kein erfundener Datei-Hash',
+  'Generation **0 -> 1 -> 2**',
+  'Pause: `ausgefuehrt`',
+  'Fortsetzen: `ausgefuehrt`',
+  'spielAktionAusgefuehrt: true',
+  'kontrolliert_live -> bestanden',
+  'soak -> offen',
+  'naechsteStufe: soak',
+  'Block 9 bleibt gesperrt'
+]) {
+  if (!kontrolliertLiveFreigabeDokument.includes(pflicht)) {
+    throw new Error(`Kontrolliert-Live-Freigabenachweis-Dokumentation fehlt: ${pflicht}`);
+  }
+}
+
+const soakPaketBuilder = await readFile(path.join(wurzel, dateien[72]), 'utf8');
+for (const pflicht of [
+  'baueBlock85SoakPaket',
+  'BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json',
+  'BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.json',
+  'block8-5-soak-paket.js',
+  'aktivFreigegeben: true',
+  "vertrauensNamen: Object.freeze(['My_Ranger1', 'My_Ranger2'])",
+  'soakDauerMillisekunden: 600000',
+  'sampleMillisekunden: 5000',
+  'runtime.starte()',
+  'warteAufBestaetigtenHeartbeat',
+  "setzeAktionAktiv('soak', true)"
+]) {
+  if (!soakPaketBuilder.includes(pflicht)) {
+    throw new Error(`Soak-Paket-Builder fehlt: ${pflicht}`);
+  }
+}
+
+const soakPaket = await readFile(path.join(wurzel, dateien[73]), 'utf8');
+for (const pflicht of [
+  'GENERATED: V4 Block 8.5.9 separates 10-Minuten-Soak-Komplettpaket',
+  'block8-5-schatten-1789775266269:schatten',
+  'block8-5-schatten-1789775266269:kontrolliert_live',
+  'soakDauerMillisekunden: 600000',
+  'sampleMillisekunden: 5000',
+  'runtime.starte()',
+  'warteAufBestaetigtenHeartbeat',
+  "titel: '3 · Soak starten'",
+  'telemetrieNachweis: pass',
+  'recoveryNachweis: pass',
+  'gesamtauswertungBestanden: pass',
+  'Soak-Sampling war zu duenn'
+]) {
+  if (!soakPaket.includes(pflicht)) {
+    throw new Error(`Soak-Paket fehlt: ${pflicht}`);
+  }
+}
+if ((soakPaket.match(/runtime\.starte\(\)/g) ?? []).length !== 1) {
+  throw new Error('Soak-Paket muss Runtime exakt einmal aktiv starten.');
+}
+for (const verboten of [
+  '.erstelleBasisBedienAnfrage(',
+  '.fuehreBasisBedienAnfrage(',
+  '.pausiereLebensnachweisAutomatik(',
+  '.setzeLebensnachweisAutomatikFort(',
+  '.bereiteGruppenZielVor(',
+  '.installiereGruppenZielLiveSmoke(',
+  '.stoppe(',
+  'location.reload(',
+  'window.close('
+]) {
+  if (soakPaket.includes(verboten)) {
+    throw new Error(`Soak-Paket darf keine Bedien-/Stop-/Browser-Autoritaet verwenden: ${verboten}`);
+  }
+}
+for (const aktionsName of [
+  'attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp',
+  'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite',
+  'buy', 'sell', 'send_item', 'upgrade', 'compound'
+]) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(soakPaket)) {
+    throw new Error(`Soak-Paket darf keine Adventure-Land-Spielaktion direkt aufrufen: ${aktionsName}.`);
+  }
+}
+
+const soakPaketTests = await readFile(path.join(wurzel, dateien[74]), 'utf8');
+for (const pflicht of [
+  'Soak-Paket ist source-locked zu Builder und beiden realen Vorstufen',
+  'Soak-Paket bindet Schatten und kontrolliert live exakt',
+  'Soak-Paket ist fest auf 10 Minuten und 5 Sekunden Sampling gebunden',
+  'Soak-Paket startet genau einmal und entsperrt Soak erst nach echtem Heartbeat',
+  'Soak-Paket ueberwacht Generation, Heartbeat-Fehler und Sampling fail-safe',
+  'Soak-Paket besitzt keine Basisbedienung, keinen Stop und keine direkte Spielaktion',
+  'baueBlock85SoakPaket'
+]) {
+  if (!soakPaketTests.includes(pflicht)) {
+    throw new Error(`Soak-Paket-Test fehlt: ${pflicht}`);
+  }
+}
+
+const soakPaketDokument = await readFile(path.join(wurzel, dateien[75]), 'utf8');
+for (const pflicht of [
+  'source-locked Soak-Paket vorbereitet',
+  'Kontrolliert live: **bestanden**',
+  'Soak: **offen**',
+  'block8-5-soak-paket.js',
+  '600000 ms = 10 Minuten',
+  'alle 5000 ms',
+  'BLOCK8-5-SOAK-STARTEN:block8-5-schatten-1789775266269',
+  'telemetrieNachweis: true',
+  'recoveryNachweis: true',
+  'gesamtauswertungBestanden: true',
+  'block8-5-soak-paket:pruefen'
+]) {
+  if (!soakPaketDokument.includes(pflicht)) {
+    throw new Error(`Soak-Paket-Dokumentation fehlt: ${pflicht}`);
+  }
+}
+
+console.log('Block 8.5.1 bis 8.5.9 geprueft: Candidate-Deployment/HTTPS, Offline, Schatten und kontrolliert live sind bestanden; das separate source-locked Soak-Paket bindet beide realen Vorstufen und ueberwacht 10 Minuten read-only; Soak ist die letzte offene Stufe und Block 9 bleibt gesperrt.');
