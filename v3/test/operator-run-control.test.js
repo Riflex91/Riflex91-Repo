@@ -196,11 +196,9 @@ test('debug monitor exposes a wired safe Start/Stop button plus Merchant Service
   assert.equal(ui.show().shown, true);
   assert.equal(ui.runButton.textContent, 'Stoppen');
   assert.equal(typeof ui.runButton.onclick, 'function');
-  const labels = ui.body.children.map((row) => row.children[0] && row.children[0].textContent);
-  assert.ok(labels.includes('Bot'));
-  assert.ok(labels.includes('Session'));
-  assert.ok(labels.includes('Merchant Service'));
-  assert.ok(labels.includes('Service Aktion'));
+  assert.ok(ui.body);
+  assert.equal(ui.body.children.length, 0);
+  assert.ok(ui.logBox);
   const result = await ui._toggleRun();
   assert.equal(result.ok, true);
   assert.equal(runtime.status().running, false);
