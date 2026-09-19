@@ -1119,3 +1119,57 @@ test('ControlledMerchant final preflight blocks a stale processed SELL when futu
   assert.equal(result.reason, 'FUTURE_FARMER_GEAR_PROGRESSION_PROTECTED');
   assert.ok(root.character.items[0]);
 });
+
+
+test('risk-held useful +3 Farmer gear is delivered instead of waiting forever for +5', () => {
+  const runtime = makeRuntime({
+    ledger: makeLedger([]),
+    engine: makeEngine(),
+    controlledMerchant: makeControlledMerchant(),
+    gameData: {
+      items: {
+        coat1: {
+          type: 'chest',
+          g: 12000,
+          armor: 35,
+          resistance: 12,
+          upgrade: { armor: 5, resistance: 2 },
+          grades: []
+        }
+      },
+      monsters: {},
+      maps: {}
+    }
+  });
+  const convergence = new Alpha27CombatMerchantConvergence(runtime);
+  convergence.atomic.mutationRiskHoldFor = () => ({
+    reason: 'MUTATION_RISK_EXCEEDS_POLICY',
+    chance: 0.68,
+    minChance: 0.87192
+  });
+
+  const finalization = convergence.merchant.planGearDeliveryFinalization({
+    goal: {
+      id: 'My_Warrior:chest:coat1:5',
+      sourceCharacter: 'Merchant',
+      sourceIndex: 0,
+      character: 'My_Warrior',
+      slot: 'chest',
+      item: 'coat1',
+      observedLevel: 3,
+      targetLevel: 5,
+      currentItem: null,
+      currentLevel: 0,
+      observedMeaningful: true,
+      observedImprovement: 59.35,
+      observedSurvivalImprovement: 59.35
+    },
+    item: { index: 0, name: 'coat1', level: 3 }
+  });
+
+  assert.equal(finalization.state, 'READY');
+  assert.equal(finalization.reason, 'RISK_GATE_PREFERS_SAFE_CURRENT_PARTY_UPGRADE');
+  assert.equal(finalization.targetLevel, 3);
+  assert.equal(finalization.riskHold.reason, 'MUTATION_RISK_EXCEEDS_POLICY');
+  assert.equal(convergence.stats.riskHeldPartyDeliveriesPreferred, 1);
+});

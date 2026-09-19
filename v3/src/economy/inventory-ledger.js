@@ -145,7 +145,12 @@ class InventoryLedger {
         quantity,
         sourceCharacter: normalizeName(row.sourceCharacter),
         sourceIndex: Number.isInteger(Number(row.sourceIndex)) ? Number(row.sourceIndex) : null,
-        goalIds: Array.isArray(row.goalIds) ? row.goalIds.map(String).slice(0, 32) : []
+        goalIds: Array.isArray(row.goalIds) ? row.goalIds.map(String).slice(0, 32) : [],
+        targetCharacter: normalizeName(row.targetCharacter),
+        targetSlot: row.targetSlot == null ? null : String(row.targetSlot),
+        targetOffline: row.targetOffline === true,
+        bankUntilPartyReturn: row.bankUntilPartyReturn === true,
+        lastTargetPartyAt: finite(row.lastTargetPartyAt, null)
       };
       if (normalized.sourceCharacter && normalized.sourceIndex != null) {
         this.progressionReservationSlots.set(itemKey(normalized.sourceCharacter, normalized.sourceIndex), normalized);
@@ -210,6 +215,20 @@ class InventoryLedger {
 
     const exactProgression = this.progressionReservationSlots.get(itemKey(row.character, row.index));
     if (exactProgression && exactProgression.name === row.name && exactProgression.level === row.level) {
+      if (exactProgression.bankUntilPartyReturn === true && exactProgression.targetOffline === true) {
+        if (this._permission(row.name, 'bank') === false) {
+          return {
+            disposition: ItemDisposition.KEEP,
+            reasons: ['OPERATOR_BANK_DENIED', 'OFFLINE_PARTY_GEAR_RESERVE'],
+            reservation: clone(exactProgression)
+          };
+        }
+        return {
+          disposition: ItemDisposition.BANK,
+          reasons: ['OFFLINE_PARTY_GEAR_RESERVE', 'BANK_UNTIL_TRUSTED_PARTY_RETURN'],
+          reservation: clone(exactProgression)
+        };
+      }
       if (this._permission(row.name, 'upgrade') === false) return { disposition: ItemDisposition.KEEP, reasons: ['OPERATOR_UPGRADE_DENIED', 'ACTIVE_GEAR_GOAL_EXACT_ITEM'], reservation: clone(exactProgression) };
       return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL_EXACT_ITEM'], reservation: clone(exactProgression) };
     }
@@ -219,6 +238,20 @@ class InventoryLedger {
     if (countKey && reservationRemaining.get(countKey) > 0) {
       reservationRemaining.set(countKey, reservationRemaining.get(countKey) - 1);
       const progression = this.progressionReservationCounts.get(countKey);
+      if (progression && progression.bankUntilPartyReturn === true && progression.targetOffline === true) {
+        if (this._permission(row.name, 'bank') === false) {
+          return {
+            disposition: ItemDisposition.KEEP,
+            reasons: ['OPERATOR_BANK_DENIED', 'OFFLINE_PARTY_GEAR_RESERVE'],
+            reservation: clone(progression)
+          };
+        }
+        return {
+          disposition: ItemDisposition.BANK,
+          reasons: ['OFFLINE_PARTY_GEAR_RESERVE', 'BANK_UNTIL_TRUSTED_PARTY_RETURN'],
+          reservation: clone(progression)
+        };
+      }
       if (this._permission(row.name, 'upgrade') === false) return { disposition: ItemDisposition.KEEP, reasons: ['OPERATOR_UPGRADE_DENIED', 'ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED'], reservation: clone(progression) };
       return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED'], reservation: clone(progression) };
     }

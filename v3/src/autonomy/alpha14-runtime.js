@@ -3,6 +3,7 @@
 const { Alpha13Runtime } = require('./alpha13-runtime');
 const { InventoryLedger } = require('../economy/inventory-ledger');
 const { GearProgressionEvaluator } = require('../economy/gear-progression');
+const { MerchantPartyHistory } = require('../party/merchant-party-history');
 
 const ALPHA14_VERSION = '3.0.0-alpha.14.0';
 
@@ -22,6 +23,15 @@ this.log.version = ALPHA14_VERSION;
       minImprovementRatio: options.gearMinImprovementRatio
     });
     this.gearProgression.load();
+
+    this.merchantPartyHistory = options.merchantPartyHistory || new MerchantPartyHistory({
+      root: this.root,
+      storage: options.merchantPartyHistoryStorage || options.storage,
+      now: this.now,
+      log: this.log,
+      capacity: options.merchantPartyHistoryCapacity,
+      saveIntervalMs: options.merchantPartyHistorySaveIntervalMs
+    });
 
     this.inventoryLedger = options.inventoryLedger || new InventoryLedger({
       now: this.now,
@@ -51,7 +61,52 @@ class Alpha14Runtime extends Alpha13Runtime {
   }
 
   _planInventoryAndGear() {
-    const registry = this.characterRegistry.status();
+    const liveRegistry = this.characterRegistry.status();
+    const liveCharacter = this.root && this.root.character;
+    const merchantActive = liveCharacter && String(liveCharacter.ctype || liveCharacter.type || '').toLowerCase() === 'merchant';
+    let registry = liveRegistry;
+
+    if (merchantActive && this.merchantPartyHistory) {
+      const partyNames = [
+        liveCharacter && liveCharacter.name,
+        ...(Array.isArray(this.lastSnapshot && this.lastSnapshot.party)
+          ? this.lastSnapshot.party.map((row) => typeof row === 'string' ? row : row && row.name)
+          : [])
+      ].filter(Boolean);
+      let trustedNames = [];
+      try {
+        trustedNames = this.partyBootstrap && typeof this.partyBootstrap.trustedRosterNames === 'function'
+          ? this.partyBootstrap.trustedRosterNames() || []
+          : [];
+      } catch (_) {
+        trustedNames = [];
+      }
+      this.merchantPartyHistory.observe({
+        merchantName: liveCharacter.name,
+        partyNames,
+        trustedNames,
+        registry: liveRegistry
+      });
+      const remembered = this.merchantPartyHistory.planningRows({
+        currentPartyNames: partyNames,
+        registry: liveRegistry
+      });
+      if (remembered.length) {
+        const planningByName = new Map(
+          (liveRegistry.characters || [])
+            .filter((row) => row && row.name)
+            .map((row) => [String(row.name), row])
+        );
+        // Replace stale/non-party observations only in the planning view. The
+        // authoritative live CharacterRegistry remains untouched.
+        for (const row of remembered) planningByName.set(String(row.name), row);
+        registry = {
+          ...liveRegistry,
+          characters: [...planningByName.values()]
+        };
+      }
+    }
+
     const gameData = this.adapter.getGameData() || {};
     const gear = this.gearProgression.evaluate({
       registry,
@@ -60,16 +115,17 @@ class Alpha14Runtime extends Alpha13Runtime {
     });
     this.inventoryLedger.setProgressionReservations(gear.reservations);
     const ledger = this.inventoryLedger.observe({
-      registry,
+      registry: liveRegistry,
       gameData,
       contentDrift: this.contentDrift,
-      liveCharacter: this.root && this.root.character,
+      liveCharacter,
       observedAt: this.lastSnapshot && this.lastSnapshot.observedAt
     });
     this.lastInventoryPlanningResult = {
       at: this.now(),
       ledger: ledger.summary,
-      gear: gear.status.lastEvaluation
+      gear: gear.status.lastEvaluation,
+      rememberedPartyMembers: this.merchantPartyHistory ? this.merchantPartyHistory.status().rememberedMembers : 0
     };
     return this.lastInventoryPlanningResult;
   }
@@ -85,6 +141,7 @@ class Alpha14Runtime extends Alpha13Runtime {
 
   stop() {
     if (this.gearProgression) this.gearProgression.save({ force: true });
+    if (this.merchantPartyHistory) this.merchantPartyHistory.save({ force: true });
     return super.stop();
   }
 
@@ -94,7 +151,8 @@ class Alpha14Runtime extends Alpha13Runtime {
       ...base,
       version: ALPHA14_VERSION,
       inventory: this.inventoryLedger.status(),
-      gearProgression: this.gearProgression.status()
+      gearProgression: this.gearProgression.status(),
+      merchantPartyHistory: this.merchantPartyHistory ? this.merchantPartyHistory.status() : null
     };
   }
 
@@ -109,6 +167,7 @@ class Alpha14Runtime extends Alpha13Runtime {
       status: this.gearProgression.status(),
       goals: this.gearProgression.list(200)
     };
+    base.context.merchantPartyHistory = this.merchantPartyHistory ? this.merchantPartyHistory.status() : null;
     return JSON.stringify(base, null, 2);
   }
 }

@@ -290,6 +290,7 @@ class GearProgressionEvaluator {
     let blockedUnknownContent = 0;
 
     for (const character of characters) {
+      const targetOffline = character && character.rememberedOffline === true;
       for (const candidate of candidates) {
         const evaluationKey = Number.isInteger(Number(candidate.item && candidate.item.index))
           ? `${candidate.sourceCharacter}:${Number(candidate.item.index)}`
@@ -375,6 +376,9 @@ class GearProgressionEvaluator {
               firstMeaningfulLevel: meaningful.level,
               targetCharacter: character.name,
               targetSlot: slot,
+              targetOffline,
+              bankUntilPartyReturn: targetOffline,
+              lastTargetPartyAt: targetOffline ? finite(character.lastPartyAt, null) : null,
               improvement,
               survivalImprovement,
               upgradeLifecycle: candidate.meta.upgrade && projectedFarmerUpgrade ? 'FARMER_POTENTIAL_TO_PLUS5' : null,
@@ -434,6 +438,9 @@ class GearProgressionEvaluator {
           priority: String(character.ctype || '').toLowerCase() === 'merchant' && best.speedImprovement > 0
             ? 'MERCHANT_MOBILITY'
             : best.survivalImprovement > 0 ? 'SURVIVABILITY_OR_MIXED' : 'FARMING_EFFICIENCY',
+          targetOffline,
+          bankUntilPartyReturn: targetOffline,
+          lastTargetPartyAt: targetOffline ? finite(character.lastPartyAt, null) : null,
           actionAuthority: false,
           firstSeenAt: existing ? existing.firstSeenAt : now,
           lastSeenAt: now
@@ -444,7 +451,14 @@ class GearProgressionEvaluator {
     }
 
     for (const [id, goal] of this.goals.entries()) {
-      if (!seenGoalIds.has(id) && now - finite(goal.lastSeenAt, now) > 24 * 60 * 60 * 1000) this.goals.delete(id);
+      // Gear explicitly reserved for a remembered offline party member survives
+      // ordinary 24h goal aging. It is released by a fresh online evaluation
+      // after that character rejoins, or by bounded goal-capacity pruning.
+      if (!seenGoalIds.has(id)
+        && goal.bankUntilPartyReturn !== true
+        && now - finite(goal.lastSeenAt, now) > 24 * 60 * 60 * 1000) {
+        this.goals.delete(id);
+      }
     }
     this._prune();
     this.stats.blockedUnknownContent += blockedUnknownContent;
@@ -456,7 +470,10 @@ class GearProgressionEvaluator {
     const usedPhysicalItems = new Set();
     const usedTargetSlots = new Set();
     const ctypeByName = new Map(characters.filter(Boolean).map((row) => [String(row.name || ''), String(row.ctype || row.type || '').toLowerCase()]));
-    const compareGoal = (a, b) => b.survivalImprovement - a.survivalImprovement || b.improvement - a.improvement || a.id.localeCompare(b.id);
+    const compareGoal = (a, b) => Number(a.targetOffline === true) - Number(b.targetOffline === true)
+      || b.survivalImprovement - a.survivalImprovement
+      || b.improvement - a.improvement
+      || a.id.localeCompare(b.id);
     const compareMerchantGoal = (a, b) => finite(b.speedImprovement, 0) - finite(a.speedImprovement, 0)
       || b.improvement - a.improvement
       || b.survivalImprovement - a.survivalImprovement
@@ -506,7 +523,12 @@ class GearProgressionEvaluator {
         quantity: 1,
         sourceCharacter: goal.sourceCharacter,
         sourceIndex: goal.sourceIndex,
-        goalIds: [goal.id]
+        goalIds: [goal.id],
+        targetCharacter: goal.character,
+        targetSlot: goal.slot,
+        targetOffline: goal.targetOffline === true,
+        bankUntilPartyReturn: goal.bankUntilPartyReturn === true,
+        lastTargetPartyAt: goal.lastTargetPartyAt == null ? null : goal.lastTargetPartyAt
       });
     }
     this.lastEvaluation = {
@@ -518,6 +540,8 @@ class GearProgressionEvaluator {
       physicalAssignments: currentGoals.length,
       farmerAssignments: currentGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) !== 'merchant').length,
       merchantAssignments: currentGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) === 'merchant').length,
+      offlinePartyAssignments: currentGoals.filter((goal) => goal && goal.targetOffline === true).length,
+      bankUntilPartyReturnAssignments: currentGoals.filter((goal) => goal && goal.bankUntilPartyReturn === true).length,
       farmerTargetShare: 0.8,
       futureFarmerProtectedItems: this.futureFarmerProtection.size,
       futureFarmerEvaluatedItems: this.futureFarmerEvaluation.size,
@@ -596,6 +620,8 @@ class GearProgressionEvaluator {
       farmerUpgradePotentialMaxLevel: this.maxProbeLevel,
       economicUpgradeFallbackLevel: ECONOMIC_UPGRADE_FALLBACK_LEVEL,
       processedGearSellRequiresExplicitFutureSafety: true,
+      rememberedOfflinePartyGearPlanning: true,
+      offlinePartyGearPolicy: 'BANK_UNTIL_TRUSTED_PARTY_RETURN',
       merchantPrimaryGearStat: 'speed',
       merchantSpeedPriority: 'WEIGHTED_PRIMARY_WITH_NET_REGRESSION_GUARD',
       merchantSpeedWeight: CLASS_WEIGHTS.merchant.speed,
