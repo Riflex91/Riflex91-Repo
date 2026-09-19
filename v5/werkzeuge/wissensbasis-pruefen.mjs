@@ -231,13 +231,11 @@ if (fs.existsSync(liveSnapshot)) {
     return [];
   });
 
-  const dateien = sammleJson(liveAktuell).sort((a, b) =>
-    path.relative(liveAktuell, a).replace(/\\/g, '/').localeCompare(
-      path.relative(liveAktuell, b).replace(/\\/g, '/'),
-      'en',
-      { sensitivity: 'variant' }
-    )
-  );
+  const dateien = sammleJson(liveAktuell).sort((a, b) => {
+    const ar = path.relative(liveAktuell, a).replace(/\\/g, '/');
+    const br = path.relative(liveAktuell, b).replace(/\\/g, '/');
+    return ar < br ? -1 : ar > br ? 1 : 0;
+  });
 
   const snapshotHash = crypto.createHash('sha256');
   snapshotHash.update(liveManifestBytes);
