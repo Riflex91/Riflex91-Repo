@@ -53,6 +53,24 @@ function spawnCenter(entry) {
   return null;
 }
 
+function spawnCountHint(entry) {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return 1;
+  for (const key of ['count', 'quantity', 'num', 'max_count', 'maxCount', 'population']) {
+    const value = Number(entry[key]);
+    if (Number.isFinite(value) && value > 0) return Math.max(1, Math.floor(value));
+  }
+  return 1;
+}
+
+function aoeContext(party) {
+  const raw = party && party.aoe || {};
+  const mode = String(raw.combatMode || raw.mode || 'smart_auto');
+  const configured = raw.configured === true && mode !== 'single_target';
+  const hardCapacity = Math.max(1, Math.min(12, Math.floor(Number(raw.hardCapacity) || 1)));
+  const desiredPullSize = Math.max(1, Math.min(hardCapacity, Math.floor(Number(raw.desiredPullSize) || Math.min(hardCapacity, 2))));
+  return { configured, mode, hardCapacity, desiredPullSize };
+}
+
 function contentDisposition(world, mtype) {
   if (!world || typeof world.fact !== 'function' || !mtype) return null;
   try {
@@ -76,6 +94,9 @@ class LocalFarmPlanner {
     this.log = options.log || null;
     this.minExpectedImprovement = Math.max(0.05, Math.min(1, Number(options.minExpectedImprovement) || 0.2));
     this.maxCandidates = Math.max(5, Math.min(100, Number(options.maxCandidates) || 40));
+    this.aoeClusterRadius = Math.max(120, Math.min(900, Number(options.aoeClusterRadius) || 420));
+    this.aoePreferredBonus = Math.max(0, Math.min(0.30, Number(options.aoePreferredBonus) || 0.14));
+    this.aoeSmartBonus = Math.max(0, Math.min(0.20, Number(options.aoeSmartBonus) || 0.08));
   }
 
   spawnCandidates(snapshot, gameData, world, party) {
@@ -85,6 +106,7 @@ class LocalFarmPlanner {
     const raw = mapData && mapData.monsters;
     if (!raw) return [];
     const entries = Array.isArray(raw) ? raw : Object.values(raw);
+    const descriptors = entries.map((entry, index) => ({ entry, index, mtype: spawnType(entry), center: spawnCenter(entry), count: spawnCountHint(entry) }));
     const monsterData = gameData && gameData.monsters || {};
     const fingerprint = party && party.fingerprint || null;
     const rows = [];
@@ -100,6 +122,17 @@ class LocalFarmPlanner {
         ? world.performanceFor(mtype, fingerprint)
         : null;
       const metadata = monsterData[mtype] || {};
+      const livePackCount = (snapshot.entities || []).filter((row) => row && row.mtype === mtype && !row.dead && Number(row.hp == null ? 1 : row.hp) > 0 && distance(row, center) <= this.aoeClusterRadius).length;
+      const clusterRows = descriptors.filter((row) => row.index !== index && row.mtype === mtype && row.center && distance(row.center, center) <= this.aoeClusterRadius);
+      const clusterSpawnCount = spawnCountHint(entry) + clusterRows.reduce((sum, row) => sum + Math.max(1, row.count), 0);
+      const packPotential = Math.max(1, livePackCount, clusterSpawnCount);
+      const aoe = aoeContext(party);
+      const fit = aoe.configured ? Math.max(0, Math.min(1, packPotential / Math.max(1, aoe.desiredPullSize))) : 0;
+      const density = aoe.configured ? Math.max(0, Math.min(1, packPotential / Math.max(1, aoe.hardCapacity))) : 0;
+      const baseAoeBonus = aoe.mode === 'aoe_preferred' ? this.aoePreferredBonus : this.aoeSmartBonus;
+      const aoeFarmBonus = aoe.configured
+        ? Math.max(-0.05, baseAoeBonus * (fit * 0.65 + density * 0.35) - (packPotential < 2 && aoe.mode === 'aoe_preferred' ? 0.04 : 0))
+        : 0;
       const travel = distance(snapshot.character, center);
       const speed = Math.max(1, Number(snapshot.character.speed) || 40);
       rows.push({
@@ -115,7 +148,13 @@ class LocalFarmPlanner {
         deathsPerHour: learned ? learned.deathsPerHour : 0,
         confidence: learned ? learned.confidence : 0.1,
         travelSeconds: Number.isFinite(travel) ? travel / speed : 120,
-        source: learned ? 'measured-spawn' : 'known-spawn-metadata'
+        source: learned ? 'measured-spawn' : 'known-spawn-metadata',
+        packPotential,
+        livePackCount,
+        spawnClusterCount: clusterRows.length + 1,
+        aoeFarmFit: Number(fit.toFixed(4)),
+        aoeFarmBonus: Number(aoeFarmBonus.toFixed(5)),
+        aoePlanning: aoe
       });
     }
     return rows;
@@ -129,8 +168,16 @@ class LocalFarmPlanner {
           character: snapshot.character && snapshot.character.name || null,
           partyFingerprint: party && party.fingerprint || null
         })
-      : candidates.slice();
-    return ranked;
+      : candidates.map((row) => ({ ...row, score: Number(row.score) || 0 }));
+    return ranked.map((row) => {
+      const bonus = Number(row.aoeFarmBonus) || 0;
+      return {
+        ...row,
+        baseScore: Number(row.score) || 0,
+        score: Math.max(0, (Number(row.score) || 0) + bonus),
+        scoring: { ...(row.scoring || {}), aoeFarmBonus: bonus, aoeFarmFit: Number(row.aoeFarmFit) || 0 }
+      };
+    }).sort((a, b) => b.score - a.score || b.packPotential - a.packPotential || b.xpPerHour - a.xpPerHour || a.travelSeconds - b.travelSeconds);
   }
 
   materiallyBetter(current, candidate) {
@@ -147,6 +194,8 @@ module.exports = {
   NON_FARM_MONSTER_TYPES,
   spawnType,
   spawnCenter,
+  spawnCountHint,
+  aoeContext,
   contentDisposition,
   isApprovedDisposition,
   isFarmableMonsterType

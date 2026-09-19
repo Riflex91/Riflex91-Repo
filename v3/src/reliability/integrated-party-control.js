@@ -5,6 +5,7 @@ const { patchAlpha2019LogisticsStabilization } = require('../party/alpha20-19-lo
 const { patchAdaptiveFarmIntelligence } = require('../autonomy/adaptive-farm-intelligence');
 const { installAdaptivePullLearner } = require('../autonomy/adaptive-pull-learning');
 const { installEncounterLifecycle } = require('../autonomy/encounter-lifecycle');
+const { installAoeFarmingCertification } = require('../autonomy/aoe-farming-certification');
 const { installTacticalPartyCombat } = require('../autonomy/tactical-party-combat');
 const { installAdvancedPartyMovement } = require('../autonomy/advanced-party-movement');
 const { installPartySkillEngine } = require('../autonomy/party-skill-engine');
@@ -26,6 +27,7 @@ class IntegratedPartyControl {
     this.progressionIntelligence = components.progressionIntelligence || null;
     this.adaptivePullLearner = components.adaptivePullLearner || null;
     this.encounterLifecycle = components.encounterLifecycle || null;
+    this.aoeFarmingCertification = components.aoeFarmingCertification || null;
     this.tacticalPartyCombat = components.tacticalPartyCombat || null;
     this.advancedPartyMovement = components.advancedPartyMovement || null;
     this.partySkillEngine = components.partySkillEngine || null;
@@ -55,6 +57,7 @@ class IntegratedPartyControl {
       alpha20_16: farm && typeof farm.status === 'function' ? farm.status().alpha20_16 || null : { prototypePatched: this.adaptiveFarmPatched, awaitingFarmAreaInstance: true },
       alpha20_17: this.tacticalPartyCombat && this.tacticalPartyCombat.status ? this.tacticalPartyCombat.status() : null,
       adaptivePullLearning: this.adaptivePullLearner && this.adaptivePullLearner.status ? this.adaptivePullLearner.status() : null,
+      aoeFarmingCertification: this.aoeFarmingCertification && this.aoeFarmingCertification.status ? this.aoeFarmingCertification.status() : null,
       alpha20_18: this.advancedPartyMovement && this.advancedPartyMovement.status ? this.advancedPartyMovement.status() : null,
       alpha20_19: {
         transportPrototypePatched: this.transportPatched,
@@ -84,13 +87,14 @@ function installIntegratedPartyControl(runtime, options = {}) {
   const progressionIntelligence = installAlpha21ProgressionIntelligence(runtime, options.progressionIntelligence || {});
   const adaptivePullLearner = installAdaptivePullLearner(runtime, options.adaptivePullLearning || {});
   const encounterLifecycle = installEncounterLifecycle(runtime, options.encounterLifecycle || {});
+  const aoeFarmingCertification = installAoeFarmingCertification(runtime, options.aoeFarmingCertification || {});
   const tacticalPartyCombat = installTacticalPartyCombat(runtime, { ...(options.tacticalPartyCombat || {}), adaptivePullLearner, encounterLifecycle });
   runtime.tacticalPartyCombat = tacticalPartyCombat;
   const advancedPartyMovement = installAdvancedPartyMovement(runtime, options.advancedPartyMovement || {});
   runtime.advancedPartyMovement = advancedPartyMovement;
   const partySkillEngine = installPartySkillEngine(runtime, options.partySkillEngine || {});
   runtime.partySkillEngine = partySkillEngine;
-  const controller = new IntegratedPartyControl(runtime, { transportPatched, logisticsPatched, adaptiveFarmPatched, alpha21Liveness, progressionIntelligence, adaptivePullLearner, encounterLifecycle, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
+  const controller = new IntegratedPartyControl(runtime, { transportPatched, logisticsPatched, adaptiveFarmPatched, alpha21Liveness, progressionIntelligence, adaptivePullLearner, encounterLifecycle, aoeFarmingCertification, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
   runtime.integratedPartyControl = controller;
   return controller;
 }

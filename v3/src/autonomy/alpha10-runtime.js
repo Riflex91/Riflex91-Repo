@@ -30,14 +30,11 @@ class Alpha10Runtime extends Alpha9Runtime {
   _brainAudit() {
     const snapshot = this.lastSnapshot;
     if (!snapshot || !snapshot.character) return null;
-    const party = this._partyProfile(snapshot);
+    const party = typeof this._farmPlanningParty === 'function' ? this._farmPlanningParty(snapshot) : this._partyProfile(snapshot);
     const gameData = this.adapter.getGameData() || {};
     const candidates = this.localFarmPlanner.spawnCandidates(snapshot, gameData, this.world, party);
     const teacherRanking = candidates.length
-      ? this.planner.rank(candidates, {
-          character: snapshot.character.name || null,
-          partyFingerprint: party.fingerprint || null
-        })
+      ? this.localFarmPlanner.rank(snapshot, gameData, this.world, party, this.planner)
       : [];
     const localStatus = this.localFarming && typeof this.localFarming.status === 'function'
       ? this.localFarming.status()

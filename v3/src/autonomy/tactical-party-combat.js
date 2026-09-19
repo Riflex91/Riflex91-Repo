@@ -30,6 +30,8 @@ class TacticalPartyCombat {
       maxAvoidance: clamp(finite(options.maxAvoidance, 0.70), 0.30, 0.95),
       pullExpansionIntervalMs: Math.max(500, finite(options.pullExpansionIntervalMs, 1100)),
       pendingPullTimeoutMs: Math.max(1200, finite(options.pendingPullTimeoutMs, 3000)),
+      agitateMinAdditionalTargets: Math.max(2, Math.min(6, Math.floor(finite(options.agitateMinAdditionalTargets, 2)))),
+      agitateRangePadding: Math.max(0, Math.min(80, finite(options.agitateRangePadding, 15))),
       sameTypePullsOnly: options.sameTypePullsOnly !== false
     };
     this.adaptivePullLearner = options.adaptivePullLearner || runtime.adaptivePullLearner || null;
@@ -45,7 +47,7 @@ class TacticalPartyCombat {
     this.lastDecision = null;
     this.lastPullExpansionAt = -Infinity;
     this.pendingPull = null;
-    this.stats = { evaluations: 0, routineAllowed: 0, unsafeRejected: 0, specialPullBlocks: 0, targetLocks: 0, betterTargetSwitches: 0, sharedAggroSwitches: 0, followerReassessmentBlocks: 0, encounterRefreshes: 0, pullCandidateAllows: 0, pullCandidateBlocks: 0, pullExpansionAttempts: 0, pullExpansionCommands: 0, pullExpansionObserved: 0, pullExpansionTimeouts: 0, pullExpansionNoCandidate: 0 };
+    this.stats = { evaluations: 0, routineAllowed: 0, unsafeRejected: 0, specialPullBlocks: 0, targetLocks: 0, betterTargetSwitches: 0, sharedAggroSwitches: 0, followerReassessmentBlocks: 0, encounterRefreshes: 0, pullCandidateAllows: 0, pullCandidateBlocks: 0, pullExpansionAttempts: 0, pullExpansionCommands: 0, pullExpansionObserved: 0, pullExpansionTimeouts: 0, pullExpansionNoCandidate: 0, agitateEvaluations: 0, agitateCommands: 0, agitateTargetsPlanned: 0, agitateUnsafeRadiusBlocks: 0, agitateCapacityBlocks: 0, agitateResourceBlocks: 0 };
     this.installed = false;
     this.install();
   }
@@ -172,22 +174,34 @@ class TacticalPartyCombat {
     if (!this.encounter || !snapshot || !team) return null;
     const now = this.now();
     if (this.pendingPull) {
-      const observed = (snapshot.entities || []).find((row) => row && String(row.id) === String(this.pendingPull.targetId)
+      const expectedIds = (Array.isArray(this.pendingPull.targetIds) && this.pendingPull.targetIds.length
+        ? this.pendingPull.targetIds
+        : [this.pendingPull.targetId]).filter((id) => id != null).map(String);
+      const alreadyObserved = new Set((this.pendingPull.observedIds || []).map(String));
+      const observed = (snapshot.entities || []).filter((row) => row && expectedIds.includes(String(row.id))
         && row.target != null && (team.names || []).includes(String(row.target))
         && !row.dead && finite(row.hp, 1) > 0);
-      if (observed) {
-        this.stats.pullExpansionObserved += 1;
+      for (const row of observed) alreadyObserved.add(String(row.id));
+      const newlyObserved = Math.max(0, alreadyObserved.size - (this.pendingPull.observedIds || []).length);
+      if (newlyObserved > 0) {
+        this.stats.pullExpansionObserved += newlyObserved;
+        this.pendingPull.observedIds = [...alreadyObserved];
+      }
+      if (expectedIds.length > 0 && expectedIds.every((id) => alreadyObserved.has(id))) {
         this._event('SMART_AOE_PULL_OBSERVED', 'info', 'PENDING_PULL_JOINED_ENCOUNTER', {
-          targetId: String(observed.id),
-          targetType: observed.mtype || null,
+          targetIds: expectedIds.slice(),
+          targetType: this.pendingPull.targetType || null,
+          via: this.pendingPull.via || 'TAG',
           pullOwner: team.leaderName || null
         });
         this.pendingPull = null;
       } else if (now >= finite(this.pendingPull.expiresAt, 0)) {
         this.stats.pullExpansionTimeouts += 1;
         this._event('SMART_AOE_PULL_TIMEOUT', 'warn', 'PULL_AGGRO_NOT_OBSERVED', {
-          targetId: this.pendingPull.targetId,
-          targetType: this.pendingPull.targetType || null
+          targetIds: expectedIds.slice(),
+          observedIds: [...alreadyObserved],
+          targetType: this.pendingPull.targetType || null,
+          via: this.pendingPull.via || 'TAG'
         });
         this.pendingPull = null;
       }
@@ -332,7 +346,6 @@ class TacticalPartyCombat {
       if (candidate.target != null) continue;
       if (this.config.sameTypePullsOnly && primaryType && candidate.mtype !== primaryType) continue;
       if (this._specialFreshPull(candidate)) continue;
-      if (context.adapter && typeof context.adapter.canAttack === 'function' && !context.adapter.canAttack(candidate.id)) continue;
       const decision = this.canAddTarget(candidate, { snapshot, team, party: context.party || {} });
       if (!decision.allowed) continue;
       rows.push({ candidate, decision });
@@ -341,6 +354,130 @@ class TacticalPartyCombat {
       - finite(a.decision.evaluation && a.decision.evaluation.score, -Infinity)
       || String(a.candidate.id).localeCompare(String(b.candidate.id)));
     return rows;
+  }
+
+  _tryAgitatePull(context, team, plan, candidates) {
+    this.stats.agitateEvaluations += 1;
+    const snapshot = context && context.snapshot;
+    const c = snapshot && snapshot.character;
+    if (!snapshot || !c || lower(c.ctype) !== 'warrior' || !team || team.selfName !== team.leaderName) return null;
+    const caps = this._partyCapabilities();
+    const member = caps && (caps.members || []).find((row) => row && String(row.name) === String(c.name));
+    const skill = member && (member.skills || []).find((row) => row && row.id === 'agitate' && row.configuredReady === true);
+    if (!skill) return null;
+
+    const maxDesiredTargets = Math.max(1, Math.min(
+      Math.floor(finite(plan && plan.pullCapacity, 1)),
+      Math.floor(finite(plan && plan.desiredPullSize, 1)),
+      Math.floor(finite(skill.parameters && skill.parameters.maxDesiredTargets, plan && plan.desiredPullSize || 1))
+    ));
+    const engaged = Math.max(0, Math.floor(finite(plan && plan.engagedCount, 0)));
+    const remaining = Math.max(0, maxDesiredTargets - engaged);
+    if (remaining < this.config.agitateMinAdditionalTargets) {
+      this.stats.agitateCapacityBlocks += 1;
+      return null;
+    }
+
+    const game = this.runtime.adapter && typeof this.runtime.adapter.getGameData === 'function'
+      ? this.runtime.adapter.getGameData() || {}
+      : {};
+    const meta = game.skills && game.skills.agitate || null;
+    if (!meta) return null;
+    if (context.adapter && typeof context.adapter.canUseSkill === 'function' && !context.adapter.canUseSkill('agitate')) return null;
+    const maxMp = Math.max(1, finite(c.max_mp, finite(c.mp, 1)));
+    const reserve = maxMp * finite(this.farmer && this.farmer.skillUsage && this.farmer.skillUsage.mpReserveRatio, 0);
+    if (finite(c.mp, 0) - Math.max(0, finite(meta.mp, 0)) < reserve) {
+      this.stats.agitateResourceBlocks += 1;
+      return null;
+    }
+
+    const actualRange = Math.max(1, finite(meta.range, 320));
+    const safetyRange = actualRange + this.config.agitateRangePadding;
+    const existing = new Set((this.encounter && this.encounter.targetIds || []).map(String));
+    const candidateMap = new Map((candidates || []).map((row) => [String(row.candidate && row.candidate.id), row]));
+    const inSafetyEnvelope = (snapshot.entities || []).filter((row) => row && row.mtype && !row.dead && finite(row.hp, 1) > 0 && distance(c, row) <= safetyRange);
+    const potential = [];
+    const pullable = [];
+    for (const row of inSafetyEnvelope) {
+      const id = String(row.id);
+      if (existing.has(id)) continue;
+      const candidate = candidateMap.get(id);
+      if (!candidate) {
+        this.stats.agitateUnsafeRadiusBlocks += 1;
+        this._event('SMART_AOE_AGITATE_BLOCKED', 'info', 'AGITATE_RADIUS_CONTAINS_UNSAFE_OR_UNPLANNED_TARGET', {
+          targetId: id,
+          targetType: row.mtype || null,
+          actualRange,
+          safetyRange,
+          maxDesiredTargets
+        });
+        return null;
+      }
+      potential.push(candidate);
+      if (distance(c, row) <= actualRange) pullable.push(candidate);
+    }
+
+    if (pullable.length < this.config.agitateMinAdditionalTargets) return null;
+    if (potential.length > remaining || engaged + potential.length > maxDesiredTargets) {
+      this.stats.agitateCapacityBlocks += 1;
+      return null;
+    }
+    const result = context.adapter && typeof context.adapter.command === 'function'
+      ? context.adapter.command('use_skill', ['agitate'])
+      : { executed: false, shadow: false, reason: 'ADAPTER_UNAVAILABLE' };
+    if (!result || (!result.executed && !result.shadow)) return null;
+
+    const now = this.now();
+    const ids = pullable.map((row) => String(row.candidate.id));
+    this.lastPullExpansionAt = now;
+    this.pendingPull = {
+      targetId: ids[0],
+      targetIds: ids,
+      observedIds: [],
+      targetType: this.encounter && this.encounter.targetType || null,
+      at: now,
+      expiresAt: now + this.config.pendingPullTimeoutMs,
+      shadow: result.shadow === true,
+      via: 'AGITATE'
+    };
+    this.stats.pullExpansionAttempts += 1;
+    this.stats.pullExpansionCommands += 1;
+    this.stats.agitateCommands += 1;
+    this.stats.agitateTargetsPlanned += ids.length;
+    if (this.farmer) {
+      this.farmer.lastActionAt = now;
+      this.farmer.lastSkillAttemptAt = now;
+    }
+    const engine = this.runtime && this.runtime.partySkillEngine;
+    if (engine) {
+      if (engine.stats) {
+        engine.stats.aoeSkills = finite(engine.stats.aoeSkills, 0) + 1;
+        engine.stats.aoeTargetsPlanned = finite(engine.stats.aoeTargetsPlanned, 0) + ids.length;
+      }
+      engine.lastUse = {
+        at: now, skill: 'agitate', kind: 'aoe-control', reason: 'SMART_AOE_AGITATE_SAFE_PULL',
+        targetId: this.encounter && (this.encounter.primaryTargetId || this.encounter.targetId) || null,
+        targetType: this.encounter && this.encounter.targetType || null,
+        targetIds: ids.slice(), targetCount: ids.length, executed: !!result.executed, shadow: !!result.shadow
+      };
+    }
+    this.lastDecision = {
+      at: now,
+      action: 'SMART_AOE_PULL_AGITATE',
+      reason: 'SAFE_RADIUS_MATCHES_BOUNDED_PULL',
+      primaryTargetId: this.encounter && (this.encounter.primaryTargetId || this.encounter.targetId) || null,
+      targetIds: ids.slice(),
+      targetType: this.encounter && this.encounter.targetType || null,
+      pullOwner: team.leaderName,
+      resultingCount: engaged + potential.length,
+      maxDesiredTargets,
+      actualRange,
+      safetyRange,
+      safetyEnvelopeTargetIds: potential.map((row) => String(row.candidate.id)),
+      shadow: result.shadow === true
+    };
+    this._event('SMART_AOE_AGITATE_PULL', 'info', this.lastDecision.reason, { ...this.lastDecision });
+    return { acted: true, decision: { ...this.lastDecision }, result, candidates: pullable.map((row) => row.candidate) };
   }
 
   maybeExpandPull(context, primaryTarget = null) {
@@ -368,7 +505,17 @@ class TacticalPartyCombat {
       return { acted: false, reason: 'NO_SAFE_IN_RANGE_PULL_CANDIDATE' };
     }
 
-    const selected = candidates[0];
+    const agitate = this._tryAgitatePull(context, team, plan, candidates);
+    if (agitate && agitate.acted) return agitate;
+
+    const selected = candidates.find((row) => {
+      if (!context.adapter || typeof context.adapter.canAttack !== 'function') return true;
+      try { return context.adapter.canAttack(row.candidate.id) === true; } catch (_) { return false; }
+    });
+    if (!selected) {
+      this.stats.pullExpansionNoCandidate += 1;
+      return { acted: false, reason: 'NO_SAFE_IN_RANGE_PULL_CANDIDATE' };
+    }
     this.stats.pullExpansionAttempts += 1;
     this.lastPullExpansionAt = now;
     const result = context.adapter && typeof context.adapter.command === 'function'
@@ -388,7 +535,10 @@ class TacticalPartyCombat {
     this.stats.pullExpansionCommands += 1;
     this.pendingPull = {
       targetId: String(selected.candidate.id),
+      targetIds: [String(selected.candidate.id)],
+      observedIds: [],
       targetType: selected.candidate.mtype || null,
+      via: 'TAG',
       at: now,
       expiresAt: now + this.config.pendingPullTimeoutMs,
       shadow: result.shadow === true
