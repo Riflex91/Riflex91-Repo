@@ -3328,7 +3328,7 @@
         "transportEvent": null,
         "correlationType": "UNKNOWN",
         "correlationChannel": null,
-        "requestId": null,
+        "requestId": "UNKNOWN",
         "wrapperNotes": "Public live wrapper is cave_buy(room) => parent.cave_request('buy',{room}). The internal cave_request transport/correlation/timeout implementation is not exposed by the official CODE docs/live public runner source."
       },
       "server": {
