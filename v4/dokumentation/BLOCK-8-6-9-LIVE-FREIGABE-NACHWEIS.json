@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "laufzeitPfadKennung": "block8.6-capability-runtime",
+  "aenderungsKennung": "git:ca0dfee7685563c8b6003469300c8fd08777b053",
+  "releaseSha": "ca0dfee7685563c8b6003469300c8fd08777b053",
+  "candidateVersion": "1.0.0",
+  "candidateBytes": 396471,
+  "candidateSha256": "b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5",
+  "laufKennung": "block8-6-schatten-1789822653521",
+  "stufe": "kontrolliert_live",
+  "ergebnis": "bestanden",
+  "paketVersion": "1.0.0",
+  "runnerVersion": "1.0.0",
+  "vertrauensNamen": [
+    "My_Ranger1",
+    "My_Ranger2"
+  ],
+  "reports": [
+    {
+      "source": "chat_paste",
+      "reportFile": "Eingefügter Text(20260919-131819).txt",
+      "reportBytes": 682661,
+      "reportSha256": "fba08a78942b6d2de9da482bf44df6aac6f8c91349fa13484423554195a886a7",
+      "reportCreatedAt": "2026-09-19T13:18:17.341Z",
+      "performedAt": 1789823891623,
+      "lokalerCharakter": "My_Ranger1",
+      "zielName": "My_Ranger2",
+      "pass": true,
+      "nachweisKennung": "block8-6-schatten-1789822653521:kontrolliert_live",
+      "begrenzt": true,
+      "spielAktionAusgefuehrt": true,
+      "capabilitySenden": {
+        "versuche": 1,
+        "erfolge": 1,
+        "fehler": 0
+      },
+      "runtime": {
+        "version": "1.1.5",
+        "aktivFreigegeben": true,
+        "empfangInstalliert": true,
+        "lebensnachweisAutomatikAktiv": true,
+        "heartbeatVersuche": 13,
+        "heartbeatErfolge": 13,
+        "heartbeatFehler": 0,
+        "heartbeatOffen": 0
+      },
+      "capability": {
+        "version": "1.0.0",
+        "aktivFreigegeben": true,
+        "remoteBeobachtungInstalliert": true,
+        "capabilityEmpfangInstalliert": true,
+        "beobachteteLebensnachweise": 0,
+        "empfangeneCapabilitySnapshots": 0,
+        "katalogFingerprint": "2299d0025c1e85725c2a75601832009aa2b78afa56a9f8a771d17528416c5268",
+        "lokalerSnapshotFingerprint": "2e6ba054eb9dd5869d94854668ecfb6bef2ba5ac74c94e33ffac66eb330a5ce4"
+      }
+    },
+    {
+      "source": "chat_paste",
+      "reportFile": "Eingefügter Text (2)(20260919-131823).txt",
+      "reportBytes": 681997,
+      "reportSha256": "becc261eef26a674fe460befcd77dbeca8e9d3ed0fe1901ee026b216e979d4e2",
+      "reportCreatedAt": "2026-09-19T13:18:21.800Z",
+      "performedAt": 1789823889836,
+      "lokalerCharakter": "My_Ranger2",
+      "zielName": "My_Ranger1",
+      "pass": true,
+      "nachweisKennung": "block8-6-schatten-1789822653521:kontrolliert_live",
+      "begrenzt": true,
+      "spielAktionAusgefuehrt": true,
+      "capabilitySenden": {
+        "versuche": 1,
+        "erfolge": 1,
+        "fehler": 0
+      },
+      "runtime": {
+        "version": "1.1.5",
+        "aktivFreigegeben": true,
+        "empfangInstalliert": true,
+        "lebensnachweisAutomatikAktiv": true,
+        "heartbeatVersuche": 10,
+        "heartbeatErfolge": 10,
+        "heartbeatFehler": 0,
+        "heartbeatOffen": 0
+      },
+      "capability": {
+        "version": "1.0.0",
+        "aktivFreigegeben": true,
+        "remoteBeobachtungInstalliert": true,
+        "capabilityEmpfangInstalliert": true,
+        "beobachteteLebensnachweise": 0,
+        "empfangeneCapabilitySnapshots": 0,
+        "katalogFingerprint": "2299d0025c1e85725c2a75601832009aa2b78afa56a9f8a771d17528416c5268",
+        "lokalerSnapshotFingerprint": "4bb4b3cf04e9b603438153a93461fb3b88febaecf649e1e3a25560c9615f40f1"
+      }
+    }
+  ],
+  "bidirektional": {
+    "bestanden": true,
+    "richtungen": [
+      "My_Ranger1->My_Ranger2",
+      "My_Ranger2->My_Ranger1"
+    ],
+    "gesamtCapabilityVersuche": 2,
+    "gesamtCapabilityErfolge": 2,
+    "gesamtCapabilityFehler": 0,
+    "heartbeatFehlerGesamt": 0,
+    "empfangszaehlerBeimUnmittelbarenAbschluss": {
+      "beobachteteLebensnachweise": [
+        0,
+        0
+      ],
+      "empfangeneCapabilitySnapshots": [
+        0,
+        0
+      ]
+    },
+    "empfangsLangzeitNachweis": false
+  },
+  "auswertungErwartet": {
+    "offlineReplay": "bestanden",
+    "deploymentHttps": "bestanden",
+    "schatten": "bestanden",
+    "kontrolliertLive": "bestanden",
+    "naechsteStufe": "soak",
+    "freigabeVollstaendig": false,
+    "block9Freigegeben": false
+  }
+}

@@ -10,12 +10,14 @@ const workflowPfad = path.join(repoWurzel, '.github', 'workflows', 'release-v4-b
 const dokumentPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-RELEASE-CANDIDATE.md');
 const deploymentDokumentPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-CANDIDATE-DEPLOYMENT-NACHWEIS.md');
 const schattenNachweisPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-SCHATTEN-FREIGABE-NACHWEIS.json');
+const liveNachweisPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-LIVE-FREIGABE-NACHWEIS.json');
 
 const manifest = JSON.parse(await readFile(manifestPfad, 'utf8'));
 const workflow = await readFile(workflowPfad, 'utf8');
 const dokument = await readFile(dokumentPfad, 'utf8');
 const deploymentDokument = await readFile(deploymentDokumentPfad, 'utf8');
 const schattenNachweis = JSON.parse(await readFile(schattenNachweisPfad, 'utf8'));
+const liveNachweis = JSON.parse(await readFile(liveNachweisPfad, 'utf8'));
 
 const erwartet = Object.freeze({
   releaseSha: 'ca0dfee7685563c8b6003469300c8fd08777b053',
@@ -52,19 +54,14 @@ if (manifest.offlineReplayVerified !== true) {
 for (const feld of ['deploymentPerformed', 'publicHttpsVerified']) {
   if (manifest[feld] !== true) throw new Error('Bestaetigter Deployment-/HTTPS-Nachweis fehlt fuer ' + feld + '.');
 }
-if (manifest.adventureLandShadowVerified !== true) {
-  throw new Error('Realer Adventure-Land-Schattennachweis muss kanonisch bestanden sein.');
+for (const feld of ['adventureLandShadowVerified', 'adventureLandControlledLiveVerified']) {
+  if (manifest[feld] !== true) throw new Error('Realer Adventure-Land-Nachweis muss kanonisch bestanden sein: ' + feld + '.');
 }
-for (const feld of [
-  'adventureLandControlledLiveVerified',
-  'adventureLandSoakVerified',
-  'block86Completed',
-  'block9Freigegeben'
-]) {
+for (const feld of ['adventureLandSoakVerified', 'block86Completed', 'block9Freigegeben']) {
   if (manifest[feld] !== false) throw new Error('Spaetere Block-8.6-Freigabe muss bis zum separaten Nachweis false bleiben: ' + feld + '.');
 }
-if (manifest.nextOperationalStep !== 'adventure_land_controlled_live') {
-  throw new Error('Naechster operativer Schritt muss adventure_land_controlled_live sein.');
+if (manifest.nextOperationalStep !== 'adventure_land_soak') {
+  throw new Error('Naechster operativer Schritt muss adventure_land_soak sein.');
 }
 
 const alt = manifest.immutableRuntime115;
@@ -156,6 +153,50 @@ if (schattenNachweis.schemaVersion !== 1 ||
   throw new Error('Kanonischer Block-8.6-Schattennachweis besitzt unerwartete Werte.');
 }
 
+const live = manifest.controlledLiveEvidence;
+if (!live ||
+    live.source !== 'chat_paste_bidirectional' ||
+    live.laufKennung !== 'block8-6-schatten-1789822653521' ||
+    live.gesamtCapabilityVersuche !== 2 ||
+    live.gesamtCapabilityErfolge !== 2 ||
+    live.gesamtCapabilityFehler !== 0 ||
+    live.heartbeatFehlerGesamt !== 0 ||
+    live.evidenceFile !== 'BLOCK-8-6-9-LIVE-FREIGABE-NACHWEIS.json' ||
+    live.reports?.length !== 2 ||
+    live.reports[0]?.reportSha256 !== 'fba08a78942b6d2de9da482bf44df6aac6f8c91349fa13484423554195a886a7' ||
+    live.reports[1]?.reportSha256 !== 'becc261eef26a674fe460befcd77dbeca8e9d3ed0fe1901ee026b216e979d4e2') {
+  throw new Error('Controlled-Live-Evidenz ist nicht exakt an beide realen PASS-Berichte gebunden.');
+}
+if (liveNachweis.schemaVersion !== 1 ||
+    liveNachweis.releaseSha !== manifest.releaseSha ||
+    liveNachweis.candidateSha256 !== manifest.sha256 ||
+    liveNachweis.candidateBytes !== manifest.bytes ||
+    liveNachweis.laufKennung !== 'block8-6-schatten-1789822653521' ||
+    liveNachweis.stufe !== 'kontrolliert_live' ||
+    liveNachweis.ergebnis !== 'bestanden' ||
+    liveNachweis.reports?.length !== 2 ||
+    liveNachweis.reports[0]?.lokalerCharakter !== 'My_Ranger1' ||
+    liveNachweis.reports[0]?.zielName !== 'My_Ranger2' ||
+    liveNachweis.reports[0]?.capabilitySenden?.versuche !== 1 ||
+    liveNachweis.reports[0]?.capabilitySenden?.erfolge !== 1 ||
+    liveNachweis.reports[0]?.capabilitySenden?.fehler !== 0 ||
+    liveNachweis.reports[0]?.runtime?.heartbeatFehler !== 0 ||
+    liveNachweis.reports[1]?.lokalerCharakter !== 'My_Ranger2' ||
+    liveNachweis.reports[1]?.zielName !== 'My_Ranger1' ||
+    liveNachweis.reports[1]?.capabilitySenden?.versuche !== 1 ||
+    liveNachweis.reports[1]?.capabilitySenden?.erfolge !== 1 ||
+    liveNachweis.reports[1]?.capabilitySenden?.fehler !== 0 ||
+    liveNachweis.reports[1]?.runtime?.heartbeatFehler !== 0 ||
+    liveNachweis.bidirektional?.bestanden !== true ||
+    liveNachweis.bidirektional?.gesamtCapabilityVersuche !== 2 ||
+    liveNachweis.bidirektional?.gesamtCapabilityErfolge !== 2 ||
+    liveNachweis.bidirektional?.gesamtCapabilityFehler !== 0 ||
+    liveNachweis.bidirektional?.empfangsLangzeitNachweis !== false ||
+    liveNachweis.auswertungErwartet?.naechsteStufe !== 'soak' ||
+    liveNachweis.auswertungErwartet?.block9Freigegeben !== false) {
+  throw new Error('Kanonischer Block-8.6-Controlled-Live-Nachweis besitzt unerwartete Werte.');
+}
+
 const gebaut = await baueBlock86Candidate({ schreiben: false });
 if (gebaut.candidateVersion !== manifest.candidateVersion ||
     gebaut.module !== manifest.moduleCount ||
@@ -245,8 +286,9 @@ if (remoteObjectOps.length !== 3) {
 }
 for (const pflicht of [
   'finaler Block-8.6-Candidate technisch gebunden',
-  'immutable veröffentlicht, öffentlich per HTTPS verifiziert und realer Schatten bestanden',
+  'immutable veröffentlicht, öffentlich per HTTPS verifiziert, realer Schatten und kontrolliert live bestanden',
   'realer Schatten bestanden',
+  'kontrolliert live bestanden',
   '`ca0dfee7685563c8b6003469300c8fd08777b053`',
   '51 Module',
   '396471 Bytes',
@@ -254,7 +296,7 @@ for (const pflicht of [
   'deploymentPerformed=true',
   'publicHttpsVerified=true',
   'adventureLandShadowVerified=true',
-  'adventureLandControlledLiveVerified=false',
+  'adventureLandControlledLiveVerified=true',
   'adventureLandSoakVerified=false',
   'block9Freigegeben=false',
   'PUBLISH-V4-BLOCK8-6:<release_sha>',
@@ -288,11 +330,26 @@ for (const pflicht of [
     throw new Error('Block-8.6-Schattennachweis fehlt: ' + pflicht);
   }
 }
+for (const pflicht of [
+  'fba08a78942b6d2de9da482bf44df6aac6f8c91349fa13484423554195a886a7',
+  'becc261eef26a674fe460befcd77dbeca8e9d3ed0fe1901ee026b216e979d4e2',
+  '"lokalerCharakter": "My_Ranger1"',
+  '"lokalerCharakter": "My_Ranger2"',
+  '"gesamtCapabilityVersuche": 2',
+  '"gesamtCapabilityErfolge": 2',
+  '"gesamtCapabilityFehler": 0',
+  '"empfangsLangzeitNachweis": false',
+  '"naechsteStufe": "soak"'
+]) {
+  if (!JSON.stringify(liveNachweis, null, 2).includes(pflicht)) {
+    throw new Error('Block-8.6-Live-Nachweis fehlt: ' + pflicht);
+  }
+}
 
 console.log(
   'Block 8.6.9 Release-Bindung geprueft: exakter gruener Candidate ' +
   manifest.releaseSha +
   ', 51 Module / 396471 Bytes / SHA-256 ' +
   manifest.sha256 +
-  '; Offline/Replay, Deployment/HTTPS und realer Schatten gebunden; kontrolliert live/Soak bleiben gesperrt.'
+  '; Offline/Replay, Deployment/HTTPS, realer Schatten und kontrolliert live gebunden; nur Soak bleibt gesperrt.'
 );

@@ -50,11 +50,11 @@
   "deploymentPerformed": true,
   "publicHttpsVerified": true,
   "adventureLandShadowVerified": true,
-  "adventureLandControlledLiveVerified": false,
+  "adventureLandControlledLiveVerified": true,
   "adventureLandSoakVerified": false,
   "block86Completed": false,
   "block9Freigegeben": false,
-  "nextOperationalStep": "adventure_land_controlled_live",
+  "nextOperationalStep": "adventure_land_soak",
   "deploymentEvidence": {
     "workflow": "release-v4-block8-6-candidate-immutable",
     "runId": 35441831873,
@@ -84,5 +84,32 @@
     "katalogFingerprint": "2299d0025c1e85725c2a75601832009aa2b78afa56a9f8a771d17528416c5268",
     "capabilityFingerprint": "20c2cf00b529b2b6c281a2ca349d14a501d4b49d24353122eeadb547bbd4038d",
     "evidenceFile": "BLOCK-8-6-9-SCHATTEN-FREIGABE-NACHWEIS.json"
+  },
+  "controlledLiveEvidence": {
+    "source": "chat_paste_bidirectional",
+    "laufKennung": "block8-6-schatten-1789822653521",
+    "reports": [
+      {
+        "reportFile": "Eingefügter Text(20260919-131819).txt",
+        "reportBytes": 682661,
+        "reportSha256": "fba08a78942b6d2de9da482bf44df6aac6f8c91349fa13484423554195a886a7",
+        "reportCreatedAt": "2026-09-19T13:18:17.341Z",
+        "lokalerCharakter": "My_Ranger1",
+        "zielName": "My_Ranger2"
+      },
+      {
+        "reportFile": "Eingefügter Text (2)(20260919-131823).txt",
+        "reportBytes": 681997,
+        "reportSha256": "becc261eef26a674fe460befcd77dbeca8e9d3ed0fe1901ee026b216e979d4e2",
+        "reportCreatedAt": "2026-09-19T13:18:21.800Z",
+        "lokalerCharakter": "My_Ranger2",
+        "zielName": "My_Ranger1"
+      }
+    ],
+    "gesamtCapabilityVersuche": 2,
+    "gesamtCapabilityErfolge": 2,
+    "gesamtCapabilityFehler": 0,
+    "heartbeatFehlerGesamt": 0,
+    "evidenceFile": "BLOCK-8-6-9-LIVE-FREIGABE-NACHWEIS.json"
   }
 }
