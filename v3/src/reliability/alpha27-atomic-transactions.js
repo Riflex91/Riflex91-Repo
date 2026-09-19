@@ -174,6 +174,21 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
     const meta = gd.items && gd.items[tx.item];
     if (!meta) return { ok: false, reason: 'ITEM_METADATA_UNKNOWN' };
     const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
+    const productionLifecycle = !!(tx.metadata && tx.metadata.productionMaterialAcquisition === true);
+    const productionDemand = this.runtime && this.runtime.productionMaterialMutationDemand;
+    const productionDemandValid = !!(
+      productionLifecycle
+      && productionDemand
+      && finite(productionDemand.expiresAt, 0) > this.now()
+      && String(productionDemand.family || '').toUpperCase() === String(tx.type || '').toUpperCase()
+      && String(productionDemand.item || '') === String(tx.item || '')
+      && Math.max(0, Math.floor(finite(productionDemand.fromLevel, -1))) === levelOf(tx)
+      && Math.max(0, Math.floor(finite(productionDemand.targetLevel, -1))) === levelOf(tx) + 1
+      && Math.max(0, Math.floor(finite(tx.metadata && tx.metadata.targetLevel, levelOf(tx) + 1))) === Math.max(0, Math.floor(finite(productionDemand.targetLevel, -1)))
+      && String(productionDemand.output || '') === String(tx.metadata && tx.metadata.output || '')
+      && String(productionDemand.recipient || '') === String(tx.metadata && tx.metadata.recipient || '')
+    );
+    if (productionLifecycle && !productionDemandValid) return { ok: false, reason: 'PRODUCTION_MUTATION_DEMAND_MISMATCH' };
     if (tx.type === 'UPGRADE') {
       if (!meta.upgrade) return { ok: false, reason: 'ITEM_NOT_UPGRADEABLE' };
       if (levelOf(tx) >= this.options.maxUpgradeLevel) return { ok: false, reason: 'UPGRADE_LEVEL_RISK_CAP' };
@@ -181,12 +196,18 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       if (grade >= 4) return { ok: false, reason: 'UPGRADE_ITEM_EXALTED' };
       if (value > this.options.upgradeValueCap) return { ok: false, reason: 'UPGRADE_VALUE_RISK_CAP' };
       const goals = this.runtime.gearProgression && typeof this.runtime.gearProgression.list === 'function' ? this.runtime.gearProgression.list(200) : [];
-      const goal = goals.find((row) => row && row.sourceCharacter === tx.character && row.item === tx.item && levelOf({ level: row.observedLevel }) === levelOf(tx) && finite(row.targetLevel, 0) > levelOf(tx));
+      // Production owns only the explicitly ledger-authorized input selected by
+      // its short-lived demand. Do not accidentally bind that copy to another
+      // same-name/same-level Farmer goal whose sourceIndex points elsewhere.
+      const goal = productionLifecycle ? null : goals.find((row) => row && row.sourceCharacter === tx.character && row.item === tx.item && levelOf({ level: row.observedLevel }) === levelOf(tx) && finite(row.targetLevel, 0) > levelOf(tx));
       const economicLifecycle = !!(tx.metadata && tx.metadata.economicLifecycle === true);
       const requestedTarget = Math.max(0, Math.floor(finite(tx.metadata && tx.metadata.targetLevel, levelOf(tx) + 1)));
-      if (!goal && !economicLifecycle && !selfGear) return { ok: false, reason: 'LIVE_GEAR_GOAL_REQUIRED' };
+      if (!goal && !economicLifecycle && !selfGear && !productionLifecycle) return { ok: false, reason: 'LIVE_GEAR_GOAL_OR_PRODUCTION_DEMAND_REQUIRED' };
       if (goal && tx.metadata && tx.metadata.targetLevel != null && requestedTarget !== Math.floor(finite(goal.targetLevel, requestedTarget))) {
         return { ok: false, reason: 'GEAR_GOAL_TARGET_MISMATCH' };
+      }
+      if (!goal && productionLifecycle && !selfGear && !economicLifecycle) {
+        if (!productionDemandValid || requestedTarget !== levelOf(tx) + 1) return { ok: false, reason: 'PRODUCTION_UPGRADE_SCOPE_INVALID' };
       }
       if (!goal && economicLifecycle && !selfGear) {
         if (levelOf(tx) >= 3 || requestedTarget !== 3) return { ok: false, reason: 'ECONOMIC_UPGRADE_SCOPE_INVALID' };
@@ -210,6 +231,7 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
         meta,
         goal: goal || null,
         economicLifecycle,
+        productionLifecycle,
         selfGear,
         value,
         grade,
@@ -224,7 +246,7 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
     if (grade >= 4) return { ok: false, reason: 'COMPOUND_ITEM_EXALTED' };
     if (value > this.options.compoundValueCap) return { ok: false, reason: 'COMPOUND_VALUE_RISK_CAP' };
     if (!inputs.every((row) => row.item === inputs[0].item && levelOf(row) === levelOf(inputs[0]))) return { ok: false, reason: 'COMPOUND_INPUT_IDENTITY_MISMATCH' };
-    return { ok: true, inputs, meta, selfGear, value, grade, scroll: `cscroll${grade}` };
+    return { ok: true, inputs, meta, productionLifecycle, selfGear, value, grade, scroll: `cscroll${grade}` };
   }
 }
 
