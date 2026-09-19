@@ -257,6 +257,47 @@ function installMerchantProduction(runtime, options = {}) {
     return true;
   }
   function cycle() {
+    // A persisted non-terminal raw operation must be reconciled before planning
+    // any new production work or travel. Otherwise every fresh plan is rejected
+    // by the executor while the controller keeps re-planning/travelling forever.
+    const controlledAtStart = executor.status();
+    const recoveringOperation = controlledAtStart && controlledAtStart.activeOperation;
+    if (recoveringOperation && String(recoveringOperation.state || '') === 'RECOVERING') {
+      const reconciliation = executor.reconcile();
+      state.lastExecution = {
+        at: runtime.now(),
+        planId: recoveringOperation.planId || null,
+        kind: recoveringOperation.kind || 'RECONCILE',
+        result: clone(reconciliation)
+      };
+      if (reconciliation && reconciliation.reconciled === true && reconciliation.committed !== true) {
+        const task = currentTask();
+        if (task && task.owner === 'PRODUCTION') {
+          releaseTask('PRODUCTION_RESTART_RECONCILIATION_FAILED_SAFE', {
+            operation: clone(recoveringOperation),
+            reconciliation: clone(reconciliation)
+          });
+        }
+        state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      }
+      if (runtime.log && typeof runtime.log.emit === 'function') {
+        runtime.log.emit({
+          component: 'merchant-production',
+          event: 'PRODUCTION_RESTART_RECONCILED',
+          severity: reconciliation && reconciliation.committed === true ? 'info' : 'warn',
+          reason: reconciliation && reconciliation.reason || 'PRODUCTION_RECONCILIATION_COMPLETED',
+          data: { operation: clone(recoveringOperation), reconciliation: clone(reconciliation) }
+        });
+      }
+      return {
+        state: 'HOLD',
+        reason: reconciliation && reconciliation.committed === true
+          ? 'PRODUCTION_RESTART_RECONCILED_COMMITTED'
+          : 'PRODUCTION_RESTART_RECONCILED_FAILED_SAFE',
+        reconciliation: clone(reconciliation)
+      };
+    }
+
     // Merchant production is installed in the shared runtime on every owned
     // character, but only the Merchant may acquire production tasks or travel
     // for bank/vendor work. Gate before any side effect, including auto-enable
