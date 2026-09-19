@@ -24,7 +24,7 @@ defaults.Validate();
 Assert(defaults.TelemetryEnabled == false, "TELEMETRY_MUST_DEFAULT_OFF");
 Assert(defaults.PreferredBrowser == "Brave", "BRAVE_MUST_DEFAULT");
 Assert(defaults.ConfigVersion == BridgeConfig.CurrentConfigVersion, "CONFIG_VERSION");
-Assert(BridgeConfig.CurrentConfigVersion == 5, "CONFIG_VERSION_5");
+Assert(BridgeConfig.CurrentConfigVersion == 6, "CONFIG_VERSION_6");
 Assert(defaults.TelemetryIngestUrl.StartsWith("https://", StringComparison.Ordinal), "INGEST_MUST_DEFAULT_HTTPS");
 Assert(defaults.SignalControlUrl.StartsWith("https://", StringComparison.Ordinal), "SIGNAL_CONTROL_MUST_DEFAULT_HTTPS");
 Assert(defaults.WebDashboardEnabled, "WEB_DASHBOARD_PROFILE_SYNC_DEFAULT_ON");
@@ -38,9 +38,23 @@ Assert(defaults.BackblazeBucket == "al-aio-bot", "BACKBLAZE_BUCKET_DEFAULT");
 Assert(defaults.BackblazePrefix == "v4", "BACKBLAZE_PREFIX_DEFAULT");
 Assert(!string.IsNullOrWhiteSpace(defaults.BackblazeKeyIdEnvironmentVariable), "BACKBLAZE_KEY_ID_ENV_REQUIRED");
 Assert(!string.IsNullOrWhiteSpace(defaults.BackblazeApplicationKeyEnvironmentVariable), "BACKBLAZE_APPLICATION_KEY_ENV_REQUIRED");
+Assert(defaults.WissenswaechterAktiv, "WISSENSWAECHTER_DEFAULT_ON");
+Assert(defaults.WissenswaechterIntervallMinuten == 60, "WISSENSWAECHTER_HOURLY");
+Assert(defaults.WissenswaechterWebSucheAktiv, "WISSENSWAECHTER_WEB_SEARCH_DEFAULT_ON");
+Assert(defaults.WissenswaechterMaxQuellenProLauf == 200, "WISSENSWAECHTER_SOURCE_LIMIT");
+Assert(defaults.WissenswaechterMaxKandidaten == 1000, "WISSENSWAECHTER_CANDIDATE_LIMIT");
 Assert(CdpBackblazeConfigurator.GlobalConfigName == "AIO_V3_BACKBLAZE_CONFIG", "BACKBLAZE_GLOBAL_NAME");
 Assert(CdpWebDashboardConfigurator.CloudStorageKey == "aio-v3:cloud-control:v1", "WEB_DASHBOARD_CLOUD_STORAGE_KEY");
 Assert(CdpWebDashboardConfigurator.ControlStorageKey == "aio-v3:control-plane-config:v1", "WEB_DASHBOARD_CONTROL_STORAGE_KEY");
+Assert(GitArbeitskopie.DatenbankPfad == "v5/wissensbasis/datenbank", "WISSENSWAECHTER_DATABASE_PATH");
+Assert(GitArbeitskopie.IstErlaubterDatenbankPfad("v5/wissensbasis/datenbank/quellenstatus.json"), "DATABASE_CHILD_ALLOWED");
+Assert(GitArbeitskopie.IstErlaubterDatenbankPfad("v5\\wissensbasis\\datenbank\\aktuell\\quelle.txt"), "DATABASE_WINDOWS_PATH_ALLOWED");
+Assert(!GitArbeitskopie.IstErlaubterDatenbankPfad("v5/wissensbasis/fakten/adventure-land-kern.json"), "FACTS_OUTSIDE_DATABASE_BLOCKED");
+Assert(!GitArbeitskopie.IstErlaubterDatenbankPfad("v5/wissensbasis/datenbank/../../dokumentation/test.md"), "DATABASE_TRAVERSAL_BLOCKED");
+Assert(!GitArbeitskopie.IstErlaubterDatenbankPfad("ops/windows-bridge/MainWindow.xaml"), "CODE_WRITE_BLOCKED");
+Assert(WebQuellenEntdecker.BestimmeVertrauensklasse("https://adventure.land/allnotes") == "OFFIZIELL", "OFFICIAL_SITE_CLASSIFIED");
+Assert(WebQuellenEntdecker.BestimmeVertrauensklasse("https://github.com/kaansoral/adventureland_mongodb") == "OFFIZIELL", "OFFICIAL_REPO_CLASSIFIED");
+Assert(WebQuellenEntdecker.BestimmeVertrauensklasse("https://github.com/example/adventure-land-bot") == "COMMUNITY", "COMMUNITY_REPO_CLASSIFIED");
 
 (defaults with { PreferredBrowser = "Brave" }).Validate();
 (defaults with { PreferredBrowser = "Edge" }).Validate();
@@ -64,6 +78,10 @@ ExpectInvalid(defaults with { BackblazeRegion = "EU Central" }, "BACKBLAZE_REGIO
 ExpectInvalid(defaults with { BackblazeBucket = "AL-aio-bot" }, "BACKBLAZE_BUCKET_INVALID");
 ExpectInvalid(defaults with { BackblazeBucket = "b2-aio-bot" }, "BACKBLAZE_BUCKET_INVALID");
 ExpectInvalid(defaults with { BackblazePrefix = "v4/../secret" }, "BACKBLAZE_PREFIX_INVALID");
+ExpectInvalid(defaults with { WissenswaechterIntervallMinuten = 10 }, "WISSENSWAECHTER_INTERVALL_MUSS_60_MINUTEN_SEIN");
+ExpectInvalid(defaults with { WissenswaechterIntervallMinuten = 120 }, "WISSENSWAECHTER_INTERVALL_MUSS_60_MINUTEN_SEIN");
+ExpectInvalid(defaults with { WissenswaechterMaxQuellenProLauf = 0 }, "WISSENSWAECHTER_QUELLENLIMIT_UNGUELTIG");
+ExpectInvalid(defaults with { WissenswaechterMaxKandidaten = 10 }, "WISSENSWAECHTER_KANDIDATENLIMIT_UNGUELTIG");
 (defaults with
 {
     BackblazeEnabled = true,
