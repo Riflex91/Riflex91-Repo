@@ -39,7 +39,7 @@ test("Englischer neuer Domaenenbezeichner wird blockiert", () => {
 });
 
 test("Generischer Host-Aufruf wird blockiert", () => {
-  erwartet("host/test.ts", "evaluate('1+1');", "GENERISCHER_HOST_AUFRUF");
+  erwartet("host/quelle/test.ts", "evaluate('1+1');", "GENERISCHER_HOST_AUFRUF");
 });
 
 test("Hart codiertes Geheimnis wird blockiert", () => {
@@ -47,6 +47,11 @@ test("Hart codiertes Geheimnis wird blockiert", () => {
 });
 
 test("Typisierter Persistenzadapter darf Dateisystem importieren", () => {
-  assert.ok(!pruefeQuelltext("persistenz/adapter/datei.ts", 'import fs from "node:fs";')
+  assert.ok(!pruefeQuelltext("persistenz/quelle/adapter/datei.ts", 'import fs from "node:fs";')
     .includes("DIREKTER_DATEISYSTEMZUGRIFF"));
+});
+
+test("Raw Game Write ist spaeter nur im Ausfuehrungsadapter statisch erlaubt", () => {
+  assert.ok(!pruefeQuelltext("ausfuehrung/quelle/adapter/game.ts", 'socket.emit("bank", {});')
+    .includes("RAW_GAME_WRITE"));
 });
