@@ -4,13 +4,13 @@ function automationCatalogSource(){
   const remote=automationCatalogRemote&&automationCatalogRemote.catalog;
   if(remote&&Array.isArray(remote.items)&&remote.items.length){
     const declared=Number(remote.declaredCount)>0?Number(remote.declaredCount):Number(remote.count);
-    return {row:null,status:{automationCatalogVersion:Number(remote.version)||0,automationCatalogCount:declared},list:remote.items,receivedAt:Number(remote.receivedAt)||0,dedicated:true}
+    return {row:null,status:{automationCatalogVersion:Number(remote.version)||0,automationCatalogCount:declared},list:remote.items,receivedAt:Number(remote.receivedAt)||0,dedicated:true,source:String(remote.source||'merchant'),complete:remote.complete!==false}
   }
   const chars=overview&&overview.characters||[];
   const merchant=chars.find(row=>String(row.status&&row.status.character&&row.status.character.ctype||'').toLowerCase()==='merchant');
   const candidates=[merchant].concat(chars).filter(Boolean);
-  for(const row of candidates){const list=row.status&&row.status.automationCatalog;if(Array.isArray(list)&&list.length)return {row,status:row.status||{},list,receivedAt:Number(row.receivedAt)||0,dedicated:false}}
-  return {row:null,status:{},list:[],receivedAt:0,dedicated:false}
+  for(const row of candidates){const list=row.status&&row.status.automationCatalog;if(Array.isArray(list)&&list.length)return {row,status:row.status||{},list,receivedAt:Number(row.receivedAt)||0,dedicated:false,source:'runtime-legacy',complete:false}}
+  return {row:null,status:{},list:[],receivedAt:0,dedicated:false,source:'none',complete:false}
 }
 function automationCatalog(){return automationCatalogSource().list}
 function automationText(value){return String(value==null?'':value).normalize('NFKD').replace(/[̀-ͯ]/g,'').toLowerCase()}
@@ -49,8 +49,8 @@ function renderAutomation(){
   const compoundLimitEl=$('automationMaxCompound'),compoundLimit=settingValue('economy.maxCompound',1),compoundSave=$('saveAutomationMaxCompound');
   if(compoundLimitEl&&document.activeElement!==compoundLimitEl)compoundLimitEl.value=String(compoundLimit);
   if(compoundSave){compoundSave.disabled=!adminKey;compoundSave.title=adminKey?'Maximales automatisches Compound-/Combine-Level speichern':'ADMIN_KEY erforderlich'}
-  const catalogSource=automationCatalogSource(),all=catalogSource.list,catalogStatus=catalogSource.status||{},catalogVersion=Number(catalogStatus.automationCatalogVersion)||0,declaredCount=Number(catalogStatus.automationCatalogCount),catalogHealth=$('automationCatalogHealth'),complete=Number.isFinite(declaredCount)&&declaredCount===all.length&&catalogVersion>=3,sourceLabel=catalogSource.dedicated?' · eigener Katalogkanal':' · Legacy-Snapshot';
-  if(catalogHealth){catalogHealth.className='notice'+(complete?'':' warn');catalogHealth.textContent=all.length?(complete?'Item-Datenbank v'+catalogVersion+' vollständig synchronisiert · '+all.length+' Items'+sourceLabel:'Item-Datenbank unvollständig/veraltet · '+all.length+(Number.isFinite(declaredCount)?' / '+declaredCount:'')+' Items'+sourceLabel+' · Merchant-Katalog wird aktualisiert'):'Item-Datenbank noch nicht vom Merchant synchronisiert.'}
+  const catalogSource=automationCatalogSource(),all=catalogSource.list,catalogStatus=catalogSource.status||{},catalogVersion=Number(catalogStatus.automationCatalogVersion)||0,declaredCount=Number(catalogStatus.automationCatalogCount),catalogHealth=$('automationCatalogHealth'),complete=catalogSource.complete!==false&&Number.isFinite(declaredCount)&&declaredCount===all.length&&catalogVersion>=3,sourceLabel=catalogSource.source==='official+merchant'?' · offizielle Spieldaten + Botdaten':catalogSource.source==='official'?' · offizielle Spieldaten':catalogSource.source==='merchant'?' · Bot-Katalog':' · unvollständiger Runtime-Snapshot';
+  if(catalogHealth){catalogHealth.className='notice'+(complete?'':' warn');catalogHealth.textContent=all.length?(complete?'Item-Datenbank v'+catalogVersion+' vollständig · '+all.length+' Items'+sourceLabel:'Item-Datenbank unvollständig/veraltet · '+all.length+(Number.isFinite(declaredCount)?' / '+declaredCount:'')+' Items'+sourceLabel):'Item-Datenbank derzeit nicht verfügbar.'}
   const types=[...new Set(all.map(x=>String(x.type||'')).filter(Boolean))].sort(),npcs=[...new Set(all.flatMap(x=>(x.npc||[]).map(n=>String(n&&n.npc||'')).filter(Boolean)))].sort();
   fillAutomationSelect('automationType',types,'Alle Typen');fillAutomationSelect('automationNpc',npcs,'Alle NPCs');
   const q=String($('automationSearch')&&$('automationSearch').value||''),type=$('automationType')&&$('automationType').value||'',ct=$('automationClass')&&$('automationClass').value||'',npc=$('automationNpc')&&$('automationNpc').value||'',cap=$('automationCapability')&&$('automationCapability').value||'',minRaw=$('automationLevelMin')&&$('automationLevelMin').value,maxRaw=$('automationLevelMax')&&$('automationLevelMax').value,min=minRaw===''?null:Number(minRaw),max=maxRaw===''?null:Number(maxRaw);
@@ -60,7 +60,7 @@ function renderAutomation(){
     if(cap==='upgrade'&&!item.upgrade)return false;if(cap==='compound'&&!item.compound)return false;if(cap==='npc'&&!(item.npc||[]).length)return false;if(cap==='protected'&&!itemProtection(item).length)return false;return true
   });
   $('automationCount').textContent=rows.length+' / '+all.length+' Items';
-  if(!all.length){root.innerHTML='<div class="empty">Der vollständige Itemkatalog ist noch nicht vom Merchant synchronisiert worden.</div>';return}
+  if(!all.length){root.innerHTML='<div class="empty">Der Itemkatalog ist derzeit nicht verfügbar.</div>';return}
   root.innerHTML=rows.map(automationDetailCard).join('')||'<div class="empty">Keine Items passen zu den Filtern.</div>'
 }
 function openItemPermissionMenu(name,meta,x,y){
