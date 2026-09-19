@@ -38892,6 +38892,7 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       && String(productionDemand.item || '') === String(tx.item || '')
       && Math.max(0, Math.floor(finite(productionDemand.fromLevel, -1))) === levelOf(tx)
       && Math.max(0, Math.floor(finite(productionDemand.targetLevel, -1))) === levelOf(tx) + 1
+      && Math.max(0, Math.floor(finite(tx.metadata && tx.metadata.targetLevel, levelOf(tx) + 1))) === Math.max(0, Math.floor(finite(productionDemand.targetLevel, -1)))
       && String(productionDemand.output || '') === String(tx.metadata && tx.metadata.output || '')
       && String(productionDemand.recipient || '') === String(tx.metadata && tx.metadata.recipient || '')
     );
@@ -38903,7 +38904,10 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       if (grade >= 4) return { ok: false, reason: 'UPGRADE_ITEM_EXALTED' };
       if (value > this.options.upgradeValueCap) return { ok: false, reason: 'UPGRADE_VALUE_RISK_CAP' };
       const goals = this.runtime.gearProgression && typeof this.runtime.gearProgression.list === 'function' ? this.runtime.gearProgression.list(200) : [];
-      const goal = goals.find((row) => row && row.sourceCharacter === tx.character && row.item === tx.item && levelOf({ level: row.observedLevel }) === levelOf(tx) && finite(row.targetLevel, 0) > levelOf(tx));
+      // Production owns only the explicitly ledger-authorized input selected by
+      // its short-lived demand. Do not accidentally bind that copy to another
+      // same-name/same-level Farmer goal whose sourceIndex points elsewhere.
+      const goal = productionLifecycle ? null : goals.find((row) => row && row.sourceCharacter === tx.character && row.item === tx.item && levelOf({ level: row.observedLevel }) === levelOf(tx) && finite(row.targetLevel, 0) > levelOf(tx));
       const economicLifecycle = !!(tx.metadata && tx.metadata.economicLifecycle === true);
       const requestedTarget = Math.max(0, Math.floor(finite(tx.metadata && tx.metadata.targetLevel, levelOf(tx) + 1)));
       if (!goal && !economicLifecycle && !selfGear && !productionLifecycle) return { ok: false, reason: 'LIVE_GEAR_GOAL_OR_PRODUCTION_DEMAND_REQUIRED' };
@@ -40784,9 +40788,18 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     const gd = gameDataOf(this.runtime);
     if (!c || !ledger) return null;
     const groups = new Map();
+    const productionDemand = this.runtime && this.runtime.productionMaterialMutationDemand;
     for (const row of ledger.list(1000)) {
       if (!row || row.character !== c.name || row.disposition !== 'RESERVE_COMPOUND' || this.atomic.mutationRetryBlocked(row, 'COMPOUND')) continue;
       const level = levelOf(row);
+      const ownedByProduction = !!(
+        productionDemand
+        && finite(productionDemand.expiresAt, 0) > this.now()
+        && String(productionDemand.family || '').toUpperCase() === 'COMPOUND'
+        && String(productionDemand.item || '') === String(row.name || '')
+        && Math.max(0, Math.floor(finite(productionDemand.fromLevel, -1))) === level
+      );
+      if (ownedByProduction) continue;
       const meta = gd.items && gd.items[row.name];
       if (!meta || !meta.compound || level >= this.options.maxCompoundLevel || gradeForLevel(meta, level) >= 4) continue;
       const key = `${row.name}:${level}`;
@@ -54996,6 +55009,11 @@ function installMerchantProduction(runtime, options = {}) {
       if (!entry || String(entry.name || '') !== String(demand.item || '')) continue;
       if (Math.max(0, Math.floor(n(entry.level, 0))) !== Math.max(0, Math.floor(n(demand.fromLevel, 0)))) continue;
       if (String(entry.disposition || '') !== expectedDisposition) continue;
+      const reasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
+      if (reasons.includes('FUTURE_FARMER_GEAR_PROGRESSION')
+        || reasons.includes('ACTIVE_GEAR_GOAL_EXACT_ITEM')
+        || reasons.includes('ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED')) continue;
+      if (String(demand.family || '') === 'UPGRADE' && !reasons.includes('PRODUCTION_MATERIAL_MUTATION_DEMAND')) continue;
       out.push(index);
       if (out.length >= required) break;
     }
