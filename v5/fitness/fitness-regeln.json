@@ -299,7 +299,15 @@
       "kennung": "V5-FIT-045",
       "titel": "Nichtkritisches SSD-I/O ist aus Combat-/Movement-/Scheduler-/Execution-Hot-Paths ausgeschlossen",
       "phase": "R5",
-      "durchsetzung": "SSD_HOT_PATH_GUARD"
+      "durchsetzung": "SSD_HOT_PATH_GUARD",
+      "r5NachweisStatus": "ERFUELLT",
+      "r5Nachweise": [
+        "v5/werkzeuge/r3-guard-regeln.mjs",
+        "v5/werkzeuge/r3-statische-guards.mjs",
+        "v5/werkzeuge/tests/r3-guards.test.mjs",
+        "v5/grundlage/quelle/persistenz/begrenzter-asynchroner-schreiber.ts"
+      ],
+      "r5NachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-FIT-046",
@@ -316,5 +324,7 @@
   ],
   "r2RatifiziertAm": "2026-09-19",
   "r4Status": "ABGESCHLOSSEN",
-  "r4AbgeschlossenAm": "2026-09-20"
+  "r4AbgeschlossenAm": "2026-09-20",
+  "r5Status": "ABGESCHLOSSEN",
+  "r5AbgeschlossenAm": "2026-09-20"
 }

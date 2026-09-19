@@ -738,15 +738,22 @@
         "V5-ALT-045",
         "V5-INV-024"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/persistenz/schema-migration.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r5-persistenz.test.mjs",
+        "v5/werkzeuge/r5-struktur-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r5NachweisStatus": "R5_NACHGEWIESEN",
+      "r5NachgewiesenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-002",
@@ -757,15 +764,23 @@
       "invarianten": [
         "V5-ALT-046"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/persistenz/begrenztes-json.ts",
+        "v5/grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r5-persistenz.test.mjs",
+        "v5/werkzeuge/r5-struktur-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r5NachweisStatus": "R5_NACHGEWIESEN",
+      "r5NachgewiesenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-003",
@@ -776,15 +791,22 @@
       "invarianten": [
         "V5-ALT-010"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/persistenz/journal.ts",
+        "v5/grundlage/quelle/persistenz/dateibasierte-persistenz.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r5-persistenz.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r5NachweisStatus": "R5_NACHGEWIESEN",
+      "r5NachgewiesenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-004",
@@ -815,15 +837,21 @@
       "invarianten": [
         "V5-ALT-031"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/persistenz/dateibasierte-persistenz.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r5-persistenz.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r5NachweisStatus": "R5_NACHGEWIESEN",
+      "r5NachgewiesenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-006",
@@ -834,15 +862,21 @@
       "invarianten": [
         "V5-INV-024"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/persistenz/schema-migration.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r5-persistenz.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r5NachweisStatus": "R5_NACHGEWIESEN",
+      "r5NachgewiesenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-007",
@@ -853,15 +887,22 @@
       "invarianten": [
         "V5-ALT-039"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/persistenz/postfach.ts",
+        "v5/grundlage/quelle/persistenz/dateibasierte-persistenz.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r5-persistenz.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r5NachweisStatus": "R5_NACHGEWIESEN",
+      "r5NachgewiesenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-008",
@@ -2201,15 +2242,25 @@
       "invarianten": [
         "V5-INV-043"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/persistenz/live-wissens-speicher.ts",
+        "v5/grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs",
+        "ops/windows-bridge/SsdVolumeGesundheitsPruefer.cs"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r5-persistenz.test.mjs",
+        "ops/windows-bridge-tests/Program.cs",
+        ".github/workflows/windows-bridge.yml"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r5NachweisStatus": "R5_NACHGEWIESEN",
+      "r5NachgewiesenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-023",
@@ -2220,15 +2271,24 @@
       "invarianten": [
         "V5-INV-044"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/persistenz/live-wissens-speicher.ts",
+        "v5/grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs",
+        "ops/windows-bridge/LiveWissensImportDienst.cs"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r5-persistenz.test.mjs",
+        "ops/windows-bridge-tests/Program.cs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r5NachweisStatus": "R5_NACHGEWIESEN",
+      "r5NachgewiesenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-024",
@@ -2350,5 +2410,7 @@
   "ratifiziertAm": "2026-09-19",
   "ratifizierungsRegel": "Die R2-Verknuepfung ist fachlich ratifiziert. vollstaendig bleibt false, solange Implementierung, Tests und Live-Nachweise fehlen.",
   "r4Status": "ABGESCHLOSSEN",
-  "r4AbgeschlossenAm": "2026-09-20"
+  "r4AbgeschlossenAm": "2026-09-20",
+  "r5Status": "ABGESCHLOSSEN",
+  "r5AbgeschlossenAm": "2026-09-20"
 }

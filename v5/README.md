@@ -91,3 +91,18 @@ Wichtige Artefakte:
 - `.github/workflows/v5-r4.yml` – exaktes-Head R4-CI.
 
 Aktuelle Phase ist R5.
+
+## R5 – Persistenz, Journal und Schema-Evolution
+
+R5 ist formal abgeschlossen. Die Persistenzgrundlage bleibt no-write bezogen auf Adventure-Land-Gameplay; das Gameplay-Runtime-Gesamtgate bleibt GESPERRT.
+
+Wichtige Artefakte:
+- `roadmap/r5-abschluss.json` – maschinenlesbarer R5-Abschluss mit CI-/Artifact-Nachweisen;
+- `grundlage/quelle/persistenz/**` – Journal, Restart, Migration, Dedupe, Inbox/Outbox, Retention, Speicherdruck und Live-Wissen;
+- `grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs` – atomarer Node-Dateiadapter;
+- `grundlage/tests/r5-persistenz.test.mjs` – Persistenz-/Crash-/Fault-Matrix;
+- `werkzeuge/r5-struktur-pruefen.mjs` – dauerhafter R5-DONE-Strukturvalidator;
+- `architektur/adr/ADR-003-PERSISTENZ-JOURNAL.md` – Architekturentscheidung;
+- `.github/workflows/v5-r5.yml` – exakter-Head R5-CI.
+
+Aktuelle Phase ist R6. Der lokale Deploy einer alten Windows-Bridge-Binary bleibt als Betriebsblocker offen; der aktuelle Repo-Code ist weiterhin auf den Knowledge-Branch begrenzt.

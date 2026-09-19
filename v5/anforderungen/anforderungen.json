@@ -626,7 +626,7 @@
       "titel": "Persistenz ist schema-versioniert und migrationsfaehig.",
       "phase": "R5",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R5_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-037"
       ],
@@ -636,14 +636,24 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "technischerNachweis": {
+        "implementierung": [
+          "v5/grundlage/quelle/persistenz/schema-migration.ts"
+        ],
+        "tests": [
+          "v5/grundlage/tests/r5-persistenz.test.mjs",
+          "v5/werkzeuge/r5-struktur-pruefen.mjs"
+        ]
+      },
+      "nachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-PERSIST-002",
       "titel": "Corrupt/oversized/unreadable kritische Persistenz fail-closed.",
       "phase": "R5",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R5_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-038"
       ],
@@ -652,14 +662,25 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "technischerNachweis": {
+        "implementierung": [
+          "v5/grundlage/quelle/persistenz/begrenztes-json.ts",
+          "v5/grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs"
+        ],
+        "tests": [
+          "v5/grundlage/tests/r5-persistenz.test.mjs",
+          "v5/werkzeuge/r5-struktur-pruefen.mjs"
+        ]
+      },
+      "nachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-PERSIST-003",
       "titel": "Irreversible Arbeit persistiert Intent vor der ersten Raw Action.",
       "phase": "R5",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R5_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-039"
       ],
@@ -668,7 +689,17 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "technischerNachweis": {
+        "implementierung": [
+          "v5/grundlage/quelle/persistenz/journal.ts",
+          "v5/grundlage/quelle/persistenz/dateibasierte-persistenz.ts"
+        ],
+        "tests": [
+          "v5/grundlage/tests/r5-persistenz.test.mjs"
+        ]
+      },
+      "nachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-PERSIST-004",
@@ -692,7 +723,7 @@
       "titel": "Irreversible Evidence wird nach Restart persistent dedupliziert.",
       "phase": "R5",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R5_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-041"
       ],
@@ -701,14 +732,23 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "technischerNachweis": {
+        "implementierung": [
+          "v5/grundlage/quelle/persistenz/dateibasierte-persistenz.ts"
+        ],
+        "tests": [
+          "v5/grundlage/tests/r5-persistenz.test.mjs"
+        ]
+      },
+      "nachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-PERSIST-006",
       "titel": "Persistenzmigrationen werden vor Live-Einsatz vorwaerts, rueckwaerts und inkompatibel getestet.",
       "phase": "R5",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R5_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-042"
       ],
@@ -717,14 +757,23 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "technischerNachweis": {
+        "implementierung": [
+          "v5/grundlage/quelle/persistenz/schema-migration.ts"
+        ],
+        "tests": [
+          "v5/grundlage/tests/r5-persistenz.test.mjs"
+        ]
+      },
+      "nachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-PERSIST-007",
       "titel": "Kritische externe Zustellung nutzt persistente Inbox/Outbox oder aequivalenten Claim-Mechanismus.",
       "phase": "R5",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R5_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-043"
       ],
@@ -733,7 +782,17 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "technischerNachweis": {
+        "implementierung": [
+          "v5/grundlage/quelle/persistenz/postfach.ts",
+          "v5/grundlage/quelle/persistenz/dateibasierte-persistenz.ts"
+        ],
+        "tests": [
+          "v5/grundlage/tests/r5-persistenz.test.mjs"
+        ]
+      },
+      "nachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-PERSIST-008",
@@ -1883,7 +1942,7 @@
       "titel": "Der V5-Bot legt die lokale live verifizierte Wissensdatenbank standardmaessig unter D:\\\\AdventureLand-V5\\\\wissensdatenbank an und schreibt sie ueber einen typisierten LiveWissensSpeicherPort.",
       "phase": "R5",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R5_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-107"
       ],
@@ -1892,14 +1951,27 @@
       ],
       "nachweis": "PORT_UND_DATEISYSTEMTEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "technischerNachweis": {
+        "implementierung": [
+          "v5/grundlage/quelle/persistenz/live-wissens-speicher.ts",
+          "v5/grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs",
+          "ops/windows-bridge/SsdVolumeGesundheitsPruefer.cs"
+        ],
+        "tests": [
+          "v5/grundlage/tests/r5-persistenz.test.mjs",
+          "ops/windows-bridge-tests/Program.cs",
+          ".github/workflows/windows-bridge.yml"
+        ]
+      },
+      "nachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-023",
       "titel": "Lokale Live-Wissenssnapshots verwenden ein atomar abgeschlossenes SCHREIBT->BEREIT-Generationsprotokoll; die Bridge importiert nur unveraenderte BEREIT-Generationen.",
       "phase": "R5",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R5_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-108"
       ],
@@ -1908,7 +1980,19 @@
       ],
       "nachweis": "TORN_WRITE_UND_GENERATION_TEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "technischerNachweis": {
+        "implementierung": [
+          "v5/grundlage/quelle/persistenz/live-wissens-speicher.ts",
+          "v5/grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs",
+          "ops/windows-bridge/LiveWissensImportDienst.cs"
+        ],
+        "tests": [
+          "v5/grundlage/tests/r5-persistenz.test.mjs",
+          "ops/windows-bridge-tests/Program.cs"
+        ]
+      },
+      "nachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-024",
@@ -2012,5 +2096,7 @@
   "ratifiziertAm": "2026-09-19",
   "ratifizierungsRegel": "R2 ratifiziert Inhalt, Prioritaet, Phase und Safety-Bezug. Der bestehende Anforderungsstatus OFFEN bleibt bis Implementierung/Test/Live-Nachweis unveraendert und darf nicht mit R2-Ratifizierung verwechselt werden.",
   "r4Status": "ABGESCHLOSSEN",
-  "r4AbgeschlossenAm": "2026-09-20"
+  "r4AbgeschlossenAm": "2026-09-20",
+  "r5Status": "ABGESCHLOSSEN",
+  "r5AbgeschlossenAm": "2026-09-20"
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-09-20",
-  "currentPhase": "R5",
+  "currentPhase": "R6",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -163,7 +163,7 @@
     {
       "id": "R5",
       "name": "Persistenz Journal Schema-Evolution",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R4"
       ],
@@ -177,12 +177,26 @@
         "Kritischer Intent ist durable bevor wertveraendernde Mutation gesendet werden darf",
         "Speicherdruck degradiert zuerst nichtkritische Datenklassen",
         "Kein stiller Fallback kritischer Persistenz auf Systemlaufwerk"
+      ],
+      "r5Nachweise": [
+        "v5/roadmap/r5-abschluss.json",
+        "v5/grundlage/quelle/persistenz/ports.ts",
+        "v5/grundlage/quelle/persistenz/journal.ts",
+        "v5/grundlage/quelle/persistenz/restart.ts",
+        "v5/grundlage/quelle/persistenz/schema-migration.ts",
+        "v5/grundlage/quelle/persistenz/live-wissens-speicher.ts",
+        "v5/grundlage/quelle/persistenz/dateibasierte-persistenz.ts",
+        "v5/grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs",
+        "v5/grundlage/tests/r5-persistenz.test.mjs",
+        "v5/werkzeuge/r5-struktur-pruefen.mjs",
+        "v5/architektur/adr/ADR-003-PERSISTENZ-JOURNAL.md",
+        ".github/workflows/v5-r5.yml"
       ]
     },
     {
       "id": "R6",
       "name": "Observation Evidence World Truth",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R5"
       ],

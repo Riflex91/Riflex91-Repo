@@ -70,3 +70,33 @@ test("Determinismusadapter darf spaeter Systemzeit kapseln", () => {
     "const jetzt = Date.now();",
   ).includes("DIREKTE_SYSTEMZEIT"));
 });
+
+test("R5 Dateiadapter darf Node fs kapseln", () => {
+  assert.ok(!pruefeQuelltext(
+    "grundlage/adapter/persistenz/node-datei.mjs",
+    'import fs from "node:fs/promises";',
+  ).includes("DIREKTER_DATEISYSTEMZUGRIFF"));
+});
+
+test("Node fs bleibt ausserhalb der Persistenzadapter-Grenze verboten", () => {
+  erwartet(
+    "grundlage/adapter/sonstiges/datei.mjs",
+    'import fs from "node:fs/promises";',
+    "DIREKTER_DATEISYSTEMZUGRIFF",
+  );
+});
+
+test("SSD Adapter ist im Scheduler Hot Path verboten", () => {
+  erwartet(
+    "scheduler/quelle/planer.ts",
+    'import x from "../../grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs";',
+    "SSD_HOT_PATH_ZUGRIFF",
+  );
+});
+
+test("Persistenzkoordination ausserhalb des Hot Paths darf typisierte Adaptergrenze nutzen", () => {
+  assert.ok(!pruefeQuelltext(
+    "persistenz/quelle/koordination.ts",
+    'import x from "../../grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs";',
+  ).includes("SSD_HOT_PATH_ZUGRIFF"));
+});
