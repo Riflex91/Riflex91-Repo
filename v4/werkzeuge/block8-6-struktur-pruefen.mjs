@@ -43,6 +43,9 @@ const dateien = [
   'laufzeit/tests/block8-6-freigabestufen-live-test.test.mjs',
   'werkzeuge/block8-6-freigabestufen-live-test.js',
   'werkzeuge/block8-6-candidate-bauen.mjs',
+  'werkzeuge/block8-6-release-bindung-pruefen.mjs',
+  'dokumentation/BLOCK-8-6-9-RELEASE-CANDIDATE.json',
+  'dokumentation/BLOCK-8-6-9-RELEASE-CANDIDATE.md',
   'dokumentation/BLOCK-8-6-1-SKILL-KATALOG.md',
   'dokumentation/BLOCK-8-6-9-FREIGABE-VORBEREITUNG.md',
   'dokumentation/BLOCK-8-6-8-REPLAY-REGRESSION.md',
@@ -1049,8 +1052,8 @@ for (const pflicht of [
   '8.6.6 – Capability-basierte Leader- und Aufgabenwahl — **IMPLEMENTIERT**',
   '8.6.7 – Status, HUD und Diagnose — **IMPLEMENTIERT**',
   '8.6.8 – Replay und Regression — **IMPLEMENTIERT**',
-  '8.6.9 – Freigabe — **CANDIDATE-PFAD VORBEREITET; OPERATIVE STUFEN OFFEN**',
-  'Naechster operativer Schritt: **8.6.9 – finalen Candidate binden, immutable veroeffentlichen und Offline → Schatten → kontrolliert live → Soak nachweisen**'
+  '8.6.9 – Freigabe — **RELEASE-CANDIDATE GEBUNDEN; DEPLOYMENT UND REALE STUFEN OFFEN**',
+  'Naechster operativer Schritt: **8.6.9 – gebundenen Candidate immutable veroeffentlichen, HTTPS nachweisen und danach Schatten → kontrolliert live → Soak ausfuehren**'
 ]) {
   if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.9-Vorbereitungsstand: ${pflicht}`);
 }
@@ -1093,8 +1096,11 @@ for (const pflicht of [
 }
 
 const packageJson = JSON.parse(await readFile(path.join(wurzel, 'package.json'), 'utf8'));
-if (packageJson.scripts?.['block8-6-struktur:pruefen'] !== 'node werkzeuge/block8-6-struktur-pruefen.mjs && npm run block8-6-candidate:pruefen') {
-  throw new Error('package.json muss den Block-8.6-Strukturguard inklusive Candidate-Pruefung anbieten.');
+if (packageJson.scripts?.['block8-6-struktur:pruefen'] !== 'node werkzeuge/block8-6-struktur-pruefen.mjs && npm run block8-6-candidate:pruefen && npm run block8-6-release-bindung:pruefen') {
+  throw new Error('package.json muss den Block-8.6-Strukturguard inklusive Candidate- und Release-Bindungspruefung anbieten.');
+}
+if (packageJson.scripts?.['block8-6-release-bindung:pruefen'] !== 'node werkzeuge/block8-6-release-bindung-pruefen.mjs') {
+  throw new Error('package.json muss die Block-8.6-Release-Bindungspruefung anbieten.');
 }
 if (packageJson.scripts?.['block8-6-candidate:pruefen'] !== 'node werkzeuge/block8-6-candidate-bauen.mjs --pruefen && node --check werkzeuge/block8-6-freigabestufen-live-test.js') {
   throw new Error('package.json muss die reproduzierbare Block-8.6-Candidate-Pruefung anbieten.');
@@ -1103,4 +1109,4 @@ if (!String(packageJson.scripts?.pruefen ?? '').includes('npm run block8-6-struk
   throw new Error('npm run pruefen muss den Block-8.6-Strukturguard ausfuehren.');
 }
 
-console.log('Block 8.6.1 bis 8.6.9-Vorbereitung geprueft: Capability Truth bis Replay sowie separater immutable Candidate-/Freigabepfad; operative Schatten-/Live-/Soak-Nachweise bleiben offen.');
+console.log('Block 8.6.1 bis 8.6.9 geprueft: Capability Truth bis Replay sowie exakt gebundener Release-Candidate; Deployment/HTTPS und operative Schatten-/Live-/Soak-Nachweise bleiben offen.');
