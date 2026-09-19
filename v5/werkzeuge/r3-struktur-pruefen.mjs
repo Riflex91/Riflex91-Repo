@@ -27,7 +27,7 @@ if (ts.compilerOptions?.strict !== true
   fehler("TypeScript-Strictness/R3-Quellwurzel unvollstaendig.");
 }
 
-for (const script of ["bauen","typen:pruefen","lint","format:pruefen","guards:test","host:test","grundlage:test","r3:pruefen"]) {
+for (const script of ["bauen","typen:pruefen","lint","format:pruefen","guards:test","host:test","grundlage:test","sichttext:pruefen","r3:pruefen"]) {
   if (!paket.scripts?.[script]) fehler("Paket-Script fehlt: " + script);
 }
 
@@ -89,6 +89,40 @@ if (!knowledgeWorkflow.includes("v5/wissenswaechter-automatisch")
     || !knowledgeWorkflow.includes("v5/wissensbasis/")
     || !knowledgeWorkflow.includes("gh pr create")) {
   fehler("Knowledge-PR-Workflow fehlt oder ist unvollstaendig.");
+}
+
+const knowledgeGateWorkflow = fs.readFileSync("../.github/workflows/v5-wissensgate.yml", "utf8");
+const knowledgeGate = fs.readFileSync("werkzeuge/entwicklungs-wissensgate.mjs", "utf8");
+for (const pflicht of [
+  "V5_WISSENSGATE_STRIKT",
+  "v5/laufzeit/*",
+  "v5/ausfuehrung/*",
+  "v5/persistenz/*",
+]) {
+  if (!knowledgeGateWorkflow.includes(pflicht)) {
+    fehler("Strenges Wissensgate-Workflowmerkmal fehlt: " + pflicht);
+  }
+}
+for (const pflicht of [
+  "blockiereImplementierungNachMinuten",
+  "letzterBewerteterSha256 !== aktuell.inhaltSha256",
+  "basis.fuerImplementierung !== true",
+  "bereitschaft.status !== 'FREIGEGEBEN'",
+]) {
+  if (!knowledgeGate.includes(pflicht)) {
+    fehler("Strenges Wissensgate-Sperrmerkmal fehlt: " + pflicht);
+  }
+}
+
+for (const pfad of [
+  "../ops/windows-bridge/GitArbeitskopie.cs",
+  "../ops/windows-bridge/LiveWissensImportDienst.cs",
+  "../ops/windows-bridge/WissenswaechterDienst.cs",
+]) {
+  const bridgeText = fs.readFileSync(pfad, "utf8");
+  if (/socket\.emit\s*\(|\b(?:attack|trade_buy|trade_sell|upgrade|compound)\s*\(|\b(?:eval|evaluate|invoke)\s*\(/i.test(bridgeText)) {
+    fehler("Knowledge-Bridge enthaelt verbotene Gameplay-/Generic-Authority: " + pfad);
+  }
 }
 
 console.log("[V5-R3-STRUKTUR] OK");
