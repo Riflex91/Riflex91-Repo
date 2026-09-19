@@ -57,6 +57,8 @@ function recipeFor(gameData, name) {
     output: String(name),
     outputQuantity: Math.max(1, Math.floor(finite(raw.q, finite(raw.quantity, 1)))),
     cost: Math.max(0, Math.floor(finite(raw.cost, 0))),
+    quest: raw.quest == null ? null : String(raw.quest),
+    specialOutput: raw.output && typeof raw.output === 'object' ? clone(raw.output) : null,
     items
   };
 }
@@ -410,11 +412,39 @@ class MerchantProductionPlanner {
       : [];
     const bankPool = bank.length ? bank : catalogRows;
     const lockedExchangeItem = input.productionTaskTarget && input.productionTaskTarget.exchangeItem ? String(input.productionTaskTarget.exchangeItem) : null;
-    const demands = (Array.isArray(input.exchangeDemands) ? input.exchangeDemands : [])
-      .filter((row) => row && row.item && (!row.expiresAt || row.expiresAt > this.now()))
-      .filter((row) => !lockedExchangeItem || String(row.item) === lockedExchangeItem);
-    if (!demands.length) return null;
-    const demandByItem = new Map(demands.map((row) => [String(row.item), row]));
+    const explicitDemands = (Array.isArray(input.exchangeDemands) ? input.exchangeDemands : [])
+      .filter((row) => row && row.item && (!row.expiresAt || row.expiresAt > this.now()));
+    const demandByItem = new Map(explicitDemands.map((row) => [String(row.item), row]));
+
+    // Anything that Adventure Land itself marks with a positive exchange
+    // requirement (G.items[name].e) is legitimate autonomous cleanup work once
+    // a complete exchange unit exists. Production reservations remain protected.
+    const exchangeableNames = new Set();
+    for (const item of inventory) if (item && item.name && levelOf(item) === 0) exchangeableNames.add(String(item.name));
+    for (const row of bankPool) if (row && row.name && row.level === 0) exchangeableNames.add(String(row.name));
+    for (const name of exchangeableNames) {
+      if (demandByItem.has(name)) continue;
+      const meta = gameData.items && gameData.items[name];
+      const required = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
+      if (!meta || required <= 0) continue;
+      const reserved = Math.max(0, Math.floor(finite(protectedReservations[itemKey(name, 0)], 0)));
+      const local = itemQuantity(inventory, name, 0);
+      const bankAvailable = bankPool.reduce((sum, row) => sum + (row && row.name === name && row.level === 0 ? Math.max(0, Math.floor(finite(row.quantity, 0))) : 0), 0);
+      if (Math.max(0, local + bankAvailable - reserved) < required) continue;
+      demandByItem.set(name, {
+        item: name,
+        target: null,
+        reason: 'AUTONOMOUS_EXCHANGEABLE_SURPLUS',
+        autonomous: true,
+        required,
+        discoveredAt: this.now()
+      });
+    }
+
+    if (lockedExchangeItem) {
+      for (const name of [...demandByItem.keys()]) if (String(name) !== lockedExchangeItem) demandByItem.delete(name);
+    }
+    if (!demandByItem.size) return null;
     const candidates = [];
 
     for (let index = 0; index < inventory.length; index += 1) {
@@ -487,6 +517,71 @@ class MerchantProductionPlanner {
       exchangeDemand: clone(demandByItem.get(chosen.name) || null)
     };
     return clone(plan);
+  }
+
+  planMaterialConsolidation(input = {}) {
+    const character = input.character || {};
+    if (String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return null;
+    if (input.anniversaryActive !== true) return null;
+    const gameData = input.gameData || {};
+    const recipe = recipeFor(gameData, 'sixcake');
+    if (!recipe || String(recipe.quest || '') !== 'anniversary_baker') return null;
+
+    // Six cake is the canonical consolidation for the six Anniversary slices.
+    // Build through the normal material graph so ingredients already stored in
+    // bank are retrieved in the same production chain.
+    const candidate = {
+      output: 'sixcake',
+      recipe,
+      recipient: null,
+      slot: null,
+      reason: 'ANNIVERSARY_SLICE_CONSOLIDATION'
+    };
+    const built = this._buildCandidate(candidate, input);
+    if (!built || !built.ready) return null;
+
+    // Require at least one slice to be actually owned already; do not turn this
+    // maintenance path into a speculative vendor/crafting acquisition tree.
+    const sliceNames = new Set(['slice_strawberry','slice_citrus','slice_honey','slice_mint','slice_blueberry','slice_nightberry']);
+    const inventory = Array.isArray(character.items) ? character.items : [];
+    const bank = bankRows(character.bank);
+    const catalogRows = !character.bank && input.bankCatalog && input.bankCatalog.usable === true && input.bankCatalog.snapshot && Array.isArray(input.bankCatalog.snapshot.rows)
+      ? input.bankCatalog.snapshot.rows
+      : [];
+    const ownedSlices = [...inventory, ...bank, ...catalogRows].filter((row) => row && sliceNames.has(String(row.name || '')));
+    if (!ownedSlices.length) return null;
+
+    // All six ingredients must be supplied by LOCAL/BANK steps. If the graph
+    // introduced BUY/recursive CRAFT acquisition, this is not cleanup anymore.
+    const disallowed = built.steps.some((step) => step && [ProductionStepKind.BUY, ProductionStepKind.FARM_REQUIRED].includes(step.kind));
+    if (disallowed) return null;
+    const rootCraft = built.steps[built.steps.length - 1];
+    if (!rootCraft || rootCraft.kind !== ProductionStepKind.CRAFT || rootCraft.name !== 'sixcake') return null;
+
+    return {
+      schemaVersion: 1,
+      id: this._id(),
+      at: this.now(),
+      state: 'READY',
+      reason: 'ANNIVERSARY_SLICE_CONSOLIDATION_READY',
+      actionAuthority: false,
+      liveExecutionAllowed: false,
+      target: {
+        output: 'sixcake',
+        recipient: null,
+        slot: null,
+        maintenance: true,
+        quest: 'anniversary_baker'
+      },
+      steps: built.steps,
+      nextStep: built.executableSteps[0] || null,
+      reservations: built.reservations,
+      blockers: [],
+      totalGold: built.totalGold,
+      goldReserve: built.goldReserve,
+      bankSource: built.bankSource,
+      costStrategy: 'OWNED_MATERIAL_CONSOLIDATION_V1'
+    };
   }
 
   plan(input = {}) {
@@ -576,6 +671,9 @@ class MerchantProductionPlanner {
       explicitTargets: this.explicitTargets.slice(),
       costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V1',
       sourcePriority: ['LOCAL_ZERO_COST', 'BANK_ZERO_GOLD_COST', 'MIN(VENDOR_GOLD,CULLED_RECIPE_GRAPH)', 'FARM_REQUIRED'],
+      autonomousExchangeableSurplus: true,
+      anniversarySliceConsolidation: true,
+      anniversarySliceConsolidationOutput: 'sixcake',
       lastPlan: clone(this.lastPlan),
       stats: clone(this.stats)
     };
