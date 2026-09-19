@@ -7,7 +7,11 @@ const { makeEngine, makeControlledMerchant, makeLedger, makeRuntime, mutationFix
 
 test('structured upgrade rejection preserves the Adventure Land reason and details', async () => {
   const { convergence, engine, ledger, root } = mutationFixture('UPGRADE');
-  root.upgrade = async () => { throw { failed: true, reason: 'not_ready', place: 'upgrade', status: 400 }; };
+  const baseUpgrade = root.upgrade;
+  root.upgrade = async (...args) => {
+    if (args[args.length - 1] === true) return baseUpgrade(...args);
+    throw { failed: true, reason: 'not_ready', place: 'upgrade', status: 400 };
+  };
   const planned = engine.planAtomic({ type: 'UPGRADE', character: 'Merchant', indices: [0] }, { ledger });
   const result = await convergence._executeAtomic(planned.transaction.id);
   assert.equal(result.committed, false);
