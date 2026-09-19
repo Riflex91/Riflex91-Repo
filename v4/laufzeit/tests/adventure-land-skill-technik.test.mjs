@@ -159,15 +159,16 @@ test('generische unbekannte requirements werden nicht geraten', () => {
   assert.match(ergebnis.gruende.join(' '), /nicht geraten/);
 });
 
-test('can_use false bleibt technisch unbekannt und wird nicht als nutzbar erfunden', () => {
+test('can_use false bleibt technisch unbekannt wenn die Cooldown-Schnittstelle fehlt', () => {
   const root = fenster();
+  delete root.is_on_cooldown;
   root.can_use = () => false;
   const leser = new AdventureLandSkillTechnikLesezugriff(root);
   const ergebnis = leser.lies(skill('3shot'), 1000);
 
   assert.equal(ergebnis.zustand, 'unbekannt');
   assert.equal(ergebnis.aktionsBereitschaft.zustand, 'unbekannt');
-  assert.match(ergebnis.aktionsBereitschaft.grund, /aktuell nicht nutzbar/);
+  assert.match(ergebnis.aktionsBereitschaft.grund, /Ursache nicht als Cooldown geraten/);
 });
 
 test('aktiver geteilter Cooldown wird ueber den bestehenden Kampfbereitschaftsleser wiederverwendet', () => {
