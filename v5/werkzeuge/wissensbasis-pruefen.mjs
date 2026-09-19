@@ -1,0 +1,66 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+
+const root = process.cwd();
+const kb = path.join(root, 'v5', 'wissensbasis');
+const readJson = (rel) => JSON.parse(fs.readFileSync(path.join(kb, rel), 'utf8'));
+const fail = (message) => { throw new Error(`[V5-WISSEN] ${message}`); };
+
+const manifest = readJson('manifest.json');
+const sourcesDoc = readJson(manifest.sources.registry);
+const factsDocs = manifest.facts.map(readJson);
+const questionDocs = manifest.questions.map(readJson);
+const revalidation = readJson(manifest.revalidation);
+
+const sources = new Map(sourcesDoc.sources.map((s) => [s.id, s]));
+if (sources.size !== sourcesDoc.sources.length) fail('Doppelte Source-ID.');
+
+const factList = factsDocs.flatMap((d) => d.facts);
+const facts = new Map();
+const validStatus = new Set(['ACTIVE','NEEDS_REVALIDATION','SUPERSEDED','CONTRADICTED','RETIRED']);
+const validVolatility = new Set(['LOW','MEDIUM','HIGH','UNKNOWN']);
+
+for (const fact of factList) {
+  if (!fact.id || facts.has(fact.id)) fail(`Ungueltige/doppelte Fact-ID: ${fact.id}`);
+  if (!validStatus.has(fact.status)) fail(`${fact.id}: ungueltiger Status ${fact.status}`);
+  if (!validVolatility.has(fact.volatility)) fail(`${fact.id}: ungueltige Volatility ${fact.volatility}`);
+  if (!(fact.confidence >= 0 && fact.confidence <= 1)) fail(`${fact.id}: Confidence ausserhalb 0..1`);
+  if (!Array.isArray(fact.sourceRefs) || fact.sourceRefs.length === 0) fail(`${fact.id}: keine SourceRefs`);
+  for (const ref of fact.sourceRefs) if (!sources.has(ref.sourceId)) fail(`${fact.id}: unbekannte Source ${ref.sourceId}`);
+  facts.set(fact.id, fact);
+}
+
+for (const fact of factList) {
+  for (const id of [...fact.supersedes, ...fact.supersededBy]) {
+    if (!facts.has(id)) fail(`${fact.id}: Supersede-Referenz auf unbekannten Fact ${id}`);
+  }
+  if (fact.status === 'SUPERSEDED' && fact.supersededBy.length === 0) fail(`${fact.id}: SUPERSEDED ohne supersededBy`);
+}
+
+const questionList = questionDocs.flatMap((d) => d.questions);
+const questionIds = new Set();
+for (const q of questionList) {
+  if (!q.id || questionIds.has(q.id)) fail(`Ungueltige/doppelte Question-ID: ${q.id}`);
+  questionIds.add(q.id);
+  for (const ref of q.sourceRefs ?? []) if (!sources.has(ref.sourceId)) fail(`${q.id}: unbekannte Source ${ref.sourceId}`);
+  for (const factId of q.answerFactIds ?? []) if (!facts.has(factId)) fail(`${q.id}: unbekannter Answer-Fact ${factId}`);
+}
+
+for (const rel of manifest.sources.rawSnapshots) {
+  const rawPath = path.join(kb, rel);
+  if (!fs.existsSync(rawPath)) fail(`Fehlender Raw Snapshot: ${rel}`);
+}
+const ext = manifest.externalResearchSnapshot;
+const extPath = path.join(kb, manifest.sources.rawSnapshots[0]);
+const bytes = fs.readFileSync(extPath);
+const hash = crypto.createHash('sha256').update(bytes).digest('hex');
+if (hash !== ext.sourceSha256) fail(`External Research SHA256 drift: ${hash} != ${ext.sourceSha256}`);
+if (bytes.byteLength !== ext.bytes) fail(`External Research Bytecount drift: ${bytes.byteLength} != ${ext.bytes}`);
+
+if (!Array.isArray(revalidation.p0Research) || revalidation.p0Research.some((x) => !x.id || !x.title || !x.status)) {
+  fail('Revalidierungsqueue P0 unvollstaendig.');
+}
+
+console.log(`[V5-WISSEN] OK: ${facts.size} Facts, ${questionIds.size} offene Fragen, ${sources.size} Quellen.`);
+console.log(`[V5-WISSEN] Raw Research SHA256: ${hash}`);
