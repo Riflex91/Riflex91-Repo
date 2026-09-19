@@ -206,8 +206,9 @@ public sealed class LiveWissensImportDienst
     public static bool IstSichererRelativerPfad(string? relativ)
     {
         if (string.IsNullOrWhiteSpace(relativ)) return false;
-        var normalisiert = relativ.Replace('\\', '/').Trim('/');
+        var normalisiert = relativ.Replace('\\', '/');
         if (normalisiert.Length == 0
+            || normalisiert.StartsWith("/", StringComparison.Ordinal)
             || normalisiert.StartsWith(".", StringComparison.Ordinal)
             || normalisiert.Contains("../", StringComparison.Ordinal)
             || normalisiert.EndsWith("/..", StringComparison.Ordinal)
