@@ -77,14 +77,16 @@ test('production material source estimates team farm time from drops and observe
   assert.equal(source.expectedHours, 1);
 });
 
-test('production material acquisition refuses a 100h+ recipe farm path', () => {
+test('production material acquisition keeps a 100h+ recipe valid but deprioritized', () => {
   const runtime = runtimeForDrops(0.001);
   const estimate = estimateBlockedProductionCandidate(runtime, blockedCandidate(10, 1000), {
     maxTeamFarmHours: 12,
     fallbackKillsPerHour: 20
   });
-  assert.equal(estimate.eligible, false);
-  assert.equal(estimate.reason, 'EXPECTED_TEAM_FARM_TIME_EXCEEDS_LIMIT');
+  assert.equal(estimate.eligible, true);
+  assert.equal(estimate.reason, 'LONG_TEAM_FARM_PATH_DEPRIORITIZED');
+  assert.equal(estimate.longPath, true);
+  assert.equal(estimate.priorityTier, 1);
   assert.ok(estimate.totalExpectedHours > 100);
   assert.equal(estimate.maxTeamFarmHours, 12);
 });
@@ -97,6 +99,41 @@ test('production material acquisition rejects leveled ingredients instead of pre
   const estimate = estimateBlockedProductionCandidate(runtime, candidate, { maxTeamFarmHours: 12 });
   assert.equal(estimate.eligible, false);
   assert.equal(estimate.reason, 'LEVELED_MATERIAL_REQUIRES_PROGRESSION');
+});
+
+test('production material chooser puts <=12h paths ahead of much stronger 100h+ paths', () => {
+  const runtime = runtimeForDrops(0.001);
+  const veryLong = blockedCandidate(10, 100000);
+  veryLong.candidate.output = 'legendarybow';
+  const shortRuntime = runtimeForDrops(0.5);
+  const short = blockedCandidate(10, 50);
+  short.candidate.output = 'practicalbow';
+
+  const longEstimate = estimateBlockedProductionCandidate(runtime, veryLong, {
+    maxTeamFarmHours: 12,
+    fallbackKillsPerHour: 20
+  });
+  const shortEstimate = estimateBlockedProductionCandidate(shortRuntime, short, {
+    maxTeamFarmHours: 12,
+    fallbackKillsPerHour: 20
+  });
+
+  assert.equal(longEstimate.priorityTier, 1);
+  assert.equal(shortEstimate.priorityTier, 0);
+});
+
+test('production material chooser still selects a long path when no shorter valid path remains', () => {
+  const runtime = runtimeForDrops(0.001);
+  const only = blockedCandidate(10, 1000);
+  only.candidate.output = 'only-long-path';
+  const decision = chooseProductionTeamFarmObjective(runtime, [only], {
+    maxTeamFarmHours: 12,
+    fallbackKillsPerHour: 20
+  });
+  assert.ok(decision.selected);
+  assert.equal(decision.selected.target.output, 'only-long-path');
+  assert.equal(decision.selected.longPath, true);
+  assert.equal(decision.selected.priorityTier, 1);
 });
 
 test('production material chooser favors worthwhile benefit per bounded team farm hour', () => {
