@@ -974,8 +974,8 @@ for (const pflicht of [
 
 const freigabeDokument = await readFile(path.join(wurzel, dateien[43]), 'utf8');
 for (const pflicht of [
-  '8.5.9 Freigabe-Gate implementiert',
-  'Offline, Schatten und kontrolliert live fuer den exakten Candidate bestanden',
+  '8.5.9 vollstaendig bestanden',
+  'Offline, Schatten, kontrolliert live und 10-Minuten-Soak',
   'Offline-Test oder Wiederholung',
   'Schattenbetrieb ohne echte Spielaktion',
   'begrenzter kontrollierter Live-Test',
@@ -996,7 +996,8 @@ for (const pflicht of [
 
 const fahrplan = await readFile(path.join(wurzel, dateien[44]), 'utf8');
 for (const pflicht of [
-  '8.5.9-Freigabe-Gate implementiert',
+  'Schritte 8.5.1 bis 8.5.9 sind implementiert',
+  '10-Minuten-Soak',
   'Naechster Entwicklungsblock ist verbindlich Block 8.6',
   'BLOCK-8-5-FREIGABESTUFEN.md',
   'Offline, Schattenbetrieb, begrenzter kontrollierter Live-Test und Soak fuer denselben finalen Aenderungsstand'
