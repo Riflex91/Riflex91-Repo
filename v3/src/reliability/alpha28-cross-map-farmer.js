@@ -227,6 +227,19 @@ class Alpha28CrossMapFarmerProgression {
     return objective;
   }
 
+  clearMaterialObjective(kind = 'PRODUCTION_MATERIAL', productionObjectiveId = null) {
+    const wantedKind = String(kind || 'PRODUCTION_MATERIAL');
+    const matches = (objective) => {
+      if (!objective || this._objectiveKind(objective) !== wantedKind) return false;
+      if (!productionObjectiveId) return true;
+      return String(objective.productionObjectiveId || '') === String(productionObjectiveId);
+    };
+    if (matches(this.receivedObjective)) this.receivedObjective = null;
+    const shared = this.parent && this.parent[SHARED_OBJECTIVE];
+    if (matches(shared) && this.parent) this.parent[SHARED_OBJECTIVE] = null;
+    return true;
+  }
+
   _sharedObjective(team) {
     if (this._objectiveValid(this.receivedObjective, team)) return clone(this.receivedObjective);
     const objective = this.parent && this.parent[SHARED_OBJECTIVE];
