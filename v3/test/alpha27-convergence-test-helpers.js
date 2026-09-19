@@ -26,6 +26,16 @@ function makeEngine(now = () => 1000) {
       const row = { id, type: request.type, state: 'RESERVED', character: request.character, index: request.index, quantity: request.quantity || 1, reservationKey: entry.key, item: entry.name, level: entry.level || 0, disposition: entry.disposition, leaseExpiresAt: now() + 30000 };
       this.transactions.set(id, row); this.reservations.set(entry.key, id); return { accepted: true, transaction: { ...row } };
     },
+    cancel(id, reason = 'OPERATOR_CANCELLED') {
+      const row = this.transactions.get(String(id));
+      if (!row) return { cancelled: false, reason: 'TRANSACTION_NOT_FOUND' };
+      if (['COMMITTED', 'FAILED_SAFE', 'ABORTED'].includes(String(row.state || ''))) return { cancelled: false, reason: 'TRANSACTION_ALREADY_TERMINAL', transaction: { ...row } };
+      row.state = 'ABORTED';
+      row.reason = String(reason || 'OPERATOR_CANCELLED');
+      row.leaseExpiresAt = null;
+      this._release(row);
+      return { cancelled: true, transaction: { ...row } };
+    },
     get(id) { const row = this.transactions.get(String(id)); return row ? JSON.parse(JSON.stringify(row)) : null; },
     list() { return [...this.transactions.values()].map((x) => JSON.parse(JSON.stringify(x))); },
     transition(id, state, reason) { const row = this.transactions.get(String(id)); if (!row) return false; row.state = state; row.reason = reason; return true; },
@@ -87,7 +97,7 @@ function makeRuntime({ root, ledger, engine, controlledMerchant, gameData, gearG
 }
 
 
-function mutationFixture(type, { missingScroll = false, failedRoll = false } = {}) {
+function mutationFixture(type, { missingScroll = false, failedRoll = false, chance = 0.99 } = {}) {
   const engine = makeEngine();
   const controlledMerchant = makeControlledMerchant();
   const root = { character: { name: 'Merchant', ctype: 'merchant', gold: 2000000, target: null, items: [], isize: 42, map: 'main', x: 0, y: 0 }, parent: { entities: {} } };
@@ -103,7 +113,8 @@ function mutationFixture(type, { missingScroll = false, failedRoll = false } = {
     entries = [{ character: 'Merchant', index: 0, name: 'sword', level: 0, disposition: 'RESERVE_UPGRADE' }];
     gameData = { items: { sword: { upgrade: true, g: 1000, grades: [] }, scroll0: { g: 100 } }, monsters: {}, maps: {} };
     gearGoals = [{ id: 'goal-1', sourceCharacter: 'Merchant', character: 'Farmer', item: 'sword', observedLevel: 0, targetLevel: 1, projectedUpgradeRequired: true }];
-    root.upgrade = async () => {
+    root.upgrade = async (_item, _scroll, _offering, onlyCalculate) => {
+      if (onlyCalculate === true) return { success: true, chance };
       root.character.items[1] = null;
       if (!failedRoll) root.character.items[0] = { name: 'sword', level: 1 };
       return { success: true };
@@ -115,7 +126,8 @@ function mutationFixture(type, { missingScroll = false, failedRoll = false } = {
     root.character.items[3] = { name: 'cscroll0', level: 0, q: 1 };
     entries = [0, 1, 2].map((index) => ({ character: 'Merchant', index, name: 'ring', level: 0, disposition: 'RESERVE_COMPOUND' }));
     gameData = { items: { ring: { compound: true, g: 1000, grades: [] }, cscroll0: { g: 100 } }, monsters: {}, maps: {} };
-    root.compound = async () => {
+    root.compound = async (_a, _b, _c, _scroll, _offering, onlyCalculate) => {
+      if (onlyCalculate === true) return { success: true, chance };
       root.character.items[0] = failedRoll ? null : { name: 'ring', level: 1 };
       root.character.items[1] = null; root.character.items[2] = null; root.character.items[3] = null;
       return { success: true };
