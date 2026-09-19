@@ -8,8 +8,8 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
-| (root) | 6 | 1360 |
-| autonomy | 31 | 7819 |
+| (root) | 6 | 1362 |
+| autonomy | 32 | 8244 |
 | brain | 4 | 1096 |
 | composition | 2 | 193 |
 | content | 3 | 447 |
@@ -22,7 +22,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | ops | 26 | 7614 |
 | party | 34 | 8326 |
 | planner | 1 | 66 |
-| reliability | 50 | 16830 |
+| reliability | 50 | 16834 |
 | research | 1 | 101 |
 | stability | 3 | 731 |
 | telemetry | 1 | 263 |
@@ -42,7 +42,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 
 | Von | Nach | statische Referenzen |
 | --- | --- | ---: |
-| (root) | autonomy | 29 |
+| (root) | autonomy | 30 |
 | (root) | brain | 3 |
 | (root) | composition | 1 |
 | (root) | control | 1 |
@@ -102,7 +102,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | party | world | 1 |
 | planner | core | 1 |
 | reliability | (root) | 1 |
-| reliability | autonomy | 9 |
+| reliability | autonomy | 10 |
 | reliability | brain | 1 |
 | reliability | control | 4 |
 | reliability | economy | 3 |

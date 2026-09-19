@@ -6,12 +6,12 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1360 Zeilen**
+**6 Dateien · 1362 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/index-production.js` | 76 |
-| `src/index.js` | 489 |
+| `src/index.js` | 491 |
 | `src/production-live-services.js` | 215 |
 | `src/release-version.js` | 5 |
 | `src/runtime.js` | 566 |
@@ -19,14 +19,14 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## autonomy
 
-**31 Dateien · 7819 Zeilen**
+**32 Dateien · 8244 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/autonomy/adaptive-farm-intelligence.js` | 228 |
 | `src/autonomy/adaptive-pull-learning.js` | 533 |
 | `src/autonomy/advanced-party-movement.js` | 217 |
-| `src/autonomy/alpha10-runtime.js` | 80 |
+| `src/autonomy/alpha10-runtime.js` | 77 |
 | `src/autonomy/alpha11-runtime.js` | 66 |
 | `src/autonomy/alpha12-hardened-runtime.js` | 160 |
 | `src/autonomy/alpha12-runtime.js` | 87 |
@@ -40,20 +40,21 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha20-5-farm-readiness-runtime.js` | 345 |
 | `src/autonomy/alpha20-5-merchant-runtime.js` | 400 |
 | `src/autonomy/alpha20-runtime.js` | 396 |
-| `src/autonomy/alpha9-runtime.js` | 68 |
+| `src/autonomy/alpha9-runtime.js` | 93 |
+| `src/autonomy/aoe-farming-certification.js` | 185 |
 | `src/autonomy/capability-resolver.js` | 460 |
 | `src/autonomy/capability-sync.js` | 294 |
 | `src/autonomy/character-combat-profile.js` | 275 |
 | `src/autonomy/combat-modes.js` | 20 |
-| `src/autonomy/encounter-lifecycle.js` | 378 |
+| `src/autonomy/encounter-lifecycle.js` | 383 |
 | `src/autonomy/local-farm-orchestrator.js` | 372 |
-| `src/autonomy/local-farm-planner.js` | 153 |
+| `src/autonomy/local-farm-planner.js` | 202 |
 | `src/autonomy/party-skill-engine.js` | 364 |
 | `src/autonomy/skill-catalog-service.js` | 478 |
 | `src/autonomy/skill-policy.js` | 196 |
 | `src/autonomy/skill-semantics.js` | 249 |
-| `src/autonomy/smart-aoe-planner.js` | 298 |
-| `src/autonomy/tactical-party-combat.js` | 561 |
+| `src/autonomy/smart-aoe-planner.js` | 312 |
+| `src/autonomy/tactical-party-combat.js` | 711 |
 
 ## brain
 
@@ -269,7 +270,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 16830 Zeilen**
+**50 Dateien · 16834 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -314,7 +315,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/economy-equipment-autonomy-v2.js` | 52 |
 | `src/reliability/economy-v2-market-history.js` | 64 |
 | `src/reliability/economy-v2-planning.js` | 58 |
-| `src/reliability/integrated-party-control.js` | 98 |
+| `src/reliability/integrated-party-control.js` | 102 |
 | `src/reliability/live-farmer-merchant-recovery.js` | 319 |
 | `src/reliability/merchant-self-gear.js` | 387 |
 | `src/reliability/p0-potion-bundle-delta-fix.js` | 154 |
