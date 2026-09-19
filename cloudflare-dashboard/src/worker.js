@@ -37,6 +37,53 @@ export function parseAdventureLandDataJs(source) {
   if (!parsed || typeof parsed !== 'object' || !parsed.items || typeof parsed.items !== 'object') throw new Error('Adventure Land item data missing');
   return parsed;
 }
+function adventureLandAssetUrl(file) {
+  const value = String(file == null ? '' : file).trim();
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith('//')) return 'https:' + value;
+  return 'https://adventure.land/' + value.replace(/^\/+/, '');
+}
+function officialSpritePosition(gameData, skin) {
+  const direct = skin && gameData && gameData.positions && gameData.positions[skin];
+  if (Array.isArray(direct)) return direct;
+  for (const [packName, pack] of Object.entries(gameData && gameData.imagesets || {})) {
+    const matrix = Array.isArray(pack && pack.matrix) ? pack.matrix : [];
+    for (let y = 0; y < matrix.length; y += 1) {
+      const row = Array.isArray(matrix[y]) ? matrix[y] : [];
+      for (let x = 0; x < row.length; x += 1) {
+        const cell = row[x];
+        if (cell === skin || (Array.isArray(cell) && cell.includes(skin))) return [packName, x, y];
+      }
+    }
+  }
+  return null;
+}
+function officialSpriteRows(gameData, packName, pack) {
+  const explicit = Number(pack && pack.rows);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  if (Array.isArray(pack && pack.matrix) && pack.matrix.length) return pack.matrix.length;
+  let maxY = -1;
+  for (const position of Object.values(gameData && gameData.positions || {})) {
+    if (!Array.isArray(position) || (position[0] || 'pack_20') !== packName) continue;
+    const y = Number(position[2]);
+    if (Number.isFinite(y) && y >= 0) maxY = Math.max(maxY, y);
+  }
+  return maxY >= 0 ? maxY + 1 : null;
+}
+export function officialAutomationSpriteMeta(gameData, skin) {
+  const position = officialSpritePosition(gameData, skin);
+  const packName = Array.isArray(position) && position[0] || 'pack_20';
+  const pack = gameData && gameData.imagesets && gameData.imagesets[packName];
+  const file = adventureLandAssetUrl(pack && pack.file);
+  const x = Number(Array.isArray(position) ? position[1] : NaN);
+  const y = Number(Array.isArray(position) ? position[2] : NaN);
+  const size = Number(pack && pack.size);
+  const columns = Number(pack && pack.columns);
+  const rows = officialSpriteRows(gameData, packName, pack);
+  if (!skin || !file || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(size) || size <= 0 || !Number.isFinite(columns) || columns <= 0 || !Number.isFinite(rows) || rows <= 0) return null;
+  return { skin, file, x, y, size, columns, rows };
+}
 export function officialAutomationCatalogFromGameData(gameData) {
   const rows = [];
   for (const [id, def] of Object.entries(gameData && gameData.items || {})) {
@@ -66,7 +113,7 @@ export function officialAutomationCatalogFromGameData(gameData) {
       itemGrade: Number.isFinite(Number(def.igrade)) ? Number(def.igrade) : 0,
       economy: { baseGold: Number.isFinite(baseGold) ? baseGold : null, progression: def.upgrade ? 'UPGRADE' : def.compound ? 'COMPOUND' : null, npcSellValues: [], baseChances: [] },
       skin: def.skin_c || def.skin || null,
-      sprite: null,
+      sprite: officialAutomationSpriteMeta(gameData, def.skin_c || def.skin || null),
       official: true
     });
   }
@@ -80,7 +127,11 @@ export function mergeAutomationCatalogRows(officialRows, storedRows) {
   }
   for (const row of Array.isArray(storedRows) ? storedRows : []) {
     const id = text(row && row.id, 160); if (!id) continue;
-    merged.set(id, { ...(merged.get(id) || {}), ...row, id });
+    const official = merged.get(id) || {};
+    const next = { ...official, ...row, id };
+    if (!next.sprite && official.sprite) next.sprite = official.sprite;
+    if (!next.skin && official.skin) next.skin = official.skin;
+    merged.set(id, next);
   }
   return [...merged.values()].sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)));
 }
