@@ -58,7 +58,12 @@
       "type": "OFFICIAL_SOURCE",
       "title": "runner_functions.js",
       "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/js/runner_functions.js",
-      "trust": "OFFICIAL"
+      "trust": "OFFICIAL",
+      "snapshot": {
+        "commit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+        "blob": "2faeff269d84e421441052dd439473ac9bffdaed",
+        "retrievedAt": "2026-09-19"
+      }
     },
     {
       "id": "AL-SRC-GAME",
@@ -66,6 +71,18 @@
       "title": "game.js",
       "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/js/game.js",
       "trust": "OFFICIAL"
+    },
+    {
+      "id": "AL-SRC-FUNCTIONS",
+      "type": "OFFICIAL_SOURCE",
+      "title": "functions.js",
+      "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/js/functions.js",
+      "trust": "OFFICIAL",
+      "snapshot": {
+        "commit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+        "blob": "59c755f6ac7d7fad8204be3295e6538b28642cb8",
+        "retrievedAt": "2026-09-19"
+      }
     },
     {
       "id": "AL-SRC-COMMON",
@@ -79,7 +96,12 @@
       "type": "OFFICIAL_SOURCE",
       "title": "server.js",
       "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/node/server.js",
-      "trust": "OFFICIAL"
+      "trust": "OFFICIAL",
+      "snapshot": {
+        "commit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+        "blob": "857fbe09e98d643ecb7cfd97e56fac0f14c893d2",
+        "retrievedAt": "2026-09-19"
+      }
     },
     {
       "id": "AL-SRC-SERVER-FUNCTIONS",
