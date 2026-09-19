@@ -61,3 +61,9 @@ test('Automation search normalizes and token-matches the complete item metadata'
   assert.match(DASHBOARD_HTML, /terms\.every\(term=>hay\.includes\(term\)\)/);
   assert.match(DASHBOARD_HTML, /item\.id,item\.name,item\.type,item\.wtype,item\.description/);
 });
+
+
+test('Automation item icons reuse the character inventory sprite renderer', () => {
+  assert.match(DASHBOARD_HTML, /function alSpriteMeta/);
+  assert.match(DASHBOARD_HTML, /function automationIcon\(item\)\{return item\.sprite\?[^\n]*alSpriteMeta\(item\.sprite,false\)/);
+});
