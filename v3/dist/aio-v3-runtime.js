@@ -55634,13 +55634,90 @@ function installMerchantProduction(runtime, options = {}) {
     const target = productionTargetForPlan(plan);
     if (!plan || !target || !target.output) return false;
     if (result && result.committed === true && step && step.kind === ProductionStepKind.CRAFT && String(step.name || '') === String(target.output || '')) {
-      return productionIntent.complete('FINAL_PRODUCTION_OUTPUT_VERIFIED');
+      return productionIntent.update('OUTPUT_READY_FOR_DELIVERY', {
+        reason: 'FINAL_PRODUCTION_OUTPUT_VERIFIED_ON_MERCHANT',
+        plan: { ...clone(plan), target: clone(target) },
+        progress: {
+          outputReady: true,
+          recipientVerified: false,
+          output: target.output,
+          recipient: target.recipient || null,
+          slot: target.slot || null
+        },
+        lastExecution: { at: runtime.now(), kind: step.kind, item: step.name, result: clone(result) }
+      });
     }
     return productionIntent.update('REPLAN_REQUIRED', {
       reason: result && result.committed === true ? 'PRODUCTION_STEP_COMMITTED_REPLAN' : result && result.reason || 'PRODUCTION_STEP_RESULT_REPLAN',
       plan: { ...clone(plan), target: clone(target) },
       lastExecution: { at: runtime.now(), kind: step && step.kind || null, item: step && step.name || null, result: clone(result) }
     });
+  }
+
+  function itemLevel(item) {
+    return Math.max(0, Math.floor(n(item && item.level, 0)));
+  }
+
+  function recipientTargetState(intentStatus = null) {
+    const active = intentStatus && intentStatus.active || productionIntent.status().active;
+    const target = active && active.target || null;
+    if (!target || !target.output || !target.recipient) return { verified: false, reason: 'PRODUCTION_RECIPIENT_IDENTITY_INCOMPLETE' };
+    const wantedName = String(target.output);
+    const wantedRecipient = String(target.recipient);
+    const wantedSlot = target.slot == null ? null : String(target.slot);
+    const local = character();
+    if (local && String(local.name || '') === wantedRecipient) {
+      const gear = local.slots || local.equipment || local.gear || {};
+      const equipped = wantedSlot ? gear[wantedSlot] : null;
+      const inventory = Array.isArray(local.items) ? local.items : [];
+      const held = inventory.some((item) => item && String(item.name || '') === wantedName);
+      const equippedMatch = !!(equipped && String(equipped.name || '') === wantedName);
+      return {
+        verified: held || equippedMatch,
+        reason: held ? 'RECIPIENT_INVENTORY_VERIFIED' : equippedMatch ? 'RECIPIENT_EQUIPMENT_VERIFIED' : 'RECIPIENT_OUTPUT_NOT_OBSERVED',
+        recipient: wantedRecipient,
+        output: wantedName,
+        slot: wantedSlot,
+        level: equippedMatch ? itemLevel(equipped) : null
+      };
+    }
+    const registry = runtime.characterRegistry && typeof runtime.characterRegistry.status === 'function'
+      ? runtime.characterRegistry.status()
+      : null;
+    const row = (Array.isArray(registry && registry.characters) ? registry.characters : [])
+      .find((entry) => entry && String(entry.name || '') === wantedRecipient) || null;
+    if (!row) return { verified: false, reason: 'RECIPIENT_NOT_IN_REGISTRY', recipient: wantedRecipient, output: wantedName, slot: wantedSlot };
+    const gear = row.gear || row.equipment || row.slots || {};
+    const equipped = wantedSlot ? gear[wantedSlot] : null;
+    const inventory = Array.isArray(row.inventory) ? row.inventory : Array.isArray(row.items) ? row.items : [];
+    const held = inventory.some((item) => item && String(item.name || '') === wantedName);
+    const equippedMatch = !!(equipped && String(equipped.name || '') === wantedName);
+    return {
+      verified: held || equippedMatch,
+      reason: held ? 'RECIPIENT_INVENTORY_VERIFIED' : equippedMatch ? 'RECIPIENT_EQUIPMENT_VERIFIED' : 'RECIPIENT_OUTPUT_NOT_OBSERVED',
+      recipient: wantedRecipient,
+      output: wantedName,
+      slot: wantedSlot,
+      level: equippedMatch ? itemLevel(equipped) : null
+    };
+  }
+
+  function settleDeliveredProductionIntent() {
+    const intentStatus = productionIntent.status();
+    const activeIntent = intentStatus.active;
+    if (!activeIntent || String(activeIntent.phase || '') !== 'OUTPUT_READY_FOR_DELIVERY') return null;
+    const delivery = recipientTargetState(intentStatus);
+    if (delivery.verified !== true) {
+      return { settled: false, reason: 'PRODUCTION_OUTPUT_AWAITING_RECIPIENT_DELIVERY', delivery };
+    }
+    productionIntent.complete('FINAL_PRODUCTION_RECIPIENT_VERIFIED');
+    clearProductionMutationDemand('FINAL_PRODUCTION_RECIPIENT_VERIFIED');
+    clearProductionMaterialObjective('FINAL_PRODUCTION_RECIPIENT_VERIFIED');
+    const activeTask = currentTask();
+    if (activeTask && activeTask.owner === 'PRODUCTION') {
+      releaseTask('FINAL_PRODUCTION_RECIPIENT_VERIFIED', { delivery: clone(delivery) });
+    }
+    return { settled: true, reason: 'FINAL_PRODUCTION_RECIPIENT_VERIFIED', delivery };
   }
 
   function taskCoordinator() { return runtime.merchantTaskCoordinator || null; }
@@ -55682,6 +55759,15 @@ function installMerchantProduction(runtime, options = {}) {
   }
   function releaseTask(reason = 'PRODUCTION_TASK_COMPLETE', details = {}) {
     const coordinator = taskCoordinator();
+    const deliverySettlement = settleDeliveredProductionIntent();
+    if (deliverySettlement) {
+      return {
+        state: 'HOLD',
+        reason: deliverySettlement.reason,
+        delivery: clone(deliverySettlement.delivery)
+      };
+    }
+
     const task = currentTask();
     if (!coordinator || !task || task.owner !== 'PRODUCTION' || typeof coordinator.release !== 'function') return false;
     return coordinator.release('PRODUCTION', task.key, reason, details);
@@ -56665,6 +56751,9 @@ function installMerchantProduction(runtime, options = {}) {
         persistedProductionIntent: true,
         restartContinuationRequiresFreshReplanIdentityMatch: true,
         materialHandoffPausesFarmerCombat: true,
+        finalCraftCompletionRequiresRecipientVerification: true,
+        outputReadyPhase: 'OUTPUT_READY_FOR_DELIVERY',
+        completionReason: 'FINAL_PRODUCTION_RECIPIENT_VERIFIED',
         lastIntentRecovery: clone(state.lastIntentRecovery),
         lastMutationDemand: clone(state.lastMutationDemand),
         mutationExecutions: state.mutationExecutions,
