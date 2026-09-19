@@ -16,7 +16,7 @@ function automationCatalogSource(){
 function automationCatalog(){return automationCatalogSource().list}
 function automationText(value){return String(value==null?'':value).normalize('NFKD').replace(/[̀-ͯ]/g,'').toLowerCase()}
 function automationMatchesQuery(item,query){
-  const terms=automationText(query).trim().split(/\s+/).filter(Boolean);if(!terms.length)return true;
+  const terms=automationText(query).trim().split(' ').filter(Boolean);if(!terms.length)return true;
   const hay=automationText([item.id,item.name,item.type,item.wtype,item.description,(item.classes||[]).join(' '),(item.npc||[]).map(x=>x.npc+' '+(x.map||'')).join(' ')].join(' '));
   return terms.every(term=>hay.includes(term))
 }
