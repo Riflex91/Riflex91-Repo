@@ -161,24 +161,47 @@ test('Alpha28 Merchant transfer remains trusted, ledger-aware and persist-before
 
 test('Alpha28 cross-map receiver accepts only validated leader objective while party is split', () => {
   let receiver = null;
+  let members = [
+    { name: 'Leader', ctype: 'ranger', level: 80, gear: { mainhand: { name: 'bow', level: 7 } }, skillUnlocks: ['3shot'] },
+    { name: 'Follower', ctype: 'ranger', level: 80, gear: { mainhand: { name: 'bow', level: 7 } }, skillUnlocks: ['3shot'] }
+  ];
   const root = { parent: {}, character: { name: 'Follower', ctype: 'ranger', map: 'main' } };
   const runtime = {
     root, now: () => 50,
     adapter: { mode: 'active', getGameData: () => ({ maps: { main: {}, cave: {} }, monsters: { bat: {} } }) },
     world: { fact: () => ({ value: 'APPROVED' }) }, contentDrift: { requiresRevalidation: () => false },
     lastSnapshot: { character: { name: 'Follower', ctype: 'ranger', map: 'main' }, entities: [] },
-    teamCombatCohesionHotfix: { _team: () => ({ selfName: 'Follower', leaderName: 'Leader', complete: true, alive: true, sameMap: false, positionsKnown: true, cohesive: false, members: [{ name: 'Leader' }, { name: 'Follower' }] }) },
+    _currentMembers: () => members.map((row) => ({ ...row })),
+    teamCombatCohesionHotfix: { _team: () => ({ selfName: 'Follower', leaderName: 'Leader', complete: true, alive: true, sameMap: false, positionsKnown: true, cohesive: false, members: members.map((row) => ({ ...row })) }) },
     partyAccountCommunication: { transport: { installDirectReceiver: (name, fn) => { assert.equal(name, CROSS_MAP_RECEIVER); receiver = fn; } } },
     progressionIntelligence: { status: () => ({ policy: {} }) }
   };
   const state = shared(() => 50);
   const crossMap = new Alpha28CrossMapFarmerProgression(runtime, state);
   assert.equal(crossMap._ensureReceiver(), true);
-  const objective = { id: 'x1', leaderName: 'Leader', map: 'cave', monster: 'bat', x: 1, y: 2, expiresAt: 500, crossMapAuthorizedBy: 'alpha28-controlled-farmer-travel' };
+  const identity = crossMap._partyIdentity(runtime.lastSnapshot, runtime.teamCombatCohesionHotfix._team());
+  const objective = {
+    id: 'x1',
+    kind: 'PROGRESSION',
+    leaderName: 'Leader',
+    partyIdentityFingerprint: identity.key,
+    map: 'cave',
+    monster: 'bat',
+    x: 1,
+    y: 2,
+    expiresAt: 500,
+    crossMapAuthorizedBy: 'alpha28-controlled-farmer-travel'
+  };
   assert.equal(receiver('Stranger', objective), false);
   assert.equal(receiver('Leader', objective), true);
   assert.equal(crossMap._sharedObjective(runtime.teamCombatCohesionHotfix._team()).id, 'x1');
   assert.equal(state.stats.crossMapObjectivesReceived, 1);
+
+  members = [
+    { name: 'Leader', ctype: 'ranger', level: 80, gear: { mainhand: { name: 'bow', level: 7 } }, skillUnlocks: ['3shot'] },
+    { name: 'FollowerWeak', ctype: 'ranger', level: 20, gear: { mainhand: { name: 'bow', level: 0 } }, skillUnlocks: [] }
+  ];
+  assert.equal(crossMap._sharedObjective(runtime.teamCombatCohesionHotfix._team()), null);
 });
 
 test('Alpha28 cross-map travel waits for observed arrival when smart_move returns immediately', async () => {

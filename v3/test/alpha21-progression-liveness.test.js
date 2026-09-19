@@ -19,7 +19,8 @@ const {
 const {
   evaluateProgressionReadiness,
   progressionGoalScore,
-  enumerateProgressionCandidates
+  enumerateProgressionCandidates,
+  ProgressionIntelligence
 } = require('../src/reliability/alpha21-progression-intelligence');
 const { ControlledPartyLogistics, Action } = require('../src/party/controlled-party-logistics');
 const { EconomyEquipmentAutonomyV2, HomePhase } = require('../src/reliability/economy-equipment-autonomy-v2');
@@ -236,6 +237,77 @@ test('progression candidates remain fail-closed and use approved world content o
   );
   assert.ok(rows.some((row) => row.monster === 'snake'));
   assert.ok(!rows.some((row) => row.monster === 'dangerousUnknown'));
+});
+
+// Regression: active progression authority is exact-party scoped; historical performance remains reusable.
+test('Alpha21 does not reuse a strong-party objective after same-class members are replaced or weakened', () => {
+  let members = [
+    { name: 'WarriorA', ctype: 'warrior', level: 80, gear: { mainhand: { name: 'blade', level: 7 } }, skillUnlocks: ['cleave'] },
+    { name: 'PriestStrong', ctype: 'priest', level: 80, gear: { mainhand: { name: 'staff', level: 7 } }, skillUnlocks: ['heal', 'partyheal'] },
+    { name: 'MageStrong', ctype: 'mage', level: 80, gear: { mainhand: { name: 'firestaff', level: 7 } }, skillUnlocks: ['burst'] }
+  ];
+  const parent = {};
+  const snapshot = { character: { name: 'WarriorA', ctype: 'warrior', level: 80, map: 'main' }, entities: [] };
+  const currentTeam = () => ({
+    leaderName: 'WarriorA',
+    selfName: 'WarriorA',
+    members: members.map((row) => ({ ...row })),
+    complete: true,
+    alive: true,
+    sameMap: true,
+    positionsKnown: true,
+    cohesive: true
+  });
+  const runtime = {
+    root: { parent },
+    now: () => 1000,
+    lastSnapshot: snapshot,
+    tick() {},
+    localFarming: { planner: { rank: () => [] }, currentPlan: null },
+    _currentMembers: () => members.map((row) => ({ ...row })),
+    _partyProfile: () => ({ fingerprint: 'mage:1|priest:1|warrior:1' }),
+    teamCombatCohesionHotfix: { _team: () => currentTeam() },
+    adapter: { getGameData: () => ({ maps: { main: {} }, monsters: { goo: {} } }) },
+    world: { fact: () => ({ value: 'APPROVED' }) }
+  };
+  const progression = new ProgressionIntelligence(runtime);
+  const strongIdentity = progression._partyIdentity(snapshot, currentTeam());
+  const objective = {
+    id: 'strong-party-objective',
+    kind: 'PROGRESSION',
+    leaderName: 'WarriorA',
+    partyFingerprint: 'mage:1|priest:1|warrior:1',
+    partyIdentityFingerprint: strongIdentity.key,
+    map: 'main',
+    monster: 'goo',
+    spawnIndex: 0,
+    x: 10,
+    y: 20,
+    expiresAt: 5000
+  };
+
+  parent.__AIO_V3_ALPHA21_OBJECTIVE = objective;
+  progression._syncShared();
+  assert.equal(progression.objective.id, objective.id);
+
+  members = [
+    { name: 'WarriorA', ctype: 'warrior', level: 80, gear: { mainhand: { name: 'blade', level: 7 } }, skillUnlocks: ['cleave'] },
+    { name: 'PriestWeak', ctype: 'priest', level: 35, gear: { mainhand: { name: 'staff', level: 0 } }, skillUnlocks: ['heal'] },
+    { name: 'MageWeak', ctype: 'mage', level: 30, gear: { mainhand: { name: 'firestaff', level: 0 } }, skillUnlocks: [] }
+  ];
+  progression._syncShared();
+
+  assert.equal(runtime._partyProfile().fingerprint, objective.partyFingerprint);
+  assert.notEqual(progression._partyIdentity(snapshot, currentTeam()).key, objective.partyIdentityFingerprint);
+  assert.equal(progression.objective, null);
+
+  members = [
+    { name: 'WarriorA', ctype: 'warrior', level: 80, gear: { mainhand: { name: 'blade', level: 7 } }, skillUnlocks: ['cleave'] },
+    { name: 'PriestStrong', ctype: 'priest', level: 80, gear: { mainhand: { name: 'staff', level: 1 } }, skillUnlocks: ['heal', 'partyheal'] },
+    { name: 'MageStrong', ctype: 'mage', level: 80, gear: { mainhand: { name: 'firestaff', level: 7 } }, skillUnlocks: ['burst'] }
+  ];
+  progression._syncShared();
+  assert.equal(progression.objective, null);
 });
 
 test('Alpha21 does not contain direct smart-move authority for cross-map progression', () => {

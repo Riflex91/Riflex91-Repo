@@ -38505,6 +38505,7 @@ module.exports = { AccountItemPool, GlobalGearOptimizer, qtyOf };
 'use strict';
 
 const { spawnType, spawnCenter, contentDisposition, isApprovedDisposition, isFarmableMonsterType } = require('../autonomy/local-farm-planner');
+const { createPartyFingerprint } = require('../party/fingerprints');
 
 const ALPHA21_PROGRESSION_MODE = 'alpha21-live-progression-intelligence-v2';
 const PROGRESSION_RECEIVER = '__AIO_V3_ALPHA21_PROGRESSION';
@@ -38686,6 +38687,32 @@ class ProgressionIntelligence {
     try { return this.runtime._partyProfile(snapshot); } catch (_) { return { fingerprint: 'unknown-party' }; }
   }
 
+  _partyIdentity(snapshot, team = null) {
+    try {
+      if (this.runtime && typeof this.runtime._currentMembers === 'function') {
+        const members = this.runtime._currentMembers(snapshot);
+        if (Array.isArray(members) && members.length) return createPartyFingerprint(members);
+      }
+    } catch (_) {}
+    const resolvedTeam = team || (snapshot && this._team(snapshot));
+    if (resolvedTeam && Array.isArray(resolvedTeam.members) && resolvedTeam.members.length) {
+      try { return createPartyFingerprint(resolvedTeam.members); } catch (_) {}
+    }
+    const c = snapshot && snapshot.character;
+    try { return c ? createPartyFingerprint([c]) : null; } catch (_) { return null; }
+  }
+
+  _objectiveMatchesParty(objective, snapshot, team = null) {
+    if (!objective || !snapshot || !snapshot.character) return false;
+    const resolvedTeam = team || this._team(snapshot);
+    if (!resolvedTeam) return false;
+    if (String(objective.kind || 'PROGRESSION') !== 'PROGRESSION') return false;
+    if (String(objective.leaderName || '') !== String(resolvedTeam.leaderName || '')) return false;
+    const identity = this._partyIdentity(snapshot, resolvedTeam);
+    if (!identity || !identity.key || !objective.partyIdentityFingerprint) return false;
+    return String(objective.partyIdentityFingerprint) === String(identity.key);
+  }
+
   _plan() {
     const plan = this.runtime.localFarming.currentPlan;
     return plan && plan.state === 'HOLDING' ? plan : null;
@@ -38702,8 +38729,11 @@ class ProgressionIntelligence {
     return total || Math.max(1, finite(snapshot.character.max_hp, 1));
   }
 
-  _freshObjective() {
-    if (this.objective && this.objective.expiresAt > this.now()) return this.objective;
+  _freshObjective(snapshot = this.runtime.lastSnapshot) {
+    const team = snapshot && this._team(snapshot);
+    if (this.objective && this.objective.expiresAt > this.now() && this._objectiveMatchesParty(this.objective, snapshot, team)) {
+      return this.objective;
+    }
     this.objective = null;
     return null;
   }
@@ -38716,6 +38746,7 @@ class ProgressionIntelligence {
       const snapshot = this.runtime.lastSnapshot;
       const team = snapshot && this._team(snapshot);
       if (!team || String(sender) !== String(team.leaderName) || !payload || payload.leaderName !== team.leaderName || payload.expiresAt <= this.now()) return false;
+      if (!this._objectiveMatchesParty(payload, snapshot, team)) return false;
       if (!snapshot.character || payload.map !== snapshot.character.map) return false;
       const gameData = this.runtime.adapter.getGameData() || {};
       if (!gameData.monsters || !gameData.monsters[payload.monster] || !isApprovedDisposition(contentDisposition(this.runtime.world, payload.monster))) return false;
@@ -38743,7 +38774,14 @@ class ProgressionIntelligence {
   _syncShared() {
     const shared = this.parent && this.parent[SHARED_OBJECTIVE];
     const snapshot = this.runtime.lastSnapshot;
-    if (!this._freshObjective() && shared && shared.expiresAt > this.now() && snapshot && snapshot.character && shared.map === snapshot.character.map) {
+    const team = snapshot && this._team(snapshot);
+    if (!this._freshObjective(snapshot)
+      && shared
+      && shared.expiresAt > this.now()
+      && snapshot
+      && snapshot.character
+      && shared.map === snapshot.character.map
+      && this._objectiveMatchesParty(shared, snapshot, team)) {
       this.objective = clone(shared);
     }
   }
@@ -38862,10 +38900,18 @@ class ProgressionIntelligence {
       return this.lastDecision;
     }
 
+    const identity = this._partyIdentity(snapshot, team);
+    if (!identity || !identity.key) {
+      this.lastDecision = { at: this.now(), action: 'HOLD', reason: 'PARTY_IDENTITY_UNAVAILABLE' };
+      return this.lastDecision;
+    }
+
     const objective = {
       id: `alpha21-${this.now()}-${selected.id}`,
+      kind: 'PROGRESSION',
       leaderName: team.leaderName,
       partyFingerprint: party.fingerprint,
+      partyIdentityFingerprint: identity.key,
       map: selected.map,
       monster: selected.monster,
       spawnIndex: selected.spawnIndex,
@@ -38904,7 +38950,7 @@ class ProgressionIntelligence {
         directSmartMoveAuthority: false,
         gearGoalsFollowLiveBottleneck: true
       },
-      objective: clone(this._freshObjective()),
+      objective: clone(this._freshObjective(this.runtime.lastSnapshot)),
       lastEvaluation: clone(this.lastEvaluation),
       lastDecision: clone(this.lastDecision),
       stableCandidate: this.candidateKey,
@@ -46569,6 +46615,7 @@ module.exports = { Alpha28MerchantTransfers };
 
 const { contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
 const { GameAdapter } = require('../game/adapter');
+const { createPartyFingerprint } = require('../party/fingerprints');
 
 const SHARED_OBJECTIVE = '__AIO_V3_ALPHA21_OBJECTIVE';
 const CROSS_MAP_RECEIVER = 'alpha28.progression.crossmap';
@@ -46621,6 +46668,20 @@ class Alpha28CrossMapFarmerProgression {
   _team(snapshot) {
     try { return this.runtime.teamCombatCohesionHotfix && this.runtime.teamCombatCohesionHotfix._team(snapshot); } catch (_) { return null; }
   }
+  _partyIdentity(snapshot = this.runtime.lastSnapshot, team = null) {
+    try {
+      if (this.runtime && typeof this.runtime._currentMembers === 'function') {
+        const members = this.runtime._currentMembers(snapshot);
+        if (Array.isArray(members) && members.length) return createPartyFingerprint(members);
+      }
+    } catch (_) {}
+    const resolvedTeam = team || (snapshot && this._team(snapshot));
+    if (resolvedTeam && Array.isArray(resolvedTeam.members) && resolvedTeam.members.length) {
+      try { return createPartyFingerprint(resolvedTeam.members); } catch (_) {}
+    }
+    const c = snapshot && snapshot.character;
+    try { return c ? createPartyFingerprint([c]) : null; } catch (_) { return null; }
+  }
   _transport() {
     return this.runtime.partyAccountCommunication && this.runtime.partyAccountCommunication.transport || null;
   }
@@ -46672,9 +46733,15 @@ class Alpha28CrossMapFarmerProgression {
     if (!objective || !team || !objective.id || objective.expiresAt <= this.now()) return false;
     if (String(objective.leaderName || '') !== String(team.leaderName || '')) return false;
     if (objective.crossMapAuthorizedBy !== 'alpha28-controlled-farmer-travel') return false;
+    const kind = this._objectiveKind(objective);
+    if (kind === PROGRESSION_KIND) {
+      const identity = this._partyIdentity(this.runtime.lastSnapshot, team);
+      if (!identity || !identity.key || !objective.partyIdentityFingerprint
+        || String(objective.partyIdentityFingerprint) !== String(identity.key)) return false;
+    }
     const gameData = this.runtime.adapter && this.runtime.adapter.getGameData ? this.runtime.adapter.getGameData() || {} : {};
     if (!gameData.maps || !Object.prototype.hasOwnProperty.call(gameData.maps, objective.map)) return false;
-    if (this._objectiveKind(objective) === TEAM_REGROUP_KIND) {
+    if (kind === TEAM_REGROUP_KIND) {
       if (!Number.isFinite(Number(objective.x)) || !Number.isFinite(Number(objective.y))) return false;
       if (team.leader && team.leader.map && String(team.leader.map) !== String(objective.map)) return false;
       return true;
@@ -46769,12 +46836,21 @@ class Alpha28CrossMapFarmerProgression {
     const selected = decision && decision.action === 'RECOMMEND' && decision.reason === 'CROSS_MAP_PROGRESSION_REQUIRES_AUTHORIZED_FARMER_TRAVEL' ? decision.target : null;
     if (!selected || selected.map === snapshot.character.map) return null;
     const existing = this.parent && this.parent[SHARED_OBJECTIVE];
-    if (existing && this._objectiveKind(existing) === PROGRESSION_KIND && existing.expiresAt > this.now() && existing.map === selected.map && existing.monster === selected.monster && String(existing.leaderName) === String(team.leaderName)) return existing;
+    if (existing
+      && this._objectiveKind(existing) === PROGRESSION_KIND
+      && existing.expiresAt > this.now()
+      && existing.map === selected.map
+      && existing.monster === selected.monster
+      && String(existing.leaderName) === String(team.leaderName)
+      && this._objectiveValid(existing, team)) return existing;
+    const identity = this._partyIdentity(snapshot, team);
+    if (!identity || !identity.key) return null;
     const objective = {
       id: `alpha28-crossmap-${this.now()}-${selected.id}`,
       kind: PROGRESSION_KIND,
       leaderName: team.leaderName,
       partyFingerprint: progression && progression._party ? progression._party(snapshot).fingerprint : null,
+      partyIdentityFingerprint: identity.key,
       map: selected.map,
       monster: selected.monster,
       spawnIndex: selected.spawnIndex,
