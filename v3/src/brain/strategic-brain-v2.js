@@ -402,6 +402,8 @@ class StrategicBrainV2 {
     this.remoteTeacherAt = 0;
     this.lastObservation = null;
     this.pendingOutcome = null;
+    this.lastEncounterOutcome = null;
+    this.seenEncounterOutcomes = [];
     this.rewardEma = 0;
     this.lossEma = null;
     this.agreementEma = null;
@@ -416,7 +418,7 @@ class StrategicBrainV2 {
     this.diary = [];
     this.quality = { state: 'warming', score: 0.5, reason: 'collecting evidence' };
     this.league = { generation: 0, champion: null, championLoss: null, promotions: 0, rollbacks: 0, rejections: 0, lastEvent: null, lastEventAt: 0, lastReason: null };
-    this.stats = { observations: 0, teacherSamples: 0, remoteTeacherSamples: 0, deterministicTeacherSamples: 0, replayTrains: 0, outcomeRewards: 0, saves: 0, restoreSuccess: 0, restoreErrors: 0, persistenceFailures: 0 };
+    this.stats = { observations: 0, teacherSamples: 0, remoteTeacherSamples: 0, deterministicTeacherSamples: 0, replayTrains: 0, outcomeRewards: 0, encounterOutcomeRewards: 0, encounterOutcomeSkips: 0, saves: 0, restoreSuccess: 0, restoreErrors: 0, persistenceFailures: 0 };
     this._restore();
     this._diary('learn', '🧠', 'Brain v2 bereit', `${BRAIN_V2_INPUT_NAMES.length}→24→5 Student, Capability/Pull-Kontext, Experience Replay, Outcome-Lernen und Teacher-Distillation aktiv.`, 'neutral');
   }
@@ -446,6 +448,8 @@ class StrategicBrainV2 {
       this.outcomes = Math.max(0, Math.floor(finite(state.outcomes, 0)));
       this.league = { ...this.league, ...(state.league || {}) };
       this.diary = Array.isArray(state.diary) ? state.diary.slice(-100) : [];
+      this.lastEncounterOutcome = state.lastEncounterOutcome && typeof state.lastEncounterOutcome === 'object' ? safeClone(state.lastEncounterOutcome) : null;
+      if (this.lastEncounterOutcome && this.lastEncounterOutcome.encounterId) this.seenEncounterOutcomes = [String(this.lastEncounterOutcome.encounterId)];
       this.stats.restoreSuccess += 1;
       return true;
     } catch (error) {
@@ -597,6 +601,99 @@ class StrategicBrainV2 {
     return outcome;
   }
 
+
+  _latestEncounterOutcome() {
+    const rows = [];
+    if (this.lastEncounterOutcome) rows.push(this.lastEncounterOutcome);
+    if (this.runtime && this.runtime.lastEncounterOutcome) rows.push(this.runtime.lastEncounterOutcome);
+    try {
+      if (this.runtime && this.runtime.partyTelemetry && typeof this.runtime.partyTelemetry.encounterOutcomes === 'function') {
+        rows.push(...Object.values(this.runtime.partyTelemetry.encounterOutcomes() || {}));
+      }
+    } catch (_) {}
+    const clean = rows.filter((row) => row && row.encounterId && Number.isFinite(Number(row.endedAt)));
+    clean.sort((a, b) => finite(b.endedAt, 0) - finite(a.endedAt, 0));
+    return clean.length ? safeClone(clean[0]) : null;
+  }
+
+  ingestEncounterOutcome(outcome, meta = {}) {
+    if (!outcome || !outcome.encounterId) {
+      this.stats.encounterOutcomeSkips += 1;
+      return { accepted: false, reason: 'ENCOUNTER_OUTCOME_INVALID' };
+    }
+    const encounterId = String(outcome.encounterId);
+    if (this.seenEncounterOutcomes.includes(encounterId)) {
+      this.stats.encounterOutcomeSkips += 1;
+      return { accepted: false, reason: 'ENCOUNTER_OUTCOME_DUPLICATE', encounterId };
+    }
+    this.seenEncounterOutcomes.push(encounterId);
+    if (this.seenEncounterOutcomes.length > 128) this.seenEncounterOutcomes.splice(0, this.seenEncounterOutcomes.length - 128);
+    this.lastEncounterOutcome = safeClone(outcome);
+    const eligible = outcome.learningEligible === true
+      && !['CONTENT_DRIFT', 'INTERRUPTED'].includes(String(outcome.outcome || ''));
+    if (!eligible) {
+      this.stats.encounterOutcomeSkips += 1;
+      this._save();
+      return { accepted: false, reason: 'ENCOUNTER_OUTCOME_NOT_LEARNING_ELIGIBLE', encounterId, outcome: String(outcome.outcome || '') };
+    }
+
+    let reward = clamp(finite(outcome.score, 0.5) * 2 - 1, -1, 1);
+    if (String(outcome.outcome) === 'DEATH') reward = Math.min(reward, -0.8);
+    else if (String(outcome.outcome) === 'PARTY_FAILURE') reward = Math.min(reward, -0.55);
+    else if (String(outcome.outcome) === 'SAFE_ABORT') reward = Math.min(reward, -0.05);
+    const firstOutcome = this.outcomes === 0;
+    this.rewardEma = firstOutcome ? reward : this.rewardEma * 0.88 + reward * 0.12;
+    this.outcomes += 1;
+    this.stats.outcomeRewards += 1;
+    this.stats.encounterOutcomeRewards += 1;
+
+    const observation = this.lastObservation;
+    let trained = false;
+    let loss = null;
+    if (observation && observation.inputs && observation.student && BRAIN_V2_ACTIONS.includes(observation.student.action)) {
+      const vector = BRAIN_V2_INPUT_NAMES.map((name) => clamp(observation.inputs[name]));
+      const chosen = BRAIN_V2_ACTIONS.indexOf(observation.student.action);
+      const uniform = 1 / BRAIN_V2_ACTIONS.length;
+      const strength = Math.min(1, Math.max(0.2, Math.abs(reward)));
+      const desired = BRAIN_V2_ACTIONS.map((_, index) => {
+        const directional = reward >= 0
+          ? (index === chosen ? 1 : 0)
+          : (index === chosen ? 0 : 1 / Math.max(1, BRAIN_V2_ACTIONS.length - 1));
+        return uniform * (1 - strength) + directional * strength;
+      });
+      loss = this._train(vector, desired, 'encounter-outcome');
+      this.samples += 1;
+      this._replayTrain();
+      trained = true;
+    }
+
+    if (meta.remote !== true) this.pendingOutcome = null;
+    if (finite(observation && observation.student && observation.student.confidence, 0) > 0.72 && reward < -0.25) this.overconfidenceFailures += 1;
+    else if (reward > 0) this.overconfidenceFailures = Math.max(0, this.overconfidenceFailures - 1);
+
+    const result = {
+      accepted: true,
+      source: meta.remote === true ? 'remote-encounter-outcome' : 'encounter-outcome',
+      at: this.now(),
+      encounterId,
+      outcome: String(outcome.outcome || ''),
+      monster: outcome.monster == null ? null : String(outcome.monster),
+      map: outcome.map == null ? null : String(outcome.map),
+      pullSize: Math.max(1, Math.floor(finite(outcome.maxEngaged, 1))),
+      safetyMargin: clamp(finite(outcome.safetyMargin, 0.5)),
+      reward: Number(reward.toFixed(4)),
+      trained,
+      loss: loss == null ? null : Number(loss.toFixed(5))
+    };
+    this.lastEncounterOutcome = { ...safeClone(outcome), brainReward: result.reward, brainAcceptedAt: result.at, remote: meta.remote === true };
+    this._diary('outcome', reward > 0.08 ? '✅' : reward < -0.08 ? '⚠️' : '📊', `Encounter ${result.outcome} ${reward >= 0 ? '+' : ''}${reward.toFixed(3)}`, `${result.monster || 'unknown'} · Pull ${result.pullSize} · Safety ${result.safetyMargin.toFixed(2)}`, reward > 0.08 ? 'good' : reward < -0.08 ? 'bad' : 'neutral', { encounterId, reward: result.reward, source: result.source });
+    this._quality();
+    this._leagueCheck(result);
+    this._save(true);
+    if (this.log) this.log.emit({ component: 'brain-v2', event: 'BRAIN_V2_ENCOUNTER_OUTCOME', data: result });
+    return result;
+  }
+
   _validationLoss(networkState = null) {
     const rows = this.replayBuffer.list(64).filter((row) => Array.isArray(row.vector) && Array.isArray(row.target));
     if (!rows.length) return null;
@@ -621,7 +718,7 @@ class StrategicBrainV2 {
 
   teacherRequest(trigger = 'periodic') {
     if (!this.lastObservation) return null;
-    return { schemaVersion: 2, trigger, brainMode: this._cfg('brain.mode', 'shadow'), quality: this.lastObservation.quality, student: this.lastObservation.student, inputs: this.lastObservation.inputs, deterministicTeacher: this.lastObservation.teacher && this.lastObservation.teacher.source === 'deterministic' ? this.lastObservation.teacher : null, party: this.runtime && this.runtime.characterRegistry && this.runtime.characterRegistry.status ? this.runtime.characterRegistry.status() : null, capabilityLearning: brainCapabilityContext(this.runtime).detail, economy: this.runtime && this.runtime.economyEquipmentAutonomyV2 && this.runtime.economyEquipmentAutonomyV2.status ? this.runtime.economyEquipmentAutonomyV2.status() : null, performance: performanceStatus(this.runtime), policies: { survivalFirst: true, directActionAuthority: false, deterministicSafetyCannotBeOverridden: true, adaptivePullCannotExceedHardCapacity: true } };
+    return { schemaVersion: 2, trigger, brainMode: this._cfg('brain.mode', 'shadow'), quality: this.lastObservation.quality, student: this.lastObservation.student, inputs: this.lastObservation.inputs, deterministicTeacher: this.lastObservation.teacher && this.lastObservation.teacher.source === 'deterministic' ? this.lastObservation.teacher : null, party: this.runtime && this.runtime.characterRegistry && this.runtime.characterRegistry.status ? this.runtime.characterRegistry.status() : null, capabilityLearning: brainCapabilityContext(this.runtime).detail, encounterOutcome: this._latestEncounterOutcome(), economy: this.runtime && this.runtime.economyEquipmentAutonomyV2 && this.runtime.economyEquipmentAutonomyV2.status ? this.runtime.economyEquipmentAutonomyV2.status() : null, performance: performanceStatus(this.runtime), policies: { survivalFirst: true, directActionAuthority: false, deterministicSafetyCannotBeOverridden: true, adaptivePullCannotExceedHardCapacity: true } };
   }
 
   shouldAskTeacher() {
@@ -634,7 +731,7 @@ class StrategicBrainV2 {
 
   replay(limit = 32) { return this.replayBuffer.list(limit); }
 
-  exportState() { return { schemaVersion: 2, mode: BRAIN_V2_MODE, savedAt: this.now(), network: this.network.snapshot(), samples: this.samples, updates: this.updates, outcomes: this.outcomes, rewardEma: this.rewardEma, lossEma: this.lossEma, agreementEma: this.agreementEma, league: safeClone(this.league), quality: safeClone(this.quality), diary: this.diary.slice(-Math.max(20, Math.floor(this._cfg('brain.diaryMaxEntries', 100)))) }; }
+  exportState() { return { schemaVersion: 2, mode: BRAIN_V2_MODE, savedAt: this.now(), network: this.network.snapshot(), samples: this.samples, updates: this.updates, outcomes: this.outcomes, rewardEma: this.rewardEma, lossEma: this.lossEma, agreementEma: this.agreementEma, league: safeClone(this.league), quality: safeClone(this.quality), lastEncounterOutcome: safeClone(this.lastEncounterOutcome), diary: this.diary.slice(-Math.max(20, Math.floor(this._cfg('brain.diaryMaxEntries', 100)))) }; }
 
   importState(state) {
     if (!state || Number(state.schemaVersion) !== 2 || !state.network) return false;
@@ -650,7 +747,7 @@ class StrategicBrainV2 {
       student: { samples: this.samples, updates: this.updates, outcomes: this.outcomes, lossEma: this.lossEma == null ? null : Number(this.lossEma.toFixed(5)), rewardEma: Number(this.rewardEma.toFixed(5)), agreementEma: this.agreementEma == null ? null : Number(this.agreementEma.toFixed(5)), lastTrainAt: this.lastTrainAt, replay: this.replayBuffer.status() },
       teacher: { remoteAvailable: !!this.remoteTeacher, lastAt: this.remoteTeacherAt, ageMs: this.remoteTeacherAt ? this.now() - this.remoteTeacherAt : null, lastDecision: safeClone(this.remoteTeacher), shouldAsk: this.shouldAskTeacher() }, quality,
       league: { generation: this.league.generation, hasChampion: !!this.league.champion, championLoss: this.league.championLoss, promotions: this.league.promotions, rollbacks: this.league.rollbacks, rejections: this.league.rejections, lastEvent: this.league.lastEvent, lastEventAt: this.league.lastEventAt, lastReason: this.league.lastReason },
-      current: this.lastObservation, lastRecommendation: this.lastObservation, pendingOutcome: this.pendingOutcome ? { startedAt: this.pendingOutcome.startedAt, dueAt: this.pendingOutcome.dueAt, action: this.pendingOutcome.action, target: this.pendingOutcome.target } : null,
+      current: this.lastObservation, lastRecommendation: this.lastObservation, lastEncounterOutcome: safeClone(this.lastEncounterOutcome), pendingOutcome: this.pendingOutcome ? { startedAt: this.pendingOutcome.startedAt, dueAt: this.pendingOutcome.dueAt, action: this.pendingOutcome.action, target: this.pendingOutcome.target } : null,
       diary: { entries: this.diary.slice(-40), total: this.diary.length }, persistence: { key: STORAGE_KEY, disabled: this.persistenceDisabled, lastError: this.persistenceError }, stats: { ...this.stats }, policies: { strategicOnly: true, deterministicCombatSafetyAuthoritative: true, dangerousContentCannotBeOverridden: true, commandCharacterAuthorityWidened: false, cloudFailureSafe: true } };
   }
 }

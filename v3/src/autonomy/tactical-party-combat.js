@@ -2,6 +2,7 @@
 
 const { SmartAoePlanner, SmartAoeState } = require('./smart-aoe-planner');
 const { CombatMode } = require('./combat-modes');
+const { createPartyFingerprint } = require('../party/fingerprints');
 
 const TACTICAL_PARTY_COMBAT_MODE = 'leader-owned-multi-encounter-v2';
 
@@ -32,6 +33,7 @@ class TacticalPartyCombat {
       sameTypePullsOnly: options.sameTypePullsOnly !== false
     };
     this.adaptivePullLearner = options.adaptivePullLearner || runtime.adaptivePullLearner || null;
+    this.encounterLifecycle = options.encounterLifecycle || runtime.encounterLifecycle || null;
     this.smartAoePlanner = options.smartAoePlanner || new SmartAoePlanner({
       ...(options.smartAoe || {}),
       now: this.now,
@@ -195,6 +197,14 @@ class TacticalPartyCombat {
     const currentMembers = this.runtime && typeof this.runtime._currentMembers === 'function'
       ? this.runtime._currentMembers(snapshot)
       : (team.members || []);
+    const lifecycleContext = this.encounterLifecycle && this.encounterLifecycle.current || null;
+    const partyFingerprint = this.runtime.currentPartyFingerprint
+      || (lifecycleContext && lifecycleContext.partyFingerprint ? { key: lifecycleContext.partyFingerprint } : createPartyFingerprint(currentMembers));
+    const encounterFingerprint = this.runtime.currentEncounterFingerprint || {
+      monster: { mtype: this.encounter.targetType || targets[0] && targets[0].mtype || null },
+      contentDisposition: lifecycleContext && lifecycleContext.contentDisposition || null,
+      event: null
+    };
     const aoe = this.smartAoePlanner.evaluate({
       mode: this._combatMode(snapshot, team),
       team,
@@ -205,8 +215,8 @@ class TacticalPartyCombat {
         snapshot,
         currentMembers,
         monster: this.encounter.targetType || targets[0] && targets[0].mtype || null,
-        encounterFingerprint: this.runtime.currentEncounterFingerprint || null,
-        partyFingerprint: this.runtime.currentPartyFingerprint || null,
+        encounterFingerprint,
+        partyFingerprint,
         isLeader: team.selfName === team.leaderName
       }
     });
@@ -220,12 +230,32 @@ class TacticalPartyCombat {
     }));
     this.encounter.aoe = aoe;
     this.encounter.updatedAt = this.now();
+    if (this.encounterLifecycle && typeof this.encounterLifecycle.observe === 'function') {
+      this.encounterLifecycle.observe({ snapshot, team, tacticalEncounter: this.encounter, reason: 'PLAN_REFRESH' });
+    }
     this.stats.encounterRefreshes += 1;
     return aoe;
   }
 
+  _finalizeEncounter(snapshot, team, reason, outcome = null) {
+    if (!this.encounter) return null;
+    const previous = this.encounter;
+    let final = null;
+    if (this.encounterLifecycle && typeof this.encounterLifecycle.finish === 'function') {
+      final = this.encounterLifecycle.finish({ snapshot, team, tacticalEncounter: previous, reason, outcome });
+    }
+    this.encounter = null;
+    this.pendingPull = null;
+    return final;
+  }
+
   _setEncounter(target, evaluation, reason, team = null, snapshot = this.runtime.lastSnapshot) {
     const resolvedTeam = team || (snapshot && this.team && typeof this.team._team === 'function' ? this.team._team(snapshot) : null);
+    const previous = this.encounter;
+    const previousPrimary = previous && String(previous.primaryTargetId || previous.targetId || '');
+    if (previous && previousPrimary && previousPrimary !== String(target.id)) {
+      this._finalizeEncounter(snapshot, resolvedTeam, 'TACTICAL_TARGET_REPLACED');
+    }
     this.encounter = {
       targetId: String(target.id),
       primaryTargetId: String(target.id),
@@ -247,6 +277,9 @@ class TacticalPartyCombat {
       } : null,
       aoe: null
     };
+    if (this.encounterLifecycle && typeof this.encounterLifecycle.begin === 'function') {
+      this.encounterLifecycle.begin({ snapshot, team: resolvedTeam, tacticalEncounter: this.encounter, previousEncounter: previous, reason });
+    }
     if (resolvedTeam && snapshot) this._refreshEncounterPlan(snapshot, resolvedTeam);
     this.lastDecision = { at: this.now(), action: 'ENCOUNTER_TARGET', reason, targetId: this.encounter.targetId, targetType: this.encounter.targetType, pullOwner: this.encounter.pullOwner };
     return this.encounter;
@@ -418,7 +451,7 @@ class TacticalPartyCombat {
               }
             }
           }
-          this.encounter = null;
+          this._finalizeEncounter(snapshot, team, 'LEADER_ENCOUNTER_INVALIDATED');
         }
         const selection = baseSelect(context);
         if (selection && selection.target && team && team.selfName === team.leaderName) {
@@ -515,6 +548,7 @@ class TacticalPartyCombat {
       encounter: this.encounter ? JSON.parse(JSON.stringify(this.encounter)) : null,
       smartAoePlanner: this.smartAoePlanner.status(),
       adaptivePullLearning: this.adaptivePullLearner && typeof this.adaptivePullLearner.status === 'function' ? this.adaptivePullLearner.status() : null,
+      encounterLifecycle: this.encounterLifecycle && typeof this.encounterLifecycle.status === 'function' ? this.encounterLifecycle.status() : null,
       pendingPull: this.pendingPull ? { ...this.pendingPull } : null,
       lastEvaluation: this.lastEvaluation ? { ...this.lastEvaluation } : null,
       lastDecision: this.lastDecision ? { ...this.lastDecision } : null,

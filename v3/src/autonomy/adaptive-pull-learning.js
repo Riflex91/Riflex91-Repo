@@ -53,6 +53,8 @@ class AdaptivePullLearner {
     this.stats = {
       records: 0,
       recordSkips: 0,
+      encounterRecords: 0,
+      encounterRecordSkips: 0,
       recommendations: 0,
       learnedSelections: 0,
       riskReductions: 0,
@@ -224,6 +226,10 @@ class AdaptivePullLearner {
   }
 
   recordTelemetryWindow(context = {}) {
+    if (this.runtime.encounterLifecycle && this.runtime.encounterLifecycle.primaryOutcomeAttribution === true) {
+      this.stats.recordSkips += 1;
+      return null;
+    }
     if (!this.enabled || !this.performance || typeof this.performance.record !== 'function') {
       this.stats.recordSkips += 1;
       return null;
@@ -446,6 +452,51 @@ class AdaptivePullLearner {
     };
     this.lastRecommendation = result;
     return clone(result, null);
+  }
+
+
+  recordEncounterOutcome(outcome = {}) {
+    if (!this.enabled || !this.performance || typeof this.performance.record !== 'function' || !outcome || outcome.learningEligible !== true) {
+      this.stats.encounterRecordSkips += 1;
+      return null;
+    }
+    const baseKey = outcome.pullContextFingerprint ? String(outcome.pullContextFingerprint) : null;
+    const partyKey = outcome.partyFingerprint ? String(outcome.partyFingerprint) : null;
+    if (!baseKey || !partyKey || !outcome.encounterId) {
+      this.stats.encounterRecordSkips += 1;
+      return null;
+    }
+    const pullSize = Math.max(1, Math.min(12, Math.floor(finite(outcome.maxEngaged, outcome.desiredPullSize || 1))));
+    const seconds = Math.max(0.001, finite(outcome.durationSeconds, finite(outcome.durationMs, 0) / 1000));
+    const sample = {
+      seconds,
+      xp: Math.max(0, finite(outcome.xp, 0)),
+      gold: finite(outcome.gold, 0),
+      kills: Math.max(0, finite(outcome.kills, 0)),
+      deaths: Math.max(0, finite(outcome.deaths, 0)),
+      hpPotions: Math.max(0, finite(outcome.hpPotions, finite(outcome.potions, 0))),
+      mpPotions: Math.max(0, finite(outcome.mpPotions, 0)),
+      retreats: Math.max(0, finite(outcome.retreats, 0)),
+      nearDeaths: Math.max(0, finite(outcome.nearDeaths, 0)),
+      movementFailures: Math.max(0, finite(outcome.movementFailures, 0)),
+      skillFailures: Math.max(0, finite(outcome.skillFailures, 0)),
+      safetyMargin: clamp(finite(outcome.safetyMargin, 0.5), 0, 1),
+      score: clamp(finite(outcome.score, 0.5), 0, 1)
+    };
+    const profile = this.performance.record(this._pullKey(baseKey, pullSize), partyKey, sample);
+    this.stats.records += 1;
+    this.stats.encounterRecords += 1;
+    this._event('ADAPTIVE_PULL_ENCOUNTER_RECORDED', 'info', outcome.outcome || null, {
+      encounterId: String(outcome.encounterId),
+      context: baseKey,
+      party: partyKey,
+      pullSize,
+      score: sample.score,
+      safetyMargin: sample.safetyMargin,
+      seconds,
+      profile: profile ? { samples: profile.samples, confidence: profile.confidence, xpPerHour: profile.xpPerHour } : null
+    });
+    return { base: { key: baseKey }, partyKey, pullSize, sample, profile, encounterId: String(outcome.encounterId) };
   }
 
   status() {
