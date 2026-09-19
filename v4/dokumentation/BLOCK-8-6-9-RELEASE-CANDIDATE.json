@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "status": "release_candidate",
+  "releaseSha": "ca0dfee7685563c8b6003469300c8fd08777b053",
+  "mergedByCommit": "a767c18334cfb20422abea04105bc0cbd40603a5",
+  "candidateVersion": "1.0.0",
+  "runtimeVersion": "1.1.5",
+  "bundleVersion": "4.0.0-alpha.0",
+  "moduleCount": 51,
+  "bytes": 396471,
+  "sha256": "b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5",
+  "sourceArtifact": "dist/aio-v4-block8-6-candidate.js",
+  "sourceSha256Artifact": "dist/aio-v4-block8-6-candidate.sha256",
+  "publicArtifactAlias": "aio-v4-runtime.js",
+  "publicSha256Alias": "aio-v4-runtime.sha256",
+  "laufzeitPfadKennung": "block8.6-capability-runtime",
+  "aenderungsKennung": "git:ca0dfee7685563c8b6003469300c8fd08777b053",
+  "immutableRuntime115": {
+    "moduleCount": 31,
+    "bytes": 228607,
+    "sha256": "95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f"
+  },
+  "offlineReplayVerified": true,
+  "offlineEvidence": {
+    "pullRequest": 407,
+    "candidateHeadSha": "ca0dfee7685563c8b6003469300c8fd08777b053",
+    "v4Ci": {
+      "runId": 35440445689,
+      "runNumber": 383,
+      "jobId": 105890209278,
+      "conclusion": "success"
+    },
+    "v4GrundlagePruefen": {
+      "runId": 35440445635,
+      "runNumber": 1630,
+      "jobId": 105890209231,
+      "conclusion": "success"
+    },
+    "mainTests": {
+      "passed": 626,
+      "total": 626
+    },
+    "additionalChecks": {
+      "passed": 37,
+      "total": 37
+    },
+    "namingCheck": "passed",
+    "replayCoverage": "BLOCK-8-6-8-REPLAY-REGRESSION.md"
+  },
+  "deploymentPerformed": false,
+  "publicHttpsVerified": false,
+  "adventureLandShadowVerified": false,
+  "adventureLandControlledLiveVerified": false,
+  "adventureLandSoakVerified": false,
+  "block86Completed": false,
+  "block9Freigegeben": false,
+  "nextOperationalStep": "immutable_deployment"
+}

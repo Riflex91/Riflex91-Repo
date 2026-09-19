@@ -1,8 +1,8 @@
 # Block 8.6 – Live Skill Catalog und Capability Truth
 
-Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.8 implementiert; 8.6.9 Candidate-/Freigabepfad vorbereitet, operative Nachweise noch offen.**
+Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.8 implementiert; 8.6.9 Release-Candidate exakt gebunden, Deployment/HTTPS und reale Laufzeitstufen noch offen.**
 
-Naechster operativer Schritt: **8.6.9 – finalen Candidate binden, immutable veroeffentlichen und Offline → Schatten → kontrolliert live → Soak nachweisen**
+Naechster operativer Schritt: **8.6.9 – gebundenen Candidate immutable veroeffentlichen, HTTPS nachweisen und danach Schatten → kontrolliert live → Soak ausfuehren**
 
 ## Ziel
 
@@ -211,7 +211,7 @@ Pflichtfaelle:
 
 Umsetzungsnachweis: `BLOCK-8-6-8-REPLAY-REGRESSION.md`.
 
-## 8.6.9 – Freigabe — **CANDIDATE-PFAD VORBEREITET; OPERATIVE STUFEN OFFEN**
+## 8.6.9 – Freigabe — **RELEASE-CANDIDATE GEBUNDEN; DEPLOYMENT UND REALE STUFEN OFFEN**
 
 Block 8.6 folgt denselben Laufzeit-Gates wie Block 8.5:
 
@@ -232,6 +232,8 @@ Vorbereiteter technischer Pfad:
 - Recovery-Nachweis nur mit an denselben Candidate gebundener 8.6.8-Replay-Evidenz.
 
 Umsetzungs-/Vorbereitungsnachweis: `BLOCK-8-6-9-FREIGABE-VORBEREITUNG.md`.
+
+Release-Bindung: `BLOCK-8-6-9-RELEASE-CANDIDATE.md` plus maschinenlesbares `BLOCK-8-6-9-RELEASE-CANDIDATE.json`. Der exakte gruene Candidate ist `ca0dfee7685563c8b6003469300c8fd08777b053` mit 51 Modulen / 396471 Bytes / SHA-256 `b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5`. Offline/Replay ist gebunden; der isolierte Publish-Workflow ist nur manuell ausfuehrbar.
 
 Noch nicht als bestanden markiert werden duerfen Candidate-Deployment, realer Schattenlauf, kontrollierter Live-Lauf oder Soak.
 
