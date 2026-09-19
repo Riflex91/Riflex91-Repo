@@ -126,7 +126,9 @@ class InventoryLedger {
       return { disposition: ItemDisposition.RESERVE_UPGRADE, reasons: ['OPERATOR_UPGRADE_ALLOWED'] };
     }
     if (permissions.bank === true) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWED'] };
-    if (permissions.sell === true) return { disposition: ItemDisposition.SELL, reasons: ['OPERATOR_SELL_ALLOWED'], explicitSellOverride: true };
+    // sell=true is a capability permission, never an immediate disposition.
+    // The autonomous lifecycle must first complete gear-value evaluation and
+    // then choose SELL vs progression from expected economic value.
     return null;
   }
 
@@ -201,7 +203,7 @@ class InventoryLedger {
     const meta = gameData && gameData.items && gameData.items[row.name];
     const same = counts.get(stackKey(row.name, row.level)) || 0;
     const hasProtectedFlag = row.locked || row.special;
-    const hasExplicitAllow = ['sell', 'bank', 'compound', 'upgrade'].some((action) => this._permission(row.name, action) === true);
+    const hasExplicitAllow = ['bank', 'compound', 'upgrade'].some((action) => this._permission(row.name, action) === true);
     if (hasProtectedFlag && !hasExplicitAllow) return { disposition: ItemDisposition.KEEP, reasons: [row.locked ? 'ITEM_LOCKED' : 'ITEM_SPECIAL'] };
     if (!meta || typeof meta !== 'object') return { disposition: ItemDisposition.UNDECIDED, reasons: ['ITEM_METADATA_UNKNOWN'] };
     if (this._contentUnsafe(contentDrift, row.name)) return { disposition: ItemDisposition.UNDECIDED, reasons: ['CONTENT_REVALIDATION_REQUIRED'] };
