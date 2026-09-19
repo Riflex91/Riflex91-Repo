@@ -5,7 +5,7 @@ namespace AioBotWindowsBridge;
 
 public sealed record BridgeConfig
 {
-    public const int CurrentConfigVersion = 5;
+    public const int CurrentConfigVersion = 6;
 
     public int ConfigVersion { get; init; } = CurrentConfigVersion;
     public string CdpEndpoint { get; init; } = "http://127.0.0.1:9222";
@@ -20,6 +20,12 @@ public sealed record BridgeConfig
     public int PollIntervalSeconds { get; init; } = 5;
     public int MaxBackoffSeconds { get; init; } = 300;
     public int EventLimit { get; init; } = 100;
+
+    public bool WissenswaechterAktiv { get; init; } = true;
+    public int WissenswaechterIntervallMinuten { get; init; } = 60;
+    public bool WissenswaechterWebSucheAktiv { get; init; } = true;
+    public int WissenswaechterMaxQuellenProLauf { get; init; } = 200;
+    public int WissenswaechterMaxKandidaten { get; init; } = 1000;
 
     public bool WebDashboardEnabled { get; init; } = true;
     public string WebDashboardBaseUrl { get; init; } = "https://aio-bot-dashboard.hansijuergenlul.workers.dev";
@@ -132,6 +138,13 @@ public sealed record BridgeConfig
             throw new InvalidOperationException("MAX_BACKOFF_OUT_OF_RANGE");
         if (EventLimit is < 1 or > 200)
             throw new InvalidOperationException("EVENT_LIMIT_OUT_OF_RANGE");
+
+        if (WissenswaechterIntervallMinuten != 60)
+            throw new InvalidOperationException("WISSENSWAECHTER_INTERVALL_MUSS_60_MINUTEN_SEIN");
+        if (WissenswaechterMaxQuellenProLauf is < 1 or > 500)
+            throw new InvalidOperationException("WISSENSWAECHTER_QUELLENLIMIT_UNGUELTIG");
+        if (WissenswaechterMaxKandidaten is < 50 or > 5000)
+            throw new InvalidOperationException("WISSENSWAECHTER_KANDIDATENLIMIT_UNGUELTIG");
 
         ValidateBackblaze();
     }
