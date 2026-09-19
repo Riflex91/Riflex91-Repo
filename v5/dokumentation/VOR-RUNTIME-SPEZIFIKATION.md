@@ -25,7 +25,8 @@ Vor dem ersten Runtime-Code muessen fachlich geprueft sein:
 14. Wissenswaechter-/Git-Sicherheitsvertrag;
 15. Auswahlkriterien fuer Vertical Slice 0;
 16. formales Laufzeit-Bereitschaftsgate;
-17. verbindlicher Entwicklungs-Wissensgate mit Frische-, Quellenhealth- und Driftpruefung.
+17. verbindlicher Entwicklungs-Wissensgate mit Frische-, Quellenhealth- und Driftpruefung;
+18. Zielvertrag fuer die lokale live verifizierte Wissensdatenbank auf `D:\\` und ihren read-only Bridge-Spiegel.
 
 ## Persistenz und Migration
 
@@ -176,3 +177,19 @@ Zertifizierungsevidence muss diese Identitaet tragen.
 Vor echtem Runtime-Code entscheidet ausschliesslich `v5/bereitschaft/laufzeit-bereitschaft.json`.
 
 Nur wenn alle Pflichtbereiche `erfuellt: true` tragen und der Validator `FREIGEGEBEN` meldet, darf die Runtime-Grundstruktur angelegt werden.
+
+
+## Live-Wissensdatenbank
+
+Vor Runtime-Code ist nur der Vertrag verbindlich; der eigentliche Bot-Writer wird erst in R5/R6 implementiert.
+
+Festgelegt sind bereits:
+
+- lokaler Standardpfad `D:\AdventureLand-V5\wissensdatenbank`;
+- Bot als alleiniger fachlicher Writer;
+- Bridge als read-only Validator/Mirror;
+- GitHub-Ziel `v5/wissensbasis/live/snapshot/**`;
+- Generation `SCHREIBT -> BEREIT`;
+- Secret-/Path-/Reparse-/Size-Guards;
+- keine Generalisierung einzelner Live-Beobachtungen;
+- keine direkte ExecutionAuthority aus persistiertem Live-Wissen.
