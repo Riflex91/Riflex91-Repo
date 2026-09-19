@@ -32927,6 +32927,8 @@ class AdaptivePullLearner {
     this.stats = {
       records: 0,
       recordSkips: 0,
+      encounterRecords: 0,
+      encounterRecordSkips: 0,
       recommendations: 0,
       learnedSelections: 0,
       riskReductions: 0,
@@ -33098,6 +33100,10 @@ class AdaptivePullLearner {
   }
 
   recordTelemetryWindow(context = {}) {
+    if (this.runtime.encounterLifecycle && this.runtime.encounterLifecycle.primaryOutcomeAttribution === true) {
+      this.stats.recordSkips += 1;
+      return null;
+    }
     if (!this.enabled || !this.performance || typeof this.performance.record !== 'function') {
       this.stats.recordSkips += 1;
       return null;
@@ -33320,6 +33326,51 @@ class AdaptivePullLearner {
     };
     this.lastRecommendation = result;
     return clone(result, null);
+  }
+
+
+  recordEncounterOutcome(outcome = {}) {
+    if (!this.enabled || !this.performance || typeof this.performance.record !== 'function' || !outcome || outcome.learningEligible !== true) {
+      this.stats.encounterRecordSkips += 1;
+      return null;
+    }
+    const baseKey = outcome.pullContextFingerprint ? String(outcome.pullContextFingerprint) : null;
+    const partyKey = outcome.partyFingerprint ? String(outcome.partyFingerprint) : null;
+    if (!baseKey || !partyKey || !outcome.encounterId) {
+      this.stats.encounterRecordSkips += 1;
+      return null;
+    }
+    const pullSize = Math.max(1, Math.min(12, Math.floor(finite(outcome.maxEngaged, outcome.desiredPullSize || 1))));
+    const seconds = Math.max(0.001, finite(outcome.durationSeconds, finite(outcome.durationMs, 0) / 1000));
+    const sample = {
+      seconds,
+      xp: Math.max(0, finite(outcome.xp, 0)),
+      gold: finite(outcome.gold, 0),
+      kills: Math.max(0, finite(outcome.kills, 0)),
+      deaths: Math.max(0, finite(outcome.deaths, 0)),
+      hpPotions: Math.max(0, finite(outcome.hpPotions, finite(outcome.potions, 0))),
+      mpPotions: Math.max(0, finite(outcome.mpPotions, 0)),
+      retreats: Math.max(0, finite(outcome.retreats, 0)),
+      nearDeaths: Math.max(0, finite(outcome.nearDeaths, 0)),
+      movementFailures: Math.max(0, finite(outcome.movementFailures, 0)),
+      skillFailures: Math.max(0, finite(outcome.skillFailures, 0)),
+      safetyMargin: clamp(finite(outcome.safetyMargin, 0.5), 0, 1),
+      score: clamp(finite(outcome.score, 0.5), 0, 1)
+    };
+    const profile = this.performance.record(this._pullKey(baseKey, pullSize), partyKey, sample);
+    this.stats.records += 1;
+    this.stats.encounterRecords += 1;
+    this._event('ADAPTIVE_PULL_ENCOUNTER_RECORDED', 'info', outcome.outcome || null, {
+      encounterId: String(outcome.encounterId),
+      context: baseKey,
+      party: partyKey,
+      pullSize,
+      score: sample.score,
+      safetyMargin: sample.safetyMargin,
+      seconds,
+      profile: profile ? { samples: profile.samples, confidence: profile.confidence, xpPerHour: profile.xpPerHour } : null
+    });
+    return { base: { key: baseKey }, partyKey, pullSize, sample, profile, encounterId: String(outcome.encounterId) };
   }
 
   status() {
@@ -34071,6 +34122,7 @@ class TacticalPartyCombat {
       sameTypePullsOnly: options.sameTypePullsOnly !== false
     };
     this.adaptivePullLearner = options.adaptivePullLearner || runtime.adaptivePullLearner || null;
+    this.encounterLifecycle = options.encounterLifecycle || runtime.encounterLifecycle || null;
     this.smartAoePlanner = options.smartAoePlanner || new SmartAoePlanner({
       ...(options.smartAoe || {}),
       now: this.now,
@@ -34259,12 +34311,32 @@ class TacticalPartyCombat {
     }));
     this.encounter.aoe = aoe;
     this.encounter.updatedAt = this.now();
+    if (this.encounterLifecycle && typeof this.encounterLifecycle.observe === 'function') {
+      this.encounterLifecycle.observe({ snapshot, team, tacticalEncounter: this.encounter, reason: 'PLAN_REFRESH' });
+    }
     this.stats.encounterRefreshes += 1;
     return aoe;
   }
 
+  _finalizeEncounter(snapshot, team, reason, outcome = null) {
+    if (!this.encounter) return null;
+    const previous = this.encounter;
+    let final = null;
+    if (this.encounterLifecycle && typeof this.encounterLifecycle.finish === 'function') {
+      final = this.encounterLifecycle.finish({ snapshot, team, tacticalEncounter: previous, reason, outcome });
+    }
+    this.encounter = null;
+    this.pendingPull = null;
+    return final;
+  }
+
   _setEncounter(target, evaluation, reason, team = null, snapshot = this.runtime.lastSnapshot) {
     const resolvedTeam = team || (snapshot && this.team && typeof this.team._team === 'function' ? this.team._team(snapshot) : null);
+    const previous = this.encounter;
+    const previousPrimary = previous && String(previous.primaryTargetId || previous.targetId || '');
+    if (previous && previousPrimary && previousPrimary !== String(target.id)) {
+      this._finalizeEncounter(snapshot, resolvedTeam, 'TACTICAL_TARGET_REPLACED');
+    }
     this.encounter = {
       targetId: String(target.id),
       primaryTargetId: String(target.id),
@@ -34286,6 +34358,9 @@ class TacticalPartyCombat {
       } : null,
       aoe: null
     };
+    if (this.encounterLifecycle && typeof this.encounterLifecycle.begin === 'function') {
+      this.encounterLifecycle.begin({ snapshot, team: resolvedTeam, tacticalEncounter: this.encounter, previousEncounter: previous, reason });
+    }
     if (resolvedTeam && snapshot) this._refreshEncounterPlan(snapshot, resolvedTeam);
     this.lastDecision = { at: this.now(), action: 'ENCOUNTER_TARGET', reason, targetId: this.encounter.targetId, targetType: this.encounter.targetType, pullOwner: this.encounter.pullOwner };
     return this.encounter;
@@ -34457,7 +34532,7 @@ class TacticalPartyCombat {
               }
             }
           }
-          this.encounter = null;
+          this._finalizeEncounter(snapshot, team, 'LEADER_ENCOUNTER_INVALIDATED');
         }
         const selection = baseSelect(context);
         if (selection && selection.target && team && team.selfName === team.leaderName) {
@@ -34554,6 +34629,7 @@ class TacticalPartyCombat {
       encounter: this.encounter ? JSON.parse(JSON.stringify(this.encounter)) : null,
       smartAoePlanner: this.smartAoePlanner.status(),
       adaptivePullLearning: this.adaptivePullLearner && typeof this.adaptivePullLearner.status === 'function' ? this.adaptivePullLearner.status() : null,
+      encounterLifecycle: this.encounterLifecycle && typeof this.encounterLifecycle.status === 'function' ? this.encounterLifecycle.status() : null,
       pendingPull: this.pendingPull ? { ...this.pendingPull } : null,
       lastEvaluation: this.lastEvaluation ? { ...this.lastEvaluation } : null,
       lastDecision: this.lastDecision ? { ...this.lastDecision } : null,
