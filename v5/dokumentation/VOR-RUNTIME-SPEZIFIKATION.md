@@ -45,6 +45,22 @@ Pflicht:
 - nicht-terminale persistierte Arbeit startet nach Restart als RECONCILE_REQUIRED;
 - explizit deaktivierte Actions bleiben auch Recovery-seitig deaktiviert.
 
+## Accountweite Bank-Concurrency
+
+Der Vertrag `P0-03-BANK-CONCURRENCY.md` und `wissensbasis/vertraege/bank-concurrency.json` sind verbindlich.
+
+Pflicht:
+- Bankauthority gehoert dem Account Coordinator;
+- genau eine `account:bank` Lease je Account;
+- Lease wird vor Bank-Mount erworben und ueber die gesamte Banksitzung gehalten;
+- jeder Bank-Write braucht Account-Lease plus lokalen `bank` Action-Channel;
+- Lease-Epoch/Fencing wird unmittelbar vor jedem Write erneut geprueft;
+- Disconnect/Crash gibt die Lease nicht automatisch frei;
+- `bank_opx`/already_in_bank wird als externes Fence behandelt;
+- BankSnapshots sind an Mount-/Lease-Epoch gebunden;
+- Shell-Pack `in_progress` haelt Lease/Channel bis Terminalresultat und Reconciliation;
+- unmanaged/manual Bankownership fuehrt zu Quarantaene statt konkurrierendem Zugriff.
+
 ## Persistenz und Migration
 
 Pflicht:
