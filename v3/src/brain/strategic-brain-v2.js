@@ -418,7 +418,7 @@ class StrategicBrainV2 {
     this.diary = [];
     this.quality = { state: 'warming', score: 0.5, reason: 'collecting evidence' };
     this.league = { generation: 0, champion: null, championLoss: null, promotions: 0, rollbacks: 0, rejections: 0, lastEvent: null, lastEventAt: 0, lastReason: null };
-    this.stats = { observations: 0, teacherSamples: 0, remoteTeacherSamples: 0, deterministicTeacherSamples: 0, replayTrains: 0, outcomeRewards: 0, encounterOutcomeRewards: 0, encounterOutcomeSkips: 0, saves: 0, restoreSuccess: 0, restoreErrors: 0, persistenceFailures: 0 };
+    this.stats = { observations: 0, teacherSamples: 0, remoteTeacherSamples: 0, deterministicTeacherSamples: 0, replayTrains: 0, outcomeRewards: 0, encounterOutcomeRewards: 0, encounterOutcomeSkips: 0, genericOutcomeAttributionDeferrals: 0, genericOutcomeAttributionSuppressions: 0, saves: 0, restoreSuccess: 0, restoreErrors: 0, persistenceFailures: 0 };
     this._restore();
     this._diary('learn', '🧠', 'Brain v2 bereit', `${BRAIN_V2_INPUT_NAMES.length}→24→5 Student, Capability/Pull-Kontext, Experience Replay, Outcome-Lernen und Teacher-Distillation aktiv.`, 'neutral');
   }
@@ -449,7 +449,11 @@ class StrategicBrainV2 {
       this.league = { ...this.league, ...(state.league || {}) };
       this.diary = Array.isArray(state.diary) ? state.diary.slice(-100) : [];
       this.lastEncounterOutcome = state.lastEncounterOutcome && typeof state.lastEncounterOutcome === 'object' ? safeClone(state.lastEncounterOutcome) : null;
-      if (this.lastEncounterOutcome && this.lastEncounterOutcome.encounterId) this.seenEncounterOutcomes = [String(this.lastEncounterOutcome.encounterId)];
+      const restoredSeen = Array.isArray(state.seenEncounterOutcomes)
+        ? state.seenEncounterOutcomes.map(String).filter(Boolean).slice(-128)
+        : [];
+      if (this.lastEncounterOutcome && this.lastEncounterOutcome.encounterId) restoredSeen.push(String(this.lastEncounterOutcome.encounterId));
+      this.seenEncounterOutcomes = [...new Set(restoredSeen)].slice(-128);
       this.stats.restoreSuccess += 1;
       return true;
     } catch (error) {
@@ -551,7 +555,22 @@ class StrategicBrainV2 {
     };
     this.lastObservation = record;
     this.replayBuffer.push({ at: record.at, vector: encoded.vector.slice(), target: target.slice(), source: 'observation', student: record.student, teacher: record.teacher, agreement, loss });
-    if (!this.pendingOutcome) this.pendingOutcome = { startedAt: this.now(), dueAt: this.now() + Math.max(15000, finite(this._cfg('brain.outcomeWindowMs', 60000), 60000)), action: student.action, target: teacher.target || '', confidence: student.confidence, baseline: this.captureMetrics() };
+    if (!this.pendingOutcome) {
+      let encounterId = null;
+      try {
+        const activeEncounter = this.runtime && this.runtime.encounterLifecycle && this.runtime.encounterLifecycle.current;
+        encounterId = activeEncounter && activeEncounter.encounterId ? String(activeEncounter.encounterId) : null;
+      } catch (_) {}
+      this.pendingOutcome = {
+        startedAt: this.now(),
+        dueAt: this.now() + Math.max(15000, finite(this._cfg('brain.outcomeWindowMs', 60000), 60000)),
+        action: student.action,
+        target: teacher.target || '',
+        confidence: student.confidence,
+        baseline: this.captureMetrics(),
+        encounterId
+      };
+    }
     this._leagueCheck();
     this._save();
     if (this.log) this.log.emit({ component: 'brain-v2', event: 'BRAIN_V2_OBSERVATION', data: { student: record.student, teacher: record.teacher, agreement, quality: record.quality.state } });
@@ -582,6 +601,25 @@ class StrategicBrainV2 {
   tickOutcome() {
     if (!this.pendingOutcome || this.now() < this.pendingOutcome.dueAt) return null;
     const pending = this.pendingOutcome;
+    if (pending.encounterId) {
+      const encounterId = String(pending.encounterId);
+      if (this.seenEncounterOutcomes.includes(encounterId)) {
+        this.pendingOutcome = null;
+        this.stats.genericOutcomeAttributionSuppressions += 1;
+        if (this.log) this.log.emit({ component: 'brain-v2', event: 'BRAIN_V2_GENERIC_OUTCOME_SUPPRESSED', reason: 'ENCOUNTER_OUTCOME_ALREADY_ATTRIBUTED', data: { encounterId } });
+        return null;
+      }
+      let activeEncounterId = null;
+      try {
+        const active = this.runtime && this.runtime.encounterLifecycle && this.runtime.encounterLifecycle.current;
+        activeEncounterId = active && active.encounterId ? String(active.encounterId) : null;
+      } catch (_) {}
+      if (activeEncounterId === encounterId) {
+        this.pendingOutcome.dueAt = this.now() + Math.max(1000, Math.min(5000, finite(this._cfg('brain.outcomeWindowMs', 60000), 60000) / 6));
+        this.stats.genericOutcomeAttributionDeferrals += 1;
+        return null;
+      }
+    }
     this.pendingOutcome = null;
     const before = pending.baseline || {};
     const after = this.captureMetrics();
@@ -633,7 +671,7 @@ class StrategicBrainV2 {
       && !['CONTENT_DRIFT', 'INTERRUPTED'].includes(String(outcome.outcome || ''));
     if (!eligible) {
       this.stats.encounterOutcomeSkips += 1;
-      this._save();
+      this._save(true);
       return { accepted: false, reason: 'ENCOUNTER_OUTCOME_NOT_LEARNING_ELIGIBLE', encounterId, outcome: String(outcome.outcome || '') };
     }
 
@@ -667,7 +705,13 @@ class StrategicBrainV2 {
       trained = true;
     }
 
-    if (meta.remote !== true) this.pendingOutcome = null;
+    if (meta.remote !== true && this.pendingOutcome) {
+      const pendingEncounterId = this.pendingOutcome.encounterId == null ? null : String(this.pendingOutcome.encounterId);
+      if (pendingEncounterId == null || pendingEncounterId === encounterId) {
+        this.pendingOutcome = null;
+        this.stats.genericOutcomeAttributionSuppressions += 1;
+      }
+    }
     if (finite(observation && observation.student && observation.student.confidence, 0) > 0.72 && reward < -0.25) this.overconfidenceFailures += 1;
     else if (reward > 0) this.overconfidenceFailures = Math.max(0, this.overconfidenceFailures - 1);
 
@@ -731,13 +775,17 @@ class StrategicBrainV2 {
 
   replay(limit = 32) { return this.replayBuffer.list(limit); }
 
-  exportState() { return { schemaVersion: 2, mode: BRAIN_V2_MODE, savedAt: this.now(), network: this.network.snapshot(), samples: this.samples, updates: this.updates, outcomes: this.outcomes, rewardEma: this.rewardEma, lossEma: this.lossEma, agreementEma: this.agreementEma, league: safeClone(this.league), quality: safeClone(this.quality), lastEncounterOutcome: safeClone(this.lastEncounterOutcome), diary: this.diary.slice(-Math.max(20, Math.floor(this._cfg('brain.diaryMaxEntries', 100)))) }; }
+  exportState() { return { schemaVersion: 2, mode: BRAIN_V2_MODE, savedAt: this.now(), network: this.network.snapshot(), samples: this.samples, updates: this.updates, outcomes: this.outcomes, rewardEma: this.rewardEma, lossEma: this.lossEma, agreementEma: this.agreementEma, league: safeClone(this.league), quality: safeClone(this.quality), lastEncounterOutcome: safeClone(this.lastEncounterOutcome), seenEncounterOutcomes: this.seenEncounterOutcomes.slice(-128), diary: this.diary.slice(-Math.max(20, Math.floor(this._cfg('brain.diaryMaxEntries', 100)))) }; }
 
   importState(state) {
     if (!state || Number(state.schemaVersion) !== 2 || !state.network) return false;
     const incomingSamples = Math.max(0, Math.floor(finite(state.samples, 0)));
     if (incomingSamples < this.samples || !this.network.restore(state.network)) return false;
-    this.samples = incomingSamples; this.updates = Math.max(this.updates, Math.floor(finite(state.updates, 0))); this.outcomes = Math.max(this.outcomes, Math.floor(finite(state.outcomes, 0))); this.rewardEma = finite(state.rewardEma, this.rewardEma); this.lossEma = state.lossEma == null ? this.lossEma : finite(state.lossEma); this.agreementEma = state.agreementEma == null ? this.agreementEma : finite(state.agreementEma); this._save(true); return true;
+    this.samples = incomingSamples; this.updates = Math.max(this.updates, Math.floor(finite(state.updates, 0))); this.outcomes = Math.max(this.outcomes, Math.floor(finite(state.outcomes, 0))); this.rewardEma = finite(state.rewardEma, this.rewardEma); this.lossEma = state.lossEma == null ? this.lossEma : finite(state.lossEma); this.agreementEma = state.agreementEma == null ? this.agreementEma : finite(state.agreementEma);
+    if (Array.isArray(state.seenEncounterOutcomes)) {
+      this.seenEncounterOutcomes = [...new Set([...this.seenEncounterOutcomes, ...state.seenEncounterOutcomes.map(String).filter(Boolean)])].slice(-128);
+    }
+    this._save(true); return true;
   }
 
   status() {
@@ -747,7 +795,7 @@ class StrategicBrainV2 {
       student: { samples: this.samples, updates: this.updates, outcomes: this.outcomes, lossEma: this.lossEma == null ? null : Number(this.lossEma.toFixed(5)), rewardEma: Number(this.rewardEma.toFixed(5)), agreementEma: this.agreementEma == null ? null : Number(this.agreementEma.toFixed(5)), lastTrainAt: this.lastTrainAt, replay: this.replayBuffer.status() },
       teacher: { remoteAvailable: !!this.remoteTeacher, lastAt: this.remoteTeacherAt, ageMs: this.remoteTeacherAt ? this.now() - this.remoteTeacherAt : null, lastDecision: safeClone(this.remoteTeacher), shouldAsk: this.shouldAskTeacher() }, quality,
       league: { generation: this.league.generation, hasChampion: !!this.league.champion, championLoss: this.league.championLoss, promotions: this.league.promotions, rollbacks: this.league.rollbacks, rejections: this.league.rejections, lastEvent: this.league.lastEvent, lastEventAt: this.league.lastEventAt, lastReason: this.league.lastReason },
-      current: this.lastObservation, lastRecommendation: this.lastObservation, lastEncounterOutcome: safeClone(this.lastEncounterOutcome), pendingOutcome: this.pendingOutcome ? { startedAt: this.pendingOutcome.startedAt, dueAt: this.pendingOutcome.dueAt, action: this.pendingOutcome.action, target: this.pendingOutcome.target } : null,
+      current: this.lastObservation, lastRecommendation: this.lastObservation, lastEncounterOutcome: safeClone(this.lastEncounterOutcome), seenEncounterOutcomes: this.seenEncounterOutcomes.length, pendingOutcome: this.pendingOutcome ? { startedAt: this.pendingOutcome.startedAt, dueAt: this.pendingOutcome.dueAt, action: this.pendingOutcome.action, target: this.pendingOutcome.target, encounterId: this.pendingOutcome.encounterId || null } : null,
       diary: { entries: this.diary.slice(-40), total: this.diary.length }, persistence: { key: STORAGE_KEY, disabled: this.persistenceDisabled, lastError: this.persistenceError }, stats: { ...this.stats }, policies: { strategicOnly: true, deterministicCombatSafetyAuthoritative: true, dangerousContentCannotBeOverridden: true, commandCharacterAuthorityWidened: false, cloudFailureSafe: true } };
   }
 }
