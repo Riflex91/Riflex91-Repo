@@ -32,7 +32,7 @@ export function fuehreDeterministischesSzenarioAus(
   const start = ereignisse.erzeuge(
     "SZENARIO_GESTARTET",
     eingabe.korrelationsId,
-    { optionsAnzahl: eingabe.optionen.length },
+    { optionenAnzahl: eingabe.optionen.length },
   );
 
   uhr.schreiteVor(1);
