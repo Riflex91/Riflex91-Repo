@@ -6,7 +6,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1351 Zeilen**
+**6 Dateien · 1357 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -14,12 +14,12 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/index.js` | 486 |
 | `src/production-live-services.js` | 215 |
 | `src/release-version.js` | 5 |
-| `src/runtime.js` | 560 |
+| `src/runtime.js` | 566 |
 | `src/version.js` | 9 |
 
 ## autonomy
 
-**29 Dateien · 7012 Zeilen**
+**30 Dateien · 7354 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -41,7 +41,8 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha20-5-merchant-runtime.js` | 398 |
 | `src/autonomy/alpha20-runtime.js` | 396 |
 | `src/autonomy/alpha9-runtime.js` | 68 |
-| `src/autonomy/capability-resolver.js` | 412 |
+| `src/autonomy/capability-resolver.js` | 460 |
+| `src/autonomy/capability-sync.js` | 294 |
 | `src/autonomy/character-combat-profile.js` | 275 |
 | `src/autonomy/combat-modes.js` | 20 |
 | `src/autonomy/local-farm-orchestrator.js` | 372 |
@@ -55,14 +56,14 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## brain
 
-**4 Dateien · 874 Zeilen**
+**4 Dateien · 999 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/brain/feature-encoder.js` | 91 |
 | `src/brain/replay-buffer.js` | 48 |
 | `src/brain/shadow-brain.js` | 202 |
-| `src/brain/strategic-brain-v2.js` | 533 |
+| `src/brain/strategic-brain-v2.js` | 658 |
 
 ## composition
 
@@ -218,7 +219,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**33 Dateien · 8075 Zeilen**
+**33 Dateien · 8124 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -252,7 +253,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/performance-store.js` | 51 |
 | `src/party/team-combat-cohesion-hotfix-base.js` | 599 |
 | `src/party/team-combat-cohesion-hotfix.js` | 242 |
-| `src/party/telemetry-bridge.js` | 55 |
+| `src/party/telemetry-bridge.js` | 104 |
 | `src/party/transition-controller-base.js` | 390 |
 | `src/party/transition-controller.js` | 43 |
 
