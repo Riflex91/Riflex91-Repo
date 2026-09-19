@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/dist",
+  "range": {
+    "start": 1,
+    "end": 2,
+    "total": 2
+  },
+  "files": [
+    {
+      "path": "v3/dist/aio-v3-runtime.js",
+      "blobSha": "c95e713b0bef50c831fce30a8cab7cae5f1491df",
+      "size": 3245491,
+      "lines": 68427,
+      "classification": "BUILD_ARTEFACT_NOT_INDEPENDENT_KNOWLEDGE_SOURCE",
+      "signals": {
+        "migration": 25,
+        "security": 568,
+        "persistence": 1388,
+        "build": 220,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/dist/aio-v3.js",
+      "blobSha": "71abe56b0727f4e189fb37859599cbf0baae5fdb",
+      "size": 12001,
+      "lines": 158,
+      "classification": "BUILD_ARTEFACT_NOT_INDEPENDENT_KNOWLEDGE_SOURCE",
+      "signals": {
+        "migration": 0,
+        "security": 0,
+        "persistence": 0,
+        "build": 2,
+        "todo": 0
+      }
+    }
+  ]
+}

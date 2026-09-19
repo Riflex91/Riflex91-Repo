@@ -1,0 +1,647 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/test",
+  "range": {
+    "start": 181,
+    "end": 195,
+    "total": 205
+  },
+  "files": [
+    {
+      "path": "v3/test/runtime-composition.test.js",
+      "blobSha": "cb8fecb4c6689a0dec6f535e4c157dc5b59ca19d",
+      "size": 5185,
+      "lines": 142,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "runtime composition preserves final Alpha20.5 status/API shape without inheriting the Alpha runtime chain",
+        "composition root reports the three required service groups",
+        "public install constructs RuntimeComposition while preserving Alpha instanceof compatibility"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [
+        "send_cm"
+      ],
+      "assertionSignals": {
+        "assert": 25,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 13,
+        "party": 7,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/runtime-emergency.test.js",
+      "blobSha": "10faa5919e932d7ac457c825581447a6c3eb30a9",
+      "size": 2154,
+      "lines": 38,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/runtime",
+        "../src/game/adapter",
+        "../src/core/event-log",
+        "../src/farmer/farmer-fsm",
+        "../src/world/world-model"
+      ],
+      "testCases": [
+        "Runtime removes only the active Farmer target when emergency disengage triggers"
+      ],
+      "states": [
+        "MULTI_AGGRO_LOW_HP",
+        "FARMER_EMERGENCY_DISENGAGE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 4,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 2,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/runtime-hotpath.test.js",
+      "blobSha": "306b63d59cf251d6d286c06693543be835cdb8d1",
+      "size": 5507,
+      "lines": 128,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:path",
+        "../src/core/numeric",
+        "../src/core/geometry",
+        "../src/core/snapshot-entity-index",
+        "../src/game/command-outcomes",
+        "../src/farmer/controlled-farmer-loot",
+        "../src/brain/feature-encoder",
+        "../src/planner/farm-planner"
+      ],
+      "testCases": [
+        "shared numeric helpers preserve bounded finite and ratio semantics",
+        "shared geometry returns deterministic Euclidean distance and fails closed",
+        "snapshot entity index is scoped to the supplied snapshot",
+        "command outcome observation does not fall back to repeated linear entity lookup",
+        "loot pending observation avoids JSON deep clone inside the tick hot path",
+        "shared helper migration preserves representative planner and feature decisions",
+        "step 5 selected hot paths consume shared helpers instead of local duplicates"
+      ],
+      "states": [
+        "TARGET_HP_DECREASED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 31,
+        "strictEqual": 3,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/runtime-release-version.test.js",
+      "blobSha": "42bfdabdc8035043c90b497d238b825c71541c99",
+      "size": 354,
+      "lines": 11,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/runtime",
+        "../src/release-version"
+      ],
+      "testCases": [
+        "base runtime uses the canonical release version instead of a stale hardcoded version"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 1,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/runtime.test.js",
+      "blobSha": "23af33210de4a038b1df0cd1a7a314aa98e1a8a3",
+      "size": 5397,
+      "lines": 98,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/runtime",
+        "../src/game/adapter",
+        "../src/core/event-log",
+        "../src/world/world-model"
+      ],
+      "testCases": [
+        "Runtime observes a fake Adventure Land character without issuing active commands",
+        "Runtime emits visible Adventure Land startup/ready/status messages without changing shadow mode",
+        "Runtime config keeps HP potion recovery active through the 75 percent recovery threshold",
+        "Runtime planner and Farmer safety ignore Target Automatron"
+      ],
+      "states": [
+        "FARM_TARGET_RANKED",
+        "STARTED",
+        "READY",
+        "STATUS",
+        "VISIBLE_STARTUP",
+        "VISIBLE_READY",
+        "VISIBLE_STATUS"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 25,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 3,
+        "merchant": 0,
+        "party": 4,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/safe-auto-updater-regression.test.js",
+      "blobSha": "bd261208c89589c69ae98f3e77b6c9db294d519d",
+      "size": 2760,
+      "lines": 69,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/ops/safe-auto-updater"
+      ],
+      "testCases": [
+        "structured Adventure Land API failures keep their reason instead of becoming [object Object]",
+        "auto updater prefers upload_code and backs off after a failed save",
+        "resolve-all style fulfilled failures are still treated as failed saves"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 15,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 1,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/safe-retreat-hotfix.test.js",
+      "blobSha": "249e632a69460017147b3c0e4f2d2b04357889be",
+      "size": 5217,
+      "lines": 160,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/retreat-farmer",
+        "../src/farmer/farmer-fsm",
+        "../src/farmer/combat-emergency"
+      ],
+      "testCases": [
+        "RetreatFarmer consumes an armed retreat before TRAVEL can move toward the target",
+        "RetreatFarmer detects emergency from the runtime raw snapshot while filtered snapshot is in TRAVEL"
+      ],
+      "states": [
+        "COMMAND_UNAVAILABLE",
+        "MULTI_AGGRO_LOW_HP"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 13,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 0,
+        "party": 4,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Simulates the scheduler-facing snapshot after safety/risk filtering."
+      ]
+    },
+    {
+      "path": "v3/test/safe-retreat.test.js",
+      "blobSha": "9452aa445c691c57abc0800c9fbdd9b7e70df951",
+      "size": 6644,
+      "lines": 203,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/safe-retreat",
+        "../src/farmer/retreat-farmer",
+        "../src/farmer/farmer-fsm",
+        "../src/runtime"
+      ],
+      "testCases": [
+        "SafeRetreatPolicy moves directly away from one threat",
+        "SafeRetreatPolicy moves away from the combined threat cluster",
+        "SafeRetreatPolicy skips movement when threat positions are unavailable",
+        "Runtime arms active emergency retreat with current target and self attackers",
+        "Runtime only records the pending retreat and does not issue gameplay commands",
+        "Runtime does not arm Safe Retreat while shadowing",
+        "RetreatFarmer executes one safe retreat and transitions to recovery",
+        "RetreatFarmer does not block when safe retreat movement fails"
+      ],
+      "states": [
+        "EMERGENCY_THREAT_RETREAT",
+        "THREAT_POSITION_UNKNOWN",
+        "MULTI_AGGRO_LOW_HP",
+        "CRITICAL_HP",
+        "COMMAND_UNAVAILABLE",
+        "COMMAND_FAILED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 29,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 3,
+        "merchant": 0,
+        "party": 3,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/scheduler.test.js",
+      "blobSha": "b397a346b2a6d39ee66a6377adde0c878e30c395",
+      "size": 1995,
+      "lines": 46,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/core/scheduler",
+        "../src/core/task"
+      ],
+      "testCases": [
+        "Scheduler runs only one task per owner and prefers higher priority",
+        "Scheduler detects no-progress stalls and retries deterministically",
+        "Scheduler de-duplicates tasks by owner and key"
+      ],
+      "states": [
+        "LOW",
+        "HIGH",
+        "MOVE",
+        "NO_PROGRESS",
+        "FARM"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 10,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/session-monitor-diagnostic-copy.test.js",
+      "blobSha": "852beebdb24d70b0679dcf2f3a5423e7e6821bae",
+      "size": 2188,
+      "lines": 44,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "copied session log includes learning state and condensed diagnostic signals"
+      ],
+      "states": [
+        "COMMAND_EXECUTED",
+        "TRAVEL_FAILED",
+        "NO_PROGRESS",
+        "IDLE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 8,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 1,
+        "party": 7,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/skill-candidate-ladder.test.js",
+      "blobSha": "1f67b2d89b1013cf01f3f3b097f9bc5ab650a24f",
+      "size": 6171,
+      "lines": 166,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/skill-usage",
+        "../src/farmer/skill-farmer",
+        "../src/farmer/farmer-fsm"
+      ],
+      "testCases": [
+        "SkillUsagePolicy ranks only the existing safe direct-damage pool deterministically",
+        "SkillUsagePolicy falls back to a cheaper safe skill when MP reserve blocks higher ranks",
+        "SkillUsagePolicy falls back when the top safe skill is on cooldown or otherwise unavailable",
+        "SkillUsagePolicy falls back when the top safe skill is out of range",
+        "SkillUsagePolicy preserves the primary rejection reason when no safe candidate is usable",
+        "SkillFarmer executes the safe fallback candidate and records ladder telemetry"
+      ],
+      "states": [
+        "SAFE_DIRECT_DAMAGE_FALLBACK_SKILL",
+        "MP_RESERVE",
+        "SKILL_COOLDOWN_OR_REQUIREMENT",
+        "SKILL_OUT_OF_RANGE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 37,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 2,
+        "persistence": 0,
+        "telemetry": 1,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/skill-catalog-capabilities.test.js",
+      "blobSha": "aa448dcac70701113be686923acf5277fa5b500d",
+      "size": 12948,
+      "lines": 294,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/autonomy/skill-catalog-service",
+        "../src/autonomy/character-combat-profile",
+        "../src/autonomy/capability-resolver",
+        "../src/autonomy/skill-semantics"
+      ],
+      "testCases": [
+        "live SkillCatalog models current multi-target semantics from G.skills without stale test constants",
+        "skill definition drift invalidates combat readiness until a second identical audit verifies it",
+        "connection gaps mark the catalog stale and recovery forces revalidation",
+        "per-character skill controls persist and clamp Heal and target-count sliders safely",
+        "CharacterCapabilityResolver reacts to level unlocks, user permission and equipment",
+        "unknown new skills are detected but never become validated automatic combat capabilities",
+        "PartyCapabilityResolver aggregates only live validated and user-enabled AoE capabilities"
+      ],
+      "states": [
+        "TEST",
+        "INITIAL",
+        "PERIODIC",
+        "VERIFY",
+        "CONNECTION_RECOVERED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 52,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 4,
+        "merchant": 0,
+        "party": 13,
+        "persistence": 1,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/skill-execution-fallback.test.js",
+      "blobSha": "6b2bcea7e377f77b1c5232dc81e79fae912f221a",
+      "size": 8119,
+      "lines": 223,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/skill-usage",
+        "../src/farmer/skill-farmer"
+      ],
+      "testCases": [
+        "SkillUsagePolicy can skip a command-failed candidate while preserving the same safe pool",
+        "SkillFarmer retries one next-safe candidate after retryable COMMAND_FAILED and records execution telemetry",
+        "SkillFarmer does not retry another skill after non-retryable COMMAND_UNAVAILABLE",
+        "SkillFarmer bounds retryable command failures to two skill attempts before normal attack fallback",
+        "SkillFarmer re-runs live preflight gates before execution fallback and may skip an unavailable middle candidate"
+      ],
+      "states": [
+        "SAFE_DIRECT_DAMAGE_FALLBACK_SKILL",
+        "PREVIOUS_COMMAND_FAILED",
+        "COMMAND_FAILED",
+        "SAFE_DIRECT_DAMAGE_EXECUTION_FALLBACK",
+        "FARMER_SKILL_USE_FAILED",
+        "FARMER_SKILL_USED",
+        "COMMAND_UNAVAILABLE",
+        "SKILL_COMMAND_NON_RETRYABLE",
+        "SKILL_COMMAND_FALLBACK_EXHAUSTED",
+        "SKILL_COOLDOWN_OR_REQUIREMENT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 36,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 2,
+        "persistence": 0,
+        "telemetry": 1,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/skill-failure-backoff.test.js",
+      "blobSha": "e5e4d062c211fbdd064be91881f8d505a2c4064b",
+      "size": 7851,
+      "lines": 222,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/skill-usage",
+        "../src/farmer/skill-farmer"
+      ],
+      "testCases": [
+        "SkillUsagePolicy treats active failure backoff as a distinct safe-ladder rejection",
+        "retryable failure arms a per-skill backoff and suppresses that skill on the next engage tick",
+        "expired failure backoff is pruned and the original top-ranked skill becomes eligible again",
+        "non-retryable command failures never arm skill backoff",
+        "two retryable failures back off both skills so the next tick starts directly at the next safe candidate"
+      ],
+      "states": [
+        "SKILL_COMMAND_BACKOFF",
+        "COMMAND_FAILED",
+        "FARMER_SKILL_BACKOFF_ARMED",
+        "COMMAND_UNAVAILABLE",
+        "FARMER_SKILL_USE_FAILED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 34,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 2,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/skill-failure-intelligence-policy.test.js",
+      "blobSha": "b2a1591041578aacfc78bf9fbb90f4c47d7da4e6",
+      "size": 1782,
+      "lines": 50,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/skill-usage"
+      ],
+      "testCases": [
+        "skill failure intelligence uses bounded exponential backoff defaults",
+        "skill failure intelligence clamps unsafe configuration ranges",
+        "maximum backoff can never be configured below the base backoff"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 19,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}

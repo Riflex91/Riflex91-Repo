@@ -1,0 +1,726 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/test",
+  "range": {
+    "start": 76,
+    "end": 90,
+    "total": 205
+  },
+  "files": [
+    {
+      "path": "v3/test/alpha27-merchant-legacy-ownership-guard.test.js",
+      "blobSha": "2ef8e95b0329328378094e8a33fdf33f17894991",
+      "size": 3142,
+      "lines": 74,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:path",
+        "../src/reliability/alpha27-merchant-legacy-ownership-guard"
+      ],
+      "testCases": [
+        "legacy merchant execution remains live when Alpha27 is absent",
+        "Alpha27 becomes the single live Merchant owner and suppresses legacy cycles and movement",
+        "production live services install the ownership guard after Alpha27 and before the same-version early return"
+      ],
+      "states": [
+        "TEST",
+        "POTIONS_CRITICAL",
+        "HOME_SERVICE_BANK"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 20,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 22,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha27-merchant-log-regressions.test.js",
+      "blobSha": "477bd93b9eeed08a2e62da60bfd777f98976426e",
+      "size": 4547,
+      "lines": 87,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha27-combat-merchant-convergence",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "structured upgrade rejection preserves the Adventure Land reason and details",
+        "Alpha27 suppresses legacy idle stand churn and keeps mutation-only circuits scoped to WATCH",
+        "SELL with no can_sell probe travels to a vendor before executing the transaction",
+        "open SELL/BANK circuit does not trigger Alpha27 re-enable churn against the global economy guard"
+      ],
+      "states": [
+        "UPGRADE",
+        "HEALTHY",
+        "WATCH",
+        "UPGRADE_CIRCUIT_OPEN",
+        "SELL",
+        "TEST_COMMIT"
+      ],
+      "directAdventureLandWrites": [
+        "smart_move"
+      ],
+      "assertionSignals": {
+        "assert": 15,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 33,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha27-merchant-travel-intelligence.test.js",
+      "blobSha": "905d0f8d914a8ddd113b3309f5b817e5aa8c8b29",
+      "size": 7033,
+      "lines": 163,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha27-merchant-travel-intelligence",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "live 20.46 regression: duplicate potion sellers resolve to the locatable NPC instead of first G.npcs match",
+        "ambiguous shop NPCs fail closed when no candidate can be located",
+        "missing scroll is bought after verified vendor travel even when can_buy remains false",
+        "party potion restock travels once and buys in the same cycle without trusting can_buy false",
+        "distant same-map service chooses town teleport and stops immediately when town lands inside interaction range",
+        "nearby service keeps smart_move and does not waste time channeling town"
+      ],
+      "states": [
+        "UPGRADE",
+        "COMPOUND",
+        "FIND_NPC_LOCATABLE_CANDIDATE",
+        "SERVICE_NPC_LOCATION_UNRESOLVED",
+        "COMMITTED",
+        "RESTOCK_REQUIRED",
+        "TOWN_THEN_SMART_MOVE",
+        "SMART_MOVE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 33,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 13,
+        "party": 2,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// 150 units away: outside the 108-unit interaction buffer, but still",
+        "// close enough that smart_move should beat a town teleport."
+      ]
+    },
+    {
+      "path": "v3/test/alpha27-service-npc-routing.test.js",
+      "blobSha": "7d836652f1ec44debf614dbdca47029c8e99b2ec",
+      "size": 6714,
+      "lines": 140,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha27-atomic-service",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "service NPC resolver maps mutation aliases and shop items to canonical Adventure Land NPC ids",
+        "20.45 regression: upgrade resolves newupgrade through find_npc before any smart_move/raw upgrade",
+        "20.45 regression: compound uses the same newupgrade NPC location",
+        "party potion restock travel resolves mpot0 to fancypots and uses controlled coordinate travel when available",
+        "scroll procurement travel resolves scroll0 to the scroll merchant",
+        "known NPC resolution never falls back to the original invalid action/item alias",
+        "Merchant service skips travel when already inside the 90% NPC interaction buffer"
+      ],
+      "states": [
+        "UPGRADE",
+        "COMPOUND",
+        "COMMITTED",
+        "SHOULD_NOT_PLAN"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 35,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 6,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha28-brain-cloud-signal-noise.test.js",
+      "blobSha": "a329a8bfcbea4a810ebb35d4613b484e2984841e",
+      "size": 1316,
+      "lines": 36,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha28-brain-cloud"
+      ],
+      "testCases": [
+        "Alpha28 brain/cloud enablement is informational and does not enter alert escalation"
+      ],
+      "states": [
+        "ALPHA28_BRAIN_CLOUD_ENABLED",
+        "OPERATOR_REQUESTED_ON"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 4,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 5,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha28-browser-storage-pressure-recovery.test.js",
+      "blobSha": "d7d4fc8994363345948f5a6c81308e4d12aaf92c",
+      "size": 9018,
+      "lines": 261,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/party-persistence-quota-hotfix"
+      ],
+      "testCases": [
+        "quota pressure compacts only persisted party performance history and preserves live in-memory records",
+        "startup recovery reclaims existing historical party performance payload before later safety-critical writes",
+        "party lifecycle remains fail-closed and is never compacted as historical performance data",
+        "real QuotaExceeded retries once with compacted performance history and avoids repeated raw failures"
+      ],
+      "states": [
+        "AIO_V3_PARTY_PERFORMANCE",
+        "AIO_V3_PARTY_LIFECYCLE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 37,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 10,
+        "merchant": 2,
+        "party": 45,
+        "persistence": 13,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha28-live-authority-liveness.test.js",
+      "blobSha": "3acc06f0499ea3524cb47c3106b6e96c1a770f92",
+      "size": 16708,
+      "lines": 322,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/planner/farm-planner",
+        "../src/reliability/alpha27-atomic-ledger",
+        "../src/reliability/alpha28-ledger-farmer-fixes",
+        "../src/reliability/alpha28-merchant-transfers",
+        "../src/reliability/alpha28-cross-map-farmer",
+        "../src/reliability/alpha28-brain-cloud"
+      ],
+      "testCases": [
+        "Alpha27 inventory planner preserves native counts contract and autonomous disposition",
+        "Alpha28 preserves semantic regroup and suppresses false area pressure",
+        "Alpha28 planned-target fallback preserves native ranking contract and remains leader-only",
+        "Alpha28 Merchant transfer remains trusted, ledger-aware and persist-before-action",
+        "Alpha28 cross-map receiver accepts only validated leader objective while party is split",
+        "Alpha28 cross-map travel waits for observed arrival when smart_move returns immediately",
+        "Alpha28 Brain Canary and Cloud are ON without direct executor authority",
+        "Alpha28 cross-map execution journals through SafeTravel and verifies arrival"
+      ],
+      "states": [
+        "RESERVE_COMPOUND",
+        "COMPOUND_SET_AVAILABLE",
+        "UNDECIDED",
+        "SELL",
+        "AREA_OVERPOPULATED",
+        "COMBAT_ACQUISITION_STALLED",
+        "COMMAND_UNAVAILABLE",
+        "KEEP",
+        "APPROVED",
+        "PROGRESSION",
+        "PLANNED",
+        "COMPLETED",
+        "UNAVAILABLE"
+      ],
+      "directAdventureLandWrites": [
+        "smart_move"
+      ],
+      "assertionSignals": {
+        "assert": 40,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 6,
+        "recovery": 2,
+        "merchant": 7,
+        "party": 9,
+        "persistence": 7,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha28-merchant-preflight-liveness.test.js",
+      "blobSha": "342a22629fdedf1fcc664b7ee7abf00d9088a790",
+      "size": 4028,
+      "lines": 81,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "temporary item revalidation defers one reserved mutation instead of hot-looping rejects",
+        "stale atomic preflight aborts and releases reservation before any raw mutation"
+      ],
+      "states": [
+        "UPGRADE",
+        "ITEM_REQUIRES_REVALIDATION",
+        "RESERVED",
+        "TRANSACTION_PREFLIGHT_DEFERRED",
+        "COMMITTED",
+        "TRANSACTION_NOT_FOUND",
+        "ABORTED",
+        "LEDGER_ITEM_IDENTITY_CHANGED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 32,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 12,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha28-runtime-liveness-regression.test.js",
+      "blobSha": "dd7a97482a4c2746a21bf9ae05f33eca14782d48",
+      "size": 2896,
+      "lines": 76,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/ops/group-liveness"
+      ],
+      "testCases": [
+        "visible party members are degraded when their code runtimes are not active",
+        "four-character health requires all four running code sessions after grace",
+        "missing active-character API does not manufacture runtime-dead evidence"
+      ],
+      "states": [
+        "ONLINE",
+        "DEGRADED",
+        "PARTY_MEMBER_RUNTIME_INACTIVE",
+        "HEALTHY"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 12,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 9,
+        "party": 3,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha29-compound-level-policy.test.js",
+      "blobSha": "4471a7729a7f59c3da2bb82e11759bb682cc34db",
+      "size": 3512,
+      "lines": 83,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha27-combat-merchant-convergence",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "compound result cap defaults to +10 and clamps explicit values at +10",
+        "legacy economy compound source cap is synchronized to the +10 result cap",
+        "level +9 compound selects and purchases the grade-appropriate cscroll2 before reaching +10",
+        "level +10 compound is blocked before mutation so the result can never exceed +10"
+      ],
+      "states": [
+        "COMPOUND",
+        "SUCCESS",
+        "COMPOUND_LEVEL_RISK_CAP"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 15,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 7,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha30-progression-grade-policy.test.js",
+      "blobSha": "6921b9037d365530a118a8a4303b989d53b661ae",
+      "size": 8720,
+      "lines": 210,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha27-utils",
+        "../src/reliability/alpha27-combat-merchant-convergence",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "gradeForLevel follows all current Adventure Land progression thresholds through Exalted",
+        "upgrade result cap defaults to +7 and clamps explicit values at +7",
+        "legacy economy upgrade cap is synchronized to the +7 result cap",
+        "legacy economy defers Legendary upgrades to Alpha27 instead of using an undersized scroll",
+        "level +6 upgrade buys and uses the minimum compatible Legendary scroll before reaching +7",
+        "level +7 upgrade is blocked before mutation so the result can never exceed +7",
+        "Exalted upgrade is blocked before scroll purchase or mutation even below +7",
+        "Legendary compound buys cscroll3 while Exalted compound is blocked"
+      ],
+      "states": [
+        "LEGENDARY_SCROLL_REQUIRES_ALPHA27",
+        "UPGRADE",
+        "SUCCESS",
+        "UPGRADE_LEVEL_RISK_CAP",
+        "UPGRADE_ITEM_EXALTED",
+        "COMPOUND",
+        "COMPOUND_ITEM_EXALTED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 45,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 15,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha31-party-role-liveness-hotfix.test.js",
+      "blobSha": "c9cb2a6555267ff77adbd3fdb355a758dbf2fc8b",
+      "size": 16858,
+      "lines": 405,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha31-party-role-liveness-hotfix"
+      ],
+      "testCases": [
+        "aggro holder uses a tangential safe orbit instead of standing still in the fire band",
+        "self-aggro ranger escapes through reachable retreat geometry when every in-range orbit is blocked",
+        "warrior paladin and rogue never enter kiting or emergency kite retreat while holding aggro",
+        "safe orbit never takes movement authority from a non-aggro ranger or emergency retreat",
+        "visible leader coordinates outrank stale party coordinates",
+        "each separated follower can smart-regroup independently and retarget a moving leader",
+        "active follower smart regroup yields immediately to combat or emergency safety ownership",
+        "failed follower smart regroup clears the pending movement outcome so a later tick can retry",
+        "coalesced foreign movement is not claimed as an Alpha31 smart regroup",
+        "merchant service uses batch potion hysteresis and a narrow service-travel attestation"
+      ],
+      "states": [
+        "DISTANCE_OK",
+        "AGGRO_SAFE_ORBIT",
+        "KITE_TERRAIN_BLOCKED",
+        "EMERGENCY_THREAT_RETREAT",
+        "AGGRO_EMERGENCY_TERRAIN_ESCAPE",
+        "RANGE_CAPABILITY_TOO_LOW",
+        "MELEE_KITING_DISABLED",
+        "ASSESS",
+        "REGROUP",
+        "LOW_HP",
+        "MOVE_OUTCOME_PENDING",
+        "NO_PATH",
+        "ALPHA27_MERCHANT_SERVICE_TRAVEL",
+        "FARMER_TRAVEL"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 64,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 15,
+        "party": 13,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha31-variable-party-topology.test.js",
+      "blobSha": "11d3565471800290cf9cc07c1b37a8c9ccd80345",
+      "size": 22379,
+      "lines": 446,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/orchestrator",
+        "../src/party/controlled-party-bootstrap",
+        "../src/party/transition-controller",
+        "../src/party/controlled-lifecycle-coordinator",
+        "../src/party/team-combat-cohesion-hotfix",
+        "../src/party/party-bootstrap-merchant-discovery-hotfix",
+        "../src/party/lifecycle-store"
+      ],
+      "testCases": [
+        "orchestrator models exactly one merchant plus one to three supported combat characters",
+        "orchestrator keeps duplicate classes legal and rejects unsupported/no-combat topologies",
+        "controlled bootstrap accepts explicit trusted rosters of total size two through four",
+        "controlled bootstrap keeps >4 active and foreign members fail-closed and requires trusted merchant identity",
+        "merchant discovery recognizes every valid explicit variable roster size",
+        "cohesion supports solo combat with no follower deadlock and maxPairDistance zero",
+        "cohesion handles two and three combat members pairwise and never counts merchant",
+        "cohesion selects the same role-aware combat leader on every member and uses names only as a deterministic tie-break",
+        "cohesion remains incomplete when trusted topology expects three combat members but only two are present",
+        "transition preflight accepts safe total party sizes two, three and four",
+        "transition preflight blocks total size one, above four, missing merchant and non-merchant controller",
+        "lifecycle rotations preserve current party size for one, two and three combat members",
+        "restart reconciliation is size-consistent and remains fail-closed without blind retries",
+        "dynamic bootstrap discovers arbitrary owned online classes even when active-character view only sees self",
+        "dynamic bootstrap never falls back to legacy Ranger names while account roster is incomplete",
+        "dynamic bootstrap reconverges after an owned character comes online without accepting unsupported classes"
+      ],
+      "states": [
+        "ACTIVE_CHARACTER_LIMIT_EXCEEDED",
+        "FOREIGN_OR_INACTIVE_PARTY_MEMBER_PRESENT",
+        "PARTY_SIZE_BELOW_MINIMUM",
+        "PARTY_SIZE_ABOVE_MAXIMUM",
+        "MERCHANT_MUST_REMAIN",
+        "EXACTLY_ONE_MERCHANT_REQUIRED",
+        "MERCHANT_CONTROLLER_REQUIRED",
+        "HEALTHY",
+        "PROMOTION",
+        "RESTART_PARTY_STATE_AMBIGUOUS_NO_BLIND_RETRY",
+        "LOCAL_CHARACTER_NOT_IN_TRUSTED_ROSTER",
+        "DYNAMIC_ROSTER_WAITING_FOR_MERCHANT",
+        "DYNAMIC_ROSTER_UNSUPPORTED_ONLINE_CHARACTER"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 76,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 1,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 160,
+        "party": 101,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Every character must derive the same leader; names only break ties inside one class."
+      ]
+    },
+    {
+      "path": "v3/test/alpha32-navigation-merchant-recovery.test.js",
+      "blobSha": "cfadd47a963296ec8efc3b6921636a48a8f7d058",
+      "size": 8388,
+      "lines": 203,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha28-ledger-farmer-fixes",
+        "../src/reliability/alpha32-navigation-merchant-recovery"
+      ],
+      "testCases": [
+        "Alpha32 prevents Alpha28 fallback from immediately reselecting a terrain-blocked target",
+        "Alpha32 allows a bounded lateral local-farm detour when greedy progress probing returns no waypoint",
+        "Alpha32 releases stale merchant reservations immediately after live identity mismatch",
+        "Alpha32 heals a low-HP merchant, aborts active travel, and holds work until recovery",
+        "Alpha32 backs gear delivery off until the shared merchant-service action budget can recover"
+      ],
+      "states": [
+        "BANK",
+        "RESERVED",
+        "LIVE_ITEM_IDENTITY_MISMATCH",
+        "ABORTED",
+        "MERCHANT_HP_RECOVERY_REQUIRED",
+        "SERVICE_DELIVERY",
+        "MERCHANT_SERVICE_ACTION_BUDGET_EXHAUSTED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 43,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 18,
+        "merchant": 52,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha32-party-topology.test.js",
+      "blobSha": "8d73b5184a4e59415b9581eec5073729669fb97d",
+      "size": 4265,
+      "lines": 89,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/orchestrator",
+        "../src/party/party-topology"
+      ],
+      "testCases": [
+        "PartyTopology mirrors the current variable-party size contract without changing runtime consumers",
+        "PartyTopology combat classes stay exactly aligned with the current orchestrator contract",
+        "PartyTopology accepts duplicate classes but requires unique character names",
+        "PartyTopology rejects the same invalid structural shapes guarded by current party code",
+        "PartyTopology validates configured merchant identity without inferring or mutating members",
+        "PartyTopology snapshot is immutable at the topology boundary"
+      ],
+      "states": [
+        "PARTY_MEMBER_NAMES_MUST_BE_UNIQUE",
+        "PARTY_SIZE_BELOW_MINIMUM",
+        "PARTY_SIZE_ABOVE_MAXIMUM",
+        "EXACTLY_ONE_MERCHANT_REQUIRED",
+        "UNSUPPORTED_COMBAT_CLASS",
+        "PARTY_MEMBER_TYPE_REQUIRED",
+        "MERCHANT_IDENTITY_MISMATCH"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 27,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 28,
+        "party": 35,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}

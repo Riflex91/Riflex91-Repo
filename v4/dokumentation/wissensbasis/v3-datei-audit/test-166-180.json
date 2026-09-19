@@ -1,0 +1,697 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/test",
+  "range": {
+    "start": 166,
+    "end": 180,
+    "total": 205
+  },
+  "files": [
+    {
+      "path": "v3/test/object-storage-s3.test.js",
+      "blobSha": "b52b4bb28ca1fd897dd81d27e607a5c7188bb570",
+      "size": 12688,
+      "lines": 243,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:crypto",
+        "../src/ops/object-storage-s3"
+      ],
+      "testCases": [
+        "validates bridge config without exposing secrets in status",
+        "rejects unsafe endpoint, prefix and object keys",
+        "uses path-style S3 URL with RFC3986 encoding",
+        "canonical query is RFC3986 encoded and sorted for SigV4",
+        "creates deterministic AWS Signature V4 authorization",
+        "PUT plus HEAD verifies bytes and sha metadata without returning secrets",
+        "requires hash metadata to be exposed when verification requests it",
+        "maps browser fetch rejection to sanitized CORS/network error",
+        "permanent DELETE requires explicit confirmation and an exact version ID",
+        "self-test does not delete unless cleanup is explicitly requested",
+        "self-test refuses name-only cleanup when provider version ID is unavailable",
+        "runtime API reads config lazily so bridge can inject after bot startup"
+      ],
+      "states": [
+        "PUT",
+        "HEAD",
+        "OBJECT_STORAGE_VERIFY_HASH_NOT_EXPOSED",
+        "OBJECT_STORAGE_CORS_OR_NETWORK",
+        "OBJECT_STORAGE_DELETE_CONFIRMATION_REQUIRED",
+        "DELETE",
+        "AIO_V3_OBJECT_STORAGE_SELF_TEST",
+        "OBJECT_STORAGE_CLEANUP_VERSION_ID_REQUIRED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 49,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 3,
+        "rejects": 4
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/observability-reasons.test.js",
+      "blobSha": "fb51c5afa11019ad9bbf95eeec295f38bcbab8c9",
+      "size": 2718,
+      "lines": 63,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/core/event-log",
+        "../src/ops/flight-recorder"
+      ],
+      "testCases": [
+        "normalizeReason keeps scalar reasons stable and preserves structured details",
+        "normalizeReason never collapses arbitrary objects to [object Object]",
+        "EventLog exposes a stable reason code plus structured reason details",
+        "FlightRecorder incidents preserve structured reasons without lossy string coercion"
+      ],
+      "states": [
+        "NO_TARGET",
+        "TARGET_BLOCKED",
+        "STRUCTURED_REASON",
+        "TARGET_REJECTED",
+        "CONTENT_QUARANTINED",
+        "PARTY_DEGRADED",
+        "MEMBER_STALE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 17,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 3,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/operator-run-control.test.js",
+      "blobSha": "b0070c802146c5b0e991ba71617bc3447a527dd2",
+      "size": 10252,
+      "lines": 234,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/ops/operator-run-control",
+        "../src/ops/debug-monitor-ui",
+        "../src/core/event-log"
+      ],
+      "testCases": [
+        "safe operator stop prevents new runtime ticks first and reaches clean stopped state",
+        "safe operator stop waits boundedly for an already in-flight transaction to settle",
+        "safe operator stop never invents recovery and remains stopped-blocked when reconciliation does not settle",
+        "safe operator start fails closed on unresolved evidence and never calls runtime.start",
+        "clean restart resumes runtime but cannot silently re-enable Merchant Service authority",
+        "operator run control serializes transitions instead of double-starting while stop is pending",
+        "debug monitor exposes a wired safe Start/Stop button plus Merchant Service observability without gameplay authority",
+        "2500 safe stop/start cycles stay serialized, bounded and never gain gameplay action authority"
+      ],
+      "states": [
+        "MERCHANT_SERVICE_OPERATION_RECOVERING",
+        "HEALTHY",
+        "RUNTIME_STOPPED_RECONCILED",
+        "STOPPED",
+        "MERCHANT_SERVICE_OPERATION_EXECUTING",
+        "TRAVEL_OPERATION_RECOVERING",
+        "RUNTIME_STOPPED_RECONCILIATION_REQUIRED",
+        "STOPPED_BLOCKED",
+        "ECONOMY_TRANSACTION_RECOVERING",
+        "START_BLOCKED_RECONCILIATION_REQUIRED",
+        "RUNNING",
+        "STOPPING",
+        "CONTROL_TRANSITION_IN_PROGRESS"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 55,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 6,
+        "merchant": 23,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/p0-live-regroup-5000-supply.test.js",
+      "blobSha": "dec8da4b91f9fb64a90aad3aa933d01ac6b93ed1",
+      "size": 15635,
+      "lines": 279,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/merchant/merchant-service-planner",
+        "../src/merchant/controlled-merchant-service-executor",
+        "../src/reliability/p0-regroup-supply-recovery",
+        "../src/reliability/p0-potion-bundle-delta-fix"
+      ],
+      "testCases": [
+        "verified map split can publish TEAM_REGROUP in DEGRADED and receiver is repaired",
+        "production fallback tick executes cross-map recovery even when the original alpha28 tick chain is missed",
+        "bootstrap wait does not age farmer no-progress but ready farming remains monitored",
+        "planner refuses farmer travel until merchant has 5000 hp and 5000 mp plus reserve, then plans exact bundle",
+        "bundle executor commits exactly 5000 hpot0 and 5000 mpot0 with synchronous inventory updates",
+        "bundle executor sends exact 5000+5000 across fragmented inventory stacks",
+        "alpha27 restock purchases both required potion families before service travel becomes possible",
+        "gear delivery receives a fresh scoped owned-farmer map attestation",
+        "gear delivery is not falsely rejected as SERVICE_REPORT_ALREADY_SERVED by a prior potion delivery",
+        "legacy direct party potion supply is disabled so there is only one potion owner"
+      ],
+      "states": [
+        "HEALTHY",
+        "DEGRADED",
+        "NO_PROGRESS_DEGRADED",
+        "CONTENT_REVALIDATION_REQUIRED",
+        "TEAM_REGROUP",
+        "NO_PROGRESS_RECOVERY_TEAM_REGROUP",
+        "MOVEMENT_CIRCUIT_OPEN",
+        "MERCHANT_POTION_BUNDLE_RESTOCK_REQUIRED",
+        "POTION_BUNDLE_DELIVERY_LOCAL_DELTA_VERIFIED",
+        "ALPHA27_GEAR_DELIVERY"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 46,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 17,
+        "merchant": 62,
+        "party": 10,
+        "persistence": 6,
+        "telemetry": 1,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/p0-potion-hardcap-4500.test.js",
+      "blobSha": "a3c849fff8b4324da611e721da372b30f17f48d0",
+      "size": 3681,
+      "lines": 93,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/merchant/merchant-service-planner",
+        "../src/reliability/p0-regroup-supply-recovery",
+        "../src/reliability/p0-potion-policy-4500",
+        "../src/reliability/p0-potion-hardcap-4500"
+      ],
+      "testCases": [
+        "merchant surplus never blocks the current farmer demand",
+        "hard cap still blocks a plan that would exceed the observed farmer shortfall"
+      ],
+      "states": [
+        "HEALTHY",
+        "POTION_DELIVERY_EXCEEDS_FARMER_SHORTFALL"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 12,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 4,
+        "merchant": 20,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/p0-potion-policy-4500.test.js",
+      "blobSha": "db55e04dc3da35e558b90c8ada6c19bd01b0276c",
+      "size": 22724,
+      "lines": 456,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/merchant/merchant-service-planner",
+        "../src/merchant/controlled-merchant-service-executor",
+        "../src/reliability/p0-regroup-supply-recovery",
+        "../src/reliability/p0-potion-bundle-delta-fix",
+        "../src/reliability/p0-potion-policy-4500"
+      ],
+      "testCases": [
+        "opportunistic route supply ignores Farmers above 4000 and never starts standalone travel",
+        "opportunistic route supply tops a sub-4000 Farmer only after the Merchant is already nearby",
+        "critical request triggers a full 4500 HP and MP top-up for that Farmer",
+        "one Farmer request aggregates all fresh Farmers into one 4500 restock batch",
+        "batched restock buys aggregate HP and MP demand without another vendor trip",
+        "successful deliveries advance through all Farmers in the same batch before release",
+        "latched potion chain prevents the observed 10 then 5 micro-restock loop",
+        "restock buys exactly the current delivery deficit",
+        "existing merchant surplus does not block or overfill the farmer",
+        "successful adaptive delivery verifies the planned decrement and retains pre-existing surplus",
+        "stock falling below the planned delivery after planning forces a replan"
+      ],
+      "states": [
+        "HEALTHY",
+        "FARMER_COLLECTION_ROUTE",
+        "OPPORTUNISTIC_POTION_SERVICE_PIGGYBACK_ONLY",
+        "ROUTE_FARMERS_ABOVE_OPPORTUNISTIC_THRESHOLD",
+        "NO_SERVICE_NEED",
+        "ONE_CRITICAL_TRIGGER_TOPS_ALL_FRESH_FARMERS_TO_4500",
+        "BATCH_DELIVERY_COMMITTED",
+        "ADAPTIVE_POTION_DELIVERY_DEMAND_VERIFIED",
+        "POTION_BATCH_WAITING_FOR_FRESH_POST_DELIVERY_TELEMETRY",
+        "POTION_STOCK_CHANGED_REPLAN_REQUIRED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 106,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 24,
+        "merchant": 125,
+        "party": 8,
+        "persistence": 3,
+        "telemetry": 4,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// A request starts only below 200, but once triggered the same Farmer is fully",
+        "// topped up in both potion families to avoid another Merchant trip shortly after.",
+        "// Regression from the live My_Merchant session: a 10-item catch-up must not become a second 5-item vendor trip.",
+        "// Reproduce the live race: the Merchant bought the missing 10 while the farmer",
+        "// consumed another 5 mpot0. The old planner would grow the active order from",
+        "// 4310 to 4315 and send the Merchant back for another micro-purchase.",
+        "// Safety remains monotonic in the other direction: if the farmer receives",
+        "// potions elsewhere, the active order may shrink so the 4500 hard cap cannot",
+        "// be exceeded, but it still cannot grow above the original 4310."
+      ]
+    },
+    {
+      "path": "v3/test/p0-team-regroup-supply-travel.test.js",
+      "blobSha": "3becc97d4a900e63e6dfb5e60314f6ec285fecfc",
+      "size": 9179,
+      "lines": 219,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/travel/safe-travel",
+        "../src/party/team-combat-cohesion-hotfix",
+        "../src/reliability/alpha28-cross-map-farmer",
+        "../src/autonomy/alpha20-5-merchant-runtime"
+      ],
+      "testCases": [
+        "SafeTravel only accepts a drifted destination with a fresh approved map attestation",
+        "team formation never converts a cross-map leader position into a local move command",
+        "cohesive leader still delegates to the base safe target selector and can open a new target",
+        "Alpha28 leader publishes a TEAM_REGROUP objective when verified farmers are split across maps",
+        "merchant service travel passes the fresh owned-farmer report as a scoped map attestation"
+      ],
+      "states": [
+        "DESTINATION_MAP_REQUIRES_REVALIDATION",
+        "SAFE_PLAN_CREATED_WITH_TRUSTED_MAP_ATTESTATION",
+        "LOCAL_POTION_SUPPLY_INCOMPLETE",
+        "CROSS_MAP_REGROUP_REQUIRED",
+        "HOLD",
+        "TEST",
+        "TARGET_LEADER_SELECT",
+        "ASSESS",
+        "HEALTHY",
+        "SMART_MOVE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 30,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 16,
+        "party": 8,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/patch-registry.test.js",
+      "blobSha": "3912355594a504fbdf0a5a01e80e0c4ab61c20fb",
+      "size": 3791,
+      "lines": 133,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:path",
+        "../src/core/patch-registry"
+      ],
+      "testCases": [
+        "exclusive patch ownership is visible and a second owner fails loudly",
+        "decorators execute in ascending declared order and preserve the original receiver",
+        "ambiguous decorator order and incomplete metadata are rejected",
+        "migrated representative modules cannot return to direct monkey-patching"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 10,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 3,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 14,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/performance-tracker.test.js",
+      "blobSha": "932feb4f5c9ea9a850054d5fc58d4192ff5b52d2",
+      "size": 2248,
+      "lines": 50,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/telemetry/performance-tracker",
+        "../src/world/world-model",
+        "../src/core/event-log"
+      ],
+      "testCases": [
+        "PerformanceTracker measures EXP/gold/kill/death/potion/damage windows and records dominant monster",
+        "xpDelta handles a level transition when G.levels is available"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 10,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 4,
+        "persistence": 0,
+        "telemetry": 1,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/persistence.test.js",
+      "blobSha": "94958b2b1c22c946f677cf03db68c339349d6a5d",
+      "size": 1193,
+      "lines": 24,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/world/world-model",
+        "../src/world/persistence"
+      ],
+      "testCases": [
+        "WorldPersistence saves and restores the world model without gameplay dependencies"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 4,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 7,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/problem-diagnostics-archive.test.js",
+      "blobSha": "4020557a8e52fc8084506a78f686e990c2265974",
+      "size": 3969,
+      "lines": 79,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:zlib",
+        "node:util",
+        "../host/problem-diagnostics-archive"
+      ],
+      "testCases": [
+        "problem diagnostics captures a critical event, redacts secrets and writes an atomic gzip bundle",
+        "host failure still produces a bundle when the browser bridge is unavailable",
+        "sanitizer redacts credential-like keys recursively without mutating ordinary values"
+      ],
+      "states": [
+        "WATCHDOG_RESTART_REQUIRED",
+        "NO_PROGRESS",
+        "TEST_NOOP",
+        "DEGRADED",
+        "HEALTHY",
+        "ERROR",
+        "AIO_V3_PROBLEM_DIAGNOSTICS_BUNDLE",
+        "PROBLEM_DIAGNOSTICS_DEDUPED",
+        "HOST_HARNESS_ERROR",
+        "BOT_CLIENT_UNAVAILABLE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 22,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 2,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/problem-diagnostics-harness.test.js",
+      "blobSha": "9ed22a73a6a554b32c1f5ec4542d839d531116e0",
+      "size": 3355,
+      "lines": 70,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../host/production-host-harness"
+      ],
+      "testCases": [
+        "production host invokes problem diagnostics without changing controller tick result",
+        "diagnostics exception is isolated and cannot fail a healthy controller tick"
+      ],
+      "states": [
+        "HEALTHY",
+        "PROBLEM_DIAGNOSTICS_NO_PROBLEM",
+        "TEST_DISABLED",
+        "PROBLEM_DIAGNOSTICS_ISOLATED_FAILURE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 12,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 2,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/production-live-services-wiring.test.js",
+      "blobSha": "2540ab3760dd2b6c24c9da395324b95967c3ebe4",
+      "size": 6117,
+      "lines": 120,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:path",
+        "../src/production-live-services"
+      ],
+      "testCases": [
+        "production entry installs cloud heartbeat and safe updater services",
+        "production live services wire Alpha25 cloud control, Alpha26 updater, and Alpha27\\/28 merchant authority",
+        "Alpha31 and Alpha32 live recovery stay passive during install and run only from the runtime tick chain",
+        "same-version hot reload refreshes sprites and the full Merchant Automation catalog exactly once",
+        "merchant production and Alpha27 autonomy mutually observe busy ownership",
+        "production entry replaces an older in-memory AIO runtime before reinstalling",
+        "live diagnostics expose cloud, updater, convergence, live-authority, and Alpha32 recovery state"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 47,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 9,
+        "merchant": 23,
+        "party": 13,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/release-guardian.test.js",
+      "blobSha": "532f29578c3e32e65a17b7dec4545d40e404365c",
+      "size": 2448,
+      "lines": 53,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "../scripts/version-contract",
+        "../scripts/release-bump"
+      ],
+      "testCases": [
+        "release guardian accepts a coherent version contract",
+        "release guardian rejects package and generated-release drift before the full suite",
+        "patch bump changes only the requested release literal and leaves frozen history intact"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 5,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 3,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/release-safety-invariants.test.js",
+      "blobSha": "c9dd1cc7e44a63117abc8fdd49f5ef5bbff8183b",
+      "size": 1148,
+      "lines": 27,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/target-safety"
+      ],
+      "testCases": [
+        "release invariant: Target Automatron is permanently non-attackable",
+        "release invariant: dangerous fairy and custom exclusions remain fail-closed"
+      ],
+      "states": [
+        "TRAINING_TARGET_AUTOMATRON"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 7,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}

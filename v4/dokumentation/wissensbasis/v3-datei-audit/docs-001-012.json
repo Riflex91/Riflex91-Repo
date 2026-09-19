@@ -1,0 +1,862 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/docs",
+  "range": {
+    "start": 1,
+    "end": 12,
+    "total": 12
+  },
+  "files": [
+    {
+      "path": "v3/docs/ARCHITECTURE_RUN.md",
+      "blobSha": "5a84409a23e862d53bf5a1240130c19428b416b5",
+      "size": 18960,
+      "lines": 323,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Architecture Run Playbook"
+        },
+        {
+          "level": 2,
+          "title": "Goal"
+        },
+        {
+          "level": 2,
+          "title": "Global execution rules"
+        },
+        {
+          "level": 2,
+          "title": "Standard run algorithm"
+        },
+        {
+          "level": 2,
+          "title": "Validation policy"
+        },
+        {
+          "level": 2,
+          "title": "Step 1 — Patch registry"
+        },
+        {
+          "level": 2,
+          "title": "Step 2 — Game command boundary"
+        },
+        {
+          "level": 2,
+          "title": "Step 3 — Complete command migration"
+        },
+        {
+          "level": 2,
+          "title": "Step 4 — Merchant mluck rotation"
+        },
+        {
+          "level": 2,
+          "title": "Step 5 — Shared utilities and hot paths"
+        },
+        {
+          "level": 2,
+          "title": "Step 6 — Absorb reliability hotfixes"
+        },
+        {
+          "level": 2,
+          "title": "Step 7 — Remove hotfix layer"
+        },
+        {
+          "level": 2,
+          "title": "Step 8 — Runtime composition"
+        },
+        {
+          "level": 2,
+          "title": "Step 9 — Production browser/session driver"
+        },
+        {
+          "level": 2,
+          "title": "Step 10 — Windows host autostart and machine-reboot recovery"
+        },
+        {
+          "level": 2,
+          "title": "Step 11 — Windows Adventure Land session bootstrap and profile readiness"
+        },
+        {
+          "level": 2,
+          "title": "Step 12 — Production CRITICAL alerting and Windows host secrets"
+        },
+        {
+          "level": 2,
+          "title": "Step 13 — Windows production canary and unattended certification"
+        },
+        {
+          "level": 2,
+          "title": "Step 14 — Real Windows 24/7 production field certification"
+        },
+        {
+          "level": 2,
+          "title": "Status and checkpoints"
+        },
+        {
+          "level": 2,
+          "title": "Completion condition"
+        }
+      ],
+      "referencedPaths": [
+        "v3/architecture-run.json",
+        "src/index.js",
+        "v3/package.json",
+        "v3/src/core/patch-registry.js"
+      ],
+      "normativeStatements": [
+        "When the keyword is given, the agent must not restart the migration blindly. It must first inspect this playbook, `v3/architecture-run.json`, the current `main` branch, and open pull requests, then continue from the first incomplete step.",
+        "- Each step must be independently mergeable and revertible.",
+        "- Never remove a reliability fix just because its hotfix wrapper is removed. Move the behavior into its owning module and keep or migrate the regression test.",
+        "- Any new Adventure Land write/mutation path must go through the command boundary after steps 2-3.",
+        "This step must not intentionally change domain decisions.",
+        "Compatibility wrappers may remain temporarily within this PR while behavior is moved, but the regression tests must follow the behavior into its permanent home.",
+        "- run through Windows Task Scheduler in the interactive user session, because the Adventure Land browser/profile must remain in that user's desktop/profile context;",
+        "- fail closed after the bounded startup window if the profile is logged out, the runtime never appears or CDP configuration is invalid;",
+        "- never store or inject Adventure Land username/password credentials;",
+        "- never infer success from elapsed time alone: missed samples, unhealthy intervals, open restart circuits, blocked reconciliation or unresolved CRITICAL alert state fail the gate;",
+        "Real wall-clock 1h/24h/72h/7d observations must be collected on the deployed Windows machine; CI validates the certification engine and safety invariants, not production uptime itself.",
+        "- treat CI and deterministic accelerated tests only as validation of the certification engine, never as substitutes for real wall-clock uptime;",
+        "This step is an operational production certification. It must not be marked completed from CI, simulated time or synthetic evidence alone.",
+        "`v3/architecture-run.json` is the machine-readable checkpoint. Every architecture-run PR must update it only for facts that are true in that PR/branch."
+      ],
+      "signals": {
+        "safety": 4,
+        "recovery": 6,
+        "merchant": 7,
+        "party": 4,
+        "host": 27,
+        "test": 17
+      }
+    },
+    {
+      "path": "v3/docs/ARCHITECTURE.md",
+      "blobSha": "9993b8bae4c80654d55572a8a1279bd56b289a41",
+      "size": 3314,
+      "lines": 125,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Architektur – v3"
+        },
+        {
+          "level": 2,
+          "title": "Source-Bereiche"
+        },
+        {
+          "level": 2,
+          "title": "Root-Entrypoints unter src/"
+        },
+        {
+          "level": 2,
+          "title": "Bereichsübergreifende interne Abhängigkeiten"
+        },
+        {
+          "level": 2,
+          "title": "Interpretationsgrenze"
+        }
+      ],
+      "referencedPaths": [
+        "src/index-production.js",
+        "src/index.js",
+        "src/production-live-services.js",
+        "src/release-version.js",
+        "src/runtime.js",
+        "src/version.js"
+      ],
+      "normativeStatements": [],
+      "signals": {
+        "safety": 0,
+        "recovery": 0,
+        "merchant": 8,
+        "party": 11,
+        "host": 0,
+        "test": 1
+      }
+    },
+    {
+      "path": "v3/docs/BOOTSTRAP_RUNTIME.md",
+      "blobSha": "666831c315c8ceb55128a737587c56733837896f",
+      "size": 1599,
+      "lines": 21,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Bootstrap runtime delivery"
+        },
+        {
+          "level": 2,
+          "title": "Release contract"
+        },
+        {
+          "level": 2,
+          "title": "Publication order"
+        },
+        {
+          "level": 2,
+          "title": "Verification"
+        }
+      ],
+      "referencedPaths": [],
+      "normativeStatements": [
+        "- `dist/aio-v3.js` must remain compatible with the legacy updater validation while staying comfortably below the Adventure Land code-slot size limit.",
+        "- `dist/aio-v3-runtime.js` contains the complete production runtime and is never persisted through Adventure Land `save_code`."
+      ],
+      "signals": {
+        "safety": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "host": 0,
+        "test": 2
+      }
+    },
+    {
+      "path": "v3/docs/CHANGELOG-GENERATED.md",
+      "blobSha": "ba4940798b46aacb2e7db85578978296c8b29ffd",
+      "size": 1961,
+      "lines": 24,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Generierter Entwicklungsindex – v3"
+        }
+      ],
+      "referencedPaths": [],
+      "normativeStatements": [],
+      "signals": {
+        "safety": 2,
+        "recovery": 1,
+        "merchant": 2,
+        "party": 3,
+        "host": 0,
+        "test": 0
+      }
+    },
+    {
+      "path": "v3/docs/CONFIGURATION.md",
+      "blobSha": "276171c587e450876c9ff9b04d4d64ae44bc07d6",
+      "size": 2383,
+      "lines": 48,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Konfiguration – v3"
+        },
+        {
+          "level": 2,
+          "title": "package.json Scripts"
+        },
+        {
+          "level": 2,
+          "title": "Erkannte Umgebungsvariablen"
+        },
+        {
+          "level": 2,
+          "title": "Config-nahe Source-Dateien"
+        }
+      ],
+      "referencedPaths": [
+        "src/control/control-plane-config.js",
+        "src/reliability/alpha27-atomic-constants.js",
+        "src/reliability/alpha27-merchant-constants.js"
+      ],
+      "normativeStatements": [],
+      "signals": {
+        "safety": 0,
+        "recovery": 2,
+        "merchant": 1,
+        "party": 0,
+        "host": 0,
+        "test": 9
+      }
+    },
+    {
+      "path": "v3/docs/DYNAMIC_PARTY_ROSTER_DISCOVERY.md",
+      "blobSha": "e697ea507e98f52ae8d745915b992c47ea3c7f41",
+      "size": 2582,
+      "lines": 54,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Dynamic Party Roster Discovery"
+        },
+        {
+          "level": 2,
+          "title": "Purpose"
+        },
+        {
+          "level": 2,
+          "title": "Trust sources"
+        },
+        {
+          "level": 2,
+          "title": "Valid topology"
+        },
+        {
+          "level": 2,
+          "title": "Fail-closed behavior"
+        },
+        {
+          "level": 2,
+          "title": "Reconvergence"
+        },
+        {
+          "level": 2,
+          "title": "Regression scenario"
+        }
+      ],
+      "referencedPaths": [],
+      "normativeStatements": [
+        "V3 must support one Merchant plus one to three supported combat characters without depending on fixed character names or a fixed class composition.",
+        "A valid account roster must remain stable for the configured settle window before becoming authoritative.",
+        "Each simulated runner may see only itself through `get_active_characters()`, while `get_characters()` exposes the owned account roster. All four runners must converge on the same trusted roster and must not classify Mage, Warrior or Rogue as foreign characters."
+      ],
+      "signals": {
+        "safety": 0,
+        "recovery": 0,
+        "merchant": 8,
+        "party": 3,
+        "host": 0,
+        "test": 0
+      }
+    },
+    {
+      "path": "v3/docs/EVENTS.md",
+      "blobSha": "64b7004cc1f54ffedcf30c640ec3899a51d16d3b",
+      "size": 499,
+      "lines": 12,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Event-Inventar – v3"
+        }
+      ],
+      "referencedPaths": [],
+      "normativeStatements": [],
+      "signals": {
+        "safety": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "host": 0,
+        "test": 0
+      }
+    },
+    {
+      "path": "v3/docs/FARMER_RECOVERY_POTION_DEADLOCK.md",
+      "blobSha": "dbbc5fbf15c979e8adacb205fc2b07a39cc1ca9e",
+      "size": 1451,
+      "lines": 42,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Farmer Recovery Potion Deadlock"
+        },
+        {
+          "level": 2,
+          "title": "Live failure"
+        },
+        {
+          "level": 2,
+          "title": "Fix"
+        },
+        {
+          "level": 2,
+          "title": "Regression"
+        }
+      ],
+      "referencedPaths": [],
+      "normativeStatements": [
+        "- Warrior never left `RECOVER`;",
+        "- Warrior never selected a combat target;"
+      ],
+      "signals": {
+        "safety": 1,
+        "recovery": 12,
+        "merchant": 0,
+        "party": 0,
+        "host": 0,
+        "test": 2
+      }
+    },
+    {
+      "path": "v3/docs/MODULES.md",
+      "blobSha": "1cc7f4102d94cffc6f81a63f42792833efcb5ca6",
+      "size": 13665,
+      "lines": 384,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Modul-Inventar – v3"
+        },
+        {
+          "level": 2,
+          "title": "(root)"
+        },
+        {
+          "level": 2,
+          "title": "autonomy"
+        },
+        {
+          "level": 2,
+          "title": "brain"
+        },
+        {
+          "level": 2,
+          "title": "composition"
+        },
+        {
+          "level": 2,
+          "title": "content"
+        },
+        {
+          "level": 2,
+          "title": "control"
+        },
+        {
+          "level": 2,
+          "title": "core"
+        },
+        {
+          "level": 2,
+          "title": "economy"
+        },
+        {
+          "level": 2,
+          "title": "farmer"
+        },
+        {
+          "level": 2,
+          "title": "game"
+        },
+        {
+          "level": 2,
+          "title": "merchant"
+        },
+        {
+          "level": 2,
+          "title": "ops"
+        },
+        {
+          "level": 2,
+          "title": "party"
+        },
+        {
+          "level": 2,
+          "title": "planner"
+        },
+        {
+          "level": 2,
+          "title": "reliability"
+        },
+        {
+          "level": 2,
+          "title": "research"
+        },
+        {
+          "level": 2,
+          "title": "stability"
+        },
+        {
+          "level": 2,
+          "title": "telemetry"
+        },
+        {
+          "level": 2,
+          "title": "travel"
+        },
+        {
+          "level": 2,
+          "title": "world"
+        }
+      ],
+      "referencedPaths": [
+        "src/index-production.js",
+        "src/index.js",
+        "src/production-live-services.js",
+        "src/release-version.js",
+        "src/runtime.js",
+        "src/version.js",
+        "src/autonomy/adaptive-farm-intelligence.js",
+        "src/autonomy/adaptive-pull-learning.js",
+        "src/autonomy/advanced-party-movement.js",
+        "src/autonomy/alpha10-runtime.js",
+        "src/autonomy/alpha11-runtime.js",
+        "src/autonomy/alpha12-hardened-runtime.js",
+        "src/autonomy/alpha12-runtime.js",
+        "src/autonomy/alpha13-runtime.js",
+        "src/autonomy/alpha14-runtime.js",
+        "src/autonomy/alpha15-runtime.js",
+        "src/autonomy/alpha16-runtime.js",
+        "src/autonomy/alpha17-runtime.js",
+        "src/autonomy/alpha18-runtime.js",
+        "src/autonomy/alpha19-runtime.js",
+        "src/autonomy/alpha20-5-farm-readiness-runtime.js",
+        "src/autonomy/alpha20-5-merchant-runtime.js",
+        "src/autonomy/alpha20-runtime.js",
+        "src/autonomy/alpha9-runtime.js",
+        "src/autonomy/aoe-farming-certification.js",
+        "src/autonomy/capability-resolver.js",
+        "src/autonomy/capability-sync.js",
+        "src/autonomy/character-combat-profile.js",
+        "src/autonomy/combat-modes.js",
+        "src/autonomy/encounter-lifecycle.js",
+        "src/autonomy/local-farm-orchestrator.js",
+        "src/autonomy/local-farm-planner.js",
+        "src/autonomy/party-skill-engine.js",
+        "src/autonomy/skill-catalog-service.js",
+        "src/autonomy/skill-policy.js",
+        "src/autonomy/skill-semantics.js",
+        "src/autonomy/smart-aoe-planner.js",
+        "src/autonomy/tactical-party-combat.js",
+        "src/brain/feature-encoder.js",
+        "src/brain/replay-buffer.js",
+        "src/brain/shadow-brain.js",
+        "src/brain/strategic-brain-v2.js",
+        "src/composition/runtime-composition.js",
+        "src/composition/runtime-lifecycle.js",
+        "src/content/content-drift-semantic-recovery.js",
+        "src/content/content-drift-storage-hotfix.js",
+        "src/content/dangerous-content-hotfix.js",
+        "src/control/cloud-control-plane.js",
+        "src/control/cloud-free-tier-budget.js",
+        "src/control/cloud-long-term-persistence.js",
+        "src/control/cloud-presence-decoupling.js",
+        "src/control/control-plane-config.js",
+        "src/core/event-log.js",
+        "src/core/geometry.js",
+        "src/core/numeric.js",
+        "src/core/patch-registry.js",
+        "src/core/scheduler.js",
+        "src/core/snapshot-entity-index.js",
+        "src/core/stable-scheduler.js",
+        "src/core/task.js",
+        "src/economy/bank-capacity-manager.js",
+        "src/economy/bank-expansion-transactions.js",
+        "src/economy/controlled-bank-consolidation-executor.js",
+        "src/economy/controlled-bank-expansion-executor.js",
+        "src/economy/controlled-merchant-executor.js",
+        "src/economy/controlled-merchant-space-recovery-hardened.js",
+        "src/economy/controlled-merchant-space-recovery.js",
+        "src/economy/gear-progression.js",
+        "src/economy/inventory-ledger.js",
+        "src/economy/item-economic-evaluator.js",
+        "src/economy/merchant-space-recovery-journal.js",
+        "src/economy/sell-safety.js",
+        "src/economy/transaction-engine.js",
+        "src/farmer/basic-kiting.js",
+        "src/farmer/combat-emergency.js",
+        "src/farmer/combat-risk.js",
+        "src/farmer/content-safety.js",
+        "src/farmer/controlled-farmer-loot.js",
+        "src/farmer/farm-area-pressure-hotfix.js",
+        "src/farmer/farmer-fsm.js",
+        "src/farmer/farmer-local-plan-priority.js",
+        "src/farmer/farmer-resource-topoff-hotfix.js",
+        "src/farmer/farmer-target-efficiency-hotfix.js",
+        "src/farmer/farmer-terrain-navigation-hotfix.js",
+        "src/farmer/farmer-travel-safety-hotfix.js",
+        "src/farmer/kiting-farmer.js",
+        "src/farmer/live-navigation-hotfix.js",
+        "src/farmer/retreat-farmer.js",
+        "src/farmer/safe-retreat.js",
+        "src/farmer/skill-farmer.js",
+        "src/farmer/skill-usage.js",
+        "src/farmer/target-efficiency.js",
+        "src/farmer/target-reassessment.js",
+        "src/farmer/target-safety.js",
+        "src/game/adapter.js",
+        "src/game/command-outcomes.js",
+        "src/game/stability-adapter.js",
+        "src/merchant/controlled-merchant-production-executor.js",
+        "src/merchant/controlled-merchant-service-executor.js",
+        "src/merchant/merchant-mluck-policy.js",
+        "src/merchant/merchant-mluck-service.js",
+        "src/merchant/merchant-production-controller.js",
+        "src/merchant/merchant-production-planner.js",
+        "src/merchant/merchant-service-planner.js",
+        "src/merchant/merchant-task-coordinator.js",
+        "src/merchant/persistent-bank-catalog.js",
+        "src/merchant/persistent-production-intent.js",
+        "src/merchant/production-graph-certification.js",
+        "src/ops/alert-escalation-manager.js",
+        "src/ops/alpha18-combined-live-gate-hardened.js",
+        "src/ops/alpha18-combined-live-gate.js",
+        "src/ops/alpha19-combined-live-gate.js",
+        "src/ops/alpha20-combined-live-gate-hardened.js",
+        "src/ops/alpha20-combined-live-gate.js",
+        "src/ops/background-execution-guard.js",
+        "src/ops/control-gateway.js",
+        "src/ops/controlled-auto-respawn.js",
+        "src/ops/debug-monitor-ui.js",
+        "src/ops/flight-recorder.js",
+        "src/ops/group-liveness.js",
+        "src/ops/headless-operations.js",
+        "src/ops/host-watchdog-beacon.js",
+        "src/ops/live-recovery-log-validator.js",
+        "src/ops/minute-countdown-reporter.js",
+        "src/ops/object-storage-s3.js",
+        "src/ops/operator-run-control.js",
+        "src/ops/reconciliation-status.js",
+        "src/ops/reliability-checkpoint.js",
+        "src/ops/runtime-watchdog.js",
+        "src/ops/safe-auto-updater.js",
+        "src/ops/safe-recovery-coordinator.js",
+        "src/ops/session-monitor.js",
+        "src/ops/state-replica.js",
+        "src/ops/telemetry-outbox.js",
+        "src/party/account-character-transport.js",
+        "src/party/acquisition-source-evidence.js",
+        "src/party/alpha20-15-combat-logistics-hotfix.js",
+        "src/party/alpha20-15-logistics-fairness-hotfix.js",
+        "src/party/alpha20-19-account-transport-hotfix.js",
+        "src/party/alpha20-19-logistics-stabilization.js",
+        "src/party/capabilities.js",
+        "src/party/character-registry.js",
+        "src/party/control-lease.js",
+        "src/party/controlled-lifecycle-coordinator-base.js",
+        "src/party/controlled-lifecycle-coordinator.js",
+        "src/party/controlled-paladin-aura-executor.js",
+        "src/party/controlled-party-bootstrap-base.js",
+        "src/party/controlled-party-bootstrap.js",
+        "src/party/controlled-party-logistics.js",
+        "src/party/dynamic-party-roster-discovery.js",
+        "src/party/elixir-policy.js",
+        "src/party/fingerprints.js",
+        "src/party/lifecycle-store.js",
+        "src/party/merchant-party-history.js",
+        "src/party/moving-target-freshness.js",
+        "src/party/orchestrator-base.js",
+        "src/party/orchestrator.js",
+        "src/party/paladin-aura-policy.js",
+        "src/party/party-account-communication.js",
+        "src/party/party-bootstrap-farmer-gate.js",
+        "src/party/party-bootstrap-merchant-discovery-hotfix-base.js",
+        "src/party/party-bootstrap-merchant-discovery-hotfix.js",
+        "src/party/party-focus-fire-hotfix.js",
+        "src/party/party-persistence-quota-hotfix.js",
+        "src/party/party-topology.js",
+        "src/party/performance-store.js",
+        "src/party/probabilistic-farm-time.js",
+        "src/party/production-material-acquisition.js",
+        "src/party/team-combat-cohesion-hotfix-base.js",
+        "src/party/team-combat-cohesion-hotfix.js",
+        "src/party/telemetry-bridge.js",
+        "src/party/transition-controller-base.js",
+        "src/party/transition-controller.js",
+        "src/planner/farm-planner.js",
+        "src/reliability/alpha20-20-alpha22-autonomy.js",
+        "src/reliability/alpha20-20-live-regression-hotfix.js",
+        "src/reliability/alpha20-21-cloud-persistence-recovery.js",
+        "src/reliability/alpha20-22-live-smoke-recovery.js",
+        "src/reliability/alpha20-23-idle-deadlock-recovery.js",
+        "src/reliability/alpha20-33-combat-logistics-regression-hotfix.js",
+        "src/reliability/alpha21-liveness-guards.js",
+        "src/reliability/alpha21-progression-intelligence.js",
+        "src/reliability/alpha23-combat-stability-hotfix.js",
+        "src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js",
+        "src/reliability/alpha25-control-center-brain.js",
+        "src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js",
+        "src/reliability/alpha27-atomic-constants.js",
+        "src/reliability/alpha27-atomic-core.js",
+        "src/reliability/alpha27-atomic-economy.js",
+        "src/reliability/alpha27-atomic-ledger.js",
+        "src/reliability/alpha27-atomic-service.js",
+        "src/reliability/alpha27-atomic-transaction-engine.js",
+        "src/reliability/alpha27-atomic-transactions.js",
+        "src/reliability/alpha27-bank-recovery.js",
+        "src/reliability/alpha27-combat-merchant-convergence.js",
+        "src/reliability/alpha27-combat-ownership.js",
+        "src/reliability/alpha27-merchant-autonomy.js",
+        "src/reliability/alpha27-merchant-constants.js",
+        "src/reliability/alpha27-merchant-core.js",
+        "src/reliability/alpha27-merchant-legacy-ownership-guard.js",
+        "src/reliability/alpha27-merchant-planning.js",
+        "src/reliability/alpha27-merchant-service.js",
+        "src/reliability/alpha27-merchant-travel-intelligence.js",
+        "src/reliability/alpha27-utils.js",
+        "src/reliability/alpha28-brain-cloud.js",
+        "src/reliability/alpha28-cross-map-farmer.js",
+        "src/reliability/alpha28-ledger-farmer-fixes.js",
+        "src/reliability/alpha28-live-authority-liveness.js",
+        "src/reliability/alpha28-merchant-transfers.js",
+        "src/reliability/alpha31-party-role-liveness-hotfix.js",
+        "src/reliability/alpha32-navigation-merchant-recovery.js",
+        "src/reliability/alpha33-mark-orbit-merchant-delivery.js",
+        "src/reliability/economy-equipment-autonomy-v2.js",
+        "src/reliability/economy-v2-market-history.js",
+        "src/reliability/economy-v2-planning.js",
+        "src/reliability/integrated-party-control.js",
+        "src/reliability/live-farmer-merchant-recovery.js",
+        "src/reliability/merchant-self-gear.js",
+        "src/reliability/p0-potion-bundle-delta-fix.js",
+        "src/reliability/p0-potion-hardcap-4500.js",
+        "src/reliability/p0-potion-policy-4500.js",
+        "src/reliability/p0-regroup-supply-recovery.js",
+        "src/reliability/pre-farming-reliability.js",
+        "src/reliability/team-cohesion-deadlock-hotfix.js",
+        "src/research/research.js",
+        "src/stability/combat-stability-supervisor.js",
+        "src/stability/global-supervisor.js",
+        "src/stability/stability-runtime.js",
+        "src/telemetry/performance-tracker.js",
+        "src/travel/controlled-travel-executor.js",
+        "src/travel/route-cost-estimator.js",
+        "src/travel/safe-travel.js",
+        "src/world/content-drift.js",
+        "src/world/discovery.js",
+        "src/world/knowledge-aging.js",
+        "src/world/persistence.js",
+        "src/world/resilient-persistence.js",
+        "src/world/world-model.js"
+      ],
+      "normativeStatements": [],
+      "signals": {
+        "safety": 8,
+        "recovery": 13,
+        "merchant": 41,
+        "party": 57,
+        "host": 1,
+        "test": 0
+      }
+    },
+    {
+      "path": "v3/docs/presence-supabase-budget.md",
+      "blobSha": "1e8cc1cea12b22b6402e3fc58ead8539f3b285dd",
+      "size": 2612,
+      "lines": 49,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Presence and Supabase budget"
+        },
+        {
+          "level": 2,
+          "title": "Presence source of truth"
+        },
+        {
+          "level": 2,
+          "title": "Supabase debug telemetry budget"
+        },
+        {
+          "level": 2,
+          "title": "Supabase storage policy"
+        },
+        {
+          "level": 2,
+          "title": "Why this exists"
+        }
+      ],
+      "referencedPaths": [],
+      "normativeStatements": [
+        "Therefore a healthy bot can still appear offline when the browser-side Cloud Control Plane cannot push `/api/v3/runtime` to the Cloudflare Worker. Supabase debug telemetry is diagnostic evidence only and must not be treated as the dashboard presence source of truth.",
+        "Debug telemetry must remain comfortably below the monthly Edge Function invocation allowance even when all four character hosts export independently."
+      ],
+      "signals": {
+        "safety": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "host": 1,
+        "test": 3
+      }
+    },
+    {
+      "path": "v3/docs/PROBLEM_DIAGNOSTICS_READ_MIRROR.md",
+      "blobSha": "bde485ebc7716acadd971089c5f6224f1f995900",
+      "size": 2392,
+      "lines": 53,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Problem Diagnostics Read Mirror"
+        },
+        {
+          "level": 2,
+          "title": "Data flow"
+        },
+        {
+          "level": 2,
+          "title": "Authentication"
+        },
+        {
+          "level": 2,
+          "title": "Supabase storage"
+        },
+        {
+          "level": 2,
+          "title": "Local durability"
+        },
+        {
+          "level": 2,
+          "title": "ChatGPT troubleshooting"
+        }
+      ],
+      "referencedPaths": [],
+      "normativeStatements": [
+        "The two upload paths are intentionally independent. A bplaced outage must not prevent the Supabase mirror, and a Supabase outage must not prevent the FTPS archive. Neither path has gameplay authority."
+      ],
+      "signals": {
+        "safety": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "host": 0,
+        "test": 0
+      }
+    },
+    {
+      "path": "v3/docs/TEAM_TARGET_MERCHANT_SAFETY.md",
+      "blobSha": "0ff6ccea156e0828cad0ddb331d5a59eb5f5c3d0",
+      "size": 3198,
+      "lines": 73,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Team Target Authority, Melee No-Kite and Merchant Production Safety"
+        },
+        {
+          "level": 2,
+          "title": "Purpose"
+        },
+        {
+          "level": 2,
+          "title": "Team target authority"
+        },
+        {
+          "level": 2,
+          "title": "Melee no-kite rule"
+        },
+        {
+          "level": 2,
+          "title": "Merchant gear safety"
+        },
+        {
+          "level": 2,
+          "title": "Production mutation preflight"
+        },
+        {
+          "level": 2,
+          "title": "Regression coverage"
+        }
+      ],
+      "referencedPaths": [],
+      "normativeStatements": [
+        "A failed readiness gate must not be represented as `NO_SAFE_LIVE_TARGET` when an authoritative leader target is already known.",
+        "A Merchant candidate with a speed loss is always rejected.",
+        "After every mutation attempt the Merchant Production lease is released. A fresh replan must acquire a new lease before additional work proceeds."
+      ],
+      "signals": {
+        "safety": 10,
+        "recovery": 2,
+        "merchant": 9,
+        "party": 2,
+        "host": 0,
+        "test": 1
+      }
+    }
+  ]
+}

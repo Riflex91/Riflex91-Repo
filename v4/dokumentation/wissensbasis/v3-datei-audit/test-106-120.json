@@ -1,0 +1,635 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/test",
+  "range": {
+    "start": 106,
+    "end": 120,
+    "total": 205
+  },
+  "files": [
+    {
+      "path": "v3/test/architecture-step9-cdp-session-driver.test.js",
+      "blobSha": "6eaec188b06daf4c61872c71213e70d5aa935b65",
+      "size": 12276,
+      "lines": 351,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:events",
+        "../host/cdp-adventure-land-session",
+        "../host/browser-bot-client",
+        "../host/production-host-harness"
+      ],
+      "testCases": [
+        "CDP session configuration is loopback-only and Adventure Land is HTTPS by default",
+        "CDP session discovers only same-origin page targets and binds the AIO_V3 operations context",
+        "BrowserBotClient over the CDP session keeps the public bridge narrow",
+        "CDP session reconnects once to a replacement Adventure Land target after context loss",
+        "CDP session fails closed when the same-origin page does not expose AIO_V3 operations",
+        "ProductionHostHarness manages a session driver without exposing generic browser authority",
+        "2500 evaluation soak stays on one valid CDP session without reconnect growth"
+      ],
+      "states": [
+        "HOST_HEARTBEAT",
+        "PENDING_ALERTS",
+        "CLAIM_ALERTS",
+        "RECONCILIATION_STATUS",
+        "AIO_V3_HOST_WATCHDOG_BEACON",
+        "HEALTHY"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 44,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 3,
+        "rejects": 1
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 3,
+        "merchant": 2,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/auto-update-lifecycle.test.js",
+      "blobSha": "19f2209ae65a9be3756e516f0b21041b5a07e2c1",
+      "size": 6499,
+      "lines": 165,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/ops/safe-auto-updater",
+        "../src/control/cloud-free-tier-budget"
+      ],
+      "testCases": [
+        "default auto-update source is the existing public Cloudflare worker release mirror",
+        "reload succeeds only after a new running API with the expected release version appears",
+        "silent load_code success without a new runtime fails handshake and restarts the previous runtime",
+        "bundle validation rejects a bundle whose embedded release differs from the pending version",
+        "pending update drain blocks new farmer/economy/logistics work while preserving active combat and transfer verification"
+      ],
+      "states": [
+        "SELECT_TARGET",
+        "RUNNING",
+        "BASE",
+        "TEST",
+        "AUTO_UPDATE_DRAIN",
+        "TEST_DONE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 31,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 1
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 1,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/auto-update-release-publish-contract.test.js",
+      "blobSha": "4ba00b56d82db1368503cd2584e31dde6d77de83",
+      "size": 2999,
+      "lines": 59,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:path"
+      ],
+      "testCases": [
+        "Cloudflare deploy publishes the V3 bundle before advancing the release version pointer",
+        "automatic version bump deploys the exact release commit through the reusable Cloudflare workflow"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 21,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 5,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/auto-update-release-worker-contract.test.js",
+      "blobSha": "e1e72e6f73020cd19df363f348652e3187ed3826",
+      "size": 1406,
+      "lines": 29,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:path"
+      ],
+      "testCases": [
+        "V3 release mirror endpoints are public read-only R2 routes with CORS",
+        "free-tier worker routes the two public release artifacts through direct R2 reads"
+      ],
+      "states": [
+        "GET"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 11,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/auto-update-restart-telemetry.test.js",
+      "blobSha": "32c3124431a604a9ae88445685fc15f94a408ddb",
+      "size": 4546,
+      "lines": 122,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha26-cloud-update-logistics-ui-hotfix"
+      ],
+      "testCases": [
+        "planned auto-update reload is handed off and emitted by the newly loaded runtime",
+        "failed reload clears the planned restart handoff so it cannot masquerade as a success",
+        "stale planned restart markers are discarded without emitting AUTO_UPDATE_APPLIED"
+      ],
+      "states": [
+        "AUTO_UPDATE_APPLIED",
+        "SAFE_RELEASE_RELOADED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 25,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 1
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 6,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// The success event must originate from the newly loaded runtime so the telemetry exporter cannot miss it during the handoff."
+      ]
+    },
+    {
+      "path": "v3/test/auto-version-policy.test.js",
+      "blobSha": "3c0661d4e0b70b329558df6f8bddfab3bb6c1526",
+      "size": 1971,
+      "lines": 54,
+      "imports": [
+        "fs",
+        "path",
+        "node:test",
+        "node:assert/strict",
+        "../scripts/auto-version-on-main"
+      ],
+      "testCases": [
+        "release version comparison follows alpha train and patch sequence",
+        "unchanged version after a main push requires an automatic release bump",
+        "a merge that already advanced the release version is not bumped twice",
+        "a stale workflow retry skips when latest main has already advanced beyond its trigger baseline",
+        "a version regression on main fails closed",
+        "auto-version workflow stages only tracked v3 release files"
+      ],
+      "states": [
+        "MERGE_LEFT_VERSION_UNCHANGED",
+        "MERGE_ALREADY_ADVANCED_VERSION"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 10,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 1,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 1,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/basic-kiting.test.js",
+      "blobSha": "b2e678aad37c9bb6c93a4b7eb779e0fe49b0be9b",
+      "size": 4071,
+      "lines": 113,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/basic-kiting",
+        "../src/farmer/kiting-farmer",
+        "../src/farmer/farmer-fsm"
+      ],
+      "testCases": [
+        "BasicKitingPolicy is capability based and does not kite short-range characters",
+        "BasicKitingPolicy moves directly away when a self-focused target is too close",
+        "BasicKitingPolicy does not reposition a target focused on somebody else",
+        "BasicKitingPolicy does not kite an uncommitted target without active self aggro",
+        "KitingFarmer requests a move and keeps attacking when the target is too close",
+        "KitingFarmer preserves normal attack behavior when distance is already safe"
+      ],
+      "states": [
+        "RANGE_CAPABILITY_TOO_LOW",
+        "TARGET_TOO_CLOSE",
+        "TARGET_FOCUSED_ELSEWHERE",
+        "NO_ACTIVE_SELF_AGGRO"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 18,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 3,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/cloud-control-plane-heartbeat.test.js",
+      "blobSha": "8efeedca2201eaad26ea1a31052d67624d68288c",
+      "size": 4580,
+      "lines": 108,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/control/cloud-control-plane"
+      ],
+      "testCases": [
+        "cloud cycle enforces 15s runtime and 30s config minimum intervals",
+        "runtime heartbeat keeps the large Automation catalog on a dedicated infrequent channel",
+        "Automation catalog upload failure does not invalidate a successful runtime heartbeat"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 20,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 8,
+        "party": 4,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// The dedicated catalog cadence intentionally keeps master data off the 15-second heartbeat.\\n"
+      ]
+    },
+    {
+      "path": "v3/test/cloud-endpoint-recovery.test.js",
+      "blobSha": "ae5a3eba0542f019232421003392fb3db84f2f71",
+      "size": 2343,
+      "lines": 59,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha28-brain-cloud",
+        "../src/control/cloud-free-tier-budget"
+      ],
+      "testCases": [
+        "Alpha28 repairs stale persisted Cloudflare worker endpoints to the canonical worker URL",
+        "Alpha28 does not overwrite an explicitly configured custom cloud endpoint"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 9,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 3,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 1,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/cloud-presence-decoupling.test.js",
+      "blobSha": "01b88824b1d3a2c9221b2db8fd1fcfa5465dc66f",
+      "size": 2489,
+      "lines": 71,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/control/cloud-presence-decoupling"
+      ],
+      "testCases": [
+        "presence heartbeat runs with valid credentials while cloud control plane is disabled",
+        "presence heartbeat stays fail-closed without credentials"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 11,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/combat-emergency.test.js",
+      "blobSha": "ba5fd7d5edfc2fd4297e6e5cd079acfc4fabfc8b",
+      "size": 1758,
+      "lines": 48,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/combat-emergency"
+      ],
+      "testCases": [
+        "critical HP triggers emergency disengage",
+        "multiple attackers plus low HP trigger emergency disengage",
+        "multiple attackers at healthy HP do not trigger emergency disengage",
+        "single attacker above critical HP does not trigger emergency disengage"
+      ],
+      "states": [
+        "CRITICAL_HP",
+        "MULTI_AGGRO_LOW_HP",
+        "EMERGENCY_CLEAR"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 8,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/combat-risk.test.js",
+      "blobSha": "fa6bdf2603ee7367abe9a70e4f6d37e112ffeeee",
+      "size": 5741,
+      "lines": 109,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/combat-risk",
+        "../src/runtime",
+        "../src/game/adapter",
+        "../src/core/event-log",
+        "../src/world/world-model"
+      ],
+      "testCases": [
+        "CombatRiskGate allows a healthy legacy-known neutral target with no learned danger",
+        "CombatRiskGate blocks a new pull while another monster already attacks the character",
+        "CombatRiskGate keeps a known already engaged target eligible",
+        "CombatRiskGate quarantines unknown content even when it is already engaged",
+        "CombatRiskGate can reject a known neutral target with strong learned death evidence",
+        "CombatRiskGate quarantines a truly unknown target instead of treating missing data as neutral",
+        "Runtime filters unknown high-XP content before Discovery can make it known"
+      ],
+      "states": [
+        "RISK_ACCEPTABLE",
+        "ADDITIONAL_AGGRO",
+        "ALREADY_ENGAGED",
+        "CONTENT_QUARANTINED",
+        "QUARANTINED",
+        "LEARNED_DEATH_RISK",
+        "CONTENT_MONSTER_QUARANTINED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 20,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 1,
+        "persistence": 1,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Discovery now knows the boss, but the persistent policy must keep it quarantined."
+      ]
+    },
+    {
+      "path": "v3/test/control-center-brain-v2.test.js",
+      "blobSha": "b37c9f00f0fdecaf3cf3c29b7e167c32b8cee61f",
+      "size": 12264,
+      "lines": 216,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/control/control-plane-config",
+        "../src/brain/strategic-brain-v2",
+        "../src/reliability/alpha25-control-center-brain"
+      ],
+      "testCases": [
+        "control plane enforces locked safety settings and hot-applies bounded settings",
+        "tiny 43x24x5 student produces normalized strategy probabilities and learns",
+        "strategic brain v2 distills deterministic and remote teachers without action authority",
+        "brain outcome reward and league state are persisted locally",
+        "Alpha25 exposes control, brain and cloud status without exposing write key",
+        "explicit global cloud config enables the control plane without exposing the write key",
+        "remote settings reuse the same extended live-apply path as local settings",
+        "brain outcome evaluation has one owner and cloud cycle never evaluates it again",
+        "v3 migrates the existing v2 stable dashboard URL and write key locally and auto-enables cloud sync",
+        "existing v3 cloud credentials take precedence over legacy v2 credentials"
+      ],
+      "states": [
+        "ASSESS",
+        "STANDBY",
+        "V2_CLOUD_CREDENTIALS_MIGRATED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 54,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 4,
+        "recovery": 0,
+        "merchant": 13,
+        "party": 3,
+        "persistence": 1,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/control-center-cloud-budget-snapshot.test.js",
+      "blobSha": "e7efc2e9be9893f730b1febe2d337e968ab322b4",
+      "size": 2279,
+      "lines": 47,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/control/cloud-control-plane",
+        "../src/control/cloud-free-tier-budget"
+      ],
+      "testCases": [
+        "runtime snapshot exposes only the safe Cloudflare free-tier budget needed by the dashboard"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 7,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 3,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/control-center-item-sprites.test.js",
+      "blobSha": "c253995e87e814ae9192ac3da56a965dc8d4736a",
+      "size": 11146,
+      "lines": 306,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha25-control-center-brain"
+      ],
+      "testCases": [
+        "Adventure Land asset URLs stay absolute and normalize relative sprite sheets",
+        "item sprite catalog exposes only inventory and equipped Adventure Land sprites",
+        "sprite catalog falls back from adapter G to the complete parent.G visual metadata",
+        "sprite catalog merges fragmented item, position and imageset metadata across live G contexts",
+        "sprite catalog reconstructs positions from Adventure Land imageset matrices",
+        "equipment shade catalog mirrors Adventure Land empty slot artwork without explicit rows metadata",
+        "Automation catalog exposes sprites and detects object-shaped upgrade/compound metadata",
+        "Automation catalog includes an observed inventory item even when the current G.items source omits it",
+        "runtime snapshot wrapper adds sprites, equipment shades and exact inventory size",
+        "existing Alpha25 runtime repairs the sprite hook during same-version hot reload"
+      ],
+      "states": [
+        "COMPOUND",
+        "UPGRADE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 59,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 7,
+        "party": 8,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Adventure Land imagesets commonly omit `rows`; the runtime must infer it."
+      ]
+    }
+  ]
+}

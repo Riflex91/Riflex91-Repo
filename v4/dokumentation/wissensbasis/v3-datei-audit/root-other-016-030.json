@@ -1,0 +1,835 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/root-and-other",
+  "range": {
+    "start": 16,
+    "end": 30,
+    "total": 35
+  },
+  "files": [
+    {
+      "path": "v3/ALPHA_8_12.md",
+      "blobSha": "873daf07938c57a2cd304921cc11c2ea0c755d6a",
+      "size": 2178,
+      "lines": 29,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.8.12 — Unknown Content Safety Gate"
+        },
+        {
+          "level": 2,
+          "title": "Safety rule"
+        },
+        {
+          "level": 2,
+          "title": "Emergency precedence"
+        },
+        {
+          "level": 2,
+          "title": "Deliberate limits"
+        }
+      ],
+      "referencedArtifacts": [
+        "bot.js"
+      ],
+      "normativeStatements": [],
+      "signals": {
+        "architecture": 0,
+        "safety": 6,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "host": 0,
+        "release": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_8_13.md",
+      "blobSha": "50fe1f12f1438843f5cc7f87a721e49314f87eea",
+      "size": 1416,
+      "lines": 24,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.8.13 — Headless Operations Foundation"
+        },
+        {
+          "level": 2,
+          "title": "Guarantees"
+        },
+        {
+          "level": 2,
+          "title": "Explicit non-goals"
+        }
+      ],
+      "referencedArtifacts": [],
+      "normativeStatements": [],
+      "signals": {
+        "architecture": 0,
+        "safety": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "host": 3,
+        "release": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_8_COMPLETION.md",
+      "blobSha": "c0f33b9b0b9e5b8aec772f10a1b422083e21f9a4",
+      "size": 5521,
+      "lines": 100,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.8 — Combat & Stability Foundation Freeze"
+        },
+        {
+          "level": 2,
+          "title": "Phase freeze version"
+        },
+        {
+          "level": 2,
+          "title": "What Alpha.8 contains"
+        },
+        {
+          "level": 3,
+          "title": "Previously live-confirmed combat foundation"
+        },
+        {
+          "level": 3,
+          "title": "Alpha.8 completion hardening"
+        },
+        {
+          "level": 4,
+          "title": "Command Outcome Verification"
+        },
+        {
+          "level": 4,
+          "title": "Movement Stability"
+        },
+        {
+          "level": 4,
+          "title": "Scheduler / Long-State Hardening"
+        },
+        {
+          "level": 4,
+          "title": "Resilient Persistence"
+        },
+        {
+          "level": 4,
+          "title": "Knowledge Aging"
+        },
+        {
+          "level": 4,
+          "title": "Headless / Dashboard invariants"
+        },
+        {
+          "level": 2,
+          "title": "Required Alpha.8 certification gates"
+        },
+        {
+          "level": 2,
+          "title": "Fault model explicitly covered"
+        },
+        {
+          "level": 2,
+          "title": "Deliberate non-goals of Alpha.8"
+        }
+      ],
+      "referencedArtifacts": [],
+      "normativeStatements": [],
+      "signals": {
+        "architecture": 0,
+        "safety": 9,
+        "recovery": 1,
+        "merchant": 1,
+        "party": 0,
+        "host": 2,
+        "release": 1,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_9_COMPLETION.md",
+      "blobSha": "c21f4f66f9109e1a7c873c94c3d4c5a87ee15369",
+      "size": 4708,
+      "lines": 127,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.9 Completion Gate — Same-Map Local Farming Autonomy"
+        },
+        {
+          "level": 2,
+          "title": "Phase goal"
+        },
+        {
+          "level": 2,
+          "title": "Safety boundary"
+        },
+        {
+          "level": 2,
+          "title": "Mandatory invariants"
+        },
+        {
+          "level": 3,
+          "title": "Content and map safety"
+        },
+        {
+          "level": 3,
+          "title": "Combat precedence"
+        },
+        {
+          "level": 3,
+          "title": "Bounded movement"
+        },
+        {
+          "level": 3,
+          "title": "Anti-thrashing"
+        },
+        {
+          "level": 3,
+          "title": "Headless/dashboard contract"
+        },
+        {
+          "level": 2,
+          "title": "Internal certification"
+        },
+        {
+          "level": 2,
+          "title": "Phase release gate"
+        }
+      ],
+      "referencedArtifacts": [
+        "v3/**",
+        "bot.js"
+      ],
+      "normativeStatements": [
+        "- A monster type must already be `APPROVED` or `LEGACY_ALLOWED` by Content Safety.",
+        "- `QUARANTINED`, unknown or policy-missing monster types are never local-farming destinations.",
+        "Alpha.9 must not compete with Combat:",
+        "- shadow preview movement never consumes real no-progress/failure budgets",
+        "A plan must not oscillate between spawns because of small scoring noise.",
+        "The Alpha.9 test suite must cover at minimum:"
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 10,
+        "recovery": 1,
+        "merchant": 1,
+        "party": 0,
+        "host": 0,
+        "release": 1,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/architecture-run.json",
+      "blobSha": "c9ced9243d596c5cc8b9bf0a625bb066c9a14a75",
+      "size": 9997,
+      "lines": 268,
+      "headings": [],
+      "referencedArtifacts": [],
+      "normativeStatements": [],
+      "signals": {
+        "architecture": 17,
+        "safety": 1,
+        "recovery": 4,
+        "merchant": 6,
+        "party": 3,
+        "host": 10,
+        "release": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/BACKBLAZE_OBJECT_STORAGE.md",
+      "blobSha": "1b379dcca204cbabcd5feba818b76671696bed68",
+      "size": 5959,
+      "lines": 146,
+      "headings": [
+        {
+          "level": 1,
+          "title": "V3 Backblaze / S3-Objektspeicher"
+        },
+        {
+          "level": 2,
+          "title": "Sicherheitsgrenze"
+        },
+        {
+          "level": 2,
+          "title": "Unterstützter Ablauf"
+        },
+        {
+          "level": 2,
+          "title": "Laufzeit-API"
+        },
+        {
+          "level": 2,
+          "title": "Backblaze Application Key"
+        },
+        {
+          "level": 2,
+          "title": "CORS für Browserzugriff"
+        },
+        {
+          "level": 2,
+          "title": "Bewusste Nicht-Ziele dieses Schritts"
+        }
+      ],
+      "referencedArtifacts": [],
+      "normativeStatements": [
+        "Da Adventure Land direkt aus `https://adventure.land` zum privaten S3-Endpunkt sendet, muss der Bucket eine passende S3-CORS-Regel besitzen.",
+        "Für die optionale permanente Testbereinigung muss außerdem `x-amz-version-id` sichtbar sein. Fehlt dieser Header, bleibt das bereits verifizierte Testobjekt erhalten und der Adapter meldet `OBJECT_STORAGE_CLEANUP_VERSION_ID_REQUIRED`."
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 1,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "host": 1,
+        "release": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/FTPS_DIAGNOSTICS.md",
+      "blobSha": "df70a382cd80766ab057f6907568e1ceac79086b",
+      "size": 5254,
+      "lines": 116,
+      "headings": [
+        {
+          "level": 1,
+          "title": "v3 automatic problem diagnostics via FTPS"
+        },
+        {
+          "level": 2,
+          "title": "Data flow"
+        },
+        {
+          "level": 2,
+          "title": "Installation"
+        },
+        {
+          "level": 2,
+          "title": "Environment configuration"
+        },
+        {
+          "level": 2,
+          "title": "bplaced notes"
+        },
+        {
+          "level": 2,
+          "title": "What triggers a bundle"
+        },
+        {
+          "level": 2,
+          "title": "Security properties"
+        },
+        {
+          "level": 2,
+          "title": "ChatGPT access limitation"
+        }
+      ],
+      "referencedArtifacts": [
+        "v3/",
+        "latest-problem.json"
+      ],
+      "normativeStatements": [
+        "- Credentials are never passed through `BrowserBotClient` into the browser.",
+        "- Status objects expose only `hostConfigured`, `userConfigured`, and `passwordConfigured` booleans, never credential values."
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 1,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "host": 15,
+        "release": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/HEADLESS_CONTRACT.md",
+      "blobSha": "bbff6f3cb2d4aa82762b1669ce5d82c92193cc2b",
+      "size": 8790,
+      "lines": 144,
+      "headings": [
+        {
+          "level": 1,
+          "title": "v3 Headless Operations Contract"
+        },
+        {
+          "level": 2,
+          "title": "Runtime independence"
+        },
+        {
+          "level": 2,
+          "title": "Telemetry boundary"
+        },
+        {
+          "level": 2,
+          "title": "Flight-recorder boundary"
+        },
+        {
+          "level": 2,
+          "title": "Runtime watchdog boundary"
+        },
+        {
+          "level": 2,
+          "title": "Group-liveness boundary"
+        },
+        {
+          "level": 2,
+          "title": "Reliability-checkpoint boundary"
+        },
+        {
+          "level": 2,
+          "title": "Alert and escalation boundary"
+        },
+        {
+          "level": 2,
+          "title": "Safe recovery boundary"
+        },
+        {
+          "level": 2,
+          "title": "External dead-man/watchdog contract"
+        },
+        {
+          "level": 2,
+          "title": "Remote-control boundary"
+        },
+        {
+          "level": 2,
+          "title": "State replication boundary"
+        },
+        {
+          "level": 2,
+          "title": "External supervisor contract"
+        },
+        {
+          "level": 2,
+          "title": "Dashboard design rule"
+        }
+      ],
+      "referencedArtifacts": [],
+      "normativeStatements": [
+        "- never block Adventure Land commands while telemetry is offline",
+        "The watchdog itself is recommendation-only. It never calls attack, movement, travel, economy or party actions.",
+        "Safe-mode attempts are bounded by cooldown and sliding-window budget and are idempotent for one degradation incident. Persistent failure eventually becomes a `HOST_RESTART` recommendation only; gameplay code never restarts its own browser/process.",
+        "The external host must treat a missed deadline as an unhealthy/dead process. This is intentionally external: code running inside a dead browser cannot announce that it is dead or restart itself reliably.",
+        "A host may persist these replicas to a database/object store and maintain last-known-good backups. Import/reconciliation and schema migration remain separate future work; v3 must never blindly resume half-finished transactions from an external snapshot."
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 11,
+        "recovery": 9,
+        "merchant": 4,
+        "party": 5,
+        "host": 17,
+        "release": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/HOST_RUNTIME_CONTRACT.md",
+      "blobSha": "be8123ac524a017de228247c4075abfdba506ef2",
+      "size": 13130,
+      "lines": 148,
+      "headings": [
+        {
+          "level": 1,
+          "title": "v3 External Host Runtime Contract"
+        },
+        {
+          "level": 2,
+          "title": "Authority split"
+        },
+        {
+          "level": 2,
+          "title": "Public bot-to-host surface"
+        },
+        {
+          "level": 2,
+          "title": "Bot-owned reconciliation evidence"
+        },
+        {
+          "level": 2,
+          "title": "Narrow browser bridge"
+        },
+        {
+          "level": 2,
+          "title": "Dead-man / process watchdog"
+        },
+        {
+          "level": 2,
+          "title": "Durable alert handoff"
+        },
+        {
+          "level": 2,
+          "title": "Host persistence"
+        },
+        {
+          "level": 2,
+          "title": "Transport policy"
+        },
+        {
+          "level": 2,
+          "title": "Production host harness boundary"
+        },
+        {
+          "level": 2,
+          "title": "Unattended certification evidence boundary"
+        },
+        {
+          "level": 2,
+          "title": "Remaining unattended-deployment requirements"
+        }
+      ],
+      "referencedArtifacts": [
+        "HEADLESS_CONTRACT.md",
+        "v3/host/**",
+        "PRODUCTION_HOST_HARNESS.md"
+      ],
+      "normativeStatements": [
+        "A dashboard is a client of the same host/runtime surfaces. It is never the authoritative source of gameplay decisions.",
+        "The recommended host poll order is heartbeat first, then alert ingest. Host polling failure must not block the gameplay loop.",
+        "The host must never infer that gameplay state is safe merely because a browser process restarted or a new page loaded. `AIO_V3.operations.reconciliationStatus()` is computed inside the deterministic v3 runtime and always reports:",
+        "The host must not infer a successful gameplay recovery merely because a browser/process restart was requested. The restarted bot must reobserve current game state and let its deterministic subsystems reconcile persisted/nonterminal work under their existing safety rules.",
+        "This ordering prevents a transport/process failure between dequeue and persistence from silently losing a critical alert. If durable host persistence is unavailable, the relay must fail closed and must not claim new bot alerts.",
+        "The host relay never automatically acknowledges operator alerts. Bot/operator acknowledgement is a distinct action from transport delivery.",
+        "No credentials belong in the gameplay bundle or persisted alert payload. Email, push, WhatsApp or other provider credentials must come from the external host secret store/environment and be passed only to injected transport adapters.",
+        "The host API may include the current `ProductionHostHarness.status()` result and an allowlisted last-beacon summary for certification. Those surfaces must remain observability-only and must not expose provider credentials, arbitrary browser evaluation or gameplay commands.",
+        "Before the unattended overnight gate, the deployed stack must prove all of the following with real production evidence:"
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 7,
+        "recovery": 8,
+        "merchant": 4,
+        "party": 4,
+        "host": 61,
+        "release": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/LOGIC_GUARDIAN.md",
+      "blobSha": "d895b3008560950784408529d887fcb4608c10d9",
+      "size": 3646,
+      "lines": 51,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Adventure Land v3 Logic Guardian"
+        },
+        {
+          "level": 2,
+          "title": "Hard rule"
+        },
+        {
+          "level": 2,
+          "title": "Deterministic gate"
+        },
+        {
+          "level": 2,
+          "title": "Property-based safety checks"
+        },
+        {
+          "level": 2,
+          "title": "Static analysis"
+        },
+        {
+          "level": 2,
+          "title": "Local commands"
+        },
+        {
+          "level": 2,
+          "title": "Review policy"
+        }
+      ],
+      "referencedArtifacts": [
+        "logic/invariants.json",
+        "v3/"
+      ],
+      "normativeStatements": [
+        "Never fix liveness by weakening safety. In particular, Target Automatron remains non-attackable, unknown content stays fail-closed, dangerous/custom exclusions stay blocked, and supervisors may stop automation but may not bypass TargetSafety.",
+        "`npm run logic:guard` runs a small high-value suite before the full test matrix. The machine-readable contract is `logic/invariants.json`. Invariants marked `test` must reference real deterministic tests; the contract test fails if those references drift.",
+        "The first properties lock the exact `DEADLOCK` boundary and the Alpha20.23 navigation-release rule: self-aggro, selected, planned, failed TargetSafety evaluation, null safety results, or any reason other than the exact training-target denial must stay fail-closed."
+      ],
+      "signals": {
+        "architecture": 4,
+        "safety": 8,
+        "recovery": 0,
+        "merchant": 2,
+        "party": 0,
+        "host": 0,
+        "release": 6,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/logic/invariants.json",
+      "blobSha": "b229a965b6713135c7c9826d97c90658d50ee2be",
+      "size": 7937,
+      "lines": 232,
+      "headings": [],
+      "referencedArtifacts": [],
+      "normativeStatements": [
+        "\"statement\": \"Target Automatron is never an attackable combat target.\",",
+        "\"statement\": \"Self-aggro, selected, or planned monsters are never silently removed from navigation blockers by the Automatron recovery.\",",
+        "\"statement\": \"When useful work is expected, attack rejection plus navigation rejection must still leave a safe alternate action or an explicit safe stop.\",",
+        "\"statement\": \"A healthy complete team waiting only for cohesion must have a bounded leader recovery move that reduces pairwise distance instead of waiting forever.\",",
+        "\"statement\": \"Merchant rendezvous movement may only be created by real transfer or supply work, never by ordinary status traffic or an empty outbound queue.\",",
+        "\"statement\": \"A blocked or failed merchant rendezvous must be deferred so bank, market, gear, restock, and other home service can continue.\",",
+        "\"statement\": \"Alpha21 may promote a farm objective only from measured party performance and approved content after bounded stable evidence, never from a hard-coded level guide.\",",
+        "\"statement\": \"Alpha21 may recommend a better cross-map farm area but must not acquire direct smart-move or other new travel authority to execute it.\",",
+        "\"statement\": \"Raw Adventure Land target state must never replace the Farmer-owned target as combat ownership authority, while self-aggro remains a hard safety hold.\",",
+        "\"statement\": \"A live compound transaction must reserve all three identical inputs atomically and release the full reservation set together on every terminal outcome.\",",
+        "\"statement\": \"Real upgrade and compound actions must commit only from verified item and scroll deltas; ambiguous outcomes fail safe and may not be blindly replanned or retried.\",",
+        "\"statement\": \"A running shadow Farmer must periodically advance shadowPlanRevision rather than remain permanently at zero.\",",
+        "\"statement\": \"Merchant control/economy authority must not implicitly acquire Farmer combat authority.\",",
+        "\"statement\": \"Critical Farmer, reliability, and Merchant runtime modules must remain free of circular dependency chains.\",",
+        "\"statement\": \"Supervisors may halt or degrade automation but must never bypass TargetSafety or fail-closed content boundaries to manufacture progress.\","
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 11,
+        "recovery": 6,
+        "merchant": 12,
+        "party": 1,
+        "host": 0,
+        "release": 5,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/package.json",
+      "blobSha": "513fda21e912d2850c62bb55591ae1e65c0c742a",
+      "size": 2149,
+      "lines": 42,
+      "headings": [],
+      "referencedArtifacts": [],
+      "normativeStatements": [],
+      "signals": {
+        "architecture": 2,
+        "safety": 0,
+        "recovery": 2,
+        "merchant": 1,
+        "party": 1,
+        "host": 0,
+        "release": 6,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/PRODUCTION_GRAPH_CERTIFICATION.md",
+      "blobSha": "6a2845eaddbb5d11faf27dd16aa524f80beb1d60",
+      "size": 6255,
+      "lines": 162,
+      "headings": [
+        {
+          "level": 1,
+          "title": "V3 Production Graph Certification"
+        },
+        {
+          "level": 2,
+          "title": "Purpose"
+        },
+        {
+          "level": 2,
+          "title": "Acquisition Coverage"
+        },
+        {
+          "level": 2,
+          "title": "E2E Soak Auditor"
+        },
+        {
+          "level": 2,
+          "title": "Recipient settlement"
+        },
+        {
+          "level": 2,
+          "title": "Certification gate"
+        },
+        {
+          "level": 2,
+          "title": "Synthetic certification"
+        },
+        {
+          "level": 2,
+          "title": "Controlled real Production soak"
+        }
+      ],
+      "referencedArtifacts": [],
+      "normativeStatements": [
+        "- Production farm decisions must use `decisionQuantile: P90`;",
+        "Fresh-main sync note: the real-soak observer remains source-compatible with parallel V3 merchant-autonomy changes; the generated runtime bundle must always be rebuilt from the merged source state before release."
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 1,
+        "recovery": 1,
+        "merchant": 5,
+        "party": 0,
+        "host": 0,
+        "release": 2,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/PRODUCTION_HOST_HARNESS.md",
+      "blobSha": "8588ad8163258738244168829eb5930de3e09957",
+      "size": 16153,
+      "lines": 205,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.20.5 Production Host Harness"
+        },
+        {
+          "level": 2,
+          "title": "Safety boundary"
+        },
+        {
+          "level": 2,
+          "title": "Narrow browser bot client"
+        },
+        {
+          "level": 2,
+          "title": "Bot-owned restart reconciliation"
+        },
+        {
+          "level": 2,
+          "title": "Process launcher"
+        },
+        {
+          "level": 2,
+          "title": "Read-only host API"
+        },
+        {
+          "level": 2,
+          "title": "Durable alert state"
+        },
+        {
+          "level": 2,
+          "title": "Alert transports"
+        },
+        {
+          "level": 2,
+          "title": "Restart authority"
+        },
+        {
+          "level": 2,
+          "title": "Remaining production browser/session driver"
+        },
+        {
+          "level": 2,
+          "title": "Windows logon autostart and reboot recovery"
+        },
+        {
+          "level": 2,
+          "title": "Windows session bootstrap readiness"
+        },
+        {
+          "level": 2,
+          "title": "Windows unattended certification"
+        },
+        {
+          "level": 2,
+          "title": "Safe deployment sequence"
+        },
+        {
+          "level": 2,
+          "title": "Shutdown"
+        },
+        {
+          "level": 2,
+          "title": "Not included in this slice"
+        },
+        {
+          "level": 2,
+          "title": "Overnight gate prerequisites"
+        }
+      ],
+      "referencedArtifacts": [
+        "host.json",
+        "ops/windows-host/test-alerts.ps1",
+        "ops/windows-host/**",
+        "v3/host/windows-host-service.js"
+      ],
+      "normativeStatements": [
+        "The host must remain outside the gameplay authority boundary:",
+        "A process restart is not gameplay recovery. After a restart, the new browser run must reobserve the world and the existing deterministic v3 subsystems must reconcile their own persisted state.",
+        "`AIO_V3.operations.reconciliationStatus()` is computed inside the gameplay runtime. It always declares zero action authority and fails closed if required runtime status surfaces are unavailable or if unresolved work is observed.",
+        "The host may use this evidence only to decide whether post-restart observation is clean. It must not translate blockers or a clean result into gameplay commands, blind retries or replayed transactions.",
+        "The launcher always uses `shell:false` and `detached:false`. Do not pass a shell command string containing redirection, pipes, chained commands or embedded secrets.",
+        "Both routes must accept a CRITICAL record before `AlertRelay` marks that durable spool record complete. If only one route succeeds, the record remains pending and the failed route follows the existing bounded retry/backoff policy.",
+        "The Windows secret schema allows only bounded HTTP header names/values and rejects transport-control headers such as `Host`, `Cookie`, `Content-Length`, `Connection` and `Transfer-Encoding`. URLs must be HTTPS and may not contain URL userinfo.",
+        "The narrow browser contract adapter now exists, but the host still needs a concrete deployment-specific browser/session driver. That later component must:",
+        "The host is deliberately installed as a **per-user Task Scheduler task at logon**, not as a classic Windows Service. Chromium and the Adventure Land profile must remain in the same interactive Windows-user context; Session-0 service isolation is therefore avoided.",
+        "After a Windows reboot, recovery occurs when the owning Windows user logs in. Cold-boot Adventure Land credential automation remains intentionally outside this step; the dedicated browser profile must already have a valid session.",
+        "A normal host shutdown must stop the polling interval, close the loopback API and stop the managed process through the bounded launcher path. A previous forced shutdown must not cause a later graceful shutdown to be reported as forced.",
+        "The following remain separate work and must not be inferred from the existence of the harness or `BrowserBotClient`:"
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 2,
+        "recovery": 5,
+        "merchant": 2,
+        "party": 1,
+        "host": 57,
+        "release": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/README.md",
+      "blobSha": "20ad70025112964bb63753390ee7447a58523d0f",
+      "size": 1796,
+      "lines": 47,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Adventure Land AiO Bot v3"
+        },
+        {
+          "level": 2,
+          "title": "Schnellstart"
+        },
+        {
+          "level": 2,
+          "title": "Automatische Projektdokumentation"
+        },
+        {
+          "level": 2,
+          "title": "Projektüberblick"
+        },
+        {
+          "level": 2,
+          "title": "Doku-Befehle"
+        }
+      ],
+      "referencedArtifacts": [],
+      "normativeStatements": [],
+      "signals": {
+        "architecture": 2,
+        "safety": 0,
+        "recovery": 0,
+        "merchant": 1,
+        "party": 1,
+        "host": 0,
+        "release": 0,
+        "todo": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,890 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/test",
+  "range": {
+    "start": 91,
+    "end": 105,
+    "total": 205
+  },
+  "files": [
+    {
+      "path": "v3/test/alpha33-debug-telemetry-uplink.test.js",
+      "blobSha": "826f9165c4048e990c012dd3c8a3882b581cc96d",
+      "size": 9096,
+      "lines": 214,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../host/browser-bot-client",
+        "../host/debug-telemetry-exporter",
+        "../host/production-host-harness"
+      ],
+      "testCases": [
+        "narrow browser bridge exposes bounded read-only debug snapshot and cursor-based events",
+        "serialized browser dispatcher has no Node closure dependency for debug events",
+        "debug telemetry exporter advances event cursor only after successful authenticated HTTPS upload",
+        "debug telemetry defaults guarantee the four-exporter monthly invocation budget",
+        "failed telemetry upload keeps cursor, backs off, and never throws into bot host control flow",
+        "production host telemetry is optional and isolated from controller tick result",
+        "debug telemetry requires HTTPS and never exposes a browser-side inbound command channel"
+      ],
+      "states": [
+        "HEALTHY",
+        "AIO_V3_DEBUG_SNAPSHOT",
+        "DEBUG_SNAPSHOT",
+        "DEBUG_EVENTS",
+        "MAX_DEBUG_EVENTS",
+        "DEBUG_TELEMETRY_BACKOFF",
+        "DEBUG_TELEMETRY_FAILED",
+        "DEBUG_TELEMETRY_ISOLATED_FAILURE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 53,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 1,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 5,
+        "recovery": 0,
+        "merchant": 2,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 26,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha33-mark-orbit-merchant-delivery.test.js",
+      "blobSha": "14c1a8ab525bb39ec58e061377dcdf6b7d6fdedf",
+      "size": 52719,
+      "lines": 1456,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:path",
+        "../src/reliability/alpha33-mark-orbit-merchant-delivery"
+      ],
+      "testCases": [
+        "Alpha33 recognizes live Adventure Land effect state and skips redundant Hunters Mark",
+        "Alpha33 gives Hunters Mark to exactly one deterministic Ranger before debuff replication",
+        "Alpha33 Merchant combat authority ignores a selected target and requires incoming monster aggro",
+        "Alpha33 close-range escape has a tangential component instead of pure backward kiting",
+        "Alpha33 holds Merchant gear delivery until target gear is observed and still matches the goal",
+        "Alpha33 reserves only the exact active self gear assignment and leaves cross-Farmer duplicates transferable",
+        "Alpha33 requires Farmer pre-delivery snapshot ACK before Merchant sends gear item",
+        "Alpha33 Farmer recognizes Merchant-delivered ready gear and equips it with closed-loop slot verification",
+        "Alpha33 trusted Farmer state makes remote gear observable and releases stale Merchant gear goals",
+        "Alpha33 collection route travels only to fresh Farmer pickup positions and stays collection-owned",
+        "Alpha33 rejects a 2.9s-old kiting Farmer position even though it is inside the flat TTL",
+        "Alpha33 visible Farmer position overrides an older kiting state coordinate",
+        "Alpha33 re-resolves the moving Farmer immediately before collection travel",
+        "Alpha33 defers tiny Farmer pickup batches and lets ordinary Merchant work continue",
+        "Alpha33 Farmer inventory pressure overrides the small pickup batch threshold",
+        "Alpha33 maximum batch wait eventually releases a persistent one-item pickup",
+        "Alpha33 capacity prep performs no disposal when current Farmer pickup already fits",
+        "Alpha33 collection capacity plan uses total Farmer pickup demand and stack headroom",
+        "Alpha33 Farmer honors explicit Merchant STATUS_REQUEST even inside telemetry throttle window",
+        "Alpha33 bounded capacity preparation departs instead of deadlocking on rejected disposal",
+        "Alpha33 drained Farmer snapshot releases collection after bounded settle window",
+        "Alpha33 critical party supply preempts an active collection route",
+        "Alpha33 Farmer pickup telemetry excludes temporarily rejected loot",
+        "planned Farmer collection route keeps ownership and never defers to standalone potion travel",
+        "active Farmer collection only attempts potion piggyback after reaching the Farmer",
+        "production live services wires Alpha33 before same-version early return"
+      ],
+      "states": [
+        "LONG_ENCOUNTER_MARK",
+        "ACTIVE_LOCAL_GEAR_GOAL_RESERVED",
+        "BASE",
+        "LOCAL_GEAR_UPGRADE_READY",
+        "LOCAL_EQUIP_VERIFIED",
+        "IDLE",
+        "NO_LEDGER_AUTHORIZED_ACTION",
+        "TRAVEL_TO_FARMERS",
+        "LIVE_VISIBLE",
+        "LIVE_VISIBLE_POSITION",
+        "WAIT_FOR_EFFICIENT_BATCH",
+        "FARMER_INVENTORY_PRESSURE",
+        "MAX_BATCH_WAIT",
+        "BANK",
+        "KEEP",
+        "RESERVE_PROGRESSION",
+        "NONE",
+        "STATUS_REQUEST",
+        "MERCHANT_COLLECTION_FRESH_POSITION_REQUIRED",
+        "SELL",
+        "PREPARE_CAPACITY",
+        "COLLECT",
+        "WAITING_FOR_FARMER_COLLECTION_SETTLE",
+        "FARMER_PICKUP_DRAINED",
+        "RENDEZVOUS",
+        "RESTOCK_REQUIRED",
+        "CRITICAL_PARTY_SUPPLY_PREEMPT",
+        "WAITING_FOR_FRESH_FARMER_STATE_UNTIL_MERCHANT_FULL",
+        "PICKUP_ENTRY_BATCH",
+        "FARMER_COLLECTION_ROUTE",
+        "ROUTE_FARMERS_ABOVE_OPPORTUNISTIC_THRESHOLD"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 236,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 1,
+        "recovery": 0,
+        "merchant": 204,
+        "party": 32,
+        "persistence": 1,
+        "telemetry": 2,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Live alpha.20.107 proved that allowing the pre-existing same-identity row",
+        "// to remain generic loot leaves a same-index reuse race: it can be sent out",
+        "// after ACK and the incoming upgrade can land in that just-freed index.",
+        "// Freeze the whole targeted name+level identity until equip resolves.",
+        "// Live alpha.20.114 regression: one advertised pickup item with 30 free slots",
+        "// must not trigger a broad BANK sweep before Farmer rendezvous. This assertion",
+        "// also guards the final generated-bundle head used by pull-request CI.",
+        "// Live alpha.20.114 follow-up: a one-item pickup must not immediately pull the",
+        "// Merchant away from useful economy work when Farmers have plenty of space.",
+        "// Keep this assertion on the final user-authored PR head after bundle generation.",
+        "// A nearly full Farmer must be serviced even for a single pickup entry.",
+        "// Tiny loot is eventually collected even when the Farmer never reaches pressure.",
+        "// Live alpha.20.114 regression: after the advertised pickup is drained, the",
+        "// Merchant must not camp at Farmers waiting for future loot indefinitely."
+      ]
+    },
+    {
+      "path": "v3/test/alpha34-pi-control-daemon.test.js",
+      "blobSha": "20a229b37f1ebfdde83abb3943b720ad7ccfa0ba",
+      "size": 4903,
+      "lines": 108,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:http",
+        "../../ops/pi-control/pi-control-daemon"
+      ],
+      "testCases": [
+        "rejects unsafe service names and remote bind without TLS",
+        "authenticates status and requires idempotency keys for mutations",
+        "restart is idempotent and deploy main records rollback target",
+        "unknown mutations never become arbitrary commands"
+      ],
+      "states": [
+        "HEAD",
+        "INVALID_BOT_SERVICE",
+        "REMOTE_TLS_REQUIRED",
+        "GET",
+        "POST"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 19,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha35-bundle-autostart.test.js",
+      "blobSha": "06489850add79439729687419d90d723a9027cfe",
+      "size": 762,
+      "lines": 24,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:path"
+      ],
+      "testCases": [
+        "browser bundle bootstrap autostarts after JavaScript reload by default",
+        "browser bundle bootstrap keeps an explicit maintenance opt-out"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 3,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha36-debug-health-assessment.test.js",
+      "blobSha": "6f11b1f4f047a687bf25f57c830fe2f7b803cf19",
+      "size": 4691,
+      "lines": 116,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../host/debug-health-assessor",
+        "../host/debug-telemetry-exporter"
+      ],
+      "testCases": [
+        "debug health assessment stays healthy for a running healthy bot and treats restart count as evidence only",
+        "debug health assessment marks explicit degraded and restart-required evidence critical",
+        "watch states and warning events classify as degraded without inventing a critical failure",
+        "telemetry exporter stores the bounded host assessment inside the existing snapshot contract"
+      ],
+      "states": [
+        "HEALTHY",
+        "AIO_V3_DEBUG_SNAPSHOT",
+        "HEARTBEAT",
+        "DEGRADED",
+        "NO_RUNTIME_PROGRESS",
+        "HOST_RESTART",
+        "RUNTIME_WATCHDOG_STATE_CHANGED",
+        "CRITICAL",
+        "HOST_PROCESS_NOT_RUNNING",
+        "RUNTIME_HEALTH_DEGRADED",
+        "WATCHDOG_DEGRADED",
+        "GROUP_LIVENESS_DEGRADED",
+        "RECOVERY_HOST_RESTART_REQUIRED",
+        "CRITICAL_ALERT_PENDING",
+        "RECENT_ERROR_EVENT",
+        "WATCH",
+        "PARTY_OBSERVATION_DELAYED",
+        "RUNTIME_HEALTH_WATCH",
+        "WATCHDOG_WATCH",
+        "RECENT_WARNING_EVENT",
+        "STALE_SNAPSHOT",
+        "AIO_V3_DEBUG_HEALTH_ASSESSMENT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 24,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 8,
+        "merchant": 0,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 4,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha37-cloudflare-free-tier-budget.test.js",
+      "blobSha": "f10093c24feb41b7dde1b0ab35cca6986a6b643e",
+      "size": 4260,
+      "lines": 84,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/control/cloud-free-tier-budget",
+        "../src/control/cloud-control-plane"
+      ],
+      "testCases": [
+        "Cloudflare guard targets the active Worker with 95% total headroom and an infrastructure reserve",
+        "cloud request budget is persistent per character and fails closed at its limit",
+        "budget resets on the next UTC day and blocks when persistent storage is unavailable",
+        "budget fails closed when persisted accounting is corrupt, invalid, or from the future",
+        "CloudControlPlane defaults to the active Worker when only a write key is configured and reserves requests"
+      ],
+      "states": [
+        "DAILY_CHARACTER_BUDGET_EXHAUSTED",
+        "PERSISTENT_STORAGE_UNAVAILABLE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 20,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 7,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha8-fault-injection.test.js",
+      "blobSha": "ba17f897f49e332c93eb5add726ec7de43a2c683",
+      "size": 8613,
+      "lines": 211,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/game/command-outcomes",
+        "../src/game/stability-adapter",
+        "../src/world/resilient-persistence",
+        "../src/stability/combat-stability-supervisor",
+        "../src/stability/stability-runtime",
+        "../src/core/task"
+      ],
+      "testCases": [
+        "movement circuit closes after cooldown and allows a fresh verified attempt",
+        "pending movement coalesces repeated travel requests instead of issuing command spam",
+        "command outcome storage remains bounded under long synthetic pressure",
+        "successful persistence save closes prior failure circuit state",
+        "confirmed retreat movement is explicitly marked verified",
+        "timed-out retreat remains in recovery and is surfaced as degraded",
+        "dead character resumes on the same scheduler task after revival",
+        "synthetic stability soak stays bounded over thousands of shadow ticks"
+      ],
+      "states": [
+        "MOVE_OUTCOME_PENDING",
+        "CRITICAL_HP",
+        "PENDING",
+        "POSITION_CHANGED",
+        "CONFIRMED",
+        "OBSERVED_EFFECT_TIMEOUT",
+        "TIMED_OUT",
+        "SAFE_RETREAT_OUTCOME_TIMEOUT",
+        "RECOVER",
+        "EMERGENCY_RETREAT_UNCONFIRMED",
+        "FARMER_SAFE_RETREAT_UNCONFIRMED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 39,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 0,
+        "party": 2,
+        "persistence": 10,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha8-stability-certification.test.js",
+      "blobSha": "26e11441241659a36ad2d5d3fc51e66d53a0962c",
+      "size": 13297,
+      "lines": 317,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/game/command-outcomes",
+        "../src/game/stability-adapter",
+        "../src/core/stable-scheduler",
+        "../src/core/task",
+        "../src/world/resilient-persistence",
+        "../src/world/knowledge-aging",
+        "../src/stability/stability-runtime"
+      ],
+      "testCases": [
+        "CommandOutcomeTracker confirms movement only after observed position progress",
+        "CommandOutcomeTracker times out an accepted command with no observed effect",
+        "StabilityGameAdapter opens a bounded movement circuit after repeated unverified moves",
+        "StabilityGameAdapter resets movement failure streak after observed progress",
+        "StableScheduler does not churn retries during an explicit stable wait",
+        "StableScheduler resumes with a fresh stall window after stable wait resolves",
+        "ResilientWorldPersistence retries a failed load instead of permanently marking it loaded",
+        "ResilientWorldPersistence opens a save circuit after repeated write failures",
+        "KnowledgeAgingPolicy reduces stale confidence and marks revalidation",
+        "stale learned performance adds conservative new-pull risk",
+        "StabilityRuntime keeps a dead farmer task in stable wait without retry churn",
+        "StabilityRuntime audits operator announcements without game_log or DOM",
+        "skill outcome timeout is converted into conservative failure backoff",
+        "StabilityRuntime status remains JSON serializable with all stability layers enabled"
+      ],
+      "states": [
+        "POSITION_CHANGED",
+        "MOVEMENT_CIRCUIT_OPEN",
+        "FARMER_FSM",
+        "CHARACTER_DEAD",
+        "NO_SNAPSHOT",
+        "RISK_ACCEPTABLE",
+        "RISK_ACCEPTABLE_STALE_KNOWLEDGE",
+        "VISIBLE_MODE_CHANGED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 54,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 7,
+        "persistence": 17,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha9-local-farming.test.js",
+      "blobSha": "509af18deffe96ec2115a21acf5468ed73dc8a9d",
+      "size": 14239,
+      "lines": 390,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "LocalFarmPlanner extracts same-map spawn centers and rejects unapproved content",
+        "LocalFarmOrchestrator previews bounded repositioning in shadow without executing movement",
+        "LocalFarmOrchestrator active movement is bounded and pending outcomes suppress command spam",
+        "LocalFarmOrchestrator always yields to any visible live monster, including unknown content",
+        "LocalFarmOrchestrator does not reposition while HP recovery is required",
+        "LocalFarmOrchestrator respects the alpha.8 movement circuit",
+        "LocalFarmOrchestrator aborts a plan after bounded no-progress and enters replan cooldown",
+        "LocalFarmOrchestrator holds a plan through minimum hold time and only switches for material improvement later",
+        "LocalFarmOrchestrator aborts a stale plan immediately after a map change without issuing another move",
+        "LocalFarmOrchestrator aborts a plan when its monster policy is quarantined",
+        "Alpha9Runtime exposes dashboard-safe local farming status and previews a known spawn in shadow",
+        "Alpha9Runtime never plans toward a map-metadata monster that has not been approved or legacy-allowed",
+        "Alpha9 shadow soak remains bounded while repeatedly planning a same-map approved spawn"
+      ],
+      "states": [
+        "REASSESS",
+        "APPROVED",
+        "SHADOW_MOVE",
+        "PENDING",
+        "MOVE",
+        "MOVE_OUTCOME_PENDING",
+        "YIELD",
+        "VISIBLE_MONSTER_PRESENT",
+        "HP_RECOVERY_REQUIRED",
+        "MOVEMENT_CIRCUIT_OPEN",
+        "ABORT",
+        "NO_PROGRESS",
+        "REPLAN_COOLDOWN",
+        "NO_APPROVED_LOCAL_SPAWN",
+        "MAP_CHANGED",
+        "PLAN_NO_LONGER_ELIGIBLE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 57,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 0,
+        "party": 14,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/aoe-farming-completion.test.js",
+      "blobSha": "28bcbdaf01ba74b0b77c5ded81283fe372d7ef33",
+      "size": 12078,
+      "lines": 377,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/autonomy/tactical-party-combat",
+        "../src/autonomy/smart-aoe-planner",
+        "../src/autonomy/combat-modes",
+        "../src/autonomy/local-farm-planner",
+        "../src/autonomy/alpha9-runtime",
+        "../src/planner/farm-planner",
+        "../src/autonomy/aoe-farming-certification"
+      ],
+      "testCases": [
+        "Warrior agitate can pull multiple safe targets outside normal autoattack range",
+        "agitate fails closed when its radius contains an unsafe unplanned monster and falls back to one safe tag",
+        "AoE farm planning exposes capability context without recursive runtime calls",
+        "AoE preferred farm ranking favors a dense pack when baseline farm value is equal",
+        "AoE certification passes a controlled live smoke and bounded soak, then fails closed on content drift"
+      ],
+      "states": [
+        "TEST",
+        "SMART_AOE_PULL_AGITATE",
+        "AGITATE",
+        "SMART_AOE_PULL_EXPAND",
+        "TAG",
+        "APPROVED",
+        "RESOLVED",
+        "SUCCESS",
+        "AOE_SOAK_PASSED",
+        "CONTENT_DRIFT",
+        "ABORTED",
+        "QUARANTINED",
+        "SOAK_CONTENT_DRIFT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 39,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 26,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Final integration gate: generated runtime bundle must remain unchanged on this user-authored PR head."
+      ]
+    },
+    {
+      "path": "v3/test/architecture-step10-windows-host-service.test.js",
+      "blobSha": "103c26dbc31d6bd23448c752c7da5d0bfdfdcd74",
+      "size": 8839,
+      "lines": 238,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "node:events",
+        "../host/windows-host-service-supervisor",
+        "../host/windows-host-service"
+      ],
+      "testCases": [
+        "persistent Windows start budget survives process restart and opens a bounded circuit",
+        "persistent Windows start budget fails closed on corrupt/unreadable state",
+        "Windows host service supervisor stops the harness if post-start state persistence fails",
+        "Windows host service records clean shutdown and stable state without adding authority",
+        "SIGINT/SIGTERM handler uses the bounded service stop path",
+        "Windows host config keeps API secret in environment and requires loopback CDP",
+        "Windows Task Scheduler installer uses interactive logon, bounded restart and DPAPI CurrentUser",
+        "2500-cycle Windows service supervisor soak remains bounded and authority-free"
+      ],
+      "states": [
+        "START_BUDGET_EXHAUSTED",
+        "START_CIRCUIT_OPEN",
+        "STATE_FILE_CORRUPT",
+        "SERVICE_STATE_UNAVAILABLE",
+        "WINDOWS_HOST_STATE_PERSIST_FAILED",
+        "TEST",
+        "SIGTERM",
+        "WINDOWS_SIGTERM",
+        "AIO_V3_HOST_API_TOKEN",
+        "SOAK"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 46,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 2,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 9,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/architecture-step11-windows-session-bootstrap.test.js",
+      "blobSha": "e7230b25ee4c5d33ad30df3eba408ea49c5c32cb",
+      "size": 8340,
+      "lines": 205,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "../host/cdp-adventure-land-session",
+        "../host/windows-host-service",
+        "../host/windows-host-service-supervisor"
+      ],
+      "testCases": [
+        "CDP startup window waits for delayed AIO_V3 runtime without restarting the outer service",
+        "CDP startup window fails closed with explicit timeout when runtime never appears",
+        "Windows browser bootstrap requires dedicated profile, matching CDP port and Adventure Land launch URL",
+        "Windows production config enables five-minute session bootstrap without storing Adventure Land credentials",
+        "internal runtime startup polling burns only one persistent service start admission",
+        "Windows installer permanently configures persistent profile and bounded runtime startup grace"
+      ],
+      "states": [
+        "AIO_V3_OPERATIONS_UNAVAILABLE",
+        "READY",
+        "TIMEOUT",
+        "AIO_V3_HOST_API_TOKEN",
+        "TEST"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 37,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 4,
+        "rejects": 1
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 4,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/architecture-step12-production-alerting.test.js",
+      "blobSha": "395710ec05a8af09c9a82a4a17ffd088afe283b5",
+      "size": 11641,
+      "lines": 287,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "../host/alert-relay",
+        "../host/managed-process-launcher",
+        "../host/windows-alerting",
+        "../host/windows-host-service"
+      ],
+      "testCases": [
+        "Windows alert secret schema requires two independent HTTPS hosts and blocks dangerous headers",
+        "production CRITICAL transports expose health but never URL/header secrets",
+        "durable CRITICAL alert remains pending until both independent required routes accept it",
+        "operator canary tests both routes independently without operator/gameplay acknowledgement authority",
+        "Windows host config keeps host-only secrets non-enumerable and strips them from Chromium environment",
+        "production alerting fails closed if DPAPI-provided secret environment is absent",
+        "ManagedProcessLauncher supports a non-inheriting child environment for Windows browser isolation",
+        "browser environment sanitizer is an allowlist, not a secret-name denylist",
+        "Windows PowerShell alert path uses DPAPI CurrentUser and clears decrypted environment values"
+      ],
+      "states": [
+        "CRITICAL",
+        "TEST",
+        "STEP12",
+        "AIO_V3_HOST_API_TOKEN",
+        "AIO_V3_ALERT_SECRETS_JSON"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 64,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 5,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/architecture-step13-windows-production-certification.test.js",
+      "blobSha": "8e1cf866ef65282cb1ae96855cf4ba5ef440297e",
+      "size": 23673,
+      "lines": 500,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "../host/host-api-server",
+        "../host/host-watchdog-supervisor",
+        "../host/restart-reconciliation-observer",
+        "../src/ops/reconciliation-status",
+        "../host/unattended-certification"
+      ],
+      "testCases": [
+        "Step 13 gate order and production durations are fixed and monotonic",
+        "healthy production status passes every host/session/liveness/alert authority invariant",
+        "certification status fails closed on session loss, group liveness loss, critical alert or secret inheritance",
+        "Host API status provider adds read-only runtime host evidence without adding methods",
+        "watchdog certification beacon summary is allowlisted and cannot echo unknown secret fields",
+        "hash-chained evidence detects tampering and keeps marker secrets redacted",
+        "canary passes only after dual-route canary, verified recovery marker and stable duration samples",
+        "controlled recovery marker rejects fake unchanged run/counter evidence",
+        "elapsed time alone never passes: unhealthy samples and sampling gaps permanently fail the run",
+        "24h+ gates require explicit runtime action audit evidence with a hashed review source",
+        "passed prerequisite evidence is hash-verified and tied to the expected gate",
+        "Windows certification scripts use Task Scheduler, DPAPI, explicit restart acknowledgement and immutable audit hashes",
+        "certification evidence fails closed on clock regression and future timestamps",
+        "current reconciliation evidence is required, fresh and clean for every production sample",
+        "passive reconciliation polling uses only reconciliationStatus and never gains action authority",
+        "reconciliation blocks open critical circuits without gaining action authority",
+        "runtime action audit rejects weak attestations and explicit unexpected raw actions",
+        "missing local character evidence blocks certification even if the group flag is inconsistent",
+        "5000 simulated healthy evidence ticks stay bounded and cannot bypass real duration",
+        "evidence can be reopened after process restart with the same verified hash chain"
+      ],
+      "states": [
+        "GET",
+        "HEALTHY",
+        "IDLE",
+        "CRITICAL",
+        "HOST_HEARTBEAT",
+        "PENDING_ALERTS",
+        "CLAIM_ALERTS",
+        "RECONCILIATION_STATUS",
+        "READY",
+        "CDP_SESSION_NOT_CONNECTED",
+        "FOUR_CHARACTER_GROUP_NOT_READY",
+        "CRITICAL_ALERT_PENDING",
+        "BROWSER_SECRET_ISOLATION_INVALID",
+        "AIO_V3_HOST_WATCHDOG_BEACON",
+        "MARKER",
+        "START",
+        "OBSERVED_CLEAN",
+        "SAMPLE",
+        "CONTROLLED_RECOVERY_RUN_ID_NOT_FRESH",
+        "WATCHDOG_NOT_HEALTHY",
+        "UNHEALTHY_SAMPLE_AT_",
+        "SAMPLE_GAP_EXCEEDED_AT_",
+        "RUNTIME_ACTION_AUDIT_MISSING",
+        "CLEAN",
+        "FINAL",
+        "DUAL_ROUTE_ALERT_CANARY_EVIDENCE_FAILED",
+        "FAIL",
+        "CLOCK_REGRESSION_AT_",
+        "FUTURE_TIMESTAMP_AT_",
+        "CURRENT_RECONCILIATION_EVIDENCE_MISSING",
+        "ECONOMY_TRANSACTION_RECOVERING",
+        "CURRENT_RECONCILIATION_STALE",
+        "CURRENT_RECONCILIATION_NOT_CLEAN",
+        "COMPLETE",
+        "ECONOMY_SELL_CIRCUIT_OPEN",
+        "BANK_EXPANSION_CIRCUIT_OPEN",
+        "MERCHANT_SPACE_RECOVERY_CIRCUIT_OPEN",
+        "TRAVEL_CIRCUIT_OPEN",
+        "PARTY_LIFECYCLE_CIRCUIT_OPEN",
+        "MERCHANT_SERVICE_CIRCUIT_OPEN",
+        "MOVEMENT_CIRCUIT_OPEN",
+        "PERSISTENCE_SAVE_CIRCUIT_OPEN",
+        "RUNTIME_ACTION_AUDIT_INVALID",
+        "UNEXPECTED_RAW_GAMEPLAY_ACTIONS_OBSERVED",
+        "LOCAL_CHARACTER_EVIDENCE_MISSING",
+        "PENDING",
+        "DURATION_NOT_SATISFIED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 100,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 4,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 27,
+        "merchant": 9,
+        "party": 2,
+        "persistence": 2,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/architecture-step7-hotfix-layer-removal.test.js",
+      "blobSha": "ca17cb0ddfb67ee8ba1a84882f38768944bd150b",
+      "size": 2354,
+      "lines": 63,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:path",
+        "../scripts/legacy-reliability-layer-guard"
+      ],
+      "testCases": [
+        "step 7 permanently removes every retired reliability compatibility file",
+        "step 7 keeps all migrated behavior available from permanent domain owners",
+        "step 7 architecture guard rejects any reintroduction of retired reliability paths"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 6,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 2,
+        "party": 20,
+        "persistence": 1,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}

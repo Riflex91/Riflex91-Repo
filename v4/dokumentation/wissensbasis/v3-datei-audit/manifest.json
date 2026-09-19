@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "title": "V3 Vollinventur Roh-Audit",
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "sourceTree": "395f0f51921c0d583eb9c3b8ff45e41ed75f7d28",
+  "counts": {
+    "total": 535,
+    "source": 238,
+    "tests": 205,
+    "host": 23,
+    "scripts": 15,
+    "docs": 12,
+    "supabase": 5,
+    "dist": 2,
+    "rootAndOther": 35
+  },
+  "completeness": {
+    "machineReadableFileAudit": true,
+    "semanticConsolidationComplete": false
+  },
+  "shards": [
+    {
+      "file": "src-001-015.json",
+      "blobSha": "3624a24f612b1ada656a1aba0899633472712f67"
+    },
+    {
+      "file": "src-016-030.json",
+      "blobSha": "8c600da85a499eb61703b9794a1617f7c62b39e8"
+    },
+    {
+      "file": "src-031-045.json",
+      "blobSha": "5ba4811737d0ac33ef6980337a6149f7e9d4991f"
+    },
+    {
+      "file": "src-046-060.json",
+      "blobSha": "8271d369b81be816d3d66556e444dd98aa7b18f0"
+    },
+    {
+      "file": "src-061-075.json",
+      "blobSha": "cf9abcaef24abde88c30223d8ecbc6cb50512d09"
+    },
+    {
+      "file": "src-076-090.json",
+      "blobSha": "37f8aa572f45c63a14293d41611cad2531f9fc79"
+    },
+    {
+      "file": "src-091-107.json",
+      "blobSha": "629f74c37e67543f8f77517fee2db23a4d6a11bd"
+    },
+    {
+      "file": "src-108-124.json",
+      "blobSha": "424bc36b7eb828bb6bbcfead02c51ded166f301f"
+    },
+    {
+      "file": "src-125-141.json",
+      "blobSha": "ceda0e573a0ccf8b899e197a0bb504564317b3a0"
+    },
+    {
+      "file": "src-142-158.json",
+      "blobSha": "d4eeaa57f6c5f08eb011d97e7aa2153b0f014fe7"
+    },
+    {
+      "file": "src-159-175.json",
+      "blobSha": "7e2d5da64a09cc28edc11bcfbcabbb411c566086"
+    },
+    {
+      "file": "src-176-187.json",
+      "blobSha": "bb7fa2cd27f2b4dc0b637aacb9d2851e478d5c5e"
+    },
+    {
+      "file": "src-188-202.json",
+      "blobSha": "98bdaa2ee30f6e3dfc3e966e8b768f7927ad00af"
+    },
+    {
+      "file": "src-203-217.json",
+      "blobSha": "e2da3a6c3df89ef3b642b9654508691970209804"
+    },
+    {
+      "file": "src-218-232.json",
+      "blobSha": "70f1c2c5364a7c6fa4738b3e5599072bff1f38f7"
+    },
+    {
+      "file": "src-233-238.json",
+      "blobSha": "1a67a171b4d197b00eef958d03d798b1272a19e3"
+    },
+    {
+      "file": "test-001-015.json",
+      "blobSha": "89ec77f39a887e105e1491f46bb1abc23a1db48e"
+    },
+    {
+      "file": "test-016-030.json",
+      "blobSha": "33ae289a4eaecf0611e62f1d6ef4a0226e4f10a9"
+    },
+    {
+      "file": "test-031-045.json",
+      "blobSha": "51be705c66829495c0801463e25eab2286ed00fa"
+    },
+    {
+      "file": "test-046-060.json",
+      "blobSha": "f2d40793773e3e8eeab33ef4918a5af788360bea"
+    },
+    {
+      "file": "test-061-075.json",
+      "blobSha": "7653c0704e9c7ff9bd7b7ba66b8641bc685d97e0"
+    },
+    {
+      "file": "test-076-090.json",
+      "blobSha": "b496589eb306c80e67cb8e7754ac32cee9a3d85d"
+    },
+    {
+      "file": "test-091-105.json",
+      "blobSha": "faa4ab16fe5b59151290eca03a6089bfa672ee93"
+    },
+    {
+      "file": "test-106-120.json",
+      "blobSha": "bf97f89b489162f9e2ceb5186a7a3cb1dc0c68f4"
+    },
+    {
+      "file": "test-121-135.json",
+      "blobSha": "9b34a2743dd15de096ed6a19838e0e552b2a8be0"
+    },
+    {
+      "file": "test-136-150.json",
+      "blobSha": "116bb6a986c961451e84285e63b7a053072b4a52"
+    },
+    {
+      "file": "test-151-165.json",
+      "blobSha": "3344f18941901b56319080a642654b2e198adcb6"
+    },
+    {
+      "file": "test-166-180.json",
+      "blobSha": "2ff2fd3ee73a79395737c7094b0cdcd09e136e06"
+    },
+    {
+      "file": "test-181-195.json",
+      "blobSha": "03b68f9fafb5d71a23cb014651fe9323f9ea7d9e"
+    },
+    {
+      "file": "test-196-205.json",
+      "blobSha": "b96c97f53660b4e72ba3ec28cc650ae40b96ae8d"
+    },
+    {
+      "file": "host-001-015.json",
+      "blobSha": "55385d75544ee0e9006ba059a5fdcad1ae66bf31"
+    },
+    {
+      "file": "host-016-023.json",
+      "blobSha": "e822ce21ea9ae6b8bcd8011a29092e8a2f5bef0d"
+    },
+    {
+      "file": "scripts-001-015.json",
+      "blobSha": "839511623dee1dc51022ccf782357e0f729f80f8"
+    },
+    {
+      "file": "docs-001-012.json",
+      "blobSha": "ac309ee4e8586ef3b1885a1febecabd981b2647c"
+    },
+    {
+      "file": "supabase-001-005.json",
+      "blobSha": "52fee1c6a54e2e9ceea91e038b7542c6e52f99ed"
+    },
+    {
+      "file": "dist-001-002.json",
+      "blobSha": "74e7b95e44815378d8f47a06aef2bec4a4cf62ae"
+    },
+    {
+      "file": "root-other-001-015.json",
+      "blobSha": "8f89ac6d2dd2f1f97435142d6958f2aa3e4e4e36"
+    },
+    {
+      "file": "root-other-016-030.json",
+      "blobSha": "8e276d2a433a1ddba39ce420d7c72d32808d131c"
+    },
+    {
+      "file": "root-other-031-035.json",
+      "blobSha": "f379a4aa3ba3044babf2676ac57e6c3ae51a5f7d"
+    }
+  ]
+}

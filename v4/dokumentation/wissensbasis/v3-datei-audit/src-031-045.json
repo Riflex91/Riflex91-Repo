@@ -1,0 +1,830 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "scope": "v3/src",
+  "range": {
+    "start": 30,
+    "end": 45,
+    "total": 238
+  },
+  "files": [
+    {
+      "path": "v3/src/autonomy/smart-aoe-planner.js",
+      "blobSha": "4af241d92c4d9d6b9e14148576dff7d75f350ca2",
+      "size": 13473,
+      "lines": 313,
+      "imports": [
+        "./combat-modes",
+        "./skill-semantics"
+      ],
+      "symbols": [
+        "finite",
+        "clamp",
+        "ratio",
+        "liveRows",
+        "skillHasAoeCapability",
+        "SmartAoePlanner",
+        "SMART_AOE_PLANNER_MODE",
+        "SmartAoeState"
+      ],
+      "methods": [
+        "_event",
+        "_aoeSkills",
+        "_resourceState",
+        "_hardCapacity",
+        "_desiredSize",
+        "planningProfile",
+        "evaluate",
+        "evaluateCandidate",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "RECOVER",
+        "BUILD_PULL",
+        "HOLD_PULL",
+        "AOE_BURN",
+        "FINISH",
+        "ABORT_PULL",
+        "ADAPTIVE_PULL_ERROR",
+        "NO_ACTIVE_ENCOUNTER",
+        "PARTY_SAFETY_NOT_READY",
+        "EMERGENCY_RESOURCE_OR_DAMAGE_RISK",
+        "SINGLE_TARGET_MODE",
+        "AOE_CAPABILITY_UNAVAILABLE",
+        "READY_FOR_FIRST_TARGET",
+        "RESOURCES_BELOW_BUILD_THRESHOLD",
+        "ENGAGED_COUNT_EXCEEDS_HARD_CAPACITY",
+        "PRIMARY_TARGET_NEAR_FINISH",
+        "BELOW_DESIRED_PULL_SIZE",
+        "DESIRED_PULL_ESTABLISHED",
+        "MULTI_TARGET_ALREADY_ENGAGED",
+        "HOLD_CURRENT_ENGAGEMENT",
+        "NO_MORE_TARGETS_UNTIL_RECOVERED",
+        "PLANNER_NOT_BUILDING_PULL",
+        "PULL_CAPACITY_REACHED",
+        "TARGET_EVALUATION_REJECTED",
+        "AGGREGATE_PROJECTED_DAMAGE_TOO_HIGH",
+        "WITHIN_DYNAMIC_PULL_CAPACITY"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 10,
+        "merchant": 0,
+        "party": 29,
+        "persistence": 0,
+        "telemetry": 12,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/autonomy/tactical-party-combat.js",
+      "blobSha": "497c97323e47a37c5763421dca26c188fa5f8928",
+      "size": 38668,
+      "lines": 737,
+      "imports": [
+        "./smart-aoe-planner",
+        "./combat-modes",
+        "../party/fingerprints"
+      ],
+      "symbols": [
+        "finite",
+        "clamp",
+        "lower",
+        "distance",
+        "installTacticalPartyCombat",
+        "TacticalPartyCombat",
+        "TACTICAL_PARTY_COMBAT_MODE"
+      ],
+      "methods": [
+        "_event",
+        "_monsterMeta",
+        "_specialFreshPull",
+        "_memberLiveRow",
+        "_partyDps",
+        "_targetDps",
+        "_avoidance",
+        "_rangeScore",
+        "evaluateTarget",
+        "_combatMode",
+        "_partyCapabilities",
+        "_encounterEntities",
+        "_refreshEncounterPlan",
+        "_finalizeEncounter",
+        "_setEncounter",
+        "canAddTarget",
+        "_pullCandidates",
+        "_tryAgitatePull",
+        "maybeExpandPull",
+        "_currentEntity",
+        "_selection",
+        "install",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "TARGET_MISSING",
+        "FRESH_BOSS_OR_SPECIAL_PULL_FORBIDDEN",
+        "PARTY_MEMBER_UNDER_ATTACK",
+        "TACTICAL_ROUTINE_TARGET",
+        "TARGET_AVOIDANCE_TOO_HIGH",
+        "PROJECTED_COMBAT_RISK_TOO_HIGH",
+        "SMART_AOE_PULL_OBSERVED",
+        "PENDING_PULL_JOINED_ENCOUNTER",
+        "TAG",
+        "SMART_AOE_PULL_TIMEOUT",
+        "PULL_AGGRO_NOT_OBSERVED",
+        "SURVIVING_ENCOUNTER_TARGET_PROMOTED",
+        "ENCOUNTER_PRIMARY_PROMOTED",
+        "PRIMARY_RESOLVED_WITH_SURVIVING_TRACKED_TARGETS",
+        "PRIMARY",
+        "ENGAGED",
+        "PLAN_REFRESH",
+        "TACTICAL_TARGET_REPLACED",
+        "ENCOUNTER_TARGET",
+        "PULL_CONTEXT_UNAVAILABLE",
+        "PULL_OWNED_BY_TEAM_LEADER",
+        "SINGLE_TARGET_MODE",
+        "ENCOUNTER_MISSING",
+        "TARGET_ALREADY_IN_ENCOUNTER",
+        "TARGET_NOT_LOCALLY_SAFE",
+        "SMART_AOE_AGITATE_BLOCKED",
+        "AGITATE_RADIUS_CONTAINS_UNSAFE_OR_UNPLANNED_TARGET",
+        "ADAPTER_UNAVAILABLE",
+        "AGITATE",
+        "SMART_AOE_AGITATE_SAFE_PULL",
+        "SMART_AOE_PULL_AGITATE",
+        "SAFE_RADIUS_MATCHES_BOUNDED_PULL",
+        "SMART_AOE_AGITATE_PULL",
+        "SMART_AOE_PULL_EXPANSION",
+        "TEAM_COMBAT_GATE_BLOCKED",
+        "PLANNER_NOT_BUILDING_PULL",
+        "PULL_AGGRO_CONFIRMATION_PENDING",
+        "PULL_EXPANSION_INTERVAL",
+        "NO_SAFE_IN_RANGE_PULL_CANDIDATE",
+        "SMART_AOE_PULL_HOLD",
+        "PULL_ATTACK_FAILED",
+        "SMART_AOE_PULL_EXPAND",
+        "LEADER_TAGGED_ONE_SAFE_CANDIDATE",
+        "SMART_AOE_PULL_EXPANDED",
+        "LEADER_ENCOUNTER_INVALIDATED",
+        "TARGET_HOLD",
+        "LEADER_TACTICAL_SELECTION",
+        "FOLLOWER_LEADER_ENCOUNTER_MIRROR",
+        "CLEARLY_BETTER_TEAM_TARGET",
+        "TACTICAL_PARTY_COMBAT_INSTALLED"
+      ],
+      "signals": {
+        "patching": 2,
+        "recovery": 7,
+        "merchant": 0,
+        "party": 55,
+        "persistence": 102,
+        "telemetry": 27,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/brain/feature-encoder.js",
+      "blobSha": "5bcd942f6e67c861dadc985eca5063a45f38d9dc",
+      "size": 3341,
+      "lines": 92,
+      "imports": [
+        "../core/numeric"
+      ],
+      "symbols": [
+        "candidateId",
+        "StrategicFeatureEncoder",
+        "FEATURE_SCHEMA_VERSION",
+        "FEATURE_NAMES"
+      ],
+      "methods": [
+        "encodeCandidates",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [],
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 3,
+        "telemetry": 1,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/brain/replay-buffer.js",
+      "blobSha": "7613036ca69db4962f9eb0b75799e41925919ef5",
+      "size": 1059,
+      "lines": 49,
+      "imports": [],
+      "symbols": [
+        "safeClone",
+        "BoundedReplayBuffer"
+      ],
+      "methods": [
+        "push",
+        "list",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [],
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 1,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/brain/shadow-brain.js",
+      "blobSha": "79dae51d1b77b94b797b7a8ec28d593f43825411",
+      "size": 7415,
+      "lines": 203,
+      "imports": [
+        "./feature-encoder",
+        "./replay-buffer"
+      ],
+      "symbols": [
+        "finite",
+        "bounded",
+        "ShadowStrategicBrain",
+        "BrainQualityState",
+        "DEFAULT_WEIGHTS"
+      ],
+      "methods": [
+        "_score",
+        "_quality",
+        "_updateQuality",
+        "_distill",
+        "observe",
+        "replay",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "WARMUP",
+        "HEALTHY",
+        "WATCH",
+        "QUARANTINED",
+        "BRAIN_QUALITY_CHANGED",
+        "NO_ELIGIBLE_CANDIDATES",
+        "BRAIN_SHADOW_RECOMMENDATION"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 12,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/brain/strategic-brain-v2.js",
+      "blobSha": "269c960d120347f0b614d06cdd8d7a49b85f7950",
+      "size": 54096,
+      "lines": 817,
+      "imports": [
+        "./replay-buffer"
+      ],
+      "symbols": [
+        "finite",
+        "clamp",
+        "ratio",
+        "softmax",
+        "entropy",
+        "safeClone",
+        "seeded",
+        "average",
+        "scoreVector",
+        "targetVector",
+        "actionFrom",
+        "vectorDistance",
+        "storageOf",
+        "partyRows",
+        "freeSlots",
+        "performanceStatus",
+        "currentRates",
+        "currentMarketLiquidity",
+        "worldConfidence",
+        "currentKiteConfidence",
+        "recentErrorHealth",
+        "targetCandidate",
+        "brainCapabilityContext",
+        "deterministicTeacher",
+        "TinyStrategyNetwork",
+        "BrainStateEncoderV2",
+        "StrategicBrainV2",
+        "BRAIN_V2_MODE",
+        "BRAIN_V2_ACTIONS",
+        "BRAIN_V2_INPUT_NAMES",
+        "HIDDEN_SIZE",
+        "STORAGE_KEY"
+      ],
+      "methods": [
+        "if",
+        "forward",
+        "train",
+        "snapshot",
+        "restore",
+        "encode",
+        "_cfg",
+        "_diary",
+        "_restore",
+        "_save",
+        "_novelty",
+        "_quality",
+        "_train",
+        "_replayTrain",
+        "_teacherFor",
+        "observe",
+        "ingestTeacher",
+        "captureMetrics",
+        "tickOutcome",
+        "_latestEncounterOutcome",
+        "ingestEncounterOutcome",
+        "_validationLoss",
+        "_leagueEvent",
+        "_leagueCheck",
+        "teacherRequest",
+        "shouldAskTeacher",
+        "replay",
+        "exportState",
+        "importState",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "DETERMINISTIC_BASELINE",
+        "RISK_EVIDENCE_REDUCED_PULL",
+        "SUSTAINABLE_XP_OPTIMUM",
+        "BOUNDED_EXPLORATION",
+        "STANDBY",
+        "MARKET_SERVICE",
+        "BRAIN_V2_OBSERVATION",
+        "BRAIN_V2_GENERIC_OUTCOME_SUPPRESSED",
+        "ENCOUNTER_OUTCOME_ALREADY_ATTRIBUTED",
+        "BRAIN_V2_OUTCOME",
+        "ENCOUNTER_OUTCOME_INVALID",
+        "ENCOUNTER_OUTCOME_DUPLICATE",
+        "ENCOUNTER_OUTCOME_DEDUPE_PERSIST_FAILED",
+        "ENCOUNTER_OUTCOME_DEDUPE_STORAGE_UNAVAILABLE",
+        "CONTENT_DRIFT",
+        "INTERRUPTED",
+        "ENCOUNTER_OUTCOME_NOT_LEARNING_ELIGIBLE",
+        "DEATH",
+        "PARTY_FAILURE",
+        "SAFE_ABORT",
+        "BRAIN_V2_ENCOUNTER_OUTCOME",
+        "MINOR_CONTEXT_ONLY"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 8,
+        "merchant": 33,
+        "party": 45,
+        "persistence": 39,
+        "telemetry": 99,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Adventure Land progression is gear-dominant: character level is useful",
+        "// context and an equip/content gate, but it is not a reliable proxy for",
+        "// combat strength. Keep the legacy feature for model compatibility while",
+        "// deliberately bounding its influence; live combat stats, gear pressure",
+        "// and measured performance carry the real strength signal."
+      ]
+    },
+    {
+      "path": "v3/src/composition/runtime-composition.js",
+      "blobSha": "8cc0c2a9a113a9c4cc5b9d190fb077902beba466",
+      "size": 7599,
+      "lines": 175,
+      "imports": [
+        "../runtime",
+        "../stability/stability-runtime",
+        "../autonomy/alpha9-runtime",
+        "../autonomy/alpha10-runtime",
+        "../autonomy/alpha11-runtime",
+        "../autonomy/alpha12-runtime",
+        "../autonomy/alpha12-hardened-runtime",
+        "../autonomy/alpha13-runtime",
+        "../autonomy/alpha14-runtime",
+        "../autonomy/alpha15-runtime",
+        "../autonomy/alpha16-runtime",
+        "../autonomy/alpha17-runtime",
+        "../autonomy/alpha18-runtime",
+        "../autonomy/alpha19-runtime",
+        "../autonomy/alpha20-runtime",
+        "../autonomy/alpha20-5-merchant-runtime",
+        "../autonomy/alpha20-5-farm-readiness-runtime",
+        "./runtime-lifecycle"
+      ],
+      "symbols": [
+        "bindLayerMethods",
+        "installCompatibilityHasInstance",
+        "serviceGroup",
+        "buildServiceGroups",
+        "createRuntimeComposition",
+        "RuntimeComposition",
+        "COMPOSED_RUNTIME",
+        "COMPOSITION_MODE",
+        "METHOD_LAYERS",
+        "COMPATIBILITY_TYPES"
+      ],
+      "methods": [
+        "for",
+        "compositionStatus"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "AIO_V3_RUNTIME_COMPOSED"
+      ],
+      "signals": {
+        "patching": 6,
+        "recovery": 3,
+        "merchant": 24,
+        "party": 29,
+        "persistence": 3,
+        "telemetry": 4,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/composition/runtime-lifecycle.js",
+      "blobSha": "643b6c90fb3769f30caf32a6fee143afe017c102",
+      "size": 569,
+      "lines": 20,
+      "imports": [],
+      "symbols": [
+        "assertRuntimeLifecycle",
+        "RUNTIME_LIFECYCLE_METHODS"
+      ],
+      "methods": [],
+      "directAdventureLandWrites": [],
+      "states": [],
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 2,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/content/content-drift-semantic-recovery.js",
+      "blobSha": "696747b9235e2f83a14ac5e47582ada614767aab",
+      "size": 7973,
+      "lines": 220,
+      "imports": [
+        "../world/world-model",
+        "../farmer/content-safety"
+      ],
+      "symbols": [
+        "finite",
+        "boundedMessage",
+        "installContentDriftSemanticRecovery",
+        "ContentDriftSemanticRecovery",
+        "DANGEROUS",
+        "NON_FARM_MONSTERS",
+        "NEVER_AUTO_RECOVER"
+      ],
+      "methods": [
+        "_event",
+        "_fact",
+        "_recoverPolicy",
+        "_eligible",
+        "_recoverRecord",
+        "beforeTick",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "RECOVERED_PRUNED_BASELINE",
+        "QUARANTINED",
+        "OPERATOR_QUARANTINED",
+        "OBSERVED",
+        "CONTENT_FALSE_NOVELTY_RECOVERED",
+        "PRUNED_BASELINE_FALSE_NOVELTY",
+        "CONTENT_DRIFT_RECORDS_UNAVAILABLE",
+        "CONTENT_FALSE_NOVELTY_RECOVERY_SKIPPED",
+        "RECORD_RECOVERY_ERROR"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 36,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 15,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Observability must never become action authority. Recovery remains",
+        "// fail-closed even when the diagnostic sink itself is unhealthy.",
+        "// A genuine definition change must never be auto-recovered. The corruption",
+        "// observed live was a missing baseline record being re-created as NOVELTY:",
+        "// no previous fingerprint and changeCount === 0.",
+        "// Cache all evidence needed by the mutation and telemetry paths. The World",
+        "// Model can legitimately change between observations; never dereference the",
+        "// entity a second time after eligibility was established.",
+        "// A corrupt/stale individual drift row must not abort runtime.start(). The",
+        "// row stays untouched (fail closed), while independent valid rows can still",
+        "// be reconciled during the same bounded pass."
+      ]
+    },
+    {
+      "path": "v3/src/content/content-drift-storage-hotfix.js",
+      "blobSha": "34701ca5586b15a3ecf8e1815ae47473404ad88b",
+      "size": 3357,
+      "lines": 89,
+      "imports": [],
+      "symbols": [
+        "installContentDriftStorageHotfix",
+        "ContentDriftStorageHotfix"
+      ],
+      "methods": [
+        "_event",
+        "_blockWrites",
+        "_install",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "PERSISTENCE_WRITE_ERROR",
+        "CONTENT_DRIFT_STORAGE_SESSION_BLOCKED",
+        "CONTENT_DRIFT_STORAGE_WRITE_FAILED"
+      ],
+      "signals": {
+        "patching": 2,
+        "recovery": 2,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 6,
+        "telemetry": 14,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// The previous implementation reduced monitor.capacity and pruned records",
+        "// here. That changed safety semantics: pruned baseline entries were seen as",
+        "// NOVELTY on the next scan and eventually quarantined the whole catalog.",
+        "// Persistence loss must never mutate the in-memory safety knowledge."
+      ]
+    },
+    {
+      "path": "v3/src/content/dangerous-content-hotfix.js",
+      "blobSha": "4b413b14578799a1b69cbac02c3746f50f3fa612",
+      "size": 9130,
+      "lines": 141,
+      "imports": [
+        "../farmer/content-safety",
+        "../reliability/alpha20-20-alpha22-autonomy",
+        "../reliability/alpha20-20-live-regression-hotfix",
+        "../reliability/alpha23-combat-stability-hotfix",
+        "../reliability/economy-equipment-autonomy-v2",
+        "../reliability/alpha24-adaptive-range-risk-logistics-hotfix",
+        "../reliability/alpha25-control-center-brain",
+        "../reliability/alpha26-cloud-update-logistics-ui-hotfix",
+        "../reliability/alpha20-21-cloud-persistence-recovery",
+        "../reliability/alpha20-22-live-smoke-recovery",
+        "../reliability/alpha20-23-idle-deadlock-recovery"
+      ],
+      "symbols": [
+        "installDangerousContentHotfix",
+        "DangerousContentHotfix",
+        "DANGEROUS"
+      ],
+      "methods": [
+        "_installPlannerFilter",
+        "_alpha24Options",
+        "_installClosedLoopAutonomy",
+        "beforeTick",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [],
+      "signals": {
+        "patching": 2,
+        "recovery": 30,
+        "merchant": 0,
+        "party": 4,
+        "persistence": 11,
+        "telemetry": 40,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/control/cloud-control-plane.js",
+      "blobSha": "61948b784fa9139e92495423a0eaa1c9889635bb",
+      "size": 21064,
+      "lines": 308,
+      "imports": [
+        "./cloud-free-tier-budget"
+      ],
+      "symbols": [
+        "finite",
+        "text",
+        "safeClone",
+        "parseObject",
+        "storage",
+        "characterOf",
+        "isMerchant",
+        "normalizeBaseUrl",
+        "validCredentials",
+        "legacyV2DashboardCredentials",
+        "CloudControlPlane",
+        "CLOUD_STORAGE_KEY",
+        "LEGACY_V2_STABLE_PREFIX",
+        "AUTOMATION_CATALOG_REFRESH_MS"
+      ],
+      "methods": [
+        "if",
+        "_storage",
+        "_load",
+        "configure",
+        "clearCredentials",
+        "_enabled",
+        "_post",
+        "_runtimeSnapshot",
+        "_automationCatalogKey",
+        "_maybePushAutomationCatalog",
+        "pushRuntime",
+        "syncState",
+        "askTeacher",
+        "pushFeedback",
+        "cycle",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "V2_CLOUD_CREDENTIALS_MIGRATED",
+        "POST",
+        "AUTOMATION_CATALOG_PUSH_FAILED",
+        "REMOTE_EXTENDED_SETTINGS_FAILED",
+        "REMOTE_SETTINGS_APPLIED",
+        "CLOUD_CONTROL_CYCLE_FAILED"
+      ],
+      "signals": {
+        "patching": 1,
+        "recovery": 6,
+        "merchant": 6,
+        "party": 3,
+        "persistence": 24,
+        "telemetry": 103,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/control/cloud-free-tier-budget.js",
+      "blobSha": "34369ea83b1b45f0c72e27c2b8abc856aba5481c",
+      "size": 3720,
+      "lines": 91,
+      "imports": [],
+      "symbols": [
+        "text",
+        "utcDay",
+        "storage",
+        "load",
+        "readCloudRequestBudget",
+        "reserveCloudRequest",
+        "ACTIVE_CLOUDFLARE_BASE_URL",
+        "WORKERS_FREE_DAILY_REQUEST_LIMIT",
+        "SYSTEM_DAILY_REQUEST_TARGET",
+        "INFRASTRUCTURE_DAILY_REQUEST_RESERVE",
+        "BOT_DAILY_REQUEST_BUDGET",
+        "MAX_SUPPORTED_PARTY_SIZE",
+        "PER_CHARACTER_DAILY_REQUEST_BUDGET",
+        "STORAGE_KEY"
+      ],
+      "methods": [
+        "catch",
+        "if"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "PERSISTENT_STORAGE_UNAVAILABLE",
+        "DAILY_CHARACTER_BUDGET_EXHAUSTED",
+        "PERSISTENT_STORAGE_WRITE_FAILED"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 3,
+        "persistence": 5,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/control/cloud-long-term-persistence.js",
+      "blobSha": "4b7a04a9e9c49b69e128d49885eea684e775532c",
+      "size": 17745,
+      "lines": 409,
+      "imports": [],
+      "symbols": [
+        "finite",
+        "clone",
+        "storageOf",
+        "maxTimestamp",
+        "installCloudLongTermPersistence",
+        "CloudLongTermPersistence",
+        "CLOUD_LONG_TERM_MODE",
+        "FALLBACK_KEY",
+        "LEGACY_KEYS",
+        "ALLOWED_NAMESPACES"
+      ],
+      "methods": [
+        "for",
+        "_event",
+        "_cloud",
+        "_cloudReady",
+        "markDirty",
+        "_brainPayload",
+        "_gearPayload",
+        "_marketPayload",
+        "_partyPayload",
+        "_queueInitialSnapshots",
+        "_wrapBrain",
+        "_wrapGear",
+        "_wrapMarket",
+        "_wrapPartyPerformance",
+        "installAdapters",
+        "_localEvidenceTime",
+        "_restoreRecord",
+        "bootstrap",
+        "_clearLegacyKeys",
+        "_slimRecord",
+        "_writeFallback",
+        "flush",
+        "beforeTick",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "AIO_V3_PARTY_PERFORMANCE",
+        "CLOUD_LONG_TERM_FLUSH_FAILED",
+        "CLOUD_UNAVAILABLE_NON_BLOCKING"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 104,
+        "party": 54,
+        "persistence": 31,
+        "telemetry": 12,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/control/cloud-presence-decoupling.js",
+      "blobSha": "99a6ebda99cafa4e7cd74b2dc563d7d95af8c518",
+      "size": 3282,
+      "lines": 88,
+      "imports": [],
+      "symbols": [
+        "finite",
+        "installCloudPresenceDecoupling",
+        "CLOUD_PRESENCE_DECOUPLING_MODE"
+      ],
+      "methods": [
+        "if"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "CLOUD_PRESENCE_CYCLE_FAILED",
+        "CLOUD_PRESENCE_DECOUPLING_INSTALLED"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 9,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}

@@ -1,0 +1,743 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/test",
+  "range": {
+    "start": 136,
+    "end": 150,
+    "total": 205
+  },
+  "files": [
+    {
+      "path": "v3/test/headless-operations.test.js",
+      "blobSha": "adf796616ac7b4ab343a93d612f6881e014d1077",
+      "size": 6997,
+      "lines": 147,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/core/event-log",
+        "../src/world/world-model",
+        "../src/ops/telemetry-outbox",
+        "../src/ops/control-gateway",
+        "../src/ops/state-replica",
+        "../src/ops/headless-operations"
+      ],
+      "testCases": [
+        "TelemetryOutbox is bounded, ordered and dashboard failure independent",
+        "ControlGateway deduplicates, expires and blocks every risk-increasing remote action by default",
+        "ControlGateway can execute elevated actions only after explicit host opt-in",
+        "StateReplica coalesces to the newest bounded world snapshot",
+        "StateReplica contains serialization faults instead of breaking operations",
+        "HeadlessHealth exposes supervisor freshness states without DOM assumptions",
+        "HeadlessOperations safe control works with no DOM or game_log and always emits audit telemetry"
+      ],
+      "states": [
+        "SHOW_STATUS",
+        "SET_MODE",
+        "EXECUTED",
+        "SET_FARMER_ENABLED",
+        "SET_TARGET_POLICY",
+        "REMOVE_TARGET_EXCLUSION",
+        "APPROVE_MONSTER_CONTENT",
+        "REJECTED",
+        "ELEVATED_CONTROL_DISABLED",
+        "EVAL_JAVASCRIPT",
+        "ACTION_NOT_ALLOWED",
+        "EXPIRED",
+        "HEALTHY",
+        "WATCH",
+        "DEGRADED",
+        "CONTROL_COMMAND_EXECUTED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 42,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 1,
+        "telemetry": 7,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/immediate-update-farmer-merchant-liveness.test.js",
+      "blobSha": "a6ea544bc4d0b8bccebd70b7f1def869a32f0bf6",
+      "size": 8943,
+      "lines": 218,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha28-ledger-farmer-fixes",
+        "../src/reliability/alpha27-merchant-planning",
+        "../src/reliability/alpha27-merchant-autonomy"
+      ],
+      "testCases": [
+        "farmer leader falls back to an already-safe live monster when the planned type is absent",
+        "farmer follower only joins a safe plan-miss fallback after the party has engaged it",
+        "successful merchant gear goal is claimed and cannot be delivered repeatedly in the same runtime",
+        "merchant gear delivery rejected by the raw-action budget does not consume the autonomous turn",
+        "merchant delivers a current gear goal before low-risk sell or bank disposal",
+        "open upgrade circuit does not starve sell or bank work"
+      ],
+      "states": [
+        "MERCHANT_SERVICE_ACTION_BUDGET_EXHAUSTED",
+        "SELL",
+        "UPGRADE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 23,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 39,
+        "party": 9,
+        "persistence": 0,
+        "telemetry": 1,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/inventory-item-permissions.test.js",
+      "blobSha": "8d7d12f9185528814dc7cc959164b9a1adcfb569",
+      "size": 4694,
+      "lines": 114,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/economy/inventory-ledger",
+        "../src/reliability/alpha27-combat-merchant-convergence",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "sell permission never removes a live item protection flag",
+        "explicit compound denial prevents automatic compound classification",
+        "explicit upgrade denial preempts active progression reservation",
+        "explicit protected upgrade permission can classify a locked upgrade item",
+        "Alpha27 autonomous planner respects per-action deny rules instead of bypassing them"
+      ],
+      "states": [
+        "ITEM_LOCKED",
+        "OPERATOR_UPGRADE_DENIED",
+        "PROTECTED_ITEM_OPERATOR_OVERRIDE",
+        "KEEP",
+        "OPERATOR_SELL_DENIED",
+        "SELL",
+        "AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_SELL",
+        "OPERATOR_BANK_DENIED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 18,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 10,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/item-action-permissions.test.js",
+      "blobSha": "a5bd1566bc117f4064abfe082b1a99155659a545",
+      "size": 3467,
+      "lines": 105,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/economy/inventory-ledger"
+      ],
+      "testCases": [
+        "protected inventory items remain KEEP in auto mode",
+        "explicit operator permission can classify a protected item while preserving the warning metadata",
+        "per-item denials preempt legacy allowlists and native compound classification",
+        "item permission input is bounded to supported boolean actions"
+      ],
+      "states": [
+        "ITEM_LOCKED",
+        "OPERATOR_BANK_ALLOWED",
+        "PROTECTED_ITEM_OPERATOR_OVERRIDE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 16,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 9,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/item-economic-evaluator.test.js",
+      "blobSha": "56878b4465bd06763eecb1c021a974bbdeb91dee",
+      "size": 2342,
+      "lines": 85,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/economy/item-economic-evaluator"
+      ],
+      "testCases": [
+        "Party Hat uses Adventure Land NPC sell values and direct sale beats blind +3 processing",
+        "expected-value upgrade model can choose a profitable future level instead of always selling",
+        "compound expected value compares one compound set against selling all three inputs"
+      ],
+      "states": [
+        "SELL",
+        "UPGRADE",
+        "COMPOUND"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 17,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 7,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/kiting-parallel-attack.test.js",
+      "blobSha": "3298213f08e76dda634cc7e2eda40f195bf80cc4",
+      "size": 1542,
+      "lines": 68,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/kiting-farmer"
+      ],
+      "testCases": [
+        "ranger can issue a kite move and basic attack in the same engage cycle"
+      ],
+      "states": [
+        "TOO_CLOSE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 4,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 2,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/live-demand-regroup-drift-regressions.test.js",
+      "blobSha": "099f9e5e8b3aac10175bf91e63dcdc641a3fbe17",
+      "size": 3712,
+      "lines": 81,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/account-character-transport",
+        "../src/world/content-drift",
+        "../src/autonomy/alpha13-runtime"
+      ],
+      "testCases": [
+        "send_cm fallback preserves the named receiver and legacy CM handling",
+        "content drift persistence is isolated per character while genuine same-character drift stays fail-closed"
+      ],
+      "states": [
+        "TEAM_REGROUP",
+        "DRIFT"
+      ],
+      "directAdventureLandWrites": [
+        "send_cm"
+      ],
+      "assertionSignals": {
+        "assert": 13,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 7,
+        "party": 1,
+        "persistence": 4,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/live-farmer-merchant-recovery.test.js",
+      "blobSha": "819e1fe9aa6b4c32e0fb78f281c6803f5851df5d",
+      "size": 8464,
+      "lines": 249,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/account-character-transport",
+        "../src/reliability/live-farmer-merchant-recovery"
+      ],
+      "testCases": [
+        "addressed CM receive router repairs itself after a later on_cm owner displaces it",
+        "adaptive potion restock continues to exact purchase after verified vendor travel even when can_buy probe stays false",
+        "live recovery buys aggregate batch deficit when current Farmer delivery is already fully stocked",
+        "P0 diagnostics report the active demand-driven 4500 policy instead of legacy fixed 5000 semantics"
+      ],
+      "states": [
+        "TEAM_REGROUP",
+        "RESTOCK_REQUIRED",
+        "COMMITTED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 33,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 16,
+        "merchant": 36,
+        "party": 6,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Reproduces the live failure: another subsystem installs its own CM handler",
+        "// after the transport router was originally registered.",
+        "// Live alpha.20.103 regression: the current Farmer needs 4500, but the three-Farmer batch needs 11983."
+      ]
+    },
+    {
+      "path": "v3/test/live-log-merchant-team-target-regressions.test.js",
+      "blobSha": "7dac7c252fdbc9c2f8620b4ef00e8131868d19bc",
+      "size": 13842,
+      "lines": 413,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha27-combat-merchant-convergence",
+        "../src/reliability/pre-farming-reliability",
+        "../src/party/team-combat-cohesion-hotfix",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "safe intermediate Farmer gear authorization crosses finalizer -> service executor without opening generic projected-goal delivery",
+        "workspace reserve violation banks a safe BANK row before progression",
+        "persisted bank catalog can inform capacity planning but never grants physical action authority",
+        "interrupted mutation service travel arms identity-scoped backoff and does not block unrelated identity",
+        "trusted Warrior target replication repairs follower mirror when local party view lost leader.target",
+        "replicated leader target still fails closed when target is not locally safe or state is stale"
+      ],
+      "states": [
+        "BASE_DELIVERY",
+        "SERVICE_DELIVERY",
+        "RISK_GATE_PREFERS_SAFE_CURRENT_PARTY_UPGRADE",
+        "GEAR_DELIVERY_LOCAL_DELTA_VERIFIED",
+        "GEAR_GOAL_NOT_CURRENT",
+        "BANK",
+        "INVENTORY_PRESSURE",
+        "RESERVE_UPGRADE",
+        "PLANNING_ONLY",
+        "UPGRADE",
+        "SERVICE_TRAVEL_INTERRUPTED_BACKOFF",
+        "BASE",
+        "TRUSTED_LEADER_REPLICATION",
+        "LEADER_TARGET_NOT_LOCALLY_SAFE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 46,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 34,
+        "party": 17,
+        "persistence": 2,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// CI anchor: verify source, generated runtime bundle, Merchant liveness fixes, and team-target replication together."
+      ]
+    },
+    {
+      "path": "v3/test/live-recovery-log-validator.test.js",
+      "blobSha": "c3a06253d7d6bc152c95ba1908655ef45f50c5ed",
+      "size": 7656,
+      "lines": 169,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/ops/live-recovery-log-validator"
+      ],
+      "testCases": [
+        "numeric alpha versions compare by release numbers",
+        "passes only after both follower regroups complete, combat resumes, and merchant commits restock",
+        "fails the pre-fix farmer pattern where regroup is published but followers never receive it",
+        "fails the pre-fix merchant vendor loop when arrival never continues to a purchase commit",
+        "fails when combat happened before regroup but not after the party recovered",
+        "fails incomplete retained logs because absence of recovery evidence cannot be proven",
+        "rejects alpha.20.55 even if synthetic recovery evidence is present"
+      ],
+      "states": [
+        "HEALTHY",
+        "TEAM_REGROUP",
+        "TEAM_CROSS_MAP_REGROUP_REQUIRED",
+        "CROSS_MAP_REGROUP_REQUIRED",
+        "ALPHA28_TEAM_REGROUP_OBJECTIVE_PUBLISHED",
+        "TEAM_MAP_SPLIT_CONTROLLED_REGROUP",
+        "FARMER_TARGET_SELECTED",
+        "PLANNER_TOP_SAFE_LIVE_TARGET",
+        "FARMER_ATTACK_REQUESTED",
+        "TARGET_IN_RANGE",
+        "ALPHA28_CROSS_MAP_OBJECTIVE_RECEIVED",
+        "VALIDATED_LEADER_REGROUP_OBJECTIVE",
+        "ALPHA28_TEAM_REGROUP_STARTED",
+        "CONTROLLED_TEAM_REGROUP_TRAVEL",
+        "ALPHA28_TEAM_REGROUP_COMPLETED",
+        "ARRIVAL_VERIFIED",
+        "MERCHANT_SERVICE_PLAN",
+        "MERCHANT_ADAPTIVE_POTION_RESTOCK_REQUIRED",
+        "LIVE_POTION_VENDOR_ARRIVAL_ATTESTED",
+        "VERIFIED_SERVICE_TRAVEL_CONTINUES_TO_BUY",
+        "LIVE_POTION_RESTOCK_COMMITTED",
+        "CURRENT_DELIVERY_DEFICIT_PURCHASED",
+        "SUPERVISOR_STATE_CHANGED",
+        "NO_PROGRESS_SAFE_MODE",
+        "ALPHA27_SERVICE_TRAVEL_COMPLETED",
+        "SERVICE_DESTINATION_REACHED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 19,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 5,
+        "merchant": 15,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/logic-guardian-contract.test.js",
+      "blobSha": "f447173e8c60dc3756c28c7fc0d99f4c7d8da07d",
+      "size": 2729,
+      "lines": 63,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "path"
+      ],
+      "testCases": [
+        "logic invariant registry is unique, explicit and points at real enforcement"
+      ],
+      "states": [
+        "TARGET_AUTOMATRON_NEVER_ATTACK",
+        "PASSIVE_UNRELATED_AUTOMATRON_MUST_NOT_NAV_DEADLOCK",
+        "UNKNOWN_CONTENT_FAIL_CLOSED",
+        "NO_HIDDEN_CROSS_MODULE_DEADLOCK",
+        "FARMER_BOUNDED_LIVENESS",
+        "FARMER_TEAM_COHESION_MUST_MAKE_PROGRESS",
+        "MERCHANT_RENDEZVOUS_REQUIRES_REAL_WORK",
+        "MERCHANT_RENDEZVOUS_MUST_NOT_STARVE_HOME_SERVICE",
+        "ALPHA21_PROGRESSION_REQUIRES_LIVE_EVIDENCE",
+        "ALPHA21_CROSS_MAP_NEVER_BYPASSES_TRAVEL_AUTHORITY",
+        "FARMER_TARGET_AUTHORITY_SEPARATES_RAW_TARGET",
+        "PERFORMANCE_ATTRIBUTION_REQUIRES_OWNERSHIP_OR_SELF_AGGRO",
+        "ATOMIC_COMPOUND_RESERVES_ALL_INPUTS",
+        "MERCHANT_MUTATION_OUTCOME_MUST_BE_VERIFIED_NO_BLIND_RETRY",
+        "SHADOW_PLAN_MUST_ADVANCE",
+        "MERCHANT_ROLE_BOUNDARY",
+        "NO_CIRCULAR_CRITICAL_RUNTIME_DEPENDENCIES"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 14,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 4,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/logic-guardian-liveness.test.js",
+      "blobSha": "f39986786fbea96fcf563e6a8d77f1250fdbaf24",
+      "size": 6479,
+      "lines": 152,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/target-safety",
+        "../src/farmer/farmer-fsm",
+        "../src/reliability/alpha20-23-idle-deadlock-recovery",
+        "../scripts/logic-guardian-model"
+      ],
+      "testCases": [
+        "cross-module classifier detects the exact hidden-deadlock shape",
+        "passive unrelated Automatron leaves a real navigation progress path while remaining non-attackable",
+        "Automatron safety guards remain fail-closed across self-aggro, selected and planned combinations",
+        "TargetSafety evaluation failures cannot accidentally manufacture a navigation release",
+        "healthy active Farmer reaches combat action within a bounded number of ticks",
+        "shadow Farmer periodically advances plan revision and changes its progress signature"
+      ],
+      "states": [
+        "TRAINING_TARGET_AUTOMATRON"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 16,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 4,
+        "merchant": 0,
+        "party": 2,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/logic-guardian-property.test.js",
+      "blobSha": "eb687eed531e89366793056c4d4489836c0f488f",
+      "size": 3380,
+      "lines": 90,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "fast-check",
+        "../scripts/logic-guardian-model",
+        "../src/reliability/alpha20-23-idle-deadlock-recovery"
+      ],
+      "testCases": [
+        "property: cross-module classifier reports DEADLOCK exactly when every progress path is closed",
+        "property: Automatron navigation release is exact and fails closed for protected states"
+      ],
+      "states": [
+        "TRAINING_TARGET_AUTOMATRON",
+        "CONTENT_QUARANTINED",
+        "CUSTOM_EXCLUSION",
+        "OTHER"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 7,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/merchant-bank-recovery.test.js",
+      "blobSha": "86efdcbe0034b4985c0dbf742bd08652be172ba0",
+      "size": 7535,
+      "lines": 228,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha27-bank-recovery",
+        "../src/reliability/alpha27-combat-merchant-convergence",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "bank recovery retrieves exactly one missing ring to complete a local compound set",
+        "bank recovery keeps incomplete level-zero compound fragments in bank",
+        "bank recovery refuses high-value progression items",
+        "bank recovery travels to bank only when the bounded probe is due",
+        "compound planner drains largest backlog first so rings cannot starve behind belts",
+        "compound planner rotates equal backlogs instead of repeating one identity forever"
+      ],
+      "states": [
+        "HEALTHY",
+        "RETRIEVE",
+        "COMPOUND_SET_COMPLETION",
+        "TRAVEL_BANK",
+        "HOLD",
+        "BANK_RECOVERY_WAITING_FOR_BANK_VISIBILITY",
+        "RESERVE_COMPOUND",
+        "COMPOUND"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 23,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 33,
+        "merchant": 10,
+        "party": 0,
+        "persistence": 4,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Live regression: ringsj had the largest ready backlog but was starved by lexical group selection."
+      ]
+    },
+    {
+      "path": "v3/test/merchant-batch-exchange-elixir-selfgear.test.js",
+      "blobSha": "d84d504ce67e17c5942a8c83e4c400810d9bdd94",
+      "size": 15676,
+      "lines": 459,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/merchant/merchant-production-planner",
+        "../src/merchant/controlled-merchant-production-executor",
+        "../src/party/elixir-policy",
+        "../src/reliability/merchant-self-gear",
+        "../src/reliability/alpha27-combat-merchant-convergence",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "default mutation risk budget is the requested 10x experiment",
+        "scroll batching counts the currently actionable compound backlog",
+        "NPC exchange planning autonomously consumes exchangeable surplus using exact G.items e requirement",
+        "controlled production executor verifies an NPC exchange input delta",
+        "elixir policy prefers efficient class stat buff and can justify farming exchange material",
+        "active elixir remains valid until its real expires timestamp",
+        "Merchant self-gear only starts when a fallback remains available",
+        "Merchant self-gear upgrades a spare first without unequipping the live item",
+        "Merchant self-gear upgrades speed-gaining equipment before non-speed equipment",
+        "Merchant self-gear WAIT_LEDGER reports no progress while live inputs or ledger state are not executable",
+        "Merchant self-gear rejected atomic plan reports no progress instead of pinning progression",
+        "exact self-gear reservation can authorize a non-progression ledger disposition but nothing broader"
+      ],
+      "states": [
+        "RESERVE_COMPOUND",
+        "READY",
+        "AUTONOMOUS_EXCHANGEABLE_SURPLUS",
+        "QUEST_EVENT_EXCHANGE_EXACT_REQUIREMENT_V3",
+        "HEALTHY",
+        "EXCHANGE_MATERIAL_DROP",
+        "COMPOUND",
+        "UPGRADE",
+        "NEXT_LEVEL_SPEED_GAIN_FIRST",
+        "WAIT_LEDGER",
+        "KEEP",
+        "LEDGER_DISPOSITION_NOT_AUTHORIZED",
+        "BANK"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 52,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 56,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Integrated live regression coverage for alpha.20.94 Merchant economy behavior.",
+        "// Live alpha.20.113 regression: WAIT_LEDGER must not masquerade as task progress."
+      ]
+    }
+  ]
+}

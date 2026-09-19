@@ -1,0 +1,789 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "scope": "v3/src",
+  "range": {
+    "start": 75,
+    "end": 90,
+    "total": 238
+  },
+  "files": [
+    {
+      "path": "v3/src/farmer/farmer-resource-topoff-hotfix.js",
+      "blobSha": "2faec72a317bb2293b241c6a28d7a2c526f992f0",
+      "size": 16296,
+      "lines": 374,
+      "imports": [],
+      "symbols": [
+        "finite",
+        "ratio",
+        "potionCount",
+        "restoreAmountFromMetadata",
+        "installFarmerResourceTopoffHotfix",
+        "FarmerResourceTopoffHotfix",
+        "FARMER_RESOURCE_TOPOFF_MODE"
+      ],
+      "methods": [
+        "if",
+        "_event",
+        "_useFn",
+        "_canUse",
+        "_gameData",
+        "_potionRestoreAmount",
+        "_installPrecisePotionAdapter",
+        "supply",
+        "topOff",
+        "_installFarmerPotionPolicy",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "FARMER_RESOURCE_TOPOFF_INSTALLED",
+        "POTION_COOLDOWN",
+        "COMMAND_EXECUTED",
+        "COMMAND_FAILED",
+        "REQUIRED_POTION_UNAVAILABLE",
+        "FARMER_RESOURCE_TOPOFF_UNAVAILABLE",
+        "RECOVER",
+        "POTION_OVERHEAL_AVOIDED",
+        "ADAPTER_UNAVAILABLE",
+        "FARMER_RESOURCE_TOPOFF_REQUESTED"
+      ],
+      "signals": {
+        "patching": 4,
+        "recovery": 22,
+        "merchant": 80,
+        "party": 0,
+        "persistence": 13,
+        "telemetry": 23,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Capture the Farmer FSM's real operational trigger before this hotfix",
+        "// widens useHpRatio/useMpRatio to targetRatio so top-off evaluation runs.",
+        "// Small resource pools still need a potion when they cross the combat",
+        "// trigger even if a large potion can never reach the normal utilization floor."
+      ]
+    },
+    {
+      "path": "v3/src/farmer/farmer-target-efficiency-hotfix.js",
+      "blobSha": "887c069986392fd7032707240318574719e25542",
+      "size": 9261,
+      "lines": 222,
+      "imports": [
+        "../farmer/target-efficiency"
+      ],
+      "symbols": [
+        "installFarmerTargetEfficiencyHotfix",
+        "FarmerTargetEfficiencyHotfix"
+      ],
+      "methods": [
+        "_event",
+        "_gameData",
+        "_evaluate",
+        "_recordSkip",
+        "_arrivedAtPlannedSpawn",
+        "_arrivalFallback",
+        "_installPlanner",
+        "_installFarmer",
+        "install",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "EXTREME_EVASION",
+        "EXTREME_AVOIDANCE",
+        "SPECIAL_CONTENT_NOT_ROUTINE_FARM",
+        "COOPERATIVE_CONTENT_NOT_ROUTINE_FARM",
+        "NON_ROUTINE_RESPAWN",
+        "IMMUNE_TARGET",
+        "PEACEFUL_TARGET",
+        "OPERATOR_CONTENT_NOT_ROUTINE_FARM",
+        "TARGET_INEFFICIENT",
+        "FARM_TARGET_EFFICIENCY_REJECTED",
+        "HOLDING",
+        "SPAWN_RADIUS_REACHED",
+        "FARM_TARGET_ARRIVAL_FALLBACK",
+        "PLANNED_MONSTER_NOT_VISIBLE",
+        "FARM_TARGET_EFFICIENCY_HOTFIX_INSTALLED"
+      ],
+      "signals": {
+        "patching": 4,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 7,
+        "persistence": 22,
+        "telemetry": 13,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Diagnostics must never affect target arbitration.",
+        "// Never reuse safety approval from another observation. If both timestamps",
+        "// are available they must refer to the exact same snapshot."
+      ]
+    },
+    {
+      "path": "v3/src/farmer/farmer-terrain-navigation-hotfix.js",
+      "blobSha": "9a7cd9d8abce1e89abc12defa5b932fadcc95f2f",
+      "size": 23613,
+      "lines": 509,
+      "imports": [],
+      "symbols": [
+        "finite",
+        "distance",
+        "sign",
+        "installFarmerTerrainNavigationHotfix",
+        "FarmerTerrainNavigationHotfix",
+        "FARMER_TERRAIN_NAVIGATION_MODE"
+      ],
+      "methods": [
+        "_event",
+        "_canMoveFn",
+        "_canMoveTo",
+        "_boundedStep",
+        "_pruneBlocked",
+        "_markTargetBlocked",
+        "_waypoint",
+        "_initialOrbitDirection",
+        "_orbitDirection",
+        "_setOrbitDirection",
+        "_kiteWaypoint",
+        "_threatDistance",
+        "_retreatWaypoint",
+        "_installKiting",
+        "_installSafeRetreat",
+        "_installSkillPolicy",
+        "_installTargetFilter",
+        "_installTravel",
+        "_install",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "FARMER_TARGET_PATH_TEMPORARILY_BLOCKED",
+        "KITE_TERRAIN_BLOCKED",
+        "FARMER_KITE_TERRAIN_BLOCKED",
+        "NO_REACHABLE_KITE_WAYPOINT",
+        "KITE_RADIAL_WAYPOINT",
+        "KITE_ORBITAL_WAYPOINT",
+        "RETREAT_TERRAIN_BLOCKED",
+        "FARMER_SAFE_RETREAT_TERRAIN_BLOCKED",
+        "NO_REACHABLE_RETREAT_WAYPOINT",
+        "RETREAT_DIRECT_WAYPOINT",
+        "RETREAT_ALTERNATE_WAYPOINT",
+        "FARMER_SAFE_OFFENSIVE_SKILL_ROTATION_ENABLED",
+        "LIVE_COOLDOWN_ROTATION",
+        "TARGET_POSITION_UNKNOWN",
+        "TARGET_GONE",
+        "REASSESS",
+        "TARGET_POLICY_REJECTED",
+        "ENGAGE",
+        "IN_RANGE",
+        "NO_REACHABLE_BOUNDED_WAYPOINT",
+        "TARGET_PATH_LOCALLY_BLOCKED",
+        "MOVEMENT_CIRCUIT_OPEN",
+        "COMMAND_FAILED",
+        "MOVEMENT_FAILURE_RESELECT",
+        "COMMAND_UNAVAILABLE",
+        "MOVE_COMMAND_UNAVAILABLE",
+        "MOVE_COMMAND_FAILED",
+        "ALTERNATE_REACHABLE_WAYPOINT",
+        "DIRECT_REACHABLE_WAYPOINT",
+        "FARMER_MOVE_REQUESTED",
+        "TARGET_OUT_OF_RANGE",
+        "FARMER_TERRAIN_NAVIGATION_HOTFIX_INSTALLED",
+        "COMBAT_MOVEMENT_V2"
+      ],
+      "signals": {
+        "patching": 11,
+        "recovery": 3,
+        "merchant": 0,
+        "party": 3,
+        "persistence": 9,
+        "telemetry": 15,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Alpha31 is the final self-aggro movement owner and may deliberately",
+        "// leave attack range if every in-range terrain waypoint is blocked.",
+        "// Do not emit a premature warning from this lower layer; Alpha31 will",
+        "// either produce an emergency escape or report the final failure."
+      ]
+    },
+    {
+      "path": "v3/src/farmer/farmer-travel-safety-hotfix.js",
+      "blobSha": "6ee31b6becb6299972e7055ed2dbbe0dc68f2019",
+      "size": 4923,
+      "lines": 139,
+      "imports": [],
+      "symbols": [
+        "finite",
+        "distance",
+        "installFarmerTravelSafetyHotfix",
+        "FarmerTravelSafetyHotfix",
+        "FARMER_TRAVEL_SAFETY_MODE"
+      ],
+      "methods": [
+        "_boundedStep",
+        "_install",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "TARGET_POSITION_UNKNOWN",
+        "TARGET_GONE",
+        "REASSESS",
+        "TARGET_POLICY_REJECTED",
+        "ENGAGE",
+        "IN_RANGE",
+        "COMMAND_UNAVAILABLE",
+        "MOVE_COMMAND_UNAVAILABLE",
+        "MOVE_COMMAND_FAILED",
+        "FARMER_MOVE_REQUESTED",
+        "TARGET_OUT_OF_RANGE"
+      ],
+      "signals": {
+        "patching": 2,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 1,
+        "persistence": 7,
+        "telemetry": 2,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/farmer/kiting-farmer.js",
+      "blobSha": "b91083d6eeeb7047c5a27dd1f429ba17aef07471",
+      "size": 3288,
+      "lines": 85,
+      "imports": [
+        "./farmer-fsm",
+        "./basic-kiting"
+      ],
+      "symbols": [
+        "KitingFarmerController"
+      ],
+      "methods": [
+        "_engage",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "FARMER_KITE_MOVE_REQUESTED",
+        "FARMER_KITE_MOVE_FAILED",
+        "KITE_MOVE_FAILED"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 3,
+        "merchant": 0,
+        "party": 1,
+        "persistence": 8,
+        "telemetry": 5,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Kiting is movement, not a replacement for the attack cycle. Adventure Land",
+        "// can keep moving toward the requested waypoint while a basic attack is sent,",
+        "// so always let the normal engagement pipeline evaluate the shot as well."
+      ]
+    },
+    {
+      "path": "v3/src/farmer/live-navigation-hotfix.js",
+      "blobSha": "7d747250bcb23b963f60c7d63585bf25d66fd951",
+      "size": 8117,
+      "lines": 223,
+      "imports": [
+        "../core/patch-registry"
+      ],
+      "symbols": [
+        "clone",
+        "isLiveMonster",
+        "installLiveNavigationHotfix",
+        "LiveNavigationHotfix",
+        "LIVE_NAVIGATION_HOTFIX_SCHEMA_VERSION",
+        "LIVE_NAVIGATION_HOTFIX_MODE"
+      ],
+      "methods": [
+        "_event",
+        "_gameData",
+        "_party",
+        "_classify",
+        "blockers",
+        "_install",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "SELF_AGGRO_PRESENT",
+        "FARMER_TARGET_ACTIVE",
+        "PLANNED_MONSTER_VISIBLE",
+        "TARGET_SAFETY_UNAVAILABLE",
+        "TARGET_SAFETY_EVALUATION_FAILED",
+        "TRAINING_TARGET_AUTOMATRON",
+        "TRAINING_TARGET_NON_BLOCKING",
+        "TARGET_SAFETY_REJECTED",
+        "COMBAT_RISK_UNAVAILABLE",
+        "COMBAT_RISK_EVALUATION_FAILED",
+        "UNKNOWN_OR_RISK_REJECTED",
+        "INCIDENTAL_SAFE_MONSTER",
+        "LIVE_NAVIGATION_HOTFIX_INSTALLED",
+        "PATCH_REGISTRY_SAFETY_ARBITRATION"
+      ],
+      "signals": {
+        "patching": 5,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 8,
+        "persistence": 15,
+        "telemetry": 10,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Adventure Land's Target Automatrons are inert training targets. They are",
+        "// excluded from combat selection, but their mere presence must not pin a",
+        "// Farmer in place. Self-aggro was already handled above, so this exception",
+        "// cannot hide a hostile entity targeting the character."
+      ]
+    },
+    {
+      "path": "v3/src/farmer/retreat-farmer.js",
+      "blobSha": "d6113f06f10567739b3045d14b9143072ea7d8bc",
+      "size": 6601,
+      "lines": 167,
+      "imports": [
+        "../core/task",
+        "./skill-farmer",
+        "./safe-retreat",
+        "./farmer-fsm"
+      ],
+      "symbols": [
+        "RetreatFarmerController"
+      ],
+      "methods": [
+        "_consumePendingRetreat",
+        "_ensureEmergencyPending",
+        "_handlePendingRetreat",
+        "_activeStep",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "FARMER_SAFE_RETREAT_REQUESTED",
+        "EMERGENCY_SAFE_RETREAT",
+        "SAFE_RETREAT_MOVE_FAILED",
+        "FARMER_SAFE_RETREAT_FAILED",
+        "FARMER_SAFE_RETREAT_SKIPPED",
+        "EMERGENCY_SAFE_RETREAT_UNAVAILABLE"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 5,
+        "merchant": 1,
+        "party": 0,
+        "persistence": 21,
+        "telemetry": 6,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Emergency handling must not depend on the current FSM state. Kiting can",
+        "// legitimately move ENGAGE -> TRAVEL while the character is still under",
+        "// attack. Use the runtime's raw snapshot so safety/risk filtering cannot",
+        "// hide the current target from the emergency gate."
+      ]
+    },
+    {
+      "path": "v3/src/farmer/safe-retreat.js",
+      "blobSha": "7b895ff1599dc129a9cbe092ee3f6c92c05d78cc",
+      "size": 3140,
+      "lines": 90,
+      "imports": [],
+      "symbols": [
+        "finite",
+        "SafeRetreatPolicy"
+      ],
+      "methods": [
+        "evaluate",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "SAFE_RETREAT_DISABLED",
+        "CHARACTER_POSITION_UNKNOWN",
+        "THREAT_POSITION_UNKNOWN",
+        "RETREAT_DIRECTION_UNAVAILABLE",
+        "EMERGENCY_THREAT_RETREAT"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 1,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/farmer/skill-farmer.js",
+      "blobSha": "e74a223de09bb3523cc66db5c47104705c381b94",
+      "size": 20889,
+      "lines": 479,
+      "imports": [
+        "./kiting-farmer",
+        "./skill-usage",
+        "./target-reassessment"
+      ],
+      "symbols": [
+        "SkillFarmerController"
+      ],
+      "methods": [
+        "_updateSelectedSkill",
+        "_shadowStep",
+        "_maybeReassessTarget",
+        "_skillDecisionRecord",
+        "_executionAttemptRecord",
+        "_engage",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "TARGET_SWITCH_COOLDOWN",
+        "FARMER_TARGET_REASSESSED",
+        "SKILL_COMMAND_FAILED",
+        "COMMAND_SUCCEEDED",
+        "FARMER_SKILL_FAILURE_STREAK_RESET",
+        "COMMAND_FAILED",
+        "FARMER_SKILL_BACKOFF_ARMED",
+        "SKILL_COMMAND_BACKOFF",
+        "SAFE_DIRECT_DAMAGE_EXECUTION_FALLBACK",
+        "FARMER_SKILL_USED",
+        "FARMER_SKILL_USE_FAILED",
+        "SKILL_COMMAND_NON_RETRYABLE",
+        "SKILL_COMMAND_FALLBACK_EXHAUSTED",
+        "NO_SAFE_EXECUTION_FALLBACK"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 91,
+        "merchant": 0,
+        "party": 2,
+        "persistence": 15,
+        "telemetry": 13,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/farmer/skill-usage.js",
+      "blobSha": "218fed1d139acf4fb7a41672ba11c2ccd91d8ee3",
+      "size": 7378,
+      "lines": 178,
+      "imports": [],
+      "symbols": [
+        "finite",
+        "clamp01",
+        "isDirectDamageSkill",
+        "SkillUsagePolicy"
+      ],
+      "methods": [
+        "candidates",
+        "select",
+        "canRetryCommandFailure",
+        "failureBackoffForStreak",
+        "evaluate",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "COMMAND_FAILED",
+        "SKILL_USAGE_DISABLED",
+        "SKILL_CONTEXT_MISSING",
+        "NO_SAFE_DIRECT_DAMAGE_SKILL",
+        "PREVIOUS_COMMAND_FAILED",
+        "SKILL_COMMAND_BACKOFF",
+        "MP_RESERVE",
+        "SKILL_COOLDOWN_OR_REQUIREMENT",
+        "SKILL_OUT_OF_RANGE",
+        "SAFE_DIRECT_DAMAGE_SKILL",
+        "SAFE_DIRECT_DAMAGE_FALLBACK_SKILL",
+        "NO_USABLE_SAFE_DIRECT_DAMAGE_SKILL"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 31,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 4,
+        "telemetry": 1,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/farmer/target-efficiency.js",
+      "blobSha": "fd1e27bdecbcdb083f68a1118f123200ddb32e0f",
+      "size": 4017,
+      "lines": 113,
+      "imports": [],
+      "symbols": [
+        "finiteNonNegative",
+        "finiteNumber",
+        "maxKnown",
+        "normalizedType",
+        "resolveMonsterType",
+        "evaluateTargetEfficiency",
+        "DEFAULT_MAX_EVASION",
+        "DEFAULT_MAX_AVOIDANCE",
+        "EVASION_SENSITIVE_CTYPES"
+      ],
+      "methods": [
+        "if"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "EFFICIENT_ENOUGH",
+        "EXTREME_AVOIDANCE",
+        "EXTREME_EVASION",
+        "IMMUNE_TARGET",
+        "PEACEFUL_TARGET",
+        "OPERATOR_CONTENT_NOT_ROUTINE_FARM",
+        "SPECIAL_CONTENT_NOT_ROUTINE_FARM",
+        "COOPERATIVE_CONTENT_NOT_ROUTINE_FARM",
+        "NON_ROUTINE_RESPAWN"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 1,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Special/cooperative/irregular-spawn content is never selected proactively",
+        "// as routine farming. A self-aggro target may still pass this efficiency",
+        "// layer so the existing combat-risk/emergency boundaries retain authority."
+      ]
+    },
+    {
+      "path": "v3/src/farmer/target-reassessment.js",
+      "blobSha": "69ed303d8f4e3a864e601146cc122e998c17cac1",
+      "size": 7358,
+      "lines": 193,
+      "imports": [
+        "../core/geometry"
+      ],
+      "symbols": [
+        "liveMonster",
+        "threatScore",
+        "TargetReassessmentPolicy"
+      ],
+      "methods": [
+        "_selfAttackers",
+        "_highestThreatAlternative",
+        "evaluate",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "REASSESSMENT_DISABLED",
+        "REASSESSMENT_CONTEXT_MISSING",
+        "CHARACTER_NAME_MISSING",
+        "CURRENT_TARGET_NOT_LIVE",
+        "CURRENT_TARGET_ONLY_SELF_AGGRO",
+        "HIGHER_SELF_AGGRO_THREAT",
+        "SELF_AGGRO_DISTANCE_UNKNOWN",
+        "CURRENT_SELF_AGGRO_STABLE",
+        "CLOSER_SELF_AGGRO_PRIORITY",
+        "NO_SELF_AGGRO_ALTERNATIVE",
+        "SELF_AGGRO_PRIORITY"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 7,
+        "telemetry": 2,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/farmer/target-safety.js",
+      "blobSha": "321ecf67c7daa6afd8becc7734f4ff5007b4078d",
+      "size": 2237,
+      "lines": 69,
+      "imports": [],
+      "symbols": [
+        "normalizeTargetToken",
+        "TargetSafety",
+        "BUILT_IN_TARGET_EXCLUSIONS"
+      ],
+      "methods": [
+        "list",
+        "add",
+        "remove",
+        "evaluate"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "TRAINING_TARGET_AUTOMATRON",
+        "DANGEROUS_SPECIAL_FAIRY",
+        "MISSING_ENTITY",
+        "CUSTOM_TARGET_EXCLUSION",
+        "ALLOWED"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/game/adapter.js",
+      "blobSha": "a45fdfe8bba1eef7aa7252d9213e654e97cfb972",
+      "size": 18551,
+      "lines": 438,
+      "imports": [],
+      "symbols": [
+        "commandDefinition",
+        "finite",
+        "GameAdapter",
+        "COMMAND_CATALOG",
+        "ACTIVE_ALLOWED"
+      ],
+      "methods": [
+        "_character",
+        "_entities",
+        "_G",
+        "_entityById",
+        "_entityByIdOrName",
+        "setSkillPolicy",
+        "_objects",
+        "setMode",
+        "snapshot",
+        "_partySnapshot",
+        "getGameData",
+        "canAttack",
+        "skillAvailability",
+        "canUseSkill",
+        "isSkillInRange",
+        "_prepareArgs",
+        "commandCatalog",
+        "canCommand",
+        "command"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "MODE_CHANGED",
+        "UNKNOWN_SKILL",
+        "CHARACTER_UNAVAILABLE",
+        "CLASS_MISMATCH",
+        "LEVEL_LOCKED",
+        "LOW_MP",
+        "WEAPON_TYPE_REQUIRED",
+        "OFFHAND_TYPE_REQUIRED",
+        "EQUIPMENT_SLOT_REQUIRED",
+        "MATERIAL_REQUIRED",
+        "COOLDOWN",
+        "COOLDOWN_CHECK_FAILED",
+        "OUT_OF_RANGE",
+        "RANGE_CHECK_FAILED",
+        "GAME_REQUIREMENT",
+        "GAME_CAN_USE_FAILED",
+        "READY",
+        "COMMAND_REJECTED",
+        "ACTION_NOT_ALLOWED_IN_ALPHA",
+        "SKILL_POLICY_ERROR",
+        "SKILL_POLICY_REJECTED",
+        "SHADOW_COMMAND",
+        "COMMAND_UNAVAILABLE",
+        "COMMAND_EXECUTED",
+        "COMMAND_FAILED"
+      ],
+      "signals": {
+        "patching": 1,
+        "recovery": 3,
+        "merchant": 21,
+        "party": 14,
+        "persistence": 5,
+        "telemetry": 30,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/game/command-outcomes.js",
+      "blobSha": "aec4467c3865e835ac594206899264f709136109",
+      "size": 9265,
+      "lines": 228,
+      "imports": [
+        "../core/numeric",
+        "../core/snapshot-entity-index"
+      ],
+      "symbols": [
+        "entityById",
+        "inventoryCount",
+        "CommandOutcomeTracker",
+        "CommandOutcomeState"
+      ],
+      "methods": [
+        "_timeoutFor",
+        "issue",
+        "_effect",
+        "_terminal",
+        "observe",
+        "get",
+        "drainTerminal",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "PENDING",
+        "CONFIRMED",
+        "TIMED_OUT",
+        "PENDING_CAPACITY_EVICTION",
+        "AWAITING_OBSERVED_EFFECT",
+        "COMMAND_OUTCOME_PENDING",
+        "MAP_CHANGED",
+        "POSITION_CHANGED",
+        "MOVEMENT_STARTED",
+        "MOVEMENT_STOPPED",
+        "ALREADY_STOPPED",
+        "TARGET_GONE",
+        "TARGET_DEAD",
+        "TARGET_HP_DECREASED",
+        "MP_DECREASED",
+        "HP_INCREASED",
+        "HP_POTION_CONSUMED",
+        "MP_INCREASED",
+        "MP_POTION_CONSUMED",
+        "POTION_CONSUMED",
+        "COMMAND_OUTCOME_CONFIRMED",
+        "COMMAND_OUTCOME_TIMED_OUT",
+        "OBSERVED_EFFECT_TIMEOUT"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 7,
+        "merchant": 20,
+        "party": 0,
+        "persistence": 24,
+        "telemetry": 9,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}

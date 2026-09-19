@@ -1,0 +1,713 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "scope": "v3/src",
+  "range": {
+    "start": 175,
+    "end": 187,
+    "total": 238
+  },
+  "files": [
+    {
+      "path": "v3/src/reliability/alpha20-22-live-smoke-recovery.js",
+      "blobSha": "f5d6fb4051c1cb0ca8ccbab8c27a61cc9d174007",
+      "size": 11899,
+      "lines": 168,
+      "imports": [],
+      "symbols": [
+        "finite",
+        "text",
+        "clone",
+        "isD1QuotaMessage",
+        "isNetworkMessage",
+        "isStorageQuotaMessage",
+        "nextUtcReset",
+        "rootFn",
+        "installLocalFarmTerrainGuard",
+        "installCloudBackoff",
+        "installPersistenceBackoff",
+        "installCmQuotaBackoff",
+        "installAlpha2022LiveSmokeRecovery",
+        "Alpha2022LiveSmokeRecovery",
+        "ALPHA20_22_MODE",
+        "CM_QUOTA_BACKOFF_MS",
+        "CLOUD_NETWORK_BACKOFF_MIN_MS",
+        "CLOUD_NETWORK_BACKOFF_MAX_MS"
+      ],
+      "methods": [
+        "if",
+        "_installLatePieces",
+        "beforeTick",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "D1_DAILY_ROW_READ_LIMIT",
+        "NETWORK_FAILURE_BACKOFF",
+        "UNKNOWN",
+        "CM_STORAGE_QUOTA_BACKOFF"
+      ],
+      "signals": {
+        "patching": 8,
+        "recovery": 100,
+        "merchant": 0,
+        "party": 21,
+        "persistence": 27,
+        "telemetry": 21,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/reliability/alpha20-23-idle-deadlock-recovery.js",
+      "blobSha": "2dc7debfc1699e6124ca401fc97d439883c7fe82",
+      "size": 8777,
+      "lines": 217,
+      "imports": [],
+      "symbols": [
+        "text",
+        "gameDataOf",
+        "addPartyNames",
+        "friendlyNamesOf",
+        "knownMonster",
+        "contentAllowsNavigationRelease",
+        "recordRelease",
+        "installNeverTargetNavigationRelease",
+        "installAlpha2023IdleDeadlockRecovery",
+        "Alpha2023IdleDeadlockRecovery",
+        "ALPHA20_23_IDLE_DEADLOCK_MODE",
+        "NAVIGATION_RELEASE_REASONS"
+      ],
+      "methods": [
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "TRAINING_TARGET_AUTOMATRON",
+        "FOREIGN_ENGAGED_SAFE_MONSTER",
+        "ALPHA20_23_IDLE_DEADLOCK_RECOVERY_INSTALLED"
+      ],
+      "signals": {
+        "patching": 2,
+        "recovery": 14,
+        "merchant": 0,
+        "party": 43,
+        "persistence": 20,
+        "telemetry": 6,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Hard safety invariants always win over the deadlock release.",
+        "// Preserve the existing fail-closed invariant for a neutral monster type that",
+        "// LocalFarming explicitly plans to approach. Do this before TargetSafety so a",
+        "// safety-evaluation failure cannot alter the protected-state accounting.",
+        "// A foreign-engaged monster of the same type intentionally continues below so",
+        "// it can be released from navigation blocking when all safety gates approve it.",
+        "// Preserve the existing Target Automatron release. A planned technical target",
+        "// remains a blocker so explicit operator/test plans are never bypassed.",
+        "// Everything TargetSafety rejects (dangerous fairies, custom exclusions, etc.)",
+        "// remains fail-closed.",
+        "// Neutral monsters are actionable under party-only and must remain visible to",
+        "// the farmer. Only a monster already claimed by somebody outside our party can",
+        "// be ignored for navigation, because the farmer itself is forbidden to select it.",
+        "// Do not widen safety for unknown or content-quarantined monster types."
+      ]
+    },
+    {
+      "path": "v3/src/reliability/alpha20-33-combat-logistics-regression-hotfix.js",
+      "blobSha": "e7e4af746b8b53cd951e50a2eb2d6aad9475c653",
+      "size": 17112,
+      "lines": 386,
+      "imports": [],
+      "symbols": [
+        "finite",
+        "nameOf",
+        "point",
+        "distance",
+        "liveMonster",
+        "runtimeCharacter",
+        "snapshotEntities",
+        "hasIncomingAggro",
+        "emit",
+        "installActiveAggroKiteCohesionBypass",
+        "installSupportAggroMovementGate",
+        "installMerchantIncomingAggroAuthority",
+        "cloneSnapshotWithGold",
+        "installFarmerGoldWindow",
+        "installAlpha2033CombatLogisticsRegressionHotfix",
+        "Alpha2033CombatLogisticsRegressionHotfix",
+        "ALPHA20_33_MODE"
+      ],
+      "methods": [
+        "if",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "TEAM_COHESION_KITE_LIMIT",
+        "ACTIVE_AGGRO_KITE_TETHER_HOLD",
+        "ACTIVE_AGGRO_RESPECTS_HARD_FORMATION_TETHER",
+        "FARMER_SUPPORT_RETREAT_BLOCKED",
+        "NO_SELF_AGGRO_HOLD_FIRE_POSITION",
+        "SUPPORT_NO_SELF_AGGRO_RETREAT_BLOCKED",
+        "ALPHA20_33_COMBAT_LOGISTICS_REGRESSION_INSTALLED"
+      ],
+      "signals": {
+        "patching": 6,
+        "recovery": 0,
+        "merchant": 13,
+        "party": 16,
+        "persistence": 50,
+        "telemetry": 88,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Active aggro no longer outranks party cohesion. The proposed kite move is",
+        "// rejected exactly as the team-cohesion guard requested."
+      ]
+    },
+    {
+      "path": "v3/src/reliability/alpha21-liveness-guards.js",
+      "blobSha": "b46d5aabe23babacd9ebfa6635821a143ad31469",
+      "size": 13577,
+      "lines": 346,
+      "imports": [
+        "../party/controlled-party-logistics",
+        "./economy-equipment-autonomy-v2"
+      ],
+      "symbols": [
+        "finite",
+        "distance",
+        "outboundWork",
+        "canMoveTo",
+        "movementCircuitOpen",
+        "boundedReachableMove",
+        "patchControlledPartyLogisticsRendezvous",
+        "actionableRendezvousRows",
+        "patchEconomyV2PartyStarvation",
+        "patchAlpha21LivenessGuards",
+        "ALPHA21_LIVENESS_MODE",
+        "ACTIONABLE_RENDEZVOUS_ACTIONS"
+      ],
+      "methods": [
+        "for",
+        "if"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "OUTBOUND_TRANSFER",
+        "HOLD",
+        "NO_OUTBOUND_TRANSFER_WORK",
+        "LOGISTICS_RENDEZVOUS_MOVEMENT_BUSY",
+        "LOGISTICS_RENDEZVOUS_CROSS_MAP_UNSUPPORTED",
+        "LOGISTICS_RENDEZVOUS_TERRAIN_BLOCKED",
+        "ADAPTER_UNAVAILABLE",
+        "MERCHANT_RENDEZVOUS",
+        "ACTIONABLE_PARTY_LOGISTICS_PENDING",
+        "LOGISTICS_RENDEZVOUS",
+        "PARTY_SERVICE",
+        "CONTROLLED_PARTY_LOGISTICS",
+        "RENDEZVOUS_DEFERRED_HOME_SERVICE_CONTINUES",
+        "HOME_SERVICE",
+        "FAILED_RENDEZVOUS_MUST_NOT_STARVE_HOME_SERVICE"
+      ],
+      "signals": {
+        "patching": 12,
+        "recovery": 4,
+        "merchant": 8,
+        "party": 30,
+        "persistence": 16,
+        "telemetry": 50,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/reliability/alpha21-progression-intelligence.js",
+      "blobSha": "7349d6cdf9d929f073027d11495e7d9c77ebef1f",
+      "size": 22783,
+      "lines": 479,
+      "imports": [
+        "../autonomy/local-farm-planner",
+        "../party/fingerprints"
+      ],
+      "symbols": [
+        "monsterDifficulty",
+        "relativeMonsterDifficulty",
+        "readinessBottleneck",
+        "evaluateProgressionReadiness",
+        "progressionGoalScore",
+        "enumerateProgressionCandidates",
+        "installAlpha21ProgressionIntelligence",
+        "ProgressionIntelligence",
+        "ALPHA21_PROGRESSION_MODE",
+        "PROGRESSION_RECEIVER",
+        "SHARED_OBJECTIVE",
+        "finite",
+        "clamp01",
+        "clone"
+      ],
+      "methods": [
+        "_event",
+        "_team",
+        "_party",
+        "_partyIdentity",
+        "_objectiveMatchesParty",
+        "_plan",
+        "_busy",
+        "_teamMaxHp",
+        "_freshObjective",
+        "_ensureReceiver",
+        "_publish",
+        "_syncShared",
+        "_installPlannerPreference",
+        "_installGearPriority",
+        "_installRuntimeHook",
+        "tick",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "DPS",
+        "SURVIVAL",
+        "SUSTAIN",
+        "NONE",
+        "ADVANCE",
+        "EASIER",
+        "SIDEGRADE",
+        "PROGRESSION",
+        "HOLDING",
+        "HOLD",
+        "PROGRESSION_FAILED_SAFE",
+        "MORE_LIVE_EVIDENCE_REQUIRED",
+        "NO_AREA_READY_YET",
+        "ALPHA21_AREA_READY",
+        "LIVE_READINESS_CONFIRMED",
+        "RECOMMEND",
+        "CROSS_MAP_PROGRESSION_REQUIRES_AUTHORIZED_FARMER_TRAVEL",
+        "PARTY_IDENTITY_UNAVAILABLE",
+        "ALPHA21_PROGRESSION_REPLAN",
+        "REPLAN",
+        "PARTY_READY_FOR_BETTER_AREA",
+        "ALPHA21_PROGRESSION_PROMOTED",
+        "MINOR_CONTEXT_AND_COMPATIBILITY_GATE"
+      ],
+      "signals": {
+        "patching": 6,
+        "recovery": 0,
+        "merchant": 22,
+        "party": 43,
+        "persistence": 54,
+        "telemetry": 10,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/reliability/alpha23-combat-stability-hotfix.js",
+      "blobSha": "4ccd973ec18682fb769eae7bf344d2825b6f8c0b",
+      "size": 8605,
+      "lines": 41,
+      "imports": [],
+      "symbols": [
+        "finite",
+        "nameOf",
+        "distance",
+        "liveTarget",
+        "installCohesionInvariantRepair",
+        "installCommittedPullContinuation",
+        "installCombatFormationHold",
+        "installAggroAuthoritativeKiting",
+        "installAlpha23CombatStabilityHotfix",
+        "Alpha23CombatStabilityHotfix",
+        "ALPHA23_COMBAT_STABILITY_MODE"
+      ],
+      "methods": [
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "TEAM_COHESION_INVARIANT_REPAIRED",
+        "PAIR_DISTANCE_WITHIN_CONFIGURED_RADIUS",
+        "TEAM_NOT_COHESIVE",
+        "TEAM_NOT_READY",
+        "COMMITTED_SAFE_PULL_CONTINUATION",
+        "TRAVEL",
+        "ENGAGE",
+        "FORMATION_HOLD",
+        "ACTIVE_ENCOUNTER_FIRE_POSITION",
+        "NO_SELF_AGGRO_KITE_HOLD",
+        "ALPHA23_COMBAT_STABILITY_INSTALLED"
+      ],
+      "signals": {
+        "patching": 8,
+        "recovery": 0,
+        "merchant": 5,
+        "party": 33,
+        "persistence": 18,
+        "telemetry": 10,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js",
+      "blobSha": "2a5254d230a9e464f0d6c5b52fb0e120696a74a4",
+      "size": 23519,
+      "lines": 520,
+      "imports": [],
+      "symbols": [
+        "finite",
+        "clamp",
+        "nameOf",
+        "ctypeOf",
+        "distance",
+        "liveMonster",
+        "gameData",
+        "registryCharacters",
+        "memberRows",
+        "classFallbackRange",
+        "classifyCombatStyle",
+        "tankProfile",
+        "estimatePartyDps",
+        "estimateExpectedKillSeconds",
+        "radialWaypoint",
+        "installMerchantMovementAuthority",
+        "installAdaptiveRangePositioning",
+        "installKiteAwareRisk",
+        "installEfficiencyAwareTargeting",
+        "installAlpha24AdaptiveRangeRiskLogisticsHotfix",
+        "Alpha24AdaptiveRangeRiskLogisticsHotfix",
+        "ALPHA24_MODE",
+        "RANGED_CLASSES",
+        "MELEE_CLASSES",
+        "HOME_BUSY_PHASES"
+      ],
+      "methods": [
+        "for",
+        "if",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "TOWN_RETURN",
+        "TOWN_SERVICE",
+        "BANK_TRAVEL",
+        "BANK_SERVICE",
+        "MARKET_TRAVEL",
+        "MARKET_SERVICE",
+        "PROGRESSION_SERVICE",
+        "RESTOCK_SERVICE",
+        "RENDEZVOUS",
+        "SUPPLY_REQUEST",
+        "LOOT_OFFER",
+        "GOLD_OFFER",
+        "LOGISTICS_RENDEZVOUS",
+        "ADDITIONAL_AGGRO",
+        "RISK_THRESHOLD_EXCEEDED",
+        "KITE_MITIGATED_RISK_ACCEPTABLE",
+        "EXPECTED_KILL_TIME_TOO_LONG",
+        "LONG_KILL_TIME_PENALTY",
+        "ALPHA24_ADAPTIVE_STABILITY_INSTALLED"
+      ],
+      "signals": {
+        "patching": 12,
+        "recovery": 2,
+        "merchant": 20,
+        "party": 14,
+        "persistence": 42,
+        "telemetry": 46,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Non-aggro ranged characters do not drift outward to an artificial fire",
+        "// band. The normal Farmer engagement pipeline remains authoritative: it may",
+        "// close distance when the target leaves attack/skill range, but otherwise the",
+        "// support Ranger holds position and keeps firing from where it already stands."
+      ]
+    },
+    {
+      "path": "v3/src/reliability/alpha25-control-center-brain.js",
+      "blobSha": "454fbf69f10891cb4ce28065e987ece48f50b0f0",
+      "size": 26508,
+      "lines": 528,
+      "imports": [
+        "../control/control-plane-config",
+        "../control/cloud-control-plane",
+        "../brain/strategic-brain-v2",
+        "./alpha27-combat-merchant-convergence",
+        "../economy/item-economic-evaluator"
+      ],
+      "symbols": [
+        "adventureLandAssetUrl",
+        "gameDataSources",
+        "mergeGameData",
+        "positionFromImageSets",
+        "spritePosition",
+        "inferredImageSetRows",
+        "spriteMeta",
+        "liveCharacterOf",
+        "itemSpriteCatalog",
+        "equipmentShadeCatalog",
+        "itemNpcCatalog",
+        "observedAutomationItems",
+        "itemAutomationCatalog",
+        "installAdventureLandItemSprites",
+        "installAlpha25ControlCenterBrain",
+        "Alpha25ControlCenterBrain",
+        "ALPHA25_MODE",
+        "PROGRESSION_SETTING_KEYS",
+        "ADVENTURE_LAND_ASSET_BASE",
+        "EQUIPMENT_SHADE_SKINS",
+        "ADVENTURE_LAND_ITEM_SURFACE_VERSION"
+      ],
+      "methods": [
+        "for",
+        "_applyExtendedSettings",
+        "_syncLateProgressionPolicy",
+        "beforeTick",
+        "patchSettings",
+        "configureCloud",
+        "status",
+        "if"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "ALPHA25_CONTROL_CENTER_BRAIN_INSTALLED",
+        "ALPHA27_PROGRESSION_POLICY_RESYNCED",
+        "ENCOUNTER_OUTCOME_DUPLICATE",
+        "CLOUD_CONTROL_PROMISE_REJECTED"
+      ],
+      "signals": {
+        "patching": 8,
+        "recovery": 2,
+        "merchant": 95,
+        "party": 4,
+        "persistence": 37,
+        "telemetry": 72,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js",
+      "blobSha": "607701631c3fbde103e033e58875dcec63f1dcaf",
+      "size": 12187,
+      "lines": 302,
+      "imports": [
+        "../release-version",
+        "../ops/safe-auto-updater"
+      ],
+      "symbols": [
+        "finite",
+        "restartHosts",
+        "readPlannedAutoUpdateMarker",
+        "writePlannedAutoUpdateMarker",
+        "clearPlannedAutoUpdateMarker",
+        "installAutoUpdateRestartTelemetry",
+        "hasOutboundTransferWork",
+        "scheduleGuiCollapsedStart",
+        "installCloudTransportAuthority",
+        "installDemandDrivenRendezvous",
+        "installAlpha26CloudUpdateLogisticsUiHotfix",
+        "Alpha26CloudUpdateLogisticsUiHotfix",
+        "ALPHA26_MODE",
+        "PLANNED_AUTO_UPDATE_REASON",
+        "PLANNED_AUTO_UPDATE_MARKER",
+        "PLANNED_AUTO_UPDATE_TTL_MS"
+      ],
+      "methods": [
+        "if",
+        "for",
+        "beforeTick",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "PLANNED_AUTO_UPDATE",
+        "AUTO_UPDATE_APPLIED",
+        "SAFE_RELEASE_RELOADED",
+        "RENDEZVOUS",
+        "HOLD",
+        "NO_OUTBOUND_TRANSFER_WORK",
+        "SAFE_AUTO_UPDATE_CYCLE_FAILED"
+      ],
+      "signals": {
+        "patching": 7,
+        "recovery": 23,
+        "merchant": 5,
+        "party": 18,
+        "persistence": 10,
+        "telemetry": 60,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/reliability/alpha27-atomic-constants.js",
+      "blobSha": "d03f698d9ddb422ae1b576592d96134092df44d0",
+      "size": 408,
+      "lines": 13,
+      "imports": [],
+      "symbols": [
+        "CONTROLLED_ACK",
+        "SUPERVISOR_ALLOWED",
+        "EXPECTED_DISPOSITIONS"
+      ],
+      "methods": [],
+      "directAdventureLandWrites": [],
+      "states": [
+        "CONTROLLED_CANARY",
+        "HEALTHY",
+        "WATCH",
+        "SELL",
+        "BANK",
+        "RESERVE_UPGRADE",
+        "RESERVE_PROGRESSION",
+        "RESERVE_COMPOUND"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 8,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/reliability/alpha27-atomic-core.js",
+      "blobSha": "f1a3b59e8767e1b1157daaee39b8dc9e326c0954",
+      "size": 2045,
+      "lines": 51,
+      "imports": [
+        "./alpha27-utils",
+        "./alpha27-atomic-constants"
+      ],
+      "symbols": [
+        "Alpha27AtomicCore"
+      ],
+      "methods": [
+        "_event",
+        "supervisorAllowed",
+        "merchantActive",
+        "merchantInCombat"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "HEALTHY"
+      ],
+      "signals": {
+        "patching": 3,
+        "recovery": 0,
+        "merchant": 8,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 13,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/reliability/alpha27-atomic-economy.js",
+      "blobSha": "09257d14ad98c908a131709755c2da9627182b3d",
+      "size": 23707,
+      "lines": 502,
+      "imports": [
+        "./alpha27-utils",
+        "./alpha27-atomic-constants",
+        "./alpha27-atomic-service"
+      ],
+      "symbols": [
+        "Alpha27AtomicEconomy",
+        "TRANSIENT_ATOMIC_PREFLIGHT_REASONS",
+        "PREFLIGHT_DEFER_BASE_MS",
+        "PREFLIGHT_DEFER_MAX_MS"
+      ],
+      "methods": [
+        "_deferredAtomicResult",
+        "_handleAtomicPreflightReject",
+        "_normalizeMutationChance",
+        "_mutationReplacementStock",
+        "_mutationPartyCurrentValue",
+        "_mutationRiskThreshold",
+        "mutationRiskDecision",
+        "executeAtomic",
+        "patchControlledMerchant",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "CONTROLLED_MERCHANT_DISABLED",
+        "UPGRADE_LIVE_DISABLED",
+        "COMPOUND_LIVE_DISABLED",
+        "MERCHANT_ACTIVE_MODE_REQUIRED",
+        "SUPERVISOR_NOT_HEALTHY",
+        "CONTROLLED_MERCHANT_BUSY",
+        "COMBAT_ACTIVE",
+        "TRANSACTION_CIRCUIT_OPEN",
+        "ACTION_BUDGET_EXHAUSTED",
+        "MUTATION_RISK_BUDGET_EXHAUSTED",
+        "LEDGER_UNAVAILABLE_OR_STALE",
+        "ITEM_REQUIRES_REVALIDATION",
+        "RESERVED",
+        "TRANSACTION_PREFLIGHT_DEFERRED",
+        "ATOMIC_PREFLIGHT_REJECTED",
+        "TRANSACTION_LEASE_EXPIRED",
+        "ABORTED",
+        "ALPHA27_MERCHANT_PREFLIGHT_ABORTED",
+        "RELEASED",
+        "ALPHA27_MERCHANT_PREFLIGHT_RELEASED",
+        "DEFERRED",
+        "ALPHA27_MERCHANT_PREFLIGHT_DEFERRED",
+        "REJECTED",
+        "COMPOUND",
+        "UPGRADE",
+        "UPGRADE_API_UNAVAILABLE",
+        "UPGRADE_CHANCE",
+        "COMPOUND_API_UNAVAILABLE",
+        "COMPOUND_CHANCE",
+        "MUTATION_RISK_UNSUPPORTED_TYPE",
+        "MUTATION_CHANCE_UNAVAILABLE",
+        "MUTATION_RISK_EXCEEDS_POLICY",
+        "MUTATION_RISK_ACCEPTED",
+        "ALPHA27_MUTATION_RISK_DECISION",
+        "ALPHA27_ATOMIC_PREFLIGHT_OK_RESERVED",
+        "FAILED_SAFE",
+        "ALPHA27_MERCHANT_MUTATION_RISK_HELD",
+        "TRANSACTION_DISAPPEARED_BEFORE_MUTATION",
+        "EXECUTING",
+        "ALPHA27_RAW_ACTION_STARTING",
+        "VERIFYING",
+        "ALPHA27_RAW_ACTION_RETURNED",
+        "SUCCESS",
+        "FAILED_ROLL_ITEM_LOST",
+        "FAILED_ROLL_ITEM_SURVIVED",
+        "FAILED_ROLL_INPUTS_CONSUMED",
+        "STRICT_ITEM_AND_SCROLL_DELTA",
+        "VERIFIED_COMMIT",
+        "VERIFIED_GAME_FAILURE_NO_BLIND_RETRY",
+        "COMMITTED",
+        "ALPHA27_MERCHANT_MUTATION_COMMITTED",
+        "ATOMIC_MUTATION_FAILED",
+        "ALPHA27_MERCHANT_MUTATION_FAILED_SAFE",
+        "SELL",
+        "BANK",
+        "EXCHANGE",
+        "TRADE"
+      ],
+      "signals": {
+        "patching": 3,
+        "recovery": 30,
+        "merchant": 123,
+        "party": 24,
+        "persistence": 3,
+        "telemetry": 34,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}
