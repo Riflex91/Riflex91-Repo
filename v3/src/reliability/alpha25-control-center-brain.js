@@ -192,7 +192,7 @@ class Alpha25ControlCenterBrain {
     installAdventureLandItemSprites(runtime, this.cloud);
     this.lastCycleAt = 0;
     this.progressionPolicyTarget = runtime.alpha27CombatMerchantConvergence || null;
-    this.stats = { ticks: 0, outcomes: 0, remoteEncounterOutcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0, lateProgressionPolicySyncs: 0 };
+    this.stats = { ticks: 0, outcomes: 0, remoteEncounterOutcomes: 0, remoteEncounterOutcomeBatches: 0, remoteEncounterOutcomeSkips: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0, lateProgressionPolicySyncs: 0 };
     this.controlPlane.applyHot(runtime);
     this._applyExtendedSettings();
     if (this.cloud.autoEnableSuggested && this.cloud.status().ready && this.controlPlane.get('cloud.enabled', false) !== true) {
@@ -266,17 +266,25 @@ class Alpha25ControlCenterBrain {
       && this.runtime.partyTelemetry && typeof this.runtime.partyTelemetry.encounterOutcomes === 'function'
       && this.brain && typeof this.brain.ingestEncounterOutcome === 'function') {
       try {
-        const rows = Object.values(this.runtime.partyTelemetry.encounterOutcomes() || {})
+        const sourceRows = typeof this.runtime.partyTelemetry.encounterOutcomeList === 'function'
+          ? this.runtime.partyTelemetry.encounterOutcomeList()
+          : Object.values(this.runtime.partyTelemetry.encounterOutcomes() || {});
+        const rows = sourceRows
           .filter((row) => row && row.encounterId)
-          .sort((a, b) => Number(b.endedAt || 0) - Number(a.endedAt || 0));
-        if (rows.length) {
-          const accepted = this.brain.ingestEncounterOutcome(rows[0], { remote: true });
+          .sort((a, b) => Number(a.endedAt || 0) - Number(b.endedAt || 0) || String(a.encounterId).localeCompare(String(b.encounterId)));
+        let acceptedInBatch = 0;
+        for (const row of rows) {
+          const accepted = this.brain.ingestEncounterOutcome(row, { remote: true });
           if (accepted && accepted.accepted === true) {
             encounterOutcome = accepted;
+            acceptedInBatch += 1;
             this.stats.remoteEncounterOutcomes += 1;
             if (this.cloud && Array.isArray(this.cloud.pendingFeedback)) this.cloud.pendingFeedback.push(accepted);
+          } else if (accepted && accepted.reason !== 'ENCOUNTER_OUTCOME_DUPLICATE') {
+            this.stats.remoteEncounterOutcomeSkips += 1;
           }
         }
+        if (acceptedInBatch > 0) this.stats.remoteEncounterOutcomeBatches += 1;
       } catch (_) {}
     }
     const outcome = this.brain && typeof this.brain.tickOutcome === 'function' ? this.brain.tickOutcome() : null;
