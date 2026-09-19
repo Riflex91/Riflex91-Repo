@@ -338,6 +338,23 @@ CI muss mindestens pruefen:
 12. Soak ist auf mindestens 10 Minuten begrenzt,
 13. Soak-Recovery braucht gebundene 8.6.8-Replay-Evidenz.
 
+## Source-locked Schattenpaket
+
+Fuer den realen Adventure-Land-Schattenlauf ist jetzt ein einzelnes Copy/Paste-Paket vorbereitet:
+
+`v4/werkzeuge/block8-6-schatten-paket.js`
+
+Es ist hart gebunden an:
+
+- Candidate `ca0dfee7685563c8b6003469300c8fd08777b053`
+- 396471 Bytes
+- SHA-256 `b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5`
+- immutable HTTPS-URL `https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.js`
+
+Das Paket prueft Download, Bytegroesse, Marker und SHA-256, laesst Runtime und Capability-Schicht deaktiviert und gibt erst nach einem strikten Null-Sende-Preflight den einzigen Button **1 · Schattennachweis** frei.
+
+Der reale Schattennachweis bleibt bis zu einem tatsaechlichen Adventure-Land-PASS-Bericht offen.
+
 ## Naechster operativer Schritt
 
 Nach Merge dieses Vorbereitungsstands:
