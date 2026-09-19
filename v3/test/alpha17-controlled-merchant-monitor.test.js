@@ -403,7 +403,8 @@ test('Debug monitor GUI exposes a wired Log kopieren button while remaining read
   assert.equal(typeof ui.copyButton.onclick, 'function');
   assert.equal(ui.status().actionAuthority, false);
   assert.equal(ui.status().directGameplayActionAccess, false);
-  assert.equal(ui.body, null);
+  assert.ok(ui.body);
+  assert.equal(ui.body.children.length, 0);
   assert.ok(ui.logBox);
   ui.destroy();
 });
