@@ -467,10 +467,15 @@
         {
           "von": "ABGLEICH_ERFORDERLICH",
           "nach": "BEOBACHTET"
+        },
+        {
+          "von": "NICHT_ERREICHBAR",
+          "nach": "NEUVERBINDUNG"
         }
       ],
       "verbote": [
-        "STALE, NICHT_ERREICHBAR oder GETRENNT darf keine neue mutierende Authority erhalten"
+        "STALE, NICHT_ERREICHBAR oder GETRENNT darf keine neue mutierende Authority erhalten",
+        "NICHT_ERREICHBAR darf nur ueber NEUVERBINDUNG und anschliessenden ABGLEICH neue Authority erhalten"
       ],
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "unbekannterUebergang": "FAIL_CLOSED"
@@ -480,7 +485,9 @@
       "kennung": "V5-ZUSTAND-LAUFSTEUERUNG",
       "name": "Laufsteuerung",
       "start": "GESTOPPT",
-      "terminal": [],
+      "terminal": [
+        "KRITISCH_GESPERRT"
+      ],
       "zustaende": [
         "GESTOPPT",
         "STARTET",
@@ -549,7 +556,8 @@
       ],
       "verbote": [
         "STOPP_ANGEFORDERT darf In-Flight-Transaktion nicht durch Zustandvergessen beenden",
-        "Restart darf nicht direkt LAEUFT setzen"
+        "Restart darf nicht direkt LAEUFT setzen",
+        "KRITISCH_GESPERRT ist fuer den aktuellen Lauf terminal; Wiederanlauf braucht einen neuen Laufkontext ab GESTOPPT"
       ],
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "unbekannterUebergang": "FAIL_CLOSED"
@@ -715,10 +723,27 @@
         {
           "von": "ABGLEICH_ERFORDERLICH",
           "nach": "SICHER_FEHLGESCHLAGEN"
+        },
+        {
+          "von": "BEDARF_ERFASST",
+          "nach": "ABGEBROCHEN"
+        },
+        {
+          "von": "MATERIALPLAN",
+          "nach": "ABGEBROCHEN"
+        },
+        {
+          "von": "MATERIALIEN_RESERVIERT",
+          "nach": "ABGEBROCHEN"
+        },
+        {
+          "von": "HERSTELLUNG_BEREIT",
+          "nach": "ABGEBROCHEN"
         }
       ],
       "verbote": [
-        "HERSTELLUNG_BESTAETIGT ist nicht gleich EMPFAENGER_BESTAETIGT"
+        "HERSTELLUNG_BESTAETIGT ist nicht gleich EMPFAENGER_BESTAETIGT",
+        "Nach HERSTELLUNG_LAEUFT darf nicht direkt ABGEBROCHEN werden; unklarer oder partieller Effekt verlangt ABGLEICH_ERFORDERLICH"
       ],
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "unbekannterUebergang": "FAIL_CLOSED"
@@ -796,11 +821,24 @@
         {
           "von": "ABGLEICH_ERFORDERLICH",
           "nach": "BEDIENER_ERFORDERLICH"
+        },
+        {
+          "von": "VORBEREITUNG",
+          "nach": "ABGEBROCHEN"
+        },
+        {
+          "von": "EINGABEN_RESERVIERT",
+          "nach": "ABGEBROCHEN"
+        },
+        {
+          "von": "VORAUSSETZUNGEN_BESTAETIGT",
+          "nach": "ABGEBROCHEN"
         }
       ],
       "verbote": [
         "q/Placeholder als normaler Bestand behandeln",
-        "ERGEBNIS_UNBEKANNT->erneut senden"
+        "ERGEBNIS_UNBEKANNT->erneut senden",
+        "Nach GESENDET darf nicht direkt ABGEBROCHEN werden; Ergebnis muss bestaetigt oder abgeglichen werden"
       ],
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "unbekannterUebergang": "FAIL_CLOSED"
@@ -1070,5 +1108,16 @@
     }
   ],
   "ratifiziertAm": "2026-09-19",
-  "ratifizierungsRegel": "R2 ratifiziert die Zustandsraeume und Verbote als kanonische Vor-Implementierungsmodelle. Technische Implementierung und Fault-Nachweis folgen in den zugeordneten Roadmap-Phasen."
+  "ratifizierungsRegel": "R2 ratifiziert die Zustandsraeume und Verbote als kanonische Vor-Implementierungsmodelle. Technische Implementierung und Fault-Nachweis folgen in den zugeordneten Roadmap-Phasen.",
+  "r4Modellkorrektur": {
+    "stand": "2026-09-20",
+    "status": "R4_GESCHLOSSEN",
+    "regel": "Nichtterminale Zustaende muessen mindestens einen deklarierten Ausgang besitzen; terminale Zustaende duerfen keine ausgehenden Kanten besitzen; Abbruch ist nur vor moeglicher irreversibler Wirkung direkt erlaubt.",
+    "geaendert": [
+      "V5-ZUSTAND-CHARAKTER_LEBENDIGKEIT",
+      "V5-ZUSTAND-LAUFSTEUERUNG",
+      "V5-ZUSTAND-PRODUKTION",
+      "V5-ZUSTAND-MEHRPHASEN_ITEMAKTION"
+    ]
+  }
 }
