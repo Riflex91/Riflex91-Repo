@@ -4,8 +4,8 @@
   "status": "RATIFIZIERUNG_OFFEN",
   "zusammenfassung": {
     "ausV4": 55,
-    "neuV5": 75,
-    "gesamt": 130
+    "neuV5": 86,
+    "gesamt": 141
   },
   "regel": "Alle 55 V4-Invarianten muessen in R2 explizit UEBERNEHMEN, VERSCHAERFEN oder ERSETZEN erhalten. Keine darf still entfallen.",
   "invarianten": [
@@ -1178,6 +1178,105 @@
       "ratifizierungsStatus": "V5_VERBINDLICH",
       "v5Entscheidung": "UEBERNEHMEN",
       "begruendung": "FIFO-Korrelation ist channel-lokal, waehrend beide Workflows dieselben Inventarressourcen beruehren koennen."
+    },
+    {
+      "kennung": "V5-INV-076",
+      "herkunft": "V5_NEU",
+      "aussage": "V5 plant niemals bewusst mit dem generischen add_item-Overflow ausserhalb der nominalen Inventarkapazitaet.",
+      "geplanteDurchsetzung": "Outputspace Admission Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Der Server kann Items notfalls an player.items anhaengen und esize negativ machen; das ist kein sicherer Normalzustand."
+    },
+    {
+      "kennung": "V5-INV-077",
+      "herkunft": "V5_NEU",
+      "aussage": "Jede wertveraendernde Transformation beweist vor Send konservativ ausreichenden Outputspace.",
+      "geplanteDurchsetzung": "Scheduler ResourceClaim + Transform Contract",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Inputverbrauch und Outputerzeugung duerfen keinen ungeplanten Overflow erzeugen."
+    },
+    {
+      "kennung": "V5-INV-078",
+      "herkunft": "V5_NEU",
+      "aussage": "Exchange-Settlement umfasst alle durch den gepinnten Drop-Graph erlaubten Reward-Domaenen und nicht nur reward/num des Public Wrappers.",
+      "geplanteDurchsetzung": "Exchange Reconciliation",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Item kann in anderem Stack landen; Reward kann Gold, Shells, Cosmetics, Empty oder rekursiv sein."
+    },
+    {
+      "kennung": "V5-INV-079",
+      "herkunft": "V5_NEU",
+      "aussage": "Automatisierte Exchange-Drop-Graphs muessen rekursiv bounded, versioniert und vor Send frisch freigegeben sein.",
+      "geplanteDurchsetzung": "Knowledge/DropGraph Gate",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Rekursive oder geaenderte Drop-Tabellen koennen Outputspace und Postconditions veraendern."
+    },
+    {
+      "kennung": "V5-INV-080",
+      "herkunft": "V5_NEU",
+      "aussage": "exchange_buy pinnt den exakten physischen Token-Stack und dessen vollstaendige beobachtete q-Menge.",
+      "geplanteDurchsetzung": "Token Transaction Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Der Server vergleicht current item.q exakt mit data.q und nutzt dies als safety_check."
+    },
+    {
+      "kennung": "V5-INV-081",
+      "herkunft": "V5_NEU",
+      "aussage": "Normal Craft pinnt exakte physische Inputstacks; aktuelle Recipe-Semantik gilt nur solange keine Duplicate-Ingredient-Namen auftreten.",
+      "geplanteDurchsetzung": "Craft Recipe Drift Gate",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Server quantity/place sind im Normalpfad nach Itemname keyed; neue Duplicate-Namen verlangen Revalidierung."
+    },
+    {
+      "kennung": "V5-INV-082",
+      "herkunft": "V5_NEU",
+      "aussage": "auto_craft repliziert unmittelbar vor Send die erste server-/clientkompatible Single-Stack-Auswahl und pinnt deren Identitaeten.",
+      "geplanteDurchsetzung": "AutoCraft Admission",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Der Client waehlt den ersten passenden Stack mit kompletter benoetigter Menge."
+    },
+    {
+      "kennung": "V5-INV-083",
+      "herkunft": "V5_NEU",
+      "aussage": "Anniversary Craft wird als eigener trusted multi-stack Serverplan modelliert und nicht mit Normal Craft gleichgesetzt.",
+      "geplanteDurchsetzung": "Typed CraftPath",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Der Server scannt das gesamte Inventar und kann eine Anforderung ueber mehrere Stacks verteilen."
+    },
+    {
+      "kennung": "V5-INV-084",
+      "herkunft": "V5_NEU",
+      "aussage": "Leveled-Compound-Dismantle ist ein eigener Drei-Output-Pfad mit mindestens zwei vorab freien Slots und strengerer V5-Lock-/Value-Policy.",
+      "geplanteDurchsetzung": "Dismantle Path Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Der Server-Sonderpfad liegt vor normalen Lock-/Block-Checks und erzeugt drei Level-1-Kopien."
+    },
+    {
+      "kennung": "V5-INV-085",
+      "herkunft": "V5_NEU",
+      "aussage": "Normal Dismantle reserviert Outputspace konservativ fuer alle moeglichen probabilistischen Outputs.",
+      "geplanteDurchsetzung": "Dismantle Outputspace Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Server can_add_items prueft die gesamte moegliche Outputmenge vor Mutation."
+    },
+    {
+      "kennung": "V5-INV-086",
+      "herkunft": "V5_NEU",
+      "aussage": "Ein Public Promise-Result ist bei Exchange/Craft/Dismantle nur Evidence; Commit erfordert frische Domain-Postconditions.",
+      "geplanteDurchsetzung": "Reconciliation Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Transportresultate bilden nicht in jedem Pfad die vollstaendige Inventory-/Value-Wirkung ab."
     }
   ]
 }
