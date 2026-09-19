@@ -1,6 +1,7 @@
 'use strict';
 
 const { OperatorRunControl } = require('./operator-run-control');
+const { CombatMode, COMBAT_MODE_LABELS } = require('../autonomy/combat-modes');
 
 function safeText(value) {
   if (value == null) return '—';
@@ -426,7 +427,8 @@ class DebugMonitorUI {
       catalogReady: catalog.state === 'READY',
       generation: catalog.generation,
       rows,
-      enabled: rows.filter((row) => row.enabled).length
+      enabled: rows.filter((row) => row.enabled).length,
+      combatMode: runtime.characterCombatProfiles.getCombatMode(character.name)
     };
   }
 
@@ -436,7 +438,8 @@ class DebugMonitorUI {
       recipientMpThreshold: 'MP ≤',
       minInjuredMembers: 'Verletzte ≥',
       minTargets: 'Ziele ≥',
-      maxDesiredTargets: 'Ziele max'
+      maxDesiredTargets: 'Ziele max',
+      manaBudgetRatio: 'MP Budget'
     };
     return labels[String(key || '')] || String(key || '');
   }
@@ -456,6 +459,22 @@ class DebugMonitorUI {
     try {
       if (typeof runtime._refreshSkillCapabilities === 'function') runtime._refreshSkillCapabilities();
     } catch (_) {}
+  }
+
+  _setCombatMode(mode) {
+    const runtime = this._skillRuntime();
+    const character = this._skillCharacter();
+    if (!runtime || !character || !runtime.characterCombatProfiles || typeof runtime.characterCombatProfiles.setCombatMode !== 'function') return false;
+    const result = runtime.characterCombatProfiles.setCombatMode(character.name, mode);
+    if (!result || result.ok !== true) return false;
+    try {
+      if (runtime.tacticalPartyCombat && runtime.lastSnapshot) {
+        const team = runtime.teamCombatCohesionHotfix && runtime.teamCombatCohesionHotfix._team(runtime.lastSnapshot);
+        if (team && runtime.tacticalPartyCombat.encounter) runtime.tacticalPartyCombat._refreshEncounterPlan(runtime.lastSnapshot, team);
+      }
+    } catch (_) {}
+    this.refresh();
+    return true;
   }
 
   _setSkillEnabled(skillId, enabled) {
@@ -533,6 +552,25 @@ class DebugMonitorUI {
     this._setStyle(heading, { color: '#d1d5db', marginBottom: '8px', fontWeight: 'bold' });
     this.skillsPanel.appendChild(heading);
     if (!state.available) return true;
+
+    const modeRow = doc.createElement('div');
+    this._setStyle(modeRow, { display: 'grid', gridTemplateColumns: '100px 1fr', alignItems: 'center', gap: '8px', marginBottom: '8px' });
+    const modeLabel = doc.createElement('span');
+    modeLabel.textContent = 'Combat Mode';
+    this._setStyle(modeLabel, { color: '#9ca3af', fontSize: '10px' });
+    const modeSelect = doc.createElement('select');
+    for (const mode of [CombatMode.SINGLE_TARGET, CombatMode.SMART_AUTO, CombatMode.AOE_PREFERRED]) {
+      const option = doc.createElement('option');
+      option.value = mode;
+      option.textContent = COMBAT_MODE_LABELS[mode] || mode;
+      modeSelect.appendChild(option);
+    }
+    modeSelect.value = state.combatMode || CombatMode.SMART_AUTO;
+    modeSelect.onchange = () => this._setCombatMode(modeSelect.value);
+    this._setStyle(modeSelect, { width: '100%', background: '#0b0f14', color: '#f3f4f6', border: '1px solid #4b5563', borderRadius: '4px', padding: '4px' });
+    modeRow.appendChild(modeLabel);
+    modeRow.appendChild(modeSelect);
+    this.skillsPanel.appendChild(modeRow);
 
     const actions = doc.createElement('div');
     this._setStyle(actions, { display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' });

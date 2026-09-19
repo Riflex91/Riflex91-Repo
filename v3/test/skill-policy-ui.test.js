@@ -9,6 +9,7 @@ const { SkillPolicy } = require('../src/autonomy/skill-policy');
 const { SkillUsagePolicy } = require('../src/farmer/skill-usage');
 const { PartySkillEngine } = require('../src/autonomy/party-skill-engine');
 const { DebugMonitorUI } = require('../src/ops/debug-monitor-ui');
+const { CombatMode } = require('../src/autonomy/combat-modes');
 
 function storage() {
   const rows = new Map();
@@ -302,6 +303,7 @@ test('Debug monitor Skills panel renders unlocked skills, checkboxes and Heal/Pa
   assert.equal(ui.skillsButton.textContent, 'Skills 2/2');
 
   const state = ui._skillPanelState();
+  assert.equal(state.combatMode, CombatMode.SMART_AUTO);
   assert.deepEqual(state.rows.map((row) => row.skill.id).sort(), ['heal', 'partyheal']);
   assert.equal(state.rows.find((row) => row.skill.id === 'heal').parameters.hpThreshold, 0.65);
   assert.equal(state.rows.find((row) => row.skill.id === 'partyheal').parameters.hpThreshold, 0.72);
@@ -317,6 +319,12 @@ test('Debug monitor Skills panel renders unlocked skills, checkboxes and Heal/Pa
 
   assert.equal(ui._setSkillParameter('partyheal', 'hpThreshold', 0.80), true);
   assert.equal(ui._skillPanelState().rows.find((row) => row.skill.id === 'partyheal').parameters.hpThreshold, 0.8);
+
+  const selects = findNodes(ui.skillsPanel, (node) => node.tagName === 'SELECT');
+  assert.equal(selects.length, 1);
+  assert.equal(selects[0].value, CombatMode.SMART_AUTO);
+  assert.equal(ui._setCombatMode(CombatMode.AOE_PREFERRED), true);
+  assert.equal(ui._skillPanelState().combatMode, CombatMode.AOE_PREFERRED);
 
   const status = ui.status();
   assert.equal(status.actionAuthority, false);

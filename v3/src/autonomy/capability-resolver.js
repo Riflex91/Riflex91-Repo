@@ -344,6 +344,12 @@ class PartyCapabilityResolver {
       aoeControl: Number(structuralCapabilities[Capability.AOE_CONTROL]) > 0,
       aoeAggroControl: Number(structuralCapabilities[Capability.AOE_AGGRO_CONTROL]) > 0
     };
+    const configuredSupport = {
+      partyHeal: Number(enabledCapabilities[Capability.PARTY_HEAL]) > 0,
+      groupSustain: Number(enabledCapabilities[Capability.GROUP_SUSTAIN]) > 0,
+      aoeControl: Number(enabledCapabilities[Capability.AOE_CONTROL]) > 0,
+      aoeAggroControl: Number(enabledCapabilities[Capability.AOE_AGGRO_CONTROL]) > 0
+    };
 
     const basis = {
       members: members.map((row) => [row.name, row.generation, row.fingerprint]),
@@ -378,7 +384,8 @@ class PartyCapabilityResolver {
       combat: {
         aoePotential,
         aoeConfigured,
-        support
+        support,
+        configuredSupport
       }
     };
     return clone(this.last, null);

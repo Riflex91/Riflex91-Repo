@@ -107,6 +107,8 @@ const { CharacterCombatProfileStore, CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION, CH
 const { CharacterCapabilityResolver, PartyCapabilityResolver } = require('./autonomy/capability-resolver');
 const { SkillControlType, Capability, SKILL_SEMANTICS } = require('./autonomy/skill-semantics');
 const { SkillPolicy, SKILL_POLICY_MODE } = require('./autonomy/skill-policy');
+const { CombatMode, COMBAT_MODE_LABELS, normalizeCombatMode } = require('./autonomy/combat-modes');
+const { SmartAoePlanner, SmartAoeState, SMART_AOE_PLANNER_MODE } = require('./autonomy/smart-aoe-planner');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
 const { BoundedReplayBuffer } = require('./brain/replay-buffer');
 const { ShadowStrategicBrain, BrainQualityState } = require('./brain/shadow-brain');
@@ -300,6 +302,18 @@ function install(root = globalThis, options = {}) {
         refresh: () => runtime._refreshSkillCapabilities()
       },
       policy: { status: () => runtime.skillPolicy.status() },
+      combat: {
+        mode: (name = null) => runtime.characterCombatProfiles.getCombatMode(resolvedCharacterName(name)),
+        setMode: (mode, name = null) => {
+          const character = resolvedCharacterName(name);
+          if (!character) return { ok: false, reason: 'CHARACTER_UNAVAILABLE' };
+          return runtime.characterCombatProfiles.setCombatMode(character, mode);
+        },
+        tactical: () => runtime.tacticalPartyCombat && runtime.tacticalPartyCombat.status ? runtime.tacticalPartyCombat.status() : null,
+        canAddTarget: (target, context = {}) => runtime.tacticalPartyCombat && runtime.tacticalPartyCombat.canAddTarget
+          ? runtime.tacticalPartyCombat.canAddTarget(target, context)
+          : { allowed: false, reason: 'TACTICAL_PARTY_COMBAT_UNAVAILABLE' }
+      },
       profile: {
         get: (name = null) => runtime.characterCombatProfiles.get(resolvedCharacterName(name)),
         setEnabled: (skillId, enabled, name = null) => {
@@ -513,6 +527,7 @@ module.exports = {
   FarmPlanner, LocalFarmPlanner, LocalFarmOrchestrator, SkillCatalogService, SkillCatalogState, SUPPORTED_CLASSES,
   CharacterCombatProfileStore, CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION, CHARACTER_COMBAT_PROFILE_KEY,
   CharacterCapabilityResolver, PartyCapabilityResolver, SkillControlType, Capability, SKILL_SEMANTICS, SkillPolicy, SKILL_POLICY_MODE,
+  CombatMode, COMBAT_MODE_LABELS, normalizeCombatMode, SmartAoePlanner, SmartAoeState, SMART_AOE_PLANNER_MODE,
   FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor, CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE,
   FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
@@ -6363,8 +6378,8 @@ function percentControl(key, defaultValue, options = {}) {
   return Object.freeze({
     key,
     type: SkillControlType.PERCENT,
-    min: 0,
-    max: 1,
+    min: options.min == null ? 0 : Math.max(0, Math.min(1, Number(options.min))),
+    max: options.max == null ? 1 : Math.max(0, Math.min(1, Number(options.max))),
     step: options.step == null ? 0.01 : Number(options.step),
     default: Math.max(0, Math.min(1, Number(defaultValue))),
     label: options.label || key,
@@ -6457,7 +6472,10 @@ const SKILL_SEMANTICS = Object.freeze({
 
   cburst: Object.freeze({
     capabilities: [Capability.MULTI_TARGET_DAMAGE, Capability.VARIABLE_MULTI_TARGET_DAMAGE],
-    controls: [integerControl('minTargets', 2, 1, 8, { label: 'Minimum targets' })]
+    controls: [
+      integerControl('minTargets', 2, 1, 8, { label: 'Minimum targets' }),
+      percentControl('manaBudgetRatio', 0.20, { min: 0.05, max: 0.50, label: 'Maximum MP budget per cast' })
+    ]
   }),
   burst: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_BURST], controls: [] }),
   arcane_needle: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_OFFENSE], controls: [] }),
@@ -6579,6 +6597,7 @@ module.exports = {
 'use strict';
 
 const { normalizeControlValue, defaultParameters } = require('./skill-semantics');
+const { CombatMode, normalizeCombatMode } = require('./combat-modes');
 
 const CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION = 1;
 const CHARACTER_COMBAT_PROFILE_KEY = 'AIO_V3_CHARACTER_COMBAT_PROFILES_V1';
@@ -6635,6 +6654,7 @@ class CharacterCombatProfileStore {
       schemaVersion: CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION,
       character: name,
       updatedAt: this.now(),
+      combatMode: CombatMode.SMART_AUTO,
       skills: {}
     };
   }
@@ -6645,6 +6665,7 @@ class CharacterCombatProfileStore {
     if (!name) return null;
     const profile = this._empty(name);
     profile.updatedAt = Number.isFinite(Number(value.updatedAt)) ? Number(value.updatedAt) : this.now();
+    profile.combatMode = normalizeCombatMode(value.combatMode, CombatMode.SMART_AUTO);
     if (value.skills && typeof value.skills === 'object' && !Array.isArray(value.skills)) {
       for (const [skillId, raw] of Object.entries(value.skills)) {
         const id = cleanSkillId(skillId);
@@ -6737,6 +6758,21 @@ class CharacterCombatProfileStore {
     if (!skillRecord || typeof skillRecord !== 'object') return null;
     const id = cleanSkillId(skillRecord.id);
     return id ? { ...skillRecord, id } : null;
+  }
+
+  getCombatMode(name) {
+    const profile = this._ensure(name);
+    return profile ? normalizeCombatMode(profile.combatMode, CombatMode.SMART_AUTO) : CombatMode.SMART_AUTO;
+  }
+
+  setCombatMode(name, mode) {
+    const profile = this._ensure(name);
+    if (!profile) return null;
+    const normalized = normalizeCombatMode(mode, null);
+    if (!normalized) return { ok: false, reason: 'INVALID_COMBAT_MODE', mode: String(mode == null ? '' : mode) };
+    profile.combatMode = normalized;
+    this._touch(profile, 'CHARACTER_COMBAT_MODE_CHANGED', { combatMode: normalized });
+    return { ok: true, combatMode: normalized };
   }
 
   skillSettings(name, skillRecord) {
@@ -6833,6 +6869,29 @@ module.exports = {
   CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION,
   CHARACTER_COMBAT_PROFILE_KEY
 };
+
+},
+"src/autonomy/combat-modes.js": function(require,module,exports){
+'use strict';
+
+const CombatMode = Object.freeze({
+  SINGLE_TARGET: 'single_target',
+  SMART_AUTO: 'smart_auto',
+  AOE_PREFERRED: 'aoe_preferred'
+});
+
+const COMBAT_MODE_LABELS = Object.freeze({
+  [CombatMode.SINGLE_TARGET]: 'Single Target',
+  [CombatMode.SMART_AUTO]: 'Smart Auto',
+  [CombatMode.AOE_PREFERRED]: 'AoE preferred'
+});
+
+function normalizeCombatMode(value, fallback = CombatMode.SMART_AUTO) {
+  const mode = String(value == null ? '' : value).trim().toLowerCase();
+  return Object.values(CombatMode).includes(mode) ? mode : fallback;
+}
+
+module.exports = { CombatMode, COMBAT_MODE_LABELS, normalizeCombatMode };
 
 },
 "src/autonomy/capability-resolver.js": function(require,module,exports){
@@ -7182,6 +7241,12 @@ class PartyCapabilityResolver {
       aoeControl: Number(structuralCapabilities[Capability.AOE_CONTROL]) > 0,
       aoeAggroControl: Number(structuralCapabilities[Capability.AOE_AGGRO_CONTROL]) > 0
     };
+    const configuredSupport = {
+      partyHeal: Number(enabledCapabilities[Capability.PARTY_HEAL]) > 0,
+      groupSustain: Number(enabledCapabilities[Capability.GROUP_SUSTAIN]) > 0,
+      aoeControl: Number(enabledCapabilities[Capability.AOE_CONTROL]) > 0,
+      aoeAggroControl: Number(enabledCapabilities[Capability.AOE_AGGRO_CONTROL]) > 0
+    };
 
     const basis = {
       members: members.map((row) => [row.name, row.generation, row.fingerprint]),
@@ -7216,7 +7281,8 @@ class PartyCapabilityResolver {
       combat: {
         aoePotential,
         aoeConfigured,
-        support
+        support,
+        configuredSupport
       }
     };
     return clone(this.last, null);
@@ -32351,7 +32417,10 @@ module.exports = {
 "src/autonomy/tactical-party-combat.js": function(require,module,exports){
 'use strict';
 
-const TACTICAL_PARTY_COMBAT_MODE = 'leader-owned-tactical-encounter-v1';
+const { SmartAoePlanner, SmartAoeState } = require('./smart-aoe-planner');
+const { CombatMode } = require('./combat-modes');
+
+const TACTICAL_PARTY_COMBAT_MODE = 'leader-owned-multi-encounter-v2';
 
 function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 function clamp(value, lo, hi) { return Math.max(lo, Math.min(hi, value)); }
@@ -32374,12 +32443,18 @@ class TacticalPartyCombat {
       betterTargetScoreDelta: Math.max(10, finite(options.betterTargetScoreDelta, 25)),
       maxRoutineTtkSeconds: Math.max(15, finite(options.maxRoutineTtkSeconds, 45)),
       maxProjectedTeamDamageRatio: clamp(finite(options.maxProjectedTeamDamageRatio, 0.80), 0.35, 1.5),
-      maxAvoidance: clamp(finite(options.maxAvoidance, 0.70), 0.30, 0.95)
+      maxAvoidance: clamp(finite(options.maxAvoidance, 0.70), 0.30, 0.95),
+      pullExpansionIntervalMs: Math.max(500, finite(options.pullExpansionIntervalMs, 1100)),
+      pendingPullTimeoutMs: Math.max(1200, finite(options.pendingPullTimeoutMs, 3000)),
+      sameTypePullsOnly: options.sameTypePullsOnly !== false
     };
+    this.smartAoePlanner = options.smartAoePlanner || new SmartAoePlanner({ ...(options.smartAoe || {}), now: this.now, log: this.log });
     this.encounter = null;
     this.lastEvaluation = null;
     this.lastDecision = null;
-    this.stats = { evaluations: 0, routineAllowed: 0, unsafeRejected: 0, specialPullBlocks: 0, targetLocks: 0, betterTargetSwitches: 0, sharedAggroSwitches: 0, followerReassessmentBlocks: 0 };
+    this.lastPullExpansionAt = -Infinity;
+    this.pendingPull = null;
+    this.stats = { evaluations: 0, routineAllowed: 0, unsafeRejected: 0, specialPullBlocks: 0, targetLocks: 0, betterTargetSwitches: 0, sharedAggroSwitches: 0, followerReassessmentBlocks: 0, encounterRefreshes: 0, pullCandidateAllows: 0, pullCandidateBlocks: 0, pullExpansionAttempts: 0, pullExpansionCommands: 0, pullExpansionObserved: 0, pullExpansionTimeouts: 0, pullExpansionNoCandidate: 0 };
     this.installed = false;
     this.install();
   }
@@ -32473,15 +32548,242 @@ class TacticalPartyCombat {
     return result;
   }
 
-  _setEncounter(target, evaluation, reason) {
-    this.encounter = { targetId: String(target.id), targetType: target.mtype || null, selectedAt: this.now(), updatedAt: this.now(), reason, score: finite(evaluation && evaluation.score), plan: evaluation ? { ttkSeconds: finite(evaluation.ttkSeconds), partyDps: finite(evaluation.partyDps), targetDps: finite(evaluation.targetDps), projectedDamageRatio: finite(evaluation.projectedDamageRatio), avoidance: finite(evaluation.avoidance), rangeScore: finite(evaluation.rangeScore) } : null };
-    this.lastDecision = { at: this.now(), action: 'ENCOUNTER_TARGET', reason, ...this.encounter };
+  _combatMode(snapshot) {
+    const profiles = this.runtime && this.runtime.characterCombatProfiles;
+    const character = snapshot && snapshot.character;
+    if (!profiles || !character || typeof profiles.getCombatMode !== 'function') return CombatMode.SMART_AUTO;
+    try { return profiles.getCombatMode(character.name); } catch (_) { return CombatMode.SMART_AUTO; }
+  }
+
+  _partyCapabilities() {
+    const resolver = this.runtime && this.runtime.partyCapabilityResolver;
+    if (!resolver || typeof resolver.status !== 'function') return null;
+    try { return resolver.status(); } catch (_) { return null; }
+  }
+
+  _encounterEntities(snapshot, team) {
+    if (!snapshot) return [];
+    const names = new Set(team && team.names || []);
+    const known = new Set(this.encounter && this.encounter.targetIds || []);
+    if (this.encounter && this.encounter.targetId) known.add(String(this.encounter.targetId));
+    const rows = (snapshot.entities || []).filter((row) => row && row.mtype && !row.dead && finite(row.hp, 1) > 0 && (
+      known.has(String(row.id)) || (row.target != null && names.has(String(row.target)))
+    ));
+    return rows.sort((a, b) => {
+      const primary = this.encounter && String(this.encounter.primaryTargetId || this.encounter.targetId || '');
+      if (String(a.id) === primary) return -1;
+      if (String(b.id) === primary) return 1;
+      return String(a.id).localeCompare(String(b.id));
+    });
+  }
+
+  _refreshEncounterPlan(snapshot, team) {
+    if (!this.encounter || !snapshot || !team) return null;
+    const now = this.now();
+    if (this.pendingPull) {
+      const observed = (snapshot.entities || []).find((row) => row && String(row.id) === String(this.pendingPull.targetId)
+        && row.target != null && (team.names || []).includes(String(row.target))
+        && !row.dead && finite(row.hp, 1) > 0);
+      if (observed) {
+        this.stats.pullExpansionObserved += 1;
+        this._event('SMART_AOE_PULL_OBSERVED', 'info', 'PENDING_PULL_JOINED_ENCOUNTER', {
+          targetId: String(observed.id),
+          targetType: observed.mtype || null,
+          pullOwner: team.leaderName || null
+        });
+        this.pendingPull = null;
+      } else if (now >= finite(this.pendingPull.expiresAt, 0)) {
+        this.stats.pullExpansionTimeouts += 1;
+        this._event('SMART_AOE_PULL_TIMEOUT', 'warn', 'PULL_AGGRO_NOT_OBSERVED', {
+          targetId: this.pendingPull.targetId,
+          targetType: this.pendingPull.targetType || null
+        });
+        this.pendingPull = null;
+      }
+    }
+    const targets = this._encounterEntities(snapshot, team);
+    const evaluations = targets.map((target) => this.evaluateTarget(target, team, snapshot));
+    const aoe = this.smartAoePlanner.evaluate({
+      mode: this._combatMode(snapshot, team),
+      team,
+      partyCapabilities: this._partyCapabilities(),
+      engagedTargets: targets,
+      evaluations
+    });
+    const primaryId = String(this.encounter.primaryTargetId || this.encounter.targetId || '');
+    this.encounter.targetIds = targets.map((row) => String(row.id));
+    this.encounter.targets = targets.map((row) => ({
+      id: String(row.id),
+      type: row.mtype || null,
+      role: String(row.id) === primaryId ? 'PRIMARY' : 'ENGAGED',
+      target: row.target == null ? null : String(row.target)
+    }));
+    this.encounter.aoe = aoe;
+    this.encounter.updatedAt = this.now();
+    this.stats.encounterRefreshes += 1;
+    return aoe;
+  }
+
+  _setEncounter(target, evaluation, reason, team = null, snapshot = this.runtime.lastSnapshot) {
+    const resolvedTeam = team || (snapshot && this.team && typeof this.team._team === 'function' ? this.team._team(snapshot) : null);
+    this.encounter = {
+      targetId: String(target.id),
+      primaryTargetId: String(target.id),
+      targetType: target.mtype || null,
+      targetIds: [String(target.id)],
+      targets: [{ id: String(target.id), type: target.mtype || null, role: 'PRIMARY', target: target.target == null ? null : String(target.target) }],
+      pullOwner: resolvedTeam && resolvedTeam.leaderName || null,
+      selectedAt: this.now(),
+      updatedAt: this.now(),
+      reason,
+      score: finite(evaluation && evaluation.score),
+      plan: evaluation ? {
+        ttkSeconds: finite(evaluation.ttkSeconds),
+        partyDps: finite(evaluation.partyDps),
+        targetDps: finite(evaluation.targetDps),
+        projectedDamageRatio: finite(evaluation.projectedDamageRatio),
+        avoidance: finite(evaluation.avoidance),
+        rangeScore: finite(evaluation.rangeScore)
+      } : null,
+      aoe: null
+    };
+    if (resolvedTeam && snapshot) this._refreshEncounterPlan(snapshot, resolvedTeam);
+    this.lastDecision = { at: this.now(), action: 'ENCOUNTER_TARGET', reason, targetId: this.encounter.targetId, targetType: this.encounter.targetType, pullOwner: this.encounter.pullOwner };
     return this.encounter;
+  }
+
+  canAddTarget(target, context = {}) {
+    const snapshot = context.snapshot || this.runtime.lastSnapshot;
+    const team = context.team || (snapshot && this.team && typeof this.team._team === 'function' ? this.team._team(snapshot) : null);
+    if (!target || !snapshot || !team) return { allowed: false, reason: 'PULL_CONTEXT_UNAVAILABLE' };
+    if (team.selfName !== team.leaderName) {
+      this.stats.pullCandidateBlocks += 1;
+      return { allowed: false, reason: 'PULL_OWNED_BY_TEAM_LEADER', pullOwner: team.leaderName || null };
+    }
+    if (this._combatMode(snapshot, team) === CombatMode.SINGLE_TARGET) {
+      this.stats.pullCandidateBlocks += 1;
+      return { allowed: false, reason: 'SINGLE_TARGET_MODE' };
+    }
+    if (!this.encounter) {
+      this.stats.pullCandidateBlocks += 1;
+      return { allowed: false, reason: 'ENCOUNTER_MISSING' };
+    }
+    this._refreshEncounterPlan(snapshot, team);
+    if ((this.encounter.targetIds || []).includes(String(target.id))) {
+      this.stats.pullCandidateBlocks += 1;
+      return { allowed: false, reason: 'TARGET_ALREADY_IN_ENCOUNTER' };
+    }
+    if (!this.team._candidateAllowed({ snapshot, party: context.party || {} }, target)) {
+      this.stats.pullCandidateBlocks += 1;
+      return { allowed: false, reason: 'TARGET_NOT_LOCALLY_SAFE' };
+    }
+    const evaluation = this.evaluateTarget(target, team, snapshot);
+    const decision = this.smartAoePlanner.evaluateCandidate(this.encounter.aoe, evaluation);
+    if (decision.allowed) this.stats.pullCandidateAllows += 1;
+    else this.stats.pullCandidateBlocks += 1;
+    return { ...decision, evaluation, pullOwner: team.leaderName };
+  }
+
+  _pullCandidates(context, team) {
+    const snapshot = context && context.snapshot;
+    if (!snapshot || !team || !this.encounter) return [];
+    const primaryType = this.encounter.targetType || null;
+    const existing = new Set(this.encounter.targetIds || []);
+    const safe = this.farmer && typeof this.farmer._safeLiveMonsters === 'function'
+      ? this.farmer._safeLiveMonsters(snapshot, context.party || {}) || []
+      : [];
+    const rows = [];
+    for (const candidate of safe) {
+      if (!candidate || candidate.dead || finite(candidate.hp, 1) <= 0) continue;
+      if (existing.has(String(candidate.id))) continue;
+      if (candidate.target != null) continue;
+      if (this.config.sameTypePullsOnly && primaryType && candidate.mtype !== primaryType) continue;
+      if (this._specialFreshPull(candidate)) continue;
+      if (context.adapter && typeof context.adapter.canAttack === 'function' && !context.adapter.canAttack(candidate.id)) continue;
+      const decision = this.canAddTarget(candidate, { snapshot, team, party: context.party || {} });
+      if (!decision.allowed) continue;
+      rows.push({ candidate, decision });
+    }
+    rows.sort((a, b) => finite(b.decision.evaluation && b.decision.evaluation.score, -Infinity)
+      - finite(a.decision.evaluation && a.decision.evaluation.score, -Infinity)
+      || String(a.candidate.id).localeCompare(String(b.candidate.id)));
+    return rows;
+  }
+
+  maybeExpandPull(context, primaryTarget = null) {
+    const snapshot = context && context.snapshot;
+    if (!snapshot || !snapshot.character || !this.encounter) return { acted: false, reason: 'PULL_CONTEXT_UNAVAILABLE' };
+    const team = this.team && typeof this.team._team === 'function' ? this.team._team(snapshot) : null;
+    if (!team || team.selfName !== team.leaderName) return { acted: false, reason: 'PULL_OWNED_BY_TEAM_LEADER' };
+
+    const gate = this.team && typeof this.team._combatGate === 'function'
+      ? this.team._combatGate(context, primaryTarget || this._currentEntity(snapshot), 'SMART_AOE_PULL_EXPANSION')
+      : { allowed: true };
+    if (!gate || gate.allowed !== true) return { acted: false, reason: gate && gate.reason || 'TEAM_COMBAT_GATE_BLOCKED' };
+
+    const plan = this._refreshEncounterPlan(snapshot, team);
+    if (!plan || plan.state !== SmartAoeState.BUILD_PULL || plan.mayAddTarget !== true) {
+      return { acted: false, reason: plan && plan.reason || 'PLANNER_NOT_BUILDING_PULL' };
+    }
+    if (this.pendingPull) return { acted: false, reason: 'PULL_AGGRO_CONFIRMATION_PENDING', pending: { ...this.pendingPull } };
+    const now = this.now();
+    if (now - this.lastPullExpansionAt < this.config.pullExpansionIntervalMs) return { acted: false, reason: 'PULL_EXPANSION_INTERVAL' };
+
+    const candidates = this._pullCandidates(context, team);
+    if (!candidates.length) {
+      this.stats.pullExpansionNoCandidate += 1;
+      return { acted: false, reason: 'NO_SAFE_IN_RANGE_PULL_CANDIDATE' };
+    }
+
+    const selected = candidates[0];
+    this.stats.pullExpansionAttempts += 1;
+    this.lastPullExpansionAt = now;
+    const result = context.adapter && typeof context.adapter.command === 'function'
+      ? context.adapter.command('attack', [String(selected.candidate.id)])
+      : { executed: false, shadow: false, reason: 'ADAPTER_UNAVAILABLE' };
+    if (!result || (!result.executed && !result.shadow)) {
+      this.lastDecision = {
+        at: now,
+        action: 'SMART_AOE_PULL_HOLD',
+        reason: result && result.reason || 'PULL_ATTACK_FAILED',
+        targetId: String(selected.candidate.id),
+        targetType: selected.candidate.mtype || null
+      };
+      return { acted: false, reason: this.lastDecision.reason, result: result || null };
+    }
+
+    this.stats.pullExpansionCommands += 1;
+    this.pendingPull = {
+      targetId: String(selected.candidate.id),
+      targetType: selected.candidate.mtype || null,
+      at: now,
+      expiresAt: now + this.config.pendingPullTimeoutMs,
+      shadow: result.shadow === true
+    };
+    if (this.farmer) {
+      this.farmer.lastActionAt = now;
+      if (this.farmer.lastSkillAttemptAt != null) this.farmer.lastSkillAttemptAt = now;
+    }
+    this.lastDecision = {
+      at: now,
+      action: 'SMART_AOE_PULL_EXPAND',
+      reason: 'LEADER_TAGGED_ONE_SAFE_CANDIDATE',
+      primaryTargetId: this.encounter.primaryTargetId || this.encounter.targetId || null,
+      targetId: this.pendingPull.targetId,
+      targetType: this.pendingPull.targetType,
+      pullOwner: team.leaderName,
+      projectedDamageRatio: selected.decision.projectedDamageRatio,
+      resultingCount: selected.decision.resultingCount,
+      shadow: result.shadow === true
+    };
+    this._event('SMART_AOE_PULL_EXPANDED', 'info', this.lastDecision.reason, { ...this.lastDecision });
+    return { acted: true, decision: { ...this.lastDecision }, result, candidate: selected.candidate };
   }
 
   _currentEntity(snapshot) {
     if (!this.encounter) return null;
-    return (snapshot && snapshot.entities || []).find((row) => row && String(row.id) === this.encounter.targetId && !row.dead && finite(row.hp, 1) > 0) || null;
+    const id = String(this.encounter.primaryTargetId || this.encounter.targetId || '');
+    return (snapshot && snapshot.entities || []).find((row) => row && String(row.id) === id && !row.dead && finite(row.hp, 1) > 0) || null;
   }
 
   _selection(target, source, evaluation) {
@@ -32502,10 +32804,12 @@ class TacticalPartyCombat {
       this.__selectionSnapshot = snapshot;
       try {
         if (team && team.selfName === team.leaderName && this.encounter) {
+          this._refreshEncounterPlan(snapshot, team);
           const current = this._currentEntity(snapshot);
           if (current && this.team._candidateAllowed(context, current)) {
             const shared = this.team._sharedAggro(context, team);
-            if (!shared || String(shared.id) === String(current.id)) {
+            const encounterIds = new Set(this.encounter.targetIds || []);
+            if (!shared || String(shared.id) === String(current.id) || encounterIds.has(String(shared.id))) {
               const evaluation = this.evaluateTarget(current, team, snapshot);
               if (evaluation.allowed) {
                 this.stats.targetLocks += 1;
@@ -32523,7 +32827,21 @@ class TacticalPartyCombat {
             this.lastDecision = { at: this.now(), action: 'TARGET_HOLD', reason: evaluation.reason, targetId: String(selection.target.id), targetType: selection.target.mtype };
             return null;
           }
-          this._setEncounter(selection.target, evaluation, evaluation.partyAggro ? 'PARTY_MEMBER_UNDER_ATTACK' : 'LEADER_TACTICAL_SELECTION');
+          this._setEncounter(selection.target, evaluation, evaluation.partyAggro ? 'PARTY_MEMBER_UNDER_ATTACK' : 'LEADER_TACTICAL_SELECTION', team, snapshot);
+        } else if (selection && selection.target && team && team.selfName !== team.leaderName) {
+          const primaryId = String(team.leaderTargetId || selection.target.id);
+          const primary = (snapshot.entities || []).find((row) => row && String(row.id) === primaryId) || selection.target;
+          const evaluation = this.evaluateTarget(primary, team, snapshot);
+          if (evaluation.allowed) {
+            const currentPrimary = this.encounter && String(this.encounter.primaryTargetId || this.encounter.targetId || '');
+            if (!this.encounter || currentPrimary !== String(primary.id) || this.encounter.pullOwner !== team.leaderName) {
+              this._setEncounter(primary, evaluation, 'FOLLOWER_LEADER_ENCOUNTER_MIRROR', team, snapshot);
+            } else {
+              this._refreshEncounterPlan(snapshot, team);
+            }
+          } else {
+            this.encounter = null;
+          }
         }
         return selection;
       } finally { this.__selectionSnapshot = null; }
@@ -32544,7 +32862,14 @@ class TacticalPartyCombat {
           const evaluation = this.evaluateTarget(shared, team, snapshot);
           if (evaluation.allowed) {
             this.stats.sharedAggroSwitches += 1;
-            this._setEncounter(shared, evaluation, 'PARTY_MEMBER_UNDER_ATTACK');
+            if (this.encounter) {
+              this._refreshEncounterPlan(snapshot, team);
+              const ids = new Set(this.encounter.targetIds || []);
+              if (ids.has(String(shared.id)) && this.encounter.aoe && [
+                SmartAoeState.BUILD_PULL, SmartAoeState.HOLD_PULL, SmartAoeState.AOE_BURN
+              ].includes(this.encounter.aoe.state)) return target;
+            }
+            this._setEncounter(shared, evaluation, 'PARTY_MEMBER_UNDER_ATTACK', team, snapshot);
             return shared;
           }
         }
@@ -32562,7 +32887,7 @@ class TacticalPartyCombat {
             }
             if (!best || best.evaluation.score < currentEval.score + this.config.betterTargetScoreDelta) return target;
             this.stats.betterTargetSwitches += 1;
-            this._setEncounter(best.candidate, best.evaluation, 'CLEARLY_BETTER_TEAM_TARGET');
+            this._setEncounter(best.candidate, best.evaluation, 'CLEARLY_BETTER_TEAM_TARGET', team, snapshot);
             return best.candidate;
           }
         }
@@ -32577,12 +32902,306 @@ class TacticalPartyCombat {
   }
 
   status() {
-    return { schemaVersion: 1, mode: TACTICAL_PARTY_COMBAT_MODE, installed: this.installed, leaderOwnsEncounter: true, followerIndependentReassessment: false, freshBossSpecialPullsForbidden: true, config: { ...this.config }, encounter: this.encounter ? { ...this.encounter } : null, lastEvaluation: this.lastEvaluation ? { ...this.lastEvaluation } : null, lastDecision: this.lastDecision ? { ...this.lastDecision } : null, stats: { ...this.stats } };
+    return {
+      schemaVersion: 2,
+      mode: TACTICAL_PARTY_COMBAT_MODE,
+      installed: this.installed,
+      leaderOwnsEncounter: true,
+      leaderOwnsPullExpansion: true,
+      followerEncounterMirror: true,
+      followerIndependentReassessment: false,
+      freshBossSpecialPullsForbidden: true,
+      config: { ...this.config },
+      encounter: this.encounter ? JSON.parse(JSON.stringify(this.encounter)) : null,
+      smartAoePlanner: this.smartAoePlanner.status(),
+      pendingPull: this.pendingPull ? { ...this.pendingPull } : null,
+      lastEvaluation: this.lastEvaluation ? { ...this.lastEvaluation } : null,
+      lastDecision: this.lastDecision ? { ...this.lastDecision } : null,
+      stats: { ...this.stats }
+    };
   }
 }
 
 function installTacticalPartyCombat(runtime, options = {}) { return new TacticalPartyCombat(runtime, options); }
 module.exports = { TacticalPartyCombat, installTacticalPartyCombat, TACTICAL_PARTY_COMBAT_MODE };
+
+},
+"src/autonomy/smart-aoe-planner.js": function(require,module,exports){
+'use strict';
+
+const { CombatMode, normalizeCombatMode } = require('./combat-modes');
+const { Capability } = require('./skill-semantics');
+
+const SMART_AOE_PLANNER_MODE = 'deterministic-smart-aoe-planner-v1';
+
+const SmartAoeState = Object.freeze({
+  RECOVER: 'RECOVER',
+  BUILD_PULL: 'BUILD_PULL',
+  HOLD_PULL: 'HOLD_PULL',
+  AOE_BURN: 'AOE_BURN',
+  FINISH: 'FINISH',
+  ABORT_PULL: 'ABORT_PULL'
+});
+
+function finite(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function clamp(value, lo, hi) {
+  return Math.max(lo, Math.min(hi, value));
+}
+
+function ratio(value, max, fallback = 1) {
+  const denominator = finite(max, 0);
+  if (denominator <= 0) return fallback;
+  return clamp(finite(value, 0) / denominator, 0, 1);
+}
+
+function liveRows(rows) {
+  return (rows || []).filter((row) => row && !row.dead && !row.rip && finite(row.hp, 1) > 0);
+}
+
+function skillHasAoeCapability(skill) {
+  const caps = new Set(skill && skill.capabilities || []);
+  return caps.has(Capability.MULTI_TARGET_DAMAGE)
+    || caps.has(Capability.RANGED_MULTI_TARGET_DAMAGE)
+    || caps.has(Capability.VARIABLE_MULTI_TARGET_DAMAGE)
+    || caps.has(Capability.AOE_DAMAGE);
+}
+
+class SmartAoePlanner {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.config = {
+      hardMaxPull: Math.max(2, Math.min(12, finite(options.hardMaxPull, 8))),
+      genericAoeCapacity: Math.max(2, Math.min(6, finite(options.genericAoeCapacity, 3))),
+      minBuildHpRatio: clamp(finite(options.minBuildHpRatio, 0.82), 0.50, 0.99),
+      minBuildMpRatio: clamp(finite(options.minBuildMpRatio, 0.45), 0.05, 0.95),
+      emergencyHpRatio: clamp(finite(options.emergencyHpRatio, 0.35), 0.10, 0.70),
+      emergencyMpRatio: clamp(finite(options.emergencyMpRatio, 0.08), 0, 0.40),
+      maxAggregateProjectedDamageRatio: clamp(finite(options.maxAggregateProjectedDamageRatio, 0.95), 0.40, 2.0),
+      finishAverageHpRatio: clamp(finite(options.finishAverageHpRatio, 0.22), 0.05, 0.60)
+    };
+    this.lastPlan = null;
+    this.stats = {
+      evaluations: 0,
+      singleTargetPlans: 0,
+      recoverPlans: 0,
+      buildPlans: 0,
+      holdPlans: 0,
+      burnPlans: 0,
+      finishPlans: 0,
+      abortPlans: 0,
+      candidateAllows: 0,
+      candidateBlocks: 0
+    };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'smart-aoe-planner', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _aoeSkills(partyCapabilities) {
+    const rows = [];
+    for (const member of partyCapabilities && partyCapabilities.members || []) {
+      for (const skill of member && member.skills || []) {
+        if (!skill || skill.configuredReady !== true || !skillHasAoeCapability(skill)) continue;
+        const minTargets = Math.max(1, Math.floor(finite(skill.parameters && skill.parameters.minTargets, 2)));
+        const capacity = skill.targetCapacity == null
+          ? this.config.genericAoeCapacity
+          : Math.max(1, Math.floor(finite(skill.targetCapacity, 1)));
+        rows.push({
+          character: member.name,
+          ctype: member.ctype,
+          skill: skill.id,
+          minTargets,
+          capacity,
+          capabilities: (skill.capabilities || []).slice()
+        });
+      }
+    }
+    return rows.sort((a, b) => b.capacity - a.capacity || a.minTargets - b.minTargets || a.skill.localeCompare(b.skill));
+  }
+
+  _resourceState(team) {
+    const members = team && team.members || [];
+    const hpRatios = members.map((row) => ratio(row.hp, row.max_hp, 1));
+    const mpRatios = members.map((row) => ratio(row.mp, row.max_mp, 1));
+    return {
+      minHpRatio: hpRatios.length ? Math.min(...hpRatios) : 0,
+      avgHpRatio: hpRatios.length ? hpRatios.reduce((a, b) => a + b, 0) / hpRatios.length : 0,
+      minMpRatio: mpRatios.length ? Math.min(...mpRatios) : 0,
+      avgMpRatio: mpRatios.length ? mpRatios.reduce((a, b) => a + b, 0) / mpRatios.length : 0
+    };
+  }
+
+  _hardCapacity(mode, partyCapabilities, skills) {
+    if (mode === CombatMode.SINGLE_TARGET) return 1;
+    if (!partyCapabilities || partyCapabilities.catalogReady !== true) return 1;
+    if (!partyCapabilities.combat || partyCapabilities.combat.aoeConfigured !== true) return 1;
+    if (!skills.length) return 1;
+
+    let capacity = Math.max(...skills.map((row) => row.capacity));
+    const support = partyCapabilities.combat.configuredSupport || partyCapabilities.combat.support || {};
+    const sustain = support.groupSustain === true || support.partyHeal === true;
+    const control = support.aoeControl === true || support.aoeAggroControl === true;
+
+    if (!sustain && !control) capacity = Math.min(capacity, 2);
+    else if (!sustain || !control) capacity = Math.min(capacity, 3);
+
+    return Math.max(1, Math.min(this.config.hardMaxPull, capacity));
+  }
+
+  _desiredSize(mode, capacity, skills) {
+    if (mode === CombatMode.SINGLE_TARGET || capacity <= 1) return 1;
+    const thresholds = skills.map((row) => row.minTargets).filter((value) => value > 1 && value <= capacity);
+    if (!thresholds.length) return Math.min(capacity, 2);
+    if (mode === CombatMode.AOE_PREFERRED) return Math.min(capacity, Math.max(...thresholds));
+    return Math.min(capacity, Math.min(...thresholds));
+  }
+
+  evaluate(input = {}) {
+    this.stats.evaluations += 1;
+    const mode = normalizeCombatMode(input.mode, CombatMode.SMART_AUTO);
+    const team = input.team || null;
+    const partyCapabilities = input.partyCapabilities || null;
+    const engagedTargets = liveRows(input.engagedTargets);
+    const evaluations = input.evaluations || [];
+    const skills = this._aoeSkills(partyCapabilities);
+    const resources = this._resourceState(team);
+    const capacity = this._hardCapacity(mode, partyCapabilities, skills);
+    const desiredPullSize = this._desiredSize(mode, capacity, skills);
+    const engagedCount = engagedTargets.length;
+    const averageEnemyHpRatio = engagedCount
+      ? engagedTargets.reduce((sum, row) => sum + ratio(row.hp, row.max_hp || row.hp, 1), 0) / engagedCount
+      : 1;
+    const aggregateProjectedDamageRatio = evaluations.reduce((sum, row) => sum + Math.max(0, finite(row && row.projectedDamageRatio, 0)), 0);
+
+    const hardSafetyReady = !!(team && team.complete && team.alive && team.sameMap && team.positionsKnown && team.cohesive);
+    const emergency = resources.minHpRatio <= this.config.emergencyHpRatio
+      || resources.minMpRatio <= this.config.emergencyMpRatio
+      || aggregateProjectedDamageRatio > this.config.maxAggregateProjectedDamageRatio;
+    const buildResourcesReady = resources.minHpRatio >= this.config.minBuildHpRatio
+      && resources.minMpRatio >= this.config.minBuildMpRatio
+      && team && team.healthReady !== false && team.manaReady !== false;
+
+    let state = SmartAoeState.RECOVER;
+    let reason = 'NO_ACTIVE_ENCOUNTER';
+    let mayAddTarget = false;
+
+    if (!hardSafetyReady) {
+      state = engagedCount > 0 ? SmartAoeState.ABORT_PULL : SmartAoeState.RECOVER;
+      reason = 'PARTY_SAFETY_NOT_READY';
+    } else if (emergency && engagedCount > 0) {
+      state = SmartAoeState.ABORT_PULL;
+      reason = 'EMERGENCY_RESOURCE_OR_DAMAGE_RISK';
+    } else if (mode === CombatMode.SINGLE_TARGET || capacity <= 1) {
+      state = engagedCount > 0 ? SmartAoeState.FINISH : SmartAoeState.RECOVER;
+      reason = mode === CombatMode.SINGLE_TARGET ? 'SINGLE_TARGET_MODE' : 'AOE_CAPABILITY_UNAVAILABLE';
+      this.stats.singleTargetPlans += 1;
+    } else if (engagedCount === 0) {
+      if (buildResourcesReady) {
+        state = SmartAoeState.BUILD_PULL;
+        reason = 'READY_FOR_FIRST_TARGET';
+        mayAddTarget = true;
+      } else {
+        state = SmartAoeState.RECOVER;
+        reason = 'RESOURCES_BELOW_BUILD_THRESHOLD';
+      }
+    } else if (engagedCount > capacity) {
+      state = SmartAoeState.ABORT_PULL;
+      reason = 'ENGAGED_COUNT_EXCEEDS_HARD_CAPACITY';
+    } else if (engagedCount === 1 && averageEnemyHpRatio <= this.config.finishAverageHpRatio) {
+      state = SmartAoeState.FINISH;
+      reason = 'PRIMARY_TARGET_NEAR_FINISH';
+    } else if (engagedCount < desiredPullSize && buildResourcesReady) {
+      state = SmartAoeState.BUILD_PULL;
+      reason = 'BELOW_DESIRED_PULL_SIZE';
+      mayAddTarget = true;
+    } else if (engagedCount >= 2 && partyCapabilities && partyCapabilities.combat && partyCapabilities.combat.aoeConfigured) {
+      state = SmartAoeState.AOE_BURN;
+      reason = engagedCount >= desiredPullSize ? 'DESIRED_PULL_ESTABLISHED' : 'MULTI_TARGET_ALREADY_ENGAGED';
+    } else {
+      state = SmartAoeState.HOLD_PULL;
+      reason = buildResourcesReady ? 'HOLD_CURRENT_ENGAGEMENT' : 'NO_MORE_TARGETS_UNTIL_RECOVERED';
+    }
+
+    if (state === SmartAoeState.RECOVER) this.stats.recoverPlans += 1;
+    else if (state === SmartAoeState.BUILD_PULL) this.stats.buildPlans += 1;
+    else if (state === SmartAoeState.HOLD_PULL) this.stats.holdPlans += 1;
+    else if (state === SmartAoeState.AOE_BURN) this.stats.burnPlans += 1;
+    else if (state === SmartAoeState.FINISH) this.stats.finishPlans += 1;
+    else if (state === SmartAoeState.ABORT_PULL) this.stats.abortPlans += 1;
+
+    const plan = {
+      schemaVersion: 1,
+      mode: SMART_AOE_PLANNER_MODE,
+      at: this.now(),
+      combatMode: mode,
+      state,
+      reason,
+      hardSafetyReady,
+      mayAddTarget,
+      pullCapacity: capacity,
+      desiredPullSize,
+      engagedCount,
+      averageEnemyHpRatio,
+      aggregateProjectedDamageRatio,
+      resources,
+      aoeSkills: skills,
+      partyCapabilityGeneration: partyCapabilities && partyCapabilities.generation || null
+    };
+    this.lastPlan = plan;
+    return { ...plan, resources: { ...resources }, aoeSkills: skills.map((row) => ({ ...row })) };
+  }
+
+  evaluateCandidate(plan, evaluation) {
+    const current = plan || this.lastPlan;
+    if (!current || current.mayAddTarget !== true || current.state !== SmartAoeState.BUILD_PULL) {
+      this.stats.candidateBlocks += 1;
+      return { allowed: false, reason: 'PLANNER_NOT_BUILDING_PULL' };
+    }
+    if (current.engagedCount >= current.pullCapacity) {
+      this.stats.candidateBlocks += 1;
+      return { allowed: false, reason: 'PULL_CAPACITY_REACHED' };
+    }
+    if (!evaluation || evaluation.allowed !== true) {
+      this.stats.candidateBlocks += 1;
+      return { allowed: false, reason: evaluation && evaluation.reason || 'TARGET_EVALUATION_REJECTED' };
+    }
+    const projected = current.aggregateProjectedDamageRatio + Math.max(0, finite(evaluation.projectedDamageRatio, 0));
+    if (projected > this.config.maxAggregateProjectedDamageRatio) {
+      this.stats.candidateBlocks += 1;
+      return { allowed: false, reason: 'AGGREGATE_PROJECTED_DAMAGE_TOO_HIGH', projectedDamageRatio: projected };
+    }
+    this.stats.candidateAllows += 1;
+    return {
+      allowed: true,
+      reason: 'WITHIN_DYNAMIC_PULL_CAPACITY',
+      projectedDamageRatio: projected,
+      resultingCount: current.engagedCount + 1
+    };
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: SMART_AOE_PLANNER_MODE,
+      config: { ...this.config },
+      lastPlan: this.lastPlan ? {
+        ...this.lastPlan,
+        resources: { ...this.lastPlan.resources },
+        aoeSkills: this.lastPlan.aoeSkills.map((row) => ({ ...row }))
+      } : null,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = { SmartAoePlanner, SmartAoeState, SMART_AOE_PLANNER_MODE };
 
 },
 "src/autonomy/advanced-party-movement.js": function(require,module,exports){
@@ -32808,7 +33427,10 @@ module.exports = { AdvancedPartyMovement, installAdvancedPartyMovement, ADVANCED
 "src/autonomy/party-skill-engine.js": function(require,module,exports){
 'use strict';
 
-const PARTY_SKILL_ENGINE_MODE = 'party-aware-skill-engine-v1';
+const { Capability } = require('./skill-semantics');
+const { SmartAoeState } = require('./smart-aoe-planner');
+
+const PARTY_SKILL_ENGINE_MODE = 'party-aware-skill-engine-v2';
 
 function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 function ratio(value, max) { const m = finite(max); return m > 0 ? Math.max(0, Math.min(1, finite(value) / m)) : 1; }
@@ -32839,7 +33461,7 @@ class PartySkillEngine {
     };
     this.lastDecision = null;
     this.lastUse = null;
-    this.stats = { decisions: 0, directSkills: 0, supportSkills: 0, defensiveSkills: 0, supershots: 0, overkillSkips: 0, cooldownSkips: 0, rangeSkips: 0, mpSkips: 0, policySkips: 0, teamGateBlocks: 0, parallelSkillMovesEnabled: 0 };
+    this.stats = { decisions: 0, directSkills: 0, aoeSkills: 0, aoeTargetsPlanned: 0, supportSkills: 0, defensiveSkills: 0, supershots: 0, overkillSkips: 0, cooldownSkips: 0, rangeSkips: 0, mpSkips: 0, policySkips: 0, teamGateBlocks: 0, parallelSkillMovesEnabled: 0, pullExpansions: 0 };
     this.installed = false;
     this.install();
   }
@@ -32934,6 +33556,131 @@ class PartySkillEngine {
     return null;
   }
 
+  _partyCapabilities() {
+    const resolver = this.runtime && this.runtime.partyCapabilityResolver;
+    if (!resolver || typeof resolver.status !== 'function') return null;
+    try { return resolver.status(); } catch (_) { return null; }
+  }
+
+  _liveEncounterTargets(context, skillId, capacity = null) {
+    const tactical = this.runtime && this.runtime.tacticalPartyCombat;
+    const encounter = tactical && tactical.encounter;
+    const snapshot = context && context.snapshot;
+    if (!encounter || !snapshot) return [];
+    const ids = Array.isArray(encounter.targetIds) ? encounter.targetIds.map(String) : [];
+    const primary = String(encounter.primaryTargetId || encounter.targetId || '');
+    const rows = ids
+      .map((id) => (snapshot.entities || []).find((row) => row && String(row.id) === id))
+      .filter((row) => row && row.mtype && !row.dead && finite(row.hp, 1) > 0)
+      .filter((row) => {
+        const adapter = context.adapter;
+        return !adapter || typeof adapter.isSkillInRange !== 'function' || adapter.isSkillInRange(row.id, skillId);
+      })
+      .sort((a, b) => {
+        if (String(a.id) === primary) return -1;
+        if (String(b.id) === primary) return 1;
+        return finite(b.hp, 0) - finite(a.hp, 0) || String(a.id).localeCompare(String(b.id));
+      });
+    return capacity == null ? rows : rows.slice(0, Math.max(1, Math.floor(finite(capacity, 1))));
+  }
+
+  _aoeDecision(context, target, team) {
+    const tactical = this.runtime && this.runtime.tacticalPartyCombat;
+    const encounter = tactical && tactical.encounter;
+    const plan = encounter && encounter.aoe;
+    if (!plan || plan.state !== SmartAoeState.AOE_BURN || plan.engagedCount < 2) return null;
+
+    const snapshot = context.snapshot;
+    const c = snapshot.character;
+    const game = this._gameData(context);
+    const partyCaps = this._partyCapabilities();
+    if (!partyCaps || partyCaps.catalogReady !== true) return null;
+    const member = (partyCaps.members || []).find((row) => row && row.name === c.name);
+    if (!member) return null;
+
+    const aoeCaps = new Set([
+      Capability.MULTI_TARGET_DAMAGE,
+      Capability.RANGED_MULTI_TARGET_DAMAGE,
+      Capability.VARIABLE_MULTI_TARGET_DAMAGE,
+      Capability.AOE_DAMAGE,
+      Capability.AOE_CONTROL
+    ]);
+    const maxMp = Math.max(1, finite(c.max_mp, finite(c.mp, 1)));
+    const reserve = maxMp * finite(this.farmer.skillUsage && this.farmer.skillUsage.mpReserveRatio, 0);
+    const scored = [];
+
+    for (const skill of member.skills || []) {
+      if (!skill || skill.configuredReady !== true) continue;
+      if (!(skill.capabilities || []).some((capability) => aoeCaps.has(capability))) continue;
+      if (skill.id === 'agitate') continue;
+      const meta = this._skillMeta(game, skill.id);
+      if (!meta || !this._classAllowed(meta, c)) continue;
+      if (!this._canUse(context, skill.id)) continue;
+
+      const minTargets = Math.max(1, Math.floor(finite(skill.parameters && skill.parameters.minTargets, 2)));
+      let capacity = skill.targetCapacity == null ? plan.pullCapacity : Math.max(1, Math.floor(finite(skill.targetCapacity, 1)));
+      capacity = Math.max(1, Math.min(capacity, plan.pullCapacity || capacity, 8));
+      const targets = this._liveEncounterTargets(context, skill.id, capacity);
+      if (targets.length < minTargets) continue;
+
+      let args = null;
+      let mpCost = Math.max(0, finite(meta.mp, 0));
+      let kind = 'aoe';
+      let targetCount = targets.length;
+      let reason = 'SMART_AOE_DAMAGE_WINDOW';
+      let expectedFactor = Math.max(0.1, finite(meta.damage_multiplier, skill.id === 'stomp' ? 0 : 1));
+
+      if (skill.id === '3shot' || skill.id === '5shot' || skill.id === 'fanofknives') {
+        args = [skill.id, targets.map((row) => String(row.id))];
+      } else if (skill.id === 'cburst') {
+        const budgetRatio = Math.max(0.05, Math.min(0.50, finite(skill.parameters && skill.parameters.manaBudgetRatio, 0.20)));
+        const available = Math.max(0, finite(c.mp, 0) - reserve - mpCost);
+        const budget = Math.min(available, maxMp * budgetRatio);
+        const manaPerTarget = Math.floor(budget / Math.max(1, targetCount));
+        if (manaPerTarget < 1) { this.stats.mpSkips += 1; continue; }
+        args = ['cburst', targets.map((row) => [String(row.id), manaPerTarget])];
+        mpCost += manaPerTarget * targetCount;
+        expectedFactor = Math.max(expectedFactor, finite(meta.ratio, 0.5) * manaPerTarget / Math.max(1, finite(c.attack, 100)));
+        reason = 'SMART_AOE_CONTROLLED_BURST';
+      } else if (skill.id === 'cleave') {
+        args = ['cleave'];
+        reason = 'SMART_AOE_CLEAVE_WINDOW';
+      } else if (skill.id === 'stomp') {
+        args = ['stomp'];
+        kind = 'aoe-control';
+        reason = 'SMART_AOE_CONTROL_WINDOW';
+        expectedFactor = 0.35;
+      } else if (meta.multi === true || meta.list === true) {
+        args = [skill.id, targets.map((row) => String(row.id))];
+      } else if ((skill.capabilities || []).includes(Capability.AOE_DAMAGE) || (skill.capabilities || []).includes(Capability.AOE_CONTROL)) {
+        args = [skill.id];
+      } else {
+        continue;
+      }
+
+      if (finite(c.mp, 0) - mpCost < reserve) { this.stats.mpSkips += 1; continue; }
+      const targetValue = targetCount * (kind === 'aoe-control' ? 22 : 34);
+      const mpPenalty = mpCost / maxMp * 55;
+      const skillBonus = skill.id === '5shot' ? 12 : skill.id === '3shot' ? 8 : skill.id === 'cleave' ? 10 : skill.id === 'cburst' ? 9 : 0;
+      const utility = 100 + targetValue + expectedFactor * 18 + skillBonus - mpPenalty;
+      scored.push({
+        id: skill.id,
+        args,
+        kind,
+        reason,
+        utility,
+        targetIds: targets.map((row) => String(row.id)),
+        targetCount,
+        mpCost,
+        minTargets,
+        expectedFactor
+      });
+    }
+
+    scored.sort((a, b) => b.utility - a.utility || b.targetCount - a.targetCount || a.id.localeCompare(b.id));
+    return scored[0] || null;
+  }
+
   _directDecision(context, target, team) {
     const snapshot = context.snapshot; const c = snapshot.character; const game = this._gameData(context);
     const candidates = this.farmer.skillUsage && typeof this.farmer.skillUsage.candidates === 'function' ? this.farmer.skillUsage.candidates(c, game) : [];
@@ -32975,8 +33722,11 @@ class PartySkillEngine {
     const recovery = this.farmer._needsRecovery(snapshot);
     if (c.rip || recovery.hpUnsafe || !this.farmer._targetAllowed(target, snapshot, context.party)) return null;
     const support = this._supportDecision(context, target, team);
+    const aoe = this._aoeDecision(context, target, team);
     const direct = this._directDecision(context, target, team);
-    const decision = support && (!direct || support.utility >= direct.utility) ? support : direct;
+    const decision = aoe
+      ? (support || aoe)
+      : (support && (!direct || support.utility >= direct.utility) ? support : direct);
     this.lastDecision = decision ? { at: this.now(), action: 'USE_SKILL', targetId: target.id || null, targetType: target.mtype || null, ...decision } : { at: this.now(), action: 'ATTACK_OR_MOVE', reason: 'NO_HIGHER_VALUE_SKILL' };
     return decision;
   }
@@ -32993,10 +33743,14 @@ class PartySkillEngine {
     // existing kiting layer is still free to issue its independent move.
     this.farmer.lastActionAt = now;
     if (decision.kind === 'damage') this.stats.directSkills += 1;
+    else if (decision.kind === 'aoe' || decision.kind === 'aoe-control') {
+      this.stats.aoeSkills += 1;
+      this.stats.aoeTargetsPlanned += Math.max(0, finite(decision.targetCount, 0));
+    }
     else if (decision.kind === 'defensive') this.stats.defensiveSkills += 1;
     else this.stats.supportSkills += 1;
     if (decision.id === 'supershot') this.stats.supershots += 1;
-    this.lastUse = { at: now, skill: decision.id, kind: decision.kind, reason: decision.reason, targetId: target.id || null, targetType: target.mtype || null, executed: !!result.executed, shadow: !!result.shadow };
+    this.lastUse = { at: now, skill: decision.id, kind: decision.kind, reason: decision.reason, targetId: target.id || null, targetType: target.mtype || null, targetIds: decision.targetIds ? decision.targetIds.slice() : null, targetCount: decision.targetCount || null, executed: !!result.executed, shadow: !!result.shadow };
     if (this.farmer.lastSkillUse != null) this.farmer.lastSkillUse = { ...this.lastUse, selectionReason: decision.reason };
     this._event('PARTY_SKILL_USED', 'info', decision.reason, this.lastUse);
     return true;
@@ -33006,6 +33760,14 @@ class PartySkillEngine {
     if (this.installed || this.farmer.__partySkillEngineInstalled) return false;
     const baseEngage = this.farmer._engage.bind(this.farmer);
     this.farmer._engage = (context, target) => {
+      const tactical = this.runtime && this.runtime.tacticalPartyCombat;
+      if (tactical && typeof tactical.maybeExpandPull === 'function') {
+        const pull = tactical.maybeExpandPull(context, target);
+        if (pull && pull.acted) {
+          this.stats.pullExpansions += 1;
+          return baseEngage(context, target);
+        }
+      }
       const decision = this.decide(context, target);
       const used = this._execute(context, target, decision);
       if (used) this.stats.parallelSkillMovesEnabled += 1;
@@ -33021,7 +33783,7 @@ class PartySkillEngine {
   }
 
   status() {
-    return { schemaVersion: 1, mode: PARTY_SKILL_ENGINE_MODE, installed: this.installed, classes: ['ranger','warrior','priest','rogue','mage','paladin'], rangerSupershotPriority: true, overkillAvoidance: true, movementParallel: true, supportAndDefensiveSkills: true, config: { ...this.config }, lastDecision: this.lastDecision, lastUse: this.lastUse, stats: { ...this.stats } };
+    return { schemaVersion: 2, mode: PARTY_SKILL_ENGINE_MODE, installed: this.installed, classes: ['ranger','warrior','priest','rogue','mage','paladin'], rangerSupershotPriority: true, smartAoeExecution: true, smartAoePullExpansion: true, overkillAvoidance: true, movementParallel: true, supportAndDefensiveSkills: true, config: { ...this.config }, lastDecision: this.lastDecision, lastUse: this.lastUse, stats: { ...this.stats } };
   }
 }
 
@@ -49193,6 +49955,7 @@ module.exports = { SessionMonitor, MONITOR_SCHEMA_VERSION };
 'use strict';
 
 const { OperatorRunControl } = require('./operator-run-control');
+const { CombatMode, COMBAT_MODE_LABELS } = require('../autonomy/combat-modes');
 
 function safeText(value) {
   if (value == null) return '—';
@@ -49618,7 +50381,8 @@ class DebugMonitorUI {
       catalogReady: catalog.state === 'READY',
       generation: catalog.generation,
       rows,
-      enabled: rows.filter((row) => row.enabled).length
+      enabled: rows.filter((row) => row.enabled).length,
+      combatMode: runtime.characterCombatProfiles.getCombatMode(character.name)
     };
   }
 
@@ -49628,7 +50392,8 @@ class DebugMonitorUI {
       recipientMpThreshold: 'MP ≤',
       minInjuredMembers: 'Verletzte ≥',
       minTargets: 'Ziele ≥',
-      maxDesiredTargets: 'Ziele max'
+      maxDesiredTargets: 'Ziele max',
+      manaBudgetRatio: 'MP Budget'
     };
     return labels[String(key || '')] || String(key || '');
   }
@@ -49648,6 +50413,22 @@ class DebugMonitorUI {
     try {
       if (typeof runtime._refreshSkillCapabilities === 'function') runtime._refreshSkillCapabilities();
     } catch (_) {}
+  }
+
+  _setCombatMode(mode) {
+    const runtime = this._skillRuntime();
+    const character = this._skillCharacter();
+    if (!runtime || !character || !runtime.characterCombatProfiles || typeof runtime.characterCombatProfiles.setCombatMode !== 'function') return false;
+    const result = runtime.characterCombatProfiles.setCombatMode(character.name, mode);
+    if (!result || result.ok !== true) return false;
+    try {
+      if (runtime.tacticalPartyCombat && runtime.lastSnapshot) {
+        const team = runtime.teamCombatCohesionHotfix && runtime.teamCombatCohesionHotfix._team(runtime.lastSnapshot);
+        if (team && runtime.tacticalPartyCombat.encounter) runtime.tacticalPartyCombat._refreshEncounterPlan(runtime.lastSnapshot, team);
+      }
+    } catch (_) {}
+    this.refresh();
+    return true;
   }
 
   _setSkillEnabled(skillId, enabled) {
@@ -49725,6 +50506,25 @@ class DebugMonitorUI {
     this._setStyle(heading, { color: '#d1d5db', marginBottom: '8px', fontWeight: 'bold' });
     this.skillsPanel.appendChild(heading);
     if (!state.available) return true;
+
+    const modeRow = doc.createElement('div');
+    this._setStyle(modeRow, { display: 'grid', gridTemplateColumns: '100px 1fr', alignItems: 'center', gap: '8px', marginBottom: '8px' });
+    const modeLabel = doc.createElement('span');
+    modeLabel.textContent = 'Combat Mode';
+    this._setStyle(modeLabel, { color: '#9ca3af', fontSize: '10px' });
+    const modeSelect = doc.createElement('select');
+    for (const mode of [CombatMode.SINGLE_TARGET, CombatMode.SMART_AUTO, CombatMode.AOE_PREFERRED]) {
+      const option = doc.createElement('option');
+      option.value = mode;
+      option.textContent = COMBAT_MODE_LABELS[mode] || mode;
+      modeSelect.appendChild(option);
+    }
+    modeSelect.value = state.combatMode || CombatMode.SMART_AUTO;
+    modeSelect.onchange = () => this._setCombatMode(modeSelect.value);
+    this._setStyle(modeSelect, { width: '100%', background: '#0b0f14', color: '#f3f4f6', border: '1px solid #4b5563', borderRadius: '4px', padding: '4px' });
+    modeRow.appendChild(modeLabel);
+    modeRow.appendChild(modeSelect);
+    this.skillsPanel.appendChild(modeRow);
 
     const actions = doc.createElement('div');
     this._setStyle(actions, { display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' });
