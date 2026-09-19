@@ -37,7 +37,7 @@ Aktueller Wissensstand:
 - V5 Knowledge Base: 38 Facts, 38 offene Fragen.
 - Von 38 offenen Fragen: 24 P0, 7 P1, 7 P2.
 - Action Contracts: 60 erfasst; 53 gegen den offiziellen Repo-Snapshot verifiziert, 6 gegen den aktuell deployten offiziellen Live-Clientcontract verifiziert, 1 (`cave_buy`) wegen nicht öffentlich belegbarer interner Transportsemantik explizit für Automation gesperrt.
-- P0-01 ist DONE; P0-02 ist IN_PROGRESS; P0-03 bis P0-07 sind offen.
+- P0-01 und P0-02 sind DONE; P0-03 ist IN_PROGRESS; P0-04 bis P0-07 sind offen.
 - Adventure Land kann Production vor dem oeffentlichen Source-Snapshot bewegen; Live-MCP/Live-Daten haben fuer Contract-Revalidierung Vorrang.
 - Fuer V5 steht eine dedizierte 1-TB-SSD als lokales Adventure-Land-Datenfundament zur Verfuegung; Standardwurzel ist `D:\\AdventureLand-V5`.
 
