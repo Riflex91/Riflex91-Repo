@@ -31,22 +31,25 @@ export function pruefeQuelltext(relativerPfad, quelltext) {
   }
 
   for (const muster of RAW_WRITE_MUSTER) {
-    if (muster.test(quelltext)) {
+    if (muster.test(quelltext) && !pfad.startsWith("ausfuehrung/quelle/adapter/")) {
       fehler.push("RAW_GAME_WRITE");
       break;
     }
   }
 
   if (/(?:from\s+["'](?:node:)?fs(?:\/promises)?["']|require\s*\(\s*["'](?:node:)?fs)/.test(quelltext)
-      && !pfad.startsWith("persistenz/adapter/")) {
+      && !pfad.startsWith("persistenz/quelle/adapter/")) {
     fehler.push("DIREKTER_DATEISYSTEMZUGRIFF");
   }
 
-  if (/\bfetch\s*\(|\bnew\s+WebSocket\s*\(/.test(quelltext)) {
+  if (/\bfetch\s*\(|\bnew\s+WebSocket\s*\(/.test(quelltext)
+      && !pfad.startsWith("host/quelle/adapter/")
+      && !pfad.startsWith("ausfuehrung/quelle/adapter/")) {
     fehler.push("DIREKTER_NETZWERKZUGRIFF");
   }
 
-  if (/wissensbasis\/(?:datenbank|live)\//.test(quelltext)) {
+  if (/wissensbasis\/(?:datenbank|live)\//.test(quelltext)
+      || /(?:from\s+|import\s*\()\s*["'][^"']*wissensbasis\//.test(quelltext)) {
     fehler.push("ROH_SNAPSHOT_ZUGRIFF");
   }
 
@@ -60,7 +63,7 @@ export function pruefeQuelltext(relativerPfad, quelltext) {
     }
   }
 
-  if (pfad.startsWith("host/") && /\b(?:eval|evaluate|invoke)\s*\(/i.test(quelltext)) {
+  if (pfad.startsWith("host/quelle/") && /\b(?:eval|evaluate|invoke)\s*\(/i.test(quelltext)) {
     fehler.push("GENERISCHER_HOST_AUFRUF");
   }
 
