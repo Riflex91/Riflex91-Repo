@@ -75,7 +75,8 @@ function installMerchantProduction(runtime, options = {}) {
     actionWindowMs: options.merchantProductionActionWindowMs,
     maxActionsPerWindow: options.merchantProductionMaxActionsPerWindow,
     maxBuyQuantity: options.merchantProductionMaxBuyQuantity,
-    goldReserve: options.merchantProductionGoldReserve
+    goldReserve: options.merchantProductionGoldReserve,
+    failureQuarantineMs: options.merchantProductionFailureQuarantineMs
   });
 
   const state = {
@@ -401,6 +402,25 @@ function installMerchantProduction(runtime, options = {}) {
     const atomic = merchant && merchant.atomic;
     return !!(atomic && (atomic.merchantBusy || atomic.serviceTravelBusy));
   }
+
+  function workspaceReserveState() {
+    const ledger = runtime.inventoryLedger;
+    if (!ledger || typeof ledger.status !== 'function') return null;
+    try {
+      const status = ledger.status();
+      const inventory = status && status.summary && status.summary.selfInventory;
+      const freeSlots = n(inventory && inventory.freeSlots);
+      const workspaceSlots = n(inventory && inventory.workspaceSlots);
+      if (freeSlots == null || workspaceSlots == null) return null;
+      return {
+        freeSlots,
+        workspaceSlots,
+        violated: freeSlots < workspaceSlots
+      };
+    } catch (_) {
+      return null;
+    }
+  }
   function collectionBusy() { try { return typeof runtime._merchantCollectionSessionActive === 'function' && runtime._merchantCollectionSessionActive() === true; } catch (_) { return true; } }
   function controlledBusy() {
     const systems = [runtime.controlledMerchantService, runtime.controlledTravel, runtime.controlledMerchant, runtime.controlledMerchantSpaceRecovery, runtime.controlledPartyLifecycle];
@@ -592,7 +612,39 @@ function installMerchantProduction(runtime, options = {}) {
       updateIntentAfterExecution(plan, step, result);
       if (result && result.committed === true && (step.kind === ProductionStepKind.BANK_RETRIEVE || step.kind === ProductionStepKind.BANK_STORE)) bankCatalog.observe(character());
       if (result && result.executed === true && result.committed !== true) state.pausedUntil = runtime.now() + state.failureCooldownMs;
-      if (runtime.log && typeof runtime.log.emit === 'function') runtime.log.emit({ component: 'merchant-production', event: result && result.committed ? 'PRODUCTION_STEP_COMMITTED' : 'PRODUCTION_STEP_RESULT', severity: result && result.committed ? 'info' : 'warn', reason: result && result.reason || 'UNKNOWN', data: { planId: plan.id, kind: step.kind, item: step.name } });
+      if (result && result.reason === 'PRODUCTION_FAILURE_QUARANTINED' && result.quarantine && n(result.quarantine.until, null) != null) {
+        state.pausedUntil = Math.max(state.pausedUntil, n(result.quarantine.until, state.pausedUntil));
+        releaseTask('PRODUCTION_FAILURE_QUARANTINED', {
+          step: step.kind,
+          item: step.name,
+          quarantine: clone(result.quarantine)
+        });
+      } else if (result && result.executed === true && result.committed !== true && result.retryable === false) {
+        const quarantineUntil = runtime.now() + n(executor.status().failureQuarantineMs, state.failureCooldownMs);
+        state.pausedUntil = Math.max(state.pausedUntil, quarantineUntil);
+        releaseTask('PRODUCTION_NONRETRYABLE_STEP_FAILED_SAFE', {
+          step: step.kind,
+          item: step.name,
+          reason: result.reason || 'NONRETRYABLE_PRODUCTION_FAILURE',
+          failureClass: result.failureClass || null,
+          quarantineUntil
+        });
+      }
+      if (runtime.log && typeof runtime.log.emit === 'function') runtime.log.emit({
+        component: 'merchant-production',
+        event: result && result.committed ? 'PRODUCTION_STEP_COMMITTED' : 'PRODUCTION_STEP_RESULT',
+        severity: result && result.committed ? 'info' : 'warn',
+        reason: result && result.reason || 'UNKNOWN',
+        data: {
+          planId: plan.id,
+          kind: step.kind,
+          item: step.name,
+          retryable: result && Object.prototype.hasOwnProperty.call(result, 'retryable') ? result.retryable : null,
+          failureClass: result && result.failureClass || null,
+          quarantine: result && result.quarantine ? clone(result.quarantine) : null,
+          failureDetails: result && result.failureDetails ? clone(result.failureDetails) : null
+        }
+      });
     }).catch((error) => {
       state.pausedUntil = runtime.now() + state.failureCooldownMs;
       state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: 'UNHANDLED_PRODUCTION_ERROR', error: error && typeof error === 'object' ? { reason: error.reason || error.code || error.message || 'STRUCTURED_ERROR', message: error.message || null } : String(error) } };
@@ -1287,6 +1339,24 @@ function installMerchantProduction(runtime, options = {}) {
       };
     }
 
+    const workspace = workspaceReserveState();
+    if (workspace && workspace.violated) {
+      const activeProductionTask = currentTask();
+      const controlledNow = executor.status();
+      const irreversibleBusy = state.executionPending === true || controlledNow && controlledNow.busy === true;
+      if (!irreversibleBusy && activeProductionTask && activeProductionTask.owner === 'PRODUCTION') {
+        releaseTask('MERCHANT_WORKSPACE_RESERVE_REQUIRED', { workspace: clone(workspace) });
+      }
+      if (!irreversibleBusy) {
+        clearProductionMutationDemand('MERCHANT_WORKSPACE_RESERVE_REQUIRED');
+        return {
+          state: 'HOLD',
+          reason: 'MERCHANT_WORKSPACE_RESERVE_REQUIRED',
+          workspace: clone(workspace)
+        };
+      }
+    }
+
     const task = currentTask();
     if (task && task.owner !== 'PRODUCTION') {
       return { state: 'HOLD', reason: 'MERCHANT_TASK_OWNED_BY_OTHER_SUBSYSTEM', task: clone(task) };
@@ -1608,6 +1678,8 @@ function installMerchantProduction(runtime, options = {}) {
       autoLiveEnabled: isMerchant(),
       nonMerchantSideEffectsBlocked: true,
       collectionSessionBlocksProduction: collectionBusy(),
+      workspaceReserveBlocksProduction: true,
+      workspaceReserve: workspaceReserveState(),
       intervalMs: state.intervalMs,
       lastPlan: clone(state.lastPlan),
       lastExecution: clone(state.lastExecution),
@@ -1615,6 +1687,7 @@ function installMerchantProduction(runtime, options = {}) {
       alpha27Busy: alpha27Busy(),
       pausedUntil: state.pausedUntil || null,
       failureCooldownMs: state.failureCooldownMs,
+      failureQuarantineMs: executor.status().failureQuarantineMs || null,
       teamMaterialFarmPolicy: {
         teamActsTogether: true,
         multiFarmerSplit: false,

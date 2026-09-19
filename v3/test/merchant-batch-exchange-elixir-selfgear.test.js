@@ -1,5 +1,7 @@
 'use strict';
 
+// CI anchor: structured Merchant rejects remain normalized, quarantined, and lease-safe with the generated runtime bundle.
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
@@ -455,4 +457,86 @@ test('exact self-gear reservation can authorize a non-progression ledger disposi
   }, { ledger });
   assert.equal(rejected.accepted, false);
   assert.equal(rejected.reason, 'LEDGER_DISPOSITION_NOT_AUTHORIZED');
+});
+
+
+test('structured exchange server reject is normalized, persisted and identity-quarantined without [object Object]', async () => {
+  let now = 1000;
+  let calls = 0;
+  const root = {
+    character: {
+      name: 'Merchant',
+      ctype: 'merchant',
+      gold: 1000,
+      items: [{ name: 'anniversarygift', level: 0, q: 1 }]
+    },
+    G: { items: { anniversarygift: { e: 1, quest: 'anniversary' } } },
+    localStorage: { getItem() { return null; }, setItem() {} },
+    exchange: async () => {
+      calls += 1;
+      return {
+        success: false,
+        reason: {
+          code: 'EXCHANGE_NOT_READY',
+          message: 'server rejected exchange'
+        }
+      };
+    }
+  };
+  const executor = new ControlledMerchantProductionExecutor({
+    root,
+    now: () => now,
+    getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' }),
+    getEconomyEmergency: () => false,
+    verifyDelayMs: 0,
+    verifyAttempts: 1,
+    goldReserve: 0,
+    failureQuarantineMs: 10000
+  });
+  executor.configure({
+    enabled: true,
+    ack: CONTROLLED_MERCHANT_PRODUCTION_ACK,
+    allowExchange: true
+  });
+  const plan = { id: 'exchange-reject-plan', target: { output: 'anniversarygift' } };
+  const step = {
+    kind: ProductionStepKind.EXCHANGE,
+    name: 'anniversarygift',
+    level: 0,
+    inventoryIndex: 0,
+    quantity: 1,
+    destination: 'anniversary'
+  };
+
+  const first = await executor.execute(plan, step);
+  assert.equal(first.executed, true);
+  assert.equal(first.committed, false);
+  assert.equal(first.reason, 'EXCHANGE_REJECTED:EXCHANGE_NOT_READY');
+  assert.equal(first.retryable, false);
+  assert.equal(first.failureClass, 'SERVER_REJECTED');
+  assert.deepEqual(first.failureDetails.responseReason, {
+    code: 'EXCHANGE_NOT_READY',
+    message: 'server rejected exchange'
+  });
+  assert.equal(String(first.reason).includes('[object Object]'), false);
+  assert.equal(executor.status().activeOperation.reason, 'EXCHANGE_REJECTED:EXCHANGE_NOT_READY');
+  assert.equal(executor.status().activeOperation.retryable, false);
+  assert.equal(executor.status().history.at(-1).reason, 'EXCHANGE_REJECTED:EXCHANGE_NOT_READY');
+  assert.equal(calls, 1);
+
+  now = 2000;
+  const blocked = await executor.execute(plan, step);
+  assert.equal(blocked.executed, false);
+  assert.equal(blocked.reason, 'PRODUCTION_FAILURE_QUARANTINED');
+  assert.equal(blocked.quarantine.failureReason, 'EXCHANGE_REJECTED:EXCHANGE_NOT_READY');
+  assert.ok(blocked.quarantine.until > now);
+  assert.equal(calls, 1);
+  assert.equal(executor.status().stats.quarantinedRejects, 1);
+
+  now = 11001;
+  const afterExpiry = await executor.execute(plan, step);
+  assert.equal(afterExpiry.executed, true);
+  assert.equal(afterExpiry.reason, 'EXCHANGE_REJECTED:EXCHANGE_NOT_READY');
+  assert.equal(calls, 2);
 });

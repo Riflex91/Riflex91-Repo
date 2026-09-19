@@ -30642,11 +30642,14 @@ class TeamCombatCohesionHotfix {
       teamTargetStatesReceived: 0,
       teamTargetStateRejected: 0,
       teamTargetReplicatedFallbacks: 0,
-      teamTargetReplicatedStale: 0
+      teamTargetReplicatedStale: 0,
+      leaderCurrentTargetSelections: 0,
+      materialObjectiveTeamTargetYields: 0
     };
     this.installed = false;
     this._tuneKiting();
     this.teamTargetReplicationInstalled = this._installTeamTargetReplication();
+    this._installMaterialObjectiveTargetGuard();
     this._installTargetSelection();
     this._installCombatMovementGates();
     this._installLocalFarmTeamMovement();
@@ -30954,6 +30957,33 @@ class TeamCombatCohesionHotfix {
     return targetHp != null && combined > 0 && targetHp > combined * this.maxNewTargetHpVsTeam;
   }
 
+  _installMaterialObjectiveTargetGuard() {
+    if (!this.farmer || typeof this.farmer._moveToMaterialObjective !== 'function'
+      || this.farmer.__teamTargetMaterialObjectiveGuardInstalled) return;
+    const baseMoveToMaterialObjective = this.farmer._moveToMaterialObjective.bind(this.farmer);
+    this.farmer._moveToMaterialObjective = (context) => {
+      const snapshot = context && context.snapshot;
+      if (snapshot && snapshot.character) {
+        const team = this._team(snapshot);
+        const activeTeamCombat = this._activeTeamCombat(context, team);
+        if (activeTeamCombat) {
+          this.stats.materialObjectiveTeamTargetYields += 1;
+          this.lastDecision = {
+            at: this.now(),
+            action: 'MATERIAL_OBJECTIVE_YIELD',
+            reason: 'ACTIVE_TEAM_TARGET_HAS_COMBAT_PRIORITY',
+            leaderName: team.leaderName,
+            targetId: activeTeamCombat.id == null ? null : String(activeTeamCombat.id),
+            targetType: activeTeamCombat.mtype || null
+          };
+          return false;
+        }
+      }
+      return baseMoveToMaterialObjective(context);
+    };
+    this.farmer.__teamTargetMaterialObjectiveGuardInstalled = true;
+  }
+
   _installTargetSelection() {
     if (this.farmer.__teamCohesionTargetSelectionInstalled) return;
     const baseSelect = this.farmer._selectTarget.bind(this.farmer);
@@ -30991,6 +31021,36 @@ class TeamCombatCohesionHotfix {
             source: 'team-shared-aggro'
           }
         };
+      }
+
+      if (team.selfName === team.leaderName && team.leaderTargetId) {
+        const currentLeaderTarget = (snapshot.entities || []).find((entity) => entity
+          && String(entity.id) === String(team.leaderTargetId));
+        if (currentLeaderTarget && this._candidateAllowed(context, currentLeaderTarget)) {
+          if (typeof this.farmer._setLogicalTeamTarget === 'function') {
+            this.farmer._setLogicalTeamTarget(currentLeaderTarget.id, currentLeaderTarget.mtype, {
+              source: 'team-leader-current-target',
+              leaderName: team.leaderName
+            });
+          }
+          this.stats.leaderCurrentTargetSelections += 1;
+          this.lastDecision = {
+            at: this.now(),
+            action: 'TARGET_LEADER_CONTINUE',
+            reason: 'EXISTING_LEADER_TARGET',
+            leaderName: team.leaderName,
+            targetId: String(currentLeaderTarget.id),
+            targetType: currentLeaderTarget.mtype
+          };
+          return {
+            target: currentLeaderTarget,
+            ranking: {
+              monster: currentLeaderTarget.mtype,
+              score: Number.MAX_SAFE_INTEGER,
+              source: 'team-leader-current-target'
+            }
+          };
+        }
       }
 
       if (team.selfName !== team.leaderName) {
@@ -31158,6 +31218,7 @@ class TeamCombatCohesionHotfix {
     const targetIds = new Set((Array.isArray(team.members) ? team.members : [])
       .map((member) => member && member.target != null ? String(member.target) : null)
       .filter(Boolean));
+    if (team.leaderTargetId != null) targetIds.add(String(team.leaderTargetId));
     return (snapshot.entities || []).find((entity) => entity
       && entity.mtype
       && !entity.dead
@@ -31388,7 +31449,9 @@ class TeamCombatCohesionHotfix {
         formationMovementSuppressedDuringActiveSharedCombat: true,
         sharedAggroCombatMayContinueOutsideCohesionRadius: true,
         trustedLeaderTargetReplication: true,
-        replicatedTargetStillRequiresLocalSafety: true
+        replicatedTargetStillRequiresLocalSafety: true,
+        activeTeamTargetPreemptsMaterialObjectiveMovement: true,
+        existingLeaderTargetContinuesBeforeNewTargetSelection: true
       },
       team: team ? {
         names: team.names,
@@ -42143,6 +42206,39 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     return true;
   }
 
+  _refreshInventoryPlanning(reason, details = {}) {
+    try {
+      if (this.runtime && typeof this.runtime._planInventoryAndGear === 'function') {
+        this.runtime._planInventoryAndGear();
+        this.stats.inventoryPlanRefreshes = (this.stats.inventoryPlanRefreshes || 0) + 1;
+        this._event('ALPHA27_INVENTORY_PLAN_REFRESHED', 'info', reason || 'INVENTORY_MUTATION_REOBSERVED', details);
+        return true;
+      }
+      const ledger = this.runtime && this.runtime.inventoryLedger;
+      const registry = this.runtime && this.runtime.characterRegistry;
+      if (ledger && typeof ledger.observe === 'function') {
+        ledger.observe({
+          registry: registry && typeof registry.status === 'function' ? registry.status() : { characters: [] },
+          gameData: this.runtime.adapter && typeof this.runtime.adapter.getGameData === 'function' ? this.runtime.adapter.getGameData() || {} : {},
+          contentDrift: this.runtime.contentDrift,
+          liveCharacter: characterOf(this.runtime),
+          observedAt: this.runtime.lastSnapshot && this.runtime.lastSnapshot.observedAt
+        });
+        this.stats.inventoryPlanRefreshes = (this.stats.inventoryPlanRefreshes || 0) + 1;
+        this._event('ALPHA27_INVENTORY_PLAN_REFRESHED', 'info', reason || 'INVENTORY_MUTATION_REOBSERVED', details);
+        return true;
+      }
+    } catch (error) {
+      this.stats.inventoryPlanRefreshFailures = (this.stats.inventoryPlanRefreshFailures || 0) + 1;
+      this._event('ALPHA27_INVENTORY_PLAN_REFRESH_FAILED', 'warn', reason || 'INVENTORY_MUTATION_REOBSERVE_FAILED', {
+        ...details,
+        error: errorDetails(error)
+      });
+      return false;
+    }
+    return false;
+  }
+
   async executeEconomyRequest(request) {
     if (!request) return false;
     if (!await this.ensureStandClosed('ECONOMY_TRANSACTION_PREEMPT')) return true;
@@ -42191,6 +42287,21 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     const result = await this.runtime.controlledMerchant.execute(planned.transaction.id);
     if (request.type === 'BANK' && result && result.committed === true && this.runtime.merchantBankCatalog && typeof this.runtime.merchantBankCatalog.observe === 'function') {
       this.runtime.merchantBankCatalog.observe(characterOf(this.runtime));
+    }
+    if (request.type === 'BANK' && result && (
+      result.committed === true
+      || String(result.reason || '') === 'LIVE_ITEM_IDENTITY_MISMATCH'
+    )) {
+      this._refreshInventoryPlanning(
+        result.committed === true ? 'BANK_COMMIT_REOBSERVE' : 'BANK_IDENTITY_MISMATCH_REOBSERVE',
+        {
+          transactionId: planned.transaction.id,
+          index: request.index,
+          item: request.item || null,
+          committed: result.committed === true,
+          resultReason: result.reason || null
+        }
+      );
     }
     this.lastMerchantAction = { at: this.now(), transactionId: planned.transaction.id, type: request.type, result: clone(result) };
     return true;
@@ -42557,6 +42668,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       partySupplyChainReleases: this.stats.partySupplyChainReleases || 0,
       progressionTaskNoProgressReleases: this.stats.progressionTaskNoProgressReleases || 0,
       workspaceReserveBankPreemptions: this.stats.workspaceReserveBankPreemptions || 0,
+      inventoryPlanRefreshes: this.stats.inventoryPlanRefreshes || 0,
+      inventoryPlanRefreshFailures: this.stats.inventoryPlanRefreshFailures || 0,
       lastPartySupplyChainRelease: clone(this.lastPartySupplyChainRelease || null),
       atomicTransactions: true,
       realUpgrade: true,
@@ -45428,6 +45541,51 @@ function n(value, fallback = 0) { const x = Number(value); return Number.isFinit
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 function levelOf(item) { return Math.max(0, Math.floor(n(item && item.level, 0))); }
 
+function failureCode(value, fallback = 'UNKNOWN') {
+  if (value == null) return fallback;
+  if (value instanceof Error) {
+    return failureCode(value.code || value.reason || value.message, fallback);
+  }
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    const text = String(value).trim();
+    return text || fallback;
+  }
+  if (typeof value === 'object') {
+    const candidates = [
+      value.code,
+      value.reason,
+      value.message,
+      value.error,
+      value.type,
+      value.name,
+      value.status
+    ];
+    for (const candidate of candidates) {
+      if (candidate == null || candidate === value) continue;
+      const resolved = failureCode(candidate, '');
+      if (resolved) return resolved;
+    }
+    return 'STRUCTURED_REJECTION';
+  }
+  return fallback;
+}
+
+function failureDetails(value) {
+  if (value == null) return null;
+  if (value instanceof Error) {
+    return {
+      name: value.name || 'Error',
+      message: value.message || null,
+      code: value.code || null,
+      reason: value.reason || null
+    };
+  }
+  if (typeof value === 'object') {
+    try { return clone(value); } catch (_) { return { type: typeof value, code: failureCode(value, 'STRUCTURED_REJECTION') }; }
+  }
+  return { value: String(value) };
+}
+
 class ControlledMerchantProductionExecutor {
   constructor(options = {}) {
     this.root = options.root || globalThis;
@@ -45446,9 +45604,10 @@ class ControlledMerchantProductionExecutor {
     this.maxActionsPerWindow = Math.max(1, Math.min(30, Math.floor(n(options.maxActionsPerWindow, 10))));
     this.maxBuyQuantity = Math.max(1, Math.min(10000, Math.floor(n(options.maxBuyQuantity, 1000))));
     this.goldReserve = Math.max(0, Math.floor(n(options.goldReserve, 1000000)));
+    this.failureQuarantineMs = Math.max(5000, Math.min(60 * 60 * 1000, n(options.failureQuarantineMs, 15 * 60 * 1000)));
     this.enabled = false; this.allowBuy = false; this.allowBank = false; this.allowCraft = false; this.allowExchange = false; this.busy = false;
     this.activeOperation = null; this.lastAction = null; this.history = []; this.actionTimes = [];
-    this.stats = { attempts: 0, committed: 0, rejected: 0, failedSafe: 0, recovered: 0, buys: 0, bankRetrieves: 0, bankStores: 0, crafts: 0, exchanges: 0, verificationRetries: 0 };
+    this.stats = { attempts: 0, committed: 0, rejected: 0, failedSafe: 0, recovered: 0, buys: 0, bankRetrieves: 0, bankStores: 0, crafts: 0, exchanges: 0, verificationRetries: 0, serverRejects: 0, quarantinedRejects: 0 };
     this._load();
   }
 
@@ -45477,6 +45636,34 @@ class ControlledMerchantProductionExecutor {
   }
   disable(reason = 'OPERATOR_DISABLED') { this.enabled = false; this.allowBuy = false; this.allowBank = false; this.allowCraft = false; this.allowExchange = false; this._event('MERCHANT_PRODUCTION_DISABLED', 'warn', reason); return this.status(); }
   _budgetOk() { const now = this.now(); this.actionTimes = this.actionTimes.filter((at) => now - at <= this.actionWindowMs); return this.actionTimes.length < this.maxActionsPerWindow; }
+  _failureQuarantine(step) {
+    if (!step || !step.kind || !step.name) return null;
+    const kind = String(step.kind);
+    const item = String(step.name);
+    const level = Math.max(0, Math.floor(n(step.level, 0)));
+    const now = this.now();
+    for (let index = this.history.length - 1; index >= 0; index -= 1) {
+      const row = this.history[index];
+      if (!row || String(row.kind || '') !== kind || String(row.item || '') !== item || Math.max(0, Math.floor(n(row.level, 0))) !== level) continue;
+      if (String(row.result || '') !== 'FAILED_SAFE' || row.retryable !== false) return null;
+      const at = n(row.at, null);
+      if (at == null) return null;
+      const until = at + this.failureQuarantineMs;
+      if (until <= now) return null;
+      return {
+        reason: 'PRODUCTION_FAILURE_QUARANTINED',
+        kind,
+        item,
+        level,
+        failureReason: row.reason || null,
+        failureClass: row.failureClass || null,
+        failedAt: at,
+        until,
+        remainingMs: Math.max(0, until - now)
+      };
+    }
+    return null;
+  }
   _sleep(ms) { const setTimer = this.root && this.root.setTimeout || setTimeout; return new Promise((resolve) => setTimer(resolve, ms)); }
   async _verify(fn) { for (let i = 0; i < this.verifyAttempts; i += 1) { if (fn()) return true; if (i + 1 < this.verifyAttempts) { this.stats.verificationRetries += 1; await this._sleep(this.verifyDelayMs); } } return false; }
   _timeout(value, label) { const setTimer = this.root && this.root.setTimeout || setTimeout; const clearTimer = this.root && this.root.clearTimeout || clearTimeout; let timer; const timeout = new Promise((_, reject) => { timer = setTimer(() => reject(new Error(`${label}_TIMEOUT`)), this.timeoutMs); }); return Promise.race([Promise.resolve(value), timeout]).finally(() => { if (timer) clearTimer(timer); }); }
@@ -45493,6 +45680,8 @@ class ControlledMerchantProductionExecutor {
     if (!c || String(c.ctype || c.type || '').toLowerCase() !== 'merchant') return { ok: false, reason: 'MERCHANT_REQUIRED' };
     if (c.rip === true || c.dead === true) return { ok: false, reason: 'MERCHANT_DEAD' };
     if (this._inCombat()) return { ok: false, reason: 'MERCHANT_IN_COMBAT' };
+    const quarantine = this._failureQuarantine(step);
+    if (quarantine) return { ok: false, reason: quarantine.reason, quarantine };
     if (!this._budgetOk()) return { ok: false, reason: 'PRODUCTION_ACTION_BUDGET_EXHAUSTED' };
     const kind = String(step.kind), name = String(step.name || ''), level = Math.max(0, Math.floor(n(step.level, 0)));
     if (!name) return { ok: false, reason: 'ITEM_NAME_REQUIRED' };
@@ -45547,10 +45736,41 @@ class ControlledMerchantProductionExecutor {
 
   _start(plan, step, data) { const now = this.now(); this.activeOperation = { schemaVersion: 1, id: `${String(plan && plan.id || 'manual')}:${now.toString(36)}`, planId: plan && plan.id || null, kind: step.kind, item: String(step.name || ''), level: Math.max(0, Math.floor(n(step.level, 0))), state: 'RESERVED', reason: 'PERSISTED_BEFORE_ACTION', createdAt: now, updatedAt: now, ...clone(data) }; return this._persist(); }
   _transition(state, reason) { if (!this.activeOperation) return; this.activeOperation.state = state; this.activeOperation.reason = reason; this.activeOperation.updatedAt = this.now(); this._persist(); }
-  _finish(step, committed, reason, data = {}) { this._transition(committed ? 'COMMITTED' : 'FAILED_SAFE', reason); if (committed) this.stats.committed += 1; else this.stats.failedSafe += 1; this.lastAction = { at: this.now(), kind: step.kind, item: step.name, result: committed ? 'COMMITTED' : 'FAILED_SAFE', reason, ...clone(data) }; this.history.push(clone(this.lastAction)); this.history = this.history.slice(-32); this._persist(); this._event(committed ? 'MERCHANT_PRODUCTION_COMMITTED' : 'MERCHANT_PRODUCTION_FAILED_SAFE', committed ? 'info' : 'error', reason, this.lastAction); return { executed: true, committed, reason, ...clone(data) }; }
+  _finish(step, committed, reason, data = {}) {
+    this._transition(committed ? 'COMMITTED' : 'FAILED_SAFE', reason);
+    if (this.activeOperation && data && typeof data === 'object') {
+      Object.assign(this.activeOperation, clone(data));
+      this._persist();
+    }
+    if (committed) this.stats.committed += 1; else this.stats.failedSafe += 1;
+    this.lastAction = {
+      at: this.now(),
+      kind: step.kind,
+      item: step.name,
+      level: Math.max(0, Math.floor(n(step.level, 0))),
+      result: committed ? 'COMMITTED' : 'FAILED_SAFE',
+      reason,
+      ...clone(data)
+    };
+    this.history.push(clone(this.lastAction));
+    this.history = this.history.slice(-32);
+    this._persist();
+    this._event(committed ? 'MERCHANT_PRODUCTION_COMMITTED' : 'MERCHANT_PRODUCTION_FAILED_SAFE', committed ? 'info' : 'error', reason, this.lastAction);
+    return { executed: true, committed, reason, ...clone(data) };
+  }
 
   async execute(plan, step) {
-    const check = this._preflight(step); if (!check.ok) { this.stats.rejected += 1; return { executed: false, committed: false, reason: check.reason }; }
+    const check = this._preflight(step);
+    if (!check.ok) {
+      this.stats.rejected += 1;
+      if (check.reason === 'PRODUCTION_FAILURE_QUARANTINED') this.stats.quarantinedRejects += 1;
+      return {
+        executed: false,
+        committed: false,
+        reason: check.reason,
+        ...(check.quarantine ? { quarantine: clone(check.quarantine) } : {})
+      };
+    }
     this.busy = true; this.stats.attempts += 1; this.actionTimes.push(this.now());
     try {
       const beforeInv = itemQuantity(this._inventory(), check.name, check.level), beforeBank = this._bankQty(check.name, check.level);
@@ -45568,7 +45788,20 @@ class ControlledMerchantProductionExecutor {
         this._transition('EXECUTING', 'EXCHANGE_STARTING');
         this.stats.exchanges += 1;
         const response = await this._timeout(check.api[0].call(check.api[1], check.index), 'EXCHANGE');
-        if (response && response.success === false) throw new Error(`EXCHANGE_REJECTED:${response.reason || 'unknown'}`);
+        if (response && response.success === false) {
+          const code = failureCode(response.reason != null ? response.reason : response, 'UNKNOWN');
+          const reason = `EXCHANGE_REJECTED:${code}`;
+          this.stats.serverRejects += 1;
+          return this._finish(step, false, reason, {
+            failureClass: 'SERVER_REJECTED',
+            retryable: false,
+            failureDetails: {
+              responseReason: failureDetails(response.reason),
+              responseCode: response.code || null,
+              responseMessage: response.message || null
+            }
+          });
+        }
         this._transition('VERIFYING', 'EXCHANGE_RETURNED');
         const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, check.level) <= beforeInv - check.quantity);
         return this._finish(step, ok, ok ? 'EXCHANGE_INPUT_DELTA_VERIFIED' : 'EXCHANGE_INPUT_DELTA_VERIFICATION_FAILED', { consumedQuantity: check.quantity, reward: response && response.reward || null });
@@ -45582,7 +45815,14 @@ class ControlledMerchantProductionExecutor {
       this._transition('VERIFYING', check.craftMode === 'ANNIVERSARY_CRAFT' ? 'ANNIVERSARY_CRAFT_RETURNED' : 'AUTO_CRAFT_RETURNED');
       const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, 0) >= beforeInv + out);
       return this._finish(step, ok, ok ? 'CRAFT_OUTPUT_VERIFIED' : 'CRAFT_OUTPUT_DELTA_VERIFICATION_FAILED', { outputQuantity: out, craftMode: check.craftMode });
-    } catch (error) { return this._finish(step, false, String(error && error.message || error || 'PRODUCTION_ACTION_FAILED')); }
+    } catch (error) {
+      const code = failureCode(error, 'PRODUCTION_ACTION_FAILED');
+      return this._finish(step, false, code, {
+        failureClass: 'EXECUTION_ERROR',
+        retryable: true,
+        failureDetails: failureDetails(error)
+      });
+    }
     finally { this.busy = false; }
   }
 
@@ -45593,7 +45833,7 @@ class ControlledMerchantProductionExecutor {
     this._transition(ok ? 'COMMITTED' : 'FAILED_SAFE', ok ? 'RESTART_RECONCILIATION_VERIFIED' : 'RESTART_OUTCOME_UNCERTAIN_NO_RETRY'); if (ok) { this.stats.recovered += 1; this.stats.committed += 1; } else this.stats.failedSafe += 1; return { reconciled: true, committed: ok, reason: this.activeOperation.reason };
   }
 
-  status() { this._budgetOk(); return { schemaVersion: 1, mode: CONTROLLED_MERCHANT_PRODUCTION_MODE, enabled: this.enabled, actionAuthority: this.enabled && (this.allowBuy || this.allowBank || this.allowCraft || this.allowExchange), allowBuy: this.allowBuy, allowBank: this.allowBank, allowCraft: this.allowCraft, allowExchange: this.allowExchange, buyAllowed: this.enabled && this.allowBuy, bankAllowed: this.enabled && this.allowBank, craftAllowed: this.enabled && this.allowCraft, exchangeAllowed: this.enabled && this.allowExchange, rawActionFamilies: ['BUY', 'BANK_RETRIEVE', 'BANK_STORE', 'AUTO_CRAFT', 'EXCHANGE'], busy: this.busy, goldReserve: this.goldReserve, maxBuyQuantity: this.maxBuyQuantity, actionBudget: { used: this.actionTimes.length, max: this.maxActionsPerWindow, windowMs: this.actionWindowMs, allowed: this.actionTimes.length < this.maxActionsPerWindow }, activeOperation: clone(this.activeOperation), lastAction: clone(this.lastAction), history: this.history.slice(-16).map(clone), stats: clone(this.stats), explicitAckRequired: CONTROLLED_MERCHANT_PRODUCTION_ACK }; }
+  status() { this._budgetOk(); return { schemaVersion: 1, mode: CONTROLLED_MERCHANT_PRODUCTION_MODE, enabled: this.enabled, actionAuthority: this.enabled && (this.allowBuy || this.allowBank || this.allowCraft || this.allowExchange), allowBuy: this.allowBuy, allowBank: this.allowBank, allowCraft: this.allowCraft, allowExchange: this.allowExchange, buyAllowed: this.enabled && this.allowBuy, bankAllowed: this.enabled && this.allowBank, craftAllowed: this.enabled && this.allowCraft, exchangeAllowed: this.enabled && this.allowExchange, rawActionFamilies: ['BUY', 'BANK_RETRIEVE', 'BANK_STORE', 'AUTO_CRAFT', 'EXCHANGE'], busy: this.busy, goldReserve: this.goldReserve, maxBuyQuantity: this.maxBuyQuantity, failureQuarantineMs: this.failureQuarantineMs, actionBudget: { used: this.actionTimes.length, max: this.maxActionsPerWindow, windowMs: this.actionWindowMs, allowed: this.actionTimes.length < this.maxActionsPerWindow }, activeOperation: clone(this.activeOperation), lastAction: clone(this.lastAction), history: this.history.slice(-16).map(clone), stats: clone(this.stats), explicitAckRequired: CONTROLLED_MERCHANT_PRODUCTION_ACK }; }
 }
 
 module.exports = { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_MODE, CONTROLLED_MERCHANT_PRODUCTION_ACK };
@@ -57989,7 +58229,8 @@ function installMerchantProduction(runtime, options = {}) {
     actionWindowMs: options.merchantProductionActionWindowMs,
     maxActionsPerWindow: options.merchantProductionMaxActionsPerWindow,
     maxBuyQuantity: options.merchantProductionMaxBuyQuantity,
-    goldReserve: options.merchantProductionGoldReserve
+    goldReserve: options.merchantProductionGoldReserve,
+    failureQuarantineMs: options.merchantProductionFailureQuarantineMs
   });
 
   const state = {
@@ -58315,6 +58556,25 @@ function installMerchantProduction(runtime, options = {}) {
     const atomic = merchant && merchant.atomic;
     return !!(atomic && (atomic.merchantBusy || atomic.serviceTravelBusy));
   }
+
+  function workspaceReserveState() {
+    const ledger = runtime.inventoryLedger;
+    if (!ledger || typeof ledger.status !== 'function') return null;
+    try {
+      const status = ledger.status();
+      const inventory = status && status.summary && status.summary.selfInventory;
+      const freeSlots = n(inventory && inventory.freeSlots);
+      const workspaceSlots = n(inventory && inventory.workspaceSlots);
+      if (freeSlots == null || workspaceSlots == null) return null;
+      return {
+        freeSlots,
+        workspaceSlots,
+        violated: freeSlots < workspaceSlots
+      };
+    } catch (_) {
+      return null;
+    }
+  }
   function collectionBusy() { try { return typeof runtime._merchantCollectionSessionActive === 'function' && runtime._merchantCollectionSessionActive() === true; } catch (_) { return true; } }
   function controlledBusy() {
     const systems = [runtime.controlledMerchantService, runtime.controlledTravel, runtime.controlledMerchant, runtime.controlledMerchantSpaceRecovery, runtime.controlledPartyLifecycle];
@@ -58506,7 +58766,39 @@ function installMerchantProduction(runtime, options = {}) {
       updateIntentAfterExecution(plan, step, result);
       if (result && result.committed === true && (step.kind === ProductionStepKind.BANK_RETRIEVE || step.kind === ProductionStepKind.BANK_STORE)) bankCatalog.observe(character());
       if (result && result.executed === true && result.committed !== true) state.pausedUntil = runtime.now() + state.failureCooldownMs;
-      if (runtime.log && typeof runtime.log.emit === 'function') runtime.log.emit({ component: 'merchant-production', event: result && result.committed ? 'PRODUCTION_STEP_COMMITTED' : 'PRODUCTION_STEP_RESULT', severity: result && result.committed ? 'info' : 'warn', reason: result && result.reason || 'UNKNOWN', data: { planId: plan.id, kind: step.kind, item: step.name } });
+      if (result && result.reason === 'PRODUCTION_FAILURE_QUARANTINED' && result.quarantine && n(result.quarantine.until, null) != null) {
+        state.pausedUntil = Math.max(state.pausedUntil, n(result.quarantine.until, state.pausedUntil));
+        releaseTask('PRODUCTION_FAILURE_QUARANTINED', {
+          step: step.kind,
+          item: step.name,
+          quarantine: clone(result.quarantine)
+        });
+      } else if (result && result.executed === true && result.committed !== true && result.retryable === false) {
+        const quarantineUntil = runtime.now() + n(executor.status().failureQuarantineMs, state.failureCooldownMs);
+        state.pausedUntil = Math.max(state.pausedUntil, quarantineUntil);
+        releaseTask('PRODUCTION_NONRETRYABLE_STEP_FAILED_SAFE', {
+          step: step.kind,
+          item: step.name,
+          reason: result.reason || 'NONRETRYABLE_PRODUCTION_FAILURE',
+          failureClass: result.failureClass || null,
+          quarantineUntil
+        });
+      }
+      if (runtime.log && typeof runtime.log.emit === 'function') runtime.log.emit({
+        component: 'merchant-production',
+        event: result && result.committed ? 'PRODUCTION_STEP_COMMITTED' : 'PRODUCTION_STEP_RESULT',
+        severity: result && result.committed ? 'info' : 'warn',
+        reason: result && result.reason || 'UNKNOWN',
+        data: {
+          planId: plan.id,
+          kind: step.kind,
+          item: step.name,
+          retryable: result && Object.prototype.hasOwnProperty.call(result, 'retryable') ? result.retryable : null,
+          failureClass: result && result.failureClass || null,
+          quarantine: result && result.quarantine ? clone(result.quarantine) : null,
+          failureDetails: result && result.failureDetails ? clone(result.failureDetails) : null
+        }
+      });
     }).catch((error) => {
       state.pausedUntil = runtime.now() + state.failureCooldownMs;
       state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: 'UNHANDLED_PRODUCTION_ERROR', error: error && typeof error === 'object' ? { reason: error.reason || error.code || error.message || 'STRUCTURED_ERROR', message: error.message || null } : String(error) } };
@@ -59201,6 +59493,24 @@ function installMerchantProduction(runtime, options = {}) {
       };
     }
 
+    const workspace = workspaceReserveState();
+    if (workspace && workspace.violated) {
+      const activeProductionTask = currentTask();
+      const controlledNow = executor.status();
+      const irreversibleBusy = state.executionPending === true || controlledNow && controlledNow.busy === true;
+      if (!irreversibleBusy && activeProductionTask && activeProductionTask.owner === 'PRODUCTION') {
+        releaseTask('MERCHANT_WORKSPACE_RESERVE_REQUIRED', { workspace: clone(workspace) });
+      }
+      if (!irreversibleBusy) {
+        clearProductionMutationDemand('MERCHANT_WORKSPACE_RESERVE_REQUIRED');
+        return {
+          state: 'HOLD',
+          reason: 'MERCHANT_WORKSPACE_RESERVE_REQUIRED',
+          workspace: clone(workspace)
+        };
+      }
+    }
+
     const task = currentTask();
     if (task && task.owner !== 'PRODUCTION') {
       return { state: 'HOLD', reason: 'MERCHANT_TASK_OWNED_BY_OTHER_SUBSYSTEM', task: clone(task) };
@@ -59522,6 +59832,8 @@ function installMerchantProduction(runtime, options = {}) {
       autoLiveEnabled: isMerchant(),
       nonMerchantSideEffectsBlocked: true,
       collectionSessionBlocksProduction: collectionBusy(),
+      workspaceReserveBlocksProduction: true,
+      workspaceReserve: workspaceReserveState(),
       intervalMs: state.intervalMs,
       lastPlan: clone(state.lastPlan),
       lastExecution: clone(state.lastExecution),
@@ -59529,6 +59841,7 @@ function installMerchantProduction(runtime, options = {}) {
       alpha27Busy: alpha27Busy(),
       pausedUntil: state.pausedUntil || null,
       failureCooldownMs: state.failureCooldownMs,
+      failureQuarantineMs: executor.status().failureQuarantineMs || null,
       teamMaterialFarmPolicy: {
         teamActsTogether: true,
         multiFarmerSplit: false,

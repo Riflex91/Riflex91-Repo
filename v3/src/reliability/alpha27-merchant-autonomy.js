@@ -376,6 +376,39 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     return true;
   }
 
+  _refreshInventoryPlanning(reason, details = {}) {
+    try {
+      if (this.runtime && typeof this.runtime._planInventoryAndGear === 'function') {
+        this.runtime._planInventoryAndGear();
+        this.stats.inventoryPlanRefreshes = (this.stats.inventoryPlanRefreshes || 0) + 1;
+        this._event('ALPHA27_INVENTORY_PLAN_REFRESHED', 'info', reason || 'INVENTORY_MUTATION_REOBSERVED', details);
+        return true;
+      }
+      const ledger = this.runtime && this.runtime.inventoryLedger;
+      const registry = this.runtime && this.runtime.characterRegistry;
+      if (ledger && typeof ledger.observe === 'function') {
+        ledger.observe({
+          registry: registry && typeof registry.status === 'function' ? registry.status() : { characters: [] },
+          gameData: this.runtime.adapter && typeof this.runtime.adapter.getGameData === 'function' ? this.runtime.adapter.getGameData() || {} : {},
+          contentDrift: this.runtime.contentDrift,
+          liveCharacter: characterOf(this.runtime),
+          observedAt: this.runtime.lastSnapshot && this.runtime.lastSnapshot.observedAt
+        });
+        this.stats.inventoryPlanRefreshes = (this.stats.inventoryPlanRefreshes || 0) + 1;
+        this._event('ALPHA27_INVENTORY_PLAN_REFRESHED', 'info', reason || 'INVENTORY_MUTATION_REOBSERVED', details);
+        return true;
+      }
+    } catch (error) {
+      this.stats.inventoryPlanRefreshFailures = (this.stats.inventoryPlanRefreshFailures || 0) + 1;
+      this._event('ALPHA27_INVENTORY_PLAN_REFRESH_FAILED', 'warn', reason || 'INVENTORY_MUTATION_REOBSERVE_FAILED', {
+        ...details,
+        error: errorDetails(error)
+      });
+      return false;
+    }
+    return false;
+  }
+
   async executeEconomyRequest(request) {
     if (!request) return false;
     if (!await this.ensureStandClosed('ECONOMY_TRANSACTION_PREEMPT')) return true;
@@ -424,6 +457,21 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     const result = await this.runtime.controlledMerchant.execute(planned.transaction.id);
     if (request.type === 'BANK' && result && result.committed === true && this.runtime.merchantBankCatalog && typeof this.runtime.merchantBankCatalog.observe === 'function') {
       this.runtime.merchantBankCatalog.observe(characterOf(this.runtime));
+    }
+    if (request.type === 'BANK' && result && (
+      result.committed === true
+      || String(result.reason || '') === 'LIVE_ITEM_IDENTITY_MISMATCH'
+    )) {
+      this._refreshInventoryPlanning(
+        result.committed === true ? 'BANK_COMMIT_REOBSERVE' : 'BANK_IDENTITY_MISMATCH_REOBSERVE',
+        {
+          transactionId: planned.transaction.id,
+          index: request.index,
+          item: request.item || null,
+          committed: result.committed === true,
+          resultReason: result.reason || null
+        }
+      );
     }
     this.lastMerchantAction = { at: this.now(), transactionId: planned.transaction.id, type: request.type, result: clone(result) };
     return true;
@@ -790,6 +838,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       partySupplyChainReleases: this.stats.partySupplyChainReleases || 0,
       progressionTaskNoProgressReleases: this.stats.progressionTaskNoProgressReleases || 0,
       workspaceReserveBankPreemptions: this.stats.workspaceReserveBankPreemptions || 0,
+      inventoryPlanRefreshes: this.stats.inventoryPlanRefreshes || 0,
+      inventoryPlanRefreshFailures: this.stats.inventoryPlanRefreshFailures || 0,
       lastPartySupplyChainRelease: clone(this.lastPartySupplyChainRelease || null),
       atomicTransactions: true,
       realUpgrade: true,
