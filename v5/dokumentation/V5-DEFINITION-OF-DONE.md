@@ -86,3 +86,16 @@ Diese Checkliste gilt fuer **jede** neue mutierende Capability und fuer jede Aen
 - [ ] Negative Tests beweisen, dass Mutation ohne/mit abgelaufener/falscher Freigabe nicht moeglich ist.
 - [ ] Operator, Host, Dashboard und Learning koennen harte Safety-Invarianten nicht umgehen.
 - [ ] Kritische Zustandsmodelle sind geschlossen/exhaustiv und haben keinen ausfuehrenden Default-Zweig.
+
+
+## I. Sichtbare Sprache
+
+- [ ] Alle uebersetzungspflichtigen sichtbaren Texte sind deutsch.
+- [ ] Skills und Skillbeschreibungen sind deutsch.
+- [ ] Buttons, Menues, Tabs, Textfelder, Platzhalter, Tooltips, Tabellen, Dialoge, HUD, Dashboard, Konfiguration, Warnungen und sichtbare Diagnosen sind deutsch.
+- [ ] Items, Klassen, NPC-Rollen, Events, Quests, Aktionen und sichtbare Statuswerte besitzen deutsche Anzeigenamen.
+- [ ] Monster verwenden eine offizielle deutsche Spielbezeichnung, falls Adventure Land eine bereitstellt.
+- [ ] Fehlt im Spiel eine offizielle deutsche Monsterbezeichnung, darf ausschliesslich fuer den Monster-Namen der originale Spielname sichtbar bleiben.
+- [ ] V5 erfindet keine eigene Monster-Uebersetzung als angeblich offizielle Bezeichnung.
+- [ ] Unerlaubte englische Rohtext-Leaks = 0.
+- [ ] Fehlende erforderliche Uebersetzungen = 0.

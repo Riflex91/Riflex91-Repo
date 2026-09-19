@@ -1,0 +1,1401 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-19",
+  "methode": "FMEA_AEHNLICH",
+  "regel": "Hohe Risikowerte reduzieren nicht die Pflicht zur Behandlung niedrigerer Safety-Risiken; jede Gefahr braucht vor betroffener Live-Autoritaet eine wirksame Gegenmassnahme.",
+  "anzahl": 98,
+  "gefahren": [
+    {
+      "kennung": "V5-GEF-001",
+      "titel": "Veralteter Wissensfakt wird als aktuell verwendet",
+      "kategorie": "WISSEN",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 45,
+      "status": "OFFEN",
+      "strategie": "Freshness/Drift/Live-Revalidation",
+      "betroffenePhasen": [
+        "R0",
+        "R6"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-002",
+      "titel": "Historie wird durch stilles Ueberschreiben verloren",
+      "kategorie": "WISSEN",
+      "schweregrad": 3,
+      "eintritt": 3,
+      "entdeckbarkeit": 2,
+      "risikowert": 18,
+      "status": "OFFEN",
+      "strategie": "Supersede/History-only",
+      "betroffenePhasen": [
+        "R0"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-003",
+      "titel": "Community-Hoerensagen wird als Wahrheit uebernommen",
+      "kategorie": "WISSEN",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Autoritaetsklassen + Konfliktpruefung",
+      "betroffenePhasen": [
+        "R0"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-004",
+      "titel": "Wissenswaechter erkennt wichtige Aenderung zu spaet",
+      "kategorie": "WISSEN",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Stündlicher Kernzyklus + rotierende Entdeckung",
+      "betroffenePhasen": [
+        "R0"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-005",
+      "titel": "Wissenswaechter veraendert produktiven Code",
+      "kategorie": "SUPPLY_CHAIN",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 4,
+      "risikowert": 40,
+      "status": "OFFEN",
+      "strategie": "Pfad-Allowlist + geschuetzter Main + CI",
+      "betroffenePhasen": [
+        "R0",
+        "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-006",
+      "titel": "Wissensdatenbank wird direkt als Ausfuehrungsautoritaet benutzt",
+      "kategorie": "WISSEN",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Evidence-only + Admission Live Check",
+      "betroffenePhasen": [
+        "R6",
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-007",
+      "titel": "Offizielle Quellen widersprechen sich",
+      "kategorie": "WISSEN",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "WIDERSPRUCH + Quarantaene",
+      "betroffenePhasen": [
+        "R0"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-008",
+      "titel": "Live-Spiel driftet vom gespeicherten Contract",
+      "kategorie": "WISSEN",
+      "schweregrad": 5,
+      "eintritt": 4,
+      "entdeckbarkeit": 4,
+      "risikowert": 80,
+      "status": "OFFEN",
+      "strategie": "Contract-Fingerprint + Quarantaene",
+      "betroffenePhasen": [
+        "R6",
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-009",
+      "titel": "Wissenswaechter-Ausfall stoppt Gameplay",
+      "kategorie": "FEHLERDOMAENE",
+      "schweregrad": 4,
+      "eintritt": 2,
+      "entdeckbarkeit": 2,
+      "risikowert": 16,
+      "status": "OFFEN",
+      "strategie": "Asynchrone Entkopplung",
+      "betroffenePhasen": [
+        "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-010",
+      "titel": "Uneinheitliche Sprache erzeugt Fehlinterpretation",
+      "kategorie": "WARTBARKEIT",
+      "schweregrad": 3,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 27,
+      "status": "OFFEN",
+      "strategie": "Deutsche Domaenensprache + Guard",
+      "betroffenePhasen": [
+        "R2",
+        "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-011",
+      "titel": "Mehrere Owner mutieren dieselbe Capability",
+      "kategorie": "AUTHORITY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Single-Owner Registry",
+      "betroffenePhasen": [
+        "R7"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-012",
+      "titel": "Raw Game Write umgeht Admission",
+      "kategorie": "AUTHORITY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 5,
+      "risikowert": 75,
+      "status": "OFFEN",
+      "strategie": "Static Write Guard + Adaptergrenze",
+      "betroffenePhasen": [
+        "R3",
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-013",
+      "titel": "Direkte Modulkopplung umgeht Ports",
+      "kategorie": "ARCHITEKTUR",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Dependency Guard",
+      "betroffenePhasen": [
+        "R3",
+        "R7"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-014",
+      "titel": "Hotfix/Monkey-Patch umgeht Zielowner",
+      "kategorie": "ARCHITEKTUR",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Static Guard + Review",
+      "betroffenePhasen": [
+        "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-015",
+      "titel": "Definition und Live Truth werden verwechselt",
+      "kategorie": "ZUSTAND",
+      "schweregrad": 5,
+      "eintritt": 4,
+      "entdeckbarkeit": 4,
+      "risikowert": 80,
+      "status": "OFFEN",
+      "strategie": "Getrennte Typen/Schichten",
+      "betroffenePhasen": [
+        "R6"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-016",
+      "titel": "FIFO Action Channel wird parallel fehlkorreliert",
+      "kategorie": "TRANSAKTION",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Action-Channel Lock/Serialization",
+      "betroffenePhasen": [
+        "R8",
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-017",
+      "titel": "Alter Lease-Owner schreibt nach Neuvergabe",
+      "kategorie": "RESSOURCE",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Fencing-Epoche",
+      "betroffenePhasen": [
+        "R8",
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-018",
+      "titel": "Unbekannter Zustandswert faellt in ausfuehrenden Default",
+      "kategorie": "ZUSTAND",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Exhaustive State Machines",
+      "betroffenePhasen": [
+        "R4"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-019",
+      "titel": "Anforderung verschwindet zwischen Wissen und Code",
+      "kategorie": "TRACEABILITY",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Nachverfolgbarkeitsmatrix",
+      "betroffenePhasen": [
+        "R2"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-020",
+      "titel": "Runtime-Code beginnt trotz unvollstaendiger Vorbereitung",
+      "kategorie": "PROZESS",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Readiness Gate",
+      "betroffenePhasen": [
+        "R2",
+        "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-021",
+      "titel": "V3/V4-Altpfad wird unkritisch portiert",
+      "kategorie": "ARCHITEKTUR",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Migrationsmatrix",
+      "betroffenePhasen": [
+        "R2"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-022",
+      "titel": "Neue mutierende Capability wird versehentlich aktiv",
+      "kategorie": "AUTHORITY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Default-Off",
+      "betroffenePhasen": [
+        "R7"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-023",
+      "titel": "Boolean/lose Freigabe erlaubt falsche Mutation",
+      "kategorie": "AUTHORITY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 5,
+      "risikowert": 75,
+      "status": "OFFEN",
+      "strategie": "Typisierte Freigabe + Bindungen",
+      "betroffenePhasen": [
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-024",
+      "titel": "Ein einzelner Planerbug fuehrt zu irreversiblem Side Effect",
+      "kategorie": "SAFETY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 5,
+      "risikowert": 75,
+      "status": "OFFEN",
+      "strategie": "Mehrfach-Verriegelung",
+      "betroffenePhasen": [
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-025",
+      "titel": "Precondition driftet zwischen Plan und Write",
+      "kategorie": "ZUSTAND",
+      "schweregrad": 5,
+      "eintritt": 4,
+      "entdeckbarkeit": 4,
+      "risikowert": 80,
+      "status": "OFFEN",
+      "strategie": "Unmittelbare Revalidierung",
+      "betroffenePhasen": [
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-026",
+      "titel": "Unbekannter Content wird aus Liveness-Gruenden freigegeben",
+      "kategorie": "SAFETY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Fail-closed/Quarantaene",
+      "betroffenePhasen": [
+        "R6"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-027",
+      "titel": "Learning lockert Safety",
+      "kategorie": "LEARNING",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Authority-freies Learning",
+      "betroffenePhasen": [
+        "R18"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-028",
+      "titel": "Operator/Dashboard umgeht Safety",
+      "kategorie": "BEDIENER",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Deny-only + typed commands",
+      "betroffenePhasen": [
+        "R7"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-029",
+      "titel": "Host/Bridge bekommt Gameplay-Autoritaet",
+      "kategorie": "AUTHORITY",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Narrow bridge / keine Raw Writes",
+      "betroffenePhasen": [
+        "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-030",
+      "titel": "Fehlender Health-Port wird als gesund interpretiert",
+      "kategorie": "RECOVERY",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 4,
+      "risikowert": 40,
+      "status": "OFFEN",
+      "strategie": "Fail-closed Health",
+      "betroffenePhasen": [
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-031",
+      "titel": "Stiller Default fuer Preis/Menge/Ziel verursacht Schaden",
+      "kategorie": "EINGABE",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Pflichtfelder/Validation",
+      "betroffenePhasen": [
+        "R2"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-032",
+      "titel": "Stop zerreisst In-Flight-Transaktion",
+      "kategorie": "RECOVERY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Stop-Protokoll + Reconcile",
+      "betroffenePhasen": [
+        "R10"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-033",
+      "titel": "Normale Arbeit preemptet Safety",
+      "kategorie": "SCHEDULER",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 4,
+      "risikowert": 40,
+      "status": "OFFEN",
+      "strategie": "Prioritaetsklassen",
+      "betroffenePhasen": [
+        "R8"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-034",
+      "titel": "Secret wird geloggt oder committed",
+      "kategorie": "SECURITY",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 4,
+      "risikowert": 40,
+      "status": "OFFEN",
+      "strategie": "DPAPI/Redaction/Secret Scan",
+      "betroffenePhasen": [
+        "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-035",
+      "titel": "Subsystemfehler reisst gesamte Runtime mit",
+      "kategorie": "FEHLERDOMAENE",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Isolation/Circuits",
+      "betroffenePhasen": [
+        "R10"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-036",
+      "titel": "Knowledge-/Config-Update veraendert laufende Transaktion",
+      "kategorie": "TRANSAKTION",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Workflow-Snapshot + Replan danach",
+      "betroffenePhasen": [
+        "R10"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-037",
+      "titel": "Persistenzschema ist inkompatibel",
+      "kategorie": "PERSISTENZ",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Version/Migration/Fail-closed",
+      "betroffenePhasen": [
+        "R5"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-038",
+      "titel": "Persistenz ist korrupt oder teilweise geschrieben",
+      "kategorie": "PERSISTENZ",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Atomic write/Checksum/Fail-closed",
+      "betroffenePhasen": [
+        "R5"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-039",
+      "titel": "Intent wird erst nach Side Effect persistiert",
+      "kategorie": "TRANSAKTION",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Persist-before-action",
+      "betroffenePhasen": [
+        "R5",
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-040",
+      "titel": "Restart setzt RUNNING blind fort",
+      "kategorie": "RECOVERY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "RECONCILE_REQUIRED",
+      "betroffenePhasen": [
+        "R10"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-041",
+      "titel": "Evidence wird nach Restart doppelt verarbeitet",
+      "kategorie": "RECOVERY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Persistent dedupe cursor",
+      "betroffenePhasen": [
+        "R5"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-042",
+      "titel": "Migration bricht alten Datenbestand",
+      "kategorie": "PERSISTENZ",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 4,
+      "risikowert": 40,
+      "status": "OFFEN",
+      "strategie": "Forward/backward fixtures",
+      "betroffenePhasen": [
+        "R5"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-043",
+      "titel": "Alert geht zwischen Dequeue und Persistenz verloren",
+      "kategorie": "OBSERVABILITY",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Persist-before-claim",
+      "betroffenePhasen": [
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-044",
+      "titel": "Queue/History waechst unbegrenzt",
+      "kategorie": "RESSOURCE",
+      "schweregrad": 4,
+      "eintritt": 4,
+      "entdeckbarkeit": 2,
+      "risikowert": 32,
+      "status": "OFFEN",
+      "strategie": "Bounded collections",
+      "betroffenePhasen": [
+        "R4",
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-045",
+      "titel": "Systemzeit springt und veraendert Entscheidungen",
+      "kategorie": "DETERMINISMUS",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "ClockPort",
+      "betroffenePhasen": [
+        "R4"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-046",
+      "titel": "Zufall verhindert Reproduzierbarkeit",
+      "kategorie": "DETERMINISMUS",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Seeded RandomnessPort",
+      "betroffenePhasen": [
+        "R4"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-047",
+      "titel": "Kennungen kollidieren oder Replay weicht ab",
+      "kategorie": "DETERMINISMUS",
+      "schweregrad": 4,
+      "eintritt": 2,
+      "entdeckbarkeit": 3,
+      "risikowert": 24,
+      "status": "OFFEN",
+      "strategie": "Sequence/ID Port",
+      "betroffenePhasen": [
+        "R4"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-048",
+      "titel": "Replay kann Fehler nicht reproduzieren",
+      "kategorie": "TEST",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Deterministic event stream",
+      "betroffenePhasen": [
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-049",
+      "titel": "Promise wird mit fachlichem Commit verwechselt",
+      "kategorie": "TRANSAKTION",
+      "schweregrad": 5,
+      "eintritt": 4,
+      "entdeckbarkeit": 4,
+      "risikowert": 80,
+      "status": "OFFEN",
+      "strategie": "Postcondition/Settlement",
+      "betroffenePhasen": [
+        "R10"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-050",
+      "titel": "UNKNOWN wird blind retried",
+      "kategorie": "TRANSAKTION",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 5,
+      "risikowert": 75,
+      "status": "OFFEN",
+      "strategie": "UNKNOWN state + reconcile",
+      "betroffenePhasen": [
+        "R10"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-051",
+      "titel": "Batch/Mehrschrittaktion ist partiell abgeschlossen",
+      "kategorie": "TRANSAKTION",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Diff reconciliation",
+      "betroffenePhasen": [
+        "R10"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-052",
+      "titel": "Retry-Sturm belastet Server/Runtime",
+      "kategorie": "RECOVERY",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Budget/Backoff/Circuit",
+      "betroffenePhasen": [
+        "R8"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-053",
+      "titel": "Unsafe Preemption zerreisst Transaktion",
+      "kategorie": "SCHEDULER",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Safe points",
+      "betroffenePhasen": [
+        "R8"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-054",
+      "titel": "Tests pruefen nur Happy Path",
+      "kategorie": "TEST",
+      "schweregrad": 4,
+      "eintritt": 4,
+      "entdeckbarkeit": 3,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Negativ/Property/Fault",
+      "betroffenePhasen": [
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-055",
+      "titel": "Lock-/Scheduler-Invariante hat unbekannten Edge Case",
+      "kategorie": "TEST",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Property/Model Testing",
+      "betroffenePhasen": [
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-056",
+      "titel": "Crash-Fall wurde nie getestet",
+      "kategorie": "TEST",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Fault Injection",
+      "betroffenePhasen": [
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-057",
+      "titel": "Testabdeckung ueberlebt Guard-Inversion",
+      "kategorie": "TEST",
+      "schweregrad": 4,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 40,
+      "status": "OFFEN",
+      "strategie": "Mutation Testing",
+      "betroffenePhasen": [
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-058",
+      "titel": "Replay ist nicht deterministisch",
+      "kategorie": "TEST",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Golden Replay",
+      "betroffenePhasen": [
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-059",
+      "titel": "Architektur driftet schleichend",
+      "kategorie": "ARCHITEKTUR",
+      "schweregrad": 4,
+      "eintritt": 4,
+      "entdeckbarkeit": 3,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Fitness Functions in CI",
+      "betroffenePhasen": [
+        "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-060",
+      "titel": "Shadow erzeugt unerwarteten Write",
+      "kategorie": "AUTHORITY",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Write counter/deny",
+      "betroffenePhasen": [
+        "R12"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-061",
+      "titel": "Erster Live-Test waehlt riskante Action",
+      "kategorie": "PROZESS",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 4,
+      "risikowert": 40,
+      "status": "OFFEN",
+      "strategie": "Low-risk vertical slice policy",
+      "betroffenePhasen": [
+        "R12"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-062",
+      "titel": "Build ist nicht eindeutig reproduzierbar",
+      "kategorie": "SUPPLY_CHAIN",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Provenance manifest",
+      "betroffenePhasen": [
+        "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-063",
+      "titel": "Dashboard-Ausfall blockiert Bot",
+      "kategorie": "FEHLERDOMAENE",
+      "schweregrad": 4,
+      "eintritt": 2,
+      "entdeckbarkeit": 3,
+      "risikowert": 24,
+      "status": "OFFEN",
+      "strategie": "Async observer only",
+      "betroffenePhasen": [
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-064",
+      "titel": "Kritischer Alert verschwindet",
+      "kategorie": "OBSERVABILITY",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Persistent spool",
+      "betroffenePhasen": [
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-065",
+      "titel": "Autoritaet ist fuer Operator nicht sichtbar",
+      "kategorie": "OBSERVABILITY",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Status/decision trace",
+      "betroffenePhasen": [
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-066",
+      "titel": "Soak verschweigt Sample-Gaps",
+      "kategorie": "ZERTIFIZIERUNG",
+      "schweregrad": 4,
+      "eintritt": 2,
+      "entdeckbarkeit": 4,
+      "risikowert": 32,
+      "status": "OFFEN",
+      "strategie": "Immutable evidence chain",
+      "betroffenePhasen": [
+        "R19"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-067",
+      "titel": "24/7 wird ohne gestufte Zertifizierung freigegeben",
+      "kategorie": "ZERTIFIZIERUNG",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 4,
+      "risikowert": 40,
+      "status": "OFFEN",
+      "strategie": "Certification ladder",
+      "betroffenePhasen": [
+        "R19"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-068",
+      "titel": "Falsches Item wird verkauft/verschoben",
+      "kategorie": "MERCHANT",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Disposition + physical identity + revalidation",
+      "betroffenePhasen": [
+        "R13"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-069",
+      "titel": "Itemidentitaet nur Name/Level kollidiert",
+      "kategorie": "MERCHANT",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Physical fingerprint",
+      "betroffenePhasen": [
+        "R13"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-070",
+      "titel": "Kein Workspace fuer destruktive Operation",
+      "kategorie": "MERCHANT",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Capacity preflight",
+      "betroffenePhasen": [
+        "R13"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-071",
+      "titel": "Zwei eigene Characters nutzen Bank konkurrierend",
+      "kategorie": "MERCHANT",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Account bank lease/fencing",
+      "betroffenePhasen": [
+        "R13"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-072",
+      "titel": "Stale RID/Listing wird gehandelt",
+      "kategorie": "MERCHANT",
+      "schweregrad": 5,
+      "eintritt": 4,
+      "entdeckbarkeit": 4,
+      "risikowert": 80,
+      "status": "OFFEN",
+      "strategie": "RID/fresh listing admission",
+      "betroffenePhasen": [
+        "R13"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-073",
+      "titel": "Production wird vor Empfaenger-Settlement abgeschlossen",
+      "kategorie": "MERCHANT",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Recipient verifier",
+      "betroffenePhasen": [
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-074",
+      "titel": "q/Placeholder wird als normaler Bestand behandelt",
+      "kategorie": "MERCHANT",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Transaction state",
+      "betroffenePhasen": [
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-075",
+      "titel": "Merchant-Aufgaben hungern aus",
+      "kategorie": "SCHEDULER",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Aging/fairness",
+      "betroffenePhasen": [
+        "R13"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-076",
+      "titel": "CM-Nachricht wird doppelt verarbeitet",
+      "kategorie": "MULTI",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "message id/dedupe",
+      "betroffenePhasen": [
+        "R14"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-077",
+      "titel": "Roster/Character Identity ist stale",
+      "kategorie": "MULTI",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Roster epoch/liveness",
+      "betroffenePhasen": [
+        "R14"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-078",
+      "titel": "Staler Character behaelt Authority",
+      "kategorie": "MULTI",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Lease/fencing/liveness",
+      "betroffenePhasen": [
+        "R14"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-079",
+      "titel": "CM-Nachrichten kommen verloren/verspaetet/umsortiert",
+      "kategorie": "MULTI",
+      "schweregrad": 4,
+      "eintritt": 4,
+      "entdeckbarkeit": 3,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Protocol + Fault Tests",
+      "betroffenePhasen": [
+        "R14"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-080",
+      "titel": "Account- und Character-Ownership vermischen sich",
+      "kategorie": "ARCHITEKTUR",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Coordinator/Agent split",
+      "betroffenePhasen": [
+        "R14"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-081",
+      "titel": "Movement Promise wird als Arrival interpretiert",
+      "kategorie": "WORLD",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Arrival predicate",
+      "betroffenePhasen": [
+        "R16"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-082",
+      "titel": "Moving Target ist stale",
+      "kategorie": "WORLD",
+      "schweregrad": 5,
+      "eintritt": 4,
+      "entdeckbarkeit": 4,
+      "risikowert": 80,
+      "status": "OFFEN",
+      "strategie": "Motion freshness",
+      "betroffenePhasen": [
+        "R16"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-083",
+      "titel": "Raw Target umgeht fachliche Ownership",
+      "kategorie": "WORLD",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Target lease/owner",
+      "betroffenePhasen": [
+        "R16"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-084",
+      "titel": "Event/Quest driftet nach Planung",
+      "kategorie": "WORLD",
+      "schweregrad": 4,
+      "eintritt": 4,
+      "entdeckbarkeit": 3,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Freshness/replan",
+      "betroffenePhasen": [
+        "R17"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-085",
+      "titel": "Learning veraendert harte Regeln",
+      "kategorie": "LEARNING",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Read-only bounded influence",
+      "betroffenePhasen": [
+        "R18"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-086",
+      "titel": "Kein sicherer Betrieb ohne Learning",
+      "kategorie": "LEARNING",
+      "schweregrad": 4,
+      "eintritt": 2,
+      "entdeckbarkeit": 4,
+      "risikowert": 32,
+      "status": "OFFEN",
+      "strategie": "Deterministic fallback",
+      "betroffenePhasen": [
+        "R18"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-087",
+      "titel": "Learning umgeht Operator/Quarantaene",
+      "kategorie": "LEARNING",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Policy precedence",
+      "betroffenePhasen": [
+        "R18"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-088",
+      "titel": "Neues Modell wird direkt voll ausgerollt",
+      "kategorie": "LEARNING",
+      "schweregrad": 4,
+      "eintritt": 2,
+      "entdeckbarkeit": 4,
+      "risikowert": 32,
+      "status": "OFFEN",
+      "strategie": "Canary/champion-challenger",
+      "betroffenePhasen": [
+        "R18"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-089",
+      "titel": "Sichtbare Oberflaeche enthaelt englische oder gemischte Bedienbegriffe",
+      "kategorie": "BEDIENUNG",
+      "schweregrad": 3,
+      "eintritt": 4,
+      "entdeckbarkeit": 2,
+      "risikowert": 24,
+      "status": "OFFEN",
+      "strategie": "Zentraler deutscher Textkatalog + UI-String-Guard",
+      "betroffenePhasen": [
+        "R2",
+        "R3",
+        "R19"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-090",
+      "titel": "Skill wird mit englischem Rohname oder englischer Beschreibung angezeigt",
+      "kategorie": "BEDIENUNG",
+      "schweregrad": 3,
+      "eintritt": 4,
+      "entdeckbarkeit": 2,
+      "risikowert": 24,
+      "status": "OFFEN",
+      "strategie": "Skill-Anzeigekatalog mit 100-Prozent-Abdeckung",
+      "betroffenePhasen": [
+        "R6",
+        "R19"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-091",
+      "titel": "Uebersetzungspflichtiger Spielinhalt besitzt keinen deutschen Anzeigenamen",
+      "kategorie": "BEDIENUNG",
+      "schweregrad": 3,
+      "eintritt": 4,
+      "entdeckbarkeit": 2,
+      "risikowert": 24,
+      "status": "OFFEN",
+      "strategie": "Zentraler Content-Anzeigekatalog",
+      "betroffenePhasen": [
+        "R6"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-092",
+      "titel": "Fehlende Uebersetzung faellt sichtbar auf einen nicht erlaubten englischen Rohwert zurueck",
+      "kategorie": "BEDIENUNG",
+      "schweregrad": 3,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 27,
+      "status": "OFFEN",
+      "strategie": "Deutscher Missing-Translation-Fallback + Negativtest",
+      "betroffenePhasen": [
+        "R6"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-093",
+      "titel": "Neuer Adventure-Land-Content erscheint vor deutscher Uebersetzung in der UI",
+      "kategorie": "WISSEN",
+      "schweregrad": 3,
+      "eintritt": 4,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Wissenswaechter erzeugt Uebersetzungsaufgabe; UI zeigt deutschen Platzhalter",
+      "betroffenePhasen": [
+        "R0",
+        "R6"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-094",
+      "titel": "Technische Rohkennung leakt in normale Bedienoberflaeche",
+      "kategorie": "BEDIENUNG",
+      "schweregrad": 2,
+      "eintritt": 4,
+      "entdeckbarkeit": 2,
+      "risikowert": 16,
+      "status": "OFFEN",
+      "strategie": "Renderer akzeptiert nur Anzeigeobjekte statt Raw IDs",
+      "betroffenePhasen": [
+        "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-095",
+      "titel": "Release wird trotz unvollstaendiger deutscher Abdeckung uebersetzungspflichtiger Sichttexte freigegeben",
+      "kategorie": "ZERTIFIZIERUNG",
+      "schweregrad": 3,
+      "eintritt": 2,
+      "entdeckbarkeit": 3,
+      "risikowert": 18,
+      "status": "OFFEN",
+      "strategie": "Release-Gate deutsche_sichttext_abdeckung=100%",
+      "betroffenePhasen": [
+        "R19"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-096",
+      "titel": "Monster-Anzeige ignoriert eine vorhandene offizielle deutsche Spielbezeichnung oder erfindet eine nicht-offizielle Uebersetzung",
+      "kategorie": "BEDIENUNG",
+      "schweregrad": 2,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 18,
+      "status": "OFFEN",
+      "strategie": "Monster-Anzeigekatalog mit Quellenstatus DEUTSCH_OFFIZIELL oder ORIGINALNAME_ERLAUBT",
+      "betroffenePhasen": [
+        "R0",
+        "R6",
+        "R19"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-097",
+      "titel": "Automatischer Wissenswaechter pusht fehlerhaften Wissenscommit direkt auf main ohne unabhaengiges serverseitiges Pruefgate",
+      "kategorie": "SUPPLY_CHAIN",
+      "schweregrad": 4,
+      "eintritt": 2,
+      "entdeckbarkeit": 4,
+      "risikowert": 32,
+      "status": "OFFEN",
+      "strategie": "Knowledge-Branch + PR/CI oder gleichwertig geschuetztes serverseitiges Gate",
+      "betroffenePhasen": [
+        "R0",
+        "R3"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-098",
+      "titel": "GitHub-Anmeldung des Wissenswaechters besitzt mehr Repository-Rechte als fuer Knowledge-Sync erforderlich",
+      "kategorie": "SECURITY",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 4,
+      "risikowert": 40,
+      "status": "OFFEN",
+      "strategie": "Repository-begrenzte Least-Privilege-Autorisierung und Berechtigungsnachweis",
+      "betroffenePhasen": [
+        "R0",
+        "R3"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+name: v5-vorbereitung
+
+on:
+  pull_request:
+    paths:
+      - 'v5/anforderungen/**'
+      - 'v5/gefahren/**'
+      - 'v5/invarianten/**'
+      - 'v5/zustaende/**'
+      - 'v5/fitness/**'
+      - 'v5/bereitschaft/**'
+      - 'v5/anzeigetexte/**'
+      - 'v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md'
+      - 'v5/dokumentation/WISSENSWAECHTER-VERTRAG.md'
+      - 'v5/dokumentation/DEUTSCHE_NAMEN_UND_NARRENSICHERHEIT.md'
+      - 'v5/werkzeuge/vorbereitung-pruefen.mjs'
+      - '.github/workflows/v5-vorbereitung.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'v5/anforderungen/**'
+      - 'v5/gefahren/**'
+      - 'v5/invarianten/**'
+      - 'v5/zustaende/**'
+      - 'v5/fitness/**'
+      - 'v5/bereitschaft/**'
+      - 'v5/anzeigetexte/**'
+      - 'v5/werkzeuge/vorbereitung-pruefen.mjs'
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: V5 Vor-Runtime-Artefakte pruefen
+        run: node v5/werkzeuge/vorbereitung-pruefen.mjs

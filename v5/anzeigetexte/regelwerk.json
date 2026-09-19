@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-19",
+  "sprache": "de-DE",
+  "grundregel": "Alle uebersetzungspflichtigen sichtbaren V5-Texte sind deutsch.",
+  "kategorien": {
+    "skill": {
+      "deutschPflicht": true,
+      "englischerRohFallbackErlaubt": false
+    },
+    "skillBeschreibung": {
+      "deutschPflicht": true,
+      "englischerRohFallbackErlaubt": false
+    },
+    "klasse": {
+      "deutschPflicht": true,
+      "englischerRohFallbackErlaubt": false
+    },
+    "gegenstand": {
+      "deutschPflicht": true,
+      "englischerRohFallbackErlaubt": false
+    },
+    "npc": {
+      "deutschPflicht": true,
+      "englischerRohFallbackErlaubt": false
+    },
+    "event": {
+      "deutschPflicht": true,
+      "englischerRohFallbackErlaubt": false
+    },
+    "quest": {
+      "deutschPflicht": true,
+      "englischerRohFallbackErlaubt": false
+    },
+    "aktion": {
+      "deutschPflicht": true,
+      "englischerRohFallbackErlaubt": false
+    },
+    "status": {
+      "deutschPflicht": true,
+      "englischerRohFallbackErlaubt": false
+    },
+    "uiText": {
+      "deutschPflicht": true,
+      "englischerRohFallbackErlaubt": false
+    },
+    "monster": {
+      "deutschPflicht": "WENN_OFFIZIELLE_DEUTSCHE_SPIELBEZEICHNUNG_EXISTIERT",
+      "englischerRohFallbackErlaubt": true,
+      "erlaubnisBedingung": "Nur wenn Adventure Land selbst noch keine offizielle deutsche Monsterbezeichnung bereitstellt.",
+      "eigeneErfundeneUebersetzungAlsOffiziell": false
+    }
+  },
+  "erlaubteEigennamen": [
+    "Adventure Land"
+  ],
+  "freigabeMetriken": {
+    "deutscheAbdeckungUebersetzungspflichtigProzent": 100,
+    "unerlaubteEnglischeRohtextLeaks": 0,
+    "fehlendeErforderlicheUebersetzungen": 0
+  }
+}

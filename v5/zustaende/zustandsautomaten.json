@@ -1,0 +1,1044 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-19",
+  "status": "VOR_IMPLEMENTIERUNG_ZU_RATIFIZIEREN",
+  "regel": "Jeder sicherheitskritische Zustand muss in genau einem kanonischen Automaten modelliert oder explizit an einen Automaten delegiert sein. Unbekannte Uebergaenge fail-closed.",
+  "anzahl": 13,
+  "automaten": [
+    {
+      "schemaVersion": 1,
+      "kennung": "V5-ZUSTAND-ARBEITSAUFTRAG",
+      "name": "Arbeitsauftrag",
+      "start": "ANGELEGT",
+      "terminal": [
+        "ABGESCHLOSSEN",
+        "ABGEBROCHEN",
+        "SICHER_FEHLGESCHLAGEN",
+        "BEDIENER_ERFORDERLICH"
+      ],
+      "zustaende": [
+        "ANGELEGT",
+        "GEPLANT",
+        "WARTET_AUF_VORAUSSETZUNG",
+        "BEREIT",
+        "LAEUFT",
+        "WARTET_AUF_BEOBACHTUNG",
+        "SICHER_UNTERBRECHBAR",
+        "PAUSIERT",
+        "ABGLEICH_ERFORDERLICH",
+        "ABGESCHLOSSEN",
+        "ABGEBROCHEN",
+        "SICHER_FEHLGESCHLAGEN",
+        "BEDIENER_ERFORDERLICH"
+      ],
+      "uebergaenge": [
+        {
+          "von": "ANGELEGT",
+          "nach": "GEPLANT"
+        },
+        {
+          "von": "GEPLANT",
+          "nach": "WARTET_AUF_VORAUSSETZUNG"
+        },
+        {
+          "von": "GEPLANT",
+          "nach": "BEREIT"
+        },
+        {
+          "von": "WARTET_AUF_VORAUSSETZUNG",
+          "nach": "BEREIT"
+        },
+        {
+          "von": "WARTET_AUF_VORAUSSETZUNG",
+          "nach": "ABGEBROCHEN"
+        },
+        {
+          "von": "BEREIT",
+          "nach": "LAEUFT"
+        },
+        {
+          "von": "LAEUFT",
+          "nach": "WARTET_AUF_BEOBACHTUNG"
+        },
+        {
+          "von": "LAEUFT",
+          "nach": "SICHER_UNTERBRECHBAR"
+        },
+        {
+          "von": "SICHER_UNTERBRECHBAR",
+          "nach": "PAUSIERT"
+        },
+        {
+          "von": "PAUSIERT",
+          "nach": "BEREIT"
+        },
+        {
+          "von": "LAEUFT",
+          "nach": "ABGLEICH_ERFORDERLICH"
+        },
+        {
+          "von": "WARTET_AUF_BEOBACHTUNG",
+          "nach": "ABGLEICH_ERFORDERLICH"
+        },
+        {
+          "von": "WARTET_AUF_BEOBACHTUNG",
+          "nach": "ABGESCHLOSSEN"
+        },
+        {
+          "von": "ABGLEICH_ERFORDERLICH",
+          "nach": "ABGESCHLOSSEN"
+        },
+        {
+          "von": "ABGLEICH_ERFORDERLICH",
+          "nach": "ABGEBROCHEN"
+        },
+        {
+          "von": "ABGLEICH_ERFORDERLICH",
+          "nach": "SICHER_FEHLGESCHLAGEN"
+        },
+        {
+          "von": "ABGLEICH_ERFORDERLICH",
+          "nach": "BEDIENER_ERFORDERLICH"
+        }
+      ],
+      "verbote": [
+        "PAUSIERT->LAEUFT ohne neue Freigabe",
+        "Restart darf LAEUFT nicht direkt wiederherstellen"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kennung": "V5-ZUSTAND-TRANSAKTION",
+      "name": "Transaktion",
+      "start": "VORBEREITUNG",
+      "terminal": [
+        "ABGESCHLOSSEN",
+        "ABGEBROCHEN",
+        "SICHER_FEHLGESCHLAGEN",
+        "BEDIENER_ERFORDERLICH"
+      ],
+      "zustaende": [
+        "VORBEREITUNG",
+        "INTENT_GESPEICHERT",
+        "RESSOURCEN_GESPERRT",
+        "VORAUSSETZUNGEN_BESTAETIGT",
+        "GESENDET",
+        "SERVER_ERGEBNIS_ERHALTEN",
+        "ERGEBNIS_UNBEKANNT",
+        "POSTCONDITION_BEOBACHTET",
+        "ABGLEICH_ERFORDERLICH",
+        "ABGESCHLOSSEN",
+        "ABGEBROCHEN",
+        "SICHER_FEHLGESCHLAGEN",
+        "BEDIENER_ERFORDERLICH"
+      ],
+      "uebergaenge": [
+        {
+          "von": "VORBEREITUNG",
+          "nach": "INTENT_GESPEICHERT"
+        },
+        {
+          "von": "INTENT_GESPEICHERT",
+          "nach": "RESSOURCEN_GESPERRT"
+        },
+        {
+          "von": "RESSOURCEN_GESPERRT",
+          "nach": "VORAUSSETZUNGEN_BESTAETIGT"
+        },
+        {
+          "von": "VORAUSSETZUNGEN_BESTAETIGT",
+          "nach": "GESENDET"
+        },
+        {
+          "von": "GESENDET",
+          "nach": "SERVER_ERGEBNIS_ERHALTEN"
+        },
+        {
+          "von": "GESENDET",
+          "nach": "ERGEBNIS_UNBEKANNT"
+        },
+        {
+          "von": "SERVER_ERGEBNIS_ERHALTEN",
+          "nach": "POSTCONDITION_BEOBACHTET"
+        },
+        {
+          "von": "SERVER_ERGEBNIS_ERHALTEN",
+          "nach": "ABGLEICH_ERFORDERLICH"
+        },
+        {
+          "von": "ERGEBNIS_UNBEKANNT",
+          "nach": "ABGLEICH_ERFORDERLICH"
+        },
+        {
+          "von": "POSTCONDITION_BEOBACHTET",
+          "nach": "ABGESCHLOSSEN"
+        },
+        {
+          "von": "POSTCONDITION_BEOBACHTET",
+          "nach": "ABGLEICH_ERFORDERLICH"
+        },
+        {
+          "von": "ABGLEICH_ERFORDERLICH",
+          "nach": "ABGESCHLOSSEN"
+        },
+        {
+          "von": "ABGLEICH_ERFORDERLICH",
+          "nach": "ABGEBROCHEN"
+        },
+        {
+          "von": "ABGLEICH_ERFORDERLICH",
+          "nach": "SICHER_FEHLGESCHLAGEN"
+        },
+        {
+          "von": "ABGLEICH_ERFORDERLICH",
+          "nach": "BEDIENER_ERFORDERLICH"
+        }
+      ],
+      "verbote": [
+        "ERGEBNIS_UNBEKANNT->GESENDET",
+        "Restart->GESENDET",
+        "SERVER_ERGEBNIS_ERHALTEN->ABGESCHLOSSEN ohne erforderliche Postcondition"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kennung": "V5-ZUSTAND-ABGLEICH",
+      "name": "Abgleich",
+      "start": "ANGEFORDERT",
+      "terminal": [
+        "BESTAETIGT",
+        "NICHT_AUSGEFUEHRT",
+        "SICHER_FEHLGESCHLAGEN",
+        "BEDIENER_ERFORDERLICH"
+      ],
+      "zustaende": [
+        "ANGEFORDERT",
+        "BEOBACHTUNG_WIRD_ERNEUERT",
+        "EVIDENZ_GESAMMELT",
+        "AUSWERTUNG",
+        "RESTPLAN_ERFORDERLICH",
+        "BESTAETIGT",
+        "NICHT_AUSGEFUEHRT",
+        "SICHER_FEHLGESCHLAGEN",
+        "BEDIENER_ERFORDERLICH"
+      ],
+      "uebergaenge": [
+        {
+          "von": "ANGEFORDERT",
+          "nach": "BEOBACHTUNG_WIRD_ERNEUERT"
+        },
+        {
+          "von": "BEOBACHTUNG_WIRD_ERNEUERT",
+          "nach": "EVIDENZ_GESAMMELT"
+        },
+        {
+          "von": "EVIDENZ_GESAMMELT",
+          "nach": "AUSWERTUNG"
+        },
+        {
+          "von": "AUSWERTUNG",
+          "nach": "BESTAETIGT"
+        },
+        {
+          "von": "AUSWERTUNG",
+          "nach": "NICHT_AUSGEFUEHRT"
+        },
+        {
+          "von": "AUSWERTUNG",
+          "nach": "RESTPLAN_ERFORDERLICH"
+        },
+        {
+          "von": "AUSWERTUNG",
+          "nach": "SICHER_FEHLGESCHLAGEN"
+        },
+        {
+          "von": "AUSWERTUNG",
+          "nach": "BEDIENER_ERFORDERLICH"
+        },
+        {
+          "von": "RESTPLAN_ERFORDERLICH",
+          "nach": "BESTAETIGT"
+        },
+        {
+          "von": "RESTPLAN_ERFORDERLICH",
+          "nach": "SICHER_FEHLGESCHLAGEN"
+        }
+      ],
+      "verbote": [
+        "AUSWERTUNG darf nicht blind dieselbe irreversible Mutation erneut senden"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kennung": "V5-ZUSTAND-RESSOURCEN_LEASE",
+      "name": "Ressourcen-Lease",
+      "start": "FREI",
+      "terminal": [],
+      "zustaende": [
+        "FREI",
+        "ANGEFORDERT",
+        "VERGEBEN",
+        "VERLAENGERUNG_FAELLIG",
+        "ABGELAUFEN",
+        "ENTZOGEN"
+      ],
+      "uebergaenge": [
+        {
+          "von": "FREI",
+          "nach": "ANGEFORDERT"
+        },
+        {
+          "von": "ANGEFORDERT",
+          "nach": "VERGEBEN"
+        },
+        {
+          "von": "ANGEFORDERT",
+          "nach": "FREI"
+        },
+        {
+          "von": "VERGEBEN",
+          "nach": "VERLAENGERUNG_FAELLIG"
+        },
+        {
+          "von": "VERLAENGERUNG_FAELLIG",
+          "nach": "VERGEBEN"
+        },
+        {
+          "von": "VERLAENGERUNG_FAELLIG",
+          "nach": "ABGELAUFEN"
+        },
+        {
+          "von": "VERGEBEN",
+          "nach": "ENTZOGEN"
+        },
+        {
+          "von": "ABGELAUFEN",
+          "nach": "FREI"
+        },
+        {
+          "von": "ENTZOGEN",
+          "nach": "FREI"
+        }
+      ],
+      "verbote": [
+        "Alter Epoche/Fencing-Token darf nach ABGELAUFEN oder ENTZOGEN keine Mutation autorisieren"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kennung": "V5-ZUSTAND-CAPABILITY",
+      "name": "Capability",
+      "start": "AUS",
+      "terminal": [],
+      "zustaende": [
+        "AUS",
+        "PRUEFUNG_ERFORDERLICH",
+        "BEREIT",
+        "AKTIV",
+        "QUARANTAENE",
+        "GESPERRT",
+        "DEGRADIERT"
+      ],
+      "uebergaenge": [
+        {
+          "von": "AUS",
+          "nach": "PRUEFUNG_ERFORDERLICH"
+        },
+        {
+          "von": "PRUEFUNG_ERFORDERLICH",
+          "nach": "BEREIT"
+        },
+        {
+          "von": "PRUEFUNG_ERFORDERLICH",
+          "nach": "QUARANTAENE"
+        },
+        {
+          "von": "BEREIT",
+          "nach": "AKTIV"
+        },
+        {
+          "von": "AKTIV",
+          "nach": "BEREIT"
+        },
+        {
+          "von": "AKTIV",
+          "nach": "QUARANTAENE"
+        },
+        {
+          "von": "BEREIT",
+          "nach": "QUARANTAENE"
+        },
+        {
+          "von": "QUARANTAENE",
+          "nach": "PRUEFUNG_ERFORDERLICH"
+        },
+        {
+          "von": "AKTIV",
+          "nach": "GESPERRT"
+        },
+        {
+          "von": "BEREIT",
+          "nach": "GESPERRT"
+        },
+        {
+          "von": "GESPERRT",
+          "nach": "PRUEFUNG_ERFORDERLICH"
+        },
+        {
+          "von": "AKTIV",
+          "nach": "DEGRADIERT"
+        },
+        {
+          "von": "DEGRADIERT",
+          "nach": "BEREIT"
+        },
+        {
+          "von": "DEGRADIERT",
+          "nach": "QUARANTAENE"
+        }
+      ],
+      "verbote": [
+        "QUARANTAENE->AKTIV direkt",
+        "AUS->AKTIV direkt",
+        "GESPERRT->AKTIV direkt"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kennung": "V5-ZUSTAND-CHARAKTER_LEBENDIGKEIT",
+      "name": "Charakter-Lebendigkeit",
+      "start": "UNBEKANNT",
+      "terminal": [],
+      "zustaende": [
+        "UNBEKANNT",
+        "BEOBACHTET",
+        "AKTIV",
+        "STALE",
+        "NICHT_ERREICHBAR",
+        "GETRENNT",
+        "NEUVERBINDUNG",
+        "ABGLEICH_ERFORDERLICH"
+      ],
+      "uebergaenge": [
+        {
+          "von": "UNBEKANNT",
+          "nach": "BEOBACHTET"
+        },
+        {
+          "von": "BEOBACHTET",
+          "nach": "AKTIV"
+        },
+        {
+          "von": "AKTIV",
+          "nach": "STALE"
+        },
+        {
+          "von": "STALE",
+          "nach": "AKTIV"
+        },
+        {
+          "von": "STALE",
+          "nach": "NICHT_ERREICHBAR"
+        },
+        {
+          "von": "AKTIV",
+          "nach": "GETRENNT"
+        },
+        {
+          "von": "GETRENNT",
+          "nach": "NEUVERBINDUNG"
+        },
+        {
+          "von": "NEUVERBINDUNG",
+          "nach": "ABGLEICH_ERFORDERLICH"
+        },
+        {
+          "von": "ABGLEICH_ERFORDERLICH",
+          "nach": "BEOBACHTET"
+        }
+      ],
+      "verbote": [
+        "STALE, NICHT_ERREICHBAR oder GETRENNT darf keine neue mutierende Authority erhalten"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kennung": "V5-ZUSTAND-LAUFSTEUERUNG",
+      "name": "Laufsteuerung",
+      "start": "GESTOPPT",
+      "terminal": [],
+      "zustaende": [
+        "GESTOPPT",
+        "STARTET",
+        "BEOBACHTUNG_WIRD_AUFGEBAUT",
+        "BEREIT",
+        "LAEUFT",
+        "STOPP_ANGEFORDERT",
+        "KEINE_NEUE_ARBEIT",
+        "ABGLEICH_LAEUFT",
+        "PAUSIERT",
+        "KRITISCH_GESPERRT"
+      ],
+      "uebergaenge": [
+        {
+          "von": "GESTOPPT",
+          "nach": "STARTET"
+        },
+        {
+          "von": "STARTET",
+          "nach": "BEOBACHTUNG_WIRD_AUFGEBAUT"
+        },
+        {
+          "von": "BEOBACHTUNG_WIRD_AUFGEBAUT",
+          "nach": "BEREIT"
+        },
+        {
+          "von": "BEREIT",
+          "nach": "LAEUFT"
+        },
+        {
+          "von": "LAEUFT",
+          "nach": "STOPP_ANGEFORDERT"
+        },
+        {
+          "von": "STOPP_ANGEFORDERT",
+          "nach": "KEINE_NEUE_ARBEIT"
+        },
+        {
+          "von": "KEINE_NEUE_ARBEIT",
+          "nach": "ABGLEICH_LAEUFT"
+        },
+        {
+          "von": "ABGLEICH_LAEUFT",
+          "nach": "PAUSIERT"
+        },
+        {
+          "von": "PAUSIERT",
+          "nach": "BEREIT"
+        },
+        {
+          "von": "PAUSIERT",
+          "nach": "GESTOPPT"
+        },
+        {
+          "von": "STARTET",
+          "nach": "KRITISCH_GESPERRT"
+        },
+        {
+          "von": "LAEUFT",
+          "nach": "KRITISCH_GESPERRT"
+        },
+        {
+          "von": "ABGLEICH_LAEUFT",
+          "nach": "KRITISCH_GESPERRT"
+        }
+      ],
+      "verbote": [
+        "STOPP_ANGEFORDERT darf In-Flight-Transaktion nicht durch Zustandvergessen beenden",
+        "Restart darf nicht direkt LAEUFT setzen"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kennung": "V5-ZUSTAND-MERCHANT_AUFTRAG",
+      "name": "Merchant-Auftrag",
+      "start": "EINGEGANGEN",
+      "terminal": [
+        "ERFUELLT",
+        "ABGELEHNT",
+        "SICHER_FEHLGESCHLAGEN"
+      ],
+      "zustaende": [
+        "EINGEGANGEN",
+        "VALIDIERUNG",
+        "RESSOURCENPLAN",
+        "WARTET",
+        "BEREIT",
+        "AUSFUEHRUNG",
+        "ABGLEICH",
+        "TEILERFUELLT",
+        "ERFUELLT",
+        "ABGELEHNT",
+        "SICHER_FEHLGESCHLAGEN"
+      ],
+      "uebergaenge": [
+        {
+          "von": "EINGEGANGEN",
+          "nach": "VALIDIERUNG"
+        },
+        {
+          "von": "VALIDIERUNG",
+          "nach": "RESSOURCENPLAN"
+        },
+        {
+          "von": "VALIDIERUNG",
+          "nach": "ABGELEHNT"
+        },
+        {
+          "von": "RESSOURCENPLAN",
+          "nach": "WARTET"
+        },
+        {
+          "von": "RESSOURCENPLAN",
+          "nach": "BEREIT"
+        },
+        {
+          "von": "WARTET",
+          "nach": "BEREIT"
+        },
+        {
+          "von": "BEREIT",
+          "nach": "AUSFUEHRUNG"
+        },
+        {
+          "von": "AUSFUEHRUNG",
+          "nach": "ABGLEICH"
+        },
+        {
+          "von": "ABGLEICH",
+          "nach": "TEILERFUELLT"
+        },
+        {
+          "von": "ABGLEICH",
+          "nach": "ERFUELLT"
+        },
+        {
+          "von": "ABGLEICH",
+          "nach": "SICHER_FEHLGESCHLAGEN"
+        },
+        {
+          "von": "TEILERFUELLT",
+          "nach": "RESSOURCENPLAN"
+        }
+      ],
+      "verbote": [
+        "ERFUELLT ohne fachlichen Settlement-Nachweis",
+        "Gegenstandsdisposition darf nicht lokal umdefiniert werden"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kennung": "V5-ZUSTAND-PRODUKTION",
+      "name": "Produktion",
+      "start": "BEDARF_ERFASST",
+      "terminal": [
+        "EMPFAENGER_BESTAETIGT",
+        "ABGEBROCHEN",
+        "SICHER_FEHLGESCHLAGEN"
+      ],
+      "zustaende": [
+        "BEDARF_ERFASST",
+        "MATERIALPLAN",
+        "MATERIALIEN_RESERVIERT",
+        "HERSTELLUNG_BEREIT",
+        "HERSTELLUNG_LAEUFT",
+        "HERSTELLUNG_BESTAETIGT",
+        "LIEFERUNG_BEREIT",
+        "LIEFERUNG_LAEUFT",
+        "EMPFAENGER_ABGLEICH",
+        "EMPFAENGER_BESTAETIGT",
+        "ABGLEICH_ERFORDERLICH",
+        "ABGEBROCHEN",
+        "SICHER_FEHLGESCHLAGEN"
+      ],
+      "uebergaenge": [
+        {
+          "von": "BEDARF_ERFASST",
+          "nach": "MATERIALPLAN"
+        },
+        {
+          "von": "MATERIALPLAN",
+          "nach": "MATERIALIEN_RESERVIERT"
+        },
+        {
+          "von": "MATERIALIEN_RESERVIERT",
+          "nach": "HERSTELLUNG_BEREIT"
+        },
+        {
+          "von": "HERSTELLUNG_BEREIT",
+          "nach": "HERSTELLUNG_LAEUFT"
+        },
+        {
+          "von": "HERSTELLUNG_LAEUFT",
+          "nach": "HERSTELLUNG_BESTAETIGT"
+        },
+        {
+          "von": "HERSTELLUNG_LAEUFT",
+          "nach": "ABGLEICH_ERFORDERLICH"
+        },
+        {
+          "von": "HERSTELLUNG_BESTAETIGT",
+          "nach": "LIEFERUNG_BEREIT"
+        },
+        {
+          "von": "LIEFERUNG_BEREIT",
+          "nach": "LIEFERUNG_LAEUFT"
+        },
+        {
+          "von": "LIEFERUNG_LAEUFT",
+          "nach": "EMPFAENGER_ABGLEICH"
+        },
+        {
+          "von": "LIEFERUNG_LAEUFT",
+          "nach": "ABGLEICH_ERFORDERLICH"
+        },
+        {
+          "von": "EMPFAENGER_ABGLEICH",
+          "nach": "EMPFAENGER_BESTAETIGT"
+        },
+        {
+          "von": "EMPFAENGER_ABGLEICH",
+          "nach": "ABGLEICH_ERFORDERLICH"
+        },
+        {
+          "von": "ABGLEICH_ERFORDERLICH",
+          "nach": "MATERIALPLAN"
+        },
+        {
+          "von": "ABGLEICH_ERFORDERLICH",
+          "nach": "SICHER_FEHLGESCHLAGEN"
+        }
+      ],
+      "verbote": [
+        "HERSTELLUNG_BESTAETIGT ist nicht gleich EMPFAENGER_BESTAETIGT"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kennung": "V5-ZUSTAND-MEHRPHASEN_ITEMAKTION",
+      "name": "Upgrade-Compound-Exchange",
+      "start": "VORBEREITUNG",
+      "terminal": [
+        "ERGEBNIS_BESTAETIGT",
+        "ABGEBROCHEN",
+        "SICHER_FEHLGESCHLAGEN",
+        "BEDIENER_ERFORDERLICH"
+      ],
+      "zustaende": [
+        "VORBEREITUNG",
+        "EINGABEN_RESERVIERT",
+        "VORAUSSETZUNGEN_BESTAETIGT",
+        "GESENDET",
+        "Q_PLACEHOLDER_AKTIV",
+        "ERGEBNIS_ERWARTET",
+        "ERGEBNIS_UNBEKANNT",
+        "ABGLEICH_ERFORDERLICH",
+        "ERGEBNIS_BESTAETIGT",
+        "ABGEBROCHEN",
+        "SICHER_FEHLGESCHLAGEN",
+        "BEDIENER_ERFORDERLICH"
+      ],
+      "uebergaenge": [
+        {
+          "von": "VORBEREITUNG",
+          "nach": "EINGABEN_RESERVIERT"
+        },
+        {
+          "von": "EINGABEN_RESERVIERT",
+          "nach": "VORAUSSETZUNGEN_BESTAETIGT"
+        },
+        {
+          "von": "VORAUSSETZUNGEN_BESTAETIGT",
+          "nach": "GESENDET"
+        },
+        {
+          "von": "GESENDET",
+          "nach": "Q_PLACEHOLDER_AKTIV"
+        },
+        {
+          "von": "GESENDET",
+          "nach": "ERGEBNIS_UNBEKANNT"
+        },
+        {
+          "von": "Q_PLACEHOLDER_AKTIV",
+          "nach": "ERGEBNIS_ERWARTET"
+        },
+        {
+          "von": "ERGEBNIS_ERWARTET",
+          "nach": "ERGEBNIS_BESTAETIGT"
+        },
+        {
+          "von": "ERGEBNIS_ERWARTET",
+          "nach": "ERGEBNIS_UNBEKANNT"
+        },
+        {
+          "von": "ERGEBNIS_UNBEKANNT",
+          "nach": "ABGLEICH_ERFORDERLICH"
+        },
+        {
+          "von": "ABGLEICH_ERFORDERLICH",
+          "nach": "ERGEBNIS_BESTAETIGT"
+        },
+        {
+          "von": "ABGLEICH_ERFORDERLICH",
+          "nach": "SICHER_FEHLGESCHLAGEN"
+        },
+        {
+          "von": "ABGLEICH_ERFORDERLICH",
+          "nach": "BEDIENER_ERFORDERLICH"
+        }
+      ],
+      "verbote": [
+        "q/Placeholder als normaler Bestand behandeln",
+        "ERGEBNIS_UNBEKANNT->erneut senden"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kennung": "V5-ZUSTAND-WISSENSFAKT",
+      "name": "Wissensfakt",
+      "start": "GEFUNDEN",
+      "terminal": [
+        "ARCHIVIERT"
+      ],
+      "zustaende": [
+        "GEFUNDEN",
+        "KANDIDAT",
+        "BESTAETIGT",
+        "AKTIV",
+        "NEU_PRUEFUNG_ERFORDERLICH",
+        "WIDERSPRUCH",
+        "VERAENDERT",
+        "VERALTET",
+        "ARCHIVIERT"
+      ],
+      "uebergaenge": [
+        {
+          "von": "GEFUNDEN",
+          "nach": "KANDIDAT"
+        },
+        {
+          "von": "KANDIDAT",
+          "nach": "BESTAETIGT"
+        },
+        {
+          "von": "BESTAETIGT",
+          "nach": "AKTIV"
+        },
+        {
+          "von": "AKTIV",
+          "nach": "NEU_PRUEFUNG_ERFORDERLICH"
+        },
+        {
+          "von": "NEU_PRUEFUNG_ERFORDERLICH",
+          "nach": "AKTIV"
+        },
+        {
+          "von": "NEU_PRUEFUNG_ERFORDERLICH",
+          "nach": "WIDERSPRUCH"
+        },
+        {
+          "von": "NEU_PRUEFUNG_ERFORDERLICH",
+          "nach": "VERAENDERT"
+        },
+        {
+          "von": "WIDERSPRUCH",
+          "nach": "BESTAETIGT"
+        },
+        {
+          "von": "VERAENDERT",
+          "nach": "VERALTET"
+        },
+        {
+          "von": "VERALTET",
+          "nach": "ARCHIVIERT"
+        }
+      ],
+      "verbote": [
+        "Community-Kandidat->AKTIV ohne erforderliche Bestaetigung",
+        "WIDERSPRUCH->AKTIV ohne Aufloesung"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kennung": "V5-ZUSTAND-WISSENSWAECHTER_ZYKLUS",
+      "name": "Wissenswaechter-Zyklus",
+      "start": "WARTET",
+      "terminal": [],
+      "zustaende": [
+        "WARTET",
+        "QUELLEN_PRUEFUNG",
+        "AENDERUNG_ERKANNT",
+        "INHALT_ERFASST",
+        "NORMALISIERT",
+        "VERGLEICH",
+        "WIDERSPRUCH_PRUEFUNG",
+        "VALIDIERUNG",
+        "GIT_VORBEREITUNG",
+        "GIT_SYNCHRONISIERUNG",
+        "ERFOLGREICH",
+        "FEHLER",
+        "PAUSIERT"
+      ],
+      "uebergaenge": [
+        {
+          "von": "WARTET",
+          "nach": "QUELLEN_PRUEFUNG"
+        },
+        {
+          "von": "QUELLEN_PRUEFUNG",
+          "nach": "WARTET"
+        },
+        {
+          "von": "QUELLEN_PRUEFUNG",
+          "nach": "AENDERUNG_ERKANNT"
+        },
+        {
+          "von": "AENDERUNG_ERKANNT",
+          "nach": "INHALT_ERFASST"
+        },
+        {
+          "von": "INHALT_ERFASST",
+          "nach": "NORMALISIERT"
+        },
+        {
+          "von": "NORMALISIERT",
+          "nach": "VERGLEICH"
+        },
+        {
+          "von": "VERGLEICH",
+          "nach": "WIDERSPRUCH_PRUEFUNG"
+        },
+        {
+          "von": "WIDERSPRUCH_PRUEFUNG",
+          "nach": "VALIDIERUNG"
+        },
+        {
+          "von": "VALIDIERUNG",
+          "nach": "GIT_VORBEREITUNG"
+        },
+        {
+          "von": "GIT_VORBEREITUNG",
+          "nach": "GIT_SYNCHRONISIERUNG"
+        },
+        {
+          "von": "GIT_SYNCHRONISIERUNG",
+          "nach": "ERFOLGREICH"
+        },
+        {
+          "von": "ERFOLGREICH",
+          "nach": "WARTET"
+        },
+        {
+          "von": "QUELLEN_PRUEFUNG",
+          "nach": "FEHLER"
+        },
+        {
+          "von": "INHALT_ERFASST",
+          "nach": "FEHLER"
+        },
+        {
+          "von": "VALIDIERUNG",
+          "nach": "FEHLER"
+        },
+        {
+          "von": "GIT_SYNCHRONISIERUNG",
+          "nach": "FEHLER"
+        },
+        {
+          "von": "FEHLER",
+          "nach": "WARTET"
+        },
+        {
+          "von": "WARTET",
+          "nach": "PAUSIERT"
+        },
+        {
+          "von": "PAUSIERT",
+          "nach": "WARTET"
+        }
+      ],
+      "verbote": [
+        "Rohinhalt direkt synchronisieren",
+        "Fehler darf Gameplay beeinflussen"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kennung": "V5-ZUSTAND-WISSEN_GIT_SYNC",
+      "name": "Wissens-Git-Synchronisierung",
+      "start": "AENDERUNGSSATZ_ERSTELLT",
+      "terminal": [
+        "UEBERNOMMEN",
+        "ABGELEHNT",
+        "FEHLGESCHLAGEN"
+      ],
+      "zustaende": [
+        "AENDERUNGSSATZ_ERSTELLT",
+        "PFADPRUEFUNG",
+        "SCHEMAPRUEFUNG",
+        "QUELLENPRUEFUNG",
+        "BRANCH_AKTUALISIERT",
+        "PR_OFFEN",
+        "CI_LAEUFT",
+        "UEBERNAHME_BEREIT",
+        "UEBERNOMMEN",
+        "ABGELEHNT",
+        "FEHLGESCHLAGEN"
+      ],
+      "uebergaenge": [
+        {
+          "von": "AENDERUNGSSATZ_ERSTELLT",
+          "nach": "PFADPRUEFUNG"
+        },
+        {
+          "von": "PFADPRUEFUNG",
+          "nach": "SCHEMAPRUEFUNG"
+        },
+        {
+          "von": "SCHEMAPRUEFUNG",
+          "nach": "QUELLENPRUEFUNG"
+        },
+        {
+          "von": "QUELLENPRUEFUNG",
+          "nach": "BRANCH_AKTUALISIERT"
+        },
+        {
+          "von": "BRANCH_AKTUALISIERT",
+          "nach": "PR_OFFEN"
+        },
+        {
+          "von": "PR_OFFEN",
+          "nach": "CI_LAEUFT"
+        },
+        {
+          "von": "CI_LAEUFT",
+          "nach": "UEBERNAHME_BEREIT"
+        },
+        {
+          "von": "CI_LAEUFT",
+          "nach": "ABGELEHNT"
+        },
+        {
+          "von": "UEBERNAHME_BEREIT",
+          "nach": "UEBERNOMMEN"
+        },
+        {
+          "von": "PFADPRUEFUNG",
+          "nach": "ABGELEHNT"
+        },
+        {
+          "von": "SCHEMAPRUEFUNG",
+          "nach": "ABGELEHNT"
+        },
+        {
+          "von": "QUELLENPRUEFUNG",
+          "nach": "ABGELEHNT"
+        },
+        {
+          "von": "BRANCH_AKTUALISIERT",
+          "nach": "FEHLGESCHLAGEN"
+        },
+        {
+          "von": "PR_OFFEN",
+          "nach": "FEHLGESCHLAGEN"
+        }
+      ],
+      "verbote": [
+        "Direktpush auf Runtime-/Safety-Code",
+        "Merge bei rotem CI",
+        "Merge von nicht erlaubten Pfaden"
+      ]
+    }
+  ]
+}

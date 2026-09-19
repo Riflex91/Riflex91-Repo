@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-19",
+  "status": "GESPERRT",
+  "freigaberegel": "Alle zehn Pflichtbereiche muessen erfuellt=true sein. Ausserdem muessen P0-Research und Invariantenratifizierung abgeschlossen sowie alle Validatoren gruen sein.",
+  "bereiche": [
+    {
+      "kennung": "WISSEN_BEREIT",
+      "erfuellt": false,
+      "grund": "Lebende Wissensbasis und stündlicher Bridge-Wissenswaechter existieren. Fuer V5-Zielniveau fehlen noch Knowledge-Branch/PR-Gate statt direktem main-Push, verifizierte Least-Privilege-GitHub-Rechte sowie Anzeigenkatalog-Integration.",
+      "nachweise": [
+        "v5/wissensbasis/README.md",
+        "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md"
+      ]
+    },
+    {
+      "kennung": "P0_RESEARCH_BEREIT",
+      "erfuellt": false,
+      "grund": "P0-01 ist noch IN_PROGRESS; P0-02 bis P0-07 sind offen.",
+      "nachweise": [
+        "v5/wissensbasis/revalidierung/revalidierungsqueue.json"
+      ]
+    },
+    {
+      "kennung": "ANFORDERUNGEN_BEREIT",
+      "erfuellt": false,
+      "grund": "Kanonische Basisline ist angelegt, muss in R2 fachlich ratifiziert und vollstaendig an Wissen/Tests gekoppelt werden.",
+      "nachweise": [
+        "v5/anforderungen/anforderungen.json",
+        "v5/anforderungen/nachverfolgbarkeit.json"
+      ]
+    },
+    {
+      "kennung": "INVARIANTEN_BEREIT",
+      "erfuellt": false,
+      "grund": "55 V4-Invarianten sind uebernommen, aber noch einzeln zu ratifizieren/verschaerfen/ersetzen.",
+      "nachweise": [
+        "v5/invarianten/invarianten.json"
+      ]
+    },
+    {
+      "kennung": "ZUSTANDSMASCHINEN_BEREIT",
+      "erfuellt": false,
+      "grund": "Kritische Automaten sind als Vorabmodell erfasst, aber noch in R2 zu ratifizieren und mit P0-Erkenntnissen abzugleichen.",
+      "nachweise": [
+        "v5/zustaende/zustandsautomaten.json"
+      ]
+    },
+    {
+      "kennung": "FEHLERMODELL_BEREIT",
+      "erfuellt": false,
+      "grund": "Gefahrenkatalog existiert; Gegenmassnahmen und Rest-Risiken muessen phasenweise formal geschlossen werden.",
+      "nachweise": [
+        "v5/gefahren/gefahrenkatalog.json"
+      ]
+    },
+    {
+      "kennung": "PERSISTENZMODELL_BEREIT",
+      "erfuellt": false,
+      "grund": "Pflichtmodell ist spezifiziert, konkrete Schemas/Migrationsregeln folgen nach P0/R2.",
+      "nachweise": [
+        "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md"
+      ]
+    },
+    {
+      "kennung": "TESTSTRATEGIE_BEREIT",
+      "erfuellt": false,
+      "grund": "Testleiter/Fitness-/Fault-Strategie ist definiert; konkrete Harnesses und Negativfixtures folgen in R3/R11.",
+      "nachweise": [
+        "v5/fitness/fitness-regeln.json",
+        "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md"
+      ]
+    },
+    {
+      "kennung": "SECURITY_BEREIT",
+      "erfuellt": false,
+      "grund": "Bridge besitzt bereits Sparse-Checkout/Pfadpruefung und GCM-Browserlogin. Fuer V5-Readiness muessen serverseitiges Knowledge-PR-Gate und minimal auf das Repo begrenzte GitHub-Rechte nachgewiesen sein.",
+      "nachweise": [
+        "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
+        "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md"
+      ]
+    },
+    {
+      "kennung": "BETRIEBSMODELL_BEREIT",
+      "erfuellt": false,
+      "grund": "Stop/Notfall/Fehlerdomaenen/Build-Provenance sind spezifiziert; formale R2-Ratifizierung und spaetere Harnesses fehlen.",
+      "nachweise": [
+        "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md"
+      ]
+    }
+  ],
+  "offeneBlocker": [
+    "P0-Research abschliessen",
+    "55 V4-Invarianten in R2 einzeln ratifizieren",
+    "Anforderungen gegen Knowledge/P0 finalisieren",
+    "Zustandsautomaten nach P0 final ratifizieren",
+    "GitHub-Wissenswaechter mit Pfad-/Secret-/Auth-Tests fertigstellen",
+    "R2-Verfassung/Migrationsmatrix abschliessen",
+    "Wissenswaechter von direktem main-Push auf unabhaengig geprueften Knowledge-Branch/PR-Pfad haerten",
+    "GitHub-Login des Wissenswaechters auf minimale Repository-Rechte begrenzen und nachweisen"
+  ]
+}
