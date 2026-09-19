@@ -43,8 +43,16 @@
       "entscheidung": "SIGNAL_BASELINE_ERNEUT_AKTUALISIERT",
       "contractRevalidation": "Stündlicher Diff zeigt dynamische Online-/Serverbelegungswerte; keine Contract-Autoritaet und kein Contract-Widerspruch.",
       "widerspruch": false
+    },
+    {
+      "kennung": "AL-OFFICIAL-DOCS-HUB",
+      "alterHash": "5453c60f47fbfd79742a753caa44a154147bbfcd4bf8903d0e1551f910513a2f",
+      "neuerHash": "d85c82bed936b9dd5d97e12bd4def8d227567bde7fe7f546f1c4d57718517609",
+      "entscheidung": "SIGNAL_BASELINE_ERNEUT_AKTUALISIERT",
+      "contractRevalidation": "Stündlicher Diff zeigt nur dynamische Online-/Serverbelegungswerte; keine Contract-Autoritaet und kein Contract-Widerspruch.",
+      "widerspruch": false
     }
   ],
   "runtimeAuthority": false,
-  "letzteAktualisierung": "2026-09-19T21:50:13Z"
+  "letzteAktualisierung": "2026-09-20T00:50:22+02:00"
 }

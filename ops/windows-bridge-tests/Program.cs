@@ -264,11 +264,12 @@ ExpectInvalid(defaults with { LiveWissensMaxDateienProLauf = 0 }, "LIVE_WISSEN_D
 ExpectInvalid(defaults with { LiveWissensMaxDateiBytes = 1024 }, "LIVE_WISSEN_DATEIGROESSE_UNGUELTIG");
 ExpectInvalid(defaults with { LiveWissensMaxGesamtBytesProLauf = 1024 }, "LIVE_WISSEN_GESAMTGROESSE_UNGUELTIG");
 Assert(BridgeConfig.NormalisiereLiveWissenspfad(@"D:\AdventureLand-V5\wissensdatenbank") == @"D:\AdventureLand-V5\wissensdatenbank", "LIVE_WISSEN_PATH_NORMALIZATION");
-var gesundeSsd = new SsdVolumeProbe(true, "D:", true, "SSD", 1_000, 200);
+var gesundeSsd = new SsdVolumeProbe(true, "D:", true, "SSD", "VOL-TEST", 1_000, 200);
 Assert(SsdVolumeGesundheitsPruefer.Bewerte(gesundeSsd).Gesund, "SSD_HEALTHY");
 Assert(SsdVolumeGesundheitsPruefer.Bewerte(gesundeSsd with { Vorhanden = false }).Grund == "SSD_VOLUME_FEHLT", "SSD_MISSING_BLOCKED");
 Assert(SsdVolumeGesundheitsPruefer.Bewerte(gesundeSsd with { Laufwerk = "C:" }).Grund == "FALSCHES_VOLUME", "SSD_WRONG_VOLUME_BLOCKED");
 Assert(SsdVolumeGesundheitsPruefer.Bewerte(gesundeSsd with { FestplattenTyp = "HDD" }).Grund == "MEDIENTYP_NICHT_SSD", "SSD_MEDIA_TYPE_REQUIRED");
+Assert(SsdVolumeGesundheitsPruefer.Bewerte(gesundeSsd with { VolumeId = "" }).Grund == "VOLUME_IDENTITAET_FEHLT", "SSD_VOLUME_ID_REQUIRED");
 Assert(SsdVolumeGesundheitsPruefer.Bewerte(gesundeSsd with { FreiBytes = 149 }).Grund == "KRITISCHE_SPEICHERRESERVE_UNTERSCHRITTEN", "SSD_RESERVE_REQUIRED");
 
 (defaults with

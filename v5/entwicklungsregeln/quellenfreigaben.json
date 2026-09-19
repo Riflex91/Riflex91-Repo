@@ -36,8 +36,8 @@
     },
     {
       "kennung": "AL-OFFICIAL-DOCS-HUB",
-      "letzterBewerteterSha256": "5453c60f47fbfd79742a753caa44a154147bbfcd4bf8903d0e1551f910513a2f",
-      "bewertetAm": "2026-09-19",
+      "letzterBewerteterSha256": "d85c82bed936b9dd5d97e12bd4def8d227567bde7fe7f546f1c4d57718517609",
+      "bewertetAm": "2026-09-20",
       "bewertungStatus": "R2_SIGNAL_DRIFT_GESICHTET_DYNAMISCH",
       "fuerResearch": true,
       "fuerImplementierung": false,

@@ -7,6 +7,7 @@ public sealed record SsdVolumeProbe(
     string Laufwerk,
     bool Bereit,
     string FestplattenTyp,
+    string VolumeId,
     long GesamtBytes,
     long FreiBytes);
 
@@ -37,6 +38,9 @@ public static class SsdVolumeGesundheitsPruefer
         if (!string.Equals(probe.FestplattenTyp, "SSD", StringComparison.OrdinalIgnoreCase))
             return new SsdVolumeGesundheit(false, "MEDIENTYP_NICHT_SSD", null);
 
+        if (string.IsNullOrWhiteSpace(probe.VolumeId))
+            return new SsdVolumeGesundheit(false, "VOLUME_IDENTITAET_FEHLT", null);
+
         if (probe.GesamtBytes <= 0
             || probe.FreiBytes < 0
             || probe.FreiBytes > probe.GesamtBytes)
@@ -64,30 +68,37 @@ public static class SsdVolumeGesundheitsPruefer
     {
         const string wurzel = @"D:\";
         if (!Directory.Exists(wurzel))
-            return new SsdVolumeProbe(false, ErwartetesLaufwerk, false, "UNBEKANNT", 0, 0);
+            return new SsdVolumeProbe(false, ErwartetesLaufwerk, false, "UNBEKANNT", "", 0, 0);
 
         var laufwerk = new DriveInfo(wurzel);
         if (!laufwerk.IsReady)
-            return new SsdVolumeProbe(true, ErwartetesLaufwerk, false, "UNBEKANNT", 0, 0);
+            return new SsdVolumeProbe(true, ErwartetesLaufwerk, false, "UNBEKANNT", "", 0, 0);
 
-        var medientyp = await ErmittleMedientypAsync(cancellationToken);
+        var datentraeger = await ErmittleDatentraegerAsync(cancellationToken);
         return new SsdVolumeProbe(
             true,
             ErwartetesLaufwerk,
             true,
-            medientyp,
+            datentraeger.Medientyp,
+            datentraeger.VolumeId,
             laufwerk.TotalSize,
             laufwerk.AvailableFreeSpace);
     }
 
-    private static async Task<string> ErmittleMedientypAsync(
+    private sealed record DatentraegerInfo(string Medientyp, string VolumeId);
+
+    private static async Task<DatentraegerInfo> ErmittleDatentraegerAsync(
         CancellationToken cancellationToken)
     {
         const string befehl = """
 $partition = Get-Partition -DriveLetter D -ErrorAction Stop
 $disk = $partition | Get-Disk
 $physical = Get-PhysicalDisk | Where-Object { [string]$_.DeviceId -eq [string]$disk.Number } | Select-Object -First 1
-if ($null -eq $physical) { 'UNBEKANNT' } else { [string]$physical.MediaType }
+$volume = Get-Volume -DriveLetter D -ErrorAction Stop
+$media = if ($null -eq $physical) { 'UNBEKANNT' } else { [string]$physical.MediaType }
+$volumeId = [string]$volume.UniqueId
+Write-Output $media
+Write-Output $volumeId
 """;
 
         var start = new ProcessStartInfo
@@ -113,11 +124,17 @@ if ($null -eq $physical) { 'UNBEKANNT' } else { [string]$physical.MediaType }
         var ausgabe = (await ausgabeTask).Trim();
         var fehler = (await fehlerTask).Trim();
         if (prozess.ExitCode != 0)
-            throw new InvalidOperationException("SSD_MEDIENTYP_PRUEFUNG_FEHLGESCHLAGEN:" + Begrenze(fehler));
+            throw new InvalidOperationException("SSD_DATENTRAEGER_PRUEFUNG_FEHLGESCHLAGEN:" + Begrenze(fehler));
 
-        return string.Equals(ausgabe, "SSD", StringComparison.OrdinalIgnoreCase)
+        var zeilen = ausgabe
+            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var medientypRoh = zeilen.Length >= 1 ? zeilen[0] : "UNBEKANNT";
+        var volumeId = zeilen.Length >= 2 ? zeilen[1] : "";
+        var medientyp = string.Equals(medientypRoh, "SSD", StringComparison.OrdinalIgnoreCase)
             ? "SSD"
-            : string.IsNullOrWhiteSpace(ausgabe) ? "UNBEKANNT" : ausgabe.ToUpperInvariant();
+            : string.IsNullOrWhiteSpace(medientypRoh) ? "UNBEKANNT" : medientypRoh.ToUpperInvariant();
+
+        return new DatentraegerInfo(medientyp, volumeId);
     }
 
     private static string Begrenze(string text) =>

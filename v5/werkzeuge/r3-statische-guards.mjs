@@ -5,6 +5,7 @@ import { pruefeQuelltext } from "./r3-guard-regeln.mjs";
 const wurzel = process.cwd();
 const quellWurzeln = [
   "grundlage/quelle",
+  "grundlage/adapter",
   "laufzeit/quelle",
   "ausfuehrung/quelle",
   "module/quelle",
@@ -19,7 +20,7 @@ function sammle(verzeichnis) {
   for (const eintrag of fs.readdirSync(verzeichnis, { withFileTypes: true })) {
     const voll = path.join(verzeichnis, eintrag.name);
     if (eintrag.isDirectory()) ergebnis.push(...sammle(voll));
-    else if (eintrag.isFile() && /\.(?:ts|mts|cts)$/.test(eintrag.name)) ergebnis.push(voll);
+    else if (eintrag.isFile() && /\.(?:ts|mts|cts|mjs)$/.test(eintrag.name)) ergebnis.push(voll);
   }
   return ergebnis;
 }
