@@ -19,7 +19,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## autonomy
 
-**32 Dateien · 8341 Zeilen**
+**32 Dateien · 8342 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -37,7 +37,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha17-runtime.js` | 308 |
 | `src/autonomy/alpha18-runtime.js` | 216 |
 | `src/autonomy/alpha19-runtime.js` | 178 |
-| `src/autonomy/alpha20-5-farm-readiness-runtime.js` | 345 |
+| `src/autonomy/alpha20-5-farm-readiness-runtime.js` | 346 |
 | `src/autonomy/alpha20-5-merchant-runtime.js` | 400 |
 | `src/autonomy/alpha20-runtime.js` | 396 |
 | `src/autonomy/alpha9-runtime.js` | 93 |
@@ -224,7 +224,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**37 Dateien · 9866 Zeilen**
+**38 Dateien · 10466 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -241,8 +241,9 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/controlled-lifecycle-coordinator.js` | 225 |
 | `src/party/controlled-paladin-aura-executor.js` | 97 |
 | `src/party/controlled-party-bootstrap-base.js` | 734 |
-| `src/party/controlled-party-bootstrap.js` | 110 |
+| `src/party/controlled-party-bootstrap.js` | 335 |
 | `src/party/controlled-party-logistics.js` | 1563 |
+| `src/party/dynamic-party-roster-discovery.js` | 375 |
 | `src/party/elixir-policy.js` | 225 |
 | `src/party/fingerprints.js` | 93 |
 | `src/party/lifecycle-store.js` | 289 |

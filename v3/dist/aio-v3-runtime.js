@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.20.138 | generated | remote runtime | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.139 | generated | remote runtime | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -1144,7 +1144,7 @@ module.exports = { Runtime, VERSION };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.138';
+const RELEASE_VERSION = '3.0.0-alpha.20.139';
 
 module.exports = { RELEASE_VERSION };
 
@@ -24800,7 +24800,8 @@ function composeAlpha20_5FarmReadinessRuntime(options = {}) {
       retryBaseMs: options.partyBootstrapRetryBaseMs,
       retryMaxMs: options.partyBootstrapRetryMaxMs,
       maxAttempts: options.partyBootstrapMaxAttempts,
-      breakerMs: options.partyBootstrapBreakerMs
+      breakerMs: options.partyBootstrapBreakerMs,
+      discoverySettleMs: options.partyBootstrapDiscoverySettleMs
     });
     this.partyBootstrapMerchantDiscoveryHotfix = installPartyBootstrapMerchantDiscoveryHotfix(this.partyBootstrap);
     this.partyBootstrapFarmerGate = installPartyBootstrapFarmerGate(this, this.partyBootstrap);
@@ -25469,6 +25470,10 @@ module.exports = { ControlledAutoRespawn, CONTROLLED_AUTO_RESPAWN_MODE };
 
 const { GameAdapter } = require('../game/adapter');
 const base = require('./controlled-party-bootstrap-base');
+const { DynamicPartyRosterDiscovery } = require('./dynamic-party-roster-discovery');
+
+const PENDING_MERCHANT = '__AIO_V3_PENDING_MERCHANT__';
+const PENDING_COMBAT = '__AIO_V3_PENDING_COMBAT__';
 
 function cleanName(value) {
   const name = String(value == null ? '' : value).trim();
@@ -25479,38 +25484,56 @@ function uniqueNames(values) {
   return [...new Set((values || []).map(cleanName).filter(Boolean))];
 }
 
+function localCharacter(options) {
+  const root = options.root || options.runtime && options.runtime.root || globalThis;
+  return root && (root.character || root.parent && root.parent.character) || null;
+}
+
 function resolveMerchantName(options, roster) {
   const explicit = cleanName(options.merchantName);
   if (explicit) return explicit;
+  const local = localCharacter(options);
+  if (local && String(local.ctype || local.type || '').toLowerCase() === 'merchant' && roster.includes(String(local.name))) {
+    return String(local.name);
+  }
   if (roster.includes('My_Merchant')) return 'My_Merchant';
   if (roster.includes('Merch')) return 'Merch';
-  const root = options.root || options.runtime && options.runtime.root || globalThis;
-  const local = root && (root.character || root.parent && root.parent.character);
-  if (local && String(local.ctype || '').toLowerCase() === 'merchant' && roster.includes(String(local.name))) return String(local.name);
   return null;
 }
 
-function resolveRoster(options) {
+function explicitRoster(options) {
   const configured = options.desiredRoster || options.roster || null;
-  const configuredExplicitly = Array.isArray(configured) && configured.length > 0;
-  let roster = configuredExplicitly ? uniqueNames(configured) : [];
-  const root = options.root || options.runtime && options.runtime.root || globalThis;
+  if (!Array.isArray(configured) || !configured.length) return null;
+  const roster = uniqueNames(configured);
+  if (roster.length < 2 || roster.length > 4) throw new Error('PARTY_BOOTSTRAP_REQUIRES_TWO_TO_FOUR_TRUSTED_NAMES');
+  const merchantName = resolveMerchantName(options, roster);
+  if (!merchantName || !roster.includes(merchantName)) throw new Error('PARTY_BOOTSTRAP_MERCHANT_NOT_IN_ROSTER');
+  return { roster, merchantName };
+}
 
-  if (!roster.length) {
-    const activeFn = root && (root.get_active_characters || root.parent && root.parent.get_active_characters);
-    if (typeof activeFn === 'function') {
-      try {
-        const active = activeFn.call(root);
-        const activeNames = active && typeof active === 'object' ? uniqueNames(Object.keys(active)) : [];
-        if (activeNames.length >= 2 && activeNames.length <= 4) {
-          const merchant = resolveMerchantName(options, activeNames);
-          if (merchant && activeNames.includes(merchant)) roster = activeNames;
-        }
-      } catch (_) {}
-    }
+function provisionalDynamicRoster(options, discoveryStatus) {
+  const local = localCharacter(options);
+  const observed = uniqueNames((discoveryStatus && discoveryStatus.roster || []).map((row) => row && row.name));
+  const localName = cleanName(local && local.name);
+  if (localName && !observed.includes(localName)) observed.push(localName);
+
+  let merchantName = cleanName(discoveryStatus && discoveryStatus.merchantName);
+  if (!merchantName && local && String(local.ctype || local.type || '').toLowerCase() === 'merchant') merchantName = localName;
+  if (!merchantName) merchantName = PENDING_MERCHANT;
+  if (!observed.includes(merchantName)) observed.unshift(merchantName);
+  if (observed.length < 2) observed.push(PENDING_COMBAT);
+  return { roster: uniqueNames(observed).slice(0, 4), merchantName };
+}
+
+function padForLegacyBase(roster) {
+  const padded = uniqueNames(roster);
+  let suffix = 1;
+  while (padded.length < 4) {
+    let placeholder = `__AIO_V3_UNUSED_TRUST_SLOT_${suffix++}__`;
+    while (padded.includes(placeholder)) placeholder = `__AIO_V3_UNUSED_TRUST_SLOT_${suffix++}__`;
+    padded.push(placeholder);
   }
-  if (!roster.length) roster = uniqueNames(base.DEFAULT_PARTY_BOOTSTRAP_ROSTER);
-  return { roster, configuredExplicitly };
+  return padded.slice(0, 4);
 }
 
 function resolveCommandAdapter(options) {
@@ -25530,39 +25553,241 @@ function resolveCommandAdapter(options) {
 
 class ControlledPartyBootstrap extends base.ControlledPartyBootstrap {
   constructor(options = {}) {
-    const resolved = resolveRoster(options);
-    const roster = resolved.roster;
-    if (roster.length < 2 || roster.length > 4) throw new Error('PARTY_BOOTSTRAP_REQUIRES_TWO_TO_FOUR_TRUSTED_NAMES');
-    const merchantName = resolveMerchantName(options, roster);
-    if (!merchantName || !roster.includes(merchantName)) throw new Error('PARTY_BOOTSTRAP_MERCHANT_NOT_IN_ROSTER');
-
-    const padded = roster.slice();
-    let suffix = 1;
-    while (padded.length < 4) {
-      let placeholder = `__AIO_V3_UNUSED_TRUST_SLOT_${suffix++}__`;
-      while (padded.includes(placeholder)) placeholder = `__AIO_V3_UNUSED_TRUST_SLOT_${suffix++}__`;
-      padded.push(placeholder);
-    }
+    const explicit = explicitRoster(options);
+    const discovery = explicit ? null : new DynamicPartyRosterDiscovery({
+      runtime: options.runtime,
+      root: options.root,
+      now: options.now,
+      settleMs: options.discoverySettleMs
+    });
+    const initialDiscovery = discovery ? discovery.refresh() : null;
+    const resolved = explicit || (initialDiscovery && initialDiscovery.ready
+      ? {
+        roster: initialDiscovery.roster.map((row) => row.name),
+        merchantName: initialDiscovery.merchantName
+      }
+      : provisionalDynamicRoster(options, initialDiscovery));
 
     const adapter = resolveCommandAdapter(options);
-    super({ ...options, ...(adapter ? { adapter } : {}), desiredRoster: padded, merchantName });
-    this.desiredRoster = roster.slice();
+    super({
+      ...options,
+      ...(adapter ? { adapter } : {}),
+      desiredRoster: padForLegacyBase(resolved.roster),
+      merchantName: resolved.merchantName
+    });
+
+    this.dynamicRosterDiscovery = discovery;
+    this.dynamicRosterManaged = !!discovery;
+    this.dynamicRosterReady = !discovery;
+    this.dynamicRosterSignature = null;
+    this.dynamicRosterLastAppliedAt = null;
+    this.dynamicRosterReconfigurations = 0;
+    this.dynamicRosterPendingReason = null;
+
+    if (this.dynamicRosterManaged) {
+      const safeObservedNames = uniqueNames((initialDiscovery && initialDiscovery.roster || []).map((row) => row && row.name));
+      const local = localCharacter(options);
+      const localName = cleanName(local && local.name);
+      if (localName && !safeObservedNames.includes(localName)) safeObservedNames.push(localName);
+      this.desiredRoster = safeObservedNames.slice(0, 4);
+      if (initialDiscovery && initialDiscovery.merchantName) this.merchantName = initialDiscovery.merchantName;
+      if (typeof this.transport.setTrustedNames === 'function') this.transport.setTrustedNames(this.desiredRoster);
+      if (initialDiscovery && initialDiscovery.ready) this._applyDynamicRoster(initialDiscovery);
+      else this.dynamicRosterPendingReason = initialDiscovery && initialDiscovery.reason || 'DYNAMIC_ROSTER_DISCOVERY_PENDING';
+    } else {
+      this.desiredRoster = explicit.roster.slice();
+      this.merchantName = explicit.merchantName;
+      if (typeof this.transport.setTrustedNames === 'function') this.transport.setTrustedNames(this.desiredRoster);
+      this._configureTrust();
+    }
+  }
+
+  _discoverySignature(status) {
+    if (!status || status.ready !== true) return null;
+    return (status.roster || []).map((row) => `${row.name}:${row.ctype || ''}`).join('|');
+  }
+
+  _seedRegistry(status) {
+    if (!this.runtime || !this.runtime.characterRegistry || typeof this.runtime.characterRegistry.seedRoster !== 'function') return false;
+    try {
+      this.runtime.characterRegistry.seedRoster((status.roster || []).map((row) => ({
+        name: row.name,
+        ctype: row.ctype,
+        online: true
+      })));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  _applyDynamicRoster(status) {
+    if (!this.dynamicRosterManaged || !status || status.ready !== true) return false;
+    const roster = uniqueNames((status.roster || []).map((row) => row && row.name));
+    const merchantName = cleanName(status.merchantName);
+    if (roster.length < 2 || roster.length > 4 || !merchantName || !roster.includes(merchantName)) return false;
+
+    const signature = this._discoverySignature(status);
+    if (this.inFlight && signature !== this.dynamicRosterSignature) {
+      this.dynamicRosterReady = false;
+      this.dynamicRosterPendingReason = 'DYNAMIC_ROSTER_RECONFIGURATION_WAITING_FOR_IDLE';
+      return false;
+    }
+
+    const changed = signature !== this.dynamicRosterSignature;
+    if (changed && this.dynamicRosterSignature) this.dynamicRosterReconfigurations += 1;
+    if (changed && this.active) this.generation += 1;
+
+    this.desiredRoster = roster;
     this.merchantName = merchantName;
+    this.dynamicRosterSignature = signature;
+    this.dynamicRosterReady = true;
+    this.dynamicRosterPendingReason = null;
+    this.dynamicRosterLastAppliedAt = this.now();
+
     if (typeof this.transport.setTrustedNames === 'function') this.transport.setTrustedNames(this.desiredRoster);
-    this._configureTrust();
+    if (this.controlLease) {
+      if (typeof this.controlLease.setTrustedNames === 'function') this.controlLease.setTrustedNames(this.desiredRoster);
+      if (typeof this.controlLease.setMerchantName === 'function') this.controlLease.setMerchantName(this.merchantName);
+    }
+
+    if (changed) {
+      this.pendingChallenges.clear();
+      this.acknowledged.clear();
+      this.attempts.clear();
+      this.nextAttemptAt.clear();
+      this.breakerUntil = 0;
+      this._seedRegistry(status);
+      this._event('DYNAMIC_PARTY_ROSTER_CONVERGED', 'info', 'DYNAMIC_ROSTER_READY', {
+        merchantName: this.merchantName,
+        desiredRoster: this.desiredRoster.slice(),
+        signature
+      });
+    }
+    return true;
+  }
+
+  _refreshDynamicRoster() {
+    if (!this.dynamicRosterManaged) return null;
+    const status = this.dynamicRosterDiscovery.refresh();
+    if (status.ready === true) {
+      if (!this._applyDynamicRoster(status)) {
+        return {
+          ...status,
+          ready: false,
+          reason: this.dynamicRosterPendingReason || 'DYNAMIC_ROSTER_RECONFIGURATION_PENDING'
+        };
+      }
+      return status;
+    }
+    this.dynamicRosterReady = false;
+    this.dynamicRosterPendingReason = status.reason;
+    return status;
+  }
+
+  _pendingObservation(discoveryStatus) {
+    const local = cleanName(this._character() && this._character().name);
+    const partyNames = this._partyNames();
+    const roster = uniqueNames((discoveryStatus && discoveryStatus.roster || []).map((row) => row && row.name));
+    return {
+      at: this.now(),
+      local,
+      merchant: discoveryStatus && discoveryStatus.merchantName || null,
+      trustSource: 'dynamic-account-online-roster-pending',
+      desiredRoster: roster,
+      activeStateAvailable: !!(discoveryStatus && discoveryStatus.activeStateAvailable),
+      observedPresentNames: discoveryStatus && discoveryStatus.observedActiveNames || [],
+      observedRunningNames: discoveryStatus && discoveryStatus.observedActiveNames || [],
+      observedRunningDesired: [],
+      runtimeLivenessVerified: false,
+      readinessScope: 'account-roster-discovery',
+      partyNames,
+      foreignPartyNames: [],
+      missingDesired: roster.filter((name) => !partyNames.includes(name)),
+      leader: this._observableLeader(),
+      leaderObserved: !!this._observableLeader(),
+      leaderWrong: false,
+      full: false,
+      discoveryReason: discoveryStatus && discoveryStatus.reason || 'DYNAMIC_ROSTER_DISCOVERY_PENDING'
+    };
+  }
+
+  resume() {
+    const discoveryStatus = this._refreshDynamicRoster();
+    const result = super.resume();
+    if (this.dynamicRosterManaged && (!discoveryStatus || discoveryStatus.ready !== true || !this.dynamicRosterReady)) {
+      this.lastObserved = this._pendingObservation(discoveryStatus);
+      this._setState('DISCOVERING', discoveryStatus && discoveryStatus.reason || this.dynamicRosterPendingReason || 'DYNAMIC_ROSTER_DISCOVERY_PENDING', false);
+    }
+    return result;
+  }
+
+  tick() {
+    if (this.dynamicRosterManaged) {
+      const discoveryStatus = this._refreshDynamicRoster();
+      if (!discoveryStatus || discoveryStatus.ready !== true || !this.dynamicRosterReady) {
+        this.lastObserved = this._pendingObservation(discoveryStatus);
+        this.stats.observations += 1;
+        this._setState('DISCOVERING', discoveryStatus && discoveryStatus.reason || this.dynamicRosterPendingReason || 'DYNAMIC_ROSTER_DISCOVERY_PENDING', false);
+        return this.status();
+      }
+    }
+    return super.tick();
+  }
+
+  farmingGate(characterName = null) {
+    if (this.dynamicRosterManaged) {
+      const discoveryStatus = this._refreshDynamicRoster();
+      if (!discoveryStatus || discoveryStatus.ready !== true || !this.dynamicRosterReady) {
+        return {
+          allowed: false,
+          reason: discoveryStatus && discoveryStatus.reason || this.dynamicRosterPendingReason || 'DYNAMIC_ROSTER_DISCOVERY_PENDING',
+          full: false
+        };
+      }
+    }
+    return super.farmingGate(characterName);
   }
 
   _observe() {
+    if (this.dynamicRosterManaged && !this.dynamicRosterReady) {
+      const observation = this._pendingObservation(this.dynamicRosterDiscovery.status());
+      this.lastObserved = observation;
+      return observation;
+    }
     const observation = super._observe();
-    observation.trustSource = 'explicit-variable-party-roster';
+    observation.trustSource = this.dynamicRosterManaged
+      ? 'dynamic-account-online-roster'
+      : 'explicit-variable-party-roster';
+    if (this.dynamicRosterManaged) observation.dynamicRosterDiscovery = this.dynamicRosterDiscovery.status();
     this.lastObserved = observation;
     return observation;
   }
 
   status() {
     const status = super.status();
-    status.trustSource = 'explicit-variable-party-roster';
-    if (status.observed) status.observed.trustSource = 'explicit-variable-party-roster';
+    if (!this.dynamicRosterManaged) {
+      status.trustSource = 'explicit-variable-party-roster';
+      if (status.observed) status.observed.trustSource = 'explicit-variable-party-roster';
+      return status;
+    }
+
+    const discovery = this.dynamicRosterDiscovery.status();
+    status.schemaVersion = Math.max(3, Number(status.schemaVersion) || 0);
+    status.trustSource = this.dynamicRosterReady
+      ? 'dynamic-account-online-roster'
+      : 'dynamic-account-online-roster-pending';
+    status.dynamicRosterManaged = true;
+    status.dynamicRosterReady = this.dynamicRosterReady;
+    status.dynamicRosterSignature = this.dynamicRosterSignature;
+    status.dynamicRosterLastAppliedAt = this.dynamicRosterLastAppliedAt;
+    status.dynamicRosterReconfigurations = this.dynamicRosterReconfigurations;
+    status.dynamicRosterDiscovery = discovery;
+    status.desiredRoster = this.desiredRoster.slice();
+    status.merchantName = this.dynamicRosterReady
+      ? this.merchantName
+      : discovery.merchantName || null;
+    if (status.observed) status.observed.trustSource = status.trustSource;
     return status;
   }
 }
@@ -25573,7 +25798,8 @@ module.exports = {
   PARTY_BOOTSTRAP_TYPE: base.PARTY_BOOTSTRAP_TYPE,
   PARTY_BOOTSTRAP_RECEIVER: base.PARTY_BOOTSTRAP_RECEIVER,
   DEFAULT_PARTY_BOOTSTRAP_ROSTER: base.DEFAULT_PARTY_BOOTSTRAP_ROSTER,
-  PartyBootstrapAction: base.PartyBootstrapAction
+  PartyBootstrapAction: base.PartyBootstrapAction,
+  DynamicPartyRosterDiscovery
 };
 
 },
@@ -26594,6 +26820,384 @@ module.exports = {
   NAMED_RECEIVER_CM_PROTOCOL,
   cleanName,
   uniqueNames
+};
+
+},
+"src/party/dynamic-party-roster-discovery.js": function(require,module,exports){
+'use strict';
+
+const COMBAT_CLASSES = new Set(['warrior', 'paladin', 'rogue', 'ranger', 'mage', 'priest']);
+const ACTIVE_CHARACTER_STATES = new Set(['self', 'starting', 'loading', 'active', 'code']);
+
+// Account identity comes from get_characters(); get_active_characters() is only
+// a same-account runner/liveness compatibility source and never invents names.
+
+function cleanName(value) {
+  const name = String(value == null ? '' : value).trim();
+  return name || null;
+}
+
+function cleanCtype(value) {
+  const ctype = String(value == null ? '' : value).trim().toLowerCase();
+  return ctype || null;
+}
+
+function readFunction(root, name) {
+  return root && (root[name] || root.parent && root.parent[name]) || null;
+}
+
+function rawRows(value) {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object') return Object.values(value);
+  return [];
+}
+
+function onlineFlag(value) {
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0 || value == null) return false;
+  const normalized = String(value).trim().toLowerCase();
+  return !['', '0', 'false', 'offline', 'none', 'null', 'undefined'].includes(normalized);
+}
+
+function normalizeCharacter(row) {
+  if (!row || typeof row !== 'object') return null;
+  const name = cleanName(row.name);
+  if (!name) return null;
+  return {
+    name,
+    ctype: cleanCtype(row.ctype || row.type),
+    online: onlineFlag(row.online),
+    server: row.server || row.server_identifier || null,
+    region: row.region || row.server_region || null
+  };
+}
+
+function uniqueCharacters(rows) {
+  const byName = new Map();
+  for (const raw of rows || []) {
+    const row = normalizeCharacter(raw);
+    if (!row) continue;
+    const previous = byName.get(row.name);
+    byName.set(row.name, previous ? {
+      ...previous,
+      ...row,
+      ctype: row.ctype || previous.ctype,
+      online: row.online || previous.online
+    } : row);
+  }
+  return [...byName.values()];
+}
+
+class DynamicPartyRosterDiscovery {
+  constructor(options = {}) {
+    this.root = options.root || options.runtime && options.runtime.root || globalThis;
+    this.now = options.now || options.runtime && options.runtime.now || (() => Date.now());
+    const configuredSettleMs = Number(options.settleMs);
+    this.settleMs = Number.isFinite(configuredSettleMs)
+      ? Math.max(0, Math.min(15000, configuredSettleMs))
+      : 1500;
+    this.pendingSignature = null;
+    this.pendingSince = 0;
+    this.lastStatus = null;
+  }
+
+  _local() {
+    const character = this.root && (this.root.character || this.root.parent && this.root.parent.character) || null;
+    if (!character || !cleanName(character.name)) return null;
+    return {
+      name: cleanName(character.name),
+      ctype: cleanCtype(character.ctype || character.type),
+      online: true
+    };
+  }
+
+  _accountSnapshot() {
+    const fn = readFunction(this.root, 'get_characters');
+    if (typeof fn !== 'function') return { available: false, rows: [] };
+    try {
+      const value = fn.call(this.root);
+      return { available: value != null, rows: uniqueCharacters(rawRows(value)) };
+    } catch (_) {
+      return { available: false, rows: [] };
+    }
+  }
+
+  _activeSnapshot() {
+    const fn = readFunction(this.root, 'get_active_characters');
+    if (typeof fn !== 'function') return { available: false, names: [] };
+    try {
+      const value = fn.call(this.root);
+      const names = value && typeof value === 'object'
+        ? Object.entries(value)
+          .filter(([, state]) => ACTIVE_CHARACTER_STATES.has(String(state)))
+          .map(([name]) => cleanName(name))
+          .filter(Boolean)
+        : [];
+      const local = this._local();
+      if (local && !names.includes(local.name)) names.push(local.name);
+      return { available: value != null, names: [...new Set(names)] };
+    } catch (_) {
+      return { available: false, names: [] };
+    }
+  }
+
+  _candidate() {
+    const local = this._local();
+    const account = this._accountSnapshot();
+    const active = this._activeSnapshot();
+
+    if (!local) {
+      return {
+        readyCandidate: false,
+        reason: 'DYNAMIC_ROSTER_LOCAL_CHARACTER_UNAVAILABLE',
+        local: null,
+        account,
+        active,
+        roster: [],
+        merchantName: null
+      };
+    }
+
+    if (!account.available) {
+      if (active.names.length > 4) {
+        return {
+          readyCandidate: false,
+          reason: 'ACTIVE_CHARACTER_LIMIT_EXCEEDED',
+          local,
+          account,
+          active,
+          roster: active.names.map((name) => ({
+            name,
+            ctype: name === local.name ? local.ctype : null,
+            online: true
+          })),
+          merchantName: local.ctype === 'merchant' ? local.name : null
+        };
+      }
+
+      // get_active_characters() is an Adventure Land same-account CODE-runner
+      // view. It is safe as a compatibility fallback when get_characters() is
+      // unavailable, but only the local Merchant can establish Merchant
+      // identity because class metadata for the other active names is absent.
+      if (local.ctype === 'merchant' && active.names.length >= 2 && active.names.length <= 4) {
+        const roster = [
+          local,
+          ...active.names
+            .filter((name) => name !== local.name)
+            .sort((a, b) => a.localeCompare(b))
+            .map((name) => ({ name, ctype: null, online: true }))
+        ];
+        return {
+          readyCandidate: true,
+          settleRequired: false,
+          source: 'get_active_characters-compatibility-fallback',
+          reason: 'DYNAMIC_ROSTER_ACTIVE_RUNNER_FALLBACK_VALID',
+          local,
+          account,
+          active,
+          roster,
+          merchantName: local.name
+        };
+      }
+
+      return {
+        readyCandidate: false,
+        reason: local.ctype === 'merchant'
+          ? 'DYNAMIC_ROSTER_WAITING_FOR_COMBAT_CHARACTER'
+          : 'DYNAMIC_ROSTER_ACCOUNT_CHARACTER_STATE_UNAVAILABLE',
+        local,
+        account,
+        active,
+        roster: [local],
+        merchantName: local.ctype === 'merchant' ? local.name : null
+      };
+    }
+
+    const activeSet = new Set(active.names);
+    let online = account.rows.filter((row) => row.online || activeSet.has(row.name) || row.name === local.name);
+    if (!online.some((row) => row.name === local.name)) online.push(local);
+    online = uniqueCharacters(online);
+
+    if (online.length > 4) {
+      return {
+        readyCandidate: false,
+        reason: 'ACTIVE_CHARACTER_LIMIT_EXCEEDED',
+        local,
+        account,
+        active,
+        roster: online,
+        merchantName: null
+      };
+    }
+
+    const unsupported = online.filter((row) => row.ctype !== 'merchant' && !COMBAT_CLASSES.has(row.ctype));
+    if (unsupported.length) {
+      return {
+        readyCandidate: false,
+        reason: 'DYNAMIC_ROSTER_UNSUPPORTED_ONLINE_CHARACTER',
+        local,
+        account,
+        active,
+        roster: online,
+        unsupported: unsupported.map((row) => ({ name: row.name, ctype: row.ctype })),
+        merchantName: null
+      };
+    }
+
+    const merchants = online.filter((row) => row.ctype === 'merchant');
+    const combat = online.filter((row) => COMBAT_CLASSES.has(row.ctype));
+
+    if (!merchants.length) {
+      return {
+        readyCandidate: false,
+        reason: 'DYNAMIC_ROSTER_WAITING_FOR_MERCHANT',
+        local,
+        account,
+        active,
+        roster: online,
+        merchantName: null
+      };
+    }
+    if (merchants.length !== 1) {
+      return {
+        readyCandidate: false,
+        reason: 'DYNAMIC_ROSTER_AMBIGUOUS_MERCHANT',
+        local,
+        account,
+        active,
+        roster: online,
+        merchantName: null
+      };
+    }
+    if (combat.length < 1) {
+      return {
+        readyCandidate: false,
+        reason: 'DYNAMIC_ROSTER_WAITING_FOR_COMBAT_CHARACTER',
+        local,
+        account,
+        active,
+        roster: online,
+        merchantName: merchants[0].name
+      };
+    }
+    if (combat.length > 3 || online.length < 2 || online.length > 4) {
+      return {
+        readyCandidate: false,
+        reason: 'ACTIVE_CHARACTER_LIMIT_EXCEEDED',
+        local,
+        account,
+        active,
+        roster: online,
+        merchantName: merchants[0].name
+      };
+    }
+
+    const roster = [
+      merchants[0],
+      ...combat.slice().sort((a, b) => a.name.localeCompare(b.name))
+    ];
+    return {
+      readyCandidate: true,
+      reason: 'DYNAMIC_ROSTER_CANDIDATE_VALID',
+      local,
+      account,
+      active,
+      roster,
+      merchantName: merchants[0].name
+    };
+  }
+
+  refresh() {
+    const at = this.now();
+    const candidate = this._candidate();
+    const signature = candidate.readyCandidate
+      ? candidate.roster.map((row) => `${row.name}:${row.ctype}`).join('|')
+      : null;
+
+    if (!signature) {
+      this.pendingSignature = null;
+      this.pendingSince = 0;
+      this.lastStatus = {
+        schemaVersion: 1,
+        mode: 'dynamic-account-party-roster-discovery-v1',
+        source: 'get_characters-online',
+        actionAuthority: false,
+        ready: false,
+        reason: candidate.reason,
+        merchantName: candidate.merchantName || null,
+        roster: candidate.roster.map((row) => ({ name: row.name, ctype: row.ctype })),
+        accountStateAvailable: candidate.account.available,
+        activeStateAvailable: candidate.active.available,
+        observedActiveNames: candidate.active.names.slice(),
+        accountCharacters: candidate.account.rows.map((row) => ({ name: row.name, ctype: row.ctype, online: row.online })),
+        unsupported: candidate.unsupported || [],
+        candidateSince: null,
+        settleMs: this.settleMs,
+        local: candidate.local
+      };
+      return this.status();
+    }
+
+    if (signature !== this.pendingSignature) {
+      this.pendingSignature = signature;
+      this.pendingSince = at;
+    }
+
+    const settled = candidate.settleRequired === false
+      || this.settleMs === 0
+      || at - this.pendingSince >= this.settleMs;
+    this.lastStatus = {
+      schemaVersion: 1,
+      mode: 'dynamic-account-party-roster-discovery-v1',
+      source: candidate.source || 'get_characters-online',
+      actionAuthority: false,
+      ready: settled,
+      reason: settled ? 'DYNAMIC_ROSTER_READY' : 'DYNAMIC_ROSTER_SETTLING',
+      merchantName: candidate.merchantName,
+      roster: candidate.roster.map((row) => ({ name: row.name, ctype: row.ctype })),
+      accountStateAvailable: candidate.account.available,
+      activeStateAvailable: candidate.active.available,
+      observedActiveNames: candidate.active.names.slice(),
+      accountCharacters: candidate.account.rows.map((row) => ({ name: row.name, ctype: row.ctype, online: row.online })),
+      unsupported: [],
+      candidateSince: this.pendingSince,
+      settleMs: this.settleMs,
+      local: candidate.local
+    };
+    return this.status();
+  }
+
+  status() {
+    return this.lastStatus ? JSON.parse(JSON.stringify(this.lastStatus)) : {
+      schemaVersion: 1,
+      mode: 'dynamic-account-party-roster-discovery-v1',
+      source: 'get_characters-online',
+      actionAuthority: false,
+      ready: false,
+      reason: 'DYNAMIC_ROSTER_NOT_OBSERVED',
+      merchantName: null,
+      roster: [],
+      accountStateAvailable: false,
+      activeStateAvailable: false,
+      observedActiveNames: [],
+      accountCharacters: [],
+      unsupported: [],
+      candidateSince: null,
+      settleMs: this.settleMs,
+      local: null
+    };
+  }
+}
+
+module.exports = {
+  DynamicPartyRosterDiscovery,
+  COMBAT_CLASSES,
+  ACTIVE_CHARACTER_STATES,
+  cleanName,
+  cleanCtype,
+  onlineFlag,
+  normalizeCharacter,
+  uniqueCharacters
 };
 
 },
@@ -48013,11 +48617,7 @@ function installAdventureLandItemSprites(runtime, cloud) {
       snapshot.itemSprites = itemSpriteCatalog(runtime);
       snapshot.equipmentShades = equipmentShadeCatalog(runtime);
       const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
-      if (liveCharacter && String(liveCharacter.ctype || '').toLowerCase() === 'merchant') {
-        snapshot.automationCatalog = itemAutomationCatalog(runtime);
-        snapshot.automationCatalogVersion = ADVENTURE_LAND_ITEM_SURFACE_VERSION;
-        snapshot.automationCatalogCount = snapshot.automationCatalog.length;
-      }
+      if (liveCharacter && String(liveCharacter.ctype || '').toLowerCase() === 'merchant') snapshot.automationCatalog = itemAutomationCatalog(runtime);
       if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
         snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
       }
@@ -59457,7 +60057,7 @@ module.exports = {
 "src/production-live-services.js": function(require,module,exports){
 'use strict';
 
-const { installAlpha25ControlCenterBrain, itemSpriteCatalog, equipmentShadeCatalog, itemAutomationCatalog } = require('./reliability/alpha25-control-center-brain');
+const { installAlpha25ControlCenterBrain, itemSpriteCatalog, equipmentShadeCatalog } = require('./reliability/alpha25-control-center-brain');
 const { installAlpha26CloudUpdateLogisticsUiHotfix } = require('./reliability/alpha26-cloud-update-logistics-ui-hotfix');
 const { installAlpha27CombatMerchantConvergence } = require('./reliability/alpha27-combat-merchant-convergence');
 const { installAlpha27MerchantLegacyOwnershipGuard } = require('./reliability/alpha27-merchant-legacy-ownership-guard');
@@ -59471,7 +60071,7 @@ const { installAlpha32NavigationMerchantRecovery, ALPHA32_NAVIGATION_MERCHANT_RE
 const { installAlpha33MarkOrbitMerchantDelivery, ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE } = require('./reliability/alpha33-mark-orbit-merchant-delivery');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
-const SPRITE_HOT_RELOAD_HOOK_VERSION = 2;
+const SPRITE_HOT_RELOAD_HOOK_VERSION = 1;
 
 function emitFailure(runtime, service, error) {
   try {
@@ -59510,11 +60110,6 @@ function refreshAdventureLandSpriteHook(runtime, alpha25 = null) {
       snapshot.itemSprites = itemSpriteCatalog(runtime);
       snapshot.equipmentShades = equipmentShadeCatalog(runtime);
       const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
-      if (liveCharacter && String(liveCharacter.ctype || '').toLowerCase() === 'merchant') {
-        snapshot.automationCatalog = itemAutomationCatalog(runtime);
-        snapshot.automationCatalogVersion = 3;
-        snapshot.automationCatalogCount = snapshot.automationCatalog.length;
-      }
       if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
         snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
       }
