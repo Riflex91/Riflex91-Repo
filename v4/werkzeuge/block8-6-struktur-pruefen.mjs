@@ -10,7 +10,12 @@ const dateien = [
   'laufzeit/quelle/vertraege/skill-katalog-audit.ts',
   'laufzeit/quelle/adventure-land/adventure-land-skill-katalog-audit.ts',
   'laufzeit/tests/skill-katalog-audit.test.mjs',
+  'laufzeit/quelle/vertraege/skill-policy.ts',
+  'laufzeit/quelle/spiellogik/skill-policy-semantik.ts',
+  'laufzeit/quelle/spiellogik/skill-policy.ts',
+  'laufzeit/tests/skill-policy.test.mjs',
   'dokumentation/BLOCK-8-6-1-SKILL-KATALOG.md',
+  'dokumentation/BLOCK-8-6-3-SKILL-POLICY.md',
   'dokumentation/BLOCK-8-6-2-AUDIT-REVALIDIERUNG.md',
   'dokumentation/BLOCK-8-6-PLAN.md',
   'dokumentation/VERTRAEGE.md'
@@ -181,13 +186,116 @@ for (const pflicht of [
   if (!auditDokument.includes(pflicht)) throw new Error(`Block-8.6.2-Dokumentation fehlt: ${pflicht}`);
 }
 
+const policyVertrag = await readFile(path.join(wurzel, 'laufzeit/quelle/vertraege/skill-policy.ts'), 'utf8');
+for (const pflicht of [
+  'SKILL_POLICY_SCHEMA_VERSION = 1',
+  "SKILL_POLICY_SPEICHER_SCHLUESSEL = 'aio-v4-skill-policy-v1'",
+  "'prozent'",
+  "'ganzzahl'",
+  "'lebensSchwelleProzent'",
+  "'mindestensZiele'",
+  "'manaBudgetProzent'",
+  'SkillPolicyCharakterProfil',
+  'neueSkillsStandardmaessigFreigegeben: false',
+  'userDisableIstHarteSperre: true',
+  'unbekannteControlsFailClosed: true',
+  'aktionsAutoritaet: false'
+]) {
+  if (!policyVertrag.includes(pflicht)) throw new Error('Block-8.6.3-SkillPolicy-Vertrag fehlt: ' + pflicht);
+}
+
+const policySemantik = await readFile(path.join(wurzel, 'laufzeit/quelle/spiellogik/skill-policy-semantik.ts'), 'utf8');
+for (const pflicht of [
+  'heal: Object.freeze',
+  'partyheal: Object.freeze',
+  "'3shot': Object.freeze",
+  "'5shot': Object.freeze",
+  'fanofknives: Object.freeze',
+  'cburst: Object.freeze',
+  'energize: Object.freeze',
+  "'zielKapazitaet'",
+  "prozent('lebensSchwelleProzent'",
+  "prozent('manaBudgetProzent'"
+]) {
+  if (!policySemantik.includes(pflicht)) throw new Error('Block-8.6.3-SkillPolicy-Semantik fehlt: ' + pflicht);
+}
+
+const policyQuelle = await readFile(path.join(wurzel, 'laufzeit/quelle/spiellogik/skill-policy.ts'), 'utf8');
+for (const pflicht of [
+  'SkillPolicySpeicher',
+  'listeKonfigurierbareSkills',
+  'setzeSkillFreigabe',
+  'setzeControlWert',
+  'setzeSkillZurueck',
+  'bewerteAutomatikFreigabe',
+  "katalog.zustand === 'bereit'",
+  'eintrag.automationValidated === true',
+  'neueSkillsStandardmaessigFreigegeben: false as const',
+  'userDisableIstHarteSperre: true as const',
+  'unbekannteControlsFailClosed: true as const',
+  'aktionsAutoritaet: false as const',
+  'kanonisiereJson(dauerzustand)'
+]) {
+  if (!policyQuelle.includes(pflicht)) throw new Error('Block-8.6.3-SkillPolicy fehlt: ' + pflicht);
+}
+for (const verboten of [
+  /\buse_skill\s*\(/,
+  /\battack\s*\(/,
+  /\bmove\s*\(/,
+  /\bsmart_move\s*\(/,
+  /\bsend_cm\s*\(/,
+  /from ['"]\.\.\/ausfuehrung\//
+]) {
+  if (verboten.test(policyQuelle)) throw new Error('Block 8.6.3 darf keine Adventure-Land-Aktionsautoritaet einfuehren: ' + verboten);
+}
+
+const policyTests = await readFile(path.join(wurzel, 'laufzeit/tests/skill-policy.test.mjs'), 'utf8');
+for (const pflicht of [
+  'nur passende validierte und freigeschaltete Level-Skills sind konfigurierbar und standardmaessig AUS',
+  'Per-Character Policy trennt zwei Ranger derselben Klasse strikt',
+  'Slider werden streng begrenzt und unbekannte Controls fail-closed blockiert',
+  'Checkbox AUS bleibt harte Sperre',
+  'Heal und Ressourcen-Skills erhalten nur semantisch passende Prozent-Slider',
+  'Katalogdrift sperrt aktuelle Freigabe ohne historische Policy zu loeschen',
+  'unbekannte persistierte Controls bleiben historisch erhalten aber sperren Automatik fail-closed',
+  'ungueltige Persistenzschema wird fail-closed verworfen',
+  'Persistenzfehler aktiviert eine Policy-Aenderung nicht im Speicherzustand',
+  'assert.equal(status.aktionsAutoritaet, false)'
+]) {
+  if (!policyTests.includes(pflicht)) throw new Error('Block-8.6.3-Testabdeckung fehlt: ' + pflicht);
+}
+
+const policyDokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-3-SKILL-POLICY.md'), 'utf8');
+for (const pflicht of [
+  'harte Sperre',
+  'Neue Skill-Einstellungen starten immer:',
+  'freigegeben=false',
+  '0–100 %',
+  '1–Target-Capacity',
+  'Persistenz ist transaktional',
+  'aktionsAutoritaet=false',
+  '**8.6.4 – CharakterFaehigkeiten.**'
+]) {
+  if (!policyDokument.includes(pflicht)) throw new Error('Block-8.6.3-Dokumentation fehlt: ' + pflicht);
+}
+
+const index = await readFile(path.join(wurzel, 'laufzeit/quelle/index.ts'), 'utf8');
+for (const pflicht of [
+  "export * from './vertraege/skill-policy.js';",
+  "export * from './spiellogik/skill-policy-semantik.js';",
+  "export * from './spiellogik/skill-policy.js';"
+]) {
+  if (!index.includes(pflicht)) throw new Error('V4-Index exportiert Block 8.6.3 nicht: ' + pflicht);
+}
+
 const plan = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-PLAN.md'), 'utf8');
 for (const pflicht of [
   '8.6.1 – Skill-Katalog-Vertrag und Live-Lesequelle — **IMPLEMENTIERT**',
   '8.6.2 – Audit, Drift und Recovery-Revalidierung — **IMPLEMENTIERT**',
-  'Naechster Implementierungsschritt: **8.6.3 – Per-Character SkillPolicy und Slider**'
+  '8.6.3 – Per-Character SkillPolicy und Slider — **IMPLEMENTIERT**',
+  'Naechster Implementierungsschritt: **8.6.4 – CharakterFaehigkeiten**'
 ]) {
-  if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.2-Stand: ${pflicht}`);
+  if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.3-Stand: ${pflicht}`);
 }
 
 const vertraege = await readFile(path.join(wurzel, 'dokumentation/VERTRAEGE.md'), 'utf8');
@@ -198,9 +306,12 @@ for (const pflicht of [
   '`spielAutoritaet: false`',
   '## SkillKatalogAudit',
   '`aktionsAutoritaet: false`',
-  '`automatischerNeustart: false`'
+  '`automatischerNeustart: false`',
+  '## SkillPolicy',
+  '`freigegeben=false`',
+  '`aktionsAutoritaet: false`'
 ]) {
-  if (!vertraege.includes(pflicht)) throw new Error(`V4-Vertragsdokumentation fehlt fuer Block 8.6.1/8.6.2: ${pflicht}`);
+  if (!vertraege.includes(pflicht)) throw new Error(`V4-Vertragsdokumentation fehlt fuer Block 8.6.1 bis 8.6.3: ${pflicht}`);
 }
 
 const packageJson = JSON.parse(await readFile(path.join(wurzel, 'package.json'), 'utf8'));
@@ -211,4 +322,4 @@ if (!String(packageJson.scripts?.pruefen ?? '').includes('npm run block8-6-struk
   throw new Error('npm run pruefen muss den Block-8.6-Strukturguard ausfuehren.');
 }
 
-console.log('Block 8.6.1/8.6.2 geprueft: Live-Skill-Katalog, Audit/Drift/Recovery-Revalidierung und keine neue Spielaktionsautoritaet.');
+console.log('Block 8.6.1 bis 8.6.3 geprueft: Live-Skill-Katalog, Audit/Recovery und persistente Per-Character SkillPolicy ohne neue Spielaktionsautoritaet.');
