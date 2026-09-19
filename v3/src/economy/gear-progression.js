@@ -112,22 +112,35 @@ function scoreImprovement(currentScore, targetScore, ctype, minImprovementRatio 
   const speedImprovement = targetSpeed - currentSpeed;
   const merchant = String(ctype || '').toLowerCase() === 'merchant';
 
-  // Merchant logistics are movement-bound. Speed is a lexicographic primary
-  // stat: any real speed gain is an upgrade even if it trades secondary stats,
-  // while a speed loss can never be justified by attack/armor/etc.
-  if (merchant && speedImprovement !== 0) {
+  const threshold = finite(current.total, 0) <= 0
+    ? 0.001
+    : Math.max(0.001, finite(current.total, 0) * Math.max(0, finite(minImprovementRatio, 0)));
+
+  // Merchant speed remains heavily weighted (10x) in CLASS_WEIGHTS, but it is
+  // no longer lexicographically allowed to override a net gear regression.
+  // A speed loss is always rejected; a speed gain must still clear the normal
+  // weighted-improvement threshold. This prevents destructive "faster but
+  // materially worse" replacements such as lbelt over an already stronger
+  // hpbelt while preserving speed as the Merchant's dominant preference.
+  if (merchant && speedImprovement < 0) {
     return {
-      meaningful: speedImprovement > 0,
-      reason: speedImprovement > 0 ? 'MERCHANT_SPEED_GAIN' : 'MERCHANT_SPEED_LOSS_REJECTED',
+      meaningful: false,
+      reason: 'MERCHANT_SPEED_LOSS_REJECTED',
+      improvement,
+      survivalImprovement,
+      speedImprovement
+    };
+  }
+  if (merchant && speedImprovement > 0) {
+    return {
+      meaningful: improvement > threshold,
+      reason: improvement > threshold ? 'MERCHANT_SPEED_WEIGHTED_IMPROVEMENT' : 'MERCHANT_SPEED_NET_REGRESSION_REJECTED',
       improvement,
       survivalImprovement,
       speedImprovement
     };
   }
 
-  const threshold = finite(current.total, 0) <= 0
-    ? 0.001
-    : Math.max(0.001, finite(current.total, 0) * Math.max(0, finite(minImprovementRatio, 0)));
   return {
     meaningful: improvement > threshold,
     reason: improvement > threshold ? 'WEIGHTED_GEAR_IMPROVEMENT' : 'INSUFFICIENT_GEAR_IMPROVEMENT',
@@ -584,7 +597,7 @@ class GearProgressionEvaluator {
       economicUpgradeFallbackLevel: ECONOMIC_UPGRADE_FALLBACK_LEVEL,
       processedGearSellRequiresExplicitFutureSafety: true,
       merchantPrimaryGearStat: 'speed',
-      merchantSpeedPriority: 'LEXICOGRAPHIC_FIRST',
+      merchantSpeedPriority: 'WEIGHTED_PRIMARY_WITH_NET_REGRESSION_GUARD',
       merchantSpeedWeight: CLASS_WEIGHTS.merchant.speed,
       lastEvaluatedAt: this.lastEvaluatedAt,
       lastEvaluation: clone(this.lastEvaluation),

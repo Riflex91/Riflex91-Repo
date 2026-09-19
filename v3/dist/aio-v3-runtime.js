@@ -3916,6 +3916,9 @@ class FarmerController {
     this.stateReason = 'INITIAL';
     this.targetId = null;
     this.targetType = null;
+    this.logicalTeamTargetId = null;
+    this.logicalTeamTargetType = null;
+    this.targetSelectionHold = null;
     this.lastActionAt = 0;
     this.lastPotionAt = 0;
     this.lastShadowPlanAt = -Infinity;
@@ -3974,6 +3977,33 @@ class FarmerController {
     }
     this.targetId = null;
     this.targetType = null;
+  }
+
+  _setLogicalTeamTarget(targetId, targetType = null, data = {}) {
+    const id = targetId == null ? null : String(targetId);
+    const changed = id !== this.logicalTeamTargetId || (targetType || null) !== this.logicalTeamTargetType;
+    this.logicalTeamTargetId = id;
+    this.logicalTeamTargetType = targetType || null;
+    if (changed && id) {
+      this._event('FARMER_LOGICAL_TEAM_TARGET_CHANGED', 'info', 'TEAM_TARGET_AUTHORITY', {
+        logicalTargetId: id,
+        logicalTargetType: this.logicalTeamTargetType,
+        ...data
+      });
+    }
+    if (!id) this.targetSelectionHold = null;
+    return id;
+  }
+
+  _holdTargetSelection(reason, data = {}) {
+    this.targetSelectionHold = {
+      at: this.now(),
+      reason: reason || 'TEAM_TARGET_SELECTION_HELD',
+      logicalTargetId: this.logicalTeamTargetId,
+      logicalTargetType: this.logicalTeamTargetType,
+      ...data
+    };
+    return this.targetSelectionHold;
   }
 
   setEnabled(enabled) {
@@ -4369,15 +4399,27 @@ class FarmerController {
 
       case FarmerState.SELECT_TARGET: {
         if (this._moveToMaterialObjective(context)) break;
+        this.targetSelectionHold = null;
         const selection = this._selectTarget(context);
         this.lastSelection = selection && selection.ranking || null;
         if (!selection) {
+          if (this.targetSelectionHold && this.targetSelectionHold.logicalTargetId) {
+            this._transition(FarmerState.SELECT_TARGET, this.targetSelectionHold.reason || 'TEAM_TARGET_SELECTION_HELD', {
+              logicalTargetId: this.targetSelectionHold.logicalTargetId,
+              logicalTargetType: this.targetSelectionHold.logicalTargetType || null,
+              leaderName: this.targetSelectionHold.leaderName || null
+            });
+            break;
+          }
           this._clearTarget('NO_SAFE_LIVE_TARGET');
           this._transition(FarmerState.REASSESS, 'NO_SAFE_LIVE_TARGET');
           break;
         }
         this.targetId = String(selection.target.id);
         this.targetType = selection.target.mtype;
+        if (selection.ranking && String(selection.ranking.source || '').startsWith('team-')) {
+          this._setLogicalTeamTarget(this.targetId, this.targetType, { source: selection.ranking.source });
+        }
         const rankingScore = Number(selection.ranking && selection.ranking.score);
         const rankingTravelSeconds = Number(selection.ranking && selection.ranking.travelSeconds);
         this._event('FARMER_TARGET_SELECTED', 'info', 'PLANNER_TOP_SAFE_LIVE_TARGET', {
@@ -4484,6 +4526,9 @@ class FarmerController {
       taskId: this.taskId,
       targetId: this.targetId,
       targetType: this.targetType,
+      logicalTeamTargetId: this.logicalTeamTargetId,
+      logicalTeamTargetType: this.logicalTeamTargetType,
+      targetSelectionHold: this.targetSelectionHold ? { ...this.targetSelectionHold } : null,
       targetPolicy: this.targetPolicy,
       shadowPlanRevision: this.shadowPlanRevision,
       lastSelection: this.lastSelection ? {
@@ -14025,22 +14070,35 @@ function scoreImprovement(currentScore, targetScore, ctype, minImprovementRatio 
   const speedImprovement = targetSpeed - currentSpeed;
   const merchant = String(ctype || '').toLowerCase() === 'merchant';
 
-  // Merchant logistics are movement-bound. Speed is a lexicographic primary
-  // stat: any real speed gain is an upgrade even if it trades secondary stats,
-  // while a speed loss can never be justified by attack/armor/etc.
-  if (merchant && speedImprovement !== 0) {
+  const threshold = finite(current.total, 0) <= 0
+    ? 0.001
+    : Math.max(0.001, finite(current.total, 0) * Math.max(0, finite(minImprovementRatio, 0)));
+
+  // Merchant speed remains heavily weighted (10x) in CLASS_WEIGHTS, but it is
+  // no longer lexicographically allowed to override a net gear regression.
+  // A speed loss is always rejected; a speed gain must still clear the normal
+  // weighted-improvement threshold. This prevents destructive "faster but
+  // materially worse" replacements such as lbelt over an already stronger
+  // hpbelt while preserving speed as the Merchant's dominant preference.
+  if (merchant && speedImprovement < 0) {
     return {
-      meaningful: speedImprovement > 0,
-      reason: speedImprovement > 0 ? 'MERCHANT_SPEED_GAIN' : 'MERCHANT_SPEED_LOSS_REJECTED',
+      meaningful: false,
+      reason: 'MERCHANT_SPEED_LOSS_REJECTED',
+      improvement,
+      survivalImprovement,
+      speedImprovement
+    };
+  }
+  if (merchant && speedImprovement > 0) {
+    return {
+      meaningful: improvement > threshold,
+      reason: improvement > threshold ? 'MERCHANT_SPEED_WEIGHTED_IMPROVEMENT' : 'MERCHANT_SPEED_NET_REGRESSION_REJECTED',
       improvement,
       survivalImprovement,
       speedImprovement
     };
   }
 
-  const threshold = finite(current.total, 0) <= 0
-    ? 0.001
-    : Math.max(0.001, finite(current.total, 0) * Math.max(0, finite(minImprovementRatio, 0)));
   return {
     meaningful: improvement > threshold,
     reason: improvement > threshold ? 'WEIGHTED_GEAR_IMPROVEMENT' : 'INSUFFICIENT_GEAR_IMPROVEMENT',
@@ -14497,7 +14555,7 @@ class GearProgressionEvaluator {
       economicUpgradeFallbackLevel: ECONOMIC_UPGRADE_FALLBACK_LEVEL,
       processedGearSellRequiresExplicitFutureSafety: true,
       merchantPrimaryGearStat: 'speed',
-      merchantSpeedPriority: 'LEXICOGRAPHIC_FIRST',
+      merchantSpeedPriority: 'WEIGHTED_PRIMARY_WITH_NET_REGRESSION_GUARD',
       merchantSpeedWeight: CLASS_WEIGHTS.merchant.speed,
       lastEvaluatedAt: this.lastEvaluatedAt,
       lastEvaluation: clone(this.lastEvaluation),
@@ -30015,6 +30073,8 @@ class TeamCombatCohesionHotfix {
       leaderSelections: 0,
       followerMirrors: 0,
       sharedAggroSelections: 0,
+      logicalTargetHolds: 0,
+      logicalTargetChanges: 0,
       soloTargetBlocks: 0,
       oversizedTargetBlocks: 0,
       incompleteTeamBlocks: 0,
@@ -30233,50 +30293,165 @@ class TeamCombatCohesionHotfix {
       const snapshot = context && context.snapshot;
       const team = this._team(snapshot);
       if (!team.self || lower(team.self.ctype) === 'merchant') return null;
+
+      // Target authority is intentionally resolved before readiness gates.
+      // Supply/cohesion/team-readiness decide what a member may DO with the
+      // target; they must not erase a target the leader already selected.
+      const sharedAggro = this._sharedAggro(context, team);
+      if (sharedAggro) {
+        this.stats.sharedAggroSelections += 1;
+        if (typeof this.farmer._setLogicalTeamTarget === 'function') {
+          this.farmer._setLogicalTeamTarget(sharedAggro.id, sharedAggro.mtype, {
+            source: 'team-shared-aggro',
+            leaderName: team.leaderName
+          });
+        }
+        this.lastDecision = {
+          at: this.now(),
+          action: 'TARGET_SHARED_AGGRO',
+          reason: 'PARTY_MEMBER_UNDER_ATTACK',
+          targetId: String(sharedAggro.id),
+          targetType: sharedAggro.mtype,
+          leaderName: team.leaderName
+        };
+        return {
+          target: sharedAggro,
+          ranking: {
+            monster: sharedAggro.mtype,
+            score: Number.MAX_SAFE_INTEGER,
+            source: 'team-shared-aggro'
+          }
+        };
+      }
+
+      if (team.selfName !== team.leaderName) {
+        if (!team.leaderTargetId) {
+          if (typeof this.farmer._setLogicalTeamTarget === 'function') this.farmer._setLogicalTeamTarget(null);
+          this.stats.soloTargetBlocks += 1;
+          this.lastDecision = {
+            at: this.now(),
+            action: 'TARGET_HOLD',
+            reason: 'WAITING_FOR_TEAM_LEADER_TARGET',
+            leaderName: team.leaderName
+          };
+          return null;
+        }
+
+        const leaderTarget = (snapshot.entities || []).find((entity) => entity
+          && String(entity.id) === String(team.leaderTargetId));
+        const targetType = leaderTarget && leaderTarget.mtype || null;
+        const previousLogical = this.farmer.logicalTeamTargetId;
+        if (typeof this.farmer._setLogicalTeamTarget === 'function') {
+          this.farmer._setLogicalTeamTarget(team.leaderTargetId, targetType, {
+            source: 'team-leader-authority',
+            leaderName: team.leaderName
+          });
+        }
+        if (previousLogical !== String(team.leaderTargetId)) this.stats.logicalTargetChanges += 1;
+
+        if (!leaderTarget) {
+          this.stats.logicalTargetHolds += 1;
+          if (typeof this.farmer._holdTargetSelection === 'function') {
+            this.farmer._holdTargetSelection('LEADER_TARGET_NOT_LOCALLY_VISIBLE', {
+              leaderName: team.leaderName,
+              targetId: team.leaderTargetId
+            });
+          }
+          this._followLeader(context, team, 'LEADER_TARGET_NOT_LOCALLY_VISIBLE');
+          this.lastDecision = {
+            ...(this.lastDecision || {}),
+            at: this.now(),
+            action: this.lastDecision && this.lastDecision.action === 'FORMATION_FOLLOW'
+              ? this.lastDecision.action
+              : 'TARGET_HOLD',
+            reason: 'LEADER_TARGET_NOT_LOCALLY_VISIBLE',
+            leaderName: team.leaderName,
+            targetId: team.leaderTargetId
+          };
+          return null;
+        }
+
+        if (!this._candidateAllowed(context, leaderTarget)) {
+          this.stats.logicalTargetHolds += 1;
+          this.stats.soloTargetBlocks += 1;
+          if (typeof this.farmer._holdTargetSelection === 'function') {
+            this.farmer._holdTargetSelection('LEADER_TARGET_NOT_LOCALLY_SAFE', {
+              leaderName: team.leaderName,
+              targetId: team.leaderTargetId,
+              targetType
+            });
+          }
+          this.lastDecision = {
+            at: this.now(),
+            action: 'TARGET_HOLD',
+            reason: 'LEADER_TARGET_NOT_LOCALLY_SAFE',
+            leaderName: team.leaderName,
+            targetId: team.leaderTargetId,
+            targetType
+          };
+          return null;
+        }
+
+        this.stats.followerMirrors += 1;
+        this.lastDecision = {
+          at: this.now(),
+          action: 'TARGET_MIRROR',
+          reason: 'TEAM_LEADER_TARGET',
+          leaderName: team.leaderName,
+          targetId: String(leaderTarget.id),
+          targetType: leaderTarget.mtype
+        };
+        return {
+          target: leaderTarget,
+          ranking: {
+            monster: leaderTarget.mtype,
+            score: Number.MAX_SAFE_INTEGER - 1,
+            source: 'team-leader-target'
+          }
+        };
+      }
+
+      // Only the leader's NEW target selection is gated by readiness.
       const block = this._teamBlockReason(snapshot, team, true);
       if (block) {
         if (block === 'TEAM_NOT_COHESIVE') this.stats.cohesionBlocks += 1;
         else if (block === 'LOCAL_POTION_SUPPLY_INCOMPLETE') this.stats.supplyBlocks += 1;
         else if (block === 'TEAM_HP_TOPOFF_REQUIRED' || block === 'TEAM_MP_TOPOFF_REQUIRED') this.stats.recoveryBlocks += 1;
         else this.stats.incompleteTeamBlocks += 1;
-        this.lastDecision = { at: this.now(), action: 'TARGET_HOLD', reason: block, leaderName: team.leaderName, maxPairDistance: team.maxPairDistance };
+        this.lastDecision = {
+          at: this.now(),
+          action: 'TARGET_HOLD',
+          reason: block,
+          leaderName: team.leaderName,
+          maxPairDistance: team.maxPairDistance
+        };
         return null;
-      }
-
-      const sharedAggro = this._sharedAggro(context, team);
-      if (sharedAggro) {
-        this.stats.sharedAggroSelections += 1;
-        this.lastDecision = { at: this.now(), action: 'TARGET_SHARED_AGGRO', reason: 'PARTY_MEMBER_UNDER_ATTACK', targetId: String(sharedAggro.id), targetType: sharedAggro.mtype, leaderName: team.leaderName };
-        return { target: sharedAggro, ranking: { monster: sharedAggro.mtype, score: Number.MAX_SAFE_INTEGER, source: 'team-shared-aggro' } };
-      }
-
-      if (team.selfName !== team.leaderName) {
-        if (!team.leaderTargetId) {
-          this.stats.soloTargetBlocks += 1;
-          this.lastDecision = { at: this.now(), action: 'TARGET_HOLD', reason: 'WAITING_FOR_TEAM_LEADER_TARGET', leaderName: team.leaderName };
-          return null;
-        }
-        const leaderTarget = (snapshot.entities || []).find((entity) => entity && String(entity.id) === String(team.leaderTargetId));
-        if (!leaderTarget || !this._candidateAllowed(context, leaderTarget)) {
-          this.stats.soloTargetBlocks += 1;
-          this.lastDecision = { at: this.now(), action: 'TARGET_HOLD', reason: 'LEADER_TARGET_NOT_LOCALLY_SAFE_OR_VISIBLE', leaderName: team.leaderName, targetId: team.leaderTargetId };
-          return null;
-        }
-        this.stats.followerMirrors += 1;
-        this.lastDecision = { at: this.now(), action: 'TARGET_MIRROR', reason: 'TEAM_LEADER_TARGET', leaderName: team.leaderName, targetId: String(leaderTarget.id), targetType: leaderTarget.mtype };
-        return { target: leaderTarget, ranking: { monster: leaderTarget.mtype, score: Number.MAX_SAFE_INTEGER - 1, source: 'team-leader-target' } };
       }
 
       const selection = baseSelect(context);
       if (!selection || !selection.target) return selection;
       if (this._oversizedNewTarget(selection.target, team)) {
         this.stats.oversizedTargetBlocks += 1;
-        this.lastDecision = { at: this.now(), action: 'TARGET_HOLD', reason: 'NEW_TARGET_TOO_LARGE_FOR_ROUTINE_TEAM_PULL', targetId: String(selection.target.id), targetType: selection.target.mtype, targetMaxHp: selection.target.max_hp };
+        this.lastDecision = {
+          at: this.now(),
+          action: 'TARGET_HOLD',
+          reason: 'NEW_TARGET_TOO_LARGE_FOR_ROUTINE_TEAM_PULL',
+          targetId: String(selection.target.id),
+          targetType: selection.target.mtype,
+          targetMaxHp: selection.target.max_hp
+        };
         this._event('TEAM_NEW_TARGET_REJECTED', 'warn', 'NEW_TARGET_TOO_LARGE_FOR_ROUTINE_TEAM_PULL', { ...this.lastDecision });
         return null;
       }
       this.stats.leaderSelections += 1;
-      this.lastDecision = { at: this.now(), action: 'TARGET_LEADER_SELECT', reason: 'TEAM_COHESIVE', leaderName: team.leaderName, targetId: String(selection.target.id), targetType: selection.target.mtype };
+      this.lastDecision = {
+        at: this.now(),
+        action: 'TARGET_LEADER_SELECT',
+        reason: 'TEAM_COHESIVE',
+        leaderName: team.leaderName,
+        targetId: String(selection.target.id),
+        targetType: selection.target.mtype
+      };
       return selection;
     };
     this.farmer.__teamCohesionTargetSelectionInstalled = true;
@@ -30403,8 +30578,14 @@ class TeamCombatCohesionHotfix {
         if (gate.team && gate.team.selfName !== gate.team.leaderName) this._followLeader(context, gate.team, gate.reason);
         else this.stats.leaderHolds += 1;
         if (gate.reason === 'FOLLOWER_TARGET_DIFFERS_FROM_LEADER') {
+          if (gate.team && gate.team.leaderTargetId && typeof this.farmer._setLogicalTeamTarget === 'function') {
+            this.farmer._setLogicalTeamTarget(gate.team.leaderTargetId, null, {
+              source: 'team-target-change',
+              leaderName: gate.team.leaderName
+            });
+          }
           this.farmer._clearTarget('TEAM_TARGET_CHANGED');
-          this.farmer._transition('REASSESS', 'TEAM_TARGET_CHANGED');
+          this.farmer._transition('SELECT_TARGET', 'TEAM_TARGET_CHANGED');
         }
         this.lastDecision = { ...(this.lastDecision || {}), at: this.now(), action: this.lastDecision && this.lastDecision.action === 'FORMATION_FOLLOW' ? this.lastDecision.action : 'COMBAT_HOLD', reason: gate.reason, phase: 'TRAVEL', leaderName: gate.team && gate.team.leaderName || null };
         return;
@@ -30418,8 +30599,14 @@ class TeamCombatCohesionHotfix {
         if (gate.team && gate.team.selfName !== gate.team.leaderName) this._followLeader(context, gate.team, gate.reason);
         else this.stats.leaderHolds += 1;
         if (gate.reason === 'FOLLOWER_TARGET_DIFFERS_FROM_LEADER') {
+          if (gate.team && gate.team.leaderTargetId && typeof this.farmer._setLogicalTeamTarget === 'function') {
+            this.farmer._setLogicalTeamTarget(gate.team.leaderTargetId, null, {
+              source: 'team-target-change',
+              leaderName: gate.team.leaderName
+            });
+          }
           this.farmer._clearTarget('TEAM_TARGET_CHANGED');
-          this.farmer._transition('REASSESS', 'TEAM_TARGET_CHANGED');
+          this.farmer._transition('SELECT_TARGET', 'TEAM_TARGET_CHANGED');
         }
         this.lastDecision = { ...(this.lastDecision || {}), at: this.now(), action: this.lastDecision && this.lastDecision.action === 'FORMATION_FOLLOW' ? this.lastDecision.action : 'COMBAT_HOLD', reason: gate.reason, phase: 'ENGAGE', leaderName: gate.team && gate.team.leaderName || null };
         return;
@@ -56971,6 +57158,76 @@ function installMerchantProduction(runtime, options = {}) {
     if (!coordinator || !task || task.owner !== 'PRODUCTION' || typeof coordinator.release !== 'function') return false;
     return coordinator.release('PRODUCTION', task.key, reason, details);
   }
+
+  function productionGearTargetSafety(target, plan = null) {
+    if (!target || !target.slot) return { safe: true, reason: 'NON_GEAR_OR_MAINTENANCE_TARGET' };
+    let evidence = target;
+    if (n(evidence.improvement) == null) {
+      const output = String(target.output || target.item || '');
+      const recipient = String(target.recipient || '');
+      const slot = String(target.slot || '');
+      const matched = (Array.isArray(plan && plan.blockedCandidates) ? plan.blockedCandidates : [])
+        .map((row) => row && row.candidate)
+        .find((candidate) => candidate
+          && String(candidate.output || candidate.item || '') === output
+          && String(candidate.recipient || '') === recipient
+          && String(candidate.slot || '') === slot
+          && n(candidate.improvement) != null);
+      if (matched) evidence = matched;
+    }
+    const improvement = n(evidence.improvement);
+    if (improvement == null) return { safe: false, reason: 'GEAR_TARGET_IMPROVEMENT_UNVERIFIED' };
+    if (improvement <= 0) {
+      return {
+        safe: false,
+        reason: 'GEAR_TARGET_NET_REGRESSION',
+        improvement,
+        survivalImprovement: n(evidence.survivalImprovement),
+        speedImprovement: n(evidence.speedImprovement),
+        improvementReason: evidence.improvementReason || null
+      };
+    }
+    return { safe: true, reason: 'GEAR_TARGET_NET_POSITIVE', improvement };
+  }
+
+  function productionMutationPathPreflight(plan, selection) {
+    const targetSafety = productionGearTargetSafety(selection && selection.candidate, plan);
+    if (!targetSafety.safe) return { allowed: false, reason: targetSafety.reason, targetSafety };
+
+    const row = selection && selection.row;
+    const blockers = Array.isArray(row && row.blockers) ? row.blockers : [];
+    const farmBlockers = blockers.filter((blocker) => blocker && String(blocker.reason || '') === 'MATERIAL_FARM_REQUIRED');
+    if (!farmBlockers.length) return { allowed: true, reason: 'NO_EXTERNAL_FARM_DEPENDENCY', targetSafety };
+
+    const probe = chooseProductionTeamFarmObjective(runtime, [{
+      candidate: clone(selection.candidate),
+      steps: clone(Array.isArray(row && row.steps) ? row.steps : []),
+      blockers: clone(farmBlockers)
+    }], {
+      maxTeamFarmHours: state.maxTeamFarmHours,
+      fallbackKillsPerHour: state.fallbackKillsPerHour
+    });
+    const evidence = Array.isArray(probe && probe.evaluated) ? probe.evaluated[0] : null;
+    const immediatelyResolvable = !!(probe && probe.selected);
+    const alreadyResolved = !!(evidence && [
+      'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER',
+      'EXCHANGE_INPUT_READY_ON_MERCHANT'
+    ].includes(String(evidence.reason || '')));
+    if (immediatelyResolvable || alreadyResolved) {
+      return {
+        allowed: true,
+        reason: immediatelyResolvable ? 'FARM_DEPENDENCY_SAFELY_RESOLVABLE' : evidence.reason,
+        targetSafety,
+        evidence: clone(evidence)
+      };
+    }
+    return {
+      allowed: false,
+      reason: 'PRODUCTION_MUTATION_CHAIN_NOT_COMPLETABLE',
+      targetSafety,
+      evidence: clone(evidence)
+    };
+  }
   function character() { return runtime.root && (runtime.root.character || (runtime.root.parent && runtime.root.parent.character)) || null; }
   function isMerchant() { const c = character(); return !!(c && String(c.ctype || c.type || '').toLowerCase() === 'merchant'); }
   function inCombat() { const c = character(); if (!c) return false; if (c.target) return true; const entities = runtime.root && runtime.root.parent && runtime.root.parent.entities || runtime.root && runtime.root.entities || {}; const ids = new Set([c.name, c.id].filter(Boolean).map(String)); return Object.values(entities).some((e) => e && e.target && ids.has(String(e.target))); }
@@ -57199,7 +57456,7 @@ function installMerchantProduction(runtime, options = {}) {
         ProductionStepKind.COMPOUND_REQUIRED
       ].includes(candidateStep.kind));
       if (!step) continue;
-      return { candidate: clone(row.candidate), step: clone(step) };
+      return { candidate: clone(row.candidate), step: clone(step), row: clone(row) };
     }
     return null;
   }
@@ -57311,6 +57568,27 @@ function installMerchantProduction(runtime, options = {}) {
     if (runtime.now() < state.pausedUntil) return false;
     const selection = mutationCandidateForPlan(plan);
     if (!selection) return false;
+    const preflight = productionMutationPathPreflight(plan, selection);
+    if (!preflight.allowed) {
+      state.mutationHolds += 1;
+      state.lastExecution = {
+        at: runtime.now(),
+        planId: plan.id,
+        kind: selection.step.kind,
+        result: {
+          executed: false,
+          committed: false,
+          reason: preflight.reason,
+          preflight: clone(preflight)
+        }
+      };
+      clearProductionMutationDemand(preflight.reason);
+      if (preflight.reason === 'GEAR_TARGET_NET_REGRESSION' || preflight.reason === 'GEAR_TARGET_IMPROVEMENT_UNVERIFIED') {
+        productionIntent.abort(preflight.reason);
+      }
+      releaseTask(preflight.reason, { preflight: clone(preflight) });
+      return false;
+    }
     const lockPlan = { ...clone(plan), target: clone(selection.candidate) };
     persistIntentForTarget(lockPlan, selection.candidate, 'MUTATION_READY', {
       reason: 'LEVELED_RECIPE_INPUT_MUTATION_READY',
@@ -57428,6 +57706,11 @@ function installMerchantProduction(runtime, options = {}) {
         lastExecution: state.lastExecution
       });
       clearProductionMutationDemand('PRODUCTION_MUTATION_ATTEMPT_COMPLETE_REPLAN');
+      releaseTask('PRODUCTION_MUTATION_ATTEMPT_COMPLETE_REPLAN', {
+        planId: plan.id,
+        kind: selection.step.kind,
+        result: clone(state.lastExecution && state.lastExecution.result || null)
+      });
       state.executionPending = false;
     });
     return true;
@@ -57861,6 +58144,25 @@ function installMerchantProduction(runtime, options = {}) {
     }
 
     const plan = evaluate();
+    const targetSafety = productionGearTargetSafety(plan && plan.target, plan);
+    if (plan && plan.target && !targetSafety.safe) {
+      clearProductionMutationDemand(targetSafety.reason);
+      clearProductionMaterialObjective(targetSafety.reason);
+      productionIntent.abort(targetSafety.reason);
+      releaseTask(targetSafety.reason, { target: clone(plan.target), targetSafety: clone(targetSafety) });
+      state.lastExecution = {
+        at: runtime.now(),
+        planId: plan.id || null,
+        kind: 'TARGET_SAFETY_GATE',
+        result: { executed: false, committed: false, reason: targetSafety.reason, targetSafety: clone(targetSafety) }
+      };
+      return {
+        ...clone(plan),
+        state: 'HOLD',
+        reason: targetSafety.reason,
+        targetSafety: clone(targetSafety)
+      };
+    }
     if (plan && plan.state === 'READY') {
       persistIntentForTarget(plan, plan.target, 'READY', { reason: 'PRODUCTION_CHAIN_READY' });
       clearProductionMutationDemand('PRODUCTION_CHAIN_READY');
@@ -62732,6 +63034,7 @@ module.exports = {
 
 const ALPHA31_PARTY_ROLE_LIVENESS_MODE = 'alpha31-party-role-liveness-v1';
 const MERCHANT_TRAVEL_ATTESTATION_SOURCE = 'trusted-owned-merchant-service';
+const MELEE_KITING_DISABLED_CLASSES = new Set(['warrior', 'paladin', 'rogue']);
 
 function finite(value, fallback = null) {
   const n = Number(value);
@@ -62801,6 +63104,7 @@ class Alpha31PartyRoleLivenessHotfix {
       aggroOrbitEscapeMoves: 0,
       aggroOrbitNoWaypoint: 0,
       aggroEmergencyTerrainEscapes: 0,
+      meleeKitingBypasses: 0,
       visiblePartyPositionRefreshes: 0,
       followerSmartRegroups: 0,
       followerSmartRetargets: 0,
@@ -62969,6 +63273,19 @@ class Alpha31PartyRoleLivenessHotfix {
       if (!character || !target || character.rip || character.dead || this.runtime.pendingEmergencyRetreat) return decision;
       if (!target.target || String(target.target) !== String(character.name || '')) return decision;
       if (!liveMonster(target)) return decision;
+
+      const ctype = String(character.ctype || character.type || '').toLowerCase();
+      if (MELEE_KITING_DISABLED_CLASSES.has(ctype)) {
+        this.stats.meleeKitingBypasses += 1;
+        return {
+          ...decision,
+          shouldMove: false,
+          reason: 'MELEE_KITING_DISABLED',
+          meleeKitingDisabled: true,
+          alpha31SafeOrbit: false,
+          alpha31EmergencyTerrainEscape: false
+        };
+      }
 
       this.stats.aggroOrbitEvaluations += 1;
       const waypoint = this._orbitWaypoint(character, target);

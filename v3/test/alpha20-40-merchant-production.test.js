@@ -71,7 +71,7 @@ test('planner selects a deterministic crafted gear improvement and reserves held
   assert.equal(plan.reservations['wood|0'], 2);
 });
 
-test('production planner prefers Merchant speed gain over massive secondary stats', () => {
+test('production planner rejects Merchant speed gain when it is a net gear regression', () => {
   const gameData = {
     items: {
       currentboots: { type: 'shoes', armor: 1000, speed: 5, class: ['merchant'], g: 1000 },
@@ -104,11 +104,47 @@ test('production planner prefers Merchant speed gain over massive secondary stat
     controlledBusy: false
   });
 
+  assert.equal(plan.state, 'HOLD');
+  assert.equal(plan.reason, 'NO_CRAFTED_GEAR_IMPROVEMENT');
+});
+
+test('production planner still prefers a Merchant speed gain when weighted gear value is net positive', () => {
+  const gameData = {
+    items: {
+      currentboots: { type: 'shoes', armor: 0, speed: 5, class: ['merchant'], g: 1000 },
+      swiftboots: { type: 'shoes', armor: 10, speed: 6, class: ['merchant'], g: 1000 },
+      wood: { type: 'material', g: 10 }
+    },
+    craft: {
+      swiftboots: { cost: 10, items: [[1, 'wood', 0]] }
+    },
+    maps: {},
+    npcs: {}
+  };
+  const planner = new MerchantProductionPlanner({ now: () => 1550, goldReserve: 0, minImprovementRatio: 0.01 });
+  const plan = planner.plan({
+    character: { name: 'Merchant', ctype: 'merchant', gold: 10000, items: [{ name: 'wood', q: 1 }], bank: {} },
+    registry: {
+      characters: [{
+        name: 'Merchant',
+        ctype: 'merchant',
+        level: 80,
+        gear: { shoes: { name: 'currentboots', level: 0 } },
+        inventory: []
+      }]
+    },
+    gameData,
+    inCombat: false,
+    economyEmergency: false,
+    controlledBusy: false
+  });
+
   assert.equal(plan.state, 'READY');
   assert.equal(plan.target.output, 'swiftboots');
   assert.equal(plan.target.recipient, 'Merchant');
   assert.equal(plan.target.speedImprovement, 1);
-  assert.equal(plan.target.improvementReason, 'MERCHANT_SPEED_GAIN');
+  assert.ok(plan.target.improvement > 0);
+  assert.equal(plan.target.improvementReason, 'MERCHANT_SPEED_WEIGHTED_IMPROVEMENT');
 });
 
 test('planner uses bank materials before declaring farming required', () => {

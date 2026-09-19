@@ -322,6 +322,76 @@ function installMerchantProduction(runtime, options = {}) {
     if (!coordinator || !task || task.owner !== 'PRODUCTION' || typeof coordinator.release !== 'function') return false;
     return coordinator.release('PRODUCTION', task.key, reason, details);
   }
+
+  function productionGearTargetSafety(target, plan = null) {
+    if (!target || !target.slot) return { safe: true, reason: 'NON_GEAR_OR_MAINTENANCE_TARGET' };
+    let evidence = target;
+    if (n(evidence.improvement) == null) {
+      const output = String(target.output || target.item || '');
+      const recipient = String(target.recipient || '');
+      const slot = String(target.slot || '');
+      const matched = (Array.isArray(plan && plan.blockedCandidates) ? plan.blockedCandidates : [])
+        .map((row) => row && row.candidate)
+        .find((candidate) => candidate
+          && String(candidate.output || candidate.item || '') === output
+          && String(candidate.recipient || '') === recipient
+          && String(candidate.slot || '') === slot
+          && n(candidate.improvement) != null);
+      if (matched) evidence = matched;
+    }
+    const improvement = n(evidence.improvement);
+    if (improvement == null) return { safe: false, reason: 'GEAR_TARGET_IMPROVEMENT_UNVERIFIED' };
+    if (improvement <= 0) {
+      return {
+        safe: false,
+        reason: 'GEAR_TARGET_NET_REGRESSION',
+        improvement,
+        survivalImprovement: n(evidence.survivalImprovement),
+        speedImprovement: n(evidence.speedImprovement),
+        improvementReason: evidence.improvementReason || null
+      };
+    }
+    return { safe: true, reason: 'GEAR_TARGET_NET_POSITIVE', improvement };
+  }
+
+  function productionMutationPathPreflight(plan, selection) {
+    const targetSafety = productionGearTargetSafety(selection && selection.candidate, plan);
+    if (!targetSafety.safe) return { allowed: false, reason: targetSafety.reason, targetSafety };
+
+    const row = selection && selection.row;
+    const blockers = Array.isArray(row && row.blockers) ? row.blockers : [];
+    const farmBlockers = blockers.filter((blocker) => blocker && String(blocker.reason || '') === 'MATERIAL_FARM_REQUIRED');
+    if (!farmBlockers.length) return { allowed: true, reason: 'NO_EXTERNAL_FARM_DEPENDENCY', targetSafety };
+
+    const probe = chooseProductionTeamFarmObjective(runtime, [{
+      candidate: clone(selection.candidate),
+      steps: clone(Array.isArray(row && row.steps) ? row.steps : []),
+      blockers: clone(farmBlockers)
+    }], {
+      maxTeamFarmHours: state.maxTeamFarmHours,
+      fallbackKillsPerHour: state.fallbackKillsPerHour
+    });
+    const evidence = Array.isArray(probe && probe.evaluated) ? probe.evaluated[0] : null;
+    const immediatelyResolvable = !!(probe && probe.selected);
+    const alreadyResolved = !!(evidence && [
+      'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER',
+      'EXCHANGE_INPUT_READY_ON_MERCHANT'
+    ].includes(String(evidence.reason || '')));
+    if (immediatelyResolvable || alreadyResolved) {
+      return {
+        allowed: true,
+        reason: immediatelyResolvable ? 'FARM_DEPENDENCY_SAFELY_RESOLVABLE' : evidence.reason,
+        targetSafety,
+        evidence: clone(evidence)
+      };
+    }
+    return {
+      allowed: false,
+      reason: 'PRODUCTION_MUTATION_CHAIN_NOT_COMPLETABLE',
+      targetSafety,
+      evidence: clone(evidence)
+    };
+  }
   function character() { return runtime.root && (runtime.root.character || (runtime.root.parent && runtime.root.parent.character)) || null; }
   function isMerchant() { const c = character(); return !!(c && String(c.ctype || c.type || '').toLowerCase() === 'merchant'); }
   function inCombat() { const c = character(); if (!c) return false; if (c.target) return true; const entities = runtime.root && runtime.root.parent && runtime.root.parent.entities || runtime.root && runtime.root.entities || {}; const ids = new Set([c.name, c.id].filter(Boolean).map(String)); return Object.values(entities).some((e) => e && e.target && ids.has(String(e.target))); }
@@ -550,7 +620,7 @@ function installMerchantProduction(runtime, options = {}) {
         ProductionStepKind.COMPOUND_REQUIRED
       ].includes(candidateStep.kind));
       if (!step) continue;
-      return { candidate: clone(row.candidate), step: clone(step) };
+      return { candidate: clone(row.candidate), step: clone(step), row: clone(row) };
     }
     return null;
   }
@@ -662,6 +732,27 @@ function installMerchantProduction(runtime, options = {}) {
     if (runtime.now() < state.pausedUntil) return false;
     const selection = mutationCandidateForPlan(plan);
     if (!selection) return false;
+    const preflight = productionMutationPathPreflight(plan, selection);
+    if (!preflight.allowed) {
+      state.mutationHolds += 1;
+      state.lastExecution = {
+        at: runtime.now(),
+        planId: plan.id,
+        kind: selection.step.kind,
+        result: {
+          executed: false,
+          committed: false,
+          reason: preflight.reason,
+          preflight: clone(preflight)
+        }
+      };
+      clearProductionMutationDemand(preflight.reason);
+      if (preflight.reason === 'GEAR_TARGET_NET_REGRESSION' || preflight.reason === 'GEAR_TARGET_IMPROVEMENT_UNVERIFIED') {
+        productionIntent.abort(preflight.reason);
+      }
+      releaseTask(preflight.reason, { preflight: clone(preflight) });
+      return false;
+    }
     const lockPlan = { ...clone(plan), target: clone(selection.candidate) };
     persistIntentForTarget(lockPlan, selection.candidate, 'MUTATION_READY', {
       reason: 'LEVELED_RECIPE_INPUT_MUTATION_READY',
@@ -779,6 +870,11 @@ function installMerchantProduction(runtime, options = {}) {
         lastExecution: state.lastExecution
       });
       clearProductionMutationDemand('PRODUCTION_MUTATION_ATTEMPT_COMPLETE_REPLAN');
+      releaseTask('PRODUCTION_MUTATION_ATTEMPT_COMPLETE_REPLAN', {
+        planId: plan.id,
+        kind: selection.step.kind,
+        result: clone(state.lastExecution && state.lastExecution.result || null)
+      });
       state.executionPending = false;
     });
     return true;
@@ -1212,6 +1308,25 @@ function installMerchantProduction(runtime, options = {}) {
     }
 
     const plan = evaluate();
+    const targetSafety = productionGearTargetSafety(plan && plan.target, plan);
+    if (plan && plan.target && !targetSafety.safe) {
+      clearProductionMutationDemand(targetSafety.reason);
+      clearProductionMaterialObjective(targetSafety.reason);
+      productionIntent.abort(targetSafety.reason);
+      releaseTask(targetSafety.reason, { target: clone(plan.target), targetSafety: clone(targetSafety) });
+      state.lastExecution = {
+        at: runtime.now(),
+        planId: plan.id || null,
+        kind: 'TARGET_SAFETY_GATE',
+        result: { executed: false, committed: false, reason: targetSafety.reason, targetSafety: clone(targetSafety) }
+      };
+      return {
+        ...clone(plan),
+        state: 'HOLD',
+        reason: targetSafety.reason,
+        targetSafety: clone(targetSafety)
+      };
+    }
     if (plan && plan.state === 'READY') {
       persistIntentForTarget(plan, plan.target, 'READY', { reason: 'PRODUCTION_CHAIN_READY' });
       clearProductionMutationDemand('PRODUCTION_CHAIN_READY');

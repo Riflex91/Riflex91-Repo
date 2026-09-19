@@ -358,6 +358,44 @@ test('a follower mirrors the leader target only when it remains locally safe and
   assert.equal(hotfix.status().lastDecision.reason, 'TEAM_LEADER_TARGET');
 });
 
+test('follower keeps authoritative leader target knowledge even when local potion supply blocks combat', () => {
+  const target = monster('m1');
+  const { runtime, snap, hotfix } = makeTeamRuntime({
+    localName: 'My_Ranger2',
+    localOverrides: { inventory: inventory({ mp: 0 }) },
+    entities: [target],
+    partyOverrides: { My_Ranger1: { ...rawParty().My_Ranger1, target: 'm1' } }
+  });
+  const ctx = context(runtime, snap);
+  const selected = runtime.farmer._selectTarget(ctx);
+
+  assert.ok(selected);
+  assert.equal(selected.target.id, 'm1');
+  assert.equal(runtime.farmer.logicalTeamTargetId, 'm1');
+  assert.equal(runtime.farmer.logicalTeamTargetType, 'crab');
+  assert.equal(hotfix.status().lastDecision.reason, 'TEAM_LEADER_TARGET');
+
+  const gate = hotfix._combatGate(ctx, target, 'ENGAGE');
+  assert.equal(gate.allowed, false);
+  assert.equal(gate.reason, 'LOCAL_POTION_SUPPLY_INCOMPLETE');
+  assert.equal(runtime.farmer.logicalTeamTargetId, 'm1');
+});
+
+test('follower preserves leader target identity while the target is temporarily not locally visible', () => {
+  const { runtime, snap, hotfix } = makeTeamRuntime({
+    localName: 'My_Ranger2',
+    entities: [],
+    partyOverrides: { My_Ranger1: { ...rawParty().My_Ranger1, target: 'm1' } }
+  });
+  const selected = runtime.farmer._selectTarget(context(runtime, snap));
+
+  assert.equal(selected, null);
+  assert.equal(runtime.farmer.logicalTeamTargetId, 'm1');
+  assert.ok(runtime.farmer.targetSelectionHold);
+  assert.equal(runtime.farmer.targetSelectionHold.reason, 'LEADER_TARGET_NOT_LOCALLY_VISIBLE');
+  assert.equal(hotfix.status().lastDecision.reason, 'LEADER_TARGET_NOT_LOCALLY_VISIBLE');
+});
+
 test('existing shared aggro can become a rescue target for every team member before leader target propagation', () => {
   const target = monster('danger', { target: 'My_Ranger2' });
   const { runtime, snap, hotfix } = makeTeamRuntime({ localName: 'My_Ranger3', entities: [target] });
