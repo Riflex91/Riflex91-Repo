@@ -474,9 +474,23 @@ class ControlledPartyLogistics {
     // Progression/equipment signals therefore must not block the handoff. Only
     // genuinely character-bound/special-purpose metadata stays on the Farmer.
     // An explicitly requested production material may bypass generic event/
-    // exchange protection, but never true binding/quest/special restrictions.
+    // exchange protection. A quest-tagged item is transferable only for the
+    // exact active production QUEST_EXCHANGE edge and only when its quest key
+    // matches the current objective. No generic quest-item authority is opened.
     const productionMaterial = this._productionMaterialMatch(item);
-    const absoluteSignals = ['quest', 'cash', 'soulbound', 'offering', 'throw', 'ignore'];
+    const objective = this._isMerchant()
+      ? this.lastProductionMaterialObjective
+      : this.runtime && this.runtime.farmer && this.runtime.farmer.materialObjective;
+    const exactProductionQuestInput = !!(
+      productionMaterial
+      && objective
+      && String(objective.acquisitionKind || '').includes('QUEST')
+      && objective.quest
+      && String(meta.quest || '') === String(objective.quest)
+    );
+    const absoluteSignals = exactProductionQuestInput
+      ? ['cash', 'soulbound', 'offering', 'throw', 'ignore']
+      : ['quest', 'cash', 'soulbound', 'offering', 'throw', 'ignore'];
     const conditionalSignals = productionMaterial ? [] : ['exchange', 'event'];
     const hardSignals = absoluteSignals.concat(conditionalSignals);
     const hardBlockers = hardSignals.filter((key) => meta[key] === true || (meta[key] != null && meta[key] !== false && meta[key] !== 0 && meta[key] !== ''));
@@ -484,7 +498,14 @@ class ControlledPartyLogistics {
 
     const level = Math.max(0, Math.floor(finite(item.level, 0)));
     if (productionMaterial) {
-      return { ok: true, name, level, quantity: Math.max(1, Math.floor(finite(item.q, 1))), metadataType: meta.type || null, merchantLifecycle: 'REQUESTED_PRODUCTION_MATERIAL' };
+      return {
+        ok: true,
+        name,
+        level,
+        quantity: Math.max(1, Math.floor(finite(item.q, 1))),
+        metadataType: meta.type || null,
+        merchantLifecycle: exactProductionQuestInput ? 'REQUESTED_PRODUCTION_QUEST_INPUT' : 'REQUESTED_PRODUCTION_MATERIAL'
+      };
     }
     const gearTypes = new Set(['weapon', 'helmet', 'coat', 'pants', 'shoes', 'gloves', 'ring', 'earring', 'amulet', 'belt', 'shield', 'quiver', 'cape', 'orb', 'source']);
     const processableGear = !!(meta.upgrade || meta.compound || gearTypes.has(String(meta.type || '').toLowerCase()));
@@ -690,6 +711,9 @@ class ControlledPartyLogistics {
         requiredQuantity: Math.max(1, Math.floor(finite(data.requiredQuantity, 1))),
         exchangeRequired: finite(data.exchangeRequired),
         exchangeRewardPerOperation: finite(data.exchangeRewardPerOperation),
+        expectedExchangeOperations: finite(data.expectedExchangeOperations),
+        p50ExchangeOperations: finite(data.p50ExchangeOperations),
+        p90ExchangeOperations: finite(data.p90ExchangeOperations),
         output: cleanName(data.output),
         recipient: cleanName(data.recipient),
         slot: cleanName(data.slot),
@@ -698,10 +722,24 @@ class ControlledPartyLogistics {
         y: finite(data.y),
         spawnIndex: finite(data.spawnIndex),
         expectedHours: finite(data.expectedHours),
+        p50Hours: finite(data.p50Hours),
+        p90Hours: finite(data.p90Hours),
         totalExpectedHours: finite(data.totalExpectedHours),
+        totalP50Hours: finite(data.totalP50Hours),
+        totalP90Hours: finite(data.totalP90Hours),
+        probabilityConfidence: finite(data.probabilityConfidence),
+        timeModel: cleanName(data.timeModel),
+        decisionQuantile: cleanName(data.decisionQuantile),
         maxTeamFarmHours: finite(data.maxTeamFarmHours),
         utilityPerFarmHour: finite(data.utilityPerFarmHour),
         evidence: cleanName(data.evidence),
+        quest: cleanName(data.quest),
+        questDestination: clone(data.questDestination || null),
+        eventKey: cleanName(data.eventKey),
+        eventType: cleanName(data.eventType),
+        eventEndsAt: finite(data.eventEndsAt),
+        eventEvidence: cleanName(data.eventEvidence),
+        graphNode: clone(data.graphNode || null),
         expiresAt
       };
       return true;
@@ -726,6 +764,14 @@ class ControlledPartyLogistics {
         level: Math.max(0, Math.floor(finite(data.level, 0))),
         requiredQuantity: Math.max(1, Math.floor(finite(data.requiredQuantity, 1))),
         heldByFarmers: Math.max(0, Math.floor(finite(data.heldByFarmers, 0))),
+        probabilityConfidence: finite(data.probabilityConfidence),
+        timeModel: cleanName(data.timeModel),
+        quest: cleanName(data.quest),
+        questDestination: clone(data.questDestination || null),
+        eventKey: cleanName(data.eventKey),
+        eventType: cleanName(data.eventType),
+        eventEndsAt: finite(data.eventEndsAt),
+        graphNode: clone(data.graphNode || null),
         output: cleanName(data.output),
         recipient: cleanName(data.recipient),
         slot: cleanName(data.slot),
@@ -1094,16 +1140,33 @@ class ControlledPartyLogistics {
       requiredQuantity: Math.max(1, Math.floor(finite(objective.requiredQuantity, 1))),
       exchangeRequired: finite(objective.exchangeRequired),
       exchangeRewardPerOperation: finite(objective.exchangeRewardPerOperation),
+      expectedExchangeOperations: finite(objective.expectedExchangeOperations),
+      p50ExchangeOperations: finite(objective.p50ExchangeOperations),
+      p90ExchangeOperations: finite(objective.p90ExchangeOperations),
       monster: cleanName(objective.monster),
       map: cleanName(objective.map),
       x: finite(objective.x),
       y: finite(objective.y),
       spawnIndex: finite(objective.spawnIndex),
       expectedHours: finite(objective.expectedHours),
+      p50Hours: finite(objective.p50Hours),
+      p90Hours: finite(objective.p90Hours),
       totalExpectedHours: finite(objective.totalExpectedHours),
+      totalP50Hours: finite(objective.totalP50Hours),
+      totalP90Hours: finite(objective.totalP90Hours),
+      probabilityConfidence: finite(objective.probabilityConfidence),
+      timeModel: cleanName(objective.timeModel),
+      decisionQuantile: cleanName(objective.decisionQuantile),
       maxTeamFarmHours: finite(objective.maxTeamFarmHours),
       utilityPerFarmHour: finite(objective.utilityPerFarmHour),
       evidence: cleanName(objective.evidence),
+      quest: cleanName(objective.quest),
+      questDestination: clone(objective.questDestination || null),
+      eventKey: cleanName(objective.eventKey),
+      eventType: cleanName(objective.eventType),
+      eventEndsAt: finite(objective.eventEndsAt),
+      eventEvidence: cleanName(objective.eventEvidence),
+      graphNode: clone(objective.graphNode || null),
       createdAt: now,
       expiresAt: finite(objective.expiresAt, now + 15 * 60 * 1000)
     };
@@ -1156,6 +1219,14 @@ class ControlledPartyLogistics {
       level: Math.max(0, Math.floor(finite(objective.level, finite(previous.level, 0)))),
       requiredQuantity: Math.max(1, Math.floor(finite(objective.requiredQuantity, finite(previous.requiredQuantity, 1)))),
       heldByFarmers: Math.max(0, Math.floor(finite(objective.heldByFarmers, 0))),
+      probabilityConfidence: finite(objective.probabilityConfidence, finite(previous.probabilityConfidence)),
+      timeModel: cleanName(objective.timeModel || previous.timeModel),
+      quest: cleanName(objective.quest || previous.quest),
+      questDestination: clone(objective.questDestination || previous.questDestination || null),
+      eventKey: cleanName(objective.eventKey || previous.eventKey),
+      eventType: cleanName(objective.eventType || previous.eventType),
+      eventEndsAt: finite(objective.eventEndsAt, finite(previous.eventEndsAt)),
+      graphNode: clone(objective.graphNode || previous.graphNode || null),
       phase: 'HANDOFF_READY',
       handoffReadyAt: now,
       expiresAt
@@ -1437,6 +1508,9 @@ class ControlledPartyLogistics {
         elixirFarmObjectiveAutomatic: true,
         productionMaterialObjectiveAutomatic: true,
         productionMaterialHandoffStopsFarmerCombat: true,
+        exactProductionQuestInputTransfer: true,
+        genericQuestItemTransfer: false,
+        productionMaterialProbabilisticTimeModel: true,
         productionMaterialTeamPolicy: 'ALL_FARMERS_SAME_OBJECTIVE',
         farmerLootPolicy: 'merchant-central-processing-nonbound-items',
         farmerProgressionGearTransfer: true,

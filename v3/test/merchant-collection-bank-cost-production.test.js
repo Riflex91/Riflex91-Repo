@@ -61,7 +61,7 @@ test('production planner chooses a cheaper recipe chain over direct NPC purchase
     economyEmergency: false
   });
   assert.equal(plan.state, 'READY');
-  assert.equal(plan.costStrategy, 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE');
+  assert.equal(plan.costStrategy, 'LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC');
   assert.equal(plan.steps.some((step) => step.name === 'part' && step.kind === ProductionStepKind.CRAFT && step.reason === 'LEAST_GOLD_RECIPE_SOURCE'), true);
   assert.equal(plan.steps.some((step) => step.name === 'part' && step.kind === ProductionStepKind.BUY), false);
 });

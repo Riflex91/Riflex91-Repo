@@ -1,8 +1,8 @@
 # Block 8.6 – Live Skill Catalog und Capability Truth
 
-Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.4 implementiert, naechster Implementierungsschritt 8.6.5.**
+Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.5 implementiert, naechster Implementierungsschritt 8.6.6.**
 
-Naechster Implementierungsschritt: **8.6.5 – Cross-Client Capability Sync**
+Naechster Implementierungsschritt: **8.6.6 – Capability-basierte Leader- und Aufgabenwahl**
 
 ## Ziel
 
@@ -127,7 +127,7 @@ Zusatzdaten wie Multi-Target-Damage, AoE-Control, Party-Heal oder Target-Capacit
 
 Umsetzungsnachweis: `BLOCK-8-6-4-CHARAKTER-FAEHIGKEITEN.md`.
 
-## 8.6.5 – Cross-Client Capability Sync
+## 8.6.5 – Cross-Client Capability Sync — **IMPLEMENTIERT**
 
 Der bestehende vertrauensgebundene Block-8-Lebensnachweis transportiert einen bounded Capability-Snapshot.
 
@@ -151,6 +151,8 @@ Remote-Daten gelten nur als vertraut, wenn:
 - fachlicher Catalog-Fingerprint uebereinstimmt.
 
 Missing/Stale/Mismatch -> fail-closed.
+
+Umsetzungsnachweis: `BLOCK-8-6-5-CAPABILITY-SYNC.md`.
 
 ## 8.6.6 – Capability-basierte Leader- und Aufgabenwahl
 

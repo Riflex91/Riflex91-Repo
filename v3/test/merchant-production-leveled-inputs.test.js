@@ -327,7 +327,7 @@ test('production controller hands an actionable leveled input to Alpha27 under o
     plan: () => plan,
     planMaterialConsolidation: () => null,
     planExchange: () => null,
-    status: () => ({ costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE' })
+    status: () => ({ costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC' })
   };
   const bankCatalog = {
     observe: () => true,
