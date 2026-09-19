@@ -207,7 +207,7 @@ test('economic upgrade fallback is atomic and cannot masquerade as an arbitrary 
   assert.equal(request.metadata.economicLifecycle, true);
   assert.equal(request.metadata.targetLevel, 3);
   assert.equal(request.metadata.upgradeLifecycle, 'ECONOMIC_TO_PLUS3');
-  assert.equal(request.metadata.scrollPolicy, 'SCROLL0_ONLY');
+  assert.equal(request.metadata.scrollPolicy, 'ITEM_GRADE_DEFAULT');
 
   const planned = engine.planAtomic(request, { ledger });
   assert.equal(planned.accepted, true);
@@ -225,7 +225,7 @@ test('economic upgrade fallback is atomic and cannot masquerade as an arbitrary 
   assert.equal(rejected.reason, 'ECONOMIC_UPGRADE_SCOPE_INVALID');
 });
 
-test('Farmer +5 upgrade lifecycle enforces scroll0 through +3 and scroll1 from +3 through +5', () => {
+test('Farmer +5 upgrade lifecycle uses authoritative item-grade scrolls at every step', () => {
   for (const level of [0, 1, 2, 3, 4]) {
     const engine = makeEngine();
     const controlledMerchant = makeControlledMerchant();
@@ -242,7 +242,8 @@ test('Farmer +5 upgrade lifecycle enforces scroll0 through +3 and scroll1 from +
         items: [
           { name: 'sword', level },
           { name: 'scroll0', level: 0, q: 10 },
-          { name: 'scroll1', level: 0, q: 10 }
+          { name: 'scroll1', level: 0, q: 10 },
+          { name: 'scroll2', level: 0, q: 10 }
         ]
       },
       parent: { entities: {} }
@@ -257,9 +258,10 @@ test('Farmer +5 upgrade lifecycle enforces scroll0 through +3 and scroll1 from +
     }]);
     const gameData = {
       items: {
-        sword: { type: 'weapon', g: 1000, upgrade: { attack: 1 }, grades: [99] },
+        sword: { type: 'weapon', g: 1000, upgrade: { attack: 1 }, grades: [2, 4] },
         scroll0: { type: 'scroll', g: 100 },
-        scroll1: { type: 'scroll', g: 1000 }
+        scroll1: { type: 'scroll', g: 1000 },
+        scroll2: { type: 'scroll', g: 10000 }
       },
       monsters: {},
       maps: {}
@@ -286,12 +288,12 @@ test('Farmer +5 upgrade lifecycle enforces scroll0 through +3 and scroll1 from +
     assert.equal(planned.accepted, true);
     const check = convergence.atomic.atomicPreflight(engine.get(planned.transaction.id));
     assert.equal(check.ok, true, check.reason);
-    assert.equal(check.scroll, level < 3 ? 'scroll0' : 'scroll1');
+    assert.equal(check.scroll, level < 2 ? 'scroll0' : level < 4 ? 'scroll1' : 'scroll2');
     assert.equal(check.upgradeLifecycle, 'FARMER_POTENTIAL_TO_PLUS5');
   }
 });
 
-test('economic +3 upgrade lifecycle continues from +2 and still requires scroll0', () => {
+test('economic +3 upgrade lifecycle continues from +2 with the item-grade scroll', () => {
   const level = 2;
   const engine = makeEngine();
   const controlledMerchant = makeControlledMerchant();
@@ -299,7 +301,7 @@ test('economic +3 upgrade lifecycle continues from +2 and still requires scroll0
     character: {
       name: 'Merchant', ctype: 'merchant', map: 'main', x: 0, y: 0,
       gold: 2000000, target: null, isize: 42,
-      items: [{ name: 'sword', level }, { name: 'scroll0', level: 0, q: 10 }]
+      items: [{ name: 'sword', level }, { name: 'scroll0', level: 0, q: 10 }, { name: 'scroll1', level: 0, q: 10 }]
     },
     parent: { entities: {} }
   };
@@ -314,7 +316,8 @@ test('economic +3 upgrade lifecycle continues from +2 and still requires scroll0
   const gameData = {
     items: {
       sword: { type: 'weapon', g: 1000, upgrade: { attack: 1 }, grades: [1] },
-      scroll0: { type: 'scroll', g: 100 }
+      scroll0: { type: 'scroll', g: 100 },
+      scroll1: { type: 'scroll', g: 1000 }
     },
     monsters: {},
     maps: {}
@@ -330,7 +333,7 @@ test('economic +3 upgrade lifecycle continues from +2 and still requires scroll0
   assert.equal(planned.accepted, true);
   const check = convergence.atomic.atomicPreflight(engine.get(planned.transaction.id));
   assert.equal(check.ok, true, check.reason);
-  assert.equal(check.scroll, 'scroll0');
+  assert.equal(check.scroll, 'scroll1');
   assert.equal(check.upgradeLifecycle, 'ECONOMIC_TO_PLUS3');
 });
 
