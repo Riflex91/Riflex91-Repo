@@ -63,8 +63,11 @@ function monitor() {
   return {
     summary() {
       return {
-        version: '3.0.0-alpha.17.0', mode: 'shadow', character: {}, supervisor: {}, economy: {},
-        travel: {}, inventory: {}, recentSignals: {}
+        version: '3.0.0-alpha.20.132', running: true, mode: 'active',
+        character: { name: 'R1', level: 80, hp: 900, max_hp: 1000, mp: 450, max_mp: 500, isize: 42, inventory: [{ name: 'hpot0' }, null] },
+        scheduler: { active: [{ type: 'FARM', owner: 'R1' }], queued: [] },
+        farmer: { enabled: true, state: 'ENGAGE', targetType: 'goo' },
+        supervisor: {}, economy: {}, travel: {}, inventory: {}, recentSignals: {}
       };
     },
     async copyToClipboard() { return { copied: true, method: 'test', bytes: 2 }; },
@@ -112,7 +115,12 @@ test('Debug monitor uses a larger responsive bottom-right layout', () => {
   assert.equal(ui.container.style.width, '480px');
   assert.equal(ui.container.style.maxWidth, 'calc(100vw - 36px)');
   assert.equal(ui.container.style.maxHeight, 'calc(100vh - 36px)');
-  assert.equal(ui.logBox.style.maxHeight, '260px');
+  assert.equal(ui.titleNode.textContent, 'AiO v3 - 3.0-132');
+  assert.equal(ui.logBox, null);
+  assert.equal(ui.body.children.length, 6);
+  assert.deepEqual(ui.body.children.map((row) => row.children[0] && row.children[0].textContent), ['Name', 'Level', 'HP', 'MP', 'Inventar', 'Aufgabe']);
+  assert.equal(ui.body.children[4].children[1].textContent, '1 / 42');
+  assert.equal(ui.body.children[5].children[1].textContent, 'Farmen');
   assert.equal(ui.copyButton.textContent, 'Log kopieren');
   assert.equal(ui.status().actionAuthority, false);
   ui.destroy();
