@@ -105,3 +105,4 @@ test('Automation catalog upload failure does not invalidate a successful runtime
   assert.equal(cloud.stats.runtimePushes, 1);
   assert.equal(cloud.stats.automationCatalogFailures, 1);
 });
+// The dedicated catalog cadence intentionally keeps master data off the 15-second heartbeat.\n
