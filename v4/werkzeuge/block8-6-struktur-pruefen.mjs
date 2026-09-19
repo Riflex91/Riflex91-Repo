@@ -1042,7 +1042,7 @@ for (const pflicht of [
 
 const freigabeDokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-9-FREIGABE-VORBEREITUNG.md'), 'utf8');
 for (const pflicht of [
-  'operative Freigabestufen Offline → Schatten → kontrolliert live → Soak sind noch nicht vollstaendig nachgewiesen',
+  'operative Freigabestufen Offline → Schatten → kontrolliert live → Soak sind fuer denselben immutable Candidate bestanden und kanonisch gebunden',
   'Historische Runtime 1.1.5 bleibt immutable',
   '31 Module',
   '228607 Bytes',
@@ -1051,13 +1051,30 @@ for (const pflicht of [
   'genau einen',
   '600000 ms = 10 Minuten',
   'recoveryNachweis=true',
-  'block9Freigegeben=false',
+  'block9Freigegeben=true',
   'Source-locked 10-Minuten-Soakpaket',
+  'BLOCK-8-6-9-SOAK-FREIGABE-NACHWEIS.json',
   'My_Ranger1',
   'My_Ranger2',
-  'akzeptierten Remote-Heartbeat'
+  'akzeptierten Remote-Heartbeat',
+  'Block 8.6 ist nach dem kanonisch gebundenen Soak vollstaendig abgeschlossen',
+  'naechste Entwicklungsblock ist **Block 9**'
 ]) {
   if (!freigabeDokument.includes(pflicht)) throw new Error('Block-8.6.9-Freigabe-Dokumentation fehlt: ' + pflicht);
+}
+
+const soakNachweisDokument = JSON.parse(
+  await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-9-SOAK-FREIGABE-NACHWEIS.json'), 'utf8')
+);
+if (soakNachweisDokument.stufe !== 'soak' ||
+    soakNachweisDokument.ergebnis !== 'bestanden' ||
+    soakNachweisDokument.reports?.length !== 2 ||
+    soakNachweisDokument.gesamt?.remoteLivenessNeuGesamt !== 2 ||
+    soakNachweisDokument.gesamt?.heartbeatFehlerGesamt !== 0 ||
+    soakNachweisDokument.gesamt?.capabilitySendeFehlerGesamt !== 0 ||
+    soakNachweisDokument.auswertungErwartet?.block86Completed !== true ||
+    soakNachweisDokument.auswertungErwartet?.block9Freigegeben !== true) {
+  throw new Error('Kanonischer Block-8.6-Soaknachweis fehlt oder ist nicht vollstaendig bestanden.');
 }
 
 const plan = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-PLAN.md'), 'utf8');
@@ -1070,8 +1087,10 @@ for (const pflicht of [
   '8.6.6 – Capability-basierte Leader- und Aufgabenwahl — **IMPLEMENTIERT**',
   '8.6.7 – Status, HUD und Diagnose — **IMPLEMENTIERT**',
   '8.6.8 – Replay und Regression — **IMPLEMENTIERT**',
-  '8.6.9 – Freigabe — **RELEASE-CANDIDATE DEPLOYED/HTTPS + SCHATTEN + LIVE VERIFIZIERT; SOAK OFFEN**',
-  'Naechster operativer Schritt: **8.6.9 – Soak mit der bestandenen Live-Uebergabe ueber mindestens 600000 ms ausfuehren**'
+  '8.6.9 – Freigabe — **ABGESCHLOSSEN – OFFLINE/REPLAY + DEPLOYMENT/HTTPS + SCHATTEN + LIVE + SOAK VERIFIZIERT**',
+  'Naechster operativer Schritt: **Block 9 gemaess V4-Fahrplan beginnen**',
+  'block86Completed=true',
+  'block9Freigegeben=true'
 ]) {
   if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.9-Vorbereitungsstand: ${pflicht}`);
 }
@@ -1202,4 +1221,4 @@ if (!String(packageJson.scripts?.pruefen ?? '').includes('npm run block8-6-struk
   throw new Error('npm run pruefen muss den Block-8.6-Strukturguard ausfuehren.');
 }
 
-console.log('Block 8.6.1 bis 8.6.9 geprueft: Capability Truth bis Replay, exakt gebundener/deployed Candidate, real bestandener Schatten und kontrolliert live sowie source-locked 10-Minuten-Soakpaket; realer Soak bleibt offen.');
+console.log('Block 8.6.1 bis 8.6.9 geprueft: Capability Truth bis Replay, exakt gebundener/deployed Candidate sowie real bestandener Schatten, kontrolliert live und 10-Minuten-Soak; Block 8.6 ist abgeschlossen und Block 9 freigegeben.');
