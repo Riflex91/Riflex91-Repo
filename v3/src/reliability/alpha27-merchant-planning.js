@@ -238,7 +238,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     } catch (_) { projectedGoal = null; }
     if (!projectedGoal) return { hold: true, reason: 'GEAR_FINALIZATION_PROJECTED_GOAL_PENDING', targetLevel };
 
-    const farmerPlus5 = String(projectedGoal.character || '') !== String(c.name || '') && targetLevel === 5;
+    const stepwiseFarmerProgression = String(projectedGoal.character || '') !== String(c.name || '');
     return {
       request: {
         type: 'UPGRADE',
@@ -252,8 +252,8 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
           targetCharacter: projectedGoal.character,
           targetSlot: projectedGoal.slot,
           lifecycle: 'FARMER_GEAR_DELIVERY_FINALIZATION',
-          upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : 'PARTY_GEAR_GOAL',
-          scrollPolicy: farmerPlus5 ? 'LEVEL_0_3_SCROLL0_LEVEL_3_5_SCROLL1' : 'ITEM_GRADE_DEFAULT',
+          upgradeLifecycle: stepwiseFarmerProgression ? 'FARMER_STEPWISE_RISK_MANAGED' : 'PARTY_GEAR_GOAL',
+          scrollPolicy: 'ITEM_GRADE_DEFAULT',
           targetedGearFinalization: true
         }
       },
@@ -265,11 +265,40 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     const selected = candidate || this.gearDeliveryCandidate();
     if (!selected || !selected.goal || !selected.item) return { state: 'NONE', reason: 'NO_READY_GEAR_DELIVERY', candidate: null };
     this.gearDeliveryFinalizationStats.checks += 1;
+
     const gd = gameDataOf(this.runtime);
     const meta = gd.items && gd.items[selected.item.name];
     if (!meta || typeof meta !== 'object') {
       this.gearDeliveryFinalizationStats.holds += 1;
       return { state: 'HOLD', reason: 'GEAR_FINALIZATION_METADATA_UNKNOWN', candidate: selected };
+    }
+
+    // The current item may already be a real Farmer upgrade at any +level.
+    // When the authoritative mutation risk gate rejects the next roll, deliver
+    // this safe improvement instead of retrying or waiting for a magic +5 line.
+    if (selected.goal.observedMeaningful === true && this.atomic && typeof this.atomic.mutationRiskHoldFor === 'function') {
+      const family = meta.compound ? 'COMPOUND' : meta.upgrade ? 'UPGRADE' : null;
+      const riskHold = family ? this.atomic.mutationRiskHoldFor({
+        character: characterOf(this.runtime) && characterOf(this.runtime).name,
+        index: selected.item.index,
+        name: selected.item.name,
+        level: levelOf(selected.item)
+      }, family) : null;
+      if (riskHold) {
+        this.stats.riskHeldPartyDeliveriesPreferred = (this.stats.riskHeldPartyDeliveriesPreferred || 0) + 1;
+        this.gearDeliveryFinalizationStats.ready += 1;
+        this._gearFinalizationRecord('READY', 'RISK_GATE_PREFERS_SAFE_CURRENT_PARTY_UPGRADE', selected, {
+          targetLevel: levelOf(selected.item),
+          riskHold
+        });
+        return {
+          state: 'READY',
+          reason: 'RISK_GATE_PREFERS_SAFE_CURRENT_PARTY_UPGRADE',
+          candidate: selected,
+          targetLevel: levelOf(selected.item),
+          riskHold
+        };
+      }
     }
 
     if (meta.upgrade) {
@@ -323,7 +352,13 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     const trusted = new Set();
     try { for (const name of this.runtime.partyBootstrap && this.runtime.partyBootstrap.trustedRosterNames ? this.runtime.partyBootstrap.trustedRosterNames() || [] : []) trusted.add(String(name)); } catch (_) {}
     const rows = gear.list(256)
-      .filter((goal) => goal && goal.sourceCharacter === c.name && goal.character && goal.character !== c.name && !goal.projectedUpgradeRequired && trusted.has(String(goal.character)))
+      .filter((goal) => {
+        if (!goal || goal.sourceCharacter !== c.name || !goal.character || goal.character === c.name || !trusted.has(String(goal.character))) return false;
+        // A projected next mutation may still be desirable, but a current item
+        // that already improves the Farmer must remain deliverable if the risk
+        // gate rejects the next roll.
+        return !goal.projectedUpgradeRequired || goal.observedMeaningful === true;
+      })
       .sort((a, b) => finite(b.survivalImprovement, 0) - finite(a.survivalImprovement, 0) || finite(b.improvement, 0) - finite(a.improvement, 0));
     for (const goal of rows) {
       const goalId = String(goal.id || '');
@@ -347,8 +382,27 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
   async deliverGearGoal() {
     const candidate = this.gearDeliveryCandidate();
     if (!candidate) return false;
-    if (!await this.ensureStandClosed('GEAR_DELIVERY_PREEMPT')) return true;
     const { goal, item } = candidate;
+
+    // A gear delivery is already a Farmer-bound trip. Let the potion service
+    // planner pre-buy and deliver this Farmer's HP/MP deficit on the same route
+    // before the Merchant commits to travel.
+    const potionPolicy = this.runtime.p0PotionPolicy4500;
+    if (potionPolicy && typeof potionPolicy.startOpportunisticService === 'function') {
+      const service = potionPolicy.startOpportunisticService([goal.character], 'FARMER_GEAR_DELIVERY_ROUTE');
+      if (service && service.started === true) {
+        this.lastMerchantPlan = {
+          at: this.now(),
+          action: 'SERVICE_BUNDLE',
+          reason: 'GEAR_ROUTE_PREBUNDLED_POTIONS',
+          targetName: goal.character,
+          potionService: clone(service)
+        };
+        return true;
+      }
+    }
+
+    if (!await this.ensureStandClosed('GEAR_DELIVERY_PREEMPT')) return true;
     const parent = this.root && this.root.parent || this.root;
     const target = Object.values(parent && parent.entities || {}).find((row) => row && !row.mtype && String(row.name || '') === String(goal.character)) || null;
     const c = characterOf(this.runtime);
@@ -441,8 +495,8 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
           targetLevel: goal.targetLevel,
           targetCharacter: goal.character,
           lifecycle: 'PARTY_GEAR_GOAL',
-          upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : 'PARTY_GEAR_GOAL',
-          scrollPolicy: farmerPlus5 ? 'LEVEL_0_3_SCROLL0_LEVEL_3_5_SCROLL1' : 'ITEM_GRADE_DEFAULT'
+          upgradeLifecycle: stepwiseFarmerProgression ? 'FARMER_STEPWISE_RISK_MANAGED' : 'PARTY_GEAR_GOAL',
+          scrollPolicy: 'ITEM_GRADE_DEFAULT'
         }
       };
     }
@@ -477,7 +531,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         targetLevel: 3,
         targetCharacter: null,
         upgradeLifecycle: 'ECONOMIC_TO_PLUS3',
-        scrollPolicy: 'SCROLL0_ONLY'
+        scrollPolicy: 'ITEM_GRADE_DEFAULT'
       }
     };
   }
