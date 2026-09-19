@@ -35,6 +35,51 @@ if (bereitschaft.status === "FREIGEGEBEN") {
   fehler("R4 darf das Gameplay-Runtime-Gesamtgate nicht freigeben.");
 }
 
+if (r4.status === "DONE") {
+  const phaseIds = (gates.phases ?? []).map(x => x.id);
+  if (phaseIds.indexOf(gates.currentPhase) <= phaseIds.indexOf("R4")) {
+    fehler("Nach R4 DONE muss eine spaetere Phase currentPhase sein.");
+  }
+
+  const abschluss = lies("roadmap/r4-abschluss.json");
+  if (abschluss.status !== "DONE"
+      || abschluss.phase !== "R4"
+      || abschluss.runtimeGate !== "GESPERRT"
+      || abschluss.gameplayAutoritaet !== false
+      || Object.values(abschluss.exitKriterien ?? {}).some(wert => wert !== true)) {
+    fehler("R4-Abschlussmanifest ist unvollstaendig.");
+  }
+
+  const anforderungen = lies("anforderungen/anforderungen.json");
+  const r4Anforderungen = anforderungen.anforderungen.filter(x => x.phase === "R4");
+  if (r4Anforderungen.length !== 6
+      || r4Anforderungen.some(x => x.status !== "R4_NACHGEWIESEN")) {
+    fehler("R4-Anforderungen sind nicht 6/6 technisch nachgewiesen.");
+  }
+
+  const trace = lies("anforderungen/nachverfolgbarkeit.json");
+  const r4Ids = new Set(r4Anforderungen.map(x => x.kennung));
+  const r4Trace = trace.eintraege.filter(x => r4Ids.has(x.anforderungKennung));
+  if (r4Trace.length !== 6
+      || r4Trace.some(x => x.vollstaendig !== true || x.r4NachweisStatus !== "R4_NACHGEWIESEN")) {
+    fehler("R4-Traceability ist nicht 6/6 vollstaendig.");
+  }
+
+  const fitness = lies("fitness/fitness-regeln.json");
+  const r4Fitness = fitness.regeln.filter(x => x.phase === "R4");
+  if (r4Fitness.length !== 4
+      || r4Fitness.some(x => x.r4NachweisStatus !== "ERFUELLT")) {
+    fehler("R4-Fitnessregeln sind nicht vollstaendig nachgewiesen.");
+  }
+
+  for (const kennung of ["ZUSTANDSMASCHINEN_BEREIT", "TESTSTRATEGIE_BEREIT"]) {
+    const bereich = bereitschaft.bereiche.find(x => x.kennung === kennung);
+    if (!bereich || bereich.erfuellt !== true) {
+      fehler("Readiness-Bereich fehlt nach R4: " + kennung);
+    }
+  }
+}
+
 const index = fs.readFileSync("grundlage/quelle/index.ts", "utf8");
 for (const exportPfad of [
   "./determinismus/ports.js",
