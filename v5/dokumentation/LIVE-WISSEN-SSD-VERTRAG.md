@@ -291,3 +291,9 @@ Pflichtkomponenten in R5/R6:
 - Tests fuer torn writes, corrupted JSON, Disk Full, Zugriffsfehler und Clock-Anomalien.
 
 **Leitsatz:** Der Bot beobachtet und verifiziert. Die SSD persistiert. Die Bridge validiert und spiegelt. GitHub versioniert. Execution prueft trotzdem nochmals live.
+
+
+## R2-Ratifizierung
+
+**R2-Status:** RATIFIZIERT am 2026-09-19.  
+Dieser Vertrag ist Bestandteil der V5-Verfassung. Die Ratifizierung ist eine Architektur-/Vorbereitungsfreigabe und **keine Gameplay-Runtime-Freigabe**. Technische Umsetzung und Live-Nachweise folgen ausschliesslich in den dafuer vorgesehenen Roadmap-Phasen.
