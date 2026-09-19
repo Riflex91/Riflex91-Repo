@@ -185,7 +185,10 @@
     "portName": "WissensZugriffPort",
     "nurLesen": true,
     "snapshotPinning": true,
-    "liveAdmissionBleibtPflicht": true
+    "liveAdmissionBleibtPflicht": true,
+    "liveWissenLokal": "UEBER_WISSENSZUGRIFFPORT",
+    "liveWissenGitHub": "ENTWICKLUNG_UND_FALLBACK_EVIDENCE",
+    "liveWissenVorMutation": "ERNEUTE_LIVE_ADMISSION_PFLICHT"
   },
   "kandidaten": {
     "entwicklungsAutoritaet": false,
@@ -241,5 +244,19 @@
     "v5/host/": [
       "kern"
     ]
+  },
+  "liveWissen": {
+    "lokalerStandardpfad": "D:\\AdventureLand-V5\\wissensdatenbank",
+    "githubSnapshot": "v5/wissensbasis/live/snapshot",
+    "manifestEinstieg": "v5/wissensbasis/manifest.json",
+    "bridgeRolle": "READ_ONLY_VALIDIEREN_UND_SPIEGELN",
+    "botRolle": "ALLEINIGER_FACHLICHER_WRITER",
+    "statusProtokoll": [
+      "SCHREIBT",
+      "BEREIT"
+    ],
+    "executionAuthority": false,
+    "konkreteBeobachtungDarfGlobalGeneralisiertWerden": false,
+    "hochfrequenteRohtelemetrieInGitHub": false
   }
 }
