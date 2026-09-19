@@ -5,7 +5,7 @@ namespace AioBotWindowsBridge;
 
 public sealed record BridgeConfig
 {
-    public const int CurrentConfigVersion = 6;
+    public const int CurrentConfigVersion = 7;
 
     public int ConfigVersion { get; init; } = CurrentConfigVersion;
     public string CdpEndpoint { get; init; } = "http://127.0.0.1:9222";
@@ -26,6 +26,11 @@ public sealed record BridgeConfig
     public bool WissenswaechterWebSucheAktiv { get; init; } = true;
     public int WissenswaechterMaxQuellenProLauf { get; init; } = 200;
     public int WissenswaechterMaxKandidaten { get; init; } = 1000;
+
+    // Optionaler lokaler Ordner, in den der Bot live verifizierte Wissensdateien schreibt.
+    // Der absolute Pfad bleibt lokal in settings.json und wird nicht in GitHub gespiegelt.
+    public bool LiveWissenImportAktiv { get; init; } = true;
+    public string LiveWissenQuellordner { get; init; } = string.Empty;
 
     public bool WebDashboardEnabled { get; init; } = true;
     public string WebDashboardBaseUrl { get; init; } = "https://aio-bot-dashboard.hansijuergenlul.workers.dev";
@@ -146,7 +151,23 @@ public sealed record BridgeConfig
         if (WissenswaechterMaxKandidaten is < 50 or > 5000)
             throw new InvalidOperationException("WISSENSWAECHTER_KANDIDATENLIMIT_UNGUELTIG");
 
+        ValidateLiveWissenQuellordner();
+
         ValidateBackblaze();
+    }
+
+    private void ValidateLiveWissenQuellordner()
+    {
+        if (string.IsNullOrWhiteSpace(LiveWissenQuellordner))
+            return;
+
+        var pfad = LiveWissenQuellordner.Trim();
+        if (pfad.Length > 1024
+            || pfad.IndexOfAny(Path.GetInvalidPathChars()) >= 0
+            || !Path.IsPathFullyQualified(pfad)
+            || pfad.StartsWith(@"\\", StringComparison.Ordinal)
+            || pfad.StartsWith("//", StringComparison.Ordinal))
+            throw new InvalidOperationException("LIVE_WISSEN_QUELLORDNER_UNGUELTIG");
     }
 
     private void ValidateBackblaze()
