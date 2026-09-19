@@ -4,8 +4,8 @@
   "status": "RATIFIZIERUNG_OFFEN",
   "zusammenfassung": {
     "ausV4": 55,
-    "neuV5": 86,
-    "gesamt": 141
+    "neuV5": 98,
+    "gesamt": 153
   },
   "regel": "Alle 55 V4-Invarianten muessen in R2 explizit UEBERNEHMEN, VERSCHAERFEN oder ERSETZEN erhalten. Keine darf still entfallen.",
   "invarianten": [
@@ -1277,6 +1277,114 @@
       "ratifizierungsStatus": "V5_VERBINDLICH",
       "v5Entscheidung": "UEBERNEHMEN",
       "begruendung": "Transportresultate bilden nicht in jedem Pfad die vollstaendige Inventory-/Value-Wirkung ab."
+    },
+    {
+      "kennung": "V5-INV-087",
+      "herkunft": "V5_NEU",
+      "aussage": "Das Game-Socket-Aufrufbudget ist je Character global und wird von allen Action-Channels dieses Characters gemeinsam verbraucht.",
+      "geplanteDurchsetzung": "Global Scheduler + Admission Budget",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Der Server fuehrt ein gemeinsames socket.calls-Fenster je Socket; getrennte 200er Budgets pro Fachkanal waeren falsch."
+    },
+    {
+      "kennung": "V5-INV-088",
+      "herkunft": "V5_NEU",
+      "aussage": "Der verifizierte Servergrenzwert fuer normale Character-Sockets ist 200 gewichtete Call-Cost-Punkte in einem 4000-ms-Sliding-Window.",
+      "geplanteDurchsetzung": "Call-Budget Contract + Drift Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "P0-07 belegt limits.calls=200 und ein 4000-ms-Fenster fuer normale eingeloggte Character-Sockets."
+    },
+    {
+      "kennung": "V5-INV-089",
+      "herkunft": "V5_NEU",
+      "aussage": "V5 plant initial maximal 100 gewichtete Punkte je 4000 ms und bleibt damit absichtlich deutlich unter dem Serverlimit.",
+      "geplanteDurchsetzung": "Admission Safety Policy",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "100/4s ist eine konservative V5-Safety-Policy, keine Spielregel."
+    },
+    {
+      "kennung": "V5-INV-090",
+      "herkunft": "V5_NEU",
+      "aussage": "Die Differenz zwischen V5-Planbudget und Serverlimit ist Sicherheitsreserve und darf nicht als normale Scheduler-Kapazitaet verplant werden.",
+      "geplanteDurchsetzung": "Budget Reserve Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Interne Zusatzkosten, Burst, Latenz, Recovery und Diagnose benoetigen Reserve."
+    },
+    {
+      "kennung": "V5-INV-091",
+      "herkunft": "V5_NEU",
+      "aussage": "Statische CC-Evidence darf nicht blind als vollstaendige Gesamtkosten eines Requests interpretiert werden; Basiskosten, dynamische und interne Zusatzkosten bleiben getrennt.",
+      "geplanteDurchsetzung": "Weighted Cost Model",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Ein Request besitzt mindestens Eingangskosten und kann weitere add_call_cost-Pfade ausloesen."
+    },
+    {
+      "kennung": "V5-INV-092",
+      "herkunft": "V5_NEU",
+      "aussage": "limitdc nach moeglichem Send einer wertveraendernden Action fuehrt zu UNKNOWN, Reconnect, Reobserve und Reconcile; Same-Intent-Blind-Retry ist verboten.",
+      "geplanteDurchsetzung": "Recovery Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Disconnect beweist nicht, dass der Server die Mutation nicht angewendet hat."
+    },
+    {
+      "kennung": "V5-INV-093",
+      "herkunft": "V5_NEU",
+      "aussage": "queue_overflow und limitdc sind unterschiedliche Fehlerklassen und werden nicht gegenseitig als Ursache oder Recovery-Beweis verwendet.",
+      "geplanteDurchsetzung": "Transport Error Classifier",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "3200er Deferred-Guard und Server-Calllimit entstehen in unterschiedlichen Schichten."
+    },
+    {
+      "kennung": "V5-INV-094",
+      "herkunft": "V5_NEU",
+      "aussage": "Ein mutierender FIFO-Channel besitzt maximal einen von V5 verwalteten In-Flight-Request; die technische Deferred-Grenze 3200 ist kein Betriebsziel.",
+      "geplanteDurchsetzung": "Action Channel Admission",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "FIFO-Korrelation bleibt sonst mehrdeutig und Recovery-Risiken steigen."
+    },
+    {
+      "kennung": "V5-INV-095",
+      "herkunft": "V5_NEU",
+      "aussage": "Die eingebauten Adventure-Land-Client-Safeties bleiben aktiviert; V5 fuegt eigene Admission und Backpressure hinzu, statt Safeties fuer Durchsatz zu deaktivieren.",
+      "geplanteDurchsetzung": "Client Safety Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Die Safeties verhindern Burst-/Delay-Muster, die Server-Disconnects ausloesen koennen."
+    },
+    {
+      "kennung": "V5-INV-096",
+      "herkunft": "V5_NEU",
+      "aussage": "MCP/HTTP-Rate-Limits sind ein eigener Budgettyp; HTTP 429 respektiert Retry-After und wird nicht aggressiv sofort retried.",
+      "geplanteDurchsetzung": "MCP Budget + Backoff",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Externe Token-Buckets sind nicht das Game-Socket-Aufrufbudget."
+    },
+    {
+      "kennung": "V5-INV-097",
+      "herkunft": "V5_NEU",
+      "aussage": "Mainframe Call cost wird als Worker-CPU-Auslastung modelliert und niemals mit Game-Socket-Aufrufbudget, Shell-Kosten oder MCP-Limits vermischt.",
+      "geplanteDurchsetzung": "Metric Type Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Gleichlautende Begriffe bezeichnen technisch verschiedene Ressourcen."
+    },
+    {
+      "kennung": "V5-INV-098",
+      "herkunft": "V5_NEU",
+      "aussage": "ccreport dient Diagnose und Kalibrierung und darf nicht in jedem Scheduler-Tick gepollt werden; Cost-/Limit-Drift blockiert betroffene Automation bis zur Revalidierung.",
+      "geplanteDurchsetzung": "Diagnostic Sampling + Drift Gate",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "ccreport verursacht selbst Call Cost und veraltete Kostenmodelle duerfen keine Execution Authority behalten."
     }
   ]
 }
