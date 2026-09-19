@@ -651,6 +651,8 @@ class ControlledPartyLogistics {
       if (expiresAt == null || expiresAt <= this.now()) return false;
       const farmer = this.runtime && this.runtime.farmer;
       if (!farmer) return false;
+      const activeMaterial = farmer.materialObjective;
+      if (activeMaterial && activeMaterial.kind === 'PRODUCTION_MATERIAL' && Number(activeMaterial.expiresAt || 0) > this.now()) return true;
       farmer.materialObjective = {
         kind: 'ELIXIR_MATERIAL',
         monster: cleanName(data.monster),
@@ -680,8 +682,12 @@ class ControlledPartyLogistics {
         objectiveId: cleanName(data.objectiveId),
         monster,
         material,
+        targetMaterial: cleanName(data.targetMaterial),
+        acquisitionKind: cleanName(data.acquisitionKind),
         level: Math.max(0, Math.floor(finite(data.level, 0))),
         requiredQuantity: Math.max(1, Math.floor(finite(data.requiredQuantity, 1))),
+        exchangeRequired: finite(data.exchangeRequired),
+        exchangeRewardPerOperation: finite(data.exchangeRewardPerOperation),
         output: cleanName(data.output),
         recipient: cleanName(data.recipient),
         slot: cleanName(data.slot),
@@ -1050,8 +1056,12 @@ class ControlledPartyLogistics {
       recipient: cleanName(objective.recipient),
       slot: cleanName(objective.slot),
       material: cleanName(objective.material),
+      targetMaterial: cleanName(objective.targetMaterial),
+      acquisitionKind: cleanName(objective.acquisitionKind),
       level: Math.max(0, Math.floor(finite(objective.level, 0))),
       requiredQuantity: Math.max(1, Math.floor(finite(objective.requiredQuantity, 1))),
+      exchangeRequired: finite(objective.exchangeRequired),
+      exchangeRewardPerOperation: finite(objective.exchangeRewardPerOperation),
       monster: cleanName(objective.monster),
       map: cleanName(objective.map),
       x: finite(objective.x),
@@ -1103,6 +1113,12 @@ class ControlledPartyLogistics {
     this.lastProductionMaterialObjective = null;
     this.stats.productionMaterialClears += 1;
     this._event('PRODUCTION_MATERIAL_OBJECTIVE_CLEARED', 'info', payload.reason, payload);
+    if (this.lastElixirFarmObjective && Number(this.lastElixirFarmObjective.expiresAt || 0) > this.now()) {
+      for (const name of this._trustedNames()) {
+        if (name === this._localName()) continue;
+        Promise.resolve(this._send(name, Action.ELIXIR_FARM_OBJECTIVE, this.lastElixirFarmObjective)).catch(() => {});
+      }
+    }
     return true;
   }
 
@@ -1132,12 +1148,16 @@ class ControlledPartyLogistics {
       this._send(name, Action.ELIXIR_FARM_OBJECTIVE, objective);
     }
     if (this.runtime) {
-      this.runtime.merchantExchangeDemands = [{
+      const existing = Array.isArray(this.runtime.merchantExchangeDemands) ? this.runtime.merchantExchangeDemands : [];
+      const retained = existing.filter((row) => row && String(row.reason || '') !== 'ELIXIR_SUPPLY');
+      const next = {
         item: farm.kind === 'EXCHANGE_MATERIAL_DROP' ? farm.material : null,
         target: request.elixirName,
         reason: 'ELIXIR_SUPPLY',
         expiresAt: objective.expiresAt
-      }].filter((row) => row.item);
+      };
+      if (next.item) retained.push(next);
+      this.runtime.merchantExchangeDemands = retained;
     }
     this.stats.elixirFarmObjectives += 1;
     this._event('ELIXIR_FARM_OBJECTIVE_PUBLISHED', 'info', plan.reason, objective);
