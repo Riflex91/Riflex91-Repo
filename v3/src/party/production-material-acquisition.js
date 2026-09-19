@@ -668,6 +668,7 @@ module.exports = {
   DEFAULT_MAX_TEAM_FARM_HOURS,
   DEFAULT_FALLBACK_KILLS_PER_HOUR,
   currentPartyFingerprintKey,
+  bestMeasuredKillRate,
   bestMeasuredKillsPerHour,
   partyHeldQuantity,
   quantityInRows,
@@ -676,6 +677,10 @@ module.exports = {
   bestDirectMaterialFarmSource,
   bestExchangeMaterialFarmSource,
   bestMaterialFarmSource,
+  diagnoseUnavailableMaterialSource,
+  isExchangeBackedSource,
+  isQuestBackedSource,
+  isEventBackedSource,
   aggregateFarmSteps,
   estimateBlockedProductionCandidate,
   chooseProductionTeamFarmObjective
