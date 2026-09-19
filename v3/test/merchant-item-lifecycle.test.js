@@ -113,7 +113,9 @@ test('Alpha27 lifecycle classifies progression before BANK and disposes only pro
     items: {
       ringsj: { type: 'ring', g: 24000, compound: { dex: 1 }, grades: [] },
       sword: { type: 'weapon', g: 1000, upgrade: { attack: 1 }, grades: [] },
-      expensiveRing: { type: 'ring', g: 1500000, compound: { dex: 1 }, grades: [] }
+      expensiveRing: { type: 'ring', g: 1500000, compound: { dex: 1 }, grades: [] },
+      scroll0: { type: 'scroll', g: 1 },
+      cscroll0: { type: 'cscroll', g: 100 }
     },
     monsters: {},
     maps: {}
@@ -122,7 +124,8 @@ test('Alpha27 lifecycle classifies progression before BANK and disposes only pro
   new Alpha27CombatMerchantConvergence(runtime, {
     keepValue: 1000000,
     compoundValueCap: 500000,
-    upgradeValueCap: 2000000
+    upgradeValueCap: 2000000,
+    maxUpgradeLevel: 4
   });
   runtime.gearProgression = {
     futureProtectionFor: () => null,
@@ -138,12 +141,12 @@ test('Alpha27 lifecycle classifies progression before BANK and disposes only pro
 
   const waiting = ledger._baseDisposition({ name: 'ringsj', level: 0 }, gameData, runtime.contentDrift, singleRing);
   assert.equal(waiting.disposition, 'KEEP');
-  assert.ok(waiting.reasons.includes('AUTONOMOUS_COMPOUND_ACCUMULATION'));
+  assert.ok(waiting.reasons.includes('AUTONOMOUS_ECONOMIC_COMPOUND_ACCUMULATION'));
 
   const result = ledger._baseDisposition({ name: 'ringsj', level: 1 }, gameData, runtime.contentDrift, processedRing);
   assert.equal(result.disposition, 'SELL');
   assert.ok(result.reasons.includes('AUTONOMOUS_PROCESSED_GEAR_SELL'));
-  assert.ok(result.reasons.includes('AUTONOMOUS_COMPOUND_RESULT'));
+  assert.ok(result.reasons.includes('AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_SELL'));
 
   const upgrade = ledger._baseDisposition({ name: 'sword', level: 0 }, gameData, runtime.contentDrift, new Map([['sword:0', 1]]));
   assert.equal(upgrade.disposition, 'RESERVE_UPGRADE');
@@ -151,15 +154,19 @@ test('Alpha27 lifecycle classifies progression before BANK and disposes only pro
 
   const plusOne = ledger._baseDisposition({ name: 'sword', level: 1 }, gameData, runtime.contentDrift, new Map([['sword:1', 1]]));
   assert.equal(plusOne.disposition, 'RESERVE_UPGRADE');
-  assert.ok(plusOne.reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3'));
+  assert.ok(plusOne.reasons.includes('AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_UPGRADE'));
 
   const plusTwo = ledger._baseDisposition({ name: 'sword', level: 2 }, gameData, runtime.contentDrift, new Map([['sword:2', 1]]));
   assert.equal(plusTwo.disposition, 'RESERVE_UPGRADE');
-  assert.ok(plusTwo.reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3'));
+  assert.ok(plusTwo.reasons.includes('AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_UPGRADE'));
 
   const plusThree = ledger._baseDisposition({ name: 'sword', level: 3 }, gameData, runtime.contentDrift, new Map([['sword:3', 1]]));
-  assert.equal(plusThree.disposition, 'SELL');
-  assert.ok(plusThree.reasons.includes('AUTONOMOUS_UPGRADE_RESULT'));
+  assert.equal(plusThree.disposition, 'RESERVE_UPGRADE');
+  assert.ok(plusThree.reasons.includes('AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_UPGRADE'));
+
+  const plusFour = ledger._baseDisposition({ name: 'sword', level: 4 }, gameData, runtime.contentDrift, new Map([['sword:4', 1]]));
+  assert.equal(plusFour.disposition, 'SELL');
+  assert.ok(plusFour.reasons.includes('AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_SELL'));
 
   const expensive = ledger._baseDisposition({ name: 'expensiveRing', level: 1 }, gameData, runtime.contentDrift, new Map([['expensiveRing:1', 1]]));
   assert.equal(expensive.disposition, 'BANK');
@@ -188,7 +195,9 @@ test('economic upgrade fallback is atomic and cannot masquerade as an arbitrary 
     name: 'sword',
     level: 0,
     disposition: 'RESERVE_UPGRADE',
-    reasons: ['AUTONOMOUS_ECONOMIC_UPGRADE', 'AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3', 'FUTURE_FARMER_GEAR_EVALUATED_SAFE']
+    reasons: ['AUTONOMOUS_ECONOMIC_UPGRADE', 'AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_UPGRADE', 'FUTURE_GEAR_EVALUATED_SAFE'],
+    economicTargetLevel: 4,
+    economicDecision: { action: 'UPGRADE', targetLevel: 4, model: 'NPC_SELL_EXPECTED_VALUE_V1' }
   }]);
   const gameData = {
     items: {
@@ -205,8 +214,8 @@ test('economic upgrade fallback is atomic and cannot masquerade as an arbitrary 
   const request = convergence._planUpgrade();
   assert.equal(request.type, 'UPGRADE');
   assert.equal(request.metadata.economicLifecycle, true);
-  assert.equal(request.metadata.targetLevel, 3);
-  assert.equal(request.metadata.upgradeLifecycle, 'ECONOMIC_TO_PLUS3');
+  assert.equal(request.metadata.targetLevel, 4);
+  assert.equal(request.metadata.upgradeLifecycle, 'ECONOMIC_EXPECTED_VALUE');
   assert.equal(request.metadata.scrollPolicy, 'ITEM_GRADE_DEFAULT');
 
   const planned = engine.planAtomic(request, { ledger });
@@ -216,10 +225,10 @@ test('economic upgrade fallback is atomic and cannot masquerade as an arbitrary 
   assert.equal(check.goal, null);
   assert.equal(check.economicLifecycle, true);
   assert.equal(check.scroll, 'scroll0');
-  assert.equal(check.upgradeLifecycle, 'ECONOMIC_TO_PLUS3');
+  assert.equal(check.upgradeLifecycle, 'ECONOMIC_EXPECTED_VALUE');
 
   const forged = engine.get(planned.transaction.id);
-  forged.metadata = { economicLifecycle: true, targetLevel: 4 };
+  forged.metadata = { economicLifecycle: true, targetLevel: 5 };
   const rejected = convergence.atomic.atomicPreflight(forged);
   assert.equal(rejected.ok, false);
   assert.equal(rejected.reason, 'ECONOMIC_UPGRADE_SCOPE_INVALID');
@@ -293,7 +302,7 @@ test('Farmer +5 upgrade lifecycle uses authoritative item-grade scrolls at every
   }
 });
 
-test('economic +3 upgrade lifecycle continues from +2 with the item-grade scroll', () => {
+test('expected-value upgrade lifecycle continues from +2 with the item-grade scroll', () => {
   const level = 2;
   const engine = makeEngine();
   const controlledMerchant = makeControlledMerchant();
@@ -311,7 +320,9 @@ test('economic +3 upgrade lifecycle continues from +2 with the item-grade scroll
     name: 'sword',
     level,
     disposition: 'RESERVE_UPGRADE',
-    reasons: ['AUTONOMOUS_ECONOMIC_UPGRADE', 'AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3', 'FUTURE_FARMER_GEAR_EVALUATED_SAFE']
+    reasons: ['AUTONOMOUS_ECONOMIC_UPGRADE', 'AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_UPGRADE', 'FUTURE_GEAR_EVALUATED_SAFE'],
+    economicTargetLevel: 3,
+    economicDecision: { action: 'UPGRADE', targetLevel: 3, model: 'NPC_SELL_EXPECTED_VALUE_V1' }
   }]);
   const gameData = {
     items: {
@@ -334,7 +345,7 @@ test('economic +3 upgrade lifecycle continues from +2 with the item-grade scroll
   const check = convergence.atomic.atomicPreflight(engine.get(planned.transaction.id));
   assert.equal(check.ok, true, check.reason);
   assert.equal(check.scroll, 'scroll1');
-  assert.equal(check.upgradeLifecycle, 'ECONOMIC_TO_PLUS3');
+  assert.equal(check.upgradeLifecycle, 'ECONOMIC_EXPECTED_VALUE');
 });
 
 
