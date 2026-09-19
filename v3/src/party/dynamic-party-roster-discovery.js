@@ -130,9 +130,52 @@ class DynamicPartyRosterDiscovery {
     }
 
     if (!account.available) {
+      if (active.names.length > 4) {
+        return {
+          readyCandidate: false,
+          reason: 'ACTIVE_CHARACTER_LIMIT_EXCEEDED',
+          local,
+          account,
+          active,
+          roster: active.names.map((name) => ({
+            name,
+            ctype: name === local.name ? local.ctype : null,
+            online: true
+          })),
+          merchantName: local.ctype === 'merchant' ? local.name : null
+        };
+      }
+
+      // get_active_characters() is an Adventure Land same-account CODE-runner
+      // view. It is safe as a compatibility fallback when get_characters() is
+      // unavailable, but only the local Merchant can establish Merchant
+      // identity because class metadata for the other active names is absent.
+      if (local.ctype === 'merchant' && active.names.length >= 2 && active.names.length <= 4) {
+        const roster = [
+          local,
+          ...active.names
+            .filter((name) => name !== local.name)
+            .sort((a, b) => a.localeCompare(b))
+            .map((name) => ({ name, ctype: null, online: true }))
+        ];
+        return {
+          readyCandidate: true,
+          settleRequired: false,
+          source: 'get_active_characters-compatibility-fallback',
+          reason: 'DYNAMIC_ROSTER_ACTIVE_RUNNER_FALLBACK_VALID',
+          local,
+          account,
+          active,
+          roster,
+          merchantName: local.name
+        };
+      }
+
       return {
         readyCandidate: false,
-        reason: 'DYNAMIC_ROSTER_ACCOUNT_CHARACTER_STATE_UNAVAILABLE',
+        reason: local.ctype === 'merchant'
+          ? 'DYNAMIC_ROSTER_WAITING_FOR_COMBAT_CHARACTER'
+          : 'DYNAMIC_ROSTER_ACCOUNT_CHARACTER_STATE_UNAVAILABLE',
         local,
         account,
         active,
@@ -271,11 +314,13 @@ class DynamicPartyRosterDiscovery {
       this.pendingSince = at;
     }
 
-    const settled = this.settleMs === 0 || at - this.pendingSince >= this.settleMs;
+    const settled = candidate.settleRequired === false
+      || this.settleMs === 0
+      || at - this.pendingSince >= this.settleMs;
     this.lastStatus = {
       schemaVersion: 1,
       mode: 'dynamic-account-party-roster-discovery-v1',
-      source: 'get_characters-online',
+      source: candidate.source || 'get_characters-online',
       actionAuthority: false,
       ready: settled,
       reason: settled ? 'DYNAMIC_ROSTER_READY' : 'DYNAMIC_ROSTER_SETTLING',
