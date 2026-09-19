@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import baseWorker, { redactDeep as redactBase, sanitizeAutomationCatalogPayload } from '../src/worker.js';
+import baseWorker, { redactDeep as redactBase, sanitizeAutomationCatalogPayload, parseAdventureLandDataJs, officialAutomationCatalogFromGameData, mergeAutomationCatalogRows } from '../src/worker.js';
 import { redactDeep as redact22 } from '../src/worker-alpha20-22.js';
 
 function catalogFixture() {
@@ -84,4 +84,67 @@ test('dedicated Automation catalog endpoint stores and reads all rows without th
   assert.equal(getJson.catalog.items.length, 628);
   assert.equal(getJson.catalog.items.at(-1).id, 'partyhat');
   assert.equal(getJson.catalog.declaredCount, 628);
+});
+
+
+test('official Adventure Land data parser builds searchable Party Hat metadata without evaluating script', () => {
+  const gameData = {
+    version: 123,
+    items: {
+      sword: { name: 'Sword', type: 'weapon', wtype: 'sword', g: 1000, upgrade: { attack: 1 } },
+      partyhat: { name: 'Party Hat', type: 'helmet', g: 12000, upgrade: { armor: 1 }, explanation: 'A festive hat' }
+    }
+  };
+  const parsed = parseAdventureLandDataJs('var G=' + JSON.stringify(gameData) + ';');
+  const rows = officialAutomationCatalogFromGameData(parsed);
+  const partyhat = rows.find(row => row.id === 'partyhat');
+  assert.ok(partyhat);
+  assert.equal(partyhat.name, 'Party Hat');
+  assert.equal(partyhat.type, 'helmet');
+  assert.equal(partyhat.economy.baseGold, 12000);
+});
+
+test('official catalog fills items missing from a legacy 300-row runtime catalog', () => {
+  const legacy = Array.from({ length: 300 }, (_, index) => ({ id: 'legacy-' + index, name: 'Legacy ' + index }));
+  const official = [...legacy, { id: 'partyhat', name: 'Party Hat', type: 'helmet', official: true }];
+  const merged = mergeAutomationCatalogRows(official, legacy);
+  assert.equal(merged.length, 301);
+  assert.ok(merged.some(row => row.id === 'partyhat' && row.name === 'Party Hat'));
+});
+
+test('Automation endpoint falls back to official game data when D1 only has the legacy 300-row cap', { concurrency: false }, async () => {
+  const legacy = Array.from({ length: 300 }, (_, index) => ({ id: 'legacy-' + index, name: 'Legacy ' + index }));
+  const officialItems = Object.fromEntries(Array.from({ length: 301 }, (_, index) => ['official-' + index, { name: 'Official ' + index, type: 'material' }]));
+  officialItems.partyhat = { name: 'Party Hat', type: 'helmet', g: 12000, upgrade: { armor: 1 } };
+  const row = { character: 'Merchant_Test', catalog_version: 2, catalog_count: 300, declared_count: 300, payload: JSON.stringify(legacy), received_at: 1000 };
+  const DB = {
+    async batch(statements) { return statements.map(() => ({ success: true })); },
+    prepare(sql) {
+      const source = String(sql);
+      const statement = {
+        args: [],
+        bind(...args) { statement.args = args; return statement; },
+        async first() {
+          if (source.startsWith('SELECT character,catalog_version,catalog_count,declared_count,payload,received_at FROM v3_automation_catalog')) return row;
+          return null;
+        },
+        async run() { return { success: true }; }
+      };
+      return statement;
+    }
+  };
+  const priorFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('var G=' + JSON.stringify({ version: 999, items: officialItems }) + ';', { status: 200, headers: { 'content-type': 'application/javascript' } });
+  try {
+    const request = new Request('https://dashboard.example/api/v3/automation-catalog', { headers: { 'x-aio-read-key': 'test-read' } });
+    const response = await baseWorker.fetch(request, { DB, READ_KEY: 'test-read' });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.catalog.source, 'official+merchant');
+    assert.equal(body.catalog.complete, true);
+    assert.ok(body.catalog.items.length > 300);
+    assert.ok(body.catalog.items.some(item => item.id === 'partyhat' && item.name === 'Party Hat'));
+  } finally {
+    globalThis.fetch = priorFetch;
+  }
 });
