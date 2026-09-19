@@ -1225,7 +1225,6 @@ class Alpha33MarkOrbitMerchantDelivery {
 
   _resolveFarmerPosition(row) {
     if (!row || row.runtimeActive !== true || row.available === false || row.dead === true) return null;
-    if (!row.map || finite(row.x) == null || finite(row.y) == null) return null;
     const now = this.now();
     const visible = rawPlayerByName(this.runtime, row.name);
     if (visible) {
@@ -1253,6 +1252,10 @@ class Alpha33MarkOrbitMerchantDelivery {
           }
         };
       }
+    }
+    if (!row.map || finite(row.x) == null || finite(row.y) == null) {
+      this.stats.staleFarmerPositionsRejected += 1;
+      return null;
     }
     const freshness = positionFreshness(row, now, {
       staticTtlMs: this.farmerPositionFreshMs,
