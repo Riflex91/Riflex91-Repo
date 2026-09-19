@@ -14,6 +14,8 @@ on:
       - 'v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md'
       - 'v5/dokumentation/WISSENSWAECHTER-VERTRAG.md'
       - 'v5/dokumentation/ENTWICKLUNGS-WISSENSGATE.md'
+      - 'v5/dokumentation/LIVE-WISSEN-SSD-VERTRAG.md'
+      - 'v5/wissensbasis/live/**'
       - 'v5/dokumentation/DEUTSCHE_NAMEN_UND_NARRENSICHERHEIT.md'
       - 'v5/werkzeuge/vorbereitung-pruefen.mjs'
       - '.github/workflows/v5-vorbereitung.yml'
@@ -28,6 +30,8 @@ on:
       - 'v5/fitness/**'
       - 'v5/bereitschaft/**'
       - 'v5/entwicklungsregeln/**'
+      - 'v5/dokumentation/LIVE-WISSEN-SSD-VERTRAG.md'
+      - 'v5/wissensbasis/live/**'
       - 'v5/anzeigetexte/**'
       - 'v5/werkzeuge/vorbereitung-pruefen.mjs'
 
