@@ -142,6 +142,7 @@ test('merchant production auto-enables scoped BUY/BANK/CRAFT authority in active
 
 // Live alpha.20.116 regression: an exchange demand that first retrieves its
 // material from bank must keep one EXCHANGE_BATCH lease through the final exchange.
+// Keep this assertion on the final user-authored PR head after bundle generation.
 test('production exchange bank-retrieve preparation cannot deadlock on its own task key', async () => {
   let now = 1000;
   let exchangeCalls = 0;
