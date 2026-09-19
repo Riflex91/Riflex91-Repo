@@ -1,6 +1,6 @@
 'use strict';
 
-const { directDropChance, rewardChanceForExchange } = require('./elixir-policy');
+const { directDropChance, rewardChanceForExchange, flattenDropTable } = require('./elixir-policy');
 const { spawnType, spawnCenter, contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
 const { probabilisticFarmTime, probabilisticOperations, PROBABILISTIC_FARM_TIME_MODEL } = require('./probabilistic-farm-time');
 const {
@@ -247,6 +247,24 @@ function bestDirectMaterialFarmSource(runtime, material, quantity, options = {})
   return candidates[0] || null;
 }
 
+function exchangeRewardProfile(gameData, exchangeItem, desiredMaterial) {
+  const table = gameData && gameData.drops && gameData.drops[exchangeItem];
+  const rows = flattenDropTable(gameData, table);
+  const targetRows = rows.filter((row) => row && String(row.name || '') === String(desiredMaterial || ''));
+  const probability = Math.min(1, targetRows.reduce((sum, row) => sum + Math.max(0, finite(row.chance, 0)), 0));
+  const expectedUnits = targetRows.reduce((sum, row) =>
+    sum + Math.max(0, finite(row.chance, 0)) * Math.max(1, finite(row.quantity, 1)), 0);
+  const quantities = [...new Set(targetRows.map((row) => Math.max(1, finite(row.quantity, 1))))];
+  const deterministic = probability >= 0.999999 && targetRows.length > 0 && quantities.length === 1;
+  return {
+    probability,
+    expectedUnits,
+    deterministic,
+    unitsPerSuccess: probability > 0 ? expectedUnits / probability : 0,
+    deterministicUnitsPerOperation: deterministic ? quantities[0] : null
+  };
+}
+
 function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, options = {}) {
   const desired = String(desiredMaterial == null ? '' : desiredMaterial).trim();
   const need = Math.max(1, Math.floor(finite(quantity, 1)));
@@ -270,10 +288,20 @@ function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, opti
     // quest key to a concrete NPC location. Never downgrade it to generic Xyn.
     if (quest && !questTarget) continue;
 
-    const operations = probabilisticOperations({
-      requiredRewards: need,
-      rewardUnitsPerOperation: rewardPerExchange
-    });
+    const rewardProfile = exchangeRewardProfile(gameData, exchangeItem, desired);
+    const operations = rewardProfile.deterministic
+      ? {
+        model: PROBABILISTIC_FARM_TIME_MODEL,
+        expectedOperations: Math.ceil(need / Math.max(1, rewardProfile.deterministicUnitsPerOperation)),
+        p50Operations: Math.ceil(need / Math.max(1, rewardProfile.deterministicUnitsPerOperation)),
+        p90Operations: Math.ceil(need / Math.max(1, rewardProfile.deterministicUnitsPerOperation)),
+        deterministic: true,
+        decisionQuantile: 'P90'
+      }
+      : probabilisticOperations({
+        requiredRewards: need,
+        rewardUnitsPerOperation: rewardPerExchange
+      });
     const expectedExchangeOperations = operations.expectedOperations;
     const p50ExchangeOperations = operations.p50Operations;
     const p90ExchangeOperations = operations.p90Operations;
@@ -333,6 +361,8 @@ function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, opti
           farmQuantity: farmInputUnits,
           requiredPerExchange,
           rewardPerExchange,
+          rewardProbability: rewardProfile.probability,
+          rewardProfile: clone(rewardProfile),
           expectedExchangeOperations,
           p50ExchangeOperations,
           p90ExchangeOperations,
@@ -365,6 +395,7 @@ function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, opti
                   : 'EXCHANGE',
             targetMaterial: desired,
             rewardUnitsPerOperation: rewardPerExchange,
+            rewardProfile: clone(rewardProfile),
             operations: clone(operations),
             quest,
             questDestination: clone(questTarget),
