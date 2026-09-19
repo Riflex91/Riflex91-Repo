@@ -13379,6 +13379,8 @@ class InventoryLedger {
     this.sellAllowlist = asSet(options.sellAllowlist);
     this.bankAllowlist = asSet(options.bankAllowlist);
     this.exchangeAllowlist = asSet(options.exchangeAllowlist);
+    this.itemPermissions = new Map();
+    this.setItemPermissions(options.itemPermissions || {});
     this.sellSafetyResolver = typeof options.sellSafetyResolver === 'function' ? options.sellSafetyResolver : null;
     this.progressionReservations = new Map();
     this.progressionReservationSlots = new Map();
@@ -13407,6 +13409,43 @@ class InventoryLedger {
   setSellSafetyResolver(resolver) {
     this.sellSafetyResolver = typeof resolver === 'function' ? resolver : null;
     return this.sellSafetyResolver !== null;
+  }
+
+  setItemPermissions(value = {}) {
+    this.itemPermissions.clear();
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    for (const [name, row] of Object.entries(source).slice(0, 512)) {
+      const normalizedName = normalizeName(name);
+      if (!normalizedName || !row || typeof row !== 'object' || Array.isArray(row)) continue;
+      const permissions = {};
+      for (const action of ['sell', 'bank', 'compound', 'upgrade']) {
+        if (typeof row[action] === 'boolean') permissions[action] = row[action];
+      }
+      if (Object.keys(permissions).length) this.itemPermissions.set(normalizedName, permissions);
+    }
+    return this.itemPermissionSnapshot();
+  }
+
+  itemPermissionSnapshot() {
+    return Object.fromEntries([...this.itemPermissions.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([name, row]) => [name, { ...row }]));
+  }
+
+  _permission(name, action) {
+    const row = this.itemPermissions.get(String(name || ''));
+    return row && typeof row[action] === 'boolean' ? row[action] : null;
+  }
+
+  _operatorDisposition(row, meta, same) {
+    const permissions = this.itemPermissions.get(String(row && row.name || '')) || {};
+    if (permissions.compound === true && meta && meta.compound && same >= 3) {
+      return { disposition: ItemDisposition.RESERVE_COMPOUND, reasons: ['OPERATOR_COMPOUND_ALLOWED'] };
+    }
+    if (permissions.upgrade === true && meta && meta.upgrade) {
+      return { disposition: ItemDisposition.RESERVE_UPGRADE, reasons: ['OPERATOR_UPGRADE_ALLOWED'] };
+    }
+    if (permissions.bank === true) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWED'] };
+    if (permissions.sell === true) return { disposition: ItemDisposition.SELL, reasons: ['OPERATOR_SELL_ALLOWED'], explicitSellOverride: true };
+    return null;
   }
 
   setProgressionReservations(reservations) {
@@ -13478,12 +13517,16 @@ class InventoryLedger {
   _baseDisposition(row, gameData, contentDrift, counts, reservationRemaining = new Map()) {
     const reasons = [];
     const meta = gameData && gameData.items && gameData.items[row.name];
-    if (row.locked || row.special) return { disposition: ItemDisposition.KEEP, reasons: [row.locked ? 'ITEM_LOCKED' : 'ITEM_SPECIAL'] };
+    const same = counts.get(stackKey(row.name, row.level)) || 0;
+    const hasProtectedFlag = row.locked || row.special;
+    const hasExplicitAllow = ['sell', 'bank', 'compound', 'upgrade'].some((action) => this._permission(row.name, action) === true);
+    if (hasProtectedFlag && !hasExplicitAllow) return { disposition: ItemDisposition.KEEP, reasons: [row.locked ? 'ITEM_LOCKED' : 'ITEM_SPECIAL'] };
     if (!meta || typeof meta !== 'object') return { disposition: ItemDisposition.UNDECIDED, reasons: ['ITEM_METADATA_UNKNOWN'] };
     if (this._contentUnsafe(contentDrift, row.name)) return { disposition: ItemDisposition.UNDECIDED, reasons: ['CONTENT_REVALIDATION_REQUIRED'] };
 
     const exactProgression = this.progressionReservationSlots.get(itemKey(row.character, row.index));
     if (exactProgression && exactProgression.name === row.name && exactProgression.level === row.level) {
+      if (this._permission(row.name, 'upgrade') === false) return { disposition: ItemDisposition.KEEP, reasons: ['OPERATOR_UPGRADE_DENIED', 'ACTIVE_GEAR_GOAL_EXACT_ITEM'], reservation: clone(exactProgression) };
       return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL_EXACT_ITEM'], reservation: clone(exactProgression) };
     }
     const specificKey = `${row.character}|${stackKey(row.name, row.level)}`;
@@ -13492,6 +13535,7 @@ class InventoryLedger {
     if (countKey && reservationRemaining.get(countKey) > 0) {
       reservationRemaining.set(countKey, reservationRemaining.get(countKey) - 1);
       const progression = this.progressionReservationCounts.get(countKey);
+      if (this._permission(row.name, 'upgrade') === false) return { disposition: ItemDisposition.KEEP, reasons: ['OPERATOR_UPGRADE_DENIED', 'ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED'], reservation: clone(progression) };
       return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED'], reservation: clone(progression) };
     }
 
@@ -13499,12 +13543,17 @@ class InventoryLedger {
     if (/^hpot/.test(lower)) return { disposition: ItemDisposition.RESERVE_GROUP, reasons: ['GROUP_HP_POTION_RESERVE'] };
     if (/^mpot/.test(lower)) return { disposition: ItemDisposition.RESERVE_GROUP, reasons: ['GROUP_MP_POTION_RESERVE'] };
 
-    const same = counts.get(stackKey(row.name, row.level)) || 0;
-    if (meta.compound && same >= 3) return { disposition: ItemDisposition.RESERVE_COMPOUND, reasons: ['COMPOUND_SET_AVAILABLE'] };
+    const operator = this._operatorDisposition(row, meta, same);
+    if (operator) {
+      if (hasProtectedFlag) operator.reasons.push(row.locked ? 'PROTECTED_ITEM_OPERATOR_OVERRIDE' : 'SPECIAL_ITEM_OPERATOR_OVERRIDE');
+      return operator;
+    }
+
+    if (meta.compound && same >= 3 && this._permission(row.name, 'compound') !== false) return { disposition: ItemDisposition.RESERVE_COMPOUND, reasons: ['COMPOUND_SET_AVAILABLE'] };
 
     if (this.exchangeAllowlist.has(row.name)) return { disposition: ItemDisposition.EXCHANGE, reasons: ['OPERATOR_EXCHANGE_ALLOWLIST'] };
-    if (this.bankAllowlist.has(row.name)) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWLIST'] };
-    if (this.sellAllowlist.has(row.name)) {
+    if (this.bankAllowlist.has(row.name) && this._permission(row.name, 'bank') !== false) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWLIST'] };
+    if (this.sellAllowlist.has(row.name) && this._permission(row.name, 'sell') !== false) {
       const blockers = this._resolveSellBlockers(row, meta, gameData, contentDrift);
       if (blockers.length) {
         return {
@@ -13595,6 +13644,7 @@ class InventoryLedger {
         else mpReserved += row.q;
       }
       const meta = gameData && gameData.items && gameData.items[row.name];
+      const permissions = this.itemPermissions.get(row.name) || {};
       const entry = {
         schemaVersion: INVENTORY_LEDGER_SCHEMA_VERSION,
         key: itemKey(row.character, row.index),
@@ -13605,6 +13655,9 @@ class InventoryLedger {
         reservation: classified.reservation || null,
         metadataKnown: !!meta,
         metadataType: meta && meta.type || null,
+        operatorPermissions: { ...permissions },
+        protected: row.locked || row.special,
+        protectionReason: row.locked ? 'ITEM_LOCKED' : row.special ? 'ITEM_SPECIAL' : null,
         actionAuthority: false
       };
       this.entries.set(entry.key, entry);
@@ -13693,6 +13746,7 @@ class InventoryLedger {
         sellAllowlist: [...this.sellAllowlist].sort(),
         bankAllowlist: [...this.bankAllowlist].sort(),
         exchangeAllowlist: [...this.exchangeAllowlist].sort(),
+        itemPermissions: this.itemPermissionSnapshot(),
         defaultDisposition: ItemDisposition.UNDECIDED,
         sellSafetyResolver: this.sellSafetyResolver ? 'ENABLED' : 'DISABLED',
         sellSafety: sellSafetyStatus(),
@@ -39428,6 +39482,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       const meta = gameData && gameData.items && row && row.name ? gameData.items[row.name] : null;
       if (!row || !row.name || !meta || typeof meta !== 'object') return base;
       const name = String(row.name);
+      const permission = (action) => typeof ledger._permission === 'function' ? ledger._permission(name, action) : null;
       if (/^(hpot|mpot|scroll|cscroll)/i.test(name)) return { disposition: 'KEEP', reasons: [...(base.reasons || []), 'AUTONOMOUS_SERVICE_RESOURCE'] };
       if (meta.quest || meta.q || meta.event || meta.cash || meta.cash_item || meta.soulbound || meta.soul_bound || meta.exchange || meta.e) {
         return { disposition: 'KEEP', reasons: [...(base.reasons || []), 'AUTONOMOUS_PROTECTED_METADATA'] };
@@ -39474,6 +39529,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       if (!futureFarmerProtection && productionDemandActive) {
         const family = String(productionDemand.family || '').toUpperCase();
         if (family === 'UPGRADE'
+          && permission('upgrade') !== false
           && meta.upgrade
           && level < this.options.maxUpgradeLevel
           && grade < 4
@@ -39486,6 +39542,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           };
         }
         if (family === 'COMPOUND'
+          && permission('compound') !== false
           && meta.compound
           && level < this.options.maxCompoundLevel
           && grade < 4
@@ -39506,7 +39563,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       }
 
       if (futureFarmerProtection) {
-        if (meta.compound && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.compoundValueCap) {
+        if (permission('compound') !== false && meta.compound && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.compoundValueCap) {
           return same >= 3
             ? {
                 disposition: 'RESERVE_COMPOUND',
@@ -39519,7 +39576,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
                 futureFarmerProtection: clone(futureFarmerProtection)
               };
         }
-        if (meta.upgrade && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.upgradeValueCap) {
+        if (permission('upgrade') !== false && meta.upgrade && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.upgradeValueCap) {
           return {
             disposition: 'RESERVE_UPGRADE',
             reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_PROGRESSION', 'AUTONOMOUS_UPGRADE_CONTINUATION'],
@@ -39537,7 +39594,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       // exposes compound/upgrade metadata as objects, not necessarily boolean true.
       // A complete compound set is actionable now; an incomplete level-0 set is
       // retained until a third copy arrives instead of being hidden in the bank.
-      if (meta.compound) {
+      if (meta.compound && permission('compound') !== false) {
         if (same >= 3 && level < this.options.maxCompoundLevel && grade < 4 && (value != null && value <= this.options.compoundValueCap)) {
           return {
             disposition: 'RESERVE_COMPOUND',
@@ -39557,6 +39614,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
               reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
             };
           }
+          if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED', 'AUTONOMOUS_COMPOUND_RESULT'] };
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
@@ -39571,7 +39629,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       // sale gate to dispose of low-value results. Re-evaluation is required
       // after every observed level change, so a newly useful item immediately
       // leaves this fallback and moves into the Farmer +5 progression path.
-      if (meta.upgrade) {
+      if (meta.upgrade && permission('upgrade') !== false) {
         if (!futureSellSafety || futureSellSafety.checked !== true) {
           return {
             disposition: 'KEEP',
@@ -39592,6 +39650,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           };
         }
         if (level >= economicTargetLevel && level > 0 && grade < 4 && underKeepValue) {
+          if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED', 'AUTONOMOUS_UPGRADE_RESULT'] };
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
@@ -39607,14 +39666,16 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           : [];
       } catch (_) { blockers = ['SELL_SAFETY_RESOLVER_FAILED']; }
       const bank = level > 0 || meta.upgrade || meta.compound || blockers.length > 0 || (value != null && value >= this.options.keepValue);
-      if (bank) {
+      if (bank && permission('bank') !== false) {
         this.stats.autoLedgerBankClassifications += 1;
         return {
           disposition: 'BANK',
           reasons: [...baseReasons, blockers.length ? 'AUTONOMOUS_SELL_SAFETY_BANK' : meta.upgrade || meta.compound ? 'AUTONOMOUS_PROGRESSION_ITEM_BANK' : level > 0 ? 'AUTONOMOUS_LEVELED_ITEM_BANK' : 'AUTONOMOUS_VALUE_KEEP_BANK', ...blockers]
         };
       }
+      if (bank && permission('bank') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_BANK_DENIED'] };
       if (level === 0 && blockers.length === 0) {
+        if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED'] };
         this.stats.autoLedgerSellClassifications += 1;
         return { disposition: 'SELL', reasons: [...baseReasons, 'AUTONOMOUS_LOW_RISK_SURPLUS'] };
       }
@@ -47053,6 +47114,66 @@ function equipmentShadeCatalog(runtime) {
   return catalog;
 }
 
+function itemNpcCatalog(gameData) {
+  const byItem = new Map();
+  const add = (item, npc, map) => {
+    const name = String(item || '').trim();
+    if (!name) return;
+    const rows = byItem.get(name) || [];
+    const key = `${String(npc || 'npc')}|${String(map || '')}`;
+    if (!rows.some((row) => row.key === key)) rows.push({ key, npc: String(npc || 'npc'), map: map || null });
+    byItem.set(name, rows);
+  };
+  for (const [mapId, map] of Object.entries(gameData && gameData.maps || {})) {
+    for (const raw of Array.isArray(map && (map.npcs || map.NPCs)) ? (map.npcs || map.NPCs) : []) {
+      const npcId = Array.isArray(raw) ? raw[0] : raw && (raw.id || raw.npc);
+      const def = gameData && gameData.npcs && gameData.npcs[npcId] || {};
+      const stock = [].concat(def.items || def.sells || []);
+      for (const row of stock) add(Array.isArray(row) ? row[0] : row && row.name || row, npcId, mapId);
+    }
+  }
+  return byItem;
+}
+
+function itemAutomationCatalog(runtime, maxItems = 10000) {
+  const gameData = { items: {}, maps: {}, npcs: {}, positions: {}, imagesets: {} };
+  for (const source of gameDataSources(runtime)) {
+    Object.assign(gameData.items, source && source.items || {});
+    Object.assign(gameData.maps, source && source.maps || {});
+    Object.assign(gameData.npcs, source && source.npcs || {});
+    Object.assign(gameData.positions, source && source.positions || {});
+    Object.assign(gameData.imagesets, source && source.imagesets || {});
+  }
+  const npcByItem = itemNpcCatalog(gameData);
+  const rows = [];
+  for (const [id, def] of Object.entries(gameData.items || {}).slice(0, maxItems)) {
+    if (!def || typeof def !== 'object' || Array.isArray(def)) continue;
+    const classes = [].concat(def.class || def.classes || []).map((value) => String(value || '').toLowerCase()).filter(Boolean);
+    const level = Number(def.level != null ? def.level : def.req != null ? def.req : def.requirement);
+    rows.push({
+      id,
+      name: def.name || id,
+      type: def.type || null,
+      wtype: def.wtype || null,
+      level: Number.isFinite(level) ? level : null,
+      grade: Number.isFinite(Number(def.grade)) ? Number(def.grade) : null,
+      classes,
+      npc: (npcByItem.get(id) || []).map(({ npc, map }) => ({ npc, map })),
+      upgrade: def.upgrade === true,
+      compound: def.compound === true,
+      exchange: !!(def.exchange || def.e),
+      quest: !!(def.quest || def.q),
+      cash: !!def.cash,
+      soulbound: !!def.soulbound,
+      special: !!def.special,
+      goldValue: Number.isFinite(Number(def.g)) ? Number(def.g) : null,
+      skin: def.skin_c || def.skin || null
+    });
+  }
+  rows.sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)));
+  return rows;
+}
+
 function installAdventureLandItemSprites(runtime, cloud) {
   if (!cloud || cloud.__adventureLandItemSpritesInstalled || typeof cloud._runtimeSnapshot !== 'function') return false;
   const originalRuntimeSnapshot = cloud._runtimeSnapshot.bind(cloud);
@@ -47062,6 +47183,7 @@ function installAdventureLandItemSprites(runtime, cloud) {
       snapshot.itemSprites = itemSpriteCatalog(runtime);
       snapshot.equipmentShades = equipmentShadeCatalog(runtime);
       const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
+      if (liveCharacter && String(liveCharacter.ctype || '').toLowerCase() === 'merchant') snapshot.automationCatalog = itemAutomationCatalog(runtime);
       if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
         snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
       }
@@ -47134,6 +47256,12 @@ class Alpha25ControlCenterBrain {
       if (alpha27 && alpha27.options) alpha27.options.maxCompoundLevel = limit;
       const synchronized = synchronizeLegacyCompoundPolicy(this.runtime, limit);
       if (alpha27) alpha27.legacyCompoundPolicySynchronized = synchronized;
+    });
+
+    apply('economy.itemPermissions', (value) => {
+      const ledger = this.runtime.inventoryLedger;
+      if (ledger && typeof ledger.setItemPermissions === 'function') ledger.setItemPermissions(value);
+      if (this.runtime.lastSnapshot && typeof this.runtime._planInventoryAndGear === 'function') this.runtime._planInventoryAndGear();
     });
 
     const economy = this.runtime.economyEquipmentAutonomyV2;
@@ -47270,6 +47398,7 @@ module.exports = {
   adventureLandAssetUrl,
   itemSpriteCatalog,
   equipmentShadeCatalog,
+  itemAutomationCatalog,
   installAdventureLandItemSprites
 };
 },
@@ -47351,6 +47480,7 @@ const DEFINITIONS = Object.freeze([
   { key: 'economy.compoundCap', category: 'Economy, Gear & Markt', label: 'Compound Kostenlimit', description: 'Maximaler konservativer Budgetrahmen für Compound-Kandidaten.', type: 'number', default: 500000, min: 0, max: 100000000, step: 50000, hot: true },
   { key: 'economy.maxUpgrade', category: 'Economy, Gear & Markt', label: 'Max Upgrade Level', description: 'Maximales Ergebnislevel autonomer Upgrades. Aktuelle v3-Progressionsgrenze: +7.', type: 'number', default: 2, min: 0, max: 7, step: 1, hot: true },
   { key: 'economy.maxCompound', category: 'Economy, Gear & Markt', label: 'Max Compound Level', description: 'Maximales Ergebnislevel autonomer Compounds. Aktuelle v3-Progressionsgrenze: +10.', type: 'number', default: 1, min: 0, max: 10, step: 1, hot: true },
+  { key: 'economy.itemPermissions', category: 'Economy, Gear & Markt', label: 'Item-Berechtigungen', description: 'Per-Item Freigaben aus dem Inventar-Kontextmenü.', type: 'item-permissions', default: {}, hot: true, hidden: true },
   { key: 'economy.marketMaxTrackedItems', category: 'Economy, Gear & Markt', label: 'Markt-History Items', description: 'Maximal persistent beobachtete Item-Arten.', type: 'number', default: 96, min: 24, max: 256, step: 8, hot: false },
   { key: 'economy.marketMaxSamples', category: 'Economy, Gear & Markt', label: 'Markt-Samples/Item', description: 'Maximale historische Beobachtungen je Item.', type: 'number', default: 48, min: 8, max: 128, step: 4, hot: false },
   { key: 'economy.gearGoalFreshMs', category: 'Economy, Gear & Markt', label: 'Gear-Goal Frische', description: 'Maximales Alter eines Ausrüstungsziels für Transfers.', type: 'number', default: 30000, min: 5000, max: 180000, step: 5000, hot: false },
@@ -47396,14 +47526,29 @@ function setPath(root, path, value) {
   let cur = root; for (let i = 0; i < parts.length - 1; i += 1) { if (!cur || !(parts[i] in cur)) return false; cur = cur[parts[i]]; }
   if (!cur || !(parts[parts.length - 1] in cur)) return false; cur[parts[parts.length - 1]] = value; return true;
 }
+function normalizeItemPermissions(value) {
+  let source = value;
+  if (typeof source === 'string') { try { source = JSON.parse(source); } catch (_) { source = {}; } }
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return {};
+  const out = {};
+  for (const [rawName, row] of Object.entries(source).slice(0, 512)) {
+    const name = String(rawName || '').trim().slice(0, 120);
+    if (!name || !row || typeof row !== 'object' || Array.isArray(row)) continue;
+    const next = {};
+    for (const action of ['sell', 'bank', 'compound', 'upgrade']) if (typeof row[action] === 'boolean') next[action] = row[action];
+    if (Object.keys(next).length) out[name] = next;
+  }
+  return out;
+}
 function normalize(def, value) {
   if (def.locked) return def.default;
+  if (def.type === 'item-permissions') return normalizeItemPermissions(value);
   if (def.type === 'boolean') return value === true || value === 'true' || value === 1;
   if (def.type === 'number') { let n = finite(value, def.default); if (def.min != null) n = Math.max(def.min, n); if (def.max != null) n = Math.min(def.max, n); return n; }
   if (def.type === 'select') return Array.isArray(def.values) && def.values.includes(String(value)) ? String(value) : def.default;
   return value == null ? def.default : String(value);
 }
-function defaults() { const out = {}; for (const def of DEFINITIONS) out[def.key] = def.default; return out; }
+function defaults() { const out = {}; for (const def of DEFINITIONS) out[def.key] = def.type === 'item-permissions' ? normalizeItemPermissions(def.default) : def.default; return out; }
 function sanitize(values = {}) { const out = defaults(); for (const [key, value] of Object.entries(values || {})) { const def = BY_KEY.get(key); if (def) out[key] = normalize(def, value); } return out; }
 function storage(root = globalThis) { try { return root && (root.localStorage || root.parent && root.parent.localStorage) || null; } catch (_) { return null; } }
 function loadStored(root = globalThis) {
@@ -53396,6 +53541,27 @@ function sessionId(now) {
   return `session-${Number(now()).toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function eventDigest(rows = []) {
+  const priority = [];
+  const groups = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    if (!row) continue;
+    const severity = String(row.severity || 'info').toLowerCase();
+    const key = [row.component || '-', row.event || '-', row.reason || '-'].join('|');
+    const current = groups.get(key) || { component: row.component || null, event: row.event || null, reason: row.reason || null, severity, count: 0, firstAt: row.ts || row.at || null, lastAt: null };
+    current.count += 1;
+    current.lastAt = row.ts || row.at || current.lastAt;
+    if (['error', 'fatal', 'critical', 'warn', 'warning'].includes(severity) || /FAIL|ERROR|DEATH|RETREAT|DISCONNECT|CIRCUIT|QUARANTINE|ROLLBACK|DRIFT/i.test(String(row.event || row.reason || ''))) {
+      priority.push(row);
+    }
+    groups.set(key, current);
+  }
+  return {
+    priority: priority.slice(-120),
+    repeated: [...groups.values()].filter((row) => row.count > 1).sort((a, b) => b.count - a.count).slice(0, 80)
+  };
+}
+
 class SessionMonitor {
   constructor(options = {}) {
     this.root = options.root || globalThis;
@@ -53514,6 +53680,16 @@ class SessionMonitor {
     const travelPlans = runtime.safeTravel && typeof runtime.safeTravel.list === 'function' ? runtime.safeTravel.list(this.maxTravel) : [];
     const performance = runtime.performance && typeof runtime.performance.status === 'function' ? safeCall(() => runtime.performance.status(), null) : null;
     const registry = runtime.characterRegistry && typeof runtime.characterRegistry.status === 'function' ? safeCall(() => runtime.characterRegistry.status(), null) : null;
+    const brain = runtime.strategicBrainV2 && typeof runtime.strategicBrainV2.status === 'function'
+      ? safeCall(() => runtime.strategicBrainV2.status(), null)
+      : runtime.brain && typeof runtime.brain.status === 'function' ? safeCall(() => runtime.brain.status(), null) : null;
+    const adaptivePull = runtime.adaptivePullLearner && typeof runtime.adaptivePullLearner.status === 'function' ? safeCall(() => runtime.adaptivePullLearner.status(), null) : null;
+    const encounterLifecycle = runtime.encounterLifecycle && typeof runtime.encounterLifecycle.status === 'function'
+      ? safeCall(() => runtime.encounterLifecycle.status(), null)
+      : runtime.tacticalPartyCombat && runtime.tacticalPartyCombat.encounterLifecycle && typeof runtime.tacticalPartyCombat.encounterLifecycle.status === 'function'
+        ? safeCall(() => runtime.tacticalPartyCombat.encounterLifecycle.status(), null) : null;
+    const partyPerformance = runtime.partyPerformance && typeof runtime.partyPerformance.status === 'function' ? safeCall(() => runtime.partyPerformance.status(128), null) : null;
+    const digest = eventDigest(eventLog);
     return {
       schemaVersion: MONITOR_SCHEMA_VERSION,
       kind: 'aio-v3-session-log',
@@ -53525,6 +53701,15 @@ class SessionMonitor {
       summary: this.summary(),
       status: clone(status),
       performance: clone(performance),
+      brain: clone(brain),
+      learning: {
+        partyFingerprint: clone(runtime.currentPartyFingerprint || null),
+        encounterFingerprint: clone(runtime.currentEncounterFingerprint || null),
+        adaptivePull: clone(adaptivePull),
+        encounterLifecycle: clone(encounterLifecycle),
+        partyPerformance: clone(partyPerformance)
+      },
+      diagnosticSignals: clone(digest),
       characterRegistry: clone(registry),
       inventory: { status: clone(status.inventory || null), entries: clone(inventoryEntries) },
       gearProgression: { status: clone(status.gearProgression || null), goals: clone(gearGoals) },
@@ -54325,53 +54510,9 @@ class DebugMonitorUI {
   refresh() {
     if (!this.container || !this.monitor) return false;
     const doc = this._doc();
-    if (!doc || !this.body) return false;
-    const summary = this.monitor.summary();
-    while (this.body.firstChild) this.body.removeChild(this.body.firstChild);
-    const char = summary.character || {};
-    const sup = summary.supervisor || {};
-    const economy = summary.economy || {};
-    const travel = summary.travel || {};
-    const inventory = summary.inventory || {};
-    const controlledEconomy = economy.controlled || {};
-    const controlledTravel = travel.controlled || {};
-    const runStatus = this._runStatus();
-    let runtimeStatus = null;
-    try { runtimeStatus = this.monitor.runtime && typeof this.monitor.runtime.status === 'function' ? this.monitor.runtime.status() : null; } catch (_) {}
-    const merchantService = runtimeStatus && runtimeStatus.merchantService || null;
-    const controlledService = merchantService && merchantService.controlled || {};
-    const serviceExecution = merchantService && merchantService.lastExecution || controlledService.lastAction || null;
-    const serviceKind = serviceExecution && (serviceExecution.kind || serviceExecution.planKind || serviceExecution.action) || '—';
-    const serviceRaw = Number(controlledService.stats && controlledService.stats.rawActions) || 0;
-    const serviceCircuit = controlledService.circuit && controlledService.circuit.open ? 'OPEN' : 'ok';
-    const standOpen = !!(this.root && this.root.character && this.root.character.stand);
-    const sessionDuration = Math.max(0, Number(summary.generatedAt || 0) - Number(summary.startedAt || 0));
-    const runLabel = runStatus
-      ? `${runStatus.state}${runStatus.state === 'STOPPED_BLOCKED' && runStatus.blockers.length ? ` · ${runStatus.blockers.slice(0, 2).join(', ')}` : ''}`
-      : (summary.running ? 'RUNNING' : 'STOPPED');
-    const serviceLabel = !merchantService ? '—' : controlledService.enabled
-      ? `AN · Stand:${controlledService.allowStand ? 'on' : 'off'}${standOpen ? '/offen' : '/zu'} · Delivery:${controlledService.allowDelivery ? 'on' : 'off'}${controlledService.busy ? ' · BUSY' : ''}`
-      : `AUS · Stand:${standOpen ? 'offen' : 'zu'}`;
-
-    const rows = [
-      ['Version / Modus', `${summary.version || '—'} / ${summary.mode || '—'}`],
-      ['Bot', runLabel],
-      ['Session', this._formatDuration(sessionDuration)],
-      ['Charakter', `${char.name || '—'} (${char.ctype || '—'}) L${char.level || 0}`],
-      ['Map', `${char.map || '—'} @ ${Math.round(char.x || 0)}, ${Math.round(char.y || 0)}`],
-      ['Supervisor', `${sup.state || '—'}${sup.reasons && sup.reasons.length ? ` · ${sup.reasons.slice(0, 2).join(', ')}` : ''}`],
-      ['Merchant live', controlledEconomy.enabled ? `AN · SELL:${controlledEconomy.sellEnabled ? 'on' : 'off'} BANK:${controlledEconomy.bankEnabled ? 'on' : 'off'}` : 'AUS'],
-      ['Merchant Service', serviceLabel],
-      ['Service Aktion', merchantService ? `${serviceKind} · Raw ${serviceRaw} · Circuit ${serviceCircuit}` : '—'],
-      ['Travel live', controlledTravel.enabled ? `AN${controlledTravel.busy ? ' · BUSY' : ''}` : 'AUS'],
-      ['Transaktionen', `aktiv ${economy.activeTransactions || 0} · recovery ${economy.recoveringTransactions || 0}`],
-      ['Travel', `aktiv ${travel.active || 0} · Circuit ${travel.circuit && travel.circuit.open ? 'OPEN' : 'ok'}`],
-      ['Inventar', `Einträge ${inventory.totalEntries || 0}${inventory.stale ? ' · STALE' : ''}`],
-      ['Log', `Fehler ${summary.recentSignals.errors || 0} · Warn ${summary.recentSignals.warnings || 0}`]
-    ];
-    for (const [label, value] of rows) this.body.appendChild(this._row(doc, label, value));
+    if (!doc) return false;
     if (this.logBox) this.logBox.textContent = this._eventsText();
-    this._updateRunButton(runStatus);
+    this._updateRunButton();
     this._updateSkillsButton();
     if (this.skillsPanelOpen) this._renderSkillsPanel();
     return true;
@@ -54436,6 +54577,7 @@ class DebugMonitorUI {
     box.appendChild(this.skillsPanel);
 
     this.body = doc.createElement('div');
+    this.body.setAttribute('aria-hidden', 'true');
     box.appendChild(this.body);
 
     this.logBox = doc.createElement('pre');
