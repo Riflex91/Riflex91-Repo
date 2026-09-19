@@ -7,6 +7,20 @@ on:
       - 'v5/dokumentation/V5-DEFINITION-OF-DONE.md'
       - 'v5/roadmap/**'
       - 'v5/werkzeuge/roadmap-pruefen.mjs'
+      - 'v5/architektur/**'
+      - 'v5/migration/**'
+      - 'v5/invarianten/**'
+      - 'v5/anforderungen/**'
+      - 'v5/gefahren/**'
+      - 'v5/zustaende/**'
+      - 'v5/fitness/**'
+      - 'v5/entwicklungsregeln/**'
+      - 'v5/dokumentation/V5-VERFASSUNG-R2.md'
+      - 'v5/dokumentation/V5-MIGRATIONSMATRIX.md'
+      - 'v5/dokumentation/V5-V3-FEHLERABDECKUNG.md'
+      - 'v5/dokumentation/V5-DEUTSCHE-DOMAENENMIGRATION.md'
+      - 'v5/dokumentation/V5-R2-STRATEGIEN.md'
+      - 'v5/werkzeuge/r2-verfassung-pruefen.mjs'
       - '.github/workflows/v5-roadmap.yml'
   push:
     branches:
@@ -16,6 +30,20 @@ on:
       - 'v5/dokumentation/V5-DEFINITION-OF-DONE.md'
       - 'v5/roadmap/**'
       - 'v5/werkzeuge/roadmap-pruefen.mjs'
+      - 'v5/architektur/**'
+      - 'v5/migration/**'
+      - 'v5/invarianten/**'
+      - 'v5/anforderungen/**'
+      - 'v5/gefahren/**'
+      - 'v5/zustaende/**'
+      - 'v5/fitness/**'
+      - 'v5/entwicklungsregeln/**'
+      - 'v5/dokumentation/V5-VERFASSUNG-R2.md'
+      - 'v5/dokumentation/V5-MIGRATIONSMATRIX.md'
+      - 'v5/dokumentation/V5-V3-FEHLERABDECKUNG.md'
+      - 'v5/dokumentation/V5-DEUTSCHE-DOMAENENMIGRATION.md'
+      - 'v5/dokumentation/V5-R2-STRATEGIEN.md'
+      - 'v5/werkzeuge/r2-verfassung-pruefen.mjs'
       - '.github/workflows/v5-roadmap.yml'
 
 jobs:
@@ -26,4 +54,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node v5/werkzeuge/roadmap-pruefen.mjs
+      - name: V5 Roadmap pruefen
+        run: node v5/werkzeuge/roadmap-pruefen.mjs
+      - name: V5 R2 Verfassung pruefen
+        run: node v5/werkzeuge/r2-verfassung-pruefen.mjs

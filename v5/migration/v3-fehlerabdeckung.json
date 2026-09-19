@@ -1,0 +1,494 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-19",
+  "status": "R2_RATIFIZIERT",
+  "anzahl": 30,
+  "regel": "Jede der 30 V3-Fehlerklassen besitzt mindestens eine strukturelle V5-Gegenmassnahme und konkrete Invarianten-/Phasenreferenzen. Strukturell abgedeckt bedeutet nicht bereits implementiert oder live zertifiziert.",
+  "fehler": [
+    {
+      "kennung": "V3ERR-001",
+      "titel": "Command return wurde mit fachlichem Erfolg verwechselt",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Server Result ist nur Evidence; COMMIT erst nach beobachteter Postcondition/Arrival-Verifikation.",
+      "invarianten": [
+        "V5-ALT-006",
+        "V5-ALT-007",
+        "V5-ALT-049"
+      ],
+      "roadmapPhasen": [
+        "R9",
+        "R10"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-002",
+      "titel": "Blind Resume nach Restart",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Persistierte nichtterminale Arbeit startet nach Restart im Abgleich, nie als laufende Mutation.",
+      "invarianten": [
+        "V5-ALT-008",
+        "V5-ALT-009",
+        "V5-ALT-035",
+        "V5-INV-100"
+      ],
+      "roadmapPhasen": [
+        "R5",
+        "R10"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-003",
+      "titel": "Merchant-Lease-Starvation",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Globaler Scheduler mit Aging/Fairness, Ressourcenclaims und sicheren Preemption-Grenzen verhindert Lease-Starvation.",
+      "invarianten": [
+        "V5-ALT-015",
+        "V5-ALT-019",
+        "V5-INV-099"
+      ],
+      "roadmapPhasen": [
+        "R8",
+        "R13"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-004",
+      "titel": "Historische Hotfix-/Patch-Kaskaden",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Keine Patch-Kaskaden oder Runtime-Vererbung; azyklische Ports, Single Owner und neue Composition.",
+      "invarianten": [
+        "V5-ALT-004",
+        "V5-ALT-005",
+        "V5-ALT-044",
+        "V5-INV-106"
+      ],
+      "roadmapPhasen": [
+        "R2",
+        "R3",
+        "R7"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-005",
+      "titel": "Stale Party Identity / Progression Leak",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Roster-Epoch/Identity und frische Admission verhindern stale Party-/Progression-Authority.",
+      "invarianten": [
+        "V5-ALT-024",
+        "V5-ALT-026"
+      ],
+      "roadmapPhasen": [
+        "R14",
+        "R16"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-006",
+      "titel": "Pending Offer / Logistics Deadlock",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Delivery-Workflow mit stabiler ID, TTL, ACK/NACK, Dedupe, bounded Backoff und Release.",
+      "invarianten": [
+        "V5-ALT-011",
+        "V5-ALT-012",
+        "V5-ALT-017",
+        "V5-INV-102"
+      ],
+      "roadmapPhasen": [
+        "R8",
+        "R14",
+        "R15"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-007",
+      "titel": "Terrain-/Movement-Thrashing",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Bounded Retry, scoped Circuit und Hysteresis/Replan statt wiederholtem Terrain-Thrashing.",
+      "invarianten": [
+        "V5-ALT-012",
+        "V5-ALT-013",
+        "V5-ALT-048"
+      ],
+      "roadmapPhasen": [
+        "R8",
+        "R16"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-008",
+      "titel": "Bank/Inventory ohne Workspace",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "InventorySpace/Outputspace ist explizite Precondition und Resource; fehlender Workspace blockiert fail-closed.",
+      "invarianten": [
+        "V5-ALT-029",
+        "V5-INV-077"
+      ],
+      "roadmapPhasen": [
+        "R8",
+        "R13",
+        "R15"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-009",
+      "titel": "Persistence Quota Retry Storm",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Persistenz besitzt Budgets, Backpressure, bounded Retry, Circuit, Retention und fail-closed Verhalten.",
+      "invarianten": [
+        "V5-ALT-012",
+        "V5-ALT-040",
+        "V5-ALT-045",
+        "V5-ALT-046",
+        "V5-INV-104"
+      ],
+      "roadmapPhasen": [
+        "R5",
+        "R8"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-010",
+      "titel": "Gameplay-Code als eigener Prozess-Restarter",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Host besitzt Prozess-Lifecycle; Runtime besitzt Gameplay-Recovery. Kein Self-Restart als fachliche Recovery.",
+      "invarianten": [
+        "V5-ALT-032",
+        "V5-ALT-034",
+        "V5-ALT-036"
+      ],
+      "roadmapPhasen": [
+        "R3",
+        "R11"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-011",
+      "titel": "Stale Moving Target bei Merchant Service",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Motion-aware Freshness und unmittelbare Revalidation vor Travel/Delivery.",
+      "invarianten": [
+        "V5-ALT-024",
+        "V5-ALT-025",
+        "V5-ALT-050"
+      ],
+      "roadmapPhasen": [
+        "R6",
+        "R16"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-012",
+      "titel": "Production zu früh als fertig markiert",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Production-Commit erst nach final verifiziertem Recipient Settlement.",
+      "invarianten": [
+        "V5-ALT-030"
+      ],
+      "roadmapPhasen": [
+        "R15"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-013",
+      "titel": "doppelte Verarbeitung nach Restart",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Stabile IDs, Dedupe und persistente Cursor verhindern doppelte irreversible Verarbeitung nach Restart.",
+      "invarianten": [
+        "V5-ALT-011",
+        "V5-ALT-031"
+      ],
+      "roadmapPhasen": [
+        "R5",
+        "R10"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-014",
+      "titel": "Persistierter Katalog als Ausführungsautorität",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Persistiertes Wissen bleibt PlanningEvidence; Live-Admission revalidiert physische Wahrheit.",
+      "invarianten": [
+        "V5-ALT-023",
+        "V5-ALT-024",
+        "V5-INV-048"
+      ],
+      "roadmapPhasen": [
+        "R0",
+        "R6",
+        "R9"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-015",
+      "titel": "Unknown Content wurde aus Liveness-Gründen freigegeben",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Unknown/Changed Content wird quarantiniert; Learning kann die Freigabe nicht selbst erteilen.",
+      "invarianten": [
+        "V5-ALT-021",
+        "V5-ALT-022",
+        "V5-INV-009"
+      ],
+      "roadmapPhasen": [
+        "R0",
+        "R6",
+        "R17"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-016",
+      "titel": "Mehrere Potion-/Service-Owner",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Capability Registry erzwingt genau einen mutierenden Owner; indirekte Altpfade koennen Admission nicht umgehen.",
+      "invarianten": [
+        "V5-ALT-001",
+        "V5-ALT-028",
+        "V5-ALT-053"
+      ],
+      "roadmapPhasen": [
+        "R7",
+        "R13"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-017",
+      "titel": "Partielle Multi-Item-Delivery",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Mehrteilige Transaktionen besitzen Phasen, per-step Settlement und Reconciliation; kein Whole-Workflow-Blind-Retry.",
+      "invarianten": [
+        "V5-ALT-006",
+        "V5-ALT-008",
+        "V5-ALT-011",
+        "V5-ALT-016",
+        "V5-INV-100"
+      ],
+      "roadmapPhasen": [
+        "R10",
+        "R15"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-018",
+      "titel": "Globaler Circuit blockiert fachfremde Arbeit",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Circuits/Failure Domains sind capability-, resource- oder identity-scoped statt global.",
+      "invarianten": [
+        "V5-ALT-013",
+        "V5-INV-023"
+      ],
+      "roadmapPhasen": [
+        "R8"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-019",
+      "titel": "Raw Target statt Owned Target",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Explizites TargetOwnership-Modell; Raw Game Target ist nur Observation.",
+      "invarianten": [
+        "V5-ALT-051"
+      ],
+      "roadmapPhasen": [
+        "R16"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-020",
+      "titel": "Fresh Plan Drift vor irreversibler Aktion",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Kurzlebige typisierte Ausfuehrungsfreigabe ist an frische Preconditions/Fingerprints gebunden.",
+      "invarianten": [
+        "V5-ALT-024",
+        "V5-INV-004",
+        "V5-INV-005"
+      ],
+      "roadmapPhasen": [
+        "R6",
+        "R9"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-021",
+      "titel": "Item-Identität nur über Name/Level",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "ItemHandle/Claim bindet konkrete physische Identitaet/Fingerprint statt nur Name/Level.",
+      "invarianten": [
+        "V5-ALT-027"
+      ],
+      "roadmapPhasen": [
+        "R6",
+        "R13"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-022",
+      "titel": "Bank/Compound-Fairness",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Scheduler-Aging und explizite Fairness verhindern Verhungern von Bank-/Compound-Arbeit.",
+      "invarianten": [
+        "V5-ALT-019"
+      ],
+      "roadmapPhasen": [
+        "R8",
+        "R13",
+        "R15"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-023",
+      "titel": "Alert zwischen Dequeue und Persistenz verloren",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Kritische Alerts werden persist-before-claim in bounded durable Spools gespeichert.",
+      "invarianten": [
+        "V5-ALT-039",
+        "V5-ALT-040"
+      ],
+      "roadmapPhasen": [
+        "R5",
+        "R11"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-024",
+      "titel": "Host-/Dashboard-Bridge zu mächtig",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Host/Bridge bleibt Narrow Allowlist ohne generisches evaluate/invoke und ohne Gameplay-Policy.",
+      "invarianten": [
+        "V5-ALT-032",
+        "V5-ALT-033",
+        "V5-ALT-036",
+        "V5-INV-022"
+      ],
+      "roadmapPhasen": [
+        "R3"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-025",
+      "titel": "Restart als erfolgreiche Recovery interpretiert",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "HostRecovery und GameplayRecovery sind getrennt; Restart erzwingt Reobservation/Reconciliation.",
+      "invarianten": [
+        "V5-ALT-034",
+        "V5-ALT-035",
+        "V5-INV-100"
+      ],
+      "roadmapPhasen": [
+        "R10",
+        "R11"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-026",
+      "titel": "Safety-Lockerung zur Deadlock-Behebung",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Recovery/Liveness darf Authority nur gleich lassen oder reduzieren; Operator-Deny und Safety bleiben dominant.",
+      "invarianten": [
+        "V5-ALT-020",
+        "V5-ALT-022",
+        "V5-ALT-042",
+        "V5-ALT-052"
+      ],
+      "roadmapPhasen": [
+        "R2",
+        "R7",
+        "R8"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-027",
+      "titel": "Unbegrenzte Telemetrie-/History-Zunahme",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Alle Recorder/Histories sind bounded und besitzen Retention/Backpressure; Certification weist Sample-Gaps aus.",
+      "invarianten": [
+        "V5-ALT-040",
+        "V5-ALT-055",
+        "V5-INV-104"
+      ],
+      "roadmapPhasen": [
+        "R4",
+        "R11",
+        "R19"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-028",
+      "titel": "Event-/Quest-Quelle driftet zwischen Plan und Ausführung",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Event-/Quest-Evidence ist Freshness-gebunden; Drift invalidiert Admission und kann Capability quarantinieren.",
+      "invarianten": [
+        "V5-ALT-021",
+        "V5-ALT-024",
+        "V5-ALT-025",
+        "V5-INV-009"
+      ],
+      "roadmapPhasen": [
+        "R6",
+        "R17"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-029",
+      "titel": "Operator Stop während In-Flight Transaction",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Stop sperrt neue Arbeit und wartet bounded bis SafePreemption/Settlement/Reconcile-Grenze.",
+      "invarianten": [
+        "V5-ALT-015",
+        "V5-ALT-016",
+        "V5-ALT-017"
+      ],
+      "roadmapPhasen": [
+        "R7",
+        "R10"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    },
+    {
+      "kennung": "V3ERR-030",
+      "titel": "Semantische Regression durch Altpfad",
+      "status": "STRUKTURELL_ABGEDECKT_R2",
+      "gegenmassnahme": "Kein Legacy-Pfad im Runtime-Graph; Single Owner, azyklische Layer und Default-Deny verhindern semantische Altpfad-Regression.",
+      "invarianten": [
+        "V5-ALT-001",
+        "V5-ALT-004",
+        "V5-ALT-005",
+        "V5-ALT-044",
+        "V5-ALT-053",
+        "V5-INV-106"
+      ],
+      "roadmapPhasen": [
+        "R2",
+        "R3",
+        "R7"
+      ],
+      "quelle": "v4/dokumentation/wissensbasis/v3-fehler/V3-FEHLERKATALOG.md"
+    }
+  ]
+}

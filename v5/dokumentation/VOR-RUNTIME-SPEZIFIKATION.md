@@ -330,3 +330,9 @@ Pflicht:
 - MCP/HTTP-Rate-Limits, Deferred Queue Guard und Mainframe-CPU bleiben getrennte Typen;
 - `ccreport` wird nur diagnostisch/kalibrierend und bounded genutzt;
 - Cost-/Limit-Drift sperrt betroffene Automation bis zur Revalidierung.
+
+
+## R2-Ratifizierung
+
+**R2-Status:** RATIFIZIERT am 2026-09-19.  
+Dieser Vertrag ist Bestandteil der V5-Verfassung. Die Ratifizierung ist eine Architektur-/Vorbereitungsfreigabe und **keine Gameplay-Runtime-Freigabe**. Technische Umsetzung und Live-Nachweise folgen ausschliesslich in den dafuer vorgesehenen Roadmap-Phasen.

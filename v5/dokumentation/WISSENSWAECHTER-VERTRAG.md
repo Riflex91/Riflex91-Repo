@@ -263,3 +263,9 @@ Ein lokaler Importfehler darf:
 - den letzten gueltigen GitHub-Live-Snapshot nicht zerstoeren;
 - externe Quellenrecherche nicht in Gameplay-Autoritaet verwandeln;
 - laufendes Gameplay nicht stoppen oder steuern.
+
+
+## R2-Ratifizierung
+
+**R2-Status:** RATIFIZIERT am 2026-09-19.  
+Dieser Vertrag ist Bestandteil der V5-Verfassung. Die Ratifizierung ist eine Architektur-/Vorbereitungsfreigabe und **keine Gameplay-Runtime-Freigabe**. Technische Umsetzung und Live-Nachweise folgen ausschliesslich in den dafuer vorgesehenen Roadmap-Phasen.

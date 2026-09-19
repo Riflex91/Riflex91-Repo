@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "stand": "2026-09-19",
-  "status": "RATIFIZIERUNG_OFFEN",
+  "status": "R2_RATIFIZIERT",
   "zusammenfassung": {
     "ausV4": 55,
-    "neuV5": 98,
-    "gesamt": 153
+    "neuV5": 106,
+    "gesamt": 161
   },
   "regel": "Alle 55 V4-Invarianten muessen in R2 explizit UEBERNEHMEN, VERSCHAERFEN oder ERSETZEN erhalten. Keine darf still entfallen.",
   "invarianten": [
@@ -14,495 +14,495 @@
       "herkunft": "V4-INV-001",
       "aussage": "Eine mutierende Capability hat genau einen aktiven Owner.",
       "geplanteDurchsetzung": "Registry + Start-Guard + Test",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Single Owner bleibt verbindlich; V5 trennt zusaetzlich Account-Coordinator- und Character-Agent-Authority und verlangt typisierte Capability-Admission."
     },
     {
       "kennung": "V5-ALT-002",
       "herkunft": "V4-INV-002",
       "aussage": "Direkte Adventure-Land-Schreibaufrufe existieren nur in ausfuehrung/.",
       "geplanteDurchsetzung": "Static Guard",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Raw Writes bleiben auf die Ausfuehrungsgrenze beschraenkt und duerfen erst nach Authority-, Ressourcen-, Channel-, Budget- und Intent-Admission entstehen."
     },
     {
       "kennung": "V5-ALT-003",
       "herkunft": "V4-INV-003",
       "aussage": "Fachmodule kennen Game Writes nur über typisierte Ports/Anfragen.",
       "geplanteDurchsetzung": "Dependency Guard",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Fachmodule bleiben von Raw Game Writes entkoppelt und verwenden ausschliesslich typisierte Ports/ActionRequests."
     },
     {
       "kennung": "V5-ALT-004",
       "herkunft": "V4-INV-004",
       "aussage": "Kein Monkey-/Prototype-Patching als Erweiterungsmechanismus.",
       "geplanteDurchsetzung": "Static Guard",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Monkey-/Prototype-Patching widerspricht reproduzierbarer Ownership und bleibt verboten."
     },
     {
       "kennung": "V5-ALT-005",
       "herkunft": "V4-INV-005",
       "aussage": "Runtime Composition erbt nicht von historischen Feature-/Alpha-Runtimes.",
       "geplanteDurchsetzung": "Composition Guard",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "V5 ist Architektur-Neustart; historische Alpha-/Feature-Runtimes duerfen nicht als Composition-Basis dienen."
     },
     {
       "kennung": "V5-ALT-006",
       "herkunft": "V4-INV-006",
       "aussage": "Jede Mutation besitzt einen expliziten Outcome-Verifier.",
       "geplanteDurchsetzung": "Contract + Runtime Guard",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Jede Mutation braucht nicht nur einen Verifier, sondern explizite Postcondition-Observation und bei Unsicherheit Reconciliation."
     },
     {
       "kennung": "V5-ALT-007",
       "herkunft": "V4-INV-007",
       "aussage": "API-Return/Promise allein darf keinen fachlichen COMMIT erzeugen.",
       "geplanteDurchsetzung": "Verifier Contract + Tests",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Server Result/Promise ist nur Evidence; fachlicher COMMIT entsteht ausschliesslich durch passende Postcondition bzw. Reconciliation."
     },
     {
       "kennung": "V5-ALT-008",
       "herkunft": "V4-INV-008",
       "aussage": "Nicht-terminale persistierte Arbeit wird nach Restart niemals blind fortgesetzt.",
       "geplanteDurchsetzung": "Persistence Loader",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Nichtterminale Persistenz wird nach Restart geladen, aber ohne frische Reobservation niemals als fortsetzbare ExecutionAuthority behandelt."
     },
     {
       "kennung": "V5-ALT-009",
       "herkunft": "V4-INV-009",
       "aussage": "Restart setzt langlebige Arbeit auf RECONCILE_REQUIRED.",
       "geplanteDurchsetzung": "Workflow Runtime",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "ERSETZEN",
+      "begruendung": "Der englische Altzustand RECONCILE_REQUIRED wird in V5 durch den kanonischen deutschen Zustand ABGLEICH_ERFORDERLICH und den UNKNOWN/Reconcile-Vertrag ersetzt."
     },
     {
       "kennung": "V5-ALT-010",
       "herkunft": "V4-INV-010",
       "aussage": "Irreversible/mehrittige Arbeit persistiert vor der ersten Raw Action.",
       "geplanteDurchsetzung": "Transaction Guard",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Vor jeder wertveraendernden/irreversiblen Send-Grenze muss der Transaction Intent durable persistiert und seine Persistenz bestaetigt sein."
     },
     {
       "kennung": "V5-ALT-011",
       "herkunft": "V4-INV-011",
       "aussage": "Jeder Workflow besitzt Idempotency Key und stabile Workflow-ID.",
       "geplanteDurchsetzung": "Workflow Schema",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Stabile Workflow-ID und Idempotenzkennung bleiben Pflicht fuer langlebige Arbeit und Deduplizierung."
     },
     {
       "kennung": "V5-ALT-012",
       "herkunft": "V4-INV-012",
       "aussage": "Retries sind bounded: Versuche, Zeit, Backoff und Circuit sind Pflicht.",
       "geplanteDurchsetzung": "Retry Policy",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Retries bleiben bounded; nach moeglichem Send einer wertveraendernden Action ist Same-Intent-Retry unabhaengig vom allgemeinen Retry-Budget verboten."
     },
     {
       "kennung": "V5-ALT-013",
       "herkunft": "V4-INV-013",
       "aussage": "Circuits sind fachlich/scoped und dürfen unabhängige Capabilities nicht global sperren.",
       "geplanteDurchsetzung": "Circuit Registry",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Circuits bleiben fachlich, ressourcen- oder identitaetsbezogen statt global."
     },
     {
       "kennung": "V5-ALT-014",
       "herkunft": "V4-INV-014",
       "aussage": "Jede Ressource besitzt genau einen Lock-Owner zur Zeit.",
       "geplanteDurchsetzung": "Resource Lock Manager",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Exklusive Ressourcen erhalten zusaetzlich Locality, Lease-Epoch und Fencing; lange/shared Ressourcen duerfen nicht nur als nackter Lock modelliert werden."
     },
     {
       "kennung": "V5-ALT-015",
       "herkunft": "V4-INV-015",
       "aussage": "Preemption ist nur an deklarierten SafePreemptionPoints zulässig.",
       "geplanteDurchsetzung": "Scheduler",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Preemption bleibt nur an expliziten sicheren Unterbrechungspunkten erlaubt."
     },
     {
       "kennung": "V5-ALT-016",
       "herkunft": "V4-INV-016",
       "aussage": "Eine Transaktion wird nicht mitten in einem unteilbaren Commit abgebrochen.",
       "geplanteDurchsetzung": "Scheduler + Transaction Phase",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Eine accepted/in-flight Transaktion wird nie erzwungen abgebrochen; Stop/Timeout fuehrt bei unklarem Outcome in UNKNOWN/Abgleich."
     },
     {
       "kennung": "V5-ALT-017",
       "herkunft": "V4-INV-017",
       "aussage": "Stop/Shutdown sperrt zuerst neue Arbeit und reconciliert laufende Arbeit bounded.",
       "geplanteDurchsetzung": "Run Control",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Stop/Shutdown sperrt zuerst neue Admission, reconciliert laufende Arbeit bounded und darf kritische durable Evidence nicht verlieren."
     },
     {
       "kennung": "V5-ALT-018",
       "herkunft": "V4-INV-018",
       "aussage": "Priorität besteht aus PriorityClass + numerischem Rang; nicht nur aus einer globalen Zahl.",
       "geplanteDurchsetzung": "Scheduler Contract",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Prioritaetsklasse plus numerischer Rang bleibt das verbindliche Scheduler-Modell."
     },
     {
       "kennung": "V5-ALT-019",
       "herkunft": "V4-INV-019",
       "aussage": "Aging/Fairness verhindert Starvation bei dauerhaft niedrigerer Priorität.",
       "geplanteDurchsetzung": "Scheduler",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Aging/Fairness bleibt Pflicht, ohne Safety-Grenzen zu ueberschreiten."
     },
     {
       "kennung": "V5-ALT-020",
       "herkunft": "V4-INV-020",
       "aussage": "Safety/Notfall darf normale Arbeit preempten; normale Arbeit darf Safety nie preempten.",
       "geplanteDurchsetzung": "Priority Rules",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Safety/Notfall darf normale Arbeit preempten; normale Arbeit niemals Safety."
     },
     {
       "kennung": "V5-ALT-021",
       "herkunft": "V4-INV-021",
       "aussage": "Unknown/Quarantined/Changed Content ist fail-closed.",
       "geplanteDurchsetzung": "Content Safety",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Unknown/Quarantined/Changed Content bleibt fail-closed; Source-/Contract-Drift kann die betroffene Capability automatisch quarantinieren."
     },
     {
       "kennung": "V5-ALT-022",
       "herkunft": "V4-INV-022",
       "aussage": "Learning darf harte Safety- oder Authority-Grenzen nicht selbst lockern.",
       "geplanteDurchsetzung": "Learning Port",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Learning darf Safety, Authority, Retry-Grenzen und Content-Freigaben niemals selbst lockern."
     },
     {
       "kennung": "V5-ALT-023",
       "herkunft": "V4-INV-023",
       "aussage": "Persistiertes Wissen ist PlanningEvidence, keine ExecutionAuthority.",
       "geplanteDurchsetzung": "Evidence Types",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Persistiertes Wissen einschliesslich LIVE_VERIFIZIERT bleibt Evidence; weder Speicherort noch Verifikationsstatus verleihen ohne Live-Admission ExecutionAuthority."
     },
     {
       "kennung": "V5-ALT-024",
       "herkunft": "V4-INV-024",
       "aussage": "Live-Ausführung revalidiert physische/zeitkritische Preconditions unmittelbar vor Admission.",
       "geplanteDurchsetzung": "Admission Token",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Zeitkritische/physische Preconditions werden unmittelbar vor Admission und bei mehrphasigen Writes an den relevanten Phasengrenzen erneut geprueft."
     },
     {
       "kennung": "V5-ALT-025",
       "herkunft": "V4-INV-025",
       "aussage": "Jede zeitabhängige Evidenz trägt Freshness/ObservedAt/Source.",
       "geplanteDurchsetzung": "Evidence Schema",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Zeitabhaengige Evidence benoetigt Freshness, Beobachtungszeit und Quelle."
     },
     {
       "kennung": "V5-ALT-026",
       "herkunft": "V4-INV-026",
       "aussage": "Party-/Character-Ziele sind an aktuelle Identität/Roster-Epoch gebunden.",
       "geplanteDurchsetzung": "Group Truth",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Gruppen-/Character-Ziele bleiben an aktuelle Identitaet und Roster-Epoch gebunden."
     },
     {
       "kennung": "V5-ALT-027",
       "herkunft": "V4-INV-027",
       "aussage": "Physische Item-Reservierung referenziert eine konkrete Item-Identität, nicht nur Name/Level.",
       "geplanteDurchsetzung": "Inventory Ledger",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Item-Claims pinnen konkrete physische Identitaet/Fingerprint; serverseitige Auswahlregeln wie trade_sell muessen exakt vorhergesagt und geclaimt werden."
     },
     {
       "kennung": "V5-ALT-028",
       "herkunft": "V4-INV-028",
       "aussage": "Sell/Bank/Upgrade/Compound/Delivery lesen dieselbe zentrale Item-Disposition.",
       "geplanteDurchsetzung": "Ledger Port",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Alle wertrelevanten Item-Workflows lesen dieselbe zentrale Disposition/Reservation."
     },
     {
       "kennung": "V5-ALT-029",
       "herkunft": "V4-INV-029",
       "aussage": "Kein destruktiver Item-Workflow ohne Workspace-/Capacity-Preflight.",
       "geplanteDurchsetzung": "Resource Preconditions",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Workspace/Outputspace ist Transaction Safety; moegliche Multi-Outputs und Stack-Merges werden konservativ vorab beruecksichtigt."
     },
     {
       "kennung": "V5-ALT-030",
       "herkunft": "V4-INV-030",
       "aussage": "Production endet erst nach verifiziertem Recipient Settlement.",
       "geplanteDurchsetzung": "Production Workflow",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Production ist erst nach verifiziertem finalem Recipient Settlement abgeschlossen."
     },
     {
       "kennung": "V5-ALT-031",
       "herkunft": "V4-INV-031",
       "aussage": "Bereits verarbeitete irreversible Evidence wird nach Restart dedupliziert.",
       "geplanteDurchsetzung": "Persistent Cursor",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Irreversible Evidence/Events werden ueber stabile IDs/Cursor restartfest dedupliziert."
     },
     {
       "kennung": "V5-ALT-032",
       "herkunft": "V4-INV-032",
       "aussage": "Runtime besitzt Gameplay-Autorität; Host besitzt nur Prozess-/Browser-Lifecycle und Transport.",
       "geplanteDurchsetzung": "Capability Boundary",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Gameplay-Authority bleibt ausschliesslich in der V5-Runtime; Host/Bridge/Wissenswaechter besitzen Prozess-, Transport- oder Evidence-Aufgaben ohne Gameplay-Policy."
     },
     {
       "kennung": "V5-ALT-033",
       "herkunft": "V4-INV-033",
       "aussage": "Host-/Dashboard-Code besitzt keine Gameplay-Policy.",
       "geplanteDurchsetzung": "Dependency + API Guard",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Host und Dashboard besitzen keine Gameplay-Policy."
     },
     {
       "kennung": "V5-ALT-034",
       "herkunft": "V4-INV-034",
       "aussage": "Host-Restart ist kein Gameplay-Recovery-Nachweis.",
       "geplanteDurchsetzung": "Host State Machine",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Ein erfolgreicher Host-/Browser-Restart ist kein fachlicher Recovery-Nachweis."
     },
     {
       "kennung": "V5-ALT-035",
       "herkunft": "V4-INV-035",
       "aussage": "Nach Restart ist Fresh-Run + Live-Reobservation Pflicht.",
       "geplanteDurchsetzung": "Recovery Contract",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Nach Restart sind neuer Laufkontext, Live-Reobservation und Abgleich aller nichtterminalen/UNKNOWN Transaktionen Pflicht bevor neue Authority entsteht."
     },
     {
       "kennung": "V5-ALT-036",
       "herkunft": "V4-INV-036",
       "aussage": "Host-Bridge besitzt kein generisches Remote-evaluate/invoke.",
       "geplanteDurchsetzung": "Allowlist Guard",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Host-/Bridge-Schnittstellen bleiben allowlisted und duerfen kein generisches Remote-evaluate/invoke anbieten."
     },
     {
       "kennung": "V5-ALT-037",
       "herkunft": "V4-INV-037",
       "aussage": "Secrets gelangen nicht in Gameplay-Bundle, Telemetrie oder Alert-Payload.",
       "geplanteDurchsetzung": "Build/Schema Guard",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Secrets duerfen weder Gameplay-Bundle, Telemetrie, Alerts noch Live-Wissenssnapshot/GitHub-Mirror erreichen; Schema-/Pfadguards pruefen dies."
     },
     {
       "kennung": "V5-ALT-038",
       "herkunft": "V4-INV-038",
       "aussage": "Alert-Transport blockiert Gameplay niemals.",
       "geplanteDurchsetzung": "Async Host Boundary",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Alert-Transport darf den Gameplay-Hot-Path nicht blockieren."
     },
     {
       "kennung": "V5-ALT-039",
       "herkunft": "V4-INV-039",
       "aussage": "Kritische Alerts werden hostseitig persistiert, bevor sie im Bot geclaimt werden.",
       "geplanteDurchsetzung": "Persist-before-claim",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Kritische Alerts werden durable gespult, bevor sie als zugestellt/beansprucht gelten."
     },
     {
       "kennung": "V5-ALT-040",
       "herkunft": "V4-INV-040",
       "aussage": "Queues, Histories und Recorder sind capacity-bounded.",
       "geplanteDurchsetzung": "Bounded Collection Contract",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Alle Queues/Histories/Recorder sind bounded und besitzen Budget, Retention, Backpressure sowie definiertes Verhalten bei Speicher-/I/O-Druck."
     },
     {
       "kennung": "V5-ALT-041",
       "herkunft": "V4-INV-041",
       "aussage": "Telemetrie/Observation besitzt standardmäßig actionAuthority:false.",
       "geplanteDurchsetzung": "Capability Contract",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Telemetrie, Observation, Knowledge und Learning-Evidence besitzen standardmaessig keine ExecutionAuthority; Authority entsteht nur durch typisierte Live-Admission."
     },
     {
       "kennung": "V5-ALT-042",
       "herkunft": "V4-INV-042",
       "aussage": "Health/Supervisor darf Recovery-Autorität nur reduzieren oder explizit begrenzt aktivieren; nie Safety umgehen.",
       "geplanteDurchsetzung": "Recovery Policy",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Health/Supervisor darf Recovery-Autoritaet nur begrenzen oder innerhalb expliziter Policy aktivieren, nie Safety umgehen."
     },
     {
       "kennung": "V5-ALT-043",
       "herkunft": "V4-INV-043",
       "aussage": "Ein fehlender Status-/Health-Port wird in sicherheitskritischer Reconciliation nicht als CLEAN interpretiert.",
       "geplanteDurchsetzung": "Fail-closed Reconcile",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Fehlende/unklare Health-Evidence wird in Safety-/Recovery-Pfaden niemals als CLEAN interpretiert."
     },
     {
       "kennung": "V5-ALT-044",
       "herkunft": "V4-INV-044",
       "aussage": "Cross-Modul-Abhängigkeiten erfolgen nur über Verträge/Ports, nicht über fremde Runtime-Objekte.",
       "geplanteDurchsetzung": "Dependency Guard",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Cross-Modul-Abhaengigkeiten bleiben auf typisierte Ports/Vertraege beschraenkt."
     },
     {
       "kennung": "V5-ALT-045",
       "herkunft": "V4-INV-045",
       "aussage": "Persistenz ist schema-versioniert und migrationsfähig.",
       "geplanteDurchsetzung": "Persistence Schema",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Persistenz bleibt schema-versioniert/migrationsfaehig; Migrationen muessen deterministisch, pruefbar und bei sicherheitskritischen Fehlern fail-closed sein."
     },
     {
       "kennung": "V5-ALT-046",
       "herkunft": "V4-INV-046",
       "aussage": "Corrupt/oversized/unreadable sicherheitskritischer Persistenzzustand fail-closed.",
       "geplanteDurchsetzung": "Persistence Guard",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Korrupt/oversized/unreadable oder auf falschem Volume liegender sicherheitskritischer Zustand reduziert Authority und darf nicht still durch Fallback ersetzt werden."
     },
     {
       "kennung": "V5-ALT-047",
       "herkunft": "V4-INV-047",
       "aussage": "Jede langlebige Operation meldet Phase, Owner, Ressourcen, Deadline, Checkpoint und Abbruchgrund.",
       "geplanteDurchsetzung": "Workflow Schema",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Langlebige Operationen melden stabile ID, Phase, Owner, Ressourcen/Leases, Deadline, Checkpoint, Authority-/Budgetstatus und Abbruch-/Abgleichgrund."
     },
     {
       "kennung": "V5-ALT-048",
       "herkunft": "V4-INV-048",
       "aussage": "Kein Plan darf durch kleinen Score-Noise ständig wechseln.",
       "geplanteDurchsetzung": "Hysteresis/Replan Policy",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Hysteresis/Replan-Policy bleibt Pflicht gegen Score-Noise und Plan-Thrashing."
     },
     {
       "kennung": "V5-ALT-049",
       "herkunft": "V4-INV-049",
       "aussage": "Movement/Travel-Return ist kein Arrival-Beweis.",
       "geplanteDurchsetzung": "Travel Verifier",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Movement-/Travel-Return bleibt kein Arrival-Beweis; Ankunft braucht eine beobachtete Postcondition."
     },
     {
       "kennung": "V5-ALT-050",
       "herkunft": "V4-INV-050",
       "aussage": "Moving-Target-Work benötigt motion-aware Freshness.",
       "geplanteDurchsetzung": "Freshness Policy",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Arbeit an bewegten Zielen braucht motion-aware Freshness und Revalidation."
     },
     {
       "kennung": "V5-ALT-051",
       "herkunft": "V4-INV-051",
       "aussage": "Raw Game Target ist nicht automatisch fachliche Target-Ownership.",
       "geplanteDurchsetzung": "Combat Ownership",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Raw Game Target ist weiterhin keine fachliche Target-Ownership."
     },
     {
       "kennung": "V5-ALT-052",
       "herkunft": "V4-INV-052",
       "aussage": "Operator Deny überschreibt autonome Fallbacks.",
       "geplanteDurchsetzung": "Policy Resolution",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Operator-Deny/Kill-Switch hat Vorrang vor autonomen Fallbacks."
     },
     {
       "kennung": "V5-ALT-053",
       "herkunft": "V4-INV-053",
       "aussage": "Default-Off/ACK-Gates dürfen nicht durch indirekte Module umgangen werden.",
       "geplanteDurchsetzung": "Capability Admission",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Default-Off/ACK wird Teil einer Mehrfach-Verriegelung aus Capability, Owner, Authority, Ressourcen, Live-Preconditions, Budget und Operator Policy."
     },
     {
       "kennung": "V5-ALT-054",
       "herkunft": "V4-INV-054",
       "aussage": "Jede automatische Autorität ist im Status sichtbar und erklärbar.",
       "geplanteDurchsetzung": "Health/Telemetry Contract",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Automatische Authority muss als Decision Trace mit Owner, Evidence, Ressourcen, Policy und erwarteter Wirkung erklaerbar sein."
     },
     {
       "kennung": "V5-ALT-055",
       "herkunft": "V4-INV-055",
       "aussage": "Certification Evidence ist unveränderlich/verifizierbar und darf Downtime nicht durch Sample-Gaps verstecken.",
       "geplanteDurchsetzung": "Certification Chain",
-      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
-      "v5Entscheidung": null,
-      "begruendung": null
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "v5Entscheidung": "VERSCHAERFEN",
+      "begruendung": "Certification Evidence bleibt unveraenderlich/verifizierbar und muss zusaetzlich Sample-Gaps, SSD-/I/O-Gesundheit, Retention und Laufzeitfenster transparent ausweisen."
     },
     {
       "kennung": "V5-INV-001",
@@ -1385,6 +1385,99 @@
       "ratifizierungsStatus": "V5_VERBINDLICH",
       "v5Entscheidung": "UEBERNEHMEN",
       "begruendung": "ccreport verursacht selbst Call Cost und veraltete Kostenmodelle duerfen keine Execution Authority behalten."
+    },
+    {
+      "kennung": "V5-INV-099",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "Ein Action-Channel ist eine explizite Ressource; Channel-Admission und fachliche Ressourcenclaims muessen gleichzeitig gueltig sein.",
+      "geplanteDurchsetzung": "Action-Channel Resource Manager",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
+    },
+    {
+      "kennung": "V5-INV-100",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "UNKNOWN ist ein eigener Transaktions-/Recovery-Zustand und niemals ein normales FAILURE oder ein Retry-Signal.",
+      "geplanteDurchsetzung": "Transaction/Reconciliation State Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
+    },
+    {
+      "kennung": "V5-INV-101",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "Definitionen und Live Truth werden in getrennten Modellen gehalten; keine Definition darf durch eine einzelne Beobachtung still mutiert werden.",
+      "geplanteDurchsetzung": "Knowledge/Evidence Type Boundary",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
+    },
+    {
+      "kennung": "V5-INV-102",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "Jede langlebige oder asynchrone interne Nachricht besitzt Protokollversion, Nachrichten-ID, TTL und Dedupe-Semantik.",
+      "geplanteDurchsetzung": "Message Envelope Validator",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
+    },
+    {
+      "kennung": "V5-INV-103",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "Jede spaeter live faehige Capability besitzt einen expliziten Deaktivierungs-/Rollback-Pfad, der Authority reduzieren kann ohne Safety zu umgehen.",
+      "geplanteDurchsetzung": "Capability Lifecycle Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
+    },
+    {
+      "kennung": "V5-INV-104",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "Nichtkritisches SSD-I/O darf den Gameplay-Hot-Path nicht blockieren; kritische Persistenz ist nur an deklarierten durable Grenzen synchron.",
+      "geplanteDurchsetzung": "Storage Port + Backpressure Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
+    },
+    {
+      "kennung": "V5-INV-105",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "Eine wertveraendernde Mutation darf erst gesendet werden, nachdem ihr Transaction Intent durable persistiert und diese Persistenz bestaetigt wurde.",
+      "geplanteDurchsetzung": "Persist-before-action Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
+    },
+    {
+      "kennung": "V5-INV-106",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "Der V5-Layergraph ist azyklisch; hoehere Fachschichten duerfen keine unteren Safety-/Authority-Entscheidungen umgehen oder rueckwaerts von Ausfuehrungsadaptern abhaengen.",
+      "geplanteDurchsetzung": "Dependency/Layers Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
     }
-  ]
+  ],
+  "r2": {
+    "ratifiziertAm": "2026-09-19",
+    "v4Invarianten": 55,
+    "ratifiziert": 55,
+    "entscheidungen": {
+      "UEBERNEHMEN": 28,
+      "VERSCHAERFEN": 26,
+      "ERSETZEN": 1
+    },
+    "regel": "Keine V4-Invariante entfaellt still. VERSCHAERFEN/ERSETZEN wird durch die V5-Verfassung und neue V5-Invarianten konkretisiert.",
+    "neueR2Invarianten": [
+      "V5-INV-099",
+      "V5-INV-100",
+      "V5-INV-101",
+      "V5-INV-102",
+      "V5-INV-103",
+      "V5-INV-104",
+      "V5-INV-105",
+      "V5-INV-106"
+    ]
+  }
 }

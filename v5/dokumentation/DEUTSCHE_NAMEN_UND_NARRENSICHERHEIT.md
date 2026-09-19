@@ -532,3 +532,9 @@ R3/R11 muessen automatisierte Tests vorsehen, die sichtbare Oberflaechen und Tex
 Zulaessig bleiben der Produktname `Adventure Land`, weitere zentral begruendete Eigennamen/Markennamen sowie die oben definierte Monster-Ausnahme. Fuer Monster muss der Anzeigekatalog zusaetzlich speichern, ob eine offizielle deutsche Spielbezeichnung existiert.
 
 **Grundsatz:** Was der Benutzer in V5 sieht, liest sich deutsch. Rohsprache des Spiels ist Implementierungsdetail, keine Oberflaechensprache.
+
+
+## R2-Ratifizierung
+
+**R2-Status:** RATIFIZIERT am 2026-09-19.  
+Dieser Vertrag ist Bestandteil der V5-Verfassung. Die Ratifizierung ist eine Architektur-/Vorbereitungsfreigabe und **keine Gameplay-Runtime-Freigabe**. Technische Umsetzung und Live-Nachweise folgen ausschliesslich in den dafuer vorgesehenen Roadmap-Phasen.

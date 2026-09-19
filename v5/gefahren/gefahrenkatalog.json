@@ -3,7 +3,7 @@
   "stand": "2026-09-19",
   "methode": "FMEA_AEHNLICH",
   "regel": "Hohe Risikowerte reduzieren nicht die Pflicht zur Behandlung niedrigerer Safety-Risiken; jede Gefahr braucht vor betroffener Live-Autoritaet eine wirksame Gegenmassnahme.",
-  "anzahl": 151,
+  "anzahl": 161,
   "gefahren": [
     {
       "kennung": "V5-GEF-001",
@@ -18,7 +18,8 @@
       "betroffenePhasen": [
         "R0",
         "R6"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-002",
@@ -32,7 +33,8 @@
       "strategie": "Supersede/History-only",
       "betroffenePhasen": [
         "R0"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-003",
@@ -46,7 +48,8 @@
       "strategie": "Autoritaetsklassen + Konfliktpruefung",
       "betroffenePhasen": [
         "R0"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-004",
@@ -60,7 +63,8 @@
       "strategie": "Stündlicher Kernzyklus + rotierende Entdeckung",
       "betroffenePhasen": [
         "R0"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-005",
@@ -75,7 +79,8 @@
       "betroffenePhasen": [
         "R0",
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-006",
@@ -90,7 +95,8 @@
       "betroffenePhasen": [
         "R6",
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-007",
@@ -104,7 +110,8 @@
       "strategie": "WIDERSPRUCH + Quarantaene",
       "betroffenePhasen": [
         "R0"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-008",
@@ -119,7 +126,8 @@
       "betroffenePhasen": [
         "R6",
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-009",
@@ -133,7 +141,8 @@
       "strategie": "Asynchrone Entkopplung",
       "betroffenePhasen": [
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-010",
@@ -148,7 +157,8 @@
       "betroffenePhasen": [
         "R2",
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-011",
@@ -162,7 +172,8 @@
       "strategie": "Single-Owner Registry",
       "betroffenePhasen": [
         "R7"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-012",
@@ -177,7 +188,8 @@
       "betroffenePhasen": [
         "R3",
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-013",
@@ -192,7 +204,8 @@
       "betroffenePhasen": [
         "R3",
         "R7"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-014",
@@ -206,7 +219,8 @@
       "strategie": "Static Guard + Review",
       "betroffenePhasen": [
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-015",
@@ -220,7 +234,8 @@
       "strategie": "Getrennte Typen/Schichten",
       "betroffenePhasen": [
         "R6"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-016",
@@ -235,7 +250,8 @@
       "betroffenePhasen": [
         "R8",
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-017",
@@ -250,7 +266,8 @@
       "betroffenePhasen": [
         "R8",
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-018",
@@ -264,7 +281,8 @@
       "strategie": "Exhaustive State Machines",
       "betroffenePhasen": [
         "R4"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-019",
@@ -278,7 +296,8 @@
       "strategie": "Nachverfolgbarkeitsmatrix",
       "betroffenePhasen": [
         "R2"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-020",
@@ -293,7 +312,8 @@
       "betroffenePhasen": [
         "R2",
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-021",
@@ -307,7 +327,8 @@
       "strategie": "Migrationsmatrix",
       "betroffenePhasen": [
         "R2"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-022",
@@ -321,7 +342,8 @@
       "strategie": "Default-Off",
       "betroffenePhasen": [
         "R7"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-023",
@@ -335,7 +357,8 @@
       "strategie": "Typisierte Freigabe + Bindungen",
       "betroffenePhasen": [
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-024",
@@ -349,7 +372,8 @@
       "strategie": "Mehrfach-Verriegelung",
       "betroffenePhasen": [
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-025",
@@ -363,7 +387,8 @@
       "strategie": "Unmittelbare Revalidierung",
       "betroffenePhasen": [
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-026",
@@ -377,7 +402,8 @@
       "strategie": "Fail-closed/Quarantaene",
       "betroffenePhasen": [
         "R6"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-027",
@@ -391,7 +417,8 @@
       "strategie": "Authority-freies Learning",
       "betroffenePhasen": [
         "R18"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-028",
@@ -405,7 +432,8 @@
       "strategie": "Deny-only + typed commands",
       "betroffenePhasen": [
         "R7"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-029",
@@ -419,7 +447,8 @@
       "strategie": "Narrow bridge / keine Raw Writes",
       "betroffenePhasen": [
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-030",
@@ -433,7 +462,8 @@
       "strategie": "Fail-closed Health",
       "betroffenePhasen": [
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-031",
@@ -447,7 +477,8 @@
       "strategie": "Pflichtfelder/Validation",
       "betroffenePhasen": [
         "R2"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-032",
@@ -461,7 +492,8 @@
       "strategie": "Stop-Protokoll + Reconcile",
       "betroffenePhasen": [
         "R10"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-033",
@@ -475,7 +507,8 @@
       "strategie": "Prioritaetsklassen",
       "betroffenePhasen": [
         "R8"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-034",
@@ -489,7 +522,8 @@
       "strategie": "DPAPI/Redaction/Secret Scan",
       "betroffenePhasen": [
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-035",
@@ -503,7 +537,8 @@
       "strategie": "Isolation/Circuits",
       "betroffenePhasen": [
         "R10"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-036",
@@ -517,7 +552,8 @@
       "strategie": "Workflow-Snapshot + Replan danach",
       "betroffenePhasen": [
         "R10"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-037",
@@ -531,7 +567,8 @@
       "strategie": "Version/Migration/Fail-closed",
       "betroffenePhasen": [
         "R5"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-038",
@@ -545,7 +582,8 @@
       "strategie": "Atomic write/Checksum/Fail-closed",
       "betroffenePhasen": [
         "R5"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-039",
@@ -560,7 +598,8 @@
       "betroffenePhasen": [
         "R5",
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-040",
@@ -574,7 +613,8 @@
       "strategie": "RECONCILE_REQUIRED",
       "betroffenePhasen": [
         "R10"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-041",
@@ -588,7 +628,8 @@
       "strategie": "Persistent dedupe cursor",
       "betroffenePhasen": [
         "R5"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-042",
@@ -602,7 +643,8 @@
       "strategie": "Forward/backward fixtures",
       "betroffenePhasen": [
         "R5"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-043",
@@ -616,7 +658,8 @@
       "strategie": "Persist-before-claim",
       "betroffenePhasen": [
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-044",
@@ -631,7 +674,8 @@
       "betroffenePhasen": [
         "R4",
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-045",
@@ -645,7 +689,8 @@
       "strategie": "ClockPort",
       "betroffenePhasen": [
         "R4"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-046",
@@ -659,7 +704,8 @@
       "strategie": "Seeded RandomnessPort",
       "betroffenePhasen": [
         "R4"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-047",
@@ -673,7 +719,8 @@
       "strategie": "Sequence/ID Port",
       "betroffenePhasen": [
         "R4"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-048",
@@ -687,7 +734,8 @@
       "strategie": "Deterministic event stream",
       "betroffenePhasen": [
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-049",
@@ -701,7 +749,8 @@
       "strategie": "Postcondition/Settlement",
       "betroffenePhasen": [
         "R10"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-050",
@@ -715,7 +764,8 @@
       "strategie": "UNKNOWN state + reconcile",
       "betroffenePhasen": [
         "R10"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-051",
@@ -729,7 +779,8 @@
       "strategie": "Diff reconciliation",
       "betroffenePhasen": [
         "R10"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-052",
@@ -743,7 +794,8 @@
       "strategie": "Budget/Backoff/Circuit",
       "betroffenePhasen": [
         "R8"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-053",
@@ -757,7 +809,8 @@
       "strategie": "Safe points",
       "betroffenePhasen": [
         "R8"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-054",
@@ -771,7 +824,8 @@
       "strategie": "Negativ/Property/Fault",
       "betroffenePhasen": [
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-055",
@@ -785,7 +839,8 @@
       "strategie": "Property/Model Testing",
       "betroffenePhasen": [
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-056",
@@ -799,7 +854,8 @@
       "strategie": "Fault Injection",
       "betroffenePhasen": [
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-057",
@@ -813,7 +869,8 @@
       "strategie": "Mutation Testing",
       "betroffenePhasen": [
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-058",
@@ -827,7 +884,8 @@
       "strategie": "Golden Replay",
       "betroffenePhasen": [
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-059",
@@ -841,7 +899,8 @@
       "strategie": "Fitness Functions in CI",
       "betroffenePhasen": [
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-060",
@@ -855,7 +914,8 @@
       "strategie": "Write counter/deny",
       "betroffenePhasen": [
         "R12"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-061",
@@ -869,7 +929,8 @@
       "strategie": "Low-risk vertical slice policy",
       "betroffenePhasen": [
         "R12"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-062",
@@ -883,7 +944,8 @@
       "strategie": "Provenance manifest",
       "betroffenePhasen": [
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-063",
@@ -897,7 +959,8 @@
       "strategie": "Async observer only",
       "betroffenePhasen": [
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-064",
@@ -911,7 +974,8 @@
       "strategie": "Persistent spool",
       "betroffenePhasen": [
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-065",
@@ -925,7 +989,8 @@
       "strategie": "Status/decision trace",
       "betroffenePhasen": [
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-066",
@@ -939,7 +1004,8 @@
       "strategie": "Immutable evidence chain",
       "betroffenePhasen": [
         "R19"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-067",
@@ -953,7 +1019,8 @@
       "strategie": "Certification ladder",
       "betroffenePhasen": [
         "R19"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-068",
@@ -967,7 +1034,8 @@
       "strategie": "Disposition + physical identity + revalidation",
       "betroffenePhasen": [
         "R13"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-069",
@@ -981,7 +1049,8 @@
       "strategie": "Physical fingerprint",
       "betroffenePhasen": [
         "R13"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-070",
@@ -995,7 +1064,8 @@
       "strategie": "Capacity preflight",
       "betroffenePhasen": [
         "R13"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-071",
@@ -1009,7 +1079,8 @@
       "strategie": "Account bank lease/fencing",
       "betroffenePhasen": [
         "R13"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-072",
@@ -1023,7 +1094,8 @@
       "strategie": "RID/fresh listing admission",
       "betroffenePhasen": [
         "R13"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-073",
@@ -1037,7 +1109,8 @@
       "strategie": "Recipient verifier",
       "betroffenePhasen": [
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-074",
@@ -1051,7 +1124,8 @@
       "strategie": "Transaction state",
       "betroffenePhasen": [
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-075",
@@ -1065,7 +1139,8 @@
       "strategie": "Aging/fairness",
       "betroffenePhasen": [
         "R13"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-076",
@@ -1079,7 +1154,8 @@
       "strategie": "message id/dedupe",
       "betroffenePhasen": [
         "R14"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-077",
@@ -1093,7 +1169,8 @@
       "strategie": "Roster epoch/liveness",
       "betroffenePhasen": [
         "R14"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-078",
@@ -1107,7 +1184,8 @@
       "strategie": "Lease/fencing/liveness",
       "betroffenePhasen": [
         "R14"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-079",
@@ -1121,7 +1199,8 @@
       "strategie": "Protocol + Fault Tests",
       "betroffenePhasen": [
         "R14"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-080",
@@ -1135,7 +1214,8 @@
       "strategie": "Coordinator/Agent split",
       "betroffenePhasen": [
         "R14"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-081",
@@ -1149,7 +1229,8 @@
       "strategie": "Arrival predicate",
       "betroffenePhasen": [
         "R16"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-082",
@@ -1163,7 +1244,8 @@
       "strategie": "Motion freshness",
       "betroffenePhasen": [
         "R16"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-083",
@@ -1177,7 +1259,8 @@
       "strategie": "Target lease/owner",
       "betroffenePhasen": [
         "R16"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-084",
@@ -1191,7 +1274,8 @@
       "strategie": "Freshness/replan",
       "betroffenePhasen": [
         "R17"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-085",
@@ -1205,7 +1289,8 @@
       "strategie": "Read-only bounded influence",
       "betroffenePhasen": [
         "R18"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-086",
@@ -1219,7 +1304,8 @@
       "strategie": "Deterministic fallback",
       "betroffenePhasen": [
         "R18"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-087",
@@ -1233,7 +1319,8 @@
       "strategie": "Policy precedence",
       "betroffenePhasen": [
         "R18"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-088",
@@ -1247,7 +1334,8 @@
       "strategie": "Canary/champion-challenger",
       "betroffenePhasen": [
         "R18"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-089",
@@ -1263,7 +1351,8 @@
         "R2",
         "R3",
         "R19"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-090",
@@ -1278,7 +1367,8 @@
       "betroffenePhasen": [
         "R6",
         "R19"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-091",
@@ -1292,7 +1382,8 @@
       "strategie": "Zentraler Content-Anzeigekatalog",
       "betroffenePhasen": [
         "R6"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-092",
@@ -1306,7 +1397,8 @@
       "strategie": "Deutscher Missing-Translation-Fallback + Negativtest",
       "betroffenePhasen": [
         "R6"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-093",
@@ -1321,7 +1413,8 @@
       "betroffenePhasen": [
         "R0",
         "R6"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-094",
@@ -1335,7 +1428,8 @@
       "strategie": "Renderer akzeptiert nur Anzeigeobjekte statt Raw IDs",
       "betroffenePhasen": [
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-095",
@@ -1349,7 +1443,8 @@
       "strategie": "Release-Gate deutsche_sichttext_abdeckung=100%",
       "betroffenePhasen": [
         "R19"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-096",
@@ -1365,7 +1460,8 @@
         "R0",
         "R6",
         "R19"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-097",
@@ -1380,7 +1476,8 @@
       "betroffenePhasen": [
         "R0",
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-098",
@@ -1395,7 +1492,8 @@
       "betroffenePhasen": [
         "R0",
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-099",
@@ -1410,7 +1508,8 @@
       "betroffenePhasen": [
         "R2",
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-100",
@@ -1424,7 +1523,8 @@
       "strategie": "Kandidaten besitzen null Autoritaet und brauchen Verifikation",
       "betroffenePhasen": [
         "R0"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-101",
@@ -1439,7 +1539,8 @@
       "betroffenePhasen": [
         "R6",
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-102",
@@ -1454,7 +1555,8 @@
       "betroffenePhasen": [
         "R2",
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-103",
@@ -1468,7 +1570,8 @@
       "strategie": "180-Minuten-Blockiergrenze + Quellenhealth-Gate",
       "betroffenePhasen": [
         "R3"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-104",
@@ -1483,7 +1586,8 @@
       "betroffenePhasen": [
         "R8",
         "R10"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-105",
@@ -1498,7 +1602,8 @@
       "betroffenePhasen": [
         "R0",
         "R6"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-106",
@@ -1512,7 +1617,8 @@
       "strategie": "Schemas + Knowledge-Validator + echtes JSONL",
       "betroffenePhasen": [
         "R0"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-107",
@@ -1527,7 +1633,8 @@
       "betroffenePhasen": [
         "R5",
         "R6"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-108",
@@ -1543,7 +1650,8 @@
         "R0",
         "R5",
         "R6"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-109",
@@ -1557,7 +1665,8 @@
       "strategie": "Nur fachliche Verifier duerfen LIVE_VERIFIZIERT erzeugen",
       "betroffenePhasen": [
         "R6"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-110",
@@ -1571,7 +1680,8 @@
       "strategie": "Enge Import-Allowlist und eigener live/snapshot-Zielpfad",
       "betroffenePhasen": [
         "R0"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-111",
@@ -1585,7 +1695,8 @@
       "strategie": "D:-Pfadnormalisierung, Reparse-Verbot vor Traversierung, relative Pfadguards",
       "betroffenePhasen": [
         "R0"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-112",
@@ -1601,7 +1712,8 @@
         "R0",
         "R3",
         "R6"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-113",
@@ -1616,7 +1728,8 @@
       "betroffenePhasen": [
         "R6",
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-114",
@@ -1631,7 +1744,8 @@
       "betroffenePhasen": [
         "R6",
         "R2"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-115",
@@ -1646,7 +1760,8 @@
       "betroffenePhasen": [
         "R6",
         "R19"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-116",
@@ -1662,7 +1777,8 @@
         "R7",
         "R13",
         "R14"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-117",
@@ -1678,7 +1794,8 @@
         "R7",
         "R10",
         "R14"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-118",
@@ -1694,7 +1811,8 @@
         "R7",
         "R10",
         "R13"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-119",
@@ -1710,7 +1828,8 @@
         "R7",
         "R13",
         "R14"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-120",
@@ -1726,7 +1845,8 @@
         "R6",
         "R7",
         "R13"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-121",
@@ -1742,7 +1862,8 @@
         "R7",
         "R10",
         "R13"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-122",
@@ -1758,7 +1879,8 @@
         "R7",
         "R10",
         "R14"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-123",
@@ -1774,7 +1896,8 @@
         "R9",
         "R13",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-124",
@@ -1791,7 +1914,8 @@
         "R9",
         "R13",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-125",
@@ -1807,7 +1931,8 @@
         "R8",
         "R9",
         "R13"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-126",
@@ -1823,7 +1948,8 @@
         "R10",
         "R13",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-127",
@@ -1840,7 +1966,8 @@
         "R9",
         "R13",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-128",
@@ -1857,7 +1984,8 @@
         "R6",
         "R9",
         "R13"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-129",
@@ -1873,7 +2001,8 @@
         "R8",
         "R9",
         "R13"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-130",
@@ -1890,7 +2019,8 @@
         "R9",
         "R13",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-131",
@@ -1906,7 +2036,8 @@
         "R6",
         "R9",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-132",
@@ -1922,7 +2053,8 @@
         "R9",
         "R10",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-133",
@@ -1937,7 +2069,8 @@
       "betroffenePhasen": [
         "R10",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-134",
@@ -1954,7 +2087,8 @@
         "R9",
         "R10",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-135",
@@ -1971,7 +2105,8 @@
         "R9",
         "R10",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-136",
@@ -1987,7 +2122,8 @@
         "R8",
         "R9",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-137",
@@ -2002,7 +2138,8 @@
       "betroffenePhasen": [
         "R6",
         "R18"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-138",
@@ -2017,7 +2154,8 @@
       "betroffenePhasen": [
         "R10",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-139",
@@ -2033,7 +2171,8 @@
         "R8",
         "R9",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-140",
@@ -2049,7 +2188,8 @@
         "R9",
         "R10",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-141",
@@ -2066,7 +2206,8 @@
         "R8",
         "R9",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-142",
@@ -2082,7 +2223,8 @@
         "R6",
         "R10",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-143",
@@ -2099,7 +2241,8 @@
         "R6",
         "R9",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-144",
@@ -2115,7 +2258,8 @@
         "R9",
         "R10",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-145",
@@ -2131,7 +2275,8 @@
         "R6",
         "R9",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-146",
@@ -2147,7 +2292,8 @@
         "R1",
         "R6",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-147",
@@ -2164,7 +2310,8 @@
         "R8",
         "R9",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-148",
@@ -2181,7 +2328,8 @@
         "R9",
         "R10",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-149",
@@ -2197,7 +2345,8 @@
         "R7",
         "R9",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-150",
@@ -2213,7 +2362,8 @@
         "R8",
         "R9",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-151",
@@ -2229,7 +2379,8 @@
         "R6",
         "R10",
         "R15"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-152",
@@ -2244,7 +2395,8 @@
       "betroffenePhasen": [
         "R8",
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-153",
@@ -2259,7 +2411,8 @@
       "betroffenePhasen": [
         "R8",
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-154",
@@ -2274,7 +2427,8 @@
       "betroffenePhasen": [
         "R8",
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-155",
@@ -2289,7 +2443,8 @@
       "betroffenePhasen": [
         "R9",
         "R10"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-156",
@@ -2304,7 +2459,8 @@
       "betroffenePhasen": [
         "R8",
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-157",
@@ -2319,7 +2475,8 @@
       "betroffenePhasen": [
         "R8",
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-158",
@@ -2334,7 +2491,8 @@
       "betroffenePhasen": [
         "R8",
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-159",
@@ -2350,7 +2508,8 @@
         "R6",
         "R8",
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-160",
@@ -2366,7 +2525,8 @@
         "R2",
         "R8",
         "R11"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     },
     {
       "kennung": "V5-GEF-161",
@@ -2382,7 +2542,11 @@
         "R0",
         "R6",
         "R9"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT"
     }
-  ]
+  ],
+  "ratifizierungsStatus": "R2_RATIFIZIERT",
+  "ratifiziertAm": "2026-09-19",
+  "restrisikoRegel": "R2 akzeptiert keine Gefahr als technisch geschlossen. Einzelstatus OFFEN bleibt bestehen, bis die zugeordneten Gegenmassnahmen in der jeweiligen Phase implementiert und nachgewiesen sind. Rest-Risiko darf niemals durch stilles Herabstufen von Schweregrad oder Safety-Anforderung geschlossen werden."
 }

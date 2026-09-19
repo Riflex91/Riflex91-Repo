@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-09-19",
-  "currentPhase": "R2",
+  "currentPhase": "R3",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -38,7 +38,7 @@
     {
       "id": "R2",
       "name": "V5-Verfassung und Migrationsmatrix",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R1"
       ],
@@ -62,12 +62,24 @@
         "Lokales SSD-Datenfundament mit HOT/WARM/COLD-Tiering ratifiziert",
         "Speicherbudgets, mindestens 15 Prozent Standardreserve, Retention und Degradationsregeln festgelegt",
         "Speicherort/Persistenz verleiht keine Gameplay-Autoritaet"
+      ],
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/migration/v3-v4-zu-v5.json",
+        "v5/migration/v3-fehlerabdeckung.json",
+        "v5/invarianten/invarianten.json",
+        "v5/anforderungen/anforderungen.json",
+        "v5/gefahren/gefahrenkatalog.json",
+        "v5/zustaende/zustandsautomaten.json",
+        "v5/fitness/fitness-regeln.json",
+        "v5/entwicklungsregeln/r2-quellenrevalidierung.json",
+        "v5/werkzeuge/r2-verfassung-pruefen.mjs"
       ]
     },
     {
       "id": "R3",
       "name": "Repo Build Guards Host-Grenzen",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R2"
       ],

@@ -1,0 +1,995 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-19",
+  "status": "R2_RATIFIZIERT",
+  "quelle": {
+    "datei": "v4/dokumentation/wissensbasis/v3-system/V3-ZU-V4-FUNKTIONSMATRIX.json",
+    "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+    "zeilen": 47
+  },
+  "regel": "V3/V4 sind Wissens-, Fehler-, Test- und Verhaltensquellen. Keine historische Runtime-Architektur wird still kopiert. Jede Capability besitzt genau eine explizite V5-Migrationsentscheidung.",
+  "erlaubteEntscheidungen": [
+    "PORTIEREN",
+    "UMBAUEN",
+    "NEU_BAUEN",
+    "NUR_WISSENSQUELLE",
+    "VERWERFEN"
+  ],
+  "hinweis": "PORTIEREN und UMBAUEN werden in dieser Runtime-Capability-Matrix bewusst nicht verwendet. Der V5-Architektur-Neustart verlangt fuer weiterhin benoetigte Runtime-Capabilities NEU_BAUEN; historische Patch-/Build-Artefakte bleiben Wissensquelle oder werden verworfen.",
+  "zusammenfassung": {
+    "NEU_BAUEN": 44,
+    "NUR_WISSENSQUELLE": 1,
+    "VERWERFEN": 2
+  },
+  "eintraege": [
+    {
+      "kennung": "CAP-001",
+      "domaene": "Core",
+      "capability": "GameAdapter / Game-Write-Grenze",
+      "v3Quellen": [
+        "v3/src/game/adapter.js",
+        "v3/scripts/game-command-boundary-guard.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/ausfuehrung",
+      "historischeVertraege": [
+        "ExecutionPort",
+        "OutcomeVerifier"
+      ],
+      "historischesRisiko": "direkte Raw Writes; API-Drift",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "KERN/AUSFUEHRUNG/SCHEDULER",
+      "v5ZielPhase": "R7-R10",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-002",
+      "domaene": "Core",
+      "capability": "Action Outcome Verification",
+      "v3Quellen": [
+        "v3/src/economy/controlled-merchant-executor.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/ausfuehrung/verifikation",
+      "historischeVertraege": [
+        "ActionLifecycle",
+        "ObservationEvidence"
+      ],
+      "historischesRisiko": "Return/Promise wird mit Commit verwechselt",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "KERN/AUSFUEHRUNG/SCHEDULER",
+      "v5ZielPhase": "R7-R10",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-003",
+      "domaene": "Core",
+      "capability": "Scheduler / Tasks",
+      "v3Quellen": [
+        "v3/src/core/task.js",
+        "v3/src/core/scheduler.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/workflows",
+      "historischeVertraege": [
+        "Workflow",
+        "PriorityClass",
+        "ResourceClaim"
+      ],
+      "historischesRisiko": "Starvation; nur numerische Priority",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "KERN/AUSFUEHRUNG/SCHEDULER",
+      "v5ZielPhase": "R7-R10",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-004",
+      "domaene": "Core",
+      "capability": "Patch Registry",
+      "v3Quellen": [
+        "v3/src/core/patch-registry.js"
+      ],
+      "v4HistorischeKlasse": "NUR_TEST_UND_WISSENSQUELLE",
+      "v4HistorischesZiel": "v4/guards",
+      "historischeVertraege": [
+        "ModuleRegistry"
+      ],
+      "historischesRisiko": "Patch-Reihenfolge und Ownership",
+      "v5Entscheidung": "NUR_WISSENSQUELLE",
+      "v5ZielLayer": "KERN/AUSFUEHRUNG/SCHEDULER",
+      "v5ZielPhase": "R7-R10",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die Patch Registry dokumentiert historische Patch-/Ownership-Probleme; V5 verbietet diesen Erweiterungsmechanismus und uebernimmt nur Tests/Fehlerwissen."
+    },
+    {
+      "kennung": "CAP-005",
+      "domaene": "Composition",
+      "capability": "Runtime Composition",
+      "v3Quellen": [
+        "v3/src/composition/runtime-composition.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/composition",
+      "historischeVertraege": [
+        "ModuleDescriptor",
+        "CapabilityRegistry"
+      ],
+      "historischesRisiko": "implizite Alpha-Abhängigkeiten",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MODULE_CAPABILITIES",
+      "v5ZielPhase": "R7",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-006",
+      "domaene": "Composition",
+      "capability": "Alpha-Runtime-Vererbung",
+      "v3Quellen": [
+        "v3/src/autonomy/alpha12-runtime.js",
+        "v3/src/autonomy/alpha18-runtime.js",
+        "v3/src/autonomy/alpha20-runtime.js"
+      ],
+      "v4HistorischeKlasse": "NICHT_UEBERNEHMEN",
+      "v4HistorischesZiel": "-",
+      "historischeVertraege": [],
+      "historischesRisiko": "Hotfix-Kaskaden; mehrere Ownership-Schichten",
+      "v5Entscheidung": "VERWERFEN",
+      "v5ZielLayer": "MODULE_CAPABILITIES",
+      "v5ZielPhase": "R7",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Alpha-Runtime-Vererbung ist mit dem V5-Architektur-Neustart unvereinbar und wird nicht in den Runtime-Graph uebernommen."
+    },
+    {
+      "kennung": "CAP-007",
+      "domaene": "Recovery",
+      "capability": "Global Supervisor",
+      "v3Quellen": [
+        "v3/src/stability/global-supervisor.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/recovery/supervisor",
+      "historischeVertraege": [
+        "HealthPort",
+        "RecoveryPolicy"
+      ],
+      "historischesRisiko": "Recovery darf Safety nicht lockern",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "ABGLEICH_RECOVERY",
+      "v5ZielPhase": "R10-R11",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-008",
+      "domaene": "Recovery",
+      "capability": "Runtime Watchdog",
+      "v3Quellen": [
+        "v3/src/ops/runtime-watchdog.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/recovery/watchdog",
+      "historischeVertraege": [
+        "FreshnessEvidence",
+        "ProgressEvidence"
+      ],
+      "historischesRisiko": "False No-Progress bei legitimer Wartezeit",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "ABGLEICH_RECOVERY",
+      "v5ZielPhase": "R10-R11",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-009",
+      "domaene": "Persistence",
+      "capability": "World/Resilient Persistence",
+      "v3Quellen": [
+        "v3/src/world/persistence.js",
+        "v3/src/world/resilient-persistence.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/persistenz",
+      "historischeVertraege": [
+        "PersistencePort",
+        "Migration"
+      ],
+      "historischesRisiko": "Quota, corrupt state, retry storm",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "PERSISTENZ",
+      "v5ZielPhase": "R5",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-010",
+      "domaene": "World",
+      "capability": "Content Drift / Knowledge Aging",
+      "v3Quellen": [
+        "v3/src/world/content-drift.js",
+        "v3/src/world/knowledge-aging.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/world/content-safety",
+      "historischeVertraege": [
+        "ContentEvidence",
+        "Revalidation"
+      ],
+      "historischesRisiko": "Unknown→Allowed",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "BEOBACHTUNG_WORLD_TRUTH",
+      "v5ZielPhase": "R6-R17",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-011",
+      "domaene": "Farmer",
+      "capability": "Farmer FSM",
+      "v3Quellen": [
+        "v3/src/farmer/farmer-fsm.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/farmer/workflow",
+      "historischeVertraege": [
+        "Workflow",
+        "CombatPort",
+        "MovementPort"
+      ],
+      "historischesRisiko": "BLOCKED loops; alte Scheduler-Kopplung",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "KAMPF_WORKFLOW",
+      "v5ZielPhase": "R16",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-012",
+      "domaene": "Combat",
+      "capability": "Target Safety / Combat Risk / Emergency",
+      "v3Quellen": [
+        "v3/src/farmer/target-safety.js",
+        "v3/src/farmer/combat-risk.js",
+        "v3/src/farmer/combat-emergency.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/combat/safety",
+      "historischeVertraege": [
+        "ContentSafetyPort",
+        "RiskPolicy"
+      ],
+      "historischesRisiko": "Liveness vor Safety",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "KAMPF",
+      "v5ZielPhase": "R16",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-013",
+      "domaene": "Combat",
+      "capability": "Kiting / Movement in Combat",
+      "v3Quellen": [
+        "v3/src/farmer/basic-kiting.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/combat/kiting",
+      "historischeVertraege": [
+        "MovementPort",
+        "TargetOwnership"
+      ],
+      "historischesRisiko": "Movement-/Combat-Owner konkurrieren",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "KAMPF",
+      "v5ZielPhase": "R16",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-014",
+      "domaene": "Combat",
+      "capability": "Skills / Capability Truth / Failure Intelligence",
+      "v3Quellen": [
+        "v3/src/farmer/skill-farmer.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/combat/skills",
+      "historischeVertraege": [
+        "SkillCapability",
+        "CooldownEvidence"
+      ],
+      "historischesRisiko": "stale capability; retry spam",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "KAMPF",
+      "v5ZielPhase": "R16",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-015",
+      "domaene": "Combat",
+      "capability": "Adaptive Pull / Smart AoE",
+      "v3Quellen": [
+        "v3/src/autonomy/adaptive-pull-learning.js",
+        "v3/src/autonomy/smart-aoe-planner.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/combat/aoe",
+      "historischeVertraege": [
+        "RiskPolicy",
+        "LearningRecommendation"
+      ],
+      "historischesRisiko": "Learning überschreibt Hard Caps",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "KAMPF",
+      "v5ZielPhase": "R16",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-016",
+      "domaene": "Combat",
+      "capability": "Encounter Lifecycle / Learning Dedupe",
+      "v3Quellen": [
+        "v3/src/autonomy/encounter-lifecycle.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/combat/encounters",
+      "historischeVertraege": [
+        "EncounterId",
+        "PersistentCursor"
+      ],
+      "historischesRisiko": "doppelte Outcomes nach Restart",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "KAMPF",
+      "v5ZielPhase": "R16",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-017",
+      "domaene": "Party",
+      "capability": "Registry / Dynamic Roster / Variable Topology",
+      "v3Quellen": [
+        "v3/src/party/party-registry.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/party/group-truth",
+      "historischeVertraege": [
+        "RosterEpoch",
+        "CharacterIdentity"
+      ],
+      "historischesRisiko": "stale Party-Identität",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "GRUPPE_ACCOUNT_COORDINATION",
+      "v5ZielPhase": "R14-R16",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-018",
+      "domaene": "Party",
+      "capability": "Control Lease / Lifecycle",
+      "v3Quellen": [
+        "v3/src/party/control-lease.js",
+        "v3/src/party/controlled-lifecycle-coordinator-base.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/party/lifecycle",
+      "historischeVertraege": [
+        "Workflow",
+        "ResourceLock"
+      ],
+      "historischesRisiko": "Lease-Ablauf mitten in Transition",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "GRUPPE_ACCOUNT_COORDINATION",
+      "v5ZielPhase": "R14-R16",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-019",
+      "domaene": "Party",
+      "capability": "Cohesion / Focus Fire",
+      "v3Quellen": [
+        "v3/src/party/team-combat-cohesion-hotfix-base.js",
+        "v3/src/party/party-focus-fire-hotfix.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/party/combat-coordination",
+      "historischeVertraege": [
+        "TargetOwnership",
+        "Freshness"
+      ],
+      "historischesRisiko": "raw target; formation deadlock",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "GRUPPE_ACCOUNT_COORDINATION",
+      "v5ZielPhase": "R14-R16",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-020",
+      "domaene": "Party",
+      "capability": "Account Communication / CM",
+      "v3Quellen": [
+        "v3/src/party/party-account-communication.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/party/communication",
+      "historischeVertraege": [
+        "MessageEnvelope",
+        "Dedupe",
+        "AckNack"
+      ],
+      "historischesRisiko": "handler displacement; duplicate messages",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "GRUPPE_ACCOUNT_COORDINATION",
+      "v5ZielPhase": "R14-R16",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-021",
+      "domaene": "Party",
+      "capability": "Controlled Party Logistics",
+      "v3Quellen": [
+        "v3/src/party/controlled-party-logistics.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/party/logistics",
+      "historischeVertraege": [
+        "DeliveryWorkflow",
+        "Settlement"
+      ],
+      "historischesRisiko": "pending offer deadlock; partial transfer",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "GRUPPE_ACCOUNT_COORDINATION",
+      "v5ZielPhase": "R14-R16",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-022",
+      "domaene": "Party",
+      "capability": "Production Material Handoff",
+      "v3Quellen": [
+        "v3/src/party/production-material-acquisition.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/production/material-handoff",
+      "historischeVertraege": [
+        "ProductionIntent",
+        "PartyObjective"
+      ],
+      "historischesRisiko": "Farmer farmt nach READY weiter",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "GRUPPE_ACCOUNT_COORDINATION",
+      "v5ZielPhase": "R14-R16",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-023",
+      "domaene": "Travel",
+      "capability": "Safe / Controlled Travel",
+      "v3Quellen": [
+        "v3/src/travel/safe-travel.js",
+        "v3/src/travel/controlled-travel-executor.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/travel",
+      "historischeVertraege": [
+        "TravelWorkflow",
+        "ArrivalVerifier"
+      ],
+      "historischesRisiko": "smart_move return != arrival",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "NAVIGATION",
+      "v5ZielPhase": "R16",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-024",
+      "domaene": "Merchant",
+      "capability": "Inventory Ledger",
+      "v3Quellen": [
+        "v3/src/economy/inventory-ledger.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/merchant/inventory-ledger",
+      "historischeVertraege": [
+        "ItemHandle",
+        "Disposition",
+        "Reservation"
+      ],
+      "historischesRisiko": "mehrere Module definieren Item-Bedeutung",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT",
+      "v5ZielPhase": "R13-R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-025",
+      "domaene": "Merchant",
+      "capability": "Transaction Engine",
+      "v3Quellen": [
+        "v3/src/economy/transaction-engine.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/merchant/transaction-journal",
+      "historischeVertraege": [
+        "Transaction",
+        "Idempotency",
+        "Reconcile"
+      ],
+      "historischesRisiko": "blind retry; uncertain side effect",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT",
+      "v5ZielPhase": "R13-R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-026",
+      "domaene": "Merchant",
+      "capability": "Controlled Merchant Executor",
+      "v3Quellen": [
+        "v3/src/economy/controlled-merchant-executor.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/ausfuehrung/merchant",
+      "historischeVertraege": [
+        "MerchantExecutionPort",
+        "OutcomeVerifier"
+      ],
+      "historischesRisiko": "destructive writes bei stale ledger",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT",
+      "v5ZielPhase": "R13-R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-027",
+      "domaene": "Merchant",
+      "capability": "Merchant Task Coordinator",
+      "v3Quellen": [
+        "v3/src/merchant/merchant-task-coordinator.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/merchant/scheduler",
+      "historischeVertraege": [
+        "Workflow",
+        "PriorityClass",
+        "SafePreemption"
+      ],
+      "historischesRisiko": "non-preemptive starvation",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT",
+      "v5ZielPhase": "R13-R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-028",
+      "domaene": "Merchant",
+      "capability": "Merchant Service Planner/Executor",
+      "v3Quellen": [
+        "v3/src/merchant/merchant-service-planner.js",
+        "v3/src/merchant/controlled-merchant-service-executor.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/merchant/workflows/supply",
+      "historischeVertraege": [
+        "Demand",
+        "FreshnessPolicy",
+        "DeliveryWorkflow"
+      ],
+      "historischesRisiko": "stale target; duplicate/partial delivery",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT",
+      "v5ZielPhase": "R13-R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-029",
+      "domaene": "Merchant",
+      "capability": "Potion / Supply Policy",
+      "v3Quellen": [
+        "v3/src/reliability/p0-potion-policy-4500.js",
+        "v3/src/reliability/p0-regroup-supply-recovery.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/merchant/policies/supply",
+      "historischeVertraege": [
+        "SupplyPolicy"
+      ],
+      "historischesRisiko": "micro-restock loop; dual owner",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT",
+      "v5ZielPhase": "R13-R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-030",
+      "domaene": "Merchant",
+      "capability": "Bank Capacity / Expansion",
+      "v3Quellen": [
+        "v3/src/economy/bank-capacity-manager.js",
+        "v3/src/economy/bank-expansion-transactions.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/merchant/workflows/bank-capacity",
+      "historischeVertraege": [
+        "BankWorkflow",
+        "WorkspaceResource"
+      ],
+      "historischesRisiko": "kein Workspace; Budgetdrift",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT",
+      "v5ZielPhase": "R13-R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-031",
+      "domaene": "Merchant",
+      "capability": "Bank Consolidation / Space Recovery",
+      "v3Quellen": [
+        "v3/src/economy/controlled-merchant-space-recovery.js",
+        "v3/src/economy/merchant-space-recovery-journal.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/merchant/workflows/space-recovery",
+      "historischeVertraege": [
+        "TransactionJournal",
+        "InventorySpace"
+      ],
+      "historischesRisiko": "partial mutation; unsafe emergency sell",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT",
+      "v5ZielPhase": "R13-R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-032",
+      "domaene": "Merchant",
+      "capability": "Sell Safety / Economic Evaluation",
+      "v3Quellen": [
+        "v3/src/economy/item-economic-evaluator.js",
+        "v3/src/economy/sell-safety.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/merchant/policies/item-disposition",
+      "historischeVertraege": [
+        "Disposition",
+        "OperatorPolicy"
+      ],
+      "historischesRisiko": "Progression-/High-Value-Verlust",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT",
+      "v5ZielPhase": "R13-R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-033",
+      "domaene": "Merchant",
+      "capability": "Gear Progression / Self Gear",
+      "v3Quellen": [
+        "v3/src/economy/gear-progression.js",
+        "v3/src/reliability/merchant-self-gear.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/merchant/workflows/gear",
+      "historischeVertraege": [
+        "GearGoal",
+        "ItemReservation"
+      ],
+      "historischesRisiko": "Duplicate Candidate; Lease pinning",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT",
+      "v5ZielPhase": "R13-R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-034",
+      "domaene": "Merchant",
+      "capability": "Upgrade / Compound",
+      "v3Quellen": [
+        "v3/src/reliability/economy-equipment-autonomy-v2.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/merchant/workflows/item-mutation",
+      "historischeVertraege": [
+        "MutationWorkflow",
+        "WorkspaceResource"
+      ],
+      "historischesRisiko": "Itemverlust; falsche Mutation; partial outcome",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT",
+      "v5ZielPhase": "R13-R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-035",
+      "domaene": "Production",
+      "capability": "Production Planner",
+      "v3Quellen": [
+        "v3/src/merchant/merchant-production-planner.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/production/planner",
+      "historischeVertraege": [
+        "ProductionPlan",
+        "AcquisitionGraph"
+      ],
+      "historischesRisiko": "Recipe cycle; stale Event source",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT_PRODUKTION",
+      "v5ZielPhase": "R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-036",
+      "domaene": "Production",
+      "capability": "Production Controller / Persistent Intent",
+      "v3Quellen": [
+        "v3/src/merchant/merchant-production-controller.js",
+        "v3/src/merchant/persistent-production-intent.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/production/workflow",
+      "historischeVertraege": [
+        "ProductionIntent",
+        "RecipientSettlement"
+      ],
+      "historischesRisiko": "Craft wird zu früh als Completion gewertet",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT_PRODUKTION",
+      "v5ZielPhase": "R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-037",
+      "domaene": "Production",
+      "capability": "Persistent Bank Catalog",
+      "v3Quellen": [
+        "v3/src/merchant/persistent-bank-catalog.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/merchant/knowledge/bank-catalog",
+      "historischeVertraege": [
+        "PlanningEvidence"
+      ],
+      "historischesRisiko": "stale Knowledge wird Execution Authority",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT_PRODUKTION",
+      "v5ZielPhase": "R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-038",
+      "domaene": "Merchant",
+      "capability": "Collection / Delivery / Rendezvous",
+      "v3Quellen": [
+        "v3/src/party/controlled-party-logistics.js",
+        "v3/src/reliability/alpha33-mark-orbit-merchant-delivery.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/merchant/workflows/delivery",
+      "historischeVertraege": [
+        "DeliveryWorkflow",
+        "FreshnessPolicy"
+      ],
+      "historischesRisiko": "stale target; source mismatch",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT",
+      "v5ZielPhase": "R13-R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-039",
+      "domaene": "Merchant",
+      "capability": "MLuck Service",
+      "v3Quellen": [
+        "v3/src/merchant/mluck-service.js",
+        "v3/src/merchant/mluck-policy.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/merchant/workflows/mluck",
+      "historischeVertraege": [
+        "ServiceDemand",
+        "SkillCapability"
+      ],
+      "historischesRisiko": "Service verdrängt kritischere Arbeit",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT",
+      "v5ZielPhase": "R13-R15",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-040",
+      "domaene": "Economy",
+      "capability": "Market History / Economy Planning",
+      "v3Quellen": [
+        "v3/src/reliability/market-history.js",
+        "v3/src/reliability/economy-planning.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/economy/market",
+      "historischeVertraege": [
+        "MarketEvidence",
+        "PriceFreshness"
+      ],
+      "historischesRisiko": "stale Price Evidence",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "MERCHANT_MARKT",
+      "v5ZielPhase": "R13",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-041",
+      "domaene": "Learning",
+      "capability": "Strategic Brain / Shadow Learning",
+      "v3Quellen": [
+        "v3/src/brain/strategic-brain-v2.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/learning",
+      "historischeVertraege": [
+        "RecommendationPort",
+        "LearningEvidence"
+      ],
+      "historischesRisiko": "learned authority creep",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "LERNEN",
+      "v5ZielPhase": "R18",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-042",
+      "domaene": "Host",
+      "capability": "Headless / Narrow Bridge / Watchdog / Alerts / Certification",
+      "v3Quellen": [
+        "v3/HEADLESS_CONTRACT.md",
+        "v3/HOST_RUNTIME_CONTRACT.md",
+        "v3/host/**"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/host",
+      "historischeVertraege": [
+        "HostObservationPort",
+        "RestartBudget",
+        "AlertSpool",
+        "CertificationEvidence"
+      ],
+      "historischesRisiko": "generic remote control; restart loop; secret leakage",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "HOST",
+      "v5ZielPhase": "R3-R11",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-043",
+      "domaene": "Ops",
+      "capability": "Safe Auto Updater",
+      "v3Quellen": [
+        "v3/src/ops/safe-auto-updater.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/ops/update-workflow",
+      "historischeVertraege": [
+        "Quiesce",
+        "ReleaseEvidence"
+      ],
+      "historischesRisiko": "Reload während Gefahr; false handshake",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "HOST_BETRIEB",
+      "v5ZielPhase": "R3-R11",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-044",
+      "domaene": "Control",
+      "capability": "Cloud Control / Free-tier Budget",
+      "v3Quellen": [
+        "v3/src/control/cloud-control-plane.js",
+        "v3/src/control/cloud-free-tier-budget.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/control/cloud",
+      "historischeVertraege": [
+        "RemoteConfigEvidence",
+        "RequestBudget"
+      ],
+      "historischesRisiko": "remote config bypass; quota storm",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "HOST_STEUERUNG",
+      "v5ZielPhase": "R3-R11",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-045",
+      "domaene": "Certification",
+      "capability": "Production Graph Certification",
+      "v3Quellen": [
+        "v3/PRODUCTION_GRAPH_CERTIFICATION.md"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/production/certification",
+      "historischeVertraege": [
+        "CoverageAudit",
+        "SoakEvidence"
+      ],
+      "historischesRisiko": "synthetic evidence mit Live-Beweis verwechselt",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "ZERTIFIZIERUNG",
+      "v5ZielPhase": "R11-R19",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-046",
+      "domaene": "Guards",
+      "capability": "Dependency / Runtime / Legacy Guards",
+      "v3Quellen": [
+        "v3/.dependency-cruiser.cjs",
+        "v3/scripts/runtime-composition-guard.js",
+        "v3/scripts/legacy-reliability-layer-guard.js"
+      ],
+      "v4HistorischeKlasse": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "v4HistorischesZiel": "v4/guards",
+      "historischeVertraege": [
+        "ArchitectureRuleSet"
+      ],
+      "historischesRisiko": "Cycles; Cross-Owner-Imports; Altpfade",
+      "v5Entscheidung": "NEU_BAUEN",
+      "v5ZielLayer": "WERKZEUGE_GUARDS",
+      "v5ZielPhase": "R3",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Die fachliche Capability bleibt als Verhaltens-/Testwissen relevant, wird aber auf den V5-Vertraegen und Layern neu implementiert; V3/V4-Runtimecode wird nicht kopiert."
+    },
+    {
+      "kennung": "CAP-047",
+      "domaene": "Build",
+      "capability": "Dist Bundles",
+      "v3Quellen": [
+        "v3/dist/aio-v3-runtime.js",
+        "v3/dist/aio-v3.js"
+      ],
+      "v4HistorischeKlasse": "NICHT_UEBERNEHMEN",
+      "v4HistorischesZiel": "v4/build",
+      "historischeVertraege": [
+        "BuildArtifact"
+      ],
+      "historischesRisiko": "generated Code als Wissensquelle missverstanden",
+      "v5Entscheidung": "VERWERFEN",
+      "v5ZielLayer": "BUILD",
+      "v5ZielPhase": "R3",
+      "quellcodeWiederverwendung": false,
+      "begruendung": "Generierte V3-Dist-Bundles sind Buildprodukte und keine V5-Implementierungs- oder Wissensautoritaet."
+    }
+  ]
+}

@@ -1,0 +1,363 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-19",
+  "status": "R2_RATIFIZIERT",
+  "zweck": "Verbindliche Architekturverfassung vor jeder V5-Runtime-Implementierung.",
+  "runtimeGate": "GESCHLOSSEN",
+  "unveraenderbarePipeline": [
+    "WISSEN_DEFINITIONEN",
+    "BEOBACHTETE_EVIDENZ",
+    "ABGEGLICHENE_WELTWAHRHEIT",
+    "BEDARF_ZIEL",
+    "PLANUNG",
+    "ARBEITSAUFTRAG",
+    "GLOBALER_SCHEDULER",
+    "AUTHORITY_RESSOURCEN_ACTION_CHANNEL_ADMISSION",
+    "TRANSAKTIONSINTENT_JOURNAL",
+    "AUSFUEHRUNGSADAPTER",
+    "SERVERERGEBNIS",
+    "POSTCONDITION_BEOBACHTUNG",
+    "COMMIT_UNKNOWN_ABGLEICH_SICHER_FEHLGESCHLAGEN"
+  ],
+  "grundsaetze": [
+    "Definition ist nicht Beobachtung.",
+    "Beobachtung ist nicht Authority.",
+    "Planung ist nicht Execution.",
+    "Serverantwort ist nicht Commit.",
+    "Persistenz ist nicht Authority.",
+    "UNKNOWN ist kein normales FAILURE.",
+    "Safety vor Liveness und Performance.",
+    "Kein V3/V4-Runtimecode wird still in V5 uebernommen."
+  ],
+  "authority": {
+    "accountCoordinator": {
+      "besitzt": [
+        "BANK",
+        "MERCHANT",
+        "PRODUKTION",
+        "GEMEINSAME_BUDGETS",
+        "CHARAKTER_KOORDINATION",
+        "ACCOUNT_LOCKS",
+        "ACCOUNT_LEASES",
+        "GEMEINSAME_RESSOURCEN"
+      ],
+      "darfRawGameWrites": false
+    },
+    "characterAgent": {
+      "besitzt": [
+        "LOKALE_BEOBACHTUNG",
+        "BEWEGUNG",
+        "KAMPF",
+        "SKILLS",
+        "LOKALES_INVENTAR",
+        "LOKALE_ACTION_AUSFUEHRUNG"
+      ],
+      "rawWritesNurUeber": "AUSFUEHRUNGSADAPTER"
+    },
+    "ausfuehrungsadapter": {
+      "besitzt": [
+        "RAW_ADVENTURE_LAND_MUTATION"
+      ],
+      "voraussetzungen": [
+        "CAPABILITY_FREIGABE",
+        "OWNER",
+        "LIVE_PRECONDITIONS",
+        "RESSOURCEN",
+        "ACTION_CHANNEL",
+        "BUDGET",
+        "OPERATOR_POLICY",
+        "DURABLE_INTENT"
+      ]
+    },
+    "host": {
+      "besitzt": [
+        "PROZESS_LIFECYCLE",
+        "BROWSER_LIFECYCLE",
+        "TRANSPORT",
+        "ALERT_TRANSPORT"
+      ],
+      "gameplayAuthority": false
+    },
+    "windowsBridge": {
+      "besitzt": [
+        "WISSENSWAECHTER",
+        "LIVE_WISSEN_VALIDIERUNG",
+        "GITHUB_MIRROR"
+      ],
+      "gameplayAuthority": false
+    },
+    "wissenswaechter": {
+      "besitzt": [
+        "EVIDENCE_AKTUALISIERUNG"
+      ],
+      "gameplayAuthority": false
+    },
+    "learning": {
+      "besitzt": [
+        "EMPFEHLUNGEN",
+        "SCORING",
+        "PROGNOSEN"
+      ],
+      "gameplayAuthority": false
+    },
+    "operator": {
+      "darf": [
+        "AUTHORITY_REDUZIEREN",
+        "STOPPEN",
+        "DENY"
+      ],
+      "darfNicht": [
+        "HARTE_SAFETY_UMGEHEN"
+      ]
+    }
+  },
+  "layerGraph": {
+    "azyklisch": true,
+    "layer": [
+      {
+        "id": "WISSEN",
+        "darfAbhaengenVon": []
+      },
+      {
+        "id": "BEOBACHTUNG",
+        "darfAbhaengenVon": [
+          "WISSEN"
+        ]
+      },
+      {
+        "id": "WELTWAHRHEIT",
+        "darfAbhaengenVon": [
+          "WISSEN",
+          "BEOBACHTUNG"
+        ]
+      },
+      {
+        "id": "PLANUNG",
+        "darfAbhaengenVon": [
+          "WISSEN",
+          "WELTWAHRHEIT"
+        ]
+      },
+      {
+        "id": "WORKFLOW",
+        "darfAbhaengenVon": [
+          "PLANUNG",
+          "WELTWAHRHEIT"
+        ]
+      },
+      {
+        "id": "SCHEDULER",
+        "darfAbhaengenVon": [
+          "WORKFLOW"
+        ]
+      },
+      {
+        "id": "ADMISSION",
+        "darfAbhaengenVon": [
+          "SCHEDULER",
+          "WELTWAHRHEIT",
+          "WISSEN"
+        ]
+      },
+      {
+        "id": "TRANSAKTION",
+        "darfAbhaengenVon": [
+          "ADMISSION"
+        ]
+      },
+      {
+        "id": "AUSFUEHRUNG",
+        "darfAbhaengenVon": [
+          "TRANSAKTION"
+        ]
+      },
+      {
+        "id": "POSTCONDITION_ABGLEICH",
+        "darfAbhaengenVon": [
+          "AUSFUEHRUNG",
+          "BEOBACHTUNG",
+          "WELTWAHRHEIT"
+        ]
+      },
+      {
+        "id": "HOST",
+        "darfAbhaengenVon": []
+      }
+    ],
+    "verbote": [
+      "AUSFUEHRUNG_DARF_KEINE_DOMAENENPOLICY_ENTHALTEN",
+      "HOST_DARF_KEINE_GAMEPLAY_POLICY_ENTHALTEN",
+      "PLANUNG_DARF_KEINE_RAW_WRITES_AUSLOESEN",
+      "WISSEN_DARF_KEINE_EXECUTION_AUTHORITY_VERGEBEN",
+      "KEINE_ZYKLISCHEN_LAYER_ABHAENGIGKEITEN"
+    ]
+  },
+  "ressourcenmodell": {
+    "actionChannelIstRessource": true,
+    "langeLeasesBrauchenFencing": true,
+    "socketBudget": "character:socket_call_budget",
+    "bankLease": "account:bank",
+    "lockOrdering": "DETERMINISTISCH",
+    "preemption": "NUR_SICHERE_UNTERBRECHUNGSPUNKTE"
+  },
+  "transaktionsmodell": {
+    "protokoll": [
+      "INTENT",
+      "VORAUSSETZUNGEN",
+      "RESSOURCENCLAIMS",
+      "SEND",
+      "SERVERERGEBNIS",
+      "POSTCONDITION",
+      "COMMIT"
+    ],
+    "unknown": [
+      "RECONNECT",
+      "REOBSERVE",
+      "ABGLEICH",
+      "COMMIT_ODER_ABORT_ODER_BEDIENER"
+    ],
+    "blindRetryNachMoeglichemSend": false,
+    "durableIntentVorWertmutation": true
+  },
+  "determinismus": {
+    "uhrInjizierbar": true,
+    "zufallInjizierbar": true,
+    "idsInjizierbar": true,
+    "sequenzenInjizierbar": true,
+    "replayFaehig": true
+  },
+  "nachrichtenvertrag": {
+    "fuerLanglebigeNachrichtenPflicht": [
+      "protokollVersion",
+      "nachrichtenId",
+      "ttl",
+      "dedupeSemantik"
+    ],
+    "staleNachrichtErteiltAuthority": false
+  },
+  "wissen": {
+    "einstieg": "v5/wissensbasis/manifest.json",
+    "zugriffsreihenfolge": [
+      "manifest",
+      "laufende_datenbank",
+      "strukturierte_wissensbasis",
+      "evidence"
+    ],
+    "runtimePort": "WissensZugriffPort",
+    "snapshotPinning": true,
+    "rohSnapshotGameplayAuthority": false,
+    "kandidatEntwicklungsAuthority": false,
+    "kandidatGameplayAuthority": false,
+    "liveWissenGameplayAuthority": false,
+    "konkreteLiveBeobachtungDarfGlobalGeneralisiertWerden": false
+  },
+  "persistenz": {
+    "root": "D:\\\\AdventureLand-V5",
+    "tiering": [
+      "HOT_RAM",
+      "WARM_SSD",
+      "COLD_SSD"
+    ],
+    "mindestFreieReserveProzent": 15,
+    "nichtkritischesIoHotPath": false,
+    "kritischeIntentsDurableVorMutation": true,
+    "falschesVolume": "FAIL_CLOSED",
+    "stillerFallbackSystemlaufwerk": false
+  },
+  "sprache": {
+    "benutzerSichtbar": "DEUTSCH",
+    "interneNeueDomaenensprache": "DEUTSCH",
+    "externeBoundaryNamen": "ERLAUBT_WENN_UNVERMEIDBAR_UND_SOFORT_GEKAAPSELT",
+    "monsterAusnahme": "Originalname nur solange Adventure Land keine offizielle deutsche Monsterbezeichnung anbietet",
+    "fehlendeUebersetzungFallbackEnglisch": false
+  },
+  "versionierung": {
+    "schemaVersionPflicht": true,
+    "migrationsTestsPflicht": true,
+    "inkompatibel": "FAIL_CLOSED",
+    "protocolVersionPflicht": true,
+    "buildProvenienz": [
+      "gitSha",
+      "dependencyLock",
+      "schemaVersion",
+      "laufzeitKonfiguration"
+    ]
+  },
+  "adr": {
+    "erforderlichBei": [
+      "ARCHITEKTURSEMANTIK",
+      "AUTHORITY_GRENZE",
+      "PERSISTENZVERTRAG",
+      "RECOVERY_SEMANTIK",
+      "LAYER_AENDERUNG",
+      "SICHERHEITSREGEL"
+    ],
+    "pflichtfelder": [
+      "Kontext",
+      "Entscheidung",
+      "Alternativen",
+      "Konsequenzen",
+      "Invarianten",
+      "Migration",
+      "Rollback"
+    ],
+    "alteAdrWerdenNichtStillUeberschrieben": true
+  },
+  "mehrfachVerriegelung": {
+    "riskanteMutationMindestens": [
+      "CAPABILITY_DEFAULT_DENY",
+      "SINGLE_OWNER",
+      "LIVE_PRECONDITIONS",
+      "RESSOURCEN_UND_FENCING",
+      "ACTION_CHANNEL",
+      "SOCKET_ODER_API_BUDGET",
+      "OPERATOR_POLICY",
+      "DURABLE_INTENT",
+      "POSTCONDITION_ABGLEICH"
+    ],
+    "einzelnerFachfehlerDarfRawWriteAlleinErmoeglichen": false
+  },
+  "threatFailureModell": {
+    "threats": [
+      "STALE_EVIDENCE",
+      "DUPLICATE_SEND",
+      "BLIND_RETRY",
+      "OWNER_KONFLIKT",
+      "RESOURCE_RACE",
+      "SOURCE_DRIFT",
+      "UNKNOWN_CONTENT",
+      "PERSISTENCE_CORRUPTION",
+      "FALSCHES_VOLUME",
+      "QUEUE_OVERFLOW",
+      "SOCKET_LIMITDC",
+      "API_429",
+      "MESSAGE_DUPLICATE_OR_REORDER",
+      "HOST_AUTHORITY_CREEP",
+      "SECRET_LEAK",
+      "LEARNING_AUTHORITY_CREEP"
+    ],
+    "failureDomains": [
+      "WISSEN",
+      "CHARAKTER_SOCKET",
+      "ACCOUNT_BANK",
+      "INVENTAR",
+      "PERSISTENZ",
+      "HOST",
+      "WINDOWS_BRIDGE",
+      "EXTERNE_API",
+      "TELEMETRIE",
+      "LEARNING"
+    ],
+    "regel": "Fehler reduzieren nur die noetige Failure Domain und duerfen Safety niemals lockern."
+  },
+  "migration": {
+    "matrix": "v5/migration/v3-v4-zu-v5.json",
+    "v3Fehlerabdeckung": "v5/migration/v3-fehlerabdeckung.json",
+    "direkteHistorischeRuntimeImports": false
+  },
+  "freigabe": {
+    "r2IstKeineRuntimeFreigabe": true,
+    "naechsterGateNachR2": "R3",
+    "runtimeErstWenn": "v5/bereitschaft/laufzeit-bereitschaft.json meldet FREIGEGEBEN und Roadmap erlaubt Runtime"
+  }
+}

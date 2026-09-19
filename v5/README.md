@@ -44,3 +44,15 @@ Vor der ersten Runtime-Implementierung werden:
 - `entwicklungsregeln/quellenfreigaben.json` – bewertete Quellenhash-Baselines; Drift sperrt relevante Implementierung.
 - `wissensbasis/README.md` – Regeln der lebenden Wissensbasis.
 - `wissensbasis/manifest.json` – maschinenlesbarer Einstiegspunkt.
+
+
+## R2 – Verfassung und Migration
+
+- `architektur/verfassung.json` – maschinenlesbare R2-Verfassung mit Authority-, Layer-, Persistenz- und Safety-Grenzen.
+- `migration/v3-v4-zu-v5.json` – ratifizierte V3/V4-zu-V5-Capability-Migrationsmatrix.
+- `migration/v3-fehlerabdeckung.json` – 30/30 strukturelle V3-Fehlergegenmassnahmen.
+- `dokumentation/V5-VERFASSUNG-R2.md` – lesbare R2-Verfassung.
+- `dokumentation/V5-DEUTSCHE-DOMAENENMIGRATION.md` – Migrationsregel fuer deutsche Runtime-Domaenensprache.
+- `dokumentation/V5-R2-STRATEGIEN.md` – Persistenz-, Determinismus-, Security-, Operator-, Failure- und Simulatorstrategie.
+
+R2 ist abgeschlossen. Dies oeffnet **nicht** das Gameplay-Runtime-Gate; R3 ist die aktuelle Phase.

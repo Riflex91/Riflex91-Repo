@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-19",
+  "status": "R2_REVALIDIERT",
+  "regel": "Gedriftete offizielle Webseiten werden nicht blind freigegeben. Contractkritische Aussagen werden gegen stabilere offizielle Source- oder aktuell deployte Client-Evidence gegengeprueft.",
+  "eintraege": [
+    {
+      "kennung": "AL-OFFICIAL-MCP",
+      "alterHash": "46c6e3f14d3f9981c43253648e109af174008459002b221ae71fdff4cb6a9aee",
+      "neuerHash": "9bdfa10fbcc8b59022a6e0844232b52ceb81c31e91403d36f633e435c49e4637",
+      "entscheidung": "BASELINE_AKTUALISIERT",
+      "contractRevalidation": "mcp_api.js @ ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4 / blob 132a852e22e10a16411d7e7222656f6d0ffa7cde",
+      "widerspruch": false
+    },
+    {
+      "kennung": "AL-OFFICIAL-CODE-FUNCTIONS",
+      "alterHash": "2de0a3534fbcb64057e44cdb5eda0678d2f36948b15b172132a0d11be97b4246",
+      "neuerHash": "678e81d31a81cec933a912d6438628b8941ad59d611fefdf5372c5b471c66f56",
+      "entscheidung": "BASELINE_AKTUALISIERT",
+      "contractRevalidation": "aktuell deploytes https://adventure.land/js/runner_functions.js fuer bet_wheel und poker_*",
+      "widerspruch": false
+    },
+    {
+      "kennung": "AL-OFFICIAL-NOTES",
+      "alterHash": "d0c0ba5e8c4c9195566fa30fe5f866b90077f8560f525ac8a06f7cfe74017bad",
+      "neuerHash": "1dfe89b38ec1df01f4e72ec7d40f415270182acb5c9e771749fd0a5ae3a67433",
+      "entscheidung": "BASELINE_AKTUALISIERT_NACH_REVIEW",
+      "contractRevalidation": "keine widersprechende contractkritische Semantik; Source-/Live-Evidence bleibt primaer",
+      "widerspruch": false
+    },
+    {
+      "kennung": "AL-OFFICIAL-DOCS-HUB",
+      "alterHash": "641df3a6cf5df059b4d2b89a3a1f5c271de8d9c83d9d003c7bda6adeacbd33f3",
+      "neuerHash": "0842abc939295f1f0a8079593a76bbac60895425ca5bd3fdc7b6b8cbbf54fced",
+      "entscheidung": "SIGNAL_BASELINE_AKTUALISIERT",
+      "contractRevalidation": "keine Implementierungsautoritaet",
+      "widerspruch": false
+    },
+    {
+      "kennung": "AL-OFFICIAL-DOCS-HUB",
+      "alterHash": "0842abc939295f1f0a8079593a76bbac60895425ca5bd3fdc7b6b8cbbf54fced",
+      "neuerHash": "5453c60f47fbfd79742a753caa44a154147bbfcd4bf8903d0e1551f910513a2f",
+      "entscheidung": "SIGNAL_BASELINE_ERNEUT_AKTUALISIERT",
+      "contractRevalidation": "Stündlicher Diff zeigt dynamische Online-/Serverbelegungswerte; keine Contract-Autoritaet und kein Contract-Widerspruch.",
+      "widerspruch": false
+    }
+  ],
+  "runtimeAuthority": false,
+  "letzteAktualisierung": "2026-09-19T21:50:13Z"
+}

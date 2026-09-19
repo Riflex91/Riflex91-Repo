@@ -155,5 +155,20 @@
     "Mainframe Call cost ist Worker-CPU-Auslastung und kein Game-Socket-Aufrufbudget.",
     "ccreport ist Diagnose-Evidence und kein Polling-Instrument pro Scheduler-Tick.",
     "Cost-/Limit-Drift nach Spielupdate blockiert betroffene Automation bis zur Revalidierung."
-  ]
+  ],
+  "r2Revalidation": {
+    "verifiedAt": "2026-09-19",
+    "officialRepo": "kaansoral/adventureland_mongodb",
+    "commit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "mcpApiBlob": "132a852e22e10a16411d7e7222656f6d0ffa7cde",
+    "verified": [
+      "standard 120/min burst 30",
+      "bulk game data 12/min burst 4",
+      "bank reads 12/min burst 4 shared with bulk",
+      "progression 6/min burst 2",
+      "writes 30/min burst 10",
+      "HTTP 429 includes Retry-After and retry_after_ms"
+    ],
+    "result": "MATCHES_P0_07_CONTRACT"
+  }
 }

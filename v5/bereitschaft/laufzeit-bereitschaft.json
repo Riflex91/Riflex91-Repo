@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "stand": "2026-09-19",
   "status": "GESPERRT",
-  "freigaberegel": "Alle zehn Pflichtbereiche muessen erfuellt=true sein. Ausserdem muessen P0-Research und Invariantenratifizierung abgeschlossen sowie alle Validatoren gruen sein.",
+  "freigaberegel": "Alle zehn Pflichtbereiche muessen erfuellt=true sein. Ausserdem muessen P0-Research und Invariantenratifizierung abgeschlossen, alle Validatoren gruen und der Roadmap-Gate fuer Runtime-Struktur explizit geoeffnet sein. R2-Ratifizierung allein ist keine Runtime-Freigabe.",
   "bereiche": [
     {
       "kennung": "WISSEN_BEREIT",
       "erfuellt": false,
-      "grund": "Lebende Web-/Repo-Wissensbasis, stündlicher Wächter, Manifest, Quellenhash-Baselines und Entwicklungs-Wissensgate sind integriert. Der Vertrag fuer die lokale live verifizierte SSD-Wissensdatenbank und den Bridge-Spiegel ist festgelegt; der Bot-Writer selbst wird erst nach Runtime-Freigabe in R5/R6 implementiert. Offen bleiben R1/R2-Revalidierung sowie die bereits dokumentierten Git-Sync-/Least-Privilege-Haertungen.",
+      "grund": "Wissensarchitektur, Quellenbaselines, Drift-/Revalidierungsregeln und WissensZugriffPort-Zielvertrag sind R2-ratifiziert. erfuellt bleibt false, bis die spaeteren Runtime-/Live-Wissensports und verbleibenden Hardening-Nachweise umgesetzt sind.",
       "nachweise": [
         "v5/wissensbasis/README.md",
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
@@ -17,7 +17,8 @@
         "v5/werkzeuge/entwicklungs-wissensgate.mjs",
         "v5/dokumentation/LIVE-WISSEN-SSD-VERTRAG.md",
         "v5/wissensbasis/live/README.md"
-      ]
+      ],
+      "r2VertragRatifiziert": true
     },
     {
       "kennung": "P0_RESEARCH_BEREIT",
@@ -42,85 +43,99 @@
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
       "erfuellt": false,
-      "grund": "Kanonische Basisline ist angelegt, muss in R2 fachlich ratifiziert und vollstaendig an Wissen/Tests gekoppelt werden.",
+      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. erfuellt bleibt bis technischer Kopplung an Implementierung, Tests und Live-Nachweise false.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
         "v5/anforderungen/nachverfolgbarkeit.json"
-      ]
+      ],
+      "r2VertragRatifiziert": true,
+      "r2RatifiziertAm": "2026-09-19"
     },
     {
       "kennung": "INVARIANTEN_BEREIT",
       "erfuellt": false,
-      "grund": "55 V4-Invarianten sind uebernommen, aber noch einzeln zu ratifizieren/verschaerfen/ersetzen.",
+      "grund": "Alle 55 V4-Invarianten sind einzeln uebernommen/verschaerft/ersetzt; neue R2-Invarianten sind ratifiziert. erfuellt bleibt bis technische Guards/Tests die Regeln erzwingen false.",
       "nachweise": [
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r2VertragRatifiziert": true,
+      "r2RatifiziertAm": "2026-09-19"
     },
     {
       "kennung": "ZUSTANDSMASCHINEN_BEREIT",
       "erfuellt": false,
-      "grund": "Kritische Automaten sind als Vorabmodell erfasst, aber noch in R2 zu ratifizieren und mit P0-Erkenntnissen abzugleichen.",
+      "grund": "13 kritische Zustandsautomaten sind in R2 als fail-closed Modelle ratifiziert. erfuellt bleibt bis Implementierung und State-/Fault-Tests false.",
       "nachweise": [
         "v5/zustaende/zustandsautomaten.json"
-      ]
+      ],
+      "r2VertragRatifiziert": true,
+      "r2RatifiziertAm": "2026-09-19"
     },
     {
       "kennung": "FEHLERMODELL_BEREIT",
       "erfuellt": false,
-      "grund": "Gefahrenkatalog existiert; Gegenmassnahmen und Rest-Risiken muessen phasenweise formal geschlossen werden.",
+      "grund": "Der 161er Gefahrenkatalog, Restrisiko-Regel und die 30/30 V3-Fehlerabdeckung sind R2-ratifiziert. erfuellt bleibt bis phasenweise technische Gegenmassnahmen nachgewiesen sind false.",
       "nachweise": [
         "v5/gefahren/gefahrenkatalog.json"
-      ]
+      ],
+      "r2VertragRatifiziert": true,
+      "r2RatifiziertAm": "2026-09-19"
     },
     {
       "kennung": "PERSISTENZMODELL_BEREIT",
       "erfuellt": false,
-      "grund": "Pflichtmodell ist spezifiziert. Zusaetzlich ist das dedizierte 1-TB-SSD-Datenfundament mit HOT/WARM/COLD-Tiering, typisierten Speicherports, Speicherbudgets, Retention, Volume-Pruefung und fail-closed Verhalten fuer kritische Persistenz festgelegt; konkrete Schemas/Migrationsregeln folgen nach P0/R2.",
+      "grund": "Persistenz-/SSD-/Schema-/Durable-Intent-Vertraege sind R2-ratifiziert. erfuellt bleibt bis R5 Persistenzports, Migrationen und Crash-/Volume-Tests implementiert sind false.",
       "nachweise": [
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
         "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md"
-      ]
+      ],
+      "r2VertragRatifiziert": true,
+      "r2RatifiziertAm": "2026-09-19"
     },
     {
       "kennung": "TESTSTRATEGIE_BEREIT",
       "erfuellt": false,
-      "grund": "Testleiter/Fitness-/Fault-Strategie ist definiert. Das Replay-/Aufzeichnungsgrundgeruest soll bereits in R3/R4 beginnen; der Ausbau mit echten bounded Evidence-Aufzeichnungen, I/O-Faults und Operations-Harness folgt in R11.",
+      "grund": "Determinismus-, Simulator-, Replay-, Fault- und Fitnessstrategie sind R2-ratifiziert. erfuellt bleibt bis R3/R4 das Testlabor technisch vorhanden ist false.",
       "nachweise": [
         "v5/fitness/fitness-regeln.json",
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
         "v5/werkzeuge/entwicklungs-wissensgate.mjs",
         "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md"
-      ]
+      ],
+      "r2VertragRatifiziert": true,
+      "r2RatifiziertAm": "2026-09-19"
     },
     {
       "kennung": "SECURITY_BEREIT",
       "erfuellt": false,
-      "grund": "Bridge besitzt bereits Sparse-Checkout/Pfadpruefung und GCM-Browserlogin. Fuer V5-Readiness muessen serverseitiges Knowledge-PR-Gate und minimal auf das Repo begrenzte GitHub-Rechte nachgewiesen sein.",
+      "grund": "Security-/Trust-Boundary-, Bridge-, Secret-, Default-Deny- und Mehrfach-Verriegelungsvertraege sind R2-ratifiziert. erfuellt bleibt false, bis R3 die statischen/API-/Bypass-Guards technisch nachweist.",
       "nachweise": [
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md"
-      ]
+      ],
+      "r2VertragRatifiziert": true
     },
     {
       "kennung": "BETRIEBSMODELL_BEREIT",
       "erfuellt": false,
-      "grund": "Stop/Notfall/Fehlerdomaenen/Build-Provenance sind spezifiziert. Fuer den lokalen Betrieb sind zusaetzlich SSD-Sicherheitsreserve, Speicherdruck-Degradation, Volume-Identitaet, Backpressure und die Trennung kritischer/nichtkritischer Persistenz festgelegt; formale R2-Ratifizierung und spaetere Harnesses fehlen.",
+      "grund": "Operator-, Stop-, Failure-Domain-, Backpressure- und SSD-Betriebsregeln sind R2-ratifiziert. erfuellt bleibt bis die zugehoerigen Runtime-/Operations-Guards implementiert sind false.",
       "nachweise": [
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
         "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md"
-      ]
+      ],
+      "r2VertragRatifiziert": true,
+      "r2RatifiziertAm": "2026-09-19"
     }
   ],
   "offeneBlocker": [
-    "55 V4-Invarianten in R2 einzeln ratifizieren",
-    "Anforderungen gegen Knowledge/P0 finalisieren",
-    "Zustandsautomaten nach P0 final ratifizieren",
-    "GitHub-Wissenswaechter mit Pfad-/Secret-/Auth-Tests fertigstellen",
-    "R2-Verfassung/Migrationsmatrix abschliessen",
-    "Wissenswaechter von direktem main-Push auf unabhaengig geprueften Knowledge-Branch/PR-Pfad haerten",
-    "GitHub-Login des Wissenswaechters auf minimale Repository-Rechte begrenzen und nachweisen",
-    "Relevante offizielle Quellen nach R1/R2 explizit fuer Implementierung freigeben",
-    "Strengen Entwicklungs-Wissensgate vor erster Runtime-Implementierung erfolgreich nachweisen",
-    "SSD-Datenhaltungsvertrag in R2 ratifizieren und in Anforderungen/Invarianten nachverfolgen"
-  ]
+    "R3 Build-/Static-/Dependency-/Host-Grenzen und Negativtests implementieren",
+    "R3 Headless-No-Write-Grundstruktur und Mehrfach-Verriegelungs-Bypass-Guards nachweisen",
+    "R3 strengen Entwicklungs-Wissensgate fuer echte Implementierung technisch erzwingen",
+    "R3 minimale GitHub-Rechte und Knowledge-PR-Hardening nachweisen",
+    "R4 Determinismus-/Replay-Grundgeruest implementieren",
+    "R5/R6 Persistenz-, WissensZugriffPort- und Live-Wissens-Runtime-Vertraege technisch umsetzen",
+    "Weitere blockierende Roadmap-Phasen R3 bis R11 abschliessen, bevor Vertical Slice/Gameplay freigegeben wird"
+  ],
+  "r2Status": "RATIFIZIERT",
+  "r2AbgeschlossenAm": "2026-09-19"
 }

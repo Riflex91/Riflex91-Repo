@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "stand": "2026-09-19",
-  "status": "KANONISCHE_BASISLINE_VOR_RUNTIME",
+  "status": "R2_FACHLICH_RATIFIZIERT_IMPLEMENTIERUNG_OFFEN",
   "anzahl": 119,
   "anforderungen": [
     {
@@ -17,7 +17,9 @@
         "V5-INV-014",
         "V5-INV-015"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-002",
@@ -31,7 +33,9 @@
       "invariantenKennungen": [
         "V5-INV-015"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-003",
@@ -46,7 +50,9 @@
         "V5-INV-014",
         "V5-INV-029"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-004",
@@ -60,7 +66,9 @@
       "invariantenKennungen": [
         "V5-INV-016"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-005",
@@ -75,7 +83,9 @@
         "V5-INV-014",
         "V5-INV-016"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-006",
@@ -90,7 +100,9 @@
         "V5-INV-011",
         "V5-INV-012"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-007",
@@ -105,7 +117,9 @@
         "V5-INV-010",
         "V5-ALT-023"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-008",
@@ -119,7 +133,9 @@
       "invariantenKennungen": [
         "V5-INV-029"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-009",
@@ -133,7 +149,9 @@
       "invariantenKennungen": [
         "V5-INV-009"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-010",
@@ -147,7 +165,9 @@
       "invariantenKennungen": [
         "V5-INV-028"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-ARCH-001",
@@ -161,7 +181,9 @@
       "invariantenKennungen": [
         "V5-INV-001"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-ARCH-002",
@@ -175,7 +197,9 @@
       "invariantenKennungen": [
         "V5-ALT-001"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-ARCH-003",
@@ -190,7 +214,9 @@
         "V5-ALT-002",
         "V5-ALT-003"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-ARCH-004",
@@ -204,7 +230,9 @@
       "invariantenKennungen": [
         "V5-ALT-044"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-ARCH-005",
@@ -219,7 +247,9 @@
         "V5-ALT-004",
         "V5-ALT-005"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-ARCH-006",
@@ -233,7 +263,9 @@
       "invariantenKennungen": [
         "V5-INV-009"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-ARCH-007",
@@ -247,7 +279,9 @@
       "invariantenKennungen": [
         "V5-INV-002"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-ARCH-008",
@@ -261,7 +295,9 @@
       "invariantenKennungen": [
         "V5-INV-006"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-ARCH-009",
@@ -275,7 +311,9 @@
       "invariantenKennungen": [
         "V5-INV-008"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-ARCH-010",
@@ -289,7 +327,9 @@
       "invariantenKennungen": [
         "V5-INV-019"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-ARCH-011",
@@ -303,7 +343,9 @@
       "invariantenKennungen": [
         "V5-INV-018"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-ARCH-012",
@@ -317,7 +359,9 @@
       "invariantenKennungen": [
         "V5-ALT-005"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-001",
@@ -331,7 +375,9 @@
       "invariantenKennungen": [
         "V5-INV-003"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-002",
@@ -346,7 +392,9 @@
         "V5-INV-004",
         "V5-INV-005"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-003",
@@ -360,7 +408,9 @@
       "invariantenKennungen": [
         "V5-INV-002"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-004",
@@ -374,7 +424,9 @@
       "invariantenKennungen": [
         "V5-ALT-024"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-005",
@@ -388,7 +440,9 @@
       "invariantenKennungen": [
         "V5-ALT-021"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-006",
@@ -402,7 +456,9 @@
       "invariantenKennungen": [
         "V5-ALT-022"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-007",
@@ -417,7 +473,9 @@
         "V5-ALT-052",
         "V5-INV-021"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-008",
@@ -434,7 +492,9 @@
         "V5-ALT-036",
         "V5-INV-022"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-009",
@@ -448,7 +508,9 @@
       "invariantenKennungen": [
         "V5-ALT-043"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-010",
@@ -462,7 +524,9 @@
       "invariantenKennungen": [
         "V5-INV-002"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-011",
@@ -477,7 +541,9 @@
         "V5-ALT-017",
         "V5-ALT-029"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-012",
@@ -491,7 +557,9 @@
       "invariantenKennungen": [
         "V5-ALT-020"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-013",
@@ -506,7 +574,9 @@
         "V5-ALT-037",
         "V5-INV-013"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-014",
@@ -520,7 +590,9 @@
       "invariantenKennungen": [
         "V5-INV-023"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-SICH-015",
@@ -534,7 +606,9 @@
       "invariantenKennungen": [
         "V5-INV-027"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-PERSIST-001",
@@ -549,7 +623,9 @@
         "V5-ALT-045",
         "V5-INV-024"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-PERSIST-002",
@@ -563,7 +639,9 @@
       "invariantenKennungen": [
         "V5-ALT-046"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-PERSIST-003",
@@ -577,7 +655,9 @@
       "invariantenKennungen": [
         "V5-ALT-010"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-PERSIST-004",
@@ -592,7 +672,9 @@
         "V5-ALT-008",
         "V5-ALT-009"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-PERSIST-005",
@@ -606,7 +688,9 @@
       "invariantenKennungen": [
         "V5-ALT-031"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-PERSIST-006",
@@ -620,7 +704,9 @@
       "invariantenKennungen": [
         "V5-INV-024"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-PERSIST-007",
@@ -634,7 +720,9 @@
       "invariantenKennungen": [
         "V5-ALT-039"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-PERSIST-008",
@@ -648,7 +736,9 @@
       "invariantenKennungen": [
         "V5-ALT-040"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-DET-001",
@@ -662,7 +752,9 @@
       "invariantenKennungen": [
         "V5-INV-007"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-DET-002",
@@ -676,7 +768,9 @@
       "invariantenKennungen": [
         "V5-INV-007"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-DET-003",
@@ -690,7 +784,9 @@
       "invariantenKennungen": [
         "V5-INV-007"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-DET-004",
@@ -704,7 +800,9 @@
       "invariantenKennungen": [
         "V5-INV-007"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-TRANS-001",
@@ -718,7 +816,9 @@
       "invariantenKennungen": [
         "V5-ALT-007"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-TRANS-002",
@@ -732,7 +832,9 @@
       "invariantenKennungen": [
         "V5-INV-002"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-TRANS-003",
@@ -746,7 +848,9 @@
       "invariantenKennungen": [
         "V5-ALT-006"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-TRANS-004",
@@ -761,7 +865,9 @@
         "V5-ALT-012",
         "V5-ALT-013"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-TRANS-005",
@@ -776,7 +882,9 @@
         "V5-ALT-015",
         "V5-ALT-016"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-TEST-001",
@@ -790,7 +898,9 @@
       "invariantenKennungen": [
         "V5-INV-026"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-TEST-002",
@@ -804,7 +914,9 @@
       "invariantenKennungen": [
         "V5-INV-026"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-TEST-003",
@@ -818,7 +930,9 @@
       "invariantenKennungen": [
         "V5-INV-026"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-TEST-004",
@@ -832,7 +946,9 @@
       "invariantenKennungen": [
         "V5-INV-026"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-TEST-005",
@@ -846,7 +962,9 @@
       "invariantenKennungen": [
         "V5-INV-007"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-TEST-006",
@@ -860,7 +978,9 @@
       "invariantenKennungen": [
         "V5-INV-020"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-TEST-007",
@@ -874,7 +994,9 @@
       "invariantenKennungen": [
         "V5-INV-030"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-TEST-008",
@@ -888,7 +1010,9 @@
       "invariantenKennungen": [
         "V5-INV-030"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-OPS-001",
@@ -902,7 +1026,9 @@
       "invariantenKennungen": [
         "V5-INV-025"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-OPS-002",
@@ -916,7 +1042,9 @@
       "invariantenKennungen": [
         "V5-ALT-038"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-OPS-003",
@@ -930,7 +1058,9 @@
       "invariantenKennungen": [
         "V5-ALT-039"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-OPS-004",
@@ -944,7 +1074,9 @@
       "invariantenKennungen": [
         "V5-ALT-054"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-OPS-005",
@@ -958,7 +1090,9 @@
       "invariantenKennungen": [
         "V5-ALT-055"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-OPS-006",
@@ -972,7 +1106,9 @@
       "invariantenKennungen": [
         "V5-ALT-055"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-OPS-007",
@@ -986,7 +1122,9 @@
       "invariantenKennungen": [
         "V5-INV-018"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-OPS-008",
@@ -1000,7 +1138,9 @@
       "invariantenKennungen": [
         "V5-INV-021"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-MERCHANT-001",
@@ -1014,7 +1154,9 @@
       "invariantenKennungen": [
         "V5-ALT-028"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-MERCHANT-002",
@@ -1028,7 +1170,9 @@
       "invariantenKennungen": [
         "V5-ALT-027"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-MERCHANT-003",
@@ -1042,7 +1186,9 @@
       "invariantenKennungen": [
         "V5-ALT-029"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-MERCHANT-004",
@@ -1056,7 +1202,9 @@
       "invariantenKennungen": [
         "V5-INV-006"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-MERCHANT-005",
@@ -1070,7 +1218,9 @@
       "invariantenKennungen": [
         "V5-ALT-024"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-MERCHANT-006",
@@ -1084,7 +1234,9 @@
       "invariantenKennungen": [
         "V5-ALT-030"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-MERCHANT-007",
@@ -1098,7 +1250,9 @@
       "invariantenKennungen": [
         "V5-ALT-006"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-MERCHANT-008",
@@ -1113,7 +1267,9 @@
         "V5-ALT-018",
         "V5-ALT-019"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-MULTI-001",
@@ -1127,7 +1283,9 @@
       "invariantenKennungen": [
         "V5-INV-008"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-MULTI-002",
@@ -1141,7 +1299,9 @@
       "invariantenKennungen": [
         "V5-ALT-026"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-MULTI-003",
@@ -1155,7 +1315,9 @@
       "invariantenKennungen": [
         "V5-INV-006"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-MULTI-004",
@@ -1169,7 +1331,9 @@
       "invariantenKennungen": [
         "V5-INV-026"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-MULTI-005",
@@ -1183,7 +1347,9 @@
       "invariantenKennungen": [
         "V5-ALT-001"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WORLD-001",
@@ -1197,7 +1363,9 @@
       "invariantenKennungen": [
         "V5-ALT-049"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WORLD-002",
@@ -1211,7 +1379,9 @@
       "invariantenKennungen": [
         "V5-ALT-050"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WORLD-003",
@@ -1225,7 +1395,9 @@
       "invariantenKennungen": [
         "V5-ALT-051"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WORLD-004",
@@ -1239,7 +1411,9 @@
       "invariantenKennungen": [
         "V5-INV-009"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-LERN-001",
@@ -1253,7 +1427,9 @@
       "invariantenKennungen": [
         "V5-ALT-022"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-LERN-002",
@@ -1267,7 +1443,9 @@
       "invariantenKennungen": [
         "V5-ALT-022"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-LERN-003",
@@ -1281,7 +1459,9 @@
       "invariantenKennungen": [
         "V5-INV-021"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-LERN-004",
@@ -1295,7 +1475,9 @@
       "invariantenKennungen": [
         "V5-INV-026"
       ],
-      "nachweis": "TEST_UND_REVIEW"
+      "nachweis": "TEST_UND_REVIEW",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-UI-001",
@@ -1310,7 +1492,9 @@
         "V5-INV-031",
         "V5-INV-034"
       ],
-      "nachweis": "UI_SPRACHABDECKUNG_TEST"
+      "nachweis": "UI_SPRACHABDECKUNG_TEST",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-UI-002",
@@ -1325,7 +1509,9 @@
         "V5-INV-031",
         "V5-INV-033"
       ],
-      "nachweis": "ANZEIGEKATALOG_TEST"
+      "nachweis": "ANZEIGEKATALOG_TEST",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-UI-003",
@@ -1339,7 +1525,9 @@
       "invariantenKennungen": [
         "V5-INV-033"
       ],
-      "nachweis": "ANZEIGEKATALOG_TEST"
+      "nachweis": "ANZEIGEKATALOG_TEST",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-UI-004",
@@ -1354,7 +1542,9 @@
         "V5-INV-031",
         "V5-INV-034"
       ],
-      "nachweis": "UI_SNAPSHOT_UND_STRING_GUARD"
+      "nachweis": "UI_SNAPSHOT_UND_STRING_GUARD",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-UI-005",
@@ -1368,7 +1558,9 @@
       "invariantenKennungen": [
         "V5-INV-032"
       ],
-      "nachweis": "NEGATIVTEST"
+      "nachweis": "NEGATIVTEST",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-UI-006",
@@ -1383,7 +1575,9 @@
         "V5-INV-032",
         "V5-INV-033"
       ],
-      "nachweis": "WISSENSDRIFT_TEST"
+      "nachweis": "WISSENSDRIFT_TEST",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-UI-007",
@@ -1397,7 +1591,9 @@
       "invariantenKennungen": [
         "V5-INV-031"
       ],
-      "nachweis": "UI_LEAK_TEST"
+      "nachweis": "UI_LEAK_TEST",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-UI-008",
@@ -1411,7 +1607,9 @@
       "invariantenKennungen": [
         "V5-INV-034"
       ],
-      "nachweis": "RELEASE_GATE"
+      "nachweis": "RELEASE_GATE",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-UI-009",
@@ -1426,7 +1624,9 @@
         "V5-INV-031",
         "V5-INV-033"
       ],
-      "nachweis": "MONSTER_ANZEIGEKATALOG_TEST"
+      "nachweis": "MONSTER_ANZEIGEKATALOG_TEST",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-011",
@@ -1440,7 +1640,9 @@
       "invariantenKennungen": [
         "V5-INV-012"
       ],
-      "nachweis": "GIT_SYNC_NEGATIVTEST_UND_PR_GATE"
+      "nachweis": "GIT_SYNC_NEGATIVTEST_UND_PR_GATE",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-012",
@@ -1454,7 +1656,9 @@
       "invariantenKennungen": [
         "V5-INV-013"
       ],
-      "nachweis": "AUTH_BERECHTIGUNGSNACHWEIS"
+      "nachweis": "AUTH_BERECHTIGUNGSNACHWEIS",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-013",
@@ -1469,7 +1673,9 @@
         "V5-INV-035",
         "V5-INV-037"
       ],
-      "nachweis": "ENTWICKLUNGS_WISSENSGATE"
+      "nachweis": "ENTWICKLUNGS_WISSENSGATE",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-014",
@@ -1483,7 +1689,9 @@
       "invariantenKennungen": [
         "V5-INV-037"
       ],
-      "nachweis": "MANIFEST_VALIDATOR"
+      "nachweis": "MANIFEST_VALIDATOR",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-015",
@@ -1498,7 +1706,9 @@
       "invariantenKennungen": [
         "V5-INV-036"
       ],
-      "nachweis": "STRENGER_WISSENSGATE"
+      "nachweis": "STRENGER_WISSENSGATE",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-016",
@@ -1512,7 +1722,9 @@
       "invariantenKennungen": [
         "V5-INV-041"
       ],
-      "nachweis": "QUELLENFREIGABEN_DRIFT_TEST"
+      "nachweis": "QUELLENFREIGABEN_DRIFT_TEST",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-017",
@@ -1526,7 +1738,9 @@
       "invariantenKennungen": [
         "V5-INV-038"
       ],
-      "nachweis": "KANDIDATEN_AUTORITAETS_GUARD"
+      "nachweis": "KANDIDATEN_AUTORITAETS_GUARD",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-018",
@@ -1540,7 +1754,9 @@
       "invariantenKennungen": [
         "V5-INV-039"
       ],
-      "nachweis": "DEPENDENCY_UND_PORT_GUARD"
+      "nachweis": "DEPENDENCY_UND_PORT_GUARD",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-019",
@@ -1554,7 +1770,9 @@
       "invariantenKennungen": [
         "V5-INV-040"
       ],
-      "nachweis": "WORKFLOW_SNAPSHOT_PINNING_TEST"
+      "nachweis": "WORKFLOW_SNAPSHOT_PINNING_TEST",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-020",
@@ -1570,7 +1788,9 @@
         "V5-INV-035",
         "V5-INV-041"
       ],
-      "nachweis": "BRANCH_AKTUALITAETS_GUARD"
+      "nachweis": "BRANCH_AKTUALITAETS_GUARD",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-021",
@@ -1584,7 +1804,9 @@
       "invariantenKennungen": [
         "V5-INV-042"
       ],
-      "nachweis": "WISSENSBASIS_VALIDATOR"
+      "nachweis": "WISSENSBASIS_VALIDATOR",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-022",
@@ -1598,7 +1820,9 @@
       "invariantenKennungen": [
         "V5-INV-043"
       ],
-      "nachweis": "PORT_UND_DATEISYSTEMTEST"
+      "nachweis": "PORT_UND_DATEISYSTEMTEST",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-023",
@@ -1612,7 +1836,9 @@
       "invariantenKennungen": [
         "V5-INV-044"
       ],
-      "nachweis": "TORN_WRITE_UND_GENERATION_TEST"
+      "nachweis": "TORN_WRITE_UND_GENERATION_TEST",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-024",
@@ -1626,7 +1852,9 @@
       "invariantenKennungen": [
         "V5-INV-045"
       ],
-      "nachweis": "VERIFIER_NEGATIVTEST"
+      "nachweis": "VERIFIER_NEGATIVTEST",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-025",
@@ -1640,7 +1868,9 @@
       "invariantenKennungen": [
         "V5-INV-046"
       ],
-      "nachweis": "IMPORT_ALLOWLIST_TEST"
+      "nachweis": "IMPORT_ALLOWLIST_TEST",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-026",
@@ -1655,7 +1885,9 @@
       "invariantenKennungen": [
         "V5-INV-047"
       ],
-      "nachweis": "WINDOWS_BRIDGE_NEGATIVTESTS"
+      "nachweis": "WINDOWS_BRIDGE_NEGATIVTESTS",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-027",
@@ -1669,7 +1901,9 @@
       "invariantenKennungen": [
         "V5-INV-048"
       ],
-      "nachweis": "AUTHORITY_GUARD"
+      "nachweis": "AUTHORITY_GUARD",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-028",
@@ -1683,7 +1917,9 @@
       "invariantenKennungen": [
         "V5-INV-049"
       ],
-      "nachweis": "WISSENS_PROMOTION_GUARD"
+      "nachweis": "WISSENS_PROMOTION_GUARD",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     },
     {
       "kennung": "V5-ANF-WISSEN-029",
@@ -1697,7 +1933,12 @@
       "invariantenKennungen": [
         "V5-INV-050"
       ],
-      "nachweis": "RETENTION_UND_GROESSEN_GUARD"
+      "nachweis": "RETENTION_UND_GROESSEN_GUARD",
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "ratifiziertAm": "2026-09-19"
     }
-  ]
+  ],
+  "ratifizierungsStatus": "R2_RATIFIZIERT",
+  "ratifiziertAm": "2026-09-19",
+  "ratifizierungsRegel": "R2 ratifiziert Inhalt, Prioritaet, Phase und Safety-Bezug. Der bestehende Anforderungsstatus OFFEN bleibt bis Implementierung/Test/Live-Nachweis unveraendert und darf nicht mit R2-Ratifizierung verwechselt werden."
 }

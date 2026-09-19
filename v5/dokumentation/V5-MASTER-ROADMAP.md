@@ -222,6 +222,8 @@ P0 Exit Gate:
 
 ## R2 – V5-Verfassung + V3/V4-Migrationsmatrix
 
+**Status:** DONE.
+
 Noch kein Gameplay-Code.
 
 Lieferobjekte:
@@ -272,6 +274,21 @@ Exit Gate:
 - Kandidaten besitzen nachweislich keine Entwicklungs-/Gameplay-Autoritaet;
 - laufende Waechterdateien sind schema-/maschinenlesbar und das Aenderungsprotokoll ist echtes JSONL;
 - SSD-Datenklassen, Retention, Budgets, Sicherheitsreserve, Degradationsregeln und falsches-Volume-Verhalten sind verbindlich festgelegt.
+
+### R2 Abschlussstand
+
+- 55/55 V4-Invarianten einzeln ratifiziert: 28 UEBERNEHMEN, 26 VERSCHAERFEN, 1 ERSETZEN.
+- 47/47 historische V3/V4-Runtime-Capabilities klassifiziert: 44 NEU_BAUEN, 1 NUR_WISSENSQUELLE, 2 VERWERFEN; keine historische Runtime-Codewiederverwendung.
+- 30/30 V3-Fehlerklassen besitzen strukturelle V5-Gegenmassnahmen.
+- R2-Verfassung, azyklischer Layer-/Ownership-Graph, Authority-Grenzen, Mehrfach-Verriegelung und ADR-Regeln ratifiziert.
+- 119 Anforderungen und 119 Traceability-Eintraege fachlich ratifiziert; Implementierungs-/Test-/Live-Nachweise bleiben offen.
+- 161 Gefahren mit Restrisiko-Regel ratifiziert; Gefahren bleiben technisch OFFEN bis zu ihrem Nachweis.
+- 13 kritische Zustandsautomaten ratifiziert und unbekannte Uebergaenge fail-closed.
+- deutsche Domaenenmigration fuer historische Research-Schemas und externe Boundaries festgelegt.
+- Persistenz-, Determinismus-, Security-, Operator-, Failure-Domain- und Simulatorstrategie ratifiziert.
+- Source-Baselines inklusive vier gedrifteter offizieller Webquellen nach unabhaengiger Source-/Live-Revalidierung bewertet.
+- R2-Verfassungsvalidator ist CI-verbindlich.
+- Gameplay-Runtime-Gesamtgate bleibt GESPERRT.
 
 ## R3 – Repository, Build, Guards und Host-Grenzen
 
