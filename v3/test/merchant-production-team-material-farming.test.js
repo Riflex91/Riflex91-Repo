@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 
 const { MerchantProductionPlanner, ProductionStepKind } = require('../src/merchant/merchant-production-planner');
 const { ControlledPartyLogistics, Action } = require('../src/party/controlled-party-logistics');
+const { BrainStateEncoderV2 } = require('../src/brain/strategic-brain-v2');
 const {
   bestDirectMaterialFarmSource,
   estimateBlockedProductionCandidate,
@@ -101,25 +102,33 @@ test('production material acquisition rejects leveled ingredients instead of pre
   assert.equal(estimate.reason, 'LEVELED_MATERIAL_REQUIRES_PROGRESSION');
 });
 
-test('production material chooser puts <=12h paths ahead of much stronger 100h+ paths', () => {
-  const runtime = runtimeForDrops(0.001);
-  const veryLong = blockedCandidate(10, 100000);
-  veryLong.candidate.output = 'legendarybow';
-  const shortRuntime = runtimeForDrops(0.5);
+test('production material chooser puts <=12h paths ahead of a much stronger 100h+ recipe', () => {
+  const runtime = runtimeForDrops(0.5);
+  const gameData = runtime.adapter.getGameData();
+  gameData.items.rare = { type: 'material', g: 1 };
+  gameData.drops.monsters.rarebeast = [[0.001, 'rare', 1]];
+  gameData.monsters.rarebeast = { hp: 100, attack: 10 };
+  gameData.maps.rare = { monsters: [{ type: 'rarebeast', boundary: [0, 0, 100, 100] }] };
+
   const short = blockedCandidate(10, 50);
   short.candidate.output = 'practicalbow';
 
-  const longEstimate = estimateBlockedProductionCandidate(runtime, veryLong, {
-    maxTeamFarmHours: 12,
-    fallbackKillsPerHour: 20
-  });
-  const shortEstimate = estimateBlockedProductionCandidate(shortRuntime, short, {
+  const veryLong = blockedCandidate(10, 100000);
+  veryLong.candidate.output = 'legendarybow';
+  veryLong.steps[0].name = 'rare';
+  veryLong.blockers[0].name = 'rare';
+
+  const decision = chooseProductionTeamFarmObjective(runtime, [veryLong, short], {
     maxTeamFarmHours: 12,
     fallbackKillsPerHour: 20
   });
 
-  assert.equal(longEstimate.priorityTier, 1);
-  assert.equal(shortEstimate.priorityTier, 0);
+  assert.ok(decision.selected);
+  assert.equal(decision.selected.target.output, 'practicalbow');
+  const legendary = decision.evaluated.find((row) => row.output === 'legendarybow');
+  assert.ok(legendary);
+  assert.equal(legendary.longPath, true);
+  assert.equal(legendary.priorityTier, 1);
 });
 
 test('production material chooser still selects a long path when no shorter valid path remains', () => {
@@ -176,6 +185,81 @@ test('production planner exposes all blocked recipe candidates for bounded farm-
   assert.ok(Array.isArray(plan.blockedCandidates));
   assert.ok(plan.blockedCandidates.length >= 1);
   assert.equal(plan.blockedCandidates[0].steps.some((step) => step.kind === ProductionStepKind.FARM_REQUIRED), true);
+});
+
+test('material already on farmers is treated as transfer-pending instead of more farming', () => {
+  const runtime = runtimeForDrops(0.5);
+  runtime.characterRegistry = {
+    status: () => ({
+      characters: [
+        { name: 'Merchant', ctype: 'merchant', inventory: [] },
+        { name: 'R1', ctype: 'ranger', inventory: [{ name: 'wood', level: 0, q: 6 }] },
+        { name: 'R2', ctype: 'priest', inventory: [{ name: 'wood', level: 0, q: 4 }] }
+      ]
+    })
+  };
+  const estimate = estimateBlockedProductionCandidate(runtime, blockedCandidate(10, 100), {
+    maxTeamFarmHours: 12,
+    fallbackKillsPerHour: 20
+  });
+  assert.equal(estimate.eligible, false);
+  assert.equal(estimate.reason, 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER');
+});
+
+test('explicit production material may bypass generic exchange protection but not binding protection', () => {
+  const farmer = Object.create(ControlledPartyLogistics.prototype);
+  farmer.now = () => 1000;
+  farmer.root = { G: { items: { token: { type: 'material', exchange: true }, bound: { type: 'material', exchange: true, soulbound: true } } } };
+  farmer.parent = farmer.root;
+  farmer.runtime = {
+    farmer: {
+      materialObjective: {
+        kind: 'PRODUCTION_MATERIAL',
+        material: 'token',
+        level: 0,
+        expiresAt: 60000
+      }
+    }
+  };
+  farmer._isMerchant = () => false;
+
+  assert.equal(farmer._safeLootDescriptor({ name: 'token', level: 0, q: 5 }).ok, true);
+  assert.equal(farmer._safeLootDescriptor({ name: 'bound', level: 0, q: 1 }).ok, false);
+
+  const merchant = Object.create(ControlledPartyLogistics.prototype);
+  merchant.now = () => 1000;
+  merchant.root = farmer.root;
+  merchant.parent = merchant.root;
+  merchant.runtime = {};
+  merchant.lastProductionMaterialObjective = { material: 'token', level: 0, expiresAt: 60000 };
+  merchant._isMerchant = () => true;
+  assert.equal(merchant._safeLootDescriptor({ name: 'token', level: 0, q: 5 }).ok, true);
+});
+
+test('strategic brain keeps character level a minor context signal', () => {
+  const encoder = new BrainStateEncoderV2();
+  const encoded = encoder.encode({
+    performance: { status: () => ({ current: { rates: {} } }) },
+    gearProgression: { list: () => [] },
+    world: { status: () => ({ confidence: 1 }) },
+    combatRisk: { threshold: 0.65 },
+    log: { list: () => [] }
+  }, {
+    snapshot: {
+      character: {
+        name: 'R1', ctype: 'ranger', level: 120,
+        hp: 1000, max_hp: 1000, mp: 1000, max_mp: 1000,
+        attack: 1000, range: 120, speed: 60, isize: 42, inventory: []
+      },
+      party: [],
+      entities: []
+    },
+    candidates: []
+  });
+
+  assert.equal(encoded.values.levelNorm, 0.15);
+  assert.ok(encoded.values.attackNorm > encoded.values.levelNorm);
+  assert.equal(encoded.values.gearHealth, 1);
 });
 
 test('production material objective is broadcast identically to every farmer, never split', () => {
