@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-09-20",
-  "currentPhase": "R4",
+  "currentPhase": "R5",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -128,7 +128,7 @@
     {
       "id": "R4",
       "name": "Deterministischer Core",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R3"
       ],
@@ -137,12 +137,33 @@
         "Clock/Random/IDs injizierbar",
         "Replay deterministisch",
         "Deterministisches Replay-/Aufzeichnungsformat definiert"
+      ],
+      "r4Nachweise": [
+        "v5/grundlage/quelle/determinismus/ports.ts",
+        "v5/grundlage/quelle/determinismus/uhr.ts",
+        "v5/grundlage/quelle/determinismus/zufall.ts",
+        "v5/grundlage/quelle/determinismus/kennungen.ts",
+        "v5/grundlage/quelle/determinismus/sequenz.ts",
+        "v5/grundlage/quelle/kern/ergebnis.ts",
+        "v5/grundlage/quelle/kern/zeit.ts",
+        "v5/grundlage/quelle/kern/prioritaet.ts",
+        "v5/grundlage/quelle/kern/begrenzte-warteschlange.ts",
+        "v5/grundlage/quelle/kern/kanonische-serialisierung.ts",
+        "v5/grundlage/quelle/kern/domaenen-ereignis.ts",
+        "v5/grundlage/quelle/kern/geschlossener-zustandsautomat.ts",
+        "v5/grundlage/quelle/testlabor/deterministischer-szenario-lauf.ts",
+        "v5/grundlage/quelle/testlabor/replay-format.ts",
+        "v5/grundlage/tests/r4-determinismus.test.mjs",
+        "v5/werkzeuge/r4-zustandsmodelle-pruefen.mjs",
+        "v5/werkzeuge/r4-replay-nachweis.mjs",
+        ".github/workflows/v5-r4.yml",
+        "v5/architektur/adr/ADR-002-DETERMINISTISCHER-CORE.md"
       ]
     },
     {
       "id": "R5",
       "name": "Persistenz Journal Schema-Evolution",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R4"
       ],

@@ -1,9 +1,9 @@
 {
   "name": "adventure-land-aio-v5",
-  "version": "5.0.0-r3.0",
+  "version": "5.0.0-r4.0",
   "private": true,
   "type": "module",
-  "description": "Adventure Land AiO Bot V5 – R3 no-write Architekturgrundlage und Guards.",
+  "description": "Adventure Land AiO Bot V5 – R4 deterministischer no-write Core und Guards.",
   "scripts": {
     "bereinigen": "node werkzeuge/r3-bereinigen.mjs",
     "bauen": "npm run bereinigen && tsc -p tsconfig.json",
@@ -15,7 +15,9 @@
     "testen": "npm run guards:test && npm run host:test && npm run grundlage:test",
     "r3:pruefen": "npm run typen:pruefen && npm run lint && npm run sichttext:pruefen && npm run testen && node werkzeuge/r3-struktur-pruefen.mjs",
     "grundlage:test": "npm run bauen && node --test grundlage/tests/*.test.mjs",
-    "sichttext:pruefen": "node werkzeuge/r3-sichttext-pruefen.mjs && node --test werkzeuge/tests/r3-sichttext.test.mjs"
+    "sichttext:pruefen": "node werkzeuge/r3-sichttext-pruefen.mjs && node --test werkzeuge/tests/r3-sichttext.test.mjs",
+    "r4:test": "npm run grundlage:test && node werkzeuge/r4-zustandsmodelle-pruefen.mjs",
+    "r4:pruefen": "npm run typen:pruefen && npm run lint && npm run r4:test && node werkzeuge/r4-struktur-pruefen.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

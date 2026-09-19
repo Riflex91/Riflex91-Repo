@@ -50,19 +50,40 @@
       "kennung": "V5-FIT-008",
       "titel": "Kritische Collections sind bounded",
       "phase": "R4",
-      "durchsetzung": "BOUNDED_COLLECTION_GUARD"
+      "durchsetzung": "BOUNDED_COLLECTION_GUARD",
+      "r4NachweisStatus": "ERFUELLT",
+      "r4Nachweise": [
+        "v5/grundlage/quelle/kern/begrenzte-warteschlange.ts",
+        "v5/werkzeuge/r3-statische-guards.mjs",
+        "v5/grundlage/tests/r4-determinismus.test.mjs"
+      ],
+      "r4NachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-FIT-009",
       "titel": "Fachkern verwendet keine direkte Systemzeit",
       "phase": "R4",
-      "durchsetzung": "UHRPORT_GUARD"
+      "durchsetzung": "UHRPORT_GUARD",
+      "r4NachweisStatus": "ERFUELLT",
+      "r4Nachweise": [
+        "v5/werkzeuge/r3-guard-regeln.mjs",
+        "v5/werkzeuge/tests/r3-guards.test.mjs",
+        "v5/grundlage/quelle/determinismus/uhr.ts"
+      ],
+      "r4NachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-FIT-010",
       "titel": "Fachkern verwendet keine unkontrollierte Zufallsquelle",
       "phase": "R4",
-      "durchsetzung": "ZUFALLSPORT_GUARD"
+      "durchsetzung": "ZUFALLSPORT_GUARD",
+      "r4NachweisStatus": "ERFUELLT",
+      "r4Nachweise": [
+        "v5/werkzeuge/r3-guard-regeln.mjs",
+        "v5/werkzeuge/tests/r3-guards.test.mjs",
+        "v5/grundlage/quelle/determinismus/zufall.ts"
+      ],
+      "r4NachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-FIT-011",
@@ -104,7 +125,13 @@
       "kennung": "V5-FIT-017",
       "titel": "Kritische Zustandsautomaten haben nur deklarierte Uebergaenge",
       "phase": "R4",
-      "durchsetzung": "ZUSTANDSMODELL_TEST"
+      "durchsetzung": "ZUSTANDSMODELL_TEST",
+      "r4NachweisStatus": "ERFUELLT",
+      "r4Nachweise": [
+        "v5/werkzeuge/r4-zustandsmodelle-pruefen.mjs",
+        "v5/grundlage/quelle/kern/geschlossener-zustandsautomat.ts"
+      ],
+      "r4NachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-FIT-018",
@@ -287,5 +314,7 @@
       "durchsetzung": "LAYERGRAPH_UND_DEPENDENCY_GUARD"
     }
   ],
-  "r2RatifiziertAm": "2026-09-19"
+  "r2RatifiziertAm": "2026-09-19",
+  "r4Status": "ABGESCHLOSSEN",
+  "r4AbgeschlossenAm": "2026-09-20"
 }

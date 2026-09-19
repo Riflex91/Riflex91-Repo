@@ -361,15 +361,23 @@
       "invarianten": [
         "V5-INV-008"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/kern/geschlossener-zustandsautomat.ts",
+        "v5/zustaende/zustandsautomaten.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/r4-zustandsmodelle-pruefen.mjs",
+        "v5/grundlage/tests/r4-determinismus.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r4NachweisStatus": "R4_NACHGEWIESEN",
+      "r4NachgewiesenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-010",
@@ -864,15 +872,25 @@
       "invarianten": [
         "V5-ALT-040"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/kern/begrenzte-warteschlange.ts",
+        "v5/grundlage/quelle/testlabor/replay-aufzeichnung.ts",
+        "v5/grundlage/quelle/persistenz/begrenzter-asynchroner-schreiber.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r4-determinismus.test.mjs",
+        "v5/grundlage/tests/no-write-grundlage.test.mjs",
+        "v5/werkzeuge/r3-statische-guards.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r4NachweisStatus": "R4_NACHGEWIESEN",
+      "r4NachgewiesenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-DET-001",
@@ -883,15 +901,23 @@
       "invarianten": [
         "V5-INV-007"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/determinismus/ports.ts",
+        "v5/grundlage/quelle/determinismus/uhr.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r4-determinismus.test.mjs",
+        "v5/werkzeuge/tests/r3-guards.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r4NachweisStatus": "R4_NACHGEWIESEN",
+      "r4NachgewiesenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-DET-002",
@@ -902,15 +928,23 @@
       "invarianten": [
         "V5-INV-007"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/determinismus/ports.ts",
+        "v5/grundlage/quelle/determinismus/zufall.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r4-determinismus.test.mjs",
+        "v5/werkzeuge/tests/r3-guards.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r4NachweisStatus": "R4_NACHGEWIESEN",
+      "r4NachgewiesenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-DET-003",
@@ -921,15 +955,23 @@
       "invarianten": [
         "V5-INV-007"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/determinismus/kennungen.ts",
+        "v5/grundlage/quelle/determinismus/sequenz.ts",
+        "v5/grundlage/quelle/kern/domaenen-ereignis.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r4-determinismus.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r4NachweisStatus": "R4_NACHGEWIESEN",
+      "r4NachgewiesenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-DET-004",
@@ -940,15 +982,25 @@
       "invarianten": [
         "V5-INV-007"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/testlabor/deterministischer-szenario-lauf.ts",
+        "v5/grundlage/quelle/testlabor/replay-format.ts",
+        "v5/grundlage/quelle/kern/kanonische-serialisierung.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r4-determinismus.test.mjs",
+        "v5/werkzeuge/r4-replay-nachweis.mjs",
+        ".github/workflows/v5-r4.yml"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r4NachweisStatus": "R4_NACHGEWIESEN",
+      "r4NachgewiesenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-TRANS-001",
@@ -2296,5 +2348,7 @@
   ],
   "ratifizierungsStatus": "R2_RATIFIZIERT",
   "ratifiziertAm": "2026-09-19",
-  "ratifizierungsRegel": "Die R2-Verknuepfung ist fachlich ratifiziert. vollstaendig bleibt false, solange Implementierung, Tests und Live-Nachweise fehlen."
+  "ratifizierungsRegel": "Die R2-Verknuepfung ist fachlich ratifiziert. vollstaendig bleibt false, solange Implementierung, Tests und Live-Nachweise fehlen.",
+  "r4Status": "ABGESCHLOSSEN",
+  "r4AbgeschlossenAm": "2026-09-20"
 }

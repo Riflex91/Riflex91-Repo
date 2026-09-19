@@ -304,7 +304,7 @@
       "titel": "Kritische Zustandsmaschinen sind geschlossen und exhaustiv.",
       "phase": "R4",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R4_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-018"
       ],
@@ -313,7 +313,18 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "technischerNachweis": {
+        "implementierung": [
+          "v5/grundlage/quelle/kern/geschlossener-zustandsautomat.ts",
+          "v5/zustaende/zustandsautomaten.json"
+        ],
+        "tests": [
+          "v5/werkzeuge/r4-zustandsmodelle-pruefen.mjs",
+          "v5/grundlage/tests/r4-determinismus.test.mjs"
+        ]
+      },
+      "nachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-ARCH-010",
@@ -729,7 +740,7 @@
       "titel": "Queues, Histories und Recorder sind hart begrenzt.",
       "phase": "R4",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R4_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-044"
       ],
@@ -738,14 +749,27 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "technischerNachweis": {
+        "implementierung": [
+          "v5/grundlage/quelle/kern/begrenzte-warteschlange.ts",
+          "v5/grundlage/quelle/testlabor/replay-aufzeichnung.ts",
+          "v5/grundlage/quelle/persistenz/begrenzter-asynchroner-schreiber.ts"
+        ],
+        "tests": [
+          "v5/grundlage/tests/r4-determinismus.test.mjs",
+          "v5/grundlage/tests/no-write-grundlage.test.mjs",
+          "v5/werkzeuge/r3-statische-guards.mjs"
+        ]
+      },
+      "nachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-DET-001",
       "titel": "Fachlich relevante Zeit stammt aus einem injizierbaren Uhr-Port.",
       "phase": "R4",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R4_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-045"
       ],
@@ -754,14 +778,25 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "technischerNachweis": {
+        "implementierung": [
+          "v5/grundlage/quelle/determinismus/ports.ts",
+          "v5/grundlage/quelle/determinismus/uhr.ts"
+        ],
+        "tests": [
+          "v5/grundlage/tests/r4-determinismus.test.mjs",
+          "v5/werkzeuge/tests/r3-guards.test.mjs"
+        ]
+      },
+      "nachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-DET-002",
       "titel": "Fachlich relevante Zufallsentscheidungen stammen aus einem injizierbaren Zufalls-Port.",
       "phase": "R4",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R4_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-046"
       ],
@@ -770,14 +805,25 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "technischerNachweis": {
+        "implementierung": [
+          "v5/grundlage/quelle/determinismus/ports.ts",
+          "v5/grundlage/quelle/determinismus/zufall.ts"
+        ],
+        "tests": [
+          "v5/grundlage/tests/r4-determinismus.test.mjs",
+          "v5/werkzeuge/tests/r3-guards.test.mjs"
+        ]
+      },
+      "nachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-DET-003",
       "titel": "Kennungen und Sequenzen sind replay-faehig deterministisch erzeugbar.",
       "phase": "R4",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R4_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-047"
       ],
@@ -786,14 +832,25 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "technischerNachweis": {
+        "implementierung": [
+          "v5/grundlage/quelle/determinismus/kennungen.ts",
+          "v5/grundlage/quelle/determinismus/sequenz.ts",
+          "v5/grundlage/quelle/kern/domaenen-ereignis.ts"
+        ],
+        "tests": [
+          "v5/grundlage/tests/r4-determinismus.test.mjs"
+        ]
+      },
+      "nachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-DET-004",
       "titel": "Gleiche Evidence + Clock + Seed erzeugt denselben Plan/Eventstrom.",
       "phase": "R4",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R4_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-048"
       ],
@@ -802,7 +859,20 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "technischerNachweis": {
+        "implementierung": [
+          "v5/grundlage/quelle/testlabor/deterministischer-szenario-lauf.ts",
+          "v5/grundlage/quelle/testlabor/replay-format.ts",
+          "v5/grundlage/quelle/kern/kanonische-serialisierung.ts"
+        ],
+        "tests": [
+          "v5/grundlage/tests/r4-determinismus.test.mjs",
+          "v5/werkzeuge/r4-replay-nachweis.mjs",
+          ".github/workflows/v5-r4.yml"
+        ]
+      },
+      "nachgewiesenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-TRANS-001",
@@ -1940,5 +2010,7 @@
   ],
   "ratifizierungsStatus": "R2_RATIFIZIERT",
   "ratifiziertAm": "2026-09-19",
-  "ratifizierungsRegel": "R2 ratifiziert Inhalt, Prioritaet, Phase und Safety-Bezug. Der bestehende Anforderungsstatus OFFEN bleibt bis Implementierung/Test/Live-Nachweis unveraendert und darf nicht mit R2-Ratifizierung verwechselt werden."
+  "ratifizierungsRegel": "R2 ratifiziert Inhalt, Prioritaet, Phase und Safety-Bezug. Der bestehende Anforderungsstatus OFFEN bleibt bis Implementierung/Test/Live-Nachweis unveraendert und darf nicht mit R2-Ratifizierung verwechselt werden.",
+  "r4Status": "ABGESCHLOSSEN",
+  "r4AbgeschlossenAm": "2026-09-20"
 }

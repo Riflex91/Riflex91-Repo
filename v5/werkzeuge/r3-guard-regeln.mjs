@@ -48,6 +48,16 @@ export function pruefeQuelltext(relativerPfad, quelltext) {
     fehler.push("DIREKTER_NETZWERKZUGRIFF");
   }
 
+  if (/\bDate\.now\s*\(|\bnew\s+Date\s*\(/.test(quelltext)
+      && !pfad.startsWith("grundlage/quelle/determinismus/adapter/")) {
+    fehler.push("DIREKTE_SYSTEMZEIT");
+  }
+
+  if (/\bMath\.random\s*\(/.test(quelltext)
+      && !pfad.startsWith("grundlage/quelle/determinismus/adapter/")) {
+    fehler.push("DIREKTE_UNKONTROLLIERTE_ZUFALLSQUELLE");
+  }
+
   if (/wissensbasis\/(?:datenbank|live)\//.test(quelltext)
       || /(?:from\s+|import\s*\()\s*["'][^"']*wissensbasis\//.test(quelltext)) {
     fehler.push("ROH_SNAPSHOT_ZUGRIFF");

@@ -67,13 +67,18 @@
     },
     {
       "kennung": "ZUSTANDSMASCHINEN_BEREIT",
-      "erfuellt": false,
-      "grund": "13 kritische Zustandsautomaten sind in R2 als fail-closed Modelle ratifiziert. erfuellt bleibt bis Implementierung und State-/Fault-Tests false.",
+      "erfuellt": true,
+      "grund": "R4: 13/13 kritische Zustandsautomaten sind vollstaendig erreichbar, fail-closed, ohne unbeabsichtigte Sackgassen und werden durch einen generischen geschlossenen Automatenkern sowie CI-Tests technisch erzwungen.",
       "nachweise": [
-        "v5/zustaende/zustandsautomaten.json"
+        "v5/zustaende/zustandsautomaten.json",
+        "v5/werkzeuge/r4-zustandsmodelle-pruefen.mjs",
+        "v5/grundlage/quelle/kern/geschlossener-zustandsautomat.ts",
+        "v5/grundlage/tests/r4-determinismus.test.mjs"
       ],
       "r2VertragRatifiziert": true,
-      "r2RatifiziertAm": "2026-09-19"
+      "r2RatifiziertAm": "2026-09-19",
+      "r4NachweisVorhanden": true,
+      "r4AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "FEHLERMODELL_BEREIT",
@@ -98,18 +103,24 @@
     },
     {
       "kennung": "TESTSTRATEGIE_BEREIT",
-      "erfuellt": false,
-      "grund": "R3: deterministisches bounded Replay-Grundgeruest, Negativtests, Headless-no-write-Tests und Build-Provenienz sind technisch vorhanden. erfuellt bleibt false, bis R4 Determinismus/Replay als Core vollständig implementiert und bewiesen hat.",
+      "erfuellt": true,
+      "grund": "R4: injizierbare Uhr/Zufall/IDs/Sequenzen, kanonische Serialisierung, deterministische Replay-Provenienz, immutable Events, bounded Collections und byte-identische Wiederholungsnachweise sind implementiert und CI-geprueft.",
       "nachweise": [
         "v5/fitness/fitness-regeln.json",
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
         "v5/werkzeuge/entwicklungs-wissensgate.mjs",
-        "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md"
+        "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md",
+        "v5/grundlage/tests/r4-determinismus.test.mjs",
+        "v5/werkzeuge/r4-replay-nachweis.mjs",
+        ".github/workflows/v5-r4.yml",
+        "v5/architektur/adr/ADR-002-DETERMINISTISCHER-CORE.md"
       ],
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
       "r3NachweisVorhanden": true,
-      "r3AbgeschlossenAm": "2026-09-20"
+      "r3AbgeschlossenAm": "2026-09-20",
+      "r4NachweisVorhanden": true,
+      "r4AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "SECURITY_BEREIT",
@@ -138,9 +149,7 @@
     }
   ],
   "offeneBlocker": [
-    "R4 deterministischen Core mit injizierbarer Uhr, Zufall, IDs und Sequenzen implementieren",
-    "R4 Replay aus identischer gepinnter Evidence deterministisch beweisen",
-    "R5 Persistenzports, Schema-Migrationen, Crash-/Volume-Failure und durable Journal technisch umsetzen",
+    "R5 Persistenzports, Journal, Schema-Migrationen, Crash-/Volume-Failure und durable Intent technisch umsetzen",
     "R6 WissensZugriffPort, Snapshot-Pinning und Runtime-World-Truth-Evidence technisch umsetzen",
     "R7 bis R11 Authority, Scheduler, Transaction Kernel, Recovery und Observability abschliessen",
     "Gameplay-Runtime erst nach expliziter Laufzeitfreigabe und spaeterem Roadmap-Gate beginnen",
@@ -149,5 +158,7 @@
   "r2Status": "RATIFIZIERT",
   "r2AbgeschlossenAm": "2026-09-19",
   "r3Status": "ABGESCHLOSSEN",
-  "r3AbgeschlossenAm": "2026-09-20"
+  "r3AbgeschlossenAm": "2026-09-20",
+  "r4Status": "ABGESCHLOSSEN",
+  "r4AbgeschlossenAm": "2026-09-20"
 }
