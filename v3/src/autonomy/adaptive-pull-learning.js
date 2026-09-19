@@ -48,6 +48,7 @@ class AdaptivePullLearner {
       probeCooldownMs: Math.max(60000, Math.min(24 * 60 * 60 * 1000, finite(options.probeCooldownMs, 10 * 60 * 1000)))
     };
     this.state = new Map();
+    this.seenEncounterIds = [];
     this.loaded = false;
     this.lastRecommendation = null;
     this.stats = {
@@ -55,6 +56,8 @@ class AdaptivePullLearner {
       recordSkips: 0,
       encounterRecords: 0,
       encounterRecordSkips: 0,
+      encounterDuplicates: 0,
+      encounterDedupePersistenceBlocks: 0,
       recommendations: 0,
       learnedSelections: 0,
       riskReductions: 0,
@@ -108,10 +111,14 @@ class AdaptivePullLearner {
           updatedAt: Math.max(0, finite(row.updatedAt, 0))
         });
       }
+      this.seenEncounterIds = Array.isArray(data.seenEncounterIds)
+        ? [...new Set(data.seenEncounterIds.map(String).filter(Boolean))].slice(-256)
+        : [];
       this.stats.persistenceLoads += 1;
       return true;
     } catch (error) {
       this.state.clear();
+      this.seenEncounterIds = [];
       this.stats.persistenceFailures += 1;
       this._event('ADAPTIVE_PULL_STATE_RESTORE_FAILED', 'warn', 'CORRUPT_OR_UNSUPPORTED_DATA', { message: String(error && error.message || error) });
       return false;
@@ -125,7 +132,8 @@ class AdaptivePullLearner {
       backend.set(this.storageKey, JSON.stringify({
         schemaVersion: ADAPTIVE_PULL_STATE_SCHEMA_VERSION,
         savedAt: this.now(),
-        contexts: [...this.state.values()]
+        contexts: [...this.state.values()],
+        seenEncounterIds: this.seenEncounterIds.slice(-256)
       }));
       this.stats.persistenceSaves += 1;
       return true;
@@ -466,16 +474,33 @@ class AdaptivePullLearner {
       this.stats.encounterRecordSkips += 1;
       return null;
     }
+    const encounterId = String(outcome.encounterId);
+    if (this.seenEncounterIds.includes(encounterId)) {
+      this.stats.encounterRecordSkips += 1;
+      this.stats.encounterDuplicates += 1;
+      return null;
+    }
+    this.seenEncounterIds.push(encounterId);
+    if (this.seenEncounterIds.length > 256) this.seenEncounterIds.splice(0, this.seenEncounterIds.length - 256);
+    const backend = this._backend();
+    if (backend && !this.save()) {
+      this.seenEncounterIds = this.seenEncounterIds.filter((id) => id !== encounterId);
+      this.stats.encounterRecordSkips += 1;
+      this.stats.encounterDedupePersistenceBlocks += 1;
+      this._event('ADAPTIVE_PULL_ENCOUNTER_BLOCKED', 'warn', 'EXACTLY_ONCE_DEDUPE_PERSISTENCE_FAILED', { encounterId });
+      return null;
+    }
+
     const pullSize = Math.max(1, Math.min(12, Math.floor(finite(outcome.maxEngaged, outcome.desiredPullSize || 1))));
     const seconds = Math.max(0.001, finite(outcome.durationSeconds, finite(outcome.durationMs, 0) / 1000));
     const sample = {
       seconds,
-      xp: Math.max(0, finite(outcome.xp, 0)),
-      gold: finite(outcome.gold, 0),
-      kills: Math.max(0, finite(outcome.kills, 0)),
+      xp: Math.max(0, finite(outcome.learningMetrics && outcome.learningMetrics.xp, finite(outcome.xp, 0))),
+      gold: finite(outcome.learningMetrics && outcome.learningMetrics.gold, finite(outcome.gold, 0)),
+      kills: Math.max(0, finite(outcome.learningMetrics && outcome.learningMetrics.kills, finite(outcome.kills, 0))),
       deaths: Math.max(0, finite(outcome.deaths, 0)),
-      hpPotions: Math.max(0, finite(outcome.hpPotions, finite(outcome.potions, 0))),
-      mpPotions: Math.max(0, finite(outcome.mpPotions, 0)),
+      hpPotions: Math.max(0, finite(outcome.learningMetrics && outcome.learningMetrics.hpPotions, finite(outcome.hpPotions, finite(outcome.potions, 0)))),
+      mpPotions: Math.max(0, finite(outcome.learningMetrics && outcome.learningMetrics.mpPotions, finite(outcome.mpPotions, 0))),
       retreats: Math.max(0, finite(outcome.retreats, 0)),
       nearDeaths: Math.max(0, finite(outcome.nearDeaths, 0)),
       movementFailures: Math.max(0, finite(outcome.movementFailures, 0)),
@@ -487,7 +512,7 @@ class AdaptivePullLearner {
     this.stats.records += 1;
     this.stats.encounterRecords += 1;
     this._event('ADAPTIVE_PULL_ENCOUNTER_RECORDED', 'info', outcome.outcome || null, {
-      encounterId: String(outcome.encounterId),
+      encounterId,
       context: baseKey,
       party: partyKey,
       pullSize,
@@ -496,7 +521,7 @@ class AdaptivePullLearner {
       seconds,
       profile: profile ? { samples: profile.samples, confidence: profile.confidence, xpPerHour: profile.xpPerHour } : null
     });
-    return { base: { key: baseKey }, partyKey, pullSize, sample, profile, encounterId: String(outcome.encounterId) };
+    return { base: { key: baseKey }, partyKey, pullSize, sample, profile, encounterId };
   }
 
   status() {
@@ -512,6 +537,7 @@ class AdaptivePullLearner {
       config: { ...this.config },
       lastRecommendation: clone(this.lastRecommendation, null),
       contexts: this.state.size,
+      seenEncounterIds: this.seenEncounterIds.length,
       stats: { ...this.stats }
     };
   }
