@@ -6,7 +6,8 @@ const assert = require('node:assert/strict');
 const {
   COVERAGE_STATUS,
   ProductionAcquisitionCoverageAudit,
-  ProductionGraphSoakAuditor
+  ProductionGraphSoakAuditor,
+  productionGraphCertificationGate
 } = require('../src/merchant/production-graph-certification');
 const { PersistentProductionIntent } = require('../src/merchant/persistent-production-intent');
 const { installMerchantProduction } = require('../src/merchant/merchant-production-controller');
@@ -215,6 +216,33 @@ test('5000-sample end-to-end production soak stays invariant-clean and bounded a
   assert.ok(status.committedKeysTracked <= 300);
 });
 
+test('certification gate requires structural coverage, a clean soak and the minimum sample count', () => {
+  const notEnough = productionGraphCertificationGate({
+    coverage: { ready: true },
+    soak: { passed: true, samples: 4999 },
+    minSoakSamples: 5000
+  });
+  assert.equal(notEnough.ready, false);
+  assert.deepEqual(notEnough.reasons, ['PRODUCTION_SOAK_SAMPLE_GATE_NOT_MET']);
+
+  const structuralGap = productionGraphCertificationGate({
+    coverage: { ready: false },
+    soak: { passed: true, samples: 5000 },
+    minSoakSamples: 5000
+  });
+  assert.equal(structuralGap.ready, false);
+  assert.equal(structuralGap.reasons.includes('ACQUISITION_COVERAGE_NOT_READY'), true);
+
+  const ready = productionGraphCertificationGate({
+    coverage: { ready: true },
+    soak: { passed: true, samples: 5000 },
+    minSoakSamples: 5000
+  });
+  assert.equal(ready.ready, true);
+  assert.deepEqual(ready.reasons, []);
+  assert.equal(ready.actionAuthority, false);
+});
+
 test('soak auditor detects restart replay, split Farmers, handoff combat, inactive events and orphan cleanup', () => {
   const audit = new ProductionGraphSoakAuditor({ capacity: 32 });
 
@@ -407,4 +435,7 @@ test('controller exposes on-demand coverage audit and actionless soak observatio
   assert.equal(soak.actionAuthority, false);
   assert.equal(harness.runtime.auditProductionCoverage instanceof Function, true);
   assert.equal(harness.runtime.observeProductionSoakSample instanceof Function, true);
+  assert.equal(harness.runtime.productionCertificationGate instanceof Function, true);
+  assert.equal(harness.controller.productionCertificationGate().ready, false);
+  assert.equal(harness.controller.productionCertificationGate().reasons.includes('PRODUCTION_SOAK_SAMPLE_GATE_NOT_MET'), true);
 });
