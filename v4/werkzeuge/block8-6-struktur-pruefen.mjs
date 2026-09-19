@@ -44,6 +44,10 @@ const dateien = [
   'werkzeuge/block8-6-freigabestufen-live-test.js',
   'werkzeuge/block8-6-candidate-bauen.mjs',
   'werkzeuge/block8-6-release-bindung-pruefen.mjs',
+  'werkzeuge/block8-6-schatten-paket-bauen.mjs',
+  'werkzeuge/block8-6-schatten-paket.js',
+  'laufzeit/tests/block8-6-schatten-paket.test.mjs',
+  'dokumentation/BLOCK-8-6-9-SCHATTEN-PAKET.md',
   'dokumentation/BLOCK-8-6-9-RELEASE-CANDIDATE.json',
   'dokumentation/BLOCK-8-6-9-RELEASE-CANDIDATE.md',
   'dokumentation/BLOCK-8-6-9-CANDIDATE-DEPLOYMENT-NACHWEIS.md',
@@ -1097,12 +1101,34 @@ for (const pflicht of [
 }
 
 const packageJson = JSON.parse(await readFile(path.join(wurzel, 'package.json'), 'utf8'));
-if (packageJson.scripts?.['block8-6-struktur:pruefen'] !== 'node werkzeuge/block8-6-struktur-pruefen.mjs && npm run block8-6-candidate:pruefen && npm run block8-6-release-bindung:pruefen') {
-  throw new Error('package.json muss den Block-8.6-Strukturguard inklusive Candidate- und Release-Bindungspruefung anbieten.');
+if (packageJson.scripts?.['block8-6-struktur:pruefen'] !== 'node werkzeuge/block8-6-struktur-pruefen.mjs && npm run block8-6-candidate:pruefen && npm run block8-6-release-bindung:pruefen && npm run block8-6-schatten-paket:pruefen') {
+  throw new Error('package.json muss den Block-8.6-Strukturguard inklusive Candidate-, Release-Bindungs- und Schattenpaketpruefung anbieten.');
 }
 if (packageJson.scripts?.['block8-6-release-bindung:pruefen'] !== 'node werkzeuge/block8-6-release-bindung-pruefen.mjs') {
   throw new Error('package.json muss die Block-8.6-Release-Bindungspruefung anbieten.');
 }
+if (packageJson.scripts?.['block8-6-schatten-paket:bauen'] !== 'node werkzeuge/block8-6-schatten-paket-bauen.mjs') {
+  throw new Error('package.json muss den Block-8.6-Schattenpaket-Build anbieten.');
+}
+if (packageJson.scripts?.['block8-6-schatten-paket:pruefen'] !== 'node werkzeuge/block8-6-schatten-paket-bauen.mjs --pruefen && node --check werkzeuge/block8-6-schatten-paket.js') {
+  throw new Error('package.json muss die source-locked Block-8.6-Schattenpaket-Pruefung anbieten.');
+}
+
+const schattenPaket = await readFile(path.join(wurzel, 'werkzeuge/block8-6-schatten-paket.js'), 'utf8');
+for (const pflicht of [
+  'ca0dfee7685563c8b6003469300c8fd08777b053',
+  'b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5',
+  'https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.js',
+  'CANDIDATE_BYTES = 396471',
+  "modus: 'schatten'",
+  'V4Block86SchattenLauncher',
+  'Strikter Block-8.6-Schatten-Preflight bestanden',
+  "titel: '1 · Schattennachweis'",
+  'runnerBericht: bericht'
+]) {
+  if (!schattenPaket.includes(pflicht)) throw new Error('Block-8.6-Schattenpaket fehlt: ' + pflicht);
+}
+
 if (packageJson.scripts?.['block8-6-candidate:pruefen'] !== 'node werkzeuge/block8-6-candidate-bauen.mjs --pruefen && node --check werkzeuge/block8-6-freigabestufen-live-test.js') {
   throw new Error('package.json muss die reproduzierbare Block-8.6-Candidate-Pruefung anbieten.');
 }
@@ -1110,4 +1136,4 @@ if (!String(packageJson.scripts?.pruefen ?? '').includes('npm run block8-6-struk
   throw new Error('npm run pruefen muss den Block-8.6-Strukturguard ausfuehren.');
 }
 
-console.log('Block 8.6.1 bis 8.6.9 geprueft: Capability Truth bis Replay sowie exakt gebundener und deployed/HTTPS-verifizierter Release-Candidate; operative Schatten-/Live-/Soak-Nachweise bleiben offen.');
+console.log('Block 8.6.1 bis 8.6.9 geprueft: Capability Truth bis Replay, exakt gebundener/deployed Candidate und source-locked Schattenpaket; reale Schatten-/Live-/Soak-Nachweise bleiben offen.');

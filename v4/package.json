@@ -41,10 +41,12 @@
     "block8-5-live-paket:pruefen": "node werkzeuge/block8-5-live-paket-bauen.mjs --pruefen && node --check werkzeuge/block8-5-live-paket.js",
     "block8-5-soak-paket:bauen": "node werkzeuge/block8-5-soak-paket-bauen.mjs",
     "block8-5-soak-paket:pruefen": "node werkzeuge/block8-5-soak-paket-bauen.mjs --pruefen && node --check werkzeuge/block8-5-soak-paket.js",
-    "block8-6-struktur:pruefen": "node werkzeuge/block8-6-struktur-pruefen.mjs && npm run block8-6-candidate:pruefen && npm run block8-6-release-bindung:pruefen",
+    "block8-6-struktur:pruefen": "node werkzeuge/block8-6-struktur-pruefen.mjs && npm run block8-6-candidate:pruefen && npm run block8-6-release-bindung:pruefen && npm run block8-6-schatten-paket:pruefen",
     "block8-6-candidate:bauen": "node werkzeuge/block8-6-candidate-bauen.mjs",
     "block8-6-candidate:pruefen": "node werkzeuge/block8-6-candidate-bauen.mjs --pruefen && node --check werkzeuge/block8-6-freigabestufen-live-test.js",
-    "block8-6-release-bindung:pruefen": "node werkzeuge/block8-6-release-bindung-pruefen.mjs"
+    "block8-6-release-bindung:pruefen": "node werkzeuge/block8-6-release-bindung-pruefen.mjs",
+    "block8-6-schatten-paket:bauen": "node werkzeuge/block8-6-schatten-paket-bauen.mjs",
+    "block8-6-schatten-paket:pruefen": "node werkzeuge/block8-6-schatten-paket-bauen.mjs --pruefen && node --check werkzeuge/block8-6-schatten-paket.js"
   },
   "devDependencies": {
     "@types/node": "22.20.2",
