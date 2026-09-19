@@ -49,14 +49,12 @@ Assert(CdpWebDashboardConfigurator.ControlStorageKey == "aio-v3:control-plane-co
 Assert(GitArbeitskopie.WissensbasisPfad == "v5/wissensbasis", "WISSENSWAECHTER_SCOPE_PATH");
 Assert(GitArbeitskopie.DatenbankPfad == "v5/wissensbasis/datenbank", "WISSENSWAECHTER_DATABASE_PATH");
 Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/quellen/quellen.json"), "KNOWLEDGE_READ_ALLOWED");
+Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/fakten/adventure-land-kern.json"), "KNOWLEDGE_WRITE_ALLOWED");
 Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/datenbank/quellenstatus.json"), "DATABASE_WITHIN_SCOPE_ALLOWED");
+Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5\\wissensbasis\\fragen\\offene-fragen.json"), "WINDOWS_SCOPE_PATH_ALLOWED");
 Assert(!GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/dokumentation/V5-MASTER-ROADMAP.md"), "ROADMAP_OUTSIDE_SCOPE_BLOCKED");
 Assert(!GitArbeitskopie.IstErlaubterWissensbasisPfad("ops/windows-bridge/MainWindow.xaml"), "OPS_OUTSIDE_SCOPE_BLOCKED");
-Assert(GitArbeitskopie.IstErlaubterDatenbankPfad("v5/wissensbasis/datenbank/quellenstatus.json"), "DATABASE_CHILD_ALLOWED");
-Assert(GitArbeitskopie.IstErlaubterDatenbankPfad("v5\\wissensbasis\\datenbank\\aktuell\\quelle.txt"), "DATABASE_WINDOWS_PATH_ALLOWED");
-Assert(!GitArbeitskopie.IstErlaubterDatenbankPfad("v5/wissensbasis/fakten/adventure-land-kern.json"), "FACTS_OUTSIDE_DATABASE_BLOCKED");
-Assert(!GitArbeitskopie.IstErlaubterDatenbankPfad("v5/wissensbasis/datenbank/../../dokumentation/test.md"), "DATABASE_TRAVERSAL_BLOCKED");
-Assert(!GitArbeitskopie.IstErlaubterDatenbankPfad("ops/windows-bridge/MainWindow.xaml"), "CODE_WRITE_BLOCKED");
+Assert(!GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/../dokumentation/test.md"), "SCOPE_TRAVERSAL_BLOCKED");
 Assert(WebQuellenEntdecker.BestimmeVertrauensklasse("https://adventure.land/allnotes") == "OFFIZIELL", "OFFICIAL_SITE_CLASSIFIED");
 Assert(WebQuellenEntdecker.BestimmeVertrauensklasse("https://github.com/kaansoral/adventureland_mongodb") == "OFFIZIELL", "OFFICIAL_REPO_CLASSIFIED");
 Assert(WebQuellenEntdecker.BestimmeVertrauensklasse("https://github.com/example/adventure-land-bot") == "COMMUNITY", "COMMUNITY_REPO_CLASSIFIED");
