@@ -668,6 +668,13 @@ class StrategicBrainV2 {
     this.seenEncounterOutcomes.push(encounterId);
     if (this.seenEncounterOutcomes.length > 128) this.seenEncounterOutcomes.splice(0, this.seenEncounterOutcomes.length - 128);
     this.lastEncounterOutcome = safeClone(outcome);
+    const durableStorage = storageOf(this.root);
+    if (!durableStorage || !this._save(true)) {
+      this.seenEncounterOutcomes = this.seenEncounterOutcomes.filter((id) => id !== encounterId);
+      if (this.lastEncounterOutcome && String(this.lastEncounterOutcome.encounterId || '') === encounterId) this.lastEncounterOutcome = null;
+      this.stats.encounterOutcomeSkips += 1;
+      return { accepted: false, reason: durableStorage ? 'ENCOUNTER_OUTCOME_DEDUPE_PERSIST_FAILED' : 'ENCOUNTER_OUTCOME_DEDUPE_STORAGE_UNAVAILABLE', encounterId };
+    }
     const eligible = outcome.learningEligible === true
       && !['CONTENT_DRIFT', 'INTERRUPTED'].includes(String(outcome.outcome || ''));
     if (!eligible) {
