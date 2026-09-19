@@ -262,8 +262,11 @@ class Alpha25ControlCenterBrain {
     this._syncLateProgressionPolicy();
     let encounterOutcome = null;
     const character = this.runtime && this.runtime.lastSnapshot && this.runtime.lastSnapshot.character;
+    const encounterTelemetry = this.runtime && this.runtime.partyTelemetry;
+    const hasEncounterTelemetry = !!(encounterTelemetry
+      && (typeof encounterTelemetry.encounterOutcomeList === 'function' || typeof encounterTelemetry.encounterOutcomes === 'function'));
     if (character && String(character.ctype || '').toLowerCase() === 'merchant'
-      && this.runtime.partyTelemetry && typeof this.runtime.partyTelemetry.encounterOutcomes === 'function'
+      && hasEncounterTelemetry
       && this.brain && typeof this.brain.ingestEncounterOutcome === 'function') {
       try {
         const sourceRows = typeof this.runtime.partyTelemetry.encounterOutcomeList === 'function'
