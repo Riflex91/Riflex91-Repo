@@ -142,6 +142,8 @@ test('merchant service planner rejects motion-stale kiting reports before planni
   assert.equal(planner.status().stats.motionStaleReports, 1);
 
   const freshKiter = report(now - 700, {
+    x: 300,
+    y: 100,
     motion: { mode: 'KITE', moving: true, kiteActive: true, declaredSpeed: 55, speedEstimate: 55 }
   });
   const allowed = planner.plan({ merchant: merchant(), reports: [freshKiter], standOpen: false, deliveryDistance: 10 });
