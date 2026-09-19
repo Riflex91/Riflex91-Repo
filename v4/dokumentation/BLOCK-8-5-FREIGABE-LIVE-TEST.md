@@ -276,8 +276,8 @@ prueft unter anderem:
 
 Der Runner ist vorbereitet und offline abgesichert.
 
-Der reale Schattenlauf und der kontrollierte Live-Lauf sind **bestanden**. Das Candidate-Manifest setzt deshalb `adventureLandShadowVerified: true` und `adventureLandControlledLiveVerified: true`; Soak bleibt `false`.
+Der reale Schattenlauf, der kontrollierte Live-Lauf und der 10-Minuten-Soak sind **bestanden**. Das Candidate-Manifest setzt deshalb `adventureLandShadowVerified: true`, `adventureLandControlledLiveVerified: true` und `adventureLandSoakVerified: true`.
 
-Der historische Runner 1.1.0 bleibt unveraendert als reproduzierbare Basis des bestandenen Live-Berichts. Fuer die letzte Stufe steht deshalb ein separates source-locked `block8-5-soak-paket.js` bereit, das den kanonischen Schatten- und Live-Nachweis importiert.
+Der historische Runner 1.1.0 bleibt unveraendert als reproduzierbare Basis des bestandenen Live-Berichts. Der finale Soak wurde mit dem separaten source-locked `block8-5-soak-paket.js` ausgefuehrt und in `BLOCK-8-5-SOAK-FREIGABE-NACHWEIS.json` kanonisch dokumentiert.
 
-Block 9 bleibt bis zum realen Soak-Nachweis gesperrt.
+Das historische 8.5-Gate ist damit vollstaendig bestanden. Laut aktualisiertem Fahrplan folgt jetzt Block 8.6; Block 9 beginnt erst nach dessen eigener Freigabe.
