@@ -31,6 +31,8 @@ for (const pfad of [
   "grundlage/quelle/wissen/beobachtungs-evidence.ts",
   "architektur/adr/ADR-004-R6-WISSEN-WELTWAHRHEIT.md",
   "anzeigetexte/katalog.schema.json",
+  "werkzeuge/r6-anzeigekatalog-abdeckung.mjs",
+  "anzeigetexte/katalog.json",
   "grundlage/tests/r6-anzeigekatalog.test.mjs",
   "grundlage/quelle/anzeige/anzeigekatalog.ts",
 ]) {
@@ -43,6 +45,37 @@ if (anforderungen.length !== 13) fehler("R6 muss exakt 13 ratifizierte MUSS-Anfo
 
 const fitness = lies("fitness/fitness-regeln.json").regeln.filter(x => x.phase === "R6");
 if (fitness.length !== 7) fehler("R6 muss exakt 7 ratifizierte Fitnessregeln besitzen.");
+
+const uiKennungen = new Set(["V5-ANF-UI-002","V5-ANF-UI-003","V5-ANF-UI-005","V5-ANF-UI-009"]);
+const nichtUi = anforderungen.filter(x => !uiKennungen.has(x.kennung));
+const ui = anforderungen.filter(x => uiKennungen.has(x.kennung));
+if (nichtUi.length !== 9 || nichtUi.some(x => x.status !== "R6_NACHGEWIESEN")) {
+  fehler("R6 Zwischenstand 9/13: alle neun Nicht-UI-MUSS-Anforderungen muessen nachgewiesen sein.");
+}
+if (ui.length !== 4
+    || ui.some(x => !["OFFEN","R6_NACHGEWIESEN"].includes(x.status))
+    || ui.some(x => x.status === "OFFEN"
+      && x.r6TeilnachweisStatus !== "MECHANISMUS_BEREIT_INHALTSABDECKUNG_OFFEN")) {
+  fehler("R6 UI-Anforderungen muessen nachgewiesen oder mit explizitem Abdeckungsblocker offen sein.");
+}
+const fitnessOhneMonster = fitness.filter(x => x.kennung !== "V5-FIT-015");
+if (fitnessOhneMonster.length !== 6
+    || fitnessOhneMonster.some(x => x.r6NachweisStatus !== "ERFUELLT")) {
+  fehler("R6: sechs Nicht-Monster-Fitnessregeln muessen erfuellt sein.");
+}
+const monsterFitness = fitness.find(x => x.kennung === "V5-FIT-015");
+if (!monsterFitness || !["TEILWEISE","ERFUELLT"].includes(monsterFitness.r6NachweisStatus)) {
+  fehler("R6 Monster-Anzeigekatalog-Fitnessstatus fehlt.");
+}
+
+const abdeckung = lies("r6-anzeigekatalog-abdeckung.json");
+if (abdeckung.phase !== "R6" || !["OFFEN","BEREIT"].includes(abdeckung.status)) {
+  fehler("R6 Anzeigekatalog-Abdeckungsbericht fehlt oder ist ungueltig.");
+}
+if (abdeckung.kategorien?.KLASSE?.erwartet !== 7
+    || abdeckung.kategorien?.KLASSE?.abgedeckt !== 7) {
+  fehler("Aktuelle sieben Klassen muessen 7/7 im produktiven Anzeigekatalog abgedeckt sein.");
+}
 
 const typen = fs.readFileSync("grundlage/quelle/wissen/typen.ts", "utf8");
 for (const name of ["DefinitionsWissen","SpielBeobachtung","LiveVerifizierterFakt","AbgeglicheneWeltWahrheit"]) {

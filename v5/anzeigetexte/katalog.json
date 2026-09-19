@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "katalogVersion": 1,
+  "eintraege": [
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 1,
+      "externeKennung": "warrior",
+      "kategorie": "KLASSE",
+      "deutscherAnzeigename": "Krieger",
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 1,
+      "externeKennung": "paladin",
+      "kategorie": "KLASSE",
+      "deutscherAnzeigename": "Paladin",
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 1,
+      "externeKennung": "rogue",
+      "kategorie": "KLASSE",
+      "deutscherAnzeigename": "Schurke",
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 1,
+      "externeKennung": "ranger",
+      "kategorie": "KLASSE",
+      "deutscherAnzeigename": "Waldläufer",
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 1,
+      "externeKennung": "mage",
+      "kategorie": "KLASSE",
+      "deutscherAnzeigename": "Magier",
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 1,
+      "externeKennung": "priest",
+      "kategorie": "KLASSE",
+      "deutscherAnzeigename": "Priester",
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 1,
+      "externeKennung": "merchant",
+      "kategorie": "KLASSE",
+      "deutscherAnzeigename": "Händler",
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-20",
+      "quellenNachweis": "v5/wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt@9b3b95ff364d7f9c49b41125a652e5798418d063"
+    }
+  ]
+}

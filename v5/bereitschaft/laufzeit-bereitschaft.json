@@ -7,7 +7,7 @@
     {
       "kennung": "WISSEN_BEREIT",
       "erfuellt": false,
-      "grund": "R5: lokale Live-Wissenspersistenz und SCHREIBT/BEREIT-Protokoll sind technisch nachgewiesen. R6 muss weiterhin WissensZugriffPort, Snapshot-Pinning, Verifier/World-Truth und Authority-Trennung implementieren. Zusaetzlich wurde am 2026-09-20 ein direkter main-Wissenscommit von einer offenbar noch laufenden alten Windows-Bridge-Binary beobachtet; die lokale Installation muss auf den R3+-Build aktualisiert werden.",
+      "grund": "R6 Zwischenstand: 9/13 MUSS-Anforderungen und 6/7 Fitnessregeln sind technisch nachgewiesen. Offen bleiben die vier UI-/Anzeigekatalog-Anforderungen und V5-FIT-015 bis zur produktiven 100-Prozent-Abdeckung. Aktuelle offizielle Snapshots enthalten 129 Skills, 7 Klassen, 628 Items, 129 Monster und 11 Events; der produktive Katalog startet mit 7/7 Klassen. NPC-/Quest-/Aktions-/Status-Quellenmengen muessen noch vollstaendig definiert und katalogisiert werden. Der lokale Windows-Bridge-Deploymentstand bleibt separat zu verifizieren.",
       "nachweise": [
         "v5/wissensbasis/README.md",
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
@@ -16,12 +16,28 @@
         "v5/entwicklungsregeln/quellenfreigaben.json",
         "v5/werkzeuge/entwicklungs-wissensgate.mjs",
         "v5/dokumentation/LIVE-WISSEN-SSD-VERTRAG.md",
-        "v5/wissensbasis/live/README.md"
+        "v5/wissensbasis/live/README.md",
+        "v5/grundlage/quelle/wissen/wissens-zugriff-port.ts",
+        "v5/grundlage/quelle/wissen/verifier.ts",
+        "v5/grundlage/quelle/wissen/live-wissens-publizierer.ts",
+        "v5/grundlage/quelle/wissen/abgleich.ts",
+        "v5/grundlage/quelle/wissen/drift-quarantaene.ts",
+        "v5/grundlage/quelle/wissen/beobachtungs-evidence.ts",
+        "v5/grundlage/quelle/wissen/ram-arbeitsmenge.ts",
+        "v5/grundlage/quelle/wissen/learning-evidence.ts",
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+        "v5/anzeigetexte/katalog.json",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
       ],
       "r2VertragRatifiziert": true,
       "r3NachweisVorhanden": true,
       "r3AbgeschlossenAm": "2026-09-20",
-      "r5PersistenzNachweisVorhanden": true
+      "r5PersistenzNachweisVorhanden": true,
+      "r6TeilnachweisVorhanden": true,
+      "r6AnforderungenNachgewiesen": 9,
+      "r6AnforderungenGesamt": 13,
+      "r6FitnessErfuellt": 6,
+      "r6FitnessGesamt": 7
     },
     {
       "kennung": "P0_RESEARCH_BEREIT",

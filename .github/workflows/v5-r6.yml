@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'v5/grundlage/**'
+      - 'v5/anzeigetexte/**'
+      - 'v5/wissensbasis/datenbank/aktuell/AL-DATA-*.txt'
       - 'v5/package.json'
       - 'v5/package-lock.json'
       - 'v5/werkzeuge/r3-*.mjs'
@@ -21,6 +23,8 @@ on:
       - main
     paths:
       - 'v5/grundlage/**'
+      - 'v5/anzeigetexte/**'
+      - 'v5/wissensbasis/datenbank/aktuell/AL-DATA-*.txt'
       - 'v5/package.json'
       - 'v5/package-lock.json'
       - 'v5/werkzeuge/r3-*.mjs'
@@ -72,9 +76,11 @@ jobs:
         working-directory: v5
         run: node werkzeuge/r6-wissens-nachweis.mjs
 
-      - name: R6 Wissensnachweis hochladen
+      - name: R6 Nachweise hochladen
         uses: actions/upload-artifact@v4
         with:
-          name: v5-r6-wissensnachweis-${{ github.sha }}
-          path: v5/r6-wissensnachweis.json
+          name: v5-r6-nachweis-${{ github.sha }}
+          path: |
+            v5/r6-wissensnachweis.json
+            v5/r6-anzeigekatalog-abdeckung.json
           if-no-files-found: error

@@ -21,7 +21,8 @@
     "r5:test": "npm run grundlage:test",
     "r5:pruefen": "npm run typen:pruefen && npm run lint && npm run r5:test && node werkzeuge/r5-struktur-pruefen.mjs",
     "r6:test": "npm run grundlage:test",
-    "r6:pruefen": "npm run typen:pruefen && npm run lint && npm run r6:test && node werkzeuge/r6-struktur-pruefen.mjs"
+    "r6:pruefen": "npm run typen:pruefen && npm run lint && npm run r6:test && npm run r6:abdeckung && node werkzeuge/r6-struktur-pruefen.mjs",
+    "r6:abdeckung": "node werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
