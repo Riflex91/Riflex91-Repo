@@ -84,6 +84,8 @@ Zugangsdaten:
 
 Automatische Knowledge-Aenderungen duerfen nur in explizit erlaubte Wissenspfade schreiben. Die engste aktuelle V5-Struktur gewinnt.
 
+Diese Git-Grenze ist von der lokalen Live-Wissensquelle zu unterscheiden: ausserhalb des Git-Arbeitsbaums darf die Bridge genau einen konfigurierten Unterpfad auf Laufwerk `D:\` read-only als Bot-Live-Wissensquelle lesen. Kein anderer lokaler Dateisystembereich ist dadurch freigegeben.
+
 Ziel-Allowlist:
 
 ```text
@@ -231,3 +233,33 @@ Verbindliche Regeln:
 - laufende irreversible Workflows pinnen ihren WissensSnapshot und werden durch neue GitHub-Daten nicht still umgedeutet.
 
 Die vollstaendige Regel ist in `ENTWICKLUNGS-WISSENSGATE.md` und `entwicklungsregeln/wissensnutzung.json` festgelegt.
+
+
+## Lokale Live-Wissensquelle auf D:
+
+Verbindlicher Zielvertrag: `LIVE-WISSEN-SSD-VERTRAG.md`.
+
+Standard:
+
+```text
+D:\AdventureLand-V5\wissensdatenbank
+```
+
+Rollen:
+- V5-Bot = alleiniger fachlicher Writer;
+- Windows Bridge = read-only Validator und GitHub-Spiegel;
+- GitHub = versionierte Evidence;
+- Runtime Admission = einzige Ebene, die zusammen mit frischer Live Truth Gameplay-Autoritaet erzeugen darf.
+
+Die Bridge darf lokal nur `manifest.json`, `status.json` und `aktuell/**/*.json` importieren. Reparse Points, Traversal, falsches Spiel, nicht verifizierte Fakten, Geheimnisfelder, Oversize und unstabile Generationen werden fail-closed verweigert.
+
+Ziel im Repo:
+
+```text
+v5/wissensbasis/live/snapshot/**
+```
+
+Ein lokaler Importfehler darf:
+- den letzten gueltigen GitHub-Live-Snapshot nicht zerstoeren;
+- externe Quellenrecherche nicht in Gameplay-Autoritaet verwandeln;
+- laufendes Gameplay nicht stoppen oder steuern.
