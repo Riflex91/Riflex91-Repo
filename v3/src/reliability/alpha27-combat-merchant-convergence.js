@@ -29,7 +29,6 @@ function boundedOptions(options = {}) {
     maxUpgradeAttemptsPerWindow: Math.max(1, Math.min(200, Math.floor(finite(options.maxUpgradeAttemptsPerWindow, 30)))),
     maxCompoundAttemptsPerWindow: Math.max(1, Math.min(200, Math.floor(finite(options.maxCompoundAttemptsPerWindow, 20)))),
     merchantScrollBatchMax: Math.max(1, Math.min(200, Math.floor(finite(options.merchantScrollBatchMax, 80)))),
-    securePartyBaselineLevel: Math.max(0, Math.min(10, Math.floor(finite(options.securePartyBaselineLevel, 5)))),
     speculativeMinChanceNoSpare: Math.max(0, Math.min(1, finite(options.speculativeMinChanceNoSpare, 0.60))),
     speculativeMinChanceOneSpare: Math.max(0, Math.min(1, finite(options.speculativeMinChanceOneSpare, 0.35))),
     speculativeMinChanceManySpares: Math.max(0, Math.min(1, finite(options.speculativeMinChanceManySpares, 0.20))),
@@ -176,7 +175,7 @@ function initialStats() {
     scrollPurchases: 0,
     mutationChanceChecks: 0,
     mutationRiskHolds: 0,
-    secureBaselineDeliveriesPreferred: 0,
+    riskHeldPartyDeliveriesPreferred: 0,
     namedServiceTravels: 0,
     failedSafe: 0
   };
@@ -273,7 +272,6 @@ class Alpha27CombatMerchantConvergence {
           maxUpgradeAttemptsPerWindow: this.options.maxUpgradeAttemptsPerWindow,
           maxCompoundAttemptsPerWindow: this.options.maxCompoundAttemptsPerWindow,
           merchantScrollBatchMax: this.options.merchantScrollBatchMax,
-          securePartyBaselineLevel: this.options.securePartyBaselineLevel,
           speculativeMinChanceNoSpare: this.options.speculativeMinChanceNoSpare,
           speculativeMinChanceOneSpare: this.options.speculativeMinChanceOneSpare,
           speculativeMinChanceManySpares: this.options.speculativeMinChanceManySpares,
