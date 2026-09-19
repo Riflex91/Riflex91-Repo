@@ -1,6 +1,6 @@
 # Block 8.6.9 – gebundener Release-Candidate
 
-Status: **finaler Block-8.6-Candidate technisch gebunden; immutable Deployment/HTTPS, Schatten, kontrolliert live und Soak sind noch offen. Block 9 bleibt gesperrt.**
+Status: **finaler Block-8.6-Candidate technisch gebunden, immutable veröffentlicht und öffentlich per HTTPS verifiziert; Schatten, kontrolliert live und Soak sind noch offen. Block 9 bleibt gesperrt.**
 
 ## Exakter Candidate
 
@@ -52,12 +52,13 @@ Das Manifest bindet:
 - Modulzahl, Bytes und SHA-256,
 - unveränderte Runtime 1.1.5,
 - die erfolgreichen Offline-/Replay-CI-Nachweise,
-- alle noch offenen operativen Freigabestufen explizit als `false`.
+- den erfolgreichen immutable Deployment-/HTTPS-Nachweis,
+- alle noch offenen realen Adventure-Land-Freigabestufen explizit als `false`.
 
-Insbesondere bleiben:
+Aktueller Gate-Stand:
 
-- `deploymentPerformed=false`
-- `publicHttpsVerified=false`
+- `deploymentPerformed=true`
+- `publicHttpsVerified=true`
 - `adventureLandShadowVerified=false`
 - `adventureLandControlledLiveVerified=false`
 - `adventureLandSoakVerified=false`
@@ -125,12 +126,55 @@ Folge dieses fehlgeschlagenen Versuchs:
 
 Der Release-Workflow verwendet deshalb ab dem Korrekturstand die bereits real bestaetigte Wrangler-4.135.0-Syntax: Bucket-Existenzpruefung ohne `--remote`, Object-Put/Get mit `--remote`, ohne unnoetige Experimental-Flags.
 
+## Erfolgreicher immutable Release- und HTTPS-Nachweis
+
+Der erfolgreiche manuelle Workflow-Lauf ist:
+
+- Workflow: `release-v4-block8-6-candidate-immutable`
+- Run: `35441831873` / #4
+- Job: `105893861206`
+- Control-Head auf `main`: `07e2af0f721219b50586b4c5e08cece717048610`
+- exakter Candidate: `ca0dfee7685563c8b6003469300c8fd08777b053`
+- Ergebnis: **success**
+- abgeschlossen: `2026-09-19T12:05:07Z`
+
+Der Lauf hat für exakt denselben Candidate erfolgreich nachgewiesen:
+
+1. exakte Dispatch-Bindung und Bestätigung,
+2. Candidate-Manifest und exakten Candidate-Checkout,
+3. reproduzierbaren Build mit 51 Modulen / 396471 Bytes,
+4. SHA-256 `b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5`,
+5. unveränderte historische Runtime 1.1.5,
+6. immutable Veröffentlichung beider Candidate-Objekte in R2,
+7. bytegleichen R2-Rückdownload beider Objekte,
+8. öffentlichen HTTPS-Rückdownload über den bestehenden Worker,
+9. bytegleichen öffentlichen Candidate,
+10. passenden öffentlichen SHA-256,
+11. CORS `*`,
+12. `Cache-Control: no-store`,
+13. passenden JavaScript-/Text-Content-Type,
+14. `x-aio-v4-release-sha: ca0dfee7685563c8b6003469300c8fd08777b053`.
+
+Immutable R2-Ziele:
+
+- `aio-v3-logs/releases/v4/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.js`
+- `aio-v3-logs/releases/v4/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.sha256`
+
+Öffentliche immutable URLs:
+
+- `https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.js`
+- `https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.sha256`
+
+Der detaillierte kanonische Nachweis steht in:
+
+`BLOCK-8-6-9-CANDIDATE-DEPLOYMENT-NACHWEIS.md`
+
+Damit sind `deploymentPerformed=true` und `publicHttpsVerified=true` technisch belegt. Dieser Nachweis erweitert keine Spielautorität und ersetzt nicht Schatten, kontrolliert live oder Soak.
+
 ## Was dieser Schritt bewusst nicht behauptet
 
 Dieser Stand bedeutet noch nicht:
 
-- Deployment ausgeführt,
-- HTTPS verifiziert,
 - realer Schatten bestanden,
 - kontrolliert live bestanden,
 - Soak bestanden,
@@ -139,4 +183,6 @@ Dieser Stand bedeutet noch nicht:
 
 ## Nächster Schritt
 
-Nach Merge dieser Bindung darf der manuelle Workflow für exakt `ca0dfee7685563c8b6003469300c8fd08777b053` ausgeführt werden. Erst dessen erfolgreicher Run wird anschließend als Deployment-/HTTPS-Evidenz kanonisch in einem separaten Nachweisschritt gebunden.
+Deployment und öffentlicher HTTPS-Preflight sind für exakt `ca0dfee7685563c8b6003469300c8fd08777b053` bestanden. Als nächste sequenzielle reale Freigabestufe folgt der **Adventure-Land-Schattenlauf** mit exakt diesem immutable Candidate.
+
+Kontrolliert live bleibt bis zum bestandenen Schattennachweis gesperrt; der Soak bleibt bis zum bestandenen kontrollierten Live-Nachweis gesperrt.

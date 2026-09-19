@@ -8,10 +8,12 @@ const repoWurzel = path.join(wurzel, '..');
 const manifestPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-RELEASE-CANDIDATE.json');
 const workflowPfad = path.join(repoWurzel, '.github', 'workflows', 'release-v4-block8-6-candidate.yml');
 const dokumentPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-RELEASE-CANDIDATE.md');
+const deploymentDokumentPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-CANDIDATE-DEPLOYMENT-NACHWEIS.md');
 
 const manifest = JSON.parse(await readFile(manifestPfad, 'utf8'));
 const workflow = await readFile(workflowPfad, 'utf8');
 const dokument = await readFile(dokumentPfad, 'utf8');
+const deploymentDokument = await readFile(deploymentDokumentPfad, 'utf8');
 
 const erwartet = Object.freeze({
   releaseSha: 'ca0dfee7685563c8b6003469300c8fd08777b053',
@@ -45,19 +47,20 @@ if (manifest.publicArtifactAlias !== 'aio-v4-runtime.js' ||
 if (manifest.offlineReplayVerified !== true) {
   throw new Error('Block-8.6-Release-Candidate muss die bestandene Offline-/Replay-Stufe binden.');
 }
+for (const feld of ['deploymentPerformed', 'publicHttpsVerified']) {
+  if (manifest[feld] !== true) throw new Error('Bestaetigter Deployment-/HTTPS-Nachweis fehlt fuer ' + feld + '.');
+}
 for (const feld of [
-  'deploymentPerformed',
-  'publicHttpsVerified',
   'adventureLandShadowVerified',
   'adventureLandControlledLiveVerified',
   'adventureLandSoakVerified',
   'block86Completed',
   'block9Freigegeben'
 ]) {
-  if (manifest[feld] !== false) throw new Error('Vor realer Evidenz muss ' + feld + ' false bleiben.');
+  if (manifest[feld] !== false) throw new Error('Reale Adventure-Land-Freigabe muss bis zum separaten Nachweis false bleiben: ' + feld + '.');
 }
-if (manifest.nextOperationalStep !== 'immutable_deployment') {
-  throw new Error('Naechster operativer Schritt muss immutable_deployment sein.');
+if (manifest.nextOperationalStep !== 'adventure_land_shadow') {
+  throw new Error('Naechster operativer Schritt muss adventure_land_shadow sein.');
 }
 
 const alt = manifest.immutableRuntime115;
@@ -85,6 +88,24 @@ if (evidence.mainTests?.passed !== 626 || evidence.mainTests?.total !== 626 ||
   throw new Error('Offline-/Replay-Abnahme ist unvollstaendig gebunden.');
 }
 
+const deployment = manifest.deploymentEvidence;
+if (!deployment ||
+    deployment.workflow !== 'release-v4-block8-6-candidate-immutable' ||
+    deployment.runId !== 35441831873 ||
+    deployment.runNumber !== 4 ||
+    deployment.jobId !== 105893861206 ||
+    deployment.controlHeadSha !== '07e2af0f721219b50586b4c5e08cece717048610' ||
+    deployment.releaseSha !== manifest.releaseSha ||
+    deployment.sha256 !== manifest.sha256 ||
+    deployment.r2Bucket !== 'aio-v3-logs' ||
+    deployment.r2RuntimeKey !== 'releases/v4/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.js' ||
+    deployment.r2Sha256Key !== 'releases/v4/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.sha256' ||
+    deployment.publicRuntimeUrl !== 'https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.js' ||
+    deployment.publicSha256Url !== 'https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.sha256' ||
+    deployment.conclusion !== 'success' ||
+    deployment.completedAt !== '2026-09-19T12:05:07Z') {
+  throw new Error('Deployment-/HTTPS-Evidenz ist nicht exakt an den erfolgreichen Block-8.6-Run gebunden.');
+}
 
 const gebaut = await baueBlock86Candidate({ schreiben: false });
 if (gebaut.candidateVersion !== manifest.candidateVersion ||
@@ -175,12 +196,13 @@ if (remoteObjectOps.length !== 3) {
 }
 for (const pflicht of [
   'finaler Block-8.6-Candidate technisch gebunden',
+  'immutable veröffentlicht und öffentlich per HTTPS verifiziert',
   '`ca0dfee7685563c8b6003469300c8fd08777b053`',
   '51 Module',
   '396471 Bytes',
   '`b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5`',
-  'deploymentPerformed=false',
-  'publicHttpsVerified=false',
+  'deploymentPerformed=true',
+  'publicHttpsVerified=true',
   'adventureLandShadowVerified=false',
   'adventureLandControlledLiveVerified=false',
   'adventureLandSoakVerified=false',
@@ -190,11 +212,24 @@ for (const pflicht of [
 ]) {
   if (!dokument.includes(pflicht)) throw new Error('Block-8.6-Release-Dokumentation fehlt: ' + pflicht);
 }
+for (const pflicht of [
+  'Candidate-Deployment- und HTTPS-Nachweis',
+  '`35441831873`',
+  '`105893861206`',
+  '`ca0dfee7685563c8b6003469300c8fd08777b053`',
+  '`b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5`',
+  '`deploymentPerformed=true`',
+  '`publicHttpsVerified=true`',
+  '`adventureLandShadowVerified=false`',
+  'Adventure-Land-Schattenlauf'
+]) {
+  if (!deploymentDokument.includes(pflicht)) throw new Error('Block-8.6-Deployment-Nachweis fehlt: ' + pflicht);
+}
 
 console.log(
   'Block 8.6.9 Release-Bindung geprueft: exakter gruener Candidate ' +
   manifest.releaseSha +
   ', 51 Module / 396471 Bytes / SHA-256 ' +
   manifest.sha256 +
-  '; Offline/Replay gebunden, Deployment/Schatten/Live/Soak weiterhin gesperrt.'
+  '; Offline/Replay sowie Deployment/HTTPS gebunden; Schatten/Live/Soak bleiben gesperrt.'
 );
