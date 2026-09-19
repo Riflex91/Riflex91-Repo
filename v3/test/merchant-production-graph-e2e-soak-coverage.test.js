@@ -440,3 +440,59 @@ test('controller exposes on-demand coverage audit and actionless soak observatio
   assert.equal(harness.controller.productionCertificationGate().ready, false);
   assert.equal(harness.controller.productionCertificationGate().reasons.includes('PRODUCTION_SOAK_SAMPLE_GATE_NOT_MET'), true);
 });
+
+
+test('production soak audit persists bounded restart state and restores committed idempotency history', () => {
+  const storage = memoryStorage();
+  const first = new ProductionGraphSoakAuditor({
+    storage,
+    storageKey: 'production-soak-test',
+    capacity: 128,
+    committedCapacity: 128,
+    persistEvery: 1
+  });
+  first.observe({
+    phase: 'EXECUTING_CRAFT',
+    targetIdentity: 'goodbow|R1|mainhand',
+    irreversibleAction: { kind: 'CRAFT', committed: true, idempotencyKey: 'craft-op-1' }
+  });
+
+  const restored = new ProductionGraphSoakAuditor({
+    storage,
+    storageKey: 'production-soak-test',
+    capacity: 128,
+    committedCapacity: 128,
+    persistEvery: 1
+  });
+  assert.equal(restored.status().samples, 1);
+  assert.equal(restored.status().committedKeysTracked, 1);
+  assert.equal(restored.status().persistence.loads, 1);
+
+  restored.observe({
+    phase: 'EXECUTING_CRAFT',
+    targetIdentity: 'goodbow|R1|mainhand',
+    irreversibleAction: { kind: 'CRAFT', committed: true, idempotencyKey: 'craft-op-1' }
+  });
+  assert.equal(restored.status().violations.some((row) => row.code === 'DUPLICATE_IRREVERSIBLE_COMMIT'), true);
+});
+
+test('merchant production cycle automatically feeds real runtime soak without changing log behavior', () => {
+  const harness = controllerHarness();
+  const before = harness.runtime.productionRealSoakStatus();
+  assert.equal(before.mode, 'production-real-soak-runtime-observer-v1');
+  assert.equal(before.actionAuthority, false);
+  assert.equal(before.logsModified, false);
+  assert.equal(before.audit.samples, 0);
+
+  const result = harness.controller.cycle();
+  const after = harness.runtime.productionRealSoakStatus();
+
+  assert.equal(result.reason, 'PRODUCTION_OUTPUT_AWAITING_RECIPIENT_DELIVERY');
+  assert.equal(after.autoObservation, true);
+  assert.equal(after.logsModified, false);
+  assert.equal(after.audit.samples, 1);
+  assert.equal(after.lastSample.source, 'REAL_RUNTIME');
+  assert.equal(after.lastSample.targetIdentity, 'goodbow|R1|mainhand');
+  assert.equal(after.coverage.reason, undefined);
+  assert.equal(harness.runtime.productionRealSoakStatus instanceof Function, true);
+});
