@@ -1,12 +1,18 @@
 {
   "schemaVersion": 1,
-  "gestartetAm": "2026-09-19T19:09:18.9871928+00:00",
-  "beendetAm": "2026-09-19T19:09:24.7608484+00:00",
+  "gestartetAm": "2026-09-19T19:49:46.562543+00:00",
+  "beendetAm": "2026-09-19T19:49:53.444465+00:00",
   "intervallMinuten": 60,
   "gepruefteQuellen": 21,
   "geaenderteQuellen": 1,
   "neueKandidaten": 0,
   "registrierteQuellen": 21,
   "uploadStatus": "GITHUB_PUSH_GEPLANT",
-  "sicherheitsHinweis": "Automatische Funde werden nur nach bestaetigtem Bezug zu Adventure Land - The Code MMORPG gespeichert. Community-Funde werden nicht automatisch zu bestaetigten Fakten."
+  "sicherheitsHinweis": "Automatische Funde werden nur nach bestaetigtem Bezug zu Adventure Land - The Code MMORPG gespeichert. Community-Funde werden nicht automatisch zu bestaetigten Fakten.",
+  "liveWissenStatus": "WARTET_AUF_BOT",
+  "liveWissenGeneration": null,
+  "liveWissenDateien": 0,
+  "liveWissenBytes": 0,
+  "liveWissenSnapshotSha256": null,
+  "liveWissenHinweis": "LOKALE_LIVE_WISSENSDATENBANK_FEHLT"
 }
