@@ -28,6 +28,7 @@ const { CombatMode, COMBAT_MODE_LABELS, normalizeCombatMode } = require('./auton
 const { SmartAoePlanner, SmartAoeState, SMART_AOE_PLANNER_MODE } = require('./autonomy/smart-aoe-planner');
 const { AdaptivePullLearner, installAdaptivePullLearner, ADAPTIVE_PULL_LEARNING_MODE, ADAPTIVE_PULL_STATE_SCHEMA_VERSION } = require('./autonomy/adaptive-pull-learning');
 const { EncounterLifecycle, installEncounterLifecycle, ENCOUNTER_LIFECYCLE_MODE, ENCOUNTER_OUTCOME_SCHEMA_VERSION, EncounterLifecycleState, EncounterOutcome } = require('./autonomy/encounter-lifecycle');
+const { AoeFarmingCertification, installAoeFarmingCertification, AOE_FARMING_CERTIFICATION_MODE } = require('./autonomy/aoe-farming-certification');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
 const { BoundedReplayBuffer } = require('./brain/replay-buffer');
 const { ShadowStrategicBrain, BrainQualityState } = require('./brain/shadow-brain');
@@ -461,6 +462,7 @@ module.exports = {
   CombatMode, COMBAT_MODE_LABELS, normalizeCombatMode, SmartAoePlanner, SmartAoeState, SMART_AOE_PLANNER_MODE,
   AdaptivePullLearner, installAdaptivePullLearner, ADAPTIVE_PULL_LEARNING_MODE, ADAPTIVE_PULL_STATE_SCHEMA_VERSION,
   EncounterLifecycle, installEncounterLifecycle, ENCOUNTER_LIFECYCLE_MODE, ENCOUNTER_OUTCOME_SCHEMA_VERSION, EncounterLifecycleState, EncounterOutcome,
+  AoeFarmingCertification, installAoeFarmingCertification, AOE_FARMING_CERTIFICATION_MODE,
   FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor, CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE,
   FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, createPullLearningFingerprint, MOVING_TARGET_FRESHNESS_MODE, deriveMotion, positionFreshness, cleanMotion, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
