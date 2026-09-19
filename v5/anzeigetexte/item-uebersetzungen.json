@@ -1,0 +1,4430 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "quelle": {
+    "pfad": "v5/wissensbasis/datenbank/aktuell/AL-DATA-ITEMS.txt",
+    "blobSha": "05ab7d99de5a758252e4496d46119ad337a76c0c"
+  },
+  "quellenVorkommen": 628,
+  "eindeutigeKennungen": 626,
+  "duplikate": [
+    {
+      "id": "fury",
+      "vorkommen": [
+        {
+          "index": 24,
+          "originalName": "Band of Fury",
+          "typ": "helmet"
+        },
+        {
+          "index": 584,
+          "originalName": "Rage and Fury",
+          "typ": null
+        }
+      ],
+      "aufloesung": "LETZTE_JS_OBJEKTEIGENSCHAFT_GILT"
+    },
+    {
+      "id": "mmpants",
+      "vorkommen": [
+        {
+          "index": 86,
+          "originalName": "Pants of the Hunter Mage",
+          "typ": "pants"
+        },
+        {
+          "index": 87,
+          "originalName": "Pants of the Hunter Mage",
+          "typ": "pants"
+        }
+      ],
+      "aufloesung": "LETZTE_JS_OBJEKTEIGENSCHAFT_GILT"
+    }
+  ],
+  "methode": "DETERMINISTISCHER_DEUTSCHER_WORT_UND_EIGENNAMEN_KATALOG",
+  "regel": "Bei doppelten JavaScript-Objekteigenschaften gilt die spaetere Definition. Normale englische Begriffe werden uebersetzt; explizite Eigennamen/Fantasiebezeichnungen bleiben Eigennamen; technische IDs werden nie als sichtbarer Fallback verwendet.",
+  "eintraege": [
+    {
+      "externeKennung": "homecomingcape",
+      "originalName": "Homecoming Cape",
+      "deutscherAnzeigename": "Heimkehr Umhang",
+      "typ": "cape",
+      "quellIndex": 0
+    },
+    {
+      "externeKennung": "keepsakependant",
+      "originalName": "Keepsake Pendant",
+      "deutscherAnzeigename": "Andenken Anhänger",
+      "typ": "amulet",
+      "quellIndex": 1
+    },
+    {
+      "externeKennung": "test",
+      "originalName": "Test",
+      "deutscherAnzeigename": "Test",
+      "typ": "test",
+      "quellIndex": 2
+    },
+    {
+      "externeKennung": "test2",
+      "originalName": "Test",
+      "deutscherAnzeigename": "Test",
+      "typ": "orb",
+      "quellIndex": 3
+    },
+    {
+      "externeKennung": "test_orb",
+      "originalName": "Orb of Testing",
+      "deutscherAnzeigename": "Kugel – Test",
+      "typ": "orb",
+      "quellIndex": 4
+    },
+    {
+      "externeKennung": "placeholder",
+      "originalName": "Placeholder",
+      "deutscherAnzeigename": "Platzhalter",
+      "typ": "placeholder",
+      "quellIndex": 5
+    },
+    {
+      "externeKennung": "placeholder_m",
+      "originalName": "Placeholder",
+      "deutscherAnzeigename": "Platzhalter",
+      "typ": "placeholder",
+      "quellIndex": 6
+    },
+    {
+      "externeKennung": "stealthcape",
+      "originalName": "Stealth Cape",
+      "deutscherAnzeigename": "Tarnung Umhang",
+      "typ": "cape",
+      "quellIndex": 7
+    },
+    {
+      "externeKennung": "cape",
+      "originalName": "Cape",
+      "deutscherAnzeigename": "Umhang",
+      "typ": "cape",
+      "quellIndex": 8
+    },
+    {
+      "externeKennung": "horsecape",
+      "originalName": "Horse Leather Cape",
+      "deutscherAnzeigename": "Pferd Leder Umhang",
+      "typ": "cape",
+      "quellIndex": 9
+    },
+    {
+      "externeKennung": "horsecapeg",
+      "originalName": "Horse Leather Cape",
+      "deutscherAnzeigename": "Pferd Leder Umhang",
+      "typ": "cape",
+      "quellIndex": 10
+    },
+    {
+      "externeKennung": "fcape",
+      "originalName": "Fiery Cape",
+      "deutscherAnzeigename": "Feurig Umhang",
+      "typ": "cape",
+      "quellIndex": 11
+    },
+    {
+      "externeKennung": "ecape",
+      "originalName": "Fluffy Blanket",
+      "deutscherAnzeigename": "Flauschig Decke",
+      "typ": "cape",
+      "quellIndex": 12
+    },
+    {
+      "externeKennung": "gcape",
+      "originalName": "Grinch's Cape",
+      "deutscherAnzeigename": "Umhang von Grinch",
+      "typ": "cape",
+      "quellIndex": 13
+    },
+    {
+      "externeKennung": "angelwings",
+      "originalName": "Angel Wings",
+      "deutscherAnzeigename": "Engel Flügel",
+      "typ": "cape",
+      "quellIndex": 14
+    },
+    {
+      "externeKennung": "tigercape",
+      "originalName": "Cape of the Tiger",
+      "deutscherAnzeigename": "Umhang – Tiger",
+      "typ": "cape",
+      "quellIndex": 15
+    },
+    {
+      "externeKennung": "bcape",
+      "originalName": "Well-Crafted Cape",
+      "deutscherAnzeigename": "Gut gefertigt Umhang",
+      "typ": "cape",
+      "quellIndex": 16
+    },
+    {
+      "externeKennung": "duskweavehood",
+      "originalName": "Duskweave Hood",
+      "deutscherAnzeigename": "Duskweave Kapuze",
+      "typ": "helmet",
+      "quellIndex": 17
+    },
+    {
+      "externeKennung": "caravanbrigandine",
+      "originalName": "Caravan Brigandine",
+      "deutscherAnzeigename": "Karawane Brigantine",
+      "typ": "chest",
+      "quellIndex": 18
+    },
+    {
+      "externeKennung": "mirrorsteelgauntlet",
+      "originalName": "Mirrorsteel Gauntlet",
+      "deutscherAnzeigename": "Mirrorsteel Panzerhandschuh",
+      "typ": "gloves",
+      "quellIndex": 19
+    },
+    {
+      "externeKennung": "ironheelboots",
+      "originalName": "Ironheel Boots",
+      "deutscherAnzeigename": "Eisenferse Stiefel",
+      "typ": "shoes",
+      "quellIndex": 20
+    },
+    {
+      "externeKennung": "marketwatch",
+      "originalName": "Marketwatch Visor",
+      "deutscherAnzeigename": "Marketwatch Visier",
+      "typ": "helmet",
+      "quellIndex": 21
+    },
+    {
+      "externeKennung": "homecominghelm",
+      "originalName": "Homecoming Helm",
+      "deutscherAnzeigename": "Heimkehr Helm",
+      "typ": "helmet",
+      "quellIndex": 22
+    },
+    {
+      "externeKennung": "homecomingcoat",
+      "originalName": "Homecoming Coat",
+      "deutscherAnzeigename": "Heimkehr Mantel",
+      "typ": "chest",
+      "quellIndex": 23
+    },
+    {
+      "externeKennung": "fury",
+      "originalName": "Rage and Fury",
+      "deutscherAnzeigename": "Zorn und Wut",
+      "typ": "UNBEKANNT",
+      "quellIndex": 584
+    },
+    {
+      "externeKennung": "tigerhelmet",
+      "originalName": "Helmet of the Tiger",
+      "deutscherAnzeigename": "Helm – Tiger",
+      "typ": "helmet",
+      "quellIndex": 25
+    },
+    {
+      "externeKennung": "mageshood",
+      "originalName": "Mage's Hood",
+      "deutscherAnzeigename": "Kapuze von Magier",
+      "typ": "helmet",
+      "quellIndex": 26
+    },
+    {
+      "externeKennung": "rednose",
+      "originalName": "Rudolph's Red Nose",
+      "deutscherAnzeigename": "Rot Nase von Rudolph",
+      "typ": "helmet",
+      "quellIndex": 27
+    },
+    {
+      "externeKennung": "helmet",
+      "originalName": "Helmet",
+      "deutscherAnzeigename": "Helm",
+      "typ": "helmet",
+      "quellIndex": 28
+    },
+    {
+      "externeKennung": "cyber",
+      "originalName": "Cybernetic Implants",
+      "deutscherAnzeigename": "Kybernetisch Implantate",
+      "typ": "helmet",
+      "quellIndex": 29
+    },
+    {
+      "externeKennung": "wcap",
+      "originalName": "Wanderer's Cap",
+      "deutscherAnzeigename": "Mütze von Wanderer",
+      "typ": "helmet",
+      "quellIndex": 30
+    },
+    {
+      "externeKennung": "xmashat",
+      "originalName": "Xmas Hat",
+      "deutscherAnzeigename": "Weihnachts Hut",
+      "typ": "helmet",
+      "quellIndex": 31
+    },
+    {
+      "externeKennung": "ghatb",
+      "originalName": "Hat of Generosity",
+      "deutscherAnzeigename": "Hut – Großzügigkeit",
+      "typ": "helmet",
+      "quellIndex": 32
+    },
+    {
+      "externeKennung": "ghatp",
+      "originalName": "Hat of Generosity",
+      "deutscherAnzeigename": "Hut – Großzügigkeit",
+      "typ": "helmet",
+      "quellIndex": 33
+    },
+    {
+      "externeKennung": "helmet1",
+      "originalName": "Rugged Helmet",
+      "deutscherAnzeigename": "Robust Helm",
+      "typ": "helmet",
+      "quellIndex": 34
+    },
+    {
+      "externeKennung": "mwhelmet",
+      "originalName": "Helmet of the Hunter Warrior",
+      "deutscherAnzeigename": "Helm – Jäger Krieger",
+      "typ": "helmet",
+      "quellIndex": 35
+    },
+    {
+      "externeKennung": "mmhat",
+      "originalName": "Hat of the Hunter Mage",
+      "deutscherAnzeigename": "Hut – Jäger Magier",
+      "typ": "helmet",
+      "quellIndex": 36
+    },
+    {
+      "externeKennung": "mphat",
+      "originalName": "Hat of the Hunter Priest",
+      "deutscherAnzeigename": "Hut – Jäger Priester",
+      "typ": "helmet",
+      "quellIndex": 37
+    },
+    {
+      "externeKennung": "mrnhat",
+      "originalName": "Hat of the Hunter Ranger",
+      "deutscherAnzeigename": "Hut – Jäger Waldläufer",
+      "typ": "helmet",
+      "quellIndex": 38
+    },
+    {
+      "externeKennung": "mrhood",
+      "originalName": "Hood of the Hunter Rogue",
+      "deutscherAnzeigename": "Kapuze – Jäger Schurke",
+      "typ": "helmet",
+      "quellIndex": 39
+    },
+    {
+      "externeKennung": "mchat",
+      "originalName": "Hat of the Hunter Merchant",
+      "deutscherAnzeigename": "Hut – Jäger Händler",
+      "typ": "helmet",
+      "quellIndex": 40
+    },
+    {
+      "externeKennung": "partyhat",
+      "originalName": "Party Hat",
+      "deutscherAnzeigename": "Party Hut",
+      "typ": "helmet",
+      "quellIndex": 41
+    },
+    {
+      "externeKennung": "phelmet",
+      "originalName": "Pumpkin Head",
+      "deutscherAnzeigename": "Kürbis Kopf",
+      "typ": "helmet",
+      "quellIndex": 42
+    },
+    {
+      "externeKennung": "gphelmet",
+      "originalName": "Green Pumpkin Head",
+      "deutscherAnzeigename": "Grün Kürbis Kopf",
+      "typ": "helmet",
+      "quellIndex": 43
+    },
+    {
+      "externeKennung": "bunnyears",
+      "originalName": "Legacy Bunny Ears",
+      "deutscherAnzeigename": "Vermächtnis Hase Ohren",
+      "typ": "helmet",
+      "quellIndex": 44
+    },
+    {
+      "externeKennung": "eears",
+      "originalName": "Bunny Ears",
+      "deutscherAnzeigename": "Hase Ohren",
+      "typ": "helmet",
+      "quellIndex": 45
+    },
+    {
+      "externeKennung": "hhelmet",
+      "originalName": "Heavy Helmet",
+      "deutscherAnzeigename": "Schwer Helm",
+      "typ": "helmet",
+      "quellIndex": 46
+    },
+    {
+      "externeKennung": "xhelmet",
+      "originalName": "Darkforge Helmet",
+      "deutscherAnzeigename": "Darkforge Helm",
+      "typ": "helmet",
+      "quellIndex": 47
+    },
+    {
+      "externeKennung": "spikedhelmet",
+      "originalName": "Spiked Helmet",
+      "deutscherAnzeigename": "Stachelig Helm",
+      "typ": "helmet",
+      "quellIndex": 48
+    },
+    {
+      "externeKennung": "luckyt",
+      "originalName": "Lucky T-Shirt",
+      "deutscherAnzeigename": "Glücks T-Shirt",
+      "typ": "chest",
+      "quellIndex": 49
+    },
+    {
+      "externeKennung": "tshirt0",
+      "originalName": "T-Shirt (Int)",
+      "deutscherAnzeigename": "T-Shirt (Intelligenz)",
+      "typ": "chest",
+      "quellIndex": 50
+    },
+    {
+      "externeKennung": "tshirt1",
+      "originalName": "T-Shirt (Dex)",
+      "deutscherAnzeigename": "T-Shirt (Geschick)",
+      "typ": "chest",
+      "quellIndex": 51
+    },
+    {
+      "externeKennung": "tshirt2",
+      "originalName": "T-Shirt (Str)",
+      "deutscherAnzeigename": "T-Shirt (Stärke)",
+      "typ": "chest",
+      "quellIndex": 52
+    },
+    {
+      "externeKennung": "tshirt3",
+      "originalName": "T-Shirt (XP)",
+      "deutscherAnzeigename": "T-Shirt (EP)",
+      "typ": "chest",
+      "quellIndex": 53
+    },
+    {
+      "externeKennung": "tshirt4",
+      "originalName": "T-Shirt (Speed)",
+      "deutscherAnzeigename": "T-Shirt (Geschwindigkeit)",
+      "typ": "chest",
+      "quellIndex": 54
+    },
+    {
+      "externeKennung": "tshirt88",
+      "originalName": "T-Shirt (Lucky)",
+      "deutscherAnzeigename": "T-Shirt (Glücks)",
+      "typ": "chest",
+      "quellIndex": 55
+    },
+    {
+      "externeKennung": "tshirt6",
+      "originalName": "T-Shirt (Res. Piercing)",
+      "deutscherAnzeigename": "T-Shirt (Widerst.. Durchdringung)",
+      "typ": "chest",
+      "quellIndex": 56
+    },
+    {
+      "externeKennung": "tshirt7",
+      "originalName": "T-Shirt (Armor Piercing)",
+      "deutscherAnzeigename": "T-Shirt (Rüstung Durchdringung)",
+      "typ": "chest",
+      "quellIndex": 57
+    },
+    {
+      "externeKennung": "tshirt8",
+      "originalName": "T-Shirt (Attack MP Cost)",
+      "deutscherAnzeigename": "T-Shirt (Angriff MP Kosten)",
+      "typ": "chest",
+      "quellIndex": 58
+    },
+    {
+      "externeKennung": "tshirt9",
+      "originalName": "T-Shirt (Manasteal)",
+      "deutscherAnzeigename": "T-Shirt (Manaraub)",
+      "typ": "chest",
+      "quellIndex": 59
+    },
+    {
+      "externeKennung": "coat",
+      "originalName": "Coat",
+      "deutscherAnzeigename": "Mantel",
+      "typ": "chest",
+      "quellIndex": 60
+    },
+    {
+      "externeKennung": "wattire",
+      "originalName": "Wanderer's Attire",
+      "deutscherAnzeigename": "Gewand von Wanderer",
+      "typ": "chest",
+      "quellIndex": 61
+    },
+    {
+      "externeKennung": "xmassweater",
+      "originalName": "Xmas Sweater",
+      "deutscherAnzeigename": "Weihnachts Pullover",
+      "typ": "chest",
+      "quellIndex": 62
+    },
+    {
+      "externeKennung": "sweaterhs",
+      "originalName": "Super Sweater",
+      "deutscherAnzeigename": "Super Pullover",
+      "typ": "chest",
+      "quellIndex": 63
+    },
+    {
+      "externeKennung": "coat1",
+      "originalName": "Rugged Coat",
+      "deutscherAnzeigename": "Robust Mantel",
+      "typ": "chest",
+      "quellIndex": 64
+    },
+    {
+      "externeKennung": "mwarmor",
+      "originalName": "Armor of the Hunter Warrior",
+      "deutscherAnzeigename": "Rüstung – Jäger Krieger",
+      "typ": "chest",
+      "quellIndex": 65
+    },
+    {
+      "externeKennung": "mmarmor",
+      "originalName": "Armor of the Hunter Mage",
+      "deutscherAnzeigename": "Rüstung – Jäger Magier",
+      "typ": "chest",
+      "quellIndex": 66
+    },
+    {
+      "externeKennung": "mparmor",
+      "originalName": "Armor of the Hunter Priest",
+      "deutscherAnzeigename": "Rüstung – Jäger Priester",
+      "typ": "chest",
+      "quellIndex": 67
+    },
+    {
+      "externeKennung": "mrnarmor",
+      "originalName": "Armor of the Hunter Ranger",
+      "deutscherAnzeigename": "Rüstung – Jäger Waldläufer",
+      "typ": "chest",
+      "quellIndex": 68
+    },
+    {
+      "externeKennung": "mrarmor",
+      "originalName": "Armor of the Hunter Rogue",
+      "deutscherAnzeigename": "Rüstung – Jäger Schurke",
+      "typ": "chest",
+      "quellIndex": 69
+    },
+    {
+      "externeKennung": "mcarmor",
+      "originalName": "Armor of the Hunter Merchant",
+      "deutscherAnzeigename": "Rüstung – Jäger Händler",
+      "typ": "chest",
+      "quellIndex": 70
+    },
+    {
+      "externeKennung": "harmor",
+      "originalName": "Heavy Armor",
+      "deutscherAnzeigename": "Schwer Rüstung",
+      "typ": "chest",
+      "quellIndex": 71
+    },
+    {
+      "externeKennung": "cdragon",
+      "originalName": "Dragon Armor",
+      "deutscherAnzeigename": "Drache Rüstung",
+      "typ": "chest",
+      "quellIndex": 72
+    },
+    {
+      "externeKennung": "oxhelmet",
+      "originalName": "OX Helmet",
+      "deutscherAnzeigename": "Ochse Helm",
+      "typ": "helmet",
+      "quellIndex": 73
+    },
+    {
+      "externeKennung": "xarmor",
+      "originalName": "Darkforge Armor",
+      "deutscherAnzeigename": "Darkforge Rüstung",
+      "typ": "chest",
+      "quellIndex": 74
+    },
+    {
+      "externeKennung": "mcape",
+      "originalName": "Dracul's Attire",
+      "deutscherAnzeigename": "Gewand von Dracul",
+      "typ": "chest",
+      "quellIndex": 75
+    },
+    {
+      "externeKennung": "vattire",
+      "originalName": "Spike's Attire",
+      "deutscherAnzeigename": "Gewand von Spike",
+      "typ": "chest",
+      "quellIndex": 76
+    },
+    {
+      "externeKennung": "warpvest",
+      "originalName": "Warp Vest",
+      "deutscherAnzeigename": "Warp Weste",
+      "typ": "chest",
+      "quellIndex": 77
+    },
+    {
+      "externeKennung": "pyjamas",
+      "originalName": "Legacy Pyjamas",
+      "deutscherAnzeigename": "Vermächtnis Schlafanzug",
+      "typ": "chest",
+      "quellIndex": 78
+    },
+    {
+      "externeKennung": "epyjamas",
+      "originalName": "Pyjamas",
+      "deutscherAnzeigename": "Schlafanzug",
+      "typ": "chest",
+      "quellIndex": 79
+    },
+    {
+      "externeKennung": "pants",
+      "originalName": "Pants",
+      "deutscherAnzeigename": "Hose",
+      "typ": "pants",
+      "quellIndex": 80
+    },
+    {
+      "externeKennung": "fallen",
+      "originalName": "Pants of the Fallen Master",
+      "deutscherAnzeigename": "Hose – Gefallen Meister",
+      "typ": "pants",
+      "quellIndex": 81
+    },
+    {
+      "externeKennung": "wbreeches",
+      "originalName": "Wanderer's Breeches",
+      "deutscherAnzeigename": "Kniehose von Wanderer",
+      "typ": "pants",
+      "quellIndex": 82
+    },
+    {
+      "externeKennung": "xmaspants",
+      "originalName": "Xmas Pants",
+      "deutscherAnzeigename": "Weihnachts Hose",
+      "typ": "pants",
+      "quellIndex": 83
+    },
+    {
+      "externeKennung": "pants1",
+      "originalName": "Rugged Pants",
+      "deutscherAnzeigename": "Robust Hose",
+      "typ": "pants",
+      "quellIndex": 84
+    },
+    {
+      "externeKennung": "mwpants",
+      "originalName": "Underarmor of the Hunter Warrior",
+      "deutscherAnzeigename": "Unterrüstung – Jäger Krieger",
+      "typ": "pants",
+      "quellIndex": 85
+    },
+    {
+      "externeKennung": "mmpants",
+      "originalName": "Pants of the Hunter Mage",
+      "deutscherAnzeigename": "Hose – Jäger Magier",
+      "typ": "pants",
+      "quellIndex": 87
+    },
+    {
+      "externeKennung": "mppants",
+      "originalName": "Pants of the Hunter Priest",
+      "deutscherAnzeigename": "Hose – Jäger Priester",
+      "typ": "pants",
+      "quellIndex": 88
+    },
+    {
+      "externeKennung": "mrnpants",
+      "originalName": "Pants of the Hunter Ranger",
+      "deutscherAnzeigename": "Hose – Jäger Waldläufer",
+      "typ": "pants",
+      "quellIndex": 89
+    },
+    {
+      "externeKennung": "mrpants",
+      "originalName": "Pants of the Hunter Rogue",
+      "deutscherAnzeigename": "Hose – Jäger Schurke",
+      "typ": "pants",
+      "quellIndex": 90
+    },
+    {
+      "externeKennung": "mcpants",
+      "originalName": "Pants of the Hunter Merchant",
+      "deutscherAnzeigename": "Hose – Jäger Händler",
+      "typ": "pants",
+      "quellIndex": 91
+    },
+    {
+      "externeKennung": "starkillers",
+      "originalName": "Star Killer's Pants",
+      "deutscherAnzeigename": "Hose von Stern Töter",
+      "typ": "pants",
+      "quellIndex": 92
+    },
+    {
+      "externeKennung": "hpants",
+      "originalName": "Heavy Underarmor",
+      "deutscherAnzeigename": "Schwer Unterrüstung",
+      "typ": "pants",
+      "quellIndex": 93
+    },
+    {
+      "externeKennung": "frankypants",
+      "originalName": "Franky Pants",
+      "deutscherAnzeigename": "Franky Hose",
+      "typ": "pants",
+      "quellIndex": 94
+    },
+    {
+      "externeKennung": "xpants",
+      "originalName": "Darkforge Underarmor",
+      "deutscherAnzeigename": "Darkforge Unterrüstung",
+      "typ": "pants",
+      "quellIndex": 95
+    },
+    {
+      "externeKennung": "shoes",
+      "originalName": "Shoes",
+      "deutscherAnzeigename": "Schuhe",
+      "typ": "shoes",
+      "quellIndex": 96
+    },
+    {
+      "externeKennung": "wshoes",
+      "originalName": "Wanderer's Shoes",
+      "deutscherAnzeigename": "Schuhe von Wanderer",
+      "typ": "shoes",
+      "quellIndex": 97
+    },
+    {
+      "externeKennung": "iceskates",
+      "originalName": "Ice Skates",
+      "deutscherAnzeigename": "Eis Schlittschuhe",
+      "typ": "shoes",
+      "quellIndex": 98
+    },
+    {
+      "externeKennung": "snowboots",
+      "originalName": "Snow Boots",
+      "deutscherAnzeigename": "Schnee Stiefel",
+      "typ": "shoes",
+      "quellIndex": 99
+    },
+    {
+      "externeKennung": "eslippers",
+      "originalName": "Fluffy Slippers",
+      "deutscherAnzeigename": "Flauschig Hausschuhe",
+      "typ": "shoes",
+      "quellIndex": 100
+    },
+    {
+      "externeKennung": "wingedboots",
+      "originalName": "Winged Boots",
+      "deutscherAnzeigename": "Geflügelt Stiefel",
+      "typ": "shoes",
+      "quellIndex": 101
+    },
+    {
+      "externeKennung": "xmasshoes",
+      "originalName": "Xmas Shoes",
+      "deutscherAnzeigename": "Weihnachts Schuhe",
+      "typ": "shoes",
+      "quellIndex": 102
+    },
+    {
+      "externeKennung": "shoes1",
+      "originalName": "Rugged Shoes",
+      "deutscherAnzeigename": "Robust Schuhe",
+      "typ": "shoes",
+      "quellIndex": 103
+    },
+    {
+      "externeKennung": "mwboots",
+      "originalName": "Boots of the Hunter Warrior",
+      "deutscherAnzeigename": "Stiefel – Jäger Krieger",
+      "typ": "shoes",
+      "quellIndex": 104
+    },
+    {
+      "externeKennung": "mmshoes",
+      "originalName": "Shoes of the Hunter Mage",
+      "deutscherAnzeigename": "Schuhe – Jäger Magier",
+      "typ": "shoes",
+      "quellIndex": 105
+    },
+    {
+      "externeKennung": "mpshoes",
+      "originalName": "Shoes of the Hunter Priest",
+      "deutscherAnzeigename": "Schuhe – Jäger Priester",
+      "typ": "shoes",
+      "quellIndex": 106
+    },
+    {
+      "externeKennung": "mrnboots",
+      "originalName": "Boots of the Hunter Ranger",
+      "deutscherAnzeigename": "Stiefel – Jäger Waldläufer",
+      "typ": "shoes",
+      "quellIndex": 107
+    },
+    {
+      "externeKennung": "mrboots",
+      "originalName": "Boots of the Hunter Rogue",
+      "deutscherAnzeigename": "Stiefel – Jäger Schurke",
+      "typ": "shoes",
+      "quellIndex": 108
+    },
+    {
+      "externeKennung": "mcboots",
+      "originalName": "Boots of the Hunter Merchant",
+      "deutscherAnzeigename": "Stiefel – Jäger Händler",
+      "typ": "shoes",
+      "quellIndex": 109
+    },
+    {
+      "externeKennung": "hboots",
+      "originalName": "Heavy Boots",
+      "deutscherAnzeigename": "Schwer Stiefel",
+      "typ": "shoes",
+      "quellIndex": 110
+    },
+    {
+      "externeKennung": "xboots",
+      "originalName": "Darkforge Boots",
+      "deutscherAnzeigename": "Darkforge Stiefel",
+      "typ": "shoes",
+      "quellIndex": 111
+    },
+    {
+      "externeKennung": "gloves",
+      "originalName": "Gloves",
+      "deutscherAnzeigename": "Handschuhe",
+      "typ": "gloves",
+      "quellIndex": 112
+    },
+    {
+      "externeKennung": "vgloves",
+      "originalName": "Vampiric Gloves",
+      "deutscherAnzeigename": "Vampirisch Handschuhe",
+      "typ": "gloves",
+      "quellIndex": 113
+    },
+    {
+      "externeKennung": "vboots",
+      "originalName": "Vampiric Boots",
+      "deutscherAnzeigename": "Vampirisch Stiefel",
+      "typ": "shoes",
+      "quellIndex": 114
+    },
+    {
+      "externeKennung": "vcape",
+      "originalName": "Vampiric Cape",
+      "deutscherAnzeigename": "Vampirisch Umhang",
+      "typ": "cape",
+      "quellIndex": 115
+    },
+    {
+      "externeKennung": "fierygloves",
+      "originalName": "Fiery Gloves",
+      "deutscherAnzeigename": "Feurig Handschuhe",
+      "typ": "gloves",
+      "quellIndex": 116
+    },
+    {
+      "externeKennung": "wgloves",
+      "originalName": "Wanderer's Gloves",
+      "deutscherAnzeigename": "Handschuhe von Wanderer",
+      "typ": "gloves",
+      "quellIndex": 117
+    },
+    {
+      "externeKennung": "mittens",
+      "originalName": "Mittens",
+      "deutscherAnzeigename": "Fäustlinge",
+      "typ": "gloves",
+      "quellIndex": 118
+    },
+    {
+      "externeKennung": "supermittens",
+      "originalName": "Super Mittens",
+      "deutscherAnzeigename": "Super Fäustlinge",
+      "typ": "gloves",
+      "quellIndex": 119
+    },
+    {
+      "externeKennung": "powerglove",
+      "originalName": "Power Glove",
+      "deutscherAnzeigename": "Kraft Handschuh",
+      "typ": "gloves",
+      "quellIndex": 120
+    },
+    {
+      "externeKennung": "goldenpowerglove",
+      "originalName": "Golden Power Glove",
+      "deutscherAnzeigename": "Golden Kraft Handschuh",
+      "typ": "gloves",
+      "quellIndex": 121
+    },
+    {
+      "externeKennung": "handofmidas",
+      "originalName": "Hand of Midas",
+      "deutscherAnzeigename": "Hand – Midas",
+      "typ": "gloves",
+      "quellIndex": 122
+    },
+    {
+      "externeKennung": "poker",
+      "originalName": "Poker",
+      "deutscherAnzeigename": "Poker",
+      "typ": "gloves",
+      "quellIndex": 123
+    },
+    {
+      "externeKennung": "gloves1",
+      "originalName": "Rugged Gloves",
+      "deutscherAnzeigename": "Robust Handschuhe",
+      "typ": "gloves",
+      "quellIndex": 124
+    },
+    {
+      "externeKennung": "mpxgloves",
+      "originalName": "Mana Gloves",
+      "deutscherAnzeigename": "Mana Handschuhe",
+      "typ": "gloves",
+      "quellIndex": 125
+    },
+    {
+      "externeKennung": "mwgloves",
+      "originalName": "Gloves of the Hunter Warrior",
+      "deutscherAnzeigename": "Handschuhe – Jäger Krieger",
+      "typ": "gloves",
+      "quellIndex": 126
+    },
+    {
+      "externeKennung": "mmgloves",
+      "originalName": "Gloves of the Hunter Mage",
+      "deutscherAnzeigename": "Handschuhe – Jäger Magier",
+      "typ": "gloves",
+      "quellIndex": 127
+    },
+    {
+      "externeKennung": "mpgloves",
+      "originalName": "Gloves of the Hunter Priest",
+      "deutscherAnzeigename": "Handschuhe – Jäger Priester",
+      "typ": "gloves",
+      "quellIndex": 128
+    },
+    {
+      "externeKennung": "mrngloves",
+      "originalName": "Gloves of the Hunter Ranger",
+      "deutscherAnzeigename": "Handschuhe – Jäger Waldläufer",
+      "typ": "gloves",
+      "quellIndex": 129
+    },
+    {
+      "externeKennung": "mrgloves",
+      "originalName": "Gloves of the Hunter Rogue",
+      "deutscherAnzeigename": "Handschuhe – Jäger Schurke",
+      "typ": "gloves",
+      "quellIndex": 130
+    },
+    {
+      "externeKennung": "mcgloves",
+      "originalName": "Gloves of the Hunter Merchant",
+      "deutscherAnzeigename": "Handschuhe – Jäger Händler",
+      "typ": "gloves",
+      "quellIndex": 131
+    },
+    {
+      "externeKennung": "hgloves",
+      "originalName": "Heavy Gloves",
+      "deutscherAnzeigename": "Schwer Handschuhe",
+      "typ": "gloves",
+      "quellIndex": 132
+    },
+    {
+      "externeKennung": "xgloves",
+      "originalName": "Darkforge Gloves",
+      "deutscherAnzeigename": "Darkforge Handschuhe",
+      "typ": "gloves",
+      "quellIndex": 133
+    },
+    {
+      "externeKennung": "emberhood",
+      "originalName": "Ember Hood",
+      "deutscherAnzeigename": "Glut Kapuze",
+      "typ": "helmet",
+      "quellIndex": 134
+    },
+    {
+      "externeKennung": "bogcrown",
+      "originalName": "Bog Crown",
+      "deutscherAnzeigename": "Sumpf Krone",
+      "typ": "helmet",
+      "quellIndex": 135
+    },
+    {
+      "externeKennung": "ratworkcoat",
+      "originalName": "Ratwork Coat",
+      "deutscherAnzeigename": "Ratwork Mantel",
+      "typ": "chest",
+      "quellIndex": 136
+    },
+    {
+      "externeKennung": "reefvest",
+      "originalName": "Reef Vest",
+      "deutscherAnzeigename": "Riff Weste",
+      "typ": "chest",
+      "quellIndex": 137
+    },
+    {
+      "externeKennung": "silkgrips",
+      "originalName": "Silkgrips",
+      "deutscherAnzeigename": "Silkgrips",
+      "typ": "gloves",
+      "quellIndex": 138
+    },
+    {
+      "externeKennung": "thundergrips",
+      "originalName": "Thundergrips",
+      "deutscherAnzeigename": "Thundergrips",
+      "typ": "gloves",
+      "quellIndex": 139
+    },
+    {
+      "externeKennung": "bogwalkers",
+      "originalName": "Bogwalkers",
+      "deutscherAnzeigename": "Sumpfläufer",
+      "typ": "shoes",
+      "quellIndex": 140
+    },
+    {
+      "externeKennung": "cinderboots",
+      "originalName": "Cinder Boots",
+      "deutscherAnzeigename": "Glut Stiefel",
+      "typ": "shoes",
+      "quellIndex": 141
+    },
+    {
+      "externeKennung": "rimeboots",
+      "originalName": "Rime Boots",
+      "deutscherAnzeigename": "Reif Stiefel",
+      "typ": "shoes",
+      "quellIndex": 142
+    },
+    {
+      "externeKennung": "reedpants",
+      "originalName": "Reed Pants",
+      "deutscherAnzeigename": "Schilf Hose",
+      "typ": "pants",
+      "quellIndex": 143
+    },
+    {
+      "externeKennung": "vowkeepergloves",
+      "originalName": "Vowkeeper Gloves",
+      "deutscherAnzeigename": "Vowkeeper Handschuhe",
+      "typ": "gloves",
+      "quellIndex": 144
+    },
+    {
+      "externeKennung": "oathplate",
+      "originalName": "Oathplate",
+      "deutscherAnzeigename": "Oathplate",
+      "typ": "chest",
+      "quellIndex": 145
+    },
+    {
+      "externeKennung": "resolutesallet",
+      "originalName": "Resolute Sallet",
+      "deutscherAnzeigename": "Entschlossen Schaller",
+      "typ": "helmet",
+      "quellIndex": 146
+    },
+    {
+      "externeKennung": "softstepgloves",
+      "originalName": "Softstep Gloves",
+      "deutscherAnzeigename": "Softstep Handschuhe",
+      "typ": "gloves",
+      "quellIndex": 147
+    },
+    {
+      "externeKennung": "amuletofm",
+      "originalName": "Amulet of Mystery",
+      "deutscherAnzeigename": "Amulett – Mysterium",
+      "typ": "amulet",
+      "quellIndex": 148
+    },
+    {
+      "externeKennung": "northstar",
+      "originalName": "The North Star",
+      "deutscherAnzeigename": "Nord Stern",
+      "typ": "amulet",
+      "quellIndex": 149
+    },
+    {
+      "externeKennung": "bfangamulet",
+      "originalName": "Ghastly Bat Fang",
+      "deutscherAnzeigename": "Schaurig Fledermaus Fangzahn",
+      "typ": "amulet",
+      "quellIndex": 150
+    },
+    {
+      "externeKennung": "mpxamulet",
+      "originalName": "Amulet of MP",
+      "deutscherAnzeigename": "Amulett – MP",
+      "typ": "amulet",
+      "quellIndex": 151
+    },
+    {
+      "externeKennung": "suckerpunch",
+      "originalName": "Sucker Punch",
+      "deutscherAnzeigename": "Hinterhältig Schlag",
+      "typ": "ring",
+      "quellIndex": 152
+    },
+    {
+      "externeKennung": "vring",
+      "originalName": "Vampiring",
+      "deutscherAnzeigename": "Vampirring",
+      "typ": "ring",
+      "quellIndex": 153
+    },
+    {
+      "externeKennung": "trigger",
+      "originalName": "The Trigger",
+      "deutscherAnzeigename": "Auslöser",
+      "typ": "ring",
+      "quellIndex": 154
+    },
+    {
+      "externeKennung": "zapper",
+      "originalName": "The Zapper",
+      "deutscherAnzeigename": "Zapper",
+      "typ": "ring",
+      "quellIndex": 155
+    },
+    {
+      "externeKennung": "goldring",
+      "originalName": "Ring of Gold",
+      "deutscherAnzeigename": "Ring – Gold",
+      "typ": "ring",
+      "quellIndex": 156
+    },
+    {
+      "externeKennung": "armorring",
+      "originalName": "Ring of Armor",
+      "deutscherAnzeigename": "Ring – Rüstung",
+      "typ": "ring",
+      "quellIndex": 157
+    },
+    {
+      "externeKennung": "resistancering",
+      "originalName": "Ring of Resistance",
+      "deutscherAnzeigename": "Ring – Widerstand",
+      "typ": "ring",
+      "quellIndex": 158
+    },
+    {
+      "externeKennung": "ringofluck",
+      "originalName": "Ring of Luck",
+      "deutscherAnzeigename": "Ring – Glück",
+      "typ": "ring",
+      "quellIndex": 159
+    },
+    {
+      "externeKennung": "ringhs",
+      "originalName": "Ring of Holidays",
+      "deutscherAnzeigename": "Ring – Feiertage",
+      "typ": "ring",
+      "quellIndex": 160
+    },
+    {
+      "externeKennung": "molesteeth",
+      "originalName": "Mole's Teeth",
+      "deutscherAnzeigename": "Zähne von Maulwurf",
+      "typ": "earring",
+      "quellIndex": 161
+    },
+    {
+      "externeKennung": "mearring",
+      "originalName": "Mistletoe Earring",
+      "deutscherAnzeigename": "Mistelzweig Ohrring",
+      "typ": "earring",
+      "quellIndex": 162
+    },
+    {
+      "externeKennung": "tristone",
+      "originalName": "Legacy Tri-Stone",
+      "deutscherAnzeigename": "Vermächtnis Dreistein",
+      "typ": "ring",
+      "quellIndex": 163
+    },
+    {
+      "externeKennung": "ctristone",
+      "originalName": "Tri-Stone",
+      "deutscherAnzeigename": "Dreistein",
+      "typ": "ring",
+      "quellIndex": 164
+    },
+    {
+      "externeKennung": "darktristone",
+      "originalName": "Legacy Dark Tri-Stone",
+      "deutscherAnzeigename": "Vermächtnis Dunkel Dreistein",
+      "typ": "ring",
+      "quellIndex": 165
+    },
+    {
+      "externeKennung": "cdarktristone",
+      "originalName": "Dark Tri-Stone",
+      "deutscherAnzeigename": "Dunkel Dreistein",
+      "typ": "ring",
+      "quellIndex": 166
+    },
+    {
+      "externeKennung": "skullamulet",
+      "originalName": "Skull Amulet",
+      "deutscherAnzeigename": "Schädel Amulett",
+      "typ": "amulet",
+      "quellIndex": 167
+    },
+    {
+      "externeKennung": "spookyamulet",
+      "originalName": "Amulet of Spooks",
+      "deutscherAnzeigename": "Amulett – Spuk",
+      "typ": "amulet",
+      "quellIndex": 168
+    },
+    {
+      "externeKennung": "hpamulet",
+      "originalName": "Amulet of HP",
+      "deutscherAnzeigename": "Amulett – LP",
+      "typ": "amulet",
+      "quellIndex": 169
+    },
+    {
+      "externeKennung": "snring",
+      "originalName": "Stompy's Nose Ring",
+      "deutscherAnzeigename": "Nase Ring von Stompy",
+      "typ": "amulet",
+      "quellIndex": 170
+    },
+    {
+      "externeKennung": "sanguine",
+      "originalName": "Sanguine Amulet",
+      "deutscherAnzeigename": "Blutrot Amulett",
+      "typ": "amulet",
+      "quellIndex": 171
+    },
+    {
+      "externeKennung": "dexamulet",
+      "originalName": "Amulet of Dexterity",
+      "deutscherAnzeigename": "Amulett – Geschicklichkeit",
+      "typ": "amulet",
+      "quellIndex": 172
+    },
+    {
+      "externeKennung": "stramulet",
+      "originalName": "Amulet of Strength",
+      "deutscherAnzeigename": "Amulett – Stärke",
+      "typ": "amulet",
+      "quellIndex": 173
+    },
+    {
+      "externeKennung": "intamulet",
+      "originalName": "Amulet of Intelligence",
+      "deutscherAnzeigename": "Amulett – Intelligenz",
+      "typ": "amulet",
+      "quellIndex": 174
+    },
+    {
+      "externeKennung": "t2stramulet",
+      "originalName": "Amulet of the Eager Warrior",
+      "deutscherAnzeigename": "Amulett – Eifrig Krieger",
+      "typ": "amulet",
+      "quellIndex": 175
+    },
+    {
+      "externeKennung": "t2intamulet",
+      "originalName": "Amulet of the Fierce Mage",
+      "deutscherAnzeigename": "Amulett – Wild Magier",
+      "typ": "amulet",
+      "quellIndex": 176
+    },
+    {
+      "externeKennung": "t2dexamulet",
+      "originalName": "Amulet of the Stubborn Ranger",
+      "deutscherAnzeigename": "Amulett – Stur Waldläufer",
+      "typ": "amulet",
+      "quellIndex": 177
+    },
+    {
+      "externeKennung": "warmscarf",
+      "originalName": "Warm Scarf",
+      "deutscherAnzeigename": "Warm Schal",
+      "typ": "amulet",
+      "quellIndex": 178
+    },
+    {
+      "externeKennung": "hpbelt",
+      "originalName": "Belt of HP",
+      "deutscherAnzeigename": "Gürtel – LP",
+      "typ": "belt",
+      "quellIndex": 179
+    },
+    {
+      "externeKennung": "mpxbelt",
+      "originalName": "Belt of MP Reduction",
+      "deutscherAnzeigename": "Gürtel – MP Reduktion",
+      "typ": "belt",
+      "quellIndex": 180
+    },
+    {
+      "externeKennung": "lbelt",
+      "originalName": "Belt",
+      "deutscherAnzeigename": "Gürtel",
+      "typ": "belt",
+      "quellIndex": 181
+    },
+    {
+      "externeKennung": "strbelt",
+      "originalName": "Belt of Strength",
+      "deutscherAnzeigename": "Gürtel – Stärke",
+      "typ": "belt",
+      "quellIndex": 182
+    },
+    {
+      "externeKennung": "mbelt",
+      "originalName": "Well-Crafted Belt",
+      "deutscherAnzeigename": "Gut gefertigt Gürtel",
+      "typ": "belt",
+      "quellIndex": 183
+    },
+    {
+      "externeKennung": "sbelt",
+      "originalName": "Belt of Hallowed Trials",
+      "deutscherAnzeigename": "Gürtel – Geheiligt Prüfungen",
+      "typ": "belt",
+      "quellIndex": 184
+    },
+    {
+      "externeKennung": "santasbelt",
+      "originalName": "Santa's Belt",
+      "deutscherAnzeigename": "Gürtel von Santa",
+      "typ": "belt",
+      "quellIndex": 185
+    },
+    {
+      "externeKennung": "dexbelt",
+      "originalName": "Belt of Dexterity",
+      "deutscherAnzeigename": "Gürtel – Geschicklichkeit",
+      "typ": "belt",
+      "quellIndex": 186
+    },
+    {
+      "externeKennung": "intbelt",
+      "originalName": "Belt of Intelligence",
+      "deutscherAnzeigename": "Gürtel – Intelligenz",
+      "typ": "belt",
+      "quellIndex": 187
+    },
+    {
+      "externeKennung": "ringsj",
+      "originalName": "Ring of Small Joys",
+      "deutscherAnzeigename": "Ring – Klein Freuden",
+      "typ": "ring",
+      "quellIndex": 188
+    },
+    {
+      "externeKennung": "solitaire",
+      "originalName": "Solitaire Ring",
+      "deutscherAnzeigename": "Solitaire Ring",
+      "typ": "ring",
+      "quellIndex": 189
+    },
+    {
+      "externeKennung": "vitring",
+      "originalName": "Ring of Vitality",
+      "deutscherAnzeigename": "Ring – Vitalität",
+      "typ": "ring",
+      "quellIndex": 190
+    },
+    {
+      "externeKennung": "strring",
+      "originalName": "Ring of Strength",
+      "deutscherAnzeigename": "Ring – Stärke",
+      "typ": "ring",
+      "quellIndex": 191
+    },
+    {
+      "externeKennung": "intring",
+      "originalName": "Ring of Intelligence",
+      "deutscherAnzeigename": "Ring – Intelligenz",
+      "typ": "ring",
+      "quellIndex": 192
+    },
+    {
+      "externeKennung": "dexring",
+      "originalName": "Ring of Dexterity",
+      "deutscherAnzeigename": "Ring – Geschicklichkeit",
+      "typ": "ring",
+      "quellIndex": 193
+    },
+    {
+      "externeKennung": "cring",
+      "originalName": "Ring of The Crypt",
+      "deutscherAnzeigename": "Ring – Krypta",
+      "typ": "ring",
+      "quellIndex": 194
+    },
+    {
+      "externeKennung": "cearring",
+      "originalName": "Earring of The Crypt",
+      "deutscherAnzeigename": "Ohrring – Krypta",
+      "typ": "earring",
+      "quellIndex": 195
+    },
+    {
+      "externeKennung": "intearring",
+      "originalName": "Earring of Intelligence",
+      "deutscherAnzeigename": "Ohrring – Intelligenz",
+      "typ": "earring",
+      "quellIndex": 196
+    },
+    {
+      "externeKennung": "strearring",
+      "originalName": "Earring of Strength",
+      "deutscherAnzeigename": "Ohrring – Stärke",
+      "typ": "earring",
+      "quellIndex": 197
+    },
+    {
+      "externeKennung": "dexearring",
+      "originalName": "Earring of Dexterity",
+      "deutscherAnzeigename": "Ohrring – Geschicklichkeit",
+      "typ": "earring",
+      "quellIndex": 198
+    },
+    {
+      "externeKennung": "dexearringx",
+      "originalName": "Enchanted Earring",
+      "deutscherAnzeigename": "Verzaubert Ohrring",
+      "typ": "earring",
+      "quellIndex": 199
+    },
+    {
+      "externeKennung": "vitearring",
+      "originalName": "Earring of Vitality",
+      "deutscherAnzeigename": "Ohrring – Vitalität",
+      "typ": "earring",
+      "quellIndex": 200
+    },
+    {
+      "externeKennung": "tollkeeperspike",
+      "originalName": "Tollkeeper's Pike",
+      "deutscherAnzeigename": "Speer von Tollkeeper",
+      "typ": "weapon",
+      "quellIndex": 201
+    },
+    {
+      "externeKennung": "ledgerlight",
+      "originalName": "Ledgerlight",
+      "deutscherAnzeigename": "Ledgerlight",
+      "typ": "weapon",
+      "quellIndex": 202
+    },
+    {
+      "externeKennung": "waybill",
+      "originalName": "Waybill",
+      "deutscherAnzeigename": "Frachtbrief",
+      "typ": "weapon",
+      "quellIndex": 203
+    },
+    {
+      "externeKennung": "surety",
+      "originalName": "Surety",
+      "deutscherAnzeigename": "Gewissheit",
+      "typ": "weapon",
+      "quellIndex": 204
+    },
+    {
+      "externeKennung": "nighttill",
+      "originalName": "Night Till",
+      "deutscherAnzeigename": "Nacht Kasse",
+      "typ": "weapon",
+      "quellIndex": 205
+    },
+    {
+      "externeKennung": "reunionbow",
+      "originalName": "Reunion Bow",
+      "deutscherAnzeigename": "Wiedervereinigung Bogen",
+      "typ": "weapon",
+      "quellIndex": 206
+    },
+    {
+      "externeKennung": "claw",
+      "originalName": "Claw",
+      "deutscherAnzeigename": "Klaue",
+      "typ": "weapon",
+      "quellIndex": 207
+    },
+    {
+      "externeKennung": "cclaw",
+      "originalName": "Crab Claw",
+      "deutscherAnzeigename": "Krabbe Klaue",
+      "typ": "weapon",
+      "quellIndex": 208
+    },
+    {
+      "externeKennung": "throwingstars",
+      "originalName": "Throwing Stars",
+      "deutscherAnzeigename": "Wurf Sterne",
+      "typ": "weapon",
+      "quellIndex": 209
+    },
+    {
+      "externeKennung": "snowflakes",
+      "originalName": "Snowflakes",
+      "deutscherAnzeigename": "Schneeflocken",
+      "typ": "weapon",
+      "quellIndex": 210
+    },
+    {
+      "externeKennung": "firestars",
+      "originalName": "Fiery Throwing Stars",
+      "deutscherAnzeigename": "Feurig Wurf Sterne",
+      "typ": "weapon",
+      "quellIndex": 211
+    },
+    {
+      "externeKennung": "fclaw",
+      "originalName": "Frozen Claw",
+      "deutscherAnzeigename": "Gefroren Klaue",
+      "typ": "weapon",
+      "quellIndex": 212
+    },
+    {
+      "externeKennung": "pclaw",
+      "originalName": "Poison Claw",
+      "deutscherAnzeigename": "Gift Klaue",
+      "typ": "weapon",
+      "quellIndex": 213
+    },
+    {
+      "externeKennung": "stinger",
+      "originalName": "Stinger",
+      "deutscherAnzeigename": "Stachel",
+      "typ": "weapon",
+      "quellIndex": 214
+    },
+    {
+      "externeKennung": "dagger",
+      "originalName": "Dagger",
+      "deutscherAnzeigename": "Dolch",
+      "typ": "weapon",
+      "quellIndex": 215
+    },
+    {
+      "externeKennung": "daggerofthedead",
+      "originalName": "Dagger of the Dead",
+      "deutscherAnzeigename": "Dolch – Tot",
+      "typ": "weapon",
+      "quellIndex": 216
+    },
+    {
+      "externeKennung": "dragondagger",
+      "originalName": "Dragon Dagger",
+      "deutscherAnzeigename": "Drache Dolch",
+      "typ": "weapon",
+      "quellIndex": 217
+    },
+    {
+      "externeKennung": "hdagger",
+      "originalName": "Dagger of Hallowing",
+      "deutscherAnzeigename": "Dolch – Heiligung",
+      "typ": "weapon",
+      "quellIndex": 218
+    },
+    {
+      "externeKennung": "dartgun",
+      "originalName": "Golden Dart Gun",
+      "deutscherAnzeigename": "Golden Wurfpfeil Gewehr",
+      "typ": "weapon",
+      "quellIndex": 219
+    },
+    {
+      "externeKennung": "rod",
+      "originalName": "Fishing Rod",
+      "deutscherAnzeigename": "Angeln Rute",
+      "typ": "tool",
+      "quellIndex": 220
+    },
+    {
+      "externeKennung": "pickaxe",
+      "originalName": "Pickaxe",
+      "deutscherAnzeigename": "Spitzhacke",
+      "typ": "tool",
+      "quellIndex": 221
+    },
+    {
+      "externeKennung": "bow",
+      "originalName": "Bow",
+      "deutscherAnzeigename": "Bogen",
+      "typ": "weapon",
+      "quellIndex": 222
+    },
+    {
+      "externeKennung": "pouchbow",
+      "originalName": "Poucher",
+      "deutscherAnzeigename": "Poucher",
+      "typ": "weapon",
+      "quellIndex": 223
+    },
+    {
+      "externeKennung": "weaver",
+      "originalName": "Bow of the Weaver",
+      "deutscherAnzeigename": "Bogen – Weber",
+      "typ": "weapon",
+      "quellIndex": 224
+    },
+    {
+      "externeKennung": "crossbow",
+      "originalName": "Crossbow",
+      "deutscherAnzeigename": "Armbrust",
+      "typ": "weapon",
+      "quellIndex": 225
+    },
+    {
+      "externeKennung": "hbow",
+      "originalName": "Hunting Bow",
+      "deutscherAnzeigename": "Jagd Bogen",
+      "typ": "weapon",
+      "quellIndex": 226
+    },
+    {
+      "externeKennung": "merry",
+      "originalName": "Bow of The Merry Ranger",
+      "deutscherAnzeigename": "Bogen – Fröhlich Waldläufer",
+      "typ": "weapon",
+      "quellIndex": 227
+    },
+    {
+      "externeKennung": "cupid",
+      "originalName": "Cupid's Bow",
+      "deutscherAnzeigename": "Bogen von Amor",
+      "typ": "weapon",
+      "quellIndex": 228
+    },
+    {
+      "externeKennung": "firebow",
+      "originalName": "Fire Bow",
+      "deutscherAnzeigename": "Feuer Bogen",
+      "typ": "weapon",
+      "quellIndex": 229
+    },
+    {
+      "externeKennung": "frostbow",
+      "originalName": "Frost Bow",
+      "deutscherAnzeigename": "Frost Bogen",
+      "typ": "weapon",
+      "quellIndex": 230
+    },
+    {
+      "externeKennung": "t2bow",
+      "originalName": "Well-Crafted Bow",
+      "deutscherAnzeigename": "Gut gefertigt Bogen",
+      "typ": "weapon",
+      "quellIndex": 231
+    },
+    {
+      "externeKennung": "harpybow",
+      "originalName": "Harpy Bow",
+      "deutscherAnzeigename": "Harpyie Bogen",
+      "typ": "weapon",
+      "quellIndex": 232
+    },
+    {
+      "externeKennung": "t3bow",
+      "originalName": "Artisan's Bow",
+      "deutscherAnzeigename": "Bogen von Handwerker",
+      "typ": "weapon",
+      "quellIndex": 233
+    },
+    {
+      "externeKennung": "bowofthedead",
+      "originalName": "Bow of the Dead",
+      "deutscherAnzeigename": "Bogen – Tot",
+      "typ": "weapon",
+      "quellIndex": 234
+    },
+    {
+      "externeKennung": "gbow",
+      "originalName": "Bow of the Feared Ranger",
+      "deutscherAnzeigename": "Bogen – Gefürchtet Waldläufer",
+      "typ": "weapon",
+      "quellIndex": 235
+    },
+    {
+      "externeKennung": "bow4",
+      "originalName": "T4 Bow",
+      "deutscherAnzeigename": "T4 Bogen",
+      "typ": "weapon",
+      "quellIndex": 236
+    },
+    {
+      "externeKennung": "spear",
+      "originalName": "Spear",
+      "deutscherAnzeigename": "Speer",
+      "typ": "weapon",
+      "quellIndex": 237
+    },
+    {
+      "externeKennung": "spearofthedead",
+      "originalName": "Spear of the Dead",
+      "deutscherAnzeigename": "Speer – Tot",
+      "typ": "weapon",
+      "quellIndex": 238
+    },
+    {
+      "externeKennung": "scythe",
+      "originalName": "Skeletor's Scythe",
+      "deutscherAnzeigename": "Sense von Skeletor",
+      "typ": "weapon",
+      "quellIndex": 239
+    },
+    {
+      "externeKennung": "blade",
+      "originalName": "Blade",
+      "deutscherAnzeigename": "Klinge",
+      "typ": "weapon",
+      "quellIndex": 240
+    },
+    {
+      "externeKennung": "sword",
+      "originalName": "Short Sword",
+      "deutscherAnzeigename": "Kurz Schwert",
+      "typ": "weapon",
+      "quellIndex": 241
+    },
+    {
+      "externeKennung": "swifty",
+      "originalName": "Swifty",
+      "deutscherAnzeigename": "Swifty",
+      "typ": "weapon",
+      "quellIndex": 242
+    },
+    {
+      "externeKennung": "fsword",
+      "originalName": "Frozen Sword",
+      "deutscherAnzeigename": "Gefroren Schwert",
+      "typ": "weapon",
+      "quellIndex": 243
+    },
+    {
+      "externeKennung": "rapier",
+      "originalName": "Rapier",
+      "deutscherAnzeigename": "Rapier",
+      "typ": "weapon",
+      "quellIndex": 244
+    },
+    {
+      "externeKennung": "basher",
+      "originalName": "Basher",
+      "deutscherAnzeigename": "Wuchtwaffe",
+      "typ": "weapon",
+      "quellIndex": 245
+    },
+    {
+      "externeKennung": "bataxe",
+      "originalName": "Ghastly Battle Axe",
+      "deutscherAnzeigename": "Schaurig Kampf Axt",
+      "typ": "weapon",
+      "quellIndex": 246
+    },
+    {
+      "externeKennung": "axe3",
+      "originalName": "T3 Axe",
+      "deutscherAnzeigename": "T3 Axt",
+      "typ": "weapon",
+      "quellIndex": 247
+    },
+    {
+      "externeKennung": "fireblade",
+      "originalName": "Fiery Blade",
+      "deutscherAnzeigename": "Feurig Klinge",
+      "typ": "weapon",
+      "quellIndex": 248
+    },
+    {
+      "externeKennung": "swordofthedead",
+      "originalName": "Sword of the Dead",
+      "deutscherAnzeigename": "Schwert – Tot",
+      "typ": "weapon",
+      "quellIndex": 249
+    },
+    {
+      "externeKennung": "woodensword",
+      "originalName": "Wooden Sword",
+      "deutscherAnzeigename": "Holz Schwert",
+      "typ": "weapon",
+      "quellIndex": 250
+    },
+    {
+      "externeKennung": "heartwood",
+      "originalName": "Heartwood",
+      "deutscherAnzeigename": "Kernholz",
+      "typ": "weapon",
+      "quellIndex": 251
+    },
+    {
+      "externeKennung": "glolipop",
+      "originalName": "Lolipop Mace",
+      "deutscherAnzeigename": "Lutscher Streitkolben",
+      "typ": "weapon",
+      "quellIndex": 252
+    },
+    {
+      "externeKennung": "ololipop",
+      "originalName": "Lolipop Mace",
+      "deutscherAnzeigename": "Lutscher Streitkolben",
+      "typ": "weapon",
+      "quellIndex": 253
+    },
+    {
+      "externeKennung": "mace",
+      "originalName": "Mace",
+      "deutscherAnzeigename": "Streitkolben",
+      "typ": "weapon",
+      "quellIndex": 254
+    },
+    {
+      "externeKennung": "xmace",
+      "originalName": "Merry Mace",
+      "deutscherAnzeigename": "Fröhlich Streitkolben",
+      "typ": "weapon",
+      "quellIndex": 255
+    },
+    {
+      "externeKennung": "wbasher",
+      "originalName": "Wooden Basher",
+      "deutscherAnzeigename": "Holz Wuchtwaffe",
+      "typ": "weapon",
+      "quellIndex": 256
+    },
+    {
+      "externeKennung": "hammer",
+      "originalName": "Hammer",
+      "deutscherAnzeigename": "Hammer",
+      "typ": "weapon",
+      "quellIndex": 257
+    },
+    {
+      "externeKennung": "vhammer",
+      "originalName": "Vampiric Hammer",
+      "deutscherAnzeigename": "Vampirisch Hammer",
+      "typ": "weapon",
+      "quellIndex": 258
+    },
+    {
+      "externeKennung": "vstaff",
+      "originalName": "Vampiric Staff",
+      "deutscherAnzeigename": "Vampirisch Stab",
+      "typ": "weapon",
+      "quellIndex": 259
+    },
+    {
+      "externeKennung": "vdagger",
+      "originalName": "Vampiric Dagger",
+      "deutscherAnzeigename": "Vampirisch Dolch",
+      "typ": "weapon",
+      "quellIndex": 260
+    },
+    {
+      "externeKennung": "vsword",
+      "originalName": "Vampiric Sword",
+      "deutscherAnzeigename": "Vampirisch Schwert",
+      "typ": "weapon",
+      "quellIndex": 261
+    },
+    {
+      "externeKennung": "maceofthedead",
+      "originalName": "Mace of the Dead",
+      "deutscherAnzeigename": "Streitkolben – Tot",
+      "typ": "weapon",
+      "quellIndex": 262
+    },
+    {
+      "externeKennung": "pmaceofthedead",
+      "originalName": "Hand of the Dead",
+      "deutscherAnzeigename": "Hand – Tot",
+      "typ": "weapon",
+      "quellIndex": 263
+    },
+    {
+      "externeKennung": "carrotsword",
+      "originalName": "Carrot Sword",
+      "deutscherAnzeigename": "Karotte Schwert",
+      "typ": "weapon",
+      "quellIndex": 264
+    },
+    {
+      "externeKennung": "candycanesword",
+      "originalName": "Candy Cane Sword",
+      "deutscherAnzeigename": "Süßigkeit Stange Schwert",
+      "typ": "weapon",
+      "quellIndex": 265
+    },
+    {
+      "externeKennung": "pinkie",
+      "originalName": "Pink Wand",
+      "deutscherAnzeigename": "Rosa Zauberstab",
+      "typ": "weapon",
+      "quellIndex": 266
+    },
+    {
+      "externeKennung": "wand",
+      "originalName": "Wand",
+      "deutscherAnzeigename": "Zauberstab",
+      "typ": "weapon",
+      "quellIndex": 267
+    },
+    {
+      "externeKennung": "broom",
+      "originalName": "Broom",
+      "deutscherAnzeigename": "Besen",
+      "typ": "weapon",
+      "quellIndex": 268
+    },
+    {
+      "externeKennung": "staff",
+      "originalName": "Staff",
+      "deutscherAnzeigename": "Stab",
+      "typ": "weapon",
+      "quellIndex": 269
+    },
+    {
+      "externeKennung": "gstaff",
+      "originalName": "Blaster",
+      "deutscherAnzeigename": "Strahler",
+      "typ": "weapon",
+      "quellIndex": 270
+    },
+    {
+      "externeKennung": "sparkstaff",
+      "originalName": "Spark Staff",
+      "deutscherAnzeigename": "Funke Stab",
+      "typ": "weapon",
+      "quellIndex": 271
+    },
+    {
+      "externeKennung": "staff2",
+      "originalName": "T2 Staff",
+      "deutscherAnzeigename": "T2 Stab",
+      "typ": "weapon",
+      "quellIndex": 272
+    },
+    {
+      "externeKennung": "staff3",
+      "originalName": "T3 Staff",
+      "deutscherAnzeigename": "T3 Stab",
+      "typ": "weapon",
+      "quellIndex": 273
+    },
+    {
+      "externeKennung": "staff4",
+      "originalName": "T4 Staff",
+      "deutscherAnzeigename": "T4 Stab",
+      "typ": "weapon",
+      "quellIndex": 274
+    },
+    {
+      "externeKennung": "slimestaff",
+      "originalName": "Slime Staff",
+      "deutscherAnzeigename": "Schleim Stab",
+      "typ": "weapon",
+      "quellIndex": 275
+    },
+    {
+      "externeKennung": "mushroomstaff",
+      "originalName": "Mushroom Staff",
+      "deutscherAnzeigename": "Pilz Stab",
+      "typ": "weapon",
+      "quellIndex": 276
+    },
+    {
+      "externeKennung": "firestaff",
+      "originalName": "Fiery Staff",
+      "deutscherAnzeigename": "Feurig Stab",
+      "typ": "weapon",
+      "quellIndex": 277
+    },
+    {
+      "externeKennung": "ornamentstaff",
+      "originalName": "Ornament Staff",
+      "deutscherAnzeigename": "Schmuck Stab",
+      "typ": "weapon",
+      "quellIndex": 278
+    },
+    {
+      "externeKennung": "staffofthedead",
+      "originalName": "Staff of the Dead",
+      "deutscherAnzeigename": "Stab – Tot",
+      "typ": "weapon",
+      "quellIndex": 279
+    },
+    {
+      "externeKennung": "froststaff",
+      "originalName": "Frost Staff",
+      "deutscherAnzeigename": "Frost Stab",
+      "typ": "weapon",
+      "quellIndex": 280
+    },
+    {
+      "externeKennung": "oozingterror",
+      "originalName": "Oozing Terror",
+      "deutscherAnzeigename": "Triefend Schrecken",
+      "typ": "weapon",
+      "quellIndex": 281
+    },
+    {
+      "externeKennung": "harbringer",
+      "originalName": "Harbringer",
+      "deutscherAnzeigename": "Vorbote",
+      "typ": "weapon",
+      "quellIndex": 282
+    },
+    {
+      "externeKennung": "worldrootcrook",
+      "originalName": "Worldroot Crook",
+      "deutscherAnzeigename": "Worldroot Krummstab",
+      "typ": "weapon",
+      "quellIndex": 283
+    },
+    {
+      "externeKennung": "threadneedle",
+      "originalName": "Threadneedle",
+      "deutscherAnzeigename": "Threadneedle",
+      "typ": "weapon",
+      "quellIndex": 284
+    },
+    {
+      "externeKennung": "brinefang",
+      "originalName": "Brinefang",
+      "deutscherAnzeigename": "Brinefang",
+      "typ": "weapon",
+      "quellIndex": 285
+    },
+    {
+      "externeKennung": "cinderwand",
+      "originalName": "Cinder Wand",
+      "deutscherAnzeigename": "Glut Zauberstab",
+      "typ": "weapon",
+      "quellIndex": 286
+    },
+    {
+      "externeKennung": "pollenbow",
+      "originalName": "Pollen Bow",
+      "deutscherAnzeigename": "Pollen Bogen",
+      "typ": "weapon",
+      "quellIndex": 287
+    },
+    {
+      "externeKennung": "rimeknuckles",
+      "originalName": "Rime Knuckles",
+      "deutscherAnzeigename": "Reif Schlagring",
+      "typ": "weapon",
+      "quellIndex": 288
+    },
+    {
+      "externeKennung": "valourdirk",
+      "originalName": "Valour Dirk",
+      "deutscherAnzeigename": "Tapferkeit Dolch",
+      "typ": "weapon",
+      "quellIndex": 289
+    },
+    {
+      "externeKennung": "wblade",
+      "originalName": "Ethereal Blade of Destiny",
+      "deutscherAnzeigename": "Ätherisch Klinge – Schicksal",
+      "typ": "weapon",
+      "quellIndex": 290
+    },
+    {
+      "externeKennung": "pmace",
+      "originalName": "Priest's Mace",
+      "deutscherAnzeigename": "Streitkolben von Priester",
+      "typ": "weapon",
+      "quellIndex": 291
+    },
+    {
+      "externeKennung": "lmace",
+      "originalName": "Lunar Mace",
+      "deutscherAnzeigename": "Mond Streitkolben",
+      "typ": "weapon",
+      "quellIndex": 292
+    },
+    {
+      "externeKennung": "concordmace",
+      "originalName": "Concord Mace",
+      "deutscherAnzeigename": "Concord Streitkolben",
+      "typ": "weapon",
+      "quellIndex": 293
+    },
+    {
+      "externeKennung": "candleward",
+      "originalName": "Candleward",
+      "deutscherAnzeigename": "Candleward",
+      "typ": "shield",
+      "quellIndex": 294
+    },
+    {
+      "externeKennung": "guestbook",
+      "originalName": "The Guestbook",
+      "deutscherAnzeigename": "Gästebuch",
+      "typ": "source",
+      "quellIndex": 295
+    },
+    {
+      "externeKennung": "paradequiver",
+      "originalName": "Parade Quiver",
+      "deutscherAnzeigename": "Parade Köcher",
+      "typ": "quiver",
+      "quellIndex": 296
+    },
+    {
+      "externeKennung": "shield",
+      "originalName": "Shield",
+      "deutscherAnzeigename": "Schild",
+      "typ": "shield",
+      "quellIndex": 297
+    },
+    {
+      "externeKennung": "tigershield",
+      "originalName": "Shield of the Tiger",
+      "deutscherAnzeigename": "Schild – Tiger",
+      "typ": "shield",
+      "quellIndex": 298
+    },
+    {
+      "externeKennung": "dawnwardaegis",
+      "originalName": "Dawnward Aegis",
+      "deutscherAnzeigename": "Dawnward Aigis",
+      "typ": "shield",
+      "quellIndex": 299
+    },
+    {
+      "externeKennung": "xshield",
+      "originalName": "Shield X",
+      "deutscherAnzeigename": "Schild X",
+      "typ": "shield",
+      "quellIndex": 300
+    },
+    {
+      "externeKennung": "mshield",
+      "originalName": "Shield M",
+      "deutscherAnzeigename": "Schild M",
+      "typ": "shield",
+      "quellIndex": 301
+    },
+    {
+      "externeKennung": "exoarm",
+      "originalName": "Exoskeletal Arm",
+      "deutscherAnzeigename": "Exoskelett Arm",
+      "typ": "misc_offhand",
+      "quellIndex": 302
+    },
+    {
+      "externeKennung": "lantern",
+      "originalName": "The Lantern",
+      "deutscherAnzeigename": "Laterne",
+      "typ": "misc_offhand",
+      "quellIndex": 303
+    },
+    {
+      "externeKennung": "sshield",
+      "originalName": "Spiked Shield",
+      "deutscherAnzeigename": "Stachelig Schild",
+      "typ": "shield",
+      "quellIndex": 304
+    },
+    {
+      "externeKennung": "wshield",
+      "originalName": "Wooden Shield",
+      "deutscherAnzeigename": "Holz Schild",
+      "typ": "shield",
+      "quellIndex": 305
+    },
+    {
+      "externeKennung": "wbook0",
+      "originalName": "Book of Knowledge",
+      "deutscherAnzeigename": "Buch – Wissen",
+      "typ": "source",
+      "quellIndex": 306
+    },
+    {
+      "externeKennung": "wbook1",
+      "originalName": "Book of Secrets",
+      "deutscherAnzeigename": "Buch – Geheimnisse",
+      "typ": "source",
+      "quellIndex": 307
+    },
+    {
+      "externeKennung": "wbookhs",
+      "originalName": "Book of Cheer",
+      "deutscherAnzeigename": "Buch – Jubel",
+      "typ": "source",
+      "quellIndex": 308
+    },
+    {
+      "externeKennung": "quiver",
+      "originalName": "Quiver",
+      "deutscherAnzeigename": "Köcher",
+      "typ": "quiver",
+      "quellIndex": 309
+    },
+    {
+      "externeKennung": "t2quiver",
+      "originalName": "Agile Quiver",
+      "deutscherAnzeigename": "Agil Köcher",
+      "typ": "quiver",
+      "quellIndex": 310
+    },
+    {
+      "externeKennung": "alloyquiver",
+      "originalName": "Alloy Quiver",
+      "deutscherAnzeigename": "Legierung Köcher",
+      "typ": "quiver",
+      "quellIndex": 311
+    },
+    {
+      "externeKennung": "brownegg",
+      "originalName": "Brown Egg",
+      "deutscherAnzeigename": "Braun Ei",
+      "typ": "material",
+      "quellIndex": 312
+    },
+    {
+      "externeKennung": "whiteegg",
+      "originalName": "White Egg",
+      "deutscherAnzeigename": "Weiß Ei",
+      "typ": "material",
+      "quellIndex": 313
+    },
+    {
+      "externeKennung": "gslime",
+      "originalName": "Slime Core",
+      "deutscherAnzeigename": "Schleim Kern",
+      "typ": "material",
+      "quellIndex": 314
+    },
+    {
+      "externeKennung": "crabclaw",
+      "originalName": "Crab Claw",
+      "deutscherAnzeigename": "Krabbe Klaue",
+      "typ": "material",
+      "quellIndex": 315
+    },
+    {
+      "externeKennung": "beewings",
+      "originalName": "Bee Wings",
+      "deutscherAnzeigename": "Biene Flügel",
+      "typ": "material",
+      "quellIndex": 316
+    },
+    {
+      "externeKennung": "pleather",
+      "originalName": "Porcupine Leather",
+      "deutscherAnzeigename": "Stachelschwein Leder",
+      "typ": "material",
+      "quellIndex": 317
+    },
+    {
+      "externeKennung": "spores",
+      "originalName": "Spores",
+      "deutscherAnzeigename": "Sporen",
+      "typ": "material",
+      "quellIndex": 318
+    },
+    {
+      "externeKennung": "lotusf",
+      "originalName": "Lotus Flower",
+      "deutscherAnzeigename": "Lotus Blume",
+      "typ": "material",
+      "quellIndex": 319
+    },
+    {
+      "externeKennung": "frogt",
+      "originalName": "Frog Tongue",
+      "deutscherAnzeigename": "Frosch Zunge",
+      "typ": "material",
+      "quellIndex": 320
+    },
+    {
+      "externeKennung": "snakefang",
+      "originalName": "Snake Fang",
+      "deutscherAnzeigename": "Schlange Fangzahn",
+      "typ": "material",
+      "quellIndex": 321
+    },
+    {
+      "externeKennung": "rattail",
+      "originalName": "Rat Tail",
+      "deutscherAnzeigename": "Ratte Schwanz",
+      "typ": "material",
+      "quellIndex": 322
+    },
+    {
+      "externeKennung": "ascale",
+      "originalName": "Armadillo Scale",
+      "deutscherAnzeigename": "Gürteltier Schuppe",
+      "typ": "material",
+      "quellIndex": 323
+    },
+    {
+      "externeKennung": "ink",
+      "originalName": "Ink",
+      "deutscherAnzeigename": "Tinte",
+      "typ": "material",
+      "quellIndex": 324
+    },
+    {
+      "externeKennung": "ijx",
+      "originalName": "Irradium",
+      "deutscherAnzeigename": "Irradium",
+      "typ": "material",
+      "quellIndex": 325
+    },
+    {
+      "externeKennung": "smush",
+      "originalName": "Small Mushroom",
+      "deutscherAnzeigename": "Klein Pilz",
+      "typ": "material",
+      "quellIndex": 326
+    },
+    {
+      "externeKennung": "carrot",
+      "originalName": "Carrot",
+      "deutscherAnzeigename": "Karotte",
+      "typ": "material",
+      "quellIndex": 327
+    },
+    {
+      "externeKennung": "bfur",
+      "originalName": "Bee Fur",
+      "deutscherAnzeigename": "Biene Fell",
+      "typ": "material",
+      "quellIndex": 328
+    },
+    {
+      "externeKennung": "bandages",
+      "originalName": "Bandages",
+      "deutscherAnzeigename": "Bandagen",
+      "typ": "material",
+      "quellIndex": 329
+    },
+    {
+      "externeKennung": "cocoon",
+      "originalName": "Cocoon",
+      "deutscherAnzeigename": "Kokon",
+      "typ": "material",
+      "quellIndex": 330
+    },
+    {
+      "externeKennung": "tshell",
+      "originalName": "Turtle Shell",
+      "deutscherAnzeigename": "Schildkröte Muschel",
+      "typ": "material",
+      "quellIndex": 331
+    },
+    {
+      "externeKennung": "dstones",
+      "originalName": "Digestive Stones",
+      "deutscherAnzeigename": "Verdauung Steine",
+      "typ": "material",
+      "quellIndex": 332
+    },
+    {
+      "externeKennung": "bwing",
+      "originalName": "Bat Wing",
+      "deutscherAnzeigename": "Fledermaus Flügel",
+      "typ": "material",
+      "quellIndex": 333
+    },
+    {
+      "externeKennung": "bfang",
+      "originalName": "Bat Fang",
+      "deutscherAnzeigename": "Fledermaus Fangzahn",
+      "typ": "material",
+      "quellIndex": 334
+    },
+    {
+      "externeKennung": "sstinger",
+      "originalName": "Scorpion Stinger",
+      "deutscherAnzeigename": "Skorpion Stachel",
+      "typ": "material",
+      "quellIndex": 335
+    },
+    {
+      "externeKennung": "svenom",
+      "originalName": "Scorpion Venom",
+      "deutscherAnzeigename": "Skorpion Gift",
+      "typ": "material",
+      "quellIndex": 336
+    },
+    {
+      "externeKennung": "pstem",
+      "originalName": "Pumpkin Stem",
+      "deutscherAnzeigename": "Kürbis Stängel",
+      "typ": "material",
+      "quellIndex": 337
+    },
+    {
+      "externeKennung": "watercore",
+      "originalName": "Water Core",
+      "deutscherAnzeigename": "Wasser Kern",
+      "typ": "material",
+      "quellIndex": 338
+    },
+    {
+      "externeKennung": "ectoplasm",
+      "originalName": "Ectoplasm",
+      "deutscherAnzeigename": "Ektoplasma",
+      "typ": "material",
+      "quellIndex": 339
+    },
+    {
+      "externeKennung": "rfur",
+      "originalName": "Rat Fur",
+      "deutscherAnzeigename": "Ratte Fell",
+      "typ": "material",
+      "quellIndex": 340
+    },
+    {
+      "externeKennung": "cshell",
+      "originalName": "Crab Shell",
+      "deutscherAnzeigename": "Krabbe Muschel",
+      "typ": "material",
+      "quellIndex": 341
+    },
+    {
+      "externeKennung": "bcandle",
+      "originalName": "Burning Candle",
+      "deutscherAnzeigename": "Brennend Kerze",
+      "typ": "material",
+      "quellIndex": 342
+    },
+    {
+      "externeKennung": "lspores",
+      "originalName": "Large Spores",
+      "deutscherAnzeigename": "Groß Sporen",
+      "typ": "material",
+      "quellIndex": 343
+    },
+    {
+      "externeKennung": "trinkets",
+      "originalName": "Trinkets",
+      "deutscherAnzeigename": "Schmuckstücke",
+      "typ": "material",
+      "quellIndex": 344
+    },
+    {
+      "externeKennung": "rfangs",
+      "originalName": "Rat Fangs",
+      "deutscherAnzeigename": "Ratte Fangzähne",
+      "typ": "material",
+      "quellIndex": 345
+    },
+    {
+      "externeKennung": "btusk",
+      "originalName": "Boar Tusk",
+      "deutscherAnzeigename": "Wildschwein Stoßzahn",
+      "typ": "material",
+      "quellIndex": 346
+    },
+    {
+      "externeKennung": "drapes",
+      "originalName": "Drapes",
+      "deutscherAnzeigename": "Vorhänge",
+      "typ": "material",
+      "quellIndex": 347
+    },
+    {
+      "externeKennung": "slice_strawberry",
+      "originalName": "Strawberry Slice",
+      "deutscherAnzeigename": "Erdbeere Stück",
+      "typ": "material",
+      "quellIndex": 348
+    },
+    {
+      "externeKennung": "slice_citrus",
+      "originalName": "Citrus Slice",
+      "deutscherAnzeigename": "Zitrus Stück",
+      "typ": "material",
+      "quellIndex": 349
+    },
+    {
+      "externeKennung": "slice_honey",
+      "originalName": "Honey Slice",
+      "deutscherAnzeigename": "Honig Stück",
+      "typ": "material",
+      "quellIndex": 350
+    },
+    {
+      "externeKennung": "slice_mint",
+      "originalName": "Mint Slice",
+      "deutscherAnzeigename": "Minze Stück",
+      "typ": "material",
+      "quellIndex": 351
+    },
+    {
+      "externeKennung": "slice_blueberry",
+      "originalName": "Blueberry Slice",
+      "deutscherAnzeigename": "Blaubeere Stück",
+      "typ": "material",
+      "quellIndex": 352
+    },
+    {
+      "externeKennung": "slice_nightberry",
+      "originalName": "Nightberry Slice",
+      "deutscherAnzeigename": "Nightberry Stück",
+      "typ": "material",
+      "quellIndex": 353
+    },
+    {
+      "externeKennung": "essenceoffrost",
+      "originalName": "Essence of Frost",
+      "deutscherAnzeigename": "Essenz – Frost",
+      "typ": "material",
+      "quellIndex": 354
+    },
+    {
+      "externeKennung": "essenceoffire",
+      "originalName": "Essence of Fire",
+      "deutscherAnzeigename": "Essenz – Feuer",
+      "typ": "material",
+      "quellIndex": 355
+    },
+    {
+      "externeKennung": "essenceofether",
+      "originalName": "Ethereal Essence",
+      "deutscherAnzeigename": "Ätherisch Essenz",
+      "typ": "material",
+      "quellIndex": 356
+    },
+    {
+      "externeKennung": "essenceofnature",
+      "originalName": "Essence of Nature",
+      "deutscherAnzeigename": "Essenz – Natur",
+      "typ": "material",
+      "quellIndex": 357
+    },
+    {
+      "externeKennung": "essenceoflife",
+      "originalName": "Essence of Life",
+      "deutscherAnzeigename": "Essenz – Leben",
+      "typ": "material",
+      "quellIndex": 358
+    },
+    {
+      "externeKennung": "essenceofgreed",
+      "originalName": "Essence of Greed",
+      "deutscherAnzeigename": "Essenz – Gier",
+      "typ": "material",
+      "quellIndex": 359
+    },
+    {
+      "externeKennung": "emptyjar",
+      "originalName": "Empty Jar",
+      "deutscherAnzeigename": "Leer Glas",
+      "typ": "jar",
+      "quellIndex": 360
+    },
+    {
+      "externeKennung": "cxjar",
+      "originalName": "CX Jar",
+      "deutscherAnzeigename": "CX Glas",
+      "typ": "jar",
+      "quellIndex": 361
+    },
+    {
+      "externeKennung": "bottleofxp",
+      "originalName": "Bottle of XP",
+      "deutscherAnzeigename": "Flasche – EP",
+      "typ": "xp",
+      "quellIndex": 362
+    },
+    {
+      "externeKennung": "nheart",
+      "originalName": "Heartwood Core",
+      "deutscherAnzeigename": "Kernholz Kern",
+      "typ": "material",
+      "quellIndex": 363
+    },
+    {
+      "externeKennung": "ledger",
+      "originalName": "Ledger",
+      "deutscherAnzeigename": "Hauptbuch",
+      "typ": "misc",
+      "quellIndex": 364
+    },
+    {
+      "externeKennung": "storagebox",
+      "originalName": "Storage Box",
+      "deutscherAnzeigename": "Lager Kiste",
+      "typ": "misc",
+      "quellIndex": 365
+    },
+    {
+      "externeKennung": "mysterybox",
+      "originalName": "Mystery Box",
+      "deutscherAnzeigename": "Mysterium Kiste",
+      "typ": "misc",
+      "quellIndex": 366
+    },
+    {
+      "externeKennung": "troll",
+      "originalName": "T-Shirt Roll",
+      "deutscherAnzeigename": "T-Shirt Rolle",
+      "typ": "misc",
+      "quellIndex": 367
+    },
+    {
+      "externeKennung": "hpot0",
+      "originalName": "HP Potion",
+      "deutscherAnzeigename": "LP Trank",
+      "typ": "pot",
+      "quellIndex": 368
+    },
+    {
+      "externeKennung": "mpot0",
+      "originalName": "MP Potion",
+      "deutscherAnzeigename": "MP Trank",
+      "typ": "pot",
+      "quellIndex": 369
+    },
+    {
+      "externeKennung": "hpot1",
+      "originalName": "HP Potion",
+      "deutscherAnzeigename": "LP Trank",
+      "typ": "pot",
+      "quellIndex": 370
+    },
+    {
+      "externeKennung": "mpot1",
+      "originalName": "MP Potion",
+      "deutscherAnzeigename": "MP Trank",
+      "typ": "pot",
+      "quellIndex": 371
+    },
+    {
+      "externeKennung": "hpotx",
+      "originalName": "Super HP Potion",
+      "deutscherAnzeigename": "Super LP Trank",
+      "typ": "pot",
+      "quellIndex": 372
+    },
+    {
+      "externeKennung": "mpotx",
+      "originalName": "Super MP Potion",
+      "deutscherAnzeigename": "Super MP Trank",
+      "typ": "pot",
+      "quellIndex": 373
+    },
+    {
+      "externeKennung": "cscroll0",
+      "originalName": "Compound Scroll",
+      "deutscherAnzeigename": "Kombination Schriftrolle",
+      "typ": "cscroll",
+      "quellIndex": 374
+    },
+    {
+      "externeKennung": "cscroll1",
+      "originalName": "High Compound Scroll",
+      "deutscherAnzeigename": "Hoch Kombination Schriftrolle",
+      "typ": "cscroll",
+      "quellIndex": 375
+    },
+    {
+      "externeKennung": "cscroll2",
+      "originalName": "Rare Compound Scroll",
+      "deutscherAnzeigename": "Selten Kombination Schriftrolle",
+      "typ": "cscroll",
+      "quellIndex": 376
+    },
+    {
+      "externeKennung": "cscroll3",
+      "originalName": "Legendary Compound Scroll",
+      "deutscherAnzeigename": "Legendär Kombination Schriftrolle",
+      "typ": "cscroll",
+      "quellIndex": 377
+    },
+    {
+      "externeKennung": "scroll0",
+      "originalName": "Upgrade Scroll",
+      "deutscherAnzeigename": "Aufwertung Schriftrolle",
+      "typ": "uscroll",
+      "quellIndex": 378
+    },
+    {
+      "externeKennung": "scroll1",
+      "originalName": "High Upgrade Scroll",
+      "deutscherAnzeigename": "Hoch Aufwertung Schriftrolle",
+      "typ": "uscroll",
+      "quellIndex": 379
+    },
+    {
+      "externeKennung": "scroll2",
+      "originalName": "Rare Upgrade Scroll",
+      "deutscherAnzeigename": "Selten Aufwertung Schriftrolle",
+      "typ": "uscroll",
+      "quellIndex": 380
+    },
+    {
+      "externeKennung": "scroll3",
+      "originalName": "Legendary Upgrade Scroll",
+      "deutscherAnzeigename": "Legendär Aufwertung Schriftrolle",
+      "typ": "uscroll",
+      "quellIndex": 381
+    },
+    {
+      "externeKennung": "scroll4",
+      "originalName": "Ultimate Upgrade Scroll",
+      "deutscherAnzeigename": "Ultimativ Aufwertung Schriftrolle",
+      "typ": "uscroll",
+      "quellIndex": 382
+    },
+    {
+      "externeKennung": "strscroll",
+      "originalName": "Strength Scroll",
+      "deutscherAnzeigename": "Stärke Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 383
+    },
+    {
+      "externeKennung": "intscroll",
+      "originalName": "Intelligence Scroll",
+      "deutscherAnzeigename": "Intelligenz Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 384
+    },
+    {
+      "externeKennung": "dexscroll",
+      "originalName": "Dexterity Scroll",
+      "deutscherAnzeigename": "Geschicklichkeit Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 385
+    },
+    {
+      "externeKennung": "vitscroll",
+      "originalName": "Vitality Scroll",
+      "deutscherAnzeigename": "Vitalität Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 386
+    },
+    {
+      "externeKennung": "forscroll",
+      "originalName": "Fortitude Scroll",
+      "deutscherAnzeigename": "Standhaftigkeit Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 387
+    },
+    {
+      "externeKennung": "evasionscroll",
+      "originalName": "Evasion Scroll",
+      "deutscherAnzeigename": "Ausweichen Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 388
+    },
+    {
+      "externeKennung": "reflectionscroll",
+      "originalName": "Reflection Scroll",
+      "deutscherAnzeigename": "Reflexion Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 389
+    },
+    {
+      "externeKennung": "goldscroll",
+      "originalName": "Gold Scroll",
+      "deutscherAnzeigename": "Gold Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 390
+    },
+    {
+      "externeKennung": "luckscroll",
+      "originalName": "Luck Scroll",
+      "deutscherAnzeigename": "Glück Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 391
+    },
+    {
+      "externeKennung": "xpscroll",
+      "originalName": "XP Scroll",
+      "deutscherAnzeigename": "EP Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 392
+    },
+    {
+      "externeKennung": "armorscroll",
+      "originalName": "Armor Scroll",
+      "deutscherAnzeigename": "Rüstung Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 393
+    },
+    {
+      "externeKennung": "resistancescroll",
+      "originalName": "Resistance Scroll",
+      "deutscherAnzeigename": "Widerstand Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 394
+    },
+    {
+      "externeKennung": "speedscroll",
+      "originalName": "Speed Scroll",
+      "deutscherAnzeigename": "Geschwindigkeit Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 395
+    },
+    {
+      "externeKennung": "lifestealscroll",
+      "originalName": "Lifesteal Scroll",
+      "deutscherAnzeigename": "Lebensraub Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 396
+    },
+    {
+      "externeKennung": "manastealscroll",
+      "originalName": "Manasteal Scroll",
+      "deutscherAnzeigename": "Manaraub Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 397
+    },
+    {
+      "externeKennung": "rpiercingscroll",
+      "originalName": "Resistance Piercing Scroll",
+      "deutscherAnzeigename": "Widerstand Durchdringung Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 398
+    },
+    {
+      "externeKennung": "apiercingscroll",
+      "originalName": "Armor Piercing Scroll",
+      "deutscherAnzeigename": "Rüstung Durchdringung Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 399
+    },
+    {
+      "externeKennung": "critscroll",
+      "originalName": "Critical Hit Scroll",
+      "deutscherAnzeigename": "Kritisch Treffer Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 400
+    },
+    {
+      "externeKennung": "dreturnscroll",
+      "originalName": "Damage Return Scroll",
+      "deutscherAnzeigename": "Schaden Rückkehr Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 401
+    },
+    {
+      "externeKennung": "frequencyscroll",
+      "originalName": "Attack Speed Scroll",
+      "deutscherAnzeigename": "Angriff Geschwindigkeit Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 402
+    },
+    {
+      "externeKennung": "mpcostscroll",
+      "originalName": "MP Cost Reduction Scroll",
+      "deutscherAnzeigename": "MP Kosten Reduktion Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 403
+    },
+    {
+      "externeKennung": "outputscroll",
+      "originalName": "Output Increase Scroll",
+      "deutscherAnzeigename": "Ausgabe Erhöhung Schriftrolle",
+      "typ": "pscroll",
+      "quellIndex": 404
+    },
+    {
+      "externeKennung": "offering",
+      "originalName": "Primordial Essence",
+      "deutscherAnzeigename": "Uralter Essenz",
+      "typ": "offering",
+      "quellIndex": 405
+    },
+    {
+      "externeKennung": "offeringp",
+      "originalName": "Primling",
+      "deutscherAnzeigename": "Primling",
+      "typ": "offering",
+      "quellIndex": 406
+    },
+    {
+      "externeKennung": "offeringx",
+      "originalName": "Primordial X",
+      "deutscherAnzeigename": "Uralter X",
+      "typ": "offering",
+      "quellIndex": 407
+    },
+    {
+      "externeKennung": "cosmo0",
+      "originalName": "New Armor",
+      "deutscherAnzeigename": "Neu Rüstung",
+      "typ": "cosmetics",
+      "quellIndex": 408
+    },
+    {
+      "externeKennung": "cosmo1",
+      "originalName": "New Make-up",
+      "deutscherAnzeigename": "Neu Make-up",
+      "typ": "cosmetics",
+      "quellIndex": 409
+    },
+    {
+      "externeKennung": "cosmo2",
+      "originalName": "New Hairdo",
+      "deutscherAnzeigename": "Neu Frisur",
+      "typ": "cosmetics",
+      "quellIndex": 410
+    },
+    {
+      "externeKennung": "cosmo3",
+      "originalName": "New Hat",
+      "deutscherAnzeigename": "Neu Hut",
+      "typ": "cosmetics",
+      "quellIndex": 411
+    },
+    {
+      "externeKennung": "cosmo4",
+      "originalName": "New Accessory",
+      "deutscherAnzeigename": "Neu Zubehör",
+      "typ": "cosmetics",
+      "quellIndex": 412
+    },
+    {
+      "externeKennung": "cosmo5",
+      "originalName": "New Misc.",
+      "deutscherAnzeigename": "Neu Verschiedenes.",
+      "typ": "cosmetics",
+      "quellIndex": 413
+    },
+    {
+      "externeKennung": "stoneofxp",
+      "originalName": "Stone of Wisdom",
+      "deutscherAnzeigename": "Stein – Weisheit",
+      "typ": "stone",
+      "quellIndex": 414
+    },
+    {
+      "externeKennung": "stoneofgold",
+      "originalName": "Stone of Riches",
+      "deutscherAnzeigename": "Stein – Reichtum",
+      "typ": "stone",
+      "quellIndex": 415
+    },
+    {
+      "externeKennung": "stoneofluck",
+      "originalName": "Stone of Luck",
+      "deutscherAnzeigename": "Stein – Glück",
+      "typ": "stone",
+      "quellIndex": 416
+    },
+    {
+      "externeKennung": "xptome",
+      "originalName": "Tome of Protection",
+      "deutscherAnzeigename": "Foliant – Schutz",
+      "typ": "tome",
+      "quellIndex": 417
+    },
+    {
+      "externeKennung": "licence",
+      "originalName": "Licence to Kill",
+      "deutscherAnzeigename": "Lizenz zu Tötung",
+      "typ": "licence",
+      "quellIndex": 418
+    },
+    {
+      "externeKennung": "xpbooster",
+      "originalName": "XP Booster",
+      "deutscherAnzeigename": "EP Verstärker",
+      "typ": "booster",
+      "quellIndex": 419
+    },
+    {
+      "externeKennung": "luckbooster",
+      "originalName": "Luck Booster",
+      "deutscherAnzeigename": "Glück Verstärker",
+      "typ": "booster",
+      "quellIndex": 420
+    },
+    {
+      "externeKennung": "goldbooster",
+      "originalName": "Gold Booster",
+      "deutscherAnzeigename": "Gold Verstärker",
+      "typ": "booster",
+      "quellIndex": 421
+    },
+    {
+      "externeKennung": "networkcard",
+      "originalName": "Network Card",
+      "deutscherAnzeigename": "Netzwerk Karte",
+      "typ": "material",
+      "quellIndex": 422
+    },
+    {
+      "externeKennung": "qubics",
+      "originalName": "Qubics",
+      "deutscherAnzeigename": "Qubics",
+      "typ": "qubics",
+      "quellIndex": 423
+    },
+    {
+      "externeKennung": "sixcake",
+      "originalName": "Sixfold Cake",
+      "deutscherAnzeigename": "Sechsfach Kuchen",
+      "typ": "gem",
+      "quellIndex": 424
+    },
+    {
+      "externeKennung": "anniversarygift",
+      "originalName": "Anniversary Gift",
+      "deutscherAnzeigename": "Jubiläum Geschenk",
+      "typ": "gem",
+      "quellIndex": 425
+    },
+    {
+      "externeKennung": "gem0",
+      "originalName": "Raw Emerald",
+      "deutscherAnzeigename": "Roh Smaragd",
+      "typ": "gem",
+      "quellIndex": 426
+    },
+    {
+      "externeKennung": "gem1",
+      "originalName": "Tiny Ruby",
+      "deutscherAnzeigename": "Winzig Rubin",
+      "typ": "gem",
+      "quellIndex": 427
+    },
+    {
+      "externeKennung": "gem2",
+      "originalName": "Raw Diamond",
+      "deutscherAnzeigename": "Roh Diamant",
+      "typ": "gem",
+      "quellIndex": 428
+    },
+    {
+      "externeKennung": "gem3",
+      "originalName": "Raw Colourful Diamond",
+      "deutscherAnzeigename": "Roh Bunt Diamant",
+      "typ": "gem",
+      "quellIndex": 429
+    },
+    {
+      "externeKennung": "candypop",
+      "originalName": "Candy Pop",
+      "deutscherAnzeigename": "Süßigkeit Pop",
+      "typ": "elixir",
+      "quellIndex": 430
+    },
+    {
+      "externeKennung": "candy0",
+      "originalName": "Rare Candy",
+      "deutscherAnzeigename": "Selten Süßigkeit",
+      "typ": "gem",
+      "quellIndex": 431
+    },
+    {
+      "externeKennung": "candy1",
+      "originalName": "Candy",
+      "deutscherAnzeigename": "Süßigkeit",
+      "typ": "gem",
+      "quellIndex": 432
+    },
+    {
+      "externeKennung": "candy0v2",
+      "originalName": "Rare Candy [h2]",
+      "deutscherAnzeigename": "Selten Süßigkeit [h2]",
+      "typ": "gem",
+      "quellIndex": 433
+    },
+    {
+      "externeKennung": "candy1v2",
+      "originalName": "Candy [h2]",
+      "deutscherAnzeigename": "Süßigkeit [h2]",
+      "typ": "gem",
+      "quellIndex": 434
+    },
+    {
+      "externeKennung": "candy0v3",
+      "originalName": "Rare Candy",
+      "deutscherAnzeigename": "Selten Süßigkeit",
+      "typ": "gem",
+      "quellIndex": 435
+    },
+    {
+      "externeKennung": "candy1v3",
+      "originalName": "Candy",
+      "deutscherAnzeigename": "Süßigkeit",
+      "typ": "gem",
+      "quellIndex": 436
+    },
+    {
+      "externeKennung": "bugbountybox",
+      "originalName": "Bug Bounty Box",
+      "deutscherAnzeigename": "Käfer Kopfgeld Kiste",
+      "typ": "box",
+      "quellIndex": 437
+    },
+    {
+      "externeKennung": "apologybox",
+      "originalName": "Apology Box",
+      "deutscherAnzeigename": "Entschuldigung Kiste",
+      "typ": "box",
+      "quellIndex": 438
+    },
+    {
+      "externeKennung": "weaponbox",
+      "originalName": "Weapon Box",
+      "deutscherAnzeigename": "Waffe Kiste",
+      "typ": "box",
+      "quellIndex": 439
+    },
+    {
+      "externeKennung": "armorbox",
+      "originalName": "Armor Box",
+      "deutscherAnzeigename": "Rüstung Kiste",
+      "typ": "box",
+      "quellIndex": 440
+    },
+    {
+      "externeKennung": "jewellerybox",
+      "originalName": "Jewellery Box",
+      "deutscherAnzeigename": "Schmuck Kiste",
+      "typ": "box",
+      "quellIndex": 441
+    },
+    {
+      "externeKennung": "mistletoe",
+      "originalName": "Mistletoe",
+      "deutscherAnzeigename": "Mistelzweig",
+      "typ": "gem",
+      "quellIndex": 442
+    },
+    {
+      "externeKennung": "candycane",
+      "originalName": "Candy Cane",
+      "deutscherAnzeigename": "Süßigkeit Stange",
+      "typ": "gem",
+      "quellIndex": 443
+    },
+    {
+      "externeKennung": "marketparcel",
+      "originalName": "Market Parcel",
+      "deutscherAnzeigename": "Markt Paket",
+      "typ": "gem",
+      "quellIndex": 444
+    },
+    {
+      "externeKennung": "gift0",
+      "originalName": "Rare Gift",
+      "deutscherAnzeigename": "Selten Geschenk",
+      "typ": "gem",
+      "quellIndex": 445
+    },
+    {
+      "externeKennung": "gift1",
+      "originalName": "Gift",
+      "deutscherAnzeigename": "Geschenk",
+      "typ": "gem",
+      "quellIndex": 446
+    },
+    {
+      "externeKennung": "redenvelope",
+      "originalName": "Red Envelope",
+      "deutscherAnzeigename": "Rot Umschlag",
+      "typ": "gem",
+      "quellIndex": 447
+    },
+    {
+      "externeKennung": "redenvelopev2",
+      "originalName": "Red Envelope",
+      "deutscherAnzeigename": "Rot Umschlag",
+      "typ": "gem",
+      "quellIndex": 448
+    },
+    {
+      "externeKennung": "redenvelopev3",
+      "originalName": "Red Envelope",
+      "deutscherAnzeigename": "Rot Umschlag",
+      "typ": "gem",
+      "quellIndex": 449
+    },
+    {
+      "externeKennung": "redenvelopev4",
+      "originalName": "Red Envelope",
+      "deutscherAnzeigename": "Rot Umschlag",
+      "typ": "gem",
+      "quellIndex": 450
+    },
+    {
+      "externeKennung": "greenenvelope",
+      "originalName": "Green Envelope",
+      "deutscherAnzeigename": "Grün Umschlag",
+      "typ": "gem",
+      "quellIndex": 451
+    },
+    {
+      "externeKennung": "brownenvelope",
+      "originalName": "Brown Envelope",
+      "deutscherAnzeigename": "Braun Umschlag",
+      "typ": "gem",
+      "quellIndex": 452
+    },
+    {
+      "externeKennung": "stand0",
+      "originalName": "Merchant Stand",
+      "deutscherAnzeigename": "Händler Stand",
+      "typ": "stand",
+      "quellIndex": 453
+    },
+    {
+      "externeKennung": "stand1",
+      "originalName": "Merchant Stand [Sell+Buy]",
+      "deutscherAnzeigename": "Händler Stand [Verkauf+Kauf]",
+      "typ": "stand",
+      "quellIndex": 454
+    },
+    {
+      "externeKennung": "tracker",
+      "originalName": "Tracktrix",
+      "deutscherAnzeigename": "Tracktrix",
+      "typ": "tracker",
+      "quellIndex": 455
+    },
+    {
+      "externeKennung": "computer",
+      "originalName": "Ancient Computer",
+      "deutscherAnzeigename": "Uralter Computer",
+      "typ": "computer",
+      "quellIndex": 456
+    },
+    {
+      "externeKennung": "supercomputer",
+      "originalName": "Super Computer",
+      "deutscherAnzeigename": "Super Computer",
+      "typ": "computer",
+      "quellIndex": 457
+    },
+    {
+      "externeKennung": "stick",
+      "originalName": "Stick",
+      "deutscherAnzeigename": "Stock",
+      "typ": "misc",
+      "quellIndex": 458
+    },
+    {
+      "externeKennung": "coal",
+      "originalName": "Coal",
+      "deutscherAnzeigename": "Kohle",
+      "typ": "misc",
+      "quellIndex": 459
+    },
+    {
+      "externeKennung": "glitch",
+      "originalName": "A Glitch",
+      "deutscherAnzeigename": "ein Glitch",
+      "typ": "misc",
+      "quellIndex": 460
+    },
+    {
+      "externeKennung": "5bucks",
+      "originalName": "Old Paper Money",
+      "deutscherAnzeigename": "Alt Papier Geld",
+      "typ": "misc",
+      "quellIndex": 461
+    },
+    {
+      "externeKennung": "confetti",
+      "originalName": "Pack of Confetti",
+      "deutscherAnzeigename": "Paket – Konfetti",
+      "typ": "throw",
+      "quellIndex": 462
+    },
+    {
+      "externeKennung": "firecrackers",
+      "originalName": "Firecracker",
+      "deutscherAnzeigename": "Feuerwerkskörper",
+      "typ": "throw",
+      "quellIndex": 463
+    },
+    {
+      "externeKennung": "smoke",
+      "originalName": "Pouch of Poof",
+      "deutscherAnzeigename": "Beutel – Puff",
+      "typ": "throw",
+      "quellIndex": 464
+    },
+    {
+      "externeKennung": "snowball",
+      "originalName": "Snowball",
+      "deutscherAnzeigename": "Schneeball",
+      "typ": "throw",
+      "quellIndex": 465
+    },
+    {
+      "externeKennung": "figurine",
+      "originalName": "Terracota Army Figurine",
+      "deutscherAnzeigename": "Terrakotta Armee Figur",
+      "typ": "spawner",
+      "quellIndex": 466
+    },
+    {
+      "externeKennung": "pvptoken",
+      "originalName": "PVP Token",
+      "deutscherAnzeigename": "PVP Marke",
+      "typ": "token",
+      "quellIndex": 467
+    },
+    {
+      "externeKennung": "funtoken",
+      "originalName": "Fun Token",
+      "deutscherAnzeigename": "Spaß Marke",
+      "typ": "token",
+      "quellIndex": 468
+    },
+    {
+      "externeKennung": "monstertoken",
+      "originalName": "Monster Token",
+      "deutscherAnzeigename": "Monster Marke",
+      "typ": "token",
+      "quellIndex": 469
+    },
+    {
+      "externeKennung": "friendtoken",
+      "originalName": "Friend Token",
+      "deutscherAnzeigename": "Freund Marke",
+      "typ": "token",
+      "quellIndex": 470
+    },
+    {
+      "externeKennung": "emptyheart",
+      "originalName": "Empty Heart",
+      "deutscherAnzeigename": "Leer Herz",
+      "typ": "material",
+      "quellIndex": 471
+    },
+    {
+      "externeKennung": "fieldgen0",
+      "originalName": "Dampening Field Generator",
+      "deutscherAnzeigename": "Dämpfung Feld Generator",
+      "typ": "spawner",
+      "quellIndex": 472
+    },
+    {
+      "externeKennung": "seashell",
+      "originalName": "Seashell",
+      "deutscherAnzeigename": "Muschel",
+      "typ": "quest",
+      "quellIndex": 473
+    },
+    {
+      "externeKennung": "leather",
+      "originalName": "Leather",
+      "deutscherAnzeigename": "Leder",
+      "typ": "quest",
+      "quellIndex": 474
+    },
+    {
+      "externeKennung": "gemfragment",
+      "originalName": "Gem Fragment",
+      "deutscherAnzeigename": "Edelstein Fragment",
+      "typ": "quest",
+      "quellIndex": 475
+    },
+    {
+      "externeKennung": "ornament",
+      "originalName": "Xmas Ornament",
+      "deutscherAnzeigename": "Weihnachts Schmuck",
+      "typ": "quest",
+      "quellIndex": 476
+    },
+    {
+      "externeKennung": "lostearring",
+      "originalName": "Gold Earring",
+      "deutscherAnzeigename": "Gold Ohrring",
+      "typ": "earring",
+      "quellIndex": 477
+    },
+    {
+      "externeKennung": "stonekey",
+      "originalName": "The Stone Key",
+      "deutscherAnzeigename": "Stein Schlüssel",
+      "typ": "dungeon_key",
+      "quellIndex": 478
+    },
+    {
+      "externeKennung": "cryptkey",
+      "originalName": "The Crypt Key",
+      "deutscherAnzeigename": "Krypta Schlüssel",
+      "typ": "dungeon_key",
+      "quellIndex": 479
+    },
+    {
+      "externeKennung": "frozenkey",
+      "originalName": "The Frozen Cave Key",
+      "deutscherAnzeigename": "Gefroren Höhle Schlüssel",
+      "typ": "dungeon_key",
+      "quellIndex": 480
+    },
+    {
+      "externeKennung": "tombkey",
+      "originalName": "The Tomb Key",
+      "deutscherAnzeigename": "Grab Schlüssel",
+      "typ": "dungeon_key",
+      "quellIndex": 481
+    },
+    {
+      "externeKennung": "spiderkey",
+      "originalName": "The Spider Key",
+      "deutscherAnzeigename": "Spinne Schlüssel",
+      "typ": "dungeon_key",
+      "quellIndex": 482
+    },
+    {
+      "externeKennung": "bkey",
+      "originalName": "The Bank Key",
+      "deutscherAnzeigename": "Bank Schlüssel",
+      "typ": "bank_key",
+      "quellIndex": 483
+    },
+    {
+      "externeKennung": "ukey",
+      "originalName": "The Bank Key",
+      "deutscherAnzeigename": "Bank Schlüssel",
+      "typ": "bank_key",
+      "quellIndex": 484
+    },
+    {
+      "externeKennung": "dkey",
+      "originalName": "Diamond Key",
+      "deutscherAnzeigename": "Diamant Schlüssel",
+      "typ": "bank_key",
+      "quellIndex": 485
+    },
+    {
+      "externeKennung": "x0",
+      "originalName": "Quantum Piece",
+      "deutscherAnzeigename": "Quanten Stück",
+      "typ": "quest",
+      "quellIndex": 486
+    },
+    {
+      "externeKennung": "x1",
+      "originalName": "Quantum Piece",
+      "deutscherAnzeigename": "Quanten Stück",
+      "typ": "quest",
+      "quellIndex": 487
+    },
+    {
+      "externeKennung": "x2",
+      "originalName": "Quantum Piece",
+      "deutscherAnzeigename": "Quanten Stück",
+      "typ": "quest",
+      "quellIndex": 488
+    },
+    {
+      "externeKennung": "x3",
+      "originalName": "Quantum Piece",
+      "deutscherAnzeigename": "Quanten Stück",
+      "typ": "quest",
+      "quellIndex": 489
+    },
+    {
+      "externeKennung": "x4",
+      "originalName": "Quantum Piece",
+      "deutscherAnzeigename": "Quanten Stück",
+      "typ": "quest",
+      "quellIndex": 490
+    },
+    {
+      "externeKennung": "x5",
+      "originalName": "Quantum Piece",
+      "deutscherAnzeigename": "Quanten Stück",
+      "typ": "quest",
+      "quellIndex": 491
+    },
+    {
+      "externeKennung": "x6",
+      "originalName": "Quantum Piece",
+      "deutscherAnzeigename": "Quanten Stück",
+      "typ": "quest",
+      "quellIndex": 492
+    },
+    {
+      "externeKennung": "x7",
+      "originalName": "Quantum Piece",
+      "deutscherAnzeigename": "Quanten Stück",
+      "typ": "quest",
+      "quellIndex": 493
+    },
+    {
+      "externeKennung": "x8",
+      "originalName": "Quantum Piece",
+      "deutscherAnzeigename": "Quanten Stück",
+      "typ": "quest",
+      "quellIndex": 494
+    },
+    {
+      "externeKennung": "xbox",
+      "originalName": "Xmas Box",
+      "deutscherAnzeigename": "Weihnachts Kiste",
+      "typ": "quest",
+      "quellIndex": 495
+    },
+    {
+      "externeKennung": "egg0",
+      "originalName": "Easter Egg",
+      "deutscherAnzeigename": "Ostern Ei",
+      "typ": "quest",
+      "quellIndex": 496
+    },
+    {
+      "externeKennung": "egg1",
+      "originalName": "Easter Egg",
+      "deutscherAnzeigename": "Ostern Ei",
+      "typ": "quest",
+      "quellIndex": 497
+    },
+    {
+      "externeKennung": "egg2",
+      "originalName": "Easter Egg",
+      "deutscherAnzeigename": "Ostern Ei",
+      "typ": "quest",
+      "quellIndex": 498
+    },
+    {
+      "externeKennung": "egg3",
+      "originalName": "Easter Egg",
+      "deutscherAnzeigename": "Ostern Ei",
+      "typ": "quest",
+      "quellIndex": 499
+    },
+    {
+      "externeKennung": "egg4",
+      "originalName": "Easter Egg",
+      "deutscherAnzeigename": "Ostern Ei",
+      "typ": "quest",
+      "quellIndex": 500
+    },
+    {
+      "externeKennung": "egg5",
+      "originalName": "Easter Egg",
+      "deutscherAnzeigename": "Ostern Ei",
+      "typ": "quest",
+      "quellIndex": 501
+    },
+    {
+      "externeKennung": "egg6",
+      "originalName": "Easter Egg",
+      "deutscherAnzeigename": "Ostern Ei",
+      "typ": "quest",
+      "quellIndex": 502
+    },
+    {
+      "externeKennung": "egg7",
+      "originalName": "Easter Egg",
+      "deutscherAnzeigename": "Ostern Ei",
+      "typ": "quest",
+      "quellIndex": 503
+    },
+    {
+      "externeKennung": "egg8",
+      "originalName": "Easter Egg",
+      "deutscherAnzeigename": "Ostern Ei",
+      "typ": "quest",
+      "quellIndex": 504
+    },
+    {
+      "externeKennung": "goldenegg",
+      "originalName": "Golden Egg",
+      "deutscherAnzeigename": "Golden Ei",
+      "typ": "quest",
+      "quellIndex": 505
+    },
+    {
+      "externeKennung": "basketofeggs",
+      "originalName": "Basket of Easter Eggs",
+      "deutscherAnzeigename": "Korb – Ostern Eier",
+      "typ": "quest",
+      "quellIndex": 506
+    },
+    {
+      "externeKennung": "frozenstone",
+      "originalName": "Frozen Stone",
+      "deutscherAnzeigename": "Gefroren Stein",
+      "typ": "activator",
+      "quellIndex": 507
+    },
+    {
+      "externeKennung": "flute",
+      "originalName": "Flute",
+      "deutscherAnzeigename": "Flöte",
+      "typ": "flute",
+      "quellIndex": 508
+    },
+    {
+      "externeKennung": "puppyer",
+      "originalName": "Licence to Adopt a Puppy",
+      "deutscherAnzeigename": "Lizenz zu Adoptieren ein Welpe",
+      "typ": "petlicence",
+      "quellIndex": 509
+    },
+    {
+      "externeKennung": "chrysalis0",
+      "originalName": "Dragold's Chrysalis",
+      "deutscherAnzeigename": "Puppe von Dragold",
+      "typ": "chrysalis",
+      "quellIndex": 510
+    },
+    {
+      "externeKennung": "puppy1",
+      "originalName": "Egg",
+      "deutscherAnzeigename": "Ei",
+      "typ": "chrysalis",
+      "quellIndex": 511
+    },
+    {
+      "externeKennung": "kitty1",
+      "originalName": "Egg",
+      "deutscherAnzeigename": "Ei",
+      "typ": "chrysalis",
+      "quellIndex": 512
+    },
+    {
+      "externeKennung": "monsterbox",
+      "originalName": "Monster Box",
+      "deutscherAnzeigename": "Monster Kiste",
+      "typ": "container",
+      "quellIndex": 513
+    },
+    {
+      "externeKennung": "orbg",
+      "originalName": "Orb of Beginnings",
+      "deutscherAnzeigename": "Kugel – Anfänge",
+      "typ": "orb",
+      "quellIndex": 514
+    },
+    {
+      "externeKennung": "tigerstone",
+      "originalName": "Tiger Stone",
+      "deutscherAnzeigename": "Tiger Stein",
+      "typ": "orb",
+      "quellIndex": 515
+    },
+    {
+      "externeKennung": "vorb",
+      "originalName": "Vampiric Canine Teeth",
+      "deutscherAnzeigename": "Vampirisch Eckzahn Zähne",
+      "typ": "orb",
+      "quellIndex": 516
+    },
+    {
+      "externeKennung": "orbofvit",
+      "originalName": "Orb of Vitality",
+      "deutscherAnzeigename": "Kugel – Vitalität",
+      "typ": "orb",
+      "quellIndex": 517
+    },
+    {
+      "externeKennung": "orbofint",
+      "originalName": "Orb of Intelligence",
+      "deutscherAnzeigename": "Kugel – Intelligenz",
+      "typ": "orb",
+      "quellIndex": 518
+    },
+    {
+      "externeKennung": "orbofstr",
+      "originalName": "Orb of Strength",
+      "deutscherAnzeigename": "Kugel – Stärke",
+      "typ": "orb",
+      "quellIndex": 519
+    },
+    {
+      "externeKennung": "orbofdex",
+      "originalName": "Orb of Dexterity",
+      "deutscherAnzeigename": "Kugel – Geschicklichkeit",
+      "typ": "orb",
+      "quellIndex": 520
+    },
+    {
+      "externeKennung": "orboffire",
+      "originalName": "Orb of Fire",
+      "deutscherAnzeigename": "Kugel – Feuer",
+      "typ": "orb",
+      "quellIndex": 521
+    },
+    {
+      "externeKennung": "orboffrost",
+      "originalName": "Orb of Frost",
+      "deutscherAnzeigename": "Kugel – Frost",
+      "typ": "orb",
+      "quellIndex": 522
+    },
+    {
+      "externeKennung": "orbofplague",
+      "originalName": "Orb of Plague",
+      "deutscherAnzeigename": "Kugel – Seuche",
+      "typ": "orb",
+      "quellIndex": 523
+    },
+    {
+      "externeKennung": "orbofresolve",
+      "originalName": "Orb of Resolve",
+      "deutscherAnzeigename": "Kugel – Entschlossenheit",
+      "typ": "orb",
+      "quellIndex": 524
+    },
+    {
+      "externeKennung": "orba",
+      "originalName": "Orb of Adventures",
+      "deutscherAnzeigename": "Kugel – Abenteuer",
+      "typ": "orb",
+      "quellIndex": 525
+    },
+    {
+      "externeKennung": "orboftemporal",
+      "originalName": "Orb of Temporal Forces",
+      "deutscherAnzeigename": "Kugel – Temporal Kräfte",
+      "typ": "orb",
+      "quellIndex": 526
+    },
+    {
+      "externeKennung": "orbofsc",
+      "originalName": "Orb of Second Chances",
+      "deutscherAnzeigename": "Kugel – Zweit Chancen",
+      "typ": "orb",
+      "quellIndex": 527
+    },
+    {
+      "externeKennung": "charmer",
+      "originalName": "Charmer",
+      "deutscherAnzeigename": "Charmeur",
+      "typ": "orb",
+      "quellIndex": 528
+    },
+    {
+      "externeKennung": "rabbitsfoot",
+      "originalName": "Rabbit's Foot",
+      "deutscherAnzeigename": "Fuß von Kaninchen",
+      "typ": "orb",
+      "quellIndex": 529
+    },
+    {
+      "externeKennung": "talkingskull",
+      "originalName": "Yorick the Talking Skull",
+      "deutscherAnzeigename": "Yorick Sprechend Schädel",
+      "typ": "orb",
+      "quellIndex": 530
+    },
+    {
+      "externeKennung": "jacko",
+      "originalName": "Jack-o Lantern",
+      "deutscherAnzeigename": "Jack-o Laterne",
+      "typ": "orb",
+      "quellIndex": 531
+    },
+    {
+      "externeKennung": "ftrinket",
+      "originalName": "Trinket of Faith",
+      "deutscherAnzeigename": "Schmuckstück – Glaube",
+      "typ": "orb",
+      "quellIndex": 532
+    },
+    {
+      "externeKennung": "eggnog",
+      "originalName": "Eggnog",
+      "deutscherAnzeigename": "Eierpunsch",
+      "typ": "elixir",
+      "quellIndex": 533
+    },
+    {
+      "externeKennung": "vblood",
+      "originalName": "Vampire's Blood",
+      "deutscherAnzeigename": "Blut von Vampir",
+      "typ": "elixir",
+      "quellIndex": 534
+    },
+    {
+      "externeKennung": "gum",
+      "originalName": "Gum",
+      "deutscherAnzeigename": "Kaugummi",
+      "typ": "elixir",
+      "quellIndex": 535
+    },
+    {
+      "externeKennung": "hotchocolate",
+      "originalName": "Hot Chocolate",
+      "deutscherAnzeigename": "Heiß Schokolade",
+      "typ": "elixir",
+      "quellIndex": 536
+    },
+    {
+      "externeKennung": "pumpkinspice",
+      "originalName": "Pumpkin Spice Latte",
+      "deutscherAnzeigename": "Kürbis Gewürz Latte",
+      "typ": "elixir",
+      "quellIndex": 537
+    },
+    {
+      "externeKennung": "cake",
+      "originalName": "Piece of Cake",
+      "deutscherAnzeigename": "Stück – Kuchen",
+      "typ": "elixir",
+      "quellIndex": 538
+    },
+    {
+      "externeKennung": "greenbomb",
+      "originalName": "Green Bomb",
+      "deutscherAnzeigename": "Grün Bombe",
+      "typ": "elixir",
+      "quellIndex": 539
+    },
+    {
+      "externeKennung": "swirlipop",
+      "originalName": "Swirlipop",
+      "deutscherAnzeigename": "Swirlipop",
+      "typ": "elixir",
+      "quellIndex": 540
+    },
+    {
+      "externeKennung": "xshot",
+      "originalName": "X-Shot",
+      "deutscherAnzeigename": "X-Schuss",
+      "typ": "elixir",
+      "quellIndex": 541
+    },
+    {
+      "externeKennung": "espresso",
+      "originalName": "Espresso",
+      "deutscherAnzeigename": "Espresso",
+      "typ": "elixir",
+      "quellIndex": 542
+    },
+    {
+      "externeKennung": "whiskey",
+      "originalName": "Whiskey On The Rocks",
+      "deutscherAnzeigename": "Whiskey auf Steine",
+      "typ": "elixir",
+      "quellIndex": 543
+    },
+    {
+      "externeKennung": "wine",
+      "originalName": "Red Wine",
+      "deutscherAnzeigename": "Rot Wein",
+      "typ": "elixir",
+      "quellIndex": 544
+    },
+    {
+      "externeKennung": "ale",
+      "originalName": "Ale",
+      "deutscherAnzeigename": "Bier",
+      "typ": "elixir",
+      "quellIndex": 545
+    },
+    {
+      "externeKennung": "pico",
+      "originalName": "Pixel Colada",
+      "deutscherAnzeigename": "Pixel Colada",
+      "typ": "elixir",
+      "quellIndex": 546
+    },
+    {
+      "externeKennung": "blue",
+      "originalName": "Blue Horizon",
+      "deutscherAnzeigename": "Blau Horizont",
+      "typ": "elixir",
+      "quellIndex": 547
+    },
+    {
+      "externeKennung": "bunnyelixir",
+      "originalName": "Bunny Energy Drink",
+      "deutscherAnzeigename": "Hase Energie Getränk",
+      "typ": "elixir",
+      "quellIndex": 548
+    },
+    {
+      "externeKennung": "elixirvit0",
+      "originalName": "Elixir of Vitality",
+      "deutscherAnzeigename": "Elixier – Vitalität",
+      "typ": "elixir",
+      "quellIndex": 549
+    },
+    {
+      "externeKennung": "elixirvit1",
+      "originalName": "Elixir of Greater Vitality",
+      "deutscherAnzeigename": "Elixier – Groß Vitalität",
+      "typ": "elixir",
+      "quellIndex": 550
+    },
+    {
+      "externeKennung": "elixirvit2",
+      "originalName": "Elixir of Extreme Vitality",
+      "deutscherAnzeigename": "Elixier – Extrem Vitalität",
+      "typ": "elixir",
+      "quellIndex": 551
+    },
+    {
+      "externeKennung": "elixirstr0",
+      "originalName": "Elixir of Strength",
+      "deutscherAnzeigename": "Elixier – Stärke",
+      "typ": "elixir",
+      "quellIndex": 552
+    },
+    {
+      "externeKennung": "elixirstr1",
+      "originalName": "Elixir of Greater Strength",
+      "deutscherAnzeigename": "Elixier – Groß Stärke",
+      "typ": "elixir",
+      "quellIndex": 553
+    },
+    {
+      "externeKennung": "elixirstr2",
+      "originalName": "Elixir of Extreme Strength",
+      "deutscherAnzeigename": "Elixier – Extrem Stärke",
+      "typ": "elixir",
+      "quellIndex": 554
+    },
+    {
+      "externeKennung": "elixirdex0",
+      "originalName": "Elixir of Dexterity",
+      "deutscherAnzeigename": "Elixier – Geschicklichkeit",
+      "typ": "elixir",
+      "quellIndex": 555
+    },
+    {
+      "externeKennung": "elixirdex1",
+      "originalName": "Elixir of Greater Dexterity",
+      "deutscherAnzeigename": "Elixier – Groß Geschicklichkeit",
+      "typ": "elixir",
+      "quellIndex": 556
+    },
+    {
+      "externeKennung": "elixirdex2",
+      "originalName": "Elixir of Extreme Dexterity",
+      "deutscherAnzeigename": "Elixier – Extrem Geschicklichkeit",
+      "typ": "elixir",
+      "quellIndex": 557
+    },
+    {
+      "externeKennung": "elixirint0",
+      "originalName": "Elixir of Intelligence",
+      "deutscherAnzeigename": "Elixier – Intelligenz",
+      "typ": "elixir",
+      "quellIndex": 558
+    },
+    {
+      "externeKennung": "elixirint1",
+      "originalName": "Elixir of Greater Intelligence",
+      "deutscherAnzeigename": "Elixier – Groß Intelligenz",
+      "typ": "elixir",
+      "quellIndex": 559
+    },
+    {
+      "externeKennung": "elixirint2",
+      "originalName": "Elixir of Extreme Intelligence",
+      "deutscherAnzeigename": "Elixier – Extrem Intelligenz",
+      "typ": "elixir",
+      "quellIndex": 560
+    },
+    {
+      "externeKennung": "elixirluck",
+      "originalName": "Liquid Luck",
+      "deutscherAnzeigename": "Flüssig Glück",
+      "typ": "elixir",
+      "quellIndex": 561
+    },
+    {
+      "externeKennung": "elixirfires",
+      "originalName": "Elixir of Fire Resistance",
+      "deutscherAnzeigename": "Elixier – Feuer Widerstand",
+      "typ": "elixir",
+      "quellIndex": 562
+    },
+    {
+      "externeKennung": "elixirfzres",
+      "originalName": "Elixir of Freeze Resistance",
+      "deutscherAnzeigename": "Elixier – Frost Widerstand",
+      "typ": "elixir",
+      "quellIndex": 563
+    },
+    {
+      "externeKennung": "elixirpnres",
+      "originalName": "Elixir of Poison Resistance",
+      "deutscherAnzeigename": "Elixier – Gift Widerstand",
+      "typ": "elixir",
+      "quellIndex": 564
+    },
+    {
+      "externeKennung": "poison",
+      "originalName": "Poison Sack",
+      "deutscherAnzeigename": "Gift Sack",
+      "typ": "skill_item",
+      "quellIndex": 565
+    },
+    {
+      "externeKennung": "shadowstone",
+      "originalName": "Shadow Stone",
+      "deutscherAnzeigename": "Schatten Stein",
+      "typ": "skill_item",
+      "quellIndex": 566
+    },
+    {
+      "externeKennung": "mbones",
+      "originalName": "Bones",
+      "deutscherAnzeigename": "Knochen",
+      "typ": "material",
+      "quellIndex": 567
+    },
+    {
+      "externeKennung": "cscale",
+      "originalName": "Croc Scale",
+      "deutscherAnzeigename": "Krokodil Schuppe",
+      "typ": "material",
+      "quellIndex": 568
+    },
+    {
+      "externeKennung": "snakeoil",
+      "originalName": "Snake Oil",
+      "deutscherAnzeigename": "Schlange Öl",
+      "typ": "pot",
+      "quellIndex": 569
+    },
+    {
+      "externeKennung": "feather0",
+      "originalName": "Magical Feather",
+      "deutscherAnzeigename": "Magisch Feder",
+      "typ": "material",
+      "quellIndex": 570
+    },
+    {
+      "externeKennung": "feather1",
+      "originalName": "Harpy Feather",
+      "deutscherAnzeigename": "Harpyie Feder",
+      "typ": "material",
+      "quellIndex": 571
+    },
+    {
+      "externeKennung": "bronzeingot",
+      "originalName": "Bronze Ingot",
+      "deutscherAnzeigename": "Bronze Barren",
+      "typ": "material",
+      "quellIndex": 572
+    },
+    {
+      "externeKennung": "goldingot",
+      "originalName": "Gold Ingot",
+      "deutscherAnzeigename": "Gold Barren",
+      "typ": "material",
+      "quellIndex": 573
+    },
+    {
+      "externeKennung": "platinumingot",
+      "originalName": "Platinum Ingot",
+      "deutscherAnzeigename": "Platin Barren",
+      "typ": "material",
+      "quellIndex": 574
+    },
+    {
+      "externeKennung": "bronzenugget",
+      "originalName": "Bronze Nugget",
+      "deutscherAnzeigename": "Bronze Klumpen",
+      "typ": "material",
+      "quellIndex": 575
+    },
+    {
+      "externeKennung": "goldnugget",
+      "originalName": "Gold Nugget",
+      "deutscherAnzeigename": "Gold Klumpen",
+      "typ": "material",
+      "quellIndex": 576
+    },
+    {
+      "externeKennung": "platinumnugget",
+      "originalName": "Platinum Nugget",
+      "deutscherAnzeigename": "Platin Klumpen",
+      "typ": "material",
+      "quellIndex": 577
+    },
+    {
+      "externeKennung": "electronics",
+      "originalName": "Electronics",
+      "deutscherAnzeigename": "Elektronik",
+      "typ": "material",
+      "quellIndex": 578
+    },
+    {
+      "externeKennung": "spidersilk",
+      "originalName": "Spider Silk",
+      "deutscherAnzeigename": "Spinne Seide",
+      "typ": "material",
+      "quellIndex": 579
+    },
+    {
+      "externeKennung": "homecoming",
+      "originalName": "Homecoming",
+      "deutscherAnzeigename": "Heimkehr",
+      "typ": "UNBEKANNT",
+      "quellIndex": 580
+    },
+    {
+      "externeKennung": "tiger",
+      "originalName": "Tigers'",
+      "deutscherAnzeigename": "Tiger",
+      "typ": "UNBEKANNT",
+      "quellIndex": 581
+    },
+    {
+      "externeKennung": "vampires",
+      "originalName": "Vampires",
+      "deutscherAnzeigename": "Vampire",
+      "typ": "UNBEKANNT",
+      "quellIndex": 582
+    },
+    {
+      "externeKennung": "mpx",
+      "originalName": "MP X",
+      "deutscherAnzeigename": "MP X",
+      "typ": "UNBEKANNT",
+      "quellIndex": 583
+    },
+    {
+      "externeKennung": "legends",
+      "originalName": "The Legends",
+      "deutscherAnzeigename": "Legenden",
+      "typ": "UNBEKANNT",
+      "quellIndex": 585
+    },
+    {
+      "externeKennung": "swift",
+      "originalName": "Swift Judgement",
+      "deutscherAnzeigename": "Schnell Urteil",
+      "typ": "UNBEKANNT",
+      "quellIndex": 586
+    },
+    {
+      "externeKennung": "holidays",
+      "originalName": "Holiday Spirit",
+      "deutscherAnzeigename": "Feiertag Geist",
+      "typ": "UNBEKANNT",
+      "quellIndex": 587
+    },
+    {
+      "externeKennung": "wanderers",
+      "originalName": "Wanderer's Set",
+      "deutscherAnzeigename": "Set von Wanderer",
+      "typ": "UNBEKANNT",
+      "quellIndex": 588
+    },
+    {
+      "externeKennung": "oathkeeper",
+      "originalName": "Oathkeeper Set",
+      "deutscherAnzeigename": "Oathkeeper Set",
+      "typ": "UNBEKANNT",
+      "quellIndex": 589
+    },
+    {
+      "externeKennung": "wt3",
+      "originalName": "Heavy Armor",
+      "deutscherAnzeigename": "Schwer Rüstung",
+      "typ": "UNBEKANNT",
+      "quellIndex": 590
+    },
+    {
+      "externeKennung": "wt4",
+      "originalName": "Darkforge Armor",
+      "deutscherAnzeigename": "Darkforge Rüstung",
+      "typ": "UNBEKANNT",
+      "quellIndex": 591
+    },
+    {
+      "externeKennung": "rugged",
+      "originalName": "Rugged Set",
+      "deutscherAnzeigename": "Robust Set",
+      "typ": "UNBEKANNT",
+      "quellIndex": 592
+    },
+    {
+      "externeKennung": "mwarrior",
+      "originalName": "Monster Hunter Warrior",
+      "deutscherAnzeigename": "Monster Jäger Krieger",
+      "typ": "UNBEKANNT",
+      "quellIndex": 593
+    },
+    {
+      "externeKennung": "mmage",
+      "originalName": "Monster Hunter Mage",
+      "deutscherAnzeigename": "Monster Jäger Magier",
+      "typ": "UNBEKANNT",
+      "quellIndex": 594
+    },
+    {
+      "externeKennung": "mpriest",
+      "originalName": "Monster Hunter Priest",
+      "deutscherAnzeigename": "Monster Jäger Priester",
+      "typ": "UNBEKANNT",
+      "quellIndex": 595
+    },
+    {
+      "externeKennung": "mranger",
+      "originalName": "Monster Hunter Ranger",
+      "deutscherAnzeigename": "Monster Jäger Waldläufer",
+      "typ": "UNBEKANNT",
+      "quellIndex": 596
+    },
+    {
+      "externeKennung": "mrogue",
+      "originalName": "Monster Hunter Rogue",
+      "deutscherAnzeigename": "Monster Jäger Schurke",
+      "typ": "UNBEKANNT",
+      "quellIndex": 597
+    },
+    {
+      "externeKennung": "mmerchant",
+      "originalName": "Monster Hunter Merchant",
+      "deutscherAnzeigename": "Monster Jäger Händler",
+      "typ": "UNBEKANNT",
+      "quellIndex": 598
+    },
+    {
+      "externeKennung": "bunny",
+      "originalName": "Bunny Set",
+      "deutscherAnzeigename": "Hase Set",
+      "typ": "UNBEKANNT",
+      "quellIndex": 599
+    },
+    {
+      "externeKennung": "molehook",
+      "originalName": "Molehook",
+      "deutscherAnzeigename": "Molehook",
+      "typ": "tool",
+      "quellIndex": 600
+    },
+    {
+      "externeKennung": "lanternshield",
+      "originalName": "Lantern Shield",
+      "deutscherAnzeigename": "Laterne Schild",
+      "typ": "shield",
+      "quellIndex": 601
+    },
+    {
+      "externeKennung": "turtleshard",
+      "originalName": "Turtle Shard",
+      "deutscherAnzeigename": "Schildkröte Scherbe",
+      "typ": "shield",
+      "quellIndex": 602
+    },
+    {
+      "externeKennung": "ratkingbuckler",
+      "originalName": "Ratking Buckler",
+      "deutscherAnzeigename": "Rattenkönig Faustschild",
+      "typ": "shield",
+      "quellIndex": 603
+    },
+    {
+      "externeKennung": "stormquiver",
+      "originalName": "Storm Quiver",
+      "deutscherAnzeigename": "Sturm Köcher",
+      "typ": "quiver",
+      "quellIndex": 604
+    },
+    {
+      "externeKennung": "thistlequiver",
+      "originalName": "Thistle Quiver",
+      "deutscherAnzeigename": "Distel Köcher",
+      "typ": "quiver",
+      "quellIndex": 605
+    },
+    {
+      "externeKennung": "scribeorb",
+      "originalName": "Scribe Orb",
+      "deutscherAnzeigename": "Schreiber Kugel",
+      "typ": "source",
+      "quellIndex": 606
+    },
+    {
+      "externeKennung": "mossheart",
+      "originalName": "Mossheart",
+      "deutscherAnzeigename": "Mossheart",
+      "typ": "source",
+      "quellIndex": 607
+    },
+    {
+      "externeKennung": "emberseal",
+      "originalName": "Ember Seal",
+      "deutscherAnzeigename": "Glut Siegel",
+      "typ": "ring",
+      "quellIndex": 608
+    },
+    {
+      "externeKennung": "glacierseal",
+      "originalName": "Glacier Seal",
+      "deutscherAnzeigename": "Gletscher Siegel",
+      "typ": "ring",
+      "quellIndex": 609
+    },
+    {
+      "externeKennung": "venomband",
+      "originalName": "Venom Band",
+      "deutscherAnzeigename": "Gift Reif",
+      "typ": "ring",
+      "quellIndex": 610
+    },
+    {
+      "externeKennung": "saffronloop",
+      "originalName": "Saffron Loop",
+      "deutscherAnzeigename": "Saffron Schleife",
+      "typ": "earring",
+      "quellIndex": 611
+    },
+    {
+      "externeKennung": "moonshardearring",
+      "originalName": "Moonshard Earring",
+      "deutscherAnzeigename": "Moonshard Ohrring",
+      "typ": "earring",
+      "quellIndex": 612
+    },
+    {
+      "externeKennung": "cloverstud",
+      "originalName": "Clover Stud",
+      "deutscherAnzeigename": "Klee Niete",
+      "typ": "earring",
+      "quellIndex": 613
+    },
+    {
+      "externeKennung": "anchorbelt",
+      "originalName": "Anchor Belt",
+      "deutscherAnzeigename": "Anker Gürtel",
+      "typ": "belt",
+      "quellIndex": 614
+    },
+    {
+      "externeKennung": "windbelt",
+      "originalName": "Wind Belt",
+      "deutscherAnzeigename": "Wind Gürtel",
+      "typ": "belt",
+      "quellIndex": 615
+    },
+    {
+      "externeKennung": "beastmantle",
+      "originalName": "Beast Mantle",
+      "deutscherAnzeigename": "Bestie Mantel",
+      "typ": "cape",
+      "quellIndex": 616
+    },
+    {
+      "externeKennung": "starcloak",
+      "originalName": "Starcloak",
+      "deutscherAnzeigename": "Starcloak",
+      "typ": "cape",
+      "quellIndex": 617
+    },
+    {
+      "externeKennung": "ashleaf",
+      "originalName": "Ash Leaf",
+      "deutscherAnzeigename": "Asche Blatt",
+      "typ": "material",
+      "quellIndex": 618
+    },
+    {
+      "externeKennung": "reefglass",
+      "originalName": "Reef Glass",
+      "deutscherAnzeigename": "Riff Glas",
+      "typ": "material",
+      "quellIndex": 619
+    },
+    {
+      "externeKennung": "stormfeather",
+      "originalName": "Storm Feather",
+      "deutscherAnzeigename": "Sturm Feder",
+      "typ": "material",
+      "quellIndex": 620
+    },
+    {
+      "externeKennung": "voidthread",
+      "originalName": "Void Thread",
+      "deutscherAnzeigename": "Leere Faden",
+      "typ": "material",
+      "quellIndex": 621
+    },
+    {
+      "externeKennung": "embercore",
+      "originalName": "Ember Core",
+      "deutscherAnzeigename": "Glut Kern",
+      "typ": "material",
+      "quellIndex": 622
+    },
+    {
+      "externeKennung": "frostcore",
+      "originalName": "Frost Core",
+      "deutscherAnzeigename": "Frost Kern",
+      "typ": "material",
+      "quellIndex": 623
+    },
+    {
+      "externeKennung": "verdantcore",
+      "originalName": "Verdant Core",
+      "deutscherAnzeigename": "Grünend Kern",
+      "typ": "material",
+      "quellIndex": 624
+    },
+    {
+      "externeKennung": "knifebelt",
+      "originalName": "Knife Belt",
+      "deutscherAnzeigename": "Messer Gürtel",
+      "typ": "belt",
+      "quellIndex": 625
+    },
+    {
+      "externeKennung": "gloampendant",
+      "originalName": "Gloam Pendant",
+      "deutscherAnzeigename": "Gloam Anhänger",
+      "typ": "amulet",
+      "quellIndex": 626
+    },
+    {
+      "externeKennung": "sapstone",
+      "originalName": "Sapstone",
+      "deutscherAnzeigename": "Sapstone",
+      "typ": "orb",
+      "quellIndex": 627
+    }
+  ]
+}
