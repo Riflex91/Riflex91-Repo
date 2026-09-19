@@ -107,7 +107,9 @@ test('level +6 upgrade buys and uses the minimum compatible Legendary scroll bef
     root.character.items[1] = { name, level: 0, q: quantity };
     return { success: true };
   };
-  root.upgrade = async (itemIndex, scrollIndex) => {
+  root.upgrade = async (...args) => {
+    if (args[args.length - 1] === true) return { success: true, chance: 0.99 };
+    const [itemIndex, scrollIndex] = args;
     assert.deepEqual([itemIndex, scrollIndex], [0, 1]);
     root.character.items[0] = { name: 'sword', level: 7 };
     root.character.items[1] = null;
@@ -178,7 +180,9 @@ test('Legendary compound buys cscroll3 while Exalted compound is blocked', async
     root.character.items[3] = { name, level: 0, q: quantity };
     return { success: true };
   };
-  root.compound = async (a, b, c, scrollIndex) => {
+  root.compound = async (...args) => {
+    if (args[args.length - 1] === true) return { success: true, chance: 0.99 };
+    const [a, b, c, scrollIndex] = args;
     assert.deepEqual([a, b, c, scrollIndex], [0, 1, 2, 3]);
     root.character.items[0] = { name: 'ring', level: 2 };
     root.character.items[1] = null;
