@@ -55782,7 +55782,12 @@ function installMerchantProduction(runtime, options = {}) {
     fallbackKillsPerHour: options.merchantProductionFallbackKillsPerHour
   });
   const productionSoakAuditor = options.productionSoakAuditor || new ProductionGraphSoakAuditor({
-    capacity: options.merchantProductionSoakViolationCapacity
+    capacity: options.merchantProductionSoakViolationCapacity,
+    committedCapacity: options.merchantProductionSoakCommittedCapacity,
+    root: runtime.root,
+    storage: options.merchantProductionStorage || options.storage,
+    storageKey: options.merchantProductionSoakStorageKey || 'aio-v3-production-graph-soak-v1',
+    persistEvery: options.merchantProductionSoakPersistEvery
   });
   const executor = options.executor || new ControlledMerchantProductionExecutor({
     root: runtime.root,
@@ -55822,6 +55827,54 @@ function installMerchantProduction(runtime, options = {}) {
     mutationHolds: 0,
     lastIntentRecovery: null
   };
+
+  const realSoakCursorStorageKey = options.merchantProductionRealSoakCursorStorageKey || 'aio-v3-production-real-soak-cursor-v1';
+  function realSoakStorageGet() {
+    try {
+      const storage = options.merchantProductionStorage || options.storage;
+      if (storage && typeof storage.get === 'function') return storage.get(realSoakCursorStorageKey);
+      const ls = runtime.root && runtime.root.localStorage;
+      return ls && typeof ls.getItem === 'function' ? ls.getItem(realSoakCursorStorageKey) : null;
+    } catch (_) { return null; }
+  }
+  function realSoakStorageSet(value) {
+    try {
+      const text = JSON.stringify(value);
+      const storage = options.merchantProductionStorage || options.storage;
+      if (storage && typeof storage.set === 'function') return storage.set(realSoakCursorStorageKey, text) !== false;
+      const ls = runtime.root && runtime.root.localStorage;
+      if (ls && typeof ls.setItem === 'function') {
+        ls.setItem(realSoakCursorStorageKey, text);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+  function loadRealSoakCursor() {
+    const raw = realSoakStorageGet();
+    if (!raw) return {};
+    try {
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return data && Number(data.schemaVersion) === 1 ? data : {};
+    } catch (_) { return {}; }
+  }
+  const persistedRealSoakCursor = loadRealSoakCursor();
+  const realSoakState = {
+    autoObservation: true,
+    actionAuthority: false,
+    sessionSamples: 0,
+    coverageAuditRan: false,
+    lastSample: null,
+    lastObservedCommittedOperationId: persistedRealSoakCursor.lastObservedCommittedOperationId || null,
+    lastObservedExecutionFingerprint: persistedRealSoakCursor.lastObservedExecutionFingerprint || null
+  };
+  function persistRealSoakCursor() {
+    return realSoakStorageSet({
+      schemaVersion: 1,
+      lastObservedCommittedOperationId: realSoakState.lastObservedCommittedOperationId || null,
+      lastObservedExecutionFingerprint: realSoakState.lastObservedExecutionFingerprint || null
+    });
+  }
 
   function productionTargetForPlan(plan) {
     const demand = plan && plan.exchangeDemand;
@@ -56763,7 +56816,7 @@ function installMerchantProduction(runtime, options = {}) {
     });
   }
 
-  function cycle() {
+  function cycleCore() {
     // Merchant production is installed in the shared runtime on every owned
     // character, but only the Merchant may acquire production tasks or travel
     // for bank/vendor work. Gate before any side effect, including auto-enable
@@ -56924,6 +56977,207 @@ function installMerchantProduction(runtime, options = {}) {
     }
     return plan;
   }
+
+  function productionObjectiveStatus() {
+    const logistics = runtime.controlledPartyLogistics;
+    if (!logistics) return null;
+    try {
+      const status = typeof logistics.status === 'function' ? logistics.status() : null;
+      const objective = status && status.lastProductionMaterialObjective || logistics.lastProductionMaterialObjective || null;
+      if (!objective || Number(objective.expiresAt || Infinity) <= runtime.now()) return null;
+      return clone(objective);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function productionExchangeDemandActive() {
+    return (Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : []).some((row) => row
+      && String(row.reason || '') === 'PRODUCTION_MATERIAL'
+      && (!row.expiresAt || Number(row.expiresAt) > runtime.now()));
+  }
+
+  function productionMutationDemandActive() {
+    const demand = runtime.productionMaterialMutationDemand;
+    return !!(demand && (!demand.expiresAt || Number(demand.expiresAt) > runtime.now()));
+  }
+
+  function registryFarmerEvidence(objective) {
+    let registry = null;
+    try { registry = runtime.characterRegistry && runtime.characterRegistry.status ? runtime.characterRegistry.status() : null; } catch (_) { registry = null; }
+    const rows = Array.isArray(registry && registry.characters) ? registry.characters : [];
+    const objectiveIds = [];
+    let matchingFarmers = 0;
+    let combatActive = false;
+    const expectedId = objective && objective.objectiveId ? String(objective.objectiveId) : null;
+    for (const row of rows) {
+      if (!row || String(row.ctype || row.type || '').toLowerCase() === 'merchant') continue;
+      const materialObjective = row.materialObjective
+        || row.productionMaterialObjective
+        || row.farmer && row.farmer.materialObjective
+        || row.runtime && row.runtime.farmer && row.runtime.farmer.materialObjective
+        || null;
+      if (!materialObjective || !['PRODUCTION_MATERIAL', 'PRODUCTION_MATERIAL_HANDOFF'].includes(String(materialObjective.kind || ''))) continue;
+      const id = materialObjective.objectiveId || materialObjective.id || materialObjective.material || null;
+      if (id) objectiveIds.push(String(id));
+      const matches = expectedId ? String(id || '') === expectedId : true;
+      if (!matches) continue;
+      matchingFarmers += 1;
+      if (row.target || row.inCombat === true || row.combatActive === true || row.combat && row.combat.active === true) combatActive = true;
+    }
+    return {
+      farmerProductionObjectives: objectiveIds,
+      farmerCombatActive: matchingFarmers > 0 ? combatActive : undefined
+    };
+  }
+
+  function activeTargetIdentityFromObjective(objective) {
+    if (!objective || !objective.output) return null;
+    return `${String(objective.output)}|${String(objective.recipient || '')}|${String(objective.slot || '')}`;
+  }
+
+  function observeRealProductionSoak(cycleResult = null) {
+    const intentStatus = productionIntent.status();
+    const activeIntent = intentStatus.active || null;
+    const history = Array.isArray(intentStatus.history) ? intentStatus.history : [];
+    const latestTerminal = history.length ? history[history.length - 1] : null;
+    const objective = productionObjectiveStatus();
+    const task = currentTask();
+    const controlled = executor.status();
+    const recoveringOperation = controlled && controlled.activeOperation && String(controlled.activeOperation.state || '') === 'RECOVERING'
+      ? controlled.activeOperation
+      : null;
+    const completedNow = !!(cycleResult && String(cycleResult.reason || '') === 'FINAL_PRODUCTION_RECIPIENT_VERIFIED');
+    const relevant = !!(
+      activeIntent
+      || objective
+      || task && task.owner === 'PRODUCTION'
+      || productionExchangeDemandActive()
+      || productionMutationDemandActive()
+      || recoveringOperation
+      || completedNow
+      || controlled && controlled.activeOperation && String(controlled.activeOperation.state || '') === 'COMMITTED'
+    );
+    if (!relevant) return productionSoakAuditor.status();
+
+    if (!realSoakState.coverageAuditRan) {
+      try { productionCoverageAudit.auditAllGear(); } catch (_) {}
+      realSoakState.coverageAuditRan = true;
+    }
+
+    let phase = activeIntent && String(activeIntent.phase || '') || null;
+    if (objective && String(objective.phase || '') === 'HANDOFF_READY') phase = 'MATERIAL_READY_FOR_HANDOFF';
+    if (recoveringOperation) phase = 'RECOVERY_PENDING';
+    if (completedNow) phase = 'COMPLETED';
+    if (!phase) phase = 'OBSERVING';
+
+    const targetIdentity = activeIntent && activeIntent.targetIdentity
+      || completedNow && latestTerminal && latestTerminal.targetIdentity
+      || activeTargetIdentityFromObjective(objective)
+      || null;
+
+    const sample = {
+      source: 'REAL_RUNTIME',
+      observedAt: runtime.now(),
+      phase,
+      targetIdentity,
+      recoveryPending: !!(intentStatus.recoveryPending || recoveringOperation),
+      productionTaskActive: !!(task && task.owner === 'PRODUCTION'),
+      productionObjectiveActive: !!objective,
+      exchangeDemandActive: productionExchangeDemandActive(),
+      mutationDemandActive: productionMutationDemandActive()
+    };
+
+    if (activeIntent && latestTerminal
+      && latestTerminal.targetIdentity
+      && latestTerminal.targetIdentity !== activeIntent.targetIdentity
+      && Number(latestTerminal.completedAt || latestTerminal.updatedAt || 0) <= Number(activeIntent.createdAt || activeIntent.updatedAt || 0)) {
+      sample.targetTransitionAuthorized = true;
+    }
+
+    if (completedNow) sample.recipientVerified = true;
+
+    if (objective && String(objective.phase || '') === 'HANDOFF_READY') {
+      const required = Math.max(0, Math.floor(n(objective.requiredQuantity, 0) || 0));
+      const held = Math.max(0, Math.floor(n(objective.heldByFarmers, required) || 0));
+      sample.remainingToFarm = Math.max(0, required - held);
+    }
+
+    const farmerEvidence = registryFarmerEvidence(objective);
+    if (farmerEvidence.farmerProductionObjectives.length) sample.farmerProductionObjectives = farmerEvidence.farmerProductionObjectives;
+    if (farmerEvidence.farmerCombatActive !== undefined) sample.farmerCombatActive = farmerEvidence.farmerCombatActive;
+
+    const decision = state.lastMaterialFarmDecision && state.lastMaterialFarmDecision.selected || null;
+    if (decision && (!objective || !decision.target || String(decision.target.output || '') === String(objective.output || ''))) {
+      sample.farmDecision = { decisionQuantile: decision.decisionQuantile || null };
+    }
+
+    const materialEvidence = activeIntent && activeIntent.material || objective || null;
+    const eventKey = materialEvidence && materialEvidence.eventKey || null;
+    if (eventKey) {
+      sample.eventKey = String(eventKey);
+      const liveEventState = runtime.root && (runtime.root.S || runtime.root.parent && runtime.root.parent.S) || {};
+      sample.eventActive = eventEntryActive(liveEventState, eventKey, runtime.now());
+    }
+
+    const op = controlled && controlled.activeOperation || null;
+    if (op && String(op.state || '') === 'COMMITTED' && op.id && String(op.id) !== String(realSoakState.lastObservedCommittedOperationId || '')) {
+      const kind = String(op.kind || '');
+      sample.irreversibleAction = {
+        kind,
+        committed: true,
+        idempotencyKey: String(op.id)
+      };
+      sample.gameplayActionExecuted = true;
+      realSoakState.lastObservedCommittedOperationId = String(op.id);
+    }
+
+    const lastExecution = state.lastExecution || null;
+    if (lastExecution && lastExecution.result && lastExecution.result.executed === true) {
+      const fingerprint = [
+        lastExecution.at,
+        lastExecution.planId || '',
+        lastExecution.kind || '',
+        lastExecution.result.reason || ''
+      ].join('|');
+      if (fingerprint !== realSoakState.lastObservedExecutionFingerprint) {
+        sample.gameplayActionExecuted = true;
+        realSoakState.lastObservedExecutionFingerprint = fingerprint;
+      }
+    }
+
+    persistRealSoakCursor();
+    const status = productionSoakAuditor.observe(sample);
+    realSoakState.sessionSamples += 1;
+    realSoakState.lastSample = clone(sample);
+    return status;
+  }
+
+  function cycle() {
+    const result = cycleCore();
+    observeRealProductionSoak(result);
+    return result;
+  }
+
+  function productionRealSoakStatus() {
+    return {
+      schemaVersion: 1,
+      mode: 'production-real-soak-runtime-observer-v1',
+      actionAuthority: false,
+      autoObservation: true,
+      logsModified: false,
+      sessionSamples: realSoakState.sessionSamples,
+      lastSample: clone(realSoakState.lastSample),
+      audit: productionSoakAuditor.status(),
+      coverage: productionCoverageAudit.status(),
+      certification: productionGraphCertificationGate({
+        coverage: productionCoverageAudit.status(),
+        soak: productionSoakAuditor.status(),
+        minSoakSamples: options.merchantProductionCertificationMinSoakSamples || 5000
+      })
+    };
+  }
+
   function configure(config = {}) {
     if (config.enabled === true && !isMerchant()) {
       return { ...status(), enableRejected: 'MERCHANT_PRODUCTION_ROLE_MISMATCH' };
@@ -56952,6 +57206,14 @@ function installMerchantProduction(runtime, options = {}) {
       productionIntent: productionIntent.status(),
       productionCoverageAudit: productionCoverageAudit.status(),
       productionSoakAudit: productionSoakAuditor.status(),
+      productionRealSoak: {
+        mode: 'production-real-soak-runtime-observer-v1',
+        actionAuthority: false,
+        autoObservation: true,
+        logsModified: false,
+        sessionSamples: realSoakState.sessionSamples,
+        lastSample: clone(realSoakState.lastSample)
+      },
       productionCertificationGate: productionGraphCertificationGate({
         coverage: productionCoverageAudit.status(),
         soak: productionSoakAuditor.status(),
@@ -57054,6 +57316,7 @@ function installMerchantProduction(runtime, options = {}) {
   runtime.productionGraphSoakAuditor = productionSoakAuditor;
   runtime.auditProductionCoverage = auditProductionCoverage;
   runtime.observeProductionSoakSample = observeProductionSoakSample;
+  runtime.productionRealSoakStatus = productionRealSoakStatus;
   runtime.productionCertificationGate = productionCertificationGate;
   runtime.merchantBankCatalog = bankCatalog;
   runtime.persistentProductionIntent = productionIntent;
@@ -57073,6 +57336,8 @@ function installMerchantProduction(runtime, options = {}) {
     productionSoakAuditor,
     auditProductionCoverage,
     observeProductionSoakSample,
+    observeRealProductionSoak,
+    productionRealSoakStatus,
     productionCertificationGate,
     evaluate,
     cycle,
@@ -58666,17 +58931,89 @@ class ProductionGraphSoakAuditor {
     this.committedOrder = [];
     this.activeTargetIdentity = null;
     this.maxTrackedCommitted = 0;
+    this.root = options.root || globalThis;
+    this.storage = options.storage || null;
+    this.storageKey = options.storageKey || 'aio-v3-production-graph-soak-v1';
+    this.persistEvery = Math.max(1, Math.min(1000, Math.floor(finite(options.persistEvery, 25) || 25)));
+    this.persisted = 0;
+    this.loads = 0;
+    this._dirty = false;
+    this._load();
+  }
+
+  _get() {
+    try {
+      if (this.storage && typeof this.storage.get === 'function') return this.storage.get(this.storageKey);
+      const ls = this.root && this.root.localStorage;
+      return ls && typeof ls.getItem === 'function' ? ls.getItem(this.storageKey) : null;
+    } catch (_) { return null; }
+  }
+
+  _set(value) {
+    try {
+      const text = JSON.stringify(value);
+      if (this.storage && typeof this.storage.set === 'function') return this.storage.set(this.storageKey, text) !== false;
+      const ls = this.root && this.root.localStorage;
+      if (ls && typeof ls.setItem === 'function') {
+        ls.setItem(this.storageKey, text);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  _load() {
+    const raw = this._get();
+    if (!raw) return false;
+    try {
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!data || Number(data.schemaVersion) !== 1) return false;
+      this.samples = Math.max(0, Math.floor(finite(data.samples, 0) || 0));
+      this.violations = (Array.isArray(data.violations) ? data.violations : []).slice(-this.capacity).map(clone);
+      this.committedOrder = (Array.isArray(data.committedOrder) ? data.committedOrder : [])
+        .map((value) => String(value || ''))
+        .filter(Boolean)
+        .slice(-this.committedCapacity);
+      this.seenCommitted = new Set(this.committedOrder);
+      this.activeTargetIdentity = data.activeTargetIdentity ? String(data.activeTargetIdentity) : null;
+      this.maxTrackedCommitted = Math.max(this.seenCommitted.size, Math.floor(finite(data.maxTrackedCommitted, 0) || 0));
+      this.loads += 1;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  _persist(force = false) {
+    if (!force) return false;
+    const ok = this._set({
+      schemaVersion: 1,
+      samples: this.samples,
+      violations: this.violations.slice(-this.capacity),
+      committedOrder: this.committedOrder.slice(-this.committedCapacity),
+      activeTargetIdentity: this.activeTargetIdentity,
+      maxTrackedCommitted: this.maxTrackedCommitted
+    });
+    if (ok) this.persisted += 1;
+    this._dirty = false;
+    return ok;
+  }
+
+  flush() {
+    return this._persist(true);
   }
 
   _violate(code, sample, detail = {}) {
     const row = { seq: this.samples, code, phase: sample && sample.phase || null, ...clone(detail) };
     this.violations.push(row);
     if (this.violations.length > this.capacity) this.violations.splice(0, this.violations.length - this.capacity);
+    this._dirty = true;
     return row;
   }
 
   observe(sample = {}) {
     this.samples += 1;
+    if (this.samples % this.persistEvery === 0) this._dirty = true;
     const phase = String(sample.phase || '');
     const targetIdentity = sample.targetIdentity || null;
     const terminal = ['COMPLETED', 'ABORTED', 'FAILED_SAFE'].includes(phase);
@@ -58684,8 +59021,14 @@ class ProductionGraphSoakAuditor {
     if (targetIdentity && this.activeTargetIdentity && targetIdentity !== this.activeTargetIdentity && !sample.targetTransitionAuthorized) {
       this._violate('TARGET_IDENTITY_CHANGED_WITHOUT_TERMINAL_REPLAN', sample, { previous: this.activeTargetIdentity, next: targetIdentity });
     }
-    if (targetIdentity && !terminal) this.activeTargetIdentity = targetIdentity;
-    if (terminal) this.activeTargetIdentity = null;
+    if (targetIdentity && !terminal && targetIdentity !== this.activeTargetIdentity) {
+      this.activeTargetIdentity = targetIdentity;
+      this._dirty = true;
+    }
+    if (terminal && this.activeTargetIdentity !== null) {
+      this.activeTargetIdentity = null;
+      this._dirty = true;
+    }
 
     if (sample.recoveryPending === true && sample.gameplayActionExecuted === true) {
       this._violate('GAMEPLAY_ACTION_DURING_RECOVERY_PENDING', sample);
@@ -58699,6 +59042,7 @@ class ProductionGraphSoakAuditor {
       else {
         this.seenCommitted.add(key);
         this.committedOrder.push(key);
+        this._dirty = true;
         while (this.committedOrder.length > this.committedCapacity) {
           const oldest = this.committedOrder.shift();
           this.seenCommitted.delete(oldest);
@@ -58735,6 +59079,7 @@ class ProductionGraphSoakAuditor {
       if (sample.mutationDemandActive === true) this._violate('ORPHAN_MUTATION_DEMAND_AFTER_COMPLETION', sample);
     }
 
+    this._persist(this._dirty);
     return this.status();
   }
 
@@ -58749,7 +59094,14 @@ class ProductionGraphSoakAuditor {
       violations: this.violations.slice(-100).map(clone),
       committedKeysTracked: this.seenCommitted.size,
       committedCapacity: this.committedCapacity,
-      bounded: this.violations.length <= this.capacity && this.seenCommitted.size <= this.committedCapacity
+      bounded: this.violations.length <= this.capacity && this.seenCommitted.size <= this.committedCapacity,
+      persistence: {
+        enabled: !!(this.storage || this.root && this.root.localStorage),
+        storageKey: this.storageKey,
+        persistEvery: this.persistEvery,
+        loads: this.loads,
+        writes: this.persisted
+      }
     };
   }
 }
