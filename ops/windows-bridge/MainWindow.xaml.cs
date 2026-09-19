@@ -44,6 +44,8 @@ public partial class MainWindow : Window
             DashboardUrlText.Text = _config.WebDashboardBaseUrl;
             BackblazeDetailEndpointText.Text = _config.BackblazeEndpoint;
             ConfigPathText.Text = BridgeConfig.ConfigPath;
+            LiveWissenPfadBox.Text = _config.LiveWissenQuellordner;
+            AktualisiereLiveWissenPfadStatus();
 
             _token = await _tokenStore.LoadAsync(_config.TelemetryTokenEnvironmentVariable);
             TokenStateText.Text = SecureTokenStore.IsValidToken(_token)
@@ -703,6 +705,7 @@ public partial class MainWindow : Window
             {
                 "PRUEFT_GITHUB" => "PRÜFT GITHUB",
                 "SYNCHRONISIERT_REPO" => "SYNCHRONISIERT REPO",
+                "IMPORTIERT_LIVE_WISSEN" => "IMPORTIERT BOT-LIVEWISSEN",
                 "PRUEFT_QUELLEN" => "PRÜFT QUELLEN",
                 "SUCHT_IM_WEB" => "SUCHT NEUE QUELLEN",
                 "LAEDT_HOCH" => "LÄDT DATENBANK HOCH",
@@ -716,10 +719,60 @@ public partial class MainWindow : Window
             WissenswaechterLastRunText.Text = status.LetzterLauf?.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss") ?? "—";
             WissenswaechterNextRunText.Text = status.NaechsterLauf?.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss") ?? "—";
 
+            var liveDetail = status.LiveFehler is not null
+                ? "Live-Import: " + Bounded(status.LiveFehler)
+                : $"Live importiert: {status.LiveImportiert} · Live übersprungen: {status.LiveUebersprungen}";
+
             WissenswaechterDetailText.Text = status.Fehler is not null
                 ? "Fehler: " + Bounded(status.Fehler)
-                : $"Geprüft: {status.GepruefteQuellen} · geändert: {status.GeaenderteQuellen} · neue Kandidaten: {status.NeueKandidaten} · Upload: {(status.Hochgeladen ? "ja" : "nein")}";
+                : $"Geprüft: {status.GepruefteQuellen} · geändert: {status.GeaenderteQuellen} · neue Kandidaten: {status.NeueKandidaten} · {liveDetail} · Upload: {(status.Hochgeladen ? "ja" : "nein")}";
         });
+    }
+
+    private async void LiveWissenPfadSpeichern_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var pfad = LiveWissenPfadBox.Text.Trim();
+            var neu = _config with
+            {
+                LiveWissenQuellordner = pfad,
+                LiveWissenImportAktiv = !string.IsNullOrWhiteSpace(pfad)
+            };
+            neu.Validate();
+            await neu.SaveAsync();
+            _config = neu;
+            LiveWissenPfadBox.Text = _config.LiveWissenQuellordner;
+            AktualisiereLiveWissenPfadStatus();
+
+            var sollNeuStarten = _config.WissenswaechterAktiv && !string.IsNullOrWhiteSpace(_githubKonto);
+            if (_wissenswaechter is not null)
+            {
+                _wissenswaechter.StatusGeaendert -= OnWissenswaechterStatus;
+                await _wissenswaechter.DisposeAsync();
+                _wissenswaechter = null;
+            }
+
+            if (sollNeuStarten)
+                await StarteWissenswaechterAsync();
+        }
+        catch (Exception error)
+        {
+            LiveWissenPfadStatusText.Text = "Fehler: " + Bounded(error.Message);
+        }
+    }
+
+    private void AktualisiereLiveWissenPfadStatus()
+    {
+        if (!_config.LiveWissenImportAktiv || string.IsNullOrWhiteSpace(_config.LiveWissenQuellordner))
+        {
+            LiveWissenPfadStatusText.Text = "Kein Livewissen-Ordner konfiguriert. Der Import ist deaktiviert.";
+            return;
+        }
+
+        LiveWissenPfadStatusText.Text = Directory.Exists(_config.LiveWissenQuellordner)
+            ? "BEREIT · Ordner vorhanden · wird beim nächsten Wissenslauf rekursiv eingelesen."
+            : "GESPEICHERT · Ordner ist noch nicht vorhanden oder das Laufwerk ist derzeit nicht verfügbar.";
     }
 
     private async void GitHubLogin_Click(object sender, RoutedEventArgs e)
