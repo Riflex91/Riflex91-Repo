@@ -38,7 +38,8 @@ export function pruefeQuelltext(relativerPfad, quelltext) {
   }
 
   if (/(?:from\s+["'](?:node:)?fs(?:\/promises)?["']|require\s*\(\s*["'](?:node:)?fs)/.test(quelltext)
-      && !pfad.startsWith("persistenz/quelle/adapter/")) {
+      && !pfad.startsWith("persistenz/quelle/adapter/")
+      && !pfad.startsWith("grundlage/adapter/persistenz/")) {
     fehler.push("DIREKTER_DATEISYSTEMZUGRIFF");
   }
 
