@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "V5 live verifizierter Adventure-Land-Fakt",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "spiel",
+    "kennung",
+    "domaene",
+    "status",
+    "beobachtetAm",
+    "verifiziertAm",
+    "quelle",
+    "wert"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "spiel": {
+      "const": "Adventure Land - The Code MMORPG"
+    },
+    "kennung": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "domaene": {
+      "enum": [
+        "KERN",
+        "CHARAKTER",
+        "INVENTAR",
+        "SKILL",
+        "MONSTER",
+        "MAP",
+        "EVENT",
+        "QUEST",
+        "MARKT",
+        "BANK",
+        "HANDWERK",
+        "KAMPF",
+        "NAVIGATION",
+        "GRUPPE",
+        "SERVER",
+        "ITEM",
+        "NPC"
+      ]
+    },
+    "status": {
+      "const": "LIVE_VERIFIZIERT"
+    },
+    "beobachtetAm": {
+      "type": "string"
+    },
+    "verifiziertAm": {
+      "type": "string"
+    },
+    "quelle": {
+      "type": "object",
+      "required": [
+        "art",
+        "methode"
+      ],
+      "properties": {
+        "art": {
+          "const": "LIVE_SPIEL"
+        },
+        "methode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "additionalProperties": true
+    },
+    "wert": {}
+  },
+  "additionalProperties": true
+}
