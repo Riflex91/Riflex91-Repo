@@ -389,6 +389,8 @@ class ProgressionIntelligence {
       mode: ALPHA21_PROGRESSION_MODE,
       policy: {
         hardLevelGuide: false,
+        gearDominantStrengthModel: true,
+        characterLevelRole: 'MINOR_CONTEXT_AND_COMPATIBILITY_GATE',
         livePerformanceDriven: true,
         deterministicLeaderOwnsPromotion: true,
         followerIndependentPromotion: false,
