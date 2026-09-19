@@ -249,7 +249,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       collectionUnavailableCompletions: 0,
       collectionRoutesPreemptedForCriticalSupply: 0,
       collectionRoutesSuspendedForCriticalSupply: 0,
-      collectionRoutesResumedAfterCriticalSupply: 0
+      collectionRoutesResumedAfterCriticalSupply: 0,
+      opportunisticPotionRouteStarts: 0
     };
     this.lastGearHold = null;
     this.lastMerchantRendezvous = null;
@@ -1614,6 +1615,21 @@ class Alpha33MarkOrbitMerchantDelivery {
 
   _startCollectionRoute(candidate, batchDecision = null) {
     if (!candidate || !candidate.pickupEntryCount) return false;
+
+    // A collection trip is already a planned Farmer visit. Before taking the
+    // RENDEZVOUS lock, let the existing potion service chain top up those same
+    // Farmers and aggregate the required shop purchase. This avoids a second
+    // Merchant trip while preserving Alpha27 as the sole supply-chain owner.
+    const potionPolicy = this.runtime.p0PotionPolicy4500;
+    if (potionPolicy && typeof potionPolicy.startOpportunisticService === 'function') {
+      const service = potionPolicy.startOpportunisticService(candidate.names || [], 'FARMER_COLLECTION_ROUTE');
+      if (service && service.started === true) {
+        this.stats.opportunisticPotionRouteStarts += 1;
+        this._event('MERCHANT_COLLECTION_ROUTE_DEFERRED_FOR_POTION_BUNDLE', 'info', service.reason, service);
+        return false;
+      }
+    }
+
     this.collectionCapacityBlockedIndexes.clear();
     const coordinator = this._collectionCoordinator();
     const lock = coordinator && typeof coordinator.acquire === 'function'
@@ -2089,6 +2105,7 @@ class Alpha33MarkOrbitMerchantDelivery {
         collectionReturnsToEconomyAfterDrainedSettle: true,
         criticalPartySupplyPreemptsCollectionRoute: true,
         criticalPartySupplySuspendsAndResumesCollection: true,
+        plannedFarmerRouteBundlesPotionServiceFirst: true,
         rejectedOrTimedOutLootIsExcludedFromPickupTelemetry: true,
         merchantCapacityPreparedFromTotalFarmerPickupDemand: true,
         merchantCollectionMaximizesSafeFreeSlotsBeforeDeparture: false,
