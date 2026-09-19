@@ -39,7 +39,7 @@ class Alpha9Runtime extends StabilityRuntime {
   }
 
   _farmPlanningParty(snapshot) {
-    const party = this._farmPlanningParty(snapshot);
+    const party = this._partyProfile(snapshot);
     let capabilities = null;
     try {
       capabilities = this.partyCapabilityResolver && typeof this.partyCapabilityResolver.status === 'function'
@@ -64,7 +64,7 @@ class Alpha9Runtime extends StabilityRuntime {
     super.tick();
     const snapshot = this.lastSnapshot;
     if (!snapshot || !snapshot.character) return;
-    const party = this._partyProfile(snapshot);
+    const party = this._farmPlanningParty(snapshot);
     const gameData = this.adapter.getGameData() || {};
     this.localFarming.tick({
       runtime: this,
