@@ -382,8 +382,27 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
   async deliverGearGoal() {
     const candidate = this.gearDeliveryCandidate();
     if (!candidate) return false;
-    if (!await this.ensureStandClosed('GEAR_DELIVERY_PREEMPT')) return true;
     const { goal, item } = candidate;
+
+    // A gear delivery is already a Farmer-bound trip. Let the potion service
+    // planner pre-buy and deliver this Farmer's HP/MP deficit on the same route
+    // before the Merchant commits to travel.
+    const potionPolicy = this.runtime.p0PotionPolicy4500;
+    if (potionPolicy && typeof potionPolicy.startOpportunisticService === 'function') {
+      const service = potionPolicy.startOpportunisticService([goal.character], 'FARMER_GEAR_DELIVERY_ROUTE');
+      if (service && service.started === true) {
+        this.lastMerchantPlan = {
+          at: this.now(),
+          action: 'SERVICE_BUNDLE',
+          reason: 'GEAR_ROUTE_PREBUNDLED_POTIONS',
+          targetName: goal.character,
+          potionService: clone(service)
+        };
+        return true;
+      }
+    }
+
+    if (!await this.ensureStandClosed('GEAR_DELIVERY_PREEMPT')) return true;
     const parent = this.root && this.root.parent || this.root;
     const target = Object.values(parent && parent.entities || {}).find((row) => row && !row.mtype && String(row.name || '') === String(goal.character)) || null;
     const c = characterOf(this.runtime);
