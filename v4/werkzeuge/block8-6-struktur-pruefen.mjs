@@ -7,7 +7,11 @@ const dateien = [
   'laufzeit/quelle/vertraege/skill-katalog.ts',
   'laufzeit/quelle/adventure-land/adventure-land-skill-katalog.ts',
   'laufzeit/tests/skill-katalog.test.mjs',
+  'laufzeit/quelle/vertraege/skill-katalog-audit.ts',
+  'laufzeit/quelle/adventure-land/adventure-land-skill-katalog-audit.ts',
+  'laufzeit/tests/skill-katalog-audit.test.mjs',
   'dokumentation/BLOCK-8-6-1-SKILL-KATALOG.md',
+  'dokumentation/BLOCK-8-6-2-AUDIT-REVALIDIERUNG.md',
   'dokumentation/BLOCK-8-6-PLAN.md',
   'dokumentation/VERTRAEGE.md'
 ];
@@ -83,7 +87,7 @@ for (const pflicht of [
   if (!tests.includes(pflicht)) throw new Error(`Block-8.6.1-Testabdeckung fehlt: ${pflicht}`);
 }
 
-const dokument = await readFile(path.join(wurzel, dateien[3]), 'utf8');
+const dokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-1-SKILL-KATALOG.md'), 'utf8');
 for (const pflicht of [
   'Adventure Lands live beobachtetes `G.skills` ist die technische Source of Truth.',
   '`automationValidated=false`',
@@ -99,22 +103,104 @@ for (const pflicht of [
   if (!dokument.includes(pflicht)) throw new Error(`Block-8.6.1-Dokumentation fehlt: ${pflicht}`);
 }
 
-const plan = await readFile(path.join(wurzel, dateien[4]), 'utf8');
+const auditVertrag = await readFile(path.join(wurzel, 'laufzeit/quelle/vertraege/skill-katalog-audit.ts'), 'utf8');
 for (const pflicht of [
-  '8.6.1 – Skill-Katalog-Vertrag und Live-Lesequelle — **IMPLEMENTIERT**',
-  'Naechster Implementierungsschritt: **8.6.2 – Audit, Drift und Recovery-Revalidierung**'
+  'SKILL_KATALOG_AUDIT_SCHEMA_VERSION = 1',
+  "'runtime_start'",
+  "'periodisch'",
+  "'connection_gap'",
+  "'recovery'",
+  "'serverwechsel'",
+  "'charakterwechsel'",
+  "'levelaenderung'",
+  "'skill_drift'",
+  "'revalidierung'",
+  'SkillKatalogRevalidierungsProfil',
+  'produktionsbereit',
+  'aktionsAutoritaet: false',
+  'automatischerNeustart: false'
 ]) {
-  if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf 8.6.1-Stand: ${pflicht}`);
+  if (!auditVertrag.includes(pflicht)) throw new Error(`Block-8.6.2-Auditvertrag fehlt: ${pflicht}`);
 }
 
-const vertraege = await readFile(path.join(wurzel, dateien[5]), 'utf8');
+const auditQuelle = await readFile(path.join(wurzel, 'laufzeit/quelle/adventure-land/adventure-land-skill-katalog-audit.ts'), 'utf8');
+for (const pflicht of [
+  'AdventureLandSkillKatalogAuditSteuerung',
+  'liesKatalogAusRohdaten',
+  'markiereVeraltet',
+  'markiereDrift',
+  'bestaetigeAktuellenKatalog',
+  "'runtime_start'",
+  "'periodisch'",
+  "'connection_gap'",
+  "'recovery'",
+  "'serverwechsel'",
+  "'charakterwechsel'",
+  "'levelaenderung'",
+  "'skill_drift'",
+  'aktionsAutoritaet: false as const',
+  'automatischerNeustart: false as const'
+]) {
+  if (!auditQuelle.includes(pflicht)) throw new Error(`Block-8.6.2-Auditsteuerung fehlt: ${pflicht}`);
+}
+for (const verboten of [
+  /\buse_skill\s*\(/,
+  /\battack\s*\(/,
+  /\bmove\s*\(/,
+  /\bsmart_move\s*\(/,
+  /\bsend_cm\s*\(/,
+  /from ['"]\.\.\/ausfuehrung\//
+]) {
+  if (verboten.test(auditQuelle)) throw new Error(`Block 8.6.2 darf keine Adventure-Land-Aktionsautoritaet einfuehren: ${verboten}`);
+}
+
+const auditTests = await readFile(path.join(wurzel, 'laufzeit/tests/skill-katalog-audit.test.mjs'), 'utf8');
+for (const pflicht of [
+  'Runtime-Start installiert periodische read-only Audits ohne neue Autoritaet',
+  'Connection-Gap -> Recovery bleibt veraltet bis exakte Revalidierung',
+  'Charakter- und Serverwechsel erzwingen Revalidierung',
+  'Level-Aenderung loest Audit aus',
+  'echte Skill-Drift bleibt beim identischen zweiten Audit gesperrt',
+  'widerspruechliche Folge-Drift erhoeht Generation',
+  'Neustart mit altem persistentem Revalidierungsprofil und neuem Katalog fail-closed auf Drift',
+  'assert.equal(status.aktionsAutoritaet, false)',
+  'assert.equal(status.automatischerNeustart, false)'
+]) {
+  if (!auditTests.includes(pflicht)) throw new Error(`Block-8.6.2-Testabdeckung fehlt: ${pflicht}`);
+}
+
+const auditDokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-2-AUDIT-REVALIDIERUNG.md'), 'utf8');
+for (const pflicht of [
+  'Connection-Gap -> Recovery -> explizite Revalidierung',
+  'Runtime-Start und periodischer Audit',
+  'Server- und Charakterwechsel',
+  'Neustart mit altem Revalidierungsprofil und neuem Katalog',
+  'keine Aktions- oder automatische Restart-Autoritaet',
+  '**8.6.3 – Per-Character SkillPolicy und Slider.**'
+]) {
+  if (!auditDokument.includes(pflicht)) throw new Error(`Block-8.6.2-Dokumentation fehlt: ${pflicht}`);
+}
+
+const plan = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-PLAN.md'), 'utf8');
+for (const pflicht of [
+  '8.6.1 – Skill-Katalog-Vertrag und Live-Lesequelle — **IMPLEMENTIERT**',
+  '8.6.2 – Audit, Drift und Recovery-Revalidierung — **IMPLEMENTIERT**',
+  'Naechster Implementierungsschritt: **8.6.3 – Per-Character SkillPolicy und Slider**'
+]) {
+  if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.2-Stand: ${pflicht}`);
+}
+
+const vertraege = await readFile(path.join(wurzel, 'dokumentation/VERTRAEGE.md'), 'utf8');
 for (const pflicht of [
   '## SkillKatalog',
   '`automationValidated`',
   '`technischeReadiness`',
-  '`spielAutoritaet: false`'
+  '`spielAutoritaet: false`',
+  '## SkillKatalogAudit',
+  '`aktionsAutoritaet: false`',
+  '`automatischerNeustart: false`'
 ]) {
-  if (!vertraege.includes(pflicht)) throw new Error(`V4-Vertragsdokumentation fehlt fuer Block 8.6.1: ${pflicht}`);
+  if (!vertraege.includes(pflicht)) throw new Error(`V4-Vertragsdokumentation fehlt fuer Block 8.6.1/8.6.2: ${pflicht}`);
 }
 
 const packageJson = JSON.parse(await readFile(path.join(wurzel, 'package.json'), 'utf8'));
@@ -125,4 +211,4 @@ if (!String(packageJson.scripts?.pruefen ?? '').includes('npm run block8-6-struk
   throw new Error('npm run pruefen muss den Block-8.6-Strukturguard ausfuehren.');
 }
 
-console.log('Block 8.6.1 geprueft: versionierter Live-Skill-Katalog, fail-closed Validierung, stabile Fingerprints/Generationen und keine neue Spielaktionsautoritaet.');
+console.log('Block 8.6.1/8.6.2 geprueft: Live-Skill-Katalog, Audit/Drift/Recovery-Revalidierung und keine neue Spielaktionsautoritaet.');
