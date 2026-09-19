@@ -28,6 +28,14 @@ function boundedOptions(options = {}) {
     // Upgrade: 3 -> 30, Compound: 2 -> 20.
     maxUpgradeAttemptsPerWindow: Math.max(1, Math.min(200, Math.floor(finite(options.maxUpgradeAttemptsPerWindow, 30)))),
     maxCompoundAttemptsPerWindow: Math.max(1, Math.min(200, Math.floor(finite(options.maxCompoundAttemptsPerWindow, 20)))),
+    merchantScrollBatchMax: Math.max(1, Math.min(200, Math.floor(finite(options.merchantScrollBatchMax, 80)))),
+    speculativeMinChanceNoSpare: Math.max(0, Math.min(1, finite(options.speculativeMinChanceNoSpare, 0.60))),
+    speculativeMinChanceOneSpare: Math.max(0, Math.min(1, finite(options.speculativeMinChanceOneSpare, 0.35))),
+    speculativeMinChanceManySpares: Math.max(0, Math.min(1, finite(options.speculativeMinChanceManySpares, 0.20))),
+    mutationChanceTimeoutMs: Math.max(1000, Math.min(10000, finite(options.mutationChanceTimeoutMs, 4000))),
+    mutationRiskHoldMs: Math.max(10000, Math.min(10 * 60 * 1000, finite(options.mutationRiskHoldMs, 60000))),
+    mutationRiskLevelStep: Math.max(0, Math.min(0.15, finite(options.mutationRiskLevelStep, 0.05))),
+    bankRecoveryBatchMaxRows: Math.max(1, Math.min(30, Math.floor(finite(options.bankRecoveryBatchMaxRows, 12)))),
     gearDeliveryDistance: Math.max(50, Math.min(800, finite(options.gearDeliveryDistance, 400))),
     maxUpgradeLevel: Math.max(0, Math.min(7, Math.floor(finite(options.maxUpgradeLevel, 7)))),
     maxCompoundLevel: Math.max(0, Math.min(10, Math.floor(finite(options.maxCompoundLevel, 10)))),
@@ -165,6 +173,9 @@ function initialStats() {
     realCompoundsCommitted: 0,
     realCompoundFailedRollsVerified: 0,
     scrollPurchases: 0,
+    mutationChanceChecks: 0,
+    mutationRiskHolds: 0,
+    riskHeldPartyDeliveriesPreferred: 0,
     namedServiceTravels: 0,
     failedSafe: 0
   };
@@ -260,6 +271,13 @@ class Alpha27CombatMerchantConvergence {
           mutationAttemptWindowMs: this.options.mutationAttemptWindowMs,
           maxUpgradeAttemptsPerWindow: this.options.maxUpgradeAttemptsPerWindow,
           maxCompoundAttemptsPerWindow: this.options.maxCompoundAttemptsPerWindow,
+          merchantScrollBatchMax: this.options.merchantScrollBatchMax,
+          speculativeMinChanceNoSpare: this.options.speculativeMinChanceNoSpare,
+          speculativeMinChanceOneSpare: this.options.speculativeMinChanceOneSpare,
+          speculativeMinChanceManySpares: this.options.speculativeMinChanceManySpares,
+          mutationRiskHoldMs: this.options.mutationRiskHoldMs,
+          mutationRiskLevelStep: this.options.mutationRiskLevelStep,
+          bankRecoveryBatchMaxRows: this.options.bankRecoveryBatchMaxRows,
           gearDeliveryDistance: this.options.gearDeliveryDistance,
           maxUpgradeLevel: this.options.maxUpgradeLevel,
           maxCompoundLevel: this.options.maxCompoundLevel
