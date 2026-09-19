@@ -22,6 +22,7 @@ function installMerchantProduction(runtime, options = {}) {
     minImprovementRatio: options.merchantProductionMinImprovementRatio,
     goldReserve: options.merchantProductionGoldReserve,
     maxBuyQuantity: options.merchantProductionMaxBuyQuantity,
+    candidateScanLimit: options.merchantProductionCandidateScanLimit,
     targets: options.merchantProductionTargets
   });
   const bankCatalog = options.bankCatalog || new PersistentBankCatalog({ root: runtime.root, now: runtime.now, storage: options.merchantProductionStorage || options.storage, storageKey: options.merchantBankCatalogStorageKey, maxAgeMs: options.merchantBankCatalogMaxAgeMs });
