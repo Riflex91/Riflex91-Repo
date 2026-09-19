@@ -525,6 +525,17 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
 
     if (this.reconcileRecovering()) return true;
     let supplyPlan = this.criticalPartySupplyPlan();
+    const taskBeforeSupply = this._taskCurrent();
+    if (supplyPlan
+      && ['RESTOCK_REQUIRED', 'SERVICE_TRAVEL', 'SERVICE_DELIVERY'].includes(String(supplyPlan.kind || ''))
+      && taskBeforeSupply
+      && taskBeforeSupply.owner === 'ALPHA27'
+      && taskBeforeSupply.kind === 'BANK_RECOVERY') {
+      this._taskRelease(taskBeforeSupply.key, 'CRITICAL_PARTY_SUPPLY_PREEMPTS_BANK_WORK');
+      if (this.bankRecovery && typeof this.bankRecovery._finishBatch === 'function') {
+        this.bankRecovery._finishBatch('CRITICAL_PARTY_SUPPLY_PREEMPT');
+      }
+    }
     const active = this.activeTransaction();
     if (active) {
       if (supplyPlan && active.state === 'RESERVED') {
@@ -554,6 +565,25 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
 
     let task = this._taskCurrent();
     let progressionAttemptedThisCycle = false;
+
+    // Once a Bank work block starts, keep it latched until the planned rows are
+    // retrieved or the bank explicitly hands control back for processing.
+    if (task && task.owner === 'ALPHA27' && task.kind === 'BANK_RECOVERY' && this.bankRecovery) {
+      const recoveryPlan = this.bankRecovery.plan();
+      if (recoveryPlan && recoveryPlan.action !== 'HOLD') {
+        this.lastMerchantPlan = { at: this.now(), action: 'BANK_RECOVERY', reason: recoveryPlan.reason, recovery: clone(recoveryPlan) };
+        const acted = await this.bankRecovery.execute(recoveryPlan);
+        if (acted) return true;
+      }
+      if (recoveryPlan && recoveryPlan.action === 'HOLD' && recoveryPlan.keepTask === true) {
+        this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: recoveryPlan.reason, recovery: clone(recoveryPlan) };
+        return false;
+      }
+      this._taskRelease(task.key, recoveryPlan && recoveryPlan.reason || 'BANK_RECOVERY_WORK_BLOCK_COMPLETE', {
+        recovery: clone(recoveryPlan)
+      });
+      task = null;
+    }
 
     // A collection session owns the Merchant until the inventory is actually
     // full or every nearby Farmer has been drained for the settle window.
@@ -607,6 +637,22 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
         }
       }
 
+      // Periodic bank service outranks ordinary progression when due. One
+      // acquire covers travel, bank visibility and the bounded retrieve batch,
+      // preventing bank<->upgrade ping-pong between individual items.
+      if (this.bankRecovery) {
+        const recoveryPlan = this.bankRecovery.plan();
+        if (recoveryPlan && recoveryPlan.action !== 'HOLD') {
+          const lock = this._taskAcquire('BANK_RECOVERY', 'alpha27:bank-recovery', { action: recoveryPlan.action, reason: recoveryPlan.reason });
+          if (lock.acquired) {
+            this.lastMerchantPlan = { at: this.now(), action: 'BANK_RECOVERY', reason: recoveryPlan.reason, recovery: clone(recoveryPlan) };
+            const acted = await this.bankRecovery.execute(recoveryPlan);
+            if (acted) return true;
+            this._taskRelease('alpha27:bank-recovery', 'BANK_RECOVERY_NO_PROGRESS', { recovery: clone(recoveryPlan) });
+          }
+        }
+      }
+
       const progression = progressionAttemptedThisCycle
         ? { acquired: false, reason: 'PROGRESSION_ALREADY_ATTEMPTED_THIS_CYCLE' }
         : this._taskAcquire('PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' });
@@ -636,20 +682,6 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       if (!lock.acquired) return false;
       try { return await this.executeEconomyRequest(lowRiskRequest); }
       finally { this._taskRelease('alpha27:disposal-sell', 'SELL_STEP_COMPLETE'); }
-    }
-
-    if (this.bankRecovery) {
-      const recoveryPlan = this.bankRecovery.plan();
-      if (recoveryPlan && recoveryPlan.action !== 'HOLD') {
-        const lock = this._taskAcquire('BANK_RECOVERY', 'alpha27:bank-recovery', { action: recoveryPlan.action, reason: recoveryPlan.reason });
-        if (!lock.acquired) return false;
-        this.lastMerchantPlan = { at: this.now(), action: 'BANK_RECOVERY', reason: recoveryPlan.reason, recovery: clone(recoveryPlan) };
-        try {
-          if (await this.bankRecovery.execute(recoveryPlan)) return true;
-        } finally {
-          this._taskRelease('alpha27:bank-recovery', 'BANK_RECOVERY_STEP_COMPLETE');
-        }
-      }
     }
 
     if (lowRiskRequest && lowRiskRequest.type === 'BANK' && !this.transactionFamilyOpen('BANK')) {
@@ -695,7 +727,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       economyBeforeNonCriticalGearDelivery: false,
       gearDeliveryLifecycleOrder: ['TARGETED_COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY'],
       itemLifecycleOrder: ['COMPOUND', 'UPGRADE', 'GEAR_DELIVERY', 'SELL', 'BANK'],
-      bankRecoveryLifecycle: ['BANK_PROBE', 'BANK_RETRIEVE', 'COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY_OR_SELL', 'BANK_FALLBACK'],
+      bankRecoveryLifecycle: ['BANK_PROBE', 'BATCH_RETRIEVE_WORK_BLOCK', 'COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY_OR_SELL', 'BANK_FALLBACK'],
       bankRecovery: this.bankRecovery ? this.bankRecovery.status() : null,
       collectionSession: this.collectionStatus(),
       collectionSessionPreemptsEconomy: true,
