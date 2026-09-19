@@ -1336,9 +1336,9 @@ test('Alpha33 Farmer pickup telemetry excludes temporarily rejected loot', () =>
   assert.ok(payload.inventoryPressure > 0 && payload.inventoryPressure < 0.1);
 });
 
-test('planned Farmer collection route starts potion bundle before taking rendezvous lock', () => {
+test('planned Farmer collection route keeps ownership and never defers to standalone potion travel', () => {
   let acquireCalls = 0;
-  const started = [];
+  let standalonePotionStarts = 0;
   const runtime = {
     now: () => 170000,
     log: quietLog(),
@@ -1347,9 +1347,9 @@ test('planned Farmer collection route starts potion bundle before taking rendezv
       parent: { entities: {} }
     },
     p0PotionPolicy4500: {
-      startOpportunisticService(names, reason) {
-        started.push({ names: names.slice(), reason });
-        return { started: true, reason: 'OPPORTUNISTIC_POTION_BATCH_STARTED', chainId: 'potion-route-1' };
+      startOpportunisticService() {
+        standalonePotionStarts += 1;
+        return { started: true };
       }
     },
     merchantTaskCoordinator: {
@@ -1371,15 +1371,13 @@ test('planned Farmer collection route starts potion bundle before taking rendezv
 
   const startedRoute = hotfix._startCollectionRoute(candidate, { ready: true, reason: 'PICKUP_ENTRY_BATCH' });
 
-  assert.equal(startedRoute, false);
-  assert.equal(hotfix.collectionRoute, null);
-  assert.equal(acquireCalls, 0, 'collection must not take the rendezvous lock before potion service');
-  assert.deepEqual(started, [{
-    names: ['My_Ranger1', 'My_Ranger2'],
-    reason: 'FARMER_COLLECTION_ROUTE'
-  }]);
-  assert.equal(hotfix.stats.opportunisticPotionRouteStarts, 1);
-  assert.equal(hotfix.status().policies.plannedFarmerRouteBundlesPotionServiceFirst, true);
+  assert.equal(startedRoute, true);
+  assert.ok(hotfix.collectionRoute);
+  assert.equal(acquireCalls, 1);
+  assert.equal(standalonePotionStarts, 0, 'collection must never spawn a separate potion-service journey');
+  assert.equal(hotfix.collectionRoute.potionPiggybackAttempted, false);
+  assert.equal(hotfix.status().policies.plannedFarmerRoutePiggybacksPotionDeliveryAtDestination, true);
+  assert.equal(hotfix.status().policies.plannedFarmerRouteNeverCreatesStandalonePotionTravel, true);
 });
 
 test('production live services wires Alpha33 before same-version early return', () => {
