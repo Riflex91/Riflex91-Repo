@@ -4,7 +4,7 @@ const { directDropChance, monsterSpawn } = require('./elixir-policy');
 const { contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
 
 const PRODUCTION_MATERIAL_ACQUISITION_MODE = 'team-production-material-acquisition-v1';
-const DEFAULT_MAX_TEAM_FARM_HOURS = 6;
+const DEFAULT_MAX_TEAM_FARM_HOURS = 12;
 const DEFAULT_FALLBACK_KILLS_PER_HOUR = 20;
 
 function finite(value, fallback = 0) {
