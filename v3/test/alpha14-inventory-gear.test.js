@@ -245,3 +245,54 @@ test('2000 combined inventory/gear planning cycles stay bounded, finite and seri
     assert.ok(Number.isFinite(goal.targetScore));
   }
 });
+
+
+test('sell safety records a completed no-upgrade answer for ordinary non-equipment items', () => {
+  const evaluator = new GearProgressionEvaluator({ now: () => 1000 });
+  evaluator.evaluate({
+    registry: {
+      characters: [
+        { name: 'Merchant', ctype: 'merchant', level: 80, inventory: [{ index: 0, name: 'junk', level: 0 }], gear: {} },
+        { name: 'Ranger1', ctype: 'ranger', level: 80, inventory: [], gear: {} }
+      ]
+    },
+    gameData: { items: { junk: { type: 'material', g: 5 } } },
+    contentDrift: { requiresRevalidation: () => false }
+  });
+
+  const safety = evaluator.futureSellSafetyFor('Merchant', 0, 'junk', 0);
+  assert.ok(safety);
+  assert.equal(safety.checked, true);
+  assert.equal(safety.protected, false);
+  assert.ok(safety.checkedCharacterCount >= 2);
+});
+
+test('future merchant upgrade value is protected before economic disposal', () => {
+  const evaluator = new GearProgressionEvaluator({ now: () => 1000, minImprovementRatio: 0.01, maxProbeLevel: 5 });
+  evaluator.evaluate({
+    registry: {
+      characters: [{
+        name: 'Merchant',
+        ctype: 'merchant',
+        level: 80,
+        inventory: [{ index: 0, name: 'speedcoat', level: 0 }],
+        gear: { chest: { name: 'plaincoat', level: 0 } }
+      }]
+    },
+    gameData: {
+      items: {
+        speedcoat: { type: 'chest', armor: 1, speed: 0, g: 1000, upgrade: { speed: 1 } },
+        plaincoat: { type: 'chest', armor: 10, speed: 0, g: 1000 }
+      }
+    },
+    contentDrift: { requiresRevalidation: () => false }
+  });
+
+  const protection = evaluator.futureProtectionFor('Merchant', 0, 'speedcoat', 0);
+  const safety = evaluator.futureSellSafetyFor('Merchant', 0, 'speedcoat', 0);
+  assert.ok(protection);
+  assert.equal(protection.targetCharacter, 'Merchant');
+  assert.equal(protection.reason, 'FUTURE_MERCHANT_GEAR_UPGRADE_POTENTIAL');
+  assert.equal(safety.checked, true);
+  assert.equal(safety.protected, true);
+});
