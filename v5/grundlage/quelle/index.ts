@@ -5,3 +5,4 @@ export * from "./nachrichten/nachrichten-umschlag.js";
 export * from "./persistenz/begrenzter-asynchroner-schreiber.js";
 export * from "./persistenz/speicher-port.js";
 export * from "./grundlage/leere-v5-grundlage.js";
+export * from "./testlabor/replay-aufzeichnung.js";
