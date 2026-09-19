@@ -29,3 +29,19 @@ test('dashboard keeps accessibility and operator feedback in the polished UI', (
   assert.match(DASHBOARD_HTML, /Hard Cap \+7/);
   assert.match(DASHBOARD_HTML, /Hard Cap \+10/);
 });
+
+test('item permission setting is hidden, structured and sanitizes invalid actions', () => {
+  const permissions = SETTINGS_BY_KEY.get('economy.itemPermissions');
+  assert.ok(permissions);
+  assert.equal(permissions.type, 'item-permissions');
+  assert.equal(permissions.hidden, true);
+  assert.deepEqual(normalizeSetting(permissions, {
+    sword: { sell: false, bank: true, upgrade: true, unknown: true },
+    ring: { compound: false },
+    broken: 'yes'
+  }), {
+    sword: { sell: false, bank: true, upgrade: true },
+    ring: { compound: false }
+  });
+  assert.doesNotMatch(DASHBOARD_HTML, /Item-Berechtigungen<\/label>/);
+});
