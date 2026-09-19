@@ -14,6 +14,7 @@ const {
   isEventBackedSource
 } = require('../party/production-material-acquisition');
 const { PROBABILISTIC_FARM_TIME_MODEL } = require('../party/probabilistic-farm-time');
+const { eventEntryActive } = require('../party/acquisition-source-evidence');
 
 const MERCHANT_PRODUCTION_CONTROLLER_MODE = 'merchant-production-controller-v1';
 
@@ -297,6 +298,35 @@ function installMerchantProduction(runtime, options = {}) {
   function schedule(plan) {
     if (!plan || plan.state !== 'READY' || !plan.nextStep || state.executionPending || !executor.status().enabled || collectionBusy()) return false;
     if (runtime.now() < state.pausedUntil) return false;
+    const productionDemand = plan.exchangeDemand && String(plan.exchangeDemand.reason || '') === 'PRODUCTION_MATERIAL'
+      ? plan.exchangeDemand
+      : null;
+    if (productionDemand && productionDemand.eventKey) {
+      const liveEventState = runtime.root && (runtime.root.S || runtime.root.parent && runtime.root.parent.S) || {};
+      if (!eventEntryActive(liveEventState, productionDemand.eventKey, runtime.now())) {
+        const target = productionTargetForPlan(plan);
+        state.lastExecution = {
+          at: runtime.now(),
+          planId: plan.id,
+          kind: plan.nextStep.kind,
+          result: { executed: false, committed: false, reason: 'EVENT_SOURCE_BECAME_INACTIVE_BEFORE_EXECUTION', eventKey: productionDemand.eventKey }
+        };
+        persistIntentForTarget({ ...clone(plan), target: clone(target) }, target, 'EVENT_WAITING', {
+          reason: 'EVENT_SOURCE_BECAME_INACTIVE_BEFORE_EXECUTION',
+          material: {
+            material: productionDemand.item,
+            targetMaterial: productionDemand.target,
+            acquisitionKind: productionDemand.sourceKind || null,
+            eventKey: productionDemand.eventKey,
+            quest: productionDemand.quest || null,
+            graphNode: clone(productionDemand.graphNode || null)
+          },
+          progress: { executableNow: false, permanentBlock: false }
+        });
+        setProductionExchangeDemand(null);
+        return false;
+      }
+    }
     const lock = acquireTask(plan);
     if (!lock.acquired) return false;
     const step = plan.nextStep;
