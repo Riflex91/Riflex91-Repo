@@ -118,16 +118,9 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
   }
 
   const totalExpectedHours = materials.reduce((sum, row) => sum + finite(row.source && row.source.expectedHours, Infinity), 0);
+  if (!Number.isFinite(totalExpectedHours)) return { eligible: false, reason: 'FARM_TIME_ESTIMATE_UNAVAILABLE', materials };
   const maxTeamFarmHours = Math.max(0.25, finite(options.maxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS));
-  if (!Number.isFinite(totalExpectedHours) || totalExpectedHours > maxTeamFarmHours) {
-    return {
-      eligible: false,
-      reason: 'EXPECTED_TEAM_FARM_TIME_EXCEEDS_LIMIT',
-      totalExpectedHours,
-      maxTeamFarmHours,
-      materials
-    };
-  }
+  const longPath = totalExpectedHours > maxTeamFarmHours;
 
   const target = blockedCandidate.candidate;
   const benefit = Math.max(
@@ -144,12 +137,14 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
 
   return {
     eligible: true,
-    reason: 'TEAM_FARM_PATH_WITHIN_BUDGET',
+    reason: longPath ? 'LONG_TEAM_FARM_PATH_DEPRIORITIZED' : 'TEAM_FARM_PATH_WITHIN_PRIORITY_BUDGET',
     target: clone(target),
     materials,
     nextMaterial,
     totalExpectedHours,
     maxTeamFarmHours,
+    longPath,
+    priorityTier: longPath ? 1 : 0,
     benefit,
     utilityPerFarmHour
   };
@@ -160,7 +155,8 @@ function chooseProductionTeamFarmObjective(runtime, blockedCandidates = [], opti
     .map((candidate) => ({ candidate, estimate: estimateBlockedProductionCandidate(runtime, candidate, options) }));
   const eligible = evaluated
     .filter((row) => row.estimate && row.estimate.eligible)
-    .sort((a, b) => b.estimate.utilityPerFarmHour - a.estimate.utilityPerFarmHour
+    .sort((a, b) => finite(a.estimate.priorityTier, 0) - finite(b.estimate.priorityTier, 0)
+      || b.estimate.utilityPerFarmHour - a.estimate.utilityPerFarmHour
       || a.estimate.totalExpectedHours - b.estimate.totalExpectedHours
       || finite(b.estimate.benefit, 0) - finite(a.estimate.benefit, 0)
       || String(a.estimate.target && a.estimate.target.output || '').localeCompare(String(b.estimate.target && b.estimate.target.output || '')));
@@ -173,6 +169,8 @@ function chooseProductionTeamFarmObjective(runtime, blockedCandidates = [], opti
       reason: row.estimate && row.estimate.reason || 'UNKNOWN',
       totalExpectedHours: row.estimate && Number.isFinite(row.estimate.totalExpectedHours) ? row.estimate.totalExpectedHours : null,
       maxTeamFarmHours: row.estimate && row.estimate.maxTeamFarmHours || Math.max(0.25, finite(options.maxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS)),
+      longPath: row.estimate && row.estimate.longPath === true,
+      priorityTier: row.estimate && Number.isFinite(row.estimate.priorityTier) ? row.estimate.priorityTier : null,
       utilityPerFarmHour: row.estimate && Number.isFinite(row.estimate.utilityPerFarmHour) ? row.estimate.utilityPerFarmHour : null
     }))
   };
