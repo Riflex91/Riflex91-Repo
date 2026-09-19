@@ -1,8 +1,8 @@
 # Block 8.6 – Live Skill Catalog und Capability Truth
 
-Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.6 implementiert, naechster Implementierungsschritt 8.6.7.**
+Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.7 implementiert, naechster Implementierungsschritt 8.6.8.**
 
-Naechster Implementierungsschritt: **8.6.7 – Status, HUD und Diagnose**
+Naechster Implementierungsschritt: **8.6.8 – Replay und Regression**
 
 ## Ziel
 
@@ -174,7 +174,7 @@ Ein Teilnehmer ohne frische validierte Capability-Daten kann keine hoeherwertige
 
 Umsetzungsnachweis: `BLOCK-8-6-6-CAPABILITY-GRUPPENWAHL.md`.
 
-## 8.6.7 – Status, HUD und Diagnose
+## 8.6.7 – Status, HUD und Diagnose — **IMPLEMENTIERT**
 
 Read-only sichtbar werden mindestens:
 
@@ -190,6 +190,8 @@ Read-only sichtbar werden mindestens:
 - aktuelle capability-basierte Aufgaben-/Leaderentscheidung.
 
 Das HUD enthaelt keine neue Fachlogik.
+
+Umsetzungsnachweis: `BLOCK-8-6-7-STATUS-HUD-DIAGNOSE.md`.
 
 ## 8.6.8 – Replay und Regression
 

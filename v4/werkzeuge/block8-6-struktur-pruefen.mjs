@@ -27,7 +27,13 @@ const dateien = [
   'laufzeit/quelle/vertraege/capability-gruppenwahl.ts',
   'laufzeit/quelle/spiellogik/capability-gruppenwahl.ts',
   'laufzeit/tests/capability-gruppenwahl.test.mjs',
+  'laufzeit/quelle/vertraege/capability-status.ts',
+  'laufzeit/quelle/telemetrie/capability-status.ts',
+  'laufzeit/tests/capability-status.test.mjs',
+  'laufzeit/tests/capability-hud.test.mjs',
+  'werkzeuge/block8-6-capability-hud.js',
   'dokumentation/BLOCK-8-6-1-SKILL-KATALOG.md',
+  'dokumentation/BLOCK-8-6-7-STATUS-HUD-DIAGNOSE.md',
   'dokumentation/BLOCK-8-6-6-CAPABILITY-GRUPPENWAHL.md',
   'dokumentation/BLOCK-8-6-5-CAPABILITY-SYNC.md',
   'dokumentation/BLOCK-8-6-4-CHARAKTER-FAEHIGKEITEN.md',
@@ -307,9 +313,11 @@ for (const pflicht of [
   "export * from './spiellogik/capability-sync.js';",
   "export * from './ausfuehrung/adventure-land-capability-sync-austausch.js';",
   "export * from './vertraege/capability-gruppenwahl.js';",
-  "export * from './spiellogik/capability-gruppenwahl.js';"
+  "export * from './spiellogik/capability-gruppenwahl.js';",
+  "export * from './vertraege/capability-status.js';",
+  "export * from './telemetrie/capability-status.js';"
 ]) {
-  if (!index.includes(pflicht)) throw new Error('V4-Index exportiert Block 8.6.3 nicht: ' + pflicht);
+  if (!index.includes(pflicht)) throw new Error('V4-Index exportiert Block 8.6.3 bis 8.6.7 nicht: ' + pflicht);
 }
 
 
@@ -615,6 +623,144 @@ if (alterGruppenKoordinationsPfad.includes('CapabilityGruppenwahl') || alterGrup
   throw new Error('Block 8.6.6 darf die bereits freigegebene Block-8-Gruppenkoordination nicht rueckwirkend verdrahten.');
 }
 
+
+const capabilityStatusVertrag = await readFile(path.join(wurzel, 'laufzeit/quelle/vertraege/capability-status.ts'), 'utf8');
+for (const pflicht of [
+  'CAPABILITY_STATUS_SCHEMA_VERSION = 1',
+  "['stimmt', 'abweichend', 'unbekannt']",
+  "['info', 'warnung', 'blockiert']",
+  'letzteExpliziteValidierungAm',
+  'CapabilityStatusSliderSicht',
+  'CapabilityStatusRemoteSicht',
+  'CapabilityDiagnoseEintrag',
+  'nurLesen: true',
+  'spielAutoritaet: false',
+  'bedienAutoritaet: false',
+  'neustartAutoritaet: false'
+]) {
+  if (!capabilityStatusVertrag.includes(pflicht)) throw new Error('Block-8.6.7-CapabilityStatus-Vertrag fehlt: ' + pflicht);
+}
+
+const capabilityStatusQuelle = await readFile(path.join(wurzel, 'laufzeit/quelle/telemetrie/capability-status.ts'), 'utf8');
+for (const pflicht of [
+  'erstelleCapabilityStatusSicht',
+  'letzterErfolgreicherAuditAm',
+  'revalidierungsProfil?.bestaetigtAm',
+  'skill.vomNutzerFreigegeben',
+  'skill.aktuellAutomatisierbar',
+  'catalogAgreement',
+  'lebensnachweisAlterMillisekunden',
+  'REMOTE_KATALOG_MISMATCH',
+  'REMOTE_CAPABILITY_NICHT_VERTRAUT',
+  'GRUPPENWAHL_TEILNEHMER_AUSGESCHLOSSEN',
+  'CAPABILITY_STATUS_OK',
+  'nurLesen: true as const',
+  'spielAutoritaet: false as const',
+  'bedienAutoritaet: false as const',
+  'neustartAutoritaet: false as const'
+]) {
+  if (!capabilityStatusQuelle.includes(pflicht)) throw new Error('Block-8.6.7-CapabilityStatus-Projektion fehlt: ' + pflicht);
+}
+for (const verboten of [
+  /\buse_skill\s*\(/,
+  /\battack\s*\(/,
+  /\bmove\s*\(/,
+  /\bsmart_move\s*\(/,
+  /\bsend_cm\s*\(/,
+  /setItem\s*\(/,
+  /update_ref/i,
+  /merge_pull_request/i
+]) {
+  if (verboten.test(capabilityStatusQuelle)) throw new Error('Block 8.6.7 Statusprojektion darf keine Aktions-/Schreibautoritaet enthalten: ' + verboten);
+}
+
+const capabilityHudQuelle = await readFile(path.join(wurzel, 'werkzeuge/block8-6-capability-hud.js'), 'utf8');
+for (const pflicht of [
+  "const API_NAME = 'V4CapabilityHud'",
+  'pruefeStatusSicht',
+  'erstelleAnzeigeModell',
+  'erstelleHud',
+  'Skill-Katalog',
+  'Skills & Policy',
+  'Lokale Capabilities',
+  'Remote-Capabilities',
+  'Capability-Gruppenwahl',
+  'Diagnose',
+  'spielAutoritaet !== false',
+  'bedienAutoritaet !== false',
+  'neustartAutoritaet !== false'
+]) {
+  if (!capabilityHudQuelle.includes(pflicht)) throw new Error('Block-8.6.7-Capability-HUD fehlt: ' + pflicht);
+}
+for (const verboten of [
+  /\buse_skill\s*\(/,
+  /\battack\s*\(/,
+  /\bmove\s*\(/,
+  /\bsmart_move\s*\(/,
+  /\bsend_cm\s*\(/,
+  /localStorage/,
+  /SkillPolicySpeicher/,
+  /waehleCapabilityBasierteGruppenrollen/,
+  /pruefeRemoteCapabilityVertrauen/,
+  /CharakterFaehigkeitenResolver/,
+  /location\.reload/,
+  /window\.close\s*\(/
+]) {
+  if (verboten.test(capabilityHudQuelle)) throw new Error('Block 8.6.7 HUD darf keine Fachlogik, Kommunikation oder Neustartaktion enthalten: ' + verboten);
+}
+
+const capabilityStatusTests = await readFile(path.join(wurzel, 'laufzeit/tests/capability-status.test.mjs'), 'utf8');
+for (const pflicht of [
+  'CapabilityStatus zeigt Katalog Validierung Skillzahlen Slider lokale Capabilities und Gruppenwahl read-only',
+  'Remote-Freshness und Catalog-Agreement bleiben getrennt sichtbar',
+  'blockierter Remote-Snapshot zeigt Fingerprint-Mismatch aus Empfangsevidenz trotz fail-closed Trust',
+  'Diagnose nennt Drift unbekannten Skill aktive technische Sperre und Gruppen-Ausschluss explizit',
+  'neuester Remote-Empfang wird nur fuer exakt passende Kennung plus Name verwendet',
+  'Statusprojektion sortiert deterministisch ohne Eingaben umzuschreiben',
+  'Audit und lokale Capability muessen dieselbe Charakterkennung beschreiben',
+  'CAPABILITY_STATUS_OK'
+]) {
+  if (!capabilityStatusTests.includes(pflicht)) throw new Error('Block-8.6.7-CapabilityStatus-Test fehlt: ' + pflicht);
+}
+
+const capabilityHudTests = await readFile(path.join(wurzel, 'laufzeit/tests/capability-hud.test.mjs'), 'utf8');
+for (const pflicht of [
+  'Capability-HUD API bietet nur read-only Anzeige-Helfer',
+  'HUD akzeptiert nur read-only CapabilityStatus ohne Autoritaet',
+  'AnzeigeModell zeigt Katalog Skills Slider Capabilities Remote Gruppenwahl und Diagnose',
+  'Remote- und Gruppen-Leerzustand werden nur dargestellt und nicht ersetzt',
+  'AnzeigeModell veraendert die gelieferte CapabilityStatusSicht nicht',
+  'unvollstaendige Pflichtbereiche werden fail-safe abgewiesen',
+  'ohne Dokument bleibt AnzeigeModell nutzbar'
+]) {
+  if (!capabilityHudTests.includes(pflicht)) throw new Error('Block-8.6.7-Capability-HUD-Test fehlt: ' + pflicht);
+}
+
+const capabilityStatusDokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-7-STATUS-HUD-DIAGNOSE.md'), 'utf8');
+for (const pflicht of [
+  'Keine Aenderung der Block-8.5-Statusschnittstelle',
+  'nurLesen=true',
+  'Remote-Capability-Freshness',
+  'Catalog-Agreement',
+  'Charakterkennung plus Charaktername',
+  'Das HUD fuehrt selbst keine Leader- oder Aufgabenwahl aus.',
+  'keine neue Fachlogik',
+  '**8.6.8 – Replay und Regression.**'
+]) {
+  if (!capabilityStatusDokument.includes(pflicht)) throw new Error('Block-8.6.7-Dokumentation fehlt: ' + pflicht);
+}
+
+const alteStatusSchnittstelle = await readFile(path.join(wurzel, 'laufzeit/quelle/telemetrie/status-schnittstelle.ts'), 'utf8');
+const altesHud = await readFile(path.join(wurzel, 'werkzeuge/block8-5-ingame-hud.js'), 'utf8');
+for (const [name, quelle] of [
+  ['Block-8.5-Statusschnittstelle', alteStatusSchnittstelle],
+  ['Block-8.5-HUD', altesHud]
+]) {
+  if (quelle.includes('CapabilityStatus') || quelle.includes('capability-status')) {
+    throw new Error(name + ' darf fuer Block 8.6.7 nicht rueckwirkend veraendert/verdrahtet werden.');
+  }
+}
+
 const plan = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-PLAN.md'), 'utf8');
 for (const pflicht of [
   '8.6.1 – Skill-Katalog-Vertrag und Live-Lesequelle — **IMPLEMENTIERT**',
@@ -623,9 +769,10 @@ for (const pflicht of [
   '8.6.4 – CharakterFaehigkeiten — **IMPLEMENTIERT**',
   '8.6.5 – Cross-Client Capability Sync — **IMPLEMENTIERT**',
   '8.6.6 – Capability-basierte Leader- und Aufgabenwahl — **IMPLEMENTIERT**',
-  'Naechster Implementierungsschritt: **8.6.7 – Status, HUD und Diagnose**'
+  '8.6.7 – Status, HUD und Diagnose — **IMPLEMENTIERT**',
+  'Naechster Implementierungsschritt: **8.6.8 – Replay und Regression**'
 ]) {
-  if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.6-Stand: ${pflicht}`);
+  if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.7-Stand: ${pflicht}`);
 }
 
 const vertraege = await readFile(path.join(wurzel, 'dokumentation/VERTRAEGE.md'), 'utf8');
@@ -648,9 +795,13 @@ for (const pflicht of [
   '`aktionsAutoritaet: false`',
   '## CapabilityGruppenwahl',
   '`gruppenKoordinationErlaubt=true`',
-  'nur als finale Tie-Breaker'
+  'nur als finale Tie-Breaker',
+  '## CapabilityStatus',
+  '`nurLesen: true`',
+  '`bedienAutoritaet: false`',
+  '`neustartAutoritaet: false`'
 ]) {
-  if (!vertraege.includes(pflicht)) throw new Error(`V4-Vertragsdokumentation fehlt fuer Block 8.6.1 bis 8.6.6: ${pflicht}`);
+  if (!vertraege.includes(pflicht)) throw new Error(`V4-Vertragsdokumentation fehlt fuer Block 8.6.1 bis 8.6.7: ${pflicht}`);
 }
 
 const packageJson = JSON.parse(await readFile(path.join(wurzel, 'package.json'), 'utf8'));
@@ -661,4 +812,4 @@ if (!String(packageJson.scripts?.pruefen ?? '').includes('npm run block8-6-struk
   throw new Error('npm run pruefen muss den Block-8.6-Strukturguard ausfuehren.');
 }
 
-console.log('Block 8.6.1 bis 8.6.6 geprueft: Capability Truth, Sync und deterministische capability-basierte Gruppenwahl ohne statische Klassenprioritaet oder neue Spielaktionsautoritaet.');
+console.log('Block 8.6.1 bis 8.6.7 geprueft: Capability Truth, Sync, Gruppenwahl sowie read-only Status/HUD/Diagnose ohne neue Fach- oder Spielaktionsautoritaet.');
