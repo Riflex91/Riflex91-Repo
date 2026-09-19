@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "name": "Adventure Land AiO Bot V5 Knowledge Base",
+  "status": "ACTIVE_EVOLVING",
+  "createdAt": "2026-09-19",
+  "principles": [
+    "immutable raw evidence snapshots",
+    "stable fact identifiers",
+    "explicit provenance and confidence",
+    "drift-aware revalidation",
+    "supersede instead of silent overwrite",
+    "live truth over stale snapshot for execution",
+    "architecture decisions cite knowledge instead of embedding mutable game constants"
+  ],
+  "sources": {
+    "registry": "quellen/quellen.json",
+    "rawSnapshots": [
+      "quellen/externe-recherche/2026-09-19-adventure-land-research.md"
+    ]
+  },
+  "facts": [
+    "fakten/adventure-land-kern.json"
+  ],
+  "questions": [
+    "fragen/offene-fragen.json"
+  ],
+  "revalidation": "revalidierung/revalidierungsqueue.json",
+  "schemas": [
+    "schema/fact.schema.json",
+    "schema/quelle.schema.json",
+    "schema/offene-frage.schema.json"
+  ],
+  "legacyIndex": "legacy/V3-V4-QUELLEN.md",
+  "counts": {
+    "externalCoreFacts": 38,
+    "openQuestions": 38,
+    "registeredSources": 21
+  },
+  "externalResearchSnapshot": {
+    "date": "2026-09-19",
+    "sourceSha256": "44fa8411828b1622dde6c91d7ea8b1a3e710d5dc934da426378f535be857a229",
+    "bytes": 80304,
+    "lines": 2107,
+    "officialRepoCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+  }
+}
