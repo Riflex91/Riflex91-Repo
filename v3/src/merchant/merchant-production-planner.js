@@ -10,6 +10,8 @@ const ProductionStepKind = Object.freeze({
   BUY: 'BUY',
   CRAFT: 'CRAFT',
   EXCHANGE: 'EXCHANGE',
+  UPGRADE_REQUIRED: 'UPGRADE_REQUIRED',
+  COMPOUND_REQUIRED: 'COMPOUND_REQUIRED',
   FARM_REQUIRED: 'FARM_REQUIRED'
 });
 
@@ -39,6 +41,39 @@ function itemQuantity(items, name, level = 0) {
     total += Math.max(1, Math.floor(finite(item.q, 1)));
   }
   return total;
+}
+
+function gradeForLevel(meta, level) {
+  const grades = Array.isArray(meta && meta.grades) ? meta.grades : [9, 10, 11, 12];
+  const current = Math.max(0, Math.floor(finite(level, 0)));
+  for (let index = Math.min(3, grades.length - 1); index >= 0; index -= 1) {
+    const threshold = Number(grades[index]);
+    if (Number.isFinite(threshold) && current >= threshold) return index + 1;
+  }
+  return 0;
+}
+
+function mutationDescriptor(gameData, name, targetLevel) {
+  const level = Math.max(0, Math.floor(finite(targetLevel, 0)));
+  if (level <= 0) return null;
+  const meta = gameData && gameData.items && gameData.items[name];
+  if (!meta || typeof meta !== 'object') return null;
+  const family = meta.compound ? 'COMPOUND' : meta.upgrade ? 'UPGRADE' : null;
+  if (!family) return null;
+  const fromLevel = level - 1;
+  const grade = gradeForLevel(meta, fromLevel);
+  if (grade >= 4) return null;
+  const scrollName = `${family === 'COMPOUND' ? 'cscroll' : 'scroll'}${grade}`;
+  const scrollMeta = gameData && gameData.items && gameData.items[scrollName];
+  const scrollUnitCost = Math.max(0, Math.floor(finite(scrollMeta && (scrollMeta.g != null ? scrollMeta.g : scrollMeta.gold), 0)));
+  return {
+    family,
+    fromLevel,
+    targetLevel: level,
+    inputMultiplier: family === 'COMPOUND' ? 3 : 1,
+    scrollName,
+    scrollUnitCost
+  };
 }
 
 function recipeFor(gameData, name) {
@@ -266,8 +301,23 @@ class MerchantProductionPlanner {
     const estimateSource = (name, level, quantity, depth = 0, path = new Set()) => {
       const need = Math.max(1, Math.floor(finite(quantity, 1)));
       const key = itemKey(name, level);
-      if (depth > this.maxDepth || path.has(key) || level !== 0) return { cost: Infinity, strategy: 'UNAVAILABLE' };
+      if (depth > this.maxDepth || path.has(key)) return { cost: Infinity, strategy: 'UNAVAILABLE' };
       const itemMeta = gameData.items && gameData.items[name] || {};
+      if (level > 0) {
+        const mutation = mutationDescriptor(gameData, name, level);
+        if (!mutation) return { cost: Infinity, strategy: 'UNAVAILABLE' };
+        const nextPath = new Set(path); nextPath.add(key);
+        const inputQuantity = need * mutation.inputMultiplier;
+        const lower = estimateSource(name, mutation.fromLevel, inputQuantity, depth + 1, nextPath);
+        if (!Number.isFinite(lower.cost)) return { cost: Infinity, strategy: 'UNAVAILABLE' };
+        return {
+          cost: lower.cost + mutation.scrollUnitCost * need,
+          strategy: mutation.family,
+          mutation,
+          inputQuantity,
+          lower
+        };
+      }
       const unitCost = Math.max(0, Math.floor(finite(itemMeta.g, 0)));
       const vendor = (vendors.get(name) || [])[0] || null;
       const vendorCost = vendor && unitCost > 0 && need <= this.maxBuyQuantity ? unitCost * need : Infinity;
@@ -348,6 +398,52 @@ class MerchantProductionPlanner {
       }
       if (need <= 0) return true;
 
+      if (level > 0) {
+        const mutation = mutationDescriptor(gameData, name, level);
+        if (!mutation) {
+          blockers.push({ reason: 'LEVELED_MATERIAL_MUTATION_UNSUPPORTED', name, level, quantity: need });
+          return false;
+        }
+        const nextPath = new Set(path); nextPath.add(key);
+        const beforeSteps = steps.length;
+        const inputQuantity = need * mutation.inputMultiplier;
+        if (!acquire(name, mutation.fromLevel, inputQuantity, depth + 1, nextPath)) return false;
+
+        // If lower-level acquisition scheduled BANK/BUY/CRAFT work, execute and
+        // replan before reserving a mutation. That keeps mutations bound to
+        // inputs that are actually present in the live Merchant inventory.
+        if (steps.length > beforeSteps) return true;
+
+        const stepKind = mutation.family === 'COMPOUND'
+          ? ProductionStepKind.COMPOUND_REQUIRED
+          : ProductionStepKind.UPGRADE_REQUIRED;
+        steps.push({
+          kind: stepKind,
+          name,
+          level,
+          fromLevel: mutation.fromLevel,
+          targetLevel: mutation.targetLevel,
+          quantity: need,
+          inputQuantity,
+          inputMultiplier: mutation.inputMultiplier,
+          scrollName: mutation.scrollName,
+          estimatedScrollUnitCost: mutation.scrollUnitCost,
+          reason: 'LEVELED_RECIPE_MATERIAL_MUTATION_REQUIRED'
+        });
+        blockers.push({
+          reason: 'MATERIAL_MUTATION_REQUIRED',
+          mutation: mutation.family,
+          name,
+          level,
+          fromLevel: mutation.fromLevel,
+          targetLevel: mutation.targetLevel,
+          quantity: need,
+          inputQuantity,
+          scrollName: mutation.scrollName
+        });
+        return false;
+      }
+
       if (level === 0) {
         const quote = estimateSource(name, level, need, depth, path);
         if (quote.strategy === 'BUY') {
@@ -385,7 +481,11 @@ class MerchantProductionPlanner {
 
     const availableGold = Math.max(0, Math.floor(finite(character.gold, 0)));
     if (availableGold - totalGold < this.goldReserve) blockers.push({ reason: 'GOLD_RESERVE_WOULD_BE_BREACHED', availableGold, totalGold, goldReserve: this.goldReserve });
-    const executableSteps = steps.filter((step) => step.kind !== ProductionStepKind.FARM_REQUIRED);
+    const executableSteps = steps.filter((step) => ![
+      ProductionStepKind.FARM_REQUIRED,
+      ProductionStepKind.UPGRADE_REQUIRED,
+      ProductionStepKind.COMPOUND_REQUIRED
+    ].includes(step.kind));
     const ready = blockers.length === 0;
     return {
       ready,
@@ -398,7 +498,7 @@ class MerchantProductionPlanner {
       availableGold,
       goldReserve: this.goldReserve,
       bankSource: character.bank ? 'LIVE_BANK' : catalogRows.length ? 'PERSISTED_BANK_CATALOG' : 'UNAVAILABLE',
-      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V1'
+      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE'
     };
   }
 
@@ -686,8 +786,10 @@ class MerchantProductionPlanner {
       maxBuyQuantity: this.maxBuyQuantity,
       candidateScanLimit: this.candidateScanLimit,
       explicitTargets: this.explicitTargets.slice(),
-      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V1',
-      sourcePriority: ['LOCAL_ZERO_COST', 'BANK_ZERO_GOLD_COST', 'MIN(VENDOR_GOLD,CULLED_RECIPE_GRAPH)', 'FARM_REQUIRED'],
+      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE',
+      sourcePriority: ['LOCAL_ZERO_COST', 'BANK_ZERO_GOLD_COST', 'MIN(VENDOR_GOLD,CULLED_RECIPE_GRAPH)', 'UPGRADE_OR_COMPOUND_REQUIRED', 'FARM_REQUIRED'],
+      leveledRecipeMaterials: true,
+      mutationFamilies: ['UPGRADE', 'COMPOUND'],
       autonomousExchangeableSurplus: true,
       anniversarySliceConsolidation: true,
       anniversarySliceConsolidationOutput: 'sixcake',
@@ -704,6 +806,8 @@ module.exports = {
   recipeFor,
   itemKey,
   itemQuantity,
+  gradeForLevel,
+  mutationDescriptor,
   bankRows,
   vendorIndex
 };
