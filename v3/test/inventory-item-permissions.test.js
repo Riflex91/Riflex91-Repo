@@ -28,18 +28,18 @@ const gameData = {
   }
 };
 
-test('protected inventory items stay protected by default but can be explicitly configured', () => {
+test('sell permission never removes a live item protection flag', () => {
   const locked = new InventoryLedger();
   locked.observe({ registry: registry([{ index: 0, name: 'junk', q: 1, locked: true }]), gameData });
   assert.equal(locked.get('Merchant', 0).disposition, ItemDisposition.KEEP);
 
-  const overridden = new InventoryLedger({ itemPermissions: { junk: { sell: true } } });
-  overridden.observe({ registry: registry([{ index: 0, name: 'junk', q: 1, locked: true }]), gameData });
-  const row = overridden.get('Merchant', 0);
-  assert.equal(row.disposition, ItemDisposition.SELL);
+  const permitted = new InventoryLedger({ itemPermissions: { junk: { sell: true } } });
+  permitted.observe({ registry: registry([{ index: 0, name: 'junk', q: 1, locked: true }]), gameData });
+  const row = permitted.get('Merchant', 0);
+  assert.equal(row.disposition, ItemDisposition.KEEP);
   assert.equal(row.protected, true);
   assert.equal(row.protectionReason, 'ITEM_LOCKED');
-  assert.ok(row.reasons.includes('PROTECTED_ITEM_OPERATOR_OVERRIDE'));
+  assert.ok(row.reasons.includes('ITEM_LOCKED'));
 });
 
 test('explicit compound denial prevents automatic compound classification', () => {
@@ -104,8 +104,10 @@ test('Alpha27 autonomous planner respects per-action deny rules instead of bypas
 
   assert.equal(classify('material').disposition, 'KEEP');
   assert.ok(classify('material').reasons.includes('OPERATOR_SELL_DENIED'));
-  assert.equal(classify('sword').disposition, 'BANK');
-  assert.equal(classify('ring').disposition, 'BANK');
+  assert.equal(classify('sword').disposition, 'SELL');
+  assert.ok(classify('sword').reasons.includes('AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_SELL'));
+  assert.equal(classify('ring').disposition, 'SELL');
+  assert.ok(classify('ring').reasons.includes('AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_SELL'));
   assert.equal(classify('rare').disposition, 'KEEP');
   assert.ok(classify('rare').reasons.includes('OPERATOR_BANK_DENIED'));
 });
