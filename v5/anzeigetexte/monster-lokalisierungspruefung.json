@@ -1,0 +1,695 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "offiziellesRepository": "kaansoral/adventureland_mongodb",
+  "offiziellerHead": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+  "monsterQuelle": {
+    "pfad": "design/monsters.js",
+    "blobSha": "99d7111b691fedac0b85166ef6ab93509cae8c25",
+    "eintraege": 129
+  },
+  "repositoryBaumPruefung": {
+    "pfadeGesamt": 2670,
+    "suchmuster": [
+      "lang",
+      "langs",
+      "language",
+      "languages",
+      "locale",
+      "locales",
+      "i18n",
+      "translation",
+      "translations",
+      "de",
+      "de-de",
+      "de_de"
+    ],
+    "gefundeneLokalisierungsPfade": []
+  },
+  "codeSuche": {
+    "german": 0,
+    "deutsch": 0,
+    "localization": 0,
+    "translations": 0
+  },
+  "webRevalidierung": {
+    "stand": "2026-09-20",
+    "hinweis": "Die offizielle Adventure-Land-Seite zeigte bei der Revalidierung English. Die offiziellen Update Notes vom 09/09/2026 erwaehnen eine gespeicherte Sprachwahl. Im aktuellen offiziellen Repository wurde trotzdem keine deutsche Lokalisierungsdatei und kein deutscher Monster-Anzeigekatalog nachgewiesen."
+  },
+  "entscheidung": "FUER_AKTUELLEN_SNAPSHOT_KEINE_OFFIZIELLE_DEUTSCHE_MONSTERBEZEICHNUNG_NACHGEWIESEN",
+  "fallback": "ORIGINALNAME_ERLAUBT",
+  "monster": [
+    {
+      "externeKennung": "goo",
+      "originalName": "Goo",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "bee",
+      "originalName": "Bee",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "cutebee",
+      "originalName": "Cute Bee",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "squig",
+      "originalName": "Squig",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "squigtoad",
+      "originalName": "Squigtoad",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "tortoise",
+      "originalName": "Tortoise",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "frog",
+      "originalName": "Froggie",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "rat",
+      "originalName": "Rat",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "jrat",
+      "originalName": "Rat",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "croc",
+      "originalName": "Croc",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "mole",
+      "originalName": "Mole",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "crab",
+      "originalName": "Tiny Crab",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "crabx",
+      "originalName": "Huge Crab",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "crabxx",
+      "originalName": "Giga Crab",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "armadillo",
+      "originalName": "Armadillo",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "porcupine",
+      "originalName": "Porcupine",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "hen",
+      "originalName": "Chicken",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "rooster",
+      "originalName": "Chicken",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "osnake",
+      "originalName": "Snake",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "snake",
+      "originalName": "Snake",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "scorpion",
+      "originalName": "Scorpion",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "gscorpion",
+      "originalName": "Scorpion",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "xscorpion",
+      "originalName": "Scorpion",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "bscorpion",
+      "originalName": "Black Scorpion",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "ghost",
+      "originalName": "Ghost",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "harpy",
+      "originalName": "Harpy",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "rharpy",
+      "originalName": "Rebel Harpy",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "fvampire",
+      "originalName": "Ms. Dracul",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "minimush",
+      "originalName": "Pom Pom",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "spider",
+      "originalName": "Spider",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "bat",
+      "originalName": "Bat",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "nerfedbat",
+      "originalName": "Bat",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "dknight2",
+      "originalName": "Dark Knight",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "mvampire",
+      "originalName": "Dracul",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "phoenix",
+      "originalName": "Phoenix",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "cgoo",
+      "originalName": "Irradiated Goo",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "bgoo",
+      "originalName": "Brawl Goo",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "rgoo",
+      "originalName": "Rainbow Goo",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "skeletor",
+      "originalName": "Skeletor",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "ligerx",
+      "originalName": "Liger X",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "bigbird",
+      "originalName": "Hawk",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "poisio",
+      "originalName": "Poisio",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "stompy",
+      "originalName": "Stompy",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "arcticbee",
+      "originalName": "Arctic Bee",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "wolf",
+      "originalName": "White Wolf",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "wolfie",
+      "originalName": "Dark Hound",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "boar",
+      "originalName": "Wild Boar",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "iceroamer",
+      "originalName": "Water Spirit",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "fireroamer",
+      "originalName": "Fire Spirit",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "bbpompom",
+      "originalName": "Pom Pom",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "prat",
+      "originalName": "Vampire Rat",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "pppompom",
+      "originalName": "Pom Pom",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "oneeye",
+      "originalName": "One Eye",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "mummy",
+      "originalName": "Mummy",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "nerfedmummy",
+      "originalName": "Mummy",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "booboo",
+      "originalName": "Boo Boo",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "pinkgoblin",
+      "originalName": "Pink Goblin",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "stoneworm",
+      "originalName": "Stone Worm",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "mrgreen",
+      "originalName": "Mr. Green",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "slenderman",
+      "originalName": "Slenderman",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "mrpumpkin",
+      "originalName": "Mr. Pumpkin",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "greenjr",
+      "originalName": "Green Jr.",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "jr",
+      "originalName": "Jr.",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "chestm",
+      "originalName": "Angry Chest",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "plantoid",
+      "originalName": "Sprawling",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "icegolem",
+      "originalName": "Ice Golem",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "ent",
+      "originalName": "Ent",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "sparkbot",
+      "originalName": "Spark Bot",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "targetron",
+      "originalName": "Targetron",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "dryad",
+      "originalName": "Dryad",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "odino",
+      "originalName": "Dino",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "spiderr",
+      "originalName": "Red Spider Queen",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "spiderbl",
+      "originalName": "Black Spider Queen",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "spiderbr",
+      "originalName": "Brown Spider Queen",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "welemental",
+      "originalName": "Water Elemental",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "felemental",
+      "originalName": "Fire Elemental",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "nelemental",
+      "originalName": "Nature Elemental",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "eelemental",
+      "originalName": "Earth Elemental",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "greenfairy",
+      "originalName": "Fairy",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "redfairy",
+      "originalName": "Fairy",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "bluefairy",
+      "originalName": "Fairy",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "rudolph",
+      "originalName": "Reindeer",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "grinch",
+      "originalName": "Grinch",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "goldenbat",
+      "originalName": "Golden Bat",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "goldenbot",
+      "originalName": "Golden Bot",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "tinyp",
+      "originalName": "Fairy",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "tiger",
+      "originalName": "Tiger",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "goblin",
+      "originalName": "Sneaky Goblin",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "pinkgoo",
+      "originalName": "Love Goo",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "snowman",
+      "originalName": "Snowman",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "dragold",
+      "originalName": "Dragold",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "wabbit",
+      "originalName": "Wabbit",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "franky",
+      "originalName": "Franky",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "gredpro",
+      "originalName": "Protector of Fire",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "ggreenpro",
+      "originalName": "Protector of Nature",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "gbluepro",
+      "originalName": "Protector of Frost",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "gpurplepro",
+      "originalName": "Protector of Darkness",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "a1",
+      "originalName": "Spike",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "a2",
+      "originalName": "Bill",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "a3",
+      "originalName": "Lestat",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "a4",
+      "originalName": "Orlok",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "a5",
+      "originalName": "Elena",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "a6",
+      "originalName": "Marceline",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "a7",
+      "originalName": "Lucinda",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "a8",
+      "originalName": "Angel",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "vbat",
+      "originalName": "Vampireling",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "xmagefz",
+      "originalName": "Mage",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "xmagefi",
+      "originalName": "Mage",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "xmagen",
+      "originalName": "Mage",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "xmagex",
+      "originalName": "Dark Mage",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "mechagnome",
+      "originalName": "Mech-a Gnome",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "d_wiz",
+      "originalName": "Dark Wizard",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "target",
+      "originalName": "Target Automatron",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "target_a500",
+      "originalName": "Target Automatron",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "target_a750",
+      "originalName": "Target Automatron",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "target_r500",
+      "originalName": "Target Automatron",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "target_r750",
+      "originalName": "Target Automatron",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "target_ar900",
+      "originalName": "Target Automatron",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "target_ar500red",
+      "originalName": "Target Automatron",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "puppy1",
+      "originalName": "Puppy",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "puppy2",
+      "originalName": "Puppy",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "puppy3",
+      "originalName": "Puppy",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "puppy4",
+      "originalName": "Puppy",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "kitty1",
+      "originalName": "Kitty",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "kitty2",
+      "originalName": "Kitty",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "kitty3",
+      "originalName": "Kitty",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "kitty4",
+      "originalName": "Kitty",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "fieldgen0",
+      "originalName": "Field Generator",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    },
+    {
+      "externeKennung": "zapper0",
+      "originalName": "Zapper",
+      "quellenStatus": "ORIGINALNAME_ERLAUBT"
+    }
+  ],
+  "revalidierungsTrigger": [
+    "AL-DATA-MONSTERS_DRIFT",
+    "AL-OFFICIAL-REPO_DRIFT",
+    "NEUER_LOKALISIERUNGSPFAD",
+    "OFFIZIELLE_DEUTSCHE_SPIELBEZEICHNUNG_NACHGEWIESEN"
+  ],
+  "ausfuehrungsAutoritaet": false
+}

@@ -153,6 +153,18 @@
       "trust": "OFFICIAL"
     },
     {
+      "id": "AL-DATA-NPCS",
+      "type": "OFFICIAL_GAME_DATA",
+      "title": "design/npcs.js",
+      "url": "https://github.com/kaansoral/adventureland_mongodb/blob/main/design/npcs.js",
+      "trust": "OFFICIAL",
+      "snapshot": {
+        "commit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+        "blob": "a99d3b18c5099a1824d0bd0c780bd2eabf1d53cb",
+        "retrievedAt": "2026-09-20"
+      }
+    },
+    {
       "id": "AL-DATA-RECIPES",
       "type": "OFFICIAL_GAME_DATA",
       "title": "design/recipes.js",
