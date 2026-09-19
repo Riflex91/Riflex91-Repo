@@ -134,7 +134,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## farmer
 
-**21 Dateien · 4506 Zeilen**
+**21 Dateien · 4529 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -144,7 +144,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/farmer/content-safety.js` | 165 |
 | `src/farmer/controlled-farmer-loot.js` | 222 |
 | `src/farmer/farm-area-pressure-hotfix.js` | 304 |
-| `src/farmer/farmer-fsm.js` | 618 |
+| `src/farmer/farmer-fsm.js` | 641 |
 | `src/farmer/farmer-local-plan-priority.js` | 104 |
 | `src/farmer/farmer-resource-topoff-hotfix.js` | 324 |
 | `src/farmer/farmer-target-efficiency-hotfix.js` | 221 |
@@ -172,7 +172,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## merchant
 
-**9 Dateien · 3195 Zeilen**
+**10 Dateien · 3644 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -180,11 +180,12 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/merchant/controlled-merchant-service-executor.js` | 534 |
 | `src/merchant/merchant-mluck-policy.js` | 112 |
 | `src/merchant/merchant-mluck-service.js` | 286 |
-| `src/merchant/merchant-production-controller.js` | 792 |
+| `src/merchant/merchant-production-controller.js` | 971 |
 | `src/merchant/merchant-production-planner.js` | 813 |
 | `src/merchant/merchant-service-planner.js` | 244 |
 | `src/merchant/merchant-task-coordinator.js` | 124 |
 | `src/merchant/persistent-bank-catalog.js` | 108 |
+| `src/merchant/persistent-production-intent.js` | 270 |
 
 ## ops
 
@@ -221,7 +222,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**35 Dateien · 8922 Zeilen**
+**35 Dateien · 9026 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -238,7 +239,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/controlled-paladin-aura-executor.js` | 97 |
 | `src/party/controlled-party-bootstrap-base.js` | 734 |
 | `src/party/controlled-party-bootstrap.js` | 110 |
-| `src/party/controlled-party-logistics.js` | 1413 |
+| `src/party/controlled-party-logistics.js` | 1489 |
 | `src/party/elixir-policy.js` | 225 |
 | `src/party/fingerprints.js` | 93 |
 | `src/party/lifecycle-store.js` | 289 |
@@ -254,7 +255,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/party-persistence-quota-hotfix.js` | 382 |
 | `src/party/party-topology.js` | 99 |
 | `src/party/performance-store.js` | 51 |
-| `src/party/production-material-acquisition.js` | 378 |
+| `src/party/production-material-acquisition.js` | 406 |
 | `src/party/team-combat-cohesion-hotfix-base.js` | 599 |
 | `src/party/team-combat-cohesion-hotfix.js` | 242 |
 | `src/party/telemetry-bridge.js` | 202 |

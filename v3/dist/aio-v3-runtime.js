@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.20.130 | generated | remote runtime | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.131 | generated | remote runtime | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -1144,7 +1144,7 @@ module.exports = { Runtime, VERSION };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.130';
+const RELEASE_VERSION = '3.0.0-alpha.20.131';
 
 module.exports = { RELEASE_VERSION };
 
@@ -4334,6 +4334,29 @@ class FarmerController {
     const c = snapshot.character;
     const recovery = this._needsRecovery(snapshot);
     const target = this._findTarget(snapshot);
+
+    const handoff = this.materialObjective
+      && String(this.materialObjective.kind || '') === 'PRODUCTION_MATERIAL_HANDOFF'
+      && Number(this.materialObjective.expiresAt || 0) > this.now();
+    if (handoff) {
+      if (this.targetId) this._clearTarget('PRODUCTION_MATERIAL_HANDOFF_READY');
+      if (c.rip) {
+        if (this.state !== FarmerState.BLOCKED) this._block('CHARACTER_DEAD');
+      } else {
+        this._maybePotion(context, recovery);
+        if (this.stateReason !== 'PRODUCTION_MATERIAL_HANDOFF_READY') {
+          this.state = FarmerState.REASSESS;
+          this.stateSince = this.now();
+          this.stateReason = 'PRODUCTION_MATERIAL_HANDOFF_READY';
+          this._event('FARMER_PRODUCTION_HANDOFF_HOLD', 'info', 'TARGET_QUANTITY_REACHED_WAIT_FOR_TRANSFER', {
+            objectiveId: this.materialObjective.objectiveId || null,
+            material: this.materialObjective.material || null,
+            requiredQuantity: this.materialObjective.requiredQuantity || null
+          });
+        }
+      }
+      return { state: TaskState.RUNNING, reason: 'PRODUCTION_MATERIAL_HANDOFF_READY' };
+    }
 
     if (c.rip && this.state !== FarmerState.BLOCKED) this._block('CHARACTER_DEAD');
 
@@ -13356,8 +13379,6 @@ class InventoryLedger {
     this.sellAllowlist = asSet(options.sellAllowlist);
     this.bankAllowlist = asSet(options.bankAllowlist);
     this.exchangeAllowlist = asSet(options.exchangeAllowlist);
-    this.itemPermissions = new Map();
-    this.setItemPermissions(options.itemPermissions || {});
     this.sellSafetyResolver = typeof options.sellSafetyResolver === 'function' ? options.sellSafetyResolver : null;
     this.progressionReservations = new Map();
     this.progressionReservationSlots = new Map();
@@ -13386,43 +13407,6 @@ class InventoryLedger {
   setSellSafetyResolver(resolver) {
     this.sellSafetyResolver = typeof resolver === 'function' ? resolver : null;
     return this.sellSafetyResolver !== null;
-  }
-
-  setItemPermissions(value = {}) {
-    this.itemPermissions.clear();
-    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-    for (const [name, row] of Object.entries(source).slice(0, 512)) {
-      const normalizedName = normalizeName(name);
-      if (!normalizedName || !row || typeof row !== 'object' || Array.isArray(row)) continue;
-      const permissions = {};
-      for (const action of ['sell', 'bank', 'compound', 'upgrade']) {
-        if (typeof row[action] === 'boolean') permissions[action] = row[action];
-      }
-      if (Object.keys(permissions).length) this.itemPermissions.set(normalizedName, permissions);
-    }
-    return this.itemPermissionSnapshot();
-  }
-
-  itemPermissionSnapshot() {
-    return Object.fromEntries([...this.itemPermissions.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([name, row]) => [name, { ...row }]));
-  }
-
-  _permission(name, action) {
-    const row = this.itemPermissions.get(String(name || ''));
-    return row && typeof row[action] === 'boolean' ? row[action] : null;
-  }
-
-  _operatorDisposition(row, meta, same) {
-    const permissions = this.itemPermissions.get(String(row && row.name || '')) || {};
-    if (permissions.compound === true && meta && meta.compound && same >= 3) {
-      return { disposition: ItemDisposition.RESERVE_COMPOUND, reasons: ['OPERATOR_COMPOUND_ALLOWED'] };
-    }
-    if (permissions.upgrade === true && meta && meta.upgrade) {
-      return { disposition: ItemDisposition.RESERVE_UPGRADE, reasons: ['OPERATOR_UPGRADE_ALLOWED'] };
-    }
-    if (permissions.bank === true) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWED'] };
-    if (permissions.sell === true) return { disposition: ItemDisposition.SELL, reasons: ['OPERATOR_SELL_ALLOWED'], explicitSellOverride: true };
-    return null;
   }
 
   setProgressionReservations(reservations) {
@@ -13494,16 +13478,12 @@ class InventoryLedger {
   _baseDisposition(row, gameData, contentDrift, counts, reservationRemaining = new Map()) {
     const reasons = [];
     const meta = gameData && gameData.items && gameData.items[row.name];
-    const same = counts.get(stackKey(row.name, row.level)) || 0;
-    const hasProtectedFlag = row.locked || row.special;
-    const hasExplicitAllow = ['sell', 'bank', 'compound', 'upgrade'].some((action) => this._permission(row.name, action) === true);
-    if (hasProtectedFlag && !hasExplicitAllow) return { disposition: ItemDisposition.KEEP, reasons: [row.locked ? 'ITEM_LOCKED' : 'ITEM_SPECIAL'] };
+    if (row.locked || row.special) return { disposition: ItemDisposition.KEEP, reasons: [row.locked ? 'ITEM_LOCKED' : 'ITEM_SPECIAL'] };
     if (!meta || typeof meta !== 'object') return { disposition: ItemDisposition.UNDECIDED, reasons: ['ITEM_METADATA_UNKNOWN'] };
     if (this._contentUnsafe(contentDrift, row.name)) return { disposition: ItemDisposition.UNDECIDED, reasons: ['CONTENT_REVALIDATION_REQUIRED'] };
 
     const exactProgression = this.progressionReservationSlots.get(itemKey(row.character, row.index));
     if (exactProgression && exactProgression.name === row.name && exactProgression.level === row.level) {
-      if (this._permission(row.name, 'upgrade') === false) return { disposition: ItemDisposition.KEEP, reasons: ['OPERATOR_UPGRADE_DENIED', 'ACTIVE_GEAR_GOAL_EXACT_ITEM'], reservation: clone(exactProgression) };
       return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL_EXACT_ITEM'], reservation: clone(exactProgression) };
     }
     const specificKey = `${row.character}|${stackKey(row.name, row.level)}`;
@@ -13512,7 +13492,6 @@ class InventoryLedger {
     if (countKey && reservationRemaining.get(countKey) > 0) {
       reservationRemaining.set(countKey, reservationRemaining.get(countKey) - 1);
       const progression = this.progressionReservationCounts.get(countKey);
-      if (this._permission(row.name, 'upgrade') === false) return { disposition: ItemDisposition.KEEP, reasons: ['OPERATOR_UPGRADE_DENIED', 'ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED'], reservation: clone(progression) };
       return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED'], reservation: clone(progression) };
     }
 
@@ -13520,17 +13499,12 @@ class InventoryLedger {
     if (/^hpot/.test(lower)) return { disposition: ItemDisposition.RESERVE_GROUP, reasons: ['GROUP_HP_POTION_RESERVE'] };
     if (/^mpot/.test(lower)) return { disposition: ItemDisposition.RESERVE_GROUP, reasons: ['GROUP_MP_POTION_RESERVE'] };
 
-    const operator = this._operatorDisposition(row, meta, same);
-    if (operator) {
-      if (hasProtectedFlag) operator.reasons.push(row.locked ? 'PROTECTED_ITEM_OPERATOR_OVERRIDE' : 'SPECIAL_ITEM_OPERATOR_OVERRIDE');
-      return operator;
-    }
-
-    if (meta.compound && same >= 3 && this._permission(row.name, 'compound') !== false) return { disposition: ItemDisposition.RESERVE_COMPOUND, reasons: ['COMPOUND_SET_AVAILABLE'] };
+    const same = counts.get(stackKey(row.name, row.level)) || 0;
+    if (meta.compound && same >= 3) return { disposition: ItemDisposition.RESERVE_COMPOUND, reasons: ['COMPOUND_SET_AVAILABLE'] };
 
     if (this.exchangeAllowlist.has(row.name)) return { disposition: ItemDisposition.EXCHANGE, reasons: ['OPERATOR_EXCHANGE_ALLOWLIST'] };
-    if (this.bankAllowlist.has(row.name) && this._permission(row.name, 'bank') !== false) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWLIST'] };
-    if (this.sellAllowlist.has(row.name) && this._permission(row.name, 'sell') !== false) {
+    if (this.bankAllowlist.has(row.name)) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWLIST'] };
+    if (this.sellAllowlist.has(row.name)) {
       const blockers = this._resolveSellBlockers(row, meta, gameData, contentDrift);
       if (blockers.length) {
         return {
@@ -13621,7 +13595,6 @@ class InventoryLedger {
         else mpReserved += row.q;
       }
       const meta = gameData && gameData.items && gameData.items[row.name];
-      const permissions = this.itemPermissions.get(row.name) || {};
       const entry = {
         schemaVersion: INVENTORY_LEDGER_SCHEMA_VERSION,
         key: itemKey(row.character, row.index),
@@ -13632,9 +13605,6 @@ class InventoryLedger {
         reservation: classified.reservation || null,
         metadataKnown: !!meta,
         metadataType: meta && meta.type || null,
-        operatorPermissions: { ...permissions },
-        protected: row.locked || row.special,
-        protectionReason: row.locked ? 'ITEM_LOCKED' : row.special ? 'ITEM_SPECIAL' : null,
         actionAuthority: false
       };
       this.entries.set(entry.key, entry);
@@ -13723,7 +13693,6 @@ class InventoryLedger {
         sellAllowlist: [...this.sellAllowlist].sort(),
         bankAllowlist: [...this.bankAllowlist].sort(),
         exchangeAllowlist: [...this.exchangeAllowlist].sort(),
-        itemPermissions: this.itemPermissionSnapshot(),
         defaultDisposition: ItemDisposition.UNDECIDED,
         sellSafetyResolver: this.sellSafetyResolver ? 'ENABLED' : 'DISABLED',
         sellSafety: sellSafetyStatus(),
@@ -30857,6 +30826,7 @@ const Action = Object.freeze({
   RENDEZVOUS: 'RENDEZVOUS',
   ELIXIR_FARM_OBJECTIVE: 'ELIXIR_FARM_OBJECTIVE',
   PRODUCTION_MATERIAL_OBJECTIVE: 'PRODUCTION_MATERIAL_OBJECTIVE',
+  PRODUCTION_MATERIAL_HANDOFF_READY: 'PRODUCTION_MATERIAL_HANDOFF_READY',
   PRODUCTION_MATERIAL_CLEAR: 'PRODUCTION_MATERIAL_CLEAR'
 });
 
@@ -31013,6 +30983,7 @@ class ControlledPartyLogistics {
       elixirEquipVerified: 0,
       elixirFarmObjectives: 0,
       productionMaterialObjectives: 0,
+      productionMaterialHandoffReady: 0,
       productionMaterialClears: 0
     };
     this.install();
@@ -31287,7 +31258,7 @@ class ControlledPartyLogistics {
     const objective = this._isMerchant()
       ? this.lastProductionMaterialObjective
       : this.runtime && this.runtime.farmer && this.runtime.farmer.materialObjective;
-    if (!objective || String(objective.kind || '') !== 'PRODUCTION_MATERIAL' && !this._isMerchant()) return false;
+    if (!objective || (!this._isMerchant() && !['PRODUCTION_MATERIAL', 'PRODUCTION_MATERIAL_HANDOFF'].includes(String(objective.kind || '')))) return false;
     if (this._isMerchant() && !objective.material) return false;
     if (Number(objective.expiresAt || 0) <= this.now()) return false;
     return String(objective.material || '') === String(item.name)
@@ -31486,7 +31457,7 @@ class ControlledPartyLogistics {
       const farmer = this.runtime && this.runtime.farmer;
       if (!farmer) return false;
       const activeMaterial = farmer.materialObjective;
-      if (activeMaterial && activeMaterial.kind === 'PRODUCTION_MATERIAL' && Number(activeMaterial.expiresAt || 0) > this.now()) return true;
+      if (activeMaterial && ['PRODUCTION_MATERIAL', 'PRODUCTION_MATERIAL_HANDOFF'].includes(String(activeMaterial.kind || '')) && Number(activeMaterial.expiresAt || 0) > this.now()) return true;
       farmer.materialObjective = {
         kind: 'ELIXIR_MATERIAL',
         monster: cleanName(data.monster),
@@ -31539,10 +31510,40 @@ class ControlledPartyLogistics {
       return true;
     }
 
+    if (action === Action.PRODUCTION_MATERIAL_HANDOFF_READY) {
+      if (!merchant || from !== merchant || this._isMerchant()) return false;
+      const expiresAt = finite(data.expiresAt);
+      if (expiresAt == null || expiresAt <= this.now()) return false;
+      const farmer = this.runtime && this.runtime.farmer;
+      const material = cleanName(data.material);
+      if (!farmer || !material) return false;
+      const current = farmer.materialObjective;
+      const objectiveId = cleanName(data.objectiveId);
+      if (current && current.objectiveId && objectiveId && current.objectiveId !== objectiveId) return true;
+      farmer.materialObjective = {
+        kind: 'PRODUCTION_MATERIAL_HANDOFF',
+        objectiveId,
+        material,
+        targetMaterial: cleanName(data.targetMaterial),
+        acquisitionKind: cleanName(data.acquisitionKind),
+        level: Math.max(0, Math.floor(finite(data.level, 0))),
+        requiredQuantity: Math.max(1, Math.floor(finite(data.requiredQuantity, 1))),
+        heldByFarmers: Math.max(0, Math.floor(finite(data.heldByFarmers, 0))),
+        output: cleanName(data.output),
+        recipient: cleanName(data.recipient),
+        slot: cleanName(data.slot),
+        handoffReadyAt: finite(data.handoffReadyAt, this.now()),
+        expiresAt
+      };
+      const crossMap = this.runtime && this.runtime.alpha28LiveAuthorityLiveness && this.runtime.alpha28LiveAuthorityLiveness.crossMap;
+      if (crossMap && typeof crossMap.clearMaterialObjective === 'function') crossMap.clearMaterialObjective('PRODUCTION_MATERIAL', objectiveId);
+      return true;
+    }
+
     if (action === Action.PRODUCTION_MATERIAL_CLEAR) {
       if (!merchant || from !== merchant || this._isMerchant()) return false;
       const farmer = this.runtime && this.runtime.farmer;
-      if (!farmer || !farmer.materialObjective || farmer.materialObjective.kind !== 'PRODUCTION_MATERIAL') return true;
+      if (!farmer || !farmer.materialObjective || !['PRODUCTION_MATERIAL', 'PRODUCTION_MATERIAL_HANDOFF'].includes(String(farmer.materialObjective.kind || ''))) return true;
       const objectiveId = cleanName(data.objectiveId);
       if (objectiveId && farmer.materialObjective.objectiveId && objectiveId !== farmer.materialObjective.objectiveId) return true;
       farmer.materialObjective = null;
@@ -31930,6 +31931,49 @@ class ControlledPartyLogistics {
     return true;
   }
 
+  publishProductionMaterialHandoffReady(objective = {}) {
+    if (!this._isMerchant()) return false;
+    const now = this.now();
+    const previous = this.lastProductionMaterialObjective || {};
+    const objectiveId = cleanName(objective.objectiveId || previous.objectiveId);
+    const material = cleanName(objective.material || previous.material);
+    const expiresAt = finite(objective.expiresAt, finite(previous.expiresAt, now + 15 * 60 * 1000));
+    if (!objectiveId || !material || expiresAt <= now) return false;
+    const sameHandoff = previous
+      && previous.phase === 'HANDOFF_READY'
+      && previous.objectiveId === objectiveId
+      && previous.material === material
+      && Math.max(0, Math.floor(finite(previous.level, 0))) === Math.max(0, Math.floor(finite(objective.level, finite(previous.level, 0))))
+      && Math.max(1, Math.floor(finite(previous.requiredQuantity, 1))) === Math.max(1, Math.floor(finite(objective.requiredQuantity, finite(previous.requiredQuantity, 1))))
+      && finite(previous.expiresAt, 0) > now;
+    if (sameHandoff && now - this.lastProductionMaterialPublishAt < this.config.productionMaterialPublishCooldownMs) return true;
+    const normalized = {
+      ...clone(previous),
+      objectiveId,
+      output: cleanName(objective.output || previous.output),
+      recipient: cleanName(objective.recipient || previous.recipient),
+      slot: cleanName(objective.slot || previous.slot),
+      material,
+      targetMaterial: cleanName(objective.targetMaterial || previous.targetMaterial || material),
+      acquisitionKind: cleanName(objective.acquisitionKind || previous.acquisitionKind),
+      level: Math.max(0, Math.floor(finite(objective.level, finite(previous.level, 0)))),
+      requiredQuantity: Math.max(1, Math.floor(finite(objective.requiredQuantity, finite(previous.requiredQuantity, 1)))),
+      heldByFarmers: Math.max(0, Math.floor(finite(objective.heldByFarmers, 0))),
+      phase: 'HANDOFF_READY',
+      handoffReadyAt: now,
+      expiresAt
+    };
+    this.lastProductionMaterialObjective = clone(normalized);
+    this.lastProductionMaterialPublishAt = now;
+    for (const name of this._trustedNames()) {
+      if (name === this._localName()) continue;
+      Promise.resolve(this._send(name, Action.PRODUCTION_MATERIAL_HANDOFF_READY, normalized)).catch(() => {});
+    }
+    this.stats.productionMaterialHandoffReady += 1;
+    this._event('PRODUCTION_MATERIAL_HANDOFF_READY', 'info', 'TARGET_QUANTITY_HELD_STOP_FARMING_AND_TRANSFER', normalized);
+    return true;
+  }
+
   clearProductionMaterialObjective(reason = 'PRODUCTION_MATERIAL_OBJECTIVE_COMPLETE') {
     if (!this._isMerchant()) return false;
     const previous = this.lastProductionMaterialObjective;
@@ -32195,6 +32239,7 @@ class ControlledPartyLogistics {
         farmerElixirAutoUseAfterExpiry: true,
         elixirFarmObjectiveAutomatic: true,
         productionMaterialObjectiveAutomatic: true,
+        productionMaterialHandoffStopsFarmerCombat: true,
         productionMaterialTeamPolicy: 'ALL_FARMERS_SAME_OBJECTIVE',
         farmerLootPolicy: 'merchant-central-processing-nonbound-items',
         farmerProgressionGearTransfer: true,
@@ -39383,7 +39428,6 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       const meta = gameData && gameData.items && row && row.name ? gameData.items[row.name] : null;
       if (!row || !row.name || !meta || typeof meta !== 'object') return base;
       const name = String(row.name);
-      const permission = (action) => typeof ledger._permission === 'function' ? ledger._permission(name, action) : null;
       if (/^(hpot|mpot|scroll|cscroll)/i.test(name)) return { disposition: 'KEEP', reasons: [...(base.reasons || []), 'AUTONOMOUS_SERVICE_RESOURCE'] };
       if (meta.quest || meta.q || meta.event || meta.cash || meta.cash_item || meta.soulbound || meta.soul_bound || meta.exchange || meta.e) {
         return { disposition: 'KEEP', reasons: [...(base.reasons || []), 'AUTONOMOUS_PROTECTED_METADATA'] };
@@ -39430,7 +39474,6 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       if (!futureFarmerProtection && productionDemandActive) {
         const family = String(productionDemand.family || '').toUpperCase();
         if (family === 'UPGRADE'
-          && permission('upgrade') !== false
           && meta.upgrade
           && level < this.options.maxUpgradeLevel
           && grade < 4
@@ -39443,7 +39486,6 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           };
         }
         if (family === 'COMPOUND'
-          && permission('compound') !== false
           && meta.compound
           && level < this.options.maxCompoundLevel
           && grade < 4
@@ -39464,7 +39506,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       }
 
       if (futureFarmerProtection) {
-        if (permission('compound') !== false && meta.compound && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.compoundValueCap) {
+        if (meta.compound && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.compoundValueCap) {
           return same >= 3
             ? {
                 disposition: 'RESERVE_COMPOUND',
@@ -39477,7 +39519,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
                 futureFarmerProtection: clone(futureFarmerProtection)
               };
         }
-        if (permission('upgrade') !== false && meta.upgrade && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.upgradeValueCap) {
+        if (meta.upgrade && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.upgradeValueCap) {
           return {
             disposition: 'RESERVE_UPGRADE',
             reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_PROGRESSION', 'AUTONOMOUS_UPGRADE_CONTINUATION'],
@@ -39495,7 +39537,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       // exposes compound/upgrade metadata as objects, not necessarily boolean true.
       // A complete compound set is actionable now; an incomplete level-0 set is
       // retained until a third copy arrives instead of being hidden in the bank.
-      if (meta.compound && permission('compound') !== false) {
+      if (meta.compound) {
         if (same >= 3 && level < this.options.maxCompoundLevel && grade < 4 && (value != null && value <= this.options.compoundValueCap)) {
           return {
             disposition: 'RESERVE_COMPOUND',
@@ -39515,7 +39557,6 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
               reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
             };
           }
-          if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED', 'AUTONOMOUS_COMPOUND_RESULT'] };
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
@@ -39530,7 +39571,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       // sale gate to dispose of low-value results. Re-evaluation is required
       // after every observed level change, so a newly useful item immediately
       // leaves this fallback and moves into the Farmer +5 progression path.
-      if (meta.upgrade && permission('upgrade') !== false) {
+      if (meta.upgrade) {
         if (!futureSellSafety || futureSellSafety.checked !== true) {
           return {
             disposition: 'KEEP',
@@ -39551,7 +39592,6 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           };
         }
         if (level >= economicTargetLevel && level > 0 && grade < 4 && underKeepValue) {
-          if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED', 'AUTONOMOUS_UPGRADE_RESULT'] };
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
@@ -39567,16 +39607,14 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           : [];
       } catch (_) { blockers = ['SELL_SAFETY_RESOLVER_FAILED']; }
       const bank = level > 0 || meta.upgrade || meta.compound || blockers.length > 0 || (value != null && value >= this.options.keepValue);
-      if (bank && permission('bank') !== false) {
+      if (bank) {
         this.stats.autoLedgerBankClassifications += 1;
         return {
           disposition: 'BANK',
           reasons: [...baseReasons, blockers.length ? 'AUTONOMOUS_SELL_SAFETY_BANK' : meta.upgrade || meta.compound ? 'AUTONOMOUS_PROGRESSION_ITEM_BANK' : level > 0 ? 'AUTONOMOUS_LEVELED_ITEM_BANK' : 'AUTONOMOUS_VALUE_KEEP_BANK', ...blockers]
         };
       }
-      if (bank && permission('bank') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_BANK_DENIED'] };
       if (level === 0 && blockers.length === 0) {
-        if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED'] };
         this.stats.autoLedgerSellClassifications += 1;
         return { disposition: 'SELL', reasons: [...baseReasons, 'AUTONOMOUS_LOW_RISK_SURPLUS'] };
       }
@@ -47015,66 +47053,6 @@ function equipmentShadeCatalog(runtime) {
   return catalog;
 }
 
-function itemNpcCatalog(gameData) {
-  const byItem = new Map();
-  const add = (item, npc, map) => {
-    const name = String(item || '').trim();
-    if (!name) return;
-    const rows = byItem.get(name) || [];
-    const key = `${String(npc || 'npc')}|${String(map || '')}`;
-    if (!rows.some((row) => row.key === key)) rows.push({ key, npc: String(npc || 'npc'), map: map || null });
-    byItem.set(name, rows);
-  };
-  for (const [mapId, map] of Object.entries(gameData && gameData.maps || {})) {
-    for (const raw of Array.isArray(map && (map.npcs || map.NPCs)) ? (map.npcs || map.NPCs) : []) {
-      const npcId = Array.isArray(raw) ? raw[0] : raw && (raw.id || raw.npc);
-      const def = gameData && gameData.npcs && gameData.npcs[npcId] || {};
-      const stock = [].concat(def.items || def.sells || []);
-      for (const row of stock) add(Array.isArray(row) ? row[0] : row && row.name || row, npcId, mapId);
-    }
-  }
-  return byItem;
-}
-
-function itemAutomationCatalog(runtime, maxItems = 10000) {
-  const gameData = { items: {}, maps: {}, npcs: {}, positions: {}, imagesets: {} };
-  for (const source of gameDataSources(runtime)) {
-    Object.assign(gameData.items, source && source.items || {});
-    Object.assign(gameData.maps, source && source.maps || {});
-    Object.assign(gameData.npcs, source && source.npcs || {});
-    Object.assign(gameData.positions, source && source.positions || {});
-    Object.assign(gameData.imagesets, source && source.imagesets || {});
-  }
-  const npcByItem = itemNpcCatalog(gameData);
-  const rows = [];
-  for (const [id, def] of Object.entries(gameData.items || {}).slice(0, maxItems)) {
-    if (!def || typeof def !== 'object' || Array.isArray(def)) continue;
-    const classes = [].concat(def.class || def.classes || []).map((value) => String(value || '').toLowerCase()).filter(Boolean);
-    const level = Number(def.level != null ? def.level : def.req != null ? def.req : def.requirement);
-    rows.push({
-      id,
-      name: def.name || id,
-      type: def.type || null,
-      wtype: def.wtype || null,
-      level: Number.isFinite(level) ? level : null,
-      grade: Number.isFinite(Number(def.grade)) ? Number(def.grade) : null,
-      classes,
-      npc: (npcByItem.get(id) || []).map(({ npc, map }) => ({ npc, map })),
-      upgrade: def.upgrade === true,
-      compound: def.compound === true,
-      exchange: !!(def.exchange || def.e),
-      quest: !!(def.quest || def.q),
-      cash: !!def.cash,
-      soulbound: !!def.soulbound,
-      special: !!def.special,
-      goldValue: Number.isFinite(Number(def.g)) ? Number(def.g) : null,
-      skin: def.skin_c || def.skin || null
-    });
-  }
-  rows.sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)));
-  return rows;
-}
-
 function installAdventureLandItemSprites(runtime, cloud) {
   if (!cloud || cloud.__adventureLandItemSpritesInstalled || typeof cloud._runtimeSnapshot !== 'function') return false;
   const originalRuntimeSnapshot = cloud._runtimeSnapshot.bind(cloud);
@@ -47084,7 +47062,6 @@ function installAdventureLandItemSprites(runtime, cloud) {
       snapshot.itemSprites = itemSpriteCatalog(runtime);
       snapshot.equipmentShades = equipmentShadeCatalog(runtime);
       const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
-      if (liveCharacter && String(liveCharacter.ctype || '').toLowerCase() === 'merchant') snapshot.automationCatalog = itemAutomationCatalog(runtime);
       if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
         snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
       }
@@ -47157,12 +47134,6 @@ class Alpha25ControlCenterBrain {
       if (alpha27 && alpha27.options) alpha27.options.maxCompoundLevel = limit;
       const synchronized = synchronizeLegacyCompoundPolicy(this.runtime, limit);
       if (alpha27) alpha27.legacyCompoundPolicySynchronized = synchronized;
-    });
-
-    apply('economy.itemPermissions', (value) => {
-      const ledger = this.runtime.inventoryLedger;
-      if (ledger && typeof ledger.setItemPermissions === 'function') ledger.setItemPermissions(value);
-      if (this.runtime.lastSnapshot && typeof this.runtime._planInventoryAndGear === 'function') this.runtime._planInventoryAndGear();
     });
 
     const economy = this.runtime.economyEquipmentAutonomyV2;
@@ -47299,7 +47270,6 @@ module.exports = {
   adventureLandAssetUrl,
   itemSpriteCatalog,
   equipmentShadeCatalog,
-  itemAutomationCatalog,
   installAdventureLandItemSprites
 };
 },
@@ -47381,7 +47351,6 @@ const DEFINITIONS = Object.freeze([
   { key: 'economy.compoundCap', category: 'Economy, Gear & Markt', label: 'Compound Kostenlimit', description: 'Maximaler konservativer Budgetrahmen für Compound-Kandidaten.', type: 'number', default: 500000, min: 0, max: 100000000, step: 50000, hot: true },
   { key: 'economy.maxUpgrade', category: 'Economy, Gear & Markt', label: 'Max Upgrade Level', description: 'Maximales Ergebnislevel autonomer Upgrades. Aktuelle v3-Progressionsgrenze: +7.', type: 'number', default: 2, min: 0, max: 7, step: 1, hot: true },
   { key: 'economy.maxCompound', category: 'Economy, Gear & Markt', label: 'Max Compound Level', description: 'Maximales Ergebnislevel autonomer Compounds. Aktuelle v3-Progressionsgrenze: +10.', type: 'number', default: 1, min: 0, max: 10, step: 1, hot: true },
-  { key: 'economy.itemPermissions', category: 'Economy, Gear & Markt', label: 'Item-Berechtigungen', description: 'Per-Item Freigaben aus dem Inventar-Kontextmenü.', type: 'item-permissions', default: {}, hot: true, hidden: true },
   { key: 'economy.marketMaxTrackedItems', category: 'Economy, Gear & Markt', label: 'Markt-History Items', description: 'Maximal persistent beobachtete Item-Arten.', type: 'number', default: 96, min: 24, max: 256, step: 8, hot: false },
   { key: 'economy.marketMaxSamples', category: 'Economy, Gear & Markt', label: 'Markt-Samples/Item', description: 'Maximale historische Beobachtungen je Item.', type: 'number', default: 48, min: 8, max: 128, step: 4, hot: false },
   { key: 'economy.gearGoalFreshMs', category: 'Economy, Gear & Markt', label: 'Gear-Goal Frische', description: 'Maximales Alter eines Ausrüstungsziels für Transfers.', type: 'number', default: 30000, min: 5000, max: 180000, step: 5000, hot: false },
@@ -47427,29 +47396,14 @@ function setPath(root, path, value) {
   let cur = root; for (let i = 0; i < parts.length - 1; i += 1) { if (!cur || !(parts[i] in cur)) return false; cur = cur[parts[i]]; }
   if (!cur || !(parts[parts.length - 1] in cur)) return false; cur[parts[parts.length - 1]] = value; return true;
 }
-function normalizeItemPermissions(value) {
-  let source = value;
-  if (typeof source === 'string') { try { source = JSON.parse(source); } catch (_) { source = {}; } }
-  if (!source || typeof source !== 'object' || Array.isArray(source)) return {};
-  const out = {};
-  for (const [rawName, row] of Object.entries(source).slice(0, 512)) {
-    const name = String(rawName || '').trim().slice(0, 120);
-    if (!name || !row || typeof row !== 'object' || Array.isArray(row)) continue;
-    const next = {};
-    for (const action of ['sell', 'bank', 'compound', 'upgrade']) if (typeof row[action] === 'boolean') next[action] = row[action];
-    if (Object.keys(next).length) out[name] = next;
-  }
-  return out;
-}
 function normalize(def, value) {
   if (def.locked) return def.default;
-  if (def.type === 'item-permissions') return normalizeItemPermissions(value);
   if (def.type === 'boolean') return value === true || value === 'true' || value === 1;
   if (def.type === 'number') { let n = finite(value, def.default); if (def.min != null) n = Math.max(def.min, n); if (def.max != null) n = Math.min(def.max, n); return n; }
   if (def.type === 'select') return Array.isArray(def.values) && def.values.includes(String(value)) ? String(value) : def.default;
   return value == null ? def.default : String(value);
 }
-function defaults() { const out = {}; for (const def of DEFINITIONS) out[def.key] = def.type === 'item-permissions' ? normalizeItemPermissions(def.default) : def.default; return out; }
+function defaults() { const out = {}; for (const def of DEFINITIONS) out[def.key] = def.default; return out; }
 function sanitize(values = {}) { const out = defaults(); for (const [key, value] of Object.entries(values || {})) { const def = BY_KEY.get(key); if (def) out[key] = normalize(def, value); } return out; }
 function storage(root = globalThis) { try { return root && (root.localStorage || root.parent && root.parent.localStorage) || null; } catch (_) { return null; } }
 function loadStored(root = globalThis) {
@@ -53442,27 +53396,6 @@ function sessionId(now) {
   return `session-${Number(now()).toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function eventDigest(rows = []) {
-  const priority = [];
-  const groups = new Map();
-  for (const row of Array.isArray(rows) ? rows : []) {
-    if (!row) continue;
-    const severity = String(row.severity || 'info').toLowerCase();
-    const key = [row.component || '-', row.event || '-', row.reason || '-'].join('|');
-    const current = groups.get(key) || { component: row.component || null, event: row.event || null, reason: row.reason || null, severity, count: 0, firstAt: row.ts || row.at || null, lastAt: null };
-    current.count += 1;
-    current.lastAt = row.ts || row.at || current.lastAt;
-    if (['error', 'fatal', 'critical', 'warn', 'warning'].includes(severity) || /FAIL|ERROR|DEATH|RETREAT|DISCONNECT|CIRCUIT|QUARANTINE|ROLLBACK|DRIFT/i.test(String(row.event || row.reason || ''))) {
-      priority.push(row);
-    }
-    groups.set(key, current);
-  }
-  return {
-    priority: priority.slice(-120),
-    repeated: [...groups.values()].filter((row) => row.count > 1).sort((a, b) => b.count - a.count).slice(0, 80)
-  };
-}
-
 class SessionMonitor {
   constructor(options = {}) {
     this.root = options.root || globalThis;
@@ -53581,16 +53514,6 @@ class SessionMonitor {
     const travelPlans = runtime.safeTravel && typeof runtime.safeTravel.list === 'function' ? runtime.safeTravel.list(this.maxTravel) : [];
     const performance = runtime.performance && typeof runtime.performance.status === 'function' ? safeCall(() => runtime.performance.status(), null) : null;
     const registry = runtime.characterRegistry && typeof runtime.characterRegistry.status === 'function' ? safeCall(() => runtime.characterRegistry.status(), null) : null;
-    const brain = runtime.strategicBrainV2 && typeof runtime.strategicBrainV2.status === 'function'
-      ? safeCall(() => runtime.strategicBrainV2.status(), null)
-      : runtime.brain && typeof runtime.brain.status === 'function' ? safeCall(() => runtime.brain.status(), null) : null;
-    const adaptivePull = runtime.adaptivePullLearner && typeof runtime.adaptivePullLearner.status === 'function' ? safeCall(() => runtime.adaptivePullLearner.status(), null) : null;
-    const encounterLifecycle = runtime.encounterLifecycle && typeof runtime.encounterLifecycle.status === 'function'
-      ? safeCall(() => runtime.encounterLifecycle.status(), null)
-      : runtime.tacticalPartyCombat && runtime.tacticalPartyCombat.encounterLifecycle && typeof runtime.tacticalPartyCombat.encounterLifecycle.status === 'function'
-        ? safeCall(() => runtime.tacticalPartyCombat.encounterLifecycle.status(), null) : null;
-    const partyPerformance = runtime.partyPerformance && typeof runtime.partyPerformance.status === 'function' ? safeCall(() => runtime.partyPerformance.status(128), null) : null;
-    const digest = eventDigest(eventLog);
     return {
       schemaVersion: MONITOR_SCHEMA_VERSION,
       kind: 'aio-v3-session-log',
@@ -53602,15 +53525,6 @@ class SessionMonitor {
       summary: this.summary(),
       status: clone(status),
       performance: clone(performance),
-      brain: clone(brain),
-      learning: {
-        partyFingerprint: clone(runtime.currentPartyFingerprint || null),
-        encounterFingerprint: clone(runtime.currentEncounterFingerprint || null),
-        adaptivePull: clone(adaptivePull),
-        encounterLifecycle: clone(encounterLifecycle),
-        partyPerformance: clone(partyPerformance)
-      },
-      diagnosticSignals: clone(digest),
       characterRegistry: clone(registry),
       inventory: { status: clone(status.inventory || null), entries: clone(inventoryEntries) },
       gearProgression: { status: clone(status.gearProgression || null), goals: clone(gearGoals) },
@@ -54411,9 +54325,53 @@ class DebugMonitorUI {
   refresh() {
     if (!this.container || !this.monitor) return false;
     const doc = this._doc();
-    if (!doc) return false;
+    if (!doc || !this.body) return false;
+    const summary = this.monitor.summary();
+    while (this.body.firstChild) this.body.removeChild(this.body.firstChild);
+    const char = summary.character || {};
+    const sup = summary.supervisor || {};
+    const economy = summary.economy || {};
+    const travel = summary.travel || {};
+    const inventory = summary.inventory || {};
+    const controlledEconomy = economy.controlled || {};
+    const controlledTravel = travel.controlled || {};
+    const runStatus = this._runStatus();
+    let runtimeStatus = null;
+    try { runtimeStatus = this.monitor.runtime && typeof this.monitor.runtime.status === 'function' ? this.monitor.runtime.status() : null; } catch (_) {}
+    const merchantService = runtimeStatus && runtimeStatus.merchantService || null;
+    const controlledService = merchantService && merchantService.controlled || {};
+    const serviceExecution = merchantService && merchantService.lastExecution || controlledService.lastAction || null;
+    const serviceKind = serviceExecution && (serviceExecution.kind || serviceExecution.planKind || serviceExecution.action) || '—';
+    const serviceRaw = Number(controlledService.stats && controlledService.stats.rawActions) || 0;
+    const serviceCircuit = controlledService.circuit && controlledService.circuit.open ? 'OPEN' : 'ok';
+    const standOpen = !!(this.root && this.root.character && this.root.character.stand);
+    const sessionDuration = Math.max(0, Number(summary.generatedAt || 0) - Number(summary.startedAt || 0));
+    const runLabel = runStatus
+      ? `${runStatus.state}${runStatus.state === 'STOPPED_BLOCKED' && runStatus.blockers.length ? ` · ${runStatus.blockers.slice(0, 2).join(', ')}` : ''}`
+      : (summary.running ? 'RUNNING' : 'STOPPED');
+    const serviceLabel = !merchantService ? '—' : controlledService.enabled
+      ? `AN · Stand:${controlledService.allowStand ? 'on' : 'off'}${standOpen ? '/offen' : '/zu'} · Delivery:${controlledService.allowDelivery ? 'on' : 'off'}${controlledService.busy ? ' · BUSY' : ''}`
+      : `AUS · Stand:${standOpen ? 'offen' : 'zu'}`;
+
+    const rows = [
+      ['Version / Modus', `${summary.version || '—'} / ${summary.mode || '—'}`],
+      ['Bot', runLabel],
+      ['Session', this._formatDuration(sessionDuration)],
+      ['Charakter', `${char.name || '—'} (${char.ctype || '—'}) L${char.level || 0}`],
+      ['Map', `${char.map || '—'} @ ${Math.round(char.x || 0)}, ${Math.round(char.y || 0)}`],
+      ['Supervisor', `${sup.state || '—'}${sup.reasons && sup.reasons.length ? ` · ${sup.reasons.slice(0, 2).join(', ')}` : ''}`],
+      ['Merchant live', controlledEconomy.enabled ? `AN · SELL:${controlledEconomy.sellEnabled ? 'on' : 'off'} BANK:${controlledEconomy.bankEnabled ? 'on' : 'off'}` : 'AUS'],
+      ['Merchant Service', serviceLabel],
+      ['Service Aktion', merchantService ? `${serviceKind} · Raw ${serviceRaw} · Circuit ${serviceCircuit}` : '—'],
+      ['Travel live', controlledTravel.enabled ? `AN${controlledTravel.busy ? ' · BUSY' : ''}` : 'AUS'],
+      ['Transaktionen', `aktiv ${economy.activeTransactions || 0} · recovery ${economy.recoveringTransactions || 0}`],
+      ['Travel', `aktiv ${travel.active || 0} · Circuit ${travel.circuit && travel.circuit.open ? 'OPEN' : 'ok'}`],
+      ['Inventar', `Einträge ${inventory.totalEntries || 0}${inventory.stale ? ' · STALE' : ''}`],
+      ['Log', `Fehler ${summary.recentSignals.errors || 0} · Warn ${summary.recentSignals.warnings || 0}`]
+    ];
+    for (const [label, value] of rows) this.body.appendChild(this._row(doc, label, value));
     if (this.logBox) this.logBox.textContent = this._eventsText();
-    this._updateRunButton();
+    this._updateRunButton(runStatus);
     this._updateSkillsButton();
     if (this.skillsPanelOpen) this._renderSkillsPanel();
     return true;
@@ -54478,7 +54436,6 @@ class DebugMonitorUI {
     box.appendChild(this.skillsPanel);
 
     this.body = doc.createElement('div');
-    this.body.setAttribute('aria-hidden', 'true');
     box.appendChild(this.body);
 
     this.logBox = doc.createElement('pre');
@@ -55006,6 +54963,7 @@ module.exports = { RUNTIME_LIFECYCLE_METHODS, assertRuntimeLifecycle };
 const { MerchantProductionPlanner, ProductionStepKind } = require('./merchant-production-planner');
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_ACK } = require('./controlled-merchant-production-executor');
 const { PersistentBankCatalog } = require('./persistent-bank-catalog');
+const { PersistentProductionIntent } = require('./persistent-production-intent');
 const { bufferedInteractionRange, interactionMaxRange, INTERACTION_SAFETY_FACTOR } = require('../reliability/alpha27-atomic-service');
 const { chooseProductionTeamFarmObjective, DEFAULT_MAX_TEAM_FARM_HOURS, DEFAULT_FALLBACK_KILLS_PER_HOUR } = require('../party/production-material-acquisition');
 
@@ -55029,6 +54987,12 @@ function installMerchantProduction(runtime, options = {}) {
     targets: options.merchantProductionTargets
   });
   const bankCatalog = options.bankCatalog || new PersistentBankCatalog({ root: runtime.root, now: runtime.now, storage: options.merchantProductionStorage || options.storage, storageKey: options.merchantBankCatalogStorageKey, maxAgeMs: options.merchantBankCatalogMaxAgeMs });
+  const productionIntent = options.productionIntent || new PersistentProductionIntent({
+    root: runtime.root,
+    now: runtime.now,
+    storage: options.merchantProductionStorage || options.storage,
+    storageKey: options.merchantProductionIntentStorageKey
+  });
   const executor = options.executor || new ControlledMerchantProductionExecutor({
     root: runtime.root,
     now: runtime.now,
@@ -55060,11 +55024,39 @@ function installMerchantProduction(runtime, options = {}) {
     fallbackKillsPerHour: Math.max(1, n(options.merchantProductionFallbackKillsPerHour, DEFAULT_FALLBACK_KILLS_PER_HOUR)),
     materialObjectiveTtlMs: Math.max(60000, Math.min(60 * 60 * 1000, n(options.merchantProductionMaterialObjectiveTtlMs, 15 * 60 * 1000))),
     mutationDemandTtlMs: Math.max(30000, Math.min(15 * 60 * 1000, n(options.merchantProductionMutationDemandTtlMs, 5 * 60 * 1000))),
+    intentRecoveryGraceMs: Math.max(5000, Math.min(5 * 60 * 1000, n(options.merchantProductionIntentRecoveryGraceMs, 60000))),
     lastMaterialFarmDecision: null,
     lastMutationDemand: null,
     mutationExecutions: 0,
-    mutationHolds: 0
+    mutationHolds: 0,
+    lastIntentRecovery: null
   };
+
+  function persistIntentForTarget(plan, target, phase, details = {}) {
+    if (!plan || !target || !target.output) return false;
+    return productionIntent.ensureForPlan(
+      { ...clone(plan), target: clone(target) },
+      phase,
+      {
+        reason: details.reason || null,
+        progress: Object.prototype.hasOwnProperty.call(details, 'progress') ? details.progress : undefined,
+        material: Object.prototype.hasOwnProperty.call(details, 'material') ? details.material : undefined,
+        lastExecution: Object.prototype.hasOwnProperty.call(details, 'lastExecution') ? details.lastExecution : undefined
+      }
+    );
+  }
+
+  function updateIntentAfterExecution(plan, step, result) {
+    if (!plan || !plan.target || !plan.target.output) return false;
+    if (result && result.committed === true && step && step.kind === ProductionStepKind.CRAFT && String(step.name || '') === String(plan.target.output || '')) {
+      return productionIntent.complete('FINAL_PRODUCTION_OUTPUT_VERIFIED');
+    }
+    return productionIntent.update('REPLAN_REQUIRED', {
+      reason: result && result.committed === true ? 'PRODUCTION_STEP_COMMITTED_REPLAN' : result && result.reason || 'PRODUCTION_STEP_RESULT_REPLAN',
+      plan,
+      lastExecution: { at: runtime.now(), kind: step && step.kind || null, item: step && step.name || null, result: clone(result) }
+    });
+  }
 
   function taskCoordinator() { return runtime.merchantTaskCoordinator || null; }
   function currentTask() { const c = taskCoordinator(); return c && typeof c.current === 'function' ? c.current() : null; }
@@ -55229,6 +55221,10 @@ function installMerchantProduction(runtime, options = {}) {
     const lock = acquireTask(plan);
     if (!lock.acquired) return false;
     const step = plan.nextStep;
+    persistIntentForTarget(plan, plan.target, `EXECUTING_${String(step.kind || 'STEP')}`, {
+      reason: 'PRODUCTION_STEP_SCHEDULED',
+      lastExecution: state.lastExecution
+    });
     state.executionPending = true;
     Promise.resolve().then(async () => {
       const c = character() || {};
@@ -55259,6 +55255,7 @@ function installMerchantProduction(runtime, options = {}) {
       }
       const result = await executor.execute(plan, step);
       state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: clone(result) };
+      updateIntentAfterExecution(plan, step, result);
       if (result && result.committed === true && (step.kind === ProductionStepKind.BANK_RETRIEVE || step.kind === ProductionStepKind.BANK_STORE)) bankCatalog.observe(character());
       if (result && result.executed === true && result.committed !== true) state.pausedUntil = runtime.now() + state.failureCooldownMs;
       if (runtime.log && typeof runtime.log.emit === 'function') runtime.log.emit({ component: 'merchant-production', event: result && result.committed ? 'PRODUCTION_STEP_COMMITTED' : 'PRODUCTION_STEP_RESULT', severity: result && result.committed ? 'info' : 'warn', reason: result && result.reason || 'UNKNOWN', data: { planId: plan.id, kind: step.kind, item: step.name } });
@@ -55402,6 +55399,16 @@ function installMerchantProduction(runtime, options = {}) {
     const selection = mutationCandidateForPlan(plan);
     if (!selection) return false;
     const lockPlan = { ...clone(plan), target: clone(selection.candidate) };
+    persistIntentForTarget(lockPlan, selection.candidate, 'MUTATION_READY', {
+      reason: 'LEVELED_RECIPE_INPUT_MUTATION_READY',
+      material: {
+        name: selection.step.name,
+        fromLevel: selection.step.fromLevel,
+        targetLevel: selection.step.targetLevel,
+        quantity: selection.step.quantity,
+        inputQuantity: selection.step.inputQuantity
+      }
+    });
     const lock = acquireTask(lockPlan, 'PRODUCTION_CHAIN');
     if (!lock.acquired) return false;
 
@@ -55502,6 +55509,11 @@ function installMerchantProduction(runtime, options = {}) {
         }
       };
     }).finally(() => {
+      productionIntent.update('REPLAN_REQUIRED', {
+        reason: state.lastExecution && state.lastExecution.result && state.lastExecution.result.reason || 'PRODUCTION_MUTATION_ATTEMPT_COMPLETE_REPLAN',
+        plan: lockPlan,
+        lastExecution: state.lastExecution
+      });
       clearProductionMutationDemand('PRODUCTION_MUTATION_ATTEMPT_COMPLETE_REPLAN');
       state.executionPending = false;
     });
@@ -55545,8 +55557,60 @@ function installMerchantProduction(runtime, options = {}) {
     });
     state.lastMaterialFarmDecision = { at: runtime.now(), ...clone(decision) };
     if (!decision.selected || !decision.selected.nextMaterial || !decision.selected.nextMaterial.source) {
-      const awaitingTransfer = (decision.evaluated || []).some((row) => row && row.reason === 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER');
-      if (awaitingTransfer) return true;
+      const awaitingTransfer = (decision.evaluated || []).find((row) => row && row.reason === 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER');
+      if (awaitingTransfer) {
+        const materials = Array.isArray(awaitingTransfer.materials) ? awaitingTransfer.materials : [];
+        const previous = logistics.lastProductionMaterialObjective || null;
+        const preferred = previous && materials.find((row) => row && row.awaitingTransfer === true
+          && String(row.handoffMaterial || row.name || '') === String(previous.material || '')
+          && Math.max(0, Math.floor(n(row.handoffLevel, row.level))) === Math.max(0, Math.floor(n(previous.level, 0))));
+        const material = preferred || materials.find((row) => row && row.awaitingTransfer === true);
+        if (!material) return true;
+        const handoffMaterial = String(material.handoffMaterial || material.name || '');
+        const handoffLevel = Math.max(0, Math.floor(n(material.handoffLevel, material.level)));
+        const handoffQuantity = Math.max(1, Math.floor(n(material.handoffQuantity, material.quantity)));
+        const heldByFarmers = Math.max(handoffQuantity, Math.floor(n(material.heldByFarmers, material.alreadyOnFarmers)));
+        const expiresAt = runtime.now() + state.materialObjectiveTtlMs;
+        const source = material.source || null;
+        setProductionExchangeDemand(source && source.kind === 'EXCHANGE_MATERIAL_DROP' ? source : null, material.name, expiresAt);
+        const handoffPlan = { ...clone(plan), target: clone(awaitingTransfer.target || {
+          output: awaitingTransfer.output,
+          recipient: awaitingTransfer.recipient,
+          slot: awaitingTransfer.slot
+        }) };
+        persistIntentForTarget(handoffPlan, handoffPlan.target, 'MATERIAL_READY_FOR_HANDOFF', {
+          reason: 'TARGET_QUANTITY_HELD_BY_FARMERS',
+          material: {
+            material: handoffMaterial,
+            targetMaterial: material.name,
+            level: handoffLevel,
+            requiredQuantity: handoffQuantity,
+            heldByFarmers,
+            acquisitionKind: source && source.kind || 'DIRECT_MATERIAL_DROP'
+          },
+          progress: {
+            requiredQuantity: handoffQuantity,
+            heldByFarmers,
+            remainingToFarm: 0,
+            transferPending: true
+          }
+        });
+        if (typeof logistics.publishProductionMaterialHandoffReady !== 'function') return true;
+        return logistics.publishProductionMaterialHandoffReady({
+          objectiveId: previous && previous.objectiveId || `production-material:${awaitingTransfer.output || ''}:${awaitingTransfer.recipient || ''}:${handoffMaterial}`,
+          output: awaitingTransfer.output,
+          recipient: awaitingTransfer.recipient || null,
+          slot: awaitingTransfer.slot || null,
+          material: handoffMaterial,
+          targetMaterial: material.name,
+          acquisitionKind: source && source.kind || 'DIRECT_MATERIAL_DROP',
+          level: handoffLevel,
+          requiredQuantity: handoffQuantity,
+          heldByFarmers,
+          expiresAt
+        });
+      }
+      persistIntentForTarget(plan, plan.target, 'BLOCKED', { reason: 'NO_KNOWN_PRODUCTION_MATERIAL_FARM_PATH' });
       clearProductionMaterialObjective('NO_KNOWN_PRODUCTION_MATERIAL_FARM_PATH');
       return false;
     }
@@ -55559,6 +55623,26 @@ function installMerchantProduction(runtime, options = {}) {
     const farmQuantity = source.kind === 'EXCHANGE_MATERIAL_DROP'
       ? Math.max(1, Math.floor(n(source.farmQuantity, n(source.requiredPerExchange, 1))))
       : Math.max(1, Math.floor(n(material.remainingToFarm, material.quantity)));
+    const farmPlan = { ...clone(plan), target: clone(selected.target) };
+    persistIntentForTarget(farmPlan, selected.target, 'FARMING_MATERIAL', {
+      reason: selected.reason,
+      material: {
+        material: farmMaterial,
+        targetMaterial: material.name,
+        level: source.kind === 'EXCHANGE_MATERIAL_DROP' ? 0 : material.level,
+        requiredQuantity: farmQuantity,
+        acquisitionKind: source.kind,
+        monster: source.monster,
+        map: source.map
+      },
+      progress: {
+        requiredQuantity: farmQuantity,
+        heldByFarmers: Math.max(0, Math.floor(n(source.alreadyOnFarmers, material.alreadyOnFarmers))),
+        remainingToFarm: Math.max(0, Math.floor(n(source.farmQuantity, material.remainingToFarm))),
+        expectedHours: source.expectedHours,
+        totalExpectedHours: selected.totalExpectedHours
+      }
+    });
     return logistics.publishProductionMaterialObjective({
       objectiveId: `production-material:${selected.target.output}:${selected.target.recipient || ''}:${farmMaterial}`,
       output: selected.target.output,
@@ -55637,6 +55721,49 @@ function installMerchantProduction(runtime, options = {}) {
       };
     }
 
+    const persistedIntent = productionIntent.status();
+    if (persistedIntent.recoveryPending) {
+      const recoveryPlan = evaluate();
+      const activeIntent = persistedIntent.active || {};
+      const freshEvidence = !!(
+        recoveryPlan
+        && (
+          recoveryPlan.target
+          || Array.isArray(recoveryPlan.blockedCandidates) && recoveryPlan.blockedCandidates.length
+          || ['READY', 'BLOCKED'].includes(String(recoveryPlan.state || ''))
+        )
+      );
+      if (!freshEvidence && runtime.now() - n(activeIntent.updatedAt, runtime.now()) < state.intentRecoveryGraceMs) {
+        state.lastIntentRecovery = {
+          at: runtime.now(),
+          reconciled: false,
+          reason: 'WAITING_FOR_FRESH_PRODUCTION_REPLAN_EVIDENCE',
+          targetIdentity: activeIntent.targetIdentity || null
+        };
+        return {
+          state: 'HOLD',
+          reason: 'PRODUCTION_INTENT_WAITING_FOR_FRESH_REPLAN',
+          intentRecovery: clone(state.lastIntentRecovery)
+        };
+      }
+      const intentRecovery = productionIntent.reconcile(recoveryPlan);
+      state.lastIntentRecovery = { at: runtime.now(), ...clone(intentRecovery) };
+      clearProductionMutationDemand('PRODUCTION_INTENT_RECONCILIATION');
+      if (intentRecovery && intentRecovery.continued !== true) {
+        const activeProductionTask = currentTask();
+        if (activeProductionTask && activeProductionTask.owner === 'PRODUCTION') {
+          releaseTask('PRODUCTION_INTENT_RECONCILIATION_FAILED_SAFE', { intentRecovery: clone(intentRecovery) });
+        }
+      }
+      return {
+        state: 'HOLD',
+        reason: intentRecovery && intentRecovery.continued === true
+          ? 'PRODUCTION_INTENT_RECOVERED_REPLAN_VERIFIED'
+          : 'PRODUCTION_INTENT_FAILED_SAFE_REPLAN_CHANGED',
+        intentRecovery: clone(intentRecovery)
+      };
+    }
+
     const task = currentTask();
     if (task && task.owner !== 'PRODUCTION') {
       return { state: 'HOLD', reason: 'MERCHANT_TASK_OWNED_BY_OTHER_SUBSYSTEM', task: clone(task) };
@@ -55659,12 +55786,14 @@ function installMerchantProduction(runtime, options = {}) {
 
     const plan = evaluate();
     if (plan && plan.state === 'READY') {
+      persistIntentForTarget(plan, plan.target, 'READY', { reason: 'PRODUCTION_CHAIN_READY' });
       clearProductionMutationDemand('PRODUCTION_CHAIN_READY');
       clearProductionMaterialObjective('PRODUCTION_CHAIN_READY');
     } else if (plan && plan.state === 'BLOCKED') {
       if (scheduleProductionMutation(plan)) return plan;
       clearProductionMutationDemand('NO_ACTIONABLE_PRODUCTION_MUTATION');
-      publishProductionMaterialObjective(plan);
+      const materialHandled = publishProductionMaterialObjective(plan);
+      if (!materialHandled) persistIntentForTarget(plan, plan.target, 'BLOCKED', { reason: plan.reason || 'PRODUCTION_CHAIN_BLOCKED' });
     } else {
       clearProductionMutationDemand('PRODUCTION_PLAN_NOT_BLOCKED');
     }
@@ -55716,6 +55845,7 @@ function installMerchantProduction(runtime, options = {}) {
         npcBufferedRange: bufferedInteractionRange(runtime.root, 'npc')
       },
       bankCatalog: bankCatalog.status(),
+      productionIntent: productionIntent.status(),
       roleEligible: isMerchant(),
       autoLiveEnabled: isMerchant(),
       nonMerchantSideEffectsBlocked: true,
@@ -55742,6 +55872,11 @@ function installMerchantProduction(runtime, options = {}) {
         acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE',
         mutationAuthority: 'ALPHA27_ATOMIC_ONLY',
         mutationDemandTtlMs: state.mutationDemandTtlMs,
+        intentRecoveryGraceMs: state.intentRecoveryGraceMs,
+        persistedProductionIntent: true,
+        restartContinuationRequiresFreshReplanIdentityMatch: true,
+        materialHandoffPausesFarmerCombat: true,
+        lastIntentRecovery: clone(state.lastIntentRecovery),
         lastMutationDemand: clone(state.lastMutationDemand),
         mutationExecutions: state.mutationExecutions,
         mutationHolds: state.mutationHolds,
@@ -55780,6 +55915,7 @@ function installMerchantProduction(runtime, options = {}) {
 
   runtime.merchantProductionPlanner = planner;
   runtime.merchantBankCatalog = bankCatalog;
+  runtime.persistentProductionIntent = productionIntent;
   runtime.controlledMerchantProduction = executor;
   runtime.configureMerchantProduction = configure;
   runtime.disableMerchantProduction = disable;
@@ -55787,7 +55923,7 @@ function installMerchantProduction(runtime, options = {}) {
   runtime.evaluateMerchantProduction = cycle;
   runtime.merchantProductionStatus = status;
 
-  const controller = { planner, executor, bankCatalog, evaluate, cycle, configure, disable, reconcile, status, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK };
+  const controller = { planner, executor, bankCatalog, productionIntent, evaluate, cycle, configure, disable, reconcile, status, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK };
   runtime.__merchantProductionController = controller;
   return controller;
 }
@@ -55904,6 +56040,279 @@ class PersistentBankCatalog {
 }
 
 module.exports = { PersistentBankCatalog, PERSISTENT_BANK_CATALOG_MODE };
+
+},
+"src/merchant/persistent-production-intent.js": function(require,module,exports){
+'use strict';
+
+const PERSISTENT_PRODUCTION_INTENT_MODE = 'persistent-production-intent-v2';
+const TERMINAL_PHASES = new Set(['COMPLETED', 'ABORTED', 'FAILED_SAFE']);
+
+function clone(value) {
+  if (value == null) return value;
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clean(value) {
+  const text = String(value == null ? '' : value).trim();
+  return text || null;
+}
+
+function targetIdentity(target = {}) {
+  const output = clean(target.output || target.item);
+  const recipient = clean(target.recipient);
+  const slot = clean(target.slot);
+  if (!output) return null;
+  return `${output}|${recipient || ''}|${slot || ''}`;
+}
+
+class PersistentProductionIntent {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.storage = options.storage || null;
+    this.storageKey = options.storageKey || 'aio-v3-production-intent-v2';
+    this.active = null;
+    this.history = [];
+    this.lastRecovery = null;
+    this.stats = {
+      loads: 0,
+      persisted: 0,
+      started: 0,
+      updated: 0,
+      completed: 0,
+      aborted: 0,
+      recovered: 0,
+      recoveryFailedSafe: 0
+    };
+    this._load();
+  }
+
+  _get() {
+    try {
+      if (this.storage && typeof this.storage.get === 'function') return this.storage.get(this.storageKey);
+      const ls = this.root && this.root.localStorage;
+      return ls && typeof ls.getItem === 'function' ? ls.getItem(this.storageKey) : null;
+    } catch (_) { return null; }
+  }
+
+  _set(value) {
+    try {
+      const text = JSON.stringify(value);
+      if (this.storage && typeof this.storage.set === 'function') return this.storage.set(this.storageKey, text) !== false;
+      const ls = this.root && this.root.localStorage;
+      if (ls && typeof ls.setItem === 'function') {
+        ls.setItem(this.storageKey, text);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  _persist() {
+    const ok = this._set({
+      schemaVersion: 2,
+      active: this.active,
+      history: this.history.slice(-32),
+      lastRecovery: this.lastRecovery
+    });
+    if (ok) this.stats.persisted += 1;
+    return ok;
+  }
+
+  _load() {
+    const raw = this._get();
+    if (!raw) return;
+    try {
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!data || Number(data.schemaVersion) !== 2) return;
+      this.active = data.active && typeof data.active === 'object' ? clone(data.active) : null;
+      this.history = Array.isArray(data.history) ? data.history.slice(-32).map(clone) : [];
+      this.lastRecovery = clone(data.lastRecovery || null);
+      this.stats.loads += 1;
+      if (this.active && !TERMINAL_PHASES.has(String(this.active.phase || ''))) {
+        this.active.recoveryPending = true;
+        this.active.recoveryReason = 'RESTART_REPLAN_RECONCILIATION_REQUIRED';
+        this.active.updatedAt = this.now();
+        this._persist();
+      }
+    } catch (_) {
+      this.active = null;
+      this.lastRecovery = {
+        at: this.now(),
+        reconciled: false,
+        reason: 'CORRUPT_PERSISTED_PRODUCTION_INTENT'
+      };
+    }
+  }
+
+  _targetFromPlan(plan) {
+    if (!plan) return null;
+    const target = plan.target || null;
+    return target && targetIdentity(target) ? {
+      output: clean(target.output || target.item),
+      recipient: clean(target.recipient),
+      slot: clean(target.slot),
+      identity: targetIdentity(target)
+    } : null;
+  }
+
+  _candidateTargets(plan) {
+    const out = [];
+    const direct = this._targetFromPlan(plan);
+    if (direct) out.push(direct);
+    for (const row of Array.isArray(plan && plan.blockedCandidates) ? plan.blockedCandidates : []) {
+      const target = row && row.candidate;
+      const identity = targetIdentity(target);
+      if (!identity || out.some((x) => x.identity === identity)) continue;
+      out.push({
+        output: clean(target.output || target.item),
+        recipient: clean(target.recipient),
+        slot: clean(target.slot),
+        identity
+      });
+    }
+    return out;
+  }
+
+  ensureForPlan(plan, phase = 'PLANNED', details = {}) {
+    const target = this._targetFromPlan(plan);
+    if (!target) return false;
+    if (!this.active || this.active.targetIdentity !== target.identity || TERMINAL_PHASES.has(String(this.active.phase || ''))) {
+      if (this.active && !TERMINAL_PHASES.has(String(this.active.phase || ''))) {
+        this._archive('ABORTED', 'TARGET_SUPERSEDED_BY_REPLAN');
+      }
+      const now = this.now();
+      this.active = {
+        schemaVersion: 2,
+        id: `production-intent:${target.identity}:${now.toString(36)}`,
+        targetIdentity: target.identity,
+        target: target,
+        phase: String(phase || 'PLANNED'),
+        reason: clean(details.reason) || 'PRODUCTION_PLAN_SELECTED',
+        createdAt: now,
+        updatedAt: now,
+        recoveryPending: false,
+        planId: clean(plan && plan.id),
+        planState: clean(plan && plan.state),
+        progress: clone(details.progress || null),
+        material: clone(details.material || null),
+        lastExecution: clone(details.lastExecution || null)
+      };
+      this.stats.started += 1;
+      return this._persist();
+    }
+    return this.update(phase, { ...details, plan });
+  }
+
+  update(phase, details = {}) {
+    if (!this.active) return false;
+    this.active.phase = String(phase || this.active.phase || 'PLANNED');
+    this.active.reason = clean(details.reason) || this.active.reason || null;
+    this.active.updatedAt = this.now();
+    if (details.plan) {
+      this.active.planId = clean(details.plan.id);
+      this.active.planState = clean(details.plan.state);
+    }
+    if (Object.prototype.hasOwnProperty.call(details, 'progress') && details.progress !== undefined) this.active.progress = clone(details.progress);
+    if (Object.prototype.hasOwnProperty.call(details, 'material') && details.material !== undefined) this.active.material = clone(details.material);
+    if (Object.prototype.hasOwnProperty.call(details, 'lastExecution') && details.lastExecution !== undefined) this.active.lastExecution = clone(details.lastExecution);
+    if (details.recoveryPending != null) this.active.recoveryPending = details.recoveryPending === true;
+    this.stats.updated += 1;
+    return this._persist();
+  }
+
+  reconcile(plan) {
+    if (!this.active || this.active.recoveryPending !== true) {
+      return { reconciled: false, reason: 'NO_PERSISTED_PRODUCTION_INTENT_RECOVERY' };
+    }
+    const candidates = this._candidateTargets(plan);
+    const match = candidates.find((row) => row.identity === this.active.targetIdentity) || null;
+    if (match) {
+      this.active.recoveryPending = false;
+      this.active.recoveryReason = null;
+      this.active.planId = clean(plan && plan.id);
+      this.active.planState = clean(plan && plan.state);
+      this.active.updatedAt = this.now();
+      this.lastRecovery = {
+        at: this.now(),
+        reconciled: true,
+        continued: true,
+        reason: 'PERSISTED_INTENT_MATCHED_FRESH_REPLAN',
+        targetIdentity: this.active.targetIdentity
+      };
+      this.stats.recovered += 1;
+      this._persist();
+      return clone(this.lastRecovery);
+    }
+
+    const previous = clone(this.active);
+    this._archive('FAILED_SAFE', 'PERSISTED_INTENT_NOT_PRESENT_IN_FRESH_REPLAN');
+    this.lastRecovery = {
+      at: this.now(),
+      reconciled: true,
+      continued: false,
+      reason: 'PERSISTED_INTENT_NOT_PRESENT_IN_FRESH_REPLAN',
+      targetIdentity: previous && previous.targetIdentity || null
+    };
+    this.stats.recoveryFailedSafe += 1;
+    this._persist();
+    return clone(this.lastRecovery);
+  }
+
+  _archive(phase, reason) {
+    if (!this.active) return false;
+    const row = {
+      ...clone(this.active),
+      phase: String(phase || 'ABORTED'),
+      reason: String(reason || 'PRODUCTION_INTENT_ARCHIVED'),
+      updatedAt: this.now(),
+      completedAt: this.now(),
+      recoveryPending: false
+    };
+    this.history.push(row);
+    this.history = this.history.slice(-32);
+    if (row.phase === 'COMPLETED') this.stats.completed += 1;
+    else if (row.phase === 'ABORTED') this.stats.aborted += 1;
+    this.active = null;
+    return true;
+  }
+
+  complete(reason = 'PRODUCTION_TARGET_COMPLETED') {
+    if (!this.active) return false;
+    this._archive('COMPLETED', reason);
+    return this._persist();
+  }
+
+  abort(reason = 'PRODUCTION_TARGET_ABORTED') {
+    if (!this.active) return false;
+    this._archive('ABORTED', reason);
+    return this._persist();
+  }
+
+  status() {
+    return {
+      schemaVersion: 2,
+      mode: PERSISTENT_PRODUCTION_INTENT_MODE,
+      active: clone(this.active),
+      recoveryPending: !!(this.active && this.active.recoveryPending),
+      lastRecovery: clone(this.lastRecovery),
+      history: this.history.slice(-16).map(clone),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = {
+  PersistentProductionIntent,
+  PERSISTENT_PRODUCTION_INTENT_MODE,
+  targetIdentity
+};
 
 },
 "src/party/production-material-acquisition.js": function(require,module,exports){
@@ -56197,11 +56606,36 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
     const alreadyOnFarmers = partyHeldQuantity(runtime, step.name, step.level);
     const remainingToFarm = Math.max(0, step.quantity - alreadyOnFarmers);
     if (remainingToFarm <= 0) {
-      materials.push({ ...clone(step), alreadyOnFarmers, remainingToFarm: 0, source: null, awaitingTransfer: true });
+      materials.push({
+        ...clone(step),
+        alreadyOnFarmers,
+        remainingToFarm: 0,
+        source: null,
+        awaitingTransfer: true,
+        handoffMaterial: step.name,
+        handoffLevel: step.level,
+        handoffQuantity: step.quantity,
+        heldByFarmers: alreadyOnFarmers
+      });
       continue;
     }
     const source = bestMaterialFarmSource(runtime, step.name, remainingToFarm, options);
     if (!source) return { eligible: false, reason: 'NO_SAFE_DIRECT_FARM_SOURCE', material: { ...clone(step), alreadyOnFarmers, remainingToFarm } };
+    if (source.kind === 'EXCHANGE_MATERIAL_DROP' && finite(source.farmQuantity, 0) <= 0 && finite(source.alreadyOnFarmers, 0) > 0) {
+      const handoffQuantity = Math.max(1, Math.floor(finite(source.quantity, 1) - finite(source.alreadyOnMerchantOrBank, 0)));
+      materials.push({
+        ...clone(step),
+        alreadyOnFarmers,
+        remainingToFarm,
+        source,
+        awaitingTransfer: true,
+        handoffMaterial: source.material,
+        handoffLevel: 0,
+        handoffQuantity,
+        heldByFarmers: finite(source.alreadyOnFarmers, 0)
+      });
+      continue;
+    }
     materials.push({ ...clone(step), alreadyOnFarmers, remainingToFarm, source });
   }
 
@@ -56257,8 +56691,11 @@ function chooseProductionTeamFarmObjective(runtime, blockedCandidates = [], opti
     evaluated: evaluated.map((row) => ({
       output: row.candidate && row.candidate.candidate && row.candidate.candidate.output || null,
       recipient: row.candidate && row.candidate.candidate && row.candidate.candidate.recipient || null,
+      slot: row.candidate && row.candidate.candidate && row.candidate.candidate.slot || null,
+      target: clone(row.candidate && row.candidate.candidate || null),
       eligible: row.estimate && row.estimate.eligible === true,
       reason: row.estimate && row.estimate.reason || 'UNKNOWN',
+      materials: clone(row.estimate && row.estimate.materials || []),
       totalExpectedHours: row.estimate && Number.isFinite(row.estimate.totalExpectedHours) ? row.estimate.totalExpectedHours : null,
       maxTeamFarmHours: row.estimate && row.estimate.maxTeamFarmHours || Math.max(0.25, finite(options.maxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS)),
       longPath: row.estimate && row.estimate.longPath === true,
