@@ -167,7 +167,7 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
                     0,
                     0,
                     null,
-                    Begrenze(liveFehler.Message));
+                    LiveImportFehlercode(liveFehler));
             }
 
             var quellen = await LadeQuellenregisterAsync(cancellationToken);
