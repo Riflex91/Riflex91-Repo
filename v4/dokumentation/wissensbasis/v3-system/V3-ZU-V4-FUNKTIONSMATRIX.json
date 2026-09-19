@@ -1,0 +1,789 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "status": "SEMANTIC_CAPABILITY_MATRIX_V1",
+  "rawSymbolMatrix": "V3-ZU-V4-FUNKTIONSMATRIX-ROH.json",
+  "rows": [
+    {
+      "id": "CAP-001",
+      "domain": "Core",
+      "capability": "GameAdapter / Game-Write-Grenze",
+      "src": [
+        "v3/src/game/adapter.js",
+        "v3/scripts/game-command-boundary-guard.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/ausfuehrung",
+      "contracts": [
+        "ExecutionPort",
+        "OutcomeVerifier"
+      ],
+      "risk": "direkte Raw Writes; API-Drift",
+      "phase": "8.7"
+    },
+    {
+      "id": "CAP-002",
+      "domain": "Core",
+      "capability": "Action Outcome Verification",
+      "src": [
+        "v3/src/economy/controlled-merchant-executor.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/ausfuehrung/verifikation",
+      "contracts": [
+        "ActionLifecycle",
+        "ObservationEvidence"
+      ],
+      "risk": "Return/Promise wird mit Commit verwechselt",
+      "phase": "8.7"
+    },
+    {
+      "id": "CAP-003",
+      "domain": "Core",
+      "capability": "Scheduler / Tasks",
+      "src": [
+        "v3/src/core/task.js",
+        "v3/src/core/scheduler.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/workflows",
+      "contracts": [
+        "Workflow",
+        "PriorityClass",
+        "ResourceClaim"
+      ],
+      "risk": "Starvation; nur numerische Priority",
+      "phase": "8.7"
+    },
+    {
+      "id": "CAP-004",
+      "domain": "Core",
+      "capability": "Patch Registry",
+      "src": [
+        "v3/src/core/patch-registry.js"
+      ],
+      "class": "NUR_TEST_UND_WISSENSQUELLE",
+      "target": "v4/guards",
+      "contracts": [
+        "ModuleRegistry"
+      ],
+      "risk": "Patch-Reihenfolge und Ownership",
+      "phase": "8.7"
+    },
+    {
+      "id": "CAP-005",
+      "domain": "Composition",
+      "capability": "Runtime Composition",
+      "src": [
+        "v3/src/composition/runtime-composition.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/composition",
+      "contracts": [
+        "ModuleDescriptor",
+        "CapabilityRegistry"
+      ],
+      "risk": "implizite Alpha-Abhängigkeiten",
+      "phase": "8.7"
+    },
+    {
+      "id": "CAP-006",
+      "domain": "Composition",
+      "capability": "Alpha-Runtime-Vererbung",
+      "src": [
+        "v3/src/autonomy/alpha12-runtime.js",
+        "v3/src/autonomy/alpha18-runtime.js",
+        "v3/src/autonomy/alpha20-runtime.js"
+      ],
+      "class": "NICHT_UEBERNEHMEN",
+      "target": "-",
+      "contracts": [],
+      "risk": "Hotfix-Kaskaden; mehrere Ownership-Schichten",
+      "phase": "8.7"
+    },
+    {
+      "id": "CAP-007",
+      "domain": "Recovery",
+      "capability": "Global Supervisor",
+      "src": [
+        "v3/src/stability/global-supervisor.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/recovery/supervisor",
+      "contracts": [
+        "HealthPort",
+        "RecoveryPolicy"
+      ],
+      "risk": "Recovery darf Safety nicht lockern",
+      "phase": "8.7"
+    },
+    {
+      "id": "CAP-008",
+      "domain": "Recovery",
+      "capability": "Runtime Watchdog",
+      "src": [
+        "v3/src/ops/runtime-watchdog.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/recovery/watchdog",
+      "contracts": [
+        "FreshnessEvidence",
+        "ProgressEvidence"
+      ],
+      "risk": "False No-Progress bei legitimer Wartezeit",
+      "phase": "8.7"
+    },
+    {
+      "id": "CAP-009",
+      "domain": "Persistence",
+      "capability": "World/Resilient Persistence",
+      "src": [
+        "v3/src/world/persistence.js",
+        "v3/src/world/resilient-persistence.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/persistenz",
+      "contracts": [
+        "PersistencePort",
+        "Migration"
+      ],
+      "risk": "Quota, corrupt state, retry storm",
+      "phase": "8.7"
+    },
+    {
+      "id": "CAP-010",
+      "domain": "World",
+      "capability": "Content Drift / Knowledge Aging",
+      "src": [
+        "v3/src/world/content-drift.js",
+        "v3/src/world/knowledge-aging.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/world/content-safety",
+      "contracts": [
+        "ContentEvidence",
+        "Revalidation"
+      ],
+      "risk": "Unknown→Allowed",
+      "phase": "8.7"
+    },
+    {
+      "id": "CAP-011",
+      "domain": "Farmer",
+      "capability": "Farmer FSM",
+      "src": [
+        "v3/src/farmer/farmer-fsm.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/farmer/workflow",
+      "contracts": [
+        "Workflow",
+        "CombatPort",
+        "MovementPort"
+      ],
+      "risk": "BLOCKED loops; alte Scheduler-Kopplung",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-012",
+      "domain": "Combat",
+      "capability": "Target Safety / Combat Risk / Emergency",
+      "src": [
+        "v3/src/farmer/target-safety.js",
+        "v3/src/farmer/combat-risk.js",
+        "v3/src/farmer/combat-emergency.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/combat/safety",
+      "contracts": [
+        "ContentSafetyPort",
+        "RiskPolicy"
+      ],
+      "risk": "Liveness vor Safety",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-013",
+      "domain": "Combat",
+      "capability": "Kiting / Movement in Combat",
+      "src": [
+        "v3/src/farmer/basic-kiting.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/combat/kiting",
+      "contracts": [
+        "MovementPort",
+        "TargetOwnership"
+      ],
+      "risk": "Movement-/Combat-Owner konkurrieren",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-014",
+      "domain": "Combat",
+      "capability": "Skills / Capability Truth / Failure Intelligence",
+      "src": [
+        "v3/src/farmer/skill-farmer.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/combat/skills",
+      "contracts": [
+        "SkillCapability",
+        "CooldownEvidence"
+      ],
+      "risk": "stale capability; retry spam",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-015",
+      "domain": "Combat",
+      "capability": "Adaptive Pull / Smart AoE",
+      "src": [
+        "v3/src/autonomy/adaptive-pull-learning.js",
+        "v3/src/autonomy/smart-aoe-planner.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/combat/aoe",
+      "contracts": [
+        "RiskPolicy",
+        "LearningRecommendation"
+      ],
+      "risk": "Learning überschreibt Hard Caps",
+      "phase": "später"
+    },
+    {
+      "id": "CAP-016",
+      "domain": "Combat",
+      "capability": "Encounter Lifecycle / Learning Dedupe",
+      "src": [
+        "v3/src/autonomy/encounter-lifecycle.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/combat/encounters",
+      "contracts": [
+        "EncounterId",
+        "PersistentCursor"
+      ],
+      "risk": "doppelte Outcomes nach Restart",
+      "phase": "später"
+    },
+    {
+      "id": "CAP-017",
+      "domain": "Party",
+      "capability": "Registry / Dynamic Roster / Variable Topology",
+      "src": [
+        "v3/src/party/party-registry.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/party/group-truth",
+      "contracts": [
+        "RosterEpoch",
+        "CharacterIdentity"
+      ],
+      "risk": "stale Party-Identität",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-018",
+      "domain": "Party",
+      "capability": "Control Lease / Lifecycle",
+      "src": [
+        "v3/src/party/control-lease.js",
+        "v3/src/party/controlled-lifecycle-coordinator-base.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/party/lifecycle",
+      "contracts": [
+        "Workflow",
+        "ResourceLock"
+      ],
+      "risk": "Lease-Ablauf mitten in Transition",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-019",
+      "domain": "Party",
+      "capability": "Cohesion / Focus Fire",
+      "src": [
+        "v3/src/party/team-combat-cohesion-hotfix-base.js",
+        "v3/src/party/party-focus-fire-hotfix.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/party/combat-coordination",
+      "contracts": [
+        "TargetOwnership",
+        "Freshness"
+      ],
+      "risk": "raw target; formation deadlock",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-020",
+      "domain": "Party",
+      "capability": "Account Communication / CM",
+      "src": [
+        "v3/src/party/party-account-communication.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/party/communication",
+      "contracts": [
+        "MessageEnvelope",
+        "Dedupe",
+        "AckNack"
+      ],
+      "risk": "handler displacement; duplicate messages",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-021",
+      "domain": "Party",
+      "capability": "Controlled Party Logistics",
+      "src": [
+        "v3/src/party/controlled-party-logistics.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/party/logistics",
+      "contracts": [
+        "DeliveryWorkflow",
+        "Settlement"
+      ],
+      "risk": "pending offer deadlock; partial transfer",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-022",
+      "domain": "Party",
+      "capability": "Production Material Handoff",
+      "src": [
+        "v3/src/party/production-material-acquisition.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/production/material-handoff",
+      "contracts": [
+        "ProductionIntent",
+        "PartyObjective"
+      ],
+      "risk": "Farmer farmt nach READY weiter",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-023",
+      "domain": "Travel",
+      "capability": "Safe / Controlled Travel",
+      "src": [
+        "v3/src/travel/safe-travel.js",
+        "v3/src/travel/controlled-travel-executor.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/travel",
+      "contracts": [
+        "TravelWorkflow",
+        "ArrivalVerifier"
+      ],
+      "risk": "smart_move return != arrival",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-024",
+      "domain": "Merchant",
+      "capability": "Inventory Ledger",
+      "src": [
+        "v3/src/economy/inventory-ledger.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/merchant/inventory-ledger",
+      "contracts": [
+        "ItemHandle",
+        "Disposition",
+        "Reservation"
+      ],
+      "risk": "mehrere Module definieren Item-Bedeutung",
+      "phase": "9"
+    },
+    {
+      "id": "CAP-025",
+      "domain": "Merchant",
+      "capability": "Transaction Engine",
+      "src": [
+        "v3/src/economy/transaction-engine.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/merchant/transaction-journal",
+      "contracts": [
+        "Transaction",
+        "Idempotency",
+        "Reconcile"
+      ],
+      "risk": "blind retry; uncertain side effect",
+      "phase": "9"
+    },
+    {
+      "id": "CAP-026",
+      "domain": "Merchant",
+      "capability": "Controlled Merchant Executor",
+      "src": [
+        "v3/src/economy/controlled-merchant-executor.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/ausfuehrung/merchant",
+      "contracts": [
+        "MerchantExecutionPort",
+        "OutcomeVerifier"
+      ],
+      "risk": "destructive writes bei stale ledger",
+      "phase": "9"
+    },
+    {
+      "id": "CAP-027",
+      "domain": "Merchant",
+      "capability": "Merchant Task Coordinator",
+      "src": [
+        "v3/src/merchant/merchant-task-coordinator.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/merchant/scheduler",
+      "contracts": [
+        "Workflow",
+        "PriorityClass",
+        "SafePreemption"
+      ],
+      "risk": "non-preemptive starvation",
+      "phase": "8.7"
+    },
+    {
+      "id": "CAP-028",
+      "domain": "Merchant",
+      "capability": "Merchant Service Planner/Executor",
+      "src": [
+        "v3/src/merchant/merchant-service-planner.js",
+        "v3/src/merchant/controlled-merchant-service-executor.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/merchant/workflows/supply",
+      "contracts": [
+        "Demand",
+        "FreshnessPolicy",
+        "DeliveryWorkflow"
+      ],
+      "risk": "stale target; duplicate/partial delivery",
+      "phase": "9"
+    },
+    {
+      "id": "CAP-029",
+      "domain": "Merchant",
+      "capability": "Potion / Supply Policy",
+      "src": [
+        "v3/src/reliability/p0-potion-policy-4500.js",
+        "v3/src/reliability/p0-regroup-supply-recovery.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/merchant/policies/supply",
+      "contracts": [
+        "SupplyPolicy"
+      ],
+      "risk": "micro-restock loop; dual owner",
+      "phase": "9"
+    },
+    {
+      "id": "CAP-030",
+      "domain": "Merchant",
+      "capability": "Bank Capacity / Expansion",
+      "src": [
+        "v3/src/economy/bank-capacity-manager.js",
+        "v3/src/economy/bank-expansion-transactions.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/merchant/workflows/bank-capacity",
+      "contracts": [
+        "BankWorkflow",
+        "WorkspaceResource"
+      ],
+      "risk": "kein Workspace; Budgetdrift",
+      "phase": "9"
+    },
+    {
+      "id": "CAP-031",
+      "domain": "Merchant",
+      "capability": "Bank Consolidation / Space Recovery",
+      "src": [
+        "v3/src/economy/controlled-merchant-space-recovery.js",
+        "v3/src/economy/merchant-space-recovery-journal.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/merchant/workflows/space-recovery",
+      "contracts": [
+        "TransactionJournal",
+        "InventorySpace"
+      ],
+      "risk": "partial mutation; unsafe emergency sell",
+      "phase": "9"
+    },
+    {
+      "id": "CAP-032",
+      "domain": "Merchant",
+      "capability": "Sell Safety / Economic Evaluation",
+      "src": [
+        "v3/src/economy/item-economic-evaluator.js",
+        "v3/src/economy/sell-safety.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/merchant/policies/item-disposition",
+      "contracts": [
+        "Disposition",
+        "OperatorPolicy"
+      ],
+      "risk": "Progression-/High-Value-Verlust",
+      "phase": "9"
+    },
+    {
+      "id": "CAP-033",
+      "domain": "Merchant",
+      "capability": "Gear Progression / Self Gear",
+      "src": [
+        "v3/src/economy/gear-progression.js",
+        "v3/src/reliability/merchant-self-gear.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/merchant/workflows/gear",
+      "contracts": [
+        "GearGoal",
+        "ItemReservation"
+      ],
+      "risk": "Duplicate Candidate; Lease pinning",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-034",
+      "domain": "Merchant",
+      "capability": "Upgrade / Compound",
+      "src": [
+        "v3/src/reliability/economy-equipment-autonomy-v2.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/merchant/workflows/item-mutation",
+      "contracts": [
+        "MutationWorkflow",
+        "WorkspaceResource"
+      ],
+      "risk": "Itemverlust; falsche Mutation; partial outcome",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-035",
+      "domain": "Production",
+      "capability": "Production Planner",
+      "src": [
+        "v3/src/merchant/merchant-production-planner.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/production/planner",
+      "contracts": [
+        "ProductionPlan",
+        "AcquisitionGraph"
+      ],
+      "risk": "Recipe cycle; stale Event source",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-036",
+      "domain": "Production",
+      "capability": "Production Controller / Persistent Intent",
+      "src": [
+        "v3/src/merchant/merchant-production-controller.js",
+        "v3/src/merchant/persistent-production-intent.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/production/workflow",
+      "contracts": [
+        "ProductionIntent",
+        "RecipientSettlement"
+      ],
+      "risk": "Craft wird zu früh als Completion gewertet",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-037",
+      "domain": "Production",
+      "capability": "Persistent Bank Catalog",
+      "src": [
+        "v3/src/merchant/persistent-bank-catalog.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/merchant/knowledge/bank-catalog",
+      "contracts": [
+        "PlanningEvidence"
+      ],
+      "risk": "stale Knowledge wird Execution Authority",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-038",
+      "domain": "Merchant",
+      "capability": "Collection / Delivery / Rendezvous",
+      "src": [
+        "v3/src/party/controlled-party-logistics.js",
+        "v3/src/reliability/alpha33-mark-orbit-merchant-delivery.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/merchant/workflows/delivery",
+      "contracts": [
+        "DeliveryWorkflow",
+        "FreshnessPolicy"
+      ],
+      "risk": "stale target; source mismatch",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-039",
+      "domain": "Merchant",
+      "capability": "MLuck Service",
+      "src": [
+        "v3/src/merchant/mluck-service.js",
+        "v3/src/merchant/mluck-policy.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/merchant/workflows/mluck",
+      "contracts": [
+        "ServiceDemand",
+        "SkillCapability"
+      ],
+      "risk": "Service verdrängt kritischere Arbeit",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-040",
+      "domain": "Economy",
+      "capability": "Market History / Economy Planning",
+      "src": [
+        "v3/src/reliability/market-history.js",
+        "v3/src/reliability/economy-planning.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/economy/market",
+      "contracts": [
+        "MarketEvidence",
+        "PriceFreshness"
+      ],
+      "risk": "stale Price Evidence",
+      "phase": "später"
+    },
+    {
+      "id": "CAP-041",
+      "domain": "Learning",
+      "capability": "Strategic Brain / Shadow Learning",
+      "src": [
+        "v3/src/brain/strategic-brain-v2.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/learning",
+      "contracts": [
+        "RecommendationPort",
+        "LearningEvidence"
+      ],
+      "risk": "learned authority creep",
+      "phase": "später"
+    },
+    {
+      "id": "CAP-042",
+      "domain": "Host",
+      "capability": "Headless / Narrow Bridge / Watchdog / Alerts / Certification",
+      "src": [
+        "v3/HEADLESS_CONTRACT.md",
+        "v3/HOST_RUNTIME_CONTRACT.md",
+        "v3/host/**"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/host",
+      "contracts": [
+        "HostObservationPort",
+        "RestartBudget",
+        "AlertSpool",
+        "CertificationEvidence"
+      ],
+      "risk": "generic remote control; restart loop; secret leakage",
+      "phase": "host"
+    },
+    {
+      "id": "CAP-043",
+      "domain": "Ops",
+      "capability": "Safe Auto Updater",
+      "src": [
+        "v3/src/ops/safe-auto-updater.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/ops/update-workflow",
+      "contracts": [
+        "Quiesce",
+        "ReleaseEvidence"
+      ],
+      "risk": "Reload während Gefahr; false handshake",
+      "phase": "später"
+    },
+    {
+      "id": "CAP-044",
+      "domain": "Control",
+      "capability": "Cloud Control / Free-tier Budget",
+      "src": [
+        "v3/src/control/cloud-control-plane.js",
+        "v3/src/control/cloud-free-tier-budget.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/control/cloud",
+      "contracts": [
+        "RemoteConfigEvidence",
+        "RequestBudget"
+      ],
+      "risk": "remote config bypass; quota storm",
+      "phase": "später"
+    },
+    {
+      "id": "CAP-045",
+      "domain": "Certification",
+      "capability": "Production Graph Certification",
+      "src": [
+        "v3/PRODUCTION_GRAPH_CERTIFICATION.md"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/production/certification",
+      "contracts": [
+        "CoverageAudit",
+        "SoakEvidence"
+      ],
+      "risk": "synthetic evidence mit Live-Beweis verwechselt",
+      "phase": "9+"
+    },
+    {
+      "id": "CAP-046",
+      "domain": "Guards",
+      "capability": "Dependency / Runtime / Legacy Guards",
+      "src": [
+        "v3/.dependency-cruiser.cjs",
+        "v3/scripts/runtime-composition-guard.js",
+        "v3/scripts/legacy-reliability-layer-guard.js"
+      ],
+      "class": "KONZEPT_UEBERNEHMEN_NEU_BAUEN",
+      "target": "v4/guards",
+      "contracts": [
+        "ArchitectureRuleSet"
+      ],
+      "risk": "Cycles; Cross-Owner-Imports; Altpfade",
+      "phase": "8.7"
+    },
+    {
+      "id": "CAP-047",
+      "domain": "Build",
+      "capability": "Dist Bundles",
+      "src": [
+        "v3/dist/aio-v3-runtime.js",
+        "v3/dist/aio-v3.js"
+      ],
+      "class": "NICHT_UEBERNEHMEN",
+      "target": "v4/build",
+      "contracts": [
+        "BuildArtifact"
+      ],
+      "risk": "generated Code als Wissensquelle missverstanden",
+      "phase": "build"
+    }
+  ]
+}
