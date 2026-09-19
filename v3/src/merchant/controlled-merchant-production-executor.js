@@ -100,10 +100,16 @@ class ControlledMerchantProductionExecutor {
     }
     if (kind === ProductionStepKind.CRAFT) {
       if (!this.allowCraft) return { ok: false, reason: 'CRAFT_AUTHORITY_DISABLED' };
-      const api = this._api('auto_craft'), recipe = recipeFor(this._gameData(), name); if (!api) return { ok: false, reason: 'AUTO_CRAFT_API_UNAVAILABLE' }; if (!recipe) return { ok: false, reason: 'CRAFT_RECIPE_UNAVAILABLE' };
+      const recipe = recipeFor(this._gameData(), name);
+      if (!recipe) return { ok: false, reason: 'CRAFT_RECIPE_UNAVAILABLE' };
+      const anniversaryQuest = String(recipe.quest || '') === 'anniversary_baker';
+      const eventState = this.root && (this.root.S || this.root.parent && this.root.parent.S) || {};
+      if (anniversaryQuest && !(eventState.anniversary && eventState.anniversary.active)) return { ok: false, reason: 'ANNIVERSARY_WORKSHOP_CLOSED' };
+      const api = anniversaryQuest ? this._api('anniversary_craft') : this._api('auto_craft');
+      if (!api) return { ok: false, reason: anniversaryQuest ? 'ANNIVERSARY_CRAFT_API_UNAVAILABLE' : 'AUTO_CRAFT_API_UNAVAILABLE' };
       for (const req of recipe.items) if (itemQuantity(this._inventory(), req.name, req.level) < req.quantity) return { ok: false, reason: 'CRAFT_MATERIALS_MISSING' };
       if (n(c.gold, 0) - recipe.cost < this.goldReserve) return { ok: false, reason: 'GOLD_RESERVE_WOULD_BE_BREACHED' };
-      return { ok: true, api, name, level: 0, recipe };
+      return { ok: true, api, name, level: 0, recipe, craftMode: anniversaryQuest ? 'ANNIVERSARY_CRAFT' : 'AUTO_CRAFT' };
     }
     if (kind === ProductionStepKind.EXCHANGE) {
       if (!this.allowExchange) return { ok: false, reason: 'EXCHANGE_AUTHORITY_DISABLED' };
@@ -150,7 +156,15 @@ class ControlledMerchantProductionExecutor {
         const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, check.level) <= beforeInv - check.quantity);
         return this._finish(step, ok, ok ? 'EXCHANGE_INPUT_DELTA_VERIFIED' : 'EXCHANGE_INPUT_DELTA_VERIFICATION_FAILED', { consumedQuantity: check.quantity, reward: response && response.reward || null });
       }
-      const out = Math.max(1, Math.floor(n(check.recipe.outputQuantity, 1))); if (!this._start(plan, step, { action: 'auto_craft', expectedInventory: beforeInv + out })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' }; this._transition('EXECUTING', 'AUTO_CRAFT_STARTING'); this.stats.crafts += 1; await this._timeout(check.api[0].call(check.api[1], check.name), 'AUTO_CRAFT'); this._transition('VERIFYING', 'AUTO_CRAFT_RETURNED'); const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, 0) >= beforeInv + out); return this._finish(step, ok, ok ? 'CRAFT_OUTPUT_VERIFIED' : 'CRAFT_OUTPUT_VERIFICATION_FAILED', { outputQuantity: out });
+      const out = Math.max(1, Math.floor(n(check.recipe.outputQuantity, 1)));
+      const craftAction = check.craftMode === 'ANNIVERSARY_CRAFT' ? 'anniversary_craft' : 'auto_craft';
+      if (!this._start(plan, step, { action: craftAction, expectedInventory: beforeInv + out })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
+      this._transition('EXECUTING', check.craftMode === 'ANNIVERSARY_CRAFT' ? 'ANNIVERSARY_CRAFT_STARTING' : 'AUTO_CRAFT_STARTING');
+      this.stats.crafts += 1;
+      await this._timeout(check.api[0].call(check.api[1], check.name), check.craftMode === 'ANNIVERSARY_CRAFT' ? 'ANNIVERSARY_CRAFT' : 'AUTO_CRAFT');
+      this._transition('VERIFYING', check.craftMode === 'ANNIVERSARY_CRAFT' ? 'ANNIVERSARY_CRAFT_RETURNED' : 'AUTO_CRAFT_RETURNED');
+      const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, 0) >= beforeInv + out);
+      return this._finish(step, ok, ok ? 'CRAFT_OUTPUT_VERIFIED' : 'CRAFT_OUTPUT_DELTA_VERIFICATION_FAILED', { outputQuantity: out, craftMode: check.craftMode });
     } catch (error) { return this._finish(step, false, String(error && error.message || error || 'PRODUCTION_ACTION_FAILED')); }
     finally { this.busy = false; }
   }
@@ -158,7 +172,7 @@ class ControlledMerchantProductionExecutor {
   reconcile() {
     const op = this.activeOperation; if (!op || TERMINAL.has(op.state)) return { reconciled: false, reason: 'NO_RECOVERING_PRODUCTION_OPERATION' }; if (op.state !== 'RECOVERING') return { reconciled: false, reason: 'PRODUCTION_OPERATION_NOT_RECOVERING' };
     const inv = itemQuantity(this._inventory(), op.item, op.level), bank = this._bankQty(op.item, op.level); let ok = false;
-    if (op.action === 'buy' || op.action === 'auto_craft') ok = inv >= n(op.expectedInventory, Infinity); else if (op.action === 'exchange') ok = inv <= n(op.expectedInventoryMax, -1); else if (op.action === 'bank_retrieve') ok = inv >= n(op.expectedInventory, Infinity) && bank <= n(op.expectedBank, -1); else if (op.action === 'bank_store') ok = inv <= n(op.expectedInventory, -1) && bank >= n(op.expectedBank, Infinity);
+    if (op.action === 'buy' || op.action === 'auto_craft' || op.action === 'anniversary_craft') ok = inv >= n(op.expectedInventory, Infinity); else if (op.action === 'exchange') ok = inv <= n(op.expectedInventoryMax, -1); else if (op.action === 'bank_retrieve') ok = inv >= n(op.expectedInventory, Infinity) && bank <= n(op.expectedBank, -1); else if (op.action === 'bank_store') ok = inv <= n(op.expectedInventory, -1) && bank >= n(op.expectedBank, Infinity);
     this._transition(ok ? 'COMMITTED' : 'FAILED_SAFE', ok ? 'RESTART_RECONCILIATION_VERIFIED' : 'RESTART_OUTCOME_UNCERTAIN_NO_RETRY'); if (ok) { this.stats.recovered += 1; this.stats.committed += 1; } else this.stats.failedSafe += 1; return { reconciled: true, committed: ok, reason: this.activeOperation.reason };
   }
 
