@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "v5-exchange-craft.schema.json",
+  "title": "V5 Adventure Land Exchange/Craft/Outputspace Contract",
+  "type": "object",
+  "required": [
+    "schemaVersion","researchId","status","sourceSnapshot",
+    "inventoryInsertion","exchange","exchangeBuy","craft","dismantle",
+    "v5Policy","invariants"
+  ],
+  "properties": {
+    "schemaVersion":{"const":1},
+    "researchId":{"const":"V5-P0-06"},
+    "status":{"const":"DONE"},
+    "sourceSnapshot":{"type":"object"},
+    "inventoryInsertion":{"type":"object"},
+    "exchange":{"type":"object"},
+    "exchangeBuy":{"type":"object"},
+    "craft":{"type":"object"},
+    "dismantle":{"type":"object"},
+    "v5Policy":{"type":"object"},
+    "invariants":{"type":"array","minItems":12,"items":{"type":"string"}}
+  }
+}
