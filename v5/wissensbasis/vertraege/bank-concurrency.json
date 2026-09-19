@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "researchId": "V5-P0-03",
+  "status": "DONE",
+  "sourceSnapshot": {
+    "officialRepo": "kaansoral/adventureland_mongodb",
+    "commit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "files": [
+      "node/server.js",
+      "js/runner_functions.js"
+    ],
+    "verifiedAt": "2026-09-19"
+  },
+  "serverModel": {
+    "concurrencyScope": "ACCOUNT_GLOBAL_SINGLE_BANK_MOUNT",
+    "mountOwnership": {
+      "persistedFields": [
+        "owner.server",
+        "owner.mounted_to"
+      ],
+      "mountRule": "Bank mount succeeds only when owner.server is empty or already points to the same server and owner.mounted_to is the same character.",
+      "conflictResult": "already_in_bank -> client-visible bank_opx with mounted character name when available",
+      "crossServerExclusive": true
+    },
+    "mountedState": {
+      "source": "owner.info",
+      "characterCopy": "player.user",
+      "fields": [
+        "gold",
+        "rewards",
+        "unlocked",
+        "items*"
+      ],
+      "meaning": "The mounted character receives an in-memory account-bank snapshot and mutates that mounted state while in bank."
+    },
+    "persistence": {
+      "writeBackPoints": [
+        "sync_call",
+        "unmount_call",
+        "stop_call"
+      ],
+      "ownershipGuard": "owner.server == server_id && owner.mounted_to == current character",
+      "gracefulUnmount": "unmount_call clears owner.server and owner.mounted_to, persists player.user bank state, then transports the character out on success."
+    },
+    "bankOperations": {
+      "clientDeferredChannel": "bank",
+      "perCharacterChannel": true,
+      "operations": [
+        "deposit",
+        "withdraw",
+        "swap/store/retrieve",
+        "move",
+        "unlock"
+      ],
+      "normalMutationModel": "Mutates the currently mounted player.user plus the mounted character state in the server process.",
+      "shellsUnlock": "Uses a backend transaction and per-player unlocking_<pack> guard; acknowledgement may be in_progress before terminal game_response."
+    },
+    "conclusion": "Adventure Land itself serializes bank mounting per account. Concurrent own-character bank sessions are not a supported server state and must not be modeled as independent character-local locks."
+  },
+  "v5Policy": {
+    "authorityOwner": "ACCOUNT_COORDINATOR",
+    "resource": "account:bank",
+    "leaseScope": "ENTIRE_BANK_SESSION",
+    "acquireBefore": "Movement/transport intent that may mount the bank",
+    "releaseAfter": "All bank actions settled, expected graceful bank exit observed, character.bank cleared, and no in-flight bank transaction remains.",
+    "leaseRecord": [
+      "account_id",
+      "owner_character_id",
+      "lease_epoch",
+      "fencing_token",
+      "state",
+      "acquired_at",
+      "last_heartbeat_at",
+      "purpose",
+      "server_region",
+      "server_identifier"
+    ],
+    "leaseStates": [
+      "ACQUIRING",
+      "ACTIVE",
+      "RECOVERY_PENDING",
+      "RELEASING",
+      "RELEASED",
+      "QUARANTINED"
+    ],
+    "executionRequirements": [
+      "Every bank ActionRequest carries the active account-bank lease epoch/fencing token.",
+      "Execution rechecks the active lease immediately before the raw bank write.",
+      "The active character also claims its local FIFO action channel 'bank'.",
+      "Only the Account Coordinator can grant or transfer account-bank authority.",
+      "A Character Agent cannot self-promote to bank owner from character.bank alone."
+    ],
+    "staleAgentRule": "A stale Character Agent with an old lease epoch is denied locally even if its browser still exposes bank state.",
+    "externalFence": "Server owner.server/owner.mounted_to and bank_opx are treated as the final external bank-mount fence."
+  },
+  "failureHandling": {
+    "secondManagedCharacterAttemptsBank": {
+      "result": "LOCAL_DENY_BEFORE_MOUNT",
+      "action": "Do not let a second managed character approach/enter bank while another account-bank lease is ACTIVE, ACQUIRING, RELEASING or RECOVERY_PENDING."
+    },
+    "serverReturnsBankOpx": {
+      "result": "EXTERNAL_FENCE_CONFLICT",
+      "action": "Do not issue bank mutations. Reconcile the named mounted character. If it is unmanaged/unknown, quarantine account-bank capability until the external holder clears."
+    },
+    "holderDisconnectsOrCrashes": {
+      "result": "RECOVERY_PENDING",
+      "action": "Do not immediately transfer the lease. Reconcile holder liveness and server mount state; a later controlled mount by the selected successor may establish whether the external fence cleared."
+    },
+    "coordinatorRestart": {
+      "result": "RECONCILE_REQUIRED",
+      "action": "Reload any non-terminal bank lease as recovery-required. No bank mutation is permitted until ownership and bank state are freshly reconciled."
+    },
+    "unmountUnknown": {
+      "result": "RECOVERY_PENDING",
+      "action": "Do not release authority to another character merely because local bank UI disappeared. Require the expected successful exit/arrival evidence or later server-authoritative mount result."
+    },
+    "shellsUnlockInProgress": {
+      "result": "KEEP_LEASE_AND_CHANNEL",
+      "action": "Keep the bank lease and action-channel claim until terminal response plus fresh pack/currency reconciliation; timeout/disconnect follows P0-02 UNKNOWN semantics."
+    },
+    "staleBankSnapshot": {
+      "result": "INVALID_EVIDENCE",
+      "action": "Never plan a value-changing bank operation from a snapshot captured before the current successful mount/lease epoch."
+    }
+  },
+  "invariants": [
+    "At most one V5 Character Agent owns account:bank at a time.",
+    "Bank authority is account-scoped, not character-scoped.",
+    "The account-bank lease is acquired before bank mount and held through settlement and graceful exit.",
+    "A bank raw write requires both account:bank authority and the owner's local bank action-channel claim.",
+    "Lease epoch/fencing token is rechecked immediately before every bank raw write.",
+    "Server bank_opx/already_in_bank is an external fencing conflict, never a transient permission to bypass.",
+    "Disconnect/crash does not automatically release account-bank authority.",
+    "A new owner cannot mutate the bank until the previous mount is reconciled or the server accepts the new controlled mount.",
+    "Bank snapshots are valid only for the active successful mount/lease epoch.",
+    "Shell-based pack unlock remains in-flight until its backend terminal result and fresh postcondition are reconciled.",
+    "Manual or unmanaged account bank usage forces V5 bank capability into quarantine rather than competing for ownership.",
+    "No bank lease transfer may occur while a bank transaction is UNKNOWN, PARTIAL, STILL_PENDING or UNRESOLVED."
+  ]
+}
