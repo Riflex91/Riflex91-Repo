@@ -19,12 +19,24 @@ static void ExpectInvalid(BridgeConfig config, string expected)
     }
 }
 
+static void ExpectInvalidLiveFakt(string json, string expected)
+{
+    try
+    {
+        LiveWissensImportDienst.ValidiereLiveFaktJson(Encoding.UTF8.GetBytes(json));
+        throw new InvalidOperationException("EXPECTED_LIVE_FACT_VALIDATION_FAILURE:" + expected);
+    }
+    catch (InvalidOperationException error) when (error.Message == expected)
+    {
+    }
+}
+
 var defaults = new BridgeConfig();
 defaults.Validate();
 Assert(defaults.TelemetryEnabled == false, "TELEMETRY_MUST_DEFAULT_OFF");
 Assert(defaults.PreferredBrowser == "Brave", "BRAVE_MUST_DEFAULT");
 Assert(defaults.ConfigVersion == BridgeConfig.CurrentConfigVersion, "CONFIG_VERSION");
-Assert(BridgeConfig.CurrentConfigVersion == 6, "CONFIG_VERSION_6");
+Assert(BridgeConfig.CurrentConfigVersion == 7, "CONFIG_VERSION_7");
 Assert(defaults.TelemetryIngestUrl.StartsWith("https://", StringComparison.Ordinal), "INGEST_MUST_DEFAULT_HTTPS");
 Assert(defaults.SignalControlUrl.StartsWith("https://", StringComparison.Ordinal), "SIGNAL_CONTROL_MUST_DEFAULT_HTTPS");
 Assert(defaults.WebDashboardEnabled, "WEB_DASHBOARD_PROFILE_SYNC_DEFAULT_ON");
@@ -43,11 +55,17 @@ Assert(defaults.WissenswaechterIntervallMinuten == 60, "WISSENSWAECHTER_HOURLY")
 Assert(defaults.WissenswaechterWebSucheAktiv, "WISSENSWAECHTER_WEB_SEARCH_DEFAULT_ON");
 Assert(defaults.WissenswaechterMaxQuellenProLauf == 200, "WISSENSWAECHTER_SOURCE_LIMIT");
 Assert(defaults.WissenswaechterMaxKandidaten == 1000, "WISSENSWAECHTER_CANDIDATE_LIMIT");
+Assert(defaults.LiveWissensimportAktiv, "LIVE_WISSEN_IMPORT_DEFAULT_ON");
+Assert(defaults.LiveWissensdatenbankPfad == @"D:\AdventureLand-V5\wissensdatenbank", "LIVE_WISSEN_DEFAULT_PATH");
+Assert(defaults.LiveWissensMaxDateienProLauf == 5000, "LIVE_WISSEN_FILE_LIMIT");
+Assert(defaults.LiveWissensMaxDateiBytes == 512 * 1024, "LIVE_WISSEN_FILE_BYTES");
+Assert(defaults.LiveWissensMaxGesamtBytesProLauf == 64L * 1024 * 1024, "LIVE_WISSEN_TOTAL_BYTES");
 Assert(CdpBackblazeConfigurator.GlobalConfigName == "AIO_V3_BACKBLAZE_CONFIG", "BACKBLAZE_GLOBAL_NAME");
 Assert(CdpWebDashboardConfigurator.CloudStorageKey == "aio-v3:cloud-control:v1", "WEB_DASHBOARD_CLOUD_STORAGE_KEY");
 Assert(CdpWebDashboardConfigurator.ControlStorageKey == "aio-v3:control-plane-config:v1", "WEB_DASHBOARD_CONTROL_STORAGE_KEY");
 Assert(GitArbeitskopie.WissensbasisPfad == "v5/wissensbasis", "WISSENSWAECHTER_SCOPE_PATH");
 Assert(GitArbeitskopie.DatenbankPfad == "v5/wissensbasis/datenbank", "WISSENSWAECHTER_DATABASE_PATH");
+Assert(GitArbeitskopie.LiveWissenPfad == "v5/wissensbasis/live", "LIVE_WISSEN_GITHUB_PATH");
 Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/quellen/quellen.json"), "KNOWLEDGE_READ_ALLOWED");
 Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/fakten/adventure-land-kern.json"), "KNOWLEDGE_WRITE_ALLOWED");
 Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/datenbank/quellenstatus.json"), "DATABASE_WITHIN_SCOPE_ALLOWED");
@@ -69,6 +87,56 @@ Assert(!WebQuellenEntdecker.HatAusreichendenAdventureLandHinweis("https://de.wik
 Assert(WebQuellenEntdecker.HatAusreichendenAdventureLandHinweis("https://github.com/example/adventure-land-bot", "example/adventure-land-bot", ""), "GITHUB_ADVENTURE_LAND_PREFILTER_ALLOWED");
 Assert(!WebQuellenEntdecker.IstGueltigeWebAdresse("http://127.0.0.1:9222/internal"), "LOOPBACK_WEB_RESULT_REJECTED");
 Assert(!WebQuellenEntdecker.IstGueltigeWebAdresse("http://192.168.1.20/private"), "PRIVATE_IPV4_WEB_RESULT_REJECTED");
+
+Assert(LiveWissensImportDienst.IstSichererRelativerPfad("monster/frog.json"), "LIVE_RELATIVE_PATH_ALLOWED");
+Assert(!LiveWissensImportDienst.IstSichererRelativerPfad("../secret.json"), "LIVE_RELATIVE_TRAVERSAL_BLOCKED");
+Assert(!LiveWissensImportDienst.IstSichererRelativerPfad("monster/frog.txt"), "LIVE_RELATIVE_NON_JSON_BLOCKED");
+Assert(!LiveWissensImportDienst.IstSichererRelativerPfad("/monster/frog.json"), "LIVE_RELATIVE_ROOTED_BLOCKED");
+
+var liveNow = DateTimeOffset.UtcNow;
+var gueltigerLiveFakt = JsonSerializer.Serialize(new Dictionary<string, object?>
+{
+    ["schemaVersion"] = 1,
+    ["spiel"] = LiveWissensImportDienst.KanonischerSpielname,
+    ["kennung"] = "monster.frog.spawn",
+    ["domaene"] = "MONSTER",
+    ["status"] = "LIVE_VERIFIZIERT",
+    ["beobachtetAm"] = liveNow.AddSeconds(-2).ToString("O"),
+    ["verifiziertAm"] = liveNow.AddSeconds(-1).ToString("O"),
+    ["quelle"] = new Dictionary<string, object?>
+    {
+        ["art"] = "LIVE_SPIEL",
+        ["methode"] = "reconciled-world-observation"
+    },
+    ["wert"] = new Dictionary<string, object?> { ["map"] = "main" }
+});
+LiveWissensImportDienst.ValidiereLiveFaktJson(Encoding.UTF8.GetBytes(gueltigerLiveFakt));
+
+var falschesSpiel = gueltigerLiveFakt.Replace(
+    LiveWissensImportDienst.KanonischerSpielname,
+    "Anderes Spiel",
+    StringComparison.Ordinal);
+ExpectInvalidLiveFakt(falschesSpiel, "LIVE_FAKT_FALSCHES_SPIEL");
+
+var nichtVerifiziert = gueltigerLiveFakt.Replace(
+    "\"LIVE_VERIFIZIERT\"",
+    "\"UNBESTAETIGT\"",
+    StringComparison.Ordinal);
+ExpectInvalidLiveFakt(nichtVerifiziert, "LIVE_FAKT_NICHT_VERIFIZIERT");
+
+var mitSecret = JsonSerializer.Serialize(new Dictionary<string, object?>
+{
+    ["schemaVersion"] = 1,
+    ["spiel"] = LiveWissensImportDienst.KanonischerSpielname,
+    ["kennung"] = "server.test",
+    ["domaene"] = "SERVER",
+    ["status"] = "LIVE_VERIFIZIERT",
+    ["beobachtetAm"] = liveNow.AddSeconds(-2).ToString("O"),
+    ["verifiziertAm"] = liveNow.AddSeconds(-1).ToString("O"),
+    ["quelle"] = new Dictionary<string, object?> { ["art"] = "LIVE_SPIEL", ["methode"] = "test" },
+    ["wert"] = new Dictionary<string, object?> { ["accessToken"] = "darf-nicht-hochgeladen-werden" }
+});
+ExpectInvalidLiveFakt(mitSecret, "LIVE_WISSEN_GEHEIMNISFELD_VERBOTEN");
 
 (defaults with { PreferredBrowser = "Brave" }).Validate();
 (defaults with { PreferredBrowser = "Edge" }).Validate();
@@ -96,6 +164,12 @@ ExpectInvalid(defaults with { WissenswaechterIntervallMinuten = 10 }, "WISSENSWA
 ExpectInvalid(defaults with { WissenswaechterIntervallMinuten = 120 }, "WISSENSWAECHTER_INTERVALL_MUSS_60_MINUTEN_SEIN");
 ExpectInvalid(defaults with { WissenswaechterMaxQuellenProLauf = 0 }, "WISSENSWAECHTER_QUELLENLIMIT_UNGUELTIG");
 ExpectInvalid(defaults with { WissenswaechterMaxKandidaten = 10 }, "WISSENSWAECHTER_KANDIDATENLIMIT_UNGUELTIG");
+ExpectInvalid(defaults with { LiveWissensdatenbankPfad = @"C:\AdventureLand-V5\wissensdatenbank" }, "LIVE_WISSEN_MUSS_AUF_D_LIEGEN");
+ExpectInvalid(defaults with { LiveWissensdatenbankPfad = @"D:\" }, "LIVE_WISSEN_D_LAUFWERKSWURZEL_VERBOTEN");
+ExpectInvalid(defaults with { LiveWissensMaxDateienProLauf = 0 }, "LIVE_WISSEN_DATEILIMIT_UNGUELTIG");
+ExpectInvalid(defaults with { LiveWissensMaxDateiBytes = 1024 }, "LIVE_WISSEN_DATEIGROESSE_UNGUELTIG");
+ExpectInvalid(defaults with { LiveWissensMaxGesamtBytesProLauf = 1024 }, "LIVE_WISSEN_GESAMTGROESSE_UNGUELTIG");
+Assert(BridgeConfig.NormalisiereLiveWissenspfad(@"D:\AdventureLand-V5\wissensdatenbank") == @"D:\AdventureLand-V5\wissensdatenbank", "LIVE_WISSEN_PATH_NORMALIZATION");
 (defaults with
 {
     BackblazeEnabled = true,
