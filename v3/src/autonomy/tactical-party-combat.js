@@ -206,13 +206,15 @@ class TacticalPartyCombat {
         this.pendingPull = null;
       }
     }
+    const trackedBeforeRefresh = new Set((this.encounter.targetIds || []).map(String));
+    if (this.encounter.targetId != null) trackedBeforeRefresh.add(String(this.encounter.targetId));
     const targets = this._encounterEntities(snapshot, team);
     const evaluations = targets.map((target) => this.evaluateTarget(target, team, snapshot));
     const previousPrimaryId = String(this.encounter.primaryTargetId || this.encounter.targetId || '');
     if (previousPrimaryId && targets.length && !targets.some((row) => String(row.id) === previousPrimaryId)) {
       const promotable = targets
         .map((target, index) => ({ target, evaluation: evaluations[index] }))
-        .filter((row) => row.evaluation && row.evaluation.allowed === true)
+        .filter((row) => trackedBeforeRefresh.has(String(row.target.id)) && row.evaluation && row.evaluation.allowed === true)
         .sort((a, b) => finite(b.evaluation.partyAggro ? 1 : 0) - finite(a.evaluation.partyAggro ? 1 : 0)
           || finite(b.evaluation.score, -Infinity) - finite(a.evaluation.score, -Infinity)
           || String(a.target.id).localeCompare(String(b.target.id)))[0];
