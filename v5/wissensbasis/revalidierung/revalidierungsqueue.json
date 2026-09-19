@@ -10,29 +10,25 @@
     {
       "id": "V5-P0-01",
       "title": "Action-Contract-Matrix aller wertverandernden Public Functions",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "progress": {
         "updatedAt": "2026-09-19",
         "totalContracts": 60,
-        "sourceVerified": 52,
-        "liveDocOnlyNeedsExactContract": 8,
-        "blockers": [
-          "bet_wheel",
-          "poker_join",
-          "poker_act",
-          "poker_leave",
-          "poker_sit_in",
-          "poker_sit_out",
-          "cave_buy",
-          "destroy_item"
+        "sourceVerified": 53,
+        "liveDeployedVerified": 6,
+        "explicitlyDisabledPendingExactContract": 1,
+        "liveDocOnlyNeedsExactContract": 0,
+        "blockers": [],
+        "disabledActions": [
+          "cave_buy"
         ],
-        "note": "Current live public catalog is ahead of the checked official GitHub runner snapshot for these functions."
+        "note": "P0-01 closed: every value-changing public function is either contract-verified or explicitly automation-disabled. cave_buy remains disabled because parent.cave_request transport/correlation/timeout semantics are not publicly exposed."
       }
     },
     {
       "id": "V5-P0-02",
       "title": "Recovery-Semantik je Action inklusive UNKNOWN Outcome",
-      "status": "OPEN"
+      "status": "IN_PROGRESS"
     },
     {
       "id": "V5-P0-03",
