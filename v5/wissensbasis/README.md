@@ -180,3 +180,20 @@ Wichtig:
 - rekursive Drop-Graphs muessen bounded/versioniert sein;
 - Normal Craft und Anniversary Craft besitzen unterschiedliche Inputplaner;
 - Dismantle besitzt einen eigenen Leveled-Compound-Drei-Output-Pfad.
+
+
+## P0-07 Call Cost / Rate Limits
+
+Der kanonische Vertrag liegt unter:
+
+`v5/wissensbasis/vertraege/call-budget.json`
+
+Wichtig:
+- das Game-Socket-Budget ist `character:socket_call_budget` und gilt global ueber alle Action-Channels eines Characters;
+- Servergrenze: 200 gewichtete Punkte / 4000 ms, V5-Planbudget initial 100 / 4000 ms mit positiver Reserve;
+- statische CC-Werte sind Evidence, nicht automatisch vollstaendige Request-Gesamtkosten;
+- mutierende FIFO-Channels haben maximal einen managed In-Flight-Request je Channel;
+- `limitdc` nach moeglichem Send fuehrt zu UNKNOWN/Reconciliation, nicht zu Blind-Retry;
+- Client-Safeties bleiben aktiviert;
+- MCP/HTTP-Token-Buckets und Mainframe-CPU sind eigene Budget-/Metriktypen;
+- `ccreport` ist Diagnose-Evidence und kein Scheduler-Tick-Polling.
