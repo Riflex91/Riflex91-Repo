@@ -230,6 +230,37 @@
 
                     <Separator Margin="0,16,0,14" />
 
+                    <StackPanel>
+                        <TextBlock Text="Bot-Livewissen von SSD" FontSize="17" FontWeight="SemiBold" />
+                        <TextBlock Text="Hier kannst du später den Ordner eintragen, in den der Bot seine live verifizierten Wissensdateien schreibt. Die Bridge liest ihn rekursiv und spiegelt die relative Struktur nach v5/wissensbasis/datenbank/live-verifiziert/."
+                                   Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,5,0,10" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="LiveWissenPfadBox"
+                                     Grid.Column="0"
+                                     Height="40"
+                                     Padding="10,7"
+                                     ToolTip="Zum Beispiel D:\AdventureLand\LiveWissen" />
+                            <Button Grid.Column="2"
+                                    Content="Pfad speichern"
+                                    Click="LiveWissenPfadSpeichern_Click"
+                                    MinWidth="135" />
+                        </Grid>
+                        <TextBlock x:Name="LiveWissenPfadStatusText"
+                                   Text="Kein Livewissen-Ordner konfiguriert."
+                                   Style="{StaticResource MutedText}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,0" />
+                        <TextBlock Text="Der absolute SSD-Pfad bleibt ausschließlich lokal in settings.json. Unterstützt werden Text-/Wissensdateien wie JSON, JSONL, TXT, Markdown, CSV, YAML und LOG. Dateien mit möglichem Geheimnisinhalt oder Dateien, die gerade geschrieben werden, werden nicht hochgeladen."
+                                   Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,5,0,0" />
+                    </StackPanel>
+
+                    <Separator Margin="0,16,0,14" />
+
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="180" />
