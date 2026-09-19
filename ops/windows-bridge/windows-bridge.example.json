@@ -1,5 +1,5 @@
 {
-  "configVersion": 6,
+  "configVersion": 7,
   "cdpEndpoint": "http://127.0.0.1:9222",
   "allowedOrigin": "https://adventure.land",
   "telemetryIngestUrl": "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest",
@@ -17,6 +17,8 @@
   "wissenswaechterWebSucheAktiv": true,
   "wissenswaechterMaxQuellenProLauf": 200,
   "wissenswaechterMaxKandidaten": 1000,
+  "liveWissenImportAktiv": true,
+  "liveWissenQuellordner": "",
   "webDashboardEnabled": true,
   "webDashboardBaseUrl": "https://aio-bot-dashboard.hansijuergenlul.workers.dev",
   "webDashboardAccount": "default",
