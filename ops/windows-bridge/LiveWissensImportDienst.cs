@@ -436,7 +436,9 @@ public sealed class LiveWissensImportDienst
     private static void VerweigereLokalenPfadImInhalt(byte[] bytes, string wurzel)
     {
         var text = Encoding.UTF8.GetString(bytes);
-        if (text.Contains(wurzel, StringComparison.OrdinalIgnoreCase))
+        var jsonEscaped = wurzel.Replace("\\", "\\\\", StringComparison.Ordinal);
+        if (text.Contains(wurzel, StringComparison.OrdinalIgnoreCase)
+            || text.Contains(jsonEscaped, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("LIVE_WISSEN_LOKALER_PFAD_IM_INHALT_VERBOTEN");
     }
 
