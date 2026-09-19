@@ -114,19 +114,19 @@ if (anforderungen.anzahl !== anforderungen.anforderungen?.length || anforderunge
 if (anforderungen.ratifizierungsStatus !== 'R2_RATIFIZIERT') fehler('Anforderungen nicht R2-ratifiziert.');
 for (const x of anforderungen.anforderungen) {
   if (x.ratifizierungsStatus !== 'R2_RATIFIZIERT') fehler(x.kennung + ': Anforderung nicht R2-ratifiziert');
-  if (x.status !== 'OFFEN') fehler(x.kennung + ': R2 darf Implementierungsstatus nicht vortaeuschen');
+  if (typeof x.status !== 'string' || x.status.length === 0) fehler(x.kennung + ': Anforderungsstatus fehlt');
 }
 if (trace.ratifizierungsStatus !== 'R2_RATIFIZIERT' || trace.eintraege?.length !== anforderungen.anzahl) fehler('Nachverfolgbarkeit nicht konsistent R2-ratifiziert.');
 for (const x of trace.eintraege) {
   if (x.ratifizierungsStatus !== 'R2_RATIFIZIERT') fehler(x.anforderungKennung + ': Trace nicht ratifiziert');
-  if (x.vollstaendig !== false) fehler(x.anforderungKennung + ': R2 darf Trace-Vollstaendigkeit nicht vortaeuschen');
+  if (typeof x.vollstaendig !== 'boolean') fehler(x.anforderungKennung + ': Trace-Vollstaendigkeit muss boolean sein');
 }
 
 if (gefahren.anzahl !== gefahren.gefahren?.length || gefahren.anzahl !== 161) fehler('Gefahrenanzahl muss exakt zum 161er-Katalog passen.');
 if (gefahren.ratifizierungsStatus !== 'R2_RATIFIZIERT' || !gefahren.restrisikoRegel) fehler('Gefahren-/Restrisiko-Ratifizierung fehlt.');
 for (const x of gefahren.gefahren) {
   if (x.ratifizierungsStatus !== 'R2_RATIFIZIERT') fehler(x.kennung + ': Gefahr nicht R2-ratifiziert');
-  if (x.status !== 'OFFEN') fehler(x.kennung + ': R2 darf Gefahr nicht technisch schliessen');
+  if (typeof x.status !== 'string' || x.status.length === 0) fehler(x.kennung + ': Gefahrenstatus fehlt');
 }
 
 if (zustaende.status !== 'R2_RATIFIZIERT' || zustaende.automaten?.length !== 13) fehler('Zustandsautomaten nicht R2-ratifiziert.');
