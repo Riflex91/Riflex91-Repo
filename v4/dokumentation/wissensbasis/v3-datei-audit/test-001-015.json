@@ -1,0 +1,731 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/test",
+  "range": {
+    "start": 1,
+    "end": 15,
+    "total": 205
+  },
+  "files": [
+    {
+      "path": "v3/test/adapter.test.js",
+      "blobSha": "a5d6ce0d86a4b058f7b7c6d04d9bdf674ca76283",
+      "size": 2296,
+      "lines": 53,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/game/adapter"
+      ],
+      "testCases": [
+        "GameAdapter resolves attack target ids to live Adventure Land entities",
+        "GameAdapter snapshot exposes generic combat range, speed and frequency",
+        "GameAdapter falls back to Adventure Land use_hp_or_mp for logical potion actions"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 10,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 3,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/adaptive-pull-learning.test.js",
+      "blobSha": "b9edfd08336da5540851213cf6f72dff3c454ec6",
+      "size": 13126,
+      "lines": 403,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/autonomy/adaptive-pull-learning",
+        "../src/autonomy/smart-aoe-planner",
+        "../src/autonomy/combat-modes",
+        "../src/party/performance-store",
+        "../src/party/fingerprints"
+      ],
+      "testCases": [
+        "adaptive learner selects a sustainably faster observed pull size without exceeding the deterministic hard capacity",
+        "reliable risk evidence reduces pull size even when the deterministic planner requested a larger pull",
+        "unknown next pull size is explored only one step for a bounded persisted window after strong safe evidence",
+        "content that is unknown or quarantined never records or applies adaptive pull learning",
+        "telemetry recording is leader-only and stores pull-size-specific evidence in the existing PartyPerformanceStore",
+        "SmartAoePlanner clamps even an over-optimistic adaptive recommendation to its deterministic hard capacity"
+      ],
+      "states": [
+        "SAFE",
+        "SUSTAINABLE_XP_OPTIMUM",
+        "RISK_EVIDENCE_REDUCED_PULL",
+        "BOUNDED_EXPLORATION_START",
+        "BOUNDED_EXPLORATION_WINDOW",
+        "UNKNOWN",
+        "QUARANTINED",
+        "CONTENT_NOT_VALIDATED_FOR_LEARNING",
+        "TEST_OVERSHOOT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 27,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 50,
+        "persistence": 1,
+        "telemetry": 4,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha10-shadow-brain.test.js",
+      "blobSha": "18dc0c834a85e0ac0e8abc9e61cf0bfceb4c2c54",
+      "size": 8441,
+      "lines": 176,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "StrategicFeatureEncoder emits a versioned bounded finite schema",
+        "StrategicFeatureEncoder sanitizes malformed numeric observations instead of propagating NaN/Infinity",
+        "BoundedReplayBuffer keeps a hard capacity and reports drops",
+        "ShadowStrategicBrain is recommendation-only and cannot expose direct action authority",
+        "ShadowStrategicBrain performs bounded teacher distillation and keeps finite capped weights",
+        "ShadowStrategicBrain handles an empty candidate set without fabricating a decision",
+        "Alpha10Runtime exposes a JSON-safe shadow Brain and only feeds approved same-map candidates",
+        "Bot active mode never promotes the Alpha10 Brain out of shadow",
+        "A malicious shadow recommendation cannot replace the deterministic local farming plan",
+        "Alpha10 synthetic shadow soak keeps Brain state bounded and serializable"
+      ],
+      "states": [
+        "NO_ELIGIBLE_CANDIDATES"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 52,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 3,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha11-character-registry.test.js",
+      "blobSha": "b6caf2a5799ed880851d5df4a206c9579169cc62",
+      "size": 10082,
+      "lines": 238,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "CharacterRegistry merges configured, party, visible and self observations without gameplay authority",
+        "CharacterRegistry enriches self from read-only live character data",
+        "CharacterRegistry never invents offline state when live evidence merely becomes stale",
+        "CharacterRegistry is hard bounded and live observations can evict lower-confidence configured entries",
+        "CharacterRegistry sanitizes malformed optional data and remains JSON-safe",
+        "Alpha11Runtime integrates party observation while preserving Alpha.10 Brain shadow authority boundary",
+        "Bot active mode never promotes Alpha.11 party observation into action authority",
+        "Alpha.11 synthetic observation soak keeps registry bounded, finite and serializable"
+      ],
+      "states": [
+        "OFFLINE",
+        "ONLINE",
+        "STALE",
+        "LIVE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 69,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 22,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha12-party-control.test.js",
+      "blobSha": "34bb398c3c18a42cd6c973ebb7f2fadaf7a36720",
+      "size": 9268,
+      "lines": 243,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "Party control lease requires a trusted Merchant CM handshake and consumes the invite lease exactly once",
+        "Party control lease rejects forged, mismatched and expired control envelopes",
+        "Transition controller binds invite authorization to the transaction before inviting the incoming character",
+        "Failed incoming start rolls back the old party and authorizes the rollback invite",
+        "Hardened Alpha12 runtime installs the control lease, keeps Party authority default-off and normalizes visible release version tags",
+        "Background execution guard removes visibility/focus listeners on stop while keeping performance_trick best-effort"
+      ],
+      "states": [
+        "ONLINE",
+        "TEST_RELEASE_VERSION_NORMALIZATION"
+      ],
+      "directAdventureLandWrites": [
+        "send_cm"
+      ],
+      "assertionSignals": {
+        "assert": 41,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 27,
+        "party": 41,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha12-party-orchestrator.test.js",
+      "blobSha": "f51b4f793e85252cbcfa7fa31798d7f54ab4b37a",
+      "size": 14702,
+      "lines": 116,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "Party and Encounter fingerprints are deterministic, gear/skill/context sensitive and JSON-safe",
+        "Candidate generation uses one Merchant plus one to three distinct realizable combat characters while class duplicates remain legal",
+        "v2 triple-Ranger knowledge is only a safe-content bootstrap prior and gains confidence without becoming a universal winner",
+        "Measured death/retreat danger is a hard safety rejection that cannot be bought off by huge XP",
+        "Party Performance persistence is schema-safe, bounded, confidence-aged and corrupt data fails closed",
+        "Paladin Aura policy uses current official aura states and hysteresis prevents flapping",
+        "Party telemetry accepts only trusted bounded fresh reports and aggregates group rates",
+        "Background execution guard uses official performance_trick, re-arms on severe drift and is headless fail-soft",
+        "Transition controller is default-deny and blocks combat, missing rollback slots, cross-map switching and non-Merchant control",
+        "Controlled same-account transition verifies stop/start/party postconditions and completes in a fully mocked safe case",
+        "Alpha12 runtime integrates all Party components while default active bot still grants no Party live authority and Brain stays shadow",
+        "2000 Party evaluations stay finite, bounded and explainable"
+      ],
+      "states": [
+        "ONLINE",
+        "APPROVED",
+        "OFFLINE",
+        "V2_TRIPLE_RANGER_PRIOR",
+        "UNKNOWN",
+        "HIGH_DEATH_RATE",
+        "AURA_HYSTERESIS_HOLD",
+        "TRANSITIONS_DISABLED",
+        "ACTIVE_COMBAT",
+        "CROSS_MAP_ROUTING_NOT_ALLOWED",
+        "MISSING_CODE_SLOT",
+        "WOULD_KEEP",
+        "WOULD_SWITCH"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 73,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 25,
+        "party": 58,
+        "persistence": 1,
+        "telemetry": 3,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha13-supervisor-content-drift.test.js",
+      "blobSha": "bff4962e99905531cacd71039d172e4357944bcc",
+      "size": 15395,
+      "lines": 305,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "Global Supervisor escalates bounded no-progress health states and material progress resets the watchdog",
+        "Global Supervisor isolates Brain/content quarantine from deterministic combat while critical failures still degrade globally",
+        "Supervisor safe fallback is explicit opt-in, safety-reduction-only and recovery-budgeted",
+        "Supervisor manual subsystem quarantine is explicit, observable and reversible",
+        "Content fingerprinting is deterministic across object key ordering and sanitizes non-finite/function values",
+        "Content Drift baseline does not misclassify existing content and reordered metadata does not drift",
+        "Changed known monster definition is detected and re-quarantined until explicit revalidation",
+        "New content appearing after catalog baseline is novelty and fails closed in the drift model",
+        "Content Drift persistence is schema-versioned, restorable, bounded and corrupt data fails closed",
+        "Content Drift uses bounded incremental catalog scans and eventually completes large baselines",
+        "Alpha13 runtime integrates Supervisor and Content Drift while all new authority stays default-off",
+        "Alpha13 runtime fail-closes a previously approved monster when its game definition drifts",
+        "Alpha13 supervisor safe actions remain off even if runtime is switched active until explicitly enabled",
+        "2000 combined supervisor/content-drift evaluations stay finite, bounded and JSON-safe"
+      ],
+      "states": [
+        "ENGAGE",
+        "IDLE",
+        "HEALTHY",
+        "QUARANTINED",
+        "FAILED_SAFE",
+        "RECOVERY_BUDGET_EXHAUSTED",
+        "FAULT_INJECTION",
+        "DRIFT",
+        "NOVELTY",
+        "APPROVED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 73,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 8,
+        "merchant": 6,
+        "party": 19,
+        "persistence": 3,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha14-inventory-gear.test.js",
+      "blobSha": "231585cd367fded4243bd1a3c80c5f1361f2c2a6",
+      "size": 13892,
+      "lines": 299,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src",
+        "../src/game/adapter"
+      ],
+      "testCases": [
+        "Inventory Ledger is bounded, JSON-safe and has no destructive authority",
+        "Inventory Ledger protects group potion reserves and preserves surplus as undecided",
+        "Inventory Ledger never sell-classifies content requiring revalidation",
+        "Gear scoring is finite and upgrade stats scale deterministically",
+        "Gear Progression finds the first meaningful upgrade level instead of assuming +0 is better",
+        "Gear Progression respects class compatibility and content quarantine",
+        "Gear Progression rejects the live-proven impossible Ranger shield offhand goal",
+        "Gear Progression persistence is schema-versioned and corrupt data fails closed",
+        "GameAdapter catalogs migrated economy commands while unmigrated destructive actions stay rejected",
+        "Alpha14 runtime integrates Ledger and Gear planning while all new authority remains off",
+        "2000 combined inventory/gear planning cycles stay bounded, finite and serializable",
+        "sell safety records a completed no-upgrade answer for ordinary non-equipment items",
+        "future merchant upgrade value is protected before economic disposal"
+      ],
+      "states": [
+        "CONTENT_REVALIDATION_REQUIRED",
+        "FARMER_POTENTIAL_TO_PLUS5",
+        "MATERIALS_AND_RISK_UNMODELED",
+        "ACTION_NOT_ALLOWED_IN_ALPHA",
+        "FUTURE_MERCHANT_GEAR_UPGRADE_POTENTIAL"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 78,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 10,
+        "party": 4,
+        "persistence": 1,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha15-transaction-engine.test.js",
+      "blobSha": "abcc8789e7f0319bdd9b21a443f1b2ae7d9e897d",
+      "size": 9873,
+      "lines": 221,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src",
+        "../src/game/adapter"
+      ],
+      "testCases": [
+        "Alpha14 runtime version is frozen after later release bumps",
+        "Transaction Engine is schema-versioned, bounded and has zero live authority",
+        "Transaction preflight accepts only exact Ledger-authorized dispositions",
+        "Transaction reservations prevent double-booking and cancellation releases the item",
+        "Expired transaction lease aborts and releases reservation",
+        "Restart never resumes a nonterminal transaction blindly",
+        "Corrupt persisted transaction data fails closed",
+        "Independent action-family circuit breaker opens on bounded failures and cools down",
+        "Alpha15 runtime integrates transaction planning but cannot enable live economy",
+        "General GameAdapter catalogs migrated economy commands while unmigrated destructive actions stay rejected in Alpha15",
+        "2000 transaction planning cycles remain bounded and serializable"
+      ],
+      "states": [
+        "SELL",
+        "LEDGER_DISPOSITION_NOT_AUTHORIZED",
+        "ITEM_ALREADY_RESERVED",
+        "BANK",
+        "ACTION_NOT_ALLOWED_IN_ALPHA",
+        "SOAK_CANCEL"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 55,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 5,
+        "party": 2,
+        "persistence": 1,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha16-safe-travel.test.js",
+      "blobSha": "6b6c548e270db0e775def74f8d408a96ec573235",
+      "size": 8469,
+      "lines": 155,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "Alpha15 runtime version is frozen after Alpha16 release bump",
+        "Safe Travel schema is bounded and exposes no live authority",
+        "Safe Travel accepts known maps and records bounded same/cross-map plans",
+        "Safe Travel rejects unknown/drifted maps and any server change request",
+        "Synthetic travel verifies material position progress and exact arrival",
+        "Map-only cross-map synthetic plan completes only after observed map change",
+        "No-progress and lease timeout fail safe and open a bounded travel circuit",
+        "Cancelling a plan is terminal and prevents synthetic execution",
+        "Alpha16 runtime integrates travel planning but rejects live travel authority",
+        "2000 travel planning/cancel cycles remain bounded and JSON-safe",
+        "per-plan buffered arrival radius completes service travel before exact coordinates"
+      ],
+      "states": [
+        "SAME_MAP",
+        "CROSS_MAP_KNOWN_ONLY",
+        "UNKNOWN_DESTINATION_MAP",
+        "DESTINATION_MAP_REQUIRES_REVALIDATION",
+        "SERVER_CHANGE_FORBIDDEN",
+        "ARRIVAL_VERIFIED",
+        "TRAVEL_CIRCUIT_OPEN",
+        "TEST_CANCEL",
+        "SOAK_CANCEL"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 48,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 1,
+        "party": 3,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha17-bank-server-ack.test.js",
+      "blobSha": "53622dd574a1be4c720509fd398ccdfbe6ac8cd5",
+      "size": 6022,
+      "lines": 150,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "collection capacity prep may bank a deferred KEEP item but not an operational potion",
+        "explicit Adventure Land bank store acknowledgement commits even when local cache stays stale",
+        "explicit non-store bank response cannot commit even if it is otherwise successful"
+      ],
+      "states": [
+        "BANK",
+        "KEEP",
+        "HEALTHY",
+        "COLLECTION_CAPACITY_OPERATIONAL_ITEM_PROTECTED",
+        "SERVER_ACK_COMMIT",
+        "COMMITTED",
+        "SERVER_ACK",
+        "BANK_SERVER_ACK_INVALID",
+        "FAILED_SAFE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 21,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 19,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Adventure Land in-game inventory storage regression tests. No real-world financial operations."
+      ]
+    },
+    {
+      "path": "v3/test/alpha17-bank-verification.test.js",
+      "blobSha": "746440b32f6a954b3c396c83733c6c50f1f813cf",
+      "size": 5787,
+      "lines": 179,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "Controlled BANK verifies delayed full-stack transfer by identity balances even when inventory compacts",
+        "Controlled BANK fails safe when inventory decreases but matching bank balance does not increase",
+        "Controlled SELL verification tolerates inventory slot compaction but requires exact identity quantity decrease"
+      ],
+      "states": [
+        "BANK",
+        "HEALTHY",
+        "COMMITTED",
+        "INVENTORY_DELTA_MISMATCH",
+        "FAILED_SAFE",
+        "SELL"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 20,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 14,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha17-controlled-merchant-monitor.test.js",
+      "blobSha": "28ff429a88a7ef684d966185c75dd64506b12f33",
+      "size": 21312,
+      "lines": 424,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "Alpha16 runtime version is frozen after Alpha17 release bump",
+        "Alpha17 defaults all controlled live authority off and preserves shadow mode",
+        "Alpha17 inventory action policy changes classification only and does not enable live execution",
+        "Controlled Merchant requires exact canary acknowledgement and active Merchant context",
+        "Controlled SELL commits only after exact inventory delta verification",
+        "Controlled BANK requires bank context and verifies full-stack transfer into bank balance",
+        "Controlled Merchant failures fail safe and trip the existing action-family circuit budget",
+        "Controlled Travel requires canary acknowledgement and verifies observed arrival",
+        "Controlled Travel does not treat immediate smart_move return as arrival",
+        "Buffered arrival ignores smart_move interruption caused by the intentional stop",
+        "Controlled Travel stops active smart movement when observed travel fails safe",
+        "Controlled Travel preserves ABORTED result without adding a failed-safe count",
+        "Controlled Travel failures become FAILED_SAFE and feed the travel circuit breaker",
+        "Alpha17 runtime refuses generic live enables and auto-disables controlled authority outside active mode",
+        "Session Monitor exports the complete retained redacted log and copies it with Clipboard API",
+        "Debug monitor GUI exposes a wired Log kopieren button while remaining read-only",
+        "2000 controlled status/diagnostic evaluations remain bounded and JSON-safe"
+      ],
+      "states": [
+        "SELL",
+        "HEALTHY",
+        "RUNTIME_NOT_ACTIVE",
+        "COMMITTED",
+        "BANK",
+        "FAILED_SAFE",
+        "COMPLETED",
+        "ARRIVAL_VERIFIED",
+        "TEST_ABORT",
+        "ABORTED",
+        "ROW",
+        "ROUTE_FAILED",
+        "NO_PATH"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 90,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 24,
+        "party": 9,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha17-inventory-index-bounds.test.js",
+      "blobSha": "df20933d836786e802e9a4945ebff6774dbfcd42",
+      "size": 5963,
+      "lines": 190,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/game/adapter",
+        "../src"
+      ],
+      "testCases": [
+        "GameAdapter snapshots only indexes below character.isize even if items array is longer",
+        "InventoryLedger rejects self entries at index >= character.isize before BANK classification",
+        "Controlled Merchant rejects an out-of-range BANK index before bank_store is called",
+        "Controlled Merchant accepts the highest valid index isize-1 and preserves strict BANK acknowledgement"
+      ],
+      "states": [
+        "BANK",
+        "HEALTHY",
+        "INVENTORY_INDEX_OUT_OF_RANGE",
+        "SERVER_ACK_COMMIT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 23,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 21,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha17-monitor-interaction.test.js",
+      "blobSha": "42a825897f13197764f1de68b8d4d026616b709f",
+      "size": 5735,
+      "lines": 175,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "Debug monitor can be dragged by its header and remains clamped to the viewport",
+        "Debug monitor resize handle changes size and enforces bounded minimums"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 16,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 9,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}

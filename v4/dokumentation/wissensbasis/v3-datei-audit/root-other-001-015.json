@@ -1,0 +1,946 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/root-and-other",
+  "range": {
+    "start": 1,
+    "end": 15,
+    "total": 35
+  },
+  "files": [
+    {
+      "path": "v3/.dependency-cruiser.cjs",
+      "blobSha": "df6f0cbd91784a1c8e0ce60bbb4f2e790ad1e7ba",
+      "size": 905,
+      "lines": 31,
+      "headings": [],
+      "referencedArtifacts": [],
+      "normativeStatements": [
+        "comment: 'Critical Farmer, reliability and Merchant runtime modules must remain acyclic.',",
+        "name: 'runtime-must-not-import-tests',",
+        "comment: 'Production runtime code may never depend on test code.',",
+        "name: 'merchant-must-not-import-farmer-runtime',",
+        "comment: 'Merchant economy/control modules must not acquire Farmer combat authority through direct runtime imports.',"
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 0,
+        "recovery": 0,
+        "merchant": 5,
+        "party": 0,
+        "host": 0,
+        "release": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/.gitignore",
+      "blobSha": "8651a429c7b1e739276a7328abcb72e6ffd313a1",
+      "size": 34,
+      "lines": 3,
+      "headings": [],
+      "referencedArtifacts": [],
+      "normativeStatements": [],
+      "signals": {
+        "architecture": 0,
+        "safety": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "host": 0,
+        "release": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_10_COMPLETION.md",
+      "blobSha": "658df7d9fdf2e2231779592abf5232ad877829da",
+      "size": 5842,
+      "lines": 145,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.10 Completion Gate — Shadow Strategic Brain Foundation"
+        },
+        {
+          "level": 2,
+          "title": "Phase goal"
+        },
+        {
+          "level": 2,
+          "title": "Hard authority boundary"
+        },
+        {
+          "level": 2,
+          "title": "Candidate safety"
+        },
+        {
+          "level": 2,
+          "title": "Feature schema"
+        },
+        {
+          "level": 2,
+          "title": "Bounded learning and replay"
+        },
+        {
+          "level": 2,
+          "title": "Quality / quarantine telemetry"
+        },
+        {
+          "level": 2,
+          "title": "Internal certification"
+        },
+        {
+          "level": 2,
+          "title": "Still out of scope"
+        },
+        {
+          "level": 2,
+          "title": "Phase release gate"
+        },
+        {
+          "level": 2,
+          "title": "Confirmation record"
+        }
+      ],
+      "referencedArtifacts": [
+        "v3/**",
+        "bot.js"
+      ],
+      "normativeStatements": [
+        "`brain.mode` is always `shadow`, even when the bot adapter is explicitly switched to `active`.",
+        "- monster content disposition must be `APPROVED` or `LEGACY_ALLOWED`;",
+        "The Brain never grants content approval and cannot weaken Content Safety.",
+        "Quarantine in Alpha.10 is a trust/telemetry state only. Because the Brain already has zero action authority, quarantine never needs to revoke gameplay permissions."
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 8,
+        "recovery": 0,
+        "merchant": 1,
+        "party": 0,
+        "host": 0,
+        "release": 2,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_11_COMPLETION.md",
+      "blobSha": "1f7dc6e652f3f3dc8a1eb389008565b1867b711f",
+      "size": 6040,
+      "lines": 143,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.11 Completion Gate — Party Observation Foundation"
+        },
+        {
+          "level": 2,
+          "title": "Phase goal"
+        },
+        {
+          "level": 2,
+          "title": "Observation sources and confidence"
+        },
+        {
+          "level": 2,
+          "title": "Hard bounds and sanitization"
+        },
+        {
+          "level": 2,
+          "title": "Authority boundary"
+        },
+        {
+          "level": 2,
+          "title": "Runtime / public API"
+        },
+        {
+          "level": 2,
+          "title": "Telemetry"
+        },
+        {
+          "level": 2,
+          "title": "Internal certification"
+        },
+        {
+          "level": 2,
+          "title": "Explicitly out of scope"
+        },
+        {
+          "level": 2,
+          "title": "Phase release gate"
+        }
+      ],
+      "referencedArtifacts": [
+        "v3/**",
+        "bot.js"
+      ],
+      "normativeStatements": [
+        "- `NaN`/`Infinity` never become trusted numeric registry state."
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 4,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 26,
+        "host": 0,
+        "release": 1,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_12_COMPLETION.md",
+      "blobSha": "01d8df2155f6ce9a5b4cb411a6bed8f646462019",
+      "size": 9806,
+      "lines": 196,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.12 Completion Gate — Adaptive Party Orchestrator"
+        },
+        {
+          "level": 2,
+          "title": "Implemented scope"
+        },
+        {
+          "level": 2,
+          "title": "Authority and default-deny boundary"
+        },
+        {
+          "level": 2,
+          "title": "Transition safety contract"
+        },
+        {
+          "level": 2,
+          "title": "Party Control Lease"
+        },
+        {
+          "level": 2,
+          "title": "Safety-first scoring"
+        },
+        {
+          "level": 2,
+          "title": "Paladin aura policy"
+        },
+        {
+          "level": 2,
+          "title": "Background execution / browser throttling"
+        },
+        {
+          "level": 2,
+          "title": "Internal certification"
+        },
+        {
+          "level": 2,
+          "title": "Explicitly still forbidden/default-off"
+        },
+        {
+          "level": 2,
+          "title": "Release gate"
+        },
+        {
+          "level": 2,
+          "title": "FULL confirmation"
+        }
+      ],
+      "referencedArtifacts": [
+        "v3/**",
+        "bot.js"
+      ],
+      "normativeStatements": [
+        "Unknown/quarantined content lowers confidence and shifts scoring toward survival. The v2 triple-Ranger setup contributes only a low-weight empirical prior on known safe content; it is never a universal winner."
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 19,
+        "recovery": 1,
+        "merchant": 9,
+        "party": 34,
+        "host": 0,
+        "release": 4,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_13_COMPLETION.md",
+      "blobSha": "dcd1b3a38b27231fe20907e0941fb380b3d2c782",
+      "size": 7836,
+      "lines": 164,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.13 Completion Gate — Global Supervisor + Content Drift Foundation"
+        },
+        {
+          "level": 2,
+          "title": "Global Supervisor"
+        },
+        {
+          "level": 2,
+          "title": "Recovery boundary"
+        },
+        {
+          "level": 2,
+          "title": "Content Drift / Novelty foundation"
+        },
+        {
+          "level": 2,
+          "title": "Gameplay fail-closed coupling"
+        },
+        {
+          "level": 2,
+          "title": "Public diagnostics"
+        },
+        {
+          "level": 2,
+          "title": "Internal certification"
+        },
+        {
+          "level": 2,
+          "title": "Explicitly still forbidden/default-off"
+        },
+        {
+          "level": 2,
+          "title": "Release gate"
+        },
+        {
+          "level": 2,
+          "title": "FULL confirmation — 2026-09-12"
+        }
+      ],
+      "referencedArtifacts": [
+        "v3/**",
+        "bot.js"
+      ],
+      "normativeStatements": [
+        "The Alpha.13 suite must cover at minimum:"
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 21,
+        "recovery": 8,
+        "merchant": 1,
+        "party": 12,
+        "host": 0,
+        "release": 1,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_14_COMPLETION.md",
+      "blobSha": "4c465ed5c2368073da94a61bb2979b90eddbb1b7",
+      "size": 7028,
+      "lines": 163,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.14 Completion Gate — Inventory Ledger + Sustainable Gear Progression Foundation"
+        },
+        {
+          "level": 2,
+          "title": "Inventory Ledger"
+        },
+        {
+          "level": 2,
+          "title": "Sustainable Gear Progression Evaluator"
+        },
+        {
+          "level": 2,
+          "title": "Public diagnostics"
+        },
+        {
+          "level": 2,
+          "title": "Internal certification"
+        },
+        {
+          "level": 2,
+          "title": "Explicitly still forbidden/default-off"
+        },
+        {
+          "level": 2,
+          "title": "Release gate"
+        },
+        {
+          "level": 2,
+          "title": "Branch certification — 2026-09-12"
+        },
+        {
+          "level": 2,
+          "title": "Adventure Land FULL certification — 2026-09-12"
+        }
+      ],
+      "referencedArtifacts": [
+        "v3/**"
+      ],
+      "normativeStatements": [
+        "- compound sets may be reserved, but are never executed;",
+        "- the default disposition is `UNDECIDED`, never `SELL`;"
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 12,
+        "recovery": 0,
+        "merchant": 3,
+        "party": 8,
+        "host": 0,
+        "release": 3,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_15_COMPLETION.md",
+      "blobSha": "ddbf2627d914ed841bf1dc946df7105197ca120b",
+      "size": 3105,
+      "lines": 75,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.15 Completion Gate — Restart-Safe Economy Transaction Engine Foundation"
+        },
+        {
+          "level": 2,
+          "title": "Transaction contract"
+        },
+        {
+          "level": 2,
+          "title": "Runtime/API"
+        },
+        {
+          "level": 2,
+          "title": "Certification scope"
+        },
+        {
+          "level": 2,
+          "title": "Defaults"
+        }
+      ],
+      "referencedArtifacts": [],
+      "normativeStatements": [
+        "Supported transaction families are `SELL`, `BANK`, `EXCHANGE`, `COMPOUND` and `UPGRADE`. Each request receives a stable transaction ID and must pass a fresh Inventory Ledger preflight. The Ledger remains the only authority for item meaning.",
+        "- the transaction family must match the Ledger disposition;"
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 5,
+        "recovery": 1,
+        "merchant": 2,
+        "party": 2,
+        "host": 0,
+        "release": 2,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_16_COMPLETION.md",
+      "blobSha": "6935d76e19a61229993dacda44164b504a369697",
+      "size": 2269,
+      "lines": 58,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.16 Completion Gate — Safe Travel Foundation"
+        },
+        {
+          "level": 2,
+          "title": "Travel contract"
+        },
+        {
+          "level": 2,
+          "title": "Authority boundary"
+        },
+        {
+          "level": 2,
+          "title": "Certification scope"
+        }
+      ],
+      "referencedArtifacts": [],
+      "normativeStatements": [],
+      "signals": {
+        "architecture": 0,
+        "safety": 3,
+        "recovery": 0,
+        "merchant": 2,
+        "party": 1,
+        "host": 0,
+        "release": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_17_COMPLETION.md",
+      "blobSha": "d1427a3edfe1cdcd9e22f6ce04cc5c1b15b04179",
+      "size": 9287,
+      "lines": 206,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.17 — Controlled Merchant/Travel Canary + Session Monitor"
+        },
+        {
+          "level": 2,
+          "title": "Phase status"
+        },
+        {
+          "level": 2,
+          "title": "Scope"
+        },
+        {
+          "level": 3,
+          "title": "Controlled Merchant executor"
+        },
+        {
+          "level": 3,
+          "title": "Controlled Travel executor"
+        },
+        {
+          "level": 3,
+          "title": "Session monitor and debug GUI"
+        },
+        {
+          "level": 2,
+          "title": "Internal certification"
+        },
+        {
+          "level": 2,
+          "title": "Combined live phase evidence"
+        },
+        {
+          "level": 3,
+          "title": "Precheck / monitor UI"
+        },
+        {
+          "level": 3,
+          "title": "Controlled Travel"
+        },
+        {
+          "level": 3,
+          "title": "Inventory index boundary"
+        },
+        {
+          "level": 3,
+          "title": "Controlled BANK"
+        },
+        {
+          "level": 3,
+          "title": "SELL safety"
+        },
+        {
+          "level": 3,
+          "title": "10-minute monitored observation"
+        },
+        {
+          "level": 2,
+          "title": "Completion judgement"
+        },
+        {
+          "level": 2,
+          "title": "Next Merchant priority — Bank Capacity + Emergency Space Management"
+        }
+      ],
+      "referencedArtifacts": [
+        "bot.js"
+      ],
+      "normativeStatements": [
+        "- Runtime must already be `active` and the controlled character must be a living Merchant.",
+        "- Supervisor must be HEALTHY or WATCH.",
+        "Earlier BANK-1/BANK-2/BANK-3 failures were never retried or reused; each produced a separate root-cause fix before the next fresh transaction.",
+        "The supervisor remained `WATCH`, never DEGRADED/safe-mode/quarantined, because Content Drift correctly quarantined five fingerprint changes under `CONTENT_REVALIDATION_REQUIRED`:",
+        "1. Discover and model all actually observed/unlocked bank packs dynamically; never assume pack count from hard-coded names.",
+        "7. Never sell an item merely because storage is full while safe capacity expansion is still possible.",
+        "11. Reclaim exactly one minimal action/unit at a time, re-observe capacity, then decide again; never bulk-sell blindly."
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 14,
+        "recovery": 1,
+        "merchant": 12,
+        "party": 0,
+        "host": 0,
+        "release": 1,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_18_COMPLETION.md",
+      "blobSha": "157bfa25db130773281d64f1608fdc6a19e20dd5",
+      "size": 12123,
+      "lines": 283,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.18 — Bank Capacity + Emergency Space Management Foundation"
+        },
+        {
+          "level": 2,
+          "title": "Phase status"
+        },
+        {
+          "level": 2,
+          "title": "Verified official Adventure Land bank API"
+        },
+        {
+          "level": 2,
+          "title": "Dynamic Bank Capacity model"
+        },
+        {
+          "level": 2,
+          "title": "Space recovery order"
+        },
+        {
+          "level": 2,
+          "title": "Bank expansion transaction safety"
+        },
+        {
+          "level": 2,
+          "title": "Controlled expansion canary"
+        },
+        {
+          "level": 2,
+          "title": "EMERGENCY_RECLAIM"
+        },
+        {
+          "level": 2,
+          "title": "Selective work gate"
+        },
+        {
+          "level": 2,
+          "title": "Combined Alpha.18 live-confirmation gate"
+        },
+        {
+          "level": 2,
+          "title": "Production live confirmation evidence — 2026-09-12"
+        },
+        {
+          "level": 2,
+          "title": "Internal tests"
+        },
+        {
+          "level": 2,
+          "title": "Confirmation result"
+        }
+      ],
+      "referencedArtifacts": [
+        "alpha18-bank-capacity.test.js",
+        "alpha18-combined-live-gate.test.js"
+      ],
+      "normativeStatements": [
+        "An uncertain raw action is never blindly retried after restart. Recovery first observes whether the pack became unlocked. If it did, the transaction reconciles as committed; otherwise it aborts and a future attempt requires a fresh transaction.",
+        "Reclaim is planning-only in Alpha.18 and never grants automatic SELL authority.",
+        "A reclaim candidate must already be positively classified `SELL` by the existing fail-closed Inventory Ledger and must independently pass the existing plain-stackable-material SELL safety policy.",
+        "Never eligible through this path:",
+        "The gate **never fabricates a capacity crisis** merely to exercise expansion. If existing stack headroom, a free slot or safe consolidation resolves the live condition, expansion is recorded as `NOT_JUSTIFIED` and no purchase is attempted.",
+        "`EMERGENCY_RECLAIM` remains planning-only throughout the live gate. The runner never executes a SELL action and never turns a full bank into SELL permission.",
+        "The live bank had sufficient safe capacity, so a real expansion transaction was neither required nor permitted by the planner. This is the intended non-destructive confirmation path: the gate must not spend resources merely to manufacture expansion coverage."
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 16,
+        "recovery": 3,
+        "merchant": 8,
+        "party": 1,
+        "host": 0,
+        "release": 2,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_19_COMPLETION.md",
+      "blobSha": "58dec2b35d8879ac5fd0a40f99b2a84d86d1235a",
+      "size": 12869,
+      "lines": 285,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.19 — Merchant Economy Execution + Emergency Recovery"
+        },
+        {
+          "level": 2,
+          "title": "Phase status"
+        },
+        {
+          "level": 2,
+          "title": "Goal"
+        },
+        {
+          "level": 2,
+          "title": "Restart-safe parent operation journal"
+        },
+        {
+          "level": 2,
+          "title": "Controlled bank consolidation"
+        },
+        {
+          "level": 2,
+          "title": "Controlled bank deposit"
+        },
+        {
+          "level": 2,
+          "title": "Controlled expansion"
+        },
+        {
+          "level": 2,
+          "title": "Emergency reclaim — hard destructive boundary"
+        },
+        {
+          "level": 2,
+          "title": "Raw-action budget"
+        },
+        {
+          "level": 2,
+          "title": "Authority containment"
+        },
+        {
+          "level": 2,
+          "title": "Selective blocking"
+        },
+        {
+          "level": 2,
+          "title": "Internal test gate"
+        },
+        {
+          "level": 2,
+          "title": "Combined production live confirmation gate"
+        },
+        {
+          "level": 2,
+          "title": "Production confirmation evidence — 2026-09-12"
+        },
+        {
+          "level": 2,
+          "title": "Final confirmation requirement"
+        }
+      ],
+      "referencedArtifacts": [
+        "v3/ALPHA_19_LIVE_CONFIRMATION.md"
+      ],
+      "normativeStatements": [
+        "The planner never turns a full bank into general SELL authority.",
+        "- restart reconciliation always aborts the old parent operation and requires fresh observation/planning; it never blindly repeats an uncertain raw action",
+        "If the first raw call succeeds but the intermediate state cannot be confirmed, the second call is not attempted. This intentionally fails safe; a later fresh observation must reconcile the live state.",
+        "The source item must therefore still be positively classified `BANK`, fresh in the Ledger, identity-stable and a complete live stack.",
+        "The Alpha.19 combined live gate is deliberately evidence-driven. It never fabricates inventory pressure, fills the bank artificially, creates disposable items, or forces a SELL/expansion merely to obtain coverage.",
+        "Production observation window is fixed at **10 minutes**. Test-mode shortened windows are never confirmation-eligible.",
+        "9. never grants Travel authority for a cross-floor expansion",
+        "A preferred low-risk live canary is a real item that the operator already intends to bank. It must first be positively classified `BANK` through the existing Inventory Action Policy. The gate never changes that policy itself."
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 17,
+        "recovery": 20,
+        "merchant": 11,
+        "party": 1,
+        "host": 0,
+        "release": 1,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_19_LIVE_CONFIRMATION.md",
+      "blobSha": "d9b4da5bdc7c27e4b34ee744529cae85569b2dd8",
+      "size": 4943,
+      "lines": 142,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.19 — Production Live Confirmation"
+        },
+        {
+          "level": 2,
+          "title": "Result"
+        },
+        {
+          "level": 2,
+          "title": "Precheck and authority containment"
+        },
+        {
+          "level": 2,
+          "title": "Real recovery canary"
+        },
+        {
+          "level": 2,
+          "title": "Passive production observation"
+        },
+        {
+          "level": 2,
+          "title": "Final safe state"
+        },
+        {
+          "level": 2,
+          "title": "Confirmation decision"
+        }
+      ],
+      "referencedArtifacts": [
+        "ALPHA_19_COMPLETION.md"
+      ],
+      "normativeStatements": [],
+      "signals": {
+        "architecture": 0,
+        "safety": 4,
+        "recovery": 8,
+        "merchant": 7,
+        "party": 1,
+        "host": 0,
+        "release": 1,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_20_COMPLETION.md",
+      "blobSha": "a29ad7edb798b455f539d55f13c7ad34f25b0fb1",
+      "size": 13476,
+      "lines": 241,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.20 — Adaptive Party Lifecycle"
+        },
+        {
+          "level": 2,
+          "title": "Phase status"
+        },
+        {
+          "level": 2,
+          "title": "Goal"
+        },
+        {
+          "level": 2,
+          "title": "Current score versus projected score"
+        },
+        {
+          "level": 2,
+          "title": "Development guardrails"
+        },
+        {
+          "level": 2,
+          "title": "Bounded Development session"
+        },
+        {
+          "level": 2,
+          "title": "Controlled party transitions"
+        },
+        {
+          "level": 2,
+          "title": "Persistent party circuit"
+        },
+        {
+          "level": 2,
+          "title": "Controlled Paladin aura"
+        },
+        {
+          "level": 2,
+          "title": "Brain boundary"
+        },
+        {
+          "level": 2,
+          "title": "Core automated coverage"
+        },
+        {
+          "level": 2,
+          "title": "Combined four-character production live gate"
+        },
+        {
+          "level": 3,
+          "title": "Countdown"
+        },
+        {
+          "level": 2,
+          "title": "Production live result — 2026-09-12"
+        },
+        {
+          "level": 2,
+          "title": "Live-gate automated coverage"
+        },
+        {
+          "level": 2,
+          "title": "FULL CONFIRMED definition"
+        }
+      ],
+      "referencedArtifacts": [
+        "v3/ALPHA_20_LIVE_CONFIRMATION.md"
+      ],
+      "normativeStatements": [
+        "`projectedScore` is planning evidence only. It may identify a Development candidate and may justify one bounded controlled training rotation when all training gates pass, but it can never directly authorize a permanent replacement.",
+        "The session survives restart. Restart never blindly repeats stop/start/invite operations.",
+        "Production observation is fixed at **10 minutes**. Shortened test-mode gates are never confirmation eligible.",
+        "It never fabricates a candidate, score, performance sample or party pressure. DEVELOPMENT is optional training and is never forced for coverage.",
+        "The gate is explicitly abortable. A requested abort exits bounded, returns controlled authority to safe/default-off state and can never satisfy confirmation duration.",
+        "- cancellation was never requested",
+        "- shortened test mode never confirmation eligible"
+      ],
+      "signals": {
+        "architecture": 1,
+        "safety": 8,
+        "recovery": 3,
+        "merchant": 14,
+        "party": 23,
+        "host": 2,
+        "release": 8,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/ALPHA_20_LIVE_CONFIRMATION.md",
+      "blobSha": "7f3691bc5d5b8cc1987311dc21c7d21329ea0a9e",
+      "size": 5671,
+      "lines": 154,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Alpha.20 — Production Live Confirmation"
+        },
+        {
+          "level": 2,
+          "title": "Evidence source"
+        },
+        {
+          "level": 2,
+          "title": "Overall result"
+        },
+        {
+          "level": 2,
+          "title": "Precheck evidence"
+        },
+        {
+          "level": 2,
+          "title": "Wrong-ack and aura boundary"
+        },
+        {
+          "level": 2,
+          "title": "Candidate and transition canary"
+        },
+        {
+          "level": 2,
+          "title": "Passive observation"
+        },
+        {
+          "level": 2,
+          "title": "Unexpected-action and fault evidence"
+        },
+        {
+          "level": 2,
+          "title": "Final safe state"
+        },
+        {
+          "level": 2,
+          "title": "Confirmation conclusion"
+        }
+      ],
+      "referencedArtifacts": [],
+      "normativeStatements": [
+        "Alpha.20 must still not be called **FULL CONFIRMED** until this documentation-only confirmation change is exact-final-head certified by the complete release CI, SHA-bound merged, and the resulting `main` commit/tree/both parents are verified."
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 3,
+        "recovery": 2,
+        "merchant": 13,
+        "party": 9,
+        "host": 1,
+        "release": 3,
+        "todo": 0
+      }
+    }
+  ]
+}

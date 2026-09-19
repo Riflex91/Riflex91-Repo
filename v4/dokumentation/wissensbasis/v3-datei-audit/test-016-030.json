@@ -1,0 +1,734 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/test",
+  "range": {
+    "start": 16,
+    "end": 30,
+    "total": 205
+  },
+  "files": [
+    {
+      "path": "v3/test/alpha17-monitor-layout.test.js",
+      "blobSha": "c78608c78d333a4be38828dbd0f4b6ce84b9bd0c",
+      "size": 4121,
+      "lines": 128,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "Debug monitor prefers the parent Adventure Land document over the local code frame",
+        "Debug monitor uses a larger responsive bottom-right layout"
+      ],
+      "states": [
+        "FARM",
+        "ENGAGE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 20,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha17-monitor-minimize.test.js",
+      "blobSha": "6e7dd743b24dfd78ca324c7c73df1f4e23712243",
+      "size": 4381,
+      "lines": 132,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "minimize collapses monitor to title bar only and restores the prior size"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 23,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 1,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha17-registry-noise.test.js",
+      "blobSha": "3bd2cb02852467077cd4dd38e72faaa122f8c954",
+      "size": 3929,
+      "lines": 93,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "Alpha17 registry enriches only self, party and configured roster from visible entities",
+        "Alpha17 registry filtering prevents crowded-map add/evict log churn over 200 observations"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 15,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 7,
+        "party": 10,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha17-sell-live-failclosed.test.js",
+      "blobSha": "4b47ac4e29b9c8f5a7c713797fce5fc1590e7035",
+      "size": 6489,
+      "lines": 177,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "Alpha17 public policy path keeps live shoes out of SELL even when root metadata falsely looks like a material",
+        "Controlled SELL rejects a levelled raw item even when every metadata source claims a safe material",
+        "Controlled SELL rejects conflicting root and parent metadata before sell()",
+        "Controlled SELL still permits one plain stackable material with matching metadata and no raw level field"
+      ],
+      "states": [
+        "SELL",
+        "ENABLED",
+        "UNDECIDED",
+        "SELL_ALLOWLIST_PROTECTED",
+        "SELL_METADATA_CONFLICT",
+        "SELL_RAW_LEVELLED_ITEM_PROTECTED",
+        "HEALTHY",
+        "SELL_ITEM_NOT_LOW_RISK",
+        "VERIFIED_COMMIT"
+      ],
+      "directAdventureLandWrites": [
+        "sell"
+      ],
+      "assertionSignals": {
+        "assert": 22,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 15,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha17-sell-safety.test.js",
+      "blobSha": "569719728a1ced79e666a0cc92830deb3f91e17a",
+      "size": 7959,
+      "lines": 233,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "SELL allowlist cannot override protected equipment/quest/exchange/event/cash/soulbound/compound/upgrade metadata",
+        "Controlled Merchant independently rejects forged protected SELL before calling Adventure Land sell()",
+        "processed economic sale requires gear-safe lifecycle and still respects live locks",
+        "Controlled Merchant still permits an explicitly allowlisted low-risk material and verifies its exact identity delta"
+      ],
+      "states": [
+        "OPERATOR_SELL_ALLOWLIST",
+        "SELL_ALLOWLIST_PROTECTED",
+        "SELL",
+        "HEALTHY",
+        "SELL_ITEM_NOT_LOW_RISK",
+        "SELL_TYPE_NOT_LOW_RISK",
+        "AUTONOMOUS_PROCESSED_GEAR_SELL",
+        "AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_SELL",
+        "FUTURE_GEAR_EVALUATED_SAFE",
+        "SELL_RAW_LOCKED_ITEM_PROTECTED",
+        "VERIFIED_COMMIT"
+      ],
+      "directAdventureLandWrites": [
+        "sell"
+      ],
+      "assertionSignals": {
+        "assert": 29,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 29,
+        "party": 4,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha18-bank-capacity.test.js",
+      "blobSha": "32b02cdba5f94529059e22a61c7243f00108166a",
+      "size": 16183,
+      "lines": 246,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/economy/bank-capacity-manager",
+        "../src/economy/bank-expansion-transactions",
+        "../src/economy/controlled-bank-expansion-executor"
+      ],
+      "testCases": [
+        "discovers unlocked and locked packs dynamically without hardcoded pack names",
+        "uses compatible stack before free slot or expansion",
+        "uses free bank slot before expansion",
+        "plans safe stack consolidation before expansion",
+        "expands only after blocked deposit or sustained pressure and preserves gold reserve",
+        "does not expand when protected reserve would be violated",
+        "EMERGENCY_RECLAIM only chooses positively disposable low-risk item and exactly one unit",
+        "protected minimum reserve blocks reclaim candidate",
+        "stale ledger and no safe expansion selectively block inventory-producing work only",
+        "sustained pressure requires bounded consecutive observations",
+        "bank expansion transaction dedupes pack and rejects stale cost",
+        "restart reconciliation commits only if unlock is observed and otherwise requires a new transaction",
+        "restart reconciliation does not blindly retry an uncertain raw action",
+        "lease expiry aborts and circuit breaker opens after bounded failures",
+        "controlled expansion rejects wrong cost before raw action",
+        "controlled expansion requires observed non-empty unlocked capacity after official Promise",
+        "controlled expansion commits one official open_bank_pack call after exact preflight and unlock observation",
+        "2000+ cycle bank-capacity soak remains bounded and never grants action authority"
+      ],
+      "states": [
+        "SELL",
+        "EXPAND_BANK_PACK",
+        "BANK_PACK_TRANSACTION_ALREADY_ACTIVE",
+        "EXPANSION_COST_STALE",
+        "RECOVERING",
+        "RESTART_OBSERVED_UNLOCK",
+        "ABORTED",
+        "HEALTHY",
+        "CONTROLLED_CANARY",
+        "BANK_PACK_UNLOCK_NOT_OBSERVED",
+        "FAILED_SAFE",
+        "COMMITTED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 66,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 21,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha18-combined-live-gate.test.js",
+      "blobSha": "21c088e4ad6c12ac16dab1fb4bdbe9b014892cce",
+      "size": 6725,
+      "lines": 165,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "Alpha.18 combined live gate requires its own explicit acknowledgement",
+        "combined live gate stays non-destructive when real capacity does not justify expansion",
+        "combined live gate executes exactly one justified controlled bank expansion and returns to default-off",
+        "a justified same-floor expansion that is not authorized remains an explicit confirmation blocker in every result surface",
+        "passive observation fails on a real error event and never hides it from the gate result"
+      ],
+      "states": [
+        "ALPHA18_LIVE_GATE_ACK_REQUIRED",
+        "ALPHA18_FULL_LIVE_GATE",
+        "DEPOSIT_FREE_SLOT",
+        "NOT_JUSTIFIED",
+        "EXPAND_BANK_PACK",
+        "COMMITTED",
+        "NOT_EXECUTED",
+        "JUSTIFIED_SAME_FLOOR_EXPANSION_NOT_COMMITTED",
+        "SYNTHETIC_LIVE_ERROR",
+        "EXPECTED_TEST_ERROR",
+        "ERROR_EVENT_DURING_PASSIVE_WINDOW"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 40,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 2,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha18-runtime-integration.test.js",
+      "blobSha": "ac2de918fcee929c8dd674c143febe5618eca3d0",
+      "size": 5661,
+      "lines": 136,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "Alpha18Runtime installs bank capacity foundation while every new authority remains default-off",
+        "full inventory plus full bank plans safe expansion before any emergency reclaim",
+        "bank capacity race fails closed if another actor unlocks the pack before raw action",
+        "no funds rejects bank expansion before raw action and preserves the transaction for bounded retry/replan"
+      ],
+      "states": [
+        "SELL",
+        "EXPAND_BANK_PACK",
+        "HEALTHY",
+        "CONTROLLED_CANARY",
+        "BANK_PACK_ALREADY_UNLOCKED",
+        "INSUFFICIENT_FUNDS",
+        "RESERVED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 23,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 3,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha18-safety-hardening.test.js",
+      "blobSha": "5302069feb731e095b2ba432d71aabbc821caa0b",
+      "size": 4127,
+      "lines": 93,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src",
+        "../src/economy/bank-capacity-manager"
+      ],
+      "testCases": [
+        "unknown or malformed bank-pack costs remain unknown and never become a free expansion",
+        "controlled bank expansion fails safe on a partial local gold delta",
+        "Alpha18 runtime announcements cannot inherit the frozen Alpha.17 version label"
+      ],
+      "states": [
+        "EXPAND_BANK_PACK",
+        "HEALTHY",
+        "CONTROLLED_CANARY",
+        "BANK_EXPANSION_GOLD_DELTA_INVALID",
+        "FAILED_SAFE",
+        "ALPHA18_VERSION_TEST"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 12,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 5,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha19-combined-live-gate.test.js",
+      "blobSha": "f2851ed3ddfc5c0191b44d0226fb22078b3f6902",
+      "size": 8577,
+      "lines": 218,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/autonomy/alpha19-runtime"
+      ],
+      "testCases": [
+        "Alpha.19 combined live gate requires its own explicit acknowledgement",
+        "Alpha.19 live gate never fabricates a source when no fresh BANK-classified stack exists",
+        "Alpha.19 live gate executes exactly one real ledger-bound BANK recovery and returns default-off",
+        "a justified safe recovery that operator did not authorize performs zero raw actions and blocks confirmation coverage",
+        "wrong parent acknowledgement cannot enable expansion or reclaim budgets",
+        "Alpha.19 passive observation fails closed on ISO timestamped error event"
+      ],
+      "states": [
+        "NO_BANK_SLOT",
+        "ALPHA19_LIVE_GATE_ACK_REQUIRED",
+        "ALPHA19_FULL_LIVE_GATE",
+        "NOT_JUSTIFIED",
+        "NO_FRESH_LEDGER_BANK_SOURCE",
+        "SOURCE_FOUND",
+        "DEPOSIT_STACK",
+        "DEPOSIT_FREE_SLOT",
+        "COMMITTED",
+        "NOT_EXECUTED",
+        "OPERATOR_DID_NOT_ALLOW_CONTROLLED_RECOVERY",
+        "ABORTED",
+        "SYNTHETIC_ALPHA19_LIVE_ERROR",
+        "EXPECTED_TEST_ERROR",
+        "ERROR_EVENT_DURING_PASSIVE_WINDOW"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 51,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 21,
+        "merchant": 6,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha19-hardening.test.js",
+      "blobSha": "9377d35735fa383c24d91fd1fd6604aa94191069",
+      "size": 13091,
+      "lines": 279,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/autonomy/alpha18-runtime",
+        "../src/autonomy/alpha19-runtime",
+        "../src/economy/merchant-space-recovery-journal",
+        "../src/economy/controlled-merchant-space-recovery-hardened"
+      ],
+      "testCases": [
+        "Alpha.18 runtime version remains frozen after the Alpha.19 release bump",
+        "Alpha.19 runtime reports .19 while every new live authority remains default-off",
+        "cross-floor expansion can fall through to one freshly revalidated reclaim without Travel authority",
+        "cross-floor fallback cannot SELL without explicit emergency reclaim budget",
+        "same-floor expansion cannot spend gold without explicit expansion purchase budget",
+        "no-workspace consolidation can fall through safely to one reclaim and never calls consolidation raw APIs",
+        "verified consolidation plus deposit consumes exactly the three-call parent raw-action budget"
+      ],
+      "states": [
+        "ALPHA19_MINIMAL_RECLAIM_FALLBACK",
+        "EMERGENCY_RECLAIM",
+        "EXPAND_BANK_PACK",
+        "BANK_EXPANSION_SAFE",
+        "VERIFIED_COMMIT",
+        "SELL",
+        "HEALTHY",
+        "EMERGENCY_RECLAIM_NOT_AUTHORIZED",
+        "EXPANSION_PURCHASE_NOT_AUTHORIZED",
+        "CONSOLIDATE_BANK_STACKS",
+        "SAFE_STACK_CONSOLIDATION",
+        "NO_INVENTORY_WORKSPACE",
+        "DEPOSIT_FREE_SLOT",
+        "FREE_BANK_SLOT_AVAILABLE",
+        "VERIFIED_CONSOLIDATION"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 45,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 47,
+        "merchant": 34,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha19-index-integration.test.js",
+      "blobSha": "e55ec290f9c42a8cfbe443027ddea141af076580",
+      "size": 4399,
+      "lines": 86,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "public install advances to Alpha20Runtime while Alpha.19 economy remains bounded/default-off",
+        "public Alpha.20 lifecycle API is default-off and legacy direct party switches cannot bypass it",
+        "Alpha.19 runtime version remains frozen when instantiated directly after public Alpha.20 release bump",
+        "leaving active mode disables Alpha.19 parent and consolidation child authority"
+      ],
+      "states": [
+        "ALPHA19_SPACE_RECOVERY",
+        "RUNTIME_NOT_ACTIVE",
+        "HEALTHY",
+        "CONTROLLED_CANARY"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 29,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 11,
+        "merchant": 5,
+        "party": 10,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha19-merchant-space-recovery.test.js",
+      "blobSha": "279cf9fb64d479e2ced6bf6d0ee2cc3424c8765c",
+      "size": 12373,
+      "lines": 244,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/economy/merchant-space-recovery-journal",
+        "../src/economy/controlled-bank-consolidation-executor",
+        "../src/economy/controlled-merchant-space-recovery"
+      ],
+      "testCases": [
+        "Alpha.19 space recovery remains default-off and rejects wrong acknowledgement",
+        "restart moves nonterminal space recovery to RECOVERING and reconcile never blindly retries",
+        "controlled consolidation fails closed when no inventory workspace exists",
+        "controlled consolidation uses retrieve then targeted store and verifies exact quantity conservation",
+        "Emergency reclaim executes exactly one unit and always reobserves before completing",
+        "Emergency reclaim fresh-plan drift blocks before SELL with zero raw actions",
+        "No-space terminal block is selective and never a global bot stop",
+        "space recovery circuit opens after bounded failed-safe budget",
+        "2500-cycle journal soak stays bounded and preserves one-active-operation dedupe"
+      ],
+      "states": [
+        "EMERGENCY_RECLAIM",
+        "EMERGENCY_RECLAIM_MINIMAL_SAFE_CANDIDATE",
+        "HEALTHY",
+        "WRONG",
+        "DEPOSIT_FREE_SLOT",
+        "EXECUTING",
+        "STARTED",
+        "RAW_ATTEMPT",
+        "RECOVERING",
+        "ABORTED",
+        "CONTROLLED_CANARY",
+        "CONSOLIDATE_BANK_STACKS",
+        "NO_INVENTORY_WORKSPACE",
+        "SELL",
+        "VERIFIED_COMMIT",
+        "BLOCK_INVENTORY_PRODUCING_WORK",
+        "STATE_CHANGED",
+        "EMERGENCY_RECLAIM_FRESH_PLAN_CHANGED",
+        "NO_SAFE_SPACE_RECOVERY_ACTION",
+        "BLOCKED",
+        "SYNTHETIC_FAILURE",
+        "SOAK_COMMIT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 44,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 48,
+        "merchant": 37,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-10-routine-farm-checkpoint-quota.test.js",
+      "blobSha": "a614e4f85669dbed9fefbdbb89bb97d64c64daa4",
+      "size": 7808,
+      "lines": 209,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/target-efficiency",
+        "../src/farmer/farmer-target-efficiency-hotfix",
+        "../src/ops/reliability-checkpoint"
+      ],
+      "testCases": [
+        "routine farm policy rejects Giga Crab style special content but preserves normal targets",
+        "special content that is already attacking the farmer is not suppressed solely by routine classification",
+        "planner rejects crabxx while keeping normal crabx and rejecting Froggie",
+        "after spawn arrival a same-snapshot safe normal monster can recover an empty planned-target list",
+        "arrival fallback fails closed when safety approval belongs to another snapshot",
+        "reliability checkpoint preflights the Adventure Land store_ keys and avoids the first quota write",
+        "a real checkpoint QuotaExceededError causes one write attempt and then a session hard block"
+      ],
+      "states": [
+        "SPECIAL_CONTENT_NOT_ROUTINE_FARM",
+        "HOLDING",
+        "SPAWN_RADIUS_REACHED",
+        "ASSESS",
+        "CHECKPOINT_QUOTA_PRESSURE",
+        "CHECKPOINT_QUOTA_EXCEEDED",
+        "QUOTA_BLOCKED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 26,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Simulates the pre-farming planned-monster filter returning no crabxx."
+      ]
+    },
+    {
+      "path": "v3/test/alpha20-11-focus-movement-party-quota.test.js",
+      "blobSha": "84048be152c01d5380773b0c7f322d20c095018b",
+      "size": 10818,
+      "lines": 240,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/farmer-terrain-navigation-hotfix",
+        "../src/party/party-focus-fire-hotfix",
+        "../src/party/party-persistence-quota-hotfix"
+      ],
+      "testCases": [
+        "terrain navigation uses a reachable bounded alternate instead of issuing an impossible straight move",
+        "unreachable local target is temporarily filtered without poisoning the whole farmer state",
+        "movement circuit rejection causes target reselection instead of global farmer BLOCKED",
+        "follower selects the visible safe anchor target without CM communication",
+        "focus fire cannot override safety filtering or self-defense",
+        "party performance and lifecycle preflight actual store_ keys and stop quota write spam",
+        "real party persistence QuotaExceededError gets one attempt per store then hard blocks the session"
+      ],
+      "states": [
+        "TARGET_PATH_LOCALLY_BLOCKED",
+        "REASSESS",
+        "MOVEMENT_CIRCUIT_OPEN",
+        "MOVEMENT_FAILURE_RESELECT",
+        "AIO_V3_PARTY_PERFORMANCE",
+        "AIO_V3_PARTY_LIFECYCLE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 39,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 4,
+        "party": 39,
+        "persistence": 10,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}

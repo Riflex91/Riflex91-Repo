@@ -1,0 +1,700 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/test",
+  "range": {
+    "start": 121,
+    "end": 135,
+    "total": 205
+  },
+  "files": [
+    {
+      "path": "v3/test/control-center-progression-settings.test.js",
+      "blobSha": "cb1d85a6684a9c7788ba489b75fca1c57e4e1a7c",
+      "size": 4668,
+      "lines": 104,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/control/control-plane-config",
+        "../src/reliability/alpha25-control-center-brain"
+      ],
+      "testCases": [
+        "local control plane exposes and clamps the current +7/+10 result-level progression caps",
+        "Alpha25 applies dashboard progression settings to Alpha27 and translates compound result cap for legacy policy",
+        "Alpha25 replays stored progression settings when Alpha27 is installed later"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 29,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 3,
+        "recovery": 0,
+        "merchant": 22,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/cross-client-capability-brain.test.js",
+      "blobSha": "de067863f82532fc9128a0064269aa60e686e476",
+      "size": 21538,
+      "lines": 478,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/autonomy/skill-catalog-service",
+        "../src/autonomy/character-combat-profile",
+        "../src/autonomy/capability-resolver",
+        "../src/autonomy/capability-sync",
+        "../src/party/telemetry-bridge",
+        "../src/brain/strategic-brain-v2",
+        "../src/control/control-plane-config",
+        "../src/autonomy/combat-modes"
+      ],
+      "testCases": [
+        "capability sync snapshot carries per-character permissions, sliders and catalog identity only for validated skills",
+        "party telemetry broadcasts one bounded capability report to merchant and current party peers",
+        "merchant remains receive-only and never rebroadcasts its own telemetry report",
+        "party resolver uses fresh per-name remote capabilities for duplicate classes and never falls back to guessed remote profiles",
+        "stale, missing or catalog-mismatched remote capabilities fail closed for Smart AoE capacity",
+        "remote capability validation trusts same live catalog fingerprint even when audit generation differs",
+        "StrategicBrainV2 learns with explicit party capability and adaptive pull features and exposes them to teacher requests",
+        "Merchant StrategicBrainV2 consumes authoritative remote leader pull context from party telemetry",
+        "TinyStrategyNetwork migrates old 32-input brain weights and preserves all legacy columns"
+      ],
+      "states": [
+        "TEST",
+        "AOE_BURN",
+        "SUSTAINABLE_XP_OPTIMUM",
+        "READY",
+        "REMOTE_CAPABILITY_STALE",
+        "SKILL_CATALOG_FINGERPRINT_MISMATCH",
+        "REMOTE_CAPABILITY_MISSING",
+        "STANDBY"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 73,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 18,
+        "party": 32,
+        "persistence": 0,
+        "telemetry": 8,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/debug-telemetry-fast-lane.test.js",
+      "blobSha": "53e02e7b5547d95b278b450beb1058dca5478dfe",
+      "size": 6569,
+      "lines": 170,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../host/debug-telemetry-exporter"
+      ],
+      "testCases": [
+        "critical self-healing signal bypasses the 120-second periodic telemetry interval after fast-lane cooldown",
+        "non-critical telemetry stays on the regular quota-safe cadence",
+        "fast lane deduplicates repeated critical fingerprints for ten minutes without consuming unsent events",
+        "global fast-lane cooldown suppresses bursts but permits a distinct critical signal after 30 seconds",
+        "failed fast-lane upload preserves the cursor and can retry after cooldown",
+        "fast-lane request ceiling remains inside the four-exporter monthly budget"
+      ],
+      "states": [
+        "AIO_V3_DEBUG_SNAPSHOT",
+        "HEALTHY",
+        "HEARTBEAT",
+        "WATCHDOG_RESTART_REQUIRED",
+        "NO_PROGRESS",
+        "CRITICAL_SIGNAL",
+        "ROUTE_UPDATED",
+        "DEBUG_TELEMETRY_BACKOFF",
+        "NO_CRITICAL_SIGNAL",
+        "CLOUD_CONTROL_CYCLE_FAILED",
+        "DISCONNECTED",
+        "FAST_LANE_DEDUPED",
+        "RUNTIME_DISCONNECTED",
+        "FAST_LANE_COOLDOWN",
+        "RECOVERY_FAILED",
+        "SAFE_MODE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 38,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 6,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/discovery-research.test.js",
+      "blobSha": "d36360e412c819cf8b077849abefd07bf9eaacab",
+      "size": 2246,
+      "lines": 41,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/world/world-model",
+        "../src/world/discovery",
+        "../src/research/research"
+      ],
+      "testCases": [
+        "Discovery separates observed live knowledge from inferred current-map metadata",
+        "ResearchJournal records hypotheses but blocks action-requiring experiments in alpha.2"
+      ],
+      "states": [
+        "MEASURE",
+        "ALPHA_OBSERVATION_ONLY"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 9,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/economy-equipment-autonomy-v2.test.js",
+      "blobSha": "69b97bff72ed6ad3d3230cdae9658b7e67634e8a",
+      "size": 4954,
+      "lines": 37,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/economy-equipment-autonomy-v2",
+        "../src/reliability/economy-v2-market-history",
+        "../src/reliability/economy-v2-planning"
+      ],
+      "testCases": [
+        "persistent market history derives trend and survives restore",
+        "global optimizer uses scarce account stock and emits multi-hop route",
+        "home service state persists explicit Market phase",
+        "party need preempts home service then returns toward Town"
+      ],
+      "states": [
+        "SOURCE_TO_MERCHANT_TO_TARGET",
+        "KEEP",
+        "TEST",
+        "TEST_PERSIST",
+        "POTIONS_CRITICAL"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 13,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 13,
+        "party": 2,
+        "persistence": 7,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/encounter-learning-integrity.test.js",
+      "blobSha": "7dc1f02c24a2f9da34ba491ef91402155d6c6913",
+      "size": 17599,
+      "lines": 422,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/autonomy/tactical-party-combat",
+        "../src/autonomy/combat-modes",
+        "../src/autonomy/smart-aoe-planner",
+        "../src/brain/strategic-brain-v2",
+        "../src/autonomy/adaptive-pull-learning",
+        "../src/party/performance-store",
+        "../src/party/telemetry-bridge",
+        "../src/telemetry/performance-tracker",
+        "../src/autonomy/encounter-lifecycle",
+        "../src/reliability/alpha25-control-center-brain"
+      ],
+      "testCases": [
+        "AoE encounter promotes an already-tracked survivor without changing encounter identity",
+        "StrategicBrainV2 persists the bounded encounter dedupe ring across restart",
+        "generic brain outcome waits for its active encounter and is suppressed by the discrete encounter result",
+        "AdaptivePullLearner persists encounter IDs before mutation and rejects the same encounter after restart",
+        "PartyTelemetryBridge keeps protocol v1 while carrying a bounded ordered encounter history",
+        "Alpha25 merchant ingests every unseen remote encounter in chronological order",
+        "PerformanceTracker splits HP and MP potion use without changing total potion accounting",
+        "EncounterLifecycle baselines pre-existing performance and discounts peer-rate estimates for learning"
+      ],
+      "states": [
+        "TEST",
+        "RESOLVED",
+        "SUCCESS",
+        "ENCOUNTER_OUTCOME_DUPLICATE",
+        "APPROVED",
+        "TARGETS_RESOLVED",
+        "LOCAL_CONFIRMED_PLUS_PEER_RATE_ESTIMATE",
+        "LOCAL_EXACT_PLUS_PEER_RATE_ESTIMATE",
+        "LOCAL_EXACT_PLUS_DISCOUNTED_PEER_RATE_ESTIMATE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 60,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 2,
+        "recovery": 0,
+        "merchant": 3,
+        "party": 31,
+        "persistence": 2,
+        "telemetry": 8,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Final integrity gate: generated runtime bundle must remain stable on this user-authored PR head.\\n// Fresh-main final integrity gate: PR #388 must pass without another generated runtime change."
+      ]
+    },
+    {
+      "path": "v3/test/encounter-lifecycle-outcomes.test.js",
+      "blobSha": "039dab933b6c20dcb8bdc6f31ae007c8d13d676c",
+      "size": 11827,
+      "lines": 209,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/autonomy/encounter-lifecycle",
+        "../src/autonomy/adaptive-pull-learning",
+        "../src/party/performance-store",
+        "../src/party/telemetry-bridge",
+        "../src/brain/strategic-brain-v2",
+        "../src/autonomy/smart-aoe-planner"
+      ],
+      "testCases": [
+        "EncounterLifecycle records leader-owned planner transitions and one primary success outcome",
+        "EncounterLifecycle is fail-closed for content drift and only the combat leader can own a lifecycle",
+        "AdaptivePullLearner records final encounter once and suppresses window learning when lifecycle is primary",
+        "PartyTelemetryBridge carries only fresh leader-owned bounded encounter outcomes without protocol changes",
+        "StrategicBrainV2 learns one bounded reward per encounter and exposes it to teacher requests"
+      ],
+      "states": [
+        "APPROVED",
+        "TEST",
+        "SUSTAINABLE_XP_OPTIMUM",
+        "TARGETS_RESOLVED",
+        "CREATED",
+        "BUILDING",
+        "ACTIVE",
+        "FINISHING",
+        "RESOLVED",
+        "QUARANTINED",
+        "CONTENT_CHANGED",
+        "SUCCESS",
+        "ENCOUNTER_OUTCOME_DUPLICATE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 41,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 16,
+        "persistence": 0,
+        "telemetry": 6,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/event-log.test.js",
+      "blobSha": "9f5c9e2743057f21ec3ecccdc2c811946b0ea8ed",
+      "size": 1356,
+      "lines": 26,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/core/event-log"
+      ],
+      "testCases": [
+        "EventLog redacts secrets and keeps a bounded ring buffer",
+        "EventLog supports structured filtering without changing the legacy numeric API"
+      ],
+      "states": [
+        "WINDOW",
+        "SAVE",
+        "TEST"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 8,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 1,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/farm-planner.test.js",
+      "blobSha": "b7b4023f81ef52f9d71fe79d18f3ed8df4ad4fa4",
+      "size": 1161,
+      "lines": 23,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/planner/farm-planner"
+      ],
+      "testCases": [
+        "FarmPlanner rejects unsafe death rate before optimizing EXP and gold",
+        "FarmPlanner values EXP/h above Gold/h and uses travel only as a penalty/tie-breaker"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 2,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/farmer-fsm.test.js",
+      "blobSha": "636b967baba9317d79125f18bf4a4318165c0322",
+      "size": 6766,
+      "lines": 167,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/farmer-fsm"
+      ],
+      "testCases": [
+        "Farmer runs a shadow plan without issuing game commands",
+        "Farmer selects a safe nearby target and attacks through the adapter",
+        "Farmer defaults to party-only and skips a monster claimed by an unrelated player",
+        "party-only allows a monster claimed by a current party member",
+        "avoid skips party-claimed monsters but still allows monsters targeting self",
+        "allow permits a monster claimed by an unrelated player",
+        "changing target policy clears a now-disallowed live target and forces reassessment",
+        "Farmer rejects unknown target policies",
+        "Farmer recovers with an HP potion before selecting combat",
+        "Farmer blocks low HP combat when no HP potion is available"
+      ],
+      "states": [
+        "RUNNING",
+        "LOW_HP_NO_POTION"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 27,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 1,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 0,
+        "party": 18,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/farmer-local-plan-priority.test.js",
+      "blobSha": "c52533e1aa49959f06f18883baa1819f262bb675",
+      "size": 4449,
+      "lines": 104,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/core/task",
+        "../src/farmer/farmer-local-plan-priority"
+      ],
+      "testCases": [
+        "Farmer yields exactly one safe scheduler turn so local farm planning can run before incidental target churn",
+        "a created local plan rearms one-turn priority for a later plan-loss episode",
+        "self aggro, low HP, active combat/travel and known no-spawn states bypass plan priority",
+        "Merchant is never granted a local-plan priority Farmer turn",
+        "2500 plan-loss episodes yield exactly once each and never execute Farmer work on the priority turn"
+      ],
+      "states": [
+        "ASSESS",
+        "ORIGINAL",
+        "LOCAL_PLAN_PRIORITY",
+        "ABORT",
+        "PLAN_NO_LONGER_ELIGIBLE",
+        "RECOVER",
+        "ENGAGE",
+        "TRAVEL",
+        "WAIT",
+        "NO_APPROVED_LOCAL_SPAWN"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 19,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 2,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/ftps-diagnostics-uploader.test.js",
+      "blobSha": "682ac01bd8b2a3d7c98ac71d5772a8bee13ae86f",
+      "size": 5132,
+      "lines": 127,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "../host/ftps-diagnostics-uploader"
+      ],
+      "testCases": [
+        "FTPS uploader uses TLS, .part rename, size verification and latest-problem index",
+        "FTPS failure keeps the pending bundle and applies exponential reconnect backoff",
+        "configured diagnostics transport refuses plaintext FTP by default"
+      ],
+      "states": [
+        "ERROR",
+        "NO_PROGRESS",
+        "DIAGNOSTICS_FTPS_FAILED",
+        "DIAGNOSTICS_FTPS_BACKOFF"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 23,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 1,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/functional-health-assessment.test.js",
+      "blobSha": "2226c7173c37293e2496db7cd65f477f1a52843b",
+      "size": 2210,
+      "lines": 41,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../host/functional-health-assessor"
+      ],
+      "testCases": [
+        "healthy farmer combat progress remains healthy",
+        "active farmer without combat progress becomes critical",
+        "idle farmer does not create a false combat alarm",
+        "merchant with pending work and stale last action becomes critical",
+        "technical stalled event is retained as functional failure evidence"
+      ],
+      "states": [
+        "ENGAGE",
+        "HEALTHY",
+        "CRITICAL",
+        "FARMER_NO_COMBAT_PROGRESS",
+        "IDLE",
+        "ACTIVE",
+        "MERCHANT_NO_SERVICE_PROGRESS",
+        "MERCHANT_SERVICE",
+        "STALLED",
+        "MERCHANT_PROGRESS_EVENT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 11,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 9,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/game-command-boundary-guard.test.js",
+      "blobSha": "414539b3ba1db7bd617fdbbdc904db45e7f2c15b",
+      "size": 1592,
+      "lines": 50,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../scripts/game-command-boundary-guard"
+      ],
+      "testCases": [
+        "guard rejects direct Adventure Land mutations and raw binding aliases",
+        "guard accepts adapter command routing",
+        "production source contains no direct protected mutation access outside GameAdapter"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [
+        "sell",
+        "smart_move"
+      ],
+      "assertionSignals": {
+        "assert": 4,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 2,
+        "party": 6,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/game-command-boundary.test.js",
+      "blobSha": "2b692eb124d6dfebabaafd455768d3fd3ef42185",
+      "size": 6851,
+      "lines": 140,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/game/adapter",
+        "../src/game/stability-adapter"
+      ],
+      "testCases": [
+        "structured command catalog exposes all migrated step-3 command families",
+        "active GameAdapter executes stand control and item delivery with exact arguments",
+        "active GameAdapter executes the remaining migrated production mutations",
+        "shadow GameAdapter records intent without executing migrated writes",
+        "canCommand reports raw API availability without executing it",
+        "stability adapter delegates merchant verification to the owning domain service"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [
+        "send_item",
+        "send_gold",
+        "sell",
+        "send_cm"
+      ],
+      "assertionSignals": {
+        "assert": 34,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 8,
+        "party": 17,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}

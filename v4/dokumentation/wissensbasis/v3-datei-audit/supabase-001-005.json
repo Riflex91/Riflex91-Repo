@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/supabase",
+  "range": {
+    "start": 1,
+    "end": 5,
+    "total": 5
+  },
+  "files": [
+    {
+      "path": "v3/supabase/functions/bot-debug-ingest/deno.json",
+      "blobSha": "dd16f6f68d375fe09cbade1db8ed3282540a0625",
+      "size": 79,
+      "lines": 2,
+      "classification": "SOURCE_AND_MIGRATION",
+      "signals": {
+        "migration": 0,
+        "security": 0,
+        "persistence": 0,
+        "build": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/supabase/functions/bot-debug-ingest/index.ts",
+      "blobSha": "73a105832b8f00f453322779c830efa1e4693f8c",
+      "size": 16542,
+      "lines": 319,
+      "classification": "SOURCE_AND_MIGRATION",
+      "signals": {
+        "migration": 0,
+        "security": 10,
+        "persistence": 9,
+        "build": 34,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/supabase/migrations/20260915_debug_telemetry_budget_storage.sql",
+      "blobSha": "940cba9a0ebdc21b0b3fbef65f3d1864a55db422",
+      "size": 1702,
+      "lines": 37,
+      "classification": "SOURCE_AND_MIGRATION",
+      "signals": {
+        "migration": 0,
+        "security": 0,
+        "persistence": 4,
+        "build": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/supabase/migrations/20260915_secure_rls_auto_enable_acl.sql",
+      "blobSha": "15090980bb888c14794fa67ae5e935b9b900b976",
+      "size": 86,
+      "lines": 2,
+      "classification": "SOURCE_AND_MIGRATION",
+      "signals": {
+        "migration": 0,
+        "security": 2,
+        "persistence": 0,
+        "build": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/supabase/migrations/20260916_problem_diagnostics_read_mirror.sql",
+      "blobSha": "0215041e5f93a1bec25f896f36b042dc86c562a4",
+      "size": 1541,
+      "lines": 30,
+      "classification": "SOURCE_AND_MIGRATION",
+      "signals": {
+        "migration": 0,
+        "security": 4,
+        "persistence": 4,
+        "build": 5,
+        "todo": 0
+      }
+    }
+  ]
+}

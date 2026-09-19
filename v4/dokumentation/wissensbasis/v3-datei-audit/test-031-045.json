@@ -1,0 +1,760 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/test",
+  "range": {
+    "start": 31,
+    "end": 45,
+    "total": 205
+  },
+  "files": [
+    {
+      "path": "v3/test/alpha20-12-orbital-kiting-skill-rotation.test.js",
+      "blobSha": "f02895c05851d085b51746412a9983819e1e6da2",
+      "size": 7346,
+      "lines": 193,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/retreat-farmer",
+        "../src/farmer/farmer-terrain-navigation-hotfix"
+      ],
+      "testCases": [
+        "Alpha20.12 raises ranged kite distance and removes the routine offensive MP reserve",
+        "blocked radial kite chooses a reachable orbital waypoint while continuing damage",
+        "fully blocked kite emits no doomed movement command and still allows damage",
+        "emergency retreat uses a reachable angled escape when straight retreat is walled off",
+        "emergency retreat refuses an unreachable move instead of poisoning the movement circuit",
+        "Ranger supershot is eligible at 408/815 MP when the live cooldown helper says ready",
+        "shared combat skill policy rotates to another safe class skill while the top skill is on cooldown"
+      ],
+      "states": [
+        "KITE_TERRAIN_BLOCKED",
+        "RETREAT_TERRAIN_BLOCKED",
+        "SKILL_COOLDOWN_OR_REQUIREMENT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 33,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 2,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Wall directly west of the character: straight-away kiting is blocked,",
+        "// while a tangential/orbital step with x near zero remains reachable."
+      ]
+    },
+    {
+      "path": "v3/test/alpha20-13-team-cohesion-potion-topoff.test.js",
+      "blobSha": "4ae240220214dbcc909c5769ca86bc5d3961f028",
+      "size": 26707,
+      "lines": 657,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/game/adapter",
+        "../src/farmer/retreat-farmer",
+        "../src/autonomy/local-farm-orchestrator",
+        "../src/farmer/farmer-resource-topoff-hotfix",
+        "../src/party/team-combat-cohesion-hotfix"
+      ],
+      "testCases": [
+        "resource topoff uses the precise MP potion action whenever mana is not full",
+        "resource topoff avoids wasting a known MP potion on a tiny mana deficit",
+        "recovery state bypasses potion utilization floor for a low-max-MP Warrior",
+        "normal topoff still avoids the same wasteful potion outside RECOVER",
+        "operational MP threshold bypasses utilization floor outside RECOVER for low-max-MP Warrior",
+        "resource topoff tries viable HP when preferred MP would be wasteful",
+        "resource topoff uses a known MP potion once at least half its restore is useful",
+        "critical HP bypasses potion utilization floor",
+        "resource topoff suppresses cooldown command spam before reaching the adapter",
+        "resource topoff does nothing when HP and MP are full",
+        "missing MP potions marks combat supply incomplete",
+        "team leader is deterministic and is My_Ranger1 for the current roster",
+        "a follower never opens an independent target while the leader has none",
+        "a follower mirrors the leader target only when it remains locally safe and visible",
+        "follower keeps authoritative leader target knowledge even when local potion supply blocks combat",
+        "follower preserves leader target identity while the target is temporarily not locally visible",
+        "existing shared aggro can become a rescue target for every team member before leader target propagation",
+        "leader refuses to open a routine fight when the team is spread beyond cohesion radius",
+        "leader rejects an oversized unaggroed routine target but accepts a normal target",
+        "missing local MP potion blocks new combat rather than wandering to a new farm plan",
+        "followers do not own independent farm direction and regroup toward the leader",
+        "active shared combat suppresses follower regroup movement while support fire continues outside cohesion",
+        "leader waits for followers instead of departing alone to another spawn",
+        "team kiting radius is smaller and a kite move cannot break formation"
+      ],
+      "states": [
+        "LEGACY_ALLOWED",
+        "POTION_OVERHEAL_AVOIDED",
+        "RECOVER",
+        "MP_BELOW_RECOVERY_THRESHOLD",
+        "SELECT_TARGET",
+        "ENGAGE",
+        "POTION_COOLDOWN",
+        "WAITING_FOR_TEAM_LEADER_TARGET",
+        "TEAM_LEADER_TARGET",
+        "LOCAL_POTION_SUPPLY_INCOMPLETE",
+        "LEADER_TARGET_NOT_LOCALLY_VISIBLE",
+        "TEAM_NOT_COHESIVE",
+        "NEW_TARGET_TOO_LARGE_FOR_ROUTINE_TEAM_PULL",
+        "HOLD",
+        "FORMATION_FOLLOW",
+        "ACTIVE_TEAM_COMBAT_CONTINUES_OUTSIDE_COHESION",
+        "REGROUP_WITH_TEAM_LEADER",
+        "ACTIVE_COMBAT_POSITION_OWNED_BY_COMBAT",
+        "WAITING_FOR_TEAM_COHESION",
+        "TEAM_COHESION_KITE_LIMIT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 113,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 16,
+        "merchant": 6,
+        "party": 35,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-14-logistics-area-pressure.test.js",
+      "blobSha": "7dbe8c0e73ca8fff804b72d31b57cc5e2b5e1b99",
+      "size": 13627,
+      "lines": 317,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/game/adapter",
+        "../src/reliability/team-cohesion-deadlock-hotfix",
+        "../src/party/controlled-party-logistics",
+        "../src/farmer/farm-area-pressure-hotfix"
+      ],
+      "testCases": [
+        "pairwise formation hotfix makes steady opposite follower positions fit the cohesion gate",
+        "merchant automatically resupplies a trusted farmer with missing MP potions and verifies its own inventory delta",
+        "farmer drains non-potion inventory before gold and keeps HP/MP potions local",
+        "farmer transfers its complete gold balance when Merchant is nearby",
+        "merchant says stop for item loot only when its actual inventory is full",
+        "sustained target starvation with foreign players marks an area overcrowded and replans to another safe candidate",
+        "sustained target starvation without foreign players is classified as insufficient spawn rate",
+        "area pressure never invents an unsafe destination when no alternative approved candidate exists"
+      ],
+      "states": [
+        "ASSESS",
+        "LOOT_GRANT",
+        "GOLD_GRANT",
+        "OKAY_STOP_MERCHANT_INVENTORY_FULL",
+        "HOLDING",
+        "REPLAN",
+        "AREA_OVERPOPULATED",
+        "AREA_PRESSURE_REPLAN",
+        "AREA_SPAWN_STARVED",
+        "HOLD",
+        "AREA_PRESSURED_BUT_NO_SAFE_ALTERNATIVE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 30,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 38,
+        "party": 8,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-15-combat-logistics.test.js",
+      "blobSha": "58f764801733c96e90efb2fff3b3e9995f138fb0",
+      "size": 14100,
+      "lines": 358,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/controlled-party-logistics",
+        "../src/party/alpha20-15-combat-logistics-hotfix",
+        "../src/release-version"
+      ],
+      "testCases": [
+        "Alpha20.15 normalizes synthetic team rankings before Farmer telemetry formats travelSeconds",
+        "Alpha20.15 logistics keeps one Merchant pickup slot and uses accelerated closed-loop transfer cadence",
+        "Alpha20.15 farmer loot accepts transferable gear and special items but keeps HP/MP potions and locked items",
+        "Merchant stops item intake with one physical pickup-reserve slot remaining",
+        "Merchant keeps the last-slot grant reserved until recipient inventory observes the Farmer item",
+        "Merchant serializes concurrent grants for the same item identity until recipient settlement",
+        "transient send_item rejection uses short retry guard instead of two-minute item lockout",
+        "Gold offer uses the entire farmer balance while Merchant is nearby even when Merchant inventory is full",
+        "Inventory offer skips potions and offers levelled gear while Merchant still has capacity",
+        "Farmer loot offers and granted transfers are not blocked by normal ENGAGE combat state",
+        "visible release version matches integrated Alpha20.23"
+      ],
+      "states": [
+        "ASSESS",
+        "OKAY_STOP_MERCHANT_INVENTORY_FULL",
+        "IDENTITY_TRANSFER_IN_FLIGHT",
+        "OUTBOUND_SEND_REJECTED_TRANSIENT",
+        "MERCHANT_FULL_BUT_GOLD_HAS_NO_SLOT_COST",
+        "ENGAGE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 63,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 2,
+        "recovery": 0,
+        "merchant": 36,
+        "party": 18,
+        "persistence": 0,
+        "telemetry": 1,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Live alpha.20.105 regression: identical concurrent grants must not share one Merchant recipient baseline."
+      ]
+    },
+    {
+      "path": "v3/test/alpha20-19-addressed-cm-regression.test.js",
+      "blobSha": "a2797690418905d461a7f719ea395e1e7778ea90",
+      "size": 7746,
+      "lines": 207,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/account-character-transport",
+        "../src/party/controlled-party-bootstrap-base",
+        "../src/party/control-lease",
+        "../src/party/party-account-communication",
+        "../src/party/alpha20-19-account-transport-hotfix",
+        "../src/reliability/alpha27-combat-ownership"
+      ],
+      "testCases": [
+        "Alpha20.19 CM fallback keeps the named receiver envelope",
+        "ControlledPartyBootstrap keeps the AccountCharacterTransport CM router authoritative",
+        "PartyControlLease resume cannot displace the account transport CM router",
+        "Alpha27 leader target reaches a follower through the CM fallback"
+      ],
+      "states": [
+        "UNAVAILABLE",
+        "SELECT_TARGET",
+        "ENGAGE"
+      ],
+      "directAdventureLandWrites": [
+        "send_cm"
+      ],
+      "assertionSignals": {
+        "assert": 26,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 9,
+        "party": 24,
+        "persistence": 0,
+        "telemetry": 1,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-19-integrated-party-control.test.js",
+      "blobSha": "6dac977bf7f23e606a1a5864062816c88a2134a0",
+      "size": 20529,
+      "lines": 377,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/account-character-transport",
+        "../src/party/alpha20-19-account-transport-hotfix",
+        "../src/party/controlled-party-logistics",
+        "../src/party/alpha20-15-combat-logistics-hotfix",
+        "../src/party/alpha20-19-logistics-stabilization",
+        "../src/farmer/farm-area-pressure-hotfix",
+        "../src/autonomy/adaptive-farm-intelligence",
+        "../src/autonomy/tactical-party-combat",
+        "../src/autonomy/advanced-party-movement",
+        "../src/autonomy/party-skill-engine",
+        "../src/release-version"
+      ],
+      "testCases": [
+        "Alpha20.17 allows a normal 14,400 HP squigtoad for three healthy Rangers",
+        "Alpha20.17 rejects a fresh boss/special pull but keeps an active encounter locked",
+        "Alpha20.19 direct transport requires observed-active even when broader party evidence exists",
+        "Alpha20.19 direct failure arms backoff before falling back to CM",
+        "ControlledPartyLogistics preserves the shared AccountCharacterTransport on_cm router",
+        "Alpha20.19 failed LOOT_OFFER releases pendingOffer instead of deadlocking item and gold logistics",
+        "Merchant explicitly rejects an unserviceable loot offer",
+        "Farmer LOOT_REJECT immediately releases and blocks the exact offered item",
+        "Alpha20.19 stale offer expires and Merchant status exposes explicit loot signal and 300 potion reserve",
+        "Alpha20.16 distinguishes overpopulation from spawn starvation",
+        "Alpha20.18 generates bounded class-aware formation and shared group-orbit waypoints",
+        "Alpha20.19 prioritizes Ranger Supershot for worthwhile targets and avoids expensive Supershot overkill",
+        "visible integrated release version is Alpha20.23"
+      ],
+      "states": [
+        "STATUS",
+        "ACCEPTING_LOOT",
+        "MERCHANT_POLICY_REJECT",
+        "AREA_OVERPOPULATED",
+        "AREA_SPAWN_STARVED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 64,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 12,
+        "recovery": 2,
+        "merchant": 31,
+        "party": 42,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-20-alpha22-autonomy.test.js",
+      "blobSha": "694209842b01866589b642e3fd2e0976fb0a3514",
+      "size": 6575,
+      "lines": 145,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha20-20-alpha22-autonomy"
+      ],
+      "testCases": [
+        "alpha22 math helpers are deterministic",
+        "market value oracle combines player asks and bids and falls back to game data",
+        "combat continuity finishes an already damaged encounter without opening a fresh pull",
+        "combat loot handoff opens only a healthy active-engage window",
+        "quota fallback uses trusted BroadcastChannel delivery with ACK",
+        "alpha22 item classification sells only low-risk material and retains valuable/protected loot"
+      ],
+      "states": [
+        "TEAM_NOT_COHESIVE",
+        "ENGAGE",
+        "ACTIVE_ENCOUNTER_CONTINUATION",
+        "SELL",
+        "KEEP",
+        "BANK"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 30,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 4,
+        "party": 4,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-20-live-regression-hotfix.test.js",
+      "blobSha": "a74a96c9ad6385a7546874263ce1fa49268a2f16",
+      "size": 5239,
+      "lines": 143,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha20-20-live-regression-hotfix"
+      ],
+      "testCases": [
+        "stale encounter is cleared before a cohesion wrapper can hold ENGAGE",
+        "live target still passes through the existing cohesion/combat wrapper",
+        "merchant gear guard rejects stale goals and delivers identical fresh goal only once",
+        "gear delivery becomes eligible again only when the goal evidence meaningfully changes"
+      ],
+      "states": [
+        "ENGAGE",
+        "REASSESS",
+        "TARGET_DEAD_OR_GONE_PRE_COHESION_GATE",
+        "GEAR_TRANSFER"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 24,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 8,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-21-cloud-persistence-recovery.test.js",
+      "blobSha": "5768b032510b50b0e1b77ae9b8dd1a1ed6895da2",
+      "size": 11830,
+      "lines": 154,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha20-21-cloud-persistence-recovery",
+        "../src/control/cloud-long-term-persistence"
+      ],
+      "testCases": [
+        "technical target automatons cannot pin local farm navigation or self-aggro presence",
+        "false novelty reconciliation restores historical LEGACY_ALLOWED monster but never dangerous or real drift",
+        "auto-quarantine created with the same false-novelty scan is reconciled, explicit quarantine is not",
+        "historical gear evidence can reconcile false item novelty without granting gameplay authority",
+        "Merchant no-op capacity backoff suppresses unchanged home-service thrash and breaks on inventory change",
+        "Teacher guard counts failed attempts for 10 minute backoff and removes periodic-only asks",
+        "cloud persistence keeps only latest RAM record and cloud failure never clears dirty state",
+        "update quiesce blocks new work but preserves updater safety and enables auto-start for reload",
+        "server teacher budget keeps 1500-neuron reserve under 10000 hard cap and counts post-inference overruns as consumed"
+      ],
+      "states": [
+        "LEGACY_ALLOWED",
+        "PRE_ALPHA_8_12_KNOWN",
+        "QUARANTINED",
+        "OBSERVED",
+        "OPERATOR_QUARANTINED",
+        "NO_MORE_SAFE_BANK_ACTIONS"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 48,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 1
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 7,
+        "merchant": 13,
+        "party": 1,
+        "persistence": 12,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-22-live-smoke-recovery.test.js",
+      "blobSha": "55e5696075ffada10a52e3ae7a4ff1edd6602407",
+      "size": 5781,
+      "lines": 106,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha20-22-live-smoke-recovery"
+      ],
+      "testCases": [
+        "Alpha20.22 local farming reroutes a blocked direct step through a passable bounded waypoint",
+        "Alpha20.22 local farming returns no waypoint when terrain probing cannot find a safe move",
+        "Alpha20.22 D1 quota response arms UTC reset backoff and suppresses cloud/persistence retry storms",
+        "Alpha20.22 send_cm storage quota is backoff-only and never widens direct authority",
+        "Alpha20.22 Worker keeps authenticated dashboard login usable when D1 daily row reads are exhausted"
+      ],
+      "states": [
+        "D1_DAILY_ROW_READ_LIMIT",
+        "CM_STORAGE_QUOTA_BACKOFF",
+        "POST"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 33,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 1
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 0,
+        "party": 1,
+        "persistence": 12,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-23-idle-deadlock-recovery.test.js",
+      "blobSha": "db07645b1d25049e9f000808968d5386d1a3025b",
+      "size": 7126,
+      "lines": 166,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/target-safety",
+        "../src/reliability/alpha20-23-idle-deadlock-recovery"
+      ],
+      "testCases": [
+        "Alpha20.23 releases a non-hostile Target Automatron from visible-monster navigation blocking",
+        "Alpha20.23 keeps unknown monsters, dangerous fairies and custom exclusions fail-closed",
+        "Alpha20.23 never releases a Target Automatron that is attacking the character",
+        "Alpha20.23 never releases a selected or planned Target Automatron even if TargetSafety rejects its identity",
+        "Alpha20.23 releases a known safe monster claimed by a player outside the party",
+        "Alpha20.23 keeps neutral, self-aggro and party-aggro known monsters as blockers",
+        "Alpha20.23 releases a foreign-engaged safe monster even when its type matches the local travel plan",
+        "Alpha20.23 keeps content-quarantined foreign monsters fail-closed",
+        "Alpha20.23 installation is idempotent and safety evaluation failures remain blockers"
+      ],
+      "states": [
+        "TRAINING_TARGET_AUTOMATRON",
+        "FOREIGN_ENGAGED_SAFE_MONSTER",
+        "CONTENT_QUARANTINED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 20,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 24,
+        "merchant": 0,
+        "party": 9,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-23-log-deadlock-regressions.test.js",
+      "blobSha": "a92ba0a52e4836a62a0dc8255e029325fc91c2db",
+      "size": 9761,
+      "lines": 267,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha28-ledger-farmer-fixes",
+        "../src/autonomy/advanced-party-movement",
+        "../src/reliability/team-cohesion-deadlock-hotfix",
+        "../src/reliability/alpha28-live-authority-liveness"
+      ],
+      "testCases": [
+        "Alpha28 safe planned target remains selectable when ranking metadata is temporarily unavailable",
+        "Alpha28 non-scoped economy degradation does not disable healthy travel authority",
+        "Alpha28 travel circuit remains independently fail-closed",
+        "Merchant failed response keeps structured reason instead of [object Object]",
+        "stationary follower inside cohesion radius is not converted into a regroup deadlock",
+        "failed leader recovery attempts are cooldown-limited",
+        "object-valued promise rejection is normalized before transaction failure storage",
+        "mutation-only economy circuit keeps independent merchant families enabled"
+      ],
+      "states": [
+        "HEALTHY",
+        "DEGRADED",
+        "LEDGER_UNAVAILABLE",
+        "ECONOMY_CIRCUIT_OPEN",
+        "TRAVEL_CIRCUIT_OPEN",
+        "SELL_REJECTED",
+        "SELL",
+        "HOLD",
+        "WAITING_FOR_TEAM_COHESION",
+        "UPGRADE_REJECTED",
+        "UPGRADE",
+        "WATCH",
+        "UPGRADE_CIRCUIT_OPEN"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 29,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 1
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 16,
+        "merchant": 20,
+        "party": 5,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-33-combat-logistics-regression.test.js",
+      "blobSha": "b982d8d4e217e567c20704a3803eb5929a58032d",
+      "size": 6287,
+      "lines": 161,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha20-33-combat-logistics-regression-hotfix"
+      ],
+      "testCases": [
+        "active self-aggro cannot bypass the hard team kite tether",
+        "supporter outward move is blocked without self aggro but combat falls through",
+        "merchant target alone no longer means combat; incoming monster aggro still does",
+        "farmer gold waits 30 seconds, batches recent loot, and enforces a 30 second transfer cadence"
+      ],
+      "states": [
+        "TEAM_COHESION_KITE_LIMIT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 28,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 14,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-40-merchant-production-bundle-entry.test.js",
+      "blobSha": "b5e15010e0c20bdd439ba31c80d2bfbc2d2e0dbe",
+      "size": 859,
+      "lines": 18,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/index-production"
+      ],
+      "testCases": [
+        "production bundle entry exports scoped Merchant production authority"
+      ],
+      "states": [
+        "MERCHANT_PRODUCTION_V1",
+        "BUY",
+        "BANK_RETRIEVE",
+        "CRAFT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 8,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 6,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-40-merchant-production.test.js",
+      "blobSha": "32aff01646a0d2ba48eba1bcc2d0f99c0336cca1",
+      "size": 9016,
+      "lines": 235,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/merchant/merchant-production-planner",
+        "../src/merchant/controlled-merchant-production-executor"
+      ],
+      "testCases": [
+        "planner selects a deterministic crafted gear improvement and reserves held materials",
+        "production planner rejects Merchant speed gain when it is a net gear regression",
+        "production planner still prefers a Merchant speed gain when weighted gear value is net positive",
+        "planner uses bank materials before declaring farming required",
+        "controlled production requires explicit ACK and exposes scoped buy/bank/craft authority",
+        "controlled BUY verifies inventory delta and keeps gold reserve",
+        "controlled BANK_RETRIEVE verifies bank and inventory deltas",
+        "controlled AUTO_CRAFT verifies produced output"
+      ],
+      "states": [
+        "HEALTHY",
+        "READY",
+        "HOLD",
+        "NO_CRAFTED_GEAR_IMPROVEMENT",
+        "MERCHANT_SPEED_WEIGHTED_IMPROVEMENT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 30,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 45,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}

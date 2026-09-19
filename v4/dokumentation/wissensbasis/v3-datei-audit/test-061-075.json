@@ -1,0 +1,802 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/test",
+  "range": {
+    "start": 61,
+    "end": 75,
+    "total": 205
+  },
+  "files": [
+    {
+      "path": "v3/test/alpha20-8-semantic-recovery-local-farm-regression.test.js",
+      "blobSha": "b56123f0e2547eba810964dc3d3f6dbab014e6cc",
+      "size": 4939,
+      "lines": 145,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/world/world-model",
+        "../src/farmer/content-safety",
+        "../src/content/content-drift-semantic-recovery",
+        "../src/autonomy/local-farm-planner"
+      ],
+      "testCases": [
+        "semantic recovery caches firstSeenAt evidence and never dereferences the monster twice",
+        "one malformed semantic-drift record cannot abort recovery of later valid records",
+        "technical training target is never auto-recovered into farmable content",
+        "local farm planner excludes target automatron spawn even when persisted policy says LEGACY_ALLOWED"
+      ],
+      "states": [
+        "QUARANTINED",
+        "LEGACY_ALLOWED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 16,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 24,
+        "merchant": 1,
+        "party": 0,
+        "persistence": 1,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-9-farm-efficiency-quota.test.js",
+      "blobSha": "226dd45e940ae8a55f3de15d69f7808f08680339",
+      "size": 6150,
+      "lines": 183,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/target-efficiency",
+        "../src/farmer/farmer-target-efficiency-hotfix",
+        "../src/world/resilient-persistence"
+      ],
+      "testCases": [
+        "ranger rejects Froggie from authoritative evasion metadata while normal evasion remains farmable",
+        "high evasion remains class-aware but extreme avoidance is rejected for every farmer",
+        "efficiency hotfix removes Froggie from both spawn planning and live target selection",
+        "resilient persistence preflights the actual Adventure Land store_ key before set()",
+        "quota projection treats an existing store_AIO_V3_WORLD_MODEL as a replacement, not duplicate growth",
+        "a real QuotaExceededError permanently blocks repeated resilient writes for the session"
+      ],
+      "states": [
+        "EXTREME_EVASION",
+        "EXTREME_AVOIDANCE",
+        "PERSISTENCE_QUOTA_PRESSURE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 29,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 20,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-combined-live-gate.test.js",
+      "blobSha": "c0d6a807afc6e52c4abff936ccbb841fa241e03f",
+      "size": 24343,
+      "lines": 473,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/ops/alpha20-combined-live-gate",
+        "../src/release-version",
+        "../src/party/controlled-lifecycle-coordinator",
+        "../src/party/controlled-paladin-aura-executor"
+      ],
+      "testCases": [
+        "Alpha.20 combined live gate requires its own exact acknowledgement",
+        "precheck rejects anything other than a real Merchant plus three combat characters with zero transition calls",
+        "wrong lifecycle and aura acknowledgements cannot leave live authority enabled",
+        "a real stable four-character production observation is confirmation eligible without fabricating a party change",
+        "shortened test mode can pass safety invariants but can never become confirmation eligible",
+        "a real Promotion candidate becomes a confirmation blocker when operator does not authorize the controlled transition",
+        "an explicitly authorized real Promotion executes at most one controlled transition and returns every authority default-off",
+        "cross-map context never receives transition authority even with a real Promotion candidate and explicit budget",
+        "more than one Development slot fails precheck before any controlled action",
+        "passive observation fails closed on a new ISO timestamped error event",
+        "production countdown emits minute remaining messages plus start and completion without changing the gate duration"
+      ],
+      "states": [
+        "ONLINE",
+        "ACTIVE",
+        "DISABLED",
+        "WRONG_ACK",
+        "CONTROLLED_PARTY_LIFECYCLE_DISABLED",
+        "ACTIVE_COMBAT",
+        "PROMOTION_CANDIDATE",
+        "NO_ELIGIBLE_LIFECYCLE_CHANGE",
+        "PROMOTION",
+        "VERIFY_FAILED",
+        "ABORTED",
+        "COMMITTED",
+        "HEALTHY",
+        "KNOWN",
+        "ALPHA20_LIVE_GATE_ACK_REQUIRED",
+        "REAL_PARTY_MUST_BE_MERCHANT_PLUS_THREE_COMBAT",
+        "NO_CHANGE_JUSTIFIED",
+        "NOT_JUSTIFIED",
+        "FULL_10_MIN_OBSERVATION_NOT_SATISFIED",
+        "TEST_MODE_NOT_CONFIRMATION_ELIGIBLE",
+        "JUSTIFIED_NOT_AUTHORIZED",
+        "JUSTIFIED_PROMOTION_NOT_AUTHORIZED",
+        "BENCH",
+        "NOT_EXECUTED",
+        "CROSS_MAP_ROUTING_NOT_AUTHORIZED",
+        "DEVELOPMENT",
+        "MULTIPLE_DEVELOPMENT_SLOTS",
+        "SYNTHETIC_ERROR",
+        "ERROR_EVENT_DURING_PASSIVE_WINDOW"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 65,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 4,
+        "merchant": 26,
+        "party": 33,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// _currentMembers must still represent the actual four-person party; registry may contain the candidate."
+      ]
+    },
+    {
+      "path": "v3/test/alpha20-development-session.test.js",
+      "blobSha": "ede6ac175a84adcad2e7cfc99a2b9fbcde444004",
+      "size": 14459,
+      "lines": 291,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/lifecycle-store",
+        "../src/party/controlled-lifecycle-coordinator"
+      ],
+      "testCases": [
+        "only the active bounded Development candidate can graduate from measured current evidence",
+        "successful Development rotation is time-bounded and returns to the exact original party",
+        "Development session survives restart and never blindly transitions while its window is still active",
+        "measured promotion during Development commits the training composition without an extra raw transition",
+        "unexpected party drift during Development fails closed once and never creates a blind recovery action",
+        "2500-cycle active Development soak stays bounded and performs no additional raw transitions"
+      ],
+      "states": [
+        "HEALTHY",
+        "DEVELOPMENT_ROTATION",
+        "ACTIVE_BOUNDED_DEVELOPMENT_SESSION",
+        "DEVELOPMENT_WINDOW_ACTIVE",
+        "DEVELOPMENT_RETURN",
+        "DEVELOPMENT_PROMOTION_COMMITTED_NO_RAW_TRANSITION",
+        "DEVELOPMENT_SESSION_PARTY_DRIFT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 71,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 8,
+        "party": 30,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-live-gate-hardening.test.js",
+      "blobSha": "90ff9e099245347d05a94c8a1ffb621bbc757f12",
+      "size": 4910,
+      "lines": 105,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/ops/alpha20-combined-live-gate-hardened"
+      ],
+      "testCases": [
+        "Alpha.20 hardened live gate exposes an explicit abort boundary and rejects cancel while idle",
+        "cancel during passive observation exits bounded, fails confirmation duration, and performs no extra loop",
+        "passive liveness invariants fail closed on Merchant death or combat"
+      ],
+      "states": [
+        "USER_REQUESTED_STOP",
+        "HEALTHY",
+        "NO_RUN",
+        "ALPHA20_LIVE_GATE_NOT_RUNNING",
+        "OPERATOR_CANCELLED_TEST",
+        "OPERATOR_CANCELLED_LIVE_GATE",
+        "MERCHANT_DIED_DURING_OBSERVATION",
+        "MERCHANT_ENTERED_COMBAT_DURING_OBSERVATION"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 15,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 3,
+        "merchant": 14,
+        "party": 3,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-live-gate-runtime-integration.test.js",
+      "blobSha": "cbba98ad7d910b28ed95ee9b1eeebc505cb82c8d",
+      "size": 2960,
+      "lines": 65,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "public Alpha20Runtime exposes the hardened combined live gate while remaining default-off",
+        "idle cancel is explicit and cannot manufacture a live-gate result"
+      ],
+      "states": [
+        "ALPHA20_FULL_LIVE_GATE",
+        "WRONG_ACK",
+        "ALPHA20_LIVE_GATE_ACK_REQUIRED",
+        "USER_TEST_CANCEL",
+        "ALPHA20_LIVE_GATE_NOT_RUNNING"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 21,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 2,
+        "party": 3,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-party-circuit.test.js",
+      "blobSha": "2e457da78c2866a69478d5573f8769a46109e7bb",
+      "size": 6094,
+      "lines": 131,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/controlled-lifecycle-coordinator",
+        "../src/party/lifecycle-store"
+      ],
+      "testCases": [
+        "three failed controlled transitions open a persistent circuit and block a fourth attempt",
+        "high-risk, combat and economy emergency gates produce zero child transition calls",
+        "circuit automatically closes after cooldown while the sliding failure window expires on its exact boundary"
+      ],
+      "states": [
+        "VERIFY_FAILED",
+        "HEALTHY",
+        "PARTY_LIFECYCLE_CIRCUIT_OPEN",
+        "ECONOMY_EMERGENCY"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 23,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 4,
+        "merchant": 6,
+        "party": 17,
+        "persistence": 1,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-party-lifecycle.test.js",
+      "blobSha": "e0188ad2bb53a6275045f26e525b4e8c2be5869f",
+      "size": 18708,
+      "lines": 332,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/lifecycle-store",
+        "../src/party/controlled-lifecycle-coordinator",
+        "../src/party/controlled-paladin-aura-executor",
+        "../src/ops/minute-countdown-reporter"
+      ],
+      "testCases": [
+        "projected superiority creates DEVELOPMENT only and can never directly promote",
+        "projected superiority without explicit >=90% training safety remains BENCH",
+        "only one DEVELOPMENT slot is ever assigned",
+        "permanent promotion requires real current superiority for sustained windows",
+        "high-risk or economy emergency context suppresses development and resets promotion streak",
+        "controlled lifecycle is default-off, exact-ack gated and has independent development authority",
+        "promotion planner uses current measured superiority and selects the weakest incumbent",
+        "DEVELOPMENT rotation cannot plan without its own explicit authority",
+        "transition failure always removes child live authority and records an abort",
+        "restart reconciliation never blindly retries an uncertain transition",
+        "controlled Paladin aura is exact-ack gated and only executes one known aura through adapter",
+        "minute countdown reports remaining time without owning or changing test timing",
+        "3000-cycle lifecycle soak stays bounded and never allocates more than one development slot",
+        "2200-cycle controlled planner soak never creates malformed party targets or bypasses authority"
+      ],
+      "states": [
+        "PROJECTED_SUPERIORITY_ONLY_PLANNING",
+        "CURRENT_EVIDENCE_NOT_READY",
+        "TRAINING_SAFETY_GATE",
+        "HEALTHY",
+        "WRONG",
+        "PROMOTION",
+        "DEVELOPMENT_ROTATION",
+        "POSTCONDITION_VERIFY_TIMEOUT",
+        "AIO_V3_PARTY_LIFECYCLE_OPERATION",
+        "RESTART_ORIGINAL_STATE_OBSERVED",
+        "SOAK_COMPLETE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 70,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 3,
+        "merchant": 18,
+        "party": 60,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha21-progression-liveness.test.js",
+      "blobSha": "6e71ddb6418b015ae45b3f94423233217bf82626",
+      "size": 12410,
+      "lines": 319,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "path",
+        "../src/reliability/alpha21-liveness-guards",
+        "../src/reliability/team-cohesion-deadlock-hotfix",
+        "../src/reliability/alpha21-progression-intelligence",
+        "../src/party/controlled-party-logistics",
+        "../src/reliability/economy-equipment-autonomy-v2"
+      ],
+      "testCases": [
+        "empty logistics work never creates a rendezvous request",
+        "status requests never become merchant rendezvous work but actionable requests do",
+        "blocked rendezvous rows are not actionable home-service preemption work",
+        "merchant rendezvous movement chooses a reachable bounded alternative",
+        "failed or blocked rendezvous cannot starve merchant home service",
+        "leader recovery waypoint makes bounded progress without giving followers farm authority",
+        "Alpha21 recognizes a live-data promotion without a hard level guide",
+        "Alpha21 rejects a difficulty jump that exceeds bounded party readiness",
+        "gear goals follow the actual Alpha21 bottleneck",
+        "progression candidates remain fail-closed and use approved world content only",
+        "Alpha21 does not reuse a strong-party objective after same-class members are replaced or weakened",
+        "Alpha21 does not contain direct smart-move authority for cross-map progression"
+      ],
+      "states": [
+        "NO_OUTBOUND_TRANSFER_WORK",
+        "OUTBOUND_TRANSFER",
+        "LOGISTICS_RENDEZVOUS",
+        "RENDEZVOUS_DEFERRED_HOME_SERVICE_CONTINUES",
+        "FAILED_RENDEZVOUS_MUST_NOT_STARVE_HOME_SERVICE",
+        "SURVIVAL",
+        "DPS",
+        "APPROVED",
+        "UNKNOWN",
+        "PROGRESSION"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 42,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 5,
+        "recovery": 4,
+        "merchant": 6,
+        "party": 28,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Regression: active progression authority is exact-party scoped; historical performance remains reusable."
+      ]
+    },
+    {
+      "path": "v3/test/alpha23-combat-stability-hotfix.test.js",
+      "blobSha": "bcef10c99965e7aad8c09392e9b3f91b5a2fe4a5",
+      "size": 5510,
+      "lines": 86,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha23-combat-stability-hotfix"
+      ],
+      "testCases": [
+        "repairs impossible false cohesion when pair distance is within configured radius",
+        "preserves explicit regroup authority inside cohesion radius",
+        "preserves stuck-member cohesion block inside cohesion radius",
+        "committed safe pull continues across mild cohesion drift but untracked fresh target stays blocked",
+        "only the farmer with active monster aggro may kite",
+        "formation follow is held during active encounter unless a hard regroup is necessary"
+      ],
+      "states": [
+        "TEAM_NOT_COHESIVE",
+        "TRAVEL",
+        "COMMITTED_SAFE_PULL_CONTINUATION",
+        "NO_SELF_AGGRO_KITE_HOLD",
+        "ENGAGE",
+        "FOLLOW_TEAM_LEADER",
+        "ACTIVE_ENCOUNTER_FIRE_POSITION",
+        "REGROUP_WITH_TEAM_LEADER"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 29,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha24-adaptive-range-risk-logistics-hotfix.test.js",
+      "blobSha": "8565ef007defacb5004b8746afcb480e912878de",
+      "size": 8672,
+      "lines": 191,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha24-adaptive-range-risk-logistics-hotfix"
+      ],
+      "testCases": [
+        "merchant ignores status-only rendezvous noise and defers soft rendezvous during home service",
+        "in-range service evidence clears stale rendezvous instead of extending it",
+        "ranged classes use near-maximum engagement and kiting range",
+        "non-aggro ranger holds position and leaves movement to the normal range-closing pipeline",
+        "kite-capable ranged tank can accept bounded extra aggro but content safety remains absolute",
+        "efficiency targeting rejects two-minute monsters while retaining efficient ranged-party targets"
+      ],
+      "states": [
+        "BANK_TRAVEL",
+        "LOGISTICS_RENDEZVOUS",
+        "STATUS_REQUEST",
+        "RENDEZVOUS",
+        "STANDBY",
+        "LOOT_OFFER",
+        "ADDITIONAL_AGGRO",
+        "KITE_MITIGATED_RISK_ACCEPTABLE",
+        "CONTENT_QUARANTINED",
+        "QUARANTINED",
+        "EXPECTED_KILL_TIME_TOO_LONG"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 38,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 11,
+        "party": 7,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha26-cloud-update-logistics-ui-hotfix.test.js",
+      "blobSha": "2fdcb1a8391780d3a2d4b6ea7fdd2fe99e4f04f3",
+      "size": 10134,
+      "lines": 220,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha26-cloud-update-logistics-ui-hotfix",
+        "../src/ops/safe-auto-updater"
+      ],
+      "testCases": [
+        "valid local cloud credentials auto-enable and remote D1 cannot disable transport",
+        "rendezvous is sent only when a farmer really has transferable work",
+        "GUI collapsed-start scheduler collapses an already-created monitor",
+        "version parser understands alpha release sequence",
+        "safe auto updater defaults to the existing public Cloudflare Worker release mirror",
+        "safe auto updater defers in danger, then saves active slot and reloads newer validated bundle",
+        "safe auto updater never applies while local character has active aggro",
+        "safe auto updater restarts the previous runtime if loading the saved release fails"
+      ],
+      "states": [
+        "RENDEZVOUS",
+        "NO_OUTBOUND_TRANSFER_WORK",
+        "ASSESS",
+        "ACTIVE_AGGRO"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 44,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 1
+      },
+      "signals": {
+        "patching": 6,
+        "recovery": 2,
+        "merchant": 4,
+        "party": 3,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha27-combat-merchant-convergence-economy.test.js",
+      "blobSha": "3f8c248525e6a83346b4ed8076ec42c4dca95c9b",
+      "size": 13224,
+      "lines": 226,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha27-combat-merchant-convergence",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "real upgrade() executes once and commits only after observed item+scroll delta",
+        "upgrade travels to the canonical upgrade service before invoking raw upgrade()",
+        "compound travels to the canonical shared mutation service before invoking raw compound()",
+        "failed mutation service travel fail-closes transaction without invoking raw upgrade()",
+        "verified failed upgrade roll commits as game outcome instead of opening failure circuit",
+        "missing upgrade scroll is safely purchased with reserve protection before real upgrade()",
+        "real compound() checks authoritative chance, then uses exactly three reserved inputs once",
+        "authoritative low upgrade chance releases the transaction without risking the item",
+        "verified failed compound roll is terminal and never blind-retried inside transaction",
+        "gear-goal delivery is the only non-potion Merchant service transfer Alpha27 authorizes",
+        "party potion restock preserves configured gold reserve and verifies purchased quantity",
+        "10x mutation risk budget blocks only after 30 rapid upgrade attempts for the same item level",
+        "ambiguous no-retry mutation blocks autonomous replanning of the same inventory slot",
+        "restart reconciliation commits an atomic mutation only when persisted pre-action deltas prove the outcome"
+      ],
+      "states": [
+        "UPGRADE",
+        "SUCCESS",
+        "COMMITTED",
+        "COMPOUND",
+        "UPGRADE_SERVICE_UNREACHABLE",
+        "FAILED_SAFE",
+        "FAILED_ROLL_ITEM_SURVIVED",
+        "MUTATION_RISK_EXCEEDS_POLICY",
+        "FAILED_ROLL_INPUTS_CONSUMED",
+        "COMMAND_UNAVAILABLE",
+        "RESERVED",
+        "BASE_NON_POTION_REJECT",
+        "SEND_POTION",
+        "SERVICE_DELIVERY",
+        "DELIVERY_ITEM_NOT_AUTHORIZED",
+        "RESTOCK_REQUIRED",
+        "MUTATION_RISK_BUDGET_EXHAUSTED",
+        "UPGRADE_DELTA_NOT_OBSERVED_NO_RETRY",
+        "RECOVERING"
+      ],
+      "directAdventureLandWrites": [
+        "upgrade",
+        "compound"
+      ],
+      "assertionSignals": {
+        "assert": 56,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 29,
+        "party": 2,
+        "persistence": 1,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha27-combat-merchant-convergence.test.js",
+      "blobSha": "ad8f042432dc1a45dd475733f7de1d06e2993901",
+      "size": 12655,
+      "lines": 247,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha27-combat-merchant-convergence",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "raw Adventure Land target alone does not block cohesion recovery",
+        "self aggro and Farmer-owned ENGAGE still block recovery",
+        "poisoned kill profile is detected only when normal-XP monster has kills without XP",
+        "performance ignores unrelated raw target damage and counts owned disappearance only with XP",
+        "follower team target uses trusted Farmer-owned leader target instead of raw leader target",
+        "central ledger processes low-risk progression before bank fallback",
+        "sell permission does not preempt an active gear progression batch",
+        "central ledger respects explicit operator denials before autonomous fallbacks",
+        "atomic compound reserves and releases all three inputs together"
+      ],
+      "states": [
+        "TRAVEL",
+        "ENGAGE",
+        "TRUSTED_DIRECT_FARMER_OWNER",
+        "SELL",
+        "RESERVE_UPGRADE",
+        "RESERVE_COMPOUND",
+        "BANK",
+        "KEEP",
+        "UNDECIDED",
+        "FUTURE_FARMER_GEAR_PROGRESSION",
+        "AUTONOMOUS_UPGRADE_CONTINUATION",
+        "HOLD",
+        "NOT_DUE",
+        "PROGRESSION_BATCH",
+        "OPERATOR_SELL_PREEMPTS_PROGRESSION_BATCH",
+        "OPERATOR_SELL_DENIED",
+        "AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_SELL",
+        "OPERATOR_BANK_DENIED",
+        "COMPOUND",
+        "UPGRADE",
+        "CONTROLLED_CANARY"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 35,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 1,
+        "recovery": 4,
+        "merchant": 50,
+        "party": 6,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Economic processing is allowed only after a fresh gear-value evaluation",
+        "// proves the physical item has no useful party path. Cheap scrolls make the",
+        "// expected-value model prefer progression in this fixture."
+      ]
+    },
+    {
+      "path": "v3/test/alpha27-convergence-test-helpers.js",
+      "blobSha": "deb4b6f5b6359c7eaec3bfeebafb2093341e76a5",
+      "size": 8816,
+      "lines": 144,
+      "imports": [
+        "../src/reliability/alpha27-combat-merchant-convergence"
+      ],
+      "testCases": [],
+      "states": [
+        "LEDGER_ITEM_NOT_FOUND",
+        "RESERVED",
+        "OPERATOR_CANCELLED",
+        "TRANSACTION_NOT_FOUND",
+        "COMMITTED",
+        "FAILED_SAFE",
+        "ABORTED",
+        "TRANSACTION_ALREADY_TERMINAL",
+        "CONTROLLED_CANARY",
+        "BASE_EXECUTOR",
+        "SELL",
+        "BANK",
+        "UNDECIDED",
+        "NO_POLICY_MATCH",
+        "HEALTHY",
+        "UPGRADE",
+        "RESERVE_UPGRADE",
+        "RESERVE_COMPOUND"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 0,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 20,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}

@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/root-and-other",
+  "range": {
+    "start": 31,
+    "end": 35,
+    "total": 35
+  },
+  "files": [
+    {
+      "path": "v3/RELEASE_GUARDIAN.md",
+      "blobSha": "89b46e50cd49aefe835c96ae6ea16ffe88998482",
+      "size": 1535,
+      "lines": 40,
+      "headings": [
+        {
+          "level": 1,
+          "title": "v3 Release Guardian"
+        },
+        {
+          "level": 2,
+          "title": "Fast preflight"
+        },
+        {
+          "level": 2,
+          "title": "Patch release"
+        },
+        {
+          "level": 2,
+          "title": "CI order"
+        }
+      ],
+      "referencedArtifacts": [
+        "v3/version.json",
+        "package.json",
+        "version.json",
+        "src/release-version.js"
+      ],
+      "normativeStatements": [],
+      "signals": {
+        "architecture": 0,
+        "safety": 2,
+        "recovery": 1,
+        "merchant": 0,
+        "party": 0,
+        "host": 0,
+        "release": 12,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/STABILITY_ROADMAP.md",
+      "blobSha": "71b2ec04a65d201aeee0ba149d7798b322445f47",
+      "size": 7814,
+      "lines": 120,
+      "headings": [
+        {
+          "level": 1,
+          "title": "v3 Stability-First Roadmap"
+        },
+        {
+          "level": 2,
+          "title": "Non-negotiable invariants"
+        },
+        {
+          "level": 2,
+          "title": "Global supervisor direction"
+        },
+        {
+          "level": 2,
+          "title": "Anti-loop and self-healing rules"
+        },
+        {
+          "level": 2,
+          "title": "Persistence and restart safety"
+        },
+        {
+          "level": 2,
+          "title": "World discovery and content drift"
+        },
+        {
+          "level": 2,
+          "title": "Equipment progression philosophy"
+        },
+        {
+          "level": 2,
+          "title": "Merchant architecture direction"
+        },
+        {
+          "level": 2,
+          "title": "Brain direction"
+        },
+        {
+          "level": 2,
+          "title": "Risk budgets and circuit breakers"
+        },
+        {
+          "level": 2,
+          "title": "Validation and certification"
+        },
+        {
+          "level": 2,
+          "title": "Immediate implementation sequence"
+        }
+      ],
+      "referencedArtifacts": [
+        "bot.js"
+      ],
+      "normativeStatements": [
+        "5. The Brain may recommend strategy but never bypass deterministic safety gates or call raw gameplay actions directly.",
+        "10. Exact final PR-head CI must be green before merge.",
+        "Brain autonomy must be earned by measured evidence and can be revoked independently of deterministic gameplay safety.",
+        "The project is not considered unattended-ready merely because features work individually; it must repeatedly demonstrate recovery from faults without unsafe escalation.",
+        "The guiding rule is simple: **errors must stay small, visible, reversible and self-healing.**"
+      ],
+      "signals": {
+        "architecture": 1,
+        "safety": 10,
+        "recovery": 5,
+        "merchant": 6,
+        "party": 5,
+        "host": 0,
+        "release": 1,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/tsconfig.logic.json",
+      "blobSha": "456a5d363366b5f68c27bf7dc5b28d89f1126afb",
+      "size": 301,
+      "lines": 17,
+      "headings": [],
+      "referencedArtifacts": [],
+      "normativeStatements": [],
+      "signals": {
+        "architecture": 0,
+        "safety": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "host": 0,
+        "release": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/version.json",
+      "blobSha": "bc41a6795f7451b7a71a28a86554c4fa29ac9711",
+      "size": 168,
+      "lines": 9,
+      "headings": [],
+      "referencedArtifacts": [],
+      "normativeStatements": [],
+      "signals": {
+        "architecture": 0,
+        "safety": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "host": 0,
+        "release": 0,
+        "todo": 0
+      }
+    },
+    {
+      "path": "v3/WINDOWS_UNATTENDED_CERTIFICATION.md",
+      "blobSha": "ec78d1478c9f65322963501dd378a88aebb14dd6",
+      "size": 5881,
+      "lines": 103,
+      "headings": [
+        {
+          "level": 1,
+          "title": "Windows unattended certification"
+        },
+        {
+          "level": 2,
+          "title": "Gate order"
+        },
+        {
+          "level": 2,
+          "title": "What every sample proves"
+        },
+        {
+          "level": 2,
+          "title": "Evidence format"
+        },
+        {
+          "level": 2,
+          "title": "Canary"
+        },
+        {
+          "level": 2,
+          "title": "Later gates"
+        },
+        {
+          "level": 2,
+          "title": "Runtime-action audit for 24h+"
+        },
+        {
+          "level": 2,
+          "title": "Status and finalization"
+        },
+        {
+          "level": 2,
+          "title": "What Step 13 does not certify by itself"
+        }
+      ],
+      "referencedArtifacts": [
+        "%LOCALAPPDATA%\\AioBot\\host-service\\certification\\<gate>.jsonl"
+      ],
+      "normativeStatements": [
+        "One failed sample fails that attempt. A sample gap greater than the gate maximum also fails the attempt. Time alone never passes a gate.",
+        "Green GitHub CI certifies only the implementation, tests and safety boundaries of this evidence engine. The repository must not be labeled 24/7-certified until the actual Windows machine has produced passed real-world gate evidence through the intended duration."
+      ],
+      "signals": {
+        "architecture": 0,
+        "safety": 1,
+        "recovery": 2,
+        "merchant": 0,
+        "party": 0,
+        "host": 19,
+        "release": 0,
+        "todo": 0
+      }
+    }
+  ]
+}

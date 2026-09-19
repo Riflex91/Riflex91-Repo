@@ -1,0 +1,789 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "scope": "v3/src",
+  "range": {
+    "start": 0,
+    "end": 15,
+    "total": 238
+  },
+  "files": [
+    {
+      "path": "v3/src/autonomy/adaptive-farm-intelligence.js",
+      "blobSha": "3711dc998981eff98d37ec7616c8ac606f18d12f",
+      "size": 12324,
+      "lines": 229,
+      "imports": [
+        "../farmer/farm-area-pressure-hotfix"
+      ],
+      "symbols": [
+        "finite",
+        "clamp",
+        "average",
+        "storageFor",
+        "serverHourKey",
+        "ensure",
+        "loadHistory",
+        "persistHistory",
+        "updateHistory",
+        "empiricalBonus",
+        "patchAdaptiveFarmIntelligence",
+        "PATCH",
+        "STORAGE_KEY",
+        "MAX_HISTORY"
+      ],
+      "methods": [
+        "if"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "AIO_V3_ALPHA20_16_ADAPTIVE_FARM_INTELLIGENCE",
+        "FARM_INTELLIGENCE_PERSISTENCE_BLOCKED",
+        "STORAGE_WRITE_FAILED_SESSION_BLOCKED",
+        "AREA_OVERPOPULATED",
+        "AREA_SPAWN_STARVED",
+        "AREA_HEALTHY"
+      ],
+      "signals": {
+        "patching": 5,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 10,
+        "persistence": 30,
+        "telemetry": 8,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/autonomy/adaptive-pull-learning.js",
+      "blobSha": "39d9571678af7dd7bee8204ac29930122e951790",
+      "size": 24775,
+      "lines": 560,
+      "imports": [
+        "./combat-modes",
+        "./smart-aoe-planner",
+        "../party/fingerprints"
+      ],
+      "symbols": [
+        "finite",
+        "clamp",
+        "clone",
+        "installAdaptivePullLearner",
+        "AdaptivePullLearner",
+        "ADAPTIVE_PULL_LEARNING_MODE",
+        "ADAPTIVE_PULL_STATE_SCHEMA_VERSION",
+        "DEFAULT_STORAGE_KEY"
+      ],
+      "methods": [
+        "_event",
+        "_backend",
+        "load",
+        "save",
+        "_context",
+        "_pullKey",
+        "_contextState",
+        "_profile",
+        "_profileView",
+        "profiles",
+        "recordTelemetryWindow",
+        "recommend",
+        "recordEncounterOutcome",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "AIO_V3_ADAPTIVE_PULL_LEARNING_V1",
+        "ADAPTIVE_PULL_STATE_RESTORE_FAILED",
+        "CORRUPT_OR_UNSUPPORTED_DATA",
+        "ADAPTIVE_PULL_STATE_SAVE_FAILED",
+        "PERSISTENCE_WRITE_ERROR",
+        "UNKNOWN",
+        "QUARANTINED",
+        "ADAPTIVE_PULL_SAMPLE_RECORDED",
+        "DETERMINISTIC_BASELINE",
+        "CONTENT_NOT_VALIDATED_FOR_LEARNING",
+        "LEARNING_CONTEXT_UNAVAILABLE",
+        "SUSTAINABLE_XP_OPTIMUM",
+        "RISK_EVIDENCE_REDUCED_PULL",
+        "RISK_EVIDENCE",
+        "PROBE_WINDOW_EXPIRED",
+        "ADAPTIVE_PULL_PROBE_CANCELLED",
+        "BOUNDED_EXPLORATION_WINDOW",
+        "BOUNDED_EXPLORATION_START",
+        "ADAPTIVE_PULL_PROBE_STARTED",
+        "STRONG_SAFE_EVIDENCE",
+        "ADAPTIVE_PULL_ENCOUNTER_BLOCKED",
+        "EXACTLY_ONCE_DEDUPE_PERSISTENCE_FAILED",
+        "EXACTLY_ONCE_DEDUPE_STORAGE_UNAVAILABLE",
+        "ADAPTIVE_PULL_ENCOUNTER_RECORDED"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 9,
+        "party": 49,
+        "persistence": 23,
+        "telemetry": 32,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/autonomy/advanced-party-movement.js",
+      "blobSha": "5738ada39c4ad167ad6eed611725515e4b02331e",
+      "size": 12501,
+      "lines": 218,
+      "imports": [],
+      "symbols": [
+        "finite",
+        "lower",
+        "distance",
+        "clamp",
+        "installAdvancedPartyMovement",
+        "AdvancedPartyMovement",
+        "ADVANCED_PARTY_MOVEMENT_MODE"
+      ],
+      "methods": [
+        "_event",
+        "_canMoveTo",
+        "_targetForTeam",
+        "_facing",
+        "_slot",
+        "_desiredFormationPoint",
+        "_boundedReachableStep",
+        "_observeMotion",
+        "_orbitPoint",
+        "_boundedPoint",
+        "_reachableOrbit",
+        "install",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "PARTY_FORMATION_STUCK_DETECTED",
+        "GROUP_REGROUP_REQUIRED",
+        "GROUP_ORBIT_TERRAIN_BLOCKED",
+        "GROUP_FORMATION_ORBIT",
+        "ADVANCED_PARTY_MOVEMENT_INSTALLED"
+      ],
+      "signals": {
+        "patching": 2,
+        "recovery": 1,
+        "merchant": 1,
+        "party": 33,
+        "persistence": 11,
+        "telemetry": 12,
+        "todo": 0
+      },
+      "leadingComments": [
+        "A stationary follower inside the accepted team-cohesion radius is not",
+        "stuck. Marking it as such used to turn a geometrically valid formation",
+        "into a permanent regroup state that the leader recovery could not fix."
+      ]
+    },
+    {
+      "path": "v3/src/autonomy/alpha10-runtime.js",
+      "blobSha": "b0583ede578289304563a5c280757178af3dc218",
+      "size": 2516,
+      "lines": 78,
+      "imports": [
+        "./alpha9-runtime",
+        "../brain/shadow-brain"
+      ],
+      "symbols": [
+        "composeAlpha10Runtime",
+        "Alpha10Runtime"
+      ],
+      "methods": [
+        "_brainAudit",
+        "tick",
+        "status",
+        "exportDiagnostics"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [],
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 7,
+        "persistence": 9,
+        "telemetry": 14,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/autonomy/alpha11-runtime.js",
+      "blobSha": "ab00d60fd795cb8ddbf53413846604753c421c10",
+      "size": 2007,
+      "lines": 67,
+      "imports": [
+        "./alpha10-runtime",
+        "../party/character-registry"
+      ],
+      "symbols": [
+        "composeAlpha11Runtime",
+        "Alpha11Runtime"
+      ],
+      "methods": [
+        "_partyObservation",
+        "tick",
+        "status",
+        "exportDiagnostics"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [],
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 2,
+        "party": 16,
+        "persistence": 5,
+        "telemetry": 8,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/autonomy/alpha12-hardened-runtime.js",
+      "blobSha": "3ce2c18dc034b89a1b1e1069c4b318de95c27f4a",
+      "size": 6719,
+      "lines": 161,
+      "imports": [
+        "./alpha12-runtime",
+        "../party/control-lease"
+      ],
+      "symbols": [
+        "activeOwnedNames",
+        "composeHardenedAlpha12Runtime",
+        "Alpha12Runtime",
+        "ALPHA12_VERSION",
+        "OWNED_PRESENT_STATES"
+      ],
+      "methods": [
+        "_announce",
+        "_activeOwnedNames",
+        "_partyTrustedNames",
+        "syncPartyControlConfig",
+        "_partyDecisionCycle",
+        "start",
+        "stop",
+        "setPartyTransitionsEnabled",
+        "status"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [],
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 37,
+        "party": 93,
+        "persistence": 0,
+        "telemetry": 20,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/autonomy/alpha12-runtime.js",
+      "blobSha": "683f45a8ba7396e5ed606b527352a1865e513341",
+      "size": 16512,
+      "lines": 88,
+      "imports": [
+        "./alpha11-runtime",
+        "../release-version",
+        "../party/fingerprints",
+        "../party/performance-store",
+        "../party/orchestrator",
+        "../party/paladin-aura-policy",
+        "../party/telemetry-bridge",
+        "../party/transition-controller",
+        "../ops/background-execution-guard"
+      ],
+      "symbols": [
+        "finite",
+        "clamp01",
+        "composeAlpha12Runtime",
+        "Alpha12Runtime"
+      ],
+      "methods": [
+        "start",
+        "stop",
+        "_contentDisposition",
+        "_currentMembers",
+        "_encounter",
+        "_riskContext",
+        "_recordCurrentPerformance",
+        "_maybeApplyAura",
+        "_maybeStartTransition",
+        "_partyDecisionCycle",
+        "tick",
+        "setPartyTransitionsEnabled",
+        "setPartyAuraAutomationEnabled",
+        "setPartyExplorationEnabled",
+        "setPartyCodeSlots",
+        "status",
+        "exportDiagnostics"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "UNKNOWN",
+        "QUARANTINED",
+        "ADAPTIVE_PULL_SAMPLE_FAILED",
+        "TELEMETRY_RECORD_ERROR",
+        "PALADIN_AURA_CHANGED",
+        "WOULD_SWITCH",
+        "STALE",
+        "PARTY_SWITCH_ABORTED",
+        "UNHANDLED_TRANSITION_ERROR"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 9,
+        "merchant": 21,
+        "party": 113,
+        "persistence": 46,
+        "telemetry": 79,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/autonomy/alpha13-runtime.js",
+      "blobSha": "86198a6fcf4d1cb970854fe9237697e4577e98ae",
+      "size": 6038,
+      "lines": 142,
+      "imports": [
+        "./alpha12-hardened-runtime",
+        "../stability/global-supervisor",
+        "../world/content-drift"
+      ],
+      "symbols": [
+        "contentDriftStorageKey",
+        "composeAlpha13Runtime",
+        "Alpha13Runtime",
+        "ALPHA13_VERSION"
+      ],
+      "methods": [
+        "_announce",
+        "_scanContentDrift",
+        "_evaluateGlobalSupervisor",
+        "tick",
+        "stop",
+        "setSupervisorSafeActionsEnabled",
+        "quarantineSubsystem",
+        "clearSubsystemQuarantine",
+        "markContentRevalidated",
+        "status",
+        "exportDiagnostics"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "DRIFT",
+        "NOVELTY",
+        "CONTENT_MONSTER_FAIL_CLOSED",
+        "MONSTER_DEFINITION_CHANGED",
+        "NEW_MONSTER_AFTER_BASELINE",
+        "CONTENT_MONSTER_FAIL_CLOSED_FAILED",
+        "QUARANTINE_WRITE_FAILED"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 6,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 3,
+        "telemetry": 31,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/autonomy/alpha14-runtime.js",
+      "blobSha": "c5b1b33fb6fdc4254c358f586fd839630441c2d0",
+      "size": 6399,
+      "lines": 176,
+      "imports": [
+        "./alpha13-runtime",
+        "../economy/inventory-ledger",
+        "../economy/gear-progression",
+        "../party/merchant-party-history"
+      ],
+      "symbols": [
+        "composeAlpha14Runtime",
+        "Alpha14Runtime",
+        "ALPHA14_VERSION"
+      ],
+      "methods": [
+        "_announce",
+        "_planInventoryAndGear",
+        "tick",
+        "stop",
+        "status",
+        "exportDiagnostics"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [],
+      "signals": {
+        "patching": 0,
+        "recovery": 3,
+        "merchant": 86,
+        "party": 39,
+        "persistence": 5,
+        "telemetry": 27,
+        "todo": 0
+      },
+      "leadingComments": [
+        "Replace stale/non-party observations only in the planning view. The",
+        "authoritative live CharacterRegistry remains untouched."
+      ]
+    },
+    {
+      "path": "v3/src/autonomy/alpha15-runtime.js",
+      "blobSha": "b57f8903d6302b8fe00943eaa1bf91b66600975a",
+      "size": 3521,
+      "lines": 106,
+      "imports": [
+        "./alpha14-runtime",
+        "../economy/transaction-engine"
+      ],
+      "symbols": [
+        "composeAlpha15Runtime",
+        "Alpha15Runtime",
+        "ALPHA15_VERSION"
+      ],
+      "methods": [
+        "_announce",
+        "_economyStatus",
+        "_evaluateGlobalSupervisor",
+        "tick",
+        "stop",
+        "setEconomyLiveEnabled",
+        "planEconomyTransaction",
+        "reconcileEconomyTransaction",
+        "status",
+        "exportDiagnostics"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "LIVE_ENABLE_REJECTED",
+        "ALPHA15_SHADOW_ONLY"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 4,
+        "merchant": 6,
+        "party": 2,
+        "persistence": 4,
+        "telemetry": 26,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/autonomy/alpha16-runtime.js",
+      "blobSha": "de199d9418f2f6db5177baa0efbd59b0ed17196a",
+      "size": 2711,
+      "lines": 78,
+      "imports": [
+        "./alpha15-runtime",
+        "../travel/safe-travel"
+      ],
+      "symbols": [
+        "composeAlpha16Runtime",
+        "Alpha16Runtime",
+        "ALPHA16_VERSION"
+      ],
+      "methods": [
+        "_announce",
+        "_travelStatus",
+        "tick",
+        "setTravelLiveEnabled",
+        "planTravel",
+        "status",
+        "exportDiagnostics"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "LIVE_ENABLE_REJECTED",
+        "ALPHA16_SHADOW_ONLY"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 0,
+        "party": 2,
+        "persistence": 4,
+        "telemetry": 19,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/autonomy/alpha17-runtime.js",
+      "blobSha": "13fc7fae876a35c81c5f0a4432b54c7164e6354f",
+      "size": 13321,
+      "lines": 309,
+      "imports": [
+        "./alpha16-runtime",
+        "../economy/controlled-merchant-executor",
+        "../economy/sell-safety",
+        "../travel/controlled-travel-executor"
+      ],
+      "symbols": [
+        "clone",
+        "registryName",
+        "composeAlpha17Runtime",
+        "Alpha17Runtime",
+        "ALPHA17_VERSION",
+        "SUPERVISOR_ALLOWED"
+      ],
+      "methods": [
+        "_partyObservation",
+        "_announce",
+        "_controlledSubsystemHealth",
+        "_economyStatus",
+        "_travelStatus",
+        "_evaluateGlobalSupervisor",
+        "_liveEnableGate",
+        "_guardControlledAuthority",
+        "tick",
+        "setMode",
+        "configureInventoryActionPolicy",
+        "configureControlledMerchant",
+        "configureControlledTravel",
+        "setEconomyLiveEnabled",
+        "setTravelLiveEnabled",
+        "executeEconomyTransaction",
+        "executeTravelPlan",
+        "abortControlledTravel",
+        "stop",
+        "status",
+        "exportDiagnostics"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "HEALTHY",
+        "WATCH",
+        "SELL",
+        "BANK",
+        "DEGRADED",
+        "FAILED_SAFE",
+        "CONTROLLED_MERCHANT_LAST_ACTION_FAILED_SAFE",
+        "TRAVEL_CIRCUIT_OPEN",
+        "CONTROLLED_TRAVEL_LAST_ACTION_FAILED_SAFE",
+        "RUNTIME_NOT_ACTIVE",
+        "SUPERVISOR_NOT_HEALTHY",
+        "MERCHANT_REQUIRED",
+        "CHARACTER_DEAD",
+        "ECONOMY_CIRCUIT_OPEN",
+        "CONTROLLED_TRAVEL_GUARD_DISABLE_FAILED",
+        "RUNTIME_LEFT_ACTIVE_MODE",
+        "INVENTORY_ACTION_POLICY_CHANGED",
+        "OPERATOR_POLICY",
+        "CONTROLLED_MERCHANT_ENABLE_REJECTED",
+        "CONTROLLED_TRAVEL_ENABLE_REJECTED",
+        "GENERIC_LIVE_DISABLE",
+        "GENERIC_LIVE_ENABLE_REJECTED",
+        "USE_CONTROLLED_CANARY_API",
+        "RUNTIME_STOP"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 12,
+        "merchant": 70,
+        "party": 5,
+        "persistence": 11,
+        "telemetry": 54,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/autonomy/alpha18-runtime.js",
+      "blobSha": "4c7bbbf67a3f75bbeb24e247d7488a85466e1415",
+      "size": 9470,
+      "lines": 234,
+      "imports": [
+        "./alpha17-runtime",
+        "../economy/bank-capacity-manager",
+        "../economy/bank-expansion-transactions",
+        "../economy/controlled-bank-expansion-executor",
+        "../ops/alpha18-combined-live-gate-hardened"
+      ],
+      "symbols": [
+        "clone",
+        "composeAlpha18Runtime",
+        "Alpha18Runtime",
+        "ALPHA18_VERSION",
+        "SUPERVISOR_ALLOWED"
+      ],
+      "methods": [
+        "_announce",
+        "_bankPacks",
+        "_liveCharacter",
+        "_observeBankCapacity",
+        "_economyStatus",
+        "_guardControlledAuthority",
+        "tick",
+        "setMode",
+        "planBankSpace",
+        "planBankExpansion",
+        "configureControlledBankExpansion",
+        "executeBankExpansion",
+        "runAlpha18CombinedLiveGate",
+        "alpha18LiveGateStatus",
+        "alpha18LiveGateResult",
+        "alpha18LiveGateResultText",
+        "stop",
+        "status",
+        "exportDiagnostics"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "HEALTHY",
+        "WATCH",
+        "RECOVERING",
+        "RUNTIME_NOT_ACTIVE",
+        "SUPERVISOR_NOT_HEALTHY",
+        "BANK_EXPANSION_CIRCUIT_OPEN",
+        "RUNTIME_LEFT_ACTIVE_MODE",
+        "EXPAND_BANK_PACK",
+        "NO_SAFE_EXPANSION_PLAN",
+        "LIVE_BANK_REVALIDATION_REQUIRED",
+        "RUNTIME_STOP"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 15,
+        "merchant": 107,
+        "party": 2,
+        "persistence": 0,
+        "telemetry": 44,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/autonomy/alpha19-runtime.js",
+      "blobSha": "255bf6e9ab5a2d49862f34e17d7ba70c181b2c69",
+      "size": 8077,
+      "lines": 179,
+      "imports": [
+        "./alpha18-runtime",
+        "../economy/merchant-space-recovery-journal",
+        "../economy/controlled-bank-consolidation-executor",
+        "../economy/controlled-merchant-space-recovery-hardened",
+        "../ops/alpha19-combined-live-gate"
+      ],
+      "symbols": [
+        "composeAlpha19Runtime",
+        "Alpha19Runtime",
+        "ALPHA19_VERSION",
+        "SUPERVISOR_ALLOWED"
+      ],
+      "methods": [
+        "_announce",
+        "_economyStatus",
+        "_guardControlledAuthority",
+        "tick",
+        "setMode",
+        "planMerchantSpaceRecovery",
+        "configureControlledMerchantSpaceRecovery",
+        "executeMerchantSpaceRecovery",
+        "reconcileMerchantSpaceRecovery",
+        "runAlpha19CombinedLiveGate",
+        "alpha19LiveGateStatus",
+        "alpha19LiveGateResult",
+        "alpha19LiveGateResultText",
+        "stop",
+        "status",
+        "exportDiagnostics"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "HEALTHY",
+        "WATCH",
+        "RUNTIME_NOT_ACTIVE",
+        "SUPERVISOR_NOT_HEALTHY",
+        "SPACE_RECOVERY_CIRCUIT_OPEN",
+        "RUNTIME_LEFT_ACTIVE_MODE",
+        "RUNTIME_STOP"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 61,
+        "merchant": 72,
+        "party": 2,
+        "persistence": 14,
+        "telemetry": 36,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/src/autonomy/alpha20-5-farm-readiness-runtime.js",
+      "blobSha": "c0bfda2f8933a025a6d7537c70c83381aa9e3460",
+      "size": 17270,
+      "lines": 347,
+      "imports": [
+        "./alpha20-5-merchant-runtime",
+        "../farmer/controlled-farmer-loot",
+        "../ops/controlled-auto-respawn",
+        "../party/controlled-party-bootstrap",
+        "../reliability/pre-farming-reliability",
+        "../farmer/farmer-local-plan-priority",
+        "../farmer/live-navigation-hotfix",
+        "../farmer/farmer-travel-safety-hotfix",
+        "../farmer/farmer-target-efficiency-hotfix",
+        "../farmer/farmer-terrain-navigation-hotfix",
+        "../farmer/farmer-resource-topoff-hotfix",
+        "../party/party-focus-fire-hotfix",
+        "../party/team-combat-cohesion-hotfix",
+        "../reliability/team-cohesion-deadlock-hotfix",
+        "../party/controlled-party-logistics",
+        "../farmer/farm-area-pressure-hotfix",
+        "../party/party-persistence-quota-hotfix",
+        "../content/dangerous-content-hotfix",
+        "../content/content-drift-storage-hotfix",
+        "../content/content-drift-semantic-recovery",
+        "../party/party-account-communication",
+        "../party/party-bootstrap-farmer-gate",
+        "../party/party-bootstrap-merchant-discovery-hotfix"
+      ],
+      "symbols": [
+        "clone",
+        "prepareAlpha20_5FarmReadinessOptions",
+        "composeAlpha20_5FarmReadinessRuntime",
+        "Alpha20_5FarmReadinessRuntime",
+        "ALPHA20_5_FARM_READINESS_MODE"
+      ],
+      "methods": [
+        "start",
+        "stop",
+        "_beforeFarmReadinessTick",
+        "_afterFarmReadinessTick",
+        "tick",
+        "farmReadinessStatus",
+        "status",
+        "exportDiagnostics"
+      ],
+      "directAdventureLandWrites": [],
+      "states": [
+        "RUNTIME_STOPPED"
+      ],
+      "signals": {
+        "patching": 0,
+        "recovery": 34,
+        "merchant": 52,
+        "party": 139,
+        "persistence": 21,
+        "telemetry": 89,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}

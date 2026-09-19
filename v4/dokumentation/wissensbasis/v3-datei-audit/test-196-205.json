@@ -1,0 +1,482 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/test",
+  "range": {
+    "start": 196,
+    "end": 205,
+    "total": 205
+  },
+  "files": [
+    {
+      "path": "v3/test/skill-failure-intelligence.test.js",
+      "blobSha": "7eca6a6e661087860a68c3f864e2659b7f890b05",
+      "size": 6372,
+      "lines": 195,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/skill-farmer"
+      ],
+      "testCases": [
+        "repeated retryable failures escalate the exact skill backoff but stay capped",
+        "a confirmed executed skill resets its previous failure streak immediately",
+        "shadow command results never fabricate a failure-streak recovery",
+        "quiet failure history expires so a later failure starts again at the base backoff",
+        "non-retryable failures do not create failure intelligence state"
+      ],
+      "states": [
+        "COMMAND_FAILED",
+        "FARMER_SKILL_BACKOFF_ARMED",
+        "FARMER_SKILL_FAILURE_STREAK_RESET",
+        "COMMAND_UNAVAILABLE",
+        "FARMER_SKILL_USE_FAILED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 32,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 4,
+        "merchant": 0,
+        "party": 2,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/skill-policy-ui.test.js",
+      "blobSha": "9853dfa337c2ff44b653de3813d4e1a37480b584",
+      "size": 13978,
+      "lines": 335,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/game/adapter",
+        "../src/autonomy/skill-catalog-service",
+        "../src/autonomy/character-combat-profile",
+        "../src/autonomy/skill-policy",
+        "../src/farmer/skill-usage",
+        "../src/autonomy/party-skill-engine",
+        "../src/ops/debug-monitor-ui",
+        "../src/autonomy/combat-modes"
+      ],
+      "testCases": [
+        "known legacy automatic skills preserve default-on behavior while user disable is a hard GameAdapter block",
+        "skill policy blocks disabled skills before shadow command simulation too",
+        "unknown newly discovered skills remain fail-closed even if a profile is manually toggled",
+        "catalog drift blocks all skill execution until the second identical audit verifies the new live catalog",
+        "GameAdapter skillAvailability exposes technical readiness reasons without removing the skill from configuration",
+        "direct SkillUsagePolicy candidates are filtered by the central user permission before tactical selection",
+        "Priest Heal and Party Heal thresholds select single heal for one injury and party heal for multiple injuries",
+        "Debug monitor Skills panel renders unlocked skills, checkboxes and Heal/PartyHeal sliders without raw gameplay authority"
+      ],
+      "states": [
+        "TEST",
+        "SKILL_POLICY_DISABLED",
+        "SKILL_AUTOMATION_NOT_VALIDATED",
+        "INITIAL",
+        "DRIFT",
+        "SKILL_CATALOG_NOT_READY",
+        "VERIFY",
+        "LOW_MP",
+        "WEAPON_TYPE_REQUIRED",
+        "STOPPED",
+        "INPUT",
+        "SELECT"
+      ],
+      "directAdventureLandWrites": [
+        "use_skill"
+      ],
+      "assertionSignals": {
+        "assert": 54,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 1,
+        "party": 22,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/skill-usage.test.js",
+      "blobSha": "d8965a86f58cf997284aa6f241b3a7a01de82184",
+      "size": 7144,
+      "lines": 195,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/skill-usage",
+        "../src/farmer/skill-farmer",
+        "../src/farmer/farmer-fsm",
+        "../src/game/adapter"
+      ],
+      "testCases": [
+        "SkillUsagePolicy selects one direct single-target damage skill from live metadata",
+        "SkillUsagePolicy preserves configured MP reserve",
+        "SkillUsagePolicy respects Adventure Land cooldown and range helpers",
+        "SkillFarmer uses the selected skill on the current target before normal attack",
+        "SkillFarmer kites while still allowing normal attack when the target is too close",
+        "SkillFarmer falls back to normal attack if the skill command fails",
+        "SkillFarmer discovers its safe skill in shadow without issuing commands",
+        "GameAdapter resolves use_skill target ids to live Adventure Land entities"
+      ],
+      "states": [
+        "MP_RESERVE",
+        "SKILL_COOLDOWN_OR_REQUIREMENT",
+        "SKILL_OUT_OF_RANGE",
+        "COMMAND_FAILED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 23,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 2,
+        "party": 3,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/smart-aoe-foundation.test.js",
+      "blobSha": "bdaa4ac0818bb3257500e706113bd51bc4af0326",
+      "size": 33077,
+      "lines": 801,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/autonomy/combat-modes",
+        "../src/autonomy/smart-aoe-planner",
+        "../src/autonomy/character-combat-profile",
+        "../src/autonomy/tactical-party-combat",
+        "../src/autonomy/party-skill-engine"
+      ],
+      "testCases": [
+        "combat mode defaults to Smart Auto and persists per character",
+        "Smart Auto uses the lowest useful enabled AoE threshold while AoE preferred aims higher within the same hard capacity",
+        "Single Target is a hard capacity of one and AoE preferred never overrides hard safety",
+        "missing sustain and AoE control conservatively caps a nominal five-target party at two",
+        "candidate expansion is denied when aggregate projected damage would exceed the deterministic risk ceiling",
+        "TacticalPartyCombat models multiple engaged monsters but keeps a single leader-owned primary target",
+        "only the combat leader can expand a pull and Single Target mode blocks expansion even for the leader",
+        "leader BUILD_PULL executes exactly one safe fresh same-type tag and waits for observed aggro",
+        "pull expansion refuses occupied, different-type and boss/special candidates",
+        "AOE_BURN uses 3shot at three engaged targets but does not fire 5shot below its configured threshold",
+        "AOE_BURN selects 5shot when four targets satisfy the configured threshold",
+        "cburst uses the configured bounded MP budget and Adventure Land target/mana pair format",
+        "support decision still outranks offensive AoE during AOE_BURN",
+        "fanofknives uses bounded engaged target arrays and respects its minTargets slider",
+        "cleave and stomp only become tactical AoE decisions when their configured target threshold is met",
+        "combat follower mirrors the leader primary plus visible party aggro and can use local AoE without gaining pull authority",
+        "follower local Single Target mode keeps mirrored encounter but disables local AoE execution"
+      ],
+      "states": [
+        "AGGREGATE_PROJECTED_DAMAGE_TOO_HIGH",
+        "TEST",
+        "PRIMARY",
+        "PULL_OWNED_BY_TEAM_LEADER",
+        "SINGLE_TARGET_MODE",
+        "PULL_AGGRO_CONFIRMATION_PENDING",
+        "NO_SAFE_IN_RANGE_PULL_CANDIDATE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 87,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 4,
+        "merchant": 0,
+        "party": 74,
+        "persistence": 1,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/target-reassessment-threat.test.js",
+      "blobSha": "65b746c5f9b4bbb377077344bdb2163adde90b62",
+      "size": 7143,
+      "lines": 184,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/target-reassessment",
+        "../src/farmer/skill-farmer",
+        "../src/farmer/farmer-fsm"
+      ],
+      "testCases": [
+        "threatScore uses monster attack multiplied by frequency and stays null when metadata is incomplete",
+        "TargetReassessmentPolicy switches to a materially higher-threat self attacker even when it is not closer enough for alpha.8.6",
+        "TargetReassessmentPolicy does not switch for a threat increase below the 25 percent threshold when distance is also stable",
+        "TargetReassessmentPolicy preserves alpha.8.6 distance fallback when threat metadata is missing",
+        "TargetReassessmentPolicy chooses the highest known threat alternative and uses distance as its tie-breaker",
+        "SkillFarmerController passes live game data into reassessment and exposes threat telemetry on the actual switch",
+        "SkillFarmerController switch cooldown still blocks an otherwise valid higher-threat switch"
+      ],
+      "states": [
+        "HIGHER_SELF_AGGRO_THREAT",
+        "CURRENT_SELF_AGGRO_STABLE",
+        "CLOSER_SELF_AGGRO_PRIORITY",
+        "TARGET_SWITCH_COOLDOWN"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 38,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 2,
+        "persistence": 0,
+        "telemetry": 1,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/target-reassessment.test.js",
+      "blobSha": "43f0691e8dc5be4519a8ce8b9ec898e7c8d03f3b",
+      "size": 8646,
+      "lines": 225,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/target-reassessment",
+        "../src/farmer/skill-farmer",
+        "../src/farmer/farmer-fsm"
+      ],
+      "testCases": [
+        "TargetReassessmentPolicy keeps a self-aggro current target when the alternative is not materially closer",
+        "TargetReassessmentPolicy switches between self attackers only when the alternative is materially closer",
+        "TargetReassessmentPolicy switches at the configured self-aggro distance boundary",
+        "TargetReassessmentPolicy keeps the only self attacker as current target",
+        "TargetReassessmentPolicy switches from a non-self-focused target to the nearest self attacker",
+        "TargetReassessmentPolicy keeps current target when there is no self-aggro alternative",
+        "SkillFarmerController attacks the reassessed self-aggressor in the same engage tick",
+        "SkillFarmerController can switch from one self attacker to a much closer self attacker",
+        "SkillFarmerController switch cooldown blocks a second immediate reassessment switch",
+        "SkillFarmerController keeps recovery ahead of target reassessment"
+      ],
+      "states": [
+        "CURRENT_SELF_AGGRO_STABLE",
+        "CLOSER_SELF_AGGRO_PRIORITY",
+        "CURRENT_TARGET_ONLY_SELF_AGGRO",
+        "SELF_AGGRO_PRIORITY",
+        "NO_SELF_AGGRO_ALTERNATIVE",
+        "TARGET_SWITCH_COOLDOWN"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 42,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 0,
+        "party": 6,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/telemetry-outbox-ack.test.js",
+      "blobSha": "2e436c9fd0c9ede59d68fdba848694bfa108878b",
+      "size": 2295,
+      "lines": 60,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/ops/telemetry-outbox"
+      ],
+      "testCases": [
+        "ackThrough removes only telemetry at or below the accepted sequence",
+        "ackThrough is idempotent for an already acknowledged sequence",
+        "ackThrough never removes newer unsent telemetry after overflow",
+        "ackThrough rejects invalid cursors"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 19,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 2,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 10,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/terrain-formation-recovery.test.js",
+      "blobSha": "01be0f98da894c3be09122201f83807a41c3eace",
+      "size": 6113,
+      "lines": 186,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/team-cohesion-deadlock-hotfix"
+      ],
+      "testCases": [
+        "terrain recovery owner is deterministic and hands off only after the earlier follower rejoins",
+        "stalled formation follow escalates to one same-map smart_move and suppresses local oscillation",
+        "a stalled non-owner follower holds while the deterministic recovery owner routes",
+        "combat or emergency safety prevents terrain smart_move escalation"
+      ],
+      "states": [
+        "SELECT_TARGET",
+        "REGROUP_WITH_TEAM_LEADER",
+        "FOLLOW_TEAM_LEADER",
+        "WAITING_FOR_TERRAIN_RECOVERY_OWNER"
+      ],
+      "directAdventureLandWrites": [
+        "smart_move"
+      ],
+      "assertionSignals": {
+        "assert": 24,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 44,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/unknown-content-safety.test.js",
+      "blobSha": "415a6472d1778bee36c70ba893ea0ad8fbb98118",
+      "size": 3545,
+      "lines": 79,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/content-safety",
+        "../src/world/world-model"
+      ],
+      "testCases": [
+        "new monster type is quarantined persistently before discovery can make it known",
+        "monster types already known before alpha.8.12 migrate to legacy allowed",
+        "explicit operator approval releases quarantine and explicit quarantine re-blocks it",
+        "content safety fails closed when the persistent world safety context is unavailable",
+        "status exposes bounded policy disposition summaries"
+      ],
+      "states": [
+        "CONTENT_QUARANTINED",
+        "CONTENT_SAFETY_UNAVAILABLE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 21,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 2,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Simulate Discovery recording the monster after the farm snapshot was filtered."
+      ]
+    },
+    {
+      "path": "v3/test/world-model.test.js",
+      "blobSha": "ca6ca59cc2aaba53daa4c2915abfa625f92f6996",
+      "size": 2718,
+      "lines": 49,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/world/world-model"
+      ],
+      "testCases": [
+        "WorldModel keeps unknown distinct from false and records evidence",
+        "WorldModel aggregates performance per party fingerprint",
+        "WorldModel restores alpha.1 schema and serializes bounded alpha.2 schema",
+        "WorldModel keeps OBSERVED, INFERRED and HYPOTHESIS evidence separate with observed precedence"
+      ],
+      "states": [],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 17,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 3,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}

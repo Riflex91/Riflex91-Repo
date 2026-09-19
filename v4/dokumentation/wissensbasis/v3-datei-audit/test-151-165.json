@@ -1,0 +1,998 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/test",
+  "range": {
+    "start": 151,
+    "end": 165,
+    "total": 205
+  },
+  "files": [
+    {
+      "path": "v3/test/merchant-collection-bank-cost-production.test.js",
+      "blobSha": "25c9252006e698eb91eaa379d3eaf1d441675934",
+      "size": 19153,
+      "lines": 505,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/merchant/merchant-production-planner",
+        "../src/merchant/merchant-task-coordinator",
+        "../src/merchant/persistent-bank-catalog",
+        "../src/merchant/merchant-production-controller",
+        "../src/party/controlled-party-logistics",
+        "../src/reliability/alpha27-combat-merchant-convergence",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "production planner chooses a cheaper recipe chain over direct NPC purchase",
+        "production planner chooses direct NPC purchase when it is cheaper than recipe chain",
+        "persistent bank catalog survives leaving the bank and feeds production planning",
+        "merchant production auto-enables scoped BUY/BANK/CRAFT authority in active Merchant mode",
+        "persisted recovering exchange reconciles before any new production plan or travel",
+        "production exchange bank-retrieve preparation cannot deadlock on its own task key",
+        "Farmer runtime never acquires Merchant production or BANK_CATALOG work",
+        "Farmer progression gear is transferable to the Merchant while bound/special items remain protected",
+        "active Farmer collection session blocks economy until inventory is full or Farmers are drained"
+      ],
+      "states": [
+        "READY",
+        "LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC",
+        "LEAST_GOLD_RECIPE_SOURCE",
+        "LEAST_GOLD_VENDOR_SOURCE",
+        "PERSISTED_BANK_CATALOG",
+        "HEALTHY",
+        "BLOCKED",
+        "NO_CURRENTLY_EXECUTABLE_PRODUCTION_CHAIN",
+        "EXCHANGE",
+        "RECOVERING",
+        "COMMITTED",
+        "RESTART_RECONCILIATION_VERIFIED",
+        "HOLD",
+        "PRODUCTION_RESTART_RECONCILED_COMMITTED",
+        "ELIXIR_SUPPLY",
+        "BANK_MATERIAL_READY",
+        "NPC_EXCHANGE_READY",
+        "BANK_RETRIEVE_DELTA_VERIFIED",
+        "EXCHANGE_INPUT_DELTA_VERIFIED",
+        "PRODUCTION",
+        "EXCHANGE_BATCH",
+        "MERCHANT_PRODUCTION_ROLE_MISMATCH",
+        "MERCHANT_INVENTORY_FULL"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 60,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 5,
+        "merchant": 62,
+        "party": 5,
+        "persistence": 9,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Live alpha.20.116 regression: an exchange demand that first retrieves its",
+        "// material from bank must keep one EXCHANGE_BATCH lease through the final exchange.",
+        "// Keep this assertion on the final user-authored PR head after bundle generation."
+      ]
+    },
+    {
+      "path": "v3/test/merchant-item-lifecycle.test.js",
+      "blobSha": "d0579cc28b7637cb1397f18734a468d90b8a12ea",
+      "size": 43878,
+      "lines": 1176,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/economy/inventory-ledger",
+        "../src/economy/gear-progression",
+        "../src/economy/transaction-engine",
+        "../src/economy/controlled-merchant-executor",
+        "../src/reliability/alpha27-combat-merchant-convergence",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "InventoryLedger recognizes Adventure Land object-valued compound metadata",
+        "compound counts are character-local and never combine copies spread across the party",
+        "compound levels contribute their real stat gains to party gear scoring",
+        "stale persisted gear goals do not reserve new live inventory",
+        "Party Hat sell permission waits for gear answer and then uses expected value instead of forcing sale",
+        "Alpha27 lifecycle classifies progression before BANK and disposes only processed low-value results",
+        "economic upgrade fallback is atomic and cannot masquerade as an arbitrary upgrade",
+        "Farmer +5 upgrade lifecycle uses authoritative item-grade scrolls at every step",
+        "expected-value upgrade lifecycle continues from +2 with the item-grade scroll",
+        "gear delivery selects the exact sourceIndex when duplicate ready identities exist",
+        "currently meaningful Farmer upgrade gear below +5 stays projected instead of becoming delivery-ready",
+        "ready Farmer upgrade is finalized to +5 before any lower-tier delivery",
+        "exactly three identical +0 rings are compounded to +1 before Farmer delivery",
+        "nine identical +0 rings expose +2 as the highest currently producible delivery tier",
+        "three rings reserved for separate Farmer goals are delivered separately instead of sacrificed to one compound",
+        "two identical +0 rings do not postpone a ready Farmer delivery waiting for future drops",
+        "targeted finalization mutation consumes the Merchant turn and blocks lower-tier send_item",
+        "processed gear SELL waits for a fresh party gear evaluation and an empty Farmer claim set",
+        "ControlledMerchant permits only explicitly lifecycle-authorized processed gear sale",
+        "processed gear SELL is fail-closed when no explicit future Farmer evaluation exists",
+        "Merchant status publishes the enforced lifecycle order",
+        "processed +1 compound gear is protected and continued when +5 becomes a Farmer upgrade",
+        "processed gear sell planner fails closed on exact future Farmer protection",
+        "ControlledMerchant final preflight blocks a stale processed SELL when future Farmer value appears",
+        "risk-held useful +3 Farmer gear is delivered instead of waiting forever for +5"
+      ],
+      "states": [
+        "RESERVE_COMPOUND",
+        "KEEP",
+        "FUTURE_GEAR_EVALUATION_REQUIRED",
+        "SELL",
+        "AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_SELL",
+        "AUTONOMOUS_ECONOMIC_COMPOUND_ACCUMULATION",
+        "AUTONOMOUS_PROCESSED_GEAR_SELL",
+        "RESERVE_UPGRADE",
+        "AUTONOMOUS_ECONOMIC_UPGRADE",
+        "AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_UPGRADE",
+        "BANK",
+        "FUTURE_GEAR_EVALUATED_SAFE",
+        "UPGRADE",
+        "NPC_SELL_EXPECTED_VALUE_V1",
+        "CONTROLLED_CANARY",
+        "ECONOMIC_EXPECTED_VALUE",
+        "ITEM_GRADE_DEFAULT",
+        "ECONOMIC_UPGRADE_SCOPE_INVALID",
+        "FUTURE_FARMER_GEAR_PROGRESSION",
+        "AUTONOMOUS_UPGRADE_CONTINUATION",
+        "FARMER_POTENTIAL_TO_PLUS5",
+        "MATERIALS_AND_RISK_UNMODELED",
+        "MUTATE",
+        "TARGETED_UPGRADE_BEFORE_DELIVERY",
+        "RESERVE_PROGRESSION",
+        "ACTIVE_GEAR_GOAL_EXACT_ITEM",
+        "AUTONOMOUS_COMPOUND_SET_AVAILABLE",
+        "TARGETED_COMPOUND_BEFORE_DELIVERY",
+        "COMPOUND",
+        "READY",
+        "ALPHA27_GEAR_DELIVERY_FINALIZATION",
+        "FARMER_GEAR_DELIVERY_FINALIZATION",
+        "LEDGER_DISPOSITION_NOT_AUTHORIZED",
+        "HIGHEST_CURRENT_SAFE_LEVEL_REACHED",
+        "AUTONOMOUS_COMPOUND_RESULT",
+        "HEALTHY",
+        "FUTURE_FARMER_GEAR_EVALUATION_REQUIRED",
+        "GEAR_DELIVERY",
+        "AUTONOMOUS_COMPOUND_ACCUMULATION",
+        "FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL",
+        "FUTURE_FARMER_GEAR_PROGRESSION_PROTECTED",
+        "MUTATION_RISK_EXCEEDS_POLICY",
+        "RISK_GATE_PREFERS_SAFE_CURRENT_PARTY_UPGRADE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 146,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 162,
+        "party": 13,
+        "persistence": 2,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Regression from My_Merchant alpha.20.89: compound-capable gear must enter processing before BANK.",
+        "// Live alpha.20.96 regression: +1 feeder gear must survive until future Farmer value is disproven."
+      ]
+    },
+    {
+      "path": "v3/test/merchant-mluck.test.js",
+      "blobSha": "e4f1b75e2f1e267138254b9e54c55f475b322d23",
+      "size": 7565,
+      "lines": 197,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/merchant/merchant-mluck-policy",
+        "../src/merchant/merchant-mluck-service"
+      ],
+      "testCases": [
+        "remainingMluckMs understands relative and absolute expiry metadata",
+        "MerchantMluckPolicy prioritizes missing mluck over an expiring buff",
+        "MerchantMluckPolicy rotates deterministically by expiry then topology order",
+        "MerchantMluckPolicy skips dead, unreachable and out-of-range targets fail-safe",
+        "MerchantMluckService executes missing mluck through GameAdapter command boundary",
+        "MerchantMluckService preserves shadow semantics while exercising the same decision path",
+        "MerchantMluckService respects cooldown/resource and range checks without commands",
+        "MerchantMluckService yields to controlled merchant work and unhealthy supervisor states"
+      ],
+      "states": [
+        "CAST",
+        "MLUCK_MISSING",
+        "HOLD",
+        "MLUCK_TARGET_OUT_OF_RANGE",
+        "HEALTHY",
+        "MLUCK_ANTI_SPAM",
+        "MLUCK_COOLDOWN_OR_RESOURCE",
+        "MERCHANT_CONTROLLED_OPERATION_BUSY",
+        "QUARANTINED",
+        "SUPERVISOR_NOT_HEALTHY"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 30,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 42,
+        "party": 2,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/merchant-party-history-offline-gear.test.js",
+      "blobSha": "90296cb2fd5f1f7b08d1b2b77e0a4c985cbac17a",
+      "size": 9522,
+      "lines": 295,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/merchant-party-history",
+        "../src/economy/gear-progression",
+        "../src/economy/inventory-ledger",
+        "../src/reliability/alpha27-bank-recovery"
+      ],
+      "testCases": [
+        "Merchant party history persists only trusted characters actually observed in the party",
+        "offline remembered Farmer upgrade is banked, then becomes live progression again after party return",
+        "bank recovery holds remembered gear while target is absent and prioritizes it when trusted target rejoins",
+        "bank recovery retrieves only the rows claimed by returning goals and leaves other offline reservations banked"
+      ],
+      "states": [
+        "REMEMBERED_OFFLINE",
+        "BANK",
+        "OFFLINE_PARTY_GEAR_RESERVE",
+        "RESERVE_PROGRESSION",
+        "HEALTHY",
+        "OFFLINE_PARTY_GEAR_RETURN"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 35,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 16,
+        "merchant": 37,
+        "party": 28,
+        "persistence": 1,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// CI anchor: runtime bundles are generated from source; this test-only comment intentionally leaves them unchanged.",
+        "// Main-sync CI anchor: verifies the regenerated bundle against the current main without altering behavior."
+      ]
+    },
+    {
+      "path": "v3/test/merchant-production-acquisition-v3.test.js",
+      "blobSha": "03bb9bcff6bcdf4c99ffc060ee0c6fb10020d644",
+      "size": 18763,
+      "lines": 507,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/merchant/merchant-production-planner",
+        "../src/merchant/merchant-production-controller",
+        "../src/party/controlled-party-logistics",
+        "../src/party/production-material-acquisition",
+        "../src/party/probabilistic-farm-time"
+      ],
+      "testCases": [
+        "probabilistic farm time keeps expected telemetry but uses conservative P90 with confidence",
+        "rare exchange reward probability receives a materially larger P90 operation budget",
+        "P90 can prefer a slightly slower measured source over a lower-mean fallback source",
+        "validated quest exchange becomes an explicit QUEST_EXCHANGE acquisition node",
+        "quest-tagged production source without a verified NPC destination stays fail-closed",
+        "uncertain exchange rewards expand input farming to the P90 operation count",
+        "event-gated direct farm is executable only while live server event evidence is active",
+        "boolean event flag without deterministic event key is never guessed",
+        "inactive production event demand cannot reopen as autonomous exchange cleanup",
+        "event expiry between exchange planning and task lock fails closed before execution",
+        "exact production quest input may transfer while unrelated quest items stay protected",
+        "controller persists EVENT_WAITING instead of publishing an inactive event farm objective",
+        "controller publishes quest input farm with P90 telemetry and persists QUEST_ACQUISITION",
+        "quest input already on Merchant advances to QUEST_READY without another Farmer farm objective"
+      ],
+      "states": [
+        "APPROVED",
+        "MATERIAL_FARM_REQUIRED",
+        "HEALTHY",
+        "LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC",
+        "FALLBACK",
+        "MEASURED",
+        "P90",
+        "QUEST_EXCHANGE_MATERIAL_DROP",
+        "QUEST_EXCHANGE",
+        "FARM_DROP",
+        "QUEST_SOURCE_DESTINATION_UNVERIFIED",
+        "EXCHANGE_MATERIAL_DROP",
+        "EVENT_DIRECT_MATERIAL_DROP",
+        "EVENT_FARM",
+        "EVENT_SOURCE_INACTIVE",
+        "EVENT_SOURCE_UNVERIFIED",
+        "PRODUCTION_MATERIAL",
+        "EVENT_QUEST_EXCHANGE_REQUIREMENT_SATISFIED",
+        "BLOCKED",
+        "NO_CURRENTLY_EXECUTABLE_PRODUCTION_CHAIN",
+        "READY",
+        "NPC_EXCHANGE_READY",
+        "EVENT_SOURCE_BECAME_INACTIVE_BEFORE_EXECUTION",
+        "EVENT_WAITING",
+        "REQUESTED_PRODUCTION_QUEST_INPUT",
+        "QUEST_ACQUISITION",
+        "QUEST_READY"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 80,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 23,
+        "party": 7,
+        "persistence": 2,
+        "telemetry": 3,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/merchant-production-graph-e2e-soak-coverage.test.js",
+      "blobSha": "55d1ae5fc327f839d0b60a9afe472b980e51ddf8",
+      "size": 18193,
+      "lines": 499,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/merchant/production-graph-certification",
+        "../src/merchant/persistent-production-intent",
+        "../src/merchant/merchant-production-controller"
+      ],
+      "testCases": [
+        "coverage audit classifies resolved, temporary and structural acquisition gaps across craft gear",
+        "coverage audit treats known inactive events as deferred coverage rather than a permanent structural gap",
+        "coverage audit surfaces content drift before declaring a material path resolved",
+        "5000-sample end-to-end production soak stays invariant-clean and bounded across restart injection",
+        "certification gate requires structural coverage, a clean soak and the minimum sample count",
+        "soak auditor detects restart replay, split Farmers, handoff combat, inactive events and orphan cleanup",
+        "soak auditor covers every irreversible production family with idempotency keys",
+        "final craft stays OUTPUT_READY_FOR_DELIVERY until intended Farmer receipt is observable",
+        "recipient inventory settlement completes production before another plan can start",
+        "controller exposes on-demand coverage audit and actionless soak observation APIs",
+        "production soak audit persists bounded restart state and restores committed idempotency history",
+        "merchant production cycle automatically feeds real runtime soak without changing log behavior"
+      ],
+      "states": [
+        "APPROVED",
+        "P90",
+        "BUY",
+        "FARMING_MATERIAL",
+        "MATERIAL_READY_FOR_HANDOFF",
+        "EXECUTING_CRAFT",
+        "CRAFT",
+        "COMPLETED",
+        "PRODUCTION_SOAK_SAMPLE_GATE_NOT_MET",
+        "ACQUISITION_COVERAGE_NOT_READY",
+        "EXECUTING_BUY",
+        "EXPECTED",
+        "EVENT_QUEST_EXECUTING",
+        "GAMEPLAY_ACTION_DURING_RECOVERY_PENDING",
+        "DUPLICATE_IRREVERSIBLE_COMMIT",
+        "FARMERS_SPLIT_ACROSS_PRODUCTION_OBJECTIVES",
+        "NON_P90_FARM_DECISION",
+        "FARMER_COMBAT_DURING_HANDOFF",
+        "HANDOFF_WITH_REMAINING_FARM_REQUIREMENT",
+        "INACTIVE_EVENT_EXECUTION",
+        "COMPLETED_WITHOUT_RECIPIENT_VERIFICATION",
+        "ORPHAN_PRODUCTION_TASK_AFTER_COMPLETION",
+        "ORPHAN_PRODUCTION_OBJECTIVE_AFTER_COMPLETION",
+        "ORPHAN_EXCHANGE_DEMAND_AFTER_COMPLETION",
+        "ORPHAN_MUTATION_DEMAND_AFTER_COMPLETION",
+        "EXCHANGE",
+        "UPGRADE",
+        "COMPOUND",
+        "TRANSFER",
+        "HEALTHY",
+        "READY",
+        "OUTPUT_READY_FOR_DELIVERY",
+        "FINAL_PRODUCTION_OUTPUT_VERIFIED_ON_MERCHANT",
+        "HOLD",
+        "SHOULD_NOT_PLAN_WHILE_DELIVERY_PENDING",
+        "PRODUCTION_OUTPUT_AWAITING_RECIPIENT_DELIVERY",
+        "FINAL_PRODUCTION_RECIPIENT_VERIFIED",
+        "RECIPIENT_INVENTORY_VERIFIED",
+        "REAL_RUNTIME"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 71,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 3,
+        "merchant": 11,
+        "party": 0,
+        "persistence": 7,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/merchant-production-leveled-inputs.test.js",
+      "blobSha": "17d23f4e6842fbb0e4e4d96405e4cc41446c52d6",
+      "size": 18774,
+      "lines": 538,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/merchant/merchant-production-planner",
+        "../src/merchant/merchant-production-controller",
+        "../src/merchant/merchant-task-coordinator",
+        "../src/economy/inventory-ledger",
+        "../src/reliability/alpha27-combat-merchant-convergence",
+        "./alpha27-convergence-test-helpers"
+      ],
+      "testCases": [
+        "leveled upgrade recipe input resolves to one exact Alpha27 upgrade step",
+        "recursive compound recipe input expands +2 into nine level-0 inputs before mutating",
+        "recursive compound acquisition farms only the real base item, never an imaginary +level drop",
+        "leveled recipe input without upgrade or compound metadata fails closed",
+        "production mutation demand enters Alpha27 ledger but cannot override Farmer gear protection",
+        "Alpha27 accepts a precisely matching production upgrade without inventing a gear goal",
+        "Alpha27 rejects a production mutation when the exact output/recipient demand no longer matches",
+        "production controller hands an actionable leveled input to Alpha27 under one exact production lease",
+        "production controller refuses irreversible mutation when another required material has no safe acquisition path"
+      ],
+      "states": [
+        "BLOCKED",
+        "MATERIAL_MUTATION_REQUIRED",
+        "UPGRADE",
+        "LEVELED_MATERIAL_MUTATION_UNSUPPORTED",
+        "RESERVE_UPGRADE",
+        "PRODUCTION_MATERIAL_MUTATION_DEMAND",
+        "FUTURE_FARMER_GEAR_PROGRESSION",
+        "PRODUCTION_RECIPE_UPGRADE_INPUT",
+        "MERCHANT_PRODUCTION_ACQUISITION_V2",
+        "PRODUCTION_MATERIAL_ACQUISITION",
+        "PRODUCTION_MUTATION_DEMAND_MISMATCH",
+        "NO_CURRENTLY_EXECUTABLE_PRODUCTION_CHAIN",
+        "LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC",
+        "NOT_EXPECTED",
+        "HEALTHY",
+        "ALPHA27_ATOMIC_ONLY",
+        "NO_BANK_VENDOR_OR_RECIPE_SOURCE",
+        "MATERIAL_FARM_REQUIRED",
+        "PRODUCTION_MUTATION_CHAIN_NOT_COMPLETABLE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 59,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 55,
+        "party": 2,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Final integration guard: Recovery owns startup first; once clear, Production",
+        "// may hand exactly one leveled-material mutation to Alpha27 under its lease."
+      ]
+    },
+    {
+      "path": "v3/test/merchant-production-recovery-v2-handoff.test.js",
+      "blobSha": "adabc00a3750e85a1dd45703d4b5620fdb131dff",
+      "size": 14303,
+      "lines": 366,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/merchant/persistent-production-intent",
+        "../src/merchant/merchant-production-controller",
+        "../src/merchant/merchant-production-planner",
+        "../src/party/controlled-party-logistics",
+        "../src/farmer/farmer-fsm",
+        "../src/party/production-material-acquisition"
+      ],
+      "testCases": [
+        "persistent production intent reloads as recovery-pending and only continues after fresh identity match",
+        "persistent production intent never replays an old target when fresh replan identity changed",
+        "exchange-backed acquisition enters handoff when Farmers already hold all exchange inputs",
+        "party logistics handoff replaces farm objective, clears cross-map farm travel and keeps material transferable",
+        "Farmer production handoff is a real combat hold, not merely removal of farm priority",
+        "production controller converts aggregate Farmer-held material into handoff and persists that phase",
+        "controller restart reconciles persisted target before any fresh production action"
+      ],
+      "states": [
+        "BLOCKED",
+        "NO_CURRENTLY_EXECUTABLE_PRODUCTION_CHAIN",
+        "PRODUCTION_CHAIN_READY",
+        "MATERIAL_FARM_REQUIRED",
+        "FARMING_MATERIAL",
+        "TEAM_FARM_PATH_WITHIN_PRIORITY_BUDGET",
+        "PERSISTED_INTENT_MATCHED_FRESH_REPLAN",
+        "MATERIAL_READY_FOR_HANDOFF",
+        "PERSISTED_INTENT_NOT_PRESENT_IN_FRESH_REPLAN",
+        "FAILED_SAFE",
+        "APPROVED",
+        "MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER",
+        "PRODUCTION_MATERIAL",
+        "PRODUCTION_MATERIAL_HANDOFF",
+        "PRODUCTION_MATERIAL_HANDOFF_READY",
+        "HEALTHY",
+        "HOLD",
+        "PRODUCTION_INTENT_RECOVERED_REPLAN_VERIFIED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 43,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 13,
+        "merchant": 20,
+        "party": 9,
+        "persistence": 14,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Final integration guard: persisted intent reconciliation must finish before",
+        "// any post-restart production action is allowed to resume."
+      ]
+    },
+    {
+      "path": "v3/test/merchant-production-team-material-farming.test.js",
+      "blobSha": "b483fe488c944ec0da0cef8f499b13cee35574f4",
+      "size": 14696,
+      "lines": 405,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/merchant/merchant-production-planner",
+        "../src/party/controlled-party-logistics",
+        "../src/brain/strategic-brain-v2",
+        "../src/party/production-material-acquisition"
+      ],
+      "testCases": [
+        "production material source estimates team farm time from drops and observed/fallback kill rate",
+        "production material acquisition can farm an exchange input for a recipe material",
+        "production material acquisition keeps a 100h+ recipe valid but deprioritized",
+        "production material acquisition rejects leveled ingredients instead of pretending they can be directly farmed",
+        "production material chooser puts <=12h paths ahead of a much stronger 100h+ recipe",
+        "production material chooser still selects a long path when no shorter valid path remains",
+        "production material chooser favors worthwhile benefit per preferred team farm hour",
+        "production planner exposes all blocked recipe candidates for bounded farm-path selection",
+        "material already on farmers is treated as transfer-pending instead of more farming",
+        "explicit production material may bypass generic exchange protection but not binding protection",
+        "strategic brain keeps character level a minor context signal",
+        "active production material objective is not overwritten by an elixir farm objective",
+        "production material objective replaces a lower-priority elixir material objective for the whole team",
+        "production material objective is broadcast identically to every farmer, never split"
+      ],
+      "states": [
+        "APPROVED",
+        "MATERIAL_FARM_REQUIRED",
+        "CONSERVATIVE_FALLBACK_KILLS_PER_HOUR",
+        "EXCHANGE_MATERIAL_DROP",
+        "LONG_TEAM_FARM_PATH_DEPRIORITIZED",
+        "LEVELED_MATERIAL_REQUIRES_PROGRESSION",
+        "BLOCKED",
+        "MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER",
+        "PRODUCTION_MATERIAL",
+        "ELIXIR_MATERIAL",
+        "DIRECT_MATERIAL_DROP"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 60,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 30,
+        "party": 10,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/merchant-service-chain-thrashing.test.js",
+      "blobSha": "016987b24cabfc0709b1325b72925ecf56cb3070",
+      "size": 13100,
+      "lines": 289,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/reliability/alpha27-merchant-autonomy"
+      ],
+      "testCases": [
+        "fresh adaptive potion travel blocks ordinary bank planning until delivery chain finishes",
+        "fresh adaptive potion delivery safely releases a merely reserved bank transaction",
+        "critical supply aborts a RESERVED compound before any raw mutation and proceeds to restock",
+        "critical supply never cancels an EXECUTING compound with an uncertain raw outcome",
+        "rejected low-risk cancellation fails closed and never executes the competing bank transaction",
+        "transient CONTROLLED_SUBSYSTEM_BUSY planner overwrite cannot break a latched supply chain",
+        "same p0 batch may switch Alpha27 from one Farmer to the next without losing the latch",
+        "confirmed delivery keeps economy blocked while the p0 batch still has Farmers pending",
+        "confirmed potion delivery releases the latched chain and economy can resume",
+        "fresh NO_SERVICE_NEED releases a latched chain instead of holding economy forever",
+        "hard chain timeout releases a busy-held chain after bounded recovery window",
+        "stale adaptive potion plan cannot create a new latch or hold economy forever"
+      ],
+      "states": [
+        "BANK",
+        "RESTOCK_REQUIRED",
+        "MERCHANT_ADAPTIVE_POTION_RESTOCK_REQUIRED",
+        "SERVICE_DELIVERY",
+        "MERCHANT_ADAPTIVE_POTION_DELIVERY_READY",
+        "MERCHANT_ADAPTIVE_POTION_TRAVEL_READY",
+        "SERVICE_TRAVEL",
+        "PARTY_SUPPLY_SERVICE_CHAIN_ACTIVE",
+        "RESERVED",
+        "PARTY_SUPPLY_SERVICE_CHAIN_PREEMPT",
+        "COMPOUND",
+        "EXECUTING",
+        "TRANSACTION_ALREADY_TERMINAL",
+        "HOLD",
+        "CONTROLLED_SUBSYSTEM_BUSY",
+        "DELIVERED",
+        "PENDING",
+        "PARTY_SUPPLY_DELIVERY_COMMITTED",
+        "NO_SERVICE_NEED",
+        "PARTY_SUPPLY_NO_SERVICE_NEED",
+        "PARTY_SUPPLY_CHAIN_TIMEOUT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 83,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 2,
+        "merchant": 36,
+        "party": 52,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Reproduce the live race: while Alpha27 is travelling to the potion vendor,",
+        "// the 2s service planner replaces lastMerchantServicePlan with a busy HOLD.",
+        "// More than the old 10s freshness window then elapses before Alpha27 cycles."
+      ]
+    },
+    {
+      "path": "v3/test/merchant-service-hardening.test.js",
+      "blobSha": "15362686f10c11a7a47f894a3de3edd7aa5c2ad7",
+      "size": 3515,
+      "lines": 86,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/telemetry-bridge",
+        "../src/ops/reconciliation-status"
+      ],
+      "testCases": [
+        "farmer supply telemetry never counts slots or potions beyond character.isize",
+        "host restart reconciliation fails closed while merchant service operation is recovering",
+        "merchant service status failure becomes a restart blocker while frozen runtimes without the subsystem remain compatible"
+      ],
+      "states": [
+        "IDLE",
+        "RECOVERING",
+        "MERCHANT_SERVICE_RECOVERY_REQUIRED",
+        "MERCHANT_SERVICE_STATUS_UNAVAILABLE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 14,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 10,
+        "merchant": 11,
+        "party": 4,
+        "persistence": 0,
+        "telemetry": 4,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/merchant-service-observability.test.js",
+      "blobSha": "07280d74778427d40a60c539ab0c4ecf8b754782",
+      "size": 4008,
+      "lines": 105,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/autonomy/alpha20-5-merchant-runtime",
+        "../src/merchant/merchant-service-planner"
+      ],
+      "testCases": [
+        "committed potion service is retained as a bounded forensic event for GUI session export",
+        "committed stand action records the exact verified stand slot without inventing delivery fields",
+        "rejected execution does not fabricate a committed audit event"
+      ],
+      "states": [
+        "DELIVERY_LOCAL_DELTA_VERIFIED",
+        "MERCHANT_SERVICE_EXECUTION_COMMITTED",
+        "STAND_OPEN_VERIFIED",
+        "SERVICE_REPORT_ALREADY_SERVED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 21,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 25,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/merchant-service.test.js",
+      "blobSha": "8d8655eac5538829be44e69b6f648124795d0d81",
+      "size": 22741,
+      "lines": 424,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/merchant/merchant-service-planner",
+        "../src/merchant/controlled-merchant-service-executor",
+        "../src/travel/route-cost-estimator",
+        "../src/party/telemetry-bridge",
+        "../src/party/moving-target-freshness",
+        "../src"
+      ],
+      "testCases": [
+        "merchant service planner gives critical potion supply priority and binds delivery to exact report evidence",
+        "equal-priority critical supply serves an empty potion stack before a merely low one",
+        "farmer service need preempts an open stand before any delivery or travel action",
+        "inventory pressure is observed as collection-required but grants no collection authority",
+        "merchant stock reserve blocks potion delivery and asks for restock instead of draining reserve",
+        "stale and emergency farmer reports never trigger a merchant service trip",
+        "motion-aware freshness rejects a 2.9s-old kiting position while accepting the same-age stationary position",
+        "motion history derives observed speed from displacement instead of trusting timestamp age alone",
+        "merchant service planner rejects motion-stale kiting reports before planning travel",
+        "party telemetry reports position, free slots and potion stock without changing protocol",
+        "controlled merchant service is default-off and exact-ack gated",
+        "controlled stand uses one exact isize-bounded stand slot and close consumes exactly one verified raw action",
+        "stand open rejects when only an out-of-isize tail slot contains a stand item",
+        "controlled potion delivery verifies exact local identity delta and rejects arbitrary items",
+        "delivery requires exact farmer report evidence before any send_item call",
+        "exact farmer report can authorize at most one potion delivery and newer evidence can authorize the next",
+        "served-report dedupe persists across executor restart",
+        "untrusted or distant target is rejected before send_item",
+        "restart reconciliation never blindly retries an uncertain service operation",
+        "town route is selected only when materially faster than direct travel",
+        "critical batched supply falls back to controlled direct travel when TOWN is recommendation-only",
+        "noncritical non-batch TOWN recommendation remains fail-closed",
+        "3000-cycle merchant planner soak stays bounded, deterministic and action-authority free",
+        "2000 repeated executions of one report can produce only one raw potion send",
+        "public module exports the Alpha20.5 merchant runtime without changing the frozen Alpha20 class"
+      ],
+      "states": [
+        "SERVICE_PREEMPTS_STAND",
+        "STABLE",
+        "KITE",
+        "KITE_POSITION_UNCERTAINTY_EXCEEDED",
+        "MOVING",
+        "HEALTHY",
+        "WRONG",
+        "VALID_STAND_ITEM_REQUIRED",
+        "DELIVERY_ITEM_NOT_POTION",
+        "DELIVERY_SOURCE_REPORT_REQUIRED",
+        "SERVICE_REPORT_ALREADY_SERVED",
+        "DELIVERY_TARGET_OUT_OF_RANGE",
+        "SERVICE_DELIVERY",
+        "EXECUTING",
+        "RECOVERING",
+        "RESTART_OUTCOME_UNCERTAIN_NO_RETRY",
+        "TOWN",
+        "DIRECT",
+        "TOWN_MATERIALLY_FASTER",
+        "MERCHANT_SERVICE_TOWN_RECOMMENDATION_FALLBACK",
+        "TOWN_ROUTE_RECOMMENDED_BUT_LIVE_TOWN_AUTHORITY_NOT_IMPLEMENTED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 108,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 98,
+        "party": 5,
+        "persistence": 3,
+        "telemetry": 4,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Live regression: the Merchant previously chased a Ranger coordinate observed about 2.9 seconds earlier during kiting."
+      ]
+    },
+    {
+      "path": "v3/test/merchant-task-lock-gear-transfer.test.js",
+      "blobSha": "b782006be43e403936941c983f473fe8374e9101",
+      "size": 15575,
+      "lines": 386,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/merchant/merchant-task-coordinator",
+        "../src/economy/inventory-ledger",
+        "../src/economy/gear-progression",
+        "../src/party/controlled-party-logistics",
+        "../src/farmer/farmer-fsm",
+        "../src/reliability/alpha27-merchant-autonomy"
+      ],
+      "testCases": [
+        "Merchant task coordinator is non-preemptive across subsystem owners",
+        "rejected progression work releases the Merchant batch lease instead of pinning Production",
+        "self-gear wait releases the Merchant progression lease so Production can continue",
+        "gear finalization HOLD is reported as no progress so the global progression lease may drain",
+        "Inventory ledger reserves only the exact physical gear-goal item",
+        "legacy quantity reservation consumes only its requested quantity",
+        "GearProgression assigns one physical candidate to at most one target slot",
+        "GearProgression keeps better gear allocation Farmer-first at approximately 80/20",
+        "Merchant gear keeps speed primary but rejects a weighted net regression",
+        "leader farms a safe visible fallback while the material-objective spawn is empty",
+        "normal ENGAGE state does not by itself block Farmer outbound logistics",
+        "same-map elixir material objective moves toward its spawn even before monster is visible"
+      ],
+      "states": [
+        "ALPHA27",
+        "PROGRESSION_BATCH",
+        "PRODUCTION",
+        "EXCHANGE_BATCH",
+        "MERCHANT_TASK_LOCKED",
+        "PROGRESSION_BATCH_DRAINED",
+        "COMPOUND",
+        "WAIT_LEDGER",
+        "HOLD",
+        "GEAR_FINALIZATION_UPGRADE_LEDGER_PENDING",
+        "WEIGHTED_PRIMARY_WITH_NET_REGRESSION_GUARD",
+        "ELIXIR_MATERIAL",
+        "MATERIAL_OBJECTIVE_SPAWN_WAIT",
+        "ENGAGE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 43,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 4,
+        "merchant": 100,
+        "party": 11,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Live alpha.20.113: a passive self-gear wait must not own the global Merchant lease."
+      ]
+    },
+    {
+      "path": "v3/test/object-storage-fetch-binding.test.js",
+      "blobSha": "e0af51f84d9bd977ce55f55f5edd34a90ecbdbb2",
+      "size": 1205,
+      "lines": 43,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:crypto",
+        "../src/ops/object-storage-s3"
+      ],
+      "testCases": [
+        "binds the default browser fetch implementation to globalThis"
+      ],
+      "states": [
+        "HEAD"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 2,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    }
+  ]
+}

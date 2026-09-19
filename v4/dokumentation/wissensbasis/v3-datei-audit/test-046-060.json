@@ -1,0 +1,891 @@
+{
+  "schemaVersion": 1,
+  "sourceRef": "main",
+  "sourceCommit": "94e3a9962c1cba757e4d39b8e53f9ba4d8f4a376",
+  "scope": "v3/test",
+  "range": {
+    "start": 46,
+    "end": 60,
+    "total": 205
+  },
+  "files": [
+    {
+      "path": "v3/test/alpha20-5-browser-bot-client-bridge.test.js",
+      "blobSha": "a0c5351bb310408c74e274778f9a8f8c38bc986a",
+      "size": 15657,
+      "lines": 331,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../host/browser-bot-client",
+        "../host/production-host-harness",
+        "../host/headless-host-controller",
+        "../src/ops/reconciliation-status"
+      ],
+      "testCases": [
+        "BrowserBotClient exposes exactly the four host operations and no generic evaluate/invoke surface",
+        "browser dispatcher rejects missing operations and every non-host operation",
+        "claim validation rejects asynchronously before page evaluation",
+        "bridge fails closed on wrong origin, insecure origin and closed browser context without status side effects",
+        "bridge rejects oversized and non-serializable browser results without exposing page state",
+        "bridge timeout stays live and keeps the underlying evaluation single-flight until it actually settles",
+        "reconciliation evidence is observation-only and blocks every unresolved action family",
+        "reconciliation evidence fails closed when required runtime status surfaces are missing or throw",
+        "ProductionHostHarness constructs only the narrow client from an injected Adventure Land execution context",
+        "HeadlessHostController polls and persist-before-claims through BrowserBotClient without generic page authority",
+        "3000-call browser bridge soak remains bounded, origin-locked and gameplay-authority free"
+      ],
+      "states": [
+        "COMPLETE",
+        "AIO_V3_HOST_WATCHDOG_BEACON",
+        "HEALTHY",
+        "HOST_HEARTBEAT",
+        "PENDING_ALERTS",
+        "CLAIM_ALERTS",
+        "RECONCILIATION_STATUS",
+        "ATTACK",
+        "SMART_MOVE",
+        "SELL",
+        "NONE",
+        "RECOVERING",
+        "PASSIVE_OBSERVATION",
+        "REOBSERVE",
+        "ECONOMY_TRANSACTION_ACTIVE",
+        "ECONOMY_TRANSACTION_RECOVERING",
+        "BANK_EXPANSION_ACTIVE",
+        "BANK_EXPANSION_RECOVERING",
+        "MERCHANT_SPACE_RECOVERY_ACTIVE",
+        "MERCHANT_SPACE_RECOVERY_RECOVERING",
+        "CONTROLLED_MERCHANT_SPACE_RECOVERY_BUSY",
+        "BANK_CONSOLIDATION_BUSY",
+        "TRAVEL_ACTIVE",
+        "PARTY_LIFECYCLE_BUSY",
+        "PARTY_LIFECYCLE_RECOVERY_REQUIRED",
+        "ALPHA20_LIVE_GATE_RUNNING",
+        "SAFE_RECOVERY_INCIDENT_ACTIVE",
+        "ECONOMY_STATUS_UNAVAILABLE",
+        "BANK_EXPANSION_STATUS_UNAVAILABLE",
+        "MERCHANT_SPACE_RECOVERY_STATUS_UNAVAILABLE",
+        "CONTROLLED_SPACE_RECOVERY_STATUS_UNAVAILABLE",
+        "BANK_CONSOLIDATION_STATUS_UNAVAILABLE",
+        "TRAVEL_STATUS_UNAVAILABLE",
+        "PARTY_LIFECYCLE_STATUS_UNAVAILABLE",
+        "ALPHA20_LIVE_GATE_STATUS_UNAVAILABLE",
+        "CRITICAL",
+        "BRIDGE_TEST",
+        "TEST"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 86,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 5,
+        "rejects": 10
+      },
+      "signals": {
+        "patching": 6,
+        "recovery": 24,
+        "merchant": 10,
+        "party": 5,
+        "persistence": 1,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-5-external-watchdog-host.test.js",
+      "blobSha": "c566b2df19db6da720584eef798c0ba73fdf9e3b",
+      "size": 19070,
+      "lines": 457,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "../src/ops/alert-escalation-manager",
+        "../host/host-watchdog-supervisor",
+        "../host/json-file-state-store",
+        "../host/alert-relay",
+        "../host/headless-host-controller",
+        "../src"
+      ],
+      "testCases": [
+        "HostWatchdogSupervisor is default-off and exact-ack gated for process-only restart authority",
+        "HostWatchdogSupervisor accepts fresh monotonic beacons, rejects replay, and allows sequence reset only on a new run",
+        "HostWatchdogSupervisor rejects malformed contract and future-clock beacons",
+        "missed beacon deadline cannot restart while authority is disabled",
+        "exact host authority executes one bounded process restart then waits for a new-run beacon",
+        "restart failures are contained and restart budget opens a circuit instead of looping",
+        "3000-beacon host soak stays bounded and never gains gameplay authority",
+        "AlertEscalationManager exact claim marks only requested pending IDs",
+        "JsonFileStateStore uses atomic bounded persistence and corrupt state fails closed",
+        "AlertRelay refuses bot claims when an existing durable spool is corrupt",
+        "AlertRelay persists an alert before exact bot claim and never auto-acknowledges it",
+        "transport failure remains durably spooled and retries only after bounded backoff",
+        "durable spool failure blocks bot claim instead of losing alerts",
+        "2500-alert host relay soak respects spool backpressure while delivering without gameplay authority",
+        "HeadlessHostController keeps watchdog supervision alive when alert transport fails and owns no gameplay commands",
+        "public AIO_V3.operations exposes the host heartbeat and persist-before-claim alert handshake"
+      ],
+      "states": [
+        "AIO_V3_HOST_WATCHDOG_BEACON",
+        "HEALTHY",
+        "WRONG",
+        "BEACON_REPLAY",
+        "BEACON_GAMEPLAY_AUTHORITY_INVALID",
+        "BEACON_CLOCK_AHEAD",
+        "BEACON_DEADLINE_INVALID",
+        "RESTART_REQUIRED",
+        "RESTART_AUTHORITY_DISABLED",
+        "RESTARTING",
+        "STARTING",
+        "RESTART_FAILED",
+        "CIRCUIT_OPEN",
+        "RESTART_BUDGET_EXHAUSTED",
+        "CRITICAL",
+        "WARNING",
+        "STATE_FILE_CORRUPT",
+        "FAULT",
+        "CORRUPT_SPOOL",
+        "STUCK",
+        "NO_PROGRESS",
+        "TRANSPORT_TEST",
+        "PERSIST_FAIL",
+        "SPOOL_PERSIST_BEFORE_CLAIM_FAILED",
+        "SOAK",
+        "HOST_TEST_WARNING",
+        "PUBLIC_HANDSHAKE"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 103,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 1,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 3,
+        "merchant": 4,
+        "party": 1,
+        "persistence": 7,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-5-farm-readiness-hardening.test.js",
+      "blobSha": "391d9e23b5c890bbc22faff4e635e31193b69f37",
+      "size": 3338,
+      "lines": 104,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/controlled-farmer-loot",
+        "../src/ops/controlled-auto-respawn"
+      ],
+      "testCases": [
+        "loot and get_chests preserve the owning parent execution context",
+        "respawn preserves the owning parent execution context",
+        "a late rejection from an old respawn request cannot contaminate a newer death state"
+      ],
+      "states": [
+        "AUTO_RESPAWN_CALL_REJECTED"
+      ],
+      "directAdventureLandWrites": [
+        "respawn"
+      ],
+      "assertionSignals": {
+        "assert": 19,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 0,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-5-farm-readiness.test.js",
+      "blobSha": "6d4f8d410afed39b21b3e3beabd1495eeea21ec2",
+      "size": 7182,
+      "lines": 187,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/controlled-farmer-loot",
+        "../src/ops/controlled-auto-respawn",
+        "../src"
+      ],
+      "testCases": [
+        "farmer loot executes only in active mode for living non-merchants with accessible chests and rate-limits raw loot",
+        "farmer loot records bounded post-request inventory evidence without claiming a chest commit",
+        "auto respawn waits for death grace, emits one bounded raw request, and verifies life before resetting",
+        "auto respawn is fail-closed outside active mode and exhausts a strict per-death attempt budget",
+        "3000-cycle loot and respawn soak remains bounded and cannot grow raw action rate beyond configured budgets",
+        "default install is active-mode but stopped, with loot and auto-respawn armed only for a later operator start"
+      ],
+      "states": [
+        "CHARACTER_DEAD",
+        "MERCHANT_EXCLUDED",
+        "LOOT_RATE_LIMITED",
+        "NO_CHESTS",
+        "RESPAWN_WAIT",
+        "RECOVERY_VERIFIED",
+        "IDLE",
+        "RUNTIME_NOT_ACTIVE",
+        "EXHAUSTED",
+        "STOPPED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 47,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 4,
+        "merchant": 3,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-5-live-navigation-hotfix.test.js",
+      "blobSha": "1ee55a83e06aaf70e74e422276b7b7be3b19b740",
+      "size": 9495,
+      "lines": 203,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/autonomy/local-farm-orchestrator",
+        "../src/reliability/pre-farming-reliability",
+        "../src/farmer/live-navigation-hotfix",
+        "../src/autonomy/alpha20-5-farm-readiness-runtime"
+      ],
+      "testCases": [
+        "live regression: safe incidental visible monster no longer prevents a Local Farm plan and bounded move",
+        "unknown or risk-rejected incidental monster still blocks before plan creation and raw move",
+        "explicit Farmer target and self-aggro remain hard navigation blockers",
+        "Target Automatron presence is non-blocking but never bypasses self-aggro",
+        "3000-cycle safe-incidental arbitration soak never pins navigation and remains bounded",
+        "2500-cycle unsafe-incidental soak fails closed every time and issues no gameplay action",
+        "production farm-readiness runtime exposes the installed hotfix without new action authority"
+      ],
+      "states": [
+        "LEGACY_ALLOWED",
+        "ASSESS",
+        "ALLOWED",
+        "RISK_ACCEPTABLE",
+        "COMMAND_SENT",
+        "PENDING",
+        "MOVE",
+        "CONTENT_QUARANTINED",
+        "QUARANTINED",
+        "YIELD",
+        "VISIBLE_MONSTER_PRESENT",
+        "TRAINING_TARGET_AUTOMATRON"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 35,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 1,
+        "party": 5,
+        "persistence": 0,
+        "telemetry": 1,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Reproduce the production order: old pre-farming wrapper first, then the",
+        "// hotfix. Deliberately do not prime the old safe-entity cache.",
+        "// Constructor integration is asserted by source-level public status in the",
+        "// normal full suite; the policy contract itself must remain authority-free."
+      ]
+    },
+    {
+      "path": "v3/test/alpha20-5-pre-farming-reliability.test.js",
+      "blobSha": "8e2354b228be64b21d7850ac364005237974bf92",
+      "size": 16022,
+      "lines": 349,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/world/content-drift",
+        "../src/merchant/merchant-service-planner",
+        "../src/reliability/pre-farming-reliability"
+      ],
+      "testCases": [
+        "merchant role boundary disables and prevents scheduling of generic Farmer FSM and local farming before runtime ticks",
+        "incidental safety-approved hens no longer block repositioning while planned hens and self-aggro still do",
+        "unknown or safety-rejected incidental monsters remain navigation blockers",
+        "explicit Farmer target remains a navigation blocker even when it is not the planned monster type",
+        "missing Farmer supply or location telemetry stays UNKNOWN and cannot fabricate zero-potion or 0,0 service plans",
+        "a real observed zero potion count at explicit 0,0 remains actionable after nullable telemetry hardening",
+        "incomplete service evidence never masks a stronger Merchant safety hold",
+        "bank capacity is NOT_OBSERVABLE outside a real bank snapshot and cannot fabricate pressure or a plan",
+        "real observed bank arrays retain normal capacity semantics",
+        "content semantic projection strips runtime fields but preserves meaningful map changes",
+        "high-flap legacy quarantine becomes OBSERVED only after three stable semantic observations and never gains control authority",
+        "3000-cycle incidental-monster arbitration soak never promotes random safe hens over a planned farm type",
+        "2500-cycle unsafe incidental-monster soak never ignores a monster rejected by the existing safety snapshot"
+      ],
+      "states": [
+        "ASSESS",
+        "HOLD",
+        "SUPPLY_EVIDENCE_INSUFFICIENT",
+        "SERVICE_DELIVERY",
+        "HP_POTIONS_CRITICAL",
+        "MERCHANT_IN_COMBAT",
+        "NOT_OBSERVABLE",
+        "BANK_SNAPSHOT_NOT_OBSERVABLE",
+        "OBSERVED",
+        "DRIFT"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 75,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 32,
+        "party": 6,
+        "persistence": 0,
+        "telemetry": 8,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-5-pre-farming-runtime-integration.test.js",
+      "blobSha": "75c70da69ad34a6fdea60d3e22fd593558425420",
+      "size": 3495,
+      "lines": 90,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "production Alpha20.5 runtime installs Merchant stopped without any generic Farmer scheduling authority",
+        "production Alpha20.5 runtime treats missing bank and Farmer service evidence as unobservable instead of zero"
+      ],
+      "states": [
+        "NOT_OBSERVABLE"
+      ],
+      "directAdventureLandWrites": [
+        "move",
+        "attack",
+        "send_cm"
+      ],
+      "assertionSignals": {
+        "assert": 20,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 8,
+        "party": 3,
+        "persistence": 0,
+        "telemetry": 4,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Exercise the real production telemetry contract rather than bypassing its",
+        "// trust/freshness envelope. The payload is valid protocol evidence whose",
+        "// service fields are intentionally absent, so the reliability layer must",
+        "// preserve UNKNOWN/null instead of fabricating zero values."
+      ]
+    },
+    {
+      "path": "v3/test/alpha20-5-production-host-harness.test.js",
+      "blobSha": "1a8b674a98878ab0ab0f3fc71b0ae4582005a8f4",
+      "size": 15275,
+      "lines": 360,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:events",
+        "../host/managed-process-launcher",
+        "../host/host-api-server",
+        "../host/alert-transports",
+        "../host/restart-reconciliation-observer",
+        "../host/headless-host-controller",
+        "../host/production-host-harness",
+        "../host/host-watchdog-supervisor"
+      ],
+      "testCases": [
+        "ManagedProcessLauncher uses shell:false, captures bounded output and serializes a process restart",
+        "ManagedProcessLauncher refuses an empty command instead of invoking a shell fallback",
+        "ManagedProcessLauncher reports forced shutdown per stop attempt instead of leaking historical state",
+        "HostApiServer refuses non-loopback bind and short authentication tokens",
+        "HostApiServer is authenticated and read-only on loopback",
+        "webhook transport requires HTTPS except explicit loopback test mode and never exposes credential headers",
+        "RestartReconciliationObserver requires a fresh run and consumes observation-only bot evidence",
+        "RestartReconciliationObserver rejects evidence that claims gameplay authority",
+        "HeadlessHostController observes restart -> fresh run -> blocked -> clean reconciliation without gameplay action authority",
+        "ProductionHostHarness wires launcher/controller/API but keeps every host surface non-gameplay-authoritative",
+        "2500-cycle production host controller soak stays healthy, bounded and action-authority free"
+      ],
+      "states": [
+        "AIO_V3_HOST_WATCHDOG_BEACON",
+        "HEALTHY",
+        "TEST",
+        "WATCHDOG",
+        "SIGTERM",
+        "PROCESS_COMMAND_REQUIRED",
+        "SIGKILL",
+        "FORCED_TEST",
+        "GRACEFUL_TEST",
+        "DUPLICATE_TEST",
+        "LOOPBACK_BIND_REQUIRED",
+        "AUTH_TOKEN_TOO_SHORT",
+        "POST",
+        "CRITICAL",
+        "TX_RECOVERING",
+        "RUN_ID_NOT_FRESH",
+        "BLOCKED",
+        "OBSERVED_CLEAN",
+        "RECONCILIATION_AUTHORITY_INVALID",
+        "TRAVEL_RECOVERING",
+        "WAITING_FOR_FRESH_RUN"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 76,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 4,
+        "merchant": 2,
+        "party": 0,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-5-public-reconciliation-api.test.js",
+      "blobSha": "598ed116b634b9f88264d3a925f827eccf9a3f22",
+      "size": 1965,
+      "lines": 51,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src"
+      ],
+      "testCases": [
+        "public AIO_V3.operations exposes bot-owned observation-only reconciliation evidence"
+      ],
+      "states": [
+        "AIO_V3_RECONCILIATION_STATUS"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 12,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 2,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-5-recovery-alert-foundation.test.js",
+      "blobSha": "90e060c0256642a1cc6ac572ef47a465bf208a3b",
+      "size": 13029,
+      "lines": 287,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/core/event-log",
+        "../src/ops/alert-escalation-manager",
+        "../src/ops/safe-recovery-coordinator",
+        "../src/ops/host-watchdog-beacon",
+        "../src/ops/headless-operations"
+      ],
+      "testCases": [
+        "AlertEscalationManager dedupes, escalates unacked warnings, acknowledges and rate-limits new alerts",
+        "AlertEscalationManager stays bounded during a 2500-event storm",
+        "SafeRecoveryCoordinator rejects wrong ack and applies only safety-reducing actions after bounded degradation",
+        "SafeRecoveryCoordinator never self-restarts and escalates persistent degradation to host restart recommendation",
+        "HostWatchdogBeacon produces a monotonic lease/dead-man contract without restart authority",
+        "HeadlessOperations exposes bounded alerts, explicit safe recovery and external watchdog heartbeat",
+        "3000-cycle default-off recovery soak never gains action authority or invokes safe-mode actions"
+      ],
+      "states": [
+        "ONLINE",
+        "HEALTHY",
+        "ENGAGE",
+        "IDLE",
+        "WARNING",
+        "STUCK",
+        "NO_PROGRESS",
+        "PARTY",
+        "STALE",
+        "THIRD",
+        "FAULT",
+        "ALERT_RATE_LIMIT",
+        "CRITICAL",
+        "SOAK",
+        "WRONG",
+        "WRONG_ACK",
+        "DEGRADED",
+        "EXPECTED_ACTIVITY_NO_PROGRESS",
+        "REOBSERVE",
+        "SAFE_MODE",
+        "SNAPSHOT_STALE",
+        "HOST_RESTART",
+        "WATCH",
+        "SYNTHETIC_WARNING",
+        "TEST",
+        "AIO_V3_HOST_WATCHDOG_BEACON"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 63,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 45,
+        "merchant": 7,
+        "party": 9,
+        "persistence": 2,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-5-reliability-foundation.test.js",
+      "blobSha": "45a6c6a4dfb0545100701136f5089d83c14bdb67",
+      "size": 12010,
+      "lines": 266,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/core/event-log",
+        "../src/ops/flight-recorder",
+        "../src/ops/group-liveness",
+        "../src/ops/runtime-watchdog",
+        "../src/ops/reliability-checkpoint",
+        "../src/ops/headless-operations"
+      ],
+      "testCases": [
+        "GroupLivenessMonitor recognizes a fresh Merchant plus three combat party and degrades on stale member",
+        "RuntimeProgressWatchdog does not call shadow/idle a stuck state but detects missing active progress",
+        "RuntimeProgressWatchdog freshness can degrade without another runtime observe call",
+        "ReliabilityCheckpointStore writes inactive slot then pointer and falls back from corruption without resume authority",
+        "FlightRecorder is bounded and stores compact reliability incidents",
+        "HeadlessOperations captures heartbeat flight data, exposes group/watchdog health and persists reconcile-only checkpoint",
+        "3000-cycle reliability soak stays bounded, healthy with progress, and never gains action authority"
+      ],
+      "states": [
+        "ONLINE",
+        "HEALTHY",
+        "IDLE",
+        "STALE",
+        "DEGRADED",
+        "ENGAGE",
+        "WATCH",
+        "EXPECTED_ACTIVITY_PROGRESS_WATCH",
+        "EXPECTED_ACTIVITY_NO_PROGRESS",
+        "REPLAN_THEN_SAFE_MODE",
+        "SNAPSHOT_STALE",
+        "TEST_CP",
+        "EXECUTING",
+        "RECOVERING",
+        "TEST_CP_PTR",
+        "TEST_CP_B",
+        "TEST_INCIDENT",
+        "FAULT",
+        "HEARTBEAT",
+        "SYNTHETIC"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 50,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 6,
+        "merchant": 9,
+        "party": 4,
+        "persistence": 2,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-6-party-bootstrap-farmer-isolation.test.js",
+      "blobSha": "5eb16482f1125da270d6ed98c6d4a33695a2346c",
+      "size": 3431,
+      "lines": 102,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/party-bootstrap-farmer-gate"
+      ],
+      "testCases": [
+        "trusted solo farmer keeps progressing while party bootstrap is waiting",
+        "farmer isolation still fails closed for foreign party members",
+        "farmer isolation still fails closed for impossible observed active count"
+      ],
+      "states": [
+        "RUNNING",
+        "ORIGINAL_RAN",
+        "WAITING_FOR_TRUSTED_MERCHANT_PARTY",
+        "PARTIAL",
+        "TRUSTED_ROSTER_BOOTSTRAP_PENDING",
+        "FOREIGN_PARTY_MEMBER_PRESENT",
+        "BLOCKED",
+        "FOREIGN_OR_INACTIVE_PARTY_MEMBER_PRESENT",
+        "PARTY_BOOTSTRAP_NOT_READY",
+        "ACTIVE_CHARACTER_LIMIT_EXCEEDED"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 10,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 6,
+        "party": 20,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-6-party-bootstrap-live-regression.test.js",
+      "blobSha": "759d1085179a7d9b270fc448a6f68927a04ea966",
+      "size": 10135,
+      "lines": 289,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/controlled-party-bootstrap",
+        "../src/party/party-bootstrap-farmer-gate",
+        "../src/world/persistence"
+      ],
+      "testCases": [
+        "live regression: local-only get_active_characters does not classify trusted party members as foreign",
+        "live regression: Merchant repairs missing trusted ranger even when active API only exposes Merchant",
+        "farmer gate allows a trusted Merchant partial party during bounded repair but still blocks strangers",
+        "STOP -> START restores CM handler chain without recursion or duplicate forwarding",
+        "world persistence suppresses every later write after quota failure, including forced STOP writes",
+        "world persistence preflight blocks near-full Adventure Land localStorage before calling set()"
+      ],
+      "states": [
+        "FULL_PARTY_VERIFIED",
+        "RUNNING",
+        "ORIGINAL_RAN",
+        "PARTY_BOOTSTRAP_NOT_READY",
+        "FOREIGN_PARTY_MEMBER_PRESENT",
+        "TEST_STOP",
+        "TEST_STOP_2"
+      ],
+      "directAdventureLandWrites": [],
+      "assertionSignals": {
+        "assert": 30,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 0,
+        "merchant": 41,
+        "party": 41,
+        "persistence": 15,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": []
+    },
+    {
+      "path": "v3/test/alpha20-6-party-bootstrap-live-reliability.test.js",
+      "blobSha": "7f5fef2566e48ea8ed99980fd01b86883d5a228b",
+      "size": 16537,
+      "lines": 408,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/farmer/target-safety",
+        "../src/farmer/content-safety",
+        "../src/party/account-character-transport",
+        "../src/party/controlled-party-bootstrap",
+        "../src/farmer/farmer-travel-safety-hotfix",
+        "../src/content/content-drift-storage-hotfix"
+      ],
+      "testCases": [
+        "dangerous special fairies are non-removable target exclusions",
+        "content safety hard-quarantines dangerous fairies even when old world state says LEGACY_ALLOWED",
+        "farmer target travel is clamped to a bounded step instead of one huge raw move",
+        "same-account transport prefers command_character and never touches send_cm when direct IPC works",
+        "party bootstrap is a zero-action no-op for an already correct Merchant plus three party",
+        "party bootstrap repairs a full trusted party by making the wrong current leader leave before Merchant rebuilds",
+        "party bootstrap lets only the observed wrong leader perform the leave repair",
+        "party leader repair advances deterministically through non-Merchant leaders until Merchant is first",
+        "party leader repair fails closed when leave_party is unavailable",
+        "party bootstrap verifies and invites only missing active owned characters, one at a time",
+        "party bootstrap fails closed for foreign party members and impossible active-character count",
+        "content-drift quota failure preserves semantic records and blocks subsequent writes"
+      ],
+      "states": [
+        "DANGEROUS_SPECIAL_FAIRY",
+        "LEGACY_ALLOWED",
+        "PRE_ALPHA_8_12_KNOWN",
+        "QUARANTINED",
+        "BUILT_IN_DANGEROUS_SPECIAL",
+        "READY",
+        "REPAIRING",
+        "NON_MERCHANT_PARTY_LEADER_REPAIR_REQUIRED",
+        "LEAVE_FOR_MERCHANT_LEADERSHIP",
+        "WAITING_FOR_MERCHANT_BOOTSTRAP",
+        "WAITING_FOR_CURRENT_PARTY_LEADER_R1",
+        "BACKOFF",
+        "RETRY_PARTY_LEADER_REPAIR_R1",
+        "FOREIGN_OR_INACTIVE_PARTY_MEMBER_PRESENT",
+        "ACTIVE_CHARACTER_LIMIT_EXCEEDED",
+        "OBSERVED"
+      ],
+      "directAdventureLandWrites": [
+        "send_cm"
+      ],
+      "assertionSignals": {
+        "assert": 74,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 1,
+        "merchant": 32,
+        "party": 69,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Final-head regression: leadership normalization must remain fail-closed until Merchant leads."
+      ]
+    },
+    {
+      "path": "v3/test/alpha20-7-content-quarantine-transport.test.js",
+      "blobSha": "8a4cc8a0f55fdb9eef4c89c8c989f4acec6abd6b",
+      "size": 6420,
+      "lines": 169,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/party/account-character-transport",
+        "../src/content/content-drift-storage-hotfix",
+        "../src/content/content-drift-semantic-recovery",
+        "../src/world/world-model",
+        "../src/farmer/content-safety"
+      ],
+      "testCases": [
+        "account transport never calls command_character for a trusted but locally unobserved character",
+        "account transport still uses command_character when target is explicitly observed active",
+        "content drift storage failure preserves every semantic record and capacity",
+        "semantic recovery restores only historical monster falsely recreated as novelty",
+        "semantic recovery keeps genuinely new, changed, dangerous and manual quarantines blocked"
+      ],
+      "states": [
+        "QUARANTINED",
+        "OBSERVED"
+      ],
+      "directAdventureLandWrites": [
+        "send_cm"
+      ],
+      "assertionSignals": {
+        "assert": 21,
+        "strictEqual": 0,
+        "deepStrictEqual": 0,
+        "throws": 0,
+        "rejects": 0
+      },
+      "signals": {
+        "patching": 0,
+        "recovery": 16,
+        "merchant": 7,
+        "party": 1,
+        "persistence": 0,
+        "telemetry": 0,
+        "todo": 0
+      },
+      "leadingComments": [
+        "// Manual quarantine sufficiently later than the false-novelty timestamp must",
+        "// not be reclassified as the historical auto-quarantine bug."
+      ]
+    }
+  ]
+}
