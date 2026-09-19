@@ -56,3 +56,19 @@ Vor der ersten Runtime-Implementierung werden:
 - `dokumentation/V5-R2-STRATEGIEN.md` – Persistenz-, Determinismus-, Security-, Operator-, Failure- und Simulatorstrategie.
 
 R2 ist abgeschlossen. Dies oeffnet **nicht** das Gameplay-Runtime-Gate; R3 ist die aktuelle Phase.
+
+
+## R3 – Build-Guards und no-write Grundlage
+
+R3 ist abgeschlossen. Die no-write Grundlage liegt unter `grundlage/**` und besitzt keine Gameplay-Autoritaet.
+
+Wichtige Artefakte:
+- `roadmap/r3-abschluss.json` – maschinenlesbarer R3-Abschluss;
+- `grundlage/konfiguration.json` – Default-Deny/no-write Konfiguration;
+- `grundlage/quelle/**` – typisierte R3-Grundvertraege, bounded Writer und Replay-Grundgeruest;
+- `werkzeuge/r3-statische-guards.mjs` – Architektur-/Write-/Dependency-Guards;
+- `architektur/host-api-allowlist.json` – enge Host-Grenze;
+- `architektur/adr/ADR-001-R3-GRUNDLAGE.md` – Architekturentscheidung;
+- `.github/workflows/v5-r3.yml` – exakter-Head R3-CI.
+
+Aktuelle Phase ist R4. Das Gameplay-Runtime-Gesamtgate bleibt GESPERRT.
