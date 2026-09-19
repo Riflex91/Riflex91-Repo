@@ -66,8 +66,25 @@ for (const befehl of host.erlaubteBefehle ?? []) {
 }
 
 const phase = gates.phases?.find(x => x.id === "R3");
-if (gates.currentPhase !== "R3" || phase?.status !== "IN_PROGRESS") {
-  fehler("Roadmap muss waehrend dieses Branchstands R3 IN_PROGRESS sein.");
+const phaseIds = (gates.phases ?? []).map(x => x.id);
+const r3Index = phaseIds.indexOf("R3");
+const currentIndex = phaseIds.indexOf(gates.currentPhase);
+if (!phase || !["IN_PROGRESS", "DONE"].includes(phase.status)) {
+  fehler("R3 muss IN_PROGRESS oder DONE sein.");
+}
+if (phase.status === "IN_PROGRESS" && gates.currentPhase !== "R3") {
+  fehler("R3 IN_PROGRESS verlangt currentPhase=R3.");
+}
+if (phase.status === "DONE") {
+  if (currentIndex <= r3Index) fehler("Nach R3 DONE muss eine spaetere Phase currentPhase sein.");
+  const abschluss = lies("roadmap/r3-abschluss.json");
+  if (abschluss.status !== "DONE"
+      || abschluss.phase !== "R3"
+      || abschluss.runtimeGate !== "GESPERRT"
+      || abschluss.gameplayAutoritaet !== false
+      || Object.values(abschluss.exitKriterien ?? {}).some(wert => wert !== true)) {
+    fehler("R3-Abschlussmanifest ist unvollstaendig.");
+  }
 }
 
 if (bereitschaft.status !== "FREIGEGEBEN") {
@@ -127,4 +144,4 @@ for (const pfad of [
 
 console.log("[V5-R3-STRUKTUR] OK");
 console.log("[V5-R3-STRUKTUR] Gameplay-Gate:", bereitschaft.status);
-console.log("[V5-R3-STRUKTUR] Phase:", gates.currentPhase);
+console.log("[V5-R3-STRUKTUR] Phase:", gates.currentPhase, "/ R3:", phase.status);
