@@ -707,6 +707,18 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
         }
     }
 
+    private static string LiveImportFehlercode(Exception error)
+    {
+        var meldung = error.Message ?? string.Empty;
+        if (meldung.StartsWith("LIVE_", StringComparison.Ordinal))
+        {
+            var trennstelle = meldung.IndexOf(':');
+            return trennstelle > 0 ? meldung[..trennstelle] : Begrenze(meldung);
+        }
+
+        return "LIVE_WISSEN_IMPORT_FEHLER";
+    }
+
     private static string Begrenze(string? wert, int maximal = 512)
     {
         var text = string.IsNullOrWhiteSpace(wert) ? "UNBEKANNTER_FEHLER" : wert.Trim();
