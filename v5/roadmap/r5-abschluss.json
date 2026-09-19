@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R5",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "exitKriterien": {
+    "typisiertePersistenzPorts": true,
+    "transactionJournalAppendOnly": true,
+    "durableIntentVorSpaetererMutation": true,
+    "restartOhneBlindResume": true,
+    "schemaMigrationForwardBackwardUnsupportedGetestet": true,
+    "corruptOversizedUnsupportedFailClosed": true,
+    "dedupeRestartfest": true,
+    "inboxOutboxDurable": true,
+    "liveWissenSchreibtBereitCrashSicher": true,
+    "diskFullUndAccessDeniedKlassifiziert": true,
+    "dSsdVolumeIdUndReserveGeprueft": true,
+    "keinCFallback": true,
+    "retentionUndSpeicherdruckBounded": true,
+    "nichtkritischesSsdIoAusHotPathsAusgeschlossen": true
+  },
+  "faultMatrix": {
+    "status": "GRUEN",
+    "workflow": "v5-r5",
+    "runId": 35474637387,
+    "job": "persistenz-und-faults",
+    "headSha": "76b11f2b9951803460f71ac8af6ec4a47a4ca24b",
+    "conclusion": "success",
+    "abdeckung": [
+      "Forward-/Backward-/Unsupported-Migration",
+      "corrupt/oversized JSON",
+      "durable Intent und append-only Journal",
+      "Restart ohne Blind Resume",
+      "persistentes Dedupe",
+      "Inbox/Outbox",
+      "Speicherdruck/Retention",
+      "falsches Laufwerk/Volume-ID/Medientyp/Reserve",
+      "Crash an jedem SCHREIBT/BEREIT-Schritt",
+      "Disk Full",
+      "Access Denied",
+      "stale Live-Wissensdateien",
+      "Secret-Felder",
+      "Node-Dateiadapter",
+      "simulierter Neustart fuer Journal/Checkpoint/Dedupe/Inbox/Outbox"
+    ]
+  },
+  "anforderungen": {
+    "phaseR5": 8,
+    "technischNachgewiesen": 8,
+    "status": "R5_NACHGEWIESEN"
+  },
+  "traceability": {
+    "phaseR5": 8,
+    "vollstaendig": 8
+  },
+  "fitness": {
+    "kennung": "V5-FIT-045",
+    "status": "ERFUELLT"
+  },
+  "readiness": {
+    "PERSISTENZMODELL_BEREIT": true,
+    "gesamtstatus": "GESPERRT"
+  },
+  "ciVorAbschluss": {
+    "headSha": "76b11f2b9951803460f71ac8af6ec4a47a4ca24b",
+    "runs": [
+      {
+        "workflow": "v5-r5",
+        "runId": 35474637387,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r4",
+        "runId": 35474637361,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r3",
+        "runId": 35474637407,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-roadmap",
+        "runId": 35474637388,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-vorbereitung",
+        "runId": 35474637389,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-wissensgate",
+        "runId": 35474637402,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "windows-bridge",
+        "runId": 35474637428,
+        "conclusion": "success"
+      }
+    ]
+  },
+  "artefakte": {
+    "persistenzNachweis": {
+      "id": 10593217738,
+      "name": "v5-r5-persistenz-nachweis-2dd1de6a240ec4a2fce14090c38db2a8930fa091",
+      "sha256": "914b02417a1cd8cfc641ea1a146cf8d33e424e084ef849742e3b3426b8fb4a4b"
+    },
+    "windowsBridge": {
+      "id": 10593392628,
+      "name": "AioBotWindowsBridge-win-x64",
+      "sha256": "a5ce640e1a7c10b0aebed95302437ba425c5525a09ec9a6fc8860a49256d7fa1"
+    }
+  },
+  "betriebsblocker": {
+    "lokaleWindowsBridgeAktualisieren": true,
+    "beschreibung": "Eine offenbar noch laufende alte lokale Windows-Bridge-Binary schrieb trotz korrigiertem Repo-Code direkt auf main. Der Repo-Code pusht auf den Knowledge-Branch; der lokale Deploy bleibt bis zur Aktualisierung offen."
+  },
+  "nachweise": [
+    "v5/grundlage/quelle/persistenz/ports.ts",
+    "v5/grundlage/quelle/persistenz/journal.ts",
+    "v5/grundlage/quelle/persistenz/restart.ts",
+    "v5/grundlage/quelle/persistenz/schema-migration.ts",
+    "v5/grundlage/quelle/persistenz/begrenztes-json.ts",
+    "v5/grundlage/quelle/persistenz/speicherdruck.ts",
+    "v5/grundlage/quelle/persistenz/speicherziel.ts",
+    "v5/grundlage/quelle/persistenz/postfach.ts",
+    "v5/grundlage/quelle/persistenz/retention.ts",
+    "v5/grundlage/quelle/persistenz/live-wissens-speicher.ts",
+    "v5/grundlage/quelle/persistenz/dateibasierte-persistenz.ts",
+    "v5/grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs",
+    "v5/grundlage/tests/r5-persistenz.test.mjs",
+    "v5/werkzeuge/r5-persistenz-nachweis.mjs",
+    "v5/werkzeuge/r5-struktur-pruefen.mjs",
+    "v5/architektur/adr/ADR-003-PERSISTENZ-JOURNAL.md",
+    "ops/windows-bridge/SsdVolumeGesundheitsPruefer.cs",
+    ".github/workflows/v5-r5.yml"
+  ],
+  "naechstePhase": "R6",
+  "hinweis": "R5 schliesst die no-write Persistenzgrundlage. Gameplay-Runtime, Raw Game Writes und wertveraendernde Adventure-Land-Aktionen bleiben weiterhin gesperrt. R5 gilt erst nach gruenem finalen PR-Head und gruener Post-Merge-CI als endgueltig abgeschlossen."
+}

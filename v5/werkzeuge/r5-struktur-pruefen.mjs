@@ -30,6 +30,55 @@ if (!r5 || !["IN_PROGRESS", "DONE"].includes(r5.status)) fehler("R5 muss IN_PROG
 if (r5.status === "IN_PROGRESS" && gates.currentPhase !== "R5") fehler("R5 IN_PROGRESS verlangt currentPhase=R5.");
 if (bereitschaft.status === "FREIGEGEBEN") fehler("R5 darf Gameplay-Runtime nicht freigeben.");
 
+if (r5.status === "DONE") {
+  const r6 = gates.phases?.find(x => x.id === "R6");
+  if (gates.currentPhase !== "R6" || r6?.status !== "IN_PROGRESS") {
+    fehler("Nach R5 DONE muss R6 IN_PROGRESS und currentPhase=R6 sein.");
+  }
+
+  if (!fs.existsSync("roadmap/r5-abschluss.json")) fehler("R5-Abschlussmanifest fehlt.");
+  const abschluss = lies("roadmap/r5-abschluss.json");
+  if (abschluss.status !== "DONE"
+      || abschluss.phase !== "R5"
+      || abschluss.runtimeGate !== "GESPERRT"
+      || abschluss.gameplayAutoritaet !== false
+      || abschluss.rawWriteAutoritaet !== false
+      || Object.values(abschluss.exitKriterien ?? {}).some(wert => wert !== true)
+      || abschluss.faultMatrix?.status !== "GRUEN"
+      || abschluss.readiness?.PERSISTENZMODELL_BEREIT !== true
+      || abschluss.readiness?.gesamtstatus !== "GESPERRT"
+      || abschluss.naechstePhase !== "R6") {
+    fehler("R5-Abschlussmanifest ist unvollstaendig.");
+  }
+
+  const anforderungen = lies("anforderungen/anforderungen.json");
+  const r5Anforderungen = anforderungen.anforderungen.filter(x => x.phase === "R5" && x.prioritaet === "MUSS");
+  if (r5Anforderungen.length !== 8
+      || r5Anforderungen.some(x => x.status !== "R5_NACHGEWIESEN")) {
+    fehler("R5-Anforderungen sind nicht 8/8 technisch nachgewiesen.");
+  }
+
+  const trace = lies("anforderungen/nachverfolgbarkeit.json");
+  const r5Ids = new Set(r5Anforderungen.map(x => x.kennung));
+  const r5Trace = trace.eintraege.filter(x => r5Ids.has(x.anforderungKennung));
+  if (r5Trace.length !== 8
+      || r5Trace.some(x => x.vollstaendig !== true || x.r5NachweisStatus !== "R5_NACHGEWIESEN")) {
+    fehler("R5-Traceability ist nicht 8/8 vollstaendig.");
+  }
+
+  const fitness = lies("fitness/fitness-regeln.json");
+  const r5Fitness = fitness.regeln.filter(x => x.phase === "R5");
+  if (r5Fitness.length !== 1
+      || r5Fitness.some(x => x.r5NachweisStatus !== "ERFUELLT")) {
+    fehler("R5-Fitnessregel ist nicht technisch erfuellt.");
+  }
+
+  const persistenzBereit = bereitschaft.bereiche.find(x => x.kennung === "PERSISTENZMODELL_BEREIT");
+  if (!persistenzBereit || persistenzBereit.erfuellt !== true) {
+    fehler("PERSISTENZMODELL_BEREIT muss nach R5 true sein.");
+  }
+}
+
 const ports = fs.readFileSync("grundlage/quelle/persistenz/ports.ts", "utf8");
 for (const name of [
   "PersistenzPort",
@@ -65,7 +114,7 @@ const restart = fs.readFileSync("grundlage/quelle/persistenz/restart.ts", "utf8"
 if (!restart.includes('"ABGLEICH_ERFORDERLICH"')) fehler("No-Blind-Resume-Regel fehlt.");
 
 const adapter = fs.readFileSync("grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs", "utf8");
-if (!adapter.includes("fs.open(temp, \"wx\")")
+if (!adapter.includes('fs.open(temp, "wx")')
     || !adapter.includes("await handle.sync()")
     || !adapter.includes("await fs.rename(temp, ziel)")
     || !adapter.includes("LIVE_WISSEN_PRODUKTIONSWURZEL_UNGUELTIG")

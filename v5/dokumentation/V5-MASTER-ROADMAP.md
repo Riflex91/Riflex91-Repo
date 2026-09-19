@@ -397,7 +397,7 @@ Exit Gate:
 
 ## R5 – Persistenz, Journal und Schema-Evolution
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
 
 Bauen:
 - `PersistenzPort`;
@@ -436,6 +436,25 @@ Exit Gate:
 - Journal-durable-before-action ist fault-injected;
 - Speicherdruck degradiert nichtkritische Recorder vor kritischer Persistenz;
 - Disk Full/Access Denied/I/O-Fehler/falsches Volume koennen keine wertveraendernde Mutation ohne sicheren Intent zulassen.
+### R5 Abschlussstand
+
+- 10 typisierte Persistenz-/Journal-/Checkpoint-/Wissens-/Replay-/Telemetrie-/Evidence-/Gesundheits-/Dedupe-/Zustellungsports;
+- append-only Transaction Journal und durable Intent vor spaeterer Mutation;
+- Restart startet nichtterminale Checkpoints ausschliesslich mit `ABGLEICH_ERFORDERLICH`;
+- Forward-/Backward-/Unsupported-Schema-Migration und kritisches JSON fail-closed;
+- restartfeste Dedupe-Claims sowie durable Inbox/Outbox;
+- lokaler Live-Wissensspeicher auf `D:\\AdventureLand-V5\\wissensdatenbank` mit `SCHREIBT -> BEREIT`, fsync und atomarem Rename;
+- Disk-Full-/Access-Denied-/Read-only-/I/O-Fehler klassifiziert;
+- D:-SSD, stabile Volume-ID und mindestens 15 Prozent Reserve fail-closed;
+- kein stiller Fallback auf C:;
+- bounded Retention und Speicherdruck-Degradation nichtkritischer Daten vor kritischer Persistenz;
+- 8/8 R5-MUSS-Anforderungen technisch nachgewiesen und 8/8 Traceability vollstaendig;
+- R5-Fitnessregel technisch erfuellt;
+- `PERSISTENZMODELL_BEREIT=true`;
+- R5-Abschlussmanifest: `v5/roadmap/r5-abschluss.json`;
+- Gameplay-Runtime-Gesamtgate bleibt GESPERRT;
+- lokales Deployment einer offenbar alten Windows-Bridge-Binary bleibt als Betriebsblocker offen.
+
 ## R6 – Observation, Evidence und Reconciled World Truth
 
 Bauen:
