@@ -3952,6 +3952,17 @@
         "dynamicCostEvidence": null,
         "unknownInternalReserveRequired": true,
         "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      },
+      "liveDeploymentRevalidation": {
+        "verifiedAt": "2026-09-19",
+        "source": "https://adventure.land/js/runner_functions.js",
+        "result": "MATCHES_CONTRACT",
+        "evidence": [
+          "request_id = randomStr(30)",
+          "socket event bet with type=wheel and place=wheel game_response correlation",
+          "default timeout 60000ms"
+        ],
+        "authority": "CONTRACT_REVALIDATION_EVIDENCE_ONLY"
       }
     },
     {
@@ -4030,6 +4041,17 @@
         "dynamicCostEvidence": null,
         "unknownInternalReserveRequired": true,
         "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      },
+      "liveDeploymentRevalidation": {
+        "verifiedAt": "2026-09-19",
+        "source": "https://adventure.land/js/runner_functions.js",
+        "result": "MATCHES_CONTRACT",
+        "evidence": [
+          "request_id = randomStr(30)",
+          "poker_request emits socket event poker and correlates game_response by request_id and place=poker",
+          "default poker_request timeout 10000ms"
+        ],
+        "authority": "CONTRACT_REVALIDATION_EVIDENCE_ONLY"
       }
     },
     {
@@ -4108,6 +4130,17 @@
         "dynamicCostEvidence": null,
         "unknownInternalReserveRequired": true,
         "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      },
+      "liveDeploymentRevalidation": {
+        "verifiedAt": "2026-09-19",
+        "source": "https://adventure.land/js/runner_functions.js",
+        "result": "MATCHES_CONTRACT",
+        "evidence": [
+          "request_id = randomStr(30)",
+          "poker_request emits socket event poker and correlates game_response by request_id and place=poker",
+          "default poker_request timeout 10000ms"
+        ],
+        "authority": "CONTRACT_REVALIDATION_EVIDENCE_ONLY"
       }
     },
     {
@@ -4186,6 +4219,17 @@
         "dynamicCostEvidence": null,
         "unknownInternalReserveRequired": true,
         "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      },
+      "liveDeploymentRevalidation": {
+        "verifiedAt": "2026-09-19",
+        "source": "https://adventure.land/js/runner_functions.js",
+        "result": "MATCHES_CONTRACT",
+        "evidence": [
+          "request_id = randomStr(30)",
+          "poker_request emits socket event poker and correlates game_response by request_id and place=poker",
+          "default poker_request timeout 10000ms"
+        ],
+        "authority": "CONTRACT_REVALIDATION_EVIDENCE_ONLY"
       }
     },
     {
@@ -4256,6 +4300,17 @@
         "dynamicCostEvidence": null,
         "unknownInternalReserveRequired": true,
         "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      },
+      "liveDeploymentRevalidation": {
+        "verifiedAt": "2026-09-19",
+        "source": "https://adventure.land/js/runner_functions.js",
+        "result": "MATCHES_CONTRACT",
+        "evidence": [
+          "request_id = randomStr(30)",
+          "poker_request emits socket event poker and correlates game_response by request_id and place=poker",
+          "default poker_request timeout 10000ms"
+        ],
+        "authority": "CONTRACT_REVALIDATION_EVIDENCE_ONLY"
       }
     },
     {
@@ -4331,6 +4386,17 @@
         "dynamicCostEvidence": null,
         "unknownInternalReserveRequired": true,
         "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      },
+      "liveDeploymentRevalidation": {
+        "verifiedAt": "2026-09-19",
+        "source": "https://adventure.land/js/runner_functions.js",
+        "result": "MATCHES_CONTRACT",
+        "evidence": [
+          "request_id = randomStr(30)",
+          "poker_request emits socket event poker and correlates game_response by request_id and place=poker",
+          "default poker_request timeout 10000ms"
+        ],
+        "authority": "CONTRACT_REVALIDATION_EVIDENCE_ONLY"
       }
     },
     {
@@ -4481,5 +4547,18 @@
     "v5PlannedBudget": 100,
     "reserve": 100,
     "directSocketContracts": 58
+  },
+  "r2Revalidation": {
+    "status": "LIVE_DEPLOYED_CONTRACTS_REVALIDATED",
+    "verifiedAt": "2026-09-19",
+    "functions": [
+      "bet_wheel",
+      "poker_join",
+      "poker_act",
+      "poker_leave",
+      "poker_sit_in",
+      "poker_sit_out"
+    ],
+    "source": "https://adventure.land/js/runner_functions.js"
   }
 }
