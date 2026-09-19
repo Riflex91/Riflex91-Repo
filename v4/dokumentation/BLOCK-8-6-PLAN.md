@@ -1,8 +1,8 @@
 # Block 8.6 – Live Skill Catalog und Capability Truth
 
-Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.3 implementiert, naechster Implementierungsschritt 8.6.4.**
+Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.4 implementiert, naechster Implementierungsschritt 8.6.5.**
 
-Naechster Implementierungsschritt: **8.6.4 – CharakterFaehigkeiten**
+Naechster Implementierungsschritt: **8.6.5 – Cross-Client Capability Sync**
 
 ## Ziel
 
@@ -102,7 +102,7 @@ Regeln:
 
 Umsetzungsnachweis: `BLOCK-8-6-3-SKILL-POLICY.md`.
 
-## 8.6.4 – CharakterFaehigkeiten
+## 8.6.4 – CharakterFaehigkeiten — **IMPLEMENTIERT**
 
 Aus Katalog + technischer Readiness + SkillPolicy werden pro Charakter konkrete Capabilities abgeleitet.
 
@@ -124,6 +124,8 @@ Die bestehenden Gruppenwerte
 werden daraus reproduzierbar abgeleitet.
 
 Zusatzdaten wie Multi-Target-Damage, AoE-Control, Party-Heal oder Target-Capacity bleiben explizite Capabilities und werden nicht in einem einzigen Score versteckt.
+
+Umsetzungsnachweis: `BLOCK-8-6-4-CHARAKTER-FAEHIGKEITEN.md`.
 
 ## 8.6.5 – Cross-Client Capability Sync
 

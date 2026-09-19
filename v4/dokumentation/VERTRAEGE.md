@@ -151,3 +151,24 @@ Skill-spezifische Controls besitzen feste Min-/Max-/Schritt-Grenzen. Unbekannte 
 Die Persistenz verwendet `SKILL_POLICY_SCHEMA_VERSION = 1` und den vorhandenen `SchluesselWertSpeicher`. Eine Aenderung wird erst aktiv, nachdem der komplette neue Zustand erfolgreich persistiert wurde.
 
 Katalog-`drift`, `veraltet` oder `blockiert` loescht historische Nutzerwerte nicht, entzieht aber die aktuelle Policy-Freigabe. Auch eine positive Policy-Entscheidung besitzt immer `aktionsAutoritaet: false`.
+
+
+## CharakterFaehigkeiten
+
+`CharakterFaehigkeiten` ist die read-only Ableitung der aktuellen Character-Capability-Truth aus Live-`SkillKatalog`, technischer Skill-Readiness und `SkillPolicy`.
+
+Pro Skill bleiben mindestens getrennt:
+
+- `strukturellVorhanden`,
+- `technischBereit`,
+- `vomNutzerFreigegeben`,
+- `automatisierungKonfiguriert`,
+- `aktuellAutomatisierbar`.
+
+Technische Readiness prueft Equipment, bekannte Materialien, Mana und die bestehende Adventure-Land-Kampfbereitschaft. Unbekannte Anforderungen werden nicht geraten.
+
+Fuer jeden konkreten `SkillCapabilityTag` werden getrennte Zaehler und explizite Target-Capacities gefuehrt. Die bestehenden groben Gruppenfaehigkeiten `heilen`, `schaden`, `aggro`, `schutz` und `unterstuetzung` werden daraus als Anzahl aktuell automatisierbarer konkreter Skills abgeleitet; es gibt keine statische Klassenprioritaet.
+
+`CharakterFaehigkeiten` besitzt einen kanonischen SHA-256-Fingerprint und eine charaktergebundene Generation. Reine Zeitstempel und Cooldown-Restmillisekunden veraendern den Fingerprint nicht.
+
+Der Vertrag besitzt immer `aktionsAutoritaet: false`. Auch `aktuellAutomatisierbar=true` ist keine Ausfuehrungsfreigabe.
