@@ -80,13 +80,13 @@ test('production material source estimates team farm time from drops and observe
 test('production material acquisition refuses a 100h+ recipe farm path', () => {
   const runtime = runtimeForDrops(0.001);
   const estimate = estimateBlockedProductionCandidate(runtime, blockedCandidate(10, 1000), {
-    maxTeamFarmHours: 6,
+    maxTeamFarmHours: 12,
     fallbackKillsPerHour: 20
   });
   assert.equal(estimate.eligible, false);
   assert.equal(estimate.reason, 'EXPECTED_TEAM_FARM_TIME_EXCEEDS_LIMIT');
   assert.ok(estimate.totalExpectedHours > 100);
-  assert.equal(estimate.maxTeamFarmHours, 6);
+  assert.equal(estimate.maxTeamFarmHours, 12);
 });
 
 test('production material acquisition rejects leveled ingredients instead of pretending they can be directly farmed', () => {
@@ -94,7 +94,7 @@ test('production material acquisition rejects leveled ingredients instead of pre
   const candidate = blockedCandidate(3, 50);
   candidate.steps[0].level = 2;
   candidate.blockers[0].level = 2;
-  const estimate = estimateBlockedProductionCandidate(runtime, candidate, { maxTeamFarmHours: 6 });
+  const estimate = estimateBlockedProductionCandidate(runtime, candidate, { maxTeamFarmHours: 12 });
   assert.equal(estimate.eligible, false);
   assert.equal(estimate.reason, 'LEVELED_MATERIAL_REQUIRES_PROGRESSION');
 });
@@ -106,7 +106,7 @@ test('production material chooser favors worthwhile benefit per bounded team far
   const efficient = blockedCandidate(10, 100);
   efficient.candidate.output = 'efficientbow';
   const decision = chooseProductionTeamFarmObjective(runtime, [slow, efficient], {
-    maxTeamFarmHours: 6,
+    maxTeamFarmHours: 12,
     fallbackKillsPerHour: 20
   });
   assert.ok(decision.selected);
@@ -170,7 +170,7 @@ test('production material objective is broadcast identically to every farmer, ne
     y: 50,
     expectedHours: 1,
     totalExpectedHours: 1,
-    maxTeamFarmHours: 6,
+    maxTeamFarmHours: 12,
     expiresAt: 60000
   });
 
