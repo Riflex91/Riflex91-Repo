@@ -64,6 +64,38 @@ function partyHeldQuantity(runtime, name, level = 0) {
   return total;
 }
 
+function quantityInRows(rows, name, level = 0) {
+  let total = 0;
+  for (const item of Array.isArray(rows) ? rows : []) {
+    if (!item || String(item.name || '') !== String(name || '')) continue;
+    if (Math.max(0, Math.floor(finite(item.level, 0))) !== Math.max(0, Math.floor(finite(level, 0)))) continue;
+    total += Math.max(1, Math.floor(finite(item.q != null ? item.q : item.quantity, 1)));
+  }
+  return total;
+}
+
+function merchantHeldQuantity(runtime, name, level = 0) {
+  const root = runtime && runtime.root || {};
+  const character = root.character || root.parent && root.parent.character || {};
+  const inventory = Array.isArray(character.items) ? character.items : Array.isArray(character.inventory) ? character.inventory : [];
+  let total = quantityInRows(inventory, name, level);
+  const liveBank = character.bank && typeof character.bank === 'object' ? character.bank : null;
+  if (liveBank) {
+    for (const rows of Object.values(liveBank)) total += quantityInRows(rows, name, level);
+    return total;
+  }
+  try {
+    const catalog = runtime && runtime.merchantBankCatalog && typeof runtime.merchantBankCatalog.status === 'function'
+      ? runtime.merchantBankCatalog.status()
+      : null;
+    const rows = catalog && catalog.usable === true && catalog.snapshot && Array.isArray(catalog.snapshot.rows)
+      ? catalog.snapshot.rows
+      : [];
+    total += quantityInRows(rows, name, level);
+  } catch (_) {}
+  return total;
+}
+
 function sourceSafe(runtime, monster, spawn) {
   if (!runtime || !monster || !spawn || !spawn.map) return false;
   try {
@@ -162,7 +194,8 @@ function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, opti
     const expectedExchangeOperations = need / rewardPerExchange;
     const expectedInputUnits = Math.max(requiredPerExchange, Math.ceil(expectedExchangeOperations * requiredPerExchange));
     const alreadyOnFarmers = partyHeldQuantity(runtime, exchangeItem, 0);
-    const farmInputUnits = Math.max(0, expectedInputUnits - alreadyOnFarmers);
+    const alreadyOnMerchantOrBank = merchantHeldQuantity(runtime, exchangeItem, 0);
+    const farmInputUnits = Math.max(0, expectedInputUnits - alreadyOnFarmers - alreadyOnMerchantOrBank);
 
     const monsters = gameData && gameData.drops && gameData.drops.monsters || {};
     for (const monster of Object.keys(monsters)) {
@@ -196,6 +229,7 @@ function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, opti
           targetUnitsPerHour: desiredUnitsPerHour,
           expectedHours: farmInputUnits / inputUnitsPerHour,
           alreadyOnFarmers,
+          alreadyOnMerchantOrBank,
           ...spawn
         });
       }
@@ -324,6 +358,8 @@ module.exports = {
   currentPartyFingerprintKey,
   bestMeasuredKillsPerHour,
   partyHeldQuantity,
+  quantityInRows,
+  merchantHeldQuantity,
   knownSpawns,
   bestDirectMaterialFarmSource,
   bestExchangeMaterialFarmSource,
