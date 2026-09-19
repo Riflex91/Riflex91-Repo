@@ -135,6 +135,20 @@ class SmartAoePlanner {
     return Math.min(capacity, Math.min(...thresholds));
   }
 
+  planningProfile(mode, partyCapabilities) {
+    const resolvedMode = normalizeCombatMode(mode, CombatMode.SMART_AUTO);
+    const skills = this._aoeSkills(partyCapabilities);
+    const hardCapacity = this._hardCapacity(resolvedMode, partyCapabilities, skills);
+    const desiredPullSize = this._desiredSize(resolvedMode, hardCapacity, skills);
+    return {
+      combatMode: resolvedMode,
+      configured: hardCapacity > 1 && !!(partyCapabilities && partyCapabilities.combat && partyCapabilities.combat.aoeConfigured),
+      hardCapacity,
+      desiredPullSize,
+      skills: skills.map((row) => ({ ...row }))
+    };
+  }
+
   evaluate(input = {}) {
     this.stats.evaluations += 1;
     const mode = normalizeCombatMode(input.mode, CombatMode.SMART_AUTO);
