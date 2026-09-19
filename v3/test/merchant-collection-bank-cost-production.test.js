@@ -202,6 +202,7 @@ test('production exchange bank-retrieve preparation cannot deadlock on its own t
   };
   const planner = {
     plan: () => blockedPlan,
+    planMaterialConsolidation: () => null,
     planExchange: () => {
       exchangeCalls += 1;
       if (exchangeCalls === 1) return retrievePlan;
