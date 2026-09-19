@@ -103,11 +103,13 @@ function positionFreshness(row, now = Date.now(), options = {}) {
     speedEstimate: row && row.speed
   });
   const mode = motion.mode || (motion.kiteActive ? 'KITE' : motion.moving ? 'MOVING' : 'STABLE');
+  const movingFallbackSpeed = Math.max(1, finite(options.movingFallbackSpeed, 40));
   const speedEstimate = Math.max(
     0,
     motion.speedEstimate,
     mode !== 'STABLE' ? motion.declaredSpeed : 0,
-    mode !== 'STABLE' ? finite(row && row.speed, 0) : 0
+    mode !== 'STABLE' ? finite(row && row.speed, 0) : 0,
+    mode !== 'STABLE' ? movingFallbackSpeed : 0
   );
   const uncertainty = mode === 'STABLE' ? 0 : speedEstimate * sourceAgeMs / 1000;
   const errorBudget = mode === 'KITE' ? kiteMaxError : movingMaxError;
