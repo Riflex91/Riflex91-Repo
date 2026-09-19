@@ -543,9 +543,9 @@ class Alpha33MarkOrbitMerchantDelivery {
 
     if (typeof merchant.deliverGearGoal === 'function') {
       const baseDeliver = merchant.deliverGearGoal.bind(merchant);
-      merchant.deliverGearGoal = async () => {
+      merchant.deliverGearGoal = async (...args) => {
         const candidate = merchant.gearDeliveryCandidate();
-        if (!candidate || !candidate.goal || !candidate.item) return baseDeliver();
+        if (!candidate || !candidate.goal || !candidate.item) return baseDeliver(...args);
         const logistics = this.runtime.controlledPartyLogistics;
         if (!logistics || typeof logistics._send !== 'function') return baseDeliver();
         const goal = candidate.goal;
@@ -595,7 +595,7 @@ class Alpha33MarkOrbitMerchantDelivery {
           this._noteGearHold(stateAfterAck.safe ? 'GEAR_GOAL_CHANGED_AFTER_INTENT_ACK' : stateAfterAck.reason, goal);
           return false;
         }
-        return baseDeliver();
+        return baseDeliver(...args);
       };
     }
     merchant.__alpha33GearDeliverySafetyInstalled = true;

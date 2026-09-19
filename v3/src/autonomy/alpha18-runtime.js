@@ -86,6 +86,9 @@ class Alpha18Runtime extends Alpha17Runtime {
     const result = this.bankCapacity.observe({
       character,
       bankPacks: this._bankPacks(),
+      bankCatalog: this.merchantBankCatalog && typeof this.merchantBankCatalog.status === 'function'
+        ? this.merchantBankCatalog.status()
+        : null,
       gameData: this.adapter.getGameData() || {},
       contentDrift: this.contentDrift,
       observedAt: this.now()
@@ -151,7 +154,13 @@ class Alpha18Runtime extends Alpha17Runtime {
   planBankExpansion(request = {}) {
     const plan = request.plan && request.plan.action === 'EXPAND_BANK_PACK' ? request.plan : this.planBankSpace(request);
     if (!plan || plan.action !== 'EXPAND_BANK_PACK') return { accepted: false, reason: 'NO_SAFE_EXPANSION_PLAN', plan: clone(plan) };
-    return this.bankExpansionTransactions.plan(plan, { observation: this.bankCapacity.status().observation });
+    const observation = this.bankCapacity.status().observation;
+    if (plan.requiresLiveBankRevalidation === true
+      || plan.planningOnly === true
+      || observation && observation.planningOnly === true) {
+      return { accepted: false, reason: 'LIVE_BANK_REVALIDATION_REQUIRED', plan: clone(plan) };
+    }
+    return this.bankExpansionTransactions.plan(plan, { observation });
   }
 
   configureControlledBankExpansion(config = {}) {
@@ -169,7 +178,15 @@ class Alpha18Runtime extends Alpha17Runtime {
     return this.controlledBankExpansion.configure(config);
   }
 
-  executeBankExpansion(id) { return this.controlledBankExpansion.execute(id); }
+  executeBankExpansion(id) {
+    const character = this._liveCharacter();
+    const observation = this.bankCapacity.status().observation;
+    if (!character || !character.bank || typeof character.bank !== 'object'
+      || observation && observation.planningOnly === true) {
+      return { executed: false, committed: false, reason: 'LIVE_BANK_REVALIDATION_REQUIRED' };
+    }
+    return this.controlledBankExpansion.execute(id);
+  }
   runAlpha18CombinedLiveGate(config = {}) { return this.alpha18LiveGate.run(config); }
   alpha18LiveGateStatus() { return this.alpha18LiveGate.status(); }
   alpha18LiveGateResult() { return this.alpha18LiveGate.result(); }
