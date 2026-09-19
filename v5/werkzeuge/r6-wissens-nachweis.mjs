@@ -27,6 +27,9 @@ const nachweis = {
     "grundlage/quelle/wissen/learning-evidence.ts",
     "grundlage/quelle/wissen/ram-arbeitsmenge.ts",
     "grundlage/quelle/wissen/beobachtungs-evidence.ts",
+    "grundlage/quelle/anzeige/anzeigekatalog.ts",
+    "grundlage/tests/r6-anzeigekatalog.test.mjs",
+    "anzeigetexte/katalog.schema.json",
     "werkzeuge/r6-struktur-pruefen.mjs",
   ],
 };

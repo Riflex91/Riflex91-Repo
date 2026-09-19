@@ -19,12 +19,16 @@ for (const pfad of [
   "grundlage/quelle/wissen/drift-quarantaene.ts",
   "grundlage/tests/r6-wissen.test.mjs",
   "architektur/adr/ADR-005-R6-EVIDENCE-WORKING-SETS.md",
+  "architektur/adr/ADR-006-R6-DEUTSCHER-ANZEIGEKATALOG.md",
   "grundlage/tests/r6-evidence.test.mjs",
   "grundlage/quelle/wissen/wissens-promotion.ts",
   "grundlage/quelle/wissen/learning-evidence.ts",
   "grundlage/quelle/wissen/ram-arbeitsmenge.ts",
   "grundlage/quelle/wissen/beobachtungs-evidence.ts",
   "architektur/adr/ADR-004-R6-WISSEN-WELTWAHRHEIT.md",
+  "anzeigetexte/katalog.schema.json",
+  "grundlage/tests/r6-anzeigekatalog.test.mjs",
+  "grundlage/quelle/anzeige/anzeigekatalog.ts",
 ]) {
   if (!fs.existsSync(pfad)) fehler("Pflichtartefakt fehlt: " + pfad);
 }
@@ -115,12 +119,29 @@ if (!snapshot.includes("GITHUB_LIVE_SPIEGEL_NUR_VERIFIZIERTE_LIVE_FAKTEN")
   fehler("GitHub-Live-Snapshot blockiert Rohtelemetrie/unerlaubte Artefakte nicht.");
 }
 
+const anzeige = fs.readFileSync("grundlage/quelle/anzeige/anzeigekatalog.ts", "utf8");
+for (const marker of [
+  "VersionierterAnzeigekatalog",
+  "DEUTSCH_GEPRUEFT",
+  "DEUTSCH_OFFIZIELL",
+  "ORIGINALNAME_ERLAUBT",
+  "Unbekannte Fähigkeit",
+  "Unbekannter Gegenstand",
+  "MONSTER_EIGENE_UEBERSETZUNG_NICHT_ERLAUBT",
+]) {
+  if (!anzeige.includes(marker)) fehler("Anzeigekatalog-Regel fehlt: " + marker);
+}
+if (!anzeige.includes('kategorie === "FAEHIGKEIT"') || !anzeige.includes("SKILL_BESCHREIBUNG_FEHLT")) {
+  fehler("Skill-Anzeigekatalog erzwingt Name/Beschreibung nicht.");
+}
+
 const index = fs.readFileSync("grundlage/quelle/index.ts", "utf8");
 for (const exportPfad of [
   "./wissen/typen.js","./wissen/snapshot.js","./wissen/wissens-zugriff-port.js",
   "./wissen/verifier.js","./wissen/abgleich.js","./wissen/drift-quarantaene.js",
   "./wissen/beobachtungs-evidence.js","./wissen/ram-arbeitsmenge.js",
   "./wissen/learning-evidence.js","./wissen/wissens-promotion.js",
+  "./anzeige/anzeigekatalog.js",
 ]) {
   if (!index.includes(exportPfad)) fehler("Index-Export fehlt: " + exportPfad);
 }

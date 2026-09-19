@@ -41,3 +41,4 @@ export * from "./wissen/beobachtungs-evidence.js";
 export * from "./wissen/ram-arbeitsmenge.js";
 export * from "./wissen/learning-evidence.js";
 export * from "./wissen/wissens-promotion.js";
+export * from "./anzeige/anzeigekatalog.js";

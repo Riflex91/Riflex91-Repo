@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "V5 versionierter deutscher Anzeigekatalog",
+  "type": "object",
+  "required": ["schemaVersion", "katalogVersion", "eintraege"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "katalogVersion": { "type": "integer", "minimum": 1 },
+    "eintraege": {
+      "type": "array",
+      "maxItems": 100000,
+      "items": {
+        "type": "object",
+        "required": [
+          "schemaVersion",
+          "katalogVersion",
+          "externeKennung",
+          "kategorie",
+          "quellenStatus",
+          "revalidiertAm",
+          "quellenNachweis"
+        ],
+        "properties": {
+          "schemaVersion": { "const": 1 },
+          "katalogVersion": { "type": "integer", "minimum": 1 },
+          "externeKennung": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "kategorie": {
+            "enum": [
+              "FAEHIGKEIT",
+              "KLASSE",
+              "GEGENSTAND",
+              "NICHTSPIELERFIGUR",
+              "EREIGNIS",
+              "AUFGABE",
+              "AKTION",
+              "STATUS",
+              "MONSTER"
+            ]
+          },
+          "deutscherAnzeigename": { "type": "string" },
+          "deutscheBeschreibung": { "type": "string" },
+          "originalName": { "type": "string" },
+          "quellenStatus": {
+            "enum": [
+              "DEUTSCH_GEPRUEFT",
+              "DEUTSCH_OFFIZIELL",
+              "ORIGINALNAME_ERLAUBT"
+            ]
+          },
+          "revalidiertAm": { "type": "string", "minLength": 1 },
+          "quellenNachweis": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
