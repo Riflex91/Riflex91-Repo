@@ -104,7 +104,10 @@ class ProductionAcquisitionCoverageAudit {
   _drifted(name) {
     const drift = this.runtime && this.runtime.contentDrift;
     if (!drift || typeof drift.requiresRevalidation !== 'function') return false;
-    try { return drift.requiresRevalidation('item', name) === true; } catch (_) { return false; }
+    try {
+      return drift.requiresRevalidation('items', name) === true
+        || drift.requiresRevalidation('item', name) === true;
+    } catch (_) { return true; }
   }
 
   resolveItem(name, level = 0, quantity = 1, context = {}) {
@@ -359,10 +362,34 @@ class ProductionGraphSoakAuditor {
   }
 }
 
+function productionGraphCertificationGate({ coverage, soak, minSoakSamples = 5000 } = {}) {
+  const minimum = Math.max(1, Math.floor(finite(minSoakSamples, 5000) || 5000));
+  const coverageReady = !!(coverage && coverage.ready === true);
+  const soakPassed = !!(soak && soak.passed === true);
+  const samples = Math.max(0, Math.floor(finite(soak && soak.samples, 0) || 0));
+  const sampleGate = samples >= minimum;
+  const reasons = [];
+  if (!coverageReady) reasons.push('ACQUISITION_COVERAGE_NOT_READY');
+  if (!soakPassed) reasons.push('PRODUCTION_SOAK_INVARIANT_FAILURE');
+  if (!sampleGate) reasons.push('PRODUCTION_SOAK_SAMPLE_GATE_NOT_MET');
+  return {
+    schemaVersion: 1,
+    mode: 'production-graph-certification-gate-v1',
+    actionAuthority: false,
+    ready: coverageReady && soakPassed && sampleGate,
+    coverageReady,
+    soakPassed,
+    samples,
+    minSoakSamples: minimum,
+    reasons
+  };
+}
+
 module.exports = {
   COVERAGE_STATUS,
   ProductionAcquisitionCoverageAudit,
   ProductionGraphSoakAuditor,
+  productionGraphCertificationGate,
   recipeFor,
   vendorIndex
 };
