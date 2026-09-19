@@ -13,6 +13,7 @@ const factsDocs = manifest.facts.map(readJson);
 const questionDocs = manifest.questions.map(readJson);
 const contractDocs = (manifest.contracts ?? []).map(readJson);
 const recoveryDocs = (manifest.recoveryContracts ?? []).map(readJson);
+const bankConcurrency = manifest.bankConcurrency ? readJson(manifest.bankConcurrency) : null;
 const revalidation = readJson(manifest.revalidation);
 
 const sources = new Map(sourcesDoc.sources.map((s) => [s.id, s]));
@@ -143,6 +144,39 @@ if (manifest.counts?.verifiedRecoveryContracts !== recoveryList.filter((x) => x.
 }
 if (manifest.counts?.disabledRecoveryContracts !== recoveryList.filter((x) => x.status === 'DISABLED_WITH_ACTION_CONTRACT').length) {
   fail('Manifest disabledRecoveryContracts passt nicht zur Recovery-Matrix.');
+}
+
+if (!bankConcurrency
+    || bankConcurrency.schemaVersion !== 1
+    || bankConcurrency.researchId !== 'V5-P0-03'
+    || bankConcurrency.status !== 'DONE') {
+  fail('P0-03 Bank-Concurrency-Vertrag fehlt oder ist ungueltig.');
+}
+if (bankConcurrency.serverModel?.concurrencyScope !== 'ACCOUNT_GLOBAL_SINGLE_BANK_MOUNT') {
+  fail('P0-03 muss accountweiten Single-Bank-Mount modellieren.');
+}
+if (bankConcurrency.v5Policy?.authorityOwner !== 'ACCOUNT_COORDINATOR'
+    || bankConcurrency.v5Policy?.resource !== 'account:bank'
+    || bankConcurrency.v5Policy?.leaseScope !== 'ENTIRE_BANK_SESSION') {
+  fail('P0-03 V5-Bankauthority/Lease-Scope ist ungueltig.');
+}
+for (const state of ['ACQUIRING','ACTIVE','RECOVERY_PENDING','RELEASING','RELEASED','QUARANTINED']) {
+  if (!bankConcurrency.v5Policy?.leaseStates?.includes(state)) fail(`P0-03 Lease-State fehlt: ${state}`);
+}
+if (!Array.isArray(bankConcurrency.invariants) || bankConcurrency.invariants.length < 10) {
+  fail('P0-03 Bank-Concurrency-Invarianten unvollstaendig.');
+}
+for (const fn of ['bank_deposit','bank_withdraw','bank_store','bank_retrieve','bank_swap','open_bank_pack']) {
+  const action = contractList.find((x) => x.publicFunction === fn);
+  if (!action) fail(`P0-03 Bank-Action fehlt in Action Contracts: ${fn}`);
+  if (!action.resourceDomains?.includes('account:bank_lease')) fail(`P0-03 ${fn}: account:bank_lease fehlt`);
+}
+for (const fn of ['bank_deposit','bank_withdraw','bank_store','bank_retrieve','bank_swap']) {
+  const recovery = recoveryList.find((x) => x.publicFunction === fn);
+  if (recovery?.recoveryClass !== 'ACCOUNT_SHARED_STATE') fail(`P0-03 ${fn}: falsche Recovery-Klasse`);
+}
+if (recoveryList.find((x) => x.publicFunction === 'open_bank_pack')?.recoveryClass !== 'MIXED_PATH_RECONCILE') {
+  fail('P0-03 open_bank_pack braucht MIXED_PATH_RECONCILE.');
 }
 
 for (const fact of factList) {
@@ -384,6 +418,7 @@ if (fs.existsSync(liveSnapshot)) {
 }
 
 console.log(`[V5-WISSEN] OK: ${facts.size} Facts, ${contractIds.size} Action Contracts, ${recoveryIds.size} Recovery Contracts, ${questionIds.size} offene Fragen, ${sources.size} Quellen.`);
+console.log(`[V5-WISSEN] Bank-Concurrency: ${bankConcurrency.serverModel.concurrencyScope} -> ${bankConcurrency.v5Policy.authorityOwner}.`);
 console.log(`[V5-WISSEN] Waechter: ${quellenstatus.quellen.length} Quellen, ${kandidaten.kandidaten.length} Kandidaten, ${protokollZeilen.length} Aenderungseintraege.`);
 console.log(`[V5-WISSEN] Live-Wissen: ${fs.existsSync(liveSnapshot) ? liveDateien + ' validierte Dateien' : 'vorbereitet, noch kein Bot-Snapshot'}.`);
 console.log(`[V5-WISSEN] Raw Research SHA256: ${hash}`);
