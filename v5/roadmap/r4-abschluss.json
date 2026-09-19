@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R4",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "exitKriterien": {
+    "uhrPortInjizierbar": true,
+    "zufallsPortInjizierbar": true,
+    "kennungsPortInjizierbar": true,
+    "sequenzPortInjizierbar": true,
+    "gleicheInputsClockSeedErzeugenIdentischenEventstrom": true,
+    "replayFormatDefiniert": true,
+    "replayProvenienzValidiert": true,
+    "kanonischeSerialisierung": true,
+    "domainEventsImmutable": true,
+    "korrelationUndKausalitaet": true,
+    "typedErfolgFehlerUnbekannt": true,
+    "deadlineTtlFreshness": true,
+    "boundedCollections": true,
+    "direkteSystemzeitImFachkernVerboten": true,
+    "direkteMathRandomNutzungImFachkernVerboten": true,
+    "zustandsautomatenGeschlossenUndExhaustiv": true
+  },
+  "zustandsautomaten": {
+    "anzahl": 13,
+    "unerreichbar": 0,
+    "unbeabsichtigteSackgassen": 0,
+    "terminalMitAusgang": 0,
+    "ungueltigeKanten": 0,
+    "doppelteKanten": 0
+  },
+  "anforderungen": {
+    "phaseR4": 6,
+    "technischNachgewiesen": 6
+  },
+  "ciVorAbschluss": {
+    "workflow": "v5-r4",
+    "runId": 35473747673,
+    "headSha": "1a8568a2adaa7ec7b161f8d37456ce88d4bdc982",
+    "conclusion": "success",
+    "replayArtifactId": 10594111909
+  },
+  "nachweise": [
+    "v5/grundlage/quelle/determinismus/ports.ts",
+    "v5/grundlage/quelle/determinismus/uhr.ts",
+    "v5/grundlage/quelle/determinismus/zufall.ts",
+    "v5/grundlage/quelle/determinismus/kennungen.ts",
+    "v5/grundlage/quelle/determinismus/sequenz.ts",
+    "v5/grundlage/quelle/kern/ergebnis.ts",
+    "v5/grundlage/quelle/kern/zeit.ts",
+    "v5/grundlage/quelle/kern/prioritaet.ts",
+    "v5/grundlage/quelle/kern/begrenzte-warteschlange.ts",
+    "v5/grundlage/quelle/kern/kanonische-serialisierung.ts",
+    "v5/grundlage/quelle/kern/domaenen-ereignis.ts",
+    "v5/grundlage/quelle/kern/geschlossener-zustandsautomat.ts",
+    "v5/grundlage/quelle/testlabor/deterministischer-szenario-lauf.ts",
+    "v5/grundlage/quelle/testlabor/replay-format.ts",
+    "v5/grundlage/tests/r4-determinismus.test.mjs",
+    "v5/werkzeuge/r4-zustandsmodelle-pruefen.mjs",
+    "v5/werkzeuge/r4-replay-nachweis.mjs",
+    ".github/workflows/v5-r4.yml",
+    "v5/architektur/adr/ADR-002-DETERMINISTISCHER-CORE.md"
+  ],
+  "naechstePhase": "R5",
+  "hinweis": "R4 schliesst nur den deterministischen no-write Core. Gameplay-Runtime und wertveraendernde Adventure-Land-Aktionen bleiben weiterhin gesperrt."
+}
