@@ -355,6 +355,25 @@ Das Paket prueft Download, Bytegroesse, Marker und SHA-256, laesst Runtime und C
 
 Der reale Schattennachweis bleibt bis zu einem tatsaechlichen Adventure-Land-PASS-Bericht offen.
 
+## Source-locked kontrolliertes Livepaket
+
+Nach dem real bestandenen Schattenlauf steht jetzt ein einzelnes Copy/Paste-Paket fuer die naechste sequenzielle Stufe bereit:
+
+`v4/werkzeuge/block8-6-live-paket.js`
+
+Es bindet exakt:
+
+- Candidate `ca0dfee7685563c8b6003469300c8fd08777b053`
+- SHA-256 `b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5`
+- Schattenlauf `block8-6-schatten-1789822653521`
+- die kanonische `schattenUebergabe`
+- Vertrauensnamen `My_Ranger1` und `My_Ranger2`
+- Bestaetigung `BLOCK8-6-KONTROLLIERT-LIVE:block8-6-schatten-1789822653521`
+
+Der Live-Knopf bleibt bis zu einem bestaetigten fehlerfreien Produktionsheartbeat und sendefreier Capability-Basis gesperrt. Danach ist genau ein Capability-One-Shot an den anderen Ranger moeglich. Soak wird in diesem Paket nicht freigegeben.
+
+Der reale kontrollierte Live-Nachweis bleibt bis zu einem tatsaechlichen Adventure-Land-PASS-Bericht offen.
+
 ## Naechster operativer Schritt
 
 Nach Merge dieses Vorbereitungsstands:
