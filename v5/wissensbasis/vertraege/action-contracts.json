@@ -48,7 +48,9 @@
         "inventory"
       ],
       "dangerFlags": [
-        "INVENTORY_INDEX_DRIFT"
+        "INVENTORY_INDEX_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "target booster remains locatable with activated expiry/state"
@@ -112,7 +114,9 @@
         "inventory"
       ],
       "dangerFlags": [
-        "INVENTORY_INDEX_DRIFT"
+        "INVENTORY_INDEX_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "booster name equals requested mode"
@@ -176,7 +180,9 @@
       ],
       "dangerFlags": [
         "DESTRUCTIVE",
-        "INVENTORY_INDEX_DRIFT"
+        "INVENTORY_INDEX_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "thrown quantity removed from inventory"
@@ -244,7 +250,9 @@
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
         "ACCOUNT_SHARED_STATE",
-        "BANK_MOUNT_REQUIRED"
+        "BANK_MOUNT_REQUIRED",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "bank operation deposit reflected in fresh bank/character state"
@@ -312,7 +320,9 @@
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
         "ACCOUNT_SHARED_STATE",
-        "BANK_MOUNT_REQUIRED"
+        "BANK_MOUNT_REQUIRED",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "bank operation withdraw reflected in fresh bank/character state"
@@ -380,7 +390,9 @@
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
         "ACCOUNT_SHARED_STATE",
-        "BANK_MOUNT_REQUIRED"
+        "BANK_MOUNT_REQUIRED",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "bank operation swap reflected in fresh bank/character state"
@@ -448,7 +460,9 @@
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
         "ACCOUNT_SHARED_STATE",
-        "BANK_MOUNT_REQUIRED"
+        "BANK_MOUNT_REQUIRED",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "bank operation swap reflected in fresh bank/character state"
@@ -516,7 +530,9 @@
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
         "ACCOUNT_SHARED_STATE",
-        "BANK_MOUNT_REQUIRED"
+        "BANK_MOUNT_REQUIRED",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "bank operation move reflected in fresh bank/character state"
@@ -584,7 +600,9 @@
       "dangerFlags": [
         "MIXED_CORRELATION",
         "ASYNC_BACKEND_TX",
-        "BANK_MOUNT_REQUIRED"
+        "BANK_MOUNT_REQUIRED",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "requested pack exists and currency delta matches server result"
@@ -727,7 +745,9 @@
       ],
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
-        "INVENTORY_INDEX_DRIFT"
+        "INVENTORY_INDEX_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "gold decreased by server cost",
@@ -795,7 +815,9 @@
       ],
       "dangerFlags": [
         "ASYNC_BACKEND_TX",
-        "UNKNOWN_AFTER_DISCONNECT"
+        "UNKNOWN_AFTER_DISCONNECT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "shell balance decreased by server cost",
@@ -867,7 +889,9 @@
       "dangerFlags": [
         "RID_GUARD",
         "MARKET_DRIFT",
-        "UNKNOWN_AFTER_TIMEOUT"
+        "UNKNOWN_AFTER_TIMEOUT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "RID purchase succeeded",
@@ -942,7 +966,9 @@
       "dangerFlags": [
         "RID_GUARD",
         "MARKET_DRIFT",
-        "UNKNOWN_AFTER_TIMEOUT"
+        "UNKNOWN_AFTER_TIMEOUT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "RID purchase succeeded",
@@ -1012,7 +1038,9 @@
       ],
       "dangerFlags": [
         "DESTRUCTIVE",
-        "INVENTORY_INDEX_DRIFT"
+        "INVENTORY_INDEX_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "sold quantity removed",
@@ -1087,7 +1115,9 @@
         "INVENTORY_INDEX_DRIFT",
         "LISTING_RID_CREATED",
         "SELL_LISTING_SLOT_MUST_BE_EMPTY",
-        "STACK_LISTING_CAN_MOVE_PARTIAL_Q"
+        "STACK_LISTING_CAN_MOVE_PARTIAL_Q",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "target trade slot contains intended sell listing with exact item/fingerprint, unit price and requested listed quantity",
@@ -1161,7 +1191,9 @@
       "dangerFlags": [
         "LISTING_RID_CREATED",
         "BUY_LISTING_REPLACEMENT_ROTATES_RID",
-        "VIRTUAL_LISTING"
+        "VIRTUAL_LISTING",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "trade slot contains intended buy listing with b=true, item name, level if relevant, unit price and requested quantity",
@@ -1249,7 +1281,9 @@
         "RID_NOT_QUANTITY_VERSION",
         "PARTIAL_FILL_RID_STABLE",
         "REMOTE_LISTING_MUTABLE_BY_OTHERS",
-        "RAW_SERVER_RID_CHECK_IS_CONDITIONAL"
+        "RAW_SERVER_RID_CHECK_IS_CONDITIONAL",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "buyer gold decreased by exactly pinned unit_price * requested_quantity",
@@ -1342,7 +1376,9 @@
         "REMOTE_LISTING_MUTABLE_BY_OTHERS",
         "RAW_SERVER_RID_CHECK_IS_CONDITIONAL",
         "SERVER_SELECTS_FIRST_MATCHING_ITEM",
-        "PHYSICAL_ITEM_VARIANT_AMBIGUITY"
+        "PHYSICAL_ITEM_VARIANT_AMBIGUITY",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "seller gold increased by the exact net amount implied by pinned unit price, quantity and live seller tax",
@@ -1417,7 +1453,9 @@
       ],
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
-        "VALUE_COMMITMENT"
+        "VALUE_COMMITMENT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "giveaway listing exists with fresh rid"
@@ -1480,7 +1518,9 @@
         "listing_rid"
       ],
       "dangerFlags": [
-        "RID_GUARD"
+        "RID_GUARD",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "auth id registered on same giveaway rid"
@@ -1546,7 +1586,9 @@
       ],
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
-        "INVENTORY_INDEX_DRIFT"
+        "INVENTORY_INDEX_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "requested item is in resolved equipment slot"
@@ -1612,7 +1654,9 @@
       ],
       "dangerFlags": [
         "PARTIAL_COMPLETION",
-        "INVENTORY_INDEX_DRIFT"
+        "INVENTORY_INDEX_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "reconcile every requested equipment slot against desired end-state"
@@ -1681,7 +1725,9 @@
         "trade_slot"
       ],
       "dangerFlags": [
-        "TRADE_SLOT_REMOVAL_HAS_BUY_SELL_VARIANTS"
+        "TRADE_SLOT_REMOVAL_HAS_BUY_SELL_VARIANTS",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "requested slot is empty",
@@ -1750,7 +1796,9 @@
       ],
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
-        "DESTRUCTIVE"
+        "DESTRUCTIVE",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "consumed quantity delta and expected effect/state"
@@ -1813,7 +1861,9 @@
       ],
       "dangerFlags": [
         "PLACEHOLDER_REJECTED",
-        "INDEX_DRIFT"
+        "INDEX_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "slots/stacks match server result"
@@ -1877,7 +1927,9 @@
         "inventory_capacity"
       ],
       "dangerFlags": [
-        "INDEX_DRIFT"
+        "INDEX_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "source and new stack quantities sum to original quantity"
@@ -1940,7 +1992,9 @@
       ],
       "dangerFlags": [
         "DESTRUCTIVE",
-        "INVENTORY_INDEX_DRIFT"
+        "INVENTORY_INDEX_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "destroyed quantity removed unless special server outcome replaces it"
@@ -2017,7 +2071,9 @@
         "LEVELED_COMPOUND_THREE_OUTPUT_SPECIAL",
         "SERVER_SPECIAL_PATH_BYPASSES_NORMAL_LOCK_BLOCK_CHECK",
         "PROBABILISTIC_OUTPUTSPACE",
-        "PROPERTY_LOSS_ON_COMPOUND_SPLIT"
+        "PROPERTY_LOSS_ON_COMPOUND_SPLIT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "exact pinned input consumed exactly once",
@@ -2093,7 +2149,9 @@
       ],
       "dangerFlags": [
         "DESTRUCTIVE_PROPERTY_CHANGE",
-        "REQUEST_ID_SUPPORTED"
+        "REQUEST_ID_SUPPORTED",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "stat_type removed",
@@ -2162,7 +2220,9 @@
       ],
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
-        "INDEX_DRIFT"
+        "INDEX_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "item lock/seal state equals server result",
@@ -2230,7 +2290,9 @@
       ],
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
-        "INDEX_DRIFT"
+        "INDEX_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "item lock/seal state equals server result",
@@ -2298,7 +2360,9 @@
       ],
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
-        "INDEX_DRIFT"
+        "INDEX_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "item lock/seal state equals server result",
@@ -2398,7 +2462,9 @@
         "STAT_SCROLL_NOT_LEVEL_UPGRADE",
         "OFFERING_ONLY_NOT_LEVEL_UPGRADE",
         "SERVER_ROLL_SLOT_ADJUSTMENT",
-        "PREVIEW_NOT_EXECUTION_AUTHORITY"
+        "PREVIEW_NOT_EXECUTION_AUTHORITY",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "q.upgrade is cleared and attributable placeholder is gone",
@@ -2511,7 +2577,9 @@
         "SECOND_AND_THIRD_INPUTS_REMOVED_AT_START",
         "OUTCOME_PRESELECTED_BEFORE_Q_COMPLETES",
         "BOOSTER_RECURSIVE_EXTRA_LEVEL_PROC",
-        "PREVIEW_NOT_EXECUTION_AUTHORITY"
+        "PREVIEW_NOT_EXECUTION_AUTHORITY",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "q.compound is cleared and first-slot placeholder is resolved",
@@ -2603,7 +2671,9 @@
         "OUTPUTSPACE_PRECHECK",
         "OUTPUT_PROPERTY_INHERITANCE",
         "CRAFTMAP_PROTOCOL",
-        "ANNIVERSARY_SPECIAL_ROUTE"
+        "ANNIVERSARY_SPECIAL_ROUTE",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "recipe gold cost applied exactly once",
@@ -2692,7 +2762,9 @@
         "OUTPUT_PROPERTY_INHERITANCE",
         "CRAFTMAP_PROTOCOL",
         "ANNIVERSARY_SPECIAL_ROUTE",
-        "FIRST_MATCHING_SINGLE_STACK_SELECTION"
+        "FIRST_MATCHING_SINGLE_STACK_SELECTION",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "recipe gold cost applied exactly once",
@@ -2788,7 +2860,9 @@
         "RECURSIVE_DROP_TABLE",
         "MULTI_DOMAIN_REWARD",
         "SERVER_ADD_ITEM_OVERFLOW_POSSIBLE",
-        "OUTPUT_SLOT_NOT_REWARD_IDENTITY"
+        "OUTPUT_SLOT_NOT_REWARD_IDENTITY",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "q.exchange cleared and attributable placeholder gone",
@@ -2872,7 +2946,9 @@
         "INVENTORY_INDEX_DRIFT",
         "FULL_STACK_Q_SAFETY_CHECK",
         "TOKEN_STACK_SELECTION",
-        "OUTPUTSPACE_DEPENDS_ON_FULL_CONSUME"
+        "OUTPUTSPACE_DEPENDS_ON_FULL_CONSUME",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "exact pinned token stack decreased by configured cost or disappeared on full consume",
@@ -2944,7 +3020,9 @@
       ],
       "dangerFlags": [
         "WORLD_OBJECT_DRIFT",
-        "MULTI_REWARD"
+        "MULTI_REWARD",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "chest gone/claimed",
@@ -3006,7 +3084,9 @@
         "stand_state"
       ],
       "dangerFlags": [
-        "SHARED_FIFO_CHANNEL"
+        "SHARED_FIFO_CHANNEL",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "stand open/closed state matches request"
@@ -3070,7 +3150,9 @@
         "stand_state"
       ],
       "dangerFlags": [
-        "SHARED_FIFO_CHANNEL"
+        "SHARED_FIFO_CHANNEL",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "stand open/closed state matches request"
@@ -3139,7 +3221,9 @@
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
         "NON_IDEMPOTENT_TRANSFER",
-        "UNKNOWN_AFTER_DISCONNECT"
+        "UNKNOWN_AFTER_DISCONNECT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "gold sender delta",
@@ -3209,7 +3293,9 @@
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
         "NON_IDEMPOTENT_TRANSFER",
-        "UNKNOWN_AFTER_DISCONNECT"
+        "UNKNOWN_AFTER_DISCONNECT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "inventory sender delta",
@@ -3279,7 +3365,9 @@
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
         "NON_IDEMPOTENT_TRANSFER",
-        "UNKNOWN_AFTER_DISCONNECT"
+        "UNKNOWN_AFTER_DISCONNECT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "cosmetic_inventory sender delta",
@@ -3351,7 +3439,9 @@
         "ASYNC_BACKEND_TX",
         "VALUE_DEBIT_BEFORE_FINAL_VALIDATION",
         "ITEM_REMOVAL_BEFORE_BACKEND_COMMIT",
-        "UNKNOWN_AFTER_DISCONNECT"
+        "UNKNOWN_AFTER_DISCONNECT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "mail_sent request_id result OR explicit failure",
@@ -3421,7 +3511,9 @@
       "dangerFlags": [
         "CLAIM_PROTOCOL",
         "ASYNC_BACKEND_TX",
-        "UNKNOWN_AFTER_DISCONNECT"
+        "UNKNOWN_AFTER_DISCONNECT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "mail claim terminal",
@@ -3487,7 +3579,9 @@
         "npc_reachability"
       ],
       "dangerFlags": [
-        "NON_IDEMPOTENT_VALUE_SINK"
+        "NON_IDEMPOTENT_VALUE_SINK",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "gold delta",
@@ -3556,7 +3650,9 @@
       ],
       "dangerFlags": [
         "VALUE_DEBIT_BEFORE_GAME_COMPLETION",
-        "UNKNOWN_AFTER_DISCONNECT"
+        "UNKNOWN_AFTER_DISCONNECT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "q.slots terminal",
@@ -3625,7 +3721,9 @@
       ],
       "dangerFlags": [
         "VALUE_DEBIT_BEFORE_GAME_COMPLETION",
-        "UNKNOWN_AFTER_DISCONNECT"
+        "UNKNOWN_AFTER_DISCONNECT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "bet result correlated by request_id and gold/reward reconciled"
@@ -3691,7 +3789,9 @@
       ],
       "dangerFlags": [
         "ASYNC_BACKEND_TX",
-        "UNKNOWN_AFTER_DISCONNECT"
+        "UNKNOWN_AFTER_DISCONNECT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "request_id bless_result",
@@ -3753,7 +3853,10 @@
       "liveRevalidation": [
         "owned_cosmetics"
       ],
-      "dangerFlags": [],
+      "dangerFlags": [
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
+      ],
       "postconditions": [
         "character cosmetic state equals requested selection"
       ],
@@ -3817,7 +3920,9 @@
       "dangerFlags": [
         "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT",
         "UNKNOWN_AFTER_TIMEOUT",
-        "ACTIVE_SPIN_EXCLUSION"
+        "ACTIVE_SPIN_EXCLUSION",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "matching game_response has place=wheel and the exact request_id",
@@ -3892,7 +3997,9 @@
         "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT",
         "UNKNOWN_AFTER_TIMEOUT",
         "ACCOUNT_SINGLE_SEAT",
-        "VALUE_MOVES_OUT_OF_PURSE"
+        "VALUE_MOVES_OUT_OF_PURSE",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "matching game_response has place=poker and exact request_id",
@@ -3970,7 +4077,9 @@
         "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT",
         "UNKNOWN_AFTER_TIMEOUT",
         "TURN_STATE_DRIFT",
-        "STACK_VALUE_CHANGE"
+        "STACK_VALUE_CHANGE",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "matching game_response has place=poker and exact request_id",
@@ -4044,7 +4153,9 @@
         "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT",
         "UNKNOWN_AFTER_TIMEOUT",
         "DEFERRED_CASHOUT",
-        "DISCONNECT_AUTO_CASHOUT"
+        "DISCONNECT_AUTO_CASHOUT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "matching response either reports leaving=true or reports returned gold",
@@ -4114,7 +4225,9 @@
       "dangerFlags": [
         "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT",
         "UNKNOWN_AFTER_TIMEOUT",
-        "SEAT_STATE_DRIFT"
+        "SEAT_STATE_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "matching game_response has place=poker and exact request_id",
@@ -4186,7 +4299,9 @@
       "dangerFlags": [
         "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT",
         "UNKNOWN_AFTER_TIMEOUT",
-        "DELAYED_AUTO_CASHOUT"
+        "DELAYED_AUTO_CASHOUT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "matching game_response has place=poker and exact request_id and reports out=true",
@@ -4326,7 +4441,9 @@
       ],
       "dangerFlags": [
         "DESTRUCTIVE",
-        "INVENTORY_INDEX_DRIFT"
+        "INVENTORY_INDEX_DRIFT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
       ],
       "postconditions": [
         "destroyed item/quantity no longer exists at the re-resolved physical inventory identity"
