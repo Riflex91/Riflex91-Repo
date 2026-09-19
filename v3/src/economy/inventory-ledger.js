@@ -39,6 +39,29 @@ function stackKey(name, level) {
   return `${String(name || '')}:${Math.max(0, Math.floor(finite(level, 0)))}`;
 }
 
+function isEquipmentLike(meta = {}) {
+  const type = String(meta.type || '').toLowerCase();
+  return !!meta.wtype || !!meta.slot || ['weapon','armor','helmet','shoes','gloves','pants','chest','cape','ring','earring','amulet','orb','shield','offhand'].includes(type);
+}
+
+function autoExchangeEligible(row, meta = {}) {
+  const required = Math.max(0, Math.floor(finite(meta.e, 0)));
+  if (required <= 0 || Number(row && row.level || 0) !== 0) return false;
+  if (row && (row.locked || row.special)) return false;
+  if (meta.cash || meta.soulbound || meta.offering || meta.throw || meta.ignore) return false;
+  return true;
+}
+
+function autoBankEligible(row, meta = {}) {
+  if (!row || row.locked || row.special || Number(row.level || 0) !== 0) return false;
+  const name = String(row.name || '').toLowerCase();
+  if (/^(hpot|mpot|c?scroll[0-9])/.test(name)) return false;
+  if (isEquipmentLike(meta)) return false;
+  if (meta.upgrade || meta.compound || finite(meta.e, 0) > 0 || meta.exchange || meta.exchanges) return false;
+  if (meta.quest || meta.event || meta.cash || meta.soulbound || meta.offering || meta.throw || meta.ignore) return false;
+  return Math.max(1, Math.floor(finite(row.q, 1))) > 1 || Math.max(1, Math.floor(finite(meta.s, 1))) > 1;
+}
+
 function asSet(value) {
   return new Set(Array.isArray(value) ? value.map(String) : []);
 }
@@ -196,6 +219,13 @@ class InventoryLedger {
         };
       }
       return { disposition: ItemDisposition.SELL, reasons: ['OPERATOR_SELL_ALLOWLIST'] };
+    }
+
+    if (autoExchangeEligible(row, meta)) {
+      return { disposition: ItemDisposition.EXCHANGE, reasons: ['AUTONOMOUS_EXCHANGE_METADATA'] };
+    }
+    if (autoBankEligible(row, meta)) {
+      return { disposition: ItemDisposition.BANK, reasons: ['AUTONOMOUS_SAFE_SURPLUS_BANK'] };
     }
 
     return { disposition: ItemDisposition.UNDECIDED, reasons };
@@ -390,5 +420,8 @@ module.exports = {
   INVENTORY_LEDGER_SCHEMA_VERSION,
   INVENTORY_LEDGER_MODE,
   ItemDisposition,
-  stackKey
+  stackKey,
+  autoExchangeEligible,
+  autoBankEligible,
+  isEquipmentLike
 };
