@@ -1,6 +1,9 @@
 'use strict';
 
-const PARTY_SKILL_ENGINE_MODE = 'party-aware-skill-engine-v1';
+const { Capability } = require('./skill-semantics');
+const { SmartAoeState } = require('./smart-aoe-planner');
+
+const PARTY_SKILL_ENGINE_MODE = 'party-aware-skill-engine-v2';
 
 function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 function ratio(value, max) { const m = finite(max); return m > 0 ? Math.max(0, Math.min(1, finite(value) / m)) : 1; }
@@ -31,7 +34,7 @@ class PartySkillEngine {
     };
     this.lastDecision = null;
     this.lastUse = null;
-    this.stats = { decisions: 0, directSkills: 0, supportSkills: 0, defensiveSkills: 0, supershots: 0, overkillSkips: 0, cooldownSkips: 0, rangeSkips: 0, mpSkips: 0, policySkips: 0, teamGateBlocks: 0, parallelSkillMovesEnabled: 0 };
+    this.stats = { decisions: 0, directSkills: 0, aoeSkills: 0, aoeTargetsPlanned: 0, supportSkills: 0, defensiveSkills: 0, supershots: 0, overkillSkips: 0, cooldownSkips: 0, rangeSkips: 0, mpSkips: 0, policySkips: 0, teamGateBlocks: 0, parallelSkillMovesEnabled: 0, pullExpansions: 0 };
     this.installed = false;
     this.install();
   }
@@ -126,6 +129,131 @@ class PartySkillEngine {
     return null;
   }
 
+  _partyCapabilities() {
+    const resolver = this.runtime && this.runtime.partyCapabilityResolver;
+    if (!resolver || typeof resolver.status !== 'function') return null;
+    try { return resolver.status(); } catch (_) { return null; }
+  }
+
+  _liveEncounterTargets(context, skillId, capacity = null) {
+    const tactical = this.runtime && this.runtime.tacticalPartyCombat;
+    const encounter = tactical && tactical.encounter;
+    const snapshot = context && context.snapshot;
+    if (!encounter || !snapshot) return [];
+    const ids = Array.isArray(encounter.targetIds) ? encounter.targetIds.map(String) : [];
+    const primary = String(encounter.primaryTargetId || encounter.targetId || '');
+    const rows = ids
+      .map((id) => (snapshot.entities || []).find((row) => row && String(row.id) === id))
+      .filter((row) => row && row.mtype && !row.dead && finite(row.hp, 1) > 0)
+      .filter((row) => {
+        const adapter = context.adapter;
+        return !adapter || typeof adapter.isSkillInRange !== 'function' || adapter.isSkillInRange(row.id, skillId);
+      })
+      .sort((a, b) => {
+        if (String(a.id) === primary) return -1;
+        if (String(b.id) === primary) return 1;
+        return finite(b.hp, 0) - finite(a.hp, 0) || String(a.id).localeCompare(String(b.id));
+      });
+    return capacity == null ? rows : rows.slice(0, Math.max(1, Math.floor(finite(capacity, 1))));
+  }
+
+  _aoeDecision(context, target, team) {
+    const tactical = this.runtime && this.runtime.tacticalPartyCombat;
+    const encounter = tactical && tactical.encounter;
+    const plan = encounter && encounter.aoe;
+    if (!plan || plan.state !== SmartAoeState.AOE_BURN || plan.engagedCount < 2) return null;
+
+    const snapshot = context.snapshot;
+    const c = snapshot.character;
+    const game = this._gameData(context);
+    const partyCaps = this._partyCapabilities();
+    if (!partyCaps || partyCaps.catalogReady !== true) return null;
+    const member = (partyCaps.members || []).find((row) => row && row.name === c.name);
+    if (!member) return null;
+
+    const aoeCaps = new Set([
+      Capability.MULTI_TARGET_DAMAGE,
+      Capability.RANGED_MULTI_TARGET_DAMAGE,
+      Capability.VARIABLE_MULTI_TARGET_DAMAGE,
+      Capability.AOE_DAMAGE,
+      Capability.AOE_CONTROL
+    ]);
+    const maxMp = Math.max(1, finite(c.max_mp, finite(c.mp, 1)));
+    const reserve = maxMp * finite(this.farmer.skillUsage && this.farmer.skillUsage.mpReserveRatio, 0);
+    const scored = [];
+
+    for (const skill of member.skills || []) {
+      if (!skill || skill.configuredReady !== true) continue;
+      if (!(skill.capabilities || []).some((capability) => aoeCaps.has(capability))) continue;
+      if (skill.id === 'agitate') continue;
+      const meta = this._skillMeta(game, skill.id);
+      if (!meta || !this._classAllowed(meta, c)) continue;
+      if (!this._canUse(context, skill.id)) continue;
+
+      const minTargets = Math.max(1, Math.floor(finite(skill.parameters && skill.parameters.minTargets, 2)));
+      let capacity = skill.targetCapacity == null ? plan.pullCapacity : Math.max(1, Math.floor(finite(skill.targetCapacity, 1)));
+      capacity = Math.max(1, Math.min(capacity, plan.pullCapacity || capacity, 8));
+      const targets = this._liveEncounterTargets(context, skill.id, capacity);
+      if (targets.length < minTargets) continue;
+
+      let args = null;
+      let mpCost = Math.max(0, finite(meta.mp, 0));
+      let kind = 'aoe';
+      let targetCount = targets.length;
+      let reason = 'SMART_AOE_DAMAGE_WINDOW';
+      let expectedFactor = Math.max(0.1, finite(meta.damage_multiplier, skill.id === 'stomp' ? 0 : 1));
+
+      if (skill.id === '3shot' || skill.id === '5shot' || skill.id === 'fanofknives') {
+        args = [skill.id, targets.map((row) => String(row.id))];
+      } else if (skill.id === 'cburst') {
+        const budgetRatio = Math.max(0.05, Math.min(0.50, finite(skill.parameters && skill.parameters.manaBudgetRatio, 0.20)));
+        const available = Math.max(0, finite(c.mp, 0) - reserve - mpCost);
+        const budget = Math.min(available, maxMp * budgetRatio);
+        const manaPerTarget = Math.floor(budget / Math.max(1, targetCount));
+        if (manaPerTarget < 1) { this.stats.mpSkips += 1; continue; }
+        args = ['cburst', targets.map((row) => [String(row.id), manaPerTarget])];
+        mpCost += manaPerTarget * targetCount;
+        expectedFactor = Math.max(expectedFactor, finite(meta.ratio, 0.5) * manaPerTarget / Math.max(1, finite(c.attack, 100)));
+        reason = 'SMART_AOE_CONTROLLED_BURST';
+      } else if (skill.id === 'cleave') {
+        args = ['cleave'];
+        reason = 'SMART_AOE_CLEAVE_WINDOW';
+      } else if (skill.id === 'stomp') {
+        args = ['stomp'];
+        kind = 'aoe-control';
+        reason = 'SMART_AOE_CONTROL_WINDOW';
+        expectedFactor = 0.35;
+      } else if (meta.multi === true || meta.list === true) {
+        args = [skill.id, targets.map((row) => String(row.id))];
+      } else if ((skill.capabilities || []).includes(Capability.AOE_DAMAGE) || (skill.capabilities || []).includes(Capability.AOE_CONTROL)) {
+        args = [skill.id];
+      } else {
+        continue;
+      }
+
+      if (finite(c.mp, 0) - mpCost < reserve) { this.stats.mpSkips += 1; continue; }
+      const targetValue = targetCount * (kind === 'aoe-control' ? 22 : 34);
+      const mpPenalty = mpCost / maxMp * 55;
+      const skillBonus = skill.id === '5shot' ? 12 : skill.id === '3shot' ? 8 : skill.id === 'cleave' ? 10 : skill.id === 'cburst' ? 9 : 0;
+      const utility = 100 + targetValue + expectedFactor * 18 + skillBonus - mpPenalty;
+      scored.push({
+        id: skill.id,
+        args,
+        kind,
+        reason,
+        utility,
+        targetIds: targets.map((row) => String(row.id)),
+        targetCount,
+        mpCost,
+        minTargets,
+        expectedFactor
+      });
+    }
+
+    scored.sort((a, b) => b.utility - a.utility || b.targetCount - a.targetCount || a.id.localeCompare(b.id));
+    return scored[0] || null;
+  }
+
   _directDecision(context, target, team) {
     const snapshot = context.snapshot; const c = snapshot.character; const game = this._gameData(context);
     const candidates = this.farmer.skillUsage && typeof this.farmer.skillUsage.candidates === 'function' ? this.farmer.skillUsage.candidates(c, game) : [];
@@ -167,8 +295,11 @@ class PartySkillEngine {
     const recovery = this.farmer._needsRecovery(snapshot);
     if (c.rip || recovery.hpUnsafe || !this.farmer._targetAllowed(target, snapshot, context.party)) return null;
     const support = this._supportDecision(context, target, team);
+    const aoe = this._aoeDecision(context, target, team);
     const direct = this._directDecision(context, target, team);
-    const decision = support && (!direct || support.utility >= direct.utility) ? support : direct;
+    const decision = aoe
+      ? (support || aoe)
+      : (support && (!direct || support.utility >= direct.utility) ? support : direct);
     this.lastDecision = decision ? { at: this.now(), action: 'USE_SKILL', targetId: target.id || null, targetType: target.mtype || null, ...decision } : { at: this.now(), action: 'ATTACK_OR_MOVE', reason: 'NO_HIGHER_VALUE_SKILL' };
     return decision;
   }
@@ -185,10 +316,14 @@ class PartySkillEngine {
     // existing kiting layer is still free to issue its independent move.
     this.farmer.lastActionAt = now;
     if (decision.kind === 'damage') this.stats.directSkills += 1;
+    else if (decision.kind === 'aoe' || decision.kind === 'aoe-control') {
+      this.stats.aoeSkills += 1;
+      this.stats.aoeTargetsPlanned += Math.max(0, finite(decision.targetCount, 0));
+    }
     else if (decision.kind === 'defensive') this.stats.defensiveSkills += 1;
     else this.stats.supportSkills += 1;
     if (decision.id === 'supershot') this.stats.supershots += 1;
-    this.lastUse = { at: now, skill: decision.id, kind: decision.kind, reason: decision.reason, targetId: target.id || null, targetType: target.mtype || null, executed: !!result.executed, shadow: !!result.shadow };
+    this.lastUse = { at: now, skill: decision.id, kind: decision.kind, reason: decision.reason, targetId: target.id || null, targetType: target.mtype || null, targetIds: decision.targetIds ? decision.targetIds.slice() : null, targetCount: decision.targetCount || null, executed: !!result.executed, shadow: !!result.shadow };
     if (this.farmer.lastSkillUse != null) this.farmer.lastSkillUse = { ...this.lastUse, selectionReason: decision.reason };
     this._event('PARTY_SKILL_USED', 'info', decision.reason, this.lastUse);
     return true;
@@ -198,6 +333,14 @@ class PartySkillEngine {
     if (this.installed || this.farmer.__partySkillEngineInstalled) return false;
     const baseEngage = this.farmer._engage.bind(this.farmer);
     this.farmer._engage = (context, target) => {
+      const tactical = this.runtime && this.runtime.tacticalPartyCombat;
+      if (tactical && typeof tactical.maybeExpandPull === 'function') {
+        const pull = tactical.maybeExpandPull(context, target);
+        if (pull && pull.acted) {
+          this.stats.pullExpansions += 1;
+          return baseEngage(context, target);
+        }
+      }
       const decision = this.decide(context, target);
       const used = this._execute(context, target, decision);
       if (used) this.stats.parallelSkillMovesEnabled += 1;
@@ -213,7 +356,7 @@ class PartySkillEngine {
   }
 
   status() {
-    return { schemaVersion: 1, mode: PARTY_SKILL_ENGINE_MODE, installed: this.installed, classes: ['ranger','warrior','priest','rogue','mage','paladin'], rangerSupershotPriority: true, overkillAvoidance: true, movementParallel: true, supportAndDefensiveSkills: true, config: { ...this.config }, lastDecision: this.lastDecision, lastUse: this.lastUse, stats: { ...this.stats } };
+    return { schemaVersion: 2, mode: PARTY_SKILL_ENGINE_MODE, installed: this.installed, classes: ['ranger','warrior','priest','rogue','mage','paladin'], rangerSupershotPriority: true, smartAoeExecution: true, smartAoePullExpansion: true, overkillAvoidance: true, movementParallel: true, supportAndDefensiveSkills: true, config: { ...this.config }, lastDecision: this.lastDecision, lastUse: this.lastUse, stats: { ...this.stats } };
   }
 }
 

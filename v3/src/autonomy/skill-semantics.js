@@ -34,8 +34,8 @@ function percentControl(key, defaultValue, options = {}) {
   return Object.freeze({
     key,
     type: SkillControlType.PERCENT,
-    min: 0,
-    max: 1,
+    min: options.min == null ? 0 : Math.max(0, Math.min(1, Number(options.min))),
+    max: options.max == null ? 1 : Math.max(0, Math.min(1, Number(options.max))),
     step: options.step == null ? 0.01 : Number(options.step),
     default: Math.max(0, Math.min(1, Number(defaultValue))),
     label: options.label || key,
@@ -128,7 +128,10 @@ const SKILL_SEMANTICS = Object.freeze({
 
   cburst: Object.freeze({
     capabilities: [Capability.MULTI_TARGET_DAMAGE, Capability.VARIABLE_MULTI_TARGET_DAMAGE],
-    controls: [integerControl('minTargets', 2, 1, 8, { label: 'Minimum targets' })]
+    controls: [
+      integerControl('minTargets', 2, 1, 8, { label: 'Minimum targets' }),
+      percentControl('manaBudgetRatio', 0.20, { min: 0.05, max: 0.50, label: 'Maximum MP budget per cast' })
+    ]
   }),
   burst: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_BURST], controls: [] }),
   arcane_needle: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_OFFENSE], controls: [] }),

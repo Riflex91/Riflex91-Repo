@@ -1,6 +1,7 @@
 'use strict';
 
 const { normalizeControlValue, defaultParameters } = require('./skill-semantics');
+const { CombatMode, normalizeCombatMode } = require('./combat-modes');
 
 const CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION = 1;
 const CHARACTER_COMBAT_PROFILE_KEY = 'AIO_V3_CHARACTER_COMBAT_PROFILES_V1';
@@ -57,6 +58,7 @@ class CharacterCombatProfileStore {
       schemaVersion: CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION,
       character: name,
       updatedAt: this.now(),
+      combatMode: CombatMode.SMART_AUTO,
       skills: {}
     };
   }
@@ -67,6 +69,7 @@ class CharacterCombatProfileStore {
     if (!name) return null;
     const profile = this._empty(name);
     profile.updatedAt = Number.isFinite(Number(value.updatedAt)) ? Number(value.updatedAt) : this.now();
+    profile.combatMode = normalizeCombatMode(value.combatMode, CombatMode.SMART_AUTO);
     if (value.skills && typeof value.skills === 'object' && !Array.isArray(value.skills)) {
       for (const [skillId, raw] of Object.entries(value.skills)) {
         const id = cleanSkillId(skillId);
@@ -159,6 +162,21 @@ class CharacterCombatProfileStore {
     if (!skillRecord || typeof skillRecord !== 'object') return null;
     const id = cleanSkillId(skillRecord.id);
     return id ? { ...skillRecord, id } : null;
+  }
+
+  getCombatMode(name) {
+    const profile = this._ensure(name);
+    return profile ? normalizeCombatMode(profile.combatMode, CombatMode.SMART_AUTO) : CombatMode.SMART_AUTO;
+  }
+
+  setCombatMode(name, mode) {
+    const profile = this._ensure(name);
+    if (!profile) return null;
+    const normalized = normalizeCombatMode(mode, null);
+    if (!normalized) return { ok: false, reason: 'INVALID_COMBAT_MODE', mode: String(mode == null ? '' : mode) };
+    profile.combatMode = normalized;
+    this._touch(profile, 'CHARACTER_COMBAT_MODE_CHANGED', { combatMode: normalized });
+    return { ok: true, combatMode: normalized };
   }
 
   skillSettings(name, skillRecord) {

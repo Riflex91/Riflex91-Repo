@@ -24,6 +24,8 @@ const { CharacterCombatProfileStore, CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION, CH
 const { CharacterCapabilityResolver, PartyCapabilityResolver } = require('./autonomy/capability-resolver');
 const { SkillControlType, Capability, SKILL_SEMANTICS } = require('./autonomy/skill-semantics');
 const { SkillPolicy, SKILL_POLICY_MODE } = require('./autonomy/skill-policy');
+const { CombatMode, COMBAT_MODE_LABELS, normalizeCombatMode } = require('./autonomy/combat-modes');
+const { SmartAoePlanner, SmartAoeState, SMART_AOE_PLANNER_MODE } = require('./autonomy/smart-aoe-planner');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
 const { BoundedReplayBuffer } = require('./brain/replay-buffer');
 const { ShadowStrategicBrain, BrainQualityState } = require('./brain/shadow-brain');
@@ -217,6 +219,18 @@ function install(root = globalThis, options = {}) {
         refresh: () => runtime._refreshSkillCapabilities()
       },
       policy: { status: () => runtime.skillPolicy.status() },
+      combat: {
+        mode: (name = null) => runtime.characterCombatProfiles.getCombatMode(resolvedCharacterName(name)),
+        setMode: (mode, name = null) => {
+          const character = resolvedCharacterName(name);
+          if (!character) return { ok: false, reason: 'CHARACTER_UNAVAILABLE' };
+          return runtime.characterCombatProfiles.setCombatMode(character, mode);
+        },
+        tactical: () => runtime.tacticalPartyCombat && runtime.tacticalPartyCombat.status ? runtime.tacticalPartyCombat.status() : null,
+        canAddTarget: (target, context = {}) => runtime.tacticalPartyCombat && runtime.tacticalPartyCombat.canAddTarget
+          ? runtime.tacticalPartyCombat.canAddTarget(target, context)
+          : { allowed: false, reason: 'TACTICAL_PARTY_COMBAT_UNAVAILABLE' }
+      },
       profile: {
         get: (name = null) => runtime.characterCombatProfiles.get(resolvedCharacterName(name)),
         setEnabled: (skillId, enabled, name = null) => {
@@ -430,6 +444,7 @@ module.exports = {
   FarmPlanner, LocalFarmPlanner, LocalFarmOrchestrator, SkillCatalogService, SkillCatalogState, SUPPORTED_CLASSES,
   CharacterCombatProfileStore, CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION, CHARACTER_COMBAT_PROFILE_KEY,
   CharacterCapabilityResolver, PartyCapabilityResolver, SkillControlType, Capability, SKILL_SEMANTICS, SkillPolicy, SKILL_POLICY_MODE,
+  CombatMode, COMBAT_MODE_LABELS, normalizeCombatMode, SmartAoePlanner, SmartAoeState, SMART_AOE_PLANNER_MODE,
   FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor, CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE,
   FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
