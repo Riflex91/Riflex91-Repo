@@ -7,7 +7,7 @@
     {
       "kennung": "WISSEN_BEREIT",
       "erfuellt": false,
-      "grund": "R3: Wissenswaechter schreibt nicht mehr direkt auf main; Knowledge-Branch/PR-Pfad, strenges Entwicklungs-Wissensgate, Quellenhash-Drift und Roh-Snapshot-Guard sind technisch abgesichert. erfuellt bleibt false, bis R6 der read-only WissensZugriffPort und Runtime-Snapshot-Pinning implementiert/nachgewiesen sind.",
+      "grund": "R5: lokale Live-Wissenspersistenz und SCHREIBT/BEREIT-Protokoll sind technisch nachgewiesen. R6 muss weiterhin WissensZugriffPort, Snapshot-Pinning, Verifier/World-Truth und Authority-Trennung implementieren. Zusaetzlich wurde am 2026-09-20 ein direkter main-Wissenscommit von einer offenbar noch laufenden alten Windows-Bridge-Binary beobachtet; die lokale Installation muss auf den R3+-Build aktualisiert werden.",
       "nachweise": [
         "v5/wissensbasis/README.md",
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
@@ -20,7 +20,8 @@
       ],
       "r2VertragRatifiziert": true,
       "r3NachweisVorhanden": true,
-      "r3AbgeschlossenAm": "2026-09-20"
+      "r3AbgeschlossenAm": "2026-09-20",
+      "r5PersistenzNachweisVorhanden": true
     },
     {
       "kennung": "P0_RESEARCH_BEREIT",
@@ -92,14 +93,24 @@
     },
     {
       "kennung": "PERSISTENZMODELL_BEREIT",
-      "erfuellt": false,
-      "grund": "Persistenz-/SSD-/Schema-/Durable-Intent-Vertraege sind R2-ratifiziert. erfuellt bleibt bis R5 Persistenzports, Migrationen und Crash-/Volume-Tests implementiert sind false.",
+      "erfuellt": true,
+      "grund": "R5: typisierte Persistenzports, append-only Journal, durable Intent, Checkpoints ohne Blind Resume, atomare Dedupe-/Inbox-/Outbox-Claims, Schema-Migrationen, SCHREIBT/BEREIT-Live-Wissen, Volume-ID/SSD/Reserve-Pruefung und Fault-Injection sind technisch nachgewiesen.",
       "nachweise": [
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
-        "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md"
+        "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md",
+        "v5/grundlage/quelle/persistenz/ports.ts",
+        "v5/grundlage/quelle/persistenz/journal.ts",
+        "v5/grundlage/quelle/persistenz/live-wissens-speicher.ts",
+        "v5/grundlage/quelle/persistenz/dateibasierte-persistenz.ts",
+        "v5/grundlage/adapter/persistenz/node-live-wissens-dateisystem.mjs",
+        "v5/grundlage/tests/r5-persistenz.test.mjs",
+        "v5/architektur/adr/ADR-003-PERSISTENZ-JOURNAL.md",
+        ".github/workflows/v5-r5.yml"
       ],
       "r2VertragRatifiziert": true,
-      "r2RatifiziertAm": "2026-09-19"
+      "r2RatifiziertAm": "2026-09-19",
+      "r5NachweisVorhanden": true,
+      "r5AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "TESTSTRATEGIE_BEREIT",
@@ -137,7 +148,7 @@
     {
       "kennung": "BETRIEBSMODELL_BEREIT",
       "erfuellt": false,
-      "grund": "R3: D:-SSD-/Volume-Gesundheit, 15-Prozent-Reserve und bounded asynchroner Writer sind als Host-/Grundlagenmechanismen vorhanden. erfuellt bleibt false, bis spaetere Runtime-/Recovery-/Operations-Phasen die Betriebsvertraege komplett implementieren.",
+      "grund": "R5: SSD-/Volume-/Reserve-, Speicherdruck- und Persistenzfehlerverhalten sind technisch nachgewiesen. Offen bleibt unter anderem das Deployment der lokal laufenden Windows Bridge: ein alter Prozess hat am 2026-09-20 noch direkt main beschrieben, obwohl der aktuelle Repo-Code nur den Knowledge-Branch erlaubt.",
       "nachweise": [
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
         "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md"
@@ -145,12 +156,13 @@
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
       "r3NachweisVorhanden": true,
-      "r3AbgeschlossenAm": "2026-09-20"
+      "r3AbgeschlossenAm": "2026-09-20",
+      "alteBridgeBinaryBeobachtet": true
     }
   ],
   "offeneBlocker": [
-    "R5 Persistenzports, Journal, Schema-Migrationen, Crash-/Volume-Failure und durable Intent technisch umsetzen",
-    "R6 WissensZugriffPort, Snapshot-Pinning und Runtime-World-Truth-Evidence technisch umsetzen",
+    "R6 WissensZugriffPort, Snapshot-Pinning, Verifier, Drift-Quarantaene und Reconciled World Truth technisch umsetzen",
+    "Lokal laufende Windows Bridge auf den R3+-Knowledge-Branch-Build aktualisieren; alter Prozess schrieb am 2026-09-20 noch direkt main",
     "R7 bis R11 Authority, Scheduler, Transaction Kernel, Recovery und Observability abschliessen",
     "Gameplay-Runtime erst nach expliziter Laufzeitfreigabe und spaeterem Roadmap-Gate beginnen",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
@@ -160,5 +172,7 @@
   "r3Status": "ABGESCHLOSSEN",
   "r3AbgeschlossenAm": "2026-09-20",
   "r4Status": "ABGESCHLOSSEN",
-  "r4AbgeschlossenAm": "2026-09-20"
+  "r4AbgeschlossenAm": "2026-09-20",
+  "r5Status": "ABGESCHLOSSEN",
+  "r5AbgeschlossenAm": "2026-09-20"
 }
