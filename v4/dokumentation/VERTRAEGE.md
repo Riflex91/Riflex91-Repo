@@ -172,3 +172,18 @@ Fuer jeden konkreten `SkillCapabilityTag` werden getrennte Zaehler und explizite
 `CharakterFaehigkeiten` besitzt einen kanonischen SHA-256-Fingerprint und eine charaktergebundene Generation. Reine Zeitstempel und Cooldown-Restmillisekunden veraendern den Fingerprint nicht.
 
 Der Vertrag besitzt immer `aktionsAutoritaet: false`. Auch `aktuellAutomatisierbar=true` ist keine Ausfuehrungsfreigabe.
+
+
+## CapabilitySync
+
+`CapabilitySync` transportiert bounded, validierte `CharakterFaehigkeiten` zwischen vertrauten Adventure-Land-Clients ueber den bestehenden CM-Kommunikationspfad.
+
+Der Sync besitzt **keinen eigenen Liveness-Timer und keinen eigenen Freshness-TTL**. Freshness wird ausschliesslich aus dem bestehenden Block-8-`GruppenLebensnachweis` und dessen `GruppenTeilnehmerBewertung` uebernommen.
+
+Jeder Snapshot ist exakt an `lebensnachweisGesendetAm` und `lebensnachweisLaufendeNummer` gebunden. Ein anderer oder neuerer Lebensnachweis kann einen alten Capability-Snapshot nicht wieder frisch machen.
+
+Ein Remote-Snapshot wird nur vertraut, wenn Sender-/Charakteridentitaet passt, der bestehende Lebensnachweis `aktiv` ist, lokaler und Remote-Katalog `bereit` sind und der fachliche Katalog-Fingerprint exakt uebereinstimmt.
+
+Der bounded Snapshot enthaelt nur explizit validierte, strukturell vorhandene Skills. Feste Obergrenzen gelten fuer Skillanzahl, Capability-Tags und Sliderparameter. Uebergrosse oder unbekannte Strukturen werden fail-closed verworfen.
+
+`CapabilitySync` und jede Remote-Vertrauensentscheidung besitzen immer `aktionsAutoritaet: false`. Ein vertrauter Snapshot ist Information fuer spaetere Gruppenlogik, keine Spielaktionsfreigabe.

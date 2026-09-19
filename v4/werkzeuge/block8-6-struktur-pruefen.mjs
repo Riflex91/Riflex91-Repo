@@ -19,7 +19,13 @@ const dateien = [
   'laufzeit/quelle/spiellogik/charakter-faehigkeiten.ts',
   'laufzeit/tests/adventure-land-skill-technik.test.mjs',
   'laufzeit/tests/charakter-faehigkeiten.test.mjs',
+  'laufzeit/quelle/vertraege/capability-sync.ts',
+  'laufzeit/quelle/spiellogik/capability-sync.ts',
+  'laufzeit/quelle/ausfuehrung/adventure-land-capability-sync-austausch.ts',
+  'laufzeit/tests/capability-sync.test.mjs',
+  'laufzeit/tests/capability-sync-austausch.test.mjs',
   'dokumentation/BLOCK-8-6-1-SKILL-KATALOG.md',
+  'dokumentation/BLOCK-8-6-5-CAPABILITY-SYNC.md',
   'dokumentation/BLOCK-8-6-4-CHARAKTER-FAEHIGKEITEN.md',
   'dokumentation/BLOCK-8-6-3-SKILL-POLICY.md',
   'dokumentation/BLOCK-8-6-2-AUDIT-REVALIDIERUNG.md',
@@ -292,7 +298,10 @@ for (const pflicht of [
   "export * from './spiellogik/skill-policy.js';",
   "export * from './vertraege/charakter-faehigkeiten.js';",
   "export * from './adventure-land/adventure-land-skill-technik.js';",
-  "export * from './spiellogik/charakter-faehigkeiten.js';"
+  "export * from './spiellogik/charakter-faehigkeiten.js';",
+  "export * from './vertraege/capability-sync.js';",
+  "export * from './spiellogik/capability-sync.js';",
+  "export * from './ausfuehrung/adventure-land-capability-sync-austausch.js';"
 ]) {
   if (!index.includes(pflicht)) throw new Error('V4-Index exportiert Block 8.6.3 nicht: ' + pflicht);
 }
@@ -413,15 +422,118 @@ for (const pflicht of [
   if (!faehigkeitenDokument.includes(pflicht)) throw new Error('Block-8.6.4-Dokumentation fehlt: ' + pflicht);
 }
 
+
+const capabilitySyncVertrag = await readFile(path.join(wurzel, 'laufzeit/quelle/vertraege/capability-sync.ts'), 'utf8');
+for (const pflicht of [
+  "CAPABILITY_SYNC_PROTOKOLL = 'v4-capability-sync-v1'",
+  'CAPABILITY_SYNC_MAX_SKILLS = 64',
+  'CAPABILITY_SYNC_MAX_TAGS_PRO_SKILL = 16',
+  'CAPABILITY_SYNC_MAX_PARAMETER_PRO_SKILL = 8',
+  'lebensnachweisGesendetAm',
+  'lebensnachweisLaufendeNummer',
+  'configuredReady',
+  'aktuellAutomatisierbar',
+  'aktionsAutoritaet: false'
+]) {
+  if (!capabilitySyncVertrag.includes(pflicht)) throw new Error('Block-8.6.5-CapabilitySync-Vertrag fehlt: ' + pflicht);
+}
+
+const capabilitySyncQuelle = await readFile(path.join(wurzel, 'laufzeit/quelle/spiellogik/capability-sync.ts'), 'utf8');
+for (const pflicht of [
+  'erstelleCapabilitySyncSnapshot',
+  'pruefeRemoteCapabilityVertrauen',
+  'liesCapabilitySyncSnapshot',
+  "lebensnachweisBewertung.status !== 'aktiv'",
+  'snapshot.katalogFingerprint !== lokalerKatalog.fingerprint',
+  'meldung.gesendetAm !== snapshot.lebensnachweisGesendetAm',
+  'meldung.laufendeNummer !== snapshot.lebensnachweisLaufendeNummer',
+  'skill.automationValidated',
+  'skill.strukturellVorhanden',
+  'aktionsAutoritaet: false as const'
+]) {
+  if (!capabilitySyncQuelle.includes(pflicht)) throw new Error('Block-8.6.5-CapabilitySync-Logik fehlt: ' + pflicht);
+}
+for (const verboten of [
+  /\buse_skill\s*\(/,
+  /\battack\s*\(/,
+  /\bmove\s*\(/,
+  /\bsmart_move\s*\(/,
+  /\bsend_cm\s*\(/
+]) {
+  if (verboten.test(capabilitySyncQuelle)) throw new Error('Block 8.6.5-CapabilitySync-Logik darf keine Spielaktionsautoritaet einfuehren: ' + verboten);
+}
+
+const capabilityTransport = await readFile(path.join(wurzel, 'laufzeit/quelle/ausfuehrung/adventure-land-capability-sync-austausch.ts'), 'utf8');
+for (const pflicht of [
+  'AdventureLandCapabilitySyncAustausch',
+  'CAPABILITY_SYNC_PROTOKOLL',
+  'vertrauensNamen',
+  'send_cm',
+  'on_cm',
+  'eigenerLivenessTimer: false',
+  "freshnessQuelle: 'block8-gruppen-lebensnachweis'",
+  'aktionsAutoritaet: false'
+]) {
+  if (!capabilityTransport.includes(pflicht)) throw new Error('Block-8.6.5-CapabilitySync-Transport fehlt: ' + pflicht);
+}
+for (const verboten of [
+  /setInterval\s*\(/,
+  /setTimeout\s*\(/,
+  /lebensnachweisMaximalAlterMillisekunden/,
+  /STANDARD_LEBENSNACHWEIS_ALTER/
+]) {
+  if (verboten.test(capabilityTransport)) throw new Error('Block 8.6.5 darf kein zweites Liveness-/Freshness-Protokoll einfuehren: ' + verboten);
+}
+
+const capabilitySyncTests = await readFile(path.join(wurzel, 'laufzeit/tests/capability-sync.test.mjs'), 'utf8');
+for (const pflicht of [
+  'Snapshot ist bounded, an genau einen Lebensnachweis gebunden und enthaelt nur validierte strukturelle Skills',
+  'Remote-Capability wird nur mit aktivem exakt gebundenem Block-8-Lebensnachweis vertraut',
+  'staler Lebensnachweis blockiert Remote-Capability ohne eigenen Capability-TTL',
+  'neuer Lebensnachweis kann keinen alten Capability-Snapshot versehentlich frisch machen',
+  'Catalog-Fingerprint-Mismatch',
+  'Sender-Spoof',
+  'zwei Ranger derselben Klasse bleiben durch Charakterkennung und Heartbeat-Bindung getrennt',
+  'unbounded Parameter fail-closed'
+]) {
+  if (!capabilitySyncTests.includes(pflicht)) throw new Error('Block-8.6.5-CapabilitySync-Test fehlt: ' + pflicht);
+}
+
+const capabilityTransportTests = await readFile(path.join(wurzel, 'laufzeit/tests/capability-sync-austausch.test.mjs'), 'utf8');
+for (const pflicht of [
+  'Capability-Transport besitzt keinen eigenen Liveness-Timer',
+  'nur an ausdruecklich vertrauten bestaetigten Empfaenger gesendet',
+  'Empfang akzeptiert nur vertrauensgebundenen Sender',
+  'fremde CM-Protokolle werden an vorhandenen on_cm Handler weitergereicht',
+  'ohne Zerstoerung des vorherigen CM-Handlers entfernt'
+]) {
+  if (!capabilityTransportTests.includes(pflicht)) throw new Error('Block-8.6.5-CapabilitySync-Transporttest fehlt: ' + pflicht);
+}
+
+const capabilitySyncDokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-5-CAPABILITY-SYNC.md'), 'utf8');
+for (const pflicht of [
+  'kein zweites Liveness-Protokoll',
+  'keinen eigenen Freshness-TTL',
+  'lebensnachweisGesendetAm',
+  'lebensnachweisLaufendeNummer',
+  'Missing, stale oder mismatch -> fail-closed',
+  'zwei Ranger',
+  'aktionsAutoritaet=false',
+  '**8.6.6 – Capability-basierte Leader- und Aufgabenwahl.**'
+]) {
+  if (!capabilitySyncDokument.includes(pflicht)) throw new Error('Block-8.6.5-Dokumentation fehlt: ' + pflicht);
+}
+
 const plan = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-PLAN.md'), 'utf8');
 for (const pflicht of [
   '8.6.1 – Skill-Katalog-Vertrag und Live-Lesequelle — **IMPLEMENTIERT**',
   '8.6.2 – Audit, Drift und Recovery-Revalidierung — **IMPLEMENTIERT**',
   '8.6.3 – Per-Character SkillPolicy und Slider — **IMPLEMENTIERT**',
   '8.6.4 – CharakterFaehigkeiten — **IMPLEMENTIERT**',
-  'Naechster Implementierungsschritt: **8.6.5 – Cross-Client Capability Sync**'
+  '8.6.5 – Cross-Client Capability Sync — **IMPLEMENTIERT**',
+  'Naechster Implementierungsschritt: **8.6.6 – Capability-basierte Leader- und Aufgabenwahl**'
 ]) {
-  if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.4-Stand: ${pflicht}`);
+  if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.5-Stand: ${pflicht}`);
 }
 
 const vertraege = await readFile(path.join(wurzel, 'dokumentation/VERTRAEGE.md'), 'utf8');
@@ -438,9 +550,12 @@ for (const pflicht of [
   '`aktionsAutoritaet: false`',
   '## CharakterFaehigkeiten',
   '`strukturellVorhanden`',
-  '`aktuellAutomatisierbar=true`'
+  '`aktuellAutomatisierbar=true`',
+  '## CapabilitySync',
+  'keinen eigenen Liveness-Timer',
+  '`aktionsAutoritaet: false`'
 ]) {
-  if (!vertraege.includes(pflicht)) throw new Error(`V4-Vertragsdokumentation fehlt fuer Block 8.6.1 bis 8.6.4: ${pflicht}`);
+  if (!vertraege.includes(pflicht)) throw new Error(`V4-Vertragsdokumentation fehlt fuer Block 8.6.1 bis 8.6.5: ${pflicht}`);
 }
 
 const packageJson = JSON.parse(await readFile(path.join(wurzel, 'package.json'), 'utf8'));
@@ -451,4 +566,4 @@ if (!String(packageJson.scripts?.pruefen ?? '').includes('npm run block8-6-struk
   throw new Error('npm run pruefen muss den Block-8.6-Strukturguard ausfuehren.');
 }
 
-console.log('Block 8.6.1 bis 8.6.4 geprueft: Live-Skill-Katalog, Audit/Recovery, SkillPolicy und CharakterFaehigkeiten ohne neue Spielaktionsautoritaet.');
+console.log('Block 8.6.1 bis 8.6.5 geprueft: Live-Skill-Katalog, Audit/Recovery, SkillPolicy, CharakterFaehigkeiten und Capability-Sync ohne zweite Liveness oder neue Spielaktionsautoritaet.');
