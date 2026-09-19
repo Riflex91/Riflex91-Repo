@@ -1136,6 +1136,14 @@ class ControlledPartyLogistics {
     const material = cleanName(objective.material || previous.material);
     const expiresAt = finite(objective.expiresAt, finite(previous.expiresAt, now + 15 * 60 * 1000));
     if (!objectiveId || !material || expiresAt <= now) return false;
+    const sameHandoff = previous
+      && previous.phase === 'HANDOFF_READY'
+      && previous.objectiveId === objectiveId
+      && previous.material === material
+      && Math.max(0, Math.floor(finite(previous.level, 0))) === Math.max(0, Math.floor(finite(objective.level, finite(previous.level, 0))))
+      && Math.max(1, Math.floor(finite(previous.requiredQuantity, 1))) === Math.max(1, Math.floor(finite(objective.requiredQuantity, finite(previous.requiredQuantity, 1))))
+      && finite(previous.expiresAt, 0) > now;
+    if (sameHandoff && now - this.lastProductionMaterialPublishAt < this.config.productionMaterialPublishCooldownMs) return true;
     const normalized = {
       ...clone(previous),
       objectiveId,
@@ -1153,6 +1161,7 @@ class ControlledPartyLogistics {
       expiresAt
     };
     this.lastProductionMaterialObjective = clone(normalized);
+    this.lastProductionMaterialPublishAt = now;
     for (const name of this._trustedNames()) {
       if (name === this._localName()) continue;
       Promise.resolve(this._send(name, Action.PRODUCTION_MATERIAL_HANDOFF_READY, normalized)).catch(() => {});
