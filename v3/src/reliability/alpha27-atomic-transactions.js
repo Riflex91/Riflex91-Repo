@@ -210,11 +210,21 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
         if (!productionDemandValid || requestedTarget !== levelOf(tx) + 1) return { ok: false, reason: 'PRODUCTION_UPGRADE_SCOPE_INVALID' };
       }
       if (!goal && economicLifecycle && !selfGear) {
-        if (levelOf(tx) >= 3 || requestedTarget !== 3) return { ok: false, reason: 'ECONOMIC_UPGRADE_SCOPE_INVALID' };
         const entry = inputs.length ? this._ledgerEntry(inputs[0]) : null;
         const reasons = entry && Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
-        if (!entry || entry.disposition !== 'RESERVE_UPGRADE' || !reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3')) {
+        const ledgerTarget = entry && Number.isFinite(Number(entry.economicTargetLevel))
+          ? Math.max(0, Math.floor(Number(entry.economicTargetLevel)))
+          : null;
+        if (!entry
+          || entry.disposition !== 'RESERVE_UPGRADE'
+          || !reasons.includes('AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_UPGRADE')) {
           return { ok: false, reason: 'ECONOMIC_UPGRADE_LEDGER_AUTHORIZATION_REQUIRED' };
+        }
+        if (requestedTarget <= levelOf(tx)
+          || requestedTarget > this.options.maxUpgradeLevel
+          || ledgerTarget == null
+          || requestedTarget !== ledgerTarget) {
+          return { ok: false, reason: 'ECONOMIC_UPGRADE_SCOPE_INVALID' };
         }
       }
 
@@ -236,7 +246,7 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
         value,
         grade,
         scroll,
-        upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : economicLifecycle && !selfGear ? 'ECONOMIC_TO_PLUS3' : 'DEFAULT_GRADE',
+        upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : economicLifecycle && !selfGear ? 'ECONOMIC_EXPECTED_VALUE' : 'DEFAULT_GRADE',
         scrollPolicy: 'ITEM_GRADE_DEFAULT'
       };
     }
