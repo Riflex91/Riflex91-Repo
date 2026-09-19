@@ -100,6 +100,31 @@ beim Publish **byteidentisch** unter dem öffentlichen Alias `aio-v4-runtime.js`
 
 Die semantische Identität bleibt durch Manifest, Git-SHA und SHA-256 eindeutig als Block-8.6-Candidate gebunden.
 
+## Erster manueller Release-Versuch
+
+Der erste manuelle Workflow-Lauf `35441241411` am 19. September 2026 bestaetigte erfolgreich:
+
+- exakten Dispatch-SHA und Bestaetigungstext,
+- Release-Control-Manifest,
+- Checkout des exakten Candidates,
+- reproduzierbaren Candidate-Build,
+- unveraenderte Runtime 1.1.5,
+- vorhandene Cloudflare-Credentials.
+
+Er stoppte **vor jedem Publish** im Schritt `Prepare isolated R2-only Wrangler config`.
+
+Ursache: Wrangler `4.135.0` akzeptiert bei `r2 bucket info` kein `--remote`. Der im Repository bereits erfolgreich verwendete Produktionspfad nutzt fuer `r2 bucket info` nur `--config`, waehrend `r2 object put/get` weiterhin `--remote` verwenden.
+
+Folge dieses fehlgeschlagenen Versuchs:
+
+- kein Candidate-Objekt publiziert,
+- keine R2-Rueckverifikation ausgefuehrt,
+- keine HTTPS-Verifikation ausgefuehrt,
+- `deploymentPerformed=false` bleibt korrekt,
+- `publicHttpsVerified=false` bleibt korrekt.
+
+Der Release-Workflow verwendet deshalb ab dem Korrekturstand die bereits real bestaetigte Wrangler-4.135.0-Syntax: Bucket-Existenzpruefung ohne `--remote`, Object-Put/Get mit `--remote`, ohne unnoetige Experimental-Flags.
+
 ## Was dieser Schritt bewusst nicht behauptet
 
 Dieser Stand bedeutet noch nicht:

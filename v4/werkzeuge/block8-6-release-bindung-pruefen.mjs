@@ -120,9 +120,11 @@ for (const pflicht of [
   'baueBlock86Candidate',
   'Require Cloudflare credentials',
   'aio-v4-block8-6-release-only',
-  '--experimental-auto-create=false',
-  '--experimental-provision=false',
   'wrangler r2 bucket info "$R2_BUCKET"',
+  '--config /tmp/wrangler-v4-block86-release.jsonc >/dev/null',
+  '--remote',
+  'wrangler r2 object get "$R2_BUCKET/$runtime_key"',
+  'wrangler r2 object get "$R2_BUCKET/$sha_key"',
   'api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets/$R2_BUCKET/objects/$key',
   'if [ "$http_status" = "200" ]',
   'cmp "$file" "$temp"',
@@ -160,10 +162,16 @@ if (/^\s*push\s*:/m.test(workflow) || /^\s*pull_request\s*:/m.test(workflow)) {
 }
 const puts = workflow.match(/wrangler r2 object put/g) ?? [];
 if (puts.length !== 1) throw new Error('Block-8.6-Release-Workflow braucht genau einen zentralen R2-put-Aufruf.');
-const autoCreate = workflow.match(/--experimental-auto-create=false/g) ?? [];
-const provision = workflow.match(/--experimental-provision=false/g) ?? [];
-if (autoCreate.length !== 4 || provision.length !== 4) {
-  throw new Error('Block-8.6-Release-Workflow muss automatische R2-Provisionierung an allen vier Wrangler-Aufrufen deaktivieren.');
+if (workflow.includes('--experimental-auto-create') || workflow.includes('--experimental-provision')) {
+  throw new Error('Block-8.6-Release-Workflow darf keine von Wrangler 4.135.0 fuer diesen Pfad unbestaetigten Experimental-Flags verwenden.');
+}
+const bucketInfoBlock = workflow.match(/npx wrangler r2 bucket info[\s\S]*?\/dev\/null/)?.[0] ?? '';
+if (!bucketInfoBlock || bucketInfoBlock.includes('--remote')) {
+  throw new Error('Wrangler r2 bucket info muss die in Produktion bestaetigte Syntax ohne --remote verwenden.');
+}
+const remoteObjectOps = workflow.match(/wrangler r2 object (?:put|get)[\s\S]*?--remote/g) ?? [];
+if (remoteObjectOps.length !== 3) {
+  throw new Error('Block-8.6-Release-Workflow muss --remote exakt fuer einen Object-Put und zwei Object-Gets verwenden.');
 }
 for (const pflicht of [
   'finaler Block-8.6-Candidate technisch gebunden',

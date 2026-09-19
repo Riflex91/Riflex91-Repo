@@ -215,7 +215,8 @@ jobs:
           }
           JSON
           cd control/cloudflare-dashboard
-          npx wrangler r2 bucket info "$R2_BUCKET"             --remote --experimental-auto-create=false --experimental-provision=false             --config /tmp/wrangler-v4-block86-release.jsonc >/dev/null
+          npx wrangler r2 bucket info "$R2_BUCKET" \
+            --config /tmp/wrangler-v4-block86-release.jsonc >/dev/null
 
       - name: Publish immutable Block 8.6 candidate objects without overwrite
         working-directory: control/cloudflare-dashboard
@@ -252,7 +253,12 @@ jobs:
               exit 1
             fi
 
-            npx wrangler r2 object put "$R2_BUCKET/$key"               --file="$file"               --content-type="$content_type"               --cache-control='no-store'               --remote --experimental-auto-create=false --experimental-provision=false               --config "$config"
+            npx wrangler r2 object put "$R2_BUCKET/$key" \
+              --file="$file" \
+              --content-type="$content_type" \
+              --cache-control='no-store' \
+              --remote \
+              --config "$config"
           }
 
           runtime_key="releases/v4/$RELEASE_SHA/aio-v4-runtime.js"
@@ -273,8 +279,14 @@ jobs:
           sha_key="releases/v4/$RELEASE_SHA/aio-v4-runtime.sha256"
 
           rm -f /tmp/aio-v4-block86-r2.js /tmp/aio-v4-block86-r2.sha256
-          npx wrangler r2 object get "$R2_BUCKET/$runtime_key"             --file=/tmp/aio-v4-block86-r2.js             --remote --experimental-auto-create=false --experimental-provision=false             --config "$config"
-          npx wrangler r2 object get "$R2_BUCKET/$sha_key"             --file=/tmp/aio-v4-block86-r2.sha256             --remote --experimental-auto-create=false --experimental-provision=false             --config "$config"
+          npx wrangler r2 object get "$R2_BUCKET/$runtime_key" \
+            --file=/tmp/aio-v4-block86-r2.js \
+            --remote \
+            --config "$config"
+          npx wrangler r2 object get "$R2_BUCKET/$sha_key" \
+            --file=/tmp/aio-v4-block86-r2.sha256 \
+            --remote \
+            --config "$config"
 
           cmp ../../release/v4/dist/aio-v4-block8-6-candidate.js /tmp/aio-v4-block86-r2.js
           cmp ../../release/v4/dist/aio-v4-block8-6-candidate.sha256 /tmp/aio-v4-block86-r2.sha256
