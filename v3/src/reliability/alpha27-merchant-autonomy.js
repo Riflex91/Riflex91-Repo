@@ -597,22 +597,6 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       task = null;
     }
 
-    const explicitOperatorSell = typeof this.planExplicitOperatorSell === 'function' ? this.planExplicitOperatorSell() : null;
-    if (explicitOperatorSell && task && task.owner === 'ALPHA27' && task.kind === 'PROGRESSION_BATCH') {
-      this._taskRelease(task.key, 'OPERATOR_SELL_PREEMPTS_PROGRESSION_BATCH', { item: explicitOperatorSell.item || null, index: explicitOperatorSell.index });
-      task = null;
-    }
-    if (explicitOperatorSell && !task && !this.transactionFamilyOpen('SELL')) {
-      const lock = this._taskAcquire('DISPOSAL', 'alpha27:operator-disposal-sell', { type: 'SELL', source: 'OPERATOR_ITEM_PERMISSION' });
-      if (!lock.acquired) return false;
-      try {
-        this.lastMerchantPlan = { at: this.now(), action: 'EXECUTE', reason: 'OPERATOR_ITEM_PERMISSION_SELL', request: clone(explicitOperatorSell) };
-        return await this.executeEconomyRequest(explicitOperatorSell);
-      } finally {
-        this._taskRelease('alpha27:operator-disposal-sell', 'OPERATOR_SELL_STEP_COMPLETE');
-      }
-    }
-
     // Progression is a batch task because COMPOUND/UPGRADE/SelfGear share the
     // same service area. Do not let Production/Exchange pull the Merchant away
     // between individual mutations.

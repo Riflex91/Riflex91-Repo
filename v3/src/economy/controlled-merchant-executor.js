@@ -265,14 +265,10 @@ class ControlledMerchantExecutor {
         }
       }
 
-      // Legacy allowlists remain plain-stackable-material-only. A deliberate
-      // per-item operator permission is stronger: it may override ordinary
-      // metadata/category protection for an exact level-0 item, but it still
-      // cannot bypass unknown/conflicting metadata, a live lock/special flag,
-      // content revalidation, identity/quantity checks, or the Adventure Land API.
-      const operatorExplicitSell = entry.operatorPermissions
-        && entry.operatorPermissions.sell === true
-        && lifecycleReasons.includes('OPERATOR_SELL_ALLOWED');
+      // A processed/economic sale may ignore generic category blockers only
+      // after the lifecycle has already completed the gear-upgrade question.
+      // Hard live/raw protection, metadata conflicts, content drift and identity
+      // checks remain non-bypassable.
       const ignorableProcessedReasons = (reason) => (
         reason === 'SELL_TYPE_NOT_LOW_RISK'
         || reason === 'SELL_NOT_PLAIN_STACKABLE_MATERIAL'
@@ -280,36 +276,20 @@ class ControlledMerchantExecutor {
         || reason === 'SELL_UPGRADE_ITEM_PROTECTED'
         || /^SELL_GEAR_SIGNAL_/.test(reason)
       );
-      const operatorMetadataBlocker = (reason) => (
-        reason === 'SELL_METADATA_UNKNOWN'
-        || reason === 'SELL_METADATA_CONFLICT'
-      );
-      let blockers;
-      if (operatorExplicitSell) {
-        const rawOperatorBlockers = rawBlockers.filter((reason) => (
-          reason !== 'SELL_RAW_LEVELLED_ITEM_PROTECTED' || liveItem.level > 0
-        ));
-        blockers = [...new Set([
-          ...rawOperatorBlockers,
-          ...consensus.blockers.filter(operatorMetadataBlocker)
-        ])];
-      } else if (lifecycleProcessedSale) {
-        blockers = [...new Set([
-          ...rawBlockers.filter((reason) => reason !== 'SELL_RAW_LEVELLED_ITEM_PROTECTED'),
-          ...consensus.blockers.filter((reason) => !ignorableProcessedReasons(reason))
-        ])];
-      } else {
-        blockers = [...new Set([...rawBlockers, ...consensus.blockers])];
-      }
+      const blockers = lifecycleProcessedSale
+        ? [...new Set([
+            ...rawBlockers.filter((reason) => reason !== 'SELL_RAW_LEVELLED_ITEM_PROTECTED'),
+            ...consensus.blockers.filter((reason) => !ignorableProcessedReasons(reason))
+          ])]
+        : [...new Set([...rawBlockers, ...consensus.blockers])];
       if (blockers.length) {
         this.stats.sellSafetyRejected += 1;
         return {
           ok: false,
-          reason: operatorExplicitSell ? 'SELL_OPERATOR_PERMISSION_HARD_BLOCKED' : 'SELL_ITEM_NOT_LOW_RISK',
+          reason: 'SELL_ITEM_NOT_LOW_RISK',
           sellProtectionReasons: blockers,
           sellMetadataSources: consensus.sources,
-          lifecycleProcessedSale,
-          operatorExplicitSell
+          lifecycleProcessedSale
         };
       }
       if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('sell')) return { ok: false, reason: 'SELL_API_UNAVAILABLE' };

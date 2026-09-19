@@ -502,9 +502,9 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       };
     }
 
-    // No Farmer value by +5: keep processing the exact observed item through
-    // +3 with scroll0 only. GearProgression is re-run after every level change;
-    // if the item becomes useful, the Farmer +5 goal above takes ownership.
+    // No party gear value: use the ledger's expected-value decision instead
+    // of a fixed +3 heuristic. The calculation is re-run after every observed
+    // level change, so the target can shrink, grow or turn into SELL.
     const fallback = ledger.list(1000)
       .filter((row) => row && row.character === c.name && row.disposition === 'RESERVE_UPGRADE' && !this.atomic.mutationRetryBlocked(row, 'UPGRADE'))
       .sort((a, b) => levelOf(a) - levelOf(b) || String(a.name || '').localeCompare(String(b.name || '')) || Number(a.index) - Number(b.index))
@@ -512,8 +512,9 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         const meta = gd.items && gd.items[entry.name];
         const reasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
         const level = levelOf(entry);
-        if (!meta || !meta.upgrade || level >= 3 || this.options.maxUpgradeLevel < 1) return false;
-        if (!reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3')) return false;
+        const target = Math.max(level, Math.floor(finite(entry.economicTargetLevel, level)));
+        if (!meta || !meta.upgrade || level >= this.options.maxUpgradeLevel || target <= level) return false;
+        if (!reasons.includes('AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_UPGRADE')) return false;
         if (gradeForLevel(meta, level) >= 4) return false;
         const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
         if (value > this.options.upgradeValueCap) return false;
@@ -529,9 +530,10 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         source: 'ALPHA27_AUTONOMOUS_PLANNER',
         lifecycle: 'ECONOMIC_PROCESSING',
         economicLifecycle: true,
-        targetLevel: 3,
+        targetLevel: Math.max(levelOf(fallback) + 1, Math.floor(finite(fallback.economicTargetLevel, levelOf(fallback) + 1))),
         targetCharacter: null,
-        upgradeLifecycle: 'ECONOMIC_TO_PLUS3',
+        upgradeLifecycle: 'ECONOMIC_EXPECTED_VALUE',
+        economicDecision: clone(fallback.economicDecision),
         scrollPolicy: 'ITEM_GRADE_DEFAULT'
       }
     };
@@ -602,28 +604,6 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         compoundIdentity: picked.identity,
         completeSetsBefore: picked.completeSets,
         fairSelectionCount: picked.previousSelections + 1
-      }
-    };
-  }
-
-  planExplicitOperatorSell() {
-    const c = characterOf(this.runtime);
-    const ledger = this.runtime.inventoryLedger;
-    if (!c || !ledger || typeof ledger.list !== 'function') return null;
-    const row = ledger.list(1000).find((entry) => {
-      if (!entry || entry.character !== c.name || entry.disposition !== 'SELL') return false;
-      const reasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
-      return entry.operatorPermissions && entry.operatorPermissions.sell === true && reasons.includes('OPERATOR_SELL_ALLOWED');
-    });
-    if (!row) return null;
-    return {
-      type: 'SELL',
-      character: c.name,
-      index: row.index,
-      quantity: Math.max(1, finite(row.q, 1)),
-      metadata: {
-        source: 'OPERATOR_ITEM_PERMISSION',
-        operatorExplicitSell: true
       }
     };
   }

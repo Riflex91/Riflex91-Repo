@@ -34,8 +34,16 @@ test('Alpha27 inventory planner preserves native counts contract and autonomous 
     status: () => ({ stale: false })
   };
   const owner = {
-    runtime: { inventoryLedger: ledger, contentDrift: null, adapter: { getGameData: () => ({}) } },
-    options: { keepValue: 1000000 },
+    runtime: {
+      inventoryLedger: ledger,
+      contentDrift: null,
+      adapter: { getGameData: () => ({}) },
+      gearProgression: {
+        futureProtectionFor: () => null,
+        futureSellSafetyFor: () => ({ checked: true, protected: false })
+      }
+    },
+    options: { keepValue: 1000000, maxUpgradeLevel: 7, maxCompoundLevel: 10, upgradeValueCap: 2000000, compoundValueCap: 500000 },
     stats: { autoLedgerBankClassifications: 0, autoLedgerSellClassifications: 0 }
   };
   assert.equal(Alpha27AtomicLedger.prototype.patchInventoryLedger.call(owner), true);

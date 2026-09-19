@@ -13444,7 +13444,9 @@ class InventoryLedger {
       return { disposition: ItemDisposition.RESERVE_UPGRADE, reasons: ['OPERATOR_UPGRADE_ALLOWED'] };
     }
     if (permissions.bank === true) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWED'] };
-    if (permissions.sell === true) return { disposition: ItemDisposition.SELL, reasons: ['OPERATOR_SELL_ALLOWED'], explicitSellOverride: true };
+    // sell=true is a capability permission, never an immediate disposition.
+    // The autonomous lifecycle must first complete gear-value evaluation and
+    // then choose SELL vs progression from expected economic value.
     return null;
   }
 
@@ -13519,7 +13521,7 @@ class InventoryLedger {
     const meta = gameData && gameData.items && gameData.items[row.name];
     const same = counts.get(stackKey(row.name, row.level)) || 0;
     const hasProtectedFlag = row.locked || row.special;
-    const hasExplicitAllow = ['sell', 'bank', 'compound', 'upgrade'].some((action) => this._permission(row.name, action) === true);
+    const hasExplicitAllow = ['bank', 'compound', 'upgrade'].some((action) => this._permission(row.name, action) === true);
     if (hasProtectedFlag && !hasExplicitAllow) return { disposition: ItemDisposition.KEEP, reasons: [row.locked ? 'ITEM_LOCKED' : 'ITEM_SPECIAL'] };
     if (!meta || typeof meta !== 'object') return { disposition: ItemDisposition.UNDECIDED, reasons: ['ITEM_METADATA_UNKNOWN'] };
     if (this._contentUnsafe(contentDrift, row.name)) return { disposition: ItemDisposition.UNDECIDED, reasons: ['CONTENT_REVALIDATION_REQUIRED'] };
@@ -13562,6 +13564,9 @@ class InventoryLedger {
           sellProtected: true
         };
       }
+      // Preserve the historical observation/planning contract. Alpha27 wraps
+      // this provisional SELL and re-routes it through gear + economy checks
+      // before any live autonomous sale can be authorized.
       return { disposition: ItemDisposition.SELL, reasons: ['OPERATOR_SELL_ALLOWLIST'] };
     }
 
@@ -13653,6 +13658,8 @@ class InventoryLedger {
         disposition,
         reasons: reasons.slice(0, 12),
         reservation: classified.reservation || null,
+        economicTargetLevel: Number.isFinite(Number(classified.economicTargetLevel)) ? Math.max(0, Math.floor(Number(classified.economicTargetLevel))) : null,
+        economicDecision: classified.economicDecision ? clone(classified.economicDecision) : null,
         metadataKnown: !!meta,
         metadataType: meta && meta.type || null,
         operatorPermissions: { ...permissions },
@@ -14124,7 +14131,7 @@ class GearProgressionEvaluator {
     const protection = this.futureProtectionFor(character, index, name, level);
     return {
       ...clone(evaluation),
-      checked: evaluation.checkedFarmerCount > 0 && evaluation.blockedByUnknownContent !== true,
+      checked: evaluation.checkedCharacterCount > 0 && evaluation.blockedByUnknownContent !== true,
       protected: !!protection,
       protection
     };
@@ -14154,7 +14161,10 @@ class GearProgressionEvaluator {
         const meta = gameData.items && gameData.items[item.name];
         if (!meta || typeof meta !== 'object') continue;
         const slots = candidateSlots(meta);
-        if (!slots.length) continue;
+        // Every known inventory item participates in the sell-safety evaluation.
+        // Non-gear items simply have no candidate slots, which makes the
+        // "can this become a character upgrade?" answer a completed NO instead
+        // of leaving disposal stuck in an unknown state.
         candidates.push({ sourceCharacter: source.name, item, meta, slots });
       }
     }
@@ -14173,6 +14183,7 @@ class GearProgressionEvaluator {
         evaluatedAt: now,
         maxProbeLevel: this.maxProbeLevel,
         checkedFarmerCount: 0,
+        checkedCharacterCount: 0,
         blockedByUnknownContent: false
       });
     }
@@ -14185,16 +14196,18 @@ class GearProgressionEvaluator {
           : null;
         const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
 
-        // Incompatibility is itself a completed Farmer-value check. Counting it
-        // prevents impossible gear (for example Ranger + shield) from becoming
-        // permanently "unknown future Farmer value" in the later sell lifecycle.
-        if (isFarmerTarget && evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
-          this.futureFarmerEvaluation.get(evaluationKey).checkedFarmerCount += 1;
+        // Every party character is part of the pre-sale gear question. A
+        // structural incompatibility (including non-equipment with no slots) is
+        // still a completed check and therefore a valid "no upgrade" answer.
+        if (evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
+          const evaluation = this.futureFarmerEvaluation.get(evaluationKey);
+          evaluation.checkedCharacterCount += 1;
+          if (isFarmerTarget) evaluation.checkedFarmerCount += 1;
         }
         if (!compatible(candidate.meta, character)) continue;
         if (this._unsafe(context.contentDrift, candidate.item.name)) {
           blockedUnknownContent += 1;
-          if (isFarmerTarget && evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
+          if (evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
             this.futureFarmerEvaluation.get(evaluationKey).blockedByUnknownContent = true;
           }
           continue;
@@ -14248,8 +14261,7 @@ class GearProgressionEvaluator {
             progressionTargetLevel,
             nextMutationLevel
           };
-          if (isFarmerTarget
-            && progressionTargetLevel > observedLevel
+          if (progressionTargetLevel > observedLevel
             && Number.isInteger(Number(candidate.item.index))) {
             const protectionKey = `${candidate.sourceCharacter}:${Number(candidate.item.index)}`;
             const existingProtection = this.futureFarmerProtection.get(protectionKey);
@@ -14269,7 +14281,7 @@ class GearProgressionEvaluator {
               observedMeaningful: row.observedMeaningful,
               observedImprovement: finite(row.observedDelta && row.observedDelta.improvement, 0),
               observedSurvivalImprovement: finite(row.observedDelta && row.observedDelta.survivalImprovement, 0),
-              reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL'
+              reason: isFarmerTarget ? 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL' : 'FUTURE_MERCHANT_GEAR_UPGRADE_POTENTIAL'
             };
             if (!existingProtection
               || protection.targetLevel < existingProtection.targetLevel
@@ -16016,14 +16028,10 @@ class ControlledMerchantExecutor {
         }
       }
 
-      // Legacy allowlists remain plain-stackable-material-only. A deliberate
-      // per-item operator permission is stronger: it may override ordinary
-      // metadata/category protection for an exact level-0 item, but it still
-      // cannot bypass unknown/conflicting metadata, a live lock/special flag,
-      // content revalidation, identity/quantity checks, or the Adventure Land API.
-      const operatorExplicitSell = entry.operatorPermissions
-        && entry.operatorPermissions.sell === true
-        && lifecycleReasons.includes('OPERATOR_SELL_ALLOWED');
+      // A processed/economic sale may ignore generic category blockers only
+      // after the lifecycle has already completed the gear-upgrade question.
+      // Hard live/raw protection, metadata conflicts, content drift and identity
+      // checks remain non-bypassable.
       const ignorableProcessedReasons = (reason) => (
         reason === 'SELL_TYPE_NOT_LOW_RISK'
         || reason === 'SELL_NOT_PLAIN_STACKABLE_MATERIAL'
@@ -16031,36 +16039,20 @@ class ControlledMerchantExecutor {
         || reason === 'SELL_UPGRADE_ITEM_PROTECTED'
         || /^SELL_GEAR_SIGNAL_/.test(reason)
       );
-      const operatorMetadataBlocker = (reason) => (
-        reason === 'SELL_METADATA_UNKNOWN'
-        || reason === 'SELL_METADATA_CONFLICT'
-      );
-      let blockers;
-      if (operatorExplicitSell) {
-        const rawOperatorBlockers = rawBlockers.filter((reason) => (
-          reason !== 'SELL_RAW_LEVELLED_ITEM_PROTECTED' || liveItem.level > 0
-        ));
-        blockers = [...new Set([
-          ...rawOperatorBlockers,
-          ...consensus.blockers.filter(operatorMetadataBlocker)
-        ])];
-      } else if (lifecycleProcessedSale) {
-        blockers = [...new Set([
-          ...rawBlockers.filter((reason) => reason !== 'SELL_RAW_LEVELLED_ITEM_PROTECTED'),
-          ...consensus.blockers.filter((reason) => !ignorableProcessedReasons(reason))
-        ])];
-      } else {
-        blockers = [...new Set([...rawBlockers, ...consensus.blockers])];
-      }
+      const blockers = lifecycleProcessedSale
+        ? [...new Set([
+            ...rawBlockers.filter((reason) => reason !== 'SELL_RAW_LEVELLED_ITEM_PROTECTED'),
+            ...consensus.blockers.filter((reason) => !ignorableProcessedReasons(reason))
+          ])]
+        : [...new Set([...rawBlockers, ...consensus.blockers])];
       if (blockers.length) {
         this.stats.sellSafetyRejected += 1;
         return {
           ok: false,
-          reason: operatorExplicitSell ? 'SELL_OPERATOR_PERMISSION_HARD_BLOCKED' : 'SELL_ITEM_NOT_LOW_RISK',
+          reason: 'SELL_ITEM_NOT_LOW_RISK',
           sellProtectionReasons: blockers,
           sellMetadataSources: consensus.sources,
-          lifecycleProcessedSale,
-          operatorExplicitSell
+          lifecycleProcessedSale
         };
       }
       if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('sell')) return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
@@ -39332,11 +39324,21 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
         if (!productionDemandValid || requestedTarget !== levelOf(tx) + 1) return { ok: false, reason: 'PRODUCTION_UPGRADE_SCOPE_INVALID' };
       }
       if (!goal && economicLifecycle && !selfGear) {
-        if (levelOf(tx) >= 3 || requestedTarget !== 3) return { ok: false, reason: 'ECONOMIC_UPGRADE_SCOPE_INVALID' };
         const entry = inputs.length ? this._ledgerEntry(inputs[0]) : null;
         const reasons = entry && Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
-        if (!entry || entry.disposition !== 'RESERVE_UPGRADE' || !reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3')) {
+        const ledgerTarget = entry && Number.isFinite(Number(entry.economicTargetLevel))
+          ? Math.max(0, Math.floor(Number(entry.economicTargetLevel)))
+          : null;
+        if (!entry
+          || entry.disposition !== 'RESERVE_UPGRADE'
+          || !reasons.includes('AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_UPGRADE')) {
           return { ok: false, reason: 'ECONOMIC_UPGRADE_LEDGER_AUTHORIZATION_REQUIRED' };
+        }
+        if (requestedTarget <= levelOf(tx)
+          || requestedTarget > this.options.maxUpgradeLevel
+          || ledgerTarget == null
+          || requestedTarget !== ledgerTarget) {
+          return { ok: false, reason: 'ECONOMIC_UPGRADE_SCOPE_INVALID' };
         }
       }
 
@@ -39358,7 +39360,7 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
         value,
         grade,
         scroll,
-        upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : economicLifecycle && !selfGear ? 'ECONOMIC_TO_PLUS3' : 'DEFAULT_GRADE',
+        upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : economicLifecycle && !selfGear ? 'ECONOMIC_EXPECTED_VALUE' : 'DEFAULT_GRADE',
         scrollPolicy: 'ITEM_GRADE_DEFAULT'
       };
     }
@@ -39563,6 +39565,7 @@ module.exports = { Alpha27AtomicTransactionEngine };
 const { finite, clone, text, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, findItem, gradeForLevel, transactionInputs, rawFunction } = require('./alpha27-utils');
 const { CONTROLLED_ACK, SUPERVISOR_ALLOWED, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { Alpha27AtomicCore } = require('./alpha27-atomic-core');
+const { evaluateItemEconomics } = require('../economy/item-economic-evaluator');
 
 class Alpha27AtomicLedger extends Alpha27AtomicCore {
   patchInventoryLedger() {
@@ -39572,7 +39575,13 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
     ledger._baseDisposition = (row, gameData, contentDrift, counts, reservationRemaining) => {
       const safeCounts = counts && typeof counts.get === 'function' ? counts : new Map();
       const base = baseDisposition(row, gameData, contentDrift, safeCounts, reservationRemaining);
-      if (!base || base.disposition !== 'UNDECIDED') return base;
+      const provisionalLegacySell = !!(
+        base
+        && base.disposition === 'SELL'
+        && Array.isArray(base.reasons)
+        && base.reasons.includes('OPERATOR_SELL_ALLOWLIST')
+      );
+      if (!base || (base.disposition !== 'UNDECIDED' && !provisionalLegacySell)) return base;
       const meta = gameData && gameData.items && row && row.name ? gameData.items[row.name] : null;
       if (!row || !row.name || !meta || typeof meta !== 'object') return base;
       const name = String(row.name);
@@ -39684,71 +39693,108 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         };
       }
 
-      // Progression lifecycle comes before generic BANK fallback. Adventure Land
-      // exposes compound/upgrade metadata as objects, not necessarily boolean true.
-      // A complete compound set is actionable now; an incomplete level-0 set is
-      // retained until a third copy arrives instead of being hidden in the bank.
+      // Autonomous disposal is fail-closed until the normal party gear
+      // evaluator has answered the first question: can this exact physical item
+      // become an upgrade for any character? Only a completed negative answer
+      // unlocks economic processing or sale.
+      const gearSellCheckComplete = !!(
+        futureSellSafety
+        && futureSellSafety.checked === true
+        && futureSellSafety.protected !== true
+      );
+      if (!gearSellCheckComplete) {
+        return {
+          disposition: 'KEEP',
+          reasons: [...baseReasons, 'FUTURE_GEAR_EVALUATION_REQUIRED', 'ECONOMIC_DISPOSAL_FAIL_CLOSED']
+        };
+      }
+
+      const economicDecision = evaluateItemEconomics({
+        gameData: gameData || gameDataOf(this.runtime),
+        itemName: name,
+        currentLevel: level,
+        sameCount: same,
+        maxLevel: meta.compound ? this.options.maxCompoundLevel : this.options.maxUpgradeLevel
+      });
+
       if (meta.compound && permission('compound') !== false) {
-        if (same >= 3 && level < this.options.maxCompoundLevel && grade < 4 && (value != null && value <= this.options.compoundValueCap)) {
+        if (economicDecision.action === 'COMPOUND'
+          && same >= 3
+          && level < this.options.maxCompoundLevel
+          && grade < 4
+          && value != null
+          && value <= this.options.compoundValueCap) {
           return {
             disposition: 'RESERVE_COMPOUND',
-            reasons: [...baseReasons, 'AUTONOMOUS_COMPOUND_SET_AVAILABLE']
+            reasons: [...baseReasons, 'AUTONOMOUS_ECONOMIC_COMPOUND', 'EXPECTED_VALUE_COMPOUND_BETTER', 'FUTURE_GEAR_EVALUATED_SAFE'],
+            economicTargetLevel: economicDecision.targetLevel,
+            economicDecision
           };
         }
-        if (level === 0 && grade < 4 && (value != null && value <= this.options.compoundValueCap)) {
+        if (economicDecision.action === 'ACCUMULATE'
+          && level < this.options.maxCompoundLevel
+          && grade < 4
+          && value != null
+          && value <= this.options.compoundValueCap) {
           return {
             disposition: 'KEEP',
-            reasons: [...baseReasons, 'AUTONOMOUS_COMPOUND_ACCUMULATION']
-          };
-        }
-        if (level > 0 && grade < 4 && underKeepValue) {
-          if (!futureSellSafety || futureSellSafety.checked !== true) {
-            return {
-              disposition: 'KEEP',
-              reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
-            };
-          }
-          if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED', 'AUTONOMOUS_COMPOUND_RESULT'] };
-          this.stats.autoLedgerSellClassifications += 1;
-          return {
-            disposition: 'SELL',
-            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_COMPOUND_RESULT', 'FUTURE_FARMER_GEAR_EVALUATED_SAFE']
+            reasons: [...baseReasons, 'AUTONOMOUS_ECONOMIC_COMPOUND_ACCUMULATION', 'EXPECTED_VALUE_COMPOUND_BETTER', 'FUTURE_GEAR_EVALUATED_SAFE'],
+            economicTargetLevel: economicDecision.targetLevel,
+            economicDecision
           };
         }
       }
 
-      // Upgradeable gear that has been explicitly evaluated as having no
-      // Farmer value by +5 still receives a bounded economic processing path:
-      // try up to +3 with scroll0 only, then allow the normal processed-gear
-      // sale gate to dispose of low-value results. Re-evaluation is required
-      // after every observed level change, so a newly useful item immediately
-      // leaves this fallback and moves into the Farmer +5 progression path.
-      if (meta.upgrade && permission('upgrade') !== false) {
-        if (!futureSellSafety || futureSellSafety.checked !== true) {
+      if (meta.upgrade && permission('upgrade') !== false
+        && economicDecision.action === 'UPGRADE'
+        && level < this.options.maxUpgradeLevel
+        && grade < 4
+        && value != null
+        && value <= this.options.upgradeValueCap) {
+        return {
+          disposition: 'RESERVE_UPGRADE',
+          reasons: [
+            ...baseReasons,
+            'AUTONOMOUS_ECONOMIC_UPGRADE',
+            'AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_UPGRADE',
+            'FUTURE_GEAR_EVALUATED_SAFE'
+          ],
+          economicTargetLevel: economicDecision.targetLevel,
+          economicDecision
+        };
+      }
+
+      if ((meta.upgrade || meta.compound) && economicDecision.action === 'SELL') {
+        if (permission('sell') === false) {
           return {
             disposition: 'KEEP',
-            reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
+            reasons: [...baseReasons, 'OPERATOR_SELL_DENIED', 'EXPECTED_VALUE_DIRECT_SELL_BETTER'],
+            economicDecision
           };
         }
-        const economicTargetLevel = Math.min(3, this.options.maxUpgradeLevel);
-        if (level < economicTargetLevel && grade < 4 && value != null && value <= this.options.upgradeValueCap) {
-          return {
-            disposition: 'RESERVE_UPGRADE',
-            reasons: [
-              ...baseReasons,
-              'AUTONOMOUS_ECONOMIC_UPGRADE',
-              'AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3',
-              'FUTURE_FARMER_GEAR_EVALUATED_SAFE'
-            ],
-            economicTargetLevel
-          };
-        }
-        if (level >= economicTargetLevel && level > 0 && grade < 4 && underKeepValue) {
-          if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED', 'AUTONOMOUS_UPGRADE_RESULT'] };
+        let economicSellBlockers = [];
+        try {
+          economicSellBlockers = typeof ledger._resolveSellBlockers === 'function'
+            ? ledger._resolveSellBlockers(row, meta, gameData || gameDataOf(this.runtime), contentDrift || this.runtime.contentDrift)
+            : [];
+        } catch (_) { economicSellBlockers = ['SELL_SAFETY_RESOLVER_FAILED']; }
+        // Upgrade/compound/category signals were already resolved by the
+        // completed gear check and expected-value decision. Keep genuinely
+        // protected content (quest/event/cash/soulbound/special/etc.) hard.
+        economicSellBlockers = economicSellBlockers.filter((reason) => !(
+          reason === 'SELL_TYPE_NOT_LOW_RISK'
+          || reason === 'SELL_NOT_PLAIN_STACKABLE_MATERIAL'
+          || reason === 'SELL_COMPOUND_ITEM_PROTECTED'
+          || reason === 'SELL_UPGRADE_ITEM_PROTECTED'
+          || /^SELL_GEAR_SIGNAL_/.test(reason)
+        ));
+        if (!economicSellBlockers.length && (underKeepValue || permission('sell') === true || provisionalLegacySell)) {
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
-            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_UPGRADE_RESULT', 'FUTURE_FARMER_GEAR_EVALUATED_SAFE']
+            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_SELL', 'FUTURE_GEAR_EVALUATED_SAFE'],
+            economicTargetLevel: economicDecision.targetLevel,
+            economicDecision
           };
         }
       }
@@ -39771,7 +39817,11 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       if (level === 0 && blockers.length === 0) {
         if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED'] };
         this.stats.autoLedgerSellClassifications += 1;
-        return { disposition: 'SELL', reasons: [...baseReasons, 'AUTONOMOUS_LOW_RISK_SURPLUS'] };
+        return {
+          disposition: 'SELL',
+          reasons: [...baseReasons, 'AUTONOMOUS_LOW_RISK_SURPLUS', 'FUTURE_GEAR_EVALUATED_SAFE'],
+          economicDecision
+        };
       }
       return base;
     };
@@ -39794,8 +39844,9 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         futureFarmerGearValuePreemptsProcessedSale: true,
         futureGearProbeIncludesCompoundAndUpgrade: true,
         farmerPotentialUpgradeTargetLevel: 5,
-        nonImprovingUpgradeProcessingTargetLevel: 3,
-        nonImprovingUpgradeProcessingScrollPolicy: 'SCROLL0_ONLY',
+        economicProcessingModel: 'NPC_SELL_EXPECTED_VALUE_V1',
+        sellPermissionMeansCapabilityNotImmediateAction: true,
+        everySaleRequiresCompletedGearEvaluation: true,
         processedGearSellFailClosedWithoutFutureEvaluation: true,
         keepValue: this.options.keepValue
       });
@@ -39859,6 +39910,290 @@ class Alpha27AtomicCore {
 }
 
 module.exports = { Alpha27AtomicCore };
+
+},
+"src/economy/item-economic-evaluator.js": function(require,module,exports){
+'use strict';
+
+const DEFAULT_UPGRADE_CHANCES = Object.freeze({
+  0: Object.freeze({ 1: 0.9999999, 2: 0.98, 3: 0.95, 4: 0.7, 5: 0.6, 6: 0.4, 7: 0.25, 8: 0.15, 9: 0.07, 10: 0.024, 11: 0.14, 12: 0.11 }),
+  1: Object.freeze({ 1: 0.99998, 2: 0.97, 3: 0.94, 4: 0.68, 5: 0.58, 6: 0.38, 7: 0.24, 8: 0.14, 9: 0.066, 10: 0.018, 11: 0.13, 12: 0.10 }),
+  2: Object.freeze({ 1: 0.97, 2: 0.94, 3: 0.92, 4: 0.64, 5: 0.52, 6: 0.32, 7: 0.232, 8: 0.13, 9: 0.062, 10: 0.015, 11: 0.12, 12: 0.09 })
+});
+const DEFAULT_COMPOUND_CHANCES = Object.freeze({
+  0: Object.freeze({ 1: 0.99, 2: 0.75, 3: 0.40, 4: 0.25, 5: 0.20, 6: 0.10, 7: 0.08, 8: 0.05, 9: 0.05, 10: 0.05 }),
+  1: Object.freeze({ 1: 0.90, 2: 0.70, 3: 0.40, 4: 0.20, 5: 0.15, 6: 0.08, 7: 0.05, 8: 0.05, 9: 0.05, 10: 0.03 }),
+  2: Object.freeze({ 1: 0.80, 2: 0.60, 3: 0.32, 4: 0.16, 5: 0.10, 6: 0.05, 7: 0.03, 8: 0.03, 9: 0.03, 10: 0.02 })
+});
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function levelOf(value) {
+  return Math.max(0, Math.floor(finite(value && typeof value === 'object' ? value.level : value, 0)));
+}
+
+function gradeForLevel(meta, level) {
+  const grades = Array.isArray(meta && meta.grades) ? meta.grades : [9, 10, 11, 12];
+  const current = levelOf(level);
+  for (let index = Math.min(3, grades.length - 1); index >= 0; index -= 1) {
+    const threshold = finite(grades[index]);
+    if (threshold != null && current >= threshold) return index + 1;
+  }
+  return 0;
+}
+
+function progressionTable(gameData, compound) {
+  const live = gameData && (compound ? gameData.compounds : gameData.upgrades);
+  return live && typeof live === 'object'
+    ? live
+    : compound ? DEFAULT_COMPOUND_CHANCES : DEFAULT_UPGRADE_CHANCES;
+}
+
+function progressionProbability(gameData, meta, nextLevel, compound = false) {
+  const bucket = Math.max(0, Math.min(2, Math.floor(finite(meta && meta.igrade, 0))));
+  const table = progressionTable(gameData, compound);
+  const row = table && (table[bucket] || table[String(bucket)]);
+  const raw = row && (row[nextLevel] != null ? row[nextLevel] : row[String(nextLevel)]);
+  const chance = finite(raw);
+  return chance != null && chance >= 0 && chance <= 1 ? chance : null;
+}
+
+function scrollName(meta, currentLevel, compound = false) {
+  return `${compound ? 'cscroll' : 'scroll'}${Math.max(0, Math.min(3, gradeForLevel(meta, currentLevel)))}`;
+}
+
+function scrollBuyCost(gameData, meta, currentLevel, compound = false) {
+  const name = scrollName(meta, currentLevel, compound);
+  const def = gameData && gameData.items && gameData.items[name];
+  const value = finite(def && def.g);
+  return { name, cost: value != null && value >= 0 ? value : null };
+}
+
+// Mirrors Adventure Land's NPC sell-value calculation for ordinary gold items.
+// Cash/event/special protection is handled by the inventory safety layer before
+// this model is allowed to authorize disposal.
+function itemNpcSellValue(gameData, itemOrName, explicitLevel = null, quantity = 1) {
+  const item = typeof itemOrName === 'string'
+    ? { name: itemOrName, level: explicitLevel == null ? 0 : explicitLevel }
+    : itemOrName || {};
+  const name = String(item.name || '');
+  const def = gameData && gameData.items && gameData.items[name];
+  if (!def || typeof def !== 'object') return null;
+  if (item.gift) return 1;
+  const base = finite(def.g);
+  if (base == null || base < 0) return null;
+  let value = def.cash ? base : base * 0.6;
+  const markup = finite(def.markup);
+  if (markup != null && markup > 0) value /= markup;
+  const level = Math.max(0, Math.floor(explicitLevel == null ? levelOf(item) : finite(explicitLevel, 0)));
+  if (def.compound && level > 0) {
+    const grades = Array.isArray(def.grades) ? def.grades : [11, 12];
+    let grade = 0;
+    for (let i = 1; i <= level; i += 1) {
+      if (i > finite(grades[1], 12)) grade = 2;
+      else if (i > finite(grades[0], 11)) grade = 1;
+      if (def.cash) value *= 1.5;
+      else value *= 3.2;
+      if (String(def.type || '') !== 'booster') {
+        const scroll = gameData.items && gameData.items[`cscroll${grade}`];
+        const scrollGold = finite(scroll && scroll.g, 0);
+        value += scrollGold / 2.4;
+      } else value *= 0.75;
+    }
+  }
+  if (def.upgrade && level > 0) {
+    const grades = Array.isArray(def.grades) ? def.grades : [11, 12];
+    let grade = 0;
+    let scrollContribution = 0;
+    for (let i = 1; i <= level; i += 1) {
+      if (i > finite(grades[1], 12)) grade = 2;
+      else if (i > finite(grades[0], 11)) grade = 1;
+      const scroll = gameData.items && gameData.items[`scroll${grade}`];
+      scrollContribution += finite(scroll && scroll.g, 0) / 2;
+      if (i >= 7) {
+        value *= 3;
+        scrollContribution *= 1.32;
+      } else if (i === 6) value *= 2.4;
+      else if (i >= 4) value *= 2;
+      if (i === 9) {
+        value *= 2.64;
+        value += 400000;
+      }
+      if (i === 10) value *= 5;
+      if (i === 12) value *= 0.8;
+    }
+    value += scrollContribution;
+  }
+  if (item.expires) value /= 8;
+  const q = Math.max(1, Math.floor(finite(quantity != null ? quantity : item.q, 1)));
+  return Math.round(value * q);
+}
+
+function evaluateUpgradeEconomics(options = {}) {
+  const gameData = options.gameData || {};
+  const name = String(options.itemName || '');
+  const meta = gameData.items && gameData.items[name];
+  const currentLevel = levelOf(options.currentLevel);
+  const maxLevel = Math.max(currentLevel, Math.min(12, Math.floor(finite(options.maxLevel, currentLevel))));
+  if (!meta || !meta.upgrade) return { modeled: false, action: 'SELL', reason: 'NOT_UPGRADEABLE', currentLevel, targetLevel: currentLevel };
+
+  const values = new Map();
+  const direct = new Map();
+  for (let level = currentLevel; level <= maxLevel; level += 1) {
+    const sellValue = itemNpcSellValue(gameData, name, level, 1);
+    direct.set(level, sellValue);
+    values.set(level, {
+      expectedGold: sellValue,
+      targetLevel: level,
+      action: 'SELL',
+      chance: null,
+      scroll: null,
+      scrollCost: 0
+    });
+  }
+  for (let level = maxLevel - 1; level >= currentLevel; level -= 1) {
+    const nextLevel = level + 1;
+    const chance = progressionProbability(gameData, meta, nextLevel, false);
+    const scroll = scrollBuyCost(gameData, meta, level, false);
+    const next = values.get(nextLevel);
+    const sale = direct.get(level);
+    if (chance == null || scroll.cost == null || next == null || sale == null) continue;
+    const upgradeExpected = chance * next.expectedGold - scroll.cost;
+    if (upgradeExpected > sale) {
+      values.set(level, {
+        expectedGold: upgradeExpected,
+        targetLevel: next.targetLevel,
+        action: 'UPGRADE',
+        chance,
+        scroll: scroll.name,
+        scrollCost: scroll.cost
+      });
+    }
+  }
+  const choice = values.get(currentLevel) || {};
+  const directSellGold = direct.get(currentLevel);
+  return {
+    modeled: directSellGold != null,
+    family: 'UPGRADE',
+    action: choice.action || 'SELL',
+    item: name,
+    currentLevel,
+    targetLevel: choice.targetLevel == null ? currentLevel : choice.targetLevel,
+    expectedGold: finite(choice.expectedGold, directSellGold),
+    directSellGold,
+    expectedGain: finite(choice.expectedGold, directSellGold) - finite(directSellGold, 0),
+    nextChance: choice.chance == null ? null : choice.chance,
+    scroll: choice.scroll || null,
+    scrollCost: finite(choice.scrollCost, 0),
+    model: 'NPC_SELL_EXPECTED_VALUE_V1'
+  };
+}
+
+function evaluateCompoundEconomics(options = {}) {
+  const gameData = options.gameData || {};
+  const name = String(options.itemName || '');
+  const meta = gameData.items && gameData.items[name];
+  const currentLevel = levelOf(options.currentLevel);
+  const same = Math.max(0, Math.floor(finite(options.sameCount, 0)));
+  const maxLevel = Math.max(currentLevel, Math.min(10, Math.floor(finite(options.maxLevel, currentLevel))));
+  const directOne = itemNpcSellValue(gameData, name, currentLevel, 1);
+  if (!meta || !meta.compound || currentLevel >= maxLevel || directOne == null) {
+    return { modeled: directOne != null, family: 'COMPOUND', action: 'SELL', item: name, currentLevel, targetLevel: currentLevel, directSellGold: directOne, expectedGold: directOne, expectedGain: 0, sameCount: same, model: 'NPC_SELL_EXPECTED_VALUE_V1' };
+  }
+  const nextLevel = currentLevel + 1;
+  const chance = progressionProbability(gameData, meta, nextLevel, true);
+  const scroll = scrollBuyCost(gameData, meta, currentLevel, true);
+  const nextSell = itemNpcSellValue(gameData, name, nextLevel, 1);
+  if (chance == null || scroll.cost == null || nextSell == null) {
+    return { modeled: false, family: 'COMPOUND', action: 'SELL', item: name, currentLevel, targetLevel: currentLevel, directSellGold: directOne, expectedGold: directOne, expectedGain: 0, sameCount: same, model: 'NPC_SELL_EXPECTED_VALUE_V1' };
+  }
+  const directSet = directOne * 3;
+  const compoundExpected = chance * nextSell - scroll.cost;
+  const profitable = compoundExpected > directSet;
+  return {
+    modeled: true,
+    family: 'COMPOUND',
+    action: profitable ? (same >= 3 ? 'COMPOUND' : 'ACCUMULATE') : 'SELL',
+    item: name,
+    currentLevel,
+    targetLevel: profitable ? nextLevel : currentLevel,
+    expectedGold: profitable ? compoundExpected : directSet,
+    directSellGold: directSet,
+    expectedGain: compoundExpected - directSet,
+    nextChance: chance,
+    scroll: scroll.name,
+    scrollCost: scroll.cost,
+    sameCount: same,
+    model: 'NPC_SELL_EXPECTED_VALUE_V1'
+  };
+}
+
+function evaluateItemEconomics(options = {}) {
+  const gameData = options.gameData || {};
+  const meta = gameData.items && gameData.items[String(options.itemName || '')];
+  if (meta && meta.compound) return evaluateCompoundEconomics(options);
+  if (meta && meta.upgrade) return evaluateUpgradeEconomics(options);
+  const directSellGold = itemNpcSellValue(gameData, String(options.itemName || ''), levelOf(options.currentLevel), 1);
+  return {
+    modeled: directSellGold != null,
+    family: 'NONE',
+    action: 'SELL',
+    item: String(options.itemName || ''),
+    currentLevel: levelOf(options.currentLevel),
+    targetLevel: levelOf(options.currentLevel),
+    expectedGold: directSellGold,
+    directSellGold,
+    expectedGain: 0,
+    model: 'NPC_SELL_EXPECTED_VALUE_V1'
+  };
+}
+
+function itemEconomyCatalog(gameData, name, maxLevel = 10) {
+  const meta = gameData && gameData.items && gameData.items[name];
+  if (!meta || typeof meta !== 'object') return null;
+  const limit = Math.max(0, Math.min(12, Math.floor(finite(maxLevel, 10))));
+  const sellValues = [];
+  for (let level = 0; level <= limit; level += 1) {
+    const value = itemNpcSellValue(gameData, name, level, 1);
+    if (value == null) break;
+    sellValues.push({ level, value });
+    if (!meta.upgrade && !meta.compound) break;
+  }
+  const chances = [];
+  const compound = !!meta.compound;
+  if (meta.upgrade || compound) {
+    for (let nextLevel = 1; nextLevel <= limit; nextLevel += 1) {
+      const chance = progressionProbability(gameData, meta, nextLevel, compound);
+      if (chance == null) break;
+      chances.push({ level: nextLevel, chance });
+    }
+  }
+  return {
+    baseGold: finite(meta.g),
+    npcSellValues: sellValues,
+    progression: meta.compound ? 'COMPOUND' : meta.upgrade ? 'UPGRADE' : null,
+    baseChances: chances,
+    grades: Array.isArray(meta.grades) ? meta.grades.slice(0, 6) : [],
+    itemGrade: finite(meta.igrade, 0),
+    model: 'AL_ATLAS_GAME_DATA_V1'
+  };
+}
+
+module.exports = {
+  DEFAULT_UPGRADE_CHANCES,
+  DEFAULT_COMPOUND_CHANCES,
+  progressionProbability,
+  scrollName,
+  scrollBuyCost,
+  itemNpcSellValue,
+  evaluateUpgradeEconomics,
+  evaluateCompoundEconomics,
+  evaluateItemEconomics,
+  itemEconomyCatalog
+};
 
 },
 "src/reliability/alpha27-merchant-autonomy.js": function(require,module,exports){
@@ -40459,22 +40794,6 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       }
       this._taskRelease(task.key, collection.reason || 'COLLECTION_COMPLETE', { collection: clone(collection) });
       task = null;
-    }
-
-    const explicitOperatorSell = typeof this.planExplicitOperatorSell === 'function' ? this.planExplicitOperatorSell() : null;
-    if (explicitOperatorSell && task && task.owner === 'ALPHA27' && task.kind === 'PROGRESSION_BATCH') {
-      this._taskRelease(task.key, 'OPERATOR_SELL_PREEMPTS_PROGRESSION_BATCH', { item: explicitOperatorSell.item || null, index: explicitOperatorSell.index });
-      task = null;
-    }
-    if (explicitOperatorSell && !task && !this.transactionFamilyOpen('SELL')) {
-      const lock = this._taskAcquire('DISPOSAL', 'alpha27:operator-disposal-sell', { type: 'SELL', source: 'OPERATOR_ITEM_PERMISSION' });
-      if (!lock.acquired) return false;
-      try {
-        this.lastMerchantPlan = { at: this.now(), action: 'EXECUTE', reason: 'OPERATOR_ITEM_PERMISSION_SELL', request: clone(explicitOperatorSell) };
-        return await this.executeEconomyRequest(explicitOperatorSell);
-      } finally {
-        this._taskRelease('alpha27:operator-disposal-sell', 'OPERATOR_SELL_STEP_COMPLETE');
-      }
     }
 
     // Progression is a batch task because COMPOUND/UPGRADE/SelfGear share the
@@ -41184,9 +41503,9 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       };
     }
 
-    // No Farmer value by +5: keep processing the exact observed item through
-    // +3 with scroll0 only. GearProgression is re-run after every level change;
-    // if the item becomes useful, the Farmer +5 goal above takes ownership.
+    // No party gear value: use the ledger's expected-value decision instead
+    // of a fixed +3 heuristic. The calculation is re-run after every observed
+    // level change, so the target can shrink, grow or turn into SELL.
     const fallback = ledger.list(1000)
       .filter((row) => row && row.character === c.name && row.disposition === 'RESERVE_UPGRADE' && !this.atomic.mutationRetryBlocked(row, 'UPGRADE'))
       .sort((a, b) => levelOf(a) - levelOf(b) || String(a.name || '').localeCompare(String(b.name || '')) || Number(a.index) - Number(b.index))
@@ -41194,8 +41513,9 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         const meta = gd.items && gd.items[entry.name];
         const reasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
         const level = levelOf(entry);
-        if (!meta || !meta.upgrade || level >= 3 || this.options.maxUpgradeLevel < 1) return false;
-        if (!reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3')) return false;
+        const target = Math.max(level, Math.floor(finite(entry.economicTargetLevel, level)));
+        if (!meta || !meta.upgrade || level >= this.options.maxUpgradeLevel || target <= level) return false;
+        if (!reasons.includes('AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_UPGRADE')) return false;
         if (gradeForLevel(meta, level) >= 4) return false;
         const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
         if (value > this.options.upgradeValueCap) return false;
@@ -41211,9 +41531,10 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         source: 'ALPHA27_AUTONOMOUS_PLANNER',
         lifecycle: 'ECONOMIC_PROCESSING',
         economicLifecycle: true,
-        targetLevel: 3,
+        targetLevel: Math.max(levelOf(fallback) + 1, Math.floor(finite(fallback.economicTargetLevel, levelOf(fallback) + 1))),
         targetCharacter: null,
-        upgradeLifecycle: 'ECONOMIC_TO_PLUS3',
+        upgradeLifecycle: 'ECONOMIC_EXPECTED_VALUE',
+        economicDecision: clone(fallback.economicDecision),
         scrollPolicy: 'ITEM_GRADE_DEFAULT'
       }
     };
@@ -41284,28 +41605,6 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         compoundIdentity: picked.identity,
         completeSetsBefore: picked.completeSets,
         fairSelectionCount: picked.previousSelections + 1
-      }
-    };
-  }
-
-  planExplicitOperatorSell() {
-    const c = characterOf(this.runtime);
-    const ledger = this.runtime.inventoryLedger;
-    if (!c || !ledger || typeof ledger.list !== 'function') return null;
-    const row = ledger.list(1000).find((entry) => {
-      if (!entry || entry.character !== c.name || entry.disposition !== 'SELL') return false;
-      const reasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
-      return entry.operatorPermissions && entry.operatorPermissions.sell === true && reasons.includes('OPERATOR_SELL_ALLOWED');
-    });
-    if (!row) return null;
-    return {
-      type: 'SELL',
-      character: c.name,
-      index: row.index,
-      quantity: Math.max(1, finite(row.q, 1)),
-      metadata: {
-        source: 'OPERATOR_ITEM_PERMISSION',
-        operatorExplicitSell: true
       }
     };
   }
@@ -47415,6 +47714,7 @@ const { ControlPlaneConfig } = require('../control/control-plane-config');
 const { CloudControlPlane } = require('../control/cloud-control-plane');
 const { StrategicBrainV2 } = require('../brain/strategic-brain-v2');
 const { boundedOptions, synchronizeLegacyUpgradePolicy, synchronizeLegacyCompoundPolicy } = require('./alpha27-combat-merchant-convergence');
+const { itemEconomyCatalog } = require('../economy/item-economic-evaluator');
 
 const ALPHA25_MODE = 'alpha25-control-center-brain-v2';
 const PROGRESSION_SETTING_KEYS = Object.freeze(['economy.maxUpgrade', 'economy.maxCompound']);
@@ -47451,7 +47751,7 @@ function gameDataSources(runtime) {
 }
 
 function mergeGameData(runtime) {
-  const merged = { items: {}, positions: {}, imagesets: {} };
+  const merged = { items: {}, positions: {}, imagesets: {}, upgrades: {}, compounds: {} };
   for (const source of gameDataSources(runtime)) {
     for (const [name, def] of Object.entries(source && source.items || {})) {
       if (!def || typeof def !== 'object' || Array.isArray(def)) continue;
@@ -47466,6 +47766,13 @@ function mergeGameData(runtime) {
       if (!pack || typeof pack !== 'object' || Array.isArray(pack)) continue;
       const existing = merged.imagesets[packName];
       merged.imagesets[packName] = existing ? { ...pack, ...existing } : { ...pack };
+    }
+    for (const section of ['upgrades', 'compounds']) {
+      for (const [grade, table] of Object.entries(source && source[section] || {})) {
+        if (!table || typeof table !== 'object' || Array.isArray(table)) continue;
+        const existing = merged[section][grade];
+        merged[section][grade] = existing ? { ...table, ...existing } : { ...table };
+      }
     }
   }
   return merged;
@@ -47681,6 +47988,10 @@ function itemAutomationCatalog(runtime, maxItems = 10000) {
       soulbound: !!meta.soulbound,
       special: !!meta.special,
       goldValue: Number.isFinite(Number(meta.g)) ? Number(meta.g) : null,
+      description: meta.explanation || meta.description || null,
+      grades: Array.isArray(meta.grades) ? meta.grades.slice(0, 6) : [],
+      itemGrade: Number.isFinite(Number(meta.igrade)) ? Number(meta.igrade) : 0,
+      economy: itemEconomyCatalog(gameData, id, 10),
       skin,
       sprite: spriteMeta(gameData, skin) || inventorySprites[id] || null,
       observed: observed.has(id)
@@ -47690,7 +48001,7 @@ function itemAutomationCatalog(runtime, maxItems = 10000) {
   return rows;
 }
 
-const ADVENTURE_LAND_ITEM_SURFACE_VERSION = 2;
+const ADVENTURE_LAND_ITEM_SURFACE_VERSION = 3;
 
 function installAdventureLandItemSprites(runtime, cloud) {
   if (!cloud || typeof cloud._runtimeSnapshot !== 'function') return false;

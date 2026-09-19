@@ -64,15 +64,17 @@ test('central ledger processes low-risk progression before bank fallback', () =>
       material: { g: 10 },
       sword: { g: 10, upgrade: { attack: 1 }, grades: [] },
       ring: { g: 10, type: 'ring', compound: { dex: 1 }, grades: [] },
-      rare: { g: 20000 },
-      scroll0: { g: 100 }
+      scroll0: { g: 0 },
+      cscroll0: { g: 0 },
+      rare: { g: 20000 }
     },
     monsters: {}, maps: {}
   };
   const runtime = makeRuntime({ ledger, gameData });
   new Alpha27CombatMerchantConvergence(runtime, { keepValue: 1000 });
-  // Economic +3 processing is allowed only after an explicit fresh Farmer
-  // future-value evaluation proves the item has no useful path by +5.
+  // Economic processing is allowed only after a fresh gear-value evaluation
+  // proves the physical item has no useful party path. Cheap scrolls make the
+  // expected-value model prefer progression in this fixture.
   runtime.gearProgression.futureProtectionFor = () => null;
   runtime.gearProgression.futureSellSafetyFor = () => ({ checked: true, protected: false });
   const counts = new Map([['ring:0', 3]]);
@@ -85,7 +87,7 @@ test('central ledger processes low-risk progression before bank fallback', () =>
   assert.equal(classify('unknown'), 'UNDECIDED');
 });
 
-test('explicit operator SELL preempts an active progression batch before any progression action', async () => {
+test('sell permission does not preempt an active gear progression batch', async () => {
   const engine = makeEngine();
   const controlledMerchant = makeControlledMerchant();
   const root = {
@@ -98,8 +100,8 @@ test('explicit operator SELL preempts an active progression batch before any pro
     name: 'partyhat',
     level: 0,
     q: 1,
-    disposition: 'SELL',
-    reasons: ['OPERATOR_SELL_ALLOWED'],
+    disposition: 'RESERVE_UPGRADE',
+    reasons: ['FUTURE_FARMER_GEAR_PROGRESSION', 'AUTONOMOUS_UPGRADE_CONTINUATION'],
     operatorPermissions: { sell: true }
   }]);
   const runtime = makeRuntime({
@@ -107,7 +109,7 @@ test('explicit operator SELL preempts an active progression batch before any pro
     ledger,
     engine,
     controlledMerchant,
-    gameData: { items: { partyhat: { type: 'helmet', g: 1 } }, monsters: {}, maps: {} }
+    gameData: { items: { partyhat: { type: 'helmet', g: 12000, upgrade: { str: 0.2 } } }, monsters: {}, maps: {} }
   });
   const convergence = new Alpha27CombatMerchantConvergence(runtime);
   const merchant = convergence.merchant;
@@ -125,9 +127,12 @@ test('explicit operator SELL preempts an active progression batch before any pro
   merchant.bankRecovery.plan = () => ({ action: 'HOLD', reason: 'NOT_DUE' });
 
   let progressionCalls = 0;
-  merchant.progressOrDeliverFarmerGear = async () => { progressionCalls += 1; return false; };
-  merchant.planCompound = () => { progressionCalls += 1; return null; };
-  merchant.planUpgrade = () => { progressionCalls += 1; return null; };
+  merchant.progressOrDeliverFarmerGear = async () => { progressionCalls += 1; return true; };
+  let executedRequest = null;
+  merchant.executeEconomyRequest = async (request) => {
+    executedRequest = request;
+    return true;
+  };
 
   const releases = [];
   const baseRelease = merchant._taskRelease.bind(merchant);
@@ -139,23 +144,12 @@ test('explicit operator SELL preempts an active progression batch before any pro
   const acquired = merchant._taskAcquire('PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' });
   assert.equal(acquired.acquired, true);
 
-  let executedRequest = null;
-  merchant.executeEconomyRequest = async (request) => {
-    executedRequest = { ...request, metadata: { ...(request.metadata || {}) } };
-    return true;
-  };
-
   const acted = await merchant.cycle();
 
   assert.equal(acted, true);
-  assert.equal(progressionCalls, 0);
-  assert.ok(executedRequest);
-  assert.equal(executedRequest.type, 'SELL');
-  assert.equal(executedRequest.index, 0);
-  assert.equal(executedRequest.metadata.source, 'OPERATOR_ITEM_PERMISSION');
-  assert.equal(executedRequest.metadata.operatorExplicitSell, true);
-  assert.ok(releases.some((row) => row.key === 'alpha27:progression-batch' && row.reason === 'OPERATOR_SELL_PREEMPTS_PROGRESSION_BATCH'));
-  assert.equal(merchant._taskCurrent(), null);
+  assert.equal(progressionCalls, 1);
+  assert.equal(executedRequest, null);
+  assert.equal(releases.some((row) => row.reason === 'OPERATOR_SELL_PREEMPTS_PROGRESSION_BATCH'), false);
 });
 
 test('central ledger respects explicit operator denials before autonomous fallbacks', () => {
@@ -189,8 +183,10 @@ test('central ledger respects explicit operator denials before autonomous fallba
 
   assert.equal(classify('material').disposition, 'KEEP');
   assert.ok(classify('material').reasons.includes('OPERATOR_SELL_DENIED'));
-  assert.equal(classify('sword').disposition, 'BANK');
-  assert.equal(classify('ring').disposition, 'BANK');
+  assert.equal(classify('sword').disposition, 'SELL');
+  assert.ok(classify('sword').reasons.includes('AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_SELL'));
+  assert.equal(classify('ring').disposition, 'SELL');
+  assert.ok(classify('ring').reasons.includes('AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_SELL'));
   assert.equal(classify('rare').disposition, 'KEEP');
   assert.ok(classify('rare').reasons.includes('OPERATOR_BANK_DENIED'));
 });

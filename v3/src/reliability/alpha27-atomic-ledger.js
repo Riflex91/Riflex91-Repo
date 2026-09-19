@@ -3,6 +3,7 @@
 const { finite, clone, text, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, findItem, gradeForLevel, transactionInputs, rawFunction } = require('./alpha27-utils');
 const { CONTROLLED_ACK, SUPERVISOR_ALLOWED, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { Alpha27AtomicCore } = require('./alpha27-atomic-core');
+const { evaluateItemEconomics } = require('../economy/item-economic-evaluator');
 
 class Alpha27AtomicLedger extends Alpha27AtomicCore {
   patchInventoryLedger() {
@@ -12,7 +13,13 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
     ledger._baseDisposition = (row, gameData, contentDrift, counts, reservationRemaining) => {
       const safeCounts = counts && typeof counts.get === 'function' ? counts : new Map();
       const base = baseDisposition(row, gameData, contentDrift, safeCounts, reservationRemaining);
-      if (!base || base.disposition !== 'UNDECIDED') return base;
+      const provisionalLegacySell = !!(
+        base
+        && base.disposition === 'SELL'
+        && Array.isArray(base.reasons)
+        && base.reasons.includes('OPERATOR_SELL_ALLOWLIST')
+      );
+      if (!base || (base.disposition !== 'UNDECIDED' && !provisionalLegacySell)) return base;
       const meta = gameData && gameData.items && row && row.name ? gameData.items[row.name] : null;
       if (!row || !row.name || !meta || typeof meta !== 'object') return base;
       const name = String(row.name);
@@ -124,71 +131,108 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         };
       }
 
-      // Progression lifecycle comes before generic BANK fallback. Adventure Land
-      // exposes compound/upgrade metadata as objects, not necessarily boolean true.
-      // A complete compound set is actionable now; an incomplete level-0 set is
-      // retained until a third copy arrives instead of being hidden in the bank.
+      // Autonomous disposal is fail-closed until the normal party gear
+      // evaluator has answered the first question: can this exact physical item
+      // become an upgrade for any character? Only a completed negative answer
+      // unlocks economic processing or sale.
+      const gearSellCheckComplete = !!(
+        futureSellSafety
+        && futureSellSafety.checked === true
+        && futureSellSafety.protected !== true
+      );
+      if (!gearSellCheckComplete) {
+        return {
+          disposition: 'KEEP',
+          reasons: [...baseReasons, 'FUTURE_GEAR_EVALUATION_REQUIRED', 'ECONOMIC_DISPOSAL_FAIL_CLOSED']
+        };
+      }
+
+      const economicDecision = evaluateItemEconomics({
+        gameData: gameData || gameDataOf(this.runtime),
+        itemName: name,
+        currentLevel: level,
+        sameCount: same,
+        maxLevel: meta.compound ? this.options.maxCompoundLevel : this.options.maxUpgradeLevel
+      });
+
       if (meta.compound && permission('compound') !== false) {
-        if (same >= 3 && level < this.options.maxCompoundLevel && grade < 4 && (value != null && value <= this.options.compoundValueCap)) {
+        if (economicDecision.action === 'COMPOUND'
+          && same >= 3
+          && level < this.options.maxCompoundLevel
+          && grade < 4
+          && value != null
+          && value <= this.options.compoundValueCap) {
           return {
             disposition: 'RESERVE_COMPOUND',
-            reasons: [...baseReasons, 'AUTONOMOUS_COMPOUND_SET_AVAILABLE']
+            reasons: [...baseReasons, 'AUTONOMOUS_ECONOMIC_COMPOUND', 'EXPECTED_VALUE_COMPOUND_BETTER', 'FUTURE_GEAR_EVALUATED_SAFE'],
+            economicTargetLevel: economicDecision.targetLevel,
+            economicDecision
           };
         }
-        if (level === 0 && grade < 4 && (value != null && value <= this.options.compoundValueCap)) {
+        if (economicDecision.action === 'ACCUMULATE'
+          && level < this.options.maxCompoundLevel
+          && grade < 4
+          && value != null
+          && value <= this.options.compoundValueCap) {
           return {
             disposition: 'KEEP',
-            reasons: [...baseReasons, 'AUTONOMOUS_COMPOUND_ACCUMULATION']
-          };
-        }
-        if (level > 0 && grade < 4 && underKeepValue) {
-          if (!futureSellSafety || futureSellSafety.checked !== true) {
-            return {
-              disposition: 'KEEP',
-              reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
-            };
-          }
-          if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED', 'AUTONOMOUS_COMPOUND_RESULT'] };
-          this.stats.autoLedgerSellClassifications += 1;
-          return {
-            disposition: 'SELL',
-            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_COMPOUND_RESULT', 'FUTURE_FARMER_GEAR_EVALUATED_SAFE']
+            reasons: [...baseReasons, 'AUTONOMOUS_ECONOMIC_COMPOUND_ACCUMULATION', 'EXPECTED_VALUE_COMPOUND_BETTER', 'FUTURE_GEAR_EVALUATED_SAFE'],
+            economicTargetLevel: economicDecision.targetLevel,
+            economicDecision
           };
         }
       }
 
-      // Upgradeable gear that has been explicitly evaluated as having no
-      // Farmer value by +5 still receives a bounded economic processing path:
-      // try up to +3 with scroll0 only, then allow the normal processed-gear
-      // sale gate to dispose of low-value results. Re-evaluation is required
-      // after every observed level change, so a newly useful item immediately
-      // leaves this fallback and moves into the Farmer +5 progression path.
-      if (meta.upgrade && permission('upgrade') !== false) {
-        if (!futureSellSafety || futureSellSafety.checked !== true) {
+      if (meta.upgrade && permission('upgrade') !== false
+        && economicDecision.action === 'UPGRADE'
+        && level < this.options.maxUpgradeLevel
+        && grade < 4
+        && value != null
+        && value <= this.options.upgradeValueCap) {
+        return {
+          disposition: 'RESERVE_UPGRADE',
+          reasons: [
+            ...baseReasons,
+            'AUTONOMOUS_ECONOMIC_UPGRADE',
+            'AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_UPGRADE',
+            'FUTURE_GEAR_EVALUATED_SAFE'
+          ],
+          economicTargetLevel: economicDecision.targetLevel,
+          economicDecision
+        };
+      }
+
+      if ((meta.upgrade || meta.compound) && economicDecision.action === 'SELL') {
+        if (permission('sell') === false) {
           return {
             disposition: 'KEEP',
-            reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
+            reasons: [...baseReasons, 'OPERATOR_SELL_DENIED', 'EXPECTED_VALUE_DIRECT_SELL_BETTER'],
+            economicDecision
           };
         }
-        const economicTargetLevel = Math.min(3, this.options.maxUpgradeLevel);
-        if (level < economicTargetLevel && grade < 4 && value != null && value <= this.options.upgradeValueCap) {
-          return {
-            disposition: 'RESERVE_UPGRADE',
-            reasons: [
-              ...baseReasons,
-              'AUTONOMOUS_ECONOMIC_UPGRADE',
-              'AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3',
-              'FUTURE_FARMER_GEAR_EVALUATED_SAFE'
-            ],
-            economicTargetLevel
-          };
-        }
-        if (level >= economicTargetLevel && level > 0 && grade < 4 && underKeepValue) {
-          if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED', 'AUTONOMOUS_UPGRADE_RESULT'] };
+        let economicSellBlockers = [];
+        try {
+          economicSellBlockers = typeof ledger._resolveSellBlockers === 'function'
+            ? ledger._resolveSellBlockers(row, meta, gameData || gameDataOf(this.runtime), contentDrift || this.runtime.contentDrift)
+            : [];
+        } catch (_) { economicSellBlockers = ['SELL_SAFETY_RESOLVER_FAILED']; }
+        // Upgrade/compound/category signals were already resolved by the
+        // completed gear check and expected-value decision. Keep genuinely
+        // protected content (quest/event/cash/soulbound/special/etc.) hard.
+        economicSellBlockers = economicSellBlockers.filter((reason) => !(
+          reason === 'SELL_TYPE_NOT_LOW_RISK'
+          || reason === 'SELL_NOT_PLAIN_STACKABLE_MATERIAL'
+          || reason === 'SELL_COMPOUND_ITEM_PROTECTED'
+          || reason === 'SELL_UPGRADE_ITEM_PROTECTED'
+          || /^SELL_GEAR_SIGNAL_/.test(reason)
+        ));
+        if (!economicSellBlockers.length && (underKeepValue || permission('sell') === true || provisionalLegacySell)) {
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
-            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_UPGRADE_RESULT', 'FUTURE_FARMER_GEAR_EVALUATED_SAFE']
+            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_SELL', 'FUTURE_GEAR_EVALUATED_SAFE'],
+            economicTargetLevel: economicDecision.targetLevel,
+            economicDecision
           };
         }
       }
@@ -211,7 +255,11 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       if (level === 0 && blockers.length === 0) {
         if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED'] };
         this.stats.autoLedgerSellClassifications += 1;
-        return { disposition: 'SELL', reasons: [...baseReasons, 'AUTONOMOUS_LOW_RISK_SURPLUS'] };
+        return {
+          disposition: 'SELL',
+          reasons: [...baseReasons, 'AUTONOMOUS_LOW_RISK_SURPLUS', 'FUTURE_GEAR_EVALUATED_SAFE'],
+          economicDecision
+        };
       }
       return base;
     };
@@ -234,8 +282,9 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         futureFarmerGearValuePreemptsProcessedSale: true,
         futureGearProbeIncludesCompoundAndUpgrade: true,
         farmerPotentialUpgradeTargetLevel: 5,
-        nonImprovingUpgradeProcessingTargetLevel: 3,
-        nonImprovingUpgradeProcessingScrollPolicy: 'SCROLL0_ONLY',
+        economicProcessingModel: 'NPC_SELL_EXPECTED_VALUE_V1',
+        sellPermissionMeansCapabilityNotImmediateAction: true,
+        everySaleRequiresCompletedGearEvaluation: true,
         processedGearSellFailClosedWithoutFutureEvaluation: true,
         keepValue: this.options.keepValue
       });
