@@ -1,6 +1,6 @@
 # ADR-004 – R6 Wissenszugriff, Beobachtung und abgeglichene Weltwahrheit
 
-Status: angenommen fuer R6 IN_PROGRESS.
+**Status:** angenommen fuer R6 IN_PROGRESS.
 
 ## Kontext
 
@@ -16,14 +16,35 @@ Frische, Widerspruch und fehlende Beobachtung werden fail-closed als BESTAETIGT,
 
 Wissensdrift kann betroffene Faehigkeiten auf QUARANTAENE setzen. Automatische Freigabe aus Quarantaene ist in R6 ausgeschlossen.
 
-## Sicherheitsfolgen
+## Alternativen
 
-- keine Raw Game Writes;
-- keine Gameplay-Autoritaet aus Persistenz oder GitHub;
-- keine direkte Nutzung von Wissensbasis-Rohpfaden aus Gameplay-Modulen;
-- keine Mutation allein aufgrund von LIVE_VERIFIZIERT;
+Direkter Zugriff spaeterer Gameplay-Module auf GitHub-, SSD- oder Roh-Snapshot-Dateien wird verworfen, weil damit Pinning, Schema-/Hash-Validierung und Authority-Trennung umgangen werden koennten.
+
+LIVE_VERIFIZIERT direkt aus Definitionen oder Planerannahmen abzuleiten wird verworfen, weil nur echte Spielbeobachtung plus fachlicher Verifier diesen Status begruenden darf.
+
+Persistiertes Wissen als ExecutionAuthority zu behandeln wird verworfen. Frische Live-Admission bleibt fuer spaetere wertveraendernde Aktionen zwingend.
+
+## Konsequenzen
+
+- Wissenszugriff ist read-only und snapshot-gepinnt.
+- Definition, Beobachtung, live verifizierter Fakt und abgeglichene Weltwahrheit bleiben getrennte Typen.
+- VERALTET, WIDERSPRUCH und UNBEKANNT bleiben fail-closed.
+- Wissensdrift kann Faehigkeiten in QUARANTAENE setzen.
+- Keine R6-Wissenslage autorisiert eine Mutation.
+- Weitere R6-Slices muessen dieselbe Authority-Trennung beibehalten.
+
+## Invarianten
+
+- Persistiertes Wissen besitzt keine Gameplay-Autoritaet.
+- LIVE_VERIFIZIERT entsteht nur aus LIVE_SPIEL plus Fachverifier.
+- Ein gepinnter Snapshot darf innerhalb eines laufenden Konsumenten nicht still wechseln.
+- Unbekannter, geaenderter oder quarantinierter Inhalt bleibt fail-closed.
 - Runtime-Gesamtgate bleibt GESPERRT.
 
-## Folgeschritte
+## Migration
 
-Weitere R6-Slices liefern bounded Beobachtungshistorie und RAM-Arbeitsmengen, Learning-Nachweise ohne Autoritaet sowie die deutschen Anzeige- und Monsterkataloge.
+R6 baut ausschliesslich neue V5-Typen und Ports auf der R5-Grundlage auf. V3/V4-Runtime-Code wird nicht portiert. Bestehende R5-Persistenzvertraege bleiben unveraendert und dienen nur als Speichergrenze fuer spaetere Evidence.
+
+## Rollback
+
+Der R6-Slice kann durch Ruecknahme der neuen wissen/**-Module, R6-Tests, R6-CI und Guard-Erweiterungen entfernt werden, ohne R5-Persistenzdaten oder Gameplay-Zustand zu veraendern. Es existieren keine Raw Game Writes und keine wertveraendernden Migrationen.
