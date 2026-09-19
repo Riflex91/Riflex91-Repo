@@ -1,6 +1,6 @@
 # Block 8.5 – Freigabestufen · Adventure-Land-Nachweisrunner
 
-Status: **Runner implementiert; Candidate Deployment/HTTPS, Offline, Schatten und kontrolliert live sind bestanden. Soak ist die letzte offene Stufe.**
+Status: **Runner implementiert und alle realen 8.5.9-Stufen fuer den Candidate bestanden. Der finale Soak-Nachweis ist kanonisch dokumentiert.**
 
 ## Zweck
 
@@ -43,7 +43,7 @@ Der Runner laedt oder veroeffentlicht selbst keine Runtime.
 
 Der exakte Build-/Release-Nachweis fuer Runtime 1.1.5 liegt vor. Der reale Schattenlauf gegen diesen immutable Candidate ist inzwischen bestanden und kanonisch dokumentiert.
 
-Offline, Schatten und kontrolliert live sind fuer `git:88185523c81687dc16f9647ca5e7568c5e2c228c` kanonisch bestanden. Der reale Live-Nachweis steht in `BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.json`; damit ist `soak` die naechste und letzte offene Stufe.
+Offline, Schatten, kontrolliert live und Soak sind fuer `git:88185523c81687dc16f9647ca5e7568c5e2c228c` kanonisch bestanden. Der finale Soak-Nachweis steht in `BLOCK-8-5-SOAK-FREIGABE-NACHWEIS.json`; damit ist die 8.5.9-Freigabekette vollstaendig.
 
 ## Konfiguration
 

@@ -1,6 +1,6 @@
 # Block 8.5 – Runtime 1.1.5 Release-Candidate
 
-Status: **Release-Candidate reproduzierbar gebunden; Deployment/HTTPS, Schatten und kontrolliert live bestaetigt; nur Soak noch offen.**
+Status: **Release-Candidate reproduzierbar gebunden und operativ vollstaendig bestaetigt: Deployment/HTTPS, Offline, Schatten, kontrolliert live und Soak bestanden. Block 8.5 ist abgeschlossen.**
 
 ## Zweck
 
@@ -114,35 +114,32 @@ Der detaillierte Nachweis steht in:
 
 ## Reale Adventure-Land-Nachweise
 
-Der reale strikte Schattenlauf und der kontrollierte Live-Lauf sind bestanden und kanonisch dokumentiert in:
+Der reale strikte Schattenlauf, der kontrollierte Live-Lauf und der 10-Minuten-Soak sind bestanden und kanonisch dokumentiert in:
 
 `BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json`
 
 `BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.json`
 
+`BLOCK-8-5-SOAK-FREIGABE-NACHWEIS.json`
+
 Damit gilt im Manifest jetzt korrekt:
 
 - `adventureLandShadowVerified: true`
 - `adventureLandControlledLiveVerified: true`
-- `adventureLandSoakVerified: false`
-- `block9Freigegeben: false`
+- `adventureLandSoakVerified: true`
+- `block9Freigegeben: true`
+- `block85Completed: true`
+- `nextDevelopmentBlock: 8.6`
+- `block9RoadmapStartApproved: false`
 
-Der Schattenbericht ist ueber Dateigroesse und SHA-256 gebunden. Der Live-Bericht wurde direkt im Chat bereitgestellt und wird ohne erfundenen Datei-Hash ueber seine exakten fachlichen Felder gebunden.
-
-Als letzte reale Stufe ist Soak offen. Das source-locked Paket `block8-5-soak-paket.js` bindet beide bestandenen Vorstufen und den unveraenderten immutable Candidate.
+Der Schattenbericht ist ueber Dateigroesse und SHA-256 gebunden. Live- und Soak-Bericht wurden direkt im Chat bereitgestellt und werden deshalb ohne erfundene Rohdatei-Hashes ueber ihre exakten fachlichen Felder gebunden.
 
 ## Block-9-Grenze
 
-Auch ein erfolgreiches Runtime-Deployment allein reicht nicht fuer Block 9.
-
-Nach Deployment, Offline, Schatten und kontrolliert live fehlt nur noch die operative Stufe:
-
-1. Soak.
-
-Erst wenn das sequenzielle 8.5.9-Freigabe-Gate fuer denselben Aenderungsstand alle vier Stufen inklusive Offline als bestanden bewertet, darf:
+Das sequenzielle 8.5.9-Freigabe-Gate fuer denselben Aenderungsstand bewertet inzwischen alle vier Stufen inklusive Offline als bestanden und setzt formal:
 
 `block9Freigegeben: true`
 
-werden.
+Damit ist die **historische Block-8.5-Voraussetzung** fuer Block 9 erfuellt.
 
-Bis dahin bleibt Block 9 gesperrt.
+Der aktualisierte V4-Fahrplan hat danach jedoch Block 8.6 – Live Skill Catalog und Capability Truth – verbindlich vor Block 9 eingefuegt. Deshalb startet jetzt Block 8.6; der tatsaechliche Block-9-Start bleibt bis zu dessen eigener vollstaendiger Freigabe gesperrt.

@@ -66,11 +66,18 @@ if (manifest.adventureLandControlledLiveVerified !== true) {
 }
 for (const feld of [
   'adventureLandSoakVerified',
-  'block9Freigegeben'
+  'block9Freigegeben',
+  'block85Completed'
 ]) {
-  if (manifest[feld] !== false) {
-    throw new Error(`Release-Candidate darf ${feld} ohne realen Adventure-Land-Nachweis noch nicht als bestanden markieren.`);
+  if (manifest[feld] !== true) {
+    throw new Error(`Release-Candidate muss den real bestandenen vollstaendigen Block-8.5-Nachweis fuer ${feld} tragen.`);
   }
+}
+if (manifest.nextDevelopmentBlock !== '8.6') {
+  throw new Error('Release-Candidate muss nach Block 8.5 den aktualisierten Fahrplan mit Block 8.6 als naechstem Entwicklungsblock tragen.');
+}
+if (manifest.block9RoadmapStartApproved !== false) {
+  throw new Error('Das historische 8.5-Gate darf den aktualisierten Fahrplan nicht umgehen: Block 9 bleibt bis Block 8.6 gesperrt.');
 }
 if (!manifest.shadowEvidence || typeof manifest.shadowEvidence !== 'object') {
   throw new Error('Release-Candidate braucht den kanonisch gebundenen SchattenEvidence-Nachweis.');
@@ -102,6 +109,28 @@ for (const [feld, erwartet] of Object.entries({
 })) {
   if (manifest.controlledLiveEvidence[feld] !== erwartet) {
     throw new Error(`Release-Candidate controlledLiveEvidence besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+
+if (!manifest.soakEvidence || typeof manifest.soakEvidence !== 'object') {
+  throw new Error('Release-Candidate braucht den kanonisch gebundenen Soak-Nachweis.');
+}
+for (const [feld, erwartet] of Object.entries({
+  source: 'chat_paste',
+  reportCreatedAt: '2026-09-19T07:28:36.564Z',
+  performedAt: 1789802325319,
+  laufKennung: 'block8-5-schatten-1789775266269',
+  durationMs: 600000,
+  samples: 120,
+  expectedSamples: 118,
+  heartbeatSuccessesBefore: 4,
+  heartbeatSuccessesAfter: 304,
+  heartbeatErrorsBefore: 0,
+  heartbeatErrorsAfter: 0,
+  evidenceFile: 'BLOCK-8-5-SOAK-FREIGABE-NACHWEIS.json'
+})) {
+  if (manifest.soakEvidence[feld] !== erwartet) {
+    throw new Error(`Release-Candidate soakEvidence besitzt unerwarteten Wert fuer ${feld}.`);
   }
 }
 
@@ -166,5 +195,5 @@ if (build.sha256 !== manifest.sha256) {
 }
 
 console.log(
-  `Runtime-1.1.5 Release-Candidate reproduzierbar: ${build.module} Module, ${build.bytes} Bytes, SHA-256 ${build.sha256}; Deployment/HTTPS, Schatten und kontrolliert live sind bestaetigt; Soak bleibt offen und Block 9 gesperrt.`
+  `Runtime-1.1.5 Release-Candidate reproduzierbar: ${build.module} Module, ${build.bytes} Bytes, SHA-256 ${build.sha256}; Deployment/HTTPS, Offline, Schatten, kontrolliert live und Soak sind bestaetigt; das historische Block-8.5-Gate ist vollstaendig bestanden, naechster Entwicklungsblock ist 8.6.`
 );

@@ -11,8 +11,8 @@
   "publicHttpsVerified": true,
   "adventureLandShadowVerified": true,
   "adventureLandControlledLiveVerified": true,
-  "adventureLandSoakVerified": false,
-  "block9Freigegeben": false,
+  "adventureLandSoakVerified": true,
+  "block9Freigegeben": true,
   "laufzeitPfadKennung": "block8.5-basisbedienung-runtime",
   "aenderungsKennung": "git:88185523c81687dc16f9647ca5e7568c5e2c228c",
   "deploymentEvidence": {
@@ -40,5 +40,22 @@
     "laufKennung": "block8-5-schatten-1789775266269",
     "runnerVersion": "1.1.0",
     "evidenceFile": "BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.json"
-  }
+  },
+  "soakEvidence": {
+    "source": "chat_paste",
+    "reportCreatedAt": "2026-09-19T07:28:36.564Z",
+    "performedAt": 1789802325319,
+    "laufKennung": "block8-5-schatten-1789775266269",
+    "durationMs": 600000,
+    "samples": 120,
+    "expectedSamples": 118,
+    "heartbeatSuccessesBefore": 4,
+    "heartbeatSuccessesAfter": 304,
+    "heartbeatErrorsBefore": 0,
+    "heartbeatErrorsAfter": 0,
+    "evidenceFile": "BLOCK-8-5-SOAK-FREIGABE-NACHWEIS.json"
+  },
+  "block85Completed": true,
+  "nextDevelopmentBlock": "8.6",
+  "block9RoadmapStartApproved": false
 }

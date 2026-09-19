@@ -79,7 +79,11 @@ const dateien = [
   'werkzeuge/block8-5-soak-paket-bauen.mjs',
   'werkzeuge/block8-5-soak-paket.js',
   'laufzeit/tests/block8-5-soak-paket.test.mjs',
-  'dokumentation/BLOCK-8-5-SOAK-PAKET.md'
+  'dokumentation/BLOCK-8-5-SOAK-PAKET.md',
+  'dokumentation/BLOCK-8-5-SOAK-FREIGABE-NACHWEIS.json',
+  'laufzeit/tests/block8-5-soak-freigabe-nachweis.test.mjs',
+  'dokumentation/BLOCK-8-5-SOAK-FREIGABE-NACHWEIS.md',
+  'dokumentation/BLOCK-8-5-ABSCHLUSS.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -993,7 +997,7 @@ for (const pflicht of [
 const fahrplan = await readFile(path.join(wurzel, dateien[44]), 'utf8');
 for (const pflicht of [
   '8.5.9-Freigabe-Gate implementiert',
-  'Block 8.6 und Block 9 bleiben bis zum bestandenen Soak gesperrt',
+  'Naechster Entwicklungsblock ist verbindlich Block 8.6',
   'BLOCK-8-5-FREIGABESTUFEN.md',
   'Offline, Schattenbetrieb, begrenzter kontrollierter Live-Test und Soak fuer denselben finalen Aenderungsstand'
 ]) {
@@ -1004,11 +1008,13 @@ for (const pflicht of [
 
 const block85PlanFreigabe = await readFile(path.join(wurzel, dateien[12]), 'utf8');
 for (const pflicht of [
-  '8.5.9 – Freigabestufen — **GATE IMPLEMENTIERT, OPERATIVE FREIGABE OFFEN**',
+  '8.5.9 – Freigabestufen — **VOLLSTAENDIG BESTANDEN**',
   'werteFreigabestufenAus(...)',
   'aenderungsKennung',
+  'naechsteStufe: null',
+  'freigabeVollstaendig: true',
   'block9Freigegeben: true',
-  'Block 9 gesperrt'
+  'Nach dem aktualisierten Fahrplan folgt trotzdem zuerst Block 8.6.'
 ]) {
   if (!block85PlanFreigabe.includes(pflicht)) {
     throw new Error(`Block-8.5-Plan fehlt auf Freigabestufenstand: ${pflicht}`);
@@ -1148,8 +1154,11 @@ for (const [feld, erwartet] of Object.entries({
   publicHttpsVerified: true,
   adventureLandShadowVerified: true,
   adventureLandControlledLiveVerified: true,
-  adventureLandSoakVerified: false,
-  block9Freigegeben: false
+  adventureLandSoakVerified: true,
+  block9Freigegeben: true,
+  block85Completed: true,
+  nextDevelopmentBlock: '8.6',
+  block9RoadmapStartApproved: false
 })) {
   if (runtimeReleaseKandidat[feld] !== erwartet) {
     throw new Error(`Runtime-1.1.5-Release-Candidate besitzt unerwarteten Wert fuer ${feld}.`);
@@ -1183,7 +1192,13 @@ for (const pflicht of [
   '1789776285337',
   'chat_paste',
   'adventureLandSoakVerified',
+  'soakEvidence',
+  '1789802325319',
+  'heartbeatSuccessesAfter',
   'block9Freigegeben',
+  'block85Completed',
+  'nextDevelopmentBlock',
+  'block9RoadmapStartApproved',
   'name: release-v4-runtime-immutable',
   'workflow_dispatch:',
   'confirmation:',
@@ -1755,7 +1770,8 @@ for (const pflicht of [
   'Offline: **bestanden**',
   'Schatten: **bestanden**',
   'Kontrolliert live: **bestanden**',
-  'Soak: **offen**',
+  'Soak: **bestanden**',
+  'Naechster Entwicklungsblock: **8.6**',
   'block8-5-live-paket.js',
   'My_Ranger1',
   'My_Ranger2',
@@ -1982,9 +1998,10 @@ for (const pflicht of [
 
 const soakPaketDokument = await readFile(path.join(wurzel, dateien[75]), 'utf8');
 for (const pflicht of [
-  'source-locked Soak-Paket vorbereitet',
+  'source-locked Soak-Paket real ausgefuehrt',
   'Kontrolliert live: **bestanden**',
-  'Soak: **offen**',
+  'Soak: **bestanden**',
+  'Naechster Entwicklungsblock laut Fahrplan: **8.6**',
   'block8-5-soak-paket.js',
   '600000 ms = 10 Minuten',
   'alle 5000 ms',
@@ -1999,4 +2016,167 @@ for (const pflicht of [
   }
 }
 
-console.log('Block 8.5.1 bis 8.5.9 geprueft: Candidate-Deployment/HTTPS, Offline, Schatten und kontrolliert live sind bestanden; das separate source-locked Soak-Paket bindet beide realen Vorstufen und ueberwacht 10 Minuten read-only; Soak ist die letzte offene Stufe und Block 9 bleibt gesperrt.');
+const soakFreigabeRoh = await readFile(path.join(wurzel, dateien[76]), 'utf8');
+const soakFreigabe = JSON.parse(soakFreigabeRoh);
+for (const [feld, erwartet] of Object.entries({
+  schemaVersion: 1,
+  laufzeitPfadKennung: 'block8.5-basisbedienung-runtime',
+  aenderungsKennung: 'git:88185523c81687dc16f9647ca5e7568c5e2c228c'
+})) {
+  if (soakFreigabe[feld] !== erwartet) {
+    throw new Error(`Soak-Freigabenachweis besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+for (const [feld, erwartet] of Object.entries({
+  stufe: 'soak',
+  nachweisKennung: 'block8-5-schatten-1789775266269:soak',
+  ergebnis: 'bestanden',
+  durchgefuehrtAm: 1789802325319,
+  deterministisch: false,
+  spielAktionAusgefuehrt: true,
+  begrenzt: false,
+  telemetrieNachweis: true,
+  recoveryNachweis: true,
+  gesamtauswertungBestanden: true
+})) {
+  if (soakFreigabe.nachweis?.[feld] !== erwartet) {
+    throw new Error(`Soak-Nachweis besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+for (const [feld, erwartet] of Object.entries({
+  quelle: 'chat_paste',
+  kennung: 'block8-5-soak-block8-5-schatten-1789775266269',
+  guiVersion: '1.0.0',
+  status: 'PASS',
+  erstelltAm: '2026-09-19T07:28:36.564Z',
+  confirmationInitiallyBlocked: true
+})) {
+  if (soakFreigabe.reportEvidence?.[feld] !== erwartet) {
+    throw new Error(`Soak-Berichtevidenz besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+if (
+  Object.hasOwn(soakFreigabe.reportEvidence, 'reportSha256') ||
+  Object.hasOwn(soakFreigabe.reportEvidence, 'reportBytes')
+) {
+  throw new Error('Chat-basierter Soak-Bericht darf keinen erfundenen Rohdatei-Hash oder erfundene Dateigroesse tragen.');
+}
+for (const [feld, erwartet] of Object.entries({
+  runtimeVersion: '1.1.5',
+  runtimeSha256: '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f',
+  generationPreflight: 0,
+  heartbeatVersuchePreflight: 1,
+  heartbeatErfolgePreflight: 1,
+  heartbeatFehlerPreflight: 0,
+  schattenNachweisKennung: 'block8-5-schatten-1789775266269:schatten',
+  liveNachweisKennung: 'block8-5-schatten-1789775266269:kontrolliert_live'
+})) {
+  if (soakFreigabe.runtimeEvidence?.[feld] !== erwartet) {
+    throw new Error(`Soak-Runtimeevidenz besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+for (const [feld, erwartet] of Object.entries({
+  gestartetAm: 1789801725312,
+  beendetAm: 1789802325319,
+  dauerMillisekunden: 600000,
+  sampleMillisekunden: 5000,
+  samples: 120,
+  erwarteteSamples: 118,
+  generationVorher: 0,
+  generationNachher: 0,
+  heartbeatErfolgeVorher: 4,
+  heartbeatErfolgeNachher: 304,
+  heartbeatFehlerVorher: 0,
+  heartbeatFehlerNachher: 0
+})) {
+  if (soakFreigabe.soakEvidence?.[feld] !== erwartet) {
+    throw new Error(`Soak-Laufevidenz besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+if (!Array.isArray(soakFreigabe.soakEvidence?.fehler) || soakFreigabe.soakEvidence.fehler.length !== 0) {
+  throw new Error('Soak-Laufevidenz muss eine leere Fehlerliste besitzen.');
+}
+for (const [feld, erwartet] of Object.entries({
+  offline: 'bestanden',
+  schatten: 'bestanden',
+  kontrolliertLive: 'bestanden',
+  soak: 'bestanden',
+  naechsteStufe: null,
+  freigabeVollstaendig: true,
+  block9Freigegeben: true,
+  spielAutoritaet: false,
+  neustartAutoritaet: false
+})) {
+  if (soakFreigabe.auswertungErwartet?.[feld] !== erwartet) {
+    throw new Error(`Soak-Gesamtauswertung besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+if (
+  soakFreigabe.roadmap?.block85Abgeschlossen !== true ||
+  soakFreigabe.roadmap?.naechsterEntwicklungsblock !== '8.6' ||
+  soakFreigabe.roadmap?.block9StartNachRoadmapFreigegeben !== false
+) {
+  throw new Error('Soak-Abschluss muss das historische 8.5-Gate vom aktualisierten Block-8.6-Roadmap-Gate trennen.');
+}
+if (
+  runtimeReleaseKandidat.soakEvidence?.source !== soakFreigabe.reportEvidence.quelle ||
+  runtimeReleaseKandidat.soakEvidence?.performedAt !== soakFreigabe.nachweis.durchgefuehrtAm ||
+  runtimeReleaseKandidat.soakEvidence?.laufKennung !== 'block8-5-schatten-1789775266269' ||
+  runtimeReleaseKandidat.soakEvidence?.heartbeatSuccessesAfter !== 304
+) {
+  throw new Error('Candidate-Manifest ist nicht exakt an den kanonischen Soak-Nachweis gebunden.');
+}
+
+const soakFreigabeTests = await readFile(path.join(wurzel, dateien[77]), 'utf8');
+for (const pflicht of [
+  'Soak-Nachweis ist exakt an Candidate und Vorstufen gebunden',
+  'Soak-Nachweis bestaetigt volle 10 Minuten und stabile Recovery-Grenzen',
+  'Soak-Bericht wird ohne erfundenen Rohdatei-Hash dokumentiert',
+  'alle vier realen Nachweise schliessen das historische Freigabe-Gate',
+  "assert.equal(status.freigabeVollstaendig, true)",
+  "assert.equal(status.block9Freigegeben, true)",
+  "assert.equal(soak.roadmap.naechsterEntwicklungsblock, '8.6')"
+]) {
+  if (!soakFreigabeTests.includes(pflicht)) {
+    throw new Error(`Soak-Freigabenachweis-Test fehlt: ${pflicht}`);
+  }
+}
+
+const soakFreigabeDokument = await readFile(path.join(wurzel, dateien[78]), 'utf8');
+for (const pflicht of [
+  'Stufe 4 Soak fuer den exakten Runtime-1.1.5-Candidate real bestanden',
+  'kein erfundener Rohdatei-Hash',
+  '600007 ms',
+  'Samples: **120**',
+  'Heartbeat-Erfolge: **4 -> 304**',
+  'Heartbeat-Fehler: **0 -> 0**',
+  'soak -> bestanden',
+  'freigabeVollstaendig: true',
+  'block9Freigegeben: true',
+  'naechster Entwicklungsblock: **8.6**'
+]) {
+  if (!soakFreigabeDokument.includes(pflicht)) {
+    throw new Error(`Soak-Freigabenachweis-Dokumentation fehlt: ${pflicht}`);
+  }
+}
+
+const block85Abschluss = await readFile(path.join(wurzel, dateien[79]), 'utf8');
+for (const pflicht of [
+  'abgeschlossen am 19. September 2026',
+  'BLOCK-8-5-OFFLINE-FREIGABE-NACHWEIS.json',
+  'BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json',
+  'BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.json',
+  'BLOCK-8-5-SOAK-FREIGABE-NACHWEIS.json',
+  'Generation 0 -> 0',
+  'Heartbeat-Erfolge 4 -> 304',
+  'freigabeVollstaendig: true',
+  'block9Freigegeben: true',
+  'Block 8.6: **naechster Entwicklungsblock**',
+  '8.6.1 – Skill-Katalog-Vertrag und Live-Lesequelle'
+]) {
+  if (!block85Abschluss.includes(pflicht)) {
+    throw new Error(`Block-8.5-Abschlussdokument fehlt: ${pflicht}`);
+  }
+}
+
+console.log('Block 8.5.1 bis 8.5.9 geprueft: Deployment/HTTPS, Offline, Schatten, kontrolliert live und realer 10-Minuten-Soak sind fuer denselben Runtime-1.1.5-Candidate bestanden; historisches 8.5-Gate vollstaendig, naechster Entwicklungsblock ist 8.6.');

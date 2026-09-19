@@ -1,6 +1,6 @@
 # Block 8.5 – Freigabestufen
 
-Status: **8.5.9 Freigabe-Gate implementiert; Offline, Schatten und kontrolliert live fuer den exakten Candidate bestanden. Soak ist die letzte offene Stufe; Block 9 bleibt gesperrt.**
+Status: **8.5.9 vollstaendig bestanden: Offline, Schatten, kontrolliert live und 10-Minuten-Soak sind fuer denselben exakten Candidate bestanden. Das historische Block-8.5-Gate ist vollstaendig freigegeben; laut aktualisiertem Fahrplan folgt jetzt Block 8.6 vor Block 9.**
 
 ## Ziel
 
@@ -193,15 +193,23 @@ Zusaetzlich liegen der reale kanonische Schatten- und kontrollierte Live-Nachwei
 
 `BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.json`
 
+Zusaetzlich liegt jetzt der reale kanonische Soak-Nachweis vor:
+
+`BLOCK-8-5-SOAK-FREIGABE-NACHWEIS.json`
+
 Die reale Freigabeauswertung ergibt damit:
 
 - `offline: bestanden`
 - `schatten: bestanden`
 - `kontrolliert_live: bestanden`
-- `soak: offen`
-- `naechsteStufe: soak`
-- `freigabeVollstaendig: false`
-- `block9Freigegeben: false`
+- `soak: bestanden`
+- `naechsteStufe: null`
+- `freigabeVollstaendig: true`
+- `block9Freigegeben: true`
+- `spielAutoritaet: false`
+- `neustartAutoritaet: false`
+
+Das Feld `block9Freigegeben: true` bedeutet hier nur, dass die historische Block-8.5-Voraussetzung vollstaendig erfuellt ist. Der inzwischen aktualisierte Fahrplan schiebt Block 8.6 verbindlich vor Block 9.
 
 ## Naechster operativer Schritt
 
@@ -226,7 +234,8 @@ Damit lautet die operative Reihenfolge fuer den finalen Block-8.5-Laufzeitstand:
 3. Offline-Nachweis an denselben Aenderungsstand binden — **ERFUELLT**,
 4. Schattenlauf im Adventure-Land-Kontext mit gesperrter, nicht gestarteter Runtime und 0 Heartbeat-/CM-Sendeversuchen — **ERFUELLT**,
 5. separate aktive Sitzung mit kanonisch gebundener Schattenuebergabe und begrenztem kontrolliertem Live-Test ueber genau eine sichere Pause/Fortsetzung — **ERFUELLT**,
-6. mindestens zehnminuetiger Soak-Lauf mit Telemetrie und Recovery-Auswertung — **NAECHSTE STUFE**,
-7. erst danach Block 9 freigeben.
+6. mindestens zehnminuetiger Soak-Lauf mit Telemetrie und Recovery-Auswertung — **ERFUELLT**,
+7. historisches Block-8.5-Gate vollstaendig freigeben — **ERFUELLT**,
+8. gemaess aktualisiertem Fahrplan mit Block 8.6 fortfahren.
 
-Fuer Schritt 6 steht das source-locked `BLOCK-8-5-SOAK-PAKET.md` / `block8-5-soak-paket.js` bereit. Es bindet Schatten und kontrolliert live und entsperrt Soak erst nach einem bestaetigten echten Produktionsheartbeat in einer frischen Sitzung.
+Der reale Soak wurde mit dem source-locked `BLOCK-8-5-SOAK-PAKET.md` / `block8-5-soak-paket.js` ausgefuehrt. Der kanonische Abschlussnachweis steht in `BLOCK-8-5-SOAK-FREIGABE-NACHWEIS.json`.
