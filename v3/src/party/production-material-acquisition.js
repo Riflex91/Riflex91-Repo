@@ -1,6 +1,6 @@
 'use strict';
 
-const { directDropChance } = require('./elixir-policy');
+const { directDropChance, rewardChanceForExchange } = require('./elixir-policy');
 const { spawnType, spawnCenter, contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
 
 const PRODUCTION_MATERIAL_ACQUISITION_MODE = 'team-production-material-acquisition-v1';
@@ -143,6 +143,81 @@ function bestDirectMaterialFarmSource(runtime, material, quantity, options = {})
   return candidates[0] || null;
 }
 
+function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, options = {}) {
+  const desired = String(desiredMaterial == null ? '' : desiredMaterial).trim();
+  const need = Math.max(1, Math.floor(finite(quantity, 1)));
+  if (!desired) return null;
+  const gameData = runtime && runtime.adapter && typeof runtime.adapter.getGameData === 'function'
+    ? runtime.adapter.getGameData() || {}
+    : {};
+  const items = gameData.items || {};
+  const fallbackKillsPerHour = Math.max(1, finite(options.fallbackKillsPerHour, DEFAULT_FALLBACK_KILLS_PER_HOUR));
+  const candidates = [];
+
+  for (const [exchangeItem, meta] of Object.entries(items)) {
+    const requiredPerExchange = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
+    if (requiredPerExchange <= 0) continue;
+    const rewardPerExchange = rewardChanceForExchange(gameData, exchangeItem, desired);
+    if (!(rewardPerExchange > 0)) continue;
+    const expectedExchangeOperations = need / rewardPerExchange;
+    const expectedInputUnits = Math.max(requiredPerExchange, Math.ceil(expectedExchangeOperations * requiredPerExchange));
+    const alreadyOnFarmers = partyHeldQuantity(runtime, exchangeItem, 0);
+    const farmInputUnits = Math.max(0, expectedInputUnits - alreadyOnFarmers);
+
+    const monsters = gameData && gameData.drops && gameData.drops.monsters || {};
+    for (const monster of Object.keys(monsters)) {
+      const inputYieldPerKill = directDropChance(gameData, monster, exchangeItem);
+      if (!(inputYieldPerKill > 0)) continue;
+      const spawns = knownSpawns(gameData, monster);
+      if (!spawns.length) continue;
+      const measuredKillsPerHour = bestMeasuredKillsPerHour(runtime, monster);
+      const killsPerHour = measuredKillsPerHour || fallbackKillsPerHour;
+      const inputUnitsPerHour = inputYieldPerKill * killsPerHour;
+      if (!(inputUnitsPerHour > 0)) continue;
+      const desiredUnitsPerHour = (inputUnitsPerHour / requiredPerExchange) * rewardPerExchange;
+      if (!(desiredUnitsPerHour > 0)) continue;
+
+      for (const spawn of spawns) {
+        if (!sourceSafe(runtime, monster, spawn)) continue;
+        candidates.push({
+          kind: 'EXCHANGE_MATERIAL_DROP',
+          material: exchangeItem,
+          targetMaterial: desired,
+          quantity: expectedInputUnits,
+          farmQuantity: farmInputUnits,
+          requiredPerExchange,
+          rewardPerExchange,
+          expectedExchangeOperations,
+          inputYieldPerKill,
+          killsPerHour,
+          measuredKillsPerHour,
+          evidence: measuredKillsPerHour ? 'MEASURED_KILLS_PER_HOUR' : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR',
+          unitsPerHour: inputUnitsPerHour,
+          targetUnitsPerHour: desiredUnitsPerHour,
+          expectedHours: farmInputUnits / inputUnitsPerHour,
+          alreadyOnFarmers,
+          ...spawn
+        });
+      }
+    }
+  }
+
+  candidates.sort((a, b) => a.expectedHours - b.expectedHours
+    || (b.measuredKillsPerHour != null ? 1 : 0) - (a.measuredKillsPerHour != null ? 1 : 0)
+    || b.targetUnitsPerHour - a.targetUnitsPerHour
+    || a.material.localeCompare(b.material)
+    || a.monster.localeCompare(b.monster));
+  return candidates[0] || null;
+}
+
+function bestMaterialFarmSource(runtime, desiredMaterial, quantity, options = {}) {
+  const direct = bestDirectMaterialFarmSource(runtime, desiredMaterial, quantity, options);
+  const exchange = bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, options);
+  if (!direct) return exchange;
+  if (!exchange) return direct;
+  return exchange.expectedHours < direct.expectedHours ? exchange : direct;
+}
+
 function aggregateFarmSteps(steps = []) {
   const grouped = new Map();
   for (const step of Array.isArray(steps) ? steps : []) {
@@ -174,7 +249,7 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
       materials.push({ ...clone(step), alreadyOnFarmers, remainingToFarm: 0, source: null, awaitingTransfer: true });
       continue;
     }
-    const source = bestDirectMaterialFarmSource(runtime, step.name, remainingToFarm, options);
+    const source = bestMaterialFarmSource(runtime, step.name, remainingToFarm, options);
     if (!source) return { eligible: false, reason: 'NO_SAFE_DIRECT_FARM_SOURCE', material: { ...clone(step), alreadyOnFarmers, remainingToFarm } };
     materials.push({ ...clone(step), alreadyOnFarmers, remainingToFarm, source });
   }
@@ -251,6 +326,8 @@ module.exports = {
   partyHeldQuantity,
   knownSpawns,
   bestDirectMaterialFarmSource,
+  bestExchangeMaterialFarmSource,
+  bestMaterialFarmSource,
   aggregateFarmSteps,
   estimateBlockedProductionCandidate,
   chooseProductionTeamFarmObjective
