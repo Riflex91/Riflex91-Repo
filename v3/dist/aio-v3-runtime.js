@@ -55759,15 +55759,6 @@ function installMerchantProduction(runtime, options = {}) {
   }
   function releaseTask(reason = 'PRODUCTION_TASK_COMPLETE', details = {}) {
     const coordinator = taskCoordinator();
-    const deliverySettlement = settleDeliveredProductionIntent();
-    if (deliverySettlement) {
-      return {
-        state: 'HOLD',
-        reason: deliverySettlement.reason,
-        delivery: clone(deliverySettlement.delivery)
-      };
-    }
-
     const task = currentTask();
     if (!coordinator || !task || task.owner !== 'PRODUCTION' || typeof coordinator.release !== 'function') return false;
     return coordinator.release('PRODUCTION', task.key, reason, details);
@@ -56589,6 +56580,16 @@ function installMerchantProduction(runtime, options = {}) {
     }
 
     const persistedIntent = productionIntent.status();
+    if (!persistedIntent.recoveryPending && persistedIntent.active && String(persistedIntent.active.phase || '') === 'OUTPUT_READY_FOR_DELIVERY') {
+      const deliverySettlement = settleDeliveredProductionIntent();
+      if (deliverySettlement) {
+        return {
+          state: 'HOLD',
+          reason: deliverySettlement.reason,
+          delivery: clone(deliverySettlement.delivery)
+        };
+      }
+    }
     if (persistedIntent.recoveryPending) {
       const recoveryPlan = evaluate();
       const activeIntent = persistedIntent.active || {};
