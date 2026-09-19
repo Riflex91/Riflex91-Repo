@@ -39,7 +39,9 @@
       "enum": [
         "VERIFIED_SOURCE_SNAPSHOT",
         "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
-        "PARTIAL_RESEARCH"
+        "PARTIAL_RESEARCH",
+        "VERIFIED_LIVE_DEPLOYED_CONTRACT",
+        "EXPLICITLY_DISABLED_PENDING_EXACT_CONTRACT"
       ]
     },
     "family": {
