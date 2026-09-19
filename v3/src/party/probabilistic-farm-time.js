@@ -87,7 +87,12 @@ function probabilisticFarmTime({
   };
 }
 
-function probabilisticOperations({ requiredRewards, rewardUnitsPerOperation } = {}) {
+function probabilisticOperations({
+  requiredRewards,
+  rewardUnitsPerOperation,
+  successProbability = null,
+  unitsPerSuccess = null
+} = {}) {
   const rewards = Math.max(0, finite(requiredRewards, 0));
   const yieldPerOperation = Math.max(0, finite(rewardUnitsPerOperation, 0));
   if (!(rewards > 0) || !(yieldPerOperation > 0)) {
@@ -98,6 +103,49 @@ function probabilisticOperations({ requiredRewards, rewardUnitsPerOperation } = 
       p90Operations: rewards > 0 ? Infinity : 0
     };
   }
+
+  const p = successProbability == null ? null : clamp(finite(successProbability, 0), 0, 1);
+  const successUnits = Math.max(0, finite(unitsPerSuccess, 0));
+  if (p != null && p > 0 && successUnits > 0) {
+    const requiredSuccesses = Math.max(1, Math.ceil(rewards / successUnits));
+    if (p >= 0.999999) {
+      return {
+        model: PROBABILISTIC_FARM_TIME_MODEL,
+        expectedOperations: requiredSuccesses,
+        p50Operations: requiredSuccesses,
+        p90Operations: requiredSuccesses,
+        successProbability: p,
+        requiredSuccesses,
+        unitsPerSuccess: successUnits,
+        deterministic: true,
+        decisionQuantile: 'P90'
+      };
+    }
+    // Negative-binomial trial-count approximation: T is the number of trials
+    // required to obtain r successes. Mean and variance are exact; P90 uses a
+    // normal quantile on that count. For rare p this is intentionally much more
+    // conservative than treating the mean reward as deterministic.
+    const expectedOperations = requiredSuccesses / p;
+    const sd = Math.sqrt(requiredSuccesses * (1 - p)) / p;
+    const p50Operations = Math.max(requiredSuccesses, Math.ceil(expectedOperations - 0.15 * sd));
+    const p90Operations = Math.max(
+      Math.ceil(expectedOperations),
+      Math.ceil(expectedOperations + Z90 * sd)
+    );
+    return {
+      model: PROBABILISTIC_FARM_TIME_MODEL,
+      expectedOperations,
+      p50Operations,
+      p90Operations,
+      successProbability: p,
+      requiredSuccesses,
+      unitsPerSuccess: successUnits,
+      operationStdDev: sd,
+      deterministic: false,
+      decisionQuantile: 'P90'
+    };
+  }
+
   const expectedOperations = rewards / yieldPerOperation;
   const effectiveShape = Math.max(0.001, expectedOperations);
   const p50Operations = Math.max(1, Math.ceil(gammaQuantileUnitRate(effectiveShape, Z50)));
