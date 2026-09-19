@@ -436,6 +436,7 @@ test('controller exposes on-demand coverage audit and actionless soak observatio
   assert.equal(harness.runtime.auditProductionCoverage instanceof Function, true);
   assert.equal(harness.runtime.observeProductionSoakSample instanceof Function, true);
   assert.equal(harness.runtime.productionCertificationGate instanceof Function, true);
+  assert.equal(harness.controller.status().teamMaterialFarmPolicy.finalCraftCompletionRequiresRecipientVerification, true);
   assert.equal(harness.controller.productionCertificationGate().ready, false);
   assert.equal(harness.controller.productionCertificationGate().reasons.includes('PRODUCTION_SOAK_SAMPLE_GATE_NOT_MET'), true);
 });
