@@ -1103,7 +1103,7 @@ for (const pflicht of [
 
 const freigabeLiveDokument = await readFile(path.join(wurzel, dateien[47]), 'utf8');
 for (const pflicht of [
-  'Runner implementiert;',
+  'Runner implementiert und alle realen 8.5.9-Stufen',
   'Runtime 1.1.5',
   '1.1.0',
   'AIO_V4_BLOCK85_FREIGABE_CONFIG',
@@ -1124,7 +1124,7 @@ for (const pflicht of [
   'recoveryNachweis: true',
   'gesamtauswertungBestanden: true',
   'keinen direkten Adventure-Land-Spielaktionsaufruf',
-  'Block 9 bleibt'
+  'Laut aktualisiertem Fahrplan folgt jetzt Block 8.6'
 ]) {
   if (!freigabeLiveDokument.includes(pflicht)) {
     throw new Error(`Freigabe-Live-Test-Dokumentation fehlt: ${pflicht}`);
@@ -1232,9 +1232,12 @@ for (const pflicht of [
   'publicHttpsVerified: true',
   'adventureLandShadowVerified: true',
   'adventureLandControlledLiveVerified: true',
-  'adventureLandSoakVerified: false',
-  'block9Freigegeben: false',
-  'Block 9 gesperrt'
+  'adventureLandSoakVerified: true',
+  'block9Freigegeben: true',
+  'block85Completed: true',
+  'nextDevelopmentBlock: 8.6',
+  'block9RoadmapStartApproved: false',
+  'Block 8.6'
 ]) {
   if (!runtimeReleaseKandidatDokument.includes(pflicht)) {
     throw new Error(`Runtime-Release-Candidate-Dokumentation fehlt: ${pflicht}`);
