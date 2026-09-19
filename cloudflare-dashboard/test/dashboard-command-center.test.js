@@ -96,6 +96,10 @@ test('Automation exposes the full item-policy workflow and inventory right-click
   assert.match(DASHBOARD_HTML, /id="automationLevelMin"/);
   assert.match(DASHBOARD_HTML, /id="automationLevelMax"/);
   assert.match(DASHBOARD_HTML, /id="automationCapability"/);
+  assert.match(DASHBOARD_HTML, /id="automationCatalogHealth"/);
+  assert.match(DASHBOARD_HTML, /automationCatalogVersion/);
+  assert.match(DASHBOARD_HTML, /automationCatalogCount/);
+  assert.match(DASHBOARD_HTML, /Item-Datenbank unvollständig\/veraltet/);
   assert.match(DASHBOARD_HTML, /id="automationMaxCompound"/);
   assert.match(DASHBOARD_HTML, /id="saveAutomationMaxCompound"/);
   assert.match(DASHBOARD_HTML, /Max\. Compound \/ Combine-Level/);
