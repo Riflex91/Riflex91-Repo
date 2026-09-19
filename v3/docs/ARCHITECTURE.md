@@ -8,8 +8,8 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
-| (root) | 6 | 1359 |
-| autonomy | 31 | 7817 |
+| (root) | 6 | 1360 |
+| autonomy | 31 | 7819 |
 | brain | 4 | 1096 |
 | composition | 2 | 193 |
 | content | 3 | 447 |
@@ -18,11 +18,11 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | economy | 12 | 4268 |
 | farmer | 21 | 4506 |
 | game | 3 | 870 |
-| merchant | 9 | 2525 |
+| merchant | 9 | 2537 |
 | ops | 26 | 7614 |
-| party | 33 | 8164 |
+| party | 34 | 8326 |
 | planner | 1 | 66 |
-| reliability | 50 | 16163 |
+| reliability | 50 | 16287 |
 | research | 1 | 101 |
 | stability | 3 | 731 |
 | telemetry | 1 | 263 |
@@ -52,7 +52,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | (root) | game | 3 |
 | (root) | merchant | 5 |
 | (root) | ops | 10 |
-| (root) | party | 13 |
+| (root) | party | 14 |
 | (root) | planner | 2 |
 | (root) | reliability | 13 |
 | (root) | research | 2 |
@@ -87,6 +87,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | game | core | 2 |
 | merchant | economy | 1 |
 | merchant | game | 1 |
+| merchant | party | 1 |
 | merchant | reliability | 1 |
 | ops | (root) | 3 |
 | ops | autonomy | 1 |
@@ -109,7 +110,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | reliability | game | 1 |
 | reliability | merchant | 7 |
 | reliability | ops | 1 |
-| reliability | party | 7 |
+| reliability | party | 8 |
 | reliability | world | 2 |
 | stability | (root) | 2 |
 | stability | core | 2 |
