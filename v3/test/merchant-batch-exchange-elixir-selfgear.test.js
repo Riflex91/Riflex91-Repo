@@ -88,7 +88,7 @@ test('NPC exchange planning autonomously consumes exchangeable surplus using exa
   assert.equal(explicit.nextStep.kind, ProductionStepKind.EXCHANGE);
   assert.equal(explicit.nextStep.quantity, 20);
   assert.equal(explicit.nextStep.destination, 'shells');
-  assert.equal(explicit.costStrategy, 'EXCHANGE_EXACT_REQUIREMENT_V2_DEMAND_DRIVEN');
+  assert.equal(explicit.costStrategy, 'QUEST_EVENT_EXCHANGE_EXACT_REQUIREMENT_V3');
 });
 
 test('controlled production executor verifies an NPC exchange input delta', async () => {
