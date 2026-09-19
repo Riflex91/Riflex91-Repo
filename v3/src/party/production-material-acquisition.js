@@ -1,7 +1,7 @@
 'use strict';
 
-const { directDropChance, monsterSpawn } = require('./elixir-policy');
-const { contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
+const { directDropChance } = require('./elixir-policy');
+const { spawnType, spawnCenter, contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
 
 const PRODUCTION_MATERIAL_ACQUISITION_MODE = 'team-production-material-acquisition-v1';
 const DEFAULT_MAX_TEAM_FARM_HOURS = 12;
@@ -79,6 +79,23 @@ function sourceSafe(runtime, monster, spawn) {
   return true;
 }
 
+function knownSpawns(gameData, monster) {
+  const out = [];
+  const maps = gameData && gameData.maps || {};
+  for (const [map, meta] of Object.entries(maps)) {
+    const raw = meta && meta.monsters;
+    const spawns = Array.isArray(raw) ? raw : raw && typeof raw === 'object' ? Object.values(raw) : [];
+    for (let index = 0; index < spawns.length; index += 1) {
+      const entry = spawns[index];
+      if (String(spawnType(entry) || '') !== String(monster || '')) continue;
+      const center = spawnCenter(entry);
+      if (!center) continue;
+      out.push({ map, spawnIndex: index, x: center.x, y: center.y });
+    }
+  }
+  return out;
+}
+
 function bestDirectMaterialFarmSource(runtime, material, quantity, options = {}) {
   const name = String(material == null ? '' : material).trim();
   const need = Math.max(1, Math.floor(finite(quantity, 1)));
@@ -93,31 +110,36 @@ function bestDirectMaterialFarmSource(runtime, material, quantity, options = {})
   for (const monster of Object.keys(monsters)) {
     const yieldPerKill = directDropChance(gameData, monster, name);
     if (!(yieldPerKill > 0)) continue;
-    const spawn = monsterSpawn(gameData, monster);
-    if (!spawn || !sourceSafe(runtime, monster, spawn)) continue;
+    const spawns = knownSpawns(gameData, monster);
+    if (!spawns.length) continue;
     const measuredKillsPerHour = bestMeasuredKillsPerHour(runtime, monster);
     const killsPerHour = measuredKillsPerHour || fallbackKillsPerHour;
     const unitsPerHour = yieldPerKill * killsPerHour;
     if (!(unitsPerHour > 0)) continue;
-    candidates.push({
-      kind: 'DIRECT_MATERIAL_DROP',
-      material: name,
-      quantity: need,
-      monster,
-      yieldPerKill,
-      killsPerHour,
-      measuredKillsPerHour,
-      evidence: measuredKillsPerHour ? 'MEASURED_KILLS_PER_HOUR' : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR',
-      unitsPerHour,
-      expectedHours: need / unitsPerHour,
-      ...spawn
-    });
+    for (const spawn of spawns) {
+      if (!sourceSafe(runtime, monster, spawn)) continue;
+      candidates.push({
+        kind: 'DIRECT_MATERIAL_DROP',
+        material: name,
+        quantity: need,
+        monster,
+        yieldPerKill,
+        killsPerHour,
+        measuredKillsPerHour,
+        evidence: measuredKillsPerHour ? 'MEASURED_KILLS_PER_HOUR' : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR',
+        unitsPerHour,
+        expectedHours: need / unitsPerHour,
+        ...spawn
+      });
+    }
   }
 
   candidates.sort((a, b) => a.expectedHours - b.expectedHours
     || (b.measuredKillsPerHour != null ? 1 : 0) - (a.measuredKillsPerHour != null ? 1 : 0)
     || b.unitsPerHour - a.unitsPerHour
-    || a.monster.localeCompare(b.monster));
+    || a.monster.localeCompare(b.monster)
+    || a.map.localeCompare(b.map)
+    || a.spawnIndex - b.spawnIndex);
   return candidates[0] || null;
 }
 
@@ -227,6 +249,7 @@ module.exports = {
   currentPartyFingerprintKey,
   bestMeasuredKillsPerHour,
   partyHeldQuantity,
+  knownSpawns,
   bestDirectMaterialFarmSource,
   aggregateFarmSteps,
   estimateBlockedProductionCandidate,
