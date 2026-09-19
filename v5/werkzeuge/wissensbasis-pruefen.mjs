@@ -12,6 +12,7 @@ const sourcesDoc = readJson(manifest.sources.registry);
 const factsDocs = manifest.facts.map(readJson);
 const questionDocs = manifest.questions.map(readJson);
 const contractDocs = (manifest.contracts ?? []).map(readJson);
+const recoveryDocs = (manifest.recoveryContracts ?? []).map(readJson);
 const revalidation = readJson(manifest.revalidation);
 
 const sources = new Map(sourcesDoc.sources.map((s) => [s.id, s]));
@@ -75,6 +76,73 @@ for (const contract of contractList) {
   }
   contractIds.add(contract.id);
   contractFunctions.add(contract.publicFunction);
+}
+
+const recoveryList = recoveryDocs.flatMap((d) => d.actions ?? []);
+const recoveryIds = new Set();
+const recoveryActionIds = new Set();
+const validRecoveryStatus = new Set(['VERIFIED_RECOVERY_POLICY','DISABLED_WITH_ACTION_CONTRACT']);
+const validRecoveryClass = new Set([
+  'STATE_REOBSERVE',
+  'DUAL_VALUE_SETTLEMENT',
+  'ACCOUNT_SHARED_STATE',
+  'PARTIAL_BATCH_REPLAN',
+  'MULTI_PHASE_Q_RECONCILE',
+  'ASYNC_BACKEND_RECONCILE',
+  'CLAIM_BACKEND_RECONCILE',
+  'LISTING_STATE_RECONCILE',
+  'RID_TRADE_RECONCILE',
+  'REQUEST_RESPONSE_GAME_RECONCILE',
+  'DEFERRED_SETTLEMENT_RECONCILE',
+  'ROUTER_DELEGATE',
+  'MIXED_PATH_RECONCILE',
+  'DISABLED'
+]);
+
+for (const recovery of recoveryList) {
+  if (!recovery.id || recoveryIds.has(recovery.id)) fail(`Ungueltige/doppelte Recovery-ID: ${recovery.id}`);
+  if (!contractIds.has(recovery.actionContractId)) fail(`${recovery.id}: unbekannter ActionContract ${recovery.actionContractId}`);
+  if (recoveryActionIds.has(recovery.actionContractId)) fail(`${recovery.actionContractId}: mehr als ein Recovery Contract`);
+  const action = contractList.find((x) => x.id === recovery.actionContractId);
+  if (!action || action.publicFunction !== recovery.publicFunction) fail(`${recovery.id}: Public Function passt nicht zum ActionContract`);
+  if (!validRecoveryStatus.has(recovery.status)) fail(`${recovery.id}: ungueltiger Recovery-Status ${recovery.status}`);
+  if (!validRecoveryClass.has(recovery.recoveryClass)) fail(`${recovery.id}: ungueltige Recovery-Klasse ${recovery.recoveryClass}`);
+  if (!Array.isArray(recovery.unknownEntryTriggers) || recovery.unknownEntryTriggers.length === 0) fail(`${recovery.id}: keine UNKNOWN-Trigger`);
+  if (!Array.isArray(recovery.reobserveSources) || recovery.reobserveSources.length === 0) fail(`${recovery.id}: keine Reobserve-Quellen`);
+  if (!Array.isArray(recovery.journalRequirements) || recovery.journalRequirements.length === 0) fail(`${recovery.id}: keine Journal-Anforderungen`);
+  if (recovery.retryPolicy?.sameIntentAfterPossibleSend !== 'NEVER') fail(`${recovery.id}: Same-Intent-Retry nach moeglichem Send ist nicht verboten`);
+  if (recovery.retryPolicy?.afterNotApplied !== 'NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY') fail(`${recovery.id}: NOT_APPLIED darf nur neuen Intent nach frischer Admission erlauben`);
+  if (recovery.retryPolicy?.afterPartial !== 'REPLAN_REMAINDER_AS_NEW_INTENT') fail(`${recovery.id}: PARTIAL muss Remainder-Replan erzwingen`);
+  if (recovery.retryPolicy?.afterStillPending !== 'WAIT_AND_REOBSERVE_NO_SEND') fail(`${recovery.id}: STILL_PENDING darf keinen Send erlauben`);
+  if (recovery.retryPolicy?.afterUnresolved !== 'QUARANTINE_OR_OPERATOR_NO_SEND') fail(`${recovery.id}: UNRESOLVED muss Send sperren`);
+  for (const key of ['committed','notApplied','partial','stillPending','unresolved']) {
+    if (!Array.isArray(recovery.settlementRules?.[key]) || recovery.settlementRules[key].length === 0) {
+      fail(`${recovery.id}: Settlement-Regel ${key} fehlt`);
+    }
+  }
+
+  const actionDisabled = action.status === 'EXPLICITLY_DISABLED_PENDING_EXACT_CONTRACT' || action.unknownOutcomePolicy === 'DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED';
+  if (actionDisabled && (recovery.status !== 'DISABLED_WITH_ACTION_CONTRACT' || recovery.recoveryClass !== 'DISABLED')) {
+    fail(`${recovery.id}: deaktivierter ActionContract muss auch Recovery-seitig deaktiviert bleiben`);
+  }
+  if (!actionDisabled && recovery.status !== 'VERIFIED_RECOVERY_POLICY') {
+    fail(`${recovery.id}: verifizierter ActionContract braucht VERIFIED_RECOVERY_POLICY`);
+  }
+
+  recoveryIds.add(recovery.id);
+  recoveryActionIds.add(recovery.actionContractId);
+}
+
+for (const contract of contractList) {
+  if (!recoveryActionIds.has(contract.id)) fail(`${contract.id}: Recovery Contract fehlt`);
+}
+if (recoveryList.length !== contractList.length) fail('Recovery-Matrix deckt nicht exakt alle Action Contracts ab.');
+if (manifest.counts?.recoveryContracts !== recoveryList.length) fail('Manifest recoveryContracts passt nicht zur Recovery-Matrix.');
+if (manifest.counts?.verifiedRecoveryContracts !== recoveryList.filter((x) => x.status === 'VERIFIED_RECOVERY_POLICY').length) {
+  fail('Manifest verifiedRecoveryContracts passt nicht zur Recovery-Matrix.');
+}
+if (manifest.counts?.disabledRecoveryContracts !== recoveryList.filter((x) => x.status === 'DISABLED_WITH_ACTION_CONTRACT').length) {
+  fail('Manifest disabledRecoveryContracts passt nicht zur Recovery-Matrix.');
 }
 
 for (const fact of factList) {
@@ -315,7 +383,7 @@ if (fs.existsSync(liveSnapshot)) {
   if (liveImport.bytes !== gesamtBytes) fail('Live-Snapshot Bytezahl stimmt nicht.');
 }
 
-console.log(`[V5-WISSEN] OK: ${facts.size} Facts, ${contractIds.size} Action Contracts, ${questionIds.size} offene Fragen, ${sources.size} Quellen.`);
+console.log(`[V5-WISSEN] OK: ${facts.size} Facts, ${contractIds.size} Action Contracts, ${recoveryIds.size} Recovery Contracts, ${questionIds.size} offene Fragen, ${sources.size} Quellen.`);
 console.log(`[V5-WISSEN] Waechter: ${quellenstatus.quellen.length} Quellen, ${kandidaten.kandidaten.length} Kandidaten, ${protokollZeilen.length} Aenderungseintraege.`);
 console.log(`[V5-WISSEN] Live-Wissen: ${fs.existsSync(liveSnapshot) ? liveDateien + ' validierte Dateien' : 'vorbereitet, noch kein Bot-Snapshot'}.`);
 console.log(`[V5-WISSEN] Raw Research SHA256: ${hash}`);
