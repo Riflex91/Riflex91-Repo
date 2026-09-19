@@ -19,10 +19,10 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | farmer | 21 | 4529 |
 | game | 3 | 870 |
 | merchant | 10 | 3939 |
-| ops | 26 | 7611 |
+| ops | 26 | 7719 |
 | party | 37 | 9866 |
 | planner | 1 | 66 |
-| reliability | 50 | 17082 |
+| reliability | 50 | 17084 |
 | research | 1 | 101 |
 | stability | 3 | 731 |
 | telemetry | 1 | 281 |

@@ -189,7 +189,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## ops
 
-**26 Dateien · 7611 Zeilen**
+**26 Dateien · 7719 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -202,7 +202,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/ops/background-execution-guard.js` | 131 |
 | `src/ops/control-gateway.js` | 133 |
 | `src/ops/controlled-auto-respawn.js` | 216 |
-| `src/ops/debug-monitor-ui.js` | 868 |
+| `src/ops/debug-monitor-ui.js` | 976 |
 | `src/ops/flight-recorder.js` | 173 |
 | `src/ops/group-liveness.js` | 164 |
 | `src/ops/headless-operations.js` | 437 |
@@ -274,7 +274,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 17082 Zeilen**
+**50 Dateien · 17084 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -288,7 +288,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha21-progression-intelligence.js` | 432 |
 | `src/reliability/alpha23-combat-stability-hotfix.js` | 40 |
 | `src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js` | 520 |
-| `src/reliability/alpha25-control-center-brain.js` | 443 |
+| `src/reliability/alpha25-control-center-brain.js` | 445 |
 | `src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js` | 302 |
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
 | `src/reliability/alpha27-atomic-core.js` | 50 |
