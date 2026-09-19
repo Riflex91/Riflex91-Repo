@@ -19,12 +19,12 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## autonomy
 
-**32 Dateien · 8244 Zeilen**
+**32 Dateien · 8341 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/autonomy/adaptive-farm-intelligence.js` | 228 |
-| `src/autonomy/adaptive-pull-learning.js` | 533 |
+| `src/autonomy/adaptive-pull-learning.js` | 559 |
 | `src/autonomy/advanced-party-movement.js` | 217 |
 | `src/autonomy/alpha10-runtime.js` | 77 |
 | `src/autonomy/alpha11-runtime.js` | 66 |
@@ -46,7 +46,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/capability-sync.js` | 294 |
 | `src/autonomy/character-combat-profile.js` | 275 |
 | `src/autonomy/combat-modes.js` | 20 |
-| `src/autonomy/encounter-lifecycle.js` | 383 |
+| `src/autonomy/encounter-lifecycle.js` | 429 |
 | `src/autonomy/local-farm-orchestrator.js` | 372 |
 | `src/autonomy/local-farm-planner.js` | 202 |
 | `src/autonomy/party-skill-engine.js` | 364 |
@@ -54,18 +54,18 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/skill-policy.js` | 196 |
 | `src/autonomy/skill-semantics.js` | 249 |
 | `src/autonomy/smart-aoe-planner.js` | 312 |
-| `src/autonomy/tactical-party-combat.js` | 711 |
+| `src/autonomy/tactical-party-combat.js` | 736 |
 
 ## brain
 
-**4 Dateien · 1101 Zeilen**
+**4 Dateien · 1157 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/brain/feature-encoder.js` | 91 |
 | `src/brain/replay-buffer.js` | 48 |
 | `src/brain/shadow-brain.js` | 202 |
-| `src/brain/strategic-brain-v2.js` | 760 |
+| `src/brain/strategic-brain-v2.js` | 816 |
 
 ## composition
 
@@ -221,7 +221,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**35 Dateien · 8870 Zeilen**
+**35 Dateien · 8922 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -257,7 +257,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/production-material-acquisition.js` | 378 |
 | `src/party/team-combat-cohesion-hotfix-base.js` | 599 |
 | `src/party/team-combat-cohesion-hotfix.js` | 242 |
-| `src/party/telemetry-bridge.js` | 150 |
+| `src/party/telemetry-bridge.js` | 202 |
 | `src/party/transition-controller-base.js` | 390 |
 | `src/party/transition-controller.js` | 43 |
 
@@ -271,7 +271,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 16856 Zeilen**
+**50 Dateien · 16867 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -285,7 +285,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha21-progression-intelligence.js` | 432 |
 | `src/reliability/alpha23-combat-stability-hotfix.js` | 40 |
 | `src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js` | 520 |
-| `src/reliability/alpha25-control-center-brain.js` | 364 |
+| `src/reliability/alpha25-control-center-brain.js` | 375 |
 | `src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js` | 302 |
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
 | `src/reliability/alpha27-atomic-core.js` | 50 |
@@ -346,11 +346,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## telemetry
 
-**1 Dateien · 263 Zeilen**
+**1 Dateien · 281 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/telemetry/performance-tracker.js` | 263 |
+| `src/telemetry/performance-tracker.js` | 281 |
 
 ## travel
 

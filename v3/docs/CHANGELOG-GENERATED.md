@@ -2,7 +2,7 @@
 
 # Generierter Entwicklungsindex – v3
 
-**Aktuelle Paketversion:** `3.0.0-alpha.20.126`
+**Aktuelle Paketversion:** `3.0.0-alpha.20.127`
 
 Dieser Index verlinkt die vorhandenen `ALPHA_*_COMPLETION.md`-Dokumente in absteigender Versionsreihenfolge. Er fasst deren Inhalte nicht neu zusammen und verändert die historischen Dateien nicht.
 
