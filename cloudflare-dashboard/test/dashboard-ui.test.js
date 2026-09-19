@@ -45,3 +45,19 @@ test('item permission setting is hidden, structured and sanitizes invalid action
   });
   assert.doesNotMatch(DASHBOARD_HTML, /Item-Berechtigungen<\/label>/);
 });
+
+
+test('Automation UI uses a persisted Adventure Land Atlas view and dedicated catalog source', () => {
+  assert.match(DASHBOARD_HTML, /data-automation-view="atlas"/);
+  assert.match(DASHBOARD_HTML, /data-automation-view="details"/);
+  assert.match(DASHBOARD_HTML, /aioV3AutomationView/);
+  assert.match(DASHBOARD_HTML, /automation-atlas-item/);
+  assert.match(DASHBOARD_HTML, /\/api\/v3\/automation-catalog/);
+  assert.match(DASHBOARD_HTML, /eigener Katalogkanal/);
+});
+
+test('Automation search normalizes and token-matches the complete item metadata', () => {
+  assert.match(DASHBOARD_HTML, /function automationMatchesQuery/);
+  assert.match(DASHBOARD_HTML, /terms\.every\(term=>hay\.includes\(term\)\)/);
+  assert.match(DASHBOARD_HTML, /item\.id,item\.name,item\.type,item\.wtype,item\.description/);
+});
