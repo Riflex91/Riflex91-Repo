@@ -1,6 +1,6 @@
 # Block 8.5 – Freigabestufen · Adventure-Land-Nachweisrunner
 
-Status: **Runner implementiert und offline testbar; Runtime 1.1.5 Candidate ist deployed und oeffentlich per HTTPS verifiziert; reale Schatten-/Live-/Soak-Ausfuehrung bleibt offen.**
+Status: **Runner implementiert; Candidate Deployment/HTTPS, Offline und realer Schattenlauf sind bestanden. Kontrolliert live ist die naechste offene Stufe; Soak bleibt blockiert.**
 
 ## Zweck
 
@@ -41,9 +41,9 @@ Damit kann der bestandene immutable Block-8-Release nicht versehentlich als Live
 
 Der Runner laedt oder veroeffentlicht selbst keine Runtime.
 
-Der exakte Build-/Release-Nachweis fuer Runtime 1.1.5 liegt inzwischen vor; der reale Schattenlauf darf daher gegen den immutable Candidate vorbereitet werden.
+Der exakte Build-/Release-Nachweis fuer Runtime 1.1.5 liegt vor. Der reale Schattenlauf gegen diesen immutable Candidate ist inzwischen bestanden und kanonisch dokumentiert.
 
-Auch die Freigabestufe `offline` ist fuer `git:88185523c81687dc16f9647ca5e7568c5e2c228c` bereits kanonisch bestanden. Damit ist `schatten` die naechste zulaessige Stufe; kontrolliert live und Soak bleiben bis zu einem bestandenen Schattennachweis blockiert.
+Auch die Freigabestufe `offline` ist fuer `git:88185523c81687dc16f9647ca5e7568c5e2c228c` kanonisch bestanden. Zusammen mit `BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json` ist damit `kontrolliert_live` die naechste zulaessige Stufe; Soak bleibt bis zu einem bestandenen Live-Nachweis blockiert.
 
 ## Konfiguration
 
@@ -276,6 +276,8 @@ prueft unter anderem:
 
 Der Runner ist vorbereitet und offline abgesichert.
 
-Ein echter Schatten-/Live-/Soak-Lauf wird hier **noch nicht** als bestanden dokumentiert. `deploymentPerformed` und `publicHttpsVerified` stehen inzwischen auf `true`; die drei Adventure-Land-Nachweisfelder bleiben auf `false`. Der Runner kann jetzt gegen die immutable Candidate-URL ausgefuehrt werden.
+Der reale Schattenlauf ist **bestanden**. Das Candidate-Manifest setzt deshalb `adventureLandShadowVerified: true`; kontrolliert live und Soak bleiben `false`.
 
-Block 9 bleibt bis zu diesen realen Nachweisen weiterhin gesperrt.
+Fuer die naechste Stufe steht `block8-5-live-paket.js` bereit. Das Paket bindet die vollstaendige kanonische Schattenuebergabe und entsperrt kontrolliert live erst nach mindestens einem bestaetigten Produktionsheartbeat.
+
+Block 9 bleibt bis zum realen kontrollierten Live- und Soak-Nachweis gesperrt.

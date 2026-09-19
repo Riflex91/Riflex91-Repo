@@ -65,7 +65,14 @@ const dateien = [
   'werkzeuge/block8-5-schatten-paket-bauen.mjs',
   'werkzeuge/block8-5-schatten-paket.js',
   'laufzeit/tests/block8-5-schatten-paket.test.mjs',
-  'dokumentation/BLOCK-8-5-SCHATTEN-PAKET.md'
+  'dokumentation/BLOCK-8-5-SCHATTEN-PAKET.md',
+  'dokumentation/BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json',
+  'laufzeit/tests/block8-5-schatten-freigabe-nachweis.test.mjs',
+  'dokumentation/BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.md',
+  'werkzeuge/block8-5-live-paket-bauen.mjs',
+  'werkzeuge/block8-5-live-paket.js',
+  'laufzeit/tests/block8-5-live-paket.test.mjs',
+  'dokumentation/BLOCK-8-5-LIVE-PAKET.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -957,7 +964,7 @@ for (const pflicht of [
 const freigabeDokument = await readFile(path.join(wurzel, dateien[43]), 'utf8');
 for (const pflicht of [
   '8.5.9 Freigabe-Gate implementiert',
-  'Offline-Stufe fuer den exakten Candidate bestanden',
+  'Offline und realer Schattenlauf fuer den exakten Candidate bestanden',
   'Offline-Test oder Wiederholung',
   'Schattenbetrieb ohne echte Spielaktion',
   'begrenzter kontrollierter Live-Test',
@@ -1082,7 +1089,7 @@ for (const pflicht of [
 
 const freigabeLiveDokument = await readFile(path.join(wurzel, dateien[47]), 'utf8');
 for (const pflicht of [
-  'Runner implementiert und offline testbar',
+  'Runner implementiert;',
   'Runtime 1.1.5',
   '1.1.0',
   'AIO_V4_BLOCK85_FREIGABE_CONFIG',
@@ -1132,7 +1139,7 @@ for (const [feld, erwartet] of Object.entries({
   sha256: '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f',
   deploymentPerformed: true,
   publicHttpsVerified: true,
-  adventureLandShadowVerified: false,
+  adventureLandShadowVerified: true,
   adventureLandControlledLiveVerified: false,
   adventureLandSoakVerified: false,
   block9Freigegeben: false
@@ -1162,6 +1169,8 @@ for (const pflicht of [
   'publicRuntimeUrl',
   'publicSha256Url',
   'adventureLandShadowVerified',
+  'shadowEvidence',
+  '78af6a837af689e786c5166d49624f194ad72d888f76f7712012073c1675d8c1',
   'adventureLandControlledLiveVerified',
   'adventureLandSoakVerified',
   'block9Freigegeben',
@@ -1195,7 +1204,7 @@ for (const pflicht of [
   '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f',
   'deploymentPerformed: true',
   'publicHttpsVerified: true',
-  'adventureLandShadowVerified: false',
+  'adventureLandShadowVerified: true',
   'adventureLandControlledLiveVerified: false',
   'adventureLandSoakVerified: false',
   'block9Freigegeben: false',
@@ -1285,7 +1294,7 @@ for (const pflicht of [
 
 const candidateDeploymentNachweis = await readFile(path.join(wurzel, dateien[54]), 'utf8');
 for (const pflicht of [
-  'Deployment und oeffentliche HTTPS-Verifikation fuer den exakten Candidate bestaetigt',
+  'Deployment/HTTPS fuer den exakten Candidate bestaetigt',
   '88185523c81687dc16f9647ca5e7568c5e2c228c',
   '35402650432',
   '105785689083',
@@ -1296,7 +1305,7 @@ for (const pflicht of [
   '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f',
   'deploymentPerformed: true',
   'publicHttpsVerified: true',
-  'adventureLandShadowVerified: false',
+  'adventureLandShadowVerified: true',
   'adventureLandControlledLiveVerified: false',
   'adventureLandSoakVerified: false',
   'block9Freigegeben: false',
@@ -1429,8 +1438,8 @@ for (const pflicht of [
 if (!freigabeDokument.includes('BLOCK-8-5-OFFLINE-FREIGABE-NACHWEIS.json')) {
   throw new Error('Freigabestufen-Dokumentation verweist noch nicht auf den kanonischen Offline-Nachweis.');
 }
-if (!block85PlanFreigabe.includes('Die Freigabestufe **Offline** ist jetzt ebenfalls')) {
-  throw new Error('Block-8.5-Plan markiert Offline noch nicht als bestanden.');
+if (!block85PlanFreigabe.includes('Die Freigabestufe **Offline** ist fuer exakt denselben Candidate bestanden')) {
+  throw new Error('Block-8.5-Plan markiert Offline/Schatten noch nicht als aktuellen Freigabestand.');
 }
 
 const schattenPaketBuilder = await readFile(path.join(wurzel, dateien[58]), 'utf8');
@@ -1516,7 +1525,7 @@ for (const pflicht of [
 
 const schattenPaketDokument = await readFile(path.join(wurzel, dateien[61]), 'utf8');
 for (const pflicht of [
-  'source-locked Schatten-Launcher vorbereitet',
+  'source-locked Schatten-Launcher verwendet',
   'block8-5-schatten-paket.js',
   'aktivFreigegeben: false',
   "modus: 'schatten'",
@@ -1526,7 +1535,8 @@ for (const pflicht of [
   'schattenUebergabe',
   'block8-5-schatten-paket-bauen.mjs',
   'block8-5-schatten-paket:pruefen',
-  'Schatten: **offen**',
+  'Schatten: **bestanden**',
+  'Kontrolliert live: **offen**',
   'Block 9: **gesperrt**'
 ]) {
   if (!schattenPaketDokument.includes(pflicht)) {
@@ -1534,4 +1544,219 @@ for (const pflicht of [
   }
 }
 
-console.log('Block 8.5.1 bis 8.5.9 geprueft: Candidate-Deployment/HTTPS und Offline-Freigabe sind bestanden; der source-locked Schatten-Launcher laedt Runtime 1.1.5 strikt gesperrt/nicht gestartet mit 0 Heartbeat-/CM-Versuchen; realer Schattennachweis, Live, Soak und Block 9 bleiben offen/gesperrt.');
+const schattenFreigabeRoh = await readFile(path.join(wurzel, dateien[62]), 'utf8');
+const schattenFreigabe = JSON.parse(schattenFreigabeRoh);
+for (const [feld, erwartet] of Object.entries({
+  schemaVersion: 1,
+  laufzeitPfadKennung: 'block8.5-basisbedienung-runtime',
+  aenderungsKennung: 'git:88185523c81687dc16f9647ca5e7568c5e2c228c'
+})) {
+  if (schattenFreigabe[feld] !== erwartet) {
+    throw new Error(`Schatten-Freigabenachweis besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+for (const [feld, erwartet] of Object.entries({
+  stufe: 'schatten',
+  nachweisKennung: 'block8-5-schatten-1789775266269:schatten',
+  ergebnis: 'bestanden',
+  durchgefuehrtAm: 1789775267498,
+  deterministisch: false,
+  spielAktionAusgefuehrt: false,
+  begrenzt: false,
+  telemetrieNachweis: false,
+  recoveryNachweis: false,
+  gesamtauswertungBestanden: false
+})) {
+  if (schattenFreigabe.nachweis?.[feld] !== erwartet) {
+    throw new Error(`Schatten-Freigabenachweis.nachweis besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+for (const [feld, erwartet] of Object.entries({
+  bytes: 10123,
+  sha256: '78af6a837af689e786c5166d49624f194ad72d888f76f7712012073c1675d8c1',
+  laufKennung: 'block8-5-schatten-1789775266269',
+  status: 'PASS',
+  diagnoseStatus: 'ausgefuehrt'
+})) {
+  if (schattenFreigabe.reportEvidence?.[feld] !== erwartet) {
+    throw new Error(`Schatten-Berichtevidenz besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+for (const [feld, erwartet] of Object.entries({
+  runtimeVersion: '1.1.5',
+  runtimeSha256: '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f',
+  betriebsart: 'gesperrt_nicht_gestartet',
+  generationVorher: 0,
+  generationNachher: 0,
+  heartbeatVersucheVorher: 0,
+  heartbeatVersucheNachher: 0,
+  heartbeatErfolgeVorher: 0,
+  heartbeatErfolgeNachher: 0,
+  heartbeatFehlerVorher: 0,
+  heartbeatFehlerNachher: 0
+})) {
+  if (schattenFreigabe.runtimeEvidence?.[feld] !== erwartet) {
+    throw new Error(`Schatten-Runtimeevidenz besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+if (
+  typeof schattenFreigabe.schattenUebergabe?.nachweis !== 'object' ||
+  schattenFreigabe.schattenUebergabe.nachweis.nachweisKennung !== schattenFreigabe.nachweis.nachweisKennung
+) {
+  throw new Error('Kanonische Schattenuebergabe muss den vollstaendigen bestandenen Nachweis enthalten.');
+}
+for (const [feld, erwartet] of Object.entries({
+  offline: 'bestanden',
+  schatten: 'bestanden',
+  naechsteStufe: 'kontrolliert_live',
+  freigabeVollstaendig: false,
+  block9Freigegeben: false
+})) {
+  if (schattenFreigabe.auswertungErwartet?.[feld] !== erwartet) {
+    throw new Error(`Schatten-Freigabeauswertung besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+
+if (
+  runtimeReleaseKandidat.shadowEvidence?.reportSha256 !== schattenFreigabe.reportEvidence.sha256 ||
+  runtimeReleaseKandidat.shadowEvidence?.performedAt !== schattenFreigabe.nachweis.durchgefuehrtAm ||
+  runtimeReleaseKandidat.shadowEvidence?.laufKennung !== schattenFreigabe.reportEvidence.laufKennung
+) {
+  throw new Error('Candidate-Manifest ist nicht exakt an den kanonischen Schattennachweis gebunden.');
+}
+
+const schattenFreigabeTests = await readFile(path.join(wurzel, dateien[63]), 'utf8');
+for (const pflicht of [
+  'Schattennachweis ist an den realen Adventure-Land-Bericht und exakten Candidate gebunden',
+  'kanonische Schattenuebergabe besitzt wieder den vollstaendigen Nachweis statt Zirkular-Text',
+  'Offline plus realer Schattennachweis geben als naechstes kontrolliert live frei',
+  'Schattennachweis behauptet keine Live- oder Soak-Freigabe',
+  '78af6a837af689e786c5166d49624f194ad72d888f76f7712012073c1675d8c1',
+  "assert.equal(status.naechsteStufe, 'kontrolliert_live')"
+]) {
+  if (!schattenFreigabeTests.includes(pflicht)) {
+    throw new Error(`Schatten-Freigabenachweis-Test fehlt: ${pflicht}`);
+  }
+}
+
+const schattenFreigabeDokument = await readFile(path.join(wurzel, dateien[64]), 'utf8');
+for (const pflicht of [
+  'Stufe 2 Schatten fuer den exakten Runtime-1.1.5-Candidate real bestanden',
+  'BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json',
+  '10123 Bytes',
+  '78af6a837af689e786c5166d49624f194ad72d888f76f7712012073c1675d8c1',
+  'Generation **0 -> 0**',
+  'spielAktionAusgefuehrt: false',
+  '[Zirkulaere Referenz]',
+  'kontrolliert_live -> offen',
+  'naechsteStufe: kontrolliert_live',
+  'Block 9 bleibt gesperrt'
+]) {
+  if (!schattenFreigabeDokument.includes(pflicht)) {
+    throw new Error(`Schatten-Freigabenachweis-Dokumentation fehlt: ${pflicht}`);
+  }
+}
+
+const livePaketBuilder = await readFile(path.join(wurzel, dateien[65]), 'utf8');
+for (const pflicht of [
+  'baueBlock85LivePaket',
+  'BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json',
+  'block8-5-live-paket.js',
+  'aktivFreigegeben: true',
+  "vertrauensNamen: Object.freeze(['My_Ranger1', 'My_Ranger2'])",
+  "modus: 'live'",
+  'schattenUebergabe',
+  'runtime.starte()',
+  'warteAufBestaetigtenHeartbeat',
+  'lebensnachweisSendeErfolge >= 1',
+  "setzeAktionAktiv('kontrolliert-live', false)",
+  "setzeAktionAktiv('kontrolliert-live', true)"
+]) {
+  if (!livePaketBuilder.includes(pflicht)) {
+    throw new Error(`Live-Paket-Builder fehlt: ${pflicht}`);
+  }
+}
+
+const livePaket = await readFile(path.join(wurzel, dateien[66]), 'utf8');
+for (const pflicht of [
+  'GENERATED: V4 Block 8.5.9 kontrolliertes Live-/Soak-Komplettpaket',
+  'block8-5-schatten-1789775266269:schatten',
+  'aktivFreigegeben: true',
+  "vertrauensNamen: Object.freeze(['My_Ranger1', 'My_Ranger2'])",
+  "modus: 'live'",
+  'runtime.starte()',
+  'warteAufBestaetigtenHeartbeat',
+  'status.lebensnachweisSendeErfolge >= 1',
+  'status.lebensnachweisSendeFehler > 0',
+  "testApi.test.setzeAktionAktiv('kontrolliert-live', false)",
+  "testApi.test.setzeAktionAktiv('kontrolliert-live', true)",
+  'echter Produktionsheartbeat bestaetigt'
+]) {
+  if (!livePaket.includes(pflicht)) {
+    throw new Error(`Live-Paket fehlt: ${pflicht}`);
+  }
+}
+if ((livePaket.match(/runtime\.starte\(\)/g) ?? []).length !== 1) {
+  throw new Error('Live-Paket muss Runtime exakt einmal aktiv starten.');
+}
+if (livePaket.includes('"nachweis": "[Zirkulaere Referenz]"')) {
+  throw new Error('Live-Paket darf keine abgeschnittene Zirkular-Darstellung als Schattennachweis importieren.');
+}
+for (const verboten of [
+  '.pausiereLebensnachweisAutomatik(',
+  '.setzeLebensnachweisAutomatikFort(',
+  '.bereiteGruppenZielVor(',
+  '.installiereGruppenZielLiveSmoke(',
+  '.stoppe(',
+  'location.reload(',
+  'window.close('
+]) {
+  if (livePaket.includes(verboten)) {
+    throw new Error(`Live-Paket darf keinen versteckten Heartbeat-/Live-/Stop-/Browser-Pfad verwenden: ${verboten}`);
+  }
+}
+for (const aktionsName of [
+  'attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp',
+  'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite',
+  'buy', 'sell', 'send_item', 'upgrade', 'compound'
+]) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(livePaket)) {
+    throw new Error(`Live-Paket darf keine Adventure-Land-Spielaktion direkt aufrufen: ${aktionsName}.`);
+  }
+}
+
+const livePaketTests = await readFile(path.join(wurzel, dateien[67]), 'utf8');
+for (const pflicht of [
+  'Live-Paket ist source-locked zum Builder und kanonischen Schattennachweis',
+  'Live-Paket bindet den bestandenen Schattennachweis vollstaendig',
+  'Live-Paket nutzt die bewaehrte minimale aktive Produktionskonfiguration',
+  'Live-Paket startet exakt einmal und entsperrt Live erst nach bestaetigtem Heartbeat',
+  'Live-Paket besitzt keine versteckte Fortsetzung, keinen Stop und keine direkte Spielaktion',
+  'baueBlock85LivePaket'
+]) {
+  if (!livePaketTests.includes(pflicht)) {
+    throw new Error(`Live-Paket-Test fehlt: ${pflicht}`);
+  }
+}
+
+const livePaketDokument = await readFile(path.join(wurzel, dateien[68]), 'utf8');
+for (const pflicht of [
+  'source-locked Live-Paket vorbereitet',
+  'Offline: **bestanden**',
+  'Schatten: **bestanden**',
+  'Kontrolliert live: **offen**',
+  'block8-5-live-paket.js',
+  'My_Ranger1',
+  'My_Ranger2',
+  'runtime.starte()',
+  'bestaetigten echten Produktionsheartbeat',
+  'BLOCK8-5-KONTROLLIERT-LIVE:block8-5-schatten-1789775266269',
+  'spielAktionAusgefuehrt: true',
+  'block8-5-live-paket:pruefen'
+]) {
+  if (!livePaketDokument.includes(pflicht)) {
+    throw new Error(`Live-Paket-Dokumentation fehlt: ${pflicht}`);
+  }
+}
+
+console.log('Block 8.5.1 bis 8.5.9 geprueft: Candidate-Deployment/HTTPS, Offline und realer Schattennachweis sind bestanden; das source-locked Live-Paket bindet den vollstaendigen Schattennachweis und entsperrt kontrolliert live erst nach bestaetigtem Produktionsheartbeat; Soak und Block 9 bleiben gesperrt.');

@@ -1,6 +1,6 @@
 # Block 8.5 – Runtime 1.1.5 Release-Candidate
 
-Status: **Release-Candidate reproduzierbar gebunden; Deployment und oeffentliche HTTPS-Verifikation bestaetigt; reale Adventure-Land-Freigaben noch offen.**
+Status: **Release-Candidate reproduzierbar gebunden; Deployment/HTTPS und realer Adventure-Land-Schattennachweis bestaetigt; kontrolliert live und Soak noch offen.**
 
 ## Zweck
 
@@ -112,30 +112,31 @@ Der detaillierte Nachweis steht in:
 
 `BLOCK-8-5-CANDIDATE-DEPLOYMENT-NACHWEIS.md`
 
-## Noch ausdrücklich offen
+## Reale Adventure-Land-Nachweise
 
-Weiterhin **false** bleiben:
+Der reale strikte Schattenlauf ist bestanden und kanonisch dokumentiert in:
 
-- `adventureLandShadowVerified: false`
+`BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json`
+
+Damit gilt im Manifest jetzt korrekt:
+
+- `adventureLandShadowVerified: true`
 - `adventureLandControlledLiveVerified: false`
 - `adventureLandSoakVerified: false`
 - `block9Freigegeben: false`
 
-Diese Felder sind keine Schalter fuer die Runtime.
+Der Schattenbericht ist zusaetzlich ueber Dateigroesse und SHA-256 gebunden. Diese Felder sind reine Nachweisdokumentation und keine Runtime-Schalter.
 
-Sie dokumentieren die noch fehlenden realen Adventure-Land-Nachweise.
-
-Der 8.5.9-Adventure-Land-Nachweisrunner darf jetzt gegen genau diese immutable URL und genau den verifizierten SHA-256 ausgefuehrt werden.
+Als naechste reale Stufe ist kontrolliert live offen. Das source-locked Paket `block8-5-live-paket.js` bindet den bestandenen Schattennachweis und den unveraenderten immutable Candidate.
 
 ## Block-9-Grenze
 
 Auch ein erfolgreiches Runtime-Deployment allein reicht nicht fuer Block 9.
 
-Danach fehlen weiterhin die operativen Stufen:
+Nach Deployment, Offline und Schatten fehlen weiterhin die operativen Stufen:
 
-1. Schatten,
-2. kontrolliert live,
-3. Soak.
+1. kontrolliert live,
+2. Soak.
 
 Erst wenn das sequenzielle 8.5.9-Freigabe-Gate fuer denselben Aenderungsstand alle vier Stufen inklusive Offline als bestanden bewertet, darf:
 

@@ -58,14 +58,32 @@ for (const feld of ['deploymentPerformed', 'publicHttpsVerified']) {
     throw new Error(`Release-Candidate muss den bestaetigten Deployment-/HTTPS-Nachweis fuer ${feld} tragen.`);
   }
 }
+if (manifest.adventureLandShadowVerified !== true) {
+  throw new Error('Release-Candidate muss den real bestandenen Adventure-Land-Schattennachweis tragen.');
+}
 for (const feld of [
-  'adventureLandShadowVerified',
   'adventureLandControlledLiveVerified',
   'adventureLandSoakVerified',
   'block9Freigegeben'
 ]) {
   if (manifest[feld] !== false) {
     throw new Error(`Release-Candidate darf ${feld} ohne realen Adventure-Land-Nachweis noch nicht als bestanden markieren.`);
+  }
+}
+if (!manifest.shadowEvidence || typeof manifest.shadowEvidence !== 'object') {
+  throw new Error('Release-Candidate braucht den kanonisch gebundenen SchattenEvidence-Nachweis.');
+}
+for (const [feld, erwartet] of Object.entries({
+  reportFile: 'Eingefügter Text(20260918-234800).txt',
+  reportBytes: 10123,
+  reportSha256: '78af6a837af689e786c5166d49624f194ad72d888f76f7712012073c1675d8c1',
+  reportCreatedAt: '2026-09-18T23:47:54.673Z',
+  performedAt: 1789775267498,
+  laufKennung: 'block8-5-schatten-1789775266269',
+  evidenceFile: 'BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json'
+})) {
+  if (manifest.shadowEvidence[feld] !== erwartet) {
+    throw new Error(`Release-Candidate shadowEvidence besitzt unerwarteten Wert fuer ${feld}.`);
   }
 }
 
@@ -130,5 +148,5 @@ if (build.sha256 !== manifest.sha256) {
 }
 
 console.log(
-  `Runtime-1.1.5 Release-Candidate reproduzierbar: ${build.module} Module, ${build.bytes} Bytes, SHA-256 ${build.sha256}; Deployment und oeffentliche HTTPS-Verifikation sind durch Run 35402650432 bestaetigt, Adventure-Land-Schatten/Live/Soak bleiben offen.`
+  `Runtime-1.1.5 Release-Candidate reproduzierbar: ${build.module} Module, ${build.bytes} Bytes, SHA-256 ${build.sha256}; Deployment/HTTPS und realer Adventure-Land-Schattennachweis sind bestaetigt, kontrolliert live und Soak bleiben offen.`
 );

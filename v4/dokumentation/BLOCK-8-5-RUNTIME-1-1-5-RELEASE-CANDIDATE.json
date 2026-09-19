@@ -9,7 +9,7 @@
   "sha256": "95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f",
   "deploymentPerformed": true,
   "publicHttpsVerified": true,
-  "adventureLandShadowVerified": false,
+  "adventureLandShadowVerified": true,
   "adventureLandControlledLiveVerified": false,
   "adventureLandSoakVerified": false,
   "block9Freigegeben": false,
@@ -23,5 +23,14 @@
     "sha256": "95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f",
     "publicRuntimeUrl": "https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/88185523c81687dc16f9647ca5e7568c5e2c228c/aio-v4-runtime.js",
     "publicSha256Url": "https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/88185523c81687dc16f9647ca5e7568c5e2c228c/aio-v4-runtime.sha256"
+  },
+  "shadowEvidence": {
+    "reportFile": "Eingefügter Text(20260918-234800).txt",
+    "reportBytes": 10123,
+    "reportSha256": "78af6a837af689e786c5166d49624f194ad72d888f76f7712012073c1675d8c1",
+    "reportCreatedAt": "2026-09-18T23:47:54.673Z",
+    "performedAt": 1789775267498,
+    "laufKennung": "block8-5-schatten-1789775266269",
+    "evidenceFile": "BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json"
   }
 }

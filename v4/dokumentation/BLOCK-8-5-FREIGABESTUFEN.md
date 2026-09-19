@@ -1,6 +1,6 @@
 # Block 8.5 – Freigabestufen
 
-Status: **8.5.9 Freigabe-Gate implementiert; Offline-Stufe fuer den exakten Candidate bestanden, Schattenbetrieb ist die naechste offene Stufe. Block 9 bleibt gesperrt.**
+Status: **8.5.9 Freigabe-Gate implementiert; Offline und realer Schattenlauf fuer den exakten Candidate bestanden. Kontrolliert live ist die naechste offene Stufe; Block 9 bleibt gesperrt.**
 
 ## Ziel
 
@@ -187,14 +187,19 @@ Fuer den finalen Block-8.5-Aenderungsstand liegt inzwischen ein kanonischer Offl
 
 `BLOCK-8-5-OFFLINE-FREIGABE-NACHWEIS.json`
 
-Die reale Freigabeauswertung ergibt:
+Zusaetzlich liegt jetzt der reale kanonische Schattennachweis vor:
+
+`BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json`
+
+Die reale Freigabeauswertung ergibt damit:
 
 - `offline: bestanden`
-- `naechsteStufe: schatten`
+- `schatten: bestanden`
+- `kontrolliert_live: offen`
+- `soak: blockiert`
+- `naechsteStufe: kontrolliert_live`
 - `freigabeVollstaendig: false`
 - `block9Freigegeben: false`
-
-Schatten, kontrolliert live und Soak bleiben offen.
 
 ## Naechster operativer Schritt
 
@@ -217,7 +222,10 @@ Damit lautet die operative Reihenfolge fuer den finalen Block-8.5-Laufzeitstand:
 1. finalen Aenderungsstand eindeutig festlegen,
 2. Runtime-1.1.5-Build und immutable Deployment/HTTPS-Nachweis fuer diesen Stand bestaetigen — **ERFUELLT**,
 3. Offline-Nachweis an denselben Aenderungsstand binden — **ERFUELLT**,
-4. Schattenlauf im Adventure-Land-Kontext mit gesperrter, nicht gestarteter Runtime und 0 Heartbeat-/CM-Sendeversuchen ueber den Nachweisrunner,
-5. separate aktive Sitzung mit importierter Schattenuebergabe und begrenztem kontrolliertem Live-Test ueber genau eine sichere Pause/Fortsetzung,
+4. Schattenlauf im Adventure-Land-Kontext mit gesperrter, nicht gestarteter Runtime und 0 Heartbeat-/CM-Sendeversuchen — **ERFUELLT**,
+5. separate aktive Sitzung mit kanonisch gebundener Schattenuebergabe und begrenztem kontrolliertem Live-Test ueber genau eine sichere Pause/Fortsetzung — **NAECHSTE STUFE**,
 6. mindestens zehnminuetiger Soak-Lauf mit Telemetrie und Recovery-Auswertung,
 7. erst danach Block 9 freigeben.
+
+
+Fuer Schritt 5 steht das source-locked `BLOCK-8-5-LIVE-PAKET.md` / `block8-5-live-paket.js` bereit. Es entsperrt den kontrollierten Live-Test erst nach einem bestaetigten echten Produktionsheartbeat.

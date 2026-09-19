@@ -1,6 +1,6 @@
 # Block 8.5 – Runtime 1.1.5 Candidate-Deploymentnachweis
 
-Status: **Deployment und oeffentliche HTTPS-Verifikation fuer den exakten Candidate bestaetigt; Adventure-Land-Schatten, kontrolliert live und Soak weiterhin offen.**
+Status: **Deployment/HTTPS fuer den exakten Candidate bestaetigt; Adventure-Land-Schatten inzwischen real bestanden; kontrolliert live und Soak weiterhin offen.**
 
 ## Exakter Candidate
 
@@ -103,17 +103,19 @@ Damit sind fuer den Candidate jetzt korrekt:
 - `deploymentPerformed: true`
 - `publicHttpsVerified: true`
 
-Weiterhin **false** bleiben:
+Der reale Schattennachweis wurde danach separat erbracht. Deshalb gilt inzwischen:
 
-- `adventureLandShadowVerified: false`
+- `adventureLandShadowVerified: true`
 - `adventureLandControlledLiveVerified: false`
 - `adventureLandSoakVerified: false`
 - `block9Freigegeben: false`
+
+Der zugehoerige reale Nachweis steht in `BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json`.
 
 ## Naechster Schritt
 
 Der Release-/HTTPS-Preflight ist damit erfuellt.
 
-Als naechste noch offene 8.5.9-Stufe muss der reale Adventure-Land-Schattennachweis gegen genau diese immutable Runtime 1.1.5 und genau diese `aenderungsKennung` ausgefuehrt werden.
+Als naechste noch offene 8.5.9-Stufe folgt der begrenzte kontrollierte Live-Test gegen genau diese immutable Runtime 1.1.5 und denselben gebundenen Schattennachweis.
 
-Block 9 bleibt bis Schatten, kontrolliert live und Soak gesperrt.
+Block 9 bleibt bis kontrolliert live und Soak gesperrt.
