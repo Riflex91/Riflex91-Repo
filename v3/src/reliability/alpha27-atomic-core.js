@@ -14,6 +14,8 @@ class Alpha27AtomicCore {
     this.merchantBusy = false;
     this.serviceTravelBusy = false;
     this.lastMerchantAction = null;
+    this.mutationRiskHolds = new Map();
+    this.lastMutationRiskDecision = null;
     this.patchInventoryLedger();
     this.patchTransactionEngine();
     this.patchControlledMerchant();
