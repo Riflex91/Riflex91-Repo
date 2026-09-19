@@ -2230,6 +2230,159 @@
         "R10",
         "R15"
       ]
+    },
+    {
+      "kennung": "V5-GEF-152",
+      "titel": "Jeder Fach-Scheduler plant irrtuemlich ein eigenes 200er Socket-Budget und ueberfaehrt das character-globale Serverfenster",
+      "kategorie": "SCHEDULING",
+      "schweregrad": 5,
+      "eintritt": 4,
+      "entdeckbarkeit": 4,
+      "risikowert": 80,
+      "status": "OFFEN",
+      "strategie": "Ein gemeinsames character:socket_call_budget im Global Scheduler; keine Kanalbudgets als Ersatz",
+      "betroffenePhasen": [
+        "R8",
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-153",
+      "titel": "Interne oder dynamische Zusatzkosten werden unterschätzt und geplante Requests verursachen limitdc",
+      "kategorie": "SCHEDULING",
+      "schweregrad": 5,
+      "eintritt": 4,
+      "entdeckbarkeit": 4,
+      "risikowert": 80,
+      "status": "OFFEN",
+      "strategie": "Gewichtete Evidence plus Unknown/Internal Reserve; Drift fail-closed",
+      "betroffenePhasen": [
+        "R8",
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-154",
+      "titel": "V5 plant das Socket-Budget bis zum Servermaximum 200 aus und verliert jede Reserve fuer Burst, Latenz, Recovery und Diagnose",
+      "kategorie": "SCHEDULING",
+      "schweregrad": 5,
+      "eintritt": 4,
+      "entdeckbarkeit": 4,
+      "risikowert": 80,
+      "status": "OFFEN",
+      "strategie": "Konservatives Planbudget initial 100/4s; positive Reserve unverplanbar",
+      "betroffenePhasen": [
+        "R8",
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-155",
+      "titel": "limitdc nach moeglichem Send loest Blind-Retry einer wertveraendernden Action aus",
+      "kategorie": "RECOVERY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 5,
+      "risikowert": 75,
+      "status": "OFFEN",
+      "strategie": "UNKNOWN -> Reconnect -> Reobserve -> Reconcile; Same-Intent-Retry gesperrt",
+      "betroffenePhasen": [
+        "R9",
+        "R10"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-156",
+      "titel": "queue_overflow wird als normaler Betriebszustand akzeptiert und verdeckt unbounded mutierende FIFO-Concurrency",
+      "kategorie": "SCHEDULING",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Maximal ein managed mutating FIFO in-flight je Channel; 3200 nur technischer Notfallguard",
+      "betroffenePhasen": [
+        "R8",
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-157",
+      "titel": "Client-Safeties werden fuer hoeheren Durchsatz deaktiviert und erzeugen Burst-/Delay-Disconnects",
+      "kategorie": "SICHERHEIT",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Safeties bleiben an; eigene Admission/Backpressure kommt zusaetzlich",
+      "betroffenePhasen": [
+        "R8",
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-158",
+      "titel": "ccreport wird pro Scheduler-Tick gepollt und erzeugt selbst relevante Call-Last",
+      "kategorie": "OBSERVABILITY",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "ccreport nur diagnostisch/kalibrierend mit bounded Sampling",
+      "betroffenePhasen": [
+        "R8",
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-159",
+      "titel": "MCP/API 429 wird aggressiv sofort retried und erzeugt Retry-Sturm oder weitere Sperren",
+      "kategorie": "NETZWERK",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Token-Bucket separat modellieren; Retry-After/retry_after_ms respektieren",
+      "betroffenePhasen": [
+        "R6",
+        "R8",
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-160",
+      "titel": "Mainframe Worker-CPU und Game-Socket-Callbudget werden unter einem generischen CallCost-Typ vermischt",
+      "kategorie": "ARCHITEKTUR",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Getrennte Typen/Metriken SpielSocketAufrufBudget, McpAnfrageBudget, WorkerCpuAuslastung",
+      "betroffenePhasen": [
+        "R2",
+        "R8",
+        "R11"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-161",
+      "titel": "Serverupdate aendert Call-Cost-/Limit-Semantik, aber V5 verwendet das alte Modell weiter",
+      "kategorie": "DRIFT",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 5,
+      "risikowert": 75,
+      "status": "OFFEN",
+      "strategie": "Source-/Live-Drift triggert Revalidierung und blockiert betroffene Automation bis zur Freigabe",
+      "betroffenePhasen": [
+        "R0",
+        "R6",
+        "R9"
+      ]
     }
   ]
 }
