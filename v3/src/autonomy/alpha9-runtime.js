@@ -8,7 +8,10 @@ function composeAlpha9Runtime(options = {}) {
 this.localFarmPlanner = options.localFarmPlanner || new LocalFarmPlanner({
       log: this.log,
       minExpectedImprovement: options.localFarmMinExpectedImprovement,
-      maxCandidates: options.localFarmMaxCandidates
+      maxCandidates: options.localFarmMaxCandidates,
+      aoeClusterRadius: options.localFarmAoeClusterRadius,
+      aoePreferredBonus: options.localFarmAoePreferredBonus,
+      aoeSmartBonus: options.localFarmAoeSmartBonus
     });
     this.localFarming = options.localFarming || new LocalFarmOrchestrator({
       now: this.now,
@@ -33,6 +36,28 @@ class Alpha9Runtime extends StabilityRuntime {
   constructor(options = {}) {
     super(options);
     composeAlpha9Runtime.call(this, options);
+  }
+
+  _farmPlanningParty(snapshot) {
+    const party = this._farmPlanningParty(snapshot);
+    let capabilities = null;
+    try {
+      capabilities = this.partyCapabilityResolver && typeof this.partyCapabilityResolver.status === 'function'
+        ? this.partyCapabilityResolver.status()
+        : null;
+    } catch (_) { capabilities = null; }
+    let combatMode = 'smart_auto';
+    try {
+      combatMode = this.characterCombatProfiles && typeof this.characterCombatProfiles.getCombatMode === 'function'
+        ? this.characterCombatProfiles.getCombatMode(snapshot && snapshot.character && snapshot.character.name)
+        : combatMode;
+    } catch (_) {}
+    let aoe = { combatMode, configured: false, hardCapacity: 1, desiredPullSize: 1, skills: [] };
+    try {
+      const smart = this.tacticalPartyCombat && this.tacticalPartyCombat.smartAoePlanner;
+      if (smart && typeof smart.planningProfile === 'function') aoe = smart.planningProfile(combatMode, capabilities);
+    } catch (_) {}
+    return { ...party, aoe };
   }
 
   tick() {
