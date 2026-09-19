@@ -35,7 +35,16 @@ const dateien = [
   'laufzeit/quelle/vertraege/capability-wiederholung.ts',
   'laufzeit/quelle/wiederholung/capability-wiederholung.ts',
   'laufzeit/tests/capability-wiederholung.test.mjs',
+  'laufzeit/quelle/vertraege/capability-freigabe.ts',
+  'laufzeit/quelle/ausfuehrung/adventure-land-akzeptierter-lebensnachweis-beobachter.ts',
+  'laufzeit/quelle/ausfuehrung/adventure-land-capability-freigabe.ts',
+  'laufzeit/quelle/ausfuehrung/adventure-land-block8-6-candidate-einstieg.ts',
+  'laufzeit/tests/capability-freigabe.test.mjs',
+  'laufzeit/tests/block8-6-freigabestufen-live-test.test.mjs',
+  'werkzeuge/block8-6-freigabestufen-live-test.js',
+  'werkzeuge/block8-6-candidate-bauen.mjs',
   'dokumentation/BLOCK-8-6-1-SKILL-KATALOG.md',
+  'dokumentation/BLOCK-8-6-9-FREIGABE-VORBEREITUNG.md',
   'dokumentation/BLOCK-8-6-8-REPLAY-REGRESSION.md',
   'dokumentation/BLOCK-8-6-7-STATUS-HUD-DIAGNOSE.md',
   'dokumentation/BLOCK-8-6-6-CAPABILITY-GRUPPENWAHL.md',
@@ -321,9 +330,13 @@ for (const pflicht of [
   "export * from './vertraege/capability-status.js';",
   "export * from './telemetrie/capability-status.js';",
   "export * from './vertraege/capability-wiederholung.js';",
-  "export * from './wiederholung/capability-wiederholung.js';"
+  "export * from './wiederholung/capability-wiederholung.js';",
+  "export * from './vertraege/capability-freigabe.js';",
+  "export * from './ausfuehrung/adventure-land-akzeptierter-lebensnachweis-beobachter.js';",
+  "export * from './ausfuehrung/adventure-land-capability-freigabe.js';",
+  "export * from './ausfuehrung/adventure-land-block8-6-candidate-einstieg.js';"
 ]) {
-  if (!index.includes(pflicht)) throw new Error('V4-Index exportiert Block 8.6.3 bis 8.6.8 nicht: ' + pflicht);
+  if (!index.includes(pflicht)) throw new Error('V4-Index exportiert Block 8.6.3 bis 8.6.9-Vorbereitung nicht: ' + pflicht);
 }
 
 
@@ -851,6 +864,181 @@ if (bestehendeWiederholungsMaschine.includes('CapabilityWiederholungsMaschine') 
   throw new Error('Block 8.6.8 darf die bestehende generische Block-5-Wiederholungsmaschine nicht rueckwirkend verdrahten.');
 }
 
+
+const capabilityFreigabeVertrag = await readFile(path.join(wurzel, 'laufzeit/quelle/vertraege/capability-freigabe.ts'), 'utf8');
+for (const pflicht of [
+  "CAPABILITY_FREIGABE_VERSION = '1.0.0'",
+  'CapabilityFreigabePolicyVorgabe',
+  'CapabilityFreigabeStatus',
+  'remoteBeobachtungInstalliert',
+  'capabilityEmpfangInstalliert',
+  'sendeCapabilityEinmal',
+  'spielAutoritaet: false',
+  'neustartAutoritaet: false'
+]) {
+  if (!capabilityFreigabeVertrag.includes(pflicht)) throw new Error('Block-8.6.9-CapabilityFreigabe-Vertrag fehlt: ' + pflicht);
+}
+
+const livenessBeobachter = await readFile(path.join(wurzel, 'laufzeit/quelle/ausfuehrung/adventure-land-akzeptierter-lebensnachweis-beobachter.ts'), 'utf8');
+for (const pflicht of [
+  'AdventureLandAkzeptierterLebensnachweisBeobachter',
+  'Reflect.apply(vorher',
+  'angenommen === true',
+  'GRUPPEN_LEBENSNACHWEIS_PROTOKOLL',
+  'sendetLebensnachweise: false',
+  'eigenerLivenessTimer: false',
+  "livenessAutoritaet: 'bestehender-block8-cm-handler'",
+  'aktionsAutoritaet: false'
+]) {
+  if (!livenessBeobachter.includes(pflicht)) throw new Error('Block-8.6.9-Liveness-Beobachter fehlt: ' + pflicht);
+}
+for (const verboten of [
+  /\bsend_cm\s*\(/,
+  /setInterval\s*\(/,
+  /setTimeout\s*\(/
+]) {
+  if (verboten.test(livenessBeobachter)) throw new Error('Block 8.6.9 darf im passiven Liveness-Beobachter kein zweites Sende-/Timerprotokoll einfuehren: ' + verboten);
+}
+
+const capabilityFreigabeQuelle = await readFile(path.join(wurzel, 'laufzeit/quelle/ausfuehrung/adventure-land-capability-freigabe.ts'), 'utf8');
+for (const pflicht of [
+  'AdventureLandCapabilityFreigabe',
+  'AdventureLandSkillKatalogAuditSteuerung',
+  'SkillPolicySpeicher(new Arbeitsspeicher())',
+  'CharakterFaehigkeitenResolver',
+  'AdventureLandCapabilitySyncAustausch',
+  'AdventureLandAkzeptierterLebensnachweisBeobachter',
+  'pruefeRemoteCapabilityVertrauen',
+  'waehleCapabilityBasierteGruppenrollen',
+  'erstelleCapabilityStatusSicht',
+  'Schattenmodus gesperrt',
+  'BLOCK8-6-CAPABILITY-SENDEN:',
+  'lebensnachweisSendeErfolge < 1',
+  'spielAutoritaet: false as const',
+  'neustartAutoritaet: false as const'
+]) {
+  if (!capabilityFreigabeQuelle.includes(pflicht)) throw new Error('Block-8.6.9-CapabilityFreigabe-Logik fehlt: ' + pflicht);
+}
+for (const verboten of [
+  /\buse_skill\s*\(/,
+  /\battack\s*\(/,
+  /\bmove\s*\(/,
+  /\bsmart_move\s*\(/,
+  /\bloot\s*\(/,
+  /localStorage/,
+  /location\.reload\s*\(/,
+  /window\.close\s*\(/
+]) {
+  if (verboten.test(capabilityFreigabeQuelle)) throw new Error('Block 8.6.9 CapabilityFreigabe darf keine direkte Spiel-/Browserautoritaet einfuehren: ' + verboten);
+}
+
+const candidateEinstieg = await readFile(path.join(wurzel, 'laufzeit/quelle/ausfuehrung/adventure-land-block8-6-candidate-einstieg.ts'), 'utf8');
+for (const pflicht of [
+  "BLOCK86_RUNTIME_CANDIDATE_VERSION = '1.0.0'",
+  "BLOCK86_RUNTIME_CANDIDATE_GLOBALER_NAME = 'V4Block86Candidate'",
+  'installiereAdventureLandProduktionsLaufzeit',
+  'installiereAdventureLandCapabilityFreigabe',
+  'spielAutoritaet: false as const',
+  'neustartAutoritaet: false as const'
+]) {
+  if (!candidateEinstieg.includes(pflicht)) throw new Error('Block-8.6.9-Candidate-Entry fehlt: ' + pflicht);
+}
+for (const verboten of [
+  /\.starte\s*\(/,
+  /\.sendeCapabilityEinmal\s*\(/,
+  /\bsend_cm\s*\(/
+]) {
+  if (verboten.test(candidateEinstieg)) throw new Error('Block-8.6-Candidate darf beim Installieren keine aktive Aktion starten: ' + verboten);
+}
+
+const candidateBuilder = await readFile(path.join(wurzel, 'werkzeuge/block8-6-candidate-bauen.mjs'), 'utf8');
+for (const pflicht of [
+  'baueBlock86Candidate',
+  "entryId = 'ausfuehrung/adventure-land-block8-6-candidate-einstieg.js'",
+  '31',
+  '228607',
+  '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f',
+  'Immutable Runtime 1.1.5 wurde durch Block 8.6 veraendert',
+  'aio-v4-block8-6-candidate.js',
+  'aio-v4-block8-6-candidate.sha256',
+  'AIO_V4_CAPABILITY_CONFIG'
+]) {
+  if (!candidateBuilder.includes(pflicht)) throw new Error('Block-8.6.9-Candidate-Builder fehlt: ' + pflicht);
+}
+
+const capabilityFreigabeTests = await readFile(path.join(wurzel, 'laufzeit/tests/capability-freigabe.test.mjs'), 'utf8');
+for (const pflicht of [
+  'Schatten aktualisiert Live-Katalog und lokale Capabilities bei exakt 0 CM-Sendungen',
+  'Schattenmodus kann Remote-Beobachtung und Capability-Senden nicht aktivieren',
+  'Live-Beobachtung nutzt akzeptierten bestehenden Block-8-Heartbeat und laesst alten Handler intakt',
+  'kontrolliertes Capability-Senden ist explizit bestaetigter One-Shot und zaehlt Erfolg',
+  'Live-Beobachtung verlangt bereits aktive bestehende Block-8-Liveness',
+  'stoppe entfernt nur Capability-Wrapper und stoppt die Produktionsruntime nicht'
+]) {
+  if (!capabilityFreigabeTests.includes(pflicht)) throw new Error('Block-8.6.9-CapabilityFreigabe-Test fehlt: ' + pflicht);
+}
+
+const freigabeRunner = await readFile(path.join(wurzel, 'werkzeuge/block8-6-freigabestufen-live-test.js'), 'utf8');
+for (const pflicht of [
+  "const API_NAME = 'V4Block86FreigabeLiveTest'",
+  "const VERSION = '1.0.0'",
+  "const PFAD = 'block8.6-capability-runtime'",
+  '600000',
+  '5000',
+  'BLOCK8-6-KONTROLLIERT-LIVE:',
+  'BLOCK8-6-SOAK-STARTEN:',
+  'recoveryReplayVerified',
+  'capability.sendeCapabilityEinmal',
+  'capability.aktualisiere()',
+  'telemetrieNachweis: bestanden',
+  'recoveryNachweis: bestanden && cfg.recoveryReplayVerified'
+]) {
+  if (!freigabeRunner.includes(pflicht)) throw new Error('Block-8.6.9-Freigaberunner fehlt: ' + pflicht);
+}
+for (const verboten of [
+  /\battack\s*\(/,
+  /\bmove\s*\(/,
+  /\bsmart_move\s*\(/,
+  /\buse_skill\s*\(/,
+  /\bloot\s*\(/,
+  /\bsend_cm\s*\(/,
+  /runtime\.starte\s*\(/,
+  /runtime\.stoppe\s*\(/,
+  /pausiereLebensnachweisAutomatik\s*\(/,
+  /setzeLebensnachweisAutomatikFort\s*\(/
+]) {
+  if (verboten.test(freigabeRunner)) throw new Error('Block 8.6.9 Freigaberunner darf keine direkte Spiel-/Runtime-Steuerung enthalten: ' + verboten);
+}
+
+const freigabeRunnerTests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-6-freigabestufen-live-test.test.mjs'), 'utf8');
+for (const pflicht of [
+  'Schattenrunner erzeugt Nachweis bei 0 Heartbeat- und Capability-Sendungen',
+  'kontrolliert live sendet genau an anderen vertrauten Charakter und bleibt begrenzt',
+  'kontrolliert live verlangt exakten bestaetigten Lauftext',
+  'Soak verlangt Recovery-Replay-Bindung und erzeugt 10-Minuten-Telemetrienachweis',
+  'Runner besitzt keine direkte Adventure-Land-Spielaktionsfunktion',
+  'Runner startet oder stoppt die Produktionsruntime nicht selbst'
+]) {
+  if (!freigabeRunnerTests.includes(pflicht)) throw new Error('Block-8.6.9-Freigaberunner-Test fehlt: ' + pflicht);
+}
+
+const freigabeDokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-9-FREIGABE-VORBEREITUNG.md'), 'utf8');
+for (const pflicht of [
+  'operative Freigabestufen Offline → Schatten → kontrolliert live → Soak sind noch nicht vollstaendig nachgewiesen',
+  'Historische Runtime 1.1.5 bleibt immutable',
+  '31 Module',
+  '228607 Bytes',
+  'isolierten In-Memory-Speicher',
+  'kein zweites Heartbeat-Protokoll',
+  'genau einen',
+  '600000 ms = 10 Minuten',
+  'recoveryNachweis=true',
+  'block9Freigegeben=false',
+  'finalen Candidate-SHA festhalten'
+]) {
+  if (!freigabeDokument.includes(pflicht)) throw new Error('Block-8.6.9-Freigabe-Dokumentation fehlt: ' + pflicht);
+}
+
 const plan = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-PLAN.md'), 'utf8');
 for (const pflicht of [
   '8.6.1 – Skill-Katalog-Vertrag und Live-Lesequelle — **IMPLEMENTIERT**',
@@ -861,9 +1049,10 @@ for (const pflicht of [
   '8.6.6 – Capability-basierte Leader- und Aufgabenwahl — **IMPLEMENTIERT**',
   '8.6.7 – Status, HUD und Diagnose — **IMPLEMENTIERT**',
   '8.6.8 – Replay und Regression — **IMPLEMENTIERT**',
-  'Naechster Implementierungsschritt: **8.6.9 – Freigabe**'
+  '8.6.9 – Freigabe — **CANDIDATE-PFAD VORBEREITET; OPERATIVE STUFEN OFFEN**',
+  'Naechster operativer Schritt: **8.6.9 – finalen Candidate binden, immutable veroeffentlichen und Offline → Schatten → kontrolliert live → Soak nachweisen**'
 ]) {
-  if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.8-Stand: ${pflicht}`);
+  if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.9-Vorbereitungsstand: ${pflicht}`);
 }
 
 const vertraege = await readFile(path.join(wurzel, 'dokumentation/VERTRAEGE.md'), 'utf8');
@@ -894,17 +1083,24 @@ for (const pflicht of [
   '## CapabilityWiederholung',
   '`eingabeFingerabdruck`',
   '`schrittFingerabdruck`',
-  '`ausgabeFingerabdruck`'
+  '`ausgabeFingerabdruck`',
+  '## CapabilityFreigabe',
+  '`spielAutoritaet: false`',
+  '`neustartAutoritaet: false`',
+  'keinen eigenen Liveness-Timer'
 ]) {
-  if (!vertraege.includes(pflicht)) throw new Error(`V4-Vertragsdokumentation fehlt fuer Block 8.6.1 bis 8.6.8: ${pflicht}`);
+  if (!vertraege.includes(pflicht)) throw new Error(`V4-Vertragsdokumentation fehlt fuer Block 8.6.1 bis 8.6.9-Vorbereitung: ${pflicht}`);
 }
 
 const packageJson = JSON.parse(await readFile(path.join(wurzel, 'package.json'), 'utf8'));
-if (packageJson.scripts?.['block8-6-struktur:pruefen'] !== 'node werkzeuge/block8-6-struktur-pruefen.mjs') {
-  throw new Error('package.json muss den Block-8.6-Strukturguard anbieten.');
+if (packageJson.scripts?.['block8-6-struktur:pruefen'] !== 'node werkzeuge/block8-6-struktur-pruefen.mjs && npm run block8-6-candidate:pruefen') {
+  throw new Error('package.json muss den Block-8.6-Strukturguard inklusive Candidate-Pruefung anbieten.');
+}
+if (packageJson.scripts?.['block8-6-candidate:pruefen'] !== 'node werkzeuge/block8-6-candidate-bauen.mjs --pruefen && node --check werkzeuge/block8-6-freigabestufen-live-test.js') {
+  throw new Error('package.json muss die reproduzierbare Block-8.6-Candidate-Pruefung anbieten.');
 }
 if (!String(packageJson.scripts?.pruefen ?? '').includes('npm run block8-6-struktur:pruefen')) {
   throw new Error('npm run pruefen muss den Block-8.6-Strukturguard ausfuehren.');
 }
 
-console.log('Block 8.6.1 bis 8.6.8 geprueft: Capability Truth, Sync, Gruppenwahl, Status/HUD sowie deterministisches Replay ohne neue Spielaktionsautoritaet.');
+console.log('Block 8.6.1 bis 8.6.9-Vorbereitung geprueft: Capability Truth bis Replay sowie separater immutable Candidate-/Freigabepfad; operative Schatten-/Live-/Soak-Nachweise bleiben offen.');

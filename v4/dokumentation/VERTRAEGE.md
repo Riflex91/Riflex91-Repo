@@ -254,3 +254,18 @@ Remote-Snapshots koennen als `aktuell`, `vorheriger` oder `fehlend` eingespeist 
 Jeder Lauf besitzt einen SHA-256-`eingabeFingerabdruck`, pro Schritt einen `schrittFingerabdruck` und einen `ausgabeFingerabdruck`, jeweils ueber kanonisches V4-JSON. Die Variantenkennung veraendert den Ausgabe-Fingerprint nicht.
 
 Der Replay-Pfad besitzt keine Adventure-Land-Spielaktionsfunktionen und immer `aktionsAutoritaet: false`. Er darf weder `Date.now()` noch `Math.random()` als fachliche Eingabe verwenden.
+
+
+## CapabilityFreigabe
+
+`CapabilityFreigabe` ist die Block-8.6.9-Laufzeitgrenze fuer Schatten, kontrolliert live und Soak.
+
+Sie kombiniert ausschliesslich bereits validierte Block-8.6-Komponenten und besitzt selbst immer `spielAutoritaet: false` sowie `neustartAutoritaet: false`.
+
+Test-`policyVorgaben` werden nur in einem isolierten In-Memory-`SkillPolicySpeicher` angewendet. Dadurch veraendert der Freigabekandidat keine produktive Browser-Persistenz.
+
+Remote-Freshness wird nicht neu erfunden. `AdventureLandAkzeptierterLebensnachweisBeobachter` ruft zuerst den bereits installierten Block-8-CM-Handler auf und uebernimmt eine Heartbeat-Evidenz nur dann, wenn dieser bestehende Handler sie bereits mit `true` akzeptiert hat. Der Beobachter sendet keine Lebensnachweise und besitzt keinen eigenen Liveness-Timer.
+
+Im Schatten bleiben Remote-Beobachtung und Capability-Senden gesperrt. Kontrolliert live ist Capability-Senden nur als explizit bestaetigter One-Shot pro vertrautem Ziel zulaessig; eine automatische Capability-Sende-Schleife existiert nicht.
+
+Der kombinierte `V4Block86Candidate` installiert die unveraenderte `V4ProduktionsLaufzeit` 1.1.5 und daneben `V4CapabilityLaufzeit` 1.0.0. Der Candidate startet keine der beiden Laufzeiten automatisch.

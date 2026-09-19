@@ -1,8 +1,8 @@
 # Block 8.6 – Live Skill Catalog und Capability Truth
 
-Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.8 implementiert, naechster Implementierungsschritt 8.6.9.**
+Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.8 implementiert; 8.6.9 Candidate-/Freigabepfad vorbereitet, operative Nachweise noch offen.**
 
-Naechster Implementierungsschritt: **8.6.9 – Freigabe**
+Naechster operativer Schritt: **8.6.9 – finalen Candidate binden, immutable veroeffentlichen und Offline → Schatten → kontrolliert live → Soak nachweisen**
 
 ## Ziel
 
@@ -211,7 +211,7 @@ Pflichtfaelle:
 
 Umsetzungsnachweis: `BLOCK-8-6-8-REPLAY-REGRESSION.md`.
 
-## 8.6.9 – Freigabe
+## 8.6.9 – Freigabe — **CANDIDATE-PFAD VORBEREITET; OPERATIVE STUFEN OFFEN**
 
 Block 8.6 folgt denselben Laufzeit-Gates wie Block 8.5:
 
@@ -221,6 +221,19 @@ Block 8.6 folgt denselben Laufzeit-Gates wie Block 8.5:
 4. Soak mit Telemetrie und Recovery-Auswertung.
 
 Block 9 darf erst beginnen, wenn alle vier Stufen fuer denselben finalen Block-8.6-Aenderungsstand bestanden sind.
+
+Vorbereiteter technischer Pfad:
+
+- separater Block-8.6-Candidate neben der unveraenderten Runtime 1.1.5,
+- passives Mitlesen nur bereits vom Block-8-Handler akzeptierter Liveness-Evidenz,
+- Schatten bei 0 Heartbeat-/Capability-Sendungen,
+- kontrolliert live nur als explizit bestaetigter Capability-One-Shot,
+- 10-Minuten-Soak mit 5-Sekunden-Sampling,
+- Recovery-Nachweis nur mit an denselben Candidate gebundener 8.6.8-Replay-Evidenz.
+
+Umsetzungs-/Vorbereitungsnachweis: `BLOCK-8-6-9-FREIGABE-VORBEREITUNG.md`.
+
+Noch nicht als bestanden markiert werden duerfen Candidate-Deployment, realer Schattenlauf, kontrollierter Live-Lauf oder Soak.
 
 ## Folgeabhaengigkeiten
 
