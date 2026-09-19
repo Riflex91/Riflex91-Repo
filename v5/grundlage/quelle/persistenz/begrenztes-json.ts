@@ -3,7 +3,7 @@ export interface BegrenztesJsonOptionen {
   readonly erlaubteSchemaVersionen: readonly number[];
 }
 
-function utf8ByteLaenge(text: string): number {
+export function utf8ByteLaenge(text: string): number {
   let bytes = 0;
   for (const zeichen of text) {
     const codepoint = zeichen.codePointAt(0);
