@@ -45,6 +45,8 @@ class Alpha27BankRecovery {
     this.lastCandidate = null;
     this.lastAction = null;
     this.batchSession = null;
+    this.bankVisibilityWaitUntil = -Infinity;
+    this.nextBatchAt = -Infinity;
     this.stats = {
       bankTravels: 0,
       scans: 0,
@@ -255,6 +257,7 @@ class Alpha27BankRecovery {
     const session = this.batchSession;
     if (!session) return null;
     this.batchSession = null;
+    if (reason === 'BANK_WORK_BLOCK_TARGET_REACHED') this.nextBatchAt = this.now() + 60000;
     this.stats.batchesCompleted += 1;
     const completed = { ...clone(session), endedAt: this.now(), reason };
     this._event('ALPHA27_BANK_RECOVERY_BATCH_COMPLETED', 'info', reason, completed);
@@ -272,6 +275,14 @@ class Alpha27BankRecovery {
     const recovering = this.executor.activeOperation && !['COMMITTED', 'ABORTED', 'FAILED_SAFE'].includes(String(this.executor.activeOperation.state || ''));
 
     if (!c.bank || typeof c.bank !== 'object') {
+      if (this.now() < this.bankVisibilityWaitUntil) {
+        return {
+          action: 'HOLD',
+          reason: 'BANK_RECOVERY_WAITING_FOR_BANK_VISIBILITY',
+          keepTask: true,
+          pressure
+        };
+      }
       if (recovering || this.now() >= this.nextProbeAt) {
         return {
           action: 'TRAVEL_BANK',
@@ -283,9 +294,20 @@ class Alpha27BankRecovery {
       return null;
     }
 
+    this.bankVisibilityWaitUntil = -Infinity;
     this.stats.scans += 1;
     this.lastProbeAt = this.now();
     this.nextProbeAt = this.now() + this.probeIntervalMs;
+
+    if (!this.batchSession && this.now() < this.nextBatchAt) {
+      return {
+        action: 'HOLD',
+        reason: 'BANK_WORK_BLOCK_READY_FOR_PROCESSING',
+        keepTask: false,
+        pressure,
+        retryAt: this.nextBatchAt
+      };
+    }
 
     if (recovering) {
       return { action: 'RECONCILE', reason: 'BANK_RECOVERY_OPERATION_RECOVERING', pressure };
@@ -338,8 +360,10 @@ class Alpha27BankRecovery {
       const ok = result === true || !!(result && result.ok === true);
       if (ok) {
         this.stats.bankTravels += 1;
-        // Bank data can appear a tick after smart_move resolves. Give the client a
-        // short visibility window before another outside-bank probe is permitted.
+        // Bank data can appear a tick after smart_move resolves. Keep the bank
+        // work task latched through this visibility window so progression cannot
+        // pull the Merchant away before the batch is planned.
+        this.bankVisibilityWaitUntil = this.now() + 5000;
         this.nextProbeAt = this.now() + 5000;
       }
       this.lastAction = { at: this.now(), result: ok ? 'TRAVELLED' : 'FAILED_SAFE', reason: plan.reason, travel: clone(result) };
@@ -441,6 +465,8 @@ class Alpha27BankRecovery {
       batchRecovery: true,
       batchMaxRows: Math.max(1, Math.floor(finite(this.options.bankRecoveryBatchMaxRows, 12))),
       activeBatch: clone(this.batchSession),
+      bankVisibilityWaitUntil: Number.isFinite(this.bankVisibilityWaitUntil) ? this.bankVisibilityWaitUntil : null,
+      nextBatchAt: Number.isFinite(this.nextBatchAt) ? this.nextBatchAt : null,
       outsideBankProbeIntervalMs: this.probeIntervalMs,
       nextProbeAt: Number.isFinite(this.nextProbeAt) ? this.nextProbeAt : null,
       lastProbeAt: Number.isFinite(this.lastProbeAt) ? this.lastProbeAt : null,
