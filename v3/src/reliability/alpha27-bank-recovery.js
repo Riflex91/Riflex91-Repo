@@ -283,7 +283,13 @@ class Alpha27BankRecovery {
           pressure
         };
       }
-      if (recovering || this.now() >= this.nextProbeAt) {
+      // Do not invent a Bank trip merely because this module exists. In live
+      // runtime the persistent catalog is the evidence that Bank work is a real
+      // responsibility; stripped-down contexts/tests without a catalog must
+      // leave unrelated SELL/production work alone.
+      const catalog = this.runtime.merchantBankCatalog;
+      const catalogAvailable = !!(catalog && typeof catalog.status === 'function');
+      if (recovering || (catalogAvailable && this.now() >= this.nextProbeAt)) {
         return {
           action: 'TRAVEL_BANK',
           reason: recovering ? 'BANK_RECOVERY_RECONCILIATION_REQUIRES_BANK' : 'BANK_RECOVERY_PROBE_DUE',
