@@ -21,7 +21,9 @@ const Action = Object.freeze({
   TRANSFER_COMMIT: 'TRANSFER_COMMIT',
   STOP_FULL: 'STOP_FULL',
   RENDEZVOUS: 'RENDEZVOUS',
-  ELIXIR_FARM_OBJECTIVE: 'ELIXIR_FARM_OBJECTIVE'
+  ELIXIR_FARM_OBJECTIVE: 'ELIXIR_FARM_OBJECTIVE',
+  PRODUCTION_MATERIAL_OBJECTIVE: 'PRODUCTION_MATERIAL_OBJECTIVE',
+  PRODUCTION_MATERIAL_CLEAR: 'PRODUCTION_MATERIAL_CLEAR'
 });
 
 function finite(value, fallback = null) {
@@ -112,7 +114,8 @@ class ControlledPartyLogistics {
       rejectedLootBackoffMs: Math.max(5000, Math.min(10 * 60 * 1000, finite(options.rejectedLootBackoffMs, 120000))),
       elixirRenewLeadMs: Math.max(60000, finite(options.elixirRenewLeadMs, 10 * 60 * 1000)),
       elixirRequestIntervalMs: Math.max(30000, finite(options.elixirRequestIntervalMs, 5 * 60 * 1000)),
-      elixirFarmObjectiveTtlMs: Math.max(60000, finite(options.elixirFarmObjectiveTtlMs, 15 * 60 * 1000))
+      elixirFarmObjectiveTtlMs: Math.max(60000, finite(options.elixirFarmObjectiveTtlMs, 15 * 60 * 1000)),
+      productionMaterialPublishCooldownMs: Math.max(5000, finite(options.productionMaterialPublishCooldownMs, 30000))
     };
 
     this.sequence = 0;
@@ -123,6 +126,8 @@ class ControlledPartyLogistics {
     this.lastElixirEquipAt = -Infinity;
     this.pendingElixirEquip = null;
     this.lastElixirFarmObjective = null;
+    this.lastProductionMaterialObjective = null;
+    this.lastProductionMaterialPublishAt = -Infinity;
     this.lastStatusRequestAt = -Infinity;
     this.lastTransferAt = -Infinity;
     this.lastRendezvousMoveAt = -Infinity;
@@ -172,7 +177,9 @@ class ControlledPartyLogistics {
       elixirTransfers: 0,
       elixirEquips: 0,
       elixirEquipVerified: 0,
-      elixirFarmObjectives: 0
+      elixirFarmObjectives: 0,
+      productionMaterialObjectives: 0,
+      productionMaterialClears: 0
     };
     this.install();
   }
@@ -633,6 +640,49 @@ class ControlledPartyLogistics {
       return true;
     }
 
+    if (action === Action.PRODUCTION_MATERIAL_OBJECTIVE) {
+      if (!merchant || from !== merchant || this._isMerchant()) return false;
+      const expiresAt = finite(data.expiresAt);
+      if (expiresAt == null || expiresAt <= this.now()) return false;
+      const farmer = this.runtime && this.runtime.farmer;
+      const monster = cleanName(data.monster);
+      const material = cleanName(data.material);
+      const map = cleanName(data.map);
+      if (!farmer || !monster || !material || !map) return false;
+      farmer.materialObjective = {
+        kind: 'PRODUCTION_MATERIAL',
+        objectiveId: cleanName(data.objectiveId),
+        monster,
+        material,
+        level: Math.max(0, Math.floor(finite(data.level, 0))),
+        requiredQuantity: Math.max(1, Math.floor(finite(data.requiredQuantity, 1))),
+        output: cleanName(data.output),
+        recipient: cleanName(data.recipient),
+        slot: cleanName(data.slot),
+        map,
+        x: finite(data.x),
+        y: finite(data.y),
+        spawnIndex: finite(data.spawnIndex),
+        expectedHours: finite(data.expectedHours),
+        totalExpectedHours: finite(data.totalExpectedHours),
+        maxTeamFarmHours: finite(data.maxTeamFarmHours),
+        utilityPerFarmHour: finite(data.utilityPerFarmHour),
+        evidence: cleanName(data.evidence),
+        expiresAt
+      };
+      return true;
+    }
+
+    if (action === Action.PRODUCTION_MATERIAL_CLEAR) {
+      if (!merchant || from !== merchant || this._isMerchant()) return false;
+      const farmer = this.runtime && this.runtime.farmer;
+      if (!farmer || !farmer.materialObjective || farmer.materialObjective.kind !== 'PRODUCTION_MATERIAL') return true;
+      const objectiveId = cleanName(data.objectiveId);
+      if (objectiveId && farmer.materialObjective.objectiveId && objectiveId !== farmer.materialObjective.objectiveId) return true;
+      farmer.materialObjective = null;
+      return true;
+    }
+
     if (action === Action.SUPPLY_RESULT) {
       if (!merchant || from !== merchant || this._isMerchant()) return false;
       this.lastSupplyResult = { ...clone(data), receivedAt: this.now() };
@@ -963,6 +1013,71 @@ class ControlledPartyLogistics {
     };
   }
 
+  publishProductionMaterialObjective(objective = {}) {
+    if (!this._isMerchant()) return false;
+    const now = this.now();
+    const normalized = {
+      objectiveId: cleanName(objective.objectiveId),
+      output: cleanName(objective.output),
+      recipient: cleanName(objective.recipient),
+      slot: cleanName(objective.slot),
+      material: cleanName(objective.material),
+      level: Math.max(0, Math.floor(finite(objective.level, 0))),
+      requiredQuantity: Math.max(1, Math.floor(finite(objective.requiredQuantity, 1))),
+      monster: cleanName(objective.monster),
+      map: cleanName(objective.map),
+      x: finite(objective.x),
+      y: finite(objective.y),
+      spawnIndex: finite(objective.spawnIndex),
+      expectedHours: finite(objective.expectedHours),
+      totalExpectedHours: finite(objective.totalExpectedHours),
+      maxTeamFarmHours: finite(objective.maxTeamFarmHours),
+      utilityPerFarmHour: finite(objective.utilityPerFarmHour),
+      evidence: cleanName(objective.evidence),
+      createdAt: now,
+      expiresAt: finite(objective.expiresAt, now + 15 * 60 * 1000)
+    };
+    if (!normalized.objectiveId || !normalized.material || !normalized.monster || !normalized.map || normalized.expiresAt <= now) return false;
+    const previous = this.lastProductionMaterialObjective;
+    const same = previous
+      && previous.objectiveId === normalized.objectiveId
+      && previous.material === normalized.material
+      && previous.monster === normalized.monster
+      && previous.requiredQuantity === normalized.requiredQuantity
+      && previous.expiresAt > now;
+    if (same && now - this.lastProductionMaterialPublishAt < this.config.productionMaterialPublishCooldownMs) return true;
+
+    this.lastProductionMaterialObjective = clone(normalized);
+    this.lastProductionMaterialPublishAt = now;
+    for (const name of this._trustedNames()) {
+      if (name === this._localName()) continue;
+      Promise.resolve(this._send(name, Action.PRODUCTION_MATERIAL_OBJECTIVE, normalized)).catch(() => {});
+    }
+    this.stats.productionMaterialObjectives += 1;
+    this._event('PRODUCTION_MATERIAL_OBJECTIVE_PUBLISHED', 'info', 'TEAM_FARMS_ONE_MATERIAL_TOGETHER', normalized);
+    return true;
+  }
+
+  clearProductionMaterialObjective(reason = 'PRODUCTION_MATERIAL_OBJECTIVE_COMPLETE') {
+    if (!this._isMerchant()) return false;
+    const previous = this.lastProductionMaterialObjective;
+    if (!previous) return false;
+    const payload = {
+      objectiveId: previous.objectiveId,
+      material: previous.material,
+      output: previous.output,
+      reason: String(reason || 'PRODUCTION_MATERIAL_OBJECTIVE_COMPLETE')
+    };
+    for (const name of this._trustedNames()) {
+      if (name === this._localName()) continue;
+      Promise.resolve(this._send(name, Action.PRODUCTION_MATERIAL_CLEAR, payload)).catch(() => {});
+    }
+    this.lastProductionMaterialObjective = null;
+    this.stats.productionMaterialClears += 1;
+    this._event('PRODUCTION_MATERIAL_OBJECTIVE_CLEARED', 'info', payload.reason, payload);
+    return true;
+  }
+
   _maybePublishElixirFarmObjective(request) {
     if (!request || !request.elixirName) return false;
     if (this.lastElixirFarmObjective && this.lastElixirFarmObjective.expiresAt > this.now() && this.lastElixirFarmObjective.elixirName === request.elixirName) return false;
@@ -1197,6 +1312,8 @@ class ControlledPartyLogistics {
         merchantSupplyAllowlist: ['hpot0', 'mpot0', 'class-appropriate-elixir'],
         farmerElixirAutoUseAfterExpiry: true,
         elixirFarmObjectiveAutomatic: true,
+        productionMaterialObjectiveAutomatic: true,
+        productionMaterialTeamPolicy: 'ALL_FARMERS_SAME_OBJECTIVE',
         farmerLootPolicy: 'merchant-central-processing-nonbound-items',
         farmerProgressionGearTransfer: true,
         farmerGoldTransfer: true,
@@ -1216,6 +1333,7 @@ class ControlledPartyLogistics {
       pendingSupply: clone(this.pendingSupply),
       pendingElixirEquip: clone(this.pendingElixirEquip),
       lastElixirFarmObjective: clone(this.lastElixirFarmObjective),
+      lastProductionMaterialObjective: clone(this.lastProductionMaterialObjective),
       supplyRequests: [...this.supplyRequests.values()].map(clone),
       rendezvousRequests: [...this.rendezvousRequests.values()].map(clone),
       activeLootGrants: [...this.activeLootGrants.values()].map(clone),
