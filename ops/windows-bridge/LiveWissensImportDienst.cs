@@ -154,7 +154,7 @@ public sealed class LiveWissensImportDienst
             null);
     }
 
-    public static void ValidiereLiveFaktJson(ReadOnlySpan<byte> bytes)
+    public static void ValidiereLiveFaktJson(byte[] bytes)
     {
         using var dokument = JsonDocument.Parse(bytes);
         var root = dokument.RootElement;
