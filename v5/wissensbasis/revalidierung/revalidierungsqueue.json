@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-19",
+  "policy": {
+    "principle": "Live truth overrides stale snapshots for execution.",
+    "onGameUpdate": "Mark affected HIGH/MEDIUM volatility facts NEEDS_REVALIDATION until checked.",
+    "onContradiction": "Do not overwrite silently; attach new evidence and supersede/contradict explicitly."
+  },
+  "p0Research": [
+    {
+      "id": "V5-P0-01",
+      "title": "Action-Contract-Matrix aller wertverandernden Public Functions",
+      "status": "OPEN"
+    },
+    {
+      "id": "V5-P0-02",
+      "title": "Recovery-Semantik je Action inklusive UNKNOWN Outcome",
+      "status": "OPEN"
+    },
+    {
+      "id": "V5-P0-03",
+      "title": "Bank-Concurrency mehrerer eigener Characters",
+      "status": "OPEN"
+    },
+    {
+      "id": "V5-P0-04",
+      "title": "Trade Listing Lifecycle, RID und Partial Sale",
+      "status": "OPEN"
+    },
+    {
+      "id": "V5-P0-05",
+      "title": "Upgrade-/Compound-Formeln, Resultcodes und Disconnect-Semantik",
+      "status": "OPEN"
+    },
+    {
+      "id": "V5-P0-06",
+      "title": "Exchange-/Craft-Sonderfaelle und Outputspace",
+      "status": "OPEN"
+    },
+    {
+      "id": "V5-P0-07",
+      "title": "Request-/Call-Cost- und Rate-Limit-Modell",
+      "status": "OPEN"
+    }
+  ],
+  "highVolatilityTopics": [
+    "events",
+    "npc-placement",
+    "shops",
+    "market",
+    "bank-capacity",
+    "skill-values",
+    "rate-limits",
+    "server-switching",
+    "economy"
+  ],
+  "triggers": [
+    "Adventure Land update notes change",
+    "official source commit changes",
+    "live G.version changes",
+    "live observation contradicts stored fact",
+    "API contract changes"
+  ]
+}
