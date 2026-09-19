@@ -179,29 +179,66 @@ function bestDirectMaterialFarmSource(runtime, material, quantity, options = {})
     if (!(yieldPerKill > 0)) continue;
     const spawns = knownSpawns(gameData, monster);
     if (!spawns.length) continue;
-    const measuredKillsPerHour = bestMeasuredKillsPerHour(runtime, monster);
-    const killsPerHour = measuredKillsPerHour || fallbackKillsPerHour;
+    const measured = bestMeasuredKillRate(runtime, monster);
+    const killsPerHour = measured ? measured.killsPerHour : fallbackKillsPerHour;
     const unitsPerHour = yieldPerKill * killsPerHour;
     if (!(unitsPerHour > 0)) continue;
     for (const spawn of spawns) {
       if (!sourceSafe(runtime, monster, spawn)) continue;
-      candidates.push({
-        kind: 'DIRECT_MATERIAL_DROP',
+      const event = sourceEventDescriptor(runtime, gameData, {
         material: name,
+        targetMaterial: name,
+        monster,
+        map: spawn.map
+      });
+      if (event.required && (!event.verified || !event.active)) continue;
+      const time = probabilisticFarmTime({
+        requiredUnits: need,
+        unitsPerHour,
+        measured: !!measured,
+        sampleSeconds: measured && measured.seconds || 0,
+        evidence: measured ? measured.evidence : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR'
+      });
+      candidates.push({
+        kind: sourceKind({ direct: true, event: event.required }),
+        material: name,
+        targetMaterial: name,
         quantity: need,
         monster,
         yieldPerKill,
         killsPerHour,
-        measuredKillsPerHour,
-        evidence: measuredKillsPerHour ? 'MEASURED_KILLS_PER_HOUR' : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR',
+        measuredKillsPerHour: measured ? measured.killsPerHour : null,
+        measuredSampleSeconds: measured ? measured.seconds : 0,
+        evidence: measured ? measured.evidence : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR',
         unitsPerHour,
-        expectedHours: need / unitsPerHour,
+        expectedHours: time.expectedHours,
+        p50Hours: time.p50Hours,
+        p90Hours: time.p90Hours,
+        probabilityConfidence: time.confidence,
+        timeModel: time.model,
+        decisionQuantile: time.decisionQuantile,
+        rareDrop: time.rareDrop,
+        eventKey: event.eventKey,
+        eventType: event.eventType,
+        eventEndsAt: event.endsAt,
+        eventEvidence: event.evidence,
+        graphNode: {
+          kind: event.required ? 'EVENT_FARM' : 'FARM_DROP',
+          eventKey: event.eventKey,
+          material: name,
+          monster,
+          map: spawn.map,
+          quantity: need,
+          time: clone(time)
+        },
         ...spawn
       });
     }
   }
 
-  candidates.sort((a, b) => a.expectedHours - b.expectedHours
+  candidates.sort((a, b) => finite(a.p90Hours, Infinity) - finite(b.p90Hours, Infinity)
+    || finite(a.p50Hours, Infinity) - finite(b.p50Hours, Infinity)
+    || a.expectedHours - b.expectedHours
     || (b.measuredKillsPerHour != null ? 1 : 0) - (a.measuredKillsPerHour != null ? 1 : 0)
     || b.unitsPerHour - a.unitsPerHour
     || a.monster.localeCompare(b.monster)
