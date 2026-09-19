@@ -4,8 +4,8 @@
   "status": "RATIFIZIERUNG_OFFEN",
   "zusammenfassung": {
     "ausV4": 55,
-    "neuV5": 65,
-    "gesamt": 120
+    "neuV5": 75,
+    "gesamt": 130
   },
   "regel": "Alle 55 V4-Invarianten muessen in R2 explizit UEBERNEHMEN, VERSCHAERFEN oder ERSETZEN erhalten. Keine darf still entfallen.",
   "invarianten": [
@@ -1088,6 +1088,96 @@
       "ratifizierungsStatus": "V5_VERBINDLICH",
       "v5Entscheidung": "UEBERNEHMEN",
       "begruendung": "Neue/replazierte Listings erhalten eine neue RID; stale Planung darf nicht gegen neue Markttruth ausgefuehrt werden."
+    },
+    {
+      "kennung": "V5-INV-066",
+      "herkunft": "V5_NEU",
+      "aussage": "Upgrade-/Compound-Preview ist PlanningEvidence und darf keinen echten Send autorisieren; physische Inputs werden unmittelbar vor Execution erneut revalidiert.",
+      "geplanteDurchsetzung": "Execution Admission + Evidence Types",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "calculate=true mutiert keine Inputs/q, aber Inputs koennen danach driften."
+    },
+    {
+      "kennung": "V5-INV-067",
+      "herkunft": "V5_NEU",
+      "aussage": "Ein attributable q.upgrade/q.compound oder Placeholder bedeutet eine akzeptierte laufende Mutation; der Roll kann serverseitig bereits feststehen.",
+      "geplanteDurchsetzung": "Transaction State Machine",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Server konsumiert Inputs/Consumables und speichert Outcome-State vor Timerende."
+    },
+    {
+      "kennung": "V5-INV-068",
+      "herkunft": "V5_NEU",
+      "aussage": "Nach moeglichem Upgrade-/Compound-Send ist Same-Intent-Retry verboten; Recovery erfolgt ausschliesslich ueber frische Postcondition-Reconciliation.",
+      "geplanteDurchsetzung": "Recovery Contract + Journal Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Mehrphasige Mutation kann bereits Consumables oder mehrere Items verbraucht haben."
+    },
+    {
+      "kennung": "V5-INV-069",
+      "herkunft": "V5_NEU",
+      "aussage": "upgrade_fail wird niemals ohne Pfad-Postcondition als Itemverlust interpretiert.",
+      "geplanteDurchsetzung": "Upgrade Settlement Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "scroll4- und Material-Offering-Failures erhalten das Zielitem trotz upgrade_fail."
+    },
+    {
+      "kennung": "V5-INV-070",
+      "herkunft": "V5_NEU",
+      "aussage": "Stat-Scroll und Offering-only Upgrade besitzen eigene Domain-Postconditions und werden nicht als Level+1 modelliert.",
+      "geplanteDurchsetzung": "Typed Upgrade Path State Machine",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "pscroll aendert stat_type; Offering-only aendert Grace/Shiny statt Level."
+    },
+    {
+      "kennung": "V5-INV-071",
+      "herkunft": "V5_NEU",
+      "aussage": "Compound haelt Claims auf allen drei exakten physischen Input-Identitaeten bis zum terminalen Settlement.",
+      "geplanteDurchsetzung": "Inventory Ledger + Transaction Claims",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Item1/2 werden bereits beim Start entfernt; Failure verliert alle drei, Success liefert einen Output."
+    },
+    {
+      "kennung": "V5-INV-072",
+      "herkunft": "V5_NEU",
+      "aussage": "Upgrade/Compound claimen Scroll, Offering und relevante massproduction-Conditions bis Settlement; Consumption waehrend q ist kein frei verfuegbarer Restzustand.",
+      "geplanteDurchsetzung": "Resource Manager",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Consumables und Conditions koennen vor Timerende verbraucht werden."
+    },
+    {
+      "kennung": "V5-INV-073",
+      "herkunft": "V5_NEU",
+      "aussage": "Server-Preview-Chance wird zusammen mit Input-/Source-Fingerprint gespeichert und nicht als zeitlose oder vollstaendige effektive Erfolgswahrscheinlichkeit behandelt.",
+      "geplanteDurchsetzung": "Probability Evidence Contract",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Source enthaelt Grace-/Offering-Drift und einen zusaetzlichen target-slot Roll-Modifier."
+    },
+    {
+      "kennung": "V5-INV-074",
+      "herkunft": "V5_NEU",
+      "aussage": "Booster-Compound-Level wird aus dem final beobachteten Output reconciliert; rekursive Offering-Procs werden nicht vorab als deterministisches +1 angenommen.",
+      "geplanteDurchsetzung": "Compound Postcondition",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Booster kann nach erfolgreichem Compound ueber 12%,6%,3%... mehrere Extra-Level erhalten."
+    },
+    {
+      "kennung": "V5-INV-075",
+      "herkunft": "V5_NEU",
+      "aussage": "Upgrade- und Compound-FIFO-Channels werden jeweils strikt serialisiert; getrennte Channels ersetzen dennoch keine gemeinsamen Inventory-/Consumable-Claims.",
+      "geplanteDurchsetzung": "ActionChannel + Resource Scheduler",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "FIFO-Korrelation ist channel-lokal, waehrend beide Workflows dieselben Inventarressourcen beruehren koennen."
     }
   ]
 }
