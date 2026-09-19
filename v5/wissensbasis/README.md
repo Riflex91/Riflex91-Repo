@@ -110,3 +110,20 @@ v5/entwicklungsregeln/wissensnutzung.json
 - unmittelbar vor Game Writes gewinnt weiterhin frische Live Truth.
 
 Spaetere Runtime-Module greifen nicht direkt auf GitHub-TXT-Dateien zu. Sie verwenden einen validierten, read-only `WissensZugriffPort` mit einem versionierten `WissensSnapshot`.
+
+
+### Bot-Livewissen als Live Truth
+
+Die Windows Bridge kann einen lokal konfigurierten Bot-Ausgabeordner von der SSD in die Wissensbasis spiegeln. Diese Daten werden als vom Bot erzeugte Live-Evidence mit dem Status `LIVE_VERIFIZIERT_DURCH_BOT` abgelegt und sind von Web-Kandidaten getrennt.
+
+Ablage:
+
+```text
+v5/wissensbasis/datenbank/live-verifiziert/
+  manifest.json
+  aktuell/**
+```
+
+Die relative Bot-Unterordnerstruktur bleibt erhalten, damit die spaetere V5-Ordnerstruktur heute noch nicht festgelegt werden muss. Der absolute lokale SSD-Pfad ist absichtlich **kein Bestandteil** der Wissensbasis und wird nie ins Repo geschrieben.
+
+Wichtig: `LIVE_VERIFIZIERT_DURCH_BOT` beschreibt die Herkunft aus dem vom Betreiber konfigurierten Bot-Liveordner. Gameplay-Autoritaet entsteht trotzdem weiterhin nur durch frische Laufzeitpruefungen und die bestehenden Admission-/Safety-Gates.

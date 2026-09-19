@@ -61,6 +61,9 @@
     "aenderungsprotokoll": "datenbank/aenderungsprotokoll.jsonl",
     "kandidaten": "datenbank/kandidaten.json",
     "aktuelleSnapshotsVerzeichnis": "datenbank/aktuell",
+    "liveVerifiziertManifest": "datenbank/live-verifiziert/manifest.json",
+    "liveVerifiziertVerzeichnis": "datenbank/live-verifiziert/aktuell",
+    "liveVerifiziertOptionalBisKonfiguriert": true,
     "aenderungsprotokollFormat": "JSONL_EIN_OBJEKT_PRO_ZEILE"
   },
   "konsumentenVertrag": {
