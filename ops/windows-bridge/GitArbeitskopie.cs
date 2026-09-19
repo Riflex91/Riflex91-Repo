@@ -4,10 +4,9 @@ public sealed class GitArbeitskopie
 {
     public const string RepositoryUrl = "https://github.com/Riflex91/Riflex91-Repo.git";
     public const string ZielBranch = "main";
-    public const string AutomatischerWissensPfad = "v5/wissensbasis/automatisch";
+    public const string DatenbankPfad = "v5/wissensbasis/datenbank";
 
     private readonly string _wurzel;
-    private string? _basisCommit;
 
     public GitArbeitskopie(string? wurzel = null)
     {
@@ -43,7 +42,10 @@ public sealed class GitArbeitskopie
                 TimeSpan.FromSeconds(20));
             VerlangeErfolg(remote, "GIT_REMOTE_NICHT_LESBAR");
 
-            if (!string.Equals(NormalisiereRemote(remote.Ausgabe), NormalisiereRemote(RepositoryUrl), StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(
+                    NormalisiereRemote(remote.Ausgabe),
+                    NormalisiereRemote(RepositoryUrl),
+                    StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("GIT_REMOTE_UNERWARTET");
         }
 
@@ -59,13 +61,11 @@ public sealed class GitArbeitskopie
             cancellationToken,
             TimeSpan.FromSeconds(30)), "GIT_CHECKOUT_FEHLGESCHLAGEN");
 
-        var basis = await GitHubAnmeldung.FuehreGitAusAsync(
-            ["rev-parse", "HEAD"],
+        VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
+            ["reset", "--hard", $"origin/{ZielBranch}"],
             _wurzel,
             cancellationToken,
-            TimeSpan.FromSeconds(15));
-        VerlangeErfolg(basis, "GIT_BASIS_COMMIT_NICHT_LESBAR");
-        _basisCommit = basis.Ausgabe.Trim();
+            TimeSpan.FromSeconds(30)), "GIT_RESET_FEHLGESCHLAGEN");
 
         var benutzername = githubKonto.Trim();
         var email = $"{benutzername}@users.noreply.github.com";
@@ -83,68 +83,53 @@ public sealed class GitArbeitskopie
             TimeSpan.FromSeconds(15)), "GIT_EMAIL_KONFIGURATION_FEHLGESCHLAGEN");
     }
 
-    public string LoeseWissensPfadAuf(string relativerPfad)
+    public string LoeseDatenbankPfadAuf(string relativerPfad)
     {
-        if (!IstErlaubterWissensPfad(relativerPfad))
-            throw new InvalidOperationException("WISSENS_PFAD_NICHT_ERLAUBT");
+        if (!IstErlaubterDatenbankPfad(relativerPfad))
+            throw new InvalidOperationException("DATENBANK_PFAD_NICHT_ERLAUBT");
 
         var kombiniert = Path.Combine(
             _wurzel,
             relativerPfad.Replace('/', Path.DirectorySeparatorChar));
         var voll = Path.GetFullPath(kombiniert);
-        var erlaubteWurzel = Path.GetFullPath(Path.Combine(_wurzel, AutomatischerWissensPfad));
+        var erlaubteWurzel = Path.GetFullPath(Path.Combine(_wurzel, DatenbankPfad));
 
         if (!voll.StartsWith(erlaubteWurzel + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
             && !string.Equals(voll, erlaubteWurzel, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("WISSENS_PFAD_AUSBRUCH_VERHINDERT");
+            throw new InvalidOperationException("DATENBANK_PFAD_AUSBRUCH_VERHINDERT");
 
         return voll;
     }
 
-    public static bool IstErlaubterWissensPfad(string? relativerPfad)
+    public static bool IstErlaubterDatenbankPfad(string? relativerPfad)
     {
         if (string.IsNullOrWhiteSpace(relativerPfad)) return false;
+
         var normalisiert = relativerPfad.Replace('\\', '/').Trim('/');
         if (normalisiert.Contains("../", StringComparison.Ordinal)
             || normalisiert.EndsWith("/..", StringComparison.Ordinal)
             || normalisiert == "..")
             return false;
 
-        return string.Equals(normalisiert, AutomatischerWissensPfad, StringComparison.Ordinal)
-            || normalisiert.StartsWith(AutomatischerWissensPfad + "/", StringComparison.Ordinal);
+        return string.Equals(normalisiert, DatenbankPfad, StringComparison.Ordinal)
+            || normalisiert.StartsWith(DatenbankPfad + "/", StringComparison.Ordinal);
     }
 
     public async Task<bool> CommitUndPushAsync(
         string commitNachricht,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(_basisCommit))
-            throw new InvalidOperationException("GIT_BASIS_COMMIT_FEHLT");
+        if (string.IsNullOrWhiteSpace(commitNachricht))
+            throw new InvalidOperationException("GIT_COMMIT_NACHRICHT_FEHLT");
 
         VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
-            ["fetch", "origin", ZielBranch],
-            _wurzel,
-            cancellationToken,
-            TimeSpan.FromMinutes(2)), "GIT_FETCH_VOR_PUSH_FEHLGESCHLAGEN");
-
-        var remoteKopf = await GitHubAnmeldung.FuehreGitAusAsync(
-            ["rev-parse", $"origin/{ZielBranch}"],
-            _wurzel,
-            cancellationToken,
-            TimeSpan.FromSeconds(15));
-        VerlangeErfolg(remoteKopf, "GIT_REMOTE_KOPF_NICHT_LESBAR");
-
-        if (!string.Equals(_basisCommit, remoteKopf.Ausgabe.Trim(), StringComparison.Ordinal))
-            throw new InvalidOperationException("REPO_WAEHREND_WISSENSLAUF_GEAENDERT");
-
-        VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
-            ["add", "--", AutomatischerWissensPfad],
+            ["add", "--", DatenbankPfad],
             _wurzel,
             cancellationToken,
             TimeSpan.FromSeconds(30)), "GIT_ADD_FEHLGESCHLAGEN");
 
         var diff = await GitHubAnmeldung.FuehreGitAusAsync(
-            ["diff", "--cached", "--quiet", "--", AutomatischerWissensPfad],
+            ["diff", "--cached", "--quiet", "--", DatenbankPfad],
             _wurzel,
             cancellationToken,
             TimeSpan.FromSeconds(30));
@@ -153,11 +138,40 @@ public sealed class GitArbeitskopie
         if (diff.ExitCode != 1)
             throw new InvalidOperationException("GIT_DIFF_FEHLGESCHLAGEN:" + diff.Fehlerausgabe);
 
+        await VerifiziereGestagetePfadeAsync(cancellationToken);
+
         VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
             ["commit", "-m", commitNachricht],
             _wurzel,
             cancellationToken,
             TimeSpan.FromMinutes(1)), "GIT_COMMIT_FEHLGESCHLAGEN");
+
+        // Der Waechter darf jederzeit schreiben. Wenn main waehrend des Laufs weiterlief,
+        // werden fremde Commits zuerst integriert. Nur Datenbankdateien befinden sich in
+        // unserem Commit; Konflikte werden fail-closed behandelt und nie mit force gepusht.
+        VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
+            ["fetch", "origin", ZielBranch],
+            _wurzel,
+            cancellationToken,
+            TimeSpan.FromMinutes(2)), "GIT_FETCH_VOR_PUSH_FEHLGESCHLAGEN");
+
+        var rebase = await GitHubAnmeldung.FuehreGitAusAsync(
+            ["rebase", $"origin/{ZielBranch}"],
+            _wurzel,
+            cancellationToken,
+            TimeSpan.FromMinutes(2));
+
+        if (!rebase.Erfolgreich)
+        {
+            await GitHubAnmeldung.FuehreGitAusAsync(
+                ["rebase", "--abort"],
+                _wurzel,
+                cancellationToken,
+                TimeSpan.FromSeconds(30));
+            throw new InvalidOperationException("GIT_REBASE_KONFLIKT:" + rebase.Fehlerausgabe);
+        }
+
+        await VerifiziereLetztenCommitAsync(cancellationToken);
 
         VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
             ["push", "origin", $"HEAD:{ZielBranch}"],
@@ -166,6 +180,45 @@ public sealed class GitArbeitskopie
             TimeSpan.FromMinutes(2)), "GIT_PUSH_FEHLGESCHLAGEN");
 
         return true;
+    }
+
+    private async Task VerifiziereGestagetePfadeAsync(CancellationToken cancellationToken)
+    {
+        var liste = await GitHubAnmeldung.FuehreGitAusAsync(
+            ["diff", "--cached", "--name-only"],
+            _wurzel,
+            cancellationToken,
+            TimeSpan.FromSeconds(20));
+        VerlangeErfolg(liste, "GIT_STAGE_LISTE_FEHLGESCHLAGEN");
+
+        foreach (var pfad in ZerlegePfade(liste.Ausgabe))
+        {
+            if (!IstErlaubterDatenbankPfad(pfad))
+                throw new InvalidOperationException("GIT_STAGE_AUSSERHALB_DATENBANK:" + pfad);
+        }
+    }
+
+    private async Task VerifiziereLetztenCommitAsync(CancellationToken cancellationToken)
+    {
+        var liste = await GitHubAnmeldung.FuehreGitAusAsync(
+            ["diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"],
+            _wurzel,
+            cancellationToken,
+            TimeSpan.FromSeconds(20));
+        VerlangeErfolg(liste, "GIT_COMMIT_LISTE_FEHLGESCHLAGEN");
+
+        foreach (var pfad in ZerlegePfade(liste.Ausgabe))
+        {
+            if (!IstErlaubterDatenbankPfad(pfad))
+                throw new InvalidOperationException("GIT_COMMIT_AUSSERHALB_DATENBANK:" + pfad);
+        }
+    }
+
+    private static IEnumerable<string> ZerlegePfade(string ausgabe)
+    {
+        return ausgabe.Split(
+            ['\r', '\n'],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     private static string NormalisiereRemote(string wert)
