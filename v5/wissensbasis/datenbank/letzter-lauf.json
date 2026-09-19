@@ -3,10 +3,10 @@
   "gestartetAm": "2026-09-19T22:50:15.636642+00:00",
   "beendetAm": "2026-09-19T22:50:22.117702+00:00",
   "intervallMinuten": 60,
-  "gepruefteQuellen": 21,
-  "geaenderteQuellen": 1,
+  "gepruefteQuellen": 22,
+  "geaenderteQuellen": 2,
   "neueKandidaten": 0,
-  "registrierteQuellen": 21,
+  "registrierteQuellen": 22,
   "uploadStatus": "GITHUB_PUSH_GEPLANT",
   "sicherheitsHinweis": "Automatische Funde werden nur nach bestaetigtem Bezug zu Adventure Land - The Code MMORPG gespeichert. Community-Funde werden nicht automatisch zu bestaetigten Fakten.",
   "liveWissenStatus": "WARTET_AUF_BOT",
@@ -14,5 +14,7 @@
   "liveWissenDateien": 0,
   "liveWissenBytes": 0,
   "liveWissenSnapshotSha256": null,
-  "liveWissenHinweis": "LOKALE_LIVE_WISSENSDATENBANK_FEHLT"
+  "liveWissenHinweis": "LOKALE_LIVE_WISSENSDATENBANK_FEHLT",
+  "quellenregistrierungNachgetragenAm": "2026-09-19T23:55:35.0000000+00:00",
+  "quellenregistrierungHinweis": "AL-DATA-NPCS wurde bei R6 gegen den offiziellen Upstream separat revalidiert; kein vollstaendiger Windows-Bridge-Lauf vorgetaeuscht."
 }
