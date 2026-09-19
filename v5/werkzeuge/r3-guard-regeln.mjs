@@ -49,6 +49,18 @@ export function pruefeQuelltext(relativerPfad, quelltext) {
     fehler.push("DIREKTER_NETZWERKZUGRIFF");
   }
 
+  const istHotPath = [
+    "kampf/quelle/",
+    "bewegung/quelle/",
+    "scheduler/quelle/",
+    "ausfuehrung/quelle/",
+  ].some(prefix => pfad.startsWith(prefix));
+
+  if (istHotPath
+      && /(?:from\s+|import\s*\()\s*["'][^"']*(?:grundlage\/adapter\/persistenz|persistenz\/adapter)\//.test(quelltext)) {
+    fehler.push("SSD_HOT_PATH_ZUGRIFF");
+  }
+
   if (/\bDate\.now\s*\(|\bnew\s+Date\s*\(/.test(quelltext)
       && !pfad.startsWith("grundlage/quelle/determinismus/adapter/")) {
     fehler.push("DIREKTE_SYSTEMZEIT");
