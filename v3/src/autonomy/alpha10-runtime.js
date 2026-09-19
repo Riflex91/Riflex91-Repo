@@ -34,10 +34,7 @@ class Alpha10Runtime extends Alpha9Runtime {
     const gameData = this.adapter.getGameData() || {};
     const candidates = this.localFarmPlanner.spawnCandidates(snapshot, gameData, this.world, party);
     const teacherRanking = candidates.length
-      ? this.planner.rank(candidates, {
-          character: snapshot.character.name || null,
-          partyFingerprint: party.fingerprint || null
-        })
+      ? this.localFarmPlanner.rank(snapshot, gameData, this.world, party, this.planner)
       : [];
     const localStatus = this.localFarming && typeof this.localFarming.status === 'function'
       ? this.localFarming.status()
