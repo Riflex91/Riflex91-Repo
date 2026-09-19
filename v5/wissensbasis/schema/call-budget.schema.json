@@ -4,20 +4,101 @@
   "title": "V5 Adventure Land Call Cost and Rate Limit Contract",
   "type": "object",
   "required": [
-    "schemaVersion","researchId","status","sourceSnapshot",
-    "gameSocket","deferredQueues","clientSafeties","externalApi","mainframeCpu","v5Policy","invariants"
+    "schemaVersion",
+    "researchId",
+    "status",
+    "sourceSnapshot",
+    "gameSocket",
+    "deferredQueues",
+    "clientSafeties",
+    "externalApi",
+    "mainframeCpu",
+    "v5Policy",
+    "invariants"
   ],
   "properties": {
-    "schemaVersion":{"const":1},
-    "researchId":{"const":"V5-P0-07"},
-    "status":{"const":"DONE"},
-    "sourceSnapshot":{"type":"object"},
-    "gameSocket":{"type":"object"},
-    "deferredQueues":{"type":"object"},
-    "clientSafeties":{"type":"object"},
-    "externalApi":{"type":"object"},
-    "mainframeCpu":{"type":"object"},
-    "v5Policy":{"type":"object"},
-    "invariants":{"type":"array","minItems":12,"items":{"type":"string"}}
+    "schemaVersion": {
+      "const": 1
+    },
+    "researchId": {
+      "const": "V5-P0-07"
+    },
+    "status": {
+      "const": "DONE"
+    },
+    "sourceSnapshot": {
+      "type": "object",
+      "required": [
+        "officialRepo",
+        "commit",
+        "verifiedAt"
+      ]
+    },
+    "gameSocket": {
+      "type": "object",
+      "required": [
+        "resource",
+        "scope",
+        "windowMs",
+        "serverLimit",
+        "accounting",
+        "incomingEventBaseCostMin",
+        "configuredCcEvidence",
+        "dynamicCostEvidence",
+        "internalAdditionalCosts",
+        "limitBehavior",
+        "diagnostic"
+      ]
+    },
+    "deferredQueues": {
+      "type": "object",
+      "required": [
+        "technicalMaxEntries",
+        "managedMutatingFifoMaxInFlight",
+        "queueOverflowDistinctFromLimitDc"
+      ]
+    },
+    "clientSafeties": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "disableForThroughput",
+        "examples"
+      ]
+    },
+    "externalApi": {
+      "type": "object",
+      "required": [
+        "separateFromGameSocket",
+        "algorithm",
+        "limits",
+        "on429"
+      ]
+    },
+    "mainframeCpu": {
+      "type": "object",
+      "required": [
+        "metric",
+        "separateFromGameSocket"
+      ]
+    },
+    "v5Policy": {
+      "type": "object",
+      "required": [
+        "plannedWeightedBudgetPerWindow",
+        "serverLimitPerWindow",
+        "reservePerWindow",
+        "globalAcrossActionChannels",
+        "unknownInternalReserveRequired",
+        "autoOptimizeToServerMax"
+      ]
+    },
+    "invariants": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "string"
+      }
+    }
   }
 }
