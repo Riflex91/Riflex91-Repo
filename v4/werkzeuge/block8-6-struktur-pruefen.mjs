@@ -24,7 +24,11 @@ const dateien = [
   'laufzeit/quelle/ausfuehrung/adventure-land-capability-sync-austausch.ts',
   'laufzeit/tests/capability-sync.test.mjs',
   'laufzeit/tests/capability-sync-austausch.test.mjs',
+  'laufzeit/quelle/vertraege/capability-gruppenwahl.ts',
+  'laufzeit/quelle/spiellogik/capability-gruppenwahl.ts',
+  'laufzeit/tests/capability-gruppenwahl.test.mjs',
   'dokumentation/BLOCK-8-6-1-SKILL-KATALOG.md',
+  'dokumentation/BLOCK-8-6-6-CAPABILITY-GRUPPENWAHL.md',
   'dokumentation/BLOCK-8-6-5-CAPABILITY-SYNC.md',
   'dokumentation/BLOCK-8-6-4-CHARAKTER-FAEHIGKEITEN.md',
   'dokumentation/BLOCK-8-6-3-SKILL-POLICY.md',
@@ -301,7 +305,9 @@ for (const pflicht of [
   "export * from './spiellogik/charakter-faehigkeiten.js';",
   "export * from './vertraege/capability-sync.js';",
   "export * from './spiellogik/capability-sync.js';",
-  "export * from './ausfuehrung/adventure-land-capability-sync-austausch.js';"
+  "export * from './ausfuehrung/adventure-land-capability-sync-austausch.js';",
+  "export * from './vertraege/capability-gruppenwahl.js';",
+  "export * from './spiellogik/capability-gruppenwahl.js';"
 ]) {
   if (!index.includes(pflicht)) throw new Error('V4-Index exportiert Block 8.6.3 nicht: ' + pflicht);
 }
@@ -524,6 +530,91 @@ for (const pflicht of [
   if (!capabilitySyncDokument.includes(pflicht)) throw new Error('Block-8.6.5-Dokumentation fehlt: ' + pflicht);
 }
 
+
+const capabilityGruppenwahlVertrag = await readFile(path.join(wurzel, 'laufzeit/quelle/vertraege/capability-gruppenwahl.ts'), 'utf8');
+for (const pflicht of [
+  'CAPABILITY_GRUPPENWAHL_SCHEMA_VERSION = 1',
+  'gruppenKoordinationErlaubt',
+  'leaderKennung',
+  'leaderKandidaten',
+  'aufgabenZuordnung',
+  'ausgeschlosseneTeilnehmer',
+  'aktionsAutoritaet: false'
+]) {
+  if (!capabilityGruppenwahlVertrag.includes(pflicht)) throw new Error('Block-8.6.6-CapabilityGruppenwahl-Vertrag fehlt: ' + pflicht);
+}
+
+const capabilityGruppenwahlQuelle = await readFile(path.join(wurzel, 'laufzeit/quelle/spiellogik/capability-gruppenwahl.ts'), 'utf8');
+for (const pflicht of [
+  'waehleCapabilityBasierteGruppenrollen',
+  'GRUPPEN_CAPABILITY_TAGS',
+  "basis.betriebsArt !== 'normal'",
+  'gruppenKoordinationErlaubt',
+  "pruefung.status === 'vertraut'",
+  'snapshot.lebensnachweisGesendetAm !== lebensnachweis.gesendetAm',
+  'snapshot.lebensnachweisLaufendeNummer !== lebensnachweis.laufendeNummer',
+  'skill.aktuellAutomatisierbar',
+  'skill.enabled',
+  'skill.configuredReady',
+  'vergleicheSafety',
+  'vergleicheFreshnessUndIdentitaet',
+  'aktionsAutoritaet: false as const'
+]) {
+  if (!capabilityGruppenwahlQuelle.includes(pflicht)) throw new Error('Block-8.6.6-CapabilityGruppenwahl-Logik fehlt: ' + pflicht);
+}
+for (const verboten of [
+  /\buse_skill\s*\(/,
+  /\battack\s*\(/,
+  /\bmove\s*\(/,
+  /\bsmart_move\s*\(/,
+  /\bsend_cm\s*\(/,
+  /\bwarrior\b/i,
+  /\bpaladin\b/i,
+  /\branger\b/i,
+  /\bpriest\b/i,
+  /\bmage\b/i,
+  /\brogue\b/i,
+  /\bmerchant\b/i
+]) {
+  if (verboten.test(capabilityGruppenwahlQuelle)) throw new Error('Block 8.6.6 darf keine Spielaktion oder statische Klassenprioritaet einfuehren: ' + verboten);
+}
+
+const capabilityGruppenwahlTests = await readFile(path.join(wurzel, 'laufzeit/tests/capability-gruppenwahl.test.mjs'), 'utf8');
+for (const pflicht of [
+  'keine statische Klassenprioritaet: Ranger gewinnt gegen Warrior durch mehr reale Damage-Capabilities',
+  'Aufgaben werden aus konkreten Capability-Tags statt grober Klassenannahmen verteilt',
+  'aktuelle Safety hat Vorrang vor groesserer Capability-Breite',
+  'bei gleicher Safety entscheidet Capability vor Freshness und Identitaet',
+  'bei gleicher Safety und Capability entscheidet Freshness vor Kennung',
+  'Charakterkennung ist nur letzter deterministischer Tie-Breaker',
+  'fehlende explizite Koordinationsautoritaet sperrt Kandidat trotz besserer Capability',
+  'fehlende oder blockierte Remote-Capability wird nicht durch alte grobe Lebensnachweiswerte ersetzt',
+  'Safety- oder Blockierbetrieb vergibt weder normalen Leader noch Aufgaben',
+  'alter lokaler Snapshot wird trotz aktiver neuer Liveness fail-closed ausgeschlossen',
+  'zwei Ranger derselben Klasse bleiben capability-seitig getrennte Kandidaten',
+  'assert.equal(result.aktionsAutoritaet, false)'
+]) {
+  if (!capabilityGruppenwahlTests.includes(pflicht)) throw new Error('Block-8.6.6-CapabilityGruppenwahl-Test fehlt: ' + pflicht);
+}
+
+const capabilityGruppenwahlDokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-6-CAPABILITY-GRUPPENWAHL.md'), 'utf8');
+for (const pflicht of [
+  'Keine statische Klassenprioritaet',
+  'gruppenKoordinationErlaubt=true',
+  'nur finale Tie-Breaker',
+  'Fehlende Capability-Daten werden nicht durch Klasse',
+  'kein einzelner versteckter Gesamtscore',
+  'aktionsAutoritaet=false',
+  '**8.6.7 – Status, HUD und Diagnose.**'
+]) {
+  if (!capabilityGruppenwahlDokument.includes(pflicht)) throw new Error('Block-8.6.6-Dokumentation fehlt: ' + pflicht);
+}
+
+const alterGruppenKoordinationsPfad = await readFile(path.join(wurzel, 'laufzeit/quelle/spiellogik/gruppen-koordination.ts'), 'utf8');
+if (alterGruppenKoordinationsPfad.includes('CapabilityGruppenwahl') || alterGruppenKoordinationsPfad.includes('capability-gruppenwahl')) {
+  throw new Error('Block 8.6.6 darf die bereits freigegebene Block-8-Gruppenkoordination nicht rueckwirkend verdrahten.');
+}
+
 const plan = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-PLAN.md'), 'utf8');
 for (const pflicht of [
   '8.6.1 – Skill-Katalog-Vertrag und Live-Lesequelle — **IMPLEMENTIERT**',
@@ -531,9 +622,10 @@ for (const pflicht of [
   '8.6.3 – Per-Character SkillPolicy und Slider — **IMPLEMENTIERT**',
   '8.6.4 – CharakterFaehigkeiten — **IMPLEMENTIERT**',
   '8.6.5 – Cross-Client Capability Sync — **IMPLEMENTIERT**',
-  'Naechster Implementierungsschritt: **8.6.6 – Capability-basierte Leader- und Aufgabenwahl**'
+  '8.6.6 – Capability-basierte Leader- und Aufgabenwahl — **IMPLEMENTIERT**',
+  'Naechster Implementierungsschritt: **8.6.7 – Status, HUD und Diagnose**'
 ]) {
-  if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.5-Stand: ${pflicht}`);
+  if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.6-Stand: ${pflicht}`);
 }
 
 const vertraege = await readFile(path.join(wurzel, 'dokumentation/VERTRAEGE.md'), 'utf8');
@@ -553,9 +645,12 @@ for (const pflicht of [
   '`aktuellAutomatisierbar=true`',
   '## CapabilitySync',
   'keinen eigenen Liveness-Timer',
-  '`aktionsAutoritaet: false`'
+  '`aktionsAutoritaet: false`',
+  '## CapabilityGruppenwahl',
+  '`gruppenKoordinationErlaubt=true`',
+  'nur als finale Tie-Breaker'
 ]) {
-  if (!vertraege.includes(pflicht)) throw new Error(`V4-Vertragsdokumentation fehlt fuer Block 8.6.1 bis 8.6.5: ${pflicht}`);
+  if (!vertraege.includes(pflicht)) throw new Error(`V4-Vertragsdokumentation fehlt fuer Block 8.6.1 bis 8.6.6: ${pflicht}`);
 }
 
 const packageJson = JSON.parse(await readFile(path.join(wurzel, 'package.json'), 'utf8'));
@@ -566,4 +661,4 @@ if (!String(packageJson.scripts?.pruefen ?? '').includes('npm run block8-6-struk
   throw new Error('npm run pruefen muss den Block-8.6-Strukturguard ausfuehren.');
 }
 
-console.log('Block 8.6.1 bis 8.6.5 geprueft: Live-Skill-Katalog, Audit/Recovery, SkillPolicy, CharakterFaehigkeiten und Capability-Sync ohne zweite Liveness oder neue Spielaktionsautoritaet.');
+console.log('Block 8.6.1 bis 8.6.6 geprueft: Capability Truth, Sync und deterministische capability-basierte Gruppenwahl ohne statische Klassenprioritaet oder neue Spielaktionsautoritaet.');

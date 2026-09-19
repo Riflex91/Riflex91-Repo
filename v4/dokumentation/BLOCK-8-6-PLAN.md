@@ -1,8 +1,8 @@
 # Block 8.6 – Live Skill Catalog und Capability Truth
 
-Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.5 implementiert, naechster Implementierungsschritt 8.6.6.**
+Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.6 implementiert, naechster Implementierungsschritt 8.6.7.**
 
-Naechster Implementierungsschritt: **8.6.6 – Capability-basierte Leader- und Aufgabenwahl**
+Naechster Implementierungsschritt: **8.6.7 – Status, HUD und Diagnose**
 
 ## Ziel
 
@@ -154,7 +154,7 @@ Missing/Stale/Mismatch -> fail-closed.
 
 Umsetzungsnachweis: `BLOCK-8-6-5-CAPABILITY-SYNC.md`.
 
-## 8.6.6 – Capability-basierte Leader- und Aufgabenwahl
+## 8.6.6 – Capability-basierte Leader- und Aufgabenwahl — **IMPLEMENTIERT**
 
 V4 uebernimmt **nicht** die statische V3-Prioritaet `warrior > paladin > ranger > ...`.
 
@@ -171,6 +171,8 @@ abgeleitet.
 Charakterkennung/Name ist nur deterministischer Tie-Breaker.
 
 Ein Teilnehmer ohne frische validierte Capability-Daten kann keine hoeherwertige Aufgabe allein wegen seiner Klasse erhalten.
+
+Umsetzungsnachweis: `BLOCK-8-6-6-CAPABILITY-GRUPPENWAHL.md`.
 
 ## 8.6.7 – Status, HUD und Diagnose
 
