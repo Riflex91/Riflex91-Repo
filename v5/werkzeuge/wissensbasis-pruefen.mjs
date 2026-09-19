@@ -163,11 +163,7 @@ if (!fs.existsSync(path.join(kb, 'live', 'README.md'))) {
 }
 
 const geheimnisFragmente = ['password','passwort','token','secret','credential','applicationkey','accesskey','authorization','cookie','session','localpath','lokalerpfad','filesystempath','dateipfad'];
-const pruefeKeineGeheimnisse = (wert, pfad = '
-console.log(`[V5-WISSEN] Waechter: ${quellenstatus.quellen.length} Quellen, ${kandidaten.kandidaten.length} Kandidaten, ${protokollZeilen.length} Aenderungseintraege.`);
-console.log(`[V5-WISSEN] Live-Wissen: ${fs.existsSync(liveSnapshot) ? liveDateien + ' validierte Dateien' : 'vorbereitet, noch kein Bot-Snapshot'}.`);
-console.log(`[V5-WISSEN] Raw Research SHA256: ${hash}`);
-) => {
+const pruefeKeineGeheimnisse = (wert, pfad = 'ROOT') => {
   if (Array.isArray(wert)) {
     wert.forEach((x, i) => pruefeKeineGeheimnisse(x, `${pfad}[${i}]`));
     return;
@@ -293,4 +289,5 @@ if (fs.existsSync(liveSnapshot)) {
 
 console.log(`[V5-WISSEN] OK: ${facts.size} Facts, ${contractIds.size} Action Contracts, ${questionIds.size} offene Fragen, ${sources.size} Quellen.`);
 console.log(`[V5-WISSEN] Waechter: ${quellenstatus.quellen.length} Quellen, ${kandidaten.kandidaten.length} Kandidaten, ${protokollZeilen.length} Aenderungseintraege.`);
+console.log(`[V5-WISSEN] Live-Wissen: ${fs.existsSync(liveSnapshot) ? liveDateien + ' validierte Dateien' : 'vorbereitet, noch kein Bot-Snapshot'}.`);
 console.log(`[V5-WISSEN] Raw Research SHA256: ${hash}`);
