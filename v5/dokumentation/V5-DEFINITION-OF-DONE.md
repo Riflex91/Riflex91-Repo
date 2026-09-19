@@ -126,3 +126,22 @@ Diese Checkliste gilt fuer **jede** neue mutierende Capability und fuer jede Aen
 - [ ] Ein konkreter Live-Fakt wird nicht unzulaessig als allgemeine Spielregel interpretiert.
 - [ ] GitHub-Spiegel ist nicht Teil der unmittelbaren Mutationserlaubnis.
 - [ ] Hochfrequente Rohtelemetrie bleibt ausserhalb des GitHub-Live-Snapshots.
+
+
+## L. Lokales SSD-Datenfundament
+
+Falls eine Capability persistente Daten erzeugt oder liest:
+
+- [ ] HOT/WARM/COLD-Zuordnung ist festgelegt.
+- [ ] Zeitkritischer Hot Path benoetigt keinen nichtkritischen SSD-Roundtrip.
+- [ ] Fachmodul verwendet einen typisierten Speicherport statt beliebigem Dateisystemzugriff.
+- [ ] Nichtkritische Writes sind bounded, asynchron, batchfaehig und besitzen Backpressure.
+- [ ] Kritische wertveraendernde Mutation wartet auf bestaetigte durable Intent-Persistenz.
+- [ ] Datenklasse besitzt Budget, Retention und Verhalten bei Speicherdruck.
+- [ ] Kritische Transaction-/Recovery-Evidence wird niemals still geloescht.
+- [ ] Disk Full, Access Denied, I/O-Fehler und falsches/fehlendes Volume sind getestet.
+- [ ] Mindestens 15 Prozent Standard-Sicherheitsreserve beziehungsweise die konfigurierte strengere Reserve wird eingehalten.
+- [ ] Kein stiller Fallback kritischer Persistenz auf ein anderes Laufwerk.
+- [ ] Grosse Historien werden ausserhalb des Hot Path aggregiert; Runtime nutzt kompakte RAM-Working-Sets.
+- [ ] SSD-Persistenz oder Speicherort verleiht keine Gameplay-Autoritaet.
+- [ ] GitHub-/Bridge-Sync bleibt auf explizit erlaubte bounded Artefakte begrenzt.
