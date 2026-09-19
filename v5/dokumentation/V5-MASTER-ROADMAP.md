@@ -457,7 +457,7 @@ Exit Gate:
 
 ## R6 – Observation, Evidence und Reconciled World Truth
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
 
 Bauen:
 - Definition Truth Adapter;
@@ -484,7 +484,11 @@ Exit Gate:
 - G-/MCP-Drift kann betroffene Capability quarantainen;
 - normale Observation/Planning-Hot-Paths benoetigen keine Vollscans grosser SSD-Historien;
 - persistierte Roh-Evidence und LIVE_VERIFIZIERT bleiben technisch und semantisch getrennt.
+**R6-Abschlussstand:** 13/13 MUSS-Anforderungen, 13/13 Traceability und 7/7 Fitnessregeln sind nachgewiesen. Der deutsche produktive Anzeigekatalog ist fuer den aktuellen Snapshot vollstaendig: 129 Skills inklusive Beschreibungen, 7 Klassen, 628 Item-Quellvorkommen/626 effektive IDs, 135 NPCs, 11 Events, 12 Quests, 60 Aktionen, 102 Statuswerte und 129 Monster. Persistiertes Wissen bleibt Evidence ohne Gameplay-Autoritaet. Das Gameplay-Runtime-Gesamtgate bleibt GESPERRT. Maschinenlesbarer Abschluss: `roadmap/r6-abschluss.json`.
+
 ## R7 – Module, Capabilities, Ports und Authority
+
+**Status:** IN_PROGRESS.
 
 Bauen:
 - Module Registry;

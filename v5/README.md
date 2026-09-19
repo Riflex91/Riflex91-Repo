@@ -106,3 +106,14 @@ Wichtige Artefakte:
 - `.github/workflows/v5-r5.yml` – exakter-Head R5-CI.
 
 Aktuelle Phase ist R6. Der lokale Deploy einer alten Windows-Bridge-Binary bleibt als Betriebsblocker offen; der aktuelle Repo-Code ist weiterhin auf den Knowledge-Branch begrenzt.
+
+
+## R6 – Observation, Evidence und World Truth
+
+R6 ist formal abgeschlossen. Definitionen, echte Spielbeobachtung, LIVE_VERIFIZIERT-Evidence und abgeglichene Weltwahrheit sind getrennt; Wissenszugriff ist read-only und snapshot-gepinnt. Observation-Evidence ist bounded, grosse Historien werden zu kompakten RAM-Working-Sets verdichtet und Learning-Evidence besitzt keine Gameplay-Autoritaet.
+
+Der produktive deutsche Anzeigekatalog ist fuer den aktuellen Snapshot vollstaendig: 129 Skills mit deutschen Beschreibungen, 7 Klassen, 628 Item-Quellvorkommen bei 626 effektiven IDs, 135 NPCs, 11 Events, 12 Quests, 60 Aktionen, 102 sichtbare Statuswerte und 129 Monster. Fuer Monster ist bei fehlendem Nachweis einer offiziellen deutschen Bezeichnung der revalidierte Originalname-Fallback aktiv.
+
+Maschinenlesbarer Abschluss: `roadmap/r6-abschluss.json`.
+
+Aktuelle Phase ist R7. Das Gameplay-Runtime-Gesamtgate bleibt GESPERRT. Der lokale Deploy der aktuellen Windows-Bridge bleibt separat zu verifizieren.

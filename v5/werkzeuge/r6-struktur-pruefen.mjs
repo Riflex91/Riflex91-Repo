@@ -8,6 +8,12 @@ const r6 = gates.phases?.find(x => x.id === "R6");
 
 if (!r6 || !["IN_PROGRESS", "DONE"].includes(r6.status)) fehler("R6 muss IN_PROGRESS oder DONE sein.");
 if (r6.status === "IN_PROGRESS" && gates.currentPhase !== "R6") fehler("R6 IN_PROGRESS verlangt currentPhase=R6.");
+if (r6.status === "DONE") {
+  const r7 = gates.phases?.find(x => x.id === "R7");
+  if (gates.currentPhase !== "R7" || r7?.status !== "IN_PROGRESS") {
+    fehler("R6 DONE verlangt R7 IN_PROGRESS und currentPhase=R7.");
+  }
+}
 if (bereitschaft.status === "FREIGEGEBEN") fehler("R6 darf Gameplay-Runtime nicht freigeben.");
 
 for (const pfad of [
@@ -21,6 +27,7 @@ for (const pfad of [
   "architektur/adr/ADR-005-R6-EVIDENCE-WORKING-SETS.md",
   "architektur/adr/ADR-006-R6-DEUTSCHER-ANZEIGEKATALOG.md",
   "architektur/adr/ADR-007-R6-VERIFIER-PUBLIKATION.md",
+  "roadmap/r6-abschluss.json",
   "grundlage/tests/r6-publikation.test.mjs",
   "grundlage/quelle/wissen/beobachtungs-evidence-ablage.ts",
   "grundlage/quelle/wissen/live-wissens-publizierer.ts",
@@ -235,5 +242,27 @@ if (produktiverKatalog.eintraege
     .some(e => !["DEUTSCH_OFFIZIELL","ORIGINALNAME_ERLAUBT"].includes(e.quellenStatus)
       || !e.originalName?.trim())) {
   fehler("Produktiver Monster-Katalog verletzt die Quellenregel.");
+}
+if (r6.status === "DONE") {
+  const abschluss = lies("roadmap/r6-abschluss.json");
+  const trace = lies("anforderungen/nachverfolgbarkeit.json").eintraege.filter(x => x.phase === "R6");
+  const wissenBereit = bereitschaft.bereiche?.find(x => x.kennung === "WISSEN_BEREIT");
+  if (abschluss.phase !== "R6" || abschluss.status !== "DONE"
+      || abschluss.runtimeGate !== "GESPERRT"
+      || abschluss.gameplayAutoritaet !== false
+      || abschluss.rawWriteAutoritaet !== false) {
+    fehler("R6-Abschlussmanifest ungueltig.");
+  }
+  if (anforderungen.some(x => x.status !== "R6_NACHGEWIESEN")
+      || trace.length !== 13 || trace.some(x => x.vollstaendig !== true)
+      || fitness.some(x => x.r6NachweisStatus !== "ERFUELLT")) {
+    fehler("R6 DONE verlangt 13/13 Anforderungen, 13/13 Traceability und 7/7 Fitness.");
+  }
+  if (wissenBereit?.erfuellt !== true
+      || wissenBereit?.r6AnforderungenNachgewiesen !== 13
+      || wissenBereit?.r6FitnessErfuellt !== 7) {
+    fehler("R6 DONE verlangt WISSEN_BEREIT mit vollstaendigem R6-Nachweis.");
+  }
+  if (abdeckung.status !== "BEREIT") fehler("R6 DONE verlangt Anzeigekatalog-Abdeckung BEREIT.");
 }
 console.log("[V5-R6-STRUKTUR] OK / Runtime-Gate:", bereitschaft.status);

@@ -114,13 +114,14 @@
       "titel": "Englische Monster-Namen sind nur erlaubt, wenn keine offizielle deutsche Spielbezeichnung bekannt ist",
       "phase": "R6",
       "durchsetzung": "MONSTER_ANZEIGEKATALOG_GUARD",
-      "r6NachweisStatus": "TEILWEISE",
+      "r6NachweisStatus": "ERFUELLT",
       "r6Nachweise": [
+        "v5/anzeigetexte/monster-lokalisierungspruefung.json",
         "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
-        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
-        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
-      ],
-      "r6Offen": "Vollstaendige aktuelle Monster-Katalogabdeckung/Quellenstatus fehlt."
+        "v5/anzeigetexte/katalog.json",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs",
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-016",

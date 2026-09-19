@@ -1903,7 +1903,9 @@
       "implementierung": [
         "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
         "v5/anzeigetexte/katalog.json",
-        "v5/anzeigetexte/katalog.schema.json"
+        "v5/anzeigetexte/katalog.schema.json",
+        "v5/anzeigetexte/skill-uebersetzungen.json",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
       ],
       "tests": [
         "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
@@ -1911,14 +1913,13 @@
         "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
       ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
       ],
-      "r6TeilnachweisStatus": "MECHANISMUS_BEREIT_INHALTSABDECKUNG_OFFEN",
-      "r6Offen": "Produktive 100-Prozent-Abdeckung der aktuellen uebersetzungspflichtigen Inhalte fehlt noch."
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-UI-003",
@@ -1932,7 +1933,12 @@
       "implementierung": [
         "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
         "v5/anzeigetexte/katalog.json",
-        "v5/anzeigetexte/katalog.schema.json"
+        "v5/anzeigetexte/katalog.schema.json",
+        "v5/anzeigetexte/item-uebersetzungen.json",
+        "v5/anzeigetexte/npc-quellenbestand.json",
+        "v5/anzeigetexte/monster-lokalisierungspruefung.json",
+        "v5/wissensbasis/datenbank/aktuell/AL-DATA-NPCS.txt",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
       ],
       "tests": [
         "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
@@ -1940,14 +1946,13 @@
         "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
       ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
       ],
-      "r6TeilnachweisStatus": "MECHANISMUS_BEREIT_INHALTSABDECKUNG_OFFEN",
-      "r6Offen": "Produktive 100-Prozent-Abdeckung der aktuellen uebersetzungspflichtigen Inhalte fehlt noch."
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-UI-004",
@@ -1989,14 +1994,13 @@
         "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
       ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
       ],
-      "r6TeilnachweisStatus": "MECHANISMUS_BEREIT_INHALTSABDECKUNG_OFFEN",
-      "r6Offen": "Produktive 100-Prozent-Abdeckung der aktuellen uebersetzungspflichtigen Inhalte fehlt noch."
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-UI-006",
@@ -2069,7 +2073,9 @@
       "implementierung": [
         "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
         "v5/anzeigetexte/katalog.json",
-        "v5/anzeigetexte/katalog.schema.json"
+        "v5/anzeigetexte/katalog.schema.json",
+        "v5/anzeigetexte/monster-lokalisierungspruefung.json",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
       ],
       "tests": [
         "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
@@ -2077,14 +2083,13 @@
         "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
       ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
       ],
-      "r6TeilnachweisStatus": "MECHANISMUS_BEREIT_INHALTSABDECKUNG_OFFEN",
-      "r6Offen": "Produktive 100-Prozent-Abdeckung der aktuellen uebersetzungspflichtigen Inhalte fehlt noch."
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-011",

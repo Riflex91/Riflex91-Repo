@@ -1656,7 +1656,7 @@
       "titel": "Adventure-Land-Skills werden in V5 mit deutschem Anzeigenamen und deutscher Beschreibung dargestellt.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-090"
       ],
@@ -1667,12 +1667,13 @@
       "nachweis": "ANZEIGEKATALOG_TEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "ratifiziertAm": "2026-09-19",
-      "r6TeilnachweisStatus": "MECHANISMUS_BEREIT_INHALTSABDECKUNG_OFFEN",
-      "r6Teilnachweise": [
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
         "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
-        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
-        "v5/anzeigetexte/katalog.schema.json",
-        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
+        "v5/anzeigetexte/skill-uebersetzungen.json",
+        "v5/anzeigetexte/katalog.json",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs",
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs"
       ]
     },
     {
@@ -1680,7 +1681,7 @@
       "titel": "Klassen, Gegenstaende, NPCs, Events, Quests, Aktionen und sichtbare Statuswerte besitzen deutsche Anzeigenamen; Monster verwenden die offizielle deutsche Spielbezeichnung, falls vorhanden, sonst den originalen Monster-Namen.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-091"
       ],
@@ -1690,11 +1691,13 @@
       "nachweis": "ANZEIGEKATALOG_TEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "ratifiziertAm": "2026-09-19",
-      "r6TeilnachweisStatus": "MECHANISMUS_BEREIT_INHALTSABDECKUNG_OFFEN",
-      "r6Teilnachweise": [
-        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
-        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
-        "v5/anzeigetexte/katalog.schema.json",
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/anzeigetexte/katalog.json",
+        "v5/anzeigetexte/item-uebersetzungen.json",
+        "v5/anzeigetexte/npc-quellenbestand.json",
+        "v5/anzeigetexte/monster-lokalisierungspruefung.json",
+        "v5/wissensbasis/datenbank/aktuell/AL-DATA-NPCS.txt",
         "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
       ]
     },
@@ -1720,7 +1723,7 @@
       "titel": "Fehlende Uebersetzungen verwenden keinen englischen Rohwert als sichtbaren Fallback; Ausnahme sind Monster-Namen ohne offizielle deutsche Spielbezeichnung.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-092"
       ],
@@ -1730,12 +1733,12 @@
       "nachweis": "NEGATIVTEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "ratifiziertAm": "2026-09-19",
-      "r6TeilnachweisStatus": "MECHANISMUS_BEREIT_INHALTSABDECKUNG_OFFEN",
-      "r6Teilnachweise": [
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
         "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+        "v5/anzeigetexte/katalog.json",
         "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
-        "v5/anzeigetexte/katalog.schema.json",
-        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
+        "v5/werkzeuge/tests/r3-sichttext.test.mjs"
       ]
     },
     {
@@ -1792,7 +1795,7 @@
       "titel": "Der Monster-Anzeigekatalog bevorzugt eine offizielle deutsche Spielbezeichnung und verwendet nur bei deren Fehlen den originalen Monster-Namen; bei spaeterer offizieller Uebersetzung wird nach Revalidierung umgestellt.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-096"
       ],
@@ -1803,11 +1806,12 @@
       "nachweis": "MONSTER_ANZEIGEKATALOG_TEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "ratifiziertAm": "2026-09-19",
-      "r6TeilnachweisStatus": "MECHANISMUS_BEREIT_INHALTSABDECKUNG_OFFEN",
-      "r6Teilnachweise": [
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/anzeigetexte/monster-lokalisierungspruefung.json",
         "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+        "v5/anzeigetexte/katalog.json",
         "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
-        "v5/anzeigetexte/katalog.schema.json",
         "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
       ]
     },

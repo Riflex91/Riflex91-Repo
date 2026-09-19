@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-09-20",
-  "currentPhase": "R6",
+  "currentPhase": "R7",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -196,7 +196,7 @@
     {
       "id": "R6",
       "name": "Observation Evidence World Truth",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R5"
       ],
@@ -215,7 +215,7 @@
     {
       "id": "R7",
       "name": "Module Capabilities Ports Authority",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R6"
       ],
