@@ -33761,11 +33761,11 @@ class AdaptivePullLearner {
     this.seenEncounterIds.push(encounterId);
     if (this.seenEncounterIds.length > 256) this.seenEncounterIds.splice(0, this.seenEncounterIds.length - 256);
     const backend = this._backend();
-    if (backend && !this.save()) {
+    if (!backend || !this.save()) {
       this.seenEncounterIds = this.seenEncounterIds.filter((id) => id !== encounterId);
       this.stats.encounterRecordSkips += 1;
       this.stats.encounterDedupePersistenceBlocks += 1;
-      this._event('ADAPTIVE_PULL_ENCOUNTER_BLOCKED', 'warn', 'EXACTLY_ONCE_DEDUPE_PERSISTENCE_FAILED', { encounterId });
+      this._event('ADAPTIVE_PULL_ENCOUNTER_BLOCKED', 'warn', backend ? 'EXACTLY_ONCE_DEDUPE_PERSISTENCE_FAILED' : 'EXACTLY_ONCE_DEDUPE_STORAGE_UNAVAILABLE', { encounterId });
       return null;
     }
 
@@ -34263,14 +34263,19 @@ class EncounterLifecycle {
     const keys = ['xp', 'gold', 'kills', 'deaths', 'potions', 'hpPotions', 'mpPotions', 'damageTaken', 'monsterHpLost'];
     for (const row of this._performanceRows()) {
       if (!row || !row.id || finite(row.startedAt) < this.current.startedAt - 1000) continue;
-      const previous = this.performanceCursors.get(String(row.id)) || {};
+      const cursorKey = String(row.id);
+      const previous = this.performanceCursors.get(cursorKey);
+      if (!previous) {
+        this.performanceCursors.set(cursorKey, Object.fromEntries(keys.map((key) => [key, finite(row[key])])));
+        continue;
+      }
       for (const key of keys) {
         const value = finite(row[key]);
         const before = finite(previous[key]);
         const delta = key === 'gold' ? value - before : Math.max(0, value - before);
         if (delta) this.current.metrics[key] += delta;
       }
-      this.performanceCursors.set(String(row.id), Object.fromEntries(keys.map((key) => [key, finite(row[key])])));
+      this.performanceCursors.set(cursorKey, Object.fromEntries(keys.map((key) => [key, finite(row[key])])));
     }
   }
 
@@ -47911,6 +47916,13 @@ class StrategicBrainV2 {
     this.seenEncounterOutcomes.push(encounterId);
     if (this.seenEncounterOutcomes.length > 128) this.seenEncounterOutcomes.splice(0, this.seenEncounterOutcomes.length - 128);
     this.lastEncounterOutcome = safeClone(outcome);
+    const durableStorage = storageOf(this.root);
+    if (!durableStorage || !this._save(true)) {
+      this.seenEncounterOutcomes = this.seenEncounterOutcomes.filter((id) => id !== encounterId);
+      if (this.lastEncounterOutcome && String(this.lastEncounterOutcome.encounterId || '') === encounterId) this.lastEncounterOutcome = null;
+      this.stats.encounterOutcomeSkips += 1;
+      return { accepted: false, reason: durableStorage ? 'ENCOUNTER_OUTCOME_DEDUPE_PERSIST_FAILED' : 'ENCOUNTER_OUTCOME_DEDUPE_STORAGE_UNAVAILABLE', encounterId };
+    }
     const eligible = outcome.learningEligible === true
       && !['CONTENT_DRIFT', 'INTERRUPTED'].includes(String(outcome.outcome || ''));
     if (!eligible) {
