@@ -13,8 +13,9 @@
     "guards:test": "node --test werkzeuge/tests/r3-guards.test.mjs",
     "host:test": "node --test werkzeuge/tests/r3-speicher-gesundheit.test.mjs",
     "testen": "npm run guards:test && npm run host:test && npm run grundlage:test",
-    "r3:pruefen": "npm run typen:pruefen && npm run lint && npm run testen && node werkzeuge/r3-struktur-pruefen.mjs",
-    "grundlage:test": "npm run bauen && node --test grundlage/tests/*.test.mjs"
+    "r3:pruefen": "npm run typen:pruefen && npm run lint && npm run sichttext:pruefen && npm run testen && node werkzeuge/r3-struktur-pruefen.mjs",
+    "grundlage:test": "npm run bauen && node --test grundlage/tests/*.test.mjs",
+    "sichttext:pruefen": "node werkzeuge/r3-sichttext-pruefen.mjs && node --test werkzeuge/tests/r3-sichttext.test.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
