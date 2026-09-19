@@ -240,7 +240,7 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
                 "GITHUB_PUSH_GEPLANT",
                 "Automatische Funde sind Evidence/Kandidaten. Community-Funde werden nicht automatisch zu bestaetigten Fakten.");
             await SpeichereJsonAsync(
-                GitArbeitskopie.AutomatischerWissensPfad + "/letzter-lauf.json",
+                GitArbeitskopie.DatenbankPfad + "/letzter-lauf.json",
                 laufbericht,
                 cancellationToken);
 
@@ -424,9 +424,9 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
             .Select(q => WebQuellenEntdecker.NormalisiereAdresse(q.Adresse))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var pfad = GitArbeitskopie.AutomatischerWissensPfad + "/kandidaten.json";
+        var pfad = GitArbeitskopie.DatenbankPfad + "/kandidaten.json";
         KandidatenDokument dokument;
-        var vollPfad = _arbeitskopie.LoeseWissensPfadAuf(pfad);
+        var vollPfad = _arbeitskopie.LoeseDatenbankPfadAuf(pfad);
         if (File.Exists(vollPfad))
         {
             try
@@ -494,8 +494,8 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
 
     private async Task<QuellenStatusDokument> LadeQuellenstatusAsync(CancellationToken cancellationToken)
     {
-        var pfad = _arbeitskopie.LoeseWissensPfadAuf(
-            GitArbeitskopie.AutomatischerWissensPfad + "/quellenstatus.json");
+        var pfad = _arbeitskopie.LoeseDatenbankPfadAuf(
+            GitArbeitskopie.DatenbankPfad + "/quellenstatus.json");
         if (!File.Exists(pfad)) return new QuellenStatusDokument(1, DateTimeOffset.MinValue, []);
 
         try
@@ -515,7 +515,7 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
         CancellationToken cancellationToken)
     {
         await SpeichereJsonAsync(
-            GitArbeitskopie.AutomatischerWissensPfad + "/quellenstatus.json",
+            GitArbeitskopie.DatenbankPfad + "/quellenstatus.json",
             dokument,
             cancellationToken);
     }
@@ -526,8 +526,8 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
         CancellationToken cancellationToken)
     {
         var sichereKennung = Regex.Replace(kennung, "[^A-Za-z0-9._-]", "_");
-        var pfad = _arbeitskopie.LoeseWissensPfadAuf(
-            GitArbeitskopie.AutomatischerWissensPfad + "/aktuell/" + sichereKennung + ".txt");
+        var pfad = _arbeitskopie.LoeseDatenbankPfadAuf(
+            GitArbeitskopie.DatenbankPfad + "/aktuell/" + sichereKennung + ".txt");
         Directory.CreateDirectory(Path.GetDirectoryName(pfad)!);
         await File.WriteAllTextAsync(pfad, inhalt, new UTF8Encoding(false), cancellationToken);
     }
@@ -536,8 +536,8 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
         IReadOnlyList<AenderungsEintrag> aenderungen,
         CancellationToken cancellationToken)
     {
-        var pfad = _arbeitskopie.LoeseWissensPfadAuf(
-            GitArbeitskopie.AutomatischerWissensPfad + "/aenderungsprotokoll.jsonl");
+        var pfad = _arbeitskopie.LoeseDatenbankPfadAuf(
+            GitArbeitskopie.DatenbankPfad + "/aenderungsprotokoll.jsonl");
         Directory.CreateDirectory(Path.GetDirectoryName(pfad)!);
 
         await using var stream = new FileStream(
@@ -561,7 +561,7 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
         T wert,
         CancellationToken cancellationToken)
     {
-        var pfad = _arbeitskopie.LoeseWissensPfadAuf(relativerPfad);
+        var pfad = _arbeitskopie.LoeseDatenbankPfadAuf(relativerPfad);
         Directory.CreateDirectory(Path.GetDirectoryName(pfad)!);
         var temporaer = pfad + ".tmp";
 
