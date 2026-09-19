@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "v5-wissen-question.schema.json",
+  "title": "V5 Offene Wissensfrage",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "priority",
+    "domain",
+    "question",
+    "status",
+    "openedAt",
+    "sourceRefs",
+    "blocks",
+    "answerFactIds"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^AL-OPEN-[0-9]{3}$"
+    },
+    "priority": {
+      "enum": [
+        "P0",
+        "P1",
+        "P2",
+        "UNMAPPED"
+      ]
+    },
+    "domain": {
+      "type": "string"
+    },
+    "question": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "OPEN",
+        "RESEARCHING",
+        "ANSWERED",
+        "OBSOLETE"
+      ]
+    },
+    "openedAt": {
+      "type": "string",
+      "format": "date"
+    },
+    "sourceRefs": {
+      "type": "array"
+    },
+    "blocks": {
+      "type": "array"
+    },
+    "answerFactIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
