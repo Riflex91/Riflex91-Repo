@@ -154,6 +154,133 @@ for (let i = 0; i < protokollZeilen.length; i++) {
   }
 }
 
+const live = manifest.liveWissen;
+if (!live || live.githubBereich !== 'live' || live.snapshotPfad !== 'live/snapshot') {
+  fail('Live-Wissensbereich im Manifest fehlt oder ist ungueltig.');
+}
+if (!fs.existsSync(path.join(kb, 'live', 'README.md'))) {
+  fail('Live-Wissensvertrag README fehlt.');
+}
+
+const geheimnisFragmente = ['password','passwort','token','secret','credential','applicationkey','accesskey','authorization','cookie','session'];
+const pruefeKeineGeheimnisse = (wert, pfad = '
+console.log(`[V5-WISSEN] Waechter: ${quellenstatus.quellen.length} Quellen, ${kandidaten.kandidaten.length} Kandidaten, ${protokollZeilen.length} Aenderungseintraege.`);
+console.log(`[V5-WISSEN] Live-Wissen: ${fs.existsSync(liveSnapshot) ? liveDateien + ' validierte Dateien' : 'vorbereitet, noch kein Bot-Snapshot'}.`);
+console.log(`[V5-WISSEN] Raw Research SHA256: ${hash}`);
+) => {
+  if (Array.isArray(wert)) {
+    wert.forEach((x, i) => pruefeKeineGeheimnisse(x, `${pfad}[${i}]`));
+    return;
+  }
+  if (!wert || typeof wert !== 'object') return;
+  for (const [name, inhalt] of Object.entries(wert)) {
+    const normalisiert = name.replace(/[_-]/g, '').toLowerCase();
+    if (geheimnisFragmente.some(fragment => normalisiert.includes(fragment))) {
+      fail(`Live-Wissen enthaelt verbotenes Geheimnisfeld ${pfad}.${name}`);
+    }
+    pruefeKeineGeheimnisse(inhalt, `${pfad}.${name}`);
+  }
+};
+
+let liveDateien = 0;
+const liveSnapshot = path.join(kb, live.snapshotPfad);
+if (fs.existsSync(liveSnapshot)) {
+  const liveManifestPfad = path.join(liveSnapshot, 'manifest.json');
+  const liveStatusPfad = path.join(liveSnapshot, 'status.json');
+  const liveImportPfad = path.join(liveSnapshot, 'import.json');
+  for (const pfad of [liveManifestPfad, liveStatusPfad, liveImportPfad]) {
+    if (!fs.existsSync(pfad)) fail(`Live-Snapshot Pflichtdatei fehlt: ${path.relative(kb, pfad)}`);
+  }
+
+  const liveManifestBytes = fs.readFileSync(liveManifestPfad);
+  const liveStatusBytes = fs.readFileSync(liveStatusPfad);
+  const liveManifest = JSON.parse(liveManifestBytes.toString('utf8'));
+  const liveStatus = JSON.parse(liveStatusBytes.toString('utf8'));
+  const liveImport = JSON.parse(fs.readFileSync(liveImportPfad, 'utf8'));
+
+  if (liveManifest.schemaVersion !== 1
+      || liveManifest.format !== 'ADVENTURE_LAND_V5_LIVE_WISSEN'
+      || liveManifest.spiel !== 'Adventure Land - The Code MMORPG'
+      || liveManifest.aktuellVerzeichnis !== 'aktuell') {
+    fail('Live-Snapshot Manifest ungueltig.');
+  }
+  if (liveStatus.schemaVersion !== 1
+      || liveStatus.spiel !== 'Adventure Land - The Code MMORPG'
+      || liveStatus.zustand !== 'BEREIT'
+      || !Number.isInteger(liveStatus.generation)
+      || liveStatus.generation < 0) {
+    fail('Live-Snapshot Status ungueltig.');
+  }
+  if (liveImport.schemaVersion !== 1
+      || liveImport.spiel !== 'Adventure Land - The Code MMORPG'
+      || liveImport.quelle !== 'LOKALE_LIVE_WISSENSDATENBANK'
+      || liveImport.generation !== liveStatus.generation) {
+    fail('Live-Snapshot Importmetadaten ungueltig.');
+  }
+
+  pruefeKeineGeheimnisse(liveManifest);
+  pruefeKeineGeheimnisse(liveStatus);
+
+  const liveAktuell = path.join(liveSnapshot, 'aktuell');
+  if (!fs.existsSync(liveAktuell)) fail('Live-Snapshot aktuell-Verzeichnis fehlt.');
+
+  const sammleJson = (ordner) => fs.readdirSync(ordner, { withFileTypes: true }).flatMap(eintrag => {
+    const voll = path.join(ordner, eintrag.name);
+    if (eintrag.isDirectory()) return sammleJson(voll);
+    if (eintrag.isFile() && eintrag.name.toLowerCase().endsWith('.json')) return [voll];
+    return [];
+  });
+
+  const dateien = sammleJson(liveAktuell).sort((a, b) =>
+    path.relative(liveAktuell, a).replace(/\\/g, '/').localeCompare(
+      path.relative(liveAktuell, b).replace(/\\/g, '/'),
+      'en',
+      { sensitivity: 'variant' }
+    )
+  );
+
+  const snapshotHash = crypto.createHash('sha256');
+  snapshotHash.update(liveManifestBytes);
+  snapshotHash.update(liveStatusBytes);
+  let gesamtBytes = liveManifestBytes.byteLength + liveStatusBytes.byteLength;
+
+  for (const datei of dateien) {
+    const rel = path.relative(liveAktuell, datei).replace(/\\/g, '/');
+    const bytes = fs.readFileSync(datei);
+    const fakt = JSON.parse(bytes.toString('utf8'));
+
+    if (fakt.schemaVersion !== 1
+        || fakt.spiel !== 'Adventure Land - The Code MMORPG'
+        || fakt.status !== 'LIVE_VERIFIZIERT'
+        || typeof fakt.kennung !== 'string'
+        || !fakt.kennung
+        || typeof fakt.domaene !== 'string'
+        || typeof fakt.beobachtetAm !== 'string'
+        || typeof fakt.verifiziertAm !== 'string'
+        || !fakt.quelle
+        || fakt.quelle.art !== 'LIVE_SPIEL'
+        || typeof fakt.quelle.methode !== 'string'
+        || !Object.prototype.hasOwnProperty.call(fakt, 'wert')) {
+      fail(`Live-Fakt ungueltig: ${rel}`);
+    }
+    if (Date.parse(fakt.verifiziertAm) < Date.parse(fakt.beobachtetAm)) {
+      fail(`Live-Fakt Verifikation liegt vor Beobachtung: ${rel}`);
+    }
+    pruefeKeineGeheimnisse(fakt, rel);
+
+    const dateiHash = crypto.createHash('sha256').update(bytes).digest('hex');
+    snapshotHash.update(Buffer.from(rel, 'utf8'));
+    snapshotHash.update(Buffer.from(dateiHash, 'utf8'));
+    gesamtBytes += bytes.byteLength;
+    liveDateien++;
+  }
+
+  const berechnet = snapshotHash.digest('hex');
+  if (liveImport.snapshotSha256 !== berechnet) fail('Live-Snapshot SHA256 stimmt nicht.');
+  if (liveImport.dateien !== liveDateien) fail('Live-Snapshot Dateianzahl stimmt nicht.');
+  if (liveImport.bytes !== gesamtBytes) fail('Live-Snapshot Bytezahl stimmt nicht.');
+}
+
 console.log(`[V5-WISSEN] OK: ${facts.size} Facts, ${contractIds.size} Action Contracts, ${questionIds.size} offene Fragen, ${sources.size} Quellen.`);
 console.log(`[V5-WISSEN] Waechter: ${quellenstatus.quellen.length} Quellen, ${kandidaten.kandidaten.length} Kandidaten, ${protokollZeilen.length} Aenderungseintraege.`);
 console.log(`[V5-WISSEN] Raw Research SHA256: ${hash}`);
