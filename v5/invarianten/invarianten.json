@@ -4,8 +4,8 @@
   "status": "R2_RATIFIZIERT",
   "zusammenfassung": {
     "ausV4": 55,
-    "neuV5": 98,
-    "gesamt": 153
+    "neuV5": 106,
+    "gesamt": 161
   },
   "regel": "Alle 55 V4-Invarianten muessen in R2 explizit UEBERNEHMEN, VERSCHAERFEN oder ERSETZEN erhalten. Keine darf still entfallen.",
   "invarianten": [
@@ -1385,6 +1385,78 @@
       "ratifizierungsStatus": "V5_VERBINDLICH",
       "v5Entscheidung": "UEBERNEHMEN",
       "begruendung": "ccreport verursacht selbst Call Cost und veraltete Kostenmodelle duerfen keine Execution Authority behalten."
+    },
+    {
+      "kennung": "V5-INV-099",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "Ein Action-Channel ist eine explizite Ressource; Channel-Admission und fachliche Ressourcenclaims muessen gleichzeitig gueltig sein.",
+      "geplanteDurchsetzung": "Action-Channel Resource Manager",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
+    },
+    {
+      "kennung": "V5-INV-100",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "UNKNOWN ist ein eigener Transaktions-/Recovery-Zustand und niemals ein normales FAILURE oder ein Retry-Signal.",
+      "geplanteDurchsetzung": "Transaction/Reconciliation State Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
+    },
+    {
+      "kennung": "V5-INV-101",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "Definitionen und Live Truth werden in getrennten Modellen gehalten; keine Definition darf durch eine einzelne Beobachtung still mutiert werden.",
+      "geplanteDurchsetzung": "Knowledge/Evidence Type Boundary",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
+    },
+    {
+      "kennung": "V5-INV-102",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "Jede langlebige oder asynchrone interne Nachricht besitzt Protokollversion, Nachrichten-ID, TTL und Dedupe-Semantik.",
+      "geplanteDurchsetzung": "Message Envelope Validator",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
+    },
+    {
+      "kennung": "V5-INV-103",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "Jede spaeter live faehige Capability besitzt einen expliziten Deaktivierungs-/Rollback-Pfad, der Authority reduzieren kann ohne Safety zu umgehen.",
+      "geplanteDurchsetzung": "Capability Lifecycle Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
+    },
+    {
+      "kennung": "V5-INV-104",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "Nichtkritisches SSD-I/O darf den Gameplay-Hot-Path nicht blockieren; kritische Persistenz ist nur an deklarierten durable Grenzen synchron.",
+      "geplanteDurchsetzung": "Storage Port + Backpressure Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
+    },
+    {
+      "kennung": "V5-INV-105",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "Eine wertveraendernde Mutation darf erst gesendet werden, nachdem ihr Transaction Intent durable persistiert und diese Persistenz bestaetigt wurde.",
+      "geplanteDurchsetzung": "Persist-before-action Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
+    },
+    {
+      "kennung": "V5-INV-106",
+      "herkunft": "V5_NEU_R2",
+      "aussage": "Der V5-Layergraph ist azyklisch; hoehere Fachschichten duerfen keine unteren Safety-/Authority-Entscheidungen umgehen oder rueckwaerts von Ausfuehrungsadaptern abhaengen.",
+      "geplanteDurchsetzung": "Dependency/Layers Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Explizite R2-Verfassungsregel aus dem R2-Mindestregelwerk."
     }
   ],
   "r2": {
@@ -1396,6 +1468,16 @@
       "VERSCHAERFEN": 26,
       "ERSETZEN": 1
     },
-    "regel": "Keine V4-Invariante entfaellt still. VERSCHAERFEN/ERSETZEN wird durch die V5-Verfassung und neue V5-Invarianten konkretisiert."
+    "regel": "Keine V4-Invariante entfaellt still. VERSCHAERFEN/ERSETZEN wird durch die V5-Verfassung und neue V5-Invarianten konkretisiert.",
+    "neueR2Invarianten": [
+      "V5-INV-099",
+      "V5-INV-100",
+      "V5-INV-101",
+      "V5-INV-102",
+      "V5-INV-103",
+      "V5-INV-104",
+      "V5-INV-105",
+      "V5-INV-106"
+    ]
   }
 }
