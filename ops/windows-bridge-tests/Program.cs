@@ -63,7 +63,7 @@ var readinessStatisch = V5ReadinessSystemtest.PruefeStatischeKonfiguration(defau
 Assert(readinessStatisch.Count >= 8, "V5_READINESS_STATIC_CHECK_COUNT");
 Assert(readinessStatisch.All(x => x.Status == "BESTANDEN"), "V5_READINESS_DEFAULT_CONFIG_PASS");
 Assert(readinessStatisch.Any(x => x.Kennung == "KNOWLEDGE_BRANCH" && x.Detail.Contains("v5/wissenswaechter-automatisch", StringComparison.Ordinal)), "V5_READINESS_KNOWLEDGE_BRANCH");
-Assert(readinessStatisch.Any(x => x.Kennung == "GAMEPLAY_AUTORITAET" && x.Status == "BESTANDEN"), "V5_READINESS_NO_GAMEPLAY_AUTHORITY");
+Assert(readinessStatisch.Any(x => x.Kennung == "TEST_OHNE_GAMEPLAY_WRITE" && x.Status == "BESTANDEN"), "V5_READINESS_NO_GAMEPLAY_AUTHORITY");
 Assert(defaults.WissenswaechterIntervallMinuten == 60, "WISSENSWAECHTER_HOURLY");
 Assert(defaults.WissenswaechterWebSucheAktiv, "WISSENSWAECHTER_WEB_SEARCH_DEFAULT_ON");
 Assert(defaults.WissenswaechterMaxQuellenProLauf == 200, "WISSENSWAECHTER_SOURCE_LIMIT");
