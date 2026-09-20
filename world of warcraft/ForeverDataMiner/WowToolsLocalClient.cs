@@ -4,6 +4,24 @@ namespace ForeverDataMiner;
 
 public sealed class WowToolsLocalClient(HttpClient http, Uri baseUri)
 {
+    public static async Task<bool> IsAvailableAsync(Uri baseUri, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var probe = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+            using var response = await probe.GetAsync(baseUri, cancellationToken);
+            return response.IsSuccessStatusCode ||
+                   response.StatusCode is HttpStatusCode.Redirect or
+                       HttpStatusCode.MovedPermanently or
+                       HttpStatusCode.TemporaryRedirect or
+                       HttpStatusCode.PermanentRedirect;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private static readonly string[] Tables =
     [
         "QuestV2", "QuestInfo", "QuestLine", "QuestLineXQuest", "QuestObjective",
