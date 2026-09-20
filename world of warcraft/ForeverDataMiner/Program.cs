@@ -28,8 +28,11 @@ public static class Program
                 return 0;
             }
 
-            var wowRoot = GetArg(args, "--wow") ?? AutoDetectWowRoot()
-                ?? throw new ArgumentException("WoW root not found. Pass --wow <path>.");
+            var wowSelection = GetArg(args, "--wow") ?? AutoDetectForeverPath()
+                ?? throw new ArgumentException("WoW/Forever path not found. Pass --wow <path>.");
+
+            var wowRoot = WowPathResolver.ResolveRoot(wowSelection)
+                ?? throw new ArgumentException("Selected path is not a valid World of Warcraft root or product folder.");
 
             var output = GetArg(args, "--out")
                 ?? DefaultOutputDirectory();
@@ -96,6 +99,12 @@ public static class Program
         };
 
         return candidates.FirstOrDefault(path => File.Exists(Path.Combine(path, ".build.info")));
+    }
+
+    public static string? AutoDetectForeverPath()
+    {
+        var root = AutoDetectWowRoot();
+        return root is null ? null : WowPathResolver.PreferredForeverPath(root);
     }
 
     public static string DefaultOutputDirectory() =>
