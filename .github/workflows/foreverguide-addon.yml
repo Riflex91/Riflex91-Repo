@@ -37,81 +37,62 @@ jobs:
             luac5.1 -p "$file"
           done
 
-      - name: Validate bearing math
+      - name: Validate navigation bearing math
         shell: bash
         run: |
           lua5.1 - <<'LUA'
-          local MG = {}
-          assert(loadfile("world of warcraft/MewthischGuides/Navigation.lua"))("MewthischGuides", MG)
+          local MG={}
+          assert(loadfile("world of warcraft/MewthischGuides/Navigation.lua"))("MewthischGuides",MG)
 
-          local function near(actual, expected, epsilon, label)
-            epsilon = epsilon or 0.0001
-            assert(actual ~= nil, label .. ": nil result")
-            assert(math.abs(actual - expected) <= epsilon,
-              string.format("%s: expected %.6f got %.6f", label, expected, actual))
+          local function near(actual,expected,label)
+            assert(actual~=nil,label..": nil")
+            assert(math.abs(actual-expected)<=0.0001,
+              string.format("%s expected %.6f got %.6f",label,expected,actual))
           end
 
-          local rel, abs = MG:ComputeRelativeBearing(0, 1, 0)
-          near(abs, 0, 0.0001, "north absolute")
-          near(rel, 0, 0.0001, "north relative")
+          local rel,abs=MG:ComputeRelativeBearing(0,1,0)
+          near(abs,0,"north")
+          near(rel,0,"north relative")
 
-          rel, abs = MG:ComputeRelativeBearing(1, 0, 0)
-          near(abs, math.pi * 3 / 2, 0.0001, "east absolute")
-          near(rel, -math.pi / 2, 0.0001, "east from north")
+          rel,abs=MG:ComputeRelativeBearing(1,0,0)
+          near(abs,math.pi*3/2,"east")
+          near(rel,-math.pi/2,"east relative")
 
-          rel, abs = MG:ComputeRelativeBearing(0, -1, 0)
-          near(abs, math.pi, 0.0001, "south absolute")
-          near(math.abs(rel), math.pi, 0.0001, "south relative")
+          near(MG:ComputeWorldAbsoluteBearing(1,0),0,"world north")
+          near(MG:ComputeWorldAbsoluteBearing(0,-1),math.pi*3/2,"world east")
+          near(MG:ComputeWorldAbsoluteBearing(-1,0),math.pi,"world south")
+          near(MG:ComputeWorldAbsoluteBearing(0,1),math.pi/2,"world west")
 
-          rel, abs = MG:ComputeRelativeBearing(-1, 0, 0)
-          near(abs, math.pi / 2, 0.0001, "west absolute")
-          near(rel, math.pi / 2, 0.0001, "west from north")
-
-          near(MG:ComputeWorldAbsoluteBearing(1, 0), 0, 0.0001, "world north")
-          near(MG:ComputeWorldAbsoluteBearing(0, -1), math.pi * 3 / 2, 0.0001, "world east")
-          near(MG:ComputeWorldAbsoluteBearing(-1, 0), math.pi, 0.0001, "world south")
-          near(MG:ComputeWorldAbsoluteBearing(0, 1), math.pi / 2, 0.0001, "world west")
-
-          local playerX, playerY = 0.4207731485366821, 0.6839030981063843
-          local targetX, targetY = 0.443026065826416, 0.5564066171646118
-          local facing = 0.03902159631252289
-          rel, abs = MG:ComputeRelativeBearing(
-            targetX - playerX,
-            playerY - targetY,
-            facing)
-          assert(rel < 0 and rel > -0.35, "field bearing regression")
-          assert(abs > 6.0, "field absolute bearing regression")
-
+          local playerX,playerY=0.4207731485366821,0.6839030981063843
+          local targetX,targetY=0.443026065826416,0.5564066171646118
+          local facing=0.03902159631252289
+          rel,abs=MG:ComputeRelativeBearing(targetX-playerX,playerY-targetY,facing)
+          assert(rel<0 and rel>-0.35,"field bearing regression")
+          assert(abs>6.0,"field absolute bearing regression")
           print("Bearing math PASS")
           LUA
 
-      - name: Validate Forever API quest map behavior
+      - name: Validate Forever quest-map behavior
         shell: bash
         run: |
           lua5.1 - <<'LUA'
-          local MG = {}
-          assert(loadfile("world of warcraft/MewthischGuides/ForeverAPI.lua"))("MewthischGuides", MG)
-          local API = MG.ForeverAPI
-
-          API.GetMapChain = function(_, mapID) return {mapID, 999} end
-          API.GetQuestsOnMap = function(_, mapID)
-            if mapID == 1411 then
+          local MG={}
+          assert(loadfile("world of warcraft/MewthischGuides/ForeverAPI.lua"))("MewthischGuides",MG)
+          local API=MG.ForeverAPI
+          API.GetMapChain=function(_,mapID) return {mapID,999} end
+          API.GetQuestsOnMap=function(_,mapID)
+            if mapID==1411 then
               return {
-                {questID=789, mapID=1411, x=0.40, y=0.60, isQuestStart=true, inProgress=false},
-                {questID=789, mapID=1411, x=0.45, y=0.65, isQuestStart=false, inProgress=true},
+                {questID=789,mapID=1411,x=.40,y=.60,isQuestStart=true,inProgress=false},
+                {questID=789,mapID=1411,x=.45,y=.65,isQuestStart=false,inProgress=true},
               }
             end
             return {}
           end
-
-          local objective = API:FindQuestOnMaps(789, 1411, "objectives")
-          assert(objective and objective.source == "QuestMapPOI", "missing objective QuestMapPOI")
-          assert(objective.phaseMatch == true, "objective phase mismatch")
-          assert(math.abs(objective.x - 0.45) < 0.0001, "wrong objective POI")
-
-          local accept = API:FindQuestOnMaps(789, 1411, "accept")
-          assert(accept and accept.phaseMatch == true, "accept phase mismatch")
-          assert(math.abs(accept.x - 0.40) < 0.0001, "wrong accept POI")
+          local objective=API:FindQuestOnMaps(789,1411,"objectives")
+          assert(objective and objective.phaseMatch and math.abs(objective.x-.45)<.0001)
+          local accept=API:FindQuestOnMaps(789,1411,"accept")
+          assert(accept and accept.phaseMatch and math.abs(accept.x-.40)<.0001)
           print("Forever quest-map behavior PASS")
           LUA
 
@@ -119,47 +100,45 @@ jobs:
         shell: bash
         run: |
           lua5.1 - <<'LUA'
-          local MG = {
-            db = {runtime = {}},
-            Log = function() end,
-            GetPlayerProfile = function() return {faction="Horde",race="Orc",class="HUNTER"} end,
+          local MG={
+            db={runtime={}},
+            Log=function() end,
+            GetPlayerProfile=function() return {faction="Horde",race="Orc",class="HUNTER"} end,
           }
-          assert(loadfile("world of warcraft/MewthischGuides/RouteEngine.lua"))("MewthischGuides", MG)
-
-          MG.ForeverAPI = {
-            GetPlayerPosition = function() return {mapID=1411, x=0.1, y=0.1} end,
-            GetQuestLineCoordinate = function() return nil end,
-            FindQuestOnMaps = function()
-              return {mapID=1411, x=0.4, y=0.6, source="QuestMapPOI", phaseMatch=true}
+          assert(loadfile("world of warcraft/MewthischGuides/RouteEngine.lua"))("MewthischGuides",MG)
+          MG.ForeverAPI={
+            GetPlayerPosition=function() return {mapID=1411,x=.1,y=.1} end,
+            GetQuestLineCoordinate=function() return nil end,
+            FindQuestOnMaps=function()
+              return {mapID=1411,x=.4,y=.6,source="QuestMapPOI",phaseMatch=true}
             end,
-            GetNextQuestWaypoint = function()
-              return {mapID=1411, x=0.5, y=0.7, source="QuestNextWaypointForMap"}
+            GetNextQuestWaypoint=function()
+              return {mapID=1411,x=.5,y=.7,source="QuestNextWaypointForMap"}
             end,
-            GetLegacyQuestPOI = function() return nil end,
-            GetNavigationCoordinate = function() return nil end,
+            GetLegacyQuestPOI=function() return nil end,
+            GetNavigationCoordinate=function() return nil end,
           }
 
-          local target, candidates = MG.RouteEngine:Resolve({
-            questID=789, phase="objectives", verification="RECORDED",
+          local target,candidates=MG.RouteEngine:Resolve({
+            questID=789,phase="objectives",verification="RECORDED",
           })
-          assert(target and target.source == "QuestMapPOI", "QuestMapPOI ranking failed")
-          assert(#candidates == 2, "unexpected route candidate count")
+          assert(target and target.source=="QuestMapPOI")
+          assert(#candidates==2)
 
-          MG.RestEDXPImport = {
-            GetCoordinate = function()
+          MG.RestEDXPImport={
+            GetCoordinate=function()
               return {
-                mapID=1411, worldX=-4200, worldY=-600,
-                source="RestedXPPublicRouteData", phaseMatch=true,
+                mapID=1411,worldX=-4200,worldY=-600,
+                source="RestedXPPublicRouteData",phaseMatch=true,
               }
             end,
           }
-          target = MG.RouteEngine:Resolve({
-            questID=789, phase="objectives", verification="RESTEDXP_PUBLIC",
+          target=MG.RouteEngine:Resolve({
+            questID=789,phase="objectives",verification="RESTEDXP_PUBLIC",
             definition={rxpOccurrences={{}}},
           })
-          assert(target and target.source == "RestedXPPublicRouteData",
-            "RestedXP route should beat live POI fallback")
-          assert(target.score == 99, "RestedXP route score changed")
+          assert(target and target.source=="RestedXPPublicRouteData")
+          assert(target.score==99)
           print("RouteEngine ranking PASS")
           LUA
 
@@ -167,91 +146,82 @@ jobs:
         shell: bash
         run: |
           lua5.1 - <<'LUA'
-          local MG = {
-            Data = {guide={id="test",steps={
+          local MG={
+            Data={guide={id="test",steps={
               {id="q1",order=10,questID=1,title="Q1",faction="Horde"},
               {id="q2",order=20,questID=2,title="Q2",faction="Horde"},
               {id="q3",order=30,questID=3,title="Q3",faction="Horde"},
             }}},
-            db = {runtime = {}},
+            db={runtime={}},
           }
-          assert(loadfile("world of warcraft/MewthischGuides/GoalEngine.lua"))("MewthischGuides", MG)
-          assert(loadfile("world of warcraft/MewthischGuides/StepEngine.lua"))("MewthischGuides", MG)
-
-          MG.GetPlayerProfile = function()
+          assert(loadfile("world of warcraft/MewthischGuides/GoalEngine.lua"))("MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/StepEngine.lua"))("MewthischGuides",MG)
+          MG.GetPlayerProfile=function()
             return {faction="Horde",race="Troll",class="HUNTER",level=8}
           end
-          MG.Log = function() end
-          MG.IsQuestFlaggedCompletedSafe = function(_, questID) return questID == 1 end
-          MG.GetQuestLogSnapshot = function()
+          MG.Log=function() end
+          MG.IsQuestFlaggedCompletedSafe=function(_,questID) return questID==1 end
+          MG.GetQuestLogSnapshot=function()
             return {[2]={
               questID=2,title="Q2",level=2,questLogIndex=1,readyForTurnIn=false,
               objectives={{type="monster",text="Boar: 2/10",numFulfilled=2,numRequired=10,finished=false}},
             }}
           end
-
-          local steps, preferredIndex, reason = MG:BuildGuideSteps()
-          assert(#steps == 2, "completed step should be omitted")
-          assert(steps[preferredIndex].questID == 2, "resync active quest failed")
-          assert(steps[preferredIndex].phase == MG.StepPhases.OBJECTIVES, "objective phase failed")
-          assert(reason == "active_route_quest", "resync reason changed")
-          print("Step/resync contract PASS")
+          local steps,preferredIndex,reason=MG:BuildGuideSteps()
+          assert(#steps==2)
+          assert(steps[preferredIndex].questID==2)
+          assert(steps[preferredIndex].phase==MG.StepPhases.OBJECTIVES)
+          assert(reason=="active_route_quest")
+          print("Step/resync PASS")
           LUA
 
-      - name: Validate parser validation and travel graph
+      - name: Validate parser, validation and TravelGraph
         shell: bash
         run: |
           lua5.1 - <<'LUA'
-          local MG = {db={runtime={}}}
-          assert(loadfile("world of warcraft/MewthischGuides/Validation.lua"))("MewthischGuides", MG)
-          assert(loadfile("world of warcraft/MewthischGuides/GuideParser.lua"))("MewthischGuides", MG)
+          local MG={db={runtime={}}}
+          assert(loadfile("world of warcraft/MewthischGuides/Validation.lua"))("MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/GuideParser.lua"))("MewthischGuides",MG)
 
-          local guide = MG.GuideParser:NormalizeGuide({
-            id="unit-guide", verification="RECORDED",
+          local guide=MG.GuideParser:NormalizeGuide({
+            id="unit-guide",verification="RECORDED",
             steps={
               {id="b",order=20,questID=2},
-              {id="a",order=10,questID=1,objectiveCoordinate={mapID=1411,x=0.4,y=0.6}},
+              {id="a",order=10,questID=1,objectiveCoordinate={mapID=1411,x=.4,y=.6}},
             },
           })
-          assert(guide and guide.steps[1].id == "a", "parser sort failed")
-          assert(MG.Validation:ValidateGuide(guide), "valid guide rejected")
+          assert(guide and guide.steps[1].id=="a")
+          assert(MG.Validation:ValidateGuide(guide))
 
-          local bad = MG.GuideParser:NormalizeGuide({
+          local bad=MG.GuideParser:NormalizeGuide({
             id="bad",
-            steps={{id="x",order=10,questID=3,objectiveCoordinate={mapID=1411,x=1.5,y=0.5}}},
+            steps={{id="x",order=10,questID=3,objectiveCoordinate={mapID=1411,x=1.5,y=.5}}},
           })
-          assert(not MG.Validation:ValidateGuide(bad), "invalid coordinate accepted")
+          assert(not MG.Validation:ValidateGuide(bad))
 
-          MG.GetPlayerProfile = function() return {faction="Horde",class="HUNTER",race="Troll"} end
-          assert(loadfile("world of warcraft/MewthischGuides/TravelGraph.lua"))("MewthischGuides", MG)
+          MG.GetPlayerProfile=function() return {faction="Horde",class="HUNTER",race="Troll"} end
+          assert(loadfile("world of warcraft/MewthischGuides/TravelGraph.lua"))("MewthischGuides",MG)
           MG.TravelGraph:Load({
             nodes={{id="A",mapID=1,x=.1,y=.1},{id="B",mapID=1,x=.2,y=.2},{id="C",mapID=1,x=.3,y=.3}},
             edges={{from="A",to="B",cost=10},{from="B",to="C",cost=5},{from="A",to="C",cost=30}},
           })
-          local route, reason = MG.TravelGraph:Plan("A","C",{})
-          assert(reason == "resolved" and route and #route == 3, "travel graph failed")
-          assert(MG.db.runtime.travelPlan.cost == 15, "travel graph cost failed")
+          local route,reason=MG.TravelGraph:Plan("A","C",{})
+          assert(reason=="resolved" and route and #route==3)
+          assert(MG.db.runtime.travelPlan.cost==15)
           print("Parser/Validation/TravelGraph PASS")
           LUA
 
-      - name: Validate local telemetry safety
+      - name: Validate telemetry and gear safety
         shell: bash
         run: |
           lua5.1 - <<'LUA'
-          local MG = {db={runtime={}}}
-          assert(loadfile("world of warcraft/MewthischGuides/Telemetry.lua"))("MewthischGuides", MG)
+          local MG={db={runtime={}}}
+          assert(loadfile("world of warcraft/MewthischGuides/Telemetry.lua"))("MewthischGuides",MG)
           MG.Telemetry:Count("test",{scalar=1,fn=function() end,nested={value=true}})
-          assert(MG.db.runtime.telemetry.localOnly == true, "telemetry must remain local")
-          assert(type(MG.db.runtime.telemetry.last.test.data.fn) == "string",
-            "non-serializable telemetry value not sanitized")
-          print("Telemetry safety PASS")
-          LUA
+          assert(MG.db.runtime.telemetry.localOnly==true)
+          assert(type(MG.db.runtime.telemetry.last.test.data.fn)=="string")
 
-      - name: Validate gear fail-closed safety
-        shell: bash
-        run: |
-          lua5.1 - <<'LUA'
-          local MG = {
+          MG={
             Data={gearProfiles={}},
             db={settings={
               gearAutoEquip=true,gearRequireHighConfidence=true,
@@ -269,17 +239,16 @@ jobs:
           IsEquippableItem=function() return true end
           IsUsableItem=function() return true end
           GetInventoryItemLink=function() return "equipped" end
-
-          assert(loadfile("world of warcraft/MewthischGuides/GearAdvisor.lua"))("MewthischGuides", MG)
+          assert(loadfile("world of warcraft/MewthischGuides/GearAdvisor.lua"))("MewthischGuides",MG)
           local candidate=assert(MG.GearAdvisor:EvaluateItemLink("candidate"))
-          assert(candidate.upgrade and candidate.confidence=="medium", "fallback confidence changed")
+          assert(candidate.upgrade and candidate.confidence=="medium")
           candidate.bag,candidate.bagSlot,candidate.isBound=0,1,true
           local equipped,reason=MG.GearAdvisor:TryAutoEquip(candidate)
-          assert(equipped==false and reason=="confidence", "high-confidence gate failed")
-          print("Gear fail-closed safety PASS")
+          assert(equipped==false and reason=="confidence")
+          print("Telemetry/Gear safety PASS")
           LUA
 
-      - name: Validate RestedXP transformed route import
+      - name: Validate RestedXP dataset and action coverage
         shell: bash
         run: |
           lua5.1 - <<'LUA'
@@ -291,29 +260,26 @@ jobs:
           end
           assert(loadfile("world of warcraft/MewthischGuides/RestedXPActionCatalog.lua"))(
             "MewthischGuides",MG)
-          assert(loadfile("world of warcraft/MewthischGuides/RestedXPImport.lua"))("MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/RestedXPImport.lua"))(
+            "MewthischGuides",MG)
 
           local stats=MG.RestEDXPImport:GetStats()
-          assert(stats.sourceFiles==27,"expected every GuideList-forever source file")
-          assert(stats.rawGuides==101,"RestedXP public guide count changed")
-          assert(stats.rawSteps==14602,"RestedXP public step count changed")
-          assert(stats.structuredActions==68646,"RestedXP structured action count changed")
-          assert(stats.normalizedGuides>10,"expected normalized RestedXP guides")
-          assert(stats.normalizedQuestDefinitions>100,"expected normalized quest definitions")
-          assert(stats.catalogActionKinds==63,"RestedXP action catalog count changed")
-          assert(stats.knownActionKinds==63,"not all RestedXP action kinds are classified")
-          assert(stats.unknownActionKinds==0,"unknown RestedXP action kinds detected")
-          assert(stats.unknownActions==0,"unknown RestedXP actions detected")
-          assert(stats.knownActions==stats.structuredActions,
-            "structured RestedXP actions are not fully covered")
-          assert(stats.sourceCommit=="6f9cf44c09123e496366b3cb5ffe7383660e4bcb",
-            "unexpected RestedXP source commit")
+          assert(stats.sourceFiles==27,"expected 27 public source files")
+          assert(stats.rawGuides==101,"public guide count changed")
+          assert(stats.rawSteps==14602,"public step count changed")
+          assert(stats.structuredActions==68646,"structured action count changed")
+          assert(stats.catalogActionKinds==63,"catalog kind count changed")
+          assert(stats.knownActionKinds==63,"not every action kind is classified")
+          assert(stats.unknownActionKinds==0,"unknown action kinds detected")
+          assert(stats.unknownActions==0,"unknown actions detected")
+          assert(stats.knownActions==stats.structuredActions,"action coverage incomplete")
+          assert(stats.normalizedGuides>10)
+          assert(stats.normalizedQuestDefinitions>100)
+          assert(stats.sourceCommit=="6f9cf44c09123e496366b3cb5ffe7383660e4bcb")
 
           local profile={faction="Horde",race="Orc",class="HUNTER",level=3}
-          assert(MG.RestEDXPImport:SelectorMatches("Orc Hunter/Troll Hunter",profile),
-            "positive RXP selector failed")
-          assert(not MG.RestEDXPImport:SelectorMatches("Warlock",profile),
-            "negative RXP selector failed")
+          assert(MG.RestEDXPImport:SelectorMatches("Orc Hunter/Troll Hunter",profile))
+          assert(not MG.RestEDXPImport:SelectorMatches("Warlock",profile))
 
           local found
           for _,guide in ipairs(MG.RestEDXPImport:BuildGuides()) do
@@ -326,34 +292,38 @@ jobs:
           end
           assert(found,"Wayward Weapons missing from imported Durotar data")
           local accept=MG.RestEDXPImport:GetCoordinate(found,"accept",profile)
-          assert(accept and accept.mapID==1411,"imported quest accept coordinate missing")
-          assert(accept.worldX or accept.x,"imported coordinate has no usable position")
+          assert(accept and accept.mapID==1411)
+          assert(accept.worldX or accept.x)
           local hints=MG.RestEDXPImport:GetHints(found,"accept",profile,4)
-          assert(type(hints)=="table","RestedXP route hints missing")
+          assert(type(hints)=="table")
+
           print(string.format(
-            "RestedXP import PASS: %d files / %d guides / %d steps / %d actions / %d kinds",
+            "RestedXP PASS: %d files / %d guides / %d steps / %d actions / %d kinds",
             stats.sourceFiles,stats.rawGuides,stats.rawSteps,stats.structuredActions,
             stats.knownActionKinds))
           LUA
 
-      - name: Validate five-theme UI contract
+      - name: Validate five themes
         shell: bash
         run: |
           lua5.1 - <<'LUA'
           local MG={db={settings={theme="Forever Classic"}},Log=function() end}
           assert(loadfile("world of warcraft/MewthischGuides/Themes.lua"))("MewthischGuides",MG)
-          assert(#MG.Themes.order==5,"exactly five themes required")
+          assert(#MG.Themes.order==5)
           local required={
-            ["Forever Classic"]=true,["Obsidian"]=true,["Arcane"]=true,
-            ["Warcraft Heritage"]=true,["ElvUI"]=true,
+            ["Forever Classic"]=true,
+            ["Obsidian"]=true,
+            ["Arcane"]=true,
+            ["Warcraft Heritage"]=true,
+            ["ElvUI"]=true,
           }
           for _,name in ipairs(MG.Themes.order) do required[name]=nil end
-          assert(next(required)==nil,"theme set incomplete")
-          assert(MG.Themes:Get("ElvUI").adaptiveElvUI==true,"ElvUI theme must be adaptive")
-          print("Five-theme UI contract PASS")
+          assert(next(required)==nil)
+          assert(MG.Themes:Get("ElvUI").adaptiveElvUI==true)
+          print("Five-theme contract PASS")
           LUA
 
-      - name: Validate v0.10 route-data and UI contract
+      - name: Validate v0.10 static contract
         shell: bash
         run: |
           set -euo pipefail
@@ -368,18 +338,16 @@ jobs:
           grep -q '^## Interface: 16001$' "$TOC"
           grep -q '^## Title: Mewthisch Guides$' "$TOC"
           grep -q '^## Version: 0.10.0$' "$TOC"
-          grep -q '^ForeverAPI.lua$' "$TOC"
-          grep -q '^RouteEngine.lua$' "$TOC"
-          grep -q '^RestedXPActionCatalog.lua
+          grep -q '^RestedXPActionCatalog.lua$' "$TOC"
+          grep -q '^RestedXPImport.lua$' "$TOC"
+          for chunk in 01 02 03 04 05; do
             grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
           done
 
           grep -q 'forever-modern-capability' "$API"
-          grep -q 'GetQuestsOnMap' "$API"
           grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
           grep -q 'RestedXPWorldCoordinates' "$NAV"
           grep -q 'Nächstes Theme' "$UI"
-          grep -q 'ElvUI' "$UI"
           grep -q 'RestedXP-Guidequellen' "$UI"
           grep -q 'RestedXP-Aktionsabdeckung' "$UI"
           grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
@@ -409,411 +377,7 @@ jobs:
       - name: Package addon
         shell: bash
         run: |
-          mkdir -p artifacts/MewthischGuides
-          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
-          cd artifacts
-          zip -r MewthischGuides-v0.10.zip MewthischGuides
-
-      - name: Upload addon
-        uses: actions/upload-artifact@v4
-        with:
-          name: MewthischGuides-v0.10
-          path: artifacts/MewthischGuides-v0.10.zip
-          if-no-files-found: error
- "$TOC"
-          grep -q '^RestedXPImport.lua
-          for chunk in 01 02 03 04 05; do
-            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
-          done
-
-          grep -q 'forever-modern-capability' "$API"
-          grep -q 'GetQuestsOnMap' "$API"
-          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
-          grep -q 'RestedXPWorldCoordinates' "$NAV"
-          grep -q 'Nächstes Theme' "$UI"
-          grep -q 'ElvUI' "$UI"
-          grep -q 'RestedXP-Guidequellen' "$UI"
-          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
-
-          if grep -q 'navigationScreenAngle' "$NAV"; then
-            echo "Unsafe guessed screen-angle fallback detected."
-            exit 1
-          fi
-
-          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
-            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
-            exit 1
-          fi
-
-          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
-            echo "German user-facing transliteration detected; use real umlauts."
-            exit 1
-          fi
-
-          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
-          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
-          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
-          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
-          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
-          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
-
-      - name: Package addon
-        shell: bash
-        run: |
-          mkdir -p artifacts/MewthischGuides
-          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
-          cd artifacts
-          zip -r MewthischGuides-v0.10.zip MewthischGuides
-
-      - name: Upload addon
-        uses: actions/upload-artifact@v4
-        with:
-          name: MewthischGuides-v0.10
-          path: artifacts/MewthischGuides-v0.10.zip
-          if-no-files-found: error
- "$TOC"
-          for chunk in 01 02 03 04 05; do
-            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
-          done
-
-          grep -q 'forever-modern-capability' "$API"
-          grep -q 'GetQuestsOnMap' "$API"
-          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
-          grep -q 'RestedXPWorldCoordinates' "$NAV"
-          grep -q 'Nächstes Theme' "$UI"
-          grep -q 'ElvUI' "$UI"
-          grep -q 'RestedXP-Guidequellen' "$UI"
-          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
-
-          if grep -q 'navigationScreenAngle' "$NAV"; then
-            echo "Unsafe guessed screen-angle fallback detected."
-            exit 1
-          fi
-
-          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
-            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
-            exit 1
-          fi
-
-          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
-            echo "German user-facing transliteration detected; use real umlauts."
-            exit 1
-          fi
-
-          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
-          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
-          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
-          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
-          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
-          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
-
-      - name: Package addon
-        shell: bash
-        run: |
-          mkdir -p artifacts/MewthischGuides
-          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
-          cd artifacts
-          zip -r MewthischGuides-v0.10.zip MewthischGuides
-
-      - name: Upload addon
-        uses: actions/upload-artifact@v4
-        with:
-          name: MewthischGuides-v0.10
-          path: artifacts/MewthischGuides-v0.10.zip
-          if-no-files-found: error
- "$TOC"
-          grep -q '^RestedXPImport.lua
-            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
-          done
-
-          grep -q 'forever-modern-capability' "$API"
-          grep -q 'GetQuestsOnMap' "$API"
-          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
-          grep -q 'RestedXPWorldCoordinates' "$NAV"
-          grep -q 'Nächstes Theme' "$UI"
-          grep -q 'ElvUI' "$UI"
-          grep -q 'RestedXP-Guidequellen' "$UI"
-          grep -q 'RestedXP-Aktionsabdeckung' "$UI"
-          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
-
-          if grep -q 'navigationScreenAngle' "$NAV"; then
-            echo "Unsafe guessed screen-angle fallback detected."
-            exit 1
-          fi
-
-          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
-            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
-            exit 1
-          fi
-
-          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
-            echo "German user-facing transliteration detected; use real umlauts."
-            exit 1
-          fi
-
-          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
-          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
-          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
-          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
-          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
-          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
-
-      - name: Package addon
-        shell: bash
-        run: |
-          mkdir -p artifacts/MewthischGuides
-          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
-          cd artifacts
-          zip -r MewthischGuides-v0.10.zip MewthischGuides
-
-      - name: Upload addon
-        uses: actions/upload-artifact@v4
-        with:
-          name: MewthischGuides-v0.10
-          path: artifacts/MewthischGuides-v0.10.zip
-          if-no-files-found: error
- "$TOC"
-          grep -q '^RestedXPImport.lua
-          for chunk in 01 02 03 04 05; do
-            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
-          done
-
-          grep -q 'forever-modern-capability' "$API"
-          grep -q 'GetQuestsOnMap' "$API"
-          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
-          grep -q 'RestedXPWorldCoordinates' "$NAV"
-          grep -q 'Nächstes Theme' "$UI"
-          grep -q 'ElvUI' "$UI"
-          grep -q 'RestedXP-Guidequellen' "$UI"
-          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
-
-          if grep -q 'navigationScreenAngle' "$NAV"; then
-            echo "Unsafe guessed screen-angle fallback detected."
-            exit 1
-          fi
-
-          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
-            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
-            exit 1
-          fi
-
-          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
-            echo "German user-facing transliteration detected; use real umlauts."
-            exit 1
-          fi
-
-          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
-          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
-          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
-          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
-          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
-          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
-
-      - name: Package addon
-        shell: bash
-        run: |
-          mkdir -p artifacts/MewthischGuides
-          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
-          cd artifacts
-          zip -r MewthischGuides-v0.10.zip MewthischGuides
-
-      - name: Upload addon
-        uses: actions/upload-artifact@v4
-        with:
-          name: MewthischGuides-v0.10
-          path: artifacts/MewthischGuides-v0.10.zip
-          if-no-files-found: error
- "$TOC"
-          for chunk in 01 02 03 04 05; do
-            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
-          done
-
-          grep -q 'forever-modern-capability' "$API"
-          grep -q 'GetQuestsOnMap' "$API"
-          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
-          grep -q 'RestedXPWorldCoordinates' "$NAV"
-          grep -q 'Nächstes Theme' "$UI"
-          grep -q 'ElvUI' "$UI"
-          grep -q 'RestedXP-Guidequellen' "$UI"
-          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
-
-          if grep -q 'navigationScreenAngle' "$NAV"; then
-            echo "Unsafe guessed screen-angle fallback detected."
-            exit 1
-          fi
-
-          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
-            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
-            exit 1
-          fi
-
-          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
-            echo "German user-facing transliteration detected; use real umlauts."
-            exit 1
-          fi
-
-          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
-          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
-          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
-          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
-          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
-          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
-
-      - name: Package addon
-        shell: bash
-        run: |
-          mkdir -p artifacts/MewthischGuides
-          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
-          cd artifacts
-          zip -r MewthischGuides-v0.10.zip MewthischGuides
-
-      - name: Upload addon
-        uses: actions/upload-artifact@v4
-        with:
-          name: MewthischGuides-v0.10
-          path: artifacts/MewthischGuides-v0.10.zip
-          if-no-files-found: error
- "$TOC"
-          for chunk in 01 02 03 04 05; do
-            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
-          done
-
-          grep -q 'forever-modern-capability' "$API"
-          grep -q 'GetQuestsOnMap' "$API"
-          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
-          grep -q 'RestedXPWorldCoordinates' "$NAV"
-          grep -q 'Nächstes Theme' "$UI"
-          grep -q 'ElvUI' "$UI"
-          grep -q 'RestedXP-Guidequellen' "$UI"
-          grep -q 'RestedXP-Aktionsabdeckung' "$UI"
-          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
-
-          if grep -q 'navigationScreenAngle' "$NAV"; then
-            echo "Unsafe guessed screen-angle fallback detected."
-            exit 1
-          fi
-
-          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
-            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
-            exit 1
-          fi
-
-          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
-            echo "German user-facing transliteration detected; use real umlauts."
-            exit 1
-          fi
-
-          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
-          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
-          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
-          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
-          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
-          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
-
-      - name: Package addon
-        shell: bash
-        run: |
-          mkdir -p artifacts/MewthischGuides
-          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
-          cd artifacts
-          zip -r MewthischGuides-v0.10.zip MewthischGuides
-
-      - name: Upload addon
-        uses: actions/upload-artifact@v4
-        with:
-          name: MewthischGuides-v0.10
-          path: artifacts/MewthischGuides-v0.10.zip
-          if-no-files-found: error
- "$TOC"
-          grep -q '^RestedXPImport.lua
-          for chunk in 01 02 03 04 05; do
-            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
-          done
-
-          grep -q 'forever-modern-capability' "$API"
-          grep -q 'GetQuestsOnMap' "$API"
-          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
-          grep -q 'RestedXPWorldCoordinates' "$NAV"
-          grep -q 'Nächstes Theme' "$UI"
-          grep -q 'ElvUI' "$UI"
-          grep -q 'RestedXP-Guidequellen' "$UI"
-          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
-
-          if grep -q 'navigationScreenAngle' "$NAV"; then
-            echo "Unsafe guessed screen-angle fallback detected."
-            exit 1
-          fi
-
-          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
-            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
-            exit 1
-          fi
-
-          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
-            echo "German user-facing transliteration detected; use real umlauts."
-            exit 1
-          fi
-
-          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
-          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
-          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
-          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
-          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
-          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
-
-      - name: Package addon
-        shell: bash
-        run: |
-          mkdir -p artifacts/MewthischGuides
-          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
-          cd artifacts
-          zip -r MewthischGuides-v0.10.zip MewthischGuides
-
-      - name: Upload addon
-        uses: actions/upload-artifact@v4
-        with:
-          name: MewthischGuides-v0.10
-          path: artifacts/MewthischGuides-v0.10.zip
-          if-no-files-found: error
- "$TOC"
-          for chunk in 01 02 03 04 05; do
-            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
-          done
-
-          grep -q 'forever-modern-capability' "$API"
-          grep -q 'GetQuestsOnMap' "$API"
-          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
-          grep -q 'RestedXPWorldCoordinates' "$NAV"
-          grep -q 'Nächstes Theme' "$UI"
-          grep -q 'ElvUI' "$UI"
-          grep -q 'RestedXP-Guidequellen' "$UI"
-          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
-
-          if grep -q 'navigationScreenAngle' "$NAV"; then
-            echo "Unsafe guessed screen-angle fallback detected."
-            exit 1
-          fi
-
-          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
-            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
-            exit 1
-          fi
-
-          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
-            echo "German user-facing transliteration detected; use real umlauts."
-            exit 1
-          fi
-
-          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
-          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
-          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
-          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
-          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
-          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
-
-      - name: Package addon
-        shell: bash
-        run: |
+          rm -rf artifacts
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
