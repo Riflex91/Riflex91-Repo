@@ -46,6 +46,47 @@ const OBSERVE_EXPR = [
   "})()"
 ].join("\n");
 
+
+const PERFORMANCE_TRICK_EXPR = [
+  "(() => {",
+  "  const roots = [globalThis];",
+  "  try { if (globalThis.parent && globalThis.parent !== globalThis) roots.push(globalThis.parent); } catch {}",
+  "  let verfuegbar = false;",
+  "  let aufgerufen = false;",
+  "  let fehler = null;",
+  "  for (const root of roots) {",
+  "    try {",
+  "      if (typeof root?.performance_trick !== 'function') continue;",
+  "      verfuegbar = true;",
+  "      root.performance_trick();",
+  "      aufgerufen = true;",
+  "      break;",
+  "    } catch (error) { fehler = String(error && error.message || error).slice(0,240); }",
+  "  }",
+  "  let audioGefunden = false;",
+  "  let cplaying = false;",
+  "  let playing = false;",
+  "  for (const root of roots) {",
+  "    try {",
+  "      const empty = root?.sounds?.empty;",
+  "      if (!empty) continue;",
+  "      audioGefunden = true;",
+  "      if (empty.cplaying === true) cplaying = true;",
+  "      if (typeof empty.playing === 'function' && empty.playing() === true) playing = true;",
+  "    } catch {}",
+  "  }",
+  "  return { verfuegbar, aufgerufen, audioGefunden, cplaying, playing, aktiv: verfuegbar && audioGefunden && (playing || cplaying), fehler };",
+  "})()"
+].join("\n");
+
+export async function aktiviereBrowserPerformanceTrick(session, contextId) {
+  const value = await session.evaluate(PERFORMANCE_TRICK_EXPR, contextId, { userGesture: true });
+  if (!value || value.aktiv !== true) {
+    throw new Error("R12_PERFORMANCE_TRICK_NICHT_AKTIV:" + JSON.stringify(value ?? null));
+  }
+  return value;
+}
+
 export async function beobachteControlledLive(session, contextId) {
   const value = await session.evaluate(OBSERVE_EXPR, contextId);
   if (!value || typeof value !== "object") throw new Error("R12_BEOBACHTUNG_UNGUELTIG");
