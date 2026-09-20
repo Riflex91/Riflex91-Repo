@@ -99,6 +99,14 @@ function pruefeGanzzahl(
   }
 }
 
+function kompakteKennung(prefix: string, text: string): string {
+  let checksum = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    checksum = (checksum * 131 + text.charCodeAt(index)) % 2_147_483_647;
+  }
+  return prefix + ":" + String(text.length) + ":" + String(checksum);
+}
+
 function marktSchluessel(name: string, level: number): string {
   pruefeText(name, "MARKT_HISTORIE_NAME_UNGUELTIG");
   pruefeGanzzahl(level, 0, 99, "MARKT_HISTORIE_LEVEL_UNGUELTIG");
@@ -431,14 +439,16 @@ export class MarktHistorie {
     }
     const referenzFingerprint = referenz === null
       ? null
-      : [
-        "markt",
-        name,
-        String(level),
-        String(referenz.preisProEinheit),
-        String(referenz.beobachtetAmMs),
-        referenz.beobachtungsId,
-      ].join(":");
+      : kompakteKennung(
+        "markt-ref",
+        [
+          name,
+          String(level),
+          String(referenz.preisProEinheit),
+          String(referenz.beobachtetAmMs),
+          referenz.beobachtungsId,
+        ].join("|"),
+      );
 
     return Object.freeze({
       schemaVersion: 1,
@@ -592,12 +602,14 @@ export function erzeugeMarktBeobachtenDemand(
     prioritaetsKlasse: anfrage.prioritaetsKlasse,
     prioritaetsRang: anfrage.prioritaetsRang,
     ressourcenIds: Object.freeze([...anfrage.ressourcenIds]),
-    payloadFingerprint: [
-      "markt",
-      analyse.name,
-      String(analyse.level),
-      analyse.richtlinienVersion,
-    ].join(":"),
+    payloadFingerprint: kompakteKennung(
+      "markt-demand",
+      [
+        analyse.name,
+        String(analyse.level),
+        analyse.richtlinienVersion,
+      ].join("|"),
+    ),
     wissensSnapshot: Object.freeze({
       gitCommit: anfrage.wissensSnapshot.gitCommit,
       quellenSha256: Object.freeze([
