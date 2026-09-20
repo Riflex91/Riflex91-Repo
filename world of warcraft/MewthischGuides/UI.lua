@@ -520,11 +520,11 @@ function MG:InitializeUI()
     navigatorButton:SetPoint("RIGHT", -50, 0)
     ui.navigatorButton = navigatorButton
 
-    local infoButton = makeButton(footer, "Info", 46, 18, function()
-        MG:ToggleInfo()
+    local configButton = makeButton(footer, "Config", 54, 18, function()
+        MG:ToggleSettings()
     end)
-    infoButton:SetPoint("RIGHT", 0, 0)
-    ui.infoButton = infoButton
+    configButton:SetPoint("RIGHT", 0, 0)
+    ui.configButton = configButton
 
     local infoFrame = CreateFrame("Frame", "MewthischGuidesInfoFrame", UIParent)
     infoFrame:SetSize(480, 570)
@@ -555,7 +555,7 @@ function MG:InitializeUI()
     ui.infoBody = infoBody
 
     local settingsFrame = CreateFrame("Frame", "MewthischGuidesSettingsFrame", UIParent)
-    settingsFrame:SetSize(440, 570)
+    settingsFrame:SetSize(440, 620)
     centerOverlay(settingsFrame)
     settingsFrame:SetClampedToScreen(true)
     stylePanel(settingsFrame, "panel")
@@ -578,34 +578,63 @@ function MG:InitializeUI()
     end)
     settingsClose:SetPoint("RIGHT", -3, 0)
 
-    ui.checkAutoAccept = makeCheck(settingsFrame, -48,
+    local routeModeLabel = makeText(settingsFrame, "GameFontHighlight", 11, "text")
+    routeModeLabel:SetPoint("TOPLEFT", 18, -48)
+    routeModeLabel:SetText("Routenmodus")
+
+    local manualMode = makeButton(settingsFrame, "Manuell", 82, 21, function()
+        MG:SetRouteMode("manual")
+    end)
+    manualMode:SetPoint("TOPLEFT", 110, -41)
+    ui.routeManualButton = manualMode
+
+    local presetMode = makeButton(settingsFrame, "Vorgegeben", 92, 21, function()
+        MG:SetRouteMode("preset")
+    end)
+    presetMode:SetPoint("LEFT", manualMode, "RIGHT", 8, 0)
+    ui.routePresetButton = presetMode
+
+    local routeModeValue = makeText(settingsFrame, "GameFontHighlightSmall", 9, "muted")
+    routeModeValue:SetPoint("LEFT", presetMode, "RIGHT", 8, 0)
+    routeModeValue:SetPoint("RIGHT", -14, 0)
+    routeModeValue:SetWordWrap(false)
+    ui.routeModeValue = routeModeValue
+
+    ui.checkAutoAccept = makeCheck(settingsFrame, -82,
         "Quests bei Questgebern automatisch annehmen", "autoAcceptQuests")
-    ui.checkAutoTurnIn = makeCheck(settingsFrame, -80,
+    ui.checkAutoTurnIn = makeCheck(settingsFrame, -110,
         "Fertige Quests automatisch abgeben", "autoTurnInQuests")
-    ui.checkSuperTrack = makeCheck(settingsFrame, -112,
+    ui.checkSuperTrack = makeCheck(settingsFrame, -138,
         "Aktuelles Ziel automatisch super-tracken", "autoSuperTrack",
         function() MG:RefreshGuide("settings_supertrack") end)
-    ui.checkNavigator = makeCheck(settingsFrame, -144,
+    ui.checkNavigator = makeCheck(settingsFrame, -166,
         "Separaten Navigator anzeigen", "showNavigator",
         function() MG:RefreshNavigator() end)
-    ui.checkNavigatorLocked = makeCheck(settingsFrame, -176,
+    ui.checkNavigatorLocked = makeCheck(settingsFrame, -194,
         "Navigator sperren", "navigatorLocked")
-    ui.checkMinimap = makeCheck(settingsFrame, -208,
+    ui.checkMinimap = makeCheck(settingsFrame, -222,
         "Minimap-Button anzeigen", "showMinimapButton",
         function() MG:RefreshMinimapButton() end)
-    ui.checkDiagnostics = makeCheck(settingsFrame, -240,
+    ui.checkWorldMapMarker = makeCheck(settingsFrame, -250,
+        "Aktuelles Ziel auf der Weltkarte markieren", "showWorldMapMarker",
+        function()
+            if MG.RefreshWorldMapMarker then
+                MG:RefreshWorldMapMarker(MG.navigation and MG.navigation.target or nil)
+            end
+        end)
+    ui.checkDiagnostics = makeCheck(settingsFrame, -278,
         "Diagnose-Logs speichern", "diagnostics")
-    ui.checkGearAuto = makeCheck(settingsFrame, -272,
-        "Sichere High-Confidence-Gear-Upgrades automatisch anlegen",
+    ui.checkGearAuto = makeCheck(settingsFrame, -306,
+        "Bessere Ausrüstung automatisch anlegen",
         "gearAutoEquip",
         function() if MG.Sync then MG.Sync:Inventory("settings_gear_auto") end end)
 
     local transparencyLabel = makeText(settingsFrame, "GameFontHighlight", 11, "text")
-    transparencyLabel:SetPoint("TOPLEFT", 18, -314)
+    transparencyLabel:SetPoint("TOPLEFT", 18, -348)
     transparencyLabel:SetText("Fenster-Transparenz")
 
     local transparencyValue = makeText(settingsFrame, "GameFontHighlight", 10, "muted")
-    transparencyValue:SetPoint("TOPRIGHT", -20, -314)
+    transparencyValue:SetPoint("TOPRIGHT", -20, -348)
     transparencyValue:SetWidth(55)
     transparencyValue:SetJustifyH("RIGHT")
     ui.transparencyValue = transparencyValue
@@ -613,7 +642,7 @@ function MG:InitializeUI()
     local slider = CreateFrame("Slider", "MewthischGuidesTransparencySlider", settingsFrame)
     slider:SetOrientation("HORIZONTAL")
     slider:SetSize(280, 18)
-    slider:SetPoint("TOPLEFT", 18, -334)
+    slider:SetPoint("TOPLEFT", 18, -368)
     slider:SetMinMaxValues(0, 80)
     slider:SetValueStep(5)
     if slider.SetObeyStepOnDrag then slider:SetObeyStepOnDrag(true) end
@@ -651,13 +680,13 @@ function MG:InitializeUI()
     ui.transparencySlider = slider
 
     local scaleLabel = makeText(settingsFrame, "GameFontHighlight", 11, "text")
-    scaleLabel:SetPoint("TOPLEFT", 18, -374)
+    scaleLabel:SetPoint("TOPLEFT", 18, -408)
     scaleLabel:SetText("Navigator-Größe")
 
     local scaleDown = makeButton(settingsFrame, "-", 28, 20, function()
         MG:SetNavigatorScale((MG.db.settings.navigatorScale or 1) - 0.05)
     end)
-    scaleDown:SetPoint("TOPLEFT", 150, -367)
+    scaleDown:SetPoint("TOPLEFT", 150, -401)
 
     local scaleValue = makeText(settingsFrame, "GameFontHighlight", 11, "text")
     scaleValue:SetPoint("LEFT", scaleDown, "RIGHT", 8, 0)
@@ -673,10 +702,10 @@ function MG:InitializeUI()
     local resetNavigator = makeButton(settingsFrame, "Pfeil zurücksetzen", 145, 21, function()
         MG:ResetNavigatorPosition()
     end)
-    resetNavigator:SetPoint("TOPLEFT", 18, -407)
+    resetNavigator:SetPoint("TOPLEFT", 18, -441)
 
     local themeLabel = makeText(settingsFrame, "GameFontHighlight", 11, "text")
-    themeLabel:SetPoint("TOPLEFT", 18, -450)
+    themeLabel:SetPoint("TOPLEFT", 18, -482)
     themeLabel:SetText("Design")
 
     local themeButton = makeButton(settingsFrame, "Nächstes Theme", 125, 21, function()
@@ -684,7 +713,7 @@ function MG:InitializeUI()
         MG:RefreshSettings()
         MG:RefreshUI()
     end)
-    themeButton:SetPoint("TOPLEFT", 80, -443)
+    themeButton:SetPoint("TOPLEFT", 80, -475)
     ui.themeButton = themeButton
 
     local themeValue = makeText(settingsFrame, "GameFontHighlightSmall", 10, "muted")
@@ -694,14 +723,14 @@ function MG:InitializeUI()
     ui.themeValue = themeValue
 
     local elvNote = makeText(settingsFrame, "GameFontHighlightSmall", 9, "muted")
-    elvNote:SetPoint("TOPLEFT", 18, -482)
+    elvNote:SetPoint("TOPLEFT", 18, -516)
     elvNote:SetPoint("RIGHT", -18, 0)
     elvNote:SetText("ElvUI übernimmt bei erkanntem ElvUI automatisch dessen Hintergrund-, Rahmen-, Akzentfarben und Standardschrift.")
 
     local safety = makeText(settingsFrame, "GameFontHighlightSmall", 9, "muted")
-    safety:SetPoint("TOPLEFT", 18, -520)
+    safety:SetPoint("TOPLEFT", 18, -552)
     safety:SetPoint("RIGHT", -18, 0)
-    safety:SetText("Mehrfachbelohnungen und Talente bleiben manuell. Gear-Auto-Equip arbeitet ausschließlich fail-closed.")
+    safety:SetText("Auto-Equip schützt Waffen und bindet keine erkannten BoE-Gegenstände. Mehrfachbelohnungen und Talente bleiben manuell.")
 
     if self.db.settings.showWindow == false then frame:Hide() end
 
@@ -970,6 +999,9 @@ function MG:RefreshInfo()
         "",
         "Auto-Annahme: " .. (self.db.settings.autoAcceptQuests and "AN" or "AUS"),
         "Auto-Abgabe: " .. (self.db.settings.autoTurnInQuests and "AN" or "AUS"),
+        "Routenmodus: " .. ((self.GetRouteMode and self:GetRouteMode() == "manual") and
+            "Manuell / kürzeste aktuelle Ziele" or "Vorgegebene Route"),
+        "Weltkarten-Marker: " .. (self.db.settings.showWorldMapMarker and "AN" or "AUS"),
         "Navigator: " .. (self.db.settings.showNavigator and "AN" or "AUS") ..
             (self.db.settings.navigatorLocked and " / gesperrt" or " / frei"),
         "Theme: " .. tostring(themeName),
@@ -1010,8 +1042,12 @@ function MG:RefreshSettings()
     ui.checkNavigator:SetChecked(self.db.settings.showNavigator)
     ui.checkNavigatorLocked:SetChecked(self.db.settings.navigatorLocked)
     ui.checkMinimap:SetChecked(self.db.settings.showMinimapButton)
+    ui.checkWorldMapMarker:SetChecked(self.db.settings.showWorldMapMarker)
     ui.checkDiagnostics:SetChecked(self.db.settings.diagnostics)
     ui.checkGearAuto:SetChecked(self.db.settings.gearAutoEquip)
+
+    local routeMode = self.GetRouteMode and self:GetRouteMode() or "preset"
+    ui.routeModeValue:SetText(routeMode == "manual" and "aktiv: Manuell" or "aktiv: Vorgegeben")
 
     ui.navigatorScaleValue:SetText(string.format("%d%%",
         math.floor((self.db.settings.navigatorScale or 1) * 100 + 0.5)))
