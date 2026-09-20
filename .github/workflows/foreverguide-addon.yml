@@ -55,7 +55,6 @@ jobs:
           near(abs, 0, 0.0001, "north absolute")
           near(rel, 0, 0.0001, "north relative")
 
-          -- WoW facing/texture rotation uses 0=north and positive=counter-clockwise.
           rel, abs = MG:ComputeRelativeBearing(1, 0, 0)
           near(abs, math.pi * 3 / 2, 0.0001, "east absolute")
           near(rel, -math.pi / 2, 0.0001, "east from north")
@@ -71,15 +70,11 @@ jobs:
           near(abs, math.pi / 2, 0.0001, "west absolute")
           near(rel, math.pi / 2, 0.0001, "west from north")
 
-          -- Blizzard world coordinates are rotated against UI-map axes.
           near(MG:ComputeWorldAbsoluteBearing(1, 0), 0, 0.0001, "world north")
           near(MG:ComputeWorldAbsoluteBearing(0, -1), math.pi * 3 / 2, 0.0001, "world east")
           near(MG:ComputeWorldAbsoluteBearing(-1, 0), math.pi, 0.0001, "world south")
           near(MG:ComputeWorldAbsoluteBearing(0, 1), math.pi / 2, 0.0001, "world west")
 
-          -- Regression from the 2026-09-20 Forever field run:
-          -- player ~42.08/68.39, quest target ~44.30/55.64, facing almost north.
-          -- The target is ahead-right, not ~90 degrees to the side.
           local playerX, playerY = 0.4207731485366821, 0.6839030981063843
           local targetX, targetY = 0.443026065826416, 0.5564066171646118
           local facing = 0.03902159631252289
@@ -159,8 +154,8 @@ jobs:
             verification="RECORDED",
           })
 
-          assert(target, "route target missing")
-          assert(target.source == "QuestMapPOI", "modern QuestMapPOI must beat generic next waypoint")
+          assert(target and target.source == "QuestMapPOI",
+            "modern QuestMapPOI must beat generic next waypoint")
           assert(#candidates == 2, "expected two route candidates")
           assert(MG.db.runtime.route.candidates and #MG.db.runtime.route.candidates == 2,
             "candidate diagnostics missing")
@@ -177,7 +172,6 @@ jobs:
 
           assert(target and target.source == "QuestLine",
             "accept route should prefer QuestLine over QuestMapPOI")
-
           print("RouteEngine ranking PASS")
           LUA
 
@@ -224,7 +218,6 @@ jobs:
           assert(steps[preferredIndex].questID == 2, "resync should prefer active route quest")
           assert(steps[preferredIndex].phase == MG.StepPhases.OBJECTIVES, "expected objective phase")
           assert(reason == "active_route_quest", "wrong resync reason")
-
           print("Step/resync contract PASS")
           LUA
 
@@ -247,7 +240,6 @@ jobs:
             },
           })
           assert(guide and guide.steps[1].id == "a", "parser did not sort normalized steps")
-
           local ok = MG.Validation:ValidateGuide(guide)
           assert(ok, "valid guide rejected")
 
@@ -259,7 +251,9 @@ jobs:
           local badOK = MG.Validation:ValidateGuide(bad)
           assert(not badOK, "invalid coordinate accepted")
 
-          MG.GetPlayerProfile = function() return {faction="Horde", class="HUNTER", race="Troll"} end
+          MG.GetPlayerProfile = function()
+            return {faction="Horde", class="HUNTER", race="Troll"}
+          end
           assert(loadfile("world of warcraft/MewthischGuides/TravelGraph.lua"))("MewthischGuides", MG)
           MG.TravelGraph:Load({
             nodes={
@@ -277,7 +271,6 @@ jobs:
           assert(reason == "resolved", "travel graph did not resolve")
           assert(route and #route == 3, "travel graph did not choose lowest-cost path")
           assert(MG.db.runtime.travelPlan.cost == 15, "wrong travel cost")
-
           print("Parser/Validation/TravelGraph PASS")
           LUA
 
@@ -312,9 +305,13 @@ jobs:
 
           grep -q '^## Interface: 16001$' "$TOC"
           grep -q '^## Title: Mewthisch Guides$' "$TOC"
-          grep -q '^## Version: 0.9.0
+          grep -q '^## Version: 0.9.0$' "$TOC"
           grep -q '^ForeverAPI.lua$' "$TOC"
-          grep -q '^RouteEngine.lua
+          grep -q '^RouteEngine.lua$' "$TOC"
+          for module in Validation GuideParser DataLoader QuestTracking TravelGraph Inventory GearAdvisor RewardAdvisor BuildState TalentAdvisor Themes Telemetry State Diagnostics Sync; do
+            grep -q "^$module.lua$" "$TOC"
+          done
+
           grep -q 'forever-modern-capability' "$API"
           grep -q 'GetQuestsOnMap' "$API"
           grep -q 'GetQuestLineCoordinate' "$API"
@@ -356,151 +353,6 @@ jobs:
           grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
           grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
           grep -q 'roadmap-complete-pre-runtime-fix' "$ROOT/Data.lua"
-
-      - name: Package addon
-        shell: bash
-        run: |
-          mkdir -p artifacts/MewthischGuides
-          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
-          cd artifacts
-          zip -r MewthischGuides-v0.9.zip MewthischGuides
-
-      - name: Upload addon
-        uses: actions/upload-artifact@v4
-        with:
-          name: MewthischGuides-v0.9
-          path: artifacts/MewthischGuides-v0.9.zip
-          if-no-files-found: error
- "$TOC"
-          grep -q '^ForeverAPI.lua$' "$TOC"
-          grep -q '^RouteEngine.lua$' "$TOC"
-
-          grep -q 'forever-modern-capability' "$API"
-          grep -q 'GetQuestsOnMap' "$API"
-          grep -q 'GetQuestLineCoordinate' "$API"
-          grep -q 'MapToWorld' "$API"
-          grep -q 'hadSentinel' "$API"
-          grep -q 'C_Secrets' "$API"
-
-          grep -q 'QuestMapPOI = 92' "$ROUTE"
-          grep -q 'candidateSummary' "$ROUTE"
-          grep -q 'modern_quest_map_poi' "$ROUTE"
-
-          grep -q 'RouteEngine:Resolve' "$NAV"
-          grep -q 'WorldCoordinates' "$NAV"
-          grep -q 'ComputeWorldAbsoluteBearing' "$NAV"
-          grep -q 'world X is north/south' "$NAV"
-          if grep -q 'navigationScreenAngle' "$NAV"; then
-            echo "Unsafe guessed screen-angle fallback detected."
-            exit 1
-          fi
-
-          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
-            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
-            exit 1
-          fi
-
-          grep -q 'Fenster-Transparenz' "$UI"
-          grep -q 'math.abs(current - transparency)' "$UI"
-          grep -q 'API-Modus' "$UI"
-          grep -q 'RouteEngine' "$UI"
-
-      - name: Package addon
-        shell: bash
-        run: |
-          mkdir -p artifacts/MewthischGuides
-          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
-          cd artifacts
-          zip -r MewthischGuides-v0.9.zip MewthischGuides
-
-      - name: Upload addon
-        uses: actions/upload-artifact@v4
-        with:
-          name: MewthischGuides-v0.9
-          path: artifacts/MewthischGuides-v0.9.zip
-          if-no-files-found: error
- "$TOC"
-          for module in Validation GuideParser DataLoader QuestTracking TravelGraph Inventory GearAdvisor RewardAdvisor BuildState TalentAdvisor Themes Telemetry State Diagnostics Sync; do
-            grep -q "^$module.lua$" "$TOC"
-          done
-
-          grep -q 'forever-modern-capability' "$API"
-          grep -q 'GetQuestsOnMap' "$API"
-          grep -q 'GetQuestLineCoordinate' "$API"
-          grep -q 'MapToWorld' "$API"
-          grep -q 'hadSentinel' "$API"
-          grep -q 'C_Secrets' "$API"
-
-          grep -q 'QuestMapPOI = 92' "$ROUTE"
-          grep -q 'candidateSummary' "$ROUTE"
-          grep -q 'modern_quest_map_poi' "$ROUTE"
-
-          grep -q 'RouteEngine:Resolve' "$NAV"
-          grep -q 'WorldCoordinates' "$NAV"
-          grep -q 'ComputeWorldAbsoluteBearing' "$NAV"
-          grep -q 'world X is north/south' "$NAV"
-          if grep -q 'navigationScreenAngle' "$NAV"; then
-            echo "Unsafe guessed screen-angle fallback detected."
-            exit 1
-          fi
-
-          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
-            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
-            exit 1
-          fi
-
-          grep -q 'Fenster-Transparenz' "$UI"
-          grep -q 'math.abs(current - transparency)' "$UI"
-          grep -q 'API-Modus' "$UI"
-          grep -q 'RouteEngine' "$UI"
-
-      - name: Package addon
-        shell: bash
-        run: |
-          mkdir -p artifacts/MewthischGuides
-          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
-          cd artifacts
-          zip -r MewthischGuides-v0.9.zip MewthischGuides
-
-      - name: Upload addon
-        uses: actions/upload-artifact@v4
-        with:
-          name: MewthischGuides-v0.9
-          path: artifacts/MewthischGuides-v0.9.zip
-          if-no-files-found: error
- "$TOC"
-          grep -q '^ForeverAPI.lua$' "$TOC"
-          grep -q '^RouteEngine.lua$' "$TOC"
-
-          grep -q 'forever-modern-capability' "$API"
-          grep -q 'GetQuestsOnMap' "$API"
-          grep -q 'GetQuestLineCoordinate' "$API"
-          grep -q 'MapToWorld' "$API"
-          grep -q 'hadSentinel' "$API"
-          grep -q 'C_Secrets' "$API"
-
-          grep -q 'QuestMapPOI = 92' "$ROUTE"
-          grep -q 'candidateSummary' "$ROUTE"
-          grep -q 'modern_quest_map_poi' "$ROUTE"
-
-          grep -q 'RouteEngine:Resolve' "$NAV"
-          grep -q 'WorldCoordinates' "$NAV"
-          grep -q 'ComputeWorldAbsoluteBearing' "$NAV"
-          grep -q 'world X is north/south' "$NAV"
-          if grep -q 'navigationScreenAngle' "$NAV"; then
-            echo "Unsafe guessed screen-angle fallback detected."
-            exit 1
-          fi
-
-          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
-            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
-            exit 1
-          fi
-
-          grep -q 'Fenster-Transparenz' "$UI"
-          grep -q 'math.abs(current - transparency)' "$UI"
-          grep -q 'API-Modus' "$UI"
-          grep -q 'RouteEngine' "$UI"
 
       - name: Package addon
         shell: bash
