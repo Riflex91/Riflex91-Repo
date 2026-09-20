@@ -914,10 +914,36 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
       });
     }
 
-    let grund: string | null = null;
+    if (authority.verbraucht()) {
+      this.#equipEinmalAuthority = null;
+      return Object.freeze({
+        schemaVersion: 1,
+        bereit: true,
+        grund: "V5_EQUIP_EINMAL_AUTHORITY_VERBRAUCHT",
+        authorityOffen: false,
+        authorityWiderrufen: false,
+        gameplayWriteAusgefuehrt: false,
+        rawWriteAutoritaet: false,
+        breiteRuntimeFreigabe: false,
+      });
+    }
     if (!authority.gueltigFuer(jetztMs)) {
-      grund = "V5_EQUIP_EINMAL_AUTHORITY_ABGELAUFEN_ODER_VERBRAUCHT";
-    } else if (!this.#prozessLaeuft || this.#zustand !== "LAEUFT") {
+      authority.widerrufe();
+      this.#equipEinmalAuthority = null;
+      return Object.freeze({
+        schemaVersion: 1,
+        bereit: true,
+        grund: "V5_EQUIP_EINMAL_AUTHORITY_ABGELAUFEN",
+        authorityOffen: false,
+        authorityWiderrufen: true,
+        gameplayWriteAusgefuehrt: false,
+        rawWriteAutoritaet: false,
+        breiteRuntimeFreigabe: false,
+      });
+    }
+
+    let grund: string | null = null;
+    if (!this.#prozessLaeuft || this.#zustand !== "LAEUFT") {
       grund = "V5_EQUIP_EINMAL_RUNTIME_LAEUFT_NICHT";
     } else if (!this.#laufsteuerung.sicht().neueArbeitErlaubt) {
       grund = "V5_EQUIP_EINMAL_LAUFSTEUERUNG_GESPERRT";
