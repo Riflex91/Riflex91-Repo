@@ -8,6 +8,12 @@ MG.StepPhases = {
     LIVE = "live",
 }
 
+local function epochNow()
+    if time then return time() end
+    if os and os.time then return os.time() end
+    return 0
+end
+
 local function contains(list, value)
     if type(list) ~= "table" then return true end
     for _, item in ipairs(list) do
@@ -320,7 +326,7 @@ function MG:BuildGuideSteps()
         selectedReason = preferredReason,
         maxCompletedOrder = maxCompletedOrder,
         visibleSteps = #steps,
-        updatedAt = time(),
+        updatedAt = epochNow(),
     }
 
     return steps, preferredIndex, preferredReason
