@@ -30,6 +30,9 @@ local DEFAULT_SETTINGS = {
     gearProtectBoE = true,
     gearRequireHighConfidence = true,
     telemetryLocal = true,
+    rxpSeason = 0,
+    rxpRate = 1.0,
+    rxpHardcoreMode = false,
 }
 
 local function isoNow()
