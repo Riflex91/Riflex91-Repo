@@ -1,6 +1,8 @@
 import {
+  RessourcenVerwalter,
   actionKanalRessourcenId,
   socketBudgetRessourcenId,
+  type FencingToken,
 } from "./ressourcen-verwalter.js";
 
 export interface MutationsKanalPlan {
@@ -128,6 +130,16 @@ export class CharacterSocketBudget {
     return reservierung;
   }
 
+  public storniere(reservierungId: string): void {
+    pruefeText(reservierungId, "SOCKET_BUDGET_RESERVIERUNG_ID_UNGUELTIG");
+    if (!this.#reservierungen.some(eintrag => eintrag.reservierungId === reservierungId)) {
+      throw new Error("SOCKET_BUDGET_RESERVIERUNG_UNBEKANNT");
+    }
+    this.#reservierungen = Object.freeze(
+      this.#reservierungen.filter(eintrag => eintrag.reservierungId !== reservierungId),
+    );
+  }
+
   public sicht(characterId: string, jetztMs: number): Readonly<{
     fensterMs: number;
     planBudget: number;
@@ -153,5 +165,53 @@ export class CharacterSocketBudget {
       belegt,
       verfuegbar: Math.max(0, this.#planBudget - belegt),
     });
+  }
+}
+
+export interface MutationsKanalFreigabe {
+  readonly kanalToken: FencingToken;
+  readonly budgetReservierung: SocketBudgetReservierung;
+}
+
+export class MutationsKanalKoordination {
+  readonly #ressourcen: RessourcenVerwalter;
+  readonly #budget: CharacterSocketBudget;
+
+  public constructor(
+    ressourcen: RessourcenVerwalter,
+    budget: CharacterSocketBudget,
+  ) {
+    this.#ressourcen = ressourcen;
+    this.#budget = budget;
+  }
+
+  public reserviere(
+    reservierungId: string,
+    ablaufId: string,
+    plan: MutationsKanalPlan,
+    jetztMs: number,
+  ): MutationsKanalFreigabe {
+    const budgetReservierung = this.#budget.reserviere(
+      reservierungId,
+      ablaufId,
+      plan,
+      jetztMs,
+    );
+    try {
+      const tokens = this.#ressourcen.beanspruche(ablaufId, [{
+        ressourcenId: plan.actionKanalRessourcenId,
+        art: "ACTION_KANAL",
+        leaseDauerMs: null,
+      }], jetztMs);
+      const kanalToken = tokens[0];
+      if (kanalToken === undefined) throw new Error("ACTION_KANAL_TOKEN_FEHLT");
+      return Object.freeze({
+        kanalToken,
+        budgetReservierung,
+      });
+    } catch (fehler) {
+      this.#budget.storniere(reservierungId);
+      throw fehler;
+    }
   }
 }
