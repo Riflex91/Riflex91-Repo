@@ -720,8 +720,8 @@
   }
 
   const gui = guiApi().erstelleTest({
-    kennung: 'r19-soak-1h',
-    titel: 'V5 · R19 SOAK 1H · Canary-Scope',
+    kennung: 'r19-soak-5m',
+    titel: 'V5 · R19 SOAK 5M · Canary-Scope',
     beschreibung: 'Lueckenlose 5-Minuten-Zeitreihe ohne Gameplay-Writes. Browser-Speicherreserve, Heap, Persistenz-Roundtrip und Sample-Gaps werden fail-closed bewertet.'
   });
 
