@@ -120,6 +120,7 @@ for (const marker of [
   "CAP033_CAP034_FUNKTION_5M_LIVE_SHADOW",
   "const DAUER_MS = 5 * 60 * 1000",
   "MIN_PREVIEW_CHANCE = 0.99",
+  "MAX_TEST_BASISWERT_GOLD = 100000",
   "let sendVerbraucht = false",
   "maximaleAktionen: 1",
   "sameIntentRetry: false",
