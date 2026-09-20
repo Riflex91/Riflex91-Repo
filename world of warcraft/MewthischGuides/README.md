@@ -79,6 +79,13 @@ Die RestedXP-basierten Datendateien sind als transformierte Datenbasis mit
 Quelle, Commit und CC BY-NC-SA 4.0 gekennzeichnet. Details stehen in
 `THIRD_PARTY_NOTICES.md`.
 
+`RestedXPActionCatalog.lua` klassifiziert alle aktuell im öffentlichen
+Datensatz vorkommenden strukturierten Aktionstypen. Die CI verlangt vollständige
+Abdeckung ohne unbekannte Aktionstypen. Passende Reise-, Händler-, Trainer-,
+Ziel-, Item- und weitere strukturierte Hinweise werden am aktiven Questschritt
+kompakt eingeblendet; die vollständigen Rohdirektiven bleiben weiterhin in der
+transformierten Datenbasis erhalten.
+
 ## User-facing systems
 
 - compact guide viewer
