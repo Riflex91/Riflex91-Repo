@@ -70,3 +70,6 @@ export * from "./operations/segment-pflege.js";
 export * from "./operations/headless-supervisor.js";
 export * from "./testlabor/golden-replay.js";
 export * from "./testlabor/evidence-replay.js";
+export * from "./vertical-slice/protokoll.js";
+export * from "./vertical-slice/shadow-adapter.js";
+export * from "./vertical-slice/controlled-live-policy.js";

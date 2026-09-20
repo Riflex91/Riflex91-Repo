@@ -1,0 +1,68 @@
+import fs from "node:fs";
+
+const fehler = text => { throw new Error("[V5-R12-STRUKTUR] " + text); };
+const lies = pfad => JSON.parse(fs.readFileSync(pfad, "utf8"));
+
+const gates = lies("roadmap/gates.json");
+const bereitschaft = lies("bereitschaft/laufzeit-bereitschaft.json");
+const r12 = gates.phases?.find(x => x.id === "R12");
+
+if (!r12 || !["IN_PROGRESS", "DONE"].includes(r12.status)) {
+  fehler("R12 muss IN_PROGRESS oder DONE sein.");
+}
+if (r12.status === "IN_PROGRESS" && gates.currentPhase !== "R12") {
+  fehler("R12 IN_PROGRESS verlangt currentPhase=R12.");
+}
+if (r12.status === "DONE") {
+  const r13 = gates.phases?.find(x => x.id === "R13");
+  if (gates.currentPhase !== "R13" || r13?.status !== "IN_PROGRESS") {
+    fehler("R12 DONE verlangt R13 IN_PROGRESS und currentPhase=R13.");
+  }
+  const live = lies("roadmap/r12-controlled-live-evidence.json");
+  if (live.status !== "BESTANDEN"
+      || live.actionContractId !== "AL-ACTION-EQUIP"
+      || live.publicFunction !== "equip"
+      || live.gameWrites !== 1
+      || live.unerwarteteGameWrites !== 0) {
+    fehler("R12 DONE verlangt echten bestandenen Controlled-Live-Nachweis.");
+  }
+}
+
+for (const pfad of [
+  "grundlage/quelle/vertical-slice/protokoll.ts",
+  "grundlage/quelle/vertical-slice/shadow-adapter.ts",
+  "grundlage/quelle/vertical-slice/controlled-live-policy.ts",
+  "grundlage/tests/r12-vertical-slice-shadow.test.mjs",
+  "werkzeuge/r12-statische-guards.mjs",
+]) {
+  if (!fs.existsSync(pfad)) fehler("Pflichtartefakt fehlt: " + pfad);
+}
+
+const erwarteteAnforderungen = new Set(["V5-ANF-TEST-007", "V5-ANF-TEST-008"]);
+const anforderungen = lies("anforderungen/anforderungen.json").anforderungen
+  .filter(x => x.phase === "R12" && x.prioritaet === "MUSS");
+if (anforderungen.length !== 2
+    || anforderungen.some(x => !erwarteteAnforderungen.has(x.kennung))) {
+  fehler("R12-MUSS-Anforderungsmenge ungueltig.");
+}
+if (anforderungen.some(x => !["OFFEN", "R12_NACHGEWIESEN"].includes(x.status))) {
+  fehler("R12-Anforderungsstatus ungueltig.");
+}
+const shadow = anforderungen.find(x => x.kennung === "V5-ANF-TEST-007");
+const controlled = anforderungen.find(x => x.kennung === "V5-ANF-TEST-008");
+
+if (bereitschaft.status !== "FREIGEGEBEN") {
+  if (r12.status === "DONE") fehler("R12 darf bei gesperrter Readiness nicht DONE sein.");
+  if (controlled?.status !== "OFFEN") {
+    fehler("Controlled Live darf ohne Runtime-Freigabe nicht als nachgewiesen gelten.");
+  }
+}
+if (r12.status === "DONE"
+    && (shadow?.status !== "R12_NACHGEWIESEN" || controlled?.status !== "R12_NACHGEWIESEN")) {
+  fehler("R12 DONE verlangt beide MUSS-Anforderungen.");
+}
+
+const trace = lies("anforderungen/nachverfolgbarkeit.json").eintraege.filter(x => x.phase === "R12");
+if (trace.length !== 2) fehler("R12-Traceability-Menge unvollstaendig.");
+
+console.log("[V5-R12-STRUKTUR] OK / Runtime-Gate:", bereitschaft.status, "/ R12:", r12.status);
