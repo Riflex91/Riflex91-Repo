@@ -69,7 +69,7 @@
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
       "erfuellt": false,
-      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. R7 weist 5/5, R8 6/6, R9 4/4 und R10 weitere 7/7 MUSS-Anforderungen technisch und tracebar nach; erfuellt bleibt bis zum Abschluss der Operations-/Observability-Phase und erforderlicher Live-Nachweise false.",
+      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. R7 weist 5/5, R8 6/6, R9 4/4, R10 7/7 und R11 weitere 9/9 MUSS-Anforderungen technisch und tracebar nach; erfuellt bleibt bis zu den spaeteren Vertical-Slice-/Live-/Zertifizierungsnachweisen false.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
         "v5/anforderungen/nachverfolgbarkeit.json"
@@ -87,12 +87,15 @@
       "r9AnforderungenGesamt": 4,
       "r10NachweisVorhanden": true,
       "r10AnforderungenNachgewiesen": 7,
-      "r10AnforderungenGesamt": 7
+      "r10AnforderungenGesamt": 7,
+      "r11NachweisVorhanden": true,
+      "r11AnforderungenNachgewiesen": 9,
+      "r11AnforderungenGesamt": 9
     },
     {
       "kennung": "INVARIANTEN_BEREIT",
       "erfuellt": false,
-      "grund": "R3 erzwingt Architektur-/Host-/Default-Deny-Grenzen, R7 Authority/Ports, R8 Scheduler/Fencing, R9 Admission/Execution-Vertraege und R10 UNKNOWN-/Partial-Reconciliation, Restart-Fail-Closed, Stop-Protokoll, Snapshot-Pinning und Fehlerdomaenen-Isolation. erfuellt bleibt false, bis R11 Operations-/Observability-Invarianten technisch geschlossen sind.",
+      "grund": "R3-R10 schliessen Architektur-, Determinismus-, Persistenz-, Authority-, Scheduler-, Admission- und Recovery-Grenzen. R11 ergaenzt fail-closed Health, persist-before-claim Alerts, erklaerbare Authority, bounded Operations-Telemetrie, Golden Replay sowie Negativ-/Property-/Fault-/Mutation-Nachweise. erfuellt bleibt bis zu den spaeteren Vertical-Slice-/Runtime-Invarianten false.",
       "nachweise": [
         "v5/invarianten/invarianten.json",
         "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
@@ -117,7 +120,14 @@
         "v5/grundlage/quelle/recovery/laufsteuerung.ts",
         "v5/grundlage/quelle/recovery/fehlerdomaenen.ts",
         "v5/grundlage/quelle/recovery/wiederanlauf.ts",
-        "v5/architektur/adr/ADR-011-R10-RECOVERY.md"
+        "v5/architektur/adr/ADR-011-R10-RECOVERY.md",
+        "v5/grundlage/quelle/operations/health.ts",
+        "v5/grundlage/quelle/operations/alerts.ts",
+        "v5/grundlage/quelle/operations/authority-status.ts",
+        "v5/grundlage/quelle/operations/telemetrie.ts",
+        "v5/grundlage/quelle/operations/headless-supervisor.ts",
+        "v5/grundlage/quelle/testlabor/golden-replay.ts",
+        "v5/architektur/adr/ADR-012-R11-TESTLABOR-OBSERVABILITY-OPERATIONS.md"
       ],
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
@@ -130,7 +140,9 @@
       "r9NachweisVorhanden": true,
       "r9AbgeschlossenAm": "2026-09-20",
       "r10NachweisVorhanden": true,
-      "r10AbgeschlossenAm": "2026-09-20"
+      "r10AbgeschlossenAm": "2026-09-20",
+      "r11NachweisVorhanden": true,
+      "r11AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "ZUSTANDSMASCHINEN_BEREIT",
@@ -181,7 +193,7 @@
     {
       "kennung": "TESTSTRATEGIE_BEREIT",
       "erfuellt": true,
-      "grund": "R4: injizierbare Uhr/Zufall/IDs/Sequenzen, kanonische Serialisierung, deterministische Replay-Provenienz, immutable Events, bounded Collections und byte-identische Wiederholungsnachweise sind implementiert und CI-geprueft.",
+      "grund": "R4 liefert deterministisches Core-/Replay-Grundgeruest. R11 erweitert dies um Golden Replay, Replay aus bounded Live-Evidence, Core-Positiv-/Negativabdeckung, Property-/Model-Tests, Fault-Matrix und Safety-Mutationstests. Die Teststrategie ist fuer die Vor-Runtime-Kernel technisch geschlossen.",
       "nachweise": [
         "v5/fitness/fitness-regeln.json",
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
@@ -197,12 +209,14 @@
       "r3NachweisVorhanden": true,
       "r3AbgeschlossenAm": "2026-09-20",
       "r4NachweisVorhanden": true,
-      "r4AbgeschlossenAm": "2026-09-20"
+      "r4AbgeschlossenAm": "2026-09-20",
+      "r11NachweisVorhanden": true,
+      "r11AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "SECURITY_BEREIT",
       "erfuellt": false,
-      "grund": "R3 bis R9 weisen statische Safety-, Authority-, Scheduler-, Fencing- und Admission-Grenzen nach. R10 schliesst UNKNOWN/Partial/Restart/Stop-Recovery fail-closed, verbietet Same-Intent-Blind-Retry nach Possible-Send und isoliert Fehlerdomaenen. erfuellt bleibt false, bis R11 Observability/Operations und die verbleibenden Betriebsnachweise abgeschlossen sind.",
+      "grund": "R3-R10 weisen Safety-, Authority-, Scheduler-, Admission- und Recovery-Grenzen nach. R11 schliesst Health fail-closed, kritische Alert-Durability, observer-only Dashboard, erklaerbare Authority und Safety-Mutationstests. erfuellt bleibt false, bis spaetere Vertical-Slice-/Live-Gates die Runtime technisch und kontrolliert freigeben.",
       "nachweise": [
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
@@ -229,7 +243,13 @@
         "v5/grundlage/tests/r10-recovery.test.mjs",
         "v5/grundlage/tests/r10-control.test.mjs",
         "v5/werkzeuge/r10-recovery-abdeckung.mjs",
-        "v5/roadmap/r10-abschluss.json"
+        "v5/roadmap/r10-abschluss.json",
+        "v5/grundlage/quelle/operations/health.ts",
+        "v5/grundlage/quelle/operations/alerts.ts",
+        "v5/grundlage/tests/r11-operations.test.mjs",
+        "v5/grundlage/tests/r11-mutation.test.mjs",
+        "v5/grundlage/vertraege/r11/fault-matrix.json",
+        "v5/roadmap/r11-abschluss.json"
       ],
       "r2VertragRatifiziert": true,
       "r3NachweisVorhanden": true,
@@ -241,26 +261,33 @@
       "r9NachweisVorhanden": true,
       "r9AbgeschlossenAm": "2026-09-20",
       "r10NachweisVorhanden": true,
-      "r10AbgeschlossenAm": "2026-09-20"
+      "r10AbgeschlossenAm": "2026-09-20",
+      "r11NachweisVorhanden": true,
+      "r11AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "BETRIEBSMODELL_BEREIT",
       "erfuellt": false,
-      "grund": "R5: SSD-/Volume-/Reserve-, Speicherdruck- und Persistenzfehlerverhalten sind technisch nachgewiesen. Offen bleibt unter anderem das Deployment der lokal laufenden Windows Bridge: ein alter Prozess hat am 2026-09-20 noch direkt main beschrieben, obwohl der aktuelle Repo-Code nur den Knowledge-Branch erlaubt.",
+      "grund": "R5 schliesst SSD-/Persistenzgrundlagen; R11 macht SSD-I/O-Latenz, Queue-Tiefe, Backpressure, freie Bytes und Recorder-Drops beobachtbar und testet Retention/Rotation/Kompressionsplanung. Offen bleibt der separat zu verifizierende lokale Windows-Bridge-Deploymentstand und die spaetere kontrollierte Runtime-/Zertifizierungsphase.",
       "nachweise": [
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
-        "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md"
+        "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md",
+        "v5/grundlage/quelle/operations/telemetrie.ts",
+        "v5/grundlage/quelle/operations/segment-pflege.ts",
+        "v5/grundlage/tests/r11-operations.test.mjs"
       ],
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
       "r3NachweisVorhanden": true,
       "r3AbgeschlossenAm": "2026-09-20",
-      "alteBridgeBinaryBeobachtet": true
+      "alteBridgeBinaryBeobachtet": true,
+      "r11NachweisVorhanden": true,
+      "r11AbgeschlossenAm": "2026-09-20"
     }
   ],
   "offeneBlocker": [
     "Lokal laufende Windows Bridge auf einen aktuellen Knowledge-Branch-Build aktualisieren und den lokalen Deploymentstand separat verifizieren",
-    "R11 Testlabor-Ausbau, Observability und Operations abschliessen",
+    "R12 Vertical Slice 0 kontrolliert und ohne Bypass abschliessen",
     "Gameplay-Runtime erst nach expliziter Laufzeitfreigabe und spaeterem Roadmap-Gate beginnen",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
@@ -281,5 +308,7 @@
   "r9Status": "ABGESCHLOSSEN",
   "r9AbgeschlossenAm": "2026-09-20",
   "r10Status": "ABGESCHLOSSEN",
-  "r10AbgeschlossenAm": "2026-09-20"
+  "r10AbgeschlossenAm": "2026-09-20",
+  "r11Status": "ABGESCHLOSSEN",
+  "r11AbgeschlossenAm": "2026-09-20"
 }

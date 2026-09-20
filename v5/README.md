@@ -161,3 +161,14 @@ Partial Completion wird diff-basiert auf offene Domaenen reduziert. Nichttermina
 Maschinenlesbarer Abschluss: `roadmap/r10-abschluss.json`.
 
 Aktuelle Phase ist R11. Das Gameplay-Runtime-Gesamtgate bleibt `GESPERRT`; R10 besitzt weiterhin keine Send- oder Raw-Write-Autoritaet.
+
+
+## R11 – Testlabor, Replay, Observability und Operations
+
+R11 ist formal abgeschlossen. Fehlende/stale kritische Health-Evidence bleibt fail-closed; kritische Alerts werden durable persistiert bevor sie geclaimt werden; Dashboard und Telemetrie bleiben observer-only ohne Gameplay-Autoritaet. Automatische Authority ist mit Owner, Evidence, Ressourcen, Policy, Grund und Erwartungswirkung sichtbar.
+
+Operations-Telemetrie ist bounded und exponiert SSD-I/O-Latenz, Queue-Tiefe, Backpressure, freie Bytes und Recorder-Drops. Retention/Rotation/Kompression werden deterministisch geplant. Golden Replay und Replay aus bounded Live-Evidence sind reproduzierbar. Zusaetzlich erzwingt R11 Core-Positiv-/Negativabdeckung, Property-/Model-Tests, Fault-Injection und Safety-Mutationstests.
+
+Maschinenlesbarer Abschluss: `roadmap/r11-abschluss.json`.
+
+Aktuelle Phase ist R12. Das Gameplay-Runtime-Gesamtgate bleibt `GESPERRT`; R11 besitzt keine Gameplay- oder Raw-Write-Autoritaet.

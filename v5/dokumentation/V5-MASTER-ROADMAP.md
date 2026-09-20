@@ -621,7 +621,11 @@ Exit Gate:
 
 ## R11 – Testlabor-Ausbau, Replay, Observability und Operations
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
+
+Maschinenlesbarer Abschluss: `roadmap/r11-abschluss.json`.
+
+Das Gameplay-Runtime-Gesamtgate bleibt auch nach R11 `GESPERRT`.
 
 Das in R3/R4 begonnene Testlabor wird hier zum vollstaendigen Operations- und Zertifizierungsinstrument ausgebaut.
 
@@ -651,6 +655,8 @@ Exit Gate:
 - GUI-Ausfall beeinflusst Gameplay nicht.
 
 ## R12 – Vertical Slice 0
+
+**Status:** IN_PROGRESS.
 
 Erster minimaler End-to-End-Pfad.
 

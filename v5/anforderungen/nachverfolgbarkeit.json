@@ -691,15 +691,21 @@
       "invarianten": [
         "V5-ALT-043"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/operations/health.ts",
+        "v5/grundlage/quelle/operations/headless-supervisor.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r11-operations.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r11NachweisStatus": "R11_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-010",
@@ -1293,15 +1299,20 @@
       "invarianten": [
         "V5-INV-026"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/vertraege/r11/core-testabdeckung.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/r11-testabdeckung.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r11NachweisStatus": "R11_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-TEST-002",
@@ -1312,15 +1323,22 @@
       "invarianten": [
         "V5-INV-026"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts",
+        "v5/grundlage/quelle/scheduler/ressourcen-verwalter.ts",
+        "v5/grundlage/quelle/kern/geschlossener-zustandsautomat.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r11-property-model.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r11NachweisStatus": "R11_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-TEST-003",
@@ -1331,15 +1349,21 @@
       "invarianten": [
         "V5-INV-026"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/vertraege/r11/fault-matrix.json"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r10-recovery.test.mjs",
+        "v5/grundlage/tests/r11-fault-labor.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r11NachweisStatus": "R11_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-TEST-004",
@@ -1350,15 +1374,20 @@
       "invarianten": [
         "V5-INV-026"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/werkzeuge/r11-safety-source-checks.mjs"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r11-mutation.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r11NachweisStatus": "R11_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-TEST-005",
@@ -1369,15 +1398,21 @@
       "invarianten": [
         "V5-INV-007"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/testlabor/golden-replay.ts",
+        "v5/grundlage/quelle/testlabor/evidence-replay.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r11-replay.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r11NachweisStatus": "R11_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-TEST-006",
@@ -1464,15 +1499,21 @@
       "invarianten": [
         "V5-ALT-038"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/operations/telemetrie.ts",
+        "v5/grundlage/quelle/operations/headless-supervisor.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r11-operations.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r11NachweisStatus": "R11_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-OPS-003",
@@ -1483,15 +1524,21 @@
       "invarianten": [
         "V5-ALT-039"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/operations/alerts.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r11-operations.test.mjs",
+        "v5/grundlage/tests/r11-fault-labor.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r11NachweisStatus": "R11_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-OPS-004",
@@ -1502,15 +1549,21 @@
       "invarianten": [
         "V5-ALT-054"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/operations/authority-status.ts",
+        "v5/grundlage/quelle/operations/headless-supervisor.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r11-operations.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r11NachweisStatus": "R11_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-OPS-005",
