@@ -1,9 +1,9 @@
 {
   "name": "adventure-land-aio-v5",
-  "version": "5.0.0-r18.0",
+  "version": "5.0.0-r19.0",
   "private": true,
   "type": "module",
-  "description": "Adventure Land AiO Bot V5 – R18 Learning und Optimierung mit deterministischem Fallback, Policy-Precedence und Shadow-only Model League.",
+  "description": "Adventure Land AiO Bot V5 – R19 Zertifizierung bis Shadow mit unveraenderlicher Evidence, Sample-Gap-Erkennung und Release-Gates.",
   "scripts": {
     "bereinigen": "node werkzeuge/r3-bereinigen.mjs",
     "bauen": "npm run bereinigen && tsc -p tsconfig.json",
@@ -49,7 +49,10 @@
     "r17:test": "npm run grundlage:test",
     "r17:pruefen": "npm run typen:pruefen && npm run lint && npm run r17:test && node werkzeuge/r17-statische-guards.mjs && node werkzeuge/r17-struktur-pruefen.mjs",
     "r18:test": "npm run grundlage:test",
-    "r18:pruefen": "npm run typen:pruefen && npm run lint && npm run r18:test && node werkzeuge/r18-statische-guards.mjs && node werkzeuge/r18-struktur-pruefen.mjs"
+    "r18:pruefen": "npm run typen:pruefen && npm run lint && npm run r18:test && node werkzeuge/r18-statische-guards.mjs && node werkzeuge/r18-struktur-pruefen.mjs",
+    "r19:test": "npm run grundlage:test",
+    "r19:ui": "npm run sichttext:pruefen && npm run r6:abdeckung && node werkzeuge/r19-ui-release-gate.mjs",
+    "r19:pruefen": "npm run typen:pruefen && npm run lint && npm run r19:test && npm run r19:ui && node werkzeuge/r19-statische-guards.mjs && node werkzeuge/r19-struktur-pruefen.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
