@@ -1,6 +1,6 @@
 # V5 Produktionskomposition
 
-**Status:** DEFAULT-DENY / PLANEN REGISTRIERT / INAKTIV  
+**Status:** DEFAULT-DENY / PLANEN KONTROLLIERT AKTIVIERBAR  
 **Stand:** 2026-09-20
 
 ## Zweck
@@ -13,7 +13,8 @@ Der kanonische Katalog liegt in:
 - `grundlage/quelle/merchant/modul-vertrag.ts`;
 - `grundlage/quelle/merchant/faehigkeits-vertrag.ts`;
 - `grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json`;
-- `architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md`.
+- `architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md`;
+- `architektur/adr/ADR-027-KONTROLLIERTE-PLANEN-AKTIVIERUNG.md`.
 
 ## Produktive Modulidentitaet
 
@@ -74,8 +75,45 @@ Die Komposition:
 
 Testnamen wie `merchant-core` / `bank.deposit` bleiben Test-Fixtures und sind nicht Teil des produktiven Merchant-Vertrags.
 
+## Kontrollierte PLANEN-Aktivierung
+
+Die Produktionsruntime besitzt jetzt einen expliziten Aktivierungspfad fuer
+registrierte `PLANEN`-Capabilities. Eine Aktivierung ist nur moeglich, wenn:
+
+- die Runtime bereits laeuft;
+- die Laufsteuerung neue Arbeit erlaubt;
+- eine explizit injizierte deny-only Bediener-Richtlinie vorhanden ist;
+- NOTHALT nicht aktiv ist;
+- die Capability nicht gesperrt ist;
+- Provider-Modul-ID und Provider-Version exakt stimmen;
+- das Provider-Modul die Capability deklariert und `GESUND` ist;
+- die Capability `VERFUEGBAR`, `PLANEN` und weiterhin
+  `standardAktiv=false` ist;
+- der Headless Supervisor mit aktueller Health-Evidence und vorhandenen
+  Operations-Metriken `bereit=true` ist.
+
+Erfolgreiche Aktivierungen werden mit Aktivierungs-ID, Policy-ID,
+Providerbindung, Health-Evidence-IDs und Zeitpunkt im begrenzten Runtime-Audit
+sichtbar. Dieser Audit ersetzt noch keine spaetere durable Host-Persistenz.
+
+`kernKomponenten()` exponiert fuer die Runtime-eigenen Modul- und
+Capability-Register keine aktivierende Methode mehr. Deaktivierung und
+authority-reduzierende Statusaenderungen bleiben moeglich.
+
+Der kontrollierte Runtime-Stop deaktiviert zuvor aktivierte
+Kompositionsbestandteile. Gameplay-, Raw-Write- und Action-Authority bleiben
+auch bei aktiver PLANEN-Capability `false`.
+
 ## Naechster Integrationsschritt
 
-Ein spaeterer Betriebsstart oder eine spaetere Aktivierung muss weiterhin reale Health-Evidence, Gesamtfreigabe, Operator-Policy, Capability-Authority, Admission, Ressourcen/Fencing, Action-Channel, Budget, durable Intent und Postcondition/Reconciliation verwenden.
+Als naechstes bleibt der produktive Host-/Bootstrap-Pfad fuer reale
+Health-Evidence, Operations-Metriken, deny-only Bediener-Richtlinie und
+spaetere durable Aktivierungs-Audits zu verdrahten. Danach kann explizit
+festgelegt werden, welche PLANEN-Capabilities im realen Betrieb aktiviert
+werden.
 
-Die reine Registrierung von PLANEN-Capabilities erteilt keine Mutationserlaubnis. Mutierende Merchant-Capabilities benoetigen einen separaten ratifizierten Vertrag und eigene Integrations-/Live-Nachweise.
+Die reine Registrierung oder Aktivierung von PLANEN-Capabilities erteilt keine
+Mutationserlaubnis. Mutierende Merchant-Capabilities benoetigen einen
+separaten ratifizierten Vertrag und eigene Integrations-/Live-Nachweise mit
+Admission, Ressourcen/Fencing, Action-Channel, Budget, durable Intent und
+Postcondition/Reconciliation.
