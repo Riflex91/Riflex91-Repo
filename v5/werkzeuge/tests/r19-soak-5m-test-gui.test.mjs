@@ -37,7 +37,7 @@ test("SOAK_5M erkennt Gaps Manipulation und fehlende Ressourcenmetriken",()=>{
 });
 
 test("SOAK_5M verlangt expliziten Operator-Start",()=>{
-  assert.ok(controller.includes("R19-SOAK-1H-START"));
+  assert.ok(controller.includes("R19-SOAK-5M-START"));
   assert.ok(controller.includes("bestaetigungsText: BESTAETIGUNG"));
 });
 
