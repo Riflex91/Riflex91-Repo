@@ -225,7 +225,7 @@
       "titel": "Direkte Adventure-Land-Schreibaufrufe existieren nur in der Ausfuehrungsschicht.",
       "phase": "R9",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R9_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-012"
       ],
@@ -235,7 +235,14 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r9NachweisStatus": "R9_NACHGEWIESEN",
+      "r9Nachweise": [
+        "v5/werkzeuge/r3-guard-regeln.mjs",
+        "v5/werkzeuge/r9-statische-guards.mjs",
+        "v5/grundlage/quelle/ausfuehrung/ausfuehrungs-kernel.ts",
+        "v5/grundlage/tests/r9-admission-execution.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-ARCH-004",
@@ -445,7 +452,7 @@
       "titel": "Riskante Ausfuehrung benoetigt typisierte, nicht abgelaufene Freigabe.",
       "phase": "R9",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R9_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-023"
       ],
@@ -455,14 +462,20 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r9NachweisStatus": "R9_NACHGEWIESEN",
+      "r9Nachweise": [
+        "v5/grundlage/quelle/ausfuehrung/admission.ts",
+        "v5/grundlage/quelle/ausfuehrung/ausfuehrungs-kernel.ts",
+        "v5/grundlage/tests/r9-admission-execution.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-SICH-003",
       "titel": "Riskante Mutationen besitzen mehrere unabhaengige Verriegelungen.",
       "phase": "R9",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R9_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-024"
       ],
@@ -471,14 +484,21 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r9NachweisStatus": "R9_NACHGEWIESEN",
+      "r9Nachweise": [
+        "v5/grundlage/quelle/ausfuehrung/admission.ts",
+        "v5/grundlage/quelle/ausfuehrung/intent-bindung.ts",
+        "v5/grundlage/tests/r9-admission-execution.test.mjs",
+        "v5/grundlage/vertraege/r9/action-bindungen.json"
+      ]
     },
     {
       "kennung": "V5-ANF-SICH-004",
       "titel": "Live-Preconditions werden unmittelbar vor jeder Mutation revalidiert.",
       "phase": "R9",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R9_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-025"
       ],
@@ -487,7 +507,12 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r9NachweisStatus": "R9_NACHGEWIESEN",
+      "r9Nachweise": [
+        "v5/grundlage/quelle/ausfuehrung/admission.ts",
+        "v5/grundlage/tests/r9-admission-execution.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-SICH-005",

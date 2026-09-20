@@ -56,7 +56,13 @@
       "kennung": "V5-FIT-007",
       "titel": "Riskante Ausfuehrer akzeptieren nur typisierte Ausfuehrungsfreigaben",
       "phase": "R9",
-      "durchsetzung": "TYP_UND_RUNTIME_GUARD"
+      "durchsetzung": "TYP_UND_RUNTIME_GUARD",
+      "r9NachweisStatus": "ERFUELLT",
+      "r9Nachweise": [
+        "v5/grundlage/quelle/ausfuehrung/admission.ts",
+        "v5/grundlage/quelle/ausfuehrung/ausfuehrungs-kernel.ts",
+        "v5/grundlage/tests/r9-admission-execution.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-008",
@@ -169,7 +175,13 @@
       "kennung": "V5-FIT-020",
       "titel": "Jede produktive mutierende Capability referenziert Action Contract, Invariante und Test",
       "phase": "R9",
-      "durchsetzung": "NACHVERFOLGBARKEITS_GUARD"
+      "durchsetzung": "NACHVERFOLGBARKEITS_GUARD",
+      "r9NachweisStatus": "ERFUELLT",
+      "r9Nachweise": [
+        "v5/grundlage/vertraege/r9/action-bindungen.json",
+        "v5/grundlage/vertraege/r9/verifier-katalog.json",
+        "v5/werkzeuge/r9-vertragsabdeckung.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-021",
@@ -385,7 +397,12 @@
       "kennung": "V5-FIT-046",
       "titel": "Wertveraendernde Execution ist technisch unmoeglich bevor durable Transaction Intent bestaetigt ist",
       "phase": "R9",
-      "durchsetzung": "PERSIST_BEFORE_ACTION_NEGATIVTEST"
+      "durchsetzung": "PERSIST_BEFORE_ACTION_NEGATIVTEST",
+      "r9NachweisStatus": "ERFUELLT",
+      "r9Nachweise": [
+        "v5/grundlage/quelle/ausfuehrung/intent-bindung.ts",
+        "v5/grundlage/tests/r9-admission-execution.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-047",

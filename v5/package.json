@@ -1,9 +1,9 @@
 {
   "name": "adventure-land-aio-v5",
-  "version": "5.0.0-r8.0",
+  "version": "5.0.0-r9.0",
   "private": true,
   "type": "module",
-  "description": "Adventure Land AiO Bot V5 – R8 no-write Workflow-Scheduler-, Ressourcen-, Lease- und Fencing-Grundlage.",
+  "description": "Adventure Land AiO Bot V5 – R9 Admission- und Execution-Kernel mit typisierter Mehrfach-Verriegelung.",
   "scripts": {
     "bereinigen": "node werkzeuge/r3-bereinigen.mjs",
     "bauen": "npm run bereinigen && tsc -p tsconfig.json",
@@ -26,7 +26,9 @@
     "r7:test": "npm run grundlage:test",
     "r7:pruefen": "npm run typen:pruefen && npm run lint && npm run r7:test && node werkzeuge/r7-statische-guards.mjs && node werkzeuge/r7-struktur-pruefen.mjs",
     "r8:test": "npm run grundlage:test",
-    "r8:pruefen": "npm run typen:pruefen && npm run lint && npm run r8:test && node werkzeuge/r8-statische-guards.mjs && node werkzeuge/r8-struktur-pruefen.mjs"
+    "r8:pruefen": "npm run typen:pruefen && npm run lint && npm run r8:test && node werkzeuge/r8-statische-guards.mjs && node werkzeuge/r8-struktur-pruefen.mjs",
+    "r9:test": "npm run grundlage:test",
+    "r9:pruefen": "npm run typen:pruefen && npm run lint && npm run r9:test && node werkzeuge/r9-vertragsabdeckung.mjs && node werkzeuge/r9-statische-guards.mjs && node werkzeuge/r9-struktur-pruefen.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

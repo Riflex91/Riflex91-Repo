@@ -553,7 +553,11 @@ Exit Gate:
 
 ## R9 – Admission und Execution Kernel
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
+
+Maschinenlesbarer Abschluss: `roadmap/r9-abschluss.json`.
+
+Das Gameplay-Runtime-Gesamtgate bleibt auch nach R9 `GESPERRT`.
 
 Nur hier duerfen rohe Adventure-Land-Mutationen entstehen.
 
@@ -582,6 +586,8 @@ Exit Gate:
 - 100% mutierende Adapter besitzen Contract + Verifier + Recovery Class.
 
 ## R10 – Reconciliation und Recovery Kernel
+
+**Status:** IN_PROGRESS.
 
 Bauen:
 - Reconcile Contract;

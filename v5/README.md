@@ -139,3 +139,14 @@ Mutierende Action-Channels werden nur zusammen mit ihrem exklusiven Channel-Clai
 Maschinenlesbarer Abschluss: `roadmap/r8-abschluss.json`.
 
 Aktuelle Phase ist R9. Das Gameplay-Runtime-Gesamtgate bleibt `GESPERRT`; R8 besitzt weiterhin keine Gameplay- oder Raw-Write-Autoritaet.
+
+
+## R9 – Admission und Execution Kernel
+
+R9 ist formal abgeschlossen. V5 besitzt nun eine zentrale nominal typisierte Ausfuehrungsfreigabe, die nur nach unabhaengiger Pruefung von Runtime-Gate, Capability/Owner, Operator-Policy, Action/Recovery/Verifier-Vertrag, durable Transaction Intent, Fencing, Action-Channel, character-globalem Socket-Budget und frischen Live-Preconditions entstehen kann.
+
+Der Execution-Kernel akzeptiert keine losen Boolean-/Objektfreigaben, revalidiert Ablaufzeit und Adaptervertrag unmittelbar vor Send und behaelt UNKNOWN als eigene Ergebnisart. Die 60 wertrelevanten Action Contracts sind maschinenlesbar an Recovery und Verifier gebunden: 59 produktiv verifiziert, `cave_buy` weiterhin explizit deaktiviert.
+
+Maschinenlesbarer Abschluss: `roadmap/r9-abschluss.json`.
+
+Aktuelle Phase ist R10. Das Gameplay-Runtime-Gesamtgate bleibt `GESPERRT`; ein produktiver Top-Level-Execution-/Raw-Write-Pfad bleibt solange absent.

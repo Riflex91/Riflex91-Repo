@@ -130,6 +130,21 @@ export class CharacterSocketBudget {
     return reservierung;
   }
 
+  public validiereReservierung(
+    reservierung: SocketBudgetReservierung,
+    jetztMs: number,
+  ): boolean {
+    if (!Number.isSafeInteger(jetztMs) || jetztMs < 0) return false;
+    return this.#reservierungen.some(eintrag =>
+      eintrag.reservierungId === reservierung.reservierungId
+      && eintrag.characterId === reservierung.characterId
+      && eintrag.ablaufId === reservierung.ablaufId
+      && eintrag.kanalId === reservierung.kanalId
+      && eintrag.zeitMs === reservierung.zeitMs
+      && eintrag.gewichteteKosten === reservierung.gewichteteKosten
+      && jetztMs - eintrag.zeitMs <= this.#fensterMs);
+  }
+
   public storniere(reservierungId: string): void {
     pruefeText(reservierungId, "SOCKET_BUDGET_RESERVIERUNG_ID_UNGUELTIG");
     if (!this.#reservierungen.some(eintrag => eintrag.reservierungId === reservierungId)) {
