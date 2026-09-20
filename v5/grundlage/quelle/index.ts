@@ -128,3 +128,4 @@ export * from "./runtime/produktions-runtime.js";
 export * from "./merchant/task-koordinator.js";
 export * from "./merchant/bank-autonomie.js";
 export * from "./merchant/verkaufs-sicherheit.js";
+export * from "./merchant/markt-historie.js";
