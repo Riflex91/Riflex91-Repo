@@ -372,6 +372,7 @@ function Import:BuildGuides()
 
             local definitions = {}
             local ordered = {}
+            local lastGuideCoordinate = nil
 
             for stepIndex, rawStep in ipairs(rawGuide.steps or {}) do
                 local lastCoordinate = nil
@@ -379,6 +380,7 @@ function Import:BuildGuides()
                 for actionIndex, action in ipairs(rawStep.actions or {}) do
                     if action.kind == "goto" or action.kind == "waypoint" then
                         lastCoordinate = parseCoordinate(action.args)
+                        if lastCoordinate then lastGuideCoordinate = shallowCopy(lastCoordinate) end
                     elseif action.kind == "accept" or
                            action.kind == "turnin" or
                            action.kind == "complete" then
@@ -406,7 +408,8 @@ function Import:BuildGuides()
                                 stepSelector = rawStep.selector,
                                 actionSelector = parsed.selector,
                                 tags = shallowCopy(rawStep.tags),
-                                coordinate = lastCoordinate and shallowCopy(lastCoordinate) or nil,
+                                coordinate = lastCoordinate and shallowCopy(lastCoordinate) or
+                                    (lastGuideCoordinate and shallowCopy(lastGuideCoordinate) or nil),
                                 sourceStep = stepIndex,
                                 sourceAction = actionIndex,
                             }
