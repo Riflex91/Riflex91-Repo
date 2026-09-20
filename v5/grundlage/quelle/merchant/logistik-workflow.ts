@@ -257,6 +257,18 @@ export class MerchantLogistikLedger {
     }));
   }
 
+  public scheitereSicher(logistikId: string): MerchantLogistikSicht {
+    const alt = this.#finde(logistikId);
+    if (alt.zustand === "SETTLED" || alt.zustand === "FAILED_SAFE") {
+      throw new Error("LOGISTIK_FAILED_SAFE_ZUSTAND_UNGUELTIG");
+    }
+    return this.#ersetze(friereSicht({
+      ...alt,
+      zustand: "FAILED_SAFE",
+      sameTransferErneutSenden: false,
+    }));
+  }
+
   public importiereNachRestart(snapshot: readonly MerchantLogistikSicht[]): void {
     if (snapshot.length > this.#maximal) throw new Error("LOGISTIK_RESTART_ZU_GROSS");
     const neu = snapshot.map((x, index) => {
