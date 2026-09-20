@@ -152,7 +152,7 @@ function MG:InitializeUI()
     if ui.frame then return end
 
     local frame = CreateFrame("Frame", "MewthischGuidesMainFrame", UIParent)
-    frame:SetSize(348, 176)
+    frame:SetSize(348, 194)
     frame:SetPoint("CENTER", UIParent, "CENTER",
         tonumber(self.db.settings.viewerX) or 260,
         tonumber(self.db.settings.viewerY) or 80)
@@ -202,8 +202,15 @@ function MG:InitializeUI()
     bar:SetPoint("TOPRIGHT", frame, -14, -104)
     ui.progress = bar
 
+    local goalSummary = makeText(frame, "GameFontHighlightSmall", 10)
+    goalSummary:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", 0, -6)
+    goalSummary:SetPoint("RIGHT", frame, -14, 0)
+    goalSummary:SetHeight(20)
+    goalSummary:SetTextColor(0.67, 0.76, 0.82)
+    ui.goalSummary = goalSummary
+
     local nextText = makeText(frame, "GameFontHighlightSmall", 10)
-    nextText:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", 0, -7)
+    nextText:SetPoint("TOPLEFT", goalSummary, "BOTTOMLEFT", 0, -4)
     nextText:SetPoint("RIGHT", frame, -14, 0)
     nextText:SetTextColor(0.55, 0.64, 0.72)
     ui.nextText = nextText
@@ -483,6 +490,7 @@ function MG:RefreshUI()
         ui.instruction:SetText("Sprich mit einem Questgeber. Auto-Annahme ist " ..
             (self.db.settings.autoAcceptQuests and "aktiv" or "aus"))
         ui.progress:SetProgress(0, "")
+        ui.goalSummary:SetText("")
         ui.nextText:SetText("Mewthisch Guides wartet auf den naechsten Guide-Schritt.")
         return
     end
@@ -494,6 +502,7 @@ function MG:RefreshUI()
     local progress = step.goal and step.goal.percent or (step.complete and 1 or 0)
     local progressText = step.goal and step.goal.progressText or ""
     ui.progress:SetProgress(progress or 0, progressText)
+    ui.goalSummary:SetText(step.goalSummary or "")
 
     local nextStep = self.steps and self.steps[self.currentStepIndex + 1]
     if nextStep then
@@ -550,12 +559,12 @@ function MG:RefreshInfo()
         "|cffffffffWarnungen:|r " .. tostring(logs.warnings),
         "|cffffffffFehler:|r " .. tostring(logs.errors),
         "",
-        "|cff9da7b3Roadmap Schritt 1: Viewer & Navigator v0.3|r",
-        "- kompakter Guide-Viewer",
-        "- separater verschiebbarer Navigator",
-        "- Entfernung in Metern",
-        "- verschiebbarer Minimap-Button",
-        "- kompakte Zielbeschreibung",
+        "|cff9da7b3Roadmap Schritt 2: Goal-Engine + Navigation-Fix|r",
+        "- Quest -> Step -> mehrere Goals",
+        "- aktives Goal mit Status und Fortschritt",
+        "- weitere Questziele kompakt sichtbar",
+        "- Pfeil nur bei belastbarer Zielrichtung",
+        "- Navigator ohne Hintergrund",
     }
 
     ui.infoBody:SetText(table.concat(lines, "\n"))
