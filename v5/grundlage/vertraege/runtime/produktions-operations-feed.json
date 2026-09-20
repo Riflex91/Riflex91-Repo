@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_PRODUKTIVER_OPERATIONS_FEED",
+  "stand": "2026-09-20",
+  "status": "RATIFIZIERT",
+  "health": {
+    "kanonischeHealthId": "produktiver-speicher",
+    "probePfad": "runtime/health/storage-probe.json",
+    "probeDurable": true,
+    "fehlerZustand": "KRITISCH",
+    "degradiertBeiGrenzverletzung": true
+  },
+  "operations": {
+    "maximalesAlterMsDefault": 60000,
+    "zukunftsMetrikVerboten": true,
+    "freieBytesBeobachtet": true,
+    "writeLatenzBeobachtet": true,
+    "backpressureBeiDegradierung": true
+  },
+  "host": {
+    "quelleIstAuthorityQuelle": true,
+    "planenAktivierungNurMitFrischerHostEvidence": true,
+    "revalidierungBeiJedemTick": true,
+    "quellenausfallEntziehtPlanenAuthority": true
+  },
+  "authority": {
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "actionAuthority": false
+  },
+  "mutierendeCapabilitiesDurchDiesenVertrag": 0
+}
