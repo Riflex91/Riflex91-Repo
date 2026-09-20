@@ -61,6 +61,8 @@ Die ratifizierte Authority-Grenze wird statisch abgebildet:
 
 Ein **Value-Import** zwischen diesen Owner-Gruppen wird blockiert.
 
+Gemeinsame ausführbare Verträge werden nicht über Owner-Grenzen gezogen, sondern in neutrale Core-Grenzen verschoben. Die generische Skill-Capability-Validierung lebt deshalb nun unter `grundlage/quelle/faehigkeiten/skill-capability.ts`; `kampf/skill-capability.ts` bleibt nur als kompatibler Reexport.
+
 Reine Typimporte bleiben erlaubt. Dazu zählen:
 
 - `import type { ... }`;
