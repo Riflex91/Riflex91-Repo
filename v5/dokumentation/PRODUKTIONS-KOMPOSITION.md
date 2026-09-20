@@ -20,7 +20,9 @@ Der kanonische Katalog liegt in:
 - `architektur/adr/ADR-029-PRODUKTIVER-OPERATIONS-FEED.md`;
 - `grundlage/vertraege/runtime/produktions-operations-feed.json`;
 - `architektur/adr/ADR-030-KANONISCHE-NODE-HOST-KOMPOSITION.md`;
-- `grundlage/vertraege/runtime/node-produktions-host-komposition.json`.
+- `grundlage/vertraege/runtime/node-produktions-host-komposition.json`;
+- `architektur/adr/ADR-031-BANK-PLANEN-OBSERVER-CANARY.md`;
+- `grundlage/vertraege/runtime/bank-planen-observer-canary.json`.
 
 ## Produktive Modulidentitaet
 
@@ -173,14 +175,41 @@ Schlaegt die Post-Start-Revalidierung beispielsweise wegen eines bereits
 persistierten NOTHALT fehl, wird die gerade gestartete observer-only Runtime
 sofort kontrolliert wieder gestoppt.
 
+## Observer-only Bank-PLANEN-Canary
+
+Der erste konkrete Host-Canary ist exakt `merchant.bank.planen` von
+`merchant-core-a@1`. Er wird nur ueber die kanonische Node-Host-Fassade
+aktiviert und nutzt einen fest verdrahteten read-only Browser-Observer.
+
+Der Observer liest ausschliesslich Merchant-/Session-/Map-Status,
+`character.bank`, Inventarbelegung und benoetigte Item-Metadaten aus
+`G.items`. Er blockiert ohne Merchant, ohne sichtbaren Bankkontext, bei
+totem Charakter oder wenn eine alternative V3/V4-Runtime aktiv ist.
+
+Die Canary-Policy verbietet Bank-Erweiterung explizit. Damit kann die
+produktive V5-Bankplanung im Canary nur `KEINE_AKTION`,
+`KONSOLIDIEREN` oder `GESPERRT` liefern. Browser-Gameplay-Writes,
+Execution-Authority und breite Runtime-Freigabe bleiben null bzw. `false`.
+
+Der einmalige Nachweis wird durable unter
+`D:\AdventureLand-V5\runtime\canary\bank-planen\latest.json`
+gespeichert. Rohe Account-IDs werden dabei nicht persistiert; der Report
+verwendet nur eine SHA-256-Bindung.
+
+CI prueft den Canary mit:
+
+`npm run bank-planen-canary:pruefen`
+
+Der reale read-only Lauf erfolgt mit:
+
+`npm run bank-planen-canary:live -- --cdp http://127.0.0.1:9222/`
+
 ## Naechster Integrationsschritt
 
-Als naechstes wird genau **eine** PLANEN-Capability als erster observer-only
-Host-Canary festgelegt und mit einem read-only Adventure-Land-Beobachtungsport
-verbunden. Der Canary darf keine Gameplay-Aktion ausloesen und exportiert nur
-Beobachtung, Planungsentscheidung und Safety-/Authority-Nachweise. Erst fuer
-den anschliessenden realen Beobachtungsnachweis ist ein manueller Ingame-Test
-erforderlich.
+Nach gruenem CI ist der naechste fehlende Nachweis erstmals eine echte
+Adventure-Land-Beobachtung: ein eingeloggter Merchant muss manuell in einem
+Bankkontext stehen, damit `character.bank` read-only erfasst werden kann.
+Dieser Test sendet weiterhin keinerlei Gameplay-Write.
 
 Die reine Registrierung oder Aktivierung von PLANEN-Capabilities erteilt keine
 Mutationserlaubnis. Mutierende Merchant-Capabilities benoetigen einen
