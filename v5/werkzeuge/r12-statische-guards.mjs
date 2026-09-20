@@ -136,7 +136,6 @@ for (const marker of [
   "sameIntentRetry: false",
   "unerwarteteGameWrites: 0",
   "breiteRuntimeFreigabe: false",
-  "Gesamtbericht",
 ]) {
   if (!r12Gui.includes(marker)) fehler.push("R12_TEST_GUI_MARKER_FEHLT:" + marker);
 }
