@@ -3,7 +3,7 @@ import {
   type SkillCapabilityNachweis,
   type SkillDefinition,
   type SkillLiveEvidence,
-} from "../kampf/skill-capability.js";
+} from "../faehigkeiten/skill-capability.js";
 import type { CharacterZielBindung } from "../koordination/roster-wahrheit.js";
 import type { WissensSnapshotPin } from "../scheduler/workflow-vertrag.js";
 import type { MerchantDemand } from "./demand.js";

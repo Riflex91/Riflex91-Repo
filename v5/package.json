@@ -8,9 +8,9 @@
     "bereinigen": "node werkzeuge/r3-bereinigen.mjs",
     "bauen": "npm run bereinigen && tsc -p tsconfig.json",
     "typen:pruefen": "tsc -p tsconfig.json --noEmit",
-    "lint": "node werkzeuge/r3-statische-guards.mjs && node werkzeuge/r3-stil-pruefen.mjs",
+    "lint": "node werkzeuge/r3-statische-guards.mjs && node werkzeuge/r3-architekturgraph-pruefen.mjs && node werkzeuge/r3-stil-pruefen.mjs",
     "format:pruefen": "node werkzeuge/r3-stil-pruefen.mjs",
-    "guards:test": "node --test werkzeuge/tests/r3-guards.test.mjs",
+    "guards:test": "node --test werkzeuge/tests/r3-guards.test.mjs werkzeuge/tests/r3-architekturgraph.test.mjs",
     "host:test": "node --test werkzeuge/tests/r3-speicher-gesundheit.test.mjs",
     "testen": "npm run guards:test && npm run host:test && npm run grundlage:test",
     "r3:pruefen": "npm run typen:pruefen && npm run lint && npm run sichttext:pruefen && npm run testen && node werkzeuge/r3-struktur-pruefen.mjs",
@@ -66,7 +66,8 @@
     "r0-r3:reconciliation:pruefen": "node werkzeuge/r0-r3-reconciliation-pruefen.mjs",
     "gesamtfreigabe:pruefen": "node werkzeuge/gesamtfreigabe-pruefen.mjs",
     "cap033034:live-gui:bauen": "node werkzeuge/cap033-cap034-live-test-paket-bauen.mjs",
-    "cap033034:live-gui:pruefen": "node --check werkzeuge/cap033-cap034-live-test-gui.js && node --check werkzeuge/cap033-cap034-live-test-paket.js && node werkzeuge/cap033-cap034-live-test-paket-bauen.mjs --check && node --test werkzeuge/tests/cap033-cap034-live-test-gui.test.mjs"
+    "cap033034:live-gui:pruefen": "node --check werkzeuge/cap033-cap034-live-test-gui.js && node --check werkzeuge/cap033-cap034-live-test-paket.js && node werkzeuge/cap033-cap034-live-test-paket-bauen.mjs --check && node --test werkzeuge/tests/cap033-cap034-live-test-gui.test.mjs",
+    "architekturgraph:pruefen": "node werkzeuge/r3-architekturgraph-pruefen.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

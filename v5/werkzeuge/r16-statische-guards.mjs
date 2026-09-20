@@ -9,6 +9,7 @@ const pflicht = [
   "grundlage/quelle/navigation/bewegungs-owner.ts",
   "grundlage/quelle/kampf/target-ownership.ts",
   "grundlage/quelle/kampf/skill-capability.ts",
+  "grundlage/quelle/faehigkeiten/skill-capability.ts",
   "grundlage/quelle/kampf/character-lifecycle.ts",
   "grundlage/quelle/kampf/threat-cc.ts",
   "grundlage/quelle/kampf/aoe-safety.ts",
@@ -80,7 +81,7 @@ for (const marker of [
   if (!party.includes(marker)) fehler.push("PARTY_MARKER_FEHLT:" + marker);
 }
 
-const skill = liesText("grundlage/quelle/kampf/skill-capability.ts");
+const skill = liesText("grundlage/quelle/faehigkeiten/skill-capability.ts");
 for (const marker of [
   "pruefeSkillCapability",
   "cooldownDomaene",
