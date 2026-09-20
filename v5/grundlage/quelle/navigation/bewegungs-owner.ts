@@ -65,7 +65,9 @@ export class BewegungsOwnerLedger {
       throw new Error("BEWEGUNGS_OWNER_LEDGER_VOLL");
     }
     if (alt?.status === "AKTIV" && alt.ownerAblaufId !== ownerAblaufId) {
-      if (zweck !== "SAFETY") throw new Error("BEWEGUNG_BEREITS_BELEGT");
+      if (zweck !== "SAFETY" || alt.zweck === "SAFETY") {
+        throw new Error("BEWEGUNG_BEREITS_BELEGT");
+      }
       return this.#preemptSafety(alt, ownerAblaufId, intentFingerprint, jetztMs, leaseDauerMs);
     }
     if (alt?.status === "FREI" && jetztMs < alt.handoffSperreBisMs && zweck !== "SAFETY") {
