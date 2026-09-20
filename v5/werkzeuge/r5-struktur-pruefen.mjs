@@ -32,8 +32,11 @@ if (bereitschaft.status === "FREIGEGEBEN") fehler("R5 darf Gameplay-Runtime nich
 
 if (r5.status === "DONE") {
   const r6 = gates.phases?.find(x => x.id === "R6");
-  if (gates.currentPhase !== "R6" || r6?.status !== "IN_PROGRESS") {
-    fehler("Nach R5 DONE muss R6 IN_PROGRESS und currentPhase=R6 sein.");
+  const aktuelleNummer = Number(String(gates.currentPhase ?? "").replace(/^R/, ""));
+  if (!Number.isInteger(aktuelleNummer)
+      || aktuelleNummer < 6
+      || !["IN_PROGRESS", "DONE"].includes(r6?.status)) {
+    fehler("Nach R5 DONE muss die Roadmap mindestens R6 erreicht haben und R6 darf nicht mehr BLOCKED sein.");
   }
 
   if (!fs.existsSync("roadmap/r5-abschluss.json")) fehler("R5-Abschlussmanifest fehlt.");
