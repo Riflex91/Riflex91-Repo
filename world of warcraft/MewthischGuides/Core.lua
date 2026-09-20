@@ -2,7 +2,7 @@ local addonName, MG = ...
 _G.MewthischGuides = MG
 _G.ForeverGuide = MG
 
-MG.VERSION = "0.9.0"
+MG.VERSION = "0.10.0"
 MG.INTERFACE = 16001
 MG.NAME = "Mewthisch Guides"
 MG.heartbeatTicker = nil
@@ -52,7 +52,7 @@ end
 function MG:StartRuntimeTickers()
     self:StopRuntimeTickers()
     if not C_Timer or not C_Timer.NewTicker then
-        self:Log("WARN", "runtime.timer_missing", "C_Timer.NewTicker ist nicht verfuegbar.")
+        self:Log("WARN", "runtime.timer_missing", "C_Timer.NewTicker ist nicht verfügbar.")
         return
     end
 
@@ -61,7 +61,7 @@ function MG:StartRuntimeTickers()
             local pos = MG:GetPosition()
             local nav = MG.navigation or {}
             local diagnostics = MG.Diagnostics and MG.Diagnostics:Collect() or {}
-            MG:Log("INFO", "addon.heartbeat", "Mewthisch Guides laeuft.", {
+            MG:Log("INFO", "addon.heartbeat", "Mewthisch Guides läuft.", {
                 questID = MG.currentStep and MG.currentStep.questID or nil,
                 mapID = pos and pos.mapID or nil,
                 x = pos and pos.x or nil,
@@ -160,7 +160,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
             if MG.Diagnostics then MG.Diagnostics:Collect() end
 
             print("|cff62d6ffMewthisch Guides|r v" .. MG.VERSION ..
-                " geladen - /mg fuer Befehle")
+                " geladen – /mg für Befehle")
             return
         end
 
@@ -210,7 +210,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
         elseif event == "QUEST_TURNED_IN" then
             MG.automationStatus = "Quest abgegeben"
             MG:Log("INFO", "quest.turnedin_confirmed",
-                "Questabgabe vom Spiel bestaetigt.", { questID = args[1] })
+                "Questabgabe vom Spiel bestätigt.", { questID = args[1] })
         elseif event == "NAVIGATION_DESTINATION_REACHED" then
             MG:Log("INFO", "navigation.destination_reached", "Navigationsziel erreicht.")
         end
@@ -294,7 +294,7 @@ local function handleSlash(msg)
             local value = parseOnOff(rest)
             if value ~= nil then
                 MG.db.settings.autoAcceptQuests = value
-                MG:Log("INFO", "settings.auto_accept", "Auto-Annahme geaendert.", { enabled = value })
+                MG:Log("INFO", "settings.auto_accept", "Auto-Annahme geändert.", { enabled = value })
                 MG:RefreshSettings()
             end
             print("|cff62d6ffMewthisch Guides|r Auto-Annahme: " ..
@@ -303,7 +303,7 @@ local function handleSlash(msg)
             local value = parseOnOff(rest)
             if value ~= nil then
                 MG.db.settings.autoTurnInQuests = value
-                MG:Log("INFO", "settings.auto_turnin", "Auto-Abgabe geaendert.", { enabled = value })
+                MG:Log("INFO", "settings.auto_turnin", "Auto-Abgabe geändert.", { enabled = value })
                 MG:RefreshSettings()
             end
             print("|cff62d6ffMewthisch Guides|r Auto-Abgabe: " ..
@@ -312,7 +312,7 @@ local function handleSlash(msg)
             local value = parseOnOff(rest)
             if value ~= nil then
                 MG.db.settings.gearAutoEquip = value
-                MG:Log("INFO", "settings.gear_auto_equip", "Gear-Auto-Equip geaendert.", {
+                MG:Log("INFO", "settings.gear_auto_equip", "Gear-Auto-Equip geändert.", {
                     enabled = value,
                 })
             end
