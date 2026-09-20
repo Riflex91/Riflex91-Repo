@@ -479,7 +479,10 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
     }
 
     const evidenceIds = Object.freeze(
-      [...new Set(anforderung.healthEvidence.map(x => x.evidenceId))].sort(),
+      anforderung.healthEvidence
+        .map(x => x.evidenceId)
+        .filter((evidenceId, index, alle) => alle.indexOf(evidenceId) === index)
+        .sort(),
     );
     if (evidenceIds.length < 1 || evidenceIds.length > 64) {
       return blockiere("V5_PLANEN_AKTIVIERUNG_AUDIT_EVIDENCE_UNGUELTIG");
