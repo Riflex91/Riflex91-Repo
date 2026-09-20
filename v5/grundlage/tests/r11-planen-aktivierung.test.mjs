@@ -67,6 +67,21 @@ function richtlinie() {
   return new BedienerRichtlinienDienst(protokoll);
 }
 
+function aktivierungsProtokoll({ fehler = false } = {}) {
+  return {
+    eintraege: [],
+    async schreibeDurable(intent) {
+      if (fehler) throw new Error("AUDIT_DISK_DOWN");
+      this.eintraege = [...this.eintraege, intent];
+      return {
+        durable: true,
+        bestaetigungsId: "PLAN-AUDIT:" + intent.aktivierungsId,
+        aktivierungsId: intent.aktivierungsId,
+      };
+    },
+  };
+}
+
 function anforderung(overrides = {}) {
   return {
     schemaVersion: 1,
@@ -81,11 +96,19 @@ function anforderung(overrides = {}) {
   };
 }
 
-async function gestarteteRuntime({ mitRichtlinie = true, modus = "PLANEN" } = {}) {
+async function gestarteteRuntime({
+  mitRichtlinie = true,
+  mitAktivierungsProtokoll = true,
+  auditFehler = false,
+  modus = "PLANEN",
+} = {}) {
   const policy = mitRichtlinie ? richtlinie() : null;
-  const runtime = new V5ProduktionsRuntime(definition(modus), policy);
+  const audit = mitAktivierungsProtokoll
+    ? aktivierungsProtokoll({ fehler: auditFehler })
+    : null;
+  const runtime = new V5ProduktionsRuntime(definition(modus), policy, audit);
   assert.equal((await runtime.starte()).erfolgreich, true);
-  return { runtime, policy };
+  return { runtime, policy, audit };
 }
 
 test("PLANEN bleibt beim Runtime-Start inaktiv und Kernansicht bietet keinen Aktivierungs-Bypass", async () => {
@@ -99,10 +122,10 @@ test("PLANEN bleibt beim Runtime-Start inaktiv und Kernansicht bietet keinen Akt
 });
 
 test("kontrollierte PLANEN-Aktivierung verlangt Runtime, Supervisor, Policy und exakte Providerbindung", async () => {
-  const { runtime } = await gestarteteRuntime();
+  const { runtime, audit: durableAudit } = await gestarteteRuntime();
   runtime.erfasseOperationsMetrik(metrischeBasis());
 
-  const ergebnis = runtime.aktivierePlanenFaehigkeit(anforderung());
+  const ergebnis = await runtime.aktivierePlanenFaehigkeit(anforderung());
 
   assert.equal(ergebnis.erfolgreich, true);
   assert.equal(ergebnis.grund, "V5_PLANEN_AKTIVIERUNG_ERFOLGREICH");
@@ -111,6 +134,12 @@ test("kontrollierte PLANEN-Aktivierung verlangt Runtime, Supervisor, Policy und 
   assert.equal(ergebnis.gameplayAutoritaet, false);
   assert.equal(ergebnis.rawWriteAutoritaet, false);
   assert.equal(ergebnis.actionAuthority, false);
+  assert.equal(durableAudit.eintraege.length, 1);
+  assert.equal(
+    durableAudit.eintraege[0].art,
+    "PLANEN_AKTIVIERUNG_VOR_WIRKUNG",
+  );
+  assert.equal(durableAudit.eintraege[0].aktivierungsId, "PLANEN-AKT-1");
 
   const status = runtime.status();
   assert.equal(status.aktiveModule, 1);
@@ -132,7 +161,7 @@ test("PLANEN-Aktivierung blockiert ohne explizite deny-only Bediener-Richtlinie"
   const { runtime } = await gestarteteRuntime({ mitRichtlinie: false });
   runtime.erfasseOperationsMetrik(metrischeBasis());
 
-  const ergebnis = runtime.aktivierePlanenFaehigkeit(anforderung());
+  const ergebnis = await runtime.aktivierePlanenFaehigkeit(anforderung());
 
   assert.equal(ergebnis.erfolgreich, false);
   assert.equal(
@@ -143,10 +172,37 @@ test("PLANEN-Aktivierung blockiert ohne explizite deny-only Bediener-Richtlinie"
   assert.equal(runtime.status().aktiveFaehigkeiten, 0);
 });
 
+test("PLANEN-Aktivierung verlangt durable Vor-Wirkung-Protokollierung", async () => {
+  const ohneProtokoll = await gestarteteRuntime({
+    mitAktivierungsProtokoll: false,
+  });
+  ohneProtokoll.runtime.erfasseOperationsMetrik(metrischeBasis());
+
+  const fehlt = await ohneProtokoll.runtime.aktivierePlanenFaehigkeit(
+    anforderung(),
+  );
+  assert.equal(fehlt.erfolgreich, false);
+  assert.equal(
+    fehlt.grund,
+    "V5_PLANEN_AKTIVIERUNG_DURABLE_PROTOKOLL_FEHLT",
+  );
+  assert.equal(ohneProtokoll.runtime.status().aktiveFaehigkeiten, 0);
+
+  const defekt = await gestarteteRuntime({ auditFehler: true });
+  defekt.runtime.erfasseOperationsMetrik(metrischeBasis());
+  const fehler = await defekt.runtime.aktivierePlanenFaehigkeit(
+    anforderung({ aktivierungsId: "PLANEN-AKT-AUDIT-FEHLER" }),
+  );
+  assert.equal(fehler.erfolgreich, false);
+  assert.equal(fehler.grund, "V5_PLANEN_AKTIVIERUNG_AUDIT_NICHT_DURABLE");
+  assert.equal(defekt.runtime.status().aktiveModule, 0);
+  assert.equal(defekt.runtime.status().aktiveFaehigkeiten, 0);
+});
+
 test("PLANEN-Aktivierung blockiert ohne bereiten Headless Supervisor", async () => {
   const { runtime } = await gestarteteRuntime();
 
-  const ohneMetrik = runtime.aktivierePlanenFaehigkeit(anforderung());
+  const ohneMetrik = await runtime.aktivierePlanenFaehigkeit(anforderung());
   assert.equal(ohneMetrik.erfolgreich, false);
   assert.equal(
     ohneMetrik.grund,
@@ -154,7 +210,7 @@ test("PLANEN-Aktivierung blockiert ohne bereiten Headless Supervisor", async () 
   );
 
   runtime.erfasseOperationsMetrik(metrischeBasis());
-  const stale = runtime.aktivierePlanenFaehigkeit(anforderung({
+  const stale = await runtime.aktivierePlanenFaehigkeit(anforderung({
     aktivierungsId: "PLANEN-AKT-STALE",
     jetztMs: 300,
   }));
@@ -178,7 +234,7 @@ test("Capability-Sperre und NOTHALT verhindern PLANEN-Aktivierung", async () => 
     faehigkeitId: "merchant.bank.planen",
   });
 
-  const gesperrt = sperre.runtime.aktivierePlanenFaehigkeit(anforderung());
+  const gesperrt = await sperre.runtime.aktivierePlanenFaehigkeit(anforderung());
   assert.equal(gesperrt.erfolgreich, false);
   assert.equal(
     gesperrt.grund,
@@ -196,7 +252,7 @@ test("Capability-Sperre und NOTHALT verhindern PLANEN-Aktivierung", async () => 
     art: "NOTHALT_AKTIVIEREN",
   });
 
-  const blockiert = nothalt.runtime.aktivierePlanenFaehigkeit(anforderung());
+  const blockiert = await nothalt.runtime.aktivierePlanenFaehigkeit(anforderung());
   assert.equal(blockiert.erfolgreich, false);
   assert.equal(
     blockiert.grund,
@@ -209,7 +265,7 @@ test("PLANEN-Aktivierung blockiert falsche Providerbindung und ungesundes Modul"
   const provider = await gestarteteRuntime();
   provider.runtime.erfasseOperationsMetrik(metrischeBasis());
 
-  const falsch = provider.runtime.aktivierePlanenFaehigkeit(anforderung({
+  const falsch = await provider.runtime.aktivierePlanenFaehigkeit(anforderung({
     anbieterVersion: "2",
   }));
   assert.equal(falsch.erfolgreich, false);
@@ -223,7 +279,7 @@ test("PLANEN-Aktivierung blockiert falsche Providerbindung und ungesundes Modul"
     "1",
     "DEGRADIERT",
   );
-  const ungesund = provider.runtime.aktivierePlanenFaehigkeit(anforderung({
+  const ungesund = await provider.runtime.aktivierePlanenFaehigkeit(anforderung({
     aktivierungsId: "PLANEN-AKT-UNGESUND",
   }));
   assert.equal(ungesund.erfolgreich, false);
@@ -234,11 +290,64 @@ test("PLANEN-Aktivierung blockiert falsche Providerbindung und ungesundes Modul"
   assert.equal(provider.runtime.status().aktiveFaehigkeiten, 0);
 });
 
+test("laufende PLANEN-Authority wird bei Operator-Deny fail-closed entzogen", async () => {
+  const laufend = await gestarteteRuntime();
+  laufend.runtime.erfasseOperationsMetrik(metrischeBasis());
+  assert.equal(
+    (await laufend.runtime.aktivierePlanenFaehigkeit(anforderung())).erfolgreich,
+    true,
+  );
+
+  await laufend.policy.wendeDenyAn({
+    schemaVersion: 1,
+    befehlId: "DENY-REVALIDIERUNG-1",
+    bedienerId: "operator",
+    zeitMs: 101,
+    art: "FAEHIGKEIT_SPERREN",
+    faehigkeitId: "merchant.bank.planen",
+  });
+
+  const ergebnis = laufend.runtime.revalidierePlanenAuthority(health(), 101);
+  assert.equal(ergebnis.bereit, false);
+  assert.equal(
+    ergebnis.grund,
+    "V5_PLANEN_REVALIDIERUNG_CAPABILITY_ENTZOGEN",
+  );
+  assert.deepEqual(
+    ergebnis.deaktivierteFaehigkeiten,
+    ["merchant.bank.planen@1"],
+  );
+  assert.equal(laufend.runtime.status().aktiveModule, 0);
+  assert.equal(laufend.runtime.status().aktiveFaehigkeiten, 0);
+});
+
+test("stale Health entzieht laufende PLANEN-Authority global", async () => {
+  const laufend = await gestarteteRuntime();
+  laufend.runtime.erfasseOperationsMetrik(metrischeBasis());
+  assert.equal(
+    (await laufend.runtime.aktivierePlanenFaehigkeit(anforderung())).erfolgreich,
+    true,
+  );
+
+  const ergebnis = laufend.runtime.revalidierePlanenAuthority(health(), 300);
+  assert.equal(ergebnis.bereit, false);
+  assert.equal(
+    ergebnis.grund,
+    "V5_PLANEN_REVALIDIERUNG_SUPERVISOR_NICHT_BEREIT",
+  );
+  assert.deepEqual(
+    ergebnis.deaktivierteFaehigkeiten,
+    ["merchant.bank.planen@1"],
+  );
+  assert.equal(laufend.runtime.status().aktiveModule, 0);
+  assert.equal(laufend.runtime.status().aktiveFaehigkeiten, 0);
+});
+
 test("MUTIEREN kann ueber den PLANEN-Pfad niemals aktiviert werden", async () => {
   const { runtime } = await gestarteteRuntime({ modus: "MUTIEREN" });
   runtime.erfasseOperationsMetrik(metrischeBasis());
 
-  const ergebnis = runtime.aktivierePlanenFaehigkeit(anforderung({
+  const ergebnis = await runtime.aktivierePlanenFaehigkeit(anforderung({
     faehigkeitId: "merchant.bank.mutieren",
   }));
 
@@ -252,7 +361,7 @@ test("kontrollierter Runtime-Stop entzieht zuvor aktivierte PLANEN-Authority", a
   const { runtime } = await gestarteteRuntime();
   runtime.erfasseOperationsMetrik(metrischeBasis());
   assert.equal(
-    runtime.aktivierePlanenFaehigkeit(anforderung()).erfolgreich,
+    (await runtime.aktivierePlanenFaehigkeit(anforderung())).erfolgreich,
     true,
   );
 
