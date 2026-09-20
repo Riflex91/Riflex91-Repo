@@ -1,1 +1,74 @@
-name: ForeverGuide WoW data pipeline\n\non:\n  workflow_dispatch:\n  push:\n    paths:\n      - "world of warcraft/**"\n      - ".github/workflows/foreverguide-wow.yml"\n  pull_request:\n    paths:\n      - "world of warcraft/**"\n      - ".github/workflows/foreverguide-wow.yml"\n\npermissions:\n  contents: read\n\njobs:\n  build-and-package:\n    runs-on: windows-latest\n    timeout-minutes: 20\n\n    steps:\n      - name: Checkout\n        uses: actions/checkout@v4\n\n      - name: Setup .NET 8\n        uses: actions/setup-dotnet@v4\n        with:\n          dotnet-version: "8.0.x"\n\n      - name: Build ForeverDataMiner\n        shell: pwsh\n        run: |\n          dotnet restore "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj"\n          dotnet build "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release --no-restore\n          dotnet run --project "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release --no-build -- help\n\n      - name: Publish Windows executable\n        shell: pwsh\n        run: |\n          dotnet publish "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "artifacts/ForeverDataMiner-win-x64"\n\n      - name: Validate FGDS schema\n        shell: pwsh\n        run: |\n          $schema = Get-Content "world of warcraft/schema/fgds.schema.json" -Raw | ConvertFrom-Json\n          if ($schema.title -ne "ForeverGuide Data Schema") { throw "Unexpected FGDS schema." }\n          if ($schema.properties.schemaVersion.const -ne "fgds-1.0") { throw "Unexpected FGDS version." }\n\n      - name: Package recorder addon\n        shell: pwsh\n        run: |\n          New-Item -ItemType Directory -Force "artifacts/ForeverGuideRecorder" | Out-Null\n          Copy-Item "world of warcraft/ForeverGuideRecorder/*" "artifacts/ForeverGuideRecorder/" -Recurse\n          Compress-Archive -Path "artifacts/ForeverGuideRecorder" -DestinationPath "artifacts/ForeverGuideRecorder-v0.1.zip" -Force\n\n      - name: Include schema with miner\n        shell: pwsh\n        run: |\n          Copy-Item "world of warcraft/schema/fgds.schema.json" "artifacts/ForeverDataMiner-win-x64/fgds.schema.json"\n\n      - name: Upload Windows miner\n        uses: actions/upload-artifact@v4\n        with:\n          name: ForeverDataMiner-win-x64\n          path: artifacts/ForeverDataMiner-win-x64/\n          if-no-files-found: error\n\n      - name: Upload recorder addon\n        uses: actions/upload-artifact@v4\n        with:\n          name: ForeverGuideRecorder-v0.1\n          path: artifacts/ForeverGuideRecorder-v0.1.zip\n          if-no-files-found: error\n
+name: ForeverGuide WoW data pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "world of warcraft/**"
+      - ".github/workflows/foreverguide-wow.yml"
+  pull_request:
+    paths:
+      - "world of warcraft/**"
+      - ".github/workflows/foreverguide-wow.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-package:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build ForeverDataMiner
+        shell: pwsh
+        run: |
+          dotnet restore "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj"
+          dotnet build "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release --no-restore
+          dotnet run --project "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release --no-build -- help
+
+      - name: Publish Windows executable
+        shell: pwsh
+        run: |
+          dotnet publish "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "artifacts/ForeverDataMiner-win-x64"
+
+      - name: Validate FGDS schema
+        shell: pwsh
+        run: |
+          $schema = Get-Content "world of warcraft/schema/fgds.schema.json" -Raw | ConvertFrom-Json
+          if ($schema.title -ne "ForeverGuide Data Schema") { throw "Unexpected FGDS schema." }
+          if ($schema.properties.schemaVersion.const -ne "fgds-1.0") { throw "Unexpected FGDS version." }
+
+      - name: Package recorder addon
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force "artifacts/ForeverGuideRecorder" | Out-Null
+          Copy-Item "world of warcraft/ForeverGuideRecorder/*" "artifacts/ForeverGuideRecorder/" -Recurse
+          Compress-Archive -Path "artifacts/ForeverGuideRecorder" -DestinationPath "artifacts/ForeverGuideRecorder-v0.2.zip" -Force
+
+      - name: Include schema with miner
+        shell: pwsh
+        run: |
+          Copy-Item "world of warcraft/schema/fgds.schema.json" "artifacts/ForeverDataMiner-win-x64/fgds.schema.json"
+
+      - name: Upload Windows miner
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForeverDataMiner-win-x64
+          path: artifacts/ForeverDataMiner-win-x64/
+          if-no-files-found: error
+
+      - name: Upload recorder addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForeverGuideRecorder-v0.2
+          path: artifacts/ForeverGuideRecorder-v0.2.zip
+          if-no-files-found: error
