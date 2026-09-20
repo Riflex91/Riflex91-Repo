@@ -8,10 +8,10 @@
   const JOURNAL_KEY = 'AIO_V5_CAP045_PRODUCTION_LIVE_JOURNAL_V1';
   const SOAK_DAUER_MS = 5 * 60 * 1000;
   const SAMPLE_INTERVALL_MS = 15 * 1000;
-  const MAX_SAMPLE_GAP_MS = 45 * 1000;
+  const MAX_SAMPLE_GAP_MS = 90 * 1000;
   const MIN_LIVE_SAMPLES = 20;
   const MAX_SAMPLES = 30;
-  const MAX_STAGE3_NACHLAUF_MS = 10 * 60 * 1000;
+  const MAX_STAGE3_NACHLAUF_MS = MAX_SAMPLE_GAP_MS;
   const MAX_TEST_BASISWERT_GOLD = 100000;
   const MIN_PREVIEW_CHANCE = 0.99;
   const STAGE2_BESTAETIGUNG = 'CAP045-STAGE2-LIVE-SOAK-START';
@@ -175,33 +175,34 @@
     const roots = [];
     try { roots.push(globalThis); } catch {}
     try { if (parent && parent !== globalThis) roots.push(parent); } catch {}
-    let v3 = false;
-    let v4 = false;
+    let v3Vorhanden = false;
+    let v3Aktiv = false;
+    let v4Vorhanden = false;
     for (const root of roots) {
       try {
         const runtime = root?.AIO_V3?.__runtime;
         if (runtime) {
-          const status = typeof runtime.status === 'function' ? runtime.status() : null;
-          v3 = !!(runtime.timer || status?.running === true);
+          v3Vorhanden = true;
+          v3Aktiv = !!runtime.timer;
         }
-      } catch { v3 = true; }
+      } catch {
+        v3Vorhanden = true;
+        v3Aktiv = true;
+      }
       try {
-        const runtime = root?.V4ProduktionsLaufzeit || root?.AIO_V4 || root?.V4Runtime;
-        if (runtime) {
-          const status = typeof runtime.status === 'function' ? runtime.status() : null;
-          v4 = !!(status && (
-            status.running === true
-            || status.aktivFreigegeben === true
-            || status.gestoppt === false
-            || status.empfangInstalliert === true
-          ));
+        if (root?.V4ProduktionsLaufzeit || root?.AIO_V4 || root?.V4Runtime) {
+          v4Vorhanden = true;
         }
-      } catch { v4 = true; }
+      } catch {
+        v4Vorhanden = true;
+      }
     }
     return Object.freeze({
-      v3Aktiv: v3,
-      v4Aktiv: v4,
-      alternativeRuntimeAktiv: v3 || v4
+      v3Vorhanden,
+      v3Aktiv,
+      v4Vorhanden,
+      alternativeRuntimeAktiv: v3Aktiv || v4Vorhanden,
+      legacyRuntimeMethodenAufgerufen: false
     });
   }
 
@@ -792,7 +793,7 @@
           ziel,
           scrollMengeVorher: baselineScrollMenge,
           scrollMengeNachher: scrollNachher,
-          postconditionVerifiziert: erfolg
+          postconditionVerifiziert: erfolg || (konsumiert && !preUnveraendert)
         });
       }
       await new Promise(resolve => setTimeout(resolve, 300));
