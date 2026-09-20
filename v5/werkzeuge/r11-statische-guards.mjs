@@ -13,6 +13,48 @@ const quellen = {
 };
 fehler.push(...pruefeSafetyQuelltexte(quellen));
 
+const runtimePlanen = liesText("grundlage/quelle/runtime/produktions-runtime.ts");
+for (const marker of [
+  "V5PlanenAktivierungsProtokollPort",
+  "PLANEN_AKTIVIERUNG_VOR_WIRKUNG",
+  "V5_PLANEN_AKTIVIERUNG_DURABLE_PROTOKOLL_FEHLT",
+  "V5_PLANEN_AKTIVIERUNG_AUDIT_NICHT_DURABLE",
+  "V5_PLANEN_AKTIVIERUNG_REVALIDIERUNG_FEHLGESCHLAGEN",
+  "revalidierePlanenAuthority",
+  "faehigkeit.anbieterVersion",
+]) {
+  if (!runtimePlanen.includes(marker)) {
+    fehler.push("PLANEN_DURABLE_AUTHORITY_MARKER_FEHLT:" + marker);
+  }
+}
+
+const planenAuditAdapter = liesText(
+  "grundlage/adapter/persistenz/node-planen-aktivierungs-protokoll.mjs",
+);
+for (const marker of [
+  "PLANEN_AKTIVIERUNG_VOR_WIRKUNG",
+  "erstelleExklusivDurable",
+  "PLANEN_AKTIVIERUNGS_AUDIT_ID_KOLLISION",
+  "actionAuthority: false",
+]) {
+  if (!planenAuditAdapter.includes(marker)) {
+    fehler.push("PLANEN_AUDIT_ADAPTER_MARKER_FEHLT:" + marker);
+  }
+}
+
+const produktionsDateisystem = liesText(
+  "grundlage/adapter/persistenz/node-produktions-dateisystem.mjs",
+);
+for (const marker of [
+  "D:\\AdventureLand-V5",
+  "PRODUKTIONS_DATEISYSTEM_WURZEL_UNGUELTIG",
+  "erstelleExklusivDurable",
+]) {
+  if (!produktionsDateisystem.includes(marker)) {
+    fehler.push("PRODUKTIONS_DATEISYSTEM_MARKER_FEHLT:" + marker);
+  }
+}
+
 const telemetrie = liesText("grundlage/quelle/operations/telemetrie.ts");
 for (const marker of [
   "ssdIoLatenzMs",
