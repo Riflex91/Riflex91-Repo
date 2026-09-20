@@ -32,7 +32,9 @@ local function stylePanel(frame)
     local bg = frame:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints(frame)
     setColorTexture(bg, 0.025, 0.032, 0.045, 1.0)
-    bg:SetAlpha(1.0 - clampTransparency(MG.db and MG.db.settings.windowTransparency))
+    if bg.SetAlpha then
+        bg:SetAlpha(1.0 - clampTransparency(MG.db and MG.db.settings.windowTransparency))
+    end
     frame._mgBackground = bg
     ui.panels[#ui.panels + 1] = frame
 
@@ -392,8 +394,10 @@ function MG:InitializeUI()
     sliderTrack:SetHeight(4)
     setColorTexture(sliderTrack, 0.12, 0.18, 0.24, 1)
 
-    transparencySlider:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
-    local thumb = transparencySlider:GetThumbTexture()
+    if transparencySlider.SetThumbTexture then
+        transparencySlider:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
+    end
+    local thumb = transparencySlider.GetThumbTexture and transparencySlider:GetThumbTexture() or nil
     if thumb then thumb:SetSize(24, 24) end
 
     transparencySlider:SetScript("OnValueChanged", function(_, value)
