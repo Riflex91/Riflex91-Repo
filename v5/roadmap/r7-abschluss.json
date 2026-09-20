@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R7",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "exitKriterien": {
+    "modulRegisterVorhanden": true,
+    "faehigkeitsRegisterVorhanden": true,
+    "lesenPlanenMutierenGetrennt": true,
+    "mutierenderSingleOwnerTechnischErzwungen": true,
+    "mutierendeFaehigkeitenDefaultOff": true,
+    "typisiertePortsVersioniert": true,
+    "lifecycleUndHealthExplizit": true,
+    "aktivierungUndDeaktivierungExplizit": true,
+    "providerErsatzVersioniertOhneParallelOwner": true,
+    "operatorDenyDominant": true,
+    "nothaltErzwungen": true,
+    "bedieneraktionenAuditierbar": true,
+    "crossModulDirektkopplungGuard": true
+  },
+  "anforderungen": {
+    "phaseR7": 5,
+    "technischNachgewiesen": 5,
+    "status": "R7_NACHGEWIESEN"
+  },
+  "traceability": {
+    "phaseR7": 5,
+    "vollstaendig": 5
+  },
+  "fitness": {
+    "phaseR7": 3,
+    "erfuellt": 3,
+    "status": "ERFUELLT"
+  },
+  "sicherheitsgrenze": {
+    "mutierendeAktivierungInR7": false,
+    "adventureLandWrites": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false
+  },
+  "ciVorAbschluss": {
+    "headSha": "7ad5eddb048524d9e53a21ac5c064db50ffb8cdb",
+    "runs": [
+      {
+        "workflow": "v5-r7",
+        "runId": 35478154361,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r6",
+        "runId": 35478154331,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r5",
+        "runId": 35478154348,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r4",
+        "runId": 35478154342,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r3",
+        "runId": 35478154333,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-wissensgate",
+        "runId": 35478154366,
+        "conclusion": "success"
+      }
+    ]
+  },
+  "betriebsblocker": {
+    "lokaleWindowsBridgeAktualisieren": true,
+    "beschreibung": "Der lokale Windows-Bridge-Deploymentstand bleibt separat zu verifizieren. Der R7-Abschluss oeffnet kein Gameplay-Gate."
+  },
+  "nachweise": [
+    "v5/grundlage/quelle/autoritaet/ports.ts",
+    "v5/grundlage/quelle/autoritaet/modul-register.ts",
+    "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
+    "v5/grundlage/quelle/autoritaet/bediener-richtlinie.ts",
+    "v5/grundlage/tests/r7-module.test.mjs",
+    "v5/grundlage/tests/r7-autoritaet.test.mjs",
+    "v5/werkzeuge/r7-statische-guards.mjs",
+    "v5/werkzeuge/r7-struktur-pruefen.mjs",
+    "v5/architektur/adr/ADR-008-R7-MODULE-CAPABILITY-AUTHORITY.md",
+    ".github/workflows/v5-r7.yml"
+  ],
+  "naechstePhase": "R8",
+  "hinweis": "R7 gilt erst nach gruenem finalen PR-Head und gruener Post-Merge-CI als endgueltig abgeschlossen. Das Gameplay-Runtime-Gesamtgate bleibt GESPERRT."
+}
