@@ -14,6 +14,10 @@ const pflicht=[
   "werkzeuge/r19-test-gui-paket-bauen.mjs",
   "werkzeuge/tests/r19-test-gui.test.mjs",
   "werkzeuge/tests/r19-canary-test-gui.test.mjs",
+  "werkzeuge/tests/r19-soak-1h-test-gui.test.mjs",
+  "werkzeuge/r19-soak-1h-test-paket-bauen.mjs",
+  "werkzeuge/r19-soak-1h-test-paket.js",
+  "werkzeuge/r19-soak-1h-test-gui.js",
   "werkzeuge/r19-canary-test-paket-bauen.mjs",
   "werkzeuge/r19-canary-test-paket.js",
   "werkzeuge/r19-canary-test-gui.js",
@@ -93,6 +97,25 @@ for(const m of [
 }
 const canaryEquipAufrufe=canaryGui.match(/\.equip\s*\(/g)??[];
 if(canaryEquipAufrufe.length!==1) fehler.push("R19_CANARY_GUI_EQUIP_ANZAHL:"+canaryEquipAufrufe.length);
+
+const soakGui=lies("werkzeuge/r19-soak-1h-test-gui.js");
+for(const m of [
+  "R19-SOAK-1H-START",
+  "const DAUER_MS = 60 * 60 * 1000",
+  "const INTERVALL_MS = 30 * 1000",
+  "const MAX_SAMPLE_GAP_MS = 90 * 1000",
+  "gameplayWritesDurchHarness: 0",
+  "unerwarteteGameWritesImHarness: 0",
+  "breiteRuntimeFreigabe: false",
+  "EVIDENCE_KETTE_UNGUELTIG",
+  "HEAP_METRIK_FEHLT",
+  "STORAGE_ESTIMATE_FEHLT",
+]){
+  if(!soakGui.includes(m)) fehler.push("R19_SOAK_1H_GUI_MARKER_FEHLT:"+m);
+}
+for(const verboten of [/\.equip\s*\(/,/\.attack\s*\(/,/\.move\s*\(/,/\.smart_move\s*\(/,/\.use_skill\s*\(/]){
+  if(verboten.test(soakGui)) fehler.push("R19_SOAK_1H_RAW_GAME_WRITE_VERBOTEN:"+verboten);
+}
 
 const rawMuster=[
   /\battack\s*\(/,/\bsmart_move\s*\(/,/\bmove\s*\(/,/\bxmove\s*\(/,
