@@ -1065,7 +1065,9 @@ function MG:RefreshInfo()
         "Navigator: " .. (self.db.settings.showNavigator and "AN" or "AUS") ..
             (self.db.settings.navigatorLocked and " / gesperrt" or " / frei"),
         "Theme: " .. tostring(themeName),
-        "ElvUI erkannt: " .. (theme and theme.elvUIDetected and "ja" or "nein"),
+        "ElvUI erkannt: " .. ((self.Themes and self.Themes:IsElvUIAvailable()) and "ja" or "nein"),
+        "EllesmereUI erkannt: " .. ((self.Themes and self.Themes:IsEllesmereUIAvailable()) and "ja" or "nein"),
+        "ToxiUI erkannt: " .. ((self.Themes and self.Themes:IsToxiUIAvailable()) and "ja" or "nein"),
         "Guide-Validierung: " .. (validation.valid and "OK" or "prüfen") ..
             " (" .. tostring(validation.errors or 0) .. " Fehler)",
         "TravelGraph: " .. tostring(travel.nodes or 0) .. " Knoten / " ..
