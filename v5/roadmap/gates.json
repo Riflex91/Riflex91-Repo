@@ -373,14 +373,14 @@
     },
     {
       "id": "R19",
-      "name": "Runtime-Zertifizierung (beschleunigtes Zeitprofil)",
+      "name": "Runtime-Zertifizierung (5m Funktion / 15m Integration-Release)",
       "status": "IN_PROGRESS",
       "requires": [
         "R18"
       ],
       "blocksRuntime": false,
       "exit": [
-        "5m/10m/30m/60m evidence",
+        "5m Funktions-Evidence, laufende 10m Uebergangs-Evidence und finale 15m Integrations-/Release-Evidence",
         "Zero-tolerance metrics eingehalten",
         "Unbounded SSD growth = 0",
         "Kritische Persistenzverluste = 0",

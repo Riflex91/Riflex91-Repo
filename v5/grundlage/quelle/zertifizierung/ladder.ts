@@ -6,8 +6,7 @@ export type ZertifizierungsStufe =
   | "CANARY"
   | "SOAK_5M"
   | "SOAK_10M"
-  | "SOAK_30M"
-  | "SOAK_60M";
+  | "SOAK_15M";
 
 export interface ZertifizierungsStufenNachweis {
   readonly stufe: ZertifizierungsStufe;
@@ -31,8 +30,7 @@ const REIHENFOLGE: readonly ZertifizierungsStufe[] = Object.freeze([
   "CANARY",
   "SOAK_5M",
   "SOAK_10M",
-  "SOAK_30M",
-  "SOAK_60M",
+  "SOAK_15M",
 ]);
 
 function text(wert: string, fehler: string): void {

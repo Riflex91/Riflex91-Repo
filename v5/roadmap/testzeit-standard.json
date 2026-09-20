@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "status": "RATIFIZIERT",
+  "kennung": "V5_TESTZEIT_STANDARD_V1",
+  "funktion": {
+    "testdauerMs": 300000,
+    "bezeichnung": "FUNKTION_5M",
+    "zweck": "Abnahme einer neuen oder geaenderten einzelnen Funktion/Capability nach statischen Tests, Unit/Replay/Fault-Gates und erforderlichem Live-Preflight.",
+    "ausreichendFuerFunktionsabnahme": true
+  },
+  "integrationRelease": {
+    "testdauerMs": 900000,
+    "bezeichnung": "INTEGRATION_RELEASE_15M",
+    "zweck": "Abnahme eines Integrations-, Meilenstein- oder Release-Gates mit mehreren zusammenwirkenden Funktionen.",
+    "ausreichendFuerIntegrationsReleaseAbnahme": true
+  },
+  "regeln": [
+    "Ein bestandener 5-Minuten-Test reicht fuer die Funktionsabnahme; laengere Soaks werden nicht pro Funktion wiederholt.",
+    "Integrations-, Meilenstein- und Release-Gates verwenden kuenftig 15 Minuten.",
+    "Der bereits gestartete R19-SOAK_10M bleibt als einmalige Uebergangs-Zwischenstufe gueltig; danach folgt ein finaler 15-Minuten-Test.",
+    "Safety-, Authority-, Evidence-, Gap-, Persistenz-, Ressourcen- und Null-Toleranz-Grenzen werden durch die kuerzere Testzeit nicht gelockert.",
+    "Ein spaeter entdeckter Defekt oeffnet die betroffene Funktion erneut und verlangt nach dem Fix mindestens den 5-Minuten-Funktionstest; betrifft er Integration/Release, ist zusaetzlich der 15-Minuten-Test zu wiederholen."
+  ],
+  "breiteRuntimeFreigabe": false
+}

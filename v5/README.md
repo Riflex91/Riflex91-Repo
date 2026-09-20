@@ -302,7 +302,7 @@ Abschluss: `roadmap/r18-abschluss.json`
 
 Die breite Gameplay-Runtime bleibt `GESPERRT`.
 
-Aktuelle Phase: **R19 – beschleunigte Runtime-Zertifizierung**. Das aktive Zeitprofil ist `R19_ACCELERATED_SOAK_V1`; es ersetzt keinen mehrtaegigen 24/7-Soak.
+Aktuelle Phase: **R19 – beschleunigte Runtime-Zertifizierung**. Das aktive Zeitprofil ist `R19_ACCELERATED_SOAK_V2`; es ersetzt keinen mehrtaegigen 24/7-Soak.
 
 
 ## R19 – Automatik bis Shadow abgeschlossen
@@ -354,8 +354,18 @@ Evidence: `roadmap/r19-soak-5m-evidence.json`.
 Naechste Stufe: **SOAK_10M**. R19 bleibt `IN_PROGRESS`; die breite Runtime bleibt `GESPERRT`.
 
 
-## R19 – Beschleunigtes Soak-Zeitprofil
+## R19 – Testzeitstandard und beschleunigtes Soak-Profil
 
-Das Soak-Profil wurde auf **5 Minuten → 10 Minuten → 30 Minuten → 60 Minuten** umgestellt (`R19_ACCELERATED_SOAK_V1`). Die frueher geplanten 1h/24h/72h/7d- sowie optionalen 30d-Stufen sind nicht mehr Teil des aktuellen Release-Gates.
+Der verbindliche V5-Testzeitstandard lautet ab jetzt:
 
-Diese Aenderung reduziert die zeitliche Langzeitabdeckung; die Evidence wird daher als beschleunigte Runtime-Zertifizierung und nicht als mehrtaegiger 24/7-Soak ausgewiesen.
+- **5 Minuten** fuer die Abnahme einer einzelnen neuen oder geaenderten Funktion/Capability;
+- **15 Minuten** fuer Integrations-, Meilenstein- und Release-Gates.
+
+Der bereits gestartete SOAK_10M bleibt als einmalige R19-Uebergangsstufe gueltig. Das aktuelle R19-Profil lautet deshalb **5 Minuten → 10 Minuten → 15 Minuten final** (`R19_ACCELERATED_SOAK_V2`). Die bisherigen 30-/60-Minuten-Stufen entfallen.
+
+Die kuerzere Testzeit lockert keine Safety-, Authority-, Evidence-, Sample-Gap-, Persistenz-, Ressourcen- oder Gameplay-Write-Grenzen. Ein spaeter entdeckter Defekt oeffnet die betroffene Funktion wieder und verlangt nach dem Fix mindestens erneut den 5-Minuten-Test; bei Integrations-/Release-Auswirkung auch den 15-Minuten-Test.
+
+Maschinenlesbar: `roadmap/testzeit-standard.json` und `roadmap/r19-soak-zeitprofil.json`.  
+ADR: `architektur/adr/ADR-024-TESTZEITSTANDARD-5M-15M.md`.
+
+Diese Evidence wird als beschleunigte Runtime-Zertifizierung und nicht als mehrtaegiger 24/7-Soak ausgewiesen.

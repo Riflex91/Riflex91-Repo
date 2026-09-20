@@ -1,5 +1,7 @@
 # ADR-023 – R19 beschleunigtes Soak-Zeitprofil
 
+> **Historische V1-Entscheidung.** Fuer den aktuellen Stand durch `ADR-024-TESTZEITSTANDARD-5M-15M.md` und `R19_ACCELERATED_SOAK_V2` abgeloest. Die nachfolgende V1-Entscheidung bleibt zur Nachvollziehbarkeit unveraendert erhalten.
+
 **Status:** RATIFIZIERT  
 **Datum:** 2026-09-20
 

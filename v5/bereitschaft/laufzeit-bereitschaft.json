@@ -69,11 +69,12 @@
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
       "erfuellt": false,
-      "grund": "R7 bis R18 sind technisch nachgewiesen. R19 ist bis SOAK_5M bestanden; offen sind SOAK_10M, SOAK_30M und SOAK_60M des beschleunigten Zeitprofils.",
+      "grund": "R7 bis R18 sind technisch nachgewiesen. R19 ist bis SOAK_5M bestanden; der laufende SOAK_10M bleibt als Uebergangs-Zwischenstufe gueltig, danach ist nur noch der finale SOAK_15M Integrations-/Release-Test offen.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
         "v5/anforderungen/nachverfolgbarkeit.json",
-        "v5/roadmap/r19-soak-5m-evidence.json"
+        "v5/roadmap/r19-soak-5m-evidence.json",
+        "v5/roadmap/testzeit-standard.json"
       ],
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
@@ -310,8 +311,8 @@
     }
   ],
   "offeneBlocker": [
-    "R19 SOAK_10M ist die naechste Zertifizierungsstufe und benoetigt eine lueckenlose 10-Minuten-Zeitreihe am PC",
-    "Danach folgen SOAK_30M und SOAK_60M ohne Stufenueberspringen",
+    "R19 SOAK_10M ist die bereits laufende Uebergangs-Zwischenstufe und benoetigt eine lueckenlose 10-Minuten-Zeitreihe am PC",
+    "Danach folgt nur noch SOAK_15M als finaler Integrations-/Release-Test",
     "Breite Gameplay-Runtime bleibt bis zur erfolgreichen kompletten R19-Ladder und expliziten Gesamtfreigabe GESPERRT",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
@@ -373,6 +374,9 @@
   "r19LiveStatus": "BIS_SOAK_5M_BESTANDEN",
   "r19ControlledLiveEvidence": "v5/roadmap/r19-controlled-live-evidence.json",
   "r19CanaryEvidence": "v5/roadmap/r19-canary-evidence.json",
-  "r19Zeitprofil": "R19_ACCELERATED_SOAK_V1",
-  "r19Soak5mEvidence": "v5/roadmap/r19-soak-5m-evidence.json"
+  "r19Zeitprofil": "R19_ACCELERATED_SOAK_V2",
+  "r19Soak5mEvidence": "v5/roadmap/r19-soak-5m-evidence.json",
+  "testzeitStandard": "V5_TESTZEIT_STANDARD_V1",
+  "funktionsTestdauerMs": 300000,
+  "integrationsReleaseTestdauerMs": 900000
 }
