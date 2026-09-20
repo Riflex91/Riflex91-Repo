@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           grep -q '^## Interface: 16001$' "world of warcraft/ForeverGuideRecorder/ForeverGuideRecorder.toc"
-          grep -q '^## Version: 0.3.0$' "world of warcraft/ForeverGuideRecorder/ForeverGuideRecorder.toc"
+          grep -q '^## Version: 0.4.0 "world of warcraft/ForeverGuideRecorder/ForeverGuideRecorder.toc"
 
   build-and-package:
     needs: lua-syntax
@@ -92,18 +92,18 @@ jobs:
       - name: Build combined test package
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force "artifacts/ForeverGuide-DataTools-v0.2/ForeverDataMiner" | Out-Null
-          New-Item -ItemType Directory -Force "artifacts/ForeverGuide-DataTools-v0.2/ForeverGuideRecorder" | Out-Null
-          Copy-Item "artifacts/ForeverDataMiner-win-x64/*" "artifacts/ForeverGuide-DataTools-v0.2/ForeverDataMiner/" -Recurse
-          Copy-Item "world of warcraft/ForeverGuideRecorder/*" "artifacts/ForeverGuide-DataTools-v0.2/ForeverGuideRecorder/" -Recurse
-          Copy-Item "world of warcraft/TESTING.md" "artifacts/ForeverGuide-DataTools-v0.2/TESTING.md"
-          Compress-Archive -Path "artifacts/ForeverGuide-DataTools-v0.2/*" -DestinationPath "artifacts/ForeverGuide-DataTools-v0.2.zip" -Force
+          New-Item -ItemType Directory -Force "artifacts/ForeverGuide-DataTools-v0.4/ForeverDataMiner" | Out-Null
+          New-Item -ItemType Directory -Force "artifacts/ForeverGuide-DataTools-v0.4/ForeverGuideRecorder" | Out-Null
+          Copy-Item "artifacts/ForeverDataMiner-win-x64/*" "artifacts/ForeverGuide-DataTools-v0.4/ForeverDataMiner/" -Recurse
+          Copy-Item "world of warcraft/ForeverGuideRecorder/*" "artifacts/ForeverGuide-DataTools-v0.4/ForeverGuideRecorder/" -Recurse
+          Copy-Item "world of warcraft/TESTING.md" "artifacts/ForeverGuide-DataTools-v0.4/TESTING.md"
+          Compress-Archive -Path "artifacts/ForeverGuide-DataTools-v0.4/*" -DestinationPath "artifacts/ForeverGuide-DataTools-v0.4.zip" -Force
 
       - name: Upload combined test package
         uses: actions/upload-artifact@v4
         with:
-          name: ForeverGuide-DataTools-v0.2
-          path: artifacts/ForeverGuide-DataTools-v0.2.zip
+          name: ForeverGuide-DataTools-v0.4
+          path: artifacts/ForeverGuide-DataTools-v0.4.zip
           if-no-files-found: error
 
       - name: Upload Windows miner
@@ -116,6 +116,83 @@ jobs:
       - name: Upload recorder addon
         uses: actions/upload-artifact@v4
         with:
-          name: ForeverGuideRecorder-v0.3
+          name: ForeverGuideRecorder-v0.4
+          path: artifacts/ForeverGuideRecorder/
+          if-no-files-found: error
+ "world of warcraft/ForeverGuideRecorder/ForeverGuideRecorder.toc"
+
+  build-and-package:
+    needs: lua-syntax
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build ForeverDataMiner
+        shell: pwsh
+        run: |
+          dotnet restore "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj"
+          dotnet build "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release --no-restore
+          dotnet run --project "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release --no-build -- selftest
+
+      - name: Publish Windows executable
+        shell: pwsh
+        run: |
+          dotnet publish "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "artifacts/ForeverDataMiner-win-x64"
+
+      - name: Validate FGDS schema
+        shell: pwsh
+        run: |
+          $schema = Get-Content "world of warcraft/schema/fgds.schema.json" -Raw | ConvertFrom-Json
+          if ($schema.title -ne "ForeverGuide Data Schema") { throw "Unexpected FGDS schema." }
+          if ($schema.properties.schemaVersion.const -ne "fgds-1.0") { throw "Unexpected FGDS version." }
+
+      - name: Package recorder addon
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force "artifacts/ForeverGuideRecorder" | Out-Null
+          Copy-Item "world of warcraft/ForeverGuideRecorder/*" "artifacts/ForeverGuideRecorder/" -Recurse
+
+      - name: Include schema with miner
+        shell: pwsh
+        run: |
+          Copy-Item "world of warcraft/schema/fgds.schema.json" "artifacts/ForeverDataMiner-win-x64/fgds.schema.json"
+          Copy-Item "world of warcraft/README.md" "artifacts/ForeverDataMiner-win-x64/README.md"
+
+      - name: Build combined test package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force "artifacts/ForeverGuide-DataTools-v0.4/ForeverDataMiner" | Out-Null
+          New-Item -ItemType Directory -Force "artifacts/ForeverGuide-DataTools-v0.4/ForeverGuideRecorder" | Out-Null
+          Copy-Item "artifacts/ForeverDataMiner-win-x64/*" "artifacts/ForeverGuide-DataTools-v0.4/ForeverDataMiner/" -Recurse
+          Copy-Item "world of warcraft/ForeverGuideRecorder/*" "artifacts/ForeverGuide-DataTools-v0.4/ForeverGuideRecorder/" -Recurse
+          Copy-Item "world of warcraft/TESTING.md" "artifacts/ForeverGuide-DataTools-v0.4/TESTING.md"
+          Compress-Archive -Path "artifacts/ForeverGuide-DataTools-v0.4/*" -DestinationPath "artifacts/ForeverGuide-DataTools-v0.4.zip" -Force
+
+      - name: Upload combined test package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForeverGuide-DataTools-v0.4
+          path: artifacts/ForeverGuide-DataTools-v0.4.zip
+          if-no-files-found: error
+
+      - name: Upload Windows miner
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForeverDataMiner-win-x64
+          path: artifacts/ForeverDataMiner-win-x64/
+          if-no-files-found: error
+
+      - name: Upload recorder addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForeverGuideRecorder-v0.4
           path: artifacts/ForeverGuideRecorder/
           if-no-files-found: error
