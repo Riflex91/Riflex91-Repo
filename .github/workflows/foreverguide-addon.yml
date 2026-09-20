@@ -280,6 +280,42 @@ jobs:
           local profile={faction="Horde",race="Orc",class="HUNTER",level=3}
           assert(MG.RestEDXPImport:SelectorMatches("Orc Hunter/Troll Hunter",profile))
           assert(not MG.RestEDXPImport:SelectorMatches("Warlock",profile))
+          assert(MG.RestEDXPImport:SelectorMatches("Hunter #optional",profile),
+            "inline optional marker was not normalized")
+          assert(MG.RestEDXPImport:SelectorMatches("Horde --!Hunter",profile),
+            "inline selector comment was not normalized")
+          assert(MG.RestEDXPImport:SelectorMatches("!sod/Warrior",profile),
+            "non-SoD selector should match when SoD mode is disabled")
+          MG.db.settings.rxpSoDMode=true
+          assert(not MG.RestEDXPImport:SelectorMatches("!sod",profile),
+            "SoD selector flag was ignored")
+          MG.db.settings.rxpSoDMode=false
+
+          local guides=MG.RestEDXPImport:BuildGuides()
+          local normalDurotar,fastDurotar,survivalDurotar
+          for _,guide in ipairs(guides) do
+            if guide.title=="1-6 Durotar" then normalDurotar=guide end
+            if guide.title=="1-7 Durotar" then fastDurotar=guide end
+            if guide.title=="1-6 Orc/Troll" then survivalDurotar=guide end
+          end
+          assert(normalDurotar and fastDurotar and survivalDurotar,
+            "expected Durotar route variants are missing")
+          assert(MG.RestEDXPImport:GuideMatches(normalDurotar,profile),
+            "1x Durotar route should match at 1x")
+          assert(not MG.RestEDXPImport:GuideMatches(fastDurotar,profile),
+            "fast Durotar route must not match at 1x")
+          assert(not MG.RestEDXPImport:GuideMatches(survivalDurotar,profile),
+            "hardcore route must not match in softcore mode")
+          MG.db.settings.rxpRate=3
+          assert(not MG.RestEDXPImport:GuideMatches(normalDurotar,profile),
+            "1x route must not match at 3x")
+          assert(MG.RestEDXPImport:GuideMatches(fastDurotar,profile),
+            "fast Durotar route should match at 3x")
+          MG.db.settings.rxpRate=1
+          MG.db.settings.rxpHardcoreMode=true
+          assert(MG.RestEDXPImport:GuideMatches(survivalDurotar,profile),
+            "hardcore route should match in hardcore mode")
+          MG.db.settings.rxpHardcoreMode=false
 
           local found
           for _,guide in ipairs(MG.RestEDXPImport:BuildGuides()) do
@@ -296,6 +332,45 @@ jobs:
           assert(accept.worldX or accept.x)
           local hints=MG.RestEDXPImport:GetHints(found,"accept",profile,4)
           assert(type(hints)=="table")
+
+          local DataLoaderMG=MG
+          DataLoaderMG.Validation = nil
+          DataLoaderMG.GuideParser = nil
+          assert(loadfile("world of warcraft/MewthischGuides/Validation.lua"))(
+            "MewthischGuides",DataLoaderMG)
+          assert(loadfile("world of warcraft/MewthischGuides/GuideParser.lua"))(
+            "MewthischGuides",DataLoaderMG)
+          DataLoaderMG.Data={
+            guides={},
+            guide={
+              id="recorder-seed",
+              title="Recorder Seed",
+              verification="RECORDED",
+              steps={{id="seed-q",order=10,questID=97279,title="Seed"}},
+            },
+          }
+          DataLoaderMG.GetPlayerProfile=function()
+            return {faction="Horde",race="Troll",class="HUNTER",level=3}
+          end
+          DataLoaderMG.Log=function() end
+          assert(loadfile("world of warcraft/MewthischGuides/DataLoader.lua"))(
+            "MewthischGuides",DataLoaderMG)
+          local report=DataLoaderMG.DataLoader:Load()
+          assert(report.valid,"guide loader validation failed")
+          local active=DataLoaderMG.DataLoader:GetActiveGuide()
+          assert(active and active.title=="1-6 Durotar",
+            "default route must prefer the correct public RestedXP Durotar guide")
+
+          DataLoaderMG.db.settings.rxpHardcoreMode=true
+          active=DataLoaderMG.DataLoader:SelectActiveGuide()
+          assert(active and active.title=="1-6 Orc/Troll",
+            "hardcore mode must prefer the Survival Durotar route")
+
+          DataLoaderMG.db.settings.rxpHardcoreMode=false
+          DataLoaderMG.db.settings.rxpRate=3
+          active=DataLoaderMG.DataLoader:SelectActiveGuide()
+          assert(active and active.title=="1-7 Durotar",
+            "3x mode must prefer the fast Durotar route")
 
           print(string.format(
             "RestedXP PASS: %d files / %d guides / %d steps / %d actions / %d kinds",
