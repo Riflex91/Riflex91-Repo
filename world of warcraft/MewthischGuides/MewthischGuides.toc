@@ -6,6 +6,12 @@
 ## SavedVariables: MewthischGuidesDB
 
 Data.lua
+RestedXPForeverData_01.lua
+RestedXPForeverData_02.lua
+RestedXPForeverData_03.lua
+RestedXPForeverData_04.lua
+RestedXPForeverData_05.lua
+RestedXPImport.lua
 Logger.lua
 ForeverAPI.lua
 Validation.lua
