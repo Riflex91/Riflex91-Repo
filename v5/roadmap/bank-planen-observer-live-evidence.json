@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20T21:27:55.229Z",
+  "status": "BESTANDEN",
+  "evidenceArt": "MANUELLE_BANK_PLANEN_OBSERVER_LIVE_EVIDENCE",
+  "source": "USER_PROVIDED_CANARY_STDOUT",
+  "testedMainSha": "b144a70b44514256b32677424455be2ca8dec059",
+  "canaryId": "BANK-PLANEN-OBSERVER-1789939675229",
+  "capabilityId": "merchant.bank.planen",
+  "providerModulId": "merchant-core-a",
+  "providerVersion": "1",
+  "policyId": "BANK-PLANEN-OBSERVER-CANARY-V1",
+  "map": "bank",
+  "packAnzahl": 2,
+  "bankEintraege": 28,
+  "freieInventarSlots": 22,
+  "entscheidung": {
+    "art": "KEINE_AKTION",
+    "freieSlotsVorher": 56,
+    "erwarteteFreieSlotsNachPlan": 56,
+    "konsolidierungsGruppen": 0,
+    "erweiterung": null,
+    "gruende": [
+      "BANK_KAPAZITAET_AUSREICHEND"
+    ],
+    "planungsNachweis": true
+  },
+  "privacy": {
+    "charakterNurSha256Gebunden": true,
+    "accountNurSha256Gebunden": true,
+    "roheAccountIdPersistiert": false
+  },
+  "sicherheitsnachweis": {
+    "browserReadOnly": true,
+    "browserGameplayWrites": 0,
+    "hostGameplayAutoritaet": false,
+    "hostRawWriteAutoritaet": false,
+    "hostActionAuthority": false,
+    "ausfuehrungsAutoritaet": false,
+    "breiteRuntimeFreigabe": false
+  },
+  "durableEvidence": {
+    "pfad": "D:\\AdventureLand-V5\\runtime\\canary\\bank-planen\\latest.json",
+    "schreibvorgangImplizitBestaetigtDurchErfolgreichenRunnerAbschluss": true
+  },
+  "hinweis": "Der reale Merchant-Bankkontext wurde erfolgreich read-only beobachtet. Der produktive PLANEN-Pfad lieferte KEINE_AKTION wegen ausreichender Bankkapazitaet. Es wurde keine Gameplay-Mutation ausgefuehrt."
+}
