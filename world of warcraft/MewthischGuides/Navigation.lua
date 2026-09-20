@@ -61,8 +61,7 @@ local function bearingFromPoints(player, target)
     end
 
     if not tonumber(player.mapID) or not tonumber(target.mapID) or
-       not tonumber(player.x) or not tonumber(player.y) or
-       not tonumber(target.x) or not tonumber(target.y) then
+       not tonumber(player.x) or not tonumber(player.y) then
         return nil, nil, nil
     end
 
@@ -70,6 +69,19 @@ local function bearingFromPoints(player, target)
         player.mapID,
         player.x,
         player.y)
+
+    if playerWorld and tonumber(target.worldX) and tonumber(target.worldY) then
+        local deltaX = tonumber(target.worldX) - playerWorld.x
+        local deltaY = tonumber(target.worldY) - playerWorld.y
+        local angle = MG:ComputeWorldAbsoluteBearing(deltaX, deltaY)
+        local distance = math.sqrt(deltaX * deltaX + deltaY * deltaY)
+
+        return angle, distance, "RestedXPWorldCoordinates"
+    end
+
+    if not tonumber(target.x) or not tonumber(target.y) then
+        return nil, nil, nil
+    end
 
     local targetWorld = MG.ForeverAPI:MapToWorld(
         target.mapID,
@@ -208,6 +220,8 @@ function MG:RefreshNavigation(reason)
         tostring(target and target.mapID or ""),
         tostring(target and target.x or ""),
         tostring(target and target.y or ""),
+        tostring(target and target.worldX or ""),
+        tostring(target and target.worldY or ""),
         tostring(nav.directionSource or ""),
     }, "|")
 
@@ -223,6 +237,8 @@ function MG:RefreshNavigation(reason)
                     mapID = target.mapID,
                     x = target.x,
                     y = target.y,
+                    worldX = target.worldX,
+                    worldY = target.worldY,
                     routeScore = nav.routeScore,
                     candidates = nav.candidateCount,
                     directionSource = nav.directionSource,
@@ -242,6 +258,8 @@ function MG:RefreshNavigation(reason)
                     mapID = target.mapID,
                     x = target.x,
                     y = target.y,
+                    worldX = target.worldX,
+                    worldY = target.worldY,
                     routeScore = nav.routeScore,
                     directionSource = nav.directionSource,
                     reason = reason,
