@@ -33,7 +33,7 @@ jobs:
         run: |
           dotnet restore "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj"
           dotnet build "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release --no-restore
-          dotnet run --project "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release --no-build -- help
+          dotnet run --project "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release --no-build -- selftest
 
       - name: Publish Windows executable
         shell: pwsh
