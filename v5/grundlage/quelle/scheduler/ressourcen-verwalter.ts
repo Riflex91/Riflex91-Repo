@@ -155,7 +155,7 @@ export class RessourcenVerwalter {
     }
     this.markiereAbgelaufeneLeases(jetztMs);
     const slot = this.#slots.find(x => x.ressourcenId === token.ressourcenId);
-    if (!this.#tokenPasst(slot, token) || slot?.art !== "LANGLEBIG") {
+    if (slot === undefined || !this.#tokenPasst(slot, token) || slot.art !== "LANGLEBIG") {
       throw new Error("FENCING_TOKEN_UNGUELTIG");
     }
     const neu = friereSicht({ ...slot, leaseBisMs: jetztMs + leaseDauerMs });
@@ -177,7 +177,9 @@ export class RessourcenVerwalter {
     this.#pruefeZeit(jetztMs);
     this.markiereAbgelaufeneLeases(jetztMs);
     const slot = this.#slots.find(x => x.ressourcenId === token.ressourcenId);
-    if (!this.#tokenPasst(slot, token)) throw new Error("FENCING_TOKEN_UNGUELTIG");
+    if (slot === undefined || !this.#tokenPasst(slot, token)) {
+      throw new Error("FENCING_TOKEN_UNGUELTIG");
+    }
     const frei = friereSicht({
       ...slot,
       status: "FREI",
