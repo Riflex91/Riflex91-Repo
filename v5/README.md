@@ -355,7 +355,12 @@ SOAK_10M: **BESTANDEN**. Der reale Uebergangs-Lauf lief 600012 ms mit 21 Samples
 
 Evidence: `roadmap/r19-soak-10m-evidence.json`.
 
-Naechste und finale Stufe: **SOAK_15M** als Integrations-/Release-Gate. R19 bleibt `IN_PROGRESS`; die breite Runtime bleibt `GESPERRT`.
+SOAK_15M: **BESTANDEN**. Der finale Integrations-/Release-Lauf lief 900007 ms mit 31 Samples, 0 Sample-Gaps, 0 Recorder-Drops, gueltiger Evidence-Kette, 0 Gameplay-Writes und 0 `performance_trick`-Ausfaellen.
+
+Evidence: `roadmap/r19-soak-15m-evidence.json`.  
+Abschluss: `roadmap/r19-abschluss.json`.
+
+**R19 ist DONE.** Die Zertifizierungs-Ladder ist vollstaendig bestanden. Die breite Runtime bleibt dennoch `GESPERRT`, bis die separate globale Laufzeitbereitschaft mit allen zehn Pflichtbereichen explizit freigegeben ist.
 
 
 ## R19 – Testzeitstandard und beschleunigtes Soak-Profil
