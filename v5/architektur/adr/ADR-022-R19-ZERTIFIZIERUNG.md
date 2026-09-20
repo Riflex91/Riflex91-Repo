@@ -21,6 +21,15 @@ R19 ist die abschliessende 24/7-Zertifizierungsphase. Simulator/Replay, Fault Su
 10. Das R19-UI-Release-Gate verlangt 100 Prozent deutsche Pflichtabdeckung, null unerlaubte englische Rohtext-Leaks und nur die ratifizierte Monster-Originalname-Ausnahme.
 11. Die breite Runtime bleibt bis zum vollstaendigen erfolgreichen R19-Abschluss GESPERRT.
 
+## Alternativen
+
+- CI duerfte Controlled Live automatisch als bestanden markieren: verworfen; reale Ingame-Evidence und explizite manuelle Bestaetigung sind Pflicht.
+- Zertifizierungsstufen duerften uebersprungen werden: verworfen; die Reihenfolge ist Teil der Sicherheitsgarantie.
+- Unverkettete oder ueberschreibbare Evidence: verworfen; Manipulationen und Sample-Gaps waeren nicht sicher erkennbar.
+- SSD-Wachstum pauschal auf null setzen: verworfen; bounded Retention ist zulaessig, unbounded growth nicht.
+- UI-Abdeckung erst nach der Live-Ladder pruefen: verworfen; Release-Sichttexte sind bereits vor Controlled Live ein hartes Gate.
+- Eine zweite Zertifizierungs-Authority neben R7/R9 einfuehren: verworfen; R19 bewertet Evidence und erteilt selbst keine Gameplay-Authority.
+
 ## Konsequenzen
 
 Die automatische Vorbereitung endet nach bestandenem Shadow und erzeugt eine maschinenlesbare Evidence, deren naechste Stufe CONTROLLED_LIVE ist. Erst dort ist wieder ein Benutzer am PC/Ingame erforderlich.
