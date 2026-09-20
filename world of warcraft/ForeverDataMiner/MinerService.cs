@@ -211,25 +211,27 @@ public sealed class MinerService(MinerOptions options)
     private IEnumerable<string> CandidateExecutables()
     {
         var names = new[] { "Wow.exe", "WowClassic.exe" };
-        foreach (var product in new[] { "_beta_", "_classic_", "_retail_", "" })
+        foreach (var productDirectory in CandidateProductDirectories())
         foreach (var name in names)
         {
-            var path = Path.Combine(options.WowRoot, product, name);
+            var path = Path.Combine(productDirectory, name);
             if (File.Exists(path)) yield return path;
         }
     }
 
     private IEnumerable<string> CandidateHotfixCaches()
     {
-        foreach (var product in new[] { "_beta_", "_classic_", "_retail_" })
+        foreach (var productDirectory in CandidateProductDirectories())
         {
-            var root = Path.Combine(options.WowRoot, product, "Cache");
+            var root = Path.Combine(productDirectory, "Cache");
             if (!Directory.Exists(root)) continue;
 
             IEnumerable<string> files;
             try
             {
-                files = Directory.EnumerateFiles(root, "DBCache.bin", SearchOption.AllDirectories).Take(32).ToArray();
+                files = Directory.EnumerateFiles(root, "DBCache.bin", SearchOption.AllDirectories)
+                    .Take(64)
+                    .ToArray();
             }
             catch (UnauthorizedAccessException)
             {
@@ -237,6 +239,34 @@ public sealed class MinerService(MinerOptions options)
             }
 
             foreach (var file in files) yield return file;
+        }
+    }
+
+    private IEnumerable<string> CandidateProductDirectories()
+    {
+        yield return options.WowRoot;
+
+        IEnumerable<string> directories;
+        try
+        {
+            directories = Directory.EnumerateDirectories(options.WowRoot, "_*", SearchOption.TopDirectoryOnly)
+                .ToArray();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            yield break;
+        }
+
+        foreach (var directory in directories)
+        {
+            var looksLikeWowProduct =
+                File.Exists(Path.Combine(directory, "Wow.exe")) ||
+                File.Exists(Path.Combine(directory, "WowClassic.exe")) ||
+                Directory.Exists(Path.Combine(directory, "Cache")) ||
+                Directory.Exists(Path.Combine(directory, "Interface"));
+
+            if (looksLikeWowProduct)
+                yield return directory;
         }
     }
 
