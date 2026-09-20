@@ -86,6 +86,7 @@ MG.Data = {
         edges = {},
     },
     buildProfiles = {},
+    gearProfiles = {},
 
     firstObservedPlayer = {
         faction = "Horde",
