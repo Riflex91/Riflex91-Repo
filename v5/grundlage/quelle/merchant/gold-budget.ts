@@ -14,9 +14,19 @@ function pruefeGold(wert: number, fehler: string): void {
 }
 
 export class GoldBudgetLedger {
+  readonly #maximaleReservierungen: number;
   #beobachtetesGold = 0;
   #sicherheitsReserve = 0;
   #reservierungen: readonly GoldReservierung[] = Object.freeze([]);
+
+  public constructor(maximaleReservierungen = 1024) {
+    if (!Number.isInteger(maximaleReservierungen)
+        || maximaleReservierungen < 1
+        || maximaleReservierungen > 8192) {
+      throw new Error("GOLD_RESERVIERUNGS_GRENZE_UNGUELTIG");
+    }
+    this.#maximaleReservierungen = maximaleReservierungen;
+  }
 
   public aktualisiereBeobachtung(gold: number, sicherheitsReserve: number): void {
     pruefeGold(gold, "GOLD_BEOBACHTUNG_UNGUELTIG");
@@ -42,6 +52,9 @@ export class GoldBudgetLedger {
     if (betrag < 1) throw new Error("GOLD_RESERVIERUNG_BETRAG_UNGUELTIG");
     if (this.#reservierungen.some(x => x.reservierungsId === reservierungsId)) {
       throw new Error("GOLD_RESERVIERUNG_DOPPELT");
+    }
+    if (this.#reservierungen.length >= this.#maximaleReservierungen) {
+      throw new Error("GOLD_RESERVIERUNGEN_VOLL");
     }
     if (betrag > this.verfuegbarNachReservierungen()) {
       throw new Error("GOLD_BUDGET_NICHT_VERFUEGBAR");
