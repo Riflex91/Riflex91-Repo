@@ -37,6 +37,28 @@ if(req.some(x=>!["OFFEN","R19_NACHGEWIESEN"].includes(x.status))) fehler("R19 An
 const trace=lies("anforderungen/nachverfolgbarkeit.json").eintraege.filter(x=>x.phase==="R19");
 if(trace.length!==3||trace.some(x=>!erwartet.has(x.anforderungKennung))) fehler("R19 Traceability-Menge ungueltig.");
 
+if(fs.existsSync("roadmap/r19-controlled-live-evidence.json")){
+  const live=lies("roadmap/r19-controlled-live-evidence.json");
+  if(live.phase!=="R19"
+      ||live.status!=="BESTANDEN"
+      ||live.zertifizierungsStufe!=="CONTROLLED_LIVE"
+      ||live.gameWrites!==1
+      ||live.unerwarteteGameWrites!==0
+      ||live.sameIntentRetry!==false
+      ||live.manuelleBestaetigung!==true
+      ||live.postcondition?.klassifikation!=="BESTAETIGT"
+      ||live.ladder?.naechsteStufe!=="CANARY") {
+    fehler("R19 Controlled-Live-Evidence ungueltig.");
+  }
+  const ops6Live=req.find(x=>x.kennung==="V5-ANF-OPS-006");
+  if(ops6Live?.status!=="OFFEN"||ops6Live?.r19LiveStatus!=="BIS_CONTROLLED_LIVE_BESTANDEN") {
+    fehler("Controlled Live verlangt OPS-006 weiterhin OFFEN mit passendem Teilstatus.");
+  }
+  if(ready.r19NaechsteStufe!=="CANARY"||ready.r19ManuellerPcTestErforderlich!==true) {
+    fehler("Readiness muss nach Controlled Live auf manuellen Canary zeigen.");
+  }
+}
+
 if(fs.existsSync("roadmap/r19-automatik-evidence.json")){
   const auto=lies("roadmap/r19-automatik-evidence.json");
   if(auto.phase!=="R19"
@@ -58,4 +80,4 @@ if(fs.existsSync("roadmap/r19-automatik-evidence.json")){
   if(ops6?.status!=="OFFEN") fehler("OPS-006 muss bis zur kompletten Live-Ladder OFFEN bleiben.");
 }
 
-console.log("[V5-R19-STRUKTUR] OK / R19 bleibt vor Controlled Live IN_PROGRESS / Runtime:",ready.status);
+console.log("[V5-R19-STRUKTUR] OK / R19 Ladder IN_PROGRESS / Runtime:",ready.status,"/ naechste Stufe:",ready.r19NaechsteStufe);
