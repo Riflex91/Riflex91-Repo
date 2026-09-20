@@ -59,6 +59,18 @@ export class ContentQuarantaeneRegister {
     return this.#finde(contentArt,contentId).disposition==="ERLAUBT";
   }
 
+  public importiereNachRestart(snapshot:readonly ContentEintrag[]):void{
+    if(snapshot.length>this.#maximal) throw new Error("CONTENT_RESTART_ZU_GROSS");
+    this.#eintraege=Object.freeze(snapshot.map((x,i)=>{
+      if(x.schemaVersion!==1||snapshot.slice(0,i).some(y=>y.contentArt===x.contentArt&&y.contentId===x.contentId)) throw new Error("CONTENT_RESTART_SNAPSHOT_UNGUELTIG");
+      return Object.freeze({
+        ...x,
+        disposition:x.disposition==="GESPERRT"?"GESPERRT" as const:"QUARANTAENE" as const,
+        revalidiertAmMs:null,
+      });
+    }));
+  }
+
   public snapshot():readonly ContentEintrag[]{return Object.freeze(this.#eintraege.map(x=>Object.freeze({...x})));}
 
   #finde(art:ContentEintrag["contentArt"],id:string):ContentEintrag{
