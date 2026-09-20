@@ -2,7 +2,7 @@
 
 **Status:** IMPLEMENTIERT / LIVE-EVIDENCE BESTANDEN  
 **Stand:** 2026-09-20  
-**Basis-main:** `25f513b725bd80fb9261d97f891519559d0eef03`
+**Basis-main:** `090cfd84dcf872e339c6602f72810db2eff11580`
 
 ## Ziel
 
