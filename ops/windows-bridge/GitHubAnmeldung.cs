@@ -15,6 +15,10 @@ internal sealed record GitProzessErgebnis(int ExitCode, string Ausgabe, string F
 
 public sealed class GitHubAnmeldung
 {
+    public const string Authentifizierungsmodus = "FINE_GRAINED_PAT";
+    public const string MinimalBerechtigungsprofil = "REPOSITORY_ONLY_CONTENTS_WRITE";
+    public const string TokenVorlageUrl = "https://github.com/settings/personal-access-tokens/new?name=AioBot-Wissenswaechter&description=Repository-begrenzter+Token+fuer+den+V5-Wissenswaechter&target_name=Riflex91&expires_in=90&contents=write";
+
     public async Task<GitHubAnmeldeStatus> LiesStatusAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -53,8 +57,11 @@ public sealed class GitHubAnmeldung
         if (!verfuegbarkeit.Verfuegbar)
             throw new InvalidOperationException("GITHUB_CREDENTIAL_MANAGER_NICHT_VERFUEGBAR");
 
+        // Kein Browser-OAuth: Git Credential Manager wird auf den PAT-Modus begrenzt.
+        // Das Token wird ausschliesslich im GCM-eigenen Prompt eingegeben und weder als
+        // Prozessargument noch durch die Bridge gelesen oder protokolliert.
         var ergebnis = await FuehreGitAusAsync(
-            ["-c", "credential.gitHubAuthModes=browser", "credential-manager", "github", "login"],
+            ["-c", "credential.gitHubAuthModes=pat", "credential-manager", "github", "login", "--force"],
             cancellationToken: cancellationToken,
             timeout: TimeSpan.FromMinutes(5));
 
