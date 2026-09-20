@@ -62,3 +62,12 @@ test("R19 Paste-Paket ist source-locked und ohne Fremdnetzwerk", () => {
   assert.equal(paket.includes("XMLHttpRequest"), false);
   assert.ok(gui.includes("Gesamtbericht kopieren"));
 });
+
+
+test("R19 Controlled Live erzwingt performance_trick vor Browser-Test", () => {
+  assert.ok(gui.includes("aktivierePerformanceTrick"));
+  assert.ok(gui.includes("performanceTrickStatus"));
+  assert.ok(controller.includes("guiApi().aktivierePerformanceTrick()"));
+  assert.ok(controller.includes("PERFORMANCE_TRICK_NICHT_AKTIV"));
+  assert.ok(paket.includes("performance_trick"));
+});
