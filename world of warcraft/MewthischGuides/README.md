@@ -1,9 +1,11 @@
-# Mewthisch Guides v0.10 — kompakter Guide-Viewer + RestedXP-Forever-Daten
+# Mewthisch Guides v0.11.2 — Runtime-Routing, Config und Weltkarten-Ziel
 
-v0.10 baut auf der abgeschlossenen Engine-Roadmap auf und ergänzt den
-kompakten Guide-Viewer, fünf klar unterschiedliche Themes einschließlich einer
-adaptiven ElvUI-Integration sowie eine transformierte strukturierte Datenbasis
-aus den öffentlich verfügbaren RestedXP-Forever-/Survival-Guides.
+v0.11.2 härtet den produktiven Forever-Betrieb: Questfortschritt wird über
+moderne und Legacy-Questlog-APIs erkannt, die vorgegebene RestedXP-Route wird
+auf die tatsächliche Questphase und das aktuelle Questziel synchronisiert, und
+der Benutzer kann alternativ einen manuellen Modus wählen, der angenommene
+Quests nach dem aktuell kürzesten erreichbaren Ziel ordnet. Das aktuelle Ziel
+kann zusätzlich als Blizzard-Weltkarten-Wegpunkt markiert werden.
 
 ## Roadmap state
 
@@ -32,9 +34,9 @@ GuideParser + DataLoader + Validation
   ↓
 GuideEngine → StepEngine → GoalEngine
   ↓
-RouteEngine ← TravelGraph
+RouteEngine ← TravelGraph / ManualRoute
   ↓
-Navigation → Navigator/UI
+Navigation → WorldMapMarker → Navigator/UI
 
 Side systems:
 GearAdvisor / RewardAdvisor
@@ -53,11 +55,12 @@ Themes
 - multiple quest rewards are never auto-selected
 - TalentAdvisor never spends talent points automatically
 - Gear auto-equip is disabled by default
-- Gear auto-equip requires high confidence, no combat, an empty cursor and,
-  with the default safety settings, a bound item
-- plain item-level comparison is only medium confidence and therefore cannot
-  pass the default auto-equip gate; high confidence requires a data-backed
-  gear profile/stat-weight model
+- Gear auto-equip requires no combat and an empty cursor; weapons remain
+  protected by default
+- safe non-weapon item-level upgrades may use the item-level fallback even
+  without a class-specific stat profile
+- recognized BoE items remain protected from automatic binding
+- rings and trinkets are compared against the weaker of their two slots
 - weapons are not auto-equipped by default
 - telemetry is local SavedVariables diagnostics only; nothing is transmitted
 
@@ -68,7 +71,7 @@ by faction/race/class/level, explicit route coordinates, a TravelGraph and
 build profiles and gear scoring profiles. Empty extension points exist in
 `Data.lua` for generated DataMiner/Recorder imports.
 
-Zusätzlich zum Recorder-Seed lädt v0.10 die strukturierten Fakten aus allen
+Zusätzlich zum Recorder-Seed lädt v0.11.2 die strukturierten Fakten aus allen
 öffentlich in `GuideList-forever.xml` referenzierten RestedXP-Forever- und
 Survival-Routen. Importiert werden ausschließlich maschinenlesbare Fakten und
 Direktiven (z. B. Quest-IDs, Item-/Spell-IDs, Selektoren, Bedingungen,
@@ -88,7 +91,12 @@ transformierten Datenbasis erhalten.
 
 ## User-facing systems
 
-- compact guide viewer
+- compact guide viewer with a direct **Config** button
+- selectable route mode:
+  - **Vorgegeben**: RestedXP route synchronized to actual quest/objective progress
+  - **Manuell**: accepted quests are dynamically ordered by the nearest current target
+- modern + Legacy Forever quest-progress detection
+- optional world-map marker for the current target
 - Goal progress and next-step preview
 - movable/lockable/scalable arrow
 - automatic SuperTrack
@@ -113,6 +121,9 @@ Useful commands:
 - `/mg diag`
 - `/mg api`
 - `/mg route`
+- `/mg mode manual|preset`
+- `/mg mapmarker on|off`
+- `/mg config`
 - `/mg refresh`
 - `/mg guide <id>`
 - `/mg theme <name>`
@@ -123,7 +134,26 @@ Useful commands:
 
 ## Next phase
 
-Nach diesem v0.10-Build folgt die gezielte Runtime-Fehlerbehebung und
-Kalibrierung anhand echter Forever-Screenshots, SavedVariables und
-Recorder-Daten. Die importierten Routen dienen dabei als zusätzliche
-evidenzbasierte Ziel- und Reihenfolgenquelle.
+Nach diesem v0.11.2-Build folgt die gezielte Ingame-Verifikation anhand echter
+Forever-Screenshots, SavedVariables und Recorder-Daten. Besonders geprüft
+werden die Weltkarten-Wegpunkt-API des Forever-Clients, die Auswahl zwischen
+manueller und vorgegebener Route sowie Auto-Equip unter realen Bag-/Item-APIs.
+
+
+## v0.11.2 Screenshot-Fixes
+
+- RestedXP-Weltkoordinaten werden nicht mehr mit den vertauschten Blizzard-
+  Vectorachsen verglichen. Das beseitigt die kilometerweit falsche Distanz und
+  den dadurch ebenfalls falsch gesetzten Weltkarten-Marker.
+- Loop-/Farm-Schritte verwenden den dem Spieler nächstgelegenen verifizierten
+  RestedXP-Wegpunkt statt immer nur den letzten Punkt der Schleife.
+- Questziele zeigen den echten Live-Fortschritt (z. B. `5/7`) direkt im
+  Viewer. Die Fortschrittsfarbe läuft kontinuierlich von Rot über Gelb zu Grün.
+- Der separate Pfeil-Button im Footer entfällt; der Navigator wird vollständig
+  über **Config** gesteuert.
+- Der Navigator-Pfeil hat eine feste größere Darstellungsgröße, damit Atlas-
+  Native-Size und Entfernungstext nicht mehr in einem falschen Größenverhältnis
+  stehen.
+- Gear-Erkennung verwendet `IsUsableItem` nicht mehr als Ausschlusskriterium
+  für Rüstung, lädt fehlende Itemdaten nach und nutzt `EquipItemByName` als
+  bevorzugten sicheren Equip-Pfad mit Cursor-Fallback.
