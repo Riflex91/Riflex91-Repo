@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "kennung": "V5_GESAMTFREIGABE",
+  "status": "ERTEILT",
+  "bestaetigungQuelle": "BETREIBER_INTERAKTIV",
+  "bestaetigungText": "V5 GESAMTFREIGABE ERTEILEN",
+  "erteiltAm": "2026-09-20",
+  "vorbereitung": "v5/roadmap/gesamtfreigabe-vorbereitung.json",
+  "technischeBasisSha": "ece93b160382524965c9b4b21ae93e7fd2cd6fff",
+  "releaseCandidateSha": "a137c2e02b27f195f7b2f0ea208e8587f2baa0e1",
+  "freigabe": {
+    "laufzeitBereitschaft": "FREIGEGEBEN",
+    "breiteRuntimeFreigabe": true,
+    "bedeutung": "Das globale V5-Runtime-Gate ist nach expliziter Betreiberfreigabe geoeffnet. Lokale Capability-, Admission-, Safety-, Operator-, Fencing-, Freshness- und Recovery-Gates bleiben weiterhin zwingend."
+  },
+  "sicherheit": {
+    "capabilitySafetyBleibtErforderlich": true,
+    "operatorDenyBleibtWirksam": true,
+    "killSwitchBleibtWirksam": true,
+    "actionContractsBleibenErforderlich": true,
+    "admissionBleibtErforderlich": true,
+    "freshnessBleibtErforderlich": true,
+    "fencingBleibtErforderlich": true,
+    "durableIntentBleibtErforderlich": true,
+    "unknownReconciliationBleibtErforderlich": true,
+    "learningOhneAuthorityBleibtErforderlich": true
+  },
+  "hinweis": "Diese Evidence dokumentiert die ausdrueckliche globale V5-Gesamtfreigabe des Betreibers. Sie ersetzt keine lokale Aktionsfreigabe und lockert keine Safety- oder Authority-Grenzen."
+}
