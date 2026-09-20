@@ -85,6 +85,26 @@ function pruefeGate(gate: ProduktionsGateEvidence, jetztMs: number, erwarteteArt
   }
 }
 
+function wurzelAbdeckung(
+  schritte: readonly ProduktionsSchritt[],
+  rootNodeId: string,
+): readonly string[] {
+  let enthalten: readonly string[] = Object.freeze([rootNodeId]);
+  for (let runde = 0; runde < schritte.length; runde += 1) {
+    const vorher = enthalten.length;
+    const weitere = schritte
+      .filter(x => enthalten.includes(x.nodeId))
+      .flatMap(x => x.abhaengigkeiten)
+      .filter(id => !enthalten.includes(id));
+    enthalten = Object.freeze([
+      ...enthalten,
+      ...weitere.filter((id, index) => weitere.indexOf(id) === index).sort(),
+    ]);
+    if (enthalten.length === vorher) break;
+  }
+  return enthalten;
+}
+
 function topologisch(schritte: readonly ProduktionsSchritt[]): readonly string[] {
   let erledigt: readonly string[] = Object.freeze([]);
   for (let runde = 0; runde < schritte.length; runde += 1) {
@@ -179,6 +199,10 @@ export function pruefeProduktionsGraph(
 
   if (!graph.schritte.some(x => x.nodeId === graph.rootNodeId)) {
     throw new Error("PRODUKTION_GRAPH_ROOT_FEHLT");
+  }
+  const rootAbdeckung = wurzelAbdeckung(graph.schritte, graph.rootNodeId);
+  if (rootAbdeckung.length !== graph.schritte.length) {
+    throw new Error("PRODUKTION_GRAPH_VERWAISTER_SCHRITT");
   }
   for (const schritt of graph.schritte) {
     if (schritt.abhaengigkeiten.some(id => !graph.schritte.some(x => x.nodeId === id))) {
