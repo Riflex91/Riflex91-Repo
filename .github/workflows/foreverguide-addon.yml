@@ -1,0 +1,370 @@
+name: Mewthisch Guides addon v0.9
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "world of warcraft/MewthischGuides/**"
+      - ".github/workflows/foreverguide-addon.yml"
+  pull_request:
+    paths:
+      - "world of warcraft/MewthischGuides/**"
+      - ".github/workflows/foreverguide-addon.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Lua 5.1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1 zip
+
+      - name: Validate Lua syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "world of warcraft/MewthischGuides" -name '*.lua' -print0 | while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            luac5.1 -p "$file"
+          done
+
+      - name: Validate bearing math
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = {}
+          assert(loadfile("world of warcraft/MewthischGuides/Navigation.lua"))("MewthischGuides", MG)
+
+          local function near(actual, expected, epsilon, label)
+            epsilon = epsilon or 0.0001
+            assert(actual ~= nil, label .. ": nil result")
+            assert(math.abs(actual - expected) <= epsilon,
+              string.format("%s: expected %.6f got %.6f", label, expected, actual))
+          end
+
+          local rel, abs = MG:ComputeRelativeBearing(0, 1, 0)
+          near(abs, 0, 0.0001, "north absolute")
+          near(rel, 0, 0.0001, "north relative")
+
+          rel, abs = MG:ComputeRelativeBearing(1, 0, 0)
+          near(abs, math.pi * 3 / 2, 0.0001, "east absolute")
+          near(rel, -math.pi / 2, 0.0001, "east from north")
+
+          rel = MG:ComputeRelativeBearing(1, 0, math.pi * 3 / 2)
+          near(rel, 0, 0.0001, "east while facing east")
+
+          rel, abs = MG:ComputeRelativeBearing(0, -1, 0)
+          near(abs, math.pi, 0.0001, "south absolute")
+          near(math.abs(rel), math.pi, 0.0001, "south relative")
+
+          rel, abs = MG:ComputeRelativeBearing(-1, 0, 0)
+          near(abs, math.pi / 2, 0.0001, "west absolute")
+          near(rel, math.pi / 2, 0.0001, "west from north")
+
+          near(MG:ComputeWorldAbsoluteBearing(1, 0), 0, 0.0001, "world north")
+          near(MG:ComputeWorldAbsoluteBearing(0, -1), math.pi * 3 / 2, 0.0001, "world east")
+          near(MG:ComputeWorldAbsoluteBearing(-1, 0), math.pi, 0.0001, "world south")
+          near(MG:ComputeWorldAbsoluteBearing(0, 1), math.pi / 2, 0.0001, "world west")
+
+          local playerX, playerY = 0.4207731485366821, 0.6839030981063843
+          local targetX, targetY = 0.443026065826416, 0.5564066171646118
+          local facing = 0.03902159631252289
+          rel, abs = MG:ComputeRelativeBearing(
+            targetX - playerX,
+            playerY - targetY,
+            facing)
+          assert(rel < 0 and rel > -0.35,
+            string.format("field regression: expected slight right turn, got %.6f", rel))
+          assert(abs > 6.0,
+            string.format("field regression: expected NE absolute bearing, got %.6f", abs))
+
+          print("Bearing math PASS")
+          LUA
+
+      - name: Validate Forever API quest map behavior
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = {}
+          assert(loadfile("world of warcraft/MewthischGuides/ForeverAPI.lua"))("MewthischGuides", MG)
+          local API = MG.ForeverAPI
+
+          API.GetMapChain = function(_, mapID)
+            return {mapID, 999}
+          end
+
+          API.GetQuestsOnMap = function(_, mapID)
+            if mapID == 1411 then
+              return {
+                {questID=789, mapID=1411, x=0.40, y=0.60, isQuestStart=true, inProgress=false},
+                {questID=789, mapID=1411, x=0.45, y=0.65, isQuestStart=false, inProgress=true},
+              }
+            end
+            return {}
+          end
+
+          local objective = API:FindQuestOnMaps(789, 1411, "objectives")
+          assert(objective and objective.source == "QuestMapPOI", "missing objective QuestMapPOI")
+          assert(objective.phaseMatch == true, "objective phase should match inProgress row")
+          assert(math.abs(objective.x - 0.45) < 0.0001, "wrong objective POI selected")
+
+          local accept = API:FindQuestOnMaps(789, 1411, "accept")
+          assert(accept and accept.phaseMatch == true, "accept phase should match start row")
+          assert(math.abs(accept.x - 0.40) < 0.0001, "wrong accept POI selected")
+
+          print("Forever quest-map behavior PASS")
+          LUA
+
+      - name: Validate RouteEngine ranking
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = {
+            db = {runtime = {}},
+            Log = function() end,
+          }
+
+          assert(loadfile("world of warcraft/MewthischGuides/RouteEngine.lua"))("MewthischGuides", MG)
+
+          MG.ForeverAPI = {
+            GetPlayerPosition = function() return {mapID=1411, x=0.1, y=0.1} end,
+            GetQuestLineCoordinate = function() return nil end,
+            FindQuestOnMaps = function()
+              return {mapID=1411, x=0.4, y=0.6, source="QuestMapPOI", phaseMatch=true}
+            end,
+            GetNextQuestWaypoint = function()
+              return {mapID=1411, x=0.5, y=0.7, source="QuestNextWaypointForMap"}
+            end,
+            GetLegacyQuestPOI = function() return nil end,
+            GetNavigationCoordinate = function() return nil end,
+          }
+
+          local target, candidates = MG.RouteEngine:Resolve({
+            questID=789,
+            phase="objectives",
+            verification="RECORDED",
+          })
+
+          assert(target and target.source == "QuestMapPOI",
+            "modern QuestMapPOI must beat generic next waypoint")
+          assert(#candidates == 2, "expected two route candidates")
+          assert(MG.db.runtime.route.candidates and #MG.db.runtime.route.candidates == 2,
+            "candidate diagnostics missing")
+
+          MG.ForeverAPI.GetQuestLineCoordinate = function()
+            return {mapID=1411, x=0.2, y=0.3, source="QuestLine"}
+          end
+
+          target = MG.RouteEngine:Resolve({
+            questID=97279,
+            phase="accept",
+            verification="RECORDED",
+          })
+
+          assert(target and target.source == "QuestLine",
+            "accept route should prefer QuestLine over QuestMapPOI")
+          print("RouteEngine ranking PASS")
+          LUA
+
+      - name: Validate step engine and resync
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = {
+            Data = {
+              guide = {
+                id = "test",
+                steps = {
+                  {id="q1", order=10, questID=1, title="Q1", faction="Horde"},
+                  {id="q2", order=20, questID=2, title="Q2", faction="Horde"},
+                  {id="q3", order=30, questID=3, title="Q3", faction="Horde"},
+                }
+              }
+            },
+            db = { runtime = {} },
+          }
+
+          assert(loadfile("world of warcraft/MewthischGuides/GoalEngine.lua"))("MewthischGuides", MG)
+          assert(loadfile("world of warcraft/MewthischGuides/StepEngine.lua"))("MewthischGuides", MG)
+
+          MG.GetPlayerProfile = function()
+            return { faction="Horde", race="Troll", class="HUNTER", level=8 }
+          end
+          MG.Log = function() end
+          MG.IsQuestFlaggedCompletedSafe = function(_, questID)
+            return questID == 1
+          end
+          MG.GetQuestLogSnapshot = function()
+            return {
+              [2] = {
+                questID=2, title="Q2", level=2, questLogIndex=1,
+                readyForTurnIn=false,
+                objectives={{type="monster", text="Boar: 2/10", numFulfilled=2, numRequired=10, finished=false}},
+              }
+            }
+          end
+
+          local steps, preferredIndex, reason = MG:BuildGuideSteps()
+          assert(#steps == 2, "expected completed step to be omitted")
+          assert(steps[preferredIndex].questID == 2, "resync should prefer active route quest")
+          assert(steps[preferredIndex].phase == MG.StepPhases.OBJECTIVES, "expected objective phase")
+          assert(reason == "active_route_quest", "wrong resync reason")
+          print("Step/resync contract PASS")
+          LUA
+
+      - name: Validate parser validation and travel graph
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = { db = { runtime = {} } }
+
+          assert(loadfile("world of warcraft/MewthischGuides/Validation.lua"))("MewthischGuides", MG)
+          assert(loadfile("world of warcraft/MewthischGuides/GuideParser.lua"))("MewthischGuides", MG)
+
+          local guide = MG.GuideParser:NormalizeGuide({
+            id="unit-guide",
+            verification="RECORDED",
+            steps={
+              {id="b", order=20, questID=2},
+              {id="a", order=10, questID=1,
+               objectiveCoordinate={mapID=1411,x=0.4,y=0.6}},
+            },
+          })
+          assert(guide and guide.steps[1].id == "a", "parser did not sort normalized steps")
+          local ok = MG.Validation:ValidateGuide(guide)
+          assert(ok, "valid guide rejected")
+
+          local bad = MG.GuideParser:NormalizeGuide({
+            id="bad",
+            steps={{id="x", order=10, questID=3,
+              objectiveCoordinate={mapID=1411,x=1.5,y=0.5}}},
+          })
+          local badOK = MG.Validation:ValidateGuide(bad)
+          assert(not badOK, "invalid coordinate accepted")
+
+          MG.GetPlayerProfile = function()
+            return {faction="Horde", class="HUNTER", race="Troll"}
+          end
+          assert(loadfile("world of warcraft/MewthischGuides/TravelGraph.lua"))("MewthischGuides", MG)
+          MG.TravelGraph:Load({
+            nodes={
+              {id="A",mapID=1,x=0.1,y=0.1},
+              {id="B",mapID=1,x=0.2,y=0.2},
+              {id="C",mapID=1,x=0.3,y=0.3},
+            },
+            edges={
+              {from="A",to="B",cost=10},
+              {from="B",to="C",cost=5},
+              {from="A",to="C",cost=30},
+            },
+          })
+          local route, reason = MG.TravelGraph:Plan("A","C",{})
+          assert(reason == "resolved", "travel graph did not resolve")
+          assert(route and #route == 3, "travel graph did not choose lowest-cost path")
+          assert(MG.db.runtime.travelPlan.cost == 15, "wrong travel cost")
+          print("Parser/Validation/TravelGraph PASS")
+          LUA
+
+      - name: Validate local telemetry safety
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = { db = { runtime = {} } }
+          assert(loadfile("world of warcraft/MewthischGuides/Telemetry.lua"))("MewthischGuides", MG)
+          MG.Telemetry:Count("test", {
+            scalar=1,
+            fn=function() end,
+            nested={value=true},
+          })
+          assert(MG.db.runtime.telemetry.localOnly == true, "telemetry must remain local")
+          assert(type(MG.db.runtime.telemetry.last.test.data.fn) == "string",
+            "non-serializable telemetry value not sanitized")
+          print("Telemetry safety PASS")
+          LUA
+
+      - name: Validate v0.9 roadmap-complete contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="world of warcraft/MewthischGuides"
+          TOC="$ROOT/MewthischGuides.toc"
+          API="$ROOT/ForeverAPI.lua"
+          ROUTE="$ROOT/RouteEngine.lua"
+          NAV="$ROOT/Navigation.lua"
+          UI="$ROOT/UI.lua"
+          NAVIGATOR="$ROOT/Navigator.lua"
+
+          grep -q '^## Interface: 16001$' "$TOC"
+          grep -q '^## Title: Mewthisch Guides$' "$TOC"
+          grep -q '^## Version: 0.9.0$' "$TOC"
+          grep -q '^ForeverAPI.lua$' "$TOC"
+          grep -q '^RouteEngine.lua$' "$TOC"
+          for module in Validation GuideParser DataLoader QuestTracking TravelGraph Inventory GearAdvisor RewardAdvisor BuildState TalentAdvisor Themes Telemetry State Diagnostics Sync; do
+            grep -q "^$module.lua$" "$TOC"
+          done
+
+          grep -q 'forever-modern-capability' "$API"
+          grep -q 'GetQuestsOnMap' "$API"
+          grep -q 'GetQuestLineCoordinate' "$API"
+          grep -q 'MapToWorld' "$API"
+          grep -q 'hadSentinel' "$API"
+          grep -q 'C_Secrets' "$API"
+
+          grep -q 'TravelGraph = 98' "$ROUTE"
+          grep -q 'QuestMapPOI = 92' "$ROUTE"
+          grep -q 'candidateSummary' "$ROUTE"
+          grep -q 'modern_quest_map_poi' "$ROUTE"
+
+          grep -q 'RouteEngine:Resolve' "$NAV"
+          grep -q 'WorldCoordinates' "$NAV"
+          grep -q 'ComputeWorldAbsoluteBearing' "$NAV"
+          grep -q 'world X is north/south' "$NAV"
+          if grep -q 'navigationScreenAngle' "$NAV"; then
+            echo "Unsafe guessed screen-angle fallback detected."
+            exit 1
+          fi
+
+          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
+            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
+            exit 1
+          fi
+
+          grep -q 'Fenster-Transparenz' "$UI"
+          grep -q 'math.abs(current - transparency)' "$UI"
+          grep -q 'API-Modus' "$UI"
+          grep -q 'RouteEngine' "$UI"
+          grep -q 'Gear-Empfehlung' "$UI"
+          grep -q 'Talent-Empfehlung' "$UI"
+          grep -q 'Theme wechseln' "$UI"
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+          grep -q 'roadmap-complete-pre-runtime-fix' "$ROOT/Data.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.9.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.9
+          path: artifacts/MewthischGuides-v0.9.zip
+          if-no-files-found: error
