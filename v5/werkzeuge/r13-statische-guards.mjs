@@ -8,7 +8,7 @@ const pflicht = [
   "grundlage/quelle/merchant/disposition.ts",
   "grundlage/quelle/merchant/workspace.ts",
   "grundlage/quelle/merchant/gold-budget.ts",
-  "grundlage/quelle/merchant/bank-lease.ts",
+  "grundlage/quelle/koordination/account-bank-lease.ts",
   "grundlage/quelle/merchant/markt-evidence.ts",
   "grundlage/quelle/merchant/demand.ts",
   "grundlage/tests/r13-disposition-workspace.test.mjs",
@@ -40,7 +40,7 @@ for (const marker of [
   if (!workspace.includes(marker)) fehler.push("WORKSPACE_MARKER_FEHLT:" + marker);
 }
 
-const bank = liesText("grundlage/quelle/merchant/bank-lease.ts");
+const bank = liesText("grundlage/quelle/koordination/account-bank-lease.ts");
 for (const marker of [
   '"account:" + accountId + ":bank"',
   "BankLeaseKoordinator",
