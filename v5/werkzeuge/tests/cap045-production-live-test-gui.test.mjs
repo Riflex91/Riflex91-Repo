@@ -249,7 +249,7 @@ test("CAP-045 Maschinenbericht exportiert lossless JSON und bewahrt Session-Prov
 });
 
 test("CAP-045 Maschinenexport bleibt read-only und fuegt keinen zweiten Mutation-Pfad hinzu", () => {
-  assert.equal((controller.match(/\\.upgrade\\s*\\(/g) ?? []).length, 1);
+  assert.equal((controller.match(/\.upgrade\s*\(/g) ?? []).length, 1);
   assert.ok(controller.includes("kopiereMaschinenBericht"));
   assert.equal(controller.includes("maschinenbericht-kopieren"), true);
 });
