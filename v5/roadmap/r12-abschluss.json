@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R12",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "breiteGameplayAutoritaet": false,
+  "breiteRawWriteAutoritaet": false,
+  "controlledLiveTestgate": {
+    "status": "BESTANDEN",
+    "actionContractId": "AL-ACTION-EQUIP",
+    "publicFunction": "equip",
+    "maximaleAktionen": 1,
+    "gameWrites": 1,
+    "unerwarteteGameWrites": 0,
+    "sameIntentRetry": false,
+    "liveEvidence": "v5/roadmap/r12-controlled-live-evidence.json"
+  },
+  "exitKriterien": {
+    "kompletterArchitekturpfadOhneSonderumgehung": true,
+    "shadowBestanden": true,
+    "shadowUnerwarteteGameWrites": 0,
+    "controlledLiveBestanden": true,
+    "controlledLiveGeringriskanteAction": true,
+    "postconditionBestaetigt": true,
+    "alternativeRuntimeAktiv": false,
+    "breiteRuntimeFreigabe": false
+  },
+  "anforderungen": {
+    "phaseR12": 2,
+    "technischNachgewiesen": 2,
+    "status": "R12_NACHGEWIESEN"
+  },
+  "traceability": {
+    "phaseR12": 2,
+    "vollstaendig": 2
+  },
+  "naechstePhase": "R13",
+  "nachweise": [
+    "v5/grundlage/tests/r12-vertical-slice-shadow.test.mjs",
+    "v5/werkzeuge/r12-controlled-live-test-paket.js",
+    "v5/roadmap/r12-controlled-live-evidence.json",
+    "v5/architektur/adr/ADR-014-R12-CONTROLLED-LIVE-TESTGATE.md",
+    "v5/architektur/adr/ADR-015-V5-INGAME-TEST-GUI.md"
+  ],
+  "hinweis": "R12 schliesst nur den minimalen Vertical Slice und den einmaligen Controlled-Live-Test ab. Die breite Gameplay-Runtime bleibt GESPERRT."
+}
