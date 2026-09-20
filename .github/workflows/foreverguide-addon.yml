@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.11
+name: Mewthisch Guides addon v0.11.1
 
 on:
   workflow_dispatch:
@@ -69,6 +69,50 @@ jobs:
           assert(rel<0 and rel>-0.35,"field bearing regression")
           assert(abs>6.0,"field absolute bearing regression")
           print("Bearing math PASS")
+          LUA
+
+      - name: Validate RestedXP world axes and Mulgore map geometry
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local function vec(x,y)
+            return {
+              x=x,y=y,
+              GetXY=function(self) return self.x,self.y end,
+            }
+          end
+
+          local width,height=5137.5,3425
+          local left,top=2047.9,-272.92
+
+          CreateVector2D=function(x,y) return vec(x,y) end
+          C_Map={
+            GetWorldPosFromMapPos=function(mapID,point)
+              local x,y=point:GetXY()
+              local rxpX=left-width*x
+              local rxpY=top-height*y
+              -- Blizzard vector order is north/south first, west/east second.
+              return 1,vec(rxpY,rxpX)
+            end,
+            GetMapWorldSize=function(mapID) return width,height end,
+          }
+
+          local MG={}
+          assert(loadfile("world of warcraft/MewthischGuides/ForeverAPI.lua"))(
+            "MewthischGuides",MG)
+
+          local map=assert(MG.ForeverAPI:RestedXPWorldToMap(
+            1412,-259.85,-2914.28))
+          assert(math.abs(map.x-.4492)<.0002,
+            string.format("Mulgore x mismatch %.6f",map.x))
+          assert(math.abs(map.y-.7712)<.0002,
+            string.format("Mulgore y mismatch %.6f",map.y))
+
+          local world=assert(MG.ForeverAPI:MapToRestedXPWorld(
+            1412,.443,.798))
+          assert(math.abs(world.x-(left-width*.443))<.01)
+          assert(math.abs(world.y-(top-height*.798))<.01)
+          print("RestedXP world-axis/map-geometry PASS")
           LUA
 
       - name: Validate quest progress tracking
@@ -247,6 +291,33 @@ jobs:
           assert(MG.RestEDXPImport:GetProgressOrder(synthetic,"objectives",profile,1)==502)
           assert(MG.RestEDXPImport:GetProgressOrder(synthetic,"objectives",profile,2)==803)
           assert(MG.RestEDXPImport:GetProgressOrder(synthetic,"complete",profile,nil)==1001)
+
+          MG.ForeverAPI={
+            GetPlayerPosition=function() return {mapID=1412,x=.443,y=.798} end,
+            MapToRestedXPWorld=function()
+              return {continentID=1,x=-228.3,y=-3006.1}
+            end,
+          }
+          local loopDefinition={
+            rxpOccurrences={{
+              phase="objectives",objective=1,sourceStep=20,sourceAction=9,tags={},
+              coordinate={mapID=1412,worldX=-385.2,worldY=-3117.38,
+                source="RestedXPPublicRouteData"},
+              routeCoordinates={
+                {mapID=1412,worldX=-385.2,worldY=-3117.38,
+                  source="RestedXPPublicRouteData"},
+                {mapID=1412,worldX=-259.85,worldY=-2914.28,
+                  source="RestedXPPublicRouteData"},
+                {mapID=1412,worldX=-228.2,worldY=-3006.0,
+                  source="RestedXPPublicRouteData"},
+              },
+            }},
+          }
+          local nearest=assert(MG.RestEDXPImport:GetCoordinate(
+            loopDefinition,"objectives",profile,1))
+          assert(nearest.rxpRoutePointIndex==3,
+            "objective loop did not choose nearest waypoint")
+          assert(nearest.rxpRoutePointCount==3)
           print("RestedXP progress occurrence PASS")
           LUA
 
@@ -284,7 +355,7 @@ jobs:
         shell: bash
         run: |
           lua5.1 - <<'LUA'
-          local pickupCalls,equipSlot=0,nil
+          local pickupCalls,equipSlot,equipByNameSlot=0,nil,nil
           local MG={
             Data={gearProfiles={}},
             db={settings={
@@ -305,10 +376,11 @@ jobs:
             if link=="equipped" then return 10 end
           end
           IsEquippableItem=function() return true end
-          IsUsableItem=function() return true end
+          IsUsableItem=function() return false end
           GetInventoryItemLink=function() return "equipped" end
           C_Container={PickupContainerItem=function() pickupCalls=pickupCalls+1 end}
           EquipCursorItem=function(slot) equipSlot=slot end
+          EquipItemByName=function(link,slot) equipByNameSlot=slot end
 
           assert(loadfile("world of warcraft/MewthischGuides/GearAdvisor.lua"))(
             "MewthischGuides",MG)
@@ -317,7 +389,9 @@ jobs:
 
           local equipped,reason=MG.GearAdvisor:TryAutoEquip(candidate)
           assert(equipped and reason=="equipped")
-          assert(pickupCalls==1 and equipSlot==5)
+          assert(equipByNameSlot==5,"EquipItemByName path not used")
+          assert(pickupCalls==0 and equipSlot==nil,
+            "cursor fallback should not run when EquipItemByName exists")
 
           candidate.isBound=false
           equipped,reason=MG.GearAdvisor:TryAutoEquip(candidate)
@@ -342,7 +416,7 @@ jobs:
           print("Five-theme contract PASS")
           LUA
 
-      - name: Validate v0.11 static contract
+      - name: Validate v0.11.1 static contract
         shell: bash
         run: |
           set -euo pipefail
@@ -351,7 +425,7 @@ jobs:
           UI="$ROOT/UI.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
-          grep -q '^## Version: 0.11.0$' "$TOC"
+          grep -q '^## Version: 0.11.1$' "$TOC"
           grep -q '^ManualRoute.lua$' "$TOC"
           grep -q '^WorldMapMarker.lua$' "$TOC"
           grep -q '^RestedXPImport.lua$' "$TOC"
@@ -364,6 +438,22 @@ jobs:
           grep -q 'routeMode = "preset"' "$ROOT/Logger.lua"
           grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
           grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'arrow:SetSize(104, 104)' "$ROOT/Navigator.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
 
           if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
             echo "German user-facing transliteration detected; use real umlauts."
@@ -384,11 +474,11 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.11.zip MewthischGuides
+          zip -r MewthischGuides-v0.11.1.1.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.11
-          path: artifacts/MewthischGuides-v0.11.zip
+          name: MewthischGuides-v0.11.1
+          path: artifacts/MewthischGuides-v0.11.1.1.zip
           if-no-files-found: error
