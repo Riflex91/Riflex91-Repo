@@ -6,7 +6,9 @@ const pflicht=[
   "grundlage/quelle/zertifizierung/evidence-kette.ts",
   "grundlage/quelle/zertifizierung/ladder.ts",
   "grundlage/quelle/zertifizierung/shadow-bewertung.ts",
+  "grundlage/quelle/zertifizierung/production-certification.ts",
   "grundlage/tests/r19-evidence-ladder.test.mjs",
+  "grundlage/tests/r19-production-certification.test.mjs",
   "grundlage/tests/r19-shadow-certification.test.mjs",
   "werkzeuge/r19-ui-release-gate.mjs",
   "werkzeuge/r19-controlled-live-test-gui.js",
@@ -75,6 +77,24 @@ for(const m of [
   "shadowHatRawWriteAutoritaet: false",
 ]){
   if(!shadow.includes(m)) fehler.push("SHADOW_MARKER_FEHLT:"+m);
+}
+
+const productionCert=lies("grundlage/quelle/zertifizierung/production-certification.ts");
+for(const m of [
+  "auditiereProduktionsCoverage",
+  "STRUCTURAL_GAP",
+  "DEFERRED_EVENT_INAKTIV",
+  "duplicateIrreversibleEffects",
+  "recipientSettlementVerifiziert",
+  "RECOVERY_PENDING",
+  "synthetischeEvidenceZaehltAlsLive: false",
+  "liveBeweisBestanden",
+  "diagnosticOnly: true",
+  "actionAuthority: false",
+  "rawWriteAuthority: false",
+  "breiteRuntimeFreigabe: false",
+]){
+  if(!productionCert.includes(m)) fehler.push("PRODUCTION_CERT_MARKER_FEHLT:"+m);
 }
 
 const testGui=lies("werkzeuge/v5-adventure-land-test-gui.js");
