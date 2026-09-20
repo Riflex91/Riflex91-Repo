@@ -412,10 +412,18 @@ function ressourcen(
   );
   return Object.freeze(
     [
-      "character:" + kandidat.characterId + ":inventory",
-      "character:" + kandidat.characterId + ":q:"
-        + kandidat.art.toLowerCase(),
-      "character:" + kandidat.characterId + ":socket_call_budget",
+      kompakteKennung(
+        "mutation-inventory",
+        kandidat.characterId,
+      ),
+      kompakteKennung(
+        "mutation-q-" + kandidat.art.toLowerCase(),
+        kandidat.characterId,
+      ),
+      kompakteKennung(
+        "mutation-socket-budget",
+        kandidat.characterId,
+      ),
       ...itemRessourcen,
     ]
       .sort()
