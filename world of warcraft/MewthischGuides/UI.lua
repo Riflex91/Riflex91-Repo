@@ -287,7 +287,7 @@ function MG:InitializeUI()
     ui.close = close
 
     local infoFrame = CreateFrame("Frame", "MewthischGuidesInfoFrame", UIParent)
-    infoFrame:SetSize(440, 380)
+    infoFrame:SetSize(470, 430)
     centerOverlay(infoFrame)
     infoFrame:SetClampedToScreen(true)
     stylePanel(infoFrame)
@@ -614,6 +614,12 @@ function MG:RefreshInfo()
     local step = self.currentStep
     local nav = self.navigation or {}
     local dataBuild = self.Data and self.Data.build or {}
+    local caps = self.ForeverAPI and self.ForeverAPI.capabilities or {}
+    local questCaps = caps.quest or {}
+    local mapCaps = caps.map or {}
+    local securityCaps = caps.security or {}
+    local route = self.RouteEngine and self.RouteEngine:GetStatus() or {}
+    local persistence = self.db.runtime and self.db.runtime.persistence or {}
 
     local tableCount = 0
     for _ in pairs(self.Data and self.Data.tableStats or {}) do tableCount = tableCount + 1 end
@@ -631,13 +637,19 @@ function MG:RefreshInfo()
         "|cffffffffInterface:|r " .. tostring(build.interfaceVersion),
         "|cffffffffDatenbasis:|r " .. tostring(dataBuild.version or "?"),
         "|cffffffffDB2-Tabellen:|r " .. tostring(tableCount),
+        "|cffffffffAPI-Modus:|r " .. tostring(self.ForeverAPI and self.ForeverAPI.MODE or "nicht initialisiert"),
+        "|cffffffffQuestMap-POI:|r " .. (questCaps.getQuestsOnMap and "|cff33ff99OK|r" or "|cffffcc00fehlt|r"),
+        "|cffffffffWorld-Koordinaten:|r " .. (mapCaps.worldFromMap and "|cff33ff99OK|r" or "|cffffcc00fehlt|r"),
+        "|cffffffffSecret-System:|r " .. (securityCaps.secretsNamespace and "aktiv" or "nicht erkannt"),
         "",
         "|cffffffffCharakter:|r " .. tostring(profile.race or "?") .. " " .. tostring(profile.class or "?") .. " - Level " .. tostring(profile.level or "?"),
         "|cffffffffAktiver Schritt:|r " .. (step and tostring(step.title) or "keiner"),
         "|cffffffffGuide-Phase:|r " .. (step and tostring(step.phase or "-") or "-"),
         "|cffffffffZielinfo:|r " .. (step and step.goal and tostring(step.goal.instruction) or "-"),
         "|cffffffffResync-Grund:|r " .. tostring(self.db.runtime.guide and self.db.runtime.guide.selectedReason or "-"),
-        "|cffffffffNavigation:|r " .. tostring(nav.source or "kein Ziel"),
+        "|cffffffffRouteEngine:|r " .. tostring(route.source or nav.source or "kein Ziel"),
+        "|cffffffffRoute-Kandidaten:|r " .. tostring(route.candidates or nav.candidateCount or 0),
+        "|cffffffffRoute-Score:|r " .. tostring(route.score or nav.routeScore or "-"),
         "|cffffffffRichtungsquelle:|r " .. tostring(nav.directionSource or "-"),
         "|cffffffffEntfernung:|r " .. distance,
         "",
@@ -649,14 +661,15 @@ function MG:RefreshInfo()
         "|cffffffffDiagnose-Logs:|r " .. tostring(logs.total),
         "|cffffffffWarnungen:|r " .. tostring(logs.warnings),
         "|cffffffffFehler:|r " .. tostring(logs.errors),
+        "|cffffffffSV-Boot-Zaehler:|r " .. tostring(persistence.currentBootCount or "-"),
+        "|cffffffffSV-vorher geladen:|r " .. (persistence.hadSentinel and "ja" or "nein/erster Start"),
         "",
-        "|cff9da7b3Roadmap Schritt 3 + 4|r",
-        "- echte Guide-Phasen: annehmen / Ziele / abgeben",
-        "- automatischer Resync beim Einloggen und Fortschritt",
-        "- Klasse/Rasse/Fraktion/Level-Bedingungen vorbereitet",
-        "- Auto-Annahme nur fuer erwartete Quest-ID",
-        "- Auto-Abgabe nur fuer erwartete Quest-ID",
-        "- Info und Optionen zentriert",
+        "|cff9da7b3v0.6 Forever-API + RouteEngine|r",
+        "- moderne Forever-API per Capability Detection",
+        "- C_QuestLog.GetQuestsOnMap als primaere Live-POI-Quelle",
+        "- RouteEngine waehlt/gewichtet Zielkoordinaten",
+        "- Navigator rendert nur RouteEngine-Ziele",
+        "- strukturierte API-/Route-Diagnose fuer naechsten Test",
     }
 
     ui.infoBody:SetText(table.concat(lines, "\n"))
