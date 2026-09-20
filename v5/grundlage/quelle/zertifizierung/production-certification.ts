@@ -259,8 +259,13 @@ export function auditiereProduktionsCoverage(
       });
     }
 
+    const graph = fall.graph;
+    if (graph === null) {
+      throw new Error("PRODUKTION_COVERAGE_GRAPH_FEHLT");
+    }
+
     try {
-      const graphNachweis = pruefeProduktionsGraph(fall.graph, jetztMs);
+      const graphNachweis = pruefeProduktionsGraph(graph, jetztMs);
       if (graphNachweis.status === "BEREIT") {
         return friereCoverageNachweis({
           fallId: fall.fallId,
