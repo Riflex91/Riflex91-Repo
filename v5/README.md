@@ -206,3 +206,15 @@ Live-Evidence: `roadmap/r12-controlled-live-evidence.json`
 Abschluss: `roadmap/r12-abschluss.json`
 
 Aktuelle Phase: **R13 – Merchant Core A: Single-Character Economy**.
+
+
+## R13 – Merchant Core A abgeschlossen
+
+R13 ist als V5-nativer Merchant-Planungs- und Koordinationskern abgeschlossen. Nachgewiesen sind zentrale Gegenstandsdisposition und konkrete physische Reservierungen, konservativer Workspace-/Capacity-Preflight, Gold-/Budget-Ledger, accountweite Bank-Lease mit Epoche/Fencing und Restart-Reconciliation sowie frische Market-RID-/Mengen-Evidence inklusive Reproduktion des echten `trade_sell`-Serverscans.
+
+Bankauthority liegt nicht im Merchant-Modul, sondern in der accountweiten Koordinationsgrenze `grundlage/quelle/koordination/account-bank-lease.ts`. R13 erzeugt keine neuen Raw Game Writes und öffnet keine breite Gameplay-Runtime.
+
+Abdeckung: `grundlage/vertraege/r13/merchant-core-abdeckung.json`  
+Abschluss: `roadmap/r13-abschluss.json`
+
+Aktuelle Phase: **R14 – Multi-Character Coordination Foundation**.
