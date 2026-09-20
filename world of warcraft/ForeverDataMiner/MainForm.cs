@@ -38,7 +38,7 @@ public sealed class MainForm : Form
         Shown += (_, _) =>
         {
             RefreshBuildStatus();
-            if (autoMonitorBox.Checked && IsValidWowRoot(wowRootBox.Text))
+            if (autoMonitorBox.Checked && WowPathResolver.IsValidSelection(wowRootBox.Text))
                 StartMonitoring();
         };
 
@@ -210,7 +210,7 @@ public sealed class MainForm : Form
 
         var label = new Label
         {
-            Text = "WoW-Ordner:",
+            Text = "WoW-/Forever-Ordner:",
             AutoSize = true,
             Anchor = AnchorStyles.Left,
             Margin = new Padding(0, 6, 8, 0),
@@ -222,13 +222,8 @@ public sealed class MainForm : Form
         var browse = new Button { Text = "Auswählen…", AutoSize = true };
         browse.Click += (_, _) =>
         {
-            using var dialog = new FolderBrowserDialog
-            {
-                Description = "World-of-Warcraft-Hauptordner auswählen (.build.info muss darin liegen)",
-                ShowNewFolderButton = false,
-                InitialDirectory = Directory.Exists(wowRootBox.Text) ? wowRootBox.Text : null,
-            };
-            if (dialog.ShowDialog(this) == DialogResult.OK)
+            using var dialog = new SafeFolderPicker(wowRootBox.Text);
+            if (dialog.ShowDialog(this) == DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.SelectedPath))
                 wowRootBox.Text = dialog.SelectedPath;
         };
 
@@ -276,7 +271,7 @@ public sealed class MainForm : Form
 
     private void LoadSettingsIntoUi()
     {
-        wowRootBox.Text = settings.WowRoot ?? Program.AutoDetectWowRoot() ?? string.Empty;
+        wowRootBox.Text = settings.WowRoot ?? Program.AutoDetectForeverPath() ?? string.Empty;
         wtlBox.Text = settings.WowToolsLocal;
         useWtlBox.Checked = settings.UseWowToolsLocal;
         autoMonitorBox.Checked = settings.AutoMonitor;
@@ -294,9 +289,11 @@ public sealed class MainForm : Form
 
     private MinerService CreateService()
     {
-        var wowRoot = wowRootBox.Text.Trim();
-        if (!IsValidWowRoot(wowRoot))
-            throw new InvalidOperationException("Bitte einen gültigen World-of-Warcraft-Hauptordner auswählen.");
+        var selectedPath = wowRootBox.Text.Trim();
+        var wowRoot = WowPathResolver.ResolveRoot(selectedPath);
+        if (wowRoot is null)
+            throw new InvalidOperationException(
+                "Bitte einen gültigen World-of-Warcraft-Hauptordner oder Forever-Produktordner auswählen.");
 
         Uri? provider = null;
         if (useWtlBox.Checked)
@@ -432,14 +429,19 @@ public sealed class MainForm : Form
     {
         try
         {
-            if (!IsValidWowRoot(wowRootBox.Text))
+            var wowRoot = WowPathResolver.ResolveRoot(wowRootBox.Text);
+            if (wowRoot is null)
             {
-                buildLabel.Text = "Build: WoW-Ordner fehlt";
+                buildLabel.Text = "Build: WoW-/Forever-Ordner fehlt";
                 return;
             }
 
-            var build = BuildInfoReader.Read(wowRootBox.Text.Trim());
-            buildLabel.Text = $"Build: {build.Version} · Interface {build.InterfaceVersion?.ToString() ?? "?"}";
+            var build = BuildInfoReader.Read(wowRoot);
+            var productHint = WowPathResolver.IsForeverProductPath(wowRootBox.Text)
+                ? " · _classic_beta_"
+                : string.Empty;
+            buildLabel.Text =
+                $"Build: {build.Version} · Interface {build.InterfaceVersion?.ToString() ?? "?"}{productHint}";
         }
         catch (Exception ex)
         {
@@ -497,10 +499,6 @@ public sealed class MainForm : Form
         WindowState = FormWindowState.Normal;
         Activate();
     }
-
-    private static bool IsValidWowRoot(string? path) =>
-        !string.IsNullOrWhiteSpace(path) &&
-        File.Exists(Path.Combine(path.Trim(), ".build.info"));
 
     private void OpenExportDirectory()
     {
