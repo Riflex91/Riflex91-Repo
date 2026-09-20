@@ -28,12 +28,41 @@ local function isoNow()
     return date("!%Y-%m-%dT%H:%M:%SZ")
 end
 
-local function shallowCopy(value)
-    if type(value) ~= "table" then return value end
-    local out = {}
-    for k, v in pairs(value) do
-        if type(v) ~= "table" then out[k] = v end
+local function sanitize(value, depth, seen)
+    local valueType = type(value)
+
+    if valueType == "nil" or valueType == "string" or
+       valueType == "number" or valueType == "boolean" then
+        return value
     end
+
+    if valueType ~= "table" then
+        return tostring(value)
+    end
+
+    depth = depth or 0
+    if depth >= 4 then return "<max-depth>" end
+
+    seen = seen or {}
+    if seen[value] then return "<cycle>" end
+    seen[value] = true
+
+    local out = {}
+    local count = 0
+
+    for k, v in pairs(value) do
+        count = count + 1
+        if count > 64 then
+            out["<truncated>"] = true
+            break
+        end
+
+        local keyType = type(k)
+        local safeKey = (keyType == "string" or keyType == "number") and k or tostring(k)
+        out[safeKey] = sanitize(v, depth + 1, seen)
+    end
+
+    seen[value] = nil
     return out
 end
 
@@ -73,7 +102,7 @@ function MG:Log(level, event, message, data)
         level = level or "INFO",
         event = event or "unknown",
         message = message or "",
-        data = shallowCopy(data),
+        data = sanitize(data),
     }
 
     while #db.logs > MAX_LOGS do
