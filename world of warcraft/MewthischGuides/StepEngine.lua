@@ -103,10 +103,35 @@ function MG:EvaluateStepApplicability(definition, profile)
         end
     end
 
+    if self.RestEDXPImport and definition.rxpOccurrences and
+       not self.RestEDXPImport:QuestDefinitionApplies(definition, profile) then
+        return false, "restedxp_selector"
+    end
+
     return true, "applicable"
 end
 
+local function resolvedQuestTitle(definition, snapshotEntry)
+    if snapshotEntry and snapshotEntry.title and snapshotEntry.title ~= "" then
+        return snapshotEntry.title
+    end
+
+    if definition and definition.title and
+       not tostring(definition.title):match("^Quest %d+$") then
+        return definition.title
+    end
+
+    if C_QuestLog and C_QuestLog.GetTitleForQuestID and definition and definition.questID then
+        local ok, value = pcall(C_QuestLog.GetTitleForQuestID, definition.questID)
+        if ok and value and value ~= "" then return value end
+    end
+
+    return definition and definition.title or
+        ("Quest " .. tostring(definition and definition.questID or "?"))
+end
+
 function MG:BuildRouteStep(definition, snapshotEntry)
+    local title = resolvedQuestTitle(definition, snapshotEntry)
     local completed = self:IsQuestFlaggedCompletedSafe(definition.questID)
     local phase
     local goals
@@ -122,7 +147,7 @@ function MG:BuildRouteStep(definition, snapshotEntry)
                 questID = definition.questID,
                 type = "complete",
                 state = self.GoalStates.COMPLETE,
-                name = definition.title or ("Quest " .. tostring(definition.questID)),
+                name = title,
                 instruction = "Bereits abgeschlossen",
                 progressText = "fertig",
                 percent = 1,
@@ -147,7 +172,7 @@ function MG:BuildRouteStep(definition, snapshotEntry)
                 questID = definition.questID,
                 type = "accept",
                 state = self.GoalStates.ACTIVE,
-                name = definition.title or ("Quest " .. tostring(definition.questID)),
+                name = title,
                 instruction = "Nimm die Quest „" .. tostring(definition.title or definition.questID) .. "“ an",
                 progressText = "",
                 percent = nil,
@@ -161,7 +186,7 @@ function MG:BuildRouteStep(definition, snapshotEntry)
         id = definition.id,
         routeOrder = definition.order,
         questID = definition.questID,
-        title = definition.title or (snapshotEntry and snapshotEntry.title) or ("Quest " .. tostring(definition.questID)),
+        title = title,
         level = snapshotEntry and snapshotEntry.level or definition.minLevel,
         phase = phase,
         complete = complete,
