@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R10",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "exitKriterien": {
+    "recoveryKernelOhneSendPfad": true,
+    "unknownNurReconcile": true,
+    "sameIntentNachPossibleSendVerboten": true,
+    "serverErgebnisAlleinKeinCommit": true,
+    "postconditionEvidenceFuerCommitPflicht": true,
+    "partialCompletionDiffBasiert": true,
+    "nochAusstehendBounded": true,
+    "ungeklärtFuehrtOperatorRequired": true,
+    "knowledgeConfigPrestateSnapshotGepinnt": true,
+    "restartNichtterminalNurAbgleich": true,
+    "restartExecutionAuthorityFalse": true,
+    "stopSperrtNeueArbeitZuerst": true,
+    "inflightStopBoundedReconcile": true,
+    "unsichererIrreversiblerStopKritischGesperrt": true,
+    "fehlerdomaenenIsolation": true,
+    "recoveryContractsGesamt": 60,
+    "produktivVerifiziert": 59,
+    "explizitDeaktiviert": 1,
+    "disconnectFaultActions": 59,
+    "duplicateIrreversibleEffects": 0
+  },
+  "anforderungen": {
+    "phaseR10": 7,
+    "technischNachgewiesen": 7,
+    "status": "R10_NACHGEWIESEN"
+  },
+  "traceability": {
+    "phaseR10": 7,
+    "vollstaendig": 7
+  },
+  "fitness": {
+    "phaseR10": 3,
+    "erfuellt": 3,
+    "status": "ERFUELLT"
+  },
+  "sicherheitsgrenze": {
+    "adventureLandWrites": false,
+    "sameIntentRecoverySend": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false
+  },
+  "ciVorAbschluss": {
+    "headSha": "784775bd2934cee8ba54554ecaa3cafb8b3c93c2",
+    "runs": [
+      {
+        "workflow": "v5-r10",
+        "runId": 35479673869,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r9",
+        "runId": 35479673851,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r8",
+        "runId": 35479673833,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r7",
+        "runId": 35479673829,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r6",
+        "runId": 35479673811,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r5",
+        "runId": 35479673828,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r4",
+        "runId": 35479673821,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r3",
+        "runId": 35479673859,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-wissensgate",
+        "runId": 35479673822,
+        "conclusion": "success"
+      }
+    ]
+  },
+  "betriebsblocker": {
+    "lokaleWindowsBridgeAktualisieren": true,
+    "beschreibung": "Der lokale Windows-Bridge-Deploymentstand bleibt separat zu verifizieren. R10 oeffnet das Gameplay-Runtime-Gate nicht."
+  },
+  "nachweise": [
+    "v5/grundlage/quelle/recovery/typen.ts",
+    "v5/grundlage/quelle/recovery/recovery-kernel.ts",
+    "v5/grundlage/quelle/recovery/laufsteuerung.ts",
+    "v5/grundlage/quelle/recovery/fehlerdomaenen.ts",
+    "v5/grundlage/quelle/recovery/wiederanlauf.ts",
+    "v5/grundlage/tests/r10-recovery.test.mjs",
+    "v5/grundlage/tests/r10-control.test.mjs",
+    "v5/werkzeuge/r10-recovery-abdeckung.mjs",
+    "v5/werkzeuge/r10-statische-guards.mjs",
+    "v5/werkzeuge/r10-struktur-pruefen.mjs",
+    "v5/architektur/adr/ADR-011-R10-RECOVERY.md",
+    ".github/workflows/v5-r10.yml"
+  ],
+  "naechstePhase": "R11",
+  "finalePruefung": {
+    "exakterPrHeadErforderlich": true,
+    "alleR3BisR10RegressionenGruenErforderlich": true,
+    "roadmapUndVorbereitungGruenErforderlich": true,
+    "postMergeCiErforderlich": true,
+    "mergeNurShaGebunden": true
+  },
+  "hinweis": "R10 gilt erst nach gruenem finalen PR-Head und gruener Post-Merge-CI als endgueltig abgeschlossen. Das Gameplay-Runtime-Gesamtgate bleibt GESPERRT."
+}
