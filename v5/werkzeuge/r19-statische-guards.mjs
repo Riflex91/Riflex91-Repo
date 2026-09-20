@@ -81,7 +81,7 @@ for(const m of [
   "sameIntentRetry: false",
   "breiteRuntimeFreigabe: false",
   "PERFORMANCE_TRICK_NICHT_AKTIV",
-  "await guiApi().aktivierePerformanceTrick()",
+  "guiApi().aktivierePerformanceTrick()",
 ]){
   if(!liveGui.includes(m)) fehler.push("CONTROLLED_LIVE_GUI_MARKER_FEHLT:"+m);
 }
@@ -102,7 +102,7 @@ for(const m of [
   "sameIntentRetry: false",
   "breiteRuntimeFreigabe: false",
   "PERFORMANCE_TRICK_NICHT_AKTIV",
-  "await guiApi().aktivierePerformanceTrick()",
+  "guiApi().aktivierePerformanceTrick()",
 ]){
   if(!canaryGui.includes(m)) fehler.push("R19_CANARY_GUI_MARKER_FEHLT:"+m);
 }
@@ -123,7 +123,7 @@ for(const m of [
   "STORAGE_ESTIMATE_FEHLT",
   "PERFORMANCE_TRICK_NICHT_AKTIV",
   "PERFORMANCE_TRICK_AUSGEFALLEN",
-  "await guiApi().aktivierePerformanceTrick()",
+  "guiApi().aktivierePerformanceTrick()",
   "guiApi().performanceTrickStatus()",
   "performanceTrickFehler",
 ]){
