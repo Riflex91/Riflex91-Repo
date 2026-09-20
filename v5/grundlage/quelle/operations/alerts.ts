@@ -14,7 +14,13 @@ export interface AlertPersistenzBestaetigung {
   readonly bestaetigungsId: string;
 }
 
+export interface AlertSpoolStatus {
+  readonly offen: number;
+  readonly maximum: number;
+}
+
 export interface KritischerAlertSpoolPort {
+  status(): Promise<AlertSpoolStatus>;
   speichereDurable(alert: KritischerAlert): Promise<AlertPersistenzBestaetigung>;
   claimDurable(alertId: string): Promise<{ readonly claimed: boolean }>;
 }
@@ -46,6 +52,14 @@ export class KritischerAlertKoordinator {
     if (!Number.isSafeInteger(alert.erstelltAmMs) || alert.erstelltAmMs < 0) {
       throw new Error("ALERT_ZEIT_UNGUELTIG");
     }
+
+    const status = await this.#spool.status();
+    if (!Number.isInteger(status.offen) || status.offen < 0
+        || !Number.isInteger(status.maximum) || status.maximum < 1
+        || status.maximum > 100_000) {
+      throw new Error("ALERT_SPOOL_STATUS_UNGUELTIG");
+    }
+    if (status.offen >= status.maximum) throw new Error("ALERT_SPOOL_VOLL");
 
     const bestaetigung = await this.#spool.speichereDurable(alert);
     if (bestaetigung.durable !== true || bestaetigung.alertId !== alert.alertId) {
