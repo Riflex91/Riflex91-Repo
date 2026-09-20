@@ -150,7 +150,7 @@ const bankCanaryBrowser = liesText(
 for (const marker of [
   "BANK_CANARY_BROWSER_READ_ONLY = true",
   "BANK_CANARY_GAMEPLAY_WRITES = 0",
-  "character.bank",
+  "c.bank",
   "G.items",
   "BANK_CANARY_ALTERNATIVE_RUNTIME_AKTIV",
   "BANK_CANARY_BANK_KONTEXT_FEHLT",
