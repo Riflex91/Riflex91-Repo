@@ -69,3 +69,13 @@ test("SOAK_5M traegt keine veralteten 1h-Labels",()=>{
   assert.equal(paket.includes("r19-soak-1h"),false);
   assert.equal(paket.includes("SOAK 1H"),false);
 });
+
+test("SOAK_5M zeigt Restzeit ohne Sampling-Takt zu veraendern",()=>{
+  assert.ok(controller.includes("gui.setzeRestzeit"));
+  assert.ok(controller.includes("setInterval(aktualisiereCountdown, 1000)"));
+  assert.ok(controller.includes("restzeitMs"));
+  assert.ok(paket.includes("Verbleibende Testdauer"));
+  assert.ok(paket.includes("v5tg-timer"));
+  assert.ok(paket.includes("setzeRestzeit"));
+  assert.ok(controller.includes("const INTERVALL_MS = 15 * 1000"));
+});
