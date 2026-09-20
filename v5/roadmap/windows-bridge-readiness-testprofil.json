@@ -17,7 +17,8 @@
     "TEST_OHNE_GAMEPLAY_WRITE",
     "GIT_CREDENTIAL_MANAGER",
     "GITHUB_ANMELDUNG",
-    "KNOWLEDGE_REPO_LIVE_PRUEFUNG"
+    "KNOWLEDGE_REPO_LIVE_PRUEFUNG",
+    "TEMP_ARBEITSKOPIE_CLEANUP"
   ],
   "manuellerPflichtpunkt": {
     "kennung": "GITHUB_LEAST_PRIVILEGE",
@@ -29,7 +30,8 @@
     "gameplayWritesDurchTest": 0,
     "knowledgePushDurchTest": false,
     "tokenImBericht": false,
-    "tempArbeitskopie": true
+    "tempArbeitskopie": true,
+    "tempArbeitskopieCleanupPflicht": true
   },
   "readinessNachVollstaendigemNachweis": [
     "ANFORDERUNGEN_BEREIT",
