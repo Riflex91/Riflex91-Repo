@@ -3,13 +3,15 @@
   "stand": "2026-09-20",
   "phase": "R19",
   "status": "RATIFIZIERT",
-  "profilKennung": "R19_ACCELERATED_SOAK_V1",
+  "profilKennung": "R19_ACCELERATED_SOAK_V2",
   "ersetzt": [
     "SOAK_1H",
     "SOAK_24H",
     "SOAK_72H",
     "SOAK_7D",
-    "SOAK_30D_OPTIONAL"
+    "SOAK_30D_OPTIONAL",
+    "SOAK_30M",
+    "SOAK_60M"
   ],
   "stufen": [
     {
@@ -17,31 +19,27 @@
       "dauerMs": 300000,
       "sampleIntervallMs": 15000,
       "maximalerSampleGapMs": 45000,
-      "minimaleSamples": 20
+      "minimaleSamples": 20,
+      "rolle": "FUNKTION"
     },
     {
       "stufe": "SOAK_10M",
       "dauerMs": 600000,
       "sampleIntervallMs": 30000,
       "maximalerSampleGapMs": 90000,
-      "minimaleSamples": 20
+      "minimaleSamples": 20,
+      "rolle": "UEBERGANG_ZWISCHENSTUFE"
     },
     {
-      "stufe": "SOAK_30M",
-      "dauerMs": 1800000,
+      "stufe": "SOAK_15M",
+      "dauerMs": 900000,
       "sampleIntervallMs": 30000,
       "maximalerSampleGapMs": 90000,
-      "minimaleSamples": 60
-    },
-    {
-      "stufe": "SOAK_60M",
-      "dauerMs": 3600000,
-      "sampleIntervallMs": 30000,
-      "maximalerSampleGapMs": 90000,
-      "minimaleSamples": 120
+      "minimaleSamples": 30,
+      "rolle": "INTEGRATION_RELEASE_FINAL"
     }
   ],
-  "finaleStufe": "SOAK_60M",
+  "finaleStufe": "SOAK_15M",
   "breiteRuntimeFreigabe": false,
-  "hinweis": "Dieses beschleunigte Zeitprofil ersetzt die zuvor geplanten Mehrstunden-/Mehrtagestests. Es liefert keine mehrtaegige Soak-Evidence."
+  "hinweis": "R19 V2 nutzt den bereits gestarteten 10-Minuten-Lauf als einmalige Uebergangs-Zwischenstufe und endet mit einem 15-Minuten-Integrations-/Release-Test. Kuenftig reichen 5 Minuten fuer einzelne Funktionen und 15 Minuten fuer Integrations-/Release-Meilensteine. Diese Evidence ist keine mehrtaegige Soak-Evidence."
 }
