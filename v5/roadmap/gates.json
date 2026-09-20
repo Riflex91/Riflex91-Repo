@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-09-20",
-  "currentPhase": "R9",
+  "currentPhase": "R10",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -241,7 +241,7 @@
     {
       "id": "R9",
       "name": "Admission Execution Kernel",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R8"
       ],
@@ -254,7 +254,7 @@
     {
       "id": "R10",
       "name": "Reconciliation Recovery Kernel",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R9"
       ],
