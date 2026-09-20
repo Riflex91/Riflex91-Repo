@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "kennung": "V5_WINDOWS_BRIDGE_READINESS",
+  "testVersion": "1.0.0",
+  "zweck": "Lokalen Deploy der aktuellen Windows-Bridge und die fuer V5 relevante Knowledge-/Git-Konfiguration fail-closed pruefen, ohne Gameplay-Write und ohne Knowledge-Push.",
+  "automatischerErfolgsstatus": "AUTOMATISCHE_PRUEFUNGEN_BESTANDEN_MANUELLER_AUTORISIERUNGSNACHWEIS_OFFEN",
+  "automatischePflichtpunkte": [
+    "BRIDGE_KONFIGURATION",
+    "CONFIG_VERSION",
+    "WISSENSWAECHTER_AKTIV",
+    "WISSENSWAECHTER_INTERVALL",
+    "KNOWLEDGE_REPOSITORY",
+    "KNOWLEDGE_BRANCH",
+    "KNOWLEDGE_SCOPE",
+    "LIVE_WISSEN_PFAD",
+    "TEST_OHNE_GAMEPLAY_WRITE",
+    "GIT_CREDENTIAL_MANAGER",
+    "GITHUB_ANMELDUNG",
+    "KNOWLEDGE_REPO_LIVE_PRUEFUNG"
+  ],
+  "manuellerPflichtpunkt": {
+    "kennung": "GITHUB_LEAST_PRIVILEGE",
+    "statusVorNachweis": "MANUELL_NACHWEISEN",
+    "anforderung": "V5-ANF-WISSEN-012",
+    "nachweis": "GitHub-Autorisierung ist auf Riflex91/Riflex91-Repo und nur minimal erforderliche Rechte begrenzt; keine Administration, Secrets-, Environment-, Deployment- oder allgemeinen Workflow-Schreibrechte."
+  },
+  "sicherheit": {
+    "gameplayWritesDurchTest": 0,
+    "knowledgePushDurchTest": false,
+    "tokenImBericht": false,
+    "tempArbeitskopie": true
+  },
+  "readinessNachVollstaendigemNachweis": [
+    "ANFORDERUNGEN_BEREIT",
+    "SECURITY_BEREIT",
+    "BETRIEBSMODELL_BEREIT"
+  ],
+  "breiteRuntimeFreigabeAutomatisch": false
+}
