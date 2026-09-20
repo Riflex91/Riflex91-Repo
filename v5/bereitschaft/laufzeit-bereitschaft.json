@@ -69,7 +69,7 @@
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
       "erfuellt": false,
-      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. R7 weist 5/5, R8 6/6, R9 4/4, R10 7/7 und R11 weitere 9/9 MUSS-Anforderungen technisch und tracebar nach; erfuellt bleibt bis zu den spaeteren Vertical-Slice-/Live-/Zertifizierungsnachweisen false.",
+      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. R7 bis R13 weisen ihre jeweils ratifizierten MUSS-Anforderungen technisch und tracebar nach; R12 Controlled Live ist bestanden. Erfuellt bleibt bis zu den spaeteren Multi-Character-, Production-, Combat-, World-, Learning- und Zertifizierungsnachweisen false.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
         "v5/anforderungen/nachverfolgbarkeit.json"
@@ -90,7 +90,13 @@
       "r10AnforderungenGesamt": 7,
       "r11NachweisVorhanden": true,
       "r11AnforderungenNachgewiesen": 9,
-      "r11AnforderungenGesamt": 9
+      "r11AnforderungenGesamt": 9,
+      "r12NachweisVorhanden": true,
+      "r12AnforderungenNachgewiesen": 2,
+      "r12AnforderungenGesamt": 2,
+      "r13NachweisVorhanden": true,
+      "r13AnforderungenNachgewiesen": 6,
+      "r13AnforderungenGesamt": 6
     },
     {
       "kennung": "INVARIANTEN_BEREIT",
@@ -286,7 +292,7 @@
     }
   ],
   "offeneBlocker": [
-    "R13 Merchant Core A mit Inventory-/Bank-/Economy-Invarianten und Restart-Reconciliation abschliessen",
+    "R14 Multi-Character Coordination mit Account Coordinator, Character Agent Protocol, Dedupe/TTL/Liveness und Fault Tests abschliessen",
     "Breite Gameplay-Runtime bleibt bis zur spaeteren expliziten Gesamtfreigabe GESPERRT",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
@@ -316,5 +322,8 @@
   "r12ControlledLiveAction": "AL-ACTION-EQUIP",
   "r12ControlledLivePreflight": "v5/roadmap/r12-controlled-live-preflight.json",
   "r12ControlledLiveEvidence": "v5/roadmap/r12-controlled-live-evidence.json",
-  "r12AbgeschlossenAm": "2026-09-20"
+  "r12AbgeschlossenAm": "2026-09-20",
+  "r13Status": "ABGESCHLOSSEN",
+  "r13AbgeschlossenAm": "2026-09-20",
+  "r13Evidence": "v5/grundlage/vertraege/r13/merchant-core-abdeckung.json"
 }

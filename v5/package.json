@@ -1,9 +1,9 @@
 {
   "name": "adventure-land-aio-v5",
-  "version": "5.0.0-r12.0",
+  "version": "5.0.0-r13.0",
   "private": true,
   "type": "module",
-  "description": "Adventure Land AiO Bot V5 – R12 Vertical Slice 0 Shadow-E2E und fail-closed Controlled-Live-Gate.",
+  "description": "Adventure Land AiO Bot V5 – R13 Merchant Core A mit zentraler Disposition, Bank-Lease, Capacity, Budget und frischer Market-Evidence.",
   "scripts": {
     "bereinigen": "node werkzeuge/r3-bereinigen.mjs",
     "bauen": "npm run bereinigen && tsc -p tsconfig.json",
@@ -37,7 +37,9 @@
     "r12:pruefen": "npm run typen:pruefen && npm run lint && npm run r12:test && npm run r12:live:check && npm run r12:test-gui:pruefen && node werkzeuge/r12-statische-guards.mjs && node werkzeuge/r12-struktur-pruefen.mjs",
     "r12:live:check": "node --check werkzeuge/r12-controlled-live-equip-runner.mjs && node --check werkzeuge/r12-live/cdp.mjs && node --check werkzeuge/r12-live/datei-journal.mjs && node --check werkzeuge/r12-live/browser-equip.mjs",
     "r12:test-gui:bauen": "node werkzeuge/r12-test-gui-paket-bauen.mjs",
-    "r12:test-gui:pruefen": "node --check werkzeuge/v5-adventure-land-test-gui.js && node --check werkzeuge/r12-controlled-live-test-gui.js && node --check werkzeuge/r12-controlled-live-test-paket.js && node werkzeuge/r12-test-gui-paket-bauen.mjs --check && node --test werkzeuge/tests/r12-test-gui.test.mjs"
+    "r12:test-gui:pruefen": "node --check werkzeuge/v5-adventure-land-test-gui.js && node --check werkzeuge/r12-controlled-live-test-gui.js && node --check werkzeuge/r12-controlled-live-test-paket.js && node werkzeuge/r12-test-gui-paket-bauen.mjs --check && node --test werkzeuge/tests/r12-test-gui.test.mjs",
+    "r13:test": "npm run grundlage:test",
+    "r13:pruefen": "npm run typen:pruefen && npm run lint && npm run r13:test && node werkzeuge/r13-statische-guards.mjs && node werkzeuge/r13-struktur-pruefen.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

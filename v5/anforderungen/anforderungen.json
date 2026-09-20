@@ -1492,7 +1492,7 @@
       "titel": "Alle Item-verbrauchenden Merchantfunktionen lesen dieselbe zentrale Gegenstandsdisposition.",
       "phase": "R13",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R13_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-068"
       ],
@@ -1501,14 +1501,21 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r13NachweisStatus": "R13_NACHGEWIESEN",
+      "r13Nachweise": [
+        "v5/grundlage/quelle/merchant/disposition.ts",
+        "v5/grundlage/quelle/merchant/markt-evidence.ts",
+        "v5/grundlage/tests/r13-disposition-workspace.test.mjs",
+        "v5/grundlage/tests/r13-market-evidence.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-MERCHANT-002",
       "titel": "Physische Itemreservierung verwendet konkrete Identitaet statt nur Name/Level.",
       "phase": "R13",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R13_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-069"
       ],
@@ -1517,14 +1524,20 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r13NachweisStatus": "R13_NACHGEWIESEN",
+      "r13Nachweise": [
+        "v5/grundlage/quelle/merchant/gegenstands-identitaet.ts",
+        "v5/grundlage/quelle/merchant/disposition.ts",
+        "v5/grundlage/tests/r13-disposition-workspace.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-MERCHANT-003",
       "titel": "Destruktive Itemworkflows besitzen Workspace-/Capacity-Preflight.",
       "phase": "R13",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R13_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-070"
       ],
@@ -1533,14 +1546,19 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r13NachweisStatus": "R13_NACHGEWIESEN",
+      "r13Nachweise": [
+        "v5/grundlage/quelle/merchant/workspace.ts",
+        "v5/grundlage/tests/r13-disposition-workspace.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-MERCHANT-004",
       "titel": "Bankoperationen besitzen accountweite Ownership/Lease.",
       "phase": "R13",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R13_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-071"
       ],
@@ -1549,14 +1567,20 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r13NachweisStatus": "R13_NACHGEWIESEN",
+      "r13Nachweise": [
+        "v5/grundlage/quelle/koordination/account-bank-lease.ts",
+        "v5/grundlage/tests/r13-bank-lease.test.mjs",
+        "v5/dokumentation/P0-03-BANK-CONCURRENCY.md"
+      ]
     },
     {
       "kennung": "V5-ANF-MERCHANT-005",
       "titel": "Marktaktionen verwenden frische Listing-/RID-Evidence.",
       "phase": "R13",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R13_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-072"
       ],
@@ -1565,7 +1589,13 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r13NachweisStatus": "R13_NACHGEWIESEN",
+      "r13Nachweise": [
+        "v5/grundlage/quelle/merchant/markt-evidence.ts",
+        "v5/grundlage/tests/r13-market-evidence.test.mjs",
+        "v5/dokumentation/P0-04-TRADE-LISTING-RID-PARTIAL.md"
+      ]
     },
     {
       "kennung": "V5-ANF-MERCHANT-006",
@@ -1604,7 +1634,7 @@
       "titel": "Merchant-Scheduler verhindert Starvation durch Prioritaetsklassen und Aging.",
       "phase": "R13",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R13_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-075"
       ],
@@ -1614,7 +1644,13 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r13NachweisStatus": "R13_NACHGEWIESEN",
+      "r13Nachweise": [
+        "v5/grundlage/quelle/merchant/demand.ts",
+        "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts",
+        "v5/grundlage/tests/r13-scheduler-budget.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-MULTI-001",
@@ -2383,5 +2419,7 @@
   "r4Status": "ABGESCHLOSSEN",
   "r4AbgeschlossenAm": "2026-09-20",
   "r5Status": "ABGESCHLOSSEN",
-  "r5AbgeschlossenAm": "2026-09-20"
+  "r5AbgeschlossenAm": "2026-09-20",
+  "r13Status": "ABGESCHLOSSEN",
+  "r13AbgeschlossenAm": "2026-09-20"
 }

@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R13",
+  "status": "TECHNISCH_BESTANDEN",
+  "referenzHead": "4345e838004290923eb9b0e6913b02cdcc5fc997",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "anforderungen": [
+    {
+      "kennung": "V5-ANF-MERCHANT-001",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/merchant/disposition.ts",
+        "v5/grundlage/quelle/merchant/markt-evidence.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r13-disposition-workspace.test.mjs",
+        "v5/grundlage/tests/r13-market-evidence.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-MERCHANT-002",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/merchant/gegenstands-identitaet.ts",
+        "v5/grundlage/quelle/merchant/disposition.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r13-disposition-workspace.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-MERCHANT-003",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/merchant/workspace.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r13-disposition-workspace.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-MERCHANT-004",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/koordination/account-bank-lease.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r13-bank-lease.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-MERCHANT-005",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/merchant/markt-evidence.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r13-market-evidence.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-MERCHANT-008",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/merchant/demand.ts",
+        "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r13-scheduler-budget.test.mjs",
+        "v5/grundlage/tests/r8-scheduler.test.mjs"
+      ]
+    }
+  ],
+  "exitKriterien": {
+    "zentraleDisposition": true,
+    "konkretePhysischeReservierung": true,
+    "workspaceCapacityPreflight": true,
+    "goldBudgetLedger": true,
+    "accountweiteBankLease": true,
+    "bankExternalFence": true,
+    "bankRestartReconciliation": true,
+    "bankSnapshotAnLeaseEpocheGebunden": true,
+    "frischeRidUndMengenEvidence": true,
+    "tradeSellServerScanReproduziert": true,
+    "keineNichtFungibleMehrdeutigeServerauswahl": true,
+    "priorityClassUndAging": true,
+    "starvationTestGruen": true,
+    "rawGameWritesImMerchantCore": 0
+  },
+  "regression": {
+    "r3BisR13UndWissensgate": "GRUEN",
+    "exactHead": "4345e838004290923eb9b0e6913b02cdcc5fc997"
+  },
+  "hinweis": "R13 implementiert Planning-, Ledger-, Evidence- und Koordinationskern. Es wird keine breite Merchant-Live-Execution freigegeben."
+}

@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R13",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "requirements": {
+    "phaseR13": 6,
+    "technischNachgewiesen": 6,
+    "status": "R13_NACHGEWIESEN"
+  },
+  "traceability": {
+    "phaseR13": 6,
+    "vollstaendig": 6
+  },
+  "fitness": {
+    "phaseR13": 0,
+    "status": "KEINE_EIGENEN_FITNESSREGELN"
+  },
+  "exitKriterien": {
+    "inventoryLedgerInvarianten": "GRUEN",
+    "bankInvarianten": "GRUEN",
+    "economyBudgetInvarianten": "GRUEN",
+    "falscherVerkaufVerhindert": true,
+    "doppeltePhysischeReservierungVerhindert": true,
+    "staleListingVerhindert": true,
+    "starvationTestGruen": true,
+    "bankRestartReconciliationGruen": true,
+    "rawGameWritesImR13Core": 0
+  },
+  "naechstePhase": "R14",
+  "nachweise": [
+    "v5/grundlage/vertraege/r13/merchant-core-abdeckung.json",
+    "v5/architektur/adr/ADR-016-R13-MERCHANT-CORE-A.md",
+    "v5/grundlage/tests/r13-disposition-workspace.test.mjs",
+    "v5/grundlage/tests/r13-bank-lease.test.mjs",
+    "v5/grundlage/tests/r13-market-evidence.test.mjs",
+    "v5/grundlage/tests/r13-scheduler-budget.test.mjs",
+    "v5/werkzeuge/r13-statische-guards.mjs",
+    "v5/werkzeuge/r13-struktur-pruefen.mjs"
+  ],
+  "hinweis": "R13 schliesst Merchant Core A als Planning-/Ledger-/Evidence-/Coordination-Grundlage. Breite Gameplay-Runtime und Raw Writes bleiben gesperrt."
+}
