@@ -286,9 +286,10 @@
     }
   ],
   "offeneBlocker": [
-    "Lokal laufende Windows Bridge auf einen aktuellen Knowledge-Branch-Build aktualisieren und den lokalen Deploymentstand separat verifizieren",
-    "R12 Vertical Slice 0 kontrolliert und ohne Bypass abschliessen",
-    "Gameplay-Runtime erst nach expliziter Laufzeitfreigabe und spaeterem Roadmap-Gate beginnen",
+    "Lokalen Adventure-Land-Host/Browser neu starten und frische Health-Evidence ohne SNAPSHOT_STALE/Recovery-Blocker herstellen",
+    "Kritischen Alert-Spool aus dem vollen Zustand 250/250 herausbringen und Checkpoint-/Quota-Druck bereinigen",
+    "R12 Controlled Live mit exakt einer AL-ACTION-EQUIP/equip-Action und unerwarteteGameWrites=0 nachweisen",
+    "Gameplay-Runtime erst nach formaler Readiness=FREIGEGEBEN aktivieren",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
   "r2Status": "RATIFIZIERT",
@@ -310,5 +311,10 @@
   "r10Status": "ABGESCHLOSSEN",
   "r10AbgeschlossenAm": "2026-09-20",
   "r11Status": "ABGESCHLOSSEN",
-  "r11AbgeschlossenAm": "2026-09-20"
+  "r11AbgeschlossenAm": "2026-09-20",
+  "r12ShadowStatus": "BESTANDEN",
+  "r12ShadowMainSha": "b0ebb528a7f5accf2bc8196cb2c4ecafbe79b39d",
+  "r12ControlledLiveStatus": "BLOCKIERT",
+  "r12ControlledLiveAction": "AL-ACTION-EQUIP",
+  "r12ControlledLivePreflight": "v5/roadmap/r12-controlled-live-preflight.json"
 }
