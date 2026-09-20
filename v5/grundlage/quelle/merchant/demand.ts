@@ -15,7 +15,8 @@ export type MerchantDemandArt =
   | "MARKT_BUY"
   | "MARKT_SELL"
   | "STAND_LISTING"
-  | "INVENTAR_AUFRAEUMEN";
+  | "INVENTAR_AUFRAEUMEN"
+  | "MLUCK_SERVICE";
 
 export type MerchantDemandStatus =
   | "OFFEN"
