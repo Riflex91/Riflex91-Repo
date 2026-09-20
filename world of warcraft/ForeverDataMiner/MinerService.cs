@@ -56,22 +56,19 @@ public sealed class MinerService(MinerOptions options)
 
         if (options.WowToolsLocal is not null && !IsWowRunning())
         {
-            Process? providerProcess = null;
+            ManagedWowToolsProcess? managedProvider = null;
             using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
             var client = new WowToolsLocalClient(http, options.WowToolsLocal);
             try
             {
                 if (options.ManageWowToolsLocal)
                 {
-                    providerProcess = await ProviderManager.EnsureRunningAsync(
-                        options.WowToolsLocal,
+                    managedProvider = await WowToolsProviderBootstrapper.StartInstalledAsync(
                         options.WowRoot,
                         build.Product,
-                        cancellationToken);
-                }
+                        options.WowToolsLocal,
+                        cancellationToken: cancellationToken);
 
-                if (providerProcess is not null)
-                {
                     bundle.Records.Add(new FgdsRecord(
                         "provider.lifecycle",
                         "wow.tools.local",
@@ -79,8 +76,9 @@ public sealed class MinerService(MinerOptions options)
                         "miner",
                         new Dictionary<string, object?>
                         {
-                            ["autoStarted"] = true,
-                            ["executable"] = Path.GetFileName(providerProcess.MainModule?.FileName)
+                            ["managed"] = true,
+                            ["autoStarted"] = managedProvider.StartedByMiner,
+                            ["installed"] = WowToolsProviderBootstrapper.IsInstalled()
                         }));
                 }
 
@@ -142,12 +140,13 @@ public sealed class MinerService(MinerOptions options)
                     new Dictionary<string, object?>
                     {
                         ["message"] = ex.Message,
-                        ["autoProviderExecutableFound"] = ProviderManager.LocateWowToolsLocal() is not null
+                        ["managedProviderInstalled"] = WowToolsProviderBootstrapper.IsInstalled()
                     }));
             }
             finally
             {
-                ProviderManager.Stop(providerProcess);
+                if (managedProvider is not null)
+                    await managedProvider.DisposeAsync();
             }
         }
         else if (options.WowToolsLocal is not null)
