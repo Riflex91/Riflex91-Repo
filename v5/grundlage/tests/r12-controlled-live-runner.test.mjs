@@ -4,9 +4,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { CdpEquipAdapter } from "../werkzeuge/r12-live/browser-equip.mjs";
-import { validiereLoopbackCdp } from "../werkzeuge/r12-live/cdp.mjs";
-import { DurablesDateiJournal, pruefeKeineOffeneV5Transaktion } from "../werkzeuge/r12-live/datei-journal.mjs";
+import { CdpEquipAdapter } from "../../werkzeuge/r12-live/browser-equip.mjs";
+import { validiereLoopbackCdp } from "../../werkzeuge/r12-live/cdp.mjs";
+import { DurablesDateiJournal, pruefeKeineOffeneV5Transaktion } from "../../werkzeuge/r12-live/datei-journal.mjs";
 
 const kandidat = {
   index: 3,
