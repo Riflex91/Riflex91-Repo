@@ -169,7 +169,7 @@ function API:Survey()
     end
 
     if MG and MG.Log then
-        MG:Log("INFO", "api.capabilities", "Forever API-Faehigkeiten erfasst.", {
+        MG:Log("INFO", "api.capabilities", "Forever API-Fähigkeiten erfasst.", {
             mode = self.MODE,
             questsOnMap = self.capabilities.quest.getQuestsOnMap,
             questLine = self.capabilities.questLine.info,
