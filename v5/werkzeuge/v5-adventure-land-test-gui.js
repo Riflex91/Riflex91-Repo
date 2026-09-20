@@ -296,6 +296,8 @@
 
       button.addEventListener('click', async () => {
         if (button.disabled) return;
+        const performanceTrick = aktivierePerformanceTrick();
+        protokolliere('Performance-Trick Benutzeraktion', performanceTrick);
         const confirm = typeof row.bestaetigungsText === 'string' ? row.bestaetigungsText : null;
         if (confirm !== null && bestaetigungInput.value !== confirm) {
           setzeBestaetigung(confirm);
