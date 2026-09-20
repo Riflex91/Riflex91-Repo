@@ -374,7 +374,7 @@
     {
       "id": "R19",
       "name": "Runtime-Zertifizierung (5m Funktion / 15m Integration-Release)",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R18"
       ],
