@@ -45,6 +45,43 @@ test("Bankmutation braucht accountweite Lease plus lokalen Bank-Channel und exte
   }, 1), false);
 });
 
+
+test("BankSnapshot ist an aktiven Owner und Lease-Epoche gebunden", () => {
+  const ressourcen = new RessourcenVerwalter();
+  const bank = new BankLeaseKoordinator(ressourcen);
+  const token = bank.beanspruche(
+    "account-1", "merchant", "WF-BANK", "observe", "EU", "I", 1000, 1000,
+  );
+  bank.aktiviere(token, fence, 1001);
+
+  assert.equal(bank.validiereSnapshot(token, {
+    schemaVersion: 1,
+    accountId: "account-1",
+    ownerCharacterId: "merchant",
+    leaseEpoche: token.epoche,
+    beobachtetAmMs: 1010,
+    fingerprint: "bank-snapshot-fp",
+  }, 1020, 100), true);
+
+  assert.equal(bank.validiereSnapshot(token, {
+    schemaVersion: 1,
+    accountId: "account-1",
+    ownerCharacterId: "merchant",
+    leaseEpoche: token.epoche - 1,
+    beobachtetAmMs: 1010,
+    fingerprint: "bank-snapshot-fp",
+  }, 1020, 100), false);
+
+  assert.equal(bank.validiereSnapshot(token, {
+    schemaVersion: 1,
+    accountId: "account-1",
+    ownerCharacterId: "merchant",
+    leaseEpoche: token.epoche,
+    beobachtetAmMs: 1010,
+    fingerprint: "bank-snapshot-fp",
+  }, 1200, 100), false);
+});
+
 test("Bank External-Fence-Mismatch quarantiniert statt Force/Retry", () => {
   const ressourcen = new RessourcenVerwalter();
   const bank = new BankLeaseKoordinator(ressourcen);
