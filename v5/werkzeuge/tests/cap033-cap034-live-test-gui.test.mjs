@@ -43,6 +43,8 @@ test("Upgrade und Compound werden vor Controlled Live immer serverseitig nur ber
   assert.ok(controller.includes("rufeCompound(root, kandidat, true)"));
   assert.ok(controller.includes("MIN_PREVIEW_CHANCE = 0.99"));
   assert.ok(controller.includes("MAX_TEST_BASISWERT_GOLD = 100000"));
+  assert.ok(controller.includes("MAX_SHADOW_NACHLAUF_MS = 15 * 60 * 1000"));
+  assert.ok(controller.includes("Frischer bestandener 5m-Shadow gefunden"));
   assert.ok(controller.includes("x.basisGold <= MAX_TEST_BASISWERT_GOLD"));
   assert.ok(controller.includes("PREVIEW_CHANCE_UNTER_TESTGRENZE"));
   assert.ok(controller.includes("previewVerbrauchtNichts: true"));
