@@ -20,7 +20,19 @@ Der relevante Rückgabe-Datensatz heißt:
 
 Wenn WoW während eines Scanversuchs läuft, überspringt der Miner den DB2-Provider aus Sicherheitsgründen. Nach dem Beenden von WoW erkennt das Monitoring den Zustandswechsel und führt den Datenscan erneut aus.
 
-## 2. ForeverGuide Recorder
+### DB2-Provider
+
+Für vollständige DB2-/Hotfix-Daten nutzt der Miner lokal `wow.tools.local`.
+
+Wenn dessen EXE an einem dieser Orte liegt, kann ForeverDataMiner den Provider automatisch starten und anschließend wieder beenden:
+
+- direkt neben `ForeverDataMiner.exe`: `wow.tools.local.exe`
+- `tools\wow.tools.local\wow.tools.local.exe` neben dem Miner
+- `%LOCALAPPDATA%\ForeverGuide\Tools\wow.tools.local\wow.tools.local.exe`
+
+Wenn bereits ein Provider unter `http://localhost:5000` läuft, verwendet der Miner diesen und beendet ihn nicht.
+
+## 2. ForeverGuide Recorder v0.3
 
 Den Ordner `ForeverGuideRecorder` nach:
 
@@ -34,7 +46,9 @@ Im Spiel:
 
 zeigt Build und Anzahl aufgezeichneter Records.
 
-Danach normal questen/leveln. Optional:
+Danach normal questen/leveln. Zusätzlich zeichnet v0.3 geöffnete Questdialoge inklusive Questtexten, Ziel-/Fortschrittstexten und Belohnungsdaten auf.
+
+Optional:
 
 - `/fgr danger`
 - `/fgr wait`
@@ -57,15 +71,17 @@ Benötigt werden genau diese beiden Dateien:
 
 Charaktername und Realm werden vom Recorder absichtlich nicht in die FGDS-Evidenz geschrieben.
 
-## Testziel v0.2
+## Testziel v0.3
 
 Beim ersten echten Forever-Test prüfen wir insbesondere:
 
 - korrekte Forever-Build-/Interface-Erkennung
 - tatsächliche API-Verfügbarkeit für Quest-, Talent- und Itemdaten
+- Questdialog-, Reward- und Objective-Erfassung
 - korrekte NPC-/Quest-IDs
 - Positionssampling
 - Talent-/Build-Erkennung
 - Inventar- und Gear-Ereignisse
 - SavedVariables-Integrität
 - DB2-Verfügbarkeit für den konkreten Forever-Build
+- automatischen Start/Stop des lokalen DB2-Providers, falls vorhanden
