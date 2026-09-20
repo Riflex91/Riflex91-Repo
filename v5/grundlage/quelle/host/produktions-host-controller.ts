@@ -1,11 +1,6 @@
 import type { HealthEvidence } from "../operations/health.js";
 import type { OperationsMetrik } from "../operations/telemetrie.js";
 import type {
-  V5PlanenAktivierungsAnforderung,
-  V5PlanenAktivierungsErgebnis,
-  V5PlanenRevalidierungsErgebnis,
-} from "../runtime/produktions-runtime.js";
-import type {
   ProduktionsBootstrapStatus,
   V5ProduktionsBootstrap,
   V5ProduktionsProzessStatus,
@@ -21,20 +16,57 @@ export interface ProduktionsOperationsQuellePort {
   beobachte(jetztMs: number): Promise<ProduktionsOperationsBeobachtung>;
 }
 
+export interface ProduktionsPlanenAktivierungsAnforderung {
+  readonly schemaVersion: 1;
+  readonly aktivierungsId: string;
+  readonly faehigkeitId: string;
+  readonly anbieterModulId: string;
+  readonly anbieterVersion: string;
+  readonly policyId: string;
+  readonly healthEvidence: readonly HealthEvidence[];
+  readonly jetztMs: number;
+}
+
+export interface ProduktionsPlanenAktivierungsErgebnis {
+  readonly schemaVersion: 1;
+  readonly erfolgreich: boolean;
+  readonly grund: string;
+  readonly aktivierungsId: string;
+  readonly faehigkeitId: string;
+  readonly anbieterModulId: string;
+  readonly anbieterVersion: string;
+  readonly wirkung: "AKTIVIERT" | "BEREITS_AKTIV" | "BLOCKIERT";
+  readonly evidenceIds: readonly string[];
+  readonly gameplayAutoritaet: false;
+  readonly rawWriteAutoritaet: false;
+  readonly actionAuthority: false;
+}
+
+export interface ProduktionsPlanenRevalidierungsErgebnis {
+  readonly schemaVersion: 1;
+  readonly bereit: boolean;
+  readonly grund: string;
+  readonly deaktivierteFaehigkeiten: readonly string[];
+  readonly aktivePlanenFaehigkeiten: readonly string[];
+  readonly gameplayAutoritaet: false;
+  readonly rawWriteAutoritaet: false;
+  readonly actionAuthority: false;
+}
+
 export interface ProduktionsPlanenRuntimePort {
   status(): V5ProduktionsProzessStatus;
   erfasseOperationsMetrik(metrik: OperationsMetrik): boolean;
   revalidierePlanenAuthority(
     healthEvidence: readonly HealthEvidence[],
     jetztMs: number,
-  ): V5PlanenRevalidierungsErgebnis;
+  ): ProduktionsPlanenRevalidierungsErgebnis;
   aktivierePlanenFaehigkeit(
-    anforderung: V5PlanenAktivierungsAnforderung,
-  ): Promise<V5PlanenAktivierungsErgebnis>;
+    anforderung: ProduktionsPlanenAktivierungsAnforderung,
+  ): Promise<ProduktionsPlanenAktivierungsErgebnis>;
 }
 
 export type HostPlanenAktivierungsAnfrage = Omit<
-  V5PlanenAktivierungsAnforderung,
+  ProduktionsPlanenAktivierungsAnforderung,
   "healthEvidence" | "jetztMs"
 >;
 
@@ -197,7 +229,7 @@ export class V5ProduktionsHostController {
   public async aktivierePlanen(
     anfrage: HostPlanenAktivierungsAnfrage,
     jetztMs: number,
-  ): Promise<V5PlanenAktivierungsErgebnis> {
+  ): Promise<ProduktionsPlanenAktivierungsErgebnis> {
     pruefeZeit(jetztMs);
     if (this.#zustand !== "LAEUFT") {
       throw new Error("PRODUKTIONS_HOST_PLANEN_AKTIVIERUNG_HOST_NICHT_BEREIT");
