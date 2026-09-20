@@ -25,7 +25,58 @@ local function guideApplicable(guide, profile)
     local maxLevel = tonumber(guide.maxLevel)
     if minLevel and level < minLevel then return false end
     if maxLevel and level > maxLevel then return false end
+
+    if guide.verification == "RESTEDXP_PUBLIC" and MG.RestEDXPImport and
+       not MG.RestEDXPImport:GuideMatches(guide, profile) then
+        return false
+    end
+
     return true
+end
+
+local function autoSelectable(guide)
+    if guide.verification ~= "RESTEDXP_PUBLIC" then return true end
+    if guide.rxpAutoSelect == false then return false end
+
+    -- Endgame/key guides without a level range should only be entered
+    -- explicitly, never selected for a leveling character by accident.
+    if not tonumber(guide.minLevel) and not tonumber(guide.maxLevel) then
+        return false
+    end
+
+    return true
+end
+
+local function guidePriority(guide, profile)
+    local score = 0
+
+    if guide.verification == "RESTEDXP_PUBLIC" then
+        score = 300
+        local group = tostring(guide.group or "")
+        local subgroup = tostring(guide.subgroup or "")
+
+        if string.find(group, "Forever Guide", 1, true) then score = score + 40 end
+        if string.find(group, "Survival Guide", 1, true) then score = score - 20 end
+        if string.find(group, "ADV AoE", 1, true) then score = score - 10 end
+        if string.find(subgroup, "Mage", 1, true) and profile.class == "MAGE" then
+            score = score + 25
+        end
+        if guide.races then score = score + 10 end
+        if guide.classes then score = score + 20 end
+    elseif guide.verification == "RECORDED" then
+        score = 200
+    else
+        score = 100
+    end
+
+    local minLevel = tonumber(guide.minLevel)
+    local maxLevel = tonumber(guide.maxLevel)
+    if minLevel and maxLevel then
+        local span = math.max(0, maxLevel - minLevel)
+        score = score + math.max(0, 20 - span)
+    end
+
+    return score
 end
 
 function Loader:Load()
@@ -88,10 +139,14 @@ function Loader:SelectActiveGuide()
     if selected and not guideApplicable(selected, profile) then selected = nil end
 
     if not selected then
+        local bestScore = nil
         for _, guide in ipairs(self.guides) do
-            if guideApplicable(guide, profile) then
-                selected = guide
-                break
+            if autoSelectable(guide) and guideApplicable(guide, profile) then
+                local score = guidePriority(guide, profile)
+                if bestScore == nil or score > bestScore then
+                    selected = guide
+                    bestScore = score
+                end
             end
         end
     end
@@ -103,6 +158,8 @@ function Loader:SelectActiveGuide()
         MG.db.runtime.dataLoader = {
             guides = #self.guides,
             activeGuideID = selected and selected.id or nil,
+            activeGuideVerification = selected and selected.verification or nil,
+            activeGuideTitle = selected and selected.title or nil,
         }
     end
 
