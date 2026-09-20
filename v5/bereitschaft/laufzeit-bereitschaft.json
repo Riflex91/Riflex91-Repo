@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-20",
   "status": "GESPERRT",
-  "freigaberegel": "Alle zehn Pflichtbereiche muessen erfuellt=true sein. Ausserdem muessen P0-Research und Invariantenratifizierung abgeschlossen, alle Validatoren gruen und der Roadmap-Gate fuer Runtime-Struktur explizit geoeffnet sein. Auch bei zehn technisch erfuellten Pflichtbereichen bleibt die breite Gameplay-Runtime bis zu einer separaten expliziten Gesamtfreigabe GESPERRT.",
+  "freigaberegel": "Alle zehn Pflichtbereiche muessen erfuellt=true sein. Ausserdem muessen P0-Research und Invariantenratifizierung abgeschlossen, alle Validatoren gruen und der Roadmap-Gate fuer Runtime-Struktur explizit geoeffnet sein. Sind diese Voraussetzungen erfuellt, bleibt die breite Gameplay-Runtime bis zur separat dokumentierten expliziten Betreiber-Gesamtfreigabe GESPERRT.",
   "bereiche": [
     {
       "kennung": "WISSEN_BEREIT",
@@ -345,7 +345,7 @@
     }
   ],
   "offeneBlocker": [
-    "Breite Gameplay-Runtime bleibt trotz 10/10 technisch erfuellten Pflichtbereichen bis zur separaten expliziten Gesamtfreigabe GESPERRT"
+    "Explizite Betreiber-Gesamtfreigabe fuer die breite V5-Gameplay-Runtime ist noch ausstehend"
   ],
   "r2Status": "RATIFIZIERT",
   "r2AbgeschlossenAm": "2026-09-19",
@@ -417,6 +417,8 @@
   "zusatzNachweise": [
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat dokumentieren; dieser ersetzt nicht den WISSEN-012-Autorisierungsnachweis."
   ],
-  "gesamtfreigabe": "SEPARAT_AUSSTEHEND",
-  "breiteRuntimeFreigabe": false
+  "gesamtfreigabe": "BETREIBERBESTAETIGUNG_AUSSTEHEND",
+  "breiteRuntimeFreigabe": false,
+  "gesamtfreigabeVorbereitung": "v5/roadmap/gesamtfreigabe-vorbereitung.json",
+  "gesamtfreigabeVorbereitungStatus": "BEREIT_FUER_BETREIBERBESTAETIGUNG"
 }
