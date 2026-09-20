@@ -19,6 +19,8 @@ test("CAP-045 Live-Paket bildet drei klar getrennte Stages und die geforderten E
 test("CAP-045 Zertifizierer bleibt read-only und Controlled-Proof besitzt exakt einen Write-Pfad", () => {
   assert.ok(controller.includes("zertifiziererGameplayWrites: 0"));
   assert.ok(controller.includes("controlledProofDriverGameplayWrites: 1"));
+  assert.ok(controller.includes("legacyRuntimeMethodenAufgerufen: false"));
+  assert.equal(controller.includes(".status()"), false);
   assert.equal((controller.match(/\.upgrade\s*\(/g) ?? []).length, 1);
   for (const verboten of [
     ".attack(", ".move(", ".smart_move(", ".use_skill(",
