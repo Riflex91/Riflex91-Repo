@@ -11,6 +11,7 @@ const pflicht=[
   "grundlage/tests/r18-fallback-ranking.test.mjs",
   "grundlage/tests/r18-admission-evidence.test.mjs",
   "grundlage/tests/r18-modell-liga.test.mjs",
+  "grundlage/tests/r18-strategischer-recommendation-port.test.mjs",
 ];
 for(const p of pflicht) if(!fs.existsSync(p)) fehler.push("PFLICHTARTEFAKT_FEHLT:"+p);
 
