@@ -1602,7 +1602,7 @@
       "titel": "Production endet erst nach final verifiziertem Empfaengersettlement.",
       "phase": "R15",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R15_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-073"
       ],
@@ -1611,14 +1611,23 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r15NachweisStatus": "R15_NACHGEWIESEN",
+      "r15Nachweise": [
+        "v5/grundlage/quelle/produktion/recipient-settlement.ts",
+        "v5/grundlage/quelle/produktion/production-intent.ts",
+        "v5/grundlage/quelle/merchant/logistik-workflow.ts",
+        "v5/grundlage/tests/r15-production-settlement.test.mjs",
+        "v5/grundlage/tests/r15-logistik-gear.test.mjs",
+        "v5/grundlage/vertraege/r15/merchant-core-b-abdeckung.json"
+      ]
     },
     {
       "kennung": "V5-ANF-MERCHANT-007",
       "titel": "Upgrade/Compound/Exchange behandeln q/Placeholder als laufende Transaktion.",
       "phase": "R15",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R15_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-074"
       ],
@@ -1627,7 +1636,16 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r15NachweisStatus": "R15_NACHGEWIESEN",
+      "r15Nachweise": [
+        "v5/grundlage/quelle/merchant/werttransaktion.ts",
+        "v5/grundlage/quelle/produktion/production-graph.ts",
+        "v5/grundlage/tests/r15-werttransaktion.test.mjs",
+        "v5/grundlage/tests/r15-production-graph.test.mjs",
+        "v5/dokumentation/P0-05-UPGRADE-COMPOUND.md",
+        "v5/dokumentation/P0-06-EXCHANGE-CRAFT-OUTPUTSPACE.md"
+      ]
     },
     {
       "kennung": "V5-ANF-MERCHANT-008",
