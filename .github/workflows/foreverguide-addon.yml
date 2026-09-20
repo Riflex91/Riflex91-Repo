@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.11.8
+name: Mewthisch Guides addon v0.11.9
 
 on:
   workflow_dispatch:
@@ -674,6 +674,53 @@ jobs:
           print("Better-gear auto-equip PASS")
           LUA
 
+      - name: Validate auto-equip notification icon resolution
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={}
+          C_Item={
+            GetItemNameByID=function(id)
+              assert(id==1378)
+              return "Ausgefranste Hose"
+            end,
+          }
+          GetInventoryItemTexture=function(unit,slot)
+            assert(unit=="player" and slot==7)
+            return 987654
+          end
+
+          assert(loadfile("world of warcraft/MewthischGuides/UI.lua"))(
+            "MewthischGuides",MG)
+
+          local name,icon,source=MG:ResolveAutoEquipNoticeItemData({
+            itemID=1378,
+            slot=7,
+            link="item:1378",
+          })
+          assert(name=="Ausgefranste Hose")
+          assert(icon==987654)
+          assert(source=="equipped-slot")
+
+          GetInventoryItemTexture=function() return nil end
+          GetItemInfo=function()
+            return "Ausgefranste Hose","item:1378",0,3,1,
+              "Armor","Cloth",1,"INVTYPE_LEGS",112233
+          end
+          C_Item.GetItemNameByID=nil
+
+          name,icon,source=MG:ResolveAutoEquipNoticeItemData({
+            itemID=1378,
+            slot=7,
+            link="item:1378",
+          })
+          assert(name=="Ausgefranste Hose")
+          assert(icon==112233)
+          assert(source=="GetItemInfo")
+
+          print("Auto-equip notification icon resolution PASS")
+          LUA
+
       - name: Validate seven themes and adaptive UI skins
         shell: bash
         run: |
@@ -742,7 +789,7 @@ jobs:
           print("Seven-theme contract PASS")
           LUA
 
-      - name: Validate v0.11.8 static contract
+      - name: Validate v0.11.9 static contract
         shell: bash
         run: |
           set -euo pipefail
@@ -751,7 +798,7 @@ jobs:
           UI="$ROOT/UI.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
-          grep -q '^## Version: 0.11.8$' "$TOC"
+          grep -q '^## Version: 0.11.9$' "$TOC"
           grep -q '^## OptionalDeps: ElvUI, EllesmereUI, ElvUI_ToxiUI$' "$TOC"
           grep -q '^ManualRoute.lua$' "$TOC"
           grep -q '^WorldMapMarker.lua$' "$TOC"
@@ -769,6 +816,11 @@ jobs:
           grep -q 'CreateAnimationGroup' "$UI"
           grep -q 'CreateAnimation("Alpha")' "$UI"
           grep -q 'ShowAutoEquipNotification' "$ROOT/GearAdvisor.lua"
+          grep -q 'ResolveAutoEquipNoticeItemData' "$UI"
+          grep -q 'GetInventoryItemTexture' "$UI"
+          grep -q 'GetItemIconByID' "$UI"
+          grep -q 'GetItemInfo-table' "$UI"
+          grep -q 'INV_Misc_QuestionMark' "$UI"
           grep -q 'showWorldMapMarker' "$UI"
           grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
           grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
@@ -844,11 +896,11 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.11.8.zip MewthischGuides
+          zip -r MewthischGuides-v0.11.9.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.11.8
-          path: artifacts/MewthischGuides-v0.11.8.zip
+          name: MewthischGuides-v0.11.9
+          path: artifacts/MewthischGuides-v0.11.9.zip
           if-no-files-found: error

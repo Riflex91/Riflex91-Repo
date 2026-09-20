@@ -949,30 +949,102 @@ function MG:InitializeUI()
         })
 end
 
-local function autoEquipNoticeItemData(item)
+local function validItemIcon(value)
+    if type(value) == "number" then return value > 0 end
+    if type(value) == "string" then return value ~= "" end
+    return false
+end
+
+function MG:ResolveAutoEquipNoticeItemData(item)
     item = item or {}
     local itemID = tonumber(item.itemID)
     local link = item.link
+    local slot = tonumber(item.slot)
+    local name = item.itemName
+    local icon = item.icon
+    local iconSource = validItemIcon(icon) and "candidate" or nil
 
-    local name = nil
-    if C_Item and C_Item.GetItemNameByID and itemID then
+    if not name and C_Item and C_Item.GetItemNameByID and itemID then
         local ok, value = pcall(C_Item.GetItemNameByID, itemID)
         if ok and value and value ~= "" then name = value end
     end
 
-    if not name and GetItemInfo then
-        local ok, value = pcall(GetItemInfo, link or itemID)
-        if ok and value and value ~= "" then name = value end
+    -- The notification is emitted only after the equip was confirmed, making
+    -- the equipped slot the strongest source for the actual displayed icon.
+    if not validItemIcon(icon) and slot and GetInventoryItemTexture then
+        local ok, value = pcall(GetInventoryItemTexture, "player", slot)
+        if ok and validItemIcon(value) then
+            icon = value
+            iconSource = "equipped-slot"
+        end
     end
 
-    local icon = nil
-    if GetItemInfoInstant then
-        local ok, _, _, _, _, value = pcall(
-            GetItemInfoInstant, itemID or link)
-        if ok then icon = value end
+    if not validItemIcon(icon) and
+       C_Item and C_Item.GetItemIconByID and itemID then
+        local ok, value = pcall(C_Item.GetItemIconByID, itemID)
+        if ok and validItemIcon(value) then
+            icon = value
+            iconSource = "C_Item.GetItemIconByID"
+        end
     end
 
-    return name or "Gegenstand", icon or 134400
+    if not validItemIcon(icon) and GetItemIcon then
+        for _, target in ipairs({ itemID, link }) do
+            if target then
+                local ok, value = pcall(GetItemIcon, target)
+                if ok and validItemIcon(value) then
+                    icon = value
+                    iconSource = "GetItemIcon"
+                    break
+                end
+            end
+        end
+    end
+
+    local getter = C_Item and C_Item.GetItemInfo or GetItemInfo
+    if getter and (not name or not validItemIcon(icon)) then
+        local values = { pcall(getter, link or itemID) }
+        if values[1] then
+            if type(values[2]) == "table" then
+                local info = values[2]
+                name = name or info.itemName or info.name
+                local value = info.iconFileID or info.icon
+                if not validItemIcon(icon) and validItemIcon(value) then
+                    icon = value
+                    iconSource = "GetItemInfo-table"
+                end
+            else
+                if not name and values[2] and values[2] ~= "" then
+                    name = values[2]
+                end
+                -- GetItemInfo icon is return value #10; pcall adds one index.
+                local value = values[11]
+                if not validItemIcon(icon) and validItemIcon(value) then
+                    icon = value
+                    iconSource = "GetItemInfo"
+                end
+            end
+        end
+    end
+
+    if not validItemIcon(icon) and GetItemInfoInstant then
+        local values = { pcall(GetItemInfoInstant, itemID or link) }
+        if values[1] then
+            -- GetItemInfoInstant icon is return value #5; pcall adds one.
+            local value = values[6]
+            if validItemIcon(value) then
+                icon = value
+                iconSource = "GetItemInfoInstant"
+            end
+        end
+    end
+
+    if not validItemIcon(icon) then
+        icon = "Interface\\Icons\\INV_Misc_QuestionMark"
+        iconSource = "fallback"
+    end
+
+    return name or "Gegenstand", icon, iconSource
 end
 
 function MG:ShowAutoEquipNotification(item)
@@ -986,8 +1058,19 @@ function MG:ShowAutoEquipNotification(item)
         return
     end
 
-    local name, icon = autoEquipNoticeItemData(item)
+    local name, icon, iconSource =
+        self:ResolveAutoEquipNoticeItemData(item)
+
     ui.equipNoticeIcon:SetTexture(icon)
+    ui.equipNoticeIcon:SetTexCoord(0, 1, 0, 1)
+    if ui.equipNoticeIcon.SetVertexColor then
+        ui.equipNoticeIcon:SetVertexColor(1, 1, 1, 1)
+    end
+    if ui.equipNoticeIcon.SetDesaturated then
+        ui.equipNoticeIcon:SetDesaturated(false)
+    end
+    ui.equipNoticeIcon:SetAlpha(1)
+    ui.equipNoticeIcon:Show()
     ui.equipNoticeText:SetText(name .. " wurde angelegt.")
 
     local animation = ui.equipNoticeAnimation
@@ -1001,6 +1084,8 @@ function MG:ShowAutoEquipNotification(item)
         "Auto-Equip-Meldung angezeigt.", {
             itemID = item.itemID,
             itemName = name,
+            itemIcon = tostring(icon),
+            iconSource = iconSource,
         })
 end
 
