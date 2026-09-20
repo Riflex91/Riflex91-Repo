@@ -1,9 +1,9 @@
 {
   "name": "adventure-land-aio-v5",
-  "version": "5.0.0-r7.0",
+  "version": "5.0.0-r8.0",
   "private": true,
   "type": "module",
-  "description": "Adventure Land AiO Bot V5 – R7 no-write Module-, Capability-, Port- und Authority-Grundlage.",
+  "description": "Adventure Land AiO Bot V5 – R8 no-write Workflow-Scheduler-, Ressourcen-, Lease- und Fencing-Grundlage.",
   "scripts": {
     "bereinigen": "node werkzeuge/r3-bereinigen.mjs",
     "bauen": "npm run bereinigen && tsc -p tsconfig.json",
@@ -24,7 +24,9 @@
     "r6:pruefen": "npm run typen:pruefen && npm run lint && npm run r6:test && npm run r6:abdeckung && node werkzeuge/r6-struktur-pruefen.mjs",
     "r6:abdeckung": "node werkzeuge/r6-anzeigekatalog-abdeckung.mjs",
     "r7:test": "npm run grundlage:test",
-    "r7:pruefen": "npm run typen:pruefen && npm run lint && npm run r7:test && node werkzeuge/r7-statische-guards.mjs && node werkzeuge/r7-struktur-pruefen.mjs"
+    "r7:pruefen": "npm run typen:pruefen && npm run lint && npm run r7:test && node werkzeuge/r7-statische-guards.mjs && node werkzeuge/r7-struktur-pruefen.mjs",
+    "r8:test": "npm run grundlage:test",
+    "r8:pruefen": "npm run typen:pruefen && npm run lint && npm run r8:test && node werkzeuge/r8-statische-guards.mjs && node werkzeuge/r8-struktur-pruefen.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
