@@ -26,13 +26,14 @@ for(const p of [
   "werkzeuge/r19-test-gui-paket-bauen.mjs",
   "werkzeuge/tests/r19-test-gui.test.mjs",
   "werkzeuge/tests/r19-canary-test-gui.test.mjs",
-  "werkzeuge/tests/r19-soak-1h-test-gui.test.mjs",
-  "werkzeuge/r19-soak-1h-test-paket-bauen.mjs",
-  "werkzeuge/r19-soak-1h-test-paket.js",
-  "werkzeuge/r19-soak-1h-test-gui.js",
+  "werkzeuge/tests/r19-soak-5m-test-gui.test.mjs",
+  "werkzeuge/r19-soak-5m-test-paket-bauen.mjs",
+  "werkzeuge/r19-soak-5m-test-paket.js",
+  "werkzeuge/r19-soak-5m-test-gui.js",
   "werkzeuge/r19-canary-test-paket-bauen.mjs",
   "werkzeuge/r19-canary-test-paket.js",
   "werkzeuge/r19-canary-test-gui.js",
+  "roadmap/r19-soak-zeitprofil.json",
 ]){
   if(!fs.existsSync(p)) fehler("R19 Pflichtartefakt fehlt: "+p);
 }
@@ -48,12 +49,26 @@ if(trace.length!==3||trace.some(x=>!erwartet.has(x.anforderungKennung))) fehler(
 const liveStatusRang=Object.freeze({
   BIS_CONTROLLED_LIVE_BESTANDEN:1,
   BIS_CANARY_BESTANDEN:2,
-  BIS_SOAK_1H_BESTANDEN:3,
-  BIS_SOAK_24H_BESTANDEN:4,
-  BIS_SOAK_72H_BESTANDEN:5,
-  BIS_SOAK_7D_BESTANDEN:6,
+  BIS_SOAK_5M_BESTANDEN:3,
+  BIS_SOAK_10M_BESTANDEN:4,
+  BIS_SOAK_30M_BESTANDEN:5,
+  BIS_SOAK_60M_BESTANDEN:6,
 });
 const ops6=req.find(x=>x.kennung==="V5-ANF-OPS-006");
+const zeitprofil=lies("roadmap/r19-soak-zeitprofil.json");
+const erwarteteSoaks=[
+  ["SOAK_5M",300000],
+  ["SOAK_10M",600000],
+  ["SOAK_30M",1800000],
+  ["SOAK_60M",3600000],
+];
+if(zeitprofil.profilKennung!=="R19_ACCELERATED_SOAK_V1"
+    ||zeitprofil.finaleStufe!=="SOAK_60M"
+    ||zeitprofil.stufen?.length!==4
+    ||erwarteteSoaks.some(([stufe,dauer],i)=>zeitprofil.stufen[i]?.stufe!==stufe||zeitprofil.stufen[i]?.dauerMs!==dauer)
+    ||ops6?.r19Zeitprofil!=="R19_ACCELERATED_SOAK_V1") {
+  fehler("R19 beschleunigtes Soak-Zeitprofil ungueltig.");
+}
 const aktuellerLiveRang=liveStatusRang[ops6?.r19LiveStatus]??0;
 
 if(fs.existsSync("roadmap/r19-canary-evidence.json")){
@@ -70,14 +85,14 @@ if(fs.existsSync("roadmap/r19-canary-evidence.json")){
       ||canary.learningEinfluss?.safetyLockerungErlaubt!==false
       ||canary.learningEinfluss?.maximalerAbsoluterScoreDelta>25
       ||canary.postcondition?.klassifikation!=="BESTAETIGT"
-      ||canary.ladder?.naechsteStufe!=="SOAK_1H") {
+      ||canary.ladder?.naechsteStufe!=="SOAK_5M") {
     fehler("R19 Canary-Evidence ungueltig.");
   }
   if(ops6?.status!=="OFFEN"||aktuellerLiveRang<2) {
     fehler("Canary verlangt OPS-006 weiterhin OFFEN mit mindestens Canary-Teilstatus.");
   }
-  if(ready.r19NaechsteStufe!=="SOAK_1H"||ready.r19ManuellerPcTestErforderlich!==true) {
-    fehler("Readiness muss nach Canary auf manuellen SOAK_1H zeigen.");
+  if(ready.r19NaechsteStufe!=="SOAK_5M"||ready.r19ManuellerPcTestErforderlich!==true) {
+    fehler("Readiness muss nach Canary auf manuellen SOAK_5M zeigen.");
   }
 }
 
