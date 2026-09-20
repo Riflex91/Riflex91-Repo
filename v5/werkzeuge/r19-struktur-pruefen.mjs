@@ -41,6 +41,32 @@ if(req.some(x=>!["OFFEN","R19_NACHGEWIESEN"].includes(x.status))) fehler("R19 An
 const trace=lies("anforderungen/nachverfolgbarkeit.json").eintraege.filter(x=>x.phase==="R19");
 if(trace.length!==3||trace.some(x=>!erwartet.has(x.anforderungKennung))) fehler("R19 Traceability-Menge ungueltig.");
 
+if(fs.existsSync("roadmap/r19-canary-evidence.json")){
+  const canary=lies("roadmap/r19-canary-evidence.json");
+  if(canary.phase!=="R19"
+      ||canary.status!=="BESTANDEN"
+      ||canary.zertifizierungsStufe!=="CANARY"
+      ||canary.gameWrites!==1
+      ||canary.unerwarteteGameWrites!==0
+      ||canary.sameIntentRetry!==false
+      ||canary.manuelleBestaetigung!==true
+      ||canary.learningEinfluss?.gameplayAutoritaet!==false
+      ||canary.learningEinfluss?.authorityAenderungErlaubt!==false
+      ||canary.learningEinfluss?.safetyLockerungErlaubt!==false
+      ||canary.learningEinfluss?.maximalerAbsoluterScoreDelta>25
+      ||canary.postcondition?.klassifikation!=="BESTAETIGT"
+      ||canary.ladder?.naechsteStufe!=="SOAK_1H") {
+    fehler("R19 Canary-Evidence ungueltig.");
+  }
+  const ops6Canary=req.find(x=>x.kennung==="V5-ANF-OPS-006");
+  if(ops6Canary?.status!=="OFFEN"||ops6Canary?.r19LiveStatus!=="BIS_CANARY_BESTANDEN") {
+    fehler("Canary verlangt OPS-006 weiterhin OFFEN mit passendem Teilstatus.");
+  }
+  if(ready.r19NaechsteStufe!=="SOAK_1H"||ready.r19ManuellerPcTestErforderlich!==true) {
+    fehler("Readiness muss nach Canary auf manuellen SOAK_1H zeigen.");
+  }
+}
+
 if(fs.existsSync("roadmap/r19-controlled-live-evidence.json")){
   const live=lies("roadmap/r19-controlled-live-evidence.json");
   if(live.phase!=="R19"
