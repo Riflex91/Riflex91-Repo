@@ -587,7 +587,11 @@ Exit Gate:
 
 ## R10 – Reconciliation und Recovery Kernel
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
+
+Maschinenlesbarer Abschluss: `roadmap/r10-abschluss.json`.
+
+Das Gameplay-Runtime-Gesamtgate bleibt auch nach R10 `GESPERRT`.
 
 Bauen:
 - Reconcile Contract;
@@ -616,6 +620,8 @@ Exit Gate:
 - duplicate irreversible effects = 0.
 
 ## R11 – Testlabor-Ausbau, Replay, Observability und Operations
+
+**Status:** IN_PROGRESS.
 
 Das in R3/R4 begonnene Testlabor wird hier zum vollstaendigen Operations- und Zertifizierungsinstrument ausgebaut.
 
