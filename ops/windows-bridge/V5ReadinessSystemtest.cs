@@ -134,6 +134,7 @@ public sealed class V5ReadinessSystemtest
                 "AioBotWindowsBridge",
                 "V5Readiness",
                 Guid.NewGuid().ToString("N"));
+            string? cleanupFehler = null;
             try
             {
                 var arbeitskopie = new GitArbeitskopie(testWurzel);
@@ -156,12 +157,22 @@ public sealed class V5ReadinessSystemtest
                 {
                     if (Directory.Exists(testWurzel))
                         Directory.Delete(testWurzel, recursive: true);
+
+                    if (Directory.Exists(testWurzel))
+                        cleanupFehler = "TEMP_ARBEITSKOPIE_NACH_DELETE_NOCH_VORHANDEN";
                 }
-                catch
+                catch (Exception error)
                 {
-                    // Temporaere Readiness-Arbeitskopie wird beim naechsten Temp-Cleanup entfernt.
+                    cleanupFehler = Begrenze(error.Message);
                 }
             }
+
+            punkte.Add(new V5ReadinessPruefpunkt(
+                "TEMP_ARBEITSKOPIE_CLEANUP",
+                cleanupFehler is null ? "BESTANDEN" : "NICHT_BESTANDEN",
+                cleanupFehler is null
+                    ? "Isolierte Readiness-Arbeitskopie wurde nach der Pruefung vollstaendig entfernt."
+                    : cleanupFehler));
         }
         else
         {
@@ -169,6 +180,10 @@ public sealed class V5ReadinessSystemtest
                 "KNOWLEDGE_REPO_LIVE_PRUEFUNG",
                 "NICHT_BESTANDEN",
                 "GitHub-Anmeldung fehlt."));
+            punkte.Add(new V5ReadinessPruefpunkt(
+                "TEMP_ARBEITSKOPIE_CLEANUP",
+                "BESTANDEN",
+                "Keine temporaere Arbeitskopie angelegt, weil die GitHub-Anmeldung fehlt."));
         }
 
         punkte.Add(new V5ReadinessPruefpunkt(
