@@ -2,6 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  EQUIPMENT_CORE_MODUL_ID,
+  EQUIPMENT_CORE_MODUL_VERSION,
+  EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
   MERCHANT_CORE_A_MODUL_ID,
   MERCHANT_CORE_A_MODUL_VERSION,
   MERCHANT_CORE_A_PLANUNGS_FAEHIGKEIT_IDS,
@@ -45,14 +48,14 @@ test("kanonische Produktionskomposition registriert nur belegte Module default-d
 
   assert.equal(
     PRODUKTIONS_KOMPOSITIONS_KATALOG_STATUS,
-    "DEFAULT_DENY_PLANEN_REGISTRIERT_INAKTIV",
+    "DEFAULT_DENY_PLANEN_UND_EQUIP_MUTIEREN_REGISTRIERT_INAKTIV",
   );
   assert.equal(definition.schemaVersion, 1);
-  assert.equal(definition.modulDefinitionen.length, 1);
-  assert.equal(definition.faehigkeitsDefinitionen.length, 8);
+  assert.equal(definition.modulDefinitionen.length, 2);
+  assert.equal(definition.faehigkeitsDefinitionen.length, 9);
   assert.deepEqual(definition.healthAnforderungen, healthAnforderungen());
 
-  const [merchant] = definition.modulDefinitionen;
+  const [merchant, equipment] = definition.modulDefinitionen;
   assert.equal(merchant.modulId, MERCHANT_CORE_A_MODUL_ID);
   assert.equal(merchant.modulId, "merchant-core-a");
   assert.equal(merchant.modulVersion, MERCHANT_CORE_A_MODUL_VERSION);
@@ -62,6 +65,16 @@ test("kanonische Produktionskomposition registriert nur belegte Module default-d
     [...MERCHANT_CORE_A_PLANUNGS_FAEHIGKEIT_IDS],
   );
   assert.deepEqual(merchant.benoetigteFaehigkeiten, []);
+
+  assert.equal(equipment.modulId, EQUIPMENT_CORE_MODUL_ID);
+  assert.equal(equipment.modulId, "equipment-core");
+  assert.equal(equipment.modulVersion, EQUIPMENT_CORE_MODUL_VERSION);
+  assert.equal(equipment.standardAktiv, false);
+  assert.deepEqual(
+    equipment.bereitgestellteFaehigkeiten,
+    [EQUIPMENT_EQUIP_FAEHIGKEIT_ID],
+  );
+  assert.deepEqual(equipment.benoetigteFaehigkeiten, []);
 });
 
 test("Merchant-Workflows verwenden exakt die kanonische Modulidentitaet", () => {
@@ -79,9 +92,9 @@ test("Start der kanonischen Komposition aktiviert weder Module noch Capabilities
   );
 
   const vorStart = runtime.status();
-  assert.equal(vorStart.registrierteModule, 1);
+  assert.equal(vorStart.registrierteModule, 2);
   assert.equal(vorStart.aktiveModule, 0);
-  assert.equal(vorStart.registrierteFaehigkeiten, 8);
+  assert.equal(vorStart.registrierteFaehigkeiten, 9);
   assert.equal(vorStart.aktiveFaehigkeiten, 0);
   assert.equal(vorStart.aktiveMutierendeFaehigkeiten, 0);
 
@@ -115,12 +128,15 @@ test("Merchant-Produktionskatalog registriert exakt acht PLANEN-Capabilities ina
     healthAnforderungen(),
   );
 
+  const planen = definition.faehigkeitsDefinitionen.filter(
+    x => x.modus === "PLANEN",
+  );
   assert.deepEqual(
-    definition.faehigkeitsDefinitionen.map(x => x.faehigkeitId),
+    planen.map(x => x.faehigkeitId),
     [...MERCHANT_CORE_A_PLANUNGS_FAEHIGKEIT_IDS],
   );
   assert.equal(
-    definition.faehigkeitsDefinitionen.every(
+    planen.every(
       x => x.anbieterModulId === MERCHANT_CORE_A_MODUL_ID
         && x.anbieterVersion === MERCHANT_CORE_A_MODUL_VERSION
         && x.modus === "PLANEN"
@@ -132,8 +148,39 @@ test("Merchant-Produktionskatalog registriert exakt acht PLANEN-Capabilities ina
 
   const runtime = new V5ProduktionsRuntime(definition);
   const eintraege = runtime.kernKomponenten().faehigkeiten.sicht();
-  assert.equal(eintraege.length, 8);
-  assert.equal(eintraege.every(x => x.modus === "PLANEN"), true);
+  assert.equal(eintraege.length, 9);
+  assert.equal(
+    eintraege.filter(x => x.modus === "PLANEN").length,
+    8,
+  );
   assert.equal(eintraege.every(x => x.aktiv === false), true);
-  assert.equal(eintraege.some(x => x.modus === "MUTIEREN"), false);
+});
+
+test("Equipment-Produktionskatalog registriert exakt eine MUTIEREN-Capability inaktiv", () => {
+  const definition = erstelleKanonischeProduktionsKomposition(
+    healthAnforderungen(),
+  );
+  const mutierend = definition.faehigkeitsDefinitionen.filter(
+    x => x.modus === "MUTIEREN",
+  );
+
+  assert.equal(mutierend.length, 1);
+  assert.equal(mutierend[0].faehigkeitId, EQUIPMENT_EQUIP_FAEHIGKEIT_ID);
+  assert.equal(mutierend[0].faehigkeitId, "equipment.equip");
+  assert.equal(mutierend[0].anbieterModulId, EQUIPMENT_CORE_MODUL_ID);
+  assert.equal(mutierend[0].anbieterVersion, EQUIPMENT_CORE_MODUL_VERSION);
+  assert.equal(mutierend[0].status, "VERFUEGBAR");
+  assert.equal(mutierend[0].standardAktiv, false);
+
+  const runtime = new V5ProduktionsRuntime(definition);
+  const eintrag = runtime.kernKomponenten().faehigkeiten.sicht()
+    .find(x => x.faehigkeitId === EQUIPMENT_EQUIP_FAEHIGKEIT_ID);
+  assert.ok(eintrag);
+  assert.equal(eintrag.modus, "MUTIEREN");
+  assert.equal(eintrag.aktiv, false);
+  assert.equal(runtime.status().aktiveMutierendeFaehigkeiten, 0);
+  assert.equal(
+    "aktiviereNichtMutierend" in runtime.kernKomponenten().faehigkeiten,
+    false,
+  );
 });
