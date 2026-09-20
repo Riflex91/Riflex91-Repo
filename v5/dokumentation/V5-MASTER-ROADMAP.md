@@ -904,6 +904,25 @@ Globale Null-Toleranz-Metriken:
 - Zertifizierung dokumentiert Speicherreserve, I/O-Queue-Gesundheit und Retention-Verhalten.
 Erst danach gilt V5 als 24/7-freigegeben.
 
+
+### Automatischer Stand bis Shadow
+
+**Status:** BIS_SHADOW_BESTANDEN.
+
+Automatisch nachgewiesen:
+- simulator/replay;
+- fault suite;
+- shadow;
+- unveraenderliche Evidence-Kette mit Sample-Gap-Erkennung;
+- globale Null-Toleranz-Vertraege;
+- bounded Speicher-/SSD-/I/O-Evidence;
+- deutsches UI-Release-Gate.
+
+Naechste Stufe: **CONTROLLED_LIVE**. Diese Stufe und anschliessend Canary erfordern explizite manuelle Bestaetigung; CI kann sie nicht automatisch als bestanden markieren.
+
+Evidence: `roadmap/r19-automatik-evidence.json`.
+
+
 ## 4. Pflicht-Definition-of-Done fuer jede neue Capability
 
 Jede Capability braucht vor Merge/Live-Freigabe:
