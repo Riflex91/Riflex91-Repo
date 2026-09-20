@@ -31,12 +31,73 @@ local ARMOR_CLASS_ID =
 local ITEM_BIND_ON_EQUIP =
     Enum and Enum.ItemBind and tonumber(Enum.ItemBind.OnEquip) or 2
 
+local function itemIDFromLink(link)
+    if tonumber(link) then return tonumber(link) end
+    return tonumber(tostring(link or ""):match("item:(%d+)"))
+end
+
+local function instantBasics(itemRef)
+    if not itemRef or not GetItemInfoInstant then return nil end
+    local values = { pcall(GetItemInfoInstant, itemRef) }
+    if not values[1] then return nil end
+    return {
+        itemID = tonumber(values[2]),
+        equipLoc = values[5],
+        classID = tonumber(values[7]),
+        subclassID = tonumber(values[8]),
+    }
+end
+
+local function fullBasics(itemRef)
+    local getter = C_Item and C_Item.GetItemInfo or GetItemInfo
+    if not itemRef or not getter then return nil end
+    local values = { pcall(getter, itemRef) }
+    if not values[1] or not values[2] then return nil end
+    return {
+        itemID = itemIDFromLink(values[3]) or itemIDFromLink(itemRef),
+        equipLoc = values[10],
+        classID = tonumber(values[13]),
+        subclassID = tonumber(values[14]),
+        bindingType = tonumber(values[15]),
+    }
+end
+
 local function itemBasics(link)
-    if not link or not GetItemInfoInstant then return nil end
-    local ok, itemID, _, _, equipLoc, _, classID, subclassID =
-        pcall(GetItemInfoInstant, link)
-    if not ok then return nil end
-    return tonumber(itemID), equipLoc, tonumber(classID), tonumber(subclassID)
+    if not link then return nil end
+
+    local parsedItemID = itemIDFromLink(link)
+    local data = instantBasics(link) or {}
+
+    if parsedItemID and
+       (not data.itemID or data.equipLoc == nil or data.equipLoc == "" or
+        data.classID == nil or data.subclassID == nil) then
+        local byID = instantBasics(parsedItemID)
+        if byID then
+            data.itemID = data.itemID or byID.itemID
+            if data.equipLoc == nil or data.equipLoc == "" then
+                data.equipLoc = byID.equipLoc
+            end
+            data.classID = data.classID or byID.classID
+            data.subclassID = data.subclassID or byID.subclassID
+        end
+    end
+
+    if not data.itemID or data.equipLoc == nil or data.equipLoc == "" or
+       data.classID == nil or data.subclassID == nil then
+        local full = fullBasics(data.itemID or parsedItemID or link)
+        if full then
+            data.itemID = data.itemID or full.itemID
+            if data.equipLoc == nil or data.equipLoc == "" then
+                data.equipLoc = full.equipLoc
+            end
+            data.classID = data.classID or full.classID
+            data.subclassID = data.subclassID or full.subclassID
+            data.bindingType = full.bindingType
+        end
+    end
+
+    data.itemID = data.itemID or parsedItemID
+    return data
 end
 
 local function itemLevel(link)
@@ -134,21 +195,56 @@ local function strictStatDominance(candidateLink, equippedLink)
     return improved, positiveDelta
 end
 
-local function equippable(link, equipLoc)
-    if C_Item and C_Item.IsEquippableItem then
-        local ok, value = pcall(C_Item.IsEquippableItem, link)
-        if ok then return value and true or false end
-    end
-    if IsEquippableItem then
-        local ok, value = pcall(IsEquippableItem, link)
-        if ok then return value and true or false end
+local function equippable(itemID, link, equipLoc)
+    local diagnostics = {
+        itemID = itemID,
+        equipLoc = equipLoc,
+        modernByID = nil,
+        modernByLink = nil,
+        legacyByID = nil,
+        legacyByLink = nil,
+        usedEquipLocFallback = false,
+    }
+
+    if not equipLoc or not EQUIP_SLOT[equipLoc] then
+        return false, diagnostics
     end
 
-    -- Forever builds may omit the helper while still exposing a valid
-    -- inventory type. In that case the equip location is the capability-safe
-    -- fallback; the actual equip call remains outside combat and can still
-    -- fail without damaging the item.
-    return equipLoc and EQUIP_SLOT[equipLoc] ~= nil or false
+    local function probe(target, field, fn)
+        if not target or not fn then return false end
+        local ok, value = pcall(fn, target)
+        if ok then
+            diagnostics[field] = value and true or false
+            return value and true or false
+        end
+        diagnostics[field] = "error"
+        return false
+    end
+
+    if C_Item and C_Item.IsEquippableItem then
+        if probe(itemID, "modernByID", C_Item.IsEquippableItem) then
+            return true, diagnostics
+        end
+        if probe(link, "modernByLink", C_Item.IsEquippableItem) then
+            return true, diagnostics
+        end
+    end
+
+    if IsEquippableItem then
+        if probe(itemID, "legacyByID", IsEquippableItem) then
+            return true, diagnostics
+        end
+        if probe(link, "legacyByLink", IsEquippableItem) then
+            return true, diagnostics
+        end
+    end
+
+    -- Forever can report false here while GetItemInfoInstant already exposes a
+    -- valid equipment slot. Treat INVTYPE_* as the primary equipment signal;
+    -- class/proficiency, binding, weapon safety, combat and the actual equip
+    -- operation are still checked separately.
+    diagnostics.usedEquipLocFallback = true
+    return true, diagnostics
 end
 
 local function activeProfile()
@@ -185,13 +281,52 @@ local function weightedScore(link, profile)
 end
 
 function Gear:EvaluateItemLink(link)
-    local itemID, equipLoc, itemClassID, itemSubclassID = itemBasics(link)
-    local slot = equipLoc and EQUIP_SLOT[equipLoc] or nil
-    if not itemID or not slot or not equippable(link, equipLoc) then
-        return nil, "not_safely_equippable"
+    local basics = itemBasics(link) or {}
+    local itemID = tonumber(basics.itemID)
+    local equipLoc = basics.equipLoc
+    local itemClassID = tonumber(basics.classID)
+    local itemSubclassID = tonumber(basics.subclassID)
+
+    if not itemID then
+        return nil, "item_data_pending", {
+            link = link,
+            itemID = itemIDFromLink(link),
+            equipLoc = equipLoc,
+        }
     end
+
+    if equipLoc == nil or equipLoc == "" then
+        if C_Item and C_Item.RequestLoadItemDataByID then
+            pcall(C_Item.RequestLoadItemDataByID, itemID)
+        end
+        return nil, "item_data_pending", {
+            link = link,
+            itemID = itemID,
+            equipLoc = equipLoc,
+        }
+    end
+
+    local slot = EQUIP_SLOT[equipLoc]
+    if not slot then
+        return nil, "not_equipment", {
+            itemID = itemID,
+            equipLoc = equipLoc,
+        }
+    end
+
+    local canEquip, equipDiagnostics =
+        equippable(itemID, link, equipLoc)
+    if not canEquip then
+        return nil, "not_safely_equippable", equipDiagnostics
+    end
+
     if not armorProficiencySafe(itemClassID, itemSubclassID) then
-        return nil, "armor_proficiency"
+        return nil, "armor_proficiency", {
+            itemID = itemID,
+            equipLoc = equipLoc,
+            classID = itemClassID,
+            subclassID = itemSubclassID,
+        }
     end
 
     local level = itemLevel(link)
@@ -271,6 +406,8 @@ function Gear:EvaluateItemLink(link)
         isWeapon = WEAPON_LOC[equipLoc] and true or false,
         confidence = confidence,
         upgrade = upgrade,
+        bindingType = basics.bindingType,
+        equipDiagnostics = equipDiagnostics,
     }
 end
 
@@ -281,19 +418,39 @@ function Gear:Refresh(reason)
     local best = nil
     local pendingItemData = false
     local rejected = {}
+    local rejectionSamples = {}
 
     for _, item in ipairs(inventory.bags or {}) do
-        local result, rejectReason = self:EvaluateItemLink(item.link)
+        local result, rejectReason, rejectDiagnostics =
+            self:EvaluateItemLink(item.link)
+
         if result and result.upgrade then
             result.bag = item.bag
             result.bagSlot = item.slot
             result.isBound = item.isBound
-            result.bindingType = item.bindingType
+            result.bindingType = item.bindingType or result.bindingType
+
+            if result.bindingType == nil and
+               C_Item and C_Item.RequestLoadItemDataByID then
+                pcall(C_Item.RequestLoadItemDataByID, result.itemID)
+            end
+
             if not best or result.score > best.score then best = result end
         elseif rejectReason then
             rejected[rejectReason] = (rejected[rejectReason] or 0) + 1
-            if rejectReason == "item_level_unknown" then
+            if rejectReason == "item_level_unknown" or
+               rejectReason == "item_data_pending" then
                 pendingItemData = true
+            end
+
+            if #rejectionSamples < 8 then
+                rejectionSamples[#rejectionSamples + 1] = {
+                    itemID = item.itemID or itemIDFromLink(item.link),
+                    bag = item.bag,
+                    bagSlot = item.slot,
+                    reason = rejectReason,
+                    diagnostics = rejectDiagnostics,
+                }
             end
         end
     end
@@ -307,10 +464,27 @@ function Gear:Refresh(reason)
         end)
     end
 
+    if best and MG.db and MG.db.settings and
+       MG.db.settings.gearProtectBoE and best.isBound ~= true and
+       tonumber(best.bindingType) == nil then
+        pendingItemData = true
+        if C_Item and C_Item.RequestLoadItemDataByID then
+            pcall(C_Item.RequestLoadItemDataByID, best.itemID)
+        end
+    end
+
     self.bestUpgrade = best
 
     local autoEquipRequested = false
-    local autoEquipReason = best and "not_attempted" or "no_upgrade"
+    local autoEquipEnabled = MG.db and MG.db.settings and
+        MG.db.settings.gearAutoEquip and true or false
+    local autoEquipReason
+    if not autoEquipEnabled then
+        autoEquipReason = "disabled"
+    else
+        autoEquipReason = best and "not_attempted" or "no_upgrade"
+    end
+
     if best then
         autoEquipRequested, autoEquipReason = self:TryAutoEquip(best)
     end
@@ -336,7 +510,10 @@ function Gear:Refresh(reason)
             autoEquipReason = autoEquipReason,
             lastAutoEquip = previousGear.lastAutoEquip,
             rejected = rejected,
+            rejectionSamples = rejectionSamples,
             pendingItemData = pendingItemData,
+            autoEquipEnabled = autoEquipEnabled,
+            equipDiagnostics = best and best.equipDiagnostics or nil,
         }
     end
 

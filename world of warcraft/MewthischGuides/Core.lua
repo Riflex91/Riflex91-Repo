@@ -2,7 +2,7 @@ local addonName, MG = ...
 _G.MewthischGuides = MG
 _G.ForeverGuide = MG
 
-MG.VERSION = "0.11.5"
+MG.VERSION = "0.11.6"
 MG.INTERFACE = 16001
 MG.NAME = "Mewthisch Guides"
 MG.heartbeatTicker = nil
@@ -192,8 +192,10 @@ frame:SetScript("OnEvent", function(_, event, ...)
             if MG.Sync then MG.Sync:Inventory(event) end
         end
 
-        if ITEM_DATA_EVENTS[event] and MG.db and MG.db.settings and
-           MG.db.settings.gearAutoEquip and MG.Sync then
+        if ITEM_DATA_EVENTS[event] and MG.Sync then
+            -- Item metadata can arrive after the first bag scan. Always
+            -- refresh gear recommendations so toggling Auto-Equip never
+            -- depends on stale or incomplete item information.
             MG.Sync:Inventory(event)
         end
 

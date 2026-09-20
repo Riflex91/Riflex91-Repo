@@ -37,9 +37,10 @@ local function safeBoundState(bag, slot, info)
 end
 
 local function safeBindingType(link)
-    if not link or not GetItemInfo then return nil end
-    local values = { pcall(GetItemInfo, link) }
-    if not values[1] then return nil end
+    local getter = C_Item and C_Item.GetItemInfo or GetItemInfo
+    if not link or not getter then return nil end
+    local values = { pcall(getter, link) }
+    if not values[1] or not values[2] then return nil end
 
     -- GetItemInfo bindType is the 14th return value. pcall adds the success
     -- boolean at index 1, so the binding type is stored at index 15.

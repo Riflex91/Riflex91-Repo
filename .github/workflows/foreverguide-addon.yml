@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.11.5
+name: Mewthisch Guides addon v0.11.6
 
 on:
   workflow_dispatch:
@@ -519,12 +519,15 @@ jobs:
               return 6124,"Armor","Cloth","INVTYPE_LEGS",0,4,1
             elseif link=="mail-gloves" then
               return 2653,"Armor","Mail","INVTYPE_HAND",0,4,3
+            elseif link=="nomad-belt" or link==4954 then
+              return 4954,"Armor","Leather","INVTYPE_WAIST",0,4,2
             end
             return 1001,"Armor","Leather","INVTYPE_CHEST",0,4,2
           end
           GetDetailedItemLevelInfo=function(link)
             if link=="frayed-pants" or link=="novice-pants" then return 1 end
             if link=="mail-gloves" then return 2 end
+            if link=="nomad-belt" then return 5 end
             if link=="candidate" then return 20 end
             if link=="equipped" then return 10 end
           end
@@ -532,9 +535,10 @@ jobs:
             if link=="frayed-pants" then return {RESISTANCE0_NAME=4} end
             if link=="novice-pants" then return {RESISTANCE0_NAME=2} end
             if link=="mail-gloves" then return {RESISTANCE0_NAME=35} end
+            if link=="nomad-belt" then return {RESISTANCE0_NAME=19} end
             return {}
           end
-          IsEquippableItem=function() return true end
+          IsEquippableItem=function() return false end
           IsUsableItem=function() return false end
           GetInventoryItemLink=function(_,slot)
             if slot==7 then return "novice-pants" end
@@ -555,6 +559,13 @@ jobs:
           local pants=assert(MG.GearAdvisor:EvaluateItemLink("frayed-pants"))
           assert(pants.upgrade and pants.scoreModel=="strict-stat-dominance")
           assert(pants.slot==7 and pants.statDelta==2)
+
+          local belt=assert(MG.GearAdvisor:EvaluateItemLink("nomad-belt"))
+          assert(belt.upgrade and belt.slot==6,
+            "empty waist slot must accept the Nomad belt candidate")
+          assert(belt.equipDiagnostics and
+                 belt.equipDiagnostics.usedEquipLocFallback==true,
+            "valid INVTYPE_WAIST must survive false equippable helper results")
 
           local rejected,rejectReason=MG.GearAdvisor:EvaluateItemLink("mail-gloves")
           assert(rejected==nil and rejectReason=="armor_proficiency",
@@ -648,7 +659,7 @@ jobs:
           print("Seven-theme contract PASS")
           LUA
 
-      - name: Validate v0.11.5 static contract
+      - name: Validate v0.11.6 static contract
         shell: bash
         run: |
           set -euo pipefail
@@ -657,7 +668,7 @@ jobs:
           UI="$ROOT/UI.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
-          grep -q '^## Version: 0.11.5$' "$TOC"
+          grep -q '^## Version: 0.11.6$' "$TOC"
           grep -q '^## OptionalDeps: ElvUI, EllesmereUI, ElvUI_ToxiUI$' "$TOC"
           grep -q '^ManualRoute.lua$' "$TOC"
           grep -q '^WorldMapMarker.lua$' "$TOC"
@@ -681,6 +692,9 @@ jobs:
           grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
           grep -q 'bindingType' "$ROOT/Inventory.lua"
           grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
+          grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
+          grep -q 'autoEquipReason = "disabled"' "$ROOT/GearAdvisor.lua"
           grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
           grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
           grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
@@ -733,11 +747,11 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.11.5.zip MewthischGuides
+          zip -r MewthischGuides-v0.11.6.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.11.5
-          path: artifacts/MewthischGuides-v0.11.5.zip
+          name: MewthischGuides-v0.11.6
+          path: artifacts/MewthischGuides-v0.11.6.zip
           if-no-files-found: error
