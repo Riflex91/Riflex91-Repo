@@ -18,6 +18,7 @@ import {
 } from "./r12-live/cdp.mjs";
 import {
   beobachteBankCanaryReadOnly,
+  validiereBankCanaryBeobachtung,
 } from "./bank-planen-canary-browser.mjs";
 
 export const BANK_PLANEN_CANARY_CAPABILITY = "merchant.bank.planen";
@@ -159,9 +160,12 @@ export async function fuehreBankPlanenCanaryMitBeobachtung({
   jetztMs,
   hostOptionen = {},
 }) {
-  if (!Number.isSafeInteger(jetztMs) || jetztMs < 0) {
+  if (!Number.isSafeInteger(jetztMs)
+      || jetztMs < 0
+      || jetztMs > Number.MAX_SAFE_INTEGER - 10) {
     throw new Error("BANK_CANARY_ZEIT_UNGUELTIG");
   }
+  validiereBankCanaryBeobachtung(beobachtung);
 
   const host = await erstelleNodeV5ProduktionsHost(hostOptionen);
   let gestartet = false;
