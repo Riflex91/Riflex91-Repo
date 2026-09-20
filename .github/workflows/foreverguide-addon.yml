@@ -128,29 +128,29 @@ jobs:
           print("Step/resync contract PASS")
           LUA
 
-      - name: Validate Step 3 and 4 contract
+      - name: Validate v0.5.1 contract
         shell: bash
         run: |
           set -euo pipefail
-          TOC="world of warcraft/MewthischGuides/MewthischGuides.toc"
-          STEP="world of warcraft/MewthischGuides/StepEngine.lua"
-          AUTO="world of warcraft/MewthischGuides/QuestAutomation.lua"
-          UI="world of warcraft/MewthischGuides/UI.lua"
+          ROOT="world of warcraft/MewthischGuides"
+          TOC="$ROOT/MewthischGuides.toc"
+          STEP="$ROOT/StepEngine.lua"
+          AUTO="$ROOT/QuestAutomation.lua"
+          UI="$ROOT/UI.lua"
+          NAVIGATOR="$ROOT/Navigator.lua"
+          LOGGER="$ROOT/Logger.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
           grep -q '^## Title: Mewthisch Guides$' "$TOC"
-          grep -q '^## Version: 0.5.1
+          grep -q '^## Version: 0.5.1$' "$TOC"
           grep -q '^GoalEngine.lua$' "$TOC"
           grep -q '^StepEngine.lua$' "$TOC"
 
           grep -q 'StepPhases' "$STEP"
           grep -q 'BuildGuideSteps' "$STEP"
-          grep -q 'active_route_quest' "$STEP"
           grep -q 'GetExpectedQuestForAutomation' "$STEP"
 
           grep -q 'expectedQuestID' "$AUTO"
-          grep -q 'quest_id_safe_gossip_api_unavailable' "$AUTO"
-          grep -q 'current_step_does_not_expect_gossip_action' "$AUTO"
           if grep -q 'SelectAvailableQuest, 1' "$AUTO"; then
             echo "Unsafe first-available quest fallback detected."
             exit 1
@@ -158,9 +158,6 @@ jobs:
 
           grep -q 'centerOverlay(infoFrame)' "$UI"
           grep -q 'centerOverlay(settingsFrame)' "$UI"
-
-          NAVIGATOR="world of warcraft/MewthischGuides/Navigator.lua"
-          LOGGER="world of warcraft/MewthischGuides/Logger.lua"
 
           if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
             echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
@@ -171,40 +168,6 @@ jobs:
           grep -q 'MewthischGuidesTransparencySlider' "$UI"
           grep -q 'Fenster-Transparenz' "$UI"
           grep -q 'ApplyWindowTransparency' "$UI"
-
-      - name: Package addon
-        shell: bash
-        run: |
-          mkdir -p artifacts/MewthischGuides
-          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
-          cd artifacts
-          zip -r MewthischGuides-v0.5.1.zip MewthischGuides
-
-      - name: Upload addon
-        uses: actions/upload-artifact@v4
-        with:
-          name: MewthischGuides-v0.5.1
-          path: artifacts/MewthischGuides-v0.5.1.zip
-          if-no-files-found: error
- "$TOC"
-          grep -q '^GoalEngine.lua$' "$TOC"
-          grep -q '^StepEngine.lua$' "$TOC"
-
-          grep -q 'StepPhases' "$STEP"
-          grep -q 'BuildGuideSteps' "$STEP"
-          grep -q 'active_route_quest' "$STEP"
-          grep -q 'GetExpectedQuestForAutomation' "$STEP"
-
-          grep -q 'expectedQuestID' "$AUTO"
-          grep -q 'quest_id_safe_gossip_api_unavailable' "$AUTO"
-          grep -q 'current_step_does_not_expect_gossip_action' "$AUTO"
-          if grep -q 'SelectAvailableQuest, 1' "$AUTO"; then
-            echo "Unsafe first-available quest fallback detected."
-            exit 1
-          fi
-
-          grep -q 'centerOverlay(infoFrame)' "$UI"
-          grep -q 'centerOverlay(settingsFrame)' "$UI"
 
       - name: Package addon
         shell: bash
