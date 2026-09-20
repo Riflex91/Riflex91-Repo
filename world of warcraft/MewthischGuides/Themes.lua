@@ -205,11 +205,11 @@ Themes.ellesmereRegistered = Themes.ellesmereRegistered or false
 
 function Themes:RegisterEllesmereSkin()
     if self.ellesmereRegistered then return end
-    self.ellesmereRegistered = true
 
     local EUI = _G.EllesmereUI
     if type(EUI) ~= "table" or type(EUI.RegisterSkin) ~= "function" then return end
 
+    self.ellesmereRegistered = true
     EUI.RegisterSkin("MewthischGuides", function(S)
         Themes.ellesmereSkin = S
 
