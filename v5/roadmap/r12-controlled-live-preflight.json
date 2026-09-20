@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-20",
   "phase": "R12",
-  "status": "BLOCKIERT",
+  "status": "TESTGATE_VORBEREITET_HOST_STOP_ERFORDERLICH",
   "ziel": {
     "actionContractId": "AL-ACTION-EQUIP",
     "recoveryContractId": "AL-RECOVERY-EQUIP",
@@ -30,7 +30,8 @@
   },
   "readiness": {
     "status": "GESPERRT",
-    "controlledLiveErlaubt": false
+    "breiteRuntimeFreigabe": false,
+    "controlledLiveTestgateErlaubt": true
   },
   "lokaleUmgebung": {
     "quelle": "Supabase public.aio_debug_telemetry_latest (sanitisiert, keine Secrets)",
@@ -50,7 +51,9 @@
       "quotaBlocked": true,
       "reconciliationRequired": true
     },
-    "rawGameplayActionAuthority": false
+    "rawGameplayActionAuthority": false,
+    "aktuelleAltRuntimeMussVorTestGestopptWerden": true,
+    "v3CheckpointQuotaIstKeinV5Persistenzpfad": true
   },
   "remoteSteuerung": {
     "genericRemoteCommandEndpoint": false,
@@ -59,24 +62,26 @@
       "bot-debug-ingest",
       "bot-chatgpt-signal-control"
     ],
-    "bridgeVertrag": "Die Windows Bridge besitzt laut ops/windows-bridge/README.md keine Gameplay-Autoritaet und keinen generischen JavaScript-, Shell-, Movement-, Combat-, Merchant-, Update- oder Remote-Command-Endpunkt."
+    "bridgeVertrag": "Die Windows Bridge besitzt laut ops/windows-bridge/README.md keine Gameplay-Autoritaet und keinen generischen JavaScript-, Shell-, Movement-, Combat-, Merchant-, Update- oder Remote-Command-Endpunkt.",
+    "controlledLiveUeberBridge": false,
+    "controlledLivePfad": "Lokaler V5 One-Shot-Runner ueber loopback CDP; Bridge bleibt ohne Gameplay-Autoritaet."
   },
   "blocker": [
-    "Globale V5-Readiness ist GESPERRT.",
-    "Aktuelle lokale Runtime-Health ist DEGRADED mit SNAPSHOT_STALE.",
-    "Recovery empfiehlt HOST_RESTART und meldet hostActionRequired=true.",
-    "Kritischer Alert-Spool ist voll (250/250).",
-    "Checkpoint-Pfad meldet Quota-Druck und reconciliationRequired.",
-    "Es existiert absichtlich kein Remote-Gameplay-/Host-Restart-Endpunkt fuer die Bridge.",
-    "Ein echter V5-Execution-Adapter darf vor formaler Runtime-Freigabe nicht angelegt/aktiviert werden."
+    "Die aktuell laufende V3/V4-Gameplay-Runtime muss vor dem One-Shot gestoppt sein.",
+    "Adventure-Land-Codekontext muss ueber loopback CDP direkt erreichbar sein.",
+    "Direkte Live-Evidence muss unmittelbar vor Admission GESUND sein: nicht tot, nicht bewegt, kein Ziel, kein Aggro.",
+    "D:\\\\AdventureLand-V5 muss erreichbar sein und mindestens 15 Prozent freie Reserve besitzen.",
+    "Es darf keine offene V5-R12-Transaktion im lokalen durable Journal existieren.",
+    "Ein eindeutig sicherer Inventory-/Equipment-Kandidat muss lokal beobachtbar sein."
   ],
   "freigabeBedingungen": [
-    "Lokaler Host/Browser neu gestartet und frische Health-Evidence = GESUND.",
-    "Keine aktive Recovery-/Reconciliation-Sperre.",
-    "Kritischer Alert-Spool nicht voll.",
-    "V5-Readiness = FREIGEGEBEN.",
-    "Exakter V5-Build-/Konfigurations-/Knowledge-Fingerprint gepinnt.",
-    "Operator-Freigabe fuer genau eine equip-Action.",
-    "Danach echter Controlled-Live-Nachweis mit gameWrites=1 und unerwarteteGameWrites=0."
+    "R12 Shadow BESTANDEN.",
+    "Alte V3/V4-Gameplay-Runtime gestoppt.",
+    "Direkte Character-/Inventory-/Equipment-Evidence frisch und gesund.",
+    "V5-Datenpfad D:\\\\AdventureLand-V5 gesund und durable beschreibbar.",
+    "Keine offene V5-R12-Transaktion.",
+    "Explizite Operator-Bestaetigung R12-EQUIP-ONCE.",
+    "Danach exakt eine equip-Action; UNKNOWN/Partial niemals Same-Intent-Retry.",
+    "Erfolg nur bei postcondition-verifiziertem gameWrites=1 und unerwarteteGameWrites=0."
   ]
 }
