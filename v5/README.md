@@ -128,3 +128,14 @@ Die Bediener-Richtlinie ist deny-only: Faehigkeitssperren und Nothalt koennen Au
 Maschinenlesbarer Abschluss: `roadmap/r7-abschluss.json`.
 
 Aktuelle Phase ist R8. Das Gameplay-Runtime-Gesamtgate bleibt `GESPERRT`; der lokale Windows-Bridge-Deploymentstand bleibt separat zu verifizieren.
+
+
+## R8 – Workflow Scheduler und Ressourcen
+
+R8 ist formal abgeschlossen. V5 besitzt jetzt gepinnte Ablaufvertraege, deterministische Prioritaetsklassen mit Aging/Deadline/Ressourcenlokalitaet, Safe-Preemption, all-or-nothing Ressourcenclaims, Action-Channel-Serialisierung, langlebige Lease-Epochen mit Fencing sowie bounded Retry/Backoff/scoped Circuits.
+
+Mutierende Action-Channels werden nur zusammen mit ihrem exklusiven Channel-Claim und dem character-globalen Socket-Planbudget koordiniert. Der initiale Planwert bleibt 100 gewichtete Punkte je 4000 ms bei verifizierter Servergrenze 200; die Reserve bleibt unverplant. Abgelaufene Leases verlangen Abgleich vor Neuvergabe, stale Fencing-Tokens bleiben wirkungslos.
+
+Maschinenlesbarer Abschluss: `roadmap/r8-abschluss.json`.
+
+Aktuelle Phase ist R9. Das Gameplay-Runtime-Gesamtgate bleibt `GESPERRT`; R8 besitzt weiterhin keine Gameplay- oder Raw-Write-Autoritaet.
