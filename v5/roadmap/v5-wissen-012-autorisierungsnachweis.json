@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "kennung": "V5_WISSEN_012_AUTORISIERUNGSNACHWEIS",
+  "anforderung": "V5-ANF-WISSEN-012",
+  "status": "NACHGEWIESEN",
+  "evidenzArt": "BETREIBER_BESTAETIGUNG_PLUS_AUTOMATISCHER_READINESS_BERICHT",
+  "bridgeReadiness": {
+    "test": "V5_WINDOWS_BRIDGE_READINESS",
+    "testVersion": "1.1.0",
+    "bridgeAssemblyVersion": "1.0.0.0",
+    "erstelltAm": "2026-09-20T13:01:51.9198847+00:00",
+    "status": "AUTOMATISCHE_PRUEFUNGEN_BESTANDEN_MANUELLER_AUTORISIERUNGSNACHWEIS_OFFEN",
+    "githubKonto": "Riflex91",
+    "automatischePflichtpunkteBestanden": true,
+    "tempArbeitskopieCleanup": "BESTANDEN",
+    "knowledgeRepoLivePruefung": "BESTANDEN"
+  },
+  "manuellerNachweis": {
+    "bestaetigtAm": "2026-09-20",
+    "bestaetigungQuelle": "BETREIBER_INTERAKTIV",
+    "resourceOwner": "Riflex91",
+    "repositoryAccess": "ONLY_SELECT_REPOSITORIES",
+    "repositories": [
+      "Riflex91-Repo"
+    ],
+    "repositoryPermissions": {
+      "contents": "READ_AND_WRITE",
+      "metadata": "READ_AUTOMATISCH"
+    },
+    "keineZusaetzlichenSchreibrechte": [
+      "Actions",
+      "Administration",
+      "Secrets",
+      "Environments",
+      "Deployments",
+      "Workflows"
+    ],
+    "tokenwertErfasst": false,
+    "tokenwertImRepository": false
+  },
+  "bewertung": {
+    "repositoryBegrenzt": true,
+    "leastPrivilege": true,
+    "authModus": "FINE_GRAINED_PAT",
+    "anforderungErfuellt": true
+  },
+  "sicherheit": {
+    "gameplayWritesDurchNachweis": 0,
+    "knowledgePushDurchReadinessTest": false,
+    "tokenwertNichtGespeichert": true,
+    "breiteRuntimeFreigabe": false,
+    "gesamtfreigabe": "SEPARAT_AUSSTEHEND"
+  },
+  "hinweis": "Der Berechtigungsumfang wurde durch den Betreiber manuell bestaetigt; der Tokenwert selbst wurde weder im Readiness-Bericht noch im Repository erfasst. Dieser Nachweis schliesst V5-ANF-WISSEN-012, erteilt aber keine breite Gameplay-Runtime-Gesamtfreigabe."
+}
