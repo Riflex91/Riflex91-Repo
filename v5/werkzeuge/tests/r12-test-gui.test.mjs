@@ -82,3 +82,12 @@ test("Paste-Paket enthaelt GUI vor Controller und keine Fremdquelle", () => {
   assert.equal(paket.includes("fetch("), false);
   assert.equal(paket.includes("XMLHttpRequest"), false);
 });
+
+
+test("R12 aktiviert performance_trick und blockiert ohne aktiven Anti-Throttle-Loop", () => {
+  assert.ok(gui.includes("aktivierePerformanceTrick"));
+  assert.ok(gui.includes("performanceTrickStatus"));
+  assert.ok(controller.includes("guiApi().aktivierePerformanceTrick()"));
+  assert.ok(controller.includes("PERFORMANCE_TRICK_NICHT_AKTIV"));
+  assert.ok(paket.includes("performance_trick"));
+});
