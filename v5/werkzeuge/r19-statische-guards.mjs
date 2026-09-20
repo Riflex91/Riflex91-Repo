@@ -13,17 +13,23 @@ const pflicht=[
   "grundlage/adapter/persistenz/node-produktions-dateisystem.mjs",
   "grundlage/adapter/persistenz/node-produktions-operations-quelle.mjs",
   "grundlage/adapter/persistenz/node-planen-aktivierungs-protokoll.mjs",
+  "grundlage/adapter/persistenz/node-bediener-deny-protokoll.mjs",
   "grundlage/quelle/merchant/modul-vertrag.ts",
   "grundlage/quelle/merchant/faehigkeits-vertrag.ts",
   "grundlage/quelle/merchant/demand.ts",
   "grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json",
   "grundlage/vertraege/runtime/durable-planen-authority.json",
   "grundlage/vertraege/runtime/produktions-operations-feed.json",
+  "grundlage/vertraege/runtime/node-produktions-host-komposition.json",
   "architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md",
   "architektur/adr/ADR-027-KONTROLLIERTE-PLANEN-AKTIVIERUNG.md",
   "architektur/adr/ADR-028-DURABLE-PLANEN-AUTHORITY.md",
   "architektur/adr/ADR-029-PRODUKTIVER-OPERATIONS-FEED.md",
+  "architektur/adr/ADR-030-KANONISCHE-NODE-HOST-KOMPOSITION.md",
   "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
+  "grundlage/tests/r11-bediener-deny-persistenz.test.mjs",
+  "grundlage/tests/r11-node-produktions-host-komposition.test.mjs",
+  "werkzeuge/v5-produktions-host-komposition.mjs",
   "grundlage/tests/r11-produktions-host-controller.test.mjs",
   "grundlage/tests/r11-produktions-operations-quelle.test.mjs",
   "grundlage/tests/r11-planen-aktivierung.test.mjs",
@@ -178,6 +184,58 @@ if(operationsVertrag.health?.kanonischeHealthId!=="produktiver-speicher"
     || operationsVertrag.authority?.actionAuthority!==false
     || operationsVertrag.mutierendeCapabilitiesDurchDiesenVertrag!==0) {
   fehler.push("PRODUKTIONS_OPERATIONS_VERTRAG_UNGUELTIG");
+}
+
+const bedienerDenyAdapter=lies(
+  "grundlage/adapter/persistenz/node-bediener-deny-protokoll.mjs",
+);
+for(const m of [
+  "runtime/operator/deny.jsonl",
+  "MAXIMALE_EINTRAEGE = 4096",
+  "MAXIMALE_BYTES = 5_000_000",
+  "ladeWirksameDenyBefehle",
+  "BEDIENER_PROTOKOLL_WIRKUNG_WIDERSPRUCH",
+  "BEDIENER_PROTOKOLL_BEFEHL_ID_KOLLISION",
+]){
+  if(!bedienerDenyAdapter.includes(m)) {
+    fehler.push("BEDIENER_DENY_RESTART_GRENZE_FEHLT:"+m);
+  }
+}
+const nodeHostKomposition=lies("werkzeuge/v5-produktions-host-komposition.mjs");
+for(const m of [
+  "erstelleNodeV5ProduktionsHost",
+  "NodeBedienerDenyProtokoll",
+  "ladeWirksameDenyBefehle",
+  "NodePlanenAktivierungsProtokoll",
+  "NodeProduktionsOperationsQuelle",
+  "V5ProduktionsHostController",
+]){
+  if(!nodeHostKomposition.includes(m)) {
+    fehler.push("NODE_PRODUKTIONS_HOST_KOMPOSITION_FEHLT:"+m);
+  }
+}
+for(const verboten of [
+  "kernKomponenten(",
+  "aktiviereNichtMutierend(",
+  "erfasseOperationsMetrik(",
+]){
+  if(nodeHostKomposition.includes(verboten)) {
+    fehler.push("NODE_PRODUKTIONS_HOST_BYPASS_VERBOTEN:"+verboten);
+  }
+}
+const nodeHostVertrag=JSON.parse(
+  lies("grundlage/vertraege/runtime/node-produktions-host-komposition.json"),
+);
+if(nodeHostVertrag.operatorDeny?.restartReplayErforderlich!==true
+    || nodeHostVertrag.operatorDeny?.allowBefehlVorhanden!==false
+    || nodeHostVertrag.komposition?.runtimeBypassExponiert!==false
+    || nodeHostVertrag.komposition?.registerBypassExponiert!==false
+    || nodeHostVertrag.komposition?.postStartRevalidierungsfehlerStopptRuntime!==true
+    || nodeHostVertrag.authority?.gameplayAutoritaet!==false
+    || nodeHostVertrag.authority?.rawWriteAutoritaet!==false
+    || nodeHostVertrag.authority?.actionAuthority!==false
+    || nodeHostVertrag.mutierendeCapabilitiesDurchDiesenVertrag!==0) {
+  fehler.push("NODE_PRODUKTIONS_HOST_VERTRAG_UNGUELTIG");
 }
 
 const merchantDemand=lies("grundlage/quelle/merchant/demand.ts");
