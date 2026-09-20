@@ -7,6 +7,7 @@ local DEFAULT_SETTINGS = {
     showWindow = true,
     showInfo = false,
     showSettings = false,
+    viewerCollapsed = false,
     diagnostics = true,
     autoSuperTrack = true,
     autoAcceptQuests = true,
