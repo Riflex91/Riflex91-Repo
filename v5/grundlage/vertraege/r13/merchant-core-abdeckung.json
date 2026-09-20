@@ -3,7 +3,7 @@
   "stand": "2026-09-20",
   "phase": "R13",
   "status": "TECHNISCH_BESTANDEN",
-  "referenzHead": "e5315115c4056fa10369acc1e6e43c8680c607fa",
+  "referenzHead": "4345e838004290923eb9b0e6913b02cdcc5fc997",
   "runtimeGate": "GESPERRT",
   "gameplayAutoritaet": false,
   "rawWriteAutoritaet": false,
@@ -92,7 +92,7 @@
   },
   "regression": {
     "r3BisR13UndWissensgate": "GRUEN",
-    "exactHead": "e5315115c4056fa10369acc1e6e43c8680c607fa"
+    "exactHead": "4345e838004290923eb9b0e6913b02cdcc5fc997"
   },
   "hinweis": "R13 implementiert Planning-, Ledger-, Evidence- und Koordinationskern. Es wird keine breite Merchant-Live-Execution freigegeben."
 }
