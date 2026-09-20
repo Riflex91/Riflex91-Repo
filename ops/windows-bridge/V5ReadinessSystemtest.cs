@@ -101,9 +101,9 @@ public sealed class V5ReadinessSystemtest
                 : "ungueltig oder deaktiviert");
 
         Pruefe(
-            "GAMEPLAY_AUTORITAET",
+            "TEST_OHNE_GAMEPLAY_WRITE",
             true,
-            "Readiness-Systemtest fuehrt keine Gameplay-Aktion und keinen Knowledge-Push aus.");
+            "Readiness-Systemtest fuehrt keine Gameplay-Aktion, keinen Raw Game Write und keinen Knowledge-Push aus.");
 
         return punkte;
     }
