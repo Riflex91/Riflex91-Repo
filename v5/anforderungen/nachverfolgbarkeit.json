@@ -624,15 +624,22 @@
       "invarianten": [
         "V5-ALT-022"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/lernen/lern-admission.ts",
+        "v5/grundlage/quelle/lernen/deterministischer-fallback.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r18-admission-evidence.test.mjs",
+        "v5/grundlage/tests/r18-fallback-ranking.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r18NachweisStatus": "R18_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-007",
@@ -2110,15 +2117,20 @@
       "invarianten": [
         "V5-ALT-022"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/lernen/deterministischer-fallback.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r18-fallback-ranking.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r18NachweisStatus": "R18_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-LERN-002",
@@ -2129,15 +2141,20 @@
       "invarianten": [
         "V5-ALT-022"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/lernen/deterministischer-fallback.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r18-fallback-ranking.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r18NachweisStatus": "R18_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-LERN-003",
@@ -2148,15 +2165,20 @@
       "invarianten": [
         "V5-INV-021"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/lernen/lern-admission.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r18-admission-evidence.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r18NachweisStatus": "R18_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-LERN-004",
@@ -2167,15 +2189,22 @@
       "invarianten": [
         "V5-INV-026"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/lernen/modell-liga.ts",
+        "v5/grundlage/quelle/lernen/datenbasis-pin.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r18-modell-liga.test.mjs",
+        "v5/grundlage/tests/r18-admission-evidence.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r18NachweisStatus": "R18_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-UI-001",

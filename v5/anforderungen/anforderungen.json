@@ -542,7 +542,7 @@
       "titel": "Learning kann Safety oder Authority niemals lockern.",
       "phase": "R18",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R18_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-027"
       ],
@@ -551,7 +551,15 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r18NachweisStatus": "R18_NACHGEWIESEN",
+      "r18Nachweise": [
+        "v5/grundlage/quelle/lernen/lern-admission.ts",
+        "v5/grundlage/quelle/lernen/deterministischer-fallback.ts",
+        "v5/grundlage/tests/r18-admission-evidence.test.mjs",
+        "v5/grundlage/tests/r18-fallback-ranking.test.mjs",
+        "v5/grundlage/vertraege/r18/learning-abdeckung.json"
+      ]
     },
     {
       "kennung": "V5-ANF-SICH-007",
@@ -1888,7 +1896,7 @@
       "titel": "Learning darf nur Vorschlaege/Scoring innerhalb harter Grenzen optimieren.",
       "phase": "R18",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R18_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-027"
       ],
@@ -1897,14 +1905,20 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r18NachweisStatus": "R18_NACHGEWIESEN",
+      "r18Nachweise": [
+        "v5/grundlage/quelle/lernen/deterministischer-fallback.ts",
+        "v5/grundlage/tests/r18-fallback-ranking.test.mjs",
+        "v5/grundlage/vertraege/r18/learning-abdeckung.json"
+      ]
     },
     {
       "kennung": "V5-ANF-LERN-002",
       "titel": "Es existiert immer ein sicherer deterministischer Betrieb ohne Learning.",
       "phase": "R18",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R18_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-085"
       ],
@@ -1913,14 +1927,20 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r18NachweisStatus": "R18_NACHGEWIESEN",
+      "r18Nachweise": [
+        "v5/grundlage/quelle/lernen/deterministischer-fallback.ts",
+        "v5/grundlage/tests/r18-fallback-ranking.test.mjs",
+        "v5/grundlage/vertraege/r18/learning-abdeckung.json"
+      ]
     },
     {
       "kennung": "V5-ANF-LERN-003",
       "titel": "Learning darf weder Operator-Deny noch Quarantaene noch Budgets umgehen.",
       "phase": "R18",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R18_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-086"
       ],
@@ -1929,14 +1949,20 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r18NachweisStatus": "R18_NACHGEWIESEN",
+      "r18Nachweise": [
+        "v5/grundlage/quelle/lernen/lern-admission.ts",
+        "v5/grundlage/tests/r18-admission-evidence.test.mjs",
+        "v5/grundlage/vertraege/r18/learning-abdeckung.json"
+      ]
     },
     {
       "kennung": "V5-ANF-LERN-004",
       "titel": "Neue Lernmodelle werden Canary/Champion-Challenger-artig isoliert freigegeben.",
       "phase": "R18",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R18_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-087"
       ],
@@ -1945,7 +1971,15 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r18NachweisStatus": "R18_NACHGEWIESEN",
+      "r18Nachweise": [
+        "v5/grundlage/quelle/lernen/modell-liga.ts",
+        "v5/grundlage/quelle/lernen/datenbasis-pin.ts",
+        "v5/grundlage/tests/r18-modell-liga.test.mjs",
+        "v5/grundlage/tests/r18-admission-evidence.test.mjs",
+        "v5/grundlage/vertraege/r18/learning-abdeckung.json"
+      ]
     },
     {
       "kennung": "V5-ANF-UI-001",

@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R18",
+  "status": "TECHNISCH_BESTANDEN",
+  "referenzHead": "0e67c795147554468864371806afbb113714f007",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "anforderungen": [
+    {
+      "kennung": "V5-ANF-SICH-006",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/lernen/lern-admission.ts",
+        "v5/grundlage/quelle/lernen/deterministischer-fallback.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r18-admission-evidence.test.mjs",
+        "v5/grundlage/tests/r18-fallback-ranking.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-LERN-001",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/lernen/deterministischer-fallback.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r18-fallback-ranking.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-LERN-002",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/lernen/deterministischer-fallback.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r18-fallback-ranking.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-LERN-003",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/lernen/lern-admission.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r18-admission-evidence.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-LERN-004",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/lernen/modell-liga.ts",
+        "v5/grundlage/quelle/lernen/datenbasis-pin.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r18-modell-liga.test.mjs",
+        "v5/grundlage/tests/r18-admission-evidence.test.mjs"
+      ]
+    }
+  ],
+  "exitKriterien": {
+    "deterministicFallbackImmerVerfuegbar": true,
+    "learningNurHardErlaubteKandidaten": true,
+    "scoreEinflussBounded": true,
+    "safetyAuthorityNichtLockerbar": true,
+    "operatorDenyNichtUeberstimmbar": true,
+    "quarantaeneNichtFreigebbar": true,
+    "budgetNichtErhoehbar": true,
+    "retryGrenzeNichtLockerbar": true,
+    "learningEvidenceVersioniert": true,
+    "challengerShadowOnly": true,
+    "promotionBrauchtSaubereEvidence": true,
+    "sampleGapsBlockierenPromotion": true,
+    "gameplayTrafficAuthorityDurchLearning": 0,
+    "rawGameWritesImR18Core": 0
+  },
+  "regression": {
+    "r3BisR18UndWissensgate": "GRUEN",
+    "exactHead": "0e67c795147554468864371806afbb113714f007"
+  },
+  "hinweis": "R18 liefert eine bounded, authority-freie Learning-Schicht. Learning optimiert nur Vorschlaege/Scoring innerhalb harter deterministischer Grenzen."
+}

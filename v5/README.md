@@ -288,3 +288,18 @@ Abschluss: `roadmap/r17-abschluss.json`
 Die breite Gameplay-Runtime bleibt `GESPERRT`.
 
 Aktuelle Phase: **R18 – Learning und Optimierung**.
+
+
+## R18 – Learning und Optimierung abgeschlossen
+
+R18 ist als bounded, authority-freie Learning-Schicht abgeschlossen.
+
+Learning darf nur Ranking/Scoring innerhalb bereits hard-erlaubter Kandidaten beeinflussen. Safety, Authority, Operator-Deny, Quarantaene, Budgets und Retry-Grenzen haben unveraenderlichen Vorrang. Ein deterministischer Fallback bleibt jederzeit voll funktionsfaehig. Challenger starten Shadow-only und koennen nur mit sauberer, versionierter Evidence explizit promotet werden.
+
+Abdeckung: `grundlage/vertraege/r18/learning-abdeckung.json`  
+ADR: `architektur/adr/ADR-021-R18-LEARNING-OPTIMIERUNG.md`  
+Abschluss: `roadmap/r18-abschluss.json`
+
+Die breite Gameplay-Runtime bleibt `GESPERRT`.
+
+Aktuelle Phase: **R19 – 24/7-Zertifizierung**. Automatisierbare Simulator-/Replay-/Fault-/Shadow-Stufen werden zuerst vorbereitet; Controlled Live/Canary ist der naechste manuelle Ingame-Punkt.
