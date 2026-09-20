@@ -129,14 +129,19 @@ public sealed class V5ReadinessSystemtest
 
         if (github.Angemeldet && !string.IsNullOrWhiteSpace(github.Konto))
         {
+            var testWurzel = Path.Combine(
+                Path.GetTempPath(),
+                "AioBotWindowsBridge",
+                "V5Readiness",
+                Guid.NewGuid().ToString("N"));
             try
             {
-                var arbeitskopie = new GitArbeitskopie();
+                var arbeitskopie = new GitArbeitskopie(testWurzel);
                 await arbeitskopie.BereiteVorAsync(github.Konto, cancellationToken);
                 punkte.Add(new V5ReadinessPruefpunkt(
                     "KNOWLEDGE_REPO_LIVE_PRUEFUNG",
                     "BESTANDEN",
-                    "Exaktes Repository erreichbar; main/Knowledge-Branch und Sparse-Checkout wurden fail-closed vorbereitet. Kein Push ausgefuehrt."));
+                    "Exaktes Repository erreichbar; main/Knowledge-Branch und Sparse-Checkout wurden in isolierter Test-Arbeitskopie fail-closed vorbereitet. Kein Push ausgefuehrt."));
             }
             catch (Exception error)
             {
@@ -144,6 +149,18 @@ public sealed class V5ReadinessSystemtest
                     "KNOWLEDGE_REPO_LIVE_PRUEFUNG",
                     "NICHT_BESTANDEN",
                     Begrenze(error.Message)));
+            }
+            finally
+            {
+                try
+                {
+                    if (Directory.Exists(testWurzel))
+                        Directory.Delete(testWurzel, recursive: true);
+                }
+                catch
+                {
+                    // Temporaere Readiness-Arbeitskopie wird beim naechsten Temp-Cleanup entfernt.
+                }
             }
         }
         else
