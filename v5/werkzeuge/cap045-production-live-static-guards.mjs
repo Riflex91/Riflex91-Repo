@@ -26,7 +26,12 @@ for (const marker of [
   "gateEvidence: null",
   "accountId: obs.accountId",
   "sessionId: obs.characterSessionId",
-  "sample.zeitMs - samples[0].zeitMs >= SOAK_DAUER_MS"
+  "sample.zeitMs - samples[0].zeitMs >= SOAK_DAUER_MS",
+  "root?.server?.region",
+  "root?.server?.id",
+  "parentRoot?.server_region",
+  "parentRoot?.server_identifier",
+  "serverBindungQuelle"
 ]) {
   if (!controller.includes(marker)) fehler.push("CAP045_LIVE_MARKER_FEHLT:" + marker);
 }

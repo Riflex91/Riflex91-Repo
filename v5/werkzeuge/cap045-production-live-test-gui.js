@@ -2,7 +2,7 @@
   'use strict';
 
   const API_NAME = 'V5Cap045ProductionLiveTest';
-  const VERSION = '1.0.1';
+  const VERSION = '1.0.2';
   const TESTKENNUNG = 'cap045-production-live-certification';
   const SESSION_KEY = 'AIO_V5_CAP045_PRODUCTION_LIVE_SESSION_V1';
   const JOURNAL_KEY = 'AIO_V5_CAP045_PRODUCTION_LIVE_JOURNAL_V1';
@@ -213,17 +213,76 @@
     });
   }
 
+  function nichtLeererText(wert) {
+    if (wert === null || wert === undefined) return '';
+    const text = String(wert).trim();
+    return text;
+  }
+
+  function serverBindung(root) {
+    let parentRoot = null;
+    try {
+      if (root?.parent && root.parent !== root) parentRoot = root.parent;
+    } catch {}
+    try {
+      if (!parentRoot && parent && parent !== root) parentRoot = parent;
+    } catch {}
+
+    const regionKandidaten = [
+      root?.server_region,
+      root?.server?.region,
+      parentRoot?.server_region,
+      parentRoot?.server?.region
+    ];
+    const identifierKandidaten = [
+      root?.server_identifier,
+      root?.server?.id,
+      parentRoot?.server_identifier,
+      parentRoot?.server?.id
+    ];
+    const serverRegion = regionKandidaten.map(nichtLeererText).find(Boolean) ?? '';
+    const serverIdentifier = identifierKandidaten.map(nichtLeererText).find(Boolean) ?? '';
+    const quelle = root?.server_region && root?.server_identifier
+      ? 'ROOT_LEGACY_GLOBALS'
+      : root?.server?.region && root?.server?.id
+        ? 'RUNNER_SERVER_OBJECT'
+        : parentRoot?.server_region && parentRoot?.server_identifier
+          ? 'PARENT_SERVER_GLOBALS'
+          : parentRoot?.server?.region && parentRoot?.server?.id
+            ? 'PARENT_SERVER_OBJECT'
+            : 'FEHLT';
+    return Object.freeze({ serverRegion, serverIdentifier, quelle });
+  }
+
+  function accountBindung(root) {
+    let parentRoot = null;
+    try {
+      if (root?.parent && root.parent !== root) parentRoot = root.parent;
+    } catch {}
+    try {
+      if (!parentRoot && parent && parent !== root) parentRoot = parent;
+    } catch {}
+    return nichtLeererText(
+      root?.user_id
+      || parentRoot?.user_id
+      || root?.character?.owner
+      || parentRoot?.character?.owner
+    );
+  }
+
   function beobachte() {
     const root = rootFenster();
     const inventar = inventarSnapshot(root);
     const kandidaten = upgradeKandidaten(inventar);
+    const server = serverBindung(root);
     return Object.freeze({
       zeitMs: Date.now(),
       charakter: String(root.character?.name || ''),
-      accountId: String(root.user_id || root.character?.owner || ''),
+      accountId: accountBindung(root),
       characterSessionId: String(root.character?.id || ''),
-      serverRegion: String(root.server_region || ''),
-      serverIdentifier: String(root.server_identifier || ''),
+      serverRegion: server.serverRegion,
+      serverIdentifier: server.serverIdentifier,
+      serverBindungQuelle: server.quelle,
       rip: !!root.character?.rip,
       bewegtSich: !!root.character?.moving,
       ziel: root.character?.target == null ? null : String(root.character.target),
@@ -638,6 +697,11 @@
         evidenceKlasse: 'LIVE',
         coverageAudit: null,
         blocker,
+        serverBindung: Object.freeze({
+          region: obs.serverRegion || null,
+          identifier: obs.serverIdentifier || null,
+          quelle: obs.serverBindungQuelle
+        }),
         zertifiziererGameplayWrites: 0,
         synthetischeEvidenceZaehltAlsLive: false,
         breiteRuntimeFreigabe: false

@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { pruefeProduktionsGraph } from "../erzeugt/index.js";
 
 const TESTKENNUNG = "cap045-production-live-certification";
-const CONTROLLER_VERSION = "1.0.1";
+const CONTROLLER_VERSION = "1.0.2";
 const ACTION_CONTRACT_ID = "AL-ACTION-UPGRADE";
 const RECOVERY_CONTRACT_ID = "AL-RECOVERY-UPGRADE";
 const VERIFIER_ID = "AL-VERIFIER-UPGRADE";
