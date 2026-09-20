@@ -187,6 +187,7 @@
     const storageEstimate = await storageSchaetzung();
     const persistenz = persistenzRoundtrip();
     const runtime = runtimeStatus();
+    const performanceTrick = guiApi().performanceTrickStatus();
 
     const basis = {
       schemaVersion: 1,
@@ -198,6 +199,7 @@
       charakter: String(c?.name || ''),
       rip: !!c?.rip,
       runtime,
+      performanceTrick,
       heap,
       storage: storageEstimate,
       browserPersistenzRoundtripMs: persistenz.roundtripMs,
@@ -226,6 +228,8 @@
     const heapWachstumBytes = ersterHeap === null || maxHeap === null ? null : Math.max(0, maxHeap - ersterHeap);
     const alternativeRuntimeSamples = samples.filter(s => s.runtime?.alternativeRuntimeAktiv === true).length;
     const toteSamples = samples.filter(s => s.rip === true).length;
+    const performanceTrickFehler = samples.filter(s => s.performanceTrick?.aktiv !== true).length;
+    const hiddenSamples = samples.filter(s => s.performanceTrick?.visibilityState === 'hidden').length;
     const dauerMs = letzter ? letzter.zeitMs - session.gestartetAmMs : 0;
     const genugSamples = samples.length >= 20;
     const grenzen = {
@@ -238,7 +242,7 @@
       maximalesHeapWachstumBytes: MAX_HEAP_WACHSTUM_BYTES
     };
     const blocker = [];
-    if (dauerMs < DAUER_MS) blocker.push('DAUER_UNTER_1H');
+    if (dauerMs < DAUER_MS) blocker.push('DAUER_UNTER_5M');
     if (!genugSamples) blocker.push('ZU_WENIGE_SAMPLES');
     if (!validiereKette(samples)) blocker.push('EVIDENCE_KETTE_UNGUELTIG');
     if (gaps !== 0) blocker.push('SAMPLE_GAPS');
@@ -251,6 +255,7 @@
     if (heapWachstumBytes !== null && heapWachstumBytes > MAX_HEAP_WACHSTUM_BYTES) blocker.push('HEAP_WACHSTUM_ZU_GROSS');
     if (alternativeRuntimeSamples !== 0) blocker.push('ALTERNATIVE_RUNTIME_AKTIV');
     if (toteSamples !== 0) blocker.push('CHARAKTER_TOT');
+    if (performanceTrickFehler !== 0) blocker.push('PERFORMANCE_TRICK_AUSGEFALLEN');
     return {
       schemaVersion: 1,
       test: 'R19_SOAK_5M_CANARY_SCOPE',
@@ -281,7 +286,9 @@
       },
       runtime: {
         alternativeRuntimeSamples,
-        toteSamples
+        toteSamples,
+        performanceTrickFehler,
+        hiddenSamples
       },
       grenzen,
       blocker,
@@ -308,10 +315,12 @@
     const estimate = await storageSchaetzung();
     const persistenz = persistenzRoundtrip();
     const runtime = runtimeStatus();
+    const performanceTrick = guiApi().aktivierePerformanceTrick();
     const blocker = [];
     if (!String(root.character?.name || '')) blocker.push('CHARAKTER_FEHLT');
     if (root.character?.rip) blocker.push('CHARAKTER_TOT');
     if (runtime.alternativeRuntimeAktiv) blocker.push('ALTERNATIVE_RUNTIME_AKTIV');
+    if (!performanceTrick.aktiv) blocker.push('PERFORMANCE_TRICK_NICHT_AKTIV');
     if (!heap.unterstuetzt) blocker.push('HEAP_METRIK_FEHLT');
     if (!estimate.unterstuetzt) blocker.push('STORAGE_ESTIMATE_FEHLT');
     if (estimate.freieBytes !== null && estimate.freieBytes < MIN_FREIE_BYTES) blocker.push('SPEICHERRESERVE_ZU_KLEIN');
@@ -323,6 +332,7 @@
       zeitMs: Date.now(),
       charakter: String(root.character?.name || ''),
       runtime,
+      performanceTrick,
       heap,
       storage: estimate,
       browserPersistenzRoundtripMs: persistenz.roundtripMs,
