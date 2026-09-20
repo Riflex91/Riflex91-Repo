@@ -358,6 +358,29 @@
   "freigabe": {
     "r2IstKeineRuntimeFreigabe": true,
     "naechsterGateNachR2": "R3",
-    "runtimeErstWenn": "v5/bereitschaft/laufzeit-bereitschaft.json meldet FREIGEGEBEN und Roadmap erlaubt Runtime"
+    "runtimeErstWenn": "BREITE_GAMEPLAY_RUNTIME erst wenn v5/bereitschaft/laufzeit-bereitschaft.json FREIGEGEBEN meldet und die Roadmap die breite Runtime explizit erlaubt.",
+    "r12ControlledLiveTestgate": {
+      "erlaubt": true,
+      "phase": "R12",
+      "zweck": "Einmaliger, nicht persistenter Controlled-Live-Nachweis vor breiter Runtime-Freigabe.",
+      "actionContractId": "AL-ACTION-EQUIP",
+      "publicFunction": "equip",
+      "maximaleMutationen": 1,
+      "breiteRuntimeFreigabe": false,
+      "persistenteRuntime": false,
+      "hostGameplayAuthority": false,
+      "voraussetzungen": [
+        "R12_SHADOW_BESTANDEN",
+        "EXAKTER_ACTION_RECOVERY_VERIFIER_KONTEXT",
+        "DIREKTE_FRISCHE_LIVE_PRECONDITIONS",
+        "GESUNDE_TEST_HEALTH",
+        "V5_PERSISTENZ_AUF_VORGESEHENEM_DATENPFAD",
+        "KEINE_OFFENE_V5_R12_TRANSAKTION",
+        "KEINE_PARALLELE_V3_V4_GAMEPLAY_RUNTIME",
+        "CAPABILITY_OWNER_RESSOURCEN_FENCING_ACTION_CHANNEL_BUDGET_OPERATOR_DURABLE_INTENT",
+        "POSTCONDITION_RECONCILIATION",
+        "KEIN_SAME_INTENT_RETRY_NACH_MOEGLICHEM_SEND"
+      ]
+    }
   }
 }
