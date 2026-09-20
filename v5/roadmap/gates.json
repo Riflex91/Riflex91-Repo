@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-09-20",
-  "currentPhase": "R17",
+  "currentPhase": "R18",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -347,7 +347,7 @@
     {
       "id": "R17",
       "name": "World Autonomy",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R16"
       ],
@@ -360,7 +360,7 @@
     {
       "id": "R18",
       "name": "Learning Optimierung",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R17"
       ],

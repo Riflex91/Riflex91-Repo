@@ -1,9 +1,9 @@
 {
   "name": "adventure-land-aio-v5",
-  "version": "5.0.0-r16.0",
+  "version": "5.0.0-r17.0",
   "private": true,
   "type": "module",
-  "description": "Adventure Land AiO Bot V5 – R16 Party, Combat, Farming und Navigation mit Arrival-, Motion-, Ownership- und P1B-Safety-Grundlagen.",
+  "description": "Adventure Land AiO Bot V5 – R17 World Autonomy mit Event/Quest-Drift, Unknown-Content-Quarantaene und Server-Hop-Policy.",
   "scripts": {
     "bereinigen": "node werkzeuge/r3-bereinigen.mjs",
     "bauen": "npm run bereinigen && tsc -p tsconfig.json",
@@ -45,7 +45,9 @@
     "r15:test": "npm run grundlage:test",
     "r15:pruefen": "npm run typen:pruefen && npm run lint && npm run r15:test && node werkzeuge/r15-statische-guards.mjs && node werkzeuge/r15-struktur-pruefen.mjs",
     "r16:test": "npm run grundlage:test",
-    "r16:pruefen": "npm run typen:pruefen && npm run lint && npm run r16:test && node werkzeuge/r16-statische-guards.mjs && node werkzeuge/r16-struktur-pruefen.mjs"
+    "r16:pruefen": "npm run typen:pruefen && npm run lint && npm run r16:test && node werkzeuge/r16-statische-guards.mjs && node werkzeuge/r16-struktur-pruefen.mjs",
+    "r17:test": "npm run grundlage:test",
+    "r17:pruefen": "npm run typen:pruefen && npm run lint && npm run r17:test && node werkzeuge/r17-statische-guards.mjs && node werkzeuge/r17-struktur-pruefen.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

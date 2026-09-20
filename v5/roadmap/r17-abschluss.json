@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R17",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "p2Status": "GESCHLOSSEN",
+  "anforderungen": {
+    "phaseR17": 1,
+    "technischNachgewiesen": 1,
+    "status": "R17_NACHGEWIESEN"
+  },
+  "traceability": {
+    "phaseR17": 1,
+    "vollstaendig": 1
+  },
+  "fitness": {
+    "phaseR17": 0,
+    "erfuellt": 0,
+    "status": "KEINE_EIGENEN_REGELN"
+  },
+  "naechstePhase": "R18",
+  "nachweise": [
+    "v5/dokumentation/P2-WORLD-AUTONOMY.md",
+    "v5/grundlage/vertraege/r17/world-autonomy-abdeckung.json",
+    "v5/architektur/adr/ADR-020-R17-WORLD-AUTONOMY.md",
+    "v5/grundlage/tests/r17-event-quest-drift.test.mjs",
+    "v5/grundlage/tests/r17-content-discovery.test.mjs",
+    "v5/grundlage/tests/r17-server-hop.test.mjs",
+    "v5/werkzeuge/r17-statische-guards.mjs",
+    "v5/werkzeuge/r17-struktur-pruefen.mjs"
+  ]
+}

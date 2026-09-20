@@ -810,7 +810,7 @@ Maschinenlesbarer Abschluss: `roadmap/r16-abschluss.json`.
 
 ## R17 – World Autonomy
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
 
 Voraussetzung: R1.4 abgeschlossen.
 
@@ -829,7 +829,15 @@ Exit Gate:
 - Unknown Content fail-closed;
 - Serverwechsel beruecksichtigt aktuelle Mode-/Fatigue-Regeln.
 
+
+R17-Abschluss: P2 ist geschlossen. Event-/Quest-Drift wird vor Action blockiert oder replanned; Unknown Content bleibt quarantiniert, Discovery ist keine Freigabe und Server-Hopping ist an frische Registry-/Mode-/Fatigue-Evidence gebunden.
+
+Maschinenlesbare Abdeckung: `grundlage/vertraege/r17/world-autonomy-abdeckung.json`.  
+Maschinenlesbarer Abschluss: `roadmap/r17-abschluss.json`.
+
 ## R18 – Learning und Optimierung
+
+**Status:** IN_PROGRESS.
 
 Erst nach stabiler deterministischer Basis.
 

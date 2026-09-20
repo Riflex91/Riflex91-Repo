@@ -272,3 +272,19 @@ Abschluss: `roadmap/r16-abschluss.json`
 Die breite Gameplay-Runtime bleibt `GESPERRT`.
 
 Aktuelle Phase: **R17 – World Autonomy**.
+
+
+## R17 – World Autonomy abgeschlossen
+
+R17 ist als no-write World-Autonomy-Foundation abgeschlossen.
+
+Event-/Quest-Planung pinnt frischen Live-State und wird unmittelbar vor Action revalidiert. Drift fuehrt zu Replan, stale oder unbekannte Semantik blockiert fail-closed. Unknown Content startet in Quarantaene; Discovery allein kann keine Freigabe erteilen. Server-Hopping respektiert Registry-Freshness, bekannte Modi, explizite PvP/Hardcore-Policies und Fatigue-Grenzen.
+
+P2: `dokumentation/P2-WORLD-AUTONOMY.md`  
+Abdeckung: `grundlage/vertraege/r17/world-autonomy-abdeckung.json`  
+ADR: `architektur/adr/ADR-020-R17-WORLD-AUTONOMY.md`  
+Abschluss: `roadmap/r17-abschluss.json`
+
+Die breite Gameplay-Runtime bleibt `GESPERRT`.
+
+Aktuelle Phase: **R18 – Learning und Optimierung**.
