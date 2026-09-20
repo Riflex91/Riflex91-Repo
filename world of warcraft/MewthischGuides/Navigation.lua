@@ -259,7 +259,7 @@ function MG:RefreshNavigation(reason)
 end
 
 function MG:GetDirectionLabel(angle)
-    if angle == nil then return "Richtung nicht verfuegbar" end
+    if angle == nil then return "Richtung nicht verfügbar" end
 
     local degrees = angle * 180 / math.pi
     if degrees < 0 then degrees = degrees + 360 end
