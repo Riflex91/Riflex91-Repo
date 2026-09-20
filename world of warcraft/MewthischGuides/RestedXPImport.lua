@@ -524,7 +524,8 @@ function Import:GetProgressOccurrence(definition, phase, profile, objectiveIndex
             not tonumber(occurrence.objective) or
             tonumber(occurrence.objective) == objectiveIndex
 
-        if occurrence.phase == phase and objectiveMatches and
+        local phaseMatches = occurrence.phase == phase or phase == "complete"
+        if phaseMatches and objectiveMatches and
            self:OccurrenceMatches(occurrence, profile) then
             if not best or occurrenceOrder(occurrence) > occurrenceOrder(best) then
                 best = occurrence
@@ -536,7 +537,8 @@ function Import:GetProgressOccurrence(definition, phase, profile, objectiveIndex
     -- applicable occurrence for the phase instead of losing the route.
     if not best and objectiveIndex then
         for _, occurrence in ipairs(occurrences) do
-            if occurrence.phase == phase and self:OccurrenceMatches(occurrence, profile) then
+            local phaseMatches = occurrence.phase == phase or phase == "complete"
+            if phaseMatches and self:OccurrenceMatches(occurrence, profile) then
                 if not best or occurrenceOrder(occurrence) > occurrenceOrder(best) then
                     best = occurrence
                 end
