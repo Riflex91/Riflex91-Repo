@@ -656,9 +656,12 @@ Exit Gate:
 
 ## R12 – Vertical Slice 0
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
 
-**Teilstand:** Shadow-End-to-End = BESTANDEN (0 unerwartete Game Writes). Controlled Live wird ueber ein einmaliges R12-Testgate vorbereitet; die breite Runtime bleibt `GESPERRT`. Erster und einziger Live-Kandidat ist exakt eine `equip`-Action gemaess ADR-013/ADR-014. Parallel laufende V3/V4-Gameplay-Runtime, ungesunde direkte Live-Evidence, ungesunde V5-Persistenz oder offene Reconciliation blockieren den Test.
+Shadow-End-to-End = BESTANDEN mit 0 unerwarteten Game Writes. Controlled Live = BESTANDEN mit exakt einer `AL-ACTION-EQUIP`/`equip`-Mutation, 0 unerwarteten Writes, keinem Same-Intent-Retry und bestaetigter Postcondition. Die breite Runtime bleibt `GESPERRT`.
+
+Maschinenlesbare Live-Evidence: `roadmap/r12-controlled-live-evidence.json`.  
+Maschinenlesbarer Abschluss: `roadmap/r12-abschluss.json`.
 
 Erster minimaler End-to-End-Pfad.
 
@@ -685,6 +688,8 @@ Exit Gate:
 - null unerwartete Game Writes.
 
 ## R13 – Merchant Core A: Single-Character Economy
+
+**Status:** IN_PROGRESS.
 
 Merchant bleibt erste grosse Domaene.
 
