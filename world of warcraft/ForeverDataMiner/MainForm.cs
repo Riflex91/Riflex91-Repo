@@ -38,8 +38,21 @@ public sealed class MainForm : Form
         Shown += (_, _) =>
         {
             RefreshBuildStatus();
-            if (autoMonitorBox.Checked && WowPathResolver.IsValidSelection(wowRootBox.Text))
+
+            var providerReadyForAutoMonitor =
+                !useWtlBox.Checked ||
+                (settings.ManageWowToolsLocal && WowToolsProviderBootstrapper.IsInstalled());
+
+            if (autoMonitorBox.Checked &&
+                WowPathResolver.IsValidSelection(wowRootBox.Text) &&
+                providerReadyForAutoMonitor)
+            {
                 StartMonitoring();
+            }
+            else if (autoMonitorBox.Checked && useWtlBox.Checked && !providerReadyForAutoMonitor)
+            {
+                AppendLog("Automatisches Monitoring wartet auf eine erfolgreiche DB2-Provider-Einrichtung.");
+            }
         };
 
         FormClosing += (_, _) =>
