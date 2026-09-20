@@ -141,8 +141,9 @@ export function reproduziereTradeSellServerAuswahl(
     });
   }
 
-  const fungibilitaet = new Set(eligible.map(x => x.fungibilitaetsSchluessel));
-  if (fungibilitaet.size > 1) {
+  const fungibilitaet = eligible.map(x => x.fungibilitaetsSchluessel).sort();
+  const ersteFungibilitaet = fungibilitaet[0] ?? "";
+  if (fungibilitaet.some(x => x !== ersteFungibilitaet)) {
     return Object.freeze({
       erlaubt: false,
       grund: "NICHT_FUNGIBLE_MEHRDEUTIGE_SERVERAUSWAHL",
