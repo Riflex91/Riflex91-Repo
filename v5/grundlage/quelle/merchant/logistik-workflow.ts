@@ -62,6 +62,9 @@ export interface TransferSettlementEvidence {
 export interface MerchantLogistikSicht {
   readonly plan: MerchantLogistikPlan;
   readonly zustand: MerchantLogistikZustand;
+  readonly recoveryVorZustand:
+    | Exclude<MerchantLogistikZustand, "RECOVERY_PENDING">
+    | null;
   readonly letzteEvidenceFingerprint: string | null;
   readonly sameTransferErneutSenden: false;
 }
@@ -169,6 +172,7 @@ export class MerchantLogistikLedger {
     const sicht = friereSicht({
       plan: frierePlan(plan),
       zustand: "GEPLANT",
+      recoveryVorZustand: null,
       letzteEvidenceFingerprint: null,
       sameTransferErneutSenden: false,
     });
@@ -178,13 +182,24 @@ export class MerchantLogistikLedger {
 
   public beginneRendezvous(logistikId: string): MerchantLogistikSicht {
     const alt = this.#finde(logistikId);
-    if (alt.zustand !== "GEPLANT") throw new Error("LOGISTIK_RENDEZVOUS_ZUSTAND_UNGUELTIG");
-    return this.#ersetze(friereSicht({ ...alt, zustand: "RENDEZVOUS_AUSSTEHEND" }));
+    const darfNachRestart = alt.zustand === "RECOVERY_PENDING"
+      && alt.recoveryVorZustand === "GEPLANT";
+    if (alt.zustand !== "GEPLANT" && !darfNachRestart) {
+      throw new Error("LOGISTIK_RENDEZVOUS_ZUSTAND_UNGUELTIG");
+    }
+    return this.#ersetze(friereSicht({
+      ...alt,
+      zustand: "RENDEZVOUS_AUSSTEHEND",
+      recoveryVorZustand: null,
+    }));
   }
 
   public bestaetigeRendezvous(logistikId: string, evidence: RendezvousEvidence): MerchantLogistikSicht {
     const alt = this.#finde(logistikId);
-    if (alt.zustand !== "RENDEZVOUS_AUSSTEHEND" && alt.zustand !== "RECOVERY_PENDING") {
+    const darfNachRestart = alt.zustand === "RECOVERY_PENDING"
+      && (alt.recoveryVorZustand === "RENDEZVOUS_AUSSTEHEND"
+        || alt.recoveryVorZustand === "RENDEZVOUS_BESTAETIGT");
+    if (alt.zustand !== "RENDEZVOUS_AUSSTEHEND" && !darfNachRestart) {
       throw new Error("LOGISTIK_RENDEZVOUS_EVIDENCE_ZUSTAND_UNGUELTIG");
     }
     if (evidence.schemaVersion !== 1
@@ -203,6 +218,7 @@ export class MerchantLogistikLedger {
     return this.#ersetze(friereSicht({
       ...alt,
       zustand: "RENDEZVOUS_BESTAETIGT",
+      recoveryVorZustand: null,
       letzteEvidenceFingerprint: evidence.freshnessFingerprint,
     }));
   }
@@ -212,7 +228,11 @@ export class MerchantLogistikLedger {
     if (alt.zustand !== "RENDEZVOUS_BESTAETIGT") {
       throw new Error("LOGISTIK_TRANSFER_ZUSTAND_UNGUELTIG");
     }
-    return this.#ersetze(friereSicht({ ...alt, zustand: "TRANSFER_AUSSTEHEND" }));
+    return this.#ersetze(friereSicht({
+      ...alt,
+      zustand: "TRANSFER_AUSSTEHEND",
+      recoveryVorZustand: null,
+    }));
   }
 
   public verifiziereSettlement(
@@ -220,7 +240,9 @@ export class MerchantLogistikLedger {
     evidence: TransferSettlementEvidence,
   ): MerchantLogistikSicht {
     const alt = this.#finde(logistikId);
-    if (alt.zustand !== "TRANSFER_AUSSTEHEND" && alt.zustand !== "RECOVERY_PENDING") {
+    const darfNachRestart = alt.zustand === "RECOVERY_PENDING"
+      && alt.recoveryVorZustand === "TRANSFER_AUSSTEHEND";
+    if (alt.zustand !== "TRANSFER_AUSSTEHEND" && !darfNachRestart) {
       throw new Error("LOGISTIK_SETTLEMENT_ZUSTAND_UNGUELTIG");
     }
     if (evidence.schemaVersion !== 1 || !zielPasst(alt.plan, evidence)) {
@@ -253,7 +275,21 @@ export class MerchantLogistikLedger {
     return this.#ersetze(friereSicht({
       ...alt,
       zustand: "SETTLED",
+      recoveryVorZustand: null,
       letzteEvidenceFingerprint: evidence.settlementFingerprint,
+    }));
+  }
+
+  public scheitereSicher(logistikId: string): MerchantLogistikSicht {
+    const alt = this.#finde(logistikId);
+    if (alt.zustand === "SETTLED" || alt.zustand === "FAILED_SAFE") {
+      throw new Error("LOGISTIK_FAILED_SAFE_ZUSTAND_UNGUELTIG");
+    }
+    return this.#ersetze(friereSicht({
+      ...alt,
+      zustand: "FAILED_SAFE",
+      recoveryVorZustand: null,
+      sameTransferErneutSenden: false,
     }));
   }
 
@@ -265,9 +301,18 @@ export class MerchantLogistikLedger {
         throw new Error("LOGISTIK_RESTART_SNAPSHOT_UNGUELTIG");
       }
       const terminal = x.zustand === "SETTLED" || x.zustand === "FAILED_SAFE";
+      const recoveryVorZustand = terminal
+        ? null
+        : x.zustand === "RECOVERY_PENDING"
+          ? x.recoveryVorZustand
+          : x.zustand;
+      if (!terminal && recoveryVorZustand === null) {
+        throw new Error("LOGISTIK_RESTART_RECOVERY_URSPRUNG_FEHLT");
+      }
       return friereSicht({
         ...x,
         zustand: terminal ? x.zustand : "RECOVERY_PENDING",
+        recoveryVorZustand,
         sameTransferErneutSenden: false,
       });
     });
