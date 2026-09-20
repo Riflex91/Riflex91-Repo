@@ -21,6 +21,7 @@ local DEFAULT_SETTINGS = {
     navigatorX = 0,
     navigatorY = 235,
     minimapAngle = 215,
+    windowTransparency = 0.04,
 }
 
 local function isoNow()
