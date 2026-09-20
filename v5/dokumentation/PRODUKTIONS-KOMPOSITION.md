@@ -22,7 +22,8 @@ Der kanonische Katalog liegt in:
 - `architektur/adr/ADR-030-KANONISCHE-NODE-HOST-KOMPOSITION.md`;
 - `grundlage/vertraege/runtime/node-produktions-host-komposition.json`;
 - `architektur/adr/ADR-031-BANK-PLANEN-OBSERVER-CANARY.md`;
-- `grundlage/vertraege/runtime/bank-planen-observer-canary.json`.
+- `grundlage/vertraege/runtime/bank-planen-observer-canary.json`;
+- `roadmap/bank-planen-observer-live-evidence.json`.
 
 ## Produktive Modulidentitaet
 
@@ -204,15 +205,30 @@ Der reale read-only Lauf erfolgt mit:
 
 `npm run bank-planen-canary:live -- --cdp http://127.0.0.1:9222/`
 
+## Reale Bank-PLANEN-Evidence
+
+Der erste reale observer-only Produktionsnachweis ist bestanden. Auf
+`b144a70b44514256b32677424455be2ca8dec059` wurde ein eingeloggter Merchant
+im echten Bankkontext read-only beobachtet. Der Lauf sah zwei Bank-Packs mit
+28 Eintraegen und 56 freien Bank-Slots; die produktive Capability
+`merchant.bank.planen` lieferte `KEINE_AKTION` mit
+`BANK_KAPAZITAET_AUSREICHEND`.
+
+Der Lauf meldete explizit null Browser-Gameplay-Writes und keinerlei
+Execution-, Gameplay-, Raw-Write- oder Action-Authority. Der Nachweis ist in
+`roadmap/bank-planen-observer-live-evidence.json` dokumentiert.
+
 ## Naechster Integrationsschritt
 
-Nach gruenem CI ist der naechste fehlende Nachweis erstmals eine echte
-Adventure-Land-Beobachtung: ein eingeloggter Merchant muss manuell in einem
-Bankkontext stehen, damit `character.bank` read-only erfasst werden kann.
-Dieser Test sendet weiterhin keinerlei Gameplay-Write.
-
 Die reine Registrierung oder Aktivierung von PLANEN-Capabilities erteilt keine
-Mutationserlaubnis. Mutierende Merchant-Capabilities benoetigen einen
-separaten ratifizierten Vertrag und eigene Integrations-/Live-Nachweise mit
-Admission, Ressourcen/Fencing, Action-Channel, Budget, durable Intent und
+Mutationserlaubnis. Der naechste Architektur-Schritt ist deshalb nicht eine
+Bank-Mutation, sondern die Definition genau einer separat ratifizierten,
+default-off produktiven `MUTIEREN`-Capability mit Admission,
+Ressourcen/Fencing, Action-Channel, Budget, durable Intent und
 Postcondition/Reconciliation.
+
+Als technisch kleinster Kandidat soll zuerst der bereits in R12/R19
+Controlled-Live und Canary nachgewiesene Equip-Action-Contract bewertet
+werden. Daraus entsteht noch keine produktive Aktivierung; Bank-, Trade-,
+Transfer-, Upgrade-, Compound-, Exchange- und Craft-Mutationen bleiben bis zu
+eigenen Vertraegen gesperrt.
