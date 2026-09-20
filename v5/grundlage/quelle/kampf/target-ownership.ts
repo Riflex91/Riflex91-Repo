@@ -15,6 +15,7 @@ export interface TargetOwnershipToken {
   readonly instanz: string;
   readonly epoche: number;
   readonly leaseBisMs: number;
+  readonly maxEvidenceAlterMs: number;
   readonly rawTargetIstAuthority: false;
 }
 
@@ -64,12 +65,15 @@ export class TargetOwnershipLedger {
     ziel: BewegungsZielBeobachtung,
     jetztMs: number,
     leaseDauerMs: number,
+    maxEvidenceAlterMs = 1_000,
   ): TargetOwnershipToken {
     for (const text of [ownerAblaufId, ownerCharacterId]) {
       pruefeText(text, "TARGET_OWNERSHIP_OWNER_UNGUELTIG");
     }
     if (!Number.isSafeInteger(jetztMs) || jetztMs < ziel.beobachtetAmMs
         || !Number.isSafeInteger(leaseDauerMs) || leaseDauerMs < 1 || leaseDauerMs > 60_000
+        || !Number.isSafeInteger(maxEvidenceAlterMs) || maxEvidenceAlterMs < 1 || maxEvidenceAlterMs > 60_000
+        || jetztMs - ziel.beobachtetAmMs > maxEvidenceAlterMs
         || !ziel.visible || ziel.tot) {
       throw new Error("TARGET_OWNERSHIP_PARAMETER_UNGUELTIG");
     }
@@ -105,6 +109,7 @@ export class TargetOwnershipLedger {
       instanz: ziel.instanz,
       epoche,
       leaseBisMs: jetztMs + leaseDauerMs,
+      maxEvidenceAlterMs,
       rawTargetIstAuthority: false,
       status: "AKTIV",
     });
@@ -131,6 +136,9 @@ export class TargetOwnershipLedger {
       && slot.epoche === token.epoche
       && slot.leaseBisMs === token.leaseBisMs
       && jetztMs <= token.leaseBisMs
+      && Number.isSafeInteger(aktuelleEvidence.beobachtetAmMs)
+      && aktuelleEvidence.beobachtetAmMs <= jetztMs
+      && jetztMs - aktuelleEvidence.beobachtetAmMs <= token.maxEvidenceAlterMs
       && aktuelleEvidence.visible
       && !aktuelleEvidence.tot
       && aktuelleEvidence.entityId === token.entityId
@@ -142,27 +150,16 @@ export class TargetOwnershipLedger {
   }
 
   public gibFrei(token: TargetOwnershipToken, jetztMs: number): void {
-    if (!this.validiere(token, {
-      schemaVersion: 1,
-      entityId: token.entityId,
-      entityFingerprint: token.entityFingerprint,
-      serverRegion: token.serverRegion,
-      serverIdentifier: token.serverIdentifier,
-      map: token.map,
-      instanz: token.instanz,
-      x: 0,
-      y: 0,
-      vx: 0,
-      vy: 0,
-      moving: false,
-      visible: true,
-      tot: false,
-      beobachtetAmMs: jetztMs,
-    }, jetztMs)) {
+    this.#markiereAbgelaufen(jetztMs);
+    const alt = this.#slots.find(x => x.ressourcenId === token.ressourcenId);
+    if (alt === undefined
+        || alt.status !== "AKTIV"
+        || alt.ownerAblaufId !== token.ownerAblaufId
+        || alt.ownerCharacterId !== token.ownerCharacterId
+        || alt.epoche !== token.epoche
+        || alt.leaseBisMs !== token.leaseBisMs) {
       throw new Error("TARGET_OWNERSHIP_TOKEN_UNGUELTIG");
     }
-    const alt = this.#slots.find(x => x.ressourcenId === token.ressourcenId);
-    if (alt === undefined) throw new Error("TARGET_OWNERSHIP_UNBEKANNT");
     const frei = friereSicht({ ...alt, status: "FREI", leaseBisMs: jetztMs });
     this.#slots = Object.freeze(
       this.#slots.map(x => x.ressourcenId === token.ressourcenId ? frei : x),
