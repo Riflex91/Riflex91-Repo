@@ -48,7 +48,6 @@ function MG:InitializeNavigator()
     frame:EnableMouse(true)
     frame:EnableMouseWheel(true)
     frame:RegisterForDrag("LeftButton")
-    frame:RegisterForClicks("RightButtonUp")
     frame:SetFrameStrata("HIGH")
     navigator.frame = frame
 
