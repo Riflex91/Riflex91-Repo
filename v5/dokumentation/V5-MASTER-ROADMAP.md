@@ -970,6 +970,17 @@ Evidence: `roadmap/r19-soak-5m-evidence.json`.
 Naechste Stufe: **SOAK_10M**. OPS-006 bleibt offen.
 
 
+### SOAK_10M
+
+**Status:** BESTANDEN.
+
+Realer Uebergangs-Soak: 600012 ms, 21 Samples, 0 Sample-Gaps, 0 Recorder-Drops, gueltige Evidence-Kette, 0 Gameplay-Writes durch den Harness und 0 `performance_trick`-Ausfaelle. Heap-Wachstum: 21887901 Bytes bei 536870912 Bytes Grenze.
+
+Evidence: `roadmap/r19-soak-10m-evidence.json`.
+
+Naechste und finale Stufe: **SOAK_15M** als Integrations-/Release-Gate. OPS-006 bleibt offen.
+
+
 ### Beschleunigtes Soak-Zeitprofil
 
 **Profil:** `R19_ACCELERATED_SOAK_V2`.
