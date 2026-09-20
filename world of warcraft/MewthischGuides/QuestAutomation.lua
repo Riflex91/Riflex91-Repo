@@ -31,7 +31,7 @@ function MG:LogAutomationBlocked(action, expectedQuestID, actualQuestID, reason)
     self.automationStatus = "Automatik pausiert"
 
     self:Log("INFO", "quest.auto.blocked",
-        "Quest-Automatik hat keine Aktion ausgefuehrt.", {
+        "Quest-Automatik hat keine Aktion ausgeführt.", {
             action = action,
             expectedQuestID = expectedQuestID,
             actualQuestID = actualQuestID,
@@ -59,10 +59,10 @@ function MG:TryAutoGossip()
                 for _, info in ipairs(quests) do
                     if info and sameQuest(expectedTurnIn, info.questID) and info.isComplete then
                         setBusy(0.7)
-                        self.automationStatus = "Erwartete Quest wird zur Abgabe geoeffnet"
+                        self.automationStatus = "Erwartete Quest wird zur Abgabe geöffnet"
 
                         self:Log("INFO", "quest.auto.select_turnin",
-                            "Erwartete fertige Guide-Quest automatisch ausgewaehlt.", {
+                            "Erwartete fertige Guide-Quest automatisch ausgewählt.", {
                                 expectedQuestID = expectedTurnIn,
                                 questID = info.questID,
                                 title = info.title,
@@ -107,10 +107,10 @@ function MG:TryAutoGossip()
                 for _, info in ipairs(quests) do
                     if info and sameQuest(expectedAccept, info.questID) and not info.isIgnored then
                         setBusy(0.7)
-                        self.automationStatus = "Erwartete Quest wird geoeffnet"
+                        self.automationStatus = "Erwartete Quest wird geöffnet"
 
                         self:Log("INFO", "quest.auto.select_available",
-                            "Erwartete Guide-Quest automatisch ausgewaehlt.", {
+                            "Erwartete Guide-Quest automatisch ausgewählt.", {
                                 expectedQuestID = expectedAccept,
                                 questID = info.questID,
                                 title = info.title,
@@ -236,7 +236,7 @@ function MG:HandleQuestAutomationEvent(event)
             return
         end
 
-        self.automationStatus = "Erwartete Quest wird fuer die Abgabe vorbereitet"
+        self.automationStatus = "Erwartete Quest wird für die Abgabe vorbereitet"
 
         self:Log("INFO", "quest.auto.complete_attempt",
             "Erwartete fertige Guide-Quest wird automatisch fortgesetzt.", {
@@ -277,11 +277,11 @@ function MG:HandleQuestAutomationEvent(event)
         end
 
         if choices > 1 then
-            self.automationStatus = "Belohnung manuell waehlen"
+            self.automationStatus = "Belohnung manuell wählen"
             local recommendation = self.RewardAdvisor and self.RewardAdvisor:Refresh() or nil
 
             self:Log("INFO", "quest.auto.reward_choice_required",
-                "Mehrere Questbelohnungen verfuegbar; Auto-Abgabe wartet auf die Auswahl des Spielers.", {
+                "Mehrere Questbelohnungen verfügbar; Auto-Abgabe wartet auf die Auswahl des Spielers.", {
                     expectedQuestID = expectedQuestID,
                     questID = questID,
                     choices = choices,
