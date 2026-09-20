@@ -18,6 +18,8 @@ for _, event in ipairs(events) do frame:RegisterEvent(event) end
 
 local objectiveHashes = {}
 local questUpdatePending = false
+local routeTicker
+local lastRoutePosition
 
 local function objectiveSnapshot(questID)
     if not C_QuestLog or not C_QuestLog.GetQuestObjectives then return nil end
@@ -102,15 +104,40 @@ local function recordGossip()
     })
 end
 
+local function sampleRoute()
+    local p = FGR:GetPosition()
+    if not p or not p.mapID or not p.x or not p.y then return end
+
+    local shouldRecord = not lastRoutePosition or lastRoutePosition.mapID ~= p.mapID
+    if not shouldRecord then
+        local dx = p.x - lastRoutePosition.x
+        local dy = p.y - lastRoutePosition.y
+        shouldRecord = (dx * dx + dy * dy) >= 0.000025
+    end
+
+    if shouldRecord then
+        FGR:Record("route.sample", nil, {
+            position = p,
+            dead = UnitIsDeadOrGhost("player") and true or false,
+            inCombat = UnitAffectingCombat("player") and true or false,
+        }, "gameplay-sample")
+        lastRoutePosition = { mapID = p.mapID, x = p.x, y = p.y }
+    end
+end
+
 frame:SetScript("OnEvent", function(_, event, ...)
     if event == "PLAYER_LOGIN" then
         FGR:StartSession()
         FGR:Record("player.login", nil, { position = FGR:GetPosition() })
         C_Timer.After(2, scanQuestLog)
+        if routeTicker then routeTicker:Cancel() end
+        routeTicker = C_Timer.NewTicker(5, sampleRoute)
 
     elseif event == "PLAYER_LOGOUT" then
+        sampleRoute()
         FGR:Record("player.logout", nil, { position = FGR:GetPosition() })
         if FGR.session then FGR.session.endedUtc = date("!%Y-%m-%dT%H:%M:%SZ") end
+        if routeTicker then routeTicker:Cancel() routeTicker = nil end
 
     elseif event == "PLAYER_LEVEL_UP" then
         local newLevel = ...
@@ -161,8 +188,10 @@ frame:SetScript("OnEvent", function(_, event, ...)
         }, "gameplay-event")
 
     elseif event == "ZONE_CHANGED_NEW_AREA" then
+        lastRoutePosition = nil
         FGR:Record("player.zone", nil, {
             position = FGR:GetPosition(),
         })
+        sampleRoute()
     end
 end)
