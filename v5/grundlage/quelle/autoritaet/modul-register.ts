@@ -112,7 +112,11 @@ export class ModulRegister {
 
     const hypothetisch = this.#eintraege.map(kandidat =>
       kandidat === eintrag ? friereEintrag({ ...kandidat, aktiv: true }) : kandidat);
-    this.#pruefePortVoraussetzungen(hypothetisch, eintrag);
+    const hypothetischAktiv = hypothetisch.find(kandidat =>
+      kandidat.modulId === modulId
+      && kandidat.modulVersion === modulVersion);
+    if (hypothetischAktiv === undefined) throw new Error("MODULVERSION_UNBEKANNT");
+    this.#pruefePortVoraussetzungen(hypothetisch, hypothetischAktiv);
 
     return this.#ersetze(eintrag, { aktiv: true });
   }
@@ -151,7 +155,11 @@ export class ModulRegister {
       if (eintrag === neu) return friereEintrag({ ...eintrag, aktiv: true });
       return eintrag;
     });
-    this.#pruefePortVoraussetzungen(hypothetisch, neu);
+    const hypothetischNeu = hypothetisch.find(eintrag =>
+      eintrag.modulId === modulId
+      && eintrag.modulVersion === neueVersion);
+    if (hypothetischNeu === undefined) throw new Error("MODULVERSION_UNBEKANNT");
+    this.#pruefePortVoraussetzungen(hypothetisch, hypothetischNeu);
     for (const kandidat of hypothetisch) {
       if (kandidat.aktiv) this.#pruefePortVoraussetzungen(hypothetisch, kandidat);
     }
@@ -159,7 +167,8 @@ export class ModulRegister {
     this.#generation += 1;
     const neueGeneration = this.#generation;
     const ersetzt = hypothetisch.map(eintrag => {
-      if (eintrag === alt || eintrag === neu) {
+      if (eintrag.modulId === modulId
+          && (eintrag.modulVersion === alteVersion || eintrag.modulVersion === neueVersion)) {
         return friereEintrag({ ...eintrag, generation: neueGeneration });
       }
       return eintrag;
