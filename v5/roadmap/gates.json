@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-09-20",
-  "currentPhase": "R11",
+  "currentPhase": "R12",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -267,7 +267,7 @@
     {
       "id": "R11",
       "name": "Testlabor-Ausbau Replay Observability Operations",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R10"
       ],
@@ -282,7 +282,7 @@
     {
       "id": "R12",
       "name": "Vertical Slice 0",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R11"
       ],
