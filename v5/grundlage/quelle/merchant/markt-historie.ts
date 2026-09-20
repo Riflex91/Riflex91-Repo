@@ -554,10 +554,13 @@ export function erzeugeNpcWertEvidenceAusMarkt(
       analyse.konservativerReferenzwertProEinheit,
     beobachtetAmMs,
     gueltigBisMs,
-    fingerprint: [
-      npc.fingerprint,
-      analyse.referenzFingerprint,
-    ].join("|"),
+    fingerprint: kompakteKennung(
+      "npc-markt",
+      [
+        npc.fingerprint,
+        analyse.referenzFingerprint,
+      ].join("|"),
+    ),
   });
 }
 
