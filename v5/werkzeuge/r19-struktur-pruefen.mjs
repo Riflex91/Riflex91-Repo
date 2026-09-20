@@ -39,6 +39,7 @@ for(const p of [
   "werkzeuge/r19-canary-test-paket.js",
   "werkzeuge/r19-canary-test-gui.js",
   "roadmap/r19-soak-zeitprofil.json",
+  "roadmap/testzeit-standard.json",
 ]){
   if(!fs.existsSync(p)) fehler("R19 Pflichtartefakt fehlt: "+p);
 }
@@ -60,6 +61,7 @@ const liveStatusRang=Object.freeze({
 });
 const ops6=req.find(x=>x.kennung==="V5-ANF-OPS-006");
 const zeitprofil=lies("roadmap/r19-soak-zeitprofil.json");
+const testzeit=lies("roadmap/testzeit-standard.json");
 const erwarteteSoaks=[
   ["SOAK_5M",300000],
   ["SOAK_10M",600000],
@@ -71,6 +73,13 @@ if(zeitprofil.profilKennung!=="R19_ACCELERATED_SOAK_V2"
     ||erwarteteSoaks.some(([stufe,dauer],i)=>zeitprofil.stufen[i]?.stufe!==stufe||zeitprofil.stufen[i]?.dauerMs!==dauer)
     ||ops6?.r19Zeitprofil!=="R19_ACCELERATED_SOAK_V2") {
   fehler("R19 beschleunigtes Soak-Zeitprofil ungueltig.");
+}
+if(testzeit.kennung!=="V5_TESTZEIT_STANDARD_V1"
+    ||testzeit.status!=="RATIFIZIERT"
+    ||testzeit.funktion?.testdauerMs!==300000
+    ||testzeit.integrationRelease?.testdauerMs!==900000
+    ||testzeit.breiteRuntimeFreigabe!==false) {
+  fehler("V5 Testzeitstandard 5m Funktion / 15m Integration-Release ungueltig.");
 }
 const aktuellerLiveRang=liveStatusRang[ops6?.r19LiveStatus]??0;
 
