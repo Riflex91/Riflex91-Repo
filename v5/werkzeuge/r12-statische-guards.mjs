@@ -105,6 +105,59 @@ if (runner.includes("bank_store(")
   fehler.push("CONTROLLED_LIVE_RUNNER_RISIKO_WRITE_VERBOTEN");
 }
 
+const testGui = liesText("werkzeuge/v5-adventure-land-test-gui.js");
+for (const marker of [
+  "Ergebnis kopieren",
+  "Gesamtbericht kopieren",
+  "kopiereErgebnis",
+  "kopiereBericht",
+  "bestaetigungsText",
+]) {
+  if (!testGui.includes(marker)) fehler.push("V5_TEST_GUI_MARKER_FEHLT:" + marker);
+}
+for (const raw of [
+  ".attack(",
+  ".move(",
+  ".smart_move(",
+  ".use_skill(",
+  ".equip(",
+  ".buy(",
+  ".sell(",
+  ".send_item(",
+  ".send_gold(",
+]) {
+  if (testGui.includes(raw)) fehler.push("V5_TEST_GUI_DARF_KEINE_GAMEPLAY_AKTION_BESITZEN:" + raw);
+}
+
+const r12Gui = liesText("werkzeuge/r12-controlled-live-test-gui.js");
+for (const marker of [
+  "R12-EQUIP-ONCE",
+  "VORHERIGER_TESTVERSUCH_UNGEKLAERT",
+  "sameIntentRetry: false",
+  "unerwarteteGameWrites: 0",
+  "breiteRuntimeFreigabe: false",
+]) {
+  if (!r12Gui.includes(marker)) fehler.push("R12_TEST_GUI_MARKER_FEHLT:" + marker);
+}
+const direkteEquipAufrufe = (r12Gui.match(/\.equip\s*\(/g) ?? []).length;
+if (direkteEquipAufrufe !== 1) {
+  fehler.push("R12_TEST_GUI_MUSS_EXAKT_EINEN_EQUIP_SENDPFAD_BESITZEN:" + direkteEquipAufrufe);
+}
+for (const raw of [
+  ".attack(",
+  ".move(",
+  ".smart_move(",
+  ".use_skill(",
+  ".buy(",
+  ".sell(",
+  ".send_item(",
+  ".send_gold(",
+  ".upgrade(",
+  ".compound(",
+]) {
+  if (r12Gui.includes(raw)) fehler.push("R12_TEST_GUI_RISIKO_WRITE_VERBOTEN:" + raw);
+}
+
 if (fehler.length > 0) {
   throw new Error("[V5-R12-GUARD]\n" + [...new Set(fehler)].join("\n"));
 }

@@ -183,3 +183,14 @@ Controlled Live bleibt bewusst offen. Der erste Live-Kandidat ist exakt `AL-ACTI
 Der aktuelle Preflight ist blockiert, weil die globale Readiness `GESPERRT` ist und die lokal beobachtete bestehende Runtime-Health `DEGRADED` / `SNAPSHOT_STALE` meldet. Die Windows Bridge bleibt absichtlich ohne Remote-Gameplay-/Generic-Command-Autoritaet.
 
 Preflight: `roadmap/r12-controlled-live-preflight.json`.
+
+
+## Manueller Teststandard – Ingame-GUI
+
+Ab R12 sollen manuelle Adventure-Land-Live-Tests über die V5-Ingame-Test-GUI ausgeführt werden. Der Benutzer fügt ein Testpaket im Spiel ein, bedient die Testschritte per Button und sendet anschließend den mit **Gesamtbericht kopieren** erzeugten Bericht an ChatGPT.
+
+Generische GUI: `werkzeuge/v5-adventure-land-test-gui.js`  
+R12-Paket: `werkzeuge/r12-controlled-live-test-paket.js`  
+Standard: `werkzeuge/V5-TEST-GUI.md`
+
+Die GUI selbst besitzt keine generische Gameplay-Autorität. Testcontroller dürfen nur die jeweils ratifizierten Aktionen auslösen.

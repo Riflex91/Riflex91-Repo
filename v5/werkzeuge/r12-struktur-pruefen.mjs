@@ -46,6 +46,13 @@ for (const pfad of [
   "werkzeuge/r12-live/datei-journal.mjs",
   "werkzeuge/r12-live/browser-equip.mjs",
   "architektur/adr/ADR-014-R12-CONTROLLED-LIVE-TESTGATE.md",
+  "architektur/adr/ADR-015-V5-INGAME-TEST-GUI.md",
+  "werkzeuge/v5-adventure-land-test-gui.js",
+  "werkzeuge/r12-controlled-live-test-gui.js",
+  "werkzeuge/r12-controlled-live-test-paket.js",
+  "werkzeuge/r12-test-gui-paket-bauen.mjs",
+  "werkzeuge/tests/r12-test-gui.test.mjs",
+  "werkzeuge/V5-TEST-GUI.md",
   "werkzeuge/r12-statische-guards.mjs",
 ]) {
   if (!fs.existsSync(pfad)) fehler("Pflichtartefakt fehlt: " + pfad);
