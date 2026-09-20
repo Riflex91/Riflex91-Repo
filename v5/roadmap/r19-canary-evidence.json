@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20T09:02:20.158Z",
+  "phase": "R19",
+  "status": "BESTANDEN",
+  "evidenceArt": "MANUELLE_CANARY_EVIDENCE",
+  "zertifizierungsStufe": "CANARY",
+  "source": "V5_INGAME_TEST_GUI_BERICHT",
+  "sourceGuiVersion": "1.0.0",
+  "sourceKennung": "r19-canary-equip",
+  "runId": "R19-1789894940141-fa58fa3e",
+  "actionContractId": "AL-ACTION-EQUIP",
+  "recoveryContractId": "AL-RECOVERY-EQUIP",
+  "verifierId": "AL-VERIFIER-EQUIP",
+  "publicFunction": "equip",
+  "gameWrites": 1,
+  "unerwarteteGameWrites": 0,
+  "maximaleAktionen": 1,
+  "sendVersuche": 1,
+  "sameIntentRetry": false,
+  "breiteRuntimeFreigabe": false,
+  "manuelleBestaetigung": true,
+  "charakter": "My_Merchant",
+  "preflight": {
+    "status": "BESTANDEN",
+    "rip": false,
+    "bewegtSich": false,
+    "zielName": null,
+    "feindeAufCharakter": 0,
+    "alternativeRuntimeAktiv": false,
+    "blocker": [],
+    "testJournalSpeicher": {
+      "ok": true,
+      "art": "BROWSER_TEST_WITNESS",
+      "produktionsPersistenz": false
+    }
+  },
+  "learningEinfluss": {
+    "schemaVersion": 1,
+    "modellKennung": "r19-canary-bounded-test-ranker",
+    "modellVersion": "1",
+    "testModell": true,
+    "maximalerAbsoluterScoreDelta": 25,
+    "gameplayAutoritaet": false,
+    "authorityAenderungErlaubt": false,
+    "safetyLockerungErlaubt": false,
+    "deterministischerFallbackIndex": 7,
+    "deterministischerFallbackItem": "wcap",
+    "gewaehltIndex": 1,
+    "gewaehltItem": "poker",
+    "hardErlaubteKandidaten": 12,
+    "learningHatFallbackAuswahlGeaendert": true
+  },
+  "kandidat": {
+    "inventoryIndexVorher": 1,
+    "itemName": "poker",
+    "itemLevel": 5,
+    "slot": "gloves",
+    "slotWarLeer": false,
+    "vorherigesSlotItem": {
+      "name": "poker",
+      "level": 0
+    },
+    "hardErlaubt": true,
+    "basisScore": 949,
+    "learningDelta": 19.9,
+    "learningScore": 968.9
+  },
+  "serverErgebnis": {
+    "num": 1,
+    "slot": "gloves",
+    "success": true,
+    "response": "data",
+    "place": "equip"
+  },
+  "serverFehler": null,
+  "postcondition": {
+    "klassifikation": "BESTAETIGT",
+    "slot": {
+      "name": "poker",
+      "level": 5
+    },
+    "inventoryIndex": {
+      "index": 1,
+      "name": "poker",
+      "level": 0,
+      "gesperrt": false,
+      "typ": "gloves"
+    }
+  },
+  "testJournal": {
+    "art": "BROWSER_TEST_WITNESS",
+    "produktionsPersistenz": false,
+    "status": "COMMITTED"
+  },
+  "sicherheitsnachweis": {
+    "alteV3RuntimeAktiv": false,
+    "alteV4RuntimeAktiv": false,
+    "alternativeRuntimeAktiv": false,
+    "expliziteBestaetigung": "R19-CANARY-EQUIP-ONCE",
+    "keinBlindRetry": true,
+    "boundedLearningNurInnerhalbHardErlaubterKandidaten": true,
+    "deterministischerFallbackVorhanden": true,
+    "breiteGameplayRuntimeWeiterGesperrt": true
+  },
+  "ladder": {
+    "vorherigeStufe": "CONTROLLED_LIVE",
+    "dieseStufe": "CANARY",
+    "naechsteStufe": "SOAK_1H"
+  },
+  "hinweis": "Canary ist mit einem gebundenen Learning-Ranking innerhalb hard-erlaubter Equip-Kandidaten und exakt einem postcondition-verifizierten equip-Write bestanden."
+}
