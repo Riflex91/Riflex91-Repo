@@ -184,3 +184,44 @@ test("unsafe Preemption-Punkte werden bereits beim Melden blockiert", () => {
     /UNTERBRECHUNG_OHNE_DURABLEN_CHECKPOINT_VERBOTEN/,
   );
 });
+
+test("Deadline und Ressourcenlokalitaet ordnen nur innerhalb derselben Klasse", () => {
+  const scheduler = new AblaufScheduler(20, 1_000);
+  scheduler.registriere(plan("SPAET", {
+    prioritaetsKlasse: "NORMALE_ARBEIT",
+    prioritaetsRang: 10,
+    erstelltAmMs: 0,
+    deadlineAmMs: 900_000,
+    ressourcenIds: ["merchant:bank"],
+  }));
+  scheduler.registriere(plan("FRUEH", {
+    prioritaetsKlasse: "NORMALE_ARBEIT",
+    prioritaetsRang: 10,
+    erstelltAmMs: 0,
+    deadlineAmMs: 800_000,
+    ressourcenIds: ["merchant:trade"],
+  }));
+  scheduler.setzeStatus("SPAET", "BEREIT", 1);
+  scheduler.setzeStatus("FRUEH", "BEREIT", 1);
+  assert.equal(scheduler.waehleNaechsten(100).plan.ablaufId, "FRUEH");
+
+  const locality = new AblaufScheduler(20, 1_000);
+  locality.registriere(plan("BANK", {
+    prioritaetsRang: 10,
+    erstelltAmMs: 0,
+    deadlineAmMs: 900_000,
+    ressourcenIds: ["merchant:bank"],
+  }));
+  locality.registriere(plan("TRADE", {
+    prioritaetsRang: 10,
+    erstelltAmMs: 0,
+    deadlineAmMs: 900_000,
+    ressourcenIds: ["merchant:trade"],
+  }));
+  locality.setzeStatus("BANK", "BEREIT", 1);
+  locality.setzeStatus("TRADE", "BEREIT", 1);
+  assert.equal(
+    locality.waehleNaechsten(100, ["merchant:trade"]).plan.ablaufId,
+    "TRADE",
+  );
+});
