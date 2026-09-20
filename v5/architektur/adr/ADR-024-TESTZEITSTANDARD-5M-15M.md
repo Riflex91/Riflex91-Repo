@@ -21,7 +21,7 @@ Der bereits gestartete R19-SOAK_10M wird nicht nachtraeglich entwertet.
 7. Die kuerzere Testdauer aendert keine Null-Toleranz-, Evidence-Ketten-, Sample-Gap-, Speicher-, Persistenz-, Performance-Trick-, Authority- oder Gameplay-Write-Grenze.
 8. Ein bestandener 5- oder 15-Minuten-Test wird nicht als mehrtaegige 24/7-Soak-Evidence bezeichnet.
 
-## R19-Migration
+## Migration
 
 Vorher:
 `SOAK_5M -> SOAK_10M -> SOAK_30M -> SOAK_60M`
@@ -31,6 +31,14 @@ Ab jetzt:
 
 Das aktuelle maschinenlesbare Profil ist `R19_ACCELERATED_SOAK_V2`.
 
+## Invarianten
+
+- 5 Minuten aendern nur die Zeitdauer der Funktionsabnahme, niemals Safety- oder Authority-Regeln.
+- 15 Minuten aendern nur die Zeitdauer des Integrations-/Release-Gates, niemals Null-Toleranz- oder Evidence-Grenzen.
+- Gameplay-Writes ausserhalb ratifizierter Execution-Pfade bleiben verboten.
+- Sample-Gaps, Evidence-Kettenfehler, Persistenzfehler und kritische Ressourcenverletzungen bleiben blocker.
+- Die breite Runtime darf durch diesen Testzeitstandard nicht automatisch freigegeben werden.
+
 ## Konsequenzen
 
 - Entwicklungsiteration wird deutlich schneller.
@@ -38,6 +46,10 @@ Das aktuelle maschinenlesbare Profil ist `R19_ACCELERATED_SOAK_V2`.
 - Dieses Restrisiko wird bewusst akzeptiert und durch nachfolgende Funktions-, Integrations- und Release-Tests teilweise kompensiert.
 - Safety- und fail-closed-Regeln bleiben unveraendert.
 - Die breite Runtime bleibt bis zur expliziten Gesamtfreigabe gesperrt.
+
+## Rollback
+
+Falls der 5m/15m-Standard zu unzureichender Fehlererkennung fuehrt, wird ein neues ADR mit laengeren Zeitgates ratifiziert. Bereits erzeugte Evidence bleibt historisch unveraendert; offene Funktionen oder Release-Gates werden nach dem dann aktuellen Standard erneut getestet. Ein Rollback des Standards darf niemals bestehende Safety-/Authority-Grenzen lockern.
 
 ## Maschinenlesbarer Vertrag
 
