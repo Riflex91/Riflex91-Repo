@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R11",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "exitKriterien": {
+    "healthFehlendFailClosed": true,
+    "dashboardObserverOnly": true,
+    "dashboardAusfallBlockiertCoreNicht": true,
+    "kritischeAlertsPersistBeforeClaim": true,
+    "alertSpoolBounded": true,
+    "authorityStatusErklaerbar": true,
+    "operationsTelemetrieBounded": true,
+    "ssdIoLatenzBeobachtbar": true,
+    "ioQueueTiefeBeobachtbar": true,
+    "backpressureBeobachtbar": true,
+    "freieBytesBeobachtbar": true,
+    "recorderDropsBeobachtbar": true,
+    "retentionRotationKompressionGetestet": true,
+    "goldenReplayDeterministisch": true,
+    "replayAusBoundedLiveEvidence": true,
+    "schedulerLockStatePropertyModelTests": true,
+    "crashDisconnectTimeoutPartialFaults": true,
+    "safetyMutationTests": true,
+    "corePositiveNegativeCoverage": true,
+    "headlessSupervisorActionAuthority": false
+  },
+  "anforderungen": {
+    "phaseR11": 9,
+    "technischNachgewiesen": 9,
+    "status": "R11_NACHGEWIESEN"
+  },
+  "traceability": {
+    "phaseR11": 9,
+    "vollstaendig": 9
+  },
+  "fitness": {
+    "phaseR11": 0,
+    "erfuellt": 0,
+    "status": "KEINE_R11_EIGENEN_REGELN"
+  },
+  "sicherheitsgrenze": {
+    "dashboardGameplayAutoritaet": false,
+    "telemetrieGameplayAutoritaet": false,
+    "alertTransportGameplayAutoritaet": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false
+  },
+  "ciVorAbschluss": {
+    "headSha": "e9fe5ab75870bccdb7c0c1df9ebc1bffdcbffeaf",
+    "runs": [
+      {
+        "workflow": "v5-r11",
+        "runId": 35480175177,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r10",
+        "runId": 35480175195,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r9",
+        "runId": 35480175331,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r8",
+        "runId": 35480175209,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r7",
+        "runId": 35480175206,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r6",
+        "runId": 35480175172,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r5",
+        "runId": 35480175169,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r4",
+        "runId": 35480175198,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r3",
+        "runId": 35480175174,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-wissensgate",
+        "runId": 35480175278,
+        "conclusion": "success"
+      }
+    ]
+  },
+  "betriebsblocker": {
+    "lokaleWindowsBridgeAktualisieren": true,
+    "beschreibung": "Der lokale Windows-Bridge-Deploymentstand bleibt separat zu verifizieren. R11 oeffnet das Gameplay-Runtime-Gate nicht."
+  },
+  "nachweise": [
+    "v5/grundlage/quelle/operations/health.ts",
+    "v5/grundlage/quelle/operations/alerts.ts",
+    "v5/grundlage/quelle/operations/authority-status.ts",
+    "v5/grundlage/quelle/operations/telemetrie.ts",
+    "v5/grundlage/quelle/operations/headless-supervisor.ts",
+    "v5/grundlage/quelle/operations/segment-pflege.ts",
+    "v5/grundlage/quelle/testlabor/golden-replay.ts",
+    "v5/grundlage/quelle/testlabor/evidence-replay.ts",
+    "v5/grundlage/tests/r11-operations.test.mjs",
+    "v5/grundlage/tests/r11-replay.test.mjs",
+    "v5/grundlage/tests/r11-property-model.test.mjs",
+    "v5/grundlage/tests/r11-fault-labor.test.mjs",
+    "v5/grundlage/tests/r11-mutation.test.mjs",
+    "v5/grundlage/vertraege/r11/core-testabdeckung.json",
+    "v5/grundlage/vertraege/r11/fault-matrix.json",
+    "v5/werkzeuge/r11-testabdeckung.mjs",
+    "v5/werkzeuge/r11-statische-guards.mjs",
+    "v5/werkzeuge/r11-struktur-pruefen.mjs",
+    "v5/architektur/adr/ADR-012-R11-TESTLABOR-OBSERVABILITY-OPERATIONS.md",
+    ".github/workflows/v5-r11.yml"
+  ],
+  "naechstePhase": "R12",
+  "finalePruefung": {
+    "exakterPrHeadErforderlich": true,
+    "alleR3BisR11RegressionenGruenErforderlich": true,
+    "roadmapUndVorbereitungGruenErforderlich": true,
+    "postMergeCiErforderlich": true,
+    "mergeNurShaGebunden": true
+  },
+  "hinweis": "R11 gilt erst nach gruenem finalen PR-Head und gruener Post-Merge-CI als endgueltig abgeschlossen. Das Gameplay-Runtime-Gesamtgate bleibt GESPERRT."
+}
