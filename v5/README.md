@@ -351,7 +351,11 @@ SOAK_5M: **BESTANDEN**. Der reale Ingame-Lauf auf `My_Merchant` lief 300002 ms m
 
 Evidence: `roadmap/r19-soak-5m-evidence.json`.
 
-Naechste Stufe: **SOAK_10M**. R19 bleibt `IN_PROGRESS`; die breite Runtime bleibt `GESPERRT`.
+SOAK_10M: **BESTANDEN**. Der reale Uebergangs-Lauf lief 600012 ms mit 21 Samples, 0 Sample-Gaps, 0 Recorder-Drops, gueltiger Evidence-Kette, 0 Gameplay-Writes und 0 `performance_trick`-Ausfaellen.
+
+Evidence: `roadmap/r19-soak-10m-evidence.json`.
+
+Naechste und finale Stufe: **SOAK_15M** als Integrations-/Release-Gate. R19 bleibt `IN_PROGRESS`; die breite Runtime bleibt `GESPERRT`.
 
 
 ## R19 – Testzeitstandard und beschleunigtes Soak-Profil
