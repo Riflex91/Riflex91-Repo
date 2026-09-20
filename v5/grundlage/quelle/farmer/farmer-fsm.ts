@@ -60,17 +60,17 @@ export class FarmerFsm {
   public transition(naechster: FarmerZustand): FarmerSicht {
     const alt = this.#sicht;
     if (alt.zustand === "FAILED_SAFE") throw new Error("FARMER_FSM_TERMINAL");
-    const erlaubt: Readonly<Record<FarmerZustand, readonly FarmerZustand[]>> = Object.freeze({
-      IDLE: Object.freeze(["ZIEL_SUCHE", "RECOVERY", "TOT"]),
-      ZIEL_SUCHE: Object.freeze(["REISE", "KAMPF", "BLOCKED", "RECOVERY", "TOT"]),
-      REISE: Object.freeze(["ZIEL_SUCHE", "KAMPF", "BLOCKED", "RECOVERY", "TOT"]),
-      KAMPF: Object.freeze(["LOOT", "REISE", "BLOCKED", "RECOVERY", "TOT"]),
-      LOOT: Object.freeze(["ZIEL_SUCHE", "RECOVERY", "BLOCKED", "TOT"]),
-      RECOVERY: Object.freeze(["ZIEL_SUCHE", "IDLE", "BLOCKED", "TOT"]),
-      TOT: Object.freeze(["RECOVERY"]),
-      BLOCKED: Object.freeze(["ZIEL_SUCHE", "RECOVERY", "BLOCKED", "TOT"]),
-      FAILED_SAFE: Object.freeze([]),
-    });
+    const erlaubt: Readonly<Record<FarmerZustand, readonly FarmerZustand[]>> = {
+      IDLE: ["ZIEL_SUCHE", "RECOVERY", "TOT"],
+      ZIEL_SUCHE: ["REISE", "KAMPF", "BLOCKED", "RECOVERY", "TOT"],
+      REISE: ["ZIEL_SUCHE", "KAMPF", "BLOCKED", "RECOVERY", "TOT"],
+      KAMPF: ["LOOT", "REISE", "BLOCKED", "RECOVERY", "TOT"],
+      LOOT: ["ZIEL_SUCHE", "RECOVERY", "BLOCKED", "TOT"],
+      RECOVERY: ["ZIEL_SUCHE", "IDLE", "BLOCKED", "TOT"],
+      TOT: ["RECOVERY"],
+      BLOCKED: ["ZIEL_SUCHE", "RECOVERY", "BLOCKED", "TOT"],
+      FAILED_SAFE: [],
+    };
     if (!erlaubt[alt.zustand].includes(naechster)) {
       throw new Error("FARMER_FSM_TRANSITION_UNGUELTIG:" + alt.zustand + ":" + naechster);
     }
