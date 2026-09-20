@@ -40,6 +40,12 @@ for (const pfad of [
   "grundlage/quelle/vertical-slice/controlled-live-auswahl.ts",
   "grundlage/quelle/vertical-slice/controlled-live-gate.ts",
   "grundlage/tests/r12-vertical-slice-shadow.test.mjs",
+  "grundlage/tests/r12-controlled-live-runner.test.mjs",
+  "werkzeuge/r12-controlled-live-equip-runner.mjs",
+  "werkzeuge/r12-live/cdp.mjs",
+  "werkzeuge/r12-live/datei-journal.mjs",
+  "werkzeuge/r12-live/browser-equip.mjs",
+  "architektur/adr/ADR-014-R12-CONTROLLED-LIVE-TESTGATE.md",
   "werkzeuge/r12-statische-guards.mjs",
 ]) {
   if (!fs.existsSync(pfad)) fehler("Pflichtartefakt fehlt: " + pfad);
