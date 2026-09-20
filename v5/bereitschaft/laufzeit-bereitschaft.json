@@ -69,14 +69,16 @@
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
       "erfuellt": false,
-      "grund": "R7 bis R19 sind technisch nachgewiesen; R19-Ladder ist vollstaendig bestanden. Der Bereich bleibt bis zur formalen Bereinigung der noch offenen historischen R0-R3-Anforderungsstatus gesperrt.",
+      "grund": "118/119 ratifizierte Anforderungen und 118/119 Trace-Eintraege sind technisch nachgewiesen. Die historische R0-R3-Reconciliation schliesst 33/34 Altstaende. Einzig V5-ANF-WISSEN-012 bleibt extern offen: repository-begrenzte Least-Privilege-GitHub-Autorisierung des real installierten Wissenswaechters ist lokal nachzuweisen.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
         "v5/anforderungen/nachverfolgbarkeit.json",
         "v5/roadmap/r19-soak-5m-evidence.json",
         "v5/roadmap/testzeit-standard.json",
         "v5/roadmap/r19-soak-10m-evidence.json",
-        "v5/roadmap/r19-soak-15m-evidence.json"
+        "v5/roadmap/r19-soak-15m-evidence.json",
+        "v5/roadmap/r0-r3-reconciliation.json",
+        "v5/werkzeuge/r0-r3-reconciliation-pruefen.mjs"
       ],
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
@@ -116,13 +118,18 @@
       "r18NachweisVorhanden": true,
       "r18AnforderungenNachgewiesen": 5,
       "r18AnforderungenGesamt": 5,
-      "r19AnforderungenNachgewiesen": 2,
-      "r19AnforderungenGesamt": 3
+      "r19AnforderungenNachgewiesen": 3,
+      "r19AnforderungenGesamt": 3,
+      "anforderungenNachgewiesen": 118,
+      "anforderungenGesamt": 119,
+      "traceabilityVollstaendig": 118,
+      "traceabilityGesamt": 119,
+      "externerBlocker": "V5-ANF-WISSEN-012"
     },
     {
       "kennung": "INVARIANTEN_BEREIT",
-      "erfuellt": false,
-      "grund": "R3-R19 haben Architektur-, Persistenz-, Authority-, Recovery-, Domaenen- und Zertifizierungsgrenzen technisch nachgewiesen. Die globale Readiness bleibt bis zur separaten formalen Gesamtbereinigung gesperrt.",
+      "erfuellt": true,
+      "grund": "Alle 161 Invarianten sind ratifiziert (55 R2_RATIFIZIERT, 106 V5_VERBINDLICH). R3-R19 sind DONE und ihre Struktur-/Safety-/Authority-/Recovery-/Domaenen-/Zertifizierungsvalidatoren sind in der Vollmatrix gruen. Die Invarianten-Readiness ist damit technisch geschlossen.",
       "nachweise": [
         "v5/invarianten/invarianten.json",
         "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
@@ -154,7 +161,8 @@
         "v5/grundlage/quelle/operations/telemetrie.ts",
         "v5/grundlage/quelle/operations/headless-supervisor.ts",
         "v5/grundlage/quelle/testlabor/golden-replay.ts",
-        "v5/architektur/adr/ADR-012-R11-TESTLABOR-OBSERVABILITY-OPERATIONS.md"
+        "v5/architektur/adr/ADR-012-R11-TESTLABOR-OBSERVABILITY-OPERATIONS.md",
+        "v5/roadmap/r19-abschluss.json"
       ],
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
@@ -169,7 +177,10 @@
       "r10NachweisVorhanden": true,
       "r10AbgeschlossenAm": "2026-09-20",
       "r11NachweisVorhanden": true,
-      "r11AbgeschlossenAm": "2026-09-20"
+      "r11AbgeschlossenAm": "2026-09-20",
+      "invariantenRatifiziert": 161,
+      "invariantenGesamt": 161,
+      "technischGeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "ZUSTANDSMASCHINEN_BEREIT",
@@ -188,13 +199,22 @@
     },
     {
       "kennung": "FEHLERMODELL_BEREIT",
-      "erfuellt": false,
-      "grund": "Der 161er Gefahrenkatalog, Restrisiko-Regel und die 30/30 V3-Fehlerabdeckung sind R2-ratifiziert. erfuellt bleibt bis phasenweise technische Gegenmassnahmen nachgewiesen sind false.",
+      "erfuellt": true,
+      "grund": "Der Gefahrenkatalog enthaelt 161/161 modellierte Gefahren mit Strategie und betroffenen Phasen; alle Roadmap-Phasen R0-R19 sind DONE. Die Gefahren bleiben als dauerhaft zu ueberwachende Risiken statusseitig OFFEN, das Fehlermodell selbst ist jedoch vollstaendig und seine phasenbezogenen Gegenmassnahmen sind technisch umgesetzt und zertifiziert.",
       "nachweise": [
-        "v5/gefahren/gefahrenkatalog.json"
+        "v5/gefahren/gefahrenkatalog.json",
+        "v5/migration/v3-fehlerabdeckung.json",
+        "v5/roadmap/gates.json",
+        "v5/roadmap/r3-abschluss.json",
+        "v5/roadmap/r11-abschluss.json",
+        "v5/roadmap/r19-abschluss.json"
       ],
       "r2VertragRatifiziert": true,
-      "r2RatifiziertAm": "2026-09-19"
+      "r2RatifiziertAm": "2026-09-19",
+      "gefahrenModelliert": 161,
+      "gefahrenGesamt": 161,
+      "roadmapPhasenDone": 20,
+      "technischGeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "PERSISTENZMODELL_BEREIT",
@@ -243,7 +263,7 @@
     {
       "kennung": "SECURITY_BEREIT",
       "erfuellt": false,
-      "grund": "Safety-, Authority-, Admission-, Recovery-, Mutation- und R19-Zertifizierungsgates sind technisch nachgewiesen. Die globale Security-Readiness bleibt bis zur separaten Gesamtfreigabe gesperrt.",
+      "grund": "Runtime-Safety, Authority, Admission, Recovery, Secretschutz und R19-Zertifizierung sind technisch nachgewiesen. Offen ist ausschliesslich der externe Least-Privilege-Nachweis fuer die am realen PC verwendete GitHub-Autorisierung des Wissenswaechters (V5-ANF-WISSEN-012).",
       "nachweise": [
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
@@ -276,7 +296,8 @@
         "v5/grundlage/tests/r11-operations.test.mjs",
         "v5/grundlage/tests/r11-mutation.test.mjs",
         "v5/grundlage/vertraege/r11/fault-matrix.json",
-        "v5/roadmap/r11-abschluss.json"
+        "v5/roadmap/r11-abschluss.json",
+        "v5/roadmap/r0-r3-reconciliation.json"
       ],
       "r2VertragRatifiziert": true,
       "r3NachweisVorhanden": true,
@@ -290,18 +311,22 @@
       "r10NachweisVorhanden": true,
       "r10AbgeschlossenAm": "2026-09-20",
       "r11NachweisVorhanden": true,
-      "r11AbgeschlossenAm": "2026-09-20"
+      "r11AbgeschlossenAm": "2026-09-20",
+      "externerBlocker": "V5-ANF-WISSEN-012"
     },
     {
       "kennung": "BETRIEBSMODELL_BEREIT",
       "erfuellt": false,
-      "grund": "R19-Zertifizierung ist abgeschlossen. Offen bleibt die Verifikation der lokal installierten aktuellen Windows-Bridge sowie die formale Gesamtfreigabe.",
+      "grund": "Repository-Code, R19-Zertifizierung und Knowledge-Branch-/PR-Pfad sind abgeschlossen. Offen ist die Verifikation, dass auf dem realen PC die aktuelle Windows-Bridge installiert ist und mit der vorgesehenen GitHub-Autorisierung/Knowledge-Branch-Konfiguration laeuft.",
       "nachweise": [
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
         "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md",
         "v5/grundlage/quelle/operations/telemetrie.ts",
         "v5/grundlage/quelle/operations/segment-pflege.ts",
-        "v5/grundlage/tests/r11-operations.test.mjs"
+        "v5/grundlage/tests/r11-operations.test.mjs",
+        "ops/windows-bridge/GitArbeitskopie.cs",
+        "ops/windows-bridge/WissenswaechterDienst.cs",
+        "ops/windows-bridge/WebQuellenEntdecker.cs"
       ],
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
@@ -309,14 +334,14 @@
       "r3AbgeschlossenAm": "2026-09-20",
       "alteBridgeBinaryBeobachtet": true,
       "r11NachweisVorhanden": true,
-      "r11AbgeschlossenAm": "2026-09-20"
+      "r11AbgeschlossenAm": "2026-09-20",
+      "lokalerBridgeNachweisErforderlich": true
     }
   ],
   "offeneBlocker": [
-    "Historische offene R0-R3-Anforderungs- und Traceability-Status gegen vorhandene Abschlussnachweise formal bereinigen",
-    "Lokales Deployment der aktuellen Windows-Bridge verifizieren",
-    "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren",
-    "Breite Gameplay-Runtime bleibt bis zur separaten expliziten Gesamtfreigabe und zehn erfuellten Pflichtbereichen GESPERRT"
+    "V5-ANF-WISSEN-012: repository-begrenzte Least-Privilege-GitHub-Autorisierung des Wissenswaechters am realen PC nachweisen",
+    "Lokales Deployment der aktuellen Windows-Bridge inklusive Knowledge-Branch-/Live-Wissen-Konfiguration am realen PC verifizieren",
+    "Breite Gameplay-Runtime bleibt bis zu zehn erfuellten Pflichtbereichen und separater expliziter Gesamtfreigabe GESPERRT"
   ],
   "r2Status": "RATIFIZIERT",
   "r2AbgeschlossenAm": "2026-09-19",
@@ -384,5 +409,8 @@
   "r19Soak10mEvidence": "v5/roadmap/r19-soak-10m-evidence.json",
   "r19AbgeschlossenAm": "2026-09-20",
   "r19Soak15mEvidence": "v5/roadmap/r19-soak-15m-evidence.json",
-  "r19LadderVollstaendig": true
+  "r19LadderVollstaendig": true,
+  "zusatzNachweise": [
+    "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat dokumentieren; dieser ersetzt nicht den WISSEN-012-Autorisierungsnachweis."
+  ]
 }
