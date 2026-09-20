@@ -1644,8 +1644,10 @@
       ],
       "r19AutomatikStatus": "BIS_SHADOW_BESTANDEN",
       "r19LiveStatus": "BIS_SOAK_5M_BESTANDEN",
-      "r19Zeitprofil": "R19_ACCELERATED_SOAK_V1",
-      "r19ZeitprofilNachweis": "v5/roadmap/r19-soak-zeitprofil.json"
+      "r19Zeitprofil": "R19_ACCELERATED_SOAK_V2",
+      "r19ZeitprofilNachweis": "v5/roadmap/r19-soak-zeitprofil.json",
+      "r19TestzeitStandard": "V5_TESTZEIT_STANDARD_V1",
+      "r19TestzeitStandardNachweis": "v5/roadmap/testzeit-standard.json"
     },
     {
       "anforderungKennung": "V5-ANF-OPS-007",
