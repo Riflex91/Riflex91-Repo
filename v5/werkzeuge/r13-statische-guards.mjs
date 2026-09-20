@@ -77,7 +77,7 @@ for (const marker of [
   if (!demand.includes(marker)) fehler.push("DEMAND_MARKER_FEHLT:" + marker);
 }
 
-const merchantQuellen = pflicht.filter(p => p.includes("/quelle/merchant/"));
+const merchantQuellen = pflicht.filter(p => p.includes("/quelle/merchant/"));\nconst rawWriteQuellen = [\n  ...merchantQuellen,\n  "grundlage/quelle/koordination/account-bank-lease.ts",\n];
 const rawMuster = [
   /\battack\s*\(/,
   /\bsmart_move\s*\(/,
@@ -94,7 +94,7 @@ const rawMuster = [
   /\bbuy\s*\(/,
   /\.emit\s*\(/,
 ];
-for (const pfad of merchantQuellen) {
+for (const pfad of rawWriteQuellen) {
   const text = liesText(pfad);
   if (rawMuster.some(muster => muster.test(text))) {
     fehler.push("MERCHANT_CORE_RAW_GAME_WRITE_VERBOTEN:" + pfad);
