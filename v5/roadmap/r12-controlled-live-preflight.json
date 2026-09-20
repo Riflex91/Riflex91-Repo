@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-20",
   "phase": "R12",
-  "status": "TESTGATE_VORBEREITET_HOST_STOP_ERFORDERLICH",
+  "status": "BESTANDEN_ABGESCHLOSSEN",
   "ziel": {
     "actionContractId": "AL-ACTION-EQUIP",
     "recoveryContractId": "AL-RECOVERY-EQUIP",
@@ -66,14 +66,7 @@
     "controlledLiveUeberBridge": false,
     "controlledLivePfad": "Lokaler V5 One-Shot-Runner ueber loopback CDP; Bridge bleibt ohne Gameplay-Autoritaet."
   },
-  "blocker": [
-    "Die aktuell laufende V3/V4-Gameplay-Runtime muss vor dem One-Shot gestoppt sein.",
-    "Adventure-Land-Codekontext muss ueber loopback CDP direkt erreichbar sein.",
-    "Direkte Live-Evidence muss unmittelbar vor Admission GESUND sein: nicht tot, nicht bewegt, kein Ziel, kein Aggro.",
-    "D:\\\\AdventureLand-V5 muss erreichbar sein und mindestens 15 Prozent freie Reserve besitzen.",
-    "Es darf keine offene V5-R12-Transaktion im lokalen durable Journal existieren.",
-    "Ein eindeutig sicherer Inventory-/Equipment-Kandidat muss lokal beobachtbar sein."
-  ],
+  "blocker": [],
   "freigabeBedingungen": [
     "R12 Shadow BESTANDEN.",
     "Alte V3/V4-Gameplay-Runtime gestoppt.",
@@ -83,5 +76,8 @@
     "Explizite Operator-Bestaetigung R12-EQUIP-ONCE.",
     "Danach exakt eine equip-Action; UNKNOWN/Partial niemals Same-Intent-Retry.",
     "Erfolg nur bei postcondition-verifiziertem gameWrites=1 und unerwarteteGameWrites=0."
-  ]
+  ],
+  "controlledLiveEvidence": "v5/roadmap/r12-controlled-live-evidence.json",
+  "controlledLiveRunId": "R12-1789885970722-a5b4d8d4",
+  "controlledLiveBestandenAm": "2026-09-20T06:32:50.737Z"
 }

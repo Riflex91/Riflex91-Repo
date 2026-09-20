@@ -194,3 +194,15 @@ R12-Paket: `werkzeuge/r12-controlled-live-test-paket.js`
 Standard: `werkzeuge/V5-TEST-GUI.md`
 
 Die GUI selbst besitzt keine generische Gameplay-Autorität. Testcontroller dürfen nur die jeweils ratifizierten Aktionen auslösen.
+
+
+## R12 – Vertical Slice 0 abgeschlossen
+
+R12 ist abgeschlossen. Der Shadow-End-to-End-Pfad blieb bei **0 unerwarteten Game Writes**. Der Controlled-Live-Test fuehrte genau **eine** `AL-ACTION-EQUIP`/`equip`-Mutation aus: `gameWrites=1`, `unerwarteteGameWrites=0`, `sameIntentRetry=false`, Postcondition `BESTAETIGT`.
+
+Die breite Gameplay-Runtime bleibt weiterhin `GESPERRT`; der R12-One-Shot war nur ein enges Testgate.
+
+Live-Evidence: `roadmap/r12-controlled-live-evidence.json`  
+Abschluss: `roadmap/r12-abschluss.json`
+
+Aktuelle Phase: **R13 – Merchant Core A: Single-Character Economy**.

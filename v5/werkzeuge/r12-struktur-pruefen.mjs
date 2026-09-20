@@ -19,6 +19,14 @@ if (r12.status === "DONE") {
     fehler("R12 DONE verlangt R13 IN_PROGRESS und currentPhase=R13.");
   }
   const live = lies("roadmap/r12-controlled-live-evidence.json");
+  const abschluss = lies("roadmap/r12-abschluss.json");
+  if (abschluss.phase !== "R12"
+      || abschluss.status !== "DONE"
+      || abschluss.runtimeGate !== "GESPERRT"
+      || abschluss.breiteGameplayAutoritaet !== false
+      || abschluss.controlledLiveTestgate?.status !== "BESTANDEN") {
+    fehler("R12 DONE verlangt konsistentes Abschlussmanifest bei weiter gesperrter breiter Runtime.");
+  }
   if (live.status !== "BESTANDEN"
       || live.controlledLiveTestGate !== "BESTANDEN"
       || live.actionContractId !== "AL-ACTION-EQUIP"

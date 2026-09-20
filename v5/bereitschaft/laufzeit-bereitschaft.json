@@ -286,9 +286,8 @@
     }
   ],
   "offeneBlocker": [
-    "Vor R12 Controlled Live die parallel laufende V3/V4-Gameplay-Runtime lokal stoppen",
-    "R12 One-Shot-Runner mit expliziter Bestaetigung ausfuehren und echten AL-ACTION-EQUIP-Nachweis mit gameWrites=1 / unerwarteteGameWrites=0 erbringen",
-    "Breite Gameplay-Runtime bleibt bis zur spaeteren Gesamtfreigabe GESPERRT",
+    "R13 Merchant Core A mit Inventory-/Bank-/Economy-Invarianten und Restart-Reconciliation abschliessen",
+    "Breite Gameplay-Runtime bleibt bis zur spaeteren expliziten Gesamtfreigabe GESPERRT",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
   "r2Status": "RATIFIZIERT",
@@ -313,7 +312,9 @@
   "r11AbgeschlossenAm": "2026-09-20",
   "r12ShadowStatus": "BESTANDEN",
   "r12ShadowMainSha": "b0ebb528a7f5accf2bc8196cb2c4ecafbe79b39d",
-  "r12ControlledLiveStatus": "TESTGATE_VORBEREITET",
+  "r12ControlledLiveStatus": "BESTANDEN",
   "r12ControlledLiveAction": "AL-ACTION-EQUIP",
-  "r12ControlledLivePreflight": "v5/roadmap/r12-controlled-live-preflight.json"
+  "r12ControlledLivePreflight": "v5/roadmap/r12-controlled-live-preflight.json",
+  "r12ControlledLiveEvidence": "v5/roadmap/r12-controlled-live-evidence.json",
+  "r12AbgeschlossenAm": "2026-09-20"
 }

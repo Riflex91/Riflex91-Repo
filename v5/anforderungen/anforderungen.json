@@ -1317,7 +1317,7 @@
       "titel": "Controlled Live startet minimal und mit geringriskanter Action.",
       "phase": "R12",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R12_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-061"
       ],
@@ -1327,11 +1327,13 @@
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "ratifiziertAm": "2026-09-19",
-      "r12VorbereitungsStatus": "BLOCKIERT_BIS_CONTROLLED_LIVE",
-      "r12Vorbereitung": [
+      "r12NachweisStatus": "R12_NACHGEWIESEN",
+      "r12Nachweise": [
         "v5/grundlage/quelle/vertical-slice/controlled-live-policy.ts",
-        "v5/roadmap/r12-controlled-live-preflight.json",
-        "v5/architektur/adr/ADR-013-R12-CONTROLLED-LIVE-EQUIP.md"
+        "v5/grundlage/quelle/vertical-slice/controlled-live-gate.ts",
+        "v5/werkzeuge/r12-controlled-live-test-paket.js",
+        "v5/roadmap/r12-controlled-live-evidence.json",
+        "v5/architektur/adr/ADR-014-R12-CONTROLLED-LIVE-TESTGATE.md"
       ]
     },
     {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-09-20",
-  "currentPhase": "R12",
+  "currentPhase": "R13",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -282,7 +282,7 @@
     {
       "id": "R12",
       "name": "Vertical Slice 0",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R11"
       ],
@@ -295,7 +295,7 @@
     {
       "id": "R13",
       "name": "Merchant Core A",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R12"
       ],
