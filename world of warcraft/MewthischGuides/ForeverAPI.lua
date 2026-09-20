@@ -94,6 +94,10 @@ function API:BuildCapabilityMatrix()
             worldFromMap = exists(m.GetWorldPosFromMapPos),
             mapFromWorld = exists(m.GetMapPosFromWorldPos),
             userWaypoint = exists(m.SetUserWaypoint),
+            clearUserWaypoint = exists(m.ClearUserWaypoint),
+            getUserWaypoint = exists(m.GetUserWaypoint),
+            uiMapPoint = type(UiMapPoint) == "table" and
+                exists(UiMapPoint.CreateFromCoordinates),
         },
         gossip = {
             availableQuests = exists(g.GetAvailableQuests),
@@ -104,6 +108,8 @@ function API:BuildCapabilityMatrix()
         navigation = {
             distance = exists(nav.GetDistance),
             waypointForMap = exists(nav.GetNextWaypointForMap),
+            superTrackUserWaypoint = C_SuperTrack and
+                exists(C_SuperTrack.SetSuperTrackedUserWaypoint) or false,
         },
         item = {
             statDelta = exists(item.GetItemStatDelta),
@@ -529,6 +535,120 @@ function API:MapToWorld(mapID, x, y)
     end
 
     return nil
+end
+
+function API:WorldToMap(mapID, worldX, worldY)
+    if not mapID or not tonumber(worldX) or not tonumber(worldY) or
+       not C_Map or not exists(C_Map.GetMapPosFromWorldPos) then
+        return nil
+    end
+
+    local worldPoint = CreateVector2D and
+        CreateVector2D(worldX, worldY) or { x = worldX, y = worldY }
+
+    local player = self:GetPlayerPosition()
+    local playerWorld = player and self:MapToWorld(player.mapID, player.x, player.y) or nil
+    local continentID = playerWorld and playerWorld.continentID or nil
+
+    if continentID then
+        local ok, resultMapID, mapPoint = self:SafeCall(
+            "C_Map.GetMapPosFromWorldPos.continent",
+            C_Map.GetMapPosFromWorldPos,
+            continentID,
+            worldPoint,
+            mapID)
+
+        if ok and mapPoint then
+            local x, y = vectorXY(mapPoint)
+            if x and y then
+                return {
+                    mapID = tonumber(resultMapID) or tonumber(mapID),
+                    x = x,
+                    y = y,
+                }
+            end
+        end
+    end
+
+    local ok, a, b = self:SafeCall(
+        "C_Map.GetMapPosFromWorldPos.map",
+        C_Map.GetMapPosFromWorldPos,
+        mapID,
+        worldPoint)
+
+    if ok then
+        if type(a) == "table" then
+            local x, y = vectorXY(a)
+            if x and y then return { mapID = mapID, x = x, y = y } end
+        elseif type(b) == "table" then
+            local x, y = vectorXY(b)
+            if x and y then
+                return { mapID = tonumber(a) or mapID, x = x, y = y }
+            end
+        end
+    end
+
+    return nil
+end
+
+function API:SetWorldMapWaypoint(target)
+    if not target or not C_Map or not exists(C_Map.SetUserWaypoint) then
+        return false, "waypoint_api_missing"
+    end
+
+    local mapID = tonumber(target.mapID)
+    local x = tonumber(target.x)
+    local y = tonumber(target.y)
+
+    if mapID and (not x or not y) and
+       tonumber(target.worldX) and tonumber(target.worldY) then
+        local converted = self:WorldToMap(
+            mapID,
+            tonumber(target.worldX),
+            tonumber(target.worldY))
+        if converted then
+            mapID, x, y = converted.mapID, converted.x, converted.y
+        end
+    end
+
+    if not mapID or not x or not y then
+        return false, "map_coordinate_unavailable"
+    end
+
+    local point = nil
+    if type(UiMapPoint) == "table" and exists(UiMapPoint.CreateFromCoordinates) then
+        local ok, value = pcall(UiMapPoint.CreateFromCoordinates, mapID, x, y)
+        if ok then point = value end
+    end
+
+    if not point then
+        point = { uiMapID = mapID, position = CreateVector2D and
+            CreateVector2D(x, y) or { x = x, y = y } }
+    end
+
+    local ok, err = pcall(C_Map.SetUserWaypoint, point)
+    if not ok then return false, tostring(err) end
+
+    if C_SuperTrack and exists(C_SuperTrack.SetSuperTrackedUserWaypoint) then
+        pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
+    end
+
+    return true, {
+        mapID = mapID,
+        x = x,
+        y = y,
+    }
+end
+
+function API:ClearWorldMapWaypoint()
+    if C_SuperTrack and exists(C_SuperTrack.SetSuperTrackedUserWaypoint) then
+        pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, false)
+    end
+    if C_Map and exists(C_Map.ClearUserWaypoint) then
+        pcall(C_Map.ClearUserWaypoint)
+        return true
+    end
+    return false
 end
 
 return API
