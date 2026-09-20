@@ -373,9 +373,11 @@ function Import:BuildGuides()
             local definitions = {}
             local ordered = {}
             local lastGuideCoordinate = nil
+            local lastQuestBearingStep = 0
 
             for stepIndex, rawStep in ipairs(rawGuide.steps or {}) do
                 local lastCoordinate = nil
+                local stepHasQuestAction = false
 
                 for actionIndex, action in ipairs(rawStep.actions or {}) do
                     if action.kind == "goto" or action.kind == "waypoint" then
@@ -387,6 +389,7 @@ function Import:BuildGuides()
                         local parsed = parseQuestAction(action.kind, action.args)
 
                         if parsed then
+                            stepHasQuestAction = true
                             local definition = definitions[parsed.questID]
                             if not definition then
                                 definition = {
@@ -410,11 +413,17 @@ function Import:BuildGuides()
                                 tags = shallowCopy(rawStep.tags),
                                 coordinate = lastCoordinate and shallowCopy(lastCoordinate) or
                                     (lastGuideCoordinate and shallowCopy(lastGuideCoordinate) or nil),
+                                rawGuideIndex = rawIndex,
+                                leadFromStep = lastQuestBearingStep + 1,
                                 sourceStep = stepIndex,
                                 sourceAction = actionIndex,
                             }
                         end
                     end
+                end
+
+                if stepHasQuestAction then
+                    lastQuestBearingStep = stepIndex
                 end
             end
 
@@ -461,10 +470,102 @@ function Import:GetCoordinate(definition, phase, profile)
     return best
 end
 
+function Import:GetHints(definition, phase, profile, maximum)
+    local occurrences = definition and definition.rxpOccurrences
+    if type(occurrences) ~= "table" then return {} end
+
+    profile = profile or (MG.GetPlayerProfile and MG:GetPlayerProfile()) or {}
+    maximum = math.max(1, tonumber(maximum) or 4)
+
+    local selected = nil
+    for _, occurrence in ipairs(occurrences) do
+        if occurrence.phase == phase and self:OccurrenceMatches(occurrence, profile) then
+            selected = occurrence
+            if phase ~= "objectives" then break end
+        end
+    end
+    if not selected then return {} end
+
+    local rawGuide = self:ParseRaw()[tonumber(selected.rawGuideIndex or 0)]
+    if not rawGuide then return {} end
+
+    local hints, seen = {}, {}
+    local firstStep = math.max(1, tonumber(selected.leadFromStep) or tonumber(selected.sourceStep) or 1)
+    local lastStep = math.max(firstStep, tonumber(selected.sourceStep) or firstStep)
+
+    for stepIndex = firstStep, lastStep do
+        local rawStep = rawGuide.steps and rawGuide.steps[stepIndex] or nil
+        if rawStep and self:SelectorMatches(rawStep.selector, profile) and
+           self:TagsMatch(rawStep.tags, profile) then
+            for _, action in ipairs(rawStep.actions or {}) do
+                local _, selector = splitCondition(action.args)
+                if (not selector or selector == "" or self:SelectorMatches(selector, profile)) and
+                   MG.RestEDXPActionCatalog then
+                    local text = MG.RestEDXPActionCatalog:Format(action.kind, action.args)
+                    if text and not seen[text] then
+                        seen[text] = true
+                        hints[#hints + 1] = {
+                            kind = action.kind,
+                            text = text,
+                            args = action.args,
+                            sourceStep = stepIndex,
+                        }
+                        if #hints >= maximum then return hints end
+                    end
+                end
+            end
+        end
+    end
+
+    return hints
+end
+
+function Import:GetActionCoverage()
+    local kinds = {}
+    local knownActions, unknownActions = 0, 0
+
+    for _, guide in ipairs(self:ParseRaw()) do
+        for _, step in ipairs(guide.steps or {}) do
+            for _, action in ipairs(step.actions or {}) do
+                local kind = tostring(action.kind or "")
+                local entry = kinds[kind]
+                if not entry then
+                    entry = {
+                        kind = kind,
+                        count = 0,
+                        known = MG.RestEDXPActionCatalog and
+                            MG.RestEDXPActionCatalog:IsKnown(kind) or false,
+                    }
+                    kinds[kind] = entry
+                end
+                entry.count = entry.count + 1
+                if entry.known then knownActions = knownActions + 1
+                else unknownActions = unknownActions + 1 end
+            end
+        end
+    end
+
+    local knownKinds, unknownKinds = 0, 0
+    for _, entry in pairs(kinds) do
+        if entry.known then knownKinds = knownKinds + 1
+        else unknownKinds = unknownKinds + 1 end
+    end
+
+    return {
+        knownActionKinds = knownKinds,
+        unknownActionKinds = unknownKinds,
+        knownActions = knownActions,
+        unknownActions = unknownActions,
+        catalogActionKinds = MG.RestEDXPActionCatalog and
+            MG.RestEDXPActionCatalog:KnownCount() or 0,
+    }
+end
+
 function Import:GetStats()
     local rawGuides = self:ParseRaw()
     local guides = self:BuildGuides()
     local rawSteps, actions, quests = 0, 0, 0
+    local coverage = self:GetActionCoverage()
 
     for _, guide in ipairs(rawGuides) do
         rawSteps = rawSteps + #(guide.steps or {})
@@ -480,6 +581,11 @@ function Import:GetStats()
         structuredActions = actions,
         normalizedGuides = #guides,
         normalizedQuestDefinitions = quests,
+        knownActionKinds = coverage.knownActionKinds,
+        unknownActionKinds = coverage.unknownActionKinds,
+        knownActions = coverage.knownActions,
+        unknownActions = coverage.unknownActions,
+        catalogActionKinds = coverage.catalogActionKinds,
         sourceCommit = MG.RestEDXPForeverRaw and
             MG.RestEDXPForeverRaw.source and
             MG.RestEDXPForeverRaw.source.commit or nil,
