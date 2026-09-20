@@ -53,7 +53,7 @@ function gueltigerBericht() {
     schemaVersion: 1,
     testkennung: "cap045-production-live-certification",
     guiVersion: "1.1.0",
-    controllerVersion: "1.0.1",
+    controllerVersion: "1.0.2",
     gesamtstatus: "BESTANDEN",
     startzeit: "2026-09-20T20:00:00.000Z",
     endzeit: "2026-09-20T20:05:15.000Z",
