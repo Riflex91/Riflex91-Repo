@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.5.1
+name: Mewthisch Guides addon v0.6
 
 on:
   workflow_dispatch:
@@ -42,11 +42,11 @@ jobs:
         run: |
           lua5.1 - <<'LUA'
           local MG = {}
-          local chunk = assert(loadfile("world of warcraft/MewthischGuides/Navigation.lua"))
-          chunk("MewthischGuides", MG)
+          assert(loadfile("world of warcraft/MewthischGuides/Navigation.lua"))("MewthischGuides", MG)
 
           local function near(actual, expected, epsilon, label)
             epsilon = epsilon or 0.0001
+            assert(actual ~= nil, label .. ": nil result")
             assert(math.abs(actual - expected) <= epsilon,
               string.format("%s: expected %.6f got %.6f", label, expected, actual))
           end
@@ -70,6 +70,92 @@ jobs:
           near(rel, -math.pi / 2, 0.0001, "west from north")
 
           print("Bearing math PASS")
+          LUA
+
+      - name: Validate Forever API quest map behavior
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = {}
+          assert(loadfile("world of warcraft/MewthischGuides/ForeverAPI.lua"))("MewthischGuides", MG)
+          local API = MG.ForeverAPI
+
+          API.GetMapChain = function(_, mapID)
+            return {mapID, 999}
+          end
+
+          API.GetQuestsOnMap = function(_, mapID)
+            if mapID == 1411 then
+              return {
+                {questID=789, mapID=1411, x=0.40, y=0.60, isQuestStart=true, inProgress=false},
+                {questID=789, mapID=1411, x=0.45, y=0.65, isQuestStart=false, inProgress=true},
+              }
+            end
+            return {}
+          end
+
+          local objective = API:FindQuestOnMaps(789, 1411, "objectives")
+          assert(objective and objective.source == "QuestMapPOI", "missing objective QuestMapPOI")
+          assert(objective.phaseMatch == true, "objective phase should match inProgress row")
+          assert(math.abs(objective.x - 0.45) < 0.0001, "wrong objective POI selected")
+
+          local accept = API:FindQuestOnMaps(789, 1411, "accept")
+          assert(accept and accept.phaseMatch == true, "accept phase should match start row")
+          assert(math.abs(accept.x - 0.40) < 0.0001, "wrong accept POI selected")
+
+          print("Forever quest-map behavior PASS")
+          LUA
+
+      - name: Validate RouteEngine ranking
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = {
+            db = {runtime = {}},
+            Log = function() end,
+          }
+
+          assert(loadfile("world of warcraft/MewthischGuides/RouteEngine.lua"))("MewthischGuides", MG)
+
+          MG.ForeverAPI = {
+            GetPlayerPosition = function() return {mapID=1411, x=0.1, y=0.1} end,
+            GetQuestLineCoordinate = function() return nil end,
+            FindQuestOnMaps = function()
+              return {mapID=1411, x=0.4, y=0.6, source="QuestMapPOI", phaseMatch=true}
+            end,
+            GetNextQuestWaypoint = function()
+              return {mapID=1411, x=0.5, y=0.7, source="QuestNextWaypointForMap"}
+            end,
+            GetLegacyQuestPOI = function() return nil end,
+            GetNavigationCoordinate = function() return nil end,
+          }
+
+          local target, candidates = MG.RouteEngine:Resolve({
+            questID=789,
+            phase="objectives",
+            verification="RECORDED",
+          })
+
+          assert(target, "route target missing")
+          assert(target.source == "QuestMapPOI", "modern QuestMapPOI must beat generic next waypoint")
+          assert(#candidates == 2, "expected two route candidates")
+          assert(MG.db.runtime.route.candidates and #MG.db.runtime.route.candidates == 2,
+            "candidate diagnostics missing")
+
+          MG.ForeverAPI.GetQuestLineCoordinate = function()
+            return {mapID=1411, x=0.2, y=0.3, source="QuestLine"}
+          end
+
+          target = MG.RouteEngine:Resolve({
+            questID=97279,
+            phase="accept",
+            verification="RECORDED",
+          })
+
+          assert(target and target.source == "QuestLine",
+            "accept route should prefer QuestLine over QuestMapPOI")
+
+          print("RouteEngine ranking PASS")
           LUA
 
       - name: Validate step engine and resync
@@ -115,59 +201,54 @@ jobs:
           assert(steps[preferredIndex].questID == 2, "resync should prefer active route quest")
           assert(steps[preferredIndex].phase == MG.StepPhases.OBJECTIVES, "expected objective phase")
           assert(reason == "active_route_quest", "wrong resync reason")
-          assert(MG:GetExpectedQuestForAutomation("accept") == nil, "objective phase must not auto-accept")
-
-          MG.currentStep = {questID=3, phase=MG.StepPhases.ACCEPT}
-          assert(MG:GetExpectedQuestForAutomation("accept") == 3, "accept phase must expose expected quest")
-          assert(MG:GetExpectedQuestForAutomation("turnin") == nil, "accept phase must not turn in")
-
-          MG.currentStep = {questID=2, phase=MG.StepPhases.TURNIN}
-          assert(MG:GetExpectedQuestForAutomation("turnin") == 2, "turnin phase must expose expected quest")
-          assert(MG:GetExpectedQuestForAutomation("accept") == nil, "turnin phase must not accept")
 
           print("Step/resync contract PASS")
           LUA
 
-      - name: Validate v0.5.1 contract
+      - name: Validate v0.6 contract
         shell: bash
         run: |
           set -euo pipefail
           ROOT="world of warcraft/MewthischGuides"
           TOC="$ROOT/MewthischGuides.toc"
-          STEP="$ROOT/StepEngine.lua"
-          AUTO="$ROOT/QuestAutomation.lua"
+          API="$ROOT/ForeverAPI.lua"
+          ROUTE="$ROOT/RouteEngine.lua"
+          NAV="$ROOT/Navigation.lua"
           UI="$ROOT/UI.lua"
           NAVIGATOR="$ROOT/Navigator.lua"
-          LOGGER="$ROOT/Logger.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
           grep -q '^## Title: Mewthisch Guides$' "$TOC"
-          grep -q '^## Version: 0.5.1$' "$TOC"
-          grep -q '^GoalEngine.lua$' "$TOC"
-          grep -q '^StepEngine.lua$' "$TOC"
+          grep -q '^## Version: 0.6.0$' "$TOC"
+          grep -q '^ForeverAPI.lua$' "$TOC"
+          grep -q '^RouteEngine.lua$' "$TOC"
 
-          grep -q 'StepPhases' "$STEP"
-          grep -q 'BuildGuideSteps' "$STEP"
-          grep -q 'GetExpectedQuestForAutomation' "$STEP"
+          grep -q 'forever-modern-capability' "$API"
+          grep -q 'GetQuestsOnMap' "$API"
+          grep -q 'GetQuestLineCoordinate' "$API"
+          grep -q 'MapToWorld' "$API"
+          grep -q 'hadSentinel' "$API"
+          grep -q 'C_Secrets' "$API"
 
-          grep -q 'expectedQuestID' "$AUTO"
-          if grep -q 'SelectAvailableQuest, 1' "$AUTO"; then
-            echo "Unsafe first-available quest fallback detected."
+          grep -q 'QuestMapPOI = 92' "$ROUTE"
+          grep -q 'candidateSummary' "$ROUTE"
+          grep -q 'modern_quest_map_poi' "$ROUTE"
+
+          grep -q 'RouteEngine:Resolve' "$NAV"
+          grep -q 'WorldCoordinates' "$NAV"
+          if grep -q 'navigationScreenAngle' "$NAV"; then
+            echo "Unsafe guessed screen-angle fallback detected."
             exit 1
           fi
-
-          grep -q 'centerOverlay(infoFrame)' "$UI"
-          grep -q 'centerOverlay(settingsFrame)' "$UI"
 
           if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
             echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
             exit 1
           fi
 
-          grep -q 'windowTransparency' "$LOGGER"
-          grep -q 'MewthischGuidesTransparencySlider' "$UI"
           grep -q 'Fenster-Transparenz' "$UI"
-          grep -q 'ApplyWindowTransparency' "$UI"
+          grep -q 'API-Modus' "$UI"
+          grep -q 'RouteEngine' "$UI"
 
       - name: Package addon
         shell: bash
@@ -175,11 +256,11 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.5.1.zip MewthischGuides
+          zip -r MewthischGuides-v0.6.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.5.1
-          path: artifacts/MewthischGuides-v0.5.1.zip
+          name: MewthischGuides-v0.6
+          path: artifacts/MewthischGuides-v0.6.zip
           if-no-files-found: error
