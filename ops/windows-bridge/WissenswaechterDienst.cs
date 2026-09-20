@@ -250,7 +250,7 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
                     null));
 
                 var entdecker = new WebQuellenEntdecker(_httpClient);
-                var funde = await entdecker.SucheAsync(cancellationToken);
+                var funde = await entdecker.SucheAsync(gestartetAm, cancellationToken);
                 neueKandidaten = await AktualisiereKandidatenAsync(funde, quellen, gestartetAm, cancellationToken);
             }
 
