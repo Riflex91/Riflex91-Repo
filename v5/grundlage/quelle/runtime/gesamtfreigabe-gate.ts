@@ -61,12 +61,19 @@ export function bewerteProduktionsGesamtfreigabe(
   bereitschaftWert: unknown,
   gesamtfreigabeWert: unknown,
 ): ProduktionsGesamtfreigabeBewertung {
-  const gruende: string[] = [];
+  const maximaleGruende = 32;
+  let gruende: readonly string[] = Object.freeze([]);
+  function meldeGrund(grund: string): void {
+    if (gruende.length >= maximaleGruende) {
+      throw new Error("GESAMTFREIGABE_FEHLERLISTE_VOLL");
+    }
+    gruende = Object.freeze([...gruende, grund]);
+  }
   const bereitschaft = alsObjekt(bereitschaftWert);
   const gesamtfreigabe = alsObjekt(gesamtfreigabeWert);
 
-  if (bereitschaft === null) gruende.push("LAUFZEIT_BEREITSCHAFT_UNGUELTIG");
-  if (gesamtfreigabe === null) gruende.push("GESAMTFREIGABE_EVIDENCE_UNGUELTIG");
+  if (bereitschaft === null) meldeGrund("LAUFZEIT_BEREITSCHAFT_UNGUELTIG");
+  if (gesamtfreigabe === null) meldeGrund("GESAMTFREIGABE_EVIDENCE_UNGUELTIG");
 
   const freigabe = gesamtfreigabe === null
     ? null
@@ -77,42 +84,42 @@ export function bewerteProduktionsGesamtfreigabe(
 
   if (gesamtfreigabe !== null) {
     if (gesamtfreigabe["schemaVersion"] !== 1) {
-      gruende.push("GESAMTFREIGABE_SCHEMA_UNGUELTIG");
+      meldeGrund("GESAMTFREIGABE_SCHEMA_UNGUELTIG");
     }
     if (gesamtfreigabe["kennung"] !== "V5_GESAMTFREIGABE") {
-      gruende.push("GESAMTFREIGABE_KENNUNG_UNGUELTIG");
+      meldeGrund("GESAMTFREIGABE_KENNUNG_UNGUELTIG");
     }
     if (gesamtfreigabe["status"] !== "ERTEILT") {
-      gruende.push("GESAMTFREIGABE_STATUS_NICHT_ERTEILT");
+      meldeGrund("GESAMTFREIGABE_STATUS_NICHT_ERTEILT");
     }
     if (gesamtfreigabe["bestaetigungQuelle"] !== "BETREIBER_INTERAKTIV") {
-      gruende.push("GESAMTFREIGABE_QUELLE_UNGUELTIG");
+      meldeGrund("GESAMTFREIGABE_QUELLE_UNGUELTIG");
     }
     if (gesamtfreigabe["bestaetigungText"] !== V5_GESAMTFREIGABE_BESTAETIGUNG) {
-      gruende.push("GESAMTFREIGABE_BESTAETIGUNG_UNGUELTIG");
+      meldeGrund("GESAMTFREIGABE_BESTAETIGUNG_UNGUELTIG");
     }
     if (gesamtfreigabe["vorbereitung"] !== "v5/roadmap/gesamtfreigabe-vorbereitung.json") {
-      gruende.push("GESAMTFREIGABE_VORBEREITUNG_UNGUELTIG");
+      meldeGrund("GESAMTFREIGABE_VORBEREITUNG_UNGUELTIG");
     }
   }
 
   if (freigabe === null) {
-    gruende.push("GESAMTFREIGABE_BLOCK_UNGUELTIG");
+    meldeGrund("GESAMTFREIGABE_BLOCK_UNGUELTIG");
   } else {
     if (freigabe["laufzeitBereitschaft"] !== "FREIGEGEBEN") {
-      gruende.push("GESAMTFREIGABE_LAUFZEIT_NICHT_FREIGEGEBEN");
+      meldeGrund("GESAMTFREIGABE_LAUFZEIT_NICHT_FREIGEGEBEN");
     }
     if (freigabe["breiteRuntimeFreigabe"] !== true) {
-      gruende.push("GESAMTFREIGABE_BREITE_RUNTIME_NICHT_FREIGEGEBEN");
+      meldeGrund("GESAMTFREIGABE_BREITE_RUNTIME_NICHT_FREIGEGEBEN");
     }
   }
 
   if (sicherheit === null) {
-    gruende.push("GESAMTFREIGABE_SICHERHEIT_UNGUELTIG");
+    meldeGrund("GESAMTFREIGABE_SICHERHEIT_UNGUELTIG");
   } else {
     for (const flag of SICHERHEITS_FLAGS) {
       if (sicherheit[flag] !== true) {
-        gruende.push("GESAMTFREIGABE_SICHERHEIT_FEHLT:" + flag);
+        meldeGrund("GESAMTFREIGABE_SICHERHEIT_FEHLT:" + flag);
       }
     }
   }
@@ -123,33 +130,33 @@ export function bewerteProduktionsGesamtfreigabe(
     if (typeof sha === "string" && SHA40.test(sha)) {
       releaseCandidateSha = sha;
     } else {
-      gruende.push("GESAMTFREIGABE_RELEASE_SHA_UNGUELTIG");
+      meldeGrund("GESAMTFREIGABE_RELEASE_SHA_UNGUELTIG");
     }
   }
 
   if (bereitschaft !== null) {
     if (bereitschaft["schemaVersion"] !== 1) {
-      gruende.push("LAUFZEIT_BEREITSCHAFT_SCHEMA_UNGUELTIG");
+      meldeGrund("LAUFZEIT_BEREITSCHAFT_SCHEMA_UNGUELTIG");
     }
     if (bereitschaft["status"] !== "FREIGEGEBEN") {
-      gruende.push("LAUFZEIT_BEREITSCHAFT_NICHT_FREIGEGEBEN");
+      meldeGrund("LAUFZEIT_BEREITSCHAFT_NICHT_FREIGEGEBEN");
     }
     if (bereitschaft["gesamtfreigabe"] !== "ERTEILT") {
-      gruende.push("LAUFZEIT_BEREITSCHAFT_GESAMTFREIGABE_NICHT_ERTEILT");
+      meldeGrund("LAUFZEIT_BEREITSCHAFT_GESAMTFREIGABE_NICHT_ERTEILT");
     }
     if (bereitschaft["breiteRuntimeFreigabe"] !== true) {
-      gruende.push("LAUFZEIT_BEREITSCHAFT_BREITE_RUNTIME_NICHT_FREIGEGEBEN");
+      meldeGrund("LAUFZEIT_BEREITSCHAFT_BREITE_RUNTIME_NICHT_FREIGEGEBEN");
     }
     if (bereitschaft["gesamtfreigabeNachweis"] !== V5_GESAMTFREIGABE_NACHWEISPFAD) {
-      gruende.push("LAUFZEIT_BEREITSCHAFT_NACHWEISPFAD_UNGUELTIG");
+      meldeGrund("LAUFZEIT_BEREITSCHAFT_NACHWEISPFAD_UNGUELTIG");
     }
     const blocker = bereitschaft["offeneBlocker"];
     if (!Array.isArray(blocker) || blocker.length !== 0) {
-      gruende.push("LAUFZEIT_BEREITSCHAFT_BLOCKER_OFFEN");
+      meldeGrund("LAUFZEIT_BEREITSCHAFT_BLOCKER_OFFEN");
     }
     if (releaseCandidateSha !== null
         && bereitschaft["gesamtfreigabeReleaseCandidateSha"] !== releaseCandidateSha) {
-      gruende.push("LAUFZEIT_BEREITSCHAFT_RELEASE_SHA_STIMMT_NICHT");
+      meldeGrund("LAUFZEIT_BEREITSCHAFT_RELEASE_SHA_STIMMT_NICHT");
     }
   }
 
