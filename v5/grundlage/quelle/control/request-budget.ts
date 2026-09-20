@@ -245,27 +245,31 @@ function parsePersistenz(
     throw new Error("REQUEST_BUDGET_PERSISTENZ_UNGUELTIG");
   }
 
-  const zweckVerbrauch = roh["zweckVerbrauch"].map((wert, index) => {
-    if (!istObjekt(wert)
-        || !istZweck(wert["zweck"])
-        || typeof wert["verbraucht"] !== "number"
-        || !Number.isSafeInteger(wert["verbraucht"])
-        || wert["verbraucht"] < 0) {
+  const zweckVerbrauchRoh = roh["zweckVerbrauch"];
+  const zweckVerbrauch = zweckVerbrauchRoh.map((wert, index) => {
+    if (!istObjekt(wert)) {
       throw new Error("REQUEST_BUDGET_PERSISTENZ_ZWECK_UNGUELTIG");
     }
     const zweck = wert["zweck"];
+    const verbraucht = wert["verbraucht"];
+    if (!istZweck(zweck)
+        || typeof verbraucht !== "number"
+        || !Number.isSafeInteger(verbraucht)
+        || verbraucht < 0) {
+      throw new Error("REQUEST_BUDGET_PERSISTENZ_ZWECK_UNGUELTIG");
+    }
     const limit = policy.zweckLimits.find(x => x.zweck === zweck);
-    if (limit === undefined || wert["verbraucht"] > limit.limit) {
+    if (limit === undefined || verbraucht > limit.limit) {
       throw new Error("REQUEST_BUDGET_PERSISTENZ_ZWECK_LIMIT_DRIFT");
     }
-    if (roh["zweckVerbrauch"].slice(0, index).some(
+    if (zweckVerbrauchRoh.slice(0, index).some(
       vorher => istObjekt(vorher) && vorher["zweck"] === zweck,
     )) {
       throw new Error("REQUEST_BUDGET_PERSISTENZ_ZWECK_DOPPELT");
     }
     return Object.freeze({
       zweck,
-      verbraucht: wert["verbraucht"],
+      verbraucht,
     });
   });
   for (const zweck of ZWECKE) {
@@ -274,34 +278,41 @@ function parsePersistenz(
     }
   }
 
-  const reservierungen = roh["reservierungen"].map((wert, index) => {
-    if (!istObjekt(wert)
-        || typeof wert["requestId"] !== "string"
-        || !istZweck(wert["zweck"])
-        || typeof wert["kosten"] !== "number"
-        || !Number.isSafeInteger(wert["kosten"])
-        || wert["kosten"] < 1
-        || typeof wert["reserviertAmMs"] !== "number"
-        || !Number.isSafeInteger(wert["reserviertAmMs"])
-        || wert["reserviertAmMs"] < fensterStartMs
-        || wert["reserviertAmMs"] >= fensterStartMs + policy.fensterDauerMs) {
+  const reservierungenRoh = roh["reservierungen"];
+  const reservierungen = reservierungenRoh.map((wert, index) => {
+    if (!istObjekt(wert)) {
+      throw new Error("REQUEST_BUDGET_PERSISTENZ_RESERVIERUNG_UNGUELTIG");
+    }
+    const requestId = wert["requestId"];
+    const zweck = wert["zweck"];
+    const kosten = wert["kosten"];
+    const reserviertAmMs = wert["reserviertAmMs"];
+    if (typeof requestId !== "string"
+        || !istZweck(zweck)
+        || typeof kosten !== "number"
+        || !Number.isSafeInteger(kosten)
+        || kosten < 1
+        || typeof reserviertAmMs !== "number"
+        || !Number.isSafeInteger(reserviertAmMs)
+        || reserviertAmMs < fensterStartMs
+        || reserviertAmMs >= fensterStartMs + policy.fensterDauerMs) {
       throw new Error("REQUEST_BUDGET_PERSISTENZ_RESERVIERUNG_UNGUELTIG");
     }
     pruefeText(
-      wert["requestId"],
+      requestId,
       "REQUEST_BUDGET_PERSISTENZ_REQUEST_ID_UNGUELTIG",
     );
-    if (roh["reservierungen"].slice(0, index).some(
+    if (reservierungenRoh.slice(0, index).some(
       vorher => istObjekt(vorher)
-        && vorher["requestId"] === wert["requestId"],
+        && vorher["requestId"] === requestId,
     )) {
       throw new Error("REQUEST_BUDGET_PERSISTENZ_REQUEST_ID_DOPPELT");
     }
     return Object.freeze({
-      requestId: wert["requestId"],
-      zweck: wert["zweck"],
-      kosten: wert["kosten"],
-      reserviertAmMs: wert["reserviertAmMs"],
+      requestId,
+      zweck,
+      kosten,
+      reserviertAmMs,
     });
   });
 
