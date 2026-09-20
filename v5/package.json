@@ -70,7 +70,9 @@
     "cap045:live-gui:bauen": "node werkzeuge/cap045-production-live-test-paket-bauen.mjs",
     "cap045:live-gui:pruefen": "npm run bauen && node --check werkzeuge/cap045-production-live-test-gui.js && node --check werkzeuge/cap045-production-live-test-paket.js && node --check werkzeuge/cap045-production-live-evidence-pruefen.mjs && node werkzeuge/cap045-production-live-test-paket-bauen.mjs --check && node werkzeuge/cap045-production-live-static-guards.mjs && node --test werkzeuge/tests/cap045-production-live-test-gui.test.mjs werkzeuge/tests/cap045-production-live-evidence-pruefen.test.mjs",
     "cap045:live-evidence:pruefen": "npm run bauen && node werkzeuge/cap045-production-live-evidence-pruefen.mjs",
-    "architekturgraph:pruefen": "node werkzeuge/r3-architekturgraph-pruefen.mjs"
+    "architekturgraph:pruefen": "node werkzeuge/r3-architekturgraph-pruefen.mjs",
+    "bank-planen-canary:pruefen": "npm run bauen && node --check werkzeuge/bank-planen-canary-browser.mjs && node --check werkzeuge/bank-planen-observer-canary.mjs && node --test grundlage/tests/r11-bank-planen-observer-canary.test.mjs",
+    "bank-planen-canary:live": "npm run bauen && node werkzeuge/bank-planen-observer-canary.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
