@@ -89,6 +89,23 @@ jobs:
           Copy-Item "world of warcraft/schema/fgds.schema.json" "artifacts/ForeverDataMiner-win-x64/fgds.schema.json"
           Copy-Item "world of warcraft/README.md" "artifacts/ForeverDataMiner-win-x64/README.md"
 
+      - name: Build combined test package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force "artifacts/ForeverGuide-DataTools-v0.2/ForeverDataMiner" | Out-Null
+          New-Item -ItemType Directory -Force "artifacts/ForeverGuide-DataTools-v0.2/ForeverGuideRecorder" | Out-Null
+          Copy-Item "artifacts/ForeverDataMiner-win-x64/*" "artifacts/ForeverGuide-DataTools-v0.2/ForeverDataMiner/" -Recurse
+          Copy-Item "world of warcraft/ForeverGuideRecorder/*" "artifacts/ForeverGuide-DataTools-v0.2/ForeverGuideRecorder/" -Recurse
+          Copy-Item "world of warcraft/TESTING.md" "artifacts/ForeverGuide-DataTools-v0.2/TESTING.md"
+          Compress-Archive -Path "artifacts/ForeverGuide-DataTools-v0.2/*" -DestinationPath "artifacts/ForeverGuide-DataTools-v0.2.zip" -Force
+
+      - name: Upload combined test package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForeverGuide-DataTools-v0.2
+          path: artifacts/ForeverGuide-DataTools-v0.2.zip
+          if-no-files-found: error
+
       - name: Upload Windows miner
         uses: actions/upload-artifact@v4
         with:
