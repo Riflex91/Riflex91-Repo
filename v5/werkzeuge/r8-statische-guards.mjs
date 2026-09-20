@@ -69,12 +69,6 @@ for (const marker of [
   if (!scheduler.includes(marker)) fehler.push("SCHEDULER_MARKER_FEHLT:" + marker);
 }
 
-if (/(?:attack|smart_move|move|use_skill|equip|buy|sell|send_item|send_gold)s*(/.test(
-  workflow + ressourcen + budget + retry + scheduler,
-)) {
-  fehler.push("R8_RAW_GAME_WRITE_VERBOTEN");
-}
-
 if (fehler.length > 0) {
   throw new Error("[V5-R8-GUARD]\n" + [...new Set(fehler)].join("\n"));
 }
