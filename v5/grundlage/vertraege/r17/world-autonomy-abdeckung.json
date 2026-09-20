@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R17",
+  "status": "TECHNISCH_BESTANDEN",
+  "referenzHead": "1346543cb5cb3a46d0a94b5c9ee284161ec59a2b",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "p2": {
+    "status": "GESCHLOSSEN",
+    "nachweis": "v5/dokumentation/P2-WORLD-AUTONOMY.md"
+  },
+  "anforderungen": [
+    {
+      "kennung": "V5-ANF-WORLD-004",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/welt/event-quest-drift.ts",
+        "v5/grundlage/quelle/welt/world-plan-ledger.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r17-event-quest-drift.test.mjs"
+      ]
+    }
+  ],
+  "capabilities": [
+    {
+      "kennung": "MAP_GRAPH",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/welt/map-graph.ts"
+    },
+    {
+      "kennung": "SPAWN_DISCOVERY",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/welt/spawn-discovery.ts"
+    },
+    {
+      "kennung": "UNKNOWN_CONTENT",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/welt/content-quarantaene.ts"
+    },
+    {
+      "kennung": "SERVER_HOP",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/welt/server-hop-policy.ts"
+    }
+  ],
+  "exitKriterien": {
+    "p2Geschlossen": true,
+    "eventQuestDriftBlockOderReplan": true,
+    "staleWorldStateFailClosed": true,
+    "unknownContentQuarantaene": true,
+    "discoveryIstKeineFreigabe": true,
+    "restartErzwingtRevalidation": true,
+    "serverHopModeFreshnessFatigue": true,
+    "pvpHardcoreExpliziterOptIn": true,
+    "mapGraphNurPlanningEvidence": true,
+    "rareBossDiscoveryKeineCombatAuthority": true,
+    "rawGameWritesImR17Core": 0
+  },
+  "regression": {
+    "r3BisR17UndWissensgate": "GRUEN",
+    "exactHead": "1346543cb5cb3a46d0a94b5c9ee284161ec59a2b"
+  },
+  "hinweis": "R17 liefert World-Autonomy Planning/Revalidation ohne Gameplay- oder Raw-Write-Autoritaet."
+}
