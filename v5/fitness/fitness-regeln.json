@@ -163,13 +163,23 @@
       "kennung": "V5-FIT-018",
       "titel": "UNKNOWN besitzt keinen Blind-Retry-Uebergang",
       "phase": "R10",
-      "durchsetzung": "ZUSTANDSMODELL_TEST"
+      "durchsetzung": "ZUSTANDSMODELL_TEST",
+      "r10NachweisStatus": "ERFUELLT",
+      "r10Nachweise": [
+        "v5/grundlage/quelle/recovery/recovery-kernel.ts",
+        "v5/grundlage/tests/r10-recovery.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-019",
       "titel": "Persistierte nichtterminale Arbeit kann nicht direkt als LAEUFT geladen werden",
       "phase": "R10",
-      "durchsetzung": "RESTART_GUARD"
+      "durchsetzung": "RESTART_GUARD",
+      "r10NachweisStatus": "ERFUELLT",
+      "r10Nachweise": [
+        "v5/grundlage/quelle/recovery/wiederanlauf.ts",
+        "v5/grundlage/tests/r10-control.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-020",
@@ -335,7 +345,13 @@
       "kennung": "V5-FIT-040",
       "titel": "UNKNOWN besitzt in keinem Action-/Recovery-Modell einen direkten Same-Intent-Send-Uebergang",
       "phase": "R10",
-      "durchsetzung": "ZUSTANDSMODELL_UND_RECOVERY_GUARD"
+      "durchsetzung": "ZUSTANDSMODELL_UND_RECOVERY_GUARD",
+      "r10NachweisStatus": "ERFUELLT",
+      "r10Nachweise": [
+        "v5/wissensbasis/vertraege/recovery-contracts.json",
+        "v5/werkzeuge/r10-recovery-abdeckung.mjs",
+        "v5/grundlage/tests/r10-recovery.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-041",
