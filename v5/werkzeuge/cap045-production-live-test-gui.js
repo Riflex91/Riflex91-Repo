@@ -2,7 +2,7 @@
   'use strict';
 
   const API_NAME = 'V5Cap045ProductionLiveTest';
-  const VERSION = '1.0.0';
+  const VERSION = '1.0.1';
   const TESTKENNUNG = 'cap045-production-live-certification';
   const SESSION_KEY = 'AIO_V5_CAP045_PRODUCTION_LIVE_SESSION_V1';
   const JOURNAL_KEY = 'AIO_V5_CAP045_PRODUCTION_LIVE_JOURNAL_V1';
