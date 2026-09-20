@@ -68,7 +68,7 @@ for(const m of [
 ]){
   if(!liveGui.includes(m)) fehler.push("CONTROLLED_LIVE_GUI_MARKER_FEHLT:"+m);
 }
-const equipAufrufe=liveGui.match(/\\.equip\\s*\\(/g)??[];
+const equipAufrufe=liveGui.match(/\.equip\s*\(/g)??[];
 if(equipAufrufe.length!==1) fehler.push("CONTROLLED_LIVE_GUI_EQUIP_ANZAHL:"+equipAufrufe.length);
 
 const rawMuster=[
