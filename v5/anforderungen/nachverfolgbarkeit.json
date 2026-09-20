@@ -2670,10 +2670,12 @@
       ],
       "implementierung": [
         ".github/workflows/v5-wissenswaechter-pr.yml",
-        "ops/windows-bridge/GitArbeitskopie.cs"
+        "ops/windows-bridge/GitArbeitskopie.cs",
+        "ops/windows-bridge/GitHubAnmeldung.cs"
       ],
       "tests": [
-        "ops/windows-bridge-tests/Program.cs"
+        "ops/windows-bridge-tests/Program.cs",
+        "ops/windows-bridge/V5ReadinessSystemtest.cs"
       ],
       "liveNachweise": [
         "v5/roadmap/v5-wissen-012-autorisierungsnachweis.json"
