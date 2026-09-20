@@ -28,8 +28,8 @@ for (const pfad of [
   "grundlage/quelle/ausfuehrung/admission.ts",
   "grundlage/quelle/ausfuehrung/ausfuehrungs-kernel.ts",
   "grundlage/tests/r9-admission-execution.test.mjs",
-  "ausfuehrung/vertraege/verifier-katalog.json",
-  "ausfuehrung/vertraege/r9-bindungen.json",
+  "grundlage/vertraege/r9/verifier-katalog.json",
+  "grundlage/vertraege/r9/action-bindungen.json",
   "werkzeuge/r9-vertragsabdeckung.mjs",
   "werkzeuge/r9-statische-guards.mjs",
 ]) {
