@@ -360,13 +360,13 @@ public sealed class MainForm : Form
                 }
                 catch (Exception ex)
                 {
-                    BeginInvoke(() =>
+                    BeginInvoke(new Action(() =>
                     {
                         AppendLog("MONITOR-FEHLER: " + ex.Message);
                         monitorLabel.Text = "Monitoring: Fehler";
                         startButton.Enabled = true;
                         stopButton.Enabled = false;
-                    });
+                    }));
                 }
             }, token);
         }
@@ -420,7 +420,7 @@ public sealed class MainForm : Form
         exportWatcher.Created += (_, e) =>
         {
             if (IsDisposed) return;
-            BeginInvoke(() =>
+            BeginInvoke(new Action(() =>
             {
                 AppendLog("Neuer Datensatz: " + e.Name);
                 trayIcon.ShowBalloonTip(
@@ -428,7 +428,7 @@ public sealed class MainForm : Form
                     "ForeverDataMiner",
                     "Forever-Änderung erfasst: " + e.Name,
                     ToolTipIcon.Info);
-            });
+            }));
         };
     }
 
