@@ -9,6 +9,10 @@ const pflicht=[
   "grundlage/tests/r19-evidence-ladder.test.mjs",
   "grundlage/tests/r19-shadow-certification.test.mjs",
   "werkzeuge/r19-ui-release-gate.mjs",
+  "werkzeuge/r19-controlled-live-test-gui.js",
+  "werkzeuge/r19-controlled-live-test-paket.js",
+  "werkzeuge/r19-test-gui-paket-bauen.mjs",
+  "werkzeuge/tests/r19-test-gui.test.mjs",
 ];
 for(const p of pflicht) if(!fs.existsSync(p)) fehler.push("PFLICHTARTEFAKT_FEHLT:"+p);
 
@@ -53,6 +57,19 @@ for(const m of [
 ]){
   if(!shadow.includes(m)) fehler.push("SHADOW_MARKER_FEHLT:"+m);
 }
+
+const liveGui=lies("werkzeuge/r19-controlled-live-test-gui.js");
+for(const m of [
+  "R19-CONTROLLED-LIVE-EQUIP-ONCE",
+  "zertifizierungsStufe: 'CONTROLLED_LIVE'",
+  "manuelleBestaetigung: true",
+  "sameIntentRetry: false",
+  "breiteRuntimeFreigabe: false",
+]){
+  if(!liveGui.includes(m)) fehler.push("CONTROLLED_LIVE_GUI_MARKER_FEHLT:"+m);
+}
+const equipAufrufe=liveGui.match(/\\.equip\\s*\\(/g)??[];
+if(equipAufrufe.length!==1) fehler.push("CONTROLLED_LIVE_GUI_EQUIP_ANZAHL:"+equipAufrufe.length);
 
 const rawMuster=[
   /\battack\s*\(/,/\bsmart_move\s*\(/,/\bmove\s*\(/,/\bxmove\s*\(/,
