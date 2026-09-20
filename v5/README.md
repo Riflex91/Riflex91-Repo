@@ -379,19 +379,18 @@ ADR: `architektur/adr/ADR-024-TESTZEITSTANDARD-5M-15M.md`.
 
 Diese Evidence wird als beschleunigte Runtime-Zertifizierung und nicht als mehrtaegiger 24/7-Soak ausgewiesen.
 
-## Separate V5-Gesamtfreigabe vorbereitet
+## Separate V5-Gesamtfreigabe erteilt
 
 Die technische Readiness ist vollständig geschlossen: 10/10 Pflichtbereiche, 119/119 Anforderungen und 119/119 Traceability sind nachgewiesen; R19 ist DONE und der reale Windows-Bridge-/WISSEN-012-Nachweis ist geschlossen.
 
-Die breite Gameplay-Runtime bleibt trotzdem fail-closed `GESPERRT`.
+Der Betreiber hat am 2026-09-20 ausdrücklich `V5 GESAMTFREIGABE ERTEILEN` bestätigt. Der aktuelle Freigabezustand lautet:
 
-Der aktuelle Zustand lautet:
+- `gesamtfreigabe = ERTEILT`;
+- `breiteRuntimeFreigabe = true`;
+- `laufzeit-bereitschaft.status = FREIGEGEBEN`;
+- finales Evidence-Artefakt: `roadmap/gesamtfreigabe.json`.
 
-- `gesamtfreigabe = BETREIBERBESTAETIGUNG_AUSSTEHEND`;
-- `breiteRuntimeFreigabe = false`;
-- `roadmap/gesamtfreigabe-vorbereitung.json = BEREIT_FUER_BETREIBERBESTAETIGUNG`.
-
-Die Freigabe darf nicht aus „ok“, „mach weiter“ oder ähnlichen Fortsetzungsanweisungen abgeleitet werden. Sie benötigt die separate ausdrückliche Betreiberbestätigung `V5 GESAMTFREIGABE ERTEILEN`, danach ein eigenes Freigabeartefakt, grünes CI und einen SHA-gebundenen Merge.
+Die Gesamtfreigabe öffnet nur das globale Runtime-Gate. Capability-/Owner-Authority, Operator-Deny, Kill Switch, Action Contracts, Admission, Freshness, Fencing, Resource-Gates, durable Intent und UNKNOWN/Reconciliation bleiben unverändert zwingend.
 
 Vertrag: `dokumentation/GESAMTFREIGABE.md`  
 Validator: `werkzeuge/gesamtfreigabe-pruefen.mjs`  
