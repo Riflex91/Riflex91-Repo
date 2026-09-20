@@ -244,11 +244,12 @@ public sealed class MainForm : Form
         {
             AutoSize = true,
             Dock = DockStyle.Fill,
-            ColumnCount = 2,
+            ColumnCount = 3,
             Margin = new Padding(0, 0, 0, 4),
         };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
         var label = new Label
         {
@@ -260,8 +261,16 @@ public sealed class MainForm : Form
 
         wtlBox.Dock = DockStyle.Fill;
 
+        var setup = new Button
+        {
+            Text = WowToolsProviderBootstrapper.IsInstalled() ? "Provider aktualisieren" : "Provider einrichten",
+            AutoSize = true,
+        };
+        setup.Click += async (_, _) => await SetupProviderAsync(setup);
+
         panel.Controls.Add(label, 0, 0);
         panel.Controls.Add(wtlBox, 1, 0);
+        panel.Controls.Add(setup, 2, 0);
         return panel;
     }
 
@@ -302,7 +311,40 @@ public sealed class MainForm : Form
             Path.GetFullPath(wowRoot),
             Program.DefaultOutputDirectory(),
             provider,
-            TimeSpan.FromSeconds(30)));
+            TimeSpan.FromSeconds(30),
+            ManageWowToolsLocal: useWtlBox.Checked && settings.ManageWowToolsLocal));
+    }
+
+    private async Task SetupProviderAsync(Button button)
+    {
+        try
+        {
+            button.Enabled = false;
+            AppendLog("DB2-Provider-Einrichtung gestartet …");
+
+            var executable = await WowToolsProviderBootstrapper.InstallOrUpdateAsync(AppendLog);
+
+            settings.ManageWowToolsLocal = true;
+            useWtlBox.Checked = true;
+            SaveSettings();
+
+            button.Text = "Provider aktualisieren";
+            AppendLog("Provider bereit: " + executable);
+        }
+        catch (Exception ex)
+        {
+            AppendLog("PROVIDER-FEHLER: " + ex.Message);
+            MessageBox.Show(
+                this,
+                ex.Message,
+                "DB2-Provider",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
+        finally
+        {
+            button.Enabled = true;
+        }
     }
 
     private async Task ScanNowAsync()
