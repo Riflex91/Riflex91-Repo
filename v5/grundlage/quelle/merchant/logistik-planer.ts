@@ -59,6 +59,7 @@ export interface LogistikQuellenPin {
   readonly freshnessFingerprint: string;
   readonly inventoryFingerprint: string;
   readonly gueltigBisMs: number;
+  readonly maximalesEvidenceAlterMs: number;
   readonly posten: readonly LogistikQuellenPinPosten[];
   readonly planningEvidence: true;
   readonly executionAuthority: false;
@@ -233,7 +234,7 @@ export function pruefeLogistikQuellenPin(
     evidence.beobachtetAmMs,
     evidence.gueltigBisMs,
     jetztMs,
-    Math.max(1, pin.gueltigBisMs - plan.erstelltAmMs),
+    pin.maximalesEvidenceAlterMs,
   ) || jetztMs > pin.gueltigBisMs) {
     throw new Error("LOGISTIK_QUELLEN_PIN_NICHT_FRISCH");
   }
@@ -394,6 +395,7 @@ export function planeMerchantLogistik(
       anfrage.gueltigBisMs,
       anfrage.quelleEvidence.gueltigBisMs,
     ),
+    maximalesEvidenceAlterMs: anfrage.maximalesEvidenceAlterMs,
     posten: Object.freeze(pinPosten),
     planningEvidence: true,
     executionAuthority: false,
