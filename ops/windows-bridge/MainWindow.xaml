@@ -217,15 +217,18 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="10" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="GitHub-Anmeldung" Style="{StaticResource MutedText}" />
+                            <TextBlock Text="GitHub-Anmeldung · Fine-grained PAT" Style="{StaticResource MutedText}" />
                             <TextBlock x:Name="GitHubStateText" Text="Wird geprüft …" FontSize="16" FontWeight="SemiBold" Margin="0,5,0,0" />
                             <TextBlock x:Name="GitHubAccountText" Text="" Style="{StaticResource MutedText}" Margin="0,4,0,0" />
                         </StackPanel>
-                        <Button Grid.Column="2" Content="Bei GitHub anmelden" Click="GitHubLogin_Click" MinWidth="155" />
-                        <Button Grid.Column="4" Content="Abmelden" Click="GitHubLogout_Click" MinWidth="105" />
-                        <Button Grid.Column="6" Content="Jetzt aktualisieren" Click="WissenswaechterJetzt_Click" MinWidth="150" />
+                        <Button Grid.Column="2" Content="Least-Privilege Token erstellen" Click="GitHubTokenErstellen_Click" MinWidth="205" />
+                        <Button Grid.Column="4" Content="Token anmelden" Click="GitHubLogin_Click" MinWidth="135" />
+                        <Button Grid.Column="6" Content="Abmelden" Click="GitHubLogout_Click" MinWidth="105" />
+                        <Button Grid.Column="8" Content="Jetzt aktualisieren" Click="WissenswaechterJetzt_Click" MinWidth="150" />
                     </Grid>
 
                     <Grid Margin="0,12,0,0">
@@ -292,7 +295,7 @@
                     <TextBlock x:Name="WissenswaechterDetailText"
                                Text="Stündliche Prüfung · bekannte Quellen + Web-Entdeckung + lokaler Live-Wissensimport · Git-Historie als Versionsverlauf."
                                Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,12,0,0" />
-                    <TextBlock Text="Sicherheitsgrenze: Der lokale Git-Arbeitsbaum ist per Sparse Checkout auf v5/wissensbasis/** begrenzt. Vor jedem Commit und nach jedem Rebase wird zusätzlich geprüft, dass keine Datei außerhalb dieses Bereichs verändert wurde. Force-Push ist verboten."
+                    <TextBlock Text="Sicherheitsgrenze: Der lokale Git-Arbeitsbaum ist per Sparse Checkout auf v5/wissensbasis/** begrenzt. main wird lokal weder gemerged noch rebased; vor jedem Push wird der eigene Branch-Anteil ab Merge-Base geprüft. Force-Push ist verboten."
                                Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,6,0,0" />
                 </StackPanel>
             </Border>
