@@ -158,3 +158,14 @@ export interface V5EquipEinmalAuthorityErgebnis {
   readonly rawWriteAutoritaet: false;
   readonly breiteRuntimeFreigabe: false;
 }
+
+export interface V5EquipEinmalAuthorityRevalidierungsErgebnis {
+  readonly schemaVersion: 1;
+  readonly bereit: boolean;
+  readonly grund: string;
+  readonly authorityOffen: boolean;
+  readonly authorityWiderrufen: boolean;
+  readonly gameplayWriteAusgefuehrt: false;
+  readonly rawWriteAutoritaet: false;
+  readonly breiteRuntimeFreigabe: false;
+}
