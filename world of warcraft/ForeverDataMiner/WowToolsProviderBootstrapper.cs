@@ -34,6 +34,13 @@ public sealed class ManagedWowToolsProcess(Process? process) : IAsyncDisposable
 
 public static class WowToolsProviderBootstrapper
 {
+    private static readonly JsonSerializerOptions MarkerJsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
+    };
+
     private const string LatestReleaseApi =
         "https://api.github.com/repos/Marlamin/wow.tools.local/releases/latest";
     private const string WindowsAssetName = "Release-win-x64.zip";
@@ -144,11 +151,7 @@ public static class WowToolsProviderBootstrapper
             InstalledUtc = DateTimeOffset.UtcNow
         };
 
-        File.WriteAllText(MarkerPath, JsonSerializer.Serialize(marker, new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        }));
+        SaveInstalled(marker);
 
         log?.Invoke($"wow.tools.local {tag} eingerichtet.");
         return executable;
@@ -245,7 +248,7 @@ public static class WowToolsProviderBootstrapper
     private static HttpClient CreateHttpClient()
     {
         var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("ForeverDataMiner/0.2");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("ForeverDataMiner/0.5");
         http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
         return http;
     }
@@ -254,13 +257,70 @@ public static class WowToolsProviderBootstrapper
     {
         try
         {
-            if (!File.Exists(MarkerPath)) return null;
-            return JsonSerializer.Deserialize<ProviderInstallMarker>(File.ReadAllText(MarkerPath));
+            if (File.Exists(MarkerPath))
+            {
+                var marker = JsonSerializer.Deserialize<ProviderInstallMarker>(
+                    File.ReadAllText(MarkerPath),
+                    MarkerJsonOptions);
+
+                if (marker is not null &&
+                    !string.IsNullOrWhiteSpace(marker.ExecutablePath) &&
+                    File.Exists(marker.ExecutablePath))
+                {
+                    return marker;
+                }
+            }
+        }
+        catch
+        {
+            // Fall through to recovery discovery below.
+        }
+
+        return RecoverInstalledProvider();
+    }
+
+    private static ProviderInstallMarker? RecoverInstalledProvider()
+    {
+        try
+        {
+            var versionsRoot = Path.Combine(ProviderRoot, "versions");
+            if (!Directory.Exists(versionsRoot))
+                return null;
+
+            var executable = Directory
+                .EnumerateFiles(versionsRoot, "wow.tools.local.exe", SearchOption.AllDirectories)
+                .OrderByDescending(File.GetLastWriteTimeUtc)
+                .FirstOrDefault();
+
+            if (executable is null)
+                return null;
+
+            var versionDirectory = Directory.GetParent(executable)?.Parent;
+            var version = versionDirectory?.Name ?? "recovered";
+
+            var marker = new ProviderInstallMarker
+            {
+                Version = version,
+                ExecutablePath = executable,
+                ArchiveSha256 = string.Empty,
+                InstalledUtc = File.GetLastWriteTimeUtc(executable)
+            };
+
+            SaveInstalled(marker);
+            return marker;
         }
         catch
         {
             return null;
         }
+    }
+
+    private static void SaveInstalled(ProviderInstallMarker marker)
+    {
+        Directory.CreateDirectory(ProviderRoot);
+        File.WriteAllText(
+            MarkerPath,
+            JsonSerializer.Serialize(marker, MarkerJsonOptions));
     }
 
     private static async Task<string> Sha256FileAsync(string path, CancellationToken cancellationToken)
