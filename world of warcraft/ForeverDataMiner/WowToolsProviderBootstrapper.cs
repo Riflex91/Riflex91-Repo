@@ -72,11 +72,11 @@ public static class WowToolsProviderBootstrapper
             ?? throw new InvalidDataException("Latest wow.tools.local release has no tag_name.");
 
         JsonElement? selectedAsset = null;
-        foreach (var asset in root.GetProperty("assets").EnumerateArray())
+        foreach (var releaseAsset in root.GetProperty("assets").EnumerateArray())
         {
-            if (string.Equals(asset.GetProperty("name").GetString(), WindowsAssetName, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(releaseAsset.GetProperty("name").GetString(), WindowsAssetName, StringComparison.OrdinalIgnoreCase))
             {
-                selectedAsset = asset;
+                selectedAsset = releaseAsset;
                 break;
             }
         }
