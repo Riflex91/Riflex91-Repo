@@ -23,7 +23,7 @@ Die ratifizierte V5-Verfassung fordert mit V5-INV-106 azyklische Layer-/Dependen
    - `kampf`
    - `navigation`
    - `gruppe`
-6. Value-Imports zwischen Account-Owner und Character-Owner werden blockiert. Reine Typimporte bleiben erlaubt, weil sie keine Runtime-Authority oder Laufzeitkopplung erzeugen.
+6. Value-Imports zwischen Account-Owner und Character-Owner werden blockiert. Reine Typimporte bleiben erlaubt, weil sie keine Runtime-Authority oder Laufzeitkopplung erzeugen. Gemeinsame ausführbare Verträge werden in neutrale Core-Grenzen verschoben; CAP-046 verschiebt deshalb die generische Skill-Capability-Prüfung aus `kampf` nach `faehigkeiten`.
 7. `grundlage/quelle/runtime/produktions-runtime.ts` darf innerhalb des Cores nur aus der Runtime-Schicht selbst oder über den öffentlichen `index.ts`-Reexport referenziert werden. Fachdomänen dürfen keinen direkten alternativen Runtime-Einstieg erzeugen.
 8. Der in `architektur/verfassung.json` deklarierte `layerGraph` wird separat auf eindeutige IDs, gültige Referenzen, Selbstzyklen und allgemeine Zyklen geprüft.
 9. Der Guard wird in `npm run lint` integriert und läuft dadurch in R3 sowie allen späteren Phasen, die den gemeinsamen V5-Lint verwenden.
