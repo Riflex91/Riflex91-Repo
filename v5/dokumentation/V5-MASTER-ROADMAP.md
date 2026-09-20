@@ -1074,22 +1074,22 @@ V3 und V4 bleiben Wissens-/Test-/Designquellen. V5 uebernimmt Semantik nur nach 
 
 ## Separate globale Gesamtfreigabe
 
-Nach abgeschlossenem R19 und vollständig geschlossener technischer Readiness wird die breite Runtime nicht automatisch geöffnet.
+Nach abgeschlossenem R19 und vollständig geschlossener technischer Readiness wurde die breite Runtime nicht automatisch geöffnet. Die separate Betreiberfreigabe wurde anschließend am 2026-09-20 ausdrücklich mit `V5 GESAMTFREIGABE ERTEILEN` erteilt.
 
-Aktueller Post-R19-Zustand:
+Aktueller Zustand:
 
 - 10/10 technische Pflichtbereiche erfüllt;
 - 119/119 Anforderungen nachgewiesen;
 - 119/119 Traceability vollständig;
 - R0-R19 DONE;
 - WISSEN-012 und realer Windows-Bridge-Nachweis geschlossen;
-- Gesamtfreigabe-Vorbereitung: `BEREIT_FUER_BETREIBERBESTAETIGUNG`;
-- globale Runtime: `GESPERRT`;
-- `breiteRuntimeFreigabe=false`.
+- `gesamtfreigabe=ERTEILT`;
+- globale Runtime: `FREIGEGEBEN`;
+- `breiteRuntimeFreigabe=true`;
+- finales Betreiber-Evidence: `roadmap/gesamtfreigabe.json`.
 
-Die separate Betreiberfreigabe muss ausdrücklich mit `V5 GESAMTFREIGABE ERTEILEN` erfolgen. Erst danach darf ein eigenes `roadmap/gesamtfreigabe.json` angelegt und die globale Laufzeitbereitschaft in einem separat geprüften Änderungssatz auf `FREIGEGEBEN` gesetzt werden.
+Die globale Freigabe ersetzt keine lokale Capability- oder Aktionsfreigabe. Authority, Operator-Deny, Kill Switch, Action Contracts, Admission, Freshness, Fencing, durable Intent und Recovery/Reconciliation bleiben unverändert verbindlich.
 
 Verbindlicher Vertrag: `dokumentation/GESAMTFREIGABE.md`.  
-Maschinenlesbare Vorbereitung: `roadmap/gesamtfreigabe-vorbereitung.json`.  
 Validator: `werkzeuge/gesamtfreigabe-pruefen.mjs`.
 
