@@ -212,10 +212,15 @@ Er ist **kein behaupteter echter Production-Live-Soak**.
 
 Ein spaeterer echter Live-Nachweis muss als `LIVE`-Evidence erzeugt werden und die expliziten V5-Testzeit-/Soak-Grenzen erfuellen, bevor `liveBeweisBestanden=true` gesetzt werden kann.
 
-Das V5-native manuelle Testpaket dafuer ist inzwischen implementiert:
+Das V5-native manuelle Testpaket dafuer ist inzwischen implementiert und als Controller 1.0.1 gehaertet:
 
 - `v5/werkzeuge/cap045-production-live-test-paket.js`;
 - `v5/werkzeuge/cap045-production-live-test-gui.js`;
+- `v5/werkzeuge/cap045-production-live-evidence-pruefen.mjs`;
 - `v5/dokumentation/CAP-045-PRODUCTION-LIVE-TESTPAKET.md`.
 
-Die Existenz des Pakets ist noch **kein** Live-Beweis. Bis ein echter Adventure-Land-Lauf alle drei Stages bestanden hat, bleibt `LIVE_SOAK_FEHLT_ODER_NICHT_BESTANDEN` sachlich bestehen.
+Der Live-Harness erzeugt fuer Stage 1 einen Core-schema-konformen `ProduktionsGraph`. Die CI fuehrt den vom Browser-Controller erzeugten Graph gegen `pruefeProduktionsGraph()` aus. Beim spaeteren Evidence-Import werden die im Bericht enthaltenen Coverage-Graphen erneut mit derselben Core-Funktion geprueft.
+
+Die 5-Minuten-Live-Dauer wird zwischen dem ersten und letzten echten Evidence-Sample gemessen. Button-/Start-Overhead kann daher die Mindestdauer nicht still unterschreiten.
+
+Die Existenz des Pakets und des Validators ist noch **kein** Live-Beweis. Bis ein echter Adventure-Land-Lauf alle drei Stages bestanden hat und der Bericht fail-closed validiert wurde, bleibt `LIVE_SOAK_FEHLT_ODER_NICHT_BESTANDEN` sachlich bestehen.
