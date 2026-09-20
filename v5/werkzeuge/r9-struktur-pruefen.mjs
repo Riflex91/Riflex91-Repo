@@ -15,8 +15,11 @@ if (r9.status === "IN_PROGRESS" && gates.currentPhase !== "R9") {
 }
 if (r9.status === "DONE") {
   const r10 = gates.phases?.find(x => x.id === "R10");
-  if (gates.currentPhase !== "R10" || r10?.status !== "IN_PROGRESS") {
-    fehler("R9 DONE verlangt R10 IN_PROGRESS und currentPhase=R10.");
+  const spaeterePhasen = new Set(["R11","R12","R13","R14","R15","R16","R17","R18","R19"]);
+  const direkterUebergang = gates.currentPhase === "R10" && r10?.status === "IN_PROGRESS";
+  const bereitsWeiter = spaeterePhasen.has(gates.currentPhase) && r10?.status === "DONE";
+  if (!direkterUebergang && !bereitsWeiter) {
+    fehler("R9 DONE verlangt mindestens R10 IN_PROGRESS oder einen formal abgeschlossenen R10-Uebergang.");
   }
 }
 if (r9.blocksRuntime !== true) fehler("R9 muss das Gameplay-Runtime-Gate blockieren.");

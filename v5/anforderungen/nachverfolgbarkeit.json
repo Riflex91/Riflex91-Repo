@@ -730,15 +730,20 @@
         "V5-ALT-017",
         "V5-ALT-029"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/recovery/laufsteuerung.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r10-control.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r10NachweisStatus": "R10_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-012",
@@ -793,15 +798,20 @@
       "invarianten": [
         "V5-INV-023"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/recovery/fehlerdomaenen.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r10-control.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r10NachweisStatus": "R10_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-015",
@@ -812,15 +822,21 @@
       "invarianten": [
         "V5-INV-027"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/recovery/typen.ts",
+        "v5/grundlage/quelle/recovery/recovery-kernel.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r10-recovery.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r10NachweisStatus": "R10_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-001",
@@ -912,15 +928,21 @@
         "V5-ALT-008",
         "V5-ALT-009"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/recovery/wiederanlauf.ts",
+        "v5/grundlage/quelle/persistenz/restart.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r10-control.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r10NachweisStatus": "R10_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-005",
@@ -1146,15 +1168,20 @@
       "invarianten": [
         "V5-ALT-007"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/recovery/recovery-kernel.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r10-recovery.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r10NachweisStatus": "R10_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-TRANS-002",
@@ -1165,15 +1192,21 @@
       "invarianten": [
         "V5-INV-002"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/recovery/recovery-kernel.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r10-recovery.test.mjs",
+        "v5/werkzeuge/r10-recovery-abdeckung.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r10NachweisStatus": "R10_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-TRANS-003",
@@ -1184,15 +1217,21 @@
       "invarianten": [
         "V5-ALT-006"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/recovery/typen.ts",
+        "v5/grundlage/quelle/recovery/recovery-kernel.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r10-recovery.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r10NachweisStatus": "R10_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-TRANS-004",

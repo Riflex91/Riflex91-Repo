@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-09-20",
-  "currentPhase": "R10",
+  "currentPhase": "R11",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -254,7 +254,7 @@
     {
       "id": "R10",
       "name": "Reconciliation Recovery Kernel",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R9"
       ],
@@ -267,7 +267,7 @@
     {
       "id": "R11",
       "name": "Testlabor-Ausbau Replay Observability Operations",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R10"
       ],
