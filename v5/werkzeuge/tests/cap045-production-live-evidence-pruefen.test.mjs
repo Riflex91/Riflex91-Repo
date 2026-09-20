@@ -24,7 +24,30 @@ function gueltigerBericht() {
     rootNodeId: "delivery:2",
     planFingerprint: "plan-fp",
     bankKatalog: null,
-    schritte: [],
+    schritte: [
+      {
+        nodeId: "upgrade:1",
+        art: "UPGRADE",
+        abhaengigkeiten: [],
+        outputName: "coat",
+        outputLevel: 1,
+        outputMenge: 1,
+        operationSchluessel: "cap045-live-My_Merchant-1-1:upgrade:0",
+        workspaceNachweisFingerprint: "workspace-fp",
+        gateEvidence: null,
+      },
+      {
+        nodeId: "delivery:2",
+        art: "DELIVERY",
+        abhaengigkeiten: ["upgrade:1"],
+        outputName: "coat",
+        outputLevel: 1,
+        outputMenge: 1,
+        operationSchluessel: "cap045-live-My_Merchant-1-1:delivery:self",
+        workspaceNachweisFingerprint: null,
+        gateEvidence: null,
+      },
+    ],
   };
   return {
     schemaVersion: 1,
