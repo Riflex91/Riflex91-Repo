@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "stand": "2026-09-20",
-  "status": "TEILWEISE_NACHGEWIESEN_EXTERNE_AUTORISIERUNG_OFFEN",
+  "status": "VOLLSTAENDIG_NACHGEWIESEN",
   "scope": [
     "R0",
     "R2",
     "R3"
   ],
   "anzahl": 34,
-  "nachgewiesen": 33,
-  "externOffen": 1,
-  "externerBlocker": "V5-ANF-WISSEN-012",
+  "nachgewiesen": 34,
+  "externOffen": 0,
+  "externerBlocker": null,
   "eintraege": [
     {
       "kennung": "V5-ANF-WISSEN-001",
@@ -135,17 +135,21 @@
     },
     {
       "kennung": "V5-ANF-WISSEN-012",
-      "status": "EXTERN_OFFEN",
+      "status": "NACHGEWIESEN",
       "phase": "R0",
-      "blocker": "Die lokale Git-Credential-Manager/Browser-OAuth-Autorisierung kann aus dem Repository nicht als repository-begrenzte Least-Privilege-Autorisierung bewiesen werden.",
-      "erforderlicherNachweis": "Lokale Bridge-Systempruefung plus GitHub-Autorisierungs-/Repository-Scope-Nachweis.",
       "implementierung": [
         ".github/workflows/v5-wissenswaechter-pr.yml",
+        "ops/windows-bridge/GitHubAnmeldung.cs",
         "ops/windows-bridge/GitArbeitskopie.cs"
       ],
       "tests": [
-        "ops/windows-bridge-tests/Program.cs"
-      ]
+        "ops/windows-bridge-tests/Program.cs",
+        "ops/windows-bridge/V5ReadinessSystemtest.cs"
+      ],
+      "nachweise": [
+        "v5/roadmap/v5-wissen-012-autorisierungsnachweis.json"
+      ],
+      "begruendung": "Der reale Windows-Bridge-Readiness-Test ist automatisch vollstaendig bestanden. Der Betreiber hat zusaetzlich den Fine-grained-PAT-Scope mit Resource Owner Riflex91, ausschließlich Riflex91-Repo und Contents=Read and write ohne zusaetzliche Schreibrechte bestaetigt; der Tokenwert wurde nicht erfasst."
     },
     {
       "kennung": "V5-ANF-WISSEN-014",
