@@ -4,7 +4,7 @@ This folder contains the data collection tooling for **World of Warcraft: Foreve
 
 ## Components
 
-- `ForeverDataMiner` — Windows/.NET tool that detects local Forever build changes, fingerprints client files, optionally exports selected DB2 tables through a local wow.tools.local instance, and writes a versioned FGDS bundle.
+- `ForeverDataMiner` — Windows/.NET tool that detects local Forever build changes, fingerprints client files, exports selected DB2 tables through a local wow.tools.local instance when available, and writes a versioned FGDS bundle.
 - `ForeverGuideRecorder` — in-game addon that records real quest/gameplay evidence through Blizzard's addon API into SavedVariables.
 - `schema` — the shared **ForeverGuide Data Schema (FGDS)** contract used by both sources.
 
@@ -25,14 +25,16 @@ See `schema/DATA_CONTRACT.md` for the merge rules.
 ## Quick start
 
 ### Recorder
+
 Copy `ForeverGuideRecorder` to the Forever client's `Interface/AddOns` folder, enable it, play normally, then use `/reload` or log out before collecting:
 
 `WTF/Account/<account>/SavedVariables/ForeverGuideRecorder.lua`
 
-The recorder currently captures quest state, NPC quest gossip, route samples, deaths, class/talent-build snapshots, equipped gear, inventory deltas and item metadata. Character name and realm are intentionally not stored.
+Recorder v0.3 captures quest state, quest dialogs/text/rewards, NPC quest gossip, route samples, deaths, class/talent-build snapshots, equipped gear, inventory deltas and item metadata. Character name and realm are intentionally not stored.
 
 ### DataMiner
-Requires .NET 8 when run from source. The CI pipeline also produces a self-contained Windows build.
+
+Requires .NET 8 when run from source. The CI pipeline produces a self-contained Windows build.
 
 ```powershell
 cd "world of warcraft\ForeverDataMiner"
@@ -42,9 +44,11 @@ dotnet run -- scan --wow "C:\Program Files (x86)\World of Warcraft" --wtl "http:
 dotnet run -- watch --wow "C:\Program Files (x86)\World of Warcraft" --wtl "http://localhost:5000"
 ```
 
-`--wtl` is optional. Without it the miner still detects builds, executable changes and hotfix-cache changes and produces fingerprints. With wow.tools.local running, selected DB2 CSV exports with hotfixes applied are bundled as well.
+The Windows UI uses `http://localhost:5000` for DB2 export by default.
 
-Exports are written to `ForeverDataMiner/exports`.
+If `wow.tools.local.exe` is present directly beside ForeverDataMiner, in `tools/wow.tools.local/` beside it, or under `%LOCALAPPDATA%\ForeverGuide\Tools\wow.tools.local\`, the miner can start the provider automatically when WoW is closed. If the provider is already running, the miner reuses it and leaves it running.
+
+Without the provider the miner still produces build, executable and hotfix-cache evidence; the manifest records that structured DB2 export was unavailable.
 
 ## Files to send back for analysis
 
