@@ -172,3 +172,14 @@ Operations-Telemetrie ist bounded und exponiert SSD-I/O-Latenz, Queue-Tiefe, Bac
 Maschinenlesbarer Abschluss: `roadmap/r11-abschluss.json`.
 
 Aktuelle Phase ist R12. Das Gameplay-Runtime-Gesamtgate bleibt `GESPERRT`; R11 besitzt keine Gameplay- oder Raw-Write-Autoritaet.
+
+
+## R12 – Vertical Slice 0: aktueller Teilstand
+
+Der komplette Shadow-End-to-End-Pfad ist auf `main` bestanden: Observation, Plan, Workflow, Ressourcen, durable Intent, Admission, Shadow-Execution, simuliertes Serverergebnis, Postcondition, Commit und Restart-Abgleich laufen ohne Bypass. Der Shadow-Nachweis meldet **0 Raw Game Writes** und **0 unerwartete Game Writes**.
+
+Controlled Live bleibt bewusst offen. Der erste Live-Kandidat ist exakt `AL-ACTION-EQUIP` / `equip`, maximal eine Action. Bank, Trade, Transfer, Upgrade, Compound, Exchange und Craft sind fuer den Erstlauf ausgeschlossen.
+
+Der aktuelle Preflight ist blockiert, weil die globale Readiness `GESPERRT` ist und die lokal beobachtete bestehende Runtime-Health `DEGRADED` / `SNAPSHOT_STALE` meldet. Die Windows Bridge bleibt absichtlich ohne Remote-Gameplay-/Generic-Command-Autoritaet.
+
+Preflight: `roadmap/r12-controlled-live-preflight.json`.
