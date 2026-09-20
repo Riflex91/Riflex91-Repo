@@ -1469,20 +1469,26 @@
         "V5-INV-030"
       ],
       "implementierung": [
-        "v5/grundlage/quelle/vertical-slice/controlled-live-policy.ts"
+        "v5/grundlage/quelle/vertical-slice/controlled-live-policy.ts",
+        "v5/grundlage/quelle/vertical-slice/controlled-live-gate.ts",
+        "v5/werkzeuge/r12-controlled-live-test-gui.js"
       ],
       "tests": [
-        "v5/grundlage/tests/r12-vertical-slice-shadow.test.mjs",
+        "v5/grundlage/tests/r12-controlled-live-gate.test.mjs",
+        "v5/grundlage/tests/r12-controlled-live-auswahl.test.mjs",
+        "v5/werkzeuge/tests/r12-test-gui.test.mjs",
         "v5/werkzeuge/r12-struktur-pruefen.mjs"
       ],
-      "liveNachweise": [],
-      "vollstaendig": false,
+      "liveNachweise": [
+        "v5/roadmap/r12-controlled-live-evidence.json"
+      ],
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
       ],
-      "r12NachweisStatus": "BLOCKIERT_BIS_CONTROLLED_LIVE"
+      "r12NachweisStatus": "R12_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-OPS-001",
