@@ -14,6 +14,7 @@ on:
       - 'v5/werkzeuge/vorbereitung-pruefen.mjs'
       - 'v5/package.json'
       - 'v5/dokumentation/GESAMTFREIGABE.md'
+      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
       - 'v5/README.md'
       - '.github/workflows/v5-gesamtfreigabe.yml'
   push:
@@ -31,6 +32,7 @@ on:
       - 'v5/werkzeuge/vorbereitung-pruefen.mjs'
       - 'v5/package.json'
       - 'v5/dokumentation/GESAMTFREIGABE.md'
+      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
       - 'v5/README.md'
       - '.github/workflows/v5-gesamtfreigabe.yml'
 
