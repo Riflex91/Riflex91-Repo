@@ -17,8 +17,8 @@ const erwartet = HEADER + gui + "\n\n" + controller + "\n";
 if (process.argv.includes("--check")) {
   if (!fs.existsSync(ziel)) throw new Error("R19_SOAK_5M_TEST_PAKET_FEHLT");
   if (fs.readFileSync(ziel, "utf8") !== erwartet) throw new Error("R19_SOAK_5M_TEST_PAKET_NICHT_SOURCE_LOCKED");
-  console.log("[V5-R19-SOAK-1H] Source-Lock OK");
+  console.log("[V5-R19-SOAK-5M] Source-Lock OK");
 } else {
   fs.writeFileSync(ziel, erwartet, "utf8");
-  console.log("[V5-R19-SOAK-1H] Paket erzeugt:", ziel);
+  console.log("[V5-R19-SOAK-5M] Paket erzeugt:", ziel);
 }
