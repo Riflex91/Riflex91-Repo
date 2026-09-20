@@ -42,10 +42,36 @@ frame:SetScript("OnEvent", function(_, event, ...)
         if event == "PLAYER_LOGIN" then
             FG:EnsureDB()
             FG:StartLogSession()
+            if not FG:IsSupportedBuild() then
+                local build = FG:GetBuildInfoTable()
+                FG:Log("WARN", "build.mismatch", "Forever-Build weicht von der getesteten Interface-Version ab.", {
+                    expectedInterface = FG.INTERFACE,
+                    actualInterface = build.interfaceVersion,
+                    buildNumber = build.buildNumber,
+                })
+            end
             FG:InitializeUI()
             FG:RefreshGuide("PLAYER_LOGIN")
+
+            if C_Timer and C_Timer.NewTicker then
+                if FG.heartbeatTicker and FG.heartbeatTicker.Cancel then FG.heartbeatTicker:Cancel() end
+                FG.heartbeatTicker = C_Timer.NewTicker(30, function()
+                    FG:Safe("heartbeat", function()
+                        local pos = FG:GetPosition()
+                        FG:Log("INFO", "addon.heartbeat", "ForeverGuide läuft.", {
+                            questID = FG.currentStep and FG.currentStep.questID or nil,
+                            mapID = pos and pos.mapID or nil,
+                            x = pos and pos.x or nil,
+                            y = pos and pos.y or nil,
+                        })
+                    end)
+                end)
+            end
+
             print("|cff62d6ffForeverGuide|r v" .. FG.VERSION .. " geladen · /fg für Befehle")
         elseif event == "PLAYER_LOGOUT" then
+            if FG.heartbeatTicker and FG.heartbeatTicker.Cancel then FG.heartbeatTicker:Cancel() end
+            FG.heartbeatTicker = nil
             FG:EndLogSession("PLAYER_LOGOUT")
         else
             FG:Log("INFO", "game.event", event, { arg1 = args[1], arg2 = args[2] })
