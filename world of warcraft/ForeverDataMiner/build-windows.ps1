@@ -1,1 +1,10 @@
-$ErrorActionPreference = "Stop"\n\n$project = Join-Path $PSScriptRoot "ForeverDataMiner.csproj"\n$out = Join-Path $PSScriptRoot "publish\\win-x64"\n\ndotnet publish $project `\n  -c Release `\n  -r win-x64 `\n  --self-contained true `\n  -p:PublishSingleFile=true `\n  -p:IncludeNativeLibrariesForSelfExtract=true `\n  -o $out\n\nWrite-Host ""\nWrite-Host "ForeverDataMiner published to:"\nWrite-Host (Join-Path $out "ForeverDataMiner.exe")\n
+$ErrorActionPreference = "Stop"
+
+$project = Join-Path $PSScriptRoot "ForeverDataMiner.csproj"
+$out = Join-Path $PSScriptRoot "publish\\win-x64"
+
+dotnet publish $project -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o $out
+
+Write-Host ""
+Write-Host "ForeverDataMiner published to:"
+Write-Host (Join-Path $out "ForeverDataMiner.exe")
