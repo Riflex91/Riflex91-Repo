@@ -935,6 +935,18 @@ Evidence: `roadmap/r19-controlled-live-evidence.json`.
 Naechste Stufe: **CANARY**. OPS-006 bleibt bis zum Abschluss der gesamten Ladder offen.
 
 
+
+### Canary
+
+**Status:** BESTANDEN.
+
+Run: `R19-1789894940141-fa58fa3e`. Bounded Learning-Ranking blieb innerhalb hart erlaubter Kandidaten, besass keine Gameplay-/Authority-Rechte, erzeugte genau einen erwarteten `equip`-Write und eine bestaetigte Postcondition.
+
+Evidence: `roadmap/r19-canary-evidence.json`.
+
+Naechste Stufe: **SOAK_1H**. OPS-006 bleibt bis zum Abschluss von 1h/24h/72h/7d offen.
+
+
 ## 4. Pflicht-Definition-of-Done fuer jede neue Capability
 
 Jede Capability braucht vor Merge/Live-Freigabe:
