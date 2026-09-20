@@ -748,7 +748,7 @@ Exit Gate:
 
 ## R15 – Merchant Core B: Supply, Gear und Production
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
 
 Bauen:
 - Supply Delivery;
@@ -772,7 +772,15 @@ Exit Gate:
 - q/placeholder/restart Fault Tests gruen;
 - kein duplicate transfer/mutation.
 
+
+R15-Abschluss: Supply/Collection/Rendezvous und Gear sind an frische Roster-/Session-/Serverziele und positive Settlement-Evidence gebunden. q/Placeholder bedeutet accepted in-flight; Restart erzwingt Reconciliation. Der Production-DAG ist bounded, zyklusfrei, ohne verwaiste Schritte, mit eindeutigen Operation-Schluesseln, Workspace-Nachweisen und frischer Event-/Quest-Evidence. Der persistente Bankkatalog bleibt Planning Evidence ohne ExecutionAuthority. Production endet erst nach finalem Recipient Settlement.
+
+Maschinenlesbare Abdeckung: `grundlage/vertraege/r15/merchant-core-b-abdeckung.json`.  
+Maschinenlesbarer Abschluss: `roadmap/r15-abschluss.json`.
+
 ## R16 – Party, Combat, Farming und Navigation
+
+**Status:** IN_PROGRESS.
 
 Voraussetzung: R1.3 abgeschlossen.
 
