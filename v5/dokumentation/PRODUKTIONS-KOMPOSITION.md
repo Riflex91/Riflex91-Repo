@@ -74,8 +74,37 @@ Die Komposition:
 
 Testnamen wie `merchant-core` / `bank.deposit` bleiben Test-Fixtures und sind nicht Teil des produktiven Merchant-Vertrags.
 
+## Kontrollierte PLANEN-Aktivierung
+
+Die explizite Aktivierungsgrenze ist in
+`architektur/adr/ADR-027-PLANUNGS-CAPABILITY-AKTIVIERUNG.md`
+ratifiziert und maschinenlesbar unter
+`grundlage/vertraege/runtime/planungs-aktivierung.json`
+gespiegelt.
+
+`KontrolliertePlanungsAktivierung` darf ausschließlich `PLANEN` aktivieren.
+Vor lokaler Wirkung müssen Runtime-Laufzustand, exakte Provider-Bindung,
+Provider-Health, Capability-Status, Headless-Supervisor, aktuelle
+Health-Evidence, Operations-Metrik, deny-only Operator-Policy und NOTHALT
+geprüft sein. Danach wird ein durable Audit geschrieben, die gesamte
+Voraussetzungskette erneut geprüft und erst dann das exakte Modul samt
+Capability aktiviert.
+
+Die dabei sichtbare Planungs-Authority ist durch die aktuelle
+Health-Evidence zeitlich begrenzt. Gameplay-, Raw-Write- und
+Action-Authority bleiben `false`. Ein normaler Runtime-Start aktiviert
+weiterhin nichts.
+
 ## Naechster Integrationsschritt
 
-Ein spaeterer Betriebsstart oder eine spaetere Aktivierung muss weiterhin reale Health-Evidence, Gesamtfreigabe, Operator-Policy, Capability-Authority, Admission, Ressourcen/Fencing, Action-Channel, Budget, durable Intent und Postcondition/Reconciliation verwenden.
+Als nächstes braucht der reale Host-/Bootstrap-Pfad eine dauerhafte Quelle
+für Health-Evidence und Operations-Metriken sowie eine fortlaufende
+Revalidierung bereits aktivierter PLANEN-Authority. Danach kann explizit
+festgelegt werden, welche der acht PLANEN-Capabilities im realen Betrieb
+aktiviert werden.
 
-Die reine Registrierung von PLANEN-Capabilities erteilt keine Mutationserlaubnis. Mutierende Merchant-Capabilities benoetigen einen separaten ratifizierten Vertrag und eigene Integrations-/Live-Nachweise.
+Die reine Registrierung oder Aktivierung von PLANEN-Capabilities erteilt
+keine Mutationserlaubnis. Mutierende Merchant-Capabilities benötigen einen
+separaten ratifizierten Vertrag mit Capability-Owner, Action Contract,
+Admission, Ressourcen/Fencing, Budget, durable Intent, Recovery und
+Postcondition/Reconciliation sowie eigenen Integrations-/Live-Nachweisen.
