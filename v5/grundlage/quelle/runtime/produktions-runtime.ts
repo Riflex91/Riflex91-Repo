@@ -32,6 +32,25 @@ import {
   MutationsKanalKoordination,
 } from "../scheduler/socket-budget.js";
 import { AusfuehrungsKernel } from "../ausfuehrung/ausfuehrungs-kernel.js";
+import {
+  EQUIPMENT_EQUIP_ACTION_CONTRACT_ID,
+  EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG,
+  EQUIPMENT_EQUIP_EINMAL_POLICY_ID,
+  EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID,
+  EQUIPMENT_EQUIP_VERIFIER_ID,
+  ProduktiveEquipEinmalAuthority,
+  type V5EquipEinmalAuthorityAnforderung,
+  type V5EquipEinmalAuthorityDurableBestaetigung,
+  type V5EquipEinmalAuthorityDurableIntent,
+  type V5EquipEinmalAuthorityErgebnis,
+  type V5EquipEinmalAuthorityProtokollPort,
+  type V5EquipEinmalAuthorityRevalidierungsErgebnis,
+} from "../equipment/produktions-einmal-authority.js";
+import {
+  EQUIPMENT_CORE_MODUL_ID,
+  EQUIPMENT_CORE_MODUL_VERSION,
+  EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
+} from "../equipment/modul-vertrag.js";
 import { KontrollierteLaufsteuerung } from "../recovery/laufsteuerung.js";
 import type {
   V5ProduktionsProzessErgebnis,
@@ -175,6 +194,7 @@ export interface V5ProduktionsRuntimeStatus extends V5ProduktionsProzessStatus {
   readonly registrierteFaehigkeiten: number;
   readonly aktiveFaehigkeiten: number;
   readonly aktiveMutierendeFaehigkeiten: number;
+  readonly offeneEquipEinmalAuthority: boolean;
   readonly schedulerAblaeufe: number;
   readonly ressourcenEintraege: number;
   readonly laufsteuerungStatus: string;
@@ -305,8 +325,11 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
   readonly #komponenten: V5ProduktionsKernKomponenten;
   readonly #bedienerRichtlinie: BedienerRichtlinienDienst | null;
   readonly #planenAktivierungsProtokoll: V5PlanenAktivierungsProtokollPort | null;
+  readonly #equipEinmalAuthorityProtokoll:
+    V5EquipEinmalAuthorityProtokollPort | null;
   #planenAktivierungsAudit: readonly V5PlanenAktivierungsAuditEintrag[] =
     Object.freeze([]);
+  #equipEinmalAuthority: ProduktiveEquipEinmalAuthority | null = null;
 
   #prozessLaeuft = false;
   #zustand: V5ProduktionsRuntimeStatus["zustand"] = "GESTOPPT";
@@ -316,10 +339,13 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
     definition: V5ProduktionsKompositionsDefinition,
     bedienerRichtlinie: BedienerRichtlinienDienst | null = null,
     planenAktivierungsProtokoll: V5PlanenAktivierungsProtokollPort | null = null,
+    equipEinmalAuthorityProtokoll:
+      V5EquipEinmalAuthorityProtokollPort | null = null,
   ) {
     pruefeDefinition(definition);
     this.#bedienerRichtlinie = bedienerRichtlinie;
     this.#planenAktivierungsProtokoll = planenAktivierungsProtokoll;
+    this.#equipEinmalAuthorityProtokoll = equipEinmalAuthorityProtokoll;
 
     for (const modul of definition.modulDefinitionen) {
       this.#module.registriere(modul);
@@ -655,6 +681,287 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
     );
   }
 
+  public async erteileEquipEinmalAuthority(
+    anforderung: V5EquipEinmalAuthorityAnforderung,
+  ): Promise<V5EquipEinmalAuthorityErgebnis> {
+    const blockiere = (
+      grund: string,
+      evidenceIds: readonly string[] = Object.freeze([]),
+    ): V5EquipEinmalAuthorityErgebnis => Object.freeze({
+      schemaVersion: 1,
+      erfolgreich: false,
+      grund,
+      aktivierungsId: String(anforderung?.aktivierungsId ?? ""),
+      transaktionsId: String(anforderung?.transaktionsId ?? ""),
+      authority: null,
+      evidenceIds: Object.freeze([...evidenceIds]),
+      maximaleVerwendungen: 1,
+      gameplayWriteAusgefuehrt: false,
+      rawWriteAutoritaet: false,
+      breiteRuntimeFreigabe: false,
+    });
+
+    if (anforderung.schemaVersion !== 1
+        || anforderung.faehigkeitId !== EQUIPMENT_EQUIP_FAEHIGKEIT_ID
+        || anforderung.anbieterModulId !== EQUIPMENT_CORE_MODUL_ID
+        || anforderung.anbieterVersion !== EQUIPMENT_CORE_MODUL_VERSION
+        || anforderung.actionContractId !== EQUIPMENT_EQUIP_ACTION_CONTRACT_ID
+        || anforderung.recoveryContractId !== EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID
+        || anforderung.verifierId !== EQUIPMENT_EQUIP_VERIFIER_ID
+        || anforderung.policyId !== EQUIPMENT_EQUIP_EINMAL_POLICY_ID
+        || anforderung.bestaetigungText !== EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG) {
+      return blockiere("V5_EQUIP_EINMAL_BINDUNG_UNGUELTIG");
+    }
+    for (const wert of [
+      anforderung.aktivierungsId,
+      anforderung.transaktionsId,
+    ]) {
+      if (wert.trim().length === 0 || wert.length > 128) {
+        return blockiere("V5_EQUIP_EINMAL_KENNUNG_UNGUELTIG");
+      }
+    }
+    if (!Number.isSafeInteger(anforderung.jetztMs)
+        || !Number.isSafeInteger(anforderung.gueltigBisMs)
+        || anforderung.jetztMs < 0
+        || anforderung.gueltigBisMs < anforderung.jetztMs
+        || anforderung.gueltigBisMs - anforderung.jetztMs > 2_000
+        || anforderung.healthEvidence.length > 512) {
+      return blockiere("V5_EQUIP_EINMAL_ZEIT_ODER_EVIDENCE_UNGUELTIG");
+    }
+
+    if (this.#equipEinmalAuthority !== null) {
+      if (this.#equipEinmalAuthority.gueltigFuer(anforderung.jetztMs)) {
+        return blockiere("V5_EQUIP_EINMAL_AUTHORITY_BEREITS_OFFEN");
+      }
+      this.#equipEinmalAuthority.widerrufe();
+      this.#equipEinmalAuthority = null;
+    }
+
+    const pruefeVorWirkung = (): string | null => {
+      if (!this.#prozessLaeuft || this.#zustand !== "LAEUFT") {
+        return "V5_EQUIP_EINMAL_RUNTIME_LAEUFT_NICHT";
+      }
+      if (!this.#laufsteuerung.sicht().neueArbeitErlaubt) {
+        return "V5_EQUIP_EINMAL_LAUFSTEUERUNG_GESPERRT";
+      }
+      if (this.#bedienerRichtlinie === null) {
+        return "V5_EQUIP_EINMAL_BEDIENER_RICHTLINIE_FEHLT";
+      }
+      if (this.#bedienerRichtlinie.snapshot().nothaltAktiv) {
+        return "V5_EQUIP_EINMAL_NOTHALT_AKTIV";
+      }
+      if (!this.#bedienerRichtlinie.istErlaubt(EQUIPMENT_EQUIP_FAEHIGKEIT_ID)) {
+        return "V5_EQUIP_EINMAL_DURCH_POLICY_GESPERRT";
+      }
+
+      const faehigkeit = this.#faehigkeiten.sicht().find(x =>
+        x.faehigkeitId === EQUIPMENT_EQUIP_FAEHIGKEIT_ID
+        && x.anbieterModulId === EQUIPMENT_CORE_MODUL_ID
+        && x.anbieterVersion === EQUIPMENT_CORE_MODUL_VERSION);
+      if (faehigkeit === undefined
+          || faehigkeit.modus !== "MUTIEREN"
+          || faehigkeit.status !== "VERFUEGBAR"
+          || faehigkeit.standardAktiv !== false
+          || faehigkeit.aktiv) {
+        return "V5_EQUIP_EINMAL_CAPABILITY_NICHT_BEREIT";
+      }
+
+      const modul = this.#module.sicht().find(x =>
+        x.modulId === EQUIPMENT_CORE_MODUL_ID
+        && x.modulVersion === EQUIPMENT_CORE_MODUL_VERSION);
+      if (modul === undefined
+          || modul.gesundheit !== "GESUND"
+          || modul.aktiv
+          || !modul.bereitgestellteFaehigkeiten.includes(
+            EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
+          )) {
+        return "V5_EQUIP_EINMAL_PROVIDER_NICHT_BEREIT";
+      }
+
+      try {
+        if (!this.#supervisor.status(
+          anforderung.healthEvidence,
+          anforderung.jetztMs,
+        ).bereit) {
+          return "V5_EQUIP_EINMAL_SUPERVISOR_NICHT_BEREIT";
+        }
+      } catch {
+        return "V5_EQUIP_EINMAL_HEALTH_EVIDENCE_UNGUELTIG";
+      }
+      return null;
+    };
+
+    const vorAudit = pruefeVorWirkung();
+    if (vorAudit !== null) return blockiere(vorAudit);
+    if (this.#equipEinmalAuthorityProtokoll === null) {
+      return blockiere("V5_EQUIP_EINMAL_DURABLE_PROTOKOLL_FEHLT");
+    }
+
+    const evidenceIds = Object.freeze(
+      anforderung.healthEvidence
+        .map(x => x.evidenceId)
+        .filter((id, index, alle) => alle.indexOf(id) === index)
+        .sort(),
+    );
+    if (evidenceIds.length < 1 || evidenceIds.length > 64) {
+      return blockiere("V5_EQUIP_EINMAL_EVIDENCE_UNGUELTIG");
+    }
+
+    const intent: V5EquipEinmalAuthorityDurableIntent = Object.freeze({
+      schemaVersion: 1,
+      aktivierungsId: anforderung.aktivierungsId,
+      transaktionsId: anforderung.transaktionsId,
+      faehigkeitId: EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
+      anbieterModulId: EQUIPMENT_CORE_MODUL_ID,
+      anbieterVersion: EQUIPMENT_CORE_MODUL_VERSION,
+      actionContractId: EQUIPMENT_EQUIP_ACTION_CONTRACT_ID,
+      recoveryContractId: EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID,
+      verifierId: EQUIPMENT_EQUIP_VERIFIER_ID,
+      policyId: EQUIPMENT_EQUIP_EINMAL_POLICY_ID,
+      evidenceIds,
+      zeitMs: anforderung.jetztMs,
+      gueltigBisMs: anforderung.gueltigBisMs,
+      art: "EQUIP_EINMAL_AUTHORITY_VOR_WIRKUNG",
+      maximaleVerwendungen: 1,
+      breiteRuntimeFreigabe: false,
+      rawWriteAutoritaet: false,
+      gameplayWriteNochNichtAusgefuehrt: true,
+    });
+
+    let bestaetigung: V5EquipEinmalAuthorityDurableBestaetigung;
+    try {
+      bestaetigung =
+        await this.#equipEinmalAuthorityProtokoll.schreibeDurable(intent);
+    } catch {
+      return blockiere("V5_EQUIP_EINMAL_AUDIT_NICHT_DURABLE", evidenceIds);
+    }
+    if (bestaetigung.durable !== true
+        || bestaetigung.aktivierungsId !== anforderung.aktivierungsId
+        || bestaetigung.transaktionsId !== anforderung.transaktionsId
+        || bestaetigung.bestaetigungsId.trim().length === 0
+        || bestaetigung.bestaetigungsId.length > 192) {
+      return blockiere(
+        "V5_EQUIP_EINMAL_DURABILITY_NICHT_BESTAETIGT",
+        evidenceIds,
+      );
+    }
+
+    const nachAudit = pruefeVorWirkung();
+    if (nachAudit !== null) {
+      return blockiere(
+        "V5_EQUIP_EINMAL_REVALIDIERUNG_FEHLGESCHLAGEN:" + nachAudit,
+        evidenceIds,
+      );
+    }
+
+    const faehigkeit = this.#faehigkeiten.sicht().find(x =>
+      x.faehigkeitId === EQUIPMENT_EQUIP_FAEHIGKEIT_ID
+      && x.anbieterModulId === EQUIPMENT_CORE_MODUL_ID
+      && x.anbieterVersion === EQUIPMENT_CORE_MODUL_VERSION);
+    if (faehigkeit === undefined) {
+      return blockiere("V5_EQUIP_EINMAL_PROVIDER_VERLOREN", evidenceIds);
+    }
+
+    const authority = new ProduktiveEquipEinmalAuthority(Object.freeze({
+      schemaVersion: 1,
+      aktivierungsId: anforderung.aktivierungsId,
+      transaktionsId: anforderung.transaktionsId,
+      faehigkeitId: EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
+      anbieterModulId: EQUIPMENT_CORE_MODUL_ID,
+      anbieterVersion: EQUIPMENT_CORE_MODUL_VERSION,
+      actionContractId: EQUIPMENT_EQUIP_ACTION_CONTRACT_ID,
+      recoveryContractId: EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID,
+      verifierId: EQUIPMENT_EQUIP_VERIFIER_ID,
+      policyId: EQUIPMENT_EQUIP_EINMAL_POLICY_ID,
+      ausgestelltAmMs: anforderung.jetztMs,
+      gueltigBisMs: anforderung.gueltigBisMs,
+      faehigkeitsGeneration: faehigkeit.generation,
+      evidenceIds,
+      maximaleVerwendungen: 1,
+    }));
+    this.#equipEinmalAuthority = authority;
+
+    return Object.freeze({
+      schemaVersion: 1,
+      erfolgreich: true,
+      grund: "V5_EQUIP_EINMAL_AUTHORITY_ERTEILT",
+      aktivierungsId: anforderung.aktivierungsId,
+      transaktionsId: anforderung.transaktionsId,
+      authority,
+      evidenceIds,
+      maximaleVerwendungen: 1,
+      gameplayWriteAusgefuehrt: false,
+      rawWriteAutoritaet: false,
+      breiteRuntimeFreigabe: false,
+    });
+  }
+
+  public revalidiereEquipEinmalAuthority(
+    healthEvidence: readonly HealthEvidence[],
+    jetztMs: number,
+  ): V5EquipEinmalAuthorityRevalidierungsErgebnis {
+    const authority = this.#equipEinmalAuthority;
+    if (authority === null) {
+      return Object.freeze({
+        schemaVersion: 1,
+        bereit: true,
+        grund: "V5_EQUIP_EINMAL_KEINE_AUTHORITY_OFFEN",
+        authorityOffen: false,
+        authorityWiderrufen: false,
+        gameplayWriteAusgefuehrt: false,
+        rawWriteAutoritaet: false,
+        breiteRuntimeFreigabe: false,
+      });
+    }
+
+    let grund: string | null = null;
+    if (!authority.gueltigFuer(jetztMs)) {
+      grund = "V5_EQUIP_EINMAL_AUTHORITY_ABGELAUFEN_ODER_VERBRAUCHT";
+    } else if (!this.#prozessLaeuft || this.#zustand !== "LAEUFT") {
+      grund = "V5_EQUIP_EINMAL_RUNTIME_LAEUFT_NICHT";
+    } else if (!this.#laufsteuerung.sicht().neueArbeitErlaubt) {
+      grund = "V5_EQUIP_EINMAL_LAUFSTEUERUNG_GESPERRT";
+    } else if (this.#bedienerRichtlinie === null
+        || this.#bedienerRichtlinie.snapshot().nothaltAktiv
+        || !this.#bedienerRichtlinie.istErlaubt(EQUIPMENT_EQUIP_FAEHIGKEIT_ID)) {
+      grund = "V5_EQUIP_EINMAL_OPERATOR_POLICY_GESPERRT";
+    } else {
+      try {
+        if (!this.#supervisor.status(healthEvidence, jetztMs).bereit) {
+          grund = "V5_EQUIP_EINMAL_SUPERVISOR_NICHT_BEREIT";
+        }
+      } catch {
+        grund = "V5_EQUIP_EINMAL_HEALTH_EVIDENCE_UNGUELTIG";
+      }
+    }
+
+    if (grund !== null) {
+      authority.widerrufe();
+      this.#equipEinmalAuthority = null;
+      return Object.freeze({
+        schemaVersion: 1,
+        bereit: false,
+        grund,
+        authorityOffen: false,
+        authorityWiderrufen: true,
+        gameplayWriteAusgefuehrt: false,
+        rawWriteAutoritaet: false,
+        breiteRuntimeFreigabe: false,
+      });
+    }
+
+    return Object.freeze({
+      schemaVersion: 1,
+      bereit: true,
+      grund: "V5_EQUIP_EINMAL_AUTHORITY_BEREIT",
+      authorityOffen: true,
+      authorityWiderrufen: false,
+      gameplayWriteAusgefuehrt: false,
+      rawWriteAutoritaet: false,
+      breiteRuntimeFreigabe: false,
+    });
+  }
+
   public revalidierePlanenAuthority(
     healthEvidence: readonly HealthEvidence[],
     jetztMs: number,
@@ -838,6 +1145,8 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
       registrierteFaehigkeiten: faehigkeiten.length,
       aktiveFaehigkeiten: faehigkeiten.filter(x => x.aktiv).length,
       aktiveMutierendeFaehigkeiten,
+      offeneEquipEinmalAuthority: this.#equipEinmalAuthority !== null
+        && !this.#equipEinmalAuthority.verbraucht(),
       schedulerAblaeufe: scheduler.length,
       ressourcenEintraege: ressourcen.length,
       laufsteuerungStatus: laufsteuerung.status,
@@ -861,6 +1170,10 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
   }
 
   #deaktiviereAlleKompositionsAutoritaet(): void {
+    if (this.#equipEinmalAuthority !== null) {
+      this.#equipEinmalAuthority.widerrufe();
+      this.#equipEinmalAuthority = null;
+    }
     for (const faehigkeit of this.#faehigkeiten.sicht()) {
       if (faehigkeit.aktiv) {
         this.#faehigkeiten.deaktiviere(
