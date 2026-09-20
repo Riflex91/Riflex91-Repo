@@ -1,9 +1,9 @@
 {
   "name": "adventure-land-aio-v5",
-  "version": "5.0.0-r11.0",
+  "version": "5.0.0-r12.0",
   "private": true,
   "type": "module",
-  "description": "Adventure Land AiO Bot V5 – R11 no-write Testlabor, Replay, Observability und Operations.",
+  "description": "Adventure Land AiO Bot V5 – R12 Vertical Slice 0 Shadow-E2E und fail-closed Controlled-Live-Gate.",
   "scripts": {
     "bereinigen": "node werkzeuge/r3-bereinigen.mjs",
     "bauen": "npm run bereinigen && tsc -p tsconfig.json",
@@ -32,7 +32,9 @@
     "r10:test": "npm run grundlage:test",
     "r10:pruefen": "npm run typen:pruefen && npm run lint && npm run r10:test && node werkzeuge/r10-recovery-abdeckung.mjs && node werkzeuge/r10-statische-guards.mjs && node werkzeuge/r10-struktur-pruefen.mjs",
     "r11:test": "npm run grundlage:test",
-    "r11:pruefen": "npm run typen:pruefen && npm run lint && npm run r11:test && node werkzeuge/r11-testabdeckung.mjs && node werkzeuge/r11-statische-guards.mjs && node werkzeuge/r11-struktur-pruefen.mjs"
+    "r11:pruefen": "npm run typen:pruefen && npm run lint && npm run r11:test && node werkzeuge/r11-testabdeckung.mjs && node werkzeuge/r11-statische-guards.mjs && node werkzeuge/r11-struktur-pruefen.mjs",
+    "r12:test": "npm run grundlage:test",
+    "r12:pruefen": "npm run typen:pruefen && npm run lint && npm run r12:test && node werkzeuge/r12-statische-guards.mjs && node werkzeuge/r12-struktur-pruefen.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
