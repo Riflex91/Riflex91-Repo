@@ -1,4 +1,4 @@
-/* AUTO-GENERIERT: V5 R19 Controlled-Live Ingame-Testpaket
+/* AUTO-GENERIERT: V5 R19 Ingame-Testpaket
  * Quellen:
  * - v5/werkzeuge/v5-adventure-land-test-gui.js
  * - v5/werkzeuge/r19-controlled-live-test-gui.js
