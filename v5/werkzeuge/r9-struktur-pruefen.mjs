@@ -65,7 +65,7 @@ if (trace.length !== erwarteteAnforderungen.size
   fehler("R9-Traceability-Menge ist unvollstaendig.");
 }
 
-const bindungen = lies("ausfuehrung/vertraege/r9-bindungen.json");
+const bindungen = lies("grundlage/vertraege/r9/action-bindungen.json");
 if (bindungen.summary.gebunden !== 59 || bindungen.summary.deaktiviert !== 1) {
   fehler("R9 Action-/Verifier-/Recovery-Bindungsabdeckung ungueltig.");
 }
