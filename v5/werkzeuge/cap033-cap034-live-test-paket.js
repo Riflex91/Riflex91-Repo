@@ -591,7 +591,8 @@
   }
 
   function itemMenge(item) {
-    const q = Number(item?.q);
+    if (!item) return 0;
+    const q = Number(item.q);
     return Number.isFinite(q) && q > 0 ? Math.trunc(q) : 1;
   }
 
@@ -618,8 +619,8 @@
       locked: itemLocked(item),
       plain: plainItem(item),
       typ: String(def.type || ''),
-      upgrade: def.upgrade === true,
-      compound: def.compound === true,
+      upgrade: !!def.upgrade,
+      compound: !!def.compound,
       cash: def.cash === true || def.cash_item === true,
       quest: def.quest === true || def.q === true,
       event: def.event === true,
