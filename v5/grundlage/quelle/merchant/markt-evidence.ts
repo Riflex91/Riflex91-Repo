@@ -1,5 +1,5 @@
 import type { PhysischeGegenstandsIdentitaet } from "./gegenstands-identitaet.js";
-import type { GegenstandsDisposition } from "./disposition.js";
+import type { GegenstandsDispositionsLedger } from "./disposition.js";
 
 export type ListingSeite = "SELL" | "BUY";
 
@@ -27,7 +27,6 @@ export interface TradeSellInventarKandidat {
   readonly locked: boolean;
   readonly blocked: boolean;
   readonly fungibilitaetsSchluessel: string;
-  readonly disposition: GegenstandsDisposition;
 }
 
 export interface ServerAuswahlNachweis {
@@ -108,11 +107,28 @@ export function validiereTradeIntent(
   }
 }
 
+
+export function revalidiereListingEvidence(
+  geplant: GepinnteListingEvidence,
+  frisch: GepinnteListingEvidence,
+  angefragteMenge: number,
+  jetztMs: number,
+): void {
+  validiereTradeIntent(frisch, geplant.seite, angefragteMenge, jetztMs);
+  if (frisch.listingFingerprint !== geplant.listingFingerprint) {
+    throw new Error("TRADE_LISTING_FINGERPRINT_DRIFT");
+  }
+  if (frisch.rid !== geplant.rid) {
+    throw new Error("TRADE_RID_DRIFT");
+  }
+}
+
 export function reproduziereTradeSellServerAuswahl(
   inventar: readonly TradeSellInventarKandidat[],
   wishlist: GepinnteListingEvidence,
   angefragteMenge: number,
   jetztMs: number,
+  dispositionen: Pick<GegenstandsDispositionsLedger, "lies">,
 ): ServerAuswahlNachweis {
   validiereTradeIntent(wishlist, "BUY", angefragteMenge, jetztMs);
   const eligible = [...inventar]
@@ -151,7 +167,7 @@ export function reproduziereTradeSellServerAuswahl(
       serverEligibleCount: eligible.length,
     });
   }
-  if (ausgewaehlt.disposition !== "MARKT_VERKAUF") {
+  if (dispositionen.lies(ausgewaehlt.identitaet).disposition !== "MARKT_VERKAUF") {
     return Object.freeze({
       erlaubt: false,
       grund: "DISPOSITION_VERBIETET_MARKTVERKAUF",
