@@ -24,8 +24,14 @@ for(const p of [
   "grundlage/quelle/merchant/faehigkeits-vertrag.ts",
   "grundlage/quelle/equipment/modul-vertrag.ts",
   "grundlage/quelle/equipment/faehigkeits-vertrag.ts",
+  "grundlage/quelle/equipment/produktions-einmal-authority.ts",
+  "grundlage/adapter/persistenz/node-equip-einmal-authority-protokoll.mjs",
   "grundlage/vertraege/runtime/equipment-equip-mutationsfaehigkeit.json",
+  "grundlage/vertraege/runtime/equipment-equip-one-shot-authority.json",
   "architektur/adr/ADR-032-PRODUKTIVE-EQUIP-MUTATIONSFAEHIGKEIT.md",
+  "architektur/adr/ADR-033-EQUIP-EINMAL-AUTHORITY.md",
+  "grundlage/tests/r11-equip-einmal-authority.test.mjs",
+  "grundlage/tests/r11-equip-einmal-authority-persistenz.test.mjs",
   "grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json",
   "architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md",
   "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
@@ -125,6 +131,42 @@ if(equipmentEquip.schemaVersion!==1
     ||equipmentEquip.authority?.rawWriteAutoritaetDurchRegistrierung!==false
     ||equipmentEquip.authority?.actionAuthorityDurchRegistrierung!==false) {
   fehler("Equipment Equip MUTIEREN-Capability-Vertrag ungueltig.");
+}
+
+const equipmentEquipAuthority=lies(
+  "grundlage/vertraege/runtime/equipment-equip-one-shot-authority.json",
+);
+if(equipmentEquipAuthority.schemaVersion!==1
+    ||equipmentEquipAuthority.vertragVersion!=="1"
+    ||equipmentEquipAuthority.capability?.id!=="equipment.equip"
+    ||equipmentEquipAuthority.capability?.providerModulId!=="equipment-core"
+    ||equipmentEquipAuthority.capability?.providerVersion!=="1"
+    ||equipmentEquipAuthority.capability?.modus!=="MUTIEREN"
+    ||equipmentEquipAuthority.capability?.registryAktivierung!==false
+    ||equipmentEquipAuthority.capability?.maximaleVerwendungenProAuthority!==1
+    ||equipmentEquipAuthority.bindung?.actionContractId!=="AL-ACTION-EQUIP"
+    ||equipmentEquipAuthority.bindung?.recoveryContractId!=="AL-RECOVERY-EQUIP"
+    ||equipmentEquipAuthority.bindung?.verifierId!=="AL-VERIFIER-EQUIP"
+    ||equipmentEquipAuthority.bindung?.policyId!=="EQUIPMENT-EQUIP-PRODUKTION-EINMAL-V1"
+    ||equipmentEquipAuthority.bindung?.bestaetigungText!=="V5 EQUIP EINMAL AUSFUEHREN"
+    ||equipmentEquipAuthority.bindung?.transaktionsIdErforderlich!==true
+    ||equipmentEquipAuthority.authority?.maximaleLebensdauerMs!==2000
+    ||equipmentEquipAuthority.authority?.durchAdmissionPruefungVerbraucht!==true
+    ||equipmentEquipAuthority.authority?.beiStopWiderrufen!==true
+    ||equipmentEquipAuthority.authority?.beiOperatorDenyWiderrufen!==true
+    ||equipmentEquipAuthority.authority?.beiNothaltWiderrufen!==true
+    ||equipmentEquipAuthority.authority?.beiHealthOderOperationsVerlustWiderrufen!==true
+    ||equipmentEquipAuthority.authority?.breiteRuntimeFreigabe!==false
+    ||equipmentEquipAuthority.authority?.rawWriteAutoritaet!==false
+    ||equipmentEquipAuthority.durability?.vorAuthorityAusstellung!==true
+    ||equipmentEquipAuthority.durability?.idKollisionFailClosed!==true
+    ||equipmentEquipAuthority.durability?.restartAktiviertAuthorityNichtWieder!==true
+    ||equipmentEquipAuthority.host?.generischeMutierenAktivierung!==false
+    ||equipmentEquipAuthority.host?.runtimeOderRegisterBypass!==false
+    ||equipmentEquipAuthority.wirkung?.gameplayWriteDurchAuthorityAusstellung!==0
+    ||equipmentEquipAuthority.wirkung?.adapterSendDurchAuthorityAusstellung!==0
+    ||equipmentEquipAuthority.wirkung?.executionNochSeparatErforderlich!==true) {
+  fehler("Equipment Equip Einmal-Authority-Vertrag ungueltig.");
 }
 
 const cap045=lies("roadmap/cap045-production-live-evidence.json");
