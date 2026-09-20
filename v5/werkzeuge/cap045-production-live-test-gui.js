@@ -2,7 +2,7 @@
   'use strict';
 
   const API_NAME = 'V5Cap045ProductionLiveTest';
-  const VERSION = '1.0.0';
+  const VERSION = '1.0.1';
   const TESTKENNUNG = 'cap045-production-live-certification';
   const SESSION_KEY = 'AIO_V5_CAP045_PRODUCTION_LIVE_SESSION_V1';
   const JOURNAL_KEY = 'AIO_V5_CAP045_PRODUCTION_LIVE_JOURNAL_V1';
@@ -220,6 +220,8 @@
     return Object.freeze({
       zeitMs: Date.now(),
       charakter: String(root.character?.name || ''),
+      accountId: String(root.user_id || root.character?.owner || ''),
+      characterSessionId: String(root.character?.id || ''),
       serverRegion: String(root.server_region || ''),
       serverIdentifier: String(root.server_identifier || ''),
       rip: !!root.character?.rip,
@@ -270,20 +272,47 @@
       && !['COMMITTED', 'FAILED_SAFE', 'ABORTED'].includes(journal.status);
   }
 
-  function coverageGraph(produktionsId, kandidat) {
+  function coverageGraph(produktionsId, kandidat, obs) {
     const upgradeId = 'upgrade:1';
     const deliveryId = 'delivery:2';
+    const recipient = Object.freeze({
+      schemaVersion: 1,
+      accountId: obs.accountId,
+      characterId: obs.charakter,
+      sessionId: obs.characterSessionId,
+      serverRegion: obs.serverRegion,
+      serverIdentifier: obs.serverIdentifier,
+      rosterEpoche: 1,
+      rosterFingerprint: evidenceFingerprint({
+        accountId: obs.accountId,
+        characterId: obs.charakter,
+        sessionId: obs.characterSessionId,
+        serverRegion: obs.serverRegion,
+        serverIdentifier: obs.serverIdentifier
+      })
+    });
+    const workspaceNachweisFingerprint = evidenceFingerprint({
+      art: 'UPGRADE',
+      zielFingerprint: kandidat.ziel.fingerprint,
+      scrollFingerprint: kandidat.scroll.fingerprint,
+      zielIndex: kandidat.ziel.index,
+      scrollIndex: kandidat.scroll.index
+    });
     return Object.freeze({
       schemaVersion: 1,
-      produktionsId,
+      planId: produktionsId,
+      recipient,
       rootNodeId: deliveryId,
       planFingerprint: evidenceFingerprint({
-        produktionsId,
+        planId: produktionsId,
+        recipient,
         kandidatFingerprint: kandidat.fingerprint,
+        workspaceNachweisFingerprint,
         actionContractId: ACTION_CONTRACT_ID,
         recoveryContractId: RECOVERY_CONTRACT_ID,
         verifierId: VERIFIER_ID
       }),
+      bankKatalog: null,
       schritte: Object.freeze([
         Object.freeze({
           nodeId: upgradeId,
@@ -293,9 +322,8 @@
           outputLevel: kandidat.outputLevel,
           outputMenge: 1,
           operationSchluessel: produktionsId + ':upgrade:' + String(kandidat.ziel.index),
-          actionContractId: ACTION_CONTRACT_ID,
-          recoveryContractId: RECOVERY_CONTRACT_ID,
-          verifierId: VERIFIER_ID
+          workspaceNachweisFingerprint,
+          gateEvidence: null
         }),
         Object.freeze({
           nodeId: deliveryId,
@@ -305,7 +333,8 @@
           outputLevel: kandidat.outputLevel,
           outputMenge: 1,
           operationSchluessel: produktionsId + ':delivery:self',
-          selfRecipientSettlement: true
+          workspaceNachweisFingerprint: null,
+          gateEvidence: null
         })
       ])
     });
@@ -315,7 +344,7 @@
     const faelle = obs.kandidaten.map((kandidat, index) => {
       const produktionsId = 'cap045-live-' + obs.charakter + '-' + String(obs.zeitMs)
         + '-' + String(index + 1);
-      const graph = coverageGraph(produktionsId, kandidat);
+      const graph = coverageGraph(produktionsId, kandidat, obs);
       return Object.freeze({
         fallId: 'live-coverage-' + String(index + 1),
         zielId: kandidat.outputName + ':' + String(kandidat.outputLevel),
@@ -325,6 +354,12 @@
         klassifikation: 'FULLY_RESOLVED',
         grund: null,
         graph,
+        vertraege: Object.freeze({
+          actionContractId: ACTION_CONTRACT_ID,
+          recoveryContractId: RECOVERY_CONTRACT_ID,
+          verifierId: VERIFIER_ID,
+          recipientSettlement: 'SELF'
+        }),
         kandidat
       });
     });
@@ -573,6 +608,8 @@
   function blockerFuerStage1(obs) {
     const blocker = [];
     if (!obs.charakter) blocker.push('CHARAKTER_FEHLT');
+    if (!obs.accountId) blocker.push('ACCOUNT_BINDUNG_FEHLT');
+    if (!obs.characterSessionId) blocker.push('CHARACTER_SESSION_BINDUNG_FEHLT');
     if (!obs.serverRegion || !obs.serverIdentifier) blocker.push('SERVER_BINDUNG_FEHLT');
     if (obs.rip) blocker.push('CHARAKTER_TOT');
     if (obs.bewegtSich) blocker.push('CHARAKTER_BEWEGT_SICH');
@@ -640,7 +677,7 @@
         outcome: null
       },
       production: {
-        produktionsId: ausgewaehlt.graph.produktionsId,
+        produktionsId: ausgewaehlt.graph.planId,
         planFingerprint: ausgewaehlt.graph.planFingerprint,
         graph: ausgewaehlt.graph,
         kandidat: ausgewaehlt.kandidat,
@@ -1255,8 +1292,10 @@
   }
 
   function restzeitMs(session) {
-    if (!session?.stage2?.gestartetAmMs) return SOAK_DAUER_MS;
-    return Math.max(0, SOAK_DAUER_MS - (Date.now() - session.stage2.gestartetAmMs));
+    const evidenceStartMs = session?.samples?.[0]?.zeitMs
+      ?? session?.stage2?.gestartetAmMs;
+    if (!evidenceStartMs) return SOAK_DAUER_MS;
+    return Math.max(0, SOAK_DAUER_MS - (Date.now() - evidenceStartMs));
   }
 
   function stoppeCountdown(abgeschlossen = false) {
@@ -1292,7 +1331,8 @@
         breiteRuntimeFreigabe: false
       }, 'laeuft', 'Stage 2 LIVE-Soak laeuft read-only.');
 
-      if (sample.zeitMs - aktualisiert.stage2.gestartetAmMs >= SOAK_DAUER_MS) {
+      if (samples.length >= MIN_LIVE_SAMPLES
+          && sample.zeitMs - samples[0].zeitMs >= SOAK_DAUER_MS) {
         if (soakTimer !== null) clearInterval(soakTimer);
         soakTimer = null;
         stoppeCountdown(true);
