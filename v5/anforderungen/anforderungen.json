@@ -1792,7 +1792,7 @@
       "titel": "Movement Return ist kein Arrival-Beweis.",
       "phase": "R16",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R16_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-081"
       ],
@@ -1801,14 +1801,22 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r16NachweisStatus": "R16_NACHGEWIESEN",
+      "r16Nachweise": [
+        "v5/grundlage/quelle/navigation/reise-arrival.ts",
+        "v5/grundlage/quelle/navigation/bewegungs-owner.ts",
+        "v5/grundlage/tests/r16-arrival-motion.test.mjs",
+        "v5/grundlage/tests/r16-ownership-movement.test.mjs",
+        "v5/dokumentation/P1B-PARTY-COMBAT-NAVIGATION.md"
+      ]
     },
     {
       "kennung": "V5-ANF-WORLD-002",
       "titel": "Moving Targets benoetigen bewegungsbezogene Freshness.",
       "phase": "R16",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R16_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-082"
       ],
@@ -1817,14 +1825,22 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r16NachweisStatus": "R16_NACHGEWIESEN",
+      "r16Nachweise": [
+        "v5/grundlage/quelle/navigation/motion-freshness.ts",
+        "v5/grundlage/quelle/kampf/threat-cc.ts",
+        "v5/grundlage/tests/r16-arrival-motion.test.mjs",
+        "v5/grundlage/tests/r16-combat-farmer.test.mjs",
+        "v5/dokumentation/P1B-PARTY-COMBAT-NAVIGATION.md"
+      ]
     },
     {
       "kennung": "V5-ANF-WORLD-003",
       "titel": "Raw Target ist nicht automatisch fachliche Target-Ownership.",
       "phase": "R16",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R16_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-083"
       ],
@@ -1833,7 +1849,15 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r16NachweisStatus": "R16_NACHGEWIESEN",
+      "r16Nachweise": [
+        "v5/grundlage/quelle/kampf/target-ownership.ts",
+        "v5/grundlage/quelle/kampf/threat-cc.ts",
+        "v5/grundlage/tests/r16-ownership-movement.test.mjs",
+        "v5/grundlage/tests/r16-combat-farmer.test.mjs",
+        "v5/dokumentation/P1B-PARTY-COMBAT-NAVIGATION.md"
+      ]
     },
     {
       "kennung": "V5-ANF-WORLD-004",

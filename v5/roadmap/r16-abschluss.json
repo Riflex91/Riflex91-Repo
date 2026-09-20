@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R16",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "p1bStatus": "GESCHLOSSEN",
+  "anforderungen": {
+    "phaseR16": 3,
+    "technischNachgewiesen": 3,
+    "status": "R16_NACHGEWIESEN"
+  },
+  "traceability": {
+    "phaseR16": 3,
+    "vollstaendig": 3
+  },
+  "fitness": {
+    "phaseR16": 0,
+    "erfuellt": 0,
+    "status": "KEINE_EIGENEN_REGELN"
+  },
+  "capabilities": [
+    {
+      "kennung": "CAP-011",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/gruppe/party-wahrheit.ts"
+    },
+    {
+      "kennung": "CAP-012",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/gruppe/group-capabilities.ts"
+    },
+    {
+      "kennung": "CAP-013",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/kampf/skill-capability.ts"
+    },
+    {
+      "kennung": "CAP-014",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/kampf/target-ownership.ts"
+    },
+    {
+      "kennung": "CAP-015",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/farmer/farmer-fsm.ts"
+    },
+    {
+      "kennung": "CAP-016",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/navigation/reise-arrival.ts"
+    }
+  ],
+  "exitKriterien": {
+    "p1bGeschlossen": true,
+    "movementReturnIstKeinArrival": true,
+    "arrivalBrauchtPostcondition": true,
+    "movingTargetFreshnessMotionAware": true,
+    "staleMovingTargetFailClosed": true,
+    "rawTargetIstKeineOwnership": true,
+    "targetOwnershipGefenced": true,
+    "movementOwnershipAntiThrash": true,
+    "partyTruthZeitgebunden": true,
+    "sharedCooldownGebunden": true,
+    "deathRespawnRejoinFailClosed": true,
+    "threatCcVolatil": true,
+    "aoeLearningKannHardCapsNichtLockern": true,
+    "encounterOutcomeDedupe": true,
+    "farmerFsmBounded": true,
+    "rawGameWritesImR16Core": 0
+  },
+  "naechstePhase": "R17",
+  "nachweise": [
+    "v5/dokumentation/P1B-PARTY-COMBAT-NAVIGATION.md",
+    "v5/grundlage/vertraege/r16/party-combat-navigation-abdeckung.json",
+    "v5/architektur/adr/ADR-019-R16-PARTY-COMBAT-NAVIGATION.md",
+    "v5/grundlage/tests/r16-arrival-motion.test.mjs",
+    "v5/grundlage/tests/r16-ownership-movement.test.mjs",
+    "v5/grundlage/tests/r16-party-skill-lifecycle.test.mjs",
+    "v5/grundlage/tests/r16-combat-farmer.test.mjs",
+    "v5/werkzeuge/r16-statische-guards.mjs",
+    "v5/werkzeuge/r16-struktur-pruefen.mjs"
+  ],
+  "hinweis": "R16 gibt keine breite Gameplay-Runtime frei. R17 World Autonomy baut auf Arrival-, Freshness-, Ownership- und Lifecycle-Grenzen auf."
+}

@@ -780,7 +780,7 @@ Maschinenlesbarer Abschluss: `roadmap/r15-abschluss.json`.
 
 ## R16 – Party, Combat, Farming und Navigation
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
 
 Voraussetzung: R1.3 abgeschlossen.
 
@@ -802,7 +802,15 @@ Exit Gate:
 - Party/Roster Drift wird erkannt;
 - Safety preemptet normale Arbeit, niemals umgekehrt.
 
+
+R16-Abschluss: P1B ist geschlossen. Movement-Return ist kein Arrival-Beweis; Moving Targets sind motion-aware freshness-gebunden; Raw Targets sind keine fachliche Ownership. Movement Ownership, Party Truth, Skill-/Shared-Cooldown-Evidence, Death/Respawn/Rejoin, Threat/CC, AoE-Hard-Caps, Encounter-Dedupe und Farmer-FSM sind bounded, restart-sicher und no-write.
+
+Maschinenlesbare Abdeckung: `grundlage/vertraege/r16/party-combat-navigation-abdeckung.json`.  
+Maschinenlesbarer Abschluss: `roadmap/r16-abschluss.json`.
+
 ## R17 – World Autonomy
+
+**Status:** IN_PROGRESS.
 
 Voraussetzung: R1.4 abgeschlossen.
 
