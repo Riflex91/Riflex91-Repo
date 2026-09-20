@@ -39,4 +39,5 @@ public sealed record MinerOptions(
     string WowRoot,
     string OutputDirectory,
     Uri? WowToolsLocal,
-    TimeSpan PollInterval);
+    TimeSpan PollInterval,
+    bool ManageWowToolsLocal = false);
