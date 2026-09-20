@@ -112,8 +112,9 @@ export function reproduziereTradeSellServerAuswahl(
   inventar: readonly TradeSellInventarKandidat[],
   wishlist: GepinnteListingEvidence,
   angefragteMenge: number,
+  jetztMs: number,
 ): ServerAuswahlNachweis {
-  validiereTradeIntent(wishlist, "BUY", angefragteMenge, wishlist.beobachtetAmMs);
+  validiereTradeIntent(wishlist, "BUY", angefragteMenge, jetztMs);
   const eligible = [...inventar]
     .sort((a, b) => a.identitaet.inventarIndex - b.identitaet.inventarIndex)
     .filter(kandidat =>
