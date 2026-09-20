@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.9
+name: Mewthisch Guides addon v0.10
 
 on:
   workflow_dispatch:
@@ -330,7 +330,75 @@ jobs:
           print("Gear fail-closed safety PASS")
           LUA
 
-      - name: Validate v0.9 roadmap-complete contract
+      - name: Validate RestedXP transformed route import
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = {
+            db = {settings={rxpSeason=0,rxpRate=1.0,rxpHardcoreMode=false},runtime={}},
+          }
+          for i=1,5 do
+            assert(loadfile(string.format(
+              "world of warcraft/MewthischGuides/RestedXPForeverData_%02d.lua", i)))(
+                "MewthischGuides", MG)
+          end
+          assert(loadfile("world of warcraft/MewthischGuides/RestedXPImport.lua"))(
+            "MewthischGuides", MG)
+
+          local stats = MG.RestEDXPImport:GetStats()
+          assert(stats.rawGuides > 20, "expected many RestedXP public guides")
+          assert(stats.rawSteps > 1000, "expected RestedXP guide steps")
+          assert(stats.structuredActions > 5000, "expected structured RestedXP actions")
+          assert(stats.normalizedGuides > 10, "expected normalized RestedXP guides")
+          assert(stats.normalizedQuestDefinitions > 100, "expected normalized quest definitions")
+          assert(stats.sourceCommit == "6f9cf44c09123e496366b3cb5ffe7383660e4bcb",
+            "unexpected RestedXP source commit")
+
+          local profile = {faction="Horde",race="Orc",class="HUNTER",level=3}
+          assert(MG.RestEDXPImport:SelectorMatches("Orc Hunter/Troll Hunter", profile),
+            "positive RXP selector failed")
+          assert(not MG.RestEDXPImport:SelectorMatches("Warlock", profile),
+            "negative RXP selector failed")
+
+          local found = nil
+          for _, guide in ipairs(MG.RestEDXPImport:BuildGuides()) do
+            if guide.faction == "Horde" and tostring(guide.title):find("Durotar",1,true) then
+              for _, step in ipairs(guide.steps or {}) do
+                if step.questID == 97279 then found = step break end
+              end
+            end
+            if found then break end
+          end
+          assert(found, "Wayward Weapons missing from imported Durotar data")
+          local accept = MG.RestEDXPImport:GetCoordinate(found, "accept", profile)
+          assert(accept and accept.mapID == 1411, "imported quest accept coordinate missing")
+          assert(accept.worldX or accept.x, "imported coordinate has no usable position")
+          print("RestedXP transformed import PASS")
+          LUA
+
+      - name: Validate five-theme UI contract
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = {db={settings={theme="Forever Classic"}},Log=function() end}
+          assert(loadfile("world of warcraft/MewthischGuides/Themes.lua"))(
+            "MewthischGuides", MG)
+          assert(#MG.Themes.order == 5, "exactly five themes required")
+          local required = {
+            ["Forever Classic"]=true,
+            ["Obsidian"]=true,
+            ["Arcane"]=true,
+            ["Warcraft Heritage"]=true,
+            ["ElvUI"]=true,
+          }
+          for _, name in ipairs(MG.Themes.order) do required[name] = nil end
+          assert(next(required) == nil, "theme set incomplete")
+          local elv = MG.Themes:Get("ElvUI")
+          assert(elv and elv.adaptiveElvUI == true, "ElvUI theme must be adaptive")
+          print("Five-theme UI contract PASS")
+          LUA
+
+      - name: Validate v0.10 route-data and UI contract
         shell: bash
         run: |
           set -euo pipefail
@@ -344,7 +412,84 @@ jobs:
 
           grep -q '^## Interface: 16001$' "$TOC"
           grep -q '^## Title: Mewthisch Guides$' "$TOC"
-          grep -q '^## Version: 0.9.0$' "$TOC"
+          grep -q '^## Version: 0.10.0 "$TOC"
+          grep -q '^ForeverAPI.lua$' "$TOC"
+          grep -q '^RouteEngine.lua$' "$TOC"
+          for module in Validation GuideParser DataLoader QuestTracking TravelGraph Inventory GearAdvisor RewardAdvisor BuildState TalentAdvisor Themes Telemetry State Diagnostics Sync RestedXPImport; do
+            grep -q "^$module.lua$" "$TOC"
+          done
+          for chunk in 01 02 03 04 05; do
+            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
+          done
+
+          grep -q 'forever-modern-capability' "$API"
+          grep -q 'GetQuestsOnMap' "$API"
+          grep -q 'GetQuestLineCoordinate' "$API"
+          grep -q 'MapToWorld' "$API"
+          grep -q 'hadSentinel' "$API"
+          grep -q 'C_Secrets' "$API"
+
+          grep -q 'TravelGraph = 98' "$ROUTE"
+          grep -q 'QuestMapPOI = 92' "$ROUTE"
+          grep -q 'candidateSummary' "$ROUTE"
+          grep -q 'modern_quest_map_poi' "$ROUTE"
+
+          grep -q 'RouteEngine:Resolve' "$NAV"
+          grep -q 'WorldCoordinates' "$NAV"
+          grep -q 'ComputeWorldAbsoluteBearing' "$NAV"
+          grep -q 'world X is north/south' "$NAV"
+          if grep -q 'navigationScreenAngle' "$NAV"; then
+            echo "Unsafe guessed screen-angle fallback detected."
+            exit 1
+          fi
+
+          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
+            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
+            exit 1
+          fi
+
+          grep -q 'Fenster-Transparenz' "$UI"
+          grep -q 'math.abs(current - transparency)' "$UI"
+          grep -q 'API-Modus' "$UI"
+          grep -q 'RouteEngine' "$UI"
+          grep -q 'Gear-Empfehlung' "$UI"
+          grep -q 'Talent-Empfehlung' "$UI"
+          grep -q 'Nächstes Theme' "$UI"
+          grep -q 'ElvUI' "$UI"
+          grep -q 'RestedXP-Guidequellen' "$UI"
+          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
+          grep -q 'RestedXPWorldCoordinates' "$NAV"
+          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          grep -q 'gearProfiles = {}' "$ROOT/Data.lua"
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+          grep -q 'roadmap-complete-pre-runtime-fix' "$ROOT/Data.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.10.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.10
+          path: artifacts/MewthischGuides-v0.10.zip
+          if-no-files-found: error
+ "$TOC"
           grep -q '^ForeverAPI.lua$' "$TOC"
           grep -q '^RouteEngine.lua$' "$TOC"
           for module in Validation GuideParser DataLoader QuestTracking TravelGraph Inventory GearAdvisor RewardAdvisor BuildState TalentAdvisor Themes Telemetry State Diagnostics Sync; do
@@ -400,11 +545,11 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.9.zip MewthischGuides
+          zip -r MewthischGuides-v0.10.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.9
-          path: artifacts/MewthischGuides-v0.9.zip
+          name: MewthischGuides-v0.10
+          path: artifacts/MewthischGuides-v0.10.zip
           if-no-files-found: error
