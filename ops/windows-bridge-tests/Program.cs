@@ -58,12 +58,16 @@ Assert(!string.IsNullOrWhiteSpace(defaults.BackblazeKeyIdEnvironmentVariable), "
 Assert(!string.IsNullOrWhiteSpace(defaults.BackblazeApplicationKeyEnvironmentVariable), "BACKBLAZE_APPLICATION_KEY_ENV_REQUIRED");
 Assert(defaults.WissenswaechterAktiv, "WISSENSWAECHTER_DEFAULT_ON");
 Assert(V5ReadinessSystemtest.TestKennung == "V5_WINDOWS_BRIDGE_READINESS", "V5_READINESS_TEST_ID");
-Assert(V5ReadinessSystemtest.TestVersion == "1.0.0", "V5_READINESS_TEST_VERSION");
+Assert(V5ReadinessSystemtest.TestVersion == "1.1.0", "V5_READINESS_TEST_VERSION");
 var readinessStatisch = V5ReadinessSystemtest.PruefeStatischeKonfiguration(defaults);
 Assert(readinessStatisch.Count >= 8, "V5_READINESS_STATIC_CHECK_COUNT");
 Assert(readinessStatisch.All(x => x.Status == "BESTANDEN"), "V5_READINESS_DEFAULT_CONFIG_PASS");
 Assert(readinessStatisch.Any(x => x.Kennung == "KNOWLEDGE_BRANCH" && x.Detail.Contains("v5/wissenswaechter-automatisch", StringComparison.Ordinal)), "V5_READINESS_KNOWLEDGE_BRANCH");
+Assert(readinessStatisch.Any(x => x.Kennung == "GITHUB_AUTH_MODUS" && x.Status == "BESTANDEN"), "V5_READINESS_PAT_ONLY_AUTH");
+Assert(readinessStatisch.Any(x => x.Kennung == "KNOWLEDGE_SYNC_LEAST_PRIVILEGE" && x.Status == "BESTANDEN"), "V5_READINESS_NO_MAIN_MERGE");
 Assert(readinessStatisch.Any(x => x.Kennung == "TEST_OHNE_GAMEPLAY_WRITE" && x.Status == "BESTANDEN"), "V5_READINESS_NO_GAMEPLAY_AUTHORITY");
+Assert(GitHubAnmeldung.Authentifizierungsmodus == "FINE_GRAINED_PAT", "GITHUB_AUTH_FINE_GRAINED_PAT_REQUIRED");
+Assert(GitHubAnmeldung.MinimalBerechtigungsprofil == "REPOSITORY_ONLY_CONTENTS_WRITE", "GITHUB_AUTH_MINIMAL_PROFILE");
 Assert(defaults.WissenswaechterIntervallMinuten == 60, "WISSENSWAECHTER_HOURLY");
 Assert(defaults.WissenswaechterWebSucheAktiv, "WISSENSWAECHTER_WEB_SEARCH_DEFAULT_ON");
 Assert(defaults.WissenswaechterMaxQuellenProLauf == 200, "WISSENSWAECHTER_SOURCE_LIMIT");
@@ -83,6 +87,8 @@ Assert(GitArbeitskopie.BasisBranch == "main", "WISSENSWAECHTER_BASIS_BRANCH_MAIN
 Assert(GitArbeitskopie.WissensBranch == "v5/wissenswaechter-automatisch", "WISSENSWAECHTER_DEDICATED_BRANCH");
 Assert(GitArbeitskopie.WissensBranch != GitArbeitskopie.BasisBranch, "WISSENSWAECHTER_MUST_NOT_PUSH_MAIN");
 Assert(GitArbeitskopie.PushZielRef == "HEAD:v5/wissenswaechter-automatisch", "WISSENSWAECHTER_PUSH_REF");
+Assert(GitArbeitskopie.SyncStrategie == "KNOWLEDGE_ONLY_NO_MAIN_MERGE", "WISSENSWAECHTER_SYNC_STRATEGY");
+Assert(!GitArbeitskopie.IntegriertBasisVorPush, "WISSENSWAECHTER_MUST_NOT_MERGE_MAIN");
 Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/quellen/quellen.json"), "KNOWLEDGE_READ_ALLOWED");
 Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/fakten/adventure-land-kern.json"), "KNOWLEDGE_WRITE_ALLOWED");
 Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/datenbank/quellenstatus.json"), "DATABASE_WITHIN_SCOPE_ALLOWED");
