@@ -334,3 +334,12 @@ Controlled Live: **BESTANDEN**. Der manuelle Ingame-Lauf `R19-1789894379854-ced6
 Evidence: `roadmap/r19-controlled-live-evidence.json`.
 
 Naechste Stufe: **CANARY**. R19 bleibt `IN_PROGRESS`; die breite Runtime bleibt `GESPERRT`.
+
+
+## R19 – Canary bestanden
+
+Canary: **BESTANDEN**. Run `R19-1789894940141-fa58fa3e` nutzte bounded Learning-Ranking ausschliesslich innerhalb hart erlaubter Equip-Kandidaten. Der Learning-Einfluss aenderte die Auswahl gegenueber dem deterministischen Fallback, ohne Gameplay-/Authority-Rechte oder Safety-Lockerung. Genau ein `equip`-Write wurde postcondition-verifiziert; unerwartete Writes blieben null.
+
+Evidence: `roadmap/r19-canary-evidence.json`.
+
+Naechste Stufe: **SOAK_1H**. R19 bleibt `IN_PROGRESS`; die breite Runtime bleibt `GESPERRT`.
