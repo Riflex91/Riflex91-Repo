@@ -43,7 +43,7 @@
     "r14:test": "npm run grundlage:test",
     "r14:pruefen": "npm run typen:pruefen && npm run lint && npm run r14:test && node werkzeuge/r14-statische-guards.mjs && node werkzeuge/r14-struktur-pruefen.mjs",
     "r15:test": "npm run grundlage:test",
-    "r15:pruefen": "npm run typen:pruefen && npm run lint && npm run r15:test && node werkzeuge/r15-statische-guards.mjs && node werkzeuge/r15-struktur-pruefen.mjs",
+    "r15:pruefen": "npm run typen:pruefen && npm run lint && npm run r15:test && node werkzeuge/r15-statische-guards.mjs && node werkzeuge/r15-struktur-pruefen.mjs && npm run cap033034:live-gui:pruefen",
     "r16:test": "npm run grundlage:test",
     "r16:pruefen": "npm run typen:pruefen && npm run lint && npm run r16:test && node werkzeuge/r16-statische-guards.mjs && node werkzeuge/r16-struktur-pruefen.mjs",
     "r17:test": "npm run grundlage:test",
@@ -64,7 +64,9 @@
     "r19:soak-15m-gui:bauen": "node werkzeuge/r19-soak-15m-test-paket-bauen.mjs",
     "r19:soak-15m-gui:pruefen": "node --check werkzeuge/r19-soak-15m-test-gui.js && node --check werkzeuge/r19-soak-15m-test-paket.js && node werkzeuge/r19-soak-15m-test-paket-bauen.mjs --check && node --test werkzeuge/tests/r19-soak-15m-test-gui.test.mjs",
     "r0-r3:reconciliation:pruefen": "node werkzeuge/r0-r3-reconciliation-pruefen.mjs",
-    "gesamtfreigabe:pruefen": "node werkzeuge/gesamtfreigabe-pruefen.mjs"
+    "gesamtfreigabe:pruefen": "node werkzeuge/gesamtfreigabe-pruefen.mjs",
+    "cap033034:live-gui:bauen": "node werkzeuge/cap033-cap034-live-test-paket-bauen.mjs",
+    "cap033034:live-gui:pruefen": "node --check werkzeuge/cap033-cap034-live-test-gui.js && node --check werkzeuge/cap033-cap034-live-test-paket.js && node werkzeuge/cap033-cap034-live-test-paket-bauen.mjs --check && node --test werkzeuge/tests/cap033-cap034-live-test-gui.test.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
