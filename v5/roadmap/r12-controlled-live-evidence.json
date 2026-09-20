@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20T06:32:50.737Z",
+  "phase": "R12",
+  "status": "BESTANDEN",
+  "controlledLiveTestGate": "BESTANDEN",
+  "quelle": "V5_INGAME_TEST_GUI_BERICHT",
+  "guiVersion": "1.0.0",
+  "guiKennung": "r12-controlled-live-equip",
+  "guiEndstatus": "INFO",
+  "guiEndstatusHinweis": "Der GUI-Endstatus wurde durch anschliessendes 'Testjournal anzeigen' auf INFO gesetzt; der mutierende One-Shot-Lauf selbst ist BESTANDEN.",
+  "runId": "R12-1789885970722-a5b4d8d4",
+  "actionContractId": "AL-ACTION-EQUIP",
+  "recoveryContractId": "AL-RECOVERY-EQUIP",
+  "verifierId": "AL-VERIFIER-EQUIP",
+  "publicFunction": "equip",
+  "gameWrites": 1,
+  "unerwarteteGameWrites": 0,
+  "maximaleAktionen": 1,
+  "sendVersuche": 1,
+  "sameIntentRetry": false,
+  "breiteRuntimeFreigabe": false,
+  "alternativeRuntimeAktiv": false,
+  "charakter": "My_Merchant",
+  "preflight": {
+    "status": "BESTANDEN",
+    "rip": false,
+    "bewegtSich": false,
+    "zielName": null,
+    "feindeAufCharakter": 0,
+    "blocker": [],
+    "testJournalSpeicher": {
+      "ok": true,
+      "art": "BROWSER_TEST_WITNESS",
+      "produktionsPersistenz": false
+    }
+  },
+  "kandidat": {
+    "inventoryIndexVorher": 22,
+    "itemName": "coat",
+    "itemLevel": 5,
+    "slot": "chest",
+    "slotWarLeer": true,
+    "vorherigesSlotItem": null
+  },
+  "serverErgebnis": {
+    "num": 22,
+    "slot": "chest",
+    "success": true,
+    "response": "data",
+    "place": "equip"
+  },
+  "serverFehler": null,
+  "postcondition": {
+    "klassifikation": "BESTAETIGT",
+    "slot": {
+      "name": "coat",
+      "level": 5
+    },
+    "inventoryIndex": null
+  },
+  "testJournal": {
+    "art": "BROWSER_TEST_WITNESS",
+    "produktionsPersistenz": false,
+    "status": "COMMITTED",
+    "intentZeit": "2026-09-20T06:32:50.722Z",
+    "abgeschlossenAm": "2026-09-20T06:32:50.737Z"
+  },
+  "sicherheitsnachweis": {
+    "alteV3RuntimeVorhanden": false,
+    "alteV4RuntimeVorhanden": false,
+    "alteRuntimeAktiv": false,
+    "expliziteBestaetigung": "R12-EQUIP-ONCE",
+    "keinBlindRetry": true,
+    "breiteGameplayRuntimeWeiterGesperrt": true
+  },
+  "hinweis": "Controlled-Live-Evidence fuer R12. Genau ein Equip-Send wurde serverseitig erfolgreich beantwortet und durch die Equipment-Postcondition bestaetigt. Der Browser-Test-Witness ist kein Produktionspersistenznachweis."
+}
