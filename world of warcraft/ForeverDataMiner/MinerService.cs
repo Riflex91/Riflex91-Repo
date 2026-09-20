@@ -1,6 +1,5 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 
 namespace ForeverDataMiner;
@@ -18,6 +17,10 @@ public sealed class MinerService(MinerOptions options)
         var build = BuildInfoReader.Read(options.WowRoot);
         Directory.CreateDirectory(options.OutputDirectory);
 
+        var previousState = StateStore.Load(options.OutputDirectory);
+        var currentWatchState = BuildWatchState(build);
+        var nextState = CreateNextState(previousState, build, currentWatchState);
+
         var bundle = new FgdsBundle { Build = build };
         AddFingerprint(bundle, Path.Combine(options.WowRoot, ".build.info"), "client.build_info");
 
@@ -26,6 +29,22 @@ public sealed class MinerService(MinerOptions options)
 
         foreach (var cache in CandidateHotfixCaches())
             AddFingerprint(bundle, cache, "hotfix.cache");
+
+        bundle.Records.Add(new FgdsRecord(
+            "client.update",
+            build.BuildNumber,
+            DateTimeOffset.UtcNow,
+            "miner-state",
+            new Dictionary<string, object?>
+            {
+                ["previousBuild"] = previousState?.BuildVersion,
+                ["currentBuild"] = build.Version,
+                ["buildChanged"] = previousState?.BuildVersion is not null &&
+                                   !string.Equals(previousState.BuildVersion, build.Version, StringComparison.Ordinal),
+                ["clientStateChanged"] = previousState?.WatchState is not null &&
+                                         !string.Equals(previousState.WatchState, currentWatchState, StringComparison.Ordinal),
+                ["baseline"] = previousState is null
+            }));
 
         var stamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss");
         var safeBuild = string.Concat(build.Version.Select(c => char.IsLetterOrDigit(c) || c is '.' or '-' ? c : '_'));
@@ -44,9 +63,12 @@ public sealed class MinerService(MinerOptions options)
                 foreach (var (table, csv) in tables)
                 {
                     var entry = archive.CreateEntry($"db2/{table}.csv", CompressionLevel.Optimal);
-                    await using var stream = entry.Open();
-                    await stream.WriteAsync(csv, cancellationToken);
+                    await using (var stream = entry.Open())
+                    {
+                        await stream.WriteAsync(csv, cancellationToken);
+                    }
 
+                    var tableHash = Convert.ToHexString(SHA256.HashData(csv)).ToLowerInvariant();
                     bundle.Records.Add(new FgdsRecord(
                         "db2.export",
                         table,
@@ -56,7 +78,27 @@ public sealed class MinerService(MinerOptions options)
                         {
                             ["table"] = table,
                             ["bytes"] = csv.Length,
-                            ["sha256"] = Convert.ToHexString(SHA256.HashData(csv)).ToLowerInvariant()
+                            ["sha256"] = tableHash
+                        }));
+
+                    previousState?.TableRows.TryGetValue(table, out var previousRows);
+                    var diff = CsvDiff.Compare(table, csv, previousRows);
+                    nextState.TableRows[table] = diff.CurrentRows;
+
+                    bundle.Records.Add(new FgdsRecord(
+                        "db2.diff",
+                        table,
+                        DateTimeOffset.UtcNow,
+                        "client-db2-diff",
+                        new Dictionary<string, object?>
+                        {
+                            ["baseline"] = previousRows is null,
+                            ["addedCount"] = diff.AddedCount,
+                            ["modifiedCount"] = diff.ModifiedCount,
+                            ["removedCount"] = diff.RemovedCount,
+                            ["addedIds"] = diff.AddedIds,
+                            ["modifiedIds"] = diff.ModifiedIds,
+                            ["removedIds"] = diff.RemovedIds
                         }));
                 }
             }
@@ -77,12 +119,13 @@ public sealed class MinerService(MinerOptions options)
             await JsonSerializer.SerializeAsync(stream, bundle, JsonOptions, cancellationToken);
         }
 
+        StateStore.Save(options.OutputDirectory, nextState);
         return zipPath;
     }
 
     public async Task WatchAsync(CancellationToken cancellationToken = default)
     {
-        string? lastState = null;
+        string? lastState = StateStore.Load(options.OutputDirectory)?.WatchState;
 
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -91,7 +134,7 @@ public sealed class MinerService(MinerOptions options)
                 var build = BuildInfoReader.Read(options.WowRoot);
                 var state = BuildWatchState(build);
 
-                if (!string.Equals(lastState, state, StringComparison.Ordinal))
+                if (lastState is null || !string.Equals(lastState, state, StringComparison.Ordinal))
                 {
                     if (!await WaitForFilesToSettleAsync(cancellationToken))
                     {
@@ -101,7 +144,8 @@ public sealed class MinerService(MinerOptions options)
 
                     var output = await ScanAsync(cancellationToken);
                     Console.WriteLine($"[{DateTimeOffset.Now:T}] Forever data state captured -> {output}");
-                    lastState = BuildWatchState(BuildInfoReader.Read(options.WowRoot));
+                    lastState = StateStore.Load(options.OutputDirectory)?.WatchState
+                                ?? BuildWatchState(BuildInfoReader.Read(options.WowRoot));
                 }
             }
             catch (IOException ex)
@@ -111,6 +155,28 @@ public sealed class MinerService(MinerOptions options)
 
             await Task.Delay(options.PollInterval, cancellationToken);
         }
+    }
+
+    private static MinerState CreateNextState(
+        MinerState? previous,
+        BuildIdentity build,
+        string watchState)
+    {
+        var next = new MinerState
+        {
+            BuildVersion = build.Version,
+            WatchState = watchState
+        };
+
+        if (previous is null) return next;
+
+        foreach (var table in previous.TableRows)
+        {
+            next.TableRows[table.Key] =
+                new Dictionary<string, string>(table.Value, StringComparer.Ordinal);
+        }
+
+        return next;
     }
 
     private string BuildWatchState(BuildIdentity build)
