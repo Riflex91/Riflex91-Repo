@@ -52,7 +52,7 @@ function MG:ChooseStep(reason)
     local newGoalID = self.currentStep.goal and self.currentStep.goal.id or nil
 
     if oldQuestID ~= self.currentStep.questID or oldPhase ~= self.currentStep.phase then
-        self:Log("INFO", "guide.step_changed", "Aktiver Guide-Schritt geaendert.", {
+        self:Log("INFO", "guide.step_changed", "Aktiver Guide-Schritt geändert.", {
             reason = reason,
             resyncReason = preferredReason,
             previousQuestID = oldQuestID,
@@ -66,7 +66,7 @@ function MG:ChooseStep(reason)
             instruction = self.currentStep.goal and self.currentStep.goal.instruction or nil,
         })
     elseif oldGoalID ~= newGoalID then
-        self:Log("INFO", "goal.changed", "Aktives Questziel geaendert.", {
+        self:Log("INFO", "goal.changed", "Aktives Questziel geändert.", {
             reason = reason,
             questID = self.currentStep.questID,
             phase = self.currentStep.phase,
