@@ -66,6 +66,7 @@ export interface V5ProduktionsFaehigkeitsKontrolle {
   deaktiviere(
     faehigkeitId: string,
     anbieterModulId: string,
+    anbieterVersion?: string,
   ): FaehigkeitsEintrag;
 }
 
@@ -103,6 +104,17 @@ export interface V5PlanenAktivierungsErgebnis {
   readonly anbieterVersion: string;
   readonly wirkung: "AKTIVIERT" | "BEREITS_AKTIV" | "BLOCKIERT";
   readonly evidenceIds: readonly string[];
+  readonly gameplayAutoritaet: false;
+  readonly rawWriteAutoritaet: false;
+  readonly actionAuthority: false;
+}
+
+export interface V5PlanenRevalidierungsErgebnis {
+  readonly schemaVersion: 1;
+  readonly bereit: boolean;
+  readonly grund: string;
+  readonly deaktivierteFaehigkeiten: readonly string[];
+  readonly aktivePlanenFaehigkeiten: readonly string[];
   readonly gameplayAutoritaet: false;
   readonly rawWriteAutoritaet: false;
   readonly actionAuthority: false;
@@ -343,8 +355,15 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
           anbieterModulId,
           status,
         ),
-        deaktiviere: (faehigkeitId: string, anbieterModulId: string) =>
-          this.#faehigkeiten.deaktiviere(faehigkeitId, anbieterModulId),
+        deaktiviere: (
+          faehigkeitId: string,
+          anbieterModulId: string,
+          anbieterVersion?: string,
+        ) => this.#faehigkeiten.deaktiviere(
+          faehigkeitId,
+          anbieterModulId,
+          anbieterVersion,
+        ),
       }),
       scheduler: this.#scheduler,
       ressourcen: this.#ressourcen,
@@ -636,6 +655,109 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
     );
   }
 
+  public revalidierePlanenAuthority(
+    healthEvidence: readonly HealthEvidence[],
+    jetztMs: number,
+  ): V5PlanenRevalidierungsErgebnis {
+    if (!Number.isSafeInteger(jetztMs) || jetztMs < 0) {
+      throw new Error("V5_PLANEN_REVALIDIERUNG_ZEIT_UNGUELTIG");
+    }
+    if (healthEvidence.length > 512) {
+      throw new Error("V5_PLANEN_REVALIDIERUNG_HEALTH_EVIDENCE_ZU_GROSS");
+    }
+
+    let globalerGrund: string | null = null;
+    if (!this.#prozessLaeuft || this.#zustand !== "LAEUFT") {
+      globalerGrund = "V5_PLANEN_REVALIDIERUNG_RUNTIME_LAEUFT_NICHT";
+    } else if (!this.#laufsteuerung.sicht().neueArbeitErlaubt) {
+      globalerGrund = "V5_PLANEN_REVALIDIERUNG_LAUFSTEUERUNG_GESPERRT";
+    } else if (this.#bedienerRichtlinie === null) {
+      globalerGrund = "V5_PLANEN_REVALIDIERUNG_BEDIENER_RICHTLINIE_FEHLT";
+    } else if (this.#bedienerRichtlinie.snapshot().nothaltAktiv) {
+      globalerGrund = "V5_PLANEN_REVALIDIERUNG_NOTHALT_AKTIV";
+    } else {
+      try {
+        if (!this.#supervisor.status(healthEvidence, jetztMs).bereit) {
+          globalerGrund = "V5_PLANEN_REVALIDIERUNG_SUPERVISOR_NICHT_BEREIT";
+        }
+      } catch {
+        globalerGrund = "V5_PLANEN_REVALIDIERUNG_HEALTH_EVIDENCE_UNGUELTIG";
+      }
+    }
+
+    let deaktivierte: readonly string[] = Object.freeze([]);
+    if (globalerGrund !== null) {
+      deaktivierte = Object.freeze(
+        this.#faehigkeiten.sicht()
+          .filter(x => x.aktiv)
+          .map(x => x.faehigkeitId + "@" + x.anbieterVersion),
+      );
+      this.#deaktiviereAlleKompositionsAutoritaet();
+    } else {
+      for (const faehigkeit of this.#faehigkeiten.sicht()) {
+        if (!faehigkeit.aktiv) continue;
+        const modul = this.#module.sicht().find(x =>
+          x.modulId === faehigkeit.anbieterModulId
+          && x.modulVersion === faehigkeit.anbieterVersion);
+        const erlaubt = faehigkeit.modus === "PLANEN"
+          && faehigkeit.status === "VERFUEGBAR"
+          && faehigkeit.standardAktiv === false
+          && modul !== undefined
+          && modul.aktiv
+          && modul.gesundheit === "GESUND"
+          && modul.bereitgestellteFaehigkeiten.includes(
+            faehigkeit.faehigkeitId,
+          )
+          && this.#bedienerRichtlinie?.istErlaubt(
+            faehigkeit.faehigkeitId,
+          ) === true;
+        if (!erlaubt) {
+          this.#faehigkeiten.deaktiviere(
+            faehigkeit.faehigkeitId,
+            faehigkeit.anbieterModulId,
+            faehigkeit.anbieterVersion,
+          );
+          deaktivierte = Object.freeze([
+            ...deaktivierte,
+            faehigkeit.faehigkeitId + "@" + faehigkeit.anbieterVersion,
+          ]);
+        }
+      }
+
+      for (const modul of this.#module.sicht()) {
+        if (!modul.aktiv) continue;
+        const hatAktiveFaehigkeit = this.#faehigkeiten.sicht().some(x =>
+          x.aktiv
+          && x.anbieterModulId === modul.modulId
+          && x.anbieterVersion === modul.modulVersion);
+        if (!hatAktiveFaehigkeit) {
+          this.#module.deaktiviere(modul.modulId, modul.modulVersion);
+        }
+      }
+    }
+
+    const aktivePlanenFaehigkeiten = Object.freeze(
+      this.#faehigkeiten.sicht()
+        .filter(x => x.aktiv && x.modus === "PLANEN")
+        .map(x => x.faehigkeitId + "@" + x.anbieterVersion),
+    );
+    const bereit = globalerGrund === null && deaktivierte.length === 0;
+
+    return Object.freeze({
+      schemaVersion: 1,
+      bereit,
+      grund: globalerGrund
+        ?? (bereit
+          ? "V5_PLANEN_REVALIDIERUNG_BEREIT"
+          : "V5_PLANEN_REVALIDIERUNG_CAPABILITY_ENTZOGEN"),
+      deaktivierteFaehigkeiten: Object.freeze([...deaktivierte]),
+      aktivePlanenFaehigkeiten,
+      gameplayAutoritaet: false,
+      rawWriteAutoritaet: false,
+      actionAuthority: false,
+    });
+  }
+
   public planenAktivierungsAudit():
   readonly V5PlanenAktivierungsAuditEintrag[] {
     return Object.freeze(
@@ -744,6 +866,7 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
         this.#faehigkeiten.deaktiviere(
           faehigkeit.faehigkeitId,
           faehigkeit.anbieterModulId,
+          faehigkeit.anbieterVersion,
         );
       }
     }
