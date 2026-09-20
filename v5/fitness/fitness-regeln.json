@@ -311,7 +311,13 @@
       "kennung": "V5-FIT-039",
       "titel": "Jeder mutierende Action-Channel wird als Ressource geclaimt und teilt zusaetzlich das character-globale Socket-Budget",
       "phase": "R8",
-      "durchsetzung": "RESOURCE_UND_BUDGET_GUARD"
+      "durchsetzung": "RESOURCE_UND_BUDGET_GUARD",
+      "r8NachweisStatus": "ERFUELLT",
+      "r8Nachweise": [
+        "v5/grundlage/quelle/scheduler/socket-budget.ts",
+        "v5/grundlage/quelle/scheduler/ressourcen-verwalter.ts",
+        "v5/grundlage/tests/r8-ressourcen.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-040",
@@ -323,7 +329,12 @@
       "kennung": "V5-FIT-041",
       "titel": "Langlebige Leases verwenden Epoche/Fencing und stale Tokens koennen keine Mutation autorisieren",
       "phase": "R8",
-      "durchsetzung": "LEASE_FENCING_PROPERTY_TEST"
+      "durchsetzung": "LEASE_FENCING_PROPERTY_TEST",
+      "r8NachweisStatus": "ERFUELLT",
+      "r8Nachweise": [
+        "v5/grundlage/quelle/scheduler/ressourcen-verwalter.ts",
+        "v5/grundlage/tests/r8-ressourcen.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-042",
