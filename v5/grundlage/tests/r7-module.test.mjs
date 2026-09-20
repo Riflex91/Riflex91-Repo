@@ -103,3 +103,33 @@ test("Quarantaene deaktiviert ein Modul und standardAktiv ist in R7 verboten", (
     /R7_MODUL_STANDARD_AKTIV_VERBOTEN/,
   );
 });
+
+test("Modul darf eigene Port-Voraussetzung nicht selbst erfuellen", () => {
+  const register = new ModulRegister();
+  register.registriere(modul("selbstbezug", "1", {
+    bereitgestelltePorts: [{ portId: "port.selbst", vertragsVersion: "1" }],
+    benoetigtePorts: [{ portId: "port.selbst", vertragsVersion: "1" }],
+  }));
+
+  assert.throws(
+    () => register.aktiviere("selbstbezug", "1"),
+    /MODUL_PORT_VORAUSSETZUNG_FEHLT/,
+  );
+});
+
+test("Versionswechsel aktualisiert beide beteiligten Generationen atomar", () => {
+  const register = new ModulRegister();
+  const alt = register.registriere(modul("beobachtung", "1"));
+  const neu = register.registriere(modul("beobachtung", "2"));
+  register.aktiviere("beobachtung", "1");
+
+  const aktiviert = register.ersetzeAktiveVersion("beobachtung", "1", "2");
+  const sicht = register.sicht().filter(eintrag => eintrag.modulId === "beobachtung");
+  const altNachher = sicht.find(eintrag => eintrag.modulVersion === "1");
+  const neuNachher = sicht.find(eintrag => eintrag.modulVersion === "2");
+
+  assert.ok(altNachher.generation > alt.generation);
+  assert.ok(neuNachher.generation > neu.generation);
+  assert.equal(altNachher.generation, neuNachher.generation);
+  assert.equal(aktiviert.generation, neuNachher.generation);
+});
