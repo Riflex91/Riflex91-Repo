@@ -67,3 +67,6 @@ export * from "./operations/alerts.js";
 export * from "./operations/authority-status.js";
 export * from "./operations/telemetrie.js";
 export * from "./operations/segment-pflege.js";
+export * from "./operations/headless-supervisor.js";
+export * from "./testlabor/golden-replay.js";
+export * from "./testlabor/evidence-replay.js";
