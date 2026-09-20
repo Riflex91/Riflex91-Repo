@@ -22,6 +22,13 @@ local DEFAULT_SETTINGS = {
     navigatorY = 235,
     minimapAngle = 215,
     windowTransparency = 0.05,
+    theme = "Forever Classic",
+    gearAutoEquip = false,
+    gearSafeMode = true,
+    gearAutoEquipWeapons = false,
+    gearProtectBoE = true,
+    gearRequireHighConfidence = true,
+    telemetryLocal = true,
 }
 
 local function isoNow()
