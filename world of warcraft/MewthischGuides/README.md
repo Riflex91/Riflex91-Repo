@@ -1,6 +1,6 @@
-# Mewthisch Guides v0.11.3 — Runtime-Routing, Config und Weltkarten-Ziel
+# Mewthisch Guides v0.11.4 — Runtime-Routing, Config und Weltkarten-Ziel
 
-v0.11.3 härtet den produktiven Forever-Betrieb: Questfortschritt wird über
+v0.11.4 härtet den produktiven Forever-Betrieb: Questfortschritt wird über
 moderne und Legacy-Questlog-APIs erkannt, die vorgegebene RestedXP-Route wird
 auf die tatsächliche Questphase und das aktuelle Questziel synchronisiert, und
 der Benutzer kann alternativ einen manuellen Modus wählen, der angenommene
@@ -75,7 +75,7 @@ by faction/race/class/level, explicit route coordinates, a TravelGraph and
 build profiles and gear scoring profiles. Empty extension points exist in
 `Data.lua` for generated DataMiner/Recorder imports.
 
-Zusätzlich zum Recorder-Seed lädt v0.11.3 die strukturierten Fakten aus allen
+Zusätzlich zum Recorder-Seed lädt v0.11.4 die strukturierten Fakten aus allen
 öffentlich in `GuideList-forever.xml` referenzierten RestedXP-Forever- und
 Survival-Routen. Importiert werden ausschließlich maschinenlesbare Fakten und
 Direktiven (z. B. Quest-IDs, Item-/Spell-IDs, Selektoren, Bedingungen,
@@ -142,13 +142,13 @@ Useful commands:
 
 ## Next phase
 
-Nach diesem v0.11.3-Build folgt die gezielte Ingame-Verifikation anhand echter
+Nach diesem v0.11.4-Build folgt die gezielte Ingame-Verifikation anhand echter
 Forever-Screenshots, SavedVariables und Recorder-Daten. Besonders geprüft
 werden die Weltkarten-Wegpunkt-API des Forever-Clients, die Auswahl zwischen
 manueller und vorgegebener Route sowie Auto-Equip unter realen Bag-/Item-APIs.
 
 
-## v0.11.3 Screenshot-Fixes
+## v0.11.4 Screenshot-Fixes
 
 - RestedXP-Weltkoordinaten werden nicht mehr mit den vertauschten Blizzard-
   Vectorachsen verglichen. Das beseitigt die kilometerweit falsche Distanz und
@@ -174,3 +174,29 @@ manueller und vorgegebener Route sowie Auto-Equip unter realen Bag-/Item-APIs.
   Start-Hose ist als Regression abgedeckt.
 - Auto-Equip unterscheidet nun zwischen angefordert und tatsächlich bestätigt;
   fehlende Bestätigung wird als Diagnose-Warnung protokolliert.
+
+
+## Routenmodus v0.11.4
+
+- **Manuell** ist der Standard. Das Addon verwendet nur vom Spieler angenommene
+  Quests und ordnet sie nach belastbaren Navigationszielen, um unnötige Laufwege
+  zu reduzieren.
+- **Auto** wird nur freigeschaltet, wenn der geprüfte RestedXP-Forever-Katalog
+  vollständig geladen wurde. Erwartet werden exakt 43 freigegebene Levelrouten
+  aus dem öffentlichen Quellstand
+  `a688a75d595f5884dba8044a5ba4e7d7bd859c09`.
+- Fehlt eine Route, ist eine Route doppelt vorhanden oder stimmt der Quellcommit
+  nicht, fällt das Addon fail-closed auf den manuellen Modus zurück.
+- Der Guide-Auswahldialog wird über den runden Button im Hauptfenster geöffnet
+  und bietet die Kategorien **Horde**, **Ally** und **Mage AoE Farm**. Routen
+  werden innerhalb der Kategorie nach Level sortiert.
+- Im manuellen Modus zeigt die Guide-Zeile **Manueller Modus**.
+- Die frühere Anzeige `Ziel: ... · bereit` unten links wurde entfernt.
+
+## Quest-Automatik
+
+Neue Profile starten mit **Auto-Annahme** und **Auto-Abgabe** aktiviert.
+Verfügbare Quests werden unabhängig von der aktuell gewählten Route automatisch
+angenommen, fertige Quests automatisch bis zur Belohnung fortgeführt und
+abgegeben. Bei mehreren unterschiedlichen Questbelohnungen bleibt die Auswahl
+weiterhin manuell, damit keine unsichere Belohnungsentscheidung erzwungen wird.
