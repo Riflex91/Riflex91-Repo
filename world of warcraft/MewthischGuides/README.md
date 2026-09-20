@@ -1,9 +1,9 @@
-# Mewthisch Guides v0.9 — roadmap-complete engine
+# Mewthisch Guides v0.10 — kompakter Guide-Viewer + RestedXP-Forever-Daten
 
-v0.9 closes the planned engine roadmap before the dedicated Forever runtime
-bug-fix/calibration phase. It does **not** claim complete 1-60 guide-data
-coverage yet; the currently bundled route data is still the Recorder-backed
-Durotar seed.
+v0.10 baut auf der abgeschlossenen Engine-Roadmap auf und ergänzt den
+kompakten Guide-Viewer, fünf klar unterschiedliche Themes einschließlich einer
+adaptiven ElvUI-Integration sowie eine transformierte strukturierte Datenbasis
+aus den öffentlich verfügbaren RestedXP-Forever-/Survival-Guides.
 
 ## Roadmap state
 
@@ -68,15 +68,16 @@ by faction/race/class/level, explicit route coordinates, a TravelGraph and
 build profiles and gear scoring profiles. Empty extension points exist in
 `Data.lua` for generated DataMiner/Recorder imports.
 
-Current bundled evidence remains intentionally small:
+Zusätzlich zum Recorder-Seed lädt v0.10 die strukturierten Fakten aus allen
+öffentlich in `GuideList-forever.xml` referenzierten RestedXP-Forever- und
+Survival-Routen. Importiert werden ausschließlich maschinenlesbare Fakten und
+Direktiven (z. B. Quest-IDs, Item-/Spell-IDs, Selektoren, Bedingungen,
+Koordinaten, Reise-, Trainer- und Händlerkommandos); narrative Guide-Texte
+werden nicht übernommen.
 
-- Verlorene Waffen
-- Galgars Kaktusapfel Surprise
-- Stich des Skorpiden
-- Üble Familiare
-
-A large 1-60 route must be generated/verified from DataMiner + Recorder
-evidence rather than invented inside the addon.
+Die RestedXP-basierten Datendateien sind als transformierte Datenbasis mit
+Quelle, Commit und CC BY-NC-SA 4.0 gekennzeichnet. Details stehen in
+`THIRD_PARTY_NOTICES.md`.
 
 ## User-facing systems
 
@@ -89,12 +90,14 @@ evidence rather than invented inside the addon.
 - inventory/gear upgrade scan
 - optional fail-closed gear auto-equip
 - talent recommendation framework
-- five themes:
+- fünf deutlich unterschiedliche Themes:
   - Forever Classic
   - Obsidian
   - Arcane
-  - Warcraft
-  - Skyborne
+  - Warcraft Heritage
+  - ElvUI
+- das ElvUI-Theme übernimmt bei erkanntem ElvUI dessen Hintergrund-,
+  Rahmen-, Akzentfarben und Standardschrift
 - diagnostics and subsystem health
 
 Useful commands:
@@ -113,7 +116,7 @@ Useful commands:
 
 ## Next phase
 
-After this v0.9 engine build is frozen, the next work is runtime
-bug-fixing/calibration from real Forever evidence: screenshots,
-`MewthischGuides.lua`, `MewthischGuidesRecorder.lua` and reproducible
-client behavior.
+Nach diesem v0.10-Build folgt die gezielte Runtime-Fehlerbehebung und
+Kalibrierung anhand echter Forever-Screenshots, SavedVariables und
+Recorder-Daten. Die importierten Routen dienen dabei als zusätzliche
+evidenzbasierte Ziel- und Reihenfolgenquelle.
