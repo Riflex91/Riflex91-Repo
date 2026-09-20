@@ -60,3 +60,12 @@ test("SOAK_5M erzwingt und ueberwacht performance_trick",()=>{
   assert.ok(paket.includes("HOWLER_PLAYING_TRUE"));
   assert.ok(paket.includes("aktiv: verfuegbar && audioGefunden && playing"));
 });
+
+test("SOAK_5M traegt keine veralteten 1h-Labels",()=>{
+  assert.ok(controller.includes("kennung: 'r19-soak-5m'"));
+  assert.ok(controller.includes("titel: 'V5 · R19 SOAK 5M · Canary-Scope'"));
+  assert.equal(controller.includes("r19-soak-1h"),false);
+  assert.equal(controller.includes("SOAK 1H"),false);
+  assert.equal(paket.includes("r19-soak-1h"),false);
+  assert.equal(paket.includes("SOAK 1H"),false);
+});
