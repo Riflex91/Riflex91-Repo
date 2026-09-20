@@ -1470,9 +1470,10 @@
         "v5/grundlage/tests/r19-shadow-certification.test.mjs",
         "v5/roadmap/r19-automatik-evidence.json",
         "v5/roadmap/r19-controlled-live-evidence.json",
-        "v5/roadmap/r19-canary-evidence.json"
+        "v5/roadmap/r19-canary-evidence.json",
+        "v5/roadmap/r19-soak-5m-evidence.json"
       ],
-      "r19LiveStatus": "BIS_CANARY_BESTANDEN",
+      "r19LiveStatus": "BIS_SOAK_5M_BESTANDEN",
       "r19Zeitprofil": "R19_ACCELERATED_SOAK_V1",
       "r19ZeitprofilAenderung": "1h/24h/72h/7d (+ optional 30d) ersetzt durch 5m/10m/30m/60m."
     },
