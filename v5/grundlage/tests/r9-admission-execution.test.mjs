@@ -45,6 +45,7 @@ class JournalFake {
 }
 
 function intentEintrag(overrides = {}) {
+  const { inhalt: inhaltOverride = {}, ...rest } = overrides;
   return {
     schemaVersion: 1,
     journalId: "J-1",
@@ -52,6 +53,7 @@ function intentEintrag(overrides = {}) {
     sequenz: 1,
     art: "INTENT",
     zeitMs: 90,
+    ...rest,
     inhalt: {
       auftrag_id: "AUF-1",
       ablauf_id: "WF-1",
@@ -60,9 +62,8 @@ function intentEintrag(overrides = {}) {
       action_contract_id: ACTION,
       recovery_contract_id: RECOVERY,
       verifier_id: VERIFIER,
-      ...(overrides.inhalt ?? {}),
+      ...inhaltOverride,
     },
-    ...overrides,
   };
 }
 
