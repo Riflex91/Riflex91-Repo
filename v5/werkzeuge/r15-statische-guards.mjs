@@ -5,6 +5,13 @@ const liesText = pfad => fs.readFileSync(pfad, "utf8");
 
 const pflicht = [
   "grundlage/quelle/merchant/werttransaktion.ts",
+  "grundlage/tests/r15-production-graph.test.mjs",
+  "grundlage/tests/r15-logistik-gear.test.mjs",
+  "grundlage/quelle/produktion/production-graph.ts",
+  "grundlage/quelle/produktion/bank-katalog.ts",
+  "grundlage/quelle/merchant/gear-allokation.ts",
+  "grundlage/quelle/merchant/logistik-workflow.ts",
+  "grundlage/quelle/merchant/supply-policy.ts",
   "grundlage/quelle/produktion/recipient-settlement.ts",
   "grundlage/quelle/produktion/production-intent.ts",
   "grundlage/tests/r15-werttransaktion.test.mjs",
@@ -14,6 +21,51 @@ const pflicht = [
 ];
 for (const pfad of pflicht) {
   if (!fs.existsSync(pfad)) fehler.push("PFLICHTARTEFAKT_FEHLT:" + pfad);
+}
+
+const logistik = liesText("grundlage/quelle/merchant/logistik-workflow.ts");
+for (const marker of [
+  "MerchantLogistikLedger",
+  "RENDEZVOUS_AUSSTEHEND",
+  "LOGISTIK_SETTLEMENT_BASELINE_DRIFT",
+  "sameTransferErneutSenden: false",
+  "RECOVERY_PENDING",
+]) {
+  if (!logistik.includes(marker)) fehler.push("LOGISTIK_MARKER_FEHLT:" + marker);
+}
+
+const gear = liesText("grundlage/quelle/merchant/gear-allokation.ts");
+for (const marker of [
+  "GearAllokationsLedger",
+  "GEAR_KANDIDAT_BEREITS_RESERVIERT",
+  "GEAR_RECIPIENT_SLOT_BEREITS_BELEGT",
+  "FARMER",
+  "RECOVERY_PENDING",
+]) {
+  if (!gear.includes(marker)) fehler.push("GEAR_MARKER_FEHLT:" + marker);
+}
+
+const graph = liesText("grundlage/quelle/produktion/production-graph.ts");
+for (const marker of [
+  "pruefeProduktionsGraph",
+  "PRODUKTION_GRAPH_RECIPE_CYCLE",
+  "PRODUKTION_GRAPH_VERWAISTER_SCHRITT",
+  "PRODUKTION_GATE_STALE",
+  "PRODUKTION_OPERATIONSSCHLUESSEL_DOPPELT",
+  "actionAuthority: false",
+  "rawWriteAuthority: false",
+]) {
+  if (!graph.includes(marker)) fehler.push("PRODUCTION_GRAPH_MARKER_FEHLT:" + marker);
+}
+
+const bankKatalog = liesText("grundlage/quelle/produktion/bank-katalog.ts");
+for (const marker of [
+  "pinneBankKatalog",
+  "planningEvidence: true",
+  "executionAuthority: false",
+  "BANK_KATALOG_NICHT_FRISCH",
+]) {
+  if (!bankKatalog.includes(marker)) fehler.push("BANK_KATALOG_MARKER_FEHLT:" + marker);
 }
 
 const wert = liesText("grundlage/quelle/merchant/werttransaktion.ts");
@@ -98,6 +150,11 @@ const rawMuster = [
 
 const r15Quellen = [
   "grundlage/quelle/merchant/werttransaktion.ts",
+  "grundlage/quelle/merchant/supply-policy.ts",
+  "grundlage/quelle/merchant/logistik-workflow.ts",
+  "grundlage/quelle/merchant/gear-allokation.ts",
+  "grundlage/quelle/produktion/bank-katalog.ts",
+  "grundlage/quelle/produktion/production-graph.ts",
   "grundlage/quelle/produktion/recipient-settlement.ts",
   "grundlage/quelle/produktion/production-intent.ts",
 ];
