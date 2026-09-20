@@ -97,6 +97,8 @@ export * from "./produktion/production-planer.js";
 export * from "./produktion/production-controller.js";
 export * from "./merchant/supply-policy.js";
 export * from "./merchant/logistik-workflow.js";
+export * from "./merchant/logistik-planer.js";
+export * from "./merchant/logistik-controller.js";
 export * from "./merchant/gear-allokation.js";
 export * from "./merchant/gear-progression.js";
 export * from "./produktion/bank-katalog.js";
