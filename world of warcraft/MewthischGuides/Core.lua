@@ -2,7 +2,7 @@ local addonName, MG = ...
 _G.MewthischGuides = MG
 _G.ForeverGuide = MG
 
-MG.VERSION = "0.11.6"
+MG.VERSION = "0.11.7"
 MG.INTERFACE = 16001
 MG.NAME = "Mewthisch Guides"
 MG.heartbeatTicker = nil

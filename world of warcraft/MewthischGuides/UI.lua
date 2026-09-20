@@ -879,13 +879,30 @@ function MG:InitializeUI()
     end)
     scaleUp:SetPoint("LEFT", scaleValue, "RIGHT", 8, 0)
 
+    local arrowSkinLabel = makeText(settingsFrame, "GameFontHighlight", 11, "text")
+    arrowSkinLabel:SetPoint("TOPLEFT", 18, -445)
+    arrowSkinLabel:SetText("Pfeil-Skin")
+
+    local arrowSkinButton = makeButton(settingsFrame, "Nächster Skin", 112, 21, function()
+        if MG.NextNavigatorArrowSkin then MG:NextNavigatorArrowSkin() end
+    end)
+    arrowSkinButton:SetPoint("TOPLEFT", 100, -438)
+    ui.arrowSkinButton = arrowSkinButton
+
+    local arrowSkinValue = makeText(
+        settingsFrame, "GameFontHighlightSmall", 10, "muted")
+    arrowSkinValue:SetPoint("LEFT", arrowSkinButton, "RIGHT", 10, 0)
+    arrowSkinValue:SetPoint("RIGHT", -16, 0)
+    arrowSkinValue:SetWordWrap(false)
+    ui.arrowSkinValue = arrowSkinValue
+
     local resetNavigator = makeButton(settingsFrame, "Pfeil zurücksetzen", 145, 21, function()
         MG:ResetNavigatorPosition()
     end)
-    resetNavigator:SetPoint("TOPLEFT", 18, -441)
+    resetNavigator:SetPoint("TOPLEFT", 18, -475)
 
     local themeLabel = makeText(settingsFrame, "GameFontHighlight", 11, "text")
-    themeLabel:SetPoint("TOPLEFT", 18, -482)
+    themeLabel:SetPoint("TOPLEFT", 18, -516)
     themeLabel:SetText("Design")
 
     local themeButton = makeButton(settingsFrame, "Nächstes Theme", 125, 21, function()
@@ -893,7 +910,7 @@ function MG:InitializeUI()
         MG:RefreshSettings()
         MG:RefreshUI()
     end)
-    themeButton:SetPoint("TOPLEFT", 80, -475)
+    themeButton:SetPoint("TOPLEFT", 80, -509)
     ui.themeButton = themeButton
 
     local themeValue = makeText(settingsFrame, "GameFontHighlightSmall", 10, "muted")
@@ -903,12 +920,12 @@ function MG:InitializeUI()
     ui.themeValue = themeValue
 
     local elvNote = makeText(settingsFrame, "GameFontHighlightSmall", 9, "muted")
-    elvNote:SetPoint("TOPLEFT", 18, -516)
+    elvNote:SetPoint("TOPLEFT", 18, -550)
     elvNote:SetPoint("RIGHT", -18, 0)
     elvNote:SetText("ElvUI übernimmt bei erkanntem ElvUI automatisch dessen Hintergrund-, Rahmen-, Akzentfarben und Standardschrift.")
 
     local safety = makeText(settingsFrame, "GameFontHighlightSmall", 9, "muted")
-    safety:SetPoint("TOPLEFT", 18, -552)
+    safety:SetPoint("TOPLEFT", 18, -586)
     safety:SetPoint("RIGHT", -18, 0)
     safety:SetText("Auto-Equip schützt Waffen und bindet keine erkannten BoE-Gegenstände. Mehrfachbelohnungen und Talente bleiben manuell.")
 
@@ -1419,6 +1436,11 @@ function MG:RefreshSettings()
 
     ui.navigatorScaleValue:SetText(string.format("%d%%",
         math.floor((self.db.settings.navigatorScale or 1) * 100 + 0.5)))
+
+    if ui.arrowSkinValue and self.GetNavigatorArrowSkinName then
+        local skinName = self:GetNavigatorArrowSkinName()
+        ui.arrowSkinValue:SetText(tostring(skinName or "Kompass Schwarz"))
+    end
 
     local transparency = clampTransparency(self.db.settings.windowTransparency)
     ui.updatingSettings = true

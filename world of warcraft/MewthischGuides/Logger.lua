@@ -19,6 +19,7 @@ local DEFAULT_SETTINGS = {
     showNavigator = true,
     navigatorLocked = false,
     navigatorScale = 1.15,
+    navigatorArrowSkin = "compass-black",
     viewerX = 260,
     viewerY = 80,
     navigatorX = 0,

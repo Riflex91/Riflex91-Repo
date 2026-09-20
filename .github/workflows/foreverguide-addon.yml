@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.11.6
+name: Mewthisch Guides addon v0.11.7
 
 on:
   workflow_dispatch:
@@ -659,7 +659,7 @@ jobs:
           print("Seven-theme contract PASS")
           LUA
 
-      - name: Validate v0.11.6 static contract
+      - name: Validate v0.11.7 static contract
         shell: bash
         run: |
           set -euo pipefail
@@ -668,7 +668,7 @@ jobs:
           UI="$ROOT/UI.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
-          grep -q '^## Version: 0.11.6$' "$TOC"
+          grep -q '^## Version: 0.11.7$' "$TOC"
           grep -q '^## OptionalDeps: ElvUI, EllesmereUI, ElvUI_ToxiUI$' "$TOC"
           grep -q '^ManualRoute.lua$' "$TOC"
           grep -q '^WorldMapMarker.lua$' "$TOC"
@@ -707,7 +707,17 @@ jobs:
           grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
           grep -q 'objectiveProgressColor' "$UI"
           grep -q 'goalRowText' "$UI"
-          grep -q 'arrow:SetSize(104, 104)' "$ROOT/Navigator.lua"
+          grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
+          grep -q 'navigatorArrowSkin = "compass-black"' "$ROOT/Logger.lua"
+          grep -q '"compass-black"' "$ROOT/Navigator.lua"
+          grep -q '"pointer-black"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-blue"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-red"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-orange"' "$ROOT/Navigator.lua"
+          grep -q 'Nächster Skin' "$UI"
+          test -f "$ROOT/Assets/ArrowBlue.blp"
+          test -f "$ROOT/Assets/ArrowRed.blp"
+          test -f "$ROOT/Assets/ArrowOrange.blp"
           grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
           grep -q '"ToxiUI"' "$ROOT/Themes.lua"
           grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
@@ -747,11 +757,11 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.11.6.zip MewthischGuides
+          zip -r MewthischGuides-v0.11.7.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.11.6
-          path: artifacts/MewthischGuides-v0.11.6.zip
+          name: MewthischGuides-v0.11.7
+          path: artifacts/MewthischGuides-v0.11.7.zip
           if-no-files-found: error
