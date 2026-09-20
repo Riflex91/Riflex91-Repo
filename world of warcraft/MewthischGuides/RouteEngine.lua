@@ -5,6 +5,7 @@ MG.RouteEngine = RouteEngine
 
 local SOURCE_SCORE = {
     VerifiedRouteData = 100,
+    TravelGraph = 98,
     QuestLine = 95,
     QuestMapPOI = 92,
     QuestNextWaypointForMap = 88,
@@ -69,6 +70,10 @@ function RouteEngine:Resolve(step)
     local candidates = {}
 
     addCandidate(candidates, explicitCoordinate(step), "route_data")
+
+    if MG.TravelGraph then
+        addCandidate(candidates, MG.TravelGraph:GetNextHopTarget(step), "travel_graph")
+    end
 
     if step.phase == "accept" then
         addCandidate(
