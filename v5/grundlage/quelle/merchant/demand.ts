@@ -160,8 +160,9 @@ export class MerchantWorkflowProvider {
       throw new Error("MERCHANT_BANK_DEMAND_OHNE_ACCOUNT");
     }
 
+    const alleRessourcen = [...demand.ressourcenIds, ...accountRessourcen].sort();
     const ressourcenIds = Object.freeze(
-      [...new Set([...demand.ressourcenIds, ...accountRessourcen])].sort(),
+      alleRessourcen.filter((wert, index) => index === 0 || wert !== alleRessourcen[index - 1]),
     );
     return Object.freeze({
       schemaVersion: 1 as const,
