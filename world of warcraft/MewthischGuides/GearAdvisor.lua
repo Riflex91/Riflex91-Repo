@@ -437,6 +437,9 @@ function Gear:TryAutoEquip(candidate)
     if candidateIsEquipped(candidate) then
         MG:Log("INFO", "gear.auto_equip_confirmed",
             "Bessere Ausrüstung automatisch angelegt und bestätigt.", detail)
+        if MG.ShowAutoEquipNotification then
+            MG:ShowAutoEquipNotification(candidate)
+        end
         return true, "equipped_confirmed"
     end
 
@@ -473,6 +476,10 @@ function Gear:TryAutoEquip(candidate)
                     "Auto-Equip nachträglich bestätigt." or
                     "Auto-Equip konnte nach der Anforderung nicht bestätigt werden.",
                 detail)
+
+            if confirmed and MG.ShowAutoEquipNotification then
+                MG:ShowAutoEquipNotification(expected)
+            end
         end)
     end
 

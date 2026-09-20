@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.11.4
+name: Mewthisch Guides addon v0.11.5
 
 on:
   workflow_dispatch:
@@ -489,6 +489,7 @@ jobs:
         run: |
           lua5.1 - <<'LUA'
           local pickupCalls,equipSlot,equipByNameSlot=0,nil,nil
+          local noticeCalls=0
           local equippedIDs={}
           Enum={ItemClass={Armor=4},ItemBind={OnEquip=2}}
           local MG={
@@ -505,6 +506,10 @@ jobs:
             end},
             Inventory={GetSnapshot=function() return {bags={},equipped={}} end},
             Log=function() end,
+            ShowAutoEquipNotification=function(_,item)
+              assert(item and item.itemID,"notification item missing")
+              noticeCalls=noticeCalls+1
+            end,
           }
 
           GetItemInfoInstant=function(link)
@@ -561,6 +566,8 @@ jobs:
           assert(equipByNameSlot==7,"EquipItemByName path not used")
           assert(pickupCalls==0 and equipSlot==nil,
             "cursor fallback should not run when EquipItemByName succeeds")
+          assert(noticeCalls==1,
+            "confirmed auto-equip must show exactly one item notification")
 
           pants.isBound=false
           pants.bindingType=2
@@ -641,7 +648,7 @@ jobs:
           print("Seven-theme contract PASS")
           LUA
 
-      - name: Validate v0.11.4 static contract
+      - name: Validate v0.11.5 static contract
         shell: bash
         run: |
           set -euo pipefail
@@ -650,7 +657,7 @@ jobs:
           UI="$ROOT/UI.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
-          grep -q '^## Version: 0.11.4$' "$TOC"
+          grep -q '^## Version: 0.11.5$' "$TOC"
           grep -q '^## OptionalDeps: ElvUI, EllesmereUI, ElvUI_ToxiUI$' "$TOC"
           grep -q '^ManualRoute.lua$' "$TOC"
           grep -q '^WorldMapMarker.lua$' "$TOC"
@@ -663,6 +670,11 @@ jobs:
           grep -q 'Derzeit nicht verfügbar! Questinformationen reichen nicht aus!' "$UI"
           grep -q 'guideName = "Manueller Modus"' "$UI"
           grep -q 'Mage AoE Farm' "$UI"
+          grep -q 'MewthischGuidesAutoEquipNotice' "$UI"
+          grep -q 'wurde angelegt\.' "$UI"
+          grep -q 'CreateAnimationGroup' "$UI"
+          grep -q 'CreateAnimation("Alpha")' "$UI"
+          grep -q 'ShowAutoEquipNotification' "$ROOT/GearAdvisor.lua"
           grep -q 'showWorldMapMarker' "$UI"
           grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
           grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
@@ -721,11 +733,11 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.11.4.zip MewthischGuides
+          zip -r MewthischGuides-v0.11.5.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.11.4
-          path: artifacts/MewthischGuides-v0.11.4.zip
+          name: MewthischGuides-v0.11.5
+          path: artifacts/MewthischGuides-v0.11.5.zip
           if-no-files-found: error

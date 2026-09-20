@@ -547,6 +547,61 @@ function MG:InitializeUI()
     configButton:SetPoint("RIGHT", 0, 0)
     ui.configButton = configButton
 
+    local equipNotice = CreateFrame(
+        "Frame", "MewthischGuidesAutoEquipNotice", UIParent)
+    equipNotice:SetSize(MAIN_WIDTH - 18, 36)
+    equipNotice:SetPoint("TOP", frame, "BOTTOM", 0, -8)
+    equipNotice:SetFrameStrata("DIALOG")
+    equipNotice:SetFrameLevel(frame:GetFrameLevel() + 50)
+    equipNotice:EnableMouse(false)
+    equipNotice:SetAlpha(0)
+    stylePanel(equipNotice, "panel")
+    equipNotice:Hide()
+    ui.equipNotice = equipNotice
+
+    local equipNoticeIcon = equipNotice:CreateTexture(nil, "ARTWORK")
+    equipNoticeIcon:SetSize(26, 26)
+    equipNoticeIcon:SetPoint("LEFT", 5, 0)
+    ui.equipNoticeIcon = equipNoticeIcon
+
+    local equipNoticeText = makeText(
+        equipNotice, "GameFontHighlight", 11, "text")
+    equipNoticeText:SetPoint("LEFT", equipNoticeIcon, "RIGHT", 8, 0)
+    equipNoticeText:SetPoint("RIGHT", -8, 0)
+    equipNoticeText:SetJustifyH("LEFT")
+    equipNoticeText:SetWordWrap(false)
+    ui.equipNoticeText = equipNoticeText
+
+    local equipNoticeAnimation = equipNotice:CreateAnimationGroup()
+
+    local noticeFadeIn = equipNoticeAnimation:CreateAnimation("Alpha")
+    noticeFadeIn:SetFromAlpha(0)
+    noticeFadeIn:SetToAlpha(1)
+    noticeFadeIn:SetDuration(0.20)
+    noticeFadeIn:SetOrder(1)
+
+    local noticeHold = equipNoticeAnimation:CreateAnimation("Alpha")
+    noticeHold:SetFromAlpha(1)
+    noticeHold:SetToAlpha(1)
+    noticeHold:SetDuration(2.20)
+    noticeHold:SetOrder(2)
+
+    local noticeFadeOut = equipNoticeAnimation:CreateAnimation("Alpha")
+    noticeFadeOut:SetFromAlpha(1)
+    noticeFadeOut:SetToAlpha(0)
+    noticeFadeOut:SetDuration(0.55)
+    noticeFadeOut:SetOrder(3)
+
+    equipNoticeAnimation:SetScript("OnPlay", function()
+        equipNotice:SetAlpha(0)
+        equipNotice:Show()
+    end)
+    equipNoticeAnimation:SetScript("OnFinished", function()
+        equipNotice:SetAlpha(0)
+        equipNotice:Hide()
+    end)
+    ui.equipNoticeAnimation = equipNoticeAnimation
+
     local guideSelectFrame = CreateFrame("Frame",
         "MewthischGuidesGuideSelectFrame", frame)
     guideSelectFrame:SetAllPoints(frame)
@@ -863,10 +918,72 @@ function MG:InitializeUI()
     self:RefreshSettings()
     self:RefreshTheme()
     self:RefreshInfo()
+
+    if ui.pendingAutoEquipNotice then
+        local pending = ui.pendingAutoEquipNotice
+        ui.pendingAutoEquipNotice = nil
+        self:ShowAutoEquipNotification(pending)
+    end
+
     self:Log("INFO", "ui.initialized",
         "Kompakter Mewthisch-Guides-Viewer initialisiert.", {
             version = self.VERSION,
             layout = "compact-guide-widget",
+        })
+end
+
+local function autoEquipNoticeItemData(item)
+    item = item or {}
+    local itemID = tonumber(item.itemID)
+    local link = item.link
+
+    local name = nil
+    if C_Item and C_Item.GetItemNameByID and itemID then
+        local ok, value = pcall(C_Item.GetItemNameByID, itemID)
+        if ok and value and value ~= "" then name = value end
+    end
+
+    if not name and GetItemInfo then
+        local ok, value = pcall(GetItemInfo, link or itemID)
+        if ok and value and value ~= "" then name = value end
+    end
+
+    local icon = nil
+    if GetItemInfoInstant then
+        local ok, _, _, _, _, value = pcall(
+            GetItemInfoInstant, itemID or link)
+        if ok then icon = value end
+    end
+
+    return name or "Gegenstand", icon or 134400
+end
+
+function MG:ShowAutoEquipNotification(item)
+    if not item then return end
+
+    if not ui.equipNotice or not ui.equipNoticeAnimation then
+        ui.pendingAutoEquipNotice = {
+            itemID = item.itemID,
+            link = item.link,
+        }
+        return
+    end
+
+    local name, icon = autoEquipNoticeItemData(item)
+    ui.equipNoticeIcon:SetTexture(icon)
+    ui.equipNoticeText:SetText(name .. " wurde angelegt.")
+
+    local animation = ui.equipNoticeAnimation
+    if animation:IsPlaying() then animation:Stop() end
+
+    ui.equipNotice:SetAlpha(0)
+    ui.equipNotice:Show()
+    animation:Play()
+
+    self:Log("INFO", "gear.auto_equip_notice",
+        "Auto-Equip-Meldung angezeigt.", {
+            itemID = item.itemID,
+            itemName = name,
         })
 end
 

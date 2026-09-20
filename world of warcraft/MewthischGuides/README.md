@@ -1,6 +1,6 @@
-# Mewthisch Guides v0.11.4 — Runtime-Routing, Config und Weltkarten-Ziel
+# Mewthisch Guides v0.11.5 — Runtime-Routing, Config und Weltkarten-Ziel
 
-v0.11.4 härtet den produktiven Forever-Betrieb: Questfortschritt wird über
+v0.11.5 härtet den produktiven Forever-Betrieb: Questfortschritt wird über
 moderne und Legacy-Questlog-APIs erkannt, die vorgegebene RestedXP-Route wird
 auf die tatsächliche Questphase und das aktuelle Questziel synchronisiert, und
 der Benutzer kann alternativ einen manuellen Modus wählen, der angenommene
@@ -75,7 +75,7 @@ by faction/race/class/level, explicit route coordinates, a TravelGraph and
 build profiles and gear scoring profiles. Empty extension points exist in
 `Data.lua` for generated DataMiner/Recorder imports.
 
-Zusätzlich zum Recorder-Seed lädt v0.11.4 die strukturierten Fakten aus allen
+Zusätzlich zum Recorder-Seed lädt v0.11.5 die strukturierten Fakten aus allen
 öffentlich in `GuideList-forever.xml` referenzierten RestedXP-Forever- und
 Survival-Routen. Importiert werden ausschließlich maschinenlesbare Fakten und
 Direktiven (z. B. Quest-IDs, Item-/Spell-IDs, Selektoren, Bedingungen,
@@ -142,13 +142,13 @@ Useful commands:
 
 ## Next phase
 
-Nach diesem v0.11.4-Build folgt die gezielte Ingame-Verifikation anhand echter
+Nach diesem v0.11.5-Build folgt die gezielte Ingame-Verifikation anhand echter
 Forever-Screenshots, SavedVariables und Recorder-Daten. Besonders geprüft
 werden die Weltkarten-Wegpunkt-API des Forever-Clients, die Auswahl zwischen
 manueller und vorgegebener Route sowie Auto-Equip unter realen Bag-/Item-APIs.
 
 
-## v0.11.4 Screenshot-Fixes
+## v0.11.5 Screenshot-Fixes
 
 - RestedXP-Weltkoordinaten werden nicht mehr mit den vertauschten Blizzard-
   Vectorachsen verglichen. Das beseitigt die kilometerweit falsche Distanz und
@@ -176,7 +176,7 @@ manueller und vorgegebener Route sowie Auto-Equip unter realen Bag-/Item-APIs.
   fehlende Bestätigung wird als Diagnose-Warnung protokolliert.
 
 
-## Routenmodus v0.11.4
+## Routenmodus v0.11.5
 
 - **Manuell** ist der Standard. Das Addon verwendet nur vom Spieler angenommene
   Quests und ordnet sie nach belastbaren Navigationszielen, um unnötige Laufwege
@@ -200,3 +200,16 @@ Verfügbare Quests werden unabhängig von der aktuell gewählten Route automatis
 angenommen, fertige Quests automatisch bis zur Belohnung fortgeführt und
 abgegeben. Bei mehreren unterschiedlichen Questbelohnungen bleibt die Auswahl
 weiterhin manuell, damit keine unsichere Belohnungsentscheidung erzwungen wird.
+
+
+## Auto-Equip-Meldung v0.11.5
+
+Nach einem **bestätigten** automatischen Ausrüsten zeigt das Addon direkt unter
+dem Hauptfenster kurz eine Meldung mit Gegenstands-Icon und dem Text:
+
+`<Gegenstandsname> wurde angelegt.`
+
+Die Meldung blendet weich ein, bleibt kurz sichtbar und blendet anschließend
+wieder aus. Ein bloßer Equip-Versuch oder ein nicht bestätigter Slotwechsel
+erzeugt bewusst keine Erfolgsmeldung. Wird ein Auto-Equip bereits während des
+Login-Syncs bestätigt, wird die Meldung bis zur UI-Initialisierung zwischengespeichert.
