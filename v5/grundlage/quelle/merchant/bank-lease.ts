@@ -42,6 +42,15 @@ export interface BankLeaseSicht {
   readonly ressourcenToken: FencingToken | null;
 }
 
+export interface BankSnapshotNachweis {
+  readonly schemaVersion: 1;
+  readonly accountId: string;
+  readonly ownerCharacterId: string;
+  readonly leaseEpoche: number;
+  readonly beobachtetAmMs: number;
+  readonly fingerprint: string;
+}
+
 export interface BankFreigabeNachweis {
   readonly offeneTransaktionen: number;
   readonly backendInProgress: boolean;
@@ -191,6 +200,28 @@ export class BankLeaseKoordinator {
         === actionKanalRessourcenId(token.ownerCharacterId, "bank")
       && lokalerBankKanalToken.ablaufId === token.ablaufId
       && this.#ressourcen.validiereFencing(lokalerBankKanalToken, jetztMs);
+  }
+
+  public validiereSnapshot(
+    token: BankLeaseToken,
+    snapshot: BankSnapshotNachweis,
+    jetztMs: number,
+    maximaleAlterMs: number,
+  ): boolean {
+    if (!Number.isSafeInteger(maximaleAlterMs) || maximaleAlterMs < 1) return false;
+    let lease: BankLeaseSicht;
+    try { lease = this.#pruefeToken(token, jetztMs); }
+    catch { return false; }
+    return lease.zustand === "ACTIVE"
+      && snapshot.schemaVersion === 1
+      && snapshot.accountId === token.accountId
+      && snapshot.ownerCharacterId === token.ownerCharacterId
+      && snapshot.leaseEpoche === token.epoche
+      && snapshot.fingerprint.trim().length > 0
+      && Number.isSafeInteger(snapshot.beobachtetAmMs)
+      && snapshot.beobachtetAmMs >= lease.acquiredAtMs
+      && jetztMs >= snapshot.beobachtetAmMs
+      && jetztMs - snapshot.beobachtetAmMs <= maximaleAlterMs;
   }
 
   public markiereRecovery(token: BankLeaseToken, jetztMs: number): BankLeaseSicht {
