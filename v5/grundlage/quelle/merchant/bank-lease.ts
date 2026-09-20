@@ -65,11 +65,18 @@ function istNichtTerminal(zustand: BankLeaseZustand): boolean {
 
 export class BankLeaseKoordinator {
   readonly #ressourcen: RessourcenVerwalter;
+  readonly #maximaleAccounts: number;
   #leases: readonly BankLeaseSicht[] = Object.freeze([]);
-  #epocheFloor = new Map<string, number>();
+  #epocheFloors: readonly Readonly<{ accountId: string; epoche: number }>[] = Object.freeze([]);
 
-  public constructor(ressourcen: RessourcenVerwalter) {
+  public constructor(ressourcen: RessourcenVerwalter, maximaleAccounts = 128) {
+    if (!Number.isInteger(maximaleAccounts)
+        || maximaleAccounts < 1
+        || maximaleAccounts > 1024) {
+      throw new Error("BANK_ACCOUNT_GRENZE_UNGUELTIG");
+    }
     this.#ressourcen = ressourcen;
+    this.#maximaleAccounts = maximaleAccounts;
   }
 
   public beanspruche(
@@ -94,6 +101,11 @@ export class BankLeaseKoordinator {
       throw new Error("BANK_LEASE_ACCOUNT_BEREITS_BELEGT:" + offen.zustand);
     }
 
+    if (!this.#leases.some(x => x.accountId === accountId)
+        && this.#leases.length >= this.#maximaleAccounts) {
+      throw new Error("BANK_ACCOUNT_REGISTER_VOLL");
+    }
+
     const [ressourcenToken] = this.#ressourcen.beanspruche(ablaufId, [{
       ressourcenId: bankRessourcenId(accountId),
       art: "LANGLEBIG",
@@ -101,9 +113,9 @@ export class BankLeaseKoordinator {
     }], jetztMs);
     if (ressourcenToken === undefined) throw new Error("BANK_LEASE_RESSOURCENTOKEN_FEHLT");
 
-    const floor = this.#epocheFloor.get(accountId) ?? 0;
+    const floor = this.#floor(accountId);
     const epoche = Math.max(floor + 1, ressourcenToken.epoche);
-    this.#epocheFloor.set(accountId, epoche);
+    this.#setFloor(accountId, epoche);
     const sicht = Object.freeze({
       accountId,
       ownerCharacterId,
@@ -216,9 +228,13 @@ export class BankLeaseKoordinator {
     if (this.#leases.some(x => x.accountId === persistiert.accountId && istNichtTerminal(x.zustand))) {
       throw new Error("BANK_RESTART_ACCOUNT_BEREITS_VORHANDEN");
     }
-    this.#epocheFloor.set(
+    if (!this.#leases.some(x => x.accountId === persistiert.accountId)
+        && this.#leases.length >= this.#maximaleAccounts) {
+      throw new Error("BANK_ACCOUNT_REGISTER_VOLL");
+    }
+    this.#setFloor(
       persistiert.accountId,
-      Math.max(this.#epocheFloor.get(persistiert.accountId) ?? 0, persistiert.epoche),
+      Math.max(this.#floor(persistiert.accountId), persistiert.epoche),
     );
     const sicht = Object.freeze({
       ...persistiert,
@@ -283,6 +299,23 @@ export class BankLeaseKoordinator {
     });
     this.#ersetze(neu);
     return neu;
+  }
+
+  #floor(accountId: string): number {
+    return this.#epocheFloors.find(x => x.accountId === accountId)?.epoche ?? 0;
+  }
+
+  #setFloor(accountId: string, epoche: number): void {
+    const vorhanden = this.#epocheFloors.some(x => x.accountId === accountId);
+    if (!vorhanden && this.#epocheFloors.length >= this.#maximaleAccounts) {
+      throw new Error("BANK_EPOCHE_REGISTER_VOLL");
+    }
+    const eintrag = Object.freeze({ accountId, epoche });
+    this.#epocheFloors = Object.freeze(
+      vorhanden
+        ? this.#epocheFloors.map(x => x.accountId === accountId ? eintrag : x)
+        : [...this.#epocheFloors, eintrag],
+    );
   }
 
   #ersetze(neu: BankLeaseSicht): void {
