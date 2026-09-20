@@ -1862,15 +1862,23 @@
       "invarianten": [
         "V5-INV-008"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/koordination/cm-protokoll.ts",
+        "v5/grundlage/quelle/koordination/cm-settlement.ts",
+        "v5/grundlage/quelle/koordination/character-agent.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r14-cm-protokoll.test.mjs",
+        "v5/grundlage/tests/r14-cm-settlement.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r14NachweisStatus": "R14_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-MULTI-002",
@@ -1881,15 +1889,22 @@
       "invarianten": [
         "V5-ALT-026"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/koordination/roster-wahrheit.ts",
+        "v5/grundlage/quelle/koordination/account-koordinator.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r14-roster-liveness.test.mjs",
+        "v5/grundlage/tests/r14-koordinator-agent.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r14NachweisStatus": "R14_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-MULTI-003",
@@ -1900,15 +1915,22 @@
       "invarianten": [
         "V5-INV-006"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/koordination/character-liveness.ts",
+        "v5/grundlage/quelle/koordination/account-koordinator.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r14-roster-liveness.test.mjs",
+        "v5/grundlage/tests/r14-koordinator-agent.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r14NachweisStatus": "R14_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-MULTI-004",
@@ -1919,15 +1941,22 @@
       "invarianten": [
         "V5-INV-026"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/koordination/cm-protokoll.ts",
+        "v5/grundlage/quelle/koordination/cm-settlement.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r14-cm-fault-injektion.test.mjs",
+        "v5/grundlage/tests/r14-cm-settlement.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r14NachweisStatus": "R14_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-MULTI-005",
@@ -1938,15 +1967,21 @@
       "invarianten": [
         "V5-ALT-001"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/koordination/account-koordinator.ts",
+        "v5/grundlage/quelle/koordination/character-agent.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r14-koordinator-agent.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r14NachweisStatus": "R14_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WORLD-001",
