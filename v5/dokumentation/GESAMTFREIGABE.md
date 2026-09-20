@@ -1,7 +1,7 @@
 # V5 – Separate Gesamtfreigabe
 
 **Stand:** 2026-09-20  
-**Status:** BEREIT_FUER_BETREIBERBESTAETIGUNG
+**Status:** ERTEILT
 
 ## Zweck
 
@@ -46,7 +46,7 @@ Danach wird in einem separaten Änderungssatz:
 5. die offenen Gesamtfreigabe-Blocker werden entfernt;
 6. alle Release-/Readiness-/R19-/Wissens-/Windows-Bridge-Gates erneut auf dem exakten Head geprüft.
 
-Die Freigabe gilt erst nach grünem CI und Merge des exakten geprüften Heads.
+Die Betreiberbestätigung `V5 GESAMTFREIGABE ERTEILEN` wurde am 2026-09-20 ausdrücklich erteilt. Das finale Evidence-Artefakt liegt unter `v5/roadmap/gesamtfreigabe.json`. Der Freigabe-Änderungssatz gilt erst nach grünem CI und Merge des exakten geprüften Heads als wirksam.
 
 ## Was die Gesamtfreigabe nicht lockert
 
@@ -71,4 +71,4 @@ CI:
 
 `.github/workflows/v5-gesamtfreigabe.yml`
 
-Ohne finales Freigabeartefakt muss der Validator zwingend den Zustand `BEREIT_FUER_BETREIBERBESTAETIGUNG` mit gesperrter Runtime melden.
+Ohne finales Freigabeartefakt muss der Validator zwingend den Zustand `BEREIT_FUER_BETREIBERBESTAETIGUNG` mit gesperrter Runtime melden. Mit gültigem Betreiber-Evidence-Artefakt verlangt er konsistent `FREIGEGEBEN`, `gesamtfreigabe=ERTEILT`, `breiteRuntimeFreigabe=true` und keine offenen Gesamtfreigabe-Blocker.

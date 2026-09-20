@@ -28,7 +28,20 @@ for (const pfad of [
 const r5 = gates.phases?.find(x => x.id === "R5");
 if (!r5 || !["IN_PROGRESS", "DONE"].includes(r5.status)) fehler("R5 muss IN_PROGRESS oder DONE sein.");
 if (r5.status === "IN_PROGRESS" && gates.currentPhase !== "R5") fehler("R5 IN_PROGRESS verlangt currentPhase=R5.");
-if (bereitschaft.status === "FREIGEGEBEN") fehler("R5 darf Gameplay-Runtime nicht freigeben.");
+if (bereitschaft.status === "FREIGEGEBEN") {
+  if (!fs.existsSync("roadmap/gesamtfreigabe.json")) {
+    fehler("R5 darf die Runtime nicht selbst freigeben; finale Betreiber-Gesamtfreigabe-Evidence fehlt.");
+  }
+  const gesamtfreigabe = lies("roadmap/gesamtfreigabe.json");
+  if (gesamtfreigabe.kennung !== "V5_GESAMTFREIGABE"
+      || gesamtfreigabe.status !== "ERTEILT"
+      || gesamtfreigabe.bestaetigungQuelle !== "BETREIBER_INTERAKTIV"
+      || gesamtfreigabe.bestaetigungText !== "V5 GESAMTFREIGABE ERTEILEN"
+      || bereitschaft.gesamtfreigabe !== "ERTEILT"
+      || bereitschaft.breiteRuntimeFreigabe !== true) {
+    fehler("R5 darf die Runtime nicht selbst freigeben; nur die spaetere explizite Post-R19-Gesamtfreigabe ist zulaessig.");
+  }
+}
 
 if (r5.status === "DONE") {
   const r6 = gates.phases?.find(x => x.id === "R6");

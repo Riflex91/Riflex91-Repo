@@ -26,7 +26,18 @@ if (r7.blocksRuntime !== true) {
   fehler("R7 muss das Gameplay-Runtime-Gate blockieren.");
 }
 if (bereitschaft.status === "FREIGEGEBEN") {
-  fehler("R7 darf Gameplay-Runtime nicht freigeben.");
+  if (!fs.existsSync("roadmap/gesamtfreigabe.json")) {
+    fehler("R7 darf die Runtime nicht selbst freigeben; finale Betreiber-Gesamtfreigabe-Evidence fehlt.");
+  }
+  const gesamtfreigabe = lies("roadmap/gesamtfreigabe.json");
+  if (gesamtfreigabe.kennung !== "V5_GESAMTFREIGABE"
+      || gesamtfreigabe.status !== "ERTEILT"
+      || gesamtfreigabe.bestaetigungQuelle !== "BETREIBER_INTERAKTIV"
+      || gesamtfreigabe.bestaetigungText !== "V5 GESAMTFREIGABE ERTEILEN"
+      || bereitschaft.gesamtfreigabe !== "ERTEILT"
+      || bereitschaft.breiteRuntimeFreigabe !== true) {
+    fehler("R7 darf die Runtime nicht selbst freigeben; nur die spaetere explizite Post-R19-Gesamtfreigabe ist zulaessig.");
+  }
 }
 
 const pflichtartefakte = [

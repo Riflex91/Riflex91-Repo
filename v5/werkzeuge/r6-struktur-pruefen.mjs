@@ -17,7 +17,20 @@ if (r6.status === "DONE") {
     fehler("R6 DONE verlangt mindestens R7 IN_PROGRESS oder einen formal abgeschlossenen R7-Uebergang.");
   }
 }
-if (bereitschaft.status === "FREIGEGEBEN") fehler("R6 darf Gameplay-Runtime nicht freigeben.");
+if (bereitschaft.status === "FREIGEGEBEN") {
+  if (!fs.existsSync("roadmap/gesamtfreigabe.json")) {
+    fehler("R6 darf die Runtime nicht selbst freigeben; finale Betreiber-Gesamtfreigabe-Evidence fehlt.");
+  }
+  const gesamtfreigabe = lies("roadmap/gesamtfreigabe.json");
+  if (gesamtfreigabe.kennung !== "V5_GESAMTFREIGABE"
+      || gesamtfreigabe.status !== "ERTEILT"
+      || gesamtfreigabe.bestaetigungQuelle !== "BETREIBER_INTERAKTIV"
+      || gesamtfreigabe.bestaetigungText !== "V5 GESAMTFREIGABE ERTEILEN"
+      || bereitschaft.gesamtfreigabe !== "ERTEILT"
+      || bereitschaft.breiteRuntimeFreigabe !== true) {
+    fehler("R6 darf die Runtime nicht selbst freigeben; nur die spaetere explizite Post-R19-Gesamtfreigabe ist zulaessig.");
+  }
+}
 
 for (const pfad of [
   "grundlage/quelle/wissen/typen.ts",

@@ -187,7 +187,20 @@ for (const pfad of [
   'v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md'
 ]) enthaelt(pfad, 'R2-Status:** RATIFIZIERT');
 
-if (bereitschaft.status === 'FREIGEGEBEN') fehler('R2 darf das Gameplay-Runtime-Gesamtgate nicht FREIGEBEN.');
+if (bereitschaft.status === 'FREIGEGEBEN') {
+  existiert('v5/roadmap/gesamtfreigabe.json');
+  const gesamtfreigabe = liesJson('v5/roadmap/gesamtfreigabe.json');
+  if (gesamtfreigabe.kennung !== 'V5_GESAMTFREIGABE'
+      || gesamtfreigabe.status !== 'ERTEILT'
+      || gesamtfreigabe.bestaetigungQuelle !== 'BETREIBER_INTERAKTIV'
+      || gesamtfreigabe.bestaetigungText !== 'V5 GESAMTFREIGABE ERTEILEN'
+      || bereitschaft.gesamtfreigabe !== 'ERTEILT'
+      || bereitschaft.breiteRuntimeFreigabe !== true) {
+    fehler('R2 darf die Runtime nicht selbst freigeben; FREIGEGEBEN ist nur mit spaeterer expliziter Gesamtfreigabe-Evidence zulaessig.');
+  }
+} else if (bereitschaft.status !== 'GESPERRT') {
+  fehler('Ungueltiger globaler Runtime-Gate-Zustand.');
+}
 
 console.log('[V5-R2] OK');
 console.log('[V5-R2] V4-Invarianten:', alt.length);
