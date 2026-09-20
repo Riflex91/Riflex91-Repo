@@ -83,12 +83,14 @@ export class CdpEquipAdapter {
     this.session = session;
     this.contextId = contextId;
     this.kandidat = kandidat;
-    this.writeVersuche = 0;
+    this.adapterAufrufe = 0;
+    this.gameWrites = 0;
+    this.moeglicherSend = false;
   }
 
   async sende() {
-    if (this.writeVersuche !== 0) throw new Error("R12_MEHR_ALS_EIN_WRITE_VERBOTEN");
-    this.writeVersuche += 1;
+    if (this.adapterAufrufe !== 0) throw new Error("R12_MEHR_ALS_EIN_WRITE_VERBOTEN");
+    this.adapterAufrufe += 1;
     const k = this.kandidat;
     const lines = [
       "(async () => {",
@@ -112,8 +114,13 @@ export class CdpEquipAdapter {
       "})()"
     ];
     try {
+      this.moeglicherSend = true;
       const result = await this.session.evaluate(lines.join("\n"), this.contextId);
-      if (!result?.sent) return { art: "NICHT_GESENDET", grund: result?.reason || "PRECONDITION_DRIFT" };
+      if (!result?.sent) {
+        this.moeglicherSend = false;
+        return { art: "NICHT_GESENDET", grund: result?.reason || "PRECONDITION_DRIFT" };
+      }
+      this.gameWrites = 1;
       return { art: "SERVER_ERGEBNIS", korrelationId: "R12-EQUIP-FIFO", ergebnis: result };
     } catch {
       return { art: "UNBEKANNT", grund: "DISCONNECT_NACH_MOEGLICHEM_SEND", korrelationId: null };
