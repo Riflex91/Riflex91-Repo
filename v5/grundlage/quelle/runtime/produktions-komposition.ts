@@ -5,12 +5,18 @@ import {
 import {
   merchantCoreAPlanungsFaehigkeitDefinitionen,
 } from "../merchant/faehigkeits-vertrag.js";
+import {
+  equipmentCoreModulDefinition,
+} from "../equipment/modul-vertrag.js";
+import {
+  equipmentEquipMutationsFaehigkeitDefinition,
+} from "../equipment/faehigkeits-vertrag.js";
 import type {
   V5ProduktionsKompositionsDefinition,
 } from "./produktions-runtime.js";
 
 export const PRODUKTIONS_KOMPOSITIONS_KATALOG_STATUS =
-  "DEFAULT_DENY_PLANEN_REGISTRIERT_INAKTIV";
+  "DEFAULT_DENY_PLANEN_UND_EQUIP_MUTIEREN_REGISTRIERT_INAKTIV";
 
 export const V5_PRODUKTIONS_STORAGE_HEALTH_ID = "produktiver-speicher";
 
@@ -38,8 +44,12 @@ export function erstelleKanonischeProduktionsKomposition(
     schemaVersion: 1,
     modulDefinitionen: Object.freeze([
       merchantCoreABasisModulDefinition(),
+      equipmentCoreModulDefinition(),
     ]),
-    faehigkeitsDefinitionen: merchantCoreAPlanungsFaehigkeitDefinitionen(),
+    faehigkeitsDefinitionen: Object.freeze([
+      ...merchantCoreAPlanungsFaehigkeitDefinitionen(),
+      equipmentEquipMutationsFaehigkeitDefinition(),
+    ]),
     healthAnforderungen: kopiereHealthAnforderungen(healthAnforderungen),
   });
 }
