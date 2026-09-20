@@ -48,7 +48,7 @@ const OBSERVE_EXPR = [
 
 
 const PERFORMANCE_TRICK_EXPR = [
-  "(() => {",
+  "(async () => {",
   "  const roots = [globalThis];",
   "  try { if (globalThis.parent && globalThis.parent !== globalThis) roots.push(globalThis.parent); } catch {}",
   "  let verfuegbar = false;",
@@ -63,6 +63,7 @@ const PERFORMANCE_TRICK_EXPR = [
   "      break;",
   "    } catch (error) { fehler = String(error && error.message || error).slice(0,240); }",
   "  }",
+  "  if (aufgerufen) await new Promise(resolve => setTimeout(resolve, 350));",
   "  let audioGefunden = false;",
   "  let cplaying = false;",
   "  let playing = false;",
@@ -75,7 +76,16 @@ const PERFORMANCE_TRICK_EXPR = [
   "      if (typeof empty.playing === 'function' && empty.playing() === true) playing = true;",
   "    } catch {}",
   "  }",
-  "  return { verfuegbar, aufgerufen, audioGefunden, cplaying, playing, aktiv: verfuegbar && audioGefunden && (playing || cplaying), fehler };",
+  "  if (aufgerufen && !playing) {",
+  "    for (const root of roots) {",
+  "      try { if (typeof root?.performance_trick === 'function') { root.performance_trick(); break; } } catch {}",
+  "    }",
+  "    await new Promise(resolve => setTimeout(resolve, 150));",
+  "    for (const root of roots) {",
+  "      try { const empty = root?.sounds?.empty; if (empty && typeof empty.playing === 'function' && empty.playing() === true) playing = true; } catch {}",
+  "    }",
+  "  }",
+  "  return { verfuegbar, aufgerufen, audioGefunden, cplaying, playing, aktiv: verfuegbar && audioGefunden && playing, fehler, verifikation:'HOWLER_PLAYING_TRUE' };",
   "})()"
 ].join("\n");
 
