@@ -35,15 +35,14 @@ local function guideApplicable(guide, profile)
 end
 
 local function autoSelectable(guide)
-    if guide.verification ~= "RESTEDXP_PUBLIC" then return true end
+    if not MG.SupportedRoutes or not MG.SupportedRoutes:IsSupportedGuide(guide) then
+        return false
+    end
+    if guide.verification ~= "RESTEDXP_PUBLIC" then return false end
     if guide.rxpAutoSelect == false then return false end
-
-    -- Endgame/key guides without a level range should only be entered
-    -- explicitly, never selected for a leveling character by accident.
     if not tonumber(guide.minLevel) and not tonumber(guide.maxLevel) then
         return false
     end
-
     return true
 end
 
@@ -112,10 +111,25 @@ function Loader:Load()
     end
 
     local report = MG.Validation:ValidateAll(self.guides)
+    local supportedStatus = MG.SupportedRoutes and
+        MG.SupportedRoutes:Validate(
+            self.guides,
+            rxpStats and rxpStats.sourceCommit or nil) or {
+                ready = false,
+                requiredRoutes = 0,
+                resolvedRoutes = 0,
+            }
 
     if MG.db then
         MG.db.runtime = MG.db.runtime or {}
         MG.db.runtime.restedXP = rxpStats
+        MG.db.runtime.supportedRoutes = supportedStatus
+    end
+
+    if MG.db and MG.db.settings and
+       MG.db.settings.routeMode == "auto" and
+       not supportedStatus.ready then
+        MG.db.settings.routeMode = "manual"
     end
 
     self:SelectActiveGuide()
@@ -130,6 +144,9 @@ function Loader:Load()
                 warnings = #report.warnings,
                 activeGuideID = self.activeGuide and self.activeGuide.id or nil,
                 restedXP = rxpStats,
+                autoRouteReady = supportedStatus.ready,
+                requiredRoutes = supportedStatus.requiredRoutes,
+                resolvedRoutes = supportedStatus.resolvedRoutes,
             })
     end
 
@@ -141,7 +158,11 @@ function Loader:SelectActiveGuide()
     local preferred = MG.db and MG.db.settings and MG.db.settings.preferredGuideID or nil
     local selected = preferred and self.byID[preferred] or nil
 
-    if selected and not guideApplicable(selected, profile) then selected = nil end
+    if selected and
+       (not guideApplicable(selected, profile) or
+        not (MG.SupportedRoutes and MG.SupportedRoutes:IsSupportedGuide(selected))) then
+        selected = nil
+    end
 
     if not selected then
         local bestScore = nil
@@ -178,6 +199,36 @@ end
 
 function Loader:GetGuide(id)
     return id and self.byID[id] or nil
+end
+
+function Loader:IsAutoRouteReady()
+    local status = MG.SupportedRoutes and MG.SupportedRoutes:GetStatus() or nil
+    return status and status.ready and true or false
+end
+
+function Loader:GetSupportedGuides(category)
+    if not MG.SupportedRoutes then return {} end
+    return MG.SupportedRoutes:GetGuides(category)
+end
+
+function Loader:IsGuideApplicable(guide)
+    return guide and guideApplicable(guide, MG:GetPlayerProfile()) and true or false
+end
+
+function Loader:SelectGuide(id)
+    local guide = self:GetGuide(id)
+    if not guide or not MG.SupportedRoutes or
+       not MG.SupportedRoutes:IsSupportedGuide(guide) then
+        return false, "unsupported_guide"
+    end
+    if not guideApplicable(guide, MG:GetPlayerProfile()) then
+        return false, "guide_not_applicable"
+    end
+
+    MG.db.settings.preferredGuideID = guide.id
+    self.activeGuide = guide
+    MG.manualOffset = 0
+    return true, guide
 end
 
 function MG:GetActiveGuideDefinition()

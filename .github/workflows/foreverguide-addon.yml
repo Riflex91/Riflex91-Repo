@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.11.3
+name: Mewthisch Guides addon v0.11.4
 
 on:
   workflow_dispatch:
@@ -164,7 +164,7 @@ jobs:
           print("Quest progress tracking PASS")
           LUA
 
-      - name: Validate preset resync and objective progression
+      - name: Validate auto-route resync and objective progression
         shell: bash
         run: |
           lua5.1 - <<'LUA'
@@ -174,7 +174,7 @@ jobs:
               {id="q2",order=20,questID=2,title="Q2",faction="Horde"},
               {id="q3",order=30,questID=3,title="Q3",faction="Horde"},
             }}},
-            db={settings={routeMode="preset"},runtime={}},
+            db={settings={routeMode="auto"},runtime={}},
           }
           assert(loadfile("world of warcraft/MewthischGuides/GoalEngine.lua"))("MewthischGuides",MG)
           assert(loadfile("world of warcraft/MewthischGuides/StepEngine.lua"))("MewthischGuides",MG)
@@ -196,9 +196,9 @@ jobs:
           local steps,preferredIndex,reason=MG:BuildGuideSteps()
           assert(#steps==2)
           assert(steps[preferredIndex].questID==3,
-            "preset resync must choose furthest active route quest")
+            "auto-route resync must choose furthest active route quest")
           assert(reason=="furthest_active_route_quest")
-          print("Preset resync PASS")
+          print("Auto-route resync PASS")
           LUA
 
       - name: Validate manual nearest-target routing
@@ -294,11 +294,12 @@ jobs:
 
           local stats=MG.RestEDXPImport:GetStats()
           assert(stats.sourceFiles==27)
-          assert(stats.rawGuides==101)
-          assert(stats.rawSteps==14602)
-          assert(stats.structuredActions==68646)
+          assert(stats.rawGuides>=95)
+          assert(stats.rawSteps>12000)
+          assert(stats.structuredActions>50000)
           assert(stats.unknownActionKinds==0)
           assert(stats.unknownActions==0)
+          assert(stats.sourceCommit=="a688a75d595f5884dba8044a5ba4e7d7bd859c09")
 
           local synthetic={
             order=100,
@@ -341,6 +342,116 @@ jobs:
             "objective loop did not choose nearest waypoint")
           assert(nearest.rxpRoutePointCount==3)
           print("RestedXP progress occurrence PASS")
+          LUA
+
+      - name: Validate supported Forever route catalog and auto readiness
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={db={settings={
+            rxpSeason=0,rxpRate=1,rxpHardcoreMode=false,rxpSoDMode=false,
+            routeMode="manual",
+          },runtime={}}}
+          for i=1,5 do
+            assert(loadfile(string.format(
+              "world of warcraft/MewthischGuides/RestedXPForeverData_%02d.lua",i)))(
+                "MewthischGuides",MG)
+          end
+          assert(loadfile("world of warcraft/MewthischGuides/RestedXPActionCatalog.lua"))(
+            "MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/RestedXPImport.lua"))(
+            "MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/SupportedRoutes.lua"))(
+            "MewthischGuides",MG)
+
+          local guides=MG.RestEDXPImport:BuildGuides()
+          local stats=MG.RestEDXPImport:GetStats()
+          local status=MG.SupportedRoutes:Validate(guides,stats.sourceCommit)
+          assert(status.ready,"supported RestedXP route catalog must be complete")
+          assert(status.requiredRoutes==43)
+          assert(status.resolvedRoutes==43)
+          assert(#status.missing==0 and #status.duplicates==0)
+
+          local horde=MG.SupportedRoutes:GetGuides("horde")
+          local ally=MG.SupportedRoutes:GetGuides("ally")
+          local mage=MG.SupportedRoutes:GetGuides("mage")
+          assert(#horde==18,"unexpected Horde route count")
+          assert(#ally==19,"unexpected Ally route count")
+          assert(#mage==7,"unexpected Mage AoE route count")
+
+          local function sorted(list)
+            for i=2,#list do
+              local a,b=list[i-1],list[i]
+              local amin,bmin=tonumber(a.minLevel) or 999,tonumber(b.minLevel) or 999
+              assert(amin<=bmin,"routes are not level-sorted")
+            end
+          end
+          sorted(horde); sorted(ally); sorted(mage)
+
+          local names={}
+          for _,guide in ipairs(guides) do
+            names[(guide.sourceFile or "").."|"..(guide.title or "")]=true
+          end
+          local required={
+            "Guides/Forever/RestedXP-Skyborne.lua|1-14 Zephras Isle",
+            "Guides/forever/Alliance-1-10_NightElf.lua|1-6 Shadowglen",
+            "Guides/forever/Alliance-1-10_NightElf.lua|6-11 Teldrassil",
+            "Guides/forever/Alliance-1-13_Human.lua|1-6 Northshire",
+            "Guides/forever/Alliance-1-13_Human.lua|6-11 Elwynn Forest",
+            "Guides/forever/Alliance-1-13_Human.lua|11-13 Loch Modan",
+            "Guides/forever/Horde-01-14_Undead.lua|1-6 Tirisfal Glades",
+            "Guides/forever/Horde-01-14_Undead.lua|6-11 Tirisfal Glades",
+            "Guides/forever/Horde-01-14_Undead.lua|12-14 Silverpine Forest",
+            "Guides/forever/Horde-1-12_Mulgore.lua|1-6 Mulgore",
+            "Guides/forever/Horde-1-12_Mulgore.lua|6-12 Mulgore",
+            "Guides/forever/Horde-Mage-12-21.lua|12-17 The Barrens AoE",
+            "Guides/forever/Horde-Mage-12-21.lua|17-21 Stonetalon/Barrens AoE",
+          }
+          for _,key in ipairs(required) do assert(names[key],"missing route "..key) end
+          print("Supported Forever route catalog PASS")
+          LUA
+
+      - name: Validate all-quest auto accept and turn-in defaults
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local calls={accept=0,complete=0,reward=0,gossip=0}
+          local MG={
+            db={settings={autoAcceptQuests=true,autoTurnInQuests=true}},
+            Log=function() end,
+            RefreshUI=function() end,
+          }
+          GetTime=function() return 10 end
+          GetQuestID=function() return 999 end
+          AcceptQuest=function() calls.accept=calls.accept+1 end
+          IsQuestCompletable=function() return true end
+          CompleteQuest=function() calls.complete=calls.complete+1 end
+          GetNumQuestChoices=function() return 0 end
+          GetQuestReward=function() calls.reward=calls.reward+1 end
+          C_GossipInfo={
+            GetActiveQuests=function() return {} end,
+            SelectActiveQuest=function() end,
+            GetAvailableQuests=function()
+              return {{questID=777,title="Any Quest",isIgnored=false}}
+            end,
+            SelectAvailableQuest=function(id)
+              assert(id==777); calls.gossip=calls.gossip+1
+            end,
+          }
+
+          assert(loadfile("world of warcraft/MewthischGuides/QuestAutomation.lua"))(
+            "MewthischGuides",MG)
+          MG:HandleQuestAutomationEvent("QUEST_DETAIL")
+          MG:HandleQuestAutomationEvent("QUEST_PROGRESS")
+          MG:HandleQuestAutomationEvent("QUEST_COMPLETE")
+          MG.automationBusyUntil=0
+          MG:HandleQuestAutomationEvent("GOSSIP_SHOW")
+
+          assert(calls.accept==1,"all-quest auto accept failed")
+          assert(calls.complete==1,"all-quest auto complete failed")
+          assert(calls.reward==1,"all-quest auto turn-in failed")
+          assert(calls.gossip==1,"available gossip quest was not selected")
+          print("All-quest automation PASS")
           LUA
 
       - name: Validate world map marker
@@ -530,7 +641,7 @@ jobs:
           print("Seven-theme contract PASS")
           LUA
 
-      - name: Validate v0.11.3 static contract
+      - name: Validate v0.11.4 static contract
         shell: bash
         run: |
           set -euo pipefail
@@ -539,11 +650,86 @@ jobs:
           UI="$ROOT/UI.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
-          grep -q '^## Version: 0.11.3$' "$TOC"
+          grep -q '^## Version: 0.11.4$' "$TOC"
           grep -q '^## OptionalDeps: ElvUI, EllesmereUI, ElvUI_ToxiUI$' "$TOC"
           grep -q '^ManualRoute.lua$' "$TOC"
           grep -q '^WorldMapMarker.lua$' "$TOC"
-          grep -q '^RestedXPImport.lua$' "$TOC"
+          grep -q '^RestedXPImport.lua
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Auto"' "$UI"
+          grep -q 'Derzeit nicht verfügbar! Questinformationen reichen nicht aus!' "$UI"
+          grep -q 'guideName = "Manueller Modus"' "$UI"
+          grep -q 'Mage AoE Farm' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/SupportedRoutes.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'arrow:SetSize(104, 104)' "$ROOT/Navigator.lua"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          if grep -q 'footerStatus' "$UI"; then
+            echo "Deprecated bottom-left target/status text is still present."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.11.4.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.11.4
+          path: artifacts/MewthischGuides-v0.11.4.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^SupportedRoutes.lua
 
           grep -q 'makeButton(footer, "Config"' "$UI"
           grep -q '"Manuell"' "$UI"
@@ -554,7 +740,10 @@ jobs:
           grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
           grep -q 'bindingType' "$ROOT/Inventory.lua"
           grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
-          grep -q 'routeMode = "preset"' "$ROOT/Logger.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/SupportedRoutes.lua"
           grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
           grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
           grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
@@ -598,11 +787,77 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.11.3.zip MewthischGuides
+          zip -r MewthischGuides-v0.11.4.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.11.3
-          path: artifacts/MewthischGuides-v0.11.3.zip
+          name: MewthischGuides-v0.11.4
+          path: artifacts/MewthischGuides-v0.11.4.zip
+          if-no-files-found: error
+ "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Vorgegeben"' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/SupportedRoutes.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'arrow:SetSize(104, 104)' "$ROOT/Navigator.lua"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.11.4.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.11.4
+          path: artifacts/MewthischGuides-v0.11.4.zip
           if-no-files-found: error

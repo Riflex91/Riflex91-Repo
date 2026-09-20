@@ -14,6 +14,8 @@ local MAIN_WIDTH = 326
 local MAIN_HEIGHT = 184
 local MAIN_COLLAPSED_HEIGHT = 52
 local VISIBLE_ROWS = 4
+local GUIDE_PAGE_SIZE = 5
+local AUTO_ROUTE_TOOLTIP = "Derzeit nicht verfügbar! Questinformationen reichen nicht aus!"
 
 local function color(value, fallback)
     local c = type(value) == "table" and value or fallback or {1, 1, 1, 1}
@@ -145,6 +147,17 @@ local function setButtonEnabled(button, enabled)
     if not button then return end
     button:SetEnabled(enabled and true or false)
     button:SetAlpha(enabled and 1 or 0.38)
+end
+
+local function showTooltip(owner, text)
+    if not GameTooltip or not owner or not text then return end
+    GameTooltip:SetOwner(owner, "ANCHOR_CURSOR")
+    GameTooltip:SetText(text, 1, 1, 1, true)
+    GameTooltip:Show()
+end
+
+local function hideTooltip()
+    if GameTooltip then GameTooltip:Hide() end
 end
 
 local function makeCheck(parent, y, labelText, settingKey, onChanged)
@@ -489,9 +502,11 @@ function MG:InitializeUI()
     next:SetPoint("RIGHT", -29, 0)
     ui.next = next
 
-    local options = makeButton(guideBar, "O", 25, 21, function() MG:ToggleSettings() end)
+    local options = makeButton(guideBar, "O", 25, 21, function()
+        MG:ToggleGuideSelector()
+    end)
     options:SetPoint("RIGHT", -2, 0)
-    ui.settingsButton = options
+    ui.guideSelectButton = options
 
     local progress = makeProgressBar(frame, 12)
     progress:SetPoint("TOPLEFT", guideBar, "BOTTOMLEFT", 5, -5)
@@ -526,17 +541,110 @@ function MG:InitializeUI()
     footer:SetHeight(19)
     ui.footer = footer
 
-    local status = makeText(footer, "GameFontHighlightSmall", 9, "muted")
-    status:SetPoint("LEFT", 0, 0)
-    status:SetPoint("RIGHT", -62, 0)
-    status:SetWordWrap(false)
-    ui.footerStatus = status
-
     local configButton = makeButton(footer, "Config", 54, 18, function()
         MG:ToggleSettings()
     end)
     configButton:SetPoint("RIGHT", 0, 0)
     ui.configButton = configButton
+
+    local guideSelectFrame = CreateFrame("Frame",
+        "MewthischGuidesGuideSelectFrame", frame)
+    guideSelectFrame:SetAllPoints(frame)
+    guideSelectFrame:SetFrameLevel(frame:GetFrameLevel() + 20)
+    guideSelectFrame:EnableMouse(true)
+    stylePanel(guideSelectFrame, "panel")
+    guideSelectFrame:Hide()
+    ui.guideSelectFrame = guideSelectFrame
+
+    local guideSelectHeader = CreateFrame("Frame", nil, guideSelectFrame)
+    guideSelectHeader:SetPoint("TOPLEFT", 1, -1)
+    guideSelectHeader:SetPoint("TOPRIGHT", -1, -1)
+    guideSelectHeader:SetHeight(23)
+    stylePanel(guideSelectHeader, "header")
+
+    local guideSelectTitle = makeText(
+        guideSelectHeader, "GameFontNormalLarge", 12, "title")
+    guideSelectTitle:SetPoint("LEFT", 8, 0)
+    guideSelectTitle:SetPoint("RIGHT", -32, 0)
+    guideSelectTitle:SetWordWrap(false)
+    guideSelectTitle:SetText("Guide auswählen")
+    ui.guideSelectTitle = guideSelectTitle
+
+    local guideSelectClose = makeButton(
+        guideSelectHeader, "X", 20, 18, function()
+            MG:ToggleGuideSelector(false)
+        end)
+    guideSelectClose:SetPoint("RIGHT", -2, 0)
+
+    local categoryHorde = makeButton(
+        guideSelectFrame, "Horde", 92, 25, function()
+            MG:ShowGuideCategory("horde")
+        end)
+    categoryHorde:SetPoint("TOP", guideSelectHeader, "BOTTOM", -102, -34)
+    ui.guideCategoryHorde = categoryHorde
+
+    local categoryAlly = makeButton(
+        guideSelectFrame, "Ally", 92, 25, function()
+            MG:ShowGuideCategory("ally")
+        end)
+    categoryAlly:SetPoint("LEFT", categoryHorde, "RIGHT", 10, 0)
+    ui.guideCategoryAlly = categoryAlly
+
+    local categoryMage = makeButton(
+        guideSelectFrame, "Mage AoE Farm", 118, 25, function()
+            MG:ShowGuideCategory("mage")
+        end)
+    categoryMage:SetPoint("TOP", categoryHorde, "BOTTOM", 51, -14)
+    ui.guideCategoryMage = categoryMage
+
+    ui.guideRouteButtons = {}
+    for index = 1, GUIDE_PAGE_SIZE do
+        local routeButton = makeButton(
+            guideSelectFrame, "", MAIN_WIDTH - 30, 20, function(self)
+                if not self._mgGuideID or not MG.DataLoader then return end
+                local ok = MG.DataLoader:SelectGuide(self._mgGuideID)
+                if ok then
+                    MG:SetRouteMode("auto")
+                    MG:ToggleGuideSelector(false)
+                    MG:RefreshGuide("guide_picker")
+                end
+            end)
+        routeButton:SetPoint("TOPLEFT", 15, -35 - ((index - 1) * 23))
+        routeButton._mgGuideID = nil
+        ui.guideRouteButtons[index] = routeButton
+    end
+
+    local guideBack = makeButton(
+        guideSelectFrame, "< Kategorien", 84, 18, function()
+            ui.guideSelectCategory = nil
+            ui.guideSelectPage = 1
+            MG:RefreshGuideSelector()
+        end)
+    guideBack:SetPoint("BOTTOMLEFT", 8, 7)
+    ui.guideBackButton = guideBack
+
+    local guidePagePrev = makeButton(
+        guideSelectFrame, "<", 25, 18, function()
+            ui.guideSelectPage = math.max(1, (ui.guideSelectPage or 1) - 1)
+            MG:RefreshGuideSelector()
+        end)
+    guidePagePrev:SetPoint("BOTTOM", -42, 7)
+    ui.guidePagePrev = guidePagePrev
+
+    local guidePageLabel = makeText(
+        guideSelectFrame, "GameFontHighlightSmall", 9, "muted")
+    guidePageLabel:SetPoint("BOTTOM", 0, 10)
+    guidePageLabel:SetWidth(55)
+    guidePageLabel:SetJustifyH("CENTER")
+    ui.guidePageLabel = guidePageLabel
+
+    local guidePageNext = makeButton(
+        guideSelectFrame, ">", 25, 18, function()
+            ui.guideSelectPage = (ui.guideSelectPage or 1) + 1
+            MG:RefreshGuideSelector()
+        end)
+    guidePageNext:SetPoint("BOTTOM", 42, 7)
+    ui.guidePageNext = guidePageNext
 
     local infoFrame = CreateFrame("Frame", "MewthischGuidesInfoFrame", UIParent)
     infoFrame:SetSize(480, 570)
@@ -600,14 +708,19 @@ function MG:InitializeUI()
     manualMode:SetPoint("TOPLEFT", 110, -41)
     ui.routeManualButton = manualMode
 
-    local presetMode = makeButton(settingsFrame, "Vorgegeben", 92, 21, function()
-        MG:SetRouteMode("preset")
+    local autoMode = makeButton(settingsFrame, "Auto", 92, 21, function()
+        MG:SetRouteMode("auto")
     end)
-    presetMode:SetPoint("LEFT", manualMode, "RIGHT", 8, 0)
-    ui.routePresetButton = presetMode
+    autoMode:SetPoint("LEFT", manualMode, "RIGHT", 8, 0)
+    autoMode:HookScript("OnEnter", function(self)
+        local ready = MG.DataLoader and MG.DataLoader:IsAutoRouteReady()
+        if not ready then showTooltip(self, AUTO_ROUTE_TOOLTIP) end
+    end)
+    autoMode:HookScript("OnLeave", hideTooltip)
+    ui.routeAutoButton = autoMode
 
     local routeModeValue = makeText(settingsFrame, "GameFontHighlightSmall", 9, "muted")
-    routeModeValue:SetPoint("LEFT", presetMode, "RIGHT", 8, 0)
+    routeModeValue:SetPoint("LEFT", autoMode, "RIGHT", 8, 0)
     routeModeValue:SetPoint("RIGHT", -14, 0)
     routeModeValue:SetWordWrap(false)
     ui.routeModeValue = routeModeValue
@@ -913,7 +1026,7 @@ function MG:RefreshUI()
     local routeMode = self.GetRouteMode and self:GetRouteMode() or "preset"
     local guideName
     if routeMode == "manual" then
-        guideName = "Manuell – aktive Quests / kurze Laufwege"
+        guideName = "Manueller Modus"
     else
         guideName = guide and (guide.title or guide.id) or "Kein Guide ausgewählt"
     end
@@ -925,7 +1038,6 @@ function MG:RefreshUI()
         ui.stepCounter:SetText("0 / 0")
         ui.progressLabel:SetText("Warte auf Guide-Schritt")
         ui.progress:SetProgress(0, "")
-        ui.footerStatus:SetText("Keine aktive Quest")
 
         local row = ui.row1
         row.text:SetText("Warte auf den nächsten passenden Guide-Schritt")
@@ -986,18 +1098,88 @@ function MG:RefreshUI()
         row:Show()
     end
 
-    local nav = self.navigation or {}
-    local distance = nav.distanceMeters and
-        (nav.distanceMeters >= 1000 and string.format("%.1f km", nav.distanceMeters / 1000) or
-            string.format("%.0f m", nav.distanceMeters)) or "–"
-    ui.footerStatus:SetText("Ziel: " .. distance .. "  •  " ..
-        tostring(self.automationStatus or "bereit"))
-
     setButtonEnabled(ui.prev, currentIndex > 1)
     setButtonEnabled(ui.next, currentIndex < stepCount)
 
     self:RefreshTheme()
     self:RefreshInfo()
+end
+
+function MG:ToggleGuideSelector(force)
+    if not ui.guideSelectFrame then return end
+    local show = force
+    if show == nil then show = not ui.guideSelectFrame:IsShown() end
+
+    if show then
+        ui.guideSelectCategory = nil
+        ui.guideSelectPage = 1
+        ui.guideSelectFrame:Show()
+        self:RefreshGuideSelector()
+    else
+        ui.guideSelectFrame:Hide()
+    end
+end
+
+function MG:ShowGuideCategory(category)
+    if category ~= "horde" and category ~= "ally" and category ~= "mage" then
+        return
+    end
+    ui.guideSelectCategory = category
+    ui.guideSelectPage = 1
+    self:RefreshGuideSelector()
+end
+
+function MG:RefreshGuideSelector()
+    if not ui.guideSelectFrame then return end
+
+    local category = ui.guideSelectCategory
+    local categoryButtons = {
+        ui.guideCategoryHorde, ui.guideCategoryAlly, ui.guideCategoryMage,
+    }
+
+    if not category then
+        ui.guideSelectTitle:SetText("Guide auswählen")
+        for _, button in ipairs(categoryButtons) do button:Show() end
+        for _, button in ipairs(ui.guideRouteButtons or {}) do button:Hide() end
+        ui.guideBackButton:Hide()
+        ui.guidePagePrev:Hide()
+        ui.guidePageNext:Hide()
+        ui.guidePageLabel:Hide()
+        return
+    end
+
+    for _, button in ipairs(categoryButtons) do button:Hide() end
+    ui.guideBackButton:Show()
+
+    local categoryName = category == "horde" and "Horde" or
+        category == "ally" and "Ally" or "Mage AoE Farm"
+    ui.guideSelectTitle:SetText(categoryName)
+
+    local guides = self.DataLoader and
+        self.DataLoader:GetSupportedGuides(category) or {}
+    local pageCount = math.max(1, math.ceil(#guides / GUIDE_PAGE_SIZE))
+    local page = math.max(1, math.min(pageCount, ui.guideSelectPage or 1))
+    ui.guideSelectPage = page
+
+    local first = ((page - 1) * GUIDE_PAGE_SIZE) + 1
+    for index, button in ipairs(ui.guideRouteButtons or {}) do
+        local guide = guides[first + index - 1]
+        if guide then
+            button._mgGuideID = guide.id
+            button:SetText(tostring(guide.title or guide.id))
+            setButtonEnabled(button,
+                self.DataLoader and self.DataLoader:IsGuideApplicable(guide))
+            button:Show()
+        else
+            button._mgGuideID = nil
+            button:Hide()
+        end
+    end
+
+    ui.guidePageLabel:SetText(tostring(page) .. "/" .. tostring(pageCount))
+    ui.guidePageLabel:Show()
+    ui.guidePagePrev:SetShown(page > 1)
+    ui.guidePageNext:SetShown(page < pageCount)
 end
 
 function MG:RefreshInfo()
@@ -1109,10 +1291,14 @@ function MG:RefreshSettings()
     ui.checkDiagnostics:SetChecked(self.db.settings.diagnostics)
     ui.checkGearAuto:SetChecked(self.db.settings.gearAutoEquip)
 
-    local routeMode = self.GetRouteMode and self:GetRouteMode() or "preset"
+    local routeMode = self.GetRouteMode and self:GetRouteMode() or "manual"
+    local autoReady = self.DataLoader and self.DataLoader:IsAutoRouteReady()
     ui.routeManualButton._mgSelected = routeMode == "manual"
-    ui.routePresetButton._mgSelected = routeMode == "preset"
-    ui.routeModeValue:SetText(routeMode == "manual" and "aktiv: Manuell" or "aktiv: Vorgegeben")
+    ui.routeAutoButton._mgSelected = routeMode == "auto"
+    setButtonEnabled(ui.routeAutoButton, autoReady)
+    ui.routeModeValue:SetText(
+        routeMode == "auto" and "aktiv: Auto" or
+        (autoReady and "aktiv: Manuell" or "Auto nicht verfügbar"))
 
     ui.navigatorScaleValue:SetText(string.format("%d%%",
         math.floor((self.db.settings.navigatorScale or 1) * 100 + 0.5)))

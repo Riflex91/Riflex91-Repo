@@ -6,17 +6,27 @@ local Manual = MG.ManualRoute
 local HUGE_DISTANCE = 1000000000
 
 function MG:GetRouteMode()
-    local mode = self.db and self.db.settings and self.db.settings.routeMode or "preset"
-    if mode ~= "manual" and mode ~= "preset" then mode = "preset" end
+    local mode = self.db and self.db.settings and self.db.settings.routeMode or "manual"
+    -- Old experimental "preset" profiles migrate fail-closed to manual.
+    if mode == "preset" then mode = "manual" end
+    if mode ~= "manual" and mode ~= "auto" then mode = "manual" end
     return mode
 end
 
 function MG:SetRouteMode(mode)
-    if mode ~= "manual" and mode ~= "preset" then return false end
+    if mode ~= "manual" and mode ~= "auto" then return false, "invalid_mode" end
+
+    if mode == "auto" and
+       (not self.DataLoader or not self.DataLoader:IsAutoRouteReady()) then
+        self.db.settings.routeMode = "manual"
+        if self.RefreshSettings then self:RefreshSettings() end
+        return false, "auto_route_unavailable"
+    end
+
     self.db.settings.routeMode = mode
     self.manualOffset = 0
 
-    if self.DataLoader and mode == "preset" then
+    if self.DataLoader and mode == "auto" then
         self.DataLoader:SelectActiveGuide()
     end
 

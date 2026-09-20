@@ -2,7 +2,7 @@ local addonName, MG = ...
 _G.MewthischGuides = MG
 _G.ForeverGuide = MG
 
-MG.VERSION = "0.11.3"
+MG.VERSION = "0.11.4"
 MG.INTERFACE = 16001
 MG.NAME = "Mewthisch Guides"
 MG.heartbeatTicker = nil
@@ -295,7 +295,7 @@ local function handleSlash(msg)
         elseif command == "route" then
             local status = MG.RouteEngine and MG.RouteEngine:GetStatus() or {}
             print("|cff62d6ffMewthisch Guides|r Route: Modus=" ..
-                tostring(MG.GetRouteMode and MG:GetRouteMode() or "preset") ..
+                tostring(MG.GetRouteMode and MG:GetRouteMode() or "manual") ..
                 " Quelle=" .. tostring(status.source or "none") ..
                 " Kandidaten=" .. tostring(status.candidates or 0) ..
                 " Map=" .. tostring(status.mapID or "-") ..
@@ -308,7 +308,7 @@ local function handleSlash(msg)
                 MG:SetRouteMode("preset")
             end
             print("|cff62d6ffMewthisch Guides|r Routenmodus: " ..
-                tostring(MG.GetRouteMode and MG:GetRouteMode() or "preset"))
+                tostring(MG.GetRouteMode and MG:GetRouteMode() or "manual"))
         elseif command == "mapmarker" then
             local value = parseOnOff(rest)
             if value ~= nil then
@@ -373,14 +373,12 @@ local function handleSlash(msg)
             local _, current = MG.Themes:GetCurrent()
             print("|cff62d6ffMewthisch Guides|r Theme: " .. tostring(current))
         elseif command == "guide" then
-            local guide = MG.DataLoader and MG.DataLoader:GetGuide(rest) or nil
-            if guide then
-                MG.db.settings.preferredGuideID = guide.id
-                MG.DataLoader:SelectActiveGuide()
-                MG.manualOffset = 0
+            local ok = MG.DataLoader and MG.DataLoader:SelectGuide(rest)
+            if ok then
+                MG:SetRouteMode("auto")
                 MG:RefreshGuide("guide_selected")
             end
-            print("|cff62d6ffMewthisch Guides|r Guide: " ..
+            print("|cff62d6ffMewthis Guides|r Guide: " ..
                 tostring(MG:GetActiveGuideDefinition() and MG:GetActiveGuideDefinition().id or "-"))
         elseif command == "log" then
             local s = MG:GetLogSummary()
@@ -392,7 +390,7 @@ local function handleSlash(msg)
             MG:Log("INFO", "log.cleared", "Diagnoselog geleert.")
             print("|cff62d6ffMewthisch Guides|r Diagnoselog geleert.")
         else
-            print("|cff62d6ffMewthisch Guides|r /mg | show | hide | info | config | settings | navigator | status | diag | api | route | mode manual/preset | mapmarker on/off | next | prev | refresh | guide <id> | theme <name> | gear | gearauto on/off | reward | talent | autoaccept on/off | autoturnin on/off | log | clearlog")
+            print("|cff62d6ffMewthisch Guides|r /mg | show | hide | info | config | settings | navigator | status | diag | api | route | mode manual/auto | mapmarker on/off | next | prev | refresh | guide <id> | theme <name> | gear | gearauto on/off | reward | talent | autoaccept on/off | autoturnin on/off | log | clearlog")
         end
     end)
 end

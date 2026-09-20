@@ -2,7 +2,7 @@
 ## Title: Mewthisch Guides
 ## Notes: Build-aware leveling guide for World of Warcraft: Forever.
 ## Author: Riflex91
-## Version: 0.11.3
+## Version: 0.11.4
 ## SavedVariables: MewthischGuidesDB
 ## OptionalDeps: ElvUI, EllesmereUI, ElvUI_ToxiUI
 
@@ -14,6 +14,7 @@ RestedXPForeverData_04.lua
 RestedXPForeverData_05.lua
 RestedXPActionCatalog.lua
 RestedXPImport.lua
+SupportedRoutes.lua
 Logger.lua
 ForeverAPI.lua
 Validation.lua
