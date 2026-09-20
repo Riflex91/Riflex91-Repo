@@ -1,63 +1,116 @@
-# Mewthisch Guides v0.6 — Forever API + RouteEngine foundation
+# Mewthisch Guides v0.9 — roadmap-complete engine
 
-v0.6 is the first build produced after a fresh WoW Forever API review and a second architecture review of the uploaded Zygor Guides package.
+v0.9 closes the planned engine roadmap before the dedicated Forever runtime
+bug-fix/calibration phase. It does **not** claim complete 1-60 guide-data
+coverage yet; the currently bundled route data is still the Recorder-backed
+Durotar seed.
 
-## Why this build exists
+## Roadmap state
 
-Previous builds could receive a Blizzard navigation distance while having no trustworthy quest coordinate. That produced a visible distance but forced the arrow to hide because direction could not be proven.
+1. UI + standalone Navigator — implemented
+2. Goal Engine + objective progress — implemented
+3. Guide Step Engine + login/resync — implemented
+4. Safe quest automation — implemented
+5. Forever API facade + RouteEngine — implemented
+6. QuestTracking + GuideParser/DataLoader + Validation — implemented
+7. TravelGraph abstraction — implemented
+8. Inventory + GearAdvisor + RewardAdvisor — implemented
+9. BuildState + TalentAdvisor — implemented
+10. State/Sync + Diagnostics/local telemetry + Themes — implemented
 
-v0.6 fixes the architecture rather than guessing a screen angle.
+Step 10 is the final planned engine step. From here, runtime findings are
+handled as fixes/hardening instead of adding another architectural layer.
 
-## New architecture
+## Runtime architecture
 
-- ForeverAPI.lua
-  - runtime capability survey
-  - protected pcall-based access
-  - modern quest/map/gossip/item/build/spell capability matrix
-  - SavedVariables persistence probe
-- RouteEngine.lua
-  - ranks multiple coordinate sources
-  - records all route candidates
-  - prefers evidence-backed/modern sources
-- Navigation.lua
-  - consumes RouteEngine output only
-  - converts map positions to world positions when possible
-  - keeps fail-closed arrow behavior
+```
+ForeverAPI
+  ↓
+QuestTracking / State / Inventory / BuildState
+  ↓
+GuideParser + DataLoader + Validation
+  ↓
+GuideEngine → StepEngine → GoalEngine
+  ↓
+RouteEngine ← TravelGraph
+  ↓
+Navigation → Navigator/UI
 
-## Important new Forever route source
+Side systems:
+GearAdvisor / RewardAdvisor
+TalentAdvisor
+Sync
+Diagnostics / local-only Telemetry
+Themes
+```
 
-C_QuestLog.GetQuestsOnMap is now queried for the active quest and map hierarchy. This is the key Forever-specific route source that previous Mewthisch Guides builds did not use.
+## Safety rules
 
-## Diagnostics
+- capability detection instead of assuming an API from the interface number
+- uncertain API calls fail closed
+- no guessed arrow direction
+- quest automation is bound to the expected quest ID
+- multiple quest rewards are never auto-selected
+- TalentAdvisor never spends talent points automatically
+- Gear auto-equip is disabled by default
+- Gear auto-equip requires high confidence, no combat, an empty cursor and,
+  with the default safety settings, a bound item
+- weapons are not auto-equipped by default
+- telemetry is local SavedVariables diagnostics only; nothing is transmitted
 
-Info now shows:
+## Guide/data model
 
-- Forever API mode
-- GetQuestsOnMap availability
-- world-coordinate availability
-- secret-system presence
-- selected RouteEngine source
-- route candidate count/score
-- SavedVariables persistence boot probe
+The runtime now supports multiple normalized guides, validation, applicability
+by faction/race/class/level, explicit route coordinates, a TravelGraph and
+build profiles. Empty extension points exist in `Data.lua` for generated
+DataMiner/Recorder imports.
 
-Optional commands:
+Current bundled evidence remains intentionally small:
 
-- /mg api
-- /mg route
-- /mg status
+- Verlorene Waffen
+- Galgars Kaktusapfel Surprise
+- Stich des Skorpiden
+- Üble Familiare
 
-Normal gameplay still requires no commands.
+A large 1-60 route must be generated/verified from DataMiner + Recorder
+evidence rather than invented inside the addon.
 
-## Research notes
+## User-facing systems
 
-See FOREVER_API_RESEARCH.md for the engineering contract used by the addon.
+- compact guide viewer
+- Goal progress and next-step preview
+- movable/lockable/scalable arrow
+- automatic SuperTrack
+- safe auto-accept / auto-turn-in
+- reward recommendation for multiple choices
+- inventory/gear upgrade scan
+- optional fail-closed gear auto-equip
+- talent recommendation framework
+- five themes:
+  - Forever Classic
+  - Obsidian
+  - Arcane
+  - Warcraft
+  - Skyborne
+- diagnostics and subsystem health
 
-## Test evidence
+Useful commands:
 
-After the in-game test, use /reload or log out while the client is still running, then send:
+- `/mg status`
+- `/mg diag`
+- `/mg api`
+- `/mg route`
+- `/mg refresh`
+- `/mg guide <id>`
+- `/mg theme <name>`
+- `/mg gear`
+- `/mg gearauto on|off`
+- `/mg reward`
+- `/mg talent`
 
-- WTF/Account/<account>/SavedVariables/MewthischGuides.lua
-- WTF/Account/<account>/SavedVariables/MewthischGuidesRecorder.lua
-- a screenshot of the Navigator
+## Next phase
 
-The diagnostics should tell us exactly which coordinate source Forever returned for each quest.
+After this v0.9 engine build is frozen, the next work is runtime
+bug-fixing/calibration from real Forever evidence: screenshots,
+`MewthischGuides.lua`, `MewthischGuidesRecorder.lua` and reproducible
+client behavior.
