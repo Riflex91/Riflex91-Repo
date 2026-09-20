@@ -323,3 +323,40 @@ test("CAP-043 blockiert parallele Update-Stuerme", async () => {
     /SAFE_UPDATE_BEREITS_AKTIV/,
   );
 });
+
+
+test("CAP-043 korrupte Persistenz wird fail-closed abgelehnt", async () => {
+  const speicher = new MemorySpeicher();
+  speicher.map.set(
+    "operations/safe-auto-updater-v1.json",
+    JSON.stringify({
+      schemaVersion: 1,
+      gespeichertAmMs: 300,
+      eintraege: [
+        {
+          plan: {
+            schemaVersion: 1,
+            updateId: "update-kaputt",
+            aktuellerReleaseSha: ALT_SHA,
+            baselineBootFingerprint: "boot-alt",
+            releaseEvidence: releaseEvidence(),
+            geplantAmMs: 150,
+          },
+          zustand: "APPLY_AUSSTEHEND",
+          recoveryVorZustand: null,
+          applyIntentAmMs: null,
+          rollbackIntentAmMs: null,
+          letzteEvidenceId: "release-evidence-1",
+          sameCandidateErneutAnwenden: false,
+          automatischerRetry: false,
+        },
+      ],
+    }),
+  );
+
+  const updater = new PersistenterSafeAutoUpdater(speicher);
+  await assert.rejects(
+    () => updater.lade(350),
+    /SAFE_UPDATE_PERSISTENZ_APPLY_INTENT_FEHLT/,
+  );
+});
