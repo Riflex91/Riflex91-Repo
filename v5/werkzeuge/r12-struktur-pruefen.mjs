@@ -15,8 +15,11 @@ if (r12.status === "IN_PROGRESS" && gates.currentPhase !== "R12") {
 }
 if (r12.status === "DONE") {
   const r13 = gates.phases?.find(x => x.id === "R13");
-  if (gates.currentPhase !== "R13" || r13?.status !== "IN_PROGRESS") {
-    fehler("R12 DONE verlangt R13 IN_PROGRESS und currentPhase=R13.");
+  const spaeterePhasen = new Set(["R14","R15","R16","R17","R18","R19"]);
+  const direkterUebergang = gates.currentPhase === "R13" && r13?.status === "IN_PROGRESS";
+  const bereitsWeiter = spaeterePhasen.has(gates.currentPhase) && r13?.status === "DONE";
+  if (!direkterUebergang && !bereitsWeiter) {
+    fehler("R12 DONE verlangt mindestens R13 IN_PROGRESS oder einen formal abgeschlossenen R13-Uebergang.");
   }
   const live = lies("roadmap/r12-controlled-live-evidence.json");
   const abschluss = lies("roadmap/r12-abschluss.json");
