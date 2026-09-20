@@ -159,6 +159,9 @@ public sealed class MainForm : Form
         scanButton.AutoSize = true;
         scanButton.Click += async (_, _) => await ScanNowAsync();
 
+        var diagnosticButton = new Button { Text = "Systemtest", AutoSize = true };
+        diagnosticButton.Click += async (_, _) => await RunDiagnosticsAsync(diagnosticButton);
+
         startButton.Text = "Monitoring starten";
         startButton.AutoSize = true;
         startButton.Click += (_, _) => StartMonitoring();
@@ -172,6 +175,7 @@ public sealed class MainForm : Form
         openButton.Click += (_, _) => OpenExportDirectory();
 
         buttons.Controls.Add(scanButton);
+        buttons.Controls.Add(diagnosticButton);
         buttons.Controls.Add(startButton);
         buttons.Controls.Add(stopButton);
         buttons.Controls.Add(openButton);
@@ -337,6 +341,45 @@ public sealed class MainForm : Form
                 "DB2-Provider",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
+        }
+        finally
+        {
+            button.Enabled = true;
+        }
+    }
+
+    private async Task RunDiagnosticsAsync(Button button)
+    {
+        try
+        {
+            SaveSettings();
+            button.Enabled = false;
+            AppendLog("Systemtest gestartet …");
+
+            Uri? provider = null;
+            if (useWtlBox.Checked && !Uri.TryCreate(wtlBox.Text.Trim(), UriKind.Absolute, out provider))
+                throw new InvalidOperationException("Die wow.tools.local-Adresse ist ungültig.");
+
+            var report = await MinerDiagnostics.RunAsync(
+                wowRootBox.Text.Trim(),
+                useWtlBox.Checked ? provider : null,
+                useWtlBox.Checked && settings.ManageWowToolsLocal);
+
+            AppendLog(report.Passed ? "Systemtest: PASS" : "Systemtest: FAIL");
+            foreach (var line in report.ToDisplayText().Split(Environment.NewLine))
+                AppendLog(line);
+
+            MessageBox.Show(
+                this,
+                report.ToDisplayText(),
+                report.Passed ? "DataMiner-Systemtest: PASS" : "DataMiner-Systemtest: FAIL",
+                MessageBoxButtons.OK,
+                report.Passed ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+        }
+        catch (Exception ex)
+        {
+            AppendLog("SYSTEMTEST-FEHLER: " + ex.Message);
+            MessageBox.Show(this, ex.Message, "DataMiner-Systemtest", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         finally
         {
