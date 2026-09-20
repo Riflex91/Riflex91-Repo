@@ -471,6 +471,7 @@
   const MAX_SAMPLE_GAP_MS = 45 * 1000;
   const MAX_SAMPLES = 30;
   const MIN_PREVIEW_CHANCE = 0.99;
+  const MAX_TEST_BASISWERT_GOLD = 100000;
   const UPGRADE_BESTAETIGUNG = 'CAP034-UPGRADE-ONE-SHOT-ITEMVERLUST-AKZEPTIERT';
   const COMPOUND_BESTAETIGUNG = 'CAP034-COMPOUND-ONE-SHOT-3-ITEM-VERLUST-AKZEPTIERT';
   const ERLAUBTE_GEAR_TYPEN = Object.freeze({
@@ -625,6 +626,9 @@
       quest: def.quest === true || def.q === true,
       event: def.event === true,
       exchange: def.exchange === true || def.e === true,
+      basisGold: Number.isFinite(Number(def.g ?? def.gold))
+        ? Math.max(0, Math.trunc(Number(def.g ?? def.gold)))
+        : 0,
       fingerprint: hashText(JSON.stringify({
         index,
         name: String(item.name),
@@ -678,6 +682,7 @@
     const ziel = inventar
       .filter(x =>
         x.upgrade && x.level === 0 && x.plain && !istGeschuetzt(x)
+        && x.basisGold > 0 && x.basisGold <= MAX_TEST_BASISWERT_GOLD
         && x.index !== scroll.index)
       .sort((a, b) => a.index - b.index)[0] ?? null;
     if (!ziel) return null;
@@ -698,6 +703,7 @@
     const gruppen = {};
     for (const item of inventar) {
       if (!item.compound || item.level !== 0 || !item.plain || istGeschuetzt(item)
+          || item.basisGold <= 0 || item.basisGold > MAX_TEST_BASISWERT_GOLD
           || item.index === scroll.index) continue;
       const key = item.name + ':' + item.level;
       if (!gruppen[key]) gruppen[key] = [];
@@ -1422,6 +1428,7 @@
     dauerMs: DAUER_MS,
     intervallMs: INTERVALL_MS,
     minPreviewChance: MIN_PREVIEW_CHANCE,
+    maxTestBasiswertGold: MAX_TEST_BASISWERT_GOLD,
     maximaleMutationsWritesProLauf: 1,
     sameIntentRetry: false,
     upgradeBestaetigung: UPGRADE_BESTAETIGUNG,
