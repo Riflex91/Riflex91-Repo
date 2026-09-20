@@ -70,8 +70,8 @@ local function instructionFor(goal)
     end
 
     if goal.type == "kill" then
-        if goal.required then return "Toete " .. goal.required .. "x " .. goal.name end
-        return "Toete: " .. goal.name
+        if goal.required then return "Töte " .. goal.required .. "x " .. goal.name end
+        return "Töte: " .. goal.name
     end
 
     if goal.type == "kill_player" then
@@ -84,7 +84,7 @@ local function instructionFor(goal)
     end
 
     if goal.type == "progress" then
-        return "Erreiche den benoetigten Fortschritt"
+        return "Erreiche den benötigten Fortschritt"
     end
 
     if goal.type == "event" then
