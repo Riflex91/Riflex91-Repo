@@ -69,7 +69,7 @@
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
       "erfuellt": false,
-      "grund": "R7 bis R18 sind technisch nachgewiesen. In R19 sind unveraenderliche Evidence/Sample-Gap-Erkennung und das deutsche UI-Release-Gate nachgewiesen; die stufenweise 24/7-Live-Ladder bleibt ab Controlled Live offen.",
+      "grund": "R7 bis R18 sind technisch nachgewiesen. R19 ist bis Canary bestanden; offen ist das beschleunigte Soak-Profil 5m/10m/30m/60m.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
         "v5/anforderungen/nachverfolgbarkeit.json"
@@ -309,8 +309,8 @@
     }
   ],
   "offeneBlocker": [
-    "R19 SOAK_1H ist die naechste Zertifizierungsstufe und benoetigt eine lueckenlose 1h-Zeitreihe am PC",
-    "Danach folgen 24h/72h/7d-Evidence ohne Stufenueberspringen",
+    "R19 SOAK_5M ist die naechste Zertifizierungsstufe und benoetigt eine lueckenlose 5-Minuten-Zeitreihe am PC",
+    "Danach folgen SOAK_10M, SOAK_30M und SOAK_60M ohne Stufenueberspringen",
     "Breite Gameplay-Runtime bleibt bis zur erfolgreichen kompletten R19-Ladder und expliziten Gesamtfreigabe GESPERRT",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
@@ -365,11 +365,12 @@
   "r19Status": "IN_PROGRESS",
   "r19AutomatikStatus": "BIS_SHADOW_BESTANDEN",
   "r19AutomatikEvidence": "v5/roadmap/r19-automatik-evidence.json",
-  "r19NaechsteStufe": "SOAK_1H",
+  "r19NaechsteStufe": "SOAK_5M",
   "r19ManuellerPcTestErforderlich": true,
   "r19AnforderungenNachgewiesen": 2,
   "r19AnforderungenGesamt": 3,
   "r19LiveStatus": "BIS_CANARY_BESTANDEN",
   "r19ControlledLiveEvidence": "v5/roadmap/r19-controlled-live-evidence.json",
-  "r19CanaryEvidence": "v5/roadmap/r19-canary-evidence.json"
+  "r19CanaryEvidence": "v5/roadmap/r19-canary-evidence.json",
+  "r19Zeitprofil": "R19_ACCELERATED_SOAK_V1"
 }
