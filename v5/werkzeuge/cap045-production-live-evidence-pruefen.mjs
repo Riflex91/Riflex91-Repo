@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { pruefeProduktionsGraph } from "../erzeugt/index.js";
 
 const TESTKENNUNG = "cap045-production-live-certification";
-const CONTROLLER_VERSION = "1.0.2";
+const CONTROLLER_VERSIONS = Object.freeze(["1.0.2", "1.0.3"]);
 const ACTION_CONTRACT_ID = "AL-ACTION-UPGRADE";
 const RECOVERY_CONTRACT_ID = "AL-RECOVERY-UPGRADE";
 const VERIFIER_ID = "AL-VERIFIER-UPGRADE";
@@ -48,7 +48,7 @@ export function pruefeCap045LiveBericht(bericht) {
   verlange(bericht && typeof bericht === "object", "BERICHT_OBJEKT_FEHLT");
   verlange(bericht.schemaVersion === 1, "SCHEMA_UNGUELTIG");
   verlange(bericht.testkennung === TESTKENNUNG, "TESTKENNUNG_UNGUELTIG");
-  verlange(bericht.controllerVersion === CONTROLLER_VERSION, "CONTROLLER_VERSION_UNGUELTIG");
+  verlange(CONTROLLER_VERSIONS.includes(bericht.controllerVersion), "CONTROLLER_VERSION_UNGUELTIG");
   verlange(bericht.gesamtstatus === "BESTANDEN", "GESAMTSTATUS_NICHT_BESTANDEN");
   verlange(bericht.evidenceKlasse === "LIVE", "EVIDENCE_NICHT_LIVE");
   verlange(bericht.stageStatus?.stage1 === "BESTANDEN", "STAGE1_NICHT_BESTANDEN");
