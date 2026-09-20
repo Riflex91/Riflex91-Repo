@@ -2,7 +2,7 @@
 ## Title: Mewthisch Guides
 ## Notes: Build-aware leveling guide for World of Warcraft: Forever.
 ## Author: Riflex91
-## Version: 0.5.0
+## Version: 0.5.1
 ## SavedVariables: MewthischGuidesDB
 
 Data.lua
