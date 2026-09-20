@@ -106,7 +106,7 @@
   "ladder": {
     "vorherigeStufe": "CONTROLLED_LIVE",
     "dieseStufe": "CANARY",
-    "naechsteStufe": "SOAK_1H"
+    "naechsteStufe": "SOAK_5M"
   },
-  "hinweis": "Canary ist mit einem gebundenen Learning-Ranking innerhalb hard-erlaubter Equip-Kandidaten und exakt einem postcondition-verifizierten equip-Write bestanden."
+  "hinweis": "Canary ist bestanden. Naechste Stufe ist SOAK_5M gemaess R19_ACCELERATED_SOAK_V1."
 }
