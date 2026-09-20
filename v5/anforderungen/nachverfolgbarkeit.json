@@ -1674,15 +1674,22 @@
       "invarianten": [
         "V5-ALT-028"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/merchant/disposition.ts",
+        "v5/grundlage/quelle/merchant/markt-evidence.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r13-disposition-workspace.test.mjs",
+        "v5/grundlage/tests/r13-market-evidence.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r13NachweisStatus": "R13_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-002",
@@ -1693,15 +1700,21 @@
       "invarianten": [
         "V5-ALT-027"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/merchant/gegenstands-identitaet.ts",
+        "v5/grundlage/quelle/merchant/disposition.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r13-disposition-workspace.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r13NachweisStatus": "R13_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-003",
@@ -1712,15 +1725,20 @@
       "invarianten": [
         "V5-ALT-029"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/merchant/workspace.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r13-disposition-workspace.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r13NachweisStatus": "R13_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-004",
@@ -1731,15 +1749,20 @@
       "invarianten": [
         "V5-INV-006"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/koordination/account-bank-lease.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r13-bank-lease.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r13NachweisStatus": "R13_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-005",
@@ -1750,15 +1773,20 @@
       "invarianten": [
         "V5-ALT-024"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/merchant/markt-evidence.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r13-market-evidence.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r13NachweisStatus": "R13_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-006",
@@ -1808,15 +1836,22 @@
         "V5-ALT-018",
         "V5-ALT-019"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/merchant/demand.ts",
+        "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r13-scheduler-budget.test.mjs",
+        "v5/grundlage/tests/r8-scheduler.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r13NachweisStatus": "R13_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-MULTI-001",
