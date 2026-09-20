@@ -47,12 +47,12 @@ export function validiereMapGraph(snapshot: MapGraphSnapshot): MapGraphNachweis 
     text(m.fingerprint,"MAPGRAPH_MAP_FINGERPRINT_UNGUELTIG");
     if (snapshot.maps.slice(0,i).some(x=>x.mapId===m.mapId)) throw new Error("MAPGRAPH_MAP_DOPPELT");
   }
-  const ids=new Set(snapshot.maps.map(x=>x.mapId));
+  const ids=Object.freeze(snapshot.maps.map(x=>x.mapId));
   for (let i=0;i<snapshot.kanten.length;i+=1){
     const k=snapshot.kanten[i];
     if(!k) throw new Error("MAPGRAPH_KANTE_FEHLT");
     for(const v of [k.vonMapId,k.nachMapId,k.kanteId,k.fingerprint]) text(v,"MAPGRAPH_KANTE_TEXT_UNGUELTIG");
-    if(!ids.has(k.vonMapId)||!ids.has(k.nachMapId)) throw new Error("MAPGRAPH_KANTE_ZIEL_UNBEKANNT");
+    if(!ids.includes(k.vonMapId)||!ids.includes(k.nachMapId)) throw new Error("MAPGRAPH_KANTE_ZIEL_UNBEKANNT");
     if(snapshot.kanten.slice(0,i).some(x=>x.kanteId===k.kanteId)) throw new Error("MAPGRAPH_KANTE_DOPPELT");
   }
   return Object.freeze({
