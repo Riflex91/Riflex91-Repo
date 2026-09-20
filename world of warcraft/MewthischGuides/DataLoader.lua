@@ -21,8 +21,10 @@ local function guideApplicable(guide, profile)
     if guide.classes and not contains(guide.classes, profile.class) then return false end
 
     local level = tonumber(profile.level) or 0
-    if guide.minLevel and level < tonumber(guide.minLevel) then return false end
-    if guide.maxLevel and level > tonumber(guide.maxLevel) then return false end
+    local minLevel = tonumber(guide.minLevel)
+    local maxLevel = tonumber(guide.maxLevel)
+    if minLevel and level < minLevel then return false end
+    if maxLevel and level > maxLevel then return false end
     return true
 end
 
