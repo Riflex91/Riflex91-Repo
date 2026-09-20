@@ -69,13 +69,14 @@
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
       "erfuellt": false,
-      "grund": "R7 bis R18 sind technisch nachgewiesen. R19 ist bis SOAK_10M bestanden; offen ist nur noch SOAK_15M als finales Integrations-/Release-Gate.",
+      "grund": "R7 bis R19 sind technisch nachgewiesen; R19-Ladder ist vollstaendig bestanden. Der Bereich bleibt bis zur formalen Bereinigung der noch offenen historischen R0-R3-Anforderungsstatus gesperrt.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
         "v5/anforderungen/nachverfolgbarkeit.json",
         "v5/roadmap/r19-soak-5m-evidence.json",
         "v5/roadmap/testzeit-standard.json",
-        "v5/roadmap/r19-soak-10m-evidence.json"
+        "v5/roadmap/r19-soak-10m-evidence.json",
+        "v5/roadmap/r19-soak-15m-evidence.json"
       ],
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
@@ -121,7 +122,7 @@
     {
       "kennung": "INVARIANTEN_BEREIT",
       "erfuellt": false,
-      "grund": "R3-R17 schliessen Architektur-, Persistenz-, Authority-, Recovery-, Merchant-, Multi-Character-, World-/Combat-, Navigation- und World-Autonomy-Grenzen. R18 schliesst authority-freies bounded Learning mit deterministischem Fallback und Policy-Precedence. Offen bleibt die Gesamtzertifizierung R19.",
+      "grund": "R3-R19 haben Architektur-, Persistenz-, Authority-, Recovery-, Domaenen- und Zertifizierungsgrenzen technisch nachgewiesen. Die globale Readiness bleibt bis zur separaten formalen Gesamtbereinigung gesperrt.",
       "nachweise": [
         "v5/invarianten/invarianten.json",
         "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
@@ -242,7 +243,7 @@
     {
       "kennung": "SECURITY_BEREIT",
       "erfuellt": false,
-      "grund": "R3-R10 weisen Safety-, Authority-, Scheduler-, Admission- und Recovery-Grenzen nach. R11 schliesst Health fail-closed, kritische Alert-Durability, observer-only Dashboard, erklaerbare Authority und Safety-Mutationstests. erfuellt bleibt false, bis spaetere Vertical-Slice-/Live-Gates die Runtime technisch und kontrolliert freigeben.",
+      "grund": "Safety-, Authority-, Admission-, Recovery-, Mutation- und R19-Zertifizierungsgates sind technisch nachgewiesen. Die globale Security-Readiness bleibt bis zur separaten Gesamtfreigabe gesperrt.",
       "nachweise": [
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
@@ -294,7 +295,7 @@
     {
       "kennung": "BETRIEBSMODELL_BEREIT",
       "erfuellt": false,
-      "grund": "R5 schliesst SSD-/Persistenzgrundlagen; R11 macht SSD-I/O-Latenz, Queue-Tiefe, Backpressure, freie Bytes und Recorder-Drops beobachtbar und testet Retention/Rotation/Kompressionsplanung. Offen bleibt der separat zu verifizierende lokale Windows-Bridge-Deploymentstand und die spaetere kontrollierte Runtime-/Zertifizierungsphase.",
+      "grund": "R19-Zertifizierung ist abgeschlossen. Offen bleibt die Verifikation der lokal installierten aktuellen Windows-Bridge sowie die formale Gesamtfreigabe.",
       "nachweise": [
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
         "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md",
@@ -312,9 +313,10 @@
     }
   ],
   "offeneBlocker": [
-    "R19 SOAK_15M ist die finale Zertifizierungsstufe und benoetigt eine lueckenlose 15-Minuten-Zeitreihe am PC",
-    "Breite Gameplay-Runtime bleibt bis zur erfolgreichen kompletten R19-Ladder und expliziten Gesamtfreigabe GESPERRT",
-    "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
+    "Historische offene R0-R3-Anforderungs- und Traceability-Status gegen vorhandene Abschlussnachweise formal bereinigen",
+    "Lokales Deployment der aktuellen Windows-Bridge verifizieren",
+    "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren",
+    "Breite Gameplay-Runtime bleibt bis zur separaten expliziten Gesamtfreigabe und zehn erfuellten Pflichtbereichen GESPERRT"
   ],
   "r2Status": "RATIFIZIERT",
   "r2AbgeschlossenAm": "2026-09-19",
@@ -364,14 +366,14 @@
   "r18Status": "ABGESCHLOSSEN",
   "r18AbgeschlossenAm": "2026-09-20",
   "r18Evidence": "v5/grundlage/vertraege/r18/learning-abdeckung.json",
-  "r19Status": "IN_PROGRESS",
+  "r19Status": "ABGESCHLOSSEN",
   "r19AutomatikStatus": "BIS_SHADOW_BESTANDEN",
   "r19AutomatikEvidence": "v5/roadmap/r19-automatik-evidence.json",
-  "r19NaechsteStufe": "SOAK_15M",
-  "r19ManuellerPcTestErforderlich": true,
-  "r19AnforderungenNachgewiesen": 2,
+  "r19NaechsteStufe": null,
+  "r19ManuellerPcTestErforderlich": false,
+  "r19AnforderungenNachgewiesen": 3,
   "r19AnforderungenGesamt": 3,
-  "r19LiveStatus": "BIS_SOAK_10M_BESTANDEN",
+  "r19LiveStatus": "BIS_SOAK_15M_BESTANDEN",
   "r19ControlledLiveEvidence": "v5/roadmap/r19-controlled-live-evidence.json",
   "r19CanaryEvidence": "v5/roadmap/r19-canary-evidence.json",
   "r19Zeitprofil": "R19_ACCELERATED_SOAK_V2",
@@ -379,5 +381,8 @@
   "testzeitStandard": "V5_TESTZEIT_STANDARD_V1",
   "funktionsTestdauerMs": 300000,
   "integrationsReleaseTestdauerMs": 900000,
-  "r19Soak10mEvidence": "v5/roadmap/r19-soak-10m-evidence.json"
+  "r19Soak10mEvidence": "v5/roadmap/r19-soak-10m-evidence.json",
+  "r19AbgeschlossenAm": "2026-09-20",
+  "r19Soak15mEvidence": "v5/roadmap/r19-soak-15m-evidence.json",
+  "r19LadderVollstaendig": true
 }

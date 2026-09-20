@@ -887,7 +887,7 @@ Maschinenlesbarer Abschluss: `roadmap/r18-abschluss.json`.
 
 ## R19 – Runtime-Zertifizierung (beschleunigtes Zeitprofil)
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
 
 Jede Stufe benoetigt unveraenderliche Evidence.
 
@@ -978,7 +978,18 @@ Realer Uebergangs-Soak: 600012 ms, 21 Samples, 0 Sample-Gaps, 0 Recorder-Drops, 
 
 Evidence: `roadmap/r19-soak-10m-evidence.json`.
 
-Naechste und finale Stufe: **SOAK_15M** als Integrations-/Release-Gate. OPS-006 bleibt offen.
+SOAK_15M ist als finale Integrations-/Release-Stufe bestanden; OPS-006 ist R19_NACHGEWIESEN.
+
+
+### SOAK_15M
+
+**Status:** BESTANDEN.
+
+Finaler Integrations-/Release-Soak: 900007 ms, 31 Samples, 0 Sample-Gaps, 0 Recorder-Drops, gueltige Evidence-Kette, 0 Gameplay-Writes durch den Harness und 0 `performance_trick`-Ausfaelle. Heap-Wachstum: 10717930 Bytes bei 536870912 Bytes Grenze.
+
+Evidence: `roadmap/r19-soak-15m-evidence.json`.
+
+Die R19-Ladder ist damit vollstaendig bestanden. Maschinenlesbarer Abschluss: `roadmap/r19-abschluss.json`. Die breite Runtime bleibt bis zur separaten globalen Readiness-/Gesamtfreigabe `GESPERRT`.
 
 
 ### Beschleunigtes Soak-Zeitprofil

@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20T11:18:29.035Z",
+  "phase": "R19",
+  "status": "BESTANDEN",
+  "evidenceArt": "MANUELLE_SOAK_EVIDENCE",
+  "zertifizierungsStufe": "SOAK_15M",
+  "source": "V5_INGAME_TEST_GUI_BERICHT",
+  "sourceGuiVersion": "1.1.0",
+  "sourceKennung": "r19-soak-15m",
+  "charakter": "My_Merchant",
+  "breiteRuntimeFreigabe": false,
+  "scope": "CANARY_SCOPE_READ_ONLY_SOAK",
+  "gameplayWritesDurchHarness": 0,
+  "unerwarteteGameWritesImHarness": 0,
+  "sampleAnzahl": 31,
+  "dauerMs": 900007,
+  "sampleGaps": 0,
+  "recorderDrops": 0,
+  "evidenceKetteGueltig": true,
+  "ersteEvidence": "b44d0d14",
+  "letzteEvidence": "bb927aa4",
+  "ressourcen": {
+    "heapMetrikUnterstuetzt": true,
+    "storageEstimateUnterstuetzt": true,
+    "ersterHeapBytes": 47864153,
+    "maxHeapBytes": 58582083,
+    "heapWachstumBytes": 10717930,
+    "minFreieBytes": 2147483648,
+    "maxBrowserPersistenzRoundtripMs": 0.10000000149011612,
+    "maxInterneIoQueueTiefe": 0,
+    "browserPersistenzFehler": 0
+  },
+  "runtime": {
+    "alternativeRuntimeSamples": 0,
+    "toteSamples": 0,
+    "performanceTrickFehler": 0,
+    "hiddenSamples": 0
+  },
+  "performanceTrickVorpruefung": {
+    "verfuegbar": true,
+    "audioGefunden": true,
+    "cplaying": false,
+    "playing": true,
+    "howlState": "loaded",
+    "aktiv": true,
+    "visibilityState": "visible",
+    "aufgerufen": true,
+    "fehler": null,
+    "verifikation": "HOWLER_PLAYING_TRUE"
+  },
+  "grenzen": {
+    "dauerMs": 900000,
+    "intervallMs": 30000,
+    "maximalerSampleGapMs": 90000,
+    "minimaleSamples": 30,
+    "minimaleFreieBytes": 67108864,
+    "maximalerBrowserPersistenzRoundtripMs": 250,
+    "maximalesHeapWachstumBytes": 536870912
+  },
+  "blocker": [],
+  "ladder": {
+    "vorherigeStufe": "SOAK_10M",
+    "dieseStufe": "SOAK_15M",
+    "naechsteStufe": null,
+    "finaleStufe": true
+  },
+  "hinweis": "SOAK_15M ist als finales Integrations-/Release-Zeitgate von R19_ACCELERATED_SOAK_V2 bestanden. Damit ist die R19-Ladder vollstaendig. Diese Evidence selbst gibt die breite Runtime nicht frei; die separate Gesamtfreigabe-/Readiness-Regel bleibt massgeblich."
+}

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R19",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "breiteRuntimeFreigabe": false,
+  "profil": "R19_ACCELERATED_SOAK_V2",
+  "testzeitStandard": "V5_TESTZEIT_STANDARD_V1",
+  "ladder": {
+    "status": "VOLLSTAENDIG_BESTANDEN",
+    "stufen": [
+      "SIMULATOR_REPLAY",
+      "FAULT_SUITE",
+      "SHADOW",
+      "CONTROLLED_LIVE",
+      "CANARY",
+      "SOAK_5M",
+      "SOAK_10M",
+      "SOAK_15M"
+    ],
+    "finaleStufe": "SOAK_15M",
+    "naechsteStufe": null
+  },
+  "anforderungen": {
+    "phaseR19": 3,
+    "technischNachgewiesen": 3,
+    "status": "R19_NACHGEWIESEN"
+  },
+  "traceability": {
+    "phaseR19": 3,
+    "vollstaendig": 3
+  },
+  "liveEvidence": {
+    "controlledLive": "v5/roadmap/r19-controlled-live-evidence.json",
+    "canary": "v5/roadmap/r19-canary-evidence.json",
+    "soak5m": "v5/roadmap/r19-soak-5m-evidence.json",
+    "soak10m": "v5/roadmap/r19-soak-10m-evidence.json",
+    "soak15m": "v5/roadmap/r19-soak-15m-evidence.json"
+  },
+  "nullToleranz": {
+    "unerwarteteGameWrites": 0,
+    "sampleGaps": 0,
+    "recorderDrops": 0,
+    "performanceTrickAusfaelle": 0,
+    "alternativeRuntimeSamples": 0
+  },
+  "naechstePhase": null,
+  "gesamtfreigabe": "SEPARAT_AUSSTEHEND",
+  "hinweis": "R19 ist als terminale Zertifizierungsphase abgeschlossen. Die breite Gameplay-Runtime bleibt gemaess separater Laufzeitbereitschaft gesperrt, bis alle zehn Pflichtbereiche erfuellt und die Gesamtfreigabe explizit gesetzt sind."
+}

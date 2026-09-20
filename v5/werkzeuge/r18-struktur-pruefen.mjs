@@ -44,7 +44,7 @@ if(fitness.length!==0) fehler("R18 besitzt keine eigenen ratifizierten Fitnessre
 
 if(r18.status==="DONE"){
   const r19=gates.phases?.find(x=>x.id==="R19");
-  if(!(gates.currentPhase==="R19"&&r19?.status==="IN_PROGRESS")) fehler("R18 DONE verlangt R19 IN_PROGRESS.");
+  if(!(gates.currentPhase==="R19"&&["IN_PROGRESS","DONE"].includes(r19?.status))) fehler("R18 DONE verlangt R19 IN_PROGRESS oder terminal DONE.");
   const cov=lies("grundlage/vertraege/r18/learning-abdeckung.json");
   if(cov.phase!=="R18"||cov.status!=="TECHNISCH_BESTANDEN"||cov.runtimeGate!=="GESPERRT"
       ||cov.gameplayAutoritaet!==false||cov.rawWriteAutoritaet!==false

@@ -33,6 +33,12 @@ function visit(id){
 for (const id of ids) visit(id);
 
 const active = doc.phases.filter(p=>p.status==='IN_PROGRESS');
-if (active.length !== 1 || active[0].id !== doc.currentPhase) fail('exactly one IN_PROGRESS phase must equal currentPhase');
+const terminal = doc.currentPhase === 'R19'
+  && byId.get('R19')?.status === 'DONE'
+  && doc.phases.every(p=>p.status === 'DONE');
+if (!terminal && (active.length !== 1 || active[0].id !== doc.currentPhase)) {
+  fail('exactly one IN_PROGRESS phase must equal currentPhase unless terminal R19 is DONE');
+}
+if (terminal && active.length !== 0) fail('terminal R19 darf keine aktive Phase mehr besitzen');
 
-console.log('[V5-ROADMAP] OK:', doc.phases.length, 'phases; current =', doc.currentPhase, '/ Funktionsgate = 5m / Integration-Release = 15m');
+console.log('[V5-ROADMAP] OK:', doc.phases.length, 'phases; current =', doc.currentPhase, '/ terminal =', terminal, '/ Funktionsgate = 5m / Integration-Release = 15m');
