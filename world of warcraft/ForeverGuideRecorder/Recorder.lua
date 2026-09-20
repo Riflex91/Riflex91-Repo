@@ -104,6 +104,23 @@ local function recordGossip()
     })
 end
 
+local function activeQuestIDs()
+    local ids = {}
+    if not C_QuestLog or not C_QuestLog.GetNumQuestLogEntries or not C_QuestLog.GetInfo then
+        return ids
+    end
+
+    local count = C_QuestLog.GetNumQuestLogEntries()
+    for index = 1, count do
+        local info = C_QuestLog.GetInfo(index)
+        if info and not info.isHeader and info.questID then
+            ids[#ids + 1] = info.questID
+        end
+    end
+    table.sort(ids)
+    return ids
+end
+
 local function sampleRoute()
     local p = FGR:GetPosition()
     if not p or not p.mapID or not p.x or not p.y then return end
@@ -185,6 +202,8 @@ frame:SetScript("OnEvent", function(_, event, ...)
     elseif event == "PLAYER_DEAD" then
         FGR:Record("player.death", nil, {
             position = FGR:GetPosition(),
+            activeQuestIDs = activeQuestIDs(),
+            level = UnitLevel("player"),
         }, "gameplay-event")
 
     elseif event == "ZONE_CHANGED_NEW_AREA" then
