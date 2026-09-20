@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_PLANUNGS_AKTIVIERUNG",
+  "stand": "2026-09-20",
+  "status": "RATIFIZIERT",
+  "policyId": "POLICY-V5-PLANUNGS-AKTIVIERUNG",
+  "erlaubterModus": "PLANEN",
+  "standardAktiv": false,
+  "voraussetzungen": [
+    "V5_RUNTIME_LAEUFT",
+    "PROVIDER_MODUL_EXAKT",
+    "PROVIDER_VERSION_EXAKT",
+    "PROVIDER_MODUL_GESUND",
+    "CAPABILITY_REGISTRIERT",
+    "CAPABILITY_VERFUEGBAR",
+    "CAPABILITY_STANDARD_AKTIV_FALSE",
+    "SUPERVISOR_BEREIT",
+    "AKTUELLE_HEALTH_EVIDENCE",
+    "OPERATIONS_METRIK_VORHANDEN",
+    "OPERATOR_DENY_ERLAUBT",
+    "NOTHALT_INAKTIV",
+    "DURABLE_AUDIT_VOR_WIRKUNG",
+    "REVALIDIERUNG_NACH_AUDIT"
+  ],
+  "verboten": [
+    "MUTIEREN",
+    "IMPLIZITE_AKTIVIERUNG_BEIM_RUNTIME_START",
+    "OPERATOR_ALLOW_BEFEHL",
+    "GAMEPLAY_AUTHORITY",
+    "RAW_WRITE_AUTHORITY",
+    "ACTION_AUTHORITY"
+  ],
+  "authority": {
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "actionAuthority": false,
+    "gueltigkeitDurchHealthEvidenceBegrenzt": true
+  },
+  "audit": {
+    "durableVorLokalerWirkung": true,
+    "revalidierungNachAudit": true
+  },
+  "mutierendeCapabilitiesDurchDiesenVertrag": 0
+}
