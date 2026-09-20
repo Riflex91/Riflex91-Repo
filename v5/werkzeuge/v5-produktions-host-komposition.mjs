@@ -17,6 +17,9 @@ import {
   NodePlanenAktivierungsProtokoll,
 } from "../grundlage/adapter/persistenz/node-planen-aktivierungs-protokoll.mjs";
 import {
+  NodeEquipEinmalAuthorityProtokoll,
+} from "../grundlage/adapter/persistenz/node-equip-einmal-authority-protokoll.mjs";
+import {
   NodeBedienerDenyProtokoll,
 } from "../grundlage/adapter/persistenz/node-bediener-deny-protokoll.mjs";
 import {
@@ -76,6 +79,11 @@ class NodeV5ProduktionsHost {
   async aktivierePlanen(anfrage, jetztMs) {
     pruefeZeit(jetztMs);
     return this.#host.aktivierePlanen(anfrage, jetztMs);
+  }
+
+  async erteileEquipEinmalAuthority(anfrage, jetztMs) {
+    pruefeZeit(jetztMs);
+    return this.#host.erteileEquipEinmalAuthority(anfrage, jetztMs);
   }
 
   async wendeDenyAn(befehl, jetztMs) {
@@ -138,10 +146,14 @@ export async function erstelleNodeV5ProduktionsHost({
   const planenProtokoll = new NodePlanenAktivierungsProtokoll(
     dateisystem,
   );
+  const equipEinmalAuthorityProtokoll = new NodeEquipEinmalAuthorityProtokoll(
+    dateisystem,
+  );
   const runtime = new V5ProduktionsRuntime(
     erstelleKanonischeProduktionsKomposition(),
     bedienerRichtlinie,
     planenProtokoll,
+    equipEinmalAuthorityProtokoll,
   );
   const gesamtfreigabeGate = new ProduktivesV5GesamtfreigabeGate(
     effektiveBereitschaft,
