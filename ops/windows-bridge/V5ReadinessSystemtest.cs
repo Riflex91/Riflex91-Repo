@@ -165,18 +165,7 @@ public sealed class V5ReadinessSystemtest
             }
             finally
             {
-                try
-                {
-                    if (Directory.Exists(testWurzel))
-                        Directory.Delete(testWurzel, recursive: true);
-
-                    if (Directory.Exists(testWurzel))
-                        cleanupFehler = "TEMP_ARBEITSKOPIE_NACH_DELETE_NOCH_VORHANDEN";
-                }
-                catch (Exception error)
-                {
-                    cleanupFehler = Begrenze(error.Message);
-                }
+                cleanupFehler = await EntferneTempArbeitskopieAsync(testWurzel);
             }
 
             punkte.Add(new V5ReadinessPruefpunkt(
@@ -243,6 +232,84 @@ public sealed class V5ReadinessSystemtest
         text.AppendLine("=== ERGEBNIS ===");
         text.AppendLine(json);
         return text.ToString();
+    }
+
+    internal static async Task<string?> EntferneTempArbeitskopieAsync(string testWurzel)
+    {
+        const int maximaleVersuche = 6;
+        Exception? letzterFehler = null;
+
+        for (var versuch = 1; versuch <= maximaleVersuche; versuch++)
+        {
+            try
+            {
+                if (!Directory.Exists(testWurzel))
+                    return null;
+
+                EntferneSchreibschutzRekursiv(testWurzel);
+                Directory.Delete(testWurzel, recursive: true);
+
+                if (!Directory.Exists(testWurzel))
+                    return null;
+
+                letzterFehler = new IOException("TEMP_ARBEITSKOPIE_NACH_DELETE_NOCH_VORHANDEN");
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                letzterFehler = error;
+            }
+
+            if (versuch < maximaleVersuche)
+                await Task.Delay(TimeSpan.FromMilliseconds(150 * versuch));
+        }
+
+        return "TEMP_ARBEITSKOPIE_CLEANUP_FEHLER_NACH_RETRY:" + Begrenze(letzterFehler?.Message);
+    }
+
+    private static void EntferneSchreibschutzRekursiv(string wurzel)
+    {
+        if (!Directory.Exists(wurzel))
+            return;
+
+        foreach (var datei in Directory.EnumerateFiles(wurzel, "*", SearchOption.AllDirectories))
+        {
+            try
+            {
+                var attribute = File.GetAttributes(datei);
+                if ((attribute & FileAttributes.ReadOnly) != 0)
+                    File.SetAttributes(datei, attribute & ~FileAttributes.ReadOnly);
+            }
+            catch (FileNotFoundException)
+            {
+            }
+            catch (DirectoryNotFoundException)
+            {
+            }
+        }
+
+        foreach (var verzeichnis in Directory.EnumerateDirectories(wurzel, "*", SearchOption.AllDirectories)
+                     .OrderByDescending(pfad => pfad.Length))
+        {
+            try
+            {
+                var attribute = File.GetAttributes(verzeichnis);
+                if ((attribute & FileAttributes.ReadOnly) != 0)
+                    File.SetAttributes(verzeichnis, attribute & ~FileAttributes.ReadOnly);
+            }
+            catch (DirectoryNotFoundException)
+            {
+            }
+        }
+
+        try
+        {
+            var wurzelAttribute = File.GetAttributes(wurzel);
+            if ((wurzelAttribute & FileAttributes.ReadOnly) != 0)
+                File.SetAttributes(wurzel, wurzelAttribute & ~FileAttributes.ReadOnly);
+        }
+        catch (DirectoryNotFoundException)
+        {
+        }
     }
 
     private static string Begrenze(string? wert, int maximal = 512)
