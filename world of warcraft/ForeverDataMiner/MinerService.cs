@@ -24,6 +24,9 @@ public sealed class MinerService(MinerOptions options)
         foreach (var exe in CandidateExecutables())
             AddFingerprint(bundle, exe, "client.executable");
 
+        foreach (var cache in CandidateHotfixCaches())
+            AddFingerprint(bundle, cache, "hotfix.cache");
+
         var stamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss");
         var safeBuild = string.Concat(build.Version.Select(c => char.IsLetterOrDigit(c) || c is '.' or '-' ? c : '_'));
         var zipPath = Path.Combine(options.OutputDirectory, $"ForeverDataMiner-{safeBuild}-{stamp}.fgds.zip");
@@ -79,24 +82,26 @@ public sealed class MinerService(MinerOptions options)
 
     public async Task WatchAsync(CancellationToken cancellationToken = default)
     {
-        string? lastBuildKey = null;
-        string? lastVersion = null;
+        string? lastState = null;
 
         while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
                 var build = BuildInfoReader.Read(options.WowRoot);
-                var changed = lastVersion is null ||
-                    !string.Equals(lastVersion, build.Version, StringComparison.Ordinal) ||
-                    !string.Equals(lastBuildKey, build.BuildKey, StringComparison.Ordinal);
+                var state = BuildWatchState(build);
 
-                if (changed)
+                if (!string.Equals(lastState, state, StringComparison.Ordinal))
                 {
+                    if (!await WaitForFilesToSettleAsync(cancellationToken))
+                    {
+                        await Task.Delay(options.PollInterval, cancellationToken);
+                        continue;
+                    }
+
                     var output = await ScanAsync(cancellationToken);
-                    Console.WriteLine($"[{DateTimeOffset.Now:T}] Build {build.Version} captured -> {output}");
-                    lastVersion = build.Version;
-                    lastBuildKey = build.BuildKey;
+                    Console.WriteLine($"[{DateTimeOffset.Now:T}] Forever data state captured -> {output}");
+                    lastState = BuildWatchState(BuildInfoReader.Read(options.WowRoot));
                 }
             }
             catch (IOException ex)
@@ -108,6 +113,32 @@ public sealed class MinerService(MinerOptions options)
         }
     }
 
+    private string BuildWatchState(BuildIdentity build)
+    {
+        var parts = new List<string>
+        {
+            build.Version,
+            build.BuildKey ?? string.Empty,
+            build.CdnKey ?? string.Empty,
+        };
+
+        foreach (var cache in CandidateHotfixCaches().OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+        {
+            var info = new FileInfo(cache);
+            parts.Add($"{cache}|{info.Length}|{info.LastWriteTimeUtc.Ticks}");
+        }
+
+        return string.Join(";", parts);
+    }
+
+    private async Task<bool> WaitForFilesToSettleAsync(CancellationToken cancellationToken)
+    {
+        var first = BuildWatchState(BuildInfoReader.Read(options.WowRoot));
+        await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+        var second = BuildWatchState(BuildInfoReader.Read(options.WowRoot));
+        return string.Equals(first, second, StringComparison.Ordinal);
+    }
+
     private IEnumerable<string> CandidateExecutables()
     {
         var names = new[] { "Wow.exe", "WowClassic.exe" };
@@ -116,6 +147,27 @@ public sealed class MinerService(MinerOptions options)
         {
             var path = Path.Combine(options.WowRoot, product, name);
             if (File.Exists(path)) yield return path;
+        }
+    }
+
+    private IEnumerable<string> CandidateHotfixCaches()
+    {
+        foreach (var product in new[] { "_beta_", "_classic_", "_retail_" })
+        {
+            var root = Path.Combine(options.WowRoot, product, "Cache");
+            if (!Directory.Exists(root)) continue;
+
+            IEnumerable<string> files;
+            try
+            {
+                files = Directory.EnumerateFiles(root, "DBCache.bin", SearchOption.AllDirectories).Take(32).ToArray();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                continue;
+            }
+
+            foreach (var file in files) yield return file;
         }
     }
 
