@@ -59,7 +59,11 @@ Themes
   protected by default
 - safe non-weapon item-level upgrades may use the item-level fallback even
   without a class-specific stat profile
-- recognized BoE items remain protected from automatic binding
+- same-itemlevel non-weapon gear may auto-equip only when its comparable
+  numeric stats strictly dominate the currently equipped item with no loss
+- armor proficiency is checked conservatively before auto-equip
+- unbound gear is not treated as BoE by default: actual bind type is inspected;
+  recognized BoE and unknown binding state remain protected
 - rings and trinkets are compared against the weaker of their two slots
 - weapons are not auto-equipped by default
 - telemetry is local SavedVariables diagnostics only; nothing is transmitted
@@ -105,14 +109,18 @@ transformierten Datenbasis erhalten.
 - inventory/gear upgrade scan
 - optional fail-closed gear auto-equip
 - talent recommendation framework
-- fünf deutlich unterschiedliche Themes:
+- sieben Themes in fester Reihenfolge:
+  - ElvUI
+  - EllesmereUI
+  - ToxiUI
   - Forever Classic
   - Obsidian
   - Arcane
   - Warcraft Heritage
-  - ElvUI
-- das ElvUI-Theme übernimmt bei erkanntem ElvUI dessen Hintergrund-,
-  Rahmen-, Akzentfarben und Standardschrift
+- ElvUI ist der Default für neue Profile und übernimmt bei erkanntem ElvUI
+  dessen Hintergrund-, Rahmen-, Akzentfarben und Standardschrift
+- EllesmereUI und ToxiUI verwenden adaptive Integrationen, wenn die jeweilige
+  UI verfügbar ist, und statische Fallbacks andernfalls
 - diagnostics and subsystem health
 
 Useful commands:
@@ -154,6 +162,15 @@ manueller und vorgegebener Route sowie Auto-Equip unter realen Bag-/Item-APIs.
 - Der Navigator-Pfeil hat eine feste größere Darstellungsgröße, damit Atlas-
   Native-Size und Entfernungstext nicht mehr in einem falschen Größenverhältnis
   stehen.
-- Gear-Erkennung verwendet `IsUsableItem` nicht mehr als Ausschlusskriterium
-  für Rüstung, lädt fehlende Itemdaten nach und nutzt `EquipItemByName` als
-  bevorzugten sicheren Equip-Pfad mit Cursor-Fallback.
+- Gear-Erkennung verwendet `IsUsableItem` nicht mehr als pauschales
+  Ausschlusskriterium, lädt fehlende Itemdaten über
+  `GET_ITEM_INFO_RECEIVED` / `ITEM_DATA_LOAD_RESULT` nach und schützt
+  nicht tragbare Rüstung über die Rüstungsprofi-Prüfung.
+- Ungebunden bedeutet nicht mehr automatisch BoE: Der echte Bind-Typ wird
+  ausgewertet. Erkannte BoE-Items und unbekannte Bind-Zustände bleiben
+  fail-closed geschützt.
+- Sichere gleiche-Itemlevel-Upgrades werden zusätzlich über strikte
+  Stat-Dominanz erkannt. Der Recorder-Fall „Ausgefranste Hose“ gegenüber der
+  Start-Hose ist als Regression abgedeckt.
+- Auto-Equip unterscheidet nun zwischen angefordert und tatsächlich bestätigt;
+  fehlende Bestätigung wird als Diagnose-Warnung protokolliert.
