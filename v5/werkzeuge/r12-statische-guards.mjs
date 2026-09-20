@@ -140,7 +140,7 @@ for (const marker of [
   "unerwarteteGameWrites: 0",
   "breiteRuntimeFreigabe: false",
   "PERFORMANCE_TRICK_NICHT_AKTIV",
-  "await guiApi().aktivierePerformanceTrick()",
+  "guiApi().aktivierePerformanceTrick()",
 ]) {
   if (!r12Gui.includes(marker)) fehler.push("R12_TEST_GUI_MARKER_FEHLT:" + marker);
 }
