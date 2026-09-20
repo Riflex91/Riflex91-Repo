@@ -294,6 +294,8 @@ Zertifizierungsevidence muss diese Identitaet tragen.
 
 Vor echtem Runtime-Code entscheidet ausschliesslich `v5/bereitschaft/laufzeit-bereitschaft.json`.
 
+**R12-Testausnahme:** Der einmalige Controlled-Live-Nachweis ist keine breite oder persistente Runtime-Freigabe. R12 darf ausschliesslich ueber das in ADR-014 definierte, kontextgebundene One-Shot-Testgate genau eine `AL-ACTION-EQUIP`-Mutation ausfuehren. Das globale Runtime-Gate bleibt dabei `GESPERRT`; Host/Bridge erhalten keine Gameplay-Autoritaet.
+
 Nur wenn alle Pflichtbereiche `erfuellt: true` tragen und der Validator `FREIGEGEBEN` meldet, darf die Runtime-Grundstruktur angelegt werden.
 
 
