@@ -55,19 +55,42 @@ jobs:
           near(abs, 0, 0.0001, "north absolute")
           near(rel, 0, 0.0001, "north relative")
 
+          -- WoW facing/texture rotation uses 0=north and positive=counter-clockwise.
           rel, abs = MG:ComputeRelativeBearing(1, 0, 0)
-          near(abs, math.pi / 2, 0.0001, "east absolute")
-          near(rel, math.pi / 2, 0.0001, "east from north")
+          near(abs, math.pi * 3 / 2, 0.0001, "east absolute")
+          near(rel, -math.pi / 2, 0.0001, "east from north")
 
-          rel = MG:ComputeRelativeBearing(1, 0, math.pi / 2)
+          rel = MG:ComputeRelativeBearing(1, 0, math.pi * 3 / 2)
           near(rel, 0, 0.0001, "east while facing east")
 
           rel, abs = MG:ComputeRelativeBearing(0, -1, 0)
           near(abs, math.pi, 0.0001, "south absolute")
           near(math.abs(rel), math.pi, 0.0001, "south relative")
 
-          rel = MG:ComputeRelativeBearing(-1, 0, 0)
-          near(rel, -math.pi / 2, 0.0001, "west from north")
+          rel, abs = MG:ComputeRelativeBearing(-1, 0, 0)
+          near(abs, math.pi / 2, 0.0001, "west absolute")
+          near(rel, math.pi / 2, 0.0001, "west from north")
+
+          -- Blizzard world coordinates are rotated against UI-map axes.
+          near(MG:ComputeWorldAbsoluteBearing(1, 0), 0, 0.0001, "world north")
+          near(MG:ComputeWorldAbsoluteBearing(0, -1), math.pi * 3 / 2, 0.0001, "world east")
+          near(MG:ComputeWorldAbsoluteBearing(-1, 0), math.pi, 0.0001, "world south")
+          near(MG:ComputeWorldAbsoluteBearing(0, 1), math.pi / 2, 0.0001, "world west")
+
+          -- Regression from the 2026-09-20 Forever field run:
+          -- player ~42.08/68.39, quest target ~44.30/55.64, facing almost north.
+          -- The target is ahead-right, not ~90 degrees to the side.
+          local playerX, playerY = 0.4207731485366821, 0.6839030981063843
+          local targetX, targetY = 0.443026065826416, 0.5564066171646118
+          local facing = 0.03902159631252289
+          rel, abs = MG:ComputeRelativeBearing(
+            targetX - playerX,
+            playerY - targetY,
+            facing)
+          assert(rel < 0 and rel > -0.35,
+            string.format("field regression: expected slight right turn, got %.6f", rel))
+          assert(abs > 6.0,
+            string.format("field regression: expected NE absolute bearing, got %.6f", abs))
 
           print("Bearing math PASS")
           LUA
@@ -236,6 +259,8 @@ jobs:
 
           grep -q 'RouteEngine:Resolve' "$NAV"
           grep -q 'WorldCoordinates' "$NAV"
+          grep -q 'ComputeWorldAbsoluteBearing' "$NAV"
+          grep -q 'world X is north/south' "$NAV"
           if grep -q 'navigationScreenAngle' "$NAV"; then
             echo "Unsafe guessed screen-angle fallback detected."
             exit 1
@@ -247,6 +272,7 @@ jobs:
           fi
 
           grep -q 'Fenster-Transparenz' "$UI"
+          grep -q 'math.abs(current - transparency)' "$UI"
           grep -q 'API-Modus' "$UI"
           grep -q 'RouteEngine' "$UI"
 
