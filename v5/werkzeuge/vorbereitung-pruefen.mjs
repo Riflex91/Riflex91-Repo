@@ -184,9 +184,11 @@ const erwarteteBridgeReadinessPunkte = [
   'CONFIG_VERSION',
   'WISSENSWAECHTER_AKTIV',
   'WISSENSWAECHTER_INTERVALL',
+  'GITHUB_AUTH_MODUS',
   'KNOWLEDGE_REPOSITORY',
   'KNOWLEDGE_BRANCH',
   'KNOWLEDGE_SCOPE',
+  'KNOWLEDGE_SYNC_LEAST_PRIVILEGE',
   'LIVE_WISSEN_PFAD',
   'TEST_OHNE_GAMEPLAY_WRITE',
   'GIT_CREDENTIAL_MANAGER',
@@ -196,7 +198,7 @@ const erwarteteBridgeReadinessPunkte = [
 ];
 if (windowsBridgeReadinessProfil.schemaVersion !== 1
     || windowsBridgeReadinessProfil.kennung !== 'V5_WINDOWS_BRIDGE_READINESS'
-    || windowsBridgeReadinessProfil.testVersion !== '1.0.0'
+    || windowsBridgeReadinessProfil.testVersion !== '1.1.0'
     || windowsBridgeReadinessProfil.automatischerErfolgsstatus
         !== 'AUTOMATISCHE_PRUEFUNGEN_BESTANDEN_MANUELLER_AUTORISIERUNGSNACHWEIS_OFFEN') {
   fehler('Windows-Bridge-Readiness-Testprofil hat eine unerwartete Kennung/Version/Erfolgssemantik.');
@@ -214,9 +216,29 @@ if (windowsBridgeReadinessProfil.sicherheit?.gameplayWritesDurchTest !== 0
     || windowsBridgeReadinessProfil.sicherheit?.tokenImBericht !== false
     || windowsBridgeReadinessProfil.sicherheit?.tempArbeitskopie !== true
     || windowsBridgeReadinessProfil.sicherheit?.tempArbeitskopieCleanupPflicht !== true
+    || windowsBridgeReadinessProfil.sicherheit?.githubAuthentifizierungsmodus !== 'FINE_GRAINED_PAT'
+    || windowsBridgeReadinessProfil.sicherheit?.minimalBerechtigungsprofil !== 'REPOSITORY_ONLY_CONTENTS_WRITE'
+    || windowsBridgeReadinessProfil.sicherheit?.mainIntegrationVorKnowledgePush !== false
     || windowsBridgeReadinessProfil.breiteRuntimeFreigabeAutomatisch !== false) {
   fehler('Windows-Bridge-Readiness-Testprofil verletzt den Safety-/Freigabevertrag.');
 }
+const githubAnmeldungQuelle = fs.readFileSync('ops/windows-bridge/GitHubAnmeldung.cs', 'utf8');
+if (!githubAnmeldungQuelle.includes('credential.gitHubAuthModes=pat')
+    || githubAnmeldungQuelle.includes('credential.gitHubAuthModes=browser')
+    || !githubAnmeldungQuelle.includes('Authentifizierungsmodus = "FINE_GRAINED_PAT"')
+    || !githubAnmeldungQuelle.includes('MinimalBerechtigungsprofil = "REPOSITORY_ONLY_CONTENTS_WRITE"')) {
+  fehler('Windows Bridge muss GitHub fail-closed ueber den PAT-only Least-Privilege-Pfad anmelden.');
+}
+
+const gitArbeitskopieQuelle = fs.readFileSync('ops/windows-bridge/GitArbeitskopie.cs', 'utf8');
+if (!gitArbeitskopieQuelle.includes('SyncStrategie = "KNOWLEDGE_ONLY_NO_MAIN_MERGE"')
+    || !gitArbeitskopieQuelle.includes('IntegriertBasisVorPush = false')
+    || !gitArbeitskopieQuelle.includes('$"origin/{BasisBranch}...HEAD"')
+    || gitArbeitskopieQuelle.includes('["merge", "--no-edit", $"origin/{BasisBranch}"]')
+    || gitArbeitskopieQuelle.includes('["rebase", $"origin/{BasisBranch}"]')) {
+  fehler('Knowledge-Sync darf main nicht lokal mergen/rebasen und muss den Branch-Anteil per Merge-Base begrenzen.');
+}
+
 const erwarteteBridgeReadinessBereiche = [
   'ANFORDERUNGEN_BEREIT',
   'SECURITY_BEREIT',
