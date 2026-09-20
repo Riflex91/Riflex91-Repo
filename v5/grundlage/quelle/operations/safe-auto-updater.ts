@@ -120,6 +120,18 @@ interface PersistierterSafeUpdateSnapshot {
   readonly eintraege: readonly SafeUpdateSicht[];
 }
 
+const safeUpdateZustaende: readonly SafeUpdateZustand[] = Object.freeze([
+  "GEPLANT",
+  "QUIESCE_AUSSTEHEND",
+  "QUIESCED",
+  "APPLY_AUSSTEHEND",
+  "COMMITTED",
+  "ROLLBACK_AUSSTEHEND",
+  "ROLLED_BACK_SAFE",
+  "RECOVERY_PENDING",
+  "FAILED_SAFE",
+]);
+
 const terminaleZustaende: readonly SafeUpdateZustand[] = Object.freeze([
   "COMMITTED",
   "ROLLED_BACK_SAFE",
@@ -181,10 +193,9 @@ function istTerminal(zustand: SafeUpdateZustand): boolean {
   return terminaleZustaende.includes(zustand);
 }
 
-function validiereReleaseEvidence(
+function validiereReleaseEvidenceStruktur(
   evidence: V5ReleaseEvidence,
   aktuellerReleaseSha: string,
-  jetztMs: number,
 ): void {
   if (evidence.schemaVersion !== 1
       || evidence.gameplayAutoritaet !== false
@@ -216,6 +227,20 @@ function validiereReleaseEvidence(
   if (evidence.candidateSha === evidence.basisSha) {
     throw new Error("SAFE_UPDATE_CANDIDATE_IST_BEREITS_AKTUELL");
   }
+  if (!Number.isSafeInteger(evidence.beobachtetAmMs)
+      || !Number.isSafeInteger(evidence.gueltigBisMs)
+      || evidence.beobachtetAmMs < 0
+      || evidence.gueltigBisMs < evidence.beobachtetAmMs) {
+    throw new Error("SAFE_UPDATE_RELEASE_EVIDENCE_ZEIT_UNGUELTIG");
+  }
+}
+
+function validiereReleaseEvidence(
+  evidence: V5ReleaseEvidence,
+  aktuellerReleaseSha: string,
+  jetztMs: number,
+): void {
+  validiereReleaseEvidenceStruktur(evidence, aktuellerReleaseSha);
   if (!evidenceFrisch(
     evidence.beobachtetAmMs,
     evidence.gueltigBisMs,
@@ -589,11 +614,100 @@ function parsePersistenz(text: string): PersistierterSafeUpdateSnapshot {
       || roh["eintraege"].length > 512) {
     throw new Error("SAFE_UPDATE_PERSISTENZ_UNGUELTIG");
   }
-  const eintraege = roh["eintraege"] as unknown as readonly SafeUpdateSicht[];
+
+  const eintraegeRoh = roh["eintraege"];
+  const eintraege = eintraegeRoh.map((wert, index) => {
+    if (!istObjekt(wert)
+        || !istObjekt(wert["plan"])) {
+      throw new Error("SAFE_UPDATE_PERSISTENZ_EINTRAG_UNGUELTIG");
+    }
+    const planRoh = wert["plan"];
+    const releaseRoh = planRoh["releaseEvidence"];
+    const zustand = wert["zustand"];
+    const recoveryVorZustand = wert["recoveryVorZustand"];
+    const applyIntentAmMs = wert["applyIntentAmMs"];
+    const rollbackIntentAmMs = wert["rollbackIntentAmMs"];
+    if (planRoh["schemaVersion"] !== 1
+        || typeof planRoh["updateId"] !== "string"
+        || typeof planRoh["aktuellerReleaseSha"] !== "string"
+        || typeof planRoh["baselineBootFingerprint"] !== "string"
+        || typeof planRoh["geplantAmMs"] !== "number"
+        || !Number.isSafeInteger(planRoh["geplantAmMs"])
+        || planRoh["geplantAmMs"] < 0
+        || !istObjekt(releaseRoh)
+        || typeof zustand !== "string"
+        || !safeUpdateZustaende.includes(zustand as SafeUpdateZustand)
+        || (recoveryVorZustand !== null
+          && (typeof recoveryVorZustand !== "string"
+            || recoveryVorZustand === "RECOVERY_PENDING"
+            || !safeUpdateZustaende.includes(
+              recoveryVorZustand as SafeUpdateZustand,
+            )))
+        || (zustand === "RECOVERY_PENDING" && recoveryVorZustand === null)
+        || (zustand !== "RECOVERY_PENDING" && recoveryVorZustand !== null)
+        || (applyIntentAmMs !== null
+          && (typeof applyIntentAmMs !== "number"
+            || !Number.isSafeInteger(applyIntentAmMs)
+            || applyIntentAmMs < 0))
+        || (rollbackIntentAmMs !== null
+          && (typeof rollbackIntentAmMs !== "number"
+            || !Number.isSafeInteger(rollbackIntentAmMs)
+            || rollbackIntentAmMs < 0))
+        || wert["sameCandidateErneutAnwenden"] !== false
+        || wert["automatischerRetry"] !== false
+        || eintraegeRoh.slice(0, index).some(
+          vorher => istObjekt(vorher)
+            && istObjekt(vorher["plan"])
+            && vorher["plan"]["updateId"] === planRoh["updateId"],
+        )) {
+      throw new Error("SAFE_UPDATE_PERSISTENZ_EINTRAG_UNGUELTIG");
+    }
+
+    pruefeText(
+      planRoh["updateId"],
+      "SAFE_UPDATE_PERSISTENZ_UPDATE_ID_UNGUELTIG",
+    );
+    pruefeText(
+      planRoh["baselineBootFingerprint"],
+      "SAFE_UPDATE_PERSISTENZ_BOOT_FP_UNGUELTIG",
+    );
+    const aktuellerReleaseSha = planRoh["aktuellerReleaseSha"];
+    pruefeSha(
+      aktuellerReleaseSha,
+      "SAFE_UPDATE_PERSISTENZ_RELEASE_SHA_UNGUELTIG",
+    );
+    const releaseEvidence =
+      releaseRoh as unknown as V5ReleaseEvidence;
+    validiereReleaseEvidenceStruktur(
+      releaseEvidence,
+      aktuellerReleaseSha,
+    );
+
+    const brauchtApplyIntent = zustand === "APPLY_AUSSTEHEND"
+      || zustand === "COMMITTED"
+      || zustand === "ROLLBACK_AUSSTEHEND"
+      || zustand === "ROLLED_BACK_SAFE"
+      || (zustand === "RECOVERY_PENDING"
+        && (recoveryVorZustand === "APPLY_AUSSTEHEND"
+          || recoveryVorZustand === "ROLLBACK_AUSSTEHEND"));
+    if (brauchtApplyIntent && applyIntentAmMs === null) {
+      throw new Error("SAFE_UPDATE_PERSISTENZ_APPLY_INTENT_FEHLT");
+    }
+    const brauchtRollbackIntent = zustand === "ROLLBACK_AUSSTEHEND"
+      || zustand === "ROLLED_BACK_SAFE"
+      || (zustand === "RECOVERY_PENDING"
+        && recoveryVorZustand === "ROLLBACK_AUSSTEHEND");
+    if (brauchtRollbackIntent && rollbackIntentAmMs === null) {
+      throw new Error("SAFE_UPDATE_PERSISTENZ_ROLLBACK_INTENT_FEHLT");
+    }
+
+    return wert as unknown as SafeUpdateSicht;
+  });
+
   return Object.freeze({
     schemaVersion: 1,
     gespeichertAmMs,
-    eintraege,
+    eintraege: Object.freeze(eintraege),
   });
 }
 
