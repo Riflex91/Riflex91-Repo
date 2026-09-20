@@ -43,6 +43,7 @@ local function stylePanel(frame)
     top:SetPoint("TOPRIGHT")
     top:SetHeight(2)
     setColorTexture(top, 0.20, 0.72, 0.88, 1)
+    frame._mgTopAccent = top
 
     local bottom = frame:CreateTexture(nil, "BORDER")
     bottom:SetPoint("BOTTOMLEFT")
@@ -62,6 +63,30 @@ function MG:ApplyWindowTransparency()
         if panel and panel._mgBackground and panel._mgBackground.SetAlpha then
             panel._mgBackground:SetAlpha(alpha)
         end
+    end
+end
+
+function MG:RefreshTheme()
+    if not self.db or not self.Themes then return end
+    local theme = self.Themes:GetCurrent()
+    local accent = theme and theme.accent or {0.20, 0.72, 0.88}
+    local text = theme and theme.text or {0.92, 0.95, 1.00}
+
+    for _, panel in ipairs(ui.panels) do
+        if panel and panel._mgTopAccent then
+            setColorTexture(panel._mgTopAccent, accent[1], accent[2], accent[3], 1)
+        end
+    end
+
+    for _, label in ipairs({ui.title, ui.infoTitle, ui.settingsTitle}) do
+        if label and label.SetTextColor then
+            label:SetTextColor(text[1], text[2], text[3], 1)
+        end
+    end
+
+    if ui.themeValue then
+        local _, name = self.Themes:GetCurrent()
+        ui.themeValue:SetText(name)
     end
 end
 
@@ -211,7 +236,7 @@ function MG:InitializeUI()
 
     local title = makeText(frame, "GameFontNormalLarge", 16)
     title:SetPoint("TOPLEFT", 14, -11)
-    title:SetText("|cff62d6ffMewthisch Guides|r")
+    title:SetText("Mewthisch Guides")
     ui.title = title
 
     local stepCount = makeText(frame, "GameFontHighlightSmall", 10)
@@ -296,7 +321,8 @@ function MG:InitializeUI()
 
     local infoTitle = makeText(infoFrame, "GameFontNormalLarge", 17)
     infoTitle:SetPoint("TOPLEFT", 18, -16)
-    infoTitle:SetText("|cff62d6ffMewthisch Guides - Info|r")
+    infoTitle:SetText("Mewthisch Guides - Info")
+    ui.infoTitle = infoTitle
 
     local infoClose = makeButton(infoFrame, "X", 30, function()
         MG:ToggleInfo()
@@ -321,7 +347,7 @@ function MG:InitializeUI()
     creditRight:SetText("von Riflex91 fuer die Gilde |cff62d6ffMewthisch|r")
 
     local settingsFrame = CreateFrame("Frame", "MewthischGuidesSettingsFrame", UIParent)
-    settingsFrame:SetSize(430, 470)
+    settingsFrame:SetSize(430, 560)
     centerOverlay(settingsFrame)
     settingsFrame:SetClampedToScreen(true)
     stylePanel(settingsFrame)
@@ -330,7 +356,8 @@ function MG:InitializeUI()
 
     local settingsTitle = makeText(settingsFrame, "GameFontNormalLarge", 17)
     settingsTitle:SetPoint("TOPLEFT", 18, -16)
-    settingsTitle:SetText("|cff62d6ffMewthisch Guides - Optionen|r")
+    settingsTitle:SetText("Mewthisch Guides - Optionen")
+    ui.settingsTitle = settingsTitle
 
     local settingsClose = makeButton(settingsFrame, "X", 30, function()
         MG:ToggleSettings()
@@ -368,12 +395,19 @@ function MG:InitializeUI()
         "Diagnose-Logs speichern",
         "diagnostics")
 
+    ui.checkGearAuto = makeCheck(settingsFrame, -296,
+        "Sichere High-Confidence-Gear-Upgrades automatisch anlegen",
+        "gearAutoEquip",
+        function()
+            if MG.Sync then MG.Sync:Inventory("settings_gear_auto") end
+        end)
+
     local transparencyLabel = makeText(settingsFrame, "GameFontHighlight", 12)
-    transparencyLabel:SetPoint("TOPLEFT", 18, -304)
+    transparencyLabel:SetPoint("TOPLEFT", 18, -338)
     transparencyLabel:SetText("Fenster-Transparenz")
 
     local transparencyValue = makeText(settingsFrame, "GameFontHighlight", 11)
-    transparencyValue:SetPoint("TOPRIGHT", -22, -304)
+    transparencyValue:SetPoint("TOPRIGHT", -22, -338)
     transparencyValue:SetWidth(48)
     transparencyValue:SetJustifyH("RIGHT")
     ui.transparencyValue = transparencyValue
@@ -381,7 +415,7 @@ function MG:InitializeUI()
     local transparencySlider = CreateFrame("Slider", "MewthischGuidesTransparencySlider", settingsFrame)
     transparencySlider:SetOrientation("HORIZONTAL")
     transparencySlider:SetSize(250, 18)
-    transparencySlider:SetPoint("TOPLEFT", 18, -324)
+    transparencySlider:SetPoint("TOPLEFT", 18, -358)
     transparencySlider:SetMinMaxValues(0, 80)
     transparencySlider:SetValueStep(5)
     if transparencySlider.SetObeyStepOnDrag then
@@ -431,13 +465,13 @@ function MG:InitializeUI()
     ui.transparencySlider = transparencySlider
 
     local scaleLabel = makeText(settingsFrame, "GameFontHighlight", 12)
-    scaleLabel:SetPoint("TOPLEFT", 18, -362)
+    scaleLabel:SetPoint("TOPLEFT", 18, -396)
     scaleLabel:SetText("Navigator-Groesse")
 
     local scaleDown = makeButton(settingsFrame, "-", 30, function()
         MG:SetNavigatorScale((MG.db.settings.navigatorScale or 1.0) - 0.05)
     end)
-    scaleDown:SetPoint("TOPLEFT", 155, -354)
+    scaleDown:SetPoint("TOPLEFT", 155, -388)
 
     local scaleValue = makeText(settingsFrame, "GameFontHighlight", 12)
     scaleValue:SetPoint("LEFT", scaleDown, "RIGHT", 8, 0)
@@ -453,17 +487,39 @@ function MG:InitializeUI()
     local resetNavigator = makeButton(settingsFrame, "Pfeil zuruecksetzen", 150, function()
         MG:ResetNavigatorPosition()
     end)
-    resetNavigator:SetPoint("TOPLEFT", 18, -398)
+    resetNavigator:SetPoint("TOPLEFT", 18, -432)
+
+    local themeButton = makeButton(settingsFrame, "Theme wechseln", 140, function()
+        local names = {"Forever Classic", "Obsidian", "Arcane", "Warcraft", "Skyborne"}
+        local _, current = MG.Themes:GetCurrent()
+        local index = 1
+        for i, name in ipairs(names) do
+            if name == current then index = i break end
+        end
+        index = index + 1
+        if index > #names then index = 1 end
+        MG.Themes:Set(names[index])
+        MG:RefreshSettings()
+    end)
+    themeButton:SetPoint("TOPLEFT", 18, -468)
+    ui.themeButton = themeButton
+
+    local themeValue = makeText(settingsFrame, "GameFontHighlight", 11)
+    themeValue:SetPoint("LEFT", themeButton, "RIGHT", 10, 0)
+    themeValue:SetWidth(180)
+    themeValue:SetText("")
+    ui.themeValue = themeValue
 
     local safety = makeText(settingsFrame, "GameFontHighlightSmall", 10)
-    safety:SetPoint("TOPLEFT", 18, -433)
+    safety:SetPoint("TOPLEFT", 18, -510)
     safety:SetPoint("RIGHT", settingsFrame, -18, 0)
     safety:SetTextColor(1.0, 0.78, 0.22)
-    safety:SetText("Mehrere Questbelohnungen werden weiterhin manuell ausgewaehlt.")
+    safety:SetText("Mehrfachbelohnungen und Talente bleiben manuell. Gear-Auto-Equip arbeitet nur fail-closed mit gebundenen High-Confidence-Upgrades.")
 
     if self.db.settings.showWindow == false then frame:Hide() end
 
     self:ApplyWindowTransparency()
+    self:RefreshTheme()
     self:RefreshSettings()
     self:RefreshInfo()
     self:Log("INFO", "ui.initialized", "Kompakter Mewthisch-Guides-Viewer initialisiert.", {
@@ -629,6 +685,13 @@ function MG:RefreshInfo()
     local securityCaps = caps.security or {}
     local route = self.RouteEngine and self.RouteEngine:GetStatus() or {}
     local persistence = self.db.runtime and self.db.runtime.persistence or {}
+    local validation = self.Validation and self.Validation:GetStatus() or {}
+    local travel = self.db.runtime and self.db.runtime.travelGraph or {}
+    local gear = self.db.runtime and self.db.runtime.gear or {}
+    local talent = self.db.runtime and self.db.runtime.talent or {}
+    local reward = self.db.runtime and self.db.runtime.reward or {}
+    local _, themeName = self.Themes and self.Themes:GetCurrent() or nil, nil
+    if self.Themes then _, themeName = self.Themes:GetCurrent() end
 
     local tableCount = 0
     for _ in pairs(self.Data and self.Data.tableStats or {}) do tableCount = tableCount + 1 end
@@ -666,6 +729,15 @@ function MG:RefreshInfo()
         "|cffffffffAuto-Abgabe:|r " .. (self.db.settings.autoTurnInQuests and "AN" or "AUS"),
         "|cffffffffNavigator:|r " .. (self.db.settings.showNavigator and "AN" or "AUS") ..
             (self.db.settings.navigatorLocked and " / gesperrt" or " / frei"),
+        "|cffffffffTheme:|r " .. tostring(themeName or "Forever Classic"),
+        "|cffffffffGuide-Validierung:|r " .. (validation.valid and "|cff33ff99OK|r" or "|cffffcc00prüfen|r") ..
+            " (" .. tostring(validation.errors or 0) .. " Fehler)",
+        "|cffffffffTravelGraph:|r " .. tostring(travel.nodes or 0) .. " Knoten / " ..
+            tostring(travel.edges or 0) .. " Kanten",
+        "|cffffffffGear-Empfehlung:|r " .. tostring(gear.recommendedItemID or "-") ..
+            (gear.delta and (" (+" .. tostring(gear.delta) .. " ilvl)") or ""),
+        "|cffffffffTalent-Empfehlung:|r " .. tostring(talent.recommendedSpellID or "-"),
+        "|cffffffffReward-Empfehlung:|r " .. tostring(reward.recommendedItemID or "-"),
         "",
         "|cffffffffDiagnose-Logs:|r " .. tostring(logs.total),
         "|cffffffffWarnungen:|r " .. tostring(logs.warnings),
@@ -673,12 +745,12 @@ function MG:RefreshInfo()
         "|cffffffffSV-Boot-Zaehler:|r " .. tostring(persistence.currentBootCount or "-"),
         "|cffffffffSV-vorher geladen:|r " .. (persistence.hadSentinel and "ja" or "nein/erster Start"),
         "",
-        "|cff9da7b3v0.6 Forever-API + RouteEngine|r",
-        "- moderne Forever-API per Capability Detection",
-        "- C_QuestLog.GetQuestsOnMap als primaere Live-POI-Quelle",
-        "- RouteEngine waehlt/gewichtet Zielkoordinaten",
-        "- Navigator rendert nur RouteEngine-Ziele",
-        "- strukturierte API-/Route-Diagnose fuer naechsten Test",
+        "|cff9da7b3v0.9 Roadmap-Complete Engine|r",
+        "- QuestTracking + DataLoader + Validation",
+        "- RouteEngine + TravelGraph + Navigator",
+        "- Inventory + GearAdvisor + RewardAdvisor",
+        "- BuildState + TalentAdvisor",
+        "- Sync + State + lokale Telemetrie + 5 Themes",
     }
 
     ui.infoBody:SetText(table.concat(lines, "\n"))
@@ -694,6 +766,13 @@ function MG:RefreshSettings()
     ui.checkNavigatorLocked:SetChecked(self.db.settings.navigatorLocked and true or false)
     ui.checkMinimap:SetChecked(self.db.settings.showMinimapButton and true or false)
     ui.checkDiagnostics:SetChecked(self.db.settings.diagnostics and true or false)
+    if ui.checkGearAuto then
+        ui.checkGearAuto:SetChecked(self.db.settings.gearAutoEquip and true or false)
+    end
+    if ui.themeValue and self.Themes then
+        local _, themeName = self.Themes:GetCurrent()
+        ui.themeValue:SetText(themeName)
+    end
     ui.navigatorScaleValue:SetText(string.format("%d%%", math.floor((self.db.settings.navigatorScale or 1) * 100 + 0.5)))
 
     local transparency = clampTransparency(self.db.settings.windowTransparency)
