@@ -37,6 +37,41 @@ jobs:
             luac5.1 -p "$file"
           done
 
+      - name: Validate bearing math
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = {}
+          local chunk = assert(loadfile("world of warcraft/MewthischGuides/Navigation.lua"))
+          chunk("MewthischGuides", MG)
+
+          local function near(actual, expected, epsilon, label)
+            epsilon = epsilon or 0.0001
+            assert(math.abs(actual - expected) <= epsilon,
+              string.format("%s: expected %.6f got %.6f", label, expected, actual))
+          end
+
+          local rel, abs = MG:ComputeRelativeBearing(0, 1, 0)
+          near(abs, 0, 0.0001, "north absolute")
+          near(rel, 0, 0.0001, "north relative")
+
+          rel, abs = MG:ComputeRelativeBearing(1, 0, 0)
+          near(abs, math.pi / 2, 0.0001, "east absolute")
+          near(rel, math.pi / 2, 0.0001, "east from north")
+
+          rel = MG:ComputeRelativeBearing(1, 0, math.pi / 2)
+          near(rel, 0, 0.0001, "east while facing east")
+
+          rel, abs = MG:ComputeRelativeBearing(0, -1, 0)
+          near(abs, math.pi, 0.0001, "south absolute")
+          near(math.abs(rel), math.pi, 0.0001, "south relative")
+
+          rel = MG:ComputeRelativeBearing(-1, 0, 0)
+          near(rel, -math.pi / 2, 0.0001, "west from north")
+
+          print("Bearing math PASS")
+          LUA
+
       - name: Validate Step 2 contract
         shell: bash
         run: |
@@ -58,7 +93,9 @@ jobs:
           grep -q 'goalSummary' "world of warcraft/MewthischGuides/UI.lua"
 
           grep -q 'YARDS_TO_METERS = 0.9144' "$NAV"
-          grep -q 'local dy = py - ty' "$NAV"
+          grep -q 'ComputeAbsoluteBearing' "$NAV"
+          grep -q 'ComputeRelativeBearing' "$NAV"
+          grep -q 'local deltaY = ty - py' "$NAV"
           grep -q 'QuestPOIUpdateIcons' "$NAV"
           grep -q 'directionReliable' "$NAV"
           if grep -q 'navigationScreenAngle' "$NAV"; then
@@ -67,6 +104,7 @@ jobs:
           fi
 
           grep -q 'Intentionally no background' "$ARROW"
+          grep -q 'UI-HUD-Minimap-Arrow-Player' "$ARROW"
           grep -q 'Never show a guessed direction' "$ARROW"
 
       - name: Package addon
