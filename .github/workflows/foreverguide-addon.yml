@@ -291,6 +291,45 @@ jobs:
           print("Telemetry safety PASS")
           LUA
 
+      - name: Validate gear fail-closed safety
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = {
+            Data = { gearProfiles = {} },
+            db = { settings = {
+              gearAutoEquip = true,
+              gearRequireHighConfidence = true,
+              gearAutoEquipWeapons = false,
+              gearProtectBoE = true,
+            }, runtime = {} },
+            BuildState = { GetState = function() return {class="HUNTER"} end },
+            Inventory = { GetSnapshot = function() return {bags={},equipped={}} end },
+            Log = function() end,
+          }
+
+          GetItemInfoInstant = function() return 1001, "Armor", "Leather", "INVTYPE_CHEST" end
+          GetDetailedItemLevelInfo = function(link)
+            if link == "candidate" then return 20 end
+            if link == "equipped" then return 10 end
+            return nil
+          end
+          IsEquippableItem = function() return true end
+          IsUsableItem = function() return true end
+          GetInventoryItemLink = function() return "equipped" end
+
+          assert(loadfile("world of warcraft/MewthischGuides/GearAdvisor.lua"))("MewthischGuides", MG)
+          local candidate = assert(MG.GearAdvisor:EvaluateItemLink("candidate"))
+          assert(candidate.upgrade == true, "fallback upgrade should be detected")
+          assert(candidate.confidence == "medium", "item-level fallback must not be high confidence")
+
+          candidate.bag, candidate.bagSlot, candidate.isBound = 0, 1, true
+          local equipped, reason = MG.GearAdvisor:TryAutoEquip(candidate)
+          assert(equipped == false and reason == "confidence",
+            "high-confidence gate must block fallback auto-equip")
+          print("Gear fail-closed safety PASS")
+          LUA
+
       - name: Validate v0.9 roadmap-complete contract
         shell: bash
         run: |
@@ -346,6 +385,7 @@ jobs:
           grep -q 'Talent-Empfehlung' "$UI"
           grep -q 'Theme wechseln' "$UI"
 
+          grep -q 'gearProfiles = {}' "$ROOT/Data.lua"
           grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
           grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
           grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
