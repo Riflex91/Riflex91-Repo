@@ -173,6 +173,16 @@ export class V5ProduktionsHostController {
       ...revalidierung.aktivePlanenFaehigkeiten,
     ]);
     if (!revalidierung.bereit) {
+      try {
+        this.#letzterBootstrap = await this.#bootstrap.stoppe(
+          "POST_START_REVALIDIERUNG_FEHLGESCHLAGEN",
+        );
+      } catch {
+        return this.#setze(
+          "FEHLER",
+          "PRODUKTIONS_HOST_POST_START_STOPP_AUSNAHME",
+        );
+      }
       return this.#setze(
         "GESPERRT",
         "PRODUKTIONS_HOST_REVALIDIERUNG_NICHT_BEREIT:"
