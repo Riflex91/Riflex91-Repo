@@ -1,7 +1,7 @@
 # V5 Master-Roadmap v3
 
 **Status:** ACTIVE MASTER PLAN  
-**Stand:** 2026-09-19  
+**Stand:** 2026-09-20  
 **Ziel:** Ein langfristig wartbarer, modularer, erweiterbarer und sicher recoverbarer 24/7-Autonomie-Bot fuer Adventure Land.
 
 ## 0. Grundsatz
@@ -17,6 +17,20 @@ Das Ziel ist nicht, Fehler magisch auszuschliessen. Das Ziel ist ein System, in 
 7. durch Guards, Tests und Zertifizierung nicht unbemerkt wiederkehren.
 
 **Keine Phase wird nur deshalb freigegeben, weil "es funktioniert".** Sie wird erst freigegeben, wenn ihre Invarianten beweisbar eingehalten werden.
+
+### Verbindlicher Testzeitstandard
+
+Ab 2026-09-20 gilt fuer neue V5-Arbeit der maschinenlesbare Standard `roadmap/testzeit-standard.json`:
+
+- **Neue oder geaenderte einzelne Funktion/Capability:** Ein bestandener realer **5-Minuten-Test** reicht fuer die Funktionsabnahme, sofern alle statischen, Unit-, Replay-, Fault-, Safety- und erforderlichen Preflight-Gates gruen sind.
+- **Integration, Meilenstein oder Release:** Ein bestandener realer **15-Minuten-Test** ist das verbindliche Zeitgate.
+- Laengere Soaks werden nicht fuer jede einzelne Funktion wiederholt.
+- Der bereits gestartete R19-SOAK_10M bleibt als einmalige Uebergangs-Zwischenstufe gueltig; danach folgt SOAK_15M als finales Integrations-/Release-Gate.
+- Spaeter entdeckte Defekte oeffnen die betroffene Funktion wieder. Nach dem Fix ist mindestens der 5-Minuten-Test zu wiederholen; bei Integrations-/Release-Auswirkung zusaetzlich der 15-Minuten-Test.
+- Die kuerzere Dauer lockert **keine** Null-Toleranz-, Authority-, Evidence-, Gap-, Persistenz-, Ressourcen-, Performance-Trick- oder Gameplay-Write-Grenze.
+
+ADR: `architektur/adr/ADR-024-TESTZEITSTANDARD-5M-15M.md`.
+
 
 ### Verbindliche Sprache und Narrensicherheit
 
@@ -883,10 +897,9 @@ Ladder:
 - shadow;
 - controlled live;
 - canary;
-- 5 Minuten;
-- 10 Minuten;
-- 30 Minuten;
-- 60 Minuten.
+- 5 Minuten Funktions-Evidence;
+- 10 Minuten als bereits gestartete Uebergangs-Zwischenstufe;
+- 15 Minuten als finales Integrations-/Release-Gate.
 
 Globale Null-Toleranz-Metriken:
 - unexpected game writes = 0;
@@ -943,7 +956,7 @@ Run: `R19-1789894940141-fa58fa3e`. Bounded Learning-Ranking blieb innerhalb hart
 
 Evidence: `roadmap/r19-canary-evidence.json`.
 
-Naechste Stufe: **SOAK_5M**. OPS-006 bleibt bis zum Abschluss von 5m/10m/30m/60m offen.
+Naechste Stufe: **SOAK_5M**. OPS-006 bleibt bis zum Abschluss von 5m/10m/15m offen.
 
 
 ### SOAK_5M
@@ -959,9 +972,11 @@ Naechste Stufe: **SOAK_10M**. OPS-006 bleibt offen.
 
 ### Beschleunigtes Soak-Zeitprofil
 
-**Profil:** `R19_ACCELERATED_SOAK_V1`.
+**Profil:** `R19_ACCELERATED_SOAK_V2`.
 
-Die zuvor geplanten Stufen 1h/24h/72h/7d (sowie optional 30d) sind durch **5m -> 10m -> 30m -> 60m** ersetzt. Das Profil bleibt strikt sequenziell und fail-closed. Es ist eine beschleunigte Runtime-Zertifizierung und wird nicht als mehrtaegige 24/7-Soak-Evidence bezeichnet.
+Das aktuelle Profil lautet **5m -> 10m -> 15m**. SOAK_5M ist die Funktions-Evidence, der bereits gestartete SOAK_10M bleibt als einmalige Uebergangs-Zwischenstufe gueltig und SOAK_15M ist das finale Integrations-/Release-Gate. Die zuvor geplanten 30m-/60m-Stufen entfallen. Das Profil bleibt strikt sequenziell und fail-closed und wird nicht als mehrtaegige 24/7-Soak-Evidence bezeichnet.
+
+Allgemeiner Standard fuer kuenftige Entwicklung: **5 Minuten pro neuer/geaenderter Funktion, 15 Minuten pro Integrations-/Release-Meilenstein**.
 
 Maschinenlesbar: `roadmap/r19-soak-zeitprofil.json`.
 
@@ -969,6 +984,8 @@ Maschinenlesbar: `roadmap/r19-soak-zeitprofil.json`.
 ## 4. Pflicht-Definition-of-Done fuer jede neue Capability
 
 Jede Capability braucht vor Merge/Live-Freigabe:
+
+- bestandenen 5-Minuten-Funktionstest nach dem verbindlichen Testzeitstandard, wenn die Capability real/laufzeitrelevant ist;
 
 - Knowledge-/Fact-/Contract-Referenz;
 - Owner und Port;
@@ -987,6 +1004,8 @@ Jede Capability braucht vor Merge/Live-Freigabe:
 - Controlled-Live Gate;
 - Disable/Rollback Path;
 - Dokumentation und Schema-Version.
+
+Ein 15-Minuten-Test ist fuer eine einzelne Funktion nicht zusaetzlich erforderlich. Er wird fuer Integrations-, Meilenstein- und Release-Gates verwendet.
 
 ## 5. V3-Fehlerabdeckung
 
