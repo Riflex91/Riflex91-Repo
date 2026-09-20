@@ -837,7 +837,7 @@ Maschinenlesbarer Abschluss: `roadmap/r17-abschluss.json`.
 
 ## R18 – Learning und Optimierung
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
 
 Erst nach stabiler deterministischer Basis.
 
@@ -865,7 +865,15 @@ Exit Gate:
 - deterministic fallback existiert immer;
 - learning-off liefert sicheren Betrieb.
 
+
+R18-Abschluss: Learning ist authority-frei, bounded und optional. Hard Gates haben Vorrang; deterministic fallback bleibt jederzeit verfuegbar; Challenger bleiben bis sauberer Promotion Shadow-only.
+
+Maschinenlesbare Abdeckung: `grundlage/vertraege/r18/learning-abdeckung.json`.  
+Maschinenlesbarer Abschluss: `roadmap/r18-abschluss.json`.
+
 ## R19 – 24/7-Zertifizierung
+
+**Status:** IN_PROGRESS.
 
 Jede Stufe benoetigt unveraenderliche Evidence.
 
