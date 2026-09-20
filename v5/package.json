@@ -68,7 +68,7 @@
     "cap033034:live-gui:bauen": "node werkzeuge/cap033-cap034-live-test-paket-bauen.mjs",
     "cap033034:live-gui:pruefen": "node --check werkzeuge/cap033-cap034-live-test-gui.js && node --check werkzeuge/cap033-cap034-live-test-paket.js && node werkzeuge/cap033-cap034-live-test-paket-bauen.mjs --check && node --test werkzeuge/tests/cap033-cap034-live-test-gui.test.mjs",
     "cap045:live-gui:bauen": "node werkzeuge/cap045-production-live-test-paket-bauen.mjs",
-    "cap045:live-gui:pruefen": "node --check werkzeuge/cap045-production-live-test-gui.js && node --check werkzeuge/cap045-production-live-test-paket.js && node werkzeuge/cap045-production-live-test-paket-bauen.mjs --check && node werkzeuge/cap045-production-live-static-guards.mjs && node --test werkzeuge/tests/cap045-production-live-test-gui.test.mjs",
+    "cap045:live-gui:pruefen": "npm run bauen && node --check werkzeuge/cap045-production-live-test-gui.js && node --check werkzeuge/cap045-production-live-test-paket.js && node werkzeuge/cap045-production-live-test-paket-bauen.mjs --check && node werkzeuge/cap045-production-live-static-guards.mjs && node --test werkzeuge/tests/cap045-production-live-test-gui.test.mjs",
     "architekturgraph:pruefen": "node werkzeuge/r3-architekturgraph-pruefen.mjs"
   },
   "devDependencies": {
