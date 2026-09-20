@@ -45,6 +45,7 @@ for (const pfad of [
   "grundlage/quelle/navigation/bewegungs-owner.ts",
   "grundlage/quelle/kampf/target-ownership.ts",
   "grundlage/quelle/kampf/skill-capability.ts",
+  "grundlage/quelle/faehigkeiten/skill-capability.ts",
   "grundlage/quelle/kampf/character-lifecycle.ts",
   "grundlage/quelle/kampf/threat-cc.ts",
   "grundlage/quelle/kampf/aoe-safety.ts",

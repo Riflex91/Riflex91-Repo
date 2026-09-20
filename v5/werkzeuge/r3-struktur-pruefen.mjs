@@ -27,7 +27,7 @@ if (ts.compilerOptions?.strict !== true
   fehler("TypeScript-Strictness/R3-Quellwurzel unvollstaendig.");
 }
 
-for (const script of ["bauen","typen:pruefen","lint","format:pruefen","guards:test","host:test","grundlage:test","sichttext:pruefen","r3:pruefen"]) {
+for (const script of ["bauen","typen:pruefen","lint","format:pruefen","guards:test","host:test","grundlage:test","sichttext:pruefen","architekturgraph:pruefen","r3:pruefen"]) {
   if (!paket.scripts?.[script]) fehler("Paket-Script fehlt: " + script);
 }
 
@@ -43,6 +43,9 @@ for (const pfad of [
   "grundlage/quelle/testlabor/replay-aufzeichnung.ts",
   "architektur/host-api-allowlist.json",
   "werkzeuge/r3-statische-guards.mjs",
+  "werkzeuge/r3-architekturgraph-regeln.mjs",
+  "werkzeuge/r3-architekturgraph-pruefen.mjs",
+  "werkzeuge/tests/r3-architekturgraph.test.mjs",
   "werkzeuge/r3-build-provenienz.mjs",
 ]) mussExistieren(pfad);
 
