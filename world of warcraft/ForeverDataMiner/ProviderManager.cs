@@ -21,6 +21,7 @@ public static class ProviderManager
     public static async Task<Process?> EnsureRunningAsync(
         Uri baseUri,
         string wowRoot,
+        string? wowProduct,
         CancellationToken cancellationToken)
     {
         if (await IsReadyAsync(baseUri, cancellationToken))
@@ -36,7 +37,7 @@ public static class ProviderManager
             WorkingDirectory = Path.GetDirectoryName(executable)!,
             UseShellExecute = false,
             CreateNoWindow = true,
-            Arguments = $"-wowFolder \"{wowRoot}\" -wowProduct wow_beta",
+            Arguments = $"-wowFolder \"{wowRoot}\" -wowProduct {QuoteArg(wowProduct ?? "wow_beta")}",
         };
 
         var process = Process.Start(startInfo)
@@ -59,6 +60,9 @@ public static class ProviderManager
         Stop(process);
         throw new TimeoutException("wow.tools.local did not expose its local API.");
     }
+
+    private static string QuoteArg(string value) =>
+        "\"" + value.Replace("\"", "\\\"") + "\"";
 
     public static void Stop(Process? process)
     {
