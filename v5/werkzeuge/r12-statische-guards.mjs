@@ -93,6 +93,8 @@ for (const marker of [
   "gameWrites: adapter.gameWrites",
   "unerwarteteGameWrites: 0",
   "breiteRuntimeFreigabe: false",
+  "aktiviereBrowserPerformanceTrick",
+  "performanceTrick",
 ]) {
   if (!runner.includes(marker)) fehler.push("CONTROLLED_LIVE_RUNNER_MARKER_FEHLT:" + marker);
 }
@@ -106,6 +108,7 @@ if (runner.includes("bank_store(")
 }
 
 const testGui = liesText("werkzeuge/v5-adventure-land-test-gui.js");
+if (!testGui.includes("aktivierePerformanceTrick") || !testGui.includes("performanceTrickStatus") || !testGui.includes("performance_trick") || !testGui.includes("HOWLER_PLAYING_TRUE") || !testGui.includes("aktiv: verfuegbar && audioGefunden && playing")) fehler.push("PERFORMANCE_TRICK_HELPER_FEHLT");
 for (const marker of [
   "Ergebnis kopieren",
   "Gesamtbericht kopieren",
@@ -136,9 +139,14 @@ for (const marker of [
   "sameIntentRetry: false",
   "unerwarteteGameWrites: 0",
   "breiteRuntimeFreigabe: false",
+  "PERFORMANCE_TRICK_NICHT_AKTIV",
+  "await guiApi().aktivierePerformanceTrick()",
 ]) {
   if (!r12Gui.includes(marker)) fehler.push("R12_TEST_GUI_MARKER_FEHLT:" + marker);
 }
+const browserEquip = liesText("werkzeuge/r12-live/browser-equip.mjs");
+if (!browserEquip.includes("aktiviereBrowserPerformanceTrick") || !browserEquip.includes("userGesture: true") || !browserEquip.includes("HOWLER_PLAYING_TRUE") || !browserEquip.includes("aktiv: verfuegbar && audioGefunden && playing")) fehler.push("R12_CDP_PERFORMANCE_TRICK_FEHLT");
+
 const direkteEquipAufrufe = (r12Gui.match(/\.equip\s*\(/g) ?? []).length;
 if (direkteEquipAufrufe !== 1) {
   fehler.push("R12_TEST_GUI_MUSS_EXAKT_EINEN_EQUIP_SENDPFAD_BESITZEN:" + direkteEquipAufrufe);

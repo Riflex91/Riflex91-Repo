@@ -21,7 +21,7 @@ import {
 } from "../erzeugt/index.js";
 import { findeAdventureLandKontext, validiereLoopbackCdp } from "./r12-live/cdp.mjs";
 import { DurablesDateiJournal, pruefeDatenRoot, pruefeKeineOffeneV5Transaktion } from "./r12-live/datei-journal.mjs";
-import { CdpEquipAdapter, beobachteControlledLive, beobachtungsFingerprint, itemAmIndex, slotGleich } from "./r12-live/browser-equip.mjs";
+import { CdpEquipAdapter, aktiviereBrowserPerformanceTrick, beobachteControlledLive, beobachtungsFingerprint, itemAmIndex, slotGleich } from "./r12-live/browser-equip.mjs";
 
 const DATEI = fileURLToPath(import.meta.url);
 const V5_ROOT = path.resolve(path.dirname(DATEI), "..");
@@ -162,6 +162,7 @@ async function run() {
   const live = await findeAdventureLandKontext(cdp);
   const session = live.session;
   try {
+    const performanceTrick = await aktiviereBrowserPerformanceTrick(session, live.contextId);
     const pre = await beobachteControlledLive(session, live.contextId);
     const ruheGruende = validiereControlledLiveRuhezustand(pre);
     if (ruheGruende.length > 0) throw new Error("R12_LIVE_RUHEBEDINGUNGEN:" + ruheGruende.join(","));
@@ -462,6 +463,7 @@ async function run() {
       dataRootFreieReserveProzent: Number(storage.freiProzent.toFixed(2)),
       sameIntentRetry: false,
       operatorBestaetigung: CONFIRM,
+      performanceTrick,
     };
 
     const localEvidence = path.join(storage.dataRoot, "r12", "controlled-live-evidence.json");
