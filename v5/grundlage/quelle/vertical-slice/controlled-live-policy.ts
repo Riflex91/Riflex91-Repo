@@ -1,11 +1,22 @@
+export type ControlledLiveHealthStatus =
+  | "GESUND"
+  | "DEGRADIERT"
+  | "KRITISCH"
+  | "UNBEKANNT";
+
 export interface ControlledLiveAnfrage {
-  readonly readinessStatus: "GESPERRT" | "FREIGEGEBEN";
+  readonly roadmapPhase: string;
+  readonly gesamtRuntimeStatus: "GESPERRT" | "FREIGEGEBEN";
   readonly actionContractId: string;
   readonly publicFunction: string;
   readonly shadowVollstaendig: boolean;
   readonly shadowUnerwarteteWrites: number;
   readonly operatorFreigabe: boolean;
   readonly maximaleAktionen: number;
+  readonly healthStatus: ControlledLiveHealthStatus;
+  readonly persistenzGesund: boolean;
+  readonly reconciliationClean: boolean;
+  readonly alternativeRuntimeAktiv: boolean;
 }
 
 export interface ControlledLiveEntscheidung {
@@ -13,10 +24,12 @@ export interface ControlledLiveEntscheidung {
   readonly gruende: readonly string[];
   readonly actionContractId: string;
   readonly maximaleAktionen: number;
+  readonly breiteRuntimeFreigabe: false;
 }
 
-const ERLAUBTER_ERSTER_CONTRACT = "AL-ACTION-EQUIP";
-const ERLAUBTE_ERSTE_FUNKTION = "equip";
+export const R12_CONTROLLED_LIVE_ACTION_CONTRACT = "AL-ACTION-EQUIP";
+export const R12_CONTROLLED_LIVE_PUBLIC_FUNCTION = "equip";
+
 const VERBOTENE_FUNKTIONEN: readonly string[] = Object.freeze([
   "bank_store",
   "bank_retrieve",
@@ -35,11 +48,11 @@ export function bewerteControlledLive(
 ): ControlledLiveEntscheidung {
   let gruende: readonly string[] = Object.freeze([]);
 
-  if (anfrage.readinessStatus !== "FREIGEGEBEN") {
-    gruende = Object.freeze([...gruende, "RUNTIME_GATE_GESPERRT"]);
+  if (anfrage.roadmapPhase !== "R12") {
+    gruende = Object.freeze([...gruende, "CONTROLLED_LIVE_NUR_R12"]);
   }
-  if (anfrage.actionContractId !== ERLAUBTER_ERSTER_CONTRACT
-      || anfrage.publicFunction !== ERLAUBTE_ERSTE_FUNKTION) {
+  if (anfrage.actionContractId !== R12_CONTROLLED_LIVE_ACTION_CONTRACT
+      || anfrage.publicFunction !== R12_CONTROLLED_LIVE_PUBLIC_FUNCTION) {
     gruende = Object.freeze([...gruende, "ACTION_NICHT_LOW_RISK_SLICE"]);
   }
   if (VERBOTENE_FUNKTIONEN.includes(anfrage.publicFunction)) {
@@ -54,11 +67,24 @@ export function bewerteControlledLive(
   if (!Number.isInteger(anfrage.maximaleAktionen) || anfrage.maximaleAktionen !== 1) {
     gruende = Object.freeze([...gruende, "CONTROLLED_LIVE_NUR_EINE_ACTION"]);
   }
+  if (anfrage.healthStatus !== "GESUND") {
+    gruende = Object.freeze([...gruende, "HEALTH_NICHT_GESUND"]);
+  }
+  if (!anfrage.persistenzGesund) {
+    gruende = Object.freeze([...gruende, "PERSISTENZ_NICHT_GESUND"]);
+  }
+  if (!anfrage.reconciliationClean) {
+    gruende = Object.freeze([...gruende, "RECONCILIATION_NICHT_CLEAN"]);
+  }
+  if (anfrage.alternativeRuntimeAktiv) {
+    gruende = Object.freeze([...gruende, "ALTERNATIVE_RUNTIME_AKTIV"]);
+  }
 
   return Object.freeze({
     erlaubt: gruende.length === 0,
     gruende,
     actionContractId: anfrage.actionContractId,
     maximaleAktionen: anfrage.maximaleAktionen,
+    breiteRuntimeFreigabe: false,
   });
 }
