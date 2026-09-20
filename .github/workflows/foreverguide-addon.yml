@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.11.1
+name: Mewthisch Guides addon v0.11.2
 
 on:
   workflow_dispatch:
@@ -399,24 +399,75 @@ jobs:
           print("Better-gear auto-equip PASS")
           LUA
 
-      - name: Validate five themes
+      - name: Validate seven themes and adaptive UI skins
         shell: bash
         run: |
           lua5.1 - <<'LUA'
-          local MG={db={settings={theme="Forever Classic"}},Log=function() end}
-          assert(loadfile("world of warcraft/MewthischGuides/Themes.lua"))("MewthischGuides",MG)
-          assert(#MG.Themes.order==5)
-          local required={
-            ["Forever Classic"]=true,["Obsidian"]=true,["Arcane"]=true,
-            ["Warcraft Heritage"]=true,["ElvUI"]=true,
+          local skin={
+            IsEnabled=function() return true end,
+            GetAccentColor=function() return .05,.82,.62 end,
+            GetPanelColor=function() return .04,.05,.06,.97 end,
+            GetFont=function() return "Fonts\\FRIZQT__.TTF","" end,
+            OnLooksChanged=function() end,
           }
-          for _,name in ipairs(MG.Themes.order) do required[name]=nil end
-          assert(next(required)==nil)
+          _G.EllesmereUI={
+            RegisterSkin=function(name,callback)
+              assert(name=="MewthischGuides")
+              callback(skin)
+            end,
+          }
+
+          local elv={
+            media={
+              backdropfadecolor={r=.06,g=.06,b=.06,a=.8},
+              bordercolor={r=0,g=0,b=0,a=1},
+              rgbvaluecolor={r=.09,g=.52,b=.82,a=1},
+              normFont="Fonts\\FRIZQT__.TTF",
+            },
+            db={general={}},
+          }
+          _G.ElvUI={elv}
+          _G.ElvUI_ToxiUI={
+            {Title="ToxiUI"},
+            {},
+            elv,
+            {Strings={Branding={ColorRGB={r=.094,g=.659,b=1,a=1}}}},
+          }
+
+          local MG={db={settings={theme="ElvUI"}},Log=function() end}
+          assert(loadfile("world of warcraft/MewthischGuides/Themes.lua"))(
+            "MewthischGuides",MG)
+
+          local expected={
+            "ElvUI","EllesmereUI","ToxiUI","Forever Classic",
+            "Obsidian","Arcane","Warcraft Heritage",
+          }
+          assert(#MG.Themes.order==#expected)
+          for i,name in ipairs(expected) do
+            assert(MG.Themes.order[i]==name,
+              string.format("theme order mismatch at %d: %s",i,tostring(MG.Themes.order[i])))
+          end
+
           assert(MG.Themes:Get("ElvUI").adaptiveElvUI==true)
-          print("Five-theme contract PASS")
+          assert(MG.Themes:Get("EllesmereUI").adaptiveEllesmereUI==true)
+          assert(MG.Themes:Get("ToxiUI").adaptiveToxiUI==true)
+
+          local eui,euiName=MG.Themes:Resolve("EllesmereUI")
+          assert(euiName=="EllesmereUI" and eui.ellesmereUIDetected)
+          assert(math.abs(eui.accent[2]-.82)<.001)
+
+          local tx,txName=MG.Themes:Resolve("ToxiUI")
+          assert(txName=="ToxiUI" and tx.toxiUIDetected and tx.elvUIDetected)
+          assert(math.abs(tx.accent[1]-.094)<.001)
+          assert(math.abs(tx.accent[2]-.659)<.001)
+          assert(math.abs(tx.accent[3]-1)<.001)
+
+          local elvTheme,name=MG.Themes:GetCurrent()
+          assert(name=="ElvUI" and elvTheme.elvUIDetected)
+          print("Seven-theme contract PASS")
           LUA
 
-      - name: Validate v0.11.1 static contract
+      - name: Validate v0.11.2 static contract
         shell: bash
         run: |
           set -euo pipefail
@@ -425,7 +476,65 @@ jobs:
           UI="$ROOT/UI.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
-          grep -q '^## Version: 0.11.1$' "$TOC"
+          grep -q '^## Version: 0.11.2
+          grep -q '^ManualRoute.lua$' "$TOC"
+          grep -q '^WorldMapMarker.lua$' "$TOC"
+          grep -q '^RestedXPImport.lua$' "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Vorgegeben"' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'routeMode = "preset"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'arrow:SetSize(104, 104)' "$ROOT/Navigator.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
+          grep -q '^## OptionalDeps: ElvUI, EllesmereUI, ElvUI_ToxiUI
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.11.2.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.11.2
+          path: artifacts/MewthischGuides-v0.11.2.zip
+          if-no-files-found: error
+ "$TOC"
           grep -q '^ManualRoute.lua$' "$TOC"
           grep -q '^WorldMapMarker.lua$' "$TOC"
           grep -q '^RestedXPImport.lua$' "$TOC"
@@ -474,11 +583,111 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.11.1.1.zip MewthischGuides
+          zip -r MewthischGuides-v0.11.2.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.11.1
-          path: artifacts/MewthischGuides-v0.11.1.1.zip
+          name: MewthischGuides-v0.11.2
+          path: artifacts/MewthischGuides-v0.11.2.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.11.2.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.11.2
+          path: artifacts/MewthischGuides-v0.11.2.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^ManualRoute.lua$' "$TOC"
+          grep -q '^WorldMapMarker.lua$' "$TOC"
+          grep -q '^RestedXPImport.lua$' "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Vorgegeben"' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'routeMode = "preset"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'arrow:SetSize(104, 104)' "$ROOT/Navigator.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.11.2.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.11.2
+          path: artifacts/MewthischGuides-v0.11.2.zip
           if-no-files-found: error
