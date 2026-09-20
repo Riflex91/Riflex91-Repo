@@ -117,3 +117,14 @@ Der produktive deutsche Anzeigekatalog ist fuer den aktuellen Snapshot vollstaen
 Maschinenlesbarer Abschluss: `roadmap/r6-abschluss.json`.
 
 Aktuelle Phase ist R7. Das Gameplay-Runtime-Gesamtgate bleibt GESPERRT. Der lokale Deploy der aktuellen Windows-Bridge bleibt separat zu verifizieren.
+
+
+## R7 – Module, Capabilities, Ports und Authority
+
+R7 ist formal abgeschlossen. V5 besitzt nun ein bounded Modulregister, ein default-deny Faehigkeitsregister mit `LESEN | PLANEN | MUTIEREN`, technisch erzwungenen Single Owner fuer mutierende Faehigkeiten, versionierte typisierte Ports, explizite Aktivierung/Deaktivierung und Health-/Quarantaene-Zustaende sowie versionierten Provider-Ersatz ohne parallelen mutierenden Owner.
+
+Die Bediener-Richtlinie ist deny-only: Faehigkeitssperren und Nothalt koennen Authority nur reduzieren und werden vor lokaler Wirkung durable protokolliert. Mutierende Capabilities bleiben in R7 explizit nicht aktivierbar. Gameplay-Autoritaet und Raw-Write-Autoritaet bleiben false.
+
+Maschinenlesbarer Abschluss: `roadmap/r7-abschluss.json`.
+
+Aktuelle Phase ist R8. Das Gameplay-Runtime-Gesamtgate bleibt `GESPERRT`; der lokale Windows-Bridge-Deploymentstand bleibt separat zu verifizieren.
