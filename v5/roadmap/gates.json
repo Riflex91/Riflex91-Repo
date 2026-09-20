@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-09-20",
-  "currentPhase": "R13",
+  "currentPhase": "R14",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -295,7 +295,7 @@
     {
       "id": "R13",
       "name": "Merchant Core A",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R12"
       ],
@@ -308,7 +308,7 @@
     {
       "id": "R14",
       "name": "Multi-Character Coordination",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R13"
       ],
