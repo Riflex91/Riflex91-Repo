@@ -56,6 +56,12 @@ function Loader:Load()
     end
 
     local report = MG.Validation:ValidateAll(self.guides)
+
+    if MG.db then
+        MG.db.runtime = MG.db.runtime or {}
+        MG.db.runtime.restedXP = rxpStats
+    end
+
     self:SelectActiveGuide()
 
     if MG.Log then
