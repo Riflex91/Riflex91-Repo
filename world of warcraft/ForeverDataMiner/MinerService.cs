@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -53,7 +54,7 @@ public sealed class MinerService(MinerOptions options)
         await using var file = File.Create(zipPath);
         using var archive = new ZipArchive(file, ZipArchiveMode.Create);
 
-        if (options.WowToolsLocal is not null)
+        if (options.WowToolsLocal is not null && !IsWowRunning())
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
             var client = new WowToolsLocalClient(http, options.WowToolsLocal);
@@ -114,6 +115,19 @@ public sealed class MinerService(MinerOptions options)
                     "miner",
                     new Dictionary<string, object?> { ["message"] = ex.Message }));
             }
+        }
+        else if (options.WowToolsLocal is not null)
+        {
+            bundle.Records.Add(new FgdsRecord(
+                "provider.warning",
+                "wow.tools.local",
+                DateTimeOffset.UtcNow,
+                "miner-safety",
+                new Dictionary<string, object?>
+                {
+                    ["message"] = "DB2 export skipped because a WoW client process is running.",
+                    ["retryWhenClientStops"] = true
+                }));
         }
 
         var manifestEntry = archive.CreateEntry("manifest.fgds.json", CompressionLevel.Optimal);
@@ -189,6 +203,7 @@ public sealed class MinerService(MinerOptions options)
             build.Version,
             build.BuildKey ?? string.Empty,
             build.CdnKey ?? string.Empty,
+            "wowRunning=" + IsWowRunning().ToString()
         };
 
         foreach (var cache in CandidateHotfixCaches().OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
@@ -206,6 +221,26 @@ public sealed class MinerService(MinerOptions options)
         await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
         var second = BuildWatchState(BuildInfoReader.Read(options.WowRoot));
         return string.Equals(first, second, StringComparison.Ordinal);
+    }
+
+    private static bool IsWowRunning()
+    {
+        var processNames = new[] { "Wow", "WowClassic", "WowT", "WowClassicT" };
+
+        foreach (var name in processNames)
+        {
+            try
+            {
+                if (Process.GetProcessesByName(name).Length > 0)
+                    return true;
+            }
+            catch
+            {
+                // A process lookup failure should not break update detection.
+            }
+        }
+
+        return false;
     }
 
     private IEnumerable<string> CandidateExecutables()
