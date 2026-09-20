@@ -3,6 +3,8 @@
 **Status:** RATIFIZIERT  
 **Datum:** 2026-09-20
 
+> **Praezisierung:** ADR-014 ersetzt Entscheidung 5 und den entsprechenden Migrationssatz. R12 Controlled Live benoetigt nicht die breite Runtime-Freigabe; stattdessen gilt ein einmaliges, kontextgebundenes Testgate. Die breite Runtime bleibt `GESPERRT`.
+
 ## Kontext
 
 R12 soll nach bestandenem Shadow-Nachweis den ersten minimalen mutierenden Vertical Slice kontrolliert live pruefen. Die V5-Verfassung verlangt fuer die erste mutierende Scheibe geringes Schadenspotenzial, gute Beobachtbarkeit und leichte Ausgleichbarkeit. Bank-, Trade-, Transfer-, Upgrade-, Compound- und Production-Pfade sind fuer den Erstlauf ausgeschlossen.
