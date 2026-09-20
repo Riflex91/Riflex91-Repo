@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 
+import { pruefeProduktionsGraph } from "../erzeugt/index.js";
+
 const TESTKENNUNG = "cap045-production-live-certification";
 const CONTROLLER_VERSION = "1.0.0";
 const ACTION_CONTRACT_ID = "AL-ACTION-UPGRADE";
@@ -76,6 +78,16 @@ export function pruefeCap045LiveBericht(bericht) {
     && x.graph.planId.length > 0
     && x?.graph?.recipient?.schemaVersion === 1),
     "COVERAGE_FALL_UNGUELTIG");
+  for (const fall of coverage.faelle) {
+    let graphNachweis;
+    try {
+      graphNachweis = pruefeProduktionsGraph(fall.graph, Date.now());
+    } catch {
+      fehler("COVERAGE_CORE_GRAPH_UNGUELTIG");
+    }
+    verlange(graphNachweis.erlaubt === true && graphNachweis.status === "BEREIT",
+      "COVERAGE_CORE_GRAPH_NICHT_BEREIT");
+  }
 
   verlange(Number.isFinite(bericht.soakDauerMs) && bericht.soakDauerMs >= MIN_LIVE_DAUER_MS,
     "LIVE_DAUER_ZU_KURZ");
