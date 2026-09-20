@@ -512,7 +512,11 @@ Exit Gate:
 
 ## R8 – Workflow Scheduler und Resource Manager
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
+
+Maschinenlesbarer Abschluss: `roadmap/r8-abschluss.json`.
+
+Das Gameplay-Runtime-Gesamtgate bleibt auch nach R8 `GESPERRT`.
 
 Bauen:
 - Workflow Contract;
@@ -548,6 +552,8 @@ Exit Gate:
 - Deadlock-/Starvation-Property-Tests gruen.
 
 ## R9 – Admission und Execution Kernel
+
+**Status:** IN_PROGRESS.
 
 Nur hier duerfen rohe Adventure-Land-Mutationen entstehen.
 
