@@ -2,6 +2,7 @@ import type { SpeicherPort } from "../persistenz/speicher-port.js";
 import {
   MerchantLogistikLedger,
   type MerchantLogistikSicht,
+  type MerchantLogistikZustand,
   type RendezvousEvidence,
   type TransferSettlementEvidence,
 } from "./logistik-workflow.js";
@@ -60,6 +61,26 @@ function istObjekt(wert: unknown): wert is Readonly<Record<string, unknown>> {
   return typeof wert === "object" && wert !== null && !Array.isArray(wert);
 }
 
+const logistikZustaende: readonly MerchantLogistikZustand[] = Object.freeze([
+  "GEPLANT",
+  "RENDEZVOUS_AUSSTEHEND",
+  "RENDEZVOUS_BESTAETIGT",
+  "TRANSFER_AUSSTEHEND",
+  "SETTLED",
+  "RECOVERY_PENDING",
+  "FAILED_SAFE",
+]);
+
+function logistikIdAusPersistiertemEintrag(wert: unknown): string | null {
+  if (!istObjekt(wert)) return null;
+  const sicht = wert["sicht"];
+  if (!istObjekt(sicht)) return null;
+  const plan = sicht["plan"];
+  if (!istObjekt(plan)) return null;
+  const logistikId = plan["logistikId"];
+  return typeof logistikId === "string" ? logistikId : null;
+}
+
 function validierePinStruktur(pin: unknown): LogistikQuellenPin {
   if (!istObjekt(pin)
       || pin["schemaVersion"] !== 1
@@ -69,11 +90,23 @@ function validierePinStruktur(pin: unknown): LogistikQuellenPin {
       || !Array.isArray(pin["posten"])) {
     throw new Error("LOGISTIK_CONTROLLER_PIN_UNGUELTIG");
   }
+  const quelle = pin["quelle"];
   const freshnessFingerprint = pin["freshnessFingerprint"];
   const inventoryFingerprint = pin["inventoryFingerprint"];
   const gueltigBisMs = pin["gueltigBisMs"];
   const maximalesEvidenceAlterMs = pin["maximalesEvidenceAlterMs"];
-  if (typeof freshnessFingerprint !== "string"
+  if (!istObjekt(quelle)
+      || quelle["schemaVersion"] !== 1
+      || typeof quelle["accountId"] !== "string"
+      || typeof quelle["characterId"] !== "string"
+      || typeof quelle["sessionId"] !== "string"
+      || typeof quelle["serverRegion"] !== "string"
+      || typeof quelle["serverIdentifier"] !== "string"
+      || typeof quelle["rosterFingerprint"] !== "string"
+      || typeof quelle["rosterEpoche"] !== "number"
+      || !Number.isSafeInteger(quelle["rosterEpoche"])
+      || quelle["rosterEpoche"] < 1
+      || typeof freshnessFingerprint !== "string"
       || typeof inventoryFingerprint !== "string"
       || typeof gueltigBisMs !== "number"
       || !Number.isSafeInteger(gueltigBisMs)
@@ -119,23 +152,40 @@ function parsePersistenz(
     throw new Error("LOGISTIK_CONTROLLER_PERSISTENZ_UNGUELTIG");
   }
 
-  const eintraege = roh["eintraege"].map((row, index) => {
-    if (!istObjekt(row) || !istObjekt(row["sicht"])) {
+  const eintraegeRoh = roh["eintraege"];
+  const eintraege = eintraegeRoh.map((row, index) => {
+    if (!istObjekt(row)) {
       throw new Error("LOGISTIK_CONTROLLER_EINTRAG_UNGUELTIG");
     }
-    const sicht = row["sicht"] as unknown as MerchantLogistikSicht;
-    if (sicht.plan?.schemaVersion !== 1
-        || typeof sicht.plan.logistikId !== "string"
-        || roh["eintraege"].slice(0, index).some(
-          vorher => istObjekt(vorher)
-            && istObjekt(vorher["sicht"])
-            && istObjekt(vorher["sicht"]["plan"])
-            && vorher["sicht"]["plan"]["logistikId"] === sicht.plan.logistikId,
+    const sichtRoh = row["sicht"];
+    if (!istObjekt(sichtRoh)) {
+      throw new Error("LOGISTIK_CONTROLLER_EINTRAG_UNGUELTIG");
+    }
+    const planRoh = sichtRoh["plan"];
+    const zustand = sichtRoh["zustand"];
+    const recoveryVorZustand = sichtRoh["recoveryVorZustand"];
+    if (!istObjekt(planRoh)
+        || planRoh["schemaVersion"] !== 1
+        || typeof planRoh["logistikId"] !== "string"
+        || typeof planRoh["quelleCharacterId"] !== "string"
+        || typeof zustand !== "string"
+        || !logistikZustaende.includes(zustand as MerchantLogistikZustand)
+        || (recoveryVorZustand !== null
+          && (typeof recoveryVorZustand !== "string"
+            || recoveryVorZustand === "RECOVERY_PENDING"
+            || !logistikZustaende.includes(
+              recoveryVorZustand as MerchantLogistikZustand,
+            )))
+        || (zustand === "RECOVERY_PENDING" && recoveryVorZustand === null)
+        || eintraegeRoh.slice(0, index).some(
+          vorher => logistikIdAusPersistiertemEintrag(vorher)
+            === planRoh["logistikId"],
         )) {
       throw new Error("LOGISTIK_CONTROLLER_EINTRAG_UNGUELTIG");
     }
+    const sicht = sichtRoh as unknown as MerchantLogistikSicht;
     const quellenPin = validierePinStruktur(row["quellenPin"]);
-    if (quellenPin.quelle.characterId !== sicht.plan.quelleCharacterId) {
+    if (quellenPin.quelle.characterId !== planRoh["quelleCharacterId"]) {
       throw new Error("LOGISTIK_CONTROLLER_PIN_QUELLE_DRIFT");
     }
     return Object.freeze({
