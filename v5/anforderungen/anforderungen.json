@@ -632,7 +632,7 @@
       "titel": "Stop sperrt zuerst neue Arbeit und behandelt In-Flight-Transaktionen kontrolliert.",
       "phase": "R10",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R10_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-032"
       ],
@@ -642,7 +642,12 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r10NachweisStatus": "R10_NACHGEWIESEN",
+      "r10Nachweise": [
+        "v5/grundlage/quelle/recovery/laufsteuerung.ts",
+        "v5/grundlage/tests/r10-control.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-SICH-012",
@@ -687,7 +692,7 @@
       "titel": "Fehler werden auf die kleinstmoegliche Fehlerdomaene begrenzt.",
       "phase": "R10",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R10_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-035"
       ],
@@ -696,14 +701,19 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r10NachweisStatus": "R10_NACHGEWIESEN",
+      "r10Nachweise": [
+        "v5/grundlage/quelle/recovery/fehlerdomaenen.ts",
+        "v5/grundlage/tests/r10-control.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-SICH-015",
       "titel": "Kein Knowledge-/Config-Update darf eine laufende irreversible Transaktion still umdeuten.",
       "phase": "R10",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R10_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-036"
       ],
@@ -712,7 +722,13 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r10NachweisStatus": "R10_NACHGEWIESEN",
+      "r10Nachweise": [
+        "v5/grundlage/quelle/recovery/typen.ts",
+        "v5/grundlage/quelle/recovery/recovery-kernel.ts",
+        "v5/grundlage/tests/r10-recovery.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-PERSIST-001",
@@ -799,7 +815,7 @@
       "titel": "Nichtterminale Arbeit wird nach Restart nie blind fortgesetzt.",
       "phase": "R10",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R10_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-040"
       ],
@@ -809,7 +825,13 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r10NachweisStatus": "R10_NACHGEWIESEN",
+      "r10Nachweise": [
+        "v5/grundlage/quelle/recovery/wiederanlauf.ts",
+        "v5/grundlage/quelle/persistenz/restart.ts",
+        "v5/grundlage/tests/r10-control.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-PERSIST-005",
@@ -1031,7 +1053,7 @@
       "titel": "API-/Promise-Erfolg allein erzeugt keinen fachlichen Commit.",
       "phase": "R10",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R10_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-049"
       ],
@@ -1040,14 +1062,19 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r10NachweisStatus": "R10_NACHGEWIESEN",
+      "r10Nachweise": [
+        "v5/grundlage/quelle/recovery/recovery-kernel.ts",
+        "v5/grundlage/tests/r10-recovery.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-TRANS-002",
       "titel": "UNKNOWN ist eigener Zustand und fuehrt zu Beobachtung/Abgleich statt Blind-Retry.",
       "phase": "R10",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R10_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-050"
       ],
@@ -1056,14 +1083,20 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r10NachweisStatus": "R10_NACHGEWIESEN",
+      "r10Nachweise": [
+        "v5/grundlage/quelle/recovery/recovery-kernel.ts",
+        "v5/werkzeuge/r10-recovery-abdeckung.mjs",
+        "v5/grundlage/tests/r10-recovery.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-TRANS-003",
       "titel": "Partial Completion wird explizit diff-basiert reconciliiert.",
       "phase": "R10",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R10_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-051"
       ],
@@ -1072,7 +1105,13 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r10NachweisStatus": "R10_NACHGEWIESEN",
+      "r10Nachweise": [
+        "v5/grundlage/quelle/recovery/typen.ts",
+        "v5/grundlage/quelle/recovery/recovery-kernel.ts",
+        "v5/grundlage/tests/r10-recovery.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-TRANS-004",
