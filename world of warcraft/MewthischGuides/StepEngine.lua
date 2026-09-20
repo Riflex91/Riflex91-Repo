@@ -22,6 +22,14 @@ local function contains(list, value)
     return false
 end
 
+local function activeGuide(self)
+    if self.GetActiveGuideDefinition then
+        local guide = self:GetActiveGuideDefinition()
+        if guide then return guide end
+    end
+    return self.Data and self.Data.guide or nil
+end
+
 function MG:IsQuestFlaggedCompletedSafe(questID)
     if C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
         local ok, value = pcall(C_QuestLog.IsQuestFlaggedCompleted, questID)
@@ -165,7 +173,7 @@ function MG:BuildRouteStep(definition, snapshotEntry)
         objectives = snapshotEntry and snapshotEntry.objectives or {},
         source = definition.verification or "RECORDED",
         verification = definition.verification or "RECORDED",
-        guideID = self:GetActiveGuideDefinition() and self:GetActiveGuideDefinition().id or nil,
+        guideID = activeGuide(self) and activeGuide(self).id or nil,
         mapID = definition.mapID,
         definition = definition,
         questLogIndex = snapshotEntry and snapshotEntry.questLogIndex or nil,
@@ -204,7 +212,7 @@ function MG:BuildGuideSteps()
     local skipped = {}
     local maxCompletedOrder = 0
 
-    local guide = self:GetActiveGuideDefinition()
+    local guide = activeGuide(self)
     local definitions = guide and guide.steps or {}
 
     for _, definition in ipairs(definitions) do
