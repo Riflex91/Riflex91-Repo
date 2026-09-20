@@ -45,6 +45,36 @@ if (!supervisor.includes("actionAuthority: false")
   fehler.push("HEADLESS_SUPERVISOR_FAIL_CLOSED_UNVOLLSTAENDIG");
 }
 
+const safeUpdater = liesText("grundlage/quelle/operations/safe-auto-updater.ts");
+for (const marker of [
+  "PersistenterSafeAutoUpdater",
+  "SAFE_UPDATE_QUIESCE_NICHT_SICHER",
+  "SAFE_UPDATE_HANDSHAKE_CANDIDATE_MISMATCH",
+  "SAFE_UPDATE_RESTART_URSPRUNG_FEHLT",
+  "durableIntentPersistiert: true",
+  "sameCandidateErneutAnwenden: false",
+  "automatischerRetry = false",
+  "executionAuthority = false",
+  "gameplayAutoritaet = false",
+  "rawWriteAutoritaet = false",
+]) {
+  if (!safeUpdater.includes(marker)) {
+    fehler.push("SAFE_UPDATE_MARKER_FEHLT:" + marker);
+  }
+}
+for (const [muster, kennung] of [
+  [/\bfetch\s*\(/, "FETCH"],
+  [/\bload_code\s*\(/, "LOAD_CODE"],
+  [/\bupload_code\s*\(/, "UPLOAD_CODE"],
+  [/\bapi_call\s*\(/, "API_CALL"],
+  [/node:child_process/, "CHILD_PROCESS"],
+  [/windows-bridge/i, "WINDOWS_BRIDGE"],
+]) {
+  if (muster.test(safeUpdater)) {
+    fehler.push("SAFE_UPDATE_RAW_HOST_ZUGRIFF_VERBOTEN:" + kennung);
+  }
+}
+
 const segmente = liesText("grundlage/quelle/operations/segment-pflege.ts");
 for (const marker of ["maximaleSegmente","maximaleBytes","maximalesAlterMs","komprimiereAbAlterMs"]) {
   if (!segmente.includes(marker)) fehler.push("SEGMENT_PFLEGE_MARKER_FEHLT:" + marker);
