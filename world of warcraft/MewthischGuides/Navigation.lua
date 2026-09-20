@@ -22,22 +22,32 @@ local function atan2(y, x)
     return 0
 end
 
-function MG:ComputeAbsoluteBearing(deltaX, deltaY)
-    if deltaX == nil or deltaY == nil then return nil end
-
-    -- Guide convention shared with mature waypoint libraries:
-    -- 0 = north/forward, pi/2 = east/right.
-    local raw = atan2(-deltaX, deltaY)
-
-    if raw > 0 then
-        return TWO_PI - raw
-    end
-
-    return -raw
+local function normalizeAbsolute(angle)
+    while angle >= TWO_PI do angle = angle - TWO_PI end
+    while angle < 0 do angle = angle + TWO_PI end
+    return angle
 end
 
-function MG:ComputeRelativeBearing(deltaX, deltaY, playerFacing)
-    local targetAngle = self:ComputeAbsoluteBearing(deltaX, deltaY)
+function MG:ComputeAbsoluteBearing(deltaEast, deltaNorth)
+    if deltaEast == nil or deltaNorth == nil then return nil end
+
+    -- Match WoW's GetPlayerFacing()/Texture:SetRotation convention:
+    -- 0 = north, positive radians rotate counter-clockwise (towards west).
+    return normalizeAbsolute(atan2(-deltaEast, deltaNorth))
+end
+
+function MG:ComputeWorldAbsoluteBearing(deltaWorldX, deltaWorldY)
+    if deltaWorldX == nil or deltaWorldY == nil then return nil end
+
+    -- Blizzard world coordinates are rotated 90 degrees against UI-map axes:
+    -- world X is north/south, world Y is east/west with east being negative.
+    -- Feeding them to the map-axis bearing function as ordinary X/Y produces
+    -- the ~90 degree arrow error seen in the Forever client.
+    return normalizeAbsolute(atan2(deltaWorldY, deltaWorldX))
+end
+
+function MG:ComputeRelativeBearing(deltaEast, deltaNorth, playerFacing)
+    local targetAngle = self:ComputeAbsoluteBearing(deltaEast, deltaNorth)
     if targetAngle == nil or playerFacing == nil then
         return nil, targetAngle
     end
@@ -71,18 +81,19 @@ local function bearingFromPoints(player, target)
 
         local deltaX = targetWorld.x - playerWorld.x
         local deltaY = targetWorld.y - playerWorld.y
-        local angle = MG:ComputeAbsoluteBearing(deltaX, deltaY)
+        local angle = MG:ComputeWorldAbsoluteBearing(deltaX, deltaY)
         local distance = math.sqrt(deltaX * deltaX + deltaY * deltaY)
 
         return angle, distance, "WorldCoordinates"
     end
 
     if player.mapID == target.mapID then
-        -- UI map Y grows downwards; convert to north-positive.
-        local deltaX = target.x - player.x
-        local deltaY = player.y - target.y
-        local angle = MG:ComputeAbsoluteBearing(deltaX, deltaY)
-        local normalizedDistance = math.sqrt(deltaX * deltaX + deltaY * deltaY)
+        -- UI-map X grows east/right and Y grows south/down.
+        local deltaEast = target.x - player.x
+        local deltaNorth = player.y - target.y
+        local angle = MG:ComputeAbsoluteBearing(deltaEast, deltaNorth)
+        local normalizedDistance = math.sqrt(
+            deltaEast * deltaEast + deltaNorth * deltaNorth)
 
         return angle, nil, "NormalizedMap", normalizedDistance
     end
@@ -254,11 +265,11 @@ function MG:GetDirectionLabel(angle)
     if degrees < 0 then degrees = degrees + 360 end
 
     if degrees >= 337.5 or degrees < 22.5 then return "geradeaus" end
-    if degrees < 67.5 then return "vorne rechts" end
-    if degrees < 112.5 then return "rechts" end
-    if degrees < 157.5 then return "hinten rechts" end
+    if degrees < 67.5 then return "vorne links" end
+    if degrees < 112.5 then return "links" end
+    if degrees < 157.5 then return "hinten links" end
     if degrees < 202.5 then return "hinten" end
-    if degrees < 247.5 then return "hinten links" end
-    if degrees < 292.5 then return "links" end
-    return "vorne links"
+    if degrees < 247.5 then return "hinten rechts" end
+    if degrees < 292.5 then return "rechts" end
+    return "vorne rechts"
 end
