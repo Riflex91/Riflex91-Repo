@@ -56,10 +56,30 @@ public sealed class MinerService(MinerOptions options)
 
         if (options.WowToolsLocal is not null && !IsWowRunning())
         {
+            Process? providerProcess = null;
             using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
             var client = new WowToolsLocalClient(http, options.WowToolsLocal);
             try
             {
+                providerProcess = await ProviderManager.EnsureRunningAsync(
+                    options.WowToolsLocal,
+                    options.WowRoot,
+                    cancellationToken);
+
+                if (providerProcess is not null)
+                {
+                    bundle.Records.Add(new FgdsRecord(
+                        "provider.lifecycle",
+                        "wow.tools.local",
+                        DateTimeOffset.UtcNow,
+                        "miner",
+                        new Dictionary<string, object?>
+                        {
+                            ["autoStarted"] = true,
+                            ["executable"] = Path.GetFileName(providerProcess.MainModule?.FileName)
+                        }));
+                }
+
                 var tables = await client.ExportAsync(build, cancellationToken);
                 foreach (var (table, csv) in tables)
                 {
@@ -106,14 +126,24 @@ public sealed class MinerService(MinerOptions options)
                         }));
                 }
             }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            catch (Exception ex) when (
+                !cancellationToken.IsCancellationRequested &&
+                ex is HttpRequestException or TaskCanceledException or InvalidOperationException or TimeoutException)
             {
                 bundle.Records.Add(new FgdsRecord(
                     "provider.warning",
                     "wow.tools.local",
                     DateTimeOffset.UtcNow,
                     "miner",
-                    new Dictionary<string, object?> { ["message"] = ex.Message }));
+                    new Dictionary<string, object?>
+                    {
+                        ["message"] = ex.Message,
+                        ["autoProviderExecutableFound"] = ProviderManager.LocateWowToolsLocal() is not null
+                    }));
+            }
+            finally
+            {
+                ProviderManager.Stop(providerProcess);
             }
         }
         else if (options.WowToolsLocal is not null)
