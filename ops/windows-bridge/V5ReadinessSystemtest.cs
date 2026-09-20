@@ -92,7 +92,7 @@ public sealed class V5ReadinessSystemtest
         var livePfadKonfiguriert = config.LiveWissensimportAktiv
             && !string.IsNullOrWhiteSpace(livePfad)
             && livePfad.StartsWith(@"D:\", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(livePfad.TrimEnd('\'), @"D:", StringComparison.OrdinalIgnoreCase);
+            && !string.Equals(livePfad.TrimEnd('\\'), @"D:", StringComparison.OrdinalIgnoreCase);
         Pruefe(
             "LIVE_WISSEN_PFAD",
             livePfadKonfiguriert,
