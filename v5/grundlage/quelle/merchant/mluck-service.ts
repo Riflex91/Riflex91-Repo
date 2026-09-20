@@ -54,6 +54,7 @@ export interface MLuckPlanungsEntscheidung {
   readonly grund: string;
   readonly skillNachweis: SkillCapabilityNachweis;
   readonly prioritaetsKlasse: "OPTIMIERUNG";
+  readonly prioritaetsRang: number;
   readonly richtlinienVersion: string;
   readonly planungsNachweis: true;
   readonly ausfuehrungsAutoritaet: false;
@@ -330,6 +331,7 @@ function baueEntscheidung(
     grund,
     skillNachweis: Object.freeze({ ...skillNachweis }),
     prioritaetsKlasse: "OPTIMIERUNG",
+    prioritaetsRang: anfrage.richtlinie.servicePrioritaetsRang,
     richtlinienVersion: anfrage.richtlinie.richtlinienVersion,
     planungsNachweis: true,
     ausfuehrungsAutoritaet: false,
@@ -566,7 +568,7 @@ export function erzeugeMLuckDemand(
     erstelltAmMs: anfrage.erstelltAmMs,
     deadlineAmMs: anfrage.deadlineAmMs,
     prioritaetsKlasse: "OPTIMIERUNG",
-    prioritaetsRang:  entscheidung.ziel.topologieRang,
+    prioritaetsRang: entscheidung.prioritaetsRang,
     ressourcenIds,
     payloadFingerprint: kompakteKennung(
       "mluck-demand",
