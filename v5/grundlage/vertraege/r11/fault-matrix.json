@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "faults": [
+    {
+      "art": "CRASH_RESTART_NONTERMINAL",
+      "nachweis": [
+        "v5/grundlage/tests/r10-control.test.mjs",
+        "v5/grundlage/tests/r11-fault-labor.test.mjs"
+      ],
+      "erwartung": "ABGLEICH_ERFORDERLICH_OHNE_EXECUTION_AUTHORITY"
+    },
+    {
+      "art": "DISCONNECT_AFTER_SEND_POSSIBLE",
+      "nachweis": [
+        "v5/grundlage/tests/r10-recovery.test.mjs"
+      ],
+      "erwartung": "KEIN_SAME_INTENT_SEND"
+    },
+    {
+      "art": "TIMEOUT_AFTER_SEND_POSSIBLE",
+      "nachweis": [
+        "v5/grundlage/tests/r10-recovery.test.mjs"
+      ],
+      "erwartung": "RECONCILE_STATT_BLIND_RETRY"
+    },
+    {
+      "art": "PARTIAL_COMPLETION",
+      "nachweis": [
+        "v5/grundlage/tests/r10-recovery.test.mjs"
+      ],
+      "erwartung": "DIFF_BASIERTER_RESTPLAN"
+    },
+    {
+      "art": "PERSISTENCE_IO_FAILURE",
+      "nachweis": [
+        "v5/grundlage/tests/r5-persistenz.test.mjs",
+        "v5/grundlage/tests/r11-fault-labor.test.mjs"
+      ],
+      "erwartung": "FAIL_CLOSED"
+    },
+    {
+      "art": "DASHBOARD_FAILURE",
+      "nachweis": [
+        "v5/grundlage/tests/r11-operations.test.mjs"
+      ],
+      "erwartung": "OBSERVER_ONLY_KEINE_GAMEPLAY_WIRKUNG"
+    },
+    {
+      "art": "ALERT_SPOOL_FAILURE",
+      "nachweis": [
+        "v5/grundlage/tests/r11-operations.test.mjs",
+        "v5/grundlage/tests/r11-fault-labor.test.mjs"
+      ],
+      "erwartung": "KEIN_CLAIM_OHNE_DURABILITY"
+    }
+  ]
+}
