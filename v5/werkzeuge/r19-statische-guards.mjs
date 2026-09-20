@@ -18,6 +18,10 @@ const pflicht=[
   "werkzeuge/r19-soak-5m-test-paket-bauen.mjs",
   "werkzeuge/r19-soak-5m-test-paket.js",
   "werkzeuge/r19-soak-5m-test-gui.js",
+  "werkzeuge/tests/r19-soak-10m-test-gui.test.mjs",
+  "werkzeuge/r19-soak-10m-test-paket-bauen.mjs",
+  "werkzeuge/r19-soak-10m-test-paket.js",
+  "werkzeuge/r19-soak-10m-test-gui.js",
   "werkzeuge/r19-canary-test-paket-bauen.mjs",
   "werkzeuge/r19-canary-test-paket.js",
   "werkzeuge/r19-canary-test-gui.js",
@@ -135,6 +139,28 @@ for(const m of [
 }
 for(const verboten of [/\.equip\s*\(/,/\.attack\s*\(/,/\.move\s*\(/,/\.smart_move\s*\(/,/\.use_skill\s*\(/]){
   if(verboten.test(soakGui)) fehler.push("R19_SOAK_5M_RAW_GAME_WRITE_VERBOTEN:"+verboten);
+}
+
+const soak10Gui=lies("werkzeuge/r19-soak-10m-test-gui.js");
+for(const m of [
+  "R19-SOAK-10M-START",
+  "const DAUER_MS = 10 * 60 * 1000",
+  "const INTERVALL_MS = 30 * 1000",
+  "const MAX_SAMPLE_GAP_MS = 90 * 1000",
+  "gameplayWritesDurchHarness: 0",
+  "unerwarteteGameWritesImHarness: 0",
+  "breiteRuntimeFreigabe: false",
+  "EVIDENCE_KETTE_UNGUELTIG",
+  "PERFORMANCE_TRICK_NICHT_AKTIV",
+  "PERFORMANCE_TRICK_AUSGEFALLEN",
+  "gui.setzeRestzeit",
+  "setInterval(aktualisiereCountdown, 1000)",
+  "restzeitMs",
+]){
+  if(!soak10Gui.includes(m)) fehler.push("R19_SOAK_10M_GUI_MARKER_FEHLT:"+m);
+}
+for(const verboten of [/\.equip\s*\(/,/\.attack\s*\(/,/\.move\s*\(/,/\.smart_move\s*\(/,/\.use_skill\s*\(/]){
+  if(verboten.test(soak10Gui)) fehler.push("R19_SOAK_10M_RAW_GAME_WRITE_VERBOTEN:"+verboten);
 }
 
 const rawMuster=[
