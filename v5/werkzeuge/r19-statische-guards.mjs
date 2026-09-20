@@ -7,6 +7,10 @@ const pflicht=[
   "grundlage/quelle/zertifizierung/ladder.ts",
   "grundlage/quelle/zertifizierung/shadow-bewertung.ts",
   "grundlage/quelle/zertifizierung/production-certification.ts",
+  "grundlage/quelle/runtime/produktions-komposition.ts",
+  "grundlage/quelle/merchant/modul-vertrag.ts",
+  "grundlage/quelle/merchant/demand.ts",
+  "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
   "grundlage/tests/r19-evidence-ladder.test.mjs",
   "grundlage/tests/r19-production-certification.test.mjs",
   "grundlage/tests/r19-shadow-certification.test.mjs",
@@ -40,6 +44,32 @@ const pflicht=[
   "werkzeuge/tests/cap045-production-live-evidence-pruefen.test.mjs",
 ];
 for(const p of pflicht) if(!fs.existsSync(p)) fehler.push("PFLICHTARTEFAKT_FEHLT:"+p);
+
+const produktionsKomposition=lies("grundlage/quelle/runtime/produktions-komposition.ts");
+for(const m of [
+  "DEFAULT_DENY_OHNE_FAEHIGKEITSBINDUNGEN",
+  "merchantCoreABasisModulDefinition",
+  "faehigkeitsDefinitionen: Object.freeze([])",
+]){
+  if(!produktionsKomposition.includes(m)) {
+    fehler.push("PRODUKTIONS_KOMPOSITION_DEFAULT_DENY_FEHLT:"+m);
+  }
+}
+const merchantModul=lies("grundlage/quelle/merchant/modul-vertrag.ts");
+for(const m of [
+  'MERCHANT_CORE_A_MODUL_ID = "merchant-core-a"',
+  'MERCHANT_CORE_A_MODUL_VERSION = "1"',
+  "standardAktiv: false",
+]){
+  if(!merchantModul.includes(m)) fehler.push("MERCHANT_MODUL_VERTRAG_FEHLT:"+m);
+}
+const merchantDemand=lies("grundlage/quelle/merchant/demand.ts");
+if(!merchantDemand.includes("eigentuemerModulId: MERCHANT_CORE_A_MODUL_ID")) {
+  fehler.push("MERCHANT_WORKFLOW_OWNER_NICHT_KANONISCH");
+}
+if(merchantDemand.includes('eigentuemerModulId: "merchant-core-a"')) {
+  fehler.push("MERCHANT_WORKFLOW_OWNER_HARDCODIERT");
+}
 
 const evidence=lies("grundlage/quelle/zertifizierung/evidence-kette.ts");
 for(const m of [
