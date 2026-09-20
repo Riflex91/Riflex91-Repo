@@ -13,6 +13,12 @@ if (!r7 || !["IN_PROGRESS", "DONE"].includes(r7.status)) {
 if (r7.status === "IN_PROGRESS" && gates.currentPhase !== "R7") {
   fehler("R7 IN_PROGRESS verlangt currentPhase=R7.");
 }
+if (r7.status === "DONE") {
+  const r8 = gates.phases?.find(x => x.id === "R8");
+  if (gates.currentPhase !== "R8" || r8?.status !== "IN_PROGRESS") {
+    fehler("R7 DONE verlangt R8 IN_PROGRESS und currentPhase=R8.");
+  }
+}
 if (r7.blocksRuntime !== true) {
   fehler("R7 muss das Gameplay-Runtime-Gate blockieren.");
 }
