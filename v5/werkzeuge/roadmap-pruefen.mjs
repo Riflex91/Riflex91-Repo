@@ -16,6 +16,12 @@ for (const p of doc.phases) {
 for (const p of doc.phases) for (const dep of p.requires) if (!ids.has(dep)) fail(p.id + ': unknown dependency ' + dep);
 if (!ids.has(doc.currentPhase)) fail('unknown currentPhase');
 
+const testzeit = JSON.parse(fs.readFileSync('v5/roadmap/testzeit-standard.json','utf8'));
+if (testzeit.schemaVersion !== 1 || testzeit.status !== 'RATIFIZIERT' || testzeit.kennung !== 'V5_TESTZEIT_STANDARD_V1') fail('testzeit-standard ungueltig');
+if (testzeit.funktion?.testdauerMs !== 300000 || testzeit.funktion?.ausreichendFuerFunktionsabnahme !== true) fail('Funktionsabnahme muss 5 Minuten betragen');
+if (testzeit.integrationRelease?.testdauerMs !== 900000 || testzeit.integrationRelease?.ausreichendFuerIntegrationsReleaseAbnahme !== true) fail('Integrations-/Release-Abnahme muss 15 Minuten betragen');
+if (testzeit.breiteRuntimeFreigabe !== false) fail('Testzeitstandard darf breite Runtime nicht freigeben');
+
 const visiting = new Set(), visited = new Set(), byId = new Map(doc.phases.map(p=>[p.id,p]));
 function visit(id){
   if (visiting.has(id)) fail('cycle at ' + id);
@@ -29,4 +35,4 @@ for (const id of ids) visit(id);
 const active = doc.phases.filter(p=>p.status==='IN_PROGRESS');
 if (active.length !== 1 || active[0].id !== doc.currentPhase) fail('exactly one IN_PROGRESS phase must equal currentPhase');
 
-console.log('[V5-ROADMAP] OK:', doc.phases.length, 'phases; current =', doc.currentPhase);
+console.log('[V5-ROADMAP] OK:', doc.phases.length, 'phases; current =', doc.currentPhase, '/ Funktionsgate = 5m / Integration-Release = 15m');
