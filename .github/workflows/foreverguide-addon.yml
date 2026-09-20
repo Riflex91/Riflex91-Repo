@@ -1,0 +1,185 @@
+name: Mewthisch Guides addon v0.5.1
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "world of warcraft/MewthischGuides/**"
+      - ".github/workflows/foreverguide-addon.yml"
+  pull_request:
+    paths:
+      - "world of warcraft/MewthischGuides/**"
+      - ".github/workflows/foreverguide-addon.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Lua 5.1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1 zip
+
+      - name: Validate Lua syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "world of warcraft/MewthischGuides" -name '*.lua' -print0 | while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            luac5.1 -p "$file"
+          done
+
+      - name: Validate bearing math
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = {}
+          local chunk = assert(loadfile("world of warcraft/MewthischGuides/Navigation.lua"))
+          chunk("MewthischGuides", MG)
+
+          local function near(actual, expected, epsilon, label)
+            epsilon = epsilon or 0.0001
+            assert(math.abs(actual - expected) <= epsilon,
+              string.format("%s: expected %.6f got %.6f", label, expected, actual))
+          end
+
+          local rel, abs = MG:ComputeRelativeBearing(0, 1, 0)
+          near(abs, 0, 0.0001, "north absolute")
+          near(rel, 0, 0.0001, "north relative")
+
+          rel, abs = MG:ComputeRelativeBearing(1, 0, 0)
+          near(abs, math.pi / 2, 0.0001, "east absolute")
+          near(rel, math.pi / 2, 0.0001, "east from north")
+
+          rel = MG:ComputeRelativeBearing(1, 0, math.pi / 2)
+          near(rel, 0, 0.0001, "east while facing east")
+
+          rel, abs = MG:ComputeRelativeBearing(0, -1, 0)
+          near(abs, math.pi, 0.0001, "south absolute")
+          near(math.abs(rel), math.pi, 0.0001, "south relative")
+
+          rel = MG:ComputeRelativeBearing(-1, 0, 0)
+          near(rel, -math.pi / 2, 0.0001, "west from north")
+
+          print("Bearing math PASS")
+          LUA
+
+      - name: Validate step engine and resync
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = {
+            Data = {
+              guide = {
+                id = "test",
+                steps = {
+                  {id="q1", order=10, questID=1, title="Q1", faction="Horde"},
+                  {id="q2", order=20, questID=2, title="Q2", faction="Horde"},
+                  {id="q3", order=30, questID=3, title="Q3", faction="Horde"},
+                }
+              }
+            },
+            db = { runtime = {} },
+          }
+
+          assert(loadfile("world of warcraft/MewthischGuides/GoalEngine.lua"))("MewthischGuides", MG)
+          assert(loadfile("world of warcraft/MewthischGuides/StepEngine.lua"))("MewthischGuides", MG)
+
+          MG.GetPlayerProfile = function()
+            return { faction="Horde", race="Troll", class="HUNTER", level=8 }
+          end
+          MG.Log = function() end
+          MG.IsQuestFlaggedCompletedSafe = function(_, questID)
+            return questID == 1
+          end
+          MG.GetQuestLogSnapshot = function()
+            return {
+              [2] = {
+                questID=2, title="Q2", level=2, questLogIndex=1,
+                readyForTurnIn=false,
+                objectives={{type="monster", text="Boar: 2/10", numFulfilled=2, numRequired=10, finished=false}},
+              }
+            }
+          end
+
+          local steps, preferredIndex, reason = MG:BuildGuideSteps()
+          assert(#steps == 2, "expected completed step to be omitted")
+          assert(steps[preferredIndex].questID == 2, "resync should prefer active route quest")
+          assert(steps[preferredIndex].phase == MG.StepPhases.OBJECTIVES, "expected objective phase")
+          assert(reason == "active_route_quest", "wrong resync reason")
+          assert(MG:GetExpectedQuestForAutomation("accept") == nil, "objective phase must not auto-accept")
+
+          MG.currentStep = {questID=3, phase=MG.StepPhases.ACCEPT}
+          assert(MG:GetExpectedQuestForAutomation("accept") == 3, "accept phase must expose expected quest")
+          assert(MG:GetExpectedQuestForAutomation("turnin") == nil, "accept phase must not turn in")
+
+          MG.currentStep = {questID=2, phase=MG.StepPhases.TURNIN}
+          assert(MG:GetExpectedQuestForAutomation("turnin") == 2, "turnin phase must expose expected quest")
+          assert(MG:GetExpectedQuestForAutomation("accept") == nil, "turnin phase must not accept")
+
+          print("Step/resync contract PASS")
+          LUA
+
+      - name: Validate v0.5.1 contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="world of warcraft/MewthischGuides"
+          TOC="$ROOT/MewthischGuides.toc"
+          STEP="$ROOT/StepEngine.lua"
+          AUTO="$ROOT/QuestAutomation.lua"
+          UI="$ROOT/UI.lua"
+          NAVIGATOR="$ROOT/Navigator.lua"
+          LOGGER="$ROOT/Logger.lua"
+
+          grep -q '^## Interface: 16001$' "$TOC"
+          grep -q '^## Title: Mewthisch Guides$' "$TOC"
+          grep -q '^## Version: 0.5.1$' "$TOC"
+          grep -q '^GoalEngine.lua$' "$TOC"
+          grep -q '^StepEngine.lua$' "$TOC"
+
+          grep -q 'StepPhases' "$STEP"
+          grep -q 'BuildGuideSteps' "$STEP"
+          grep -q 'GetExpectedQuestForAutomation' "$STEP"
+
+          grep -q 'expectedQuestID' "$AUTO"
+          if grep -q 'SelectAvailableQuest, 1' "$AUTO"; then
+            echo "Unsafe first-available quest fallback detected."
+            exit 1
+          fi
+
+          grep -q 'centerOverlay(infoFrame)' "$UI"
+          grep -q 'centerOverlay(settingsFrame)' "$UI"
+
+          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
+            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
+            exit 1
+          fi
+
+          grep -q 'windowTransparency' "$LOGGER"
+          grep -q 'MewthischGuidesTransparencySlider' "$UI"
+          grep -q 'Fenster-Transparenz' "$UI"
+          grep -q 'ApplyWindowTransparency' "$UI"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.5.1.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.5.1
+          path: artifacts/MewthischGuides-v0.5.1.zip
+          if-no-files-found: error
