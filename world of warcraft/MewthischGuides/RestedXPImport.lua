@@ -14,6 +14,7 @@ local RACES = {
     Gnome = "Gnome",
     NightElf = "NightElf",
     ["Night Elf"] = "NightElf",
+    Skyborne = "Skyborne",
 }
 
 local CLASSES = {
@@ -254,6 +255,26 @@ local function parseQuestAction(kind, args)
     }
 end
 
+local function metadataValues(metadata, key)
+    local value = metadata and metadata[key]
+    if value == nil then return {} end
+    if type(value) == "table" then return value end
+    return { value }
+end
+
+local function guideTagsFromMetadata(metadata)
+    local tags = {}
+    for _, name in ipairs({"hardcore", "softcore", "season", "xprate"}) do
+        for _, value in ipairs(metadataValues(metadata, name)) do
+            tags[#tags + 1] = {
+                name = name,
+                value = value,
+            }
+        end
+    end
+    return tags
+end
+
 local function parseDefaultFor(value)
     local races, classes = {}, {}
     local seenRace, seenClass = {}, {}
@@ -367,6 +388,10 @@ function Import:BuildGuides()
                 group = metadata.group,
                 subgroup = metadata.subgroup,
                 rxpRawIndex = rawIndex,
+                rxpGuideSelector = metadata.selector,
+                rxpGuideTags = guideTagsFromMetadata(metadata),
+                rxpDefaultForRaw = metadata.defaultfor,
+                rxpAutoSelect = tostring(metadata.defaultfor or "") ~= "none",
                 steps = {},
             }
 
@@ -438,6 +463,26 @@ function Import:BuildGuides()
 
     self.guides = normalized
     return normalized
+end
+
+function Import:GuideMatches(guide, profile)
+    profile = profile or (MG.GetPlayerProfile and MG:GetPlayerProfile()) or {}
+
+    local selector = guide and guide.rxpGuideSelector
+    if type(selector) == "table" then
+        local matched = false
+        for _, value in ipairs(selector) do
+            if self:SelectorMatches(value, profile) then
+                matched = true
+                break
+            end
+        end
+        if not matched and #selector > 0 then return false end
+    elseif selector and selector ~= "" and not self:SelectorMatches(selector, profile) then
+        return false
+    end
+
+    return self:TagsMatch(guide and guide.rxpGuideTags or {}, profile)
 end
 
 function Import:QuestDefinitionApplies(definition, profile)
