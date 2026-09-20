@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20T10:44:42.240Z",
+  "phase": "R19",
+  "status": "BESTANDEN",
+  "evidenceArt": "MANUELLE_SOAK_EVIDENCE",
+  "zertifizierungsStufe": "SOAK_10M",
+  "source": "V5_INGAME_TEST_GUI_BERICHT",
+  "sourceGuiVersion": "1.1.0",
+  "sourceKennung": "r19-soak-10m",
+  "charakter": "My_Merchant",
+  "breiteRuntimeFreigabe": false,
+  "scope": "CANARY_SCOPE_READ_ONLY_SOAK",
+  "gameplayWritesDurchHarness": 0,
+  "unerwarteteGameWritesImHarness": 0,
+  "sampleAnzahl": 21,
+  "dauerMs": 600012,
+  "sampleGaps": 0,
+  "recorderDrops": 0,
+  "evidenceKetteGueltig": true,
+  "ersteEvidence": "1b2e082c",
+  "letzteEvidence": "7fa56167",
+  "ressourcen": {
+    "heapMetrikUnterstuetzt": true,
+    "storageEstimateUnterstuetzt": true,
+    "ersterHeapBytes": 36782224,
+    "maxHeapBytes": 58670125,
+    "heapWachstumBytes": 21887901,
+    "minFreieBytes": 2147483648,
+    "maxBrowserPersistenzRoundtripMs": 0.10000000149011612,
+    "maxInterneIoQueueTiefe": 0,
+    "browserPersistenzFehler": 0
+  },
+  "runtime": {
+    "alternativeRuntimeSamples": 0,
+    "toteSamples": 0,
+    "performanceTrickFehler": 0,
+    "hiddenSamples": 0
+  },
+  "performanceTrickVorpruefung": {
+    "verfuegbar": true,
+    "audioGefunden": true,
+    "cplaying": true,
+    "playing": true,
+    "howlState": "loaded",
+    "aktiv": true,
+    "visibilityState": "visible",
+    "aufgerufen": true,
+    "fehler": null,
+    "verifikation": "HOWLER_PLAYING_TRUE"
+  },
+  "grenzen": {
+    "dauerMs": 600000,
+    "intervallMs": 30000,
+    "maximalerSampleGapMs": 90000,
+    "minimaleSamples": 20,
+    "minimaleFreieBytes": 67108864,
+    "maximalerBrowserPersistenzRoundtripMs": 250,
+    "maximalesHeapWachstumBytes": 536870912
+  },
+  "blocker": [],
+  "ladder": {
+    "vorherigeStufe": "SOAK_5M",
+    "dieseStufe": "SOAK_10M",
+    "naechsteStufe": "SOAK_15M"
+  },
+  "hinweis": "SOAK_10M ist als einmalige Uebergangs-Zwischenstufe des R19_ACCELERATED_SOAK_V2 bestanden. Diese Evidence gibt die breite Runtime nicht frei."
+}

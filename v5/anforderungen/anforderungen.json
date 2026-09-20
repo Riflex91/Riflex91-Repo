@@ -1472,9 +1472,10 @@
         "v5/roadmap/r19-controlled-live-evidence.json",
         "v5/roadmap/r19-canary-evidence.json",
         "v5/roadmap/r19-soak-5m-evidence.json",
-        "v5/roadmap/testzeit-standard.json"
+        "v5/roadmap/testzeit-standard.json",
+        "v5/roadmap/r19-soak-10m-evidence.json"
       ],
-      "r19LiveStatus": "BIS_SOAK_5M_BESTANDEN",
+      "r19LiveStatus": "BIS_SOAK_10M_BESTANDEN",
       "r19Zeitprofil": "R19_ACCELERATED_SOAK_V2",
       "r19ZeitprofilAenderung": "R19 V2: 30m/60m entfallen. Einzelne neue/geaenderte Funktionen: 5m; Integrations-/Release-Meilensteine: 15m. Der bereits gestartete SOAK_10M bleibt als Uebergangs-Zwischenstufe gueltig.",
       "r19TestzeitStandard": "V5_TESTZEIT_STANDARD_V1"
