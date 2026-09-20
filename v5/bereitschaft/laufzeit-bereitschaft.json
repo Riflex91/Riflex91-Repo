@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "stand": "2026-09-20",
-  "status": "GESPERRT",
-  "freigaberegel": "Alle zehn Pflichtbereiche muessen erfuellt=true sein. Ausserdem muessen P0-Research und Invariantenratifizierung abgeschlossen, alle Validatoren gruen und der Roadmap-Gate fuer Runtime-Struktur explizit geoeffnet sein. Sind diese Voraussetzungen erfuellt, bleibt die breite Gameplay-Runtime bis zur separat dokumentierten expliziten Betreiber-Gesamtfreigabe GESPERRT.",
+  "status": "FREIGEGEBEN",
+  "freigaberegel": "Alle zehn Pflichtbereiche sind erfuellt, P0-Research und Invariantenratifizierung sind abgeschlossen, die Validatoren sind gruen, R0-R19 sind DONE und die separate explizite Betreiber-Gesamtfreigabe wurde dokumentiert. Das globale V5-Runtime-Gate ist damit FREIGEGEBEN; lokale Capability-, Admission-, Safety-, Operator-, Fencing-, Freshness- und Recovery-Gates bleiben zwingend.",
   "bereiche": [
     {
       "kennung": "WISSEN_BEREIT",
@@ -344,9 +344,7 @@
       "technischGeschlossenAm": "2026-09-20"
     }
   ],
-  "offeneBlocker": [
-    "Explizite Betreiber-Gesamtfreigabe fuer die breite V5-Gameplay-Runtime ist noch ausstehend"
-  ],
+  "offeneBlocker": [],
   "r2Status": "RATIFIZIERT",
   "r2AbgeschlossenAm": "2026-09-19",
   "r3Status": "ABGESCHLOSSEN",
@@ -417,8 +415,11 @@
   "zusatzNachweise": [
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat dokumentieren; dieser ersetzt nicht den WISSEN-012-Autorisierungsnachweis."
   ],
-  "gesamtfreigabe": "BETREIBERBESTAETIGUNG_AUSSTEHEND",
-  "breiteRuntimeFreigabe": false,
+  "gesamtfreigabe": "ERTEILT",
+  "breiteRuntimeFreigabe": true,
   "gesamtfreigabeVorbereitung": "v5/roadmap/gesamtfreigabe-vorbereitung.json",
-  "gesamtfreigabeVorbereitungStatus": "BEREIT_FUER_BETREIBERBESTAETIGUNG"
+  "gesamtfreigabeVorbereitungStatus": "ABGESCHLOSSEN",
+  "gesamtfreigabeNachweis": "v5/roadmap/gesamtfreigabe.json",
+  "gesamtfreigabeErteiltAm": "2026-09-20",
+  "gesamtfreigabeReleaseCandidateSha": "a137c2e02b27f195f7b2f0ea208e8587f2baa0e1"
 }
