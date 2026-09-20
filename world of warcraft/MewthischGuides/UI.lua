@@ -865,7 +865,13 @@ function MG:RefreshUI()
 
     local step = self.currentStep
     local guide = self.GetActiveGuideDefinition and self:GetActiveGuideDefinition() or nil
-    local guideName = guide and (guide.title or guide.id) or "Kein Guide ausgewählt"
+    local routeMode = self.GetRouteMode and self:GetRouteMode() or "preset"
+    local guideName
+    if routeMode == "manual" then
+        guideName = "Manuell – aktive Quests / kurze Laufwege"
+    else
+        guideName = guide and (guide.title or guide.id) or "Kein Guide ausgewählt"
+    end
 
     ui.guideTitle:SetText(guideName)
     clearRows()
@@ -1011,6 +1017,7 @@ function MG:RefreshInfo()
         "TravelGraph: " .. tostring(travel.nodes or 0) .. " Knoten / " ..
             tostring(travel.edges or 0) .. " Kanten",
         "Gear-Empfehlung: " .. tostring(gear.recommendedItemID or "–"),
+        "Gear-Auto-Equip: " .. tostring(gear.autoEquipReason or "–"),
         "Talent-Empfehlung: " .. tostring(talent.recommendedSpellID or "–"),
         "Reward-Empfehlung: " .. tostring(reward.recommendedItemID or "–"),
         "RestedXP-Guidequellen: " .. tostring(restedXP.rawGuides or 0) ..
