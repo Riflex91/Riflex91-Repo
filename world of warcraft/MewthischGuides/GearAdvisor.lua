@@ -37,8 +37,11 @@ local function itemLevel(link)
         local ok, value = pcall(GetDetailedItemLevelInfo, link)
         if ok and tonumber(value) then return tonumber(value) end
     end
-    local _, _, _, level = GetItemInfo and GetItemInfo(link)
-    return tonumber(level)
+    if GetItemInfo then
+        local ok, _, _, _, level = pcall(GetItemInfo, link)
+        if ok and tonumber(level) then return tonumber(level) end
+    end
+    return nil
 end
 
 local function equippable(link)
