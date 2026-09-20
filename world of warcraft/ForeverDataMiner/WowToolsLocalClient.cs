@@ -30,6 +30,22 @@ public sealed class WowToolsLocalClient(HttpClient http, Uri baseUri)
         "SpellName", "SpellEffect"
     ];
 
+    public async Task<byte[]?> ExportTableAsync(
+        string table,
+        BuildIdentity build,
+        CancellationToken cancellationToken)
+    {
+        var url = new Uri(baseUri,
+            $"dbc/export/csv?name={Uri.EscapeDataString(table)}&build={Uri.EscapeDataString(build.Version)}&useHotfixes=true&newLinesInStrings=false");
+
+        using var response = await http.GetAsync(url, cancellationToken);
+        if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.NoContent or HttpStatusCode.BadRequest)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<(string Table, byte[] Csv)>> ExportAsync(
         BuildIdentity build,
         CancellationToken cancellationToken)
@@ -38,15 +54,9 @@ public sealed class WowToolsLocalClient(HttpClient http, Uri baseUri)
 
         foreach (var table in Tables)
         {
-            var url = new Uri(baseUri,
-                $"dbc/export/csv?name={Uri.EscapeDataString(table)}&build={Uri.EscapeDataString(build.Version)}&useHotfixes=true&newLinesInStrings=false");
-
-            using var response = await http.GetAsync(url, cancellationToken);
-            if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.NoContent or HttpStatusCode.BadRequest)
-                continue;
-
-            response.EnsureSuccessStatusCode();
-            result.Add((table, await response.Content.ReadAsByteArrayAsync(cancellationToken)));
+            var csv = await ExportTableAsync(table, build, cancellationToken);
+            if (csv is not null)
+                result.Add((table, csv));
         }
 
         return result;
