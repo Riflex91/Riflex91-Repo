@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-09-20",
-  "currentPhase": "R8",
+  "currentPhase": "R9",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -228,7 +228,7 @@
     {
       "id": "R8",
       "name": "Workflow Scheduler Resources",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R7"
       ],
@@ -241,7 +241,7 @@
     {
       "id": "R9",
       "name": "Admission Execution Kernel",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R8"
       ],
