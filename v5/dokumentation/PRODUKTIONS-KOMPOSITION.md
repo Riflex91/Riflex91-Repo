@@ -14,7 +14,9 @@ Der kanonische Katalog liegt in:
 - `grundlage/quelle/merchant/faehigkeits-vertrag.ts`;
 - `grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json`;
 - `architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md`;
-- `architektur/adr/ADR-027-KONTROLLIERTE-PLANEN-AKTIVIERUNG.md`.
+- `architektur/adr/ADR-027-KONTROLLIERTE-PLANEN-AKTIVIERUNG.md`;
+- `architektur/adr/ADR-028-DURABLE-PLANEN-AUTHORITY.md`;
+- `grundlage/vertraege/runtime/durable-planen-authority.json`.
 
 ## Produktive Modulidentitaet
 
@@ -92,24 +94,40 @@ registrierte `PLANEN`-Capabilities. Eine Aktivierung ist nur moeglich, wenn:
 - der Headless Supervisor mit aktueller Health-Evidence und vorhandenen
   Operations-Metriken `bereit=true` ist.
 
-Erfolgreiche Aktivierungen werden mit Aktivierungs-ID, Policy-ID,
-Providerbindung, Health-Evidence-IDs und Zeitpunkt im begrenzten Runtime-Audit
-sichtbar. Dieser Audit ersetzt noch keine spaetere durable Host-Persistenz.
+Vor jeder lokalen Aktivierung muss zusaetzlich ein typisierter
+`PLANEN_AKTIVIERUNG_VOR_WIRKUNG`-Intent durable bestaetigt werden.
+Persistenzfehler oder eine ungueltige Durability-Bestaetigung lassen Modul und
+Capability inaktiv. Nach dem asynchronen Durable-Write werden alle
+Aktivierungsgates erneut geprueft, bevor lokale Authority entstehen darf.
+
+Der produktive Node-Adapter schreibt die durable Evidence ausserhalb des
+Testmodus ausschliesslich unter `D:\AdventureLand-V5`, konkret unter
+`runtime/authority/planen/`. Gleiche Aktivierungs-ID mit gleichem Inhalt ist
+idempotent; abweichender Inhalt unter derselben ID wird als Kollision
+blockiert.
+
+Erfolgreiche lokale Aktivierungen bleiben zusaetzlich mit Aktivierungs-ID,
+Policy-ID, Providerbindung, Health-Evidence-IDs und Zeitpunkt im begrenzten
+Runtime-Audit sichtbar.
 
 `kernKomponenten()` exponiert fuer die Runtime-eigenen Modul- und
 Capability-Register keine aktivierende Methode mehr. Deaktivierung und
 authority-reduzierende Statusaenderungen bleiben moeglich.
 
 Der kontrollierte Runtime-Stop deaktiviert zuvor aktivierte
-Kompositionsbestandteile. Gameplay-, Raw-Write- und Action-Authority bleiben
-auch bei aktiver PLANEN-Capability `false`.
+Kompositionsbestandteile. `revalidierePlanenAuthority(...)` entzieht aktive
+PLANEN-Authority ebenfalls fail-closed, sobald aktuelle Health-/Operations-,
+Provider- oder deny-only Operator-Voraussetzungen verloren gehen.
+Gameplay-, Raw-Write- und Action-Authority bleiben auch bei aktiver
+PLANEN-Capability `false`.
 
 ## Naechster Integrationsschritt
 
-Als naechstes bleibt der produktive Host-/Bootstrap-Pfad fuer reale
-Health-Evidence, Operations-Metriken, deny-only Bediener-Richtlinie und
-spaetere durable Aktivierungs-Audits zu verdrahten. Danach kann explizit
-festgelegt werden, welche PLANEN-Capabilities im realen Betrieb aktiviert
+Als naechstes bleibt der produktive Host-/Bootstrap-Pfad fuer **reale**
+Health-Evidence und Operations-Metriken zu verdrahten. Dieser Host-Pfad muss
+die Revalidierung fortlaufend ausfuehren und darf weiterhin keine Gameplay-
+oder Action-Authority erhalten. Danach wird explizit festgelegt, welche der
+acht PLANEN-Capabilities im realen Betrieb als erste Canary-Auswahl aktiviert
 werden.
 
 Die reine Registrierung oder Aktivierung von PLANEN-Capabilities erteilt keine
