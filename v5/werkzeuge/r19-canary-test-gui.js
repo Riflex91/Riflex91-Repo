@@ -375,7 +375,7 @@
     kennung: 'runtime-stoppen',
     titel: '1 · Alte Runtime stoppen',
     art: 'normal',
-    ausfuehren() {
+    async ausfuehren() {
       const performanceTrick = await guiApi().aktivierePerformanceTrick();
       const result = stoppeAltRuntime();
       result.performanceTrick = performanceTrick;
