@@ -218,3 +218,18 @@ Abdeckung: `grundlage/vertraege/r13/merchant-core-abdeckung.json`
 Abschluss: `roadmap/r13-abschluss.json`
 
 Aktuelle Phase: **R14 – Multi-Character Coordination Foundation**.
+
+
+## R14 – Multi-Character Coordination abgeschlossen
+
+R14 ist als no-write Multi-Character-Koordinationsgrundlage abgeschlossen. CM-Umschlaege sind versioniert, TTL- und dedupe-gebunden, workflow-korreliert und serverlokal gefenced. Duplicate, Out-of-order, Loss und Delay sind fault-injected; ACK/Settlement bleibt auch bei Reordering und Restart korreliert.
+
+Roster-Ziele sind an Roster-Epoche und Character-Session gebunden. Stale Characters erhalten keine neue Koordinationsfreigabe. Restart importiert weder Roster noch Liveness als frische Authority. Account Coordinator und Character Agent bleiben getrennt; beide erhalten in R14 keine neue Raw-Game-Write-Authority.
+
+P1A: `dokumentation/P1A-CM-MULTI-CHARACTER.md`  
+Abdeckung: `grundlage/vertraege/r14/multi-character-abdeckung.json`  
+Abschluss: `roadmap/r14-abschluss.json`
+
+Die breite Gameplay-Runtime bleibt `GESPERRT`.
+
+Aktuelle Phase: **R15 – Merchant Core B: Supply, Gear und Production**.

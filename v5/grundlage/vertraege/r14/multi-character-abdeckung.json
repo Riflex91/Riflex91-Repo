@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R14",
+  "status": "TECHNISCH_BESTANDEN",
+  "referenzHead": "3850d3fbdc21cc8608a04192797a5081c5b0ce7b",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "p1a": {
+    "status": "GESCHLOSSEN",
+    "nachweis": "v5/dokumentation/P1A-CM-MULTI-CHARACTER.md"
+  },
+  "anforderungen": [
+    {
+      "kennung": "V5-ANF-MULTI-001",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/koordination/cm-protokoll.ts",
+        "v5/grundlage/quelle/koordination/cm-settlement.ts",
+        "v5/grundlage/quelle/koordination/character-agent.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r14-cm-protokoll.test.mjs",
+        "v5/grundlage/tests/r14-cm-settlement.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-MULTI-002",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/koordination/roster-wahrheit.ts",
+        "v5/grundlage/quelle/koordination/account-koordinator.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r14-roster-liveness.test.mjs",
+        "v5/grundlage/tests/r14-koordinator-agent.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-MULTI-003",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/koordination/character-liveness.ts",
+        "v5/grundlage/quelle/koordination/account-koordinator.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r14-roster-liveness.test.mjs",
+        "v5/grundlage/tests/r14-koordinator-agent.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-MULTI-004",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/koordination/cm-protokoll.ts",
+        "v5/grundlage/quelle/koordination/cm-settlement.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r14-cm-fault-injektion.test.mjs",
+        "v5/grundlage/tests/r14-cm-settlement.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-MULTI-005",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/koordination/account-koordinator.ts",
+        "v5/grundlage/quelle/koordination/character-agent.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r14-koordinator-agent.test.mjs"
+      ]
+    }
+  ],
+  "fitness": {
+    "kennung": "V5-FIT-042",
+    "status": "ERFUELLT"
+  },
+  "exitKriterien": {
+    "p1aGeschlossen": true,
+    "cmProtokollVersioniert": true,
+    "cmDedupeUndTtl": true,
+    "duplicateFaultGruen": true,
+    "outOfOrderFaultGruen": true,
+    "lossFaultGruen": true,
+    "delayFaultGruen": true,
+    "ackSettlementKorrelationGruen": true,
+    "rosterEpocheGebunden": true,
+    "sessionFencing": true,
+    "staleCharacterAuthorityVerhindert": true,
+    "restartAuthorityFailClosed": true,
+    "accountCoordinatorCharacterAgentGetrennt": true,
+    "rawGameWritesImR14Core": 0
+  },
+  "regression": {
+    "r3BisR14UndWissensgate": "GRUEN",
+    "exactHead": "3850d3fbdc21cc8608a04192797a5081c5b0ce7b"
+  },
+  "hinweis": "R14 schliesst die no-write Multi-Character-Koordinationsgrundlage. Produktiver CM-Transport und breite Gameplay-Runtime bleiben gesperrt."
+}

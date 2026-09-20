@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R14",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "p1aStatus": "GESCHLOSSEN",
+  "anforderungen": {
+    "phaseR14": 5,
+    "technischNachgewiesen": 5,
+    "status": "R14_NACHGEWIESEN"
+  },
+  "traceability": {
+    "phaseR14": 5,
+    "vollstaendig": 5
+  },
+  "fitness": {
+    "phaseR14": 1,
+    "erfuellt": 1,
+    "status": "ERFUELLT"
+  },
+  "exitKriterien": {
+    "p1aGeschlossen": true,
+    "cmProtokollVersioniert": true,
+    "cmDedupeUndTtl": true,
+    "duplicateFaultGruen": true,
+    "outOfOrderFaultGruen": true,
+    "lossFaultGruen": true,
+    "delayFaultGruen": true,
+    "ackSettlementKorrelationGruen": true,
+    "rosterEpocheGebunden": true,
+    "sessionFencing": true,
+    "staleCharacterAuthorityVerhindert": true,
+    "restartAuthorityFailClosed": true,
+    "accountCoordinatorCharacterAgentGetrennt": true,
+    "rawGameWritesImR14Core": 0
+  },
+  "naechstePhase": "R15",
+  "nachweise": [
+    "v5/dokumentation/P1A-CM-MULTI-CHARACTER.md",
+    "v5/grundlage/vertraege/r14/multi-character-abdeckung.json",
+    "v5/architektur/adr/ADR-017-R14-MULTI-CHARACTER-COORDINATION.md",
+    "v5/grundlage/tests/r14-cm-protokoll.test.mjs",
+    "v5/grundlage/tests/r14-cm-fault-injektion.test.mjs",
+    "v5/grundlage/tests/r14-cm-settlement.test.mjs",
+    "v5/grundlage/tests/r14-roster-liveness.test.mjs",
+    "v5/grundlage/tests/r14-koordinator-agent.test.mjs",
+    "v5/werkzeuge/r14-statische-guards.mjs",
+    "v5/werkzeuge/r14-struktur-pruefen.mjs"
+  ],
+  "hinweis": "R14 gibt keine breite Runtime frei. R15 startet auf den gefenceten Roster-/Liveness-/CM-Koordinationsvertraegen."
+}

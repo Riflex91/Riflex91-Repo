@@ -722,7 +722,12 @@ Exit Gate:
 
 ## R14 – Multi-Character Coordination Foundation
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
+
+P1A ist geschlossen. CM-Dedupe/TTL, bounded Retry mit gleicher Nachrichten-ID, ACK/Settlement-Korrelation, server-lokale Bindung, Roster-/Session-Epochen, Liveness und Restart-Fencing sind technisch nachgewiesen. Account Coordinator und Character Agent bleiben getrennt und besitzen in R14 keine neue Raw-Write-Authority. Die breite Runtime bleibt `GESPERRT`.
+
+Maschinenlesbare Abdeckung: `grundlage/vertraege/r14/multi-character-abdeckung.json`.  
+Maschinenlesbarer Abschluss: `roadmap/r14-abschluss.json`.
 
 Voraussetzung: R1.2 abgeschlossen.
 
@@ -742,6 +747,8 @@ Exit Gate:
 - stale Character darf keine neue Authority erhalten.
 
 ## R15 – Merchant Core B: Supply, Gear und Production
+
+**Status:** IN_PROGRESS.
 
 Bauen:
 - Supply Delivery;
