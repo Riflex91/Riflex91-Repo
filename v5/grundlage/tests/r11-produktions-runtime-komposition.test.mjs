@@ -213,3 +213,49 @@ test("realer Gesamtfreigabe-Bootstrap startet die konkrete V5-Kompositionswurzel
   assert.equal(gestoppt.zustand, "GESTOPPT");
   assert.equal(runtime.status().prozessLaeuft, false);
 });
+
+
+test("Produktions-Komposition verlangt exaktes Provider-Modul fuer jede Capability", () => {
+  assert.throws(
+    () => new V5ProduktionsRuntime(definition({
+      faehigkeitsDefinitionen: [{
+        ...faehigkeit,
+        anbieterModulId: "nicht-registriert",
+      }],
+    })),
+    /PRODUKTIONS_KOMPOSITION_FAEHIGKEIT_PROVIDER_FEHLT:bank\.deposit/,
+  );
+});
+
+test("Produktions-Komposition verlangt Capability-Deklaration am Provider-Modul", () => {
+  assert.throws(
+    () => new V5ProduktionsRuntime(definition({
+      modulDefinitionen: [{
+        ...modul,
+        bereitgestellteFaehigkeiten: [],
+      }],
+    })),
+    /PRODUKTIONS_KOMPOSITION_FAEHIGKEIT_NICHT_DEKLARIERT:bank\.deposit/,
+  );
+});
+
+test("Produktions-Komposition verbietet Modul-Capability ohne Provider-Definition", () => {
+  assert.throws(
+    () => new V5ProduktionsRuntime(definition({
+      faehigkeitsDefinitionen: [],
+    })),
+    /PRODUKTIONS_KOMPOSITION_MODUL_FAEHIGKEIT_OHNE_ANBIETER:bank\.deposit/,
+  );
+});
+
+test("Produktions-Komposition verlangt Anbieter fuer jede benoetigte Capability", () => {
+  assert.throws(
+    () => new V5ProduktionsRuntime(definition({
+      modulDefinitionen: [{
+        ...modul,
+        benoetigteFaehigkeiten: ["world.observe"],
+      }],
+    })),
+    /PRODUKTIONS_KOMPOSITION_BENOETIGTE_FAEHIGKEIT_FEHLT:world\.observe/,
+  );
+});
