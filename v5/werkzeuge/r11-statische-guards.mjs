@@ -55,6 +55,53 @@ for (const marker of [
   }
 }
 
+const produktionsHost = liesText(
+  "grundlage/quelle/host/produktions-host-controller.ts",
+);
+for (const marker of [
+  "V5ProduktionsHostController",
+  "ProduktionsOperationsQuellePort",
+  "revalidierePlanenAuthority",
+  "aktivierePlanenFaehigkeit",
+  "PRODUKTIONS_HOST_OPERATIONS_QUELLE_NICHT_BEREIT",
+  "gameplayAutoritaet: false",
+  "rawWriteAutoritaet: false",
+  "actionAuthority: false",
+]) {
+  if (!produktionsHost.includes(marker)) {
+    fehler.push("PRODUKTIONS_HOST_MARKER_FEHLT:" + marker);
+  }
+}
+
+const operationsQuelle = liesText(
+  "grundlage/adapter/persistenz/node-produktions-operations-quelle.mjs",
+);
+for (const marker of [
+  "produktiver-speicher",
+  "runtime/health/storage-probe.json",
+  "schreibeAtomarDurable",
+  "statfs",
+  'zustand: "KRITISCH"',
+  "backpressureAktiv: true",
+]) {
+  if (!operationsQuelle.includes(marker)) {
+    fehler.push("PRODUKTIONS_OPERATIONS_QUELLE_MARKER_FEHLT:" + marker);
+  }
+}
+
+const supervisorQuelle = liesText(
+  "grundlage/quelle/operations/headless-supervisor.ts",
+);
+for (const marker of [
+  "operationsAktuell",
+  "maximalesOperationsAlterMs",
+  "operations.metrik.zeitMs <= jetztMs",
+]) {
+  if (!supervisorQuelle.includes(marker)) {
+    fehler.push("SUPERVISOR_OPERATIONS_FRESHNESS_FEHLT:" + marker);
+  }
+}
+
 const telemetrie = liesText("grundlage/quelle/operations/telemetrie.ts");
 for (const marker of [
   "ssdIoLatenzMs",

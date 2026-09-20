@@ -12,6 +12,16 @@ import type {
 export const PRODUKTIONS_KOMPOSITIONS_KATALOG_STATUS =
   "DEFAULT_DENY_PLANEN_REGISTRIERT_INAKTIV";
 
+export const V5_PRODUKTIONS_STORAGE_HEALTH_ID = "produktiver-speicher";
+
+export const KANONISCHE_PRODUKTIONS_HEALTH_ANFORDERUNGEN:
+readonly KritischeHealthAnforderung[] = Object.freeze([
+  Object.freeze({
+    healthId: V5_PRODUKTIONS_STORAGE_HEALTH_ID,
+    erforderlich: true,
+  }),
+]);
+
 function kopiereHealthAnforderungen(
   anforderungen: readonly KritischeHealthAnforderung[],
 ): readonly KritischeHealthAnforderung[] {
@@ -21,7 +31,8 @@ function kopiereHealthAnforderungen(
 }
 
 export function erstelleKanonischeProduktionsKomposition(
-  healthAnforderungen: readonly KritischeHealthAnforderung[],
+  healthAnforderungen: readonly KritischeHealthAnforderung[] =
+    KANONISCHE_PRODUKTIONS_HEALTH_ANFORDERUNGEN,
 ): V5ProduktionsKompositionsDefinition {
   return Object.freeze({
     schemaVersion: 1,

@@ -16,7 +16,9 @@ Der kanonische Katalog liegt in:
 - `architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md`;
 - `architektur/adr/ADR-027-KONTROLLIERTE-PLANEN-AKTIVIERUNG.md`;
 - `architektur/adr/ADR-028-DURABLE-PLANEN-AUTHORITY.md`;
-- `grundlage/vertraege/runtime/durable-planen-authority.json`.
+- `grundlage/vertraege/runtime/durable-planen-authority.json`;
+- `architektur/adr/ADR-029-PRODUKTIVER-OPERATIONS-FEED.md`;
+- `grundlage/vertraege/runtime/produktions-operations-feed.json`.
 
 ## Produktive Modulidentitaet
 
@@ -121,14 +123,38 @@ Provider- oder deny-only Operator-Voraussetzungen verloren gehen.
 Gameplay-, Raw-Write- und Action-Authority bleiben auch bei aktiver
 PLANEN-Capability `false`.
 
+## Produktiver Operations-Feed
+
+Die kanonische produktive Health-Anforderung lautet
+`produktiver-speicher`. Ohne explizite Ueberschreibung verwendet die
+kanonische Produktionskomposition genau diese kritische Health-ID.
+
+`NodeProduktionsOperationsQuelle` schreibt einen durable Storage-Probe unter
+`D:\AdventureLand-V5\runtime\health\storage-probe.json`, misst reale
+Write-Latenz und freie Bytes und erzeugt daraus Health-Evidence plus
+Operations-Metrik. Dateisystemfehler werden als `KRITISCH` mit Backpressure
+gemeldet; Grenzverletzungen werden `DEGRADIERT`.
+
+Der Headless Supervisor verlangt zusaetzlich frische Operations-Metriken.
+Zukuenftige Metriken und Metriken aelter als das konfigurierte Maximum
+(default 60 Sekunden) gelten nicht als betriebsbereit.
+
+`V5ProduktionsHostController` ist die neue observer-only Host-Grenze. Er
+bezieht Health/Metriken ausschliesslich aus der Operations-Quelle, speist die
+Metrik in die Runtime, startet den bestehenden Gesamtfreigabe-Bootstrap und
+revalidiert PLANEN-Authority bei jedem Tick. Eine PLANEN-Aktivierung ueber den
+Host verwendet frisch vom Host erhobene Evidence statt caller-gelieferter
+Health-Werte. Faellt die Operations-Quelle aus, wird aktive PLANEN-Authority
+fail-closed entzogen.
+
 ## Naechster Integrationsschritt
 
-Als naechstes bleibt der produktive Host-/Bootstrap-Pfad fuer **reale**
-Health-Evidence und Operations-Metriken zu verdrahten. Dieser Host-Pfad muss
-die Revalidierung fortlaufend ausfuehren und darf weiterhin keine Gameplay-
-oder Action-Authority erhalten. Danach wird explizit festgelegt, welche der
-acht PLANEN-Capabilities im realen Betrieb als erste Canary-Auswahl aktiviert
-werden.
+Als naechstes wird die vollstaendige Node-/Windows-Host-Komposition aus
+Gesamtfreigabe, durable Bediener-Deny-Protokoll, durable
+PLANEN-Aktivierungsprotokoll, Operations-Quelle, Runtime, Bootstrap und
+Host-Controller gebaut. Danach kann genau eine PLANEN-Capability als erster
+observer-only Host-Canary aktiviert und ihre Ausgabe gegen reale
+Adventure-Land-Beobachtungen geprueft werden, weiterhin ohne Gameplay-Write.
 
 Die reine Registrierung oder Aktivierung von PLANEN-Capabilities erteilt keine
 Mutationserlaubnis. Mutierende Merchant-Capabilities benoetigen einen
