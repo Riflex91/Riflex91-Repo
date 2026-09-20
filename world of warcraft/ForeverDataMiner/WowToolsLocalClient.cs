@@ -7,7 +7,7 @@ public sealed class WowToolsLocalClient(HttpClient http, Uri baseUri)
     private static readonly string[] Tables =
     [
         "QuestV2", "QuestInfo", "QuestLine", "QuestLineXQuest", "QuestObjective",
-        "QuestPOIBlob", "QuestPOIPoint", "Item", "ItemSparse", "ItemEffect",
+        "QuestPOIBlob", "QuestPOIPoint", "QuestPackageItem", "QuestXP", "QuestMoneyReward", "Item", "ItemSparse", "ItemEffect",
         "ChrClasses", "ChrRaces", "Map", "AreaTable", "TaxiNodes", "Talent",
         "SpellName", "SpellEffect"
     ];
