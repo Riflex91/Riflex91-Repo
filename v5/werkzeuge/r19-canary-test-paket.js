@@ -303,6 +303,8 @@
 
       button.addEventListener('click', async () => {
         if (button.disabled) return;
+        const performanceTrick = aktivierePerformanceTrick();
+        protokolliere('Performance-Trick Benutzeraktion', performanceTrick);
         const confirm = typeof row.bestaetigungsText === 'string' ? row.bestaetigungsText : null;
         if (confirm !== null && bestaetigungInput.value !== confirm) {
           setzeBestaetigung(confirm);
@@ -685,10 +687,10 @@
     return { ok: gelesen === probe, art: 'BROWSER_TEST_WITNESS', produktionsPersistenz: false };
   }
 
-  function passiveVorpruefung() {
+  async function passiveVorpruefung() {
     const obs = beobachte();
     const gruende = ruheGruende(obs);
-    const performanceTrick = guiApi().aktivierePerformanceTrick();
+    const performanceTrick = await guiApi().aktivierePerformanceTrick();
     if (!performanceTrick.aktiv) gruende.push('PERFORMANCE_TRICK_NICHT_AKTIV');
     const journal = liesJournal();
     if (journalOffen(journal)) gruende.push('VORHERIGER_TESTVERSUCH_UNGEKLAERT');
@@ -783,7 +785,7 @@
     titel: '1 · Alte Runtime stoppen',
     art: 'normal',
     ausfuehren() {
-      const performanceTrick = guiApi().aktivierePerformanceTrick();
+      const performanceTrick = await guiApi().aktivierePerformanceTrick();
       const result = stoppeAltRuntime();
       result.performanceTrick = performanceTrick;
       if (!performanceTrick.aktiv) result.status = 'BLOCKIERT';
@@ -801,8 +803,8 @@
     titel: '2 · Passive Vorprüfung',
     art: 'primaer',
     aktiviert: false,
-    ausfuehren() {
-      const result = passiveVorpruefung();
+    async ausfuehren() {
+      const result = await passiveVorpruefung();
       letzterPreflight = result;
       gui.protokolliere('Passive Vorpruefung', result);
       setzeResultat(result, result.status === 'BESTANDEN'
@@ -826,7 +828,7 @@
         throw new Error('R19_CANARY_PASSIVE_VORPRUEFUNG_FEHLT');
       }
 
-      const frisch = passiveVorpruefung();
+      const frisch = await passiveVorpruefung();
       if (frisch.status !== 'BESTANDEN') {
         setzeResultat(frisch, 'Frische Vorprüfung blockiert. Kein Send.');
         return frisch;
