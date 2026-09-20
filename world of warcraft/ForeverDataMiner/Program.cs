@@ -13,6 +13,12 @@ public static class Program
             }
 
             var command = args[0].ToLowerInvariant();
+            if (command == "selftest")
+            {
+                SelfTest.Run();
+                return 0;
+            }
+
             var wowRoot = GetArg(args, "--wow") ?? AutoDetectWowRoot()
                 ?? throw new ArgumentException("WoW root not found. Pass --wow <path>.");
 
@@ -86,11 +92,12 @@ public static class Program
 ForeverDataMiner
 
 Commands:
+  selftest
   scan  --wow <WoW root> [--wtl http://localhost:5000] [--out <folder>]
   watch --wow <WoW root> [--wtl http://localhost:5000] [--out <folder>]
 
 watch polls the local build identity and emits a new FGDS bundle whenever the
-Forever build/build-key changes.
+Forever build/build-key/hotfix-cache state changes.
 """);
     }
 }
