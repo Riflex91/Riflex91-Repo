@@ -8,6 +8,7 @@ export type MerchantDemandArt =
   | "BANK_STORE"
   | "BANK_RETRIEVE"
   | "BANK_CONSOLIDATE"
+  | "BANK_ERWEITERN"
   | "NPC_BUY"
   | "NPC_SELL"
   | "MARKT_BEOBACHTEN"
