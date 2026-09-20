@@ -57,3 +57,15 @@ Duplicate, Out-of-order, Loss und Delay sind deterministisch fault-injected. Ser
 - `v5/grundlage/quelle/koordination/character-agent.ts`
 - `v5/grundlage/tests/r14-cm-fault-injektion.test.mjs`
 - `v5/grundlage/tests/r14-cm-settlement.test.mjs`
+
+## Migration
+
+V3/V4-Party-/CM-Runtimecode wird nicht importiert. R14 uebernimmt nur ratifizierte Semantik und baut die Koordinationsgrenze V5-nativ neu. Die bereits in R13 accountweit positionierte Bank-Lease bleibt unter `koordination/` und kann in R15 auf die neue Roster-/Liveness-/CM-Grundlage aufsetzen.
+
+Produktive Adventure-Land-Transportadapter werden erst in der jeweils zustaendigen Runtime-/Execution-Grenze eingefuehrt. R14 selbst bleibt transport- und planning-only ohne `send_cm`-Raw-Write.
+
+## Rollback
+
+Ein Rollback von R14 entfernt nur die no-write Koordinationsprimitive, Tests und Metadaten. Da R14 keinen produktiven CM- oder Gameplay-Send freigibt, entsteht kein externer Adventure-Land-Zustand, der automatisch zurueckgerollt werden muesste.
+
+Persistierte spaetere Roster-, Liveness-, Dedupe- oder Settlement-Snapshots duerfen bei einem Rueckbau nicht blind weiterverwendet werden; unbekannte oder inkompatible Versionen muessen fail-closed neu reconciliert werden.
