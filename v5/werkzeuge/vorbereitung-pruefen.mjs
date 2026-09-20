@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { pruefeR0R3Reconciliation } from './r0-r3-reconciliation-pruefen.mjs';
 
 const liesJson = (pfad) => JSON.parse(fs.readFileSync(pfad, 'utf8'));
 const fehler = (text) => { throw new Error('[V5-VORBEREITUNG] ' + text); };
@@ -129,6 +130,8 @@ for (const pfad of [
 ]) {
   if (!fs.existsSync(pfad)) fehler('Pflichtdokument fehlt: ' + pfad);
 }
+
+pruefeR0R3Reconciliation();
 
 console.log('[V5-VORBEREITUNG] OK');
 console.log('[V5-VORBEREITUNG] Anforderungen:', anforderungsKennungen.size);
