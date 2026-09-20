@@ -505,40 +505,80 @@ function Import:QuestDefinitionApplies(definition, profile)
     return false
 end
 
-function Import:GetCoordinate(definition, phase, profile)
+local function occurrenceOrder(occurrence)
+    return (tonumber(occurrence and occurrence.sourceStep) or 0) * 100 +
+        (tonumber(occurrence and occurrence.sourceAction) or 0)
+end
+
+function Import:GetProgressOccurrence(definition, phase, profile, objectiveIndex)
     local occurrences = definition and definition.rxpOccurrences
     if type(occurrences) ~= "table" then return nil end
 
+    profile = profile or (MG.GetPlayerProfile and MG:GetPlayerProfile()) or {}
+    objectiveIndex = tonumber(objectiveIndex)
+
     local best = nil
     for _, occurrence in ipairs(occurrences) do
-        if occurrence.phase == phase and occurrence.coordinate and
+        local objectiveMatches =
+            not objectiveIndex or
+            not tonumber(occurrence.objective) or
+            tonumber(occurrence.objective) == objectiveIndex
+
+        local phaseMatches = occurrence.phase == phase or phase == "complete"
+        if phaseMatches and objectiveMatches and
            self:OccurrenceMatches(occurrence, profile) then
-            best = shallowCopy(occurrence.coordinate)
-            best.phaseMatch = true
-            best.rxpSourceStep = occurrence.sourceStep
-            best.rxpSourceAction = occurrence.sourceAction
-            -- Later occurrences tend to be more precise for objectives.
-            if phase ~= "objectives" then return best end
+            if not best or occurrenceOrder(occurrence) > occurrenceOrder(best) then
+                best = occurrence
+            end
+        end
+    end
+
+    -- If RXP does not number this objective, fall back to the latest
+    -- applicable occurrence for the phase instead of losing the route.
+    if not best and objectiveIndex then
+        for _, occurrence in ipairs(occurrences) do
+            local phaseMatches = occurrence.phase == phase or phase == "complete"
+            if phaseMatches and self:OccurrenceMatches(occurrence, profile) then
+                if not best or occurrenceOrder(occurrence) > occurrenceOrder(best) then
+                    best = occurrence
+                end
+            end
         end
     end
 
     return best
 end
 
-function Import:GetHints(definition, phase, profile, maximum)
+function Import:GetProgressOrder(definition, phase, profile, objectiveIndex)
+    local occurrence = self:GetProgressOccurrence(
+        definition, phase, profile, objectiveIndex)
+    if not occurrence then return tonumber(definition and definition.order) end
+    return occurrenceOrder(occurrence)
+end
+
+function Import:GetCoordinate(definition, phase, profile, objectiveIndex)
+    local occurrence = self:GetProgressOccurrence(
+        definition, phase, profile, objectiveIndex)
+
+    if not occurrence or not occurrence.coordinate then return nil end
+
+    local best = shallowCopy(occurrence.coordinate)
+    best.phaseMatch = true
+    best.rxpSourceStep = occurrence.sourceStep
+    best.rxpSourceAction = occurrence.sourceAction
+    best.rxpObjective = occurrence.objective
+    return best
+end
+
+function Import:GetHints(definition, phase, profile, maximum, objectiveIndex)
     local occurrences = definition and definition.rxpOccurrences
     if type(occurrences) ~= "table" then return {} end
 
     profile = profile or (MG.GetPlayerProfile and MG:GetPlayerProfile()) or {}
     maximum = math.max(1, tonumber(maximum) or 4)
 
-    local selected = nil
-    for _, occurrence in ipairs(occurrences) do
-        if occurrence.phase == phase and self:OccurrenceMatches(occurrence, profile) then
-            selected = occurrence
-            if phase ~= "objectives" then break end
-        end
-    end
+    local selected = self:GetProgressOccurrence(
+        definition, phase, profile, objectiveIndex)
     if not selected then return {} end
 
     local rawGuide = self:ParseRaw()[tonumber(selected.rawGuideIndex or 0)]
