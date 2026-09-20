@@ -109,6 +109,7 @@ if (runner.includes("bank_store(")
 
 const testGui = liesText("werkzeuge/v5-adventure-land-test-gui.js");
 if (!testGui.includes("aktivierePerformanceTrick") || !testGui.includes("performanceTrickStatus") || !testGui.includes("performance_trick") || !testGui.includes("HOWLER_PLAYING_TRUE") || !testGui.includes("aktiv: verfuegbar && audioGefunden && playing")) fehler.push("PERFORMANCE_TRICK_HELPER_FEHLT");
+if (!testGui.includes("setzeRestzeit") || !testGui.includes("v5tg-timer") || !testGui.includes("Verbleibende Testdauer")) fehler.push("V5_TEST_GUI_COUNTDOWN_FEHLT");
 for (const marker of [
   "Ergebnis kopieren",
   "Gesamtbericht kopieren",
