@@ -83,6 +83,15 @@ Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5\\wissensbasis\\fragen\\o
 Assert(!GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/dokumentation/V5-MASTER-ROADMAP.md"), "ROADMAP_OUTSIDE_SCOPE_BLOCKED");
 Assert(!GitArbeitskopie.IstErlaubterWissensbasisPfad("ops/windows-bridge/MainWindow.xaml"), "OPS_OUTSIDE_SCOPE_BLOCKED");
 Assert(!GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/../dokumentation/test.md"), "SCOPE_TRAVERSAL_BLOCKED");
+var rotationsBasis = DateTimeOffset.FromUnixTimeSeconds(0);
+var suchfenster0 = WebQuellenEntdecker.WaehleRotierendeSuchanfragen(rotationsBasis, 4);
+var suchfenster1 = WebQuellenEntdecker.WaehleRotierendeSuchanfragen(rotationsBasis.AddHours(1), 4);
+var suchfenster10 = WebQuellenEntdecker.WaehleRotierendeSuchanfragen(rotationsBasis.AddHours(WebQuellenEntdecker.Suchanfragen.Length), 4);
+Assert(suchfenster0.Count == 4, "KNOWLEDGE_DISCOVERY_ROTATION_WINDOW_SIZE");
+Assert(suchfenster0.Distinct(StringComparer.Ordinal).Count() == 4, "KNOWLEDGE_DISCOVERY_ROTATION_NO_DUPLICATES");
+Assert(suchfenster1[0] == suchfenster0[1], "KNOWLEDGE_DISCOVERY_ROTATES_HOURLY");
+Assert(suchfenster10.SequenceEqual(suchfenster0), "KNOWLEDGE_DISCOVERY_ROTATION_WRAP");
+
 Assert(WebQuellenEntdecker.BestimmeVertrauensklasse("https://adventure.land/allnotes") == "OFFIZIELL", "OFFICIAL_SITE_CLASSIFIED");
 Assert(WebQuellenEntdecker.BestimmeVertrauensklasse("https://github.com/kaansoral/adventureland_mongodb") == "OFFIZIELL", "OFFICIAL_REPO_CLASSIFIED");
 Assert(WebQuellenEntdecker.BestimmeVertrauensklasse("https://github.com/example/adventure-land-bot") == "COMMUNITY", "COMMUNITY_REPO_CLASSIFIED");
