@@ -52,8 +52,7 @@ for(const m of [
   "CANARY",
   "SOAK_5M",
   "SOAK_10M",
-  "SOAK_30M",
-  "SOAK_60M",
+  "SOAK_15M",
   "ZERT_LADDER_STUFE_UEBERSPRUNGEN",
   "ZERT_LADDER_MANUELLE_BESTAETIGUNG_ERFORDERLICH",
   "breiteRuntimeFreigegeben: false",
@@ -61,7 +60,7 @@ for(const m of [
   if(!ladder.includes(m)) fehler.push("LADDER_MARKER_FEHLT:"+m);
 }
 
-for(const alt of ["SOAK_1H","SOAK_24H","SOAK_72H","SOAK_7D","SOAK_30D"]){
+for(const alt of ["SOAK_1H","SOAK_24H","SOAK_72H","SOAK_7D","SOAK_30D","SOAK_30M","SOAK_60M"]){
   if(ladder.includes(alt)) fehler.push("SOAK_30D_DARF_NICHT_MEHR_IN_LADDER_SEIN:"+alt);
 }
 
