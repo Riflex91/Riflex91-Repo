@@ -228,20 +228,25 @@
                         <Button Grid.Column="6" Content="Jetzt aktualisieren" Click="WissenswaechterJetzt_Click" MinWidth="150" />
                     </Grid>
 
-                    <DockPanel Margin="0,12,0,0">
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
                         <TextBlock x:Name="V5ReadinessStateText"
+                                   Grid.Column="0"
                                    Text="V5-Readiness noch nicht lokal geprüft."
                                    Style="{StaticResource MutedText}"
                                    VerticalAlignment="Center"
-                                   TextWrapping="Wrap"
-                                   Margin="0,0,14,0" />
+                                   TextWrapping="Wrap" />
                         <Button x:Name="V5ReadinessTestButton"
-                                DockPanel.Dock="Right"
+                                Grid.Column="2"
                                 Content="V5 Readiness-Test"
                                 Click="V5ReadinessTest_Click"
                                 MinWidth="165"
                                 HorizontalAlignment="Right" />
-                    </DockPanel>
+                    </Grid>
 
                     <Separator Margin="0,16,0,14" />
 
