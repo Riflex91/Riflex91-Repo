@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import vm from "node:vm";
 
 import { CdpEquipAdapter } from "../../werkzeuge/r12-live/browser-equip.mjs";
-import { validiereLoopbackCdp } from "../../werkzeuge/r12-live/cdp.mjs";
+import { ADVENTURE_LAND_CONTEXT_PROBE, validiereLoopbackCdp } from "../../werkzeuge/r12-live/cdp.mjs";
 import { DurablesDateiJournal, pruefeKeineOffeneV5Transaktion } from "../../werkzeuge/r12-live/datei-journal.mjs";
 
 const kandidat = {
@@ -22,6 +23,25 @@ test("Controlled-Live CDP erlaubt nur loopback HTTP", () => {
   assert.equal(validiereLoopbackCdp("http://localhost:9222").hostname, "localhost");
   assert.throws(() => validiereLoopbackCdp("https://127.0.0.1:9222"), /R12_CDP_NUR_LOOPBACK_HTTP/);
   assert.throws(() => validiereLoopbackCdp("http://192.168.1.4:9222"), /R12_CDP_NUR_LOOPBACK_HTTP/);
+});
+
+test("Adventure-Land-Kontextprobe benoetigt keine equip-Funktion", () => {
+  const spielwurzel = {
+    character: { items: [], slots: {} },
+    G: { items: {} },
+  };
+  assert.equal(
+    vm.runInNewContext(ADVENTURE_LAND_CONTEXT_PROBE, spielwurzel),
+    true,
+  );
+  assert.equal(
+    vm.runInNewContext(ADVENTURE_LAND_CONTEXT_PROBE, { parent: spielwurzel }),
+    true,
+  );
+  assert.equal(
+    ADVENTURE_LAND_CONTEXT_PROBE.includes(".equip"),
+    false,
+  );
 });
 
 test("Precondition-Abbruch zaehlt keinen Game-Write und Adapter ist trotzdem one-shot", async () => {
