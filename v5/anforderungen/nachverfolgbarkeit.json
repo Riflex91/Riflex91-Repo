@@ -239,15 +239,21 @@
       "invarianten": [
         "V5-ALT-001"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r7-autoritaet.test.mjs",
+        "v5/werkzeuge/r7-statische-guards.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r7NachweisStatus": "R7_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-003",
@@ -278,15 +284,22 @@
       "invarianten": [
         "V5-ALT-044"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/autoritaet/ports.ts",
+        "v5/grundlage/quelle/autoritaet/modul-register.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r7-module.test.mjs",
+        "v5/werkzeuge/r7-statische-guards.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r7NachweisStatus": "R7_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-005",
@@ -464,15 +477,21 @@
       "invarianten": [
         "V5-INV-003"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r7-autoritaet.test.mjs",
+        "v5/werkzeuge/r7-statische-guards.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r7NachweisStatus": "R7_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-002",
@@ -587,15 +606,21 @@
         "V5-ALT-052",
         "V5-INV-021"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/autoritaet/bediener-richtlinie.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r7-autoritaet.test.mjs",
+        "v5/werkzeuge/r7-statische-guards.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r7NachweisStatus": "R7_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-008",
@@ -1460,15 +1485,20 @@
       "invarianten": [
         "V5-INV-021"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/autoritaet/bediener-richtlinie.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r7-autoritaet.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r7NachweisStatus": "R7_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-001",
