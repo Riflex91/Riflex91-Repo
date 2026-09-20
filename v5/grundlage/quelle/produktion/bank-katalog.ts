@@ -1,3 +1,5 @@
+import type { SpeicherPort } from "../persistenz/speicher-port.js";
+
 export interface BankKatalogEintrag {
   readonly pack: string;
   readonly slot: number;
@@ -29,8 +31,41 @@ export interface BankKatalogPin {
   readonly executionAuthority: false;
 }
 
+export interface BankKatalogInvalidierung {
+  readonly schemaVersion: 1;
+  readonly invalidiertAmMs: number;
+  readonly grund: string;
+}
+
+export interface PersistenterBankKatalogLadeStatus {
+  readonly schemaVersion: 1;
+  readonly geladen: boolean;
+  readonly verwendbar: boolean;
+  readonly invalidiert: boolean;
+  readonly planningEvidence: true;
+  readonly executionAuthority: false;
+}
+
+interface PersistierterBankKatalog {
+  readonly schemaVersion: 1;
+  readonly gespeichertAmMs: number;
+  readonly snapshot: BankKatalogSnapshot | null;
+  readonly invalidierung: BankKatalogInvalidierung | null;
+}
+
 function pruefeText(wert: string, fehler: string): void {
   if (wert.trim().length === 0 || wert.length > 192) throw new Error(fehler);
+}
+
+function friereSnapshot(
+  snapshot: BankKatalogSnapshot,
+): BankKatalogSnapshot {
+  return Object.freeze({
+    ...snapshot,
+    eintraege: Object.freeze(
+      snapshot.eintraege.map(x => Object.freeze({ ...x })),
+    ),
+  });
 }
 
 export function pinneBankKatalog(
@@ -96,4 +131,215 @@ export function istBankKatalogPinFrisch(pin: BankKatalogPin, jetztMs: number): b
     && Number.isSafeInteger(jetztMs)
     && jetztMs >= 0
     && jetztMs <= pin.gueltigBisMs;
+}
+
+function validierePersistiertenSnapshot(
+  snapshot: BankKatalogSnapshot,
+): BankKatalogSnapshot {
+  pinneBankKatalog(snapshot, snapshot.beobachtetAmMs);
+  return friereSnapshot(snapshot);
+}
+
+function parsePersistenz(text: string): PersistierterBankKatalog {
+  let roh: unknown;
+  try {
+    roh = JSON.parse(text);
+  } catch {
+    throw new Error("BANK_KATALOG_PERSISTENZ_UNGUELTIG");
+  }
+  if (typeof roh !== "object" || roh === null || Array.isArray(roh)) {
+    throw new Error("BANK_KATALOG_PERSISTENZ_UNGUELTIG");
+  }
+  const obj = roh as Readonly<Record<string, unknown>>;
+  if (obj["schemaVersion"] !== 1
+      || !Number.isSafeInteger(obj["gespeichertAmMs"])) {
+    throw new Error("BANK_KATALOG_PERSISTENZ_UNGUELTIG");
+  }
+  const gespeichertAmMs = obj["gespeichertAmMs"];
+  if (typeof gespeichertAmMs !== "number" || gespeichertAmMs < 0) {
+    throw new Error("BANK_KATALOG_PERSISTENZ_UNGUELTIG");
+  }
+
+  let snapshot: BankKatalogSnapshot | null = null;
+  if (obj["snapshot"] !== null) {
+    if (typeof obj["snapshot"] !== "object"
+        || obj["snapshot"] === null
+        || Array.isArray(obj["snapshot"])) {
+      throw new Error("BANK_KATALOG_PERSISTENZ_UNGUELTIG");
+    }
+    snapshot = validierePersistiertenSnapshot(
+      obj["snapshot"] as BankKatalogSnapshot,
+    );
+  }
+
+  let invalidierung: BankKatalogInvalidierung | null = null;
+  if (obj["invalidierung"] !== null) {
+    if (typeof obj["invalidierung"] !== "object"
+        || obj["invalidierung"] === null
+        || Array.isArray(obj["invalidierung"])) {
+      throw new Error("BANK_KATALOG_PERSISTENZ_UNGUELTIG");
+    }
+    const row = obj["invalidierung"] as Readonly<Record<string, unknown>>;
+    if (row["schemaVersion"] !== 1
+        || !Number.isSafeInteger(row["invalidiertAmMs"])
+        || typeof row["invalidiertAmMs"] !== "number"
+        || row["invalidiertAmMs"] < 0
+        || typeof row["grund"] !== "string") {
+      throw new Error("BANK_KATALOG_PERSISTENZ_UNGUELTIG");
+    }
+    pruefeText(row["grund"], "BANK_KATALOG_INVALIDIERUNG_GRUND_UNGUELTIG");
+    invalidierung = Object.freeze({
+      schemaVersion: 1,
+      invalidiertAmMs: row["invalidiertAmMs"],
+      grund: row["grund"],
+    });
+  }
+
+  return Object.freeze({
+    schemaVersion: 1,
+    gespeichertAmMs,
+    snapshot,
+    invalidierung,
+  });
+}
+
+export class PersistenterBankKatalog {
+  public readonly planningEvidence = true as const;
+  public readonly executionAuthority = false as const;
+  public readonly gameplayAutoritaet = false as const;
+  public readonly rawWriteAutoritaet = false as const;
+
+  readonly #speicher: SpeicherPort;
+  readonly #pfad: string;
+  #snapshot: BankKatalogSnapshot | null = null;
+  #invalidierung: BankKatalogInvalidierung | null = null;
+
+  public constructor(
+    speicher: SpeicherPort,
+    pfad = "produktion/bank-katalog-v1.json",
+  ) {
+    pruefeText(pfad, "BANK_KATALOG_PFAD_UNGUELTIG");
+    this.#speicher = speicher;
+    this.#pfad = pfad;
+  }
+
+  public async lade(
+    jetztMs: number,
+  ): Promise<PersistenterBankKatalogLadeStatus> {
+    if (!Number.isSafeInteger(jetztMs) || jetztMs < 0) {
+      throw new Error("BANK_KATALOG_ZEIT_UNGUELTIG");
+    }
+    const text = await this.#speicher.lies(this.#pfad);
+    if (text === undefined) {
+      return Object.freeze({
+        schemaVersion: 1,
+        geladen: false,
+        verwendbar: false,
+        invalidiert: false,
+        planningEvidence: true,
+        executionAuthority: false,
+      });
+    }
+    const persistiert = parsePersistenz(text);
+    if (persistiert.gespeichertAmMs > jetztMs) {
+      throw new Error("BANK_KATALOG_PERSISTENZ_AUS_ZUKUNFT");
+    }
+    this.#snapshot = persistiert.snapshot;
+    this.#invalidierung = persistiert.invalidierung;
+    return Object.freeze({
+      schemaVersion: 1,
+      geladen: true,
+      verwendbar: this.istVerwendbar(jetztMs),
+      invalidiert: this.#istInvalidiert(),
+      planningEvidence: true,
+      executionAuthority: false,
+    });
+  }
+
+  public async beobachte(
+    snapshot: BankKatalogSnapshot,
+    jetztMs: number,
+  ): Promise<BankKatalogPin> {
+    const pin = pinneBankKatalog(snapshot, jetztMs);
+    this.#snapshot = friereSnapshot(snapshot);
+    this.#invalidierung = null;
+    await this.#persistiere(jetztMs);
+    return pin;
+  }
+
+  public async invalidiere(
+    grund: string,
+    jetztMs: number,
+  ): Promise<void> {
+    pruefeText(grund, "BANK_KATALOG_INVALIDIERUNG_GRUND_UNGUELTIG");
+    if (!Number.isSafeInteger(jetztMs) || jetztMs < 0) {
+      throw new Error("BANK_KATALOG_ZEIT_UNGUELTIG");
+    }
+    this.#invalidierung = Object.freeze({
+      schemaVersion: 1,
+      invalidiertAmMs: jetztMs,
+      grund,
+    });
+    await this.#persistiere(jetztMs);
+  }
+
+  public pinne(jetztMs: number): BankKatalogPin {
+    if (this.#snapshot === null) {
+      throw new Error("BANK_KATALOG_SNAPSHOT_FEHLT");
+    }
+    if (this.#istInvalidiert()) {
+      throw new Error("BANK_KATALOG_INVALIDIERT");
+    }
+    return pinneBankKatalog(this.#snapshot, jetztMs);
+  }
+
+  public istVerwendbar(jetztMs: number): boolean {
+    if (this.#snapshot === null || this.#istInvalidiert()) return false;
+    try {
+      pinneBankKatalog(this.#snapshot, jetztMs);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  public snapshot(): BankKatalogSnapshot | null {
+    return this.#snapshot === null
+      ? null
+      : friereSnapshot(this.#snapshot);
+  }
+
+  public invalidierung(): BankKatalogInvalidierung | null {
+    return this.#invalidierung === null
+      ? null
+      : Object.freeze({ ...this.#invalidierung });
+  }
+
+  #istInvalidiert(): boolean {
+    return this.#snapshot !== null
+      && this.#invalidierung !== null
+      && this.#invalidierung.invalidiertAmMs >= this.#snapshot.beobachtetAmMs;
+  }
+
+  async #persistiere(jetztMs: number): Promise<void> {
+    const persistiert: PersistierterBankKatalog = Object.freeze({
+      schemaVersion: 1,
+      gespeichertAmMs: jetztMs,
+      snapshot: this.#snapshot === null
+        ? null
+        : friereSnapshot(this.#snapshot),
+      invalidierung: this.#invalidierung === null
+        ? null
+        : Object.freeze({ ...this.#invalidierung }),
+    });
+    const inhalt = JSON.stringify(persistiert);
+    if (inhalt.length > 1_000_000) {
+      throw new Error("BANK_KATALOG_PERSISTENZ_ZU_GROSS");
+    }
+    await this.#speicher.schreibe({
+      relativerPfad: this.#pfad,
+      inhalt,
+      kritisch: true,
+    });
+  }
 }
