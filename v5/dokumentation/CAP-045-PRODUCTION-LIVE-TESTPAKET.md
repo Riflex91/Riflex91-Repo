@@ -1,7 +1,7 @@
 # CAP-045 – Production Live Testpaket
 
 **Status:** IMPLEMENTIERT / LIVE-ABNAHME BESTANDEN  
-**Basis-main:** `404592b2f375858de5c365a3c1dea1663ed5f164`  
+**Basis-main:** `090cfd84dcf872e339c6602f72810db2eff11580`  
 **Testkennung:** `cap045-production-live-certification`  
 **Controller-Version:** `1.0.3`
 
