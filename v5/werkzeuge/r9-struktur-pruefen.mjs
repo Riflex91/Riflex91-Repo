@@ -23,7 +23,20 @@ if (r9.status === "DONE") {
   }
 }
 if (r9.blocksRuntime !== true) fehler("R9 muss das Gameplay-Runtime-Gate blockieren.");
-if (bereitschaft.status === "FREIGEGEBEN") fehler("R9 darf Gameplay-Runtime noch nicht freigeben.");
+if (bereitschaft.status === "FREIGEGEBEN") {
+  if (!fs.existsSync("roadmap/gesamtfreigabe.json")) {
+    fehler("R9 darf die Runtime nicht selbst freigeben; finale Betreiber-Gesamtfreigabe-Evidence fehlt.");
+  }
+  const gesamtfreigabe = lies("roadmap/gesamtfreigabe.json");
+  if (gesamtfreigabe.kennung !== "V5_GESAMTFREIGABE"
+      || gesamtfreigabe.status !== "ERTEILT"
+      || gesamtfreigabe.bestaetigungQuelle !== "BETREIBER_INTERAKTIV"
+      || gesamtfreigabe.bestaetigungText !== "V5 GESAMTFREIGABE ERTEILEN"
+      || bereitschaft.gesamtfreigabe !== "ERTEILT"
+      || bereitschaft.breiteRuntimeFreigabe !== true) {
+    fehler("R9 darf die Runtime nicht selbst freigeben; nur die spaetere explizite Post-R19-Gesamtfreigabe ist zulaessig.");
+  }
+}
 
 for (const pfad of [
   "grundlage/quelle/ausfuehrung/ports.ts",
