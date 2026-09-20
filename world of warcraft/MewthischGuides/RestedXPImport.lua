@@ -94,10 +94,16 @@ local function selectorAtomMatches(atom, profile)
     local negative = string.sub(atom, 1, 1) == "!"
     if negative then atom = string.sub(atom, 2) end
 
+    local settings = MG.db and MG.db.settings or {}
+    local lower = string.lower(atom)
     local expected = RACES[atom] or CLASSES[atom]
     local matches = false
 
-    if RACES[atom] then
+    if lower == "skip" then
+        matches = false
+    elseif lower == "sod" then
+        matches = settings.rxpSoDMode and true or false
+    elseif RACES[atom] then
         matches = tostring(profile.race or "") == expected
     elseif CLASSES[atom] then
         matches = tostring(profile.class or "") == expected
@@ -114,6 +120,10 @@ local function selectorAtomMatches(atom, profile)
 end
 
 function Import:SelectorMatches(selector, profile)
+    selector = trim(selector)
+    selector = selector:gsub("^<<%s*", "")
+    selector = selector:gsub("%s+%-%-.*$", "")
+    selector = selector:gsub("%s+#.*$", "")
     selector = trim(selector)
     if selector == "" then return true end
     profile = profile or (MG.GetPlayerProfile and MG:GetPlayerProfile()) or {}
