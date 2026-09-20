@@ -36,31 +36,23 @@ public static class BuildInfoReader
         return new BuildIdentity(
             Version: version,
             BuildNumber: buildNumber,
-            InterfaceVersion: TryReadInterfaceVersion(wowRoot),
+            InterfaceVersion: DeriveInterfaceVersion(version),
             BuildKey: NullIfEmpty(Get(row, "Build Key")),
             CdnKey: NullIfEmpty(Get(row, "CDN Key")),
             Product: NullIfEmpty(Get(row, "Product")));
     }
 
-    private static int? TryReadInterfaceVersion(string wowRoot)
+    private static int? DeriveInterfaceVersion(string version)
     {
-        foreach (var candidate in new[] { "_beta_", "_classic_", "_retail_" })
-        {
-            var tocPath = Directory.Exists(Path.Combine(wowRoot, candidate, "Interface"))
-                ? Directory.EnumerateFiles(Path.Combine(wowRoot, candidate, "Interface"), "*.toc", SearchOption.AllDirectories).FirstOrDefault()
-                : null;
+        var parts = version.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 3) return null;
 
-            if (tocPath is null) continue;
+        if (!int.TryParse(parts[0], out var major) ||
+            !int.TryParse(parts[1], out var minor) ||
+            !int.TryParse(parts[2], out var patch))
+            return null;
 
-            foreach (var line in File.ReadLines(tocPath).Take(80))
-            {
-                if (!line.StartsWith("## Interface:", StringComparison.OrdinalIgnoreCase)) continue;
-                var raw = line.Split(':', 2)[1].Trim().Split(',')[0].Trim();
-                if (int.TryParse(raw, out var value)) return value;
-            }
-        }
-
-        return null;
+        return major * 10000 + minor * 100 + patch;
     }
 
     private static string Get(IReadOnlyDictionary<string, string> row, string key) =>
