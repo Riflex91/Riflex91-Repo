@@ -109,8 +109,10 @@ Der Canary ist ein explizites Werkzeug und wird nicht automatisch beim
 Runtime- oder Host-Start ausgefuehrt. CI prueft Syntax, synthetische
 Integrationsfaelle und den statischen Zero-Write-Vertrag.
 
-Der reale Live-Aufruf erfolgt erst manuell, wenn der Benutzer den Merchant in
-einen beobachtbaren Bankkontext gebracht hat.
+Der reale Live-Aufruf wurde erfolgreich manuell ausgefuehrt. Weitere
+produktive Mutationspfade duerfen daraus nicht implizit abgeleitet werden;
+jede mutierende Capability benoetigt weiterhin einen separat ratifizierten
+Vertrag und einen eigenen Live-Nachweis.
 
 ## Rollback
 
