@@ -211,9 +211,9 @@ Bei vollständig bestandenen automatischen Prüfungen lautet der Status:
 
 Der vollständige Bericht wird in die Zwischenablage kopiert und soll komplett in ChatGPT eingefügt werden. Der Test liest oder protokolliert absichtlich **kein GitHub-Token**.
 
-Zusätzlich bleibt ein manueller Pflichtnachweis offen: Für `V5-ANF-WISSEN-012` muss am real verwendeten GitHub-Zugang nachvollziehbar belegt werden, dass ein **Fine-grained Personal Access Token** mit Resource Owner `Riflex91` verwendet wird, bei **Repository access** ausschließlich `Riflex91-Repo` ausgewählt ist und bei den Repository-Rechten nur **Contents: Read and write** benötigt wird; **Metadata: Read** wird von GitHub automatisch ergänzt. Actions-, Administration-, Secrets-, Environments-, Deployments- und Workflows-Schreibrechte dürfen nicht erteilt sein. Der Tokenwert selbst darf niemals in einen Testbericht oder Chat kopiert werden.
+Der automatische Test kann den tatsächlichen Token-Rechtescope absichtlich nicht auslesen. Für `V5-ANF-WISSEN-012` war deshalb zusätzlich ein manueller Nachweis erforderlich. Dieser wurde am 2026-09-20 für den real verwendeten Zugang erbracht und ist unter `v5/roadmap/v5-wissen-012-autorisierungsnachweis.json` dokumentiert: Fine-grained PAT, Resource Owner `Riflex91`, Repository access ausschließlich `Riflex91-Repo`, **Contents: Read and write**, **Metadata: Read** automatisch und keine zusätzlichen Schreibrechte für Actions, Administration, Secrets, Environments, Deployments oder Workflows. Der Tokenwert selbst wurde nicht erfasst.
 
-Auch ein vollständig grüner Readiness-Bericht gibt die breite Gameplay-Runtime **nicht automatisch** frei. Die separate Gesamtfreigabe bleibt erforderlich.
+Ein vollständig grüner Readiness-Bericht und der geschlossene WISSEN-012-Nachweis geben die breite Gameplay-Runtime **nicht automatisch** frei. Die separate Gesamtfreigabe bleibt erforderlich.
 
 ## Safety properties
 
