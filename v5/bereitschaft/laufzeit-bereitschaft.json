@@ -69,7 +69,7 @@
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
       "erfuellt": false,
-      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. R7 bis R18 weisen ihre jeweils ratifizierten MUSS-Anforderungen technisch und tracebar nach; R12 Controlled Live ist bestanden. Offen bleibt die stufenweise R19-Zertifizierung.",
+      "grund": "R7 bis R18 sind technisch nachgewiesen. In R19 sind unveraenderliche Evidence/Sample-Gap-Erkennung und das deutsche UI-Release-Gate nachgewiesen; die stufenweise 24/7-Live-Ladder bleibt ab Controlled Live offen.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
         "v5/anforderungen/nachverfolgbarkeit.json"
@@ -111,7 +111,9 @@
       "r17AnforderungenGesamt": 1,
       "r18NachweisVorhanden": true,
       "r18AnforderungenNachgewiesen": 5,
-      "r18AnforderungenGesamt": 5
+      "r18AnforderungenGesamt": 5,
+      "r19AnforderungenNachgewiesen": 2,
+      "r19AnforderungenGesamt": 3
     },
     {
       "kennung": "INVARIANTEN_BEREIT",
@@ -307,8 +309,9 @@
     }
   ],
   "offeneBlocker": [
-    "R19 Zertifizierung bis einschliesslich Shadow automatisiert vorbereiten; Controlled Live/Canary benoetigt anschliessend den naechsten manuellen Ingame-Test",
-    "Breite Gameplay-Runtime bleibt bis zur erfolgreichen R19-Ladder und expliziten Gesamtfreigabe GESPERRT",
+    "R19 Controlled Live ist die naechste Zertifizierungsstufe und benoetigt jetzt den manuellen PC-/Ingame-Test",
+    "Danach folgen Canary sowie 1h/24h/72h/7d-Evidence ohne Stufenueberspringen",
+    "Breite Gameplay-Runtime bleibt bis zur erfolgreichen kompletten R19-Ladder und expliziten Gesamtfreigabe GESPERRT",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
   "r2Status": "RATIFIZIERT",
@@ -358,5 +361,12 @@
   "r17Evidence": "v5/grundlage/vertraege/r17/world-autonomy-abdeckung.json",
   "r18Status": "ABGESCHLOSSEN",
   "r18AbgeschlossenAm": "2026-09-20",
-  "r18Evidence": "v5/grundlage/vertraege/r18/learning-abdeckung.json"
+  "r18Evidence": "v5/grundlage/vertraege/r18/learning-abdeckung.json",
+  "r19Status": "IN_PROGRESS",
+  "r19AutomatikStatus": "BIS_SHADOW_BESTANDEN",
+  "r19AutomatikEvidence": "v5/roadmap/r19-automatik-evidence.json",
+  "r19NaechsteStufe": "CONTROLLED_LIVE",
+  "r19ManuellerPcTestErforderlich": true,
+  "r19AnforderungenNachgewiesen": 2,
+  "r19AnforderungenGesamt": 3
 }
