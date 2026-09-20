@@ -104,7 +104,7 @@ if(canaryEquipAufrufe.length!==1) fehler.push("R19_CANARY_GUI_EQUIP_ANZAHL:"+can
 
 const soakGui=lies("werkzeuge/r19-soak-5m-test-gui.js");
 for(const m of [
-  "R19-SOAK-1H-START",
+  "R19-SOAK-5M-START",
   "const DAUER_MS = 5 * 60 * 1000",
   "const INTERVALL_MS = 15 * 1000",
   "const MAX_SAMPLE_GAP_MS = 45 * 1000",
