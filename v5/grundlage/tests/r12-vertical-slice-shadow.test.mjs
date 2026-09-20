@@ -311,39 +311,49 @@ test("Vertical Slice 0 durchlaeuft Shadow-End-to-End ohne Sonderumgehung und ohn
   );
 });
 
-test("Controlled Live bleibt beim realen R12-Readiness-Stand fail-closed", () => {
+test("R12 Controlled Live bleibt bei degradierter Health fail-closed obwohl breite Runtime gesperrt ist", () => {
   const entscheidung = bewerteControlledLive({
-    readinessStatus: "GESPERRT",
+    roadmapPhase: "R12",
+    gesamtRuntimeStatus: "GESPERRT",
     actionContractId: ACTION,
     publicFunction: "equip",
     shadowVollstaendig: true,
     shadowUnerwarteteWrites: 0,
     operatorFreigabe: true,
     maximaleAktionen: 1,
+    healthStatus: "DEGRADIERT",
+    persistenzGesund: true,
+    reconciliationClean: true,
+    alternativeRuntimeAktiv: false,
   });
   assert.equal(entscheidung.erlaubt, false);
-  assert.ok(entscheidung.gruende.includes("RUNTIME_GATE_GESPERRT"));
+  assert.ok(entscheidung.gruende.includes("HEALTH_NICHT_GESUND"));
+  assert.equal(entscheidung.breiteRuntimeFreigabe, false);
 });
 
-test("Controlled-Live-Policy erlaubt hypothetisch nur genau eine freigegebene Equip-Action", () => {
-  assert.equal(bewerteControlledLive({
-    readinessStatus: "FREIGEGEBEN",
-    actionContractId: ACTION,
-    publicFunction: "equip",
+test("R12 Testgate erlaubt hypothetisch nur genau eine gesunde Equip-Action", () => {
+  const basis = {
+    roadmapPhase: "R12",
+    gesamtRuntimeStatus: "GESPERRT",
     shadowVollstaendig: true,
     shadowUnerwarteteWrites: 0,
     operatorFreigabe: true,
     maximaleAktionen: 1,
+    healthStatus: "GESUND",
+    persistenzGesund: true,
+    reconciliationClean: true,
+    alternativeRuntimeAktiv: false,
+  };
+  assert.equal(bewerteControlledLive({
+    ...basis,
+    actionContractId: ACTION,
+    publicFunction: "equip",
   }).erlaubt, true);
 
   const riskant = bewerteControlledLive({
-    readinessStatus: "FREIGEGEBEN",
+    ...basis,
     actionContractId: "AL-ACTION-UPGRADE",
     publicFunction: "upgrade",
-    shadowVollstaendig: true,
-    shadowUnerwarteteWrites: 0,
-    operatorFreigabe: true,
-    maximaleAktionen: 1,
   });
   assert.equal(riskant.erlaubt, false);
   assert.ok(riskant.gruende.includes("ACTION_NICHT_LOW_RISK_SLICE"));

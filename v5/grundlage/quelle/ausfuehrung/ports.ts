@@ -32,8 +32,17 @@ export interface LaufzeitGateNachweis {
   readonly nachweisId: string;
 }
 
+export interface LaufzeitGateKontext {
+  readonly transaktionsId: string;
+  readonly faehigkeitId: string;
+  readonly eigentuemerModulId: string;
+  readonly actionContractId: string;
+  readonly recoveryContractId: string;
+  readonly verifierId: string;
+}
+
 export interface LaufzeitGatePort {
-  pruefe(): LaufzeitGateNachweis;
+  pruefe(kontext?: LaufzeitGateKontext): LaufzeitGateNachweis;
 }
 
 export interface AktionsVertragsNachweis {

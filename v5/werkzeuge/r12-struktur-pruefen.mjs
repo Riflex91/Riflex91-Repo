@@ -20,11 +20,14 @@ if (r12.status === "DONE") {
   }
   const live = lies("roadmap/r12-controlled-live-evidence.json");
   if (live.status !== "BESTANDEN"
+      || live.controlledLiveTestGate !== "BESTANDEN"
       || live.actionContractId !== "AL-ACTION-EQUIP"
       || live.publicFunction !== "equip"
       || live.gameWrites !== 1
-      || live.unerwarteteGameWrites !== 0) {
-    fehler("R12 DONE verlangt echten bestandenen Controlled-Live-Nachweis.");
+      || live.unerwarteteGameWrites !== 0
+      || live.maximaleAktionen !== 1
+      || live.breiteRuntimeFreigabe !== false) {
+    fehler("R12 DONE verlangt echten, einmaligen Controlled-Live-Testnachweis ohne breite Runtime-Freigabe.");
   }
 }
 
@@ -32,7 +35,17 @@ for (const pfad of [
   "grundlage/quelle/vertical-slice/protokoll.ts",
   "grundlage/quelle/vertical-slice/shadow-adapter.ts",
   "grundlage/quelle/vertical-slice/controlled-live-policy.ts",
+  "grundlage/tests/r12-controlled-live-auswahl.test.mjs",
+  "grundlage/tests/r12-controlled-live-gate.test.mjs",
+  "grundlage/quelle/vertical-slice/controlled-live-auswahl.ts",
+  "grundlage/quelle/vertical-slice/controlled-live-gate.ts",
   "grundlage/tests/r12-vertical-slice-shadow.test.mjs",
+  "grundlage/tests/r12-controlled-live-runner.test.mjs",
+  "werkzeuge/r12-controlled-live-equip-runner.mjs",
+  "werkzeuge/r12-live/cdp.mjs",
+  "werkzeuge/r12-live/datei-journal.mjs",
+  "werkzeuge/r12-live/browser-equip.mjs",
+  "architektur/adr/ADR-014-R12-CONTROLLED-LIVE-TESTGATE.md",
   "werkzeuge/r12-statische-guards.mjs",
 ]) {
   if (!fs.existsSync(pfad)) fehler("Pflichtartefakt fehlt: " + pfad);
@@ -51,11 +64,8 @@ if (anforderungen.some(x => !["OFFEN", "R12_NACHGEWIESEN"].includes(x.status))) 
 const shadow = anforderungen.find(x => x.kennung === "V5-ANF-TEST-007");
 const controlled = anforderungen.find(x => x.kennung === "V5-ANF-TEST-008");
 
-if (bereitschaft.status !== "FREIGEGEBEN") {
-  if (r12.status === "DONE") fehler("R12 darf bei gesperrter Readiness nicht DONE sein.");
-  if (controlled?.status !== "OFFEN") {
-    fehler("Controlled Live darf ohne Runtime-Freigabe nicht als nachgewiesen gelten.");
-  }
+if (bereitschaft.status === "FREIGEGEBEN" && r12.status !== "DONE") {
+  fehler("Breite Runtime-Freigabe darf R12 nicht vor dessen Controlled-Live-Abschluss ueberholen.");
 }
 if (r12.status === "DONE"
     && (shadow?.status !== "R12_NACHGEWIESEN" || controlled?.status !== "R12_NACHGEWIESEN")) {

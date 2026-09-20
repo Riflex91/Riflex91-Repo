@@ -34,7 +34,8 @@
     "r11:test": "npm run grundlage:test",
     "r11:pruefen": "npm run typen:pruefen && npm run lint && npm run r11:test && node werkzeuge/r11-testabdeckung.mjs && node werkzeuge/r11-statische-guards.mjs && node werkzeuge/r11-struktur-pruefen.mjs",
     "r12:test": "npm run grundlage:test",
-    "r12:pruefen": "npm run typen:pruefen && npm run lint && npm run r12:test && node werkzeuge/r12-statische-guards.mjs && node werkzeuge/r12-struktur-pruefen.mjs"
+    "r12:pruefen": "npm run typen:pruefen && npm run lint && npm run r12:test && npm run r12:live:check && node werkzeuge/r12-statische-guards.mjs && node werkzeuge/r12-struktur-pruefen.mjs",
+    "r12:live:check": "node --check werkzeuge/r12-controlled-live-equip-runner.mjs && node --check werkzeuge/r12-live/cdp.mjs && node --check werkzeuge/r12-live/datei-journal.mjs && node --check werkzeuge/r12-live/browser-equip.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

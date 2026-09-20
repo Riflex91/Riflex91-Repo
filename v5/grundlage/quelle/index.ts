@@ -73,3 +73,5 @@ export * from "./testlabor/evidence-replay.js";
 export * from "./vertical-slice/protokoll.js";
 export * from "./vertical-slice/shadow-adapter.js";
 export * from "./vertical-slice/controlled-live-policy.js";
+export * from "./vertical-slice/controlled-live-gate.js";
+export * from "./vertical-slice/controlled-live-auswahl.js";
