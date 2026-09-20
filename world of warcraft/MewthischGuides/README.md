@@ -1,6 +1,6 @@
-# Mewthisch Guides v0.11 — Runtime-Routing, Config und Weltkarten-Ziel
+# Mewthisch Guides v0.11.1 — Runtime-Routing, Config und Weltkarten-Ziel
 
-v0.11 härtet den produktiven Forever-Betrieb: Questfortschritt wird über
+v0.11.1 härtet den produktiven Forever-Betrieb: Questfortschritt wird über
 moderne und Legacy-Questlog-APIs erkannt, die vorgegebene RestedXP-Route wird
 auf die tatsächliche Questphase und das aktuelle Questziel synchronisiert, und
 der Benutzer kann alternativ einen manuellen Modus wählen, der angenommene
@@ -71,7 +71,7 @@ by faction/race/class/level, explicit route coordinates, a TravelGraph and
 build profiles and gear scoring profiles. Empty extension points exist in
 `Data.lua` for generated DataMiner/Recorder imports.
 
-Zusätzlich zum Recorder-Seed lädt v0.11 die strukturierten Fakten aus allen
+Zusätzlich zum Recorder-Seed lädt v0.11.1 die strukturierten Fakten aus allen
 öffentlich in `GuideList-forever.xml` referenzierten RestedXP-Forever- und
 Survival-Routen. Importiert werden ausschließlich maschinenlesbare Fakten und
 Direktiven (z. B. Quest-IDs, Item-/Spell-IDs, Selektoren, Bedingungen,
@@ -134,7 +134,26 @@ Useful commands:
 
 ## Next phase
 
-Nach diesem v0.11-Build folgt die gezielte Ingame-Verifikation anhand echter
+Nach diesem v0.11.1-Build folgt die gezielte Ingame-Verifikation anhand echter
 Forever-Screenshots, SavedVariables und Recorder-Daten. Besonders geprüft
 werden die Weltkarten-Wegpunkt-API des Forever-Clients, die Auswahl zwischen
 manueller und vorgegebener Route sowie Auto-Equip unter realen Bag-/Item-APIs.
+
+
+## v0.11.1 Screenshot-Fixes
+
+- RestedXP-Weltkoordinaten werden nicht mehr mit den vertauschten Blizzard-
+  Vectorachsen verglichen. Das beseitigt die kilometerweit falsche Distanz und
+  den dadurch ebenfalls falsch gesetzten Weltkarten-Marker.
+- Loop-/Farm-Schritte verwenden den dem Spieler nächstgelegenen verifizierten
+  RestedXP-Wegpunkt statt immer nur den letzten Punkt der Schleife.
+- Questziele zeigen den echten Live-Fortschritt (z. B. `5/7`) direkt im
+  Viewer. Die Fortschrittsfarbe läuft kontinuierlich von Rot über Gelb zu Grün.
+- Der separate Pfeil-Button im Footer entfällt; der Navigator wird vollständig
+  über **Config** gesteuert.
+- Der Navigator-Pfeil hat eine feste größere Darstellungsgröße, damit Atlas-
+  Native-Size und Entfernungstext nicht mehr in einem falschen Größenverhältnis
+  stehen.
+- Gear-Erkennung verwendet `IsUsableItem` nicht mehr als Ausschlusskriterium
+  für Rüstung, lädt fehlende Itemdaten nach und nutzt `EquipItemByName` als
+  bevorzugten sicheren Equip-Pfad mit Cursor-Fallback.
