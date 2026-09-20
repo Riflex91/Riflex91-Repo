@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "kennung": "V5_GESAMTFREIGABE_VORBEREITUNG",
+  "status": "BEREIT_FUER_BETREIBERBESTAETIGUNG",
+  "technischeBasisSha": "ece93b160382524965c9b4b21ae93e7fd2cd6fff",
+  "voraussetzungen": {
+    "pflichtbereicheErfuellt": 10,
+    "pflichtbereicheGesamt": 10,
+    "anforderungenNachgewiesen": 119,
+    "anforderungenGesamt": 119,
+    "traceabilityVollstaendig": 119,
+    "traceabilityGesamt": 119,
+    "r0R3Reconciliation": "34_VON_34",
+    "r19Status": "DONE",
+    "r19Ladder": "VOLLSTAENDIG_BESTANDEN",
+    "wissen012": "NACHGEWIESEN",
+    "windowsBridgeReadiness": "REALER_PC_NACHWEIS_BESTANDEN"
+  },
+  "postMergeCi": [
+    {
+      "name": "v5-vorbereitung",
+      "runId": 35512764510,
+      "status": "success"
+    },
+    {
+      "name": "v5-roadmap",
+      "runId": 35512764511,
+      "status": "success"
+    },
+    {
+      "name": "v5-wissensgate",
+      "runId": 35512764523,
+      "status": "success"
+    },
+    {
+      "name": "v5-r19",
+      "runId": 35512764472,
+      "status": "success"
+    },
+    {
+      "name": "windows-bridge",
+      "runId": 35512764500,
+      "status": "success"
+    }
+  ],
+  "betreiberfreigabe": {
+    "erforderlich": true,
+    "status": "AUSSTEHEND",
+    "bestaetigungText": "V5 GESAMTFREIGABE ERTEILEN",
+    "bedeutung": "Explizite Freigabe der breiten V5-Gameplay-Runtime nach vollstaendiger technischer Readiness.",
+    "darfNichtAus": "ok, mach weiter, weiter, automatisch fortsetzen oder einer fachfremden Bestaetigung abgeleitet werden"
+  },
+  "freigabeArtefakt": "v5/roadmap/gesamtfreigabe.json",
+  "sicherheit": {
+    "runtimeStatusBisBestaetigung": "GESPERRT",
+    "breiteRuntimeFreigabeBisBestaetigung": false,
+    "automatischeGesamtfreigabe": false,
+    "capabilitySafetyBleibtErforderlich": true,
+    "operatorDenyBleibtWirksam": true,
+    "killSwitchBleibtWirksam": true,
+    "actionContractsBleibenErforderlich": true,
+    "admissionBleibtErforderlich": true
+  },
+  "hinweis": "Alle technischen Voraussetzungen fuer die separate Gesamtfreigabe sind vorbereitet. Die breite Runtime bleibt gesperrt, bis der Betreiber die Gesamtfreigabe ausdruecklich erteilt und ein separates Freigabeartefakt erstellt sowie durch CI validiert wurde."
+}

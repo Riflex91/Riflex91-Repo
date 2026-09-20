@@ -1071,3 +1071,25 @@ Ein 15-Minuten-Test ist fuer eine einzelne Funktion nicht zusaetzlich erforderli
 Wenn eine spaetere Domaene eine fehlende Primitive braucht, wird die Primitive im richtigen Core-Owner ergaenzt und dort getestet. Es entsteht kein fachlicher Hotfix-Layer.
 
 V3 und V4 bleiben Wissens-/Test-/Designquellen. V5 uebernimmt Semantik nur nach expliziter Migrationsentscheidung.
+
+## Separate globale Gesamtfreigabe
+
+Nach abgeschlossenem R19 und vollständig geschlossener technischer Readiness wird die breite Runtime nicht automatisch geöffnet.
+
+Aktueller Post-R19-Zustand:
+
+- 10/10 technische Pflichtbereiche erfüllt;
+- 119/119 Anforderungen nachgewiesen;
+- 119/119 Traceability vollständig;
+- R0-R19 DONE;
+- WISSEN-012 und realer Windows-Bridge-Nachweis geschlossen;
+- Gesamtfreigabe-Vorbereitung: `BEREIT_FUER_BETREIBERBESTAETIGUNG`;
+- globale Runtime: `GESPERRT`;
+- `breiteRuntimeFreigabe=false`.
+
+Die separate Betreiberfreigabe muss ausdrücklich mit `V5 GESAMTFREIGABE ERTEILEN` erfolgen. Erst danach darf ein eigenes `roadmap/gesamtfreigabe.json` angelegt und die globale Laufzeitbereitschaft in einem separat geprüften Änderungssatz auf `FREIGEGEBEN` gesetzt werden.
+
+Verbindlicher Vertrag: `dokumentation/GESAMTFREIGABE.md`.  
+Maschinenlesbare Vorbereitung: `roadmap/gesamtfreigabe-vorbereitung.json`.  
+Validator: `werkzeuge/gesamtfreigabe-pruefen.mjs`.
+

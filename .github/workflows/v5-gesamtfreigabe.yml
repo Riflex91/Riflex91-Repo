@@ -1,0 +1,50 @@
+name: v5-gesamtfreigabe
+
+on:
+  pull_request:
+    paths:
+      - 'v5/bereitschaft/laufzeit-bereitschaft.json'
+      - 'v5/roadmap/gates.json'
+      - 'v5/roadmap/r19-abschluss.json'
+      - 'v5/roadmap/v5-wissen-012-autorisierungsnachweis.json'
+      - 'v5/roadmap/gesamtfreigabe-vorbereitung.json'
+      - 'v5/roadmap/gesamtfreigabe.json'
+      - 'v5/anforderungen/**'
+      - 'v5/werkzeuge/gesamtfreigabe-pruefen.mjs'
+      - 'v5/werkzeuge/vorbereitung-pruefen.mjs'
+      - 'v5/package.json'
+      - 'v5/dokumentation/GESAMTFREIGABE.md'
+      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
+      - 'v5/README.md'
+      - '.github/workflows/v5-gesamtfreigabe.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'v5/bereitschaft/laufzeit-bereitschaft.json'
+      - 'v5/roadmap/gates.json'
+      - 'v5/roadmap/r19-abschluss.json'
+      - 'v5/roadmap/v5-wissen-012-autorisierungsnachweis.json'
+      - 'v5/roadmap/gesamtfreigabe-vorbereitung.json'
+      - 'v5/roadmap/gesamtfreigabe.json'
+      - 'v5/anforderungen/**'
+      - 'v5/werkzeuge/gesamtfreigabe-pruefen.mjs'
+      - 'v5/werkzeuge/vorbereitung-pruefen.mjs'
+      - 'v5/package.json'
+      - 'v5/dokumentation/GESAMTFREIGABE.md'
+      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
+      - 'v5/README.md'
+      - '.github/workflows/v5-gesamtfreigabe.yml'
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Technische Readiness pruefen
+        run: node v5/werkzeuge/vorbereitung-pruefen.mjs
+      - name: Separate Gesamtfreigabe fail-closed pruefen
+        run: node v5/werkzeuge/gesamtfreigabe-pruefen.mjs

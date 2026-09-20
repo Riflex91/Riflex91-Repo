@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { pruefeR0R3Reconciliation } from './r0-r3-reconciliation-pruefen.mjs';
+import { pruefeGesamtfreigabe } from './gesamtfreigabe-pruefen.mjs';
 
 const liesJson = (pfad) => JSON.parse(fs.readFileSync(pfad, 'utf8'));
 const fehler = (text) => { throw new Error('[V5-VORBEREITUNG] ' + text); };
@@ -174,10 +175,18 @@ if (betriebBereit?.erfuellt !== true
 if (!allesErfuellt) {
   fehler('Nach geschlossenem WISSEN-012 muessen alle zehn technischen Pflichtbereiche erfuellt sein.');
 }
-if (bereitschaft.status !== 'GESPERRT'
-    || bereitschaft.gesamtfreigabe !== 'SEPARAT_AUSSTEHEND'
-    || bereitschaft.breiteRuntimeFreigabe !== false) {
-  fehler('Technische Vollstaendigkeit darf die separate breite Runtime-Gesamtfreigabe nicht ersetzen.');
+if (gesamtfreigabeErteilt) {
+  if (bereitschaft.status !== 'FREIGEGEBEN') {
+    fehler('Erteilte Gesamtfreigabe verlangt Laufzeit-Bereitschaft FREIGEGEBEN.');
+  }
+} else if (bereitschaft.status !== 'GESPERRT'
+    || bereitschaft.gesamtfreigabe !== 'BETREIBERBESTAETIGUNG_AUSSTEHEND'
+    || bereitschaft.breiteRuntimeFreigabe !== false
+    || bereitschaft.gesamtfreigabeVorbereitung
+        !== 'v5/roadmap/gesamtfreigabe-vorbereitung.json'
+    || bereitschaft.gesamtfreigabeVorbereitungStatus
+        !== 'BEREIT_FUER_BETREIBERBESTAETIGUNG') {
+  fehler('Technische Vollstaendigkeit darf die separate Betreiber-Gesamtfreigabe nicht ersetzen.');
 }
 
 if (wissen012Nachweis.schemaVersion !== 1
@@ -297,6 +306,7 @@ for (const pfad of [
 }
 
 pruefeR0R3Reconciliation();
+pruefeGesamtfreigabe();
 
 console.log('[V5-VORBEREITUNG] OK');
 console.log('[V5-VORBEREITUNG] Anforderungen:', anforderungsKennungen.size);

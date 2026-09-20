@@ -213,6 +213,13 @@ if(r19.status==="DONE"){
   if(!finalExistiert) fehler("R19 DONE verlangt finale SOAK_15M Evidence.");
   if(req.some(x=>x.status!=="R19_NACHGEWIESEN")) fehler("R19 DONE verlangt 3/3 nachgewiesene Anforderungen.");
   if(trace.some(x=>x.vollstaendig!==true)) fehler("R19 DONE verlangt 3/3 vollstaendige Traceability.");
+  const releaseStateGueltig =
+    (ready.status==="GESPERRT"
+      &&ready.gesamtfreigabe==="BETREIBERBESTAETIGUNG_AUSSTEHEND"
+      &&ready.breiteRuntimeFreigabe===false)
+    ||(ready.status==="FREIGEGEBEN"
+      &&ready.gesamtfreigabe==="ERTEILT"
+      &&ready.breiteRuntimeFreigabe===true);
   if(ready.r19Status!=="ABGESCHLOSSEN"
       ||ready.r19NaechsteStufe!==null
       ||ready.r19ManuellerPcTestErforderlich!==false
@@ -221,8 +228,7 @@ if(r19.status==="DONE"){
       ||ready.r19LiveStatus!=="BIS_SOAK_15M_BESTANDEN"
       ||ready.r19LadderVollstaendig!==true
       ||ready.r19Soak15mEvidence!=="v5/roadmap/r19-soak-15m-evidence.json"
-      ||ready.gesamtfreigabe!=="SEPARAT_AUSSTEHEND"
-      ||ready.breiteRuntimeFreigabe!==false) {
+      ||!releaseStateGueltig) {
     fehler("R19 DONE Readiness-Metadaten unvollstaendig.");
   }
   const done=lies("roadmap/r19-abschluss.json");
@@ -238,7 +244,17 @@ if(r19.status==="DONE"){
       ||done.gesamtfreigabe!=="SEPARAT_AUSSTEHEND") {
     fehler("R19 Abschlussmanifest ungueltig.");
   }
-  if(ready.status==="FREIGEGEBEN") fehler("R19-Abschluss darf die separate Gesamtfreigabe nicht automatisch setzen.");
+  if(ready.status==="FREIGEGEBEN"){
+    if(!fs.existsSync("roadmap/gesamtfreigabe.json")) {
+      fehler("FREIGEGEBEN verlangt ein separates Gesamtfreigabe-Artefakt.");
+    }
+    const release=lies("roadmap/gesamtfreigabe.json");
+    if(release.kennung!=="V5_GESAMTFREIGABE"
+        ||release.status!=="ERTEILT"
+        ||release.bestaetigungQuelle!=="BETREIBER_INTERAKTIV") {
+      fehler("Separate Gesamtfreigabe ist nicht gueltig dokumentiert.");
+    }
+  }
 } else if(finalExistiert) {
   fehler("Finale SOAK_15M Evidence verlangt terminales R19 DONE.");
 }
