@@ -34,6 +34,15 @@ R19 ist die abschliessende 24/7-Zertifizierungsphase. Simulator/Replay, Fault Su
 
 Die automatische Vorbereitung endet nach bestandenem Shadow und erzeugt eine maschinenlesbare Evidence, deren naechste Stufe CONTROLLED_LIVE ist. Erst dort ist wieder ein Benutzer am PC/Ingame erforderlich.
 
+## Invarianten
+
+- V5-ALT-055 – Zertifizierungsevidence ist unveraenderlich, lueckenlos und stufenbezogen.
+- V5-INV-034 – uebersetzungspflichtige Sichttexte besitzen 100 Prozent deutsche Abdeckung; unerlaubte englische Rohtext-Leaks bleiben null.
+- Unexpected Game Writes, duplicate irreversible effects, unsafe preemptions, unverified action usage und Invariant Violations bleiben in jeder Zertifizierungsstufe null.
+- Sample-Gaps, kritische Persistenzverluste und Hot-Path-Blockaden durch nichtkritisches SSD-I/O bleiben null.
+- Breite Runtime-Freigabe ist vor vollstaendiger Ladder unzulaessig.
+- Controlled Live und Canary benoetigen manuelle Evidence und koennen nicht durch CI ersetzt werden.
+
 ## Migration
 
 R11 Operations-/Telemetrie- und R12 Shadow-/Controlled-Live-Primitiven werden wiederverwendet. Es entsteht keine zweite Runtime-Authority.
