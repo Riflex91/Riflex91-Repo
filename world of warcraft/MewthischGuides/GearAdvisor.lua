@@ -14,6 +14,11 @@ local EQUIP_SLOT = {
     INVTYPE_RANGED = 18, INVTYPE_RANGEDRIGHT = 18,
 }
 
+local MULTI_SLOT = {
+    INVTYPE_FINGER = {11, 12},
+    INVTYPE_TRINKET = {13, 14},
+}
+
 local WEAPON_LOC = {
     INVTYPE_WEAPON = true, INVTYPE_2HWEAPON = true,
     INVTYPE_WEAPONMAINHAND = true, INVTYPE_WEAPONOFFHAND = true,
@@ -106,13 +111,39 @@ function Gear:EvaluateItemLink(link)
     local level = itemLevel(link)
     if not level then return nil, "item_level_unknown" end
 
-    local equippedLink = GetInventoryItemLink and GetInventoryItemLink("player", slot) or nil
-    local equippedLevel = itemLevel(equippedLink) or 0
+    local profile = activeProfile()
+    local candidateSlots = MULTI_SLOT[equipLoc] or { slot }
+
+    local equippedLink = nil
+    local equippedLevel = nil
+    local equippedScore = nil
+    local targetSlot = slot
+
+    for _, candidateSlot in ipairs(candidateSlots) do
+        local currentLink = GetInventoryItemLink and
+            GetInventoryItemLink("player", candidateSlot) or nil
+        local currentLevel = itemLevel(currentLink) or 0
+        local currentScore = currentLink and weightedScore(currentLink, profile) or 0
+
+        if equippedLevel == nil or currentLevel < equippedLevel then
+            equippedLevel = currentLevel
+            equippedLink = currentLink
+            targetSlot = candidateSlot
+        end
+
+        if profile and (equippedScore == nil or currentScore < equippedScore) then
+            equippedScore = currentScore
+            equippedLink = currentLink
+            targetSlot = candidateSlot
+            equippedLevel = currentLevel
+        end
+    end
+
+    equippedLevel = equippedLevel or 0
+    equippedScore = equippedScore or 0
     local itemLevelDelta = level - equippedLevel
 
-    local profile = activeProfile()
     local candidateScore = weightedScore(link, profile)
-    local equippedScore = equippedLink and weightedScore(equippedLink, profile) or 0
     local confidence = "medium"
     local score = itemLevelDelta
     local upgrade = itemLevelDelta > 0
@@ -129,7 +160,7 @@ function Gear:EvaluateItemLink(link)
         itemID = itemID,
         link = link,
         equipLoc = equipLoc,
-        slot = slot,
+        slot = targetSlot,
         itemLevel = level,
         equippedLink = equippedLink,
         equippedItemLevel = equippedLevel,
@@ -179,22 +210,31 @@ end
 function Gear:TryAutoEquip(candidate)
     local settings = MG.db and MG.db.settings or {}
     if not settings.gearAutoEquip or not candidate then return false, "disabled" end
-    if settings.gearRequireHighConfidence and candidate.confidence ~= "high" then
+    local safeItemLevelFallback =
+        settings.gearAutoEquipItemLevelFallback ~= false and
+        candidate.scoreModel == "item-level-fallback" and
+        not candidate.isWeapon and
+        tonumber(candidate.delta) and tonumber(candidate.delta) > 0
+
+    if settings.gearRequireHighConfidence and candidate.confidence ~= "high" and
+       not safeItemLevelFallback then
         return false, "confidence"
     end
     if candidate.isWeapon and not settings.gearAutoEquipWeapons then
         return false, "weapon_protected"
     end
-    if settings.gearProtectBoE and candidate.isBound ~= true then
+    if settings.gearProtectBoE and candidate.isBound == false then
         return false, "boe_protected"
     end
     if InCombatLockdown and InCombatLockdown() then return false, "combat" end
     if CursorHasItem and CursorHasItem() then return false, "cursor_busy" end
-    if not C_Container or not C_Container.PickupContainerItem or not EquipCursorItem then
+    local pickup = C_Container and C_Container.PickupContainerItem or
+        PickupContainerItem
+    if not pickup or not EquipCursorItem then
         return false, "equip_api_missing"
     end
 
-    local okPickup = pcall(C_Container.PickupContainerItem, candidate.bag, candidate.bagSlot)
+    local okPickup = pcall(pickup, candidate.bag, candidate.bagSlot)
     if not okPickup then return false, "pickup_failed" end
 
     local okEquip = pcall(EquipCursorItem, candidate.slot)
@@ -203,7 +243,13 @@ function Gear:TryAutoEquip(candidate)
         return false, "equip_failed"
     end
 
-    MG:Log("INFO", "gear.auto_equip", "Sicheres Gear-Upgrade automatisch angelegt.", {
+    if C_Timer and C_Timer.After then
+        C_Timer.After(0.20, function()
+            if MG.Sync then MG.Sync:Inventory("gear_auto_equip_confirm") end
+        end)
+    end
+
+    MG:Log("INFO", "gear.auto_equip", "Bessere Ausrüstung automatisch angelegt.", {
         itemID = candidate.itemID,
         slot = candidate.slot,
         itemLevelDelta = candidate.delta,
