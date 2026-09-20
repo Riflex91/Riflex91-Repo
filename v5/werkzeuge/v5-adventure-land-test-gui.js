@@ -139,18 +139,20 @@
       cplaying,
       playing,
       howlState,
-      aktiv: verfuegbar && audioGefunden && (playing || cplaying),
+      aktiv: verfuegbar && audioGefunden && playing,
       visibilityState
     });
   }
 
-  function aktivierePerformanceTrick() {
+  async function aktivierePerformanceTrick() {
     const roots = performanceRoots();
+    let ziel = null;
     let aufgerufen = false;
     let fehler = null;
     for (const root of roots) {
       try {
         if (typeof root?.performance_trick !== 'function') continue;
+        ziel = root;
         root.performance_trick();
         aufgerufen = true;
         break;
@@ -158,8 +160,18 @@
         fehler = fehlerText(error);
       }
     }
-    const status = performanceTrickStatus();
-    return Object.freeze({ ...status, aufgerufen, fehler });
+    if (aufgerufen) await new Promise(resolve => setTimeout(resolve, 350));
+    let status = performanceTrickStatus();
+    if (ziel && status.playing !== true) {
+      try {
+        ziel.performance_trick();
+        await new Promise(resolve => setTimeout(resolve, 150));
+        status = performanceTrickStatus();
+      } catch (error) {
+        fehler = fehlerText(error);
+      }
+    }
+    return Object.freeze({ ...status, aufgerufen, fehler, verifikation: 'HOWLER_PLAYING_TRUE' });
   }
 
   function erstelleTest(optionen = {}) {
