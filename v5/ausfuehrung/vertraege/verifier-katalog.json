@@ -1,0 +1,1379 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "quelle": "v5/wissensbasis/vertraege/action-contracts.json",
+  "summary": {
+    "total": 60,
+    "verified": 53,
+    "disabled": 7
+  },
+  "verifiers": [
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-ACTIVATE",
+      "actionContractId": "AL-ACTION-ACTIVATE",
+      "publicFunction": "activate",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory_item_state"
+      ],
+      "liveRevalidation": [
+        "character",
+        "inventory"
+      ],
+      "postconditions": [
+        "target booster remains locatable with activated expiry/state"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-SHIFT",
+      "actionContractId": "AL-ACTION-SHIFT",
+      "publicFunction": "shift",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory_item_identity",
+        "character_multiplier_state"
+      ],
+      "liveRevalidation": [
+        "character",
+        "inventory"
+      ],
+      "postconditions": [
+        "booster name equals requested mode"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-THROW-ITEM",
+      "actionContractId": "AL-ACTION-THROW-ITEM",
+      "publicFunction": "throw_item",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory"
+      ],
+      "liveRevalidation": [
+        "character",
+        "inventory"
+      ],
+      "postconditions": [
+        "thrown quantity removed from inventory"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-BANK-DEPOSIT",
+      "actionContractId": "AL-ACTION-BANK-DEPOSIT",
+      "publicFunction": "bank_deposit",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "gold",
+        "bank_gold"
+      ],
+      "liveRevalidation": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "postconditions": [
+        "bank operation deposit reflected in fresh bank/character state"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-BANK-WITHDRAW",
+      "actionContractId": "AL-ACTION-BANK-WITHDRAW",
+      "publicFunction": "bank_withdraw",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "gold",
+        "bank_gold"
+      ],
+      "liveRevalidation": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "postconditions": [
+        "bank operation withdraw reflected in fresh bank/character state"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-BANK-STORE",
+      "actionContractId": "AL-ACTION-BANK-STORE",
+      "publicFunction": "bank_store",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "bank_inventory"
+      ],
+      "liveRevalidation": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "postconditions": [
+        "bank operation swap reflected in fresh bank/character state"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-BANK-RETRIEVE",
+      "actionContractId": "AL-ACTION-BANK-RETRIEVE",
+      "publicFunction": "bank_retrieve",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "bank_inventory"
+      ],
+      "liveRevalidation": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "postconditions": [
+        "bank operation swap reflected in fresh bank/character state"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-BANK-SWAP",
+      "actionContractId": "AL-ACTION-BANK-SWAP",
+      "publicFunction": "bank_swap",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "bank_inventory"
+      ],
+      "liveRevalidation": [
+        "character",
+        "bank",
+        "inventory"
+      ],
+      "postconditions": [
+        "bank operation move reflected in fresh bank/character state"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-OPEN-BANK-PACK",
+      "actionContractId": "AL-ACTION-OPEN-BANK-PACK",
+      "publicFunction": "open_bank_pack",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "gold_or_shells",
+        "bank_capacity"
+      ],
+      "liveRevalidation": [
+        "character",
+        "bank",
+        "account_currency"
+      ],
+      "postconditions": [
+        "requested pack exists and currency delta matches server result"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-BUY",
+      "actionContractId": "AL-ACTION-BUY",
+      "publicFunction": "buy",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "gold_or_shells",
+        "inventory"
+      ],
+      "liveRevalidation": [
+        "item_definition",
+        "vendor_reachability",
+        "inventory_capacity",
+        "currency"
+      ],
+      "postconditions": [
+        "delegated gold/shell purchase postcondition holds"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-BUY-WITH-GOLD",
+      "actionContractId": "AL-ACTION-BUY-WITH-GOLD",
+      "publicFunction": "buy_with_gold",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "gold",
+        "inventory"
+      ],
+      "liveRevalidation": [
+        "vendor_reachability",
+        "inventory_capacity",
+        "gold",
+        "item_definition"
+      ],
+      "postconditions": [
+        "gold decreased by server cost",
+        "purchased quantity exists in inventory"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-BUY-WITH-SHELLS",
+      "actionContractId": "AL-ACTION-BUY-WITH-SHELLS",
+      "publicFunction": "buy_with_shells",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "shells",
+        "inventory"
+      ],
+      "liveRevalidation": [
+        "account_currency",
+        "inventory_capacity",
+        "item_definition"
+      ],
+      "postconditions": [
+        "shell balance decreased by server cost",
+        "purchased quantity exists"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-BUY-SECONDHAND",
+      "actionContractId": "AL-ACTION-BUY-SECONDHAND",
+      "publicFunction": "buy_secondhand",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "gold",
+        "inventory",
+        "market_listing"
+      ],
+      "liveRevalidation": [
+        "listing_rid",
+        "inventory_capacity",
+        "gold",
+        "npc_reachability"
+      ],
+      "postconditions": [
+        "RID purchase succeeded",
+        "gold delta matches cost",
+        "item present"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-BUY-LOST-AND-FOUND",
+      "actionContractId": "AL-ACTION-BUY-LOST-AND-FOUND",
+      "publicFunction": "buy_lost_and_found",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "gold",
+        "inventory",
+        "market_listing"
+      ],
+      "liveRevalidation": [
+        "listing_rid",
+        "inventory_capacity",
+        "gold",
+        "npc_reachability"
+      ],
+      "postconditions": [
+        "RID purchase succeeded",
+        "gold delta matches cost",
+        "item present"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-SELL",
+      "actionContractId": "AL-ACTION-SELL",
+      "publicFunction": "sell",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "gold"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "merchant_reachability"
+      ],
+      "postconditions": [
+        "sold quantity removed",
+        "gold increased by returned value"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-TRADE",
+      "actionContractId": "AL-ACTION-TRADE",
+      "publicFunction": "trade",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "trade_slot"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "trade_slot",
+        "trade_slot_allowed_now",
+        "trade_slot_empty",
+        "listing_price",
+        "listing_quantity"
+      ],
+      "postconditions": [
+        "target trade slot contains intended sell listing with exact item/fingerprint, unit price and requested listed quantity",
+        "listing has a fresh rid created for this listing instance",
+        "inventory delta matches the quantity moved into the listing"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-WISHLIST",
+      "actionContractId": "AL-ACTION-WISHLIST",
+      "publicFunction": "wishlist",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "trade_slot"
+      ],
+      "liveRevalidation": [
+        "trade_slot",
+        "trade_slot_allowed_now",
+        "listing_side",
+        "listing_price",
+        "listing_quantity",
+        "listing_level"
+      ],
+      "postconditions": [
+        "trade slot contains intended buy listing with b=true, item name, level if relevant, unit price and requested quantity",
+        "listing has a fresh rid; replacing an existing wishlist changes the listing instance"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-TRADE-BUY",
+      "actionContractId": "AL-ACTION-TRADE-BUY",
+      "publicFunction": "trade_buy",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "buyer_gold",
+        "seller_gold",
+        "seller_trade_slot",
+        "buyer_inventory"
+      ],
+      "liveRevalidation": [
+        "target_entity",
+        "listing_rid",
+        "quantity",
+        "inventory_capacity",
+        "gold",
+        "listing_side",
+        "listing_item_name",
+        "listing_level",
+        "listing_price",
+        "listing_quantity",
+        "distance_and_map",
+        "fresh_buyer_gold",
+        "fresh_inventory_capacity"
+      ],
+      "postconditions": [
+        "buyer gold decreased by exactly pinned unit_price * requested_quantity",
+        "buyer inventory gained the intended item/fingerprint and exact requested quantity",
+        "remote listing is absent on full fill or has compatible remaining quantity on partial fill; remote listing delta is supporting evidence only"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-TRADE-SELL",
+      "actionContractId": "AL-ACTION-TRADE-SELL",
+      "publicFunction": "trade_sell",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "seller_inventory",
+        "seller_gold",
+        "buyer_gold",
+        "buyer_inventory",
+        "buyer_trade_slot"
+      ],
+      "liveRevalidation": [
+        "target_entity",
+        "listing_rid",
+        "physical_item_match",
+        "quantity",
+        "listing_side",
+        "listing_item_name",
+        "listing_level",
+        "listing_price",
+        "listing_quantity",
+        "distance",
+        "server_selected_item_candidate"
+      ],
+      "postconditions": [
+        "seller gold increased by the exact net amount implied by pinned unit price, quantity and live seller tax",
+        "the exact server-selected physical inventory candidate lost/decremented the requested quantity",
+        "remote wishlist is absent on full fill or has compatible remaining quantity on partial fill; remote wishlist delta is supporting evidence only"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-GIVEAWAY",
+      "actionContractId": "AL-ACTION-GIVEAWAY",
+      "publicFunction": "giveaway",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "trade_slot",
+        "future_item_transfer"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "trade_slot"
+      ],
+      "postconditions": [
+        "giveaway listing exists with fresh rid"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-JOIN-GIVEAWAY",
+      "actionContractId": "AL-ACTION-JOIN-GIVEAWAY",
+      "publicFunction": "join_giveaway",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "giveaway_registry"
+      ],
+      "liveRevalidation": [
+        "target_entity",
+        "listing_rid"
+      ],
+      "postconditions": [
+        "auth id registered on same giveaway rid"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-EQUIP",
+      "actionContractId": "AL-ACTION-EQUIP",
+      "publicFunction": "equip",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "equipment"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "equipment_slots"
+      ],
+      "postconditions": [
+        "requested item is in resolved equipment slot"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-EQUIP-BATCH",
+      "actionContractId": "AL-ACTION-EQUIP-BATCH",
+      "publicFunction": "equip_batch",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "equipment"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identities",
+        "equipment_slots"
+      ],
+      "postconditions": [
+        "reconcile every requested equipment slot against desired end-state"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-UNEQUIP",
+      "actionContractId": "AL-ACTION-UNEQUIP",
+      "publicFunction": "unequip",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "equipment"
+      ],
+      "liveRevalidation": [
+        "inventory_capacity",
+        "equipment_slot",
+        "trade_slot"
+      ],
+      "postconditions": [
+        "requested slot is empty",
+        "for normal equipment or a non-b sell listing, the physical item is present in inventory after removal",
+        "for a b=true virtual wishlist, no physical inventory item is created; only the listing disappears"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-CONSUME",
+      "actionContractId": "AL-ACTION-CONSUME",
+      "publicFunction": "consume",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "character_state"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "item_usability"
+      ],
+      "postconditions": [
+        "consumed quantity delta and expected effect/state"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-SWAP",
+      "actionContractId": "AL-ACTION-SWAP",
+      "publicFunction": "swap",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory_slots"
+      ],
+      "liveRevalidation": [
+        "inventory_slots"
+      ],
+      "postconditions": [
+        "slots/stacks match server result"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-SPLIT",
+      "actionContractId": "AL-ACTION-SPLIT",
+      "publicFunction": "split",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory_slots",
+        "quantity"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "inventory_capacity"
+      ],
+      "postconditions": [
+        "source and new stack quantities sum to original quantity"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-DESTROY",
+      "actionContractId": "AL-ACTION-DESTROY",
+      "publicFunction": "destroy",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity"
+      ],
+      "postconditions": [
+        "destroyed quantity removed unless special server outcome replaces it"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-DISMANTLE",
+      "actionContractId": "AL-ACTION-DISMANTLE",
+      "publicFunction": "dismantle",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "gold"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "inventory_capacity",
+        "gold",
+        "dismantle_definition",
+        "dismantle_path",
+        "exact_input_identity",
+        "possible_output_set",
+        "server_equivalent_outputspace"
+      ],
+      "postconditions": [
+        "exact pinned input consumed exactly once",
+        "gold cost applied exactly once",
+        "leveled compound path: exactly three level-1 copies exist with floor(original grace/3) and expected property loss semantics",
+        "normal definition path: every actually rolled output is reconciled and no unplanned overflow is accepted",
+        "inventory capacity remains within V5 planned bounds"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-DESTAT-ITEM",
+      "actionContractId": "AL-ACTION-DESTAT-ITEM",
+      "publicFunction": "destat_item",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory_item_properties",
+        "inventory",
+        "gold"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "inventory_capacity",
+        "gold"
+      ],
+      "postconditions": [
+        "stat_type removed",
+        "scroll refund quantity present",
+        "gold cost applied"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-LOCK-ITEM",
+      "actionContractId": "AL-ACTION-LOCK-ITEM",
+      "publicFunction": "lock_item",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory_item_lock_state",
+        "gold"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "lock_state",
+        "gold"
+      ],
+      "postconditions": [
+        "item lock/seal state equals server result",
+        "gold delta reconciled"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-SEAL-ITEM",
+      "actionContractId": "AL-ACTION-SEAL-ITEM",
+      "publicFunction": "seal_item",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory_item_lock_state",
+        "gold"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "lock_state",
+        "gold"
+      ],
+      "postconditions": [
+        "item lock/seal state equals server result",
+        "gold delta reconciled"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-UNLOCK-ITEM",
+      "actionContractId": "AL-ACTION-UNLOCK-ITEM",
+      "publicFunction": "unlock_item",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory_item_lock_state",
+        "gold"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity",
+        "lock_state",
+        "gold"
+      ],
+      "postconditions": [
+        "item lock/seal state equals server result",
+        "gold delta reconciled"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-UPGRADE",
+      "actionContractId": "AL-ACTION-UPGRADE",
+      "publicFunction": "upgrade",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "target_item",
+        "scroll",
+        "offering",
+        "item_level_or_loss",
+        "item_grace_or_stat",
+        "character_q",
+        "massproduction_condition",
+        "server_grace_accumulators"
+      ],
+      "liveRevalidation": [
+        "physical_item_identity",
+        "clevel",
+        "scroll",
+        "offering",
+        "service_reachability",
+        "character_q",
+        "exact_target_item_identity",
+        "target_level",
+        "target_grade",
+        "target_grace",
+        "scroll_type_grade_quantity",
+        "offering_identity_grade_or_offering_strength",
+        "massproduction_conditions",
+        "player_p_item_num_if_observable"
+      ],
+      "postconditions": [
+        "q.upgrade is cleared and attributable placeholder is gone",
+        "scroll/offering quantities and massproduction conditions match the selected path",
+        "normal uscroll success: exact target identity is present at new level",
+        "ordinary uscroll failure: exact target identity is absent/lost unless scroll grade 3.6 preservation rule applies",
+        "scroll4 failed roll: exact target item is restored/preserved despite upgrade_fail",
+        "pscroll success: exact target item is present with requested stat_type; level is not inferred from generic response",
+        "primordial type-offering-only: exact target item remains with increased grace and no level increase",
+        "material-offering-only: exact target remains; shiny property appears only on successful proc, while failed proc may still return upgrade_fail",
+        "any server grace/accounting changes relevant to subsequent probability are treated as changed state"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-COMPOUND",
+      "actionContractId": "AL-ACTION-COMPOUND",
+      "publicFunction": "compound",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "three_input_items",
+        "scroll",
+        "offering",
+        "result_or_three_item_loss",
+        "item_grace",
+        "character_q",
+        "massproduction_condition",
+        "server_grace_accumulators"
+      ],
+      "liveRevalidation": [
+        "three_physical_item_identities",
+        "clevel",
+        "scroll",
+        "offering",
+        "service_reachability",
+        "character_q",
+        "three_exact_physical_item_identities",
+        "same_name_level",
+        "current_grade",
+        "input_grace_values",
+        "scroll_type_grade",
+        "offering_type_grade",
+        "massproduction_conditions"
+      ],
+      "postconditions": [
+        "q.compound is cleared and first-slot placeholder is resolved",
+        "compound scroll and optional offering deltas match the selected attempt",
+        "success: exactly one reconciled output item exists at the first input slot with terminal level/properties; the other two physical inputs remain consumed",
+        "failure: all three exact physical input identities are absent/lost",
+        "massproduction condition consumption matches the actual timed path",
+        "booster success: final level/extra/expiry is read from the terminal item because offering can recursively add extra levels"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-CRAFT",
+      "actionContractId": "AL-ACTION-CRAFT",
+      "publicFunction": "craft",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory_inputs",
+        "inventory_output",
+        "gold"
+      ],
+      "liveRevalidation": [
+        "recipe_definition",
+        "physical_inputs",
+        "gold",
+        "inventory_capacity",
+        "service_or_quest_reachability",
+        "server_recipe_key",
+        "exact_physical_input_stacks",
+        "recipe_duplicate_name_assumption",
+        "server_equivalent_outputspace"
+      ],
+      "postconditions": [
+        "recipe gold cost applied exactly once",
+        "all exact planned physical input quantities consumed exactly once",
+        "one terminal configured output exists with allowed property/data behavior",
+        "inventory capacity remains within V5 planned bounds"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-AUTO-CRAFT",
+      "actionContractId": "AL-ACTION-AUTO-CRAFT",
+      "publicFunction": "auto_craft",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory_inputs",
+        "inventory_output",
+        "gold"
+      ],
+      "liveRevalidation": [
+        "recipe_definition",
+        "physical_inputs",
+        "gold",
+        "inventory_capacity",
+        "service_or_quest_reachability",
+        "server_recipe_key",
+        "exact_physical_input_stacks",
+        "recipe_duplicate_name_assumption",
+        "server_equivalent_outputspace"
+      ],
+      "postconditions": [
+        "recipe gold cost applied exactly once",
+        "all exact planned physical input quantities consumed exactly once",
+        "one terminal configured output exists with allowed property/data behavior",
+        "inventory capacity remains within V5 planned bounds"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-EXCHANGE",
+      "actionContractId": "AL-ACTION-EXCHANGE",
+      "publicFunction": "exchange",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory_input",
+        "placeholder",
+        "inventory_reward",
+        "gold",
+        "shells",
+        "account_cosmetics",
+        "empty_reward",
+        "character_q",
+        "massexchange_condition"
+      ],
+      "liveRevalidation": [
+        "physical_item_identity",
+        "exchange_definition",
+        "inventory_capacity",
+        "service_or_quest_reachability",
+        "character_q",
+        "drop_table_graph",
+        "all_reward_domains",
+        "massexchange_conditions",
+        "conservative_outputspace"
+      ],
+      "postconditions": [
+        "q.exchange cleared and attributable placeholder gone",
+        "exact exchange input quantity consumed exactly once",
+        "all terminal reward domains allowed by pinned drop table reconciled: inventory/gold/shells/account cosmetics/empty/recursive output",
+        "massexchange/mass exchange plus condition delta reconciled when present",
+        "Promise reward/num is treated only as supporting evidence"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-EXCHANGE-BUY",
+      "actionContractId": "AL-ACTION-EXCHANGE-BUY",
+      "publicFunction": "exchange_buy",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "token_inventory",
+        "inventory_output"
+      ],
+      "liveRevalidation": [
+        "token_quantity",
+        "token_table",
+        "inventory_capacity",
+        "npc_reachability",
+        "exact_token_stack_identity",
+        "entire_token_stack_q",
+        "reward_item_data",
+        "server_equivalent_outputspace"
+      ],
+      "postconditions": [
+        "exact pinned token stack decreased by configured cost or disappeared on full consume",
+        "exact configured reward item/data/quantity is present",
+        "no unrelated token stack was consumed"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-LOOT",
+      "actionContractId": "AL-ACTION-LOOT",
+      "publicFunction": "loot",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "gold",
+        "chest_state"
+      ],
+      "liveRevalidation": [
+        "chest_exists",
+        "inventory_capacity"
+      ],
+      "postconditions": [
+        "chest gone/claimed",
+        "received items/gold reflected"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-OPEN-STAND",
+      "actionContractId": "AL-ACTION-OPEN-STAND",
+      "publicFunction": "open_stand",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "stand_state",
+        "inventory_item_block_state"
+      ],
+      "liveRevalidation": [
+        "stand_item",
+        "stand_state"
+      ],
+      "postconditions": [
+        "stand open/closed state matches request"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-CLOSE-STAND",
+      "actionContractId": "AL-ACTION-CLOSE-STAND",
+      "publicFunction": "close_stand",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "stand_state",
+        "inventory_item_block_state"
+      ],
+      "liveRevalidation": [
+        "stand_item",
+        "stand_state"
+      ],
+      "postconditions": [
+        "stand open/closed state matches request"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-SEND-GOLD",
+      "actionContractId": "AL-ACTION-SEND-GOLD",
+      "publicFunction": "send_gold",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "gold",
+        "recipient_state"
+      ],
+      "liveRevalidation": [
+        "recipient_entity",
+        "same_map",
+        "distance",
+        "available_value"
+      ],
+      "postconditions": [
+        "gold sender delta",
+        "recipient settlement evidence"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-SEND-ITEM",
+      "actionContractId": "AL-ACTION-SEND-ITEM",
+      "publicFunction": "send_item",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory",
+        "recipient_state"
+      ],
+      "liveRevalidation": [
+        "recipient_entity",
+        "same_map",
+        "distance",
+        "physical_item_identity"
+      ],
+      "postconditions": [
+        "inventory sender delta",
+        "recipient settlement evidence"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-SEND-CX",
+      "actionContractId": "AL-ACTION-SEND-CX",
+      "publicFunction": "send_cx",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "cosmetic_inventory",
+        "recipient_state"
+      ],
+      "liveRevalidation": [
+        "recipient_entity",
+        "same_map",
+        "distance",
+        "available_value"
+      ],
+      "postconditions": [
+        "cosmetic_inventory sender delta",
+        "recipient settlement evidence"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-SEND-MAIL",
+      "actionContractId": "AL-ACTION-SEND-MAIL",
+      "publicFunction": "send_mail",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "gold",
+        "optional_inventory_item",
+        "persistent_mail"
+      ],
+      "liveRevalidation": [
+        "gold",
+        "slot0_item_if_attached",
+        "recipient"
+      ],
+      "postconditions": [
+        "mail_sent request_id result OR explicit failure",
+        "sender gold/item and persistent mail reconciled"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-TAKE-MAIL-ITEM",
+      "actionContractId": "AL-ACTION-TAKE-MAIL-ITEM",
+      "publicFunction": "take_mail_item",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "persistent_mail_claim",
+        "inventory"
+      ],
+      "liveRevalidation": [
+        "mail_claim",
+        "inventory_capacity"
+      ],
+      "postconditions": [
+        "mail claim terminal",
+        "item present exactly once or claim released"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-DONATE-GOLD",
+      "actionContractId": "AL-ACTION-DONATE-GOLD",
+      "publicFunction": "donate_gold",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "gold",
+        "server_gold",
+        "merchant_xp_or_reward"
+      ],
+      "liveRevalidation": [
+        "gold",
+        "npc_reachability"
+      ],
+      "postconditions": [
+        "gold delta",
+        "server response reward/xp state"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-PLAY-SLOTS",
+      "actionContractId": "AL-ACTION-PLAY-SLOTS",
+      "publicFunction": "play_slots",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "gold",
+        "character_q",
+        "future_game_reward"
+      ],
+      "liveRevalidation": [
+        "gold",
+        "tavern_presence",
+        "q.slots"
+      ],
+      "postconditions": [
+        "q.slots terminal",
+        "gold/reward reconciled"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-BET-DICE",
+      "actionContractId": "AL-ACTION-BET-DICE",
+      "publicFunction": "bet_dice",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "gold",
+        "active_bet",
+        "future_game_reward"
+      ],
+      "liveRevalidation": [
+        "gold",
+        "tavern_state",
+        "existing_bets"
+      ],
+      "postconditions": [
+        "bet result correlated by request_id and gold/reward reconciled"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-BLESS-SERVER",
+      "actionContractId": "AL-ACTION-BLESS-SERVER",
+      "publicFunction": "bless_server",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "shells",
+        "server_blessing_state"
+      ],
+      "liveRevalidation": [
+        "shell_balance",
+        "server_blessing_state"
+      ],
+      "postconditions": [
+        "request_id bless_result",
+        "shell delta and server blessing state reconciled"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-EQUIP-CX",
+      "actionContractId": "AL-ACTION-EQUIP-CX",
+      "publicFunction": "equip_cx",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "cosmetic_equipment_state"
+      ],
+      "liveRevalidation": [
+        "owned_cosmetics"
+      ],
+      "postconditions": [
+        "character cosmetic state equals requested selection"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-BET-WHEEL",
+      "actionContractId": "AL-ACTION-BET-WHEEL",
+      "publicFunction": "bet_wheel",
+      "status": "DISABLED_WITH_ACTION_CONTRACT",
+      "effectDomains": [
+        "gold",
+        "tavern_wheel_state"
+      ],
+      "liveRevalidation": [
+        "character_gold",
+        "wheel_side",
+        "wheel_active_spin"
+      ],
+      "postconditions": [
+        "matching game_response has place=wheel and the exact request_id",
+        "result classifies won/side/result/slice/wager/payout/net/edge",
+        "fresh character gold reconciles the wager/payout before any new wager intent"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-POKER-JOIN",
+      "actionContractId": "AL-ACTION-POKER-JOIN",
+      "publicFunction": "poker_join",
+      "status": "DISABLED_WITH_ACTION_CONTRACT",
+      "effectDomains": [
+        "gold",
+        "poker_stack",
+        "poker_seat_state"
+      ],
+      "liveRevalidation": [
+        "character_gold",
+        "poker_table",
+        "poker_seat",
+        "poker_hand_state"
+      ],
+      "postconditions": [
+        "matching game_response has place=poker and exact request_id",
+        "fresh poker table confirms expected seat/stack/buyin/blinds state",
+        "fresh purse gold and poker stack reconcile the buy-in or rebuy"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-POKER-ACT",
+      "actionContractId": "AL-ACTION-POKER-ACT",
+      "publicFunction": "poker_act",
+      "status": "DISABLED_WITH_ACTION_CONTRACT",
+      "effectDomains": [
+        "poker_stack",
+        "poker_pot",
+        "poker_hand_state"
+      ],
+      "liveRevalidation": [
+        "poker_table",
+        "poker_hand_state",
+        "acting_seat",
+        "deadline",
+        "can_raise",
+        "poker_stack"
+      ],
+      "postconditions": [
+        "matching game_response has place=poker and exact request_id",
+        "response action/amount/stack/pot is reconciled against a fresh poker table state before any follow-up act"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-POKER-LEAVE",
+      "actionContractId": "AL-ACTION-POKER-LEAVE",
+      "publicFunction": "poker_leave",
+      "status": "DISABLED_WITH_ACTION_CONTRACT",
+      "effectDomains": [
+        "gold",
+        "poker_stack",
+        "poker_seat_state"
+      ],
+      "liveRevalidation": [
+        "poker_table",
+        "poker_hand_state",
+        "poker_seat",
+        "character_gold"
+      ],
+      "postconditions": [
+        "matching response either reports leaving=true or reports returned gold",
+        "if leaving=true, transaction remains unsettled until fresh table state confirms seat removal/cash-out and purse gold reflects settlement",
+        "after disconnect, reconcile delayed automatic cash-out before any new join/leave value intent"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-POKER-SIT-IN",
+      "actionContractId": "AL-ACTION-POKER-SIT-IN",
+      "publicFunction": "poker_sit_in",
+      "status": "DISABLED_WITH_ACTION_CONTRACT",
+      "effectDomains": [
+        "poker_seat_state"
+      ],
+      "liveRevalidation": [
+        "poker_table",
+        "poker_seat",
+        "poker_stack"
+      ],
+      "postconditions": [
+        "matching game_response has place=poker and exact request_id",
+        "fresh poker table confirms own seat out=false and sufficient stack remains"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-POKER-SIT-OUT",
+      "actionContractId": "AL-ACTION-POKER-SIT-OUT",
+      "publicFunction": "poker_sit_out",
+      "status": "DISABLED_WITH_ACTION_CONTRACT",
+      "effectDomains": [
+        "poker_seat_state",
+        "gold",
+        "poker_stack"
+      ],
+      "liveRevalidation": [
+        "poker_table",
+        "poker_seat",
+        "poker_stack",
+        "character_gold"
+      ],
+      "postconditions": [
+        "matching game_response has place=poker and exact request_id and reports out=true",
+        "fresh poker table confirms own seat out=true",
+        "if sit-out persists, later automatic cash-out is reconciled before any new value-changing poker intent"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-CAVE-BUY",
+      "actionContractId": "AL-ACTION-CAVE-BUY",
+      "publicFunction": "cave_buy",
+      "status": "DISABLED_WITH_ACTION_CONTRACT",
+      "effectDomains": [
+        "cave_currency",
+        "party_member_inventory",
+        "cave_shop_state"
+      ],
+      "liveRevalidation": [
+        "cave_session",
+        "cave_gold",
+        "merchant_room",
+        "original_party_roster",
+        "recipient_inventory"
+      ],
+      "postconditions": [
+        "automation disabled until cave_request transport/correlation/timeout contract is verified",
+        "when eventually enabled, cave-gold delta, sold shop state and exact random recipient inventory must all reconcile"
+      ],
+      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-DESTROY-ITEM",
+      "actionContractId": "AL-ACTION-DESTROY-ITEM",
+      "publicFunction": "destroy_item",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "inventory"
+      ],
+      "liveRevalidation": [
+        "inventory_item_identity"
+      ],
+      "postconditions": [
+        "destroyed item/quantity no longer exists at the re-resolved physical inventory identity"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    }
+  ]
+}
