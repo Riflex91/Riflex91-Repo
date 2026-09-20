@@ -47,22 +47,24 @@ public sealed class MinerService(MinerOptions options)
                 ["baseline"] = previousState is null
             }));
 
-        var stamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss");
-        var safeBuild = string.Concat(build.Version.Select(c => char.IsLetterOrDigit(c) || c is '.' or '-' ? c : '_'));
-        var zipPath = Path.Combine(options.OutputDirectory, $"ForeverDataMiner-{safeBuild}-{stamp}.fgds.zip");
+        ManagedWowToolsProcess? managedProvider = null;
+        IReadOnlyList<(string Table, byte[] Csv)> exportedTables = [];
 
-        await using var file = File.Create(zipPath);
-        using var archive = new ZipArchive(file, ZipArchiveMode.Create);
-
-        if (options.WowToolsLocal is not null && !IsWowRunning())
+        try
         {
-            ManagedWowToolsProcess? managedProvider = null;
-            using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-            var client = new WowToolsLocalClient(http, options.WowToolsLocal);
-            try
+            if (options.WowToolsLocal is not null)
             {
+                if (IsWowRunning())
+                    throw new InvalidOperationException(
+                        "Vollständiger DB2-Scan abgebrochen: Ein WoW-Client läuft noch.");
+
                 if (options.ManageWowToolsLocal)
                 {
+                    if (!WowToolsProviderBootstrapper.IsInstalled())
+                        throw new InvalidOperationException(
+                            "Vollständiger DB2-Scan abgebrochen: Der DB2-Provider ist noch nicht eingerichtet. " +
+                            "Bitte zuerst „Provider einrichten“ verwenden.");
+
                     managedProvider = await WowToolsProviderBootstrapper.StartInstalledAsync(
                         options.WowRoot,
                         build.Product,
@@ -78,99 +80,114 @@ public sealed class MinerService(MinerOptions options)
                         {
                             ["managed"] = true,
                             ["autoStarted"] = managedProvider.StartedByMiner,
-                            ["installed"] = WowToolsProviderBootstrapper.IsInstalled()
+                            ["installed"] = true
                         }));
                 }
-
-                var tables = await client.ExportAsync(build, cancellationToken);
-                foreach (var (table, csv) in tables)
+                else if (!await WowToolsLocalClient.IsAvailableAsync(options.WowToolsLocal, cancellationToken))
                 {
-                    var entry = archive.CreateEntry($"db2/{table}.csv", CompressionLevel.Optimal);
-                    await using (var stream = entry.Open())
-                    {
-                        await stream.WriteAsync(csv, cancellationToken);
-                    }
-
-                    var tableHash = Convert.ToHexString(SHA256.HashData(csv)).ToLowerInvariant();
-                    bundle.Records.Add(new FgdsRecord(
-                        "db2.export",
-                        table,
-                        DateTimeOffset.UtcNow,
-                        "client-db2-hotfix-applied",
-                        new Dictionary<string, object?>
-                        {
-                            ["table"] = table,
-                            ["bytes"] = csv.Length,
-                            ["sha256"] = tableHash
-                        }));
-
-                    Dictionary<string, string>? previousRows = null;
-                    if (previousState is not null)
-                        previousState.TableRows.TryGetValue(table, out previousRows);
-
-                    var diff = CsvDiff.Compare(table, csv, previousRows);
-                    nextState.TableRows[table] = diff.CurrentRows;
-
-                    bundle.Records.Add(new FgdsRecord(
-                        "db2.diff",
-                        table,
-                        DateTimeOffset.UtcNow,
-                        "client-db2-diff",
-                        new Dictionary<string, object?>
-                        {
-                            ["baseline"] = previousRows is null,
-                            ["addedCount"] = diff.AddedCount,
-                            ["modifiedCount"] = diff.ModifiedCount,
-                            ["removedCount"] = diff.RemovedCount,
-                            ["addedIds"] = diff.AddedIds,
-                            ["modifiedIds"] = diff.ModifiedIds,
-                            ["removedIds"] = diff.RemovedIds
-                        }));
+                    throw new InvalidOperationException(
+                        $"Vollständiger DB2-Scan abgebrochen: Provider {options.WowToolsLocal} ist nicht erreichbar.");
                 }
-            }
-            catch (Exception ex) when (
-                !cancellationToken.IsCancellationRequested &&
-                ex is HttpRequestException or TaskCanceledException or InvalidOperationException or TimeoutException)
-            {
+
+                using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+                var client = new WowToolsLocalClient(http, options.WowToolsLocal);
+                exportedTables = await client.ExportAsync(build, cancellationToken);
+
+                if (exportedTables.Count == 0)
+                    throw new InvalidOperationException(
+                        "Vollständiger DB2-Scan abgebrochen: Der Provider war erreichbar, aber keine DB2-Tabelle konnte exportiert werden.");
+
                 bundle.Records.Add(new FgdsRecord(
-                    "provider.warning",
+                    "provider.validation",
                     "wow.tools.local",
                     DateTimeOffset.UtcNow,
                     "miner",
                     new Dictionary<string, object?>
                     {
-                        ["message"] = ex.Message,
-                        ["managedProviderInstalled"] = WowToolsProviderBootstrapper.IsInstalled()
+                        ["success"] = true,
+                        ["exportedTableCount"] = exportedTables.Count
                     }));
             }
-            finally
+            else
             {
-                if (managedProvider is not null)
-                    await managedProvider.DisposeAsync();
+                bundle.Records.Add(new FgdsRecord(
+                    "scan.mode",
+                    "fingerprint-only",
+                    DateTimeOffset.UtcNow,
+                    "miner",
+                    new Dictionary<string, object?>
+                    {
+                        ["db2Enabled"] = false,
+                        ["completeForRouteResearch"] = false
+                    }));
             }
-        }
-        else if (options.WowToolsLocal is not null)
-        {
-            bundle.Records.Add(new FgdsRecord(
-                "provider.warning",
-                "wow.tools.local",
-                DateTimeOffset.UtcNow,
-                "miner-safety",
-                new Dictionary<string, object?>
+
+            var stamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss");
+            var safeBuild = string.Concat(build.Version.Select(c => char.IsLetterOrDigit(c) || c is '.' or '-' ? c : '_'));
+            var zipPath = Path.Combine(options.OutputDirectory, $"ForeverDataMiner-{safeBuild}-{stamp}.fgds.zip");
+
+            await using var file = File.Create(zipPath);
+            using var archive = new ZipArchive(file, ZipArchiveMode.Create);
+
+            foreach (var (table, csv) in exportedTables)
+            {
+                var entry = archive.CreateEntry($"db2/{table}.csv", CompressionLevel.Optimal);
+                await using (var stream = entry.Open())
                 {
-                    ["message"] = "DB2 export skipped because a WoW client process is running.",
-                    ["retryWhenClientStops"] = true
-                }));
-        }
+                    await stream.WriteAsync(csv, cancellationToken);
+                }
 
-        var manifestEntry = archive.CreateEntry("manifest.fgds.json", CompressionLevel.Optimal);
-        await using (var stream = manifestEntry.Open())
+                var tableHash = Convert.ToHexString(SHA256.HashData(csv)).ToLowerInvariant();
+                bundle.Records.Add(new FgdsRecord(
+                    "db2.export",
+                    table,
+                    DateTimeOffset.UtcNow,
+                    "client-db2-hotfix-applied",
+                    new Dictionary<string, object?>
+                    {
+                        ["table"] = table,
+                        ["bytes"] = csv.Length,
+                        ["sha256"] = tableHash
+                    }));
+
+                Dictionary<string, string>? previousRows = null;
+                if (previousState is not null)
+                    previousState.TableRows.TryGetValue(table, out previousRows);
+
+                var diff = CsvDiff.Compare(table, csv, previousRows);
+                nextState.TableRows[table] = diff.CurrentRows;
+
+                bundle.Records.Add(new FgdsRecord(
+                    "db2.diff",
+                    table,
+                    DateTimeOffset.UtcNow,
+                    "client-db2-diff",
+                    new Dictionary<string, object?>
+                    {
+                        ["baseline"] = previousRows is null,
+                        ["addedCount"] = diff.AddedCount,
+                        ["modifiedCount"] = diff.ModifiedCount,
+                        ["removedCount"] = diff.RemovedCount,
+                        ["addedIds"] = diff.AddedIds,
+                        ["modifiedIds"] = diff.ModifiedIds,
+                        ["removedIds"] = diff.RemovedIds
+                    }));
+            }
+
+            var manifestEntry = archive.CreateEntry("manifest.fgds.json", CompressionLevel.Optimal);
+            await using (var stream = manifestEntry.Open())
+            {
+                await JsonSerializer.SerializeAsync(stream, bundle, JsonOptions, cancellationToken);
+            }
+
+            StateStore.Save(options.OutputDirectory, nextState);
+            return zipPath;
+        }
+        finally
         {
-            await JsonSerializer.SerializeAsync(stream, bundle, JsonOptions, cancellationToken);
+            if (managedProvider is not null)
+                await managedProvider.DisposeAsync();
         }
-
-        StateStore.Save(options.OutputDirectory, nextState);
-        return zipPath;
     }
 
     public async Task WatchAsync(CancellationToken cancellationToken = default)
