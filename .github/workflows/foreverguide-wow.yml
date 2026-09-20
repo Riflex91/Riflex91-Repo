@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           grep -q '^## Interface: 16001$' "world of warcraft/ForeverGuideRecorder/ForeverGuideRecorder.toc"
-          grep -q '^## Version: 0.2.0$' "world of warcraft/ForeverGuideRecorder/ForeverGuideRecorder.toc"
+          grep -q '^## Version: 0.3.0$' "world of warcraft/ForeverGuideRecorder/ForeverGuideRecorder.toc"
 
   build-and-package:
     needs: lua-syntax
@@ -82,12 +82,12 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force "artifacts/ForeverGuideRecorder" | Out-Null
           Copy-Item "world of warcraft/ForeverGuideRecorder/*" "artifacts/ForeverGuideRecorder/" -Recurse
-          Compress-Archive -Path "artifacts/ForeverGuideRecorder" -DestinationPath "artifacts/ForeverGuideRecorder-v0.2.zip" -Force
 
       - name: Include schema with miner
         shell: pwsh
         run: |
           Copy-Item "world of warcraft/schema/fgds.schema.json" "artifacts/ForeverDataMiner-win-x64/fgds.schema.json"
+          Copy-Item "world of warcraft/README.md" "artifacts/ForeverDataMiner-win-x64/README.md"
 
       - name: Upload Windows miner
         uses: actions/upload-artifact@v4
@@ -99,6 +99,6 @@ jobs:
       - name: Upload recorder addon
         uses: actions/upload-artifact@v4
         with:
-          name: ForeverGuideRecorder-v0.2
-          path: artifacts/ForeverGuideRecorder-v0.2.zip
+          name: ForeverGuideRecorder-v0.3
+          path: artifacts/ForeverGuideRecorder/
           if-no-files-found: error
