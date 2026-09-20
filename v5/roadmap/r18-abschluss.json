@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R18",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "anforderungen": {
+    "phaseR18": 5,
+    "technischNachgewiesen": 5,
+    "status": "R18_NACHGEWIESEN"
+  },
+  "traceability": {
+    "phaseR18": 5,
+    "vollstaendig": 5
+  },
+  "fitness": {
+    "phaseR18": 0,
+    "erfuellt": 0,
+    "status": "KEINE_EIGENEN_REGELN"
+  },
+  "naechstePhase": "R19",
+  "nachweise": [
+    "v5/grundlage/vertraege/r18/learning-abdeckung.json",
+    "v5/architektur/adr/ADR-021-R18-LEARNING-OPTIMIERUNG.md",
+    "v5/grundlage/tests/r18-fallback-ranking.test.mjs",
+    "v5/grundlage/tests/r18-admission-evidence.test.mjs",
+    "v5/grundlage/tests/r18-modell-liga.test.mjs",
+    "v5/werkzeuge/r18-statische-guards.mjs",
+    "v5/werkzeuge/r18-struktur-pruefen.mjs"
+  ],
+  "hinweis": "R19 startet die stufenweise Zertifizierung. Vor Controlled Live/Canary bleibt die breite Runtime GESPERRT."
+}
