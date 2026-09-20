@@ -188,6 +188,31 @@ Run:
 .\artifacts\windows-bridge\AioBotWindowsBridge.exe
 ```
 
+## V5 Readiness-Test
+
+Im Bereich **GitHub & Wissenswächter** gibt es den Button **V5 Readiness-Test**. Er ist der lokale, fail-closed Nachweis für den aktuellen Windows-Bridge-Deploy und die V5-relevante Git-/Knowledge-Konfiguration.
+
+Der Test prüft automatisch unter anderem:
+
+- aktuelle Bridge-Konfiguration und Config-Version 7;
+- aktivierten Wissenswächter mit festem 60-Minuten-Intervall;
+- exakt `Riflex91/Riflex91-Repo`, `main`, den dedizierten Knowledge-Branch `v5/wissenswaechter-automatisch` und den Scope `v5/wissensbasis/**`;
+- den konfigurierten Live-Wissenspfad auf `D:\`;
+- Git Credential Manager und die aktive GitHub-Anmeldung;
+- reale Erreichbarkeit des Repositories in einer **isolierten temporären Arbeitskopie** mit Sparse Checkout;
+- vollständiges Entfernen dieser temporären Arbeitskopie nach dem Test;
+- dass der Readiness-Test selbst **keinen Gameplay-Write und keinen Knowledge-Push** ausführt.
+
+Bei vollständig bestandenen automatischen Prüfungen lautet der Status:
+
+`AUTOMATISCHE_PRUEFUNGEN_BESTANDEN_MANUELLER_AUTORISIERUNGSNACHWEIS_OFFEN`
+
+Der vollständige Bericht wird in die Zwischenablage kopiert und soll komplett in ChatGPT eingefügt werden. Der Test liest oder protokolliert absichtlich **kein GitHub-Token**.
+
+Zusätzlich bleibt ein manueller Pflichtnachweis offen: Für `V5-ANF-WISSEN-012` muss am real verwendeten GitHub-Zugang nachvollziehbar belegt werden, dass die Autorisierung auf `Riflex91/Riflex91-Repo` begrenzt ist und nur die für den Wissenswächter erforderlichen Rechte besitzt. Insbesondere dürfen keine unnötigen Admin-, Secrets-, Environment-, Deployment- oder allgemeinen Workflow-Schreibrechte vorliegen.
+
+Auch ein vollständig grüner Readiness-Bericht gibt die breite Gameplay-Runtime **nicht automatisch** frei. Die separate Gesamtfreigabe bleibt erforderlich.
+
 ## Safety properties
 
 - CDP must be loopback HTTP only;
