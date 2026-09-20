@@ -16,6 +16,9 @@ const pflicht=[
   "grundlage/adapter/persistenz/node-bediener-deny-protokoll.mjs",
   "grundlage/quelle/merchant/modul-vertrag.ts",
   "grundlage/quelle/merchant/faehigkeits-vertrag.ts",
+  "grundlage/quelle/equipment/modul-vertrag.ts",
+  "grundlage/quelle/equipment/faehigkeits-vertrag.ts",
+  "grundlage/vertraege/runtime/equipment-equip-mutationsfaehigkeit.json",
   "grundlage/quelle/merchant/demand.ts",
   "grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json",
   "grundlage/vertraege/runtime/durable-planen-authority.json",
@@ -29,6 +32,7 @@ const pflicht=[
   "architektur/adr/ADR-029-PRODUKTIVER-OPERATIONS-FEED.md",
   "architektur/adr/ADR-030-KANONISCHE-NODE-HOST-KOMPOSITION.md",
   "architektur/adr/ADR-031-BANK-PLANEN-OBSERVER-CANARY.md",
+  "architektur/adr/ADR-032-PRODUKTIVE-EQUIP-MUTATIONSFAEHIGKEIT.md",
   "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
   "grundlage/tests/r11-bank-planen-observer-canary.test.mjs",
   "werkzeuge/bank-planen-canary-browser.mjs",
@@ -76,9 +80,11 @@ for(const p of pflicht) if(!fs.existsSync(p)) fehler.push("PFLICHTARTEFAKT_FEHLT
 
 const produktionsKomposition=lies("grundlage/quelle/runtime/produktions-komposition.ts");
 for(const m of [
-  "DEFAULT_DENY_PLANEN_REGISTRIERT_INAKTIV",
+  "DEFAULT_DENY_PLANEN_UND_EQUIP_MUTIEREN_REGISTRIERT_INAKTIV",
   "merchantCoreABasisModulDefinition",
   "merchantCoreAPlanungsFaehigkeitDefinitionen",
+  "equipmentCoreModulDefinition",
+  "equipmentEquipMutationsFaehigkeitDefinition",
 ]){
   if(!produktionsKomposition.includes(m)) {
     fehler.push("PRODUKTIONS_KOMPOSITION_DEFAULT_DENY_FEHLT:"+m);
@@ -113,6 +119,49 @@ for(const m of [
 }
 if(merchantFaehigkeit.includes('modus: "MUTIEREN"')) {
   fehler.push("MERCHANT_PLANEN_VERTRAG_MUTIEREN_VERBOTEN");
+}
+
+const equipmentModul=lies("grundlage/quelle/equipment/modul-vertrag.ts");
+for(const m of [
+  'EQUIPMENT_CORE_MODUL_ID = "equipment-core"',
+  'EQUIPMENT_CORE_MODUL_VERSION = "1"',
+  'EQUIPMENT_EQUIP_FAEHIGKEIT_ID = "equipment.equip"',
+  "standardAktiv: false",
+]){
+  if(!equipmentModul.includes(m)) fehler.push("EQUIPMENT_MODUL_VERTRAG_FEHLT:"+m);
+}
+const equipmentFaehigkeit=lies("grundlage/quelle/equipment/faehigkeits-vertrag.ts");
+for(const m of [
+  'modus: "MUTIEREN"',
+  'status: "VERFUEGBAR"',
+  "standardAktiv: false",
+  "EQUIPMENT_CORE_MODUL_ID",
+  "EQUIPMENT_CORE_MODUL_VERSION",
+  "EQUIPMENT_EQUIP_FAEHIGKEIT_ID",
+]){
+  if(!equipmentFaehigkeit.includes(m)) {
+    fehler.push("EQUIPMENT_EQUIP_VERTRAG_FEHLT:"+m);
+  }
+}
+const equipmentVertrag=JSON.parse(
+  lies("grundlage/vertraege/runtime/equipment-equip-mutationsfaehigkeit.json"),
+);
+if(equipmentVertrag.modulId!=="equipment-core"
+    || equipmentVertrag.modulVersion!=="1"
+    || equipmentVertrag.faehigkeit?.faehigkeitId!=="equipment.equip"
+    || equipmentVertrag.faehigkeit?.modus!=="MUTIEREN"
+    || equipmentVertrag.faehigkeit?.standardAktiv!==false
+    || equipmentVertrag.faehigkeit?.singleOwner!==true
+    || equipmentVertrag.aktionsBindung?.actionContractId!=="AL-ACTION-EQUIP"
+    || equipmentVertrag.aktionsBindung?.recoveryContractId!=="AL-RECOVERY-EQUIP"
+    || equipmentVertrag.aktionsBindung?.verifierId!=="AL-VERIFIER-EQUIP"
+    || equipmentVertrag.aktivierung?.durchDiesenVertragErlaubt!==false
+    || equipmentVertrag.aktivierung?.automatisch!==false
+    || equipmentVertrag.aktivierung?.produktiverAktivierungspfadVorhanden!==false
+    || equipmentVertrag.authority?.gameplayAutoritaetDurchRegistrierung!==false
+    || equipmentVertrag.authority?.rawWriteAutoritaetDurchRegistrierung!==false
+    || equipmentVertrag.authority?.actionAuthorityDurchRegistrierung!==false) {
+  fehler.push("EQUIPMENT_EQUIP_MUTATIONSVERTRAG_UNGUELTIG");
 }
 const runtimeKomposition=lies("grundlage/quelle/runtime/produktions-runtime.ts");
 for(const m of [
