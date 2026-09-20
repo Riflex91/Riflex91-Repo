@@ -45,7 +45,7 @@ export interface BankWaehrungsBudgetNachweis {
 }
 
 export interface BankAutonomieRichtlinie {
-  readonly policyVersion: string;
+  readonly richtlinienVersion: string;
   readonly minimaleFreieSlots: number;
   readonly zielFreieSlots: number;
   readonly konsolidierungsWorkspaceSlots: number;
@@ -94,14 +94,14 @@ export interface BankAutonomieEntscheidung {
   readonly snapshotFingerprint: string;
   readonly mountEpoche: number;
   readonly leaseEpoche: number;
-  readonly policyVersion: string;
+  readonly richtlinienVersion: string;
   readonly freieSlotsVorher: number;
   readonly erwarteteFreieSlotsNachPlan: number;
   readonly konsolidierungsGruppen: readonly BankKonsolidierungsGruppe[];
   readonly erweiterung: BankErweiterungsOption | null;
   readonly gruende: readonly string[];
-  readonly planningEvidence: true;
-  readonly executionAuthority: false;
+  readonly planungsNachweis: true;
+  readonly ausfuehrungsAutoritaet: false;
   readonly gameplayAutoritaet: false;
   readonly rawWriteAutoritaet: false;
 }
@@ -173,7 +173,7 @@ function baueEntscheidung(
     snapshotFingerprint: anfrage.snapshot.fingerprint,
     mountEpoche: anfrage.snapshot.mountEpoche,
     leaseEpoche: anfrage.snapshot.leaseEpoche,
-    policyVersion: anfrage.richtlinie.policyVersion,
+    richtlinienVersion: anfrage.richtlinie.richtlinienVersion,
     freieSlotsVorher,
     erwarteteFreieSlotsNachPlan,
     konsolidierungsGruppen: Object.freeze(
@@ -183,15 +183,15 @@ function baueEntscheidung(
       ? null
       : friereErweiterung(erweiterung),
     gruende: Object.freeze([...gruende]),
-    planningEvidence: true,
-    executionAuthority: false,
+    planungsNachweis: true,
+    ausfuehrungsAutoritaet: false,
     gameplayAutoritaet: false,
     rawWriteAutoritaet: false,
   });
 }
 
 function validiereRichtlinie(richtlinie: BankAutonomieRichtlinie): void {
-  pruefeText(richtlinie.policyVersion, "BANK_AUTONOMIE_POLICY_UNGUELTIG");
+  pruefeText(richtlinie.richtlinienVersion, "BANK_AUTONOMIE_POLICY_UNGUELTIG");
   pruefeGanzzahl(
     richtlinie.minimaleFreieSlots,
     0,
