@@ -144,6 +144,65 @@ for (const verboten of [
   }
 }
 
+const bankCanaryBrowser = liesText(
+  "werkzeuge/bank-planen-canary-browser.mjs",
+);
+for (const marker of [
+  "BANK_CANARY_BROWSER_READ_ONLY = true",
+  "BANK_CANARY_GAMEPLAY_WRITES = 0",
+  "character.bank",
+  "G.items",
+  "BANK_CANARY_ALTERNATIVE_RUNTIME_AKTIV",
+  "BANK_CANARY_BANK_KONTEXT_FEHLT",
+]) {
+  if (!bankCanaryBrowser.includes(marker)) {
+    fehler.push("BANK_PLANEN_CANARY_BROWSER_MARKER_FEHLT:" + marker);
+  }
+}
+for (const [kennung, muster] of [
+  ["BANK_STORE", /\\bbank_store\\s*\\(/],
+  ["BANK_RETRIEVE", /\\bbank_retrieve\\s*\\(/],
+  ["OPEN_BANK_PACK", /\\bopen_bank_pack\\s*\\(/],
+  ["BUY", /\\bbuy\\s*\\(/],
+  ["SELL", /\\bsell\\s*\\(/],
+  ["EXCHANGE", /\\bexchange\\s*\\(/],
+  ["CRAFT", /\\bcraft\\s*\\(/],
+  ["UPGRADE", /\\bupgrade\\s*\\(/],
+  ["COMPOUND", /\\bcompound\\s*\\(/],
+  ["ATTACK", /\\battack\\s*\\(/],
+  ["MOVE", /\\bmove\\s*\\(/],
+  ["SMART_MOVE", /\\bsmart_move\\s*\\(/],
+  ["USE_SKILL", /\\buse_skill\\s*\\(/],
+  ["EQUIP", /\\bequip\\s*\\(/],
+  ["SEND_ITEM", /\\bsend_item\\s*\\(/],
+  ["SEND_GOLD", /\\bsend_gold\\s*\\(/],
+  ["RAW_EMIT", /\\.emit\\s*\\(/],
+]) {
+  if (muster.test(bankCanaryBrowser)) {
+    fehler.push("BANK_PLANEN_CANARY_RAW_WRITE_VERBOTEN:" + kennung);
+  }
+}
+
+const bankCanaryRunner = liesText(
+  "werkzeuge/bank-planen-observer-canary.mjs",
+);
+for (const marker of [
+  'BANK_PLANEN_CANARY_CAPABILITY = "merchant.bank.planen"',
+  'BANK_PLANEN_CANARY_POLICY = "BANK-PLANEN-OBSERVER-CANARY-V1"',
+  "erweiterungErlaubt: false",
+  "browserGameplayWrites: 0",
+  "hostGameplayAutoritaet: false",
+  "hostRawWriteAutoritaet: false",
+  "hostActionAuthority: false",
+  "ausfuehrungsAutoritaet: false",
+  "breiteRuntimeFreigabe: false",
+  "runtime/canary/bank-planen/latest.json",
+]) {
+  if (!bankCanaryRunner.includes(marker)) {
+    fehler.push("BANK_PLANEN_CANARY_RUNNER_MARKER_FEHLT:" + marker);
+  }
+}
+
 const telemetrie = liesText("grundlage/quelle/operations/telemetrie.ts");
 for (const marker of [
   "ssdIoLatenzMs",
