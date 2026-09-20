@@ -186,6 +186,7 @@ function MG:RefreshNavigation(reason)
             directionReliable = false,
             reason = "no_step",
         }
+        if self.RefreshWorldMapMarker then self:RefreshWorldMapMarker(nil) end
         return
     end
 
@@ -212,6 +213,7 @@ function MG:RefreshNavigation(reason)
 
     self.navigation = nav
     self:UpdateNavigationRealtime()
+    if self.RefreshWorldMapMarker then self:RefreshWorldMapMarker(target) end
 
     local signature = table.concat({
         tostring(nav.questID or ""),
