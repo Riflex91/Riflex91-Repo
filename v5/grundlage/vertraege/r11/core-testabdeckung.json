@@ -168,6 +168,24 @@
       "negativ": [
         "v5/grundlage/tests/r11-replay.test.mjs"
       ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/control/remote-config.ts",
+      "positiv": [
+        "v5/grundlage/tests/r11-cloud-control.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r11-cloud-control.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/control/request-budget.ts",
+      "positiv": [
+        "v5/grundlage/tests/r11-cloud-control.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r11-cloud-control.test.mjs"
+      ]
     }
   ]
 }
