@@ -34,8 +34,10 @@
     "r11:test": "npm run grundlage:test",
     "r11:pruefen": "npm run typen:pruefen && npm run lint && npm run r11:test && node werkzeuge/r11-testabdeckung.mjs && node werkzeuge/r11-statische-guards.mjs && node werkzeuge/r11-struktur-pruefen.mjs",
     "r12:test": "npm run grundlage:test",
-    "r12:pruefen": "npm run typen:pruefen && npm run lint && npm run r12:test && npm run r12:live:check && node werkzeuge/r12-statische-guards.mjs && node werkzeuge/r12-struktur-pruefen.mjs",
-    "r12:live:check": "node --check werkzeuge/r12-controlled-live-equip-runner.mjs && node --check werkzeuge/r12-live/cdp.mjs && node --check werkzeuge/r12-live/datei-journal.mjs && node --check werkzeuge/r12-live/browser-equip.mjs"
+    "r12:pruefen": "npm run typen:pruefen && npm run lint && npm run r12:test && npm run r12:live:check && npm run r12:test-gui:pruefen && node werkzeuge/r12-statische-guards.mjs && node werkzeuge/r12-struktur-pruefen.mjs",
+    "r12:live:check": "node --check werkzeuge/r12-controlled-live-equip-runner.mjs && node --check werkzeuge/r12-live/cdp.mjs && node --check werkzeuge/r12-live/datei-journal.mjs && node --check werkzeuge/r12-live/browser-equip.mjs",
+    "r12:test-gui:bauen": "node werkzeuge/r12-test-gui-paket-bauen.mjs",
+    "r12:test-gui:pruefen": "node --check werkzeuge/v5-adventure-land-test-gui.js && node --check werkzeuge/r12-controlled-live-test-gui.js && node --check werkzeuge/r12-controlled-live-test-paket.js && node werkzeuge/r12-test-gui-paket-bauen.mjs --check && node --test werkzeuge/tests/r12-test-gui.test.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
