@@ -1,8 +1,21 @@
 # V5 Master-Roadmap v3
 
-**Status:** ACTIVE MASTER PLAN  
+**Status:** ABGESCHLOSSEN / R0-R19 DONE / RUNTIME FREIGEGEBEN  
 **Stand:** 2026-09-20  
 **Ziel:** Ein langfristig wartbarer, modularer, erweiterbarer und sicher recoverbarer 24/7-Autonomie-Bot fuer Adventure Land.
+
+## Aktueller Abschlussstand
+
+Die Roadmap ist terminal abgeschlossen:
+
+- `v5/roadmap/gates.json`: R0-R19 `DONE`, `currentPhase=R19`;
+- `v5/bereitschaft/laufzeit-bereitschaft.json`: `status=FREIGEGEBEN`, `gesamtfreigabe=ERTEILT`, `breiteRuntimeFreigabe=true`;
+- `v5/roadmap/gesamtfreigabe.json`: separate Betreiber-Gesamtfreigabe dokumentiert;
+- 119/119 Anforderungen und 119/119 Traceability sind nachgewiesen;
+- die R19-Ladder bis SOAK_15M ist vollstaendig bestanden;
+- CAP-045 Production Graph Certification besitzt zusaetzlich echte validierte Production-Live-Evidence unter `v5/roadmap/cap045-production-live-evidence.json`.
+
+Die Freigabe hebt keine lokalen Safety-/Authority-Grenzen auf. Spaetere Defekte oder funktionale Aenderungen oeffnen nur die betroffene Funktion bzw. Integration erneut und unterliegen dem ratifizierten 5m-/15m-Testzeitstandard.
 
 ## 0. Grundsatz
 
@@ -41,9 +54,9 @@ Der Standard `DEUTSCHE_NAMEN_UND_NARRENSICHERHEIT.md` ist fuer V5 bindend.
 - V4-Narrensicherheit ist nur das Mindestniveau. V5 verwendet Default-Deny, typisierte Freigaben, Live-Revalidierung, Persist-before-action, Ergebnisnachweis, Reconciliation und negative Bypass-Tests als Mehrfach-Verriegelung.
 - Fuer riskante Mutationen soll kein einzelner Fach-/Planungsfehler allein bis zum Game Write reichen.
 
-## 1. Ausgangslage
+## 1. Ausgangslage (historischer Planungsstand)
 
-Aktueller Wissensstand:
+Wissensstand bei Erstellung der Roadmap:
 
 - V3: 535 auditierte Dateien, 205 Tests als Fehler-/Verhaltenswissen.
 - V3-Fehlerkatalog: 30 strukturelle Fehlerklassen.
@@ -55,7 +68,7 @@ Aktueller Wissensstand:
 - Adventure Land kann Production vor dem oeffentlichen Source-Snapshot bewegen; Live-MCP/Live-Daten haben fuer Contract-Revalidierung Vorrang.
 - Fuer V5 steht eine dedizierte 1-TB-SSD als lokales Adventure-Land-Datenfundament zur Verfuegung; Standardwurzel ist `D:\\AdventureLand-V5`.
 
-**Konsequenz:** Noch kein V5-Gameplay-Runtime-Code.
+**Historische Konsequenz zum Planungsstart:** Zu diesem Zeitpunkt durfte noch kein V5-Gameplay-Runtime-Code begonnen werden. Dieser Vor-Runtime-Zustand ist inzwischen durch die abgeschlossenen Phasen und die separate Gesamtfreigabe ueberholt.
 
 ## 2. Unveraenderbare Architekturform
 
