@@ -2085,15 +2085,21 @@
       "invarianten": [
         "V5-INV-009"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/welt/event-quest-drift.ts",
+        "v5/grundlage/quelle/welt/world-plan-ledger.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r17-event-quest-drift.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r17NachweisStatus": "R17_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-LERN-001",
