@@ -871,7 +871,7 @@ R18-Abschluss: Learning ist authority-frei, bounded und optional. Hard Gates hab
 Maschinenlesbare Abdeckung: `grundlage/vertraege/r18/learning-abdeckung.json`.  
 Maschinenlesbarer Abschluss: `roadmap/r18-abschluss.json`.
 
-## R19 – 24/7-Zertifizierung
+## R19 – Runtime-Zertifizierung (beschleunigtes Zeitprofil)
 
 **Status:** IN_PROGRESS.
 
@@ -883,10 +883,10 @@ Ladder:
 - shadow;
 - controlled live;
 - canary;
-- 1h;
-- 24h;
-- 72h;
-- 7d;
+- 5 Minuten;
+- 10 Minuten;
+- 30 Minuten;
+- 60 Minuten;
 - spaeter 30d.
 
 Globale Null-Toleranz-Metriken:
@@ -944,7 +944,17 @@ Run: `R19-1789894940141-fa58fa3e`. Bounded Learning-Ranking blieb innerhalb hart
 
 Evidence: `roadmap/r19-canary-evidence.json`.
 
-Naechste Stufe: **SOAK_1H**. OPS-006 bleibt bis zum Abschluss von 1h/24h/72h/7d offen.
+Naechste Stufe: **SOAK_5M**. OPS-006 bleibt bis zum Abschluss von 5m/10m/30m/60m offen.
+
+
+
+### Beschleunigtes Soak-Zeitprofil
+
+**Profil:** `R19_ACCELERATED_SOAK_V1`.
+
+Die zuvor geplanten Stufen 1h/24h/72h/7d (sowie optional 30d) sind durch **5m -> 10m -> 30m -> 60m** ersetzt. Das Profil bleibt strikt sequenziell und fail-closed. Es ist eine beschleunigte Runtime-Zertifizierung und wird nicht als mehrtaegige 24/7-Soak-Evidence bezeichnet.
+
+Maschinenlesbar: `roadmap/r19-soak-zeitprofil.json`.
 
 
 ## 4. Pflicht-Definition-of-Done fuer jede neue Capability
