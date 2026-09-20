@@ -2,7 +2,7 @@ local addonName, MG = ...
 _G.MewthischGuides = MG
 _G.ForeverGuide = MG
 
-MG.VERSION = "0.5.1"
+MG.VERSION = "0.6.0"
 MG.INTERFACE = 16001
 MG.NAME = "Mewthisch Guides"
 MG.heartbeatTicker = nil
@@ -36,12 +36,11 @@ function MG:IsSupportedBuild()
 end
 
 function MG:GetPosition()
-    if not C_Map or not C_Map.GetBestMapForUnit or not C_Map.GetPlayerMapPosition then return nil end
-    local mapID = C_Map.GetBestMapForUnit("player")
-    if not mapID then return nil end
-    local p = C_Map.GetPlayerMapPosition(mapID, "player")
-    if not p then return { mapID = mapID } end
-    return { mapID = mapID, x = p.x, y = p.y }
+    if self.ForeverAPI and self.ForeverAPI.GetPlayerPosition then
+        return self.ForeverAPI:GetPlayerPosition()
+    end
+
+    return nil
 end
 
 function MG:StopRuntimeTickers()
@@ -68,8 +67,12 @@ function MG:StartRuntimeTickers()
                 x = pos and pos.x or nil,
                 y = pos and pos.y or nil,
                 navigationSource = nav.source,
+                routeScore = nav.routeScore,
+                routeCandidates = nav.candidateCount,
+                directionSource = nav.directionSource,
                 distanceYards = nav.distanceYards,
                 distanceMeters = nav.distanceMeters,
+                apiMode = MG.ForeverAPI and MG.ForeverAPI.MODE or nil,
             })
         end)
     end)
@@ -81,6 +84,7 @@ end
 
 local frame = CreateFrame("Frame")
 local events = {
+    "ADDON_LOADED",
     "PLAYER_LOGIN", "PLAYER_LOGOUT", "PLAYER_ENTERING_WORLD",
     "QUEST_LOG_UPDATE", "QUEST_WATCH_UPDATE", "UNIT_QUEST_LOG_CHANGED",
     "QUEST_ACCEPTED", "QUEST_TURNED_IN", "QUEST_REMOVED",
@@ -95,8 +99,24 @@ for _, event in ipairs(events) do pcall(frame.RegisterEvent, frame, event) end
 frame:SetScript("OnEvent", function(_, event, ...)
     local args = { ... }
     MG:Safe("event." .. event, function()
+        if event == "ADDON_LOADED" then
+            if args[1] == addonName then
+                if MG.ForeverAPI and MG.ForeverAPI.MarkSavedVariablesLoad then
+                    MG.ForeverAPI:MarkSavedVariablesLoad()
+                else
+                    MG:EnsureDB()
+                end
+            end
+            return
+        end
+
         if event == "PLAYER_LOGIN" then
             MG:EnsureDB()
+
+            if MG.ForeverAPI and MG.ForeverAPI.Survey then
+                MG.ForeverAPI:Survey()
+            end
+
             MG:StartLogSession()
             if not MG:IsSupportedBuild() then
                 local build = MG:GetBuildInfoTable()
@@ -173,6 +193,22 @@ local function handleSlash(msg)
         elseif command == "settings" or command == "optionen" then MG:ToggleSettings()
         elseif command == "navigator" or command == "arrow" or command == "pfeil" then MG:ToggleNavigator()
         elseif command == "status" then MG:PrintStatus()
+        elseif command == "api" then
+            local caps = MG.ForeverAPI and MG.ForeverAPI.capabilities or {}
+            local quest = caps.quest or {}
+            local map = caps.map or {}
+            print("|cff62d6ffMewthisch Guides|r API: " ..
+                "GetQuestsOnMap=" .. tostring(quest.getQuestsOnMap) ..
+                " QuestLine=" .. tostring(caps.questLine and caps.questLine.info) ..
+                " WorldPos=" .. tostring(map.worldFromMap) ..
+                " Secrets=" .. tostring(caps.security and caps.security.secretsNamespace))
+        elseif command == "route" then
+            local status = MG.RouteEngine and MG.RouteEngine:GetStatus() or {}
+            print("|cff62d6ffMewthisch Guides|r Route: Quelle=" ..
+                tostring(status.source or "none") ..
+                " Kandidaten=" .. tostring(status.candidates or 0) ..
+                " Map=" .. tostring(status.mapID or "-") ..
+                " Score=" .. tostring(status.score or "-"))
         elseif command == "next" then MG:SelectRelativeStep(1, "slash")
         elseif command == "prev" then MG:SelectRelativeStep(-1, "slash")
         elseif command == "refresh" or command == "resync" then MG:RefreshGuide("manual_resync")
@@ -201,7 +237,7 @@ local function handleSlash(msg)
             MG:Log("INFO", "log.cleared", "Diagnoselog geleert.")
             print("|cff62d6ffMewthisch Guides|r Diagnoselog geleert.")
         else
-            print("|cff62d6ffMewthisch Guides|r /mg | show | hide | info | settings | navigator | status | next | prev | refresh | autoaccept on/off | autoturnin on/off | log | clearlog")
+            print("|cff62d6ffMewthisch Guides|r /mg | show | hide | info | settings | navigator | status | api | route | next | prev | refresh | autoaccept on/off | autoturnin on/off | log | clearlog")
         end
     end)
 end
