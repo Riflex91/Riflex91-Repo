@@ -1,4 +1,4 @@
-# ForeverGuide Recorder v0.1
+# ForeverGuide Recorder v0.2
 
 Developer data recorder for World of Warcraft: Forever.
 
@@ -7,6 +7,19 @@ Developer data recorder for World of Warcraft: Forever.
 Copy this folder to the Forever client AddOns directory and enable **ForeverGuide Recorder**.
 
 The addon records only data exposed through Blizzard's addon APIs. It does not read process memory, inject code, or write arbitrary files.
+
+## Captured evidence
+
+- build/interface version and basic anonymous player profile
+- quest accepts, removals, turn-ins and objective-state changes
+- questgiver gossip with available/active quest IDs
+- route samples and zone changes
+- player deaths
+- talent-tree/spec point distribution and learned talent ranks when exposed by the client API
+- equipped gear snapshots
+- bag inventory snapshots/deltas
+- item links, metadata and stat tables when available
+- explicit tester markers
 
 ## SavedVariables
 
