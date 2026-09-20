@@ -165,9 +165,8 @@ export class ErteilteAusfuehrungsFreigabe {
         || vertrag.verifierId !== anfrage.verifierId) {
       throw new Error("AKTIONS_VERTRAG_NICHT_FREIGEGEBEN");
     }
-    const vertragInvarianten = new Set(vertrag.invariantenKennungen);
     for (const kennung of anfrage.invariantenKennungen) {
-      if (!vertragInvarianten.has(kennung)) {
+      if (!vertrag.invariantenKennungen.includes(kennung)) {
         throw new Error("AKTIONS_VERTRAG_INVARIANTE_FEHLT:" + kennung);
       }
     }
@@ -216,9 +215,8 @@ export class ErteilteAusfuehrungsFreigabe {
     if (live.length !== anfrage.voraussetzungsIds.length) {
       throw new Error("LIVE_VORAUSSETZUNGEN_UNVOLLSTAENDIG");
     }
-    const nachId = new Map(live.map(x => [x.voraussetzungId, x]));
     for (const id of anfrage.voraussetzungsIds) {
-      const nachweis = nachId.get(id);
+      const nachweis = live.find(x => x.voraussetzungId === id);
       if (nachweis === undefined
           || nachweis.fingerprint.trim().length === 0
           || nachweis.beobachtetAmMs > anfrage.ausgestelltAmMs
