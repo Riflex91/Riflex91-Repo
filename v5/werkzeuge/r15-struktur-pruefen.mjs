@@ -30,6 +30,13 @@ if (bereitschaft.status === "FREIGEGEBEN") {
 
 for (const pfad of [
   "grundlage/quelle/merchant/werttransaktion.ts",
+  "grundlage/tests/r15-production-graph.test.mjs",
+  "grundlage/tests/r15-logistik-gear.test.mjs",
+  "grundlage/quelle/produktion/production-graph.ts",
+  "grundlage/quelle/produktion/bank-katalog.ts",
+  "grundlage/quelle/merchant/gear-allokation.ts",
+  "grundlage/quelle/merchant/logistik-workflow.ts",
+  "grundlage/quelle/merchant/supply-policy.ts",
   "grundlage/quelle/produktion/recipient-settlement.ts",
   "grundlage/quelle/produktion/production-intent.ts",
   "grundlage/tests/r15-werttransaktion.test.mjs",
