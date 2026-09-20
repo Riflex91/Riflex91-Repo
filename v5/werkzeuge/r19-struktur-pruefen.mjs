@@ -9,9 +9,9 @@ const r18=gates.phases?.find(x=>x.id==="R18");
 const r19=gates.phases?.find(x=>x.id==="R19");
 
 if(r18?.status!=="DONE") fehler("R19 verlangt R18 DONE.");
-if(!r19||r19.status!=="IN_PROGRESS") fehler("Vor manueller Live-Ladder muss R19 IN_PROGRESS bleiben.");
-if(gates.currentPhase!=="R19") fehler("R19 IN_PROGRESS verlangt currentPhase=R19.");
-if(ready.status==="FREIGEGEBEN") fehler("Vor kompletter R19-Ladder darf breite Runtime nicht freigegeben sein.");
+if(!r19||!["IN_PROGRESS","DONE"].includes(r19.status)) fehler("R19 muss IN_PROGRESS oder terminal DONE sein.");
+if(gates.currentPhase!=="R19") fehler("R19 verlangt currentPhase=R19.");
+if(ready.status==="FREIGEGEBEN"&&r19.status!=="DONE") fehler("Breite Runtime darf nicht vor R19 DONE freigegeben sein.");
 
 for(const p of [
   "grundlage/quelle/zertifizierung/evidence-kette.ts",
@@ -49,6 +49,11 @@ for(const p of [
   if(!fs.existsSync(p)) fehler("R19 Pflichtartefakt fehlt: "+p);
 }
 
+const finalExistiert=fs.existsSync("roadmap/r19-soak-15m-evidence.json");
+if(finalExistiert!==fs.existsSync("roadmap/r19-abschluss.json")) {
+  fehler("Finale SOAK_15M Evidence und R19 Abschlussmanifest muessen gemeinsam vorliegen.");
+}
+
 const erwartet=new Set(["V5-ANF-OPS-005","V5-ANF-OPS-006","V5-ANF-UI-008"]);
 const req=lies("anforderungen/anforderungen.json").anforderungen.filter(x=>x.phase==="R19"&&x.prioritaet==="MUSS");
 if(req.length!==3||req.some(x=>!erwartet.has(x.kennung))) fehler("R19 MUSS-Anforderungsmenge ungueltig.");
@@ -68,14 +73,17 @@ const ops6=req.find(x=>x.kennung==="V5-ANF-OPS-006");
 const zeitprofil=lies("roadmap/r19-soak-zeitprofil.json");
 const testzeit=lies("roadmap/testzeit-standard.json");
 const erwarteteSoaks=[
-  ["SOAK_5M",300000],
-  ["SOAK_10M",600000],
-  ["SOAK_15M",900000],
+  ["SOAK_5M",300000,20],
+  ["SOAK_10M",600000,20],
+  ["SOAK_15M",900000,30],
 ];
 if(zeitprofil.profilKennung!=="R19_ACCELERATED_SOAK_V2"
     ||zeitprofil.finaleStufe!=="SOAK_15M"
     ||zeitprofil.stufen?.length!==3
-    ||erwarteteSoaks.some(([stufe,dauer],i)=>zeitprofil.stufen[i]?.stufe!==stufe||zeitprofil.stufen[i]?.dauerMs!==dauer)
+    ||erwarteteSoaks.some(([stufe,dauer,min],i)=>
+      zeitprofil.stufen[i]?.stufe!==stufe
+      ||zeitprofil.stufen[i]?.dauerMs!==dauer
+      ||zeitprofil.stufen[i]?.minimaleSamples!==min)
     ||ops6?.r19Zeitprofil!=="R19_ACCELERATED_SOAK_V2") {
   fehler("R19 beschleunigtes Soak-Zeitprofil ungueltig.");
 }
@@ -86,7 +94,41 @@ if(testzeit.kennung!=="V5_TESTZEIT_STANDARD_V1"
     ||testzeit.breiteRuntimeFreigabe!==false) {
   fehler("V5 Testzeitstandard 5m Funktion / 15m Integration-Release ungueltig.");
 }
+
+const erwarteterOps6Status=finalExistiert?"R19_NACHGEWIESEN":"OFFEN";
+if(ops6?.status!==erwarteterOps6Status) fehler("OPS-006 Status passt nicht zum Ladderstand.");
 const aktuellerLiveRang=liveStatusRang[ops6?.r19LiveStatus]??0;
+
+function pruefeSoak(datei, stufe, vorherigeStufe, naechsteStufe){
+  const e=lies(datei);
+  const profil=zeitprofil.stufen?.find(x=>x.stufe===stufe);
+  if(e.phase!=="R19"
+      ||e.status!=="BESTANDEN"
+      ||e.zertifizierungsStufe!==stufe
+      ||e.breiteRuntimeFreigabe!==false
+      ||e.gameplayWritesDurchHarness!==0
+      ||e.unerwarteteGameWritesImHarness!==0
+      ||e.evidenceKetteGueltig!==true
+      ||e.sampleGaps!==0
+      ||e.recorderDrops!==0
+      ||e.dauerMs<(profil?.dauerMs??Infinity)
+      ||e.sampleAnzahl<(profil?.minimaleSamples??Infinity)
+      ||e.runtime?.alternativeRuntimeSamples!==0
+      ||e.runtime?.toteSamples!==0
+      ||e.runtime?.performanceTrickFehler!==0
+      ||e.ressourcen?.heapMetrikUnterstuetzt!==true
+      ||e.ressourcen?.storageEstimateUnterstuetzt!==true
+      ||e.ressourcen?.browserPersistenzFehler!==0
+      ||e.ressourcen?.minFreieBytes<(e.grenzen?.minimaleFreieBytes??Infinity)
+      ||e.ressourcen?.maxBrowserPersistenzRoundtripMs>(e.grenzen?.maximalerBrowserPersistenzRoundtripMs??-Infinity)
+      ||e.ressourcen?.heapWachstumBytes>(e.grenzen?.maximalesHeapWachstumBytes??-Infinity)
+      ||e.blocker?.length!==0
+      ||e.ladder?.vorherigeStufe!==vorherigeStufe
+      ||e.ladder?.naechsteStufe!==naechsteStufe) {
+    fehler("R19 "+stufe+" Evidence ungueltig.");
+  }
+  return e;
+}
 
 if(fs.existsSync("roadmap/r19-canary-evidence.json")){
   const canary=lies("roadmap/r19-canary-evidence.json");
@@ -105,82 +147,31 @@ if(fs.existsSync("roadmap/r19-canary-evidence.json")){
       ||canary.ladder?.naechsteStufe!=="SOAK_5M") {
     fehler("R19 Canary-Evidence ungueltig.");
   }
-  if(ops6?.status!=="OFFEN"||aktuellerLiveRang<2) {
-    fehler("Canary verlangt OPS-006 weiterhin OFFEN mit mindestens Canary-Teilstatus.");
-  }
+  if(aktuellerLiveRang<2) fehler("Canary verlangt mindestens Canary-Livestatus.");
   if(!fs.existsSync("roadmap/r19-soak-5m-evidence.json")
       && (ready.r19NaechsteStufe!=="SOAK_5M"||ready.r19ManuellerPcTestErforderlich!==true)) {
     fehler("Readiness muss unmittelbar nach Canary auf manuellen SOAK_5M zeigen.");
   }
 }
 
-if(fs.existsSync("roadmap/r19-soak-5m-evidence.json")){
-  const soak5=lies("roadmap/r19-soak-5m-evidence.json");
-  const profil5=zeitprofil.stufen?.find(x=>x.stufe==="SOAK_5M");
-  if(soak5.phase!=="R19"
-      ||soak5.status!=="BESTANDEN"
-      ||soak5.zertifizierungsStufe!=="SOAK_5M"
-      ||soak5.breiteRuntimeFreigabe!==false
-      ||soak5.gameplayWritesDurchHarness!==0
-      ||soak5.unerwarteteGameWritesImHarness!==0
-      ||soak5.evidenceKetteGueltig!==true
-      ||soak5.sampleGaps!==0
-      ||soak5.recorderDrops!==0
-      ||soak5.dauerMs<(profil5?.dauerMs??Infinity)
-      ||soak5.sampleAnzahl<(profil5?.minimaleSamples??Infinity)
-      ||soak5.runtime?.alternativeRuntimeSamples!==0
-      ||soak5.runtime?.toteSamples!==0
-      ||soak5.runtime?.performanceTrickFehler!==0
-      ||soak5.ressourcen?.browserPersistenzFehler!==0
-      ||soak5.ressourcen?.minFreieBytes<(soak5.grenzen?.minimaleFreieBytes??Infinity)
-      ||soak5.ressourcen?.maxBrowserPersistenzRoundtripMs>(soak5.grenzen?.maximalerBrowserPersistenzRoundtripMs??-Infinity)
-      ||soak5.ressourcen?.heapWachstumBytes>(soak5.grenzen?.maximalesHeapWachstumBytes??-Infinity)
-      ||soak5.blocker?.length!==0
-      ||soak5.ladder?.vorherigeStufe!=="CANARY"
-      ||soak5.ladder?.naechsteStufe!=="SOAK_10M") {
-    fehler("R19 SOAK_5M Evidence ungueltig.");
-  }
-  if(ops6?.status!=="OFFEN"||aktuellerLiveRang<3) {
-    fehler("SOAK_5M verlangt OPS-006 weiterhin OFFEN mit mindestens SOAK_5M-Teilstatus.");
-  }
-  if(!fs.existsSync("roadmap/r19-soak-10m-evidence.json")
-      && (ready.r19NaechsteStufe!=="SOAK_10M"||ready.r19ManuellerPcTestErforderlich!==true)) {
-    fehler("Readiness muss unmittelbar nach SOAK_5M auf manuellen SOAK_10M zeigen.");
-  }
+pruefeSoak("roadmap/r19-soak-5m-evidence.json","SOAK_5M","CANARY","SOAK_10M");
+if(aktuellerLiveRang<3) fehler("SOAK_5M verlangt mindestens SOAK_5M-Livestatus.");
+if(!fs.existsSync("roadmap/r19-soak-10m-evidence.json")
+    && (ready.r19NaechsteStufe!=="SOAK_10M"||ready.r19ManuellerPcTestErforderlich!==true)) {
+  fehler("Readiness muss unmittelbar nach SOAK_5M auf manuellen SOAK_10M zeigen.");
 }
 
-if(fs.existsSync("roadmap/r19-soak-10m-evidence.json")){
-  const soak10=lies("roadmap/r19-soak-10m-evidence.json");
-  const profil10=zeitprofil.stufen?.find(x=>x.stufe==="SOAK_10M");
-  if(soak10.phase!=="R19"
-      ||soak10.status!=="BESTANDEN"
-      ||soak10.zertifizierungsStufe!=="SOAK_10M"
-      ||soak10.breiteRuntimeFreigabe!==false
-      ||soak10.gameplayWritesDurchHarness!==0
-      ||soak10.unerwarteteGameWritesImHarness!==0
-      ||soak10.evidenceKetteGueltig!==true
-      ||soak10.sampleGaps!==0
-      ||soak10.recorderDrops!==0
-      ||soak10.dauerMs<(profil10?.dauerMs??Infinity)
-      ||soak10.sampleAnzahl<(profil10?.minimaleSamples??Infinity)
-      ||soak10.runtime?.alternativeRuntimeSamples!==0
-      ||soak10.runtime?.toteSamples!==0
-      ||soak10.runtime?.performanceTrickFehler!==0
-      ||soak10.ressourcen?.browserPersistenzFehler!==0
-      ||soak10.ressourcen?.minFreieBytes<(soak10.grenzen?.minimaleFreieBytes??Infinity)
-      ||soak10.ressourcen?.maxBrowserPersistenzRoundtripMs>(soak10.grenzen?.maximalerBrowserPersistenzRoundtripMs??-Infinity)
-      ||soak10.ressourcen?.heapWachstumBytes>(soak10.grenzen?.maximalesHeapWachstumBytes??-Infinity)
-      ||soak10.blocker?.length!==0
-      ||soak10.ladder?.vorherigeStufe!=="SOAK_5M"
-      ||soak10.ladder?.naechsteStufe!=="SOAK_15M") {
-    fehler("R19 SOAK_10M Evidence ungueltig.");
-  }
-  if(ops6?.status!=="OFFEN"||aktuellerLiveRang<4) {
-    fehler("SOAK_10M verlangt OPS-006 weiterhin OFFEN mit mindestens SOAK_10M-Teilstatus.");
-  }
-  if(ready.r19NaechsteStufe!=="SOAK_15M"||ready.r19ManuellerPcTestErforderlich!==true) {
-    fehler("Readiness muss nach SOAK_10M auf manuellen SOAK_15M zeigen.");
-  }
+pruefeSoak("roadmap/r19-soak-10m-evidence.json","SOAK_10M","SOAK_5M","SOAK_15M");
+if(aktuellerLiveRang<4) fehler("SOAK_10M verlangt mindestens SOAK_10M-Livestatus.");
+if(!finalExistiert
+    && (ready.r19NaechsteStufe!=="SOAK_15M"||ready.r19ManuellerPcTestErforderlich!==true)) {
+  fehler("Readiness muss nach SOAK_10M auf manuellen SOAK_15M zeigen.");
+}
+
+if(finalExistiert){
+  const soak15=pruefeSoak("roadmap/r19-soak-15m-evidence.json","SOAK_15M","SOAK_10M",null);
+  if(soak15.ladder?.finaleStufe!==true) fehler("SOAK_15M muss als finale Stufe markiert sein.");
+  if(aktuellerLiveRang<5) fehler("SOAK_15M verlangt finalen Livestatus.");
 }
 
 if(fs.existsSync("roadmap/r19-controlled-live-evidence.json")){
@@ -196,13 +187,7 @@ if(fs.existsSync("roadmap/r19-controlled-live-evidence.json")){
       ||live.ladder?.naechsteStufe!=="CANARY") {
     fehler("R19 Controlled-Live-Evidence ungueltig.");
   }
-  if(ops6?.status!=="OFFEN"||aktuellerLiveRang<1) {
-    fehler("Controlled Live verlangt OPS-006 weiterhin OFFEN mit mindestens Controlled-Live-Teilstatus.");
-  }
-  if(!fs.existsSync("roadmap/r19-canary-evidence.json")
-      && (ready.r19NaechsteStufe!=="CANARY"||ready.r19ManuellerPcTestErforderlich!==true)) {
-    fehler("Readiness muss unmittelbar nach Controlled Live auf manuellen Canary zeigen.");
-  }
+  if(aktuellerLiveRang<1) fehler("Controlled Live verlangt mindestens Controlled-Live-Livestatus.");
 }
 
 if(fs.existsSync("roadmap/r19-automatik-evidence.json")){
@@ -222,7 +207,38 @@ if(fs.existsSync("roadmap/r19-automatik-evidence.json")){
   if(ops5?.status!=="R19_NACHGEWIESEN"||ui8?.status!=="R19_NACHGEWIESEN") {
     fehler("Automatik-Evidence verlangt OPS-005 und UI-008 nachgewiesen.");
   }
-  if(ops6?.status!=="OFFEN") fehler("OPS-006 muss bis zur kompletten Live-Ladder OFFEN bleiben.");
 }
 
-console.log("[V5-R19-STRUKTUR] OK / R19 Ladder IN_PROGRESS / Runtime:",ready.status,"/ naechste Stufe:",ready.r19NaechsteStufe);
+if(r19.status==="DONE"){
+  if(!finalExistiert) fehler("R19 DONE verlangt finale SOAK_15M Evidence.");
+  if(req.some(x=>x.status!=="R19_NACHGEWIESEN")) fehler("R19 DONE verlangt 3/3 nachgewiesene Anforderungen.");
+  if(trace.some(x=>x.vollstaendig!==true)) fehler("R19 DONE verlangt 3/3 vollstaendige Traceability.");
+  if(ready.r19Status!=="ABGESCHLOSSEN"
+      ||ready.r19NaechsteStufe!==null
+      ||ready.r19ManuellerPcTestErforderlich!==false
+      ||ready.r19AnforderungenNachgewiesen!==3
+      ||ready.r19AnforderungenGesamt!==3
+      ||ready.r19LiveStatus!=="BIS_SOAK_15M_BESTANDEN"
+      ||ready.r19LadderVollstaendig!==true
+      ||ready.r19Soak15mEvidence!=="v5/roadmap/r19-soak-15m-evidence.json") {
+    fehler("R19 DONE Readiness-Metadaten unvollstaendig.");
+  }
+  const done=lies("roadmap/r19-abschluss.json");
+  if(done.phase!=="R19"
+      ||done.status!=="DONE"
+      ||done.runtimeGate!=="GESPERRT"
+      ||done.breiteRuntimeFreigabe!==false
+      ||done.ladder?.status!=="VOLLSTAENDIG_BESTANDEN"
+      ||done.ladder?.finaleStufe!=="SOAK_15M"
+      ||done.ladder?.naechsteStufe!==null
+      ||done.anforderungen?.technischNachgewiesen!==3
+      ||done.traceability?.vollstaendig!==3
+      ||done.gesamtfreigabe!=="SEPARAT_AUSSTEHEND") {
+    fehler("R19 Abschlussmanifest ungueltig.");
+  }
+  if(ready.status==="FREIGEGEBEN") fehler("R19-Abschluss darf die separate Gesamtfreigabe nicht automatisch setzen.");
+} else if(finalExistiert) {
+  fehler("Finale SOAK_15M Evidence verlangt terminales R19 DONE.");
+}
+
+console.log("[V5-R19-STRUKTUR] OK / R19:",r19.status,"/ Runtime:",ready.status,"/ naechste Stufe:",ready.r19NaechsteStufe);
