@@ -7,6 +7,10 @@ const pflicht = [
   "grundlage/quelle/merchant/werttransaktion.ts",
   "grundlage/quelle/merchant/item-mutations-planer.ts",
   "grundlage/tests/r15-item-mutations-planer.test.mjs",
+  "werkzeuge/cap033-cap034-live-test-gui.js",
+  "werkzeuge/cap033-cap034-live-test-paket-bauen.mjs",
+  "werkzeuge/cap033-cap034-live-test-paket.js",
+  "werkzeuge/tests/cap033-cap034-live-test-gui.test.mjs",
   "grundlage/tests/r15-production-graph.test.mjs",
   "grundlage/tests/r15-logistik-gear.test.mjs",
   "grundlage/quelle/produktion/production-graph.ts",
@@ -108,6 +112,24 @@ for (const marker of [
 ]) {
   if (!mutationsPlaner.includes(marker)) {
     fehler.push("ITEM_MUTATION_PLANER_MARKER_FEHLT:" + marker);
+  }
+}
+
+const liveHarness = liesText("werkzeuge/cap033-cap034-live-test-gui.js");
+for (const marker of [
+  "CAP033_CAP034_FUNKTION_5M_LIVE_SHADOW",
+  "const DAUER_MS = 5 * 60 * 1000",
+  "MIN_PREVIEW_CHANCE = 0.99",
+  "let sendVerbraucht = false",
+  "maximaleAktionen: 1",
+  "sameIntentRetry: false",
+  "CAP034-UPGRADE-ONE-SHOT-ITEMVERLUST-AKZEPTIERT",
+  "CAP034-COMPOUND-ONE-SHOT-3-ITEM-VERLUST-AKZEPTIERT",
+  "VORHERIGE_MUTATION_UNGEKLAERT",
+  "gameplayWritesDurchHarness: 0"
+]) {
+  if (!liveHarness.includes(marker)) {
+    fehler.push("CAP033034_LIVE_HARNESS_MARKER_FEHLT:" + marker);
   }
 }
 
