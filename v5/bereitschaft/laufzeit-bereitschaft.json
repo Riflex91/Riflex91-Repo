@@ -69,10 +69,11 @@
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
       "erfuellt": false,
-      "grund": "R7 bis R18 sind technisch nachgewiesen. R19 ist bis Canary bestanden; offen ist das beschleunigte Soak-Profil 5m/10m/30m/60m.",
+      "grund": "R7 bis R18 sind technisch nachgewiesen. R19 ist bis SOAK_5M bestanden; offen sind SOAK_10M, SOAK_30M und SOAK_60M des beschleunigten Zeitprofils.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
-        "v5/anforderungen/nachverfolgbarkeit.json"
+        "v5/anforderungen/nachverfolgbarkeit.json",
+        "v5/roadmap/r19-soak-5m-evidence.json"
       ],
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
@@ -309,8 +310,8 @@
     }
   ],
   "offeneBlocker": [
-    "R19 SOAK_5M ist die naechste Zertifizierungsstufe und benoetigt eine lueckenlose 5-Minuten-Zeitreihe am PC",
-    "Danach folgen SOAK_10M, SOAK_30M und SOAK_60M ohne Stufenueberspringen",
+    "R19 SOAK_10M ist die naechste Zertifizierungsstufe und benoetigt eine lueckenlose 10-Minuten-Zeitreihe am PC",
+    "Danach folgen SOAK_30M und SOAK_60M ohne Stufenueberspringen",
     "Breite Gameplay-Runtime bleibt bis zur erfolgreichen kompletten R19-Ladder und expliziten Gesamtfreigabe GESPERRT",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
@@ -365,12 +366,13 @@
   "r19Status": "IN_PROGRESS",
   "r19AutomatikStatus": "BIS_SHADOW_BESTANDEN",
   "r19AutomatikEvidence": "v5/roadmap/r19-automatik-evidence.json",
-  "r19NaechsteStufe": "SOAK_5M",
+  "r19NaechsteStufe": "SOAK_10M",
   "r19ManuellerPcTestErforderlich": true,
   "r19AnforderungenNachgewiesen": 2,
   "r19AnforderungenGesamt": 3,
-  "r19LiveStatus": "BIS_CANARY_BESTANDEN",
+  "r19LiveStatus": "BIS_SOAK_5M_BESTANDEN",
   "r19ControlledLiveEvidence": "v5/roadmap/r19-controlled-live-evidence.json",
   "r19CanaryEvidence": "v5/roadmap/r19-canary-evidence.json",
-  "r19Zeitprofil": "R19_ACCELERATED_SOAK_V1"
+  "r19Zeitprofil": "R19_ACCELERATED_SOAK_V1",
+  "r19Soak5mEvidence": "v5/roadmap/r19-soak-5m-evidence.json"
 }
