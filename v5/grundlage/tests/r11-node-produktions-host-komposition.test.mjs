@@ -150,6 +150,7 @@ test("persistierter NOTHALT ueberlebt Node-Host-Neustart und blockiert PLANEN", 
       start.grund,
       /PRODUKTIONS_HOST_REVALIDIERUNG_NICHT_BEREIT/,
     );
+    assert.equal(start.prozess?.prozessLaeuft, false);
     assert.deepEqual(start.aktivePlanenFaehigkeiten, []);
   } finally {
     await fs.rm(root, { recursive: true, force: true });
