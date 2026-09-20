@@ -50,6 +50,8 @@ for(const p of [
   "werkzeuge/cap045-production-live-test-paket.js",
   "werkzeuge/cap045-production-live-static-guards.mjs",
   "werkzeuge/tests/cap045-production-live-test-gui.test.mjs",
+  "werkzeuge/cap045-production-live-evidence-pruefen.mjs",
+  "werkzeuge/tests/cap045-production-live-evidence-pruefen.test.mjs",
   "dokumentation/CAP-045-PRODUCTION-LIVE-TESTPAKET.md",
   "roadmap/r19-soak-zeitprofil.json",
   "roadmap/testzeit-standard.json",
