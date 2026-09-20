@@ -1,71 +1,46 @@
-# Mewthisch Guides v0.5 - Roadmap Steps 3 + 4
+# Mewthisch Guides v0.5.1 - Navigator hotfix
 
-This build combines the next two roadmap stages so the next in-game test covers a much more complete guide loop.
+This test build keeps roadmap steps 1-4 from v0.5 and fixes the live Navigator initialization crash reported on Forever build 69913.
 
-## Step 3 - Guide Step Engine and Resync
+## Navigator fix
 
-- evidence-backed route seed from the quests already captured by DataMiner/Recorder
-- explicit guide phases:
-  - accept
-  - objectives
-  - turnin
-  - complete
-- automatic resync on login and quest-progress changes
-- already completed route steps are skipped
-- already active route quests are preferred over older missing route steps
-- applicability model supports:
-  - faction
-  - race
-  - class
-  - min/max level
-  - prerequisite quests
-- unknown active quests remain available as live fallback
-- resync decisions and skip reasons are stored in diagnostics
+- removes the Button-only `RegisterForClicks()` call from the normal Navigator frame
+- right-click Options continues to use the frame's existing `OnMouseUp` handler
+- separate transparent Navigator behavior is retained
+- reliable-direction / fail-closed waypoint logic is unchanged
+- CI now fails if `RegisterForClicks` is reintroduced into `Navigator.lua`
 
-## Step 4 - Safe Quest Automation
+## Window transparency
 
-- automatic quest interaction is now tied to the expected guide quest ID
-- auto-accept only accepts the quest currently expected in the accept phase
-- auto-turn-in only turns in the quest currently expected in the turnin phase
-- unrelated offered quests are not selected
-- unsafe legacy "select first quest" behavior was removed
-- if an API cannot prove the quest ID, automation does nothing and logs the reason
-- multiple reward choices still pause for manual player selection
+Options now include a `Fenster-Transparenz` slider.
 
-## UI adjustment
+- range: 0% to 80% transparency
+- applies immediately
+- saved in `MewthischGuidesDB`
+- affects the backgrounds of:
+  - main Guide Viewer
+  - Info
+  - Options
+- text, buttons and the separate navigation arrow remain fully readable/opaque
 
-- Info opens in the exact center of the screen
-- Options opens in the exact center of the screen
-- Viewer and Navigator remain independently movable
+Info and Options continue to open centered on the screen.
 
-## Existing Step 1/2 features retained
+## Existing roadmap steps retained
 
-- compact guide viewer
-- separate transparent navigation arrow
+- Goal Engine
+- Guide Step Engine
+- automatic Resync
+- safe quest-ID-bound Auto-Accept / Auto-Turn-In
+- compact viewer
+- separate movable transparent Navigator
 - metric distance
-- GoalEngine with per-objective progress
 - movable minimap button
 - diagnostic logging
 
-## Commands
-
-Primary command: /mg
-Compatibility alias: /fg
-
-Useful:
-- /mg info
-- /mg settings
-- /mg navigator
-- /mg status
-- /mg next
-- /mg prev
-- /mg refresh
-- /mg log
-
 ## Test evidence
 
-After testing, use /reload or log out and send:
+After testing, use `/reload` or log out and send:
 
-WTF/Account/<account>/SavedVariables/MewthischGuides.lua
+`WTF/Account/<account>/SavedVariables/MewthischGuides.lua`
 
-Screenshots are still useful for UI/navigation issues.
+If the arrow is still missing after this hotfix, the SavedVariables navigation diagnostics will tell us whether the remaining cause is waypoint resolution rather than UI initialization.
