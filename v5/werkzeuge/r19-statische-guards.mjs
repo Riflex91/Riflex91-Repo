@@ -70,6 +70,9 @@ for(const m of [
   if(!shadow.includes(m)) fehler.push("SHADOW_MARKER_FEHLT:"+m);
 }
 
+const testGui=lies("werkzeuge/v5-adventure-land-test-gui.js");
+if(!testGui.includes("aktivierePerformanceTrick")||!testGui.includes("performanceTrickStatus")||!testGui.includes("performance_trick")) fehler.push("R19_PERFORMANCE_TRICK_HELPER_FEHLT");
+
 const liveGui=lies("werkzeuge/r19-controlled-live-test-gui.js");
 for(const m of [
   "R19-CONTROLLED-LIVE-EQUIP-ONCE",
@@ -77,6 +80,8 @@ for(const m of [
   "manuelleBestaetigung: true",
   "sameIntentRetry: false",
   "breiteRuntimeFreigabe: false",
+  "PERFORMANCE_TRICK_NICHT_AKTIV",
+  "guiApi().aktivierePerformanceTrick()",
 ]){
   if(!liveGui.includes(m)) fehler.push("CONTROLLED_LIVE_GUI_MARKER_FEHLT:"+m);
 }
@@ -96,6 +101,8 @@ for(const m of [
   "hardErlaubteKandidaten",
   "sameIntentRetry: false",
   "breiteRuntimeFreigabe: false",
+  "PERFORMANCE_TRICK_NICHT_AKTIV",
+  "guiApi().aktivierePerformanceTrick()",
 ]){
   if(!canaryGui.includes(m)) fehler.push("R19_CANARY_GUI_MARKER_FEHLT:"+m);
 }
@@ -114,6 +121,11 @@ for(const m of [
   "EVIDENCE_KETTE_UNGUELTIG",
   "HEAP_METRIK_FEHLT",
   "STORAGE_ESTIMATE_FEHLT",
+  "PERFORMANCE_TRICK_NICHT_AKTIV",
+  "PERFORMANCE_TRICK_AUSGEFALLEN",
+  "guiApi().aktivierePerformanceTrick()",
+  "guiApi().performanceTrickStatus()",
+  "performanceTrickFehler",
 ]){
   if(!soakGui.includes(m)) fehler.push("R19_SOAK_5M_GUI_MARKER_FEHLT:"+m);
 }
