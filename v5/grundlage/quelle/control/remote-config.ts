@@ -510,7 +510,7 @@ export class PersistenterRemoteConfigRegister {
       validiereEvidence(
         this.#policy,
         evidence,
-        Math.min(jetztMs, snapshot.gueltigBisMs),
+        snapshot.beobachtetAmMs,
         null,
       );
       this.#snapshot = snapshotAusEvidence(this.#policy, evidence);
