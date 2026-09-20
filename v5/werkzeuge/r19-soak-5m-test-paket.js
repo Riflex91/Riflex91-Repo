@@ -736,7 +736,7 @@
     const estimate = await storageSchaetzung();
     const persistenz = persistenzRoundtrip();
     const runtime = runtimeStatus();
-    const performanceTrick = await guiApi().aktivierePerformanceTrick();
+    const performanceTrick = guiApi().aktivierePerformanceTrick();
     const blocker = [];
     if (!String(root.character?.name || '')) blocker.push('CHARAKTER_FEHLT');
     if (root.character?.rip) blocker.push('CHARAKTER_TOT');
