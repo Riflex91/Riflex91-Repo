@@ -19,6 +19,8 @@ for _, event in ipairs(events) do frame:RegisterEvent(event) end
 local objectiveHashes = {}
 local questUpdatePending = false
 local routeTicker
+local heartbeatTicker
+local heartbeatGeneration = 0
 local lastRoutePosition
 
 local function objectiveSnapshot(questID)
@@ -142,19 +144,74 @@ local function sampleRoute()
     end
 end
 
+local function stopHeartbeat()
+    heartbeatGeneration = heartbeatGeneration + 1
+    if heartbeatTicker and heartbeatTicker.Cancel then
+        heartbeatTicker:Cancel()
+    end
+    heartbeatTicker = nil
+end
+
+local function startHeartbeat()
+    stopHeartbeat()
+    local generation = heartbeatGeneration
+
+    FGR:Heartbeat("login")
+
+    if C_Timer and C_Timer.NewTicker then
+        heartbeatTicker = C_Timer.NewTicker(30, function()
+            FGR:Heartbeat("timer")
+        end)
+        return
+    end
+
+    local function tick()
+        if generation ~= heartbeatGeneration then return end
+        FGR:Heartbeat("timer_fallback")
+        if C_Timer and C_Timer.After then
+            C_Timer.After(30, tick)
+        end
+    end
+
+    if C_Timer and C_Timer.After then
+        C_Timer.After(30, tick)
+    end
+end
+
 frame:SetScript("OnEvent", function(_, event, ...)
     if event == "PLAYER_LOGIN" then
         FGR:StartSession()
         FGR:Record("player.login", nil, { position = FGR:GetPosition() })
+        print("|cff67d8efFGR|r |cff33ff99RECORDING|r v" .. FGR.ADDON_VERSION ..
+            " · Heartbeat alle 30s · /fgr status für Live-Status")
         C_Timer.After(2, scanQuestLog)
-        if routeTicker then routeTicker:Cancel() end
-        routeTicker = C_Timer.NewTicker(5, sampleRoute)
+        if routeTicker and routeTicker.Cancel then routeTicker:Cancel() end
+        if C_Timer and C_Timer.NewTicker then
+            routeTicker = C_Timer.NewTicker(5, sampleRoute)
+        elseif C_Timer and C_Timer.After then
+            local routeGeneration = time()
+            FGR.routeGeneration = routeGeneration
+            local function routeTick()
+                if FGR.routeGeneration ~= routeGeneration then return end
+                sampleRoute()
+                C_Timer.After(5, routeTick)
+            end
+            C_Timer.After(5, routeTick)
+        end
+        startHeartbeat()
 
     elseif event == "PLAYER_LOGOUT" then
+        FGR:Heartbeat("logout")
         sampleRoute()
-        FGR:Record("player.logout", nil, { position = FGR:GetPosition() })
-        if FGR.session then FGR.session.endedUtc = date("!%Y-%m-%dT%H:%M:%SZ") end
-        if routeTicker then routeTicker:Cancel() routeTicker = nil end
+        FGR:Record("player.logout", nil, {
+            position = FGR:GetPosition(),
+            sessionId = FGR.session and FGR.session.id or nil,
+        })
+        FGR:EndSession("PLAYER_LOGOUT")
+        stopHeartbeat()
+        FGR.routeGeneration = nil
+        if routeTicker and routeTicker.Cancel then routeTicker:Cancel() end
+        routeTicker = nil
 
     elseif event == "PLAYER_LEVEL_UP" then
         local newLevel = ...
