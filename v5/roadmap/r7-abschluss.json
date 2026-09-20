@@ -93,5 +93,12 @@
     ".github/workflows/v5-r7.yml"
   ],
   "naechstePhase": "R8",
-  "hinweis": "R7 gilt erst nach gruenem finalen PR-Head und gruener Post-Merge-CI als endgueltig abgeschlossen. Das Gameplay-Runtime-Gesamtgate bleibt GESPERRT."
+  "hinweis": "R7 gilt erst nach gruenem finalen PR-Head und gruener Post-Merge-CI als endgueltig abgeschlossen. Das Gameplay-Runtime-Gesamtgate bleibt GESPERRT.",
+  "finalePruefung": {
+    "exakterPrHeadErforderlich": true,
+    "alleR3BisR7RegressionenGruenErforderlich": true,
+    "roadmapUndVorbereitungGruenErforderlich": true,
+    "postMergeCiErforderlich": true,
+    "mergeNurShaGebunden": true
+  }
 }
