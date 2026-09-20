@@ -80,6 +80,31 @@ for (const marker of [
   if (!auswahl.includes(marker)) fehler.push("CONTROLLED_LIVE_AUSWAHL_MARKER_FEHLT:" + marker);
 }
 
+const runner = liesText("werkzeuge/r12-controlled-live-equip-runner.mjs");
+for (const marker of [
+  "R12-EQUIP-ONCE",
+  "D:\\\\AdventureLand-V5",
+  "pruefeKeineOffeneV5Transaktion",
+  "EinmaligesR12ControlledLiveGate",
+  "PersistVorMutationTor",
+  "AusfuehrungsKernel",
+  "RecoveryKernel",
+  "sameIntentRetry: false",
+  "gameWrites: adapter.gameWrites",
+  "unerwarteteGameWrites: 0",
+  "breiteRuntimeFreigabe: false",
+]) {
+  if (!runner.includes(marker)) fehler.push("CONTROLLED_LIVE_RUNNER_MARKER_FEHLT:" + marker);
+}
+if (runner.includes("bank_store(")
+    || runner.includes("trade_buy(")
+    || runner.includes("upgrade(")
+    || runner.includes("compound(")
+    || runner.includes("send_item(")
+    || runner.includes("send_gold(")) {
+  fehler.push("CONTROLLED_LIVE_RUNNER_RISIKO_WRITE_VERBOTEN");
+}
+
 if (fehler.length > 0) {
   throw new Error("[V5-R12-GUARD]\n" + [...new Set(fehler)].join("\n"));
 }
