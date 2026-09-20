@@ -127,3 +127,22 @@ test("Controlled Live und Canary koennen nicht durch CI auto-bestaetigt werden",
     /ZERT_LADDER_MANUELLE_BESTAETIGUNG_ERFORDERLICH:CANARY/,
   );
 });
+
+
+test("beschleunigte Soak-Ladder endet nach 5m 10m 30m 60m",()=>{
+  const ladder=new ZertifizierungsLadder();
+  ladder.markiereBestanden("SIMULATOR_REPLAY","E-REPLAY-X",false);
+  ladder.markiereBestanden("FAULT_SUITE","E-FAULT-X",false);
+  ladder.markiereBestanden("SHADOW","E-SHADOW-X",false);
+  ladder.markiereBestanden("CONTROLLED_LIVE","E-LIVE-X",true);
+  let sicht=ladder.markiereBestanden("CANARY","E-CANARY-X",true);
+  assert.equal(sicht.naechsteStufe,"SOAK_5M");
+  sicht=ladder.markiereBestanden("SOAK_5M","E-5M",false);
+  assert.equal(sicht.naechsteStufe,"SOAK_10M");
+  sicht=ladder.markiereBestanden("SOAK_10M","E-10M",false);
+  assert.equal(sicht.naechsteStufe,"SOAK_30M");
+  sicht=ladder.markiereBestanden("SOAK_30M","E-30M",false);
+  assert.equal(sicht.naechsteStufe,"SOAK_60M");
+  sicht=ladder.markiereBestanden("SOAK_60M","E-60M",false);
+  assert.equal(sicht.naechsteStufe,null);
+});
