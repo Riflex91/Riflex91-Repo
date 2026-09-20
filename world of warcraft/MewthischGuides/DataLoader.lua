@@ -37,6 +37,14 @@ function Loader:Load()
         if type(MG.Data.guide) == "table" then raw[#raw + 1] = MG.Data.guide end
     end
 
+    local rxpStats = nil
+    if MG.RestEDXPImport then
+        for _, guide in ipairs(MG.RestEDXPImport:BuildGuides() or {}) do
+            raw[#raw + 1] = guide
+        end
+        rxpStats = MG.RestEDXPImport:GetStats()
+    end
+
     local parsed, rejected = MG.GuideParser:ParseMany(raw)
     self.guides, self.byID = {}, {}
 
@@ -59,6 +67,7 @@ function Loader:Load()
                 errors = #report.errors,
                 warnings = #report.warnings,
                 activeGuideID = self.activeGuide and self.activeGuide.id or nil,
+                restedXP = rxpStats,
             })
     end
 
