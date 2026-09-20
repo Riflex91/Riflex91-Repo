@@ -1,0 +1,482 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "status": "TEILWEISE_NACHGEWIESEN_EXTERNE_AUTORISIERUNG_OFFEN",
+  "scope": [
+    "R0",
+    "R2",
+    "R3"
+  ],
+  "anzahl": 34,
+  "nachgewiesen": 33,
+  "externOffen": 1,
+  "externerBlocker": "V5-ANF-WISSEN-012",
+  "eintraege": [
+    {
+      "kennung": "V5-ANF-WISSEN-001",
+      "status": "NACHGEWIESEN",
+      "phase": "R0",
+      "implementierung": [
+        "v5/wissensbasis/manifest.json",
+        "v5/wissensbasis/schema/fact.schema.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/wissensbasis-pruefen.mjs"
+      ],
+      "begruendung": "Stabile Fact-Schemas, Provenienz/Hash/Frische und Manifest werden maschinenlesbar validiert."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-002",
+      "status": "NACHGEWIESEN",
+      "phase": "R0",
+      "implementierung": [
+        "v5/wissensbasis/schema/fact.schema.json",
+        "v5/wissensbasis/README.md"
+      ],
+      "tests": [
+        "v5/werkzeuge/wissensbasis-pruefen.mjs"
+      ],
+      "begruendung": "Fact-Lebenszyklus besitzt supersedes/supersededBy; Referenzen werden validiert statt still ueberschrieben."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-003",
+      "status": "NACHGEWIESEN",
+      "phase": "R0",
+      "implementierung": [
+        "v5/entwicklungsregeln/wissensnutzung.json",
+        "ops/windows-bridge/WebQuellenEntdecker.cs"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs",
+        "v5/werkzeuge/wissensbasis-pruefen.mjs"
+      ],
+      "begruendung": "Autoritaetsstufen trennen offizielle, Community- und Kandidatenquellen; Kandidaten besitzen keine Entwicklungs-/Gameplay-Autoritaet."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-004",
+      "status": "NACHGEWIESEN",
+      "phase": "R0",
+      "implementierung": [
+        "ops/windows-bridge/BridgeConfig.cs",
+        "ops/windows-bridge/WissenswaechterDienst.cs"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs"
+      ],
+      "begruendung": "Wissenswaechter ist default-on, exakt 60 Minuten konfiguriert und andere Intervalle werden abgewiesen."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-005",
+      "status": "NACHGEWIESEN",
+      "phase": "R0",
+      "implementierung": [
+        "ops/windows-bridge/WebQuellenEntdecker.cs",
+        "ops/windows-bridge/WissenswaechterDienst.cs"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs"
+      ],
+      "begruendung": "Web-Quellenentdeckung rotiert deterministisch stuendlich und klassifiziert Funde nach Vertrauensklasse."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-006",
+      "status": "NACHGEWIESEN",
+      "phase": "R0",
+      "implementierung": [
+        "ops/windows-bridge/GitArbeitskopie.cs",
+        ".github/workflows/v5-wissenswaechter-pr.yml"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs",
+        "v5/werkzeuge/r3-struktur-pruefen.mjs"
+      ],
+      "begruendung": "Knowledge-Sync ist auf v5/wissensbasis/** begrenzt und der serverseitige PR-Workflow blockiert Fremdpfade."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-008",
+      "status": "NACHGEWIESEN",
+      "phase": "R0",
+      "implementierung": [
+        "v5/grundlage/quelle/wissen/abgleich.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-wissen.test.mjs",
+        "v5/werkzeuge/r6-struktur-pruefen.mjs"
+      ],
+      "begruendung": "Der fachliche Wissensabgleich kennt den expliziten Zustand WIDERSPRUCH und bleibt ohne MutationAuthority."
+    },
+    {
+      "kennung": "V5-ANF-UI-006",
+      "status": "NACHGEWIESEN",
+      "phase": "R0",
+      "implementierung": [
+        "v5/grundlage/quelle/anzeige/uebersetzungsaufgaben.ts",
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
+        "v5/werkzeuge/r6-struktur-pruefen.mjs"
+      ],
+      "begruendung": "Neu entdeckte unuebersetzte Sichtinhalte erzeugen bounded OFFEN-Aufgaben und nur sichere deutsche Platzhalter."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-011",
+      "status": "NACHGEWIESEN",
+      "phase": "R0",
+      "implementierung": [
+        "ops/windows-bridge/GitArbeitskopie.cs",
+        ".github/workflows/v5-wissenswaechter-pr.yml"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs",
+        "v5/werkzeuge/r3-struktur-pruefen.mjs"
+      ],
+      "begruendung": "Automatischer Knowledge-Pfad pusht auf dedizierten Branch; PR/CI prueft Pfadgrenze vor main."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-012",
+      "status": "EXTERN_OFFEN",
+      "phase": "R0",
+      "blocker": "Die lokale Git-Credential-Manager/Browser-OAuth-Autorisierung kann aus dem Repository nicht als repository-begrenzte Least-Privilege-Autorisierung bewiesen werden.",
+      "erforderlicherNachweis": "Lokale Bridge-Systempruefung plus GitHub-Autorisierungs-/Repository-Scope-Nachweis.",
+      "implementierung": [
+        ".github/workflows/v5-wissenswaechter-pr.yml",
+        "ops/windows-bridge/GitArbeitskopie.cs"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-014",
+      "status": "NACHGEWIESEN",
+      "phase": "R0",
+      "implementierung": [
+        "v5/wissensbasis/manifest.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/wissensbasis-pruefen.mjs",
+        "v5/werkzeuge/vorbereitung-pruefen.mjs"
+      ],
+      "begruendung": "Manifest exponiert stabile Pfade der laufenden Datenbank, Schemas, Contracts und Live-Wissen."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-017",
+      "status": "NACHGEWIESEN",
+      "phase": "R0",
+      "implementierung": [
+        "v5/entwicklungsregeln/wissensnutzung.json",
+        "ops/windows-bridge/WissenswaechterDienst.cs",
+        "ops/windows-bridge/WebQuellenEntdecker.cs"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs",
+        "v5/werkzeuge/wissensbasis-pruefen.mjs"
+      ],
+      "begruendung": "Automatische Funde bleiben KANDIDAT, besitzen keine Autoritaet und wirken nur als Recherchehinweis."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-021",
+      "status": "NACHGEWIESEN",
+      "phase": "R0",
+      "implementierung": [
+        "v5/wissensbasis/manifest.json",
+        "v5/wissensbasis/schema/aenderungs-eintrag.schema.json",
+        "ops/windows-bridge/WissenswaechterDienst.cs"
+      ],
+      "tests": [
+        "v5/werkzeuge/wissensbasis-pruefen.mjs",
+        "ops/windows-bridge-tests/Program.cs"
+      ],
+      "begruendung": "Waechterartefakte sind schema-validierbar; Aenderungsprotokoll wird als JSONL mit einem Objekt pro Zeile geschrieben/geprueft."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-025",
+      "status": "NACHGEWIESEN",
+      "phase": "R0",
+      "implementierung": [
+        "ops/windows-bridge/LiveWissensImportDienst.cs"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs",
+        "v5/werkzeuge/wissensbasis-pruefen.mjs"
+      ],
+      "begruendung": "Live-Wissen importiert manifest/status und validierte aktuell/**/*.json; sonstige Snapshot-Pfade werden nicht gespiegelt."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-026",
+      "status": "NACHGEWIESEN",
+      "phase": "R0",
+      "implementierung": [
+        "ops/windows-bridge/BridgeConfig.cs",
+        "ops/windows-bridge/LiveWissensImportDienst.cs"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs"
+      ],
+      "begruendung": "D:-Unterpfad, Traversal/Reparse/Dateityp/Groesse/Secret-Regeln sind fail-closed validiert."
+    },
+    {
+      "kennung": "V5-ANF-ARCH-001",
+      "status": "NACHGEWIESEN",
+      "phase": "R2",
+      "implementierung": [
+        "v5/architektur/verfassung.json",
+        "v5/dokumentation/V5-DEUTSCHE-DOMAENENMIGRATION.md",
+        "v5/werkzeuge/r3-guard-regeln.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/r2-verfassung-pruefen.mjs",
+        "v5/werkzeuge/tests/r3-guards.test.mjs"
+      ],
+      "begruendung": "Deutsche Domaenensprache ist ratifiziert und englische kontrollierte Domaenenbezeichner werden statisch blockiert."
+    },
+    {
+      "kennung": "V5-ANF-ARCH-010",
+      "status": "NACHGEWIESEN",
+      "phase": "R2",
+      "implementierung": [
+        "v5/anforderungen/nachverfolgbarkeit.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/vorbereitung-pruefen.mjs",
+        "v5/werkzeuge/r19-struktur-pruefen.mjs"
+      ],
+      "begruendung": "Jede Anforderung besitzt einen eindeutigen Trace-Eintrag; Phasenvalidatoren erzwingen Implementierungs-/Testnachweise."
+    },
+    {
+      "kennung": "V5-ANF-ARCH-011",
+      "status": "NACHGEWIESEN",
+      "phase": "R2",
+      "implementierung": [
+        "v5/bereitschaft/laufzeit-bereitschaft.json",
+        "v5/werkzeuge/entwicklungs-wissensgate.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-struktur-pruefen.mjs",
+        "v5/werkzeuge/vorbereitung-pruefen.mjs"
+      ],
+      "begruendung": "Runtime-Implementierung und strenger Wissenspfad bleiben ohne formale Readiness fail-closed."
+    },
+    {
+      "kennung": "V5-ANF-ARCH-012",
+      "status": "NACHGEWIESEN",
+      "phase": "R2",
+      "implementierung": [
+        "v5/migration/v3-v4-zu-v5.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/r2-verfassung-pruefen.mjs",
+        "v5/werkzeuge/tests/r3-guards.test.mjs"
+      ],
+      "begruendung": "Jede V3/V4-Capability besitzt explizite V5-Migrationsentscheidung; Legacy-Runtime-Import ist verboten."
+    },
+    {
+      "kennung": "V5-ANF-SICH-010",
+      "status": "NACHGEWIESEN",
+      "phase": "R2",
+      "implementierung": [
+        "v5/architektur/verfassung.json",
+        "v5/grundlage/konfiguration.json"
+      ],
+      "tests": [
+        "v5/grundlage/tests/no-write-grundlage.test.mjs",
+        "v5/werkzeuge/r3-struktur-pruefen.mjs"
+      ],
+      "begruendung": "Sicherheitskritische Mutation ist default-off/default-deny und besitzt keine gefaehrlichen stillen Defaults."
+    },
+    {
+      "kennung": "V5-ANF-OPS-007",
+      "status": "NACHGEWIESEN",
+      "phase": "R2",
+      "implementierung": [
+        "v5/bereitschaft/laufzeit-bereitschaft.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/vorbereitung-pruefen.mjs"
+      ],
+      "begruendung": "Laufzeitbereitschaft fuehrt exakt zehn maschinenlesbare Pflichtbereiche und konsistenten Gesamtstatus."
+    },
+    {
+      "kennung": "V5-ANF-UI-001",
+      "status": "NACHGEWIESEN",
+      "phase": "R2",
+      "implementierung": [
+        "v5/anzeigetexte/regelwerk.json",
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-sichttext-pruefen.mjs",
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs"
+      ],
+      "begruendung": "Sichttexte sind strikt deutsch; nur die explizit revalidierte Monster-Originalnamen-Ausnahme ist zugelassen."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-013",
+      "status": "NACHGEWIESEN",
+      "phase": "R2",
+      "implementierung": [
+        "v5/entwicklungsregeln/wissensnutzung.json",
+        "v5/werkzeuge/entwicklungs-wissensgate.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/r2-verfassung-pruefen.mjs",
+        ".github/workflows/v5-wissensgate.yml"
+      ],
+      "begruendung": "Manifest, laufende Datenbank, Drift/Revalidierung und relevante Facts/Contracts sind verbindlicher Entwicklungs-Gate-Eingang."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-010",
+      "status": "NACHGEWIESEN",
+      "phase": "R3",
+      "implementierung": [
+        "ops/windows-bridge/WissenswaechterDienst.cs",
+        "v5/architektur/host-api-allowlist.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-struktur-pruefen.mjs",
+        "ops/windows-bridge-tests/Program.cs"
+      ],
+      "begruendung": "Wissenswaechter/Bridge sind vom Gameplay-Authority-Pfad getrennt; Fehler beeinflussen nicht die Runtime-Policy."
+    },
+    {
+      "kennung": "V5-ANF-ARCH-005",
+      "status": "NACHGEWIESEN",
+      "phase": "R3",
+      "implementierung": [
+        "v5/werkzeuge/r3-guard-regeln.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/tests/r3-guards.test.mjs"
+      ],
+      "begruendung": "Prototype/Monkey-Patching und Legacy-Runtime-Imports werden als harte Guard-Fehler erkannt."
+    },
+    {
+      "kennung": "V5-ANF-SICH-008",
+      "status": "NACHGEWIESEN",
+      "phase": "R3",
+      "implementierung": [
+        "v5/architektur/host-api-allowlist.json",
+        "v5/grundlage/quelle/host/host-grenze.ts",
+        "ops/windows-bridge/GitArbeitskopie.cs"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-struktur-pruefen.mjs",
+        "ops/windows-bridge-tests/Program.cs"
+      ],
+      "begruendung": "Host/Bridge besitzen keine Gameplay-/Raw-Write-Autoritaet; generische Host-Ausfuehrung und Fremdpfade sind blockiert."
+    },
+    {
+      "kennung": "V5-ANF-SICH-013",
+      "status": "NACHGEWIESEN",
+      "phase": "R3",
+      "implementierung": [
+        "v5/werkzeuge/r3-guard-regeln.mjs",
+        "ops/windows-bridge/LiveWissensImportDienst.cs"
+      ],
+      "tests": [
+        "v5/werkzeuge/tests/r3-guards.test.mjs",
+        "ops/windows-bridge-tests/Program.cs"
+      ],
+      "begruendung": "Secret-Literale und Secret-/Token-/Credential-Felder im Live-Wissensmirror werden fail-closed blockiert."
+    },
+    {
+      "kennung": "V5-ANF-TEST-006",
+      "status": "NACHGEWIESEN",
+      "phase": "R3",
+      "implementierung": [
+        "v5/fitness/fitness-regeln.json",
+        "v5/werkzeuge/r3-guard-regeln.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/tests/r3-guards.test.mjs",
+        ".github/workflows/v5-r3.yml"
+      ],
+      "begruendung": "Architektur-Fitnessregeln besitzen automatisierte Negativtests fuer Imports, Writes, Patches, I/O, Netzwerk und Secrets."
+    },
+    {
+      "kennung": "V5-ANF-OPS-001",
+      "status": "NACHGEWIESEN",
+      "phase": "R3",
+      "implementierung": [
+        "v5/werkzeuge/r3-build-provenienz.mjs",
+        "v5/package-lock.json",
+        "v5/grundlage/konfiguration.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-struktur-pruefen.mjs",
+        ".github/workflows/v5-r3.yml"
+      ],
+      "begruendung": "Build-Provenienz bindet Git-SHA, Dependency-Lock, Schema/Verfassung und Konfigurationshash."
+    },
+    {
+      "kennung": "V5-ANF-UI-004",
+      "status": "NACHGEWIESEN",
+      "phase": "R3",
+      "implementierung": [
+        "v5/anzeigetexte/regelwerk.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-sichttext-pruefen.mjs",
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs"
+      ],
+      "begruendung": "Deutsche Abdeckung ist 100 Prozent mit Nulltoleranz fuer unerlaubte englische Rohtext-Leaks."
+    },
+    {
+      "kennung": "V5-ANF-UI-007",
+      "status": "NACHGEWIESEN",
+      "phase": "R3",
+      "implementierung": [
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+        "v5/anzeigetexte/regelwerk.json"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
+        "v5/werkzeuge/r3-sichttext-pruefen.mjs"
+      ],
+      "begruendung": "Technische Rohkennungen werden bei fehlender Uebersetzung durch sichere deutsche Platzhalter ersetzt."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-015",
+      "status": "NACHGEWIESEN",
+      "phase": "R3",
+      "implementierung": [
+        "v5/entwicklungsregeln/wissensnutzung.json",
+        "v5/werkzeuge/entwicklungs-wissensgate.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-struktur-pruefen.mjs",
+        ".github/workflows/v5-wissensgate.yml"
+      ],
+      "begruendung": "Wissensalter >180 Minuten sowie fehlerhafte/gekuerzte relevante Quellen blockieren strenge Implementierung."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-016",
+      "status": "NACHGEWIESEN",
+      "phase": "R3",
+      "implementierung": [
+        "v5/entwicklungsregeln/quellenfreigaben.json",
+        "v5/werkzeuge/entwicklungs-wissensgate.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/r2-verfassung-pruefen.mjs",
+        ".github/workflows/v5-wissensgate.yml"
+      ],
+      "begruendung": "Hash-Drift relevanter offizieller Quellen verlangt Bewertung/Revalidierung oder blockiert die Capability."
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-020",
+      "status": "NACHGEWIESEN",
+      "phase": "R3",
+      "implementierung": [
+        "v5/entwicklungsregeln/wissensnutzung.json",
+        ".github/workflows/v5-wissensgate.yml"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-struktur-pruefen.mjs",
+        ".github/workflows/v5-wissensgate.yml"
+      ],
+      "begruendung": "Strenge Implementierungs-PRs muessen aktuellen Base/main als Ancestor enthalten; Knowledge-Commits werden damit eingeschlossen."
+    }
+  ]
+}
