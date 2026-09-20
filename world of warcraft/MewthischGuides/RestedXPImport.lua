@@ -498,10 +498,10 @@ function Import:GetHints(definition, phase, profile, maximum)
         if rawStep and self:SelectorMatches(rawStep.selector, profile) and
            self:TagsMatch(rawStep.tags, profile) then
             for _, action in ipairs(rawStep.actions or {}) do
-                local _, selector = splitCondition(action.args)
+                local actionArgs, selector = splitCondition(action.args)
                 if (not selector or selector == "" or self:SelectorMatches(selector, profile)) and
                    MG.RestEDXPActionCatalog then
-                    local text = MG.RestEDXPActionCatalog:Format(action.kind, action.args)
+                    local text = MG.RestEDXPActionCatalog:Format(action.kind, actionArgs)
                     if text and not seen[text] then
                         seen[text] = true
                         hints[#hints + 1] = {
