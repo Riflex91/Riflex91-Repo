@@ -265,15 +265,22 @@
         "V5-ALT-002",
         "V5-ALT-003"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/ausfuehrung/ausfuehrungs-kernel.ts",
+        "v5/werkzeuge/r3-guard-regeln.mjs"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r9-admission-execution.test.mjs",
+        "v5/werkzeuge/r9-statische-guards.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r9NachweisStatus": "R9_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-004",
@@ -515,15 +522,21 @@
         "V5-INV-004",
         "V5-INV-005"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/ausfuehrung/admission.ts",
+        "v5/grundlage/quelle/ausfuehrung/ausfuehrungs-kernel.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r9-admission-execution.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r9NachweisStatus": "R9_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-003",
@@ -534,15 +547,23 @@
       "invarianten": [
         "V5-INV-002"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/ausfuehrung/admission.ts",
+        "v5/grundlage/quelle/ausfuehrung/intent-bindung.ts",
+        "v5/grundlage/vertraege/r9/action-bindungen.json"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r9-admission-execution.test.mjs",
+        "v5/werkzeuge/r9-vertragsabdeckung.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r9NachweisStatus": "R9_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-004",
@@ -553,15 +574,20 @@
       "invarianten": [
         "V5-ALT-024"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/ausfuehrung/admission.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r9-admission-execution.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r9NachweisStatus": "R9_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-005",
