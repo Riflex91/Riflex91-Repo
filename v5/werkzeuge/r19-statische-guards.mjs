@@ -8,8 +8,12 @@ const pflicht=[
   "grundlage/quelle/zertifizierung/shadow-bewertung.ts",
   "grundlage/quelle/zertifizierung/production-certification.ts",
   "grundlage/quelle/runtime/produktions-komposition.ts",
+  "grundlage/quelle/runtime/produktions-runtime.ts",
   "grundlage/quelle/merchant/modul-vertrag.ts",
+  "grundlage/quelle/merchant/faehigkeits-vertrag.ts",
   "grundlage/quelle/merchant/demand.ts",
+  "grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json",
+  "architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md",
   "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
   "grundlage/tests/r19-evidence-ladder.test.mjs",
   "grundlage/tests/r19-production-certification.test.mjs",
@@ -47,9 +51,9 @@ for(const p of pflicht) if(!fs.existsSync(p)) fehler.push("PFLICHTARTEFAKT_FEHLT
 
 const produktionsKomposition=lies("grundlage/quelle/runtime/produktions-komposition.ts");
 for(const m of [
-  "DEFAULT_DENY_OHNE_FAEHIGKEITSBINDUNGEN",
+  "DEFAULT_DENY_PLANEN_REGISTRIERT_INAKTIV",
   "merchantCoreABasisModulDefinition",
-  "faehigkeitsDefinitionen: Object.freeze([])",
+  "merchantCoreAPlanungsFaehigkeitDefinitionen",
 ]){
   if(!produktionsKomposition.includes(m)) {
     fehler.push("PRODUKTIONS_KOMPOSITION_DEFAULT_DENY_FEHLT:"+m);
@@ -59,9 +63,40 @@ const merchantModul=lies("grundlage/quelle/merchant/modul-vertrag.ts");
 for(const m of [
   'MERCHANT_CORE_A_MODUL_ID = "merchant-core-a"',
   'MERCHANT_CORE_A_MODUL_VERSION = "1"',
+  "MERCHANT_CORE_A_PLANUNGS_FAEHIGKEIT_IDS",
+  '"merchant.task.planen"',
+  '"merchant.bank.planen"',
+  '"merchant.verkauf.planen"',
+  '"merchant.markt.planen"',
+  '"merchant.mluck.planen"',
+  '"merchant.logistik.planen"',
+  '"merchant.gear.planen"',
+  '"merchant.itemmutation.planen"',
   "standardAktiv: false",
 ]){
   if(!merchantModul.includes(m)) fehler.push("MERCHANT_MODUL_VERTRAG_FEHLT:"+m);
+}
+const merchantFaehigkeit=lies("grundlage/quelle/merchant/faehigkeits-vertrag.ts");
+for(const m of [
+  'modus: "PLANEN"',
+  'status: "VERFUEGBAR"',
+  "standardAktiv: false",
+  "MERCHANT_CORE_A_MODUL_ID",
+  "MERCHANT_CORE_A_MODUL_VERSION",
+]){
+  if(!merchantFaehigkeit.includes(m)) fehler.push("MERCHANT_PLANEN_VERTRAG_FEHLT:"+m);
+}
+if(merchantFaehigkeit.includes('modus: "MUTIEREN"')) {
+  fehler.push("MERCHANT_PLANEN_VERTRAG_MUTIEREN_VERBOTEN");
+}
+const runtimeKomposition=lies("grundlage/quelle/runtime/produktions-runtime.ts");
+for(const m of [
+  "PRODUKTIONS_KOMPOSITION_FAEHIGKEIT_PROVIDER_FEHLT",
+  "PRODUKTIONS_KOMPOSITION_FAEHIGKEIT_NICHT_DEKLARIERT",
+  "PRODUKTIONS_KOMPOSITION_MODUL_FAEHIGKEIT_OHNE_ANBIETER",
+  "PRODUKTIONS_KOMPOSITION_BENOETIGTE_FAEHIGKEIT_FEHLT",
+]){
+  if(!runtimeKomposition.includes(m)) fehler.push("PRODUKTIONS_KOMPOSITION_CROSS_VALIDATION_FEHLT:"+m);
 }
 const merchantDemand=lies("grundlage/quelle/merchant/demand.ts");
 if(!merchantDemand.includes("eigentuemerModulId: MERCHANT_CORE_A_MODUL_ID")) {
