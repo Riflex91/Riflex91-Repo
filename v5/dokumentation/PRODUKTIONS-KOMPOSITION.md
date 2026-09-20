@@ -18,7 +18,9 @@ Der kanonische Katalog liegt in:
 - `architektur/adr/ADR-028-DURABLE-PLANEN-AUTHORITY.md`;
 - `grundlage/vertraege/runtime/durable-planen-authority.json`;
 - `architektur/adr/ADR-029-PRODUKTIVER-OPERATIONS-FEED.md`;
-- `grundlage/vertraege/runtime/produktions-operations-feed.json`.
+- `grundlage/vertraege/runtime/produktions-operations-feed.json`;
+- `architektur/adr/ADR-030-KANONISCHE-NODE-HOST-KOMPOSITION.md`;
+- `grundlage/vertraege/runtime/node-produktions-host-komposition.json`.
 
 ## Produktive Modulidentitaet
 
@@ -147,14 +149,38 @@ Host verwendet frisch vom Host erhobene Evidence statt caller-gelieferter
 Health-Werte. Faellt die Operations-Quelle aus, wird aktive PLANEN-Authority
 fail-closed entzogen.
 
+## Kanonische Node-/Windows-Host-Komposition
+
+`erstelleNodeV5ProduktionsHost(...)` verdrahtet die produktive
+Dateisystemwurzel, das deny-only Bedienerprotokoll, die Bediener-Richtlinie,
+das durable PLANEN-Aktivierungsprotokoll, die Runtime, Gesamtfreigabe,
+Bootstrap, Operations-Quelle und den Host-Controller zu genau einer
+observer-only Fassade.
+
+Die Fassade exponiert keinen direkten Runtime-, Register-, Supervisor- oder
+Telemetrie-Zugriff. Produktive Aufrufer koennen nur starten, ticken,
+PLANEN kontrolliert aktivieren, deny-only Operator-Befehle anwenden, stoppen
+und Status lesen.
+
+Deny-only Operator-Befehle werden bounded unter
+`runtime/operator/deny.jsonl` gespeichert. Beim Neustart wird die Historie
+vollstaendig validiert und in Originalreihenfolge auf einen frischen
+`BedienerRichtlinienDienst` angewendet. Capability-Deny und NOTHALT
+ueberleben dadurch den Prozessneustart. Ein widerspruechlicher Wirkungsverlauf,
+eine kollidierende Befehls-ID oder ein korruptes Log blockiert fail-closed.
+
+Schlaegt die Post-Start-Revalidierung beispielsweise wegen eines bereits
+persistierten NOTHALT fehl, wird die gerade gestartete observer-only Runtime
+sofort kontrolliert wieder gestoppt.
+
 ## Naechster Integrationsschritt
 
-Als naechstes wird die vollstaendige Node-/Windows-Host-Komposition aus
-Gesamtfreigabe, durable Bediener-Deny-Protokoll, durable
-PLANEN-Aktivierungsprotokoll, Operations-Quelle, Runtime, Bootstrap und
-Host-Controller gebaut. Danach kann genau eine PLANEN-Capability als erster
-observer-only Host-Canary aktiviert und ihre Ausgabe gegen reale
-Adventure-Land-Beobachtungen geprueft werden, weiterhin ohne Gameplay-Write.
+Als naechstes wird genau **eine** PLANEN-Capability als erster observer-only
+Host-Canary festgelegt und mit einem read-only Adventure-Land-Beobachtungsport
+verbunden. Der Canary darf keine Gameplay-Aktion ausloesen und exportiert nur
+Beobachtung, Planungsentscheidung und Safety-/Authority-Nachweise. Erst fuer
+den anschliessenden realen Beobachtungsnachweis ist ein manueller Ingame-Test
+erforderlich.
 
 Die reine Registrierung oder Aktivierung von PLANEN-Capabilities erteilt keine
 Mutationserlaubnis. Mutierende Merchant-Capabilities benoetigen einen

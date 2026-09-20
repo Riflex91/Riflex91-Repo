@@ -102,6 +102,48 @@ for (const marker of [
   }
 }
 
+const bedienerDenyAdapter = liesText(
+  "grundlage/adapter/persistenz/node-bediener-deny-protokoll.mjs",
+);
+for (const marker of [
+  "runtime/operator/deny.jsonl",
+  "MAXIMALE_EINTRAEGE = 4096",
+  "MAXIMALE_BYTES = 5_000_000",
+  "ladeWirksameDenyBefehle",
+  "BEDIENER_PROTOKOLL_WIRKUNG_WIDERSPRUCH",
+  "BEDIENER_PROTOKOLL_BEFEHL_ID_KOLLISION",
+]) {
+  if (!bedienerDenyAdapter.includes(marker)) {
+    fehler.push("BEDIENER_DENY_RESTART_GRENZE_FEHLT:" + marker);
+  }
+}
+
+const nodeHostKomposition = liesText(
+  "werkzeuge/v5-produktions-host-komposition.mjs",
+);
+for (const marker of [
+  "erstelleNodeV5ProduktionsHost",
+  "NodeBedienerDenyProtokoll",
+  "ladeWirksameDenyBefehle",
+  "NodePlanenAktivierungsProtokoll",
+  "NodeProduktionsOperationsQuelle",
+  "V5ProduktionsHostController",
+  "wendeDenyAn",
+]) {
+  if (!nodeHostKomposition.includes(marker)) {
+    fehler.push("NODE_PRODUKTIONS_HOST_KOMPOSITION_FEHLT:" + marker);
+  }
+}
+for (const verboten of [
+  "kernKomponenten(",
+  "aktiviereNichtMutierend(",
+  "erfasseOperationsMetrik(",
+]) {
+  if (nodeHostKomposition.includes(verboten)) {
+    fehler.push("NODE_PRODUKTIONS_HOST_BYPASS_VERBOTEN:" + verboten);
+  }
+}
+
 const telemetrie = liesText("grundlage/quelle/operations/telemetrie.ts");
 for (const marker of [
   "ssdIoLatenzMs",

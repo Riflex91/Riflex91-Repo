@@ -173,6 +173,16 @@ export class V5ProduktionsHostController {
       ...revalidierung.aktivePlanenFaehigkeiten,
     ]);
     if (!revalidierung.bereit) {
+      try {
+        this.#letzterBootstrap = await this.#bootstrap.stoppe(
+          "POST_START_REVALIDIERUNG_FEHLGESCHLAGEN",
+        );
+      } catch {
+        return this.#setze(
+          "FEHLER",
+          "PRODUKTIONS_HOST_POST_START_STOPP_AUSNAHME",
+        );
+      }
       return this.#setze(
         "GESPERRT",
         "PRODUKTIONS_HOST_REVALIDIERUNG_NICHT_BEREIT:"
@@ -181,6 +191,28 @@ export class V5ProduktionsHostController {
     }
 
     return this.#setze("LAEUFT", "V5_PRODUKTIONS_HOST_GESTARTET");
+  }
+
+  public async stoppe(grund: string): Promise<ProduktionsHostStatus> {
+    let bootstrap: ProduktionsBootstrapStatus;
+    try {
+      bootstrap = await this.#bootstrap.stoppe(grund);
+      this.#letzterBootstrap = bootstrap;
+    } catch {
+      return this.#setze(
+        "FEHLER",
+        "PRODUKTIONS_HOST_STOPP_AUSNAHME",
+      );
+    }
+
+    this.#aktivePlanenFaehigkeiten = Object.freeze([]);
+    if (bootstrap.zustand !== "GESTOPPT") {
+      return this.#setze(
+        "FEHLER",
+        "PRODUKTIONS_HOST_STOPP_FEHLGESCHLAGEN:" + bootstrap.grund,
+      );
+    }
+    return this.#setze("GESTOPPT", "V5_PRODUKTIONS_HOST_GESTOPPT");
   }
 
   public async tick(jetztMs: number): Promise<ProduktionsHostStatus> {
