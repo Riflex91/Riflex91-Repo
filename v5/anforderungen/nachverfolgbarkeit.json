@@ -355,15 +355,22 @@
       "invarianten": [
         "V5-INV-002"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/scheduler/ressourcen-verwalter.ts",
+        "v5/grundlage/quelle/scheduler/socket-budget.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r8-ressourcen.test.mjs",
+        "v5/werkzeuge/r8-statische-guards.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r8NachweisStatus": "R8_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-008",
@@ -374,15 +381,20 @@
       "invarianten": [
         "V5-INV-006"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/scheduler/ressourcen-verwalter.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r8-ressourcen.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r8NachweisStatus": "R8_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-009",
@@ -711,15 +723,20 @@
       "invarianten": [
         "V5-ALT-020"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r8-scheduler.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r8NachweisStatus": "R8_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-013",
@@ -1161,15 +1178,21 @@
         "V5-ALT-012",
         "V5-ALT-013"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/scheduler/workflow-vertrag.ts",
+        "v5/grundlage/quelle/scheduler/retry-circuit.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r8-retry.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r8NachweisStatus": "R8_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-TRANS-005",
@@ -1181,15 +1204,20 @@
         "V5-ALT-015",
         "V5-ALT-016"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r8-scheduler.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r8NachweisStatus": "R8_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-TEST-001",
@@ -2291,15 +2319,21 @@
       "invarianten": [
         "V5-INV-040"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/scheduler/workflow-vertrag.ts",
+        "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r8-scheduler.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r8NachweisStatus": "R8_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-020",
