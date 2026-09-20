@@ -108,8 +108,42 @@ export class GearAllokationsLedger {
     return sicht;
   }
 
+  public bereinigeAbgelaufene(jetztMs: number): readonly GearZielSicht[] {
+    if (!Number.isSafeInteger(jetztMs) || jetztMs < 0) {
+      throw new Error("GEAR_ZEIT_UNGUELTIG");
+    }
+    let abgelaufen: readonly GearZielSicht[] = Object.freeze([]);
+    this.#eintraege = Object.freeze(
+      this.#eintraege.map(x => {
+        const aktiv = x.status === "RESERVIERT" || x.status === "RECOVERY_PENDING";
+        if (!aktiv || jetztMs <= x.ziel.gueltigBisMs) return x;
+        const neu = friere({
+          ...x,
+          status: "ABGEBROCHEN",
+          settlementFingerprint: null,
+        });
+        abgelaufen = Object.freeze([...abgelaufen, neu]);
+        return neu;
+      }),
+    );
+    return Object.freeze(abgelaufen.map(x => friere(x)));
+  }
+
+  public markiereAbgebrochen(gearZielId: string): GearZielSicht {
+    const alt = this.#finde(gearZielId);
+    if (alt.status === "SETTLED" || alt.status === "ABGEBROCHEN") {
+      throw new Error("GEAR_ABBRUCH_ZUSTAND_UNGUELTIG");
+    }
+    return this.#ersetze(friere({
+      ...alt,
+      status: "ABGEBROCHEN",
+      settlementFingerprint: null,
+    }));
+  }
+
   public priorisierteOffene(jetztMs: number): readonly GearZielSicht[] {
     if (!Number.isSafeInteger(jetztMs) || jetztMs < 0) throw new Error("GEAR_ZEIT_UNGUELTIG");
+    this.bereinigeAbgelaufene(jetztMs);
     return Object.freeze(
       this.#eintraege
         .filter(x => (x.status === "RESERVIERT" || x.status === "RECOVERY_PENDING")

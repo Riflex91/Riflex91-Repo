@@ -10,6 +10,8 @@ const pflicht = [
   "grundlage/quelle/produktion/production-graph.ts",
   "grundlage/quelle/produktion/bank-katalog.ts",
   "grundlage/quelle/merchant/gear-allokation.ts",
+  "grundlage/quelle/merchant/gear-progression.ts",
+  "grundlage/tests/r15-gear-progression.test.mjs",
   "grundlage/quelle/merchant/logistik-workflow.ts",
   "grundlage/quelle/merchant/supply-policy.ts",
   "grundlage/quelle/produktion/recipient-settlement.ts",
@@ -41,8 +43,24 @@ for (const marker of [
   "GEAR_RECIPIENT_SLOT_BEREITS_BELEGT",
   "FARMER",
   "RECOVERY_PENDING",
+  "bereinigeAbgelaufene",
+  "ABGEBROCHEN",
 ]) {
   if (!gear.includes(marker)) fehler.push("GEAR_MARKER_FEHLT:" + marker);
+}
+
+const gearProgression = liesText("grundlage/quelle/merchant/gear-progression.ts");
+for (const marker of [
+  "planeUndReserviereGearProgression",
+  "farmerVorMerchantSelf: true",
+  "KANDIDAT_BEREITS_RESERVIERT",
+  "RECIPIENT_SLOT_BEREITS_BELEGT",
+  "EVIDENCE_STALE",
+  "ausfuehrungsAutoritaet: false",
+  "gameplayAutoritaet: false",
+  "rawWriteAutoritaet: false",
+]) {
+  if (!gearProgression.includes(marker)) fehler.push("GEAR_PROGRESS_MARKER_FEHLT:" + marker);
 }
 
 const graph = liesText("grundlage/quelle/produktion/production-graph.ts");
@@ -153,6 +171,7 @@ const r15Quellen = [
   "grundlage/quelle/merchant/supply-policy.ts",
   "grundlage/quelle/merchant/logistik-workflow.ts",
   "grundlage/quelle/merchant/gear-allokation.ts",
+  "grundlage/quelle/merchant/gear-progression.ts",
   "grundlage/quelle/produktion/bank-katalog.ts",
   "grundlage/quelle/produktion/production-graph.ts",
   "grundlage/quelle/produktion/recipient-settlement.ts",
