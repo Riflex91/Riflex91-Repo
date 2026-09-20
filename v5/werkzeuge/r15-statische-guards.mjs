@@ -16,12 +16,17 @@ const pflicht = [
   "grundlage/quelle/produktion/production-planer.ts",
   "grundlage/quelle/produktion/production-controller.ts",
   "grundlage/tests/r15-logistik-gear.test.mjs",
+  "grundlage/tests/r15-logistik-capability.test.mjs",
+  "grundlage/quelle/merchant/logistik-planer.ts",
+  "grundlage/quelle/merchant/logistik-controller.ts",
   "grundlage/quelle/produktion/production-graph.ts",
   "grundlage/quelle/produktion/bank-katalog.ts",
   "grundlage/quelle/merchant/gear-allokation.ts",
   "grundlage/quelle/merchant/gear-progression.ts",
   "grundlage/tests/r15-gear-progression.test.mjs",
   "grundlage/quelle/merchant/logistik-workflow.ts",
+  "grundlage/quelle/merchant/logistik-planer.ts",
+  "grundlage/quelle/merchant/logistik-controller.ts",
   "grundlage/quelle/merchant/supply-policy.ts",
   "grundlage/quelle/produktion/recipient-settlement.ts",
   "grundlage/quelle/produktion/production-intent.ts",
@@ -43,6 +48,39 @@ for (const marker of [
   "RECOVERY_PENDING",
 ]) {
   if (!logistik.includes(marker)) fehler.push("LOGISTIK_MARKER_FEHLT:" + marker);
+}
+
+const logistikPlaner = liesText("grundlage/quelle/merchant/logistik-planer.ts");
+for (const marker of [
+  "planeMerchantLogistik",
+  "pruefeLogistikQuellenPin",
+  "LOGISTIK_PLAN_QUELLE_POSTEN_MISMATCH",
+  "LOGISTIK_QUELLEN_POSTEN_DRIFT",
+  "AL-ACTION-SEND-ITEM",
+  "AL-RECOVERY-SEND-ITEM",
+  "AL-VERIFIER-SEND-ITEM",
+  "ausfuehrungsAutoritaet: false",
+  "gameplayAutoritaet: false",
+  "rawWriteAutoritaet: false",
+]) {
+  if (!logistikPlaner.includes(marker)) {
+    fehler.push("LOGISTIK_PLANER_MARKER_FEHLT:" + marker);
+  }
+}
+
+const logistikController = liesText("grundlage/quelle/merchant/logistik-controller.ts");
+for (const marker of [
+  "PersistenterMerchantLogistikController",
+  "durableIntentPersistiert: true",
+  "RECOVERY_PENDING",
+  "LOGISTIK_TRANSFER_ZUSTAND_UNGUELTIG",
+  "sameTransferErneutSenden: false",
+  "gameplayAutoritaet = false",
+  "rawWriteAutoritaet = false",
+]) {
+  if (!logistikController.includes(marker)) {
+    fehler.push("LOGISTIK_CONTROLLER_MARKER_FEHLT:" + marker);
+  }
 }
 
 const gear = liesText("grundlage/quelle/merchant/gear-allokation.ts");
