@@ -220,7 +220,9 @@ if(r19.status==="DONE"){
       ||ready.r19AnforderungenGesamt!==3
       ||ready.r19LiveStatus!=="BIS_SOAK_15M_BESTANDEN"
       ||ready.r19LadderVollstaendig!==true
-      ||ready.r19Soak15mEvidence!=="v5/roadmap/r19-soak-15m-evidence.json") {
+      ||ready.r19Soak15mEvidence!=="v5/roadmap/r19-soak-15m-evidence.json"
+      ||ready.gesamtfreigabe!=="SEPARAT_AUSSTEHEND"
+      ||ready.breiteRuntimeFreigabe!==false) {
     fehler("R19 DONE Readiness-Metadaten unvollstaendig.");
   }
   const done=lies("roadmap/r19-abschluss.json");
