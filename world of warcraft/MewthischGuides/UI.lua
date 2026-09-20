@@ -405,6 +405,15 @@ function MG:InitializeUI()
 
         local rounded = math.floor((tonumber(value) or 0) / 5 + 0.5) * 5
         local transparency = clampTransparency(rounded / 100)
+        local current = clampTransparency(MG.db.settings.windowTransparency)
+
+        if math.abs(current - transparency) < 0.0001 then
+            if ui.transparencyValue then
+                ui.transparencyValue:SetText(
+                    tostring(math.floor(transparency * 100 + 0.5)) .. "%")
+            end
+            return
+        end
 
         MG.db.settings.windowTransparency = transparency
         MG:ApplyWindowTransparency()
