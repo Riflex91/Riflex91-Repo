@@ -2,12 +2,15 @@ import type { KritischeHealthAnforderung } from "../operations/health.js";
 import {
   merchantCoreABasisModulDefinition,
 } from "../merchant/modul-vertrag.js";
+import {
+  merchantCoreAPlanungsFaehigkeitDefinitionen,
+} from "../merchant/faehigkeits-vertrag.js";
 import type {
   V5ProduktionsKompositionsDefinition,
 } from "./produktions-runtime.js";
 
 export const PRODUKTIONS_KOMPOSITIONS_KATALOG_STATUS =
-  "DEFAULT_DENY_OHNE_FAEHIGKEITSBINDUNGEN";
+  "DEFAULT_DENY_PLANEN_REGISTRIERT_INAKTIV";
 
 function kopiereHealthAnforderungen(
   anforderungen: readonly KritischeHealthAnforderung[],
@@ -25,7 +28,7 @@ export function erstelleKanonischeProduktionsKomposition(
     modulDefinitionen: Object.freeze([
       merchantCoreABasisModulDefinition(),
     ]),
-    faehigkeitsDefinitionen: Object.freeze([]),
+    faehigkeitsDefinitionen: merchantCoreAPlanungsFaehigkeitDefinitionen(),
     healthAnforderungen: kopiereHealthAnforderungen(healthAnforderungen),
   });
 }
