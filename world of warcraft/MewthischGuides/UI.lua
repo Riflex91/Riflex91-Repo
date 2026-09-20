@@ -304,7 +304,7 @@ function MG:RefreshTheme()
 
     for _, button in ipairs(ui.buttons) do
         if button and button._mgBackground then
-            local bg = button._mgHovered and theme.active or theme.panel
+            local bg = (button._mgHovered or button._mgSelected) and theme.active or theme.panel
             setColorTexture(button._mgBackground, bg)
             setFrameBorder(button, theme)
         end
@@ -1054,6 +1054,8 @@ function MG:RefreshSettings()
     ui.checkGearAuto:SetChecked(self.db.settings.gearAutoEquip)
 
     local routeMode = self.GetRouteMode and self:GetRouteMode() or "preset"
+    ui.routeManualButton._mgSelected = routeMode == "manual"
+    ui.routePresetButton._mgSelected = routeMode == "preset"
     ui.routeModeValue:SetText(routeMode == "manual" and "aktiv: Manuell" or "aktiv: Vorgegeben")
 
     ui.navigatorScaleValue:SetText(string.format("%d%%",
