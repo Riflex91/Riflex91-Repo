@@ -75,6 +75,57 @@ for (const [muster, kennung] of [
   }
 }
 
+const remoteConfig = liesText("grundlage/quelle/control/remote-config.ts");
+for (const marker of [
+  "PersistenterRemoteConfigRegister",
+  "REMOTE_CONFIG_POLICY_SCHLUESSEL_SICHERHEITSKRITISCH",
+  "REMOTE_CONFIG_QUELLE_NICHT_VERTRAUT",
+  "REMOTE_CONFIG_REVISION_REPLAY_ODER_STALE",
+  "planningEvidence = true",
+  "executionAuthority = false",
+  "gameplayAutoritaet = false",
+  "rawWriteAutoritaet = false",
+]) {
+  if (!remoteConfig.includes(marker)) {
+    fehler.push("REMOTE_CONFIG_MARKER_FEHLT:" + marker);
+  }
+}
+
+const requestBudget = liesText("grundlage/quelle/control/request-budget.ts");
+for (const marker of [
+  "PersistentesCloudRequestBudget",
+  "REQUEST_BUDGET_SYSTEM_LIMIT_ERSCHOEPFT",
+  "REQUEST_BUDGET_ZWECK_LIMIT_ERSCHOEPFT",
+  "durableReserviert: true",
+  "refundBeiUnbekanntemAusgang = false",
+  "automatischerRetry = false",
+  "executionAuthority = false",
+  "gameplayAutoritaet = false",
+  "rawWriteAutoritaet = false",
+]) {
+  if (!requestBudget.includes(marker)) {
+    fehler.push("REQUEST_BUDGET_MARKER_FEHLT:" + marker);
+  }
+}
+
+for (const [datei, quelltext] of [
+  ["REMOTE_CONFIG", remoteConfig],
+  ["REQUEST_BUDGET", requestBudget],
+]) {
+  for (const [muster, kennung] of [
+    [/\bfetch\s*\(/, "FETCH"],
+    [/\bload_code\s*\(/, "LOAD_CODE"],
+    [/\bupload_code\s*\(/, "UPLOAD_CODE"],
+    [/\bapi_call\s*\(/, "API_CALL"],
+    [/node:child_process/, "CHILD_PROCESS"],
+    [/windows-bridge/i, "WINDOWS_BRIDGE"],
+  ]) {
+    if (muster.test(quelltext)) {
+      fehler.push(datei + "_RAW_REMOTE_ZUGRIFF_VERBOTEN:" + kennung);
+    }
+  }
+}
+
 const segmente = liesText("grundlage/quelle/operations/segment-pflege.ts");
 for (const marker of ["maximaleSegmente","maximaleBytes","maximalesAlterMs","komprimiereAbAlterMs"]) {
   if (!segmente.includes(marker)) fehler.push("SEGMENT_PFLEGE_MARKER_FEHLT:" + marker);
