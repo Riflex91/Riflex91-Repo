@@ -1453,7 +1453,7 @@
       "titel": "Runtime-Freigabe erfolgt stufenweise ueber Shadow, Controlled Live, Canary, 5 Minuten Funktions-Evidence, die bereits laufende 10-Minuten-Uebergangsstufe und einen finalen 15-Minuten-Integrations-/Release-Test.",
       "phase": "R19",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R19_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-067"
       ],
@@ -1473,12 +1473,15 @@
         "v5/roadmap/r19-canary-evidence.json",
         "v5/roadmap/r19-soak-5m-evidence.json",
         "v5/roadmap/testzeit-standard.json",
-        "v5/roadmap/r19-soak-10m-evidence.json"
+        "v5/roadmap/r19-soak-10m-evidence.json",
+        "v5/roadmap/r19-soak-15m-evidence.json"
       ],
-      "r19LiveStatus": "BIS_SOAK_10M_BESTANDEN",
+      "r19LiveStatus": "BIS_SOAK_15M_BESTANDEN",
       "r19Zeitprofil": "R19_ACCELERATED_SOAK_V2",
       "r19ZeitprofilAenderung": "R19 V2: 30m/60m entfallen. Einzelne neue/geaenderte Funktionen: 5m; Integrations-/Release-Meilensteine: 15m. Der bereits gestartete SOAK_10M bleibt als Uebergangs-Zwischenstufe gueltig.",
-      "r19TestzeitStandard": "V5_TESTZEIT_STANDARD_V1"
+      "r19TestzeitStandard": "V5_TESTZEIT_STANDARD_V1",
+      "r19NachweisStatus": "R19_NACHGEWIESEN",
+      "r19AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-OPS-007",
