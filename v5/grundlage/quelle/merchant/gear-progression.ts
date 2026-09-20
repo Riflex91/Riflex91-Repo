@@ -293,7 +293,10 @@ export function planeUndReserviereGearProgression(
 
   const abgelaufeneReservierungen =
     ledger.bereinigeAbgelaufene(jetztMs);
-  let aktiveZiele: readonly GearZielSicht[] = Object.freeze(\n    ledger.snapshot().filter(istAktivesZiel),\n  );\n  let abgelehnt: readonly GearProgressionsAblehnung[] =
+  let aktiveZiele: readonly GearZielSicht[] = Object.freeze(
+    ledger.snapshot().filter(istAktivesZiel),
+  );
+  let abgelehnt: readonly GearProgressionsAblehnung[] =
     Object.freeze([]);
   let kandidaten: readonly GearVergleichEvidence[] =
     Object.freeze([]);
