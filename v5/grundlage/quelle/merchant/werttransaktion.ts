@@ -217,10 +217,14 @@ export class WerttransaktionsLedger {
   }
 
   public finde(transaktionsId: string): WerttransaktionsSicht {
+    return friere(this.#finde(transaktionsId));
+  }
+
+  #finde(transaktionsId: string): WerttransaktionsSicht {
     pruefeText(transaktionsId, "WERTTRANSAKTION_ID_UNGUELTIG");
     const sicht = this.#eintraege.find(x => x.transaktionsId === transaktionsId);
     if (sicht === undefined) throw new Error("WERTTRANSAKTION_UNBEKANNT");
-    return friere(sicht);
+    return sicht;
   }
 
   #ersetze(neu: WerttransaktionsSicht): WerttransaktionsSicht {
