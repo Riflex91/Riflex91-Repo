@@ -2,11 +2,20 @@ namespace ForeverDataMiner;
 
 public static class Program
 {
+    [STAThread]
     public static async Task<int> Main(string[] args)
     {
         try
         {
-            if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
+            if (args.Length == 0)
+            {
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Application.Run(new MainForm());
+                return 0;
+            }
+
+            if (args[0] is "-h" or "--help" or "help")
             {
                 PrintHelp();
                 return 0;
@@ -23,7 +32,7 @@ public static class Program
                 ?? throw new ArgumentException("WoW root not found. Pass --wow <path>.");
 
             var output = GetArg(args, "--out")
-                ?? Path.Combine(AppContext.BaseDirectory, "exports");
+                ?? DefaultOutputDirectory();
 
             var wtlRaw = GetArg(args, "--wtl");
             var wtl = Uri.TryCreate(wtlRaw, UriKind.Absolute, out var uri) ? uri : null;
@@ -60,6 +69,8 @@ public static class Program
         catch (Exception ex)
         {
             Console.Error.WriteLine($"ForeverDataMiner: {ex.Message}");
+            if (args.Length == 0)
+                MessageBox.Show(ex.Message, "ForeverDataMiner", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return 1;
         }
     }
@@ -72,7 +83,7 @@ public static class Program
         return null;
     }
 
-    private static string? AutoDetectWowRoot()
+    public static string? AutoDetectWowRoot()
     {
         var candidates = new[]
         {
@@ -86,10 +97,19 @@ public static class Program
         return candidates.FirstOrDefault(path => File.Exists(Path.Combine(path, ".build.info")));
     }
 
+    public static string DefaultOutputDirectory() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "ForeverGuide",
+            "ForeverDataMiner",
+            "exports");
+
     private static void PrintHelp()
     {
         Console.WriteLine("""
 ForeverDataMiner
+
+Double-click without arguments to open the Windows UI.
 
 Commands:
   selftest
