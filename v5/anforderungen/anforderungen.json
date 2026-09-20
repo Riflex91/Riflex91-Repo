@@ -1657,7 +1657,7 @@
       "titel": "Character-Kommunikation ist versioniert, dedupliziert, TTL-begrenzt und workflow-korreliert.",
       "phase": "R14",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R14_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-076"
       ],
@@ -1666,14 +1666,23 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r14NachweisStatus": "R14_NACHGEWIESEN",
+      "r14Nachweise": [
+        "v5/grundlage/quelle/koordination/cm-protokoll.ts",
+        "v5/grundlage/quelle/koordination/cm-settlement.ts",
+        "v5/grundlage/quelle/koordination/character-agent.ts",
+        "v5/grundlage/tests/r14-cm-protokoll.test.mjs",
+        "v5/grundlage/tests/r14-cm-settlement.test.mjs",
+        "v5/dokumentation/P1A-CM-MULTI-CHARACTER.md"
+      ]
     },
     {
       "kennung": "V5-ANF-MULTI-002",
       "titel": "Party-/Character-Ziele sind an aktuelle Roster-Epoche gebunden.",
       "phase": "R14",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R14_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-077"
       ],
@@ -1682,14 +1691,21 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r14NachweisStatus": "R14_NACHGEWIESEN",
+      "r14Nachweise": [
+        "v5/grundlage/quelle/koordination/roster-wahrheit.ts",
+        "v5/grundlage/quelle/koordination/account-koordinator.ts",
+        "v5/grundlage/tests/r14-roster-liveness.test.mjs",
+        "v5/grundlage/tests/r14-koordinator-agent.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-MULTI-003",
       "titel": "Stale Character erhaelt keine neue Authority.",
       "phase": "R14",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R14_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-078"
       ],
@@ -1698,14 +1714,21 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r14NachweisStatus": "R14_NACHGEWIESEN",
+      "r14Nachweise": [
+        "v5/grundlage/quelle/koordination/character-liveness.ts",
+        "v5/grundlage/quelle/koordination/account-koordinator.ts",
+        "v5/grundlage/tests/r14-roster-liveness.test.mjs",
+        "v5/grundlage/tests/r14-koordinator-agent.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-MULTI-004",
       "titel": "Verlorene, doppelte und umsortierte Nachrichten werden fault-injected.",
       "phase": "R14",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R14_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-079"
       ],
@@ -1714,14 +1737,21 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r14NachweisStatus": "R14_NACHGEWIESEN",
+      "r14Nachweise": [
+        "v5/grundlage/quelle/koordination/cm-protokoll.ts",
+        "v5/grundlage/quelle/koordination/cm-settlement.ts",
+        "v5/grundlage/tests/r14-cm-fault-injektion.test.mjs",
+        "v5/grundlage/tests/r14-cm-settlement.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-MULTI-005",
       "titel": "Account Coordinator und Character Agent besitzen getrennte Verantwortungen.",
       "phase": "R14",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R14_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-080"
       ],
@@ -1730,7 +1760,14 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r14NachweisStatus": "R14_NACHGEWIESEN",
+      "r14Nachweise": [
+        "v5/grundlage/quelle/koordination/account-koordinator.ts",
+        "v5/grundlage/quelle/koordination/character-agent.ts",
+        "v5/grundlage/tests/r14-koordinator-agent.test.mjs",
+        "v5/architektur/verfassung.json"
+      ]
     },
     {
       "kennung": "V5-ANF-WORLD-001",
