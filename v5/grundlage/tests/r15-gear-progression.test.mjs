@@ -226,15 +226,15 @@ test("stale, unbekannte, inkompatible oder gesperrte Evidence erzeugt kein Gear-
 
   assert.equal(plan.neueZiele.length, 0);
   assert.deepEqual(
-    new Set(plan.abgelehnt.map(x => x.grund)),
-    new Set([
+    [...plan.abgelehnt.map(x => x.grund)].sort(),
+    [
       "EVIDENCE_STALE",
       "CONTENT_NICHT_VERIFIZIERT",
       "NICHT_KOMPATIBEL",
       "PHYSISCH_NICHT_VERFUEGBAR",
       "DISPOSITION_GESPERRT",
       "VERBESSERUNG_ZU_KLEIN",
-    ]),
+    ].sort(),
   );
 });
 
