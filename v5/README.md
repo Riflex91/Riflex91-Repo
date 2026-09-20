@@ -254,3 +254,21 @@ Abschluss: `roadmap/r15-abschluss.json`
 Die breite Gameplay-Runtime bleibt `GESPERRT`.
 
 Aktuelle Phase: **R16 – Party, Combat, Farming und Navigation**.
+
+
+## R16 – Party, Combat, Farming und Navigation abgeschlossen
+
+R16 ist als no-write World-/Combat-Foundation abgeschlossen.
+
+Movement-Return ist kein Arrival-Beweis; Arrival braucht eine frische beobachtete Postcondition. Bewegte Ziele werden motion-aware revalidiert. Raw Targets sind nur volatile Evidence und keine fachliche Target-Ownership. Movement-Owner verhindern Travel/Kite-Pingpong, Safety-Preemption ist epochengebunden.
+
+Party Truth, Skill-/Shared-Cooldown-Evidence, Death/Respawn/Rejoin, Threat/CC, AoE-Hard-Caps, Encounter-Dedupe und ein bounded Farmer-FSM sind V5-nativ umgesetzt.
+
+P1B: `dokumentation/P1B-PARTY-COMBAT-NAVIGATION.md`  
+Abdeckung: `grundlage/vertraege/r16/party-combat-navigation-abdeckung.json`  
+ADR: `architektur/adr/ADR-019-R16-PARTY-COMBAT-NAVIGATION.md`  
+Abschluss: `roadmap/r16-abschluss.json`
+
+Die breite Gameplay-Runtime bleibt `GESPERRT`.
+
+Aktuelle Phase: **R17 – World Autonomy**.
