@@ -16,6 +16,7 @@ const invarianten = liesJson('v5/invarianten/invarianten.json');
 const zustaende = liesJson('v5/zustaende/zustandsautomaten.json');
 const fitness = liesJson('v5/fitness/fitness-regeln.json');
 const bereitschaft = liesJson('v5/bereitschaft/laufzeit-bereitschaft.json');
+const windowsBridgeReadinessProfil = liesJson('v5/roadmap/windows-bridge-readiness-testprofil.json');
 const anzeige = liesJson('v5/anzeigetexte/regelwerk.json');
 const entwicklungsWissen = liesJson('v5/entwicklungsregeln/wissensnutzung.json');
 const quellenfreigaben = liesJson('v5/entwicklungsregeln/quellenfreigaben.json');
@@ -176,6 +177,54 @@ if (wissen012?.status === 'OFFEN') {
   if (bereitschaft.status !== 'GESPERRT') {
     fehler('Mit offenem WISSEN-012 muss die globale Runtime GESPERRT bleiben.');
   }
+}
+
+const erwarteteBridgeReadinessPunkte = [
+  'BRIDGE_KONFIGURATION',
+  'CONFIG_VERSION',
+  'WISSENSWAECHTER_AKTIV',
+  'WISSENSWAECHTER_INTERVALL',
+  'KNOWLEDGE_REPOSITORY',
+  'KNOWLEDGE_BRANCH',
+  'KNOWLEDGE_SCOPE',
+  'LIVE_WISSEN_PFAD',
+  'TEST_OHNE_GAMEPLAY_WRITE',
+  'GIT_CREDENTIAL_MANAGER',
+  'GITHUB_ANMELDUNG',
+  'KNOWLEDGE_REPO_LIVE_PRUEFUNG',
+  'TEMP_ARBEITSKOPIE_CLEANUP'
+];
+if (windowsBridgeReadinessProfil.schemaVersion !== 1
+    || windowsBridgeReadinessProfil.kennung !== 'V5_WINDOWS_BRIDGE_READINESS'
+    || windowsBridgeReadinessProfil.testVersion !== '1.0.0'
+    || windowsBridgeReadinessProfil.automatischerErfolgsstatus
+        !== 'AUTOMATISCHE_PRUEFUNGEN_BESTANDEN_MANUELLER_AUTORISIERUNGSNACHWEIS_OFFEN') {
+  fehler('Windows-Bridge-Readiness-Testprofil hat eine unerwartete Kennung/Version/Erfolgssemantik.');
+}
+if (JSON.stringify(windowsBridgeReadinessProfil.automatischePflichtpunkte) !== JSON.stringify(erwarteteBridgeReadinessPunkte)) {
+  fehler('Windows-Bridge-Readiness-Testprofil hat nicht exakt die erwarteten automatischen Pflichtpunkte.');
+}
+if (windowsBridgeReadinessProfil.manuellerPflichtpunkt?.kennung !== 'GITHUB_LEAST_PRIVILEGE'
+    || windowsBridgeReadinessProfil.manuellerPflichtpunkt?.anforderung !== 'V5-ANF-WISSEN-012'
+    || windowsBridgeReadinessProfil.manuellerPflichtpunkt?.statusVorNachweis !== 'MANUELL_NACHWEISEN') {
+  fehler('Windows-Bridge-Readiness-Testprofil bindet den manuellen Least-Privilege-Nachweis nicht korrekt.');
+}
+if (windowsBridgeReadinessProfil.sicherheit?.gameplayWritesDurchTest !== 0
+    || windowsBridgeReadinessProfil.sicherheit?.knowledgePushDurchTest !== false
+    || windowsBridgeReadinessProfil.sicherheit?.tokenImBericht !== false
+    || windowsBridgeReadinessProfil.sicherheit?.tempArbeitskopie !== true
+    || windowsBridgeReadinessProfil.sicherheit?.tempArbeitskopieCleanupPflicht !== true
+    || windowsBridgeReadinessProfil.breiteRuntimeFreigabeAutomatisch !== false) {
+  fehler('Windows-Bridge-Readiness-Testprofil verletzt den Safety-/Freigabevertrag.');
+}
+const erwarteteBridgeReadinessBereiche = [
+  'ANFORDERUNGEN_BEREIT',
+  'SECURITY_BEREIT',
+  'BETRIEBSMODELL_BEREIT'
+];
+if (JSON.stringify(windowsBridgeReadinessProfil.readinessNachVollstaendigemNachweis)
+    !== JSON.stringify(erwarteteBridgeReadinessBereiche)) {
+  fehler('Windows-Bridge-Readiness-Testprofil hat unerwartete Readiness-Zielbereiche.');
 }
 
 for (const pfad of [
