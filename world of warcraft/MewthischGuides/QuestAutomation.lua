@@ -278,12 +278,18 @@ function MG:HandleQuestAutomationEvent(event)
 
         if choices > 1 then
             self.automationStatus = "Belohnung manuell waehlen"
+            local recommendation = self.RewardAdvisor and self.RewardAdvisor:Refresh() or nil
 
             self:Log("INFO", "quest.auto.reward_choice_required",
                 "Mehrere Questbelohnungen verfuegbar; Auto-Abgabe wartet auf die Auswahl des Spielers.", {
                     expectedQuestID = expectedQuestID,
                     questID = questID,
                     choices = choices,
+                    recommendedIndex = recommendation and recommendation.index or nil,
+                    recommendedItemID = recommendation and recommendation.evaluation and
+                        recommendation.evaluation.itemID or nil,
+                    recommendationConfidence = recommendation and recommendation.evaluation and
+                        recommendation.evaluation.confidence or nil,
                 })
 
             self:RefreshUI()
