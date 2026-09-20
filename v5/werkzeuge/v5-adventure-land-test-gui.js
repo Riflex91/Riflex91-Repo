@@ -2,7 +2,7 @@
   'use strict';
 
   const API_NAME = 'V5TestGui';
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
   const STIL_ID = 'v5-test-gui-stil';
   const STATUS = Object.freeze(['bereit', 'laeuft', 'bestanden', 'blockiert', 'fehler', 'warnung', 'info']);
 
@@ -96,6 +96,7 @@
       '.v5tg-titel{font-weight:800;flex:1;min-width:0}.v5tg-version{opacity:.55;font-size:11px}.v5tg-status{padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800;text-transform:uppercase;background:rgba(255,255,255,.10)}',
       '.v5tg-status[data-status="bestanden"]{background:rgba(55,200,110,.22);color:#9ff0bb}.v5tg-status[data-status="fehler"]{background:rgba(255,82,82,.22);color:#ffb1b1}.v5tg-status[data-status="blockiert"]{background:rgba(255,145,55,.22);color:#ffd0a1}.v5tg-status[data-status="warnung"]{background:rgba(255,184,60,.22);color:#ffe0a3}.v5tg-status[data-status="laeuft"]{background:rgba(75,150,255,.22);color:#b7d6ff}',
       '.v5tg-inhalt{overflow:auto;padding:10px 12px}.v5tg-beschreibung{margin:0 0 10px;color:#c7d2e3}.v5tg-status-text{padding:8px 9px;margin-bottom:10px;border-radius:7px;background:rgba(255,255,255,.05);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
+      '.v5tg-timer{display:none;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin-bottom:10px;border:1px solid rgba(75,150,255,.24);border-radius:8px;background:rgba(75,150,255,.10)}.v5tg-timer.sichtbar{display:flex}.v5tg-timer span{color:#b7c8df}.v5tg-timer strong{font:800 22px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.04em;color:#dceaff}',
       '.v5tg-aktionen{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}.v5tg button{border:1px solid rgba(255,255,255,.16);border-radius:7px;padding:7px 10px;background:rgba(255,255,255,.08);color:inherit;cursor:pointer}.v5tg button:hover:not(:disabled){background:rgba(255,255,255,.15)}.v5tg button:disabled{opacity:.38;cursor:not-allowed}.v5tg button[data-art="primaer"]{background:rgba(73,141,255,.25)}.v5tg button[data-art="gefahr"]{background:rgba(200,73,73,.24);border-color:rgba(255,100,100,.38)}',
       '.v5tg-bestaetigung{display:none;padding:9px;margin:0 0 10px;border:1px solid rgba(255,178,61,.30);border-radius:8px;background:rgba(255,178,61,.08)}.v5tg-bestaetigung.sichtbar{display:block}.v5tg-bestaetigung label{display:block;margin-bottom:5px;color:#ffe0a3}.v5tg-bestaetigung code{user-select:all}.v5tg-bestaetigung input{width:100%;padding:7px 8px;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(0,0,0,.28);color:#fff}',
       '.v5tg-ergebnis-kopf,.v5tg-log-kopf{display:flex;align-items:center;gap:8px;margin:10px 0 5px}.v5tg-ergebnis-kopf strong,.v5tg-log-kopf strong{flex:1}.v5tg textarea{width:100%;min-height:190px;max-height:350px;resize:vertical;padding:9px;border:1px solid rgba(255,255,255,.15);border-radius:7px;background:rgba(0,0,0,.28);color:#eaf1ff;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre}',
@@ -187,7 +188,9 @@
       ergebnis: null,
       protokoll: [],
       aktionen: new Map(),
-      gestartetAm: new Date().toISOString()
+      gestartetAm: new Date().toISOString(),
+      restzeitMs: null,
+      restzeitLabel: null
     };
 
     const root = doc.createElement('section');
@@ -204,6 +207,7 @@
       '<div class="v5tg-inhalt">',
       '<p class="v5tg-beschreibung"></p>',
       '<div class="v5tg-status-text">Bereit.</div>',
+      '<div class="v5tg-timer"><span>Verbleibende Testdauer</span><strong>--:--</strong></div>',
       '<div class="v5tg-aktionen"></div>',
       '<div class="v5tg-bestaetigung"><label>Zur Freigabe exakt eingeben: <code></code></label><input type="text" autocomplete="off" spellcheck="false"></div>',
       '<div class="v5tg-ergebnis-kopf"><strong>Testergebnis</strong><button type="button" data-aktion="ergebnis-kopieren">Ergebnis kopieren</button></div>',
@@ -219,6 +223,9 @@
     const beschreibung = root.querySelector('.v5tg-beschreibung');
     const statusEl = root.querySelector('.v5tg-status');
     const statusText = root.querySelector('.v5tg-status-text');
+    const timerEl = root.querySelector('.v5tg-timer');
+    const timerLabel = timerEl.querySelector('span');
+    const timerWert = timerEl.querySelector('strong');
     const aktionen = root.querySelector('.v5tg-aktionen');
     const bestaetigung = root.querySelector('.v5tg-bestaetigung');
     const bestaetigungCode = bestaetigung.querySelector('code');
@@ -239,6 +246,36 @@
       statusEl.textContent = status.toUpperCase();
       statusText.textContent = zustand.statusText;
       return status;
+    }
+
+    function formatiereRestzeit(restMs) {
+      const sekunden = Math.max(0, Math.ceil(Number(restMs) / 1000));
+      const stunden = Math.floor(sekunden / 3600);
+      const minuten = Math.floor((sekunden % 3600) / 60);
+      const restSekunden = sekunden % 60;
+      const mm = String(minuten).padStart(2, '0');
+      const ss = String(restSekunden).padStart(2, '0');
+      return stunden > 0 ? String(stunden).padStart(2, '0') + ':' + mm + ':' + ss : mm + ':' + ss;
+    }
+
+    function setzeRestzeit(restMs, label = 'Verbleibende Testdauer') {
+      if (restMs === null || restMs === undefined) {
+        zustand.restzeitMs = null;
+        zustand.restzeitLabel = null;
+        timerEl.classList.remove('sichtbar');
+        timerLabel.textContent = 'Verbleibende Testdauer';
+        timerWert.textContent = '--:--';
+        return null;
+      }
+      const wert = Number(restMs);
+      if (!Number.isFinite(wert)) throw new Error('V5_TEST_GUI_RESTZEIT_UNGUELTIG');
+      const geklemmt = Math.max(0, Math.floor(wert));
+      zustand.restzeitMs = geklemmt;
+      zustand.restzeitLabel = String(label || 'Verbleibende Testdauer');
+      timerLabel.textContent = zustand.restzeitLabel;
+      timerWert.textContent = formatiereRestzeit(geklemmt);
+      timerEl.classList.add('sichtbar');
+      return geklemmt;
     }
 
     function protokolliere(text, wert) {
@@ -382,6 +419,7 @@
       registriereAktion,
       setzeAktionAktiv,
       setzeBestaetigung,
+      setzeRestzeit,
       berichtText,
       kopiereErgebnis,
       kopiereBericht,
@@ -392,6 +430,8 @@
           status: zustand.status,
           statusText: zustand.statusText,
           ergebnis: zustand.ergebnis,
+          restzeitMs: zustand.restzeitMs,
+          restzeitLabel: zustand.restzeitLabel,
           protokollEintraege: zustand.protokoll.length,
           aktionen: Object.freeze([...zustand.aktionen.keys()])
         });
