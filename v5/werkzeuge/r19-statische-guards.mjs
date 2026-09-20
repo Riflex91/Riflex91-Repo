@@ -247,7 +247,7 @@ const bankCanaryBrowser=lies("werkzeuge/bank-planen-canary-browser.mjs");
 for(const m of [
   "BANK_CANARY_BROWSER_READ_ONLY = true",
   "BANK_CANARY_GAMEPLAY_WRITES = 0",
-  "character.bank",
+  "c.bank",
   "G.items",
   "BANK_CANARY_ALTERNATIVE_RUNTIME_AKTIV",
 ]){
