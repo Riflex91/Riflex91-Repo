@@ -469,6 +469,7 @@
   const DAUER_MS = 5 * 60 * 1000;
   const INTERVALL_MS = 15 * 1000;
   const MAX_SAMPLE_GAP_MS = 45 * 1000;
+  const MAX_SHADOW_NACHLAUF_MS = 15 * 60 * 1000;
   const MAX_SAMPLES = 30;
   const MIN_PREVIEW_CHANCE = 0.99;
   const MAX_TEST_BASISWERT_GOLD = 100000;
@@ -946,8 +947,12 @@
 
   function shadowBestanden() {
     const session = liesSession();
+    const abgeschlossenAmMs = Number(session?.abgeschlossenAmMs);
     return session?.status === 'COMPLETED'
-      && session?.result?.status === 'BESTANDEN';
+      && session?.result?.status === 'BESTANDEN'
+      && Number.isFinite(abgeschlossenAmMs)
+      && abgeschlossenAmMs <= Date.now()
+      && Date.now() - abgeschlossenAmMs <= MAX_SHADOW_NACHLAUF_MS;
   }
 
   async function preview(art) {
@@ -1394,6 +1399,15 @@
     }
   });
 
+  if (shadowBestanden()) {
+    gui.setzeAktionAktiv('preview-upgrade', true);
+    gui.setzeAktionAktiv('preview-compound', true);
+    gui.setzeStatus(
+      'info',
+      'Frischer bestandener 5m-Shadow gefunden. Preview kann fortgesetzt werden.'
+    );
+  }
+
   const api = Object.freeze({
     version: VERSION,
     test: gui,
@@ -1429,6 +1443,7 @@
     intervallMs: INTERVALL_MS,
     minPreviewChance: MIN_PREVIEW_CHANCE,
     maxTestBasiswertGold: MAX_TEST_BASISWERT_GOLD,
+    maxShadowNachlaufMs: MAX_SHADOW_NACHLAUF_MS,
     maximaleMutationsWritesProLauf: 1,
     sameIntentRetry: false,
     upgradeBestaetigung: UPGRADE_BESTAETIGUNG,
