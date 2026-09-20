@@ -208,7 +208,7 @@ function MG:GetGoalSummary(goals)
     for _, goal in ipairs(goals or {}) do
         local marker = goal.state == self.GoalStates.COMPLETE and "[OK]" or "[ ]"
         local progress = goal.progressText ~= "" and (" " .. goal.progressText) or ""
-        parts[#parts + 1] = marker .. " " .. goal.name .. progress
+        parts[#parts + 1] = marker .. " " .. tostring(goal.name or goal.instruction or "Questziel") .. progress
     end
 
     return table.concat(parts, "   ")
