@@ -81,7 +81,10 @@ public sealed class MinerService(MinerOptions options)
                             ["sha256"] = tableHash
                         }));
 
-                    previousState?.TableRows.TryGetValue(table, out var previousRows);
+                    Dictionary<string, string>? previousRows = null;
+                    if (previousState is not null)
+                        previousState.TableRows.TryGetValue(table, out previousRows);
+
                     var diff = CsvDiff.Compare(table, csv, previousRows);
                     nextState.TableRows[table] = diff.CurrentRows;
 
