@@ -155,7 +155,7 @@ function MG:SetNavigatorScale(scale)
     if navigator.frame then applyScale(navigator.frame) end
     self:RefreshSettings()
 
-    self:Log("INFO", "navigator.scale", "Navigator-Skalierung geaendert.", {
+    self:Log("INFO", "navigator.scale", "Navigator-Skalierung geändert.", {
         scale = scale,
     })
 end
@@ -170,7 +170,7 @@ function MG:ResetNavigatorPosition()
         applyScale(navigator.frame)
     end
 
-    self:Log("INFO", "navigator.reset", "Navigator-Position zurueckgesetzt.")
+    self:Log("INFO", "navigator.reset", "Navigator-Position zurückgesetzt.")
 end
 
 function MG:ToggleNavigator()
