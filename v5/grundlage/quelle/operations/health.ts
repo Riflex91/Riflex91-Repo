@@ -39,16 +39,16 @@ export function bewerteKritischeHealth(
   }
   if (evidence.length > 512) throw new Error("HEALTH_EVIDENCE_ANZAHL_UNGUELTIG");
 
-  const fehlend: string[] = [];
-  const stale: string[] = [];
-  const kritisch: string[] = [];
-  const degradiert: string[] = [];
+  let fehlend: readonly string[] = Object.freeze([]);
+  let stale: readonly string[] = Object.freeze([]);
+  let kritisch: readonly string[] = Object.freeze([]);
+  let degradiert: readonly string[] = Object.freeze([]);
 
   for (const anforderung of anforderungen) {
     pruefeText(anforderung.healthId, "HEALTH_ID_UNGUELTIG");
     const passend = evidence.find(x => x.healthId === anforderung.healthId);
     if (passend === undefined) {
-      fehlend.push(anforderung.healthId);
+      fehlend = Object.freeze([...fehlend, anforderung.healthId]);
       continue;
     }
     pruefeText(passend.evidenceId, "HEALTH_EVIDENCE_ID_UNGUELTIG");
@@ -56,11 +56,15 @@ export function bewerteKritischeHealth(
         || !Number.isSafeInteger(passend.gueltigBisMs)
         || passend.beobachtetAmMs > jetztMs
         || passend.gueltigBisMs < jetztMs) {
-      stale.push(anforderung.healthId);
+      stale = Object.freeze([...stale, anforderung.healthId]);
       continue;
     }
-    if (passend.zustand === "KRITISCH") kritisch.push(anforderung.healthId);
-    if (passend.zustand === "DEGRADIERT") degradiert.push(anforderung.healthId);
+    if (passend.zustand === "KRITISCH") {
+      kritisch = Object.freeze([...kritisch, anforderung.healthId]);
+    }
+    if (passend.zustand === "DEGRADIERT") {
+      degradiert = Object.freeze([...degradiert, anforderung.healthId]);
+    }
   }
 
   const zustand: HealthZustand =
