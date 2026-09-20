@@ -49,9 +49,13 @@ export function planeSegmentPflege(
     loeschen.push(erstes.segmentId);
   }
 
+  const eindeutig = (werte: readonly string[]): readonly string[] => Object.freeze(
+    [...werte].sort().filter((wert, index, alle) => index === 0 || wert !== alle[index - 1]),
+  );
+
   return Object.freeze({
-    komprimierenIds: Object.freeze([...new Set(komprimieren.filter(x => !loeschen.includes(x)))].sort()),
-    loeschenIds: Object.freeze([...new Set(loeschen)].sort()),
-    behaltenIds: Object.freeze(aktiv.map(x => x.segmentId).sort()),
+    komprimierenIds: eindeutig(komprimieren.filter(x => !loeschen.includes(x))),
+    loeschenIds: eindeutig(loeschen),
+    behaltenIds: eindeutig(aktiv.map(x => x.segmentId)),
   });
 }
