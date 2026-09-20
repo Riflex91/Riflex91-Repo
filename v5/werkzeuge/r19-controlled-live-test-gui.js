@@ -251,6 +251,8 @@
   function passiveVorpruefung() {
     const obs = beobachte();
     const gruende = ruheGruende(obs);
+    const performanceTrick = guiApi().aktivierePerformanceTrick();
+    if (!performanceTrick.aktiv) gruende.push('PERFORMANCE_TRICK_NICHT_AKTIV');
     const journal = liesJournal();
     if (journalOffen(journal)) gruende.push('VORHERIGER_TESTVERSUCH_UNGEKLAERT');
     const speicher = pruefeStorage();
@@ -265,6 +267,7 @@
       status: gruende.length ? 'BLOCKIERT' : 'BESTANDEN',
       zeit: jetzt(),
       breiteRuntimeFreigabe: false,
+      performanceTrick,
       actionContractId: ACTION,
       recoveryContractId: RECOVERY,
       verifierId: VERIFIER,
@@ -343,11 +346,14 @@
     titel: '1 · Alte Runtime stoppen',
     art: 'normal',
     ausfuehren() {
+      const performanceTrick = guiApi().aktivierePerformanceTrick();
       const result = stoppeAltRuntime();
+      result.performanceTrick = performanceTrick;
+      if (!performanceTrick.aktiv) result.status = 'BLOCKIERT';
       gui.protokolliere('Alte Runtime stoppen', result);
       setzeResultat(result, result.status === 'BESTANDEN'
-        ? 'Keine alte V3/V4-Gameplay-Runtime mehr aktiv.'
-        : 'Alte Runtime konnte nicht vollstaendig gestoppt werden.');
+        ? 'Keine alte V3/V4-Gameplay-Runtime mehr aktiv; performance_trick ist aktiv.'
+        : 'Runtime- oder performance_trick-Vorbedingung ist nicht erfuellt.');
       gui.setzeAktionAktiv('passive-vorpruefung', result.status === 'BESTANDEN');
       return result;
     }
