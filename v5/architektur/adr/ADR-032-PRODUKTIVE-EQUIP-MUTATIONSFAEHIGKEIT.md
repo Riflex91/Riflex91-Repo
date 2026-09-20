@@ -49,6 +49,19 @@ Controlled-Live und Canary Evidence. Im Gegensatz dazu wurden Bank- und
 wertrelevante Merchant-Mutationen bewusst nicht als erster produktiver
 Mutationspfad gewaehlt.
 
+## Alternativen
+
+- Eine Bank-Mutation zuerst registrieren: verworfen, weil der reale Banknachweis
+  bisher absichtlich nur PLANEN/zero-write abdeckt.
+- Den R12-Testowner `vertical-slice-controlled-live` produktiv weiterverwenden:
+  verworfen, weil ADR-014 diesen Owner und sein Gate auf den Testnachweis
+  begrenzt.
+- Mehrere MUTIEREN-Capabilities gleichzeitig registrieren: verworfen, weil der
+  erste produktive Mutationsschnitt klein, einzeln auditierbar und
+  rollback-faehig bleiben soll.
+- `equipment.equip` automatisch aktivieren: verworfen; MUTIEREN bleibt
+  default-off und benoetigt einen separaten produktiven Aktivierungsvertrag.
+
 ## Invarianten
 
 - genau ein produktiver Owner fuer `equipment.equip`;
