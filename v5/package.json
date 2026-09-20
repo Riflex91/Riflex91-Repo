@@ -1,9 +1,9 @@
 {
   "name": "adventure-land-aio-v5",
-  "version": "5.0.0-r14.0",
+  "version": "5.0.0-r15.0",
   "private": true,
   "type": "module",
-  "description": "Adventure Land AiO Bot V5 – R14 Multi-Character Coordination mit CM-Dedupe/TTL, Roster-Epochen, Liveness und Coordinator/Agent-Grenze.",
+  "description": "Adventure Land AiO Bot V5 – R15 Merchant Core B mit q/Placeholder-Reconciliation und finalem Recipient Settlement.",
   "scripts": {
     "bereinigen": "node werkzeuge/r3-bereinigen.mjs",
     "bauen": "npm run bereinigen && tsc -p tsconfig.json",
@@ -41,7 +41,9 @@
     "r13:test": "npm run grundlage:test",
     "r13:pruefen": "npm run typen:pruefen && npm run lint && npm run r13:test && node werkzeuge/r13-statische-guards.mjs && node werkzeuge/r13-struktur-pruefen.mjs",
     "r14:test": "npm run grundlage:test",
-    "r14:pruefen": "npm run typen:pruefen && npm run lint && npm run r14:test && node werkzeuge/r14-statische-guards.mjs && node werkzeuge/r14-struktur-pruefen.mjs"
+    "r14:pruefen": "npm run typen:pruefen && npm run lint && npm run r14:test && node werkzeuge/r14-statische-guards.mjs && node werkzeuge/r14-struktur-pruefen.mjs",
+    "r15:test": "npm run grundlage:test",
+    "r15:pruefen": "npm run typen:pruefen && npm run lint && npm run r15:test && node werkzeuge/r15-statische-guards.mjs && node werkzeuge/r15-struktur-pruefen.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
