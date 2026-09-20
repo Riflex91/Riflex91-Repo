@@ -12,6 +12,7 @@ public static class SelfTest
         try
         {
             TestBuildInfo(root);
+            TestWowPathResolver(root);
             TestCsvDiff();
             TestStateStore(root);
             Console.WriteLine("ForeverDataMiner self-test passed.");
@@ -37,6 +38,31 @@ public static class SelfTest
         Assert(build.InterfaceVersion == 16001, "Interface version derivation failed.");
         Assert(build.BuildKey == "11112222333344445555666677778888", "Build key parsing failed.");
         Assert(build.Product == "wow_beta", "Product selection failed.");
+    }
+
+    private static void TestWowPathResolver(string root)
+    {
+        var forever = Path.Combine(root, "_classic_beta_");
+        Directory.CreateDirectory(forever);
+
+        var resolvedFromRoot = WowPathResolver.ResolveRoot(root);
+        var resolvedFromForever = WowPathResolver.ResolveRoot(forever);
+
+        Assert(
+            string.Equals(resolvedFromRoot, root, StringComparison.OrdinalIgnoreCase),
+            "WoW root path resolution failed.");
+        Assert(
+            string.Equals(resolvedFromForever, root, StringComparison.OrdinalIgnoreCase),
+            "Forever _classic_beta_ path resolution failed.");
+        Assert(
+            WowPathResolver.IsForeverProductPath(forever),
+            "Forever product-folder recognition failed.");
+        Assert(
+            string.Equals(
+                WowPathResolver.PreferredForeverPath(root),
+                forever,
+                StringComparison.OrdinalIgnoreCase),
+            "Forever product-folder preference failed.");
     }
 
     private static void TestCsvDiff()
