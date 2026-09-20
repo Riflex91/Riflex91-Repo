@@ -19,7 +19,11 @@ for(const p of [
   "grundlage/quelle/zertifizierung/shadow-bewertung.ts",
   "grundlage/quelle/zertifizierung/production-certification.ts",
   "grundlage/quelle/runtime/produktions-komposition.ts",
+  "grundlage/quelle/runtime/produktions-runtime.ts",
   "grundlage/quelle/merchant/modul-vertrag.ts",
+  "grundlage/quelle/merchant/faehigkeits-vertrag.ts",
+  "grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json",
+  "architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md",
   "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
   "dokumentation/PRODUKTIONS-KOMPOSITION.md",
   "grundlage/tests/r19-evidence-ladder.test.mjs",
@@ -62,6 +66,36 @@ for(const p of [
   "roadmap/testzeit-standard.json",
 ]){
   if(!fs.existsSync(p)) fehler("R19 Pflichtartefakt fehlt: "+p);
+}
+
+const merchantPlanen=lies("grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json");
+const merchantPlanenIds=new Set([
+  "merchant.task.planen",
+  "merchant.bank.planen",
+  "merchant.verkauf.planen",
+  "merchant.markt.planen",
+  "merchant.mluck.planen",
+  "merchant.logistik.planen",
+  "merchant.gear.planen",
+  "merchant.itemmutation.planen",
+]);
+if(merchantPlanen.schemaVersion!==1
+    ||merchantPlanen.vertragVersion!=="1"
+    ||merchantPlanen.modulId!=="merchant-core-a"
+    ||merchantPlanen.modulVersion!=="1"
+    ||merchantPlanen.authorityGrenze!=="PLANEN_ONLY"
+    ||merchantPlanen.standardAktiv!==false
+    ||merchantPlanen.mutierendeFaehigkeiten!==0
+    ||merchantPlanen.faehigkeiten?.length!==8
+    ||merchantPlanen.faehigkeiten.some(x=>
+      !merchantPlanenIds.has(x.faehigkeitId)
+      ||x.modus!=="PLANEN"
+      ||x.planungsOderKoordinationsNachweis!==true
+      ||x.ausfuehrungsAutoritaet!==false
+      ||x.gameplayAutoritaet!==false
+      ||x.rawWriteAutoritaet!==false)
+    ||new Set(merchantPlanen.faehigkeiten.map(x=>x.faehigkeitId)).size!==8) {
+  fehler("Merchant Core A PLANEN-Capability-Vertrag ungueltig.");
 }
 
 const cap045=lies("roadmap/cap045-production-live-evidence.json");
