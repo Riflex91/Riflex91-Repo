@@ -126,6 +126,6 @@ The engine now also contains:
 - QuestTracking as the live quest-state source;
 - State + Sync for cross-subsystem refresh;
 - local-only Telemetry and Diagnostics;
-- five UI themes.
+- seven UI themes, including adaptive ElvUI, EllesmereUI and ToxiUI skins.
 
 The engine architecture is now complete through the final planned step. Remaining work belongs to either evidence-backed guide-data expansion or the dedicated Forever runtime bug-fix/calibration phase; it is not another architecture layer.

@@ -61,7 +61,47 @@ local function explicitCoordinate(step)
     return nil
 end
 
-function RouteEngine:Resolve(step)
+function RouteEngine:EstimateDistanceToTarget(target, player)
+    local api = MG.ForeverAPI
+    player = player or (api and api:GetPlayerPosition() or nil)
+    if not target or not player or not api then return nil, "missing" end
+
+    local playerWorld = nil
+    local targetWorld = nil
+
+    if tonumber(target.worldX) and tonumber(target.worldY) and
+       api.MapToRestedXPWorld then
+        playerWorld = api:MapToRestedXPWorld(player.mapID, player.x, player.y)
+        targetWorld = {
+            continentID = playerWorld and playerWorld.continentID or nil,
+            x = tonumber(target.worldX),
+            y = tonumber(target.worldY),
+        }
+    elseif tonumber(target.mapID) and tonumber(target.x) and tonumber(target.y) then
+        playerWorld = api:MapToWorld(player.mapID, player.x, player.y)
+        targetWorld = api:MapToWorld(target.mapID, target.x, target.y)
+    end
+
+    if playerWorld and targetWorld and
+       (not targetWorld.continentID or playerWorld.continentID == targetWorld.continentID) then
+        local dx = targetWorld.x - playerWorld.x
+        local dy = targetWorld.y - playerWorld.y
+        return math.sqrt(dx * dx + dy * dy), "world"
+    end
+
+    if tonumber(player.mapID) == tonumber(target.mapID) and
+       tonumber(player.x) and tonumber(player.y) and
+       tonumber(target.x) and tonumber(target.y) then
+        local dx = target.x - player.x
+        local dy = target.y - player.y
+        return math.sqrt(dx * dx + dy * dy), "normalized_map"
+    end
+
+    return nil, "unresolved"
+end
+
+function RouteEngine:Resolve(step, options)
+    options = options or {}
     local api = MG.ForeverAPI
 
     if not step or not step.questID or not api then
@@ -80,7 +120,8 @@ function RouteEngine:Resolve(step)
             MG.RestEDXPImport:GetCoordinate(
                 step.definition,
                 step.phase,
-                MG:GetPlayerProfile()),
+                MG:GetPlayerProfile(),
+                step.goal and step.goal.index or nil),
             "restedxp_public_route")
     end
 
@@ -124,7 +165,7 @@ function RouteEngine:Resolve(step)
 
     local selected = candidates[1]
 
-    if MG.db then
+    if MG.db and not options.preview then
         MG.db.runtime = MG.db.runtime or {}
 
         local candidateSummary = {}
@@ -144,6 +185,8 @@ function RouteEngine:Resolve(step)
                 phaseMatch = candidate.phaseMatch,
                 isQuestStart = candidate.isQuestStart,
                 inProgress = candidate.inProgress,
+                rxpRoutePointCount = candidate.rxpRoutePointCount,
+                rxpRoutePointIndex = candidate.rxpRoutePointIndex,
             }
         end
 
@@ -162,7 +205,8 @@ function RouteEngine:Resolve(step)
     end
 
     if selected then
-        MG:Log("INFO", "route.destination", "RouteEngine hat ein Ziel gewaehlt.", {
+        if not options.preview then
+            MG:Log("INFO", "route.destination", "RouteEngine hat ein Ziel gewählt.", {
             questID = step.questID,
             phase = step.phase,
             source = selected.source,
@@ -176,17 +220,20 @@ function RouteEngine:Resolve(step)
             candidates = #candidates,
             candidateSummary = MG.db and MG.db.runtime and MG.db.runtime.route and
                 MG.db.runtime.route.candidates or nil,
-        })
+            })
+        end
 
         return selected, candidates, "resolved"
     end
 
-    MG:Log("WARN", "route.no_destination",
-        "RouteEngine konnte keine belastbare Zielkoordinate bestimmen.", {
-            questID = step.questID,
-            phase = step.phase,
-            playerMapID = playerMapID,
-        })
+    if not options.preview then
+        MG:Log("WARN", "route.no_destination",
+            "RouteEngine konnte keine belastbare Zielkoordinate bestimmen.", {
+                questID = step.questID,
+                phase = step.phase,
+                playerMapID = playerMapID,
+            })
+    end
 
     return nil, candidates, "no_coordinate"
 end
