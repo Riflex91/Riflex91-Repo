@@ -10,7 +10,18 @@ const r17=gates.phases?.find(x=>x.id==="R17");
 if(r16?.status!=="DONE") fehler("R17 verlangt R16 DONE.");
 if(!r17||!["IN_PROGRESS","DONE"].includes(r17.status)) fehler("R17 muss IN_PROGRESS oder DONE sein.");
 if(r17.status==="IN_PROGRESS"&&gates.currentPhase!=="R17") fehler("R17 IN_PROGRESS verlangt currentPhase=R17.");
-if(ready.status==="FREIGEGEBEN") fehler("R17 darf breite Runtime nicht freigeben.");
+if(ready.status==="FREIGEGEBEN"){
+  if(!fs.existsSync("roadmap/gesamtfreigabe.json")) fehler("R17 darf die Runtime nicht selbst freigeben; finale Betreiber-Gesamtfreigabe-Evidence fehlt.");
+  const gesamtfreigabe=lies("roadmap/gesamtfreigabe.json");
+  if(gesamtfreigabe.kennung!=="V5_GESAMTFREIGABE"
+      ||gesamtfreigabe.status!=="ERTEILT"
+      ||gesamtfreigabe.bestaetigungQuelle!=="BETREIBER_INTERAKTIV"
+      ||gesamtfreigabe.bestaetigungText!=="V5 GESAMTFREIGABE ERTEILEN"
+      ||ready.gesamtfreigabe!=="ERTEILT"
+      ||ready.breiteRuntimeFreigabe!==true){
+    fehler("R17 darf die Runtime nicht selbst freigeben; nur die spaetere explizite Post-R19-Gesamtfreigabe ist zulaessig.");
+  }
+}
 
 for(const p of [
   "grundlage/quelle/welt/map-graph.ts",
