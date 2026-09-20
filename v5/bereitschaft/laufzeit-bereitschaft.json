@@ -69,7 +69,7 @@
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
       "erfuellt": false,
-      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. R7 weist seine 5/5 MUSS-Anforderungen technisch und tracebar nach; erfuellt bleibt bis zur technischen Kopplung aller spaeteren Phasen an Implementierung, Tests und erforderliche Live-Nachweise false.",
+      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. R7 weist 5/5 und R8 weitere 6/6 MUSS-Anforderungen technisch und tracebar nach; erfuellt bleibt bis zur technischen Kopplung aller spaeteren Phasen an Implementierung, Tests und erforderliche Live-Nachweise false.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
         "v5/anforderungen/nachverfolgbarkeit.json"
@@ -78,12 +78,15 @@
       "r2RatifiziertAm": "2026-09-19",
       "r7NachweisVorhanden": true,
       "r7AnforderungenNachgewiesen": 5,
-      "r7AnforderungenGesamt": 5
+      "r7AnforderungenGesamt": 5,
+      "r8NachweisVorhanden": true,
+      "r8AnforderungenNachgewiesen": 6,
+      "r8AnforderungenGesamt": 6
     },
     {
       "kennung": "INVARIANTEN_BEREIT",
       "erfuellt": false,
-      "grund": "R3 erzwingt zentrale Architektur-, Host-, Default-Deny-, Mehrfach-Verriegelungs-, Namensraum- und Dependency-Invarianten. R7 ergaenzt Single-Owner, typisierte Port-Grenzen, deny-only Bedienersteuerung, Nothalt sowie Capability-Lifecycle-Guards. erfuellt bleibt false, bis die spaeteren Scheduler-, Fencing-, Admission-, Execution-, Recovery- und Betriebsinvarianten technisch geschlossen sind.",
+      "grund": "R3 erzwingt zentrale Architektur-/Host-/Default-Deny-Grenzen, R7 Single-Owner/Ports/Operator-Deny und R8 Scheduler-, Action-Channel-, Lease-/Fencing-, Safe-Preemption-, Retry-/Circuit- und Knowledge-Pinning-Invarianten. erfuellt bleibt false, bis Admission, Execution, Recovery und die spaeteren Betriebsinvarianten technisch geschlossen sind.",
       "nachweise": [
         "v5/invarianten/invarianten.json",
         "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
@@ -91,14 +94,22 @@
         "v5/grundlage/quelle/autoritaet/ports.ts",
         "v5/grundlage/quelle/autoritaet/bediener-richtlinie.ts",
         "v5/werkzeuge/r7-statische-guards.mjs",
-        "v5/architektur/adr/ADR-008-R7-MODULE-CAPABILITY-AUTHORITY.md"
+        "v5/architektur/adr/ADR-008-R7-MODULE-CAPABILITY-AUTHORITY.md",
+        "v5/grundlage/quelle/scheduler/workflow-vertrag.ts",
+        "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts",
+        "v5/grundlage/quelle/scheduler/ressourcen-verwalter.ts",
+        "v5/grundlage/quelle/scheduler/socket-budget.ts",
+        "v5/grundlage/quelle/scheduler/retry-circuit.ts",
+        "v5/architektur/adr/ADR-009-R8-SCHEDULER-RESSOURCEN-FENCING.md"
       ],
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
       "r3NachweisVorhanden": true,
       "r3AbgeschlossenAm": "2026-09-20",
       "r7NachweisVorhanden": true,
-      "r7AbgeschlossenAm": "2026-09-20"
+      "r7AbgeschlossenAm": "2026-09-20",
+      "r8NachweisVorhanden": true,
+      "r8AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "ZUSTANDSMASCHINEN_BEREIT",
@@ -170,7 +181,7 @@
     {
       "kennung": "SECURITY_BEREIT",
       "erfuellt": false,
-      "grund": "R3 weist Static-/Secret-/Host-API-/Default-Deny-/Mehrfach-Verriegelungs- und Knowledge-Path-Guards nach. R7 weist Single-Owner, mutierende Capabilities default-off, explizite Disable-/Rollback-Pfade sowie deny-only Operator Policy/Nothalt technisch nach. erfuellt bleibt false, bis spaetere Fencing-, Admission-, Execution-, Recovery- und Betriebsgrenzen implementiert sind.",
+      "grund": "R3 weist statische Safety-Grenzen nach, R7 Single-Owner/default-off/Operator-Deny und R8 Action-Channel-Serialisierung, character-globales Socket-Budget, Lease-Epoche/Fencing, stale-token-deny, Safe-Preemption und bounded Retry/Circuit. erfuellt bleibt false, bis R9-R11 Admission, Execution, Recovery und Operations technisch abgeschlossen sind.",
       "nachweise": [
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
@@ -178,13 +189,21 @@
         "v5/grundlage/quelle/autoritaet/bediener-richtlinie.ts",
         "v5/grundlage/tests/r7-autoritaet.test.mjs",
         "v5/werkzeuge/r7-statische-guards.mjs",
-        "v5/roadmap/r7-abschluss.json"
+        "v5/roadmap/r7-abschluss.json",
+        "v5/grundlage/quelle/scheduler/ressourcen-verwalter.ts",
+        "v5/grundlage/quelle/scheduler/socket-budget.ts",
+        "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts",
+        "v5/grundlage/tests/r8-ressourcen.test.mjs",
+        "v5/grundlage/tests/r8-scheduler.test.mjs",
+        "v5/roadmap/r8-abschluss.json"
       ],
       "r2VertragRatifiziert": true,
       "r3NachweisVorhanden": true,
       "r3AbgeschlossenAm": "2026-09-20",
       "r7NachweisVorhanden": true,
-      "r7AbgeschlossenAm": "2026-09-20"
+      "r7AbgeschlossenAm": "2026-09-20",
+      "r8NachweisVorhanden": true,
+      "r8AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "BETRIEBSMODELL_BEREIT",
@@ -203,7 +222,7 @@
   ],
   "offeneBlocker": [
     "Lokal laufende Windows Bridge auf einen aktuellen Knowledge-Branch-Build aktualisieren und den lokalen Deploymentstand separat verifizieren",
-    "R8 bis R11 Scheduler/Resources, Admission/Execution Kernel, Recovery und Observability abschliessen",
+    "R9 bis R11 Admission/Execution Kernel, Recovery und Observability abschliessen",
     "Gameplay-Runtime erst nach expliziter Laufzeitfreigabe und spaeterem Roadmap-Gate beginnen",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
@@ -218,5 +237,7 @@
   "r6Status": "ABGESCHLOSSEN",
   "r6AbgeschlossenAm": "2026-09-20",
   "r7Status": "ABGESCHLOSSEN",
-  "r7AbgeschlossenAm": "2026-09-20"
+  "r7AbgeschlossenAm": "2026-09-20",
+  "r8Status": "ABGESCHLOSSEN",
+  "r8AbgeschlossenAm": "2026-09-20"
 }
