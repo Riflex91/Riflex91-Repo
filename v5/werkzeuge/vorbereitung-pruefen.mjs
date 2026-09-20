@@ -17,6 +17,7 @@ const zustaende = liesJson('v5/zustaende/zustandsautomaten.json');
 const fitness = liesJson('v5/fitness/fitness-regeln.json');
 const bereitschaft = liesJson('v5/bereitschaft/laufzeit-bereitschaft.json');
 const windowsBridgeReadinessProfil = liesJson('v5/roadmap/windows-bridge-readiness-testprofil.json');
+const wissen012Nachweis = liesJson('v5/roadmap/v5-wissen-012-autorisierungsnachweis.json');
 const anzeige = liesJson('v5/anzeigetexte/regelwerk.json');
 const entwicklungsWissen = liesJson('v5/entwicklungsregeln/wissensnutzung.json');
 const quellenfreigaben = liesJson('v5/entwicklungsregeln/quellenfreigaben.json');
@@ -115,8 +116,14 @@ const bereitschaftKennungen = eindeutig(bereitschaft.bereiche.map(x => x.kennung
 if (bereitschaftKennungen.size !== pflicht.length) fehler('Bereitschaft braucht exakt zehn Pflichtbereiche.');
 for (const kennung of pflicht) if (!bereitschaftKennungen.has(kennung)) fehler('Bereitschaft fehlt: ' + kennung);
 const allesErfuellt = bereitschaft.bereiche.every(x => x.erfuellt === true);
-if (bereitschaft.status === 'FREIGEGEBEN' && !allesErfuellt) fehler('FREIGEGEBEN trotz offener Pflichtbereiche.');
-if (bereitschaft.status !== 'FREIGEGEBEN' && allesErfuellt) fehler('Alle Pflichtbereiche erfuellt, Status aber nicht FREIGEGEBEN.');
+const gesamtfreigabeErteilt = bereitschaft.gesamtfreigabe === 'ERTEILT'
+  && bereitschaft.breiteRuntimeFreigabe === true;
+if (bereitschaft.status === 'FREIGEGEBEN' && (!allesErfuellt || !gesamtfreigabeErteilt)) {
+  fehler('FREIGEGEBEN verlangt zehn technische Pflichtbereiche plus separate explizite Gesamtfreigabe.');
+}
+if (allesErfuellt && !gesamtfreigabeErteilt && bereitschaft.status !== 'GESPERRT') {
+  fehler('Zehn technische Pflichtbereiche geben die breite Runtime ohne separate Gesamtfreigabe nicht automatisch frei.');
+}
 const bereich = kennung => bereitschaft.bereiche.find(x => x.kennung === kennung);
 const offeneAnforderungen = anforderungen.anforderungen.filter(x => x.status === 'OFFEN');
 const unvollstaendigeTrace = nachverfolgung.eintraege.filter(x => x.vollstaendig !== true);
@@ -137,46 +144,69 @@ if (fehlermodellBereit?.erfuellt !== true
   fehler('FEHLERMODELL_BEREIT muss 161/161 modellierte Gefahren und R0-R19 DONE nachweisen.');
 }
 
-if (wissen012?.status === 'OFFEN') {
-  if (offeneAnforderungen.length !== 1 || offeneAnforderungen[0].kennung !== 'V5-ANF-WISSEN-012') {
-    fehler('Vor externem Autorisierungsnachweis darf nur V5-ANF-WISSEN-012 offen sein.');
-  }
-  if (unvollstaendigeTrace.length !== 1
-      || unvollstaendigeTrace[0].anforderungKennung !== 'V5-ANF-WISSEN-012') {
-    fehler('Vor externem Autorisierungsnachweis darf nur die Traceability von V5-ANF-WISSEN-012 unvollstaendig sein.');
-  }
+if (wissen012?.status !== 'R0_NACHGEWIESEN'
+    || wissen012.reconciliationStatus !== 'R0_NACHGEWIESEN'
+    || wissen012.autorisierungsNachweis !== 'v5/roadmap/v5-wissen-012-autorisierungsnachweis.json') {
+  fehler('V5-ANF-WISSEN-012 muss nach dem realen Least-Privilege-Nachweis R0_NACHGEWIESEN sein.');
+}
+if (offeneAnforderungen.length !== 0 || unvollstaendigeTrace.length !== 0) {
+  fehler('Nach geschlossenem WISSEN-012 muessen 119/119 Anforderungen und Trace-Eintraege vollstaendig sein.');
+}
 
-  const anforderungenBereit = bereich('ANFORDERUNGEN_BEREIT');
-  const securityBereit = bereich('SECURITY_BEREIT');
-  const betriebBereit = bereich('BETRIEBSMODELL_BEREIT');
-  if (anforderungenBereit?.erfuellt !== false
-      || anforderungenBereit.anforderungenNachgewiesen !== 118
-      || anforderungenBereit.anforderungenGesamt !== 119
-      || anforderungenBereit.traceabilityVollstaendig !== 118
-      || anforderungenBereit.traceabilityGesamt !== 119
-      || anforderungenBereit.externerBlocker !== 'V5-ANF-WISSEN-012') {
-    fehler('ANFORDERUNGEN_BEREIT muss vor WISSEN-012-Nachweis bei 118/119 fail-closed bleiben.');
-  }
-  if (securityBereit?.erfuellt !== false
-      || securityBereit.externerBlocker !== 'V5-ANF-WISSEN-012') {
-    fehler('SECURITY_BEREIT muss bis zum Least-Privilege-Nachweis gesperrt bleiben.');
-  }
-  if (betriebBereit?.erfuellt !== false
-      || betriebBereit.lokalerBridgeNachweisErforderlich !== true) {
-    fehler('BETRIEBSMODELL_BEREIT muss bis zum lokalen Bridge-Nachweis gesperrt bleiben.');
-  }
+const anforderungenBereit = bereich('ANFORDERUNGEN_BEREIT');
+const securityBereit = bereich('SECURITY_BEREIT');
+const betriebBereit = bereich('BETRIEBSMODELL_BEREIT');
+if (anforderungenBereit?.erfuellt !== true
+    || anforderungenBereit.anforderungenNachgewiesen !== 119
+    || anforderungenBereit.anforderungenGesamt !== 119
+    || anforderungenBereit.traceabilityVollstaendig !== 119
+    || anforderungenBereit.traceabilityGesamt !== 119) {
+  fehler('ANFORDERUNGEN_BEREIT muss nach WISSEN-012 bei 119/119 geschlossen sein.');
+}
+if (securityBereit?.erfuellt !== true) {
+  fehler('SECURITY_BEREIT muss nach geschlossenem Least-Privilege-Nachweis technisch erfuellt sein.');
+}
+if (betriebBereit?.erfuellt !== true
+    || betriebBereit.lokalerBridgeNachweisErforderlich !== false
+    || betriebBereit.lokalerBridgeNachweisVorhanden !== true) {
+  fehler('BETRIEBSMODELL_BEREIT muss den realen lokalen Bridge-Nachweis enthalten.');
+}
+if (!allesErfuellt) {
+  fehler('Nach geschlossenem WISSEN-012 muessen alle zehn technischen Pflichtbereiche erfuellt sein.');
+}
+if (bereitschaft.status !== 'GESPERRT'
+    || bereitschaft.gesamtfreigabe !== 'SEPARAT_AUSSTEHEND'
+    || bereitschaft.breiteRuntimeFreigabe !== false) {
+  fehler('Technische Vollstaendigkeit darf die separate breite Runtime-Gesamtfreigabe nicht ersetzen.');
+}
 
-  const falscheBereiche = bereitschaft.bereiche
-    .filter(x => x.erfuellt !== true)
-    .map(x => x.kennung)
-    .sort();
-  const erwartetFalsch = ['ANFORDERUNGEN_BEREIT','BETRIEBSMODELL_BEREIT','SECURITY_BEREIT'].sort();
-  if (JSON.stringify(falscheBereiche) !== JSON.stringify(erwartetFalsch)) {
-    fehler('Vor lokalem Bridge-/Autorisierungsnachweis muessen exakt drei Pflichtbereiche offen bleiben.');
-  }
-  if (bereitschaft.status !== 'GESPERRT') {
-    fehler('Mit offenem WISSEN-012 muss die globale Runtime GESPERRT bleiben.');
-  }
+if (wissen012Nachweis.schemaVersion !== 1
+    || wissen012Nachweis.kennung !== 'V5_WISSEN_012_AUTORISIERUNGSNACHWEIS'
+    || wissen012Nachweis.anforderung !== 'V5-ANF-WISSEN-012'
+    || wissen012Nachweis.status !== 'NACHGEWIESEN'
+    || wissen012Nachweis.bridgeReadiness?.status
+        !== 'AUTOMATISCHE_PRUEFUNGEN_BESTANDEN_MANUELLER_AUTORISIERUNGSNACHWEIS_OFFEN'
+    || wissen012Nachweis.bridgeReadiness?.githubKonto !== 'Riflex91'
+    || wissen012Nachweis.bridgeReadiness?.automatischePflichtpunkteBestanden !== true
+    || wissen012Nachweis.manuellerNachweis?.bestaetigungQuelle !== 'BETREIBER_INTERAKTIV'
+    || wissen012Nachweis.manuellerNachweis?.resourceOwner !== 'Riflex91'
+    || wissen012Nachweis.manuellerNachweis?.repositoryAccess !== 'ONLY_SELECT_REPOSITORIES'
+    || JSON.stringify(wissen012Nachweis.manuellerNachweis?.repositories) !== JSON.stringify(['Riflex91-Repo'])
+    || wissen012Nachweis.manuellerNachweis?.repositoryPermissions?.contents !== 'READ_AND_WRITE'
+    || wissen012Nachweis.manuellerNachweis?.repositoryPermissions?.metadata !== 'READ_AUTOMATISCH'
+    || wissen012Nachweis.manuellerNachweis?.tokenwertErfasst !== false
+    || wissen012Nachweis.manuellerNachweis?.tokenwertImRepository !== false
+    || wissen012Nachweis.bewertung?.repositoryBegrenzt !== true
+    || wissen012Nachweis.bewertung?.leastPrivilege !== true
+    || wissen012Nachweis.bewertung?.anforderungErfuellt !== true
+    || wissen012Nachweis.sicherheit?.breiteRuntimeFreigabe !== false
+    || wissen012Nachweis.sicherheit?.gesamtfreigabe !== 'SEPARAT_AUSSTEHEND') {
+  fehler('WISSEN-012-Autorisierungsnachweis ist unvollstaendig oder verletzt Least-Privilege/Safety.');
+}
+const verboteneSchreibrechte = ['Actions','Administration','Secrets','Environments','Deployments','Workflows'];
+if (JSON.stringify(wissen012Nachweis.manuellerNachweis?.keineZusaetzlichenSchreibrechte)
+    !== JSON.stringify(verboteneSchreibrechte)) {
+  fehler('WISSEN-012-Nachweis muss alle zusaetzlichen Schreibrechte explizit ausschliessen.');
 }
 
 const erwarteteBridgeReadinessPunkte = [
@@ -208,7 +238,10 @@ if (JSON.stringify(windowsBridgeReadinessProfil.automatischePflichtpunkte) !== J
 }
 if (windowsBridgeReadinessProfil.manuellerPflichtpunkt?.kennung !== 'GITHUB_LEAST_PRIVILEGE'
     || windowsBridgeReadinessProfil.manuellerPflichtpunkt?.anforderung !== 'V5-ANF-WISSEN-012'
-    || windowsBridgeReadinessProfil.manuellerPflichtpunkt?.statusVorNachweis !== 'MANUELL_NACHWEISEN') {
+    || windowsBridgeReadinessProfil.manuellerPflichtpunkt?.statusVorNachweis !== 'MANUELL_NACHWEISEN'
+    || windowsBridgeReadinessProfil.manuellerPflichtpunkt?.statusNachNachweis !== 'NACHGEWIESEN'
+    || windowsBridgeReadinessProfil.manuellerPflichtpunkt?.nachweisPfad
+        !== 'v5/roadmap/v5-wissen-012-autorisierungsnachweis.json') {
   fehler('Windows-Bridge-Readiness-Testprofil bindet den manuellen Least-Privilege-Nachweis nicht korrekt.');
 }
 if (windowsBridgeReadinessProfil.sicherheit?.gameplayWritesDurchTest !== 0

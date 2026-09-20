@@ -216,12 +216,12 @@ Der fruehere direkte-main-Blocker ist technisch geschlossen:
 1. **Dedizierter Knowledge-Branch und PR/CI-Gate umgesetzt.**  
    `GitArbeitskopie.CommitUndPushAsync` pusht auf `HEAD:v5/wissenswaechter-automatisch`. Der serverseitige Workflow `.github/workflows/v5-wissenswaechter-pr.yml` besitzt `contents: read` und `pull-requests: write`, akzeptiert im automatischen Branch nur `v5/wissensbasis/**`, validiert Wissensbasis und Entwicklungs-Wissensgate und erstellt/aktualisiert danach einen PR gegen `main`. Ein automatischer Knowledge-Lauf schreibt nicht direkt auf `main`.
 
-Vor V5-Gesamtfreigabe bleibt genau der reale Autorisierungsnachweis offen:
+Der reale Autorisierungsnachweis ist am 2026-09-20 geschlossen worden:
 
-2. **Least-Privilege-GitHub-Autorisierung am installierten System nachweisen.**  
-   Die Bridge sperrt Browser-OAuth fuer den Wissenswaechter und erzwingt den PAT-Modus von Git Credential Manager. Der lokale Knowledge-Sync merged oder rebased `main` nicht und benoetigt dadurch keine allgemeinen Workflow-Schreibrechte. Fuer `V5-ANF-WISSEN-012` muss am real installierten System trotzdem separat nachgewiesen werden, dass der tatsaechlich hinterlegte Fine-grained Token den Resource Owner `Riflex91`, **nur** das Repository `Riflex91-Repo` und als schreibendes Repository-Recht **nur Contents: Read and write** besitzt. Der Tokenwert selbst ist kein Nachweis und darf niemals offengelegt werden.
+2. **Least-Privilege-GitHub-Autorisierung am installierten System nachgewiesen.**  
+   Der reale Windows-Bridge-Readiness-Test wurde vollstaendig automatisch bestanden. Zusaetzlich hat der Betreiber fuer den tatsaechlich verwendeten Fine-grained PAT bestaetigt: Resource Owner `Riflex91`, **Only select repositories**, ausschließlich `Riflex91-Repo`, **Contents: Read and write**, automatisch **Metadata: Read** und keine zusaetzlichen Schreibrechte fuer Actions, Administration, Secrets, Environments, Deployments oder Workflows. Der Tokenwert wurde weder im Testbericht noch im Repository erfasst.
 
-Der Repository-/CI-Pfad ist damit technisch auf Least Privilege vorbereitet; der verbleibende Punkt ist bewusst ein externer Betriebs-/Autorisierungsnachweis und wird nicht aus Repo-Code abgeleitet.
+Der maschinenlesbare Nachweis liegt unter `v5/roadmap/v5-wissen-012-autorisierungsnachweis.json`. Damit ist `V5-ANF-WISSEN-012` technisch geschlossen. Diese Schliessung ist ausdruecklich **keine** breite Gameplay-Runtime-Gesamtfreigabe; diese bleibt separat ausstehend.
 
 
 ## Konsumentenvertrag fuer Entwicklung und Runtime

@@ -2670,22 +2670,25 @@
       ],
       "implementierung": [
         ".github/workflows/v5-wissenswaechter-pr.yml",
-        "ops/windows-bridge/GitArbeitskopie.cs"
+        "ops/windows-bridge/GitArbeitskopie.cs",
+        "ops/windows-bridge/GitHubAnmeldung.cs"
       ],
       "tests": [
-        "ops/windows-bridge-tests/Program.cs"
+        "ops/windows-bridge-tests/Program.cs",
+        "ops/windows-bridge/V5ReadinessSystemtest.cs"
       ],
-      "liveNachweise": [],
-      "vollstaendig": false,
+      "liveNachweise": [
+        "v5/roadmap/v5-wissen-012-autorisierungsnachweis.json"
+      ],
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
       ],
       "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
-      "reconciliationStatus": "EXTERN_OFFEN",
-      "reconciliationBlocker": "Die lokale Git-Credential-Manager/Browser-OAuth-Autorisierung kann aus dem Repository nicht als repository-begrenzte Least-Privilege-Autorisierung bewiesen werden.",
-      "reconciliationErforderlicherNachweis": "Lokale Bridge-Systempruefung plus GitHub-Autorisierungs-/Repository-Scope-Nachweis."
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationGeschlossenAm": "2026-09-20"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-013",

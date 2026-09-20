@@ -26,7 +26,9 @@
     "kennung": "GITHUB_LEAST_PRIVILEGE",
     "statusVorNachweis": "MANUELL_NACHWEISEN",
     "anforderung": "V5-ANF-WISSEN-012",
-    "nachweis": "Fine-grained PAT: Resource owner Riflex91; Repository access nur Riflex91-Repo; Repository permission Contents=Read and write; Metadata=Read automatisch; keine zusaetzlichen Actions-/Administration-/Secrets-/Environment-/Deployment-/Workflows-Schreibrechte."
+    "nachweis": "Fine-grained PAT: Resource owner Riflex91; Repository access nur Riflex91-Repo; Repository permission Contents=Read and write; Metadata=Read automatisch; keine zusaetzlichen Actions-/Administration-/Secrets-/Environment-/Deployment-/Workflows-Schreibrechte.",
+    "statusNachNachweis": "NACHGEWIESEN",
+    "nachweisPfad": "v5/roadmap/v5-wissen-012-autorisierungsnachweis.json"
   },
   "sicherheit": {
     "gameplayWritesDurchTest": 0,

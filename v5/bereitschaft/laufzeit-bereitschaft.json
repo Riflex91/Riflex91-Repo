@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-20",
   "status": "GESPERRT",
-  "freigaberegel": "Alle zehn Pflichtbereiche muessen erfuellt=true sein. Ausserdem muessen P0-Research und Invariantenratifizierung abgeschlossen, alle Validatoren gruen und der Roadmap-Gate fuer Runtime-Struktur explizit geoeffnet sein. R2-Ratifizierung allein ist keine Runtime-Freigabe.",
+  "freigaberegel": "Alle zehn Pflichtbereiche muessen erfuellt=true sein. Ausserdem muessen P0-Research und Invariantenratifizierung abgeschlossen, alle Validatoren gruen und der Roadmap-Gate fuer Runtime-Struktur explizit geoeffnet sein. Auch bei zehn technisch erfuellten Pflichtbereichen bleibt die breite Gameplay-Runtime bis zu einer separaten expliziten Gesamtfreigabe GESPERRT.",
   "bereiche": [
     {
       "kennung": "WISSEN_BEREIT",
@@ -68,8 +68,8 @@
     },
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
-      "erfuellt": false,
-      "grund": "118/119 ratifizierte Anforderungen und 118/119 Trace-Eintraege sind technisch nachgewiesen. Die historische R0-R3-Reconciliation schliesst 33/34 Altstaende. Einzig V5-ANF-WISSEN-012 bleibt extern offen: repository-begrenzte Least-Privilege-GitHub-Autorisierung des real installierten Wissenswaechters ist lokal nachzuweisen.",
+      "erfuellt": true,
+      "grund": "119/119 Anforderungen und 119/119 Trace-Eintraege sind nachgewiesen. Die R0-R3-Reconciliation ist 34/34 geschlossen; V5-ANF-WISSEN-012 wurde durch einen vollstaendig bestandenen realen Windows-Bridge-Readiness-Test plus Betreiberbestaetigung des repository-begrenzten Fine-grained-PAT-Least-Privilege-Scopes geschlossen.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
         "v5/anforderungen/nachverfolgbarkeit.json",
@@ -78,7 +78,8 @@
         "v5/roadmap/r19-soak-10m-evidence.json",
         "v5/roadmap/r19-soak-15m-evidence.json",
         "v5/roadmap/r0-r3-reconciliation.json",
-        "v5/werkzeuge/r0-r3-reconciliation-pruefen.mjs"
+        "v5/werkzeuge/r0-r3-reconciliation-pruefen.mjs",
+        "v5/roadmap/v5-wissen-012-autorisierungsnachweis.json"
       ],
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
@@ -120,11 +121,11 @@
       "r18AnforderungenGesamt": 5,
       "r19AnforderungenNachgewiesen": 3,
       "r19AnforderungenGesamt": 3,
-      "anforderungenNachgewiesen": 118,
+      "anforderungenNachgewiesen": 119,
       "anforderungenGesamt": 119,
-      "traceabilityVollstaendig": 118,
+      "traceabilityVollstaendig": 119,
       "traceabilityGesamt": 119,
-      "externerBlocker": "V5-ANF-WISSEN-012"
+      "technischGeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "INVARIANTEN_BEREIT",
@@ -262,8 +263,8 @@
     },
     {
       "kennung": "SECURITY_BEREIT",
-      "erfuellt": false,
-      "grund": "Runtime-Safety, Authority, Admission, Recovery, Secretschutz und R19-Zertifizierung sind technisch nachgewiesen. Offen ist ausschliesslich der externe Least-Privilege-Nachweis fuer die am realen PC verwendete GitHub-Autorisierung des Wissenswaechters (V5-ANF-WISSEN-012).",
+      "erfuellt": true,
+      "grund": "Runtime-Safety, Authority, Admission, Recovery, Secretschutz und R19-Zertifizierung sind technisch nachgewiesen. Der zuvor externe Least-Privilege-Nachweis V5-ANF-WISSEN-012 ist durch realen Windows-Bridge-Readiness-Test und Betreiberbestaetigung des Fine-grained-PAT-Repository-/Rechtescopes geschlossen.",
       "nachweise": [
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
@@ -297,7 +298,8 @@
         "v5/grundlage/tests/r11-mutation.test.mjs",
         "v5/grundlage/vertraege/r11/fault-matrix.json",
         "v5/roadmap/r11-abschluss.json",
-        "v5/roadmap/r0-r3-reconciliation.json"
+        "v5/roadmap/r0-r3-reconciliation.json",
+        "v5/roadmap/v5-wissen-012-autorisierungsnachweis.json"
       ],
       "r2VertragRatifiziert": true,
       "r3NachweisVorhanden": true,
@@ -312,12 +314,12 @@
       "r10AbgeschlossenAm": "2026-09-20",
       "r11NachweisVorhanden": true,
       "r11AbgeschlossenAm": "2026-09-20",
-      "externerBlocker": "V5-ANF-WISSEN-012"
+      "technischGeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "BETRIEBSMODELL_BEREIT",
-      "erfuellt": false,
-      "grund": "Repository-Code, R19-Zertifizierung und Knowledge-Branch-/PR-Pfad sind abgeschlossen. Offen ist die Verifikation, dass auf dem realen PC die aktuelle Windows-Bridge installiert ist und mit der vorgesehenen GitHub-Autorisierung/Knowledge-Branch-Konfiguration laeuft.",
+      "erfuellt": true,
+      "grund": "Repository-Code, R19-Zertifizierung und Knowledge-Branch-/PR-Pfad sind abgeschlossen. Die aktuelle Windows-Bridge wurde am realen PC mit GitHub-Anmeldung, Fine-grained-PAT-Modus, Knowledge-Repository/-Branch/-Scope, Live-Wissen-Pfad, isolierter Repository-Live-Pruefung und vollstaendigem Temp-Cleanup erfolgreich nachgewiesen.",
       "nachweise": [
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
         "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md",
@@ -326,7 +328,8 @@
         "v5/grundlage/tests/r11-operations.test.mjs",
         "ops/windows-bridge/GitArbeitskopie.cs",
         "ops/windows-bridge/WissenswaechterDienst.cs",
-        "ops/windows-bridge/WebQuellenEntdecker.cs"
+        "ops/windows-bridge/WebQuellenEntdecker.cs",
+        "v5/roadmap/v5-wissen-012-autorisierungsnachweis.json"
       ],
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
@@ -335,13 +338,14 @@
       "alteBridgeBinaryBeobachtet": true,
       "r11NachweisVorhanden": true,
       "r11AbgeschlossenAm": "2026-09-20",
-      "lokalerBridgeNachweisErforderlich": true
+      "lokalerBridgeNachweisErforderlich": false,
+      "lokalerBridgeNachweisVorhanden": true,
+      "lokalerBridgeNachweisAm": "2026-09-20",
+      "technischGeschlossenAm": "2026-09-20"
     }
   ],
   "offeneBlocker": [
-    "V5-ANF-WISSEN-012: repository-begrenzte Least-Privilege-GitHub-Autorisierung des Wissenswaechters am realen PC nachweisen",
-    "Lokales Deployment der aktuellen Windows-Bridge inklusive Knowledge-Branch-/Live-Wissen-Konfiguration am realen PC verifizieren",
-    "Breite Gameplay-Runtime bleibt bis zu zehn erfuellten Pflichtbereichen und separater expliziter Gesamtfreigabe GESPERRT"
+    "Breite Gameplay-Runtime bleibt trotz 10/10 technisch erfuellten Pflichtbereichen bis zur separaten expliziten Gesamtfreigabe GESPERRT"
   ],
   "r2Status": "RATIFIZIERT",
   "r2AbgeschlossenAm": "2026-09-19",
@@ -412,5 +416,7 @@
   "r19LadderVollstaendig": true,
   "zusatzNachweise": [
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat dokumentieren; dieser ersetzt nicht den WISSEN-012-Autorisierungsnachweis."
-  ]
+  ],
+  "gesamtfreigabe": "SEPARAT_AUSSTEHEND",
+  "breiteRuntimeFreigabe": false
 }
