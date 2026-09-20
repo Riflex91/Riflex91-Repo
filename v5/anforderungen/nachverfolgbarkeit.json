@@ -1442,15 +1442,22 @@
       "invarianten": [
         "V5-INV-030"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/vertical-slice/protokoll.ts",
+        "v5/grundlage/quelle/vertical-slice/shadow-adapter.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r12-vertical-slice-shadow.test.mjs",
+        "v5/werkzeuge/r12-statische-guards.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r12NachweisStatus": "R12_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-TEST-008",
@@ -1461,15 +1468,21 @@
       "invarianten": [
         "V5-INV-030"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/vertical-slice/controlled-live-policy.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r12-vertical-slice-shadow.test.mjs",
+        "v5/werkzeuge/r12-struktur-pruefen.mjs"
+      ],
       "liveNachweise": [],
       "vollstaendig": false,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r12NachweisStatus": "BLOCKIERT_BIS_CONTROLLED_LIVE"
     },
     {
       "anforderungKennung": "V5-ANF-OPS-001",

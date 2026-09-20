@@ -658,6 +658,8 @@ Exit Gate:
 
 **Status:** IN_PROGRESS.
 
+**Teilstand:** Shadow-End-to-End = BESTANDEN (0 unerwartete Game Writes). Controlled Live = BLOCKIERT, solange Readiness nicht FREIGEGEBEN und lokale Runtime-Health nicht sauber ist. Erster Live-Kandidat ist exakt eine `equip`-Action gemaess ADR-013.
+
 Erster minimaler End-to-End-Pfad.
 
 Reihenfolge:

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R12",
+  "status": "BLOCKIERT",
+  "ziel": {
+    "actionContractId": "AL-ACTION-EQUIP",
+    "recoveryContractId": "AL-RECOVERY-EQUIP",
+    "verifierId": "AL-VERIFIER-EQUIP",
+    "publicFunction": "equip",
+    "maximaleAktionen": 1,
+    "begruendung": "Geringriskant, gut beobachtbar und leicht ausgleichbar; entspricht V5-INV-030. Bank, Trade, Transfer, Upgrade, Compound und Production bleiben ausgeschlossen."
+  },
+  "shadow": {
+    "status": "BESTANDEN",
+    "mainSha": "b0ebb528a7f5accf2bc8196cb2c4ecafbe79b39d",
+    "unerwarteteGameWrites": 0,
+    "rawGameWrites": 0,
+    "ci": {
+      "workflow": "v5-r12",
+      "runId": 35480714889,
+      "conclusion": "success"
+    },
+    "nachweise": [
+      "v5/grundlage/tests/r12-vertical-slice-shadow.test.mjs",
+      "v5/grundlage/quelle/vertical-slice/shadow-adapter.ts",
+      "v5/grundlage/quelle/vertical-slice/protokoll.ts",
+      "v5/werkzeuge/r12-statische-guards.mjs"
+    ]
+  },
+  "readiness": {
+    "status": "GESPERRT",
+    "controlledLiveErlaubt": false
+  },
+  "lokaleUmgebung": {
+    "quelle": "Supabase public.aio_debug_telemetry_latest (sanitisiert, keine Secrets)",
+    "beobachtetAmUtc": "2026-09-20T01:10:37.353Z",
+    "bridgeProzessLaeuft": true,
+    "bestehendeRuntimeGeneration": "V3",
+    "runtimeHealth": "DEGRADED",
+    "watchdogReason": "SNAPSHOT_STALE",
+    "hostActionRequired": true,
+    "recoveryRecommendation": "HOST_RESTART",
+    "alertSpool": {
+      "offen": 250,
+      "maximum": 250,
+      "voll": true
+    },
+    "checkpoint": {
+      "quotaBlocked": true,
+      "reconciliationRequired": true
+    },
+    "rawGameplayActionAuthority": false
+  },
+  "remoteSteuerung": {
+    "genericRemoteCommandEndpoint": false,
+    "gameplayRemoteEndpoint": false,
+    "vorhandeneSupabaseEdgeFunctions": [
+      "bot-debug-ingest",
+      "bot-chatgpt-signal-control"
+    ],
+    "bridgeVertrag": "Die Windows Bridge besitzt laut ops/windows-bridge/README.md keine Gameplay-Autoritaet und keinen generischen JavaScript-, Shell-, Movement-, Combat-, Merchant-, Update- oder Remote-Command-Endpunkt."
+  },
+  "blocker": [
+    "Globale V5-Readiness ist GESPERRT.",
+    "Aktuelle lokale Runtime-Health ist DEGRADED mit SNAPSHOT_STALE.",
+    "Recovery empfiehlt HOST_RESTART und meldet hostActionRequired=true.",
+    "Kritischer Alert-Spool ist voll (250/250).",
+    "Checkpoint-Pfad meldet Quota-Druck und reconciliationRequired.",
+    "Es existiert absichtlich kein Remote-Gameplay-/Host-Restart-Endpunkt fuer die Bridge.",
+    "Ein echter V5-Execution-Adapter darf vor formaler Runtime-Freigabe nicht angelegt/aktiviert werden."
+  ],
+  "freigabeBedingungen": [
+    "Lokaler Host/Browser neu gestartet und frische Health-Evidence = GESUND.",
+    "Keine aktive Recovery-/Reconciliation-Sperre.",
+    "Kritischer Alert-Spool nicht voll.",
+    "V5-Readiness = FREIGEGEBEN.",
+    "Exakter V5-Build-/Konfigurations-/Knowledge-Fingerprint gepinnt.",
+    "Operator-Freigabe fuer genau eine equip-Action.",
+    "Danach echter Controlled-Live-Nachweis mit gameWrites=1 und unerwarteteGameWrites=0."
+  ]
+}
