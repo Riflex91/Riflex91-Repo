@@ -135,6 +135,9 @@ frame:SetScript("OnEvent", function(_, event, ...)
             MG:EnsureDB()
 
             if MG.ForeverAPI and MG.ForeverAPI.Survey then MG.ForeverAPI:Survey() end
+            if MG.Themes and MG.Themes.RegisterEllesmereSkin then
+                MG.Themes:RegisterEllesmereSkin()
+            end
             MG:StartLogSession()
 
             if MG.DataLoader then MG.DataLoader:Load() end
