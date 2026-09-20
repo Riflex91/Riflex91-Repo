@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-09-20",
-  "currentPhase": "R15",
+  "currentPhase": "R16",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -321,7 +321,7 @@
     {
       "id": "R15",
       "name": "Merchant Core B Production",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R14"
       ],
@@ -334,7 +334,7 @@
     {
       "id": "R16",
       "name": "Party Combat Farming Navigation",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R15"
       ],
