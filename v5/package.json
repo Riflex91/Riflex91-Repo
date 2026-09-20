@@ -63,7 +63,8 @@
     "r19:soak-10m-gui:pruefen": "node --check werkzeuge/r19-soak-10m-test-gui.js && node --check werkzeuge/r19-soak-10m-test-paket.js && node werkzeuge/r19-soak-10m-test-paket-bauen.mjs --check && node --test werkzeuge/tests/r19-soak-10m-test-gui.test.mjs",
     "r19:soak-15m-gui:bauen": "node werkzeuge/r19-soak-15m-test-paket-bauen.mjs",
     "r19:soak-15m-gui:pruefen": "node --check werkzeuge/r19-soak-15m-test-gui.js && node --check werkzeuge/r19-soak-15m-test-paket.js && node werkzeuge/r19-soak-15m-test-paket-bauen.mjs --check && node --test werkzeuge/tests/r19-soak-15m-test-gui.test.mjs",
-    "r0-r3:reconciliation:pruefen": "node werkzeuge/r0-r3-reconciliation-pruefen.mjs"
+    "r0-r3:reconciliation:pruefen": "node werkzeuge/r0-r3-reconciliation-pruefen.mjs",
+    "gesamtfreigabe:pruefen": "node werkzeuge/gesamtfreigabe-pruefen.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
