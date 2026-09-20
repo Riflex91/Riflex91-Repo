@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "regel": "Jeder safety-kritische Corepfad besitzt mindestens einen Positiv- und einen Negativ-/Fault-/Property-Nachweis.",
+  "pfade": [
+    {
+      "quelle": "v5/grundlage/quelle/determinismus/uhr.ts",
+      "positiv": [
+        "v5/grundlage/tests/r4-determinismus.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r4-determinismus.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/kern/geschlossener-zustandsautomat.ts",
+      "positiv": [
+        "v5/grundlage/tests/r4-determinismus.test.mjs",
+        "v5/grundlage/tests/r11-property-model.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r4-determinismus.test.mjs",
+        "v5/grundlage/tests/r11-property-model.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/persistenz/journal.ts",
+      "positiv": [
+        "v5/grundlage/tests/r5-persistenz.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r5-persistenz.test.mjs",
+        "v5/grundlage/tests/r9-admission-execution.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/persistenz/restart.ts",
+      "positiv": [
+        "v5/grundlage/tests/r5-persistenz.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r10-control.test.mjs",
+        "v5/grundlage/tests/r11-fault-labor.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
+      "positiv": [
+        "v5/grundlage/tests/r7-autoritaet.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r7-autoritaet.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts",
+      "positiv": [
+        "v5/grundlage/tests/r8-scheduler.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r8-scheduler.test.mjs",
+        "v5/grundlage/tests/r11-property-model.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/scheduler/ressourcen-verwalter.ts",
+      "positiv": [
+        "v5/grundlage/tests/r8-ressourcen.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r8-ressourcen.test.mjs",
+        "v5/grundlage/tests/r11-property-model.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/scheduler/retry-circuit.ts",
+      "positiv": [
+        "v5/grundlage/tests/r8-retry.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r8-retry.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/ausfuehrung/admission.ts",
+      "positiv": [
+        "v5/grundlage/tests/r9-admission-execution.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r9-admission-execution.test.mjs",
+        "v5/grundlage/tests/r11-mutation.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/ausfuehrung/ausfuehrungs-kernel.ts",
+      "positiv": [
+        "v5/grundlage/tests/r9-admission-execution.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r9-admission-execution.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/recovery/recovery-kernel.ts",
+      "positiv": [
+        "v5/grundlage/tests/r10-recovery.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r10-recovery.test.mjs",
+        "v5/grundlage/tests/r11-mutation.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/recovery/laufsteuerung.ts",
+      "positiv": [
+        "v5/grundlage/tests/r10-control.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r10-control.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/recovery/wiederanlauf.ts",
+      "positiv": [
+        "v5/grundlage/tests/r10-control.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r10-control.test.mjs",
+        "v5/grundlage/tests/r11-mutation.test.mjs",
+        "v5/grundlage/tests/r11-fault-labor.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/operations/health.ts",
+      "positiv": [
+        "v5/grundlage/tests/r11-operations.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r11-operations.test.mjs",
+        "v5/grundlage/tests/r11-mutation.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/operations/alerts.ts",
+      "positiv": [
+        "v5/grundlage/tests/r11-operations.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r11-operations.test.mjs",
+        "v5/grundlage/tests/r11-mutation.test.mjs",
+        "v5/grundlage/tests/r11-fault-labor.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/operations/telemetrie.ts",
+      "positiv": [
+        "v5/grundlage/tests/r11-operations.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r11-operations.test.mjs"
+      ]
+    },
+    {
+      "quelle": "v5/grundlage/quelle/testlabor/golden-replay.ts",
+      "positiv": [
+        "v5/grundlage/tests/r11-replay.test.mjs"
+      ],
+      "negativ": [
+        "v5/grundlage/tests/r11-replay.test.mjs"
+      ]
+    }
+  ]
+}
