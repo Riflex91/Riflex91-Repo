@@ -881,6 +881,10 @@ function MG:RefreshUI()
         addRow(models, prefix .. tostring(goal.instruction or goal.name or "Questziel"), role)
     end
 
+    for _, hint in ipairs(step.routeHints or {}) do
+        addRow(models, "• " .. tostring(hint.text or ""), "next")
+    end
+
     local nextStep = self.steps and self.steps[currentIndex + 1]
     if nextStep then
         addRow(models, "Danach: " .. tostring(nextStep.title or "nächster Schritt"), "next")
@@ -981,6 +985,10 @@ function MG:RefreshInfo()
             " / Questdefinitionen: " .. tostring(restedXP.normalizedQuestDefinitions or 0),
         "RestedXP-Quelldaten: " .. tostring(restedXP.structuredActions or 0) ..
             " strukturierte Aktionen",
+        "RestedXP-Aktionsabdeckung: " ..
+            tostring(restedXP.knownActionKinds or 0) .. "/" ..
+            tostring(restedXP.catalogActionKinds or 0) ..
+            " Typen, unbekannt: " .. tostring(restedXP.unknownActionKinds or 0),
         "RestedXP-Commit: " .. tostring(restedXP.sourceCommit or "–"),
         "",
         "Diagnose-Logs: " .. tostring(logs.total),
