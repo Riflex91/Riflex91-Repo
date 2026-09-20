@@ -28,6 +28,26 @@ local function atan2(y, x)
     return 0
 end
 
+function MG:ComputeAbsoluteBearing(deltaX, deltaY)
+    if deltaX == nil or deltaY == nil then return nil end
+
+    -- Same coordinate convention as HereBeDragons/Zygor:
+    -- 0 = north/forward, pi/2 = east/right, pi = south, 3pi/2 = west.
+    local raw = atan2(-deltaX, deltaY)
+
+    if raw > 0 then
+        return TWO_PI - raw
+    end
+
+    return -raw
+end
+
+function MG:ComputeRelativeBearing(deltaX, deltaY, playerFacing)
+    local targetAngle = self:ComputeAbsoluteBearing(deltaX, deltaY)
+    if targetAngle == nil or playerFacing == nil then return nil, targetAngle end
+    return normalizeRelative(targetAngle - playerFacing), targetAngle
+end
+
 local function unpackWaypointResult(a, b, c, fallbackMapID, source)
     if type(a) == "table" then
         local mapID = a.mapID or a.uiMapID or fallbackMapID
@@ -186,20 +206,19 @@ local function bearingFromPoints(player, target)
     local tc, tx, ty = worldXY(target.mapID, target.x, target.y)
 
     if pc and tc and pc == tc and px and py and tx and ty then
-        -- WoW world Y is inverted relative to the guide-facing angle.
-        -- This mirrors the mature Mangle-style calculation used by long-standing guide addons.
-        local dx = tx - px
-        local dy = py - ty
-        local angle = normalizeAbsolute(atan2(dx, dy))
-        local distance = math.sqrt(dx * dx + (ty - py) * (ty - py))
+        local deltaX = tx - px
+        local deltaY = ty - py
+        local angle = MG:ComputeAbsoluteBearing(deltaX, deltaY)
+        local distance = math.sqrt(deltaX * deltaX + deltaY * deltaY)
         return angle, distance, "MapWorldPosition"
     end
 
-    -- Same-map fallback. Normalized map Y grows downward, so invert Y here too.
-    local dx = target.x - player.x
-    local dy = player.y - target.y
-    local angle = normalizeAbsolute(atan2(dx, dy))
-    local normalizedDistance = math.sqrt(dx * dx + dy * dy)
+    -- Normalized map Y grows downward. Convert it to the same north-positive
+    -- convention before using the shared bearing formula.
+    local deltaX = target.x - player.x
+    local deltaY = player.y - target.y
+    local angle = MG:ComputeAbsoluteBearing(deltaX, deltaY)
+    local normalizedDistance = math.sqrt(deltaX * deltaX + deltaY * deltaY)
 
     return angle, nil, "MapNormalized"
 end
