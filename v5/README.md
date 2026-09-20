@@ -302,7 +302,7 @@ Abschluss: `roadmap/r18-abschluss.json`
 
 Die breite Gameplay-Runtime bleibt `GESPERRT`.
 
-Aktuelle Phase: **R19 – 24/7-Zertifizierung**. Automatisierbare Simulator-/Replay-/Fault-/Shadow-Stufen werden zuerst vorbereitet; Controlled Live/Canary ist der naechste manuelle Ingame-Punkt.
+Aktuelle Phase: **R19 – beschleunigte Runtime-Zertifizierung**. Das aktive Zeitprofil ist `R19_ACCELERATED_SOAK_V1`; es ersetzt keinen mehrtaegigen 24/7-Soak.
 
 
 ## R19 – Automatik bis Shadow abgeschlossen
@@ -343,6 +343,15 @@ Canary: **BESTANDEN**. Run `R19-1789894940141-fa58fa3e` nutzte bounded Learning-
 Evidence: `roadmap/r19-canary-evidence.json`.
 
 Naechste Stufe: **SOAK_5M**. R19 bleibt `IN_PROGRESS`; die breite Runtime bleibt `GESPERRT`.
+
+
+## R19 – SOAK_5M bestanden
+
+SOAK_5M: **BESTANDEN**. Der reale Ingame-Lauf auf `My_Merchant` lief 300002 ms mit 21 Samples. Sample-Gaps, Recorder-Drops, unerwartete Gameplay-Writes, alternative Runtime-Samples und `performance_trick`-Ausfaelle blieben jeweils bei 0; die fingerprint-verkettete Evidence ist gueltig. Das Heap-Wachstum betrug 9448646 Bytes bei 536870912 Bytes Grenze.
+
+Evidence: `roadmap/r19-soak-5m-evidence.json`.
+
+Naechste Stufe: **SOAK_10M**. R19 bleibt `IN_PROGRESS`; die breite Runtime bleibt `GESPERRT`.
 
 
 ## R19 – Beschleunigtes Soak-Zeitprofil

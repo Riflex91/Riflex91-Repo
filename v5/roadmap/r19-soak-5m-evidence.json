@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20T10:20:27.218Z",
+  "phase": "R19",
+  "status": "BESTANDEN",
+  "evidenceArt": "MANUELLE_SOAK_EVIDENCE",
+  "zertifizierungsStufe": "SOAK_5M",
+  "source": "V5_INGAME_TEST_GUI_BERICHT",
+  "sourceGuiVersion": "1.0.0",
+  "sourceKennung": "r19-soak-5m",
+  "charakter": "My_Merchant",
+  "breiteRuntimeFreigabe": false,
+  "scope": "CANARY_SCOPE_READ_ONLY_SOAK",
+  "gameplayWritesDurchHarness": 0,
+  "unerwarteteGameWritesImHarness": 0,
+  "sampleAnzahl": 21,
+  "dauerMs": 300002,
+  "sampleGaps": 0,
+  "recorderDrops": 0,
+  "evidenceKetteGueltig": true,
+  "ersteEvidence": "4e714f25",
+  "letzteEvidence": "d1529b89",
+  "ressourcen": {
+    "heapMetrikUnterstuetzt": true,
+    "storageEstimateUnterstuetzt": true,
+    "ersterHeapBytes": 49185170,
+    "maxHeapBytes": 58633816,
+    "heapWachstumBytes": 9448646,
+    "minFreieBytes": 2147483648,
+    "maxBrowserPersistenzRoundtripMs": 0.09999999962747097,
+    "maxInterneIoQueueTiefe": 0,
+    "browserPersistenzFehler": 0
+  },
+  "runtime": {
+    "alternativeRuntimeSamples": 0,
+    "toteSamples": 0,
+    "performanceTrickFehler": 0,
+    "hiddenSamples": 0
+  },
+  "performanceTrickVorpruefung": {
+    "verfuegbar": true,
+    "audioGefunden": true,
+    "cplaying": true,
+    "playing": true,
+    "howlState": "loaded",
+    "aktiv": true,
+    "visibilityState": "visible",
+    "aufgerufen": true,
+    "fehler": null,
+    "verifikation": "HOWLER_PLAYING_TRUE"
+  },
+  "grenzen": {
+    "dauerMs": 300000,
+    "intervallMs": 15000,
+    "maximalerSampleGapMs": 45000,
+    "minimaleSamples": 20,
+    "minimaleFreieBytes": 67108864,
+    "maximalerBrowserPersistenzRoundtripMs": 250,
+    "maximalesHeapWachstumBytes": 536870912
+  },
+  "blocker": [],
+  "ladder": {
+    "vorherigeStufe": "CANARY",
+    "dieseStufe": "SOAK_5M",
+    "naechsteStufe": "SOAK_10M"
+  },
+  "hinweis": "SOAK_5M ist als beschleunigte 5-Minuten-Runtime-Evidence bestanden. Diese Evidence ist keine mehrtaegige 24/7-Soak-Evidence und gibt die breite Runtime nicht frei."
+}

@@ -886,8 +886,7 @@ Ladder:
 - 5 Minuten;
 - 10 Minuten;
 - 30 Minuten;
-- 60 Minuten;
-- spaeter 30d.
+- 60 Minuten.
 
 Globale Null-Toleranz-Metriken:
 - unexpected game writes = 0;
@@ -902,7 +901,7 @@ Globale Null-Toleranz-Metriken:
 - kritische Persistenzverluste = 0;
 - Hot-Path-Blockaden durch nichtkritisches SSD-I/O = 0;
 - Zertifizierung dokumentiert Speicherreserve, I/O-Queue-Gesundheit und Retention-Verhalten.
-Erst danach gilt V5 als 24/7-freigegeben.
+Erst nach kompletter Ladder und expliziter Gesamtfreigabe darf die breite Runtime freigegeben werden. Das beschleunigte Profil ist kein Ersatz fuer mehrtaegige 24/7-Soak-Evidence.
 
 
 ### Automatischer Stand bis Shadow
@@ -946,6 +945,16 @@ Evidence: `roadmap/r19-canary-evidence.json`.
 
 Naechste Stufe: **SOAK_5M**. OPS-006 bleibt bis zum Abschluss von 5m/10m/30m/60m offen.
 
+
+### SOAK_5M
+
+**Status:** BESTANDEN.
+
+Realer Ingame-Soak: 300002 ms, 21 Samples, 0 Sample-Gaps, 0 Recorder-Drops, gueltige Evidence-Kette, 0 Gameplay-Writes durch den Harness und 0 `performance_trick`-Ausfaelle. Die breite Runtime bleibt gesperrt.
+
+Evidence: `roadmap/r19-soak-5m-evidence.json`.
+
+Naechste Stufe: **SOAK_10M**. OPS-006 bleibt offen.
 
 
 ### Beschleunigtes Soak-Zeitprofil
