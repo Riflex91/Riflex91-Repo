@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R15",
+  "status": "TECHNISCH_BESTANDEN",
+  "referenzHead": "faac2a474425a5253fdd3e79875afbe408504eba",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "anforderungen": [
+    {
+      "kennung": "V5-ANF-MERCHANT-006",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/produktion/recipient-settlement.ts",
+        "v5/grundlage/quelle/produktion/production-intent.ts",
+        "v5/grundlage/quelle/merchant/logistik-workflow.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r15-production-settlement.test.mjs",
+        "v5/grundlage/tests/r15-logistik-gear.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-MERCHANT-007",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/merchant/werttransaktion.ts",
+        "v5/grundlage/quelle/produktion/production-graph.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r15-werttransaktion.test.mjs",
+        "v5/grundlage/tests/r15-production-graph.test.mjs"
+      ]
+    }
+  ],
+  "capabilities": [
+    {
+      "kennung": "CAP-028",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/merchant/logistik-workflow.ts"
+    },
+    {
+      "kennung": "CAP-029",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/merchant/supply-policy.ts"
+    },
+    {
+      "kennung": "CAP-033",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/merchant/gear-allokation.ts"
+    },
+    {
+      "kennung": "CAP-034",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/merchant/werttransaktion.ts"
+    },
+    {
+      "kennung": "CAP-035",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/produktion/production-graph.ts"
+    },
+    {
+      "kennung": "CAP-036",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/produktion/production-intent.ts"
+    },
+    {
+      "kennung": "CAP-037",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/produktion/bank-katalog.ts"
+    },
+    {
+      "kennung": "CAP-038",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/merchant/logistik-workflow.ts"
+    }
+  ],
+  "exitKriterien": {
+    "finalRecipientSettlementPflicht": true,
+    "craftCommitIstNichtProductionCommit": true,
+    "qPlaceholderAcceptedInFlight": true,
+    "restartReconciliationFailClosed": true,
+    "sameIntentBlindRetryVerboten": true,
+    "duplicateTransferMutationGeblockt": true,
+    "supplyMicroRestockGebunden": true,
+    "collectionRendezvousFreshnessGebunden": true,
+    "gearPhysischerKandidatEinmalig": true,
+    "productionGraphCycleFailClosed": true,
+    "productionGraphKeineVerwaistenSchritte": true,
+    "eventQuestFreshnessGebunden": true,
+    "bankKatalogNurPlanningEvidence": true,
+    "mutationWorkspaceNachweisPflicht": true,
+    "rawGameWritesImR15Core": 0
+  },
+  "regression": {
+    "r3BisR15UndWissensgate": "GRUEN",
+    "exactHead": "faac2a474425a5253fdd3e79875afbe408504eba"
+  },
+  "hinweis": "R15 liefert V5-native planning/reconciliation foundations. Produktive Gameplay- und Transfer-Writes bleiben hinter spaeteren Execution-Gates; die breite Runtime bleibt GESPERRT."
+}
