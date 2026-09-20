@@ -105,6 +105,63 @@
     doc.head.appendChild(css);
   }
 
+
+  function performanceRoots() {
+    const roots = [];
+    try { roots.push(globalThis); } catch {}
+    try { if (parent && parent !== globalThis) roots.push(parent); } catch {}
+    return roots;
+  }
+
+  function performanceTrickStatus() {
+    const roots = performanceRoots();
+    let verfuegbar = false;
+    let audioGefunden = false;
+    let cplaying = false;
+    let playing = false;
+    let howlState = null;
+    for (const root of roots) {
+      try {
+        if (typeof root?.performance_trick === 'function') verfuegbar = true;
+        const empty = root?.sounds?.empty;
+        if (!empty) continue;
+        audioGefunden = true;
+        if (empty.cplaying === true) cplaying = true;
+        if (typeof empty.playing === 'function' && empty.playing() === true) playing = true;
+        if (typeof empty.state === 'function') howlState = String(empty.state());
+      } catch {}
+    }
+    let visibilityState = null;
+    try { visibilityState = String(dokument().visibilityState || 'unknown'); } catch {}
+    return Object.freeze({
+      verfuegbar,
+      audioGefunden,
+      cplaying,
+      playing,
+      howlState,
+      aktiv: verfuegbar && audioGefunden && (playing || cplaying),
+      visibilityState
+    });
+  }
+
+  function aktivierePerformanceTrick() {
+    const roots = performanceRoots();
+    let aufgerufen = false;
+    let fehler = null;
+    for (const root of roots) {
+      try {
+        if (typeof root?.performance_trick !== 'function') continue;
+        root.performance_trick();
+        aufgerufen = true;
+        break;
+      } catch (error) {
+        fehler = fehlerText(error);
+      }
+    }
+    const status = performanceTrickStatus();
+    return Object.freeze({ ...status, aufgerufen, fehler });
+  }
+
   function erstelleTest(optionen = {}) {
     const doc = dokument();
     style(doc);
@@ -328,7 +385,7 @@
     });
   }
 
-  const api = Object.freeze({ version: VERSION, erstelleTest, formatiereWert: format });
+  const api = Object.freeze({ version: VERSION, erstelleTest, formatiereWert: format, aktivierePerformanceTrick, performanceTrickStatus });
 
   try { delete globalThis[API_NAME]; } catch {}
   Object.defineProperty(globalThis, API_NAME, { configurable: true, enumerable: true, writable: false, value: api });
