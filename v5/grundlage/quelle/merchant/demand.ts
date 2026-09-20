@@ -3,6 +3,7 @@ import {
   type AblaufPrioritaetsKlasse,
   type WissensSnapshotPin,
 } from "../scheduler/workflow-vertrag.js";
+import { MERCHANT_CORE_A_MODUL_ID } from "./modul-vertrag.js";
 
 export type MerchantDemandArt =
   | "BANK_STORE"
@@ -170,7 +171,7 @@ export class MerchantWorkflowProvider {
       schemaVersion: 1 as const,
       ablaufId: "merchant:" + demand.demandId,
       ablaufArt: "MERCHANT_" + demand.art,
-      eigentuemerModulId: "merchant-core-a",
+      eigentuemerModulId: MERCHANT_CORE_A_MODUL_ID,
       prioritaetsKlasse: demand.prioritaetsKlasse,
       prioritaetsRang: demand.prioritaetsRang,
       erstelltAmMs: demand.erstelltAmMs,
