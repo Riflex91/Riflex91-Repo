@@ -45,6 +45,17 @@ if(req.some(x=>!["OFFEN","R19_NACHGEWIESEN"].includes(x.status))) fehler("R19 An
 const trace=lies("anforderungen/nachverfolgbarkeit.json").eintraege.filter(x=>x.phase==="R19");
 if(trace.length!==3||trace.some(x=>!erwartet.has(x.anforderungKennung))) fehler("R19 Traceability-Menge ungueltig.");
 
+const liveStatusRang=Object.freeze({
+  BIS_CONTROLLED_LIVE_BESTANDEN:1,
+  BIS_CANARY_BESTANDEN:2,
+  BIS_SOAK_1H_BESTANDEN:3,
+  BIS_SOAK_24H_BESTANDEN:4,
+  BIS_SOAK_72H_BESTANDEN:5,
+  BIS_SOAK_7D_BESTANDEN:6,
+});
+const ops6=req.find(x=>x.kennung==="V5-ANF-OPS-006");
+const aktuellerLiveRang=liveStatusRang[ops6?.r19LiveStatus]??0;
+
 if(fs.existsSync("roadmap/r19-canary-evidence.json")){
   const canary=lies("roadmap/r19-canary-evidence.json");
   if(canary.phase!=="R19"
@@ -62,9 +73,8 @@ if(fs.existsSync("roadmap/r19-canary-evidence.json")){
       ||canary.ladder?.naechsteStufe!=="SOAK_1H") {
     fehler("R19 Canary-Evidence ungueltig.");
   }
-  const ops6Canary=req.find(x=>x.kennung==="V5-ANF-OPS-006");
-  if(ops6Canary?.status!=="OFFEN"||ops6Canary?.r19LiveStatus!=="BIS_CANARY_BESTANDEN") {
-    fehler("Canary verlangt OPS-006 weiterhin OFFEN mit passendem Teilstatus.");
+  if(ops6?.status!=="OFFEN"||aktuellerLiveRang<2) {
+    fehler("Canary verlangt OPS-006 weiterhin OFFEN mit mindestens Canary-Teilstatus.");
   }
   if(ready.r19NaechsteStufe!=="SOAK_1H"||ready.r19ManuellerPcTestErforderlich!==true) {
     fehler("Readiness muss nach Canary auf manuellen SOAK_1H zeigen.");
@@ -84,12 +94,12 @@ if(fs.existsSync("roadmap/r19-controlled-live-evidence.json")){
       ||live.ladder?.naechsteStufe!=="CANARY") {
     fehler("R19 Controlled-Live-Evidence ungueltig.");
   }
-  const ops6Live=req.find(x=>x.kennung==="V5-ANF-OPS-006");
-  if(ops6Live?.status!=="OFFEN"||ops6Live?.r19LiveStatus!=="BIS_CONTROLLED_LIVE_BESTANDEN") {
-    fehler("Controlled Live verlangt OPS-006 weiterhin OFFEN mit passendem Teilstatus.");
+  if(ops6?.status!=="OFFEN"||aktuellerLiveRang<1) {
+    fehler("Controlled Live verlangt OPS-006 weiterhin OFFEN mit mindestens Controlled-Live-Teilstatus.");
   }
-  if(ready.r19NaechsteStufe!=="CANARY"||ready.r19ManuellerPcTestErforderlich!==true) {
-    fehler("Readiness muss nach Controlled Live auf manuellen Canary zeigen.");
+  if(!fs.existsSync("roadmap/r19-canary-evidence.json")
+      && (ready.r19NaechsteStufe!=="CANARY"||ready.r19ManuellerPcTestErforderlich!==true)) {
+    fehler("Readiness muss unmittelbar nach Controlled Live auf manuellen Canary zeigen.");
   }
 }
 
@@ -107,7 +117,6 @@ if(fs.existsSync("roadmap/r19-automatik-evidence.json")){
   }
   const ops5=req.find(x=>x.kennung==="V5-ANF-OPS-005");
   const ui8=req.find(x=>x.kennung==="V5-ANF-UI-008");
-  const ops6=req.find(x=>x.kennung==="V5-ANF-OPS-006");
   if(ops5?.status!=="R19_NACHGEWIESEN"||ui8?.status!=="R19_NACHGEWIESEN") {
     fehler("Automatik-Evidence verlangt OPS-005 und UI-008 nachgewiesen.");
   }
