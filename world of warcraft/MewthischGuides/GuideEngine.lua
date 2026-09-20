@@ -5,6 +5,7 @@ MG.currentStepIndex = 1
 MG.manualOffset = 0
 MG.lastProgressSignature = nil
 MG.lastSuperTrackedQuestID = nil
+MG.poiRefreshGeneration = 0
 
 local function questComplete(questID, info)
     if C_QuestLog and C_QuestLog.ReadyForTurnIn then
@@ -31,101 +32,6 @@ local function getObjectives(questID)
     return {}
 end
 
-local function cleanObjectiveName(text, objectiveType)
-    text = tostring(text or "")
-    local name = text:match("^(.-):%s*%d+%s*/%s*%d+") or text
-    name = name:gsub("%s+getoetet$", "")
-    name = name:gsub("%s+getötet$", "")
-    name = name:gsub("%s+killed$", "")
-    name = name:gsub("%s+slain$", "")
-    name = name:gsub("^%s+", ""):gsub("%s+$", "")
-    if name == "" then
-        if objectiveType == "monster" then return "Questgegner" end
-        if objectiveType == "item" then return "Questgegenstand" end
-        return "Questziel"
-    end
-    return name
-end
-
-local function objectiveNumbers(objective)
-    local current = tonumber(objective.numFulfilled)
-    local required = tonumber(objective.numRequired)
-
-    if (current == nil or required == nil) and objective.text then
-        local a, b = tostring(objective.text):match("(%d+)%s*/%s*(%d+)")
-        current = current or tonumber(a)
-        required = required or tonumber(b)
-    end
-
-    return current, required
-end
-
-function MG:DescribeObjective(objective)
-    if not objective then
-        return {
-            instruction = "Quest fortsetzen",
-            progressText = "",
-            current = nil,
-            required = nil,
-            percent = nil,
-        }
-    end
-
-    local current, required = objectiveNumbers(objective)
-    local objectiveType = tostring(objective.type or "")
-    local name = cleanObjectiveName(objective.text, objectiveType)
-    local instruction
-
-    if objective.finished then
-        instruction = "Erledigt: " .. name
-    elseif objectiveType == "item" then
-        instruction = required and ("Sammle " .. required .. "x " .. name) or ("Sammle: " .. name)
-    elseif objectiveType == "monster" then
-        instruction = required and ("Toete " .. required .. "x " .. name) or ("Toete: " .. name)
-    elseif objectiveType == "object" then
-        instruction = "Interagiere mit: " .. name
-    elseif objectiveType == "player" then
-        instruction = required and ("Besiege " .. required .. "x " .. name) or ("Besiege: " .. name)
-    elseif objectiveType == "progressbar" then
-        instruction = "Erreiche den benoetigten Fortschritt"
-    elseif objectiveType == "event" then
-        instruction = "Erledige: " .. name
-    else
-        instruction = "Erledige: " .. name
-    end
-
-    local progressText = ""
-    local percent = nil
-
-    if current and required and required > 0 then
-        progressText = tostring(current) .. " / " .. tostring(required)
-        percent = math.max(0, math.min(1, current / required))
-    elseif objectiveType == "progressbar" and objective.text then
-        local p = tonumber(tostring(objective.text):match("(%d+)%%"))
-        if p then
-            progressText = tostring(p) .. "%"
-            percent = math.max(0, math.min(1, p / 100))
-        end
-    end
-
-    return {
-        instruction = instruction,
-        progressText = progressText,
-        current = current,
-        required = required,
-        percent = percent,
-        raw = objective.text,
-        type = objectiveType,
-    }
-end
-
-local function currentObjective(objectives)
-    for _, objective in ipairs(objectives or {}) do
-        if not objective.finished then return objective end
-    end
-    return objectives and objectives[#objectives] or nil
-end
-
 local function seedRank(questID)
     local seed = MG.Data and MG.Data.observedQuests and MG.Data.observedQuests[questID]
     return seed and seed.order or 10000
@@ -149,17 +55,8 @@ function MG:BuildLiveSteps()
             local objectives = getObjectives(questID)
             local complete = questComplete(questID, info)
             local seed = self.Data and self.Data.observedQuests and self.Data.observedQuests[questID]
-            local objective = currentObjective(objectives)
-            local goal = self:DescribeObjective(objective)
-
-            if complete then
-                goal = {
-                    instruction = "Quest abgeben",
-                    progressText = "bereit",
-                    percent = 1,
-                    type = "turnin",
-                }
-            end
+            local goals = self:BuildQuestGoals(questID, objectives, complete)
+            local activeGoal = self:GetActiveGoal(goals)
 
             steps[#steps + 1] = {
                 questID = questID,
@@ -167,8 +64,10 @@ function MG:BuildLiveSteps()
                 level = info.level,
                 complete = complete,
                 action = complete and "Quest abgeben" or "Questziel erledigen",
-                detail = goal.instruction,
-                goal = goal,
+                detail = activeGoal and activeGoal.instruction or "Quest fortsetzen",
+                goals = goals,
+                goal = activeGoal,
+                goalSummary = self:GetGoalSummary(goals),
                 objectives = objectives,
                 source = seed and seed.status or "LIVE",
                 seedOrder = seedRank(questID),
@@ -197,13 +96,7 @@ function MG:BuildProgressSignature(steps)
     for _, step in ipairs(steps or {}) do
         parts[#parts + 1] = tostring(step.questID)
         parts[#parts + 1] = step.complete and "done" or "open"
-
-        for _, objective in ipairs(step.objectives or {}) do
-            parts[#parts + 1] = tostring(objective.text or "")
-            parts[#parts + 1] = tostring(objective.numFulfilled or "")
-            parts[#parts + 1] = tostring(objective.numRequired or "")
-            parts[#parts + 1] = objective.finished and "1" or "0"
-        end
+        parts[#parts + 1] = self:GoalSignature(step.goals)
     end
 
     return table.concat(parts, "|")
@@ -212,6 +105,7 @@ end
 function MG:ChooseStep(reason)
     self.steps = self:BuildLiveSteps()
     local oldQuestID = self.currentStep and self.currentStep.questID or nil
+    local oldGoalID = self.currentStep and self.currentStep.goal and self.currentStep.goal.id or nil
 
     if #self.steps == 0 then
         self.currentStepIndex = 0
@@ -233,6 +127,8 @@ function MG:ChooseStep(reason)
     self.currentStep = self.steps[desired]
     self.lastProgressSignature = self:BuildProgressSignature(self.steps)
 
+    local newGoalID = self.currentStep.goal and self.currentStep.goal.id or nil
+
     if oldQuestID ~= self.currentStep.questID then
         self:Log("INFO", "guide.step_changed", "Aktiver Guide-Schritt geaendert.", {
             reason = reason,
@@ -241,6 +137,15 @@ function MG:ChooseStep(reason)
             title = self.currentStep.title,
             complete = self.currentStep.complete,
             source = self.currentStep.source,
+            goalID = newGoalID,
+            instruction = self.currentStep.goal and self.currentStep.goal.instruction or nil,
+        })
+    elseif oldGoalID ~= newGoalID then
+        self:Log("INFO", "goal.changed", "Aktives Questziel geaendert.", {
+            reason = reason,
+            questID = self.currentStep.questID,
+            previousGoalID = oldGoalID,
+            goalID = newGoalID,
             instruction = self.currentStep.goal and self.currentStep.goal.instruction or nil,
         })
     end
@@ -271,6 +176,7 @@ function MG:PollQuestProgress()
 
         self:Log("INFO", "quest.progress_changed", "Questfortschritt automatisch erkannt.", {
             questID = self.currentStep and self.currentStep.questID or nil,
+            goalID = self.currentStep and self.currentStep.goal and self.currentStep.goal.id or nil,
         })
 
         self:RefreshGuide("progress_changed")
@@ -287,6 +193,25 @@ function MG:SelectRelativeStep(delta, reason)
     self:RefreshGuide(reason or "manual_step")
 end
 
+function MG:SchedulePOIRefresh(questID)
+    if not C_Timer or not C_Timer.After then return end
+
+    self.poiRefreshGeneration = (self.poiRefreshGeneration or 0) + 1
+    local generation = self.poiRefreshGeneration
+
+    C_Timer.After(0.20, function()
+        if generation ~= MG.poiRefreshGeneration then return end
+        if not MG.currentStep or MG.currentStep.questID ~= questID then return end
+
+        MG:Safe("navigation.poi_refresh", function()
+            if QuestPOIUpdateIcons then pcall(QuestPOIUpdateIcons) end
+            MG:RefreshNavigation("poi_refresh")
+            MG:RefreshNavigator()
+            MG:RefreshInfo()
+        end)
+    end)
+end
+
 function MG:ApplyQuestTracking(questID)
     if not questID or not self.db or not self.db.settings.autoSuperTrack then return end
 
@@ -294,16 +219,24 @@ function MG:ApplyQuestTracking(questID)
         pcall(C_QuestLog.SetSelectedQuest, questID)
     end
 
+    if C_QuestLog and C_QuestLog.AddQuestWatch and Enum and Enum.QuestWatchType then
+        pcall(C_QuestLog.AddQuestWatch, questID, Enum.QuestWatchType.Manual)
+    end
+
     if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
         local ok, err = pcall(C_SuperTrack.SetSuperTrackedQuestID, questID)
 
         if ok then
+            if QuestPOIUpdateIcons then pcall(QuestPOIUpdateIcons) end
+
             if self.lastSuperTrackedQuestID ~= questID then
                 self.lastSuperTrackedQuestID = questID
                 self:Log("INFO", "navigation.supertrack", "Blizzard-SuperTrack gesetzt.", {
                     questID = questID,
                 })
             end
+
+            self:SchedulePOIRefresh(questID)
         else
             self:Log("WARN", "navigation.supertrack_failed", tostring(err), {
                 questID = questID,
