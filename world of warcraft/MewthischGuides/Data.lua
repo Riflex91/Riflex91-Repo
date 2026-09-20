@@ -19,11 +19,69 @@ MG.Data = {
         ChrRaces = 58, Map = 73, AreaTable = 1372, TaxiNodes = 100, Talent = 432,
         SpellName = 31767, SpellEffect = 42449,
     },
+
     observedQuests = {
         [97279] = { title = "Verlorene Waffen", order = 10, status = "RECORDED" },
         [4402]  = { title = "Galgars Kaktusapfel Surprise", order = 20, status = "RECORDED" },
         [789]   = { title = "Stich des Skorpiden", order = 30, status = "RECORDED" },
         [792]   = { title = "Üble Familiare", order = 40, status = "RECORDED" },
     },
-    firstObservedPlayer = { faction = "Horde", race = "Troll", class = "HUNTER", mapID = 1411 },
+
+    -- First route seed built only from evidence already captured by the
+    -- DataMiner/Recorder test. The StepEngine can consume much larger
+    -- generated route files later without changing its state model.
+    guide = {
+        id = "durotar-recorder-seed-v1",
+        title = "Durotar - Recorder Seed",
+        verification = "RECORDED",
+        steps = {
+            {
+                id = "durotar-97279",
+                order = 10,
+                questID = 97279,
+                title = "Verlorene Waffen",
+                faction = "Horde",
+                minLevel = 1,
+                mapID = 1411,
+                verification = "RECORDED",
+            },
+            {
+                id = "durotar-4402",
+                order = 20,
+                questID = 4402,
+                title = "Galgars Kaktusapfel Surprise",
+                faction = "Horde",
+                minLevel = 1,
+                mapID = 1411,
+                verification = "RECORDED",
+            },
+            {
+                id = "durotar-789",
+                order = 30,
+                questID = 789,
+                title = "Stich des Skorpiden",
+                faction = "Horde",
+                minLevel = 1,
+                mapID = 1411,
+                verification = "RECORDED",
+            },
+            {
+                id = "durotar-792",
+                order = 40,
+                questID = 792,
+                title = "Üble Familiare",
+                faction = "Horde",
+                minLevel = 1,
+                mapID = 1411,
+                verification = "RECORDED",
+            },
+        },
+    },
+
+    firstObservedPlayer = {
+        faction = "Horde",
+        race = "Troll",
+        class = "HUNTER",
+        mapID = 1411,
+    },
 }
