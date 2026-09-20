@@ -2,6 +2,12 @@ local addonName, MG = ...
 
 local ui = {}
 
+local function centerOverlay(frame)
+    if not frame then return end
+    frame:ClearAllPoints()
+    frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+end
+
 local function setColorTexture(texture, r, g, b, a)
     if texture.SetColorTexture then
         texture:SetColorTexture(r, g, b, a)
@@ -253,7 +259,7 @@ function MG:InitializeUI()
 
     local infoFrame = CreateFrame("Frame", "MewthischGuidesInfoFrame", UIParent)
     infoFrame:SetSize(440, 380)
-    infoFrame:SetPoint("TOPLEFT", frame, "TOPRIGHT", 8, 0)
+    centerOverlay(infoFrame)
     infoFrame:SetClampedToScreen(true)
     stylePanel(infoFrame, 0.97)
     infoFrame:Hide()
@@ -287,7 +293,7 @@ function MG:InitializeUI()
 
     local settingsFrame = CreateFrame("Frame", "MewthischGuidesSettingsFrame", UIParent)
     settingsFrame:SetSize(430, 405)
-    settingsFrame:SetPoint("TOPLEFT", frame, "TOPRIGHT", 8, 0)
+    centerOverlay(settingsFrame)
     settingsFrame:SetClampedToScreen(true)
     stylePanel(settingsFrame, 0.97)
     settingsFrame:Hide()
@@ -545,7 +551,9 @@ function MG:RefreshInfo()
         "",
         "|cffffffffCharakter:|r " .. tostring(profile.race or "?") .. " " .. tostring(profile.class or "?") .. " - Level " .. tostring(profile.level or "?"),
         "|cffffffffAktiver Schritt:|r " .. (step and tostring(step.title) or "keiner"),
+        "|cffffffffGuide-Phase:|r " .. (step and tostring(step.phase or "-") or "-"),
         "|cffffffffZielinfo:|r " .. (step and step.goal and tostring(step.goal.instruction) or "-"),
+        "|cffffffffResync-Grund:|r " .. tostring(self.db.runtime.guide and self.db.runtime.guide.selectedReason or "-"),
         "|cffffffffNavigation:|r " .. tostring(nav.source or "kein Ziel"),
         "|cffffffffRichtungsquelle:|r " .. tostring(nav.directionSource or "-"),
         "|cffffffffEntfernung:|r " .. distance,
@@ -559,12 +567,13 @@ function MG:RefreshInfo()
         "|cffffffffWarnungen:|r " .. tostring(logs.warnings),
         "|cffffffffFehler:|r " .. tostring(logs.errors),
         "",
-        "|cff9da7b3Roadmap Schritt 2: Goal-Engine + Navigation-Fix|r",
-        "- Quest -> Step -> mehrere Goals",
-        "- aktives Goal mit Status und Fortschritt",
-        "- weitere Questziele kompakt sichtbar",
-        "- Pfeil nur bei belastbarer Zielrichtung",
-        "- Navigator ohne Hintergrund",
+        "|cff9da7b3Roadmap Schritt 3 + 4|r",
+        "- echte Guide-Phasen: annehmen / Ziele / abgeben",
+        "- automatischer Resync beim Einloggen und Fortschritt",
+        "- Klasse/Rasse/Fraktion/Level-Bedingungen vorbereitet",
+        "- Auto-Annahme nur fuer erwartete Quest-ID",
+        "- Auto-Abgabe nur fuer erwartete Quest-ID",
+        "- Info und Optionen zentriert",
     }
 
     ui.infoBody:SetText(table.concat(lines, "\n"))
@@ -591,6 +600,7 @@ function MG:ToggleInfo()
         self.db.settings.showInfo = false
     else
         if ui.settingsFrame then ui.settingsFrame:Hide() end
+        centerOverlay(ui.infoFrame)
         ui.infoFrame:Show()
         self.db.settings.showInfo = true
         self.db.settings.showSettings = false
@@ -606,6 +616,7 @@ function MG:ToggleSettings()
         self.db.settings.showSettings = false
     else
         if ui.infoFrame then ui.infoFrame:Hide() end
+        centerOverlay(ui.settingsFrame)
         ui.settingsFrame:Show()
         self.db.settings.showSettings = true
         self.db.settings.showInfo = false
