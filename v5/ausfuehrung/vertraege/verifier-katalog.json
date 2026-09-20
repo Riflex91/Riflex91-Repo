@@ -4,8 +4,8 @@
   "quelle": "v5/wissensbasis/vertraege/action-contracts.json",
   "summary": {
     "total": 60,
-    "verified": 53,
-    "disabled": 7
+    "verified": 59,
+    "disabled": 1
   },
   "verifiers": [
     {
@@ -1200,7 +1200,7 @@
       "id": "AL-VERIFIER-BET-WHEEL",
       "actionContractId": "AL-ACTION-BET-WHEEL",
       "publicFunction": "bet_wheel",
-      "status": "DISABLED_WITH_ACTION_CONTRACT",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
       "effectDomains": [
         "gold",
         "tavern_wheel_state"
@@ -1222,7 +1222,7 @@
       "id": "AL-VERIFIER-POKER-JOIN",
       "actionContractId": "AL-ACTION-POKER-JOIN",
       "publicFunction": "poker_join",
-      "status": "DISABLED_WITH_ACTION_CONTRACT",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
       "effectDomains": [
         "gold",
         "poker_stack",
@@ -1246,7 +1246,7 @@
       "id": "AL-VERIFIER-POKER-ACT",
       "actionContractId": "AL-ACTION-POKER-ACT",
       "publicFunction": "poker_act",
-      "status": "DISABLED_WITH_ACTION_CONTRACT",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
       "effectDomains": [
         "poker_stack",
         "poker_pot",
@@ -1271,7 +1271,7 @@
       "id": "AL-VERIFIER-POKER-LEAVE",
       "actionContractId": "AL-ACTION-POKER-LEAVE",
       "publicFunction": "poker_leave",
-      "status": "DISABLED_WITH_ACTION_CONTRACT",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
       "effectDomains": [
         "gold",
         "poker_stack",
@@ -1295,7 +1295,7 @@
       "id": "AL-VERIFIER-POKER-SIT-IN",
       "actionContractId": "AL-ACTION-POKER-SIT-IN",
       "publicFunction": "poker_sit_in",
-      "status": "DISABLED_WITH_ACTION_CONTRACT",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
       "effectDomains": [
         "poker_seat_state"
       ],
@@ -1315,7 +1315,7 @@
       "id": "AL-VERIFIER-POKER-SIT-OUT",
       "actionContractId": "AL-ACTION-POKER-SIT-OUT",
       "publicFunction": "poker_sit_out",
-      "status": "DISABLED_WITH_ACTION_CONTRACT",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
       "effectDomains": [
         "poker_seat_state",
         "gold",
