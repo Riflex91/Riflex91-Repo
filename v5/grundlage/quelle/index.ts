@@ -79,6 +79,6 @@ export * from "./merchant/gegenstands-identitaet.js";
 export * from "./merchant/disposition.js";
 export * from "./merchant/workspace.js";
 export * from "./merchant/gold-budget.js";
-export * from "./merchant/bank-lease.js";
+export * from "./koordination/account-bank-lease.js";
 export * from "./merchant/markt-evidence.js";
 export * from "./merchant/demand.js";
