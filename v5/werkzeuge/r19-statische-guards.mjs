@@ -9,12 +9,19 @@ const pflicht=[
   "grundlage/quelle/zertifizierung/production-certification.ts",
   "grundlage/quelle/runtime/produktions-komposition.ts",
   "grundlage/quelle/runtime/produktions-runtime.ts",
+  "grundlage/adapter/persistenz/node-produktions-dateisystem.mjs",
+  "grundlage/adapter/persistenz/node-planen-aktivierungs-protokoll.mjs",
   "grundlage/quelle/merchant/modul-vertrag.ts",
   "grundlage/quelle/merchant/faehigkeits-vertrag.ts",
   "grundlage/quelle/merchant/demand.ts",
   "grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json",
+  "grundlage/vertraege/runtime/durable-planen-authority.json",
   "architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md",
+  "architektur/adr/ADR-027-KONTROLLIERTE-PLANEN-AKTIVIERUNG.md",
+  "architektur/adr/ADR-028-DURABLE-PLANEN-AUTHORITY.md",
   "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
+  "grundlage/tests/r11-planen-aktivierung.test.mjs",
+  "grundlage/tests/r11-planen-aktivierungs-persistenz.test.mjs",
   "grundlage/tests/r19-evidence-ladder.test.mjs",
   "grundlage/tests/r19-production-certification.test.mjs",
   "grundlage/tests/r19-shadow-certification.test.mjs",
@@ -97,6 +104,33 @@ for(const m of [
   "PRODUKTIONS_KOMPOSITION_BENOETIGTE_FAEHIGKEIT_FEHLT",
 ]){
   if(!runtimeKomposition.includes(m)) fehler.push("PRODUKTIONS_KOMPOSITION_CROSS_VALIDATION_FEHLT:"+m);
+}
+
+for(const m of [
+  "V5PlanenAktivierungsProtokollPort",
+  "PLANEN_AKTIVIERUNG_VOR_WIRKUNG",
+  "V5_PLANEN_AKTIVIERUNG_DURABLE_PROTOKOLL_FEHLT",
+  "V5_PLANEN_AKTIVIERUNG_AUDIT_NICHT_DURABLE",
+  "V5_PLANEN_AKTIVIERUNG_REVALIDIERUNG_FEHLGESCHLAGEN",
+  "revalidierePlanenAuthority",
+  "faehigkeit.anbieterVersion",
+]){
+  if(!runtimeKomposition.includes(m)) {
+    fehler.push("PLANEN_DURABLE_AUTHORITY_FEHLT:"+m);
+  }
+}
+const planenAuthorityVertrag=JSON.parse(
+  lies("grundlage/vertraege/runtime/durable-planen-authority.json"),
+);
+if(planenAuthorityVertrag.aktivierung?.erlaubterModus!=="PLANEN"
+    || planenAuthorityVertrag.aktivierung?.durableVorLokalerWirkung!==true
+    || planenAuthorityVertrag.aktivierung?.revalidierungNachDurableWrite!==true
+    || planenAuthorityVertrag.aktivierung?.exakteProviderVersion!==true
+    || planenAuthorityVertrag.authority?.gameplayAutoritaet!==false
+    || planenAuthorityVertrag.authority?.rawWriteAutoritaet!==false
+    || planenAuthorityVertrag.authority?.actionAuthority!==false
+    || planenAuthorityVertrag.mutierendeCapabilitiesDurchDiesenVertrag!==0) {
+  fehler.push("PLANEN_DURABLE_AUTHORITY_VERTRAG_UNGUELTIG");
 }
 const merchantDemand=lies("grundlage/quelle/merchant/demand.ts");
 if(!merchantDemand.includes("eigentuemerModulId: MERCHANT_CORE_A_MODUL_ID")) {
