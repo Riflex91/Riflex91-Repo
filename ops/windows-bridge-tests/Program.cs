@@ -59,6 +59,19 @@ Assert(!string.IsNullOrWhiteSpace(defaults.BackblazeApplicationKeyEnvironmentVar
 Assert(defaults.WissenswaechterAktiv, "WISSENSWAECHTER_DEFAULT_ON");
 Assert(V5ReadinessSystemtest.TestKennung == "V5_WINDOWS_BRIDGE_READINESS", "V5_READINESS_TEST_ID");
 Assert(V5ReadinessSystemtest.TestVersion == "1.1.0", "V5_READINESS_TEST_VERSION");
+var readinessCleanupRoot = Path.Combine(Path.GetTempPath(), "aio-v5-readiness-cleanup-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(Path.Combine(readinessCleanupRoot, ".git", "objects", "info", "commit-graphs"));
+var readinessCleanupDatei = Path.Combine(readinessCleanupRoot, ".git", "objects", "info", "commit-graphs", "commit-graph-chain");
+await File.WriteAllTextAsync(readinessCleanupDatei, "test");
+File.SetAttributes(readinessCleanupDatei, File.GetAttributes(readinessCleanupDatei) | FileAttributes.ReadOnly);
+var readinessCleanupMethode = typeof(V5ReadinessSystemtest).GetMethod(
+    "EntferneTempArbeitskopieAsync",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+Assert(readinessCleanupMethode is not null, "V5_READINESS_CLEANUP_METHOD");
+var readinessCleanupTask = (Task<string?>)readinessCleanupMethode!.Invoke(null, [readinessCleanupRoot])!;
+var readinessCleanupFehler = await readinessCleanupTask;
+Assert(readinessCleanupFehler is null, "V5_READINESS_CLEANUP_READONLY_FILE");
+Assert(!Directory.Exists(readinessCleanupRoot), "V5_READINESS_CLEANUP_REMOVES_ROOT");
 var readinessStatisch = V5ReadinessSystemtest.PruefeStatischeKonfiguration(defaults);
 Assert(readinessStatisch.Count >= 8, "V5_READINESS_STATIC_CHECK_COUNT");
 Assert(readinessStatisch.All(x => x.Status == "BESTANDEN"), "V5_READINESS_DEFAULT_CONFIG_PASS");
