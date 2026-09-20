@@ -1,46 +1,63 @@
-# Mewthisch Guides v0.5.1 - Navigator hotfix
+# Mewthisch Guides v0.6 — Forever API + RouteEngine foundation
 
-This test build keeps roadmap steps 1-4 from v0.5 and fixes the live Navigator initialization crash reported on Forever build 69913.
+v0.6 is the first build produced after a fresh WoW Forever API review and a second architecture review of the uploaded Zygor Guides package.
 
-## Navigator fix
+## Why this build exists
 
-- removes the Button-only `RegisterForClicks()` call from the normal Navigator frame
-- right-click Options continues to use the frame's existing `OnMouseUp` handler
-- separate transparent Navigator behavior is retained
-- reliable-direction / fail-closed waypoint logic is unchanged
-- CI now fails if `RegisterForClicks` is reintroduced into `Navigator.lua`
+Previous builds could receive a Blizzard navigation distance while having no trustworthy quest coordinate. That produced a visible distance but forced the arrow to hide because direction could not be proven.
 
-## Window transparency
+v0.6 fixes the architecture rather than guessing a screen angle.
 
-Options now include a `Fenster-Transparenz` slider.
+## New architecture
 
-- range: 0% to 80% transparency
-- applies immediately
-- saved in `MewthischGuidesDB`
-- affects the backgrounds of:
-  - main Guide Viewer
-  - Info
-  - Options
-- text, buttons and the separate navigation arrow remain fully readable/opaque
+- ForeverAPI.lua
+  - runtime capability survey
+  - protected pcall-based access
+  - modern quest/map/gossip/item/build/spell capability matrix
+  - SavedVariables persistence probe
+- RouteEngine.lua
+  - ranks multiple coordinate sources
+  - records all route candidates
+  - prefers evidence-backed/modern sources
+- Navigation.lua
+  - consumes RouteEngine output only
+  - converts map positions to world positions when possible
+  - keeps fail-closed arrow behavior
 
-Info and Options continue to open centered on the screen.
+## Important new Forever route source
 
-## Existing roadmap steps retained
+C_QuestLog.GetQuestsOnMap is now queried for the active quest and map hierarchy. This is the key Forever-specific route source that previous Mewthisch Guides builds did not use.
 
-- Goal Engine
-- Guide Step Engine
-- automatic Resync
-- safe quest-ID-bound Auto-Accept / Auto-Turn-In
-- compact viewer
-- separate movable transparent Navigator
-- metric distance
-- movable minimap button
-- diagnostic logging
+## Diagnostics
+
+Info now shows:
+
+- Forever API mode
+- GetQuestsOnMap availability
+- world-coordinate availability
+- secret-system presence
+- selected RouteEngine source
+- route candidate count/score
+- SavedVariables persistence boot probe
+
+Optional commands:
+
+- /mg api
+- /mg route
+- /mg status
+
+Normal gameplay still requires no commands.
+
+## Research notes
+
+See FOREVER_API_RESEARCH.md for the engineering contract used by the addon.
 
 ## Test evidence
 
-After testing, use `/reload` or log out and send:
+After the in-game test, use /reload or log out while the client is still running, then send:
 
-`WTF/Account/<account>/SavedVariables/MewthischGuides.lua`
+- WTF/Account/<account>/SavedVariables/MewthischGuides.lua
+- WTF/Account/<account>/SavedVariables/MewthischGuidesRecorder.lua
+- a screenshot of the Navigator
 
-If the arrow is still missing after this hotfix, the SavedVariables navigation diagnostics will tell us whether the remaining cause is waypoint resolution rather than UI initialization.
+The diagnostics should tell us exactly which coordinate source Forever returned for each quest.
