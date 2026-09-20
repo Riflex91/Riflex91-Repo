@@ -1294,7 +1294,7 @@
       "titel": "Shadow muss null unerwartete Game Writes beweisen.",
       "phase": "R12",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R12_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-060"
       ],
@@ -1303,7 +1303,14 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r12NachweisStatus": "R12_NACHGEWIESEN",
+      "r12Nachweise": [
+        "v5/grundlage/tests/r12-vertical-slice-shadow.test.mjs",
+        "v5/grundlage/quelle/vertical-slice/shadow-adapter.ts",
+        "v5/werkzeuge/r12-statische-guards.mjs",
+        "v5/roadmap/r12-controlled-live-preflight.json"
+      ]
     },
     {
       "kennung": "V5-ANF-TEST-008",
@@ -1319,7 +1326,13 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r12VorbereitungsStatus": "BLOCKIERT_BIS_CONTROLLED_LIVE",
+      "r12Vorbereitung": [
+        "v5/grundlage/quelle/vertical-slice/controlled-live-policy.ts",
+        "v5/roadmap/r12-controlled-live-preflight.json",
+        "v5/architektur/adr/ADR-013-R12-CONTROLLED-LIVE-EQUIP.md"
+      ]
     },
     {
       "kennung": "V5-ANF-OPS-001",
