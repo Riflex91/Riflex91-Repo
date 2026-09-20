@@ -55,8 +55,13 @@ local function guidePriority(guide, profile)
         local group = tostring(guide.group or "")
         local subgroup = tostring(guide.subgroup or "")
 
-        if string.find(group, "Forever Guide", 1, true) then score = score + 40 end
-        if string.find(group, "Survival Guide", 1, true) then score = score - 20 end
+        local hardcore = MG.db and MG.db.settings and MG.db.settings.rxpHardcoreMode
+        if string.find(group, "Forever Guide", 1, true) then
+            score = score + (hardcore and 10 or 40)
+        end
+        if string.find(group, "Survival Guide", 1, true) then
+            score = score + (hardcore and 70 or -20)
+        end
         if string.find(group, "ADV AoE", 1, true) then score = score - 10 end
         if string.find(subgroup, "Mage", 1, true) and profile.class == "MAGE" then
             score = score + 25
