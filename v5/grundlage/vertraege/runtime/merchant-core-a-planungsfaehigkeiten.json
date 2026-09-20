@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "vertragVersion": "1",
+  "modulId": "merchant-core-a",
+  "modulVersion": "1",
+  "authorityGrenze": "PLANEN_ONLY",
+  "standardAktiv": false,
+  "mutierendeFaehigkeiten": 0,
+  "faehigkeiten": [
+    {
+      "faehigkeitId": "merchant.task.planen",
+      "modus": "PLANEN",
+      "quelle": "grundlage/quelle/merchant/task-koordinator.ts",
+      "nachweis": "MerchantTaskKoordinator.planeOffene",
+      "planungsOderKoordinationsNachweis": true,
+      "ausfuehrungsAutoritaet": false,
+      "gameplayAutoritaet": false,
+      "rawWriteAutoritaet": false
+    },
+    {
+      "faehigkeitId": "merchant.bank.planen",
+      "modus": "PLANEN",
+      "quelle": "grundlage/quelle/merchant/bank-autonomie.ts",
+      "nachweis": "planeBankAutonomie",
+      "planungsOderKoordinationsNachweis": true,
+      "ausfuehrungsAutoritaet": false,
+      "gameplayAutoritaet": false,
+      "rawWriteAutoritaet": false
+    },
+    {
+      "faehigkeitId": "merchant.verkauf.planen",
+      "modus": "PLANEN",
+      "quelle": "grundlage/quelle/merchant/verkaufs-sicherheit.ts",
+      "nachweis": "bewerteNpcVerkauf",
+      "planungsOderKoordinationsNachweis": true,
+      "ausfuehrungsAutoritaet": false,
+      "gameplayAutoritaet": false,
+      "rawWriteAutoritaet": false
+    },
+    {
+      "faehigkeitId": "merchant.markt.planen",
+      "modus": "PLANEN",
+      "quelle": "grundlage/quelle/merchant/markt-historie.ts",
+      "nachweis": "MarktHistorie + erzeugeMarktBeobachtenDemand",
+      "planungsOderKoordinationsNachweis": true,
+      "ausfuehrungsAutoritaet": false,
+      "gameplayAutoritaet": false,
+      "rawWriteAutoritaet": false
+    },
+    {
+      "faehigkeitId": "merchant.mluck.planen",
+      "modus": "PLANEN",
+      "quelle": "grundlage/quelle/merchant/mluck-service.ts",
+      "nachweis": "planeMLuckService",
+      "planungsOderKoordinationsNachweis": true,
+      "ausfuehrungsAutoritaet": false,
+      "gameplayAutoritaet": false,
+      "rawWriteAutoritaet": false
+    },
+    {
+      "faehigkeitId": "merchant.logistik.planen",
+      "modus": "PLANEN",
+      "quelle": "grundlage/quelle/merchant/logistik-planer.ts",
+      "nachweis": "planeMerchantLogistik",
+      "planungsOderKoordinationsNachweis": true,
+      "ausfuehrungsAutoritaet": false,
+      "gameplayAutoritaet": false,
+      "rawWriteAutoritaet": false
+    },
+    {
+      "faehigkeitId": "merchant.gear.planen",
+      "modus": "PLANEN",
+      "quelle": "grundlage/quelle/merchant/gear-progression.ts",
+      "nachweis": "planeUndReserviereGearProgression",
+      "planungsOderKoordinationsNachweis": true,
+      "ausfuehrungsAutoritaet": false,
+      "gameplayAutoritaet": false,
+      "rawWriteAutoritaet": false
+    },
+    {
+      "faehigkeitId": "merchant.itemmutation.planen",
+      "modus": "PLANEN",
+      "quelle": "grundlage/quelle/merchant/item-mutations-planer.ts",
+      "nachweis": "planeItemMutation",
+      "planungsOderKoordinationsNachweis": true,
+      "ausfuehrungsAutoritaet": false,
+      "gameplayAutoritaet": false,
+      "rawWriteAutoritaet": false
+    }
+  ]
+}

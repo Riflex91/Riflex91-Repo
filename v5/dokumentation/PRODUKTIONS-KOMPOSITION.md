@@ -1,44 +1,81 @@
 # V5 Produktionskomposition
 
-**Status:** DEFAULT-DENY BASISKATALOG  
+**Status:** DEFAULT-DENY / PLANEN REGISTRIERT / INAKTIV  
 **Stand:** 2026-09-20
 
 ## Zweck
 
-Die produktive V5-Runtime besitzt eine konkrete Kompositionswurzel, darf aber keine Modul- oder Capability-Identitaet aus Test-Fixtures ableiten.
+Die produktive V5-Runtime besitzt eine konkrete Kompositionswurzel und verwendet ausschliesslich ratifizierte Produktvertraege fuer Modul- und Capability-Identitaeten. Test-Fixtures sind keine Authority-Quelle.
 
 Der kanonische Katalog liegt in:
 
 - `grundlage/quelle/runtime/produktions-komposition.ts`;
-- `grundlage/quelle/merchant/modul-vertrag.ts`.
+- `grundlage/quelle/merchant/modul-vertrag.ts`;
+- `grundlage/quelle/merchant/faehigkeits-vertrag.ts`;
+- `grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json`;
+- `architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md`.
 
-## Aktuell belegte Modulidentitaet
+## Produktive Modulidentitaet
 
-Der produktive Merchant-Workflow verwendet bereits explizit:
+Der Merchant-Workflow und die Produktionskomposition verwenden dieselbe Identitaet:
 
-`merchant-core-a`
+`merchant-core-a@1`
 
-Diese Identitaet ist deshalb als `MERCHANT_CORE_A_MODUL_ID` zentralisiert und wird sowohl vom Merchant-Workflow als auch von der Produktionskomposition verwendet.
+`MERCHANT_CORE_A_MODUL_ID` und `MERCHANT_CORE_A_MODUL_VERSION` sind die kanonische Quelle im TypeScript-Core.
+
+## Produktive PLANEN-Capabilities
+
+`merchant-core-a@1` deklariert und registriert genau acht nicht-mutierende Planungsfaehigkeiten:
+
+- `merchant.task.planen`
+- `merchant.bank.planen`
+- `merchant.verkauf.planen`
+- `merchant.markt.planen`
+- `merchant.mluck.planen`
+- `merchant.logistik.planen`
+- `merchant.gear.planen`
+- `merchant.itemmutation.planen`
+
+Alle besitzen:
+
+- `modus=PLANEN`;
+- `status=VERFUEGBAR`;
+- `standardAktiv=false`;
+- beim Runtime-Start `aktiv=false`.
+
+Es wird dadurch keine Gameplay-, Raw-Write- oder Action-Authority erzeugt.
+
+## Cross-Validation
+
+Die Runtime prueft die Komposition vor jeder Registrierung fail-closed:
+
+1. jede Capability muss ein exaktes Provider-Modul mit passender Modulversion besitzen;
+2. das Provider-Modul muss die Capability in `bereitgestellteFaehigkeiten` deklarieren;
+3. jede deklarierte bereitgestellte Capability muss exakt eine passende Provider-Definition besitzen;
+4. jede `benoetigteFaehigkeit` eines Moduls muss mindestens einen registrierten Anbieter besitzen;
+5. `standardAktiv=true` bleibt fuer Module und Capabilities verboten.
+
+Dadurch reicht ein isolierter Registereintrag nicht aus, um eine neue Capability an einer Modulgrenze vorbei einzufuehren.
 
 ## Default-Deny-Grenze
 
-Die aktuelle kanonische Komposition:
-
-- registriert `merchant-core-a@1`;
-- aktiviert kein Modul automatisch;
-- registriert noch keine produktive Capability-Bindung;
-- aktiviert keine mutierende Capability;
-- erzeugt keine Gameplay-, Raw-Write- oder Action-Authority;
-- erfindet keine Owner-/Capability-Zuordnung aus Tests.
-
 Der Katalogstatus lautet:
 
-`DEFAULT_DENY_OHNE_FAEHIGKEITSBINDUNGEN`
+`DEFAULT_DENY_PLANEN_REGISTRIERT_INAKTIV`
 
-Testnamen wie `merchant-core` / `bank.deposit` bleiben Test-Fixtures, solange kein ratifizierter produktiver Vertrag dieselbe Bindung festlegt.
+Die Komposition:
+
+- registriert `merchant-core-a@1`;
+- registriert die acht PLANEN-Capabilities;
+- aktiviert kein Modul automatisch;
+- aktiviert keine Capability automatisch;
+- registriert aktuell keine produktive `MUTIEREN`-Capability;
+- erfindet keine Owner-/Capability-Zuordnung aus Tests.
+
+Testnamen wie `merchant-core` / `bank.deposit` bleiben Test-Fixtures und sind nicht Teil des produktiven Merchant-Vertrags.
 
 ## Naechster Integrationsschritt
 
-Weitere Module und Capabilities duerfen erst aufgenommen werden, wenn ihre produktive Owner-Identitaet aus V5-Quellcode, ratifizierter Architektur oder einem neuen expliziten Vertrag eindeutig ableitbar ist.
+Ein spaeterer Betriebsstart oder eine spaetere Aktivierung muss weiterhin reale Health-Evidence, Gesamtfreigabe, Operator-Policy, Capability-Authority, Admission, Ressourcen/Fencing, Action-Channel, Budget, durable Intent und Postcondition/Reconciliation verwenden.
 
-Ein spaeterer Betriebsstart muss zusaetzlich reale Health-Evidence, Gesamtfreigabe, Operator-Policy, Capability-Authority, Admission, Ressourcen/Fencing, Action-Channel, Budget, durable Intent und Postcondition/Reconciliation verwenden. Der Kompositionskatalog allein erteilt keine Mutationserlaubnis.
+Die reine Registrierung von PLANEN-Capabilities erteilt keine Mutationserlaubnis. Mutierende Merchant-Capabilities benoetigen einen separaten ratifizierten Vertrag und eigene Integrations-/Live-Nachweise.

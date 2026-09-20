@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   MERCHANT_CORE_A_MODUL_ID,
   MERCHANT_CORE_A_MODUL_VERSION,
+  MERCHANT_CORE_A_PLANUNGS_FAEHIGKEIT_IDS,
   MerchantWorkflowProvider,
   PRODUKTIONS_KOMPOSITIONS_KATALOG_STATUS,
   V5ProduktionsRuntime,
@@ -44,11 +45,11 @@ test("kanonische Produktionskomposition registriert nur belegte Module default-d
 
   assert.equal(
     PRODUKTIONS_KOMPOSITIONS_KATALOG_STATUS,
-    "DEFAULT_DENY_OHNE_FAEHIGKEITSBINDUNGEN",
+    "DEFAULT_DENY_PLANEN_REGISTRIERT_INAKTIV",
   );
   assert.equal(definition.schemaVersion, 1);
   assert.equal(definition.modulDefinitionen.length, 1);
-  assert.equal(definition.faehigkeitsDefinitionen.length, 0);
+  assert.equal(definition.faehigkeitsDefinitionen.length, 8);
   assert.deepEqual(definition.healthAnforderungen, healthAnforderungen());
 
   const [merchant] = definition.modulDefinitionen;
@@ -56,7 +57,10 @@ test("kanonische Produktionskomposition registriert nur belegte Module default-d
   assert.equal(merchant.modulId, "merchant-core-a");
   assert.equal(merchant.modulVersion, MERCHANT_CORE_A_MODUL_VERSION);
   assert.equal(merchant.standardAktiv, false);
-  assert.deepEqual(merchant.bereitgestellteFaehigkeiten, []);
+  assert.deepEqual(
+    merchant.bereitgestellteFaehigkeiten,
+    [...MERCHANT_CORE_A_PLANUNGS_FAEHIGKEIT_IDS],
+  );
   assert.deepEqual(merchant.benoetigteFaehigkeiten, []);
 });
 
@@ -77,7 +81,7 @@ test("Start der kanonischen Komposition aktiviert weder Module noch Capabilities
   const vorStart = runtime.status();
   assert.equal(vorStart.registrierteModule, 1);
   assert.equal(vorStart.aktiveModule, 0);
-  assert.equal(vorStart.registrierteFaehigkeiten, 0);
+  assert.equal(vorStart.registrierteFaehigkeiten, 8);
   assert.equal(vorStart.aktiveFaehigkeiten, 0);
   assert.equal(vorStart.aktiveMutierendeFaehigkeiten, 0);
 
@@ -104,4 +108,32 @@ test("Produktionskomposition kopiert Health-Anforderungen unveraenderlich", () =
   assert.equal(definition.healthAnforderungen[0].healthId, "journal");
   assert.equal(Object.isFrozen(definition.healthAnforderungen), true);
   assert.equal(Object.isFrozen(definition.healthAnforderungen[0]), true);
+});
+
+test("Merchant-Produktionskatalog registriert exakt acht PLANEN-Capabilities inaktiv", () => {
+  const definition = erstelleKanonischeProduktionsKomposition(
+    healthAnforderungen(),
+  );
+
+  assert.deepEqual(
+    definition.faehigkeitsDefinitionen.map(x => x.faehigkeitId),
+    [...MERCHANT_CORE_A_PLANUNGS_FAEHIGKEIT_IDS],
+  );
+  assert.equal(
+    definition.faehigkeitsDefinitionen.every(
+      x => x.anbieterModulId === MERCHANT_CORE_A_MODUL_ID
+        && x.anbieterVersion === MERCHANT_CORE_A_MODUL_VERSION
+        && x.modus === "PLANEN"
+        && x.status === "VERFUEGBAR"
+        && x.standardAktiv === false,
+    ),
+    true,
+  );
+
+  const runtime = new V5ProduktionsRuntime(definition);
+  const eintraege = runtime.kernKomponenten().faehigkeiten.sicht();
+  assert.equal(eintraege.length, 8);
+  assert.equal(eintraege.every(x => x.modus === "PLANEN"), true);
+  assert.equal(eintraege.every(x => x.aktiv === false), true);
+  assert.equal(eintraege.some(x => x.modus === "MUTIEREN"), false);
 });

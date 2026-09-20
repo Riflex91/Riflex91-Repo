@@ -89,6 +89,60 @@ function pruefeDefinition(definition: V5ProduktionsKompositionsDefinition): void
   if (definition.faehigkeitsDefinitionen.some(x => x.standardAktiv)) {
     throw new Error("PRODUKTIONS_KOMPOSITION_FAEHIGKEIT_STANDARD_AKTIV_VERBOTEN");
   }
+
+  for (const faehigkeit of definition.faehigkeitsDefinitionen) {
+    const provider = definition.modulDefinitionen.find(modul =>
+      modul.modulId === faehigkeit.anbieterModulId
+      && modul.modulVersion === faehigkeit.anbieterVersion);
+    if (provider === undefined) {
+      throw new Error(
+        "PRODUKTIONS_KOMPOSITION_FAEHIGKEIT_PROVIDER_FEHLT:"
+        + faehigkeit.faehigkeitId,
+      );
+    }
+    if (!provider.bereitgestellteFaehigkeiten.includes(
+      faehigkeit.faehigkeitId,
+    )) {
+      throw new Error(
+        "PRODUKTIONS_KOMPOSITION_FAEHIGKEIT_NICHT_DEKLARIERT:"
+        + faehigkeit.faehigkeitId,
+      );
+    }
+  }
+
+  for (const modul of definition.modulDefinitionen) {
+    for (const faehigkeitId of modul.bereitgestellteFaehigkeiten) {
+      const provider = definition.faehigkeitsDefinitionen.filter(
+        faehigkeit =>
+          faehigkeit.faehigkeitId === faehigkeitId
+          && faehigkeit.anbieterModulId === modul.modulId
+          && faehigkeit.anbieterVersion === modul.modulVersion,
+      );
+      if (provider.length === 0) {
+        throw new Error(
+          "PRODUKTIONS_KOMPOSITION_MODUL_FAEHIGKEIT_OHNE_ANBIETER:"
+          + faehigkeitId,
+        );
+      }
+      if (provider.length > 1) {
+        throw new Error(
+          "PRODUKTIONS_KOMPOSITION_MODUL_FAEHIGKEIT_DOPPELT:"
+          + faehigkeitId,
+        );
+      }
+    }
+
+    for (const faehigkeitId of modul.benoetigteFaehigkeiten) {
+      if (!definition.faehigkeitsDefinitionen.some(
+        faehigkeit => faehigkeit.faehigkeitId === faehigkeitId,
+      )) {
+        throw new Error(
+          "PRODUKTIONS_KOMPOSITION_BENOETIGTE_FAEHIGKEIT_FEHLT:"
+          + faehigkeitId,
+        );
+      }
+    }
+  }
 }
 
 export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
