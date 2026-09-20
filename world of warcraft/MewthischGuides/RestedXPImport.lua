@@ -566,8 +566,10 @@ function Import:GetStats()
     local guides = self:BuildGuides()
     local rawSteps, actions, quests = 0, 0, 0
     local coverage = self:GetActionCoverage()
+    local sourceFiles = {}
 
     for _, guide in ipairs(rawGuides) do
+        sourceFiles[tostring(guide.sourceFile or "")] = true
         rawSteps = rawSteps + #(guide.steps or {})
         for _, step in ipairs(guide.steps or {}) do
             actions = actions + #(step.actions or {})
@@ -575,7 +577,13 @@ function Import:GetStats()
     end
     for _, guide in ipairs(guides) do quests = quests + #(guide.steps or {}) end
 
+    local sourceFileCount = 0
+    for sourceFile in pairs(sourceFiles) do
+        if sourceFile ~= "" then sourceFileCount = sourceFileCount + 1 end
+    end
+
     return {
+        sourceFiles = sourceFileCount,
         rawGuides = #rawGuides,
         rawSteps = rawSteps,
         structuredActions = actions,
