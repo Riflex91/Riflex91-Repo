@@ -9,12 +9,16 @@ const pflicht=[
   "grundlage/quelle/zertifizierung/production-certification.ts",
   "grundlage/quelle/runtime/produktions-komposition.ts",
   "grundlage/quelle/runtime/produktions-runtime.ts",
+  "grundlage/quelle/runtime/planungs-aktivierung.ts",
   "grundlage/quelle/merchant/modul-vertrag.ts",
   "grundlage/quelle/merchant/faehigkeits-vertrag.ts",
   "grundlage/quelle/merchant/demand.ts",
   "grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json",
+  "grundlage/vertraege/runtime/planungs-aktivierung.json",
   "architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md",
+  "architektur/adr/ADR-027-PLANUNGS-CAPABILITY-AKTIVIERUNG.md",
   "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
+  "grundlage/tests/r11-planungs-aktivierung.test.mjs",
   "grundlage/tests/r19-evidence-ladder.test.mjs",
   "grundlage/tests/r19-production-certification.test.mjs",
   "grundlage/tests/r19-shadow-certification.test.mjs",
@@ -98,6 +102,40 @@ for(const m of [
 ]){
   if(!runtimeKomposition.includes(m)) fehler.push("PRODUKTIONS_KOMPOSITION_CROSS_VALIDATION_FEHLT:"+m);
 }
+const planungsAktivierung=lies("grundlage/quelle/runtime/planungs-aktivierung.ts");
+for(const m of [
+  "PLANUNGS_AKTIVIERUNG_NUR_PLANEN",
+  "PLANUNGS_AKTIVIERUNG_NOTHALT_AKTIV",
+  "PLANUNGS_AKTIVIERUNG_DURCH_OPERATOR_GESPERRT",
+  "PLANUNGS_AKTIVIERUNG_AUDIT_NICHT_DURABLE",
+  "PLANUNGS_AKTIVIERUNG_REVALIDIERUNG_FEHLGESCHLAGEN",
+  "schreibeDurable",
+  "aktiviereNichtMutierend",
+  "anbieterVersion",
+  "gameplayAutoritaet: false",
+  "rawWriteAutoritaet: false",
+  "actionAuthority: false",
+]){
+  if(!planungsAktivierung.includes(m)) {
+    fehler.push("PLANUNGS_AKTIVIERUNG_GRENZE_FEHLT:"+m);
+  }
+}
+if(!planungsAktivierung.includes('faehigkeit.modus !== "PLANEN"')) {
+  fehler.push("PLANUNGS_AKTIVIERUNG_MODUS_GATE_FEHLT");
+}
+
+const planungsVertrag=JSON.parse(
+  lies("grundlage/vertraege/runtime/planungs-aktivierung.json"),
+);
+if(planungsVertrag.erlaubterModus!=="PLANEN"
+    || planungsVertrag.standardAktiv!==false
+    || planungsVertrag.mutierendeCapabilitiesDurchDiesenVertrag!==0
+    || planungsVertrag.authority?.gameplayAutoritaet!==false
+    || planungsVertrag.authority?.rawWriteAutoritaet!==false
+    || planungsVertrag.authority?.actionAuthority!==false) {
+  fehler.push("PLANUNGS_AKTIVIERUNG_VERTRAG_UNGUELTIG");
+}
+
 const merchantDemand=lies("grundlage/quelle/merchant/demand.ts");
 if(!merchantDemand.includes("eigentuemerModulId: MERCHANT_CORE_A_MODUL_ID")) {
   fehler.push("MERCHANT_WORKFLOW_OWNER_NICHT_KANONISCH");
