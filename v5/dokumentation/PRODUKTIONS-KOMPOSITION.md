@@ -1,6 +1,6 @@
 # V5 Produktionskomposition
 
-**Status:** DEFAULT-DENY / PLANEN KONTROLLIERT AKTIVIERBAR  
+**Status:** DEFAULT-DENY / PLANEN KONTROLLIERT AKTIVIERBAR / EQUIP-MUTIEREN NUR REGISTRIERT  
 **Stand:** 2026-09-20
 
 ## Zweck
@@ -23,7 +23,11 @@ Der kanonische Katalog liegt in:
 - `grundlage/vertraege/runtime/node-produktions-host-komposition.json`;
 - `architektur/adr/ADR-031-BANK-PLANEN-OBSERVER-CANARY.md`;
 - `grundlage/vertraege/runtime/bank-planen-observer-canary.json`;
-- `roadmap/bank-planen-observer-live-evidence.json`.
+- `roadmap/bank-planen-observer-live-evidence.json`;
+- `grundlage/quelle/equipment/modul-vertrag.ts`;
+- `grundlage/quelle/equipment/faehigkeits-vertrag.ts`;
+- `grundlage/vertraege/runtime/equipment-equip-mutationsfaehigkeit.json`;
+- `architektur/adr/ADR-032-PRODUKTIVE-EQUIP-MUTATIONSFAEHIGKEIT.md`.
 
 ## Produktive Modulidentitaet
 
@@ -32,6 +36,13 @@ Der Merchant-Workflow und die Produktionskomposition verwenden dieselbe Identita
 `merchant-core-a@1`
 
 `MERCHANT_CORE_A_MODUL_ID` und `MERCHANT_CORE_A_MODUL_VERSION` sind die kanonische Quelle im TypeScript-Core.
+
+Zusaetzlich ist exakt ein produktives Equipment-Modul registriert:
+
+`equipment-core@1`
+
+Es stellt ausschliesslich die default-off Capability `equipment.equip`
+bereit.
 
 ## Produktive PLANEN-Capabilities
 
@@ -71,15 +82,19 @@ Dadurch reicht ein isolierter Registereintrag nicht aus, um eine neue Capability
 
 Der Katalogstatus lautet:
 
-`DEFAULT_DENY_PLANEN_REGISTRIERT_INAKTIV`
+`DEFAULT_DENY_PLANEN_UND_EQUIP_MUTIEREN_REGISTRIERT_INAKTIV`
 
 Die Komposition:
 
 - registriert `merchant-core-a@1`;
 - registriert die acht PLANEN-Capabilities;
+- registriert `equipment-core@1`;
+- registriert exakt eine produktive `MUTIEREN`-Capability:
+  `equipment.equip`;
 - aktiviert kein Modul automatisch;
 - aktiviert keine Capability automatisch;
-- registriert aktuell keine produktive `MUTIEREN`-Capability;
+- `equipment.equip` startet immer `aktiv=false`;
+- besitzt fuer `MUTIEREN` weiterhin keinen produktiven Aktivierungspfad;
 - erfindet keine Owner-/Capability-Zuordnung aus Tests.
 
 Testnamen wie `merchant-core` / `bank.deposit` bleiben Test-Fixtures und sind nicht Teil des produktiven Merchant-Vertrags.
@@ -218,17 +233,31 @@ Der Lauf meldete explizit null Browser-Gameplay-Writes und keinerlei
 Execution-, Gameplay-, Raw-Write- oder Action-Authority. Der Nachweis ist in
 `roadmap/bank-planen-observer-live-evidence.json` dokumentiert.
 
+## Produktiv registrierte Equip-Mutationsfaehigkeit
+
+Als erste produktiv registrierte `MUTIEREN`-Capability existiert jetzt exakt
+`equipment.equip` mit Owner `equipment-core@1`. Die Action-Bindung bleibt
+exakt `AL-ACTION-EQUIP` / `AL-RECOVERY-EQUIP` /
+`AL-VERIFIER-EQUIP`.
+
+Diese Stufe ist absichtlich nur strukturell: `standardAktiv=false`, lokaler
+Status `aktiv=false`, keine automatische Aktivierung und noch kein
+produktiver MUTIEREN-Aktivierungspfad. Registrierung erzeugt deshalb keine
+Gameplay-, Raw-Write- oder Action-Authority.
+
+Der R12-Controlled-Live-Testgate bleibt ein Testartefakt und darf nicht als
+Produktions-Authority wiederverwendet werden. Bank-, Trade-, Transfer-,
+Upgrade-, Compound-, Exchange- und Craft-Mutationen bleiben produktiv
+unregistriert.
+
 ## Naechster Integrationsschritt
 
-Die reine Registrierung oder Aktivierung von PLANEN-Capabilities erteilt keine
-Mutationserlaubnis. Der naechste Architektur-Schritt ist deshalb nicht eine
-Bank-Mutation, sondern die Definition genau einer separat ratifizierten,
-default-off produktiven `MUTIEREN`-Capability mit Admission,
-Ressourcen/Fencing, Action-Channel, Budget, durable Intent und
-Postcondition/Reconciliation.
+Als naechstes wird fuer exakt `equipment.equip` ein separater,
+restart-sicherer, default-deny Einmal-Aktivierungs- und Admission-Pfad
+benoetigt. Dieser muss vor lokaler Wirkung durable protokollieren und weiterhin
+Operator-Deny, aktuelle Health/Operations, Gesamtfreigabe,
+Ressourcen/Fencing, Action-Channel, Socket-Budget, durable Intent,
+Live-Preconditions sowie Postcondition/Reconciliation erzwingen.
 
-Als technisch kleinster Kandidat soll zuerst der bereits in R12/R19
-Controlled-Live und Canary nachgewiesene Equip-Action-Contract bewertet
-werden. Daraus entsteht noch keine produktive Aktivierung; Bank-, Trade-,
-Transfer-, Upgrade-, Compound-, Exchange- und Craft-Mutationen bleiben bis zu
-eigenen Vertraegen gesperrt.
+Bis dieser separate Vertrag implementiert und nachgewiesen ist, kann die
+produktive Registrierung keinen Gameplay-Write ausloesen.

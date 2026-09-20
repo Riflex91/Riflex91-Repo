@@ -89,6 +89,8 @@ export * from "./merchant/markt-evidence.js";
 export * from "./merchant/demand.js";
 export * from "./merchant/modul-vertrag.js";
 export * from "./merchant/faehigkeits-vertrag.js";
+export * from "./equipment/modul-vertrag.js";
+export * from "./equipment/faehigkeits-vertrag.js";
 export * from "./koordination/cm-protokoll.js";
 export * from "./koordination/roster-wahrheit.js";
 export * from "./koordination/character-liveness.js";

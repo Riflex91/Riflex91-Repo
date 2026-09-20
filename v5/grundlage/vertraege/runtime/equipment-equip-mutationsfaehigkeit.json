@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "vertragVersion": "1",
+  "modulId": "equipment-core",
+  "modulVersion": "1",
+  "faehigkeit": {
+    "faehigkeitId": "equipment.equip",
+    "modus": "MUTIEREN",
+    "status": "VERFUEGBAR",
+    "standardAktiv": false,
+    "singleOwner": true
+  },
+  "aktionsBindung": {
+    "actionContractId": "AL-ACTION-EQUIP",
+    "recoveryContractId": "AL-RECOVERY-EQUIP",
+    "verifierId": "AL-VERIFIER-EQUIP",
+    "publicFunction": "equip"
+  },
+  "vorhandeneLiveNachweise": [
+    "v5/roadmap/r12-controlled-live-evidence.json",
+    "v5/roadmap/r19-controlled-live-evidence.json",
+    "v5/roadmap/r19-canary-evidence.json"
+  ],
+  "aktivierung": {
+    "durchDiesenVertragErlaubt": false,
+    "automatisch": false,
+    "produktiverAktivierungspfadVorhanden": false
+  },
+  "authority": {
+    "gameplayAutoritaetDurchRegistrierung": false,
+    "rawWriteAutoritaetDurchRegistrierung": false,
+    "actionAuthorityDurchRegistrierung": false
+  },
+  "ausgeschlosseneMutationFamilien": [
+    "bank",
+    "trade",
+    "transfer",
+    "upgrade",
+    "compound",
+    "exchange",
+    "craft"
+  ]
+}

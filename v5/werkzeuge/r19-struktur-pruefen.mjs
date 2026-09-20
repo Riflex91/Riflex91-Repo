@@ -22,6 +22,10 @@ for(const p of [
   "grundlage/quelle/runtime/produktions-runtime.ts",
   "grundlage/quelle/merchant/modul-vertrag.ts",
   "grundlage/quelle/merchant/faehigkeits-vertrag.ts",
+  "grundlage/quelle/equipment/modul-vertrag.ts",
+  "grundlage/quelle/equipment/faehigkeits-vertrag.ts",
+  "grundlage/vertraege/runtime/equipment-equip-mutationsfaehigkeit.json",
+  "architektur/adr/ADR-032-PRODUKTIVE-EQUIP-MUTATIONSFAEHIGKEIT.md",
   "grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json",
   "architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md",
   "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
@@ -96,6 +100,31 @@ if(merchantPlanen.schemaVersion!==1
       ||x.rawWriteAutoritaet!==false)
     ||new Set(merchantPlanen.faehigkeiten.map(x=>x.faehigkeitId)).size!==8) {
   fehler("Merchant Core A PLANEN-Capability-Vertrag ungueltig.");
+}
+
+const equipmentEquip=lies(
+  "grundlage/vertraege/runtime/equipment-equip-mutationsfaehigkeit.json",
+);
+if(equipmentEquip.schemaVersion!==1
+    ||equipmentEquip.vertragVersion!=="1"
+    ||equipmentEquip.modulId!=="equipment-core"
+    ||equipmentEquip.modulVersion!=="1"
+    ||equipmentEquip.faehigkeit?.faehigkeitId!=="equipment.equip"
+    ||equipmentEquip.faehigkeit?.modus!=="MUTIEREN"
+    ||equipmentEquip.faehigkeit?.status!=="VERFUEGBAR"
+    ||equipmentEquip.faehigkeit?.standardAktiv!==false
+    ||equipmentEquip.faehigkeit?.singleOwner!==true
+    ||equipmentEquip.aktionsBindung?.actionContractId!=="AL-ACTION-EQUIP"
+    ||equipmentEquip.aktionsBindung?.recoveryContractId!=="AL-RECOVERY-EQUIP"
+    ||equipmentEquip.aktionsBindung?.verifierId!=="AL-VERIFIER-EQUIP"
+    ||equipmentEquip.aktionsBindung?.publicFunction!=="equip"
+    ||equipmentEquip.aktivierung?.durchDiesenVertragErlaubt!==false
+    ||equipmentEquip.aktivierung?.automatisch!==false
+    ||equipmentEquip.aktivierung?.produktiverAktivierungspfadVorhanden!==false
+    ||equipmentEquip.authority?.gameplayAutoritaetDurchRegistrierung!==false
+    ||equipmentEquip.authority?.rawWriteAutoritaetDurchRegistrierung!==false
+    ||equipmentEquip.authority?.actionAuthorityDurchRegistrierung!==false) {
+  fehler("Equipment Equip MUTIEREN-Capability-Vertrag ungueltig.");
 }
 
 const cap045=lies("roadmap/cap045-production-live-evidence.json");
