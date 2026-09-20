@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.3
+name: Mewthisch Guides addon v0.4
 
 on:
   workflow_dispatch:
@@ -37,18 +37,37 @@ jobs:
             luac5.1 -p "$file"
           done
 
-      - name: Validate Step 1 contract
+      - name: Validate Step 2 contract
         shell: bash
         run: |
-          grep -q '^## Interface: 16001$' "world of warcraft/MewthischGuides/MewthischGuides.toc"
-          grep -q '^## Title: Mewthisch Guides$' "world of warcraft/MewthischGuides/MewthischGuides.toc"
-          grep -q '^## Version: 0.3.0$' "world of warcraft/MewthischGuides/MewthischGuides.toc"
-          grep -q '^## SavedVariables: MewthischGuidesDB$' "world of warcraft/MewthischGuides/MewthischGuides.toc"
-          grep -q '^Navigator.lua$' "world of warcraft/MewthischGuides/MewthischGuides.toc"
-          grep -q 'YARDS_TO_METERS = 0.9144' "world of warcraft/MewthischGuides/Navigation.lua"
-          grep -q 'MewthischGuidesNavigatorFrame' "world of warcraft/MewthischGuides/Navigator.lua"
-          grep -q 'SLASH_MEWTHISCHGUIDES1 = "/mg"' "world of warcraft/MewthischGuides/Core.lua"
-          grep -q 'MewthischGuidesMinimapButton' "world of warcraft/MewthischGuides/UI.lua"
+          set -euo pipefail
+          TOC="world of warcraft/MewthischGuides/MewthischGuides.toc"
+          NAV="world of warcraft/MewthischGuides/Navigation.lua"
+          ARROW="world of warcraft/MewthischGuides/Navigator.lua"
+          GOALS="world of warcraft/MewthischGuides/GoalEngine.lua"
+
+          grep -q '^## Interface: 16001$' "$TOC"
+          grep -q '^## Title: Mewthisch Guides$' "$TOC"
+          grep -q '^## Version: 0.4.0$' "$TOC"
+          grep -q '^GoalEngine.lua$' "$TOC"
+          grep -q '^Navigator.lua$' "$TOC"
+
+          grep -q 'GoalStates' "$GOALS"
+          grep -q 'BuildQuestGoals' "$GOALS"
+          grep -q 'GetActiveGoal' "$GOALS"
+          grep -q 'goalSummary' "world of warcraft/MewthischGuides/UI.lua"
+
+          grep -q 'YARDS_TO_METERS = 0.9144' "$NAV"
+          grep -q 'local dy = py - ty' "$NAV"
+          grep -q 'QuestPOIUpdateIcons' "$NAV"
+          grep -q 'directionReliable' "$NAV"
+          if grep -q 'navigationScreenAngle' "$NAV"; then
+            echo "Unsafe screen-angle fallback is still present."
+            exit 1
+          fi
+
+          grep -q 'Intentionally no background' "$ARROW"
+          grep -q 'Never show a guessed direction' "$ARROW"
 
       - name: Package addon
         shell: bash
@@ -56,11 +75,11 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.3.zip MewthischGuides
+          zip -r MewthischGuides-v0.4.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.3
-          path: artifacts/MewthischGuides-v0.3.zip
+          name: MewthischGuides-v0.4
+          path: artifacts/MewthischGuides-v0.4.zip
           if-no-files-found: error
