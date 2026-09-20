@@ -672,7 +672,7 @@
   async function passiveVorpruefung() {
     const obs = beobachte();
     const gruende = ruheGruende(obs);
-    const performanceTrick = await guiApi().aktivierePerformanceTrick();
+    const performanceTrick = guiApi().aktivierePerformanceTrick();
     if (!performanceTrick.aktiv) gruende.push('PERFORMANCE_TRICK_NICHT_AKTIV');
     const journal = liesJournal();
     if (journalOffen(journal)) gruende.push('VORHERIGER_TESTVERSUCH_UNGEKLAERT');
@@ -767,7 +767,7 @@
     titel: '1 · Alte Runtime stoppen',
     art: 'normal',
     async ausfuehren() {
-      const performanceTrick = await guiApi().aktivierePerformanceTrick();
+      const performanceTrick = guiApi().aktivierePerformanceTrick();
       const result = stoppeAltRuntime();
       result.performanceTrick = performanceTrick;
       if (!performanceTrick.aktiv) result.status = 'BLOCKIERT';
