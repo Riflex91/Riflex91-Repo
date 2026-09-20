@@ -866,6 +866,44 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void V5ReadinessTest_Click(object sender, RoutedEventArgs e)
+    {
+        V5ReadinessTestButton.IsEnabled = false;
+        V5ReadinessStateText.Text = "V5-Readiness wird geprüft …";
+
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+            var test = new V5ReadinessSystemtest(_githubAnmeldung);
+            var bericht = await test.FuehreAusAsync(_config, cts.Token);
+            var text = V5ReadinessSystemtest.FormatiereBericht(bericht);
+            Clipboard.SetText(text);
+
+            V5ReadinessStateText.Text = bericht.Status == "NICHT_BESTANDEN"
+                ? "NICHT BESTANDEN · Gesamtbericht wurde kopiert."
+                : "AUTOMATISCHE PRÜFUNGEN BESTANDEN · Autorisierungsnachweis noch manuell · Gesamtbericht kopiert.";
+
+            MessageBox.Show(
+                V5ReadinessStateText.Text + "\n\nBitte den kopierten Gesamtbericht vollständig in ChatGPT einfügen.",
+                "V5 Readiness-Test",
+                MessageBoxButton.OK,
+                bericht.Status == "NICHT_BESTANDEN" ? MessageBoxImage.Warning : MessageBoxImage.Information);
+        }
+        catch (Exception error)
+        {
+            V5ReadinessStateText.Text = "FEHLER · " + Bounded(error.Message);
+            MessageBox.Show(
+                "Der V5 Readiness-Test konnte nicht abgeschlossen werden:\n\n" + Bounded(error.Message),
+                "V5 Readiness-Test",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            V5ReadinessTestButton.IsEnabled = true;
+        }
+    }
+
     private void SetSignalToggle(bool enabled, bool controlEnabled, string? detail)
     {
         _changingSignal = true;

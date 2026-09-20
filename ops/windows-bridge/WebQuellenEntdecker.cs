@@ -39,10 +39,15 @@ public sealed class WebQuellenEntdecker
     }
 
     public async Task<IReadOnlyList<WebFund>> SucheAsync(CancellationToken cancellationToken = default)
+        => await SucheAsync(DateTimeOffset.UtcNow, cancellationToken);
+
+    public async Task<IReadOnlyList<WebFund>> SucheAsync(
+        DateTimeOffset zeitpunkt,
+        CancellationToken cancellationToken = default)
     {
         var funde = new Dictionary<string, WebFund>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var suchanfrage in Suchanfragen)
+        foreach (var suchanfrage in WaehleRotierendeSuchanfragen(zeitpunkt))
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
@@ -105,6 +110,26 @@ public sealed class WebQuellenEntdecker
         return funde.Values
             .OrderBy(fund => fund.Adresse, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
+
+    public static IReadOnlyList<string> WaehleRotierendeSuchanfragen(
+        DateTimeOffset zeitpunkt,
+        int maximalAnfragen = 4)
+    {
+        if (maximalAnfragen <= 0)
+            throw new ArgumentOutOfRangeException(nameof(maximalAnfragen));
+        if (Suchanfragen.Length == 0)
+            return Array.Empty<string>();
+
+        var anzahl = Math.Min(maximalAnfragen, Suchanfragen.Length);
+        var stundenIndex = Math.Abs(zeitpunkt.ToUnixTimeSeconds() / 3600);
+        var start = (int)(stundenIndex % Suchanfragen.Length);
+        var auswahl = new string[anzahl];
+
+        for (var i = 0; i < anzahl; i++)
+            auswahl[i] = Suchanfragen[(start + i) % Suchanfragen.Length];
+
+        return auswahl;
     }
 
     private async Task<string?> BestaetigeAdventureLandBezugAsync(

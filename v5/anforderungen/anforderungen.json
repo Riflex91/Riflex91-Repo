@@ -9,7 +9,7 @@
       "titel": "Wissen wird mit stabiler Kennung, Quelle, Abrufzeit, Hash, Vertrauen und Driftstatus gespeichert.",
       "phase": "R0",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R0_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-001"
       ],
@@ -19,14 +19,17 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-002",
       "titel": "Alte Fakten bleiben historisch erhalten; Aenderungen werden explizit superseded/archiviert.",
       "phase": "R0",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R0_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-002"
       ],
@@ -35,14 +38,17 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-003",
       "titel": "Community- und unbekannte Quellen koennen offizielle Fakten nicht automatisch ueberschreiben.",
       "phase": "R0",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R0_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-003"
       ],
@@ -52,14 +58,17 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-004",
       "titel": "Bekannte hochrelevante Quellen werden standardmaessig einmal pro Stunde geprueft.",
       "phase": "R0",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R0_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-004"
       ],
@@ -68,14 +77,17 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-005",
       "titel": "Neue Quellen werden rotierend entdeckt und nach Autoritaet bewertet.",
       "phase": "R0",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R0_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-003"
       ],
@@ -85,14 +97,17 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-006",
       "titel": "Automatische Wissensupdates duerfen nur erlaubte Wissenspfade veraendern.",
       "phase": "R0",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R0_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-005"
       ],
@@ -102,7 +117,10 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-007",
@@ -134,7 +152,7 @@
       "titel": "Widerspruechliche hochautoritative Quellen erzeugen einen expliziten Widerspruchszustand.",
       "phase": "R0",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R0_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-007"
       ],
@@ -143,7 +161,10 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-009",
@@ -171,7 +192,7 @@
       "titel": "Wissenswaechter-Ausfall beeinflusst laufendes Gameplay nicht.",
       "phase": "R3",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R3_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-009"
       ],
@@ -180,14 +201,17 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R3_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-ARCH-001",
       "titel": "Alle von uns kontrollierten Runtime-Domaenenbegriffe sind deutsch.",
       "phase": "R2",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R2_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-010"
       ],
@@ -196,7 +220,10 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R2_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-ARCH-002",
@@ -272,7 +299,7 @@
       "titel": "Monkey-/Prototype-Patches und historische Runtime-Vererbung sind verboten.",
       "phase": "R3",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R3_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-014"
       ],
@@ -282,7 +309,10 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R3_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-ARCH-006",
@@ -382,7 +412,7 @@
       "titel": "Jede Capability ist von Wissen bis Live-Nachweis rueckverfolgbar.",
       "phase": "R2",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R2_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-019"
       ],
@@ -391,14 +421,17 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R2_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-ARCH-011",
       "titel": "Keine V5-Runtime-Implementierung beginnt ohne formale Laufzeitbereitschaft.",
       "phase": "R2",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R2_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-020"
       ],
@@ -407,14 +440,17 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R2_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-ARCH-012",
       "titel": "V3/V4 werden nur nach expliziter Migrationsentscheidung portiert.",
       "phase": "R2",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R2_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-021"
       ],
@@ -423,7 +459,10 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R2_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-SICH-001",
@@ -589,7 +628,7 @@
       "titel": "Host, Dashboard und Windows Bridge besitzen keine Gameplay-Policy oder Raw-Write-Autoritaet.",
       "phase": "R3",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R3_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-029"
       ],
@@ -601,7 +640,10 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R3_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-SICH-009",
@@ -630,7 +672,7 @@
       "titel": "Keine sicherheitskritische Funktion besitzt gefaehrliche stille Defaultwerte.",
       "phase": "R2",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R2_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-031"
       ],
@@ -639,7 +681,10 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R2_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-SICH-011",
@@ -689,7 +734,7 @@
       "titel": "Secrets gelangen nicht in Repo, Gameplay-Bundle, Telemetrie oder Alerts.",
       "phase": "R3",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R3_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-034"
       ],
@@ -699,7 +744,10 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R3_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-SICH-014",
@@ -1286,7 +1334,7 @@
       "titel": "Architektur-Fitness-Tests verhindern verbotene Abhaengigkeiten und Writes.",
       "phase": "R3",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R3_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-059"
       ],
@@ -1295,7 +1343,10 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R3_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-TEST-007",
@@ -1349,7 +1400,7 @@
       "titel": "Build ist an Git-SHA, Dependency-Lock, Schema-Version und Konfiguration gebunden.",
       "phase": "R3",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R3_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-062"
       ],
@@ -1358,7 +1409,10 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R3_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-OPS-002",
@@ -1488,7 +1542,7 @@
       "titel": "Laufzeitbereitschaft wird maschinenlesbar mit zehn Pflichtbereichen gefuehrt.",
       "phase": "R2",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R2_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-020"
       ],
@@ -1497,7 +1551,10 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R2_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-OPS-008",
@@ -2011,7 +2068,7 @@
       "titel": "Jede sichtbare V5-Oberflaeche verwendet deutsche Texte; originale Monster-Namen sind nur erlaubt, solange das Spiel selbst keine offizielle deutsche Monsterbezeichnung bereitstellt.",
       "phase": "R2",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R2_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-089"
       ],
@@ -2021,7 +2078,10 @@
       ],
       "nachweis": "UI_SPRACHABDECKUNG_TEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R2_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-UI-002",
@@ -2078,7 +2138,7 @@
       "titel": "Buttons, Menues, Tabs, Textfelder, Platzhalter, Tooltips, Tabellen, Dialoge, HUD, Dashboard und Konfiguration sind vollstaendig deutsch.",
       "phase": "R3",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R3_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-089"
       ],
@@ -2088,7 +2148,10 @@
       ],
       "nachweis": "UI_SNAPSHOT_UND_STRING_GUARD",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R3_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-UI-005",
@@ -2118,7 +2181,7 @@
       "titel": "Neue vom Wissenswaechter entdeckte sichtbare Spielinhalte erzeugen eine deutsche Uebersetzungsaufgabe und koennen bis zur Uebersetzung mit deutschem Platzhalter dargestellt werden.",
       "phase": "R0",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R0_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-093"
       ],
@@ -2128,14 +2191,17 @@
       ],
       "nachweis": "WISSENSDRIFT_TEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-UI-007",
       "titel": "Normale Bedienoberflaechen zeigen keine externen technischen Rohkennungen; diese bleiben nur in maschinenlesbarer Evidence oder expliziten Entwicklerexporten.",
       "phase": "R3",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R3_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-094"
       ],
@@ -2144,7 +2210,10 @@
       ],
       "nachweis": "UI_LEAK_TEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R3_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-UI-008",
@@ -2199,7 +2268,7 @@
       "titel": "Automatische Wissensaktualisierung darf main nicht direkt ohne serverseitiges Pruef-/Freigabegate beschreiben; Zielpfad ist dedizierter Knowledge-Branch plus PR/CI.",
       "phase": "R0",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R0_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-097"
       ],
@@ -2208,7 +2277,10 @@
       ],
       "nachweis": "GIT_SYNC_NEGATIVTEST_UND_PR_GATE",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-012",
@@ -2224,14 +2296,18 @@
       ],
       "nachweis": "AUTH_BERECHTIGUNGSNACHWEIS",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "EXTERN_OFFEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationBlocker": "Die lokale Git-Credential-Manager/Browser-OAuth-Autorisierung kann aus dem Repository nicht als repository-begrenzte Least-Privilege-Autorisierung bewiesen werden.",
+      "reconciliationErforderlicherNachweis": "Lokale Bridge-Systempruefung plus GitHub-Autorisierungs-/Repository-Scope-Nachweis."
     },
     {
       "kennung": "V5-ANF-WISSEN-013",
       "titel": "Jede fachliche V5-Entwicklung liest vor Planung den aktuellen Manifest, letzten Waechterlauf, Quellenstatus, relevante Drift, Revalidierungsqueue, Facts und Contracts.",
       "phase": "R2",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R2_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-099"
       ],
@@ -2241,14 +2317,17 @@
       ],
       "nachweis": "ENTWICKLUNGS_WISSENSGATE",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R2_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-014",
       "titel": "Der Wissensbasis-Manifest exponiert alle stabilen Pfade der laufenden Wissensdatenbank fuer Entwickler, KI-Assistenten und spaetere Konsumenten.",
       "phase": "R0",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R0_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-105"
       ],
@@ -2257,14 +2336,17 @@
       ],
       "nachweis": "MANIFEST_VALIDATOR",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-015",
       "titel": "Echte V5-Implementierung wird bei Wissensalter ueber 180 Minuten oder fehlerhaften/gekuerzten relevanten offiziellen Quellen blockiert.",
       "phase": "R3",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R3_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-099",
         "V5-GEF-103"
@@ -2274,14 +2356,17 @@
       ],
       "nachweis": "STRENGER_WISSENSGATE",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R3_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-016",
       "titel": "Aenderung eines relevanten offiziellen Quellenhashes erfordert erneute Bewertung und Revalidierung, bevor betroffene Implementierung freigegeben wird.",
       "phase": "R3",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R3_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-102"
       ],
@@ -2290,14 +2375,17 @@
       ],
       "nachweis": "QUELLENFREIGABEN_DRIFT_TEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R3_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-017",
       "titel": "Automatisch entdeckte Kandidaten duerfen nur Rechercheaufgaben erzeugen und niemals Fakten, Contracts, Code oder Gameplay automatisch freigeben.",
       "phase": "R0",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R0_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-100"
       ],
@@ -2306,7 +2394,10 @@
       ],
       "nachweis": "KANDIDATEN_AUTORITAETS_GUARD",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-018",
@@ -2358,7 +2449,7 @@
       "titel": "Vor Merge echter V5-Implementierung enthaelt der Branch den aktuellen main inklusive des letzten Knowledge-Commits.",
       "phase": "R3",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R3_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-102",
         "V5-GEF-103"
@@ -2369,14 +2460,17 @@
       ],
       "nachweis": "BRANCH_AKTUALITAETS_GUARD",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R3_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-021",
       "titel": "Waechter-Maschinendateien sind schema-validierbar; aenderungsprotokoll.jsonl enthaelt genau ein JSON-Objekt pro Zeile.",
       "phase": "R0",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R0_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-106"
       ],
@@ -2385,7 +2479,10 @@
       ],
       "nachweis": "WISSENSBASIS_VALIDATOR",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-022",
@@ -2471,7 +2568,7 @@
       "titel": "Die Windows Bridge importiert vom lokalen Live-Wissen nur manifest.json, status.json und validierte aktuell/**/*.json; temporaer/quarantaene und sonstige SSD-Dateien bleiben lokal.",
       "phase": "R0",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R0_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-110"
       ],
@@ -2480,14 +2577,17 @@
       ],
       "nachweis": "IMPORT_ALLOWLIST_TEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-026",
       "titel": "Der lokale Live-Wissensimport ist auf einen absoluten Unterpfad von D:\\\\ beschraenkt und verweigert Reparse Points, Traversal, unerwartete Dateitypen, Oversize und Geheimnisfelder.",
       "phase": "R0",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R0_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-111",
         "V5-GEF-112"
@@ -2497,7 +2597,10 @@
       ],
       "nachweis": "WINDOWS_BRIDGE_NEGATIVTESTS",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "reconciliationStatus": "R0_NACHGEWIESEN",
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationAm": "2026-09-20"
     },
     {
       "kennung": "V5-ANF-WISSEN-027",

@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { pruefeR0R3Reconciliation } from './r0-r3-reconciliation-pruefen.mjs';
 
 const liesJson = (pfad) => JSON.parse(fs.readFileSync(pfad, 'utf8'));
 const fehler = (text) => { throw new Error('[V5-VORBEREITUNG] ' + text); };
@@ -15,6 +16,7 @@ const invarianten = liesJson('v5/invarianten/invarianten.json');
 const zustaende = liesJson('v5/zustaende/zustandsautomaten.json');
 const fitness = liesJson('v5/fitness/fitness-regeln.json');
 const bereitschaft = liesJson('v5/bereitschaft/laufzeit-bereitschaft.json');
+const windowsBridgeReadinessProfil = liesJson('v5/roadmap/windows-bridge-readiness-testprofil.json');
 const anzeige = liesJson('v5/anzeigetexte/regelwerk.json');
 const entwicklungsWissen = liesJson('v5/entwicklungsregeln/wissensnutzung.json');
 const quellenfreigaben = liesJson('v5/entwicklungsregeln/quellenfreigaben.json');
@@ -115,6 +117,115 @@ for (const kennung of pflicht) if (!bereitschaftKennungen.has(kennung)) fehler('
 const allesErfuellt = bereitschaft.bereiche.every(x => x.erfuellt === true);
 if (bereitschaft.status === 'FREIGEGEBEN' && !allesErfuellt) fehler('FREIGEGEBEN trotz offener Pflichtbereiche.');
 if (bereitschaft.status !== 'FREIGEGEBEN' && allesErfuellt) fehler('Alle Pflichtbereiche erfuellt, Status aber nicht FREIGEGEBEN.');
+const bereich = kennung => bereitschaft.bereiche.find(x => x.kennung === kennung);
+const offeneAnforderungen = anforderungen.anforderungen.filter(x => x.status === 'OFFEN');
+const unvollstaendigeTrace = nachverfolgung.eintraege.filter(x => x.vollstaendig !== true);
+const wissen012 = anforderungen.anforderungen.find(x => x.kennung === 'V5-ANF-WISSEN-012');
+
+const invariantBereit = bereich('INVARIANTEN_BEREIT');
+if (invariantBereit?.erfuellt !== true
+    || invariantBereit.invariantenRatifiziert !== 161
+    || invariantBereit.invariantenGesamt !== 161) {
+  fehler('INVARIANTEN_BEREIT muss nach R19 mit 161/161 ratifizierten Invarianten technisch geschlossen sein.');
+}
+
+const fehlermodellBereit = bereich('FEHLERMODELL_BEREIT');
+if (fehlermodellBereit?.erfuellt !== true
+    || fehlermodellBereit.gefahrenModelliert !== 161
+    || fehlermodellBereit.gefahrenGesamt !== 161
+    || fehlermodellBereit.roadmapPhasenDone !== 20) {
+  fehler('FEHLERMODELL_BEREIT muss 161/161 modellierte Gefahren und R0-R19 DONE nachweisen.');
+}
+
+if (wissen012?.status === 'OFFEN') {
+  if (offeneAnforderungen.length !== 1 || offeneAnforderungen[0].kennung !== 'V5-ANF-WISSEN-012') {
+    fehler('Vor externem Autorisierungsnachweis darf nur V5-ANF-WISSEN-012 offen sein.');
+  }
+  if (unvollstaendigeTrace.length !== 1
+      || unvollstaendigeTrace[0].anforderungKennung !== 'V5-ANF-WISSEN-012') {
+    fehler('Vor externem Autorisierungsnachweis darf nur die Traceability von V5-ANF-WISSEN-012 unvollstaendig sein.');
+  }
+
+  const anforderungenBereit = bereich('ANFORDERUNGEN_BEREIT');
+  const securityBereit = bereich('SECURITY_BEREIT');
+  const betriebBereit = bereich('BETRIEBSMODELL_BEREIT');
+  if (anforderungenBereit?.erfuellt !== false
+      || anforderungenBereit.anforderungenNachgewiesen !== 118
+      || anforderungenBereit.anforderungenGesamt !== 119
+      || anforderungenBereit.traceabilityVollstaendig !== 118
+      || anforderungenBereit.traceabilityGesamt !== 119
+      || anforderungenBereit.externerBlocker !== 'V5-ANF-WISSEN-012') {
+    fehler('ANFORDERUNGEN_BEREIT muss vor WISSEN-012-Nachweis bei 118/119 fail-closed bleiben.');
+  }
+  if (securityBereit?.erfuellt !== false
+      || securityBereit.externerBlocker !== 'V5-ANF-WISSEN-012') {
+    fehler('SECURITY_BEREIT muss bis zum Least-Privilege-Nachweis gesperrt bleiben.');
+  }
+  if (betriebBereit?.erfuellt !== false
+      || betriebBereit.lokalerBridgeNachweisErforderlich !== true) {
+    fehler('BETRIEBSMODELL_BEREIT muss bis zum lokalen Bridge-Nachweis gesperrt bleiben.');
+  }
+
+  const falscheBereiche = bereitschaft.bereiche
+    .filter(x => x.erfuellt !== true)
+    .map(x => x.kennung)
+    .sort();
+  const erwartetFalsch = ['ANFORDERUNGEN_BEREIT','BETRIEBSMODELL_BEREIT','SECURITY_BEREIT'].sort();
+  if (JSON.stringify(falscheBereiche) !== JSON.stringify(erwartetFalsch)) {
+    fehler('Vor lokalem Bridge-/Autorisierungsnachweis muessen exakt drei Pflichtbereiche offen bleiben.');
+  }
+  if (bereitschaft.status !== 'GESPERRT') {
+    fehler('Mit offenem WISSEN-012 muss die globale Runtime GESPERRT bleiben.');
+  }
+}
+
+const erwarteteBridgeReadinessPunkte = [
+  'BRIDGE_KONFIGURATION',
+  'CONFIG_VERSION',
+  'WISSENSWAECHTER_AKTIV',
+  'WISSENSWAECHTER_INTERVALL',
+  'KNOWLEDGE_REPOSITORY',
+  'KNOWLEDGE_BRANCH',
+  'KNOWLEDGE_SCOPE',
+  'LIVE_WISSEN_PFAD',
+  'TEST_OHNE_GAMEPLAY_WRITE',
+  'GIT_CREDENTIAL_MANAGER',
+  'GITHUB_ANMELDUNG',
+  'KNOWLEDGE_REPO_LIVE_PRUEFUNG',
+  'TEMP_ARBEITSKOPIE_CLEANUP'
+];
+if (windowsBridgeReadinessProfil.schemaVersion !== 1
+    || windowsBridgeReadinessProfil.kennung !== 'V5_WINDOWS_BRIDGE_READINESS'
+    || windowsBridgeReadinessProfil.testVersion !== '1.0.0'
+    || windowsBridgeReadinessProfil.automatischerErfolgsstatus
+        !== 'AUTOMATISCHE_PRUEFUNGEN_BESTANDEN_MANUELLER_AUTORISIERUNGSNACHWEIS_OFFEN') {
+  fehler('Windows-Bridge-Readiness-Testprofil hat eine unerwartete Kennung/Version/Erfolgssemantik.');
+}
+if (JSON.stringify(windowsBridgeReadinessProfil.automatischePflichtpunkte) !== JSON.stringify(erwarteteBridgeReadinessPunkte)) {
+  fehler('Windows-Bridge-Readiness-Testprofil hat nicht exakt die erwarteten automatischen Pflichtpunkte.');
+}
+if (windowsBridgeReadinessProfil.manuellerPflichtpunkt?.kennung !== 'GITHUB_LEAST_PRIVILEGE'
+    || windowsBridgeReadinessProfil.manuellerPflichtpunkt?.anforderung !== 'V5-ANF-WISSEN-012'
+    || windowsBridgeReadinessProfil.manuellerPflichtpunkt?.statusVorNachweis !== 'MANUELL_NACHWEISEN') {
+  fehler('Windows-Bridge-Readiness-Testprofil bindet den manuellen Least-Privilege-Nachweis nicht korrekt.');
+}
+if (windowsBridgeReadinessProfil.sicherheit?.gameplayWritesDurchTest !== 0
+    || windowsBridgeReadinessProfil.sicherheit?.knowledgePushDurchTest !== false
+    || windowsBridgeReadinessProfil.sicherheit?.tokenImBericht !== false
+    || windowsBridgeReadinessProfil.sicherheit?.tempArbeitskopie !== true
+    || windowsBridgeReadinessProfil.sicherheit?.tempArbeitskopieCleanupPflicht !== true
+    || windowsBridgeReadinessProfil.breiteRuntimeFreigabeAutomatisch !== false) {
+  fehler('Windows-Bridge-Readiness-Testprofil verletzt den Safety-/Freigabevertrag.');
+}
+const erwarteteBridgeReadinessBereiche = [
+  'ANFORDERUNGEN_BEREIT',
+  'SECURITY_BEREIT',
+  'BETRIEBSMODELL_BEREIT'
+];
+if (JSON.stringify(windowsBridgeReadinessProfil.readinessNachVollstaendigemNachweis)
+    !== JSON.stringify(erwarteteBridgeReadinessBereiche)) {
+  fehler('Windows-Bridge-Readiness-Testprofil hat unerwartete Readiness-Zielbereiche.');
+}
 
 for (const pfad of [
   'v5/dokumentation/WISSENSWAECHTER-VERTRAG.md',
@@ -129,6 +240,8 @@ for (const pfad of [
 ]) {
   if (!fs.existsSync(pfad)) fehler('Pflichtdokument fehlt: ' + pfad);
 }
+
+pruefeR0R3Reconciliation();
 
 console.log('[V5-VORBEREITUNG] OK');
 console.log('[V5-VORBEREITUNG] Anforderungen:', anforderungsKennungen.size);

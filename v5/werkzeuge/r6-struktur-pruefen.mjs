@@ -49,6 +49,7 @@ for (const pfad of [
   "anzeigetexte/npc-quellenbestand.json",
   "grundlage/tests/r6-anzeigekatalog.test.mjs",
   "grundlage/quelle/anzeige/anzeigekatalog.ts",
+  "grundlage/quelle/anzeige/uebersetzungsaufgaben.ts",
 ]) {
   if (!fs.existsSync(pfad)) fehler("Pflichtartefakt fehlt: " + pfad);
 }
@@ -223,10 +224,23 @@ for (const exportPfad of [
   "./wissen/beobachtungs-evidence.js","./wissen/ram-arbeitsmenge.js",
   "./wissen/learning-evidence.js","./wissen/wissens-promotion.js",
   "./anzeige/anzeigekatalog.js",
+  "./anzeige/uebersetzungsaufgaben.js",
   "./wissen/live-wissens-publizierer.js","./wissen/beobachtungs-evidence-ablage.js",
 ]) {
   if (!index.includes(exportPfad)) fehler("Index-Export fehlt: " + exportPfad);
 }
+const uebersetzungsaufgaben = fs.readFileSync("grundlage/quelle/anzeige/uebersetzungsaufgaben.ts", "utf8");
+for (const marker of [
+  "planeOffeneUebersetzungsAufgaben",
+  "\"OFFEN\"",
+  "SICHERER_DEUTSCHER_PLATZHALTER",
+  "gameplayAutoritaet: false",
+  "automatischeFreigabe: false",
+  "UEBERSETZUNGSAUFGABEN_GRENZE_UEBERSCHRITTEN",
+]) {
+  if (!uebersetzungsaufgaben.includes(marker)) fehler("Uebersetzungsaufgaben-Regel fehlt: " + marker);
+}
+
 const produktiverKatalog = lies("anzeigetexte/katalog.json");
 if (produktiverKatalog.katalogVersion < 4) fehler("Produktiver Anzeigekatalog muss mindestens Version 4 sein.");
 const katalogAnzahl = kategorie => produktiverKatalog.eintraege.filter(e => e.kategorie === kategorie).length;

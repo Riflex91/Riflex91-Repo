@@ -1,7 +1,7 @@
 # V5 – Wissenswaechter-Vertrag
 
 **Status:** VERBINDLICHE ZIELSPEZIFIKATION VOR IMPLEMENTIERUNG  
-**Stand:** 2026-09-19  
+**Stand:** 2026-09-20  
 **Host:** bestehende Windows Bridge unter `ops/windows-bridge/`
 
 ## Rolle
@@ -205,15 +205,17 @@ Gegen den auf `main` vorhandenen Stand wurden bereits folgende positive Schutzme
 - Community-/unbekannte Quellen bleiben Kandidaten;
 - GitHub-Anmeldung wird nicht als Klartexttoken in der Bridge-Konfiguration gespeichert.
 
-Vor V5-Readiness bleiben aber zwei Haertungen offen:
+Der fruehere direkte-main-Blocker ist technisch geschlossen:
 
-1. **Kein direkter automatischer Push auf `main`.**  
-   Der aktuelle `GitArbeitskopie.CommitUndPushAsync` pusht nach lokaler Pruefung direkt `HEAD:main`. Fuer V5-Zielniveau muss die automatische Wissensaktualisierung ueber einen dedizierten Knowledge-Branch und PR/CI-Gate laufen oder eine mindestens gleich starke serverseitig geschuetzte Alternative nachweisen.
+1. **Dedizierter Knowledge-Branch und PR/CI-Gate umgesetzt.**  
+   `GitArbeitskopie.CommitUndPushAsync` pusht auf `HEAD:v5/wissenswaechter-automatisch`. Der serverseitige Workflow `.github/workflows/v5-wissenswaechter-pr.yml` besitzt `contents: read` und `pull-requests: write`, akzeptiert im automatischen Branch nur `v5/wissensbasis/**`, validiert Wissensbasis und Entwicklungs-Wissensgate und erstellt/aktualisiert danach einen PR gegen `main`. Ein automatischer Knowledge-Lauf schreibt nicht direkt auf `main`.
+
+Vor V5-Gesamtfreigabe bleibt genau die externe Autorisierungshaertung offen:
 
 2. **Least-Privilege-GitHub-Autorisierung nachweisen.**  
-   Der aktuelle Login ueber Git Credential Manager und Browser-OAuth ist funktional und speichert das Token nicht selbst in der Bridge. Fuer V5-Readiness muss aber zusaetzlich bewiesen sein, dass die verwendete Authentisierung nur die minimal erforderlichen Repository-Rechte besitzt. Bevorzugt ist eine auf dieses Repository begrenzte GitHub App oder eine nachweislich gleich eng begrenzte Alternative.
+   Der lokale Login ueber Git Credential Manager und Browser-OAuth ist funktional und speichert das Token nicht selbst in der Bridge. Fuer V5-Readiness muss aber zusaetzlich am real installierten System bewiesen sein, dass die verwendete Authentisierung nur die minimal erforderlichen Repository-Rechte besitzt und auf das erlaubte Repository begrenzt ist. Bevorzugt ist eine auf dieses Repository begrenzte GitHub App oder eine nachweislich gleich eng begrenzte Alternative.
 
-Diese Punkte sind keine Aussage, dass die aktuelle Bridge unsicher sei. Sie markieren die Differenz zwischen einem bereits guten Schutz und dem absichtlich strengeren V5-Narrensicherheitsniveau.
+Der Repository-/CI-Pfad ist damit geschlossen; der verbleibende Punkt ist bewusst ein externer Betriebs-/Autorisierungsnachweis und wird nicht aus Repo-Code abgeleitet.
 
 
 ## Konsumentenvertrag fuer Entwicklung und Runtime
