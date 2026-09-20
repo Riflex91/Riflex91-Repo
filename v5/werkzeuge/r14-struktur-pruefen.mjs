@@ -30,11 +30,13 @@ if (bereitschaft.status === "FREIGEGEBEN") {
 
 for (const pfad of [
   "grundlage/quelle/koordination/cm-protokoll.ts",
+  "grundlage/quelle/koordination/cm-settlement.ts",
   "grundlage/quelle/koordination/roster-wahrheit.ts",
   "grundlage/quelle/koordination/character-liveness.ts",
   "grundlage/quelle/koordination/account-koordinator.ts",
   "grundlage/quelle/koordination/character-agent.ts",
   "grundlage/tests/r14-cm-protokoll.test.mjs",
+  "grundlage/tests/r14-cm-settlement.test.mjs",
   "grundlage/tests/r14-cm-fault-injektion.test.mjs",
   "grundlage/tests/r14-roster-liveness.test.mjs",
   "grundlage/tests/r14-koordinator-agent.test.mjs",
