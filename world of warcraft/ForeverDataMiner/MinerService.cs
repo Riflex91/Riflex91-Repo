@@ -192,32 +192,67 @@ public sealed class MinerService(MinerOptions options)
 
     public async Task WatchAsync(CancellationToken cancellationToken = default)
     {
-        string? lastState = StateStore.Load(options.OutputDirectory)?.WatchState;
+        string? lastCapturedState = StateStore.Load(options.OutputDirectory)?.WatchState;
+        string? pendingState = null;
+        var waitingLogged = false;
 
         while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
                 var build = BuildInfoReader.Read(options.WowRoot);
-                var state = BuildWatchState(build);
+                var currentState = BuildWatchState(build);
 
-                if (lastState is null || !string.Equals(lastState, state, StringComparison.Ordinal))
+                if (lastCapturedState is null ||
+                    !string.Equals(lastCapturedState, currentState, StringComparison.Ordinal))
                 {
+                    pendingState = currentState;
+                }
+
+                if (pendingState is not null)
+                {
+                    if (ProcessState.IsWowRunning() || ProcessState.IsBattleNetRunning())
+                    {
+                        if (!waitingLogged)
+                        {
+                            Console.WriteLine(
+                                $"[{DateTimeOffset.Now:T}] Forever data change detected; waiting for WoW and Battle.net/Agent to close.");
+                            waitingLogged = true;
+                        }
+
+                        await Task.Delay(options.PollInterval, cancellationToken);
+                        continue;
+                    }
+
                     if (!await WaitForFilesToSettleAsync(cancellationToken))
                     {
                         await Task.Delay(options.PollInterval, cancellationToken);
                         continue;
                     }
 
+                    var settledBuild = BuildInfoReader.Read(options.WowRoot);
+                    var settledState = BuildWatchState(settledBuild);
+
                     var output = await ScanAsync(cancellationToken);
-                    Console.WriteLine($"[{DateTimeOffset.Now:T}] Forever data state captured -> {output}");
-                    lastState = StateStore.Load(options.OutputDirectory)?.WatchState
-                                ?? BuildWatchState(BuildInfoReader.Read(options.WowRoot));
+                    Console.WriteLine(
+                        $"[{DateTimeOffset.Now:T}] Forever data state captured -> {output}");
+
+                    lastCapturedState = StateStore.Load(options.OutputDirectory)?.WatchState
+                                        ?? settledState;
+                    pendingState = null;
+                    waitingLogged = false;
                 }
             }
-            catch (IOException ex)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                Console.Error.WriteLine($"[{DateTimeOffset.Now:T}] WoW files are busy: {ex.Message}");
+                throw;
+            }
+            catch (Exception ex) when (
+                ex is IOException or UnauthorizedAccessException or
+                    HttpRequestException or InvalidOperationException or TimeoutException)
+            {
+                Console.Error.WriteLine(
+                    $"[{DateTimeOffset.Now:T}] Monitoring wartet auf einen stabilen scanbaren Zustand: {ex.Message}");
             }
 
             await Task.Delay(options.PollInterval, cancellationToken);
@@ -252,8 +287,7 @@ public sealed class MinerService(MinerOptions options)
         {
             build.Version,
             build.BuildKey ?? string.Empty,
-            build.CdnKey ?? string.Empty,
-            "wowRunning=" + IsWowRunning().ToString()
+            build.CdnKey ?? string.Empty
         };
 
         foreach (var cache in CandidateHotfixCaches().OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
