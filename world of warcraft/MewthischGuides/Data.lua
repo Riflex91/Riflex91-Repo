@@ -78,10 +78,25 @@ MG.Data = {
         },
     },
 
+    -- Empty extension points are intentional. DataMiner/Recorder importers can
+    -- populate these without changing the runtime architecture.
+    guides = {},
+    travelGraph = {
+        nodes = {},
+        edges = {},
+    },
+    buildProfiles = {},
+
     firstObservedPlayer = {
         faction = "Horde",
         race = "Troll",
         class = "HUNTER",
         mapID = 1411,
+    },
+
+    featureModel = {
+        engineStage = "roadmap-complete-pre-runtime-fix",
+        guideDataCoverage = "recorder-seed-only",
+        externalTelemetry = false,
     },
 }
