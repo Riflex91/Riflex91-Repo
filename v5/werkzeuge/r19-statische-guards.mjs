@@ -31,6 +31,11 @@ const pflicht=[
   "werkzeuge/r19-canary-test-paket-bauen.mjs",
   "werkzeuge/r19-canary-test-paket.js",
   "werkzeuge/r19-canary-test-gui.js",
+  "werkzeuge/cap045-production-live-test-gui.js",
+  "werkzeuge/cap045-production-live-test-paket-bauen.mjs",
+  "werkzeuge/cap045-production-live-test-paket.js",
+  "werkzeuge/cap045-production-live-static-guards.mjs",
+  "werkzeuge/tests/cap045-production-live-test-gui.test.mjs",
 ];
 for(const p of pflicht) if(!fs.existsSync(p)) fehler.push("PFLICHTARTEFAKT_FEHLT:"+p);
 
