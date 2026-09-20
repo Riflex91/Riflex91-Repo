@@ -303,6 +303,8 @@
 
       button.addEventListener('click', async () => {
         if (button.disabled) return;
+        const performanceTrick = aktivierePerformanceTrick();
+        protokolliere('Performance-Trick Benutzeraktion', performanceTrick);
         const confirm = typeof row.bestaetigungsText === 'string' ? row.bestaetigungsText : null;
         if (confirm !== null && bestaetigungInput.value !== confirm) {
           setzeBestaetigung(confirm);
@@ -722,7 +724,7 @@
     const estimate = await storageSchaetzung();
     const persistenz = persistenzRoundtrip();
     const runtime = runtimeStatus();
-    const performanceTrick = guiApi().aktivierePerformanceTrick();
+    const performanceTrick = await guiApi().aktivierePerformanceTrick();
     const blocker = [];
     if (!String(root.character?.name || '')) blocker.push('CHARAKTER_FEHLT');
     if (root.character?.rip) blocker.push('CHARAKTER_TOT');
