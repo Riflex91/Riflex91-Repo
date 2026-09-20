@@ -9,17 +9,23 @@ const pflicht=[
   "grundlage/quelle/zertifizierung/production-certification.ts",
   "grundlage/quelle/runtime/produktions-komposition.ts",
   "grundlage/quelle/runtime/produktions-runtime.ts",
+  "grundlage/quelle/host/produktions-host-controller.ts",
   "grundlage/adapter/persistenz/node-produktions-dateisystem.mjs",
+  "grundlage/adapter/persistenz/node-produktions-operations-quelle.mjs",
   "grundlage/adapter/persistenz/node-planen-aktivierungs-protokoll.mjs",
   "grundlage/quelle/merchant/modul-vertrag.ts",
   "grundlage/quelle/merchant/faehigkeits-vertrag.ts",
   "grundlage/quelle/merchant/demand.ts",
   "grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json",
   "grundlage/vertraege/runtime/durable-planen-authority.json",
+  "grundlage/vertraege/runtime/produktions-operations-feed.json",
   "architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md",
   "architektur/adr/ADR-027-KONTROLLIERTE-PLANEN-AKTIVIERUNG.md",
   "architektur/adr/ADR-028-DURABLE-PLANEN-AUTHORITY.md",
+  "architektur/adr/ADR-029-PRODUKTIVER-OPERATIONS-FEED.md",
   "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
+  "grundlage/tests/r11-produktions-host-controller.test.mjs",
+  "grundlage/tests/r11-produktions-operations-quelle.test.mjs",
   "grundlage/tests/r11-planen-aktivierung.test.mjs",
   "grundlage/tests/r11-planen-aktivierungs-persistenz.test.mjs",
   "grundlage/tests/r19-evidence-ladder.test.mjs",
@@ -132,6 +138,48 @@ if(planenAuthorityVertrag.aktivierung?.erlaubterModus!=="PLANEN"
     || planenAuthorityVertrag.mutierendeCapabilitiesDurchDiesenVertrag!==0) {
   fehler.push("PLANEN_DURABLE_AUTHORITY_VERTRAG_UNGUELTIG");
 }
+const produktionsHost=lies("grundlage/quelle/host/produktions-host-controller.ts");
+for(const m of [
+  "V5ProduktionsHostController",
+  "ProduktionsOperationsQuellePort",
+  "revalidierePlanenAuthority",
+  "PRODUKTIONS_HOST_OPERATIONS_QUELLE_NICHT_BEREIT",
+  "gameplayAutoritaet: false",
+  "rawWriteAutoritaet: false",
+  "actionAuthority: false",
+]){
+  if(!produktionsHost.includes(m)) {
+    fehler.push("PRODUKTIONS_HOST_GRENZE_FEHLT:"+m);
+  }
+}
+const produktionsOperationsQuelle=lies(
+  "grundlage/adapter/persistenz/node-produktions-operations-quelle.mjs",
+);
+for(const m of [
+  "produktiver-speicher",
+  "runtime/health/storage-probe.json",
+  "schreibeAtomarDurable",
+  "statfs",
+  'zustand: "KRITISCH"',
+]){
+  if(!produktionsOperationsQuelle.includes(m)) {
+    fehler.push("PRODUKTIONS_OPERATIONS_QUELLE_FEHLT:"+m);
+  }
+}
+const operationsVertrag=JSON.parse(
+  lies("grundlage/vertraege/runtime/produktions-operations-feed.json"),
+);
+if(operationsVertrag.health?.kanonischeHealthId!=="produktiver-speicher"
+    || operationsVertrag.operations?.zukunftsMetrikVerboten!==true
+    || operationsVertrag.host?.revalidierungBeiJedemTick!==true
+    || operationsVertrag.host?.quellenausfallEntziehtPlanenAuthority!==true
+    || operationsVertrag.authority?.gameplayAutoritaet!==false
+    || operationsVertrag.authority?.rawWriteAutoritaet!==false
+    || operationsVertrag.authority?.actionAuthority!==false
+    || operationsVertrag.mutierendeCapabilitiesDurchDiesenVertrag!==0) {
+  fehler.push("PRODUKTIONS_OPERATIONS_VERTRAG_UNGUELTIG");
+}
+
 const merchantDemand=lies("grundlage/quelle/merchant/demand.ts");
 if(!merchantDemand.includes("eigentuemerModulId: MERCHANT_CORE_A_MODUL_ID")) {
   fehler.push("MERCHANT_WORKFLOW_OWNER_NICHT_KANONISCH");
