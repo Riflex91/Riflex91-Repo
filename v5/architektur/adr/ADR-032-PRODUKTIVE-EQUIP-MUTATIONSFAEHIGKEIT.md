@@ -62,6 +62,19 @@ Mutationspfad gewaehlt.
 - `equipment.equip` automatisch aktivieren: verworfen; MUTIEREN bleibt
   default-off und benoetigt einen separaten produktiven Aktivierungsvertrag.
 
+## Konsequenzen
+
+- Die kanonische Produktionskomposition kennt erstmals eine mutierende
+  Capability, sie bleibt jedoch in jedem Startzustand inaktiv.
+- Bestehende PLANEN-Aktivierung kann `equipment.equip` nicht aktivieren,
+  weil der Nicht-MUTIEREN-Pfad den Modus technisch ablehnt.
+- Der produktive Host erhaelt durch diese Registrierung weder einen neuen
+  Send-Endpunkt noch einen Register-Bypass.
+- Ein spaeterer produktiver Equip-Live-Nachweis muss einen neuen,
+  separat auditierbaren Authority-Pfad beweisen.
+- Ein Rollback dieser Stufe ist gameplay-neutral, weil keine Mutation
+  freigegeben oder ausgefuehrt wird.
+
 ## Invarianten
 
 - genau ein produktiver Owner fuer `equipment.equip`;
