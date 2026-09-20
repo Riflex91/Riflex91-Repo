@@ -269,6 +269,18 @@ local function setFrameBorder(frame, theme)
     end
 end
 
+local function objectiveProgressColor(percent)
+    percent = math.max(0, math.min(1, tonumber(percent) or 0))
+
+    -- Continuous red -> yellow -> green feedback:
+    -- 0/required = red, halfway = yellow, complete = green.
+    if percent <= 0.5 then
+        return 1, percent * 2, 0, 1
+    end
+
+    return (1 - percent) * 2, 1, 0, 1
+end
+
 local function rowColors(role, theme)
     if role == "complete" then return theme.complete, theme.complete end
     if role == "danger" then return theme.danger, theme.danger end
@@ -343,6 +355,12 @@ function MG:RefreshTheme()
             elseif label._mgDefaultFont and label.SetFont then
                 label:SetFont(label._mgDefaultFont, label._mgFontSize or 11, label._mgFontFlags)
             end
+        end
+    end
+
+    for _, row in ipairs(ui.rows) do
+        if row and row.text and row.progressPercent ~= nil then
+            row.text:SetTextColor(objectiveProgressColor(row.progressPercent))
         end
     end
 
@@ -510,15 +528,9 @@ function MG:InitializeUI()
 
     local status = makeText(footer, "GameFontHighlightSmall", 9, "muted")
     status:SetPoint("LEFT", 0, 0)
-    status:SetPoint("RIGHT", -100, 0)
+    status:SetPoint("RIGHT", -62, 0)
     status:SetWordWrap(false)
     ui.footerStatus = status
-
-    local navigatorButton = makeButton(footer, "Pfeil", 46, 18, function()
-        MG:ToggleNavigator()
-    end)
-    navigatorButton:SetPoint("RIGHT", -50, 0)
-    ui.navigatorButton = navigatorButton
 
     local configButton = makeButton(footer, "Config", 54, 18, function()
         MG:ToggleSettings()
@@ -851,13 +863,46 @@ local function clearRows()
         local row = ui["row" .. index]
         row.text:SetText("")
         row.role = "muted"
+        row.progressPercent = nil
         row:Hide()
     end
 end
 
-local function addRow(models, text, role)
+local function addRow(models, text, role, progressPercent)
     if not text or text == "" or #models >= VISIBLE_ROWS then return end
-    models[#models + 1] = { text = text, role = role or "muted" }
+    models[#models + 1] = {
+        text = text,
+        role = role or "muted",
+        progressPercent = progressPercent,
+    }
+end
+
+local function goalRowText(goal)
+    local name = tostring(goal.name or "Questziel")
+    local current = tonumber(goal.current)
+    local required = tonumber(goal.required)
+    local progress = current and required and
+        (tostring(current) .. "/" .. tostring(required)) or
+        tostring(goal.progressText or "")
+
+    local instruction
+    if goal.type == "collect" or goal.type == "collect_currency" then
+        instruction = "Sammle " .. name
+    elseif goal.type == "kill" then
+        instruction = "Töte " .. name
+    elseif goal.type == "kill_player" then
+        instruction = "Besiege " .. name
+    elseif goal.type == "interact" then
+        instruction = "Interagiere mit " .. name
+    else
+        instruction = tostring(goal.instruction or name)
+    end
+
+    if progress ~= "" then
+        instruction = instruction .. "  " .. progress
+    end
+
+    return instruction
 end
 
 function MG:RefreshUI()
@@ -913,7 +958,15 @@ function MG:RefreshUI()
             goal.state == self.GoalStates.ACTIVE and "active" or "muted"
         local prefix = goal.state == self.GoalStates.COMPLETE and "✓ " or
             goal.state == self.GoalStates.ACTIVE and "> " or "  "
-        addRow(models, prefix .. tostring(goal.instruction or goal.name or "Questziel"), role)
+        local progressPercent = nil
+        if tonumber(goal.required) and tonumber(goal.required) > 0 and
+           tonumber(goal.current) then
+            progressPercent = math.max(0, math.min(1,
+                tonumber(goal.current) / tonumber(goal.required)))
+        elseif tonumber(goal.percent) then
+            progressPercent = math.max(0, math.min(1, tonumber(goal.percent)))
+        end
+        addRow(models, prefix .. goalRowText(goal), role, progressPercent)
     end
 
     for _, hint in ipairs(step.routeHints or {}) do
@@ -929,6 +982,7 @@ function MG:RefreshUI()
         local row = ui["row" .. index]
         row.text:SetText(model.text)
         row.role = model.role
+        row.progressPercent = model.progressPercent
         row:Show()
     end
 
