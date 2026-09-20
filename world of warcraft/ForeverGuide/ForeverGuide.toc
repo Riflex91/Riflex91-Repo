@@ -1,0 +1,14 @@
+## Interface: 16001
+## Title: ForeverGuide
+## Notes: Build-aware leveling guide for World of Warcraft: Forever.
+## Author: Riflex91
+## Version: 0.2.0
+## SavedVariables: ForeverGuideDB
+
+Data.lua
+Logger.lua
+Core.lua
+GuideEngine.lua
+Navigation.lua
+QuestAutomation.lua
+UI.lua
