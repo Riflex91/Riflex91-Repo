@@ -10,7 +10,18 @@ const r18=gates.phases?.find(x=>x.id==="R18");
 if(r17?.status!=="DONE") fehler("R18 verlangt R17 DONE.");
 if(!r18||!["IN_PROGRESS","DONE"].includes(r18.status)) fehler("R18 muss IN_PROGRESS oder DONE sein.");
 if(r18.status==="IN_PROGRESS"&&gates.currentPhase!=="R18") fehler("R18 IN_PROGRESS verlangt currentPhase=R18.");
-if(ready.status==="FREIGEGEBEN") fehler("R18 darf breite Runtime nicht freigeben.");
+if(ready.status==="FREIGEGEBEN"){
+  if(!fs.existsSync("roadmap/gesamtfreigabe.json")) fehler("R18 darf die Runtime nicht selbst freigeben; finale Betreiber-Gesamtfreigabe-Evidence fehlt.");
+  const gesamtfreigabe=lies("roadmap/gesamtfreigabe.json");
+  if(gesamtfreigabe.kennung!=="V5_GESAMTFREIGABE"
+      ||gesamtfreigabe.status!=="ERTEILT"
+      ||gesamtfreigabe.bestaetigungQuelle!=="BETREIBER_INTERAKTIV"
+      ||gesamtfreigabe.bestaetigungText!=="V5 GESAMTFREIGABE ERTEILEN"
+      ||ready.gesamtfreigabe!=="ERTEILT"
+      ||ready.breiteRuntimeFreigabe!==true){
+    fehler("R18 darf die Runtime nicht selbst freigeben; nur die spaetere explizite Post-R19-Gesamtfreigabe ist zulaessig.");
+  }
+}
 
 for(const p of [
   "grundlage/quelle/lernen/deterministischer-fallback.ts",
