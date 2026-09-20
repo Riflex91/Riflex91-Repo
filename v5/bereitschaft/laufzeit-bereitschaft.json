@@ -69,7 +69,7 @@
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
       "erfuellt": false,
-      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. R7 bis R17 weisen ihre jeweils ratifizierten MUSS-Anforderungen technisch und tracebar nach; R12 Controlled Live ist bestanden. Erfuellt bleibt bis zu Learning-, Production-Readiness- und Zertifizierungsnachweisen false.",
+      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. R7 bis R18 weisen ihre jeweils ratifizierten MUSS-Anforderungen technisch und tracebar nach; R12 Controlled Live ist bestanden. Offen bleibt die stufenweise R19-Zertifizierung.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
         "v5/anforderungen/nachverfolgbarkeit.json"
@@ -108,12 +108,15 @@
       "r16AnforderungenGesamt": 3,
       "r17NachweisVorhanden": true,
       "r17AnforderungenNachgewiesen": 1,
-      "r17AnforderungenGesamt": 1
+      "r17AnforderungenGesamt": 1,
+      "r18NachweisVorhanden": true,
+      "r18AnforderungenNachgewiesen": 5,
+      "r18AnforderungenGesamt": 5
     },
     {
       "kennung": "INVARIANTEN_BEREIT",
       "erfuellt": false,
-      "grund": "R3-R16 schliessen Architektur-, Persistenz-, Authority-, Scheduler-, Recovery-, Merchant-, Multi-Character-, World-/Combat- und Navigation-Grenzen. R17 schliesst World Autonomy mit Event-/Quest-Drift-Revalidation, Unknown-Content-Quarantaene und Server-Hop-Policies. Erfuellt bleibt bis Learning und Gesamtzertifizierung false.",
+      "grund": "R3-R17 schliessen Architektur-, Persistenz-, Authority-, Recovery-, Merchant-, Multi-Character-, World-/Combat-, Navigation- und World-Autonomy-Grenzen. R18 schliesst authority-freies bounded Learning mit deterministischem Fallback und Policy-Precedence. Offen bleibt die Gesamtzertifizierung R19.",
       "nachweise": [
         "v5/invarianten/invarianten.json",
         "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
@@ -304,8 +307,8 @@
     }
   ],
   "offeneBlocker": [
-    "R18 Learning und Optimierung mit deterministischem Fallback und unveraenderlichen Safety-/Authority-Grenzen abschliessen",
-    "Breite Gameplay-Runtime bleibt bis zur spaeteren expliziten Gesamtfreigabe GESPERRT",
+    "R19 Zertifizierung bis einschliesslich Shadow automatisiert vorbereiten; Controlled Live/Canary benoetigt anschliessend den naechsten manuellen Ingame-Test",
+    "Breite Gameplay-Runtime bleibt bis zur erfolgreichen R19-Ladder und expliziten Gesamtfreigabe GESPERRT",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
   "r2Status": "RATIFIZIERT",
@@ -352,5 +355,8 @@
   "r17Status": "ABGESCHLOSSEN",
   "r17AbgeschlossenAm": "2026-09-20",
   "r17P2Status": "GESCHLOSSEN",
-  "r17Evidence": "v5/grundlage/vertraege/r17/world-autonomy-abdeckung.json"
+  "r17Evidence": "v5/grundlage/vertraege/r17/world-autonomy-abdeckung.json",
+  "r18Status": "ABGESCHLOSSEN",
+  "r18AbgeschlossenAm": "2026-09-20",
+  "r18Evidence": "v5/grundlage/vertraege/r18/learning-abdeckung.json"
 }
