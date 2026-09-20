@@ -95,7 +95,11 @@ function pruefeText(
 }
 
 function eindeutigeSortierteTexte(werte: readonly string[]): readonly string[] {
-  return Object.freeze([...new Set(werte)].sort());
+  const sortiert = [...werte].sort();
+  return Object.freeze(
+    sortiert.filter((wert, index) =>
+      index === 0 || wert !== sortiert[index - 1]),
+  );
 }
 
 export class KontrolliertePlanungsAktivierung {
@@ -353,6 +357,9 @@ export class KontrolliertePlanungsAktivierung {
     );
     if (evidenceIds.length < 1) {
       return "PLANUNGS_AKTIVIERUNG_HEALTH_EVIDENCE_FEHLT";
+    }
+    if (evidenceIds.length > 63) {
+      return "PLANUNGS_AKTIVIERUNG_HEALTH_EVIDENCE_ZU_VIEL";
     }
     const gueltigBisMs = Math.min(
       ...aktuelleEvidence.map(evidence => evidence.gueltigBisMs),
