@@ -1,6 +1,6 @@
-# WoW Forever API research contract — Mewthisch Guides v0.6
+# WoW Forever API research contract — Mewthisch Guides v0.9
 
-This document records the engineering conclusions used by Mewthisch Guides after reviewing the current WoW Forever 1.60.1 API surface and the uploaded Zygor Guides Viewer Retail source package.
+This document records the engineering conclusions used by the roadmap-complete Mewthisch Guides v0.9 engine after reviewing the current WoW Forever 1.60.1 API surface and the uploaded Zygor Guides Viewer Retail source package.
 
 ## Flavor model
 
@@ -75,22 +75,22 @@ This v0.6 foundation does not attempt to bypass protected or secret information.
 
 ## Items, rewards and builds
 
-The researched Forever surface includes modern-style item, reward and specialization APIs. Later gear/reward logic should be built behind the same API facade rather than calling globals throughout the UI.
+The researched Forever surface includes modern-style item, reward and specialization APIs. v0.9 implements these behind separated subsystems:
 
-The planned separation is:
-
-- ItemState
+- Inventory
+- GearAdvisor
 - RewardAdvisor
 - BuildState
+- TalentAdvisor
 - Guide/Goal integration
 
-Automatic reward selection must remain fail-closed until scoring confidence is high.
+Gear auto-equip is disabled by default and remains fail-closed. With the default safety settings it requires a high-confidence upgrade, a bound item, no combat and an empty cursor; weapon auto-equip is disabled. Multiple quest rewards are recommendation-only and are never auto-selected. TalentAdvisor never spends points automatically.
 
 ## Travel
 
-Taxi/travel APIs are capability-gated. A future TravelGraph will be separate from the local RouteEngine and will represent walking, taxi nodes, portals, hearth/teleport options and zone transitions as weighted edges.
+Taxi/travel APIs are capability-gated. v0.9 includes a separate weighted TravelGraph that can represent walking, taxi nodes, portals, hearth/teleport options and zone transitions. It feeds only verified next-hop targets into RouteEngine; the bundled graph is intentionally empty until DataMiner/Recorder evidence supplies trustworthy travel nodes and edges.
 
-Do not embed travel decisions in the arrow renderer.
+Travel decisions remain outside the arrow renderer.
 
 ## Persistence warning for current beta
 
@@ -115,3 +115,17 @@ Useful concepts adopted:
 - explicit test/performance infrastructure.
 
 Mewthisch Guides remains an original implementation designed specifically around WoW Forever, DataMiner evidence and MewthischGuidesRecorder gameplay evidence.
+
+
+## v0.9 roadmap completion
+
+The engine now also contains:
+
+- GuideParser + DataLoader for normalized multi-guide loading;
+- Validation for guide/coordinate contract checks;
+- QuestTracking as the live quest-state source;
+- State + Sync for cross-subsystem refresh;
+- local-only Telemetry and Diagnostics;
+- five UI themes.
+
+The engine architecture is now complete through the final planned step. Remaining work belongs to either evidence-backed guide-data expansion or the dedicated Forever runtime bug-fix/calibration phase; it is not another architecture layer.
