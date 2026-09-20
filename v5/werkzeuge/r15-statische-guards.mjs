@@ -121,6 +121,7 @@ for (const marker of [
   "const DAUER_MS = 5 * 60 * 1000",
   "MIN_PREVIEW_CHANCE = 0.99",
   "MAX_TEST_BASISWERT_GOLD = 100000",
+  "MAX_SHADOW_NACHLAUF_MS = 15 * 60 * 1000",
   "let sendVerbraucht = false",
   "maximaleAktionen: 1",
   "sameIntentRetry: false",
