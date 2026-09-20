@@ -9,7 +9,19 @@ if (!shadow.includes("rohSchreibAufrufe(): number")
     || !shadow.includes('"SHADOW"')) {
   fehler.push("SHADOW_ZERO_WRITE_VERTRAG_FEHLT");
 }
-if (/(?:attack|smart_move|move|use_skill|equip|unequip|buy|sell|send_item|send_gold)s*(/.test(shadow)) {
+const rawWriteNamen = [
+  "attack",
+  "smart_move",
+  "move",
+  "use_skill",
+  "equip",
+  "unequip",
+  "buy",
+  "sell",
+  "send_item",
+  "send_gold",
+];
+if (rawWriteNamen.some(name => shadow.includes(name + "("))) {
   fehler.push("SHADOW_RAW_GAME_WRITE_VERBOTEN");
 }
 
