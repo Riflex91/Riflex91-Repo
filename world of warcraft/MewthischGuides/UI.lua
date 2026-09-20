@@ -1,6 +1,16 @@
 local addonName, MG = ...
 
-local ui = {}
+local ui = {
+    panels = {},
+    updatingSettings = false,
+}
+
+local function clampTransparency(value)
+    value = tonumber(value) or 0.05
+    if value < 0 then value = 0 end
+    if value > 0.80 then value = 0.80 end
+    return value
+end
 
 local function centerOverlay(frame)
     if not frame then return end
@@ -16,12 +26,15 @@ local function setColorTexture(texture, r, g, b, a)
     end
 end
 
-local function stylePanel(frame, alpha)
+local function stylePanel(frame)
     frame:SetFrameStrata("DIALOG")
 
     local bg = frame:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints(frame)
-    setColorTexture(bg, 0.025, 0.032, 0.045, alpha or 0.95)
+    setColorTexture(bg, 0.025, 0.032, 0.045, 1.0)
+    bg:SetAlpha(1.0 - clampTransparency(MG.db and MG.db.settings.windowTransparency))
+    frame._mgBackground = bg
+    ui.panels[#ui.panels + 1] = frame
 
     local top = frame:CreateTexture(nil, "BORDER")
     top:SetPoint("TOPLEFT")
@@ -34,6 +47,20 @@ local function stylePanel(frame, alpha)
     bottom:SetPoint("BOTTOMRIGHT")
     bottom:SetHeight(1)
     setColorTexture(bottom, 0.12, 0.18, 0.24, 0.9)
+end
+
+function MG:ApplyWindowTransparency()
+    if not self.db or not self.db.settings then return end
+
+    local transparency = clampTransparency(self.db.settings.windowTransparency)
+    self.db.settings.windowTransparency = transparency
+    local alpha = 1.0 - transparency
+
+    for _, panel in ipairs(ui.panels) do
+        if panel and panel._mgBackground and panel._mgBackground.SetAlpha then
+            panel._mgBackground:SetAlpha(alpha)
+        end
+    end
 end
 
 local function makeText(parent, template, size)
@@ -166,7 +193,7 @@ function MG:InitializeUI()
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:RegisterForDrag("LeftButton")
-    stylePanel(frame, 0.96)
+    stylePanel(frame)
     ui.frame = frame
 
     frame:SetScript("OnDragStart", function(self)
@@ -261,7 +288,7 @@ function MG:InitializeUI()
     infoFrame:SetSize(440, 380)
     centerOverlay(infoFrame)
     infoFrame:SetClampedToScreen(true)
-    stylePanel(infoFrame, 0.97)
+    stylePanel(infoFrame)
     infoFrame:Hide()
     ui.infoFrame = infoFrame
 
@@ -292,10 +319,10 @@ function MG:InitializeUI()
     creditRight:SetText("von Riflex91 fuer die Gilde |cff62d6ffMewthisch|r")
 
     local settingsFrame = CreateFrame("Frame", "MewthischGuidesSettingsFrame", UIParent)
-    settingsFrame:SetSize(430, 405)
+    settingsFrame:SetSize(430, 470)
     centerOverlay(settingsFrame)
     settingsFrame:SetClampedToScreen(true)
-    stylePanel(settingsFrame, 0.97)
+    stylePanel(settingsFrame)
     settingsFrame:Hide()
     ui.settingsFrame = settingsFrame
 
@@ -339,14 +366,65 @@ function MG:InitializeUI()
         "Diagnose-Logs speichern",
         "diagnostics")
 
+    local transparencyLabel = makeText(settingsFrame, "GameFontHighlight", 12)
+    transparencyLabel:SetPoint("TOPLEFT", 18, -304)
+    transparencyLabel:SetText("Fenster-Transparenz")
+
+    local transparencyValue = makeText(settingsFrame, "GameFontHighlight", 11)
+    transparencyValue:SetPoint("TOPRIGHT", -22, -304)
+    transparencyValue:SetWidth(48)
+    transparencyValue:SetJustifyH("RIGHT")
+    ui.transparencyValue = transparencyValue
+
+    local transparencySlider = CreateFrame("Slider", "MewthischGuidesTransparencySlider", settingsFrame)
+    transparencySlider:SetOrientation("HORIZONTAL")
+    transparencySlider:SetSize(250, 18)
+    transparencySlider:SetPoint("TOPLEFT", 18, -324)
+    transparencySlider:SetMinMaxValues(0, 80)
+    transparencySlider:SetValueStep(5)
+    if transparencySlider.SetObeyStepOnDrag then
+        transparencySlider:SetObeyStepOnDrag(true)
+    end
+
+    local sliderTrack = transparencySlider:CreateTexture(nil, "BACKGROUND")
+    sliderTrack:SetPoint("LEFT", 0, 0)
+    sliderTrack:SetPoint("RIGHT", 0, 0)
+    sliderTrack:SetHeight(4)
+    setColorTexture(sliderTrack, 0.12, 0.18, 0.24, 1)
+
+    transparencySlider:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
+    local thumb = transparencySlider:GetThumbTexture()
+    if thumb then thumb:SetSize(24, 24) end
+
+    transparencySlider:SetScript("OnValueChanged", function(_, value)
+        if ui.updatingSettings then return end
+
+        local rounded = math.floor((tonumber(value) or 0) / 5 + 0.5) * 5
+        local transparency = clampTransparency(rounded / 100)
+
+        MG.db.settings.windowTransparency = transparency
+        MG:ApplyWindowTransparency()
+
+        if ui.transparencyValue then
+            ui.transparencyValue:SetText(tostring(math.floor(transparency * 100 + 0.5)) .. "%")
+        end
+
+        MG:Log("INFO", "settings.window_transparency",
+            "Fenster-Transparenz geaendert.", {
+                transparency = transparency,
+                percent = math.floor(transparency * 100 + 0.5),
+            })
+    end)
+    ui.transparencySlider = transparencySlider
+
     local scaleLabel = makeText(settingsFrame, "GameFontHighlight", 12)
-    scaleLabel:SetPoint("TOPLEFT", 18, -306)
+    scaleLabel:SetPoint("TOPLEFT", 18, -362)
     scaleLabel:SetText("Navigator-Groesse")
 
     local scaleDown = makeButton(settingsFrame, "-", 30, function()
         MG:SetNavigatorScale((MG.db.settings.navigatorScale or 1.0) - 0.05)
     end)
-    scaleDown:SetPoint("TOPLEFT", 155, -298)
+    scaleDown:SetPoint("TOPLEFT", 155, -354)
 
     local scaleValue = makeText(settingsFrame, "GameFontHighlight", 12)
     scaleValue:SetPoint("LEFT", scaleDown, "RIGHT", 8, 0)
@@ -362,16 +440,17 @@ function MG:InitializeUI()
     local resetNavigator = makeButton(settingsFrame, "Pfeil zuruecksetzen", 150, function()
         MG:ResetNavigatorPosition()
     end)
-    resetNavigator:SetPoint("TOPLEFT", 18, -342)
+    resetNavigator:SetPoint("TOPLEFT", 18, -398)
 
     local safety = makeText(settingsFrame, "GameFontHighlightSmall", 10)
-    safety:SetPoint("TOPLEFT", 18, -377)
+    safety:SetPoint("TOPLEFT", 18, -433)
     safety:SetPoint("RIGHT", settingsFrame, -18, 0)
     safety:SetTextColor(1.0, 0.78, 0.22)
     safety:SetText("Mehrere Questbelohnungen werden weiterhin manuell ausgewaehlt.")
 
     if self.db.settings.showWindow == false then frame:Hide() end
 
+    self:ApplyWindowTransparency()
     self:RefreshSettings()
     self:RefreshInfo()
     self:Log("INFO", "ui.initialized", "Kompakter Mewthisch-Guides-Viewer initialisiert.", {
@@ -590,6 +669,17 @@ function MG:RefreshSettings()
     ui.checkMinimap:SetChecked(self.db.settings.showMinimapButton and true or false)
     ui.checkDiagnostics:SetChecked(self.db.settings.diagnostics and true or false)
     ui.navigatorScaleValue:SetText(string.format("%d%%", math.floor((self.db.settings.navigatorScale or 1) * 100 + 0.5)))
+
+    local transparency = clampTransparency(self.db.settings.windowTransparency)
+    ui.updatingSettings = true
+    if ui.transparencySlider then
+        ui.transparencySlider:SetValue(math.floor(transparency * 100 + 0.5))
+    end
+    ui.updatingSettings = false
+
+    if ui.transparencyValue then
+        ui.transparencyValue:SetText(tostring(math.floor(transparency * 100 + 0.5)) .. "%")
+    end
 end
 
 function MG:ToggleInfo()
