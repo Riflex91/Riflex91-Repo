@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-09-20",
-  "currentPhase": "R18",
+  "currentPhase": "R19",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -360,7 +360,7 @@
     {
       "id": "R18",
       "name": "Learning Optimierung",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R17"
       ],
@@ -374,7 +374,7 @@
     {
       "id": "R19",
       "name": "24/7 Zertifizierung",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R18"
       ],
