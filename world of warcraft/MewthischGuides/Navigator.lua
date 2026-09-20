@@ -54,8 +54,14 @@ function MG:InitializeNavigator()
 
     -- Intentionally no background, border or panel.
     local arrow = frame:CreateTexture(nil, "ARTWORK")
-    arrow:SetTexture("Interface\\Minimap\\MinimapArrow")
-    arrow:SetSize(72, 72)
+    local atlasSet = false
+    if arrow.SetAtlas then
+        atlasSet = pcall(arrow.SetAtlas, arrow, "UI-HUD-Minimap-Arrow-Player", true)
+    end
+    if not atlasSet then
+        arrow:SetTexture("Interface\\Minimap\\MinimapArrow")
+        arrow:SetSize(72, 72)
+    end
     arrow:SetPoint("TOP", 0, 2)
     navigator.arrow = arrow
 
@@ -211,7 +217,13 @@ function MG:RefreshNavigator()
         navigator.arrow:SetAlpha(1.0)
 
         local rotation = nav.relativeAngle + TEXTURE_ZERO_OFFSET
-        pcall(navigator.arrow.SetRotation, navigator.arrow, rotation)
+        local rotated, err = pcall(navigator.arrow.SetRotation, navigator.arrow, rotation)
+        if not rotated then
+            MG:Log("WARN", "navigator.rotation_failed", tostring(err), {
+                relativeAngle = nav.relativeAngle,
+                directionSource = nav.directionSource,
+            })
+        end
 
         navigator.frame:EnableMouse(true)
     else
