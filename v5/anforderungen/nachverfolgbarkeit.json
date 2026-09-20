@@ -1797,15 +1797,23 @@
       "invarianten": [
         "V5-ALT-030"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/produktion/recipient-settlement.ts",
+        "v5/grundlage/quelle/produktion/production-intent.ts",
+        "v5/grundlage/quelle/merchant/logistik-workflow.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r15-production-settlement.test.mjs",
+        "v5/grundlage/tests/r15-logistik-gear.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r15NachweisStatus": "R15_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-007",
@@ -1816,15 +1824,22 @@
       "invarianten": [
         "V5-ALT-006"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/merchant/werttransaktion.ts",
+        "v5/grundlage/quelle/produktion/production-graph.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r15-werttransaktion.test.mjs",
+        "v5/grundlage/tests/r15-production-graph.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r15NachweisStatus": "R15_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-008",

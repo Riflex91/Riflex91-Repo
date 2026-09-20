@@ -69,7 +69,7 @@
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
       "erfuellt": false,
-      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. R7 bis R14 weisen ihre jeweils ratifizierten MUSS-Anforderungen technisch und tracebar nach; R12 Controlled Live ist bestanden. Erfuellt bleibt bis zu den spaeteren Production-, Combat-, World-, Learning- und Zertifizierungsnachweisen false.",
+      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. R7 bis R15 weisen ihre jeweils ratifizierten MUSS-Anforderungen technisch und tracebar nach; R12 Controlled Live ist bestanden. Erfuellt bleibt bis zu den spaeteren Party-/Combat-/World-/Learning- und Zertifizierungsnachweisen false.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
         "v5/anforderungen/nachverfolgbarkeit.json"
@@ -99,12 +99,15 @@
       "r13AnforderungenGesamt": 6,
       "r14NachweisVorhanden": true,
       "r14AnforderungenNachgewiesen": 5,
-      "r14AnforderungenGesamt": 5
+      "r14AnforderungenGesamt": 5,
+      "r15NachweisVorhanden": true,
+      "r15AnforderungenNachgewiesen": 2,
+      "r15AnforderungenGesamt": 2
     },
     {
       "kennung": "INVARIANTEN_BEREIT",
       "erfuellt": false,
-      "grund": "R3-R10 schliessen Architektur-, Determinismus-, Persistenz-, Authority-, Scheduler-, Admission- und Recovery-Grenzen. R11 ergaenzt fail-closed Operations; R12 den kontrollierten Live-Slice; R13 Merchant-Invarianten; R14 schliesst CM-Dedupe/TTL, Roster-/Session-Fencing, Liveness und Coordinator/Agent-Trennung. Erfuellt bleibt bis zu den spaeteren Runtime-/Production-/Combat-/Zertifizierungsinvarianten false.",
+      "grund": "R3-R10 schliessen Architektur-, Determinismus-, Persistenz-, Authority-, Scheduler-, Admission- und Recovery-Grenzen. R11 ergaenzt fail-closed Operations; R12 den kontrollierten Live-Slice; R13 Merchant Core A; R14 Multi-Character Coordination; R15 schliesst Supply/Collection/Rendezvous, Gear, q/Placeholder-Reconciliation, Production-DAG und finales Recipient Settlement. Erfuellt bleibt bis zu den spaeteren Party-/Combat-/World-/Learning-/Zertifizierungsinvarianten false.",
       "nachweise": [
         "v5/invarianten/invarianten.json",
         "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
@@ -295,7 +298,7 @@
     }
   ],
   "offeneBlocker": [
-    "R15 Merchant Core B mit Supply, Gear, Production und finalem Recipient Settlement abschliessen",
+    "R16 Party, Combat, Farming und Navigation mit P1B, stale-target- und movement-thrash-Schutz abschliessen",
     "Breite Gameplay-Runtime bleibt bis zur spaeteren expliziten Gesamtfreigabe GESPERRT",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
@@ -332,5 +335,8 @@
   "r14Status": "ABGESCHLOSSEN",
   "r14AbgeschlossenAm": "2026-09-20",
   "r14P1AStatus": "GESCHLOSSEN",
-  "r14Evidence": "v5/grundlage/vertraege/r14/multi-character-abdeckung.json"
+  "r14Evidence": "v5/grundlage/vertraege/r14/multi-character-abdeckung.json",
+  "r15Status": "ABGESCHLOSSEN",
+  "r15AbgeschlossenAm": "2026-09-20",
+  "r15Evidence": "v5/grundlage/vertraege/r15/merchant-core-b-abdeckung.json"
 }
