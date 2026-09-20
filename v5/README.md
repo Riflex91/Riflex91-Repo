@@ -150,3 +150,14 @@ Der Execution-Kernel akzeptiert keine losen Boolean-/Objektfreigaben, revalidier
 Maschinenlesbarer Abschluss: `roadmap/r9-abschluss.json`.
 
 Aktuelle Phase ist R10. Das Gameplay-Runtime-Gesamtgate bleibt `GESPERRT`; ein produktiver Top-Level-Execution-/Raw-Write-Pfad bleibt solange absent.
+
+
+## R10 – Reconciliation und Recovery Kernel
+
+R10 ist formal abgeschlossen. UNKNOWN, Timeout/Disconnect nach moeglichem Send und partielle Effekte besitzen keinen Blind-Retry-Pfad. Der Recovery-Kernel kann nicht senden, sondern nur beobachten, klassifizieren und abgleichen; fachlicher COMMIT entsteht erst durch passende Postcondition-/Reconciliation-Evidence.
+
+Partial Completion wird diff-basiert auf offene Domaenen reduziert. Nichtterminale Arbeit wird nach Restart ausschliesslich als `ABGLEICH_ERFORDERLICH` und ohne ExecutionAuthority geladen. Stop sperrt zuerst neue Arbeit und reconciliert In-Flight bounded; ungeklaerte irreversible Arbeit fuehrt fail-closed zur kritischen Sperre. Knowledge-/Config-/Prestate-Kontext bleibt fuer In-Flight-Recovery gepinnt.
+
+Maschinenlesbarer Abschluss: `roadmap/r10-abschluss.json`.
+
+Aktuelle Phase ist R11. Das Gameplay-Runtime-Gesamtgate bleibt `GESPERRT`; R10 besitzt weiterhin keine Send- oder Raw-Write-Autoritaet.
