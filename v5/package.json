@@ -52,13 +52,15 @@
     "r18:pruefen": "npm run typen:pruefen && npm run lint && npm run r18:test && node werkzeuge/r18-statische-guards.mjs && node werkzeuge/r18-struktur-pruefen.mjs",
     "r19:test": "npm run grundlage:test",
     "r19:ui": "npm run sichttext:pruefen && npm run r6:abdeckung && node werkzeuge/r19-ui-release-gate.mjs",
-    "r19:pruefen": "npm run typen:pruefen && npm run lint && npm run r19:test && npm run r19:ui && npm run r19:test-gui:pruefen && npm run r19:canary-gui:pruefen && npm run r19:soak-5m-gui:pruefen && node werkzeuge/r19-statische-guards.mjs && node werkzeuge/r19-struktur-pruefen.mjs",
+    "r19:pruefen": "npm run typen:pruefen && npm run lint && npm run r19:test && npm run r19:ui && npm run r19:test-gui:pruefen && npm run r19:canary-gui:pruefen && npm run r19:soak-5m-gui:pruefen && npm run r19:soak-10m-gui:pruefen && node werkzeuge/r19-statische-guards.mjs && node werkzeuge/r19-struktur-pruefen.mjs",
     "r19:test-gui:bauen": "node werkzeuge/r19-test-gui-paket-bauen.mjs",
     "r19:test-gui:pruefen": "node --check werkzeuge/v5-adventure-land-test-gui.js && node --check werkzeuge/r19-controlled-live-test-gui.js && node --check werkzeuge/r19-controlled-live-test-paket.js && node werkzeuge/r19-test-gui-paket-bauen.mjs --check && node --test werkzeuge/tests/r19-test-gui.test.mjs",
     "r19:canary-gui:bauen": "node werkzeuge/r19-canary-test-paket-bauen.mjs",
     "r19:canary-gui:pruefen": "node --check werkzeuge/r19-canary-test-gui.js && node --check werkzeuge/r19-canary-test-paket.js && node werkzeuge/r19-canary-test-paket-bauen.mjs --check && node --test werkzeuge/tests/r19-canary-test-gui.test.mjs",
     "r19:soak-5m-gui:bauen": "node werkzeuge/r19-soak-5m-test-paket-bauen.mjs",
-    "r19:soak-5m-gui:pruefen": "node --check werkzeuge/r19-soak-5m-test-gui.js && node --check werkzeuge/r19-soak-5m-test-paket.js && node werkzeuge/r19-soak-5m-test-paket-bauen.mjs --check && node --test werkzeuge/tests/r19-soak-5m-test-gui.test.mjs"
+    "r19:soak-5m-gui:pruefen": "node --check werkzeuge/r19-soak-5m-test-gui.js && node --check werkzeuge/r19-soak-5m-test-paket.js && node werkzeuge/r19-soak-5m-test-paket-bauen.mjs --check && node --test werkzeuge/tests/r19-soak-5m-test-gui.test.mjs",
+    "r19:soak-10m-gui:bauen": "node werkzeuge/r19-soak-10m-test-paket-bauen.mjs",
+    "r19:soak-10m-gui:pruefen": "node --check werkzeuge/r19-soak-10m-test-gui.js && node --check werkzeuge/r19-soak-10m-test-paket.js && node werkzeuge/r19-soak-10m-test-paket-bauen.mjs --check && node --test werkzeuge/tests/r19-soak-10m-test-gui.test.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
