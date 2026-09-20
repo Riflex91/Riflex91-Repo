@@ -23,12 +23,21 @@ public static class BuildInfoReader
                 .ToDictionary(x => x.h, x => x.v, StringComparer.OrdinalIgnoreCase))
             .ToList();
 
-        var row = rows.FirstOrDefault(r =>
+        var activeRows = rows
+            .Where(r => string.IsNullOrWhiteSpace(Get(r, "Active")) || Get(r, "Active") == "1")
+            .ToList();
+
+        if (activeRows.Count == 0)
+            activeRows = rows;
+
+        var row = activeRows.FirstOrDefault(r =>
             Get(r, "Product").Contains("wow", StringComparison.OrdinalIgnoreCase) &&
-            (Get(r, "Version").StartsWith("1.60.", StringComparison.OrdinalIgnoreCase) ||
-             Get(r, "Product").Contains("beta", StringComparison.OrdinalIgnoreCase)))
-            ?? rows.FirstOrDefault(r => Get(r, "Product").Contains("wow", StringComparison.OrdinalIgnoreCase))
-            ?? rows.First();
+            Get(r, "Version").StartsWith("1.60.", StringComparison.OrdinalIgnoreCase))
+            ?? activeRows.FirstOrDefault(r =>
+                Get(r, "Product").Contains("wow", StringComparison.OrdinalIgnoreCase) &&
+                Get(r, "Product").Contains("beta", StringComparison.OrdinalIgnoreCase))
+            ?? activeRows.FirstOrDefault(r => Get(r, "Product").Contains("wow", StringComparison.OrdinalIgnoreCase))
+            ?? activeRows.First();
 
         var version = Get(row, "Version");
         var buildNumber = version.Split('.', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? "unknown";
