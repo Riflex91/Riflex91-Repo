@@ -5,6 +5,8 @@ const liesText = pfad => fs.readFileSync(pfad, "utf8");
 
 const pflicht = [
   "grundlage/quelle/merchant/werttransaktion.ts",
+  "grundlage/quelle/merchant/item-mutations-planer.ts",
+  "grundlage/tests/r15-item-mutations-planer.test.mjs",
   "grundlage/tests/r15-production-graph.test.mjs",
   "grundlage/tests/r15-logistik-gear.test.mjs",
   "grundlage/quelle/produktion/production-graph.ts",
@@ -84,6 +86,29 @@ for (const marker of [
   "BANK_KATALOG_NICHT_FRISCH",
 ]) {
   if (!bankKatalog.includes(marker)) fehler.push("BANK_KATALOG_MARKER_FEHLT:" + marker);
+}
+
+const mutationsPlaner = liesText("grundlage/quelle/merchant/item-mutations-planer.ts");
+for (const marker of [
+  "planeItemMutation",
+  "AL-ACTION-UPGRADE",
+  "AL-RECOVERY-UPGRADE",
+  "AL-VERIFIER-UPGRADE",
+  "AL-ACTION-COMPOUND",
+  "AL-RECOVERY-COMPOUND",
+  "AL-VERIFIER-COMPOUND",
+  "previewIstKeineExecutionAuthority: true",
+  "unknownOutcomeKeinBlindRetry: true",
+  "GEAR_KANDIDAT_RESERVIERT",
+  "AKTIVE_ITEM_RESERVIERUNG",
+  "WORKSPACE_FEHLT",
+  "ausfuehrungsAutoritaet: false",
+  "gameplayAutoritaet: false",
+  "rawWriteAutoritaet: false",
+]) {
+  if (!mutationsPlaner.includes(marker)) {
+    fehler.push("ITEM_MUTATION_PLANER_MARKER_FEHLT:" + marker);
+  }
 }
 
 const wert = liesText("grundlage/quelle/merchant/werttransaktion.ts");
@@ -168,6 +193,7 @@ const rawMuster = [
 
 const r15Quellen = [
   "grundlage/quelle/merchant/werttransaktion.ts",
+  "grundlage/quelle/merchant/item-mutations-planer.ts",
   "grundlage/quelle/merchant/supply-policy.ts",
   "grundlage/quelle/merchant/logistik-workflow.ts",
   "grundlage/quelle/merchant/gear-allokation.ts",
