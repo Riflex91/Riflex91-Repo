@@ -21,6 +21,10 @@ for(const p of [
   "grundlage/tests/r19-shadow-certification.test.mjs",
   "werkzeuge/r19-ui-release-gate.mjs",
   "werkzeuge/r19-statische-guards.mjs",
+  "werkzeuge/r19-controlled-live-test-gui.js",
+  "werkzeuge/r19-controlled-live-test-paket.js",
+  "werkzeuge/r19-test-gui-paket-bauen.mjs",
+  "werkzeuge/tests/r19-test-gui.test.mjs",
 ]){
   if(!fs.existsSync(p)) fehler("R19 Pflichtartefakt fehlt: "+p);
 }
