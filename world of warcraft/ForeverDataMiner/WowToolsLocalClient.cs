@@ -21,7 +21,7 @@ public sealed class WowToolsLocalClient(HttpClient http, Uri baseUri)
         foreach (var table in Tables)
         {
             var url = new Uri(baseUri,
-                $"dbc/export/csv?name={Uri.EscapeDataString(table)}&build={Uri.EscapeDataString(build.Version)}&useHotfixes=true&newLinesInStrings=false&locale=All_WoW");
+                $"dbc/export/csv?name={Uri.EscapeDataString(table)}&build={Uri.EscapeDataString(build.Version)}&useHotfixes=true&newLinesInStrings=false");
 
             using var response = await http.GetAsync(url, cancellationToken);
             if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.NoContent or HttpStatusCode.BadRequest)
