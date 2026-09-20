@@ -689,7 +689,12 @@ Exit Gate:
 
 ## R13 – Merchant Core A: Single-Character Economy
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
+
+Merchant Core A ist als Planning-/Ledger-/Evidence-/Koordinationskern abgeschlossen. Zentrale Gegenstandsdisposition, konkrete physische Reservierungen, Workspace-/Capacity-Preflight, Gold-/Budget-Ledger, accountweite Bank-Lease/Fencing mit Restart-Reconciliation, frische RID-/Mengen-Evidence und der reale trade_sell-Serverscan sind technisch nachgewiesen. Der Core enthaelt keine neuen Raw Game Writes; die breite Runtime bleibt `GESPERRT`.
+
+Maschinenlesbare Abdeckung: `grundlage/vertraege/r13/merchant-core-abdeckung.json`.  
+Maschinenlesbarer Abschluss: `roadmap/r13-abschluss.json`.
 
 Merchant bleibt erste grosse Domaene.
 
@@ -716,6 +721,8 @@ Exit Gate:
 - Restart waehrend jeder Merchant-Phase reconciliert.
 
 ## R14 – Multi-Character Coordination Foundation
+
+**Status:** IN_PROGRESS.
 
 Voraussetzung: R1.2 abgeschlossen.
 
