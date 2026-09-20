@@ -1,0 +1,40 @@
+## Interface: 16001
+## Title: Mewthisch Guides
+## Notes: Build-aware leveling guide for World of Warcraft: Forever.
+## Author: Riflex91
+## Version: 0.10.0
+## SavedVariables: MewthischGuidesDB
+
+Data.lua
+RestedXPForeverData_01.lua
+RestedXPForeverData_02.lua
+RestedXPForeverData_03.lua
+RestedXPForeverData_04.lua
+RestedXPForeverData_05.lua
+RestedXPImport.lua
+Logger.lua
+ForeverAPI.lua
+Validation.lua
+GuideParser.lua
+DataLoader.lua
+QuestTracking.lua
+TravelGraph.lua
+Inventory.lua
+GearAdvisor.lua
+RewardAdvisor.lua
+BuildState.lua
+TalentAdvisor.lua
+Themes.lua
+Telemetry.lua
+State.lua
+Diagnostics.lua
+GoalEngine.lua
+StepEngine.lua
+GuideEngine.lua
+RouteEngine.lua
+Navigation.lua
+QuestAutomation.lua
+Sync.lua
+Navigator.lua
+UI.lua
+Core.lua
