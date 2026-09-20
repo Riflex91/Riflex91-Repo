@@ -2007,15 +2007,22 @@
       "invarianten": [
         "V5-ALT-049"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/navigation/reise-arrival.ts",
+        "v5/grundlage/quelle/navigation/bewegungs-owner.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r16-arrival-motion.test.mjs",
+        "v5/grundlage/tests/r16-ownership-movement.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r16NachweisStatus": "R16_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WORLD-002",
@@ -2026,15 +2033,22 @@
       "invarianten": [
         "V5-ALT-050"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/navigation/motion-freshness.ts",
+        "v5/grundlage/quelle/kampf/threat-cc.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r16-arrival-motion.test.mjs",
+        "v5/grundlage/tests/r16-combat-farmer.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r16NachweisStatus": "R16_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WORLD-003",
@@ -2045,15 +2059,22 @@
       "invarianten": [
         "V5-ALT-051"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/kampf/target-ownership.ts",
+        "v5/grundlage/quelle/kampf/threat-cc.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r16-ownership-movement.test.mjs",
+        "v5/grundlage/tests/r16-combat-farmer.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r16NachweisStatus": "R16_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WORLD-004",
