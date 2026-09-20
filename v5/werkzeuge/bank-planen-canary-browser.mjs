@@ -68,7 +68,7 @@ function pruefeText(wert, maximum, fehler) {
   }
 }
 
-function validiereBeobachtung(value) {
+export function validiereBankCanaryBeobachtung(value) {
   if (!value || typeof value !== "object" || value.status !== "OK") {
     throw new Error(String(value?.grund || "BANK_CANARY_BEOBACHTUNG_UNGUELTIG"));
   }
@@ -120,7 +120,7 @@ export async function beobachteBankCanaryReadOnly(session, contextId) {
     throw new Error("BANK_CANARY_CDP_KONTEXT_UNGUELTIG");
   }
   const value = await session.evaluate(READ_ONLY_BANK_EXPR, contextId);
-  return validiereBeobachtung(value);
+  return validiereBankCanaryBeobachtung(value);
 }
 
 export const BANK_CANARY_BROWSER_READ_ONLY = true;
