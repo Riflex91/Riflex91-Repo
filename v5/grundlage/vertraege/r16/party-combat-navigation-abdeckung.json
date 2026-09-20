@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R16",
+  "status": "TECHNISCH_BESTANDEN",
+  "referenzHead": "03ed16e229e69d895056e685f774eb1c78c9661a",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "p1b": {
+    "status": "GESCHLOSSEN",
+    "nachweis": "v5/dokumentation/P1B-PARTY-COMBAT-NAVIGATION.md"
+  },
+  "anforderungen": [
+    {
+      "kennung": "V5-ANF-WORLD-001",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/navigation/reise-arrival.ts",
+        "v5/grundlage/quelle/navigation/bewegungs-owner.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r16-arrival-motion.test.mjs",
+        "v5/grundlage/tests/r16-ownership-movement.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-WORLD-002",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/navigation/motion-freshness.ts",
+        "v5/grundlage/quelle/kampf/threat-cc.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r16-arrival-motion.test.mjs",
+        "v5/grundlage/tests/r16-combat-farmer.test.mjs"
+      ]
+    },
+    {
+      "kennung": "V5-ANF-WORLD-003",
+      "status": "ERFUELLT",
+      "implementierung": [
+        "v5/grundlage/quelle/kampf/target-ownership.ts",
+        "v5/grundlage/quelle/kampf/threat-cc.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r16-ownership-movement.test.mjs",
+        "v5/grundlage/tests/r16-combat-farmer.test.mjs"
+      ]
+    }
+  ],
+  "capabilities": [
+    {
+      "kennung": "CAP-011",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/gruppe/party-wahrheit.ts"
+    },
+    {
+      "kennung": "CAP-012",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/gruppe/group-capabilities.ts"
+    },
+    {
+      "kennung": "CAP-013",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/kampf/skill-capability.ts"
+    },
+    {
+      "kennung": "CAP-014",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/kampf/target-ownership.ts"
+    },
+    {
+      "kennung": "CAP-015",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/farmer/farmer-fsm.ts"
+    },
+    {
+      "kennung": "CAP-016",
+      "status": "V5_NATIVE_FOUNDATION",
+      "nachweis": "v5/grundlage/quelle/navigation/reise-arrival.ts"
+    }
+  ],
+  "exitKriterien": {
+    "p1bGeschlossen": true,
+    "movementReturnIstKeinArrival": true,
+    "arrivalBrauchtPostcondition": true,
+    "movingTargetFreshnessMotionAware": true,
+    "staleMovingTargetFailClosed": true,
+    "rawTargetIstKeineOwnership": true,
+    "targetOwnershipGefenced": true,
+    "movementOwnershipAntiThrash": true,
+    "partyTruthZeitgebunden": true,
+    "sharedCooldownGebunden": true,
+    "deathRespawnRejoinFailClosed": true,
+    "threatCcVolatil": true,
+    "aoeLearningKannHardCapsNichtLockern": true,
+    "encounterOutcomeDedupe": true,
+    "farmerFsmBounded": true,
+    "rawGameWritesImR16Core": 0
+  },
+  "regression": {
+    "r3BisR16UndWissensgate": "GRUEN",
+    "exactHead": "03ed16e229e69d895056e685f774eb1c78c9661a"
+  },
+  "hinweis": "R16 schliesst die no-write Party/Combat/Farming/Navigation-Foundation. Produktive Gameplay-Writes und breite Runtime-Autoritaet bleiben gesperrt."
+}
