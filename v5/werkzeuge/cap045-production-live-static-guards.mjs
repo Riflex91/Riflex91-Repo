@@ -50,7 +50,8 @@ for (const verboten of [
   "V4ProduktionsLaufzeit.stop",
   "V4ProduktionsLaufzeit.start",
   "fetch(",
-  "XMLHttpRequest"
+  "XMLHttpRequest",
+  ".status()"
 ]) {
   if (controller.includes(verboten) || paket.includes(verboten)) {
     fehler.push("CAP045_LIVE_VERBOTENE_ABHAENGIGKEIT:" + verboten);
