@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.10
+name: Mewthisch Guides addon v0.11
 
 on:
   workflow_dispatch:
@@ -171,7 +171,7 @@ jobs:
           assert(#steps==2)
           assert(steps[preferredIndex].questID==2)
           assert(steps[preferredIndex].phase==MG.StepPhases.OBJECTIVES)
-          assert(reason=="active_route_quest")
+          assert(reason=="furthest_active_route_quest")
           print("Step/resync PASS")
           LUA
 
@@ -226,6 +226,7 @@ jobs:
             db={settings={
               gearAutoEquip=true,gearRequireHighConfidence=true,
               gearAutoEquipWeapons=false,gearProtectBoE=true,
+              gearAutoEquipItemLevelFallback=false,
             },runtime={}},
             BuildState={GetState=function() return {class="HUNTER"} end},
             Inventory={GetSnapshot=function() return {bags={},equipped={}} end},
@@ -245,7 +246,107 @@ jobs:
           candidate.bag,candidate.bagSlot,candidate.isBound=0,1,true
           local equipped,reason=MG.GearAdvisor:TryAutoEquip(candidate)
           assert(equipped==false and reason=="confidence")
+
+          MG.db.settings.gearAutoEquipItemLevelFallback=true
+          C_Container={PickupContainerItem=function() end}
+          EquipCursorItem=function() end
+          candidate.isBound=true
+          equipped,reason=MG.GearAdvisor:TryAutoEquip(candidate)
+          assert(equipped==true and reason=="equipped",
+            "safe non-weapon item-level upgrade should auto-equip")
           print("Telemetry/Gear safety PASS")
+          LUA
+
+      - name: Validate legacy quest progress fallback
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={db={runtime={}}}
+          C_QuestLog=nil
+          GetNumQuestLogEntries=function() return 1,1 end
+          GetQuestLogTitle=function(index)
+            return "Legacy Quest",7,0,false,false,false,0,12345
+          end
+          GetNumQuestLeaderBoards=function(index) return 1 end
+          GetQuestLogLeaderBoard=function(objective,index)
+            return "Testgegner: 3/5","monster",false
+          end
+          IsQuestFlaggedCompleted=function() return false end
+          assert(loadfile("world of warcraft/MewthischGuides/QuestTracking.lua"))(
+            "MewthischGuides",MG)
+          local snapshot=MG.QuestTracking:Refresh("unit")
+          assert(snapshot[12345],"legacy quest missing")
+          assert(snapshot[12345].trackingSource=="LegacyQuestLog")
+          assert(snapshot[12345].objectives[1].numFulfilled==3)
+          assert(snapshot[12345].objectives[1].numRequired==5)
+          print("Legacy quest progress fallback PASS")
+          LUA
+
+      - name: Validate manual nearest-target route mode
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={
+            db={settings={routeMode="manual"},runtime={}},
+            StepPhases={OBJECTIVES="objectives",TURNIN="turnin"},
+            Log=function() end,
+          }
+          MG.GetQuestLogSnapshot=function()
+            return {
+              [1]={questID=1,title="Far",questLogIndex=1,readyForTurnIn=false,objectives={}},
+              [2]={questID=2,title="Near",questLogIndex=2,readyForTurnIn=false,objectives={}},
+            }
+          end
+          MG.BuildLiveFallbackStep=function(_,entry)
+            return {questID=entry.questID,questLogIndex=entry.questLogIndex,
+              phase="objectives",title=entry.title}
+          end
+          MG.ForeverAPI={GetPlayerPosition=function() return {mapID=1,x=.5,y=.5} end}
+          MG.RouteEngine={
+            Resolve=function(_,step)
+              local x=step.questID==1 and .9 or .55
+              return {mapID=1,x=x,y=.5,source="QuestMapPOI"}
+            end,
+            EstimateDistanceToTarget=function(_,target)
+              return math.abs(target.x-.5),"normalized_map"
+            end,
+          }
+          assert(loadfile("world of warcraft/MewthischGuides/ManualRoute.lua"))(
+            "MewthischGuides",MG)
+          local steps,index,reason=MG:BuildManualRouteSteps()
+          assert(#steps==2 and index==1)
+          assert(steps[1].questID==2,"manual mode did not choose nearest active quest")
+          assert(reason=="manual_nearest_active_quest")
+          print("Manual nearest-target routing PASS")
+          LUA
+
+      - name: Validate world map marker module
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local calls={set=0,clear=0}
+          local MG={
+            db={settings={showWorldMapMarker=true}},
+            ForeverAPI={
+              SetWorldMapWaypoint=function(_,target)
+                calls.set=calls.set+1
+                return true,{mapID=target.mapID,x=target.x,y=target.y}
+              end,
+              ClearWorldMapWaypoint=function()
+                calls.clear=calls.clear+1
+                return true
+              end,
+            },
+            Log=function() end,
+          }
+          assert(loadfile("world of warcraft/MewthischGuides/WorldMapMarker.lua"))(
+            "MewthischGuides",MG)
+          MG:RefreshWorldMapMarker({mapID=1411,x=.4,y=.6,source="test"})
+          assert(calls.set==1)
+          MG.db.settings.showWorldMapMarker=false
+          MG:RefreshWorldMapMarker(nil)
+          assert(calls.clear==1)
+          print("World map marker PASS")
           LUA
 
       - name: Validate RestedXP dataset and action coverage
@@ -276,6 +377,23 @@ jobs:
           assert(stats.normalizedGuides>10)
           assert(stats.normalizedQuestDefinitions>100)
           assert(stats.sourceCommit=="6f9cf44c09123e496366b3cb5ffe7383660e4bcb")
+
+          local synthetic={
+            order=100,
+            rxpOccurrences={
+              {phase="accept",sourceStep=1,sourceAction=1,tags={}},
+              {phase="objectives",objective=1,sourceStep=5,sourceAction=2,tags={}},
+              {phase="objectives",objective=2,sourceStep=8,sourceAction=3,tags={}},
+              {phase="turnin",sourceStep=10,sourceAction=1,tags={}},
+            },
+          }
+          local syntheticProfile={faction="Horde",race="Orc",class="HUNTER",level=3}
+          assert(MG.RestEDXPImport:GetProgressOrder(
+            synthetic,"objectives",syntheticProfile,1)==502)
+          assert(MG.RestEDXPImport:GetProgressOrder(
+            synthetic,"objectives",syntheticProfile,2)==803)
+          assert(MG.RestEDXPImport:GetProgressOrder(
+            synthetic,"complete",syntheticProfile,nil)==1001)
 
           local profile={faction="Horde",race="Orc",class="HUNTER",level=3}
           assert(MG.RestEDXPImport:SelectorMatches("Orc Hunter/Troll Hunter",profile))
@@ -398,7 +516,7 @@ jobs:
           print("Five-theme contract PASS")
           LUA
 
-      - name: Validate v0.10 static contract
+      - name: Validate v0.11 static contract
         shell: bash
         run: |
           set -euo pipefail
@@ -412,9 +530,65 @@ jobs:
 
           grep -q '^## Interface: 16001$' "$TOC"
           grep -q '^## Title: Mewthisch Guides$' "$TOC"
-          grep -q '^## Version: 0.10.0$' "$TOC"
+          grep -q '^## Version: 0.11.0$' "$TOC"
           grep -q '^RestedXPActionCatalog.lua$' "$TOC"
-          grep -q '^RestedXPImport.lua$' "$TOC"
+          grep -q '^RestedXPImport.lua
+          for chunk in 01 02 03 04 05; do
+            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
+          done
+
+          grep -q 'forever-modern-capability' "$API"
+          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
+          grep -q 'RestedXPWorldCoordinates' "$NAV"
+          grep -q 'Nächstes Theme' "$UI"
+          grep -q 'RestedXP-Guidequellen' "$UI"
+          grep -q 'RestedXP-Aktionsabdeckung' "$UI"
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Vorgegeben"' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
+
+          if grep -q 'navigationScreenAngle' "$NAV"; then
+            echo "Unsafe guessed screen-angle fallback detected."
+            exit 1
+          fi
+
+          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
+            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.11.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.11
+          path: artifacts/MewthischGuides-v0.11.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^ManualRoute.lua
           for chunk in 01 02 03 04 05; do
             grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
           done
@@ -456,11 +630,112 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.10.zip MewthischGuides
+          zip -r MewthischGuides-v0.11.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.10
-          path: artifacts/MewthischGuides-v0.10.zip
+          name: MewthischGuides-v0.11
+          path: artifacts/MewthischGuides-v0.11.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^WorldMapMarker.lua
+          for chunk in 01 02 03 04 05; do
+            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
+          done
+
+          grep -q 'forever-modern-capability' "$API"
+          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
+          grep -q 'RestedXPWorldCoordinates' "$NAV"
+          grep -q 'Nächstes Theme' "$UI"
+          grep -q 'RestedXP-Guidequellen' "$UI"
+          grep -q 'RestedXP-Aktionsabdeckung' "$UI"
+          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
+
+          if grep -q 'navigationScreenAngle' "$NAV"; then
+            echo "Unsafe guessed screen-angle fallback detected."
+            exit 1
+          fi
+
+          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
+            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.11.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.11
+          path: artifacts/MewthischGuides-v0.11.zip
+          if-no-files-found: error
+ "$TOC"
+          for chunk in 01 02 03 04 05; do
+            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
+          done
+
+          grep -q 'forever-modern-capability' "$API"
+          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
+          grep -q 'RestedXPWorldCoordinates' "$NAV"
+          grep -q 'Nächstes Theme' "$UI"
+          grep -q 'RestedXP-Guidequellen' "$UI"
+          grep -q 'RestedXP-Aktionsabdeckung' "$UI"
+          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
+
+          if grep -q 'navigationScreenAngle' "$NAV"; then
+            echo "Unsafe guessed screen-angle fallback detected."
+            exit 1
+          fi
+
+          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
+            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.11.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.11
+          path: artifacts/MewthischGuides-v0.11.zip
           if-no-files-found: error
