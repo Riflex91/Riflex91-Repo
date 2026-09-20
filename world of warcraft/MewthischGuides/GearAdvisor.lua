@@ -49,7 +49,7 @@ local function itemLevel(link)
     return nil
 end
 
-local function equippable(link)
+local function equippable(link, equipLoc)
     if C_Item and C_Item.IsEquippableItem then
         local ok, value = pcall(C_Item.IsEquippableItem, link)
         if ok then return value and true or false end
@@ -58,14 +58,12 @@ local function equippable(link)
         local ok, value = pcall(IsEquippableItem, link)
         if ok then return value and true or false end
     end
-    return false
-end
 
-local function usable(link)
-    if not IsUsableItem then return true end
-    local ok, value = pcall(IsUsableItem, link)
-    if not ok then return false end
-    return value and true or false
+    -- Forever builds may omit the helper while still exposing a valid
+    -- inventory type. In that case the equip location is the capability-safe
+    -- fallback; the actual equip call remains outside combat and can still
+    -- fail without damaging the item.
+    return equipLoc and EQUIP_SLOT[equipLoc] ~= nil or false
 end
 
 local function activeProfile()
@@ -104,12 +102,17 @@ end
 function Gear:EvaluateItemLink(link)
     local itemID, equipLoc = itemBasics(link)
     local slot = equipLoc and EQUIP_SLOT[equipLoc] or nil
-    if not itemID or not slot or not equippable(link) or not usable(link) then
+    if not itemID or not slot or not equippable(link, equipLoc) then
         return nil, "not_safely_equippable"
     end
 
     local level = itemLevel(link)
-    if not level then return nil, "item_level_unknown" end
+    if not level then
+        if C_Item and C_Item.RequestLoadItemDataByID then
+            pcall(C_Item.RequestLoadItemDataByID, itemID)
+        end
+        return nil, "item_level_unknown"
+    end
 
     local profile = activeProfile()
     local candidateSlots = MULTI_SLOT[equipLoc] or { slot }
@@ -179,14 +182,31 @@ function Gear:Refresh(reason)
     if not inventory then return nil end
 
     local best = nil
+    local pendingItemData = false
+    local rejected = {}
+
     for _, item in ipairs(inventory.bags or {}) do
-        local result = self:EvaluateItemLink(item.link)
+        local result, rejectReason = self:EvaluateItemLink(item.link)
         if result and result.upgrade then
             result.bag = item.bag
             result.bagSlot = item.slot
             result.isBound = item.isBound
             if not best or result.score > best.score then best = result end
+        elseif rejectReason then
+            rejected[rejectReason] = (rejected[rejectReason] or 0) + 1
+            if rejectReason == "item_level_unknown" then
+                pendingItemData = true
+            end
         end
+    end
+
+    if pendingItemData and C_Timer and C_Timer.After and
+       not self.itemDataRetryScheduled then
+        self.itemDataRetryScheduled = true
+        C_Timer.After(0.40, function()
+            self.itemDataRetryScheduled = false
+            if MG.Sync then MG.Sync:Inventory("gear_item_data_retry") end
+        end)
     end
 
     self.bestUpgrade = best
@@ -211,6 +231,8 @@ function Gear:Refresh(reason)
             isBound = best and best.isBound or nil,
             autoEquipped = autoEquipped,
             autoEquipReason = autoEquipReason,
+            rejected = rejected,
+            pendingItemData = pendingItemData,
         }
     end
 
@@ -233,24 +255,36 @@ function Gear:TryAutoEquip(candidate)
     if candidate.isWeapon and not settings.gearAutoEquipWeapons then
         return false, "weapon_protected"
     end
-    if settings.gearProtectBoE and candidate.isBound == false then
-        return false, "boe_protected"
+    if settings.gearProtectBoE and candidate.isBound ~= true then
+        return false, candidate.isBound == false and
+            "boe_protected" or "binding_unknown"
     end
     if InCombatLockdown and InCombatLockdown() then return false, "combat" end
     if CursorHasItem and CursorHasItem() then return false, "cursor_busy" end
-    local pickup = C_Container and C_Container.PickupContainerItem or
-        PickupContainerItem
-    if not pickup or not EquipCursorItem then
-        return false, "equip_api_missing"
+    local usedEquipByName = false
+
+    if EquipItemByName then
+        local okEquip = pcall(EquipItemByName, candidate.link, candidate.slot)
+        if okEquip then
+            usedEquipByName = true
+        end
     end
 
-    local okPickup = pcall(pickup, candidate.bag, candidate.bagSlot)
-    if not okPickup then return false, "pickup_failed" end
+    if not usedEquipByName then
+        local pickup = C_Container and C_Container.PickupContainerItem or
+            PickupContainerItem
+        if not pickup or not EquipCursorItem then
+            return false, "equip_api_missing"
+        end
 
-    local okEquip = pcall(EquipCursorItem, candidate.slot)
-    if not okEquip then
-        if ClearCursor then pcall(ClearCursor) end
-        return false, "equip_failed"
+        local okPickup = pcall(pickup, candidate.bag, candidate.bagSlot)
+        if not okPickup then return false, "pickup_failed" end
+
+        local okEquip = pcall(EquipCursorItem, candidate.slot)
+        if not okEquip then
+            if ClearCursor then pcall(ClearCursor) end
+            return false, "equip_failed"
+        end
     end
 
     if C_Timer and C_Timer.After then
@@ -266,6 +300,7 @@ function Gear:TryAutoEquip(candidate)
         score = candidate.score,
         scoreModel = candidate.scoreModel,
         profileID = candidate.gearProfileID,
+        method = usedEquipByName and "EquipItemByName" or "PickupContainerItem",
     })
     return true, "equipped"
 end
