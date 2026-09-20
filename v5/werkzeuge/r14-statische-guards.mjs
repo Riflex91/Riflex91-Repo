@@ -5,11 +5,13 @@ const liesText = pfad => fs.readFileSync(pfad, "utf8");
 
 const pflicht = [
   "grundlage/quelle/koordination/cm-protokoll.ts",
+  "grundlage/quelle/koordination/cm-settlement.ts",
   "grundlage/quelle/koordination/roster-wahrheit.ts",
   "grundlage/quelle/koordination/character-liveness.ts",
   "grundlage/quelle/koordination/account-koordinator.ts",
   "grundlage/quelle/koordination/character-agent.ts",
   "grundlage/tests/r14-cm-protokoll.test.mjs",
+  "grundlage/tests/r14-cm-settlement.test.mjs",
   "grundlage/tests/r14-cm-fault-injektion.test.mjs",
   "grundlage/tests/r14-roster-liveness.test.mjs",
   "grundlage/tests/r14-koordinator-agent.test.mjs",
@@ -35,6 +37,17 @@ for (const marker of [
   "importiereNachRestart",
 ]) {
   if (!cm.includes(marker)) fehler.push("CM_MARKER_FEHLT:" + marker);
+}
+
+const settlement = liesText("grundlage/quelle/koordination/cm-settlement.ts");
+for (const marker of [
+  "CmAntwortLedger",
+  "ACK_BESTAETIGT",
+  "SETTLEMENT_ABGESCHLOSSEN",
+  "BEREITS_ABGESCHLOSSEN",
+  "importiereNachRestart",
+]) {
+  if (!settlement.includes(marker)) fehler.push("SETTLEMENT_MARKER_FEHLT:" + marker);
 }
 
 const roster = liesText("grundlage/quelle/koordination/roster-wahrheit.ts");
@@ -109,6 +122,7 @@ const rawMuster = [
 const koordinationsQuellen = [
   "grundlage/quelle/koordination/account-bank-lease.ts",
   "grundlage/quelle/koordination/cm-protokoll.ts",
+  "grundlage/quelle/koordination/cm-settlement.ts",
   "grundlage/quelle/koordination/roster-wahrheit.ts",
   "grundlage/quelle/koordination/character-liveness.ts",
   "grundlage/quelle/koordination/account-koordinator.ts",
