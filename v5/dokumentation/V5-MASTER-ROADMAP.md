@@ -658,7 +658,7 @@ Exit Gate:
 
 **Status:** IN_PROGRESS.
 
-**Teilstand:** Shadow-End-to-End = BESTANDEN (0 unerwartete Game Writes). Controlled Live = BLOCKIERT, solange Readiness nicht FREIGEGEBEN und lokale Runtime-Health nicht sauber ist. Erster Live-Kandidat ist exakt eine `equip`-Action gemaess ADR-013.
+**Teilstand:** Shadow-End-to-End = BESTANDEN (0 unerwartete Game Writes). Controlled Live wird ueber ein einmaliges R12-Testgate vorbereitet; die breite Runtime bleibt `GESPERRT`. Erster und einziger Live-Kandidat ist exakt eine `equip`-Action gemaess ADR-013/ADR-014. Parallel laufende V3/V4-Gameplay-Runtime, ungesunde direkte Live-Evidence, ungesunde V5-Persistenz oder offene Reconciliation blockieren den Test.
 
 Erster minimaler End-to-End-Pfad.
 
