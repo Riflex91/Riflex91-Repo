@@ -4,10 +4,17 @@ MG.navigation = MG.navigation or {}
 MG.lastNavigationSignature = nil
 
 local YARDS_TO_METERS = 0.9144
+local TWO_PI = math.pi * 2
 
-local function normalizeAngle(angle)
-    while angle > math.pi do angle = angle - math.pi * 2 end
-    while angle < -math.pi do angle = angle + math.pi * 2 end
+local function normalizeRelative(angle)
+    while angle > math.pi do angle = angle - TWO_PI end
+    while angle < -math.pi do angle = angle + TWO_PI end
+    return angle
+end
+
+local function normalizeAbsolute(angle)
+    while angle < 0 do angle = angle + TWO_PI end
+    while angle >= TWO_PI do angle = angle - TWO_PI end
     return angle
 end
 
@@ -21,28 +28,74 @@ local function atan2(y, x)
     return 0
 end
 
+local function unpackWaypointResult(a, b, c, fallbackMapID, source)
+    if type(a) == "table" then
+        local mapID = a.mapID or a.uiMapID or fallbackMapID
+        local x = a.x or (a.position and a.position.x)
+        local y = a.y or (a.position and a.position.y)
+
+        if tonumber(mapID) and tonumber(x) and tonumber(y) then
+            return {
+                mapID = mapID,
+                x = x,
+                y = y,
+                source = source,
+            }
+        end
+    end
+
+    if tonumber(a) and tonumber(b) and tonumber(c) then
+        return {
+            mapID = a,
+            x = b,
+            y = c,
+            source = source,
+        }
+    end
+
+    if tonumber(b) and tonumber(c) and fallbackMapID then
+        return {
+            mapID = fallbackMapID,
+            x = b,
+            y = c,
+            source = source,
+        }
+    end
+
+    if tonumber(a) and tonumber(b) and fallbackMapID and c == nil then
+        return {
+            mapID = fallbackMapID,
+            x = a,
+            y = b,
+            source = source,
+        }
+    end
+
+    return nil
+end
+
 local function tryQuestWaypointForMap(questID, mapID)
     if not mapID or not C_QuestLog or not C_QuestLog.GetNextWaypointForMap then return nil end
 
-    local ok, x, y = pcall(C_QuestLog.GetNextWaypointForMap, questID, mapID)
-    if ok and tonumber(x) and tonumber(y) then
-        return { mapID = mapID, x = x, y = y, source = "QuestWaypointForMap" }
-    end
-    return nil
+    local ok, a, b, c = pcall(C_QuestLog.GetNextWaypointForMap, questID, mapID)
+    if not ok then return nil end
+
+    return unpackWaypointResult(a, b, c, mapID, "QuestWaypointForMap")
 end
 
 local function tryQuestWaypoint(questID)
     if not C_QuestLog or not C_QuestLog.GetNextWaypoint then return nil end
 
-    local ok, mapID, x, y = pcall(C_QuestLog.GetNextWaypoint, questID)
-    if ok and tonumber(mapID) and tonumber(x) and tonumber(y) then
-        return { mapID = mapID, x = x, y = y, source = "QuestWaypoint" }
-    end
-    return nil
+    local ok, a, b, c = pcall(C_QuestLog.GetNextWaypoint, questID)
+    if not ok then return nil end
+
+    return unpackWaypointResult(a, b, c, nil, "QuestWaypoint")
 end
 
 local function tryLegacyQuestPOI(questID, playerMapID)
     if not QuestPOIGetIconInfo or not playerMapID then return nil end
+
+    if QuestPOIUpdateIcons then pcall(QuestPOIUpdateIcons) end
 
     local ok, completed, x, y, objective = pcall(QuestPOIGetIconInfo, questID)
     if ok and tonumber(x) and tonumber(y) then
@@ -55,22 +108,22 @@ local function tryLegacyQuestPOI(questID, playerMapID)
             completed = completed and true or false,
         }
     end
+
     return nil
 end
 
 local function tryNavigationWaypoint(playerMapID)
     if not playerMapID or not C_Navigation or not C_Navigation.GetNextWaypointForMap then return nil end
 
-    local ok, x, y, description = pcall(C_Navigation.GetNextWaypointForMap, playerMapID)
-    if ok and tonumber(x) and tonumber(y) then
-        return {
-            mapID = playerMapID,
-            x = x,
-            y = y,
-            source = "BlizzardNavigationMap",
-            description = description,
-        }
+    local ok, a, b, c = pcall(C_Navigation.GetNextWaypointForMap, playerMapID)
+    if not ok then return nil end
+
+    local waypoint = unpackWaypointResult(a, b, nil, playerMapID, "BlizzardNavigationMap")
+    if waypoint then
+        waypoint.description = c
+        return waypoint
     end
+
     return nil
 end
 
@@ -100,6 +153,7 @@ local function worldXY(mapID, x, y)
     if tonumber(wx) and tonumber(wy) then
         return continentID, wx, wy
     end
+
     return nil
 end
 
@@ -117,35 +171,44 @@ local function questDistance(questID)
             return distance, "BlizzardNavigationDistance"
         end
     end
+
     return nil
 end
 
-local function navigationScreenAngle()
-    if not C_Navigation or not C_Navigation.GetFrame then return nil end
-
-    if C_Navigation.HasValidScreenPosition then
-        local ok, valid = pcall(C_Navigation.HasValidScreenPosition)
-        if ok and not valid then return nil end
+local function bearingFromPoints(player, target)
+    if not player or not target then return nil, nil end
+    if player.mapID ~= target.mapID then return nil, nil end
+    if not tonumber(player.x) or not tonumber(player.y) or not tonumber(target.x) or not tonumber(target.y) then
+        return nil, nil
     end
 
-    local ok, navFrame = pcall(C_Navigation.GetFrame)
-    if not ok or not navFrame or not navFrame.GetCenter then return nil end
+    local pc, px, py = worldXY(player.mapID, player.x, player.y)
+    local tc, tx, ty = worldXY(target.mapID, target.x, target.y)
 
-    local fx, fy = navFrame:GetCenter()
-    local ux, uy
-    if UIParent and UIParent.GetCenter then ux, uy = UIParent:GetCenter() end
-    if not fx or not fy or not ux or not uy then return nil end
+    if pc and tc and pc == tc and px and py and tx and ty then
+        -- WoW world Y is inverted relative to the guide-facing angle.
+        -- This mirrors the mature Mangle-style calculation used by long-standing guide addons.
+        local dx = tx - px
+        local dy = py - ty
+        local angle = normalizeAbsolute(atan2(dx, dy))
+        local distance = math.sqrt(dx * dx + (ty - py) * (ty - py))
+        return angle, distance, "MapWorldPosition"
+    end
 
-    local dx = fx - ux
-    local dy = fy - uy
-    if math.abs(dx) < 1 and math.abs(dy) < 1 then return nil end
+    -- Same-map fallback. Normalized map Y grows downward, so invert Y here too.
+    local dx = target.x - player.x
+    local dy = player.y - target.y
+    local angle = normalizeAbsolute(atan2(dx, dy))
+    local normalizedDistance = math.sqrt(dx * dx + dy * dy)
 
-    return atan2(dx, dy)
+    return angle, nil, "MapNormalized"
 end
 
 function MG:ResolveWaypoint(questID)
     local player = self:GetPosition()
     local playerMapID = player and player.mapID or nil
+
+    if QuestPOIUpdateIcons then pcall(QuestPOIUpdateIcons) end
 
     local waypoint = tryQuestWaypointForMap(questID, playerMapID)
     if waypoint then return waypoint end
@@ -159,7 +222,7 @@ function MG:ResolveWaypoint(questID)
         if ok then questMapID = value end
     end
 
-    if questMapID and questMapID ~= playerMapID then
+    if questMapID then
         waypoint = tryQuestWaypointForMap(questID, questMapID)
         if waypoint then return waypoint end
     end
@@ -180,59 +243,51 @@ function MG:UpdateNavigationRealtime()
     local player = self:GetPosition()
     nav.player = player
 
-    local target = nav.target
     local distance, distanceSource = questDistance(nav.questID)
-    local relativeAngle = nil
+    local targetAngle, targetDistance, directionSource = bearingFromPoints(player, nav.target)
 
-    if target and player and target.mapID == player.mapID and
-       tonumber(target.x) and tonumber(target.y) and tonumber(player.x) and tonumber(player.y) then
-
-        nav.sameMap = true
-
-        local pc, px, py = worldXY(player.mapID, player.x, player.y)
-        local tc, tx, ty = worldXY(target.mapID, target.x, target.y)
-        local bearing = nil
-
-        if pc and tc and pc == tc and px and py and tx and ty then
-            local dx = tx - px
-            local dy = ty - py
-            local worldDistance = math.sqrt(dx * dx + dy * dy)
-            if worldDistance >= 0 then
-                distance = worldDistance
-                distanceSource = "MapWorldPosition"
-            end
-            bearing = atan2(dx, dy)
-        else
-            local dx = target.x - player.x
-            local dy = player.y - target.y
-            nav.normalizedDistance = math.sqrt(dx * dx + dy * dy)
-            bearing = atan2(dx, dy)
-        end
-
-        local facing = GetPlayerFacing and GetPlayerFacing() or nil
-        if bearing and facing then relativeAngle = normalizeAngle(bearing - facing) end
-    else
-        nav.sameMap = false
+    if targetDistance then
+        distance = targetDistance
+        distanceSource = "MapWorldPosition"
     end
 
-    if relativeAngle == nil then
-        relativeAngle = navigationScreenAngle()
-        if relativeAngle ~= nil then nav.directionSource = "BlizzardNavigationScreen" end
-    else
-        nav.directionSource = "MapBearing"
+    local facing = GetPlayerFacing and GetPlayerFacing() or nil
+    local relativeAngle = nil
+
+    if targetAngle ~= nil and facing ~= nil then
+        relativeAngle = normalizeRelative(targetAngle - facing)
     end
 
     nav.relativeAngle = relativeAngle
+    nav.targetAngle = targetAngle
+    nav.playerFacing = facing
+    nav.directionSource = directionSource
+    nav.directionReliable = relativeAngle ~= nil and directionSource ~= nil
     nav.distanceYards = distance
     nav.distanceMeters = distance and (distance * YARDS_TO_METERS) or nil
     nav.distanceSource = distanceSource
+
+    if player and nav.target and player.mapID == nav.target.mapID and
+       player.x and player.y and nav.target.x and nav.target.y then
+        local dx = nav.target.x - player.x
+        local dy = player.y - nav.target.y
+        nav.normalizedDistance = math.sqrt(dx * dx + dy * dy)
+        nav.sameMap = true
+    else
+        nav.normalizedDistance = nil
+        nav.sameMap = false
+    end
 end
 
 function MG:RefreshNavigation(reason)
     local step = self.currentStep
 
     if not step then
-        self.navigation = { available = false, reason = "no_step" }
+        self.navigation = {
+            available = false,
+            directionReliable = false,
+            reason = "no_step",
+        }
         return
     end
 
@@ -242,11 +297,11 @@ function MG:RefreshNavigation(reason)
         available = waypoint ~= nil,
         questID = step.questID,
         target = waypoint,
-        source = waypoint and waypoint.source or "Blizzard-SuperTrack",
+        source = waypoint and waypoint.source or "NoCoordinate",
         waypointText = getWaypointText(step.questID) or
             (waypoint and waypoint.description) or
             (step.goal and step.goal.instruction) or step.detail,
-        reason = waypoint and nil or "no_direct_waypoint",
+        reason = waypoint and nil or "no_coordinate",
         superTrack = true,
     }
 
@@ -259,27 +314,48 @@ function MG:RefreshNavigation(reason)
         tostring(waypoint and waypoint.mapID or ""),
         tostring(waypoint and waypoint.x or ""),
         tostring(waypoint and waypoint.y or ""),
+        tostring(nav.directionSource or ""),
     }, "|")
 
     if self.lastNavigationSignature ~= signature then
         self.lastNavigationSignature = signature
 
-        self:Log(waypoint and "INFO" or "WARN",
-            waypoint and "navigation.waypoint" or "navigation.fallback",
-            waypoint and "Quest-Waypoint aktualisiert." or "Kein direkter Quest-Waypoint; Blizzard-Navigation wird als Fallback verwendet.", {
+        if waypoint and nav.directionReliable then
+            self:Log("INFO", "navigation.direction_ready", "Belastbare Zielrichtung berechnet.", {
                 questID = step.questID,
-                mapID = waypoint and waypoint.mapID or nil,
-                x = waypoint and waypoint.x or nil,
-                y = waypoint and waypoint.y or nil,
+                mapID = waypoint.mapID,
+                x = waypoint.x,
+                y = waypoint.y,
                 source = nav.source,
                 directionSource = nav.directionSource,
+                targetAngle = nav.targetAngle,
+                playerFacing = nav.playerFacing,
+                relativeAngle = nav.relativeAngle,
+                distanceMeters = nav.distanceMeters,
                 reason = reason,
             })
+        elseif waypoint then
+            self:Log("WARN", "navigation.direction_unavailable",
+                "Waypoint vorhanden, aber keine belastbare Pfeilrichtung berechenbar.", {
+                    questID = step.questID,
+                    mapID = waypoint.mapID,
+                    x = waypoint.x,
+                    y = waypoint.y,
+                    source = nav.source,
+                    reason = reason,
+                })
+        else
+            self:Log("WARN", "navigation.no_coordinate",
+                "Keine belastbare Questziel-Koordinate gefunden; Pfeil wird nicht geraten.", {
+                    questID = step.questID,
+                    reason = reason,
+                })
+        end
     end
 end
 
 function MG:GetDirectionLabel(angle)
-    if angle == nil then return "Zielrichtung nicht verfuegbar" end
+    if angle == nil then return "Richtung nicht verfuegbar" end
 
     local degrees = angle * 180 / math.pi
     if degrees < 0 then degrees = degrees + 360 end
