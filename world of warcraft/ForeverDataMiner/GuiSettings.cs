@@ -8,6 +8,7 @@ public sealed class GuiSettings
     public string WowToolsLocal { get; set; } = "http://localhost:5000";
     public bool UseWowToolsLocal { get; set; } = true;
     public bool AutoMonitor { get; set; } = true;
+    public bool ManageWowToolsLocal { get; set; } = false;
 
     private static string SettingsPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
