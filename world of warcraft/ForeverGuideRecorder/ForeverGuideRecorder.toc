@@ -2,8 +2,10 @@
 ## Title: ForeverGuide Recorder
 ## Notes: Build-aware quest and route evidence recorder for ForeverGuide development.
 ## Author: Riflex91
-## Version: 0.1.0
+## Version: 0.2.0
 ## SavedVariables: ForeverGuideRecorderDB
 
 Core.lua
+Profile.lua
+Inventory.lua
 Recorder.lua
