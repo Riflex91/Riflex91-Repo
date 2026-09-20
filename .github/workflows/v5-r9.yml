@@ -4,7 +4,6 @@ on:
   pull_request:
     paths:
       - 'v5/grundlage/**'
-      - 'v5/ausfuehrung/**'
       - 'v5/package.json'
       - 'v5/package-lock.json'
       - 'v5/werkzeuge/r3-*.mjs'
@@ -22,7 +21,6 @@ on:
       - main
     paths:
       - 'v5/grundlage/**'
-      - 'v5/ausfuehrung/**'
       - 'v5/package.json'
       - 'v5/package-lock.json'
       - 'v5/werkzeuge/r3-*.mjs'
