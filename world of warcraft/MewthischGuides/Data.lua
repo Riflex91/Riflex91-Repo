@@ -97,7 +97,7 @@ MG.Data = {
 
     featureModel = {
         engineStage = "roadmap-complete-pre-runtime-fix",
-        guideDataCoverage = "recorder-seed-only",
+        guideDataCoverage = "recorder-seed-plus-public-restedxp-forever",
         externalTelemetry = false,
     },
 }
