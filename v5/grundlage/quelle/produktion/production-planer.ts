@@ -129,6 +129,12 @@ interface ArbeitsQuelle {
   rest: number;
 }
 
+interface ArbeitsLokalEintrag {
+  readonly name: string;
+  readonly level: number;
+  rest: number;
+}
+
 interface ArbeitsBankEintrag {
   readonly pack: string;
   readonly slot: number;
@@ -199,7 +205,7 @@ function validiereRichtlinie(richtlinie: ProduktionsPlanungsRichtlinie): void {
       || richtlinie.quellenPrioritaet.length > 10) {
     throw new Error("PRODUKTION_PLAN_QUELLEN_PRIORITAET_UNGUELTIG");
   }
-  const erlaubt = new Set<ProduktionsPlanungsQuelle>([
+  const erlaubt: readonly ProduktionsPlanungsQuelle[] = Object.freeze([
     "LOKAL",
     "BANK",
     "BUY",
@@ -213,7 +219,7 @@ function validiereRichtlinie(richtlinie: ProduktionsPlanungsRichtlinie): void {
   ]);
   for (let index = 0; index < richtlinie.quellenPrioritaet.length; index += 1) {
     const art = richtlinie.quellenPrioritaet[index];
-    if (art === undefined || !erlaubt.has(art)) {
+    if (art === undefined || !erlaubt.includes(art)) {
       throw new Error("PRODUKTION_PLAN_QUELLEN_PRIORITAET_UNGUELTIG");
     }
     if (richtlinie.quellenPrioritaet.slice(0, index).includes(art)) {
@@ -394,44 +400,41 @@ export function planeProduktion(
 ): ProduktionsPlan {
   validiereAnfrage(anfrage, jetztMs);
 
-  const lokalerPool = new Map<string, number>();
-  for (const bestand of anfrage.lokalerBestand) {
-    if (!evidenceFrisch(
+  const lokalerPool: ArbeitsLokalEintrag[] = anfrage.lokalerBestand
+    .filter(bestand => evidenceFrisch(
       bestand.beobachtetAmMs,
       bestand.gueltigBisMs,
       jetztMs,
       anfrage.richtlinie.maximalesEvidenceAlterMs,
-    )) {
-      continue;
-    }
-    const key = itemKey(bestand.name, bestand.level);
-    lokalerPool.set(key, (lokalerPool.get(key) ?? 0) + bestand.menge);
-  }
+    ))
+    .map(bestand => ({
+      name: bestand.name,
+      level: bestand.level,
+      rest: bestand.menge,
+    }));
 
   let bankPin: BankKatalogPin | null = null;
-  const bankPool: ArbeitsBankEintrag[] = [];
   if (anfrage.bankSnapshot !== null) {
     if (anfrage.bankSnapshot.accountId !== anfrage.recipient.accountId) {
       throw new Error("PRODUKTION_PLAN_BANK_ACCOUNT_DRIFT");
     }
     bankPin = pinneBankKatalog(anfrage.bankSnapshot, jetztMs);
-    for (const eintrag of anfrage.bankSnapshot.eintraege) {
-      bankPool.push({
-        pack: eintrag.pack,
-        slot: eintrag.slot,
-        name: eintrag.name,
-        level: eintrag.level,
-        rest: eintrag.menge,
-      });
-    }
   }
+  const bankPool: ArbeitsBankEintrag[] = (anfrage.bankSnapshot?.eintraege ?? [])
+    .map(eintrag => ({
+      pack: eintrag.pack,
+      slot: eintrag.slot,
+      name: eintrag.name,
+      level: eintrag.level,
+      rest: eintrag.menge,
+    }));
 
   const quellen: ArbeitsQuelle[] = anfrage.quellen.map(evidence => ({
     evidence,
     rest: evidence.verfuegbareMenge,
   }));
 
-  const schritte: ProduktionsSchritt[] = [];
+  let schritte: readonly ProduktionsSchritt[] = Object.freeze([]);
   let nodeSequenz = 0;
 
   const neueNodeId = (prefix: string): string => {
@@ -439,12 +442,24 @@ export function planeProduktion(
     return prefix + ":" + String(nodeSequenz);
   };
 
-  const pushSchritt = (schritt: ProduktionsSchritt): void => {
+  const fuegeSchrittHinzu = (schritt: ProduktionsSchritt): void => {
     if (schritte.length >= anfrage.richtlinie.maximaleSchritte - 1) {
       throw new Error("PRODUKTION_PLAN_SCHRITTGRENZE_UEBERSCHRITTEN");
     }
-    schritte.push(Object.freeze({ ...schritt }));
+    schritte = Object.freeze([
+      ...schritte,
+      Object.freeze({ ...schritt }),
+    ]);
   };
+
+  const eindeutigSortiert = (
+    werte: readonly string[],
+  ): readonly string[] => Object.freeze(
+    [...werte]
+      .sort()
+      .filter((wert, index, alle) =>
+        index === 0 || wert !== alle[index - 1]),
+  );
 
   const acquire = (
     name: string,
@@ -458,17 +473,18 @@ export function planeProduktion(
     }
     const key = itemKey(name, level);
     let rest = menge;
-    const nodes: string[] = [];
+    let nodes: readonly string[] = Object.freeze([]);
     let stalePassendeEvidence = false;
 
     for (const sourceArt of anfrage.richtlinie.quellenPrioritaet) {
       if (rest <= 0) break;
 
       if (sourceArt === "LOKAL") {
-        const vorhanden = lokalerPool.get(key) ?? 0;
-        const take = Math.min(rest, vorhanden);
-        if (take > 0) {
-          lokalerPool.set(key, vorhanden - take);
+        for (const row of lokalerPool) {
+          if (rest <= 0) break;
+          if (row.name !== name || row.level !== level || row.rest <= 0) continue;
+          const take = Math.min(rest, row.rest);
+          row.rest -= take;
           rest -= take;
         }
         continue;
@@ -484,7 +500,7 @@ export function planeProduktion(
           row.rest = 0;
           rest -= verwendet;
           const nodeId = neueNodeId("bank");
-          pushSchritt({
+          fuegeSchrittHinzu({
             nodeId,
             art: "BANK_RETRIEVE",
             abhaengigkeiten: Object.freeze([]),
@@ -496,7 +512,7 @@ export function planeProduktion(
             workspaceNachweisFingerprint: null,
             gateEvidence: null,
           });
-          nodes.push(nodeId);
+          nodes = Object.freeze([...nodes, nodeId]);
         }
         continue;
       }
@@ -529,7 +545,7 @@ export function planeProduktion(
           row.rest -= take;
           rest -= take;
           const nodeId = neueNodeId(sourceArt.toLowerCase());
-          pushSchritt({
+          fuegeSchrittHinzu({
             nodeId,
             art: sourceArt,
             abhaengigkeiten: Object.freeze([]),
@@ -542,7 +558,7 @@ export function planeProduktion(
             workspaceNachweisFingerprint: null,
             gateEvidence: row.evidence.gateEvidence,
           });
-          nodes.push(nodeId);
+          nodes = Object.freeze([...nodes, nodeId]);
         }
         continue;
       }
@@ -575,7 +591,7 @@ export function planeProduktion(
           const vorgaenge = Math.ceil(
             rest / transformation.outputMengeProVorgang,
           );
-          const deps: string[] = [];
+          let deps: readonly string[] = Object.freeze([]);
           const naechsterPfad = Object.freeze([...pfad, key]);
           for (const input of transformation.inputs) {
             const inputResult = acquire(
@@ -585,17 +601,15 @@ export function planeProduktion(
               tiefe + 1,
               naechsterPfad,
             );
-            deps.push(...inputResult.nodes);
+            deps = Object.freeze([...deps, ...inputResult.nodes]);
           }
           const produziert =
             transformation.outputMengeProVorgang * vorgaenge;
           const nodeId = neueNodeId(sourceArt.toLowerCase());
-          pushSchritt({
+          fuegeSchrittHinzu({
             nodeId,
             art: sourceArt,
-            abhaengigkeiten: Object.freeze(
-              [...new Set(deps)].sort(),
-            ),
+            abhaengigkeiten: eindeutigSortiert(deps),
             outputName: name,
             outputLevel: level,
             outputMenge: produziert,
@@ -608,7 +622,7 @@ export function planeProduktion(
               transformation.workspaceNachweisFingerprint,
             gateEvidence: null,
           });
-          nodes.push(nodeId);
+          nodes = Object.freeze([...nodes, nodeId]);
           rest = Math.max(0, rest - produziert);
         }
       }
@@ -624,7 +638,7 @@ export function planeProduktion(
       );
     }
     return Object.freeze({
-      nodes: Object.freeze([...new Set(nodes)].sort()),
+      nodes: eindeutigSortiert(nodes),
     });
   };
 
@@ -640,17 +654,20 @@ export function planeProduktion(
   if (schritte.length >= anfrage.richtlinie.maximaleSchritte) {
     throw new Error("PRODUKTION_PLAN_SCHRITTGRENZE_UEBERSCHRITTEN");
   }
-  schritte.push(Object.freeze({
-    nodeId: deliveryNodeId,
-    art: "DELIVERY",
-    abhaengigkeiten: root.nodes,
-    outputName: anfrage.outputName,
-    outputLevel: anfrage.outputLevel,
-    outputMenge: anfrage.outputMenge,
-    operationSchluessel: anfrage.produktionsId + ":delivery",
-    workspaceNachweisFingerprint: null,
-    gateEvidence: null,
-  }));
+  schritte = Object.freeze([
+    ...schritte,
+    Object.freeze({
+      nodeId: deliveryNodeId,
+      art: "DELIVERY",
+      abhaengigkeiten: root.nodes,
+      outputName: anfrage.outputName,
+      outputLevel: anfrage.outputLevel,
+      outputMenge: anfrage.outputMenge,
+      operationSchluessel: anfrage.produktionsId + ":delivery",
+      workspaceNachweisFingerprint: null,
+      gateEvidence: null,
+    }),
+  ]);
 
   const bankVerwendet = schritte.some(x => x.art === "BANK_RETRIEVE");
   const graph: ProduktionsGraph = Object.freeze({
