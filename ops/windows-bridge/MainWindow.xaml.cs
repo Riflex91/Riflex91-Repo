@@ -739,15 +739,47 @@ public partial class MainWindow : Window
         });
     }
 
+    private void GitHubTokenErstellen_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = GitHubAnmeldung.TokenVorlageUrl,
+                UseShellExecute = true
+            });
+
+            MessageBox.Show(
+                "GitHub wurde mit einer Least-Privilege-Vorlage geöffnet.\n\n" +
+                "Pflicht:\n" +
+                "1. Repository access: Only select repositories.\n" +
+                "2. Ausschließlich Riflex91-Repo auswählen.\n" +
+                "3. Repository permissions: Contents = Read and write.\n" +
+                "4. Metadata = Read wird von GitHub automatisch gesetzt.\n" +
+                "5. Alle anderen Rechte auf No access lassen.\n\n" +
+                "Nach dem Erstellen den Token ausschließlich über „Token anmelden“ in den Git-Credential-Manager-Dialog eingeben. " +
+                "Den Token niemals in ChatGPT, die Bridge-Konfiguration oder Logs einfügen.",
+                "GitHub Least-Privilege Token",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception error)
+        {
+            GitHubStateText.Text = "FEHLER";
+            GitHubAccountText.Text = Bounded(error.Message);
+        }
+    }
+
     private async void GitHubLogin_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-            GitHubStateText.Text = "ANMELDUNG LÄUFT …";
+            GitHubStateText.Text = "PAT-ANMELDUNG LÄUFT …";
+            GitHubAccountText.Text = "Token nur im Git-Credential-Manager-Dialog eingeben.";
             var status = await _githubAnmeldung.MeldeAnAsync();
             _githubKonto = status.Konto;
-            GitHubStateText.Text = "ANGEMELDET";
-            GitHubAccountText.Text = status.Konto ?? string.Empty;
+            GitHubStateText.Text = "ANGEMELDET · PAT-MODUS";
+            GitHubAccountText.Text = (status.Konto ?? string.Empty) + " · Least-Privilege-Nachweis im V5 Readiness-Test weiterhin manuell";
 
             if (_config.WissenswaechterAktiv)
                 await StarteWissenswaechterAsync();
