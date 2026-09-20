@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R9",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "exitKriterien": {
+    "typisierteAusfuehrungsfreigabeNominal": true,
+    "freigabeNurUeberZentraleAdmission": true,
+    "laufzeitGateAlsPflichtverriegelung": true,
+    "capabilityOwnerAuthoritySeparat": true,
+    "operatorDenySeparat": true,
+    "actionRecoveryVerifierGebunden": true,
+    "invariantenGebunden": true,
+    "durableIntentVorAdmission": true,
+    "intentAnAuftragWorkflowOwnerUndVertraegeGebunden": true,
+    "fencingVorAdmissionRevalidiert": true,
+    "actionKanalVorAdmissionRevalidiert": true,
+    "socketBudgetVorAdmissionRevalidiert": true,
+    "livePreconditionsUnmittelbarRevalidiert": true,
+    "freigabeKurzlebig": true,
+    "adapterVertragDirektVorSendRevalidiert": true,
+    "unknownBleibtEigenstaendigeResultatklasse": true,
+    "rawWriteNurExecutionAdapterStatischErlaubt": true,
+    "topLevelExecutionRuntimeSolangeGateGesperrtAbsent": true,
+    "actionRecoveryVerifierCoverageGesamt": 60,
+    "produktivVerifiziert": 59,
+    "explizitDeaktiviert": 1
+  },
+  "anforderungen": {
+    "phaseR9": 4,
+    "technischNachgewiesen": 4,
+    "status": "R9_NACHGEWIESEN"
+  },
+  "traceability": {
+    "phaseR9": 4,
+    "vollstaendig": 4
+  },
+  "fitness": {
+    "phaseR9": 3,
+    "erfuellt": 3,
+    "status": "ERFUELLT"
+  },
+  "sicherheitsgrenze": {
+    "runtimeGateFreigegeben": false,
+    "adventureLandWrites": false,
+    "produktiveExecutionAdapter": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false
+  },
+  "ciVorAbschluss": {
+    "headSha": "1e21b166edea8889480c96a139d74b1122bafd98",
+    "runs": [
+      {
+        "workflow": "v5-r9",
+        "runId": 35479300949,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r8",
+        "runId": 35479300924,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r7",
+        "runId": 35479300929,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r6",
+        "runId": 35479300956,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r5",
+        "runId": 35479300922,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r4",
+        "runId": 35479300959,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r3",
+        "runId": 35479300920,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-wissensgate",
+        "runId": 35479300961,
+        "conclusion": "success"
+      }
+    ]
+  },
+  "betriebsblocker": {
+    "lokaleWindowsBridgeAktualisieren": true,
+    "beschreibung": "Der lokale Windows-Bridge-Deploymentstand bleibt separat zu verifizieren. R9 oeffnet das Gameplay-Runtime-Gate nicht."
+  },
+  "nachweise": [
+    "v5/grundlage/quelle/ausfuehrung/ports.ts",
+    "v5/grundlage/quelle/ausfuehrung/intent-bindung.ts",
+    "v5/grundlage/quelle/ausfuehrung/admission.ts",
+    "v5/grundlage/quelle/ausfuehrung/ausfuehrungs-kernel.ts",
+    "v5/grundlage/vertraege/r9/verifier-katalog.json",
+    "v5/grundlage/vertraege/r9/action-bindungen.json",
+    "v5/grundlage/tests/r9-admission-execution.test.mjs",
+    "v5/werkzeuge/r9-vertragsabdeckung.mjs",
+    "v5/werkzeuge/r9-statische-guards.mjs",
+    "v5/werkzeuge/r9-struktur-pruefen.mjs",
+    "v5/architektur/adr/ADR-010-R9-ADMISSION-EXECUTION.md",
+    ".github/workflows/v5-r9.yml"
+  ],
+  "naechstePhase": "R10",
+  "finalePruefung": {
+    "exakterPrHeadErforderlich": true,
+    "alleR3BisR9RegressionenGruenErforderlich": true,
+    "roadmapUndVorbereitungGruenErforderlich": true,
+    "postMergeCiErforderlich": true,
+    "mergeNurShaGebunden": true
+  },
+  "hinweis": "R9 gilt erst nach gruenem finalen PR-Head und gruener Post-Merge-CI als endgueltig abgeschlossen. Das Gameplay-Runtime-Gesamtgate bleibt GESPERRT."
+}
