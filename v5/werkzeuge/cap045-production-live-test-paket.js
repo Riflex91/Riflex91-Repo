@@ -463,7 +463,7 @@
   'use strict';
 
   const API_NAME = 'V5Cap045ProductionLiveTest';
-  const VERSION = '1.0.2';
+  const VERSION = '1.0.3';
   const TESTKENNUNG = 'cap045-production-live-certification';
   const SESSION_KEY = 'AIO_V5_CAP045_PRODUCTION_LIVE_SESSION_V1';
   const JOURNAL_KEY = 'AIO_V5_CAP045_PRODUCTION_LIVE_JOURNAL_V1';
@@ -1746,7 +1746,7 @@
       schemaVersion: 1,
       testkennung: TESTKENNUNG,
       guiVersion: session.guiVersion ?? gui.version,
-      controllerVersion: VERSION,
+      controllerVersion: session.controllerVersion ?? VERSION,
       gesamtstatus: liveBeweisBestanden ? 'BESTANDEN' : 'UNVOLLSTAENDIG_ODER_BLOCKIERT',
       startzeit: session.gestartetAm ?? null,
       endzeit: session.beendetAm ?? null,
@@ -1788,6 +1788,50 @@
       stage3Outcome: session.stage3?.outcome ?? null,
       journalStatus: session.stage3?.journalStatus ?? liesJournal()?.status ?? null
     });
+  }
+
+  function maschinenBerichtObjekt() {
+    const result = bericht();
+    if (result.gesamtstatus !== 'BESTANDEN') {
+      throw new Error('CAP045_MASCHINENBERICHT_NUR_NACH_BESTANDEN');
+    }
+    return result;
+  }
+
+  function maschinenBerichtText() {
+    return JSON.stringify(maschinenBerichtObjekt(), null, 2);
+  }
+
+  async function kopiereMaschinenBericht() {
+    const text = maschinenBerichtText();
+    const root = rootFenster();
+    const roots = [root];
+    try { if (parent && parent !== root) roots.push(parent); } catch {}
+    for (const kandidat of roots) {
+      try {
+        const nav = kandidat?.navigator;
+        if (nav?.clipboard?.writeText) {
+          await nav.clipboard.writeText(text);
+          return Object.freeze({ status: 'KOPIERT', zeichen: text.length });
+        }
+      } catch {}
+    }
+    let doc = null;
+    try { doc = parent?.document ?? globalThis.document; } catch {}
+    if (!doc?.body) throw new Error('CAP045_MASCHINENBERICHT_CLIPBOARD_FEHLT');
+    const feld = doc.createElement('textarea');
+    feld.value = text;
+    feld.setAttribute('readonly', '');
+    feld.style.position = 'fixed';
+    feld.style.left = '-10000px';
+    feld.style.top = '0';
+    doc.body.appendChild(feld);
+    feld.select();
+    let ok = false;
+    try { ok = doc.execCommand('copy'); }
+    finally { feld.remove(); }
+    if (!ok) throw new Error('CAP045_MASCHINENBERICHT_KOPIEREN_FEHLGESCHLAGEN');
+    return Object.freeze({ status: 'KOPIERT', zeichen: text.length });
   }
 
   const gui = guiApi().erstelleTest({
@@ -2046,6 +2090,18 @@
     }
   });
 
+  gui.registriereAktion({
+    kennung: 'maschinenbericht-kopieren',
+    titel: 'Maschinenbericht vollständig kopieren',
+    art: 'primaer',
+    async ausfuehren() {
+      const result = await kopiereMaschinenBericht();
+      gui.protokolliere('CAP-045 Maschinenbericht', result);
+      gui.setzeStatus('bestanden', 'Maschinenbericht vollständig und read-only kopiert.');
+      return result;
+    }
+  });
+
   const api = Object.freeze({
     version: VERSION,
     testkennung: TESTKENNUNG,
@@ -2055,6 +2111,9 @@
     status: () => liesSession(),
     journal: () => liesJournal(),
     bericht,
+    maschinenBerichtObjekt,
+    maschinenBerichtText,
+    kopiereMaschinenBericht,
     stage1Discovery,
     stage3Preflight,
     kopiereBericht: () => gui.kopiereBericht()

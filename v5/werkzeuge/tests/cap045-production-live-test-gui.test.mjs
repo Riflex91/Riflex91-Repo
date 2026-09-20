@@ -234,3 +234,22 @@ test("CAP-045 Stage 1 liest Serverbindung aus Adventure-Land-Runner und Parent f
   assert.deepEqual(Array.from(fehlt.blocker), ["SERVER_BINDUNG_FEHLT"]);
   assert.equal(fehlt.serverBindung.quelle, "FEHLT");
 });
+
+
+test("CAP-045 Maschinenbericht exportiert lossless JSON und bewahrt Session-Provenienz", () => {
+  assert.ok(controller.includes("function maschinenBerichtObjekt()"));
+  assert.ok(controller.includes("function maschinenBerichtText()"));
+  assert.ok(controller.includes("JSON.stringify(maschinenBerichtObjekt(), null, 2)"));
+  assert.ok(controller.includes("controllerVersion: session.controllerVersion ?? VERSION"));
+  assert.ok(controller.includes("CAP045_MASCHINENBERICHT_NUR_NACH_BESTANDEN"));
+  assert.equal(
+    controller.includes("maschinenBerichtText() {\n    return format("),
+    false
+  );
+});
+
+test("CAP-045 Maschinenexport bleibt read-only und fuegt keinen zweiten Mutation-Pfad hinzu", () => {
+  assert.equal((controller.match(/\.upgrade\s*\(/g) ?? []).length, 1);
+  assert.ok(controller.includes("kopiereMaschinenBericht"));
+  assert.equal(controller.includes("maschinenbericht-kopieren"), true);
+});
