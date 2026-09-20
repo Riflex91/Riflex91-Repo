@@ -6,8 +6,8 @@
   "bereiche": [
     {
       "kennung": "WISSEN_BEREIT",
-      "erfuellt": false,
-      "grund": "R5: lokale Live-Wissenspersistenz und SCHREIBT/BEREIT-Protokoll sind technisch nachgewiesen. R6 muss weiterhin WissensZugriffPort, Snapshot-Pinning, Verifier/World-Truth und Authority-Trennung implementieren. Zusaetzlich wurde am 2026-09-20 ein direkter main-Wissenscommit von einer offenbar noch laufenden alten Windows-Bridge-Binary beobachtet; die lokale Installation muss auf den R3+-Build aktualisiert werden.",
+      "erfuellt": true,
+      "grund": "R6 formal nachgewiesen: 13/13 MUSS-Anforderungen, 13/13 Traceability und 7/7 Fitnessregeln sind erfuellt. Der produktive Anzeigekatalog deckt 129/129 Skills mit deutschen Beschreibungen, 7/7 Klassen, 628/628 Item-Quellvorkommen bei 626 effektiven IDs, 135/135 NPCs, 11/11 Events, 12/12 Quests, 60/60 Action Contracts, 102/102 sichtbare Statuswerte und 129/129 Monster ab. Fuer den aktuellen offiziellen Monster-Snapshot wurde keine offizielle deutsche Monster-Lokalisierung nachgewiesen; deshalb ist der revalidierte Originalname-Fallback aktiv. Persistiertes Wissen bleibt Evidence ohne Gameplay-Autoritaet. Das Gameplay-Gesamtgate bleibt GESPERRT.",
       "nachweise": [
         "v5/wissensbasis/README.md",
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
@@ -16,12 +16,35 @@
         "v5/entwicklungsregeln/quellenfreigaben.json",
         "v5/werkzeuge/entwicklungs-wissensgate.mjs",
         "v5/dokumentation/LIVE-WISSEN-SSD-VERTRAG.md",
-        "v5/wissensbasis/live/README.md"
+        "v5/wissensbasis/live/README.md",
+        "v5/grundlage/quelle/wissen/wissens-zugriff-port.ts",
+        "v5/grundlage/quelle/wissen/verifier.ts",
+        "v5/grundlage/quelle/wissen/live-wissens-publizierer.ts",
+        "v5/grundlage/quelle/wissen/abgleich.ts",
+        "v5/grundlage/quelle/wissen/drift-quarantaene.ts",
+        "v5/grundlage/quelle/wissen/beobachtungs-evidence.ts",
+        "v5/grundlage/quelle/wissen/ram-arbeitsmenge.ts",
+        "v5/grundlage/quelle/wissen/learning-evidence.ts",
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+        "v5/anzeigetexte/katalog.json",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs",
+        "v5/anzeigetexte/skill-uebersetzungen.json",
+        "v5/anzeigetexte/item-uebersetzungen.json",
+        "v5/anzeigetexte/monster-lokalisierungspruefung.json",
+        "v5/anzeigetexte/npc-quellenbestand.json",
+        "v5/wissensbasis/datenbank/aktuell/AL-DATA-NPCS.txt",
+        "v5/roadmap/r6-abschluss.json"
       ],
       "r2VertragRatifiziert": true,
       "r3NachweisVorhanden": true,
       "r3AbgeschlossenAm": "2026-09-20",
-      "r5PersistenzNachweisVorhanden": true
+      "r5PersistenzNachweisVorhanden": true,
+      "r6TeilnachweisVorhanden": true,
+      "r6AnforderungenNachgewiesen": 13,
+      "r6AnforderungenGesamt": 13,
+      "r6FitnessErfuellt": 7,
+      "r6FitnessGesamt": 7,
+      "r6AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "P0_RESEARCH_BEREIT",

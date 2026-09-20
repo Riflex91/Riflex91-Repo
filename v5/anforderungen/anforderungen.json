@@ -109,7 +109,7 @@
       "titel": "Automatisch gesammeltes Wissen ist niemals unmittelbare Ausfuehrungsautoritaet.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-006"
       ],
@@ -119,7 +119,15 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/wissen/typen.ts",
+        "v5/grundlage/quelle/wissen/abgleich.ts",
+        "v5/grundlage/quelle/wissen/learning-evidence.ts",
+        "v5/grundlage/tests/r6-wissen.test.mjs",
+        "v5/grundlage/tests/r6-evidence.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-WISSEN-008",
@@ -142,7 +150,7 @@
       "titel": "Wissensdrift kann betroffene Capabilities in Quarantaene versetzen.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-008"
       ],
@@ -151,7 +159,12 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/wissen/drift-quarantaene.ts",
+        "v5/grundlage/tests/r6-wissen.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-WISSEN-010",
@@ -256,7 +269,7 @@
       "titel": "Definition Truth, Observation und Reconciled Truth sind getrennte Typen/Schichten.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-015"
       ],
@@ -265,7 +278,13 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/wissen/typen.ts",
+        "v5/grundlage/quelle/wissen/abgleich.ts",
+        "v5/grundlage/tests/r6-wissen.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-ARCH-007",
@@ -444,7 +463,7 @@
       "titel": "Unbekannter, geaenderter oder quarantinierter Content ist fail-closed.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-026"
       ],
@@ -453,7 +472,14 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/wissen/snapshot.ts",
+        "v5/grundlage/quelle/wissen/abgleich.ts",
+        "v5/grundlage/quelle/wissen/drift-quarantaene.ts",
+        "v5/grundlage/tests/r6-wissen.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-SICH-006",
@@ -1630,7 +1656,7 @@
       "titel": "Adventure-Land-Skills werden in V5 mit deutschem Anzeigenamen und deutscher Beschreibung dargestellt.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-090"
       ],
@@ -1640,14 +1666,22 @@
       ],
       "nachweis": "ANZEIGEKATALOG_TEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+        "v5/anzeigetexte/skill-uebersetzungen.json",
+        "v5/anzeigetexte/katalog.json",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs",
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-UI-003",
       "titel": "Klassen, Gegenstaende, NPCs, Events, Quests, Aktionen und sichtbare Statuswerte besitzen deutsche Anzeigenamen; Monster verwenden die offizielle deutsche Spielbezeichnung, falls vorhanden, sonst den originalen Monster-Namen.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-091"
       ],
@@ -1656,7 +1690,16 @@
       ],
       "nachweis": "ANZEIGEKATALOG_TEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/anzeigetexte/katalog.json",
+        "v5/anzeigetexte/item-uebersetzungen.json",
+        "v5/anzeigetexte/npc-quellenbestand.json",
+        "v5/anzeigetexte/monster-lokalisierungspruefung.json",
+        "v5/wissensbasis/datenbank/aktuell/AL-DATA-NPCS.txt",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-UI-004",
@@ -1680,7 +1723,7 @@
       "titel": "Fehlende Uebersetzungen verwenden keinen englischen Rohwert als sichtbaren Fallback; Ausnahme sind Monster-Namen ohne offizielle deutsche Spielbezeichnung.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-092"
       ],
@@ -1689,7 +1732,14 @@
       ],
       "nachweis": "NEGATIVTEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+        "v5/anzeigetexte/katalog.json",
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
+        "v5/werkzeuge/tests/r3-sichttext.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-UI-006",
@@ -1745,7 +1795,7 @@
       "titel": "Der Monster-Anzeigekatalog bevorzugt eine offizielle deutsche Spielbezeichnung und verwendet nur bei deren Fehlen den originalen Monster-Namen; bei spaeterer offizieller Uebersetzung wird nach Revalidierung umgestellt.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-096"
       ],
@@ -1755,7 +1805,15 @@
       ],
       "nachweis": "MONSTER_ANZEIGEKATALOG_TEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/anzeigetexte/monster-lokalisierungspruefung.json",
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+        "v5/anzeigetexte/katalog.json",
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-WISSEN-011",
@@ -1876,7 +1934,7 @@
       "titel": "Spaetere Bot-Module beziehen Knowledge ueber einen typisierten read-only WissensZugriffPort und nicht direkt ueber GitHub oder Roh-Snapshots.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-101"
       ],
@@ -1885,7 +1943,14 @@
       ],
       "nachweis": "DEPENDENCY_UND_PORT_GUARD",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/wissen/wissens-zugriff-port.ts",
+        "v5/werkzeuge/r3-guard-regeln.mjs",
+        "v5/werkzeuge/tests/r3-guards.test.mjs",
+        "v5/grundlage/tests/r6-wissen.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-WISSEN-019",
@@ -1999,7 +2064,7 @@
       "titel": "LIVE_VERIFIZIERT darf nur durch einen fachlichen Verifier nach echter Adventure-Land-Beobachtung vergeben werden; Planerannahmen oder Definitionen allein reichen nicht.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-109"
       ],
@@ -2008,7 +2073,13 @@
       ],
       "nachweis": "VERIFIER_NEGATIVTEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/wissen/verifier.ts",
+        "v5/grundlage/quelle/wissen/live-wissens-publizierer.ts",
+        "v5/grundlage/tests/r6-publikation.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-WISSEN-025",
@@ -2048,7 +2119,7 @@
       "titel": "Der GitHub-Spiegel unter v5/wissensbasis/live/snapshot ist Evidence/PlanningAuthority und niemals unmittelbare ExecutionAuthority.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-113"
       ],
@@ -2057,14 +2128,20 @@
       ],
       "nachweis": "AUTHORITY_GUARD",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/wissen/snapshot.ts",
+        "v5/grundlage/quelle/wissen/wissens-zugriff-port.ts",
+        "v5/grundlage/tests/r6-evidence.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-WISSEN-028",
       "titel": "Ein einzelner live verifizierter konkreter Fakt darf nicht ohne passende Evidence und Revalidierung zu einer allgemeinen Spielregel, Formel oder Action-Contract hochgestuft werden.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-114"
       ],
@@ -2073,14 +2150,19 @@
       ],
       "nachweis": "WISSENS_PROMOTION_GUARD",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/wissen/wissens-promotion.ts",
+        "v5/grundlage/tests/r6-evidence.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-WISSEN-029",
       "titel": "Hochfrequente Rohtelemetrie wird nicht in GitHub-Livewissen gespiegelt; GitHub enthaelt nur bounded aktuelle verifizierte Wissenssnapshots.",
       "phase": "R6",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R6_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-115"
       ],
@@ -2089,7 +2171,14 @@
       ],
       "nachweis": "RETENTION_UND_GROESSEN_GUARD",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r6NachweisStatus": "R6_NACHGEWIESEN",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/wissen/snapshot.ts",
+        "v5/grundlage/quelle/wissen/beobachtungs-evidence.ts",
+        "v5/grundlage/quelle/wissen/ram-arbeitsmenge.ts",
+        "v5/grundlage/tests/r6-evidence.test.mjs"
+      ]
     }
   ],
   "ratifizierungsStatus": "R2_RATIFIZIERT",

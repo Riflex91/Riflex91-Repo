@@ -131,15 +131,23 @@
         "V5-INV-010",
         "V5-ALT-023"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/wissen/typen.ts",
+        "v5/grundlage/quelle/wissen/abgleich.ts",
+        "v5/grundlage/quelle/wissen/learning-evidence.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-wissen.test.mjs",
+        "v5/grundlage/tests/r6-evidence.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-008",
@@ -169,15 +177,20 @@
       "invarianten": [
         "V5-INV-009"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/wissen/drift-quarantaene.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-wissen.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-010",
@@ -304,15 +317,21 @@
       "invarianten": [
         "V5-INV-009"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/wissen/typen.ts",
+        "v5/grundlage/quelle/wissen/abgleich.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-wissen.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-007",
@@ -522,15 +541,22 @@
       "invarianten": [
         "V5-ALT-021"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/wissen/snapshot.ts",
+        "v5/grundlage/quelle/wissen/abgleich.ts",
+        "v5/grundlage/quelle/wissen/drift-quarantaene.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-wissen.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-006",
@@ -1874,15 +1900,26 @@
         "V5-INV-031",
         "V5-INV-033"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+        "v5/anzeigetexte/katalog.json",
+        "v5/anzeigetexte/katalog.schema.json",
+        "v5/anzeigetexte/skill-uebersetzungen.json",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
+        "v5/werkzeuge/tests/r3-sichttext.test.mjs",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-UI-003",
@@ -1893,15 +1930,29 @@
       "invarianten": [
         "V5-INV-033"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+        "v5/anzeigetexte/katalog.json",
+        "v5/anzeigetexte/katalog.schema.json",
+        "v5/anzeigetexte/item-uebersetzungen.json",
+        "v5/anzeigetexte/npc-quellenbestand.json",
+        "v5/anzeigetexte/monster-lokalisierungspruefung.json",
+        "v5/wissensbasis/datenbank/aktuell/AL-DATA-NPCS.txt",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
+        "v5/werkzeuge/tests/r3-sichttext.test.mjs",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-UI-004",
@@ -1932,15 +1983,24 @@
       "invarianten": [
         "V5-INV-032"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+        "v5/anzeigetexte/katalog.json",
+        "v5/anzeigetexte/katalog.schema.json"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
+        "v5/werkzeuge/tests/r3-sichttext.test.mjs",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-UI-006",
@@ -2010,15 +2070,26 @@
         "V5-INV-031",
         "V5-INV-033"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+        "v5/anzeigetexte/katalog.json",
+        "v5/anzeigetexte/katalog.schema.json",
+        "v5/anzeigetexte/monster-lokalisierungspruefung.json",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
+        "v5/werkzeuge/tests/r3-sichttext.test.mjs",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-011",
@@ -2164,15 +2235,22 @@
       "invarianten": [
         "V5-INV-039"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/wissen/wissens-zugriff-port.ts",
+        "v5/werkzeuge/r3-guard-regeln.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/tests/r3-guards.test.mjs",
+        "v5/grundlage/tests/r6-wissen.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-019",
@@ -2299,15 +2377,21 @@
       "invarianten": [
         "V5-INV-045"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/wissen/verifier.ts",
+        "v5/grundlage/quelle/wissen/live-wissens-publizierer.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-publikation.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-025",
@@ -2357,15 +2441,21 @@
       "invarianten": [
         "V5-INV-048"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/wissen/snapshot.ts",
+        "v5/grundlage/quelle/wissen/wissens-zugriff-port.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-evidence.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-028",
@@ -2376,15 +2466,20 @@
       "invarianten": [
         "V5-INV-049"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/wissen/wissens-promotion.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-evidence.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-029",
@@ -2395,15 +2490,22 @@
       "invarianten": [
         "V5-INV-050"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/wissen/snapshot.ts",
+        "v5/grundlage/quelle/wissen/beobachtungs-evidence.ts",
+        "v5/grundlage/quelle/wissen/ram-arbeitsmenge.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-evidence.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r6NachweisStatus": "R6_NACHGEWIESEN"
     }
   ],
   "ratifizierungsStatus": "R2_RATIFIZIERT",

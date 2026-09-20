@@ -1,0 +1,916 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "quelle": {
+    "pfad": "v5/wissensbasis/datenbank/aktuell/AL-DATA-SKILLS.txt",
+    "blobSha": "9f9a3eb3d391ece3406227f0082fc6a6410c6e6a"
+  },
+  "erwarteteEintraege": 129,
+  "uebersetzteEintraege": 129,
+  "regel": "Name und Beschreibung sind deutsch. Fehlt die offizielle Beschreibung oder ist sie im Snapshot abgeschnitten, wird das transparent auf Deutsch gekennzeichnet; fehlende Mechanik wird nicht erfunden.",
+  "eintraege": [
+    {
+      "externeKennung": "portal",
+      "originalName": "Portal",
+      "originalBeschreibung": "Open a portal to different maps and instances",
+      "deutscherAnzeigename": "Portal",
+      "deutscheBeschreibung": "Öffnet ein Portal zu verschiedenen Karten und Instanzen."
+    },
+    {
+      "externeKennung": "self_healing",
+      "originalName": "Healing",
+      "originalBeschreibung": "Periodical self healing",
+      "deutscherAnzeigename": "Selbstheilung",
+      "deutscheBeschreibung": "Heilt sich in regelmäßigen Abständen selbst."
+    },
+    {
+      "externeKennung": "healing",
+      "originalName": "Healing",
+      "originalBeschreibung": "Heals an ally or self",
+      "deutscherAnzeigename": "Heilung",
+      "deutscheBeschreibung": "Heilt einen Verbündeten oder sich selbst."
+    },
+    {
+      "externeKennung": "anger",
+      "originalName": "Anger",
+      "originalBeschreibung": "Randomly targets someone",
+      "deutscherAnzeigename": "Zorn",
+      "deutscheBeschreibung": "Wählt zufällig ein Ziel aus."
+    },
+    {
+      "externeKennung": "zap",
+      "originalName": "Zap",
+      "originalBeschreibung": "Zaps you with a pure damage ray",
+      "deutscherAnzeigename": "Schockstrahl",
+      "deutscheBeschreibung": "Trifft dich mit einem Strahl reinen Schadens."
+    },
+    {
+      "externeKennung": "fireball",
+      "originalName": "Fireball",
+      "originalBeschreibung": "Hurls a fireball!",
+      "deutscherAnzeigename": "Feuerball",
+      "deutscheBeschreibung": "Schleudert einen Feuerball."
+    },
+    {
+      "externeKennung": "frostball",
+      "originalName": "Frostball",
+      "originalBeschreibung": "Hurls a frostball!",
+      "deutscherAnzeigename": "Frostball",
+      "deutscheBeschreibung": "Schleudert einen Frostball."
+    },
+    {
+      "externeKennung": "warpstomp",
+      "originalName": "Warpstomp",
+      "originalBeschreibung": "Warps to a random player nearby and stomps players in vicinity",
+      "deutscherAnzeigename": "Warpstampfer",
+      "deutscheBeschreibung": "Teleportiert sich zu einem zufälligen nahen Spieler und stampft auf Spieler in der Umgebung."
+    },
+    {
+      "externeKennung": "deepfreeze",
+      "originalName": "Deepfreeze",
+      "originalBeschreibung": "Randomly freezes a nearby opponent",
+      "deutscherAnzeigename": "Tiefenfrost",
+      "deutscheBeschreibung": "Friert zufällig einen nahen Gegner ein."
+    },
+    {
+      "externeKennung": "multi_burn",
+      "originalName": "Multi Burn",
+      "originalBeschreibung": "Hurl a fireball at everyone who dared attack him and burn them!",
+      "deutscherAnzeigename": "Mehrfachbrand",
+      "deutscheBeschreibung": "Schleudert einen Feuerball auf alle Angreifer und setzt sie in Brand."
+    },
+    {
+      "externeKennung": "mlight",
+      "originalName": "Light",
+      "originalBeschreibung": "Reveals invisible entities nearby and prevents them from going invisible again for 12 seconds.",
+      "deutscherAnzeigename": "Licht",
+      "deutscheBeschreibung": "Deckt unsichtbare Einheiten in der Nähe auf und verhindert 12 Sekunden lang erneutes Unsichtbarwerden."
+    },
+    {
+      "externeKennung": "dampening_aura",
+      "originalName": "Dampening",
+      "originalBeschreibung": "Prevents teleports",
+      "deutscherAnzeigename": "Dämpfung",
+      "deutscheBeschreibung": "Verhindert Teleportationen."
+    },
+    {
+      "externeKennung": "weakness_aura",
+      "originalName": "Weakness",
+      "originalBeschreibung": "Weakens",
+      "deutscherAnzeigename": "Schwäche",
+      "deutscheBeschreibung": "Schwächt das Ziel."
+    },
+    {
+      "externeKennung": "curse_aura",
+      "originalName": "Curse",
+      "originalBeschreibung": "A wretched aura",
+      "deutscherAnzeigename": "Fluch",
+      "deutscheBeschreibung": "Erzeugt eine verheerende Fluch-Aura."
+    },
+    {
+      "externeKennung": "multi_freeze",
+      "originalName": "Multi Freeze",
+      "originalBeschreibung": "Hurl a frostball at everyone who dared attack him and freeze them!",
+      "deutscherAnzeigename": "Mehrfachfrost",
+      "deutscheBeschreibung": "Schleudert einen Frostball auf alle Angreifer und friert sie ein."
+    },
+    {
+      "externeKennung": "mtangle",
+      "originalName": "Tangle",
+      "originalBeschreibung": "Communicates through spores to activate dormant plants underneath. Slows down opponents significantly.",
+      "deutscherAnzeigename": "Verstrickung",
+      "deutscheBeschreibung": "Kommuniziert über Sporen mit ruhenden Pflanzen im Boden und verlangsamt Gegner deutlich."
+    },
+    {
+      "externeKennung": "stone",
+      "originalName": "Stone",
+      "originalBeschreibung": "Looking into his eye for too long turns you to stone!",
+      "deutscherAnzeigename": "Versteinerung",
+      "deutscheBeschreibung": "Wer zu lange in sein Auge blickt, wird zu Stein."
+    },
+    {
+      "externeKennung": "drop_egg",
+      "originalName": "Drop Egg",
+      "originalBeschreibung": "An egg appears. Best not to ask.",
+      "deutscherAnzeigename": "Ei fallen lassen",
+      "deutscheBeschreibung": "Ein Ei erscheint. Frag besser nicht."
+    },
+    {
+      "externeKennung": "hearts_single",
+      "originalName": "Rising Hearts",
+      "originalBeschreibung": "A little love goes a long way.",
+      "deutscherAnzeigename": "Aufsteigende Herzen",
+      "deutscheBeschreibung": "Ein wenig Liebe bewirkt viel."
+    },
+    {
+      "externeKennung": "fart",
+      "originalName": "Fart",
+      "originalBeschreibung": "A suspicious little cloud.",
+      "deutscherAnzeigename": "Furz",
+      "deutscheBeschreibung": "Eine verdächtige kleine Wolke."
+    },
+    {
+      "externeKennung": "wiggle",
+      "originalName": "Wiggle",
+      "originalBeschreibung": "Shake it off.",
+      "deutscherAnzeigename": "Wackeln",
+      "deutscheBeschreibung": "Schüttle es ab."
+    },
+    {
+      "externeKennung": "headwiggle",
+      "originalName": "Head Wiggle",
+      "originalBeschreibung": "No. Yes. Maybe.",
+      "deutscherAnzeigename": "Kopfwackeln",
+      "deutscheBeschreibung": "Nein. Ja. Vielleicht."
+    },
+    {
+      "externeKennung": "joy",
+      "originalName": "Joy",
+      "originalBeschreibung": "Too happy to stand still.",
+      "deutscherAnzeigename": "Freude",
+      "deutscheBeschreibung": "Zu glücklich, um stillzustehen."
+    },
+    {
+      "externeKennung": "jump",
+      "originalName": "Jump",
+      "originalBeschreibung": "Up you go!",
+      "deutscherAnzeigename": "Springen",
+      "deutscheBeschreibung": "Hoch geht es."
+    },
+    {
+      "externeKennung": "superjump",
+      "originalName": "Super Jump",
+      "originalBeschreibung": "Way up you go!",
+      "deutscherAnzeigename": "Supersprung",
+      "deutscheBeschreibung": "Ganz weit nach oben."
+    },
+    {
+      "externeKennung": "makeawish",
+      "originalName": "Make a Wish",
+      "originalBeschreibung": "Close your eyes. This one might hear you.",
+      "deutscherAnzeigename": "Wünsch dir was",
+      "deutscheBeschreibung": "Schließe die Augen. Dieser Wunsch könnte gehört werden."
+    },
+    {
+      "externeKennung": "ikissyou",
+      "originalName": "I Kiss You",
+      "originalBeschreibung": "A little kiss, from me to you.",
+      "deutscherAnzeigename": "Küsschen",
+      "deutscheBeschreibung": "Ein kleiner Kuss von mir für dich."
+    },
+    {
+      "externeKennung": "highfive",
+      "originalName": "High Five",
+      "originalBeschreibung": "Meet in the middle.",
+      "deutscherAnzeigename": "Abklatschen",
+      "deutscheBeschreibung": "Trefft euch in der Mitte."
+    },
+    {
+      "externeKennung": "boop",
+      "originalName": "Boop",
+      "originalBeschreibung": "A tiny hello, right on the nose.",
+      "deutscherAnzeigename": "Nasenstups",
+      "deutscheBeschreibung": "Ein kleines Hallo direkt auf die Nase."
+    },
+    {
+      "externeKennung": "spotlight",
+      "originalName": "Spotlight",
+      "originalBeschreibung": "The stage knows its star.",
+      "deutscherAnzeigename": "Rampenlicht",
+      "deutscheBeschreibung": "Die Bühne kennt ihren Star."
+    },
+    {
+      "externeKennung": "pocketstorm",
+      "originalName": "Pocket Storm",
+      "originalBeschreibung": "Bring your own weather.",
+      "deutscherAnzeigename": "Taschensturm",
+      "deutscheBeschreibung": "Bring dein eigenes Wetter mit."
+    },
+    {
+      "externeKennung": "mirrordance",
+      "originalName": "Mirror Disco",
+      "originalBeschreibung": "One dancer. Every light.",
+      "deutscherAnzeigename": "Spiegeldisco",
+      "deutscheBeschreibung": "Ein Tänzer. Jedes Licht."
+    },
+    {
+      "externeKennung": "snowball",
+      "originalName": "Snowball",
+      "originalBeschreibung": "Throw a snowball at someone!",
+      "deutscherAnzeigename": "Schneeball",
+      "deutscheBeschreibung": "Wirf einen Schneeball auf jemanden."
+    },
+    {
+      "externeKennung": "scare",
+      "originalName": "Scare",
+      "originalBeschreibung": "Activate your Jack-o Lantern to scare away monsters targeting you!",
+      "deutscherAnzeigename": "Erschrecken",
+      "deutscheBeschreibung": "Aktiviere deine Kürbislaterne, um Monster zu verscheuchen, die dich anvisieren."
+    },
+    {
+      "externeKennung": "power",
+      "originalName": "Power",
+      "originalBeschreibung": "Unleash the power",
+      "deutscherAnzeigename": "Kraft",
+      "deutscheBeschreibung": "Entfesselt die Kraft."
+    },
+    {
+      "externeKennung": "xpower",
+      "originalName": "Power",
+      "originalBeschreibung": "Unleash the power",
+      "deutscherAnzeigename": "Kraft",
+      "deutscheBeschreibung": "Entfesselt die Kraft."
+    },
+    {
+      "externeKennung": "warp",
+      "originalName": "Warp",
+      "originalBeschreibung": "Warp space to jump into any location",
+      "deutscherAnzeigename": "Raumkrümmung",
+      "deutscheBeschreibung": "Krümmt den Raum, um an einen beliebigen Ort zu springen."
+    },
+    {
+      "externeKennung": "temporalsurge",
+      "originalName": "Temporal Surge",
+      "originalBeschreibung": "Hasten nearby spawns 15% by tapping into temporal forces!",
+      "deutscherAnzeigename": "Temporalschub",
+      "deutscheBeschreibung": "Beschleunigt nahe Spawns mithilfe temporaler Kräfte um 15 %."
+    },
+    {
+      "externeKennung": "zapperzap",
+      "originalName": "Zap",
+      "originalBeschreibung": "Zap your target for 200 damage",
+      "deutscherAnzeigename": "Schock",
+      "deutscheBeschreibung": "Trifft das Ziel mit 200 Schaden."
+    },
+    {
+      "externeKennung": "charm",
+      "originalName": "Charm",
+      "originalBeschreibung": "Charm a monster [%]",
+      "deutscherAnzeigename": "Bezaubern",
+      "deutscheBeschreibung": "Bezaubert ein Monster [%]."
+    },
+    {
+      "externeKennung": "tangle",
+      "originalName": "Tangle",
+      "originalBeschreibung": "Unleash the contained powers of nature to hinder an opponent.",
+      "deutscherAnzeigename": "Verstrickung",
+      "deutscheBeschreibung": "Entfesselt die gebündelten Kräfte der Natur, um einen Gegner zu behindern."
+    },
+    {
+      "externeKennung": "shelter",
+      "originalName": "Shelter",
+      "originalBeschreibung": "Raise the lantern and shelter behind its flame.",
+      "deutscherAnzeigename": "Schutz",
+      "deutscheBeschreibung": "Hebt die Laterne und sucht Schutz hinter ihrer Flamme."
+    },
+    {
+      "externeKennung": "rspeed",
+      "originalName": "Rogue Swiftness",
+      "originalBeschreibung": "Buff a target to increase their speed.",
+      "deutscherAnzeigename": "Schurkentempo",
+      "deutscheBeschreibung": "Verstärkt ein Ziel und erhöht dessen Geschwindigkeit."
+    },
+    {
+      "externeKennung": "reflection",
+      "originalName": "Reflective Shield",
+      "originalBeschreibung": "Erects a magical shield around the target to grant them +20% Reflection for the duration.",
+      "deutscherAnzeigename": "Reflexionsschild",
+      "deutscheBeschreibung": "Errichtet einen magischen Schild um das Ziel und gewährt für die Dauer +20 % Reflexion."
+    },
+    {
+      "externeKennung": "pickpocket",
+      "originalName": "Pickpocket",
+      "originalBeschreibung": "Try to steal a single PVP marked item from the target!",
+      "deutscherAnzeigename": "Taschendiebstahl",
+      "deutscheBeschreibung": "Versucht, einen einzelnen PvP-markierten Gegenstand vom Ziel zu stehlen."
+    },
+    {
+      "externeKennung": "fishing",
+      "originalName": "Fishing",
+      "originalBeschreibung": "Swing your rod and catch some fish!",
+      "deutscherAnzeigename": "Angeln",
+      "deutscheBeschreibung": "Schwingt die Angelrute aus und fängt Fische."
+    },
+    {
+      "externeKennung": "mining",
+      "originalName": "Mining",
+      "originalBeschreibung": "Use your pickaxe to mine some mines!",
+      "deutscherAnzeigename": "Bergbau",
+      "deutscheBeschreibung": "Verwendet die Spitzhacke, um Erz abzubauen."
+    },
+    {
+      "externeKennung": "mluck",
+      "originalName": "Merchant's Luck",
+      "originalBeschreibung": "Buff a target to increase their luck. 2% chance for you to receive a duplicate of their looted items!",
+      "deutscherAnzeigename": "Händlerglück",
+      "deutscheBeschreibung": "Erhöht das Glück eines Ziels. Mit 2 % Chance erhältst du ein Duplikat eines von ihm erbeuteten Gegenstands."
+    },
+    {
+      "externeKennung": "mcourage",
+      "originalName": "Merchant's Courage",
+      "originalBeschreibung": "When you sense danger, you know what to do...",
+      "deutscherAnzeigename": "Händlermut",
+      "deutscheBeschreibung": "Wenn du Gefahr spürst, weißt du, was zu tun ist."
+    },
+    {
+      "externeKennung": "mfrenzy",
+      "originalName": "Merchant's Frenzy",
+      "originalBeschreibung": "When you sense danger, you know what to do!",
+      "deutscherAnzeigename": "Händlerrausch",
+      "deutscheBeschreibung": "Wenn du Gefahr spürst, weißt du, was zu tun ist."
+    },
+    {
+      "externeKennung": "massproduction",
+      "originalName": "Mass Production",
+      "originalBeschreibung": "Adds a 1-time use buff that speeds up the next upgrade or compound by 50%. The buff expires in 10 seconds if not used.",
+      "deutscherAnzeigename": "Massenproduktion",
+      "deutscheBeschreibung": "Gewährt einmalig einen Bonus, der die nächste Aufwertung oder Kombination um 50 % beschleunigt. Ungenutzt verfällt er nach 10 Sekunden."
+    },
+    {
+      "externeKennung": "massproductionpp",
+      "originalName": "Mass Production++",
+      "originalBeschreibung": "Adds a 1-time use buff that speeds up the next upgrade or compound by 90%. The buff expires in 10 seconds if not used.",
+      "deutscherAnzeigename": "Massenproduktion++",
+      "deutscheBeschreibung": "Gewährt einmalig einen Bonus, der die nächste Aufwertung oder Kombination um 90 % beschleunigt. Ungenutzt verfällt er nach 10 Sekunden."
+    },
+    {
+      "externeKennung": "massexchange",
+      "originalName": "Mass Exchange",
+      "originalBeschreibung": "Adds a 1-time use buff that speeds up the next exchange by 50%. The buff expires in 10 seconds if not used.",
+      "deutscherAnzeigename": "Massentausch",
+      "deutscheBeschreibung": "Gewährt einmalig einen Bonus, der den nächsten Tausch um 50 % beschleunigt. Ungenutzt verfällt er nach 10 Sekunden."
+    },
+    {
+      "externeKennung": "massexchangepp",
+      "originalName": "Mass Exchange++",
+      "originalBeschreibung": "Adds a 1-time use buff that speeds up the next exchange by 90%. The buff expires in 10 seconds if not used.",
+      "deutscherAnzeigename": "Massentausch++",
+      "deutscheBeschreibung": "Gewährt einmalig einen Bonus, der den nächsten Tausch um 90 % beschleunigt. Ungenutzt verfällt er nach 10 Sekunden."
+    },
+    {
+      "externeKennung": "throw",
+      "originalName": "Throw Stuff",
+      "originalBeschreibung": "Terrified? Just throw whatever you can find at your opponent!",
+      "deutscherAnzeigename": "Zeug werfen",
+      "deutscheBeschreibung": "Wirft in Panik etwas Greifbares auf den Gegner."
+    },
+    {
+      "externeKennung": "burst",
+      "originalName": "Mana Burst",
+      "originalBeschreibung": "Converts your entire mana pool to pure damage. Deals 0.555 pure damage for each MP.",
+      "deutscherAnzeigename": "Manaexplosion",
+      "deutscheBeschreibung": "Wandelt den gesamten Manavorrat in reinen Schaden um. Verursacht 0,555 reinen Schaden pro MP."
+    },
+    {
+      "externeKennung": "cburst",
+      "originalName": "Controlled Mana Burst",
+      "originalBeschreibung": "A skill for experienced mages. Allows you to control and channel your most powerful ability.",
+      "deutscherAnzeigename": "Kontrollierte Manaexplosion",
+      "deutscheBeschreibung": "Eine Fähigkeit für erfahrene Magier, mit der die mächtigste Fähigkeit kontrolliert und kanalisiert werden kann."
+    },
+    {
+      "externeKennung": "arcane_needle",
+      "originalName": "Arcane Needle",
+      "originalBeschreibung": "Focus your wand into a needle that deals 75% damage, pierces 500 resistance, and cannot be reflected.",
+      "deutscherAnzeigename": "Arkane Nadel",
+      "deutscheBeschreibung": "Bündelt den Zauberstab zu einer Nadel, die 75 % Schaden verursacht, 500 Widerstand durchdringt und nicht reflektiert werden kann."
+    },
+    {
+      "externeKennung": "energize",
+      "originalName": "Energize",
+      "originalBeschreibung": "Transfers mana to a target. As a side effect the target gains high attack speed for a short duration.",
+      "deutscherAnzeigename": "Energie übertragen",
+      "deutscheBeschreibung": "Überträgt Mana auf ein Ziel. Als Nebeneffekt erhält das Ziel kurzzeitig stark erhöhte Angriffsgeschwindigkeit."
+    },
+    {
+      "externeKennung": "light",
+      "originalName": "Light",
+      "originalBeschreibung": "Reveals invisible entities nearby and prevents them from going invisible again for 12 seconds.",
+      "deutscherAnzeigename": "Licht",
+      "deutscheBeschreibung": "Deckt unsichtbare Einheiten in der Nähe auf und verhindert 12 Sekunden lang erneutes Unsichtbarwerden."
+    },
+    {
+      "externeKennung": "blink",
+      "originalName": "Blink",
+      "originalBeschreibung": "Teleport to a nearby location.",
+      "deutscherAnzeigename": "Kurzteleport",
+      "deutscheBeschreibung": "Teleportiert zu einem nahen Ort."
+    },
+    {
+      "externeKennung": "magiport",
+      "originalName": "Magiport",
+      "originalBeschreibung": "Pull someone to your location using the magical paths that surround our world.",
+      "deutscherAnzeigename": "Magiport",
+      "deutscheBeschreibung": "Zieht jemanden über die magischen Pfade der Welt zu deinem Standort."
+    },
+    {
+      "externeKennung": "charge",
+      "originalName": "Charge",
+      "originalBeschreibung": "Gain 30 Speed for a short duration.",
+      "deutscherAnzeigename": "Ansturm",
+      "deutscheBeschreibung": "Gewährt für kurze Zeit 30 Geschwindigkeit."
+    },
+    {
+      "externeKennung": "dash",
+      "originalName": "Dash",
+      "originalBeschreibung": "Push forward, jumping over obstacles, climbing hills, defying physics!",
+      "deutscherAnzeigename": "Sprint",
+      "deutscheBeschreibung": "Stürmt vorwärts, überspringt Hindernisse, erklimmt Hügel und trotzt der Physik."
+    },
+    {
+      "externeKennung": "taunt",
+      "originalName": "Taunt",
+      "originalBeschreibung": "Taunts an enemy. Steals aggro from friendly targets.",
+      "deutscherAnzeigename": "Provozieren",
+      "deutscheBeschreibung": "Provoziert einen Gegner und übernimmt dessen Aggro von befreundeten Zielen."
+    },
+    {
+      "externeKennung": "agitate",
+      "originalName": "Agitate",
+      "originalBeschreibung": "Taunts all nearby monsters.",
+      "deutscherAnzeigename": "Aufstacheln",
+      "deutscheBeschreibung": "Provoziert alle nahen Monster."
+    },
+    {
+      "externeKennung": "hardshell",
+      "originalName": "Hard Shell",
+      "originalBeschreibung": "Use everything at your disposal to protect yourself from physical attacks for a short duration.",
+      "deutscherAnzeigename": "Harter Panzer",
+      "deutscheBeschreibung": "Nutzt alle verfügbaren Mittel, um kurzzeitig vor physischen Angriffen zu schützen."
+    },
+    {
+      "externeKennung": "cleave",
+      "originalName": "Cleave",
+      "originalBeschreibung": "Swing your axe in a flurry to damage all enemies nearby!",
+      "deutscherAnzeigename": "Rundumschlag",
+      "deutscheBeschreibung": "Schwingt die Axt in einem Wirbel und beschädigt alle nahen Gegner."
+    },
+    {
+      "externeKennung": "stomp",
+      "originalName": "Stomp",
+      "originalBeschreibung": "Use your basher to Stomp the ground to Stun enemies nearby!",
+      "deutscherAnzeigename": "Stampfen",
+      "deutscheBeschreibung": "Stampft mit der Wuchtwaffe auf den Boden und betäubt nahe Gegner."
+    },
+    {
+      "externeKennung": "warcry",
+      "originalName": "War Cry",
+      "originalBeschreibung": "Motivate your allies to fight!",
+      "deutscherAnzeigename": "Kampfschrei",
+      "deutscheBeschreibung": "Motiviert Verbündete zum Kämpfen."
+    },
+    {
+      "externeKennung": "poisonarrow",
+      "originalName": "Poison Arrow",
+      "originalBeschreibung": "Fire a single low damage but poison coated arrow at your opponent.",
+      "deutscherAnzeigename": "Giftpfeil",
+      "deutscheBeschreibung": "Feuert einen schwachen, mit Gift überzogenen Pfeil auf den Gegner."
+    },
+    {
+      "externeKennung": "piercingshot",
+      "originalName": "Piercing Shot",
+      "originalBeschreibung": "Fire heavy, armor piercing arrows at your opponent. They deal 75% of the damage but pierce through 500 armor.",
+      "deutscherAnzeigename": "Durchdringender Schuss",
+      "deutscheBeschreibung": "Feuert schwere, rüstungsdurchdringende Pfeile. Sie verursachen 75 % Schaden und durchdringen 500 Rüstung."
+    },
+    {
+      "externeKennung": "huntersmark",
+      "originalName": "Hunter's Mark",
+      "originalBeschreibung": "Mark an opponent for death, prevent them from stealthing away and increase damage done by 10%",
+      "deutscherAnzeigename": "Jägermal",
+      "deutscheBeschreibung": "Markiert einen Gegner für den Tod, verhindert sein Verschwinden in Tarnung und erhöht den verursachten Schaden um 10 %."
+    },
+    {
+      "externeKennung": "pcoat",
+      "originalName": "A Poisonous Touch",
+      "originalBeschreibung": "Coat your blade with a poison sack. Poison everyone you damage before the venom dissipates.",
+      "deutscherAnzeigename": "Giftiger Überzug",
+      "deutscheBeschreibung": "Überzieht die Klinge mit Gift und vergiftet getroffene Gegner, bis das Gift verbraucht ist."
+    },
+    {
+      "externeKennung": "invis",
+      "originalName": "Assassin's Smoke",
+      "originalBeschreibung": "Disappear into the shadows. Deal 1.25X damage when you sneak up on an enemy. Cooldown starts when you re-appear.",
+      "deutscherAnzeigename": "Assassine",
+      "deutscheBeschreibung": "Verschwindet in den Schatten. Ein Überraschungsangriff verursacht 1,25-fachen Schaden. Die Abklingzeit beginnt beim Wiedererscheinen."
+    },
+    {
+      "externeKennung": "mentalburst",
+      "originalName": "Mental Burst",
+      "originalBeschreibung": "Channel your mental abilities for a magical blow. If the target is defeated, the damage dealt is converted to mana.",
+      "deutscherAnzeigename": "Mentalexplosion",
+      "deutscheBeschreibung": "Bündelt mentale Kräfte zu einem magischen Schlag. Wird das Ziel besiegt, wird der verursachte Schaden in Mana umgewandelt."
+    },
+    {
+      "externeKennung": "quickpunch",
+      "originalName": "Quick Punch",
+      "originalBeschreibung": "Use your agility to quickly punch your opponent between your devastating attacks!",
+      "deutscherAnzeigename": "Schneller Schlag",
+      "deutscheBeschreibung": "Nutzt Beweglichkeit für einen schnellen Faustschlag zwischen stärkeren Angriffen."
+    },
+    {
+      "externeKennung": "quickstab",
+      "originalName": "Quick Stab",
+      "originalBeschreibung": "Use your agility to quickly stab your opponent between your devastating attacks!",
+      "deutscherAnzeigename": "Schneller Stich",
+      "deutscheBeschreibung": "Nutzt Beweglichkeit für einen schnellen Stich zwischen stärkeren Angriffen."
+    },
+    {
+      "externeKennung": "stack",
+      "originalName": "Stacked Damage",
+      "originalBeschreibung": "Slowly learning the ways of your opponent each rogue attack deals one more damage.",
+      "deutscherAnzeigename": "Gestapelter Schaden",
+      "deutscheBeschreibung": "Mit jedem Schurkenangriff wächst das Verständnis des Gegners und der nächste Angriff verursacht einen zusätzlichen Schadenspunkt."
+    },
+    {
+      "externeKennung": "shadowstrike",
+      "originalName": "Shadow Strike",
+      "originalBeschreibung": "Use a shadow stone to strike a random enemy in a parallel universe!",
+      "deutscherAnzeigename": "Schattenschlag",
+      "deutscheBeschreibung": "Verbraucht einen Schattenstein, um einen zufälligen Gegner in einem Paralleluniversum zu treffen."
+    },
+    {
+      "externeKennung": "fanofknives",
+      "originalName": "Fan of Knives",
+      "originalBeschreibung": "Send five knives searching for nearby trouble. Each deals 0.85X damage.",
+      "deutscherAnzeigename": "Messerfächer",
+      "deutscheBeschreibung": "Schickt fünf Messer auf die Suche nach nahen Gegnern. Jedes verursacht 0,85-fachen Schaden."
+    },
+    {
+      "externeKennung": "entangle",
+      "originalName": "Entangle",
+      "originalBeschreibung": "Unleash the contained powers of nature to hinder an opponent.",
+      "deutscherAnzeigename": "Verstricken",
+      "deutscheBeschreibung": "Entfesselt die gebündelten Kräfte der Natur, um einen Gegner zu behindern."
+    },
+    {
+      "externeKennung": "track",
+      "originalName": "Track",
+      "originalBeschreibung": "Use your fine-tuned senses to detect others.",
+      "deutscherAnzeigename": "Aufspüren",
+      "deutscheBeschreibung": "Nutzt geschärfte Sinne, um andere aufzuspüren."
+    },
+    {
+      "externeKennung": "supershot",
+      "originalName": "Supershot",
+      "originalBeschreibung": "Deals 1.5X instant damage from an incredible distance.",
+      "deutscherAnzeigename": "Superschuss",
+      "deutscheBeschreibung": "Verursacht aus außergewöhnlich großer Entfernung sofort 1,5-fachen Schaden."
+    },
+    {
+      "externeKennung": "3shot",
+      "originalName": "3-Shot",
+      "originalBeschreibung": "Hits 3 targets at once! Deals 0.7X damage to each target.",
+      "deutscherAnzeigename": "Dreifachschuss",
+      "deutscheBeschreibung": "Trifft drei Ziele gleichzeitig und verursacht bei jedem 0,7-fachen Schaden."
+    },
+    {
+      "externeKennung": "5shot",
+      "originalName": "5-Shot",
+      "originalBeschreibung": "Hits 5 targets at once! Deals 0.5X damage to each target.",
+      "deutscherAnzeigename": "Fünffachschuss",
+      "deutscheBeschreibung": "Trifft fünf Ziele gleichzeitig und verursacht bei jedem 0,5-fachen Schaden."
+    },
+    {
+      "externeKennung": "4fingers",
+      "originalName": "4 Finger Technique",
+      "originalBeschreibung": "Use the ancient arts to send the target to a deep meditation state. Just several taps to key chakra points does the job!",
+      "deutscherAnzeigename": "Vier-Finger-Technik",
+      "deutscheBeschreibung": "Versetzt das Ziel mit der alten Kunst gezielter Berührungen an Chakra-Punkten in tiefe Meditation."
+    },
+    {
+      "externeKennung": "curse",
+      "originalName": "Curse",
+      "originalBeschreibung": "Cursed opponents receive 20% more damage, deal 20% less damage and they slow down by 20.",
+      "deutscherAnzeigename": "Fluch",
+      "deutscheBeschreibung": "Verfluchte Gegner erleiden 20 % mehr Schaden, verursachen 20 % weniger Schaden und verlieren 20 Geschwindigkeit."
+    },
+    {
+      "externeKennung": "phaseout",
+      "originalName": "Phase Out",
+      "originalBeschreibung": "Absorb a shadow stone to phase yourself out from this universe.",
+      "deutscherAnzeigename": "Phasenwechsel",
+      "deutscheBeschreibung": "Absorbiert einen Schattenstein und phasenverschiebt dich aus diesem Universum."
+    },
+    {
+      "externeKennung": "darkblessing",
+      "originalName": "Dark Blessing",
+      "originalBeschreibung": "Increases damage by 25% for the duration.",
+      "deutscherAnzeigename": "Dunkler Segen",
+      "deutscheBeschreibung": "Erhöht den Schaden für die Dauer um 25 %."
+    },
+    {
+      "externeKennung": "absorb",
+      "originalName": "Absorb Sins",
+      "originalBeschreibung": "Pulls all targets from a friendly character.",
+      "deutscherAnzeigename": "Sünden absorbieren",
+      "deutscheBeschreibung": "Zieht alle Ziele von einem befreundeten Charakter auf sich."
+    },
+    {
+      "externeKennung": "partyheal",
+      "originalName": "Party Heal",
+      "originalBeschreibung": "Heals all the party members.",
+      "deutscherAnzeigename": "Gruppenheilung",
+      "deutscheBeschreibung": "Heilt alle Gruppenmitglieder."
+    },
+    {
+      "externeKennung": "selfheal",
+      "originalName": "Heal",
+      "originalBeschreibung": "Heal yourself",
+      "deutscherAnzeigename": "Selbstheilung",
+      "deutscheBeschreibung": "Heilt dich selbst."
+    },
+    {
+      "externeKennung": "mshield",
+      "originalName": "Mana Shield",
+      "originalBeschreibung": "Create a magical shield around yourself to absorb damage [Toggle]",
+      "deutscherAnzeigename": "Manaschild",
+      "deutscheBeschreibung": "Erzeugt einen magischen Schild, der Schaden absorbiert. Umschaltbar."
+    },
+    {
+      "externeKennung": "aether_shield",
+      "originalName": "Aether Shield",
+      "originalBeschreibung": "Magical damage still wounds you, but restores MP from the HP lost. Replaces Mana Shield. [Toggle]",
+      "deutscherAnzeigename": "Ätherschild",
+      "deutscheBeschreibung": "Magischer Schaden verletzt weiterhin, stellt aber MP entsprechend verlorener LP wieder her. Ersetzt den Manaschild. Umschaltbar."
+    },
+    {
+      "externeKennung": "cleansing_light",
+      "originalName": "Cleansing Light",
+      "originalBeschreibung": "Lift every harmful combat condition from an ally.",
+      "deutscherAnzeigename": "Reinigendes Licht",
+      "deutscheBeschreibung": "Entfernt alle schädlichen Kampfzustände von einem Verbündeten."
+    },
+    {
+      "externeKennung": "guardians_oath",
+      "originalName": "Guardian's Oath",
+      "originalBeschreibung": "Take 35% of an ally's damage for 8 seconds. The HP you lose restores MP, whatever the damage type.",
+      "deutscherAnzeigename": "Wächtereid",
+      "deutscheBeschreibung": "Die offizielle Beschreibung im aktuellen Skill-Snapshot ist unvollständig."
+    },
+    {
+      "externeKennung": "beacon_of_resolve",
+      "originalName": "Beacon of Resolve",
+      "originalBeschreibung": "Hold the line! Nearby friendly players gain 15 Fortitude and one of each Courage for 8 seconds.",
+      "deutscherAnzeigename": "Leuchtfeuer der Entschlossenheit",
+      "deutscheBeschreibung": "Nahe befreundete Spieler erhalten 8 Sekunden lang 15 Standhaftigkeit und jeweils einen Punkt jeder Mut-Art."
+    },
+    {
+      "externeKennung": "paladin_aura",
+      "originalName": "Paladin Aura",
+      "originalBeschreibung": "Carry one aura that strengthens nearby friendlies. Use the skill to change its form.",
+      "deutscherAnzeigename": "Paladinaura",
+      "deutscheBeschreibung": "Trägt eine Aura, die nahe Verbündete stärkt. Mit der Fähigkeit wird ihre Form gewechselt."
+    },
+    {
+      "externeKennung": "purify",
+      "originalName": "Purify",
+      "originalBeschreibung": "Deals 2000 pure damage purifying the target, removes all buffs and debuffs dealing additional 400 damage for each and receive the Purifier buff if the target is defeated!",
+      "deutscherAnzeigename": "Läutern",
+      "deutscheBeschreibung": "Verursacht 2000 reinen Schaden, entfernt alle Verstärkungen und Schwächungen und verursacht zusätzlich 400 Schaden pro entferntem Effekt. Wird das Ziel besiegt, erhältst du den Läuterer-Bonus."
+    },
+    {
+      "externeKennung": "shield_slam",
+      "originalName": "Shield Slam",
+      "originalBeschreibung": "Drive your shield into an enemy. Deals physical damage equal to 3 times Attack plus 12 times Armor, counting up to 1,000 Armor. Cannot critically strike or trigger item effects.",
+      "deutscherAnzeigename": "Schildstoß",
+      "deutscheBeschreibung": "Rammt den Schild in einen Gegner. Verursacht physischen Schaden in Höhe des Dreifachen des Angriffs plus des Zwölffachen der Rüstung, wobei höchstens 1000 Rüstung zählen. Kann weder kritisch treffen noch Gegenstandseffekte auslösen."
+    },
+    {
+      "externeKennung": "smash",
+      "originalName": "Smash",
+      "originalBeschreibung": "Smash your opponent using your mace!",
+      "deutscherAnzeigename": "Zerschmettern",
+      "deutscheBeschreibung": "Zerschmettert den Gegner mit dem Streitkolben."
+    },
+    {
+      "externeKennung": "alchemy",
+      "originalName": "Alchemy",
+      "originalBeschreibung": "Dangerous skill, use with caution! Converts your firstfound item into pure gold!",
+      "deutscherAnzeigename": "Alchemie",
+      "deutscheBeschreibung": "Gefährliche Fähigkeit. Wandelt den zuerst gefundenen Gegenstand in reines Gold um."
+    },
+    {
+      "externeKennung": "revive",
+      "originalName": "Revive!",
+      "originalBeschreibung": "If a fallen comrade's gravestone has been healed fully, revives them using an Essence of Life!",
+      "deutscherAnzeigename": "Wiederbeleben",
+      "deutscheBeschreibung": "Die offizielle Beschreibung im aktuellen Skill-Snapshot ist unvollständig."
+    },
+    {
+      "externeKennung": "regen_hp",
+      "originalName": "Regenerate HP",
+      "originalBeschreibung": "Regenerate 50 HP without using potions.",
+      "deutscherAnzeigename": "LP regenerieren",
+      "deutscheBeschreibung": "Regeneriert 50 LP ohne Tränke."
+    },
+    {
+      "externeKennung": "regen_mp",
+      "originalName": "Regenerate MP",
+      "originalBeschreibung": "Regenerate 100 MP without using potions.",
+      "deutscherAnzeigename": "MP regenerieren",
+      "deutscheBeschreibung": "Regeneriert 100 MP ohne Tränke."
+    },
+    {
+      "externeKennung": "use_mp",
+      "originalName": "Use MP Potion",
+      "originalBeschreibung": "Uses an MP potion from your inventory. If there are multiple potions, the last one is used. If there are no potions, your character regenerates a small amount of MP with a high cooldown.",
+      "deutscherAnzeigename": "MP-Trank verwenden",
+      "deutscheBeschreibung": "Verwendet einen MP-Trank aus dem Inventar. Bei mehreren Tränken wird der letzte verwendet. Ohne Trank regeneriert der Charakter eine kleine Menge MP mit hoher Abklingzeit."
+    },
+    {
+      "externeKennung": "use_hp",
+      "originalName": "Use HP Potion",
+      "originalBeschreibung": "Uses an HP potion from your inventory. If there are multiple potions, the last one is used. If there are no potions, your character regenerates a small amount of HP with a high cooldown.",
+      "deutscherAnzeigename": "LP-Trank verwenden",
+      "deutscheBeschreibung": "Verwendet einen LP-Trank aus dem Inventar. Bei mehreren Tränken wird der letzte verwendet. Ohne Trank regeneriert der Charakter eine kleine Menge LP mit hoher Abklingzeit."
+    },
+    {
+      "externeKennung": "use_town",
+      "originalName": "Town",
+      "originalBeschreibung": "Teleports you to the center of the map.",
+      "deutscherAnzeigename": "Stadt",
+      "deutscheBeschreibung": "Teleportiert dich in die Mitte der Karte."
+    },
+    {
+      "externeKennung": "attack",
+      "originalName": "Attack",
+      "originalBeschreibung": "Attack the target",
+      "deutscherAnzeigename": "Angriff",
+      "deutscheBeschreibung": "Greift das Ziel an."
+    },
+    {
+      "externeKennung": "heal",
+      "originalName": "Heal",
+      "originalBeschreibung": "Heal the target",
+      "deutscherAnzeigename": "Heilen",
+      "deutscheBeschreibung": "Heilt das Ziel."
+    },
+    {
+      "externeKennung": "travel",
+      "originalName": "Travel!",
+      "originalBeschreibung": "Where would you like to visit?",
+      "deutscherAnzeigename": "Reisen",
+      "deutscheBeschreibung": "Wohin möchtest du reisen?"
+    },
+    {
+      "externeKennung": "stop",
+      "originalName": "Stop",
+      "originalBeschreibung": "Stops your character. Cancels all channeling abilities and active skills.",
+      "deutscherAnzeigename": "Stoppen",
+      "deutscheBeschreibung": "Stoppt den Charakter und bricht alle kanalisierten Fähigkeiten sowie aktiven Skills ab."
+    },
+    {
+      "externeKennung": "snippet",
+      "originalName": "Snippet",
+      "originalBeschreibung": "Maps a code snippet to a keypress.",
+      "deutscherAnzeigename": "Code-Schnipsel",
+      "deutscheBeschreibung": "Ordnet einen Code-Schnipsel einem Tastendruck zu."
+    },
+    {
+      "externeKennung": "emotion",
+      "originalName": "Random Emote",
+      "originalBeschreibung": "Show a random Emote you've unlocked!",
+      "deutscherAnzeigename": "Zufälliges Emote",
+      "deutscheBeschreibung": "Die offizielle Beschreibung im aktuellen Skill-Snapshot ist unvollständig."
+    },
+    {
+      "externeKennung": "pure_eval",
+      "originalName": "Pure Eval",
+      "originalBeschreibung": "[Advanced] Maps a code snippet to be run directly inside the game, rather than using CODE. (Not to be confused with the text command, /eval, which evals inside the Code iframe)",
+      "deutscherAnzeigename": "Direkte Auswertung",
+      "deutscheBeschreibung": "Fortgeschritten: Führt einen Code-Schnipsel direkt im Spiel aus statt über CODE. Nicht mit dem Textbefehl /eval verwechseln, der im CODE-Iframe ausgewertet wird."
+    },
+    {
+      "externeKennung": "esc",
+      "originalName": "ESC",
+      "originalBeschreibung": "Calls the esc_pressed() function inside the game. Major functionality.",
+      "deutscherAnzeigename": "ESC",
+      "deutscheBeschreibung": "Ruft im Spiel die Funktion esc_pressed() auf und löst deren zentrale ESC-Funktionalität aus."
+    },
+    {
+      "externeKennung": "move_up",
+      "originalName": "Move Up",
+      "originalBeschreibung": "Moves the character upwards",
+      "deutscherAnzeigename": "Nach oben bewegen",
+      "deutscheBeschreibung": "Bewegt den Charakter nach oben."
+    },
+    {
+      "externeKennung": "move_down",
+      "originalName": "Move Down",
+      "originalBeschreibung": "Moves the character downwards",
+      "deutscherAnzeigename": "Nach unten bewegen",
+      "deutscheBeschreibung": "Bewegt den Charakter nach unten."
+    },
+    {
+      "externeKennung": "move_left",
+      "originalName": "Move Left",
+      "originalBeschreibung": "Moves the character leftwards",
+      "deutscherAnzeigename": "Nach links bewegen",
+      "deutscheBeschreibung": "Bewegt den Charakter nach links."
+    },
+    {
+      "externeKennung": "move_right",
+      "originalName": "Move Right",
+      "originalBeschreibung": "Moves the character rightwards",
+      "deutscherAnzeigename": "Nach rechts bewegen",
+      "deutscheBeschreibung": "Bewegt den Charakter nach rechts."
+    },
+    {
+      "externeKennung": "toggle_code",
+      "originalName": "Toggle Code",
+      "originalBeschreibung": null,
+      "deutscherAnzeigename": "CODE ein-/ausblenden",
+      "deutscheBeschreibung": "Die offizielle Quelle enthält für diese Fähigkeit keine Beschreibung."
+    },
+    {
+      "externeKennung": "toggle_run_code",
+      "originalName": "Engage/Disengage Code",
+      "originalBeschreibung": null,
+      "deutscherAnzeigename": "CODE starten/stoppen",
+      "deutscheBeschreibung": "Die offizielle Quelle enthält für diese Fähigkeit keine Beschreibung."
+    },
+    {
+      "externeKennung": "toggle_inventory",
+      "originalName": "Toggle Inventory",
+      "originalBeschreibung": "Toggles the inventory",
+      "deutscherAnzeigename": "Inventar ein-/ausblenden",
+      "deutscheBeschreibung": "Blendet das Inventar ein oder aus."
+    },
+    {
+      "externeKennung": "toggle_stats",
+      "originalName": "Toggle Stats",
+      "originalBeschreibung": "Toggles the character sheet",
+      "deutscherAnzeigename": "Werte ein-/ausblenden",
+      "deutscheBeschreibung": "Blendet das Charakterblatt ein oder aus."
+    },
+    {
+      "externeKennung": "toggle_character",
+      "originalName": "Toggle Character",
+      "originalBeschreibung": "Toggles the character focus",
+      "deutscherAnzeigename": "Charakterfokus umschalten",
+      "deutscheBeschreibung": "Schaltet den Charakterfokus um."
+    },
+    {
+      "externeKennung": "open_snippet",
+      "originalName": "Open Snippet",
+      "originalBeschreibung": "Open the Code Snippet interface",
+      "deutscherAnzeigename": "Code-Schnipsel öffnen",
+      "deutscheBeschreibung": "Öffnet die Oberfläche für Code-Schnipsel."
+    },
+    {
+      "externeKennung": "interact",
+      "originalName": "Interact",
+      "originalBeschreibung": "Interact with the nearest game entity, a door, doorway, or NPC.",
+      "deutscherAnzeigename": "Interagieren",
+      "deutscheBeschreibung": "Interagiert mit der nächsten Spieleinheit, Tür, einem Durchgang oder NPC."
+    },
+    {
+      "externeKennung": "gm",
+      "originalName": "GM Abilities",
+      "originalBeschreibung": "Jump, Jail, Mute, Use Any Skill",
+      "deutscherAnzeigename": "GM-Fähigkeiten",
+      "deutscheBeschreibung": "Springen, ins Gefängnis versetzen, stummschalten und beliebige Fähigkeiten verwenden."
+    }
+  ]
+}

@@ -3,20 +3,25 @@ export function pruefeSichttext({
   deutscherText,
   rohwert,
   offizielleDeutscheMonsterbezeichnungVorhanden = false,
+  monsterQuellenStatus = "",
 }) {
   const deutsch = String(deutscherText ?? "").trim();
   const roh = String(rohwert ?? "").trim();
 
   if (kategorie === "monster") {
     if (offizielleDeutscheMonsterbezeichnungVorhanden) {
-      return deutsch.length > 0
+      return monsterQuellenStatus === "DEUTSCH_OFFIZIELL" && deutsch.length > 0
         ? { erlaubt: true, text: deutsch }
         : { erlaubt: false, grund: "DEUTSCHE_MONSTERBEZEICHNUNG_FEHLT" };
     }
 
-    if (deutsch.length > 0) return { erlaubt: true, text: deutsch };
-    if (roh.length > 0) return { erlaubt: true, text: roh, ausnahme: "MONSTER_ORIGINALNAME" };
-    return { erlaubt: false, grund: "MONSTERNAME_FEHLT" };
+    if (monsterQuellenStatus === "ORIGINALNAME_ERLAUBT" && roh.length > 0 && deutsch.length === 0) {
+      return { erlaubt: true, text: roh, ausnahme: "MONSTER_ORIGINALNAME" };
+    }
+    if (deutsch.length > 0) {
+      return { erlaubt: false, grund: "MONSTER_UEBERSETZUNG_OHNE_OFFIZIELLEN_NACHWEIS" };
+    }
+    return { erlaubt: false, grund: "MONSTER_ORIGINALNAME_NICHT_REVALIDIERT" };
   }
 
   if (deutsch.length === 0) {

@@ -113,7 +113,15 @@
       "kennung": "V5-FIT-015",
       "titel": "Englische Monster-Namen sind nur erlaubt, wenn keine offizielle deutsche Spielbezeichnung bekannt ist",
       "phase": "R6",
-      "durchsetzung": "MONSTER_ANZEIGEKATALOG_GUARD"
+      "durchsetzung": "MONSTER_ANZEIGEKATALOG_GUARD",
+      "r6NachweisStatus": "ERFUELLT",
+      "r6Nachweise": [
+        "v5/anzeigetexte/monster-lokalisierungspruefung.json",
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+        "v5/anzeigetexte/katalog.json",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs",
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-016",
@@ -185,13 +193,23 @@
       "kennung": "V5-FIT-026",
       "titel": "Gameplay-Module duerfen keine Dateien aus wissensbasis/datenbank/aktuell direkt lesen",
       "phase": "R6",
-      "durchsetzung": "DEPENDENCY_GUARD"
+      "durchsetzung": "DEPENDENCY_GUARD",
+      "r6NachweisStatus": "ERFUELLT",
+      "r6Nachweise": [
+        "v5/werkzeuge/r3-guard-regeln.mjs",
+        "v5/werkzeuge/tests/r3-guards.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-027",
       "titel": "Knowledge-Zugriff der Runtime erfolgt nur ueber read-only WissensZugriffPort",
       "phase": "R6",
-      "durchsetzung": "PORT_GUARD"
+      "durchsetzung": "PORT_GUARD",
+      "r6NachweisStatus": "ERFUELLT",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/wissen/wissens-zugriff-port.ts",
+        "v5/werkzeuge/r3-guard-regeln.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-028",
@@ -239,7 +257,13 @@
       "kennung": "V5-FIT-035",
       "titel": "Live-Fakten muessen Adventure Land, LIVE_VERIFIZIERT und LIVE_SPIEL-Evidence ausweisen",
       "phase": "R6",
-      "durchsetzung": "LIVE_FAKT_SCHEMA_UND_VERIFIER_GUARD"
+      "durchsetzung": "LIVE_FAKT_SCHEMA_UND_VERIFIER_GUARD",
+      "r6NachweisStatus": "ERFUELLT",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/wissen/verifier.ts",
+        "v5/grundlage/quelle/wissen/live-wissens-publizierer.ts",
+        "v5/grundlage/tests/r6-publikation.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-036",
@@ -251,13 +275,25 @@
       "kennung": "V5-FIT-037",
       "titel": "Gameplay-Code besitzt keine direkte GitHub-/Dateisystem-ExecutionAuthority aus live/snapshot",
       "phase": "R6",
-      "durchsetzung": "WISSENSZUGRIFFPORT_UND_AUTHORITY_GUARD"
+      "durchsetzung": "WISSENSZUGRIFFPORT_UND_AUTHORITY_GUARD",
+      "r6NachweisStatus": "ERFUELLT",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/wissen/snapshot.ts",
+        "v5/werkzeuge/r3-guard-regeln.mjs",
+        "v5/werkzeuge/tests/r3-guards.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-038",
       "titel": "GitHub-Livewissen bleibt bounded und enthaelt keine hochfrequente Rohtelemetrie",
       "phase": "R6",
-      "durchsetzung": "DATEI_ANZAHL_GROESSE_UND_RETENTION_GUARD"
+      "durchsetzung": "DATEI_ANZAHL_GROESSE_UND_RETENTION_GUARD",
+      "r6NachweisStatus": "ERFUELLT",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/wissen/snapshot.ts",
+        "v5/grundlage/quelle/wissen/beobachtungs-evidence.ts",
+        "v5/grundlage/tests/r6-evidence.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-039",
@@ -287,7 +323,13 @@
       "kennung": "V5-FIT-043",
       "titel": "Definitionen, Observed Evidence und Reconciled World Truth sind getrennte Typen/Layer",
       "phase": "R6",
-      "durchsetzung": "TYP_UND_DEPENDENCY_GUARD"
+      "durchsetzung": "TYP_UND_DEPENDENCY_GUARD",
+      "r6NachweisStatus": "ERFUELLT",
+      "r6Nachweise": [
+        "v5/grundlage/quelle/wissen/typen.ts",
+        "v5/grundlage/quelle/wissen/abgleich.ts",
+        "v5/grundlage/tests/r6-wissen.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-044",

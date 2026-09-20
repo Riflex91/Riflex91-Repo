@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R6",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "exitKriterien": {
+    "staleStateAutorisiertKeineMutation": true,
+    "driftQuarantaeneFaehig": true,
+    "liveVerifiziertNurAusFachlichVerifizierterBeobachtung": true,
+    "persistiertesLiveWissenBleibtEvidence": true,
+    "githubLiveSnapshotBoundedSchemaHashValidiert": true,
+    "observationEvidenceLokalBoundedPersistierbar": true,
+    "grosseSsdHistorienZuRamWorkingSetsAggregiert": true,
+    "learningEvidenceVersioniertOhneGameplayAutoritaet": true
+  },
+  "anforderungen": {
+    "phaseR6": 13,
+    "technischNachgewiesen": 13,
+    "status": "R6_NACHGEWIESEN"
+  },
+  "traceability": {
+    "phaseR6": 13,
+    "vollstaendig": 13
+  },
+  "fitness": {
+    "phaseR6": 7,
+    "erfuellt": 7,
+    "status": "ERFUELLT"
+  },
+  "anzeigekatalog": {
+    "katalogVersion": 4,
+    "skills": {
+      "erwartet": 129,
+      "abgedeckt": 129,
+      "deutscheBeschreibungen": 129
+    },
+    "klassen": {
+      "erwartet": 7,
+      "abgedeckt": 7
+    },
+    "gegenstaende": {
+      "quellVorkommen": 628,
+      "abgedeckt": 628,
+      "effektiveKennungen": 626
+    },
+    "npcs": {
+      "erwartet": 135,
+      "abgedeckt": 135
+    },
+    "events": {
+      "erwartet": 11,
+      "abgedeckt": 11
+    },
+    "quests": {
+      "erwartet": 12,
+      "abgedeckt": 12
+    },
+    "aktionen": {
+      "erwartet": 60,
+      "abgedeckt": 60
+    },
+    "statuswerte": {
+      "erwartet": 102,
+      "abgedeckt": 102
+    },
+    "monster": {
+      "erwartet": 129,
+      "abgedeckt": 129,
+      "fallback": "ORIGINALNAME_ERLAUBT",
+      "revalidierungspflichtig": true
+    }
+  },
+  "knowledgeWatcher": {
+    "registrierteQuellen": 22,
+    "npcQuelle": "AL-DATA-NPCS",
+    "npcSnapshotSha256": "bf0502168e094ce063f2c4248b4b316f68d62b449d01457b6f549ee1636b55ca",
+    "npcUpstreamBlob": "a99d3b18c5099a1824d0bd0c780bd2eabf1d53cb"
+  },
+  "readiness": {
+    "WISSEN_BEREIT": true,
+    "gesamtstatus": "GESPERRT"
+  },
+  "ciVorAbschluss": {
+    "headSha": "63ab8ca7a7dcc90a3f66f98c8137a962fed656cf",
+    "runs": [
+      {
+        "workflow": "v5-r6",
+        "runId": 35477491755,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r5",
+        "runId": 35477491810,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r4",
+        "runId": 35477491749,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r3",
+        "runId": 35477491763,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-wissensbasis",
+        "runId": 35477491767,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-wissensgate",
+        "runId": 35477491747,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-roadmap",
+        "runId": 35477491765,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-vorbereitung",
+        "runId": 35477491813,
+        "conclusion": "success"
+      }
+    ]
+  },
+  "artefakt": {
+    "id": 10595105590,
+    "name": "v5-r6-nachweis-19f2b8980d7d2680188938eca77285b8fd0bebe8",
+    "sha256": "bcc2e8aaf36328b9278a736e4dcd9922e610801c8d97f6dd368e03f7b051bba5"
+  },
+  "betriebsblocker": {
+    "lokaleWindowsBridgeAktualisieren": true,
+    "beschreibung": "Der Repo-Code ist korrekt, aber die lokale Installation der aktuellen Windows-Bridge ist weiterhin nicht verifiziert. Dieser Betriebsblocker oeffnet kein Gameplay-Gate."
+  },
+  "nachweise": [
+    "v5/grundlage/quelle/wissen/typen.ts",
+    "v5/grundlage/quelle/wissen/wissens-zugriff-port.ts",
+    "v5/grundlage/quelle/wissen/verifier.ts",
+    "v5/grundlage/quelle/wissen/live-wissens-publizierer.ts",
+    "v5/grundlage/quelle/wissen/abgleich.ts",
+    "v5/grundlage/quelle/wissen/drift-quarantaene.ts",
+    "v5/grundlage/quelle/wissen/beobachtungs-evidence.ts",
+    "v5/grundlage/quelle/wissen/ram-arbeitsmenge.ts",
+    "v5/grundlage/quelle/wissen/learning-evidence.ts",
+    "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+    "v5/anzeigetexte/katalog.json",
+    "v5/anzeigetexte/skill-uebersetzungen.json",
+    "v5/anzeigetexte/item-uebersetzungen.json",
+    "v5/anzeigetexte/monster-lokalisierungspruefung.json",
+    "v5/anzeigetexte/npc-quellenbestand.json",
+    "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs",
+    "v5/werkzeuge/r6-struktur-pruefen.mjs",
+    ".github/workflows/v5-r6.yml"
+  ],
+  "naechstePhase": "R7",
+  "hinweis": "R6 gilt erst nach gruenem finalen PR-Head und gruener Post-Merge-CI als endgueltig abgeschlossen. R7 bleibt ebenfalls no-write, solange das separate Gameplay-Runtime-Gesamtgate GESPERRT ist."
+}
