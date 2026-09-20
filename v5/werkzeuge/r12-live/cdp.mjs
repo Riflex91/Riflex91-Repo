@@ -76,13 +76,13 @@ export class CdpSession {
     await sleep(150);
   }
 
-  async evaluate(expression, contextId) {
+  async evaluate(expression, contextId, optionen = {}) {
     const result = await this.command("Runtime.evaluate", {
       expression,
       contextId,
       returnByValue: true,
       awaitPromise: true,
-      userGesture: false,
+      userGesture: optionen.userGesture === true,
     });
     if (result.exceptionDetails) {
       const detail = result.exceptionDetails.exception?.description
