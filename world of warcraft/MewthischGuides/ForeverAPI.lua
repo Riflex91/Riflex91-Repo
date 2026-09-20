@@ -174,6 +174,7 @@ function API:MarkSavedVariablesLoad()
     MG.db.runtime = MG.db.runtime or {}
     MG.db.runtime.persistence = {
         hadTableAtAddonLoaded = existing,
+        hadSentinel = previousSentinel ~= nil,
         previousSentinel = previousSentinel,
         currentSentinel = MG.db.persistenceSentinel,
         previousBootCount = previousBootCount,
@@ -266,6 +267,8 @@ end
 function API:FindQuestOnMaps(questID, startingMapID, phase)
     if not questID or not startingMapID then return nil end
 
+    local fallback = nil
+
     for _, mapID in ipairs(self:GetMapChain(startingMapID)) do
         local rows = self:GetQuestsOnMap(mapID)
 
@@ -281,7 +284,7 @@ function API:FindQuestOnMaps(questID, startingMapID, phase)
                     phaseMatch = row.inProgress and true or false
                 end
 
-                return {
+                local candidate = {
                     mapID = tonumber(row.mapID) or mapID,
                     x = tonumber(row.x),
                     y = tonumber(row.y),
@@ -291,11 +294,17 @@ function API:FindQuestOnMaps(questID, startingMapID, phase)
                     inProgress = row.inProgress,
                     numObjectives = row.numObjectives,
                 }
+
+                if phaseMatch then
+                    return candidate
+                end
+
+                fallback = fallback or candidate
             end
         end
     end
 
-    return nil
+    return fallback
 end
 
 function API:GetQuestLineCoordinate(questID, preferredMapID)
