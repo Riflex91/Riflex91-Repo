@@ -33,6 +33,7 @@ local DEFAULT_SETTINGS = {
     rxpSeason = 0,
     rxpRate = 1.0,
     rxpHardcoreMode = false,
+    rxpSoDMode = false,
 }
 
 local function isoNow()
