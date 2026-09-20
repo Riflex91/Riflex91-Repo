@@ -41,12 +41,12 @@ public sealed class SafeFolderPicker : Form
         root.Controls.Add(new Label
         {
             AutoSize = true,
-            Text = "Wähle den World-of-Warcraft-Hauptordner aus. Darin muss die Datei .build.info liegen.",
+            Text = "Wähle den WoW-Hauptordner oder direkt den Forever-Ordner _classic_beta_ aus.",
             Margin = new Padding(0, 0, 0, 8),
         });
 
         pathBox.Dock = DockStyle.Fill;
-        pathBox.PlaceholderText = @"z. B. C:\Program Files (x86)\World of Warcraft";
+        pathBox.PlaceholderText = @"z. B. C:\Program Files (x86)\World of Warcraft\_classic_beta_";
         pathBox.TextChanged += (_, _) => ValidatePath();
         root.Controls.Add(pathBox);
 
@@ -60,7 +60,7 @@ public sealed class SafeFolderPicker : Form
         };
         tree.NodeMouseDoubleClick += (_, e) =>
         {
-            if (e.Node.Tag is string path && IsWowRoot(path))
+            if (e.Node.Tag is string path && WowPathResolver.IsValidSelection(path))
                 Accept(path);
         };
         root.Controls.Add(tree);
@@ -99,12 +99,12 @@ public sealed class SafeFolderPicker : Form
         };
         auto.Click += (_, _) =>
         {
-            var detected = Program.AutoDetectWowRoot();
+            var detected = Program.AutoDetectForeverPath();
             if (detected is null)
             {
                 MessageBox.Show(
                     this,
-                    "Es wurde kein WoW-Hauptordner automatisch gefunden. Du kannst den Pfad oben direkt eingeben oder im Baum auswählen.",
+                    "Es wurde kein Forever-/WoW-Ordner automatisch gefunden. Du kannst den Pfad oben direkt eingeben oder im Baum auswählen.",
                     "ForeverDataMiner",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
@@ -219,15 +219,20 @@ public sealed class SafeFolderPicker : Form
             return;
         }
 
-        if (IsWowRoot(path))
+        var wowRoot = WowPathResolver.ResolveRoot(path);
+        if (wowRoot is not null)
         {
-            status.Text = "✓ Gültiger WoW-Hauptordner (.build.info gefunden)";
+            if (WowPathResolver.IsForeverProductPath(path))
+                status.Text = "✓ Forever erkannt: _classic_beta_ · WoW-Root: " + wowRoot;
+            else
+                status.Text = "✓ Gültiger WoW-Hauptordner (.build.info gefunden)";
+
             status.ForeColor = Color.DarkGreen;
             okButton.Enabled = true;
         }
         else
         {
-            status.Text = "Dieser Ordner enthält keine .build.info-Datei.";
+            status.Text = "Kein gültiger WoW-Hauptordner oder Forever-Produktordner.";
             status.ForeColor = Color.DarkRed;
             okButton.Enabled = false;
         }
@@ -247,9 +252,6 @@ public sealed class SafeFolderPicker : Form
             return null;
         }
     }
-
-    private static bool IsWowRoot(string path) =>
-        File.Exists(Path.Combine(path, ".build.info"));
 
     private void Accept(string path)
     {
