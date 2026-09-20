@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.4
+name: Mewthisch Guides addon v0.5
 
 on:
   workflow_dispatch:
@@ -72,40 +72,92 @@ jobs:
           print("Bearing math PASS")
           LUA
 
-      - name: Validate Step 2 contract
+      - name: Validate step engine and resync
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG = {
+            Data = {
+              guide = {
+                id = "test",
+                steps = {
+                  {id="q1", order=10, questID=1, title="Q1", faction="Horde"},
+                  {id="q2", order=20, questID=2, title="Q2", faction="Horde"},
+                  {id="q3", order=30, questID=3, title="Q3", faction="Horde"},
+                }
+              }
+            },
+            db = { runtime = {} },
+          }
+
+          assert(loadfile("world of warcraft/MewthischGuides/GoalEngine.lua"))("MewthischGuides", MG)
+          assert(loadfile("world of warcraft/MewthischGuides/StepEngine.lua"))("MewthischGuides", MG)
+
+          MG.GetPlayerProfile = function()
+            return { faction="Horde", race="Troll", class="HUNTER", level=8 }
+          end
+          MG.Log = function() end
+          MG.IsQuestFlaggedCompletedSafe = function(_, questID)
+            return questID == 1
+          end
+          MG.GetQuestLogSnapshot = function()
+            return {
+              [2] = {
+                questID=2, title="Q2", level=2, questLogIndex=1,
+                readyForTurnIn=false,
+                objectives={{type="monster", text="Boar: 2/10", numFulfilled=2, numRequired=10, finished=false}},
+              }
+            }
+          end
+
+          local steps, preferredIndex, reason = MG:BuildGuideSteps()
+          assert(#steps == 2, "expected completed step to be omitted")
+          assert(steps[preferredIndex].questID == 2, "resync should prefer active route quest")
+          assert(steps[preferredIndex].phase == MG.StepPhases.OBJECTIVES, "expected objective phase")
+          assert(reason == "active_route_quest", "wrong resync reason")
+          assert(MG:GetExpectedQuestForAutomation("accept") == nil, "objective phase must not auto-accept")
+
+          MG.currentStep = {questID=3, phase=MG.StepPhases.ACCEPT}
+          assert(MG:GetExpectedQuestForAutomation("accept") == 3, "accept phase must expose expected quest")
+          assert(MG:GetExpectedQuestForAutomation("turnin") == nil, "accept phase must not turn in")
+
+          MG.currentStep = {questID=2, phase=MG.StepPhases.TURNIN}
+          assert(MG:GetExpectedQuestForAutomation("turnin") == 2, "turnin phase must expose expected quest")
+          assert(MG:GetExpectedQuestForAutomation("accept") == nil, "turnin phase must not accept")
+
+          print("Step/resync contract PASS")
+          LUA
+
+      - name: Validate Step 3 and 4 contract
         shell: bash
         run: |
           set -euo pipefail
           TOC="world of warcraft/MewthischGuides/MewthischGuides.toc"
-          NAV="world of warcraft/MewthischGuides/Navigation.lua"
-          ARROW="world of warcraft/MewthischGuides/Navigator.lua"
-          GOALS="world of warcraft/MewthischGuides/GoalEngine.lua"
+          STEP="world of warcraft/MewthischGuides/StepEngine.lua"
+          AUTO="world of warcraft/MewthischGuides/QuestAutomation.lua"
+          UI="world of warcraft/MewthischGuides/UI.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
           grep -q '^## Title: Mewthisch Guides$' "$TOC"
-          grep -q '^## Version: 0.4.0$' "$TOC"
+          grep -q '^## Version: 0.5.0$' "$TOC"
           grep -q '^GoalEngine.lua$' "$TOC"
-          grep -q '^Navigator.lua$' "$TOC"
+          grep -q '^StepEngine.lua$' "$TOC"
 
-          grep -q 'GoalStates' "$GOALS"
-          grep -q 'BuildQuestGoals' "$GOALS"
-          grep -q 'GetActiveGoal' "$GOALS"
-          grep -q 'goalSummary' "world of warcraft/MewthischGuides/UI.lua"
+          grep -q 'StepPhases' "$STEP"
+          grep -q 'BuildGuideSteps' "$STEP"
+          grep -q 'active_route_quest' "$STEP"
+          grep -q 'GetExpectedQuestForAutomation' "$STEP"
 
-          grep -q 'YARDS_TO_METERS = 0.9144' "$NAV"
-          grep -q 'ComputeAbsoluteBearing' "$NAV"
-          grep -q 'ComputeRelativeBearing' "$NAV"
-          grep -q 'local deltaY = ty - py' "$NAV"
-          grep -q 'QuestPOIUpdateIcons' "$NAV"
-          grep -q 'directionReliable' "$NAV"
-          if grep -q 'navigationScreenAngle' "$NAV"; then
-            echo "Unsafe screen-angle fallback is still present."
+          grep -q 'expectedQuestID' "$AUTO"
+          grep -q 'quest_id_safe_gossip_api_unavailable' "$AUTO"
+          grep -q 'current_step_does_not_expect_gossip_action' "$AUTO"
+          if grep -q 'SelectAvailableQuest, 1' "$AUTO"; then
+            echo "Unsafe first-available quest fallback detected."
             exit 1
           fi
 
-          grep -q 'Intentionally no background' "$ARROW"
-          grep -q 'UI-HUD-Minimap-Arrow-Player' "$ARROW"
-          grep -q 'Never show a guessed direction' "$ARROW"
+          grep -q 'centerOverlay(infoFrame)' "$UI"
+          grep -q 'centerOverlay(settingsFrame)' "$UI"
 
       - name: Package addon
         shell: bash
@@ -113,11 +165,11 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.4.zip MewthischGuides
+          zip -r MewthischGuides-v0.5.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.4
-          path: artifacts/MewthischGuides-v0.4.zip
+          name: MewthischGuides-v0.5
+          path: artifacts/MewthischGuides-v0.5.zip
           if-no-files-found: error
