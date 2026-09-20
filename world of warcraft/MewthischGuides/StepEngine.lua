@@ -182,6 +182,15 @@ function MG:BuildRouteStep(definition, snapshotEntry)
         activeGoal = goals[1]
     end
 
+    local routeHints = {}
+    if self.RestEDXPImport and definition.rxpOccurrences then
+        routeHints = self.RestEDXPImport:GetHints(
+            definition,
+            phase,
+            self:GetPlayerProfile(),
+            4)
+    end
+
     return {
         id = definition.id,
         routeOrder = definition.order,
@@ -201,6 +210,7 @@ function MG:BuildRouteStep(definition, snapshotEntry)
         guideID = activeGuide(self) and activeGuide(self).id or nil,
         mapID = definition.mapID,
         definition = definition,
+        routeHints = routeHints,
         questLogIndex = snapshotEntry and snapshotEntry.questLogIndex or nil,
     }
 end
