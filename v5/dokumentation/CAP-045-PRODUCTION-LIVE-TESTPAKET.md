@@ -3,7 +3,7 @@
 **Status:** IMPLEMENTIERT / LIVE-ABNAHME AUSSTEHEND  
 **Basis-main:** `404592b2f375858de5c365a3c1dea1663ed5f164`  
 **Testkennung:** `cap045-production-live-certification`  
-**Controller-Version:** `1.0.2`
+**Controller-Version:** `1.0.3`
 
 ## Ziel
 
@@ -106,18 +106,18 @@ Wenn reale Evidence unvollständig ist oder eine Stage blockiert, bleibt:
 
 Der GUI-Gesamtbericht enthält mindestens Testkennung, GUI-/Controller-Version, Gesamtstatus, Start-/Endzeit, Stage-Status, Evidence-Klasse, CoverageAudit, Soak-Dauer, Samples/Gaps, Fingerprint-Fehler, Duplicate/Unverified irreversible Effects, Invariant Violations, Recipient Settlement, Zertifizierer-Writes, Synthetic Regression, Live-Beweis-Status, Blocker sowie die beiden unveraenderlichen Safety-Werte.
 
-Der Bericht ist nach Abschluss über **Gesamtbericht kopieren** zu kopieren und zur Auswertung gegen den exakten Repo-/Merge-Stand zu verwenden.
+Der normale GUI-Gesamtbericht bleibt fuer die menschliche Diagnose geeignet, begrenzt verschachtelte Werte aber absichtlich. Fuer die formale Evidence-Abnahme ist ab Controller 1.0.3 der read-only **Maschinenbericht vollständig kopieren** zu verwenden. Er serialisiert `bericht()` direkt per `JSON.stringify` und veraendert weder Session noch Journal noch Gameplay.
 
 
 ## Formale Evidence-Abnahme
 
-Nach dem Ingame-Lauf wird der unveraenderte Text aus **Gesamtbericht kopieren** fail-closed validiert.
+Nach dem Ingame-Lauf wird der unveraenderte lossless Maschinenbericht fail-closed validiert. Ein bereits mit Controller 1.0.2 abgeschlossener Lauf darf nach Laden von 1.0.3 aus der persistenten Session exportiert werden; `bericht()` bewahrt dabei die urspruengliche Session-Controller-Version.
 
 Validator:
 
 `werkzeuge/cap045-production-live-evidence-pruefen.mjs`
 
-Der Validator akzeptiert nur Controller `1.0.2` und verlangt unter anderem:
+Der Validator akzeptiert Controller `1.0.2` und `1.0.3` und verlangt unter anderem:
 
 - alle drei Stages `BESTANDEN`;
 - ausschliesslich `LIVE`-Evidence fuer den Live-Nachweis;
