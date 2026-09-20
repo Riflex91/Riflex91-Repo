@@ -30,6 +30,7 @@ export interface MerchantLogistikPlan {
   readonly gueltigBisMs: number;
   readonly maximalTransferDistanz: number;
   readonly zielFreshnessFingerprint: string;
+  readonly baselineEmpfaengerInventoryFingerprint: string;
 }
 
 export interface RendezvousEvidence {
@@ -125,6 +126,7 @@ export class MerchantLogistikLedger {
       plan.ownerCharacterId,
       plan.quelleCharacterId,
       plan.zielFreshnessFingerprint,
+      plan.baselineEmpfaengerInventoryFingerprint,
     ]) pruefeText(text, "LOGISTIK_TEXT_UNGUELTIG");
     if (!["SUPPLY_DELIVERY", "COLLECTION", "GEAR_DELIVERY"].includes(plan.art)) {
       throw new Error("LOGISTIK_ART_UNGUELTIG");
@@ -230,8 +232,12 @@ export class MerchantLogistikLedger {
       evidence.settlementFingerprint,
     ]) pruefeText(text, "LOGISTIK_SETTLEMENT_TEXT_UNGUELTIG");
     if (!Number.isSafeInteger(evidence.beobachtetAmMs)
-        || evidence.beobachtetAmMs < alt.plan.erstelltAmMs) {
+        || evidence.beobachtetAmMs < alt.plan.erstelltAmMs
+        || evidence.beobachtetAmMs > alt.plan.gueltigBisMs) {
       throw new Error("LOGISTIK_SETTLEMENT_EVIDENCE_ZU_ALT");
+    }
+    if (evidence.baselineInventoryFingerprint !== alt.plan.baselineEmpfaengerInventoryFingerprint) {
+      throw new Error("LOGISTIK_SETTLEMENT_BASELINE_DRIFT");
     }
     if (evidence.inventoryFingerprint === evidence.baselineInventoryFingerprint) {
       throw new Error("LOGISTIK_SETTLEMENT_KEIN_NEUER_INVENTARSTAND");
