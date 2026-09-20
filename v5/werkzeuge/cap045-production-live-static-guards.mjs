@@ -31,7 +31,11 @@ for (const marker of [
   "root?.server?.id",
   "parentRoot?.server_region",
   "parentRoot?.server_identifier",
-  "serverBindungQuelle"
+  "serverBindungQuelle",
+  "maschinenBerichtObjekt",
+  "maschinenBerichtText",
+  "kopiereMaschinenBericht",
+  "controllerVersion: session.controllerVersion ?? VERSION"
 ]) {
   if (!controller.includes(marker)) fehler.push("CAP045_LIVE_MARKER_FEHLT:" + marker);
 }
@@ -40,7 +44,10 @@ for (const marker of [
   "pruefeProduktionsGraph",
   "sourceReportFingerprintSha256",
   "CONTROLLED_PROOF_WRITE_ANZAHL_UNGUELTIG",
-  "COVERAGE_CORE_GRAPH_UNGUELTIG"
+  "COVERAGE_CORE_GRAPH_UNGUELTIG",
+  "CONTROLLER_VERSIONS",
+  "\"1.0.2\"",
+  "\"1.0.3\""
 ]) {
   if (!evidenceValidator.includes(marker)) fehler.push("CAP045_EVIDENCE_MARKER_FEHLT:" + marker);
 }
