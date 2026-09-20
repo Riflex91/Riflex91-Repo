@@ -476,7 +476,8 @@ jobs:
           UI="$ROOT/UI.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
-          grep -q '^## Version: 0.11.2
+          grep -q '^## Version: 0.11.2$' "$TOC"
+          grep -q '^## OptionalDeps: ElvUI, EllesmereUI, ElvUI_ToxiUI$' "$TOC"
           grep -q '^ManualRoute.lua$' "$TOC"
           grep -q '^WorldMapMarker.lua$' "$TOC"
           grep -q '^RestedXPImport.lua$' "$TOC"
@@ -487,6 +488,7 @@ jobs:
           grep -q 'showWorldMapMarker' "$UI"
           grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
           grep -q 'routeMode = "preset"' "$ROOT/Logger.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
           grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
           grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
           grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
@@ -495,8 +497,11 @@ jobs:
           grep -q 'objectiveProgressColor' "$UI"
           grep -q 'goalRowText' "$UI"
           grep -q 'arrow:SetSize(104, 104)' "$ROOT/Navigator.lua"
-          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
-          grep -q '^## OptionalDeps: ElvUI, EllesmereUI, ElvUI_ToxiUI
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
           if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
             echo "Deprecated footer arrow button is still present."
             exit 1
