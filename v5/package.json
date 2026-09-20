@@ -1,9 +1,9 @@
 {
   "name": "adventure-land-aio-v5",
-  "version": "5.0.0-r6.0",
+  "version": "5.0.0-r7.0",
   "private": true,
   "type": "module",
-  "description": "Adventure Land AiO Bot V5 – R6 no-write Observation, Wissenszugriff und World-Truth-Grundlage.",
+  "description": "Adventure Land AiO Bot V5 – R7 no-write Module-, Capability-, Port- und Authority-Grundlage.",
   "scripts": {
     "bereinigen": "node werkzeuge/r3-bereinigen.mjs",
     "bauen": "npm run bereinigen && tsc -p tsconfig.json",
@@ -22,7 +22,9 @@
     "r5:pruefen": "npm run typen:pruefen && npm run lint && npm run r5:test && node werkzeuge/r5-struktur-pruefen.mjs",
     "r6:test": "npm run grundlage:test",
     "r6:pruefen": "npm run typen:pruefen && npm run lint && npm run r6:test && npm run r6:abdeckung && node werkzeuge/r6-struktur-pruefen.mjs",
-    "r6:abdeckung": "node werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
+    "r6:abdeckung": "node werkzeuge/r6-anzeigekatalog-abdeckung.mjs",
+    "r7:test": "npm run grundlage:test",
+    "r7:pruefen": "npm run typen:pruefen && npm run lint && npm run r7:test && node werkzeuge/r7-statische-guards.mjs && node werkzeuge/r7-struktur-pruefen.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
