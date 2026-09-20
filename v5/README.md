@@ -325,3 +325,12 @@ ADR: `architektur/adr/ADR-022-R19-ZERTIFIZIERUNG.md`
 **Naechste Stufe: CONTROLLED_LIVE. Diese Stufe ist manuell und benoetigt den PC/Ingame-Test.**
 
 R19 bleibt `IN_PROGRESS`; die breite Gameplay-Runtime bleibt `GESPERRT`.
+
+
+## R19 – Controlled Live bestanden
+
+Controlled Live: **BESTANDEN**. Der manuelle Ingame-Lauf `R19-1789894379854-ced64768` erzeugte exakt einen erwarteten `equip`-Write, null unerwartete Writes, keinen Same-Intent-Retry und eine bestaetigte fachliche Postcondition.
+
+Evidence: `roadmap/r19-controlled-live-evidence.json`.
+
+Naechste Stufe: **CANARY**. R19 bleibt `IN_PROGRESS`; die breite Runtime bleibt `GESPERRT`.

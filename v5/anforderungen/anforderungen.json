@@ -1468,8 +1468,10 @@
         "v5/grundlage/quelle/zertifizierung/ladder.ts",
         "v5/grundlage/tests/r19-evidence-ladder.test.mjs",
         "v5/grundlage/tests/r19-shadow-certification.test.mjs",
-        "v5/roadmap/r19-automatik-evidence.json"
-      ]
+        "v5/roadmap/r19-automatik-evidence.json",
+        "v5/roadmap/r19-controlled-live-evidence.json"
+      ],
+      "r19LiveStatus": "BIS_CONTROLLED_LIVE_BESTANDEN"
     },
     {
       "kennung": "V5-ANF-OPS-007",

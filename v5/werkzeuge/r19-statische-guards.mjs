@@ -13,6 +13,10 @@ const pflicht=[
   "werkzeuge/r19-controlled-live-test-paket.js",
   "werkzeuge/r19-test-gui-paket-bauen.mjs",
   "werkzeuge/tests/r19-test-gui.test.mjs",
+  "werkzeuge/tests/r19-canary-test-gui.test.mjs",
+  "werkzeuge/r19-canary-test-paket-bauen.mjs",
+  "werkzeuge/r19-canary-test-paket.js",
+  "werkzeuge/r19-canary-test-gui.js",
 ];
 for(const p of pflicht) if(!fs.existsSync(p)) fehler.push("PFLICHTARTEFAKT_FEHLT:"+p);
 
@@ -70,6 +74,25 @@ for(const m of [
 }
 const equipAufrufe=liveGui.match(/\.equip\s*\(/g)??[];
 if(equipAufrufe.length!==1) fehler.push("CONTROLLED_LIVE_GUI_EQUIP_ANZAHL:"+equipAufrufe.length);
+
+const canaryGui=lies("werkzeuge/r19-canary-test-gui.js");
+for(const m of [
+  "R19-CANARY-EQUIP-ONCE",
+  "zertifizierungsStufe: 'CANARY'",
+  "r19-canary-bounded-test-ranker",
+  "maximalerAbsoluterScoreDelta: MAX_DELTA",
+  "gameplayAutoritaet: false",
+  "authorityAenderungErlaubt: false",
+  "safetyLockerungErlaubt: false",
+  "deterministischerFallbackIndex",
+  "hardErlaubteKandidaten",
+  "sameIntentRetry: false",
+  "breiteRuntimeFreigabe: false",
+]){
+  if(!canaryGui.includes(m)) fehler.push("R19_CANARY_GUI_MARKER_FEHLT:"+m);
+}
+const canaryEquipAufrufe=canaryGui.match(/\.equip\s*\(/g)??[];
+if(canaryEquipAufrufe.length!==1) fehler.push("R19_CANARY_GUI_EQUIP_ANZAHL:"+canaryEquipAufrufe.length);
 
 const rawMuster=[
   /\battack\s*\(/,/\bsmart_move\s*\(/,/\bmove\s*\(/,/\bxmove\s*\(/,

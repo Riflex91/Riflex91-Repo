@@ -923,6 +923,18 @@ Naechste Stufe: **CONTROLLED_LIVE**. Diese Stufe und anschliessend Canary erford
 Evidence: `roadmap/r19-automatik-evidence.json`.
 
 
+
+### Controlled Live
+
+**Status:** BESTANDEN.
+
+Run: `R19-1789894379854-ced64768`. Exakt ein `equip`-Write, `unerwarteteGameWrites=0`, kein Same-Intent-Retry, Serverantwort erfolgreich, Postcondition `BESTAETIGT`.
+
+Evidence: `roadmap/r19-controlled-live-evidence.json`.
+
+Naechste Stufe: **CANARY**. OPS-006 bleibt bis zum Abschluss der gesamten Ladder offen.
+
+
 ## 4. Pflicht-Definition-of-Done fuer jede neue Capability
 
 Jede Capability braucht vor Merge/Live-Freigabe:

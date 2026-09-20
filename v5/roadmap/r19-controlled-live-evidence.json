@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20T08:52:59.869Z",
+  "phase": "R19",
+  "status": "BESTANDEN",
+  "evidenceArt": "MANUELLE_CONTROLLED_LIVE_EVIDENCE",
+  "zertifizierungsStufe": "CONTROLLED_LIVE",
+  "source": "V5_INGAME_TEST_GUI_BERICHT",
+  "sourceGuiVersion": "1.0.0",
+  "sourceKennung": "r19-controlled-live-equip",
+  "sourceReportFingerprintSha256": "34fa815f58fecde8c12f2bfe1ccb5f31d5413d2010ea003c184b120abe18d020",
+  "runId": "R19-1789894379854-ced64768",
+  "actionContractId": "AL-ACTION-EQUIP",
+  "recoveryContractId": "AL-RECOVERY-EQUIP",
+  "verifierId": "AL-VERIFIER-EQUIP",
+  "publicFunction": "equip",
+  "gameWrites": 1,
+  "unerwarteteGameWrites": 0,
+  "maximaleAktionen": 1,
+  "sendVersuche": 1,
+  "sameIntentRetry": false,
+  "breiteRuntimeFreigabe": false,
+  "manuelleBestaetigung": true,
+  "charakter": "My_Merchant",
+  "preflight": {
+    "status": "BESTANDEN",
+    "rip": false,
+    "bewegtSich": false,
+    "zielName": null,
+    "feindeAufCharakter": 0,
+    "alternativeRuntimeAktiv": false,
+    "blocker": [],
+    "testJournalSpeicher": {
+      "ok": true,
+      "art": "BROWSER_TEST_WITNESS",
+      "produktionsPersistenz": false
+    }
+  },
+  "kandidat": {
+    "inventoryIndexVorher": 7,
+    "itemName": "partyhat",
+    "itemLevel": 5,
+    "slot": "helmet",
+    "slotWarLeer": false,
+    "vorherigesSlotItem": {
+      "name": "wcap",
+      "level": 4
+    }
+  },
+  "serverErgebnis": {
+    "num": 7,
+    "slot": "helmet",
+    "success": true,
+    "response": "data",
+    "place": "equip"
+  },
+  "serverFehler": null,
+  "postcondition": {
+    "klassifikation": "BESTAETIGT",
+    "slot": {
+      "name": "partyhat",
+      "level": 5
+    },
+    "inventoryIndex": {
+      "index": 7,
+      "name": "wcap",
+      "level": 4,
+      "gesperrt": false,
+      "typ": "helmet"
+    }
+  },
+  "testJournal": {
+    "art": "BROWSER_TEST_WITNESS",
+    "produktionsPersistenz": false,
+    "status": "COMMITTED"
+  },
+  "sicherheitsnachweis": {
+    "alteV3RuntimeAktiv": false,
+    "alteV4RuntimeAktiv": false,
+    "alternativeRuntimeAktiv": false,
+    "expliziteBestaetigung": "R19-CONTROLLED-LIVE-EQUIP-ONCE",
+    "keinBlindRetry": true,
+    "breiteGameplayRuntimeWeiterGesperrt": true
+  },
+  "ladder": {
+    "vorherigeStufe": "SHADOW",
+    "dieseStufe": "CONTROLLED_LIVE",
+    "naechsteStufe": "CANARY"
+  },
+  "hinweis": "Controlled Live ist mit exakt einem postcondition-verifizierten equip-Write bestanden. Diese Evidence schliesst Canary oder die Soak-Stufen nicht ein."
+}

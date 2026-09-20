@@ -309,8 +309,8 @@
     }
   ],
   "offeneBlocker": [
-    "R19 Controlled Live ist die naechste Zertifizierungsstufe und benoetigt jetzt den manuellen PC-/Ingame-Test",
-    "Danach folgen Canary sowie 1h/24h/72h/7d-Evidence ohne Stufenueberspringen",
+    "R19 Canary ist die naechste Zertifizierungsstufe und benoetigt einen weiteren manuellen PC-/Ingame-Test",
+    "Danach folgen 1h/24h/72h/7d-Evidence ohne Stufenueberspringen",
     "Breite Gameplay-Runtime bleibt bis zur erfolgreichen kompletten R19-Ladder und expliziten Gesamtfreigabe GESPERRT",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
@@ -365,8 +365,10 @@
   "r19Status": "IN_PROGRESS",
   "r19AutomatikStatus": "BIS_SHADOW_BESTANDEN",
   "r19AutomatikEvidence": "v5/roadmap/r19-automatik-evidence.json",
-  "r19NaechsteStufe": "CONTROLLED_LIVE",
+  "r19NaechsteStufe": "CANARY",
   "r19ManuellerPcTestErforderlich": true,
   "r19AnforderungenNachgewiesen": 2,
-  "r19AnforderungenGesamt": 3
+  "r19AnforderungenGesamt": 3,
+  "r19LiveStatus": "BIS_CONTROLLED_LIVE_BESTANDEN",
+  "r19ControlledLiveEvidence": "v5/roadmap/r19-controlled-live-evidence.json"
 }
