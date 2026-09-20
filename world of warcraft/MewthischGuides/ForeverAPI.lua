@@ -67,6 +67,8 @@ function API:BuildCapabilityMatrix()
     local talents = C_ClassTalents or {}
     local spell = C_Spell or {}
     local nav = C_Navigation or {}
+    local container = C_Container or {}
+    local taxi = C_TaxiMap or {}
     local secrets = C_Secrets or {}
 
     return {
@@ -106,11 +108,26 @@ function API:BuildCapabilityMatrix()
         item = {
             statDelta = exists(item.GetItemStatDelta),
             equipped = exists(item.IsEquippedItem),
+            equippable = exists(item.IsEquippableItem) or exists(IsEquippableItem),
+            detailedItemLevel = exists(item.GetDetailedItemLevelInfo) or exists(GetDetailedItemLevelInfo),
             itemCount = exists(item.GetItemCount),
-            containerQuestInfo = C_Container and exists(C_Container.GetContainerItemQuestInfo) or false,
+            containerQuestInfo = exists(container.GetContainerItemQuestInfo),
+            containerInfo = exists(container.GetContainerItemInfo),
+            containerLink = exists(container.GetContainerItemLink),
+            pickupContainerItem = exists(container.PickupContainerItem),
+        },
+        reward = {
+            choices = exists(GetNumQuestChoices),
+            itemLink = exists(GetQuestItemLink),
+            reward = exists(GetQuestReward),
+        },
+        travel = {
+            taxiMap = type(C_TaxiMap) == "table",
+            taxiNodesForMap = exists(taxi.GetTaxiNodesForMap),
         },
         build = {
-            specializationInfo = exists(spec.GetSpecializationInfo),
+            specializationInfo = exists(spec.GetSpecializationInfo) or exists(GetSpecializationInfo),
+            getSpecialization = exists(GetSpecialization),
             traitTreeHash = exists(traits.GetTreeHash),
             initializeViewLoadout = exists(talents.InitializeViewLoadout),
         },
