@@ -312,7 +312,7 @@ function MG:InitializeUI()
     ui.close = close
 
     local infoFrame = CreateFrame("Frame", "MewthischGuidesInfoFrame", UIParent)
-    infoFrame:SetSize(470, 430)
+    infoFrame:SetSize(470, 560)
     centerOverlay(infoFrame)
     infoFrame:SetClampedToScreen(true)
     stylePanel(infoFrame)
@@ -690,8 +690,11 @@ function MG:RefreshInfo()
     local gear = self.db.runtime and self.db.runtime.gear or {}
     local talent = self.db.runtime and self.db.runtime.talent or {}
     local reward = self.db.runtime and self.db.runtime.reward or {}
-    local _, themeName = self.Themes and self.Themes:GetCurrent() or nil, nil
-    if self.Themes then _, themeName = self.Themes:GetCurrent() end
+    local themeName = "Forever Classic"
+    if self.Themes then
+        local _, currentThemeName = self.Themes:GetCurrent()
+        themeName = currentThemeName or themeName
+    end
 
     local tableCount = 0
     for _ in pairs(self.Data and self.Data.tableStats or {}) do tableCount = tableCount + 1 end
