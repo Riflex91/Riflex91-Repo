@@ -7,6 +7,8 @@ namespace ForeverDataMiner;
 
 public sealed class ManagedWowToolsProcess(Process? process) : IAsyncDisposable
 {
+    public bool StartedByMiner => process is not null;
+
     public async ValueTask DisposeAsync()
     {
         if (process is null) return;
