@@ -295,8 +295,11 @@ public static class WowToolsProviderBootstrapper
             if (executable is null)
                 return null;
 
-            var versionDirectory = Directory.GetParent(executable)?.Parent;
-            var version = versionDirectory?.Name ?? "recovered";
+            var relative = Path.GetRelativePath(versionsRoot, executable);
+            var version = relative
+                .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))
+                ?? "recovered";
 
             var marker = new ProviderInstallMarker
             {
