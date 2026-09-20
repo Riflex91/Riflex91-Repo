@@ -129,7 +129,7 @@ export class MerchantTaskKoordinator {
     );
     if (naechster === undefined) return null;
     if (!naechster.plan.ablaufId.startsWith("merchant:")) {
-      throw new Error("MERCHANT_TASK_FREMDER_ABLAUF");
+      return null;
     }
 
     const demand = this.#findeDemandFuerAblauf(naechster);
