@@ -5,8 +5,8 @@ const fehler = text => { throw new Error("[V5-R9-VERTRAGSABDECKUNG] " + text); }
 
 const actions = lies("wissensbasis/vertraege/action-contracts.json").contracts;
 const recoveries = lies("wissensbasis/vertraege/recovery-contracts.json").actions;
-const verifiers = lies("ausfuehrung/vertraege/verifier-katalog.json").verifiers;
-const bindungen = lies("ausfuehrung/vertraege/r9-bindungen.json").bindungen;
+const verifiers = lies("grundlage/vertraege/r9/verifier-katalog.json").verifiers;
+const bindungen = lies("grundlage/vertraege/r9/action-bindungen.json").bindungen;
 
 if (actions.length !== 60) fehler("Action-Contract-Anzahl muss 60 sein.");
 if (recoveries.length !== 60) fehler("Recovery-Contract-Anzahl muss 60 sein.");
