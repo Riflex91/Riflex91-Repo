@@ -1,6 +1,6 @@
 # CAP-045 – Production Live Testpaket
 
-**Status:** IMPLEMENTIERT / LIVE-ABNAHME AUSSTEHEND  
+**Status:** IMPLEMENTIERT / LIVE-ABNAHME BESTANDEN  
 **Basis-main:** `404592b2f375858de5c365a3c1dea1663ed5f164`  
 **Testkennung:** `cap045-production-live-certification`  
 **Controller-Version:** `1.0.3`
@@ -139,3 +139,26 @@ Beispiel:
 `npm run cap045:live-evidence:pruefen -- bericht.txt --evidence roadmap/cap045-production-live-evidence.json`
 
 Die Evidence-Datei darf erst nach einem echten bestandenen Adventure-Land-Lauf erzeugt und committed werden.
+
+## Abgeschlossene Live-Abnahme
+
+Die Production-Live-Abnahme wurde am 2026-09-20 erfolgreich abgeschlossen und als kanonische Evidence committed:
+
+`roadmap/cap045-production-live-evidence.json`
+
+Der validierte Lauf verwendete GUI 1.1.0 und Live-Controller 1.0.2. Der spaetere Controller 1.0.3 wurde ausschliesslich fuer den verlustfreien read-only Maschinenexport geladen; die originale Session-Provenienz blieb 1.0.2.
+
+Der finale Lauf weist aus:
+
+- Stage 1 / 2 / 3: `BESTANDEN`;
+- 4/4 Coverage-Ziele `FULLY_RESOLVED`;
+- 352710 ms Live-Soak und 22 Samples;
+- 0 Sample-Gaps, Fingerprint-Fehler, Duplicate/Unverified Effects und Invariant Violations;
+- `zertifiziererGameplayWrites=0`;
+- exakt `controlledProofDriverGameplayWrites=1`;
+- `sendCount=1` und kein Same-Intent-Retry;
+- verifizierte Postcondition und Recipient Settlement;
+- Journal `COMMITTED`;
+- `breiteRuntimeFreigabe=false` innerhalb der CAP-045-Evidence.
+
+Der SHA-256-Fingerprint des unveraenderten lossless Maschinenberichts ist in der Evidence als `sourceReportFingerprintSha256` gepinnt.
