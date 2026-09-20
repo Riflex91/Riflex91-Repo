@@ -69,7 +69,7 @@
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
       "erfuellt": false,
-      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. R7 weist 5/5 und R8 weitere 6/6 MUSS-Anforderungen technisch und tracebar nach; erfuellt bleibt bis zur technischen Kopplung aller spaeteren Phasen an Implementierung, Tests und erforderliche Live-Nachweise false.",
+      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. R7 weist 5/5, R8 6/6 und R9 weitere 4/4 MUSS-Anforderungen technisch und tracebar nach; erfuellt bleibt bis zur technischen Kopplung der spaeteren Recovery-/Operations-Phasen und erforderlicher Live-Nachweise false.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
         "v5/anforderungen/nachverfolgbarkeit.json"
@@ -81,12 +81,15 @@
       "r7AnforderungenGesamt": 5,
       "r8NachweisVorhanden": true,
       "r8AnforderungenNachgewiesen": 6,
-      "r8AnforderungenGesamt": 6
+      "r8AnforderungenGesamt": 6,
+      "r9NachweisVorhanden": true,
+      "r9AnforderungenNachgewiesen": 4,
+      "r9AnforderungenGesamt": 4
     },
     {
       "kennung": "INVARIANTEN_BEREIT",
       "erfuellt": false,
-      "grund": "R3 erzwingt zentrale Architektur-/Host-/Default-Deny-Grenzen, R7 Single-Owner/Ports/Operator-Deny und R8 Scheduler-, Action-Channel-, Lease-/Fencing-, Safe-Preemption-, Retry-/Circuit- und Knowledge-Pinning-Invarianten. erfuellt bleibt false, bis Admission, Execution, Recovery und die spaeteren Betriebsinvarianten technisch geschlossen sind.",
+      "grund": "R3 erzwingt zentrale Architektur-/Host-/Default-Deny-Grenzen, R7 Single-Owner/Ports/Operator-Deny, R8 Scheduler/Fencing und R9 zentrale Admission mit typisierter kurzlebiger Freigabe, durable Intent, Action/Recovery/Verifier-Bindung sowie unmittelbarer Live-Revalidierung. erfuellt bleibt false, bis Recovery und spaetere Betriebsinvarianten technisch geschlossen sind.",
       "nachweise": [
         "v5/invarianten/invarianten.json",
         "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
@@ -100,7 +103,12 @@
         "v5/grundlage/quelle/scheduler/ressourcen-verwalter.ts",
         "v5/grundlage/quelle/scheduler/socket-budget.ts",
         "v5/grundlage/quelle/scheduler/retry-circuit.ts",
-        "v5/architektur/adr/ADR-009-R8-SCHEDULER-RESSOURCEN-FENCING.md"
+        "v5/architektur/adr/ADR-009-R8-SCHEDULER-RESSOURCEN-FENCING.md",
+        "v5/grundlage/quelle/ausfuehrung/admission.ts",
+        "v5/grundlage/quelle/ausfuehrung/ausfuehrungs-kernel.ts",
+        "v5/grundlage/quelle/ausfuehrung/intent-bindung.ts",
+        "v5/grundlage/vertraege/r9/action-bindungen.json",
+        "v5/architektur/adr/ADR-010-R9-ADMISSION-EXECUTION.md"
       ],
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
@@ -109,7 +117,9 @@
       "r7NachweisVorhanden": true,
       "r7AbgeschlossenAm": "2026-09-20",
       "r8NachweisVorhanden": true,
-      "r8AbgeschlossenAm": "2026-09-20"
+      "r8AbgeschlossenAm": "2026-09-20",
+      "r9NachweisVorhanden": true,
+      "r9AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "ZUSTANDSMASCHINEN_BEREIT",
@@ -181,7 +191,7 @@
     {
       "kennung": "SECURITY_BEREIT",
       "erfuellt": false,
-      "grund": "R3 weist statische Safety-Grenzen nach, R7 Single-Owner/default-off/Operator-Deny und R8 Action-Channel-Serialisierung, character-globales Socket-Budget, Lease-Epoche/Fencing, stale-token-deny, Safe-Preemption und bounded Retry/Circuit. erfuellt bleibt false, bis R9-R11 Admission, Execution, Recovery und Operations technisch abgeschlossen sind.",
+      "grund": "R3 weist statische Safety-Grenzen nach, R7 Single-Owner/default-off/Operator-Deny, R8 Action-Channel/Fencing/Socket-Budget und R9 die zentrale Mehrfach-Verriegelungs-Admission inklusive durable Intent, Runtime-Gate, Capability/Owner, Operator-Deny, Fencing, Budget, Contracts/Verifier/Recovery und frischen Live-Preconditions. erfuellt bleibt false, bis R10-R11 Recovery und Operations technisch abgeschlossen sind.",
       "nachweise": [
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
@@ -195,7 +205,13 @@
         "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts",
         "v5/grundlage/tests/r8-ressourcen.test.mjs",
         "v5/grundlage/tests/r8-scheduler.test.mjs",
-        "v5/roadmap/r8-abschluss.json"
+        "v5/roadmap/r8-abschluss.json",
+        "v5/grundlage/quelle/ausfuehrung/admission.ts",
+        "v5/grundlage/quelle/ausfuehrung/ausfuehrungs-kernel.ts",
+        "v5/grundlage/quelle/ausfuehrung/intent-bindung.ts",
+        "v5/grundlage/tests/r9-admission-execution.test.mjs",
+        "v5/werkzeuge/r9-vertragsabdeckung.mjs",
+        "v5/roadmap/r9-abschluss.json"
       ],
       "r2VertragRatifiziert": true,
       "r3NachweisVorhanden": true,
@@ -203,7 +219,9 @@
       "r7NachweisVorhanden": true,
       "r7AbgeschlossenAm": "2026-09-20",
       "r8NachweisVorhanden": true,
-      "r8AbgeschlossenAm": "2026-09-20"
+      "r8AbgeschlossenAm": "2026-09-20",
+      "r9NachweisVorhanden": true,
+      "r9AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "BETRIEBSMODELL_BEREIT",
@@ -222,7 +240,7 @@
   ],
   "offeneBlocker": [
     "Lokal laufende Windows Bridge auf einen aktuellen Knowledge-Branch-Build aktualisieren und den lokalen Deploymentstand separat verifizieren",
-    "R9 bis R11 Admission/Execution Kernel, Recovery und Observability abschliessen",
+    "R10 bis R11 Reconciliation/Recovery, Observability und Operations abschliessen",
     "Gameplay-Runtime erst nach expliziter Laufzeitfreigabe und spaeterem Roadmap-Gate beginnen",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
@@ -239,5 +257,7 @@
   "r7Status": "ABGESCHLOSSEN",
   "r7AbgeschlossenAm": "2026-09-20",
   "r8Status": "ABGESCHLOSSEN",
-  "r8AbgeschlossenAm": "2026-09-20"
+  "r8AbgeschlossenAm": "2026-09-20",
+  "r9Status": "ABGESCHLOSSEN",
+  "r9AbgeschlossenAm": "2026-09-20"
 }
