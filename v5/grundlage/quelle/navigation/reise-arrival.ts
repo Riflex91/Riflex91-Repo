@@ -111,7 +111,7 @@ export class ReiseLedger {
 
   public beginneMovement(reiseId: string): ReiseSicht {
     const alt = this.#finde(reiseId);
-    if (alt.zustand !== "GEPLANT" && alt.zustand !== "RECOVERY_PENDING") {
+    if (alt.zustand !== "GEPLANT") {
       throw new Error("REISE_MOVEMENT_ZUSTAND_UNGUELTIG");
     }
     return this.#ersetze(friere({ ...alt, zustand: "MOVEMENT_AUSSTEHEND" }));
@@ -177,6 +177,25 @@ export class ReiseLedger {
       ...alt,
       zustand: "ANGEKOMMEN",
       arrivalFingerprint: evidence.positionsFingerprint,
+    }));
+  }
+
+  public schliesseRestartAbgleichAlsNeuZuPlanen(
+    reiseId: string,
+    reconciliationFingerprint: string,
+  ): ReiseSicht {
+    pruefeText(reconciliationFingerprint, "REISE_RECONCILIATION_FINGERPRINT_UNGUELTIG");
+    const alt = this.#finde(reiseId);
+    if (alt.zustand !== "RECOVERY_PENDING") {
+      throw new Error("REISE_RECONCILIATION_ZUSTAND_UNGUELTIG");
+    }
+    return this.#ersetze(friere({
+      ...alt,
+      zustand: "GEPLANT",
+      movementReturnAmMs: null,
+      movementReturnFingerprint: reconciliationFingerprint,
+      arrivalFingerprint: null,
+      movementReturnIstArrivalBeweis: false,
     }));
   }
 
