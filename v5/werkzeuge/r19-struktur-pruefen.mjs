@@ -35,6 +35,11 @@ for(const p of [
   "werkzeuge/r19-soak-10m-test-paket-bauen.mjs",
   "werkzeuge/r19-soak-10m-test-paket.js",
   "werkzeuge/r19-soak-10m-test-gui.js",
+  "roadmap/r19-soak-10m-evidence.json",
+  "werkzeuge/tests/r19-soak-15m-test-gui.test.mjs",
+  "werkzeuge/r19-soak-15m-test-paket-bauen.mjs",
+  "werkzeuge/r19-soak-15m-test-paket.js",
+  "werkzeuge/r19-soak-15m-test-gui.js",
   "werkzeuge/r19-canary-test-paket-bauen.mjs",
   "werkzeuge/r19-canary-test-paket.js",
   "werkzeuge/r19-canary-test-gui.js",
@@ -138,8 +143,43 @@ if(fs.existsSync("roadmap/r19-soak-5m-evidence.json")){
   if(ops6?.status!=="OFFEN"||aktuellerLiveRang<3) {
     fehler("SOAK_5M verlangt OPS-006 weiterhin OFFEN mit mindestens SOAK_5M-Teilstatus.");
   }
-  if(ready.r19NaechsteStufe!=="SOAK_10M"||ready.r19ManuellerPcTestErforderlich!==true) {
-    fehler("Readiness muss nach SOAK_5M auf manuellen SOAK_10M zeigen.");
+  if(!fs.existsSync("roadmap/r19-soak-10m-evidence.json")
+      && (ready.r19NaechsteStufe!=="SOAK_10M"||ready.r19ManuellerPcTestErforderlich!==true)) {
+    fehler("Readiness muss unmittelbar nach SOAK_5M auf manuellen SOAK_10M zeigen.");
+  }
+}
+
+if(fs.existsSync("roadmap/r19-soak-10m-evidence.json")){
+  const soak10=lies("roadmap/r19-soak-10m-evidence.json");
+  const profil10=zeitprofil.stufen?.find(x=>x.stufe==="SOAK_10M");
+  if(soak10.phase!=="R19"
+      ||soak10.status!=="BESTANDEN"
+      ||soak10.zertifizierungsStufe!=="SOAK_10M"
+      ||soak10.breiteRuntimeFreigabe!==false
+      ||soak10.gameplayWritesDurchHarness!==0
+      ||soak10.unerwarteteGameWritesImHarness!==0
+      ||soak10.evidenceKetteGueltig!==true
+      ||soak10.sampleGaps!==0
+      ||soak10.recorderDrops!==0
+      ||soak10.dauerMs<(profil10?.dauerMs??Infinity)
+      ||soak10.sampleAnzahl<(profil10?.minimaleSamples??Infinity)
+      ||soak10.runtime?.alternativeRuntimeSamples!==0
+      ||soak10.runtime?.toteSamples!==0
+      ||soak10.runtime?.performanceTrickFehler!==0
+      ||soak10.ressourcen?.browserPersistenzFehler!==0
+      ||soak10.ressourcen?.minFreieBytes<(soak10.grenzen?.minimaleFreieBytes??Infinity)
+      ||soak10.ressourcen?.maxBrowserPersistenzRoundtripMs>(soak10.grenzen?.maximalerBrowserPersistenzRoundtripMs??-Infinity)
+      ||soak10.ressourcen?.heapWachstumBytes>(soak10.grenzen?.maximalesHeapWachstumBytes??-Infinity)
+      ||soak10.blocker?.length!==0
+      ||soak10.ladder?.vorherigeStufe!=="SOAK_5M"
+      ||soak10.ladder?.naechsteStufe!=="SOAK_15M") {
+    fehler("R19 SOAK_10M Evidence ungueltig.");
+  }
+  if(ops6?.status!=="OFFEN"||aktuellerLiveRang<4) {
+    fehler("SOAK_10M verlangt OPS-006 weiterhin OFFEN mit mindestens SOAK_10M-Teilstatus.");
+  }
+  if(ready.r19NaechsteStufe!=="SOAK_15M"||ready.r19ManuellerPcTestErforderlich!==true) {
+    fehler("Readiness muss nach SOAK_10M auf manuellen SOAK_15M zeigen.");
   }
 }
 
