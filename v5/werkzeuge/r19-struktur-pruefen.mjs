@@ -53,10 +53,58 @@ for(const p of [
   "werkzeuge/cap045-production-live-evidence-pruefen.mjs",
   "werkzeuge/tests/cap045-production-live-evidence-pruefen.test.mjs",
   "dokumentation/CAP-045-PRODUCTION-LIVE-TESTPAKET.md",
+  "roadmap/cap045-production-live-evidence.json",
   "roadmap/r19-soak-zeitprofil.json",
   "roadmap/testzeit-standard.json",
 ]){
   if(!fs.existsSync(p)) fehler("R19 Pflichtartefakt fehlt: "+p);
+}
+
+const cap045=lies("roadmap/cap045-production-live-evidence.json");
+if(cap045.schemaVersion!==1
+    ||cap045.capability!=="CAP-045"
+    ||cap045.status!=="BESTANDEN"
+    ||cap045.evidenceArt!=="MANUELLE_PRODUCTION_LIVE_EVIDENCE"
+    ||cap045.source!=="V5_INGAME_TEST_GUI_BERICHT"
+    ||cap045.sourceKennung!=="cap045-production-live-certification"
+    ||cap045.sourceGuiVersion!=="1.1.0"
+    ||cap045.sourceControllerVersion!=="1.0.2"
+    ||cap045.sourceReportFingerprintSha256!=="a3416a564883f5f7762a3f9a8f20fb2afb65afab3bd4f58e5452b4e51c0d5b02"
+    ||cap045.evidenceKlasse!=="LIVE"
+    ||cap045.stageStatus?.stage1!=="BESTANDEN"
+    ||cap045.stageStatus?.stage2!=="BESTANDEN"
+    ||cap045.stageStatus?.stage3!=="BESTANDEN"
+    ||cap045.coverage?.erwarteteZiele!==4
+    ||cap045.coverage?.fullyResolved!==4
+    ||cap045.coverage?.structuralGaps!==0
+    ||cap045.coverage?.liveEvidenceFaelle!==4
+    ||cap045.soak?.dauerMs<300000
+    ||cap045.soak?.sampleAnzahl<20
+    ||cap045.soak?.sampleAnzahl>30
+    ||cap045.soak?.sampleGaps!==0
+    ||cap045.soak?.fingerprintFehler!==0
+    ||cap045.soak?.duplicateIrreversibleEffects!==0
+    ||cap045.soak?.unverifiedIrreversibleEffects!==0
+    ||cap045.soak?.invariantViolations!==0
+    ||cap045.controlledProof?.actionContractId!=="AL-ACTION-UPGRADE"
+    ||cap045.controlledProof?.recoveryContractId!=="AL-RECOVERY-UPGRADE"
+    ||cap045.controlledProof?.verifierId!=="AL-VERIFIER-UPGRADE"
+    ||cap045.controlledProof?.sendCount!==1
+    ||cap045.controlledProof?.sameIntentErneutSenden!==false
+    ||cap045.controlledProof?.postconditionVerifiziert!==true
+    ||cap045.controlledProof?.recipientSettlementVerifiziert!==true
+    ||cap045.controlledProof?.journalStatus!=="COMMITTED"
+    ||cap045.controlledProof?.zertifiziererGameplayWrites!==0
+    ||cap045.controlledProof?.controlledProofDriverGameplayWrites!==1
+    ||cap045.syntheticRegression?.status!=="BESTANDEN"
+    ||cap045.syntheticRegression?.bestanden!==true
+    ||cap045.syntheticRegression?.synthetischeEvidenceZaehltAlsLive!==false
+    ||cap045.blocker?.length!==0
+    ||cap045.safety?.diagnosticOnly!==true
+    ||cap045.safety?.actionAuthority!==false
+    ||cap045.safety?.rawWriteAuthority!==false
+    ||cap045.safety?.breiteRuntimeFreigabe!==false) {
+  fehler("CAP-045 Production-Live-Evidence ungueltig.");
 }
 
 const finalExistiert=fs.existsSync("roadmap/r19-soak-15m-evidence.json");

@@ -1,8 +1,8 @@
 # CAP-045 – Production Graph Certification
 
-**Status:** IMPLEMENTIERT / LIVE-EVIDENCE SEPARAT ERFORDERLICH  
+**Status:** IMPLEMENTIERT / LIVE-EVIDENCE BESTANDEN  
 **Stand:** 2026-09-20  
-**Basis-main:** `25f513b725bd80fb9261d97f891519559d0eef03`
+**Basis-main:** `090cfd84dcf872e339c6602f72810db2eff11580`
 
 ## Ziel
 
@@ -206,21 +206,28 @@ CAP-045 zertifiziert die aktuelle V5-Production-Architektur, statt historische V
 
 ## Live-Abnahme
 
-Dieser Implementierungsschritt liefert die V5-native Zertifizierungslogik und Regressionstests.
+Die echte Adventure-Land-Production-Live-Abnahme ist abgeschlossen.
 
-Er ist **kein behaupteter echter Production-Live-Soak**.
+Kanonische Evidence:
 
-Ein spaeterer echter Live-Nachweis muss als `LIVE`-Evidence erzeugt werden und die expliziten V5-Testzeit-/Soak-Grenzen erfuellen, bevor `liveBeweisBestanden=true` gesetzt werden kann.
+`v5/roadmap/cap045-production-live-evidence.json`
 
-Das V5-native manuelle Testpaket dafuer ist inzwischen implementiert und als Controller 1.0.1 gehaertet:
+Der unveraenderte lossless Maschinenbericht wurde fail-closed durch die CAP-045-Akzeptanzregeln geprueft. Alle enthaltenen Coverage-Graphen sind Core-schema-konform und werden beim Evidence-Import mit derselben V5-Funktion `pruefeProduktionsGraph()` bewertet wie die Production-Planung.
 
-- `v5/werkzeuge/cap045-production-live-test-paket.js`;
-- `v5/werkzeuge/cap045-production-live-test-gui.js`;
-- `v5/werkzeuge/cap045-production-live-evidence-pruefen.mjs`;
-- `v5/dokumentation/CAP-045-PRODUCTION-LIVE-TESTPAKET.md`.
+Finale Nachweise:
 
-Der Live-Harness erzeugt fuer Stage 1 einen Core-schema-konformen `ProduktionsGraph`. Die CI fuehrt den vom Browser-Controller erzeugten Graph gegen `pruefeProduktionsGraph()` aus. Beim spaeteren Evidence-Import werden die im Bericht enthaltenen Coverage-Graphen erneut mit derselben Core-Funktion geprueft.
+- Evidence-Klasse `LIVE`;
+- Stage 1 / 2 / 3 `BESTANDEN`;
+- Coverage 4/4 `FULLY_RESOLVED`, keine Structural Gaps;
+- 352710 ms Gesamt-Live-Soak, 22 Samples;
+- 0 Sample-Gaps und 0 Fingerprint-Fehler;
+- 0 Duplicate/Unverified irreversible Effects und 0 Invariant Violations;
+- synthetische Regression separat `BESTANDEN`, niemals als Live gezaehlt;
+- Zertifizierer weiterhin zero-write;
+- Controlled-Proof-Driver exakt 1 Gameplay-Write;
+- Postcondition und Self-Recipient-Settlement verifiziert;
+- kein Same-Intent-Retry;
+- Journal `COMMITTED`;
+- package-lokal weiterhin `diagnosticOnly=true`, `actionAuthority=false`, `rawWriteAuthority=false`, `breiteRuntimeFreigabe=false`.
 
-Die 5-Minuten-Live-Dauer wird zwischen dem ersten und letzten echten Evidence-Sample gemessen. Button-/Start-Overhead kann daher die Mindestdauer nicht still unterschreiten.
-
-Die Existenz des Pakets und des Validators ist noch **kein** Live-Beweis. Bis ein echter Adventure-Land-Lauf alle drei Stages bestanden hat und der Bericht fail-closed validiert wurde, bleibt `LIVE_SOAK_FEHLT_ODER_NICHT_BESTANDEN` sachlich bestehen.
+Damit ist der historische CAP-045-Blocker `LIVE_SOAK_FEHLT_ODER_NICHT_BESTANDEN` fuer diese Capability geschlossen. Die separate globale V5-Runtime-Freigabe bleibt davon semantisch getrennt.
