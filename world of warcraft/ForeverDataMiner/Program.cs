@@ -41,7 +41,8 @@ public static class Program
                 WowRoot: Path.GetFullPath(wowRoot),
                 OutputDirectory: Path.GetFullPath(output),
                 WowToolsLocal: wtl,
-                PollInterval: TimeSpan.FromSeconds(30));
+                PollInterval: TimeSpan.FromSeconds(30),
+                ManageWowToolsLocal: args.Contains("--manage-wtl", StringComparer.OrdinalIgnoreCase));
 
             var service = new MinerService(options);
 
@@ -113,8 +114,8 @@ Double-click without arguments to open the Windows UI.
 
 Commands:
   selftest
-  scan  --wow <WoW root> [--wtl http://localhost:5000] [--out <folder>]
-  watch --wow <WoW root> [--wtl http://localhost:5000] [--out <folder>]
+  scan  --wow <WoW root> [--wtl http://localhost:5000] [--manage-wtl] [--out <folder>]
+  watch --wow <WoW root> [--wtl http://localhost:5000] [--manage-wtl] [--out <folder>]
 
 watch polls the local build identity and emits a new FGDS bundle whenever the
 Forever build/build-key/hotfix-cache state changes.
