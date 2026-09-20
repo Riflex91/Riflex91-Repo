@@ -19,11 +19,11 @@ export function pruefeR0R3Reconciliation() {
   const trace = lies("v5/anforderungen/nachverfolgbarkeit.json").eintraege;
 
   if (manifest.schemaVersion !== 1
-      || manifest.status !== "TEILWEISE_NACHGEWIESEN_EXTERNE_AUTORISIERUNG_OFFEN"
+      || manifest.status !== "VOLLSTAENDIG_NACHGEWIESEN"
       || manifest.anzahl !== 34
-      || manifest.nachgewiesen !== 33
-      || manifest.externOffen !== 1
-      || manifest.externerBlocker !== "V5-ANF-WISSEN-012"
+      || manifest.nachgewiesen !== 34
+      || manifest.externOffen !== 0
+      || manifest.externerBlocker !== null
       || manifest.eintraege?.length !== 34) {
     fehler("Reconciliation-Kopf ungueltig.");
   }
@@ -33,9 +33,9 @@ export function pruefeR0R3Reconciliation() {
     if (kennungen.has(eintrag.kennung)) fehler("Doppelte Kennung: " + eintrag.kennung);
     kennungen.add(eintrag.kennung);
     if (!["R0", "R2", "R3"].includes(eintrag.phase)) fehler("Unerwartete Phase: " + eintrag.kennung);
-    if (!["NACHGEWIESEN", "EXTERN_OFFEN"].includes(eintrag.status)) fehler("Ungueltiger Status: " + eintrag.kennung);
+    if (eintrag.status !== "NACHGEWIESEN") fehler("Ungueltiger Status: " + eintrag.kennung);
 
-    for (const rel of [...(eintrag.implementierung ?? []), ...(eintrag.tests ?? [])]) {
+    for (const rel of [...(eintrag.implementierung ?? []), ...(eintrag.tests ?? []), ...(eintrag.nachweise ?? [])]) {
       if (!fs.existsSync(path.join(root, rel))) fehler(eintrag.kennung + ": Nachweispfad fehlt: " + rel);
     }
 
@@ -43,38 +43,29 @@ export function pruefeR0R3Reconciliation() {
     const tr = trace.find(x => x.anforderungKennung === eintrag.kennung);
     if (!req || !tr) fehler(eintrag.kennung + ": Anforderung oder Trace fehlt.");
 
-    if (eintrag.status === "NACHGEWIESEN") {
-      const erwartet = eintrag.phase + "_NACHGEWIESEN";
-      if (req.status !== erwartet || req.reconciliationStatus !== erwartet) {
-        fehler(eintrag.kennung + ": Requirement-Status passt nicht.");
-      }
-      if (tr.vollstaendig !== true || tr.reconciliationStatus !== erwartet) {
-        fehler(eintrag.kennung + ": Trace ist nicht vollstaendig.");
-      }
-      for (const rel of eintrag.implementierung) {
-        if (!tr.implementierung?.includes(rel)) fehler(eintrag.kennung + ": Implementierungsnachweis fehlt im Trace: " + rel);
-      }
-      for (const rel of eintrag.tests) {
-        if (!tr.tests?.includes(rel)) fehler(eintrag.kennung + ": Testnachweis fehlt im Trace: " + rel);
-      }
-    } else {
-      if (eintrag.kennung !== "V5-ANF-WISSEN-012"
-          || req.status !== "OFFEN"
-          || req.reconciliationStatus !== "EXTERN_OFFEN"
-          || tr.vollstaendig !== false
-          || tr.reconciliationStatus !== "EXTERN_OFFEN"
-          || !eintrag.blocker
-          || !eintrag.erforderlicherNachweis) {
-        fehler("Externer Blocker darf nur WISSEN-012 sein und muss fail-closed offen bleiben.");
-      }
+    const erwartet = eintrag.phase + "_NACHGEWIESEN";
+    if (req.status !== erwartet || req.reconciliationStatus !== erwartet) {
+      fehler(eintrag.kennung + ": Requirement-Status passt nicht.");
+    }
+    if (tr.vollstaendig !== true || tr.reconciliationStatus !== erwartet) {
+      fehler(eintrag.kennung + ": Trace ist nicht vollstaendig.");
+    }
+    for (const rel of eintrag.implementierung ?? []) {
+      if (!tr.implementierung?.includes(rel)) fehler(eintrag.kennung + ": Implementierungsnachweis fehlt im Trace: " + rel);
+    }
+    for (const rel of eintrag.tests ?? []) {
+      if (!tr.tests?.includes(rel)) fehler(eintrag.kennung + ": Testnachweis fehlt im Trace: " + rel);
+    }
+    for (const rel of eintrag.nachweise ?? []) {
+      if (!tr.liveNachweise?.includes(rel)) fehler(eintrag.kennung + ": Live-/Betriebsnachweis fehlt im Trace: " + rel);
     }
   }
 
   const historisch = anforderungen.filter(x => ["R0", "R2", "R3"].includes(x.phase));
   if (historisch.length !== 34) fehler("Historische R0/R2/R3-Anforderungsmenge driftet von 34.");
   const offen = historisch.filter(x => x.status === "OFFEN");
-  if (offen.length !== 1 || offen[0].kennung !== "V5-ANF-WISSEN-012") {
-    fehler("Nach Reconciliation darf nur V5-ANF-WISSEN-012 extern offen sein.");
+  if (offen.length !== 0) {
+    fehler("Nach geschlossenem Autorisierungsnachweis duerfen keine historischen R0/R2/R3-Anforderungen offen sein.");
   }
 
   const entdecker = fs.readFileSync(path.join(root, "ops/windows-bridge/WebQuellenEntdecker.cs"), "utf8");
@@ -102,7 +93,7 @@ export function pruefeR0R3Reconciliation() {
     "automatischeFreigabe: false",
   ]) if (!uebersetzung.includes(marker)) fehler("Uebersetzungsaufgaben-Nachweis fehlt: " + marker);
 
-  console.log("[V5-R0-R3-RECONCILIATION] OK / 33 nachgewiesen / 1 externer Blocker: V5-ANF-WISSEN-012");
+  console.log("[V5-R0-R3-RECONCILIATION] OK / 34 von 34 nachgewiesen / kein externer Blocker");
 }
 
 if (process.argv[1]?.endsWith("r0-r3-reconciliation-pruefen.mjs")) {
