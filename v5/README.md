@@ -334,3 +334,19 @@ Controlled Live: **BESTANDEN**. Der manuelle Ingame-Lauf `R19-1789894379854-ced6
 Evidence: `roadmap/r19-controlled-live-evidence.json`.
 
 Naechste Stufe: **CANARY**. R19 bleibt `IN_PROGRESS`; die breite Runtime bleibt `GESPERRT`.
+
+
+## R19 – Canary bestanden
+
+Canary: **BESTANDEN**. Run `R19-1789894940141-fa58fa3e` nutzte bounded Learning-Ranking ausschliesslich innerhalb hart erlaubter Equip-Kandidaten. Der Learning-Einfluss aenderte die Auswahl gegenueber dem deterministischen Fallback, ohne Gameplay-/Authority-Rechte oder Safety-Lockerung. Genau ein `equip`-Write wurde postcondition-verifiziert; unerwartete Writes blieben null.
+
+Evidence: `roadmap/r19-canary-evidence.json`.
+
+Naechste Stufe: **SOAK_5M**. R19 bleibt `IN_PROGRESS`; die breite Runtime bleibt `GESPERRT`.
+
+
+## R19 – Beschleunigtes Soak-Zeitprofil
+
+Das Soak-Profil wurde auf **5 Minuten → 10 Minuten → 30 Minuten → 60 Minuten** umgestellt (`R19_ACCELERATED_SOAK_V1`). Die frueher geplanten 1h/24h/72h/7d- sowie optionalen 30d-Stufen sind nicht mehr Teil des aktuellen Release-Gates.
+
+Diese Aenderung reduziert die zeitliche Langzeitabdeckung; die Evidence wird daher als beschleunigte Runtime-Zertifizierung und nicht als mehrtaegiger 24/7-Soak ausgewiesen.

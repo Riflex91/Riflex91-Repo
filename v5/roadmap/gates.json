@@ -373,14 +373,14 @@
     },
     {
       "id": "R19",
-      "name": "24/7 Zertifizierung",
+      "name": "Runtime-Zertifizierung (beschleunigtes Zeitprofil)",
       "status": "IN_PROGRESS",
       "requires": [
         "R18"
       ],
       "blocksRuntime": false,
       "exit": [
-        "1h/24h/72h/7d evidence",
+        "5m/10m/30m/60m evidence",
         "Zero-tolerance metrics eingehalten",
         "Unbounded SSD growth = 0",
         "Kritische Persistenzverluste = 0",

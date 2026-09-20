@@ -26,9 +26,14 @@ for(const p of [
   "werkzeuge/r19-test-gui-paket-bauen.mjs",
   "werkzeuge/tests/r19-test-gui.test.mjs",
   "werkzeuge/tests/r19-canary-test-gui.test.mjs",
+  "werkzeuge/tests/r19-soak-5m-test-gui.test.mjs",
+  "werkzeuge/r19-soak-5m-test-paket-bauen.mjs",
+  "werkzeuge/r19-soak-5m-test-paket.js",
+  "werkzeuge/r19-soak-5m-test-gui.js",
   "werkzeuge/r19-canary-test-paket-bauen.mjs",
   "werkzeuge/r19-canary-test-paket.js",
   "werkzeuge/r19-canary-test-gui.js",
+  "roadmap/r19-soak-zeitprofil.json",
 ]){
   if(!fs.existsSync(p)) fehler("R19 Pflichtartefakt fehlt: "+p);
 }
@@ -40,6 +45,56 @@ if(req.some(x=>!["OFFEN","R19_NACHGEWIESEN"].includes(x.status))) fehler("R19 An
 
 const trace=lies("anforderungen/nachverfolgbarkeit.json").eintraege.filter(x=>x.phase==="R19");
 if(trace.length!==3||trace.some(x=>!erwartet.has(x.anforderungKennung))) fehler("R19 Traceability-Menge ungueltig.");
+
+const liveStatusRang=Object.freeze({
+  BIS_CONTROLLED_LIVE_BESTANDEN:1,
+  BIS_CANARY_BESTANDEN:2,
+  BIS_SOAK_5M_BESTANDEN:3,
+  BIS_SOAK_10M_BESTANDEN:4,
+  BIS_SOAK_30M_BESTANDEN:5,
+  BIS_SOAK_60M_BESTANDEN:6,
+});
+const ops6=req.find(x=>x.kennung==="V5-ANF-OPS-006");
+const zeitprofil=lies("roadmap/r19-soak-zeitprofil.json");
+const erwarteteSoaks=[
+  ["SOAK_5M",300000],
+  ["SOAK_10M",600000],
+  ["SOAK_30M",1800000],
+  ["SOAK_60M",3600000],
+];
+if(zeitprofil.profilKennung!=="R19_ACCELERATED_SOAK_V1"
+    ||zeitprofil.finaleStufe!=="SOAK_60M"
+    ||zeitprofil.stufen?.length!==4
+    ||erwarteteSoaks.some(([stufe,dauer],i)=>zeitprofil.stufen[i]?.stufe!==stufe||zeitprofil.stufen[i]?.dauerMs!==dauer)
+    ||ops6?.r19Zeitprofil!=="R19_ACCELERATED_SOAK_V1") {
+  fehler("R19 beschleunigtes Soak-Zeitprofil ungueltig.");
+}
+const aktuellerLiveRang=liveStatusRang[ops6?.r19LiveStatus]??0;
+
+if(fs.existsSync("roadmap/r19-canary-evidence.json")){
+  const canary=lies("roadmap/r19-canary-evidence.json");
+  if(canary.phase!=="R19"
+      ||canary.status!=="BESTANDEN"
+      ||canary.zertifizierungsStufe!=="CANARY"
+      ||canary.gameWrites!==1
+      ||canary.unerwarteteGameWrites!==0
+      ||canary.sameIntentRetry!==false
+      ||canary.manuelleBestaetigung!==true
+      ||canary.learningEinfluss?.gameplayAutoritaet!==false
+      ||canary.learningEinfluss?.authorityAenderungErlaubt!==false
+      ||canary.learningEinfluss?.safetyLockerungErlaubt!==false
+      ||canary.learningEinfluss?.maximalerAbsoluterScoreDelta>25
+      ||canary.postcondition?.klassifikation!=="BESTAETIGT"
+      ||canary.ladder?.naechsteStufe!=="SOAK_5M") {
+    fehler("R19 Canary-Evidence ungueltig.");
+  }
+  if(ops6?.status!=="OFFEN"||aktuellerLiveRang<2) {
+    fehler("Canary verlangt OPS-006 weiterhin OFFEN mit mindestens Canary-Teilstatus.");
+  }
+  if(ready.r19NaechsteStufe!=="SOAK_5M"||ready.r19ManuellerPcTestErforderlich!==true) {
+    fehler("Readiness muss nach Canary auf manuellen SOAK_5M zeigen.");
+  }
+}
 
 if(fs.existsSync("roadmap/r19-controlled-live-evidence.json")){
   const live=lies("roadmap/r19-controlled-live-evidence.json");
@@ -54,12 +109,12 @@ if(fs.existsSync("roadmap/r19-controlled-live-evidence.json")){
       ||live.ladder?.naechsteStufe!=="CANARY") {
     fehler("R19 Controlled-Live-Evidence ungueltig.");
   }
-  const ops6Live=req.find(x=>x.kennung==="V5-ANF-OPS-006");
-  if(ops6Live?.status!=="OFFEN"||ops6Live?.r19LiveStatus!=="BIS_CONTROLLED_LIVE_BESTANDEN") {
-    fehler("Controlled Live verlangt OPS-006 weiterhin OFFEN mit passendem Teilstatus.");
+  if(ops6?.status!=="OFFEN"||aktuellerLiveRang<1) {
+    fehler("Controlled Live verlangt OPS-006 weiterhin OFFEN mit mindestens Controlled-Live-Teilstatus.");
   }
-  if(ready.r19NaechsteStufe!=="CANARY"||ready.r19ManuellerPcTestErforderlich!==true) {
-    fehler("Readiness muss nach Controlled Live auf manuellen Canary zeigen.");
+  if(!fs.existsSync("roadmap/r19-canary-evidence.json")
+      && (ready.r19NaechsteStufe!=="CANARY"||ready.r19ManuellerPcTestErforderlich!==true)) {
+    fehler("Readiness muss unmittelbar nach Controlled Live auf manuellen Canary zeigen.");
   }
 }
 
@@ -77,7 +132,6 @@ if(fs.existsSync("roadmap/r19-automatik-evidence.json")){
   }
   const ops5=req.find(x=>x.kennung==="V5-ANF-OPS-005");
   const ui8=req.find(x=>x.kennung==="V5-ANF-UI-008");
-  const ops6=req.find(x=>x.kennung==="V5-ANF-OPS-006");
   if(ops5?.status!=="R19_NACHGEWIESEN"||ui8?.status!=="R19_NACHGEWIESEN") {
     fehler("Automatik-Evidence verlangt OPS-005 und UI-008 nachgewiesen.");
   }

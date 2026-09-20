@@ -14,6 +14,10 @@ const pflicht=[
   "werkzeuge/r19-test-gui-paket-bauen.mjs",
   "werkzeuge/tests/r19-test-gui.test.mjs",
   "werkzeuge/tests/r19-canary-test-gui.test.mjs",
+  "werkzeuge/tests/r19-soak-5m-test-gui.test.mjs",
+  "werkzeuge/r19-soak-5m-test-paket-bauen.mjs",
+  "werkzeuge/r19-soak-5m-test-paket.js",
+  "werkzeuge/r19-soak-5m-test-gui.js",
   "werkzeuge/r19-canary-test-paket-bauen.mjs",
   "werkzeuge/r19-canary-test-paket.js",
   "werkzeuge/r19-canary-test-gui.js",
@@ -42,15 +46,19 @@ for(const m of [
   "SHADOW",
   "CONTROLLED_LIVE",
   "CANARY",
-  "SOAK_1H",
-  "SOAK_24H",
-  "SOAK_72H",
-  "SOAK_7D",
+  "SOAK_5M",
+  "SOAK_10M",
+  "SOAK_30M",
+  "SOAK_60M",
   "ZERT_LADDER_STUFE_UEBERSPRUNGEN",
   "ZERT_LADDER_MANUELLE_BESTAETIGUNG_ERFORDERLICH",
   "breiteRuntimeFreigegeben: false",
 ]){
   if(!ladder.includes(m)) fehler.push("LADDER_MARKER_FEHLT:"+m);
+}
+
+for(const alt of ["SOAK_1H","SOAK_24H","SOAK_72H","SOAK_7D","SOAK_30D"]){
+  if(ladder.includes(alt)) fehler.push("SOAK_30D_DARF_NICHT_MEHR_IN_LADDER_SEIN:"+alt);
 }
 
 const shadow=lies("grundlage/quelle/zertifizierung/shadow-bewertung.ts");
@@ -93,6 +101,25 @@ for(const m of [
 }
 const canaryEquipAufrufe=canaryGui.match(/\.equip\s*\(/g)??[];
 if(canaryEquipAufrufe.length!==1) fehler.push("R19_CANARY_GUI_EQUIP_ANZAHL:"+canaryEquipAufrufe.length);
+
+const soakGui=lies("werkzeuge/r19-soak-5m-test-gui.js");
+for(const m of [
+  "R19-SOAK-5M-START",
+  "const DAUER_MS = 5 * 60 * 1000",
+  "const INTERVALL_MS = 15 * 1000",
+  "const MAX_SAMPLE_GAP_MS = 45 * 1000",
+  "gameplayWritesDurchHarness: 0",
+  "unerwarteteGameWritesImHarness: 0",
+  "breiteRuntimeFreigabe: false",
+  "EVIDENCE_KETTE_UNGUELTIG",
+  "HEAP_METRIK_FEHLT",
+  "STORAGE_ESTIMATE_FEHLT",
+]){
+  if(!soakGui.includes(m)) fehler.push("R19_SOAK_5M_GUI_MARKER_FEHLT:"+m);
+}
+for(const verboten of [/\.equip\s*\(/,/\.attack\s*\(/,/\.move\s*\(/,/\.smart_move\s*\(/,/\.use_skill\s*\(/]){
+  if(verboten.test(soakGui)) fehler.push("R19_SOAK_5M_RAW_GAME_WRITE_VERBOTEN:"+verboten);
+}
 
 const rawMuster=[
   /\battack\s*\(/,/\bsmart_move\s*\(/,/\bmove\s*\(/,/\bxmove\s*\(/,

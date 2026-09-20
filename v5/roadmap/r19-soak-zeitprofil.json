@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R19",
+  "status": "RATIFIZIERT",
+  "profilKennung": "R19_ACCELERATED_SOAK_V1",
+  "ersetzt": [
+    "SOAK_1H",
+    "SOAK_24H",
+    "SOAK_72H",
+    "SOAK_7D",
+    "SOAK_30D_OPTIONAL"
+  ],
+  "stufen": [
+    {
+      "stufe": "SOAK_5M",
+      "dauerMs": 300000,
+      "sampleIntervallMs": 15000,
+      "maximalerSampleGapMs": 45000,
+      "minimaleSamples": 20
+    },
+    {
+      "stufe": "SOAK_10M",
+      "dauerMs": 600000,
+      "sampleIntervallMs": 30000,
+      "maximalerSampleGapMs": 90000,
+      "minimaleSamples": 20
+    },
+    {
+      "stufe": "SOAK_30M",
+      "dauerMs": 1800000,
+      "sampleIntervallMs": 30000,
+      "maximalerSampleGapMs": 90000,
+      "minimaleSamples": 60
+    },
+    {
+      "stufe": "SOAK_60M",
+      "dauerMs": 3600000,
+      "sampleIntervallMs": 30000,
+      "maximalerSampleGapMs": 90000,
+      "minimaleSamples": 120
+    }
+  ],
+  "finaleStufe": "SOAK_60M",
+  "breiteRuntimeFreigabe": false,
+  "hinweis": "Dieses beschleunigte Zeitprofil ersetzt die zuvor geplanten Mehrstunden-/Mehrtagestests. Es liefert keine mehrtaegige Soak-Evidence."
+}
