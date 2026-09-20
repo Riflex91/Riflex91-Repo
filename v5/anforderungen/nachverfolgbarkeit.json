@@ -13,15 +13,22 @@
         "V5-INV-014",
         "V5-INV-015"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/wissensbasis/manifest.json",
+        "v5/wissensbasis/schema/fact.schema.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/wissensbasis-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R0_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-002",
@@ -32,15 +39,22 @@
       "invarianten": [
         "V5-INV-015"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/wissensbasis/schema/fact.schema.json",
+        "v5/wissensbasis/README.md"
+      ],
+      "tests": [
+        "v5/werkzeuge/wissensbasis-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R0_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-003",
@@ -52,15 +66,23 @@
         "V5-INV-014",
         "V5-INV-029"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/entwicklungsregeln/wissensnutzung.json",
+        "ops/windows-bridge/WebQuellenEntdecker.cs"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs",
+        "v5/werkzeuge/wissensbasis-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R0_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-004",
@@ -71,15 +93,22 @@
       "invarianten": [
         "V5-INV-016"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "ops/windows-bridge/BridgeConfig.cs",
+        "ops/windows-bridge/WissenswaechterDienst.cs"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R0_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-005",
@@ -91,15 +120,22 @@
         "V5-INV-014",
         "V5-INV-016"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "ops/windows-bridge/WebQuellenEntdecker.cs",
+        "ops/windows-bridge/WissenswaechterDienst.cs"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R0_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-006",
@@ -111,15 +147,23 @@
         "V5-INV-011",
         "V5-INV-012"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "ops/windows-bridge/GitArbeitskopie.cs",
+        ".github/workflows/v5-wissenswaechter-pr.yml"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs",
+        "v5/werkzeuge/r3-struktur-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R0_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-007",
@@ -158,15 +202,22 @@
       "invarianten": [
         "V5-INV-029"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/wissen/abgleich.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-wissen.test.mjs",
+        "v5/werkzeuge/r6-struktur-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R0_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-009",
@@ -201,15 +252,23 @@
       "invarianten": [
         "V5-INV-028"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "ops/windows-bridge/WissenswaechterDienst.cs",
+        "v5/architektur/host-api-allowlist.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-struktur-pruefen.mjs",
+        "ops/windows-bridge-tests/Program.cs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R3_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-001",
@@ -220,15 +279,24 @@
       "invarianten": [
         "V5-INV-001"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/architektur/verfassung.json",
+        "v5/dokumentation/V5-DEUTSCHE-DOMAENENMIGRATION.md",
+        "v5/werkzeuge/r3-guard-regeln.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/r2-verfassung-pruefen.mjs",
+        "v5/werkzeuge/tests/r3-guards.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R2_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-002",
@@ -318,15 +386,21 @@
         "V5-ALT-004",
         "V5-ALT-005"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/werkzeuge/r3-guard-regeln.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/tests/r3-guards.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R3_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-006",
@@ -439,15 +513,22 @@
       "invarianten": [
         "V5-INV-019"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/anforderungen/nachverfolgbarkeit.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/vorbereitung-pruefen.mjs",
+        "v5/werkzeuge/r19-struktur-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R2_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-011",
@@ -458,15 +539,23 @@
       "invarianten": [
         "V5-INV-018"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/bereitschaft/laufzeit-bereitschaft.json",
+        "v5/werkzeuge/entwicklungs-wissensgate.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-struktur-pruefen.mjs",
+        "v5/werkzeuge/vorbereitung-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R2_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-012",
@@ -477,15 +566,22 @@
       "invarianten": [
         "V5-ALT-005"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/migration/v3-v4-zu-v5.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/r2-verfassung-pruefen.mjs",
+        "v5/werkzeuge/tests/r3-guards.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R2_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-001",
@@ -679,15 +775,24 @@
         "V5-ALT-036",
         "V5-INV-022"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/architektur/host-api-allowlist.json",
+        "v5/grundlage/quelle/host/host-grenze.ts",
+        "ops/windows-bridge/GitArbeitskopie.cs"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-struktur-pruefen.mjs",
+        "ops/windows-bridge-tests/Program.cs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R3_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-009",
@@ -723,15 +828,23 @@
       "invarianten": [
         "V5-INV-002"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/architektur/verfassung.json",
+        "v5/grundlage/konfiguration.json"
+      ],
+      "tests": [
+        "v5/grundlage/tests/no-write-grundlage.test.mjs",
+        "v5/werkzeuge/r3-struktur-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R2_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-011",
@@ -792,15 +905,23 @@
         "V5-ALT-037",
         "V5-INV-013"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/werkzeuge/r3-guard-regeln.mjs",
+        "ops/windows-bridge/LiveWissensImportDienst.cs"
+      ],
+      "tests": [
+        "v5/werkzeuge/tests/r3-guards.test.mjs",
+        "ops/windows-bridge-tests/Program.cs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R3_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-SICH-014",
@@ -1430,15 +1551,23 @@
       "invarianten": [
         "V5-INV-020"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/fitness/fitness-regeln.json",
+        "v5/werkzeuge/r3-guard-regeln.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/tests/r3-guards.test.mjs",
+        ".github/workflows/v5-r3.yml"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R3_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-TEST-007",
@@ -1506,15 +1635,24 @@
       "invarianten": [
         "V5-INV-025"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/werkzeuge/r3-build-provenienz.mjs",
+        "v5/package-lock.json",
+        "v5/grundlage/konfiguration.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-struktur-pruefen.mjs",
+        ".github/workflows/v5-r3.yml"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R3_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-OPS-002",
@@ -1661,15 +1799,21 @@
       "invarianten": [
         "V5-INV-018"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/bereitschaft/laufzeit-bereitschaft.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/vorbereitung-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R2_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-OPS-008",
@@ -2239,15 +2383,23 @@
         "V5-INV-031",
         "V5-INV-034"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/anzeigetexte/regelwerk.json",
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-sichttext-pruefen.mjs",
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R2_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-UI-002",
@@ -2323,15 +2475,22 @@
         "V5-INV-031",
         "V5-INV-034"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/anzeigetexte/regelwerk.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-sichttext-pruefen.mjs",
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R3_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-UI-005",
@@ -2371,15 +2530,23 @@
         "V5-INV-032",
         "V5-INV-033"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/anzeige/uebersetzungsaufgaben.ts",
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
+        "v5/werkzeuge/r6-struktur-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R0_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-UI-007",
@@ -2390,15 +2557,23 @@
       "invarianten": [
         "V5-INV-031"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/anzeige/anzeigekatalog.ts",
+        "v5/anzeigetexte/regelwerk.json"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r6-anzeigekatalog.test.mjs",
+        "v5/werkzeuge/r3-sichttext-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R3_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-UI-008",
@@ -2466,15 +2641,23 @@
       "invarianten": [
         "V5-INV-012"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "ops/windows-bridge/GitArbeitskopie.cs",
+        ".github/workflows/v5-wissenswaechter-pr.yml"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs",
+        "v5/werkzeuge/r3-struktur-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R0_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-012",
@@ -2485,15 +2668,24 @@
       "invarianten": [
         "V5-INV-013"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        ".github/workflows/v5-wissenswaechter-pr.yml",
+        "ops/windows-bridge/GitArbeitskopie.cs"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs"
+      ],
       "liveNachweise": [],
       "vollstaendig": false,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "EXTERN_OFFEN",
+      "reconciliationBlocker": "Die lokale Git-Credential-Manager/Browser-OAuth-Autorisierung kann aus dem Repository nicht als repository-begrenzte Least-Privilege-Autorisierung bewiesen werden.",
+      "reconciliationErforderlicherNachweis": "Lokale Bridge-Systempruefung plus GitHub-Autorisierungs-/Repository-Scope-Nachweis."
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-013",
@@ -2505,15 +2697,23 @@
         "V5-INV-035",
         "V5-INV-037"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/entwicklungsregeln/wissensnutzung.json",
+        "v5/werkzeuge/entwicklungs-wissensgate.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/r2-verfassung-pruefen.mjs",
+        ".github/workflows/v5-wissensgate.yml"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R2_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-014",
@@ -2524,15 +2724,22 @@
       "invarianten": [
         "V5-INV-037"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/wissensbasis/manifest.json"
+      ],
+      "tests": [
+        "v5/werkzeuge/wissensbasis-pruefen.mjs",
+        "v5/werkzeuge/vorbereitung-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R0_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-015",
@@ -2544,15 +2751,23 @@
       "invarianten": [
         "V5-INV-036"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/entwicklungsregeln/wissensnutzung.json",
+        "v5/werkzeuge/entwicklungs-wissensgate.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-struktur-pruefen.mjs",
+        ".github/workflows/v5-wissensgate.yml"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R3_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-016",
@@ -2563,15 +2778,23 @@
       "invarianten": [
         "V5-INV-041"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/entwicklungsregeln/quellenfreigaben.json",
+        "v5/werkzeuge/entwicklungs-wissensgate.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/r2-verfassung-pruefen.mjs",
+        ".github/workflows/v5-wissensgate.yml"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R3_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-017",
@@ -2582,15 +2805,24 @@
       "invarianten": [
         "V5-INV-038"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/entwicklungsregeln/wissensnutzung.json",
+        "ops/windows-bridge/WissenswaechterDienst.cs",
+        "ops/windows-bridge/WebQuellenEntdecker.cs"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs",
+        "v5/werkzeuge/wissensbasis-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R0_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-018",
@@ -2654,15 +2886,23 @@
         "V5-INV-035",
         "V5-INV-041"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/entwicklungsregeln/wissensnutzung.json",
+        ".github/workflows/v5-wissensgate.yml"
+      ],
+      "tests": [
+        "v5/werkzeuge/r3-struktur-pruefen.mjs",
+        ".github/workflows/v5-wissensgate.yml"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R3_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-021",
@@ -2673,15 +2913,24 @@
       "invarianten": [
         "V5-INV-042"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/wissensbasis/manifest.json",
+        "v5/wissensbasis/schema/aenderungs-eintrag.schema.json",
+        "ops/windows-bridge/WissenswaechterDienst.cs"
+      ],
+      "tests": [
+        "v5/werkzeuge/wissensbasis-pruefen.mjs",
+        "ops/windows-bridge-tests/Program.cs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R0_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-022",
@@ -2774,15 +3023,22 @@
       "invarianten": [
         "V5-INV-046"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "ops/windows-bridge/LiveWissensImportDienst.cs"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs",
+        "v5/werkzeuge/wissensbasis-pruefen.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R0_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-026",
@@ -2794,15 +3050,22 @@
       "invarianten": [
         "V5-INV-047"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "ops/windows-bridge/BridgeConfig.cs",
+        "ops/windows-bridge/LiveWissensImportDienst.cs"
+      ],
+      "tests": [
+        "ops/windows-bridge-tests/Program.cs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "reconciliationNachweis": "v5/roadmap/r0-r3-reconciliation.json",
+      "reconciliationStatus": "R0_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-027",
