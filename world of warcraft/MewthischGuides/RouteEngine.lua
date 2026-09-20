@@ -66,16 +66,19 @@ function RouteEngine:EstimateDistanceToTarget(target, player)
     player = player or (api and api:GetPlayerPosition() or nil)
     if not target or not player or not api then return nil, "missing" end
 
-    local playerWorld = api:MapToWorld(player.mapID, player.x, player.y)
+    local playerWorld = nil
     local targetWorld = nil
 
-    if tonumber(target.worldX) and tonumber(target.worldY) then
+    if tonumber(target.worldX) and tonumber(target.worldY) and
+       api.MapToRestedXPWorld then
+        playerWorld = api:MapToRestedXPWorld(player.mapID, player.x, player.y)
         targetWorld = {
             continentID = playerWorld and playerWorld.continentID or nil,
             x = tonumber(target.worldX),
             y = tonumber(target.worldY),
         }
     elseif tonumber(target.mapID) and tonumber(target.x) and tonumber(target.y) then
+        playerWorld = api:MapToWorld(player.mapID, player.x, player.y)
         targetWorld = api:MapToWorld(target.mapID, target.x, target.y)
     end
 
@@ -182,6 +185,8 @@ function RouteEngine:Resolve(step, options)
                 phaseMatch = candidate.phaseMatch,
                 isQuestStart = candidate.isQuestStart,
                 inProgress = candidate.inProgress,
+                rxpRoutePointCount = candidate.rxpRoutePointCount,
+                rxpRoutePointIndex = candidate.rxpRoutePointIndex,
             }
         end
 
