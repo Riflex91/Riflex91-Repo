@@ -378,3 +378,22 @@ Maschinenlesbar: `roadmap/testzeit-standard.json` und `roadmap/r19-soak-zeitprof
 ADR: `architektur/adr/ADR-024-TESTZEITSTANDARD-5M-15M.md`.
 
 Diese Evidence wird als beschleunigte Runtime-Zertifizierung und nicht als mehrtaegiger 24/7-Soak ausgewiesen.
+
+## Separate V5-Gesamtfreigabe vorbereitet
+
+Die technische Readiness ist vollständig geschlossen: 10/10 Pflichtbereiche, 119/119 Anforderungen und 119/119 Traceability sind nachgewiesen; R19 ist DONE und der reale Windows-Bridge-/WISSEN-012-Nachweis ist geschlossen.
+
+Die breite Gameplay-Runtime bleibt trotzdem fail-closed `GESPERRT`.
+
+Der aktuelle Zustand lautet:
+
+- `gesamtfreigabe = BETREIBERBESTAETIGUNG_AUSSTEHEND`;
+- `breiteRuntimeFreigabe = false`;
+- `roadmap/gesamtfreigabe-vorbereitung.json = BEREIT_FUER_BETREIBERBESTAETIGUNG`.
+
+Die Freigabe darf nicht aus „ok“, „mach weiter“ oder ähnlichen Fortsetzungsanweisungen abgeleitet werden. Sie benötigt die separate ausdrückliche Betreiberbestätigung `V5 GESAMTFREIGABE ERTEILEN`, danach ein eigenes Freigabeartefakt, grünes CI und einen SHA-gebundenen Merge.
+
+Vertrag: `dokumentation/GESAMTFREIGABE.md`  
+Validator: `werkzeuge/gesamtfreigabe-pruefen.mjs`  
+CI: `.github/workflows/v5-gesamtfreigabe.yml`
+
