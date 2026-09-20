@@ -45,6 +45,12 @@ for(const p of [
   "werkzeuge/r19-canary-test-paket-bauen.mjs",
   "werkzeuge/r19-canary-test-paket.js",
   "werkzeuge/r19-canary-test-gui.js",
+  "werkzeuge/cap045-production-live-test-gui.js",
+  "werkzeuge/cap045-production-live-test-paket-bauen.mjs",
+  "werkzeuge/cap045-production-live-test-paket.js",
+  "werkzeuge/cap045-production-live-static-guards.mjs",
+  "werkzeuge/tests/cap045-production-live-test-gui.test.mjs",
+  "dokumentation/CAP-045-PRODUCTION-LIVE-TESTPAKET.md",
   "roadmap/r19-soak-zeitprofil.json",
   "roadmap/testzeit-standard.json",
 ]){

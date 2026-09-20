@@ -211,3 +211,11 @@ Dieser Implementierungsschritt liefert die V5-native Zertifizierungslogik und Re
 Er ist **kein behaupteter echter Production-Live-Soak**.
 
 Ein spaeterer echter Live-Nachweis muss als `LIVE`-Evidence erzeugt werden und die expliziten V5-Testzeit-/Soak-Grenzen erfuellen, bevor `liveBeweisBestanden=true` gesetzt werden kann.
+
+Das V5-native manuelle Testpaket dafuer ist inzwischen implementiert:
+
+- `v5/werkzeuge/cap045-production-live-test-paket.js`;
+- `v5/werkzeuge/cap045-production-live-test-gui.js`;
+- `v5/dokumentation/CAP-045-PRODUCTION-LIVE-TESTPAKET.md`.
+
+Die Existenz des Pakets ist noch **kein** Live-Beweis. Bis ein echter Adventure-Land-Lauf alle drei Stages bestanden hat, bleibt `LIVE_SOAK_FEHLT_ODER_NICHT_BESTANDEN` sachlich bestehen.
