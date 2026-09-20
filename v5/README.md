@@ -233,3 +233,24 @@ Abschluss: `roadmap/r14-abschluss.json`
 Die breite Gameplay-Runtime bleibt `GESPERRT`.
 
 Aktuelle Phase: **R15 – Merchant Core B: Supply, Gear und Production**.
+
+
+## R15 – Merchant Core B abgeschlossen
+
+R15 ist als no-write Merchant-/Production-Planungs- und Reconciliation-Schicht abgeschlossen.
+
+Enthalten sind Supply Policy, Supply Delivery, Collection/Rendezvous, Gear Allocation/Delivery, q/Placeholder-Werttransaktionen, frische Bankkatalog-Planning-Evidence, ein bounded azyklischer Production Graph, event-/quest-gated Freshness sowie finales Recipient Settlement.
+
+Die harte Regel lautet weiterhin:
+
+`CRAFT_COMMITTED != PRODUCTION_COMMITTED`
+
+Production wird erst nach positiver Empfaengerverifikation committed. q/Placeholder oder attributable Consumable-Deltas bedeuten accepted in-flight; Restart fuehrt zu Reconciliation statt Blind-Retry.
+
+Abdeckung: `grundlage/vertraege/r15/merchant-core-b-abdeckung.json`  
+ADR: `architektur/adr/ADR-018-R15-MERCHANT-CORE-B.md`  
+Abschluss: `roadmap/r15-abschluss.json`
+
+Die breite Gameplay-Runtime bleibt `GESPERRT`.
+
+Aktuelle Phase: **R16 – Party, Combat, Farming und Navigation**.
