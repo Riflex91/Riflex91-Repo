@@ -33,12 +33,15 @@ export function planeSegmentPflege(
   }
 
   let aktiv = [...segmente].sort((a,b) => a.erstelltAmMs - b.erstelltAmMs || a.segmentId.localeCompare(b.segmentId));
-  const loeschen: string[] = [];
-  const komprimieren: string[] = [];
+  let loeschen: readonly string[] = Object.freeze([]);
+  let komprimieren: readonly string[] = Object.freeze([]);
 
   for (const s of aktiv) {
-    if (jetztMs - s.erstelltAmMs > regel.maximalesAlterMs) loeschen.push(s.segmentId);
-    else if (!s.komprimiert && jetztMs - s.erstelltAmMs >= regel.komprimiereAbAlterMs) komprimieren.push(s.segmentId);
+    if (jetztMs - s.erstelltAmMs > regel.maximalesAlterMs) {
+      loeschen = Object.freeze([...loeschen, s.segmentId]);
+    } else if (!s.komprimiert && jetztMs - s.erstelltAmMs >= regel.komprimiereAbAlterMs) {
+      komprimieren = Object.freeze([...komprimieren, s.segmentId]);
+    }
   }
   aktiv = aktiv.filter(x => !loeschen.includes(x.segmentId));
 
@@ -46,7 +49,7 @@ export function planeSegmentPflege(
       || aktiv.reduce((summe,x) => summe + x.bytes, 0) > regel.maximaleBytes) {
     const erstes = aktiv.shift();
     if (erstes === undefined) break;
-    loeschen.push(erstes.segmentId);
+    loeschen = Object.freeze([...loeschen, erstes.segmentId]);
   }
 
   const eindeutig = (werte: readonly string[]): readonly string[] => Object.freeze(
