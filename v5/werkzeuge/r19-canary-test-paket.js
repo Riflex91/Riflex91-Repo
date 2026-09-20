@@ -112,6 +112,63 @@
     doc.head.appendChild(css);
   }
 
+
+  function performanceRoots() {
+    const roots = [];
+    try { roots.push(globalThis); } catch {}
+    try { if (parent && parent !== globalThis) roots.push(parent); } catch {}
+    return roots;
+  }
+
+  function performanceTrickStatus() {
+    const roots = performanceRoots();
+    let verfuegbar = false;
+    let audioGefunden = false;
+    let cplaying = false;
+    let playing = false;
+    let howlState = null;
+    for (const root of roots) {
+      try {
+        if (typeof root?.performance_trick === 'function') verfuegbar = true;
+        const empty = root?.sounds?.empty;
+        if (!empty) continue;
+        audioGefunden = true;
+        if (empty.cplaying === true) cplaying = true;
+        if (typeof empty.playing === 'function' && empty.playing() === true) playing = true;
+        if (typeof empty.state === 'function') howlState = String(empty.state());
+      } catch {}
+    }
+    let visibilityState = null;
+    try { visibilityState = String(dokument().visibilityState || 'unknown'); } catch {}
+    return Object.freeze({
+      verfuegbar,
+      audioGefunden,
+      cplaying,
+      playing,
+      howlState,
+      aktiv: verfuegbar && audioGefunden && (playing || cplaying),
+      visibilityState
+    });
+  }
+
+  function aktivierePerformanceTrick() {
+    const roots = performanceRoots();
+    let aufgerufen = false;
+    let fehler = null;
+    for (const root of roots) {
+      try {
+        if (typeof root?.performance_trick !== 'function') continue;
+        root.performance_trick();
+        aufgerufen = true;
+        break;
+      } catch (error) {
+        fehler = fehlerText(error);
+      }
+    }
+    const status = performanceTrickStatus();
+    return Object.freeze({ ...status, aufgerufen, fehler });
+  }
+
   function erstelleTest(optionen = {}) {
     const doc = dokument();
     style(doc);
@@ -335,7 +392,7 @@
     });
   }
 
-  const api = Object.freeze({ version: VERSION, erstelleTest, formatiereWert: format });
+  const api = Object.freeze({ version: VERSION, erstelleTest, formatiereWert: format, aktivierePerformanceTrick, performanceTrickStatus });
 
   try { delete globalThis[API_NAME]; } catch {}
   Object.defineProperty(globalThis, API_NAME, { configurable: true, enumerable: true, writable: false, value: api });
@@ -631,6 +688,8 @@
   function passiveVorpruefung() {
     const obs = beobachte();
     const gruende = ruheGruende(obs);
+    const performanceTrick = guiApi().aktivierePerformanceTrick();
+    if (!performanceTrick.aktiv) gruende.push('PERFORMANCE_TRICK_NICHT_AKTIV');
     const journal = liesJournal();
     if (journalOffen(journal)) gruende.push('VORHERIGER_TESTVERSUCH_UNGEKLAERT');
     const speicher = pruefeStorage();
@@ -645,6 +704,7 @@
       status: gruende.length ? 'BLOCKIERT' : 'BESTANDEN',
       zeit: jetzt(),
       breiteRuntimeFreigabe: false,
+      performanceTrick,
       actionContractId: ACTION,
       recoveryContractId: RECOVERY,
       verifierId: VERIFIER,
@@ -723,11 +783,14 @@
     titel: '1 · Alte Runtime stoppen',
     art: 'normal',
     ausfuehren() {
+      const performanceTrick = guiApi().aktivierePerformanceTrick();
       const result = stoppeAltRuntime();
+      result.performanceTrick = performanceTrick;
+      if (!performanceTrick.aktiv) result.status = 'BLOCKIERT';
       gui.protokolliere('Alte Runtime stoppen', result);
       setzeResultat(result, result.status === 'BESTANDEN'
-        ? 'Keine alte V3/V4-Gameplay-Runtime mehr aktiv.'
-        : 'Alte Runtime konnte nicht vollstaendig gestoppt werden.');
+        ? 'Keine alte V3/V4-Gameplay-Runtime mehr aktiv; performance_trick ist aktiv.'
+        : 'Runtime- oder performance_trick-Vorbedingung ist nicht erfuellt.');
       gui.setzeAktionAktiv('passive-vorpruefung', result.status === 'BESTANDEN');
       return result;
     }
