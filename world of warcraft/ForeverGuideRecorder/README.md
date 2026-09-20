@@ -1,4 +1,4 @@
-# ForeverGuide Recorder v0.2
+# ForeverGuide Recorder v0.3
 
 Developer data recorder for World of Warcraft: Forever.
 
@@ -13,6 +13,8 @@ The addon records only data exposed through Blizzard's addon APIs. It does not r
 - build/interface version and basic anonymous player profile
 - quest accepts, removals, turn-ins and objective-state changes
 - questgiver gossip with available/active quest IDs
+- opened quest dialogs: title, quest text, objective/progress/reward text
+- quest reward/choice items and available reward currencies when exposed by the API
 - route samples and zone changes
 - player deaths
 - talent-tree/spec point distribution and learned talent ranks when exposed by the client API
