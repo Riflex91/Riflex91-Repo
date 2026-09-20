@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { VersionierterAnzeigekatalog } from "../../erzeugt/index.js";
+import { VersionierterAnzeigekatalog, planeOffeneUebersetzungsAufgaben } from "../../erzeugt/index.js";
 
 const basis = {
   schemaVersion: 1,
@@ -135,4 +135,68 @@ test("Katalog-Abdeckung ist maschinenlesbar und 100 Prozent nur ohne Luecke", ()
   assert.equal(katalog.pruefeAbdeckung([
     { kategorie: "KLASSE", externeKennung: "ranger" },
   ]).vollstaendig, false);
+});
+
+
+test("neue unuebersetzte Sichtinhalte erzeugen bounded offene Uebersetzungsaufgaben", () => {
+  const katalog = new VersionierterAnzeigekatalog(1, []);
+  const aufgaben = planeOffeneUebersetzungsAufgaben(katalog, [
+    {
+      kategorie: "FAEHIGKEIT",
+      externeKennung: "brand_new_skill",
+      quellenNachweis: "WISSENSWAECHTER:AL-DATA-SKILLS:HASH-NEU",
+    },
+    {
+      kategorie: "FAEHIGKEIT",
+      externeKennung: "brand_new_skill",
+      quellenNachweis: "WISSENSWAECHTER:AL-DATA-SKILLS:HASH-NEU",
+    },
+    {
+      kategorie: "GEGENSTAND",
+      externeKennung: "brand_new_item",
+      quellenNachweis: "WISSENSWAECHTER:AL-DATA-ITEMS:HASH-NEU",
+    },
+  ]);
+
+  assert.equal(aufgaben.length, 2);
+  assert.deepEqual(aufgaben[0], {
+    schemaVersion: 1,
+    aufgabeKennung: "uebersetzung:faehigkeit:brand_new_skill",
+    status: "OFFEN",
+    kategorie: "FAEHIGKEIT",
+    externeKennung: "brand_new_skill",
+    quellenNachweis: "WISSENSWAECHTER:AL-DATA-SKILLS:HASH-NEU",
+    deutscherPlatzhalter: "Unbekannte Fähigkeit",
+    gameplayAutoritaet: false,
+    automatischeFreigabe: false,
+  });
+  assert.equal(aufgaben[0].deutscherPlatzhalter.includes("brand_new_skill"), false);
+});
+
+test("bereits deutsch abgedeckter Sichtinhalt erzeugt keine Uebersetzungsaufgabe", () => {
+  const katalog = new VersionierterAnzeigekatalog(1, [{
+    ...basis,
+    externeKennung: "merchant",
+    kategorie: "KLASSE",
+    deutscherAnzeigename: "Händler",
+    quellenStatus: "DEUTSCH_GEPRUEFT",
+  }]);
+  assert.deepEqual(planeOffeneUebersetzungsAufgaben(katalog, [{
+    kategorie: "KLASSE",
+    externeKennung: "merchant",
+    quellenNachweis: "WISSENSWAECHTER:AL-DATA-CLASSES",
+  }]), []);
+});
+
+test("Uebersetzungsaufgaben sind fail-closed bounded", () => {
+  const katalog = new VersionierterAnzeigekatalog(1, []);
+  assert.throws(() => planeOffeneUebersetzungsAufgaben(katalog, [{
+    kategorie: "STATUS",
+    externeKennung: "one",
+    quellenNachweis: "TEST",
+  }, {
+    kategorie: "STATUS",
+    externeKennung: "two",
+    quellenNachweis: "TEST",
+  }], 1), /GRENZE_UEBERSCHRITTEN/);
 });
