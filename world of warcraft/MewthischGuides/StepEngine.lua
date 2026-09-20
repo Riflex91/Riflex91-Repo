@@ -173,7 +173,7 @@ function MG:BuildRouteStep(definition, snapshotEntry)
                 type = "accept",
                 state = self.GoalStates.ACTIVE,
                 name = title,
-                instruction = "Nimm die Quest „" .. tostring(definition.title or definition.questID) .. "“ an",
+                instruction = "Nimm die Quest „" .. tostring(title) .. "“ an",
                 progressText = "",
                 percent = nil,
                 finished = false,
