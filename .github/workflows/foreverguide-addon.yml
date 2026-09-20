@@ -335,7 +335,6 @@ jobs:
             stats.sourceFiles,stats.rawGuides,stats.rawSteps,stats.structuredActions,
             stats.knownActionKinds))
           LUA
-          LUA
 
       - name: Validate five-theme UI contract
         shell: bash
@@ -372,6 +371,309 @@ jobs:
           grep -q '^ForeverAPI.lua$' "$TOC"
           grep -q '^RouteEngine.lua$' "$TOC"
           grep -q '^RestedXPActionCatalog.lua
+            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
+          done
+
+          grep -q 'forever-modern-capability' "$API"
+          grep -q 'GetQuestsOnMap' "$API"
+          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
+          grep -q 'RestedXPWorldCoordinates' "$NAV"
+          grep -q 'Nächstes Theme' "$UI"
+          grep -q 'ElvUI' "$UI"
+          grep -q 'RestedXP-Guidequellen' "$UI"
+          grep -q 'RestedXP-Aktionsabdeckung' "$UI"
+          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
+
+          if grep -q 'navigationScreenAngle' "$NAV"; then
+            echo "Unsafe guessed screen-angle fallback detected."
+            exit 1
+          fi
+
+          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
+            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.10.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.10
+          path: artifacts/MewthischGuides-v0.10.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^RestedXPImport.lua
+          for chunk in 01 02 03 04 05; do
+            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
+          done
+
+          grep -q 'forever-modern-capability' "$API"
+          grep -q 'GetQuestsOnMap' "$API"
+          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
+          grep -q 'RestedXPWorldCoordinates' "$NAV"
+          grep -q 'Nächstes Theme' "$UI"
+          grep -q 'ElvUI' "$UI"
+          grep -q 'RestedXP-Guidequellen' "$UI"
+          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
+
+          if grep -q 'navigationScreenAngle' "$NAV"; then
+            echo "Unsafe guessed screen-angle fallback detected."
+            exit 1
+          fi
+
+          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
+            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.10.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.10
+          path: artifacts/MewthischGuides-v0.10.zip
+          if-no-files-found: error
+ "$TOC"
+          for chunk in 01 02 03 04 05; do
+            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
+          done
+
+          grep -q 'forever-modern-capability' "$API"
+          grep -q 'GetQuestsOnMap' "$API"
+          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
+          grep -q 'RestedXPWorldCoordinates' "$NAV"
+          grep -q 'Nächstes Theme' "$UI"
+          grep -q 'ElvUI' "$UI"
+          grep -q 'RestedXP-Guidequellen' "$UI"
+          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
+
+          if grep -q 'navigationScreenAngle' "$NAV"; then
+            echo "Unsafe guessed screen-angle fallback detected."
+            exit 1
+          fi
+
+          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
+            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.10.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.10
+          path: artifacts/MewthischGuides-v0.10.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^RestedXPImport.lua
+            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
+          done
+
+          grep -q 'forever-modern-capability' "$API"
+          grep -q 'GetQuestsOnMap' "$API"
+          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
+          grep -q 'RestedXPWorldCoordinates' "$NAV"
+          grep -q 'Nächstes Theme' "$UI"
+          grep -q 'ElvUI' "$UI"
+          grep -q 'RestedXP-Guidequellen' "$UI"
+          grep -q 'RestedXP-Aktionsabdeckung' "$UI"
+          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
+
+          if grep -q 'navigationScreenAngle' "$NAV"; then
+            echo "Unsafe guessed screen-angle fallback detected."
+            exit 1
+          fi
+
+          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
+            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.10.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.10
+          path: artifacts/MewthischGuides-v0.10.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^RestedXPImport.lua
+          for chunk in 01 02 03 04 05; do
+            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
+          done
+
+          grep -q 'forever-modern-capability' "$API"
+          grep -q 'GetQuestsOnMap' "$API"
+          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
+          grep -q 'RestedXPWorldCoordinates' "$NAV"
+          grep -q 'Nächstes Theme' "$UI"
+          grep -q 'ElvUI' "$UI"
+          grep -q 'RestedXP-Guidequellen' "$UI"
+          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
+
+          if grep -q 'navigationScreenAngle' "$NAV"; then
+            echo "Unsafe guessed screen-angle fallback detected."
+            exit 1
+          fi
+
+          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
+            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.10.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.10
+          path: artifacts/MewthischGuides-v0.10.zip
+          if-no-files-found: error
+ "$TOC"
+          for chunk in 01 02 03 04 05; do
+            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
+          done
+
+          grep -q 'forever-modern-capability' "$API"
+          grep -q 'GetQuestsOnMap' "$API"
+          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
+          grep -q 'RestedXPWorldCoordinates' "$NAV"
+          grep -q 'Nächstes Theme' "$UI"
+          grep -q 'ElvUI' "$UI"
+          grep -q 'RestedXP-Guidequellen' "$UI"
+          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
+
+          if grep -q 'navigationScreenAngle' "$NAV"; then
+            echo "Unsafe guessed screen-angle fallback detected."
+            exit 1
+          fi
+
+          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
+            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.10.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.10
+          path: artifacts/MewthischGuides-v0.10.zip
+          if-no-files-found: error
+ "$TOC"
           for chunk in 01 02 03 04 05; do
             grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
           done
