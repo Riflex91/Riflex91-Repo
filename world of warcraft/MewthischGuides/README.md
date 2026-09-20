@@ -1,29 +1,51 @@
-# Mewthisch Guides v0.4 - Roadmap Step 2
+# Mewthisch Guides v0.5 - Roadmap Steps 3 + 4
 
-Second development stage after the Zygor architecture review.
+This build combines the next two roadmap stages so the next in-game test covers a much more complete guide loop.
 
-## Step 2
+## Step 3 - Guide Step Engine and Resync
 
-- dedicated GoalEngine with Quest -> Step -> Goal separation
-- one quest may expose multiple goals with independent state and progress
-- active goal is selected automatically
-- compact human-readable goal instructions such as:
-  - Sammle 10x Kaktusapfel
-  - Toete 12x Uebler Familiar
-  - Interagiere mit: <Questobjekt>
-- additional goals remain visible as a compact summary
-- goal changes are logged separately from step changes
+- evidence-backed route seed from the quests already captured by DataMiner/Recorder
+- explicit guide phases:
+  - accept
+  - objectives
+  - turnin
+  - complete
+- automatic resync on login and quest-progress changes
+- already completed route steps are skipped
+- already active route quests are preferred over older missing route steps
+- applicability model supports:
+  - faction
+  - race
+  - class
+  - min/max level
+  - prerequisite quests
+- unknown active quests remain available as live fallback
+- resync decisions and skip reasons are stored in diagnostics
 
-## Navigation correction
+## Step 4 - Safe Quest Automation
 
-- the navigator has no background, panel, border or target label
-- only the arrow and the meter/kilometer distance remain visible
-- the old guessed screen-position direction fallback was removed
-- Quest POIs are refreshed after SuperTrack
-- navigation is re-resolved after a short delay so Forever has time to populate quest POI data
-- world-coordinate Y direction is corrected
-- arrow direction is displayed only when a real target coordinate and player facing produce a reliable bearing
-- if no reliable direction is available, Mewthisch Guides does not show a false arrow
+- automatic quest interaction is now tied to the expected guide quest ID
+- auto-accept only accepts the quest currently expected in the accept phase
+- auto-turn-in only turns in the quest currently expected in the turnin phase
+- unrelated offered quests are not selected
+- unsafe legacy "select first quest" behavior was removed
+- if an API cannot prove the quest ID, automation does nothing and logs the reason
+- multiple reward choices still pause for manual player selection
+
+## UI adjustment
+
+- Info opens in the exact center of the screen
+- Options opens in the exact center of the screen
+- Viewer and Navigator remain independently movable
+
+## Existing Step 1/2 features retained
+
+- compact guide viewer
+- separate transparent navigation arrow
+- metric distance
+- GoalEngine with per-objective progress
+- movable minimap button
+- diagnostic logging
 
 ## Commands
 
@@ -42,8 +64,8 @@ Useful:
 
 ## Test evidence
 
-After /reload or logout send:
+After testing, use /reload or log out and send:
 
 WTF/Account/<account>/SavedVariables/MewthischGuides.lua
 
-For navigation testing, screenshots plus the SavedVariables file are especially useful.
+Screenshots are still useful for UI/navigation issues.
