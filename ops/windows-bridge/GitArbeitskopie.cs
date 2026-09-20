@@ -9,6 +9,8 @@ public sealed class GitArbeitskopie
     public const string WissensbasisPfad = "v5/wissensbasis";
     public const string DatenbankPfad = WissensbasisPfad + "/datenbank";
     public const string LiveWissenPfad = WissensbasisPfad + "/live";
+    public const string SyncStrategie = "KNOWLEDGE_ONLY_NO_MAIN_MERGE";
+    public const bool IntegriertBasisVorPush = false;
 
     private readonly string _wurzel;
 
@@ -102,24 +104,10 @@ public sealed class GitArbeitskopie
             cancellationToken,
             TimeSpan.FromSeconds(30)), "GIT_CHECKOUT_FEHLGESCHLAGEN");
 
-        if (wissensBranchVorhanden)
-        {
-            var basisMerge = await GitHubAnmeldung.FuehreGitAusAsync(
-                ["merge", "--no-edit", $"origin/{BasisBranch}"],
-                _wurzel,
-                cancellationToken,
-                TimeSpan.FromMinutes(2));
-            if (!basisMerge.Erfolgreich)
-            {
-                await GitHubAnmeldung.FuehreGitAusAsync(
-                    ["merge", "--abort"],
-                    _wurzel,
-                    cancellationToken,
-                    TimeSpan.FromSeconds(30));
-                throw new InvalidOperationException("GIT_WISSENSBRANCH_BASIS_KONFLIKT:" + basisMerge.Fehlerausgabe);
-            }
-        }
-
+        // main wird absichtlich NICHT in den Knowledge-Branch gemerged oder rebased.
+        // Dadurch erzeugt der lokale Wissenswaechter ausschliesslich Knowledge-Commits
+        // und benoetigt keine Berechtigung zum Schreiben von .github/workflows/** oder
+        // anderen main-Aenderungen. Ein spaeterer PR-Konflikt bleibt fail-closed serverseitig.
         await VerifiziereLetztenCommitBereichNurWennVorhandenAsync(cancellationToken);
 
         await VerifiziereArbeitsbereichAsync(cancellationToken);
@@ -237,32 +225,18 @@ public sealed class GitArbeitskopie
 
         // Der Waechter darf ausschliesslich innerhalb von v5/wissensbasis schreiben.
         // Er pusht niemals direkt auf main, sondern nur auf den dedizierten Knowledge-Branch.
-        // Wenn main waehrend des Laufs weiterlief, wird main vor dem Push per normalem Merge integriert.
-        // Vor und nach der Integration wird fail-closed verifiziert, dass der eigene Commit
-        // keine Datei ausserhalb der Wissensbasis enthaelt. Force-Push ist verboten.
+        // Vor dem Push wird der aktuelle main nur gefetcht, niemals gemerged/rebased. Der
+        // Drei-Punkt-Diff prueft den Branch-Anteil ab Merge-Base und ignoriert main-only
+        // Aenderungen. So bleibt ein repository-begrenzter Contents-Write-Token ausreichend.
+        // Force-Push ist verboten; konkurrierende Remote-Aenderungen lassen den Push scheitern.
         VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
             ["fetch", "origin", BasisBranch],
             _wurzel,
             cancellationToken,
             TimeSpan.FromMinutes(2)), "GIT_FETCH_VOR_PUSH_FEHLGESCHLAGEN");
 
-        var merge = await GitHubAnmeldung.FuehreGitAusAsync(
-            ["merge", "--no-edit", $"origin/{BasisBranch}"],
-            _wurzel,
-            cancellationToken,
-            TimeSpan.FromMinutes(2));
-
-        if (!merge.Erfolgreich)
-        {
-            await GitHubAnmeldung.FuehreGitAusAsync(
-                ["merge", "--abort"],
-                _wurzel,
-                cancellationToken,
-                TimeSpan.FromSeconds(30));
-            throw new InvalidOperationException("GIT_MAIN_MERGE_KONFLIKT:" + merge.Fehlerausgabe);
-        }
-
         await VerifiziereLetztenCommitAsync(cancellationToken);
+        await VerifiziereLetztenCommitBereichNurWennVorhandenAsync(cancellationToken);
 
         VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
             ["push", "origin", PushZielRef],
@@ -302,7 +276,7 @@ public sealed class GitArbeitskopie
             throw new InvalidOperationException("GIT_WISSENSBRANCH_ZAEHLER_UNGUELTIG");
 
         if (commits > 0)
-            await VerifiziereCommitBereichAsync($"origin/{BasisBranch}..HEAD", cancellationToken);
+            await VerifiziereCommitBereichAsync($"origin/{BasisBranch}...HEAD", cancellationToken);
     }
 
     private async Task VerifiziereCommitBereichAsync(
