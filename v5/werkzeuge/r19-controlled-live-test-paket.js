@@ -146,18 +146,20 @@
       cplaying,
       playing,
       howlState,
-      aktiv: verfuegbar && audioGefunden && (playing || cplaying),
+      aktiv: verfuegbar && audioGefunden && playing,
       visibilityState
     });
   }
 
-  function aktivierePerformanceTrick() {
+  async function aktivierePerformanceTrick() {
     const roots = performanceRoots();
+    let ziel = null;
     let aufgerufen = false;
     let fehler = null;
     for (const root of roots) {
       try {
         if (typeof root?.performance_trick !== 'function') continue;
+        ziel = root;
         root.performance_trick();
         aufgerufen = true;
         break;
@@ -165,8 +167,18 @@
         fehler = fehlerText(error);
       }
     }
-    const status = performanceTrickStatus();
-    return Object.freeze({ ...status, aufgerufen, fehler });
+    if (aufgerufen) await new Promise(resolve => setTimeout(resolve, 350));
+    let status = performanceTrickStatus();
+    if (ziel && status.playing !== true) {
+      try {
+        ziel.performance_trick();
+        await new Promise(resolve => setTimeout(resolve, 150));
+        status = performanceTrickStatus();
+      } catch (error) {
+        fehler = fehlerText(error);
+      }
+    }
+    return Object.freeze({ ...status, aufgerufen, fehler, verifikation: 'HOWLER_PLAYING_TRUE' });
   }
 
   function erstelleTest(optionen = {}) {
@@ -657,10 +669,10 @@
     return { ok: gelesen === probe, art: 'BROWSER_TEST_WITNESS', produktionsPersistenz: false };
   }
 
-  function passiveVorpruefung() {
+  async function passiveVorpruefung() {
     const obs = beobachte();
     const gruende = ruheGruende(obs);
-    const performanceTrick = guiApi().aktivierePerformanceTrick();
+    const performanceTrick = await guiApi().aktivierePerformanceTrick();
     if (!performanceTrick.aktiv) gruende.push('PERFORMANCE_TRICK_NICHT_AKTIV');
     const journal = liesJournal();
     if (journalOffen(journal)) gruende.push('VORHERIGER_TESTVERSUCH_UNGEKLAERT');
@@ -755,7 +767,7 @@
     titel: '1 · Alte Runtime stoppen',
     art: 'normal',
     ausfuehren() {
-      const performanceTrick = guiApi().aktivierePerformanceTrick();
+      const performanceTrick = await guiApi().aktivierePerformanceTrick();
       const result = stoppeAltRuntime();
       result.performanceTrick = performanceTrick;
       if (!performanceTrick.aktiv) result.status = 'BLOCKIERT';
@@ -773,8 +785,8 @@
     titel: '2 · Passive Vorprüfung',
     art: 'primaer',
     aktiviert: false,
-    ausfuehren() {
-      const result = passiveVorpruefung();
+    async ausfuehren() {
+      const result = await passiveVorpruefung();
       letzterPreflight = result;
       gui.protokolliere('Passive Vorpruefung', result);
       setzeResultat(result, result.status === 'BESTANDEN'
@@ -798,7 +810,7 @@
         throw new Error('R19_PASSIVE_VORPRUEFUNG_FEHLT');
       }
 
-      const frisch = passiveVorpruefung();
+      const frisch = await passiveVorpruefung();
       if (frisch.status !== 'BESTANDEN') {
         setzeResultat(frisch, 'Frische Vorprüfung blockiert. Kein Send.');
         return frisch;
