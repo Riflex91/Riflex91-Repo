@@ -927,6 +927,7 @@ function MG:RefreshInfo()
     local gear = self.db.runtime and self.db.runtime.gear or {}
     local talent = self.db.runtime and self.db.runtime.talent or {}
     local reward = self.db.runtime and self.db.runtime.reward or {}
+    local restedXP = self.db.runtime and self.db.runtime.restedXP or {}
     local theme, themeName = currentTheme()
 
     local tableCount = 0
@@ -976,6 +977,11 @@ function MG:RefreshInfo()
         "Gear-Empfehlung: " .. tostring(gear.recommendedItemID or "–"),
         "Talent-Empfehlung: " .. tostring(talent.recommendedSpellID or "–"),
         "Reward-Empfehlung: " .. tostring(reward.recommendedItemID or "–"),
+        "RestedXP-Guidequellen: " .. tostring(restedXP.rawGuides or 0) ..
+            " / Questdefinitionen: " .. tostring(restedXP.normalizedQuestDefinitions or 0),
+        "RestedXP-Quelldaten: " .. tostring(restedXP.structuredActions or 0) ..
+            " strukturierte Aktionen",
+        "RestedXP-Commit: " .. tostring(restedXP.sourceCommit or "–"),
         "",
         "Diagnose-Logs: " .. tostring(logs.total),
         "Warnungen: " .. tostring(logs.warnings),
