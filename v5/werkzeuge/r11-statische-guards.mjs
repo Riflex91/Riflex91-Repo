@@ -63,10 +63,10 @@ for (const marker of [
   }
 }
 for (const [muster, kennung] of [
-  [/\\bfetch\\s*\\(/, "FETCH"],
-  [/\\bload_code\\s*\\(/, "LOAD_CODE"],
-  [/\\bupload_code\\s*\\(/, "UPLOAD_CODE"],
-  [/\\bapi_call\\s*\\(/, "API_CALL"],
+  [/\bfetch\s*\(/, "FETCH"],
+  [/\bload_code\s*\(/, "LOAD_CODE"],
+  [/\bupload_code\s*\(/, "UPLOAD_CODE"],
+  [/\bapi_call\s*\(/, "API_CALL"],
   [/node:child_process/, "CHILD_PROCESS"],
   [/windows-bridge/i, "WINDOWS_BRIDGE"],
 ]) {
