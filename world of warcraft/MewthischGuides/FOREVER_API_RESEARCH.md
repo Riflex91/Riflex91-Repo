@@ -84,7 +84,7 @@ The researched Forever surface includes modern-style item, reward and specializa
 - TalentAdvisor
 - Guide/Goal integration
 
-Gear auto-equip is disabled by default and remains fail-closed. With the default safety settings it requires a high-confidence upgrade, a bound item, no combat and an empty cursor; weapon auto-equip is disabled. Multiple quest rewards are recommendation-only and are never auto-selected. TalentAdvisor never spends points automatically.
+Gear auto-equip is disabled by default and remains fail-closed. Plain item-level comparison is medium confidence only. High confidence requires a data-backed gear profile with stat weights; with the default safety settings auto-equip additionally requires a bound item, no combat and an empty cursor, while weapon auto-equip is disabled. Multiple quest rewards are recommendation-only and are never auto-selected. TalentAdvisor never spends points automatically.
 
 ## Travel
 
