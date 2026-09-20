@@ -7,6 +7,7 @@ const pflicht=[
   "grundlage/quelle/lernen/lern-admission.ts",
   "grundlage/quelle/lernen/datenbasis-pin.ts",
   "grundlage/quelle/lernen/modell-liga.ts",
+  "grundlage/quelle/lernen/strategischer-recommendation-port.ts",
   "grundlage/tests/r18-fallback-ranking.test.mjs",
   "grundlage/tests/r18-admission-evidence.test.mjs",
   "grundlage/tests/r18-modell-liga.test.mjs",
@@ -31,6 +32,22 @@ for(const m of ["LearningEvidence","featureSchemaVersion","datenFingerprint","ga
 const liga=lies("grundlage/quelle/lernen/modell-liga.ts");
 for(const m of ["CHAMPION","CHALLENGER","SHADOW","PROMOTION_BEREIT","QUARANTAENE","gameplayTrafficErlaubt:false","gameplayAutoritaet:false","safetyVerletzungen","sampleGaps"]){
   if(!liga.includes(m)) fehler.push("MODELL_LIGA_MARKER_FEHLT:"+m);
+}
+
+const recommendation=lies("grundlage/quelle/lernen/strategischer-recommendation-port.ts");
+for(const m of [
+  "StrategischerRecommendationPort",
+  "GebundenerStrategischerRecommendationPort",
+  "STRATEGIE_HARTE_GRENZE",
+  "DETERMINISTISCHER_FALLBACK",
+  "anwendbarAufGameplay: false",
+  "direkteActionAutoritaet: false",
+  "gameplayAutoritaet: false",
+  "ausfuehrungsAutoritaet: false",
+  "mutationAutorisiert: false",
+  "deterministischerFallbackImmerVerfuegbar: true"
+]){
+  if(!recommendation.includes(m)) fehler.push("RECOMMENDATION_PORT_MARKER_FEHLT:"+m);
 }
 
 const rawMuster=[
