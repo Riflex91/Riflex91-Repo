@@ -23,7 +23,7 @@ public sealed record V5ReadinessBericht(
 public sealed class V5ReadinessSystemtest
 {
     public const string TestKennung = "V5_WINDOWS_BRIDGE_READINESS";
-    public const string TestVersion = "1.0.0";
+    public const string TestVersion = "1.1.0";
 
     private readonly GitHubAnmeldung _githubAnmeldung;
 
@@ -70,6 +70,12 @@ public sealed class V5ReadinessSystemtest
             $"{config.WissenswaechterIntervallMinuten} Minuten");
 
         Pruefe(
+            "GITHUB_AUTH_MODUS",
+            GitHubAnmeldung.Authentifizierungsmodus == "FINE_GRAINED_PAT"
+                && GitHubAnmeldung.MinimalBerechtigungsprofil == "REPOSITORY_ONLY_CONTENTS_WRITE",
+            $"modus={GitHubAnmeldung.Authentifizierungsmodus}; profil={GitHubAnmeldung.MinimalBerechtigungsprofil}");
+
+        Pruefe(
             "KNOWLEDGE_REPOSITORY",
             GitArbeitskopie.RepositoryUrl == "https://github.com/Riflex91/Riflex91-Repo.git",
             GitArbeitskopie.RepositoryUrl);
@@ -87,6 +93,12 @@ public sealed class V5ReadinessSystemtest
                 && GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/manifest.json")
                 && !GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/dokumentation/V5-MASTER-ROADMAP.md"),
             GitArbeitskopie.WissensbasisPfad + "/**");
+
+        Pruefe(
+            "KNOWLEDGE_SYNC_LEAST_PRIVILEGE",
+            GitArbeitskopie.SyncStrategie == "KNOWLEDGE_ONLY_NO_MAIN_MERGE"
+                && !GitArbeitskopie.IntegriertBasisVorPush,
+            $"strategie={GitArbeitskopie.SyncStrategie}; mainIntegration={GitArbeitskopie.IntegriertBasisVorPush}");
 
         var livePfad = config.LiveWissensdatenbankPfad;
         var livePfadKonfiguriert = config.LiveWissensimportAktiv
@@ -189,7 +201,7 @@ public sealed class V5ReadinessSystemtest
         punkte.Add(new V5ReadinessPruefpunkt(
             "GITHUB_LEAST_PRIVILEGE",
             "MANUELL_NACHWEISEN",
-            "Der Test liest oder protokolliert niemals das GitHub-Token. Repository-Begrenzung und minimal erforderliche Rechte muessen in der GitHub-Autorisierung separat bestaetigt werden."));
+            "Der Test liest oder protokolliert niemals das GitHub-Token. Manuell muss bestaetigt werden: Fine-grained PAT, Resource owner Riflex91, Repository access nur Riflex91-Repo, Repository permission Contents=Read and write; keine zusaetzlichen Schreibrechte."));
 
         var automatischBestanden = punkte
             .Where(p => p.Status != "MANUELL_NACHWEISEN")
@@ -208,7 +220,7 @@ public sealed class V5ReadinessSystemtest
             Pruefpunkte: punkte,
             ManuelleNachweise:
             [
-                "V5-ANF-WISSEN-012: GitHub-Autorisierung auf Riflex91/Riflex91-Repo begrenzt und ohne Administration/Secrets/Deployment/Workflow-Schreibrechte nachweisen."
+                "V5-ANF-WISSEN-012: Fine-grained PAT nachweisen: Resource owner Riflex91; Repository access nur Riflex91-Repo; Contents=Read and write; Metadata=Read automatisch; keine Actions/Administration/Secrets/Environments/Deployments/Workflows-Schreibrechte."
             ]);
 
         return bericht;

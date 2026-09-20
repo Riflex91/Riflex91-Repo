@@ -199,6 +199,8 @@ Der Test prüft automatisch unter anderem:
 - exakt `Riflex91/Riflex91-Repo`, `main`, den dedizierten Knowledge-Branch `v5/wissenswaechter-automatisch` und den Scope `v5/wissensbasis/**`;
 - den konfigurierten Live-Wissenspfad auf `D:\`;
 - Git Credential Manager und die aktive GitHub-Anmeldung;
+- den fest verdrahteten **Fine-grained-PAT-Modus** statt Browser-OAuth;
+- die Knowledge-Sync-Strategie **ohne lokalen Merge/Rebase von main**;
 - reale Erreichbarkeit des Repositories in einer **isolierten temporären Arbeitskopie** mit Sparse Checkout;
 - vollständiges Entfernen dieser temporären Arbeitskopie nach dem Test;
 - dass der Readiness-Test selbst **keinen Gameplay-Write und keinen Knowledge-Push** ausführt.
@@ -209,7 +211,7 @@ Bei vollständig bestandenen automatischen Prüfungen lautet der Status:
 
 Der vollständige Bericht wird in die Zwischenablage kopiert und soll komplett in ChatGPT eingefügt werden. Der Test liest oder protokolliert absichtlich **kein GitHub-Token**.
 
-Zusätzlich bleibt ein manueller Pflichtnachweis offen: Für `V5-ANF-WISSEN-012` muss am real verwendeten GitHub-Zugang nachvollziehbar belegt werden, dass die Autorisierung auf `Riflex91/Riflex91-Repo` begrenzt ist und nur die für den Wissenswächter erforderlichen Rechte besitzt. Insbesondere dürfen keine unnötigen Admin-, Secrets-, Environment-, Deployment- oder allgemeinen Workflow-Schreibrechte vorliegen.
+Zusätzlich bleibt ein manueller Pflichtnachweis offen: Für `V5-ANF-WISSEN-012` muss am real verwendeten GitHub-Zugang nachvollziehbar belegt werden, dass ein **Fine-grained Personal Access Token** mit Resource Owner `Riflex91` verwendet wird, bei **Repository access** ausschließlich `Riflex91-Repo` ausgewählt ist und bei den Repository-Rechten nur **Contents: Read and write** benötigt wird; **Metadata: Read** wird von GitHub automatisch ergänzt. Actions-, Administration-, Secrets-, Environments-, Deployments- und Workflows-Schreibrechte dürfen nicht erteilt sein. Der Tokenwert selbst darf niemals in einen Testbericht oder Chat kopiert werden.
 
 Auch ein vollständig grüner Readiness-Bericht gibt die breite Gameplay-Runtime **nicht automatisch** frei. Die separate Gesamtfreigabe bleibt erforderlich.
 
@@ -240,7 +242,11 @@ Auch ein vollständig grüner Readiness-Bericht gibt die breite Gameplay-Runtime
 
 ## GitHub-Anmeldung und Wissenswaechter
 
-Die Bridge kann sich ueber den mit Git for Windows ausgelieferten Git Credential Manager bei GitHub anmelden. Der Login verwendet den Browser-OAuth-Flow; die Bridge speichert selbst weder GitHub-Passwort noch GitHub-Token in `settings.json`.
+Die Bridge meldet den Wissenswaechter ueber den mit Git for Windows ausgelieferten Git Credential Manager an. **Browser-OAuth ist fuer diesen Pfad gesperrt.** Die Bridge erzwingt den GCM-PAT-Modus und erwartet einen repository-begrenzten Fine-grained Personal Access Token.
+
+Die Oberflaeche bietet **Least-Privilege Token erstellen**. Der Link oeffnet GitHubs Fine-grained-PAT-Erstellung mit dem vorgesehenen Resource Owner und `Contents: write` vorbefuellt. Im GitHub-Dialog muss der Benutzer zusaetzlich **Only select repositories** und ausschließlich `Riflex91-Repo` waehlen. Danach wird der Token ausschließlich im von Git Credential Manager geoeffneten Anmeldedialog eingegeben. Die Bridge uebergibt den Token nicht als Prozessargument, liest seinen Wert nicht und schreibt ihn weder nach `settings.json` noch in Logs, Telemetrie oder Readiness-Berichte.
+
+Der lokale Token benoetigt keine Pull-Request- oder Workflow-Schreibrechte. Er darf den dedizierten Knowledge-Branch per `Contents: Read and write` aktualisieren. Der serverseitige GitHub-Actions-Workflow erstellt bzw. aktualisiert den Pull Request mit seiner separat begrenzten Workflow-Autorisierung.
 
 Der Wissenswaechter ist standardmaessig aktiviert und laeuft einmal pro Stunde. Ein zusaetzlicher manueller Lauf kann jederzeit ueber die Oberflaeche gestartet werden.
 
@@ -258,9 +264,11 @@ Technische Verriegelungen:
 - Sparse Checkout wird auf genau `v5/wissensbasis` gesetzt;
 - alle Dateipfade werden vor lokalem Zugriff gegen diese Wurzel validiert;
 - vor dem Commit werden alle gestageten Pfade verifiziert;
-- nach einem Rebase wird der erzeugte Commit nochmals verifiziert;
+- `main` wird lokal weder in den Knowledge-Branch gemerged noch darauf rebased;
+- vor dem Push wird der aktuelle `main` nur gefetcht und der **eigene Branch-Anteil ab Merge-Base** per Drei-Punkt-Diff auf `v5/wissensbasis/**` begrenzt;
+- der letzte eigene Commit wird nochmals auf erlaubte Pfade verifiziert;
 - Pfade ausserhalb von `v5/wissensbasis/**` fuehren zum Abbruch;
-- es gibt keinen Force-Push.
+- es gibt keinen Force-Push; konkurrierende Remote-Aenderungen lassen den normalen Push fail-closed scheitern.
 
 Automatisch erzeugte Laufdaten liegen standardmaessig unter:
 

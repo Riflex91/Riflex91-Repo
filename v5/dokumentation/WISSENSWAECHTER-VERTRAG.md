@@ -63,22 +63,25 @@ Nicht in Git gehoeren unkontrolliert komplette HTML-Seiten, grosse Rohantworten 
 
 ## GitHub-Anmeldung
 
-Bevorzugte Zielarchitektur: **GitHub App mit minimalen Repository-Rechten** und interaktiver Benutzeranmeldung fuer die Windows Bridge.
+Verbindliche lokale Zielarchitektur: **repository-begrenzter Fine-grained Personal Access Token ueber Git Credential Manager**.
 
-Minimal benoetigt:
-- Repository-Metadaten lesen;
-- Contents lesen/schreiben fuer erlaubte Knowledge-Pfade;
-- Pull Requests lesen/schreiben;
+Der Wissenswaechter-Token wird auf genau `Riflex91/Riflex91-Repo` begrenzt. Lokal benoetigt er:
+- Repository-Metadaten lesen (von GitHub bei Fine-grained Tokens automatisch als Metadata-Read bereitgestellt);
+- Contents lesen/schreiben, um den dedizierten Knowledge-Branch zu lesen und zu aktualisieren;
+- **keine** Pull-Request-Schreibrechte;
+- **keine** Actions-/Workflow-Schreibrechte;
 - keine Administration;
-- keine Secrets-/Environment-/Deployment-Verwaltung;
-- keine allgemeinen Workflow-Schreibrechte.
+- keine Secrets-/Environment-/Deployment-Verwaltung.
+
+Pull-Request-Erstellung und CI bleiben serverseitige Aufgaben von GitHub Actions mit separat begrenzter Workflow-Autorisierung. Der lokale Wissenswaechter darf dafuer keine zusaetzlichen Token-Rechte erhalten.
 
 Zugangsdaten:
 - nie im Repo;
 - nie in `settings.json`;
 - nie in Logs/Telemetrie/Diagnosen;
-- lokal fuer den Windows-Benutzer mit DPAPI schuetzen;
-- widerrufbar und bei Logout lokal entfernbar.
+- Tokenwert niemals als Prozessargument oder Readiness-Evidence ausgeben;
+- Eingabe ausschließlich im Git-Credential-Manager-Anmeldedialog;
+- widerrufbar und bei Logout aus dem lokalen GCM-Konto entfernbar.
 
 ## Git-Pfad-Allowlist
 
@@ -129,6 +132,8 @@ Aenderung erkannt
 -> UEBERNAHME_BEREIT
 -> Merge gemaess definierter Policy
 ```
+
+Der lokale Wissenswaechter integriert `main` vor dem Push weder per Merge noch per Rebase. Er pusht ausschließlich normale Knowledge-Commits auf den dedizierten Branch; Konflikte mit einem fortgeschrittenen `main` werden spaeter im PR-/CI-Pfad sichtbar und nicht durch breitere lokale Rechte geloest.
 
 Kein Force-Push auf `main`.
 
@@ -199,7 +204,8 @@ Gegen den auf `main` vorhandenen Stand wurden bereits folgende positive Schutzme
 - Git-Arbeitskopie verwendet Sparse Checkout auf `v5/wissensbasis/**`;
 - lokale Pfadauflösung verhindert Verzeichnis-Ausbruch;
 - gestagete Pfade werden vor Commit kontrolliert;
-- der erzeugte Commit wird nach Rebase erneut auf erlaubte Pfade kontrolliert;
+- der erzeugte Commit und der eigene Branch-Anteil ab Merge-Base werden erneut auf erlaubte Pfade kontrolliert;
+- `main` wird im lokalen Knowledge-Branch weder gemerged noch rebased;
 - Force-Push ist nicht vorgesehen;
 - Wissenslauf ist auf 60 Minuten konfiguriert;
 - Community-/unbekannte Quellen bleiben Kandidaten;
@@ -210,12 +216,12 @@ Der fruehere direkte-main-Blocker ist technisch geschlossen:
 1. **Dedizierter Knowledge-Branch und PR/CI-Gate umgesetzt.**  
    `GitArbeitskopie.CommitUndPushAsync` pusht auf `HEAD:v5/wissenswaechter-automatisch`. Der serverseitige Workflow `.github/workflows/v5-wissenswaechter-pr.yml` besitzt `contents: read` und `pull-requests: write`, akzeptiert im automatischen Branch nur `v5/wissensbasis/**`, validiert Wissensbasis und Entwicklungs-Wissensgate und erstellt/aktualisiert danach einen PR gegen `main`. Ein automatischer Knowledge-Lauf schreibt nicht direkt auf `main`.
 
-Vor V5-Gesamtfreigabe bleibt genau die externe Autorisierungshaertung offen:
+Vor V5-Gesamtfreigabe bleibt genau der reale Autorisierungsnachweis offen:
 
-2. **Least-Privilege-GitHub-Autorisierung nachweisen.**  
-   Der lokale Login ueber Git Credential Manager und Browser-OAuth ist funktional und speichert das Token nicht selbst in der Bridge. Fuer V5-Readiness muss aber zusaetzlich am real installierten System bewiesen sein, dass die verwendete Authentisierung nur die minimal erforderlichen Repository-Rechte besitzt und auf das erlaubte Repository begrenzt ist. Bevorzugt ist eine auf dieses Repository begrenzte GitHub App oder eine nachweislich gleich eng begrenzte Alternative.
+2. **Least-Privilege-GitHub-Autorisierung am installierten System nachweisen.**  
+   Die Bridge sperrt Browser-OAuth fuer den Wissenswaechter und erzwingt den PAT-Modus von Git Credential Manager. Der lokale Knowledge-Sync merged oder rebased `main` nicht und benoetigt dadurch keine allgemeinen Workflow-Schreibrechte. Fuer `V5-ANF-WISSEN-012` muss am real installierten System trotzdem separat nachgewiesen werden, dass der tatsaechlich hinterlegte Fine-grained Token den Resource Owner `Riflex91`, **nur** das Repository `Riflex91-Repo` und als schreibendes Repository-Recht **nur Contents: Read and write** besitzt. Der Tokenwert selbst ist kein Nachweis und darf niemals offengelegt werden.
 
-Der Repository-/CI-Pfad ist damit geschlossen; der verbleibende Punkt ist bewusst ein externer Betriebs-/Autorisierungsnachweis und wird nicht aus Repo-Code abgeleitet.
+Der Repository-/CI-Pfad ist damit technisch auf Least Privilege vorbereitet; der verbleibende Punkt ist bewusst ein externer Betriebs-/Autorisierungsnachweis und wird nicht aus Repo-Code abgeleitet.
 
 
 ## Konsumentenvertrag fuer Entwicklung und Runtime
