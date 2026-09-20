@@ -10,8 +10,11 @@ if (!r6 || !["IN_PROGRESS", "DONE"].includes(r6.status)) fehler("R6 muss IN_PROG
 if (r6.status === "IN_PROGRESS" && gates.currentPhase !== "R6") fehler("R6 IN_PROGRESS verlangt currentPhase=R6.");
 if (r6.status === "DONE") {
   const r7 = gates.phases?.find(x => x.id === "R7");
-  if (gates.currentPhase !== "R7" || r7?.status !== "IN_PROGRESS") {
-    fehler("R6 DONE verlangt R7 IN_PROGRESS und currentPhase=R7.");
+  const spaeterePhasen = new Set(["R8","R9","R10","R11","R12","R13","R14","R15","R16","R17","R18"]);
+  const direkterUebergang = gates.currentPhase === "R7" && r7?.status === "IN_PROGRESS";
+  const bereitsWeiter = spaeterePhasen.has(gates.currentPhase) && r7?.status === "DONE";
+  if (!direkterUebergang && !bereitsWeiter) {
+    fehler("R6 DONE verlangt mindestens R7 IN_PROGRESS oder einen formal abgeschlossenen R7-Uebergang.");
   }
 }
 if (bereitschaft.status === "FREIGEGEBEN") fehler("R6 darf Gameplay-Runtime nicht freigeben.");

@@ -1,0 +1,69 @@
+name: v5-r7
+
+on:
+  pull_request:
+    paths:
+      - 'v5/grundlage/**'
+      - 'v5/package.json'
+      - 'v5/package-lock.json'
+      - 'v5/werkzeuge/r3-*.mjs'
+      - 'v5/werkzeuge/tests/r3-*.test.mjs'
+      - 'v5/werkzeuge/r7-*.mjs'
+      - 'v5/architektur/adr/**'
+      - 'v5/roadmap/**'
+      - 'v5/bereitschaft/**'
+      - 'v5/anforderungen/**'
+      - 'v5/fitness/**'
+      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
+      - '.github/workflows/v5-r7.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'v5/grundlage/**'
+      - 'v5/package.json'
+      - 'v5/package-lock.json'
+      - 'v5/werkzeuge/r3-*.mjs'
+      - 'v5/werkzeuge/tests/r3-*.test.mjs'
+      - 'v5/werkzeuge/r7-*.mjs'
+      - 'v5/architektur/adr/**'
+      - 'v5/roadmap/**'
+      - 'v5/bereitschaft/**'
+      - 'v5/anforderungen/**'
+      - 'v5/fitness/**'
+      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
+      - '.github/workflows/v5-r7.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  module-capability-authority:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Exakten Head verifizieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          ERWARTET="${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+          IST="$(git rev-parse HEAD)"
+          test "$IST" = "$ERWARTET"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+
+      - name: Gepinnte Abhaengigkeiten installieren
+        working-directory: v5
+        run: npm ci
+
+      - name: R7 Module Capabilities Ports Authority pruefen
+        working-directory: v5
+        run: npm run r7:pruefen

@@ -44,3 +44,7 @@ export * from "./wissen/wissens-promotion.js";
 export * from "./anzeige/anzeigekatalog.js";
 export * from "./wissen/live-wissens-publizierer.js";
 export * from "./wissen/beobachtungs-evidence-ablage.js";
+export * from "./autoritaet/faehigkeits-register.js";
+export * from "./autoritaet/bediener-richtlinie.js";
+export * from "./autoritaet/ports.js";
+export * from "./autoritaet/modul-register.js";

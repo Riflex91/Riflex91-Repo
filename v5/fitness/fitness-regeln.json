@@ -32,13 +32,25 @@
       "kennung": "V5-FIT-005",
       "titel": "Genau ein mutierender Owner pro Capability",
       "phase": "R7",
-      "durchsetzung": "REGISTRY_GUARD"
+      "durchsetzung": "REGISTRY_GUARD",
+      "r7NachweisStatus": "ERFUELLT",
+      "r7Nachweise": [
+        "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
+        "v5/grundlage/tests/r7-autoritaet.test.mjs",
+        "v5/werkzeuge/r7-statische-guards.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-006",
       "titel": "Mutierende Capabilities sind default-off",
       "phase": "R7",
-      "durchsetzung": "CAPABILITY_SCHEMA_GUARD"
+      "durchsetzung": "CAPABILITY_SCHEMA_GUARD",
+      "r7NachweisStatus": "ERFUELLT",
+      "r7Nachweise": [
+        "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
+        "v5/grundlage/tests/r7-autoritaet.test.mjs",
+        "v5/werkzeuge/r7-statische-guards.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-007",
@@ -335,7 +347,14 @@
       "kennung": "V5-FIT-044",
       "titel": "Jede live-faehige Capability besitzt Disable-/Rollback-Pfad und Default-Deny-Start",
       "phase": "R7",
-      "durchsetzung": "CAPABILITY_LIFECYCLE_GUARD"
+      "durchsetzung": "CAPABILITY_LIFECYCLE_GUARD",
+      "r7NachweisStatus": "ERFUELLT",
+      "r7Nachweise": [
+        "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
+        "v5/grundlage/quelle/autoritaet/modul-register.ts",
+        "v5/grundlage/tests/r7-autoritaet.test.mjs",
+        "v5/grundlage/tests/r7-module.test.mjs"
+      ]
     },
     {
       "kennung": "V5-FIT-045",

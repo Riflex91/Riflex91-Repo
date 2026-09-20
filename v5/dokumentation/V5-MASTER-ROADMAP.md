@@ -488,7 +488,11 @@ Exit Gate:
 
 ## R7 – Module, Capabilities, Ports und Authority
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
+
+Maschinenlesbarer Abschluss: `roadmap/r7-abschluss.json`.
+
+Das Gameplay-Runtime-Gesamtgate bleibt auch nach R7 `GESPERRT`.
 
 Bauen:
 - Module Registry;
@@ -507,6 +511,8 @@ Exit Gate:
 - Module koennen ersetzt werden, ohne fremde Implementierung zu patchen.
 
 ## R8 – Workflow Scheduler und Resource Manager
+
+**Status:** IN_PROGRESS.
 
 Bauen:
 - Workflow Contract;

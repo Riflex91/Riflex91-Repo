@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "stand": "2026-09-19",
+  "stand": "2026-09-20",
   "status": "GESPERRT",
   "freigaberegel": "Alle zehn Pflichtbereiche muessen erfuellt=true sein. Ausserdem muessen P0-Research und Invariantenratifizierung abgeschlossen, alle Validatoren gruen und der Roadmap-Gate fuer Runtime-Struktur explizit geoeffnet sein. R2-Ratifizierung allein ist keine Runtime-Freigabe.",
   "bereiche": [
@@ -69,25 +69,36 @@
     {
       "kennung": "ANFORDERUNGEN_BEREIT",
       "erfuellt": false,
-      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. erfuellt bleibt bis technischer Kopplung an Implementierung, Tests und Live-Nachweise false.",
+      "grund": "Die 119 kanonischen Anforderungen und ihre Traceability sind in R2 fachlich ratifiziert. R7 weist seine 5/5 MUSS-Anforderungen technisch und tracebar nach; erfuellt bleibt bis zur technischen Kopplung aller spaeteren Phasen an Implementierung, Tests und erforderliche Live-Nachweise false.",
       "nachweise": [
         "v5/anforderungen/anforderungen.json",
         "v5/anforderungen/nachverfolgbarkeit.json"
       ],
       "r2VertragRatifiziert": true,
-      "r2RatifiziertAm": "2026-09-19"
+      "r2RatifiziertAm": "2026-09-19",
+      "r7NachweisVorhanden": true,
+      "r7AnforderungenNachgewiesen": 5,
+      "r7AnforderungenGesamt": 5
     },
     {
       "kennung": "INVARIANTEN_BEREIT",
       "erfuellt": false,
-      "grund": "R3: zentrale Architektur-, Host-, Default-Deny-, Mehrfach-Verriegelungs-, Namensraum- und Dependency-Invarianten besitzen statische Guards/Negativtests. erfuellt bleibt false, bis die spaeteren Runtime-Phasen alle sicherheitskritischen Invarianten technisch erzwingen.",
+      "grund": "R3 erzwingt zentrale Architektur-, Host-, Default-Deny-, Mehrfach-Verriegelungs-, Namensraum- und Dependency-Invarianten. R7 ergaenzt Single-Owner, typisierte Port-Grenzen, deny-only Bedienersteuerung, Nothalt sowie Capability-Lifecycle-Guards. erfuellt bleibt false, bis die spaeteren Scheduler-, Fencing-, Admission-, Execution-, Recovery- und Betriebsinvarianten technisch geschlossen sind.",
       "nachweise": [
-        "v5/invarianten/invarianten.json"
+        "v5/invarianten/invarianten.json",
+        "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
+        "v5/grundlage/quelle/autoritaet/modul-register.ts",
+        "v5/grundlage/quelle/autoritaet/ports.ts",
+        "v5/grundlage/quelle/autoritaet/bediener-richtlinie.ts",
+        "v5/werkzeuge/r7-statische-guards.mjs",
+        "v5/architektur/adr/ADR-008-R7-MODULE-CAPABILITY-AUTHORITY.md"
       ],
       "r2VertragRatifiziert": true,
       "r2RatifiziertAm": "2026-09-19",
       "r3NachweisVorhanden": true,
-      "r3AbgeschlossenAm": "2026-09-20"
+      "r3AbgeschlossenAm": "2026-09-20",
+      "r7NachweisVorhanden": true,
+      "r7AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "ZUSTANDSMASCHINEN_BEREIT",
@@ -159,14 +170,21 @@
     {
       "kennung": "SECURITY_BEREIT",
       "erfuellt": false,
-      "grund": "R3: Static-/Secret-/Host-API-/Default-Deny-/Mehrfach-Verriegelungs- und Knowledge-Path-Guards sind technisch nachgewiesen. erfuellt bleibt false, bis spaetere Authority-, Fencing-, Execution- und Betriebsgrenzen implementiert sind.",
+      "grund": "R3 weist Static-/Secret-/Host-API-/Default-Deny-/Mehrfach-Verriegelungs- und Knowledge-Path-Guards nach. R7 weist Single-Owner, mutierende Capabilities default-off, explizite Disable-/Rollback-Pfade sowie deny-only Operator Policy/Nothalt technisch nach. erfuellt bleibt false, bis spaetere Fencing-, Admission-, Execution-, Recovery- und Betriebsgrenzen implementiert sind.",
       "nachweise": [
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
-        "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md"
+        "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
+        "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
+        "v5/grundlage/quelle/autoritaet/bediener-richtlinie.ts",
+        "v5/grundlage/tests/r7-autoritaet.test.mjs",
+        "v5/werkzeuge/r7-statische-guards.mjs",
+        "v5/roadmap/r7-abschluss.json"
       ],
       "r2VertragRatifiziert": true,
       "r3NachweisVorhanden": true,
-      "r3AbgeschlossenAm": "2026-09-20"
+      "r3AbgeschlossenAm": "2026-09-20",
+      "r7NachweisVorhanden": true,
+      "r7AbgeschlossenAm": "2026-09-20"
     },
     {
       "kennung": "BETRIEBSMODELL_BEREIT",
@@ -184,9 +202,8 @@
     }
   ],
   "offeneBlocker": [
-    "R6 WissensZugriffPort, Snapshot-Pinning, Verifier, Drift-Quarantaene und Reconciled World Truth technisch umsetzen",
-    "Lokal laufende Windows Bridge auf den R3+-Knowledge-Branch-Build aktualisieren; alter Prozess schrieb am 2026-09-20 noch direkt main",
-    "R7 bis R11 Authority, Scheduler, Transaction Kernel, Recovery und Observability abschliessen",
+    "Lokal laufende Windows Bridge auf einen aktuellen Knowledge-Branch-Build aktualisieren und den lokalen Deploymentstand separat verifizieren",
+    "R8 bis R11 Scheduler/Resources, Admission/Execution Kernel, Recovery und Observability abschliessen",
     "Gameplay-Runtime erst nach expliziter Laufzeitfreigabe und spaeterem Roadmap-Gate beginnen",
     "Klassischen GitHub-main-Branch-Protection-Status bei verfuegbarem Admin-Nachweis separat verifizieren"
   ],
@@ -197,5 +214,9 @@
   "r4Status": "ABGESCHLOSSEN",
   "r4AbgeschlossenAm": "2026-09-20",
   "r5Status": "ABGESCHLOSSEN",
-  "r5AbgeschlossenAm": "2026-09-20"
+  "r5AbgeschlossenAm": "2026-09-20",
+  "r6Status": "ABGESCHLOSSEN",
+  "r6AbgeschlossenAm": "2026-09-20",
+  "r7Status": "ABGESCHLOSSEN",
+  "r7AbgeschlossenAm": "2026-09-20"
 }

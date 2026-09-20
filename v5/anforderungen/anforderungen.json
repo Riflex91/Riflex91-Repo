@@ -203,7 +203,7 @@
       "titel": "Jede mutierende Capability besitzt genau einen aktiven Owner.",
       "phase": "R7",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R7_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-011"
       ],
@@ -212,7 +212,13 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r7NachweisStatus": "R7_NACHGEWIESEN",
+      "r7Nachweise": [
+        "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
+        "v5/grundlage/tests/r7-autoritaet.test.mjs",
+        "v5/werkzeuge/r7-statische-guards.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-ARCH-003",
@@ -236,7 +242,7 @@
       "titel": "Module kommunizieren nur ueber typisierte Ports und Verträge.",
       "phase": "R7",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R7_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-013"
       ],
@@ -245,7 +251,14 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r7NachweisStatus": "R7_NACHGEWIESEN",
+      "r7Nachweise": [
+        "v5/grundlage/quelle/autoritaet/ports.ts",
+        "v5/grundlage/quelle/autoritaet/modul-register.ts",
+        "v5/grundlage/tests/r7-module.test.mjs",
+        "v5/werkzeuge/r7-statische-guards.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-ARCH-005",
@@ -398,7 +411,7 @@
       "titel": "Mutierende Capabilities sind standardmaessig deaktiviert.",
       "phase": "R7",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R7_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-022"
       ],
@@ -407,7 +420,13 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r7NachweisStatus": "R7_NACHGEWIESEN",
+      "r7Nachweise": [
+        "v5/grundlage/quelle/autoritaet/faehigkeits-register.ts",
+        "v5/grundlage/tests/r7-autoritaet.test.mjs",
+        "v5/werkzeuge/r7-statische-guards.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-SICH-002",
@@ -502,7 +521,7 @@
       "titel": "Operator-Deny hat Vorrang vor autonomen Fallbacks.",
       "phase": "R7",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R7_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-028"
       ],
@@ -512,7 +531,13 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r7NachweisStatus": "R7_NACHGEWIESEN",
+      "r7Nachweise": [
+        "v5/grundlage/quelle/autoritaet/bediener-richtlinie.ts",
+        "v5/grundlage/tests/r7-autoritaet.test.mjs",
+        "v5/werkzeuge/r7-statische-guards.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-SICH-008",
@@ -1286,7 +1311,7 @@
       "titel": "Bedieneraktionen sind auditierbar und koennen keine Safety umgehen.",
       "phase": "R7",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R7_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-028"
       ],
@@ -1295,7 +1320,12 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r7NachweisStatus": "R7_NACHGEWIESEN",
+      "r7Nachweise": [
+        "v5/grundlage/quelle/autoritaet/bediener-richtlinie.ts",
+        "v5/grundlage/tests/r7-autoritaet.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-MERCHANT-001",
