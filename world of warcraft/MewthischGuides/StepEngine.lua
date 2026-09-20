@@ -37,6 +37,11 @@ function MG:IsQuestFlaggedCompletedSafe(questID)
 end
 
 function MG:GetQuestLogSnapshot()
+    if self.QuestTracking then
+        return self.QuestTracking:GetSnapshot()
+    end
+
+    -- Compatibility fallback used only when the dedicated tracker is unavailable.
     local snapshot = {}
     if not C_QuestLog or not C_QuestLog.GetNumQuestLogEntries or not C_QuestLog.GetInfo then
         return snapshot
@@ -46,34 +51,16 @@ function MG:GetQuestLogSnapshot()
     for index = 1, count do
         local info = C_QuestLog.GetInfo(index)
         if info and not info.isHeader and info.questID then
-            local objectives = {}
-            if C_QuestLog.GetQuestObjectives then
-                local ok, result = pcall(C_QuestLog.GetQuestObjectives, info.questID)
-                if ok and type(result) == "table" then objectives = result end
-            end
-
-            local ready = false
-            if C_QuestLog.ReadyForTurnIn then
-                local ok, value = pcall(C_QuestLog.ReadyForTurnIn, info.questID)
-                if ok then ready = value and true or false end
-            elseif C_QuestLog.IsComplete then
-                local ok, value = pcall(C_QuestLog.IsComplete, info.questID)
-                if ok then ready = value and true or false end
-            elseif info.isComplete ~= nil then
-                ready = info.isComplete and true or false
-            end
-
             snapshot[info.questID] = {
                 questID = info.questID,
                 title = info.title,
                 level = info.level,
                 questLogIndex = index,
-                objectives = objectives,
-                readyForTurnIn = ready,
+                objectives = {},
+                readyForTurnIn = false,
             }
         end
     end
-
     return snapshot
 end
 
@@ -178,7 +165,7 @@ function MG:BuildRouteStep(definition, snapshotEntry)
         objectives = snapshotEntry and snapshotEntry.objectives or {},
         source = definition.verification or "RECORDED",
         verification = definition.verification or "RECORDED",
-        guideID = self.Data.guide and self.Data.guide.id or nil,
+        guideID = self:GetActiveGuideDefinition() and self:GetActiveGuideDefinition().id or nil,
         mapID = definition.mapID,
         definition = definition,
         questLogIndex = snapshotEntry and snapshotEntry.questLogIndex or nil,
@@ -217,7 +204,8 @@ function MG:BuildGuideSteps()
     local skipped = {}
     local maxCompletedOrder = 0
 
-    local definitions = self.Data and self.Data.guide and self.Data.guide.steps or {}
+    local guide = self:GetActiveGuideDefinition()
+    local definitions = guide and guide.steps or {}
 
     for _, definition in ipairs(definitions) do
         local applicable, reason = self:EvaluateStepApplicability(definition, profile)
@@ -301,7 +289,7 @@ function MG:BuildGuideSteps()
     end
 
     local signature = table.concat({
-        tostring(self.Data and self.Data.guide and self.Data.guide.id or ""),
+        tostring(guide and guide.id or ""),
         tostring(preferredQuestID or ""),
         tostring(preferredReason or ""),
         tostring(maxCompletedOrder),
@@ -312,7 +300,7 @@ function MG:BuildGuideSteps()
         self.lastResyncSignature = signature
 
         self:Log("INFO", "guide.resync", "Guide-Position automatisch synchronisiert.", {
-            guideID = self.Data and self.Data.guide and self.Data.guide.id or nil,
+            guideID = guide and guide.id or nil,
             questID = preferredQuestID,
             reason = preferredReason,
             preferredIndex = preferredIndex,
@@ -323,7 +311,7 @@ function MG:BuildGuideSteps()
     end
 
     self.db.runtime.guide = {
-        guideID = self.Data and self.Data.guide and self.Data.guide.id or nil,
+        guideID = guide and guide.id or nil,
         selectedQuestID = preferredQuestID,
         selectedReason = preferredReason,
         maxCompletedOrder = maxCompletedOrder,
