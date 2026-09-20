@@ -190,6 +190,13 @@ function Gear:Refresh(reason)
     end
 
     self.bestUpgrade = best
+
+    local autoEquipped = false
+    local autoEquipReason = best and "not_attempted" or "no_upgrade"
+    if best then
+        autoEquipped, autoEquipReason = self:TryAutoEquip(best)
+    end
+
     if MG.db then
         MG.db.runtime = MG.db.runtime or {}
         MG.db.runtime.gear = {
@@ -200,10 +207,13 @@ function Gear:Refresh(reason)
             scoreModel = best and best.scoreModel or nil,
             confidence = best and best.confidence or nil,
             gearProfileID = best and best.gearProfileID or nil,
+            targetSlot = best and best.slot or nil,
+            isBound = best and best.isBound or nil,
+            autoEquipped = autoEquipped,
+            autoEquipReason = autoEquipReason,
         }
     end
 
-    if best then self:TryAutoEquip(best) end
     return best
 end
 
