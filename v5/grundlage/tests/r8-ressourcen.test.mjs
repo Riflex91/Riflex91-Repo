@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   CharacterSocketBudget,
+  MutationsKanalKoordination,
   RessourcenVerwalter,
   actionKanalRessourcenId,
   erstelleMutationsKanalPlan,
@@ -121,4 +122,24 @@ test("alle Action-Channels eines Characters teilen dasselbe globale Socket-Planb
     belegt: 60,
     verfuegbar: 40,
   });
+});
+
+test("MutationsKanalKoordination liefert nur Channel-Claim plus Budget gemeinsam aus", () => {
+  const ressourcen = new RessourcenVerwalter();
+  const budget = new CharacterSocketBudget();
+  const koordination = new MutationsKanalKoordination(ressourcen, budget);
+  const plan = erstelleMutationsKanalPlan("merchant", "trade", 20);
+
+  const a = koordination.reserviere("RES-A", "A", plan, 0);
+  assert.equal(a.kanalToken.ressourcenId, plan.actionKanalRessourcenId);
+  assert.equal(a.budgetReservierung.gewichteteKosten, 20);
+
+  assert.throws(
+    () => koordination.reserviere("RES-B", "B", plan, 0),
+    /RESSOURCE_BELEGT/,
+  );
+  assert.equal(budget.sicht("merchant", 0).belegt, 20);
+
+  ressourcen.gibFrei(a.kanalToken, 1);
+  assert.doesNotThrow(() => koordination.reserviere("RES-C", "B", plan, 1));
 });
