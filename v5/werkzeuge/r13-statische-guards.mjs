@@ -77,7 +77,11 @@ for (const marker of [
   if (!demand.includes(marker)) fehler.push("DEMAND_MARKER_FEHLT:" + marker);
 }
 
-const merchantQuellen = pflicht.filter(p => p.includes("/quelle/merchant/"));\nconst rawWriteQuellen = [\n  ...merchantQuellen,\n  "grundlage/quelle/koordination/account-bank-lease.ts",\n];
+const merchantQuellen = pflicht.filter(p => p.includes("/quelle/merchant/"));
+const rawWriteQuellen = [
+  ...merchantQuellen,
+  "grundlage/quelle/koordination/account-bank-lease.ts",
+];
 const rawMuster = [
   /\battack\s*\(/,
   /\bsmart_move\s*\(/,
