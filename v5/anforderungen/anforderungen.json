@@ -1864,7 +1864,7 @@
       "titel": "Event-/Quest-Drift zwischen Planung und Action sperrt oder replanned die Aktion.",
       "phase": "R17",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R17_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-084"
       ],
@@ -1873,7 +1873,15 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r17NachweisStatus": "R17_NACHGEWIESEN",
+      "r17Nachweise": [
+        "v5/grundlage/quelle/welt/event-quest-drift.ts",
+        "v5/grundlage/quelle/welt/world-plan-ledger.ts",
+        "v5/grundlage/tests/r17-event-quest-drift.test.mjs",
+        "v5/dokumentation/P2-WORLD-AUTONOMY.md",
+        "v5/grundlage/vertraege/r17/world-autonomy-abdeckung.json"
+      ]
     },
     {
       "kennung": "V5-ANF-LERN-001",
