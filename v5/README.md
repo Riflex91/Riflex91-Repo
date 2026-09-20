@@ -303,3 +303,25 @@ Abschluss: `roadmap/r18-abschluss.json`
 Die breite Gameplay-Runtime bleibt `GESPERRT`.
 
 Aktuelle Phase: **R19 – 24/7-Zertifizierung**. Automatisierbare Simulator-/Replay-/Fault-/Shadow-Stufen werden zuerst vorbereitet; Controlled Live/Canary ist der naechste manuelle Ingame-Punkt.
+
+
+## R19 – Automatik bis Shadow abgeschlossen
+
+Die automatische R19-Vorbereitung ist bis einschliesslich **Shadow** abgeschlossen.
+
+Bestanden:
+- Simulator/Replay;
+- Fault Suite;
+- no-write Shadow;
+- unveraenderliche, fingerprint-verkettete Evidence;
+- Sample-Gap-Erkennung;
+- globale Null-Toleranz-Pruefung;
+- bounded RAM-/SSD-/I/O-Evidence;
+- deutsches Release-Gate mit 100 % Pflichtabdeckung und 0 unerlaubten Rohtext-Leaks.
+
+Maschinenlesbarer Nachweis: `roadmap/r19-automatik-evidence.json`  
+ADR: `architektur/adr/ADR-022-R19-ZERTIFIZIERUNG.md`
+
+**Naechste Stufe: CONTROLLED_LIVE. Diese Stufe ist manuell und benoetigt den PC/Ingame-Test.**
+
+R19 bleibt `IN_PROGRESS`; die breite Gameplay-Runtime bleibt `GESPERRT`.
