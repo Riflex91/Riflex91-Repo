@@ -190,3 +190,11 @@ test("CAP-045 Evidence-Validator verlangt echte Mindestdauer und leere Blocker",
   blockiert.blocker = ["LIVE_SOAK_FEHLT_ODER_NICHT_BESTANDEN"];
   assert.throws(() => pruefeCap045LiveBericht(blockiert), /BLOCKER_VORHANDEN/);
 });
+
+
+test("CAP-045 Evidence-Validator akzeptiert Export-Hotfix 1.0.3", () => {
+  const bericht = gueltigerBericht();
+  bericht.controllerVersion = "1.0.3";
+  const nachweis = pruefeCap045LiveBericht(bericht);
+  assert.equal(nachweis.status, "BESTANDEN");
+});
