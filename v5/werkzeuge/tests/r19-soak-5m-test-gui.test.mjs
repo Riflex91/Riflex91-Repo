@@ -50,11 +50,13 @@ test("SOAK_5M Paket ist source-locked und ohne Fremdnetzwerk",()=>{
 
 
 test("SOAK_5M erzwingt und ueberwacht performance_trick",()=>{
-  assert.ok(controller.includes("guiApi().aktivierePerformanceTrick()"));
+  assert.ok(controller.includes("await guiApi().aktivierePerformanceTrick()"));
   assert.ok(controller.includes("guiApi().performanceTrickStatus()"));
   assert.ok(controller.includes("PERFORMANCE_TRICK_NICHT_AKTIV"));
   assert.ok(controller.includes("PERFORMANCE_TRICK_AUSGEFALLEN"));
   assert.ok(controller.includes("performanceTrickFehler"));
   assert.ok(controller.includes("hiddenSamples"));
   assert.ok(paket.includes("performance_trick"));
+  assert.ok(paket.includes("HOWLER_PLAYING_TRUE"));
+  assert.ok(paket.includes("aktiv: verfuegbar && audioGefunden && playing"));
 });
