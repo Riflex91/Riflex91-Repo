@@ -108,6 +108,24 @@ function RouteEngine:Resolve(step)
 
     if MG.db then
         MG.db.runtime = MG.db.runtime or {}
+
+        local candidateSummary = {}
+        for index, candidate in ipairs(candidates) do
+            if index > 12 then break end
+
+            candidateSummary[#candidateSummary + 1] = {
+                source = candidate.source,
+                score = candidate.score,
+                reason = candidate.reason,
+                mapID = candidate.mapID,
+                x = candidate.x,
+                y = candidate.y,
+                phaseMatch = candidate.phaseMatch,
+                isQuestStart = candidate.isQuestStart,
+                inProgress = candidate.inProgress,
+            }
+        end
+
         MG.db.runtime.route = {
             questID = step.questID,
             phase = step.phase,
@@ -117,6 +135,7 @@ function RouteEngine:Resolve(step)
             selectedY = selected and selected.y or nil,
             selectedScore = selected and selected.score or nil,
             candidateCount = #candidates,
+            candidates = candidateSummary,
             playerMapID = playerMapID,
         }
     end
@@ -131,6 +150,8 @@ function RouteEngine:Resolve(step)
             y = selected.y,
             score = selected.score,
             candidates = #candidates,
+            candidateSummary = MG.db and MG.db.runtime and MG.db.runtime.route and
+                MG.db.runtime.route.candidates or nil,
         })
 
         return selected, candidates, "resolved"
