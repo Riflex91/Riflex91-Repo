@@ -1,6 +1,6 @@
-# Mewthisch Guides v0.11.7 — Runtime-Routing, Config und Weltkarten-Ziel
+# Mewthisch Guides v0.11.8 — Runtime-Routing, Config und Weltkarten-Ziel
 
-v0.11.7 härtet den produktiven Forever-Betrieb: Questfortschritt wird über
+v0.11.8 härtet den produktiven Forever-Betrieb: Questfortschritt wird über
 moderne und Legacy-Questlog-APIs erkannt, die vorgegebene RestedXP-Route wird
 auf die tatsächliche Questphase und das aktuelle Questziel synchronisiert, und
 der Benutzer kann alternativ einen manuellen Modus wählen, der angenommene
@@ -75,7 +75,7 @@ by faction/race/class/level, explicit route coordinates, a TravelGraph and
 build profiles and gear scoring profiles. Empty extension points exist in
 `Data.lua` for generated DataMiner/Recorder imports.
 
-Zusätzlich zum Recorder-Seed lädt v0.11.7 die strukturierten Fakten aus allen
+Zusätzlich zum Recorder-Seed lädt v0.11.8 die strukturierten Fakten aus allen
 öffentlich in `GuideList-forever.xml` referenzierten RestedXP-Forever- und
 Survival-Routen. Importiert werden ausschließlich maschinenlesbare Fakten und
 Direktiven (z. B. Quest-IDs, Item-/Spell-IDs, Selektoren, Bedingungen,
@@ -142,13 +142,13 @@ Useful commands:
 
 ## Next phase
 
-Nach diesem v0.11.7-Build folgt die gezielte Ingame-Verifikation anhand echter
+Nach diesem v0.11.8-Build folgt die gezielte Ingame-Verifikation anhand echter
 Forever-Screenshots, SavedVariables und Recorder-Daten. Besonders geprüft
 werden die Weltkarten-Wegpunkt-API des Forever-Clients, die Auswahl zwischen
 manueller und vorgegebener Route sowie Auto-Equip unter realen Bag-/Item-APIs.
 
 
-## v0.11.7 Screenshot-Fixes
+## v0.11.8 Screenshot-Fixes
 
 - RestedXP-Weltkoordinaten werden nicht mehr mit den vertauschten Blizzard-
   Vectorachsen verglichen. Das beseitigt die kilometerweit falsche Distanz und
@@ -176,7 +176,7 @@ manueller und vorgegebener Route sowie Auto-Equip unter realen Bag-/Item-APIs.
   fehlende Bestätigung wird als Diagnose-Warnung protokolliert.
 
 
-## Routenmodus v0.11.7
+## Routenmodus v0.11.8
 
 - **Manuell** ist der Standard. Das Addon verwendet nur vom Spieler angenommene
   Quests und ordnet sie nach belastbaren Navigationszielen, um unnötige Laufwege
@@ -202,7 +202,7 @@ abgegeben. Bei mehreren unterschiedlichen Questbelohnungen bleibt die Auswahl
 weiterhin manuell, damit keine unsichere Belohnungsentscheidung erzwungen wird.
 
 
-## Auto-Equip-Meldung v0.11.7
+## Auto-Equip-Meldung v0.11.8
 
 Nach einem **bestätigten** automatischen Ausrüsten zeigt das Addon direkt unter
 dem Hauptfenster kurz eine Meldung mit Gegenstands-Icon und dem Text:
@@ -215,13 +215,13 @@ erzeugt bewusst keine Erfolgsmeldung. Wird ein Auto-Equip bereits während des
 Login-Syncs bestätigt, wird die Meldung bis zur UI-Initialisierung zwischengespeichert.
 
 
-## Auto-Equip-Erkennung v0.11.7
+## Auto-Equip-Erkennung v0.11.8
 
 Die Forever-Runtime-Logs zeigten, dass echte Taschengegenstände als
 `not_safely_equippable` verworfen wurden. Ein konkreter Fall war ein
 `INVTYPE_WAIST`-Gegenstand bei leerem Gürtel-Slot.
 
-v0.11.7 verwendet deshalb einen bekannten unterstützten `INVTYPE_*` als
+v0.11.8 verwendet deshalb einen bekannten unterstützten `INVTYPE_*` als
 primäres Signal dafür, dass ein Gegenstand Ausrüstung ist. Negative Ergebnisse
 von `C_Item.IsEquippableItem` oder `IsEquippableItem` werden weiterhin
 diagnostisch protokolliert, dürfen einen gültigen Equipment-Slot aber nicht mehr
@@ -237,7 +237,7 @@ Die bestehenden Schutzregeln für unpassende Rüstung, Waffen, Kampfstatus,
 Cursorzustand und erkannte Bind-on-Equip-Gegenstände bleiben bestehen.
 
 
-## Pfeil-Skins v0.11.7
+## Pfeil-Skins v0.11.8
 
 Der Navigator bietet fünf auswählbare Pfeil-Skins:
 
@@ -257,3 +257,28 @@ sofort auf den Navigator angewendet. Der Standard ist **Kompass Schwarz**.
 Die feste Standardgröße des Pfeils wurde von 104 auf 83 Pixel reduziert, also
 um rund 20 Prozent. Die separate Navigator-Skalierung bleibt zusätzlich
 verfügbar.
+
+
+## Guide-Auswahl und Mulgore v0.11.8
+
+Die manuelle Guide-Auswahl ist bewusst großzügiger als die automatische
+Routenwahl:
+
+- Horde-Charaktere können **alle Horde-Levelrouten** auswählen, unabhängig von
+  aktuellem Level, Volk oder Klasse.
+- Alliance-Charaktere können **alle Alliance-Levelrouten** auswählen.
+- **Mage AoE Farm** ist ausschließlich für Magier anwählbar; die konkrete
+  AoE-Route bleibt fraktionsgebunden.
+- Die automatische Routenwahl verwendet weiterhin die strengeren
+  RestedXP-Level-/Race-/Class-Bedingungen.
+
+Für `1-6 Mulgore` wurde außerdem ein phasenspezifischer RestedXP-Filter
+eingeführt. Quest 1519 **„Ruf der Erde“** ist in RestedXP bei der Annahme
+Shaman-only. Andere Klassen überspringen diesen Annahmeschritt jetzt vollständig.
+Für Schamanen wird der originale RestedXP-Annahmepunkt bei Seer Ravenfeather
+(`1412/1,-250.09,-2882.08`) verwendet.
+
+Der Standard-Navigator-Skin ist ab v0.11.8 **Pfeil Blau**. Bestehende Profile,
+die noch den früheren Standard `Kompass Schwarz` ohne neuere Skin-Migration
+tragen, werden einmalig auf Blau umgestellt. Andere bewusst gewählte Skins
+bleiben erhalten.

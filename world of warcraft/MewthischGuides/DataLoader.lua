@@ -46,6 +46,47 @@ local function autoSelectable(guide)
     return true
 end
 
+local function guideSelectable(guide, profile, category)
+    if not guide or not MG.SupportedRoutes or
+       not MG.SupportedRoutes:IsSupportedGuide(guide) then
+        return false
+    end
+
+    profile = profile or MG:GetPlayerProfile()
+    local faction = tostring(profile.faction or "")
+    local class = tostring(profile.class or "")
+
+    if category == "horde" then
+        return faction == "Horde" and
+            MG.SupportedRoutes:HasCategory(guide, "horde")
+    elseif category == "ally" then
+        return faction == "Alliance" and
+            MG.SupportedRoutes:HasCategory(guide, "ally")
+    elseif category == "mage" then
+        if class ~= "MAGE" or
+           not MG.SupportedRoutes:HasCategory(guide, "mage") then
+            return false
+        end
+        return not guide.faction or guide.faction == faction
+    end
+
+    if faction == "Horde" and
+       MG.SupportedRoutes:HasCategory(guide, "horde") then
+        return true
+    end
+    if faction == "Alliance" and
+       MG.SupportedRoutes:HasCategory(guide, "ally") then
+        return true
+    end
+    if class == "MAGE" and
+       MG.SupportedRoutes:HasCategory(guide, "mage") and
+       (not guide.faction or guide.faction == faction) then
+        return true
+    end
+
+    return false
+end
+
 local function guidePriority(guide, profile)
     local score = 0
 
@@ -158,9 +199,7 @@ function Loader:SelectActiveGuide()
     local preferred = MG.db and MG.db.settings and MG.db.settings.preferredGuideID or nil
     local selected = preferred and self.byID[preferred] or nil
 
-    if selected and
-       (not guideApplicable(selected, profile) or
-        not (MG.SupportedRoutes and MG.SupportedRoutes:IsSupportedGuide(selected))) then
+    if selected and not guideSelectable(selected, profile) then
         selected = nil
     end
 
@@ -215,14 +254,26 @@ function Loader:IsGuideApplicable(guide)
     return guide and guideApplicable(guide, MG:GetPlayerProfile()) and true or false
 end
 
+function Loader:IsGuideSelectable(guide, category)
+    return guideSelectable(guide, MG:GetPlayerProfile(), category)
+end
+
+function Loader:CanSelectCategory(category)
+    local profile = MG:GetPlayerProfile()
+    if category == "horde" then return profile.faction == "Horde" end
+    if category == "ally" then return profile.faction == "Alliance" end
+    if category == "mage" then return profile.class == "MAGE" end
+    return false
+end
+
 function Loader:SelectGuide(id)
     local guide = self:GetGuide(id)
     if not guide or not MG.SupportedRoutes or
        not MG.SupportedRoutes:IsSupportedGuide(guide) then
         return false, "unsupported_guide"
     end
-    if not guideApplicable(guide, MG:GetPlayerProfile()) then
-        return false, "guide_not_applicable"
+    if not guideSelectable(guide, MG:GetPlayerProfile()) then
+        return false, "guide_not_selectable"
     end
 
     MG.db.settings.preferredGuideID = guide.id

@@ -1258,6 +1258,10 @@ function MG:ShowGuideCategory(category)
     if category ~= "horde" and category ~= "ally" and category ~= "mage" then
         return
     end
+    if self.DataLoader and
+       not self.DataLoader:CanSelectCategory(category) then
+        return
+    end
     ui.guideSelectCategory = category
     ui.guideSelectPage = 1
     self:RefreshGuideSelector()
@@ -1274,6 +1278,14 @@ function MG:RefreshGuideSelector()
     if not category then
         ui.guideSelectTitle:SetText("Guide auswählen")
         for _, button in ipairs(categoryButtons) do button:Show() end
+        if self.DataLoader then
+            setButtonEnabled(ui.guideCategoryHorde,
+                self.DataLoader:CanSelectCategory("horde"))
+            setButtonEnabled(ui.guideCategoryAlly,
+                self.DataLoader:CanSelectCategory("ally"))
+            setButtonEnabled(ui.guideCategoryMage,
+                self.DataLoader:CanSelectCategory("mage"))
+        end
         for _, button in ipairs(ui.guideRouteButtons or {}) do button:Hide() end
         ui.guideBackButton:Hide()
         ui.guidePagePrev:Hide()
@@ -1302,7 +1314,8 @@ function MG:RefreshGuideSelector()
             button._mgGuideID = guide.id
             button:SetText(tostring(guide.title or guide.id))
             setButtonEnabled(button,
-                self.DataLoader and self.DataLoader:IsGuideApplicable(guide))
+                self.DataLoader and
+                self.DataLoader:IsGuideSelectable(guide, category))
             button:Show()
         else
             button._mgGuideID = nil

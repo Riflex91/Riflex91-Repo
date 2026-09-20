@@ -6,11 +6,11 @@ local TEXTURE_ZERO_OFFSET = 0
 local ARROW_SIZE = 83
 
 local ARROW_SKIN_ORDER = {
-    "compass-black",
-    "pointer-black",
     "arrow-blue",
     "arrow-red",
     "arrow-orange",
+    "compass-black",
+    "pointer-black",
 }
 
 local ARROW_SKINS = {
@@ -45,10 +45,10 @@ local ARROW_SKINS = {
 local function applyArrowSkin(arrow)
     if not arrow or not MG.db or not MG.db.settings then return end
 
-    local skinID = MG.db.settings.navigatorArrowSkin or "compass-black"
-    local skin = ARROW_SKINS[skinID] or ARROW_SKINS["compass-black"]
+    local skinID = MG.db.settings.navigatorArrowSkin or "arrow-blue"
+    local skin = ARROW_SKINS[skinID] or ARROW_SKINS["arrow-blue"]
     if not ARROW_SKINS[skinID] then
-        skinID = "compass-black"
+        skinID = "arrow-blue"
         MG.db.settings.navigatorArrowSkin = skinID
     end
 
@@ -208,8 +208,8 @@ end
 
 function MG:GetNavigatorArrowSkinName()
     local skinID = self.db and self.db.settings and
-        self.db.settings.navigatorArrowSkin or "compass-black"
-    local skin = ARROW_SKINS[skinID] or ARROW_SKINS["compass-black"]
+        self.db.settings.navigatorArrowSkin or "arrow-blue"
+    local skin = ARROW_SKINS[skinID] or ARROW_SKINS["arrow-blue"]
     return skin.label, skinID
 end
 
@@ -229,7 +229,7 @@ function MG:SetNavigatorArrowSkin(skinID)
 end
 
 function MG:NextNavigatorArrowSkin()
-    local current = self.db.settings.navigatorArrowSkin or "compass-black"
+    local current = self.db.settings.navigatorArrowSkin or "arrow-blue"
     local index = 1
     for i, skinID in ipairs(ARROW_SKIN_ORDER) do
         if skinID == current then index = i break end

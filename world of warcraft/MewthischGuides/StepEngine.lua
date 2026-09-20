@@ -247,6 +247,25 @@ function MG:BuildLiveFallbackStep(entry)
     }
 end
 
+function MG:RestedXPPhaseApplies(definition, phase, profile, objectiveIndex)
+    if not self.RestEDXPImport or not definition or
+       not definition.rxpOccurrences then
+        return true
+    end
+
+    -- Accept/turn-in steps must have an occurrence that applies to this exact
+    -- character and phase. This prevents class-specific RestedXP quests from
+    -- leaking into another class merely because the same quest has a generic
+    -- occurrence later in the guide.
+    if phase ~= self.StepPhases.ACCEPT and
+       phase ~= self.StepPhases.TURNIN then
+        return true
+    end
+
+    return self.RestEDXPImport:GetProgressOccurrence(
+        definition, phase, profile, objectiveIndex) ~= nil
+end
+
 function MG:BuildGuideSteps()
     if self.GetRouteMode and self:GetRouteMode() == "manual" and self.BuildManualRouteSteps then
         return self:BuildManualRouteSteps()
@@ -266,13 +285,24 @@ function MG:BuildGuideSteps()
         local applicable, reason = self:EvaluateStepApplicability(definition, profile)
 
         if applicable then
-            routeQuestIDs[definition.questID] = true
             local step = self:BuildRouteStep(definition, snapshot[definition.questID])
-            routeSteps[#routeSteps + 1] = step
+            local objectiveIndex = step.goal and step.goal.index or nil
+            if self:RestedXPPhaseApplies(
+                definition, step.phase, profile, objectiveIndex) then
+                routeQuestIDs[definition.questID] = true
+                routeSteps[#routeSteps + 1] = step
 
-            if step.phase == self.StepPhases.COMPLETE then
-                maxCompletedOrder = math.max(maxCompletedOrder, tonumber(step.routeOrder) or 0)
+                if step.phase == self.StepPhases.COMPLETE then
+                    maxCompletedOrder = math.max(
+                        maxCompletedOrder, tonumber(step.routeOrder) or 0)
+                end
+            else
+                skipped[#skipped + 1] = {
+                    questID = definition.questID,
+                    reason = "restedxp_phase_selector",
+                }
             end
+
         else
             skipped[#skipped + 1] = {
                 questID = definition.questID,

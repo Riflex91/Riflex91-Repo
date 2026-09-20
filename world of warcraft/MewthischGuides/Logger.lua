@@ -19,7 +19,8 @@ local DEFAULT_SETTINGS = {
     showNavigator = true,
     navigatorLocked = false,
     navigatorScale = 1.15,
-    navigatorArrowSkin = "compass-black",
+    navigatorArrowSkin = "arrow-blue",
+    navigatorArrowSkinDefaultVersion = 2,
     viewerX = 260,
     viewerY = 80,
     navigatorX = 0,
@@ -91,11 +92,21 @@ function MG:EnsureDB()
     db.createdUtc = db.createdUtc or isoNow()
     db.updatedUtc = isoNow()
     db.settings = db.settings or {}
+    local previousArrowSkin = db.settings.navigatorArrowSkin
+    local previousArrowSkinDefaultVersion =
+        tonumber(db.settings.navigatorArrowSkinDefaultVersion) or 0
 
     for key, value in pairs(DEFAULT_SETTINGS) do
         if db.settings[key] == nil then
             db.settings[key] = value
         end
+    end
+
+    if previousArrowSkinDefaultVersion < 2 then
+        if previousArrowSkin == nil or previousArrowSkin == "compass-black" then
+            db.settings.navigatorArrowSkin = "arrow-blue"
+        end
+        db.settings.navigatorArrowSkinDefaultVersion = 2
     end
 
     db.logs = db.logs or {}

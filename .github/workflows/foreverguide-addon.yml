@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.11.7
+name: Mewthisch Guides addon v0.11.8
 
 on:
   workflow_dispatch:
@@ -454,6 +454,89 @@ jobs:
           print("All-quest automation PASS")
           LUA
 
+      - name: Validate guide picker policy and Mulgore Call of Earth routing
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={db={settings={
+            rxpSeason=0,rxpRate=1,rxpHardcoreMode=false,rxpSoDMode=false,
+          },runtime={}}}
+          for i=1,5 do
+            assert(loadfile(string.format(
+              "world of warcraft/MewthischGuides/RestedXPForeverData_%02d.lua",i)))(
+                "MewthischGuides",MG)
+          end
+          assert(loadfile("world of warcraft/MewthischGuides/RestedXPActionCatalog.lua"))(
+            "MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/RestedXPImport.lua"))(
+            "MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/SupportedRoutes.lua"))(
+            "MewthischGuides",MG)
+
+          local guides=MG.RestEDXPImport:BuildGuides()
+          local status=MG.SupportedRoutes:Validate(
+            guides,MG.RestEDXPImport:GetStats().sourceCommit)
+          assert(status.ready)
+
+          local function find(title)
+            for _,g in ipairs(guides) do
+              if g.title==title then return g end
+            end
+          end
+
+          local mulgore=assert(find("1-6 Mulgore"))
+          local durotar=assert(find("1-6 Durotar"))
+          local northshire=assert(find("1-6 Northshire"))
+          local mageHorde=assert(find("12-17 The Barrens AoE"))
+
+          MG.GetPlayerProfile=function()
+            return {faction="Horde",race="Tauren",class="DRUID",level=2}
+          end
+          assert(loadfile("world of warcraft/MewthischGuides/DataLoader.lua"))(
+            "MewthischGuides",MG)
+          MG.DataLoader.byID={}
+          for _,g in ipairs(guides) do MG.DataLoader.byID[g.id]=g end
+
+          assert(MG.DataLoader:IsGuideSelectable(mulgore,"horde"))
+          assert(MG.DataLoader:IsGuideSelectable(durotar,"horde"),
+            "Horde character must be able to select every Horde route")
+          assert(not MG.DataLoader:IsGuideSelectable(northshire,"ally"))
+          assert(not MG.DataLoader:CanSelectCategory("mage"),
+            "non-Mage must not be able to select Mage AoE category")
+
+          MG.GetPlayerProfile=function()
+            return {faction="Horde",race="Tauren",class="MAGE",level=2}
+          end
+          assert(MG.DataLoader:CanSelectCategory("mage"))
+          assert(MG.DataLoader:IsGuideSelectable(mageHorde,"mage"))
+
+          local call
+          for _,def in ipairs(mulgore.steps or {}) do
+            if def.questID==1519 then call=def break end
+          end
+          assert(call,"Mulgore quest 1519 missing")
+
+          local druid={faction="Horde",race="Tauren",class="DRUID",level=2}
+          local shaman={faction="Horde",race="Tauren",class="SHAMAN",level=2}
+          assert(MG.RestEDXPImport:GetProgressOccurrence(
+            call,"accept",druid,nil)==nil,
+            "Druid must not receive Shaman-only Call of Earth accept step")
+          local occ=assert(MG.RestEDXPImport:GetProgressOccurrence(
+            call,"accept",shaman,nil),
+            "Shaman Call of Earth accept occurrence missing")
+          assert(occ.coordinate and occ.coordinate.mapID==1412)
+          assert(math.abs(occ.coordinate.worldX-(-250.09))<0.01)
+          assert(math.abs(occ.coordinate.worldY-(-2882.08))<0.01)
+
+          MG.StepPhases={ACCEPT="accept",TURNIN="turnin"}
+          assert(loadfile("world of warcraft/MewthischGuides/StepEngine.lua"))(
+            "MewthischGuides",MG)
+          assert(not MG:RestedXPPhaseApplies(call,"accept",druid,nil))
+          assert(MG:RestedXPPhaseApplies(call,"accept",shaman,nil))
+
+          print("Guide picker + Call of Earth routing PASS")
+          LUA
+
       - name: Validate world map marker
         shell: bash
         run: |
@@ -659,7 +742,7 @@ jobs:
           print("Seven-theme contract PASS")
           LUA
 
-      - name: Validate v0.11.7 static contract
+      - name: Validate v0.11.8 static contract
         shell: bash
         run: |
           set -euo pipefail
@@ -668,7 +751,7 @@ jobs:
           UI="$ROOT/UI.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
-          grep -q '^## Version: 0.11.7$' "$TOC"
+          grep -q '^## Version: 0.11.8$' "$TOC"
           grep -q '^## OptionalDeps: ElvUI, EllesmereUI, ElvUI_ToxiUI$' "$TOC"
           grep -q '^ManualRoute.lua$' "$TOC"
           grep -q '^WorldMapMarker.lua$' "$TOC"
@@ -708,13 +791,17 @@ jobs:
           grep -q 'objectiveProgressColor' "$UI"
           grep -q 'goalRowText' "$UI"
           grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
-          grep -q 'navigatorArrowSkin = "compass-black"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkin = "arrow-blue"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkinDefaultVersion = 2' "$ROOT/Logger.lua"
           grep -q '"compass-black"' "$ROOT/Navigator.lua"
           grep -q '"pointer-black"' "$ROOT/Navigator.lua"
           grep -q '"arrow-blue"' "$ROOT/Navigator.lua"
           grep -q '"arrow-red"' "$ROOT/Navigator.lua"
           grep -q '"arrow-orange"' "$ROOT/Navigator.lua"
           grep -q 'Nächster Skin' "$UI"
+          grep -q 'IsGuideSelectable(guide, category)' "$UI"
+          grep -q 'CanSelectCategory("mage")' "$UI"
+          grep -q 'restedxp_phase_selector' "$ROOT/StepEngine.lua"
           test -f "$ROOT/Assets/ArrowBlue.blp"
           test -f "$ROOT/Assets/ArrowRed.blp"
           test -f "$ROOT/Assets/ArrowOrange.blp"
@@ -757,11 +844,11 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.11.7.zip MewthischGuides
+          zip -r MewthischGuides-v0.11.8.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.11.7
-          path: artifacts/MewthischGuides-v0.11.7.zip
+          name: MewthischGuides-v0.11.8
+          path: artifacts/MewthischGuides-v0.11.8.zip
           if-no-files-found: error

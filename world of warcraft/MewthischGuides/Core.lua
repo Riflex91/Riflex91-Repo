@@ -2,7 +2,7 @@ local addonName, MG = ...
 _G.MewthischGuides = MG
 _G.ForeverGuide = MG
 
-MG.VERSION = "0.11.7"
+MG.VERSION = "0.11.8"
 MG.INTERFACE = 16001
 MG.NAME = "Mewthisch Guides"
 MG.heartbeatTicker = nil
@@ -306,8 +306,8 @@ local function handleSlash(msg)
             local wanted = string.lower(rest or "")
             if wanted == "manual" or wanted == "manuell" then
                 MG:SetRouteMode("manual")
-            elseif wanted == "preset" or wanted == "vorgegeben" then
-                MG:SetRouteMode("preset")
+            elseif wanted == "auto" or wanted == "automatisch" then
+                MG:SetRouteMode("auto")
             end
             print("|cff62d6ffMewthisch Guides|r Routenmodus: " ..
                 tostring(MG.GetRouteMode and MG:GetRouteMode() or "manual"))
