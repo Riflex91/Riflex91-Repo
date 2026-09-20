@@ -47,12 +47,13 @@ function parseSnapshot(
   }
   if (!istObjekt(roh)
       || roh["schemaVersion"] !== 1
-      || !Number.isSafeInteger(roh["gespeichertAmMs"])
       || !Array.isArray(roh["eintraege"])) {
     throw new Error("PRODUKTION_CONTROLLER_PERSISTENZ_UNGUELTIG");
   }
   const gespeichertAmMs = roh["gespeichertAmMs"];
-  if (typeof gespeichertAmMs !== "number" || gespeichertAmMs < 0) {
+  if (typeof gespeichertAmMs !== "number"
+      || !Number.isSafeInteger(gespeichertAmMs)
+      || gespeichertAmMs < 0) {
     throw new Error("PRODUKTION_CONTROLLER_PERSISTENZ_UNGUELTIG");
   }
   if (roh["eintraege"].length > 1024) {
