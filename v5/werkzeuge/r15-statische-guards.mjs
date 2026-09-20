@@ -12,6 +12,9 @@ const pflicht = [
   "werkzeuge/cap033-cap034-live-test-paket.js",
   "werkzeuge/tests/cap033-cap034-live-test-gui.test.mjs",
   "grundlage/tests/r15-production-graph.test.mjs",
+  "grundlage/tests/r15-production-capabilities.test.mjs",
+  "grundlage/quelle/produktion/production-planer.ts",
+  "grundlage/quelle/produktion/production-controller.ts",
   "grundlage/tests/r15-logistik-gear.test.mjs",
   "grundlage/quelle/produktion/production-graph.ts",
   "grundlage/quelle/produktion/bank-katalog.ts",
@@ -85,11 +88,45 @@ for (const marker of [
 const bankKatalog = liesText("grundlage/quelle/produktion/bank-katalog.ts");
 for (const marker of [
   "pinneBankKatalog",
-  "planningEvidence: true",
-  "executionAuthority: false",
+  "PersistenterBankKatalog",
+  "BANK_KATALOG_INVALIDIERT",
+  "BANK_KATALOG_PERSISTENZ_UNGUELTIG",
+  "planningEvidence = true",
+  "executionAuthority = false",
   "BANK_KATALOG_NICHT_FRISCH",
 ]) {
   if (!bankKatalog.includes(marker)) fehler.push("BANK_KATALOG_MARKER_FEHLT:" + marker);
+}
+
+const productionPlaner = liesText("grundlage/quelle/produktion/production-planer.ts");
+for (const marker of [
+  "planeProduktion",
+  "PRODUKTION_PLAN_RECIPE_CYCLE",
+  "PRODUKTION_PLAN_EVIDENCE_STALE",
+  "AL-ACTION-CRAFT",
+  "AL-RECOVERY-CRAFT",
+  "AL-VERIFIER-CRAFT",
+  "planungsNachweis: true",
+  "ausfuehrungsAutoritaet: false",
+  "gameplayAutoritaet: false",
+  "rawWriteAutoritaet: false",
+]) {
+  if (!productionPlaner.includes(marker)) {
+    fehler.push("PRODUCTION_PLANER_MARKER_FEHLT:" + marker);
+  }
+}
+
+const productionController = liesText("grundlage/quelle/produktion/production-controller.ts");
+for (const marker of [
+  "PersistenterProduktionsController",
+  "RECOVERY_PENDING",
+  "PRODUKTION_CONTROLLER_PLAN_NICHT_BEREIT",
+  "gameplayAutoritaet = false",
+  "rawWriteAutoritaet = false",
+]) {
+  if (!productionController.includes(marker)) {
+    fehler.push("PRODUCTION_CONTROLLER_MARKER_FEHLT:" + marker);
+  }
 }
 
 const mutationsPlaner = liesText("grundlage/quelle/merchant/item-mutations-planer.ts");
@@ -224,6 +261,8 @@ const r15Quellen = [
   "grundlage/quelle/merchant/gear-progression.ts",
   "grundlage/quelle/produktion/bank-katalog.ts",
   "grundlage/quelle/produktion/production-graph.ts",
+  "grundlage/quelle/produktion/production-planer.ts",
+  "grundlage/quelle/produktion/production-controller.ts",
   "grundlage/quelle/produktion/recipient-settlement.ts",
   "grundlage/quelle/produktion/production-intent.ts",
 ];
