@@ -55,3 +55,46 @@ jobs:
       - name: R19 Zertifizierung bis Shadow pruefen
         working-directory: v5
         run: npm run r19:pruefen
+
+  full-certification-matrix:
+    needs: certification-shadow
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - name: Exakten Head verifizieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          ERWARTET="${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+          test "$(git rev-parse HEAD)" = "$ERWARTET"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - name: Gepinnte Abhaengigkeiten installieren
+        working-directory: v5
+        run: npm ci
+      - name: R3 bis R19 Vollmatrix pruefen
+        working-directory: v5
+        shell: bash
+        run: |
+          set -euo pipefail
+          for phase in {3..19}; do
+            echo "=== V5 R${phase} ==="
+            npm run "r${phase}:pruefen"
+          done
+      - name: Roadmap und Verfassung pruefen
+        run: |
+          node v5/werkzeuge/roadmap-pruefen.mjs
+          node v5/werkzeuge/r2-verfassung-pruefen.mjs
+      - name: R19 Vorbereitung und Readiness explizit pruefen
+        working-directory: v5
+        run: node werkzeuge/r19-struktur-pruefen.mjs
+      - name: Wissensgate pruefen
+        run: |
+          node v5/werkzeuge/wissensbasis-pruefen.mjs
+          node v5/werkzeuge/entwicklungs-wissensgate.mjs
