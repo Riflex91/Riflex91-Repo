@@ -6,6 +6,9 @@ import {
   FaehigkeitsRegister,
   type FaehigkeitsAnbieterDefinition,
 } from "../autoritaet/faehigkeits-register.js";
+import type {
+  BedienerRichtlinienDienst,
+} from "../autoritaet/bediener-richtlinie.js";
 import { AutoritaetsStatusRegister } from "../operations/authority-status.js";
 import {
   BegrenzteOperationsTelemetrie,
@@ -14,7 +17,10 @@ import {
 import {
   HeadlessOperationsSupervisor,
 } from "../operations/headless-supervisor.js";
-import type { KritischeHealthAnforderung } from "../operations/health.js";
+import type {
+  HealthEvidence,
+  KritischeHealthAnforderung,
+} from "../operations/health.js";
 import { AblaufScheduler } from "../scheduler/ablauf-scheduler.js";
 import { RessourcenVerwalter } from "../scheduler/ressourcen-verwalter.js";
 import {
@@ -28,12 +34,23 @@ import type {
   V5ProduktionsProzessPort,
   V5ProduktionsProzessStatus,
 } from "./produktions-bootstrap.js";
+import {
+  KontrolliertePlanungsAktivierung,
+  type PlanungsAktivierungsAnfrage,
+  type PlanungsAktivierungsErgebnis,
+  type PlanungsAktivierungsProtokollPort,
+} from "./planungs-aktivierung.js";
 
 export interface V5ProduktionsKompositionsDefinition {
   readonly schemaVersion: 1;
   readonly modulDefinitionen: readonly ModulDefinition[];
   readonly faehigkeitsDefinitionen: readonly FaehigkeitsAnbieterDefinition[];
   readonly healthAnforderungen: readonly KritischeHealthAnforderung[];
+}
+
+export interface V5ProduktionsRuntimeAbhaengigkeiten {
+  readonly bedienerRichtlinie: BedienerRichtlinienDienst;
+  readonly planungsAktivierungsProtokoll: PlanungsAktivierungsProtokollPort;
 }
 
 export interface V5ProduktionsKernKomponenten {
@@ -160,13 +177,17 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
   readonly #autoritaetsStatus = new AutoritaetsStatusRegister();
   readonly #telemetrie = new BegrenzteOperationsTelemetrie();
   readonly #supervisor: HeadlessOperationsSupervisor;
+  readonly #planungsAktivierung: KontrolliertePlanungsAktivierung | null;
   readonly #komponenten: V5ProduktionsKernKomponenten;
 
   #prozessLaeuft = false;
   #zustand: V5ProduktionsRuntimeStatus["zustand"] = "GESTOPPT";
   #endgueltigGestoppt = false;
 
-  public constructor(definition: V5ProduktionsKompositionsDefinition) {
+  public constructor(
+    definition: V5ProduktionsKompositionsDefinition,
+    abhaengigkeiten?: V5ProduktionsRuntimeAbhaengigkeiten,
+  ) {
     pruefeDefinition(definition);
 
     for (const modul of definition.modulDefinitionen) {
@@ -181,6 +202,17 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
       this.#autoritaetsStatus,
       this.#telemetrie,
     );
+    this.#planungsAktivierung = abhaengigkeiten === undefined
+      ? null
+      : new KontrolliertePlanungsAktivierung(
+          this.#module,
+          this.#faehigkeiten,
+          this.#supervisor,
+          abhaengigkeiten.bedienerRichtlinie,
+          this.#autoritaetsStatus,
+          abhaengigkeiten.planungsAktivierungsProtokoll,
+          () => this.status(),
+        );
     this.#komponenten = Object.freeze({
       module: this.#module,
       faehigkeiten: this.#faehigkeiten,
@@ -231,6 +263,21 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
       erfolgreich: true,
       grund: "V5_RUNTIME_KOMPOSITION_GESTARTET",
     });
+  }
+
+  public async aktivierePlanungsFaehigkeit(
+    anfrage: PlanungsAktivierungsAnfrage,
+    healthEvidence: readonly HealthEvidence[],
+    jetztMs: number,
+  ): Promise<PlanungsAktivierungsErgebnis> {
+    if (this.#planungsAktivierung === null) {
+      throw new Error("PLANUNGS_AKTIVIERUNG_NICHT_KONFIGURIERT");
+    }
+    return this.#planungsAktivierung.aktiviere(
+      anfrage,
+      healthEvidence,
+      jetztMs,
+    );
   }
 
   public async stoppe(grund: string): Promise<V5ProduktionsProzessErgebnis> {
