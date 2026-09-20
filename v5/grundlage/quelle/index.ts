@@ -62,3 +62,8 @@ export * from "./recovery/recovery-kernel.js";
 export * from "./recovery/laufsteuerung.js";
 export * from "./recovery/fehlerdomaenen.js";
 export * from "./recovery/wiederanlauf.js";
+export * from "./operations/health.js";
+export * from "./operations/alerts.js";
+export * from "./operations/authority-status.js";
+export * from "./operations/telemetrie.js";
+export * from "./operations/segment-pflege.js";
