@@ -3,7 +3,7 @@
 **Status:** IMPLEMENTIERT / LIVE-ABNAHME AUSSTEHEND  
 **Basis-main:** `404592b2f375858de5c365a3c1dea1663ed5f164`  
 **Testkennung:** `cap045-production-live-certification`  
-**Controller-Version:** `1.0.1`
+**Controller-Version:** `1.0.2`
 
 ## Ziel
 
@@ -49,6 +49,8 @@ Die Stage erfasst unter anderem Production-ID, Plan-Fingerprint, Zustand, Demand
 Stage 2 kann den read-only Live-Soak bestehen, setzt aber bewusst noch nicht den finalen Controlled-Production-Beweis auf bestanden.
 
 Die Mindestdauer wird ab Controller 1.0.1 zwischen dem ersten und letzten echten Evidence-Sample gemessen, nicht zwischen Buttonklick und letztem Sample. Dadurch kann Start-Overhead die 5-Minuten-Grenze nicht mehr unbemerkt unterschreiten.
+
+Ab Controller 1.0.2 wird die Serverbindung aus den tatsaechlichen Adventure-Land-Runner-Surfaces gelesen. Zulässig sind direkte `server_region/server_identifier`, das offizielle Runner-Objekt `server.region/server.id` sowie die entsprechenden Parent-Surfaces. Fehlt weiterhin eine vollstaendige reale Bindung, bleibt Stage 1 mit `SERVER_BINDUNG_FEHLT` fail-closed.
 
 ## Stage 3 – Controlled Production Live Proof
 
@@ -115,7 +117,7 @@ Validator:
 
 `werkzeuge/cap045-production-live-evidence-pruefen.mjs`
 
-Der Validator akzeptiert nur Controller `1.0.1` und verlangt unter anderem:
+Der Validator akzeptiert nur Controller `1.0.2` und verlangt unter anderem:
 
 - alle drei Stages `BESTANDEN`;
 - ausschliesslich `LIVE`-Evidence fuer den Live-Nachweis;
