@@ -5,6 +5,7 @@ MG.RouteEngine = RouteEngine
 
 local SOURCE_SCORE = {
     VerifiedRouteData = 100,
+    RestedXPPublicRouteData = 99,
     TravelGraph = 98,
     QuestLine = 95,
     QuestMapPOI = 92,
@@ -15,8 +16,10 @@ local SOURCE_SCORE = {
 }
 
 local function validPoint(candidate)
-    return candidate and tonumber(candidate.mapID) and
-        tonumber(candidate.x) and tonumber(candidate.y)
+    if not candidate or not tonumber(candidate.mapID) then return false end
+    if tonumber(candidate.x) and tonumber(candidate.y) then return true end
+    if tonumber(candidate.worldX) and tonumber(candidate.worldY) then return true end
+    return false
 end
 
 local function addCandidate(candidates, candidate, reason)
@@ -70,6 +73,16 @@ function RouteEngine:Resolve(step)
     local candidates = {}
 
     addCandidate(candidates, explicitCoordinate(step), "route_data")
+
+    if MG.RestEDXPImport and step.definition then
+        addCandidate(
+            candidates,
+            MG.RestEDXPImport:GetCoordinate(
+                step.definition,
+                step.phase,
+                MG:GetPlayerProfile()),
+            "restedxp_public_route")
+    end
 
     if MG.TravelGraph then
         addCandidate(candidates, MG.TravelGraph:GetNextHopTarget(step), "travel_graph")
@@ -125,6 +138,9 @@ function RouteEngine:Resolve(step)
                 mapID = candidate.mapID,
                 x = candidate.x,
                 y = candidate.y,
+                worldX = candidate.worldX,
+                worldY = candidate.worldY,
+                floor = candidate.floor,
                 phaseMatch = candidate.phaseMatch,
                 isQuestStart = candidate.isQuestStart,
                 inProgress = candidate.inProgress,
@@ -153,6 +169,9 @@ function RouteEngine:Resolve(step)
             mapID = selected.mapID,
             x = selected.x,
             y = selected.y,
+            worldX = selected.worldX,
+            worldY = selected.worldY,
+            floor = selected.floor,
             score = selected.score,
             candidates = #candidates,
             candidateSummary = MG.db and MG.db.runtime and MG.db.runtime.route and
