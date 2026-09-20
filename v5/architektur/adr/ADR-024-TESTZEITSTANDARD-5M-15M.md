@@ -21,6 +21,12 @@ Der bereits gestartete R19-SOAK_10M wird nicht nachtraeglich entwertet.
 7. Die kuerzere Testdauer aendert keine Null-Toleranz-, Evidence-Ketten-, Sample-Gap-, Speicher-, Persistenz-, Performance-Trick-, Authority- oder Gameplay-Write-Grenze.
 8. Ein bestandener 5- oder 15-Minuten-Test wird nicht als mehrtaegige 24/7-Soak-Evidence bezeichnet.
 
+## Alternativen
+
+- 30-/60-Minuten-Soaks fuer jede neue Funktion beibehalten: verworfen, weil die Entwicklungsiteration unnoetig verlangsamt wird.
+- Nur 5 Minuten fuer alle Gates inklusive Release verwenden: verworfen, weil Integrations-/Release-Meilensteine einen laengeren gemeinsamen Beobachtungszeitraum behalten sollen.
+- Den bereits gestarteten SOAK_10M abbrechen: verworfen; der Lauf bleibt als einmalige Uebergangs-Evidence gueltig.
+
 ## Migration
 
 Vorher:
