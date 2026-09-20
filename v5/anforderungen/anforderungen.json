@@ -304,7 +304,7 @@
       "titel": "Action Channels werden als Scheduler-Ressourcen serialisiert.",
       "phase": "R8",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R8_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-016"
       ],
@@ -313,14 +313,21 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r8NachweisStatus": "R8_NACHGEWIESEN",
+      "r8Nachweise": [
+        "v5/grundlage/quelle/scheduler/ressourcen-verwalter.ts",
+        "v5/grundlage/quelle/scheduler/socket-budget.ts",
+        "v5/grundlage/tests/r8-ressourcen.test.mjs",
+        "v5/werkzeuge/r8-statische-guards.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-ARCH-008",
       "titel": "Langlebige Ressourcen verwenden Lease-Epoche/Fencing.",
       "phase": "R8",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R8_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-017"
       ],
@@ -329,7 +336,12 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r8NachweisStatus": "R8_NACHGEWIESEN",
+      "r8Nachweise": [
+        "v5/grundlage/quelle/scheduler/ressourcen-verwalter.ts",
+        "v5/grundlage/tests/r8-ressourcen.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-ARCH-009",
@@ -612,7 +624,7 @@
       "titel": "Safety-/Notfallarbeit kann normale Arbeit preempten, nie umgekehrt.",
       "phase": "R8",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R8_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-033"
       ],
@@ -621,7 +633,12 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r8NachweisStatus": "R8_NACHGEWIESEN",
+      "r8Nachweise": [
+        "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts",
+        "v5/grundlage/tests/r8-scheduler.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-SICH-013",
@@ -1037,7 +1054,7 @@
       "titel": "Retries haben Versuchs-, Zeit-, Backoff- und Circuit-Grenzen.",
       "phase": "R8",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R8_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-052"
       ],
@@ -1047,14 +1064,20 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r8NachweisStatus": "R8_NACHGEWIESEN",
+      "r8Nachweise": [
+        "v5/grundlage/quelle/scheduler/workflow-vertrag.ts",
+        "v5/grundlage/quelle/scheduler/retry-circuit.ts",
+        "v5/grundlage/tests/r8-retry.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-TRANS-005",
       "titel": "Preemption ist nur an deklarierten sicheren Punkten erlaubt.",
       "phase": "R8",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R8_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-053"
       ],
@@ -1064,7 +1087,12 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r8NachweisStatus": "R8_NACHGEWIESEN",
+      "r8Nachweise": [
+        "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts",
+        "v5/grundlage/tests/r8-scheduler.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-TEST-001",
@@ -1987,7 +2015,7 @@
       "titel": "Jeder geplante Workflow referenziert den verwendeten Knowledge-Git-Commit/Quellenhashes; Knowledge-Updates veraendern In-Flight-Transaktionen nicht still.",
       "phase": "R8",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R8_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-104"
       ],
@@ -1996,7 +2024,13 @@
       ],
       "nachweis": "WORKFLOW_SNAPSHOT_PINNING_TEST",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r8NachweisStatus": "R8_NACHGEWIESEN",
+      "r8Nachweise": [
+        "v5/grundlage/quelle/scheduler/workflow-vertrag.ts",
+        "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts",
+        "v5/grundlage/tests/r8-scheduler.test.mjs"
+      ]
     },
     {
       "kennung": "V5-ANF-WISSEN-020",

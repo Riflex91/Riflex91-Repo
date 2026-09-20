@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R8",
+  "status": "DONE",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "exitKriterien": {
+    "actionChannelsAlsRessourcenSerialisiert": true,
+    "characterGlobalesSocketBudgetGeteilt": true,
+    "deterministischeLockReihenfolge": true,
+    "mehrressourcenClaimsAllOrNothing": true,
+    "keinLockStealing": true,
+    "langlebigeLeasesMitEpocheFencing": true,
+    "staleFencingTokensAbgelehnt": true,
+    "leaseAblaufVerlangtAbgleich": true,
+    "safetyNotfallPreemptionDominant": true,
+    "preemptionNurAnSicherenPunkten": true,
+    "agingFairnessOhneKlassenEskalation": true,
+    "deadlineUndRessourcenlokalitaetDeterministisch": true,
+    "retriesVersuchZeitBackoffCircuitBounded": true,
+    "circuitsScoped": true,
+    "moeglicherSendBlockiertBlindRetry": true,
+    "workflowKnowledgeSnapshotGepinnt": true
+  },
+  "anforderungen": {
+    "phaseR8": 6,
+    "technischNachgewiesen": 6,
+    "status": "R8_NACHGEWIESEN"
+  },
+  "traceability": {
+    "phaseR8": 6,
+    "vollstaendig": 6
+  },
+  "fitness": {
+    "phaseR8": 2,
+    "erfuellt": 2,
+    "status": "ERFUELLT"
+  },
+  "sicherheitsgrenze": {
+    "adventureLandWrites": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "mutierendeExecution": false
+  },
+  "ciVorAbschluss": {
+    "headSha": "27c32fdc18c261ba3d5e053565dad9ab6b050589",
+    "runs": [
+      {
+        "workflow": "v5-r8",
+        "runId": 35478722800,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r7",
+        "runId": 35478722810,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r6",
+        "runId": 35478722817,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r5",
+        "runId": 35478722807,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r4",
+        "runId": 35478722823,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-r3",
+        "runId": 35478722803,
+        "conclusion": "success"
+      },
+      {
+        "workflow": "v5-wissensgate",
+        "runId": 35478722832,
+        "conclusion": "success"
+      }
+    ]
+  },
+  "nachweise": [
+    "v5/grundlage/quelle/scheduler/workflow-vertrag.ts",
+    "v5/grundlage/quelle/scheduler/ablauf-scheduler.ts",
+    "v5/grundlage/quelle/scheduler/ressourcen-verwalter.ts",
+    "v5/grundlage/quelle/scheduler/socket-budget.ts",
+    "v5/grundlage/quelle/scheduler/retry-circuit.ts",
+    "v5/grundlage/tests/r8-scheduler.test.mjs",
+    "v5/grundlage/tests/r8-ressourcen.test.mjs",
+    "v5/grundlage/tests/r8-retry.test.mjs",
+    "v5/werkzeuge/r8-statische-guards.mjs",
+    "v5/werkzeuge/r8-struktur-pruefen.mjs",
+    "v5/architektur/adr/ADR-009-R8-SCHEDULER-RESSOURCEN-FENCING.md",
+    ".github/workflows/v5-r8.yml"
+  ],
+  "naechstePhase": "R9",
+  "finalePruefung": {
+    "exakterPrHeadErforderlich": true,
+    "alleR3BisR8RegressionenGruenErforderlich": true,
+    "roadmapUndVorbereitungGruenErforderlich": true,
+    "postMergeCiErforderlich": true,
+    "mergeNurShaGebunden": true
+  },
+  "hinweis": "R8 gilt erst nach gruenem finalen PR-Head und gruener Post-Merge-CI als endgueltig abgeschlossen. Das Gameplay-Runtime-Gesamtgate bleibt GESPERRT."
+}
