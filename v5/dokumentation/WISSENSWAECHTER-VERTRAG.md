@@ -221,7 +221,7 @@ Der reale Autorisierungsnachweis ist am 2026-09-20 geschlossen worden:
 2. **Least-Privilege-GitHub-Autorisierung am installierten System nachgewiesen.**  
    Der reale Windows-Bridge-Readiness-Test wurde vollstaendig automatisch bestanden. Zusaetzlich hat der Betreiber fuer den tatsaechlich verwendeten Fine-grained PAT bestaetigt: Resource Owner `Riflex91`, **Only select repositories**, ausschließlich `Riflex91-Repo`, **Contents: Read and write**, automatisch **Metadata: Read** und keine zusaetzlichen Schreibrechte fuer Actions, Administration, Secrets, Environments, Deployments oder Workflows. Der Tokenwert wurde weder im Testbericht noch im Repository erfasst.
 
-Der maschinenlesbare Nachweis liegt unter `v5/roadmap/v5-wissen-012-autorisierungsnachweis.json`. Damit ist `V5-ANF-WISSEN-012` technisch geschlossen. Diese Schliessung ist ausdruecklich **keine** breite Gameplay-Runtime-Gesamtfreigabe; diese bleibt separat ausstehend.
+Der maschinenlesbare Nachweis liegt unter `v5/roadmap/v5-wissen-012-autorisierungsnachweis.json`. Damit ist `V5-ANF-WISSEN-012` technisch geschlossen. Diese Schliessung war ausdruecklich **keine** breite Gameplay-Runtime-Gesamtfreigabe. Die globale V5-Gesamtfreigabe wurde spaeter separat am 2026-09-20 erteilt und ist unter `v5/roadmap/gesamtfreigabe.json` dokumentiert; lokale Capability-, Admission-, Safety-, Operator-, Fencing-, Freshness- und Recovery-Gates bleiben davon unberuehrt.
 
 
 ## Konsumentenvertrag fuer Entwicklung und Runtime
@@ -276,4 +276,4 @@ Ein lokaler Importfehler darf:
 ## R2-Ratifizierung
 
 **R2-Status:** RATIFIZIERT am 2026-09-19.  
-Dieser Vertrag ist Bestandteil der V5-Verfassung. Die Ratifizierung ist eine Architektur-/Vorbereitungsfreigabe und **keine Gameplay-Runtime-Freigabe**. Technische Umsetzung und Live-Nachweise folgen ausschliesslich in den dafuer vorgesehenen Roadmap-Phasen.
+Dieser Vertrag ist Bestandteil der V5-Verfassung. Die R2-Ratifizierung selbst war eine Architektur-/Vorbereitungsfreigabe und **keine Gameplay-Runtime-Freigabe**. Die vorgesehenen Roadmap-Phasen R3-R19 und die separaten Live-/Gesamtfreigabe-Nachweise wurden inzwischen abgeschlossen; die historische R2-Grenze bleibt fuer die Provenienz unveraendert dokumentiert.
