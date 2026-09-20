@@ -139,7 +139,14 @@ export class ErteilteAusfuehrungsFreigabe {
     pruefeEindeutig(anfrage.invariantenKennungen, "ADMISSION_INVARIANTE_DOPPELT");
     pruefeEindeutig(anfrage.voraussetzungsIds, "ADMISSION_VORAUSSETZUNG_DOPPELT");
 
-    const runtime = abhaengigkeiten.laufzeitGate.pruefe();
+    const runtime = abhaengigkeiten.laufzeitGate.pruefe({
+      transaktionsId: anfrage.transaktionsId,
+      faehigkeitId: anfrage.faehigkeitId,
+      eigentuemerModulId: anfrage.eigentuemerModulId,
+      actionContractId: anfrage.actionContractId,
+      recoveryContractId: anfrage.recoveryContractId,
+      verifierId: anfrage.verifierId,
+    });
     if (!runtime.freigegeben) throw new Error("LAUFZEIT_GATE_GESPERRT");
     pruefeText(runtime.nachweisId, "LAUFZEIT_GATE_NACHWEIS_UNGUELTIG");
 
