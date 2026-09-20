@@ -55,6 +55,9 @@ Themes
 - Gear auto-equip is disabled by default
 - Gear auto-equip requires high confidence, no combat, an empty cursor and,
   with the default safety settings, a bound item
+- plain item-level comparison is only medium confidence and therefore cannot
+  pass the default auto-equip gate; high confidence requires a data-backed
+  gear profile/stat-weight model
 - weapons are not auto-equipped by default
 - telemetry is local SavedVariables diagnostics only; nothing is transmitted
 
@@ -62,8 +65,8 @@ Themes
 
 The runtime now supports multiple normalized guides, validation, applicability
 by faction/race/class/level, explicit route coordinates, a TravelGraph and
-build profiles. Empty extension points exist in `Data.lua` for generated
-DataMiner/Recorder imports.
+build profiles and gear scoring profiles. Empty extension points exist in
+`Data.lua` for generated DataMiner/Recorder imports.
 
 Current bundled evidence remains intentionally small:
 
