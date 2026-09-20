@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.11.2
+name: Mewthisch Guides addon v0.11.3
 
 on:
   workflow_dispatch:
@@ -112,6 +112,28 @@ jobs:
             1412,.443,.798))
           assert(math.abs(world.x-(left-width*.443))<.01)
           assert(math.abs(world.y-(top-height*.798))<.01)
+
+          -- Exact runtime evidence from the Mulgore recorder session:
+          -- player at 44.2845 / 79.7912 while "Die Jagd beginnt" was active.
+          local observed=assert(MG.ForeverAPI:MapToRestedXPWorld(
+            1412,.4428451061248779,.797911524772644))
+          assert(math.abs(observed.x-(-227.2167327))<.05)
+          assert(math.abs(observed.y-(-3005.7669723))<.05)
+
+          local function distance(x,y)
+            local dx=x-observed.x
+            local dy=y-observed.y
+            return math.sqrt(dx*dx+dy*dy)
+          end
+          assert(distance(-228.2,-3006.0)<2,
+            "runtime Mulgore loop point must be near the player")
+          assert(distance(-385.2,-3117.38)>190,
+            "old first-loop point must not masquerade as the live target")
+
+          local nearMap=assert(MG.ForeverAPI:RestedXPWorldToMap(
+            1412,-228.2,-3006.0))
+          assert(math.abs(nearMap.x-.4430364963)<.0002)
+          assert(math.abs(nearMap.y-.7979795620)<.0002)
           print("RestedXP world-axis/map-geometry PASS")
           LUA
 
@@ -356,6 +378,8 @@ jobs:
         run: |
           lua5.1 - <<'LUA'
           local pickupCalls,equipSlot,equipByNameSlot=0,nil,nil
+          local equippedIDs={}
+          Enum={ItemClass={Armor=4},ItemBind={OnEquip=2}}
           local MG={
             Data={gearProfiles={}},
             db={settings={
@@ -365,37 +389,76 @@ jobs:
               gearAutoEquipWeapons=false,
               gearProtectBoE=true,
             },runtime={}},
-            BuildState={GetState=function() return {class="HUNTER"} end},
+            BuildState={GetState=function()
+              return {class="DRUID",level=1}
+            end},
             Inventory={GetSnapshot=function() return {bags={},equipped={}} end},
             Log=function() end,
           }
 
-          GetItemInfoInstant=function() return 1001,"Armor","Leather","INVTYPE_CHEST" end
+          GetItemInfoInstant=function(link)
+            if link=="frayed-pants" then
+              return 1378,"Armor","Cloth","INVTYPE_LEGS",0,4,1
+            elseif link=="novice-pants" then
+              return 6124,"Armor","Cloth","INVTYPE_LEGS",0,4,1
+            elseif link=="mail-gloves" then
+              return 2653,"Armor","Mail","INVTYPE_HAND",0,4,3
+            end
+            return 1001,"Armor","Leather","INVTYPE_CHEST",0,4,2
+          end
           GetDetailedItemLevelInfo=function(link)
+            if link=="frayed-pants" or link=="novice-pants" then return 1 end
+            if link=="mail-gloves" then return 2 end
             if link=="candidate" then return 20 end
             if link=="equipped" then return 10 end
           end
+          GetItemStats=function(link)
+            if link=="frayed-pants" then return {RESISTANCE0_NAME=4} end
+            if link=="novice-pants" then return {RESISTANCE0_NAME=2} end
+            if link=="mail-gloves" then return {RESISTANCE0_NAME=35} end
+            return {}
+          end
           IsEquippableItem=function() return true end
           IsUsableItem=function() return false end
-          GetInventoryItemLink=function() return "equipped" end
+          GetInventoryItemLink=function(_,slot)
+            if slot==7 then return "novice-pants" end
+            if slot==5 then return "equipped" end
+          end
+          GetInventoryItemID=function(_,slot) return equippedIDs[slot] end
           C_Container={PickupContainerItem=function() pickupCalls=pickupCalls+1 end}
           EquipCursorItem=function(slot) equipSlot=slot end
-          EquipItemByName=function(link,slot) equipByNameSlot=slot end
+          EquipItemByName=function(link,slot)
+            equipByNameSlot=slot
+            if link=="frayed-pants" then equippedIDs[slot]=1378
+            elseif link=="candidate" then equippedIDs[slot]=1001 end
+          end
 
           assert(loadfile("world of warcraft/MewthischGuides/GearAdvisor.lua"))(
             "MewthischGuides",MG)
-          local candidate=assert(MG.GearAdvisor:EvaluateItemLink("candidate"))
-          candidate.bag,candidate.bagSlot,candidate.isBound=0,1,true
 
-          local equipped,reason=MG.GearAdvisor:TryAutoEquip(candidate)
-          assert(equipped and reason=="equipped")
-          assert(equipByNameSlot==5,"EquipItemByName path not used")
+          local pants=assert(MG.GearAdvisor:EvaluateItemLink("frayed-pants"))
+          assert(pants.upgrade and pants.scoreModel=="strict-stat-dominance")
+          assert(pants.slot==7 and pants.statDelta==2)
+
+          local rejected,rejectReason=MG.GearAdvisor:EvaluateItemLink("mail-gloves")
+          assert(rejected==nil and rejectReason=="armor_proficiency",
+            "Druid must not auto-equip mail")
+
+          pants.bag,pants.bagSlot,pants.isBound,pants.bindingType=0,1,false,0
+          local requested,reason=MG.GearAdvisor:TryAutoEquip(pants)
+          assert(requested and reason=="equipped_confirmed")
+          assert(equipByNameSlot==7,"EquipItemByName path not used")
           assert(pickupCalls==0 and equipSlot==nil,
-            "cursor fallback should not run when EquipItemByName exists")
+            "cursor fallback should not run when EquipItemByName succeeds")
 
-          candidate.isBound=false
-          equipped,reason=MG.GearAdvisor:TryAutoEquip(candidate)
-          assert(not equipped and reason=="boe_protected")
+          pants.isBound=false
+          pants.bindingType=2
+          requested,reason=MG.GearAdvisor:TryAutoEquip(pants)
+          assert(not requested and reason=="boe_protected")
+
+          pants.bindingType=nil
+          requested,reason=MG.GearAdvisor:TryAutoEquip(pants)
+          assert(not requested and reason=="binding_unknown")
           print("Better-gear auto-equip PASS")
           LUA
 
@@ -467,7 +530,7 @@ jobs:
           print("Seven-theme contract PASS")
           LUA
 
-      - name: Validate v0.11.2 static contract
+      - name: Validate v0.11.3 static contract
         shell: bash
         run: |
           set -euo pipefail
@@ -476,7 +539,7 @@ jobs:
           UI="$ROOT/UI.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
-          grep -q '^## Version: 0.11.2$' "$TOC"
+          grep -q '^## Version: 0.11.3$' "$TOC"
           grep -q '^## OptionalDeps: ElvUI, EllesmereUI, ElvUI_ToxiUI$' "$TOC"
           grep -q '^ManualRoute.lua$' "$TOC"
           grep -q '^WorldMapMarker.lua$' "$TOC"
@@ -487,6 +550,10 @@ jobs:
           grep -q '"Vorgegeben"' "$UI"
           grep -q 'showWorldMapMarker' "$UI"
           grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
           grep -q 'routeMode = "preset"' "$ROOT/Logger.lua"
           grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
           grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
@@ -531,11 +598,11 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.11.2.zip MewthischGuides
+          zip -r MewthischGuides-v0.11.3.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.11.2
-          path: artifacts/MewthischGuides-v0.11.2.zip
+          name: MewthischGuides-v0.11.3
+          path: artifacts/MewthischGuides-v0.11.3.zip
           if-no-files-found: error

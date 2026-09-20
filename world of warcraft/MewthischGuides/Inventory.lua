@@ -36,6 +36,16 @@ local function safeBoundState(bag, slot, info)
     return nil
 end
 
+local function safeBindingType(link)
+    if not link or not GetItemInfo then return nil end
+    local values = { pcall(GetItemInfo, link) }
+    if not values[1] then return nil end
+
+    -- GetItemInfo bindType is the 14th return value. pcall adds the success
+    -- boolean at index 1, so the binding type is stored at index 15.
+    return tonumber(values[15])
+end
+
 local function bagSlots(bag)
     if C_Container and C_Container.GetContainerNumSlots then
         local ok, value = pcall(C_Container.GetContainerNumSlots, bag)
@@ -73,6 +83,7 @@ function Inventory:Refresh(reason)
                     link = link,
                     count = info and info.stackCount or 1,
                     isBound = safeBoundState(bag, slot, info),
+                    bindingType = safeBindingType(link),
                     quality = info and info.quality or nil,
                 }
             end

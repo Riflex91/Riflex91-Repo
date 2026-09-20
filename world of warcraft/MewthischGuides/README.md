@@ -1,6 +1,6 @@
-# Mewthisch Guides v0.11.2 — Runtime-Routing, Config und Weltkarten-Ziel
+# Mewthisch Guides v0.11.3 — Runtime-Routing, Config und Weltkarten-Ziel
 
-v0.11.2 härtet den produktiven Forever-Betrieb: Questfortschritt wird über
+v0.11.3 härtet den produktiven Forever-Betrieb: Questfortschritt wird über
 moderne und Legacy-Questlog-APIs erkannt, die vorgegebene RestedXP-Route wird
 auf die tatsächliche Questphase und das aktuelle Questziel synchronisiert, und
 der Benutzer kann alternativ einen manuellen Modus wählen, der angenommene
@@ -71,7 +71,7 @@ by faction/race/class/level, explicit route coordinates, a TravelGraph and
 build profiles and gear scoring profiles. Empty extension points exist in
 `Data.lua` for generated DataMiner/Recorder imports.
 
-Zusätzlich zum Recorder-Seed lädt v0.11.2 die strukturierten Fakten aus allen
+Zusätzlich zum Recorder-Seed lädt v0.11.3 die strukturierten Fakten aus allen
 öffentlich in `GuideList-forever.xml` referenzierten RestedXP-Forever- und
 Survival-Routen. Importiert werden ausschließlich maschinenlesbare Fakten und
 Direktiven (z. B. Quest-IDs, Item-/Spell-IDs, Selektoren, Bedingungen,
@@ -134,13 +134,13 @@ Useful commands:
 
 ## Next phase
 
-Nach diesem v0.11.2-Build folgt die gezielte Ingame-Verifikation anhand echter
+Nach diesem v0.11.3-Build folgt die gezielte Ingame-Verifikation anhand echter
 Forever-Screenshots, SavedVariables und Recorder-Daten. Besonders geprüft
 werden die Weltkarten-Wegpunkt-API des Forever-Clients, die Auswahl zwischen
 manueller und vorgegebener Route sowie Auto-Equip unter realen Bag-/Item-APIs.
 
 
-## v0.11.2 Screenshot-Fixes
+## v0.11.3 Screenshot-Fixes
 
 - RestedXP-Weltkoordinaten werden nicht mehr mit den vertauschten Blizzard-
   Vectorachsen verglichen. Das beseitigt die kilometerweit falsche Distanz und

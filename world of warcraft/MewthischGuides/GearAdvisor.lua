@@ -22,14 +22,21 @@ local MULTI_SLOT = {
 local WEAPON_LOC = {
     INVTYPE_WEAPON = true, INVTYPE_2HWEAPON = true,
     INVTYPE_WEAPONMAINHAND = true, INVTYPE_WEAPONOFFHAND = true,
+    INVTYPE_SHIELD = true, INVTYPE_HOLDABLE = true,
     INVTYPE_RANGED = true, INVTYPE_RANGEDRIGHT = true,
 }
 
+local ARMOR_CLASS_ID =
+    Enum and Enum.ItemClass and tonumber(Enum.ItemClass.Armor) or 4
+local ITEM_BIND_ON_EQUIP =
+    Enum and Enum.ItemBind and tonumber(Enum.ItemBind.OnEquip) or 2
+
 local function itemBasics(link)
     if not link or not GetItemInfoInstant then return nil end
-    local ok, itemID, _, _, equipLoc = pcall(GetItemInfoInstant, link)
+    local ok, itemID, _, _, equipLoc, _, classID, subclassID =
+        pcall(GetItemInfoInstant, link)
     if not ok then return nil end
-    return tonumber(itemID), equipLoc
+    return tonumber(itemID), equipLoc, tonumber(classID), tonumber(subclassID)
 end
 
 local function itemLevel(link)
@@ -47,6 +54,84 @@ local function itemLevel(link)
         if ok and tonumber(level) then return tonumber(level) end
     end
     return nil
+end
+
+local function armorProficiencySafe(itemClassID, itemSubclassID)
+    if tonumber(itemClassID) ~= ARMOR_CLASS_ID then return true end
+
+    local subclass = tonumber(itemSubclassID)
+    if not subclass or subclass < 1 or subclass > 4 then return true end
+
+    local state = MG.BuildState and MG.BuildState:GetState() or {}
+    local class = tostring(state.class or "")
+    local level = tonumber(state.level) or 1
+    local limit = nil
+
+    if class == "MAGE" or class == "PRIEST" or class == "WARLOCK" then
+        limit = 1
+    elseif class == "DRUID" or class == "ROGUE" or
+           class == "MONK" or class == "DEMONHUNTER" then
+        limit = 2
+    elseif class == "HUNTER" or class == "SHAMAN" then
+        limit = level >= 40 and 3 or 2
+    elseif class == "WARRIOR" or class == "PALADIN" then
+        limit = level >= 40 and 4 or 3
+    end
+
+    return limit ~= nil and subclass <= limit
+end
+
+local function comparableItemStats(link)
+    if not link or not GetItemStats then return nil end
+    local ok, stats = pcall(GetItemStats, link)
+    if not ok or type(stats) ~= "table" then return nil end
+
+    local result = {}
+    local count = 0
+    for key, raw in pairs(stats) do
+        local value = tonumber(raw)
+        local comparable =
+            type(key) == "string" and
+            (string.match(key, "^ITEM_MOD_") or
+             string.match(key, "^RESISTANCE%d+_NAME$"))
+
+        if comparable and value and value >= 0 then
+            result[key] = value
+            count = count + 1
+        end
+    end
+
+    return count > 0 and result or nil
+end
+
+local function strictStatDominance(candidateLink, equippedLink)
+    if not candidateLink or not equippedLink then return false, nil end
+
+    local candidate = comparableItemStats(candidateLink)
+    local equipped = comparableItemStats(equippedLink)
+    if not candidate or not equipped then return false, nil end
+
+    local keys = {}
+    for key in pairs(candidate) do keys[key] = true end
+    for key in pairs(equipped) do keys[key] = true end
+
+    local improved = false
+    local positiveDelta = 0
+
+    for key in pairs(keys) do
+        local nextValue = tonumber(candidate[key]) or 0
+        local currentValue = tonumber(equipped[key]) or 0
+
+        if nextValue + 0.0001 < currentValue then
+            return false, nil
+        end
+        if nextValue > currentValue + 0.0001 then
+            improved = true
+            positiveDelta = positiveDelta + (nextValue - currentValue)
+        end
+    end
+
+    return improved, positiveDelta
 end
 
 local function equippable(link, equipLoc)
@@ -100,10 +185,13 @@ local function weightedScore(link, profile)
 end
 
 function Gear:EvaluateItemLink(link)
-    local itemID, equipLoc = itemBasics(link)
+    local itemID, equipLoc, itemClassID, itemSubclassID = itemBasics(link)
     local slot = equipLoc and EQUIP_SLOT[equipLoc] or nil
     if not itemID or not slot or not equippable(link, equipLoc) then
         return nil, "not_safely_equippable"
+    end
+    if not armorProficiencySafe(itemClassID, itemSubclassID) then
+        return nil, "armor_proficiency"
     end
 
     local level = itemLevel(link)
@@ -147,6 +235,7 @@ function Gear:EvaluateItemLink(link)
     local itemLevelDelta = level - equippedLevel
 
     local candidateScore = weightedScore(link, profile)
+    local dominates, statDelta = strictStatDominance(link, equippedLink)
     local confidence = "medium"
     local score = itemLevelDelta
     local upgrade = itemLevelDelta > 0
@@ -157,17 +246,25 @@ function Gear:EvaluateItemLink(link)
         upgrade = score > (tonumber(profile.minimumScoreDelta) or 0)
         confidence = "high"
         scoreModel = "data-backed-stat-weights"
+    elseif itemLevelDelta == 0 and dominates and not WEAPON_LOC[equipLoc] then
+        score = 0.25 + math.min(tonumber(statDelta) or 0, 999) / 10000
+        upgrade = true
+        confidence = "high"
+        scoreModel = "strict-stat-dominance"
     end
 
     return {
         itemID = itemID,
         link = link,
         equipLoc = equipLoc,
+        itemClassID = itemClassID,
+        itemSubclassID = itemSubclassID,
         slot = targetSlot,
         itemLevel = level,
         equippedLink = equippedLink,
         equippedItemLevel = equippedLevel,
         delta = itemLevelDelta,
+        statDelta = statDelta,
         score = score,
         scoreModel = scoreModel,
         gearProfileID = profile and profile.id or nil,
@@ -191,6 +288,7 @@ function Gear:Refresh(reason)
             result.bag = item.bag
             result.bagSlot = item.slot
             result.isBound = item.isBound
+            result.bindingType = item.bindingType
             if not best or result.score > best.score then best = result end
         elseif rejectReason then
             rejected[rejectReason] = (rejected[rejectReason] or 0) + 1
@@ -211,26 +309,32 @@ function Gear:Refresh(reason)
 
     self.bestUpgrade = best
 
-    local autoEquipped = false
+    local autoEquipRequested = false
     local autoEquipReason = best and "not_attempted" or "no_upgrade"
     if best then
-        autoEquipped, autoEquipReason = self:TryAutoEquip(best)
+        autoEquipRequested, autoEquipReason = self:TryAutoEquip(best)
     end
+    local autoEquipped = autoEquipReason == "equipped_confirmed"
 
     if MG.db then
         MG.db.runtime = MG.db.runtime or {}
+        local previousGear = MG.db.runtime.gear or {}
         MG.db.runtime.gear = {
             reason = reason,
             recommendedItemID = best and best.itemID or nil,
             delta = best and best.delta or nil,
+            statDelta = best and best.statDelta or nil,
             score = best and best.score or nil,
             scoreModel = best and best.scoreModel or nil,
             confidence = best and best.confidence or nil,
             gearProfileID = best and best.gearProfileID or nil,
             targetSlot = best and best.slot or nil,
             isBound = best and best.isBound or nil,
+            bindingType = best and best.bindingType or nil,
+            autoEquipRequested = autoEquipRequested,
             autoEquipped = autoEquipped,
             autoEquipReason = autoEquipReason,
+            lastAutoEquip = previousGear.lastAutoEquip,
             rejected = rejected,
             pendingItemData = pendingItemData,
         }
@@ -239,38 +343,68 @@ function Gear:Refresh(reason)
     return best
 end
 
+local function candidateIsEquipped(candidate)
+    if not candidate then return false end
+
+    if GetInventoryItemID then
+        local ok, itemID = pcall(GetInventoryItemID, "player", candidate.slot)
+        if ok and tonumber(itemID) == tonumber(candidate.itemID) then
+            return true
+        end
+    end
+
+    if GetInventoryItemLink then
+        local ok, link = pcall(GetInventoryItemLink, "player", candidate.slot)
+        if ok and link and candidate.link and link == candidate.link then
+            return true
+        end
+    end
+
+    return false
+end
+
 function Gear:TryAutoEquip(candidate)
     local settings = MG.db and MG.db.settings or {}
     if not settings.gearAutoEquip or not candidate then return false, "disabled" end
+
     local safeItemLevelFallback =
         settings.gearAutoEquipItemLevelFallback ~= false and
         candidate.scoreModel == "item-level-fallback" and
         not candidate.isWeapon and
         tonumber(candidate.delta) and tonumber(candidate.delta) > 0
+    local safeDominanceFallback =
+        candidate.scoreModel == "strict-stat-dominance" and
+        not candidate.isWeapon and
+        tonumber(candidate.statDelta) and tonumber(candidate.statDelta) > 0
 
     if settings.gearRequireHighConfidence and candidate.confidence ~= "high" and
-       not safeItemLevelFallback then
+       not safeItemLevelFallback and not safeDominanceFallback then
         return false, "confidence"
     end
     if candidate.isWeapon and not settings.gearAutoEquipWeapons then
         return false, "weapon_protected"
     end
-    if settings.gearProtectBoE and candidate.isBound ~= true then
-        return false, candidate.isBound == false and
-            "boe_protected" or "binding_unknown"
-    end
-    if InCombatLockdown and InCombatLockdown() then return false, "combat" end
-    if CursorHasItem and CursorHasItem() then return false, "cursor_busy" end
-    local usedEquipByName = false
 
-    if EquipItemByName then
-        local okEquip = pcall(EquipItemByName, candidate.link, candidate.slot)
-        if okEquip then
-            usedEquipByName = true
+    if settings.gearProtectBoE and candidate.isBound ~= true then
+        local bindingType = tonumber(candidate.bindingType)
+        if bindingType == nil then
+            return false, "binding_unknown"
+        end
+        if bindingType == ITEM_BIND_ON_EQUIP then
+            return false, "boe_protected"
         end
     end
 
-    if not usedEquipByName then
+    if InCombatLockdown and InCombatLockdown() then return false, "combat" end
+    if CursorHasItem and CursorHasItem() then return false, "cursor_busy" end
+
+    local method = nil
+    if EquipItemByName then
+        local okEquip = pcall(EquipItemByName, candidate.link, candidate.slot)
+        if okEquip then method = "EquipItemByName" end
+    end
+
+    if not method then
         local pickup = C_Container and C_Container.PickupContainerItem or
             PickupContainerItem
         if not pickup or not EquipCursorItem then
@@ -285,22 +419,62 @@ function Gear:TryAutoEquip(candidate)
             if ClearCursor then pcall(ClearCursor) end
             return false, "equip_failed"
         end
+        method = "PickupContainerItem"
     end
 
-    if C_Timer and C_Timer.After then
-        C_Timer.After(0.20, function()
-            if MG.Sync then MG.Sync:Inventory("gear_auto_equip_confirm") end
-        end)
-    end
-
-    MG:Log("INFO", "gear.auto_equip", "Bessere Ausrüstung automatisch angelegt.", {
+    local detail = {
         itemID = candidate.itemID,
         slot = candidate.slot,
         itemLevelDelta = candidate.delta,
+        statDelta = candidate.statDelta,
         score = candidate.score,
         scoreModel = candidate.scoreModel,
+        bindingType = candidate.bindingType,
         profileID = candidate.gearProfileID,
-        method = usedEquipByName and "EquipItemByName" or "PickupContainerItem",
-    })
-    return true, "equipped"
+        method = method,
+    }
+
+    if candidateIsEquipped(candidate) then
+        MG:Log("INFO", "gear.auto_equip_confirmed",
+            "Bessere Ausrüstung automatisch angelegt und bestätigt.", detail)
+        return true, "equipped_confirmed"
+    end
+
+    MG:Log("INFO", "gear.auto_equip_requested",
+        "Auto-Equip angefordert; Bestätigung steht noch aus.", detail)
+
+    if C_Timer and C_Timer.After then
+        local expected = {
+            itemID = candidate.itemID,
+            link = candidate.link,
+            slot = candidate.slot,
+        }
+
+        C_Timer.After(0.25, function()
+            local confirmed = candidateIsEquipped(expected)
+
+            if MG.db then
+                MG.db.runtime = MG.db.runtime or {}
+                MG.db.runtime.gear = MG.db.runtime.gear or {}
+                MG.db.runtime.gear.lastAutoEquip = {
+                    itemID = expected.itemID,
+                    slot = expected.slot,
+                    confirmed = confirmed,
+                    reason = confirmed and "equipped_confirmed" or
+                        "equip_not_confirmed",
+                    method = method,
+                }
+            end
+
+            MG:Log(confirmed and "INFO" or "WARN",
+                confirmed and "gear.auto_equip_confirmed" or
+                    "gear.auto_equip_unconfirmed",
+                confirmed and
+                    "Auto-Equip nachträglich bestätigt." or
+                    "Auto-Equip konnte nach der Anforderung nicht bestätigt werden.",
+                detail)
+        end)
+    end
+
+    return true, "equip_requested"
 end

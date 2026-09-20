@@ -2,7 +2,7 @@ local addonName, MG = ...
 _G.MewthischGuides = MG
 _G.ForeverGuide = MG
 
-MG.VERSION = "0.11.2"
+MG.VERSION = "0.11.3"
 MG.INTERFACE = 16001
 MG.NAME = "Mewthisch Guides"
 MG.heartbeatTicker = nil
@@ -95,6 +95,7 @@ local events = {
     "QUEST_DETAIL", "QUEST_PROGRESS", "QUEST_COMPLETE",
     "GOSSIP_SHOW", "QUEST_GREETING", "ZONE_CHANGED_NEW_AREA",
     "PLAYER_LEVEL_UP", "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED",
+    "GET_ITEM_INFO_RECEIVED", "ITEM_DATA_LOAD_RESULT",
     "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED", "TRAIT_CONFIG_UPDATED",
     "NAVIGATION_FRAME_CREATED", "NAVIGATION_FRAME_DESTROYED",
     "NAVIGATION_DESTINATION_REACHED",
@@ -114,6 +115,11 @@ local BUILD_EVENTS = {
     PLAYER_TALENT_UPDATE = true,
     ACTIVE_TALENT_GROUP_CHANGED = true,
     TRAIT_CONFIG_UPDATED = true,
+}
+
+local ITEM_DATA_EVENTS = {
+    GET_ITEM_INFO_RECEIVED = true,
+    ITEM_DATA_LOAD_RESULT = true,
 }
 
 frame:SetScript("OnEvent", function(_, event, ...)
@@ -184,6 +190,11 @@ frame:SetScript("OnEvent", function(_, event, ...)
 
         if event == "BAG_UPDATE_DELAYED" or event == "PLAYER_EQUIPMENT_CHANGED" then
             if MG.Sync then MG.Sync:Inventory(event) end
+        end
+
+        if ITEM_DATA_EVENTS[event] and MG.db and MG.db.settings and
+           MG.db.settings.gearAutoEquip and MG.Sync then
+            MG.Sync:Inventory(event)
         end
 
         if BUILD_EVENTS[event] and MG.Sync then MG.Sync:Build(event) end
