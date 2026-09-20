@@ -61,10 +61,14 @@ public sealed class MinerService(MinerOptions options)
             var client = new WowToolsLocalClient(http, options.WowToolsLocal);
             try
             {
-                providerProcess = await ProviderManager.EnsureRunningAsync(
-                    options.WowToolsLocal,
-                    options.WowRoot,
-                    cancellationToken);
+                if (options.ManageWowToolsLocal)
+                {
+                    providerProcess = await ProviderManager.EnsureRunningAsync(
+                        options.WowToolsLocal,
+                        options.WowRoot,
+                        build.Product,
+                        cancellationToken);
+                }
 
                 if (providerProcess is not null)
                 {
