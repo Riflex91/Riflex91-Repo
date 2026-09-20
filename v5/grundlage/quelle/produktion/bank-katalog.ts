@@ -151,12 +151,13 @@ function parsePersistenz(text: string): PersistierterBankKatalog {
     throw new Error("BANK_KATALOG_PERSISTENZ_UNGUELTIG");
   }
   const obj = roh as Readonly<Record<string, unknown>>;
-  if (obj["schemaVersion"] !== 1
-      || !Number.isSafeInteger(obj["gespeichertAmMs"])) {
+  if (obj["schemaVersion"] !== 1) {
     throw new Error("BANK_KATALOG_PERSISTENZ_UNGUELTIG");
   }
   const gespeichertAmMs = obj["gespeichertAmMs"];
-  if (typeof gespeichertAmMs !== "number" || gespeichertAmMs < 0) {
+  if (typeof gespeichertAmMs !== "number"
+      || !Number.isSafeInteger(gespeichertAmMs)
+      || gespeichertAmMs < 0) {
     throw new Error("BANK_KATALOG_PERSISTENZ_UNGUELTIG");
   }
 
@@ -180,18 +181,20 @@ function parsePersistenz(text: string): PersistierterBankKatalog {
       throw new Error("BANK_KATALOG_PERSISTENZ_UNGUELTIG");
     }
     const row = obj["invalidierung"] as Readonly<Record<string, unknown>>;
+    const invalidiertAmMs = row["invalidiertAmMs"];
+    const grund = row["grund"];
     if (row["schemaVersion"] !== 1
-        || !Number.isSafeInteger(row["invalidiertAmMs"])
-        || typeof row["invalidiertAmMs"] !== "number"
-        || row["invalidiertAmMs"] < 0
-        || typeof row["grund"] !== "string") {
+        || typeof invalidiertAmMs !== "number"
+        || !Number.isSafeInteger(invalidiertAmMs)
+        || invalidiertAmMs < 0
+        || typeof grund !== "string") {
       throw new Error("BANK_KATALOG_PERSISTENZ_UNGUELTIG");
     }
-    pruefeText(row["grund"], "BANK_KATALOG_INVALIDIERUNG_GRUND_UNGUELTIG");
+    pruefeText(grund, "BANK_KATALOG_INVALIDIERUNG_GRUND_UNGUELTIG");
     invalidierung = Object.freeze({
       schemaVersion: 1,
-      invalidiertAmMs: row["invalidiertAmMs"],
-      grund: row["grund"],
+      invalidiertAmMs,
+      grund,
     });
   }
 
