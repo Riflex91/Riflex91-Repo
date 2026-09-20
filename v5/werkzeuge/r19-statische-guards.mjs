@@ -21,12 +21,17 @@ const pflicht=[
   "grundlage/vertraege/runtime/durable-planen-authority.json",
   "grundlage/vertraege/runtime/produktions-operations-feed.json",
   "grundlage/vertraege/runtime/node-produktions-host-komposition.json",
+  "grundlage/vertraege/runtime/bank-planen-observer-canary.json",
   "architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md",
   "architektur/adr/ADR-027-KONTROLLIERTE-PLANEN-AKTIVIERUNG.md",
   "architektur/adr/ADR-028-DURABLE-PLANEN-AUTHORITY.md",
   "architektur/adr/ADR-029-PRODUKTIVER-OPERATIONS-FEED.md",
   "architektur/adr/ADR-030-KANONISCHE-NODE-HOST-KOMPOSITION.md",
+  "architektur/adr/ADR-031-BANK-PLANEN-OBSERVER-CANARY.md",
   "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
+  "grundlage/tests/r11-bank-planen-observer-canary.test.mjs",
+  "werkzeuge/bank-planen-canary-browser.mjs",
+  "werkzeuge/bank-planen-observer-canary.mjs",
   "grundlage/tests/r11-bediener-deny-persistenz.test.mjs",
   "grundlage/tests/r11-node-produktions-host-komposition.test.mjs",
   "werkzeuge/v5-produktions-host-komposition.mjs",
@@ -236,6 +241,71 @@ if(nodeHostVertrag.operatorDeny?.restartReplayErforderlich!==true
     || nodeHostVertrag.authority?.actionAuthority!==false
     || nodeHostVertrag.mutierendeCapabilitiesDurchDiesenVertrag!==0) {
   fehler.push("NODE_PRODUKTIONS_HOST_VERTRAG_UNGUELTIG");
+}
+
+const bankCanaryBrowser=lies("werkzeuge/bank-planen-canary-browser.mjs");
+for(const m of [
+  "BANK_CANARY_BROWSER_READ_ONLY = true",
+  "BANK_CANARY_GAMEPLAY_WRITES = 0",
+  "character.bank",
+  "G.items",
+  "BANK_CANARY_ALTERNATIVE_RUNTIME_AKTIV",
+]){
+  if(!bankCanaryBrowser.includes(m)) {
+    fehler.push("BANK_PLANEN_CANARY_BROWSER_FEHLT:"+m);
+  }
+}
+for(const [kennung,muster] of [
+  ["BANK_STORE",/\\bbank_store\\s*\\(/],
+  ["BANK_RETRIEVE",/\\bbank_retrieve\\s*\\(/],
+  ["OPEN_BANK_PACK",/\\bopen_bank_pack\\s*\\(/],
+  ["BUY",/\\bbuy\\s*\\(/],
+  ["SELL",/\\bsell\\s*\\(/],
+  ["EXCHANGE",/\\bexchange\\s*\\(/],
+  ["CRAFT",/\\bcraft\\s*\\(/],
+  ["UPGRADE",/\\bupgrade\\s*\\(/],
+  ["COMPOUND",/\\bcompound\\s*\\(/],
+  ["ATTACK",/\\battack\\s*\\(/],
+  ["MOVE",/\\bmove\\s*\\(/],
+  ["SMART_MOVE",/\\bsmart_move\\s*\\(/],
+  ["USE_SKILL",/\\buse_skill\\s*\\(/],
+  ["EQUIP",/\\bequip\\s*\\(/],
+  ["SEND_ITEM",/\\bsend_item\\s*\\(/],
+  ["SEND_GOLD",/\\bsend_gold\\s*\\(/],
+  ["RAW_EMIT",/\\.emit\\s*\\(/],
+]){
+  if(muster.test(bankCanaryBrowser)) {
+    fehler.push("BANK_PLANEN_CANARY_RAW_WRITE_VERBOTEN:"+kennung);
+  }
+}
+const bankCanaryRunner=lies("werkzeuge/bank-planen-observer-canary.mjs");
+for(const m of [
+  'BANK_PLANEN_CANARY_CAPABILITY = "merchant.bank.planen"',
+  "erweiterungErlaubt: false",
+  "browserGameplayWrites: 0",
+  "ausfuehrungsAutoritaet: false",
+  "breiteRuntimeFreigabe: false",
+  "runtime/canary/bank-planen/latest.json",
+]){
+  if(!bankCanaryRunner.includes(m)) {
+    fehler.push("BANK_PLANEN_CANARY_RUNNER_FEHLT:"+m);
+  }
+}
+const bankCanaryVertrag=JSON.parse(
+  lies("grundlage/vertraege/runtime/bank-planen-observer-canary.json"),
+);
+if(bankCanaryVertrag.capability?.id!=="merchant.bank.planen"
+    || bankCanaryVertrag.capability?.modus!=="PLANEN"
+    || bankCanaryVertrag.capability?.erweiterungErlaubt!==false
+    || bankCanaryVertrag.beobachtung?.browserAusdruckFest!==true
+    || bankCanaryVertrag.evidence?.browserGameplayWrites!==0
+    || bankCanaryVertrag.evidence?.breiteRuntimeFreigabe!==false
+    || bankCanaryVertrag.authority?.ausfuehrungsAutoritaet!==false
+    || bankCanaryVertrag.authority?.gameplayAutoritaet!==false
+    || bankCanaryVertrag.authority?.rawWriteAutoritaet!==false
+    || bankCanaryVertrag.authority?.actionAuthority!==false
+    || bankCanaryVertrag.mutierendeCapabilitiesDurchDiesenVertrag!==0) {
+  fehler.push("BANK_PLANEN_CANARY_VERTRAG_UNGUELTIG");
 }
 
 const merchantDemand=lies("grundlage/quelle/merchant/demand.ts");
