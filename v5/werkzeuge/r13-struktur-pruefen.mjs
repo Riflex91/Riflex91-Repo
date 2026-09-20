@@ -17,12 +17,36 @@ if (r13.status === "IN_PROGRESS" && gates.currentPhase !== "R13") {
 }
 if (r13.status === "DONE") {
   const r14 = gates.phases?.find(x => x.id === "R14");
-  if (gates.currentPhase !== "R14" || r14?.status !== "IN_PROGRESS") {
-    fehler("R13 DONE verlangt R14 IN_PROGRESS und currentPhase=R14.");
+  const spaeterePhasen = new Set(["R15","R16","R17","R18","R19"]);
+  const direkterUebergang = gates.currentPhase === "R14" && r14?.status === "IN_PROGRESS";
+  const bereitsWeiter = spaeterePhasen.has(gates.currentPhase) && r14?.status === "DONE";
+  if (!direkterUebergang && !bereitsWeiter) {
+    fehler("R13 DONE verlangt mindestens R14 IN_PROGRESS oder einen formal abgeschlossenen R14-Uebergang.");
   }
 }
 if (bereitschaft.status === "FREIGEGEBEN") {
   fehler("R13 darf die breite Gameplay-Runtime noch nicht freigeben.");
+}
+
+
+for (const pfad of [
+  "grundlage/quelle/merchant/gegenstands-identitaet.ts",
+  "grundlage/quelle/merchant/disposition.ts",
+  "grundlage/quelle/merchant/workspace.ts",
+  "grundlage/quelle/merchant/gold-budget.ts",
+  "grundlage/quelle/koordination/account-bank-lease.ts",
+  "grundlage/quelle/merchant/markt-evidence.ts",
+  "grundlage/quelle/merchant/demand.ts",
+  "grundlage/tests/r13-disposition-workspace.test.mjs",
+  "grundlage/tests/r13-bank-lease.test.mjs",
+  "grundlage/tests/r13-market-evidence.test.mjs",
+  "grundlage/tests/r13-scheduler-budget.test.mjs",
+  "grundlage/vertraege/r13/merchant-core-abdeckung.json",
+  "architektur/adr/ADR-016-R13-MERCHANT-CORE-A.md",
+  "roadmap/r13-abschluss.json",
+  "werkzeuge/r13-statische-guards.mjs",
+]) {
+  if (!fs.existsSync(pfad)) fehler("R13 Pflichtartefakt fehlt: " + pfad);
 }
 
 const erwartet = new Set([
@@ -54,6 +78,16 @@ const fitness = lies("fitness/fitness-regeln.json").regeln.filter(x => x.phase =
 if (fitness.length !== 0) fehler("R13 besitzt laut ratifizierter Fitnessdatei keine eigenen Fitnessregeln.");
 
 if (r13.status === "DONE") {
+  const abdeckung = lies("grundlage/vertraege/r13/merchant-core-abdeckung.json");
+  if (abdeckung.phase !== "R13"
+      || abdeckung.status !== "TECHNISCH_BESTANDEN"
+      || abdeckung.runtimeGate !== "GESPERRT"
+      || abdeckung.gameplayAutoritaet !== false
+      || abdeckung.rawWriteAutoritaet !== false
+      || abdeckung.anforderungen?.length !== 6
+      || abdeckung.anforderungen.some(x => x.status !== "ERFUELLT")) {
+    fehler("R13 Merchant-Core-Abdeckung ungueltig.");
+  }
   const abschluss = lies("roadmap/r13-abschluss.json");
   if (abschluss.phase !== "R13"
       || abschluss.status !== "DONE"
