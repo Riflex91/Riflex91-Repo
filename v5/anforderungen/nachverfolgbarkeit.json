@@ -1600,15 +1600,20 @@
       "invarianten": [
         "V5-ALT-055"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/zertifizierung/evidence-kette.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r19-evidence-ladder.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r19NachweisStatus": "R19_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-OPS-006",
@@ -1619,15 +1624,21 @@
       "invarianten": [
         "V5-ALT-055"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/grundlage/quelle/zertifizierung/ladder.ts"
+      ],
+      "tests": [
+        "v5/grundlage/tests/r19-evidence-ladder.test.mjs",
+        "v5/grundlage/tests/r19-shadow-certification.test.mjs"
+      ],
       "liveNachweise": [],
       "vollstaendig": false,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r19AutomatikStatus": "BIS_SHADOW_BESTANDEN"
     },
     {
       "anforderungKennung": "V5-ANF-OPS-007",
@@ -2386,15 +2397,22 @@
       "invarianten": [
         "V5-INV-034"
       ],
-      "implementierung": [],
-      "tests": [],
+      "implementierung": [
+        "v5/werkzeuge/r19-ui-release-gate.mjs",
+        "v5/werkzeuge/r3-sichttext-pruefen.mjs",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs"
+      ],
+      "tests": [
+        "v5/werkzeuge/tests/r3-sichttext.test.mjs"
+      ],
       "liveNachweise": [],
-      "vollstaendig": false,
+      "vollstaendig": true,
       "ratifizierungsStatus": "R2_RATIFIZIERT",
       "r2Nachweise": [
         "v5/architektur/verfassung.json",
         "v5/invarianten/invarianten.json"
-      ]
+      ],
+      "r19NachweisStatus": "R19_NACHGEWIESEN"
     },
     {
       "anforderungKennung": "V5-ANF-UI-009",

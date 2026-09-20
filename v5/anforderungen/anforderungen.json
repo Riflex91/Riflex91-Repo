@@ -1431,7 +1431,7 @@
       "titel": "Zertifizierungsevidence ist unveraenderlich und erkennt Sample-Gaps.",
       "phase": "R19",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R19_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-066"
       ],
@@ -1440,7 +1440,13 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r19NachweisStatus": "R19_NACHGEWIESEN",
+      "r19Nachweise": [
+        "v5/grundlage/quelle/zertifizierung/evidence-kette.ts",
+        "v5/grundlage/tests/r19-evidence-ladder.test.mjs",
+        "v5/roadmap/r19-automatik-evidence.json"
+      ]
     },
     {
       "kennung": "V5-ANF-OPS-006",
@@ -1456,7 +1462,14 @@
       ],
       "nachweis": "TEST_UND_REVIEW",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r19AutomatikStatus": "BIS_SHADOW_BESTANDEN",
+      "r19Teilnachweise": [
+        "v5/grundlage/quelle/zertifizierung/ladder.ts",
+        "v5/grundlage/tests/r19-evidence-ladder.test.mjs",
+        "v5/grundlage/tests/r19-shadow-certification.test.mjs",
+        "v5/roadmap/r19-automatik-evidence.json"
+      ]
     },
     {
       "kennung": "V5-ANF-OPS-007",
@@ -2126,7 +2139,7 @@
       "titel": "Release-Gate verlangt 100 Prozent deutsche Abdeckung aller uebersetzungspflichtigen Sichttexte und null unerlaubte englische Rohtext-Leaks; die definierte Monster-Ausnahme gilt nicht als Leak.",
       "phase": "R19",
       "prioritaet": "MUSS",
-      "status": "OFFEN",
+      "status": "R19_NACHGEWIESEN",
       "risikoKennungen": [
         "V5-GEF-095"
       ],
@@ -2135,7 +2148,14 @@
       ],
       "nachweis": "RELEASE_GATE",
       "ratifizierungsStatus": "R2_RATIFIZIERT",
-      "ratifiziertAm": "2026-09-19"
+      "ratifiziertAm": "2026-09-19",
+      "r19NachweisStatus": "R19_NACHGEWIESEN",
+      "r19Nachweise": [
+        "v5/werkzeuge/r19-ui-release-gate.mjs",
+        "v5/werkzeuge/r3-sichttext-pruefen.mjs",
+        "v5/werkzeuge/r6-anzeigekatalog-abdeckung.mjs",
+        "v5/roadmap/r19-automatik-evidence.json"
+      ]
     },
     {
       "kennung": "V5-ANF-UI-009",

@@ -118,3 +118,6 @@ export * from "./lernen/deterministischer-fallback.js";
 export * from "./lernen/lern-admission.js";
 export * from "./lernen/datenbasis-pin.js";
 export * from "./lernen/modell-liga.js";
+export * from "./zertifizierung/evidence-kette.js";
+export * from "./zertifizierung/ladder.js";
+export * from "./zertifizierung/shadow-bewertung.js";

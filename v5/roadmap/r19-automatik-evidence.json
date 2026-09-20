@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "phase": "R19",
+  "evidenceArt": "AUTOMATISCHE_CI_SHADOW_EVIDENCE",
+  "status": "BIS_SHADOW_BESTANDEN",
+  "referenzHead": "3fd46b34cea418a4a8d0b739e7ac1fafd9013d01",
+  "runtimeGate": "GESPERRT",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "liveMetrikenErhoben": false,
+  "liveMetrikenHinweis": "Diese Evidence belegt Simulator/Replay, Fault Suite und no-write Shadow im CI. Sie ersetzt keine Controlled-Live-, Canary- oder Soak-Evidence.",
+  "stufen": {
+    "SIMULATOR_REPLAY": "BESTANDEN",
+    "FAULT_SUITE": "BESTANDEN",
+    "SHADOW": "BESTANDEN",
+    "CONTROLLED_LIVE": "AUSSTEHEND_MANUELL",
+    "CANARY": "AUSSTEHEND",
+    "SOAK_1H": "AUSSTEHEND",
+    "SOAK_24H": "AUSSTEHEND",
+    "SOAK_72H": "AUSSTEHEND",
+    "SOAK_7D": "AUSSTEHEND",
+    "SOAK_30D": "AUSSTEHEND"
+  },
+  "naechsteStufe": "CONTROLLED_LIVE",
+  "manuellerPcTestErforderlich": true,
+  "automatischeNachweise": {
+    "evidenceKette": "v5/grundlage/quelle/zertifizierung/evidence-kette.ts",
+    "ladder": "v5/grundlage/quelle/zertifizierung/ladder.ts",
+    "shadowBewertung": "v5/grundlage/quelle/zertifizierung/shadow-bewertung.ts",
+    "evidenceTests": "v5/grundlage/tests/r19-evidence-ladder.test.mjs",
+    "shadowTests": "v5/grundlage/tests/r19-shadow-certification.test.mjs",
+    "uiReleaseGate": "v5/werkzeuge/r19-ui-release-gate.mjs"
+  },
+  "ci": {
+    "exactHead": "3fd46b34cea418a4a8d0b739e7ac1fafd9013d01",
+    "r3BisR19UndWissensgate": "GRUEN",
+    "v5R19RunId": 35499901186
+  },
+  "nullToleranzVertrag": {
+    "unexpectedGameWrites": 0,
+    "duplicateIrreversibleEffects": 0,
+    "unsafePreemptions": 0,
+    "unverifiedActionUsage": 0,
+    "unresolvedTransactions": 0,
+    "invariantViolations": 0,
+    "silentSampleGaps": 0,
+    "kritischePersistenzverluste": 0,
+    "hotPathNichtkritischeSsdBlockaden": 0
+  },
+  "ressourcenEvidenceVertrag": {
+    "boundedMemoryHistory": true,
+    "boundedSsdGrowth": true,
+    "freieBytesPflicht": true,
+    "ioQueueTiefePflicht": true,
+    "ssdIoLatenzPflicht": true,
+    "retentionVerhaltenPflicht": true
+  },
+  "uiReleaseGate": {
+    "deutschePflichtabdeckungProzent": 100,
+    "unerlaubteEnglischeRohtextLeaks": 0,
+    "monsterAusnahme": "NUR_REVALIDIERTER_ORIGINALNAME_FALLBACK"
+  }
+}
