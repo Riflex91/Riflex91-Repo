@@ -305,8 +305,34 @@
   });
 
   let timer = null;
+  let countdownTimer = null;
   let laeuft = false;
   let sampling = false;
+
+  function restzeitMs(session) {
+    if (!session?.gestartetAmMs) return DAUER_MS;
+    return Math.max(0, DAUER_MS - (Date.now() - session.gestartetAmMs));
+  }
+
+  function aktualisiereCountdown() {
+    if (!laeuft) return;
+    const session = liesSession();
+    if (!session || session.status !== 'RUNNING') return;
+    gui.setzeRestzeit(restzeitMs(session), 'Verbleibende Testdauer');
+  }
+
+  function stoppeCountdown(abgeschlossen = false) {
+    if (countdownTimer !== null) clearInterval(countdownTimer);
+    countdownTimer = null;
+    if (abgeschlossen) gui.setzeRestzeit(0, 'Testdauer erreicht');
+    else gui.setzeRestzeit(null);
+  }
+
+  function starteCountdown() {
+    stoppeCountdown(false);
+    aktualisiereCountdown();
+    countdownTimer = setInterval(aktualisiereCountdown, 1000);
+  }
 
   async function passiveVorpruefung() {
     const bestehend = liesSession();
@@ -362,12 +388,14 @@
         letzterGapMs: sample.gapMs,
         letzterFingerprint: sample.evidenceFingerprint,
         breiteRuntimeFreigabe: false,
-        gameplayWritesDurchHarness: 0
-      }, 'laeuft', 'SOAK_5M laeuft · ' + Math.floor(elapsed / 60000) + ' / 5 Minuten');
+        gameplayWritesDurchHarness: 0,
+        restzeitMs: Math.max(0, DAUER_MS - elapsed)
+      }, 'laeuft', 'SOAK_5M laeuft · Restzeit ' + Math.ceil(Math.max(0, DAUER_MS - elapsed) / 1000) + ' s');
       if (elapsed >= DAUER_MS) {
         laeuft = false;
         if (timer !== null) clearInterval(timer);
         timer = null;
+        stoppeCountdown(true);
         const finalSession = { ...aktualisiert, status: 'COMPLETED', abgeschlossenAmMs: Date.now() };
         const result = bewerte(finalSession);
         schreibeSession({ ...finalSession, result });
@@ -384,6 +412,7 @@
       laeuft = false;
       if (timer !== null) clearInterval(timer);
       timer = null;
+      stoppeCountdown(false);
       const message = String(error?.message || error);
       const session = liesSession();
       if (session && session.status === 'RUNNING') {
@@ -442,6 +471,7 @@
       };
       schreibeSession(session);
       laeuft = true;
+      starteCountdown();
       gui.protokolliere('SOAK_5M gestartet', {
         gestartetAmMs: session.gestartetAmMs,
         intervallMs: INTERVALL_MS,
@@ -466,6 +496,7 @@
         zertifizierungsStufe: 'SOAK_5M',
         sampleAnzahl: session?.samples?.length ?? 0,
         seitStartMs: session?.gestartetAmMs ? Date.now() - session.gestartetAmMs : 0,
+        restzeitMs: session?.gestartetAmMs ? restzeitMs(session) : DAUER_MS,
         evidenceKetteGueltig: Array.isArray(session?.samples) ? validiereKette(session.samples) : false,
         breiteRuntimeFreigabe: false
       };
@@ -483,6 +514,7 @@
       laeuft = false;
       if (timer !== null) clearInterval(timer);
       timer = null;
+      stoppeCountdown(false);
       const session = liesSession();
       if (session?.status === 'RUNNING') {
         schreibeSession({ ...session, status: 'ABGEBROCHEN', abgeschlossenAmMs: Date.now() });
