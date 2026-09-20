@@ -88,6 +88,9 @@ export class GegenstandsDispositionsLedger {
     if (this.#reservierungen.some(x => x.reservierungsId === reservierungsId)) {
       throw new Error("ITEM_RESERVIERUNG_ID_DOPPELT");
     }
+    if (this.#reservierungen.length >= this.#maximaleEintraege) {
+      throw new Error("ITEM_RESERVIERUNGEN_VOLL");
+    }
 
     const disposition = this.lies(identitaet);
     if (disposition.disposition !== zweck) {
