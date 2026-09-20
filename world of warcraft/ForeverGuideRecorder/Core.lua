@@ -2,7 +2,7 @@ local addonName, FGR = ...
 _G.ForeverGuideRecorder = FGR
 
 FGR.SCHEMA_VERSION = "fgds-1.0"
-FGR.ADDON_VERSION = "0.1.0"
+FGR.ADDON_VERSION = "0.2.0"
 
 local function nowISO()
     return date("!%Y-%m-%dT%H:%M:%SZ")
