@@ -22,6 +22,7 @@ const pflicht=[
   "grundlage/vertraege/runtime/produktions-operations-feed.json",
   "grundlage/vertraege/runtime/node-produktions-host-komposition.json",
   "grundlage/vertraege/runtime/bank-planen-observer-canary.json",
+  "roadmap/bank-planen-observer-live-evidence.json",
   "architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md",
   "architektur/adr/ADR-027-KONTROLLIERTE-PLANEN-AKTIVIERUNG.md",
   "architektur/adr/ADR-028-DURABLE-PLANEN-AUTHORITY.md",
@@ -306,6 +307,24 @@ if(bankCanaryVertrag.capability?.id!=="merchant.bank.planen"
     || bankCanaryVertrag.authority?.actionAuthority!==false
     || bankCanaryVertrag.mutierendeCapabilitiesDurchDiesenVertrag!==0) {
   fehler.push("BANK_PLANEN_CANARY_VERTRAG_UNGUELTIG");
+}
+
+const bankCanaryLiveEvidence=JSON.parse(
+  lies("roadmap/bank-planen-observer-live-evidence.json"),
+);
+if(bankCanaryLiveEvidence.status!=="BESTANDEN"
+    || bankCanaryLiveEvidence.capabilityId!=="merchant.bank.planen"
+    || bankCanaryLiveEvidence.providerModulId!=="merchant-core-a"
+    || bankCanaryLiveEvidence.providerVersion!=="1"
+    || bankCanaryLiveEvidence.entscheidung?.planungsNachweis!==true
+    || bankCanaryLiveEvidence.sicherheitsnachweis?.browserGameplayWrites!==0
+    || bankCanaryLiveEvidence.sicherheitsnachweis?.hostGameplayAutoritaet!==false
+    || bankCanaryLiveEvidence.sicherheitsnachweis?.hostRawWriteAutoritaet!==false
+    || bankCanaryLiveEvidence.sicherheitsnachweis?.hostActionAuthority!==false
+    || bankCanaryLiveEvidence.sicherheitsnachweis?.ausfuehrungsAutoritaet!==false
+    || bankCanaryLiveEvidence.sicherheitsnachweis?.breiteRuntimeFreigabe!==false
+    || bankCanaryLiveEvidence.privacy?.roheAccountIdPersistiert!==false) {
+  fehler.push("BANK_PLANEN_CANARY_LIVE_EVIDENCE_UNGUELTIG");
 }
 
 const merchantDemand=lies("grundlage/quelle/merchant/demand.ts");
