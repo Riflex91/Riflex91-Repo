@@ -94,5 +94,57 @@
     "restartErfordertReconciliation": true,
     "funktionstestMinuten": 5,
     "integrationsReleaseTestMinuten": 15
+  },
+  "unattendedReliability": {
+    "ziel": "WOCHEN_BIS_MONATE_UNBEAUFSICHTIGT",
+    "verbindlich": true,
+    "manuelleBetriebseingriffeImAbnahmelaufErlaubt": false,
+    "stufen": [
+      {
+        "id": "FUNCTION_5M",
+        "dauerMinuten": 5,
+        "zweck": "Capability-Funktionsgate"
+      },
+      {
+        "id": "INTEGRATION_15M",
+        "dauerMinuten": 15,
+        "zweck": "Integrations-/Releasegate"
+      },
+      {
+        "id": "MULTI_HOUR",
+        "zweck": "mehrstuendige Stabilitaet"
+      },
+      {
+        "id": "OVERNIGHT",
+        "zweck": "ueber-Nacht-Stabilitaet"
+      },
+      {
+        "id": "SOAK_72H",
+        "dauerStunden": 72,
+        "zweck": "mehrtaegige Stabilitaet"
+      },
+      {
+        "id": "UNATTENDED_7D",
+        "dauerTage": 7,
+        "zweck": "Wochenbetriebs-Abnahme"
+      },
+      {
+        "id": "UNATTENDED_30D",
+        "dauerTage": 30,
+        "zweck": "Monatsbetriebs-Burn-in"
+      }
+    ],
+    "nullToleranz": [
+      "duplicate_irreversible_effects",
+      "unexpected_game_writes",
+      "silent_evidence_gaps",
+      "unbounded_ram_growth",
+      "unbounded_ssd_or_journal_growth",
+      "restart_loop",
+      "stale_authority_after_restart",
+      "blind_retry_after_unknown",
+      "unreconciled_open_transaction",
+      "unrecognized_session_party_world_bank_inventory_drift"
+    ]
   }
 }

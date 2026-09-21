@@ -17,6 +17,34 @@ Die verbindliche Reihenfolge lautet:
 
 **Keine spaetere Stufe darf eine fruehere Stufe ueberspringen.**
 
+## 2. Betriebsziel: Wochen- und monatelanger unbeaufsichtigter Betrieb
+
+Das Endziel dieser Roadmap ist nicht nur ein funktionierender Bot, sondern ein System, das ueber **Wochen bis Monate unbeaufsichtigt** laufen kann, ohne dass schleichende Fehler, Ressourcenwachstum oder unklare Transaktionen zu unsicherem Verhalten fuehren.
+
+Dafuer gilt zusaetzlich:
+
+- kurze 5m-/15m-Tests bleiben schnelle Capability- und Integrationsgates, ersetzen aber keine Langzeit-Evidence;
+- jeder produktive Bereich muss Restart, Browser-/CDP-Verlust, Netzwerk-/Serverdrift, stale Evidence und partiell beobachtete Ergebnisse sicher ueberstehen;
+- RAM, SSD, Journale, Telemetrie, Dedupe-Tabellen, Queues und Historien muessen bounded bleiben;
+- Watchdog und Restart-Budget duerfen keinen Restart-Loop erzeugen;
+- nach Prozess-, Browser- oder Host-Neustart darf keine alte Gameplay-Authority wiederaufleben;
+- offene oder UNKNOWN-Transaktionen muessen vor neuer gleichartiger Mutation reconciliiert werden;
+- schleichende Party-, World-, Bank-, Market-, Inventory- und Session-Drift muss erkannt werden;
+- Fehler duerfen einzelne Capabilities blockieren, ohne fachfremde Bereiche unsicher mitzureissen;
+- fuer Langzeitbetrieb muessen Alerts und Evidence ausreichen, um einen spaeter entdeckten Fehler reproduzierbar zu erklaeren.
+
+Die Langzeitreife wird stufenweise nachgewiesen:
+
+1. Funktionsgate: 5 Minuten;
+2. Integrationsgate: 15 Minuten;
+3. mehrere Stunden;
+4. ueber Nacht;
+5. mehrere Tage;
+6. **7 Tage unbeaufsichtigt** als Wochenbetriebs-Abnahme;
+7. **30 Tage unbeaufsichtigt** als Monatsbetriebs-Burn-in.
+
+Ein 7- oder 30-Tage-Lauf darf nur als bestanden gelten, wenn keine manuellen Eingriffe zur Aufrechterhaltung des normalen Betriebs erforderlich waren. Ein bewusst ausgeloester Operator-Deny/NOTHALT-Test zaehlt nicht als Stoerung des unbeaufsichtigten Betriebs.
+
 ## 2. Globale Regeln
 
 Fuer alle Post-R19-Stufen gelten unveraendert:
@@ -34,7 +62,7 @@ Fuer alle Post-R19-Stufen gelten unveraendert:
 - fuer Integrations-, Meilenstein- und Release-Gates gilt mindestens der ratifizierte 15-Minuten-Test;
 - ein spaeter entdeckter Defekt oeffnet die betroffene Capability bzw. Integration erneut.
 
-## 3. Statusuebersicht
+## 4. Statusuebersicht
 
 | Stufe | Ziel | Status | Harte Voraussetzung |
 |---|---|---|---|
@@ -52,7 +80,7 @@ Fuer alle Post-R19-Stufen gelten unveraendert:
 | PR31 | Linux-Kompatibilitaet | BLOCKED_BY_PR30 | stabiler Windows-Produktivbetrieb |
 | PR32 | Mobile/Android-Bedienung | OPTIONAL_AFTER_PR31 | stabile Host-API |
 
-## 4. PR20 – Merchant produktiv vervollstaendigen
+## 5. PR20 – Merchant produktiv vervollstaendigen
 
 **Status:** IN_PROGRESS.
 
@@ -228,7 +256,7 @@ Die harte Regel bleibt:
 - finaler Production-Commit erst nach positivem Recipient Settlement;
 - 5m-Funktionsevidence fuer neue produktive Schritte.
 
-## 5. PR21 – Merchant Gesamtintegration
+## 6. PR21 – Merchant Gesamtintegration
 
 **Status:** BLOCKED_BY_PR20.
 
@@ -258,7 +286,7 @@ Der Merchant muss als ein zusammenhaengender autonomer Dienst laufen:
 
 Erst nach PR21 gilt: **Merchant laeuft rund.**
 
-## 6. PR22 – Produktive Multi-Character-Koordination
+## 7. PR22 – Produktive Multi-Character-Koordination
 
 **Status:** BLOCKED_BY_PR21.
 
@@ -278,7 +306,7 @@ Die R14-no-write Foundations werden produktiv:
 - kein stale Recipient/Character;
 - Restart erzeugt keinen Blind-Resume.
 
-## 7. PR23 – Farmer produktiv
+## 8. PR23 – Farmer produktiv
 
 **Status:** BLOCKED_BY_PR22.
 
@@ -323,7 +351,7 @@ Die R14-no-write Foundations werden produktiv:
 - kein Blind-Resume nach Tod/Restart;
 - AoE kann Hard Caps nicht ueberschreiten.
 
-## 8. PR24 – Gruppen-Konstellationsmatrix
+## 9. PR24 – Gruppen-Konstellationsmatrix
 
 **Status:** BLOCKED_BY_PR23.
 
@@ -375,7 +403,7 @@ Fault-Matrix:
 - Safety-Verlust invalidiert die bisherige Gruppenfreigabe;
 - kein Deadlock/Pingpong/Thrash.
 
-## 9. PR25 – Reale Gruppen-Live-Evidence
+## 10. PR25 – Reale Gruppen-Live-Evidence
 
 **Status:** BLOCKED_BY_PR24.
 
@@ -403,7 +431,7 @@ Zu messen:
 
 Erst nach PR25 darf PR26 starten.
 
-## 10. PR26 – Allgemeiner Task-/Party-Optimizer
+## 11. PR26 – Allgemeiner Task-/Party-Optimizer
 
 **Status:** BLOCKED_BY_PR25.
 
@@ -430,7 +458,7 @@ Beruecksichtigte Faktoren:
 - deterministischer Fallback bleibt vorhanden;
 - Learning darf nur Ranking innerhalb erlaubter Kandidaten beeinflussen.
 
-## 11. PR27 – Account Progression Balancer
+## 12. PR27 – Account Progression Balancer
 
 **Status:** BLOCKED_BY_PR26.
 
@@ -459,7 +487,7 @@ Regeln:
 - Safety vor Balance;
 - Account-Balance beeinflusst nur zulaessige Task-/Party-Kandidaten.
 
-## 12. PR28 – World Autonomy produktiv
+## 13. PR28 – World Autonomy produktiv
 
 **Status:** BLOCKED_BY_PR27.
 
@@ -479,7 +507,7 @@ R17 Foundations werden mit produktivem Movement/Combat/Merchant verbunden:
 - Serverwechsel nur auf frischer, erlaubter Evidence;
 - Task-/Party-Optimizer kann World-Aufgaben sicher planen.
 
-## 13. PR29 – Unattended 24/7 Hostbetrieb
+## 14. PR29 – Unattended 24/7 Hostbetrieb
 
 **Status:** BLOCKED_BY_PR28.
 
@@ -502,7 +530,7 @@ CAP-042 und vorhandene Host-/Ops-Cores werden produktiv vervollstaendigt:
 - Alerts/Watchdog real nachgewiesen;
 - 15m unattended Integrationslauf.
 
-## 14. PR30 – Langzeit-/24x7-Soak-Evidence
+## 15. PR30 – Langzeit-/24x7-Soak-Evidence
 
 **Status:** BLOCKED_BY_PR29.
 
@@ -512,8 +540,10 @@ Stufen:
 
 - mehrstuendiger Lauf;
 - ueber-Nacht-Lauf;
-- mehrtaegiger Lauf;
-- spaeter echter 24/7-Regelbetrieb.
+- 72-Stunden-Lauf;
+- **7-Tage-Lauf ohne manuellen Betriebseingriff**;
+- **30-Tage-Burn-in ohne manuellen Betriebseingriff**;
+- danach fortlaufender 24/7-Regelbetrieb.
 
 Zu beobachten:
 
@@ -532,9 +562,14 @@ Zu beobachten:
 - keine unbounded Ressourcen;
 - keine stillen Evidence-Gaps;
 - keine Duplicate-Wirkung;
-- stabile autonome Recovery ueber Langzeitbetrieb.
+- stabile autonome Recovery ueber Langzeitbetrieb;
+- kein Restart-Loop und kein wiederholtes manuelles Wiederanlaufen;
+- keine dauerhaft haengende offene/UNKNOWN-Transaktion;
+- keine unerkannte Session-/Party-/World-/Bank-/Inventory-Drift;
+- 7 Tage unbeaufsichtigt bestanden, bevor Wochenbetrieb als nachgewiesen gilt;
+- 30 Tage unbeaufsichtigt bestanden, bevor Monatsbetrieb als nachgewiesen gilt.
 
-## 15. PR31 – Linux-Kompatibilitaet
+## 16. PR31 – Linux-Kompatibilitaet
 
 **Status:** BLOCKED_BY_PR30.
 
@@ -554,7 +589,7 @@ Abzudecken:
 - keine plattformspezifische Authority im Core;
 - produktive Linux-Evidence.
 
-## 16. PR32 – Mobile/Android-Bedienung
+## 17. PR32 – Mobile/Android-Bedienung
 
 **Status:** OPTIONAL_AFTER_PR31.
 
@@ -571,7 +606,7 @@ Moegliche Funktionen:
 
 Ein echter Android-/Termux-Host ist eine separate spaetere Entscheidung.
 
-## 17. Aktueller naechster Schritt
+## 18. Aktueller naechster Schritt
 
 Der verbindliche naechste Schritt bleibt PR20.1:
 
