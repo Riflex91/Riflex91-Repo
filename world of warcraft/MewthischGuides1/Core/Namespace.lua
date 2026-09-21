@@ -75,6 +75,8 @@ function MG:EnsureDB()
     end
     db.logs = db.logs or {}
     db.logSequence = db.logSequence or 0
+    db.guide = db.guide or {}
+    db.ui = db.ui or {}
     self.db = db
     return db
 end
