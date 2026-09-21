@@ -3,9 +3,9 @@ import {
   validiereBankWithdrawShadowMountBeobachtung,
 } from "./bank-withdraw-produktions-browser.mjs";
 
-const ACTION = "AL-ACTION-BANK-DEPOSIT";
-const RECOVERY = "AL-RECOVERY-BANK-DEPOSIT";
-const VERIFIER = "AL-VERIFIER-BANK-DEPOSIT";
+const ACTION = "AL-ACTION-BANK-WITHDRAW";
+const RECOVERY = "AL-RECOVERY-BANK-WITHDRAW";
+const VERIFIER = "AL-VERIFIER-BANK-WITHDRAW";
 
 function text(wert, max, fehler) {
   if (typeof wert !== "string"
@@ -39,9 +39,9 @@ function pruefeBindung(bindung) {
     "BANK_WITHDRAW_WRITE_FINGERPRINT_UNGUELTIG",
   );
   if (!Number.isSafeInteger(bindung.characterGold)
-      || bindung.characterGold < 1
+      || bindung.characterGold < 0
       || !Number.isSafeInteger(bindung.bankGold)
-      || bindung.bankGold < 0
+      || bindung.bankGold < 1
       || bindung.bankGemountet !== true) {
     throw new Error("BANK_WITHDRAW_WRITE_GOLD_ODER_MOUNT_UNGUELTIG");
   }
@@ -232,7 +232,7 @@ export class ProduktionsCdpBankWithdrawEinGoldAdapter {
       this.gameWrites = 1;
       return Object.freeze({
         art: "SERVER_ERGEBNIS",
-        korrelationId: "V5-BANK-DEPOSIT-ONE-GOLD",
+        korrelationId: "V5-BANK-WITHDRAW-ONE-GOLD",
         ergebnis: result,
       });
     } catch {
