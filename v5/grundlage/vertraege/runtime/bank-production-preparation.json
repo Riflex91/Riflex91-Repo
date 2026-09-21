@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_2_BANK_PRODUCTION_PREPARATION",
   "stand": "2026-09-21",
-  "status": "REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_VORBEREITUNG",
-  "basisMain": "aef9d84b13956c81799e9fa150cfa22438160470",
+  "status": "WRITE_PATH_IMPLEMENTIERT_LIVE_EVIDENCE_AUSSTEHEND",
+  "basisMain": "a2364c8a9054022666d32074db11376978c9f6b1",
   "blockingGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
   "zweck": "PR20.2 mit separatem Single Owner, One-Shot-Authority, durablem Current-Fence, persistenter restart-sicherer Bank-Lease und No-Write-R9-Admission-Shadow vorbereiten; weiterhin ohne Bank-Gameplay-Write, Write-Adapter oder Live-Runner.",
   "authorityGrenze": {
@@ -24,7 +24,15 @@
     "restartRecoveryRealEvidence": "BESTANDEN",
     "restartRecoveryEvidencePfad": "roadmap/pr20-2-bank-shadow-recovery-evidence.json",
     "realBrowserShadowLiveEvidence": "BESTANDEN",
-    "realBrowserShadowEvidencePfad": "roadmap/pr20-2-bank-real-browser-shadow-evidence.json"
+    "realBrowserShadowEvidencePfad": "roadmap/pr20-2-bank-real-browser-shadow-evidence.json",
+    "writeAdapterImplementiert": true,
+    "liveRunnerImplementiert": true,
+    "exakterLiveBetragGold": 1,
+    "maximaleAdapterAufrufe": 1,
+    "maximaleGameplayWrites": 1,
+    "sameIntentRetry": false,
+    "realLiveWritePerformed": false,
+    "liveEvidence": "AUSSTEHEND"
   },
   "bestehendePlanung": {
     "modulId": "merchant-core-a",
@@ -114,22 +122,18 @@
     "Lease-/Mount-/Session-Epoche"
   ],
   "nachEquipErforderlicheFreigabeschritte": [
-    "PR20.1 Live-Evidence ist BESTANDEN und im Repo dokumentiert",
-    "erster Live-Kandidat bank_deposit(1 Gold) und authority-freier Settlement-Core sind ratifiziert",
-    "separater Single Owner merchant-bank-core@1 und default-off MUTIEREN-Capability sind registriert",
-    "kurzlebige One-Shot-Authority mit durablem Vor-Wirkung-Audit ist implementiert",
-    "durables Bank-Deposit-Transaktionsjournal mit globalem Current-Fence ist implementiert",
-    "read-only Bank-Deposit-Preflight ist implementiert",
-    "persistente accountweite Bank-Lease mit Restart-RECOVERY_PENDING und Epochen-Floor ist implementiert",
-    "No-Write-Shadow bindet External Fence, Lease, lokalen bank-Channel, Socket-Budget, durable Intent und R9-Admission",
-    "echter F5-/Restart-Fault ist zero-write von RECOVERY_PENDING nach RELEASED reconciliiert und dokumentiert",
-    "normaler Real-Browser-Shadow ohne Write ist BESTANDEN und dokumentiert",
-    "Write-Adapter und Live-Runner fuer exakt bank_deposit(1) separat implementieren und CI-gruen pruefen",
-    "erst nach erneut gruener Exact-Head-CI einen einzelnen kontrollierten bank_deposit(1)-Live-Write zulassen"
+    "PR20.1 Equip-Live-Evidence ist BESTANDEN",
+    "PR20.2 Real-Browser-Shadow und echter F5-/Restart-Recovery-Fault sind BESTANDEN",
+    "Write-Adapter und Live-Runner fuer exakt bank_deposit(1) sind implementiert",
+    "Unit/Fault/Restart/UNKNOWN/Static-Guard und komplette Exact-Head-CI muessen gruen sein",
+    "read-only Write-Preflight muss auf exakt demselben Head BEREIT melden",
+    "erst danach darf der Operator exakt einen kontrollierten bank_deposit(1)-Live-Write bestaetigen",
+    "bei moeglichem Send oder UNKNOWN niemals denselben Intent erneut senden",
+    "Live-Evidence muss COMMITTED, exaktes -1/+1-Gold-Delta, einen Adapter-Aufruf, einen Gameplay-Write und terminal RELEASED Lease beweisen"
   ],
   "blockingGateStatus": "BESTANDEN",
   "ersterLiveKandidat": {
-    "status": "REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_VORBEREITUNG",
+    "status": "WRITE_PATH_IMPLEMENTIERT_LIVE_EVIDENCE_AUSSTEHEND",
     "vertrag": "grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
     "settlementCore": "grundlage/quelle/merchant/bank-deposit-settlement.ts",
     "test": "grundlage/tests/pr20-bank-deposit-settlement.test.mjs",
@@ -142,13 +146,13 @@
     "gameplayAutoritaet": false,
     "rawWriteAutoritaet": false,
     "produktiveCapabilityNochNichtRegistriert": false,
-    "liveRunnerNochNichtVorhanden": true,
+    "liveRunnerNochNichtVorhanden": false,
     "provider": "merchant-bank-core@1",
     "capabilityId": "merchant.bank.gold_einlagern",
     "oneShotAuthorityImplementiert": true,
     "currentFenceImplementiert": true,
     "readOnlyPreflightImplementiert": true,
-    "writeAdapterNochNichtVorhanden": true,
+    "writeAdapterNochNichtVorhanden": false,
     "persistentBankLease": true,
     "restartReconciliation": true,
     "r9AdmissionShadow": true,
@@ -156,6 +160,13 @@
     "restartRecoveryRealEvidence": "BESTANDEN",
     "restartRecoveryEvidencePfad": "roadmap/pr20-2-bank-shadow-recovery-evidence.json",
     "realBrowserShadowLiveEvidence": "BESTANDEN",
-    "realBrowserShadowEvidencePfad": "roadmap/pr20-2-bank-real-browser-shadow-evidence.json"
+    "realBrowserShadowEvidencePfad": "roadmap/pr20-2-bank-real-browser-shadow-evidence.json",
+    "writeAdapterImplementiert": true,
+    "liveRunnerImplementiert": true,
+    "exakterLiveBetragGold": 1,
+    "maximaleAdapterAufrufe": 1,
+    "maximaleGameplayWrites": 1,
+    "realLiveWritePerformed": false,
+    "liveEvidence": "AUSSTEHEND"
   }
 }
