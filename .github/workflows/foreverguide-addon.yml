@@ -519,6 +519,35 @@ jobs:
             if def.questID==1519 then call=def break end
           end
           assert(call,"Mulgore quest 1519 missing")
+          assert(call.classSpecific==true,
+            "Call of Earth must be marked class-specific")
+          assert(type(call.classes)=="table" and #call.classes==1 and
+            call.classes[1]=="SHAMAN",
+            "Call of Earth must be marked SHAMAN-only")
+
+          local classStats=MG.RestEDXPImport:GetClassSpecificQuestStats(guides)
+          assert(classStats.total>0,"quest classification audit saw no quests")
+          assert(classStats.classSpecific>0,
+            "quest classification audit found no class-specific quests")
+          local knownClasses={
+            WARRIOR=true,PALADIN=true,HUNTER=true,ROGUE=true,PRIEST=true,
+            SHAMAN=true,MAGE=true,WARLOCK=true,DRUID=true,
+          }
+          for _,guide in ipairs(guides) do
+            for _,def in ipairs(guide.steps or {}) do
+              if def.classSpecific then
+                assert(type(def.classes)=="table" and #def.classes>0,
+                  "class-specific quest missing classes: "..tostring(def.questID))
+                for _,classFile in ipairs(def.classes) do
+                  assert(knownClasses[classFile],
+                    "unknown class marker on quest "..tostring(def.questID))
+                end
+                assert(def.classRestrictionSource=="accept" or
+                  def.classRestrictionSource=="all_occurrences",
+                  "class-specific quest missing restriction source")
+              end
+            end
+          end
 
           local druid={faction="Horde",race="Tauren",class="DRUID",level=2}
           local shaman={faction="Horde",race="Tauren",class="SHAMAN",level=2}
@@ -538,7 +567,9 @@ jobs:
           assert(not MG:RestedXPPhaseApplies(call,"accept",druid,nil))
           assert(MG:RestedXPPhaseApplies(call,"accept",shaman,nil))
 
-          print("Guide picker + Call of Earth routing PASS")
+          print(string.format(
+            "Guide picker + class quest audit PASS (%d/%d class-specific)",
+            classStats.classSpecific,classStats.total))
           LUA
 
       - name: Validate v0.12 localization, registry and settings schema
@@ -975,7 +1006,7 @@ jobs:
           grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
           grep -q 'RegisterRoute' "$ROOT/GuideRegistry.lua"
 
-          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'routeMode = "auto"' "$ROOT/Logger.lua"
           grep -q 'smartResync = true' "$ROOT/Logger.lua"
           grep -q 'skipObsoleteSteps = true' "$ROOT/Logger.lua"
           grep -q 'language = "auto"' "$ROOT/Logger.lua"
@@ -997,10 +1028,18 @@ jobs:
           grep -Fq 'local mageFaction=MG.SupportedRoutes:HasCategory(g,"mage") and g.faction==faction' "$UI2"
           grep -q 'ApplyNavigatorArrowSkinPreview' "$ROOT/Navigator.lua"
           grep -q 'ApplyNavigatorArrowSkinPreview' "$UI2"
+          grep -q 'FULLSCREEN_DIALOG' "$UI2"
+          grep -q 'RegisterForDrag("LeftButton")' "$UI2"
+          grep -q 'instruction(step)' "$UI2"
+          grep -q 'classSpecific = true' "$ROOT/RestedXPImport.lua"
+          grep -q 'GetClassSpecificQuestStats' "$ROOT/RestedXPImport.lua"
+          grep -q 'updateETA' "$ROOT/Navigation.lua"
+          grep -q 'ETA ≈' "$ROOT/Navigator.lua"
+          ! grep -Fq 'local defs={{"targets"' "$UI2"
 
-          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquip = true' "$ROOT/Logger.lua"
           grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
-          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = true' "$ROOT/Logger.lua"
           grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
           grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
           grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
