@@ -8,8 +8,8 @@
     "liveDeployedVerifiedAt": "2026-09-19"
   },
   "summary": {
-    "total": 60,
-    "sourceVerified": 53,
+    "total": 61,
+    "sourceVerified": 54,
     "liveDeployedVerified": 6,
     "explicitlyDisabledPendingExactContract": 1,
     "liveDocOnly": 0
@@ -4536,6 +4536,90 @@
         "dynamicCostEvidence": null,
         "unknownInternalReserveRequired": true,
         "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACTION-MLUCK-SAME-ACCOUNT",
+      "publicFunction": "use_skill",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
+      "family": "skill_buff",
+      "effectDomains": [
+        "character_mp",
+        "skill_cooldown",
+        "target_mluck_condition"
+      ],
+      "client": {
+        "transportEvent": "skill",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "mluck",
+        "requestId": false,
+        "wrapperNotes": "Narrow contract for use_skill('mluck', target): official wrapper resolves target.id, push_deferred('mluck'), then emits skill {name:'mluck', id:target}. No broad generic use_skill authority is implied."
+      },
+      "server": {
+        "handlerEvent": "skill",
+        "executionModel": "ATOMIC_HANDLER",
+        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+      },
+      "valueRisk": "LOW",
+      "idempotency": "NON_IDEMPOTENT",
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:mp",
+        "character:skill:mluck",
+        "target:mluck_condition",
+        "character:socket_call_budget"
+      ],
+      "liveRevalidation": [
+        "sender_character_session",
+        "recipient_entity",
+        "recipient_session",
+        "same_account",
+        "same_server",
+        "same_instance",
+        "distance",
+        "sender_class_level_mp_disabled",
+        "skill_cooldown",
+        "target_mluck_condition_source_strength"
+      ],
+      "dangerFlags": [
+        "TARGET_SESSION_DRIFT",
+        "NON_IDEMPOTENT_MP_AND_COOLDOWN",
+        "EXISTING_STRONG_MLUCK_MAY_NOT_BE_OVERWRITTEN",
+        "UNKNOWN_AFTER_DISCONNECT",
+        "GLOBAL_SOCKET_CALL_BUDGET_SHARED",
+        "LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN"
+      ],
+      "postconditions": [
+        "same bound target session has active mluck condition",
+        "target mluck condition source f equals the sending merchant name",
+        "same-account target mluck condition is strong=true",
+        "sender MP/cooldown state is consistent with exactly one accepted mluck use"
+      ],
+      "notes": [
+        "Narrow same-account MLuck contract only; it does not authorize arbitrary use_skill.",
+        "Official skill data identifies mluck as merchant level 40, 10 MP, range 320, cooldown 100, target player.",
+        "Server consumes MP before applying/refreshing the condition and does not overwrite an existing strong mluck from a different source; admission must revalidate target condition source/strength immediately before send."
+      ],
+      "volatility": "MEDIUM",
+      "sourceRefs": [
+        {
+          "sourceId": "AL-SRC-FUNCTIONS"
+        },
+        {
+          "sourceId": "AL-SRC-SERVER"
+        }
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send: UNKNOWN -> REOBSERVE sender MP/cooldown und target mluck condition; kein Same-Intent-Retry."
       }
     }
   ],
