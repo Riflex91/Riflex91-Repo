@@ -203,13 +203,13 @@ test("open_bank_pack bleibt wegen eigener Capacity-/Backend-Risiken bewusst auss
   assert.equal(contract.idempotency, "NON_IDEMPOTENT");
 });
 
-test("PR20.2 bank_withdraw(1) besitzt vorbereiteten Write-Pfad ohne ausgefuehrten Live-Write", () => {
+test("PR20.2 bank_withdraw(1) ist nach zwei Funktionstests fail-closed und CODE-Bridge read-only bestaetigt", () => {
   const kandidat = prep.naechsterLiveKandidat;
   const vertrag = lies(
     "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
   );
   assert.ok(kandidat);
-  assert.equal(kandidat.status, "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE");
+  assert.equal(kandidat.status, "TWO_TEST_LIMIT_REACHED_CODE_BRIDGE_READ_ONLY_BESTAETIGT");
   assert.equal(kandidat.publicFunction, "bank_withdraw");
   assert.equal(kandidat.betragGold, 1);
   assert.equal(kandidat.actionContractId, "AL-ACTION-BANK-WITHDRAW");
@@ -255,8 +255,16 @@ test("PR20.2 bank_withdraw(1) besitzt vorbereiteten Write-Pfad ohne ausgefuehrte
   assert.equal(kandidat.liveRunnerImplementiert, true);
   assert.equal(kandidat.liveRunner, "werkzeuge/bank-withdraw-produktions-live.mjs");
   assert.equal(kandidat.sourceLockedWritePreflight, true);
-  assert.equal(kandidat.realLiveWritePerformed, false);
-  assert.equal(kandidat.gameplayWritesInDiesemSchritt, 0);
+  assert.equal(kandidat.realLiveWritePerformed, true);
+  assert.equal(kandidat.gameplayWritesInDiesemSchritt, 1);
+  assert.equal(kandidat.functionalTestLimit, 2);
+  assert.equal(kandidat.functionalTestsConsumed, 2);
+  assert.equal(kandidat.additionalFunctionalTestAllowed, false);
+  assert.equal(kandidat.liveEvidence, "NICHT_BESTANDEN_TESTLIMIT_ERREICHT");
+  assert.equal(kandidat.liveEvidencePfad, "roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json");
+  assert.equal(kandidat.correctedCodeBridgeReadOnlyEvidence, "BESTANDEN");
+  assert.equal(kandidat.officialCodeBridge, "call_code_function_f");
+  assert.equal(kandidat.productionWideActivationAllowed, false);
   assert.equal(vertrag.publicFunction, "bank_withdraw");
   assert.equal(vertrag.settlement.characterGoldDelta, 1);
   assert.equal(vertrag.settlement.bankGoldDelta, -1);
@@ -270,14 +278,19 @@ test("PR20.2 bank_withdraw(1) besitzt vorbereiteten Write-Pfad ohne ausgefuehrte
   assert.equal(vertrag.writeGate.publicFunctionCallCountStatic, 1);
 });
 
-test("Post-R19-Roadmap spiegelt den vorbereiteten Withdraw-Write-Pfad konsistent", () => {
-  const status = "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE";
+test("Post-R19-Roadmap spiegelt Withdraw-Testlimit und Bridge-Closeout konsistent", () => {
+  const status = "TWO_TEST_LIMIT_REACHED_CODE_BRIDGE_READ_ONLY_BESTAETIGT";
   const next = postR19Roadmap.parallelPreparation?.nextLiveCandidate;
   assert.ok(next);
   assert.equal(next.status, status);
   assert.equal(next.writeAdapter, true);
   assert.equal(next.liveRunner, true);
   assert.equal(next.gameplayWritesInThisStep, 0);
+  assert.equal(next.functionalTestLimit, 2);
+  assert.equal(next.functionalTestsConsumed, 2);
+  assert.equal(next.additionalFunctionalTestAllowed, false);
+  assert.equal(next.correctedCodeBridgeReadOnlyEvidence, "BESTANDEN");
+  assert.equal(next.productionWideActivationAllowed, false);
   assert.equal(next.sameIntentRetry, false);
 
   for (const prep of postR19Roadmap.parallelPreparations ?? []) {
@@ -286,13 +299,19 @@ test("Post-R19-Roadmap spiegelt den vorbereiteten Withdraw-Write-Pfad konsistent
     assert.equal(prep.nextLiveCandidate.writeAdapter, true);
     assert.equal(prep.nextLiveCandidate.liveRunner, true);
     assert.equal(prep.nextLiveCandidate.gameplayWritesInThisStep, 0);
+    assert.equal(prep.nextLiveCandidate.functionalTestsConsumed, 2);
+    assert.equal(prep.nextLiveCandidate.additionalFunctionalTestAllowed, false);
     assert.equal(prep.nextLiveCandidate.sameIntentRetry, false);
   }
 
   assert.equal(postR19Roadmap.pr20_2?.nextLiveCandidateStatus, status);
   assert.equal(postR19Roadmap.pr20_2?.nextLiveCandidateAdapterImplemented, true);
   assert.equal(postR19Roadmap.pr20_2?.nextLiveCandidateLiveRunnerImplemented, true);
-  assert.equal(postR19Roadmap.pr20_2?.nextLiveCandidateGameplayWrites, 0);
+  assert.equal(postR19Roadmap.pr20_2?.nextLiveCandidateGameplayWrites, 1);
+  assert.equal(postR19Roadmap.pr20_2?.nextLiveCandidateFunctionalTestsConsumed, 2);
+  assert.equal(postR19Roadmap.pr20_2?.nextLiveCandidateAdditionalFunctionalTestAllowed, false);
+  assert.equal(postR19Roadmap.pr20_2?.nextLiveCandidateCodeBridgeReadOnlyEvidence, "BESTANDEN");
+  assert.equal(postR19Roadmap.pr20_2?.nextLiveCandidateProductionWideActivationAllowed, false);
 });
 
 test("Produktionskomposition registriert Deposit und Withdraw unter demselben Bank-Single-Owner default-off", () => {
