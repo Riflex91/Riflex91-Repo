@@ -151,3 +151,4 @@ export * from "./merchant/verkaufs-sicherheit.js";
 export * from "./merchant/markt-historie.js";
 export * from "./merchant/mluck-service.js";
 export * from "./merchant/gold-transfer-settlement.js";
+export * from "./merchant/dienst-stabilitaet.js";
