@@ -148,14 +148,42 @@ async function warteAufStabilenBankSnapshotReadOnly(
 async function dynamischeFinalChecksReadOnly(session, contextId) {
   const expr = [
     "(() => {",
-    "  const roots=[globalThis];",
-    "  try { if (globalThis.parent && globalThis.parent!==globalThis) roots.push(globalThis.parent); } catch {}",
+    "  const kandidaten=[{label:'globalThis',root:globalThis}];",
+    "  try { if (globalThis.parent && globalThis.parent!==globalThis) kandidaten.push({label:'parent',root:globalThis.parent}); } catch {}",
+    "  const rootCapabilities=kandidaten.map((x,index)=>{",
+    "    try {",
+    "      const r=x.root;",
+    "      const c=r&&r.character;",
+    "      const bank=c&&c.bank&&typeof c.bank==='object'&&!Array.isArray(c.bank)?c.bank:null;",
+    "      return {",
+    "        index,",
+    "        label:x.label,",
+    "        hasCharacter:!!c,",
+    "        characterName:c?String(c.name||''):null,",
+    "        map:c?String(c.map||''):null,",
+    "        bankMounted:!!bank,",
+    "        bankWithdrawType:typeof (r&&r.bank_withdraw),",
+    "        hasBankWithdraw:typeof (r&&r.bank_withdraw)==='function'",
+    "      };",
+    "    } catch(error) {",
+    "      return {index,label:x.label,probeError:String(error&&error.message||error).slice(0,160)};",
+    "    }",
+    "  });",
     "  let root=null;",
-    "  for (const r of roots) { try { if (r&&r.character) { root=r; break; } } catch {} }",
-    "  if (!root) return {ok:false,reason:'CONTEXT_FEHLT'};",
+    "  let rootLabel=null;",
+    "  for (const x of kandidaten) {",
+    "    try {",
+    "      if (x.root&&x.root.character&&typeof x.root.bank_withdraw==='function') {",
+    "        root=x.root;",
+    "        rootLabel=x.label;",
+    "        break;",
+    "      }",
+    "    } catch {}",
+    "  }",
+    "  if (!root) return {ok:false,reason:'CONTEXT_FEHLT',rootCapabilities};",
     "  const c=root.character;",
     "  let accountId='';",
-    "  for (const r of roots) { try { accountId=String(r?.user_id||r?.character?.owner||''); if(accountId) break; } catch {} }",
+    "  for (const x of kandidaten) { try { const r=x.root; accountId=String(r?.user_id||r?.character?.owner||''); if(accountId) break; } catch {} }",
     "  const regionKandidaten=[root?.server_region,root?.server?.region];",
     "  const idKandidaten=[root?.server_identifier,root?.server?.id];",
     "  try { regionKandidaten.push(root?.parent?.server_region,root?.parent?.server?.region); } catch {}",
@@ -163,13 +191,16 @@ async function dynamischeFinalChecksReadOnly(session, contextId) {
     "  const region=regionKandidaten.map(x=>typeof x==='string'?x.trim():'').find(Boolean)||'';",
     "  const sid=idKandidaten.map(x=>typeof x==='string'?x.trim():'').find(Boolean)||'';",
     "  let alt=false;",
-    "  for (const r of roots) {",
-    "    try { const x=r&&r.AIO_V3&&r.AIO_V3.__runtime; const s=x&&typeof x.status==='function'?x.status():null; if(x&&(x.timer||(s&&s.running===true))) alt=true; } catch { alt=true; }",
-    "    try { const x=r&&(r.AIO_V4||r.V4Runtime); const s=x&&typeof x.status==='function'?x.status():null; if(s&&(s.running===true||s.aktivFreigegeben===true)) alt=true; } catch { alt=true; }",
+    "  for (const x of kandidaten) {",
+    "    const r=x.root;",
+    "    try { const v3=r&&r.AIO_V3&&r.AIO_V3.__runtime; const s3=v3&&typeof v3.status==='function'?v3.status():null; if(v3&&(v3.timer||(s3&&s3.running===true))) alt=true; } catch { alt=true; }",
+    "    try { const v4=r&&(r.AIO_V4||r.V4Runtime); const s4=v4&&typeof v4.status==='function'?v4.status():null; if(s4&&(s4.running===true||s4.aktivFreigegeben===true)) alt=true; } catch { alt=true; }",
     "  }",
     "  const bank=c.bank&&typeof c.bank==='object'&&!Array.isArray(c.bank)?c.bank:null;",
     "  return {",
     "    ok:true,",
+    "    rootLabel,",
+    "    rootCapabilities,",
     "    accountId,",
     "    characterName:String(c.name||''),",
     "    sessionId:String(c.id||''),",
@@ -185,7 +216,7 @@ async function dynamischeFinalChecksReadOnly(session, contextId) {
     "    bankMounted:!!bank,",
     "    characterGold:Number.isSafeInteger(Number(c.gold))?Number(c.gold):null,",
     "    bankGold:bank&&Number.isSafeInteger(Number(bank.gold))?Number(bank.gold):null,",
-    "    bankWithdrawAvailable:typeof root.bank_withdraw==='function'",
+    "    bankWithdrawAvailable:true",
     "  };",
     "})()",
   ].join("\n");
@@ -290,7 +321,9 @@ export async function fuehreBankWithdrawFinalPreflightDiagnoseAus({
 
     const zielGateAktiv = dyn?.targetPresent === true;
     let klassifikation = "KEIN_AKTUELLER_BLOCKER_REPRODUZIERT";
-    if (zielGateAktiv) {
+    if (dyn?.ok !== true && dyn?.reason === "CONTEXT_FEHLT") {
+      klassifikation = "CONTEXT_GATE_EXAKT_REPRODUZIERT";
+    } else if (zielGateAktiv) {
       klassifikation = "TARGET_GATE_REPRODUZIERT";
     } else if (abgleich.gruende.includes("FINAL_GOLD_DRIFT_JETZT")) {
       klassifikation = "PRESTATE_GOLD_DRIFT_JETZT";
@@ -337,6 +370,10 @@ export async function fuehreBankWithdrawFinalPreflightDiagnoseAus({
         alternativeRuntimeActive: dyn?.alternativeRuntimeActive === true,
         bankMounted: dyn?.bankMounted === true,
         bankWithdrawAvailable: dyn?.bankWithdrawAvailable === true,
+        ausgewaehlterRoot: dyn?.rootLabel ?? null,
+        rootCapabilities: Array.isArray(dyn?.rootCapabilities)
+          ? Object.freeze(dyn.rootCapabilities.map(x => Object.freeze({ ...x })))
+          : Object.freeze([]),
       }),
       aktuelleBlocker: abgleich.gruende,
       hinweis:
