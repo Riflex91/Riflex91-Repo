@@ -45,6 +45,14 @@ function MG:Safe(eventName, fn)
     local ok, result = xpcall(fn, function(err)
         local stack = debugstack and debugstack(2, 12, 12) or nil
         self:Log("ERROR", eventName, tostring(err), { stack = stack })
+
+        local message = "|cffff4040Mewthisch Guides Fehler|r " ..
+            tostring(eventName) .. ": " .. tostring(err) .. "  (/mg1 errors)"
+        if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
+            pcall(DEFAULT_CHAT_FRAME.AddMessage, DEFAULT_CHAT_FRAME, message)
+        elseif print then
+            pcall(print, message)
+        end
         return err
     end)
     if not ok and geterrorhandler then
