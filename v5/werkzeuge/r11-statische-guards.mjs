@@ -132,6 +132,7 @@ for (const marker of [
   "NodeBankDepositTransaktionsJournal",
   "pruefeBankDepositStartBereit",
   "fuehreEquipEinmalTransaktion",
+  "fuehreBankDepositEinGoldTransaktion",
   "fuehreBankDepositRealShadow",
   "NodeProduktionsOperationsQuelle",
   "V5ProduktionsHostController",
@@ -327,6 +328,85 @@ for (const [kennung, muster] of [
   if (muster.test(bankDepositPreflightBrowser)) {
     fehler.push("BANK_DEPOSIT_PREFLIGHT_RAW_WRITE_VERBOTEN:" + kennung);
   }
+}
+
+const bankDepositWriteBrowser = liesText(
+  "werkzeuge/bank-deposit-produktions-write-browser.mjs",
+);
+for (const marker of [
+  'this.adapterId = "v5-production-cdp-bank-deposit-one-gold-once"',
+  "BANK_DEPOSIT_WRITE_MEHR_ALS_EIN_ADAPTER_AUFRUF",
+  "ACCOUNT_DRIFT",
+  "SESSION_DRIFT",
+  "SERVER_DRIFT",
+  "CHARACTER_GOLD_DRIFT",
+  "BANK_GOLD_DRIFT",
+  "DISCONNECT_NACH_MOEGLICHEM_SEND",
+]) {
+  if (!bankDepositWriteBrowser.includes(marker)) {
+    fehler.push("BANK_DEPOSIT_WRITE_BROWSER_MARKER_FEHLT:" + marker);
+  }
+}
+const bankDepositWrites =
+  bankDepositWriteBrowser.match(/root\.bank_deposit\(1\)/g) ?? [];
+if (bankDepositWrites.length !== 1) {
+  fehler.push("BANK_DEPOSIT_WRITE_BROWSER_EXAKT_EIN_DEPOSIT_1_ERFORDERLICH");
+}
+for (const [kennung, muster] of [
+  ["RAW_EMIT", /\.emit\s*\(/],
+  ["BANK_WITHDRAW", /\bbank_withdraw\s*\(/],
+  ["BANK_STORE", /\bbank_store\s*\(/],
+  ["BANK_RETRIEVE", /\bbank_retrieve\s*\(/],
+  ["BANK_SWAP", /\bbank_swap\s*\(/],
+  ["OPEN_BANK_PACK", /\bopen_bank_pack\s*\(/],
+]) {
+  if (muster.test(bankDepositWriteBrowser)) {
+    fehler.push("BANK_DEPOSIT_WRITE_BROWSER_FREMDWRITE_VERBOTEN:" + kennung);
+  }
+}
+
+const bankDepositProdCore = liesText(
+  "grundlage/quelle/merchant/bank-deposit-produktions-transaktion.ts",
+);
+for (const marker of [
+  "ProduktiveBankDepositTransaktionsOrchestrierung",
+  "PersistVorMutationTor",
+  "ErteilteAusfuehrungsFreigabe",
+  "AusfuehrungsKernel",
+  "RecoveryKernel",
+  "character:",
+  '":gold"',
+  "same_intent_retry: false",
+  "adapterAufrufeErwartetMaximal: 1",
+]) {
+  if (!bankDepositProdCore.includes(marker)) {
+    fehler.push("BANK_DEPOSIT_PROD_CORE_MARKER_FEHLT:" + marker);
+  }
+}
+if (/\bbank_deposit\s*\(/.test(bankDepositProdCore)
+    || /\.emit\s*\(/.test(bankDepositProdCore)) {
+  fehler.push("BANK_DEPOSIT_PROD_CORE_RAW_WRITE_VERBOTEN");
+}
+
+const bankDepositLiveRunner = liesText(
+  "werkzeuge/bank-deposit-produktions-live.mjs",
+);
+for (const marker of [
+  "V5_PRODUCTION_BANK_DEPOSIT_ONE_GOLD_ONE_SHOT_LIVE",
+  "BANK_DEPOSIT_EINMAL_BESTAETIGUNG",
+  "BANK_DEPOSIT_PROD_SOURCE_SHA_MISMATCH",
+  "fuehreBankDepositEinGoldTransaktion",
+  "bank-deposit-production/latest.json",
+  "betragGold: 1",
+  "sameIntentRetry: false",
+]) {
+  if (!bankDepositLiveRunner.includes(marker)) {
+    fehler.push("BANK_DEPOSIT_LIVE_RUNNER_MARKER_FEHLT:" + marker);
+  }
+}
+if (/\bbank_deposit\s*\(/.test(bankDepositLiveRunner)
+    || /\.emit\s*\(/.test(bankDepositLiveRunner)) {
+  fehler.push("BANK_DEPOSIT_LIVE_RUNNER_DIREKTWRITE_VERBOTEN");
 }
 
 const equipProduktionsBrowser = liesText(
