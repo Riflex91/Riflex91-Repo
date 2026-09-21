@@ -270,3 +270,9 @@ P0-02 ist damit geschlossen.
 ## Maschinenlesbare Quelle
 
 `v5/wissensbasis/vertraege/recovery-contracts.json`
+
+## Post-R19-Erweiterung 2026-09-21
+
+Der aktuelle Recovery-Katalog besitzt nach der engen MLuck-Erweiterung 61 Eintraege: **60** `VERIFIED_RECOVERY_POLICY` und **1** gemeinsam mit `cave_buy` deaktivierten Vertrag. Fuer `AL-ACTION-MLUCK-SAME-ACCOUNT` gilt `AL-RECOVERY-MLUCK-SAME-ACCOUNT` mit `STATE_REOBSERVE` und weiterhin `sameIntentAfterPossibleSend=NEVER`.
+
+Der historische 60/59+1-Abschluss bleibt als damaliger R1/R10-Nachweis bestehen; diese Post-R19-Erweiterung aendert seine Sicherheitsregeln nicht.
