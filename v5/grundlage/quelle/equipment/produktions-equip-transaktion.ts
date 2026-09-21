@@ -338,46 +338,74 @@ export class ProduktiveEquipTransaktionsOrchestrierung {
       ).persistiereIntent(intentEintrag);
       sequenz += 1;
 
-      const freigabe = await ErteilteAusfuehrungsFreigabe.erteile({
-        schemaVersion: 1,
-        freigabeId: a.freigabeId,
-        auftragId: a.auftragId,
-        ablaufId: a.ablaufId,
-        transaktionsId: a.transaktionsId,
-        faehigkeitId: EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
-        eigentuemerModulId: EQUIPMENT_CORE_MODUL_ID,
-        actionContractId: EQUIPMENT_EQUIP_ACTION_CONTRACT_ID,
-        recoveryContractId: EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID,
-        verifierId: EQUIPMENT_EQUIP_VERIFIER_ID,
-        invariantenKennungen: PRODUKTIVE_EQUIP_INVARIANTEN,
-        voraussetzungsIds: PRODUKTIVE_EQUIP_LIVE_VORAUSSETZUNGEN,
-        ausgestelltAmMs: a.ausgestelltAmMs,
-        gueltigBisMs: a.gueltigBisMs,
-        fencingTokens: tokens,
-        mutationsKanal: kanal,
-        intentToken,
-        intentEintrag,
-      }, {
-        faehigkeitsAutoritaet: a.authority,
-        operatorRichtlinie: d.operatorRichtlinie,
-        laufzeitGate: d.laufzeitGate,
-        aktionsVertraege: actionVertrag(),
-        liveVoraussetzungen: d.liveVoraussetzungen,
-        ressourcen: d.ressourcen,
-        socketBudget: d.socketBudget,
-      });
+      let freigabe: ErteilteAusfuehrungsFreigabe;
+      try {
+        freigabe = await ErteilteAusfuehrungsFreigabe.erteile({
+          schemaVersion: 1,
+          freigabeId: a.freigabeId,
+          auftragId: a.auftragId,
+          ablaufId: a.ablaufId,
+          transaktionsId: a.transaktionsId,
+          faehigkeitId: EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
+          eigentuemerModulId: EQUIPMENT_CORE_MODUL_ID,
+          actionContractId: EQUIPMENT_EQUIP_ACTION_CONTRACT_ID,
+          recoveryContractId: EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID,
+          verifierId: EQUIPMENT_EQUIP_VERIFIER_ID,
+          invariantenKennungen: PRODUKTIVE_EQUIP_INVARIANTEN,
+          voraussetzungsIds: PRODUKTIVE_EQUIP_LIVE_VORAUSSETZUNGEN,
+          ausgestelltAmMs: a.ausgestelltAmMs,
+          gueltigBisMs: a.gueltigBisMs,
+          fencingTokens: tokens,
+          mutationsKanal: kanal,
+          intentToken,
+          intentEintrag,
+        }, {
+          faehigkeitsAutoritaet: a.authority,
+          operatorRichtlinie: d.operatorRichtlinie,
+          laufzeitGate: d.laufzeitGate,
+          aktionsVertraege: actionVertrag(),
+          liveVoraussetzungen: d.liveVoraussetzungen,
+          ressourcen: d.ressourcen,
+          socketBudget: d.socketBudget,
+        });
+      } catch (fehler) {
+        await d.journal.haengeDurableAn(journalEintrag(
+          a,
+          sequenz,
+          "ABBRUCH",
+          d.jetztMs(),
+          {
+            grund: "ADMISSION_BLOCKIERT",
+            fehler: String(
+              fehler instanceof Error ? fehler.message : fehler,
+            ).slice(0, 240),
+            send_boundary_state: "NICHT_GESENDET",
+            same_intent_retry: false,
+          },
+        ));
+        throw fehler;
+      }
 
-      const transport = await d.ausfuehrung.fuehreAus(
-        freigabe,
-        Object.freeze({
-          index: a.kandidat.index,
-          slot: a.kandidat.slot,
-          itemName: a.kandidat.itemName,
-          itemLevel: a.kandidat.itemLevel,
-        }),
-        d.adapter,
-        d.jetztMs(),
-      );
+      let transport;
+      try {
+        transport = await d.ausfuehrung.fuehreAus(
+          freigabe,
+          Object.freeze({
+            index: a.kandidat.index,
+            slot: a.kandidat.slot,
+            itemName: a.kandidat.itemName,
+            itemLevel: a.kandidat.itemLevel,
+          }),
+          d.adapter,
+          d.jetztMs(),
+        );
+      } catch {
+        transport = Object.freeze({
+          art: "UNBEKANNT" as const,
+          grund: "TRANSPORT_UNKLAR" as const,
+          korrelationId: null,
+        });
+      }
 
       if (transport.art === "SERVER_ERGEBNIS") {
         await d.journal.haengeDurableAn(journalEintrag(
