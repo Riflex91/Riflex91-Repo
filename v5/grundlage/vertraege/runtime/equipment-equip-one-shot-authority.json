@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "vertragVersion": "1",
+  "capability": {
+    "id": "equipment.equip",
+    "providerModulId": "equipment-core",
+    "providerVersion": "1",
+    "modus": "MUTIEREN",
+    "registryAktivierung": false,
+    "maximaleVerwendungenProAuthority": 1
+  },
+  "bindung": {
+    "actionContractId": "AL-ACTION-EQUIP",
+    "recoveryContractId": "AL-RECOVERY-EQUIP",
+    "verifierId": "AL-VERIFIER-EQUIP",
+    "policyId": "EQUIPMENT-EQUIP-PRODUKTION-EINMAL-V1",
+    "bestaetigungText": "V5 EQUIP EINMAL AUSFUEHREN",
+    "transaktionsIdErforderlich": true
+  },
+  "authority": {
+    "maximaleLebensdauerMs": 2000,
+    "durchAdmissionPruefungVerbraucht": true,
+    "beiStopWiderrufen": true,
+    "beiOperatorDenyWiderrufen": true,
+    "beiNothaltWiderrufen": true,
+    "beiHealthOderOperationsVerlustWiderrufen": true,
+    "breiteRuntimeFreigabe": false,
+    "rawWriteAutoritaet": false
+  },
+  "durability": {
+    "vorAuthorityAusstellung": true,
+    "art": "EQUIP_EINMAL_AUTHORITY_VOR_WIRKUNG",
+    "pfad": "runtime/authority/mutieren/equipment-equip/<aktivierungsId>.json",
+    "idKollisionFailClosed": true,
+    "restartAktiviertAuthorityNichtWieder": true
+  },
+  "host": {
+    "gesamtfreigabeDurchErfolgreichenHostStartErforderlich": true,
+    "frischeHealthUndOperationsEvidenceErforderlich": true,
+    "aktivePlanenCapabilitiesGleichzeitigErlaubt": false,
+    "generischeMutierenAktivierung": false,
+    "runtimeOderRegisterBypass": false
+  },
+  "wirkung": {
+    "gameplayWriteDurchAuthorityAusstellung": 0,
+    "adapterSendDurchAuthorityAusstellung": 0,
+    "executionNochSeparatErforderlich": true
+  }
+}

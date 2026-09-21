@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20T19:23:33.511Z",
+  "capability": "CAP-045",
+  "status": "BESTANDEN",
+  "evidenceArt": "MANUELLE_PRODUCTION_LIVE_EVIDENCE",
+  "source": "V5_INGAME_TEST_GUI_BERICHT",
+  "sourceKennung": "cap045-production-live-certification",
+  "sourceGuiVersion": "1.1.0",
+  "sourceControllerVersion": "1.0.2",
+  "sourceReportFingerprintSha256": "a3416a564883f5f7762a3f9a8f20fb2afb65afab3bd4f58e5452b4e51c0d5b02",
+  "startzeit": "2026-09-20T19:17:33.818Z",
+  "endzeit": "2026-09-20T19:23:33.511Z",
+  "evidenceKlasse": "LIVE",
+  "stageStatus": {
+    "stage1": "BESTANDEN",
+    "stage2": "BESTANDEN",
+    "stage3": "BESTANDEN"
+  },
+  "coverage": {
+    "auditId": "cap045-live-coverage-1789931853817",
+    "katalogFingerprint": "9e88016a6e319893",
+    "erwarteteZiele": 4,
+    "fullyResolved": 4,
+    "structuralGaps": 0,
+    "liveEvidenceFaelle": 4
+  },
+  "soak": {
+    "dauerMs": 352710,
+    "sampleAnzahl": 22,
+    "sampleGaps": 0,
+    "fingerprintFehler": 0,
+    "duplicateIrreversibleEffects": 0,
+    "unverifiedIrreversibleEffects": 0,
+    "invariantViolations": 0
+  },
+  "controlledProof": {
+    "actionContractId": "AL-ACTION-UPGRADE",
+    "recoveryContractId": "AL-RECOVERY-UPGRADE",
+    "verifierId": "AL-VERIFIER-UPGRADE",
+    "sendCount": 1,
+    "sameIntentErneutSenden": false,
+    "postconditionVerifiziert": true,
+    "recipientSettlementVerifiziert": true,
+    "journalStatus": "COMMITTED",
+    "zertifiziererGameplayWrites": 0,
+    "controlledProofDriverGameplayWrites": 1
+  },
+  "syntheticRegression": {
+    "status": "BESTANDEN",
+    "bestanden": true,
+    "synthetischeEvidenceZaehltAlsLive": false
+  },
+  "production": {
+    "produktionsId": "cap045-live-My_Merchant-1789931853817-1",
+    "planFingerprint": "f2f5fb4e5c0de51d",
+    "recipientCharacterId": "My_Merchant",
+    "serverRegion": "EU",
+    "serverIdentifier": "I"
+  },
+  "blocker": [],
+  "safety": {
+    "diagnosticOnly": true,
+    "actionAuthority": false,
+    "rawWriteAuthority": false,
+    "breiteRuntimeFreigabe": false
+  },
+  "hinweis": "CAP-045 Production-Live-Evidence wurde fail-closed aus einem bestandenen V5-Ingame-Testbericht abgeleitet. Sie ersetzt keine separate globale Runtime-Freigabe."
+}

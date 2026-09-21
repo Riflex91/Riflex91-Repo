@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_BANK_PLANEN_OBSERVER_CANARY",
+  "stand": "2026-09-20",
+  "status": "RATIFIZIERT",
+  "capability": {
+    "id": "merchant.bank.planen",
+    "anbieterModulId": "merchant-core-a",
+    "anbieterVersion": "1",
+    "modus": "PLANEN",
+    "erweiterungErlaubt": false
+  },
+  "beobachtung": {
+    "browserAusdruckFest": true,
+    "loopbackCdpOnly": true,
+    "defaultCdp": "http://127.0.0.1:9222/",
+    "merchantErforderlich": true,
+    "bankKontextErforderlich": true,
+    "alternativeRuntimeVerboten": true,
+    "maximalePacks": 128,
+    "maximaleBankEintraege": 2048,
+    "roheAccountIdDurable": false
+  },
+  "evidence": {
+    "pfad": "runtime/canary/bank-planen/latest.json",
+    "browserReadOnly": true,
+    "browserGameplayWrites": 0,
+    "breiteRuntimeFreigabe": false
+  },
+  "authority": {
+    "ausfuehrungsAutoritaet": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "actionAuthority": false
+  },
+  "mutierendeCapabilitiesDurchDiesenVertrag": 0
+}

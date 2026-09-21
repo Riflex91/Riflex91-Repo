@@ -18,6 +18,34 @@ for(const p of [
   "grundlage/quelle/zertifizierung/ladder.ts",
   "grundlage/quelle/zertifizierung/shadow-bewertung.ts",
   "grundlage/quelle/zertifizierung/production-certification.ts",
+  "grundlage/quelle/runtime/produktions-komposition.ts",
+  "grundlage/quelle/runtime/produktions-runtime.ts",
+  "grundlage/quelle/merchant/modul-vertrag.ts",
+  "grundlage/quelle/merchant/faehigkeits-vertrag.ts",
+  "grundlage/quelle/equipment/modul-vertrag.ts",
+  "grundlage/quelle/equipment/faehigkeits-vertrag.ts",
+  "grundlage/quelle/equipment/produktions-einmal-authority.ts",
+  "grundlage/adapter/persistenz/node-equip-einmal-authority-protokoll.mjs",
+  "grundlage/quelle/equipment/produktions-equip-admission-gate.ts",
+  "grundlage/quelle/equipment/produktions-equip-transaktion.ts",
+  "grundlage/adapter/persistenz/node-equip-transaktionsjournal.mjs",
+  "grundlage/vertraege/runtime/equipment-equip-mutationsfaehigkeit.json",
+  "grundlage/vertraege/runtime/equipment-equip-one-shot-authority.json",
+  "grundlage/vertraege/runtime/equipment-equip-production-transaction.json",
+  "architektur/adr/ADR-032-PRODUKTIVE-EQUIP-MUTATIONSFAEHIGKEIT.md",
+  "architektur/adr/ADR-033-EQUIP-EINMAL-AUTHORITY.md",
+  "architektur/adr/ADR-034-PRODUKTIVE-EQUIP-TRANSAKTION.md",
+  "grundlage/tests/r11-equip-einmal-authority.test.mjs",
+  "grundlage/tests/r11-equip-einmal-authority-persistenz.test.mjs",
+  "grundlage/tests/r11-equip-produktions-transaktion.test.mjs",
+  "grundlage/tests/r11-equip-produktions-journal.test.mjs",
+  "grundlage/tests/r11-equip-produktions-browser.test.mjs",
+  "werkzeuge/equipment-equip-produktions-browser.mjs",
+  "werkzeuge/equipment-equip-produktions-live.mjs",
+  "grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json",
+  "architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md",
+  "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
+  "dokumentation/PRODUKTIONS-KOMPOSITION.md",
   "grundlage/tests/r19-evidence-ladder.test.mjs",
   "grundlage/tests/r19-production-certification.test.mjs",
   "grundlage/tests/r19-shadow-certification.test.mjs",
@@ -50,11 +78,205 @@ for(const p of [
   "werkzeuge/cap045-production-live-test-paket.js",
   "werkzeuge/cap045-production-live-static-guards.mjs",
   "werkzeuge/tests/cap045-production-live-test-gui.test.mjs",
+  "werkzeuge/cap045-production-live-evidence-pruefen.mjs",
+  "werkzeuge/tests/cap045-production-live-evidence-pruefen.test.mjs",
   "dokumentation/CAP-045-PRODUCTION-LIVE-TESTPAKET.md",
+  "roadmap/cap045-production-live-evidence.json",
   "roadmap/r19-soak-zeitprofil.json",
   "roadmap/testzeit-standard.json",
 ]){
   if(!fs.existsSync(p)) fehler("R19 Pflichtartefakt fehlt: "+p);
+}
+
+const merchantPlanen=lies("grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json");
+const merchantPlanenIds=new Set([
+  "merchant.task.planen",
+  "merchant.bank.planen",
+  "merchant.verkauf.planen",
+  "merchant.markt.planen",
+  "merchant.mluck.planen",
+  "merchant.logistik.planen",
+  "merchant.gear.planen",
+  "merchant.itemmutation.planen",
+]);
+if(merchantPlanen.schemaVersion!==1
+    ||merchantPlanen.vertragVersion!=="1"
+    ||merchantPlanen.modulId!=="merchant-core-a"
+    ||merchantPlanen.modulVersion!=="1"
+    ||merchantPlanen.authorityGrenze!=="PLANEN_ONLY"
+    ||merchantPlanen.standardAktiv!==false
+    ||merchantPlanen.mutierendeFaehigkeiten!==0
+    ||merchantPlanen.faehigkeiten?.length!==8
+    ||merchantPlanen.faehigkeiten.some(x=>
+      !merchantPlanenIds.has(x.faehigkeitId)
+      ||x.modus!=="PLANEN"
+      ||x.planungsOderKoordinationsNachweis!==true
+      ||x.ausfuehrungsAutoritaet!==false
+      ||x.gameplayAutoritaet!==false
+      ||x.rawWriteAutoritaet!==false)
+    ||new Set(merchantPlanen.faehigkeiten.map(x=>x.faehigkeitId)).size!==8) {
+  fehler("Merchant Core A PLANEN-Capability-Vertrag ungueltig.");
+}
+
+const equipmentEquip=lies(
+  "grundlage/vertraege/runtime/equipment-equip-mutationsfaehigkeit.json",
+);
+if(equipmentEquip.schemaVersion!==1
+    ||equipmentEquip.vertragVersion!=="1"
+    ||equipmentEquip.modulId!=="equipment-core"
+    ||equipmentEquip.modulVersion!=="1"
+    ||equipmentEquip.faehigkeit?.faehigkeitId!=="equipment.equip"
+    ||equipmentEquip.faehigkeit?.modus!=="MUTIEREN"
+    ||equipmentEquip.faehigkeit?.status!=="VERFUEGBAR"
+    ||equipmentEquip.faehigkeit?.standardAktiv!==false
+    ||equipmentEquip.faehigkeit?.singleOwner!==true
+    ||equipmentEquip.aktionsBindung?.actionContractId!=="AL-ACTION-EQUIP"
+    ||equipmentEquip.aktionsBindung?.recoveryContractId!=="AL-RECOVERY-EQUIP"
+    ||equipmentEquip.aktionsBindung?.verifierId!=="AL-VERIFIER-EQUIP"
+    ||equipmentEquip.aktionsBindung?.publicFunction!=="equip"
+    ||equipmentEquip.aktivierung?.durchDiesenVertragErlaubt!==false
+    ||equipmentEquip.aktivierung?.automatisch!==false
+    ||equipmentEquip.aktivierung?.produktiverAktivierungspfadVorhanden!==false
+    ||equipmentEquip.authority?.gameplayAutoritaetDurchRegistrierung!==false
+    ||equipmentEquip.authority?.rawWriteAutoritaetDurchRegistrierung!==false
+    ||equipmentEquip.authority?.actionAuthorityDurchRegistrierung!==false) {
+  fehler("Equipment Equip MUTIEREN-Capability-Vertrag ungueltig.");
+}
+
+const equipmentEquipAuthority=lies(
+  "grundlage/vertraege/runtime/equipment-equip-one-shot-authority.json",
+);
+if(equipmentEquipAuthority.schemaVersion!==1
+    ||equipmentEquipAuthority.vertragVersion!=="1"
+    ||equipmentEquipAuthority.capability?.id!=="equipment.equip"
+    ||equipmentEquipAuthority.capability?.providerModulId!=="equipment-core"
+    ||equipmentEquipAuthority.capability?.providerVersion!=="1"
+    ||equipmentEquipAuthority.capability?.modus!=="MUTIEREN"
+    ||equipmentEquipAuthority.capability?.registryAktivierung!==false
+    ||equipmentEquipAuthority.capability?.maximaleVerwendungenProAuthority!==1
+    ||equipmentEquipAuthority.bindung?.actionContractId!=="AL-ACTION-EQUIP"
+    ||equipmentEquipAuthority.bindung?.recoveryContractId!=="AL-RECOVERY-EQUIP"
+    ||equipmentEquipAuthority.bindung?.verifierId!=="AL-VERIFIER-EQUIP"
+    ||equipmentEquipAuthority.bindung?.policyId!=="EQUIPMENT-EQUIP-PRODUKTION-EINMAL-V1"
+    ||equipmentEquipAuthority.bindung?.bestaetigungText!=="V5 EQUIP EINMAL AUSFUEHREN"
+    ||equipmentEquipAuthority.bindung?.transaktionsIdErforderlich!==true
+    ||equipmentEquipAuthority.authority?.maximaleLebensdauerMs!==2000
+    ||equipmentEquipAuthority.authority?.durchAdmissionPruefungVerbraucht!==true
+    ||equipmentEquipAuthority.authority?.beiStopWiderrufen!==true
+    ||equipmentEquipAuthority.authority?.beiOperatorDenyWiderrufen!==true
+    ||equipmentEquipAuthority.authority?.beiNothaltWiderrufen!==true
+    ||equipmentEquipAuthority.authority?.beiHealthOderOperationsVerlustWiderrufen!==true
+    ||equipmentEquipAuthority.authority?.breiteRuntimeFreigabe!==false
+    ||equipmentEquipAuthority.authority?.rawWriteAutoritaet!==false
+    ||equipmentEquipAuthority.durability?.vorAuthorityAusstellung!==true
+    ||equipmentEquipAuthority.durability?.idKollisionFailClosed!==true
+    ||equipmentEquipAuthority.durability?.restartAktiviertAuthorityNichtWieder!==true
+    ||equipmentEquipAuthority.host?.generischeMutierenAktivierung!==false
+    ||equipmentEquipAuthority.host?.runtimeOderRegisterBypass!==false
+    ||equipmentEquipAuthority.wirkung?.gameplayWriteDurchAuthorityAusstellung!==0
+    ||equipmentEquipAuthority.wirkung?.adapterSendDurchAuthorityAusstellung!==0
+    ||equipmentEquipAuthority.wirkung?.executionNochSeparatErforderlich!==true) {
+  fehler("Equipment Equip Einmal-Authority-Vertrag ungueltig.");
+}
+
+const equipmentEquipProduction=lies(
+  "grundlage/vertraege/runtime/equipment-equip-production-transaction.json",
+);
+if(equipmentEquipProduction.schemaVersion!==1
+    ||equipmentEquipProduction.vertragVersion!=="1"
+    ||equipmentEquipProduction.kennung!=="V5_EQUIPMENT_EQUIP_PRODUCTION_ONE_SHOT_TRANSACTION"
+    ||equipmentEquipProduction.capability?.id!=="equipment.equip"
+    ||equipmentEquipProduction.capability?.providerModulId!=="equipment-core"
+    ||equipmentEquipProduction.capability?.providerVersion!=="1"
+    ||equipmentEquipProduction.capability?.modus!=="MUTIEREN"
+    ||equipmentEquipProduction.capability?.registryAktivierung!==false
+    ||equipmentEquipProduction.operator?.bestaetigungText!=="V5 EQUIP EINMAL AUSFUEHREN"
+    ||equipmentEquipProduction.operator?.denyOnlyPolicyBleibtWirksam!==true
+    ||equipmentEquipProduction.operator?.nothaltBleibtWirksam!==true
+    ||equipmentEquipProduction.candidate?.characterType!=="merchant"
+    ||equipmentEquipProduction.candidate?.zielslotMussLeerSein!==true
+    ||equipmentEquipProduction.candidate?.waffenSlotsErlaubt!==false
+    ||equipmentEquipProduction.candidate?.itemMussUnlockedSein!==true
+    ||equipmentEquipProduction.admission?.gesamtfreigabeErforderlich!==true
+    ||equipmentEquipProduction.admission?.hostMussLaufen!==true
+    ||equipmentEquipProduction.admission?.aktivePlanenCapabilitiesErlaubt!==false
+    ||equipmentEquipProduction.admission?.oneShotAuthorityErforderlich!==true
+    ||equipmentEquipProduction.admission?.operatorRecheckErforderlich!==true
+    ||equipmentEquipProduction.admission?.actionContractId!=="AL-ACTION-EQUIP"
+    ||equipmentEquipProduction.admission?.recoveryContractId!=="AL-RECOVERY-EQUIP"
+    ||equipmentEquipProduction.admission?.verifierId!=="AL-VERIFIER-EQUIP"
+    ||equipmentEquipProduction.admission?.socketBudgetGewicht!==3
+    ||equipmentEquipProduction.admission?.durableIntentVorSend!==true
+    ||equipmentEquipProduction.execution?.adapterId!=="v5-production-cdp-equip-once"
+    ||equipmentEquipProduction.execution?.maxAdapterAufrufe!==1
+    ||equipmentEquipProduction.execution?.maxGameplayWrites!==1
+    ||equipmentEquipProduction.execution?.sameIntentRetry!==false
+    ||equipmentEquipProduction.recovery?.sameIntentAfterPossibleSend!=="NEVER"
+    ||equipmentEquipProduction.recovery?.maxBeobachtungen!==4
+    ||equipmentEquipProduction.recovery?.commitNurBeiBestaetigt!==true
+    ||equipmentEquipProduction.journal?.globalerCurrentPointer!==true
+    ||equipmentEquipProduction.journal?.offeneTransaktionBlockiertNeue!==true
+    ||equipmentEquipProduction.journal?.maxEintraegeProTransaktion!==16
+    ||equipmentEquipProduction.browser?.cdpNurLoopback!==true
+    ||equipmentEquipProduction.browser?.adventureLandOrigin!=="https://adventure.land"
+    ||equipmentEquipProduction.browser?.alternativeRuntimeVerboten!==true
+    ||equipmentEquipProduction.preflight?.readOnly!==true
+    ||equipmentEquipProduction.preflight?.browserGameplayWrites!==0
+    ||equipmentEquipProduction.evidence?.sourceShaErforderlich!==true
+    ||equipmentEquipProduction.authority?.breiteRuntimeFreigabeDurchTransaktion!==false
+    ||equipmentEquipProduction.authority?.rawWriteBypass!==false
+    ||equipmentEquipProduction.authority?.generischeMutierenAktivierung!==false
+    ||equipmentEquipProduction.naechsterNachweis?.art!=="MANUELLER_INGAME_ONE_SHOT"
+    ||equipmentEquipProduction.naechsterNachweis?.gameplayWritesErwartet!==1
+    ||equipmentEquipProduction.naechsterNachweis?.nachGruenerExactHeadCiErforderlich!==true) {
+  fehler("Equipment Equip Production Transaction Vertrag ungueltig.");
+}
+
+const cap045=lies("roadmap/cap045-production-live-evidence.json");
+if(cap045.schemaVersion!==1
+    ||cap045.capability!=="CAP-045"
+    ||cap045.status!=="BESTANDEN"
+    ||cap045.evidenceArt!=="MANUELLE_PRODUCTION_LIVE_EVIDENCE"
+    ||cap045.source!=="V5_INGAME_TEST_GUI_BERICHT"
+    ||cap045.sourceKennung!=="cap045-production-live-certification"
+    ||cap045.sourceGuiVersion!=="1.1.0"
+    ||cap045.sourceControllerVersion!=="1.0.2"
+    ||cap045.sourceReportFingerprintSha256!=="a3416a564883f5f7762a3f9a8f20fb2afb65afab3bd4f58e5452b4e51c0d5b02"
+    ||cap045.evidenceKlasse!=="LIVE"
+    ||cap045.stageStatus?.stage1!=="BESTANDEN"
+    ||cap045.stageStatus?.stage2!=="BESTANDEN"
+    ||cap045.stageStatus?.stage3!=="BESTANDEN"
+    ||cap045.coverage?.erwarteteZiele!==4
+    ||cap045.coverage?.fullyResolved!==4
+    ||cap045.coverage?.structuralGaps!==0
+    ||cap045.coverage?.liveEvidenceFaelle!==4
+    ||cap045.soak?.dauerMs<300000
+    ||cap045.soak?.sampleAnzahl<20
+    ||cap045.soak?.sampleAnzahl>30
+    ||cap045.soak?.sampleGaps!==0
+    ||cap045.soak?.fingerprintFehler!==0
+    ||cap045.soak?.duplicateIrreversibleEffects!==0
+    ||cap045.soak?.unverifiedIrreversibleEffects!==0
+    ||cap045.soak?.invariantViolations!==0
+    ||cap045.controlledProof?.actionContractId!=="AL-ACTION-UPGRADE"
+    ||cap045.controlledProof?.recoveryContractId!=="AL-RECOVERY-UPGRADE"
+    ||cap045.controlledProof?.verifierId!=="AL-VERIFIER-UPGRADE"
+    ||cap045.controlledProof?.sendCount!==1
+    ||cap045.controlledProof?.sameIntentErneutSenden!==false
+    ||cap045.controlledProof?.postconditionVerifiziert!==true
+    ||cap045.controlledProof?.recipientSettlementVerifiziert!==true
+    ||cap045.controlledProof?.journalStatus!=="COMMITTED"
+    ||cap045.controlledProof?.zertifiziererGameplayWrites!==0
+    ||cap045.controlledProof?.controlledProofDriverGameplayWrites!==1
+    ||cap045.syntheticRegression?.status!=="BESTANDEN"
+    ||cap045.syntheticRegression?.bestanden!==true
+    ||cap045.syntheticRegression?.synthetischeEvidenceZaehltAlsLive!==false
+    ||cap045.blocker?.length!==0
+    ||cap045.safety?.diagnosticOnly!==true
+    ||cap045.safety?.actionAuthority!==false
+    ||cap045.safety?.rawWriteAuthority!==false
+    ||cap045.safety?.breiteRuntimeFreigabe!==false) {
+  fehler("CAP-045 Production-Live-Evidence ungueltig.");
 }
 
 const finalExistiert=fs.existsSync("roadmap/r19-soak-15m-evidence.json");

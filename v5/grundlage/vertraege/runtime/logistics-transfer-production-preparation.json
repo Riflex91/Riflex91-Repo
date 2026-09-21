@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_PR20_4_LOGISTIK_TRANSFER_PRODUCTION_PREPARATION",
+  "stand": "2026-09-21",
+  "status": "VORBEREITET_NO_WRITE",
+  "basisMain": "8acff88298c4f6d3c76a5fdfe0540aad9bef2249",
+  "produktiveFreigabeBlockiertBis": [
+    "PR20.1_EQUIP_PRODUKTIONSNACHWEIS_BESTANDEN",
+    "PR20.2_BANK_PRODUKTIV_ABGESCHLOSSEN",
+    "PR20.3_MARKT_PRODUKTIV_ABGESCHLOSSEN"
+  ],
+  "zweck": "PR20.4 Supply/Collection/Rendezvous und Item-/Goldtransfer vorbereiten, ohne Transfer-Mutation, produktive Registrierung oder Gameplay-Authority.",
+  "authorityGrenze": {
+    "produktiveRegistrierungErlaubt": false,
+    "produktiverAktivierungspfadErlaubt": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "actionAuthority": false,
+    "direkteAdventureLandPublicFunctionAufrufe": 0,
+    "browserGameplayWrites": 0
+  },
+  "bestehendePlanung": {
+    "modulId": "merchant-core-a",
+    "modulVersion": "1",
+    "capabilityId": "merchant.logistik.planen",
+    "mutationsAuthorityAusPlanung": false,
+    "logistikArten": [
+      "SUPPLY_DELIVERY",
+      "COLLECTION",
+      "GEAR_DELIVERY"
+    ],
+    "sameTransferErneutSenden": false
+  },
+  "kandidaten": [
+    {
+      "actionContractId": "AL-ACTION-SEND-ITEM",
+      "recoveryContractId": "AL-RECOVERY-SEND-ITEM",
+      "verifierId": "AL-VERIFIER-SEND-ITEM",
+      "publicFunction": "send_item",
+      "fachbereich": "ITEM_TRANSFER",
+      "recipientSettlement": "BESTEHENDER_INVENTAR_SETTLEMENT_PFAD_VERWENDBAR"
+    },
+    {
+      "actionContractId": "AL-ACTION-SEND-GOLD",
+      "recoveryContractId": "AL-RECOVERY-SEND-GOLD",
+      "verifierId": "AL-VERIFIER-SEND-GOLD",
+      "publicFunction": "send_gold",
+      "fachbereich": "GOLD_TRANSFER",
+      "recipientSettlement": "KONKRETER_GOLD_EMPFAENGER_SETTLEMENT_VERTRAG_FEHLT_NOCH"
+    }
+  ],
+  "bewusstZurueckgestellt": [
+    {
+      "actionContractId": "AL-ACTION-SEND-CX",
+      "publicFunction": "send_cx",
+      "grund": "Cosmetic-Transfer ist nicht Teil des ersten Merchant-Logistik-Mutationssatzes."
+    },
+    {
+      "actionContractId": "AL-ACTION-SEND-MAIL",
+      "publicFunction": "send_mail",
+      "grund": "Mail besitzt ASYNC_BACKEND_TX, Request-ID/Mixed-Correlation und kann Wert vor finaler Backend-Validierung abbuchen; separater spaeterer Pfad."
+    }
+  ],
+  "zielUndRendezvousGates": [
+    "Empfaenger ist eine frische CharacterZielBindung mit Account, Character, Session, Server und Roster-Epoche",
+    "Rendezvous-Evidence stimmt exakt mit Character, Session, Server und Roster-Epoche ueberein",
+    "Freshness-Fingerprint stimmt mit dem Plan ueberein",
+    "Distanz ist frisch und <= maximalTransferDistanz",
+    "Empfaenger ist nicht stale/offline und nicht durch Roster-/Session-Drift ersetzt",
+    "alternative V3/V4 Runtime ist inaktiv"
+  ],
+  "itemTransferAdmission": [
+    "exakte physische Itemidentitaet der Quelle ist frisch",
+    "physischeKennung ist im Logistikplan genau einmal enthalten",
+    "Name, Level und Menge stimmen mit dem geplanten Posten ueberein",
+    "Disposition/Reservierung erlaubt genau diesen Supply/Collection/Gear-Transfer",
+    "Empfaenger-Inventar-Baseline ist gepinnt",
+    "Recipient Capacity/Workspace ist positiv",
+    "durable Transfer-Intent ist vor moeglichem Send bestaetigt"
+  ],
+  "goldTransferAdmission": [
+    "Sender-Gold und reservierter Betrag sind frisch",
+    "Gold-Safety-Reserve bleibt erhalten",
+    "Empfaenger-/Session-/Server-/Roster-Bindung ist frisch",
+    "Empfaenger-Gold-Baseline muss vor Send konkret beobachtbar und gepinnt sein",
+    "durable Transfer-Intent ist vor moeglichem Send bestaetigt",
+    "produktive Freigabe bleibt gesperrt bis konkreter Gold-Empfaenger-Settlement-Vertrag implementiert und getestet ist"
+  ],
+  "transaktionsRegeln": {
+    "sendChannel": "send",
+    "correlation": "FIFO_DEFERRED",
+    "requestId": false,
+    "maxInFlightProSendChannel": 1,
+    "sameIntentRetry": false,
+    "unknownOutcome": "REOBSERVE_RECONCILE_NO_BLIND_RETRY",
+    "senderDeltaAlleinIstKeinSettlement": true,
+    "recipientSettlementPflicht": true,
+    "restartNichtterminal": "RECOVERY_PENDING"
+  },
+  "recipientSettlement": {
+    "item": {
+      "status": "BESTEHENDE_FOUNDATION",
+      "nachweise": [
+        "MerchantLogistikLedger.verifiziereSettlement",
+        "validiereEmpfaengerSettlement"
+      ],
+      "bindungen": [
+        "characterId",
+        "sessionId",
+        "serverRegion",
+        "serverIdentifier",
+        "rosterEpoche",
+        "baseline inventory fingerprint",
+        "Name/Level/Mengenzunahme"
+      ]
+    },
+    "gold": {
+      "status": "MUSS_VOR_PRODUKTIVIERUNG_IMPLEMENTIERT_WERDEN",
+      "minimum": [
+        "recipientCharacterId/session/server/rosterEpoche",
+        "baseline recipient gold + fingerprint",
+        "beobachteter recipient gold delta",
+        "sender gold delta",
+        "korrelationsFingerprint",
+        "Evidence-Zeitpunkt nach Transferbeginn"
+      ]
+    }
+  },
+  "nachVorstufenErforderlicheFreigabeschritte": [
+    "konkreten Gold-Empfaenger-Settlement-Vertrag implementieren und testen",
+    "einen einzigen ersten Logistik-Live-Kandidaten festlegen, bevorzugt Itemtransfer vor Goldtransfer solange Gold-Settlement nicht geschlossen ist",
+    "Mutationsfaehigkeit und Single Owner separat ratifizieren",
+    "eng begrenzte Transfer-Authority + Admission implementieren",
+    "durables Transfer-Transaktionsjournal mit Current-Fence implementieren",
+    "read-only Rendezvous/Transfer-Preflight implementieren",
+    "Unit/Replay/Fault/Restart/Disconnect/Stale-Recipient/Partial-Settlement-Tests bestehen",
+    "Shadow bestehen",
+    "erst danach einen einzelnen kontrollierten Transfer-Live-Write zulassen"
+  ]
+}

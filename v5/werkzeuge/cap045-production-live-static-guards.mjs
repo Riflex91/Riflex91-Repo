@@ -4,6 +4,7 @@ const fehler = [];
 const lies = pfad => fs.readFileSync(pfad, "utf8");
 const controller = lies("werkzeuge/cap045-production-live-test-gui.js");
 const paket = lies("werkzeuge/cap045-production-live-test-paket.js");
+const evidenceValidator = lies("werkzeuge/cap045-production-live-evidence-pruefen.mjs");
 
 for (const marker of [
   "FULLY_RESOLVED",
@@ -18,9 +19,40 @@ for (const marker of [
   "sameIntentErneutSenden: false",
   "synthetischeEvidenceZaehltAlsLive: false",
   "zertifiziererGameplayWrites: 0",
-  "breiteRuntimeFreigabe: false"
+  "breiteRuntimeFreigabe: false",
+  "planId: produktionsId",
+  "bankKatalog: null",
+  "workspaceNachweisFingerprint",
+  "gateEvidence: null",
+  "accountId: obs.accountId",
+  "sessionId: obs.characterSessionId",
+  "sample.zeitMs - samples[0].zeitMs >= SOAK_DAUER_MS",
+  "root?.server?.region",
+  "root?.server?.id",
+  "parentRoot?.server_region",
+  "parentRoot?.server_identifier",
+  "serverBindungQuelle",
+  "maschinenBerichtObjekt",
+  "maschinenBerichtText",
+  "kopiereMaschinenBericht",
+  "controllerVersion: session.controllerVersion ?? VERSION"
 ]) {
   if (!controller.includes(marker)) fehler.push("CAP045_LIVE_MARKER_FEHLT:" + marker);
+}
+
+for (const marker of [
+  "pruefeProduktionsGraph",
+  "sourceReportFingerprintSha256",
+  "CONTROLLED_PROOF_WRITE_ANZAHL_UNGUELTIG",
+  "COVERAGE_CORE_GRAPH_UNGUELTIG",
+  "CONTROLLER_VERSIONS",
+  "\"1.0.2\"",
+  "\"1.0.3\""
+]) {
+  if (!evidenceValidator.includes(marker)) fehler.push("CAP045_EVIDENCE_MARKER_FEHLT:" + marker);
+}
+if (controller.includes("sample.zeitMs - aktualisiert.stage2.gestartetAmMs >= SOAK_DAUER_MS")) {
+  fehler.push("CAP045_LIVE_SOAK_DAUER_BUTTONSTART_STATT_EVIDENCE");
 }
 
 const upgradeAufrufe = controller.match(/\.upgrade\s*\(/g) ?? [];

@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-21",
+  "roadmap": "V5_POST_R19_PRODUKTIV",
+  "status": "AKTIV",
+  "basisMain": "04dbc2cf5ab70992ec0dac9c7952cafb1ca4a0db",
+  "dokumentation": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
+  "testzeitStandard": "v5/roadmap/testzeit-standard.json",
+  "currentStage": "PR20",
+  "currentGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
+  "reihenfolgeVerbindlich": true,
+  "optimizerVorGruppenLiveEvidenceVerboten": true,
+  "merchantVorFarmerProduktivierung": true,
+  "stages": [
+    {
+      "id": "PR20",
+      "ziel": "Merchant produktiv vervollstaendigen",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "PR21",
+      "ziel": "Merchant Gesamtintegration zertifizieren",
+      "status": "BLOCKED_BY_PR20"
+    },
+    {
+      "id": "PR22",
+      "ziel": "Produktive Multi-Character-Koordination",
+      "status": "BLOCKED_BY_PR21"
+    },
+    {
+      "id": "PR23",
+      "ziel": "Farmer Movement/Combat/Loot/AoE produktiv",
+      "status": "BLOCKED_BY_PR22"
+    },
+    {
+      "id": "PR24",
+      "ziel": "Gruppen-Konstellationsmatrix",
+      "status": "BLOCKED_BY_PR23"
+    },
+    {
+      "id": "PR25",
+      "ziel": "Reale Gruppen-Live-Evidence",
+      "status": "BLOCKED_BY_PR24"
+    },
+    {
+      "id": "PR26",
+      "ziel": "Allgemeiner Task-/Party-Optimizer",
+      "status": "BLOCKED_BY_PR25"
+    },
+    {
+      "id": "PR27",
+      "ziel": "Account Progression Balancer",
+      "status": "BLOCKED_BY_PR26"
+    },
+    {
+      "id": "PR28",
+      "ziel": "World Autonomy produktiv verbinden",
+      "status": "BLOCKED_BY_PR27"
+    },
+    {
+      "id": "PR29",
+      "ziel": "24/7 Host/Watchdog/Update/Control",
+      "status": "BLOCKED_BY_PR28"
+    },
+    {
+      "id": "PR30",
+      "ziel": "Langzeit-/24x7-Soak-Evidence",
+      "status": "BLOCKED_BY_PR29"
+    },
+    {
+      "id": "PR31",
+      "ziel": "Linux-Kompatibilitaet",
+      "status": "BLOCKED_BY_PR30"
+    },
+    {
+      "id": "PR32",
+      "ziel": "Mobile/Android-Bedienung",
+      "status": "OPTIONAL_AFTER_PR31"
+    }
+  ],
+  "currentNextSteps": [
+    "Merchant real und V3/V4 alternative Runtime inaktiv",
+    "equipment-equip-production:preflight ausfuehren",
+    "Preflight-Evidence auswerten",
+    "nur bei sauberem Preflight exakt einen produktiven Equip-Write ausfuehren",
+    "Transaktion und Postcondition auswerten",
+    "erst danach PR20.2 Bank-Mutationen beginnen"
+  ],
+  "invariants": {
+    "durableIntentVorIrreversiblerWirkung": true,
+    "unknownKeinBlindRetry": true,
+    "operatorDenyUndNothaltVorrang": true,
+    "lokaleCapabilityAuthorityBleibtPflicht": true,
+    "restartErfordertReconciliation": true,
+    "funktionstestMinuten": 5,
+    "integrationsReleaseTestMinuten": 15
+  },
+  "unattendedReliability": {
+    "ziel": "WOCHEN_BIS_MONATE_UNBEAUFSICHTIGT",
+    "verbindlich": true,
+    "manuelleBetriebseingriffeImAbnahmelaufErlaubt": false,
+    "stufen": [
+      {
+        "id": "FUNCTION_5M",
+        "dauerMinuten": 5,
+        "zweck": "Capability-Funktionsgate"
+      },
+      {
+        "id": "INTEGRATION_15M",
+        "dauerMinuten": 15,
+        "zweck": "Integrations-/Releasegate"
+      },
+      {
+        "id": "MULTI_HOUR",
+        "zweck": "mehrstuendige Stabilitaet"
+      },
+      {
+        "id": "OVERNIGHT",
+        "zweck": "ueber-Nacht-Stabilitaet"
+      },
+      {
+        "id": "SOAK_72H",
+        "dauerStunden": 72,
+        "zweck": "mehrtaegige Stabilitaet"
+      },
+      {
+        "id": "UNATTENDED_7D",
+        "dauerTage": 7,
+        "zweck": "Wochenbetriebs-Abnahme"
+      },
+      {
+        "id": "UNATTENDED_30D",
+        "dauerTage": 30,
+        "zweck": "Monatsbetriebs-Burn-in"
+      }
+    ],
+    "nullToleranz": [
+      "duplicate_irreversible_effects",
+      "unexpected_game_writes",
+      "silent_evidence_gaps",
+      "unbounded_ram_growth",
+      "unbounded_ssd_or_journal_growth",
+      "restart_loop",
+      "stale_authority_after_restart",
+      "blind_retry_after_unknown",
+      "unreconciled_open_transaction",
+      "unrecognized_session_party_world_bank_inventory_drift"
+    ]
+  },
+  "parallelPreparation": {
+    "id": "PR20.2_BANK",
+    "status": "VORBEREITET_NO_WRITE",
+    "blockedBy": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
+    "produktiveRegistrierungErlaubt": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "artifacts": [
+      "v5/dokumentation/PR20-2-BANK-PRODUKTIV-VORBEREITUNG.md",
+      "v5/grundlage/vertraege/runtime/bank-production-preparation.json",
+      "v5/grundlage/tests/pr20-bank-production-preparation.test.mjs"
+    ]
+  },
+  "parallelPreparations": [
+    {
+      "id": "PR20.2_BANK",
+      "status": "VORBEREITET_NO_WRITE",
+      "blockedBy": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
+      "produktiveRegistrierungErlaubt": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "artifacts": [
+        "v5/dokumentation/PR20-2-BANK-PRODUKTIV-VORBEREITUNG.md",
+        "v5/grundlage/vertraege/runtime/bank-production-preparation.json",
+        "v5/grundlage/tests/pr20-bank-production-preparation.test.mjs"
+      ]
+    },
+    {
+      "id": "PR20.3_MARKT",
+      "status": "VORBEREITET_NO_WRITE",
+      "blockedBy": [
+        "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
+        "PR20.2_BANK_PRODUKTIV"
+      ],
+      "produktiveRegistrierungErlaubt": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "artifacts": [
+        "v5/dokumentation/PR20-3-MARKT-PRODUKTIV-VORBEREITUNG.md",
+        "v5/grundlage/vertraege/runtime/market-production-preparation.json",
+        "v5/grundlage/tests/pr20-market-production-preparation.test.mjs"
+      ]
+    },
+    {
+      "id": "PR20.4_LOGISTIK_TRANSFER",
+      "status": "VORBEREITET_NO_WRITE",
+      "blockedBy": [
+        "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
+        "PR20.2_BANK_PRODUKTIV",
+        "PR20.3_MARKT_PRODUKTIV"
+      ],
+      "produktiveRegistrierungErlaubt": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "erkannteRestluecken": [
+        "SEND_GOLD_RECIPIENT_GOLD_SETTLEMENT_CONTRACT"
+      ],
+      "artifacts": [
+        "v5/dokumentation/PR20-4-LOGISTIK-TRANSFER-PRODUKTIV-VORBEREITUNG.md",
+        "v5/grundlage/vertraege/runtime/logistics-transfer-production-preparation.json",
+        "v5/grundlage/tests/pr20-logistics-transfer-production-preparation.test.mjs"
+      ]
+    }
+  ]
+}

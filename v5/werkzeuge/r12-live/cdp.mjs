@@ -1,5 +1,24 @@
 const ALLOWED_ORIGIN = "https://adventure.land";
 
+export const ADVENTURE_LAND_CONTEXT_PROBE = `(() => {
+  const roots = [globalThis];
+  try {
+    if (globalThis.parent && globalThis.parent !== globalThis) {
+      roots.push(globalThis.parent);
+    }
+  } catch {}
+  for (const root of roots) {
+    try {
+      const c = root && root.character;
+      const g = root && root.G;
+      if (c && Array.isArray(c.items) && c.slots && g && g.items) {
+        return true;
+      }
+    } catch {}
+  }
+  return false;
+})()`;
+
 export function validiereLoopbackCdp(value) {
   const url = new URL(value);
   const host = url.hostname.toLowerCase();
@@ -125,14 +144,10 @@ export async function findeAdventureLandKontext(cdpBase) {
         .filter(context => context.origin === ALLOWED_ORIGIN)
         .slice(0, 32);
       for (const context of contexts) {
-        const ok = await session.evaluate(`(() => {
-          const root = typeof globalThis.equip === "function"
-            ? globalThis
-            : (globalThis.parent && typeof globalThis.parent.equip === "function" ? globalThis.parent : null);
-          const c = root && root.character;
-          const g = root && root.G;
-          return !!(root && c && Array.isArray(c.items) && c.slots && g && g.items);
-        })()`, context.id).catch(() => false);
+        const ok = await session.evaluate(
+          ADVENTURE_LAND_CONTEXT_PROBE,
+          context.id,
+        ).catch(() => false);
         if (ok === true) return { session, contextId: context.id, targetUrl: target.url };
       }
     } catch {

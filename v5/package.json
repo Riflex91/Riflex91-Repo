@@ -68,8 +68,14 @@
     "cap033034:live-gui:bauen": "node werkzeuge/cap033-cap034-live-test-paket-bauen.mjs",
     "cap033034:live-gui:pruefen": "node --check werkzeuge/cap033-cap034-live-test-gui.js && node --check werkzeuge/cap033-cap034-live-test-paket.js && node werkzeuge/cap033-cap034-live-test-paket-bauen.mjs --check && node --test werkzeuge/tests/cap033-cap034-live-test-gui.test.mjs",
     "cap045:live-gui:bauen": "node werkzeuge/cap045-production-live-test-paket-bauen.mjs",
-    "cap045:live-gui:pruefen": "node --check werkzeuge/cap045-production-live-test-gui.js && node --check werkzeuge/cap045-production-live-test-paket.js && node werkzeuge/cap045-production-live-test-paket-bauen.mjs --check && node werkzeuge/cap045-production-live-static-guards.mjs && node --test werkzeuge/tests/cap045-production-live-test-gui.test.mjs",
-    "architekturgraph:pruefen": "node werkzeuge/r3-architekturgraph-pruefen.mjs"
+    "cap045:live-gui:pruefen": "npm run bauen && node --check werkzeuge/cap045-production-live-test-gui.js && node --check werkzeuge/cap045-production-live-test-paket.js && node --check werkzeuge/cap045-production-live-evidence-pruefen.mjs && node werkzeuge/cap045-production-live-test-paket-bauen.mjs --check && node werkzeuge/cap045-production-live-static-guards.mjs && node --test werkzeuge/tests/cap045-production-live-test-gui.test.mjs werkzeuge/tests/cap045-production-live-evidence-pruefen.test.mjs",
+    "cap045:live-evidence:pruefen": "npm run bauen && node werkzeuge/cap045-production-live-evidence-pruefen.mjs",
+    "architekturgraph:pruefen": "node werkzeuge/r3-architekturgraph-pruefen.mjs",
+    "bank-planen-canary:pruefen": "npm run bauen && node --check werkzeuge/bank-planen-canary-browser.mjs && node --check werkzeuge/bank-planen-observer-canary.mjs && node --test grundlage/tests/r11-bank-planen-observer-canary.test.mjs",
+    "bank-planen-canary:live": "npm run bauen && node werkzeuge/bank-planen-observer-canary.mjs",
+    "equipment-equip-production:pruefen": "npm run bauen && node --check werkzeuge/equipment-equip-produktions-browser.mjs && node --check werkzeuge/equipment-equip-produktions-live.mjs && node --check grundlage/adapter/persistenz/node-equip-transaktionsjournal.mjs && node --test grundlage/tests/r11-equip-produktions-transaktion.test.mjs grundlage/tests/r11-equip-produktions-journal.test.mjs grundlage/tests/r11-equip-produktions-browser.test.mjs",
+    "equipment-equip-production:preflight": "npm run bauen && node werkzeuge/equipment-equip-produktions-live.mjs --preflight",
+    "equipment-equip-production:live": "npm run bauen && node werkzeuge/equipment-equip-produktions-live.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

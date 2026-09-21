@@ -13,6 +13,269 @@ const quellen = {
 };
 fehler.push(...pruefeSafetyQuelltexte(quellen));
 
+const runtimePlanen = liesText("grundlage/quelle/runtime/produktions-runtime.ts");
+for (const marker of [
+  "V5PlanenAktivierungsProtokollPort",
+  "PLANEN_AKTIVIERUNG_VOR_WIRKUNG",
+  "V5_PLANEN_AKTIVIERUNG_DURABLE_PROTOKOLL_FEHLT",
+  "V5_PLANEN_AKTIVIERUNG_AUDIT_NICHT_DURABLE",
+  "V5_PLANEN_AKTIVIERUNG_REVALIDIERUNG_FEHLGESCHLAGEN",
+  "revalidierePlanenAuthority",
+  "faehigkeit.anbieterVersion",
+]) {
+  if (!runtimePlanen.includes(marker)) {
+    fehler.push("PLANEN_DURABLE_AUTHORITY_MARKER_FEHLT:" + marker);
+  }
+}
+
+const planenAuditAdapter = liesText(
+  "grundlage/adapter/persistenz/node-planen-aktivierungs-protokoll.mjs",
+);
+for (const marker of [
+  "PLANEN_AKTIVIERUNG_VOR_WIRKUNG",
+  "erstelleExklusivDurable",
+  "PLANEN_AKTIVIERUNGS_AUDIT_ID_KOLLISION",
+  "actionAuthority: false",
+]) {
+  if (!planenAuditAdapter.includes(marker)) {
+    fehler.push("PLANEN_AUDIT_ADAPTER_MARKER_FEHLT:" + marker);
+  }
+}
+
+const produktionsDateisystem = liesText(
+  "grundlage/adapter/persistenz/node-produktions-dateisystem.mjs",
+);
+for (const marker of [
+  "D:\\AdventureLand-V5",
+  "PRODUKTIONS_DATEISYSTEM_WURZEL_UNGUELTIG",
+  "erstelleExklusivDurable",
+]) {
+  if (!produktionsDateisystem.includes(marker)) {
+    fehler.push("PRODUKTIONS_DATEISYSTEM_MARKER_FEHLT:" + marker);
+  }
+}
+
+const produktionsHost = liesText(
+  "grundlage/quelle/host/produktions-host-controller.ts",
+);
+for (const marker of [
+  "V5ProduktionsHostController",
+  "ProduktionsOperationsQuellePort",
+  "revalidierePlanenAuthority",
+  "aktivierePlanenFaehigkeit",
+  "PRODUKTIONS_HOST_OPERATIONS_QUELLE_NICHT_BEREIT",
+  "gameplayAutoritaet: false",
+  "rawWriteAutoritaet: false",
+  "actionAuthority: false",
+]) {
+  if (!produktionsHost.includes(marker)) {
+    fehler.push("PRODUKTIONS_HOST_MARKER_FEHLT:" + marker);
+  }
+}
+
+const operationsQuelle = liesText(
+  "grundlage/adapter/persistenz/node-produktions-operations-quelle.mjs",
+);
+for (const marker of [
+  "produktiver-speicher",
+  "runtime/health/storage-probe.json",
+  "schreibeAtomarDurable",
+  "statfs",
+  'zustand: "KRITISCH"',
+  "backpressureAktiv: true",
+]) {
+  if (!operationsQuelle.includes(marker)) {
+    fehler.push("PRODUKTIONS_OPERATIONS_QUELLE_MARKER_FEHLT:" + marker);
+  }
+}
+
+const supervisorQuelle = liesText(
+  "grundlage/quelle/operations/headless-supervisor.ts",
+);
+for (const marker of [
+  "operationsAktuell",
+  "maximalesOperationsAlterMs",
+  "operations.metrik.zeitMs <= jetztMs",
+]) {
+  if (!supervisorQuelle.includes(marker)) {
+    fehler.push("SUPERVISOR_OPERATIONS_FRESHNESS_FEHLT:" + marker);
+  }
+}
+
+const bedienerDenyAdapter = liesText(
+  "grundlage/adapter/persistenz/node-bediener-deny-protokoll.mjs",
+);
+for (const marker of [
+  "runtime/operator/deny.jsonl",
+  "MAXIMALE_EINTRAEGE = 4096",
+  "MAXIMALE_BYTES = 5_000_000",
+  "ladeWirksameDenyBefehle",
+  "BEDIENER_PROTOKOLL_WIRKUNG_WIDERSPRUCH",
+  "BEDIENER_PROTOKOLL_BEFEHL_ID_KOLLISION",
+]) {
+  if (!bedienerDenyAdapter.includes(marker)) {
+    fehler.push("BEDIENER_DENY_RESTART_GRENZE_FEHLT:" + marker);
+  }
+}
+
+const nodeHostKomposition = liesText(
+  "werkzeuge/v5-produktions-host-komposition.mjs",
+);
+for (const marker of [
+  "erstelleNodeV5ProduktionsHost",
+  "NodeBedienerDenyProtokoll",
+  "ladeWirksameDenyBefehle",
+  "NodePlanenAktivierungsProtokoll",
+  "NodeEquipEinmalAuthorityProtokoll",
+  "NodeEquipTransaktionsJournal",
+  "fuehreEquipEinmalTransaktion",
+  "NodeProduktionsOperationsQuelle",
+  "V5ProduktionsHostController",
+  "wendeDenyAn",
+]) {
+  if (!nodeHostKomposition.includes(marker)) {
+    fehler.push("NODE_PRODUKTIONS_HOST_KOMPOSITION_FEHLT:" + marker);
+  }
+}
+for (const verboten of [
+  "kernKomponenten(",
+  "aktiviereNichtMutierend(",
+  "aktiviereMutierend(",
+  "erteileMutierenAuthority(",
+  "erfasseOperationsMetrik(",
+]) {
+  if (nodeHostKomposition.includes(verboten)) {
+    fehler.push("NODE_PRODUKTIONS_HOST_BYPASS_VERBOTEN:" + verboten);
+  }
+}
+
+const bankCanaryBrowser = liesText(
+  "werkzeuge/bank-planen-canary-browser.mjs",
+);
+for (const marker of [
+  "BANK_CANARY_BROWSER_READ_ONLY = true",
+  "BANK_CANARY_GAMEPLAY_WRITES = 0",
+  "c.bank",
+  "G.items",
+  "BANK_CANARY_ALTERNATIVE_RUNTIME_AKTIV",
+  "BANK_CANARY_BANK_KONTEXT_FEHLT",
+]) {
+  if (!bankCanaryBrowser.includes(marker)) {
+    fehler.push("BANK_PLANEN_CANARY_BROWSER_MARKER_FEHLT:" + marker);
+  }
+}
+for (const [kennung, muster] of [
+  ["BANK_STORE", /\bbank_store\s*\(/],
+  ["BANK_RETRIEVE", /\bbank_retrieve\s*\(/],
+  ["OPEN_BANK_PACK", /\bopen_bank_pack\s*\(/],
+  ["BUY", /\bbuy\s*\(/],
+  ["SELL", /\bsell\s*\(/],
+  ["EXCHANGE", /\bexchange\s*\(/],
+  ["CRAFT", /\bcraft\s*\(/],
+  ["UPGRADE", /\bupgrade\s*\(/],
+  ["COMPOUND", /\bcompound\s*\(/],
+  ["ATTACK", /\battack\s*\(/],
+  ["MOVE", /\bmove\s*\(/],
+  ["SMART_MOVE", /\bsmart_move\s*\(/],
+  ["USE_SKILL", /\buse_skill\s*\(/],
+  ["EQUIP", /\bequip\s*\(/],
+  ["SEND_ITEM", /\bsend_item\s*\(/],
+  ["SEND_GOLD", /\bsend_gold\s*\(/],
+  ["RAW_EMIT", /\.emit\s*\(/],
+]) {
+  if (muster.test(bankCanaryBrowser)) {
+    fehler.push("BANK_PLANEN_CANARY_RAW_WRITE_VERBOTEN:" + kennung);
+  }
+}
+
+const bankCanaryRunner = liesText(
+  "werkzeuge/bank-planen-observer-canary.mjs",
+);
+for (const marker of [
+  'BANK_PLANEN_CANARY_CAPABILITY = "merchant.bank.planen"',
+  'BANK_PLANEN_CANARY_POLICY = "BANK-PLANEN-OBSERVER-CANARY-V1"',
+  "erweiterungErlaubt: false",
+  "browserGameplayWrites: 0",
+  "hostGameplayAutoritaet: false",
+  "hostRawWriteAutoritaet: false",
+  "hostActionAuthority: false",
+  "ausfuehrungsAutoritaet: false",
+  "breiteRuntimeFreigabe: false",
+  "runtime/canary/bank-planen/latest.json",
+]) {
+  if (!bankCanaryRunner.includes(marker)) {
+    fehler.push("BANK_PLANEN_CANARY_RUNNER_MARKER_FEHLT:" + marker);
+  }
+}
+
+const equipProduktionsBrowser = liesText(
+  "werkzeuge/equipment-equip-produktions-browser.mjs",
+);
+for (const marker of [
+  'this.adapterId = "v5-production-cdp-equip-once"',
+  "MERCHANT_ERFORDERLICH",
+  "ALTERNATIVE_RUNTIME_AKTIV",
+  "EQUIPMENT_SLOT_NICHT_LEER",
+  "EQUIP_PROD_MEHR_ALS_EIN_ADAPTER_AUFRUF",
+  "erstelleProduktiveEquipLiveVoraussetzungen",
+  "erstelleProduktivenEquipRecoveryBeobachter",
+]) {
+  if (!equipProduktionsBrowser.includes(marker)) {
+    fehler.push("EQUIP_PROD_BROWSER_MARKER_FEHLT:" + marker);
+  }
+}
+const equipWrites = equipProduktionsBrowser.match(/root\.equip\s*\(/g) ?? [];
+if (equipWrites.length !== 1) {
+  fehler.push("EQUIP_PROD_BROWSER_EXAKT_EIN_EQUIP_WRITE_ERFORDERLICH");
+}
+for (const [kennung, muster] of [
+  ["ATTACK", /\battack\s*\(/],
+  ["MOVE", /\bmove\s*\(/],
+  ["SMART_MOVE", /\bsmart_move\s*\(/],
+  ["USE_SKILL", /\buse_skill\s*\(/],
+  ["BANK_STORE", /\bbank_store\s*\(/],
+  ["BANK_RETRIEVE", /\bbank_retrieve\s*\(/],
+  ["BUY", /\bbuy\s*\(/],
+  ["SELL", /\bsell\s*\(/],
+  ["EXCHANGE", /\bexchange\s*\(/],
+  ["CRAFT", /\bcraft\s*\(/],
+  ["UPGRADE", /\bupgrade\s*\(/],
+  ["COMPOUND", /\bcompound\s*\(/],
+  ["SEND_ITEM", /\bsend_item\s*\(/],
+  ["SEND_GOLD", /\bsend_gold\s*\(/],
+  ["RAW_EMIT", /\.emit\s*\(/],
+]) {
+  if (muster.test(equipProduktionsBrowser)) {
+    fehler.push("EQUIP_PROD_BROWSER_FREMDWRITE_VERBOTEN:" + kennung);
+  }
+}
+
+const equipProduktionsRunner = liesText(
+  "werkzeuge/equipment-equip-produktions-live.mjs",
+);
+for (const marker of [
+  "equipment-equip-production/latest.json",
+  "fuehreEquipEinmalTransaktion",
+  "EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG",
+  "EQUIP_PROD_KEIN_LEERER_SAFE_SLOT_KANDIDAT",
+  "sameIntentRetry: false",
+  "browserGameplayWrites: 0",
+]) {
+  if (!equipProduktionsRunner.includes(marker)) {
+    fehler.push("EQUIP_PROD_RUNNER_MARKER_FEHLT:" + marker);
+  }
+}
+for (const muster of [
+  /root\.equip\s*\(/,
+  /\battack\s*\(/,
+  /\bsmart_move\s*\(/,
+  /\.emit\s*\(/,
+]) {
+  if (muster.test(equipProduktionsRunner)) {
+    fehler.push("EQUIP_PROD_RUNNER_DIREKTWRITE_VERBOTEN:" + muster);
+  }
+}
+
 const telemetrie = liesText("grundlage/quelle/operations/telemetrie.ts");
 for (const marker of [
   "ssdIoLatenzMs",

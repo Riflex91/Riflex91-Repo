@@ -204,6 +204,54 @@ test("Headless Supervisor bleibt ohne Gameplay-Autoritaet und fail-closed ohne H
   assert.equal(status.actionAuthority, false);
 });
 
+test("Headless Supervisor verwirft stale oder zukuenftige Operations-Metrik", () => {
+  const authority = new AutoritaetsStatusRegister();
+  const telemetrie = new BegrenzteOperationsTelemetrie();
+  const supervisor = new HeadlessOperationsSupervisor(
+    [{ healthId: "journal", erforderlich: true }],
+    authority,
+    telemetrie,
+    50,
+  );
+  const evidence = [{
+    healthId: "journal",
+    zustand: "GESUND",
+    beobachtetAmMs: 100,
+    gueltigBisMs: 500,
+    evidenceId: "HEALTH-JOURNAL-FRESH",
+  }];
+
+  telemetrie.erfasse({
+    schemaVersion: 1,
+    zeitMs: 100,
+    ssdIoLatenzMs: 1,
+    ioQueueTiefe: 0,
+    backpressureAktiv: false,
+    freieBytes: 1_000,
+    recorderDrops: 0,
+  });
+  const aktuell = supervisor.status(evidence, 150);
+  assert.equal(aktuell.operationsAktuell, true);
+  assert.equal(aktuell.bereit, true);
+
+  const stale = supervisor.status(evidence, 151);
+  assert.equal(stale.operationsAktuell, false);
+  assert.equal(stale.bereit, false);
+
+  telemetrie.erfasse({
+    schemaVersion: 1,
+    zeitMs: 300,
+    ssdIoLatenzMs: 1,
+    ioQueueTiefe: 0,
+    backpressureAktiv: false,
+    freieBytes: 1_000,
+    recorderDrops: 0,
+  });
+  const zukunft = supervisor.status(evidence, 200);
+  assert.equal(zukunft.operationsAktuell, false);
+  assert.equal(zukunft.bereit, false);
+});
+
 test("Retention Rotation und Kompression sind deterministisch gebunden", () => {
   const plan = planeSegmentPflege([
     { segmentId: "A", erstelltAmMs: 0, bytes: 50, komprimiert: false },

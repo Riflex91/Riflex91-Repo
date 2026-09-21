@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-21",
+  "vertragVersion": "1",
+  "kennung": "V5_EQUIPMENT_EQUIP_PRODUCTION_ONE_SHOT_TRANSACTION",
+  "capability": {
+    "id": "equipment.equip",
+    "providerModulId": "equipment-core",
+    "providerVersion": "1",
+    "modus": "MUTIEREN",
+    "registryAktivierung": false
+  },
+  "operator": {
+    "bestaetigungText": "V5 EQUIP EINMAL AUSFUEHREN",
+    "denyOnlyPolicyBleibtWirksam": true,
+    "nothaltBleibtWirksam": true
+  },
+  "candidate": {
+    "characterType": "merchant",
+    "zielslotMussLeerSein": true,
+    "waffenSlotsErlaubt": false,
+    "itemMussUnlockedSein": true,
+    "maxInventoryIndexExclusive": 128
+  },
+  "admission": {
+    "gesamtfreigabeErforderlich": true,
+    "hostMussLaufen": true,
+    "aktivePlanenCapabilitiesErlaubt": false,
+    "oneShotAuthorityErforderlich": true,
+    "operatorRecheckErforderlich": true,
+    "actionContractId": "AL-ACTION-EQUIP",
+    "recoveryContractId": "AL-RECOVERY-EQUIP",
+    "verifierId": "AL-VERIFIER-EQUIP",
+    "invariantenKennungen": [
+      "V5-ALT-002",
+      "V5-ALT-003",
+      "V5-INV-002",
+      "V5-INV-004",
+      "V5-INV-005",
+      "V5-ALT-024"
+    ],
+    "liveVoraussetzungen": [
+      "inventory_item_identity",
+      "equipment_slot_empty",
+      "character_idle",
+      "alternative_runtime_inactive"
+    ],
+    "fencing": {
+      "equipment": true,
+      "inventory": true,
+      "actionChannel": "equip"
+    },
+    "socketBudgetGewicht": 3,
+    "durableIntentVorSend": true
+  },
+  "execution": {
+    "adapterId": "v5-production-cdp-equip-once",
+    "publicFunction": "equip",
+    "maxAdapterAufrufe": 1,
+    "maxGameplayWrites": 1,
+    "sameIntentRetry": false,
+    "adapterExceptionWirdUnknown": true
+  },
+  "recovery": {
+    "sameIntentAfterPossibleSend": "NEVER",
+    "maxBeobachtungen": 4,
+    "postconditionDomaenen": [
+      "equipment",
+      "inventory"
+    ],
+    "commitNurBeiBestaetigt": true,
+    "unklarErfordertOperatorOderFailSafe": true
+  },
+  "journal": {
+    "basisPfad": "runtime/transactions/equipment-equip",
+    "globalerCurrentPointer": true,
+    "offeneTransaktionBlockiertNeue": true,
+    "maxEintraegeProTransaktion": 16,
+    "terminalArten": [
+      "COMMIT",
+      "ABBRUCH",
+      "SICHER_FEHLGESCHLAGEN"
+    ],
+    "crashZwischenCurrentUndIntentBlockiertFailClosed": true
+  },
+  "browser": {
+    "cdpNurLoopback": true,
+    "adventureLandOrigin": "https://adventure.land",
+    "alternativeRuntimeVerboten": true,
+    "einzigerGameplayWrite": "root.equip(index, slot)"
+  },
+  "preflight": {
+    "readOnly": true,
+    "browserGameplayWrites": 0,
+    "hostGateWirdGeprueft": true
+  },
+  "evidence": {
+    "reportPfad": "runtime/canary/equipment-equip-production/latest.json",
+    "charakterNurSha256Gebunden": true,
+    "sourceShaErforderlich": true,
+    "prestateFingerprintErforderlich": true,
+    "configFingerprintErforderlich": true
+  },
+  "authority": {
+    "breiteRuntimeFreigabeDurchTransaktion": false,
+    "rawWriteBypass": false,
+    "generischeMutierenAktivierung": false
+  },
+  "naechsterNachweis": {
+    "art": "MANUELLER_INGAME_ONE_SHOT",
+    "gameplayWritesErwartet": 1,
+    "nachGruenerExactHeadCiErforderlich": true
+  }
+}

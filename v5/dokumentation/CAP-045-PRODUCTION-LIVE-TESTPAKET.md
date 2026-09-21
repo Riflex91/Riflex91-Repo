@@ -1,9 +1,9 @@
 # CAP-045 – Production Live Testpaket
 
-**Status:** IMPLEMENTIERT / LIVE-ABNAHME AUSSTEHEND  
-**Basis-main:** `860b9f719370c853d5799d2bfb99c0d185c3a42a`  
+**Status:** IMPLEMENTIERT / LIVE-ABNAHME BESTANDEN  
+**Basis-main:** `090cfd84dcf872e339c6602f72810db2eff11580`  
 **Testkennung:** `cap045-production-live-certification`  
-**Controller-Version:** `1.0.0`
+**Controller-Version:** `1.0.3`
 
 ## Ziel
 
@@ -16,6 +16,8 @@ Artefakte:
 - `werkzeuge/cap045-production-live-test-paket.js`
 - `werkzeuge/cap045-production-live-static-guards.mjs`
 - `werkzeuge/tests/cap045-production-live-test-gui.test.mjs`
+- `werkzeuge/cap045-production-live-evidence-pruefen.mjs`
+- `werkzeuge/tests/cap045-production-live-evidence-pruefen.test.mjs`
 
 ## Stage 1 – Passive Live Discovery
 
@@ -32,6 +34,8 @@ Die Coverage-Klassifikationen bleiben identisch zum CAP-045-Core:
 
 Der aktuelle Live-Harness verwendet als begrenzten Discovery-Scope sichere, nicht geschuetzte Level-0-Upgrade-Ziele. Nicht beobachtete Quest-/Event-Faelle werden nicht erfunden.
 
+Der dabei erzeugte Graph besitzt exakt die Core-Felder von `ProduktionsGraph`: `planId`, `recipient`, `rootNodeId`, `planFingerprint`, `bankKatalog` und schema-konforme `schritte` inklusive Workspace-/Gate-Feldern. Die CI startet den Browser-Controller mit einem Live-Mock, nimmt den tatsaechlich erzeugten Graph und prueft ihn mit `pruefeProduktionsGraph()` aus dem kompilierten V5-Core.
+
 ## Stage 2 – Live Shadow / Soak
 
 Stage 2 sammelt fünf Minuten lang im 15-Sekunden-Intervall echte Production-Samples. Der Zertifizierer fuehrt dabei keine Gameplay-Writes aus.
@@ -43,6 +47,10 @@ Startbestaetigung:
 Die Stage erfasst unter anderem Production-ID, Plan-Fingerprint, Zustand, Demand, Gate-Verletzungen, Recipient-Settlement-Status, irreversible Operationen und die verketteten Sample-Fingerprints.
 
 Stage 2 kann den read-only Live-Soak bestehen, setzt aber bewusst noch nicht den finalen Controlled-Production-Beweis auf bestanden.
+
+Die Mindestdauer wird ab Controller 1.0.1 zwischen dem ersten und letzten echten Evidence-Sample gemessen, nicht zwischen Buttonklick und letztem Sample. Dadurch kann Start-Overhead die 5-Minuten-Grenze nicht mehr unbemerkt unterschreiten.
+
+Ab Controller 1.0.2 wird die Serverbindung aus den tatsaechlichen Adventure-Land-Runner-Surfaces gelesen. Zulässig sind direkte `server_region/server_identifier`, das offizielle Runner-Objekt `server.region/server.id` sowie die entsprechenden Parent-Surfaces. Fehlt weiterhin eine vollstaendige reale Bindung, bleibt Stage 1 mit `SERVER_BINDUNG_FEHLT` fail-closed.
 
 ## Stage 3 – Controlled Production Live Proof
 
@@ -98,4 +106,59 @@ Wenn reale Evidence unvollständig ist oder eine Stage blockiert, bleibt:
 
 Der GUI-Gesamtbericht enthält mindestens Testkennung, GUI-/Controller-Version, Gesamtstatus, Start-/Endzeit, Stage-Status, Evidence-Klasse, CoverageAudit, Soak-Dauer, Samples/Gaps, Fingerprint-Fehler, Duplicate/Unverified irreversible Effects, Invariant Violations, Recipient Settlement, Zertifizierer-Writes, Synthetic Regression, Live-Beweis-Status, Blocker sowie die beiden unveraenderlichen Safety-Werte.
 
-Der Bericht ist nach Abschluss über **Gesamtbericht kopieren** zu kopieren und zur Auswertung gegen den exakten Repo-/Merge-Stand zu verwenden.
+Der normale GUI-Gesamtbericht bleibt fuer die menschliche Diagnose geeignet, begrenzt verschachtelte Werte aber absichtlich. Fuer die formale Evidence-Abnahme ist ab Controller 1.0.3 der read-only **Maschinenbericht vollständig kopieren** zu verwenden. Er serialisiert `bericht()` direkt per `JSON.stringify` und veraendert weder Session noch Journal noch Gameplay.
+
+
+## Formale Evidence-Abnahme
+
+Nach dem Ingame-Lauf wird der unveraenderte lossless Maschinenbericht fail-closed validiert. Ein bereits mit Controller 1.0.2 abgeschlossener Lauf darf nach Laden von 1.0.3 aus der persistenten Session exportiert werden; `bericht()` bewahrt dabei die urspruengliche Session-Controller-Version.
+
+Validator:
+
+`werkzeuge/cap045-production-live-evidence-pruefen.mjs`
+
+Der Validator akzeptiert Controller `1.0.2` und `1.0.3` und verlangt unter anderem:
+
+- alle drei Stages `BESTANDEN`;
+- ausschliesslich `LIVE`-Evidence fuer den Live-Nachweis;
+- vollstaendigen CoverageAudit ohne Structural Gap;
+- mindestens 300000 ms echte Sample-zu-Sample-Dauer;
+- mindestens 20 und hoechstens 30 Live-Samples;
+- 0 Sample-Gaps und 0 Fingerprint-Fehler;
+- 0 Duplicate/Unverified irreversible Effects und 0 Invariant Violations;
+- `zertifiziererGameplayWrites=0`;
+- exakt `controlledProofDriverGameplayWrites=1`;
+- `COMMITTED`, verifizierte Postcondition und Recipient Settlement;
+- keinen Same-Intent-Retry;
+- `breiteRuntimeFreigabe=false`.
+
+Jeder Coverage-Graph aus dem Bericht wird beim Import erneut mit dem echten V5-Core-`pruefeProduktionsGraph()` validiert. Aus einem bestandenen Bericht kann anschliessend ein kanonisches Evidence-JSON mit SHA-256-Fingerprint des unveraenderten Quellberichts erzeugt werden.
+
+Beispiel:
+
+`npm run cap045:live-evidence:pruefen -- bericht.txt --evidence roadmap/cap045-production-live-evidence.json`
+
+Die Evidence-Datei darf erst nach einem echten bestandenen Adventure-Land-Lauf erzeugt und committed werden.
+
+## Abgeschlossene Live-Abnahme
+
+Die Production-Live-Abnahme wurde am 2026-09-20 erfolgreich abgeschlossen und als kanonische Evidence committed:
+
+`roadmap/cap045-production-live-evidence.json`
+
+Der validierte Lauf verwendete GUI 1.1.0 und Live-Controller 1.0.2. Der spaetere Controller 1.0.3 wurde ausschliesslich fuer den verlustfreien read-only Maschinenexport geladen; die originale Session-Provenienz blieb 1.0.2.
+
+Der finale Lauf weist aus:
+
+- Stage 1 / 2 / 3: `BESTANDEN`;
+- 4/4 Coverage-Ziele `FULLY_RESOLVED`;
+- 352710 ms Live-Soak und 22 Samples;
+- 0 Sample-Gaps, Fingerprint-Fehler, Duplicate/Unverified Effects und Invariant Violations;
+- `zertifiziererGameplayWrites=0`;
+- exakt `controlledProofDriverGameplayWrites=1`;
+- `sendCount=1` und kein Same-Intent-Retry;
+- verifizierte Postcondition und Recipient Settlement;
+- Journal `COMMITTED`;
+- `breiteRuntimeFreigabe=false` innerhalb der CAP-045-Evidence.
+
+Der SHA-256-Fingerprint des unveraenderten lossless Maschinenberichts ist in der Evidence als `sourceReportFingerprintSha256` gepinnt.

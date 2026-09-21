@@ -463,7 +463,7 @@
   'use strict';
 
   const API_NAME = 'V5Cap045ProductionLiveTest';
-  const VERSION = '1.0.0';
+  const VERSION = '1.0.3';
   const TESTKENNUNG = 'cap045-production-live-certification';
   const SESSION_KEY = 'AIO_V5_CAP045_PRODUCTION_LIVE_SESSION_V1';
   const JOURNAL_KEY = 'AIO_V5_CAP045_PRODUCTION_LIVE_JOURNAL_V1';
@@ -674,15 +674,76 @@
     });
   }
 
+  function nichtLeererText(wert) {
+    if (wert === null || wert === undefined) return '';
+    const text = String(wert).trim();
+    return text;
+  }
+
+  function serverBindung(root) {
+    let parentRoot = null;
+    try {
+      if (root?.parent && root.parent !== root) parentRoot = root.parent;
+    } catch {}
+    try {
+      if (!parentRoot && parent && parent !== root) parentRoot = parent;
+    } catch {}
+
+    const regionKandidaten = [
+      root?.server_region,
+      root?.server?.region,
+      parentRoot?.server_region,
+      parentRoot?.server?.region
+    ];
+    const identifierKandidaten = [
+      root?.server_identifier,
+      root?.server?.id,
+      parentRoot?.server_identifier,
+      parentRoot?.server?.id
+    ];
+    const serverRegion = regionKandidaten.map(nichtLeererText).find(Boolean) ?? '';
+    const serverIdentifier = identifierKandidaten.map(nichtLeererText).find(Boolean) ?? '';
+    const quelle = root?.server_region && root?.server_identifier
+      ? 'ROOT_LEGACY_GLOBALS'
+      : root?.server?.region && root?.server?.id
+        ? 'RUNNER_SERVER_OBJECT'
+        : parentRoot?.server_region && parentRoot?.server_identifier
+          ? 'PARENT_SERVER_GLOBALS'
+          : parentRoot?.server?.region && parentRoot?.server?.id
+            ? 'PARENT_SERVER_OBJECT'
+            : 'FEHLT';
+    return Object.freeze({ serverRegion, serverIdentifier, quelle });
+  }
+
+  function accountBindung(root) {
+    let parentRoot = null;
+    try {
+      if (root?.parent && root.parent !== root) parentRoot = root.parent;
+    } catch {}
+    try {
+      if (!parentRoot && parent && parent !== root) parentRoot = parent;
+    } catch {}
+    return nichtLeererText(
+      root?.user_id
+      || parentRoot?.user_id
+      || root?.character?.owner
+      || parentRoot?.character?.owner
+    );
+  }
+
   function beobachte() {
     const root = rootFenster();
     const inventar = inventarSnapshot(root);
     const kandidaten = upgradeKandidaten(inventar);
+    const server = serverBindung(root);
     return Object.freeze({
       zeitMs: Date.now(),
       charakter: String(root.character?.name || ''),
-      serverRegion: String(root.server_region || ''),
-      serverIdentifier: String(root.server_identifier || ''),
+      accountId: accountBindung(root),
+      characterSessionId: String(root.character?.id || ''),
+      serverRegion: server.serverRegion,
+      serverIdentifier: server.serverIdentifier,
+      serverBindungQuelle: server.quelle,
       rip: !!root.character?.rip,
       bewegtSich: !!root.character?.moving,
       ziel: root.character?.target == null ? null : String(root.character.target),
@@ -731,20 +792,47 @@
       && !['COMMITTED', 'FAILED_SAFE', 'ABORTED'].includes(journal.status);
   }
 
-  function coverageGraph(produktionsId, kandidat) {
+  function coverageGraph(produktionsId, kandidat, obs) {
     const upgradeId = 'upgrade:1';
     const deliveryId = 'delivery:2';
+    const recipient = Object.freeze({
+      schemaVersion: 1,
+      accountId: obs.accountId,
+      characterId: obs.charakter,
+      sessionId: obs.characterSessionId,
+      serverRegion: obs.serverRegion,
+      serverIdentifier: obs.serverIdentifier,
+      rosterEpoche: 1,
+      rosterFingerprint: evidenceFingerprint({
+        accountId: obs.accountId,
+        characterId: obs.charakter,
+        sessionId: obs.characterSessionId,
+        serverRegion: obs.serverRegion,
+        serverIdentifier: obs.serverIdentifier
+      })
+    });
+    const workspaceNachweisFingerprint = evidenceFingerprint({
+      art: 'UPGRADE',
+      zielFingerprint: kandidat.ziel.fingerprint,
+      scrollFingerprint: kandidat.scroll.fingerprint,
+      zielIndex: kandidat.ziel.index,
+      scrollIndex: kandidat.scroll.index
+    });
     return Object.freeze({
       schemaVersion: 1,
-      produktionsId,
+      planId: produktionsId,
+      recipient,
       rootNodeId: deliveryId,
       planFingerprint: evidenceFingerprint({
-        produktionsId,
+        planId: produktionsId,
+        recipient,
         kandidatFingerprint: kandidat.fingerprint,
+        workspaceNachweisFingerprint,
         actionContractId: ACTION_CONTRACT_ID,
         recoveryContractId: RECOVERY_CONTRACT_ID,
         verifierId: VERIFIER_ID
       }),
+      bankKatalog: null,
       schritte: Object.freeze([
         Object.freeze({
           nodeId: upgradeId,
@@ -754,9 +842,8 @@
           outputLevel: kandidat.outputLevel,
           outputMenge: 1,
           operationSchluessel: produktionsId + ':upgrade:' + String(kandidat.ziel.index),
-          actionContractId: ACTION_CONTRACT_ID,
-          recoveryContractId: RECOVERY_CONTRACT_ID,
-          verifierId: VERIFIER_ID
+          workspaceNachweisFingerprint,
+          gateEvidence: null
         }),
         Object.freeze({
           nodeId: deliveryId,
@@ -766,7 +853,8 @@
           outputLevel: kandidat.outputLevel,
           outputMenge: 1,
           operationSchluessel: produktionsId + ':delivery:self',
-          selfRecipientSettlement: true
+          workspaceNachweisFingerprint: null,
+          gateEvidence: null
         })
       ])
     });
@@ -776,7 +864,7 @@
     const faelle = obs.kandidaten.map((kandidat, index) => {
       const produktionsId = 'cap045-live-' + obs.charakter + '-' + String(obs.zeitMs)
         + '-' + String(index + 1);
-      const graph = coverageGraph(produktionsId, kandidat);
+      const graph = coverageGraph(produktionsId, kandidat, obs);
       return Object.freeze({
         fallId: 'live-coverage-' + String(index + 1),
         zielId: kandidat.outputName + ':' + String(kandidat.outputLevel),
@@ -786,6 +874,12 @@
         klassifikation: 'FULLY_RESOLVED',
         grund: null,
         graph,
+        vertraege: Object.freeze({
+          actionContractId: ACTION_CONTRACT_ID,
+          recoveryContractId: RECOVERY_CONTRACT_ID,
+          verifierId: VERIFIER_ID,
+          recipientSettlement: 'SELF'
+        }),
         kandidat
       });
     });
@@ -1034,6 +1128,8 @@
   function blockerFuerStage1(obs) {
     const blocker = [];
     if (!obs.charakter) blocker.push('CHARAKTER_FEHLT');
+    if (!obs.accountId) blocker.push('ACCOUNT_BINDUNG_FEHLT');
+    if (!obs.characterSessionId) blocker.push('CHARACTER_SESSION_BINDUNG_FEHLT');
     if (!obs.serverRegion || !obs.serverIdentifier) blocker.push('SERVER_BINDUNG_FEHLT');
     if (obs.rip) blocker.push('CHARAKTER_TOT');
     if (obs.bewegtSich) blocker.push('CHARAKTER_BEWEGT_SICH');
@@ -1062,6 +1158,11 @@
         evidenceKlasse: 'LIVE',
         coverageAudit: null,
         blocker,
+        serverBindung: Object.freeze({
+          region: obs.serverRegion || null,
+          identifier: obs.serverIdentifier || null,
+          quelle: obs.serverBindungQuelle
+        }),
         zertifiziererGameplayWrites: 0,
         synthetischeEvidenceZaehltAlsLive: false,
         breiteRuntimeFreigabe: false
@@ -1101,7 +1202,7 @@
         outcome: null
       },
       production: {
-        produktionsId: ausgewaehlt.graph.produktionsId,
+        produktionsId: ausgewaehlt.graph.planId,
         planFingerprint: ausgewaehlt.graph.planFingerprint,
         graph: ausgewaehlt.graph,
         kandidat: ausgewaehlt.kandidat,
@@ -1645,7 +1746,7 @@
       schemaVersion: 1,
       testkennung: TESTKENNUNG,
       guiVersion: session.guiVersion ?? gui.version,
-      controllerVersion: VERSION,
+      controllerVersion: session.controllerVersion ?? VERSION,
       gesamtstatus: liveBeweisBestanden ? 'BESTANDEN' : 'UNVOLLSTAENDIG_ODER_BLOCKIERT',
       startzeit: session.gestartetAm ?? null,
       endzeit: session.beendetAm ?? null,
@@ -1689,6 +1790,50 @@
     });
   }
 
+  function maschinenBerichtObjekt() {
+    const result = bericht();
+    if (result.gesamtstatus !== 'BESTANDEN') {
+      throw new Error('CAP045_MASCHINENBERICHT_NUR_NACH_BESTANDEN');
+    }
+    return result;
+  }
+
+  function maschinenBerichtText() {
+    return JSON.stringify(maschinenBerichtObjekt(), null, 2);
+  }
+
+  async function kopiereMaschinenBericht() {
+    const text = maschinenBerichtText();
+    const root = rootFenster();
+    const roots = [root];
+    try { if (parent && parent !== root) roots.push(parent); } catch {}
+    for (const kandidat of roots) {
+      try {
+        const nav = kandidat?.navigator;
+        if (nav?.clipboard?.writeText) {
+          await nav.clipboard.writeText(text);
+          return Object.freeze({ status: 'KOPIERT', zeichen: text.length });
+        }
+      } catch {}
+    }
+    let doc = null;
+    try { doc = parent?.document ?? globalThis.document; } catch {}
+    if (!doc?.body) throw new Error('CAP045_MASCHINENBERICHT_CLIPBOARD_FEHLT');
+    const feld = doc.createElement('textarea');
+    feld.value = text;
+    feld.setAttribute('readonly', '');
+    feld.style.position = 'fixed';
+    feld.style.left = '-10000px';
+    feld.style.top = '0';
+    doc.body.appendChild(feld);
+    feld.select();
+    let ok = false;
+    try { ok = doc.execCommand('copy'); }
+    finally { feld.remove(); }
+    if (!ok) throw new Error('CAP045_MASCHINENBERICHT_KOPIEREN_FEHLGESCHLAGEN');
+    return Object.freeze({ status: 'KOPIERT', zeichen: text.length });
+  }
+
   const gui = guiApi().erstelleTest({
     kennung: TESTKENNUNG,
     titel: 'V5 · CAP-045 · Production Live Certification',
@@ -1716,8 +1861,10 @@
   }
 
   function restzeitMs(session) {
-    if (!session?.stage2?.gestartetAmMs) return SOAK_DAUER_MS;
-    return Math.max(0, SOAK_DAUER_MS - (Date.now() - session.stage2.gestartetAmMs));
+    const evidenceStartMs = session?.samples?.[0]?.zeitMs
+      ?? session?.stage2?.gestartetAmMs;
+    if (!evidenceStartMs) return SOAK_DAUER_MS;
+    return Math.max(0, SOAK_DAUER_MS - (Date.now() - evidenceStartMs));
   }
 
   function stoppeCountdown(abgeschlossen = false) {
@@ -1753,7 +1900,8 @@
         breiteRuntimeFreigabe: false
       }, 'laeuft', 'Stage 2 LIVE-Soak laeuft read-only.');
 
-      if (sample.zeitMs - aktualisiert.stage2.gestartetAmMs >= SOAK_DAUER_MS) {
+      if (samples.length >= MIN_LIVE_SAMPLES
+          && sample.zeitMs - samples[0].zeitMs >= SOAK_DAUER_MS) {
         if (soakTimer !== null) clearInterval(soakTimer);
         soakTimer = null;
         stoppeCountdown(true);
@@ -1942,6 +2090,18 @@
     }
   });
 
+  gui.registriereAktion({
+    kennung: 'maschinenbericht-kopieren',
+    titel: 'Maschinenbericht vollständig kopieren',
+    art: 'primaer',
+    async ausfuehren() {
+      const result = await kopiereMaschinenBericht();
+      gui.protokolliere('CAP-045 Maschinenbericht', result);
+      gui.setzeStatus('bestanden', 'Maschinenbericht vollständig und read-only kopiert.');
+      return result;
+    }
+  });
+
   const api = Object.freeze({
     version: VERSION,
     testkennung: TESTKENNUNG,
@@ -1951,6 +2111,9 @@
     status: () => liesSession(),
     journal: () => liesJournal(),
     bericht,
+    maschinenBerichtObjekt,
+    maschinenBerichtText,
+    kopiereMaschinenBericht,
     stage1Discovery,
     stage3Preflight,
     kopiereBericht: () => gui.kopiereBericht()

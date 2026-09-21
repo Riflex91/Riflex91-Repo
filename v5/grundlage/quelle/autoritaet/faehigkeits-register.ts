@@ -115,8 +115,9 @@ export class FaehigkeitsRegister {
   public aktiviereNichtMutierend(
     faehigkeitId: string,
     anbieterModulId: string,
+    anbieterVersion?: string,
   ): FaehigkeitsEintrag {
-    const eintrag = this.#finde(faehigkeitId, anbieterModulId);
+    const eintrag = this.#finde(faehigkeitId, anbieterModulId, anbieterVersion);
     if (eintrag.modus === "MUTIEREN") {
       throw new Error("R7_MUTIERENDE_AKTIVIERUNG_GESPERRT");
     }
@@ -129,8 +130,9 @@ export class FaehigkeitsRegister {
   public deaktiviere(
     faehigkeitId: string,
     anbieterModulId: string,
+    anbieterVersion?: string,
   ): FaehigkeitsEintrag {
-    const eintrag = this.#finde(faehigkeitId, anbieterModulId);
+    const eintrag = this.#finde(faehigkeitId, anbieterModulId, anbieterVersion);
     return this.#ersetze(eintrag, { aktiv: false });
   }
 
@@ -161,10 +163,16 @@ export class FaehigkeitsRegister {
     );
   }
 
-  #finde(faehigkeitId: string, anbieterModulId: string): FaehigkeitsEintrag {
+  #finde(
+    faehigkeitId: string,
+    anbieterModulId: string,
+    anbieterVersion?: string,
+  ): FaehigkeitsEintrag {
     const eintrag = this.#eintraege.find(kandidat =>
       kandidat.faehigkeitId === faehigkeitId
-      && kandidat.anbieterModulId === anbieterModulId);
+      && kandidat.anbieterModulId === anbieterModulId
+      && (anbieterVersion === undefined
+        || kandidat.anbieterVersion === anbieterVersion));
     if (eintrag === undefined) throw new Error("FAEHIGKEITS_ANBIETER_UNBEKANNT");
     return eintrag;
   }

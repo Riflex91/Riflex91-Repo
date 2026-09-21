@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_KANONISCHE_NODE_HOST_KOMPOSITION",
+  "stand": "2026-09-20",
+  "status": "RATIFIZIERT",
+  "operatorDeny": {
+    "pfad": "runtime/operator/deny.jsonl",
+    "maximaleEintraege": 4096,
+    "maximaleBytes": 5000000,
+    "restartReplayErforderlich": true,
+    "idempotentNachBefehlId": true,
+    "abweichenderInhaltBeiGleicherIdVerboten": true,
+    "wirkungHistorischValidiert": true,
+    "allowBefehlVorhanden": false
+  },
+  "komposition": {
+    "kanonischeFabrik": "erstelleNodeV5ProduktionsHost",
+    "runtimeBypassExponiert": false,
+    "registerBypassExponiert": false,
+    "supervisorBypassExponiert": false,
+    "telemetrieBypassExponiert": false,
+    "postStartRevalidierungsfehlerStopptRuntime": true,
+    "equipEinmalAuthorityPfadExponiert": true,
+    "generischeMutierenAktivierungExponiert": false,
+    "equipEinmalTransaktionExponiert": true,
+    "generischeMutierenAusfuehrungExponiert": false
+  },
+  "authority": {
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "actionAuthority": false,
+    "breiteGameplayAutoritaet": false
+  },
+  "mutierendeCapabilitiesDurchDiesenVertrag": 1,
+  "equipEinmalAuthority": {
+    "capabilityId": "equipment.equip",
+    "provider": "equipment-core@1",
+    "maximaleVerwendungen": 1,
+    "maximaleLebensdauerMs": 2000,
+    "durableVorAusstellung": true,
+    "frischeOperationsEvidence": true,
+    "registryAktivierung": false,
+    "gameplayWriteDurchAusstellung": 0
+  },
+  "equipEinmalTransaktion": {
+    "capabilityId": "equipment.equip",
+    "provider": "equipment-core@1",
+    "preflightReadOnly": true,
+    "leererZielslotErforderlich": true,
+    "durableIntentVorSend": true,
+    "fencingEquipmentInventoryActionChannel": true,
+    "socketBudgetGewicht": 3,
+    "maxAdapterAufrufe": 1,
+    "maxGameplayWrites": 1,
+    "sameIntentRetry": false,
+    "recoveryMaxBeobachtungen": 4,
+    "offeneTransaktionBlockiertNeue": true
+  }
+}
