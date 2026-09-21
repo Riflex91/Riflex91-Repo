@@ -61,7 +61,9 @@ test("Bank-Withdraw-Write-Adapter enthaelt exakt einen erlaubten Public-Function
     "werkzeuge/bank-withdraw-produktions-write-browser.mjs",
     "utf8",
   );
-  assert.equal((source.match(/root\.bank_withdraw\(1\)/g) ?? []).length, 1);
+  assert.equal((source.match(/runner\.bank_withdraw\(1\)/g) ?? []).length, 1);
+  assert.match(source, /call_code_function_f\('eval','void 0'\)/);
+  assert.match(source, /typeof r\.call_code_function_f==='function'/);
   for (const muster of [
     /\.emit\s*\(/,
     /\bbank_deposit\s*\(/,
@@ -100,7 +102,8 @@ test("Bank-Withdraw-Adapter revalidiert Inventory/Fingerprint read-only und send
   assert.equal(adapter.adapterAufrufe, 1);
   assert.equal(adapter.gameWrites, 1);
   assert.equal(adapter.moeglicherSend, true);
-  assert.ok(expression.includes("root.bank_withdraw(1)"));
+  assert.ok(expression.includes("runner.bank_withdraw(1)"));
+  assert.ok(expression.includes("call_code_function_f('eval','void 0')"));
 
   await assert.rejects(
     () => adapter.sende({}, request()),
