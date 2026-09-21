@@ -190,7 +190,7 @@
     "liveLeaseTerminalStatus": "RELEASED"
   },
   "naechsterLiveKandidat": {
-    "status": "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE",
+    "status": "TWO_TEST_LIMIT_REACHED_CODE_BRIDGE_READ_ONLY_BESTAETIGT",
     "vertrag": "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
     "settlementCore": "grundlage/quelle/merchant/bank-withdraw-settlement.ts",
     "test": "grundlage/tests/pr20-bank-withdraw-settlement.test.mjs",
@@ -208,7 +208,7 @@
     "currentFenceImplementiert": true,
     "writeAdapterImplementiert": true,
     "liveRunnerImplementiert": true,
-    "gameplayWritesInDiesemSchritt": 0,
+    "gameplayWritesInDiesemSchritt": 1,
     "provider": "merchant-bank-core@1",
     "capabilityId": "merchant.bank.gold_auslagern",
     "capabilityVertrag": "grundlage/vertraege/runtime/bank-withdraw-mutationsfaehigkeit.json",
@@ -246,7 +246,16 @@
     "sourceLockedWritePreflight": true,
     "maximaleAdapterAufrufe": 1,
     "maximaleGameplayWrites": 1,
-    "realLiveWritePerformed": false
+    "realLiveWritePerformed": true,
+    "functionalTestLimit": 2,
+    "functionalTestsConsumed": 2,
+    "additionalFunctionalTestAllowed": false,
+    "liveEvidence": "NICHT_BESTANDEN_TESTLIMIT_ERREICHT",
+    "liveEvidencePfad": "roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json",
+    "correctedCodeBridgeReadOnlyEvidence": "BESTANDEN",
+    "correctedCodeBridgeSourceSha": "d9528c6dccd4befeb8021cf1a0a6c1b936e0f3c3",
+    "officialCodeBridge": "call_code_function_f",
+    "productionWideActivationAllowed": false
   },
   "bankWithdrawCloseout": {
     "status": "TWO_TEST_LIMIT_REACHED_CODE_BRIDGE_READ_ONLY_BESTAETIGT",
