@@ -2,10 +2,11 @@ local addonName, MG = ...
 
 MG.ErrorLogWindow = MG.ErrorLogWindow or {}
 local E = MG.ErrorLogWindow
+local UI = MG.UICompat
 
 local function makeButton(parent, text, width, callback)
     local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    button:SetSize(width, 24)
+    UI:SetSize(button, width, 24)
     button:SetText(text)
     button:SetScript("OnClick", callback)
     return button
@@ -15,23 +16,23 @@ function E:Create()
     if self.frame then return self.frame end
 
     local frame = CreateFrame("Frame", "MewthischGuides1ErrorLog", UIParent)
-    frame:SetSize(760, 520)
+    UI:SetSize(frame, 760, 520)
     frame:SetPoint("CENTER")
-    frame:SetFrameStrata("FULLSCREEN_DIALOG")
-    frame:SetFrameLevel(250)
+    UI:SetFrameStrata(frame, "FULLSCREEN_DIALOG")
+    if frame.SetFrameLevel then frame:SetFrameLevel(250) end
     frame:SetMovable(true)
-    frame:SetClampedToScreen(true)
+    UI:SetClampedToScreen(frame, true)
     frame:EnableMouse(true)
 
     local bg = frame:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints()
-    bg:SetColorTexture(0.02, 0.025, 0.03, 0.98)
+    UI:SetSolid(bg, 0.02, 0.025, 0.03, 0.98)
 
-    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    local title = frame:CreateFontString(nil, "OVERLAY", UI:SafeFont("GameFontNormalLarge", "GameFontNormal"))
     title:SetPoint("TOPLEFT", 14, -12)
-    title:SetText("Mewthisch Guides 1.0 – Fehler & Diagnose")
+    title:SetText("Mewthisch Guides 1.0 - Fehler & Diagnose")
 
-    local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    local hint = frame:CreateFontString(nil, "OVERLAY", UI:SafeFont("GameFontHighlightSmall", "GameFontNormalSmall"))
     hint:SetPoint("TOPLEFT", 14, -38)
     hint:SetText("Strg+A und Strg+C kopieren den kompletten Diagnoseblock.")
 
@@ -40,11 +41,13 @@ function E:Create()
     drag:SetPoint("TOPRIGHT")
     drag:SetHeight(34)
     drag:EnableMouse(true)
-    drag:RegisterForDrag("LeftButton")
+    if drag.RegisterForDrag then drag:RegisterForDrag("LeftButton") end
     drag:SetScript("OnDragStart", function()
-        if not (InCombatLockdown and InCombatLockdown()) then frame:StartMoving() end
+        if not (InCombatLockdown and InCombatLockdown()) and frame.StartMoving then frame:StartMoving() end
     end)
-    drag:SetScript("OnDragStop", function() frame:StopMovingOrSizing() end)
+    drag:SetScript("OnDragStop", function()
+        if frame.StopMovingOrSizing then frame:StopMovingOrSizing() end
+    end)
 
     local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 14, -64)
@@ -53,10 +56,10 @@ function E:Create()
     local edit = CreateFrame("EditBox", nil, scroll)
     edit:SetMultiLine(true)
     edit:SetAutoFocus(false)
-    edit:SetFontObject(ChatFontNormal)
+    if ChatFontNormal and edit.SetFontObject then edit:SetFontObject(ChatFontNormal) end
     edit:SetWidth(690)
     edit:SetHeight(4000)
-    edit:SetTextInsets(4, 4, 4, 4)
+    UI:SetTextInsets(edit, 4, 4, 4, 4)
     edit:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     scroll:SetScrollChild(edit)
 
@@ -65,7 +68,7 @@ function E:Create()
 
     local selectAll = makeButton(frame, "Alles markieren", 120, function()
         edit:SetFocus()
-        edit:HighlightText()
+        if edit.HighlightText then edit:HighlightText() end
     end)
     selectAll:SetPoint("LEFT", refresh, "RIGHT", 8, 0)
 
@@ -77,7 +80,7 @@ function E:Create()
     end)
     clear:SetPoint("LEFT", selectAll, "RIGHT", 8, 0)
 
-    local close = makeButton(frame, "Schließen", 100, function() frame:Hide() end)
+    local close = makeButton(frame, "Schliessen", 100, function() frame:Hide() end)
     close:SetPoint("BOTTOMRIGHT", -14, 14)
 
     self.frame = frame
@@ -89,12 +92,17 @@ end
 function E:Refresh()
     self:Create()
     self.edit:SetText(MG:GetErrorLogText(true))
-    self.edit:SetCursorPosition(0)
+    if self.edit.SetCursorPosition then self.edit:SetCursorPosition(0) end
 end
 
 function E:Toggle(force)
     local frame = self:Create()
     local show = force
     if show == nil then show = not frame:IsShown() end
-    if show then self:Refresh(); frame:Show() else frame:Hide() end
+    if show then
+        self:Refresh()
+        frame:Show()
+    else
+        frame:Hide()
+    end
 end
