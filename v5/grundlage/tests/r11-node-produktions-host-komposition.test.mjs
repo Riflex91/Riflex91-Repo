@@ -544,11 +544,22 @@ test("Node-Host fuehrt Real-Browser-Bank-Shadow bis R9-Admission ohne Gameplay-W
       state.eintraege.map(x => x.art),
       ["INTENT", "ABBRUCH"],
     );
+    const abbruch = JSON.parse(await fs.readFile(
+      path.join(
+        root,
+        "runtime",
+        "transactions",
+        "bank-deposit",
+        "NODE-BANK-SHADOW-TX-1",
+        "000002-ABBRUCH.json",
+      ),
+      "utf8",
+    ));
     assert.equal(
-      state.eintraege[1].inhalt.send_boundary_state,
+      abbruch.inhalt.send_boundary_state,
       "NICHT_GESENDET",
     );
-    assert.equal(state.eintraege[1].inhalt.gameplay_writes, 0);
+    assert.equal(abbruch.inhalt.gameplay_writes, 0);
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }
