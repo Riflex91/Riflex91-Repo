@@ -69,6 +69,19 @@ function R:FocusSession(session, reason)
     snapshot = MG.RuntimeStore:Commit(snapshot)
     snapshot.events = MG.TransitionDetector:Detect(previous, snapshot)
 
+    MG:Log("INFO", "runtime.snapshot", "Semantischer Runtime-Snapshot aktualisiert.", {
+        revision = snapshot.revision,
+        reason = snapshot.reason,
+        guideID = snapshot.guideID,
+        stepID = snapshot.stepID,
+        stepIndex = snapshot.stepIndex,
+        destinationGoalID = snapshot.destinationGoal and snapshot.destinationGoal.id or nil,
+        destinationAction = snapshot.destinationGoal and snapshot.destinationGoal.action or nil,
+        waypoint = snapshot.destinationWaypoint,
+        position = snapshot.facts and snapshot.facts.position or nil,
+        stepState = snapshot.stepState,
+    })
+
     for _, event in ipairs(snapshot.events) do
         MG:Log("INFO", "runtime." .. string.lower(event.type), event.type, event)
     end
