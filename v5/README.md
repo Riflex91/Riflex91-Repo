@@ -396,3 +396,9 @@ Vertrag: `dokumentation/GESAMTFREIGABE.md`
 Validator: `werkzeuge/gesamtfreigabe-pruefen.mjs`  
 CI: `.github/workflows/v5-gesamtfreigabe.yml`
 
+
+## Post-R19 Merchant-Vorbereitung
+
+Der aktuelle Contract-Katalog wurde fuer die sichere Merchant-Vorbereitung um den engen same-account MLuck-Vertrag erweitert: **61 Action/Recovery/Verifier-Bindungen insgesamt, 60 verifiziert und 1 (`cave_buy`) weiterhin deaktiviert**. Die Erweiterung oeffnet keine generische `use_skill`-Authority und keine produktive MLuck-Capability.
+
+PR20.2 Bank, PR20.3 Markt und PR20.4 Logistik sind NO-WRITE vorbereitet. Zusaetzlich stehen jetzt ein authority-freier Gold-Recipient-Settlement-Verifier und ein Merchant-Dienst-Stabilitaetsplaner gegen Pingpong/Starvation bereit. Das aktive reale Gate bleibt PR20.1 Equip.
