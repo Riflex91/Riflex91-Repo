@@ -346,6 +346,8 @@ for (const marker of [
   "CHARACTER_GOLD_DRIFT",
   "BANK_GOLD_DRIFT",
   "DISCONNECT_NACH_MOEGLICHEM_SEND",
+  "call_code_function_f('eval','void 0')",
+  "CODE_RUNNER_BANK_WITHDRAW_CAPABILITY_FEHLT",
 ]) {
   if (!bankDepositWriteBrowser.includes(marker)) {
     fehler.push("BANK_DEPOSIT_WRITE_BROWSER_MARKER_FEHLT:" + marker);
@@ -445,7 +447,7 @@ const bankWithdrawCandidate = liesText(
   "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
 );
 for (const marker of [
-  '"status": "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE"',
+  '"status": "TWO_TEST_LIMIT_REACHED_CODE_BRIDGE_READ_ONLY_BESTAETIGT"',
   '"publicFunction": "bank_withdraw"',
   '"characterGoldDelta": 1',
   '"bankGoldDelta": -1',
@@ -454,8 +456,8 @@ for (const marker of [
   '"authorityInDiesemSchritt": true',
   '"adapterInDiesemSchritt": true',
   '"liveRunnerInDiesemSchritt": true',
-  '"gameplayWritesInDiesemSchritt": 0',
-  '"realLiveWritePerformed": false',
+  '"gameplayWritesInDiesemSchritt": 1',
+  '"realLiveWritePerformed": true',
   '"publicFunctionCallCountStatic": 1',
 ]) {
   if (!bankWithdrawCandidate.includes(marker)) {
@@ -484,7 +486,7 @@ for (const marker of [
   }
 }
 const bankWithdrawWrites =
-  bankWithdrawWriteBrowser.match(/root\.bank_withdraw\(1\)/g) ?? [];
+  bankWithdrawWriteBrowser.match(/runner\.bank_withdraw\(1\)/g) ?? [];
 if (bankWithdrawWrites.length !== 1) {
   fehler.push("BANK_WITHDRAW_WRITE_BROWSER_EXAKT_EIN_WITHDRAW_1_ERFORDERLICH");
 }
