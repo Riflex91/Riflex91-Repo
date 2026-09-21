@@ -16,7 +16,8 @@ local DEFAULT_SETTINGS = {
     diagnostics = true,
     autoSuperTrack = true,
     showWorldMapMarker = true,
-    routeMode = "manual",
+    routeMode = "auto",
+    routingDefaultVersion = 1,
     smartResync = true,
     skipObsoleteSteps = true,
     autoAcceptQuests = true,
@@ -47,9 +48,10 @@ local DEFAULT_SETTINGS = {
     windowTransparency = 0.05,
     theme = "Forever Classic",
     uiV2ThemeDefaultVersion = 1,
-    gearAutoEquip = false,
+    gearAutoEquip = true,
     gearSafeMode = true,
-    gearAutoEquipWeapons = false,
+    gearAutoEquipWeapons = true,
+    gearDefaultsVersion = 1,
     gearProtectBoE = true,
     gearRequireHighConfidence = true,
     gearAutoEquipItemLevelFallback = true,
@@ -122,6 +124,13 @@ function MG:EnsureDB()
     local previousTheme = db.settings.theme
     local previousThemeDefaultVersion =
         tonumber(db.settings.uiV2ThemeDefaultVersion) or 0
+    local previousRouteMode = db.settings.routeMode
+    local previousRoutingDefaultVersion =
+        tonumber(db.settings.routingDefaultVersion) or 0
+    local previousGearAutoEquip = db.settings.gearAutoEquip
+    local previousGearAutoEquipWeapons = db.settings.gearAutoEquipWeapons
+    local previousGearDefaultsVersion =
+        tonumber(db.settings.gearDefaultsVersion) or 0
 
     for key, value in pairs(DEFAULT_SETTINGS) do
         if db.settings[key] == nil then
@@ -141,6 +150,24 @@ function MG:EnsureDB()
             db.settings.theme = "Forever Classic"
         end
         db.settings.uiV2ThemeDefaultVersion = 1
+    end
+
+    if previousRoutingDefaultVersion < 1 then
+        if previousRouteMode == nil or previousRouteMode == "manual" then
+            db.settings.routeMode = "auto"
+        end
+        db.settings.routingDefaultVersion = 1
+    end
+
+    if previousGearDefaultsVersion < 1 then
+        if previousGearAutoEquip == nil or previousGearAutoEquip == false then
+            db.settings.gearAutoEquip = true
+        end
+        if previousGearAutoEquipWeapons == nil or
+           previousGearAutoEquipWeapons == false then
+            db.settings.gearAutoEquipWeapons = true
+        end
+        db.settings.gearDefaultsVersion = 1
     end
 
     db.logs = db.logs or {}
