@@ -167,7 +167,7 @@ function validiereAnforderung(a: BankDepositShadowAnforderung): void {
       || a.gueltigBisMs - a.ausgestelltAmMs > 2_000
       || !Number.isSafeInteger(a.leaseDauerMs)
       || a.leaseDauerMs < 1
-      || a.leaseDauerMs > 60_000
+      || a.leaseDauerMs > 300_000
       || !Number.isSafeInteger(a.maximaleSnapshotAlterMs)
       || a.maximaleSnapshotAlterMs < 1
       || a.maximaleSnapshotAlterMs > 10_000) {
