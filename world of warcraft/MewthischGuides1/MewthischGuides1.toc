@@ -41,6 +41,7 @@ Presentation/PresentationResolver.lua
 Runtime/RuntimeEngine.lua
 
 Navigation/Distance.lua
+Navigation/Bearing.lua
 
 UI/ErrorLogWindow.lua
 UI/NavigatorFrame.lua
