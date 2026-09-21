@@ -136,6 +136,90 @@ function MG:ResolveWaypoint(questID)
     return target
 end
 
+
+local function updateETA(nav, distanceYards)
+    if not nav then return end
+    if not distanceYards or distanceYards < 0 then
+        nav.etaSeconds = nil
+        nav.etaSpeedYards = nil
+        return
+    end
+
+    nav.etaState = nav.etaState or {
+        samples = {},
+        lastDistance = nil,
+        lastTime = nil,
+        smoothedETA = nil,
+    }
+    local state = nav.etaState
+    local now = GetTime and GetTime() or 0
+
+    if distanceYards <= 2 then
+        state.smoothedETA = 0
+        nav.etaSeconds = 0
+        nav.etaSpeedYards = nil
+        state.lastDistance = distanceYards
+        state.lastTime = now
+        return
+    end
+
+    local measuredSpeed = nil
+    if state.lastDistance and state.lastTime and now > state.lastTime then
+        local dt = now - state.lastTime
+        if dt >= 0.25 then
+            local approach = (state.lastDistance - distanceYards) / dt
+            state.lastDistance = distanceYards
+            state.lastTime = now
+
+            if approach > 0.15 and approach < 200 then
+                state.samples[#state.samples + 1] = approach
+                while #state.samples > 8 do table.remove(state.samples, 1) end
+            elseif approach <= 0 then
+                -- Moving away or standing still should not preserve an
+                -- increasingly misleading arrival estimate indefinitely.
+                if #state.samples > 0 then table.remove(state.samples, 1) end
+            end
+        end
+    else
+        state.lastDistance = distanceYards
+        state.lastTime = now
+    end
+
+    if #state.samples > 0 then
+        local sum = 0
+        for _, speed in ipairs(state.samples) do sum = sum + speed end
+        measuredSpeed = sum / #state.samples
+    end
+
+    local fallbackSpeed = GetUnitSpeed and tonumber(GetUnitSpeed("player")) or nil
+    local speed = measuredSpeed
+    if not speed and fallbackSpeed and fallbackSpeed > 0.15 then
+        speed = fallbackSpeed
+    end
+
+    if not speed or speed <= 0 then
+        nav.etaSeconds = nil
+        nav.etaSpeedYards = nil
+        return
+    end
+
+    local rawETA = distanceYards / speed
+    if rawETA < 0 or rawETA > 86400 then
+        nav.etaSeconds = nil
+        nav.etaSpeedYards = nil
+        return
+    end
+
+    if state.smoothedETA == nil or math.abs(state.smoothedETA - rawETA) > 120 then
+        state.smoothedETA = rawETA
+    else
+        state.smoothedETA = state.smoothedETA * 0.70 + rawETA * 0.30
+    end
+
+    nav.etaSeconds = state.smoothedETA
+    nav.etaSpeedYards = speed
+end
+
 function MG:UpdateNavigationRealtime()
     local nav = self.navigation
 
@@ -181,6 +265,8 @@ function MG:UpdateNavigationRealtime()
         distanceYards and (distanceYards * YARDS_TO_METERS) or nil
     nav.distanceSource = distanceSource
     nav.normalizedDistance = normalizedDistance
+
+    updateETA(nav, distanceYards)
 
     if player and nav.target then
         nav.sameMap = tonumber(player.mapID) == tonumber(nav.target.mapID)
