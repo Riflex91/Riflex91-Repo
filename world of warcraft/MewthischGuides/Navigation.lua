@@ -289,9 +289,20 @@ function MG:RefreshNavigation(reason)
     end
 
     local target, candidates, routeReason
+    local runtime = self.runtimeState
+    local destinationState = runtime and runtime.destinationGoal or nil
+    local destinationGoal = destinationState and destinationState.sourceGoal or nil
+    local routeStep = step
+
+    if destinationGoal and destinationGoal ~= step.goal then
+        routeStep = {}
+        for key, value in pairs(step) do routeStep[key] = value end
+        routeStep.goal = destinationGoal
+        routeStep.navigationGoal = destinationGoal
+    end
 
     if self.RouteEngine then
-        target, candidates, routeReason = self.RouteEngine:Resolve(step)
+        target, candidates, routeReason = self.RouteEngine:Resolve(routeStep)
     end
 
     local nav = {
@@ -301,7 +312,10 @@ function MG:RefreshNavigation(reason)
         source = target and target.source or "NoCoordinate",
         routeScore = target and target.score or nil,
         candidateCount = candidates and #candidates or 0,
+        destinationGoalID = destinationState and destinationState.id or nil,
         waypointText =
+            (runtime and runtime.viewer and runtime.viewer.primary and runtime.viewer.primary.text) or
+            (destinationGoal and destinationGoal.instruction) or
             (step.goal and step.goal.instruction) or
             step.detail or
             step.title,
@@ -315,6 +329,7 @@ function MG:RefreshNavigation(reason)
         nav.travelPlan = self.TravelPlanner:Plan(target, step)
         nav.travelHint = self.TravelPlanner:GetPrimaryHint()
     end
+    if self.RuntimeEngine then self.RuntimeEngine:UpdateNavigation(target, nav.travelPlan, nil) end
     if self.RefreshWorldMapMarker then self:RefreshWorldMapMarker(target) end
 
     local signature = table.concat({
