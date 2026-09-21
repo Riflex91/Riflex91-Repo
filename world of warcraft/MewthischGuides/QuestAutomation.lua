@@ -94,6 +94,21 @@ end
 function MG:HandleQuestAutomationEvent(event)
     if not self.db or not self.db.settings then return end
 
+    local policyAction =
+        event == "QUEST_DETAIL" and "accept" or
+        event == "QUEST_PROGRESS" and "complete" or
+        event == "QUEST_COMPLETE" and "turnin" or
+        (event == "GOSSIP_SHOW" or event == "QUEST_GREETING") and "gossip" or nil
+
+    if policyAction and self.AutomationPolicy then
+        local allowed, reason = self.AutomationPolicy:Allows(policyAction, currentQuestID())
+        if not allowed then
+            self:LogAutomationBlocked(
+                policyAction, currentQuestID(), "policy_" .. tostring(reason))
+            return
+        end
+    end
+
     if event == "GOSSIP_SHOW" or event == "QUEST_GREETING" then
         self:TryAutoGossip()
         return
