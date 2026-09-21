@@ -20,10 +20,11 @@ const erwartete = new Map([
   ["AL-ACTION-BANK-SWAP", ["AL-RECOVERY-BANK-SWAP", "AL-VERIFIER-BANK-SWAP", "bank_swap"]],
 ]);
 
-test("PR20.2 Vorbereitung bleibt strikt NO-WRITE und hinter PR20.1 blockiert", () => {
+test("PR20.2 Vorbereitung bleibt strikt NO-WRITE; PR20.1 ist als vorausgehendes Gate dokumentiert", () => {
   assert.equal(prep.schemaVersion, 1);
   assert.equal(prep.status, "VORBEREITET_NO_WRITE");
   assert.equal(prep.blockingGate, "PR20.1_EQUIP_PRODUKTIONSNACHWEIS");
+  assert.equal(prep.blockingGateStatus, "BESTANDEN");
   assert.equal(prep.authorityGrenze.produktiveRegistrierungErlaubt, false);
   assert.equal(prep.authorityGrenze.produktiverAktivierungspfadErlaubt, false);
   assert.equal(prep.authorityGrenze.gameplayAutoritaet, false);
@@ -33,6 +34,23 @@ test("PR20.2 Vorbereitung bleibt strikt NO-WRITE und hinter PR20.1 blockiert", (
   assert.equal(prep.authorityGrenze.browserGameplayWrites, 0);
   assert.equal(prep.bestehendePlanung.capabilityId, "merchant.bank.planen");
   assert.equal(prep.bestehendePlanung.mutationsAuthorityAusPlanung, false);
+});
+
+
+test("PR20.2 erster Live-Kandidat ist eng auf bank_deposit(1) begrenzt", () => {
+  const kandidat = prep.ersterLiveKandidat;
+  assert.ok(kandidat);
+  assert.equal(kandidat.status, "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE");
+  assert.equal(kandidat.publicFunction, "bank_deposit");
+  assert.equal(kandidat.betragGold, 1);
+  assert.equal(kandidat.actionContractId, "AL-ACTION-BANK-DEPOSIT");
+  assert.equal(kandidat.recoveryContractId, "AL-RECOVERY-BANK-DEPOSIT");
+  assert.equal(kandidat.verifierId, "AL-VERIFIER-BANK-DEPOSIT");
+  assert.equal(kandidat.sameIntentRetry, false);
+  assert.equal(kandidat.gameplayAutoritaet, false);
+  assert.equal(kandidat.rawWriteAutoritaet, false);
+  assert.equal(kandidat.produktiveCapabilityNochNichtRegistriert, true);
+  assert.equal(kandidat.liveRunnerNochNichtVorhanden, true);
 });
 
 test("PR20.2 Kandidaten besitzen exakt vorhandene R9 Action/Recovery/Verifier-Bindungen", () => {
