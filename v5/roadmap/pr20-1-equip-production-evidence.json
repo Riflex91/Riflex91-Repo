@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-21T15:14:31.467Z",
+  "status": "BESTANDEN",
+  "evidenceArt": "V5_PRODUCTION_EQUIP_ONE_SHOT_LIVE",
+  "source": "USER_PROVIDED_RUNNER_STDOUT",
+  "testedSourceSha": "04dbc2cf5ab70992ec0dac9c7952cafb1ca4a0db",
+  "documentationBaseMain": "5dca18494fb6414d0d3f10b10d449c0c6abbb32d",
+  "preflight": {
+    "status": "BEREIT",
+    "charakterBindungSha256": "6f87fd406e9b1cfa78273bbdfcefafe5c4c2cc9c8e685a0bd35244e7c419c32c",
+    "ctype": "merchant",
+    "candidate": {
+      "inventoryIndex": 9,
+      "itemName": "pants",
+      "itemLevel": 2,
+      "slot": "pants",
+      "zielslotWarLeer": true
+    },
+    "host": {
+      "zustand": "LAEUFT",
+      "grund": "V5_PRODUKTIONS_HOST_GESTARTET",
+      "aktivePlanenFaehigkeiten": [],
+      "equipEinmalAuthorityOffen": false,
+      "gameplayAutoritaet": false,
+      "rawWriteAutoritaet": false,
+      "actionAuthority": false
+    },
+    "browserGameplayWrites": 0,
+    "naechsterSchritt": "LIVE_EINMAL_TEST_MIT_EXAKTER_BESTAETIGUNG"
+  },
+  "vorherigerBlockierterVersuch": {
+    "fehler": "EQUIP_PROD_OPERATOR_BESTAETIGUNG_FEHLT:V5 EQUIP EINMAL AUSFUEHREN",
+    "sameIntentRetry": false,
+    "vorTransaktionsIdErzeugungBlockiert": true,
+    "vorAdapterErzeugungBlockiert": true,
+    "vorTransaktionsOrchestrierungBlockiert": true,
+    "lokaleRecoveryPruefung": {
+      "currentExists": false,
+      "authorityDirExists": false,
+      "liveReportExists": false
+    },
+    "bewertung": "KEINE_TRANSAKTION_KEINE_AUTHORITY_KEIN_GAMEPLAY_WRITE"
+  },
+  "liveReport": {
+    "schemaVersion": 1,
+    "evidenceArt": "V5_PRODUCTION_EQUIP_ONE_SHOT_LIVE",
+    "stand": "2026-09-21T15:14:31.467Z",
+    "status": "BESTANDEN",
+    "transaktionsId": "EQUIP-PROD-TX-1790003670981-1df091d1",
+    "sourceSha": "04dbc2cf5ab70992ec0dac9c7952cafb1ca4a0db",
+    "charakterBindungSha256": "6f87fd406e9b1cfa78273bbdfcefafe5c4c2cc9c8e685a0bd35244e7c419c32c",
+    "capabilityId": "equipment.equip",
+    "provider": "equipment-core@1",
+    "actionContractId": "AL-ACTION-EQUIP",
+    "recoveryContractId": "AL-RECOVERY-EQUIP",
+    "verifierId": "AL-VERIFIER-EQUIP",
+    "candidate": {
+      "inventoryIndexVorher": 9,
+      "itemName": "pants",
+      "itemLevel": 2,
+      "slot": "pants",
+      "zielslotWarLeer": true
+    },
+    "prestateFingerprint": "327b91b27d91b2f5dee24573230f1367331dee06e4125b703c8f7583b38532ce",
+    "configFingerprint": "28d75a0e8097cde49dab23a20fbb50f2a6ff541f00db7066c11032f356072933",
+    "result": {
+      "schemaVersion": 1,
+      "transaktionsId": "EQUIP-PROD-TX-1790003670981-1df091d1",
+      "status": "COMMITTED",
+      "transportArt": "SERVER_ERGEBNIS",
+      "recovery": {
+        "schemaVersion": 1,
+        "transaktionsId": "EQUIP-PROD-TX-1790003670981-1df091d1",
+        "art": "COMMITTED",
+        "klassifikation": "BESTAETIGT",
+        "beobachtungen": 1,
+        "restDomaenen": [],
+        "neuerIntentErforderlich": false,
+        "sameIntentErneutSenden": false,
+        "fehlerDomaeneId": "character:equipment"
+      },
+      "journalTerminalArt": "COMMIT",
+      "sameIntentErneutSenden": false,
+      "adapterAufrufeErwartetMaximal": 1
+    },
+    "adapterAufrufe": 1,
+    "gameWrites": 1,
+    "moeglicherSend": true,
+    "sameIntentRetry": false,
+    "hostNachher": {
+      "zustand": "LAEUFT",
+      "grund": "V5_PRODUKTIONS_HOST_BEREIT",
+      "equipEinmalAuthorityOffen": false,
+      "gameplayAutoritaet": false,
+      "rawWriteAutoritaet": false,
+      "actionAuthority": false,
+      "aktivePlanenFaehigkeiten": []
+    },
+    "breiteRuntimeFreigabeDurchDiesenTest": false,
+    "rawWriteBypass": false,
+    "reportPfad": "D:\\AdventureLand-V5\\runtime\\canary\\equipment-equip-production\\latest.json"
+  },
+  "globaleFreigabeKontext": {
+    "releaseCandidateSha": "a137c2e02b27f195f7b2f0ea208e8587f2baa0e1",
+    "bedeutung": "Bestehende globale R19-Gesamtfreigabe; getrennt vom getesteten lokalen Capability-Source-SHA.",
+    "lokaleCapabilitySourceSha": "04dbc2cf5ab70992ec0dac9c7952cafb1ca4a0db",
+    "authorityGrenzeUnveraendert": true
+  },
+  "exitGate": {
+    "preflightSauber": true,
+    "exaktEinErwarteterWrite": true,
+    "sameIntentRetryFalse": true,
+    "fachlichePostconditionBestaetigt": true,
+    "journalTerminalCommit": true,
+    "offeneTransaktionNachErgebnis": false,
+    "offeneEquipAuthorityNachErgebnis": false,
+    "unerwarteteAuthority": false,
+    "rawWriteBypass": false,
+    "breiteRuntimeFreigabeDurchTest": false
+  },
+  "nextGate": "PR20.2_BANK_PRODUKTIVIERUNG"
+}
