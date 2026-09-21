@@ -6,9 +6,14 @@ R.stepHistory = R.stepHistory or {}
 
 local function resolveStep(step, facts)
     local states = {}
-    for _, goal in ipairs(step and step.goals or {}) do
-        states[#states + 1] = MG.GoalStateResolver:Resolve(goal, facts)
+    local function resolveList(list)
+        for _, goal in ipairs(list or {}) do
+            states[#states + 1] = MG.GoalStateResolver:Resolve(goal, facts)
+        end
     end
+    resolveList(step and step.goals)
+    resolveList(step and step.conditions)
+
     local prior = R.stepHistory[step and step.id or ""]
     local stepState = MG.StepStateResolver:Resolve(step, states, prior)
     if step then
