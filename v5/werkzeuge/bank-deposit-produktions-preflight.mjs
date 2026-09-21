@@ -78,6 +78,7 @@ export async function fuehreBankDepositPreflight({
       journal: Object.freeze({
         bereit: journal.bereit,
         offeneTransaktionsId: journal.offeneTransaktionsId,
+        offeneBankLease: journal.offeneBankLease,
       }),
       host: Object.freeze({
         zustand: status.zustand,
@@ -100,7 +101,7 @@ export async function fuehreBankDepositPreflight({
       browserGameplayWrites: BANK_DEPOSIT_PREFLIGHT_GAMEPLAY_WRITES,
       naechsterSchritt: bereit
         ? "FAULT_RESTART_SHADOW_VOR_LIVE_RUNNER"
-        : "CURRENT_EVIDENCE_ODER_HOST_BLOCKER_ANALYSIEREN",
+        : "CURRENT_ODER_BANK_LEASE_RECOVERY_EVIDENCE_ANALYSIEREN",
     });
   } finally {
     if (host !== null) {
