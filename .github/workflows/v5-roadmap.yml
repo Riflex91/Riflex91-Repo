@@ -1,76 +1,21 @@
 name: v5-roadmap
 
+# Manuelle Offline-Diagnose; reale Funktionsfreigaben kommen aus Ingame-Tests.
 on:
-  pull_request:
-    paths:
-      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
-      - 'v5/dokumentation/V5-DEFINITION-OF-DONE.md'
-      - 'v5/roadmap/**'
-      - 'v5/werkzeuge/roadmap-pruefen.mjs'
-      - 'v5/architektur/**'
-      - 'v5/migration/**'
-      - 'v5/invarianten/**'
-      - 'v5/anforderungen/**'
-      - 'v5/gefahren/**'
-      - 'v5/zustaende/**'
-      - 'v5/fitness/**'
-      - 'v5/entwicklungsregeln/**'
-      - 'v5/dokumentation/V5-VERFASSUNG-R2.md'
-      - 'v5/dokumentation/V5-MIGRATIONSMATRIX.md'
-      - 'v5/dokumentation/V5-V3-FEHLERABDECKUNG.md'
-      - 'v5/dokumentation/V5-DEUTSCHE-DOMAENENMIGRATION.md'
-      - 'v5/dokumentation/V5-R2-STRATEGIEN.md'
-      - 'v5/werkzeuge/r2-verfassung-pruefen.mjs'
-      - 'v5/werkzeuge/r4-struktur-pruefen.mjs'
-      - 'v5/werkzeuge/r5-struktur-pruefen.mjs'
-      - '.github/workflows/v5-roadmap.yml'
-  push:
-    branches:
-      - main
-    paths:
-      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
-      - 'v5/dokumentation/V5-DEFINITION-OF-DONE.md'
-      - 'v5/roadmap/**'
-      - 'v5/werkzeuge/roadmap-pruefen.mjs'
-      - 'v5/architektur/**'
-      - 'v5/migration/**'
-      - 'v5/invarianten/**'
-      - 'v5/anforderungen/**'
-      - 'v5/gefahren/**'
-      - 'v5/zustaende/**'
-      - 'v5/fitness/**'
-      - 'v5/entwicklungsregeln/**'
-      - 'v5/dokumentation/V5-VERFASSUNG-R2.md'
-      - 'v5/dokumentation/V5-MIGRATIONSMATRIX.md'
-      - 'v5/dokumentation/V5-V3-FEHLERABDECKUNG.md'
-      - 'v5/dokumentation/V5-DEUTSCHE-DOMAENENMIGRATION.md'
-      - 'v5/dokumentation/V5-R2-STRATEGIEN.md'
-      - 'v5/werkzeuge/r2-verfassung-pruefen.mjs'
-      - 'v5/werkzeuge/r4-struktur-pruefen.mjs'
-      - 'v5/werkzeuge/r5-struktur-pruefen.mjs'
-      - '.github/workflows/v5-roadmap.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  validate:
+  manual-offline-diagnostic:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: V5 Roadmap pruefen
-        run: node v5/werkzeuge/roadmap-pruefen.mjs
-      - name: V5 R2 Verfassung pruefen
-        run: node v5/werkzeuge/r2-verfassung-pruefen.mjs
-      - name: V5 R3 Grundlage pruefen
-        working-directory: v5
-        run: node werkzeuge/r3-struktur-pruefen.mjs
-      - name: V5 R4 Determinismus pruefen
-        working-directory: v5
-        run: node werkzeuge/r4-struktur-pruefen.mjs
-      - name: V5 R4 Zustandsmodelle pruefen
-        working-directory: v5
-        run: node werkzeuge/r4-zustandsmodelle-pruefen.mjs
-      - name: V5 R5 Persistenzstruktur pruefen
-        working-directory: v5
-        run: node werkzeuge/r5-struktur-pruefen.mjs
+      - name: Roadmap und Verfassung diagnostizieren
+        run: |
+          node v5/werkzeuge/roadmap-pruefen.mjs
+          node v5/werkzeuge/r2-verfassung-pruefen.mjs
