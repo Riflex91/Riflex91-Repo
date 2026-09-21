@@ -455,6 +455,155 @@ test("negativer External-Fence-Restart-Abgleich quarantiniert Bank-Lease dauerha
   }
 });
 
+test("Node-Host fuehrt Real-Browser-Bank-Shadow bis R9-Admission ohne Gameplay-Write", async () => {
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "v5-node-bank-real-shadow-"),
+  );
+  try {
+    const host = await erstelleNodeV5ProduktionsHost(hostOptionen(root));
+    const startMs = Date.now();
+    assert.equal((await host.starte(startMs)).zustand, "LAEUFT");
+
+    let mountCalls = 0;
+    let releaseCalls = 0;
+    const ergebnis = await host.fuehreBankDepositRealShadow({
+      aktivierungsId: "NODE-BANK-SHADOW-AUTH-1",
+      transaktionsId: "NODE-BANK-SHADOW-TX-1",
+      freigabeId: "NODE-BANK-SHADOW-FREE-1",
+      auftragId: "NODE-BANK-SHADOW-ORDER-1",
+      ablaufId: "NODE-BANK-SHADOW-WF-1",
+      shadowBestaetigungText:
+        "V5 BANK DEPOSIT SHADOW OHNE WRITE AUSFUEHREN",
+      ausgang: {
+        accountId: "account-1",
+        charakterName: "merchant",
+        sessionId: "session-1",
+        serverRegion: "EU",
+        serverKennung: "I",
+        bankGemountet: false,
+      },
+      mountBeobachter: {
+        async warteAufMount(kontext) {
+          mountCalls += 1;
+          assert.equal(kontext.accountId, "account-1");
+          assert.equal(kontext.characterId, "merchant");
+          assert.ok(kontext.leaseEpoche >= 1);
+          return {
+            accountId: "account-1",
+            charakterName: "merchant",
+            sessionId: "session-1",
+            serverRegion: "EU",
+            serverKennung: "I",
+            bankGemountet: true,
+            beobachtetAmMs: Date.now(),
+            fingerprint: "m".repeat(64),
+            inventorySha256: "i".repeat(64),
+          };
+        },
+      },
+      releaseBeobachter: {
+        async beobachte() {
+          releaseCalls += 1;
+          return {
+            offeneTransaktionen: 0,
+            backendInProgress: false,
+            bankActionInFlight: false,
+            characterBankAktiv: false,
+            erwarteterExitBeobachtet: true,
+          };
+        },
+      },
+    }, startMs);
+
+    assert.equal(ergebnis.status, "ADMISSION_BESTANDEN_KEIN_SEND");
+    assert.equal(ergebnis.gameplayWrites, 0);
+    assert.equal(ergebnis.adapterAufrufe, 0);
+    assert.equal(ergebnis.browserGameplayWrites, 0);
+    assert.equal(ergebnis.hostGameplayWrites, 0);
+    assert.equal(ergebnis.sendBoundaryState, "NICHT_GESENDET");
+    assert.equal(ergebnis.sameIntentErneutSenden, false);
+    assert.equal(mountCalls, 1);
+    assert.equal(releaseCalls, 1);
+    assert.equal(host.status().bankDepositEinmalAuthorityOffen, false);
+    assert.equal((await host.pruefeBankDepositStartBereit()).bereit, true);
+    assert.equal(host.bankLeaseStatus()[0].zustand, "RELEASED");
+
+    const state = JSON.parse(await fs.readFile(
+      path.join(
+        root,
+        "runtime",
+        "transactions",
+        "bank-deposit",
+        "NODE-BANK-SHADOW-TX-1",
+        "state.json",
+      ),
+      "utf8",
+    ));
+    assert.equal(state.status, "TERMINAL");
+    assert.deepEqual(
+      state.eintraege.map(x => x.art),
+      ["INTENT", "ABBRUCH"],
+    );
+    assert.equal(
+      state.eintraege[1].inhalt.send_boundary_state,
+      "NICHT_GESENDET",
+    );
+    assert.equal(state.eintraege[1].inhalt.gameplay_writes, 0);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("Real-Browser-Bank-Shadow Mount-Fehler bleibt als RECOVERY_PENDING fail-closed", async () => {
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "v5-node-bank-shadow-mount-fault-"),
+  );
+  try {
+    const host = await erstelleNodeV5ProduktionsHost(hostOptionen(root));
+    const startMs = Date.now();
+    assert.equal((await host.starte(startMs)).zustand, "LAEUFT");
+
+    await assert.rejects(
+      () => host.fuehreBankDepositRealShadow({
+        aktivierungsId: "NODE-BANK-SHADOW-AUTH-FAULT",
+        transaktionsId: "NODE-BANK-SHADOW-TX-FAULT",
+        freigabeId: "NODE-BANK-SHADOW-FREE-FAULT",
+        auftragId: "NODE-BANK-SHADOW-ORDER-FAULT",
+        ablaufId: "NODE-BANK-SHADOW-WF-FAULT",
+        shadowBestaetigungText:
+          "V5 BANK DEPOSIT SHADOW OHNE WRITE AUSFUEHREN",
+        ausgang: {
+          accountId: "account-1",
+          charakterName: "merchant",
+          sessionId: "session-1",
+          serverRegion: "EU",
+          serverKennung: "I",
+          bankGemountet: false,
+        },
+        mountBeobachter: {
+          async warteAufMount() {
+            throw new Error("MANUAL_MOUNT_TIMEOUT");
+          },
+        },
+        releaseBeobachter: {
+          async beobachte() {
+            throw new Error("DARF_NICHT_ERREICHT_WERDEN");
+          },
+        },
+      }, startMs),
+      /MANUAL_MOUNT_TIMEOUT/,
+    );
+
+    const startBereit = await host.pruefeBankDepositStartBereit();
+    assert.equal(startBereit.bereit, false);
+    assert.equal(startBereit.offeneTransaktionsId, null);
+    assert.equal(startBereit.offeneBankLease?.zustand, "RECOVERY_PENDING");
+    assert.equal(host.status().bankDepositEinmalAuthorityOffen, false);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test("persistierter Capability-Deny ueberlebt Node-Host-Neustart", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "v5-node-deny-"));
   try {
