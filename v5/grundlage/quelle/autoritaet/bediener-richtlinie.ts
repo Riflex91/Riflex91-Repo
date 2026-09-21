@@ -48,6 +48,7 @@ export class BedienerRichtlinienDienst {
   readonly #maximaleSperren: number;
   #nothaltAktiv = false;
   #gesperrteFaehigkeiten: readonly string[] = Object.freeze([]);
+  #generation = 1;
 
   public constructor(protokoll: BedienerProtokollPort, maximaleSperren = 256) {
     if (!Number.isInteger(maximaleSperren) || maximaleSperren < 1 || maximaleSperren > 4096) {
@@ -91,6 +92,9 @@ export class BedienerRichtlinienDienst {
     });
     await this.#protokoll.schreibeDurable(eintrag);
 
+    if (!bereitsWirksam) {
+      this.#generation += 1;
+    }
     if (befehl.art === "NOTHALT_AKTIVIEREN") {
       this.#nothaltAktiv = true;
     } else if (!bereitsWirksam) {
@@ -100,6 +104,17 @@ export class BedienerRichtlinienDienst {
     }
 
     return this.snapshot();
+  }
+
+  public pruefe(faehigkeitId: string): Readonly<{
+    erlaubt: boolean;
+    generation: number;
+  }> {
+    pruefeText(faehigkeitId, "BEDIENER_FAEHIGKEIT_UNGUELTIG");
+    return Object.freeze({
+      erlaubt: this.istErlaubt(faehigkeitId),
+      generation: this.#generation,
+    });
   }
 
   public snapshot(): BedienerRichtlinienSnapshot {
