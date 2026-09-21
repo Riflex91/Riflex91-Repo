@@ -1,9 +1,9 @@
 # PR20.2 – Bank-Produktion: One-Shot-Grenze / NO-WRITE
 
-**Status:** ONE-SHOT-PREFLIGHT IN ARBEIT / NO-WRITE  
+**Status:** PERSISTENTE LEASE + ADMISSION-SHADOW IN ARBEIT / NO-WRITE  
 **Stand:** 2026-09-21  
 **Vorausgehendes Gate:** `PR20.1_EQUIP_PRODUKTIONSNACHWEIS` – BESTANDEN  
-**Basis-main:** `f024bb55214f8c28d817cae123d95e7c7da653cc`
+**Basis-main:** `a0d250067bf4eec142f2a8ede8272ac4685e99b9`
 
 ## Zweck
 
@@ -128,11 +128,24 @@ Fuer den ersten Mutationssatz gilt vorbereitet:
 - read-only Preflight mit `browserGameplayWrites=0` und ohne
   Authority-/Lease-Ausstellung.
 
+## PR20.2c zusaetzlich implementiert
+
+- persistenter accountweiter Bank-Lease-Controller;
+- durable Lease-Metadaten unter `runtime/bank/lease-state-v1.json`;
+- keine Persistenz/Rehydrierung von Ressourcen- oder Fencing-Tokens;
+- Restart nichtterminaler Leases => `RECOVERY_PENDING`;
+- terminale Epochen-Floors bleiben ueber wiederholte Restarts erhalten;
+- Node-Host blockiert Bank-Start bei offener/recovery-pending Lease;
+- expliziter positiver/negativer External-Fence-Restart-Abgleich;
+- No-Write-Shadow bindet Lease, External Fence, leasegebundenen Snapshot,
+  lokalen `bank`-Action-Channel, Socket-Budget, durable Intent und normalen
+  R9-Admission-Kernel;
+- Shadow endet terminal mit `NICHT_GESENDET`, `gameplayWrites=0` und
+  `adapterAufrufe=0`.
+
 ## Noch bewusst nicht implementiert
 
-- persistenter accountweiter Bank-Lease-Adapter samt Restart-Import;
-- konkrete Admission-Orchestrierung, die Lease, externes Fence, lokalen
-  `bank`-Action-Channel und Socket-Budget zusammen bindet;
+- realer Browser-Shadow mit Fault-/Restart-Recovery-Evidence;
 - Bank-CDP-/Write-Adapter;
 - Bank-Live-Runner;
 - irgendein echter Bank-Write;
@@ -144,12 +157,13 @@ Wenn PR20.1 gruen ist, kann ohne erneute Grundlagenanalyse direkt begonnen werde
 
 1. **ERLEDIGT:** `bank_deposit(1)` als ersten Live-Kandidaten ratifizieren;
 2. **ERLEDIGT:** authority-freien Settlement-/Drift-Core mit Tests bereitstellen;
-3. produktive Mutationsfaehigkeit und Single Owner ratifizieren;
-4. eng begrenzte Authority + Admission implementieren;
-5. Bank-Transaktionsjournal mit globalem/open-current Fence implementieren;
-6. read-only Preflight bauen;
-7. Unit/Replay/Fault/Restart/UNKNOWN-Tests;
-8. Shadow;
-9. erst danach exakt einen kontrollierten `bank_deposit(1)`-Write.
+3. **ERLEDIGT:** produktive Mutationsfaehigkeit und Single Owner ratifizieren;
+4. **ERLEDIGT:** eng begrenzte One-Shot-Authority + Admission-Gate implementieren;
+5. **ERLEDIGT:** Bank-Transaktionsjournal mit globalem/open-current Fence implementieren;
+6. **ERLEDIGT:** read-only Preflight bauen;
+7. **IN ARBEIT:** persistente Bank-Lease, Restart-Reconciliation und Fault-Tests;
+8. **IN ARBEIT:** No-Write-R9-Admission-Shadow;
+9. realen Browser-Shadow/Fault-Recovery ohne Write nachweisen;
+10. erst danach Write-Adapter/Live-Runner und exakt einen kontrollierten `bank_deposit(1)`-Write.
 
 Withdraw, Store, Retrieve, Swap und `open_bank_pack` bleiben bis nach dem separat nachgewiesenen ersten Deposit-Pfad produktiv gesperrt.

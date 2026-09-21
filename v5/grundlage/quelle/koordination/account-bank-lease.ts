@@ -253,6 +253,20 @@ export class BankLeaseKoordinator {
     return this.#setzeZustand(alt, "RELEASED", jetztMs, null);
   }
 
+  public importiereEpocheFloor(
+    accountId: string,
+    epoche: number,
+  ): void {
+    pruefeText(accountId, "BANK_ACCOUNT_ID_UNGUELTIG");
+    if (!Number.isSafeInteger(epoche) || epoche < 0) {
+      throw new Error("BANK_EPOCHE_FLOOR_UNGUELTIG");
+    }
+    this.#setFloor(
+      accountId,
+      Math.max(this.#floor(accountId), epoche),
+    );
+  }
+
   public importiereNachRestart(
     persistiert: Omit<BankLeaseSicht, "zustand" | "ressourcenToken">,
   ): BankLeaseSicht {

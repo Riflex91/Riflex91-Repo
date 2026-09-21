@@ -2,7 +2,7 @@
 
 **Status:** AKTIV / POST-R19 PRODUKTIVIERUNG  
 **Stand:** 2026-09-21  
-**Basis-main:** `f024bb55214f8c28d817cae123d95e7c7da653cc`  
+**Basis-main:** `a0d250067bf4eec142f2a8ede8272ac4685e99b9`  
 **Vorgaenger:** `dokumentation/V5-MASTER-ROADMAP.md` (R0-R19 abgeschlossen)  
 
 ## 1. Zweck
@@ -672,10 +672,10 @@ PR20.1 ist bestanden. Der verbindliche naechste Schritt ist jetzt
 2. **ERLEDIGT:** separaten Single Owner und default-off Mutations-Capability ratifizieren;
 3. **ERLEDIGT:** One-Shot-Authority, Admission-Gate und Current-Fence-Grundlage implementieren;
 4. **ERLEDIGT:** read-only Preflight ohne Lease-/Authority-Ausstellung bauen;
-5. persistierbare accountweite Bank-Lease samt Restart-Reconciliation anbinden;
-6. konkrete Transaktions-/Admission-Orchestrierung mit Lease, externem Fence, lokalem `bank`-Channel und Socket-Budget vervollstaendigen;
+5. **IN ARBEIT:** persistente accountweite Bank-Lease samt Restart-Reconciliation;
+6. **IN ARBEIT:** No-Write-R9-Admission-Shadow mit Lease, External Fence, lokalem `bank`-Channel, Socket-Budget und durable Intent;
 7. Unit-, Replay-, Fault-, Restart- und UNKNOWN-Tests vollstaendig gruen;
-8. Shadow nachweisen;
+8. realen Browser-Shadow/Fault-Recovery ohne Write nachweisen;
 9. erst danach Write-Adapter und Live-Runner einfuehren;
 10. erst nach erneut gruener Exact-Head-CI ein reales Bank-Live-Gate oeffnen.
 

@@ -9,6 +9,7 @@ import {
   BANK_DEPOSIT_RECOVERY_CONTRACT_ID,
   BANK_DEPOSIT_VERIFIER_ID,
   BedienerRichtlinienDienst,
+  PersistenterBankLeaseController,
   EQUIPMENT_CORE_MODUL_ID,
   EQUIPMENT_CORE_MODUL_VERSION,
   EQUIPMENT_EQUIP_ACTION_CONTRACT_ID,
@@ -44,6 +45,9 @@ import {
 import {
   NodeBankDepositTransaktionsJournal,
 } from "../grundlage/adapter/persistenz/node-bank-deposit-transaktionsjournal.mjs";
+import {
+  NodeBankLeasePersistenz,
+} from "../grundlage/adapter/persistenz/node-bank-lease-persistenz.mjs";
 import {
   NodeBedienerDenyProtokoll,
 } from "../grundlage/adapter/persistenz/node-bediener-deny-protokoll.mjs";
@@ -87,6 +91,7 @@ class NodeV5ProduktionsHost {
   #gesamtfreigabeGate;
   #equipJournal;
   #bankDepositJournal;
+  #bankLeaseController;
   #runtime;
 
   constructor(
@@ -96,6 +101,7 @@ class NodeV5ProduktionsHost {
     gesamtfreigabeGate,
     equipJournal,
     bankDepositJournal,
+    bankLeaseController,
     runtime,
   ) {
     this.#host = host;
@@ -104,6 +110,7 @@ class NodeV5ProduktionsHost {
     this.#gesamtfreigabeGate = gesamtfreigabeGate;
     this.#equipJournal = equipJournal;
     this.#bankDepositJournal = bankDepositJournal;
+    this.#bankLeaseController = bankLeaseController;
     this.#runtime = runtime;
   }
 
@@ -133,7 +140,43 @@ class NodeV5ProduktionsHost {
   }
 
   async pruefeBankDepositStartBereit() {
-    return this.#bankDepositJournal.pruefeStartBereit();
+    const journal = await this.#bankDepositJournal.pruefeStartBereit();
+    const offeneLeases = this.#bankLeaseController.sicht().filter(
+      x => x.zustand !== "RELEASED",
+    );
+    return Object.freeze({
+      bereit: journal.bereit && offeneLeases.length === 0,
+      offeneTransaktionsId: journal.offeneTransaktionsId,
+      offeneBankLease: offeneLeases.length === 0
+        ? null
+        : Object.freeze({
+          accountId: offeneLeases[0].accountId,
+          ownerCharacterId: offeneLeases[0].ownerCharacterId,
+          epoche: offeneLeases[0].epoche,
+          zustand: offeneLeases[0].zustand,
+          serverRegion: offeneLeases[0].serverRegion,
+          serverIdentifier: offeneLeases[0].serverIdentifier,
+        }),
+    });
+  }
+
+  async schliesseBankLeaseRestartAbgleichAb(
+    accountId,
+    erwarteteEpoche,
+    externeBelegungFrei,
+    jetztMs,
+  ) {
+    pruefeZeit(jetztMs);
+    return this.#bankLeaseController.schliesseRestartAbgleichAb(
+      accountId,
+      erwarteteEpoche,
+      externeBelegungFrei,
+      jetztMs,
+    );
+  }
+
+  bankLeaseStatus() {
+    return this.#bankLeaseController.sicht();
   }
 
   async fuehreEquipEinmalTransaktion(anfrage, jetztMs) {
@@ -360,6 +403,11 @@ export async function erstelleNodeV5ProduktionsHost({
   );
   const equipJournal = new NodeEquipTransaktionsJournal(dateisystem);
   const bankDepositJournal = new NodeBankDepositTransaktionsJournal(dateisystem);
+  const bankLeaseController = new PersistenterBankLeaseController(
+    runtime.bankLeaseKoordinator(),
+    new NodeBankLeasePersistenz(dateisystem),
+  );
+  await bankLeaseController.lade(Date.now());
 
   return new NodeV5ProduktionsHost(
     host,
@@ -368,6 +416,7 @@ export async function erstelleNodeV5ProduktionsHost({
     gesamtfreigabeGate,
     equipJournal,
     bankDepositJournal,
+    bankLeaseController,
     runtime,
   );
 }

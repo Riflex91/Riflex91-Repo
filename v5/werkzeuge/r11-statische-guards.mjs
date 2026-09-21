@@ -211,6 +211,33 @@ for (const marker of [
   }
 }
 
+const bankDepositShadow = liesText(
+  "grundlage/quelle/merchant/bank-deposit-shadow-admission.ts",
+);
+for (const marker of [
+  "ProduktiveBankDepositShadowAdmission",
+  "ErteilteAusfuehrungsFreigabe",
+  "PersistVorMutationTor",
+  "BANK_DEPOSIT_SOCKET_BUDGET_GEWICHT",
+  'send_boundary_state: "NICHT_GESENDET"',
+  "same_intent_retry: false",
+  "gameplayWrites: 0",
+  "adapterAufrufe: 0",
+]) {
+  if (!bankDepositShadow.includes(marker)) {
+    fehler.push("BANK_DEPOSIT_SHADOW_MARKER_FEHLT:" + marker);
+  }
+}
+for (const [kennung, muster] of [
+  ["BANK_DEPOSIT", /\bbank_deposit\s*\(/],
+  ["RAW_EMIT", /\.emit\s*\(/],
+  ["EXECUTION_KERNEL", /\bAusfuehrungsKernel\b/],
+  ["EXECUTION_ADAPTER", /\bAusfuehrungsAdapter\b/],
+]) {
+  if (muster.test(bankDepositShadow)) {
+    fehler.push("BANK_DEPOSIT_SHADOW_WRITE_GRENZE_VERLETZT:" + kennung);
+  }
+}
 const bankDepositPreflightBrowser = liesText(
   "werkzeuge/bank-deposit-produktions-browser.mjs",
 );

@@ -77,7 +77,8 @@
     "equipment-equip-production:preflight": "npm run bauen && node werkzeuge/equipment-equip-produktions-live.mjs --preflight",
     "equipment-equip-production:live": "npm run bauen && node werkzeuge/equipment-equip-produktions-live.mjs",
     "bank-deposit-production:pruefen": "npm run bauen && node --check werkzeuge/bank-deposit-produktions-browser.mjs && node --check werkzeuge/bank-deposit-produktions-preflight.mjs && node --check grundlage/adapter/persistenz/node-bank-deposit-transaktionsjournal.mjs && node --check grundlage/adapter/persistenz/node-bank-deposit-einmal-authority-protokoll.mjs && node --test grundlage/tests/r11-bank-deposit-einmal-authority.test.mjs grundlage/tests/r11-bank-deposit-produktions-journal.test.mjs grundlage/tests/r11-bank-deposit-produktions-browser.test.mjs",
-    "bank-deposit-production:preflight": "npm run bauen && node werkzeuge/bank-deposit-produktions-preflight.mjs"
+    "bank-deposit-production:preflight": "npm run bauen && node werkzeuge/bank-deposit-produktions-preflight.mjs",
+    "bank-deposit-production:shadow-pruefen": "npm run bauen && node --check grundlage/adapter/persistenz/node-bank-lease-persistenz.mjs && node --test grundlage/tests/r13-persistenter-bank-lease.test.mjs grundlage/tests/r11-bank-deposit-shadow-admission.test.mjs grundlage/tests/r11-node-produktions-host-komposition.test.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
