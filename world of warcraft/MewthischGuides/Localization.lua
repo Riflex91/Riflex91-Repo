@@ -202,9 +202,9 @@ local zh={
  manage_profile="管理配置",client_language="WoW 客户端语言",journey="历程",quest_search="任务搜索",route_calc="路线计算",travel_hints="旅行提示",
  sound_hints="声音提示",data_management="数据管理",runtime_status="运行状态",
  quest="任务",quest_giver="任务给予者",source="来源",location="区域",
- accept_quest='接受“%s”。',accept_quest_at='从 %s 接受“%s”。',turnin_quest='提交“%s”。',turnin_quest_at='向 %s 提交“%s”。',
- kill_count="击杀 %d 个%s。",kill_target="击杀%s。",collect_count="收集 %d 个%s。",collect_count_from="从%s收集 %d 个%s。",
- collect_from="从%s收集%s。",collect_target="收集%s。",interact_with="与%s互动。",continue_quest='继续“%s”。',
+ accept_quest='接受“%s”。',accept_quest_at='接受“%s”，任务给予者：%s。',turnin_quest='提交“%s”。',turnin_quest_at='提交“%s”，交给 %s。',
+ kill_count="击杀 %d 个%s。",kill_target="击杀%s。",collect_count="收集 %d 个%s。",collect_count_from="收集 %d 个%s（来源：%s）。",
+ collect_from="收集%s（来源：%s）。",collect_target="收集%s。",interact_with="与%s互动。",continue_quest='继续“%s”。',
 
 }
 
@@ -234,9 +234,9 @@ local hi={
  profile="प्रोफ़ाइल",default_profile="डिफ़ॉल्ट",manage_profile="प्रोफ़ाइल प्रबंधित करें",client_language="WoW क्लाइंट भाषा",journey="इतिहास",quest_search="क्वेस्ट खोज",
  route_calc="रूट गणना",travel_hints="यात्रा संकेत",sound_hints="ध्वनि संकेत",data_management="डेटा प्रबंधन",runtime_status="रनटाइम स्थिति",
  quest="क्वेस्ट",quest_giver="क्वेस्ट देने वाला",source="स्रोत",location="क्षेत्र",
- accept_quest='"%s" क्वेस्ट स्वीकार करें।',accept_quest_at='%s से "%s" क्वेस्ट स्वीकार करें।',turnin_quest='"%s" क्वेस्ट जमा करें।',turnin_quest_at='%s को "%s" क्वेस्ट जमा करें।',
- kill_count="%dx %s को मारें।",kill_target="%s को मारें।",collect_count="%dx %s इकट्ठा करें।",collect_count_from="%s से %dx %s इकट्ठा करें।",
- collect_from="%s से %s इकट्ठा करें।",collect_target="%s इकट्ठा करें।",interact_with="%s से बातचीत करें।",continue_quest='"%s" जारी रखें।',
+ accept_quest='"%s" क्वेस्ट स्वीकार करें।',accept_quest_at='"%s" क्वेस्ट %s से स्वीकार करें।',turnin_quest='"%s" क्वेस्ट जमा करें।',turnin_quest_at='"%s" क्वेस्ट %s को जमा करें।',
+ kill_count="%dx %s को मारें।",kill_target="%s को मारें।",collect_count="%dx %s इकट्ठा करें।",collect_count_from="%dx %s इकट्ठा करें — स्रोत: %s।",
+ collect_from="%s इकट्ठा करें — स्रोत: %s।",collect_target="%s इकट्ठा करें।",interact_with="%s से बातचीत करें।",continue_quest='"%s" जारी रखें।',
 
 }
 
