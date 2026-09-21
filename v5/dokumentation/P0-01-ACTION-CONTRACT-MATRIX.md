@@ -167,3 +167,9 @@ P0-02 formalisiert darauf aufbauend für jede Action-Familie:
 ## Maschinenlesbare Quelle
 
 `v5/wissensbasis/vertraege/action-contracts.json`
+
+## Post-R19-Erweiterung 2026-09-21
+
+Der historische P0-01-Abschluss mit 60 Contracts bleibt als damaliger Abschlussstand erhalten. Der **aktuelle** Katalog besitzt jetzt 61 Contracts: 54 aus Source-Snapshots verifiziert, 6 gegen den deployten Live-Client verifiziert und 1 (`cave_buy`) weiterhin explizit deaktiviert.
+
+Neu ist `AL-ACTION-MLUCK-SAME-ACCOUNT`. Er wurde aus den bereits gespeicherten offiziellen `use_skill`-/Skill-/Server-Snapshots als enger same-account MLuck-Vertrag ratifiziert. Diese Katalogerweiterung ist Knowledge/Contract-Arbeit und erteilt keine produktive Runtime-Authority.
