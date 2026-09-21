@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<script src="/js/phrases.js?v=17116"></script>
-<script src="/phrases/en.js?v=17116"></script>
+		<script src="/js/phrases.js?v=17139"></script>
+<script src="/phrases/en.js?v=17139"></script>
 <script>
 	var language_account = false;
 	var language_initialized = false;
@@ -10,7 +10,7 @@
 	document.documentElement.lang = phrase.language;
 </script>
 
-<script src="/js/language_picker.js?v=17116"></script>
+<script src="/js/language_picker.js?v=17139"></script>
 <script>
 	if (window.desktop) {
 		initialize_desktop_language();
@@ -51,17 +51,17 @@
 			<link href="/js/codemirror/pixel.css" rel="stylesheet" type="text/css"/>
 			<script src="/js/codemirror/5.65.1/javascript.js"></script>
 			<script src="/js/codemirror/5.65.1/xml.js"></script>
-		<script src="/js/keyboard.js?v=17116"></script>
+		<script src="/js/keyboard.js?v=17139"></script>
 		
 		
-		<script src="/js/common_functions.js?v=17116"></script>
-		<script src="/js/old_common_functions.js?v=17116"></script>
-		<script src="/js/functions.js?v=17116"></script>
-		<script src="/js/html.js?v=17116"></script>
-		<script src="/js/progression/sources.js?v=17116"></script>
-		<link href="/css/common.css?v=17116" rel="stylesheet" type="text/css"/>
-		<link href="/css/index.css?v=17116" rel="stylesheet" type="text/css"/>
-		<script src="/data.js?v=17116&amp;cache=1"></script>
+		<script src="/js/common_functions.js?v=17139"></script>
+		<script src="/js/old_common_functions.js?v=17139"></script>
+		<script src="/js/functions.js?v=17139"></script>
+		<script src="/js/html.js?v=17139"></script>
+		<script src="/js/progression/sources.js?v=17139"></script>
+		<link href="/css/common.css?v=17139" rel="stylesheet" type="text/css"/>
+		<link href="/css/index.css?v=17139" rel="stylesheet" type="text/css"/>
+		<script src="/data.js?v=17139&amp;cache=1"></script>
 		<style>
 			html, body{
 				background: black;
