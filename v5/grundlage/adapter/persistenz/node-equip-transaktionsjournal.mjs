@@ -40,7 +40,7 @@ function parse(json, fehler) {
 function validateEntry(e) {
   if (e === null || typeof e !== "object"
       || e.schemaVersion !== 1
-      || !ARTEN.has(e.art)
+      || !ARTEN.includes(e.art)
       || !Number.isSafeInteger(e.sequenz)
       || e.sequenz < 1
       || e.sequenz > MAX_EINTRAEGE
@@ -84,11 +84,11 @@ function validateState(s, txId) {
   for (const x of s.eintraege) {
     if (x === null || typeof x !== "object"
         || x.sequenz !== seq
-        || !ARTEN.has(x.art)
+        || !ARTEN.includes(x.art)
         || terminal) {
       throw new Error("EQUIP_TX_JOURNAL_STATE_UNGUELTIG");
     }
-    if (TERMINAL.has(x.art)) terminal = true;
+    if (TERMINAL.includes(x.art)) terminal = true;
     seq += 1;
   }
   if ((terminal ? "TERMINAL" : "OFFEN") !== s.status) {
@@ -189,7 +189,7 @@ export class NodeEquipTransaktionsJournal {
       if (race !== json) throw new Error("EQUIP_TX_JOURNAL_INHALT_KOLLISION");
     }
 
-    const terminal = TERMINAL.has(e.art);
+    const terminal = TERMINAL.includes(e.art);
     const next = {
       schemaVersion: 1,
       transaktionsId: e.transaktionsId,
