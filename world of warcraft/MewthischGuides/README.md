@@ -375,7 +375,7 @@ Blizzard-POI-Quellen. Verifizierte Runtime-Ziele können lokal gelernt werden.
   RestedXP-Aktionen.
 - TalentAdvisor führt diese Hinweise gemeinsam mit datenbasierten
   Talentempfehlungen.
-- `Journey.lua` speichert bis zu 500 lokale Quest-Annahme-/Abgabeereignisse.
+- `Journey.lua` speichert bis zu 500 lokale Quest-Annahme-, Quest-Abgabe- und Level-Up-Ereignisse inklusive Level sowie Map-/Zonen-Kontext, soweit verfügbar.
 - optionale Sounds für Schrittwechsel und bestätigtes Auto-Equip sind
   standardmäßig ausgeschaltet.
 
