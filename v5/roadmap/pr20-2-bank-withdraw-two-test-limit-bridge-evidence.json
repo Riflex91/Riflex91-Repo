@@ -29,7 +29,7 @@
       "settlementBewertung": "NICHT_ABSCHLIESSEND_BEWIESEN",
       "rootCauseErkenntnis": [
         "Recovery verwendete vor dem Fix einen Mount-Validator, der bankGold>=1 verlangte.",
-        "Bei Prestate bankGold=1 kann ein korreketer bank_withdraw(1) legitimerweise bankGold=0 erzeugen.",
+        "Bei Prestate bankGold=1 kann ein korrekter bank_withdraw(1) legitimerweise bankGold=0 erzeugen.",
         "Spaetere Read-only-Reconciliation war durch nachfolgende Goldbewegungen kontaminiert und beweist den damaligen Settlement-Zustand nicht."
       ]
     },
