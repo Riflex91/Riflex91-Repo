@@ -38,10 +38,10 @@ const V5_ROOT = path.resolve(
 const REPO_ROOT = path.resolve(V5_ROOT, "..");
 const REPORT_PATH =
   "runtime/canary/bank-withdraw-production/latest.json";
-const ACTION = "AL-ACTION-BANK-DEPOSIT";
-const RECOVERY = "AL-RECOVERY-BANK-DEPOSIT";
-const VERIFIER = "AL-VERIFIER-BANK-DEPOSIT";
-const CAPABILITY = "merchant.bank.gold_einlagern";
+const ACTION = "AL-ACTION-BANK-WITHDRAW";
+const RECOVERY = "AL-RECOVERY-BANK-WITHDRAW";
+const VERIFIER = "AL-VERIFIER-BANK-WITHDRAW";
+const CAPABILITY = "merchant.bank.gold_auslagern";
 const OWNER = "merchant-bank-core";
 let letzterAdapter = null;
 
@@ -117,7 +117,7 @@ function id(prefix) {
 }
 
 function phase(text) {
-  process.stdout.write("[V5-BANK-DEPOSIT-LIVE] " + text + "\n");
+  process.stdout.write("[V5-BANK-WITHDRAW-LIVE] " + text + "\n");
 }
 
 async function writeReport(report) {
@@ -161,8 +161,8 @@ function publicPreflight(
       zustand: hostStatus.zustand,
       grund: hostStatus.grund,
       aktivePlanenFaehigkeiten: hostStatus.aktivePlanenFaehigkeiten,
-      bankDepositEinmalAuthorityOffen:
-        hostStatus.bankDepositEinmalAuthorityOffen,
+      bankWithdrawEinmalAuthorityOffen:
+        hostStatus.bankWithdrawEinmalAuthorityOffen,
       equipEinmalAuthorityOffen: hostStatus.equipEinmalAuthorityOffen,
       gameplayAutoritaet: hostStatus.gameplayAutoritaet,
       rawWriteAutoritaet: hostStatus.rawWriteAutoritaet,
@@ -239,11 +239,11 @@ export async function fuehreBankWithdrawEinGoldLiveAus({
     }
     const quellenSha256 = await sourceHashes();
     const ids = Object.freeze({
-      tx: id("BANK-DEPOSIT-PROD-TX"),
-      auth: id("BANK-DEPOSIT-PROD-AUTH"),
-      free: id("BANK-DEPOSIT-PROD-FREE"),
-      order: id("BANK-DEPOSIT-PROD-ORDER"),
-      flow: id("BANK-DEPOSIT-PROD-FLOW"),
+      tx: id("BANK-WITHDRAW-PROD-TX"),
+      auth: id("BANK-WITHDRAW-PROD-AUTH"),
+      free: id("BANK-WITHDRAW-PROD-FREE"),
+      order: id("BANK-WITHDRAW-PROD-ORDER"),
+      flow: id("BANK-WITHDRAW-PROD-FLOW"),
     });
     const configFingerprint = hash(JSON.stringify({
       actionContractId: ACTION,
@@ -344,7 +344,7 @@ export async function fuehreBankWithdrawEinGoldLiveAus({
       && adapter.gameWrites === 1
       && nachher.bereit
       && leaseStatus.every(x => x.zustand === "RELEASED")
-      && hostNachher.bankDepositEinmalAuthorityOffen === false
+      && hostNachher.bankWithdrawEinmalAuthorityOffen === false
       && hostNachher.gameplayAutoritaet === false
       && hostNachher.rawWriteAutoritaet === false
       && hostNachher.actionAuthority === false;
@@ -386,8 +386,8 @@ export async function fuehreBankWithdrawEinGoldLiveAus({
       })),
       hostNachher: Object.freeze({
         zustand: hostNachher.zustand,
-        bankDepositEinmalAuthorityOffen:
-          hostNachher.bankDepositEinmalAuthorityOffen,
+        bankWithdrawEinmalAuthorityOffen:
+          hostNachher.bankWithdrawEinmalAuthorityOffen,
         gameplayAutoritaet: hostNachher.gameplayAutoritaet,
         rawWriteAutoritaet: hostNachher.rawWriteAutoritaet,
         actionAuthority: hostNachher.actionAuthority,
