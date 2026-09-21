@@ -22,11 +22,14 @@ const erwartete = new Map([
 
 test("PR20.2 Vorbereitung bleibt strikt NO-WRITE; PR20.1 ist als vorausgehendes Gate dokumentiert", () => {
   assert.equal(prep.schemaVersion, 1);
-  assert.equal(prep.status, "VORBEREITET_NO_WRITE");
+  assert.equal(prep.status, "ONE_SHOT_GRENZE_IMPLEMENTIERT_NO_WRITE");
   assert.equal(prep.blockingGate, "PR20.1_EQUIP_PRODUKTIONSNACHWEIS");
   assert.equal(prep.blockingGateStatus, "BESTANDEN");
-  assert.equal(prep.authorityGrenze.produktiveRegistrierungErlaubt, false);
+  assert.equal(prep.authorityGrenze.produktiveRegistrierungErlaubt, true);
   assert.equal(prep.authorityGrenze.produktiverAktivierungspfadErlaubt, false);
+  assert.equal(prep.authorityGrenze.oneShotAuthorityAusstellungImplementiert, true);
+  assert.equal(prep.authorityGrenze.oneShotMaxVerwendungen, 1);
+  assert.equal(prep.authorityGrenze.oneShotMaxLebensdauerMs, 2000);
   assert.equal(prep.authorityGrenze.gameplayAutoritaet, false);
   assert.equal(prep.authorityGrenze.rawWriteAutoritaet, false);
   assert.equal(prep.authorityGrenze.actionAuthority, false);
@@ -40,7 +43,7 @@ test("PR20.2 Vorbereitung bleibt strikt NO-WRITE; PR20.1 ist als vorausgehendes 
 test("PR20.2 erster Live-Kandidat ist eng auf bank_deposit(1) begrenzt", () => {
   const kandidat = prep.ersterLiveKandidat;
   assert.ok(kandidat);
-  assert.equal(kandidat.status, "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE");
+  assert.equal(kandidat.status, "ONE_SHOT_PREFLIGHT_GRENZE_IMPLEMENTIERT_NO_WRITE");
   assert.equal(kandidat.publicFunction, "bank_deposit");
   assert.equal(kandidat.betragGold, 1);
   assert.equal(kandidat.actionContractId, "AL-ACTION-BANK-DEPOSIT");
@@ -49,7 +52,13 @@ test("PR20.2 erster Live-Kandidat ist eng auf bank_deposit(1) begrenzt", () => {
   assert.equal(kandidat.sameIntentRetry, false);
   assert.equal(kandidat.gameplayAutoritaet, false);
   assert.equal(kandidat.rawWriteAutoritaet, false);
-  assert.equal(kandidat.produktiveCapabilityNochNichtRegistriert, true);
+  assert.equal(kandidat.provider, "merchant-bank-core@1");
+  assert.equal(kandidat.capabilityId, "merchant.bank.gold_einlagern");
+  assert.equal(kandidat.produktiveCapabilityNochNichtRegistriert, false);
+  assert.equal(kandidat.oneShotAuthorityImplementiert, true);
+  assert.equal(kandidat.currentFenceImplementiert, true);
+  assert.equal(kandidat.readOnlyPreflightImplementiert, true);
+  assert.equal(kandidat.writeAdapterNochNichtVorhanden, true);
   assert.equal(kandidat.liveRunnerNochNichtVorhanden, true);
 });
 
@@ -111,20 +120,18 @@ test("open_bank_pack bleibt wegen eigener Capacity-/Backend-Risiken bewusst auss
   assert.equal(contract.idempotency, "NON_IDEMPOTENT");
 });
 
-test("Produktionskomposition registriert waehrend der Vorbereitung weiterhin keine Bankmutation", () => {
-  assert.ok(produktionsKomposition.includes("equipmentEquipMutationsFaehigkeitDefinition"));
-  for (const kandidat of prep.kandidaten) {
-    assert.equal(
-      produktionsKomposition.includes(kandidat.publicFunction),
-      false,
-      kandidat.publicFunction + " darf noch nicht in der Produktionskomposition stehen",
-    );
-    assert.equal(
-      produktionsKomposition.includes(kandidat.actionContractId),
-      false,
-      kandidat.actionContractId + " darf noch nicht produktiv registriert sein",
-    );
-  }
+test("Produktionskomposition registriert nur den engen Deposit-Single-Owner default-off", () => {
+  assert.ok(
+    produktionsKomposition.includes(
+      "merchantBankDepositMutationsFaehigkeitDefinition",
+    ),
+  );
+  assert.ok(produktionsKomposition.includes("merchantBankCoreModulDefinition"));
+  assert.equal(produktionsKomposition.includes("bank_withdraw"), false);
+  assert.equal(produktionsKomposition.includes("bank_store"), false);
+  assert.equal(produktionsKomposition.includes("bank_retrieve"), false);
+  assert.equal(produktionsKomposition.includes("bank_swap"), false);
+  assert.equal(produktionsKomposition.includes("open_bank_pack"), false);
   assert.equal(produktionsKomposition.includes("merchant.bank.mutieren"), false);
   assert.equal(produktionsKomposition.includes("bankMutations"), false);
 });
