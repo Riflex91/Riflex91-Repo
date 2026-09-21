@@ -134,6 +134,11 @@ Abzudecken:
 
 ### PR20.3 – Markt, Kaufen und Verkaufen produktiv
 
+**Vorbereitung:** `VORBEREITET_NO_WRITE`. Die sichere Vorarbeit ist bereits unter
+`dokumentation/PR20-3-MARKT-PRODUKTIV-VORBEREITUNG.md` und
+`grundlage/vertraege/runtime/market-production-preparation.json` festgehalten.
+Die produktive Freigabe bleibt hinter PR20.1 und dem Abschluss von PR20.2 blockiert.
+
 Abzudecken:
 
 - Buy;
