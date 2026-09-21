@@ -28,6 +28,7 @@ local function startGuide(guide, reason)
     if not guide then return nil, "no_guide" end
     local facts = {
         quests = MG.QuestFacts:Snapshot(),
+        inventory = MG.InventoryFacts and MG.InventoryFacts:Snapshot() or {},
         player = MG:GetPlayerProfile(),
     }
     local index, recoveryReason = MG.RecoveryPolicy:FindResumeIndex(guide, facts)
