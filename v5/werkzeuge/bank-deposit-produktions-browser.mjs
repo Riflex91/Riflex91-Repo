@@ -260,6 +260,7 @@ export function erstelleBankDepositShadowReleaseBeobachter(
     timeoutMs = 90_000,
     pollMs = 500,
     onPhase = () => {},
+    exitPhaseText = "ADMISSION_BESTANDEN_BANK_MANUELL_VERLASSEN",
   } = {},
 ) {
   return Object.freeze({
@@ -268,7 +269,7 @@ export function erstelleBankDepositShadowReleaseBeobachter(
         throw new Error("BANK_DEPOSIT_SHADOW_EXIT_TIMEOUT_UNGUELTIG");
       }
       const start = Date.now();
-      onPhase("ADMISSION_BESTANDEN_BANK_MANUELL_VERLASSEN");
+      onPhase(exitPhaseText);
       while (Date.now() - start <= timeoutMs) {
         const roh = await beobachteBankDepositRohReadOnly(session, contextId);
         if (!gleicheBindung(roh, mountBeobachtung)) {
