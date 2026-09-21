@@ -3,6 +3,7 @@ local addonName, MG = ...
 _G.MewthischGuides1 = MG
 MG.NAME = "Mewthisch Guides"
 MG.VERSION = "1.0.0-dev"
+MG.BUILD = "2026-09-21-navdiag-1"
 MG.INTERFACE = 16001
 
 MG.Util = MG.Util or {}
@@ -87,6 +88,8 @@ function MG:EnsureDB()
     db.logSequence = db.logSequence or 0
     db.guide = db.guide or {}
     db.ui = db.ui or {}
+    db.runtime = db.runtime or {}
+    db.runtime.build = self.BUILD
     self.db = db
     return db
 end
