@@ -51,6 +51,12 @@ import {
   EQUIPMENT_CORE_MODUL_VERSION,
   EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
 } from "../equipment/modul-vertrag.js";
+import {
+  ProduktiveEquipTransaktionsOrchestrierung,
+  type ProduktiveEquipTransaktionsAbhaengigkeiten,
+  type ProduktiveEquipTransaktionsAnforderung,
+  type ProduktiveEquipTransaktionsErgebnis,
+} from "../equipment/produktions-equip-transaktion.js";
 import { KontrollierteLaufsteuerung } from "../recovery/laufsteuerung.js";
 import type {
   V5ProduktionsProzessErgebnis,
@@ -986,6 +992,38 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
       rawWriteAutoritaet: false,
       breiteRuntimeFreigabe: false,
     });
+  }
+
+  public async fuehreEquipEinmalTransaktion<Ergebnis>(
+    anforderung: ProduktiveEquipTransaktionsAnforderung,
+    abhaengigkeiten: Omit<
+      ProduktiveEquipTransaktionsAbhaengigkeiten<Ergebnis>,
+      | "operatorRichtlinie"
+      | "ressourcen"
+      | "socketBudget"
+      | "mutationsKanaele"
+      | "ausfuehrung"
+    >,
+  ): Promise<ProduktiveEquipTransaktionsErgebnis> {
+    if (!this.#prozessLaeuft || this.#zustand !== "LAEUFT") {
+      throw new Error("V5_EQUIP_PROD_TX_RUNTIME_LAEUFT_NICHT");
+    }
+    if (this.#bedienerRichtlinie === null) {
+      throw new Error("V5_EQUIP_PROD_TX_BEDIENER_RICHTLINIE_FEHLT");
+    }
+    if (this.#equipEinmalAuthority !== anforderung.authority) {
+      throw new Error("V5_EQUIP_PROD_TX_AUTHORITY_NICHT_AKTUELL");
+    }
+
+    return new ProduktiveEquipTransaktionsOrchestrierung()
+      .fuehreEinmalAus(anforderung, Object.freeze({
+        ...abhaengigkeiten,
+        operatorRichtlinie: this.#bedienerRichtlinie,
+        ressourcen: this.#ressourcen,
+        socketBudget: this.#socketBudget,
+        mutationsKanaele: this.#mutationsKanaele,
+        ausfuehrung: this.#ausfuehrung,
+      }));
   }
 
   public revalidierePlanenAuthority(
