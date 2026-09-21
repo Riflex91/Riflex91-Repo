@@ -558,6 +558,95 @@ for (const marker of [
   }
 }
 
+
+const bankWithdrawPreflightBrowser = liesText(
+  "werkzeuge/bank-withdraw-produktions-browser.mjs",
+);
+for (const marker of [
+  "BANK_WITHDRAW_PREFLIGHT_BROWSER_READ_ONLY = true",
+  "BANK_WITHDRAW_PREFLIGHT_GAMEPLAY_WRITES = 0",
+  "validiereBankWithdrawPreflightBeobachtung",
+  "BANK_WITHDRAW_BANK_GOLD_ZU_NIEDRIG",
+  "validiereBankWithdrawShadowMountBeobachtung",
+  "BANK_WITHDRAW_SHADOW_BINDUNG_DRIFT",
+]) {
+  if (!bankWithdrawPreflightBrowser.includes(marker)) {
+    fehler.push("BANK_WITHDRAW_PREFLIGHT_BROWSER_MARKER_FEHLT:" + marker);
+  }
+}
+for (const [kennung, muster] of [
+  ["BANK_WITHDRAW_WRITE", /\bbank_withdraw\s*\(/],
+  ["BANK_DEPOSIT_WRITE", /\bbank_deposit\s*\(/],
+  ["BANK_STORE_WRITE", /\bbank_store\s*\(/],
+  ["BANK_RETRIEVE_WRITE", /\bbank_retrieve\s*\(/],
+  ["RAW_EMIT", /\.emit\s*\(/],
+]) {
+  if (muster.test(bankWithdrawPreflightBrowser)) {
+    fehler.push("BANK_WITHDRAW_PREFLIGHT_BROWSER_NO_WRITE_VERLETZT:" + kennung);
+  }
+}
+
+const bankWithdrawPreflightRunner = liesText(
+  "werkzeuge/bank-withdraw-produktions-preflight.mjs",
+);
+for (const marker of [
+  "beobachteBankWithdrawPreflightReadOnly",
+  "pruefeBankWithdrawStartBereit",
+  'publicFunction: "bank_withdraw"',
+  "authorityImPreflightErteilt: false",
+  "browserReadOnly: true",
+  "WITHDRAW_ADMISSION_SHADOW_NO_WRITE",
+]) {
+  if (!bankWithdrawPreflightRunner.includes(marker)) {
+    fehler.push("BANK_WITHDRAW_PREFLIGHT_RUNNER_MARKER_FEHLT:" + marker);
+  }
+}
+for (const [kennung, muster] of [
+  ["AUTHORITY_GRANT", /erteileBankWithdrawEinmalAuthority\s*\(/],
+  ["BANK_WITHDRAW_WRITE", /\bbank_withdraw\s*\(/],
+  ["RAW_EMIT", /\.emit\s*\(/],
+]) {
+  if (muster.test(bankWithdrawPreflightRunner)) {
+    fehler.push("BANK_WITHDRAW_PREFLIGHT_RUNNER_NO_WRITE_VERLETZT:" + kennung);
+  }
+}
+
+const bankWithdrawShadow = liesText(
+  "grundlage/quelle/merchant/bank-withdraw-shadow-admission.ts",
+);
+for (const marker of [
+  "ProduktiveBankWithdrawShadowAdmission",
+  "MERCHANT_BANK_WITHDRAW_FAEHIGKEIT_ID",
+  "BANK_WITHDRAW_ACTION_CONTRACT_ID",
+  "BANK_WITHDRAW_RECOVERY_CONTRACT_ID",
+  "BANK_WITHDRAW_VERIFIER_ID",
+  '"bank"',
+  'send_boundary_state: "NICHT_GESENDET"',
+  "same_intent_retry: false",
+  "gameplay_writes: 0",
+  "adapter_aufrufe: 0",
+]) {
+  if (!bankWithdrawShadow.includes(marker)) {
+    fehler.push("BANK_WITHDRAW_SHADOW_MARKER_FEHLT:" + marker);
+  }
+}
+for (const [kennung, muster] of [
+  ["BANK_WITHDRAW_WRITE", /\bbank_withdraw\s*\(/],
+  ["RAW_EMIT", /\.emit\s*\(/],
+  ["EXECUTION_KERNEL", /\bAusfuehrungsKernel\b/],
+  ["EXECUTION_ADAPTER", /\bAusfuehrungsAdapter\b/],
+]) {
+  if (muster.test(bankWithdrawShadow)) {
+    fehler.push("BANK_WITHDRAW_SHADOW_NO_WRITE_VERLETZT:" + kennung);
+  }
+}
+if (!bankWithdrawRuntime.includes("fuehreBankWithdrawShadowAdmission")
+    || !bankWithdrawRuntime.includes(
+      "V5_BANK_WITHDRAW_SHADOW_AUTHORITY_NICHT_AKTUELL",
+    )) {
+  fehler.push("BANK_WITHDRAW_RUNTIME_SHADOW_BINDUNG_FEHLT");
+}
+
 const equipProduktionsBrowser = liesText(
   "werkzeuge/equipment-equip-produktions-browser.mjs",
 );
