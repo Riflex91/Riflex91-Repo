@@ -4,6 +4,15 @@ import { fileURLToPath } from "node:url";
 
 import {
   BedienerRichtlinienDienst,
+  EQUIPMENT_CORE_MODUL_ID,
+  EQUIPMENT_CORE_MODUL_VERSION,
+  EQUIPMENT_EQUIP_ACTION_CONTRACT_ID,
+  EQUIPMENT_EQUIP_EINMAL_POLICY_ID,
+  EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
+  EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID,
+  EQUIPMENT_EQUIP_VERIFIER_ID,
+  ProduktiveEquipTransaktionsOrchestrierung,
+  ProduktivesEquipEinmalAdmissionGate,
   ProduktivesV5GesamtfreigabeGate,
   V5ProduktionsBootstrap,
   V5ProduktionsHostController,
@@ -19,6 +28,9 @@ import {
 import {
   NodeEquipEinmalAuthorityProtokoll,
 } from "../grundlage/adapter/persistenz/node-equip-einmal-authority-protokoll.mjs";
+import {
+  NodeEquipTransaktionsJournal,
+} from "../grundlage/adapter/persistenz/node-equip-transaktionsjournal.mjs";
 import {
   NodeBedienerDenyProtokoll,
 } from "../grundlage/adapter/persistenz/node-bediener-deny-protokoll.mjs";
@@ -59,11 +71,26 @@ class NodeV5ProduktionsHost {
   #host;
   #bedienerRichtlinie;
   #dateisystem;
+  #gesamtfreigabeGate;
+  #equipJournal;
+  #runtimeKomponenten;
+  #equipOrchestrierung;
 
-  constructor(host, bedienerRichtlinie, dateisystem) {
+  constructor(
+    host,
+    bedienerRichtlinie,
+    dateisystem,
+    gesamtfreigabeGate,
+    equipJournal,
+    runtimeKomponenten,
+  ) {
     this.#host = host;
     this.#bedienerRichtlinie = bedienerRichtlinie;
     this.#dateisystem = dateisystem;
+    this.#gesamtfreigabeGate = gesamtfreigabeGate;
+    this.#equipJournal = equipJournal;
+    this.#runtimeKomponenten = runtimeKomponenten;
+    this.#equipOrchestrierung = new ProduktiveEquipTransaktionsOrchestrierung();
   }
 
   async starte(jetztMs) {
@@ -84,6 +111,137 @@ class NodeV5ProduktionsHost {
   async erteileEquipEinmalAuthority(anfrage, jetztMs) {
     pruefeZeit(jetztMs);
     return this.#host.erteileEquipEinmalAuthority(anfrage, jetztMs);
+  }
+
+  async fuehreEquipEinmalTransaktion(anfrage, jetztMs) {
+    pruefeZeit(jetztMs);
+    if (anfrage === null || typeof anfrage !== "object") {
+      throw new Error("NODE_EQUIP_PROD_TX_ANFRAGE_UNGUELTIG");
+    }
+    for (const feld of [
+      "aktivierungsId",
+      "transaktionsId",
+      "freigabeId",
+      "auftragId",
+      "ablaufId",
+      "characterId",
+      "bestaetigungText",
+      "configFingerprint",
+      "prestateFingerprint",
+    ]) {
+      const wert = anfrage[feld];
+      if (typeof wert !== "string"
+          || wert.trim().length === 0
+          || wert.length > 192) {
+        throw new Error("NODE_EQUIP_PROD_TX_FELD_UNGUELTIG:" + feld);
+      }
+    }
+    if (!anfrage.kandidat
+        || typeof anfrage.kandidat !== "object"
+        || anfrage.kandidat.vorherigesSlotItem !== null
+        || !anfrage.wissensSnapshot
+        || typeof anfrage.wissensSnapshot !== "object"
+        || !anfrage.liveVoraussetzungen
+        || typeof anfrage.liveVoraussetzungen.pruefe !== "function"
+        || !anfrage.adapter
+        || typeof anfrage.adapter.sende !== "function"
+        || !anfrage.recoveryBeobachter
+        || typeof anfrage.recoveryBeobachter.beobachte !== "function") {
+      throw new Error("NODE_EQUIP_PROD_TX_PORT_ODER_KANDIDAT_UNGUELTIG");
+    }
+
+    const journalBereit = await this.#equipJournal.pruefeStartBereit();
+    if (!journalBereit.bereit) {
+      throw new Error(
+        "NODE_EQUIP_PROD_TX_OFFENE_TRANSAKTION:"
+        + journalBereit.offeneTransaktionsId,
+      );
+    }
+
+    const tick = await this.#host.tick(jetztMs);
+    if (tick.zustand !== "LAEUFT"
+        || tick.aktivePlanenFaehigkeiten.length !== 0
+        || tick.equipEinmalAuthorityOffen) {
+      throw new Error("NODE_EQUIP_PROD_TX_HOST_NICHT_BEREIT:" + tick.grund);
+    }
+
+    const authorityErgebnis = await this.#host.erteileEquipEinmalAuthority(
+      Object.freeze({
+        schemaVersion: 1,
+        aktivierungsId: anfrage.aktivierungsId,
+        transaktionsId: anfrage.transaktionsId,
+        faehigkeitId: EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
+        anbieterModulId: EQUIPMENT_CORE_MODUL_ID,
+        anbieterVersion: EQUIPMENT_CORE_MODUL_VERSION,
+        actionContractId: EQUIPMENT_EQUIP_ACTION_CONTRACT_ID,
+        recoveryContractId: EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID,
+        verifierId: EQUIPMENT_EQUIP_VERIFIER_ID,
+        policyId: EQUIPMENT_EQUIP_EINMAL_POLICY_ID,
+        bestaetigungText: anfrage.bestaetigungText,
+        gueltigBisMs: jetztMs + 2_000,
+      }),
+      jetztMs,
+    );
+    if (!authorityErgebnis.erfolgreich || authorityErgebnis.authority === null) {
+      throw new Error(
+        "NODE_EQUIP_PROD_TX_AUTHORITY_BLOCKIERT:" + authorityErgebnis.grund,
+      );
+    }
+
+    const authority = authorityErgebnis.authority;
+    try {
+      const admissionMs = Date.now();
+      if (!authority.gueltigFuer(admissionMs)) {
+        throw new Error("NODE_EQUIP_PROD_TX_AUTHORITY_VOR_ADMISSION_ABGELAUFEN");
+      }
+      const gate = new ProduktivesEquipEinmalAdmissionGate(
+        this.#gesamtfreigabeGate,
+        () => this.#host.status(),
+        authority,
+      );
+      return await this.#equipOrchestrierung.fuehreEinmalAus(
+        Object.freeze({
+          schemaVersion: 1,
+          freigabeId: anfrage.freigabeId,
+          auftragId: anfrage.auftragId,
+          ablaufId: anfrage.ablaufId,
+          transaktionsId: anfrage.transaktionsId,
+          characterId: anfrage.characterId,
+          kandidat: Object.freeze({ ...anfrage.kandidat }),
+          ausgestelltAmMs: admissionMs,
+          gueltigBisMs: Math.min(admissionMs + 1_500, authority.daten().gueltigBisMs),
+          authority,
+          wissensSnapshot: Object.freeze({
+            gitCommit: anfrage.wissensSnapshot.gitCommit,
+            quellenSha256: Object.freeze([
+              ...anfrage.wissensSnapshot.quellenSha256,
+            ]),
+          }),
+          configFingerprint: anfrage.configFingerprint,
+          prestateFingerprint: anfrage.prestateFingerprint,
+        }),
+        Object.freeze({
+          operatorRichtlinie: this.#bedienerRichtlinie,
+          laufzeitGate: gate,
+          liveVoraussetzungen: anfrage.liveVoraussetzungen,
+          journal: this.#equipJournal,
+          ressourcen: this.#runtimeKomponenten.ressourcen,
+          socketBudget: this.#runtimeKomponenten.socketBudget,
+          mutationsKanaele: this.#runtimeKomponenten.mutationsKanaele,
+          ausfuehrung: this.#runtimeKomponenten.ausfuehrung,
+          adapter: anfrage.adapter,
+          recoveryBeobachter: anfrage.recoveryBeobachter,
+          jetztMs: () => Date.now(),
+        }),
+      );
+    } finally {
+      authority.widerrufe();
+      try {
+        await this.#host.tick(Date.now());
+      } catch {
+        // Fail-closed: Authority ist bereits lokal widerrufen.
+      }
+    }
   }
 
   async wendeDenyAn(befehl, jetztMs) {
@@ -174,10 +332,15 @@ export async function erstelleNodeV5ProduktionsHost({
     runtime,
     operationsQuelle,
   );
+  const equipJournal = new NodeEquipTransaktionsJournal(dateisystem);
+  const runtimeKomponenten = runtime.kernKomponenten();
 
   return new NodeV5ProduktionsHost(
     host,
     bedienerRichtlinie,
     dateisystem,
+    gesamtfreigabeGate,
+    equipJournal,
+    runtimeKomponenten,
   );
 }
