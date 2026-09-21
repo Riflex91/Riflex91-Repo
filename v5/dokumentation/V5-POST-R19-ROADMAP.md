@@ -111,7 +111,7 @@ Evidence:
 
 ### PR20.2 – Bank-Autonomie produktiv
 
-**Status:** `ONE_SHOT_PREFLIGHT_IN_ARBEIT_NO_WRITE`. PR20.1 ist bestanden
+**Status:** `RESTART_RECOVERY_REAL_BESTANDEN_REAL_BROWSER_SHADOW_NOCH_AUSSTEHEND`. PR20.1 ist bestanden
 und PR20.2a (Settlement-/Drift-Core fuer `bank_deposit(1)`) ist gemerged.
 PR20.2b fuehrt den separaten Single Owner `merchant-bank-core@1`, die exakt
 eine default-off MUTIEREN-Capability `merchant.bank.gold_einlagern`, eine
@@ -119,9 +119,18 @@ kurzlebige durable One-Shot-Authority, ein Bank-Deposit-Current-Fence und einen
 read-only Preflight ein.
 
 Es existieren weiterhin **kein** Bank-Write-Adapter, **kein** Bank-Live-Runner
-und **kein** neuer Bank-Gameplay-Write. Die accountweite Bank-Lease ist vor
-einem spaeteren Send weiterhin Pflicht und muss restart-sicher persistent an
-Admission gebunden werden.
+und **kein** neuer Bank-Gameplay-Write. Persistente Bank-Lease,
+Restart-Reconciliation und No-Write-R9-Admission sind inzwischen verdrahtet.
+
+Ein echter F5-Reload waehrend des Real-Browser-Shadows wurde fail-closed
+behandelt: keine offene Bank-Transaktion, keine Gameplay-Writes und die
+bestehende Lease blieb als `RECOVERY_PENDING` erhalten. Ein source-locked
+Recovery-Lauf beobachtete anschliessend manuell Mount und Exit und setzte
+Epoche 1 durable auf `RELEASED`. Evidence:
+`roadmap/pr20-2-bank-shadow-recovery-evidence.json`.
+
+Dieser Nachweis belegt den realen Restart-/Recovery-Faultpfad, aber noch nicht
+den vollstaendig bestandenen normalen Real-Browser-Shadow.
 
 Vorhandene Bankplanung, Bank-Lease, Fencing und Bankkatalog-Fundamente werden mit echten Bankmutationen verbunden.
 
@@ -672,11 +681,12 @@ PR20.1 ist bestanden. Der verbindliche naechste Schritt ist jetzt
 2. **ERLEDIGT:** separaten Single Owner und default-off Mutations-Capability ratifizieren;
 3. **ERLEDIGT:** One-Shot-Authority, Admission-Gate und Current-Fence-Grundlage implementieren;
 4. **ERLEDIGT:** read-only Preflight ohne Lease-/Authority-Ausstellung bauen;
-5. **IN ARBEIT:** persistente accountweite Bank-Lease samt Restart-Reconciliation;
-6. **IN ARBEIT:** No-Write-R9-Admission-Shadow mit Lease, External Fence, lokalem `bank`-Channel, Socket-Budget und durable Intent;
-7. Unit-, Replay-, Fault-, Restart- und UNKNOWN-Tests vollstaendig gruen;
-8. realen Browser-Shadow/Fault-Recovery ohne Write nachweisen;
-9. erst danach Write-Adapter und Live-Runner einfuehren;
-10. erst nach erneut gruener Exact-Head-CI ein reales Bank-Live-Gate oeffnen.
+5. **ERLEDIGT:** persistente accountweite Bank-Lease samt Restart-Reconciliation;
+6. **ERLEDIGT:** No-Write-R9-Admission-Shadow mit Lease, External Fence, lokalem `bank`-Channel, Socket-Budget und durable Intent;
+7. **ERLEDIGT:** Unit-, Replay-, Fault-, Restart- und UNKNOWN-Tests vollstaendig gruen;
+8. **ERLEDIGT:** echten F5-/Restart-Fault zero-write auf `RECOVERY_PENDING -> RELEASED` reconciliieren und dokumentieren;
+9. **AUSSTEHEND:** normalen Real-Browser-Shadow ohne Write vollstaendig bis `BESTANDEN` ausfuehren;
+10. erst danach Write-Adapter und Live-Runner einfuehren;
+11. erst nach erneut gruener Exact-Head-CI ein reales Bank-Live-Gate oeffnen.
 
 Bis zu diesem neuen Live-Gate werden keine echten Bank-Writes ausgefuehrt.
