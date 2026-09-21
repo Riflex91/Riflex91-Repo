@@ -1,4 +1,4 @@
-const ARTEN = new Set([
+const ARTEN = Object.freeze([
   "INTENT",
   "SERVER_ERGEBNIS",
   "POSTCONDITION",
@@ -7,7 +7,11 @@ const ARTEN = new Set([
   "ABBRUCH",
   "SICHER_FEHLGESCHLAGEN",
 ]);
-const TERMINAL = new Set(["COMMIT", "ABBRUCH", "SICHER_FEHLGESCHLAGEN"]);
+const TERMINAL = Object.freeze([
+  "COMMIT",
+  "ABBRUCH",
+  "SICHER_FEHLGESCHLAGEN",
+]);
 const BASIS = "runtime/transactions/equipment-equip";
 const CURRENT = BASIS + "/current.json";
 const MAX_EINTRAEGE = 16;
@@ -223,7 +227,7 @@ export class NodeEquipTransaktionsJournal {
     );
     if (state === undefined) return Object.freeze([]);
     validateState(state, transaktionsId);
-    const out = [];
+    let out = Object.freeze([]);
     for (const meta of state.eintraege) {
       const raw = await this.#fs.liesText(
         BASIS + "/" + txSafe + "/" + meta.datei,
@@ -235,9 +239,9 @@ export class NodeEquipTransaktionsJournal {
           || e.art !== meta.art) {
         throw new Error("EQUIP_TX_JOURNAL_STATE_WIDERSPRUCH");
       }
-      out.push(e);
+      out = Object.freeze([...out, e]);
     }
-    return Object.freeze(out);
+    return out;
   }
 
   async pruefeStartBereit() {
