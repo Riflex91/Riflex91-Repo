@@ -173,6 +173,43 @@ export class ProduktionsCdpBankWithdrawEinGoldAdapter {
       fingerprint: anfrage.erwarteterFingerprint,
     });
 
+    let finaleBeobachtung;
+    try {
+      finaleBeobachtung = validiereBankWithdrawShadowMountBeobachtung(
+        await beobachteBankWithdrawRohReadOnly(
+          this.session,
+          this.contextId,
+        ),
+        Object.freeze({
+          accountId: e.accountId,
+          charakterName: e.charakterName,
+          sessionId: e.sessionId,
+          serverRegion: e.serverRegion,
+          serverKennung: e.serverKennung,
+          ctype: "merchant",
+        }),
+        Date.now(),
+      );
+    } catch {
+      return Object.freeze({
+        art: "NICHT_GESENDET",
+        grund: "BANK_WITHDRAW_WRITE_FINAL_PREFLIGHT_BLOCKIERT",
+      });
+    }
+    if (finaleBeobachtung.characterGold !== e.characterGold
+        || finaleBeobachtung.bankGold !== e.bankGold) {
+      return Object.freeze({
+        art: "NICHT_GESENDET",
+        grund: "BANK_WITHDRAW_WRITE_FINAL_GOLD_DRIFT",
+      });
+    }
+    if (finaleBeobachtung.fingerprint !== anfrage.erwarteterFingerprint) {
+      return Object.freeze({
+        art: "NICHT_GESENDET",
+        grund: "BANK_WITHDRAW_WRITE_FINGERPRINT_DRIFT",
+      });
+    }
+
     const expr = [
       "(async () => {",
       "  const roots=[globalThis];",
