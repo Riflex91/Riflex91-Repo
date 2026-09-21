@@ -3,6 +3,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  BANK_DEPOSIT_ACTION_CONTRACT_ID,
+  BANK_DEPOSIT_EINMAL_BESTAETIGUNG,
+  BANK_DEPOSIT_EINMAL_POLICY_ID,
+  BANK_DEPOSIT_RECOVERY_CONTRACT_ID,
+  BANK_DEPOSIT_VERIFIER_ID,
   BedienerRichtlinienDienst,
   EQUIPMENT_CORE_MODUL_ID,
   EQUIPMENT_CORE_MODUL_VERSION,
@@ -11,6 +16,9 @@ import {
   EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
   EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID,
   EQUIPMENT_EQUIP_VERIFIER_ID,
+  MERCHANT_BANK_CORE_MODUL_ID,
+  MERCHANT_BANK_CORE_MODUL_VERSION,
+  MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
   ProduktivesEquipEinmalAdmissionGate,
   ProduktivesV5GesamtfreigabeGate,
   V5ProduktionsBootstrap,
@@ -30,6 +38,12 @@ import {
 import {
   NodeEquipTransaktionsJournal,
 } from "../grundlage/adapter/persistenz/node-equip-transaktionsjournal.mjs";
+import {
+  NodeBankDepositEinmalAuthorityProtokoll,
+} from "../grundlage/adapter/persistenz/node-bank-deposit-einmal-authority-protokoll.mjs";
+import {
+  NodeBankDepositTransaktionsJournal,
+} from "../grundlage/adapter/persistenz/node-bank-deposit-transaktionsjournal.mjs";
 import {
   NodeBedienerDenyProtokoll,
 } from "../grundlage/adapter/persistenz/node-bediener-deny-protokoll.mjs";
@@ -72,6 +86,7 @@ class NodeV5ProduktionsHost {
   #dateisystem;
   #gesamtfreigabeGate;
   #equipJournal;
+  #bankDepositJournal;
   #runtime;
 
   constructor(
@@ -80,6 +95,7 @@ class NodeV5ProduktionsHost {
     dateisystem,
     gesamtfreigabeGate,
     equipJournal,
+    bankDepositJournal,
     runtime,
   ) {
     this.#host = host;
@@ -87,6 +103,7 @@ class NodeV5ProduktionsHost {
     this.#dateisystem = dateisystem;
     this.#gesamtfreigabeGate = gesamtfreigabeGate;
     this.#equipJournal = equipJournal;
+    this.#bankDepositJournal = bankDepositJournal;
     this.#runtime = runtime;
   }
 
@@ -108,6 +125,15 @@ class NodeV5ProduktionsHost {
   async erteileEquipEinmalAuthority(anfrage, jetztMs) {
     pruefeZeit(jetztMs);
     return this.#host.erteileEquipEinmalAuthority(anfrage, jetztMs);
+  }
+
+  async erteileBankDepositEinmalAuthority(anfrage, jetztMs) {
+    pruefeZeit(jetztMs);
+    return this.#host.erteileBankDepositEinmalAuthority(anfrage, jetztMs);
+  }
+
+  async pruefeBankDepositStartBereit() {
+    return this.#bankDepositJournal.pruefeStartBereit();
   }
 
   async fuehreEquipEinmalTransaktion(anfrage, jetztMs) {
@@ -158,7 +184,8 @@ class NodeV5ProduktionsHost {
     const tick = await this.#host.tick(jetztMs);
     if (tick.zustand !== "LAEUFT"
         || tick.aktivePlanenFaehigkeiten.length !== 0
-        || tick.equipEinmalAuthorityOffen) {
+        || tick.equipEinmalAuthorityOffen
+        || tick.bankDepositEinmalAuthorityOffen) {
       throw new Error("NODE_EQUIP_PROD_TX_HOST_NICHT_BEREIT:" + tick.grund);
     }
 
@@ -303,11 +330,14 @@ export async function erstelleNodeV5ProduktionsHost({
   const equipEinmalAuthorityProtokoll = new NodeEquipEinmalAuthorityProtokoll(
     dateisystem,
   );
+  const bankDepositEinmalAuthorityProtokoll =
+    new NodeBankDepositEinmalAuthorityProtokoll(dateisystem);
   const runtime = new V5ProduktionsRuntime(
     erstelleKanonischeProduktionsKomposition(),
     bedienerRichtlinie,
     planenProtokoll,
     equipEinmalAuthorityProtokoll,
+    bankDepositEinmalAuthorityProtokoll,
   );
   const gesamtfreigabeGate = new ProduktivesV5GesamtfreigabeGate(
     effektiveBereitschaft,
@@ -329,6 +359,7 @@ export async function erstelleNodeV5ProduktionsHost({
     operationsQuelle,
   );
   const equipJournal = new NodeEquipTransaktionsJournal(dateisystem);
+  const bankDepositJournal = new NodeBankDepositTransaktionsJournal(dateisystem);
 
   return new NodeV5ProduktionsHost(
     host,
@@ -336,6 +367,7 @@ export async function erstelleNodeV5ProduktionsHost({
     dateisystem,
     gesamtfreigabeGate,
     equipJournal,
+    bankDepositJournal,
     runtime,
   );
 }

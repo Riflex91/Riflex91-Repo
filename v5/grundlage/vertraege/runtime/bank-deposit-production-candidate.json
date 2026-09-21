@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_2_BANK_DEPOSIT_ERSTER_LIVE_KANDIDAT",
   "stand": "2026-09-21",
-  "status": "RATIFIZIERT_NO_WRITE",
-  "sourceMain": "3f88e904cb2a7fd20b69a5e7c552eb0958b66884",
+  "status": "ONE_SHOT_WIRING_IN_PROGRESS_NO_WRITE",
+  "sourceMain": "f024bb55214f8c28d817cae123d95e7c7da653cc",
   "capabilitySpaeter": "merchant.bank.gold_einlagern",
-  "providerSpaeter": "merchant-core-a@1",
+  "providerSpaeter": "merchant-bank-core@1",
   "actionContractId": "AL-ACTION-BANK-DEPOSIT",
   "recoveryContractId": "AL-RECOVERY-BANK-DEPOSIT",
   "verifierId": "AL-VERIFIER-BANK-DEPOSIT",
@@ -53,11 +53,11 @@
   "authorityGrenze": {
     "gameplayAutoritaet": false,
     "rawWriteAutoritaet": false,
-    "produktiveCapabilityInDiesemSchritt": false,
-    "authorityInDiesemSchritt": false,
+    "produktiveCapabilityInDiesemSchritt": true,
+    "authorityInDiesemSchritt": true,
     "adapterInDiesemSchritt": false,
     "liveRunnerInDiesemSchritt": false,
     "gameplayWritesInDiesemSchritt": 0
   },
-  "naechsterSchritt": "PRODUCTIVE_ONE_SHOT_WIRING_AFTER_GREEN_CI"
+  "naechsterSchritt": "READ_ONLY_PREFLIGHT_THEN_FAULT_RESTART_SHADOW"
 }

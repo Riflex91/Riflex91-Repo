@@ -3,7 +3,7 @@
   "stand": "2026-09-21",
   "roadmap": "V5_POST_R19_PRODUKTIV",
   "status": "AKTIV",
-  "basisMain": "3f88e904cb2a7fd20b69a5e7c552eb0958b66884",
+  "basisMain": "f024bb55214f8c28d817cae123d95e7c7da653cc",
   "dokumentation": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
   "testzeitStandard": "v5/roadmap/testzeit-standard.json",
   "currentStage": "PR20",
@@ -81,10 +81,11 @@
   "currentNextSteps": [
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN und im Repo dokumentiert",
     "PR20.2 erster Live-Kandidat ist exakt bank_deposit(1 Gold)",
-    "authority-freier Deposit-Settlement-/Drift-Core muss CI-gruen gemerged sein",
-    "enge produktive Bank-Mutationsfaehigkeit mit Single Owner ratifizieren",
-    "Authority, Admission, Journal/Current-Fence und read-only Preflight implementieren",
+    "PR20.2a authority-freier Deposit-Settlement-/Drift-Core ist CI-gruen gemerged",
+    "PR20.2b separater Single Owner, default-off Capability, One-Shot-Authority, Current-Fence und read-only Preflight vollstaendig CI-gruen machen",
+    "danach persistierbare accountweite Bank-Lease/Restart-Reconciliation und konkrete Admission-Orchestrierung anbinden",
     "Unit/Replay/Fault/Restart/UNKNOWN/Shadow-Gates vollstaendig gruen",
+    "erst danach Write-Adapter und Live-Runner einfuehren",
     "erst danach kontrollierten bank_deposit(1)-Write als neues Live-Gate ausfuehren"
   ],
   "invariants": {
@@ -150,9 +151,9 @@
   },
   "parallelPreparation": {
     "id": "PR20.2_BANK",
-    "status": "BEREIT_FUER_PRODUKTIVIERUNG",
+    "status": "ONE_SHOT_PREFLIGHT_IN_ARBEIT_NO_WRITE",
     "blockedBy": null,
-    "produktiveRegistrierungErlaubt": false,
+    "produktiveRegistrierungErlaubt": true,
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "artifacts": [
@@ -161,23 +162,41 @@
       "v5/grundlage/tests/pr20-bank-production-preparation.test.mjs",
       "v5/grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
       "v5/grundlage/quelle/merchant/bank-deposit-settlement.ts",
-      "v5/grundlage/tests/pr20-bank-deposit-settlement.test.mjs"
+      "v5/grundlage/tests/pr20-bank-deposit-settlement.test.mjs",
+      "v5/architektur/adr/ADR-035-PR20-2-BANK-DEPOSIT-ONE-SHOT.md",
+      "v5/grundlage/quelle/merchant/bank-produktions-modul-vertrag.ts",
+      "v5/grundlage/quelle/merchant/bank-produktions-faehigkeits-vertrag.ts",
+      "v5/grundlage/quelle/merchant/bank-deposit-einmal-authority.ts",
+      "v5/grundlage/quelle/merchant/bank-deposit-admission-gate.ts",
+      "v5/grundlage/vertraege/runtime/bank-deposit-mutationsfaehigkeit.json",
+      "v5/grundlage/vertraege/runtime/bank-deposit-one-shot-authority.json",
+      "v5/grundlage/adapter/persistenz/node-bank-deposit-einmal-authority-protokoll.mjs",
+      "v5/grundlage/adapter/persistenz/node-bank-deposit-transaktionsjournal.mjs",
+      "v5/werkzeuge/bank-deposit-produktions-browser.mjs",
+      "v5/werkzeuge/bank-deposit-produktions-preflight.mjs"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",
       "amountGold": 1,
-      "status": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE",
+      "status": "ONE_SHOT_PREFLIGHT_GRENZE_IMPLEMENTIERT_NO_WRITE",
       "contract": "v5/grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
       "settlementCore": "v5/grundlage/quelle/merchant/bank-deposit-settlement.ts",
+      "provider": "merchant-bank-core@1",
+      "capabilityId": "merchant.bank.gold_einlagern",
+      "oneShotAuthority": true,
+      "durableCurrentFence": true,
+      "readOnlyPreflight": true,
+      "writeAdapter": false,
+      "liveRunner": false,
       "gameplayAuthority": false
     }
   },
   "parallelPreparations": [
     {
       "id": "PR20.2_BANK",
-      "status": "BEREIT_FUER_PRODUKTIVIERUNG",
+      "status": "ONE_SHOT_PREFLIGHT_IN_ARBEIT_NO_WRITE",
       "blockedBy": [],
-      "produktiveRegistrierungErlaubt": false,
+      "produktiveRegistrierungErlaubt": true,
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "artifacts": [
@@ -186,14 +205,32 @@
         "v5/grundlage/tests/pr20-bank-production-preparation.test.mjs",
         "v5/grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
         "v5/grundlage/quelle/merchant/bank-deposit-settlement.ts",
-        "v5/grundlage/tests/pr20-bank-deposit-settlement.test.mjs"
+        "v5/grundlage/tests/pr20-bank-deposit-settlement.test.mjs",
+        "v5/architektur/adr/ADR-035-PR20-2-BANK-DEPOSIT-ONE-SHOT.md",
+        "v5/grundlage/quelle/merchant/bank-produktions-modul-vertrag.ts",
+        "v5/grundlage/quelle/merchant/bank-produktions-faehigkeits-vertrag.ts",
+        "v5/grundlage/quelle/merchant/bank-deposit-einmal-authority.ts",
+        "v5/grundlage/quelle/merchant/bank-deposit-admission-gate.ts",
+        "v5/grundlage/vertraege/runtime/bank-deposit-mutationsfaehigkeit.json",
+        "v5/grundlage/vertraege/runtime/bank-deposit-one-shot-authority.json",
+        "v5/grundlage/adapter/persistenz/node-bank-deposit-einmal-authority-protokoll.mjs",
+        "v5/grundlage/adapter/persistenz/node-bank-deposit-transaktionsjournal.mjs",
+        "v5/werkzeuge/bank-deposit-produktions-browser.mjs",
+        "v5/werkzeuge/bank-deposit-produktions-preflight.mjs"
       ],
       "firstLiveCandidate": {
         "publicFunction": "bank_deposit",
         "amountGold": 1,
-        "status": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE",
+        "status": "ONE_SHOT_PREFLIGHT_GRENZE_IMPLEMENTIERT_NO_WRITE",
         "contract": "v5/grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
         "settlementCore": "v5/grundlage/quelle/merchant/bank-deposit-settlement.ts",
+        "provider": "merchant-bank-core@1",
+        "capabilityId": "merchant.bank.gold_einlagern",
+        "oneShotAuthority": true,
+        "durableCurrentFence": true,
+        "readOnlyPreflight": true,
+        "writeAdapter": false,
+        "liveRunner": false,
         "gameplayAuthority": false
       }
     },
@@ -321,5 +358,20 @@
     "sameIntentRetry": false,
     "journalTerminalArt": "COMMIT",
     "recovery": "COMMITTED"
+  },
+  "pr20_2": {
+    "status": "ONE_SHOT_PREFLIGHT_IN_ARBEIT_NO_WRITE",
+    "firstLiveCandidate": "bank_deposit(1)",
+    "provider": "merchant-bank-core@1",
+    "capabilityId": "merchant.bank.gold_einlagern",
+    "capabilityDefaultOff": true,
+    "oneShotAuthorityMaxUses": 1,
+    "oneShotAuthorityMaxLifetimeMs": 2000,
+    "durableCurrentFence": true,
+    "readOnlyPreflight": true,
+    "writeAdapter": false,
+    "liveRunner": false,
+    "gameplayWrites": 0,
+    "nextSafetyGap": "PERSISTENTE_BANK_LEASE_RESTART_RECONCILIATION_UND_ADMISSION_ORCHESTRIERUNG"
   }
 }

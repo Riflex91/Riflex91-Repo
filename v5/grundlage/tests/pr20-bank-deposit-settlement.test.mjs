@@ -32,14 +32,14 @@ test("erster Bank-Live-Kandidat ist exakt ein Gold Deposit und bleibt no-write",
     "grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
   );
   assert.equal(BANK_DEPOSIT_ERSTER_BETRAG, 1);
-  assert.equal(kandidat.status, "RATIFIZIERT_NO_WRITE");
+  assert.equal(kandidat.status, "ONE_SHOT_WIRING_IN_PROGRESS_NO_WRITE");
   assert.equal(kandidat.actionContractId, "AL-ACTION-BANK-DEPOSIT");
   assert.equal(kandidat.publicFunction, "bank_deposit");
   assert.equal(kandidat.ersterLiveBetragGold, 1);
   assert.equal(kandidat.authorityGrenze.gameplayAutoritaet, false);
   assert.equal(kandidat.authorityGrenze.rawWriteAutoritaet, false);
-  assert.equal(kandidat.authorityGrenze.produktiveCapabilityInDiesemSchritt, false);
-  assert.equal(kandidat.authorityGrenze.authorityInDiesemSchritt, false);
+  assert.equal(kandidat.authorityGrenze.produktiveCapabilityInDiesemSchritt, true);
+  assert.equal(kandidat.authorityGrenze.authorityInDiesemSchritt, true);
   assert.equal(kandidat.authorityGrenze.adapterInDiesemSchritt, false);
   assert.equal(kandidat.authorityGrenze.liveRunnerInDiesemSchritt, false);
   assert.equal(kandidat.authorityGrenze.gameplayWritesInDiesemSchritt, 0);

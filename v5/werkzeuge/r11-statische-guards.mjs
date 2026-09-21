@@ -128,6 +128,9 @@ for (const marker of [
   "NodePlanenAktivierungsProtokoll",
   "NodeEquipEinmalAuthorityProtokoll",
   "NodeEquipTransaktionsJournal",
+  "NodeBankDepositEinmalAuthorityProtokoll",
+  "NodeBankDepositTransaktionsJournal",
+  "pruefeBankDepositStartBereit",
   "fuehreEquipEinmalTransaktion",
   "NodeProduktionsOperationsQuelle",
   "V5ProduktionsHostController",
@@ -205,6 +208,31 @@ for (const marker of [
 ]) {
   if (!bankCanaryRunner.includes(marker)) {
     fehler.push("BANK_PLANEN_CANARY_RUNNER_MARKER_FEHLT:" + marker);
+  }
+}
+
+const bankDepositPreflightBrowser = liesText(
+  "werkzeuge/bank-deposit-produktions-browser.mjs",
+);
+for (const marker of [
+  "BANK_DEPOSIT_PREFLIGHT_BROWSER_READ_ONLY = true",
+  "BANK_DEPOSIT_PREFLIGHT_GAMEPLAY_WRITES = 0",
+  "BANK_DEPOSIT_BANK_GOLD_NICHT_LESBAR",
+  "BANK_DEPOSIT_ALTERNATIVE_RUNTIME_AKTIV",
+]) {
+  if (!bankDepositPreflightBrowser.includes(marker)) {
+    fehler.push("BANK_DEPOSIT_PREFLIGHT_BROWSER_MARKER_FEHLT:" + marker);
+  }
+}
+for (const [kennung, muster] of [
+  ["BANK_DEPOSIT", /\bbank_deposit\s*\(/],
+  ["BANK_WITHDRAW", /\bbank_withdraw\s*\(/],
+  ["BANK_STORE", /\bbank_store\s*\(/],
+  ["BANK_RETRIEVE", /\bbank_retrieve\s*\(/],
+  ["RAW_EMIT", /\.emit\s*\(/],
+]) {
+  if (muster.test(bankDepositPreflightBrowser)) {
+    fehler.push("BANK_DEPOSIT_PREFLIGHT_RAW_WRITE_VERBOTEN:" + kennung);
   }
 }
 

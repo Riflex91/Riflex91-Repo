@@ -2,7 +2,7 @@
 
 **Status:** AKTIV / POST-R19 PRODUKTIVIERUNG  
 **Stand:** 2026-09-21  
-**Basis-main:** `5dca18494fb6414d0d3f10b10d449c0c6abbb32d`  
+**Basis-main:** `f024bb55214f8c28d817cae123d95e7c7da653cc`  
 **Vorgaenger:** `dokumentation/V5-MASTER-ROADMAP.md` (R0-R19 abgeschlossen)  
 
 ## 1. Zweck
@@ -111,12 +111,17 @@ Evidence:
 
 ### PR20.2 – Bank-Autonomie produktiv
 
-**Vorbereitung:** `VORBEREITET_NO_WRITE`. Die sichere Vorarbeit ist bereits unter
-`dokumentation/PR20-2-BANK-PRODUKTIV-VORBEREITUNG.md` und
-`grundlage/vertraege/runtime/bank-production-preparation.json` festgehalten.
-PR20.1 ist bestanden. Damit ist die NO-WRITE-Vorbereitung fuer die
-kontrollierte PR20.2-Produktivierung freigegeben. Sie registriert weiterhin
-noch keine Bank-Mutationsauthority und keinen Gameplay-Write-Pfad.
+**Status:** `ONE_SHOT_PREFLIGHT_IN_ARBEIT_NO_WRITE`. PR20.1 ist bestanden
+und PR20.2a (Settlement-/Drift-Core fuer `bank_deposit(1)`) ist gemerged.
+PR20.2b fuehrt den separaten Single Owner `merchant-bank-core@1`, die exakt
+eine default-off MUTIEREN-Capability `merchant.bank.gold_einlagern`, eine
+kurzlebige durable One-Shot-Authority, ein Bank-Deposit-Current-Fence und einen
+read-only Preflight ein.
+
+Es existieren weiterhin **kein** Bank-Write-Adapter, **kein** Bank-Live-Runner
+und **kein** neuer Bank-Gameplay-Write. Die accountweite Bank-Lease ist vor
+einem spaeteren Send weiterhin Pflicht und muss restart-sicher persistent an
+Admission gebunden werden.
 
 Vorhandene Bankplanung, Bank-Lease, Fencing und Bankkatalog-Fundamente werden mit echten Bankmutationen verbunden.
 
@@ -663,12 +668,15 @@ Ein echter Android-/Termux-Host ist eine separate spaetere Entscheidung.
 PR20.1 ist bestanden. Der verbindliche naechste Schritt ist jetzt
 `PR20.2_BANK_PRODUKTIVIERUNG`.
 
-1. genau einen ersten Bank-Live-Kandidaten festlegen;
-2. enge Mutations-Capability und Single Owner ratifizieren;
-3. Authority, Admission und Transaktionsjournal/Current-Fence implementieren;
-4. read-only Preflight bauen;
-5. Unit-, Replay-, Fault-, Restart- und UNKNOWN-Tests vollstaendig gruen;
-6. Shadow nachweisen;
-7. erst danach ein neues reales Bank-Live-Gate oeffnen.
+1. **ERLEDIGT:** `bank_deposit(1)` als ersten Bank-Live-Kandidaten festlegen;
+2. **ERLEDIGT:** separaten Single Owner und default-off Mutations-Capability ratifizieren;
+3. **ERLEDIGT:** One-Shot-Authority, Admission-Gate und Current-Fence-Grundlage implementieren;
+4. **ERLEDIGT:** read-only Preflight ohne Lease-/Authority-Ausstellung bauen;
+5. persistierbare accountweite Bank-Lease samt Restart-Reconciliation anbinden;
+6. konkrete Transaktions-/Admission-Orchestrierung mit Lease, externem Fence, lokalem `bank`-Channel und Socket-Budget vervollstaendigen;
+7. Unit-, Replay-, Fault-, Restart- und UNKNOWN-Tests vollstaendig gruen;
+8. Shadow nachweisen;
+9. erst danach Write-Adapter und Live-Runner einfuehren;
+10. erst nach erneut gruener Exact-Head-CI ein reales Bank-Live-Gate oeffnen.
 
 Bis zu diesem neuen Live-Gate werden keine echten Bank-Writes ausgefuehrt.

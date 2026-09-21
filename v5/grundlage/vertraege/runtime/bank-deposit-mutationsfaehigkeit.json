@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_BANK_DEPOSIT_MUTATIONSFAEHIGKEIT",
+  "stand": "2026-09-21",
+  "modulId": "merchant-bank-core",
+  "modulVersion": "1",
+  "faehigkeit": {
+    "faehigkeitId": "merchant.bank.gold_einlagern",
+    "modus": "MUTIEREN",
+    "status": "VERFUEGBAR",
+    "standardAktiv": false,
+    "singleOwner": true
+  },
+  "aktionsBindung": {
+    "actionContractId": "AL-ACTION-BANK-DEPOSIT",
+    "recoveryContractId": "AL-RECOVERY-BANK-DEPOSIT",
+    "verifierId": "AL-VERIFIER-BANK-DEPOSIT",
+    "betragGold": 1
+  },
+  "aktivierung": {
+    "durchDiesenVertragErlaubt": false,
+    "automatisch": false,
+    "produktiverAktivierungspfadVorhanden": false
+  },
+  "authority": {
+    "gameplayAutoritaetDurchRegistrierung": false,
+    "rawWriteAutoritaetDurchRegistrierung": false,
+    "actionAuthorityDurchRegistrierung": false
+  }
+}

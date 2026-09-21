@@ -52,6 +52,25 @@ import {
   EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
 } from "../equipment/modul-vertrag.js";
 import {
+  BANK_DEPOSIT_ACTION_CONTRACT_ID,
+  BANK_DEPOSIT_EINMAL_BESTAETIGUNG,
+  BANK_DEPOSIT_EINMAL_POLICY_ID,
+  BANK_DEPOSIT_RECOVERY_CONTRACT_ID,
+  BANK_DEPOSIT_VERIFIER_ID,
+  ProduktiveBankDepositEinmalAuthority,
+  type V5BankDepositEinmalAuthorityAnforderung,
+  type V5BankDepositEinmalAuthorityDurableBestaetigung,
+  type V5BankDepositEinmalAuthorityDurableIntent,
+  type V5BankDepositEinmalAuthorityErgebnis,
+  type V5BankDepositEinmalAuthorityProtokollPort,
+  type V5BankDepositEinmalAuthorityRevalidierungsErgebnis,
+} from "../merchant/bank-deposit-einmal-authority.js";
+import {
+  MERCHANT_BANK_CORE_MODUL_ID,
+  MERCHANT_BANK_CORE_MODUL_VERSION,
+  MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
+} from "../merchant/bank-produktions-modul-vertrag.js";
+import {
   ProduktiveEquipTransaktionsOrchestrierung,
   type ProduktiveEquipTransaktionsAbhaengigkeiten,
   type ProduktiveEquipTransaktionsAnforderung,
@@ -201,6 +220,7 @@ export interface V5ProduktionsRuntimeStatus extends V5ProduktionsProzessStatus {
   readonly aktiveFaehigkeiten: number;
   readonly aktiveMutierendeFaehigkeiten: number;
   readonly offeneEquipEinmalAuthority: boolean;
+  readonly offeneBankDepositEinmalAuthority: boolean;
   readonly schedulerAblaeufe: number;
   readonly ressourcenEintraege: number;
   readonly laufsteuerungStatus: string;
@@ -333,9 +353,13 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
   readonly #planenAktivierungsProtokoll: V5PlanenAktivierungsProtokollPort | null;
   readonly #equipEinmalAuthorityProtokoll:
     V5EquipEinmalAuthorityProtokollPort | null;
+  readonly #bankDepositEinmalAuthorityProtokoll:
+    V5BankDepositEinmalAuthorityProtokollPort | null;
   #planenAktivierungsAudit: readonly V5PlanenAktivierungsAuditEintrag[] =
     Object.freeze([]);
   #equipEinmalAuthority: ProduktiveEquipEinmalAuthority | null = null;
+  #bankDepositEinmalAuthority:
+    ProduktiveBankDepositEinmalAuthority | null = null;
 
   #prozessLaeuft = false;
   #zustand: V5ProduktionsRuntimeStatus["zustand"] = "GESTOPPT";
@@ -347,11 +371,15 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
     planenAktivierungsProtokoll: V5PlanenAktivierungsProtokollPort | null = null,
     equipEinmalAuthorityProtokoll:
       V5EquipEinmalAuthorityProtokollPort | null = null,
+    bankDepositEinmalAuthorityProtokoll:
+      V5BankDepositEinmalAuthorityProtokollPort | null = null,
   ) {
     pruefeDefinition(definition);
     this.#bedienerRichtlinie = bedienerRichtlinie;
     this.#planenAktivierungsProtokoll = planenAktivierungsProtokoll;
     this.#equipEinmalAuthorityProtokoll = equipEinmalAuthorityProtokoll;
+    this.#bankDepositEinmalAuthorityProtokoll =
+      bankDepositEinmalAuthorityProtokoll;
 
     for (const modul of definition.modulDefinitionen) {
       this.#module.registriere(modul);
@@ -685,6 +713,321 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
       wirkung,
       evidenceIds,
     );
+  }
+
+  public async erteileBankDepositEinmalAuthority(
+    anforderung: V5BankDepositEinmalAuthorityAnforderung,
+  ): Promise<V5BankDepositEinmalAuthorityErgebnis> {
+    const blockiere = (
+      grund: string,
+      evidenceIds: readonly string[] = Object.freeze([]),
+    ): V5BankDepositEinmalAuthorityErgebnis => Object.freeze({
+      schemaVersion: 1,
+      erfolgreich: false,
+      grund,
+      aktivierungsId: String(anforderung?.aktivierungsId ?? ""),
+      transaktionsId: String(anforderung?.transaktionsId ?? ""),
+      authority: null,
+      evidenceIds: Object.freeze([...evidenceIds]),
+      maximaleVerwendungen: 1,
+      gameplayWriteAusgefuehrt: false,
+      rawWriteAutoritaet: false,
+      breiteRuntimeFreigabe: false,
+    });
+
+    if (anforderung.schemaVersion !== 1
+        || anforderung.faehigkeitId !== MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID
+        || anforderung.anbieterModulId !== MERCHANT_BANK_CORE_MODUL_ID
+        || anforderung.anbieterVersion !== MERCHANT_BANK_CORE_MODUL_VERSION
+        || anforderung.actionContractId !== BANK_DEPOSIT_ACTION_CONTRACT_ID
+        || anforderung.recoveryContractId !== BANK_DEPOSIT_RECOVERY_CONTRACT_ID
+        || anforderung.verifierId !== BANK_DEPOSIT_VERIFIER_ID
+        || anforderung.policyId !== BANK_DEPOSIT_EINMAL_POLICY_ID
+        || anforderung.bestaetigungText !== BANK_DEPOSIT_EINMAL_BESTAETIGUNG) {
+      return blockiere("V5_BANK_DEPOSIT_EINMAL_BINDUNG_UNGUELTIG");
+    }
+    for (const wert of [
+      anforderung.aktivierungsId,
+      anforderung.transaktionsId,
+    ]) {
+      if (wert.trim().length === 0 || wert.length > 128) {
+        return blockiere("V5_BANK_DEPOSIT_EINMAL_KENNUNG_UNGUELTIG");
+      }
+    }
+    if (!Number.isSafeInteger(anforderung.jetztMs)
+        || !Number.isSafeInteger(anforderung.gueltigBisMs)
+        || anforderung.jetztMs < 0
+        || anforderung.gueltigBisMs < anforderung.jetztMs
+        || anforderung.gueltigBisMs - anforderung.jetztMs > 2_000
+        || anforderung.healthEvidence.length > 512) {
+      return blockiere("V5_BANK_DEPOSIT_EINMAL_ZEIT_ODER_EVIDENCE_UNGUELTIG");
+    }
+
+    if (this.#bankDepositEinmalAuthority !== null) {
+      if (this.#bankDepositEinmalAuthority.gueltigFuer(anforderung.jetztMs)) {
+        return blockiere("V5_BANK_DEPOSIT_EINMAL_AUTHORITY_BEREITS_OFFEN");
+      }
+      this.#bankDepositEinmalAuthority.widerrufe();
+      this.#bankDepositEinmalAuthority = null;
+    }
+
+    const pruefeVorWirkung = (): string | null => {
+      if (!this.#prozessLaeuft || this.#zustand !== "LAEUFT") {
+        return "V5_BANK_DEPOSIT_EINMAL_RUNTIME_LAEUFT_NICHT";
+      }
+      if (!this.#laufsteuerung.sicht().neueArbeitErlaubt) {
+        return "V5_BANK_DEPOSIT_EINMAL_LAUFSTEUERUNG_GESPERRT";
+      }
+      if (this.#bedienerRichtlinie === null) {
+        return "V5_BANK_DEPOSIT_EINMAL_BEDIENER_RICHTLINIE_FEHLT";
+      }
+      if (this.#bedienerRichtlinie.snapshot().nothaltAktiv) {
+        return "V5_BANK_DEPOSIT_EINMAL_NOTHALT_AKTIV";
+      }
+      if (!this.#bedienerRichtlinie.istErlaubt(
+        MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
+      )) {
+        return "V5_BANK_DEPOSIT_EINMAL_DURCH_POLICY_GESPERRT";
+      }
+
+      const faehigkeit = this.#faehigkeiten.sicht().find(x =>
+        x.faehigkeitId === MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID
+        && x.anbieterModulId === MERCHANT_BANK_CORE_MODUL_ID
+        && x.anbieterVersion === MERCHANT_BANK_CORE_MODUL_VERSION);
+      if (faehigkeit === undefined
+          || faehigkeit.modus !== "MUTIEREN"
+          || faehigkeit.status !== "VERFUEGBAR"
+          || faehigkeit.standardAktiv !== false
+          || faehigkeit.aktiv) {
+        return "V5_BANK_DEPOSIT_EINMAL_CAPABILITY_NICHT_BEREIT";
+      }
+
+      const modul = this.#module.sicht().find(x =>
+        x.modulId === MERCHANT_BANK_CORE_MODUL_ID
+        && x.modulVersion === MERCHANT_BANK_CORE_MODUL_VERSION);
+      if (modul === undefined
+          || modul.gesundheit !== "GESUND"
+          || modul.aktiv
+          || !modul.bereitgestellteFaehigkeiten.includes(
+            MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
+          )) {
+        return "V5_BANK_DEPOSIT_EINMAL_PROVIDER_NICHT_BEREIT";
+      }
+
+      try {
+        if (!this.#supervisor.status(
+          anforderung.healthEvidence,
+          anforderung.jetztMs,
+        ).bereit) {
+          return "V5_BANK_DEPOSIT_EINMAL_SUPERVISOR_NICHT_BEREIT";
+        }
+      } catch {
+        return "V5_BANK_DEPOSIT_EINMAL_HEALTH_EVIDENCE_UNGUELTIG";
+      }
+      return null;
+    };
+
+    const vorAudit = pruefeVorWirkung();
+    if (vorAudit !== null) return blockiere(vorAudit);
+    if (this.#bankDepositEinmalAuthorityProtokoll === null) {
+      return blockiere("V5_BANK_DEPOSIT_EINMAL_DURABLE_PROTOKOLL_FEHLT");
+    }
+
+    const evidenceIds = Object.freeze(
+      anforderung.healthEvidence
+        .map(x => x.evidenceId)
+        .filter((id, index, alle) => alle.indexOf(id) === index)
+        .sort(),
+    );
+    if (evidenceIds.length < 1 || evidenceIds.length > 64) {
+      return blockiere("V5_BANK_DEPOSIT_EINMAL_EVIDENCE_UNGUELTIG");
+    }
+
+    const intent: V5BankDepositEinmalAuthorityDurableIntent = Object.freeze({
+      schemaVersion: 1,
+      aktivierungsId: anforderung.aktivierungsId,
+      transaktionsId: anforderung.transaktionsId,
+      faehigkeitId: MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
+      anbieterModulId: MERCHANT_BANK_CORE_MODUL_ID,
+      anbieterVersion: MERCHANT_BANK_CORE_MODUL_VERSION,
+      actionContractId: BANK_DEPOSIT_ACTION_CONTRACT_ID,
+      recoveryContractId: BANK_DEPOSIT_RECOVERY_CONTRACT_ID,
+      verifierId: BANK_DEPOSIT_VERIFIER_ID,
+      policyId: BANK_DEPOSIT_EINMAL_POLICY_ID,
+      evidenceIds,
+      zeitMs: anforderung.jetztMs,
+      gueltigBisMs: anforderung.gueltigBisMs,
+      art: "BANK_DEPOSIT_EINMAL_AUTHORITY_VOR_WIRKUNG",
+      maximaleVerwendungen: 1,
+      breiteRuntimeFreigabe: false,
+      rawWriteAutoritaet: false,
+      gameplayWriteNochNichtAusgefuehrt: true,
+    });
+
+    let bestaetigung: V5BankDepositEinmalAuthorityDurableBestaetigung;
+    try {
+      bestaetigung =
+        await this.#bankDepositEinmalAuthorityProtokoll.schreibeDurable(intent);
+    } catch {
+      return blockiere(
+        "V5_BANK_DEPOSIT_EINMAL_AUDIT_NICHT_DURABLE",
+        evidenceIds,
+      );
+    }
+    if (bestaetigung.durable !== true
+        || bestaetigung.aktivierungsId !== anforderung.aktivierungsId
+        || bestaetigung.transaktionsId !== anforderung.transaktionsId
+        || bestaetigung.bestaetigungsId.trim().length === 0
+        || bestaetigung.bestaetigungsId.length > 192) {
+      return blockiere(
+        "V5_BANK_DEPOSIT_EINMAL_DURABILITY_NICHT_BESTAETIGT",
+        evidenceIds,
+      );
+    }
+
+    const nachAudit = pruefeVorWirkung();
+    if (nachAudit !== null) {
+      return blockiere(
+        "V5_BANK_DEPOSIT_EINMAL_REVALIDIERUNG_FEHLGESCHLAGEN:" + nachAudit,
+        evidenceIds,
+      );
+    }
+
+    const faehigkeit = this.#faehigkeiten.sicht().find(x =>
+      x.faehigkeitId === MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID
+      && x.anbieterModulId === MERCHANT_BANK_CORE_MODUL_ID
+      && x.anbieterVersion === MERCHANT_BANK_CORE_MODUL_VERSION);
+    if (faehigkeit === undefined) {
+      return blockiere(
+        "V5_BANK_DEPOSIT_EINMAL_PROVIDER_VERLOREN",
+        evidenceIds,
+      );
+    }
+
+    const authority = new ProduktiveBankDepositEinmalAuthority(Object.freeze({
+      schemaVersion: 1,
+      aktivierungsId: anforderung.aktivierungsId,
+      transaktionsId: anforderung.transaktionsId,
+      faehigkeitId: MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
+      anbieterModulId: MERCHANT_BANK_CORE_MODUL_ID,
+      anbieterVersion: MERCHANT_BANK_CORE_MODUL_VERSION,
+      actionContractId: BANK_DEPOSIT_ACTION_CONTRACT_ID,
+      recoveryContractId: BANK_DEPOSIT_RECOVERY_CONTRACT_ID,
+      verifierId: BANK_DEPOSIT_VERIFIER_ID,
+      policyId: BANK_DEPOSIT_EINMAL_POLICY_ID,
+      ausgestelltAmMs: anforderung.jetztMs,
+      gueltigBisMs: anforderung.gueltigBisMs,
+      faehigkeitsGeneration: faehigkeit.generation,
+      evidenceIds,
+      maximaleVerwendungen: 1,
+    }));
+    this.#bankDepositEinmalAuthority = authority;
+
+    return Object.freeze({
+      schemaVersion: 1,
+      erfolgreich: true,
+      grund: "V5_BANK_DEPOSIT_EINMAL_AUTHORITY_ERTEILT",
+      aktivierungsId: anforderung.aktivierungsId,
+      transaktionsId: anforderung.transaktionsId,
+      authority,
+      evidenceIds,
+      maximaleVerwendungen: 1,
+      gameplayWriteAusgefuehrt: false,
+      rawWriteAutoritaet: false,
+      breiteRuntimeFreigabe: false,
+    });
+  }
+
+  public revalidiereBankDepositEinmalAuthority(
+    healthEvidence: readonly HealthEvidence[],
+    jetztMs: number,
+  ): V5BankDepositEinmalAuthorityRevalidierungsErgebnis {
+    const authority = this.#bankDepositEinmalAuthority;
+    if (authority === null) {
+      return Object.freeze({
+        schemaVersion: 1,
+        bereit: true,
+        grund: "V5_BANK_DEPOSIT_EINMAL_KEINE_AUTHORITY_OFFEN",
+        authorityOffen: false,
+        authorityWiderrufen: false,
+        gameplayWriteAusgefuehrt: false,
+        rawWriteAutoritaet: false,
+        breiteRuntimeFreigabe: false,
+      });
+    }
+    if (authority.verbraucht()) {
+      this.#bankDepositEinmalAuthority = null;
+      return Object.freeze({
+        schemaVersion: 1,
+        bereit: true,
+        grund: "V5_BANK_DEPOSIT_EINMAL_AUTHORITY_VERBRAUCHT",
+        authorityOffen: false,
+        authorityWiderrufen: false,
+        gameplayWriteAusgefuehrt: false,
+        rawWriteAutoritaet: false,
+        breiteRuntimeFreigabe: false,
+      });
+    }
+    if (!authority.gueltigFuer(jetztMs)) {
+      authority.widerrufe();
+      this.#bankDepositEinmalAuthority = null;
+      return Object.freeze({
+        schemaVersion: 1,
+        bereit: true,
+        grund: "V5_BANK_DEPOSIT_EINMAL_AUTHORITY_ABGELAUFEN",
+        authorityOffen: false,
+        authorityWiderrufen: true,
+        gameplayWriteAusgefuehrt: false,
+        rawWriteAutoritaet: false,
+        breiteRuntimeFreigabe: false,
+      });
+    }
+
+    let grund: string | null = null;
+    if (!this.#prozessLaeuft || this.#zustand !== "LAEUFT") {
+      grund = "V5_BANK_DEPOSIT_EINMAL_RUNTIME_LAEUFT_NICHT";
+    } else if (!this.#laufsteuerung.sicht().neueArbeitErlaubt) {
+      grund = "V5_BANK_DEPOSIT_EINMAL_LAUFSTEUERUNG_GESPERRT";
+    } else if (this.#bedienerRichtlinie === null
+        || this.#bedienerRichtlinie.snapshot().nothaltAktiv
+        || !this.#bedienerRichtlinie.istErlaubt(
+          MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
+        )) {
+      grund = "V5_BANK_DEPOSIT_EINMAL_OPERATOR_POLICY_GESPERRT";
+    } else {
+      try {
+        if (!this.#supervisor.status(healthEvidence, jetztMs).bereit) {
+          grund = "V5_BANK_DEPOSIT_EINMAL_SUPERVISOR_NICHT_BEREIT";
+        }
+      } catch {
+        grund = "V5_BANK_DEPOSIT_EINMAL_HEALTH_EVIDENCE_UNGUELTIG";
+      }
+    }
+
+    if (grund !== null) {
+      authority.widerrufe();
+      this.#bankDepositEinmalAuthority = null;
+      return Object.freeze({
+        schemaVersion: 1,
+        bereit: false,
+        grund,
+        authorityOffen: false,
+        authorityWiderrufen: true,
+        gameplayWriteAusgefuehrt: false,
+        rawWriteAutoritaet: false,
+        breiteRuntimeFreigabe: false,
+      });
+    }
+    return Object.freeze({
+      schemaVersion: 1,
+      bereit: true,
+      grund: "V5_BANK_DEPOSIT_EINMAL_AUTHORITY_BEREIT",
+      authorityOffen: true,
+      authorityWiderrufen: false,
+      gameplayWriteAusgefuehrt: false,
+      rawWriteAutoritaet: false,
+      breiteRuntimeFreigabe: false,
+    });
   }
 
   public async erteileEquipEinmalAuthority(
@@ -1211,6 +1554,9 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
       aktiveMutierendeFaehigkeiten,
       offeneEquipEinmalAuthority: this.#equipEinmalAuthority !== null
         && !this.#equipEinmalAuthority.verbraucht(),
+      offeneBankDepositEinmalAuthority:
+        this.#bankDepositEinmalAuthority !== null
+        && !this.#bankDepositEinmalAuthority.verbraucht(),
       schedulerAblaeufe: scheduler.length,
       ressourcenEintraege: ressourcen.length,
       laufsteuerungStatus: laufsteuerung.status,
@@ -1237,6 +1583,10 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
     if (this.#equipEinmalAuthority !== null) {
       this.#equipEinmalAuthority.widerrufe();
       this.#equipEinmalAuthority = null;
+    }
+    if (this.#bankDepositEinmalAuthority !== null) {
+      this.#bankDepositEinmalAuthority.widerrufe();
+      this.#bankDepositEinmalAuthority = null;
     }
     for (const faehigkeit of this.#faehigkeiten.sicht()) {
       if (faehigkeit.aktiv) {

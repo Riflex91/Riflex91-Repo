@@ -96,11 +96,13 @@ for(const p of pflicht) if(!fs.existsSync(p)) fehler.push("PFLICHTARTEFAKT_FEHLT
 
 const produktionsKomposition=lies("grundlage/quelle/runtime/produktions-komposition.ts");
 for(const m of [
-  "DEFAULT_DENY_PLANEN_UND_EQUIP_MUTIEREN_REGISTRIERT_INAKTIV",
+  "DEFAULT_DENY_PLANEN_EQUIP_UND_BANK_DEPOSIT_MUTIEREN_REGISTRIERT_INAKTIV",
   "merchantCoreABasisModulDefinition",
   "merchantCoreAPlanungsFaehigkeitDefinitionen",
   "equipmentCoreModulDefinition",
   "equipmentEquipMutationsFaehigkeitDefinition",
+  "merchantBankCoreModulDefinition",
+  "merchantBankDepositMutationsFaehigkeitDefinition",
 ]){
   if(!produktionsKomposition.includes(m)) {
     fehler.push("PRODUKTIONS_KOMPOSITION_DEFAULT_DENY_FEHLT:"+m);
@@ -135,6 +137,121 @@ for(const m of [
 }
 if(merchantFaehigkeit.includes('modus: "MUTIEREN"')) {
   fehler.push("MERCHANT_PLANEN_VERTRAG_MUTIEREN_VERBOTEN");
+}
+
+const bankProduktionsModul=lies(
+  "grundlage/quelle/merchant/bank-produktions-modul-vertrag.ts",
+);
+for(const m of [
+  'MERCHANT_BANK_CORE_MODUL_ID = "merchant-bank-core"',
+  'MERCHANT_BANK_CORE_MODUL_VERSION = "1"',
+  '"merchant.bank.gold_einlagern"',
+  "standardAktiv: false",
+]){
+  if(!bankProduktionsModul.includes(m)) {
+    fehler.push("BANK_DEPOSIT_MODUL_VERTRAG_FEHLT:"+m);
+  }
+}
+const bankProduktionsFaehigkeit=lies(
+  "grundlage/quelle/merchant/bank-produktions-faehigkeits-vertrag.ts",
+);
+for(const m of [
+  'modus: "MUTIEREN"',
+  'status: "VERFUEGBAR"',
+  "standardAktiv: false",
+  "MERCHANT_BANK_CORE_MODUL_ID",
+  "MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID",
+]){
+  if(!bankProduktionsFaehigkeit.includes(m)) {
+    fehler.push("BANK_DEPOSIT_FAEHIGKEITS_VERTRAG_FEHLT:"+m);
+  }
+}
+const bankAuthority=lies(
+  "grundlage/quelle/merchant/bank-deposit-einmal-authority.ts",
+);
+for(const m of [
+  '"AL-ACTION-BANK-DEPOSIT"',
+  '"AL-RECOVERY-BANK-DEPOSIT"',
+  '"AL-VERIFIER-BANK-DEPOSIT"',
+  '"BANK-DEPOSIT-PRODUKTION-EINMAL-V1"',
+  '"V5 BANK DEPOSIT 1 GOLD EINMAL AUSFUEHREN"',
+  "ProduktiveBankDepositEinmalAuthority",
+  "maximaleVerwendungen: 1",
+  "breiteRuntimeFreigabe: false",
+  "rawWriteAutoritaet: false",
+]){
+  if(!bankAuthority.includes(m)) {
+    fehler.push("BANK_DEPOSIT_AUTHORITY_QUELLE_FEHLT:"+m);
+  }
+}
+const bankAuthorityAdapter=lies(
+  "grundlage/adapter/persistenz/node-bank-deposit-einmal-authority-protokoll.mjs",
+);
+for(const m of [
+  "runtime/authority/mutieren/bank-deposit/",
+  "BANK_DEPOSIT_EINMAL_AUTHORITY_VOR_WIRKUNG",
+  "erstelleExklusivDurable",
+  "gueltigBisMs - intent.zeitMs > 2_000",
+]){
+  if(!bankAuthorityAdapter.includes(m)) {
+    fehler.push("BANK_DEPOSIT_AUTHORITY_ADAPTER_FEHLT:"+m);
+  }
+}
+const bankJournal=lies(
+  "grundlage/adapter/persistenz/node-bank-deposit-transaktionsjournal.mjs",
+);
+for(const m of [
+  "runtime/transactions/bank-deposit",
+  "current.json",
+  "MAX_EINTRAEGE = 16",
+  "BANK_DEPOSIT_TX_OFFENE_TRANSAKTION_BLOCKIERT",
+]){
+  if(!bankJournal.includes(m)) {
+    fehler.push("BANK_DEPOSIT_JOURNAL_GRENZE_FEHLT:"+m);
+  }
+}
+const bankPreflightBrowser=lies(
+  "werkzeuge/bank-deposit-produktions-browser.mjs",
+);
+for(const m of [
+  "BANK_DEPOSIT_PREFLIGHT_BROWSER_READ_ONLY = true",
+  "BANK_DEPOSIT_PREFLIGHT_GAMEPLAY_WRITES = 0",
+  "c.bank",
+  "bank.gold",
+  "server_region",
+  "server_identifier",
+]){
+  if(!bankPreflightBrowser.includes(m)) {
+    fehler.push("BANK_DEPOSIT_PREFLIGHT_BROWSER_FEHLT:"+m);
+  }
+}
+for(const [kennung,muster] of [
+  ["BANK_DEPOSIT",/\bbank_deposit\s*\(/],
+  ["BANK_WITHDRAW",/\bbank_withdraw\s*\(/],
+  ["BANK_STORE",/\bbank_store\s*\(/],
+  ["BANK_RETRIEVE",/\bbank_retrieve\s*\(/],
+  ["RAW_EMIT",/\.emit\s*\(/],
+]){
+  if(muster.test(bankPreflightBrowser)) {
+    fehler.push("BANK_DEPOSIT_PREFLIGHT_RAW_WRITE_VERBOTEN:"+kennung);
+  }
+}
+const bankPreflightRunner=lies(
+  "werkzeuge/bank-deposit-produktions-preflight.mjs",
+);
+for(const m of [
+  "authorityImPreflightErteilt: false",
+  "browserGameplayWrites",
+  "pruefeBankDepositStartBereit",
+  "FAULT_RESTART_SHADOW_VOR_LIVE_RUNNER",
+]){
+  if(!bankPreflightRunner.includes(m)) {
+    fehler.push("BANK_DEPOSIT_PREFLIGHT_RUNNER_FEHLT:"+m);
+  }
+}
+if(/\bbank_deposit\s*\(/.test(bankPreflightRunner)
+    ||/\.emit\s*\(/.test(bankPreflightRunner)) {
+  fehler.push("BANK_DEPOSIT_PREFLIGHT_RUNNER_WRITE_VERBOTEN");
 }
 
 const equipmentModul=lies("grundlage/quelle/equipment/modul-vertrag.ts");

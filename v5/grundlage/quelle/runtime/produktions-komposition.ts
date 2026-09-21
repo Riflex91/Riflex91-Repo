@@ -6,6 +6,12 @@ import {
   merchantCoreAPlanungsFaehigkeitDefinitionen,
 } from "../merchant/faehigkeits-vertrag.js";
 import {
+  merchantBankCoreModulDefinition,
+} from "../merchant/bank-produktions-modul-vertrag.js";
+import {
+  merchantBankDepositMutationsFaehigkeitDefinition,
+} from "../merchant/bank-produktions-faehigkeits-vertrag.js";
+import {
   equipmentCoreModulDefinition,
 } from "../equipment/modul-vertrag.js";
 import {
@@ -16,7 +22,7 @@ import type {
 } from "./produktions-runtime.js";
 
 export const PRODUKTIONS_KOMPOSITIONS_KATALOG_STATUS =
-  "DEFAULT_DENY_PLANEN_UND_EQUIP_MUTIEREN_REGISTRIERT_INAKTIV";
+  "DEFAULT_DENY_PLANEN_EQUIP_UND_BANK_DEPOSIT_MUTIEREN_REGISTRIERT_INAKTIV";
 
 export const V5_PRODUKTIONS_STORAGE_HEALTH_ID = "produktiver-speicher";
 
@@ -44,10 +50,12 @@ export function erstelleKanonischeProduktionsKomposition(
     schemaVersion: 1,
     modulDefinitionen: Object.freeze([
       merchantCoreABasisModulDefinition(),
+      merchantBankCoreModulDefinition(),
       equipmentCoreModulDefinition(),
     ]),
     faehigkeitsDefinitionen: Object.freeze([
       ...merchantCoreAPlanungsFaehigkeitDefinitionen(),
+      merchantBankDepositMutationsFaehigkeitDefinition(),
       equipmentEquipMutationsFaehigkeitDefinition(),
     ]),
     healthAnforderungen: kopiereHealthAnforderungen(healthAnforderungen),

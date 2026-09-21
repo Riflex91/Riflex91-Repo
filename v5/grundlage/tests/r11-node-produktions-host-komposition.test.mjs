@@ -15,6 +15,14 @@ import {
   EQUIPMENT_EQUIP_VERIFIER_ID,
   MERCHANT_CORE_A_MODUL_ID,
   MERCHANT_CORE_A_MODUL_VERSION,
+  BANK_DEPOSIT_ACTION_CONTRACT_ID,
+  BANK_DEPOSIT_EINMAL_BESTAETIGUNG,
+  BANK_DEPOSIT_EINMAL_POLICY_ID,
+  BANK_DEPOSIT_RECOVERY_CONTRACT_ID,
+  BANK_DEPOSIT_VERIFIER_ID,
+  MERCHANT_BANK_CORE_MODUL_ID,
+  MERCHANT_BANK_CORE_MODUL_VERSION,
+  MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
 } from "../../erzeugt/index.js";
 import {
   erstelleNodeV5ProduktionsHost,
@@ -60,6 +68,26 @@ function equipAuthority(id = "NODE-EQUIP-AUTH-1", jetztMs = 101) {
     verifierId: EQUIPMENT_EQUIP_VERIFIER_ID,
     policyId: EQUIPMENT_EQUIP_EINMAL_POLICY_ID,
     bestaetigungText: EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG,
+    gueltigBisMs: jetztMs + 2_000,
+  };
+}
+
+function bankDepositAuthority(
+  id = "NODE-BANK-DEPOSIT-AUTH-1",
+  jetztMs = 101,
+) {
+  return {
+    schemaVersion: 1,
+    aktivierungsId: id,
+    transaktionsId: "NODE-BANK-DEPOSIT-TX-1",
+    faehigkeitId: MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
+    anbieterModulId: MERCHANT_BANK_CORE_MODUL_ID,
+    anbieterVersion: MERCHANT_BANK_CORE_MODUL_VERSION,
+    actionContractId: BANK_DEPOSIT_ACTION_CONTRACT_ID,
+    recoveryContractId: BANK_DEPOSIT_RECOVERY_CONTRACT_ID,
+    verifierId: BANK_DEPOSIT_VERIFIER_ID,
+    policyId: BANK_DEPOSIT_EINMAL_POLICY_ID,
+    bestaetigungText: BANK_DEPOSIT_EINMAL_BESTAETIGUNG,
     gueltigBisMs: jetztMs + 2_000,
   };
 }
@@ -137,6 +165,76 @@ test("Node-Host stellt exakt eine durable Equip-Authority aus ohne Registry-Akti
 
     await host.stoppe("TEST_ENDE");
     assert.equal(ergebnis.authority.gueltigFuer(102), false);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("Node-Host stellt Bank-Deposit-One-Shot durable und default-off aus", async () => {
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "v5-node-bank-deposit-auth-"),
+  );
+  try {
+    const host = await erstelleNodeV5ProduktionsHost(hostOptionen(root));
+    assert.equal((await host.starte(100)).zustand, "LAEUFT");
+
+    const ergebnis = await host.erteileBankDepositEinmalAuthority(
+      bankDepositAuthority(),
+      101,
+    );
+
+    assert.equal(ergebnis.erfolgreich, true);
+    assert.ok(ergebnis.authority);
+    assert.equal(ergebnis.authority.gueltigFuer(101), true);
+    assert.equal(host.status().bankDepositEinmalAuthorityOffen, true);
+    assert.equal(host.status().equipEinmalAuthorityOffen, false);
+    assert.equal(host.status().gameplayAutoritaet, false);
+    assert.equal(host.status().rawWriteAutoritaet, false);
+    assert.equal(host.status().actionAuthority, false);
+
+    const audit = JSON.parse(await fs.readFile(
+      path.join(
+        root,
+        "runtime",
+        "authority",
+        "mutieren",
+        "bank-deposit",
+        "NODE-BANK-DEPOSIT-AUTH-1.json",
+      ),
+      "utf8",
+    ));
+    assert.equal(audit.transaktionsId, "NODE-BANK-DEPOSIT-TX-1");
+    assert.equal(audit.maximaleVerwendungen, 1);
+    assert.equal(audit.gameplayWriteNochNichtAusgefuehrt, true);
+
+    await host.stoppe("TEST_ENDE");
+    assert.equal(ergebnis.authority.gueltigFuer(102), false);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("Equip und Bank-Deposit-One-Shot duerfen nie gleichzeitig offen sein", async () => {
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "v5-node-bank-equip-exclusion-"),
+  );
+  try {
+    const host = await erstelleNodeV5ProduktionsHost(hostOptionen(root));
+    assert.equal((await host.starte(100)).zustand, "LAEUFT");
+
+    const bank = await host.erteileBankDepositEinmalAuthority(
+      bankDepositAuthority(),
+      101,
+    );
+    assert.equal(bank.erfolgreich, true);
+
+    await assert.rejects(
+      () => host.erteileEquipEinmalAuthority(
+        equipAuthority("NODE-EQUIP-AUTH-CONFLICT", 102),
+        102,
+      ),
+      /BANK_AUTHORITY_OFFEN/,
+    );
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }
