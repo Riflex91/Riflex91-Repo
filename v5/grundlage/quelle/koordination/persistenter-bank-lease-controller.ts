@@ -339,6 +339,7 @@ export class PersistenterBankLeaseController {
     fence: BankExternalFence,
     jetztMs: number,
   ): boolean {
+    if (this.#persistenzGesperrt) return false;
     return this.#koordinator.validiereMutation(
       token,
       lokalerBankKanalToken,
@@ -353,6 +354,7 @@ export class PersistenterBankLeaseController {
     jetztMs: number,
     maximaleAlterMs: number,
   ): boolean {
+    if (this.#persistenzGesperrt) return false;
     return this.#koordinator.validiereSnapshot(
       token,
       snapshot,
@@ -446,9 +448,14 @@ export class PersistenterBankLeaseController {
     if (inhalt.length > 500_000) {
       throw new Error("BANK_LEASE_PERSISTENZ_ZU_GROSS");
     }
-    await this.#persistenz.schreibeDurable(
-      inhalt + "\n",
-      "bank-lease-" + jetztMs,
-    );
+    try {
+      await this.#persistenz.schreibeDurable(
+        inhalt + "\n",
+        "bank-lease-" + jetztMs,
+      );
+    } catch (fehler) {
+      this.#persistenzGesperrt = true;
+      throw fehler;
+    }
   }
 }
