@@ -10,6 +10,11 @@ local function safeCall(fn, ...)
     return a, b, c, d, e, f, g, h, i, j
 end
 
+local function safeInvoke(fn, ...)
+    if type(fn) ~= "function" then return false end
+    return pcall(fn, ...)
+end
+
 function API:GetContainerNumSlots(bagID)
     local value
     if C_Container and C_Container.GetContainerNumSlots then
@@ -114,20 +119,18 @@ end
 function API:PickupContainerItem(bagID, slotID)
     if self:IsInCombat() then return false end
     if C_Container and C_Container.PickupContainerItem then
-        return safeCall(C_Container.PickupContainerItem, bagID, slotID) ~= nil
+        return safeInvoke(C_Container.PickupContainerItem, bagID, slotID)
     elseif PickupContainerItem then
-        return safeCall(PickupContainerItem, bagID, slotID) ~= nil
+        return safeInvoke(PickupContainerItem, bagID, slotID)
     end
     return false
 end
 
 function API:UseContainerItem(bagID, slotID)
     if C_Container and C_Container.UseContainerItem then
-        safeCall(C_Container.UseContainerItem, bagID, slotID)
-        return true
+        return safeInvoke(C_Container.UseContainerItem, bagID, slotID)
     elseif UseContainerItem then
-        safeCall(UseContainerItem, bagID, slotID)
-        return true
+        return safeInvoke(UseContainerItem, bagID, slotID)
     end
     return false
 end
@@ -165,8 +168,7 @@ function API:PickupInventoryBag(bagID)
     if self:IsInCombat() then return false end
     local inventorySlot = self:GetBagInventorySlot(bagID)
     if not inventorySlot or type(PickupInventoryItem) ~= "function" then return false end
-    safeCall(PickupInventoryItem, inventorySlot)
-    return true
+    return safeInvoke(PickupInventoryItem, inventorySlot)
 end
 
 function API:IsBagLink(link)
