@@ -105,6 +105,12 @@ Aktueller naechster Schritt:
 
 ### PR20.2 – Bank-Autonomie produktiv
 
+**Vorbereitung:** `VORBEREITET_NO_WRITE`. Die sichere Vorarbeit ist bereits unter
+`dokumentation/PR20-2-BANK-PRODUKTIV-VORBEREITUNG.md` und
+`grundlage/vertraege/runtime/bank-production-preparation.json` festgehalten.
+Sie bleibt hinter `PR20.1_EQUIP_PRODUKTIONSNACHWEIS` blockiert und registriert
+weder Bank-Mutationsauthority noch einen Gameplay-Write-Pfad.
+
 Vorhandene Bankplanung, Bank-Lease, Fencing und Bankkatalog-Fundamente werden mit echten Bankmutationen verbunden.
 
 Abzudecken:
