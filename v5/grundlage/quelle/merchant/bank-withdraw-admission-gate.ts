@@ -12,7 +12,7 @@ import {
   BANK_WITHDRAW_RECOVERY_CONTRACT_ID,
   BANK_WITHDRAW_VERIFIER_ID,
   type ProduktiveBankWithdrawEinmalAuthority,
-} from "./bank-deposit-einmal-authority.js";
+} from "./bank-withdraw-einmal-authority.js";
 
 export interface ProduktiverBankWithdrawHostSchnappschuss {
   readonly zustand: string;
