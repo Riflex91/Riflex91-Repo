@@ -161,3 +161,11 @@ jobs:
           grep -q 'Resolver/StepStateResolver.lua' "$TOC"
           grep -q 'UI/ErrorLogWindow.lua' "$TOC"
           grep -q 'Core/Bootstrap.lua' "$TOC"
+
+
+      - name: Package addon ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides1
+          path: "world of warcraft/MewthischGuides1"
+          if-no-files-found: error
