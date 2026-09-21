@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_PR20_2H_BANK_DEPOSIT_ONE_GOLD_WRITE_GATE",
+  "stand": "2026-09-21",
+  "status": "WRITE_PATH_IMPLEMENTIERT_LIVE_EVIDENCE_AUSSTEHEND",
+  "basisMain": "a2364c8a9054022666d32074db11376978c9f6b1",
+  "capabilityId": "merchant.bank.gold_einlagern",
+  "provider": "merchant-bank-core@1",
+  "actionContractId": "AL-ACTION-BANK-DEPOSIT",
+  "recoveryContractId": "AL-RECOVERY-BANK-DEPOSIT",
+  "verifierId": "AL-VERIFIER-BANK-DEPOSIT",
+  "amountGold": 1,
+  "preconditions": {
+    "realBrowserShadowEvidence": "BESTANDEN",
+    "sourceShaExact": true,
+    "startOutsideBank": true,
+    "noOpenTransaction": true,
+    "noOpenBankLease": true,
+    "noAlternativeRuntime": true,
+    "characterGoldMinimum": 1,
+    "manualMountAfterLease": true,
+    "freshExactPrestate": true
+  },
+  "fencing": {
+    "accountBankLease": true,
+    "characterGoldExclusive": true,
+    "localBankActionChannel": true,
+    "socketBudget": true,
+    "externalFence": true
+  },
+  "sendBoundary": {
+    "durableIntentBeforeSend": true,
+    "publicFunction": "bank_deposit",
+    "exactArgument": 1,
+    "maximumAdapterCalls": 1,
+    "maximumGameplayWrites": 1,
+    "rawSocketEmitAllowed": false,
+    "otherBankWritesAllowed": false
+  },
+  "recovery": {
+    "exactCommitDelta": {
+      "characterGold": -1,
+      "bankGold": 1
+    },
+    "sameIdentityRequired": true,
+    "newerFingerprintRequired": true,
+    "maximumObservations": 4,
+    "sameIntentRetry": false,
+    "unknownWithoutProof": "OPERATOR_REQUIRED",
+    "possibleSendNeverBlindRetry": true
+  },
+  "release": {
+    "manualExitRequired": true,
+    "releaseOnlyAfterObservedExit": true,
+    "unresolvedRelease": "RECOVERY_PENDING"
+  },
+  "liveRunner": {
+    "sourceLocked": true,
+    "exactConfirmation": "V5 BANK DEPOSIT 1 GOLD EINMAL AUSFUEHREN",
+    "reportPath": "runtime/canary/bank-deposit-production/latest.json",
+    "automaticExecution": false,
+    "liveEvidenceStatus": "AUSSTEHEND"
+  },
+  "currentEvidence": {
+    "gameplayWritesPerformedByThisPreparation": 0,
+    "realLiveWritePerformed": false
+  }
+}
