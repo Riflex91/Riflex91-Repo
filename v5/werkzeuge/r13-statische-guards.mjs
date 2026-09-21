@@ -40,6 +40,27 @@ for (const marker of [
   if (!workspace.includes(marker)) fehler.push("WORKSPACE_MARKER_FEHLT:" + marker);
 }
 
+const persistenterBankLease = liesText(
+  "grundlage/quelle/koordination/persistenter-bank-lease-controller.ts",
+);
+for (const marker of [
+  "PersistenterBankLeaseController",
+  "importiereEpocheFloor",
+  "RECOVERY_PENDING",
+  "BANK_LEASE_PERSISTENZ_FEHLER_GESPERRT",
+  "validiereMutation",
+  "validiereSnapshot",
+  "schliesseRestartAbgleichAb",
+  "gameplayAutoritaet = false",
+  "rawWriteAutoritaet = false",
+]) {
+  if (!persistenterBankLease.includes(marker)) {
+    fehler.push("PERSISTENTER_BANK_LEASE_MARKER_FEHLT:" + marker);
+  }
+}
+if (/ressourcenToken\s*:\s*row\./.test(persistenterBankLease)) {
+  fehler.push("PERSISTENTER_BANK_LEASE_DARF_TOKEN_NICHT_REHYDRIEREN");
+}
 const bank = liesText("grundlage/quelle/koordination/account-bank-lease.ts");
 for (const marker of [
   '"account:" + accountId + ":bank"',
