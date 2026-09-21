@@ -898,6 +898,7 @@ function Import:GetStats()
     local guides = self:BuildGuides()
     local rawSteps, actions, quests = 0, 0, 0
     local coverage = self:GetActionCoverage()
+    local classStats = self:GetClassSpecificQuestStats(guides)
     local sourceFiles = {}
 
     for _, guide in ipairs(rawGuides) do
@@ -921,6 +922,8 @@ function Import:GetStats()
         structuredActions = actions,
         normalizedGuides = #guides,
         normalizedQuestDefinitions = quests,
+        classSpecificQuests = classStats.classSpecific,
+        classSpecificByClass = classStats.byClass,
         knownActionKinds = coverage.knownActionKinds,
         unknownActionKinds = coverage.unknownActionKinds,
         knownActions = coverage.knownActions,
