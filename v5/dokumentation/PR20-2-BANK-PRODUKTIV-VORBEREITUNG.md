@@ -221,6 +221,40 @@ Weiterhin nicht vorhanden:
 - keine Raw-Socket-`.emit(...)`;
 - 0 Gameplay-Writes und 0 Adapter-Aufrufe im Shadow.
 
+## PR20.2n – Withdraw Real-Browser-Shadow Evidence BESTANDEN
+
+Der source-locked Withdraw-Real-Browser-Shadow wurde auf
+`15620374566b83c9532e492d63e15c2fed6709e5` real ausgefuehrt und
+vollstaendig bestanden.
+
+Nachgewiesen wurden:
+
+- Start ausserhalb der Bank;
+- stabile manuelle Mount-Transition;
+- identische Account-/Character-/Session-/Serverbindung;
+- Admission `ADMISSION_BESTANDEN_KEIN_SEND`;
+- Journalterminalart `ABBRUCH`;
+- `sendBoundaryState=NICHT_GESENDET`;
+- stabiler manueller Bank-Exit;
+- Lease Epoche 4 terminal `RELEASED`;
+- Bank-Start nachher wieder bereit;
+- `browserGameplayWrites=0`;
+- `hostGameplayWrites=0`;
+- `gameplayWrites=0`;
+- `adapterAufrufe=0`;
+- Withdraw-One-Shot-Authority nach dem Lauf geschlossen;
+- keine Gameplay-, Raw-Write- oder Action-Authority nach dem Lauf;
+- keine breite Runtime-Freigabe und kein Raw-Write-Bypass;
+- `sameIntentRetry=false`.
+
+Evidence:
+`roadmap/pr20-2-bank-withdraw-real-browser-shadow-evidence.json`.
+
+Damit ist der Withdraw-NO-WRITE-Shadow-Gate bestanden. Dies erlaubt **nur**
+die getrennte Implementierung und CI-Pruefung eines engen Write-Adapters und
+Live-Runners fuer exakt `bank_withdraw(1)`. Ein echter Withdraw-Write ist
+noch nicht ausgefuehrt oder automatisch freigegeben.
+
 ## Admission-Grenze fuer die spaetere Implementierung
 
 Unmittelbar vor jedem moeglichen Bank-Send muessen mindestens erneut bewiesen sein:
