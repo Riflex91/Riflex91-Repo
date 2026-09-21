@@ -91,11 +91,19 @@ function MG:GetErrorLogText(includeInfo)
     local lines = {
         "MEWTHISCH GUIDES 1.0 DIAGNOSTICS",
         "Version=" .. tostring(self.VERSION),
+        "Build=" .. tostring(self.BUILD or "-"),
         "RestedXPCommit=" .. tostring(source.commit or "-"),
         "RuntimeRevision=" .. tostring(runtime.revision or 0),
         "Guide=" .. tostring(runtime.guideID or "-"),
         "Step=" .. tostring(runtime.stepID or "-"),
         string.rep("-", 72),
+    }
+    if db.runtime and db.runtime.navigator then
+        lines[#lines + 1] = "NAVIGATOR SNAPSHOT"
+        for _, detail in ipairs(flatten(db.runtime.navigator)) do
+            lines[#lines + 1] = "  " .. detail
+        end
+        lines[#lines + 1] = string.rep("-", 72)
     }
     local count = 0
     for _, entry in ipairs(db.logs or {}) do
