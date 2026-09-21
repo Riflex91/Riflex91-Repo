@@ -331,8 +331,11 @@ if(/\bbank_withdraw\s*\(/.test(bankWithdrawShadow)
     ||/\bAusfuehrungsAdapter\b/.test(bankWithdrawShadow)) {
   fehler.push("BANK_WITHDRAW_SHADOW_NO_WRITE_VERLETZT");
 }
-if(!runtimeKomposition.includes("fuehreBankWithdrawShadowAdmission")
-    ||!runtimeKomposition.includes(
+const bankWithdrawShadowRuntime=lies(
+  "grundlage/quelle/runtime/produktions-runtime.ts",
+);
+if(!bankWithdrawShadowRuntime.includes("fuehreBankWithdrawShadowAdmission")
+    ||!bankWithdrawShadowRuntime.includes(
       "V5_BANK_WITHDRAW_SHADOW_AUTHORITY_NICHT_AKTUELL",
     )) {
   fehler.push("BANK_WITHDRAW_RUNTIME_SHADOW_BINDUNG_FEHLT");
