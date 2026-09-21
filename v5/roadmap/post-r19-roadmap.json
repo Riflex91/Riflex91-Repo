@@ -619,10 +619,10 @@
     "leaseEpoche": 3,
     "leaseTerminalStatus": "RELEASED",
     "nextLiveCandidate": "bank_withdraw(1)",
-    "nextLiveCandidateStatus": "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE",
+    "nextLiveCandidateStatus": "TWO_TEST_LIMIT_REACHED_CODE_BRIDGE_READ_ONLY_BESTAETIGT",
     "nextLiveCandidateContract": "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
     "nextLiveCandidateSettlementCore": "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
-    "nextLiveCandidateGameplayWrites": 0,
+    "nextLiveCandidateGameplayWrites": 1,
     "nextLiveCandidateCapabilityImplemented": true,
     "nextLiveCandidateAuthorityImplemented": true,
     "nextLiveCandidateAdapterImplemented": true,
@@ -634,6 +634,13 @@
     "nextLiveCandidateRealBrowserShadowEvidence": "BESTANDEN",
     "nextLiveCandidateRealBrowserShadowRunnerImplemented": true,
     "nextLiveCandidateRealBrowserShadowEvidencePfad": "v5/roadmap/pr20-2-bank-withdraw-real-browser-shadow-evidence.json",
-    "nextLiveCandidateRealBrowserShadowTestedSourceSha": "15620374566b83c9532e492d63e15c2fed6709e5"
+    "nextLiveCandidateRealBrowserShadowTestedSourceSha": "15620374566b83c9532e492d63e15c2fed6709e5",
+    "nextLiveCandidateFunctionalTestLimit": 2,
+    "nextLiveCandidateFunctionalTestsConsumed": 2,
+    "nextLiveCandidateAdditionalFunctionalTestAllowed": false,
+    "nextLiveCandidateLiveEvidence": "NICHT_BESTANDEN_TESTLIMIT_ERREICHT",
+    "nextLiveCandidateLiveEvidencePfad": "v5/roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json",
+    "nextLiveCandidateCodeBridgeReadOnlyEvidence": "BESTANDEN",
+    "nextLiveCandidateProductionWideActivationAllowed": false
   }
 }
