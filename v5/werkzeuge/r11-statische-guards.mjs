@@ -130,7 +130,11 @@ for (const marker of [
   "NodeEquipTransaktionsJournal",
   "NodeBankDepositEinmalAuthorityProtokoll",
   "NodeBankDepositTransaktionsJournal",
+  "NodeBankWithdrawEinmalAuthorityProtokoll",
+  "NodeBankWithdrawTransaktionsJournal",
   "pruefeBankDepositStartBereit",
+  "pruefeBankWithdrawStartBereit",
+  "erteileBankWithdrawEinmalAuthority",
   "fuehreEquipEinmalTransaktion",
   "fuehreBankDepositEinGoldTransaktion",
   "fuehreBankDepositRealShadow",
@@ -464,6 +468,93 @@ for (const verboten of [
 ]) {
   if (bankWithdrawCandidate.includes(verboten)) {
     fehler.push("BANK_WITHDRAW_CANDIDATE_NO_WRITE_VERLETZT:" + verboten);
+  }
+}
+
+
+const bankWithdrawAuthority = liesText(
+  "grundlage/quelle/merchant/bank-withdraw-einmal-authority.ts",
+);
+for (const marker of [
+  '"AL-ACTION-BANK-WITHDRAW"',
+  '"AL-RECOVERY-BANK-WITHDRAW"',
+  '"AL-VERIFIER-BANK-WITHDRAW"',
+  '"BANK-WITHDRAW-PRODUKTION-EINMAL-V1"',
+  '"V5 BANK WITHDRAW 1 GOLD EINMAL AUSFUEHREN"',
+  "ProduktiveBankWithdrawEinmalAuthority",
+  "maximaleVerwendungen: 1",
+  "breiteRuntimeFreigabe: false",
+  "rawWriteAutoritaet: false",
+]) {
+  if (!bankWithdrawAuthority.includes(marker)) {
+    fehler.push("BANK_WITHDRAW_AUTHORITY_QUELLE_FEHLT:" + marker);
+  }
+}
+for (const [kennung, muster] of [
+  ["BANK_WITHDRAW_WRITE", /\bbank_withdraw\s*\(/],
+  ["RAW_EMIT", /\.emit\s*\(/],
+  ["EXECUTION_ADAPTER", /\bAusfuehrungsAdapter\b/],
+]) {
+  if (muster.test(bankWithdrawAuthority)) {
+    fehler.push("BANK_WITHDRAW_AUTHORITY_NO_WRITE_VERLETZT:" + kennung);
+  }
+}
+
+const bankWithdrawAuthorityAdapter = liesText(
+  "grundlage/adapter/persistenz/node-bank-withdraw-einmal-authority-protokoll.mjs",
+);
+for (const marker of [
+  "runtime/authority/mutieren/bank-withdraw/",
+  "BANK_WITHDRAW_EINMAL_AUTHORITY_VOR_WIRKUNG",
+  "erstelleExklusivDurable",
+  "gueltigBisMs - intent.zeitMs > 2_000",
+]) {
+  if (!bankWithdrawAuthorityAdapter.includes(marker)) {
+    fehler.push("BANK_WITHDRAW_AUTHORITY_ADAPTER_FEHLT:" + marker);
+  }
+}
+
+const bankWithdrawJournal = liesText(
+  "grundlage/adapter/persistenz/node-bank-withdraw-transaktionsjournal.mjs",
+);
+for (const marker of [
+  "runtime/transactions/bank-withdraw",
+  "current.json",
+  "MAX_EINTRAEGE = 16",
+  "BANK_WITHDRAW_TX_OFFENE_TRANSAKTION_BLOCKIERT",
+]) {
+  if (!bankWithdrawJournal.includes(marker)) {
+    fehler.push("BANK_WITHDRAW_JOURNAL_GRENZE_FEHLT:" + marker);
+  }
+}
+
+const bankWithdrawRuntime = liesText(
+  "grundlage/quelle/runtime/produktions-runtime.ts",
+);
+for (const marker of [
+  "erteileBankWithdrawEinmalAuthority",
+  "revalidiereBankWithdrawEinmalAuthority",
+  "offeneBankWithdrawEinmalAuthority",
+  "V5_BANK_WITHDRAW_EINMAL_DEPOSIT_AUTHORITY_OFFEN",
+  "V5_EQUIP_EINMAL_BANK_WITHDRAW_AUTHORITY_OFFEN",
+]) {
+  if (!bankWithdrawRuntime.includes(marker)) {
+    fehler.push("BANK_WITHDRAW_RUNTIME_AUTHORITY_FEHLT:" + marker);
+  }
+}
+
+const bankWithdrawHost = liesText(
+  "grundlage/quelle/host/produktions-host-controller.ts",
+);
+for (const marker of [
+  "erteileBankWithdrawEinmalAuthority",
+  "revalidiereBankWithdrawEinmalAuthority",
+  "bankWithdrawEinmalAuthorityOffen",
+  "PRODUKTIONS_HOST_BANK_WITHDRAW_EINMAL_DEPOSIT_AUTHORITY_OFFEN",
+  "PRODUKTIONS_HOST_BANK_DEPOSIT_EINMAL_WITHDRAW_AUTHORITY_OFFEN",
+]) {
+  if (!bankWithdrawHost.includes(marker)) {
+    fehler.push("BANK_WITHDRAW_HOST_AUTHORITY_FEHLT:" + marker);
   }
 }
 
