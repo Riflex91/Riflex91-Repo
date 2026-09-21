@@ -104,7 +104,7 @@ function MG:GetErrorLogText(includeInfo)
             lines[#lines + 1] = "  " .. detail
         end
         lines[#lines + 1] = string.rep("-", 72)
-    }
+    end
     local count = 0
     for _, entry in ipairs(db.logs or {}) do
         if includeInfo or entry.level == "WARN" or entry.level == "ERROR" then
