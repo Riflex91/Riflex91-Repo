@@ -93,7 +93,16 @@
     "bank-withdraw-production:real-shadow": "npm run bauen && node werkzeuge/bank-withdraw-real-browser-shadow.mjs",
     "bank-withdraw-production:write-pruefen": "npm run bauen && node --check werkzeuge/bank-withdraw-produktions-write-browser.mjs && node --check werkzeuge/bank-withdraw-produktions-live.mjs && node --test grundlage/tests/r11-bank-withdraw-produktions-write-browser.test.mjs grundlage/tests/r11-bank-withdraw-produktions-transaktion.test.mjs grundlage/tests/r11-node-produktions-host-komposition.test.mjs grundlage/tests/r11-bank-withdraw-produktions-journal.test.mjs",
     "bank-withdraw-production:write-preflight": "npm run bauen && node werkzeuge/bank-withdraw-produktions-live.mjs --preflight",
-    "bank-withdraw-production:write-live": "npm run bauen && node werkzeuge/bank-withdraw-produktions-live.mjs"
+    "bank-withdraw-production:write-live": "npm run bauen && node werkzeuge/bank-withdraw-produktions-live.mjs",
+    "ingame:bank-planen": "npm run bank-planen-canary:live",
+    "ingame:equip:preflight": "npm run equipment-equip-production:preflight",
+    "ingame:equip:live": "npm run equipment-equip-production:live",
+    "ingame:bank-deposit:shadow": "npm run bank-deposit-production:real-shadow",
+    "ingame:bank-deposit:preflight": "npm run bank-deposit-production:write-preflight",
+    "ingame:bank-deposit:live": "npm run bank-deposit-production:write-live",
+    "ingame:bank-withdraw:shadow": "npm run bank-withdraw-production:real-shadow",
+    "ingame:bank-withdraw:preflight": "npm run bank-withdraw-production:write-preflight",
+    "ingame:bank-withdraw:live": "npm run bank-withdraw-production:write-live"
   },
   "devDependencies": {
     "typescript": "5.9.3"
