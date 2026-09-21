@@ -1,22 +1,28 @@
-# PR20.2 – Bank-Produktion: NO-WRITE-Vorbereitung
+# PR20.2 – Bank-Produktion: One-Shot-Grenze / NO-WRITE
 
-**Status:** BEREIT FUER PRODUKTIVIERUNG / NO-WRITE  
+**Status:** ONE-SHOT-PREFLIGHT IN ARBEIT / NO-WRITE  
 **Stand:** 2026-09-21  
 **Vorausgehendes Gate:** `PR20.1_EQUIP_PRODUKTIONSNACHWEIS` – BESTANDEN  
-**Basis-main:** `3f88e904cb2a7fd20b69a5e7c552eb0958b66884`
+**Basis-main:** `f024bb55214f8c28d817cae123d95e7c7da653cc`
 
 ## Zweck
 
 Diese Vorbereitung reduziert die Wartezeit nach dem realen Equip-Test, ohne die Sicherheitsreihenfolge der Post-R19-Roadmap zu verletzen.
 
-Sie oeffnet **keine** Bank-Gameplay-Authority und registriert **keine** produktive Bank-Mutationsfaehigkeit. Es gibt in dieser Vorbereitung:
+PR20.2b registriert inzwischen genau **eine** produktive Bank-Mutationsfaehigkeit
+default-off: `merchant.bank.gold_einlagern` unter dem separaten Single Owner
+`merchant-bank-core@1`. Eine eng benannte One-Shot-Authority kann durable
+ausgestellt werden, erzeugt fuer sich allein aber keinen Gameplay-Write.
+
+Weiterhin gibt es:
 
 - keinen Bank-Live-Runner;
-- keinen Bank-Mutationsadapter;
-- keinen direkten Aufruf von `bank_deposit`, `bank_withdraw`, `bank_store`, `bank_retrieve` oder `bank_swap`;
-- keinen produktiven Aktivierungspfad;
+- keinen Bank-Mutations-/CDP-Write-Adapter;
+- keinen direkten produktiven Aufruf von `bank_deposit`,
+  `bank_withdraw`, `bank_store`, `bank_retrieve` oder `bank_swap`;
+- keinen generischen produktiven MUTIEREN-Aktivierungspfad;
 - keinen Browser-Gameplay-Write;
-- keine Aenderung am bestehenden Equip-Produktionspfad.
+- keine Aufweichung des bestehenden Equip-Produktionspfads.
 
 Der maschinenlesbare Vertrag liegt unter:
 
@@ -73,8 +79,10 @@ Fingerprint vorliegt und gleichzeitig exakt `character.gold - 1` sowie
 `bank.gold + 1` nachgewiesen sind. Nur Senderverlust oder nur Bankzuwachs
 reichen nicht. Same-Intent-Retry bleibt immer verboten.
 
-Dieser Schritt besitzt weiterhin **keine** produktive Mutations-Capability,
-keine Authority, keinen Adapter und keinen Live-Runner.
+Die Capability und die kurzlebige One-Shot-Authority sind inzwischen
+implementiert. Die Capability bleibt `standardAktiv=false`; die Authority ist
+maximal 2000 ms gueltig und genau einmal verbrauchbar. Weiterhin fehlen bewusst
+Write-Adapter und Live-Runner.
 
 ## Admission-Grenze fuer die spaetere Implementierung
 
@@ -108,16 +116,27 @@ Fuer den ersten Mutationssatz gilt vorbereitet:
 - erst ein positiver fachlicher Delta-Beweis erlaubt COMMIT;
 - widerspruechliche oder unzureichende Evidence endet fail-closed bzw. operator-required.
 
+## PR20.2b bereits implementiert
+
+- separater Single Owner `merchant-bank-core@1`;
+- exakt eine default-off MUTIEREN-Capability
+  `merchant.bank.gold_einlagern`;
+- exakt gebundene One-Shot-Authority mit maximal einer Verwendung;
+- durable Authority-Evidence vor Ausstellung;
+- separates Bank-Deposit-Journal mit globalem Current-Fence;
+- read-only Browserbeobachtung mit realen Character-/Bank-Gold-Baselines;
+- read-only Preflight mit `browserGameplayWrites=0` und ohne
+  Authority-/Lease-Ausstellung.
+
 ## Noch bewusst nicht implementiert
 
-Bis zum bestandenen PR20.1 waren verboten; sie sind auch jetzt erst nach ihrer jeweiligen Implementierung, CI und Preflight-Freigabe zulaessig:
-
-- eine produktive `merchant.bank.*`-MUTIEREN-Capability;
-- eine Bank-One-Shot- oder dauerhafte Mutation-Authority;
-- ein Bank-CDP-Write-Adapter;
-- ein Bank-Live-Runner;
-- eine Registrierung der Bankmutationen in der Produktionskomposition;
-- ein echter Bank-Write.
+- persistenter accountweiter Bank-Lease-Adapter samt Restart-Import;
+- konkrete Admission-Orchestrierung, die Lease, externes Fence, lokalen
+  `bank`-Action-Channel und Socket-Budget zusammen bindet;
+- Bank-CDP-/Write-Adapter;
+- Bank-Live-Runner;
+- irgendein echter Bank-Write;
+- Withdraw/Store/Retrieve/Swap/Open-Pack-Produktivpfade.
 
 ## Arbeit direkt nach bestandenem Equip-Nachweis
 
