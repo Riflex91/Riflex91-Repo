@@ -885,7 +885,7 @@ class NodeV5ProduktionsHost {
       }
     }
     if (anfrage.shadowBestaetigungText
-        !== "V5 BANK DEPOSIT SHADOW OHNE WRITE AUSFUEHREN") {
+        !== "V5 BANK WITHDRAW SHADOW OHNE WRITE AUSFUEHREN") {
       throw new Error("NODE_BANK_SHADOW_BESTAETIGUNG_FEHLT");
     }
     if (!anfrage.ausgang
@@ -920,7 +920,7 @@ class NodeV5ProduktionsHost {
     if (tick.zustand !== "LAEUFT"
         || tick.aktivePlanenFaehigkeiten.length !== 0
         || tick.equipEinmalAuthorityOffen
-        || tick.bankWithdrawEinmalAuthorityOffen
+        || tick.bankDepositEinmalAuthorityOffen
         || tick.bankWithdrawEinmalAuthorityOffen) {
       throw new Error("NODE_BANK_SHADOW_HOST_NICHT_BEREIT:" + tick.grund);
     }
