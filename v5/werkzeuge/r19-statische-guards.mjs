@@ -605,7 +605,6 @@ if(/\bbank_deposit\s*\(/.test(bankDepositLiveRunner)
 const equipProdRunner=lies("werkzeuge/equipment-equip-produktions-live.mjs");
 for(const m of [
   "fuehreEquipEinmalTransaktion",
-  "fuehreBankDepositEinGoldTransaktion",
   "EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG",
   "EQUIP_PROD_SOURCE_SHA_ERFORDERLICH",
   "runtime/canary/equipment-equip-production/latest.json",
@@ -738,6 +737,7 @@ for(const m of [
   "NodeEquipTransaktionsJournal",
   "erteileEquipEinmalAuthority",
   "fuehreEquipEinmalTransaktion",
+  "fuehreBankDepositEinGoldTransaktion",
   "ProduktivesEquipEinmalAdmissionGate",
   "NodeProduktionsOperationsQuelle",
   "V5ProduktionsHostController",
