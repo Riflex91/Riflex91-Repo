@@ -417,15 +417,6 @@ class NodeV5ProduktionsHost {
         mountedCharacterId: mount.charakterName,
         konflikt: false,
       });
-      const lease = await this.#bankLeaseController.aktiviere(
-        leaseToken,
-        fence,
-        mount.beobachtetAmMs,
-      );
-      if (lease.zustand !== "ACTIVE") {
-        throw new Error("NODE_BANK_SHADOW_LEASE_NICHT_ACTIVE");
-      }
-
       const authorityMs = Date.now();
       const authorityErgebnis =
         await this.#host.erteileBankDepositEinmalAuthority(
