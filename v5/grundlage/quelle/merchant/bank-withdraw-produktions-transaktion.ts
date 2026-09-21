@@ -379,9 +379,6 @@ function recoveryBeobachter(
       snapshot: TransaktionsSnapshotPin,
       versuch: number,
     ) {
-      if (versuch > 1) {
-        await new Promise<void>(resolve => setTimeout(resolve, 250));
-      }
       try {
         const nachher = await beobachter.beobachte(
           a.vorher.leaseEpoche,
