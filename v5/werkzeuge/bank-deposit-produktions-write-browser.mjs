@@ -15,7 +15,7 @@ function text(wert, max, fehler) {
   }
 }
 
-function pruefeBindung(bindung) {
+function pruefeIdentitaet(bindung) {
   if (!bindung || typeof bindung !== "object") {
     throw new Error("BANK_DEPOSIT_WRITE_BINDUNG_FEHLT");
   }
@@ -25,10 +25,19 @@ function pruefeBindung(bindung) {
     [bindung.sessionId, 192, "BANK_DEPOSIT_WRITE_SESSION_UNGUELTIG"],
     [bindung.serverRegion, 32, "BANK_DEPOSIT_WRITE_REGION_UNGUELTIG"],
     [bindung.serverKennung, 32, "BANK_DEPOSIT_WRITE_SERVER_UNGUELTIG"],
-    [bindung.fingerprint, 192, "BANK_DEPOSIT_WRITE_FINGERPRINT_UNGUELTIG"],
   ]) {
     text(wert, max, fehler);
   }
+  return bindung;
+}
+
+function pruefeBindung(bindung) {
+  pruefeIdentitaet(bindung);
+  text(
+    bindung.fingerprint,
+    192,
+    "BANK_DEPOSIT_WRITE_FINGERPRINT_UNGUELTIG",
+  );
   if (!Number.isSafeInteger(bindung.characterGold)
       || bindung.characterGold < 1
       || !Number.isSafeInteger(bindung.bankGold)
@@ -71,7 +80,7 @@ export function erstelleProduktivenBankDepositBeobachter(
   contextId,
   erwarteteBindung,
 ) {
-  pruefeBindung(erwarteteBindung);
+  pruefeIdentitaet(erwarteteBindung);
   return Object.freeze({
     async beobachte(leaseEpoche, mountEpoche) {
       if (!Number.isSafeInteger(leaseEpoche) || leaseEpoche < 1
@@ -105,19 +114,17 @@ export function erstelleProduktivenBankDepositBeobachter(
 }
 
 export class ProduktionsCdpBankDepositEinGoldAdapter {
-  constructor(session, contextId, erwarteteBindung) {
+  constructor(session, contextId) {
     if (!session || typeof session.evaluate !== "function"
         || !Number.isInteger(contextId)) {
       throw new Error("BANK_DEPOSIT_WRITE_CDP_KONTEXT_UNGUELTIG");
     }
-    pruefeBindung(erwarteteBindung);
     this.adapterId = "v5-production-cdp-bank-deposit-one-gold-once";
     this.actionContractId = ACTION;
     this.recoveryContractId = RECOVERY;
     this.verifierId = VERIFIER;
     this.session = session;
     this.contextId = contextId;
-    this.erwarteteBindung = Object.freeze({ ...erwarteteBindung });
     this.adapterAufrufe = 0;
     this.gameWrites = 0;
     this.moeglicherSend = false;
@@ -129,22 +136,42 @@ export class ProduktionsCdpBankDepositEinGoldAdapter {
     }
     this.adapterAufrufe += 1;
 
-    const e = this.erwarteteBindung;
     if (!anfrage
         || anfrage.betrag !== 1
-        || anfrage.accountId !== e.accountId
-        || anfrage.characterId !== e.charakterName
-        || anfrage.sessionId !== e.sessionId
-        || anfrage.serverRegion !== e.serverRegion
-        || anfrage.serverIdentifier !== e.serverKennung
-        || anfrage.erwartetesCharacterGold !== e.characterGold
-        || anfrage.erwartetesBankGold !== e.bankGold
-        || anfrage.erwarteterFingerprint !== e.fingerprint) {
+        || !Number.isSafeInteger(anfrage.erwartetesCharacterGold)
+        || anfrage.erwartetesCharacterGold < 1
+        || !Number.isSafeInteger(anfrage.erwartetesBankGold)
+        || anfrage.erwartetesBankGold < 0) {
       return Object.freeze({
         art: "NICHT_GESENDET",
         grund: "BANK_DEPOSIT_WRITE_ADAPTER_ANFRAGE_DRIFT",
       });
     }
+    for (const wert of [
+      anfrage.accountId,
+      anfrage.characterId,
+      anfrage.sessionId,
+      anfrage.serverRegion,
+      anfrage.serverIdentifier,
+      anfrage.erwarteterFingerprint,
+    ]) {
+      if (typeof wert !== "string" || wert.trim().length === 0) {
+        return Object.freeze({
+          art: "NICHT_GESENDET",
+          grund: "BANK_DEPOSIT_WRITE_ADAPTER_BINDUNG_FEHLT",
+        });
+      }
+    }
+    const e = Object.freeze({
+      accountId: anfrage.accountId,
+      charakterName: anfrage.characterId,
+      sessionId: anfrage.sessionId,
+      serverRegion: anfrage.serverRegion,
+      serverKennung: anfrage.serverIdentifier,
+      characterGold: anfrage.erwartetesCharacterGold,
+      bankGold: anfrage.erwartetesBankGold,
+      fingerprint: anfrage.erwarteterFingerprint,
+    });
 
     const expr = [
       "(async () => {",
