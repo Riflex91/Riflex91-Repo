@@ -185,6 +185,8 @@ export class PersistenterBankLeaseController {
 
   readonly #koordinator: BankLeaseKoordinator;
   readonly #persistenz: BankLeasePersistenzPort;
+  #persistierteFloors: readonly PersistierteBankLeaseSicht[] =
+    Object.freeze([]);
 
   public constructor(
     koordinator: BankLeaseKoordinator,
@@ -216,6 +218,7 @@ export class PersistenterBankLeaseController {
       throw new Error("BANK_LEASE_PERSISTENZ_AUS_ZUKUNFT");
     }
 
+    this.#persistierteFloors = Object.freeze([...snapshot.eintraege]);
     for (const row of snapshot.eintraege) {
       this.#koordinator.importiereEpocheFloor(row.accountId, row.epoche);
       if (row.zustand !== "RELEASED") {
@@ -405,10 +408,22 @@ export class PersistenterBankLeaseController {
     if (sicht.length > BANK_LEASE_MAX_EINTRAEGE) {
       throw new Error("BANK_LEASE_PERSISTENZ_ZU_VIELE_EINTRAEGE");
     }
+    const live = Object.freeze(sicht.map(persistierbar));
+    const ohneLive = this.#persistierteFloors.filter(
+      alt => !live.some(neu => neu.accountId === alt.accountId),
+    );
+    const eintraege = Object.freeze(
+      [...live, ...ohneLive]
+        .sort((a, b) => a.accountId.localeCompare(b.accountId)),
+    );
+    if (eintraege.length > BANK_LEASE_MAX_EINTRAEGE) {
+      throw new Error("BANK_LEASE_PERSISTENZ_ZU_VIELE_EINTRAEGE");
+    }
+    this.#persistierteFloors = eintraege;
     const snapshot: PersistierterBankLeaseSnapshot = Object.freeze({
       schemaVersion: 1,
       gespeichertAmMs: jetztMs,
-      eintraege: Object.freeze(sicht.map(persistierbar)),
+      eintraege,
     });
     const inhalt = JSON.stringify(snapshot);
     if (inhalt.length > 500_000) {
