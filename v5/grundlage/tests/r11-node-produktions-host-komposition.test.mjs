@@ -142,6 +142,109 @@ test("Node-Host stellt exakt eine durable Equip-Authority aus ohne Registry-Akti
   }
 });
 
+test("Node-Host fuehrt synthetisch exakt eine produktive Equip-Transaktion bis COMMIT", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "v5-node-equip-tx-"));
+  try {
+    const host = await erstelleNodeV5ProduktionsHost(hostOptionen(root));
+    const startMs = Date.now();
+    assert.equal((await host.starte(startMs)).zustand, "LAEUFT");
+
+    let adapterCalls = 0;
+    const adapter = {
+      adapterId: "synthetic-node-production-equip",
+      actionContractId: EQUIPMENT_EQUIP_ACTION_CONTRACT_ID,
+      recoveryContractId: EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID,
+      verifierId: EQUIPMENT_EQUIP_VERIFIER_ID,
+      async sende() {
+        adapterCalls += 1;
+        return {
+          art: "SERVER_ERGEBNIS",
+          korrelationId: "NODE-K-1",
+          ergebnis: { ok: true },
+        };
+      },
+    };
+    const liveVoraussetzungen = {
+      async pruefe(ids, now) {
+        return ids.map(id => ({
+          voraussetzungId: id,
+          fingerprint: "f".repeat(64) + ":" + id,
+          beobachtetAmMs: now,
+          gueltigBisMs: now + 1_500,
+        }));
+      },
+    };
+    const recoveryBeobachter = {
+      async beobachte(_tx, snapshot) {
+        return {
+          schemaVersion: 1,
+          klassifikation: "BESTAETIGT",
+          beobachtetAmMs: Date.now(),
+          snapshot,
+          differenz: {
+            schemaVersion: 1,
+            erwarteteDomaenen: ["equipment", "inventory"],
+            angewendeteDomaenen: ["equipment", "inventory"],
+            offeneDomaenen: [],
+            widerspruechlicheDomaenen: [],
+          },
+          evidenceFingerprints: ["e".repeat(64)],
+        };
+      },
+    };
+
+    const result = await host.fuehreEquipEinmalTransaktion({
+      aktivierungsId: "NODE-PROD-EQUIP-AUTH-1",
+      transaktionsId: "NODE-PROD-EQUIP-TX-1",
+      freigabeId: "NODE-PROD-EQUIP-FREE-1",
+      auftragId: "NODE-PROD-EQUIP-ORDER-1",
+      ablaufId: "NODE-PROD-EQUIP-FLOW-1",
+      characterId: "Merchant",
+      bestaetigungText: EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG,
+      kandidat: {
+        index: 3,
+        itemName: "testhat",
+        itemLevel: 0,
+        slot: "helmet",
+        vorherigesSlotItem: null,
+      },
+      wissensSnapshot: {
+        gitCommit: "a".repeat(40),
+        quellenSha256: ["b".repeat(64)],
+      },
+      configFingerprint: "c".repeat(64),
+      prestateFingerprint: "d".repeat(64),
+      liveVoraussetzungen,
+      adapter,
+      recoveryBeobachter,
+    }, Date.now());
+
+    assert.equal(result.status, "COMMITTED");
+    assert.equal(result.sameIntentErneutSenden, false);
+    assert.equal(adapterCalls, 1);
+    assert.equal(host.status().equipEinmalAuthorityOffen, false);
+
+    const txRoot = path.join(
+      root,
+      "runtime",
+      "transactions",
+      "equipment-equip",
+      "NODE-PROD-EQUIP-TX-1",
+    );
+    const state = JSON.parse(await fs.readFile(
+      path.join(txRoot, "state.json"),
+      "utf8",
+    ));
+    assert.equal(state.status, "TERMINAL");
+    assert.deepEqual(
+      state.eintraege.map(x => x.art),
+      ["INTENT", "SERVER_ERGEBNIS", "POSTCONDITION", "COMMIT"],
+    );
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test("persistierter Capability-Deny ueberlebt Node-Host-Neustart", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "v5-node-deny-"));
   try {
