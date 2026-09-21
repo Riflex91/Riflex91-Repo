@@ -96,13 +96,14 @@ for(const p of pflicht) if(!fs.existsSync(p)) fehler.push("PFLICHTARTEFAKT_FEHLT
 
 const produktionsKomposition=lies("grundlage/quelle/runtime/produktions-komposition.ts");
 for(const m of [
-  "DEFAULT_DENY_PLANEN_EQUIP_UND_BANK_DEPOSIT_MUTIEREN_REGISTRIERT_INAKTIV",
+  "DEFAULT_DENY_PLANEN_EQUIP_UND_BANK_GOLD_MUTIEREN_REGISTRIERT_INAKTIV",
   "merchantCoreABasisModulDefinition",
   "merchantCoreAPlanungsFaehigkeitDefinitionen",
   "equipmentCoreModulDefinition",
   "equipmentEquipMutationsFaehigkeitDefinition",
   "merchantBankCoreModulDefinition",
   "merchantBankDepositMutationsFaehigkeitDefinition",
+  "merchantBankWithdrawMutationsFaehigkeitDefinition",
 ]){
   if(!produktionsKomposition.includes(m)) {
     fehler.push("PRODUKTIONS_KOMPOSITION_DEFAULT_DENY_FEHLT:"+m);
@@ -146,6 +147,7 @@ for(const m of [
   'MERCHANT_BANK_CORE_MODUL_ID = "merchant-bank-core"',
   'MERCHANT_BANK_CORE_MODUL_VERSION = "1"',
   '"merchant.bank.gold_einlagern"',
+  '"merchant.bank.gold_auslagern"',
   "standardAktiv: false",
 ]){
   if(!bankProduktionsModul.includes(m)) {
@@ -161,6 +163,7 @@ for(const m of [
   "standardAktiv: false",
   "MERCHANT_BANK_CORE_MODUL_ID",
   "MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID",
+  "MERCHANT_BANK_WITHDRAW_FAEHIGKEIT_ID",
 ]){
   if(!bankProduktionsFaehigkeit.includes(m)) {
     fehler.push("BANK_DEPOSIT_FAEHIGKEITS_VERTRAG_FEHLT:"+m);
@@ -210,6 +213,57 @@ for(const m of [
     fehler.push("BANK_DEPOSIT_JOURNAL_GRENZE_FEHLT:"+m);
   }
 }
+
+const bankWithdrawAuthority=lies(
+  "grundlage/quelle/merchant/bank-withdraw-einmal-authority.ts",
+);
+for(const m of [
+  '"AL-ACTION-BANK-WITHDRAW"',
+  '"AL-RECOVERY-BANK-WITHDRAW"',
+  '"AL-VERIFIER-BANK-WITHDRAW"',
+  '"BANK-WITHDRAW-PRODUKTION-EINMAL-V1"',
+  '"V5 BANK WITHDRAW 1 GOLD EINMAL AUSFUEHREN"',
+  "ProduktiveBankWithdrawEinmalAuthority",
+  "maximaleVerwendungen: 1",
+  "breiteRuntimeFreigabe: false",
+  "rawWriteAutoritaet: false",
+]){
+  if(!bankWithdrawAuthority.includes(m)) {
+    fehler.push("BANK_WITHDRAW_AUTHORITY_QUELLE_FEHLT:"+m);
+  }
+}
+if(/\bbank_withdraw\s*\(/.test(bankWithdrawAuthority)
+    ||/\.emit\s*\(/.test(bankWithdrawAuthority)
+    ||/\bAusfuehrungsAdapter\b/.test(bankWithdrawAuthority)) {
+  fehler.push("BANK_WITHDRAW_AUTHORITY_NO_WRITE_VERLETZT");
+}
+const bankWithdrawAuthorityAdapter=lies(
+  "grundlage/adapter/persistenz/node-bank-withdraw-einmal-authority-protokoll.mjs",
+);
+for(const m of [
+  "runtime/authority/mutieren/bank-withdraw/",
+  "BANK_WITHDRAW_EINMAL_AUTHORITY_VOR_WIRKUNG",
+  "erstelleExklusivDurable",
+  "gueltigBisMs - intent.zeitMs > 2_000",
+]){
+  if(!bankWithdrawAuthorityAdapter.includes(m)) {
+    fehler.push("BANK_WITHDRAW_AUTHORITY_ADAPTER_FEHLT:"+m);
+  }
+}
+const bankWithdrawJournal=lies(
+  "grundlage/adapter/persistenz/node-bank-withdraw-transaktionsjournal.mjs",
+);
+for(const m of [
+  "runtime/transactions/bank-withdraw",
+  "current.json",
+  "MAX_EINTRAEGE = 16",
+  "BANK_WITHDRAW_TX_OFFENE_TRANSAKTION_BLOCKIERT",
+]){
+  if(!bankWithdrawJournal.includes(m)) {
+    fehler.push("BANK_WITHDRAW_JOURNAL_GRENZE_FEHLT:"+m);
+  }
+}
+
 const bankPreflightBrowser=lies(
   "werkzeuge/bank-deposit-produktions-browser.mjs",
 );
@@ -697,6 +751,19 @@ for(const m of [
     fehler.push("EQUIP_EINMAL_RUNTIME_AUTHORITY_FEHLT:"+m);
   }
 }
+
+for(const m of [
+  "erteileBankWithdrawEinmalAuthority",
+  "revalidiereBankWithdrawEinmalAuthority",
+  "offeneBankWithdrawEinmalAuthority",
+  "V5_BANK_WITHDRAW_EINMAL_DEPOSIT_AUTHORITY_OFFEN",
+  "V5_EQUIP_EINMAL_BANK_WITHDRAW_AUTHORITY_OFFEN",
+]){
+  if(!runtimeKomposition.includes(m)) {
+    fehler.push("BANK_WITHDRAW_RUNTIME_AUTHORITY_FEHLT:"+m);
+  }
+}
+
 const planenAuthorityVertrag=JSON.parse(
   lies("grundlage/vertraege/runtime/durable-planen-authority.json"),
 );
@@ -717,6 +784,9 @@ for(const m of [
   "revalidierePlanenAuthority",
   "erteileEquipEinmalAuthority",
   "revalidiereEquipEinmalAuthority",
+  "erteileBankWithdrawEinmalAuthority",
+  "revalidiereBankWithdrawEinmalAuthority",
+  "bankWithdrawEinmalAuthorityOffen",
   "PRODUKTIONS_HOST_EQUIP_EINMAL_PLANEN_NOCH_AKTIV",
   "PRODUKTIONS_HOST_OPERATIONS_QUELLE_NICHT_BEREIT",
   "gameplayAutoritaet: false",
