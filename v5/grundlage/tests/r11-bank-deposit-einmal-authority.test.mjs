@@ -46,6 +46,18 @@ function health() {
   }];
 }
 
+function metrik(zeitMs = 100) {
+  return {
+    schemaVersion: 1,
+    zeitMs,
+    ssdIoLatenzMs: 2,
+    ioQueueTiefe: 0,
+    backpressureAktiv: false,
+    freieBytes: 50_000_000,
+    recorderDrops: 0,
+  };
+}
+
 function anforderung(overrides = {}) {
   return {
     schemaVersion: 1,
@@ -77,6 +89,7 @@ async function system(optionen = {}) {
     optionen.ohneProtokoll ? null : durable,
   );
   assert.equal((await runtime.starte()).erfolgreich, true);
+  runtime.erfasseOperationsMetrik(metrik());
   return { runtime, bediener, durable };
 }
 
