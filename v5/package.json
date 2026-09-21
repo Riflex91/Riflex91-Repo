@@ -105,7 +105,8 @@
     "ingame:bank-withdraw:live": "npm run bauen && node werkzeuge/bank-withdraw-produktions-live.mjs",
     "ingame:bank-withdraw:reconcile": "node werkzeuge/bank-withdraw-ingame-reconcile.mjs",
     "ingame:bank-withdraw:postsend-reconcile": "node werkzeuge/bank-withdraw-postsend-reconcile.mjs",
-    "ingame:bank-withdraw:final-preflight-diagnose": "node werkzeuge/bank-withdraw-final-preflight-diagnose.mjs"
+    "ingame:bank-withdraw:final-preflight-diagnose": "node werkzeuge/bank-withdraw-final-preflight-diagnose.mjs",
+    "ingame:context-inventory": "node werkzeuge/adventure-land-context-inventory.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
