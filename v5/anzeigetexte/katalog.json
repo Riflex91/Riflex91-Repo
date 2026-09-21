@@ -12995,6 +12995,16 @@
       "kategorie": "STATUS",
       "deutscherAnzeigename": "Widerspruch prüfung",
       "quellenNachweis": "v5/zustaende/zustandsautomaten.json@89c947ba87eab6cc6c0b0be0956f5a1dfce7615a"
+    },
+    {
+      "schemaVersion": 1,
+      "katalogVersion": 4,
+      "quellenStatus": "DEUTSCH_GEPRUEFT",
+      "revalidiertAm": "2026-09-21",
+      "externeKennung": "use_skill",
+      "kategorie": "AKTION",
+      "deutscherAnzeigename": "Fähigkeit einsetzen",
+      "quellenNachweis": "v5/wissensbasis/vertraege/action-contracts.json@bd809b48ddd5f5f3089f6f7a3876839ae903396a"
     }
   ]
 }

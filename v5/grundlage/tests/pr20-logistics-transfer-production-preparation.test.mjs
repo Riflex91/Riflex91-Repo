@@ -97,11 +97,16 @@ test("Item-Logistik besitzt bereits Restart- und Empfaenger-Settlement-Grenzen",
   ]) assert.ok(recipientSettlement.includes(marker), marker);
 });
 
-test("Goldtransfer bleibt bis zu einem konkreten Empfaenger-Gold-Settlement-Vertrag gesperrt", () => {
+test("Goldtransfer besitzt jetzt einen authority-freien Empfaenger-Gold-Settlement-Core", () => {
   assert.equal(
     prep.recipientSettlement.gold.status,
-    "MUSS_VOR_PRODUKTIVIERUNG_IMPLEMENTIERT_WERDEN",
+    "FOUNDATION_IMPLEMENTIERT_NO_WRITE",
   );
+  assert.equal(
+    prep.recipientSettlement.gold.quelle,
+    "grundlage/quelle/merchant/gold-transfer-settlement.ts",
+  );
+  assert.equal(prep.recipientSettlement.gold.produktiveAuthority, false);
   assert.ok(prep.recipientSettlement.gold.minimum.includes("baseline recipient gold + fingerprint"));
   const sendGold = actionContracts.find(x => x.id === "AL-ACTION-SEND-GOLD");
   assert.ok(sendGold.postconditions.includes("gold sender delta"));

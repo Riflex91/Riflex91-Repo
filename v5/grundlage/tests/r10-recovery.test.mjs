@@ -227,13 +227,13 @@ test("Snapshot-Pin ist immutable gegen nachtraegliche Quellarray-Aenderung", () 
   assert.deepEqual(frozen.wissensSnapshot.quellenSha256, [HASH]);
 });
 
-test("Disconnect-Fault fuer alle 59 produktiven Action-Bindungen erzeugt keinen Duplicate-Send", async () => {
+test("Disconnect-Fault fuer alle 60 produktiven Action-Bindungen erzeugt keinen Duplicate-Send", async () => {
   const katalog = JSON.parse(fs.readFileSync(
     "grundlage/vertraege/r9/action-bindungen.json",
     "utf8",
   ));
   const produktiv = katalog.bindungen.filter(x => x.status === "R9_ADMISSION_GEBUNDEN");
-  assert.equal(produktiv.length, 59);
+  assert.equal(produktiv.length, 60);
 
   let sendAufrufe = 0;
   for (const bindung of produktiv) {

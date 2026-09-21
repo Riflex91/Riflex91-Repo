@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "stand": "2026-09-20",
   "summary": {
-    "total": 60,
-    "gebunden": 59,
+    "total": 61,
+    "gebunden": 60,
     "deaktiviert": 1
   },
   "bindungen": [
@@ -1016,6 +1016,23 @@
       "recoveryContractId": "AL-RECOVERY-DESTROY-ITEM",
       "verifierId": "AL-VERIFIER-DESTROY-ITEM",
       "publicFunction": "destroy_item",
+      "status": "R9_ADMISSION_GEBUNDEN",
+      "invariantenKennungen": [
+        "V5-ALT-002",
+        "V5-ALT-003",
+        "V5-INV-002",
+        "V5-INV-004",
+        "V5-INV-005",
+        "V5-ALT-024"
+      ],
+      "testNachweis": "v5/grundlage/tests/r9-admission-execution.test.mjs"
+    },
+    {
+      "schemaVersion": 1,
+      "actionContractId": "AL-ACTION-MLUCK-SAME-ACCOUNT",
+      "recoveryContractId": "AL-RECOVERY-MLUCK-SAME-ACCOUNT",
+      "verifierId": "AL-VERIFIER-MLUCK-SAME-ACCOUNT",
+      "publicFunction": "use_skill",
       "status": "R9_ADMISSION_GEBUNDEN",
       "invariantenKennungen": [
         "V5-ALT-002",

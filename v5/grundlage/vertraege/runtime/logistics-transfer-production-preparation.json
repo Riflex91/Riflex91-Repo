@@ -46,7 +46,7 @@
       "verifierId": "AL-VERIFIER-SEND-GOLD",
       "publicFunction": "send_gold",
       "fachbereich": "GOLD_TRANSFER",
-      "recipientSettlement": "KONKRETER_GOLD_EMPFAENGER_SETTLEMENT_VERTRAG_FEHLT_NOCH"
+      "recipientSettlement": "FOUNDATION_IMPLEMENTIERT_NO_WRITE"
     }
   ],
   "bewusstZurueckgestellt": [
@@ -84,7 +84,7 @@
     "Empfaenger-/Session-/Server-/Roster-Bindung ist frisch",
     "Empfaenger-Gold-Baseline muss vor Send konkret beobachtbar und gepinnt sein",
     "durable Transfer-Intent ist vor moeglichem Send bestaetigt",
-    "produktive Freigabe bleibt gesperrt bis konkreter Gold-Empfaenger-Settlement-Vertrag implementiert und getestet ist"
+    "produktive Freigabe bleibt trotz implementiertem Gold-Settlement-Core bis Capability/Authority/Journal/Preflight/Fault-/Live-Gates gesperrt"
   ],
   "transaktionsRegeln": {
     "sendChannel": "send",
@@ -115,7 +115,9 @@
       ]
     },
     "gold": {
-      "status": "MUSS_VOR_PRODUKTIVIERUNG_IMPLEMENTIERT_WERDEN",
+      "status": "FOUNDATION_IMPLEMENTIERT_NO_WRITE",
+      "quelle": "grundlage/quelle/merchant/gold-transfer-settlement.ts",
+      "test": "grundlage/tests/pr20-gold-transfer-settlement.test.mjs",
       "minimum": [
         "recipientCharacterId/session/server/rosterEpoche",
         "baseline recipient gold + fingerprint",
@@ -123,12 +125,13 @@
         "sender gold delta",
         "korrelationsFingerprint",
         "Evidence-Zeitpunkt nach Transferbeginn"
-      ]
+      ],
+      "senderDeltaAlleinGenuegt": false,
+      "produktiveAuthority": false
     }
   },
   "nachVorstufenErforderlicheFreigabeschritte": [
-    "konkreten Gold-Empfaenger-Settlement-Vertrag implementieren und testen",
-    "einen einzigen ersten Logistik-Live-Kandidaten festlegen, bevorzugt Itemtransfer vor Goldtransfer solange Gold-Settlement nicht geschlossen ist",
+    "einen einzigen ersten Logistik-Live-Kandidaten festlegen; Item- und Goldtransfer bleiben getrennt ratifizierbar",
     "Mutationsfaehigkeit und Single Owner separat ratifizieren",
     "eng begrenzte Transfer-Authority + Admission implementieren",
     "durables Transfer-Transaktionsjournal mit Current-Fence implementieren",

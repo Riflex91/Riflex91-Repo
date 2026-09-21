@@ -209,6 +209,83 @@
         "v5/grundlage/vertraege/runtime/logistics-transfer-production-preparation.json",
         "v5/grundlage/tests/pr20-logistics-transfer-production-preparation.test.mjs"
       ]
+    },
+    {
+      "id": "PR20.5_MERCHANT_STABILITAET",
+      "status": "CORE_VORBEREITET_NO_WRITE",
+      "blockedBy": [
+        "PR20.1",
+        "PR20.2",
+        "PR20.3",
+        "PR20.4"
+      ],
+      "gameplayAuthority": false,
+      "artifacts": [
+        "v5/grundlage/quelle/merchant/dienst-stabilitaet.ts",
+        "v5/grundlage/tests/pr20-merchant-dienst-stabilitaet.test.mjs"
+      ]
+    },
+    {
+      "id": "PR20.6_MLUCK",
+      "status": "ACTION_RECOVERY_VERIFIER_RATIFIZIERT_NO_WRITE",
+      "blockedBy": [
+        "PR20.1",
+        "PR20.2",
+        "PR20.3",
+        "PR20.4",
+        "PR20.5"
+      ],
+      "gameplayAuthority": false,
+      "genericUseSkillAuthority": false,
+      "actionContractId": "AL-ACTION-MLUCK-SAME-ACCOUNT"
+    },
+    {
+      "id": "PR20.7_GEAR",
+      "status": "FOUNDATION_BEREIT_LIVE_ERWEITERUNG_GESPERRT",
+      "blockedBy": [
+        "PR20.1",
+        "PR20.4"
+      ],
+      "gameplayAuthority": false
+    },
+    {
+      "id": "PR20.8_WERTMUTATIONEN",
+      "status": "CONTRACTS_LEDGER_PLANER_TEILWEISE_BEREIT_NO_WRITE",
+      "blockedBy": [
+        "PR20.1",
+        "PR20.2",
+        "PR20.3",
+        "PR20.4"
+      ],
+      "gameplayAuthority": false
+    },
+    {
+      "id": "PR20.9_PRODUCTION",
+      "status": "PLANER_GRAPH_CONTROLLER_BEREIT_NO_WRITE",
+      "blockedBy": [
+        "PR20.2",
+        "PR20.3",
+        "PR20.4",
+        "PR20.8"
+      ],
+      "gameplayAuthority": false
+    },
+    {
+      "id": "PR21_MERCHANT_INTEGRATION",
+      "status": "TESTPLAN_VORBEREITET_NO_WRITE",
+      "blockedBy": [
+        "PR20"
+      ],
+      "gameplayAuthority": false,
+      "artifact": "v5/dokumentation/PR21-MERCHANT-INTEGRATION-TESTPLAN.md"
     }
-  ]
+  ],
+  "safePreparationBoundary": {
+    "productiveMutatingCapabilityBeforeGate": false,
+    "productiveAuthorityBeforeGate": false,
+    "newGameplayWriteAdapterBeforeGate": false,
+    "liveRunnerBeforeCapabilityGate": false,
+    "planningContractsTestsAndRecoveryAllowed": true,
+    "activeLiveGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS"
+  }
 }
