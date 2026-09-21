@@ -193,9 +193,16 @@ Gameplay-Writes und Adapter-Aufrufe bleiben 0. Die **reale Browser-Evidence ist
 noch AUSSTEHEND**; Implementierung oder CI ersetzen sie nicht. ADR:
 `architektur/adr/ADR-042-PR20-2M-BANK-WITHDRAW-REAL-BROWSER-SHADOW-NO-WRITE.md`.
 
-Als naechstes muss dieser Runner lokal auf exakt dem gruengeprueften Source-SHA
-ausgefuehrt und die bestandene Evidence im Repo dokumentiert werden. Erst dann
-darf ein separater Write-Gate vorbereitet werden.
+PR20.2n dokumentiert die reale bestandene Withdraw-Shadow-Evidence auf
+`15620374566b83c9532e492d63e15c2fed6709e5`: Admission
+`ADMISSION_BESTANDEN_KEIN_SEND`, terminal `ABBRUCH`,
+`NICHT_GESENDET`, 0 Gameplay-Writes, 0 Adapter-Aufrufe, Lease Epoche 4
+`RELEASED` und Bankstart danach wieder bereit. Evidence:
+`roadmap/pr20-2-bank-withdraw-real-browser-shadow-evidence.json`.
+
+Damit darf als naechstes ein separater Write-Adapter/Live-Runner-Gate fuer
+exakt `bank_withdraw(1)` vorbereitet werden. Vor einem echten Send bleibt ein
+read-only Write-Preflight auf exakt demselben gruengeprueften Head Pflicht.
 
 
 Vorhandene Bankplanung, Bank-Lease, Fencing und Bankkatalog-Fundamente werden mit echten Bankmutationen verbunden.
