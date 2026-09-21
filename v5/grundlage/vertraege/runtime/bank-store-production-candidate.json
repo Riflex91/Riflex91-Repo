@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_PR20_2_BANK_STORE_NAECHSTER_LIVE_KANDIDAT",
+  "stand": "2026-09-21",
+  "status": "SETTLEMENT_CAPABILITY_IMPLEMENTIERT_NO_WRITE",
+  "capabilityId": "merchant.bank.item_einlagern",
+  "provider": "merchant-bank-core@1",
+  "actionContractId": "AL-ACTION-BANK-STORE",
+  "recoveryContractId": "AL-RECOVERY-BANK-STORE",
+  "verifierId": "AL-VERIFIER-BANK-STORE",
+  "publicFunction": "bank_store",
+  "ersterLiveBetragItems": 1,
+  "strategie": "EXPLIZITER_SOURCE_SLOT_IN_EXPLIZITEN_LEEREN_BANKSLOT",
+  "autoPlacement": false,
+  "stackMerge": false,
+  "targetMussLeerSein": true,
+  "admissionMinimum": [
+    "ctype merchant",
+    "character alive and idle",
+    "bank mounted",
+    "alternative V3/V4 runtime inactive",
+    "fresh character/bank/inventory evidence",
+    "explicit source inventory slot 0..41 contains item",
+    "explicit target bank pack itemsN mounted and target slot 0..41 empty",
+    "active account-wide bank lease belongs to the character",
+    "session/server/lease/mount binding unchanged",
+    "no open deposit/withdraw/store bank transaction",
+    "durable intent before any future send",
+    "local FIFO bank action-channel and socket budget fenced"
+  ],
+  "settlement": {
+    "sourceItemAfter": null,
+    "targetItemAfter": "EXAKT_SOURCE_ITEM_FINGERPRINT_VORHER",
+    "requireNewFingerprint": true,
+    "requireSameCharacter": true,
+    "requireSameSession": true,
+    "requireSameServer": true,
+    "requireSameLeaseEpoch": true,
+    "requireSameMountEpoch": true,
+    "sameIntentRetry": false
+  },
+  "authorityGrenze": {
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "produktiveCapabilityInDiesemSchritt": true,
+    "authorityInDiesemSchritt": false,
+    "adapterInDiesemSchritt": false,
+    "liveRunnerInDiesemSchritt": false,
+    "gameplayWritesInDiesemSchritt": 0
+  },
+  "writeGate": {
+    "rawSocketEmitErlaubt": false,
+    "realLiveWritePerformed": false,
+    "sameIntentRetry": false
+  }
+}
