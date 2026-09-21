@@ -13,8 +13,8 @@ import {
   validiereLoopbackCdp,
 } from "./r12-live/cdp.mjs";
 import {
+  beobachteBankWithdrawRohReadOnly,
   warteAufStabilenStartAusserhalbBankReadOnly,
-  warteAufManuellenBankMountReadOnly,
 } from "./bank-withdraw-produktions-browser.mjs";
 
 const V5_ROOT = path.resolve(
@@ -78,6 +78,80 @@ function parseJson(text, code) {
 function safeInteger(value, code) {
   if (!Number.isSafeInteger(value) || value < 0) throw new Error(code);
   return value;
+}
+
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function gleicheBindung(a, b) {
+  return a.accountId === b.accountId
+    && a.charakterName === b.charakterName
+    && a.sessionId === b.sessionId
+    && a.serverRegion === b.serverRegion
+    && a.serverKennung === b.serverKennung
+    && a.ctype === b.ctype;
+}
+
+function postSendSnapshotKey(value) {
+  return JSON.stringify({
+    accountId: value.accountId,
+    charakterName: value.charakterName,
+    sessionId: value.sessionId,
+    serverRegion: value.serverRegion,
+    serverKennung: value.serverKennung,
+    map: value.map,
+    bankGemountet: value.bankGemountet,
+    characterGold: value.characterGold,
+    bankGold: value.bankGold,
+    inventoryMaterial: value.inventoryMaterial,
+  });
+}
+
+async function warteAufPostSendBankMountReadOnly(
+  session,
+  contextId,
+  ausgang,
+  {
+    timeoutMs = 90_000,
+    pollMs = 500,
+  } = {},
+) {
+  const start = Date.now();
+  let stabilerKey = null;
+  let stabilerSnapshot = null;
+
+  while (Date.now() - start <= timeoutMs) {
+    const roh = await beobachteBankWithdrawRohReadOnly(session, contextId);
+
+    if (!gleicheBindung(roh, ausgang)) {
+      throw new Error("BANK_WITHDRAW_POSTSEND_BINDUNG_DRIFT");
+    }
+
+    if (roh.bankGemountet === true
+        && roh.bewegtSich !== true
+        && roh.queueAktiv !== true
+        && Number.isSafeInteger(roh.characterGold)
+        && roh.characterGold >= 0
+        && Number.isSafeInteger(roh.bankGold)
+        && roh.bankGold >= 0) {
+      const key = postSendSnapshotKey(roh);
+      if (stabilerKey === key && stabilerSnapshot !== null) {
+        phase("POSTSEND_BANK_MOUNT_STABIL_BEOBACHTET");
+        return Object.freeze({ ...roh });
+      }
+      stabilerKey = key;
+      stabilerSnapshot = roh;
+    } else {
+      stabilerKey = null;
+      stabilerSnapshot = null;
+    }
+
+    await sleep(pollMs);
+  }
+
+  throw new Error("BANK_WITHDRAW_POSTSEND_BANK_MOUNT_TIMEOUT");
 }
 
 export async function fuehreBankWithdrawPostSendReconcileAus({
@@ -149,17 +223,13 @@ export async function fuehreBankWithdrawPostSendReconcileAus({
 
     phase("POSTSEND_RECONCILE_BANK_MANUELL_BETRETEN");
 
-    const mount = await warteAufManuellenBankMountReadOnly(
+    const mount = await warteAufPostSendBankMountReadOnly(
       live.session,
       live.contextId,
       ausgang,
       {
         timeoutMs: 90_000,
         pollMs: 500,
-        onPhase: text => {
-          if (text === "LEASE_ERWORBEN_BANK_MANUELL_BETRETEN") return;
-          phase(text);
-        },
       },
     );
 
