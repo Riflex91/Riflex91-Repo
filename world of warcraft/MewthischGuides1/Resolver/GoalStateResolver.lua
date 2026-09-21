@@ -9,9 +9,13 @@ function G:Resolve(goal, facts)
     local visibility = MG.VisibilityResolver:Resolve(goal, requirement, completion)
 
     local possible = requirement.met
+    local blocking =
+        possible and not goal.passive and not goal.optional and
+        (goal.role == "goal" or goal.role == "condition")
+
     local status
     if not visibility.visible then
-        status = "hidden"
+        status = completion.known and completion.complete and "complete_hidden" or "hidden"
     elseif not possible then
         status = "impossible"
     elseif goal.passive then
@@ -30,6 +34,7 @@ function G:Resolve(goal, facts)
     return {
         id = goal.id,
         sourceGoal = goal,
+        role = goal.role,
         action = goal.action,
         completionKind = goal.completionKind,
         questID = goal.questID,
@@ -42,18 +47,20 @@ function G:Resolve(goal, facts)
         passive = goal.passive and true or false,
         optional = goal.optional and true or false,
         sticky = goal.sticky and true or false,
+        blocking = blocking,
         completionKnown = completion.known,
         complete = completion.complete,
         status = status,
         current = current,
         required = required,
         navigationEligible =
-            visibility.visible and possible and not completion.complete and
-            goal.waypoint ~= nil,
+            visibility.visible and possible and not goal.passive and
+            not completion.complete and goal.waypoint ~= nil,
         explanation = {
             requirement = requirement,
             completion = completion,
             visibility = visibility,
+            blocking = blocking and "semantic_blocker" or "non_blocking",
         },
     }
 end
