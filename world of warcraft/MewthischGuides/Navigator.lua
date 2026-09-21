@@ -42,7 +42,7 @@ local ARROW_SKINS = {
     },
 }
 
-local function applyArrowSkin(arrow)
+local function applyArrowSkin(arrow, size, remember)
     if not arrow or not MG.db or not MG.db.settings then return end
 
     local skinID = MG.db.settings.navigatorArrowSkin or "arrow-blue"
@@ -66,8 +66,9 @@ local function applyArrowSkin(arrow)
             tint[1] or 1, tint[2] or 1, tint[3] or 1, tint[4] or 1)
     end
 
-    arrow:SetSize(ARROW_SIZE, ARROW_SIZE)
-    navigator.arrowSkinID = skinID
+    local appliedSize = tonumber(size) or ARROW_SIZE
+    arrow:SetSize(appliedSize, appliedSize)
+    if remember ~= false then navigator.arrowSkinID = skinID end
 end
 
 local function savePosition(frame)
@@ -211,6 +212,12 @@ function MG:GetNavigatorArrowSkinName()
         self.db.settings.navigatorArrowSkin or "arrow-blue"
     local skin = ARROW_SKINS[skinID] or ARROW_SKINS["arrow-blue"]
     return skin.label, skinID
+end
+
+function MG:ApplyNavigatorArrowSkinPreview(texture, size)
+    if not texture then return false end
+    applyArrowSkin(texture, tonumber(size) or 92, false)
+    return true
 end
 
 function MG:SetNavigatorArrowSkin(skinID)

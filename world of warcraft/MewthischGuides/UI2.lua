@@ -128,7 +128,8 @@ local function browserGuides()
   local o={};local p=MG:GetPlayerProfile();local faction=U.browserFaction or p.faction;local cat=U.browserCategory or "all";local q=U.browserSearch or ""
   for _,g in ipairs(MG.DataLoader and MG.DataLoader.guides or {}) do
     if MG.SupportedRoutes and MG.SupportedRoutes:IsSupportedGuide(g) then
-      local fm=faction=="ALL" or (faction=="Horde" and MG.SupportedRoutes:HasCategory(g,"horde")) or (faction=="Alliance" and MG.SupportedRoutes:HasCategory(g,"ally"))
+      local mageFaction=MG.SupportedRoutes:HasCategory(g,"mage") and g.faction==faction
+      local fm=faction=="ALL" or (faction=="Horde" and MG.SupportedRoutes:HasCategory(g,"horde")) or (faction=="Alliance" and MG.SupportedRoutes:HasCategory(g,"ally")) or mageFaction
       local cm=cat=="all" or MG.SupportedRoutes:HasCategory(g,cat);local cl=U.browserClass=="ALL" or (U.browserClass=="MAGE" and MG.SupportedRoutes:HasCategory(g,"mage"))
       local sm=not MG.GuideRegistry or MG.GuideRegistry:MatchesSearch(g,q);local fav=MG.GuideRegistry and MG.GuideRegistry:IsFavorite(g.id)
       local tm=U.browserTab=="all" or U.browserTab=="recommended" or (U.browserTab=="favorites" and fav)
@@ -175,7 +176,7 @@ end
 local function buildSettings()
   if not U.settingsContent or not MG.SettingsSchema then return end;clearRows();local content=U.settingsContent;local cat=MG.SettingsSchema:GetCategory(U.settingsCategory)
   U.settingsPageTitle:SetText(L(cat.labelKey));U.settingsPageDesc:SetText(L(cat.descriptionKey));local y=-74
-  if U.settingsCategory=="navigation" then local box=panel(content,175,165,"panel");box:SetPoint("TOPRIGHT",-8,-8);remember(box);local tx=label(box,10,"muted");tx:SetPoint("TOP",0,-10);tx:SetText(L("preview"));remember(tx);local ar=box:CreateTexture(nil,"ARTWORK");ar:SetSize(92,92);ar:SetPoint("CENTER",0,-10);ar:SetTexture("Interface\\AddOns\\MewthischGuides\\Assets\\ArrowBlue");U.previewArrow=ar end
+  if U.settingsCategory=="navigation" then local box=panel(content,175,165,"panel");box:SetPoint("TOPRIGHT",-8,-8);remember(box);local tx=label(box,10,"muted");tx:SetPoint("TOP",0,-10);tx:SetText(L("preview"));remember(tx);local ar=box:CreateTexture(nil,"ARTWORK");ar:SetSize(92,92);ar:SetPoint("CENTER",0,-10);if MG.ApplyNavigatorArrowSkinPreview then MG:ApplyNavigatorArrowSkinPreview(ar,92) else ar:SetTexture("Interface\\AddOns\\MewthischGuides\\Assets\\ArrowBlue") end;U.previewArrow=ar end
   for _,c in ipairs(MG.SettingsSchema:GetControls(U.settingsCategory)) do
     local control=c
     if control.type=="check" then local b,t=check(content,control.key,L(control.labelKey),10,y);b:SetChecked(MG.db.settings[control.key]);if U.settingsCategory=="navigation" then t:SetPoint("RIGHT",content,-195,0) end;remember(b,t);y=y-29

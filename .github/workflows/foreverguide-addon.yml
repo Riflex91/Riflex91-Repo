@@ -681,13 +681,18 @@ jobs:
 
           time=function() return 1234 end
           UnitLevel=function() return 4 end
+          GetRealZoneText=function() return "Mulgore" end
           MG.GetPosition=function() return {mapID=1412} end
           assert(loadfile("world of warcraft/MewthischGuides/Journey.lua"))(
             "MewthischGuides",MG)
           MG.Journey:Record("accepted",1519)
           MG.Journey:Record("turned_in",1519)
+          MG.Journey:Record("level",nil,nil,{level=5})
+          local entries=MG.Journey:GetEntries()
+          assert(entries[1].mapID==1412 and entries[1].zone=="Mulgore")
           local summary=MG.Journey:GetSummary()
-          assert(summary.entries==2 and summary.accepted==1 and summary.turnedIn==1)
+          assert(summary.entries==3 and summary.accepted==1 and summary.turnedIn==1)
+          assert(summary.levelUps==1 and summary.lastLevel==5)
           print("ForeverQuestDB + TravelPlanner + Journey PASS")
           LUA
 
@@ -987,6 +992,11 @@ jobs:
           grep -q 'TravelPlanner:Plan' "$ROOT/Navigation.lua"
           grep -q 'TAXIMAP_OPENED' "$ROOT/Core.lua"
           grep -q 'Journey:Record' "$ROOT/Core.lua"
+          grep -Fq 'MG.Journey:Record("level"' "$ROOT/Core.lua"
+          grep -Fq 'MG.Journey:Record("accepted", args[2] or args[1])' "$ROOT/Core.lua"
+          grep -Fq 'local mageFaction=MG.SupportedRoutes:HasCategory(g,"mage") and g.faction==faction' "$UI2"
+          grep -q 'ApplyNavigatorArrowSkinPreview' "$ROOT/Navigator.lua"
+          grep -q 'ApplyNavigatorArrowSkinPreview' "$UI2"
 
           grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
           grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"

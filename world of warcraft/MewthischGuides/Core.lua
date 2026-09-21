@@ -206,6 +206,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
         if BUILD_EVENTS[event] and MG.Sync then MG.Sync:Build(event) end
 
         if event == "PLAYER_LEVEL_UP" then
+            if MG.Journey then MG.Journey:Record("level", nil, nil, { level = args[1] }) end
             if MG.Sync then MG.Sync:Full(event) end
         elseif event == "ZONE_CHANGED_NEW_AREA" and MG.State then
             MG.State:Refresh(event)
@@ -229,7 +230,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
 
         if event == "QUEST_ACCEPTED" then
             MG.automationStatus = "Quest angenommen"
-            if MG.Journey then MG.Journey:Record("accepted", args[1] or args[2]) end
+            if MG.Journey then MG.Journey:Record("accepted", args[2] or args[1]) end
         elseif event == "QUEST_TURNED_IN" then
             MG.automationStatus = "Quest abgegeben"
             if MG.Journey then MG.Journey:Record("turned_in", args[1]) end
