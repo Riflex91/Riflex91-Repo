@@ -49,13 +49,13 @@
     "externalCoreFacts": 38,
     "openQuestions": 38,
     "registeredSources": 22,
-    "actionContracts": 60,
-    "sourceVerifiedActionContracts": 53,
+    "actionContracts": 61,
+    "sourceVerifiedActionContracts": 54,
     "liveDocOnlyActionContracts": 0,
     "liveDeployedVerifiedActionContracts": 6,
     "explicitlyDisabledActionContracts": 1,
-    "recoveryContracts": 60,
-    "verifiedRecoveryContracts": 59,
+    "recoveryContracts": 61,
+    "verifiedRecoveryContracts": 60,
     "disabledRecoveryContracts": 1
   },
   "externalResearchSnapshot": {
@@ -102,7 +102,13 @@
     "verifiedAt": "2026-09-19",
     "disabledActions": [
       "cave_buy"
-    ]
+    ],
+    "postR19Extension": {
+      "date": "2026-09-21",
+      "actionContractId": "AL-ACTION-MLUCK-SAME-ACCOUNT",
+      "source": "existing official source snapshots",
+      "runtimeAuthority": false
+    }
   },
   "recoveryContracts": [
     "vertraege/recovery-contracts.json"
@@ -114,7 +120,12 @@
     "sameIntentRetryAfterPossibleSend": "NEVER",
     "disabledActions": [
       "cave_buy"
-    ]
+    ],
+    "postR19Extension": {
+      "date": "2026-09-21",
+      "recoveryContractId": "AL-RECOVERY-MLUCK-SAME-ACCOUNT",
+      "runtimeAuthority": false
+    }
   },
   "bankConcurrency": "vertraege/bank-concurrency.json",
   "bankResearch": {
