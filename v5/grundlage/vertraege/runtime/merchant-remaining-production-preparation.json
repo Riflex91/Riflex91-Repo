@@ -32,30 +32,40 @@
       "PR20.2",
       "PR20.3",
       "PR20.4"
-    ]
+    ],
+    "test": "grundlage/tests/pr20-merchant-dienst-stabilitaet.test.mjs",
+    "runtimeIntegrationErlaubt": false
   },
   "pr20_6": {
     "ziel": "MLuck-Service produktiv",
-    "status": "PLANUNG_BEREIT_PRODUKTIVER_ACTION_CONTRACT_FEHLT",
+    "status": "ACTION_RECOVERY_VERIFIER_RATIFIZIERT_NO_WRITE",
     "planungsCore": "grundlage/quelle/merchant/mluck-service.ts",
+    "actionContractId": "AL-ACTION-MLUCK-SAME-ACCOUNT",
+    "recoveryContractId": "AL-RECOVERY-MLUCK-SAME-ACCOUNT",
+    "verifierId": "AL-VERIFIER-MLUCK-SAME-ACCOUNT",
+    "scope": "SAME_ACCOUNT_MLUCK_ONLY",
     "vorhandeneSafety": [
       "SkillCapability prueft Klasse/Level/MP/Cooldown/disabled/equipment/session",
       "Ziel an Account/Server/Roster/Session gebunden",
       "stale Ziel-Evidence verlangt Beobachtung",
       "aktive Demands und Anti-Spam blockieren Doppelarbeit",
       "Settlement verlangt neue Wirkung auf derselben Ziel-Session",
-      "MLuck ist OPTIMIERUNG und darf Safety nicht verdraengen"
+      "MLuck ist OPTIMIERUNG und darf Safety nicht verdraengen",
+      "Action Contract bindet use_skill ausschliesslich auf mluck/same-account und erteilt keine generische Skill-Authority",
+      "Target mluck source/strong muss unmittelbar vor Send revalidiert werden, weil MP serverseitig vor der overwrite-Entscheidung konsumiert wird"
     ],
-    "strukturellerBlocker": {
-      "kennung": "MLUCK_USE_SKILL_ACTION_CONTRACT_FEHLT",
-      "beschreibung": "Im aktuellen verifizierten Action-Contract-Katalog existiert kein generischer use_skill Action Contract. Deshalb wird keine MLuck-Mutation oder Live-Authority vorbereitet, bevor ein enger skill-spezifischer Contract ratifiziert ist.",
-      "erforderlicheArbeit": [
-        "aktuellen use_skill/mluck Transport und Serversemantik verifizieren",
-        "Action/Recovery/Verifier fuer exakt mluck ratifizieren",
-        "Socket-/Cooldown-/Range-/Target-Revalidation binden",
-        "erst danach One-Shot/enge produktive Authority entwerfen"
-      ]
-    }
+    "produktivNochFehlend": [
+      "separate MUTIEREN-Capability mit Single Owner",
+      "enge One-Shot/produktive Authority",
+      "durables MLuck-Transaktionsjournal",
+      "read-only Live-Preflight",
+      "CDP/Execution-Adapter fuer exakt use_skill('mluck', target)",
+      "Fault-/Disconnect-/Restart-/UNKNOWN-Tests",
+      "Shadow",
+      "5m Live-Funktionstest"
+    ],
+    "produktiveRegistrierungErlaubt": false,
+    "gameplayAuthority": false
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
@@ -79,7 +89,14 @@
       "blindes unequip/equip swap",
       "weapon/offhand auto replacement",
       "gear delivery ohne recipient settlement"
-    ]
+    ],
+    "sicherVorbereitet": {
+      "gearLedger": "grundlage/quelle/merchant/gear-allokation.ts",
+      "gearProgression": "grundlage/quelle/merchant/gear-progression.ts",
+      "physischerKandidatEinmal": true,
+      "recipientSlotEinmal": true,
+      "restartRecoveryPending": true
+    }
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
@@ -122,6 +139,15 @@
       "keine seltenen/hochwertigen Items",
       "keine Offering-Sonderpfade im ersten Write",
       "exakt ein Write nach read-only Preflight"
+    ],
+    "sicherheitsGrenzen": [
+      "jede Mutation einzeln ratifizieren; keine gemeinsame generische Item-Mutation-Authority",
+      "durable Intent vor Send",
+      "offene Werttransaktion blockiert gleichen Intent",
+      "q/Placeholder/Consumable-Delta wird als moeglich akzeptierte Mutation behandelt",
+      "UNKNOWN niemals direkt retrien",
+      "spezielle Upgrade-/Offering-/Compound-Pfade getrennt nachweisen",
+      "Exchange Multi-Domain-Rewards konservativ vollstaendig reconciliieren"
     ]
   },
   "pr20_9": {
@@ -152,7 +178,15 @@
       "PR20.4 Transfer",
       "PR20.8 Wertmutationen"
     ],
-    "ersteLiveKetteSpaeter": "kleinste vollstaendig beobachtbare Kette mit exakt einem neu ratifizierten mutierenden Schritt; keine breite Graph-Execution auf einmal"
+    "ersteLiveKetteSpaeter": "kleinste vollstaendig beobachtbare Kette mit exakt einem neu ratifizierten mutierenden Schritt; keine breite Graph-Execution auf einmal",
+    "sicherheitsGrenzen": [
+      "Production Graph plant nur; er besitzt keine ActionAuthority",
+      "jeder irreversible Node bleibt an seinen eigenen Action/Recovery/Verifier-Vertrag gebunden",
+      "kein generischer Graph-Executor mit breit erteilter Gameplay-Authority",
+      "CRAFT_COMMITTED ist nicht PRODUCTION_COMMITTED",
+      "finaler Commit erst nach Recipient Settlement",
+      "Restart setzt nichtterminale Produktion in Recovery"
+    ]
   },
   "pr21": {
     "ziel": "Merchant Gesamtintegration",
@@ -180,6 +214,11 @@
       "0 Pingpong/Thrash",
       "keine Starvation",
       "Restart/Reconciliation fail-closed"
-    ]
+    ],
+    "noWriteVorbereitung": {
+      "testplan": "dokumentation/PR21-MERCHANT-INTEGRATION-TESTPLAN.md",
+      "produktiveIntegrationVorPR20Abschluss": false,
+      "gameplayAuthority": false
+    }
   }
 }
