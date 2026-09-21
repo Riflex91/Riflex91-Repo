@@ -109,7 +109,7 @@ for (const [kategorie, erwartet] of [
   ["GEGENSTAND", 628],
   ["MONSTER", 129],
   ["EREIGNIS", 11],
-  ["AKTION", 60],
+  ["AKTION", 61],
   ["STATUS", 102],
   ["NICHTSPIELERFIGUR", 135],
   ["AUFGABE", 12],
