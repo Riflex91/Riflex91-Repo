@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_PR20_3_MARKT_PRODUCTION_PREPARATION",
+  "stand": "2026-09-21",
+  "status": "VORBEREITET_NO_WRITE",
+  "basisMain": "0c7bffa935d7055d074fa4a3b93d11c861515153",
+  "produktiveFreigabeBlockiertBis": [
+    "PR20.1_EQUIP_PRODUKTIONSNACHWEIS_BESTANDEN",
+    "PR20.2_BANK_PRODUKTIV_ABGESCHLOSSEN"
+  ],
+  "zweck": "PR20.3 Markt/Kaufen/Verkaufen technisch vorbereiten, ohne produktive Market-Mutation, Registrierung oder Gameplay-Authority.",
+  "authorityGrenze": {
+    "produktiveRegistrierungErlaubt": false,
+    "produktiverAktivierungspfadErlaubt": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "actionAuthority": false,
+    "direkteAdventureLandPublicFunctionAufrufe": 0,
+    "browserGameplayWrites": 0
+  },
+  "bestehendePlanung": {
+    "modulId": "merchant-core-a",
+    "modulVersion": "1",
+    "capabilities": [
+      "merchant.verkauf.planen",
+      "merchant.markt.planen"
+    ],
+    "mutationsAuthorityAusPlanung": false
+  },
+  "kandidaten": [
+    {
+      "actionContractId": "AL-ACTION-BUY",
+      "recoveryContractId": "AL-RECOVERY-BUY",
+      "verifierId": "AL-VERIFIER-BUY",
+      "publicFunction": "buy",
+      "fachbereich": "NPC_KAUF",
+      "besonderheiten": [
+        "vendor_reachability",
+        "inventory_capacity",
+        "currency",
+        "GoldBudgetLedger/Safety-Reserve"
+      ]
+    },
+    {
+      "actionContractId": "AL-ACTION-SELL",
+      "recoveryContractId": "AL-RECOVERY-SELL",
+      "verifierId": "AL-VERIFIER-SELL",
+      "publicFunction": "sell",
+      "fachbereich": "NPC_VERKAUF",
+      "besonderheiten": [
+        "exakte physische Gegenstandsidentitaet",
+        "Disposition NPC_VERKAUF",
+        "Verkaufs-Sicherheitsrichtlinie",
+        "destructive/fail-closed",
+        "FIFO sell"
+      ]
+    },
+    {
+      "actionContractId": "AL-ACTION-TRADE-BUY",
+      "recoveryContractId": "AL-RECOVERY-TRADE-BUY",
+      "verifierId": "AL-VERIFIER-TRADE-BUY",
+      "publicFunction": "trade_buy",
+      "fachbereich": "PLAYER_MARKET_KAUF",
+      "besonderheiten": [
+        "frische nichtleere RID",
+        "Listing-Fingerprint",
+        "BUY/SELL-Seite",
+        "unitPrice",
+        "Menge",
+        "Target/Distance/Map",
+        "frisches Gold und Inventory-Capacity"
+      ]
+    },
+    {
+      "actionContractId": "AL-ACTION-TRADE-SELL",
+      "recoveryContractId": "AL-RECOVERY-TRADE-SELL",
+      "verifierId": "AL-VERIFIER-TRADE-SELL",
+      "publicFunction": "trade_sell",
+      "fachbereich": "PLAYER_MARKET_VERKAUF",
+      "besonderheiten": [
+        "frische nichtleere RID",
+        "Listing-Fingerprint",
+        "serverseitige erste passende Inventarauswahl reproduzieren",
+        "nicht-fungible Mehrdeutigkeit blockieren",
+        "exakte physische Itemidentitaet/Disposition MARKT_VERKAUF",
+        "live seller tax"
+      ]
+    }
+  ],
+  "bewusstZurueckgestellt": [
+    {
+      "actionContractId": "AL-ACTION-BUY-SECONDHAND",
+      "publicFunction": "buy_secondhand",
+      "grund": "Eigener recovered-market/request-id Pfad; wird nicht mit dem ersten PR20.3-Mutationssatz vermischt."
+    }
+  ],
+  "verpflichtendeAdmissionVorSend": [
+    "produktiver Host laeuft und globale Freigabe ist gueltig",
+    "Operator-Deny und NOTHALT sind unmittelbar vor Mutation negativ",
+    "alternative V3/V4 Runtime ist inaktiv",
+    "keine alte offene gleichartige Market-/Sell-Transaktion blockiert",
+    "durable Transaction Intent ist vor moeglichem Send bestaetigt",
+    "Socket-/Action-Channel-Budget ist reserviert, wenn der Action Contract es verlangt",
+    "Gold/Inventory/Workspace-Evidence ist fuer den konkreten Delta frisch",
+    "physische Itemidentitaet ist unmittelbar vor Sell/Trade-Sell erneut gueltig",
+    "NPC-Verkauf ist durch Verkaufs-Sicherheitsrichtlinie und Disposition explizit erlaubt",
+    "trade_buy/trade_sell besitzen unmittelbar vor Send eine frische nichtleere RID",
+    "RID, Listing-Fingerprint, Seite, Item, Level, Preis und angefragte Menge stimmen mit frischer Listing-Evidence ueberein",
+    "trade_sell reproduziert exakt den serverseitig ausgewaehlten physischen Kandidaten und blockiert Variant-/Fungibilitaetsmehrdeutigkeit",
+    "Goldbudget inkl. Sicherheitsreserve erlaubt Kaufkosten"
+  ],
+  "transaktionsRegeln": {
+    "sameIntentRetry": false,
+    "unknownOutcome": "REOBSERVE_RECONCILE_NO_BLIND_RETRY",
+    "ridIstIdempotencyKey": false,
+    "ridIstQuantityVersion": false,
+    "partialFillKannRidBeibehalten": true,
+    "fifoChannelsMaxManagedInFlight": 1,
+    "commitErfordertFachlichePostcondition": true
+  },
+  "recoveryBeobachtung": [
+    "frisches Inventory mit physischer Itemidentitaet und Mengen",
+    "frisches Gold/Shells",
+    "frische Listing-/Wishlist-Evidence",
+    "frischer Target-/Map-/Distance-Kontext fuer Player-Market",
+    "bei trade_sell der tatsaechliche server-selected Itemkandidat",
+    "bei NPC-Sell der exakte verkaufte physische Gegenstand und Gold-Delta"
+  ],
+  "nachVorstufenErforderlicheFreigabeschritte": [
+    "PR20.1 Equip-Evidence bestanden dokumentieren",
+    "PR20.2 Bank produktiv und integrativ abschliessen",
+    "einen einzigen ersten Markt-Live-Kandidaten festlegen",
+    "Mutationsfaehigkeit und Single Owner separat ratifizieren",
+    "eng begrenzte Authority + Admission implementieren",
+    "durables Markt-Transaktionsjournal implementieren",
+    "read-only Preflight fuer den ersten Kandidaten implementieren",
+    "Unit/Replay/Fault/Restart/RID-Drift/UNKNOWN-Tests bestehen",
+    "Shadow bestehen",
+    "erst danach einen einzelnen kontrollierten Markt-Live-Write zulassen"
+  ]
+}
