@@ -1,9 +1,9 @@
 # PR20.2 – Bank-Produktion: One-Shot-Grenze / NO-WRITE
 
-**Status:** REAL-BROWSER-SHADOW BESTANDEN / WRITE-GATE-VORBEREITUNG  
+**Status:** WRITE-PFAD IMPLEMENTIERT / LIVE-EVIDENCE AUSSTEHEND  
 **Stand:** 2026-09-21  
 **Vorausgehendes Gate:** `PR20.1_EQUIP_PRODUKTIONSNACHWEIS` – BESTANDEN  
-**Basis-main:** `aef9d84b13956c81799e9fa150cfa22438160470`
+**Basis-main:** `a2364c8a9054022666d32074db11376978c9f6b1`
 
 ## Zweck
 
@@ -230,7 +230,8 @@ Wenn PR20.1 gruen ist, kann ohne erneute Grundlagenanalyse direkt begonnen werde
 8. **ERLEDIGT:** No-Write-R9-Admission-Shadow;
 9. **ERLEDIGT:** echten F5-/Restart-Fault zero-write reconciliieren und dokumentieren;
 10. **ERLEDIGT:** normalen Real-Browser-Shadow ohne Write vollstaendig bis BESTANDEN ausfuehren;
-11. **NAECHSTES GATE:** Write-Adapter/Live-Runner fuer exakt `bank_deposit(1)` separat implementieren und CI-gruen pruefen;
-12. erst danach exakt einen kontrollierten `bank_deposit(1)`-Write ausfuehren.
+11. **IN ARBEIT:** Write-Adapter/Live-Runner fuer exakt `bank_deposit(1)` implementieren und komplett CI-gruen pruefen;
+12. read-only Write-Preflight auf exakt dem geprueften Head ausfuehren;
+13. erst danach exakt einen kontrollierten `bank_deposit(1)`-Write ausfuehren und Evidence pruefen.
 
 Withdraw, Store, Retrieve, Swap und `open_bank_pack` bleiben bis nach dem separat nachgewiesenen ersten Deposit-Pfad produktiv gesperrt.
