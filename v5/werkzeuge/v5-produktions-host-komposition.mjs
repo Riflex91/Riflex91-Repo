@@ -960,6 +960,8 @@ class NodeV5ProduktionsHost {
           || mount.serverKennung !== anfrage.ausgang.serverKennung
           || !Number.isSafeInteger(mount.beobachtetAmMs)
           || mount.beobachtetAmMs < jetztMs
+          || !Number.isSafeInteger(mount.bankGold)
+          || mount.bankGold < 1
           || typeof mount.fingerprint !== "string"
           || mount.fingerprint.length < 16) {
         throw new Error("NODE_BANK_SHADOW_MOUNT_EVIDENCE_UNGUELTIG");
