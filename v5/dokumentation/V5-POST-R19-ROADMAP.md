@@ -111,7 +111,7 @@ Evidence:
 
 ### PR20.2 – Bank-Autonomie produktiv
 
-**Status:** `RESTART_RECOVERY_REAL_BESTANDEN_REAL_BROWSER_SHADOW_NOCH_AUSSTEHEND`. PR20.1 ist bestanden
+**Status:** `REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_VORBEREITUNG`. PR20.1 ist bestanden
 und PR20.2a (Settlement-/Drift-Core fuer `bank_deposit(1)`) ist gemerged.
 PR20.2b fuehrt den separaten Single Owner `merchant-bank-core@1`, die exakt
 eine default-off MUTIEREN-Capability `merchant.bank.gold_einlagern`, eine
@@ -129,8 +129,17 @@ Recovery-Lauf beobachtete anschliessend manuell Mount und Exit und setzte
 Epoche 1 durable auf `RELEASED`. Evidence:
 `roadmap/pr20-2-bank-shadow-recovery-evidence.json`.
 
-Dieser Nachweis belegt den realen Restart-/Recovery-Faultpfad, aber noch nicht
-den vollstaendig bestandenen normalen Real-Browser-Shadow.
+Dieser Nachweis belegt den realen Restart-/Recovery-Faultpfad.
+
+Der anschliessende normale source-locked Real-Browser-Shadow wurde ebenfalls
+vollstaendig bestanden. Admission endete mit `NICHT_GESENDET`, Journal mit
+`ABBRUCH`, Lease Epoche 2 mit `RELEASED`; Browser-/Host-/Gesamt-
+Gameplay-Writes und Adapter-Aufrufe blieben jeweils 0. Evidence:
+`roadmap/pr20-2-bank-real-browser-shadow-evidence.json`.
+
+Damit darf nun nur der enge Write-Adapter/Live-Runner fuer exakt
+`bank_deposit(1)` vorbereitet und CI-geprueft werden. Ein echter Bank-Write
+ist weiterhin ein separates Live-Gate.
 
 Vorhandene Bankplanung, Bank-Lease, Fencing und Bankkatalog-Fundamente werden mit echten Bankmutationen verbunden.
 
@@ -685,8 +694,8 @@ PR20.1 ist bestanden. Der verbindliche naechste Schritt ist jetzt
 6. **ERLEDIGT:** No-Write-R9-Admission-Shadow mit Lease, External Fence, lokalem `bank`-Channel, Socket-Budget und durable Intent;
 7. **ERLEDIGT:** Unit-, Replay-, Fault-, Restart- und UNKNOWN-Tests vollstaendig gruen;
 8. **ERLEDIGT:** echten F5-/Restart-Fault zero-write auf `RECOVERY_PENDING -> RELEASED` reconciliieren und dokumentieren;
-9. **AUSSTEHEND:** normalen Real-Browser-Shadow ohne Write vollstaendig bis `BESTANDEN` ausfuehren;
-10. erst danach Write-Adapter und Live-Runner einfuehren;
-11. erst nach erneut gruener Exact-Head-CI ein reales Bank-Live-Gate oeffnen.
+9. **ERLEDIGT:** normalen Real-Browser-Shadow ohne Write vollstaendig bis `BESTANDEN` ausfuehren;
+10. **NAECHSTES GATE:** Write-Adapter und Live-Runner fuer exakt `bank_deposit(1)` separat implementieren und CI-gruen pruefen;
+11. erst nach erneut gruener Exact-Head-CI ein einzelnes reales Bank-Live-Gate oeffnen.
 
 Bis zu diesem neuen Live-Gate werden keine echten Bank-Writes ausgefuehrt.
