@@ -37,6 +37,9 @@ Direkte Tests benoetigen einen lokal laufenden Adventure-Land-Browser mit CDP. G
 - BLOCKIERT oder UNBEKANNT ist niemals BESTANDEN.
 - Offline-Diagnostik ersetzt keine reale Ingame-Evidence.
 
+- Pro Funktion maximal zwei echte Funktions-Tests; nach einem fehlgeschlagenen Test zuerst lokalisieren und beheben, bevor irgendein anderes Thema begonnen wird.
+- Read-only Reconcile/Diagnose ohne Gameplay-Write zaehlt nicht als Funktions-Test.
+
 ## Migration
 
 R3-R19-Workflows werden auf `workflow_dispatch` umgestellt. Bestehende reale Evidence bleibt gueltig. Neue Funktionsaenderungen erhalten einen passenden direkten Runner oder verwenden einen bestehenden production/shadow/preflight Runner.
