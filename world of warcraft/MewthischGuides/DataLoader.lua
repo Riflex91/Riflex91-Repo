@@ -34,21 +34,35 @@ local function guideApplicable(guide, profile)
     return true
 end
 
+local function guideHasCategory(guide, category)
+    if MG.SupportedRoutes and MG.SupportedRoutes:IsSupportedGuide(guide) then
+        return MG.SupportedRoutes:HasCategory(guide, category)
+    end
+    for _, value in ipairs(guide and guide.categories or {}) do
+        if value == category then return true end
+    end
+    if category == "horde" then return guide and guide.faction == "Horde" end
+    if category == "ally" then return guide and guide.faction == "Alliance" end
+    return false
+end
+
+local function declaredCapability(guide, name, fallback)
+    local caps = guide and guide.capabilities or {}
+    if caps[name] ~= nil then return caps[name] and true or false end
+    return fallback
+end
+
 local function autoSelectable(guide)
-    if not MG.SupportedRoutes or not MG.SupportedRoutes:IsSupportedGuide(guide) then
-        return false
+    if guide and guide.verification == "RESTEDXP_PUBLIC" and
+       MG.SupportedRoutes and MG.SupportedRoutes:IsSupportedGuide(guide) then
+        if guide.rxpAutoSelect == false then return false end
+        return tonumber(guide.minLevel) ~= nil or tonumber(guide.maxLevel) ~= nil
     end
-    if guide.verification ~= "RESTEDXP_PUBLIC" then return false end
-    if guide.rxpAutoSelect == false then return false end
-    if not tonumber(guide.minLevel) and not tonumber(guide.maxLevel) then
-        return false
-    end
-    return true
+    return declaredCapability(guide, "autoRoute", guide and guide.autoRouteReady == true)
 end
 
 local function guideSelectable(guide, profile, category)
-    if not guide or not MG.SupportedRoutes or
-       not MG.SupportedRoutes:IsSupportedGuide(guide) then
+    if not guide or not declaredCapability(guide, "select", true) then
         return false
     end
 
@@ -58,28 +72,28 @@ local function guideSelectable(guide, profile, category)
 
     if category == "horde" then
         return faction == "Horde" and
-            MG.SupportedRoutes:HasCategory(guide, "horde")
+            guideHasCategory(guide, "horde")
     elseif category == "ally" then
         return faction == "Alliance" and
-            MG.SupportedRoutes:HasCategory(guide, "ally")
+            guideHasCategory(guide, "ally")
     elseif category == "mage" then
         if class ~= "MAGE" or
-           not MG.SupportedRoutes:HasCategory(guide, "mage") then
+           not guideHasCategory(guide, "mage") then
             return false
         end
         return not guide.faction or guide.faction == faction
     end
 
     if faction == "Horde" and
-       MG.SupportedRoutes:HasCategory(guide, "horde") then
+       guideHasCategory(guide, "horde") then
         return true
     end
     if faction == "Alliance" and
-       MG.SupportedRoutes:HasCategory(guide, "ally") then
+       guideHasCategory(guide, "ally") then
         return true
     end
     if class == "MAGE" and
-       MG.SupportedRoutes:HasCategory(guide, "mage") and
+       guideHasCategory(guide, "mage") and
        (not guide.faction or guide.faction == faction) then
         return true
     end
@@ -125,29 +139,45 @@ local function guidePriority(guide, profile)
 end
 
 function Loader:Load()
-    local raw = {}
-    if MG.Data then
-        if type(MG.Data.guides) == "table" then
-            for _, guide in ipairs(MG.Data.guides) do raw[#raw + 1] = guide end
+    local raw, compiled, providerStats = {}, {}, { providers = 0 }
+    if MG.GuideProviders then
+        raw, compiled, providerStats = MG.GuideProviders:Collect()
+    else
+        if MG.Data then
+            if type(MG.Data.guides) == "table" then
+                for _, guide in ipairs(MG.Data.guides) do raw[#raw + 1] = guide end
+            end
+            if type(MG.Data.guide) == "table" then raw[#raw + 1] = MG.Data.guide end
         end
-        if type(MG.Data.guide) == "table" then raw[#raw + 1] = MG.Data.guide end
+        if MG.RestEDXPImport then
+            for _, guide in ipairs(MG.RestEDXPImport:BuildGuides() or {}) do raw[#raw + 1] = guide end
+        end
     end
 
-    local rxpStats = nil
-    if MG.RestEDXPImport then
-        for _, guide in ipairs(MG.RestEDXPImport:BuildGuides() or {}) do
-            raw[#raw + 1] = guide
-        end
-        rxpStats = MG.RestEDXPImport:GetStats()
-    end
+    local rxpStats = MG.RestEDXPImport and MG.RestEDXPImport:GetStats() or nil
 
     local parsed, rejected = MG.GuideParser:ParseMany(raw)
     self.guides, self.byID = {}, {}
+    self.compiledGuides, self.compiledByID = {}, {}
+    for _, guide in ipairs(compiled or {}) do
+        if guide.id and not self.compiledByID[guide.id] then
+            self.compiledGuides[#self.compiledGuides + 1] = guide
+            self.compiledByID[guide.id] = guide
+            if MG.GuideCompiler then MG.GuideCompiler.compiledByID[guide.id] = guide end
+        end
+    end
 
     for _, guide in ipairs(parsed) do
         if not self.byID[guide.id] then
             self.guides[#self.guides + 1] = guide
             self.byID[guide.id] = guide
+            if not self.compiledByID[guide.id] and MG.GuideCompiler then
+                local compiledGuide = MG.GuideCompiler:CompileLegacyGuide(guide)
+                if compiledGuide then
+                    self.compiledGuides[#self.compiledGuides + 1] = compiledGuide
+                    self.compiledByID[guide.id] = compiledGuide
+                end
+            end
         end
     end
 
@@ -173,12 +203,23 @@ function Loader:Load()
             registered = MG.GuideRegistry and #(MG.GuideRegistry:GetSpecs()) or 0,
             sourceCommit = MG.GuideRegistry and MG.GuideRegistry.sourceCommit or nil,
         }
+        MG.db.runtime.guideProviders = providerStats
+        MG.db.runtime.compiledGuides = MG.GuideCompiler and MG.GuideCompiler:GetStats() or {
+            guides = #self.compiledGuides,
+        }
     end
 
-    if MG.db and MG.db.settings and
-       MG.db.settings.routeMode == "auto" and
-       not supportedStatus.ready then
-        MG.db.settings.routeMode = "manual"
+    if MG.db and MG.db.settings and MG.db.settings.routeMode == "auto" then
+        local hasDeclaredAuto = false
+        for _, guide in ipairs(self.guides) do
+            if guide.verification ~= "RESTEDXP_PUBLIC" and autoSelectable(guide) then
+                hasDeclaredAuto = true
+                break
+            end
+        end
+        if not supportedStatus.ready and not hasDeclaredAuto then
+            MG.db.settings.routeMode = "manual"
+        end
     end
 
     self:SelectActiveGuide()
@@ -193,6 +234,8 @@ function Loader:Load()
                 warnings = #report.warnings,
                 activeGuideID = self.activeGuide and self.activeGuide.id or nil,
                 restedXP = rxpStats,
+                providers = providerStats,
+                compiledGuides = #self.compiledGuides,
                 autoRouteReady = supportedStatus.ready,
                 requiredRoutes = supportedStatus.requiredRoutes,
                 resolvedRoutes = supportedStatus.resolvedRoutes,
@@ -249,8 +292,24 @@ function Loader:GetGuide(id)
 end
 
 function Loader:IsAutoRouteReady()
+    local active = self.activeGuide
+    if active and active.verification ~= "RESTEDXP_PUBLIC" and autoSelectable(active) then
+        return true
+    end
     local status = MG.SupportedRoutes and MG.SupportedRoutes:GetStatus() or nil
     return status and status.ready and true or false
+end
+
+function Loader:GetCompiledGuide(id)
+    return id and self.compiledByID and self.compiledByID[id] or nil
+end
+
+function Loader:IsGuideBrowsable(guide)
+    return guide and declaredCapability(guide, "browse", true) and true or false
+end
+
+function Loader:GuideHasCategory(guide, category)
+    return guideHasCategory(guide, category)
 end
 
 function Loader:GetSupportedGuides(category)
@@ -276,8 +335,7 @@ end
 
 function Loader:SelectGuide(id)
     local guide = self:GetGuide(id)
-    if not guide or not MG.SupportedRoutes or
-       not MG.SupportedRoutes:IsSupportedGuide(guide) then
+    if not guide or not declaredCapability(guide, "select", true) then
         return false, "unsupported_guide"
     end
     if not guideSelectable(guide, MG:GetPlayerProfile()) then
