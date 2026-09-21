@@ -3,7 +3,7 @@
   "stand": "2026-09-21",
   "roadmap": "V5_POST_R19_PRODUKTIV",
   "status": "AKTIV",
-  "basisMain": "a2364c8a9054022666d32074db11376978c9f6b1",
+  "basisMain": "05b93ac7dbb6ef294294c38030d9e4b48962f7d3",
   "dokumentation": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
   "testzeitStandard": "v5/roadmap/testzeit-standard.json",
   "currentStage": "PR20",
@@ -80,12 +80,12 @@
   ],
   "currentNextSteps": [
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN und im Repo dokumentiert",
-    "PR20.2 erster Live-Kandidat ist exakt bank_deposit(1 Gold)",
-    "PR20.2a bis PR20.2g Settlement, One-Shot-Authority, Lease/Restart, No-Write-Admission, F5-Recovery und Real-Browser-Shadow sind BESTANDEN bzw. CI-gruen gemerged",
-    "PR20.2h Write-Adapter und Live-Runner fuer exakt bank_deposit(1) vollstaendig CI-gruen machen",
-    "danach read-only Write-Preflight auf exakt dem geprueften Head ausfuehren",
-    "erst danach einen einzelnen kontrollierten bank_deposit(1)-Write als separates Live-Gate ausfuehren",
-    "Live-Evidence pruefen und erst bei BESTANDEN PR20.2 Bank-Deposit-Produktion als nachgewiesen markieren"
+    "PR20.2 bank_deposit(1) One-Shot-Live-Evidence ist BESTANDEN: COMMIT, 1 Adapter-Aufruf, 1 Gameplay-Write, kein Retry, Lease RELEASED",
+    "Bank-Deposit-Gold-One-Shot ist real nachgewiesen; dies beweist noch nicht die gesamte Bank-Autonomie",
+    "als naechstes Withdraw/Store/Retrieve/Swap jeweils eng vorbereiten und einzeln produktiv nachweisen",
+    "Capacity-/Workspace- und Open-Bank-Pack-Gates separat behandeln",
+    "danach reale 5m-Bank-Funktionsevidence ohne Duplicate/UNKNOWN-Restzustand absolvieren",
+    "erst nach komplettem PR20.2-Exit-Gate PR20.3 Markt produktiv oeffnen"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -150,7 +150,7 @@
   },
   "parallelPreparation": {
     "id": "PR20.2_BANK",
-    "status": "WRITE_PATH_IMPLEMENTIERT_LIVE_EVIDENCE_AUSSTEHEND",
+    "status": "DEPOSIT_ONE_SHOT_LIVE_BESTANDEN_RESTBANK_AUSSTEHEND",
     "blockedBy": null,
     "produktiveRegistrierungErlaubt": true,
     "gameplayAuthority": false,
@@ -188,12 +188,13 @@
       "v5/werkzeuge/bank-deposit-produktions-write-browser.mjs",
       "v5/werkzeuge/bank-deposit-produktions-live.mjs",
       "v5/grundlage/tests/r11-bank-deposit-produktions-transaktion.test.mjs",
-      "v5/grundlage/tests/r11-bank-deposit-produktions-write-browser.test.mjs"
+      "v5/grundlage/tests/r11-bank-deposit-produktions-write-browser.test.mjs",
+      "v5/roadmap/pr20-2-bank-deposit-production-evidence.json"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",
       "amountGold": 1,
-      "status": "ONE_SHOT_PREFLIGHT_GRENZE_IMPLEMENTIERT_NO_WRITE",
+      "status": "BESTANDEN",
       "contract": "v5/grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
       "settlementCore": "v5/grundlage/quelle/merchant/bank-deposit-settlement.ts",
       "provider": "merchant-bank-core@1",
@@ -214,14 +215,23 @@
       "maximumAdapterCalls": 1,
       "maximumGameplayWrites": 1,
       "sameIntentRetry": false,
-      "realLiveWritePerformed": false,
-      "liveEvidence": "AUSSTEHEND"
+      "realLiveWritePerformed": true,
+      "liveEvidence": "BESTANDEN",
+      "liveEvidencePfad": "v5/roadmap/pr20-2-bank-deposit-production-evidence.json",
+      "liveTransactionId": "BANK-DEPOSIT-PROD-TX-1790013959392-9c25f657",
+      "actualGameplayWrites": 1,
+      "actualAdapterCalls": 1,
+      "journalTerminalArt": "COMMIT",
+      "recovery": "COMMITTED",
+      "recoveryKlassifikation": "BESTAETIGT",
+      "leaseEpoche": 3,
+      "leaseTerminalStatus": "RELEASED"
     }
   },
   "parallelPreparations": [
     {
       "id": "PR20.2_BANK",
-      "status": "WRITE_PATH_IMPLEMENTIERT_LIVE_EVIDENCE_AUSSTEHEND",
+      "status": "DEPOSIT_ONE_SHOT_LIVE_BESTANDEN_RESTBANK_AUSSTEHEND",
       "blockedBy": [],
       "produktiveRegistrierungErlaubt": true,
       "gameplayAuthority": false,
@@ -259,12 +269,13 @@
         "v5/werkzeuge/bank-deposit-produktions-write-browser.mjs",
         "v5/werkzeuge/bank-deposit-produktions-live.mjs",
         "v5/grundlage/tests/r11-bank-deposit-produktions-transaktion.test.mjs",
-        "v5/grundlage/tests/r11-bank-deposit-produktions-write-browser.test.mjs"
+        "v5/grundlage/tests/r11-bank-deposit-produktions-write-browser.test.mjs",
+        "v5/roadmap/pr20-2-bank-deposit-production-evidence.json"
       ],
       "firstLiveCandidate": {
         "publicFunction": "bank_deposit",
         "amountGold": 1,
-        "status": "ONE_SHOT_PREFLIGHT_GRENZE_IMPLEMENTIERT_NO_WRITE",
+        "status": "BESTANDEN",
         "contract": "v5/grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
         "settlementCore": "v5/grundlage/quelle/merchant/bank-deposit-settlement.ts",
         "provider": "merchant-bank-core@1",
@@ -285,8 +296,17 @@
         "maximumAdapterCalls": 1,
         "maximumGameplayWrites": 1,
         "sameIntentRetry": false,
-        "realLiveWritePerformed": false,
-        "liveEvidence": "AUSSTEHEND"
+        "realLiveWritePerformed": true,
+        "liveEvidence": "BESTANDEN",
+        "liveEvidencePfad": "v5/roadmap/pr20-2-bank-deposit-production-evidence.json",
+        "liveTransactionId": "BANK-DEPOSIT-PROD-TX-1790013959392-9c25f657",
+        "actualGameplayWrites": 1,
+        "actualAdapterCalls": 1,
+        "journalTerminalArt": "COMMIT",
+        "recovery": "COMMITTED",
+        "recoveryKlassifikation": "BESTAETIGT",
+        "leaseEpoche": 3,
+        "leaseTerminalStatus": "RELEASED"
       }
     },
     {
@@ -415,7 +435,7 @@
     "recovery": "COMMITTED"
   },
   "pr20_2": {
-    "status": "WRITE_PATH_IMPLEMENTIERT_LIVE_EVIDENCE_AUSSTEHEND",
+    "status": "DEPOSIT_ONE_SHOT_LIVE_BESTANDEN_RESTBANK_AUSSTEHEND",
     "firstLiveCandidate": "bank_deposit(1)",
     "provider": "merchant-bank-core@1",
     "capabilityId": "merchant.bank.gold_einlagern",
@@ -426,8 +446,8 @@
     "readOnlyPreflight": true,
     "writeAdapter": true,
     "liveRunner": true,
-    "gameplayWrites": 0,
-    "nextSafetyGap": "EXACT_HEAD_CI_DANN_READ_ONLY_PREFLIGHT_DANN_EINZELNER_BANK_DEPOSIT_1_LIVE_WRITE",
+    "gameplayWrites": 1,
+    "nextSafetyGap": "WITHDRAW_STORE_RETRIEVE_SWAP_UND_5M_BANK_FUNCTION_EVIDENCE",
     "persistentBankLease": true,
     "restartReconciliation": true,
     "r9AdmissionShadow": true,
@@ -437,7 +457,16 @@
     "amountGold": 1,
     "maximumAdapterCalls": 1,
     "maximumGameplayWrites": 1,
-    "realLiveWritePerformed": false,
-    "liveEvidence": "AUSSTEHEND"
+    "realLiveWritePerformed": true,
+    "liveEvidence": "v5/roadmap/pr20-2-bank-deposit-production-evidence.json",
+    "testedSourceSha": "a540d4107343a87b9d8ef5f3f301b3bbad819c4c",
+    "transactionId": "BANK-DEPOSIT-PROD-TX-1790013959392-9c25f657",
+    "journalTerminalArt": "COMMIT",
+    "recovery": "COMMITTED",
+    "recoveryKlassifikation": "BESTAETIGT",
+    "actualAdapterCalls": 1,
+    "actualGameplayWrites": 1,
+    "leaseEpoche": 3,
+    "leaseTerminalStatus": "RELEASED"
   }
 }
