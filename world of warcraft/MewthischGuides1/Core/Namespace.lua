@@ -40,8 +40,18 @@ function MG.Util:SplitCondition(value)
 end
 
 function MG:GetPlayerProfile()
-    local _, classFile, classID = UnitClass and UnitClass("player")
-    local _, raceFile, raceID = UnitRace and UnitRace("player")
+    local classFile, classID
+    local raceFile, raceID
+
+    if UnitClass then
+        local _
+        _, classFile, classID = UnitClass("player")
+    end
+    if UnitRace then
+        local _
+        _, raceFile, raceID = UnitRace("player")
+    end
+
     return {
         level = UnitLevel and UnitLevel("player") or 1,
         class = classFile,
