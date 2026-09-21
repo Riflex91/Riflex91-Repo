@@ -306,7 +306,10 @@ export async function fuehreBankWithdrawFinalPreflightDiagnoseAus({
   const cdp = validiereLoopbackCdp(
     cdpText || process.env.V5_CDP_URL || "http://127.0.0.1:9222/",
   );
-  const live = await findeAdventureLandKontext(cdp);
+  const live = await findeAdventureLandKontext(
+    cdp,
+    { requiredGlobalFunction: "bank_withdraw" },
+  );
 
   try {
     const snapshot = await warteAufStabilenBankSnapshotReadOnly(
@@ -359,6 +362,14 @@ export async function fuehreBankWithdrawFinalPreflightDiagnoseAus({
         bankGold: snapshot.bankGold,
         fingerprintGleichPrestate:
           snapshot.fingerprint === abgleich.vorherFingerprint,
+      }),
+      ausgewaehlterCdpKontext: Object.freeze({
+        requiredGlobalFunction: live.requiredGlobalFunction ?? null,
+        contextName: live.contextName ?? "",
+        contextType: live.contextType ?? null,
+        contextIsDefault: live.contextIsDefault === true,
+        frameId: live.frameId ?? null,
+        targetUrl: live.targetUrl ?? null,
       }),
       dynamischeFinalChecks: Object.freeze({
         merchant: dyn?.merchant === true,
