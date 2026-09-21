@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_PR20_2_BANK_DEPOSIT_ERSTER_LIVE_KANDIDAT",
+  "stand": "2026-09-21",
+  "status": "RATIFIZIERT_NO_WRITE",
+  "sourceMain": "3f88e904cb2a7fd20b69a5e7c552eb0958b66884",
+  "capabilitySpaeter": "merchant.bank.gold_einlagern",
+  "providerSpaeter": "merchant-core-a@1",
+  "actionContractId": "AL-ACTION-BANK-DEPOSIT",
+  "recoveryContractId": "AL-RECOVERY-BANK-DEPOSIT",
+  "verifierId": "AL-VERIFIER-BANK-DEPOSIT",
+  "publicFunction": "bank_deposit",
+  "ersterLiveBetragGold": 1,
+  "auswahlbegruendung": [
+    "atomarer offizieller Serverhandler",
+    "nur character.gold und bank.gold als fachliche Effekt-Domaenen",
+    "exakt beobachtbares -1/+1 Delta",
+    "kein physisches Item-Mapping und kein Zielslot erforderlich",
+    "same-intent retry nach moeglichem Send bleibt verboten"
+  ],
+  "offizielleSemantik": {
+    "snapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "client": "bank_deposit(gold) -> FIFO deferred channel bank -> socket event bank { operation: deposit, amount: gold }",
+    "server": "amount = max(0, min(parseInt(data.amount) || 0, player.gold)); player.user.gold += amount; player.gold -= amount",
+    "serverResponse": "bank_store",
+    "executionModel": "ATOMIC_HANDLER"
+  },
+  "admissionMinimum": [
+    "ctype merchant",
+    "character alive and idle",
+    "bank mounted",
+    "alternative V3/V4 runtime inactive",
+    "fresh character/bank evidence",
+    "active account-wide bank lease belongs to the character",
+    "lease epoch and mount epoch match fresh evidence",
+    "session and server binding unchanged",
+    "no open bank transaction",
+    "character gold >= 1",
+    "durable intent before send",
+    "local bank action-channel and character socket budget fenced"
+  ],
+  "settlement": {
+    "characterGoldDelta": -1,
+    "bankGoldDelta": 1,
+    "requireNewFingerprint": true,
+    "requireSameCharacter": true,
+    "requireSameSession": true,
+    "requireSameServer": true,
+    "requireSameLeaseEpoch": true,
+    "requireSameMountEpoch": true,
+    "sameIntentRetry": false
+  },
+  "authorityGrenze": {
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "produktiveCapabilityInDiesemSchritt": false,
+    "authorityInDiesemSchritt": false,
+    "adapterInDiesemSchritt": false,
+    "liveRunnerInDiesemSchritt": false,
+    "gameplayWritesInDiesemSchritt": 0
+  },
+  "naechsterSchritt": "PRODUCTIVE_ONE_SHOT_WIRING_AFTER_GREEN_CI"
+}

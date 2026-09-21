@@ -3,7 +3,7 @@
   "stand": "2026-09-21",
   "roadmap": "V5_POST_R19_PRODUKTIV",
   "status": "AKTIV",
-  "basisMain": "5dca18494fb6414d0d3f10b10d449c0c6abbb32d",
+  "basisMain": "3f88e904cb2a7fd20b69a5e7c552eb0958b66884",
   "dokumentation": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
   "testzeitStandard": "v5/roadmap/testzeit-standard.json",
   "currentStage": "PR20",
@@ -80,11 +80,12 @@
   ],
   "currentNextSteps": [
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN und im Repo dokumentiert",
-    "PR20.2 einen einzigen ersten Bank-Live-Kandidaten festlegen",
+    "PR20.2 erster Live-Kandidat ist exakt bank_deposit(1 Gold)",
+    "authority-freier Deposit-Settlement-/Drift-Core muss CI-gruen gemerged sein",
     "enge produktive Bank-Mutationsfaehigkeit mit Single Owner ratifizieren",
     "Authority, Admission, Journal/Current-Fence und read-only Preflight implementieren",
     "Unit/Replay/Fault/Restart/UNKNOWN/Shadow-Gates vollstaendig gruen",
-    "erst danach kontrollierten ersten Bank-Write als neues Live-Gate ausfuehren"
+    "erst danach kontrollierten bank_deposit(1)-Write als neues Live-Gate ausfuehren"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -157,8 +158,19 @@
     "artifacts": [
       "v5/dokumentation/PR20-2-BANK-PRODUKTIV-VORBEREITUNG.md",
       "v5/grundlage/vertraege/runtime/bank-production-preparation.json",
-      "v5/grundlage/tests/pr20-bank-production-preparation.test.mjs"
-    ]
+      "v5/grundlage/tests/pr20-bank-production-preparation.test.mjs",
+      "v5/grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
+      "v5/grundlage/quelle/merchant/bank-deposit-settlement.ts",
+      "v5/grundlage/tests/pr20-bank-deposit-settlement.test.mjs"
+    ],
+    "firstLiveCandidate": {
+      "publicFunction": "bank_deposit",
+      "amountGold": 1,
+      "status": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE",
+      "contract": "v5/grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
+      "settlementCore": "v5/grundlage/quelle/merchant/bank-deposit-settlement.ts",
+      "gameplayAuthority": false
+    }
   },
   "parallelPreparations": [
     {
@@ -171,8 +183,19 @@
       "artifacts": [
         "v5/dokumentation/PR20-2-BANK-PRODUKTIV-VORBEREITUNG.md",
         "v5/grundlage/vertraege/runtime/bank-production-preparation.json",
-        "v5/grundlage/tests/pr20-bank-production-preparation.test.mjs"
-      ]
+        "v5/grundlage/tests/pr20-bank-production-preparation.test.mjs",
+        "v5/grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
+        "v5/grundlage/quelle/merchant/bank-deposit-settlement.ts",
+        "v5/grundlage/tests/pr20-bank-deposit-settlement.test.mjs"
+      ],
+      "firstLiveCandidate": {
+        "publicFunction": "bank_deposit",
+        "amountGold": 1,
+        "status": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE",
+        "contract": "v5/grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
+        "settlementCore": "v5/grundlage/quelle/merchant/bank-deposit-settlement.ts",
+        "gameplayAuthority": false
+      }
     },
     {
       "id": "PR20.3_MARKT",

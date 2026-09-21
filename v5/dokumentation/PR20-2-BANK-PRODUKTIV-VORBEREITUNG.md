@@ -3,7 +3,7 @@
 **Status:** BEREIT FUER PRODUKTIVIERUNG / NO-WRITE  
 **Stand:** 2026-09-21  
 **Vorausgehendes Gate:** `PR20.1_EQUIP_PRODUKTIONSNACHWEIS` – BESTANDEN  
-**Basis-main:** `a962512557d08bacfc57022697b77bd26e314b45`
+**Basis-main:** `3f88e904cb2a7fd20b69a5e7c552eb0958b66884`
 
 ## Zweck
 
@@ -21,6 +21,12 @@ Sie oeffnet **keine** Bank-Gameplay-Authority und registriert **keine** produkti
 Der maschinenlesbare Vertrag liegt unter:
 
 `grundlage/vertraege/runtime/bank-production-preparation.json`.
+
+Der erste Live-Kandidat ist inzwischen **ohne Write-Authority** festgelegt:
+`bank_deposit(1)`. Der enge Vertrag liegt unter
+`grundlage/vertraege/runtime/bank-deposit-production-candidate.json`, der
+authority-freie Settlement-Core unter
+`grundlage/quelle/merchant/bank-deposit-settlement.ts`.
 
 ## Bereits belastbare Grundlagen
 
@@ -52,6 +58,23 @@ Nach bestandenem PR20.1 koennen folgende vorhandene, bereits R9-gebundene Action
 | Bank intern bewegen/konsolidieren | `AL-ACTION-BANK-SWAP` | `AL-RECOVERY-BANK-SWAP` | `AL-VERIFIER-BANK-SWAP` |
 
 `open_bank_pack` bleibt fuer den ersten Satz absichtlich draussen. Die Action besitzt Capacity-/Currency-Wirkung und einen asynchronen Backend-Pfad und bekommt deshalb spaeter einen eigenen kontrollierten Nachweis.
+
+## Erster kontrollierter Live-Kandidat
+
+Als erster Bank-Mutationspfad ist exakt **1 Gold einzahlen** ratifiziert.
+Der offizielle Client sendet `bank_deposit(gold)` ueber den FIFO-Kanal
+`bank`. Der verifizierte Serverhandler begrenzt den Betrag auf vorhandenes
+Character-Gold und verschiebt ihn atomar zwischen `character.gold` und
+`bank.gold`.
+
+Der spätere COMMIT darf deshalb nur entstehen, wenn dieselbe Character-,
+Session-, Server-, Lease- und Mount-Bindung frisch beobachtet wird, ein neuer
+Fingerprint vorliegt und gleichzeitig exakt `character.gold - 1` sowie
+`bank.gold + 1` nachgewiesen sind. Nur Senderverlust oder nur Bankzuwachs
+reichen nicht. Same-Intent-Retry bleibt immer verboten.
+
+Dieser Schritt besitzt weiterhin **keine** produktive Mutations-Capability,
+keine Authority, keinen Adapter und keinen Live-Runner.
 
 ## Admission-Grenze fuer die spaetere Implementierung
 
@@ -100,13 +123,14 @@ Bis zum bestandenen PR20.1 waren verboten; sie sind auch jetzt erst nach ihrer j
 
 Wenn PR20.1 gruen ist, kann ohne erneute Grundlagenanalyse direkt begonnen werden mit:
 
-1. einen **einzigen** ersten Bank-Live-Kandidaten festlegen;
-2. produktive Mutationsfaehigkeit und Single Owner ratifizieren;
-3. eng begrenzte Authority + Admission implementieren;
-4. Bank-Transaktionsjournal mit globalem/open-current Fence implementieren;
-5. read-only Preflight bauen;
-6. Unit/Replay/Fault/Restart/UNKNOWN-Tests;
-7. Shadow;
-8. erst danach exakt einen kontrollierten realen Bank-Write.
+1. **ERLEDIGT:** `bank_deposit(1)` als ersten Live-Kandidaten ratifizieren;
+2. **ERLEDIGT:** authority-freien Settlement-/Drift-Core mit Tests bereitstellen;
+3. produktive Mutationsfaehigkeit und Single Owner ratifizieren;
+4. eng begrenzte Authority + Admission implementieren;
+5. Bank-Transaktionsjournal mit globalem/open-current Fence implementieren;
+6. read-only Preflight bauen;
+7. Unit/Replay/Fault/Restart/UNKNOWN-Tests;
+8. Shadow;
+9. erst danach exakt einen kontrollierten `bank_deposit(1)`-Write.
 
-Die Auswahl des ersten Bank-Live-Kandidaten erfolgt erst nach Auswertung der Equip-Evidence und auf Basis eines geeigneten realen Bankzustands.
+Withdraw, Store, Retrieve, Swap und `open_bank_pack` bleiben bis nach dem separat nachgewiesenen ersten Deposit-Pfad produktiv gesperrt.
