@@ -680,6 +680,73 @@ function Import:GetClassSpecificQuestStats(guides)
     return stats
 end
 
+local function cleanContextName(value)
+    value = trim(value)
+    value = value:gsub("^%+", "")
+    value = value:gsub("::.*$", "")
+    return trim(value)
+end
+
+local function rawActionApplies(rawStep, action, profile)
+    if not rawStep or not action then return false end
+    if not Import:SelectorMatches(rawStep.selector, profile) then return false end
+    if not Import:TagsMatch(rawStep.tags, profile) then return false end
+
+    local base, selector = splitCondition(action.args)
+    if selector and selector ~= "" and
+       not Import:SelectorMatches(selector, profile) then
+        return false
+    end
+    return true, base
+end
+
+function Import:GetInstructionContext(definition, phase, profile, objectiveIndex)
+    local occurrence = self:GetProgressOccurrence(
+        definition, phase, profile, objectiveIndex)
+    if not occurrence then return {} end
+
+    profile = profile or (MG.GetPlayerProfile and MG:GetPlayerProfile()) or {}
+    local rawGuide = self:ParseRaw()[tonumber(occurrence.rawGuideIndex or 0)]
+    local rawStep = rawGuide and rawGuide.steps and
+        rawGuide.steps[tonumber(occurrence.sourceStep or 0)] or nil
+    if not rawStep then return {} end
+
+    local context = {
+        sourceStep = occurrence.sourceStep,
+        sourceAction = occurrence.sourceAction,
+    }
+
+    for _, action in ipairs(rawStep.actions or {}) do
+        local applies, base = rawActionApplies(rawStep, action, profile)
+        if applies then
+            local kind = tostring(action.kind or "")
+            if kind == "target" then
+                local name = cleanContextName(base)
+                if name ~= "" then context.target = name end
+            elseif kind == "mob" then
+                local name = cleanContextName(base)
+                if name ~= "" then context.mob = name end
+            elseif kind == "collect" then
+                local itemID, amount = tostring(base or ""):match(
+                    "^%s*(%d+)%s*,%s*(%d+)")
+                context.collectItemID = tonumber(itemID) or context.collectItemID
+                context.collectAmount = tonumber(amount) or context.collectAmount
+            elseif kind == "zone" or kind == "subzone" then
+                local place = cleanContextName(base)
+                if place ~= "" then context.location = place end
+            end
+        end
+    end
+
+    if phase == "accept" or phase == "turnin" then
+        context.questGiver = context.target
+    else
+        context.source = context.mob or context.target
+    end
+
+    return context
+end
+
 local function distanceToCoordinate(coordinate, player)
     if not coordinate or not player then return nil end
 
