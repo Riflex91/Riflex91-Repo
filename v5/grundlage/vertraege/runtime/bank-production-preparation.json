@@ -5,7 +5,7 @@
   "status": "DEPOSIT_ONE_SHOT_LIVE_BESTANDEN_RESTBANK_AUSSTEHEND",
   "basisMain": "05b93ac7dbb6ef294294c38030d9e4b48962f7d3",
   "blockingGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
-  "zweck": "PR20.2 Bank-Autonomie schrittweise produktiv nachweisen. bank_deposit(1) ist real BESTANDEN; bank_withdraw(1) hat Settlement-Core, Capability, durable One-Shot-Authority, Current-Fence, read-only Preflight, Admission-Shadow und den source-locked Real-Browser-Shadow real BESTANDEN. Write-Adapter/Live-Runner und echter Withdraw-Write bleiben ausstehend; Store/Retrieve/Swap, Capacity/Open-Pack und 5m-Funktionsevidence bleiben separate Gates.",
+  "zweck": "PR20.2 Bank-Autonomie schrittweise produktiv nachweisen. bank_deposit(1) ist real BESTANDEN; bank_withdraw(1) besitzt Settlement-Core, Capability, durable One-Shot-Authority, Current-Fence, read-only Preflight, Admission-Shadow und bestandene source-locked Real-Browser-Shadow-Evidence. Write-Adapter, Produktions-Transaktionscore und source-locked Live-Runner sind vorbereitet, aber es wurde in diesem Schritt kein echter Withdraw-Write ausgefuehrt.",
   "authorityGrenze": {
     "produktiveRegistrierungErlaubt": true,
     "produktiverAktivierungspfadErlaubt": false,
@@ -190,7 +190,7 @@
     "liveLeaseTerminalStatus": "RELEASED"
   },
   "naechsterLiveKandidat": {
-    "status": "REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_AUSSTEHEND",
+    "status": "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE",
     "vertrag": "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
     "settlementCore": "grundlage/quelle/merchant/bank-withdraw-settlement.ts",
     "test": "grundlage/tests/pr20-bank-withdraw-settlement.test.mjs",
@@ -206,8 +206,8 @@
     "produktiveCapabilityImplementiert": true,
     "oneShotAuthorityImplementiert": true,
     "currentFenceImplementiert": true,
-    "writeAdapterImplementiert": false,
-    "liveRunnerImplementiert": false,
+    "writeAdapterImplementiert": true,
+    "liveRunnerImplementiert": true,
     "gameplayWritesInDiesemSchritt": 0,
     "provider": "merchant-bank-core@1",
     "capabilityId": "merchant.bank.gold_auslagern",
@@ -239,6 +239,13 @@
     "realBrowserShadowTransactionId": "BANK-SHADOW-TX-1790019371382-d906b60d",
     "realBrowserShadowLeaseEpoche": 4,
     "realBrowserShadowLeaseTerminalStatus": "RELEASED",
-    "realBrowserShadowSendBoundaryState": "NICHT_GESENDET"
+    "realBrowserShadowSendBoundaryState": "NICHT_GESENDET",
+    "writeAdapter": "werkzeuge/bank-withdraw-produktions-write-browser.mjs",
+    "liveRunner": "werkzeuge/bank-withdraw-produktions-live.mjs",
+    "transactionCore": "grundlage/quelle/merchant/bank-withdraw-produktions-transaktion.ts",
+    "sourceLockedWritePreflight": true,
+    "maximaleAdapterAufrufe": 1,
+    "maximaleGameplayWrites": 1,
+    "realLiveWritePerformed": false
   }
 }

@@ -1,49 +1,20 @@
 name: v5-r18
 
+# Nur noch manuelle Offline-Diagnose. Funktionale V5-Freigaben erfolgen
+# durch source-locked JavaScript-Tests im echten Adventure-Land-Browser via CDP.
 on:
-  pull_request:
-    paths:
-      - 'v5/grundlage/**'
-      - 'v5/package.json'
-      - 'v5/package-lock.json'
-      - 'v5/werkzeuge/r18-*.mjs'
-      - 'v5/roadmap/**'
-      - 'v5/bereitschaft/**'
-      - 'v5/anforderungen/**'
-      - 'v5/fitness/**'
-      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
-      - '.github/workflows/v5-r18.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'v5/grundlage/**'
-      - 'v5/package.json'
-      - 'v5/package-lock.json'
-      - 'v5/werkzeuge/r18-*.mjs'
-      - 'v5/roadmap/**'
-      - 'v5/bereitschaft/**'
-      - 'v5/anforderungen/**'
-      - 'v5/fitness/**'
-      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
-      - '.github/workflows/v5-r18.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  learning-optimierung:
+  manual-offline-diagnostic:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-      - name: Exakten Head verifizieren
-        shell: bash
-        run: |
-          set -euo pipefail
-          ERWARTET="${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
-          test "$(git rev-parse HEAD)" = "$ERWARTET"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -52,6 +23,6 @@ jobs:
       - name: Gepinnte Abhaengigkeiten installieren
         working-directory: v5
         run: npm ci
-      - name: R18 Learning und Optimierung pruefen
+      - name: R18 nur manuell diagnostizieren
         working-directory: v5
         run: npm run r18:pruefen

@@ -1,26 +1,19 @@
 name: v5-wissensbasis
 
+# Manuelle Offline-Diagnose; kein automatisches Funktions-Testgate.
 on:
-  pull_request:
-    paths:
-      - 'v5/wissensbasis/**'
-      - 'v5/werkzeuge/wissensbasis-pruefen.mjs'
-      - '.github/workflows/v5-wissensbasis.yml'
-  push:
-    branches:
-      - main
-    paths:
-      - 'v5/wissensbasis/**'
-      - 'v5/werkzeuge/wissensbasis-pruefen.mjs'
-      - '.github/workflows/v5-wissensbasis.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  validate:
+  manual-offline-diagnostic:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: V5 Wissensbasis pruefen
+      - name: Wissensbasis diagnostizieren
         run: node v5/werkzeuge/wissensbasis-pruefen.mjs
