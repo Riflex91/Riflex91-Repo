@@ -881,6 +881,9 @@ if((bankWithdrawWriteBrowser.match(/root\.bank_withdraw\(1\)/g)??[]).length!==1)
 }
 for(const m of [
   "BANK_WITHDRAW_WRITE_MEHR_ALS_EIN_ADAPTER_AUFRUF",
+  'const ACTION = "AL-ACTION-BANK-WITHDRAW"',
+  'const RECOVERY = "AL-RECOVERY-BANK-WITHDRAW"',
+  'const VERIFIER = "AL-VERIFIER-BANK-WITHDRAW"',
   "ACCOUNT_DRIFT",
   "SESSION_DRIFT",
   "SERVER_DRIFT",
@@ -927,6 +930,10 @@ for(const m of [
   "V5_PRODUCTION_BANK_WITHDRAW_ONE_GOLD_ONE_SHOT_LIVE",
   "BANK_WITHDRAW_EINMAL_BESTAETIGUNG",
   "BANK_WITHDRAW_PROD_SOURCE_SHA_MISMATCH",
+  'const ACTION = "AL-ACTION-BANK-WITHDRAW"',
+  'const RECOVERY = "AL-RECOVERY-BANK-WITHDRAW"',
+  'const VERIFIER = "AL-VERIFIER-BANK-WITHDRAW"',
+  'const CAPABILITY = "merchant.bank.gold_auslagern"',
   "fuehreBankWithdrawEinGoldTransaktion",
   "sameIntentRetry: false",
   "const erwartetSha = pruefeSha(sourceSha)",
