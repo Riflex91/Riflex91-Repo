@@ -206,7 +206,10 @@ export async function fuehreBankWithdrawEinGoldLiveAus({
   const cdp = validiereLoopbackCdp(
     cdpText || process.env.V5_CDP_URL || "http://127.0.0.1:9222/",
   );
-  const live = await findeAdventureLandKontext(cdp);
+  const live = await findeAdventureLandKontext(
+    cdp,
+    { requiredGlobalFunction: "bank_withdraw" },
+  );
   let host = null;
   let adapter = null;
 
