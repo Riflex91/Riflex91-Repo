@@ -125,23 +125,33 @@ export function pruefeBankDepositEinGoldBereitschaft(
   }
   pruefeBindung(eingabe.bindung);
 
-  const gruende: string[] = [];
+  let gruende: readonly string[] = Object.freeze([]);
+  const fuegeGrundHinzu = (grund: string): void => {
+    if (gruende.length >= 16) {
+      throw new Error("BANK_DEPOSIT_BLOCKER_GRENZE_UEBERSCHRITTEN");
+    }
+    gruende = Object.freeze([...gruende, grund]);
+  };
   if (eingabe.ctype !== "merchant") {
-    gruende.push("BANK_DEPOSIT_NUR_MERCHANT");
+    fuegeGrundHinzu("BANK_DEPOSIT_NUR_MERCHANT");
   }
-  if (!eingabe.lebt) gruende.push("BANK_DEPOSIT_CHARACTER_NICHT_BEREIT");
-  if (!eingabe.bankGemountet) gruende.push("BANK_DEPOSIT_BANK_NICHT_GEMOUNTET");
+  if (!eingabe.lebt) {
+    fuegeGrundHinzu("BANK_DEPOSIT_CHARACTER_NICHT_BEREIT");
+  }
+  if (!eingabe.bankGemountet) {
+    fuegeGrundHinzu("BANK_DEPOSIT_BANK_NICHT_GEMOUNTET");
+  }
   if (eingabe.alternativeRuntimeAktiv) {
-    gruende.push("BANK_DEPOSIT_ALTERNATIVE_RUNTIME_AKTIV");
+    fuegeGrundHinzu("BANK_DEPOSIT_ALTERNATIVE_RUNTIME_AKTIV");
   }
   if (eingabe.offeneBankTransaktion) {
-    gruende.push("BANK_DEPOSIT_OFFENE_TRANSAKTION");
+    fuegeGrundHinzu("BANK_DEPOSIT_OFFENE_TRANSAKTION");
   }
   if (!eingabe.evidenceFrisch) {
-    gruende.push("BANK_DEPOSIT_EVIDENCE_STALE");
+    fuegeGrundHinzu("BANK_DEPOSIT_EVIDENCE_STALE");
   }
   if (eingabe.bindung.characterGold < BANK_DEPOSIT_ERSTER_BETRAG) {
-    gruende.push("BANK_DEPOSIT_CHARACTER_GOLD_ZU_NIEDRIG");
+    fuegeGrundHinzu("BANK_DEPOSIT_CHARACTER_GOLD_ZU_NIEDRIG");
   }
 
   return Object.freeze({
