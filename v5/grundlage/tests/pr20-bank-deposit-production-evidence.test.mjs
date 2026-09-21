@@ -9,6 +9,13 @@ const evidence = JSON.parse(
   ),
 );
 
+const gate = JSON.parse(
+  fs.readFileSync(
+    "grundlage/vertraege/runtime/bank-deposit-production-live-gate.json",
+    "utf8",
+  ),
+);
+
 test("PR20.2 bank_deposit(1)-Live-Evidence ist exakt einmal committed", () => {
   assert.equal(evidence.schemaVersion, 1);
   assert.equal(evidence.status, "BESTANDEN");
@@ -79,4 +86,31 @@ test("PR20.2 Live-Evidence beweist nur One-Shot-Deposit und oeffnet Restbank nic
     evidence.nextGate,
     "PR20.2_BANK_AUTONOMY_REST_CAPABILITIES_AND_5M_FUNCTION_EVIDENCE",
   );
+});
+
+test("Live-Gate-Vertrag zeigt den bestandenen One-Gold-Nachweis und behaelt enge Grenzen", () => {
+  assert.equal(gate.status, "LIVE_EVIDENCE_BESTANDEN");
+  assert.equal(gate.amountGold, 1);
+  assert.equal(gate.sendBoundary.maximumAdapterCalls, 1);
+  assert.equal(gate.sendBoundary.maximumGameplayWrites, 1);
+  assert.equal(gate.sendBoundary.rawSocketEmitAllowed, false);
+  assert.equal(gate.sendBoundary.otherBankWritesAllowed, false);
+  assert.equal(gate.recovery.sameIntentRetry, false);
+  assert.equal(gate.recovery.possibleSendNeverBlindRetry, true);
+  assert.equal(gate.liveRunner.automaticExecution, false);
+  assert.equal(gate.liveRunner.liveEvidenceStatus, "BESTANDEN");
+  assert.equal(
+    gate.liveRunner.liveEvidencePath,
+    "roadmap/pr20-2-bank-deposit-production-evidence.json",
+  );
+  assert.equal(gate.currentEvidence.gameplayWritesPerformedByThisGate, 1);
+  assert.equal(gate.currentEvidence.adapterCalls, 1);
+  assert.equal(gate.currentEvidence.realLiveWritePerformed, true);
+  assert.equal(gate.currentEvidence.status, "COMMITTED");
+  assert.equal(gate.currentEvidence.recovery, "COMMITTED");
+  assert.equal(gate.currentEvidence.recoveryKlassifikation, "BESTAETIGT");
+  assert.equal(gate.currentEvidence.journalTerminalArt, "COMMIT");
+  assert.equal(gate.currentEvidence.sameIntentRetry, false);
+  assert.equal(gate.currentEvidence.leaseEpoche, 3);
+  assert.equal(gate.currentEvidence.leaseTerminalStatus, "RELEASED");
 });
