@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_2H_BANK_DEPOSIT_ONE_GOLD_WRITE_GATE",
   "stand": "2026-09-21",
-  "status": "WRITE_PATH_IMPLEMENTIERT_LIVE_EVIDENCE_AUSSTEHEND",
-  "basisMain": "a2364c8a9054022666d32074db11376978c9f6b1",
+  "status": "LIVE_EVIDENCE_BESTANDEN",
+  "basisMain": "05b93ac7dbb6ef294294c38030d9e4b48962f7d3",
   "capabilityId": "merchant.bank.gold_einlagern",
   "provider": "merchant-bank-core@1",
   "actionContractId": "AL-ACTION-BANK-DEPOSIT",
@@ -59,10 +59,21 @@
     "exactConfirmation": "V5 BANK DEPOSIT 1 GOLD EINMAL AUSFUEHREN",
     "reportPath": "runtime/canary/bank-deposit-production/latest.json",
     "automaticExecution": false,
-    "liveEvidenceStatus": "AUSSTEHEND"
+    "liveEvidenceStatus": "BESTANDEN",
+    "liveEvidencePath": "roadmap/pr20-2-bank-deposit-production-evidence.json"
   },
   "currentEvidence": {
-    "gameplayWritesPerformedByThisPreparation": 0,
-    "realLiveWritePerformed": false
+    "gameplayWritesPerformedByThisGate": 1,
+    "adapterCalls": 1,
+    "realLiveWritePerformed": true,
+    "testedSourceSha": "a540d4107343a87b9d8ef5f3f301b3bbad819c4c",
+    "transactionId": "BANK-DEPOSIT-PROD-TX-1790013959392-9c25f657",
+    "status": "COMMITTED",
+    "recovery": "COMMITTED",
+    "recoveryKlassifikation": "BESTAETIGT",
+    "journalTerminalArt": "COMMIT",
+    "sameIntentRetry": false,
+    "leaseEpoche": 3,
+    "leaseTerminalStatus": "RELEASED"
   }
 }
