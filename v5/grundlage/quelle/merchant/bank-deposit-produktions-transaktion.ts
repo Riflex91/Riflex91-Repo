@@ -22,6 +22,7 @@ import {
 import type {
   AbgleichBeobachterPort,
   RecoveryAbschluss,
+  TransaktionsSnapshotPin,
 } from "../recovery/typen.js";
 import type {
   BankExternalFence,
@@ -373,7 +374,11 @@ function recoveryBeobachter(
   beobachter: ProduktiverBankDepositBeobachterPort,
 ): AbgleichBeobachterPort {
   return Object.freeze({
-    async beobachte(_txId, snapshot, versuch) {
+    async beobachte(
+      _txId: string,
+      snapshot: TransaktionsSnapshotPin,
+      versuch: number,
+    ) {
       try {
         const nachher = await beobachter.beobachte(
           a.vorher.leaseEpoche,
