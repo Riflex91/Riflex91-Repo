@@ -1870,7 +1870,7 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
     if (this.#bedienerRichtlinie === null) {
       throw new Error("V5_BANK_WITHDRAW_PROD_TX_BEDIENER_RICHTLINIE_FEHLT");
     }
-    if (this.#bankDepositEinmalAuthority !== anforderung.authority) {
+    if (this.#bankWithdrawEinmalAuthority !== anforderung.authority) {
       throw new Error("V5_BANK_WITHDRAW_PROD_TX_AUTHORITY_NICHT_AKTUELL");
     }
 
