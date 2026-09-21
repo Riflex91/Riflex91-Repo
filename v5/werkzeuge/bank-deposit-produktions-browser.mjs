@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+
 const READ_ONLY_BANK_DEPOSIT_EXPR = [
   "(() => {",
   "  const roots = [globalThis];",
@@ -24,6 +26,10 @@ const READ_ONLY_BANK_DEPOSIT_EXPR = [
   "  const bank = c.bank && typeof c.bank === 'object' && !Array.isArray(c.bank) ? c.bank : null;",
   "  const characterGold = Number(c.gold);",
   "  const bankGold = bank ? Number(bank.gold) : NaN;",
+  "  const inventoryMaterial = Array.isArray(c.items) ? c.items.slice(0,64).map((item,index) => {",
+  "    if (!item || typeof item !== 'object') return index + ':_';",
+  "    return index + ':' + String(item.name || '') + ':' + String(item.level ?? 0) + ':' + String(item.q ?? 1) + ':' + String(item.p ?? '');",
+  "  }).join('|') : '';",
   "  return {",
   "    status:'OK',",
   "    accountId,",
@@ -39,7 +45,8 @@ const READ_ONLY_BANK_DEPOSIT_EXPR = [
   "    alternativeRuntimeAktiv,",
   "    bankGemountet:!!bank,",
   "    characterGold:Number.isSafeInteger(characterGold)&&characterGold>=0?characterGold:null,",
-  "    bankGold:Number.isSafeInteger(bankGold)&&bankGold>=0?bankGold:null",
+  "    bankGold:Number.isSafeInteger(bankGold)&&bankGold>=0?bankGold:null,",
+  "    inventoryMaterial",
   "  };",
   "})()",
 ].join("\n");
@@ -50,7 +57,16 @@ function text(wert, max, fehler) {
   }
 }
 
-export function validiereBankDepositPreflightBeobachtung(value) {
+
+function hash(wert) {
+  return crypto.createHash("sha256").update(String(wert)).digest("hex");
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function validiereBasis(value) {
   if (!value || typeof value !== "object" || value.status !== "OK") {
     throw new Error(String(value?.grund || "BANK_DEPOSIT_BEOBACHTUNG_UNGUELTIG"));
   }
@@ -61,19 +77,234 @@ export function validiereBankDepositPreflightBeobachtung(value) {
   text(value.serverKennung, 32, "BANK_DEPOSIT_SERVER_KENNUNG_FEHLT");
   if (value.ctype !== "merchant") throw new Error("BANK_DEPOSIT_MERCHANT_ERFORDERLICH");
   if (value.rip === true) throw new Error("BANK_DEPOSIT_CHARACTER_TOT");
-  if (value.bewegtSich === true) throw new Error("BANK_DEPOSIT_CHARACTER_BEWEGT_SICH");
-  if (value.queueAktiv === true) throw new Error("BANK_DEPOSIT_CHARACTER_QUEUE_AKTIV");
   if (value.alternativeRuntimeAktiv === true) {
     throw new Error("BANK_DEPOSIT_ALTERNATIVE_RUNTIME_AKTIV");
   }
-  if (value.bankGemountet !== true) throw new Error("BANK_DEPOSIT_BANK_NICHT_GEMOUNTET");
-  if (!Number.isSafeInteger(value.characterGold) || value.characterGold < 1) {
-    throw new Error("BANK_DEPOSIT_CHARACTER_GOLD_ZU_NIEDRIG");
+  if (!Number.isSafeInteger(value.characterGold) || value.characterGold < 0) {
+    throw new Error("BANK_DEPOSIT_CHARACTER_GOLD_NICHT_LESBAR");
   }
-  if (!Number.isSafeInteger(value.bankGold) || value.bankGold < 0) {
-    throw new Error("BANK_DEPOSIT_BANK_GOLD_NICHT_LESBAR");
+  if (typeof value.inventoryMaterial !== "string"
+      || value.inventoryMaterial.length > 20_000) {
+    throw new Error("BANK_DEPOSIT_INVENTORY_BEOBACHTUNG_UNGUELTIG");
   }
   return Object.freeze({ ...value });
+}
+
+function gleicheBindung(a, b) {
+  return a.accountId === b.accountId
+    && a.charakterName === b.charakterName
+    && a.sessionId === b.sessionId
+    && a.serverRegion === b.serverRegion
+    && a.serverKennung === b.serverKennung
+    && a.ctype === b.ctype;
+}
+
+function shadowBeobachtung(value, beobachtetAmMs) {
+  const basis = validiereBasis(value);
+  if (!Number.isSafeInteger(beobachtetAmMs) || beobachtetAmMs < 0) {
+    throw new Error("BANK_DEPOSIT_SHADOW_BEOBACHTUNGSZEIT_UNGUELTIG");
+  }
+  return Object.freeze({
+    ...basis,
+    beobachtetAmMs,
+    fingerprint: hash(JSON.stringify({
+      accountId: basis.accountId,
+      charakterName: basis.charakterName,
+      sessionId: basis.sessionId,
+      serverRegion: basis.serverRegion,
+      serverKennung: basis.serverKennung,
+      map: basis.map,
+      bankGemountet: basis.bankGemountet,
+      characterGold: basis.characterGold,
+      bankGold: basis.bankGold,
+      inventorySha256: hash(basis.inventoryMaterial),
+    })),
+    inventorySha256: hash(basis.inventoryMaterial),
+  });
+}
+
+export function validiereBankDepositShadowAusgangsBeobachtung(value) {
+  const basis = validiereBasis(value);
+  if (basis.bewegtSich === true) {
+    throw new Error("BANK_DEPOSIT_SHADOW_START_CHARACTER_BEWEGT_SICH");
+  }
+  if (basis.queueAktiv === true) {
+    throw new Error("BANK_DEPOSIT_SHADOW_START_CHARACTER_QUEUE_AKTIV");
+  }
+  if (basis.bankGemountet === true) {
+    throw new Error("BANK_DEPOSIT_SHADOW_START_MUSS_AUSSERHALB_BANK_SEIN");
+  }
+  if (basis.characterGold < 1) {
+    throw new Error("BANK_DEPOSIT_CHARACTER_GOLD_ZU_NIEDRIG");
+  }
+  return Object.freeze({ ...basis });
+}
+
+export function validiereBankDepositShadowMountBeobachtung(
+  value,
+  ausgang,
+  beobachtetAmMs,
+) {
+  const basis = shadowBeobachtung(value, beobachtetAmMs);
+  if (!gleicheBindung(basis, ausgang)) {
+    throw new Error("BANK_DEPOSIT_SHADOW_BINDUNG_DRIFT");
+  }
+  if (basis.bankGemountet !== true) {
+    throw new Error("BANK_DEPOSIT_SHADOW_BANK_NOCH_NICHT_GEMOUNTET");
+  }
+  if (basis.bewegtSich === true || basis.queueAktiv === true) {
+    throw new Error("BANK_DEPOSIT_SHADOW_MOUNT_NOCH_NICHT_STABIL");
+  }
+  if (!Number.isSafeInteger(basis.bankGold) || basis.bankGold < 0) {
+    throw new Error("BANK_DEPOSIT_BANK_GOLD_NICHT_LESBAR");
+  }
+  if (basis.characterGold < 1) {
+    throw new Error("BANK_DEPOSIT_CHARACTER_GOLD_ZU_NIEDRIG");
+  }
+  return basis;
+}
+
+export async function beobachteBankDepositRohReadOnly(session, contextId) {
+  if (!session || typeof session.evaluate !== "function" || !Number.isInteger(contextId)) {
+    throw new Error("BANK_DEPOSIT_CDP_KONTEXT_UNGUELTIG");
+  }
+  return validiereBasis(
+    await session.evaluate(READ_ONLY_BANK_DEPOSIT_EXPR, contextId),
+  );
+}
+
+export async function warteAufManuellenBankMountReadOnly(
+  session,
+  contextId,
+  ausgang,
+  {
+    timeoutMs = 90_000,
+    pollMs = 500,
+    onPhase = () => {},
+  } = {},
+) {
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 300_000) {
+    throw new Error("BANK_DEPOSIT_SHADOW_MOUNT_TIMEOUT_UNGUELTIG");
+  }
+  if (!Number.isSafeInteger(pollMs) || pollMs < 100 || pollMs > 5_000) {
+    throw new Error("BANK_DEPOSIT_SHADOW_POLL_UNGUELTIG");
+  }
+  const start = Date.now();
+  onPhase("LEASE_ERWORBEN_BANK_MANUELL_BETRETEN");
+  let mountKandidat = null;
+  while (Date.now() - start <= timeoutMs) {
+    const roh = await beobachteBankDepositRohReadOnly(session, contextId);
+    if (!gleicheBindung(roh, ausgang)) {
+      throw new Error("BANK_DEPOSIT_SHADOW_BINDUNG_DRIFT");
+    }
+    if (roh.bankGemountet === true) {
+      const kandidat = validiereBankDepositShadowMountBeobachtung(
+        roh,
+        ausgang,
+        Date.now(),
+      );
+      if (mountKandidat !== null
+          && mountKandidat.fingerprint === kandidat.fingerprint) {
+        onPhase("BANK_MOUNT_STABIL_BEOBACHTET");
+        return kandidat;
+      }
+      mountKandidat = kandidat;
+    } else {
+      mountKandidat = null;
+    }
+    await sleep(pollMs);
+  }
+  throw new Error("BANK_DEPOSIT_SHADOW_MANUELLER_MOUNT_TIMEOUT");
+}
+
+export function erstelleBankDepositShadowLiveVoraussetzungen(
+  mountBeobachtung,
+  ausgestelltAmMs,
+  gueltigBisMs,
+) {
+  if (!Number.isSafeInteger(ausgestelltAmMs)
+      || !Number.isSafeInteger(gueltigBisMs)
+      || mountBeobachtung.beobachtetAmMs > ausgestelltAmMs
+      || gueltigBisMs < ausgestelltAmMs) {
+    throw new Error("BANK_DEPOSIT_SHADOW_LIVE_EVIDENCE_ZEIT_UNGUELTIG");
+  }
+  return Object.freeze({
+    async pruefe(ids, zeitMs) {
+      if (zeitMs !== ausgestelltAmMs
+          || !Array.isArray(ids)
+          || ids.length < 1
+          || ids.length > 16) {
+        return Object.freeze([]);
+      }
+      return Object.freeze(ids.map(id => Object.freeze({
+        voraussetzungId: id,
+        fingerprint: hash(
+          id + ":" + mountBeobachtung.fingerprint
+          + ":" + mountBeobachtung.inventorySha256,
+        ),
+        beobachtetAmMs: mountBeobachtung.beobachtetAmMs,
+        gueltigBisMs,
+      })));
+    },
+  });
+}
+
+export function erstelleBankDepositShadowReleaseBeobachter(
+  session,
+  contextId,
+  mountBeobachtung,
+  {
+    timeoutMs = 90_000,
+    pollMs = 500,
+    onPhase = () => {},
+  } = {},
+) {
+  return Object.freeze({
+    async beobachte() {
+      if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 300_000) {
+        throw new Error("BANK_DEPOSIT_SHADOW_EXIT_TIMEOUT_UNGUELTIG");
+      }
+      const start = Date.now();
+      onPhase("ADMISSION_BESTANDEN_BANK_MANUELL_VERLASSEN");
+      while (Date.now() - start <= timeoutMs) {
+        const roh = await beobachteBankDepositRohReadOnly(session, contextId);
+        if (!gleicheBindung(roh, mountBeobachtung)) {
+          throw new Error("BANK_DEPOSIT_SHADOW_EXIT_BINDUNG_DRIFT");
+        }
+        if (roh.bankGemountet !== true
+            && roh.bewegtSich !== true
+            && roh.queueAktiv !== true) {
+          onPhase("BANK_EXIT_STABIL_BEOBACHTET");
+          return Object.freeze({
+            offeneTransaktionen: 0,
+            backendInProgress: false,
+            bankActionInFlight: false,
+            characterBankAktiv: false,
+            erwarteterExitBeobachtet: true,
+          });
+        }
+        await sleep(pollMs);
+      }
+      throw new Error("BANK_DEPOSIT_SHADOW_MANUELLER_EXIT_TIMEOUT");
+    },
+  });
+}
+
+export const BANK_DEPOSIT_REAL_SHADOW_BROWSER_READ_ONLY = true;
+export const BANK_DEPOSIT_REAL_SHADOW_GAMEPLAY_WRITES = 0;
+
+export function validiereBankDepositPreflightBeobachtung(value) {
+  const basis = validiereBasis(value);
+  if (basis.bewegtSich === true) throw new Error("BANK_DEPOSIT_CHARACTER_BEWEGT_SICH");
+  if (basis.queueAktiv === true) throw new Error("BANK_DEPOSIT_CHARACTER_QUEUE_AKTIV");
+  if (basis.bankGemountet !== true) throw new Error("BANK_DEPOSIT_BANK_NICHT_GEMOUNTET");
+  if (basis.characterGold < 1) {
+    throw new Error("BANK_DEPOSIT_CHARACTER_GOLD_ZU_NIEDRIG");
+  }
+  if (!Number.isSafeInteger(basis.bankGold) || basis.bankGold < 0) {
+    throw new Error("BANK_DEPOSIT_BANK_GOLD_NICHT_LESBAR");
+  }
+  return Object.freeze({ ...basis });
 }
 
 export async function beobachteBankDepositPreflightReadOnly(session, contextId) {
