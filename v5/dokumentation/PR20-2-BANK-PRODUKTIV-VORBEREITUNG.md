@@ -121,6 +121,42 @@ Der naechste Schritt darf erst nach gruener Exact-Head-CI die default-off
 Capability, eine eigene kurzlebige One-Shot-Authority und einen durable
 Current-Fence vorbereiten. Auch dieser Folgeschritt bleibt zunaechst NO-WRITE.
 
+## PR20.2k – Withdraw Capability Authority und Current-Fence NO-WRITE
+
+Aufbauend auf PR20.2j ist `bank_withdraw(1)` jetzt bis zur lokalen
+Authority-/Persistenzgrenze vorbereitet:
+
+- eigene default-off MUTIEREN-Capability
+  `merchant.bank.gold_auslagern` unter `merchant-bank-core@1`;
+- eigene durable One-Shot-Authority mit maximal einer Verwendung und maximal
+  2000 ms Lebensdauer;
+- Authority-Audit unter
+  `runtime/authority/mutieren/bank-withdraw/`;
+- eigener Current-Fence unter
+  `runtime/transactions/bank-withdraw/current.json`;
+- gegenseitige Ausschliessung gegen offene Equip-, Deposit- und
+  Withdraw-Authorities;
+- Bankstart wird sowohl durch offene Deposit- als auch Withdraw-Current-Fences
+  sowie durch die accountweite Bank-Lease blockiert.
+
+Die Capability bleibt `standardAktiv=false`. Registrierung und
+Authority-Ausstellung aktivieren die Capability nicht und erzeugen keinen
+Gameplay-, Raw-Write- oder generischen Action-Bypass.
+
+Weiterhin bewusst **nicht** vorhanden:
+
+- kein Withdraw-Write-Adapter;
+- kein Withdraw-Live-Runner;
+- kein direkter produktiver `bank_withdraw(...)`-Aufruf;
+- kein Raw-Socket-`.emit(...)`;
+- kein echter Withdraw-Gameplay-Write;
+- noch kein read-only Withdraw-Preflight;
+- noch kein Withdraw-Admission-Shadow.
+
+Der naechste Gate ist deshalb ein separater read-only Preflight plus
+NO-WRITE Admission-Shadow mit Bank-Lease/Fencing. Erst dessen Evidence darf
+einen spaeteren Write-Adapter/Live-Runner-Gate vorbereiten.
+
 ## Admission-Grenze fuer die spaetere Implementierung
 
 Unmittelbar vor jedem moeglichen Bank-Send muessen mindestens erneut bewiesen sein:

@@ -81,8 +81,9 @@
   "currentNextSteps": [
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN und im Repo dokumentiert",
     "PR20.2 bank_deposit(1) One-Shot-Live-Evidence ist BESTANDEN: COMMIT, 1 Adapter-Aufruf, 1 Gameplay-Write, kein Retry, Lease RELEASED",
-    "bank_withdraw(1) ist als naechster Kandidat mit authority-freiem Settlement-/Drift-Core NO-WRITE ratifiziert",
-    "als naechstes fuer bank_withdraw(1) default-off Capability, One-Shot-Authority und Current-Fence weiterhin NO-WRITE vorbereiten und separat pruefen",
+    "bank_withdraw(1) besitzt Settlement-Core, default-off Capability, eigene durable One-Shot-Authority und eigenen Current-Fence NO-WRITE",
+    "als naechstes bank_withdraw(1) read-only Preflight und Admission-Shadow mit Bank-Lease/Fencing ohne Send vorbereiten",
+    "erst danach einen getrennten Write-Adapter/Live-Runner-Gate fuer bank_withdraw(1) pruefen",
     "danach Store/Retrieve/Swap jeweils eng vorbereiten und einzeln produktiv nachweisen",
     "Capacity-/Workspace- und Open-Bank-Pack-Gates separat behandeln",
     "danach reale 5m-Bank-Funktionsevidence ohne Duplicate/UNKNOWN-Restzustand absolvieren",
@@ -194,7 +195,16 @@
       "v5/architektur/adr/ADR-039-PR20-2J-BANK-WITHDRAW-ONE-GOLD-NO-WRITE.md",
       "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
       "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
-      "v5/grundlage/tests/pr20-bank-withdraw-settlement.test.mjs"
+      "v5/grundlage/tests/pr20-bank-withdraw-settlement.test.mjs",
+      "v5/architektur/adr/ADR-040-PR20-2K-BANK-WITHDRAW-AUTHORITY-CURRENT-FENCE-NO-WRITE.md",
+      "v5/grundlage/quelle/merchant/bank-withdraw-einmal-authority.ts",
+      "v5/grundlage/vertraege/runtime/bank-withdraw-mutationsfaehigkeit.json",
+      "v5/grundlage/vertraege/runtime/bank-withdraw-one-shot-authority.json",
+      "v5/grundlage/adapter/persistenz/node-bank-withdraw-einmal-authority-protokoll.mjs",
+      "v5/grundlage/adapter/persistenz/node-bank-withdraw-transaktionsjournal.mjs",
+      "v5/grundlage/tests/r11-bank-withdraw-einmal-authority.test.mjs",
+      "v5/grundlage/tests/r11-bank-withdraw-produktions-journal.test.mjs",
+      "v5/grundlage/tests/r11-bank-withdraw-host-no-write.test.mjs"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",
@@ -235,13 +245,13 @@
     "nextLiveCandidate": {
       "publicFunction": "bank_withdraw",
       "amountGold": 1,
-      "status": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE",
+      "status": "CAPABILITY_AUTHORITY_CURRENT_FENCE_NO_WRITE",
       "contract": "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
       "settlementCore": "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
       "providerSpaeter": "merchant-bank-core@1",
       "capabilityIdSpaeter": "merchant.bank.gold_auslagern",
-      "oneShotAuthority": false,
-      "durableCurrentFence": false,
+      "oneShotAuthority": true,
+      "durableCurrentFence": true,
       "writeAdapter": false,
       "liveRunner": false,
       "gameplayAuthority": false,
@@ -251,7 +261,11 @@
       "settlement": {
         "characterGoldDelta": 1,
         "bankGoldDelta": -1
-      }
+      },
+      "provider": "merchant-bank-core@1",
+      "capabilityId": "merchant.bank.gold_auslagern",
+      "readOnlyPreflight": false,
+      "admissionShadow": false
     }
   },
   "parallelPreparations": [
@@ -300,7 +314,16 @@
         "v5/architektur/adr/ADR-039-PR20-2J-BANK-WITHDRAW-ONE-GOLD-NO-WRITE.md",
         "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
         "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
-        "v5/grundlage/tests/pr20-bank-withdraw-settlement.test.mjs"
+        "v5/grundlage/tests/pr20-bank-withdraw-settlement.test.mjs",
+        "v5/architektur/adr/ADR-040-PR20-2K-BANK-WITHDRAW-AUTHORITY-CURRENT-FENCE-NO-WRITE.md",
+        "v5/grundlage/quelle/merchant/bank-withdraw-einmal-authority.ts",
+        "v5/grundlage/vertraege/runtime/bank-withdraw-mutationsfaehigkeit.json",
+        "v5/grundlage/vertraege/runtime/bank-withdraw-one-shot-authority.json",
+        "v5/grundlage/adapter/persistenz/node-bank-withdraw-einmal-authority-protokoll.mjs",
+        "v5/grundlage/adapter/persistenz/node-bank-withdraw-transaktionsjournal.mjs",
+        "v5/grundlage/tests/r11-bank-withdraw-einmal-authority.test.mjs",
+        "v5/grundlage/tests/r11-bank-withdraw-produktions-journal.test.mjs",
+        "v5/grundlage/tests/r11-bank-withdraw-host-no-write.test.mjs"
       ],
       "firstLiveCandidate": {
         "publicFunction": "bank_deposit",
@@ -341,13 +364,13 @@
       "nextLiveCandidate": {
         "publicFunction": "bank_withdraw",
         "amountGold": 1,
-        "status": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE",
+        "status": "CAPABILITY_AUTHORITY_CURRENT_FENCE_NO_WRITE",
         "contract": "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
         "settlementCore": "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
         "providerSpaeter": "merchant-bank-core@1",
         "capabilityIdSpaeter": "merchant.bank.gold_auslagern",
-        "oneShotAuthority": false,
-        "durableCurrentFence": false,
+        "oneShotAuthority": true,
+        "durableCurrentFence": true,
         "writeAdapter": false,
         "liveRunner": false,
         "gameplayAuthority": false,
@@ -357,7 +380,11 @@
         "settlement": {
           "characterGoldDelta": 1,
           "bankGoldDelta": -1
-        }
+        },
+        "provider": "merchant-bank-core@1",
+        "capabilityId": "merchant.bank.gold_auslagern",
+        "readOnlyPreflight": false,
+        "admissionShadow": false
       }
     },
     {
@@ -498,7 +525,7 @@
     "writeAdapter": true,
     "liveRunner": true,
     "gameplayWrites": 1,
-    "nextSafetyGap": "BANK_WITHDRAW_CAPABILITY_AUTHORITY_CURRENT_FENCE_NO_WRITE_THEN_STORE_RETRIEVE_SWAP_UND_5M_BANK_FUNCTION_EVIDENCE",
+    "nextSafetyGap": "BANK_WITHDRAW_READ_ONLY_PREFLIGHT_ADMISSION_SHADOW_THEN_SEPARATE_WRITE_GATE",
     "persistentBankLease": true,
     "restartReconciliation": true,
     "r9AdmissionShadow": true,
@@ -520,13 +547,17 @@
     "leaseEpoche": 3,
     "leaseTerminalStatus": "RELEASED",
     "nextLiveCandidate": "bank_withdraw(1)",
-    "nextLiveCandidateStatus": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE",
+    "nextLiveCandidateStatus": "CAPABILITY_AUTHORITY_CURRENT_FENCE_NO_WRITE",
     "nextLiveCandidateContract": "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
     "nextLiveCandidateSettlementCore": "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
     "nextLiveCandidateGameplayWrites": 0,
-    "nextLiveCandidateCapabilityImplemented": false,
-    "nextLiveCandidateAuthorityImplemented": false,
+    "nextLiveCandidateCapabilityImplemented": true,
+    "nextLiveCandidateAuthorityImplemented": true,
     "nextLiveCandidateAdapterImplemented": false,
-    "nextLiveCandidateLiveRunnerImplemented": false
+    "nextLiveCandidateLiveRunnerImplemented": false,
+    "nextLiveCandidateCapabilityId": "merchant.bank.gold_auslagern",
+    "nextLiveCandidateCurrentFenceImplemented": true,
+    "nextLiveCandidateReadOnlyPreflightImplemented": false,
+    "nextLiveCandidateAdmissionShadowImplemented": false
   }
 }

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_BANK_WITHDRAW_ONE_SHOT_AUTHORITY",
+  "stand": "2026-09-21",
+  "capability": {
+    "id": "merchant.bank.gold_auslagern",
+    "providerModulId": "merchant-bank-core",
+    "providerVersion": "1",
+    "registryAktivierung": false,
+    "maximaleVerwendungenProAuthority": 1
+  },
+  "bindung": {
+    "actionContractId": "AL-ACTION-BANK-WITHDRAW",
+    "recoveryContractId": "AL-RECOVERY-BANK-WITHDRAW",
+    "verifierId": "AL-VERIFIER-BANK-WITHDRAW",
+    "bestaetigungText": "V5 BANK WITHDRAW 1 GOLD EINMAL AUSFUEHREN",
+    "betragGold": 1
+  },
+  "authority": {
+    "maximaleLebensdauerMs": 2000,
+    "durchAdmissionPruefungVerbraucht": true,
+    "breiteRuntimeFreigabe": false,
+    "rawWriteAutoritaet": false
+  },
+  "durability": {
+    "vorAuthorityAusstellung": true,
+    "pfad": "runtime/authority/mutieren/bank-withdraw/",
+    "restartAktiviertAuthorityNichtWieder": true
+  },
+  "journal": {
+    "currentPfad": "runtime/transactions/bank-withdraw/current.json",
+    "offeneTransaktionBlockiertNeue": true,
+    "maxEintraegeProTransaktion": 16
+  },
+  "gegenseitigeAusschliessung": [
+    "equipment.equip",
+    "merchant.bank.gold_einlagern",
+    "merchant.bank.gold_auslagern"
+  ],
+  "wirkung": {
+    "gameplayWriteDurchAuthorityAusstellung": 0,
+    "adapterSendDurchAuthorityAusstellung": 0
+  },
+  "liveRunnerInDiesemSchritt": false,
+  "writeAdapterInDiesemSchritt": false
+}

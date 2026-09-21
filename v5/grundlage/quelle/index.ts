@@ -152,6 +152,7 @@ export * from "./merchant/bank-deposit-settlement.js";
 export * from "./merchant/bank-produktions-modul-vertrag.js";
 export * from "./merchant/bank-produktions-faehigkeits-vertrag.js";
 export * from "./merchant/bank-deposit-einmal-authority.js";
+export * from "./merchant/bank-withdraw-einmal-authority.js";
 export * from "./merchant/bank-deposit-admission-gate.js";
 export * from "./merchant/bank-deposit-shadow-admission.js";
 export * from "./merchant/bank-deposit-produktions-transaktion.js";

@@ -165,6 +165,21 @@ Current-Fence, Write-Adapter und Live-Runner sind fuer Withdraw weiterhin
 Same-Intent-Retry bleibt verboten. ADR:
 `architektur/adr/ADR-039-PR20-2J-BANK-WITHDRAW-ONE-GOLD-NO-WRITE.md`.
 
+PR20.2k erweitert diesen Withdraw-Kandidaten nun bis zur weiterhin NO-WRITE
+bleibenden Authority-/Persistenzgrenze: `merchant.bank.gold_auslagern` ist
+als eigene default-off MUTIEREN-Capability registriert, besitzt eine eigene
+maximal einmal verwendbare durable One-Shot-Authority sowie einen eigenen
+Transaction-Current-Fence. Equip, Deposit und Withdraw sind gegenseitig
+verriegelt; offene Deposit-/Withdraw-Current-Fences und die accountweite
+Bank-Lease blockieren neuen Bankstart. Es existieren weiterhin **kein**
+Withdraw-Write-Adapter, **kein** Withdraw-Live-Runner und **kein**
+`bank_withdraw(...)`-Send. Neue Gameplay-Writes dieses Schritts: 0. ADR:
+`architektur/adr/ADR-040-PR20-2K-BANK-WITHDRAW-AUTHORITY-CURRENT-FENCE-NO-WRITE.md`.
+
+Als naechstes folgt ein read-only Withdraw-Preflight und ein NO-WRITE
+Admission-Shadow mit Bank-Lease/Fencing. Erst danach darf ein separater
+Write-Gate fuer Withdraw vorbereitet werden.
+
 
 Vorhandene Bankplanung, Bank-Lease, Fencing und Bankkatalog-Fundamente werden mit echten Bankmutationen verbunden.
 

@@ -1,6 +1,6 @@
 # V5 Produktionskomposition
 
-**Status:** DEFAULT-DENY / PLANEN KONTROLLIERT AKTIVIERBAR / EQUIP + BANK-DEPOSIT MUTIEREN DEFAULT-OFF  
+**Status:** DEFAULT-DENY / PLANEN KONTROLLIERT AKTIVIERBAR / EQUIP + BANK GOLD MUTIEREN DEFAULT-OFF  
 **Stand:** 2026-09-21
 
 ## Zweck
@@ -42,7 +42,11 @@ Der kanonische Katalog liegt in:
 - `grundlage/quelle/merchant/bank-produktions-faehigkeits-vertrag.ts`;
 - `grundlage/quelle/merchant/bank-deposit-einmal-authority.ts`;
 - `grundlage/vertraege/runtime/bank-deposit-mutationsfaehigkeit.json`;
-- `grundlage/vertraege/runtime/bank-deposit-one-shot-authority.json`.
+- `grundlage/vertraege/runtime/bank-deposit-one-shot-authority.json`;
+- `grundlage/quelle/merchant/bank-withdraw-einmal-authority.ts`;
+- `grundlage/vertraege/runtime/bank-withdraw-mutationsfaehigkeit.json`;
+- `grundlage/vertraege/runtime/bank-withdraw-one-shot-authority.json`;
+- `grundlage/adapter/persistenz/node-bank-withdraw-transaktionsjournal.mjs`.
 
 ## Produktive Modulidentitaet
 
@@ -56,7 +60,7 @@ Zusaetzlich sind zwei strikt getrennte produktive Mutationsmodule registriert:
 
 - `equipment-core@1` mit ausschliesslich `equipment.equip`;
 - `merchant-bank-core@1` mit ausschliesslich
-  `merchant.bank.gold_einlagern`.
+  `merchant.bank.gold_einlagern` und `merchant.bank.gold_auslagern`.
 
 Beide Mutations-Capabilities sind `standardAktiv=false`. Insbesondere bleibt
 `merchant-core-a@1` weiterhin ein reines PLANEN-Modul; Bank-Mutationsauthority
@@ -100,19 +104,19 @@ Dadurch reicht ein isolierter Registereintrag nicht aus, um eine neue Capability
 
 Der Katalogstatus lautet:
 
-`DEFAULT_DENY_PLANEN_EQUIP_UND_BANK_DEPOSIT_MUTIEREN_REGISTRIERT_INAKTIV`
+`DEFAULT_DENY_PLANEN_EQUIP_UND_BANK_GOLD_MUTIEREN_REGISTRIERT_INAKTIV`
 
 Die Komposition:
 
 - registriert `merchant-core-a@1`;
 - registriert die acht PLANEN-Capabilities;
 - registriert `equipment-core@1` und `merchant-bank-core@1`;
-- registriert exakt zwei voneinander getrennte produktive
-  `MUTIEREN`-Capabilities: `equipment.equip` und
-  `merchant.bank.gold_einlagern`;
+- registriert exakt drei voneinander getrennte produktive
+  `MUTIEREN`-Capabilities: `equipment.equip`,
+  `merchant.bank.gold_einlagern` und `merchant.bank.gold_auslagern`;
 - aktiviert kein Modul automatisch;
 - aktiviert keine Capability automatisch;
-- beide Mutations-Capabilities starten immer `aktiv=false`;
+- alle Mutations-Capabilities starten immer `aktiv=false`;
 - besitzt keinen generischen produktiven MUTIEREN-Aktivierungspfad;
 - erfindet keine Owner-/Capability-Zuordnung aus Tests.
 
@@ -196,7 +200,7 @@ observer-only Fassade.
 
 Die Fassade exponiert keinen direkten Runtime-, Register-, Supervisor- oder
 Telemetrie-Zugriff. Produktive Aufrufer koennen starten, ticken, PLANEN
-kontrolliert aktivieren, die eng benannten Equip- bzw. Bank-Deposit-One-Shot-
+kontrolliert aktivieren, die eng benannten Equip-, Bank-Deposit- bzw. Bank-Withdraw-One-Shot-
 Authorities anfordern, deny-only Operator-Befehle anwenden, stoppen und Status
 lesen. Eine generische MUTIEREN-Aktivierung existiert nicht.
 

@@ -8,6 +8,11 @@ import {
   BANK_DEPOSIT_EINMAL_POLICY_ID,
   BANK_DEPOSIT_RECOVERY_CONTRACT_ID,
   BANK_DEPOSIT_VERIFIER_ID,
+  BANK_WITHDRAW_ACTION_CONTRACT_ID,
+  BANK_WITHDRAW_EINMAL_BESTAETIGUNG,
+  BANK_WITHDRAW_EINMAL_POLICY_ID,
+  BANK_WITHDRAW_RECOVERY_CONTRACT_ID,
+  BANK_WITHDRAW_VERIFIER_ID,
   BedienerRichtlinienDienst,
   PersistenterBankLeaseController,
   EQUIPMENT_CORE_MODUL_ID,
@@ -20,6 +25,7 @@ import {
   MERCHANT_BANK_CORE_MODUL_ID,
   MERCHANT_BANK_CORE_MODUL_VERSION,
   MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
+  MERCHANT_BANK_WITHDRAW_FAEHIGKEIT_ID,
   ProduktivesBankDepositEinmalAdmissionGate,
   ProduktivesEquipEinmalAdmissionGate,
   ProduktivesV5GesamtfreigabeGate,
@@ -44,8 +50,14 @@ import {
   NodeBankDepositEinmalAuthorityProtokoll,
 } from "../grundlage/adapter/persistenz/node-bank-deposit-einmal-authority-protokoll.mjs";
 import {
+  NodeBankWithdrawEinmalAuthorityProtokoll,
+} from "../grundlage/adapter/persistenz/node-bank-withdraw-einmal-authority-protokoll.mjs";
+import {
   NodeBankDepositTransaktionsJournal,
 } from "../grundlage/adapter/persistenz/node-bank-deposit-transaktionsjournal.mjs";
+import {
+  NodeBankWithdrawTransaktionsJournal,
+} from "../grundlage/adapter/persistenz/node-bank-withdraw-transaktionsjournal.mjs";
 import {
   NodeBankLeasePersistenz,
 } from "../grundlage/adapter/persistenz/node-bank-lease-persistenz.mjs";
@@ -92,6 +104,7 @@ class NodeV5ProduktionsHost {
   #gesamtfreigabeGate;
   #equipJournal;
   #bankDepositJournal;
+  #bankWithdrawJournal;
   #bankLeaseController;
   #runtime;
 
@@ -102,6 +115,7 @@ class NodeV5ProduktionsHost {
     gesamtfreigabeGate,
     equipJournal,
     bankDepositJournal,
+    bankWithdrawJournal,
     bankLeaseController,
     runtime,
   ) {
@@ -111,6 +125,7 @@ class NodeV5ProduktionsHost {
     this.#gesamtfreigabeGate = gesamtfreigabeGate;
     this.#equipJournal = equipJournal;
     this.#bankDepositJournal = bankDepositJournal;
+    this.#bankWithdrawJournal = bankWithdrawJournal;
     this.#bankLeaseController = bankLeaseController;
     this.#runtime = runtime;
   }
@@ -140,14 +155,46 @@ class NodeV5ProduktionsHost {
     return this.#host.erteileBankDepositEinmalAuthority(anfrage, jetztMs);
   }
 
+  async erteileBankWithdrawEinmalAuthority(anfrage, jetztMs) {
+    pruefeZeit(jetztMs);
+    return this.#host.erteileBankWithdrawEinmalAuthority(anfrage, jetztMs);
+  }
+
   async pruefeBankDepositStartBereit() {
     const journal = await this.#bankDepositJournal.pruefeStartBereit();
+    const withdrawJournal = await this.#bankWithdrawJournal.pruefeStartBereit();
     const offeneLeases = this.#bankLeaseController.sicht().filter(
       x => x.zustand !== "RELEASED",
     );
     return Object.freeze({
-      bereit: journal.bereit && offeneLeases.length === 0,
-      offeneTransaktionsId: journal.offeneTransaktionsId,
+      bereit: journal.bereit && withdrawJournal.bereit
+        && offeneLeases.length === 0,
+      offeneTransaktionsId: journal.offeneTransaktionsId
+        ?? withdrawJournal.offeneTransaktionsId,
+      offeneBankLease: offeneLeases.length === 0
+        ? null
+        : Object.freeze({
+          accountId: offeneLeases[0].accountId,
+          ownerCharacterId: offeneLeases[0].ownerCharacterId,
+          epoche: offeneLeases[0].epoche,
+          zustand: offeneLeases[0].zustand,
+          serverRegion: offeneLeases[0].serverRegion,
+          serverIdentifier: offeneLeases[0].serverIdentifier,
+        }),
+    });
+  }
+
+  async pruefeBankWithdrawStartBereit() {
+    const journal = await this.#bankWithdrawJournal.pruefeStartBereit();
+    const depositJournal = await this.#bankDepositJournal.pruefeStartBereit();
+    const offeneLeases = this.#bankLeaseController.sicht().filter(
+      x => x.zustand !== "RELEASED",
+    );
+    return Object.freeze({
+      bereit: journal.bereit && depositJournal.bereit
+        && offeneLeases.length === 0,
+      offeneTransaktionsId: journal.offeneTransaktionsId
+        ?? depositJournal.offeneTransaktionsId,
       offeneBankLease: offeneLeases.length === 0
         ? null
         : Object.freeze({
@@ -229,7 +276,8 @@ class NodeV5ProduktionsHost {
     if (tick.zustand !== "LAEUFT"
         || tick.aktivePlanenFaehigkeiten.length !== 0
         || tick.equipEinmalAuthorityOffen
-        || tick.bankDepositEinmalAuthorityOffen) {
+        || tick.bankDepositEinmalAuthorityOffen
+        || tick.bankWithdrawEinmalAuthorityOffen) {
       throw new Error("NODE_EQUIP_PROD_TX_HOST_NICHT_BEREIT:" + tick.grund);
     }
 
@@ -377,7 +425,8 @@ class NodeV5ProduktionsHost {
     if (tick.zustand !== "LAEUFT"
         || tick.aktivePlanenFaehigkeiten.length !== 0
         || tick.equipEinmalAuthorityOffen
-        || tick.bankDepositEinmalAuthorityOffen) {
+        || tick.bankDepositEinmalAuthorityOffen
+        || tick.bankWithdrawEinmalAuthorityOffen) {
       throw new Error(
         "NODE_BANK_DEPOSIT_PROD_TX_HOST_NICHT_BEREIT:" + tick.grund,
       );
@@ -628,7 +677,8 @@ class NodeV5ProduktionsHost {
     if (tick.zustand !== "LAEUFT"
         || tick.aktivePlanenFaehigkeiten.length !== 0
         || tick.equipEinmalAuthorityOffen
-        || tick.bankDepositEinmalAuthorityOffen) {
+        || tick.bankDepositEinmalAuthorityOffen
+        || tick.bankWithdrawEinmalAuthorityOffen) {
       throw new Error("NODE_BANK_SHADOW_HOST_NICHT_BEREIT:" + tick.grund);
     }
 
@@ -878,12 +928,15 @@ export async function erstelleNodeV5ProduktionsHost({
   );
   const bankDepositEinmalAuthorityProtokoll =
     new NodeBankDepositEinmalAuthorityProtokoll(dateisystem);
+  const bankWithdrawEinmalAuthorityProtokoll =
+    new NodeBankWithdrawEinmalAuthorityProtokoll(dateisystem);
   const runtime = new V5ProduktionsRuntime(
     erstelleKanonischeProduktionsKomposition(),
     bedienerRichtlinie,
     planenProtokoll,
     equipEinmalAuthorityProtokoll,
     bankDepositEinmalAuthorityProtokoll,
+    bankWithdrawEinmalAuthorityProtokoll,
   );
   const gesamtfreigabeGate = new ProduktivesV5GesamtfreigabeGate(
     effektiveBereitschaft,
@@ -906,6 +959,7 @@ export async function erstelleNodeV5ProduktionsHost({
   );
   const equipJournal = new NodeEquipTransaktionsJournal(dateisystem);
   const bankDepositJournal = new NodeBankDepositTransaktionsJournal(dateisystem);
+  const bankWithdrawJournal = new NodeBankWithdrawTransaktionsJournal(dateisystem);
   const bankLeaseController = new PersistenterBankLeaseController(
     runtime.bankLeaseKoordinator(),
     new NodeBankLeasePersistenz(dateisystem),
@@ -919,6 +973,7 @@ export async function erstelleNodeV5ProduktionsHost({
     gesamtfreigabeGate,
     equipJournal,
     bankDepositJournal,
+    bankWithdrawJournal,
     bankLeaseController,
     runtime,
   );
