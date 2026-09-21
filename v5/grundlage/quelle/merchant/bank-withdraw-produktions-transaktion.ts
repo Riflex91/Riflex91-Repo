@@ -379,6 +379,9 @@ function recoveryBeobachter(
       snapshot: TransaktionsSnapshotPin,
       versuch: number,
     ) {
+      if (versuch > 1) {
+        await new Promise<void>(resolve => setTimeout(resolve, 250));
+      }
       try {
         const nachher = await beobachter.beobachte(
           a.vorher.leaseEpoche,
@@ -429,9 +432,13 @@ function recoveryBeobachter(
           ]),
         });
       } catch (fehler) {
+        const finalerVersuch = versuch >= 4;
         return Object.freeze({
           schemaVersion: 1,
-          klassifikation: "UNGEKLAERT" as const,
+          klassifikation:
+            finalerVersuch
+              ? "UNGEKLAERT" as const
+              : "NOCH_AUSSTEHEND" as const,
           beobachtetAmMs: a.ausgestelltAmMs,
           snapshot,
           differenz: Object.freeze({
@@ -439,7 +446,9 @@ function recoveryBeobachter(
             erwarteteDomaenen: Object.freeze(["bank", "gold"]),
             angewendeteDomaenen: Object.freeze([]),
             offeneDomaenen: Object.freeze(["bank", "gold"]),
-            widerspruechlicheDomaenen: Object.freeze(["bank", "gold"]),
+            widerspruechlicheDomaenen: Object.freeze(
+              finalerVersuch ? ["bank", "gold"] : [],
+            ),
           }),
           evidenceFingerprints: Object.freeze([
             "BANK_WITHDRAW_BEOBACHTUNG_FEHLER:"

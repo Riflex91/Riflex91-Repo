@@ -1,5 +1,6 @@
 import {
   beobachteBankWithdrawRohReadOnly,
+  validiereBankWithdrawRecoveryMountBeobachtung,
   validiereBankWithdrawShadowMountBeobachtung,
 } from "./bank-withdraw-produktions-browser.mjs";
 
@@ -91,7 +92,7 @@ export function erstelleProduktivenBankWithdrawBeobachter(
         session,
         contextId,
       );
-      const mount = validiereBankWithdrawShadowMountBeobachtung(
+      const mount = validiereBankWithdrawRecoveryMountBeobachtung(
         roh,
         erwarteteBindung,
         Date.now(),

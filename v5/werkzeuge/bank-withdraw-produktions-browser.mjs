@@ -164,6 +164,27 @@ export function validiereBankWithdrawShadowMountBeobachtung(
   return basis;
 }
 
+export function validiereBankWithdrawRecoveryMountBeobachtung(
+  value,
+  erwarteteBindung,
+  beobachtetAmMs,
+) {
+  const basis = shadowBeobachtung(value, beobachtetAmMs);
+  if (!gleicheBindung(basis, erwarteteBindung)) {
+    throw new Error("BANK_WITHDRAW_RECOVERY_BINDUNG_DRIFT");
+  }
+  if (basis.bankGemountet !== true) {
+    throw new Error("BANK_WITHDRAW_RECOVERY_BANK_NICHT_GEMOUNTET");
+  }
+  if (basis.bewegtSich === true || basis.queueAktiv === true) {
+    throw new Error("BANK_WITHDRAW_RECOVERY_MOUNT_NOCH_NICHT_STABIL");
+  }
+  if (!Number.isSafeInteger(basis.bankGold) || basis.bankGold < 0) {
+    throw new Error("BANK_WITHDRAW_RECOVERY_BANK_GOLD_NICHT_LESBAR");
+  }
+  return basis;
+}
+
 export async function beobachteBankWithdrawRohReadOnly(session, contextId) {
   if (!session || typeof session.evaluate !== "function" || !Number.isInteger(contextId)) {
     throw new Error("BANK_WITHDRAW_CDP_KONTEXT_UNGUELTIG");
