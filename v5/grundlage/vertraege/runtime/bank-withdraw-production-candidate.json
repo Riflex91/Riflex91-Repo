@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_2_BANK_WITHDRAW_NAECHSTER_LIVE_KANDIDAT",
   "stand": "2026-09-21",
-  "status": "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE",
+  "status": "TWO_TEST_LIMIT_REACHED_CODE_BRIDGE_READ_ONLY_BESTAETIGT",
   "sourceMain": "4991b2b4e2befeda651b4655d48614b0f1b89b1d",
   "capabilitySpaeter": "merchant.bank.gold_auslagern",
   "providerSpaeter": "merchant-bank-core@1",
@@ -60,21 +60,31 @@
     "authorityInDiesemSchritt": true,
     "adapterInDiesemSchritt": true,
     "liveRunnerInDiesemSchritt": true,
-    "gameplayWritesInDiesemSchritt": 0
+    "gameplayWritesInDiesemSchritt": 1
   },
-  "naechsterSchritt": "EXACT_HEAD_CI_DANN_SOURCE_LOCKED_READ_ONLY_WRITE_PREFLIGHT_DANN_EXPLIZITER_ONE_SHOT_LIVE_RUN",
+  "naechsterSchritt": "KEIN_DRITTER_WITHDRAW_FUNKTIONS_TEST; STORE_RETRIEVE_SWAP_SEPARAT_VORBEREITEN",
   "writeGate": {
     "writeAdapter": "werkzeuge/bank-withdraw-produktions-write-browser.mjs",
     "liveRunner": "werkzeuge/bank-withdraw-produktions-live.mjs",
     "transactionCore": "grundlage/quelle/merchant/bank-withdraw-produktions-transaktion.ts",
     "publicFunctionCallCountStatic": 1,
-    "erlaubterPublicFunctionCall": "root.bank_withdraw(1)",
+    "erlaubterPublicFunctionCall": "maincode.contentWindow.bank_withdraw(1)",
     "rawSocketEmitErlaubt": false,
     "maxAdapterCalls": 1,
     "maxGameplayWritesProExplizitemLiveRun": 1,
     "sourceShaPinning": true,
     "readOnlyWritePreflight": true,
-    "realLiveWritePerformed": false,
-    "sameIntentRetry": false
+    "realLiveWritePerformed": true,
+    "sameIntentRetry": false,
+    "liveWriteEvidence": "NICHT_BESTANDEN_TESTLIMIT_ERREICHT",
+    "liveEvidencePfad": "roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json",
+    "functionalTestLimit": 2,
+    "functionalTestsConsumed": 2,
+    "additionalFunctionalTestAllowed": false,
+    "officialCodeBridge": "call_code_function_f",
+    "runnerBootstrapNoGameplayWrite": "call_code_function_f('eval','void 0')",
+    "codeBridgeReadOnlyEvidence": "BESTANDEN",
+    "codeBridgeReadOnlySourceSha": "d9528c6dccd4befeb8021cf1a0a6c1b936e0f3c3",
+    "productionWideActivationAllowed": false
   }
 }

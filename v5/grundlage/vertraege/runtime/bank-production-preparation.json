@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_2_BANK_PRODUCTION_PREPARATION",
   "stand": "2026-09-21",
-  "status": "DEPOSIT_ONE_SHOT_LIVE_BESTANDEN_RESTBANK_AUSSTEHEND",
+  "status": "DEPOSIT_BESTANDEN_WITHDRAW_TESTLIMIT_ERREICHT_BRIDGE_FIX_READ_ONLY_BESTAETIGT_RESTBANK_AUSSTEHEND",
   "basisMain": "05b93ac7dbb6ef294294c38030d9e4b48962f7d3",
   "blockingGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
-  "zweck": "PR20.2 Bank-Autonomie schrittweise produktiv nachweisen. bank_deposit(1) ist real BESTANDEN; bank_withdraw(1) besitzt Settlement-Core, Capability, durable One-Shot-Authority, Current-Fence, read-only Preflight, Admission-Shadow und bestandene source-locked Real-Browser-Shadow-Evidence. Write-Adapter, Produktions-Transaktionscore und source-locked Live-Runner sind vorbereitet, aber es wurde in diesem Schritt kein echter Withdraw-Write ausgefuehrt.",
+  "zweck": "PR20.2 Bank-Autonomie schrittweise produktiv nachweisen. bank_deposit(1) ist real BESTANDEN. bank_withdraw(1) hat zwei echte Funktionstests verbraucht und bleibt ohne vollstaendig bestandene Live-Write-Evidence breit deaktiviert. Der danach korrigierte offizielle Adventure-Land-CODE-Bridge-Pfad via call_code_function_f wurde real read-only mit 0 Gameplay-Writes und 0 bank_withdraw-Aufrufen als BEREIT bestaetigt. Store/Retrieve/Swap bleiben separat ausstehend.",
   "authorityGrenze": {
     "produktiveRegistrierungErlaubt": true,
     "produktiverAktivierungspfadErlaubt": false,
@@ -190,7 +190,7 @@
     "liveLeaseTerminalStatus": "RELEASED"
   },
   "naechsterLiveKandidat": {
-    "status": "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE",
+    "status": "TWO_TEST_LIMIT_REACHED_CODE_BRIDGE_READ_ONLY_BESTAETIGT",
     "vertrag": "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
     "settlementCore": "grundlage/quelle/merchant/bank-withdraw-settlement.ts",
     "test": "grundlage/tests/pr20-bank-withdraw-settlement.test.mjs",
@@ -208,7 +208,7 @@
     "currentFenceImplementiert": true,
     "writeAdapterImplementiert": true,
     "liveRunnerImplementiert": true,
-    "gameplayWritesInDiesemSchritt": 0,
+    "gameplayWritesInDiesemSchritt": 1,
     "provider": "merchant-bank-core@1",
     "capabilityId": "merchant.bank.gold_auslagern",
     "capabilityVertrag": "grundlage/vertraege/runtime/bank-withdraw-mutationsfaehigkeit.json",
@@ -246,6 +246,30 @@
     "sourceLockedWritePreflight": true,
     "maximaleAdapterAufrufe": 1,
     "maximaleGameplayWrites": 1,
-    "realLiveWritePerformed": false
+    "realLiveWritePerformed": true,
+    "functionalTestLimit": 2,
+    "functionalTestsConsumed": 2,
+    "additionalFunctionalTestAllowed": false,
+    "liveEvidence": "NICHT_BESTANDEN_TESTLIMIT_ERREICHT",
+    "liveEvidencePfad": "roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json",
+    "correctedCodeBridgeReadOnlyEvidence": "BESTANDEN",
+    "correctedCodeBridgeSourceSha": "d9528c6dccd4befeb8021cf1a0a6c1b936e0f3c3",
+    "officialCodeBridge": "call_code_function_f",
+    "productionWideActivationAllowed": false
+  },
+  "bankWithdrawCloseout": {
+    "status": "TWO_TEST_LIMIT_REACHED_CODE_BRIDGE_READ_ONLY_BESTAETIGT",
+    "evidencePfad": "v5/roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json",
+    "functionalTestLimit": 2,
+    "functionalTestsConsumed": 2,
+    "additionalFunctionalTestAllowed": false,
+    "liveWriteEvidence": "NICHT_BESTANDEN",
+    "correctedCodeBridgeReadOnlyEvidence": "BESTANDEN",
+    "correctedCodeBridgeSourceSha": "d9528c6dccd4befeb8021cf1a0a6c1b936e0f3c3",
+    "officialCodeBridge": "call_code_function_f",
+    "gameplayWritesBridgeProbe": 0,
+    "bankWithdrawCallsBridgeProbe": 0,
+    "productionWideActivationAllowed": false,
+    "sameIntentRetry": false
   }
 }

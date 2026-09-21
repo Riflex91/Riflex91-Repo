@@ -776,3 +776,45 @@ PR20.1 ist bestanden. Der verbindliche naechste Schritt ist jetzt
 14. anschliessend 5m-Bank-Funktionsevidence ohne Duplicate/UNKNOWN-Restzustand.
 
 Bis zu diesem neuen Live-Gate werden keine echten Bank-Writes ausgefuehrt.
+
+
+## PR20.2p – Withdraw Zwei-Test-Closeout und CODE-Bridge-Evidence
+
+Fuer `bank_withdraw(1)` sind die vereinbarten **maximal zwei echten Funktionstests**
+verbraucht. Es wird deshalb kein dritter Gameplay-Write-Test ausgefuehrt.
+
+Test 1 erreichte den echten Write-Pfad mit `adapterAufrufe=1`,
+`gameplayWrites=1` und `moeglicherSend=true`, endete aber wegen eines
+Recovery-Beobachtungsfehlers ohne belastbaren Settlement-Beweis. Der dabei
+lokalisierte Zero-Bank-Fehler wurde korrigiert: Post-Send-Recovery darf
+`bank.gold=0` beobachten.
+
+Test 2 erreichte den Adapter mit `adapterAufrufe=1`, blieb aber vor dem Send:
+`gameplayWrites=0`, `moeglicherSend=false`, terminal `ABBRUCH`. Die
+read-only CDP-Inventur zeigte anschliessend eindeutig, dass kein
+Adventure-Land-CODE-Runner aktiv war: `codeActive=false`, `codeRun=false`,
+kein `maincode`-Iframe und damit kein globales `bank_withdraw`.
+
+Der produktive Adapter nutzt deshalb nun die offizielle Adventure-Land-
+Page->CODE-Bruecke `call_code_function_f`. Ist der CODE-Runner inaktiv, wird
+vor jedem moeglichen Send bounded nur ein harmloser
+`call_code_function_f('eval','void 0')`-Bootstrap ausgefuehrt. Danach werden
+Account, Character, Session, Server, Merchant, Idle/Queue, alternative Runtime,
+Bank-Mount und Gold vollstaendig erneut validiert. Erst danach existiert exakt
+ein moeglicher `maincode.contentWindow.bank_withdraw(1)`-Aufruf. Raw-Socket-
+`.emit` bleibt verboten.
+
+Der reale Bridge-Probe auf
+`d9528c6dccd4befeb8021cf1a0a6c1b936e0f3c3` bestaetigte den korrigierten
+Pfad ohne Gameplay-Write: vorher kein Runner, danach `codeActive=true`,
+`codeRun=true`, `maincodePresent=true`, `bankWithdrawType=function` und
+`bankDepositType=function`; gleichzeitig `gameplayWrites=0`,
+`adapterAufrufe=0` und `bankWithdrawAufrufe=0`.
+
+Damit ist **nur die korrigierte CODE-Bridge read-only bestaetigt**. Ein
+vollstaendig bestandener Live-Write-Nachweis fuer den korrigierten Pfad liegt
+wegen des verbindlichen Zwei-Test-Limits nicht vor. Withdraw bleibt daher
+breit deaktiviert und darf nicht als produktiv zertifiziert markiert werden.
+
+Evidence:
+`roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json`.

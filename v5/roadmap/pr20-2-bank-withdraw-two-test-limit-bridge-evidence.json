@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "evidenceArt": "V5_BANK_WITHDRAW_TWO_TEST_LIMIT_AND_CODE_BRIDGE_CLOSEOUT",
+  "stand": "2026-09-21",
+  "status": "FUNKTIONS_TEST_LIMIT_ERREICHT_BRIDGE_READ_ONLY_BESTAETIGT",
+  "funktion": "bank_withdraw",
+  "betragGold": 1,
+  "testPolicy": {
+    "maxTrueFunctionalTestsPerFunction": 2,
+    "additionalTrueFunctionalTestAllowed": false,
+    "readOnlyDiagnosticsCountAsFunctionalTest": false,
+    "sameIntentRetry": false
+  },
+  "functionalTests": [
+    {
+      "number": 1,
+      "sourceSha": "637b9674ef521c150a65335d82f5d7b987bb639e",
+      "transaktionsId": "BANK-WITHDRAW-PROD-TX-1790025604909-cb1d0f27",
+      "status": "NICHT_BESTANDEN",
+      "resultStatus": "OPERATOR_REQUIRED",
+      "transportArt": "SERVER_ERGEBNIS",
+      "recoveryArt": "OPERATOR_REQUIRED",
+      "recoveryKlassifikation": "UNGEKLAERT",
+      "recoveryBeobachtungen": 1,
+      "journalTerminalArt": "SICHER_FEHLGESCHLAGEN",
+      "adapterAufrufe": 1,
+      "gameplayWrites": 1,
+      "moeglicherSend": true,
+      "settlementBewertung": "NICHT_ABSCHLIESSEND_BEWIESEN",
+      "rootCauseErkenntnis": [
+        "Recovery verwendete vor dem Fix einen Mount-Validator, der bankGold>=1 verlangte.",
+        "Bei Prestate bankGold=1 kann ein korrekter bank_withdraw(1) legitimerweise bankGold=0 erzeugen.",
+        "Spaetere Read-only-Reconciliation war durch nachfolgende Goldbewegungen kontaminiert und beweist den damaligen Settlement-Zustand nicht."
+      ]
+    },
+    {
+      "number": 2,
+      "sourceSha": "b6a21b24b657641c895b2e5567a60d6c32b38745",
+      "transaktionsId": "BANK-WITHDRAW-PROD-TX-1790026439345-c10f021f",
+      "status": "NICHT_BESTANDEN",
+      "resultStatus": "ABORTED",
+      "transportArt": "NICHT_GESENDET",
+      "recoveryArt": "ABORTED",
+      "recoveryKlassifikation": "NICHT_GESENDET",
+      "recoveryBeobachtungen": 0,
+      "journalTerminalArt": "ABBRUCH",
+      "adapterAufrufe": 1,
+      "gameplayWrites": 0,
+      "moeglicherSend": false,
+      "rootCause": "Adventure-Land-CODE-Runner war inaktiv; bank_withdraw existierte nicht global im Character-Page-Kontext."
+    }
+  ],
+  "diagnostics": [
+    {
+      "kind": "CDP_CONTEXT_INVENTORY_READ_ONLY",
+      "sourceSha": "9a0a91b7066b3ef4f6ef4de5a50a71e6e53c2ec7",
+      "targetAnzahl": 1,
+      "runnerTrefferAnzahl": 0,
+      "page": {
+        "characterName": "My_Merchant",
+        "codeActive": false,
+        "codeRun": false,
+        "maincodePresent": false,
+        "bankWithdrawType": "undefined",
+        "callCodeFunctionType": "function",
+        "codeEvalType": "function"
+      },
+      "gameplayWrites": 0,
+      "adapterAufrufe": 0
+    },
+    {
+      "kind": "OFFICIAL_CODE_BRIDGE_BOOTSTRAP_NO_GAMEPLAY_WRITE",
+      "sourceSha": "d9528c6dccd4befeb8021cf1a0a6c1b936e0f3c3",
+      "status": "BEREIT",
+      "bootstrapAusgeloest": true,
+      "requiredGlobalFunction": "call_code_function_f",
+      "vorher": {
+        "codeActive": false,
+        "codeRun": false,
+        "maincodePresent": false
+      },
+      "nachher": {
+        "codeActive": true,
+        "codeRun": true,
+        "maincodePresent": true,
+        "bankWithdrawType": "function",
+        "bankDepositType": "function"
+      },
+      "gameplayWrites": 0,
+      "adapterAufrufe": 0,
+      "bankWithdrawAufrufe": 0
+    }
+  ],
+  "implementationAfterCloseout": {
+    "usesOfficialCodeBridge": true,
+    "bridgeFunction": "call_code_function_f",
+    "bootstrapNoOp": "call_code_function_f('eval','void 0')",
+    "boundedBootstrapMs": 5000,
+    "revalidatesFullPrestateAfterBootstrap": true,
+    "publicWriteExpression": "maincode.contentWindow.bank_withdraw(1)",
+    "rawSocketEmit": false,
+    "maximumAdapterCalls": 1,
+    "sameIntentRetry": false
+  },
+  "certification": {
+    "realLiveWriteEvidence": "NICHT_BESTANDEN",
+    "correctedBridgePathReadOnlyEvidence": "BESTANDEN",
+    "productionWideActivationAllowed": false,
+    "reason": "Das Zwei-Test-Limit ist erreicht; der korrigierte Bridge-Pfad wurde danach bewusst nicht mit einem dritten Gameplay-Write getestet."
+  }
+}
