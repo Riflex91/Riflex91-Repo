@@ -81,14 +81,14 @@
   "currentNextSteps": [
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN und im Repo dokumentiert",
     "PR20.2 bank_deposit(1) One-Shot-Live-Evidence ist BESTANDEN",
-    "bank_withdraw(1) Real-Browser-Shadow ist source-exakt BESTANDEN: ADMISSION_BESTANDEN_KEIN_SEND, ABBRUCH, NICHT_GESENDET, 0 Gameplay-Writes, 0 Adapter-Aufrufe, Lease Epoche 4 RELEASED",
-    "Write-Adapter, Produktions-Transaktionscore und source-locked Live-Runner fuer exakt bank_withdraw(1) sind in PR20.2o vorbereitet; in diesem Implementierungsschritt kein echter Withdraw-Write",
-    "PR20.2o auf exakt dem PR-Head vollstaendig CI-gruen pruefen",
-    "nach Merge source-locked read-only Write-Preflight auf exakt dem gruenen Head ausfuehren und BEREIT verlangen",
-    "erst danach exakt einen explizit bestaetigten bank_withdraw(1)-Write mit Settlement/Recovery-Evidence nachweisen; Same-Intent-Retry bleibt verboten",
-    "danach Store/Retrieve/Swap jeweils eng vorbereiten und einzeln produktiv nachweisen",
+    "bank_withdraw(1) Real-Browser-Shadow ist source-exakt BESTANDEN",
+    "bank_withdraw(1) hat das vereinbarte Maximum von zwei echten Funktionstests erreicht; kein dritter Gameplay-Write-Test",
+    "Test 1 erreichte einen moeglichen Send/1 Gameplay-Write, Settlement blieb ungeklärt; Recovery-Zero-Bank-Bug wurde behoben",
+    "Test 2 erreichte den Adapter, sendete aber nicht; Root Cause war ein inaktiver Adventure-Land-CODE-Runner und fehlendes globales bank_withdraw im Page-Kontext",
+    "der korrigierte offizielle Page->CODE-Bridge-Pfad via call_code_function_f wurde danach real read-only mit 0 Gameplay-Writes und 0 bank_withdraw-Aufrufen als BEREIT bestaetigt",
+    "Withdraw bleibt ohne vollstaendig bestandene Live-Write-Evidence breit deaktiviert; kein Same-Intent-Retry und kein dritter Funktionstest",
+    "als naechsten separaten Bankpfad Store/Retrieve/Swap eng vorbereiten und jeweils bis zum naechsten realen Test-Gate entwickeln",
     "Capacity-/Workspace- und Open-Bank-Pack-Gates separat behandeln",
-    "danach reale 5m-Bank-Funktionsevidence ohne Duplicate/UNKNOWN-Restzustand absolvieren",
     "erst nach komplettem PR20.2-Exit-Gate PR20.3 Markt produktiv oeffnen"
   ],
   "invariants": {
@@ -154,7 +154,7 @@
   },
   "parallelPreparation": {
     "id": "PR20.2_BANK",
-    "status": "DEPOSIT_ONE_SHOT_LIVE_BESTANDEN_RESTBANK_AUSSTEHEND",
+    "status": "WITHDRAW_TESTLIMIT_ERREICHT_BRIDGE_FIX_READ_ONLY_BESTAETIGT_RESTBANK_AUSSTEHEND",
     "blockedBy": null,
     "produktiveRegistrierungErlaubt": true,
     "gameplayAuthority": false,
@@ -258,7 +258,7 @@
     "nextLiveCandidate": {
       "publicFunction": "bank_withdraw",
       "amountGold": 1,
-      "status": "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE",
+      "status": "TWO_TEST_LIMIT_REACHED_CODE_BRIDGE_READ_ONLY_BESTAETIGT",
       "contract": "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
       "settlementCore": "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
       "providerSpaeter": "merchant-bank-core@1",
@@ -289,13 +289,24 @@
       "realBrowserShadowLeaseTerminalStatus": "RELEASED",
       "sendBoundaryState": "NICHT_GESENDET",
       "actualGameplayWrites": 0,
-      "actualAdapterCalls": 0
+      "actualAdapterCalls": 0,
+      "realLiveWritePerformed": true,
+      "liveEvidence": "NICHT_BESTANDEN_TESTLIMIT_ERREICHT",
+      "liveEvidencePfad": "v5/roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json",
+      "functionalTestLimit": 2,
+      "functionalTestsConsumed": 2,
+      "additionalFunctionalTestAllowed": false,
+      "correctedCodeBridgeReadOnlyEvidence": "BESTANDEN",
+      "correctedCodeBridgeSourceSha": "d9528c6dccd4befeb8021cf1a0a6c1b936e0f3c3",
+      "officialCodeBridge": "call_code_function_f",
+      "runnerBootstrapNoGameplayWrite": true,
+      "productionWideActivationAllowed": false
     }
   },
   "parallelPreparations": [
     {
       "id": "PR20.2_BANK",
-      "status": "WITHDRAW_WRITE_PATH_IMPLEMENTIERT_NO_LIVE_WRITE",
+      "status": "WITHDRAW_TESTLIMIT_ERREICHT_BRIDGE_FIX_READ_ONLY_BESTAETIGT",
       "blockedBy": [],
       "produktiveRegistrierungErlaubt": true,
       "gameplayAuthority": false,
@@ -403,7 +414,7 @@
       "nextLiveCandidate": {
         "publicFunction": "bank_withdraw",
         "amountGold": 1,
-        "status": "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE",
+        "status": "TWO_TEST_LIMIT_REACHED_CODE_BRIDGE_READ_ONLY_BESTAETIGT",
         "contract": "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
         "settlementCore": "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
         "providerSpaeter": "merchant-bank-core@1",
@@ -434,7 +445,18 @@
         "realBrowserShadowLeaseTerminalStatus": "RELEASED",
         "sendBoundaryState": "NICHT_GESENDET",
         "actualGameplayWrites": 0,
-        "actualAdapterCalls": 0
+        "actualAdapterCalls": 0,
+        "realLiveWritePerformed": true,
+        "liveEvidence": "NICHT_BESTANDEN_TESTLIMIT_ERREICHT",
+        "liveEvidencePfad": "v5/roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json",
+        "functionalTestLimit": 2,
+        "functionalTestsConsumed": 2,
+        "additionalFunctionalTestAllowed": false,
+        "correctedCodeBridgeReadOnlyEvidence": "BESTANDEN",
+        "correctedCodeBridgeSourceSha": "d9528c6dccd4befeb8021cf1a0a6c1b936e0f3c3",
+        "officialCodeBridge": "call_code_function_f",
+        "runnerBootstrapNoGameplayWrite": true,
+        "productionWideActivationAllowed": false
       }
     },
     {
