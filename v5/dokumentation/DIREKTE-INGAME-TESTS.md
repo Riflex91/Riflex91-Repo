@@ -56,3 +56,16 @@ GitHub-hosted Runner koennen den lokalen Adventure-Land-Browser nicht erreichen 
 ## Sicherheitsgrenze
 
 Die Umstellung reduziert Testwiederholungen, nicht die Runtime-Sicherheitslogik. Durable Intent, Capability-/Authority-Grenzen, Fencing, Lease, Settlement, Recovery, No-Blind-Retry und fail-closed Verhalten bleiben Bestandteil des produktiven Codes und muessen im direkten Ingame-Test beobachtbar bleiben.
+
+
+## Testtaktung und Stop-Regel
+
+- Pro Funktion sind maximal **zwei echte Funktions-Tests** zulaessig.
+- Read-only Diagnose-/Reconcile-Laeufe zaehlen nicht als Funktions-Test, solange sie keine Gameplay-Authority und keinen Gameplay-Write erzeugen.
+- Sobald ein Funktions-Test `BLOCKIERT`, `NICHT_BESTANDEN`, `UNBEKANNT` oder einen anderen Fehler liefert, wird **nicht** zum naechsten Thema gewechselt.
+- Zuerst wird der konkrete Fehler lokalisiert und behoben.
+- Danach darf dieselbe Funktion maximal noch einmal als zweiter Funktions-Test ausgefuehrt werden.
+- Ein zweiter mutierender Test ist nur zulaessig, wenn Reconcile ausschliesst, dass der vorherige Versuch eine offene Transaktion, offene Lease oder einen nicht geklaerten moeglichen Send hinterlassen hat.
+- Blindes Wiederholen eines Same-Intent bleibt verboten.
+
+Fuer den aktuellen Withdraw-Pfad steht dafuer der read-only Diagnosebefehl `npm run ingame:bank-withdraw:reconcile` bereit.
