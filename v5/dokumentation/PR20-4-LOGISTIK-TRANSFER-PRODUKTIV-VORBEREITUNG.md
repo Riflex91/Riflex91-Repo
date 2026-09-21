@@ -78,18 +78,14 @@ COMMIT ist erst erlaubt, wenn der Empfaenger in derselben gebundenen Session/Ros
 
 Der Sender-Delta allein beweist keinen erfolgreichen Transfer.
 
-## Goldtransfer – bewusst erkannte Restluecke
+## Goldtransfer – Settlement-Core jetzt vorbereitet
 
 Der Action-/Verifier-Vertrag fuer `send_gold` verlangt bereits:
 
 - Sender-Gold-Delta;
 - Recipient Settlement Evidence.
 
-Im aktuellen Core existiert aber noch kein gleich konkret typisierter Gold-Empfaenger-Settlement-Vertrag wie fuer Item-Inventory-Settlement.
-
-Das wird **nicht** als erledigt angenommen.
-
-Vor jeder produktiven `send_gold`-Freigabe muss deshalb mindestens ein eigener Vertrag gebaut werden mit:
+Diese zuvor offene Core-Luecke ist jetzt **NO-WRITE geschlossen**. `grundlage/quelle/merchant/gold-transfer-settlement.ts` validiert vor einem fachlichen Settlement gemeinsam:
 
 - exakter Empfaenger-Character-/Session-/Server-/Roster-Bindung;
 - gepinntem Empfaenger-Gold-Baselinewert + Fingerprint;
@@ -98,7 +94,9 @@ Vor jeder produktiven `send_gold`-Freigabe muss deshalb mindestens ein eigener V
 - Korrelationsfingerprint;
 - Evidence nach Transferbeginn.
 
-Bis dieser Vertrag existiert und getestet ist, bleibt produktives `send_gold` gesperrt.
+Der zugehoerige Test `grundlage/tests/pr20-gold-transfer-settlement.test.mjs` beweist insbesondere, dass ein Sender-Delta allein nicht genuegt sowie Session-/Server-/Roster-Drift und unpassende Deltas fail-closed bleiben.
+
+**Produktives `send_gold` bleibt trotzdem gesperrt.** Der Settlement-Core verleiht keine ExecutionAuthority; Capability/Owner, Authority, Journal, Admission, Preflight, Fault-/Shadow- und Live-Gates fehlen absichtlich weiterhin.
 
 ## Recovery
 
@@ -114,11 +112,10 @@ Nach moeglichem Send gilt:
 
 ## Naechste Arbeit nach den Vorstufen
 
-1. Gold-Recipient-Settlement-Luecke schliessen;
-2. einen einzigen ersten Transfer-Live-Kandidaten waehlen;
-3. Capability/Owner/Authority ratifizieren;
-4. durables Journal + Current-Fence;
-5. read-only Rendezvous-/Transfer-Preflight;
-6. Fault-/Disconnect-/Restart-/Stale-Recipient-/Partial-Settlement-Tests;
-7. Shadow;
-8. exakt einen kontrollierten realen Transfer-Write.
+1. einen einzigen ersten Transfer-Live-Kandidaten waehlen;
+2. Capability/Owner/Authority ratifizieren;
+3. durables Journal + Current-Fence;
+4. read-only Rendezvous-/Transfer-Preflight;
+5. Fault-/Disconnect-/Restart-/Stale-Recipient-/Partial-Settlement-Tests;
+6. Shadow;
+7. exakt einen kontrollierten realen Transfer-Write.
