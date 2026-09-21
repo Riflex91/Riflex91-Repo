@@ -7,6 +7,9 @@ import {
   erstelleBankWithdrawEinGoldVorherBindung,
   erstelleProduktivenBankWithdrawBeobachter,
 } from "../../werkzeuge/bank-withdraw-produktions-write-browser.mjs";
+import {
+  validiereBankWithdrawShadowMountBeobachtung,
+} from "../../werkzeuge/bank-withdraw-produktions-browser.mjs";
 
 function raw(overrides = {}) {
   return {
@@ -30,6 +33,14 @@ function raw(overrides = {}) {
   };
 }
 
+function erwarteterFingerprint(overrides = {}) {
+  return validiereBankWithdrawShadowMountBeobachtung(
+    raw(overrides),
+    raw(),
+    1,
+  ).fingerprint;
+}
+
 function request(overrides = {}) {
   return {
     betrag: 1,
@@ -40,7 +51,7 @@ function request(overrides = {}) {
     serverIdentifier: "I",
     erwartetesCharacterGold: 100,
     erwartetesBankGold: 500,
-    erwarteterFingerprint: "f".repeat(64),
+    erwarteterFingerprint: erwarteterFingerprint(),
     ...overrides,
   };
 }
@@ -63,16 +74,19 @@ test("Bank-Withdraw-Write-Adapter enthaelt exakt einen erlaubten Public-Function
   }
 });
 
-test("Bank-Withdraw-Adapter sendet bei exakter Bindung genau einmal", async () => {
+test("Bank-Withdraw-Adapter revalidiert Inventory/Fingerprint read-only und sendet danach genau einmal", async () => {
   let calls = 0;
   let expression = "";
   const session = {
     async evaluate(expr, contextId, options) {
       calls += 1;
-      expression = expr;
       assert.equal(contextId, 7);
+      if (options === undefined) {
+        return raw();
+      }
+      expression = expr;
       assert.equal(options.userGesture, true);
-      return { sent: true, result: { response: "bank_store" } };
+      return { sent: true, result: { response: "bank_withdraw" } };
     },
   };
   const adapter = new ProduktionsCdpBankWithdrawEinGoldAdapter(session, 7);
@@ -82,7 +96,7 @@ test("Bank-Withdraw-Adapter sendet bei exakter Bindung genau einmal", async () =
   const result = await adapter.sende({}, request());
 
   assert.equal(result.art, "SERVER_ERGEBNIS");
-  assert.equal(calls, 1);
+  assert.equal(calls, 2);
   assert.equal(adapter.adapterAufrufe, 1);
   assert.equal(adapter.gameWrites, 1);
   assert.equal(adapter.moeglicherSend, true);
@@ -110,9 +124,29 @@ test("Bank-Withdraw-Adapter blockiert ungueltige Anfrage vor Browseraufruf", asy
   assert.equal(adapter.moeglicherSend, false);
 });
 
-test("CDP-Abbruch nach moeglichem Send wird UNBEKANNT und nie erneut gesendet", async () => {
+test("Inventory-/Fingerprint-Drift blockiert vor moeglichem Withdraw-Send", async () => {
+  let calls = 0;
   const adapter = new ProduktionsCdpBankWithdrawEinGoldAdapter({
     async evaluate() {
+      calls += 1;
+      return raw({ inventoryMaterial: "0:hpot0:1:10:" });
+    },
+  }, 1);
+  const result = await adapter.sende({}, request());
+  assert.equal(result.art, "NICHT_GESENDET");
+  assert.equal(result.grund, "BANK_WITHDRAW_WRITE_FINGERPRINT_DRIFT");
+  assert.equal(calls, 1);
+  assert.equal(adapter.adapterAufrufe, 1);
+  assert.equal(adapter.gameWrites, 0);
+  assert.equal(adapter.moeglicherSend, false);
+});
+
+test("CDP-Abbruch nach finalem Read-only-Recheck und moeglichem Send wird UNBEKANNT und nie erneut gesendet", async () => {
+  let calls = 0;
+  const adapter = new ProduktionsCdpBankWithdrawEinGoldAdapter({
+    async evaluate() {
+      calls += 1;
+      if (calls === 1) return raw();
       throw new Error("CDP_DISCONNECT");
     },
   }, 1);
