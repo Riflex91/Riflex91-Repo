@@ -173,6 +173,58 @@ export async function beobachteBankWithdrawRohReadOnly(session, contextId) {
   );
 }
 
+export async function warteAufStabilenStartAusserhalbBankReadOnly(
+  session,
+  contextId,
+  {
+    timeoutMs = 90_000,
+    pollMs = 500,
+    onPhase = () => {},
+  } = {},
+) {
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 300_000) {
+    throw new Error("BANK_WITHDRAW_START_AUSSERHALB_TIMEOUT_UNGUELTIG");
+  }
+  if (!Number.isSafeInteger(pollMs) || pollMs < 100 || pollMs > 5_000) {
+    throw new Error("BANK_WITHDRAW_START_AUSSERHALB_POLL_UNGUELTIG");
+  }
+
+  const start = Date.now();
+  let bindung = null;
+  let ausserhalbKandidat = null;
+  let exitHinweisGesendet = false;
+
+  while (Date.now() - start <= timeoutMs) {
+    const roh = await beobachteBankWithdrawRohReadOnly(session, contextId);
+
+    if (bindung !== null && !gleicheBindung(roh, bindung)) {
+      throw new Error("BANK_WITHDRAW_START_AUSSERHALB_BINDUNG_DRIFT");
+    }
+    if (bindung === null) bindung = roh;
+
+    if (roh.bankGemountet === true) {
+      ausserhalbKandidat = null;
+      if (!exitHinweisGesendet) {
+        onPhase("START_BANK_AKTIV_BANK_MANUELL_VERLASSEN");
+        exitHinweisGesendet = true;
+      }
+    } else if (roh.bewegtSich !== true && roh.queueAktiv !== true) {
+      const kandidat = validiereBankWithdrawShadowAusgangsBeobachtung(roh);
+      if (ausserhalbKandidat !== null) {
+        onPhase("START_AUSSERHALB_BANK_STABIL_BEOBACHTET");
+        return kandidat;
+      }
+      ausserhalbKandidat = kandidat;
+    } else {
+      ausserhalbKandidat = null;
+    }
+
+    await sleep(pollMs);
+  }
+
+  throw new Error("BANK_WITHDRAW_START_AUSSERHALB_TIMEOUT");
+}
+
 export async function warteAufManuellenBankMountReadOnly(
   session,
   contextId,
