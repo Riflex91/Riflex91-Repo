@@ -8,7 +8,7 @@ function S:Resolve(step, goalStates, prior)
     local anyWasCompletable = prior and prior.anyWasCompletable or false
 
     for _, state in ipairs(goalStates or {}) do
-        if state.visible and state.possible and not state.passive and not state.optional then
+        if state.blocking then
             blockers = blockers + 1
             if state.complete then
                 completeBlockers = completeBlockers + 1
@@ -21,6 +21,11 @@ function S:Resolve(step, goalStates, prior)
     end
 
     local complete = blockers > 0 and completeBlockers == blockers
+
+    -- RestedXP can hide a condition/goal after it was completable. Preserve
+    -- progress rather than trapping the session on an empty semantic step.
+    if blockers == 0 and anyWasCompletable then complete = true end
+
     return {
         id = step and step.id or nil,
         complete = complete,
@@ -30,6 +35,7 @@ function S:Resolve(step, goalStates, prior)
         anyWasCompletable = anyWasCompletable,
         autoAdvanceSafe = complete and unknownBlockers == 0,
         reason =
+            blockers == 0 and anyWasCompletable and "previously_completable" or
             blockers == 0 and "no_blocking_goals" or
             unknownBlockers > 0 and "unknown_completion" or
             complete and "all_blocking_goals_complete" or
