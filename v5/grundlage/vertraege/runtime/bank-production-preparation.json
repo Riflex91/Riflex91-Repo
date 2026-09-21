@@ -3,7 +3,7 @@
   "kennung": "V5_PR20_2_BANK_PRODUCTION_PREPARATION",
   "stand": "2026-09-21",
   "status": "VORBEREITET_NO_WRITE",
-  "basisMain": "a962512557d08bacfc57022697b77bd26e314b45",
+  "basisMain": "3f88e904cb2a7fd20b69a5e7c552eb0958b66884",
   "blockingGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
   "zweck": "PR20.2 technisch vorbereiten, ohne produktive Bankmutation, Registrierung oder Gameplay-Authority zu oeffnen.",
   "authorityGrenze": {
@@ -100,13 +100,30 @@
     "Lease-/Mount-/Session-Epoche"
   ],
   "nachEquipErforderlicheFreigabeschritte": [
-    "PR20.1 Live-Evidence auswerten und als bestanden dokumentieren",
+    "PR20.1 Live-Evidence ist BESTANDEN und im Repo dokumentiert",
+    "erster Live-Kandidat bank_deposit(1 Gold) und authority-freier Settlement-Core sind ratifiziert",
     "Bank-Mutationsfaehigkeit mit Single Owner separat ratifizieren",
-    "exakte Action-/Recovery-/Verifier-Bindung fuer den ersten Live-Kandidaten ratifizieren",
     "produktive Bank-Authority separat und eng begrenzt implementieren",
-    "durables Bank-Transaktionsjournal implementieren",
+    "durables Bank-Transaktionsjournal mit Current-Fence implementieren",
     "read-only Bank-Mutations-Preflight implementieren",
-    "Shadow/Fault/Restart-Tests bestehen",
-    "erst danach einen einzelnen kontrollierten Bank-Live-Write zulassen"
-  ]
+    "Unit/Replay/Fault/Restart/UNKNOWN/Shadow-Gates bestehen",
+    "erst danach einen einzelnen kontrollierten bank_deposit(1)-Live-Write zulassen"
+  ],
+  "blockingGateStatus": "BESTANDEN",
+  "ersterLiveKandidat": {
+    "status": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE",
+    "vertrag": "grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
+    "settlementCore": "grundlage/quelle/merchant/bank-deposit-settlement.ts",
+    "test": "grundlage/tests/pr20-bank-deposit-settlement.test.mjs",
+    "publicFunction": "bank_deposit",
+    "betragGold": 1,
+    "actionContractId": "AL-ACTION-BANK-DEPOSIT",
+    "recoveryContractId": "AL-RECOVERY-BANK-DEPOSIT",
+    "verifierId": "AL-VERIFIER-BANK-DEPOSIT",
+    "sameIntentRetry": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "produktiveCapabilityNochNichtRegistriert": true,
+    "liveRunnerNochNichtVorhanden": true
+  }
 }
