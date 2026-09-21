@@ -239,6 +239,38 @@ for (const [kennung, muster] of [
     fehler.push("BANK_DEPOSIT_SHADOW_WRITE_GRENZE_VERLETZT:" + kennung);
   }
 }
+const bankShadowRecovery = liesText(
+  "werkzeuge/bank-deposit-real-shadow-recovery.mjs",
+);
+for (const marker of [
+  "V5 BANK SHADOW RECOVERY MANUELL ABGLEICHEN",
+  "BANK_SHADOW_RECOVERY_SOURCE_SHA_MISMATCH",
+  "RECOVERY_PENDING_BESTAETIGT_BANK_MANUELL_BETRETEN",
+  "schliesseBankLeaseRestartAbgleichAb",
+  "browserGameplayWrites: 0",
+  "gameplayWrites: 0",
+  "adapterAufrufe: 0",
+  "oneShotAuthorityAusgestellt: false",
+  "bankDepositAusgefuehrt: false",
+]) {
+  if (!bankShadowRecovery.includes(marker)) {
+    fehler.push("BANK_SHADOW_RECOVERY_MARKER_FEHLT:" + marker);
+  }
+}
+for (const [kennung, muster] of [
+  ["BANK_DEPOSIT", /\bbank_deposit\s*\(/],
+  ["BANK_WITHDRAW", /\bbank_withdraw\s*\(/],
+  ["BANK_STORE", /\bbank_store\s*\(/],
+  ["BANK_RETRIEVE", /\bbank_retrieve\s*\(/],
+  ["RAW_EMIT", /\.emit\s*\(/],
+  ["AUTHORITY", /erteileBankDepositEinmalAuthority\s*\(/],
+  ["EXECUTION_KERNEL", /\bAusfuehrungsKernel\b/],
+  ["EXECUTION_ADAPTER", /\bAusfuehrungsAdapter\b/],
+]) {
+  if (muster.test(bankShadowRecovery)) {
+    fehler.push("BANK_SHADOW_RECOVERY_WRITE_GRENZE_VERLETZT:" + kennung);
+  }
+}
 const bankDepositRealShadow = liesText(
   "werkzeuge/bank-deposit-real-browser-shadow.mjs",
 );
