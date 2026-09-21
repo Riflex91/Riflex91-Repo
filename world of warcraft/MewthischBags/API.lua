@@ -332,24 +332,14 @@ function API:FormatLargeNumber(value)
 end
 
 function API:GetMoneySymbol(kind)
-    local globalName
-    local fallback
+    -- Use Blizzard's actual coin artwork. The *_AMOUNT_SYMBOL globals can be
+    -- localized letters such as g/s/c and are therefore intentionally not used.
     if kind == "gold" then
-        globalName = "GOLD_AMOUNT_SYMBOL"
-        fallback = "|TInterface\\MoneyFrame\\UI-GoldIcon:14:14:2:0|t"
+        return "|TInterface\\MoneyFrame\\UI-GoldIcon:14:14:2:0|t"
     elseif kind == "silver" then
-        globalName = "SILVER_AMOUNT_SYMBOL"
-        fallback = "|TInterface\\MoneyFrame\\UI-SilverIcon:14:14:2:0|t"
-    else
-        globalName = "COPPER_AMOUNT_SYMBOL"
-        fallback = "|TInterface\\MoneyFrame\\UI-CopperIcon:14:14:2:0|t"
+        return "|TInterface\\MoneyFrame\\UI-SilverIcon:14:14:2:0|t"
     end
-
-    local value = _G and _G[globalName]
-    if type(value) == "string" and value ~= "" then
-        return value
-    end
-    return fallback
+    return "|TInterface\\MoneyFrame\\UI-CopperIcon:14:14:2:0|t"
 end
 
 function API:IsInCombat()
