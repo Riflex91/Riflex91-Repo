@@ -468,6 +468,9 @@ const bankWithdrawWriteBrowser = liesText(
 );
 for (const marker of [
   'this.adapterId = "v5-production-cdp-bank-withdraw-one-gold-once"',
+  'const ACTION = "AL-ACTION-BANK-WITHDRAW"',
+  'const RECOVERY = "AL-RECOVERY-BANK-WITHDRAW"',
+  'const VERIFIER = "AL-VERIFIER-BANK-WITHDRAW"',
   "BANK_WITHDRAW_WRITE_MEHR_ALS_EIN_ADAPTER_AUFRUF",
   "ACCOUNT_DRIFT",
   "SESSION_DRIFT",
@@ -528,6 +531,10 @@ for (const marker of [
   "V5_PRODUCTION_BANK_WITHDRAW_ONE_GOLD_ONE_SHOT_LIVE",
   "BANK_WITHDRAW_EINMAL_BESTAETIGUNG",
   "BANK_WITHDRAW_PROD_SOURCE_SHA_MISMATCH",
+  'const ACTION = "AL-ACTION-BANK-WITHDRAW"',
+  'const RECOVERY = "AL-RECOVERY-BANK-WITHDRAW"',
+  'const VERIFIER = "AL-VERIFIER-BANK-WITHDRAW"',
+  'const CAPABILITY = "merchant.bank.gold_auslagern"',
   "fuehreBankWithdrawEinGoldTransaktion",
   "bank-withdraw-production/latest.json",
   "betragGold: 1",
