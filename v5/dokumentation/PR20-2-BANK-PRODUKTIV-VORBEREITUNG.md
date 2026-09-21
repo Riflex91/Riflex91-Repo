@@ -1,9 +1,9 @@
 # PR20.2 – Bank-Produktion: One-Shot-Grenze / NO-WRITE
 
-**Status:** REALER RESTART-RECOVERY-FAULT BESTANDEN / REAL-BROWSER-SHADOW NOCH AUSSTEHEND  
+**Status:** REAL-BROWSER-SHADOW BESTANDEN / WRITE-GATE-VORBEREITUNG  
 **Stand:** 2026-09-21  
 **Vorausgehendes Gate:** `PR20.1_EQUIP_PRODUKTIONSNACHWEIS` – BESTANDEN  
-**Basis-main:** `938a79810ebd1124269926b16b8afefac829924c`
+**Basis-main:** `aef9d84b13956c81799e9fa150cfa22438160470`
 
 ## Zweck
 
@@ -172,10 +172,46 @@ Diese Evidence beweist den echten Restart-/Recovery-Faultpfad, **nicht** den
 vollstaendig bestandenen normalen Real-Browser-Shadow. Der Write-Gate bleibt
 deshalb geschlossen.
 
+## Reale Real-Browser-Shadow-Evidence
+
+Der normale source-locked Real-Browser-Shadow wurde auf
+`9ed665692e71ee8ae131e7399db2306ff9e4a627` vollstaendig bestanden.
+
+Nachgewiesen wurden:
+
+- Start ausserhalb der Bank;
+- lokale Lease vor dem manuellen Mount;
+- stabiler manueller Mount bei identischer Account-/Character-/Session-/
+  Serverbindung;
+- produktive One-Shot-Authority nur fuer die R9-Admission;
+- durable Intent;
+- lokaler `bank`-Action-Channel und Socket-Budget;
+- Admission `ADMISSION_BESTANDEN_KEIN_SEND`;
+- Journalterminalart `ABBRUCH`;
+- `sendBoundaryState=NICHT_GESENDET`;
+- manueller stabiler Bank-Exit;
+- Lease Epoche 2 terminal `RELEASED`;
+- Bank-Start nachher wieder bereit;
+- `browserGameplayWrites=0`;
+- `hostGameplayWrites=0`;
+- `gameplayWrites=0`;
+- `adapterAufrufe=0`;
+- keine offene Bank-Deposit-One-Shot-Authority nach dem Lauf;
+- keine breite Runtime-Freigabe und kein Raw-Write-Bypass;
+- `sameIntentRetry=false`.
+
+Evidence:
+`roadmap/pr20-2-bank-real-browser-shadow-evidence.json`.
+
+Damit ist der No-Write-Shadow-Gate bestanden. Dies erlaubt **nur** die
+separate Implementierung und CI-Pruefung eines engen Write-Adapters und
+Live-Runners fuer exakt `bank_deposit(1)`; ein echter Write ist damit noch
+nicht ausgefuehrt oder automatisch freigegeben.
+
 ## Noch bewusst nicht implementiert
 
-- vollstaendig bestandener normaler Real-Browser-Shadow ohne Write;
-- Bank-CDP-/Write-Adapter;
+- Bank-CDP-/Write-Adapter fuer exakt `bank_deposit(1)`;
+- Bank-Live-Runner fuer exakt `bank_deposit(1)`;
 - Bank-Live-Runner;
 - irgendein echter Bank-Write;
 - Withdraw/Store/Retrieve/Swap/Open-Pack-Produktivpfade.
@@ -193,7 +229,8 @@ Wenn PR20.1 gruen ist, kann ohne erneute Grundlagenanalyse direkt begonnen werde
 7. **ERLEDIGT:** persistente Bank-Lease, Restart-Reconciliation und Fault-Tests;
 8. **ERLEDIGT:** No-Write-R9-Admission-Shadow;
 9. **ERLEDIGT:** echten F5-/Restart-Fault zero-write reconciliieren und dokumentieren;
-10. **AUSSTEHEND:** normalen Real-Browser-Shadow ohne Write vollstaendig bis BESTANDEN ausfuehren;
-11. erst danach Write-Adapter/Live-Runner und exakt einen kontrollierten `bank_deposit(1)`-Write.
+10. **ERLEDIGT:** normalen Real-Browser-Shadow ohne Write vollstaendig bis BESTANDEN ausfuehren;
+11. **NAECHSTES GATE:** Write-Adapter/Live-Runner fuer exakt `bank_deposit(1)` separat implementieren und CI-gruen pruefen;
+12. erst danach exakt einen kontrollierten `bank_deposit(1)`-Write ausfuehren.
 
 Withdraw, Store, Retrieve, Swap und `open_bank_pack` bleiben bis nach dem separat nachgewiesenen ersten Deposit-Pfad produktiv gesperrt.
