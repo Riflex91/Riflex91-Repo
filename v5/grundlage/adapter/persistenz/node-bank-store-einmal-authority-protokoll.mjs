@@ -17,10 +17,10 @@ function normalisiere(intent) {
       || intent.faehigkeitId !== "merchant.bank.item_einlagern"
       || intent.anbieterModulId !== "merchant-bank-core"
       || intent.anbieterVersion !== "1"
-      || intent.actionContractId !== "AL-ACTION-BANK-WITHDRAW"
-      || intent.recoveryContractId !== "AL-RECOVERY-BANK-WITHDRAW"
-      || intent.verifierId !== "AL-VERIFIER-BANK-WITHDRAW"
-      || intent.policyId !== "BANK-WITHDRAW-PRODUKTION-EINMAL-V1"
+      || intent.actionContractId !== "AL-ACTION-BANK-STORE"
+      || intent.recoveryContractId !== "AL-RECOVERY-BANK-STORE"
+      || intent.verifierId !== "AL-VERIFIER-BANK-STORE"
+      || intent.policyId !== "BANK-STORE-PRODUKTION-EINMAL-V1"
       || intent.maximaleVerwendungen !== 1
       || intent.breiteRuntimeFreigabe !== false
       || intent.rawWriteAutoritaet !== false
@@ -92,7 +92,7 @@ export class NodeBankStoreEinmalAuthorityProtokoll {
   #ack(intent) {
     return Object.freeze({
       durable: true,
-      bestaetigungsId: "BANK-WITHDRAW-AUTH:" + intent.aktivierungsId,
+      bestaetigungsId: "BANK-STORE-AUTH:" + intent.aktivierungsId,
       aktivierungsId: intent.aktivierungsId,
       transaktionsId: intent.transaktionsId,
     });
