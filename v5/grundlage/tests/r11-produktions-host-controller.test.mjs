@@ -4,6 +4,14 @@ import fs from "node:fs";
 
 import {
   BedienerRichtlinienDienst,
+  EQUIPMENT_CORE_MODUL_ID,
+  EQUIPMENT_CORE_MODUL_VERSION,
+  EQUIPMENT_EQUIP_ACTION_CONTRACT_ID,
+  EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG,
+  EQUIPMENT_EQUIP_EINMAL_POLICY_ID,
+  EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
+  EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID,
+  EQUIPMENT_EQUIP_VERIFIER_ID,
   MERCHANT_CORE_A_MODUL_ID,
   MERCHANT_CORE_A_MODUL_VERSION,
   MERCHANT_CORE_A_PLANUNGS_FAEHIGKEIT_IDS,
@@ -37,6 +45,21 @@ function audit() {
         durable: true,
         bestaetigungsId: "HOST-AUDIT:" + intent.aktivierungsId,
         aktivierungsId: intent.aktivierungsId,
+      };
+    },
+  };
+}
+
+function equipAuthorityAudit() {
+  return {
+    eintraege: [],
+    async schreibeDurable(intent) {
+      this.eintraege = [...this.eintraege, intent];
+      return {
+        durable: true,
+        bestaetigungsId: "HOST-EQUIP-AUTH:" + intent.aktivierungsId,
+        aktivierungsId: intent.aktivierungsId,
+        transaktionsId: intent.transaktionsId,
       };
     },
   };
@@ -77,10 +100,12 @@ class OperationsQuelleFake {
 function baueSystem() {
   const bediener = policy();
   const aktivierungsAudit = audit();
+  const equipAudit = equipAuthorityAudit();
   const runtime = new V5ProduktionsRuntime(
     erstelleKanonischeProduktionsKomposition(),
     bediener,
     aktivierungsAudit,
+    equipAudit,
   );
   const gate = new ProduktivesV5GesamtfreigabeGate(
     bereitschaft,
@@ -101,6 +126,7 @@ function baueSystem() {
   return {
     bediener,
     aktivierungsAudit,
+    equipAudit,
     runtime,
     bootstrap,
     quelle,
@@ -120,6 +146,24 @@ function planenAnfrage(overrides = {}) {
   };
 }
 
+function equipAuthorityAnfrage(overrides = {}) {
+  return {
+    schemaVersion: 1,
+    aktivierungsId: "HOST-EQUIP-AUTH-1",
+    transaktionsId: "HOST-EQUIP-TX-1",
+    faehigkeitId: EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
+    anbieterModulId: EQUIPMENT_CORE_MODUL_ID,
+    anbieterVersion: EQUIPMENT_CORE_MODUL_VERSION,
+    actionContractId: EQUIPMENT_EQUIP_ACTION_CONTRACT_ID,
+    recoveryContractId: EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID,
+    verifierId: EQUIPMENT_EQUIP_VERIFIER_ID,
+    policyId: EQUIPMENT_EQUIP_EINMAL_POLICY_ID,
+    bestaetigungText: EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG,
+    gueltigBisMs: 2_101,
+    ...overrides,
+  };
+}
+
 test("Produktions-Host startet Runtime nur aus observer-only Operations-Evidence", async () => {
   const system = baueSystem();
 
@@ -133,6 +177,7 @@ test("Produktions-Host startet Runtime nur aus observer-only Operations-Evidence
   );
   assert.equal(status.letzteOperationsZeitMs, 100);
   assert.deepEqual(status.aktivePlanenFaehigkeiten, []);
+  assert.equal(status.equipEinmalAuthorityOffen, false);
   assert.equal(status.gameplayAutoritaet, false);
   assert.equal(status.rawWriteAutoritaet, false);
   assert.equal(status.actionAuthority, false);
@@ -159,6 +204,46 @@ test("Host aktiviert PLANEN nur mit frisch selbst erhobener Evidence", async () 
     ["HOST-STORAGE-101"],
   );
   assert.equal(system.quelle.aufrufe, 2);
+});
+
+test("Host erteilt Equip-Einmal-Authority nur mit frisch selbst erhobener Evidence", async () => {
+  const system = baueSystem();
+  await system.host.starte(100);
+
+  const ergebnis = await system.host.erteileEquipEinmalAuthority(
+    equipAuthorityAnfrage(),
+    101,
+  );
+
+  assert.equal(ergebnis.erfolgreich, true);
+  assert.ok(ergebnis.authority);
+  assert.equal(system.equipAudit.eintraege.length, 1);
+  assert.deepEqual(
+    system.equipAudit.eintraege[0].evidenceIds,
+    ["HOST-STORAGE-101"],
+  );
+  assert.equal(system.host.status().equipEinmalAuthorityOffen, true);
+  assert.equal(system.runtime.status().aktiveMutierendeFaehigkeiten, 0);
+  assert.equal(system.runtime.status().aktiveFaehigkeiten, 0);
+  assert.equal(system.quelle.aufrufe, 2);
+});
+
+test("Host blockiert Equip-Einmal-Authority solange PLANEN aktiv ist", async () => {
+  const system = baueSystem();
+  await system.host.starte(100);
+  assert.equal(
+    (await system.host.aktivierePlanen(planenAnfrage(), 101)).erfolgreich,
+    true,
+  );
+
+  await assert.rejects(
+    () => system.host.erteileEquipEinmalAuthority(
+      equipAuthorityAnfrage({ gueltigBisMs: 2_102 }),
+      102,
+    ),
+    /PRODUKTIONS_HOST_EQUIP_EINMAL_PLANEN_NOCH_AKTIV/,
+  );
+  assert.equal(system.equipAudit.eintraege.length, 0);
 });
 
 test("Operations-Quellenausfall entzieht aktive PLANEN-Authority beim naechsten Tick", async () => {

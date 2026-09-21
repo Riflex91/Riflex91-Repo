@@ -19,12 +19,24 @@
     "registerBypassExponiert": false,
     "supervisorBypassExponiert": false,
     "telemetrieBypassExponiert": false,
-    "postStartRevalidierungsfehlerStopptRuntime": true
+    "postStartRevalidierungsfehlerStopptRuntime": true,
+    "equipEinmalAuthorityPfadExponiert": true,
+    "generischeMutierenAktivierungExponiert": false
   },
   "authority": {
     "gameplayAutoritaet": false,
     "rawWriteAutoritaet": false,
     "actionAuthority": false
   },
-  "mutierendeCapabilitiesDurchDiesenVertrag": 0
+  "mutierendeCapabilitiesDurchDiesenVertrag": 0,
+  "equipEinmalAuthority": {
+    "capabilityId": "equipment.equip",
+    "provider": "equipment-core@1",
+    "maximaleVerwendungen": 1,
+    "maximaleLebensdauerMs": 2000,
+    "durableVorAusstellung": true,
+    "frischeOperationsEvidence": true,
+    "registryAktivierung": false,
+    "gameplayWriteDurchAusstellung": 0
+  }
 }

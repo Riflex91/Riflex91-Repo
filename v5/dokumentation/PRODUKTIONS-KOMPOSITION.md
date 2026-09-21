@@ -27,7 +27,10 @@ Der kanonische Katalog liegt in:
 - `grundlage/quelle/equipment/modul-vertrag.ts`;
 - `grundlage/quelle/equipment/faehigkeits-vertrag.ts`;
 - `grundlage/vertraege/runtime/equipment-equip-mutationsfaehigkeit.json`;
-- `architektur/adr/ADR-032-PRODUKTIVE-EQUIP-MUTATIONSFAEHIGKEIT.md`.
+- `architektur/adr/ADR-032-PRODUKTIVE-EQUIP-MUTATIONSFAEHIGKEIT.md`;
+- `grundlage/quelle/equipment/produktions-einmal-authority.ts`;
+- `grundlage/vertraege/runtime/equipment-equip-one-shot-authority.json`;
+- `architektur/adr/ADR-033-EQUIP-EINMAL-AUTHORITY.md`.
 
 ## Produktive Modulidentitaet
 
@@ -240,24 +243,44 @@ Als erste produktiv registrierte `MUTIEREN`-Capability existiert jetzt exakt
 exakt `AL-ACTION-EQUIP` / `AL-RECOVERY-EQUIP` /
 `AL-VERIFIER-EQUIP`.
 
-Diese Stufe ist absichtlich nur strukturell: `standardAktiv=false`, lokaler
-Status `aktiv=false`, keine automatische Aktivierung und noch kein
-produktiver MUTIEREN-Aktivierungspfad. Registrierung erzeugt deshalb keine
-Gameplay-, Raw-Write- oder Action-Authority.
+Die Registry bleibt weiterhin strukturell default-off:
+`standardAktiv=false` und lokaler Status `aktiv=false`. Zusaetzlich kann
+die Produktionsruntime jetzt eine exakt gebundene, kurzlebige
+`ProduktiveEquipEinmalAuthority` ausstellen. Das ist keine Registry-
+Aktivierung und keine generische MUTIEREN-Freigabe.
 
-Der R12-Controlled-Live-Testgate bleibt ein Testartefakt und darf nicht als
-Produktions-Authority wiederverwendet werden. Bank-, Trade-, Transfer-,
-Upgrade-, Compound-, Exchange- und Craft-Mutationen bleiben produktiv
-unregistriert.
+Die Einmal-Authority verlangt:
+
+- erfolgreichen produktiven Host-Start und damit die bestehende
+  Gesamtfreigabe;
+- frische Health-/Operations-Evidence aus der Host-Quelle;
+- keine gleichzeitig aktive PLANEN-Capability;
+- deny-only Operator-Policy ohne NOTHALT oder Capability-Sperre;
+- exakt `equipment.equip` / `equipment-core@1`;
+- exakt `AL-ACTION-EQUIP` / `AL-RECOVERY-EQUIP` /
+  `AL-VERIFIER-EQUIP`;
+- eine konkrete Transaktions-ID;
+- die exakte Einmal-Bestaetigung
+  `V5 EQUIP EINMAL AUSFUEHREN`;
+- durable Vor-Wirkung-Evidence unter
+  `runtime/authority/mutieren/equipment-equip/`;
+- maximal 2000 ms Lebensdauer und exakt eine Verwendung.
+
+Stop, NOTHALT, Capability-Deny oder Health-/Operations-Verlust widerrufen
+eine noch offene Authority. Ein Restart rekonstruiert sie nicht.
+
+Der R12-Controlled-Live-Testgate bleibt ein Testartefakt und wird nicht als
+Produktions-Authority wiederverwendet. Bank-, Trade-, Transfer-, Upgrade-,
+Compound-, Exchange- und Craft-Mutationen bleiben produktiv unregistriert.
 
 ## Naechster Integrationsschritt
 
-Als naechstes wird fuer exakt `equipment.equip` ein separater,
-restart-sicherer, default-deny Einmal-Aktivierungs- und Admission-Pfad
-benoetigt. Dieser muss vor lokaler Wirkung durable protokollieren und weiterhin
-Operator-Deny, aktuelle Health/Operations, Gesamtfreigabe,
-Ressourcen/Fencing, Action-Channel, Socket-Budget, durable Intent,
-Live-Preconditions sowie Postcondition/Reconciliation erzwingen.
+Die Authority-Ausstellung selbst sendet weiterhin **keine** Gameplay-Aktion.
+Als naechstes wird sie mit dem bestehenden Admission-/Execution-/Recovery-
+Kernel zu genau einer produktiven Equip-Transaktion verbunden. Diese Stufe
+muss weiterhin Ressourcen/Fencing, Action-Channel, Socket-Budget, durable
+Mutation-Intent, Live-Preconditions und Postcondition/Reconciliation
+erzwingen.
 
-Bis dieser separate Vertrag implementiert und nachgewiesen ist, kann die
-produktive Registrierung keinen Gameplay-Write ausloesen.
+Erst wenn dieser komplette Einmal-Transaktionspfad durch CI nachgewiesen ist,
+ist ein neuer manueller Ingame-Test erforderlich.

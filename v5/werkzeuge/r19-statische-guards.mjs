@@ -18,7 +18,10 @@ const pflicht=[
   "grundlage/quelle/merchant/faehigkeits-vertrag.ts",
   "grundlage/quelle/equipment/modul-vertrag.ts",
   "grundlage/quelle/equipment/faehigkeits-vertrag.ts",
+  "grundlage/quelle/equipment/produktions-einmal-authority.ts",
+  "grundlage/adapter/persistenz/node-equip-einmal-authority-protokoll.mjs",
   "grundlage/vertraege/runtime/equipment-equip-mutationsfaehigkeit.json",
+  "grundlage/vertraege/runtime/equipment-equip-one-shot-authority.json",
   "grundlage/quelle/merchant/demand.ts",
   "grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json",
   "grundlage/vertraege/runtime/durable-planen-authority.json",
@@ -33,6 +36,7 @@ const pflicht=[
   "architektur/adr/ADR-030-KANONISCHE-NODE-HOST-KOMPOSITION.md",
   "architektur/adr/ADR-031-BANK-PLANEN-OBSERVER-CANARY.md",
   "architektur/adr/ADR-032-PRODUKTIVE-EQUIP-MUTATIONSFAEHIGKEIT.md",
+  "architektur/adr/ADR-033-EQUIP-EINMAL-AUTHORITY.md",
   "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
   "grundlage/tests/r11-bank-planen-observer-canary.test.mjs",
   "werkzeuge/bank-planen-canary-browser.mjs",
@@ -44,6 +48,8 @@ const pflicht=[
   "grundlage/tests/r11-produktions-operations-quelle.test.mjs",
   "grundlage/tests/r11-planen-aktivierung.test.mjs",
   "grundlage/tests/r11-planen-aktivierungs-persistenz.test.mjs",
+  "grundlage/tests/r11-equip-einmal-authority.test.mjs",
+  "grundlage/tests/r11-equip-einmal-authority-persistenz.test.mjs",
   "grundlage/tests/r19-evidence-ladder.test.mjs",
   "grundlage/tests/r19-production-certification.test.mjs",
   "grundlage/tests/r19-shadow-certification.test.mjs",
@@ -163,6 +169,62 @@ if(equipmentVertrag.modulId!=="equipment-core"
     || equipmentVertrag.authority?.actionAuthorityDurchRegistrierung!==false) {
   fehler.push("EQUIPMENT_EQUIP_MUTATIONSVERTRAG_UNGUELTIG");
 }
+
+const equipEinmalAuthority=lies(
+  "grundlage/quelle/equipment/produktions-einmal-authority.ts",
+);
+for(const m of [
+  'EQUIPMENT_EQUIP_ACTION_CONTRACT_ID = "AL-ACTION-EQUIP"',
+  'EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID = "AL-RECOVERY-EQUIP"',
+  'EQUIPMENT_EQUIP_VERIFIER_ID = "AL-VERIFIER-EQUIP"',
+  '"EQUIPMENT-EQUIP-PRODUKTION-EINMAL-V1"',
+  '"V5 EQUIP EINMAL AUSFUEHREN"',
+  "ProduktiveEquipEinmalAuthority",
+  "maximaleVerwendungen: 1",
+  "breiteRuntimeFreigabe: false",
+  "rawWriteAutoritaet: false",
+]){
+  if(!equipEinmalAuthority.includes(m)) {
+    fehler.push("EQUIP_EINMAL_AUTHORITY_QUELLE_FEHLT:"+m);
+  }
+}
+const equipAuthorityAdapter=lies(
+  "grundlage/adapter/persistenz/node-equip-einmal-authority-protokoll.mjs",
+);
+for(const m of [
+  "runtime/authority/mutieren/equipment-equip/",
+  "EQUIP_EINMAL_AUTHORITY_VOR_WIRKUNG",
+  "erstelleExklusivDurable",
+  "EQUIP_EINMAL_AUTHORITY_AUDIT_ID_KOLLISION",
+  "gueltigBisMs - intent.zeitMs > 2_000",
+]){
+  if(!equipAuthorityAdapter.includes(m)) {
+    fehler.push("EQUIP_EINMAL_AUTHORITY_ADAPTER_FEHLT:"+m);
+  }
+}
+const equipAuthorityVertrag=JSON.parse(
+  lies("grundlage/vertraege/runtime/equipment-equip-one-shot-authority.json"),
+);
+if(equipAuthorityVertrag.capability?.id!=="equipment.equip"
+    || equipAuthorityVertrag.capability?.providerModulId!=="equipment-core"
+    || equipAuthorityVertrag.capability?.providerVersion!=="1"
+    || equipAuthorityVertrag.capability?.registryAktivierung!==false
+    || equipAuthorityVertrag.capability?.maximaleVerwendungenProAuthority!==1
+    || equipAuthorityVertrag.bindung?.actionContractId!=="AL-ACTION-EQUIP"
+    || equipAuthorityVertrag.bindung?.recoveryContractId!=="AL-RECOVERY-EQUIP"
+    || equipAuthorityVertrag.bindung?.verifierId!=="AL-VERIFIER-EQUIP"
+    || equipAuthorityVertrag.bindung?.bestaetigungText!=="V5 EQUIP EINMAL AUSFUEHREN"
+    || equipAuthorityVertrag.authority?.maximaleLebensdauerMs!==2000
+    || equipAuthorityVertrag.authority?.durchAdmissionPruefungVerbraucht!==true
+    || equipAuthorityVertrag.authority?.breiteRuntimeFreigabe!==false
+    || equipAuthorityVertrag.authority?.rawWriteAutoritaet!==false
+    || equipAuthorityVertrag.durability?.vorAuthorityAusstellung!==true
+    || equipAuthorityVertrag.durability?.restartAktiviertAuthorityNichtWieder!==true
+    || equipAuthorityVertrag.host?.generischeMutierenAktivierung!==false
+    || equipAuthorityVertrag.wirkung?.gameplayWriteDurchAuthorityAusstellung!==0
+    || equipAuthorityVertrag.wirkung?.adapterSendDurchAuthorityAusstellung!==0) {
+  fehler.push("EQUIP_EINMAL_AUTHORITY_VERTRAG_UNGUELTIG");
+}
 const runtimeKomposition=lies("grundlage/quelle/runtime/produktions-runtime.ts");
 for(const m of [
   "PRODUKTIONS_KOMPOSITION_FAEHIGKEIT_PROVIDER_FEHLT",
@@ -186,6 +248,20 @@ for(const m of [
     fehler.push("PLANEN_DURABLE_AUTHORITY_FEHLT:"+m);
   }
 }
+for(const m of [
+  "erteileEquipEinmalAuthority",
+  "revalidiereEquipEinmalAuthority",
+  "EQUIP_EINMAL_AUTHORITY_VOR_WIRKUNG",
+  "V5_EQUIP_EINMAL_DURABLE_PROTOKOLL_FEHLT",
+  "V5_EQUIP_EINMAL_AUDIT_NICHT_DURABLE",
+  "V5_EQUIP_EINMAL_REVALIDIERUNG_FEHLGESCHLAGEN",
+  "EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG",
+  "gueltigBisMs - anforderung.jetztMs > 2_000",
+]){
+  if(!runtimeKomposition.includes(m)) {
+    fehler.push("EQUIP_EINMAL_RUNTIME_AUTHORITY_FEHLT:"+m);
+  }
+}
 const planenAuthorityVertrag=JSON.parse(
   lies("grundlage/vertraege/runtime/durable-planen-authority.json"),
 );
@@ -204,6 +280,9 @@ for(const m of [
   "V5ProduktionsHostController",
   "ProduktionsOperationsQuellePort",
   "revalidierePlanenAuthority",
+  "erteileEquipEinmalAuthority",
+  "revalidiereEquipEinmalAuthority",
+  "PRODUKTIONS_HOST_EQUIP_EINMAL_PLANEN_NOCH_AKTIV",
   "PRODUKTIONS_HOST_OPERATIONS_QUELLE_NICHT_BEREIT",
   "gameplayAutoritaet: false",
   "rawWriteAutoritaet: false",
@@ -262,6 +341,8 @@ for(const m of [
   "NodeBedienerDenyProtokoll",
   "ladeWirksameDenyBefehle",
   "NodePlanenAktivierungsProtokoll",
+  "NodeEquipEinmalAuthorityProtokoll",
+  "erteileEquipEinmalAuthority",
   "NodeProduktionsOperationsQuelle",
   "V5ProduktionsHostController",
 ]){
@@ -272,6 +353,8 @@ for(const m of [
 for(const verboten of [
   "kernKomponenten(",
   "aktiviereNichtMutierend(",
+  "aktiviereMutierend(",
+  "erteileMutierenAuthority(",
   "erfasseOperationsMetrik(",
 ]){
   if(nodeHostKomposition.includes(verboten)) {
@@ -286,6 +369,15 @@ if(nodeHostVertrag.operatorDeny?.restartReplayErforderlich!==true
     || nodeHostVertrag.komposition?.runtimeBypassExponiert!==false
     || nodeHostVertrag.komposition?.registerBypassExponiert!==false
     || nodeHostVertrag.komposition?.postStartRevalidierungsfehlerStopptRuntime!==true
+    || nodeHostVertrag.komposition?.equipEinmalAuthorityPfadExponiert!==true
+    || nodeHostVertrag.komposition?.generischeMutierenAktivierungExponiert!==false
+    || nodeHostVertrag.equipEinmalAuthority?.capabilityId!=="equipment.equip"
+    || nodeHostVertrag.equipEinmalAuthority?.provider!=="equipment-core@1"
+    || nodeHostVertrag.equipEinmalAuthority?.maximaleVerwendungen!==1
+    || nodeHostVertrag.equipEinmalAuthority?.maximaleLebensdauerMs!==2000
+    || nodeHostVertrag.equipEinmalAuthority?.durableVorAusstellung!==true
+    || nodeHostVertrag.equipEinmalAuthority?.registryAktivierung!==false
+    || nodeHostVertrag.equipEinmalAuthority?.gameplayWriteDurchAusstellung!==0
     || nodeHostVertrag.authority?.gameplayAutoritaet!==false
     || nodeHostVertrag.authority?.rawWriteAutoritaet!==false
     || nodeHostVertrag.authority?.actionAuthority!==false

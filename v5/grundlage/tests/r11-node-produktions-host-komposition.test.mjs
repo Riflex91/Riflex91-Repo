@@ -5,6 +5,14 @@ import os from "node:os";
 import path from "node:path";
 
 import {
+  EQUIPMENT_CORE_MODUL_ID,
+  EQUIPMENT_CORE_MODUL_VERSION,
+  EQUIPMENT_EQUIP_ACTION_CONTRACT_ID,
+  EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG,
+  EQUIPMENT_EQUIP_EINMAL_POLICY_ID,
+  EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
+  EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID,
+  EQUIPMENT_EQUIP_VERIFIER_ID,
   MERCHANT_CORE_A_MODUL_ID,
   MERCHANT_CORE_A_MODUL_VERSION,
 } from "../../erzeugt/index.js";
@@ -39,6 +47,23 @@ function aktivierung(id = "HOST-CANARY-BANK-1") {
   };
 }
 
+function equipAuthority(id = "NODE-EQUIP-AUTH-1", jetztMs = 101) {
+  return {
+    schemaVersion: 1,
+    aktivierungsId: id,
+    transaktionsId: "NODE-EQUIP-TX-1",
+    faehigkeitId: EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
+    anbieterModulId: EQUIPMENT_CORE_MODUL_ID,
+    anbieterVersion: EQUIPMENT_CORE_MODUL_VERSION,
+    actionContractId: EQUIPMENT_EQUIP_ACTION_CONTRACT_ID,
+    recoveryContractId: EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID,
+    verifierId: EQUIPMENT_EQUIP_VERIFIER_ID,
+    policyId: EQUIPMENT_EQUIP_EINMAL_POLICY_ID,
+    bestaetigungText: EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG,
+    gueltigBisMs: jetztMs + 2_000,
+  };
+}
+
 test("kanonische Node-Komposition startet observer-only und aktiviert PLANEN ohne Runtime-Bypass", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "v5-node-host-"));
   try {
@@ -70,6 +95,48 @@ test("kanonische Node-Komposition startet observer-only und aktiviert PLANEN ohn
     const stopp = await host.stoppe("TEST_ENDE");
     assert.equal(stopp.zustand, "GESTOPPT");
     assert.deepEqual(stopp.aktivePlanenFaehigkeiten, []);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("Node-Host stellt exakt eine durable Equip-Authority aus ohne Registry-Aktivierung", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "v5-node-equip-auth-"));
+  try {
+    const host = await erstelleNodeV5ProduktionsHost(hostOptionen(root));
+    assert.equal((await host.starte(100)).zustand, "LAEUFT");
+
+    const ergebnis = await host.erteileEquipEinmalAuthority(
+      equipAuthority(),
+      101,
+    );
+
+    assert.equal(ergebnis.erfolgreich, true);
+    assert.ok(ergebnis.authority);
+    assert.equal(ergebnis.authority.gueltigFuer(101), true);
+    assert.equal(host.status().equipEinmalAuthorityOffen, true);
+    assert.equal(host.status().gameplayAutoritaet, false);
+    assert.equal(host.status().rawWriteAutoritaet, false);
+    assert.equal(host.status().actionAuthority, false);
+
+    const auditText = await fs.readFile(
+      path.join(
+        root,
+        "runtime",
+        "authority",
+        "mutieren",
+        "equipment-equip",
+        "NODE-EQUIP-AUTH-1.json",
+      ),
+      "utf8",
+    );
+    const audit = JSON.parse(auditText);
+    assert.equal(audit.transaktionsId, "NODE-EQUIP-TX-1");
+    assert.equal(audit.maximaleVerwendungen, 1);
+    assert.equal(audit.gameplayWriteNochNichtAusgefuehrt, true);
+
+    await host.stoppe("TEST_ENDE");
+    assert.equal(ergebnis.authority.gueltigFuer(102), false);
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }
@@ -166,6 +233,8 @@ test("Node-Host exponiert keine Runtime- oder Register-Aktivierungs-Bypaesse", a
       "kernKomponenten",
       "operationsSupervisor",
       "aktiviereNichtMutierend",
+      "aktiviereMutierend",
+      "erteileMutierenAuthority",
       "erfasseOperationsMetrik",
     ]) {
       assert.equal(verboten in host, false);
