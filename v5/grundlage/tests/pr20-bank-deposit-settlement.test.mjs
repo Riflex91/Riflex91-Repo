@@ -6,7 +6,7 @@ import {
   BANK_DEPOSIT_ERSTER_BETRAG,
   pruefeBankDepositEinGoldBereitschaft,
   pruefeBankDepositEinGoldSettlement,
-} from "../erzeugt/merchant/bank-deposit-settlement.js";
+} from "../../erzeugt/merchant/bank-deposit-settlement.js";
 
 const lies = pfad => JSON.parse(fs.readFileSync(pfad, "utf8"));
 
