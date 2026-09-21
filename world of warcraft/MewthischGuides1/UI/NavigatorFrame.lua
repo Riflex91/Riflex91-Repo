@@ -146,6 +146,41 @@ function N:RefreshLive()
         (nav.waypoint.mapName and ("Ziel in " .. tostring(nav.waypoint.mapName)) or
          "Aktuelles Ziel"))
 
+    if MG.db then
+        MG.db.runtime = MG.db.runtime or {}
+        local diagnostic = {
+            build = MG.BUILD,
+            runtimeRevision = runtime.revision,
+            stepID = runtime.stepID,
+            stepIndex = runtime.stepIndex,
+            goalID = nav.goalState and nav.goalState.id or nil,
+            goalAction = nav.goalState and nav.goalState.action or nil,
+            position = position,
+            waypoint = nav.waypoint,
+            distance = distance,
+            distanceMode = distanceMode,
+            playerFacing = facing,
+            arrowHasSetRotation = self.arrow.SetRotation and true or false,
+            bearing = bearing,
+            targetText = row and row.text or nil,
+        }
+        MG.db.runtime.navigator = diagnostic
+
+        local signature = table.concat({
+            tostring(diagnostic.runtimeRevision or "-"),
+            tostring(diagnostic.stepID or "-"),
+            tostring(diagnostic.goalID or "-"),
+            tostring(diagnostic.distanceMode or "-"),
+            tostring(bearing and bearing.reason or "-"),
+            tostring(diagnostic.arrowHasSetRotation),
+        }, "|")
+        if self.lastDiagnosticSignature ~= signature then
+            self.lastDiagnosticSignature = signature
+            MG:Log("INFO", "navigator.snapshot",
+                "Live-Navigatorzustand erfasst.", diagnostic)
+        end
+    end
+
     UI:SetShown(frame, MG.db and MG.db.settings and
         MG.db.settings.showNavigator ~= false)
 end
