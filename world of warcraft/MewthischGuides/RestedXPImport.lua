@@ -310,6 +310,82 @@ local function parseDefaultFor(value)
     return #races > 0 and races or nil, #classes > 0 and classes or nil
 end
 
+local function positiveClassesForSelector(selector)
+    selector = trim(selector)
+    selector = selector:gsub("^<<%s*", "")
+    selector = selector:gsub("%s+%-%-.*$", "")
+    selector = selector:gsub("%s+#.*$", "")
+    selector = trim(selector)
+    if selector == "" then return nil end
+
+    local allowed = {}
+    local sawBranch = false
+    for branch in string.gmatch(selector, "[^/]+") do
+        sawBranch = true
+        local branchHasPositiveClass = false
+        for atom in string.gmatch(trim(branch), "%S+") do
+            if string.sub(atom, 1, 1) ~= "!" and CLASSES[atom] then
+                allowed[CLASSES[atom]] = true
+                branchHasPositiveClass = true
+            end
+        end
+        if not branchHasPositiveClass then return nil end
+    end
+
+    return sawBranch and next(allowed) and allowed or nil
+end
+
+local function intersectClassSets(a, b)
+    if not a then return b end
+    if not b then return a end
+    local out = {}
+    for classFile in pairs(a) do
+        if b[classFile] then out[classFile] = true end
+    end
+    return next(out) and out or nil
+end
+
+local function occurrenceClassRestriction(stepSelector, actionSelector)
+    return intersectClassSets(
+        positiveClassesForSelector(stepSelector),
+        positiveClassesForSelector(actionSelector))
+end
+
+local function sortedClassList(classSet)
+    local out = {}
+    for classFile in pairs(classSet or {}) do out[#out + 1] = classFile end
+    table.sort(out)
+    return out
+end
+
+local function deriveQuestClassRestriction(definition)
+    local occurrences = definition and definition.rxpOccurrences or {}
+    local authoritative = {}
+
+    for _, occurrence in ipairs(occurrences) do
+        if occurrence.phase == "accept" then
+            authoritative[#authoritative + 1] = occurrence
+        end
+    end
+
+    local source = "accept"
+    if #authoritative == 0 then
+        authoritative = occurrences
+        source = "all_occurrences"
+    end
+    if #authoritative == 0 then return nil, nil end
+
+    local union = {}
+    for _, occurrence in ipairs(authoritative) do
+        local classes = occurrence.classRestriction
+        if not classes then return nil, nil end
+        for classFile in pairs(classes) do union[classFile] = true end
+    end
+
+    if not next(union) then return nil, nil end
+    return sortedClassList(union), source
+end
+
 function Import:ParseRaw()
     if self.rawGuides then return self.rawGuides end
 
@@ -469,6 +545,8 @@ function Import:BuildGuides()
                                 leadFromStep = lastQuestBearingStep + 1,
                                 sourceStep = stepIndex,
                                 sourceAction = actionIndex,
+                                classRestriction = occurrenceClassRestriction(
+                                    rawStep.selector, parsed.selector),
                             }
                         end
                     end
@@ -476,6 +554,18 @@ function Import:BuildGuides()
 
                 if stepHasQuestAction then
                     lastQuestBearingStep = stepIndex
+                end
+            end
+
+            for _, definition in ipairs(ordered) do
+                local questClasses, restrictionSource =
+                    deriveQuestClassRestriction(definition)
+                if questClasses then
+                    definition.classes = questClasses
+                    definition.classSpecific = true
+                    definition.classRestrictionSource = restrictionSource
+                else
+                    definition.classSpecific = false
                 end
             end
 
@@ -571,6 +661,23 @@ function Import:GetProgressOrder(definition, phase, profile, objectiveIndex)
         definition, phase, profile, objectiveIndex)
     if not occurrence then return tonumber(definition and definition.order) end
     return occurrenceOrder(occurrence)
+end
+
+function Import:GetClassSpecificQuestStats(guides)
+    local stats = {total = 0, classSpecific = 0, byClass = {}}
+    for _, guide in ipairs(guides or self:BuildGuides() or {}) do
+        for _, definition in ipairs(guide.steps or {}) do
+            stats.total = stats.total + 1
+            if definition.classSpecific and type(definition.classes) == "table" then
+                stats.classSpecific = stats.classSpecific + 1
+                for _, classFile in ipairs(definition.classes) do
+                    stats.byClass[classFile] =
+                        (stats.byClass[classFile] or 0) + 1
+                end
+            end
+        end
+    end
+    return stats
 end
 
 local function distanceToCoordinate(coordinate, player)
