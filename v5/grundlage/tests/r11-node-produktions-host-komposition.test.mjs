@@ -343,6 +343,118 @@ test("Node-Host fuehrt synthetisch exakt eine produktive Equip-Transaktion bis C
   }
 });
 
+test("Node-Host importiert nichtterminale Bank-Lease als RECOVERY_PENDING und blockiert Bank-Start", async () => {
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "v5-node-bank-lease-restart-"),
+  );
+  try {
+    const leaseDir = path.join(root, "runtime", "bank");
+    await fs.mkdir(leaseDir, { recursive: true });
+    await fs.writeFile(
+      path.join(leaseDir, "lease-state-v1.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        gespeichertAmMs: 100,
+        eintraege: [{
+          schemaVersion: 1,
+          accountId: "account-1",
+          ownerCharacterId: "merchant",
+          ablaufId: "ALT-BANK-WF",
+          epoche: 12,
+          zustand: "ACTIVE",
+          acquiredAtMs: 50,
+          lastHeartbeatAtMs: 90,
+          purpose: "deposit",
+          serverRegion: "EU",
+          serverIdentifier: "I",
+        }],
+      }) + "\n",
+      "utf8",
+    );
+
+    const host = await erstelleNodeV5ProduktionsHost(hostOptionen(root));
+    const bereit = await host.pruefeBankDepositStartBereit();
+    assert.equal(bereit.bereit, false);
+    assert.equal(bereit.offeneTransaktionsId, null);
+    assert.deepEqual(bereit.offeneBankLease, {
+      accountId: "account-1",
+      ownerCharacterId: "merchant",
+      epoche: 12,
+      zustand: "RECOVERY_PENDING",
+      serverRegion: "EU",
+      serverIdentifier: "I",
+    });
+
+    const abgeglichen = await host.schliesseBankLeaseRestartAbgleichAb(
+      "account-1",
+      12,
+      true,
+      200,
+    );
+    assert.equal(abgeglichen.zustand, "RELEASED");
+    assert.equal((await host.pruefeBankDepositStartBereit()).bereit, true);
+
+    const hostNachNeustart =
+      await erstelleNodeV5ProduktionsHost(hostOptionen(root));
+    assert.equal(
+      (await hostNachNeustart.pruefeBankDepositStartBereit()).bereit,
+      true,
+    );
+    assert.deepEqual(hostNachNeustart.bankLeaseStatus(), []);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("negativer External-Fence-Restart-Abgleich quarantiniert Bank-Lease dauerhaft", async () => {
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "v5-node-bank-lease-quarantine-"),
+  );
+  try {
+    const leaseDir = path.join(root, "runtime", "bank");
+    await fs.mkdir(leaseDir, { recursive: true });
+    await fs.writeFile(
+      path.join(leaseDir, "lease-state-v1.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        gespeichertAmMs: 100,
+        eintraege: [{
+          schemaVersion: 1,
+          accountId: "account-1",
+          ownerCharacterId: "merchant",
+          ablaufId: "ALT-BANK-WF",
+          epoche: 13,
+          zustand: "RELEASING",
+          acquiredAtMs: 50,
+          lastHeartbeatAtMs: 90,
+          purpose: "deposit",
+          serverRegion: "EU",
+          serverIdentifier: "I",
+        }],
+      }) + "\n",
+      "utf8",
+    );
+
+    const host = await erstelleNodeV5ProduktionsHost(hostOptionen(root));
+    const quarantine = await host.schliesseBankLeaseRestartAbgleichAb(
+      "account-1",
+      13,
+      false,
+      200,
+    );
+    assert.equal(quarantine.zustand, "QUARANTINED");
+    assert.equal((await host.pruefeBankDepositStartBereit()).bereit, false);
+
+    const hostB = await erstelleNodeV5ProduktionsHost(hostOptionen(root));
+    const status = await hostB.pruefeBankDepositStartBereit();
+    assert.equal(status.bereit, false);
+    assert.equal(status.offeneBankLease?.zustand, "RECOVERY_PENDING");
+    assert.equal(status.offeneBankLease?.epoche, 13);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test("persistierter Capability-Deny ueberlebt Node-Host-Neustart", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "v5-node-deny-"));
   try {
