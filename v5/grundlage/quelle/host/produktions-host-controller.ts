@@ -118,6 +118,70 @@ export interface ProduktionsEquipEinmalRevalidierungsErgebnis {
   readonly breiteRuntimeFreigabe: false;
 }
 
+export interface ProduktionsBankDepositEinmalAuthorityPort {
+  pruefe(
+    faehigkeitId: string,
+    eigentuemerModulId: string,
+  ): {
+    readonly erlaubt: boolean;
+    readonly mutierend: boolean;
+    readonly generation: number;
+  };
+  gueltigFuer(jetztMs: number): boolean;
+  verbraucht(): boolean;
+  widerrufe(): void;
+  daten(): {
+    readonly aktivierungsId: string;
+    readonly transaktionsId: string;
+    readonly actionContractId: string;
+    readonly recoveryContractId: string;
+    readonly verifierId: string;
+    readonly gueltigBisMs: number;
+  };
+}
+
+export interface ProduktionsBankDepositEinmalAuthorityAnforderung {
+  readonly schemaVersion: 1;
+  readonly aktivierungsId: string;
+  readonly transaktionsId: string;
+  readonly faehigkeitId: "merchant.bank.gold_einlagern";
+  readonly anbieterModulId: "merchant-bank-core";
+  readonly anbieterVersion: "1";
+  readonly actionContractId: "AL-ACTION-BANK-DEPOSIT";
+  readonly recoveryContractId: "AL-RECOVERY-BANK-DEPOSIT";
+  readonly verifierId: "AL-VERIFIER-BANK-DEPOSIT";
+  readonly policyId: "BANK-DEPOSIT-PRODUKTION-EINMAL-V1";
+  readonly bestaetigungText: "V5 BANK DEPOSIT 1 GOLD EINMAL AUSFUEHREN";
+  readonly healthEvidence: readonly HealthEvidence[];
+  readonly jetztMs: number;
+  readonly gueltigBisMs: number;
+}
+
+export interface ProduktionsBankDepositEinmalAuthorityErgebnis {
+  readonly schemaVersion: 1;
+  readonly erfolgreich: boolean;
+  readonly grund: string;
+  readonly aktivierungsId: string;
+  readonly transaktionsId: string;
+  readonly authority: ProduktionsBankDepositEinmalAuthorityPort | null;
+  readonly evidenceIds: readonly string[];
+  readonly maximaleVerwendungen: 1;
+  readonly gameplayWriteAusgefuehrt: false;
+  readonly rawWriteAutoritaet: false;
+  readonly breiteRuntimeFreigabe: false;
+}
+
+export interface ProduktionsBankDepositEinmalRevalidierungsErgebnis {
+  readonly schemaVersion: 1;
+  readonly bereit: boolean;
+  readonly grund: string;
+  readonly authorityOffen: boolean;
+  readonly authorityWiderrufen: boolean;
+  readonly gameplayWriteAusgefuehrt: false;
+  readonly rawWriteAutoritaet: false;
+  readonly breiteRuntimeFreigabe: false;
+}
+
 export interface ProduktionsPlanenRuntimePort {
   status(): V5ProduktionsProzessStatus;
   erfasseOperationsMetrik(metrik: OperationsMetrik): boolean;
@@ -135,6 +199,13 @@ export interface ProduktionsPlanenRuntimePort {
     healthEvidence: readonly HealthEvidence[],
     jetztMs: number,
   ): ProduktionsEquipEinmalRevalidierungsErgebnis;
+  erteileBankDepositEinmalAuthority(
+    anforderung: ProduktionsBankDepositEinmalAuthorityAnforderung,
+  ): Promise<ProduktionsBankDepositEinmalAuthorityErgebnis>;
+  revalidiereBankDepositEinmalAuthority(
+    healthEvidence: readonly HealthEvidence[],
+    jetztMs: number,
+  ): ProduktionsBankDepositEinmalRevalidierungsErgebnis;
 }
 
 export type HostPlanenAktivierungsAnfrage = Omit<
@@ -144,6 +215,11 @@ export type HostPlanenAktivierungsAnfrage = Omit<
 
 export type HostEquipEinmalAuthorityAnfrage = Omit<
   ProduktionsEquipEinmalAuthorityAnforderung,
+  "healthEvidence" | "jetztMs"
+>;
+
+export type HostBankDepositEinmalAuthorityAnfrage = Omit<
+  ProduktionsBankDepositEinmalAuthorityAnforderung,
   "healthEvidence" | "jetztMs"
 >;
 
@@ -162,6 +238,8 @@ export interface ProduktionsHostStatus {
   readonly letzteHealthEvidenceIds: readonly string[];
   readonly letzteOperationsZeitMs: number | null;
   readonly aktivePlanenFaehigkeiten: readonly string[];
+  readonly equipEinmalAuthorityOffen: boolean;
+  readonly bankDepositEinmalAuthorityOffen: boolean;
   readonly gameplayAutoritaet: false;
   readonly rawWriteAutoritaet: false;
   readonly actionAuthority: false;
@@ -202,6 +280,7 @@ export class V5ProduktionsHostController {
   #letzteOperationsZeitMs: number | null = null;
   #aktivePlanenFaehigkeiten: readonly string[] = Object.freeze([]);
   #equipEinmalAuthorityOffen = false;
+  #bankDepositEinmalAuthorityOffen = false;
 
   public constructor(
     bootstrap: V5ProduktionsBootstrap,
@@ -291,6 +370,30 @@ export class V5ProduktionsHostController {
       );
     }
 
+    const bankRevalidierung =
+      this.#runtime.revalidiereBankDepositEinmalAuthority(
+        beobachtung.healthEvidence,
+        jetztMs,
+      );
+    this.#bankDepositEinmalAuthorityOffen = bankRevalidierung.authorityOffen;
+    if (!bankRevalidierung.bereit) {
+      try {
+        this.#letzterBootstrap = await this.#bootstrap.stoppe(
+          "POST_START_BANK_DEPOSIT_REVALIDIERUNG_FEHLGESCHLAGEN",
+        );
+      } catch {
+        return this.#setze(
+          "FEHLER",
+          "PRODUKTIONS_HOST_POST_START_STOPP_AUSNAHME",
+        );
+      }
+      return this.#setze(
+        "GESPERRT",
+        "PRODUKTIONS_HOST_BANK_DEPOSIT_REVALIDIERUNG_NICHT_BEREIT:"
+          + bankRevalidierung.grund,
+      );
+    }
+
     return this.#setze("LAEUFT", "V5_PRODUKTIONS_HOST_GESTARTET");
   }
 
@@ -308,6 +411,7 @@ export class V5ProduktionsHostController {
 
     this.#aktivePlanenFaehigkeiten = Object.freeze([]);
     this.#equipEinmalAuthorityOffen = false;
+    this.#bankDepositEinmalAuthorityOffen = false;
     if (bootstrap.zustand !== "GESTOPPT") {
       return this.#setze(
         "FEHLER",
@@ -333,6 +437,13 @@ export class V5ProduktionsHostController {
         jetztMs,
       );
       this.#equipEinmalAuthorityOffen = equipRevalidierung.authorityOffen;
+      const bankRevalidierung =
+        this.#runtime.revalidiereBankDepositEinmalAuthority(
+          Object.freeze([]),
+          jetztMs,
+        );
+      this.#bankDepositEinmalAuthorityOffen =
+        bankRevalidierung.authorityOffen;
       return this.#setze(
         "GESPERRT",
         "PRODUKTIONS_HOST_OPERATIONS_QUELLE_NICHT_BEREIT",
@@ -364,6 +475,20 @@ export class V5ProduktionsHostController {
         "GESPERRT",
         "PRODUKTIONS_HOST_EQUIP_REVALIDIERUNG_NICHT_BEREIT:"
           + equipRevalidierung.grund,
+      );
+    }
+
+    const bankRevalidierung =
+      this.#runtime.revalidiereBankDepositEinmalAuthority(
+        beobachtung.healthEvidence,
+        jetztMs,
+      );
+    this.#bankDepositEinmalAuthorityOffen = bankRevalidierung.authorityOffen;
+    if (!bankRevalidierung.bereit) {
+      return this.#setze(
+        "GESPERRT",
+        "PRODUKTIONS_HOST_BANK_DEPOSIT_REVALIDIERUNG_NICHT_BEREIT:"
+          + bankRevalidierung.grund,
       );
     }
 
@@ -447,6 +572,9 @@ export class V5ProduktionsHostController {
     if (this.#aktivePlanenFaehigkeiten.length > 0) {
       throw new Error("PRODUKTIONS_HOST_EQUIP_EINMAL_PLANEN_NOCH_AKTIV");
     }
+    if (this.#bankDepositEinmalAuthorityOffen) {
+      throw new Error("PRODUKTIONS_HOST_EQUIP_EINMAL_BANK_AUTHORITY_OFFEN");
+    }
 
     const beobachtung = await this.#beobachteFailClosed(jetztMs);
     if (beobachtung === null) {
@@ -497,6 +625,78 @@ export class V5ProduktionsHostController {
       }),
     );
     this.#equipEinmalAuthorityOffen = ergebnis.erfolgreich
+      && ergebnis.authority !== null;
+    return ergebnis;
+  }
+
+  public async erteileBankDepositEinmalAuthority(
+    anfrage: HostBankDepositEinmalAuthorityAnfrage,
+    jetztMs: number,
+  ): Promise<ProduktionsBankDepositEinmalAuthorityErgebnis> {
+    pruefeZeit(jetztMs);
+    if (this.#zustand !== "LAEUFT") {
+      throw new Error("PRODUKTIONS_HOST_BANK_DEPOSIT_EINMAL_HOST_NICHT_BEREIT");
+    }
+    if (this.#aktivePlanenFaehigkeiten.length > 0) {
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_DEPOSIT_EINMAL_PLANEN_NOCH_AKTIV",
+      );
+    }
+    if (this.#equipEinmalAuthorityOffen) {
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_DEPOSIT_EINMAL_EQUIP_AUTHORITY_OFFEN",
+      );
+    }
+
+    const beobachtung = await this.#beobachteFailClosed(jetztMs);
+    if (beobachtung === null) {
+      this.#runtime.revalidiereBankDepositEinmalAuthority(
+        Object.freeze([]),
+        jetztMs,
+      );
+      this.#bankDepositEinmalAuthorityOffen = false;
+      this.#setze(
+        "GESPERRT",
+        "PRODUKTIONS_HOST_OPERATIONS_QUELLE_NICHT_BEREIT",
+      );
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_DEPOSIT_EINMAL_OPERATIONS_NICHT_BEREIT",
+      );
+    }
+
+    const planen = this.#runtime.revalidierePlanenAuthority(
+      beobachtung.healthEvidence,
+      jetztMs,
+    );
+    this.#aktivePlanenFaehigkeiten = Object.freeze([
+      ...planen.aktivePlanenFaehigkeiten,
+    ]);
+    if (!planen.bereit || this.#aktivePlanenFaehigkeiten.length > 0) {
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_DEPOSIT_EINMAL_PLANEN_NICHT_BEREIT",
+      );
+    }
+
+    const vorAuthority =
+      this.#runtime.revalidiereBankDepositEinmalAuthority(
+        beobachtung.healthEvidence,
+        jetztMs,
+      );
+    this.#bankDepositEinmalAuthorityOffen = vorAuthority.authorityOffen;
+    if (!vorAuthority.bereit || vorAuthority.authorityOffen) {
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_DEPOSIT_EINMAL_AUTHORITY_NICHT_FREI",
+      );
+    }
+
+    const ergebnis = await this.#runtime.erteileBankDepositEinmalAuthority(
+      Object.freeze({
+        ...anfrage,
+        healthEvidence: beobachtung.healthEvidence,
+        jetztMs,
+      }),
+    );
+    this.#bankDepositEinmalAuthorityOffen = ergebnis.erfolgreich
       && ergebnis.authority !== null;
     return ergebnis;
   }
@@ -567,6 +767,8 @@ export class V5ProduktionsHostController {
         ...this.#aktivePlanenFaehigkeiten,
       ]),
       equipEinmalAuthorityOffen: this.#equipEinmalAuthorityOffen,
+      bankDepositEinmalAuthorityOffen:
+        this.#bankDepositEinmalAuthorityOffen,
       gameplayAutoritaet: false,
       rawWriteAutoritaet: false,
       actionAuthority: false,
