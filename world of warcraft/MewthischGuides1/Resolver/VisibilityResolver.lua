@@ -21,14 +21,17 @@ function V:Resolve(goal, requirement, completion)
         return { visible=false, reason="hide_when_complete" }
     end
 
+    if goal.visibleByDefault == false then
+        return { visible=false, reason="source_hidden" }
+    end
+
     local settings = MG.db and MG.db.settings or {}
-    if completion and completion.complete and settings.showCompletedGoals == false and
-       goal.role ~= "condition" then
+    if completion and completion.complete and settings.showCompletedGoals == false then
         return { visible=false, reason="completed_hidden_by_policy" }
     end
 
-    if goal.visibleByDefault == false and goal.role == "annotation" then
-        return { visible=false, reason="source_hidden" }
+    if goal.passive and settings.showPassiveHints == false then
+        return { visible=false, reason="passive_hidden_by_policy" }
     end
 
     return { visible=true, reason="visible" }
