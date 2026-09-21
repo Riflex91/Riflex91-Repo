@@ -202,13 +202,13 @@ test("open_bank_pack bleibt wegen eigener Capacity-/Backend-Risiken bewusst auss
   assert.equal(contract.idempotency, "NON_IDEMPOTENT");
 });
 
-test("PR20.2 bank_withdraw(1) besitzt Capability Authority und Current-Fence weiterhin NO-WRITE", () => {
+test("PR20.2 bank_withdraw(1) besitzt Preflight und Admission-Shadow weiterhin NO-WRITE", () => {
   const kandidat = prep.naechsterLiveKandidat;
   const vertrag = lies(
     "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
   );
   assert.ok(kandidat);
-  assert.equal(kandidat.status, "CAPABILITY_AUTHORITY_CURRENT_FENCE_NO_WRITE");
+  assert.equal(kandidat.status, "PREFLIGHT_ADMISSION_SHADOW_NO_WRITE");
   assert.equal(kandidat.publicFunction, "bank_withdraw");
   assert.equal(kandidat.betragGold, 1);
   assert.equal(kandidat.actionContractId, "AL-ACTION-BANK-WITHDRAW");
@@ -222,8 +222,14 @@ test("PR20.2 bank_withdraw(1) besitzt Capability Authority und Current-Fence wei
   assert.equal(kandidat.oneShotMaxVerwendungen, 1);
   assert.equal(kandidat.oneShotMaxLebensdauerMs, 2000);
   assert.equal(kandidat.currentFenceImplementiert, true);
-  assert.equal(kandidat.readOnlyPreflightImplementiert, false);
-  assert.equal(kandidat.admissionShadowImplementiert, false);
+  assert.equal(kandidat.readOnlyPreflightImplementiert, true);
+  assert.equal(kandidat.preflightBrowserGameplayWrites, 0);
+  assert.equal(kandidat.preflightAuthorityAusstellung, false);
+  assert.equal(kandidat.admissionShadowImplementiert, true);
+  assert.equal(kandidat.shadowSendBoundaryState, "NICHT_GESENDET");
+  assert.equal(kandidat.shadowGameplayWrites, 0);
+  assert.equal(kandidat.shadowAdapterAufrufe, 0);
+  assert.equal(kandidat.realBrowserShadowEvidence, "AUSSTEHEND");
   assert.equal(kandidat.writeAdapterImplementiert, false);
   assert.equal(kandidat.liveRunnerImplementiert, false);
   assert.equal(kandidat.gameplayWritesInDiesemSchritt, 0);

@@ -1,0 +1,137 @@
+import crypto from "node:crypto";
+import { pathToFileURL } from "node:url";
+
+import {
+  BANK_WITHDRAW_ERSTER_BETRAG,
+} from "../erzeugt/index.js";
+import {
+  findeAdventureLandKontext,
+  validiereLoopbackCdp,
+} from "./r12-live/cdp.mjs";
+import {
+  BANK_WITHDRAW_PREFLIGHT_GAMEPLAY_WRITES,
+  beobachteBankWithdrawPreflightReadOnly,
+} from "./bank-withdraw-produktions-browser.mjs";
+import {
+  erstelleNodeV5ProduktionsHost,
+} from "./v5-produktions-host-komposition.mjs";
+
+function hash(wert) {
+  return crypto.createHash("sha256").update(String(wert)).digest("hex");
+}
+
+function leseArgument(name, fallback) {
+  const i = process.argv.indexOf(name);
+  if (i < 0) return fallback;
+  const wert = process.argv[i + 1];
+  if (!wert || wert.startsWith("--")) {
+    throw new Error("BANK_WITHDRAW_PREFLIGHT_ARGUMENT_FEHLT:" + name);
+  }
+  return wert;
+}
+
+export async function fuehreBankWithdrawPreflight({
+  cdpText,
+  hostOptionen = {},
+} = {}) {
+  const cdp = validiereLoopbackCdp(
+    cdpText || process.env.V5_CDP_URL || "http://127.0.0.1:9222/",
+  );
+  const live = await findeAdventureLandKontext(cdp);
+  let host = null;
+  try {
+    const beobachtung = await beobachteBankWithdrawPreflightReadOnly(
+      live.session,
+      live.contextId,
+    );
+    host = await erstelleNodeV5ProduktionsHost(hostOptionen);
+    const start = await host.starte(Date.now());
+    if (start.zustand !== "LAEUFT") {
+      throw new Error("BANK_WITHDRAW_PREFLIGHT_HOST_BLOCKIERT:" + start.grund);
+    }
+    const journal = await host.pruefeBankWithdrawStartBereit();
+    const status = host.status();
+    const bereit = journal.bereit
+      && status.zustand === "LAEUFT"
+      && status.aktivePlanenFaehigkeiten.length === 0
+      && status.equipEinmalAuthorityOffen === false
+      && status.bankDepositEinmalAuthorityOffen === false
+      && status.bankWithdrawEinmalAuthorityOffen === false;
+
+    return Object.freeze({
+      schemaVersion: 1,
+      status: bereit ? "BEREIT_FUER_ADMISSION" : "BLOCKIERT",
+      charakterBindungSha256: hash(
+        beobachtung.charakterName + ":" + beobachtung.sessionId,
+      ),
+      accountBindungSha256: hash(beobachtung.accountId),
+      ctype: beobachtung.ctype,
+      server: Object.freeze({
+        region: beobachtung.serverRegion,
+        kennung: beobachtung.serverKennung,
+      }),
+      candidate: Object.freeze({
+        publicFunction: "bank_withdraw",
+        betragGold: BANK_WITHDRAW_ERSTER_BETRAG,
+        characterGoldVorher: beobachtung.characterGold,
+        bankGoldVorher: beobachtung.bankGold,
+      }),
+      journal: Object.freeze({
+        bereit: journal.bereit,
+        offeneTransaktionsId: journal.offeneTransaktionsId,
+        offeneBankLease: journal.offeneBankLease,
+      }),
+      host: Object.freeze({
+        zustand: status.zustand,
+        grund: status.grund,
+        aktivePlanenFaehigkeiten: status.aktivePlanenFaehigkeiten,
+        equipEinmalAuthorityOffen: status.equipEinmalAuthorityOffen,
+        bankDepositEinmalAuthorityOffen:
+          status.bankDepositEinmalAuthorityOffen,
+        bankWithdrawEinmalAuthorityOffen:
+          status.bankWithdrawEinmalAuthorityOffen,
+        gameplayAutoritaet: status.gameplayAutoritaet,
+        rawWriteAutoritaet: status.rawWriteAutoritaet,
+        actionAuthority: status.actionAuthority,
+      }),
+      admission: Object.freeze({
+        accountweiteBankLeaseVorSendErforderlich: true,
+        lokalerBankActionChannelVorSendErforderlich: true,
+        leaseImPreflightErteilt: false,
+        authorityImPreflightErteilt: false,
+      }),
+      browserReadOnly: true,
+      browserGameplayWrites: BANK_WITHDRAW_PREFLIGHT_GAMEPLAY_WRITES,
+      naechsterSchritt: bereit
+        ? "WITHDRAW_ADMISSION_SHADOW_NO_WRITE"
+        : "CURRENT_ODER_BANK_LEASE_RECOVERY_EVIDENCE_ANALYSIEREN",
+    });
+  } finally {
+    if (host !== null) {
+      await host.stoppe("BANK_WITHDRAW_PREFLIGHT_ENDE").catch(() => {});
+    }
+    live.session.close();
+  }
+}
+
+const direkt = process.argv[1]
+  && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (direkt) {
+  fuehreBankWithdrawPreflight({
+    cdpText: leseArgument(
+      "--cdp",
+      process.env.V5_CDP_URL || "http://127.0.0.1:9222/",
+    ),
+  }).then(bericht => {
+    process.stdout.write(JSON.stringify(bericht, null, 2) + "\n");
+    if (bericht.status !== "BEREIT_FUER_ADMISSION") process.exitCode = 2;
+  }).catch(fehler => {
+    process.stderr.write(JSON.stringify({
+      status: "BLOCKIERT",
+      fehler: String(fehler?.message || fehler),
+      browserGameplayWrites: 0,
+      authorityAusgestellt: false,
+    }, null, 2) + "\n");
+    process.exitCode = 1;
+  });
+}

@@ -157,6 +157,39 @@ Der naechste Gate ist deshalb ein separater read-only Preflight plus
 NO-WRITE Admission-Shadow mit Bank-Lease/Fencing. Erst dessen Evidence darf
 einen spaeteren Write-Adapter/Live-Runner-Gate vorbereiten.
 
+## PR20.2l – Withdraw Preflight und Admission-Shadow NO-WRITE
+
+Aufbauend auf PR20.2k ist `bank_withdraw(1)` jetzt bis zur
+Admission-Grenze ohne Send vorbereitet:
+
+- read-only Browserbeobachtung fuer Character-, Session-, Server-,
+  Inventory-, Character-Gold- und Bank-Gold-Evidence;
+- Withdraw-Preflight mit stabilem Bank-Mount und
+  `bank.gold >= 1` als fachlicher Quellbudget-Bedingung;
+- eigener NO-WRITE Admission-Shadow;
+- Bindung an die aktuelle Withdraw-One-Shot-Authority;
+- accountweite Bank-Lease, External Fence, Snapshot-Fencing,
+  lokaler FIFO-`bank`-Action-Channel und Socket-Budget;
+- durable Intent vor Admission;
+- terminaler `ABBRUCH` mit
+  `send_boundary_state=NICHT_GESENDET`.
+
+Der Preflight stellt weder Lease noch Authority aus. Der Shadow besitzt
+keinen Write-Adapter und keinen Public-Function-Send.
+
+Weiterhin bewusst **nicht** vorhanden:
+
+- keine source-locked Real-Browser-Shadow-Evidence fuer Withdraw;
+- kein Withdraw-Write-Adapter;
+- kein Withdraw-Live-Runner;
+- kein direkter produktiver `bank_withdraw(...)`-Aufruf;
+- kein Raw-Socket-`.emit(...)`;
+- exakt 0 Gameplay-Writes.
+
+Der naechste Gate ist ein eigener source-locked Real-Browser-Shadow ohne
+Send. Erst nach dessen bestandener Evidence darf ein separater
+Write-Adapter/Live-Runner-Gate vorbereitet werden.
+
 ## Admission-Grenze fuer die spaetere Implementierung
 
 Unmittelbar vor jedem moeglichen Bank-Send muessen mindestens erneut bewiesen sein:

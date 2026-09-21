@@ -176,9 +176,18 @@ Withdraw-Write-Adapter, **kein** Withdraw-Live-Runner und **kein**
 `bank_withdraw(...)`-Send. Neue Gameplay-Writes dieses Schritts: 0. ADR:
 `architektur/adr/ADR-040-PR20-2K-BANK-WITHDRAW-AUTHORITY-CURRENT-FENCE-NO-WRITE.md`.
 
-Als naechstes folgt ein read-only Withdraw-Preflight und ein NO-WRITE
-Admission-Shadow mit Bank-Lease/Fencing. Erst danach darf ein separater
-Write-Gate fuer Withdraw vorbereitet werden.
+PR20.2l zieht Withdraw nun bis zur Admission-Grenze, weiterhin strikt
+NO-WRITE. Der read-only Browser-Preflight verlangt einen stabilen Bank-Mount
+und fuer Withdraw `bank.gold >= 1`. Der eigene Admission-Shadow durchlaeuft
+accountweite Bank-Lease, External Fence, Snapshot-Fencing, den FIFO-Kanal
+`bank`, Socket-Budget, durable Intent und R9-Admission und endet terminal mit
+`ABBRUCH` / `NICHT_GESENDET`. Adapter-Aufrufe und Gameplay-Writes bleiben
+0; ein `bank_withdraw(...)`-Send existiert nicht. ADR:
+`architektur/adr/ADR-041-PR20-2L-BANK-WITHDRAW-PREFLIGHT-SHADOW-NO-WRITE.md`.
+
+Als naechstes folgt ein source-locked Real-Browser-Shadow fuer Withdraw,
+weiterhin ohne Send. Erst nach dessen bestandener Evidence darf ein separater
+Write-Gate vorbereitet werden.
 
 
 Vorhandene Bankplanung, Bank-Lease, Fencing und Bankkatalog-Fundamente werden mit echten Bankmutationen verbunden.

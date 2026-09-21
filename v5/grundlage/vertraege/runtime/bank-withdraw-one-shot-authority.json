@@ -42,5 +42,22 @@
     "adapterSendDurchAuthorityAusstellung": 0
   },
   "liveRunnerInDiesemSchritt": false,
-  "writeAdapterInDiesemSchritt": false
+  "writeAdapterInDiesemSchritt": false,
+  "preflight": {
+    "readOnly": true,
+    "runner": "werkzeuge/bank-withdraw-produktions-preflight.mjs",
+    "browserObserver": "werkzeuge/bank-withdraw-produktions-browser.mjs",
+    "browserGameplayWrites": 0,
+    "authorityAusstellung": false,
+    "bankGoldMindestens": 1
+  },
+  "shadow": {
+    "admissionCore": "grundlage/quelle/merchant/bank-withdraw-shadow-admission.ts",
+    "implementiert": true,
+    "sendBoundaryState": "NICHT_GESENDET",
+    "sameIntentRetry": false,
+    "gameplayWrites": 0,
+    "adapterAufrufe": 0,
+    "realBrowserShadowEvidence": "AUSSTEHEND"
+  }
 }
