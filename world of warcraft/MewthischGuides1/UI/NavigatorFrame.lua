@@ -58,9 +58,15 @@ function N:Refresh()
         return
     end
 
-    local yards = MG.NavigationDistance and MG.NavigationDistance:Between(
+    local distance, distanceMode = MG.NavigationDistance and MG.NavigationDistance:Between(
         runtime.facts and runtime.facts.position, nav.waypoint)
-    self.distance:SetText(yards and string.format("%.0f m", yards * 0.9144) or "")
+    if distance and distanceMode == "map_world_size" then
+        self.distance:SetText(string.format("%.0f m", distance * 0.9144))
+    elseif distance and distanceMode == "normalized_map_distance" then
+        self.distance:SetText(string.format("%.1f%% Karte", distance * 100))
+    else
+        self.distance:SetText("")
+    end
 
     local row
     for _, candidate in ipairs(runtime.presentation and runtime.presentation.rows or {}) do
