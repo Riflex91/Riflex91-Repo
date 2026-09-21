@@ -8,7 +8,6 @@ import {
   BANK_DEPOSIT_EINMAL_POLICY_ID,
   BANK_DEPOSIT_RECOVERY_CONTRACT_ID,
   BANK_DEPOSIT_VERIFIER_ID,
-  BankLeaseKoordinator,
   BedienerRichtlinienDienst,
   PersistenterBankLeaseController,
   EQUIPMENT_CORE_MODUL_ID,
@@ -405,7 +404,7 @@ export async function erstelleNodeV5ProduktionsHost({
   const equipJournal = new NodeEquipTransaktionsJournal(dateisystem);
   const bankDepositJournal = new NodeBankDepositTransaktionsJournal(dateisystem);
   const bankLeaseController = new PersistenterBankLeaseController(
-    new BankLeaseKoordinator(runtime.kernKomponenten().ressourcen),
+    runtime.bankLeaseKoordinator(),
     new NodeBankLeasePersistenz(dateisystem),
   );
   await bankLeaseController.lade(Date.now());
