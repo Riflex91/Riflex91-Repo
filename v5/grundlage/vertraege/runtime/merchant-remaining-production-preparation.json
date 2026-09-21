@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_PR20_5_9_MERCHANT_RESTVORBEREITUNG",
+  "stand": "2026-09-21",
+  "status": "VORBEREITET_NO_WRITE",
+  "basisMain": "f9b909918f4118c4b184ecb56e9170093e28781c",
+  "authorityGrenze": {
+    "produktiveRegistrierungErlaubt": false,
+    "produktiverAktivierungspfadErlaubt": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "actionAuthority": false,
+    "neueLiveAdapter": 0,
+    "neueGameplayWrites": 0
+  },
+  "pr20_5": {
+    "ziel": "Merchant-Pingpong und Starvation verhindern",
+    "status": "CORE_VORBEREITET_NO_WRITE",
+    "core": "grundlage/quelle/merchant/dienst-stabilitaet.ts",
+    "regeln": [
+      "kein Bereichswechsel waehrend irreversibler Mutation",
+      "Wechsel nur am sicheren durable Checkpoint",
+      "Safety/Notfall kann normale Arbeit preempten",
+      "Mindesthaltedauer",
+      "Wechsel-Cooldown",
+      "bounded Wechselbudget pro Zeitfenster",
+      "Starvation-Grenze kann bei Scheduler-Vorrang einen Wechsel erzwingen",
+      "globaler Scheduler bleibt Autoritaetsquelle fuer Prioritaet"
+    ],
+    "produktivBlockiertBis": [
+      "PR20.1",
+      "PR20.2",
+      "PR20.3",
+      "PR20.4"
+    ]
+  },
+  "pr20_6": {
+    "ziel": "MLuck-Service produktiv",
+    "status": "PLANUNG_BEREIT_PRODUKTIVER_ACTION_CONTRACT_FEHLT",
+    "planungsCore": "grundlage/quelle/merchant/mluck-service.ts",
+    "vorhandeneSafety": [
+      "SkillCapability prueft Klasse/Level/MP/Cooldown/disabled/equipment/session",
+      "Ziel an Account/Server/Roster/Session gebunden",
+      "stale Ziel-Evidence verlangt Beobachtung",
+      "aktive Demands und Anti-Spam blockieren Doppelarbeit",
+      "Settlement verlangt neue Wirkung auf derselben Ziel-Session",
+      "MLuck ist OPTIMIERUNG und darf Safety nicht verdraengen"
+    ],
+    "strukturellerBlocker": {
+      "kennung": "MLUCK_USE_SKILL_ACTION_CONTRACT_FEHLT",
+      "beschreibung": "Im aktuellen verifizierten Action-Contract-Katalog existiert kein generischer use_skill Action Contract. Deshalb wird keine MLuck-Mutation oder Live-Authority vorbereitet, bevor ein enger skill-spezifischer Contract ratifiziert ist.",
+      "erforderlicheArbeit": [
+        "aktuellen use_skill/mluck Transport und Serversemantik verifizieren",
+        "Action/Recovery/Verifier fuer exakt mluck ratifizieren",
+        "Socket-/Cooldown-/Range-/Target-Revalidation binden",
+        "erst danach One-Shot/enge produktive Authority entwerfen"
+      ]
+    }
+  },
+  "pr20_7": {
+    "ziel": "Gear-Autonomie erweitern",
+    "status": "PLANUNG_UND_RESERVIERUNG_BEREIT_LIVE_ERWEITERUNG_GESPERRT",
+    "vorhandeneFoundations": [
+      "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
+      "Recipient-Slot nur einmal gleichzeitig",
+      "Farmer vor Merchant-Self",
+      "Restart nichtterminal => RECOVERY_PENDING",
+      "GearProgression blockiert stale/inkompatible/unverifizierte Kandidaten",
+      "PR20.1 liefert ersten engen Equip-Transaction-Pfad"
+    ],
+    "produktiveErweiterungErstNach": [
+      "PR20.1 Equip-Live-Nachweis",
+      "PR20.4 Itemtransfer produktiv",
+      "separate Ratifikation fuer belegte Slots/Swap",
+      "separate Ratifikation fuer Waffen/Offhand",
+      "frische Recipient-Equipment-Postcondition"
+    ],
+    "nichtVorbereitenAlsWrite": [
+      "blindes unequip/equip swap",
+      "weapon/offhand auto replacement",
+      "gear delivery ohne recipient settlement"
+    ]
+  },
+  "pr20_8": {
+    "ziel": "Upgrade, Compound und Exchange produktiv",
+    "status": "ACTION_RECOVERY_VERIFIER_VORHANDEN_NO_WRITE",
+    "actionContracts": [
+      [
+        "AL-ACTION-UPGRADE",
+        "AL-RECOVERY-UPGRADE",
+        "AL-VERIFIER-UPGRADE",
+        "upgrade"
+      ],
+      [
+        "AL-ACTION-COMPOUND",
+        "AL-RECOVERY-COMPOUND",
+        "AL-VERIFIER-COMPOUND",
+        "compound"
+      ],
+      [
+        "AL-ACTION-EXCHANGE",
+        "AL-RECOVERY-EXCHANGE",
+        "AL-VERIFIER-EXCHANGE",
+        "exchange"
+      ]
+    ],
+    "foundations": [
+      "WerttransaktionsLedger fuer UPGRADE/COMPOUND/EXCHANGE",
+      "q/Placeholder oder Consumable-Delta => AKZEPTIERT_IN_FLIGHT",
+      "Restart nichtterminal => ABGLEICH_ERFORDERLICH",
+      "sameIntentErneutSenden=false",
+      "NOT_APPLIED nur bei positiver Evidence fuer unveraenderte Inputs/Consumables/Conditions und ohne q/Placeholder",
+      "ItemMutationsPlaner besitzt physische Identitaets-, Dispositions-, Workspace-, Wert- und Risikogrenzen fuer UPGRADE/COMPOUND"
+    ],
+    "erkannteRestluecken": [
+      "EXCHANGE besitzt noch keinen gleichwertigen spezialisierten produktiven Planer wie UPGRADE/COMPOUND",
+      "jede Mutation benoetigt eigenes durables Produktionsjournal/Current-Fence/Preflight/One-Shot-Gate",
+      "Offering/scroll4/spezielle Pfade duerfen nicht mit normalem First-Live-Kandidaten vermischt werden"
+    ],
+    "ersterLiveScopeSpaeter": [
+      "einfachster niedrigwertiger, eindeutig beobachtbarer Kandidat",
+      "keine seltenen/hochwertigen Items",
+      "keine Offering-Sonderpfade im ersten Write",
+      "exakt ein Write nach read-only Preflight"
+    ]
+  },
+  "pr20_9": {
+    "ziel": "Craft und Production produktiv",
+    "status": "PLANER_GRAPH_CONTROLLER_BEREIT_NO_WRITE",
+    "actionContracts": [
+      [
+        "AL-ACTION-CRAFT",
+        "AL-RECOVERY-CRAFT",
+        "AL-VERIFIER-CRAFT",
+        "craft"
+      ]
+    ],
+    "foundations": [
+      "bounded azyklischer Production Graph",
+      "irreversible Schritte brauchen operationSchluessel",
+      "Mutation braucht Workspace-Nachweis",
+      "Bank-Katalog-Pin fuer BANK_RETRIEVE",
+      "Event/Quest Gates muessen frisch sein",
+      "Production Planner bindet Bank/Buy/Craft/Exchange/Upgrade/Compound/Delivery an vorhandene Contracts",
+      "PersistenterProduktionsController besitzt keine Gameplay-Authority",
+      "Restart nichtterminal => Recovery statt Blind-Resume",
+      "Production-Commit erst nach finalem Recipient Settlement"
+    ],
+    "produktivBlockiertBis": [
+      "PR20.2 Bank",
+      "PR20.3 Market",
+      "PR20.4 Transfer",
+      "PR20.8 Wertmutationen"
+    ],
+    "ersteLiveKetteSpaeter": "kleinste vollstaendig beobachtbare Kette mit exakt einem neu ratifizierten mutierenden Schritt; keine breite Graph-Execution auf einmal"
+  },
+  "pr21": {
+    "ziel": "Merchant Gesamtintegration",
+    "status": "TESTPLAN_VORBEREITET_NO_WRITE",
+    "voraussetzung": "PR20.1-PR20.9 produktiv einzeln ratifiziert",
+    "testDimensionen": [
+      "Bank -> Markt -> Supply -> Collection -> Gear -> Production -> Delivery",
+      "Scheduler Prioritaet/Aging/Locality",
+      "Pingpong/Hysterese/Starvation",
+      "MLuck als Optimierung ohne Safety-Verdrangung",
+      "Restart in jeder nichtterminalen Phase",
+      "Browser/CDP Disconnect",
+      "stale Bank/Market/Inventory/Recipient Evidence",
+      "UNKNOWN ohne Blind-Retry",
+      "voller Inventory/Workspace",
+      "Gold-Safety-Reserve",
+      "Empfaenger offline/session drift",
+      "NOTHALT und Capability-Deny"
+    ],
+    "exitGate": [
+      "15m realer Merchant-Integrationslauf",
+      "0 unerwartete Gameplay-Writes",
+      "0 duplicate irreversible effects",
+      "0 unreconciled offene Transaktionen ausser explizit fail-safe/operator-required",
+      "0 Pingpong/Thrash",
+      "keine Starvation",
+      "Restart/Reconciliation fail-closed"
+    ]
+  }
+}
