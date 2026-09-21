@@ -83,11 +83,14 @@ function validiereBasis(value) {
   if (!Number.isSafeInteger(value.characterGold) || value.characterGold < 0) {
     throw new Error("BANK_DEPOSIT_CHARACTER_GOLD_NICHT_LESBAR");
   }
-  if (typeof value.inventoryMaterial !== "string"
-      || value.inventoryMaterial.length > 20_000) {
+  const inventoryMaterial = value.inventoryMaterial === undefined
+    ? ""
+    : value.inventoryMaterial;
+  if (typeof inventoryMaterial !== "string"
+      || inventoryMaterial.length > 20_000) {
     throw new Error("BANK_DEPOSIT_INVENTORY_BEOBACHTUNG_UNGUELTIG");
   }
-  return Object.freeze({ ...value });
+  return Object.freeze({ ...value, inventoryMaterial });
 }
 
 function gleicheBindung(a, b) {
