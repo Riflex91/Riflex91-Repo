@@ -159,6 +159,13 @@ Abzudecken:
 
 ### PR20.4 – Transfers, Supply, Collection und Rendezvous produktiv
 
+**Vorbereitung:** `VORBEREITET_NO_WRITE`. Die sichere Vorarbeit ist bereits unter
+`dokumentation/PR20-4-LOGISTIK-TRANSFER-PRODUKTIV-VORBEREITUNG.md` und
+`grundlage/vertraege/runtime/logistics-transfer-production-preparation.json`
+festgehalten. Dabei ist eine konkrete Restluecke bewusst offen markiert:
+`send_gold` benoetigt vor Produktivierung noch einen typisierten
+Empfaenger-Gold-Settlement-Vertrag.
+
 CAP-038 und die vorhandenen Logistik-Fundamente werden mit echten Item-/Gold-Transfers verbunden.
 
 Abzudecken:

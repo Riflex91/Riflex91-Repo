@@ -189,6 +189,26 @@
         "v5/grundlage/vertraege/runtime/market-production-preparation.json",
         "v5/grundlage/tests/pr20-market-production-preparation.test.mjs"
       ]
+    },
+    {
+      "id": "PR20.4_LOGISTIK_TRANSFER",
+      "status": "VORBEREITET_NO_WRITE",
+      "blockedBy": [
+        "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
+        "PR20.2_BANK_PRODUKTIV",
+        "PR20.3_MARKT_PRODUKTIV"
+      ],
+      "produktiveRegistrierungErlaubt": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "erkannteRestluecken": [
+        "SEND_GOLD_RECIPIENT_GOLD_SETTLEMENT_CONTRACT"
+      ],
+      "artifacts": [
+        "v5/dokumentation/PR20-4-LOGISTIK-TRANSFER-PRODUKTIV-VORBEREITUNG.md",
+        "v5/grundlage/vertraege/runtime/logistics-transfer-production-preparation.json",
+        "v5/grundlage/tests/pr20-logistics-transfer-production-preparation.test.mjs"
+      ]
     }
   ]
 }
