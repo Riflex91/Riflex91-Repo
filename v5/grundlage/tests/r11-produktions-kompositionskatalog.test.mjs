@@ -8,6 +8,9 @@ import {
   MERCHANT_CORE_A_MODUL_ID,
   MERCHANT_CORE_A_MODUL_VERSION,
   MERCHANT_CORE_A_PLANUNGS_FAEHIGKEIT_IDS,
+  MERCHANT_BANK_CORE_MODUL_ID,
+  MERCHANT_BANK_CORE_MODUL_VERSION,
+  MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
   MerchantWorkflowProvider,
   PRODUKTIONS_KOMPOSITIONS_KATALOG_STATUS,
   V5ProduktionsRuntime,
@@ -48,14 +51,14 @@ test("kanonische Produktionskomposition registriert nur belegte Module default-d
 
   assert.equal(
     PRODUKTIONS_KOMPOSITIONS_KATALOG_STATUS,
-    "DEFAULT_DENY_PLANEN_UND_EQUIP_MUTIEREN_REGISTRIERT_INAKTIV",
+    "DEFAULT_DENY_PLANEN_EQUIP_UND_BANK_DEPOSIT_MUTIEREN_REGISTRIERT_INAKTIV",
   );
   assert.equal(definition.schemaVersion, 1);
-  assert.equal(definition.modulDefinitionen.length, 2);
-  assert.equal(definition.faehigkeitsDefinitionen.length, 9);
+  assert.equal(definition.modulDefinitionen.length, 3);
+  assert.equal(definition.faehigkeitsDefinitionen.length, 10);
   assert.deepEqual(definition.healthAnforderungen, healthAnforderungen());
 
-  const [merchant, equipment] = definition.modulDefinitionen;
+  const [merchant, bank, equipment] = definition.modulDefinitionen;
   assert.equal(merchant.modulId, MERCHANT_CORE_A_MODUL_ID);
   assert.equal(merchant.modulId, "merchant-core-a");
   assert.equal(merchant.modulVersion, MERCHANT_CORE_A_MODUL_VERSION);
@@ -65,6 +68,16 @@ test("kanonische Produktionskomposition registriert nur belegte Module default-d
     [...MERCHANT_CORE_A_PLANUNGS_FAEHIGKEIT_IDS],
   );
   assert.deepEqual(merchant.benoetigteFaehigkeiten, []);
+
+  assert.equal(bank.modulId, MERCHANT_BANK_CORE_MODUL_ID);
+  assert.equal(bank.modulId, "merchant-bank-core");
+  assert.equal(bank.modulVersion, MERCHANT_BANK_CORE_MODUL_VERSION);
+  assert.equal(bank.standardAktiv, false);
+  assert.deepEqual(
+    bank.bereitgestellteFaehigkeiten,
+    [MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID],
+  );
+  assert.deepEqual(bank.benoetigteFaehigkeiten, []);
 
   assert.equal(equipment.modulId, EQUIPMENT_CORE_MODUL_ID);
   assert.equal(equipment.modulId, "equipment-core");
@@ -92,9 +105,9 @@ test("Start der kanonischen Komposition aktiviert weder Module noch Capabilities
   );
 
   const vorStart = runtime.status();
-  assert.equal(vorStart.registrierteModule, 2);
+  assert.equal(vorStart.registrierteModule, 3);
   assert.equal(vorStart.aktiveModule, 0);
-  assert.equal(vorStart.registrierteFaehigkeiten, 9);
+  assert.equal(vorStart.registrierteFaehigkeiten, 10);
   assert.equal(vorStart.aktiveFaehigkeiten, 0);
   assert.equal(vorStart.aktiveMutierendeFaehigkeiten, 0);
 
@@ -148,7 +161,7 @@ test("Merchant-Produktionskatalog registriert exakt acht PLANEN-Capabilities ina
 
   const runtime = new V5ProduktionsRuntime(definition);
   const eintraege = runtime.kernKomponenten().faehigkeiten.sicht();
-  assert.equal(eintraege.length, 9);
+  assert.equal(eintraege.length, 10);
   assert.equal(
     eintraege.filter(x => x.modus === "PLANEN").length,
     8,
@@ -156,7 +169,7 @@ test("Merchant-Produktionskatalog registriert exakt acht PLANEN-Capabilities ina
   assert.equal(eintraege.every(x => x.aktiv === false), true);
 });
 
-test("Equipment-Produktionskatalog registriert exakt eine MUTIEREN-Capability inaktiv", () => {
+test("Produktionskatalog registriert Equip und Bank-Deposit als zwei getrennte MUTIEREN-Capabilities inaktiv", () => {
   const definition = erstelleKanonischeProduktionsKomposition(
     healthAnforderungen(),
   );
@@ -164,20 +177,39 @@ test("Equipment-Produktionskatalog registriert exakt eine MUTIEREN-Capability in
     x => x.modus === "MUTIEREN",
   );
 
-  assert.equal(mutierend.length, 1);
-  assert.equal(mutierend[0].faehigkeitId, EQUIPMENT_EQUIP_FAEHIGKEIT_ID);
-  assert.equal(mutierend[0].faehigkeitId, "equipment.equip");
-  assert.equal(mutierend[0].anbieterModulId, EQUIPMENT_CORE_MODUL_ID);
-  assert.equal(mutierend[0].anbieterVersion, EQUIPMENT_CORE_MODUL_VERSION);
-  assert.equal(mutierend[0].status, "VERFUEGBAR");
-  assert.equal(mutierend[0].standardAktiv, false);
+  assert.equal(mutierend.length, 2);
+  const equip = mutierend.find(
+    x => x.faehigkeitId === EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
+  );
+  const bank = mutierend.find(
+    x => x.faehigkeitId === MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
+  );
+  assert.ok(equip);
+  assert.ok(bank);
+  assert.equal(equip.anbieterModulId, EQUIPMENT_CORE_MODUL_ID);
+  assert.equal(equip.anbieterVersion, EQUIPMENT_CORE_MODUL_VERSION);
+  assert.equal(bank.anbieterModulId, MERCHANT_BANK_CORE_MODUL_ID);
+  assert.equal(bank.anbieterVersion, MERCHANT_BANK_CORE_MODUL_VERSION);
+  assert.equal(
+    mutierend.every(x =>
+      x.status === "VERFUEGBAR" && x.standardAktiv === false),
+    true,
+  );
 
   const runtime = new V5ProduktionsRuntime(definition);
-  const eintrag = runtime.kernKomponenten().faehigkeiten.sicht()
-    .find(x => x.faehigkeitId === EQUIPMENT_EQUIP_FAEHIGKEIT_ID);
-  assert.ok(eintrag);
-  assert.equal(eintrag.modus, "MUTIEREN");
-  assert.equal(eintrag.aktiv, false);
+  const eintraege = runtime.kernKomponenten().faehigkeiten.sicht();
+  const equipEintrag = eintraege.find(
+    x => x.faehigkeitId === EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
+  );
+  const bankEintrag = eintraege.find(
+    x => x.faehigkeitId === MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
+  );
+  assert.ok(equipEintrag);
+  assert.ok(bankEintrag);
+  assert.equal(equipEintrag.modus, "MUTIEREN");
+  assert.equal(bankEintrag.modus, "MUTIEREN");
+  assert.equal(equipEintrag.aktiv, false);
+  assert.equal(bankEintrag.aktiv, false);
   assert.equal(runtime.status().aktiveMutierendeFaehigkeiten, 0);
   assert.equal(
     "aktiviereNichtMutierend" in runtime.kernKomponenten().faehigkeiten,
