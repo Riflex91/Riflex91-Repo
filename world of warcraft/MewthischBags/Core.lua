@@ -5,6 +5,7 @@ MB.VERSION = "0.1.0"
 local defaults = {
     positionX = 0,
     positionY = 0,
+    windowWidth = 476,
     panelOpen = false,
 }
 
