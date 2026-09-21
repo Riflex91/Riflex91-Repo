@@ -25,7 +25,7 @@ function V:Create()
     if self.frame then return self.frame end
 
     local frame = CreateFrame("Frame", "MewthischGuides1Viewer", UIParent)
-    UI:SetSize(frame, 430, 430)
+    UI:SetSize(frame, 430, 235)
     frame:SetPoint("LEFT", UIParent, "LEFT", 24, 80)
     UI:SetFrameStrata(frame, "HIGH")
     frame:SetMovable(true)
@@ -153,6 +153,10 @@ function V:Refresh()
             for _, row in ipairs(sticky.rows) do visible[#visible + 1] = row end
         end
     end
+
+    local visibleCount = math.min(MAX_ROWS, #visible)
+    local desiredHeight = math.max(220, math.min(430, 180 + math.max(1, visibleCount) * 23))
+    UI:SetSize(frame, 430, desiredHeight)
 
     for rowIndex, font in ipairs(self.rows) do
         local row = visible[rowIndex]
