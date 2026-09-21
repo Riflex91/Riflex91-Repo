@@ -2,18 +2,21 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_2_BANK_PRODUCTION_PREPARATION",
   "stand": "2026-09-21",
-  "status": "VORBEREITET_NO_WRITE",
-  "basisMain": "3f88e904cb2a7fd20b69a5e7c552eb0958b66884",
+  "status": "ONE_SHOT_GRENZE_IMPLEMENTIERT_NO_WRITE",
+  "basisMain": "f024bb55214f8c28d817cae123d95e7c7da653cc",
   "blockingGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
-  "zweck": "PR20.2 technisch vorbereiten, ohne produktive Bankmutation, Registrierung oder Gameplay-Authority zu oeffnen.",
+  "zweck": "PR20.2 mit separatem default-off Single Owner, kurzlebiger One-Shot-Authority, durablem Current-Fence und read-only Preflight vorbereiten; weiterhin ohne Bank-Gameplay-Write, Write-Adapter oder Live-Runner.",
   "authorityGrenze": {
-    "produktiveRegistrierungErlaubt": false,
+    "produktiveRegistrierungErlaubt": true,
     "produktiverAktivierungspfadErlaubt": false,
     "gameplayAutoritaet": false,
     "rawWriteAutoritaet": false,
     "actionAuthority": false,
     "direkteAdventureLandPublicFunctionAufrufe": 0,
-    "browserGameplayWrites": 0
+    "browserGameplayWrites": 0,
+    "oneShotAuthorityAusstellungImplementiert": true,
+    "oneShotMaxVerwendungen": 1,
+    "oneShotMaxLebensdauerMs": 2000
   },
   "bestehendePlanung": {
     "modulId": "merchant-core-a",
@@ -102,16 +105,18 @@
   "nachEquipErforderlicheFreigabeschritte": [
     "PR20.1 Live-Evidence ist BESTANDEN und im Repo dokumentiert",
     "erster Live-Kandidat bank_deposit(1 Gold) und authority-freier Settlement-Core sind ratifiziert",
-    "Bank-Mutationsfaehigkeit mit Single Owner separat ratifizieren",
-    "produktive Bank-Authority separat und eng begrenzt implementieren",
-    "durables Bank-Transaktionsjournal mit Current-Fence implementieren",
-    "read-only Bank-Mutations-Preflight implementieren",
-    "Unit/Replay/Fault/Restart/UNKNOWN/Shadow-Gates bestehen",
-    "erst danach einen einzelnen kontrollierten bank_deposit(1)-Live-Write zulassen"
+    "separater Single Owner merchant-bank-core@1 und default-off MUTIEREN-Capability sind registriert",
+    "kurzlebige One-Shot-Authority mit durablem Vor-Wirkung-Audit ist implementiert",
+    "durables Bank-Deposit-Transaktionsjournal mit globalem Current-Fence ist implementiert",
+    "read-only Bank-Deposit-Preflight ist implementiert und erteilt weder Lease noch Authority",
+    "persistierbare accountweite Bank-Lease/Restart-Reconciliation und Admission-Orchestrierung vervollstaendigen",
+    "Unit/Replay/Fault/Restart/UNKNOWN/Shadow-Gates vollstaendig bestehen",
+    "erst danach Write-Adapter und Live-Runner separat einfuehren",
+    "erst nach erneut gruener Exact-Head-CI einen einzelnen kontrollierten bank_deposit(1)-Live-Write zulassen"
   ],
   "blockingGateStatus": "BESTANDEN",
   "ersterLiveKandidat": {
-    "status": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE",
+    "status": "ONE_SHOT_PREFLIGHT_GRENZE_IMPLEMENTIERT_NO_WRITE",
     "vertrag": "grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
     "settlementCore": "grundlage/quelle/merchant/bank-deposit-settlement.ts",
     "test": "grundlage/tests/pr20-bank-deposit-settlement.test.mjs",
@@ -123,7 +128,13 @@
     "sameIntentRetry": false,
     "gameplayAutoritaet": false,
     "rawWriteAutoritaet": false,
-    "produktiveCapabilityNochNichtRegistriert": true,
-    "liveRunnerNochNichtVorhanden": true
+    "produktiveCapabilityNochNichtRegistriert": false,
+    "liveRunnerNochNichtVorhanden": true,
+    "provider": "merchant-bank-core@1",
+    "capabilityId": "merchant.bank.gold_einlagern",
+    "oneShotAuthorityImplementiert": true,
+    "currentFenceImplementiert": true,
+    "readOnlyPreflightImplementiert": true,
+    "writeAdapterNochNichtVorhanden": true
   }
 }
