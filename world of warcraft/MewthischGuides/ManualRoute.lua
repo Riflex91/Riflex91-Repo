@@ -6,10 +6,10 @@ local Manual = MG.ManualRoute
 local HUGE_DISTANCE = 1000000000
 
 function MG:GetRouteMode()
-    local mode = self.db and self.db.settings and self.db.settings.routeMode or "manual"
+    local mode = self.db and self.db.settings and self.db.settings.routeMode or "auto"
     -- Old experimental "preset" profiles migrate fail-closed to manual.
     if mode == "preset" then mode = "manual" end
-    if mode ~= "manual" and mode ~= "auto" then mode = "manual" end
+    if mode ~= "manual" and mode ~= "auto" then mode = "auto" end
     return mode
 end
 
