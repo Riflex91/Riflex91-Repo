@@ -20,7 +20,7 @@ import {
 } from "./v5-produktions-host-komposition.mjs";
 
 export const BANK_WITHDRAW_REAL_SHADOW_BESTAETIGUNG =
-  "V5 BANK DEPOSIT SHADOW OHNE WRITE AUSFUEHREN";
+  "V5 BANK WITHDRAW SHADOW OHNE WRITE AUSFUEHREN";
 export const BANK_WITHDRAW_REAL_SHADOW_EVIDENCE_ART =
   "V5_BANK_WITHDRAW_REAL_BROWSER_SHADOW_NO_WRITE";
 
@@ -71,7 +71,7 @@ function id(prefix) {
 }
 
 function phase(text) {
-  process.stdout.write("[V5-BANK-SHADOW] " + text + "\n");
+  process.stdout.write("[V5-BANK-WITHDRAW-SHADOW] " + text + "\n");
 }
 
 async function schreibeBericht(wurzel, bericht) {
