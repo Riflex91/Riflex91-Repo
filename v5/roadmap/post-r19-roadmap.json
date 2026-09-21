@@ -80,9 +80,9 @@
   ],
   "currentNextSteps": [
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN und im Repo dokumentiert",
-    "PR20.2 bank_deposit(1) One-Shot-Live-Evidence ist BESTANDEN: COMMIT, 1 Adapter-Aufruf, 1 Gameplay-Write, kein Retry, Lease RELEASED",
-    "bank_withdraw(1) besitzt Settlement-Core, default-off Capability, eigene durable One-Shot-Authority, eigenen Current-Fence, read-only Preflight und NO-WRITE Admission-Shadow",
-    "als naechstes bank_withdraw(1) Real-Browser-Shadow source-locked ohne Send nachweisen",
+    "PR20.2 bank_deposit(1) One-Shot-Live-Evidence ist BESTANDEN",
+    "bank_withdraw(1) besitzt Settlement, Capability, Authority, Current-Fence, Preflight, Admission-Shadow und source-locked Real-Browser-Shadow-Runner NO-WRITE",
+    "als naechstes bank_withdraw(1) Real-Browser-Shadow auf exakt gruenem Source-SHA real ausfuehren und Evidence dokumentieren",
     "erst nach bestandener Real-Browser-Shadow-Evidence einen getrennten Write-Adapter/Live-Runner-Gate fuer bank_withdraw(1) vorbereiten",
     "danach Store/Retrieve/Swap jeweils eng vorbereiten und einzeln produktiv nachweisen",
     "Capacity-/Workspace- und Open-Bank-Pack-Gates separat behandeln",
@@ -210,7 +210,11 @@
       "v5/werkzeuge/bank-withdraw-produktions-preflight.mjs",
       "v5/grundlage/quelle/merchant/bank-withdraw-shadow-admission.ts",
       "v5/grundlage/tests/r11-bank-withdraw-produktions-browser.test.mjs",
-      "v5/grundlage/tests/r11-bank-withdraw-shadow-admission.test.mjs"
+      "v5/grundlage/tests/r11-bank-withdraw-shadow-admission.test.mjs",
+      "v5/architektur/adr/ADR-042-PR20-2M-BANK-WITHDRAW-REAL-BROWSER-SHADOW-NO-WRITE.md",
+      "v5/grundlage/quelle/merchant/bank-withdraw-admission-gate.ts",
+      "v5/werkzeuge/bank-withdraw-real-browser-shadow.mjs",
+      "v5/grundlage/tests/r11-bank-withdraw-real-shadow-browser.test.mjs"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",
@@ -251,7 +255,7 @@
     "nextLiveCandidate": {
       "publicFunction": "bank_withdraw",
       "amountGold": 1,
-      "status": "PREFLIGHT_ADMISSION_SHADOW_NO_WRITE",
+      "status": "REAL_BROWSER_SHADOW_RUNNER_NO_WRITE_EVIDENCE_AUSSTEHEND",
       "contract": "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
       "settlementCore": "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
       "providerSpaeter": "merchant-bank-core@1",
@@ -272,7 +276,9 @@
       "capabilityId": "merchant.bank.gold_auslagern",
       "readOnlyPreflight": true,
       "admissionShadow": true,
-      "realBrowserShadowEvidence": "AUSSTEHEND"
+      "realBrowserShadowEvidence": "AUSSTEHEND",
+      "realBrowserShadowRunner": true,
+      "sourceShaPinning": true
     }
   },
   "parallelPreparations": [
@@ -336,7 +342,11 @@
         "v5/werkzeuge/bank-withdraw-produktions-preflight.mjs",
         "v5/grundlage/quelle/merchant/bank-withdraw-shadow-admission.ts",
         "v5/grundlage/tests/r11-bank-withdraw-produktions-browser.test.mjs",
-        "v5/grundlage/tests/r11-bank-withdraw-shadow-admission.test.mjs"
+        "v5/grundlage/tests/r11-bank-withdraw-shadow-admission.test.mjs",
+        "v5/architektur/adr/ADR-042-PR20-2M-BANK-WITHDRAW-REAL-BROWSER-SHADOW-NO-WRITE.md",
+        "v5/grundlage/quelle/merchant/bank-withdraw-admission-gate.ts",
+        "v5/werkzeuge/bank-withdraw-real-browser-shadow.mjs",
+        "v5/grundlage/tests/r11-bank-withdraw-real-shadow-browser.test.mjs"
       ],
       "firstLiveCandidate": {
         "publicFunction": "bank_deposit",
@@ -377,7 +387,7 @@
       "nextLiveCandidate": {
         "publicFunction": "bank_withdraw",
         "amountGold": 1,
-        "status": "PREFLIGHT_ADMISSION_SHADOW_NO_WRITE",
+        "status": "REAL_BROWSER_SHADOW_RUNNER_NO_WRITE_EVIDENCE_AUSSTEHEND",
         "contract": "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
         "settlementCore": "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
         "providerSpaeter": "merchant-bank-core@1",
@@ -398,7 +408,9 @@
         "capabilityId": "merchant.bank.gold_auslagern",
         "readOnlyPreflight": true,
         "admissionShadow": true,
-        "realBrowserShadowEvidence": "AUSSTEHEND"
+        "realBrowserShadowEvidence": "AUSSTEHEND",
+        "realBrowserShadowRunner": true,
+        "sourceShaPinning": true
       }
     },
     {
@@ -561,7 +573,7 @@
     "leaseEpoche": 3,
     "leaseTerminalStatus": "RELEASED",
     "nextLiveCandidate": "bank_withdraw(1)",
-    "nextLiveCandidateStatus": "PREFLIGHT_ADMISSION_SHADOW_NO_WRITE",
+    "nextLiveCandidateStatus": "REAL_BROWSER_SHADOW_RUNNER_NO_WRITE_EVIDENCE_AUSSTEHEND",
     "nextLiveCandidateContract": "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
     "nextLiveCandidateSettlementCore": "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
     "nextLiveCandidateGameplayWrites": 0,
@@ -573,6 +585,7 @@
     "nextLiveCandidateCurrentFenceImplemented": true,
     "nextLiveCandidateReadOnlyPreflightImplemented": true,
     "nextLiveCandidateAdmissionShadowImplemented": true,
-    "nextLiveCandidateRealBrowserShadowEvidence": "AUSSTEHEND"
+    "nextLiveCandidateRealBrowserShadowEvidence": "AUSSTEHEND",
+    "nextLiveCandidateRealBrowserShadowRunnerImplemented": true
   }
 }

@@ -190,6 +190,37 @@ Der naechste Gate ist ein eigener source-locked Real-Browser-Shadow ohne
 Send. Erst nach dessen bestandener Evidence darf ein separater
 Write-Adapter/Live-Runner-Gate vorbereitet werden.
 
+## PR20.2m – Withdraw Real-Browser-Shadow Runner NO-WRITE
+
+Aufbauend auf PR20.2l existiert nun ein eigener source-locked
+Real-Browser-Shadow-Runner fuer `bank_withdraw(1)`.
+
+Der Runner verlangt:
+
+- exakten Git-Source-SHA;
+- explizite Bestaetigung
+  `V5 BANK WITHDRAW SHADOW OHNE WRITE AUSFUEHREN`;
+- Start ausserhalb der Bank;
+- accountweite Bank-Lease;
+- stabilen manuellen Mount nach Lease;
+- `bank.gold >= 1`;
+- stabile Character-/Session-/Serverbindung;
+- eigenes Withdraw-Admission-Gate;
+- terminalen `ABBRUCH` mit `NICHT_GESENDET`;
+- stabilen manuellen Exit und Lease-`RELEASED`.
+
+Die Implementierung und CI dieses Schritts sind noch **keine reale
+Browser-Evidence**. Die Evidence bleibt `AUSSTEHEND`, bis der Runner lokal
+auf exakt dem gruengeprueften Source-SHA erfolgreich ausgefuehrt wurde.
+
+Weiterhin nicht vorhanden:
+
+- kein Withdraw-Write-Adapter;
+- kein Withdraw-Live-Runner;
+- kein `bank_withdraw(...)`-Send;
+- keine Raw-Socket-`.emit(...)`;
+- 0 Gameplay-Writes und 0 Adapter-Aufrufe im Shadow.
+
 ## Admission-Grenze fuer die spaetere Implementierung
 
 Unmittelbar vor jedem moeglichen Bank-Send muessen mindestens erneut bewiesen sein:

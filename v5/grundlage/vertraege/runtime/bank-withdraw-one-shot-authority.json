@@ -58,6 +58,10 @@
     "sameIntentRetry": false,
     "gameplayWrites": 0,
     "adapterAufrufe": 0,
-    "realBrowserShadowEvidence": "AUSSTEHEND"
+    "realBrowserShadowEvidence": "AUSSTEHEND",
+    "realBrowserShadowRunner": "werkzeuge/bank-withdraw-real-browser-shadow.mjs",
+    "realBrowserShadowRunnerImplementiert": true,
+    "sourceShaPinning": true,
+    "operatorBestaetigung": "V5 BANK WITHDRAW SHADOW OHNE WRITE AUSFUEHREN"
   }
 }

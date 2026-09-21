@@ -647,6 +647,70 @@ if (!bankWithdrawRuntime.includes("fuehreBankWithdrawShadowAdmission")
   fehler.push("BANK_WITHDRAW_RUNTIME_SHADOW_BINDUNG_FEHLT");
 }
 
+
+const bankWithdrawRealShadow = liesText(
+  "werkzeuge/bank-withdraw-real-browser-shadow.mjs",
+);
+for (const marker of [
+  "BANK_WITHDRAW_REAL_SHADOW_BESTAETIGUNG",
+  "V5_BANK_WITHDRAW_REAL_BROWSER_SHADOW_NO_WRITE",
+  "BANK_SHADOW_SOURCE_SHA_MISMATCH",
+  "rev-parse",
+  "fuehreBankWithdrawRealShadow",
+  "pruefeBankWithdrawStartBereit",
+  "startAusserhalbBank: true",
+  "manualMountTransition",
+  "manualExitRequired",
+  "browserGameplayWrites: 0",
+  "gameplayWrites: 0",
+  "adapterAufrufe: 0",
+]) {
+  if (!bankWithdrawRealShadow.includes(marker)) {
+    fehler.push("BANK_WITHDRAW_REAL_SHADOW_MARKER_FEHLT:" + marker);
+  }
+}
+for (const [kennung, muster] of [
+  ["BANK_WITHDRAW_WRITE", /\bbank_withdraw\s*\(/],
+  ["BANK_DEPOSIT_WRITE", /\bbank_deposit\s*\(/],
+  ["RAW_EMIT", /\.emit\s*\(/],
+  ["EXECUTION_KERNEL", /\bAusfuehrungsKernel\b/],
+  ["EXECUTION_ADAPTER", /\bAusfuehrungsAdapter\b/],
+]) {
+  if (muster.test(bankWithdrawRealShadow)) {
+    fehler.push("BANK_WITHDRAW_REAL_SHADOW_NO_WRITE_VERLETZT:" + kennung);
+  }
+}
+const bankWithdrawAdmissionGate = liesText(
+  "grundlage/quelle/merchant/bank-withdraw-admission-gate.ts",
+);
+for (const marker of [
+  "ProduktivesBankWithdrawEinmalAdmissionGate",
+  "MERCHANT_BANK_WITHDRAW_FAEHIGKEIT_ID",
+  "BANK_WITHDRAW_ACTION_CONTRACT_ID",
+  "BANK_WITHDRAW_RECOVERY_CONTRACT_ID",
+  "BANK_WITHDRAW_VERIFIER_ID",
+  "bankWithdrawEinmalAuthorityOffen",
+]) {
+  if (!bankWithdrawAdmissionGate.includes(marker)) {
+    fehler.push("BANK_WITHDRAW_ADMISSION_GATE_MARKER_FEHLT:" + marker);
+  }
+}
+const nodeHostRealShadow = liesText(
+  "werkzeuge/v5-produktions-host-komposition.mjs",
+);
+for (const marker of [
+  "fuehreBankWithdrawRealShadow",
+  "ProduktivesBankWithdrawEinmalAdmissionGate",
+  "erteileBankWithdrawEinmalAuthority",
+  "fuehreBankWithdrawShadowAdmission",
+  "this.#bankWithdrawJournal",
+  "mount.bankGold < 1",
+]) {
+  if (!nodeHostRealShadow.includes(marker)) {
+    fehler.push("BANK_WITHDRAW_REAL_SHADOW_HOST_MARKER_FEHLT:" + marker);
+  }
+}
+
 const equipProduktionsBrowser = liesText(
   "werkzeuge/equipment-equip-produktions-browser.mjs",
 );

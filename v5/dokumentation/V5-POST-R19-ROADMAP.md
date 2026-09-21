@@ -185,9 +185,17 @@ accountweite Bank-Lease, External Fence, Snapshot-Fencing, den FIFO-Kanal
 0; ein `bank_withdraw(...)`-Send existiert nicht. ADR:
 `architektur/adr/ADR-041-PR20-2L-BANK-WITHDRAW-PREFLIGHT-SHADOW-NO-WRITE.md`.
 
-Als naechstes folgt ein source-locked Real-Browser-Shadow fuer Withdraw,
-weiterhin ohne Send. Erst nach dessen bestandener Evidence darf ein separater
-Write-Gate vorbereitet werden.
+PR20.2m stellt den source-locked Withdraw-Real-Browser-Shadow nun
+technisch bereit. Der eigene Runner verlangt exakten Git-Head, manuell
+beobachteten Mount/Exit, `bank.gold >= 1`, die Withdraw-One-Shot-Authority,
+das eigene Admission-Gate und endet mit `ABBRUCH` / `NICHT_GESENDET`.
+Gameplay-Writes und Adapter-Aufrufe bleiben 0. Die **reale Browser-Evidence ist
+noch AUSSTEHEND**; Implementierung oder CI ersetzen sie nicht. ADR:
+`architektur/adr/ADR-042-PR20-2M-BANK-WITHDRAW-REAL-BROWSER-SHADOW-NO-WRITE.md`.
+
+Als naechstes muss dieser Runner lokal auf exakt dem gruengeprueften Source-SHA
+ausgefuehrt und die bestandene Evidence im Repo dokumentiert werden. Erst dann
+darf ein separater Write-Gate vorbereitet werden.
 
 
 Vorhandene Bankplanung, Bank-Lease, Fencing und Bankkatalog-Fundamente werden mit echten Bankmutationen verbunden.
