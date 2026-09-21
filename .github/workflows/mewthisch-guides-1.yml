@@ -34,6 +34,50 @@ jobs:
             luac5.1 -p "$file"
           done
 
+      - name: Validate login bootstrap contract
+        run: |
+          lua5.1 - <<'LUA'
+          UnitClass=function() return "Mage","MAGE",8 end
+          UnitRace=function() return "Human","Human",1 end
+          UnitLevel=function() return 12 end
+          UnitFactionGroup=function() return "Alliance" end
+
+          local MG={}
+          assert(loadfile("world of warcraft/MewthischGuides1/Core/Namespace.lua"))("MewthischGuides1",MG)
+          local db=MG:EnsureDB()
+          assert(type(db.guide)=="table","db.guide must exist before login guide selection")
+          assert(type(db.ui)=="table","db.ui must exist")
+          local p=MG:GetPlayerProfile()
+          assert(p.class=="MAGE" and p.classID==8,"class multi-return lost")
+          assert(p.race=="Human" and p.raceID==1,"race multi-return lost")
+          assert(p.level==12 and p.faction=="Alliance")
+          print("Login bootstrap contract PASS")
+          LUA
+
+      - name: Validate Forever UI compatibility fallbacks
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={}
+          assert(loadfile("world of warcraft/MewthischGuides1/Core/UICompat.lua"))("MewthischGuides1",MG)
+
+          local frame={calls={}}
+          function frame:SetWidth(v) self.calls.width=v end
+          function frame:SetHeight(v) self.calls.height=v end
+          function frame:Show() self.calls.shown=true end
+          function frame:Hide() self.calls.shown=false end
+          MG.UICompat:SetSize(frame,430,430)
+          assert(frame.calls.width==430 and frame.calls.height==430)
+          MG.UICompat:SetShown(frame,true);assert(frame.calls.shown==true)
+          MG.UICompat:SetShown(frame,false);assert(frame.calls.shown==false)
+
+          local tex={calls={}}
+          function tex:SetTexture(...) self.calls.texture={...} end
+          function tex:SetVertexColor(...) self.calls.color={...} end
+          MG.UICompat:SetSolid(tex,.1,.2,.3,.4)
+          assert(tex.calls.texture,"legacy texture fallback missing")
+          print("Forever UI compatibility PASS")
+          LUA
+
       - name: Validate RestedXP raw-step preservation
         run: |
           lua5.1 - <<'LUA'
@@ -161,3 +205,16 @@ jobs:
           grep -q 'Resolver/StepStateResolver.lua' "$TOC"
           grep -q 'UI/ErrorLogWindow.lua' "$TOC"
           grep -q 'Core/Bootstrap.lua' "$TOC"
+
+
+      - name: Build installable addon ZIP
+        run: |
+          cd "world of warcraft"
+          zip -r "$GITHUB_WORKSPACE/MewthischGuides1.zip" MewthischGuides1
+
+      - name: Upload installable addon ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides1-installable
+          path: MewthischGuides1.zip
+          if-no-files-found: error
