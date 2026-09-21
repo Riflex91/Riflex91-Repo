@@ -31,6 +31,7 @@ local function startGuide(guide, reason)
         player = MG:GetPlayerProfile(),
     }
     local index, recoveryReason = MG.RecoveryPolicy:FindResumeIndex(guide, facts)
+    MG.db.guide = MG.db.guide or {}
     MG.db.guide.selectedID = guide.id
     local runtime, err = MG.RuntimeEngine:StartGuide(guide, index)
     if runtime then
@@ -156,13 +157,30 @@ frame:SetScript("OnEvent", function(_, event, ...)
 
         if event == "PLAYER_LOGIN" then
             MG:EnsureDB()
-            MG.GuideCatalog:Load()
-            local guide = chooseLoginGuide()
-            if guide then startGuide(guide, "login") end
+
+            -- UI first: a compiler/catalog problem must never make the whole
+            -- addon look as if it did not load.
             MG.GuideViewer:Create()
             MG.NavigatorFrame:Create()
             MG:RefreshUI()
-            print("|cffffb000Mewthisch Guides 1.0|r geladen – /mg1")
+            print("|cffffb000Mewthisch Guides 1.0|r geladen - /mg1")
+
+            local ok = MG:Safe("login.guide_catalog", function()
+                MG.GuideCatalog:Load()
+                local guide = chooseLoginGuide()
+                if guide then
+                    startGuide(guide, "login")
+                else
+                    MG:Log("WARN", "guide.none_applicable",
+                        "Kein passender RestedXP-Guide für diesen Charakter gefunden.",
+                        { player = MG:GetPlayerProfile() })
+                end
+            end)
+
+            MG:RefreshUI()
+            if not ok then
+                print("|cffff4040Mewthisch Guides|r Guide-Datenfehler - /mg1 errors")
+            end
             return
         end
 
