@@ -202,13 +202,13 @@ test("open_bank_pack bleibt wegen eigener Capacity-/Backend-Risiken bewusst auss
   assert.equal(contract.idempotency, "NON_IDEMPOTENT");
 });
 
-test("PR20.2 naechster Live-Kandidat ist bank_withdraw(1) strikt NO-WRITE", () => {
+test("PR20.2 bank_withdraw(1) besitzt Capability Authority und Current-Fence weiterhin NO-WRITE", () => {
   const kandidat = prep.naechsterLiveKandidat;
   const vertrag = lies(
     "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
   );
   assert.ok(kandidat);
-  assert.equal(kandidat.status, "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE");
+  assert.equal(kandidat.status, "CAPABILITY_AUTHORITY_CURRENT_FENCE_NO_WRITE");
   assert.equal(kandidat.publicFunction, "bank_withdraw");
   assert.equal(kandidat.betragGold, 1);
   assert.equal(kandidat.actionContractId, "AL-ACTION-BANK-WITHDRAW");
@@ -217,9 +217,13 @@ test("PR20.2 naechster Live-Kandidat ist bank_withdraw(1) strikt NO-WRITE", () =
   assert.equal(kandidat.sameIntentRetry, false);
   assert.equal(kandidat.gameplayAutoritaet, false);
   assert.equal(kandidat.rawWriteAutoritaet, false);
-  assert.equal(kandidat.produktiveCapabilityImplementiert, false);
-  assert.equal(kandidat.oneShotAuthorityImplementiert, false);
-  assert.equal(kandidat.currentFenceImplementiert, false);
+  assert.equal(kandidat.produktiveCapabilityImplementiert, true);
+  assert.equal(kandidat.oneShotAuthorityImplementiert, true);
+  assert.equal(kandidat.oneShotMaxVerwendungen, 1);
+  assert.equal(kandidat.oneShotMaxLebensdauerMs, 2000);
+  assert.equal(kandidat.currentFenceImplementiert, true);
+  assert.equal(kandidat.readOnlyPreflightImplementiert, false);
+  assert.equal(kandidat.admissionShadowImplementiert, false);
   assert.equal(kandidat.writeAdapterImplementiert, false);
   assert.equal(kandidat.liveRunnerImplementiert, false);
   assert.equal(kandidat.gameplayWritesInDiesemSchritt, 0);
@@ -234,14 +238,19 @@ test("PR20.2 naechster Live-Kandidat ist bank_withdraw(1) strikt NO-WRITE", () =
   assert.equal(vertrag.authorityGrenze.gameplayWritesInDiesemSchritt, 0);
 });
 
-test("Produktionskomposition registriert nur den engen Deposit-Single-Owner default-off", () => {
+test("Produktionskomposition registriert Deposit und Withdraw unter demselben Bank-Single-Owner default-off", () => {
   assert.ok(
     produktionsKomposition.includes(
       "merchantBankDepositMutationsFaehigkeitDefinition",
     ),
   );
   assert.ok(produktionsKomposition.includes("merchantBankCoreModulDefinition"));
-  assert.equal(produktionsKomposition.includes("bank_withdraw"), false);
+  assert.ok(
+    produktionsKomposition.includes(
+      "merchantBankWithdrawMutationsFaehigkeitDefinition",
+    ),
+  );
+  assert.equal(produktionsKomposition.includes("bank_withdraw("), false);
   assert.equal(produktionsKomposition.includes("bank_store"), false);
   assert.equal(produktionsKomposition.includes("bank_retrieve"), false);
   assert.equal(produktionsKomposition.includes("bank_swap"), false);
