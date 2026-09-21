@@ -20,30 +20,30 @@ Nacheinander testen:
 
 Erwartung: Das Blizzard-Taschenfenster bleibt verborgen und Mewthisch Bags übernimmt Öffnen/Schließen ohne sichtbares Flackern.
 
-## 3. Inventarplätze
+## 3. Inventarplätze und Resize
 
 - Rucksack und vier normale Taschen anlegen.
 - Leere und belegte Plätze prüfen.
-- Stackgrößen prüfen.
-- Gegenstände per Linksklick aufnehmen.
-- Gegenstände per Rechtsklick benutzen.
-- Gegenstände zwischen Plätzen ziehen.
+- Hauptfenster schmaler und breiter ziehen.
+- Bis zur Mindestbreite verkleinern.
 
-Erwartung: Alle Plätze aus Bag IDs 0–4 werden genau einmal dargestellt und normale Inventaraktionen funktionieren.
+Erwartung: Alle Plätze aus Bag IDs 0–4 werden genau einmal dargestellt. Das Raster bricht passend um. Die Mindestbreite entspricht vier Slot-Spalten; darunter lässt sich das Fenster nicht verkleinern. Die Höhe passt sich automatisch dem Raster an.
 
 ## 4. Suche
 
+- Suchleiste ohne Fokus ansehen.
+- In das Suchfeld klicken.
 - Teil eines lokalisierten Gegenstandsnamens eingeben.
 - Groß-/Kleinschreibung variieren.
-- Suchfeld mit Escape leeren.
+- Suchfeld mit Escape verlassen/leeren.
 
-Erwartung: Treffer bleiben vollständig sichtbar und erhalten die moderne Akzent-Umrandung; andere Gegenstände werden abgedunkelt. Die Positionen der Slots ändern sich nicht.
+Erwartung: Die Suchleiste hat nur bei aktivem Eingabefokus eine blaue Umrandung. Treffer bleiben vollständig sichtbar und erhalten die Akzent-Umrandung; andere Gegenstände werden abgedunkelt. Die Positionen der Slots ändern sich nicht.
 
 ## 5. Geld
 
 Gold/Silber/Kupfer mit Blizzard-Anzeige vergleichen.
 
-Erwartung: Werte stimmen exakt und verwenden die Blizzard-eigenen Gold-/Silber-/Kupfer-Symbole.
+Erwartung: Werte stimmen exakt. Hinter den Zahlen erscheinen die originalen Blizzard-Münzsymbole für Gold, Silber und Kupfer; es erscheinen keine Buchstaben g, s oder k.
 
 ## 6. Lokalisierung
 
@@ -59,9 +59,10 @@ Erwartung:
 - Taschen-Icon links neben X anklicken.
 - Vier angelegte Taschenplätze prüfen.
 - Angezeigte Kapazitäten mit den tatsächlich angelegten Taschen vergleichen.
-- Mehrere unangelegte Taschen im Inventar bereithalten.
+- Test ohne verfügbare Tasche im Inventar.
+- Danach eine, vier und mehr als vier verfügbare Taschen ins Inventar legen.
 
-Erwartung: Exakt vier angelegte Taschenplätze werden angezeigt. Verfügbare Taschen erscheinen darunter ohne Namen/Austauschen-Button. Die Kapazität wird als Zahl auf dem Icon dargestellt; falls der Forever-Tooltip keine auswertbare Kapazität liefert, steht bei einer nicht angelegten Tasche „?“.
+Erwartung: Exakt vier angelegte Taschenplätze werden angezeigt. Verfügbare Taschen erscheinen darunter ohne Namen/Austauschen-Button. Die Panelhöhe wächst zeilenweise mit den verfügbaren Taschen. Bei null verfügbaren Taschen bleibt kein großer leerer Bereich unter der Überschrift. Bei sehr vielen Taschen wird die Höhe begrenzt und der Bereich scrollbar.
 
 ## 8. Taschen wechseln
 
@@ -82,7 +83,7 @@ Erwartung: WoWs normale Taschenwechselregeln greifen. Das Addon versucht keine U
 Erwartung:
 - rechts/zentral: Panel klappt links aus;
 - links: Panel klappt rechts aus;
-- nach Reset ist das Hauptfenster mittig und das Panel öffnet links.
+- nach Reset ist das Hauptfenster mittig, wieder auf Standardbreite und das Panel öffnet links.
 
 ## 10. Kampf
 
