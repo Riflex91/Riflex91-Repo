@@ -88,7 +88,7 @@
     "bank-deposit-production:write-live": "npm run bauen && node werkzeuge/bank-deposit-produktions-live.mjs",
     "bank-withdraw-production:pruefen": "npm run bauen && node --check werkzeuge/bank-withdraw-produktions-browser.mjs && node --check werkzeuge/bank-withdraw-produktions-preflight.mjs && node --check grundlage/adapter/persistenz/node-bank-withdraw-transaktionsjournal.mjs && node --check grundlage/adapter/persistenz/node-bank-withdraw-einmal-authority-protokoll.mjs && node --test grundlage/tests/r11-bank-withdraw-einmal-authority.test.mjs grundlage/tests/r11-bank-withdraw-produktions-journal.test.mjs grundlage/tests/r11-bank-withdraw-produktions-browser.test.mjs",
     "bank-withdraw-production:preflight": "npm run bauen && node werkzeuge/bank-withdraw-produktions-preflight.mjs",
-    "bank-withdraw-production:shadow-pruefen": "npm run bauen && node --check grundlage/quelle/merchant/bank-withdraw-shadow-admission.ts && node --test grundlage/tests/r13-persistenter-bank-lease.test.mjs grundlage/tests/r11-bank-withdraw-shadow-admission.test.mjs grundlage/tests/r11-bank-withdraw-host-no-write.test.mjs"
+    "bank-withdraw-production:shadow-pruefen": "npm run bauen && node --test grundlage/tests/r13-persistenter-bank-lease.test.mjs grundlage/tests/r11-bank-withdraw-shadow-admission.test.mjs grundlage/tests/r11-bank-withdraw-host-no-write.test.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
