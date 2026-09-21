@@ -71,6 +71,9 @@ import {
   MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
 } from "../merchant/bank-produktions-modul-vertrag.js";
 import {
+  BankLeaseKoordinator,
+} from "../koordination/account-bank-lease.js";
+import {
   ProduktiveEquipTransaktionsOrchestrierung,
   type ProduktiveEquipTransaktionsAbhaengigkeiten,
   type ProduktiveEquipTransaktionsAnforderung,
@@ -338,6 +341,9 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
   readonly #faehigkeiten = new FaehigkeitsRegister();
   readonly #scheduler = new AblaufScheduler();
   readonly #ressourcen = new RessourcenVerwalter();
+  readonly #bankLeaseKoordinator = new BankLeaseKoordinator(
+    this.#ressourcen,
+  );
   readonly #socketBudget = new CharacterSocketBudget();
   readonly #mutationsKanaele = new MutationsKanalKoordination(
     this.#ressourcen,
@@ -1569,6 +1575,10 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
 
   public kernKomponenten(): V5ProduktionsKernKomponenten {
     return this.#komponenten;
+  }
+
+  public bankLeaseKoordinator(): BankLeaseKoordinator {
+    return this.#bankLeaseKoordinator;
   }
 
   public operationsSupervisor(): HeadlessOperationsSupervisor {
