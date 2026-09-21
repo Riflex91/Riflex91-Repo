@@ -79,3 +79,10 @@ Wenn ein echter Withdraw-Lauf `gameWrites: 1` und `moeglicherSend: true` erreich
 ### Final-Preflight-Diagnose fuer Withdraw
 
 Wenn ein echter Withdraw-Lauf den Adapter erreicht (`adapterAufrufe: 1`), aber mit `transportArt: NICHT_GESENDET`, `gameWrites: 0` und `moeglicherSend: false` endet, darf kein weiterer Funktionstest gestartet werden. `npm run ingame:bank-withdraw:final-preflight-diagnose` reproduziert die letzten Final-Preflight-Gates read-only gegen den realen Browser und vergleicht den aktuellen stabilen Bank-Snapshot mit dem persistenten INTENT-Prestate. Der Runner ruft niemals `bank_withdraw` auf und zaehlt nicht als Funktionstest.
+
+
+### Adventure-Land-CODE-Bridge fuer Bank-Withdraw
+
+Der Browser-Page-Kontext muss `bank_withdraw` nicht direkt bereitstellen. Adventure Land laedt die oeffentlichen CODE-Funktionen in den separaten `/runner`-Iframe. V5 bindet den Withdraw-Pfad deshalb an den Page-Kontext mit der offiziellen `call_code_function_f`-Bridge. Ist der CODE-Runner inaktiv, darf der Adapter ihn vor einem moeglichen Send mit dem harmlosen No-op `call_code_function_f('eval','void 0')` bounded starten. Danach werden Account, Character, Session, Server, Merchant, Idle/Queue, Bank-Mount, Gold und alternative Runtime vollstaendig erneut validiert. Erst dann existiert genau ein moeglicher Aufruf `maincode.contentWindow.bank_withdraw(1)`. Raw-Socket-`.emit` bleibt verboten.
+
+`npm run ingame:code-bridge:bootstrap` prueft diesen Mechanismus ohne Gameplay-Write. Der Probe kann den CODE-Runner mit dem No-op starten, ruft aber niemals `bank_withdraw` auf und zaehlt nicht als Funktionstest.
