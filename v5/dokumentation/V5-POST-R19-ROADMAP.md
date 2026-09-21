@@ -189,6 +189,10 @@ Abzudecken:
 
 ### PR20.5 – Merchant-Pingpong- und Starvation-Schutz
 
+**Vorbereitung:** `CORE_VORBEREITET_NO_WRITE` unter
+`grundlage/quelle/merchant/dienst-stabilitaet.ts` mit automatischen Tests.
+Die Integration in produktive Arbeit bleibt hinter PR20.1–PR20.4 blockiert.
+
 Der produktive Scheduler muss verhindern, dass der Merchant ohne ausreichenden Grund zwischen Bank, NPC, Farmer, Markt und anderen Diensten pendelt.
 
 Abzudecken:
@@ -208,6 +212,11 @@ Abzudecken:
 
 ### PR20.6 – MLuck-Service produktiv
 
+**Vorbereitung:** Planung sowie der enge same-account
+`AL-ACTION-MLUCK-SAME-ACCOUNT` / Recovery / Verifier sind ratifiziert.
+Es existieren weiterhin **keine** produktive MLuck-Mutations-Capability,
+Authority, Adapter oder Live-Runner.
+
 Abzudecken:
 
 - frischer Empfaenger;
@@ -224,6 +233,11 @@ Abzudecken:
 
 ### PR20.7 – Gear-Autonomie produktiv erweitern
 
+**Vorbereitung:** Gear-Allokation, Gear-Progression, physische
+Einmalreservierung, Recipient-Slot-Reservierung und Restart-Recovery sind
+NO-WRITE vorhanden. Belegte Slots/Waffen/Offhand bleiben absichtlich
+produktive Spaeter-Gates.
+
 Aufbauend auf dem sicheren Equip-Pfad:
 
 - belegte Slots und kontrollierte Swaps;
@@ -239,6 +253,11 @@ Aufbauend auf dem sicheren Equip-Pfad:
 - echte 5m-Funktionsevidence fuer neue Mutationsklassen.
 
 ### PR20.8 – Upgrade, Compound und Exchange produktiv
+
+**Vorbereitung:** Action/Recovery/Verifier fuer alle drei, der
+Werttransaktions-Ledger sowie der authority-freie Upgrade/Compound-Planer
+sind vorhanden. Exchange bleibt fuer seine spezialisierte Produktivplanung
+separat offen; es gibt keinen Live-Adapter.
 
 Fuer jede Mutation separat:
 
@@ -258,6 +277,11 @@ Fuer jede Mutation separat:
 
 ### PR20.9 – Craft/Production produktiv
 
+**Vorbereitung:** Planner, bounded Graph, persistenter Controller,
+Operation-Schluessel, Workspace-/Gate-Pruefung und Recipient Settlement
+sind NO-WRITE vorhanden. Eine breite Graph-Execution-Authority bleibt
+ausdruecklich verboten.
+
 Der bestehende Production Planner/Controller/Graph wird mit den produktiven Mutationspfaden verbunden.
 
 Moegliche Kette:
@@ -275,6 +299,8 @@ Die harte Regel bleibt:
 - 5m-Funktionsevidence fuer neue produktive Schritte.
 
 ## 6. PR21 – Merchant Gesamtintegration
+
+**NO-WRITE-Testplan vorbereitet:** `dokumentation/PR21-MERCHANT-INTEGRATION-TESTPLAN.md`.
 
 **Status:** BLOCKED_BY_PR20.
 
