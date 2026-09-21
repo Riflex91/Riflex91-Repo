@@ -272,6 +272,28 @@ if(/\bbank_deposit\s*\(/.test(bankShadow)
     ||/\bAusfuehrungsAdapter\b/.test(bankShadow)) {
   fehler.push("BANK_DEPOSIT_SHADOW_WRITE_GRENZE_VERLETZT");
 }
+const bankRealShadow=lies(
+  "werkzeuge/bank-deposit-real-browser-shadow.mjs",
+);
+for(const m of [
+  "BANK_DEPOSIT_REAL_SHADOW_BESTAETIGUNG",
+  "BANK_SHADOW_SOURCE_SHA_MISMATCH",
+  "V5_BANK_DEPOSIT_REAL_BROWSER_SHADOW_NO_WRITE",
+  "startAusserhalbBank: true",
+  "browserGameplayWrites: 0",
+  "gameplayWrites: 0",
+  "adapterAufrufe: 0",
+]){
+  if(!bankRealShadow.includes(m)) {
+    fehler.push("BANK_REAL_SHADOW_GRENZE_FEHLT:"+m);
+  }
+}
+if(/\bbank_deposit\s*\(/.test(bankRealShadow)
+    ||/\.emit\s*\(/.test(bankRealShadow)
+    ||/\bAusfuehrungsKernel\b/.test(bankRealShadow)
+    ||/\bAusfuehrungsAdapter\b/.test(bankRealShadow)) {
+  fehler.push("BANK_REAL_SHADOW_WRITE_GRENZE_VERLETZT");
+}
 const bankPreflightRunner=lies(
   "werkzeuge/bank-deposit-produktions-preflight.mjs",
 );
@@ -497,6 +519,7 @@ for(const [kennung,muster] of [
 const equipProdRunner=lies("werkzeuge/equipment-equip-produktions-live.mjs");
 for(const m of [
   "fuehreEquipEinmalTransaktion",
+  "fuehreBankDepositRealShadow",
   "EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG",
   "EQUIP_PROD_SOURCE_SHA_ERFORDERLICH",
   "runtime/canary/equipment-equip-production/latest.json",
