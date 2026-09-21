@@ -101,6 +101,12 @@ import {
   type BankDepositShadowErgebnis,
 } from "../merchant/bank-deposit-shadow-admission.js";
 import {
+  ProduktiveBankWithdrawShadowAdmission,
+  type BankWithdrawShadowAbhaengigkeiten,
+  type BankWithdrawShadowAnforderung,
+  type BankWithdrawShadowErgebnis,
+} from "../merchant/bank-withdraw-shadow-admission.js";
+import {
   ProduktiveBankDepositTransaktionsOrchestrierung,
   type ProduktiveBankDepositTransaktionsAbhaengigkeiten,
   type ProduktiveBankDepositTransaktionsAnforderung,
@@ -1766,6 +1772,38 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
     }
 
     return new ProduktiveBankDepositShadowAdmission().pruefe(
+      anforderung,
+      Object.freeze({
+        ...abhaengigkeiten,
+        operatorRichtlinie: this.#bedienerRichtlinie,
+        ressourcen: this.#ressourcen,
+        socketBudget: this.#socketBudget,
+        mutationsKanaele: this.#mutationsKanaele,
+      }),
+    );
+  }
+
+  public async fuehreBankWithdrawShadowAdmission(
+    anforderung: BankWithdrawShadowAnforderung,
+    abhaengigkeiten: Omit<
+      BankWithdrawShadowAbhaengigkeiten,
+      | "operatorRichtlinie"
+      | "ressourcen"
+      | "socketBudget"
+      | "mutationsKanaele"
+    >,
+  ): Promise<BankWithdrawShadowErgebnis> {
+    if (!this.#prozessLaeuft || this.#zustand !== "LAEUFT") {
+      throw new Error("V5_BANK_WITHDRAW_SHADOW_RUNTIME_LAEUFT_NICHT");
+    }
+    if (this.#bedienerRichtlinie === null) {
+      throw new Error("V5_BANK_WITHDRAW_SHADOW_BEDIENER_RICHTLINIE_FEHLT");
+    }
+    if (this.#bankWithdrawEinmalAuthority !== anforderung.authority) {
+      throw new Error("V5_BANK_WITHDRAW_SHADOW_AUTHORITY_NICHT_AKTUELL");
+    }
+
+    return new ProduktiveBankWithdrawShadowAdmission().pruefe(
       anforderung,
       Object.freeze({
         ...abhaengigkeiten,
