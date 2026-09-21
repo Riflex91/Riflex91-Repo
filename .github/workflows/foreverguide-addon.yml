@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.11.9
+name: Mewthisch Guides addon v0.12.0
 
 on:
   workflow_dispatch:
@@ -361,6 +361,8 @@ jobs:
             "MewthischGuides",MG)
           assert(loadfile("world of warcraft/MewthischGuides/RestedXPImport.lua"))(
             "MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/GuideRegistry.lua"))(
+            "MewthischGuides",MG)
           assert(loadfile("world of warcraft/MewthischGuides/SupportedRoutes.lua"))(
             "MewthischGuides",MG)
 
@@ -470,6 +472,8 @@ jobs:
             "MewthischGuides",MG)
           assert(loadfile("world of warcraft/MewthischGuides/RestedXPImport.lua"))(
             "MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/GuideRegistry.lua"))(
+            "MewthischGuides",MG)
           assert(loadfile("world of warcraft/MewthischGuides/SupportedRoutes.lua"))(
             "MewthischGuides",MG)
 
@@ -535,6 +539,158 @@ jobs:
           assert(MG:RestedXPPhaseApplies(call,"accept",shaman,nil))
 
           print("Guide picker + Call of Earth routing PASS")
+          LUA
+
+      - name: Validate v0.12 localization, registry and settings schema
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={db={settings={language="auto"},runtime={}}}
+          GetLocale=function() return "ruRU" end
+          assert(loadfile("world of warcraft/MewthischGuides/Localization.lua"))(
+            "MewthischGuides",MG)
+          assert(MG.Localization:DetectClientLanguage()=="ru")
+          assert(MG.Localization:GetConfiguredLanguage()=="ru")
+          local required={"en","zh","hi","es","fr","de","ru"}
+          for _,code in ipairs(required) do
+            assert(MG.Localization.supported[code],"missing language "..code)
+            MG.db.settings.language=code
+            assert(MG.Localization:Get("general")~="general",
+              "missing translated General label for "..code)
+          end
+          MG.db.settings.language="auto"
+
+          assert(loadfile("world of warcraft/MewthischGuides/GuideRegistry.lua"))(
+            "MewthischGuides",MG)
+          assert(#MG.GuideRegistry:GetSpecs()==43)
+          assert(MG.GuideRegistry:GetCategory("mage").class=="MAGE")
+
+          assert(loadfile("world of warcraft/MewthischGuides/SettingsSchema.lua"))(
+            "MewthischGuides",MG)
+          assert(#MG.SettingsSchema:GetCategories()==11)
+          local general=MG.SettingsSchema:GetControls("general")
+          assert(general[1].type=="language")
+          local navigation=MG.SettingsSchema:GetControls("navigation")
+          assert(#navigation>=10)
+          print("Localization + Registry + SettingsSchema PASS")
+          LUA
+
+      - name: Validate smart resync and RestedXP action plan
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={db={settings={smartResync=true,skipObsoleteSteps=true},runtime={}}}
+          assert(loadfile("world of warcraft/MewthischGuides/SmartResync.lua"))(
+            "MewthischGuides",MG)
+          local steps={
+            {phase="accept",routeOrder=1,questID=1},
+            {phase="objectives",routeOrder=20,questID=2},
+            {phase="turnin",routeOrder=19,questID=3},
+          }
+          local idx,reason=MG.SmartResync:Choose(steps,1,"default")
+          assert(idx==3 and reason=="smart_active_progress")
+
+          MG.GetPlayerProfile=function()
+            return {faction="Horde",race="Tauren",class="DRUID",level=10}
+          end
+          MG.RestEDXPImport={
+            GetProgressOccurrence=function()
+              return {rawGuideIndex=1,leadFromStep=1,sourceStep=1}
+            end,
+            ParseRaw=function()
+              return {{
+                steps={{
+                  actions={
+                    {kind="accept",args="123"},
+                    {kind="fly",args="Thunder Bluff"},
+                    {kind="train",args="Wrath"},
+                    {kind="xp",args="10"},
+                  },
+                  selector="",tags={},
+                }},
+              }}
+            end,
+            SelectorMatches=function() return true end,
+            TagsMatch=function() return true end,
+          }
+          MG.RestEDXPActionCatalog={
+            Format=function(_,kind,args) return kind..": "..tostring(args) end,
+            Get=function(_,kind) return {visible=true,label=kind} end,
+          }
+          assert(loadfile("world of warcraft/MewthischGuides/RestedXPActionEngine.lua"))(
+            "MewthischGuides",MG)
+          local plan=MG.RestEDXPActionEngine:Refresh({
+            questID=123,phase="accept",definition={rxpOccurrences={{}}},
+          })
+          assert(#plan==3)
+          assert(plan[1].category=="travel")
+          assert(plan[2].category=="trainer")
+          assert(plan[3].category=="gate")
+          print("SmartResync + RestedXPActionEngine PASS")
+          LUA
+
+      - name: Validate ForeverQuestDB, TravelPlanner and Journey
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={
+            db={settings={
+              travelUseFlightPaths=true,travelUseHearthstone=true,
+              travelUseTransports=true,travelPreferFastest=true,
+              travelShowEstimatedTime=true,
+            },runtime={}},
+            navigation={distanceMeters=1000},
+          }
+          MG.GetPlayerProfile=function()
+            return {faction="Horde",race="Tauren",class="DRUID",level=4}
+          end
+          MG.ForeverAPI={
+            GetPlayerPosition=function()
+              return {mapID=1412,x=.45,y=.75}
+            end,
+          }
+          MG.RestEDXPImport={OccurrenceMatches=function() return true end}
+          MG.RouteEngine={
+            EstimateDistanceToTarget=function(_,point)
+              return point.worldX and 100 or 200
+            end,
+          }
+          assert(loadfile("world of warcraft/MewthischGuides/ForeverQuestDB.lua"))(
+            "MewthischGuides",MG)
+          local stats=MG.ForeverQuestDB:Rebuild({
+            {id="mulgore",sourceFile="x",steps={{
+              questID=1519,title="Call of Earth",
+              rxpOccurrences={{
+                phase="accept",
+                coordinate={mapID=1412,worldX=-250.09,worldY=-2882.08},
+              }},
+            }}},
+          })
+          assert(stats.quests==1 and stats.points==1)
+          local point=assert(MG.ForeverQuestDB:Resolve(1519,"accept"))
+          assert(point.source=="ForeverQuestDB")
+          assert(math.abs(point.worldX-(-250.09))<0.01)
+
+          GetItemCooldown=function() return 0,0,1 end
+          GetTime=function() return 100 end
+          GetBindLocation=function() return "Bloodhoof Village" end
+          MG.actionPlan={{kind="fly",text="Fly to Thunder Bluff"}}
+          assert(loadfile("world of warcraft/MewthischGuides/TravelPlanner.lua"))(
+            "MewthischGuides",MG)
+          local travel=MG.TravelPlanner:Plan(point,{questID=1519})
+          assert(travel.best.kind=="flight")
+          assert(#travel.alternatives>=2)
+
+          time=function() return 1234 end
+          UnitLevel=function() return 4 end
+          MG.GetPosition=function() return {mapID=1412} end
+          assert(loadfile("world of warcraft/MewthischGuides/Journey.lua"))(
+            "MewthischGuides",MG)
+          MG.Journey:Record("accepted",1519)
+          MG.Journey:Record("turned_in",1519)
+          local summary=MG.Journey:GetSummary()
+          assert(summary.entries==2 and summary.accepted==1 and summary.turnedIn==1)
+          print("ForeverQuestDB + TravelPlanner + Journey PASS")
           LUA
 
       - name: Validate world map marker
@@ -789,7 +945,7 @@ jobs:
           print("Seven-theme contract PASS")
           LUA
 
-      - name: Validate v0.11.9 static contract
+      - name: Validate v0.12.0 static contract
         shell: bash
         run: |
           set -euo pipefail
@@ -798,11 +954,125 @@ jobs:
           UI="$ROOT/UI.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
-          grep -q '^## Version: 0.11.9$' "$TOC"
+          grep -q '^## Version: 0.12.0$' "$TOC"
           grep -q '^## OptionalDeps: ElvUI, EllesmereUI, ElvUI_ToxiUI$' "$TOC"
           grep -q '^ManualRoute.lua$' "$TOC"
           grep -q '^WorldMapMarker.lua$' "$TOC"
-          grep -q '^RestedXPImport.lua$' "$TOC"
+          grep -q '^RestedXPImport.lua
+          grep -q '^SupportedRoutes.lua$' "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Auto"' "$UI"
+          grep -q 'Derzeit nicht verfügbar! Questinformationen reichen nicht aus!' "$UI"
+          grep -q 'guideName = "Manueller Modus"' "$UI"
+          grep -q 'Mage AoE Farm' "$UI"
+          grep -q 'MewthischGuidesAutoEquipNotice' "$UI"
+          grep -q 'MewthischGuidesMainFrameV2' "$ROOT/UI2.lua"
+          grep -q 'MewthischGuidesGuideBrowserV2' "$ROOT/UI2.lua"
+          grep -q 'MewthischGuidesSettingsV2' "$ROOT/UI2.lua"
+          grep -q 'Automatic (WoW client)' "$ROOT/Localization.lua"
+          grep -q 'Русский' "$ROOT/Localization.lua"
+          grep -q 'हिन्दी' "$ROOT/Localization.lua"
+          grep -q 'GuideRegistry:RegisterRoute' "$ROOT/README.md"
+          grep -q 'wurde angelegt\.' "$UI"
+          grep -q 'CreateAnimationGroup' "$UI"
+          grep -q 'CreateAnimation("Alpha")' "$UI"
+          grep -q 'ShowAutoEquipNotification' "$ROOT/GearAdvisor.lua"
+          grep -q 'ResolveAutoEquipNoticeItemData' "$UI"
+          grep -q 'GetInventoryItemTexture' "$UI"
+          grep -q 'GetItemIconByID' "$UI"
+          grep -q 'GetItemInfo-table' "$UI"
+          grep -q 'INV_Misc_QuestionMark' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
+          grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
+          grep -q 'autoEquipReason = "disabled"' "$ROOT/GearAdvisor.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
+          grep -q 'theme = "Forever Classic"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
+          grep -q 'navigatorArrowSkin = "arrow-blue"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkinDefaultVersion = 2' "$ROOT/Logger.lua"
+          grep -q 'language = "auto"' "$ROOT/Logger.lua"
+          grep -q 'smartResync = true' "$ROOT/Logger.lua"
+          grep -q 'travelPreferFastest = true' "$ROOT/Logger.lua"
+          grep -q 'uiV2ThemeDefaultVersion = 1' "$ROOT/Logger.lua"
+          grep -q '"compass-black"' "$ROOT/Navigator.lua"
+          grep -q '"pointer-black"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-blue"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-red"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-orange"' "$ROOT/Navigator.lua"
+          grep -q 'Nächster Skin' "$UI"
+          grep -q 'IsGuideSelectable(guide, category)' "$UI"
+          grep -q 'CanSelectCategory("mage")' "$UI"
+          grep -q 'restedxp_phase_selector' "$ROOT/StepEngine.lua"
+          test -f "$ROOT/Assets/ArrowBlue.blp"
+          test -f "$ROOT/Assets/ArrowRed.blp"
+          test -f "$ROOT/Assets/ArrowOrange.blp"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          if grep -q 'footerStatus' "$UI"; then
+            echo "Deprecated bottom-left target/status text is still present."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.12.0.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.12.0
+          path: artifacts/MewthischGuides-v0.12.0.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^GuideRegistry.lua
           grep -q '^SupportedRoutes.lua$' "$TOC"
 
           grep -q 'makeButton(footer, "Config"' "$UI"
@@ -833,7 +1103,7 @@ jobs:
           grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
           grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
           grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
-          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/SupportedRoutes.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
           grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
           grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
           grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
@@ -896,11 +1166,1143 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.11.9.zip MewthischGuides
+          zip -r MewthischGuides-v0.12.0.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.11.9
-          path: artifacts/MewthischGuides-v0.11.9.zip
+          name: MewthischGuides-v0.12.0
+          path: artifacts/MewthischGuides-v0.12.0.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^Localization.lua
+          grep -q '^SupportedRoutes.lua$' "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Auto"' "$UI"
+          grep -q 'Derzeit nicht verfügbar! Questinformationen reichen nicht aus!' "$UI"
+          grep -q 'guideName = "Manueller Modus"' "$UI"
+          grep -q 'Mage AoE Farm' "$UI"
+          grep -q 'MewthischGuidesAutoEquipNotice' "$UI"
+          grep -q 'wurde angelegt\.' "$UI"
+          grep -q 'CreateAnimationGroup' "$UI"
+          grep -q 'CreateAnimation("Alpha")' "$UI"
+          grep -q 'ShowAutoEquipNotification' "$ROOT/GearAdvisor.lua"
+          grep -q 'ResolveAutoEquipNoticeItemData' "$UI"
+          grep -q 'GetInventoryItemTexture' "$UI"
+          grep -q 'GetItemIconByID' "$UI"
+          grep -q 'GetItemInfo-table' "$UI"
+          grep -q 'INV_Misc_QuestionMark' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
+          grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
+          grep -q 'autoEquipReason = "disabled"' "$ROOT/GearAdvisor.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
+          grep -q 'navigatorArrowSkin = "arrow-blue"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkinDefaultVersion = 2' "$ROOT/Logger.lua"
+          grep -q '"compass-black"' "$ROOT/Navigator.lua"
+          grep -q '"pointer-black"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-blue"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-red"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-orange"' "$ROOT/Navigator.lua"
+          grep -q 'Nächster Skin' "$UI"
+          grep -q 'IsGuideSelectable(guide, category)' "$UI"
+          grep -q 'CanSelectCategory("mage")' "$UI"
+          grep -q 'restedxp_phase_selector' "$ROOT/StepEngine.lua"
+          test -f "$ROOT/Assets/ArrowBlue.blp"
+          test -f "$ROOT/Assets/ArrowRed.blp"
+          test -f "$ROOT/Assets/ArrowOrange.blp"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          if grep -q 'footerStatus' "$UI"; then
+            echo "Deprecated bottom-left target/status text is still present."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.12.0.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.12.0
+          path: artifacts/MewthischGuides-v0.12.0.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^SettingsSchema.lua
+          grep -q '^SupportedRoutes.lua$' "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Auto"' "$UI"
+          grep -q 'Derzeit nicht verfügbar! Questinformationen reichen nicht aus!' "$UI"
+          grep -q 'guideName = "Manueller Modus"' "$UI"
+          grep -q 'Mage AoE Farm' "$UI"
+          grep -q 'MewthischGuidesAutoEquipNotice' "$UI"
+          grep -q 'wurde angelegt\.' "$UI"
+          grep -q 'CreateAnimationGroup' "$UI"
+          grep -q 'CreateAnimation("Alpha")' "$UI"
+          grep -q 'ShowAutoEquipNotification' "$ROOT/GearAdvisor.lua"
+          grep -q 'ResolveAutoEquipNoticeItemData' "$UI"
+          grep -q 'GetInventoryItemTexture' "$UI"
+          grep -q 'GetItemIconByID' "$UI"
+          grep -q 'GetItemInfo-table' "$UI"
+          grep -q 'INV_Misc_QuestionMark' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
+          grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
+          grep -q 'autoEquipReason = "disabled"' "$ROOT/GearAdvisor.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
+          grep -q 'navigatorArrowSkin = "arrow-blue"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkinDefaultVersion = 2' "$ROOT/Logger.lua"
+          grep -q '"compass-black"' "$ROOT/Navigator.lua"
+          grep -q '"pointer-black"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-blue"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-red"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-orange"' "$ROOT/Navigator.lua"
+          grep -q 'Nächster Skin' "$UI"
+          grep -q 'IsGuideSelectable(guide, category)' "$UI"
+          grep -q 'CanSelectCategory("mage")' "$UI"
+          grep -q 'restedxp_phase_selector' "$ROOT/StepEngine.lua"
+          test -f "$ROOT/Assets/ArrowBlue.blp"
+          test -f "$ROOT/Assets/ArrowRed.blp"
+          test -f "$ROOT/Assets/ArrowOrange.blp"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          if grep -q 'footerStatus' "$UI"; then
+            echo "Deprecated bottom-left target/status text is still present."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.12.0.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.12.0
+          path: artifacts/MewthischGuides-v0.12.0.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^ForeverQuestDB.lua
+          grep -q '^SupportedRoutes.lua$' "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Auto"' "$UI"
+          grep -q 'Derzeit nicht verfügbar! Questinformationen reichen nicht aus!' "$UI"
+          grep -q 'guideName = "Manueller Modus"' "$UI"
+          grep -q 'Mage AoE Farm' "$UI"
+          grep -q 'MewthischGuidesAutoEquipNotice' "$UI"
+          grep -q 'wurde angelegt\.' "$UI"
+          grep -q 'CreateAnimationGroup' "$UI"
+          grep -q 'CreateAnimation("Alpha")' "$UI"
+          grep -q 'ShowAutoEquipNotification' "$ROOT/GearAdvisor.lua"
+          grep -q 'ResolveAutoEquipNoticeItemData' "$UI"
+          grep -q 'GetInventoryItemTexture' "$UI"
+          grep -q 'GetItemIconByID' "$UI"
+          grep -q 'GetItemInfo-table' "$UI"
+          grep -q 'INV_Misc_QuestionMark' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
+          grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
+          grep -q 'autoEquipReason = "disabled"' "$ROOT/GearAdvisor.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
+          grep -q 'navigatorArrowSkin = "arrow-blue"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkinDefaultVersion = 2' "$ROOT/Logger.lua"
+          grep -q '"compass-black"' "$ROOT/Navigator.lua"
+          grep -q '"pointer-black"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-blue"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-red"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-orange"' "$ROOT/Navigator.lua"
+          grep -q 'Nächster Skin' "$UI"
+          grep -q 'IsGuideSelectable(guide, category)' "$UI"
+          grep -q 'CanSelectCategory("mage")' "$UI"
+          grep -q 'restedxp_phase_selector' "$ROOT/StepEngine.lua"
+          test -f "$ROOT/Assets/ArrowBlue.blp"
+          test -f "$ROOT/Assets/ArrowRed.blp"
+          test -f "$ROOT/Assets/ArrowOrange.blp"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          if grep -q 'footerStatus' "$UI"; then
+            echo "Deprecated bottom-left target/status text is still present."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.12.0.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.12.0
+          path: artifacts/MewthischGuides-v0.12.0.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^TravelPlanner.lua
+          grep -q '^SupportedRoutes.lua$' "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Auto"' "$UI"
+          grep -q 'Derzeit nicht verfügbar! Questinformationen reichen nicht aus!' "$UI"
+          grep -q 'guideName = "Manueller Modus"' "$UI"
+          grep -q 'Mage AoE Farm' "$UI"
+          grep -q 'MewthischGuidesAutoEquipNotice' "$UI"
+          grep -q 'wurde angelegt\.' "$UI"
+          grep -q 'CreateAnimationGroup' "$UI"
+          grep -q 'CreateAnimation("Alpha")' "$UI"
+          grep -q 'ShowAutoEquipNotification' "$ROOT/GearAdvisor.lua"
+          grep -q 'ResolveAutoEquipNoticeItemData' "$UI"
+          grep -q 'GetInventoryItemTexture' "$UI"
+          grep -q 'GetItemIconByID' "$UI"
+          grep -q 'GetItemInfo-table' "$UI"
+          grep -q 'INV_Misc_QuestionMark' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
+          grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
+          grep -q 'autoEquipReason = "disabled"' "$ROOT/GearAdvisor.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
+          grep -q 'navigatorArrowSkin = "arrow-blue"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkinDefaultVersion = 2' "$ROOT/Logger.lua"
+          grep -q '"compass-black"' "$ROOT/Navigator.lua"
+          grep -q '"pointer-black"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-blue"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-red"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-orange"' "$ROOT/Navigator.lua"
+          grep -q 'Nächster Skin' "$UI"
+          grep -q 'IsGuideSelectable(guide, category)' "$UI"
+          grep -q 'CanSelectCategory("mage")' "$UI"
+          grep -q 'restedxp_phase_selector' "$ROOT/StepEngine.lua"
+          test -f "$ROOT/Assets/ArrowBlue.blp"
+          test -f "$ROOT/Assets/ArrowRed.blp"
+          test -f "$ROOT/Assets/ArrowOrange.blp"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          if grep -q 'footerStatus' "$UI"; then
+            echo "Deprecated bottom-left target/status text is still present."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.12.0.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.12.0
+          path: artifacts/MewthischGuides-v0.12.0.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^SmartResync.lua
+          grep -q '^SupportedRoutes.lua$' "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Auto"' "$UI"
+          grep -q 'Derzeit nicht verfügbar! Questinformationen reichen nicht aus!' "$UI"
+          grep -q 'guideName = "Manueller Modus"' "$UI"
+          grep -q 'Mage AoE Farm' "$UI"
+          grep -q 'MewthischGuidesAutoEquipNotice' "$UI"
+          grep -q 'wurde angelegt\.' "$UI"
+          grep -q 'CreateAnimationGroup' "$UI"
+          grep -q 'CreateAnimation("Alpha")' "$UI"
+          grep -q 'ShowAutoEquipNotification' "$ROOT/GearAdvisor.lua"
+          grep -q 'ResolveAutoEquipNoticeItemData' "$UI"
+          grep -q 'GetInventoryItemTexture' "$UI"
+          grep -q 'GetItemIconByID' "$UI"
+          grep -q 'GetItemInfo-table' "$UI"
+          grep -q 'INV_Misc_QuestionMark' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
+          grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
+          grep -q 'autoEquipReason = "disabled"' "$ROOT/GearAdvisor.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
+          grep -q 'navigatorArrowSkin = "arrow-blue"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkinDefaultVersion = 2' "$ROOT/Logger.lua"
+          grep -q '"compass-black"' "$ROOT/Navigator.lua"
+          grep -q '"pointer-black"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-blue"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-red"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-orange"' "$ROOT/Navigator.lua"
+          grep -q 'Nächster Skin' "$UI"
+          grep -q 'IsGuideSelectable(guide, category)' "$UI"
+          grep -q 'CanSelectCategory("mage")' "$UI"
+          grep -q 'restedxp_phase_selector' "$ROOT/StepEngine.lua"
+          test -f "$ROOT/Assets/ArrowBlue.blp"
+          test -f "$ROOT/Assets/ArrowRed.blp"
+          test -f "$ROOT/Assets/ArrowOrange.blp"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          if grep -q 'footerStatus' "$UI"; then
+            echo "Deprecated bottom-left target/status text is still present."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.12.0.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.12.0
+          path: artifacts/MewthischGuides-v0.12.0.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^RestedXPActionEngine.lua
+          grep -q '^SupportedRoutes.lua$' "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Auto"' "$UI"
+          grep -q 'Derzeit nicht verfügbar! Questinformationen reichen nicht aus!' "$UI"
+          grep -q 'guideName = "Manueller Modus"' "$UI"
+          grep -q 'Mage AoE Farm' "$UI"
+          grep -q 'MewthischGuidesAutoEquipNotice' "$UI"
+          grep -q 'wurde angelegt\.' "$UI"
+          grep -q 'CreateAnimationGroup' "$UI"
+          grep -q 'CreateAnimation("Alpha")' "$UI"
+          grep -q 'ShowAutoEquipNotification' "$ROOT/GearAdvisor.lua"
+          grep -q 'ResolveAutoEquipNoticeItemData' "$UI"
+          grep -q 'GetInventoryItemTexture' "$UI"
+          grep -q 'GetItemIconByID' "$UI"
+          grep -q 'GetItemInfo-table' "$UI"
+          grep -q 'INV_Misc_QuestionMark' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
+          grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
+          grep -q 'autoEquipReason = "disabled"' "$ROOT/GearAdvisor.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
+          grep -q 'navigatorArrowSkin = "arrow-blue"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkinDefaultVersion = 2' "$ROOT/Logger.lua"
+          grep -q '"compass-black"' "$ROOT/Navigator.lua"
+          grep -q '"pointer-black"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-blue"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-red"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-orange"' "$ROOT/Navigator.lua"
+          grep -q 'Nächster Skin' "$UI"
+          grep -q 'IsGuideSelectable(guide, category)' "$UI"
+          grep -q 'CanSelectCategory("mage")' "$UI"
+          grep -q 'restedxp_phase_selector' "$ROOT/StepEngine.lua"
+          test -f "$ROOT/Assets/ArrowBlue.blp"
+          test -f "$ROOT/Assets/ArrowRed.blp"
+          test -f "$ROOT/Assets/ArrowOrange.blp"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          if grep -q 'footerStatus' "$UI"; then
+            echo "Deprecated bottom-left target/status text is still present."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.12.0.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.12.0
+          path: artifacts/MewthischGuides-v0.12.0.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^TrainerAdvisor.lua
+          grep -q '^SupportedRoutes.lua$' "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Auto"' "$UI"
+          grep -q 'Derzeit nicht verfügbar! Questinformationen reichen nicht aus!' "$UI"
+          grep -q 'guideName = "Manueller Modus"' "$UI"
+          grep -q 'Mage AoE Farm' "$UI"
+          grep -q 'MewthischGuidesAutoEquipNotice' "$UI"
+          grep -q 'wurde angelegt\.' "$UI"
+          grep -q 'CreateAnimationGroup' "$UI"
+          grep -q 'CreateAnimation("Alpha")' "$UI"
+          grep -q 'ShowAutoEquipNotification' "$ROOT/GearAdvisor.lua"
+          grep -q 'ResolveAutoEquipNoticeItemData' "$UI"
+          grep -q 'GetInventoryItemTexture' "$UI"
+          grep -q 'GetItemIconByID' "$UI"
+          grep -q 'GetItemInfo-table' "$UI"
+          grep -q 'INV_Misc_QuestionMark' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
+          grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
+          grep -q 'autoEquipReason = "disabled"' "$ROOT/GearAdvisor.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
+          grep -q 'navigatorArrowSkin = "arrow-blue"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkinDefaultVersion = 2' "$ROOT/Logger.lua"
+          grep -q '"compass-black"' "$ROOT/Navigator.lua"
+          grep -q '"pointer-black"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-blue"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-red"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-orange"' "$ROOT/Navigator.lua"
+          grep -q 'Nächster Skin' "$UI"
+          grep -q 'IsGuideSelectable(guide, category)' "$UI"
+          grep -q 'CanSelectCategory("mage")' "$UI"
+          grep -q 'restedxp_phase_selector' "$ROOT/StepEngine.lua"
+          test -f "$ROOT/Assets/ArrowBlue.blp"
+          test -f "$ROOT/Assets/ArrowRed.blp"
+          test -f "$ROOT/Assets/ArrowOrange.blp"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          if grep -q 'footerStatus' "$UI"; then
+            echo "Deprecated bottom-left target/status text is still present."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.12.0.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.12.0
+          path: artifacts/MewthischGuides-v0.12.0.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^AudioFeedback.lua
+          grep -q '^SupportedRoutes.lua$' "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Auto"' "$UI"
+          grep -q 'Derzeit nicht verfügbar! Questinformationen reichen nicht aus!' "$UI"
+          grep -q 'guideName = "Manueller Modus"' "$UI"
+          grep -q 'Mage AoE Farm' "$UI"
+          grep -q 'MewthischGuidesAutoEquipNotice' "$UI"
+          grep -q 'wurde angelegt\.' "$UI"
+          grep -q 'CreateAnimationGroup' "$UI"
+          grep -q 'CreateAnimation("Alpha")' "$UI"
+          grep -q 'ShowAutoEquipNotification' "$ROOT/GearAdvisor.lua"
+          grep -q 'ResolveAutoEquipNoticeItemData' "$UI"
+          grep -q 'GetInventoryItemTexture' "$UI"
+          grep -q 'GetItemIconByID' "$UI"
+          grep -q 'GetItemInfo-table' "$UI"
+          grep -q 'INV_Misc_QuestionMark' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
+          grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
+          grep -q 'autoEquipReason = "disabled"' "$ROOT/GearAdvisor.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
+          grep -q 'navigatorArrowSkin = "arrow-blue"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkinDefaultVersion = 2' "$ROOT/Logger.lua"
+          grep -q '"compass-black"' "$ROOT/Navigator.lua"
+          grep -q '"pointer-black"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-blue"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-red"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-orange"' "$ROOT/Navigator.lua"
+          grep -q 'Nächster Skin' "$UI"
+          grep -q 'IsGuideSelectable(guide, category)' "$UI"
+          grep -q 'CanSelectCategory("mage")' "$UI"
+          grep -q 'restedxp_phase_selector' "$ROOT/StepEngine.lua"
+          test -f "$ROOT/Assets/ArrowBlue.blp"
+          test -f "$ROOT/Assets/ArrowRed.blp"
+          test -f "$ROOT/Assets/ArrowOrange.blp"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          if grep -q 'footerStatus' "$UI"; then
+            echo "Deprecated bottom-left target/status text is still present."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.12.0.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.12.0
+          path: artifacts/MewthischGuides-v0.12.0.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^Journey.lua
+          grep -q '^SupportedRoutes.lua$' "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Auto"' "$UI"
+          grep -q 'Derzeit nicht verfügbar! Questinformationen reichen nicht aus!' "$UI"
+          grep -q 'guideName = "Manueller Modus"' "$UI"
+          grep -q 'Mage AoE Farm' "$UI"
+          grep -q 'MewthischGuidesAutoEquipNotice' "$UI"
+          grep -q 'wurde angelegt\.' "$UI"
+          grep -q 'CreateAnimationGroup' "$UI"
+          grep -q 'CreateAnimation("Alpha")' "$UI"
+          grep -q 'ShowAutoEquipNotification' "$ROOT/GearAdvisor.lua"
+          grep -q 'ResolveAutoEquipNoticeItemData' "$UI"
+          grep -q 'GetInventoryItemTexture' "$UI"
+          grep -q 'GetItemIconByID' "$UI"
+          grep -q 'GetItemInfo-table' "$UI"
+          grep -q 'INV_Misc_QuestionMark' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
+          grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
+          grep -q 'autoEquipReason = "disabled"' "$ROOT/GearAdvisor.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
+          grep -q 'navigatorArrowSkin = "arrow-blue"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkinDefaultVersion = 2' "$ROOT/Logger.lua"
+          grep -q '"compass-black"' "$ROOT/Navigator.lua"
+          grep -q '"pointer-black"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-blue"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-red"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-orange"' "$ROOT/Navigator.lua"
+          grep -q 'Nächster Skin' "$UI"
+          grep -q 'IsGuideSelectable(guide, category)' "$UI"
+          grep -q 'CanSelectCategory("mage")' "$UI"
+          grep -q 'restedxp_phase_selector' "$ROOT/StepEngine.lua"
+          test -f "$ROOT/Assets/ArrowBlue.blp"
+          test -f "$ROOT/Assets/ArrowRed.blp"
+          test -f "$ROOT/Assets/ArrowOrange.blp"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          if grep -q 'footerStatus' "$UI"; then
+            echo "Deprecated bottom-left target/status text is still present."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.12.0.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.12.0
+          path: artifacts/MewthischGuides-v0.12.0.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^UI2.lua
+          grep -q '^SupportedRoutes.lua$' "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Auto"' "$UI"
+          grep -q 'Derzeit nicht verfügbar! Questinformationen reichen nicht aus!' "$UI"
+          grep -q 'guideName = "Manueller Modus"' "$UI"
+          grep -q 'Mage AoE Farm' "$UI"
+          grep -q 'MewthischGuidesAutoEquipNotice' "$UI"
+          grep -q 'wurde angelegt\.' "$UI"
+          grep -q 'CreateAnimationGroup' "$UI"
+          grep -q 'CreateAnimation("Alpha")' "$UI"
+          grep -q 'ShowAutoEquipNotification' "$ROOT/GearAdvisor.lua"
+          grep -q 'ResolveAutoEquipNoticeItemData' "$UI"
+          grep -q 'GetInventoryItemTexture' "$UI"
+          grep -q 'GetItemIconByID' "$UI"
+          grep -q 'GetItemInfo-table' "$UI"
+          grep -q 'INV_Misc_QuestionMark' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
+          grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
+          grep -q 'autoEquipReason = "disabled"' "$ROOT/GearAdvisor.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
+          grep -q 'navigatorArrowSkin = "arrow-blue"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkinDefaultVersion = 2' "$ROOT/Logger.lua"
+          grep -q '"compass-black"' "$ROOT/Navigator.lua"
+          grep -q '"pointer-black"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-blue"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-red"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-orange"' "$ROOT/Navigator.lua"
+          grep -q 'Nächster Skin' "$UI"
+          grep -q 'IsGuideSelectable(guide, category)' "$UI"
+          grep -q 'CanSelectCategory("mage")' "$UI"
+          grep -q 'restedxp_phase_selector' "$ROOT/StepEngine.lua"
+          test -f "$ROOT/Assets/ArrowBlue.blp"
+          test -f "$ROOT/Assets/ArrowRed.blp"
+          test -f "$ROOT/Assets/ArrowOrange.blp"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          if grep -q 'footerStatus' "$UI"; then
+            echo "Deprecated bottom-left target/status text is still present."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.12.0.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.12.0
+          path: artifacts/MewthischGuides-v0.12.0.zip
+          if-no-files-found: error
+ "$TOC"
+          grep -q '^SupportedRoutes.lua$' "$TOC"
+
+          grep -q 'makeButton(footer, "Config"' "$UI"
+          grep -q '"Manuell"' "$UI"
+          grep -q '"Auto"' "$UI"
+          grep -q 'Derzeit nicht verfügbar! Questinformationen reichen nicht aus!' "$UI"
+          grep -q 'guideName = "Manueller Modus"' "$UI"
+          grep -q 'Mage AoE Farm' "$UI"
+          grep -q 'MewthischGuidesAutoEquipNotice' "$UI"
+          grep -q 'wurde angelegt\.' "$UI"
+          grep -q 'CreateAnimationGroup' "$UI"
+          grep -q 'CreateAnimation("Alpha")' "$UI"
+          grep -q 'ShowAutoEquipNotification' "$ROOT/GearAdvisor.lua"
+          grep -q 'ResolveAutoEquipNoticeItemData' "$UI"
+          grep -q 'GetInventoryItemTexture' "$UI"
+          grep -q 'GetItemIconByID' "$UI"
+          grep -q 'GetItemInfo-table' "$UI"
+          grep -q 'INV_Misc_QuestionMark' "$UI"
+          grep -q 'showWorldMapMarker' "$UI"
+          grep -q 'gearAutoEquipItemLevelFallback = true' "$ROOT/Logger.lua"
+          grep -q 'GET_ITEM_INFO_RECEIVED' "$ROOT/Core.lua"
+          grep -q 'ITEM_DATA_LOAD_RESULT' "$ROOT/Core.lua"
+          grep -q 'bindingType' "$ROOT/Inventory.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
+          grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
+          grep -q 'autoEquipReason = "disabled"' "$ROOT/GearAdvisor.lua"
+          grep -q 'routeMode = "manual"' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
+          grep -q 'theme = "ElvUI"' "$ROOT/Logger.lua"
+          grep -q 'SetWorldMapWaypoint' "$ROOT/ForeverAPI.lua"
+          grep -q 'furthest_active_route_quest' "$ROOT/StepEngine.lua"
+          grep -q 'MapToRestedXPWorld' "$ROOT/ForeverAPI.lua"
+          grep -q 'RestedXPWorldToMap' "$ROOT/ForeverAPI.lua"
+          grep -q 'rxpRoutePointCount' "$ROOT/RestedXPImport.lua"
+          grep -q 'objectiveProgressColor' "$UI"
+          grep -q 'goalRowText' "$UI"
+          grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
+          grep -q 'navigatorArrowSkin = "arrow-blue"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkinDefaultVersion = 2' "$ROOT/Logger.lua"
+          grep -q '"compass-black"' "$ROOT/Navigator.lua"
+          grep -q '"pointer-black"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-blue"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-red"' "$ROOT/Navigator.lua"
+          grep -q '"arrow-orange"' "$ROOT/Navigator.lua"
+          grep -q 'Nächster Skin' "$UI"
+          grep -q 'IsGuideSelectable(guide, category)' "$UI"
+          grep -q 'CanSelectCategory("mage")' "$UI"
+          grep -q 'restedxp_phase_selector' "$ROOT/StepEngine.lua"
+          test -f "$ROOT/Assets/ArrowBlue.blp"
+          test -f "$ROOT/Assets/ArrowRed.blp"
+          test -f "$ROOT/Assets/ArrowOrange.blp"
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
+
+          if grep -q 'makeButton(footer, "Pfeil"' "$UI"; then
+            echo "Deprecated footer arrow button is still present."
+            exit 1
+          fi
+
+          if grep -q 'not equippable(link, equipLoc) or not usable(link)' "$ROOT/GearAdvisor.lua"; then
+            echo "Armor auto-equip is still blocked by IsUsableItem."
+            exit 1
+          fi
+
+          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
+            echo "German user-facing transliteration detected; use real umlauts."
+            exit 1
+          fi
+
+          if grep -q 'footerStatus' "$UI"; then
+            echo "Deprecated bottom-left target/status text is still present."
+            exit 1
+          fi
+
+          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischGuides
+          cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
+          cd artifacts
+          zip -r MewthischGuides-v0.12.0.zip MewthischGuides
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuides-v0.12.0
+          path: artifacts/MewthischGuides-v0.12.0.zip
           if-no-files-found: error

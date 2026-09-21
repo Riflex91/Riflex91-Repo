@@ -13,6 +13,12 @@ function D:Collect()
     local inventory = MG.db and MG.db.runtime and MG.db.runtime.inventory or {}
     local gear = MG.db and MG.db.runtime and MG.db.runtime.gear or {}
     local talent = MG.db and MG.db.runtime and MG.db.runtime.talent or {}
+    local actions = MG.db and MG.db.runtime and MG.db.runtime.actions or {}
+    local travelPlan = MG.db and MG.db.runtime and MG.db.runtime.travelPlan or {}
+    local supported = MG.db and MG.db.runtime and MG.db.runtime.supportedRoutes or {}
+    local localization = MG.db and MG.db.runtime and MG.db.runtime.localization or {}
+    local journey = MG.Journey and MG.Journey:GetSummary() or {}
+    local questDB = MG.ForeverQuestDB and MG.ForeverQuestDB:GetStats() or {}
 
     local report = {
         version = MG.VERSION,
@@ -26,6 +32,13 @@ function D:Collect()
         gear = gear,
         reward = reward,
         talent = talent,
+        actions = actions,
+        travelPlan = travelPlan,
+        supportedRoutes = supported,
+        localization = localization,
+        journey = journey,
+        questDB = questDB,
+        smartResync = MG.SmartResync and MG.SmartResync:Describe() or {},
     }
 
     if MG.db then

@@ -161,10 +161,18 @@ function Loader:Load()
                 resolvedRoutes = 0,
             }
 
+    if MG.ForeverQuestDB then
+        supportedStatus.questDB = MG.ForeverQuestDB:Rebuild(self.guides)
+    end
+
     if MG.db then
         MG.db.runtime = MG.db.runtime or {}
         MG.db.runtime.restedXP = rxpStats
         MG.db.runtime.supportedRoutes = supportedStatus
+        MG.db.runtime.guideRegistry = {
+            registered = MG.GuideRegistry and #(MG.GuideRegistry:GetSpecs()) or 0,
+            sourceCommit = MG.GuideRegistry and MG.GuideRegistry.sourceCommit or nil,
+        }
     end
 
     if MG.db and MG.db.settings and

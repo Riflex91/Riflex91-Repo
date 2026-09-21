@@ -2,7 +2,7 @@ local addonName, MG = ...
 _G.MewthischGuides = MG
 _G.ForeverGuide = MG
 
-MG.VERSION = "0.11.9"
+MG.VERSION = "0.12.0"
 MG.INTERFACE = 16001
 MG.NAME = "Mewthisch Guides"
 MG.heartbeatTicker = nil
@@ -99,6 +99,7 @@ local events = {
     "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED", "TRAIT_CONFIG_UPDATED",
     "NAVIGATION_FRAME_CREATED", "NAVIGATION_FRAME_DESTROYED",
     "NAVIGATION_DESTINATION_REACHED",
+    "TAXIMAP_OPENED",
 }
 for _, event in ipairs(events) do pcall(frame.RegisterEvent, frame, event) end
 
@@ -149,6 +150,8 @@ frame:SetScript("OnEvent", function(_, event, ...)
             if MG.DataLoader then MG.DataLoader:Load() end
             if MG.TravelGraph then MG.TravelGraph:Load() end
             if MG.Sync then MG.Sync:Full("PLAYER_LOGIN") end
+            if MG.TalentAdvisor then MG.TalentAdvisor:Refresh("PLAYER_LOGIN") end
+            if MG.TrainerAdvisor then MG.TrainerAdvisor:Refresh("PLAYER_LOGIN") end
 
             if not MG:IsSupportedBuild() then
                 local build = MG:GetBuildInfoTable()
@@ -165,6 +168,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
             MG:CreateMinimapButton()
             if MG.RefreshTheme then MG:RefreshTheme() end
             MG:RefreshGuide("PLAYER_LOGIN")
+            if MG.db and MG.db.settings.showOnLogin == false then MG:HideWindow() end
             MG:StartRuntimeTickers()
             if MG.Diagnostics then MG.Diagnostics:Collect() end
 
@@ -205,6 +209,8 @@ frame:SetScript("OnEvent", function(_, event, ...)
             if MG.Sync then MG.Sync:Full(event) end
         elseif event == "ZONE_CHANGED_NEW_AREA" and MG.State then
             MG.State:Refresh(event)
+        elseif event == "TAXIMAP_OPENED" and MG.TravelPlanner then
+            MG.TravelPlanner:CaptureTaxiNodes()
         end
 
         if event == "GOSSIP_SHOW" or event == "QUEST_GREETING" or
@@ -223,8 +229,10 @@ frame:SetScript("OnEvent", function(_, event, ...)
 
         if event == "QUEST_ACCEPTED" then
             MG.automationStatus = "Quest angenommen"
+            if MG.Journey then MG.Journey:Record("accepted", args[1] or args[2]) end
         elseif event == "QUEST_TURNED_IN" then
             MG.automationStatus = "Quest abgegeben"
+            if MG.Journey then MG.Journey:Record("turned_in", args[1]) end
             MG:Log("INFO", "quest.turnedin_confirmed",
                 "Questabgabe vom Spiel bestätigt.", { questID = args[1] })
         elseif event == "NAVIGATION_DESTINATION_REACHED" then
@@ -374,6 +382,29 @@ local function handleSlash(msg)
             if found then MG.Themes:Set(found) end
             local _, current = MG.Themes:GetCurrent()
             print("|cff62d6ffMewthisch Guides|r Theme: " .. tostring(current))
+        elseif command == "guides" or command == "browser" then
+            MG:ToggleGuideBrowser(true)
+        elseif command == "language" or command == "sprache" then
+            local code = string.lower(rest or "")
+            if MG.Localization and MG.Localization.supported[code] then
+                MG.Localization:SetLanguage(code)
+            end
+            local active = MG.Localization and MG.Localization:GetConfiguredLanguage() or "-"
+            print("|cff62d6ffMewthisch Guides|r Sprache: " .. tostring(active))
+        elseif command == "find" or command == "questsearch" then
+            local found = MG.ForeverQuestDB and MG.ForeverQuestDB:Search(rest) or {}
+            print("|cff62d6ffMewthisch Guides|r Questsuche: " .. tostring(#found) .. " Treffer")
+            for i=1,math.min(#found,10) do
+                print("  " .. tostring(found[i].questID or "-") .. " - " .. tostring(found[i].title or "-"))
+            end
+        elseif command == "journey" or command == "verlauf" then
+            local s = MG.Journey and MG.Journey:GetSummary() or {}
+            print("|cff62d6ffMewthisch Guides|r Verlauf: " .. tostring(s.entries or 0) ..
+                " Einträge / " .. tostring(s.accepted or 0) .. " angenommen / " ..
+                tostring(s.turnedIn or 0) .. " abgegeben")
+        elseif command == "travel" or command == "reise" then
+            local p = MG.travelPlan and MG.travelPlan.best
+            print("|cff62d6ffMewthisch Guides|r Reise: " .. tostring(p and p.label or "keine Route"))
         elseif command == "guide" then
             local ok = MG.DataLoader and MG.DataLoader:SelectGuide(rest)
             if ok then
@@ -392,7 +423,7 @@ local function handleSlash(msg)
             MG:Log("INFO", "log.cleared", "Diagnoselog geleert.")
             print("|cff62d6ffMewthisch Guides|r Diagnoselog geleert.")
         else
-            print("|cff62d6ffMewthisch Guides|r /mg | show | hide | info | config | settings | navigator | status | diag | api | route | mode manual/auto | mapmarker on/off | next | prev | refresh | guide <id> | theme <name> | gear | gearauto on/off | reward | talent | autoaccept on/off | autoturnin on/off | log | clearlog")
+            print("|cff62d6ffMewthisch Guides|r /mg | show | hide | info | config | settings | navigator | status | diag | api | route | mode manual/auto | mapmarker on/off | next | prev | refresh | guides | guide <id> | language <auto/en/zh/hi/es/fr/de/ru> | find <quest> | journey | travel | theme <name> | gear | gearauto on/off | reward | talent | autoaccept on/off | autoturnin on/off | log | clearlog")
         end
     end)
 end

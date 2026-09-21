@@ -7,17 +7,35 @@ local DEFAULT_SETTINGS = {
     showWindow = true,
     showInfo = false,
     showSettings = false,
+    showOnLogin = true,
+    compactMainWindow = true,
+    tooltipsEnabled = true,
+    characterProfiles = true,
+    language = "auto",
     viewerCollapsed = false,
     diagnostics = true,
     autoSuperTrack = true,
     showWorldMapMarker = true,
     routeMode = "manual",
+    smartResync = true,
+    skipObsoleteSteps = true,
     autoAcceptQuests = true,
     autoTurnInQuests = true,
     autoSelectSingleReward = true,
     showMinimapButton = true,
     showNavigator = true,
     navigatorLocked = false,
+    travelUseFlightPaths = true,
+    travelUseHearthstone = true,
+    travelUseTransports = true,
+    travelUseClassTeleports = true,
+    travelPreferFastest = true,
+    travelSuggestAlternatives = true,
+    travelShowDetails = true,
+    travelShowEstimatedTime = true,
+    travelMarkNextFlightMaster = true,
+    travelHearthReminder = true,
+    travelShowAvailableTransport = true,
     navigatorScale = 1.15,
     navigatorArrowSkin = "arrow-blue",
     navigatorArrowSkinDefaultVersion = 2,
@@ -27,13 +45,19 @@ local DEFAULT_SETTINGS = {
     navigatorY = 235,
     minimapAngle = 215,
     windowTransparency = 0.05,
-    theme = "ElvUI",
+    theme = "Forever Classic",
+    uiV2ThemeDefaultVersion = 1,
     gearAutoEquip = false,
     gearSafeMode = true,
     gearAutoEquipWeapons = false,
     gearProtectBoE = true,
     gearRequireHighConfidence = true,
     gearAutoEquipItemLevelFallback = true,
+    showTrainerHints = true,
+    showTalentHints = true,
+    audioEnabled = false,
+    audioStepChange = false,
+    audioAutoEquip = false,
     telemetryLocal = true,
     rxpSeason = 0,
     rxpRate = 1.0,
@@ -95,6 +119,9 @@ function MG:EnsureDB()
     local previousArrowSkin = db.settings.navigatorArrowSkin
     local previousArrowSkinDefaultVersion =
         tonumber(db.settings.navigatorArrowSkinDefaultVersion) or 0
+    local previousTheme = db.settings.theme
+    local previousThemeDefaultVersion =
+        tonumber(db.settings.uiV2ThemeDefaultVersion) or 0
 
     for key, value in pairs(DEFAULT_SETTINGS) do
         if db.settings[key] == nil then
@@ -109,12 +136,25 @@ function MG:EnsureDB()
         db.settings.navigatorArrowSkinDefaultVersion = 2
     end
 
+    if previousThemeDefaultVersion < 1 then
+        if previousTheme == nil or previousTheme == "ElvUI" then
+            db.settings.theme = "Forever Classic"
+        end
+        db.settings.uiV2ThemeDefaultVersion = 1
+    end
+
     db.logs = db.logs or {}
     db.logSequence = db.logSequence or 0
     db.sessions = db.sessions or {}
     db.runtime = db.runtime or {}
+    db.guideFavorites = db.guideFavorites or {}
+    db.journey = db.journey or {}
 
     self.db = db
+    if self.Localization then
+        local active = self.Localization:GetConfiguredLanguage()
+        db.runtime.localization = {clientLocale = GetLocale and GetLocale() or "unknown", configured = db.settings.language, active = active}
+    end
     return db
 end
 

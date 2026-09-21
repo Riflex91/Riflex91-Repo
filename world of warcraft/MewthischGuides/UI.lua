@@ -1054,6 +1054,9 @@ function MG:ShowAutoEquipNotification(item)
         ui.pendingAutoEquipNotice = {
             itemID = item.itemID,
             link = item.link,
+            slot = item.slot,
+            itemName = item.itemName,
+            icon = item.icon,
         }
         return
     end
@@ -1071,7 +1074,8 @@ function MG:ShowAutoEquipNotification(item)
     end
     ui.equipNoticeIcon:SetAlpha(1)
     ui.equipNoticeIcon:Show()
-    ui.equipNoticeText:SetText(name .. " wurde angelegt.")
+    ui.equipNoticeText:SetText(name .. " " .. (self.L and self:L("equipped") or "wurde angelegt."))
+    if self.AudioFeedback then self.AudioFeedback:Play("equip") end
 
     local animation = ui.equipNoticeAnimation
     if animation:IsPlaying() then animation:Stop() end

@@ -383,6 +383,12 @@ function MG:BuildGuideSteps()
         preferredReason = "live_fallback"
     end
 
+    if self.SmartResync and #steps > 0 then
+        preferredIndex, preferredReason = self.SmartResync:Choose(steps, preferredIndex, preferredReason, guide)
+        local selected = steps[preferredIndex]
+        preferredQuestID = selected and selected.questID or preferredQuestID
+    end
+
     local signature = table.concat({
         tostring(guide and guide.id or ""),
         tostring(preferredQuestID or ""),

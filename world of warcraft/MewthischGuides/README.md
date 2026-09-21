@@ -1,6 +1,6 @@
-# Mewthisch Guides v0.11.9 — Runtime-Routing, Config und Weltkarten-Ziel
+# Mewthisch Guides v0.12.0 — UI v2, Smart Routing und erweiterbare Guide-Plattform
 
-v0.11.9 härtet den produktiven Forever-Betrieb: Questfortschritt wird über
+v0.12.0 härtet den produktiven Forever-Betrieb: Questfortschritt wird über
 moderne und Legacy-Questlog-APIs erkannt, die vorgegebene RestedXP-Route wird
 auf die tatsächliche Questphase und das aktuelle Questziel synchronisiert, und
 der Benutzer kann alternativ einen manuellen Modus wählen, der angenommene
@@ -75,7 +75,7 @@ by faction/race/class/level, explicit route coordinates, a TravelGraph and
 build profiles and gear scoring profiles. Empty extension points exist in
 `Data.lua` for generated DataMiner/Recorder imports.
 
-Zusätzlich zum Recorder-Seed lädt v0.11.9 die strukturierten Fakten aus allen
+Zusätzlich zum Recorder-Seed lädt v0.12.0 die strukturierten Fakten aus allen
 öffentlich in `GuideList-forever.xml` referenzierten RestedXP-Forever- und
 Survival-Routen. Importiert werden ausschließlich maschinenlesbare Fakten und
 Direktiven (z. B. Quest-IDs, Item-/Spell-IDs, Selektoren, Bedingungen,
@@ -117,7 +117,7 @@ transformierten Datenbasis erhalten.
   - Obsidian
   - Arcane
   - Warcraft Heritage
-- ElvUI ist der Default für neue Profile und übernimmt bei erkanntem ElvUI
+- Forever Classic ist der Default für neue Profile; ElvUI bleibt als adaptives Theme verfügbar und übernimmt bei erkanntem ElvUI
   dessen Hintergrund-, Rahmen-, Akzentfarben und Standardschrift
 - EllesmereUI und ToxiUI verwenden adaptive Integrationen, wenn die jeweilige
   UI verfügbar ist, und statische Fallbacks andernfalls
@@ -142,13 +142,13 @@ Useful commands:
 
 ## Next phase
 
-Nach diesem v0.11.9-Build folgt die gezielte Ingame-Verifikation anhand echter
+Nach diesem v0.12.0-Build folgt die gezielte Ingame-Verifikation anhand echter
 Forever-Screenshots, SavedVariables und Recorder-Daten. Besonders geprüft
 werden die Weltkarten-Wegpunkt-API des Forever-Clients, die Auswahl zwischen
 manueller und vorgegebener Route sowie Auto-Equip unter realen Bag-/Item-APIs.
 
 
-## v0.11.9 Screenshot-Fixes
+## v0.12.0 Screenshot-Fixes
 
 - RestedXP-Weltkoordinaten werden nicht mehr mit den vertauschten Blizzard-
   Vectorachsen verglichen. Das beseitigt die kilometerweit falsche Distanz und
@@ -176,7 +176,7 @@ manueller und vorgegebener Route sowie Auto-Equip unter realen Bag-/Item-APIs.
   fehlende Bestätigung wird als Diagnose-Warnung protokolliert.
 
 
-## Routenmodus v0.11.9
+## Routenmodus v0.12.0
 
 - **Manuell** ist der Standard. Das Addon verwendet nur vom Spieler angenommene
   Quests und ordnet sie nach belastbaren Navigationszielen, um unnötige Laufwege
@@ -202,7 +202,7 @@ abgegeben. Bei mehreren unterschiedlichen Questbelohnungen bleibt die Auswahl
 weiterhin manuell, damit keine unsichere Belohnungsentscheidung erzwungen wird.
 
 
-## Auto-Equip-Meldung v0.11.9
+## Auto-Equip-Meldung v0.12.0
 
 Nach einem **bestätigten** automatischen Ausrüsten zeigt das Addon direkt unter
 dem Hauptfenster kurz eine Meldung mit Gegenstands-Icon und dem Text:
@@ -215,13 +215,13 @@ erzeugt bewusst keine Erfolgsmeldung. Wird ein Auto-Equip bereits während des
 Login-Syncs bestätigt, wird die Meldung bis zur UI-Initialisierung zwischengespeichert.
 
 
-## Auto-Equip-Erkennung v0.11.9
+## Auto-Equip-Erkennung v0.12.0
 
 Die Forever-Runtime-Logs zeigten, dass echte Taschengegenstände als
 `not_safely_equippable` verworfen wurden. Ein konkreter Fall war ein
 `INVTYPE_WAIST`-Gegenstand bei leerem Gürtel-Slot.
 
-v0.11.9 verwendet deshalb einen bekannten unterstützten `INVTYPE_*` als
+v0.12.0 verwendet deshalb einen bekannten unterstützten `INVTYPE_*` als
 primäres Signal dafür, dass ein Gegenstand Ausrüstung ist. Negative Ergebnisse
 von `C_Item.IsEquippableItem` oder `IsEquippableItem` werden weiterhin
 diagnostisch protokolliert, dürfen einen gültigen Equipment-Slot aber nicht mehr
@@ -237,7 +237,7 @@ Die bestehenden Schutzregeln für unpassende Rüstung, Waffen, Kampfstatus,
 Cursorzustand und erkannte Bind-on-Equip-Gegenstände bleiben bestehen.
 
 
-## Pfeil-Skins v0.11.9
+## Pfeil-Skins v0.12.0
 
 Der Navigator bietet fünf auswählbare Pfeil-Skins:
 
@@ -252,14 +252,14 @@ blauen, roten und orangenen Varianten verwenden die entsprechenden öffentlichen
 RestedXP-Navigationstexturen aus dem bereits referenzierten Forever-Quellstand.
 
 Der Skin kann in den Optionen mit **Nächster Skin** gewechselt werden und wird
-sofort auf den Navigator angewendet. Der Standard ist **Kompass Schwarz**.
+sofort auf den Navigator angewendet. Der Standard ist **Pfeil Blau**.
 
 Die feste Standardgröße des Pfeils wurde von 104 auf 83 Pixel reduziert, also
 um rund 20 Prozent. Die separate Navigator-Skalierung bleibt zusätzlich
 verfügbar.
 
 
-## Guide-Auswahl und Mulgore v0.11.9
+## Guide-Auswahl und Mulgore v0.12.0
 
 Die manuelle Guide-Auswahl ist bewusst großzügiger als die automatische
 Routenwahl:
@@ -278,13 +278,13 @@ Shaman-only. Andere Klassen überspringen diesen Annahmeschritt jetzt vollständ
 Für Schamanen wird der originale RestedXP-Annahmepunkt bei Seer Ravenfeather
 (`1412/1,-250.09,-2882.08`) verwendet.
 
-Der Standard-Navigator-Skin ist ab v0.11.9 **Pfeil Blau**. Bestehende Profile,
+Der Standard-Navigator-Skin ist ab v0.12.0 **Pfeil Blau**. Bestehende Profile,
 die noch den früheren Standard `Kompass Schwarz` ohne neuere Skin-Migration
 tragen, werden einmalig auf Blau umgestellt. Andere bewusst gewählte Skins
 bleiben erhalten.
 
 
-## Auto-Equip-Icon v0.11.9
+## Auto-Equip-Icon v0.12.0
 
 Die Erfolgsmeldung löst das Gegenstands-Icon jetzt über mehrere
 Forever-kompatible Quellen auf. Da die Meldung erst nach einem bestätigten
@@ -299,3 +299,90 @@ jeder Meldung explizit entsättigungsfrei, weiß und voll sichtbar gesetzt.
 Die Runtime-Logs enthalten für die Meldung zusätzlich `itemIcon` und
 `iconSource`, damit ein weiterer Forever-spezifischer API-Unterschied sofort
 sichtbar wird.
+
+
+## v0.12.0 — großer UI- und Engine-Umbau
+
+v0.12.0 führt die neue, nach dem abgestimmten Mockup aufgebaute Oberfläche ein.
+
+### UI v2
+
+- kompaktes Hauptfenster mit Guide-Zeile, Schrittzähler, Zielbeschreibung,
+  Detailzeilen und direkten Buttons für Ziele, Karte, Details und Überspringen
+- eigenständiger Guide-Browser mit **Empfohlen**, **Alle Guides** und
+  **Favoriten**, Suche, Fraktions-/Klassen-/Kategorie-Filter und Seitenwechsel
+- komplett neu gegliedertes Einstellungsfenster:
+  **Allgemein, Guides, Navigation, Automation, Ausrüstung, Trainer & Talente,
+  Karte & Marker, Anzeige, Audio, Daten & Import, Erweitert**
+- Navigation enthält eine Live-Vorschau des ausgewählten Pfeil-Skins
+- der bestätigte Auto-Equip-Hinweis bleibt unter dem neuen Hauptfenster verankert
+
+### Mehrsprachigkeit
+
+Unterstützte Addon-Sprachen:
+
+- English
+- 中文
+- हिन्दी
+- Español
+- Français
+- Deutsch
+- Русский
+
+Die Einstellung **Automatisch (WoW-Client)** verwendet `GetLocale()`. Unterstützte
+WoW-Locale-Zuordnungen sind `enUS/enGB`, `zhCN/zhTW`, `esES/esMX`,
+`frFR`, `deDE` und `ruRU`. Hindi ist manuell auswählbar.
+
+### Erweiterbare Guide-Plattform
+
+`GuideRegistry.lua` ist die einzige zentrale Registry für freigegebene
+Levelrouten und deren Metadaten. Neue Routen können mit
+`GuideRegistry:RegisterRoute(...)` ergänzt werden. Guide-Browser,
+SupportedRoutes-Validierung, Suche, Favoriten und Empfehlungen verwenden
+automatisch dieselbe Registry.
+
+### Smart Resync
+
+`SmartResync.lua` synchronisiert anhand aktiver Questphasen und bestätigter
+Quest-Historie. Es wird bewusst **nicht nur nach Charakterlevel geraten**, damit
+Vorquestketten nicht übersprungen werden.
+
+### RestedXP-Aktionsengine
+
+`RestedXPActionEngine.lua` wandelt die bereits importierten strukturierten
+RestedXP-Direktiven in einen Runtime-Aktionsplan um. Reise-, Trainer-,
+Wirtschafts-, Gate-, Timer-, Item- und Interaktionsaktionen bleiben als
+strukturierte Schritte verfügbar. Geschützte WoW-Aktionen werden nicht
+unsicher erzwungen.
+
+### TravelPlanner
+
+`TravelPlanner.lua` bewertet direkte Laufwege sowie vorhandene RestedXP-
+Flug-, Hearthstone- und Transporthinweise. Taxi-Knoten werden bei geöffnetem
+Flugmeister erfasst. Die schnellste bekannte belastbare Option kann im
+Hauptfenster als Reisehinweis erscheinen.
+
+### ForeverQuestDB
+
+`ForeverQuestDB.lua` baut aus den importierten Forever-Guides eine
+questphasenbezogene Koordinatendatenbank auf. RouteEngine verwendet sie als
+zusätzlichen Fallback zwischen RestedXP-Direktkoordinaten und schwächeren
+Blizzard-POI-Quellen. Verifizierte Runtime-Ziele können lokal gelernt werden.
+
+### Trainer, Talente, Verlauf und Audio
+
+- `TrainerAdvisor.lua` erzeugt Trainerhinweise aus den strukturierten
+  RestedXP-Aktionen.
+- TalentAdvisor führt diese Hinweise gemeinsam mit datenbasierten
+  Talentempfehlungen.
+- `Journey.lua` speichert bis zu 500 lokale Quest-Annahme-/Abgabeereignisse.
+- optionale Sounds für Schrittwechsel und bestätigtes Auto-Equip sind
+  standardmäßig ausgeschaltet.
+
+### Neue Befehle
+
+- `/mg guides`
+- `/mg language auto|en|zh|hi|es|fr|de|ru`
+- `/mg find <Questname>`
+- `/mg journey`
+- `/mg travel`

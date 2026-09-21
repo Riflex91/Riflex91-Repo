@@ -225,6 +225,10 @@ function MG:RefreshNavigation(reason)
 
     self.navigation = nav
     self:UpdateNavigationRealtime()
+    if self.TravelPlanner then
+        nav.travelPlan = self.TravelPlanner:Plan(target, step)
+        nav.travelHint = self.TravelPlanner:GetPrimaryHint()
+    end
     if self.RefreshWorldMapMarker then self:RefreshWorldMapMarker(target) end
 
     local signature = table.concat({

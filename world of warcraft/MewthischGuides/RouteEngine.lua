@@ -6,6 +6,7 @@ MG.RouteEngine = RouteEngine
 local SOURCE_SCORE = {
     VerifiedRouteData = 100,
     RestedXPPublicRouteData = 99,
+    ForeverQuestDB = 98.5,
     TravelGraph = 98,
     QuestLine = 95,
     QuestMapPOI = 92,
@@ -125,6 +126,10 @@ function RouteEngine:Resolve(step, options)
             "restedxp_public_route")
     end
 
+    if MG.ForeverQuestDB then
+        addCandidate(candidates, MG.ForeverQuestDB:Resolve(step.questID, step.phase, MG:GetPlayerProfile(), player), "forever_quest_db")
+    end
+
     if MG.TravelGraph then
         addCandidate(candidates, MG.TravelGraph:GetNextHopTarget(step), "travel_graph")
     end
@@ -223,6 +228,9 @@ function RouteEngine:Resolve(step, options)
             })
         end
 
+        if MG.ForeverQuestDB and selected.source ~= "ForeverQuestDB" and selected.source ~= "BlizzardNavigationMap" then
+            MG.ForeverQuestDB:Learn(step.questID, step.phase, selected)
+        end
         return selected, candidates, "resolved"
     end
 

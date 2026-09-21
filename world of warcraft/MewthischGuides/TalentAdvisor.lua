@@ -37,6 +37,7 @@ function Talents:Refresh(reason)
     end
 
     self.recommendation = recommendation
+    local trainerHints = MG.TrainerAdvisor and MG.TrainerAdvisor:Refresh(reason or "talent_refresh") or {}
     if MG.db then
         MG.db.runtime = MG.db.runtime or {}
         MG.db.runtime.talent = {
@@ -45,6 +46,7 @@ function Talents:Refresh(reason)
             recommendedSpellID = recommendation and recommendation.spellID or nil,
             confidence = recommendation and "data-backed" or "none",
             automaticSpending = false,
+            trainerHints = trainerHints,
         }
     end
     return recommendation
