@@ -41,8 +41,8 @@
     "gameplayWriteDurchAuthorityAusstellung": 0,
     "adapterSendDurchAuthorityAusstellung": 0
   },
-  "liveRunnerInDiesemSchritt": false,
-  "writeAdapterInDiesemSchritt": false,
+  "liveRunnerInDiesemSchritt": true,
+  "writeAdapterInDiesemSchritt": true,
   "preflight": {
     "readOnly": true,
     "runner": "werkzeuge/bank-withdraw-produktions-preflight.mjs",
@@ -67,5 +67,18 @@
     "testedSourceSha": "15620374566b83c9532e492d63e15c2fed6709e5",
     "leaseEpoche": 4,
     "leaseTerminalStatus": "RELEASED"
+  },
+  "write": {
+    "implementiert": true,
+    "adapter": "werkzeuge/bank-withdraw-produktions-write-browser.mjs",
+    "liveRunner": "werkzeuge/bank-withdraw-produktions-live.mjs",
+    "transactionCore": "grundlage/quelle/merchant/bank-withdraw-produktions-transaktion.ts",
+    "publicFunction": "bank_withdraw",
+    "betragGold": 1,
+    "maxAdapterAufrufe": 1,
+    "sourceShaPinning": true,
+    "readOnlyWritePreflight": true,
+    "realLiveWritePerformed": false,
+    "sameIntentRetry": false
   }
 }
