@@ -7,8 +7,8 @@ const recoveries = lies("wissensbasis/vertraege/recovery-contracts.json").action
 const bindungen = lies("grundlage/vertraege/r9/action-bindungen.json").bindungen;
 const automaten = lies("zustaende/zustandsautomaten.json").automaten;
 
-if (recoveries.length !== 60) fehler("Recovery-Contract-Anzahl muss 60 sein.");
-if (bindungen.length !== 60) fehler("R9-Bindungsanzahl muss 60 sein.");
+if (recoveries.length !== 61) fehler("Recovery-Contract-Anzahl muss 61 sein.");
+if (bindungen.length !== 61) fehler("R9-Bindungsanzahl muss 61 sein.");
 
 let produktiv = 0;
 let deaktiviert = 0;
@@ -50,8 +50,8 @@ for (const recovery of recoveries) {
   else if (recovery.status === "DISABLED_WITH_ACTION_CONTRACT") deaktiviert += 1;
   else fehler("Unbekannter Recovery-Status: " + recovery.id);
 }
-if (produktiv !== 59 || deaktiviert !== 1) {
-  fehler("Erwartet 59 produktive und 1 deaktivierten Recovery Contract.");
+if (produktiv !== 60 || deaktiviert !== 1) {
+  fehler("Erwartet 60 produktive und 1 deaktivierten Recovery Contract.");
 }
 
 const transaktion = automaten.find(x => x.kennung === "V5-ZUSTAND-TRANSAKTION");
