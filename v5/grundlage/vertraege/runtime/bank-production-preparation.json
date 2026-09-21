@@ -5,7 +5,7 @@
   "status": "DEPOSIT_ONE_SHOT_LIVE_BESTANDEN_RESTBANK_AUSSTEHEND",
   "basisMain": "05b93ac7dbb6ef294294c38030d9e4b48962f7d3",
   "blockingGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
-  "zweck": "PR20.2 Bank-Autonomie schrittweise produktiv nachweisen. bank_deposit(1) ist real BESTANDEN; bank_withdraw(1) besitzt Settlement-Core, default-off Capability, eigene durable One-Shot-Authority, eigenen Current-Fence, read-only Preflight, NO-WRITE Admission-Shadow und source-locked Real-Browser-Shadow-Runner. Reale Withdraw-Shadow-Evidence, Write-Adapter/Live-Runner, Store/Retrieve/Swap, Capacity/Open-Pack und 5m-Funktionsevidence bleiben separate Gates.",
+  "zweck": "PR20.2 Bank-Autonomie schrittweise produktiv nachweisen. bank_deposit(1) ist real BESTANDEN; bank_withdraw(1) hat Settlement-Core, Capability, durable One-Shot-Authority, Current-Fence, read-only Preflight, Admission-Shadow und den source-locked Real-Browser-Shadow real BESTANDEN. Write-Adapter/Live-Runner und echter Withdraw-Write bleiben ausstehend; Store/Retrieve/Swap, Capacity/Open-Pack und 5m-Funktionsevidence bleiben separate Gates.",
   "authorityGrenze": {
     "produktiveRegistrierungErlaubt": true,
     "produktiverAktivierungspfadErlaubt": false,
@@ -137,7 +137,7 @@
     "Write-Adapter und Live-Runner fuer exakt bank_deposit(1) sind implementiert und Exact-Head-CI ist gruen",
     "read-only Write-Preflight war auf exakt demselben Head BEREIT",
     "bank_deposit(1)-Live-Evidence ist BESTANDEN: COMMIT, ein Adapter-Aufruf, ein Gameplay-Write, kein Retry, Lease RELEASED",
-    "bank_withdraw(1): Settlement-Core, default-off Capability, eigene durable One-Shot-Authority, eigener Current-Fence, read-only Preflight und NO-WRITE Admission-Shadow sind implementiert; reale Browser-Shadow-Evidence bleibt naechstes Gate; Adapter/Live-Runner bleiben gesperrt",
+    "bank_withdraw(1): Real-Browser-Shadow ist source-exakt BESTANDEN, NICHT_GESENDET, 0 Gameplay-Writes, 0 Adapter-Aufrufe, Lease RELEASED; naechstes Gate ist getrennte Write-Adapter/Live-Runner-Vorbereitung",
     "Capacity/Open-Bank-Pack bleibt separates wertveraenderndes Gate",
     "abschliessend reale 5m-Bank-Funktionsevidence ohne Duplicate/UNKNOWN-Restzustand"
   ],
@@ -190,7 +190,7 @@
     "liveLeaseTerminalStatus": "RELEASED"
   },
   "naechsterLiveKandidat": {
-    "status": "REAL_BROWSER_SHADOW_RUNNER_NO_WRITE_EVIDENCE_AUSSTEHEND",
+    "status": "REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_AUSSTEHEND",
     "vertrag": "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
     "settlementCore": "grundlage/quelle/merchant/bank-withdraw-settlement.ts",
     "test": "grundlage/tests/pr20-bank-withdraw-settlement.test.mjs",
@@ -228,11 +228,17 @@
     "shadowSendBoundaryState": "NICHT_GESENDET",
     "shadowGameplayWrites": 0,
     "shadowAdapterAufrufe": 0,
-    "realBrowserShadowEvidence": "AUSSTEHEND",
+    "realBrowserShadowEvidence": "BESTANDEN",
     "realBrowserShadowRunnerImplementiert": true,
     "realBrowserShadowRunner": "werkzeuge/bank-withdraw-real-browser-shadow.mjs",
     "realBrowserShadowSourceShaPinning": true,
     "realBrowserShadowGameplayWrites": 0,
-    "realBrowserShadowAdapterAufrufe": 0
+    "realBrowserShadowAdapterAufrufe": 0,
+    "realBrowserShadowEvidencePfad": "roadmap/pr20-2-bank-withdraw-real-browser-shadow-evidence.json",
+    "realBrowserShadowTestedSourceSha": "15620374566b83c9532e492d63e15c2fed6709e5",
+    "realBrowserShadowTransactionId": "BANK-SHADOW-TX-1790019371382-d906b60d",
+    "realBrowserShadowLeaseEpoche": 4,
+    "realBrowserShadowLeaseTerminalStatus": "RELEASED",
+    "realBrowserShadowSendBoundaryState": "NICHT_GESENDET"
   }
 }

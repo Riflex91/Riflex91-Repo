@@ -208,7 +208,7 @@ test("PR20.2 bank_withdraw(1) besitzt Preflight und Admission-Shadow weiterhin N
     "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
   );
   assert.ok(kandidat);
-  assert.equal(kandidat.status, "REAL_BROWSER_SHADOW_RUNNER_NO_WRITE_EVIDENCE_AUSSTEHEND");
+  assert.equal(kandidat.status, "REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_AUSSTEHEND");
   assert.equal(kandidat.publicFunction, "bank_withdraw");
   assert.equal(kandidat.betragGold, 1);
   assert.equal(kandidat.actionContractId, "AL-ACTION-BANK-WITHDRAW");
@@ -237,7 +237,18 @@ test("PR20.2 bank_withdraw(1) besitzt Preflight und Admission-Shadow weiterhin N
   assert.equal(kandidat.realBrowserShadowSourceShaPinning, true);
   assert.equal(kandidat.realBrowserShadowGameplayWrites, 0);
   assert.equal(kandidat.realBrowserShadowAdapterAufrufe, 0);
-  assert.equal(kandidat.realBrowserShadowEvidence, "AUSSTEHEND");
+  assert.equal(kandidat.realBrowserShadowEvidence, "BESTANDEN");
+  assert.equal(
+    kandidat.realBrowserShadowEvidencePfad,
+    "roadmap/pr20-2-bank-withdraw-real-browser-shadow-evidence.json",
+  );
+  assert.equal(
+    kandidat.realBrowserShadowTestedSourceSha,
+    "15620374566b83c9532e492d63e15c2fed6709e5",
+  );
+  assert.equal(kandidat.realBrowserShadowLeaseEpoche, 4);
+  assert.equal(kandidat.realBrowserShadowLeaseTerminalStatus, "RELEASED");
+  assert.equal(kandidat.realBrowserShadowSendBoundaryState, "NICHT_GESENDET");
   assert.equal(kandidat.writeAdapterImplementiert, false);
   assert.equal(kandidat.liveRunnerImplementiert, false);
   assert.equal(kandidat.gameplayWritesInDiesemSchritt, 0);

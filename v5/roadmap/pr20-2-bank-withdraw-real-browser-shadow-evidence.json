@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-21T19:37:32.294Z",
+  "status": "BESTANDEN",
+  "evidenceArt": "V5_BANK_WITHDRAW_REAL_BROWSER_SHADOW_NO_WRITE",
+  "source": "USER_PROVIDED_RUNNER_STDOUT",
+  "testedSourceSha": "15620374566b83c9532e492d63e15c2fed6709e5",
+  "documentationBaseMain": "3f71cfaf6b7c8da4a9f32f3dc25da0e3092c24c2",
+  "transaktionsId": "BANK-SHADOW-TX-1790019371382-d906b60d",
+  "accountBindungSha256": "18be41682a0c809cb26db3dfff9336deb164730e175c182a11d321445fde0085",
+  "charakterBindungSha256": "0e1ab7dca28c9f270efb495560d97572a76bcd9517196b342a37523496352a68",
+  "server": {
+    "region": "EU",
+    "kennung": "I"
+  },
+  "startAusserhalbBank": true,
+  "manualMountTransition": true,
+  "manualExitRequired": true,
+  "admissionStatus": "ADMISSION_BESTANDEN_KEIN_SEND",
+  "journalTerminalArt": "ABBRUCH",
+  "sendBoundaryState": "NICHT_GESENDET",
+  "sameIntentRetry": false,
+  "browserGameplayWrites": 0,
+  "hostGameplayWrites": 0,
+  "gameplayWrites": 0,
+  "adapterAufrufe": 0,
+  "bankStartNachherBereit": true,
+  "leaseStatus": [
+    {
+      "epoche": 4,
+      "zustand": "RELEASED"
+    }
+  ],
+  "hostNachher": {
+    "zustand": "LAEUFT",
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "actionAuthority": false,
+    "bankWithdrawEinmalAuthorityOffen": false
+  },
+  "breiteRuntimeFreigabeDurchDiesenTest": false,
+  "rawWriteBypass": false,
+  "reportPfad": "D:\\AdventureLand-V5\\runtime\\canary\\bank-withdraw-real-shadow\\latest.json",
+  "exitGate": {
+    "sourceShaExakt": true,
+    "startAusserhalbBank": true,
+    "manuellerMountNachLease": true,
+    "admissionBestanden": true,
+    "keinSend": true,
+    "journalTerminalAbbruch": true,
+    "manuellerExitBeobachtet": true,
+    "leaseReleased": true,
+    "bankStartNachherBereit": true,
+    "gameplayWritesNull": true,
+    "adapterAufrufeNull": true,
+    "authorityNachherGeschlossen": true,
+    "sameIntentRetryFalse": true,
+    "rawWriteBypassFalse": true,
+    "breiteRuntimeFreigabeFalse": true
+  },
+  "nextGate": "PR20.2_BANK_WITHDRAW_1_WRITE_ADAPTER_UND_LIVE_RUNNER_VORBEREITEN"
+}

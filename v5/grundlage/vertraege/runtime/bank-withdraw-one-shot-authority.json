@@ -58,10 +58,14 @@
     "sameIntentRetry": false,
     "gameplayWrites": 0,
     "adapterAufrufe": 0,
-    "realBrowserShadowEvidence": "AUSSTEHEND",
+    "realBrowserShadowEvidence": "BESTANDEN",
     "realBrowserShadowRunner": "werkzeuge/bank-withdraw-real-browser-shadow.mjs",
     "realBrowserShadowRunnerImplementiert": true,
     "sourceShaPinning": true,
-    "operatorBestaetigung": "V5 BANK WITHDRAW SHADOW OHNE WRITE AUSFUEHREN"
+    "operatorBestaetigung": "V5 BANK WITHDRAW SHADOW OHNE WRITE AUSFUEHREN",
+    "realBrowserShadowEvidencePfad": "roadmap/pr20-2-bank-withdraw-real-browser-shadow-evidence.json",
+    "testedSourceSha": "15620374566b83c9532e492d63e15c2fed6709e5",
+    "leaseEpoche": 4,
+    "leaseTerminalStatus": "RELEASED"
   }
 }
