@@ -1,8 +1,8 @@
 # PR20.2 – Bank-Produktion: NO-WRITE-Vorbereitung
 
-**Status:** VORBEREITET / NO-WRITE  
+**Status:** BEREIT FUER PRODUKTIVIERUNG / NO-WRITE  
 **Stand:** 2026-09-21  
-**Blocking Gate:** `PR20.1_EQUIP_PRODUKTIONSNACHWEIS`  
+**Vorausgehendes Gate:** `PR20.1_EQUIP_PRODUKTIONSNACHWEIS` – BESTANDEN  
 **Basis-main:** `a962512557d08bacfc57022697b77bd26e314b45`
 
 ## Zweck
@@ -87,7 +87,7 @@ Fuer den ersten Mutationssatz gilt vorbereitet:
 
 ## Noch bewusst nicht implementiert
 
-Vor bestandenem PR20.1 bleiben verboten:
+Bis zum bestandenen PR20.1 waren verboten; sie sind auch jetzt erst nach ihrer jeweiligen Implementierung, CI und Preflight-Freigabe zulaessig:
 
 - eine produktive `merchant.bank.*`-MUTIEREN-Capability;
 - eine Bank-One-Shot- oder dauerhafte Mutation-Authority;

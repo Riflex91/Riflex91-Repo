@@ -1114,6 +1114,7 @@ R0-R19 bleiben terminal abgeschlossen. Die anschliessende Produktivierung wird a
 - Dokument: `dokumentation/V5-POST-R19-ROADMAP.md`;
 - maschinenlesbarer Status: `roadmap/post-r19-roadmap.json`;
 - aktuelle Stufe: `PR20 – Merchant produktiv vervollstaendigen`;
-- aktuelles Gate: `PR20.1 – Equip-Produktionsnachweis`.
+- PR20.1 Equip-Produktionsnachweis: `BESTANDEN` mit Evidence `roadmap/pr20-1-equip-production-evidence.json`;
+- aktuelles Gate: `PR20.2 – Bank produktivieren`.
 
 Die Reihenfolge der Post-R19-Stufen ist verbindlich. Insbesondere wird der allgemeine Task-/Party-Optimizer erst nach produktiven Farmern, der Gruppen-Konstellationsmatrix und realer Gruppen-Live-Evidence begonnen. Der Account Progression Balancer folgt erst danach.

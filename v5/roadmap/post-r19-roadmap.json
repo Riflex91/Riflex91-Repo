@@ -3,11 +3,11 @@
   "stand": "2026-09-21",
   "roadmap": "V5_POST_R19_PRODUKTIV",
   "status": "AKTIV",
-  "basisMain": "04dbc2cf5ab70992ec0dac9c7952cafb1ca4a0db",
+  "basisMain": "5dca18494fb6414d0d3f10b10d449c0c6abbb32d",
   "dokumentation": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
   "testzeitStandard": "v5/roadmap/testzeit-standard.json",
   "currentStage": "PR20",
-  "currentGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
+  "currentGate": "PR20.2_BANK_PRODUKTIVIERUNG",
   "reihenfolgeVerbindlich": true,
   "optimizerVorGruppenLiveEvidenceVerboten": true,
   "merchantVorFarmerProduktivierung": true,
@@ -79,12 +79,12 @@
     }
   ],
   "currentNextSteps": [
-    "Merchant real und V3/V4 alternative Runtime inaktiv",
-    "equipment-equip-production:preflight ausfuehren",
-    "Preflight-Evidence auswerten",
-    "nur bei sauberem Preflight exakt einen produktiven Equip-Write ausfuehren",
-    "Transaktion und Postcondition auswerten",
-    "erst danach PR20.2 Bank-Mutationen beginnen"
+    "PR20.1 Equip-Produktionsnachweis ist BESTANDEN und im Repo dokumentiert",
+    "PR20.2 einen einzigen ersten Bank-Live-Kandidaten festlegen",
+    "enge produktive Bank-Mutationsfaehigkeit mit Single Owner ratifizieren",
+    "Authority, Admission, Journal/Current-Fence und read-only Preflight implementieren",
+    "Unit/Replay/Fault/Restart/UNKNOWN/Shadow-Gates vollstaendig gruen",
+    "erst danach kontrollierten ersten Bank-Write als neues Live-Gate ausfuehren"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -149,8 +149,8 @@
   },
   "parallelPreparation": {
     "id": "PR20.2_BANK",
-    "status": "VORBEREITET_NO_WRITE",
-    "blockedBy": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
+    "status": "BEREIT_FUER_PRODUKTIVIERUNG",
+    "blockedBy": null,
     "produktiveRegistrierungErlaubt": false,
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
@@ -163,8 +163,8 @@
   "parallelPreparations": [
     {
       "id": "PR20.2_BANK",
-      "status": "VORBEREITET_NO_WRITE",
-      "blockedBy": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
+      "status": "BEREIT_FUER_PRODUKTIVIERUNG",
+      "blockedBy": [],
       "produktiveRegistrierungErlaubt": false,
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
@@ -286,6 +286,17 @@
     "newGameplayWriteAdapterBeforeGate": false,
     "liveRunnerBeforeCapabilityGate": false,
     "planningContractsTestsAndRecoveryAllowed": true,
-    "activeLiveGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS"
+    "activeLiveGate": "PR20.2_BANK_PRODUKTIVIERUNG"
+  },
+  "pr20_1": {
+    "status": "BESTANDEN",
+    "evidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
+    "testedSourceSha": "04dbc2cf5ab70992ec0dac9c7952cafb1ca4a0db",
+    "transactionId": "EQUIP-PROD-TX-1790003670981-1df091d1",
+    "gameWrites": 1,
+    "adapterAufrufe": 1,
+    "sameIntentRetry": false,
+    "journalTerminalArt": "COMMIT",
+    "recovery": "COMMITTED"
   }
 }
