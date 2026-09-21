@@ -308,7 +308,7 @@ export async function fuehreBankWithdrawFinalPreflightDiagnoseAus({
   );
   const live = await findeAdventureLandKontext(
     cdp,
-    { requiredGlobalFunction: "bank_withdraw" },
+    { requiredGlobalFunction: "call_code_function_f" },
   );
 
   try {
