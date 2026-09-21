@@ -74,3 +74,8 @@ Fuer den aktuellen Withdraw-Pfad steht dafuer der read-only Diagnosebefehl `npm 
 ### Post-Send-Reconcile fuer Withdraw
 
 Wenn ein echter Withdraw-Lauf `gameWrites: 1` und `moeglicherSend: true` erreicht, aber Settlement/Recovery nicht bestaetigt werden konnte, ist ein weiterer Write verboten. Zuerst muss `npm run ingame:bank-withdraw:postsend-reconcile` ausgefuehrt werden. Der Runner liest den persistenten INTENT-Prestate, beobachtet einen frischen realen Bank-Snapshot und vergleicht exakt `characterGold +1` / `bankGold -1`. Er erzeugt 0 Gameplay-Writes und zaehlt nicht als Funktions-Test.
+
+
+### Final-Preflight-Diagnose fuer Withdraw
+
+Wenn ein echter Withdraw-Lauf den Adapter erreicht (`adapterAufrufe: 1`), aber mit `transportArt: NICHT_GESENDET`, `gameWrites: 0` und `moeglicherSend: false` endet, darf kein weiterer Funktionstest gestartet werden. `npm run ingame:bank-withdraw:final-preflight-diagnose` reproduziert die letzten Final-Preflight-Gates read-only gegen den realen Browser und vergleicht den aktuellen stabilen Bank-Snapshot mit dem persistenten INTENT-Prestate. Der Runner ruft niemals `bank_withdraw` auf und zaehlt nicht als Funktionstest.
