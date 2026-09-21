@@ -85,7 +85,14 @@ function MG:ChooseStep(reason)
 end
 
 function MG:RefreshGuide(reason)
-    self:ChooseStep(reason or "refresh")
+    reason = reason or "refresh"
+    self:ChooseStep(reason)
+    if self.RuntimeEngine then
+        self.RuntimeEngine:Commit(
+            self.currentStep,
+            self.GetActiveGuideDefinition and self:GetActiveGuideDefinition() or nil,
+            reason)
+    end
     if self.RestEDXPActionEngine then self.RestEDXPActionEngine:Refresh(self.currentStep) end
     if self.TrainerAdvisor then self.TrainerAdvisor:Refresh(reason or "refresh") end
     self:RefreshNavigation(reason or "refresh")
