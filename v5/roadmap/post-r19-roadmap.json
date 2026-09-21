@@ -3,7 +3,7 @@
   "stand": "2026-09-21",
   "roadmap": "V5_POST_R19_PRODUKTIV",
   "status": "AKTIV",
-  "basisMain": "a0d250067bf4eec142f2a8ede8272ac4685e99b9",
+  "basisMain": "938a79810ebd1124269926b16b8afefac829924c",
   "dokumentation": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
   "testzeitStandard": "v5/roadmap/testzeit-standard.json",
   "currentStage": "PR20",
@@ -83,8 +83,10 @@
     "PR20.2 erster Live-Kandidat ist exakt bank_deposit(1 Gold)",
     "PR20.2a authority-freier Deposit-Settlement-/Drift-Core ist CI-gruen gemerged",
     "PR20.2b Single Owner, default-off Capability, One-Shot-Authority, Current-Fence und read-only Preflight sind CI-gruen gemerged",
-    "PR20.2c persistente accountweite Bank-Lease/Restart-Reconciliation und No-Write-R9-Admission-Shadow vollstaendig CI-gruen machen",
-    "danach realen Browser-Shadow/Fault-Recovery ohne Write nachweisen",
+    "PR20.2c persistente accountweite Bank-Lease/Restart-Reconciliation und No-Write-R9-Admission-Shadow sind CI-gruen gemerged",
+    "PR20.2d source-locked Real-Browser-Shadow-Runner ohne Write ist CI-gruen gemerged",
+    "PR20.2e echter F5-/Restart-Fault wurde zero-write auf RECOVERY_PENDING -> RELEASED reconciliiert und ist dokumentiert",
+    "jetzt normalen Real-Browser-Shadow ohne Write erneut vollstaendig bis BESTANDEN ausfuehren",
     "erst danach Write-Adapter und Live-Runner einfuehren",
     "erst danach kontrollierten bank_deposit(1)-Write als neues Live-Gate ausfuehren"
   ],
@@ -151,7 +153,7 @@
   },
   "parallelPreparation": {
     "id": "PR20.2_BANK",
-    "status": "PERSISTENTE_LEASE_UND_ADMISSION_SHADOW_IN_ARBEIT_NO_WRITE",
+    "status": "RESTART_RECOVERY_REAL_BESTANDEN_REAL_BROWSER_SHADOW_NOCH_AUSSTEHEND",
     "blockedBy": null,
     "produktiveRegistrierungErlaubt": true,
     "gameplayAuthority": false,
@@ -179,7 +181,9 @@
       "v5/grundlage/adapter/persistenz/node-bank-lease-persistenz.mjs",
       "v5/grundlage/quelle/merchant/bank-deposit-shadow-admission.ts",
       "v5/grundlage/tests/r13-persistenter-bank-lease.test.mjs",
-      "v5/grundlage/tests/r11-bank-deposit-shadow-admission.test.mjs"
+      "v5/grundlage/tests/r11-bank-deposit-shadow-admission.test.mjs",
+      "v5/roadmap/pr20-2-bank-shadow-recovery-evidence.json",
+      "v5/werkzeuge/bank-deposit-real-shadow-recovery.mjs"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",
@@ -198,13 +202,15 @@
       "persistentBankLease": true,
       "restartReconciliation": true,
       "r9AdmissionShadow": true,
-      "shadowGameplayWrites": 0
+      "shadowGameplayWrites": 0,
+      "restartRecoveryRealEvidence": "BESTANDEN",
+      "realBrowserShadowLiveEvidence": "AUSSTEHEND"
     }
   },
   "parallelPreparations": [
     {
       "id": "PR20.2_BANK",
-      "status": "PERSISTENTE_LEASE_UND_ADMISSION_SHADOW_IN_ARBEIT_NO_WRITE",
+      "status": "RESTART_RECOVERY_REAL_BESTANDEN_REAL_BROWSER_SHADOW_NOCH_AUSSTEHEND",
       "blockedBy": [],
       "produktiveRegistrierungErlaubt": true,
       "gameplayAuthority": false,
@@ -232,7 +238,9 @@
         "v5/grundlage/adapter/persistenz/node-bank-lease-persistenz.mjs",
         "v5/grundlage/quelle/merchant/bank-deposit-shadow-admission.ts",
         "v5/grundlage/tests/r13-persistenter-bank-lease.test.mjs",
-        "v5/grundlage/tests/r11-bank-deposit-shadow-admission.test.mjs"
+        "v5/grundlage/tests/r11-bank-deposit-shadow-admission.test.mjs",
+        "v5/roadmap/pr20-2-bank-shadow-recovery-evidence.json",
+        "v5/werkzeuge/bank-deposit-real-shadow-recovery.mjs"
       ],
       "firstLiveCandidate": {
         "publicFunction": "bank_deposit",
@@ -251,7 +259,9 @@
         "persistentBankLease": true,
         "restartReconciliation": true,
         "r9AdmissionShadow": true,
-        "shadowGameplayWrites": 0
+        "shadowGameplayWrites": 0,
+        "restartRecoveryRealEvidence": "BESTANDEN",
+        "realBrowserShadowLiveEvidence": "AUSSTEHEND"
       }
     },
     {
@@ -380,7 +390,7 @@
     "recovery": "COMMITTED"
   },
   "pr20_2": {
-    "status": "PERSISTENTE_LEASE_UND_ADMISSION_SHADOW_IN_ARBEIT_NO_WRITE",
+    "status": "RESTART_RECOVERY_REAL_BESTANDEN_REAL_BROWSER_SHADOW_NOCH_AUSSTEHEND",
     "firstLiveCandidate": "bank_deposit(1)",
     "provider": "merchant-bank-core@1",
     "capabilityId": "merchant.bank.gold_einlagern",
@@ -392,10 +402,12 @@
     "writeAdapter": false,
     "liveRunner": false,
     "gameplayWrites": 0,
-    "nextSafetyGap": "REALER_BROWSER_SHADOW_UND_FAULT_RECOVERY_OHNE_WRITE",
+    "nextSafetyGap": "REALER_BROWSER_SHADOW_OHNE_WRITE_VOLLSTAENDIG_BESTEHEN",
     "persistentBankLease": true,
     "restartReconciliation": true,
     "r9AdmissionShadow": true,
-    "shadowGameplayWrites": 0
+    "shadowGameplayWrites": 0,
+    "restartRecoveryRealEvidence": "v5/roadmap/pr20-2-bank-shadow-recovery-evidence.json",
+    "realBrowserShadowLiveEvidence": "AUSSTEHEND"
   }
 }
