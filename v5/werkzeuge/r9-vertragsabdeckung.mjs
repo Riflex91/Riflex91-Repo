@@ -8,10 +8,10 @@ const recoveries = lies("wissensbasis/vertraege/recovery-contracts.json").action
 const verifiers = lies("grundlage/vertraege/r9/verifier-katalog.json").verifiers;
 const bindungen = lies("grundlage/vertraege/r9/action-bindungen.json").bindungen;
 
-if (actions.length !== 60) fehler("Action-Contract-Anzahl muss 60 sein.");
-if (recoveries.length !== 60) fehler("Recovery-Contract-Anzahl muss 60 sein.");
-if (verifiers.length !== 60) fehler("Verifier-Anzahl muss 60 sein.");
-if (bindungen.length !== 60) fehler("R9-Bindungsanzahl muss 60 sein.");
+if (actions.length !== 61) fehler("Action-Contract-Anzahl muss 61 sein.");
+if (recoveries.length !== 61) fehler("Recovery-Contract-Anzahl muss 61 sein.");
+if (verifiers.length !== 61) fehler("Verifier-Anzahl muss 61 sein.");
+if (bindungen.length !== 61) fehler("R9-Bindungsanzahl muss 61 sein.");
 
 const recoveryNachAction = new Map(recoveries.map(x => [x.actionContractId, x]));
 const verifierNachAction = new Map(verifiers.map(x => [x.actionContractId, x]));
@@ -102,7 +102,7 @@ for (const action of actions) {
   }
 }
 
-if (produktiv !== 59 || deaktiviert !== 1) {
-  fehler("Erwartet 59 produktive und 1 deaktivierten Action Contract.");
+if (produktiv !== 60 || deaktiviert !== 1) {
+  fehler("Erwartet 60 produktive und 1 deaktivierten Action Contract.");
 }
 console.log("[V5-R9-VERTRAGSABDECKUNG] OK / produktiv:", produktiv, "/ deaktiviert:", deaktiviert);
