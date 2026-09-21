@@ -14,7 +14,7 @@ test("Withdraw-Closeout respektiert Zwei-Test-Limit und zertifiziert keinen drit
     evidence.status,
     "FUNKTIONS_TEST_LIMIT_ERREICHT_BRIDGE_READ_ONLY_BESTAETIGT",
   );
-  assert.equal(evidence.function, "bank_withdraw");
+  assert.equal(evidence.funktion, "bank_withdraw");
   assert.equal(evidence.betragGold, 1);
   assert.equal(evidence.testPolicy.maxTrueFunctionalTestsPerFunction, 2);
   assert.equal(evidence.testPolicy.additionalTrueFunctionalTestAllowed, false);
@@ -57,4 +57,20 @@ test("CODE-Bridge-Probe beweist Runner-Capability mit null Gameplay-Writes", () 
   assert.equal(bridge.gameplayWrites, 0);
   assert.equal(bridge.adapterAufrufe, 0);
   assert.equal(bridge.bankWithdrawAufrufe, 0);
+});
+
+test("Withdraw-Implementierung bleibt nach Closeout eng und fail-closed", () => {
+  assert.equal(evidence.implementationAfterCloseout.usesOfficialCodeBridge, true);
+  assert.equal(evidence.implementationAfterCloseout.bridgeFunction, "call_code_function_f");
+  assert.equal(
+    evidence.implementationAfterCloseout.publicWriteExpression,
+    "maincode.contentWindow.bank_withdraw(1)",
+  );
+  assert.equal(evidence.implementationAfterCloseout.rawSocketEmit, false);
+  assert.equal(
+    evidence.implementationAfterCloseout.revalidatesFullPrestateAfterBootstrap,
+    true,
+  );
+  assert.equal(evidence.implementationAfterCloseout.maximumAdapterCalls, 1);
+  assert.equal(evidence.implementationAfterCloseout.sameIntentRetry, false);
 });
