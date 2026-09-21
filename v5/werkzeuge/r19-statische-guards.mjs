@@ -467,6 +467,64 @@ if(/\bbank_deposit\s*\(/.test(bankPreflightRunner)
   fehler.push("BANK_DEPOSIT_PREFLIGHT_RUNNER_WRITE_VERBOTEN");
 }
 
+
+const bankWithdrawRealShadow=lies(
+  "werkzeuge/bank-withdraw-real-browser-shadow.mjs",
+);
+for(const m of [
+  "BANK_WITHDRAW_REAL_SHADOW_BESTAETIGUNG",
+  "V5_BANK_WITHDRAW_REAL_BROWSER_SHADOW_NO_WRITE",
+  "BANK_SHADOW_SOURCE_SHA_MISMATCH",
+  "rev-parse",
+  "fuehreBankWithdrawRealShadow",
+  "pruefeBankWithdrawStartBereit",
+  "startAusserhalbBank: true",
+  "browserGameplayWrites: 0",
+  "gameplayWrites: 0",
+  "adapterAufrufe: 0",
+]){
+  if(!bankWithdrawRealShadow.includes(m)) {
+    fehler.push("BANK_WITHDRAW_REAL_SHADOW_GRENZE_FEHLT:"+m);
+  }
+}
+if(/\bbank_withdraw\s*\(/.test(bankWithdrawRealShadow)
+    ||/\bbank_deposit\s*\(/.test(bankWithdrawRealShadow)
+    ||/\.emit\s*\(/.test(bankWithdrawRealShadow)
+    ||/\bAusfuehrungsKernel\b/.test(bankWithdrawRealShadow)
+    ||/\bAusfuehrungsAdapter\b/.test(bankWithdrawRealShadow)) {
+  fehler.push("BANK_WITHDRAW_REAL_SHADOW_WRITE_GRENZE_VERLETZT");
+}
+const bankWithdrawAdmissionGate=lies(
+  "grundlage/quelle/merchant/bank-withdraw-admission-gate.ts",
+);
+for(const m of [
+  "ProduktivesBankWithdrawEinmalAdmissionGate",
+  "MERCHANT_BANK_WITHDRAW_FAEHIGKEIT_ID",
+  "BANK_WITHDRAW_ACTION_CONTRACT_ID",
+  "BANK_WITHDRAW_RECOVERY_CONTRACT_ID",
+  "BANK_WITHDRAW_VERIFIER_ID",
+  "bankWithdrawEinmalAuthorityOffen",
+]){
+  if(!bankWithdrawAdmissionGate.includes(m)) {
+    fehler.push("BANK_WITHDRAW_ADMISSION_GATE_FEHLT:"+m);
+  }
+}
+const bankWithdrawRealShadowHost=lies(
+  "werkzeuge/v5-produktions-host-komposition.mjs",
+);
+for(const m of [
+  "fuehreBankWithdrawRealShadow",
+  "ProduktivesBankWithdrawEinmalAdmissionGate",
+  "erteileBankWithdrawEinmalAuthority",
+  "fuehreBankWithdrawShadowAdmission",
+  "this.#bankWithdrawJournal",
+  "mount.bankGold < 1",
+]){
+  if(!bankWithdrawRealShadowHost.includes(m)) {
+    fehler.push("BANK_WITHDRAW_REAL_SHADOW_HOST_FEHLT:"+m);
+  }
+}
+
 const equipmentModul=lies("grundlage/quelle/equipment/modul-vertrag.ts");
 for(const m of [
   'EQUIPMENT_CORE_MODUL_ID = "equipment-core"',
