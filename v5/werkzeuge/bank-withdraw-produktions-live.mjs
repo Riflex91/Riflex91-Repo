@@ -48,6 +48,20 @@ function hash(value) {
   return crypto.createHash("sha256").update(String(value)).digest("hex");
 }
 
+function normalisiereCliBestaetigung(tokens) {
+  if (!Array.isArray(tokens) || tokens.length === 0) return null;
+  let text = tokens.join(" ").trim();
+  if (text.length >= 2) {
+    const erstes = text[0];
+    const letztes = text[text.length - 1];
+    if ((erstes === '"' && letztes === '"')
+        || (erstes === "'" && letztes === "'")) {
+      text = text.slice(1, -1).trim();
+    }
+  }
+  return text || null;
+}
+
 function parseArgs(argv) {
   const out = {
     cdp: "http://127.0.0.1:9222/",
@@ -55,6 +69,7 @@ function parseArgs(argv) {
     confirm: null,
     sourceSha: null,
   };
+  const flags = new Set(["--preflight", "--cdp", "--confirm", "--source-sha"]);
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--preflight") {
@@ -62,7 +77,11 @@ function parseArgs(argv) {
     } else if (arg === "--cdp") {
       out.cdp = argv[++i];
     } else if (arg === "--confirm") {
-      out.confirm = argv[++i];
+      const teile = [];
+      while (i + 1 < argv.length && !flags.has(argv[i + 1])) {
+        teile.push(argv[++i]);
+      }
+      out.confirm = normalisiereCliBestaetigung(teile);
     } else if (arg === "--source-sha") {
       out.sourceSha = argv[++i];
     } else {
