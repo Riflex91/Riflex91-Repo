@@ -30,7 +30,12 @@ Der kanonische Katalog liegt in:
 - `architektur/adr/ADR-032-PRODUKTIVE-EQUIP-MUTATIONSFAEHIGKEIT.md`;
 - `grundlage/quelle/equipment/produktions-einmal-authority.ts`;
 - `grundlage/vertraege/runtime/equipment-equip-one-shot-authority.json`;
-- `architektur/adr/ADR-033-EQUIP-EINMAL-AUTHORITY.md`.
+- `architektur/adr/ADR-033-EQUIP-EINMAL-AUTHORITY.md`;
+- `grundlage/quelle/equipment/produktions-equip-admission-gate.ts`;
+- `grundlage/quelle/equipment/produktions-equip-transaktion.ts`;
+- `grundlage/adapter/persistenz/node-equip-transaktionsjournal.mjs`;
+- `grundlage/vertraege/runtime/equipment-equip-production-transaction.json`;
+- `architektur/adr/ADR-034-PRODUKTIVE-EQUIP-TRANSAKTION.md`.
 
 ## Produktive Modulidentitaet
 
@@ -273,14 +278,53 @@ Der R12-Controlled-Live-Testgate bleibt ein Testartefakt und wird nicht als
 Produktions-Authority wiederverwendet. Bank-, Trade-, Transfer-, Upgrade-,
 Compound-, Exchange- und Craft-Mutationen bleiben produktiv unregistriert.
 
+## Produktive Equip-Einmal-Transaktion
+
+Die Einmal-Authority ist jetzt mit dem bestehenden Admission-/Execution-/
+Recovery-Kern zu genau einer produktiven Equip-Transaktion verbunden.
+
+Der Pfad erzwingt:
+
+- den produktiven Gesamtfreigabe-Gate und einen laufenden Host;
+- keine gleichzeitig aktive PLANEN-Capability;
+- den deny-only Operator-Recheck unmittelbar in Admission;
+- exakt `equipment.equip` / `equipment-core@1`;
+- exakt `AL-ACTION-EQUIP` / `AL-RECOVERY-EQUIP` /
+  `AL-VERIFIER-EQUIP`;
+- die sechs bestehenden R9-Invarianten;
+- Fencing fuer character-spezifisches Equipment und Inventory;
+- einen character-spezifischen `equip`-Action-Channel;
+- Socket-Budget-Kosten 3;
+- durable Mutation-Intent vor dem Send;
+- frische Live-Preconditions;
+- maximal einen Adapteraufruf und maximal einen Gameplay-Write;
+- Same-Intent-Retry immer `false`;
+- bounded Recovery mit maximal vier Beobachtungen;
+- einen globalen durable Current-Pointer, der eine alte offene Transaktion
+  fail-closed gegen einen neuen Versuch sperrt.
+
+Der erste produktive Live-Kandidat ist absichtlich enger als die alten
+Controlled-Live-Tests: Es wird nur ein unlocked Nicht-Waffen-Item eines
+Merchants in einen **leeren** sicheren Equipment-Slot zugelassen. Kein Swap.
+
+Der read-only Preflight lautet:
+
+`npm run equipment-equip-production:preflight -- --cdp http://127.0.0.1:9222/`
+
+Der produktive Einmal-Lauf lautet nach erfolgreichem Preflight:
+
+`npm run equipment-equip-production:live -- --cdp http://127.0.0.1:9222/ --source-sha <40-HEX> --confirm "V5 EQUIP EINMAL AUSFUEHREN"`
+
+Der durable Abschlussbericht liegt unter:
+
+`D:\\AdventureLand-V5\\runtime\\canary\\equipment-equip-production\\latest.json`
+
 ## Naechster Integrationsschritt
 
-Die Authority-Ausstellung selbst sendet weiterhin **keine** Gameplay-Aktion.
-Als naechstes wird sie mit dem bestehenden Admission-/Execution-/Recovery-
-Kernel zu genau einer produktiven Equip-Transaktion verbunden. Diese Stufe
-muss weiterhin Ressourcen/Fencing, Action-Channel, Socket-Budget, durable
-Mutation-Intent, Live-Preconditions und Postcondition/Reconciliation
-erzwingen.
+Nach gruenem Exact-Head-CI ist kein weiterer synthetischer Schritt sinnvoll.
+Der naechste notwendige Nachweis ist der manuelle Ingame-Preflight und danach
+genau ein realer, explizit bestaetigter Equip-Write. Das Ergebnis muss vor
+jeder weiteren produktiven Mutation ausgewertet werden.
 
-Erst wenn dieser komplette Einmal-Transaktionspfad durch CI nachgewiesen ist,
-ist ein neuer manueller Ingame-Test erforderlich.
+Bank-, Trade-, Transfer-, Upgrade-, Compound-, Exchange- und Craft-
+Mutationen bleiben weiterhin ausserhalb dieses Pfads.

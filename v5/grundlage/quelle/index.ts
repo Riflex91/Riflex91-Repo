@@ -92,6 +92,8 @@ export * from "./merchant/faehigkeits-vertrag.js";
 export * from "./equipment/modul-vertrag.js";
 export * from "./equipment/faehigkeits-vertrag.js";
 export * from "./equipment/produktions-einmal-authority.js";
+export * from "./equipment/produktions-equip-admission-gate.js";
+export * from "./equipment/produktions-equip-transaktion.js";
 export * from "./koordination/cm-protokoll.js";
 export * from "./koordination/roster-wahrheit.js";
 export * from "./koordination/character-liveness.js";

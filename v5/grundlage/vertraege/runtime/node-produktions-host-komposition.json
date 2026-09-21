@@ -21,14 +21,17 @@
     "telemetrieBypassExponiert": false,
     "postStartRevalidierungsfehlerStopptRuntime": true,
     "equipEinmalAuthorityPfadExponiert": true,
-    "generischeMutierenAktivierungExponiert": false
+    "generischeMutierenAktivierungExponiert": false,
+    "equipEinmalTransaktionExponiert": true,
+    "generischeMutierenAusfuehrungExponiert": false
   },
   "authority": {
     "gameplayAutoritaet": false,
     "rawWriteAutoritaet": false,
-    "actionAuthority": false
+    "actionAuthority": false,
+    "breiteGameplayAutoritaet": false
   },
-  "mutierendeCapabilitiesDurchDiesenVertrag": 0,
+  "mutierendeCapabilitiesDurchDiesenVertrag": 1,
   "equipEinmalAuthority": {
     "capabilityId": "equipment.equip",
     "provider": "equipment-core@1",
@@ -38,5 +41,19 @@
     "frischeOperationsEvidence": true,
     "registryAktivierung": false,
     "gameplayWriteDurchAusstellung": 0
+  },
+  "equipEinmalTransaktion": {
+    "capabilityId": "equipment.equip",
+    "provider": "equipment-core@1",
+    "preflightReadOnly": true,
+    "leererZielslotErforderlich": true,
+    "durableIntentVorSend": true,
+    "fencingEquipmentInventoryActionChannel": true,
+    "socketBudgetGewicht": 3,
+    "maxAdapterAufrufe": 1,
+    "maxGameplayWrites": 1,
+    "sameIntentRetry": false,
+    "recoveryMaxBeobachtungen": 4,
+    "offeneTransaktionBlockiertNeue": true
   }
 }

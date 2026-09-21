@@ -126,6 +126,9 @@ for (const marker of [
   "NodeBedienerDenyProtokoll",
   "ladeWirksameDenyBefehle",
   "NodePlanenAktivierungsProtokoll",
+  "NodeEquipEinmalAuthorityProtokoll",
+  "NodeEquipTransaktionsJournal",
+  "fuehreEquipEinmalTransaktion",
   "NodeProduktionsOperationsQuelle",
   "V5ProduktionsHostController",
   "wendeDenyAn",
@@ -137,6 +140,8 @@ for (const marker of [
 for (const verboten of [
   "kernKomponenten(",
   "aktiviereNichtMutierend(",
+  "aktiviereMutierend(",
+  "erteileMutierenAuthority(",
   "erfasseOperationsMetrik(",
 ]) {
   if (nodeHostKomposition.includes(verboten)) {
@@ -200,6 +205,74 @@ for (const marker of [
 ]) {
   if (!bankCanaryRunner.includes(marker)) {
     fehler.push("BANK_PLANEN_CANARY_RUNNER_MARKER_FEHLT:" + marker);
+  }
+}
+
+const equipProduktionsBrowser = liesText(
+  "werkzeuge/equipment-equip-produktions-browser.mjs",
+);
+for (const marker of [
+  'this.adapterId = "v5-production-cdp-equip-once"',
+  "MERCHANT_ERFORDERLICH",
+  "ALTERNATIVE_RUNTIME_AKTIV",
+  "EQUIPMENT_SLOT_NICHT_LEER",
+  "EQUIP_PROD_MEHR_ALS_EIN_ADAPTER_AUFRUF",
+  "erstelleProduktiveEquipLiveVoraussetzungen",
+  "erstelleProduktivenEquipRecoveryBeobachter",
+]) {
+  if (!equipProduktionsBrowser.includes(marker)) {
+    fehler.push("EQUIP_PROD_BROWSER_MARKER_FEHLT:" + marker);
+  }
+}
+const equipWrites = equipProduktionsBrowser.match(/root\.equip\s*\(/g) ?? [];
+if (equipWrites.length !== 1) {
+  fehler.push("EQUIP_PROD_BROWSER_EXAKT_EIN_EQUIP_WRITE_ERFORDERLICH");
+}
+for (const [kennung, muster] of [
+  ["ATTACK", /\battack\s*\(/],
+  ["MOVE", /\bmove\s*\(/],
+  ["SMART_MOVE", /\bsmart_move\s*\(/],
+  ["USE_SKILL", /\buse_skill\s*\(/],
+  ["BANK_STORE", /\bbank_store\s*\(/],
+  ["BANK_RETRIEVE", /\bbank_retrieve\s*\(/],
+  ["BUY", /\bbuy\s*\(/],
+  ["SELL", /\bsell\s*\(/],
+  ["EXCHANGE", /\bexchange\s*\(/],
+  ["CRAFT", /\bcraft\s*\(/],
+  ["UPGRADE", /\bupgrade\s*\(/],
+  ["COMPOUND", /\bcompound\s*\(/],
+  ["SEND_ITEM", /\bsend_item\s*\(/],
+  ["SEND_GOLD", /\bsend_gold\s*\(/],
+  ["RAW_EMIT", /\.emit\s*\(/],
+]) {
+  if (muster.test(equipProduktionsBrowser)) {
+    fehler.push("EQUIP_PROD_BROWSER_FREMDWRITE_VERBOTEN:" + kennung);
+  }
+}
+
+const equipProduktionsRunner = liesText(
+  "werkzeuge/equipment-equip-produktions-live.mjs",
+);
+for (const marker of [
+  "equipment-equip-production/latest.json",
+  "fuehreEquipEinmalTransaktion",
+  "EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG",
+  "EQUIP_PROD_KEIN_LEERER_SAFE_SLOT_KANDIDAT",
+  "sameIntentRetry: false",
+  "browserGameplayWrites: 0",
+]) {
+  if (!equipProduktionsRunner.includes(marker)) {
+    fehler.push("EQUIP_PROD_RUNNER_MARKER_FEHLT:" + marker);
+  }
+}
+for (const muster of [
+  /root\.equip\s*\(/,
+  /\battack\s*\(/,
+  /\bsmart_move\s*\(/,
+  /\.emit\s*\(/,
+]) {
+  if (muster.test(equipProduktionsRunner)) {
+    fehler.push("EQUIP_PROD_RUNNER_DIREKTWRITE_VERBOTEN:" + muster);
   }
 }
 
