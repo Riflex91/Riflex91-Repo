@@ -107,6 +107,9 @@ function MB:InstallBagFunctionHooks()
         ToggleBackpack = "toggle",
         OpenBackpack = "show",
         CloseBackpack = "hide",
+        ToggleBag = "toggle",
+        OpenBag = "show",
+        CloseBag = "hide",
     }
 
     for functionName, action in pairs(hooks) do
