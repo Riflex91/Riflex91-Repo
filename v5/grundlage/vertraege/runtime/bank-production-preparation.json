@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_2_BANK_PRODUCTION_PREPARATION",
   "stand": "2026-09-21",
-  "status": "RESTART_RECOVERY_REAL_BESTANDEN_REAL_BROWSER_SHADOW_NOCH_AUSSTEHEND",
-  "basisMain": "938a79810ebd1124269926b16b8afefac829924c",
+  "status": "REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_VORBEREITUNG",
+  "basisMain": "aef9d84b13956c81799e9fa150cfa22438160470",
   "blockingGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
   "zweck": "PR20.2 mit separatem Single Owner, One-Shot-Authority, durablem Current-Fence, persistenter restart-sicherer Bank-Lease und No-Write-R9-Admission-Shadow vorbereiten; weiterhin ohne Bank-Gameplay-Write, Write-Adapter oder Live-Runner.",
   "authorityGrenze": {
@@ -23,7 +23,8 @@
     "shadowGameplayWrites": 0,
     "restartRecoveryRealEvidence": "BESTANDEN",
     "restartRecoveryEvidencePfad": "roadmap/pr20-2-bank-shadow-recovery-evidence.json",
-    "realBrowserShadowLiveEvidence": "AUSSTEHEND"
+    "realBrowserShadowLiveEvidence": "BESTANDEN",
+    "realBrowserShadowEvidencePfad": "roadmap/pr20-2-bank-real-browser-shadow-evidence.json"
   },
   "bestehendePlanung": {
     "modulId": "merchant-core-a",
@@ -122,13 +123,13 @@
     "persistente accountweite Bank-Lease mit Restart-RECOVERY_PENDING und Epochen-Floor ist implementiert",
     "No-Write-Shadow bindet External Fence, Lease, lokalen bank-Channel, Socket-Budget, durable Intent und R9-Admission",
     "echter F5-/Restart-Fault ist zero-write von RECOVERY_PENDING nach RELEASED reconciliiert und dokumentiert",
-    "normalen Real-Browser-Shadow ohne Write vollstaendig bis BESTANDEN ausfuehren",
-    "erst danach Write-Adapter und Live-Runner separat einfuehren",
+    "normaler Real-Browser-Shadow ohne Write ist BESTANDEN und dokumentiert",
+    "Write-Adapter und Live-Runner fuer exakt bank_deposit(1) separat implementieren und CI-gruen pruefen",
     "erst nach erneut gruener Exact-Head-CI einen einzelnen kontrollierten bank_deposit(1)-Live-Write zulassen"
   ],
   "blockingGateStatus": "BESTANDEN",
   "ersterLiveKandidat": {
-    "status": "RESTART_RECOVERY_REAL_BESTANDEN_REAL_BROWSER_SHADOW_NOCH_AUSSTEHEND",
+    "status": "REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_VORBEREITUNG",
     "vertrag": "grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
     "settlementCore": "grundlage/quelle/merchant/bank-deposit-settlement.ts",
     "test": "grundlage/tests/pr20-bank-deposit-settlement.test.mjs",
@@ -154,6 +155,7 @@
     "shadowGameplayWrites": 0,
     "restartRecoveryRealEvidence": "BESTANDEN",
     "restartRecoveryEvidencePfad": "roadmap/pr20-2-bank-shadow-recovery-evidence.json",
-    "realBrowserShadowLiveEvidence": "AUSSTEHEND"
+    "realBrowserShadowLiveEvidence": "BESTANDEN",
+    "realBrowserShadowEvidencePfad": "roadmap/pr20-2-bank-real-browser-shadow-evidence.json"
   }
 }
