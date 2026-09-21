@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-19",
+  "updatedAt": "2026-09-21",
   "policy": {
     "principle": "Live truth overrides stale snapshots for execution.",
     "onGameUpdate": "Mark affected HIGH/MEDIUM volatility facts NEEDS_REVALIDATION until checked.",
@@ -12,9 +12,9 @@
       "title": "Action-Contract-Matrix aller wertverandernden Public Functions",
       "status": "DONE",
       "progress": {
-        "updatedAt": "2026-09-19",
-        "totalContracts": 60,
-        "sourceVerified": 53,
+        "updatedAt": "2026-09-21",
+        "totalContracts": 61,
+        "sourceVerified": 54,
         "liveDeployedVerified": 6,
         "explicitlyDisabledPendingExactContract": 1,
         "liveDocOnlyNeedsExactContract": 0,
@@ -22,7 +22,7 @@
         "disabledActions": [
           "cave_buy"
         ],
-        "note": "P0-01 closed: every value-changing public function is either contract-verified or explicitly automation-disabled. cave_buy remains disabled because parent.cave_request transport/correlation/timeout semantics are not publicly exposed."
+        "note": "P0-01 bleibt geschlossen. Der historische 60er-Katalog wurde Post-R19 um den engen, aus vorhandenen offiziellen Client-/Server-Snapshots verifizierten AL-ACTION-MLUCK-SAME-ACCOUNT erweitert. 60 Contracts sind verifiziert, cave_buy bleibt explizit automation-disabled; die Erweiterung erteilt keine Runtime-Authority."
       }
     },
     {
@@ -30,9 +30,9 @@
       "title": "Recovery-Semantik je Action inklusive UNKNOWN Outcome",
       "status": "DONE",
       "progress": {
-        "updatedAt": "2026-09-19",
-        "actionRecoveryContracts": 60,
-        "verifiedRecoveryPolicies": 59,
+        "updatedAt": "2026-09-21",
+        "actionRecoveryContracts": 61,
+        "verifiedRecoveryPolicies": 60,
         "disabledWithActionContract": 1,
         "disabledActions": [
           "cave_buy"
@@ -45,7 +45,7 @@
           "STILL_PENDING",
           "UNRESOLVED"
         ],
-        "note": "Every P0-01 action has exactly one recovery contract. UNKNOWN requires reconciliation; NOT_APPLIED needs positive evidence; only a new intent after fresh admission may follow."
+        "note": "Alle aktuell 61 Actions besitzen genau einen Recovery Contract. Der Post-R19-MLuck-Vertrag nutzt STATE_REOBSERVE; UNKNOWN verlangt Reconciliation und Same-Intent-Retry bleibt nach moeglichem Send verboten."
       }
     },
     {
