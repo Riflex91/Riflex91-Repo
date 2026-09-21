@@ -603,6 +603,21 @@ export class V5ProduktionsHostController {
       );
     }
 
+    const withdrawRevalidierung =
+      this.#runtime.revalidiereBankWithdrawEinmalAuthority(
+        beobachtung.healthEvidence,
+        jetztMs,
+      );
+    this.#bankWithdrawEinmalAuthorityOffen =
+      withdrawRevalidierung.authorityOffen;
+    if (!withdrawRevalidierung.bereit) {
+      return this.#setze(
+        "GESPERRT",
+        "PRODUKTIONS_HOST_BANK_WITHDRAW_REVALIDIERUNG_NICHT_BEREIT:"
+          + withdrawRevalidierung.grund,
+      );
+    }
+
     const prozess = this.#sichererProzessStatus();
     if (prozess === null || !prozess.prozessLaeuft) {
       return this.#setze(
@@ -685,6 +700,11 @@ export class V5ProduktionsHostController {
     }
     if (this.#bankDepositEinmalAuthorityOffen) {
       throw new Error("PRODUKTIONS_HOST_EQUIP_EINMAL_BANK_AUTHORITY_OFFEN");
+    }
+    if (this.#bankWithdrawEinmalAuthorityOffen) {
+      throw new Error(
+        "PRODUKTIONS_HOST_EQUIP_EINMAL_BANK_WITHDRAW_AUTHORITY_OFFEN",
+      );
     }
 
     const beobachtung = await this.#beobachteFailClosed(jetztMs);
