@@ -382,7 +382,7 @@ class NodeV5ProduktionsHost {
         anfrage.ausgang.serverRegion,
         anfrage.ausgang.serverKennung,
         jetztMs,
-        180_000,
+        300_000,
       );
 
       const mount = await anfrage.mountBeobachter.warteAufMount(Object.freeze({
@@ -492,7 +492,7 @@ class NodeV5ProduktionsHost {
           serverIdentifier: mount.serverKennung,
           ausgestelltAmMs: admissionMs,
           gueltigBisMs,
-          leaseDauerMs: 180_000,
+          leaseDauerMs: 300_000,
           maximaleSnapshotAlterMs: 1_000,
           externalFence: fence,
           externalFenceBeobachtetAmMs: mount.beobachtetAmMs,
