@@ -1,9 +1,9 @@
 # PR20.2 – Bank-Produktion: One-Shot-Grenze / NO-WRITE
 
-**Status:** WRITE-PFAD IMPLEMENTIERT / LIVE-EVIDENCE AUSSTEHEND  
+**Status:** DEPOSIT-ONE-SHOT LIVE BESTANDEN / RESTBANK AUSSTEHEND  
 **Stand:** 2026-09-21  
 **Vorausgehendes Gate:** `PR20.1_EQUIP_PRODUKTIONSNACHWEIS` – BESTANDEN  
-**Basis-main:** `a2364c8a9054022666d32074db11376978c9f6b1`
+**Basis-main:** `05b93ac7dbb6ef294294c38030d9e4b48962f7d3`
 
 ## Zweck
 
@@ -230,8 +230,10 @@ Wenn PR20.1 gruen ist, kann ohne erneute Grundlagenanalyse direkt begonnen werde
 8. **ERLEDIGT:** No-Write-R9-Admission-Shadow;
 9. **ERLEDIGT:** echten F5-/Restart-Fault zero-write reconciliieren und dokumentieren;
 10. **ERLEDIGT:** normalen Real-Browser-Shadow ohne Write vollstaendig bis BESTANDEN ausfuehren;
-11. **IN ARBEIT:** Write-Adapter/Live-Runner fuer exakt `bank_deposit(1)` implementieren und komplett CI-gruen pruefen;
-12. read-only Write-Preflight auf exakt dem geprueften Head ausfuehren;
-13. erst danach exakt einen kontrollierten `bank_deposit(1)`-Write ausfuehren und Evidence pruefen.
+11. **ERLEDIGT:** Write-Adapter/Live-Runner fuer exakt `bank_deposit(1)` implementieren und komplett CI-gruen pruefen;
+12. **ERLEDIGT:** read-only Write-Preflight auf exakt dem geprueften Head ausfuehren;
+13. **ERLEDIGT:** exakt einen kontrollierten `bank_deposit(1)`-Write mit COMMIT/BESTAETIGT/1 Write nachweisen;
+14. **NAECHSTES GATE:** Withdraw/Store/Retrieve/Swap jeweils separat vorbereiten und produktiv nachweisen;
+15. danach 5m-Bank-Funktionsevidence fuer die freigegebenen Bankpfade.
 
 Withdraw, Store, Retrieve, Swap und `open_bank_pack` bleiben bis nach dem separat nachgewiesenen ersten Deposit-Pfad produktiv gesperrt.
