@@ -43,6 +43,7 @@ const RECOVERY = "AL-RECOVERY-BANK-DEPOSIT";
 const VERIFIER = "AL-VERIFIER-BANK-DEPOSIT";
 const CAPABILITY = "merchant.bank.gold_einlagern";
 const OWNER = "merchant-bank-core";
+let letzterAdapter = null;
 
 function hash(value) {
   return crypto.createHash("sha256").update(String(value)).digest("hex");
@@ -182,6 +183,7 @@ export async function fuehreBankDepositEinGoldLiveAus({
   exitTimeoutMs = 90_000,
   hostOptionen = {},
 } = {}) {
+  letzterAdapter = null;
   const cdp = validiereLoopbackCdp(
     cdpText || process.env.V5_CDP_URL || "http://127.0.0.1:9222/",
   );
@@ -267,6 +269,7 @@ export async function fuehreBankDepositEinGoldLiveAus({
       live.session,
       live.contextId,
     );
+    letzterAdapter = adapter;
     const bankBeobachter = erstelleProduktivenBankDepositBeobachter(
       live.session,
       live.contextId,
@@ -424,9 +427,9 @@ if (direkt) {
       status: "BLOCKIERT",
       fehler: String(fehler?.message || fehler),
       sameIntentRetry: false,
-      adapterAufrufe: adapter?.adapterAufrufe ?? 0,
-      gameWrites: adapter?.gameWrites ?? 0,
-      moeglicherSend: adapter?.moeglicherSend ?? false,
+      adapterAufrufe: letzterAdapter?.adapterAufrufe ?? 0,
+      gameWrites: letzterAdapter?.gameWrites ?? 0,
+      moeglicherSend: letzterAdapter?.moeglicherSend ?? false,
       hinweis:
         "Nicht automatisch erneut ausfuehren. Bei moeglichem Send, offener Transaktion oder Bank-Lease zuerst Evidence/Reconciliation pruefen.",
     }, null, 2) + "\n");
