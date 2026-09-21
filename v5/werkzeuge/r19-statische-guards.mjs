@@ -856,7 +856,7 @@ const bankWithdrawCandidate=lies(
   "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
 );
 for(const m of [
-  '"status": "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE"',
+  '"status": "TWO_TEST_LIMIT_REACHED_CODE_BRIDGE_READ_ONLY_BESTAETIGT"',
   '"publicFunction": "bank_withdraw"',
   '"characterGoldDelta": 1',
   '"bankGoldDelta": -1',
@@ -865,8 +865,8 @@ for(const m of [
   '"authorityInDiesemSchritt": true',
   '"adapterInDiesemSchritt": true',
   '"liveRunnerInDiesemSchritt": true',
-  '"gameplayWritesInDiesemSchritt": 0',
-  '"realLiveWritePerformed": false',
+  '"gameplayWritesInDiesemSchritt": 1',
+  '"realLiveWritePerformed": true',
   '"publicFunctionCallCountStatic": 1',
 ]){
   if(!bankWithdrawCandidate.includes(m)) {
@@ -876,7 +876,7 @@ for(const m of [
 const bankWithdrawWriteBrowser=lies(
   "werkzeuge/bank-withdraw-produktions-write-browser.mjs",
 );
-if((bankWithdrawWriteBrowser.match(/root\.bank_withdraw\(1\)/g)??[]).length!==1) {
+if((bankWithdrawWriteBrowser.match(/runner\.bank_withdraw\(1\)/g)??[]).length!==1) {
   fehler.push("BANK_WITHDRAW_WRITE_BROWSER_EXAKT_EIN_WITHDRAW_1_ERFORDERLICH");
 }
 for(const m of [
@@ -890,6 +890,8 @@ for(const m of [
   "CHARACTER_GOLD_DRIFT",
   "BANK_GOLD_DRIFT",
   "DISCONNECT_NACH_MOEGLICHEM_SEND",
+  "call_code_function_f('eval','void 0')",
+  "CODE_RUNNER_BANK_WITHDRAW_CAPABILITY_FEHLT",
 ]){
   if(!bankWithdrawWriteBrowser.includes(m)) {
     fehler.push("BANK_WITHDRAW_WRITE_BROWSER_GRENZE_FEHLT:"+m);
