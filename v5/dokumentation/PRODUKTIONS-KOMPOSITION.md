@@ -1,7 +1,7 @@
 # V5 Produktionskomposition
 
 **Status:** DEFAULT-DENY / PLANEN KONTROLLIERT AKTIVIERBAR / EQUIP-MUTIEREN NUR REGISTRIERT  
-**Stand:** 2026-09-20
+**Stand:** 2026-09-21
 
 ## Zweck
 
@@ -35,7 +35,8 @@ Der kanonische Katalog liegt in:
 - `grundlage/quelle/equipment/produktions-equip-transaktion.ts`;
 - `grundlage/adapter/persistenz/node-equip-transaktionsjournal.mjs`;
 - `grundlage/vertraege/runtime/equipment-equip-production-transaction.json`;
-- `architektur/adr/ADR-034-PRODUKTIVE-EQUIP-TRANSAKTION.md`.
+- `architektur/adr/ADR-034-PRODUKTIVE-EQUIP-TRANSAKTION.md`;
+- `roadmap/pr20-1-equip-production-evidence.json`.
 
 ## Produktive Modulidentitaet
 
@@ -319,12 +320,32 @@ Der durable Abschlussbericht liegt unter:
 
 `D:\\AdventureLand-V5\\runtime\\canary\\equipment-equip-production\\latest.json`
 
+## Reale Equip-Produktions-Evidence
+
+PR20.1 ist bestanden. Auf dem festgehaltenen Source-SHA
+`04dbc2cf5ab70992ec0dac9c7952cafb1ca4a0db` war der read-only Preflight
+`BEREIT` und meldete `browserGameplayWrites=0`. Der anschliessende
+Einmal-Lauf erzeugte exakt einen Adapteraufruf und exakt einen Gameplay-Write.
+Die Transaktion `EQUIP-PROD-TX-1790003670981-1df091d1` endete
+`COMMITTED`; Recovery war `BESTAETIGT`, das Journal terminal `COMMIT`,
+`sameIntentRetry=false` und nach Abschluss war keine Equip-Einmal-Authority
+offen.
+
+Die vollstaendige maschinenlesbare Evidence liegt unter
+`roadmap/pr20-1-equip-production-evidence.json`.
+
+Auf Windows zeigte der npm-Wrapper beim ersten Live-Aufruf eine
+Argumentweitergabe-Abweichung fuer den Bestätigungstext mit Leerzeichen. Der
+Runner blockierte dabei vor Transaktions-ID, Adapter und Orchestrierung. Nach
+read-only Recovery-Pruefung ohne Current-Pointer, Authority-Verzeichnis und
+Live-Report wurde derselbe unveraenderte Runner direkt ueber Node einmal
+ausgefuehrt. Dieser Befund ist als Betriebsdetail dokumentiert und fuehrte zu
+keinem moeglichen Gameplay-Send.
+
 ## Naechster Integrationsschritt
 
-Nach gruenem Exact-Head-CI ist kein weiterer synthetischer Schritt sinnvoll.
-Der naechste notwendige Nachweis ist der manuelle Ingame-Preflight und danach
-genau ein realer, explizit bestaetigter Equip-Write. Das Ergebnis muss vor
-jeder weiteren produktiven Mutation ausgewertet werden.
-
-Bank-, Trade-, Transfer-, Upgrade-, Compound-, Exchange- und Craft-
-Mutationen bleiben weiterhin ausserhalb dieses Pfads.
+Der naechste produktive Bereich ist PR20.2 Bank. Die vorhandene NO-WRITE-
+Vorbereitung darf jetzt in eine enge, separat getestete Bank-Produktivierung
+ueberfuehrt werden. Markt-, Transfer-, Upgrade-, Compound-, Exchange- und
+Craft-Mutationen bleiben weiterhin ausserhalb dieses Pfads, bis ihre eigenen
+Voraussetzungen und Gates erfuellt sind.
