@@ -78,7 +78,17 @@
     "maxAdapterAufrufe": 1,
     "sourceShaPinning": true,
     "readOnlyWritePreflight": true,
-    "realLiveWritePerformed": false,
-    "sameIntentRetry": false
+    "realLiveWritePerformed": true,
+    "sameIntentRetry": false,
+    "liveWriteEvidence": "NICHT_BESTANDEN_TESTLIMIT_ERREICHT",
+    "liveEvidencePfad": "roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json",
+    "functionalTestLimit": 2,
+    "functionalTestsConsumed": 2,
+    "additionalFunctionalTestAllowed": false,
+    "officialCodeBridge": "call_code_function_f",
+    "codeRunnerBootstrapNoGameplayWrite": true,
+    "codeBridgeReadOnlyEvidence": "BESTANDEN",
+    "codeBridgeReadOnlySourceSha": "d9528c6dccd4befeb8021cf1a0a6c1b936e0f3c3",
+    "productionWideActivationAllowed": false
   }
 }
