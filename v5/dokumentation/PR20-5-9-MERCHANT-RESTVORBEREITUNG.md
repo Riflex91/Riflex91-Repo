@@ -2,7 +2,8 @@
 
 **Status:** VORBEREITET / NO-WRITE  
 **Stand:** 2026-09-21  
-**Aktives produktives Gate bleibt:** `PR20.1_EQUIP_PRODUKTIONSNACHWEIS`
+**PR20.1:** `BESTANDEN`  
+**Aktives produktives Gate:** `PR20.2_BANK_PRODUKTIVIERUNG`
 
 ## Sicherheitsgrenze
 
@@ -78,8 +79,8 @@ Die sichere Foundation bleibt:
 - stale/inkompatible/unverifizierte Kandidaten fail-closed;
 - Restart nichtterminaler Gear-Ziele => `RECOVERY_PENDING`.
 
-Der ausstehende PR20.1-Nachweis bleibt Voraussetzung fuer jede Erweiterung des
-Equip-Pfads. Belegte Slots, Swap, Waffen/Offhand und Remote-Gear-Delivery
+Der PR20.1-Nachweis ist bestanden und bleibt als Evidence-Voraussetzung fuer jede Erweiterung des
+Equip-Pfads erhalten. Belegte Slots, Swap, Waffen/Offhand und Remote-Gear-Delivery
 werden spaeter getrennt ratifiziert und nicht in einen breiten Gear-Write
 zusammengezogen.
 
@@ -141,11 +142,10 @@ Der detaillierte NO-WRITE-Testplan liegt unter
 PR21 wird erst produktiv ausgefuehrt, wenn PR20.1–PR20.9 einzeln ihre
 Capability-Gates bestanden haben.
 
-## Heute Abend
+## Aktueller Stand
 
-Trotz dieser Vorbereitung bleibt der erste reale Schritt unveraendert:
-PR20.1 Equip-Preflight auf dem bereits exact-head getesteten Commit und erst
-nach dessen Auswertung der eine kontrollierte Equip-Write.
-
-Die Vorbereitungsarbeit in neueren Commits ist **kein Grund**, fuer diesen
-Test einen anderen Source-SHA zu verwenden.
+PR20.1 wurde auf dem dafuer festgehaltenen Source-SHA
+`04dbc2cf5ab70992ec0dac9c7952cafb1ca4a0db` erfolgreich abgeschlossen.
+Der naechste produktive Bereich ist PR20.2 Bank. Die uebrigen PR20.5–PR20.9-
+Vorbereitungen bleiben authority-frei und werden nicht vor ihren jeweiligen
+Voraussetzungen produktiv aktiviert.
