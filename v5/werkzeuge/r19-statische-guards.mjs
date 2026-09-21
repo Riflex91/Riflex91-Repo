@@ -264,6 +264,80 @@ for(const m of [
   }
 }
 
+
+const bankWithdrawPreflightBrowser=lies(
+  "werkzeuge/bank-withdraw-produktions-browser.mjs",
+);
+for(const m of [
+  "BANK_WITHDRAW_PREFLIGHT_BROWSER_READ_ONLY = true",
+  "BANK_WITHDRAW_PREFLIGHT_GAMEPLAY_WRITES = 0",
+  "validiereBankWithdrawPreflightBeobachtung",
+  "BANK_WITHDRAW_BANK_GOLD_ZU_NIEDRIG",
+  "validiereBankWithdrawShadowMountBeobachtung",
+  "BANK_WITHDRAW_SHADOW_BINDUNG_DRIFT",
+]){
+  if(!bankWithdrawPreflightBrowser.includes(m)) {
+    fehler.push("BANK_WITHDRAW_PREFLIGHT_BROWSER_MARKER_FEHLT:"+m);
+  }
+}
+if(/\bbank_withdraw\s*\(/.test(bankWithdrawPreflightBrowser)
+    ||/\bbank_deposit\s*\(/.test(bankWithdrawPreflightBrowser)
+    ||/\bbank_store\s*\(/.test(bankWithdrawPreflightBrowser)
+    ||/\bbank_retrieve\s*\(/.test(bankWithdrawPreflightBrowser)
+    ||/\.emit\s*\(/.test(bankWithdrawPreflightBrowser)) {
+  fehler.push("BANK_WITHDRAW_PREFLIGHT_BROWSER_NO_WRITE_VERLETZT");
+}
+const bankWithdrawPreflightRunner=lies(
+  "werkzeuge/bank-withdraw-produktions-preflight.mjs",
+);
+for(const m of [
+  "beobachteBankWithdrawPreflightReadOnly",
+  "pruefeBankWithdrawStartBereit",
+  'publicFunction: "bank_withdraw"',
+  "authorityImPreflightErteilt: false",
+  "browserReadOnly: true",
+  "WITHDRAW_ADMISSION_SHADOW_NO_WRITE",
+]){
+  if(!bankWithdrawPreflightRunner.includes(m)) {
+    fehler.push("BANK_WITHDRAW_PREFLIGHT_RUNNER_MARKER_FEHLT:"+m);
+  }
+}
+if(/erteileBankWithdrawEinmalAuthority\s*\(/.test(bankWithdrawPreflightRunner)
+    ||/\bbank_withdraw\s*\(/.test(bankWithdrawPreflightRunner)
+    ||/\.emit\s*\(/.test(bankWithdrawPreflightRunner)) {
+  fehler.push("BANK_WITHDRAW_PREFLIGHT_RUNNER_NO_WRITE_VERLETZT");
+}
+const bankWithdrawShadow=lies(
+  "grundlage/quelle/merchant/bank-withdraw-shadow-admission.ts",
+);
+for(const m of [
+  "ProduktiveBankWithdrawShadowAdmission",
+  "MERCHANT_BANK_WITHDRAW_FAEHIGKEIT_ID",
+  "BANK_WITHDRAW_ACTION_CONTRACT_ID",
+  "BANK_WITHDRAW_RECOVERY_CONTRACT_ID",
+  "BANK_WITHDRAW_VERIFIER_ID",
+  'send_boundary_state: "NICHT_GESENDET"',
+  "same_intent_retry: false",
+  "gameplay_writes: 0",
+  "adapter_aufrufe: 0",
+]){
+  if(!bankWithdrawShadow.includes(m)) {
+    fehler.push("BANK_WITHDRAW_SHADOW_MARKER_FEHLT:"+m);
+  }
+}
+if(/\bbank_withdraw\s*\(/.test(bankWithdrawShadow)
+    ||/\.emit\s*\(/.test(bankWithdrawShadow)
+    ||/\bAusfuehrungsKernel\b/.test(bankWithdrawShadow)
+    ||/\bAusfuehrungsAdapter\b/.test(bankWithdrawShadow)) {
+  fehler.push("BANK_WITHDRAW_SHADOW_NO_WRITE_VERLETZT");
+}
+if(!runtimeKomposition.includes("fuehreBankWithdrawShadowAdmission")
+    ||!runtimeKomposition.includes(
+      "V5_BANK_WITHDRAW_SHADOW_AUTHORITY_NICHT_AKTUELL",
+    )) {
+  fehler.push("BANK_WITHDRAW_RUNTIME_SHADOW_BINDUNG_FEHLT");
+}
+
 const bankPreflightBrowser=lies(
   "werkzeuge/bank-deposit-produktions-browser.mjs",
 );
