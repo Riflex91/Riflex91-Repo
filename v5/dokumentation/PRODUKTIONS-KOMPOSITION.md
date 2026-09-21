@@ -1,6 +1,6 @@
 # V5 Produktionskomposition
 
-**Status:** DEFAULT-DENY / PLANEN KONTROLLIERT AKTIVIERBAR / EQUIP-MUTIEREN NUR REGISTRIERT  
+**Status:** DEFAULT-DENY / PLANEN KONTROLLIERT AKTIVIERBAR / EQUIP + BANK-DEPOSIT MUTIEREN DEFAULT-OFF  
 **Stand:** 2026-09-21
 
 ## Zweck
@@ -36,7 +36,13 @@ Der kanonische Katalog liegt in:
 - `grundlage/adapter/persistenz/node-equip-transaktionsjournal.mjs`;
 - `grundlage/vertraege/runtime/equipment-equip-production-transaction.json`;
 - `architektur/adr/ADR-034-PRODUKTIVE-EQUIP-TRANSAKTION.md`;
-- `roadmap/pr20-1-equip-production-evidence.json`.
+- `roadmap/pr20-1-equip-production-evidence.json`;
+- `architektur/adr/ADR-035-PR20-2-BANK-DEPOSIT-ONE-SHOT.md`;
+- `grundlage/quelle/merchant/bank-produktions-modul-vertrag.ts`;
+- `grundlage/quelle/merchant/bank-produktions-faehigkeits-vertrag.ts`;
+- `grundlage/quelle/merchant/bank-deposit-einmal-authority.ts`;
+- `grundlage/vertraege/runtime/bank-deposit-mutationsfaehigkeit.json`;
+- `grundlage/vertraege/runtime/bank-deposit-one-shot-authority.json`.
 
 ## Produktive Modulidentitaet
 
@@ -46,12 +52,15 @@ Der Merchant-Workflow und die Produktionskomposition verwenden dieselbe Identita
 
 `MERCHANT_CORE_A_MODUL_ID` und `MERCHANT_CORE_A_MODUL_VERSION` sind die kanonische Quelle im TypeScript-Core.
 
-Zusaetzlich ist exakt ein produktives Equipment-Modul registriert:
+Zusaetzlich sind zwei strikt getrennte produktive Mutationsmodule registriert:
 
-`equipment-core@1`
+- `equipment-core@1` mit ausschliesslich `equipment.equip`;
+- `merchant-bank-core@1` mit ausschliesslich
+  `merchant.bank.gold_einlagern`.
 
-Es stellt ausschliesslich die default-off Capability `equipment.equip`
-bereit.
+Beide Mutations-Capabilities sind `standardAktiv=false`. Insbesondere bleibt
+`merchant-core-a@1` weiterhin ein reines PLANEN-Modul; Bank-Mutationsauthority
+wird nicht in diesen Owner hineingemischt.
 
 ## Produktive PLANEN-Capabilities
 
@@ -91,19 +100,20 @@ Dadurch reicht ein isolierter Registereintrag nicht aus, um eine neue Capability
 
 Der Katalogstatus lautet:
 
-`DEFAULT_DENY_PLANEN_UND_EQUIP_MUTIEREN_REGISTRIERT_INAKTIV`
+`DEFAULT_DENY_PLANEN_EQUIP_UND_BANK_DEPOSIT_MUTIEREN_REGISTRIERT_INAKTIV`
 
 Die Komposition:
 
 - registriert `merchant-core-a@1`;
 - registriert die acht PLANEN-Capabilities;
-- registriert `equipment-core@1`;
-- registriert exakt eine produktive `MUTIEREN`-Capability:
-  `equipment.equip`;
+- registriert `equipment-core@1` und `merchant-bank-core@1`;
+- registriert exakt zwei voneinander getrennte produktive
+  `MUTIEREN`-Capabilities: `equipment.equip` und
+  `merchant.bank.gold_einlagern`;
 - aktiviert kein Modul automatisch;
 - aktiviert keine Capability automatisch;
-- `equipment.equip` startet immer `aktiv=false`;
-- besitzt fuer `MUTIEREN` weiterhin keinen produktiven Aktivierungspfad;
+- beide Mutations-Capabilities starten immer `aktiv=false`;
+- besitzt keinen generischen produktiven MUTIEREN-Aktivierungspfad;
 - erfindet keine Owner-/Capability-Zuordnung aus Tests.
 
 Testnamen wie `merchant-core` / `bank.deposit` bleiben Test-Fixtures und sind nicht Teil des produktiven Merchant-Vertrags.
@@ -185,9 +195,10 @@ Bootstrap, Operations-Quelle und den Host-Controller zu genau einer
 observer-only Fassade.
 
 Die Fassade exponiert keinen direkten Runtime-, Register-, Supervisor- oder
-Telemetrie-Zugriff. Produktive Aufrufer koennen nur starten, ticken,
-PLANEN kontrolliert aktivieren, deny-only Operator-Befehle anwenden, stoppen
-und Status lesen.
+Telemetrie-Zugriff. Produktive Aufrufer koennen starten, ticken, PLANEN
+kontrolliert aktivieren, die eng benannten Equip- bzw. Bank-Deposit-One-Shot-
+Authorities anfordern, deny-only Operator-Befehle anwenden, stoppen und Status
+lesen. Eine generische MUTIEREN-Aktivierung existiert nicht.
 
 Deny-only Operator-Befehle werden bounded unter
 `runtime/operator/deny.jsonl` gespeichert. Beim Neustart wird die Historie
@@ -276,7 +287,8 @@ Stop, NOTHALT, Capability-Deny oder Health-/Operations-Verlust widerrufen
 eine noch offene Authority. Ein Restart rekonstruiert sie nicht.
 
 Der R12-Controlled-Live-Testgate bleibt ein Testartefakt und wird nicht als
-Produktions-Authority wiederverwendet. Bank-, Trade-, Transfer-, Upgrade-,
+Produktions-Authority wiederverwendet. Bank-Deposit ist inzwischen separat
+default-off registriert; alle weiteren Bank-, Trade-, Transfer-, Upgrade-,
 Compound-, Exchange- und Craft-Mutationen bleiben produktiv unregistriert.
 
 ## Produktive Equip-Einmal-Transaktion
@@ -342,10 +354,35 @@ Live-Report wurde derselbe unveraenderte Runner direkt ueber Node einmal
 ausgefuehrt. Dieser Befund ist als Betriebsdetail dokumentiert und fuehrte zu
 keinem moeglichen Gameplay-Send.
 
+## Bank-Deposit One-Shot-Grenze
+
+PR20.2b registriert exakt `merchant.bank.gold_einlagern` unter dem separaten
+Single Owner `merchant-bank-core@1`. Die Capability bleibt default-off. Eine
+Bank-Deposit-One-Shot-Authority ist maximal 2000 ms gueltig, exakt einmal
+verwendbar und muss vor Ausstellung durable unter
+`runtime/authority/mutieren/bank-deposit/` protokolliert werden.
+
+Ein separates Bank-Deposit-Journal besitzt den globalen Current-Fence
+`runtime/transactions/bank-deposit/current.json`; eine offene Transaktion
+blockiert einen neuen Intent. Der read-only Preflight beobachtet Merchant,
+Session, Server, Bank-Mount, `character.gold` und `character.bank.gold`
+sowie den Current-Fence. Er erteilt weder Bank-Lease noch One-Shot-Authority
+und erzeugt exakt null Gameplay-Writes.
+
+Der Preflight lautet:
+
+`npm run bank-deposit-production:preflight -- --cdp http://127.0.0.1:9222/`
+
+In PR20.2b existiert weiterhin **kein** Bank-Write-Adapter und **kein**
+Bank-Live-Runner. Vor einem realen Write muessen die persistierbare
+accountweite Bank-Lease/Restart-Reconciliation und die konkrete
+Admission-Orchestrierung mit lokalem `bank`-Action-Channel/Fencing
+vervollstaendigt und Fault-/Restart-/UNKNOWN-/Shadow-geprueft werden.
+
 ## Naechster Integrationsschritt
 
-Der naechste produktive Bereich ist PR20.2 Bank. Die vorhandene NO-WRITE-
-Vorbereitung darf jetzt in eine enge, separat getestete Bank-Produktivierung
-ueberfuehrt werden. Markt-, Transfer-, Upgrade-, Compound-, Exchange- und
-Craft-Mutationen bleiben weiterhin ausserhalb dieses Pfads, bis ihre eigenen
-Voraussetzungen und Gates erfuellt sind.
+PR20.2 bleibt das aktive Gate. Als naechstes wird die bereits vorhandene
+accountweite `BankLeaseKoordinator`-Grenze restart-sicher persistent an den
+One-Shot-Pfad gebunden. Erst danach werden Write-Adapter und Live-Runner
+separat eingefuehrt. Markt und alle spaeteren Merchant-Mutationen bleiben
+hinter ihren eigenen Gates.
