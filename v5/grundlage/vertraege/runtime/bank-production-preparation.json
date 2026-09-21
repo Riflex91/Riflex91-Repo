@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_2_BANK_PRODUCTION_PREPARATION",
   "stand": "2026-09-21",
-  "status": "ONE_SHOT_GRENZE_IMPLEMENTIERT_NO_WRITE",
-  "basisMain": "f024bb55214f8c28d817cae123d95e7c7da653cc",
+  "status": "PERSISTENTE_LEASE_UND_ADMISSION_SHADOW_IN_ARBEIT_NO_WRITE",
+  "basisMain": "a0d250067bf4eec142f2a8ede8272ac4685e99b9",
   "blockingGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
-  "zweck": "PR20.2 mit separatem default-off Single Owner, kurzlebiger One-Shot-Authority, durablem Current-Fence und read-only Preflight vorbereiten; weiterhin ohne Bank-Gameplay-Write, Write-Adapter oder Live-Runner.",
+  "zweck": "PR20.2 mit separatem Single Owner, One-Shot-Authority, durablem Current-Fence, persistenter restart-sicherer Bank-Lease und No-Write-R9-Admission-Shadow vorbereiten; weiterhin ohne Bank-Gameplay-Write, Write-Adapter oder Live-Runner.",
   "authorityGrenze": {
     "produktiveRegistrierungErlaubt": true,
     "produktiverAktivierungspfadErlaubt": false,
@@ -16,7 +16,11 @@
     "browserGameplayWrites": 0,
     "oneShotAuthorityAusstellungImplementiert": true,
     "oneShotMaxVerwendungen": 1,
-    "oneShotMaxLebensdauerMs": 2000
+    "oneShotMaxLebensdauerMs": 2000,
+    "persistenteBankLeaseImplementiert": true,
+    "restartReconciliationImplementiert": true,
+    "r9AdmissionShadowImplementiert": true,
+    "shadowGameplayWrites": 0
   },
   "bestehendePlanung": {
     "modulId": "merchant-core-a",
@@ -92,7 +96,10 @@
     "unknownOutcome": "REOBSERVE_RECONCILE_NO_BLIND_RETRY",
     "bankLeaseBleibtBisTerminalemSettlementGehalten": true,
     "leaseReleaseErfordertKeineOffenenTransaktionen": true,
-    "restartMitNichtterminalerLease": "RECOVERY_PENDING"
+    "restartMitNichtterminalerLease": "RECOVERY_PENDING",
+    "persistenterLeasePfad": "runtime/bank/lease-state-v1.json",
+    "persistiertKeineFencingTokens": true,
+    "persistenzfehlerFailClosed": true
   },
   "recoveryBeobachtung": [
     "frischer Characterzustand",
@@ -108,15 +115,17 @@
     "separater Single Owner merchant-bank-core@1 und default-off MUTIEREN-Capability sind registriert",
     "kurzlebige One-Shot-Authority mit durablem Vor-Wirkung-Audit ist implementiert",
     "durables Bank-Deposit-Transaktionsjournal mit globalem Current-Fence ist implementiert",
-    "read-only Bank-Deposit-Preflight ist implementiert und erteilt weder Lease noch Authority",
-    "persistierbare accountweite Bank-Lease/Restart-Reconciliation und Admission-Orchestrierung vervollstaendigen",
+    "read-only Bank-Deposit-Preflight ist implementiert",
+    "persistente accountweite Bank-Lease mit Restart-RECOVERY_PENDING und Epochen-Floor ist implementiert",
+    "No-Write-Shadow bindet External Fence, Lease, lokalen bank-Channel, Socket-Budget, durable Intent und R9-Admission",
     "Unit/Replay/Fault/Restart/UNKNOWN/Shadow-Gates vollstaendig bestehen",
+    "realen Browser-Shadow/Fault-Recovery ohne Write nachweisen",
     "erst danach Write-Adapter und Live-Runner separat einfuehren",
     "erst nach erneut gruener Exact-Head-CI einen einzelnen kontrollierten bank_deposit(1)-Live-Write zulassen"
   ],
   "blockingGateStatus": "BESTANDEN",
   "ersterLiveKandidat": {
-    "status": "ONE_SHOT_PREFLIGHT_GRENZE_IMPLEMENTIERT_NO_WRITE",
+    "status": "PERSISTENTE_LEASE_UND_ADMISSION_SHADOW_IN_ARBEIT_NO_WRITE",
     "vertrag": "grundlage/vertraege/runtime/bank-deposit-production-candidate.json",
     "settlementCore": "grundlage/quelle/merchant/bank-deposit-settlement.ts",
     "test": "grundlage/tests/pr20-bank-deposit-settlement.test.mjs",
@@ -135,6 +144,10 @@
     "oneShotAuthorityImplementiert": true,
     "currentFenceImplementiert": true,
     "readOnlyPreflightImplementiert": true,
-    "writeAdapterNochNichtVorhanden": true
+    "writeAdapterNochNichtVorhanden": true,
+    "persistentBankLease": true,
+    "restartReconciliation": true,
+    "r9AdmissionShadow": true,
+    "shadowGameplayWrites": 0
   }
 }
