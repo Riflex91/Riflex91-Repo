@@ -236,6 +236,42 @@ for(const [kennung,muster] of [
     fehler.push("BANK_DEPOSIT_PREFLIGHT_RAW_WRITE_VERBOTEN:"+kennung);
   }
 }
+const bankLeasePersistent=lies(
+  "grundlage/quelle/koordination/persistenter-bank-lease-controller.ts",
+);
+for(const m of [
+  "PersistenterBankLeaseController",
+  "RECOVERY_PENDING",
+  "importiereEpocheFloor",
+  "BANK_LEASE_PERSISTENZ_FEHLER_GESPERRT",
+  "gameplayAutoritaet = false",
+  "rawWriteAutoritaet = false",
+]){
+  if(!bankLeasePersistent.includes(m)) {
+    fehler.push("BANK_LEASE_PERSISTENZ_GRENZE_FEHLT:"+m);
+  }
+}
+const bankShadow=lies(
+  "grundlage/quelle/merchant/bank-deposit-shadow-admission.ts",
+);
+for(const m of [
+  "ProduktiveBankDepositShadowAdmission",
+  "ErteilteAusfuehrungsFreigabe",
+  "PersistVorMutationTor",
+  'send_boundary_state: "NICHT_GESENDET"',
+  "gameplayWrites: 0",
+  "adapterAufrufe: 0",
+]){
+  if(!bankShadow.includes(m)) {
+    fehler.push("BANK_DEPOSIT_SHADOW_GRENZE_FEHLT:"+m);
+  }
+}
+if(/\bbank_deposit\s*\(/.test(bankShadow)
+    ||/\.emit\s*\(/.test(bankShadow)
+    ||/\bAusfuehrungsKernel\b/.test(bankShadow)
+    ||/\bAusfuehrungsAdapter\b/.test(bankShadow)) {
+  fehler.push("BANK_DEPOSIT_SHADOW_WRITE_GRENZE_VERLETZT");
+}
 const bankPreflightRunner=lies(
   "werkzeuge/bank-deposit-produktions-preflight.mjs",
 );
