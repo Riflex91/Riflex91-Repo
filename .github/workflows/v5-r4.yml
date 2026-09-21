@@ -1,84 +1,28 @@
 name: v5-r4
 
+# Nur noch manuelle Offline-Diagnose. Funktionale V5-Freigaben erfolgen
+# durch source-locked JavaScript-Tests im echten Adventure-Land-Browser via CDP.
 on:
-  pull_request:
-    paths:
-      - 'v5/grundlage/**'
-      - 'v5/package.json'
-      - 'v5/package-lock.json'
-      - 'v5/tsconfig.json'
-      - 'v5/zustaende/zustandsautomaten.json'
-      - 'v5/werkzeuge/r3-guard-regeln.mjs'
-      - 'v5/werkzeuge/tests/r3-guards.test.mjs'
-      - 'v5/werkzeuge/r4-*.mjs'
-      - '.github/workflows/v5-r4.yml'
-      - 'v5/architektur/adr/**'
-      - 'v5/roadmap/**'
-      - 'v5/bereitschaft/**'
-      - 'v5/anforderungen/**'
-      - 'v5/fitness/**'
-      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
-  push:
-    branches:
-      - main
-    paths:
-      - 'v5/grundlage/**'
-      - 'v5/package.json'
-      - 'v5/package-lock.json'
-      - 'v5/tsconfig.json'
-      - 'v5/zustaende/zustandsautomaten.json'
-      - 'v5/werkzeuge/r3-guard-regeln.mjs'
-      - 'v5/werkzeuge/tests/r3-guards.test.mjs'
-      - 'v5/werkzeuge/r4-*.mjs'
-      - '.github/workflows/v5-r4.yml'
-      - 'v5/architektur/adr/**'
-      - 'v5/roadmap/**'
-      - 'v5/bereitschaft/**'
-      - 'v5/anforderungen/**'
-      - 'v5/fitness/**'
-      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  deterministischer-core:
+  manual-offline-diagnostic:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-
-      - name: Exakten Head verifizieren
-        shell: bash
-        run: |
-          set -euo pipefail
-          ERWARTET="${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
-          IST="$(git rev-parse HEAD)"
-          test "$IST" = "$ERWARTET"
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
           cache-dependency-path: v5/package-lock.json
-
       - name: Gepinnte Abhaengigkeiten installieren
         working-directory: v5
         run: npm ci
-
-      - name: R4 Determinismus pruefen
+      - name: R4 nur manuell diagnostizieren
         working-directory: v5
         run: npm run r4:pruefen
-
-      - name: R4 Replay-Nachweis erzeugen
-        working-directory: v5
-        run: node werkzeuge/r4-replay-nachweis.mjs
-
-      - name: Replay-Nachweis hochladen
-        uses: actions/upload-artifact@v4
-        with:
-          name: v5-r4-replay-nachweis-${{ github.sha }}
-          path: v5/r4-replay-nachweis.json
-          if-no-files-found: error
