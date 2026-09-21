@@ -106,7 +106,8 @@
     "ingame:bank-withdraw:reconcile": "node werkzeuge/bank-withdraw-ingame-reconcile.mjs",
     "ingame:bank-withdraw:postsend-reconcile": "node werkzeuge/bank-withdraw-postsend-reconcile.mjs",
     "ingame:bank-withdraw:final-preflight-diagnose": "node werkzeuge/bank-withdraw-final-preflight-diagnose.mjs",
-    "ingame:context-inventory": "node werkzeuge/adventure-land-context-inventory.mjs"
+    "ingame:context-inventory": "node werkzeuge/adventure-land-context-inventory.mjs",
+    "ingame:code-bridge:bootstrap": "node werkzeuge/adventure-land-code-bridge-bootstrap.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
