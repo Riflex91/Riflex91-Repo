@@ -155,6 +155,8 @@ async function dynamischeFinalChecksReadOnly(session, contextId) {
     "      const r=x.root;",
     "      const c=r&&r.character;",
     "      const bank=c&&c.bank&&typeof c.bank==='object'&&!Array.isArray(c.bank)?c.bank:null;",
+    "      let runner=null;",
+    "      try { const el=r&&r.document&&r.document.getElementById&&r.document.getElementById('maincode'); runner=el&&el.contentWindow?el.contentWindow:null; } catch {}",
     "      return {",
     "        index,",
     "        label:x.label,",
@@ -162,8 +164,11 @@ async function dynamischeFinalChecksReadOnly(session, contextId) {
     "        characterName:c?String(c.name||''):null,",
     "        map:c?String(c.map||''):null,",
     "        bankMounted:!!bank,",
-    "        bankWithdrawType:typeof (r&&r.bank_withdraw),",
-    "        hasBankWithdraw:typeof (r&&r.bank_withdraw)==='function'",
+    "        callCodeFunctionFType:typeof (r&&r.call_code_function_f),",
+    "        codeActive:r&&r.code_active===true,",
+    "        codeRun:r&&r.code_run===true,",
+    "        maincodePresent:!!runner,",
+    "        runnerBankWithdrawType:typeof (runner&&runner.bank_withdraw)",
     "      };",
     "    } catch(error) {",
     "      return {index,label:x.label,probeError:String(error&&error.message||error).slice(0,160)};",
@@ -173,14 +178,14 @@ async function dynamischeFinalChecksReadOnly(session, contextId) {
     "  let rootLabel=null;",
     "  for (const x of kandidaten) {",
     "    try {",
-    "      if (x.root&&x.root.character&&typeof x.root.bank_withdraw==='function') {",
+    "      if (x.root&&x.root.character&&typeof x.root.call_code_function_f==='function') {",
     "        root=x.root;",
     "        rootLabel=x.label;",
     "        break;",
     "      }",
     "    } catch {}",
     "  }",
-    "  if (!root) return {ok:false,reason:'CONTEXT_FEHLT',rootCapabilities};",
+    "  if (!root) return {ok:false,reason:'CODE_BRIDGE_KONTEXT_FEHLT',rootCapabilities};",
     "  const c=root.character;",
     "  let accountId='';",
     "  for (const x of kandidaten) { try { const r=x.root; accountId=String(r?.user_id||r?.character?.owner||''); if(accountId) break; } catch {} }",
@@ -197,6 +202,8 @@ async function dynamischeFinalChecksReadOnly(session, contextId) {
     "    try { const v4=r&&(r.AIO_V4||r.V4Runtime); const s4=v4&&typeof v4.status==='function'?v4.status():null; if(s4&&(s4.running===true||s4.aktivFreigegeben===true)) alt=true; } catch { alt=true; }",
     "  }",
     "  const bank=c.bank&&typeof c.bank==='object'&&!Array.isArray(c.bank)?c.bank:null;",
+    "  let runner=null;",
+    "  try { const el=root.document&&root.document.getElementById&&root.document.getElementById('maincode'); runner=el&&el.contentWindow?el.contentWindow:null; } catch {}",
     "  return {",
     "    ok:true,",
     "    rootLabel,",
@@ -216,7 +223,11 @@ async function dynamischeFinalChecksReadOnly(session, contextId) {
     "    bankMounted:!!bank,",
     "    characterGold:Number.isSafeInteger(Number(c.gold))?Number(c.gold):null,",
     "    bankGold:bank&&Number.isSafeInteger(Number(bank.gold))?Number(bank.gold):null,",
-    "    bankWithdrawAvailable:true",
+    "    codeBridgeAvailable:typeof root.call_code_function_f==='function',",
+    "    codeActive:root.code_active===true,",
+    "    codeRun:root.code_run===true,",
+    "    maincodePresent:!!runner,",
+    "    bankWithdrawAvailable:!!(runner&&typeof runner.bank_withdraw==='function')",
     "  };",
     "})()",
   ].join("\n");
@@ -225,9 +236,9 @@ async function dynamischeFinalChecksReadOnly(session, contextId) {
 
 function leiteGruendeAb(snapshot, dyn, intent) {
   const gruende = [];
-  if (!dyn?.ok) gruende.push(String(dyn?.reason || "CONTEXT_FEHLT"));
+  if (!dyn?.ok) gruende.push(String(dyn?.reason || "CODE_BRIDGE_KONTEXT_FEHLT"));
   else {
-    if (!dyn.bankWithdrawAvailable) gruende.push("CONTEXT_FEHLT");
+    if (!dyn.codeBridgeAvailable) gruende.push("CODE_BRIDGE_KONTEXT_FEHLT");
     if (!dyn.merchant) gruende.push("MERCHANT_ERFORDERLICH");
     if (dyn.rip || dyn.moving || dyn.targetPresent) {
       gruende.push("CHARAKTER_NICHT_IDLE");
@@ -308,7 +319,7 @@ export async function fuehreBankWithdrawFinalPreflightDiagnoseAus({
   );
   const live = await findeAdventureLandKontext(
     cdp,
-    { requiredGlobalFunction: "bank_withdraw" },
+    { requiredGlobalFunction: "call_code_function_f" },
   );
 
   try {
@@ -324,8 +335,8 @@ export async function fuehreBankWithdrawFinalPreflightDiagnoseAus({
 
     const zielGateAktiv = dyn?.targetPresent === true;
     let klassifikation = "KEIN_AKTUELLER_BLOCKER_REPRODUZIERT";
-    if (dyn?.ok !== true && dyn?.reason === "CONTEXT_FEHLT") {
-      klassifikation = "CONTEXT_GATE_EXAKT_REPRODUZIERT";
+    if (dyn?.ok !== true && dyn?.reason === "CODE_BRIDGE_KONTEXT_FEHLT") {
+      klassifikation = "CODE_BRIDGE_GATE_EXAKT_REPRODUZIERT";
     } else if (zielGateAktiv) {
       klassifikation = "TARGET_GATE_REPRODUZIERT";
     } else if (abgleich.gruende.includes("FINAL_GOLD_DRIFT_JETZT")) {
@@ -334,6 +345,10 @@ export async function fuehreBankWithdrawFinalPreflightDiagnoseAus({
       klassifikation = "PRESTATE_FINGERPRINT_DRIFT_JETZT";
     } else if (abgleich.gruende.length > 0) {
       klassifikation = "ANDERER_FINAL_PREFLIGHT_BLOCKER_REPRODUZIERT";
+    } else if (dyn?.bankWithdrawAvailable === true) {
+      klassifikation = "CODE_BRIDGE_UND_RUNNER_CAPABILITY_BEREIT";
+    } else if (dyn?.codeBridgeAvailable === true) {
+      klassifikation = "CODE_BRIDGE_BEREIT_RUNNER_BOOTSTRAP_ERFORDERLICH";
     }
 
     return Object.freeze({
@@ -380,6 +395,10 @@ export async function fuehreBankWithdrawFinalPreflightDiagnoseAus({
         queueActive: dyn?.queueActive === true,
         alternativeRuntimeActive: dyn?.alternativeRuntimeActive === true,
         bankMounted: dyn?.bankMounted === true,
+        codeBridgeAvailable: dyn?.codeBridgeAvailable === true,
+        codeActive: dyn?.codeActive === true,
+        codeRun: dyn?.codeRun === true,
+        maincodePresent: dyn?.maincodePresent === true,
         bankWithdrawAvailable: dyn?.bankWithdrawAvailable === true,
         ausgewaehlterRoot: dyn?.rootLabel ?? null,
         rootCapabilities: Array.isArray(dyn?.rootCapabilities)
@@ -389,8 +408,9 @@ export async function fuehreBankWithdrawFinalPreflightDiagnoseAus({
       aktuelleBlocker: abgleich.gruende,
       hinweis:
         "Read-only Reproduktion des Final-Preflight. Kein bank_withdraw-Aufruf. "
-        + "Aktuelle Gold/Fingerprint-Drift kann nach dem Test entstanden sein; "
-        + "dynamische Gates wie target/queue/runtime sind direkt beobachtet.",
+        + "Die offizielle call_code_function_f-Bridge darf vorhanden sein, auch "
+        + "wenn der /runner noch inaktiv ist; der Write-Adapter bootstrappt ihn "
+        + "vor einem Send bounded und revalidiert danach den gesamten Prestate.",
       gameplayWrites: 0,
       adapterAufrufe: 0,
       rawWriteAutoritaet: false,

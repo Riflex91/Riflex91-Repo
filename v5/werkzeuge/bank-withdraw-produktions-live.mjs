@@ -208,7 +208,7 @@ export async function fuehreBankWithdrawEinGoldLiveAus({
   );
   const live = await findeAdventureLandKontext(
     cdp,
-    { requiredGlobalFunction: "bank_withdraw" },
+    { requiredGlobalFunction: "call_code_function_f" },
   );
   let host = null;
   let adapter = null;

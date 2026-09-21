@@ -35,17 +35,13 @@ function contextProbe(requiredGlobalFunction) {
   const requiredLiteral = JSON.stringify(required);
   return [
     "(() => {",
-    "  const roots=[globalThis];",
-    "  try { if (globalThis.parent && globalThis.parent!==globalThis) roots.push(globalThis.parent); } catch {}",
-    "  for (const root of roots) {",
-    "    try {",
-    "      const c=root&&root.character;",
-    "      const g=root&&root.G;",
-    "      const fn=root&&root[" + requiredLiteral + "];",
-    "      if (c&&Array.isArray(c.items)&&c.slots&&g&&g.items&&typeof fn==='function') return true;",
-    "    } catch {}",
-    "  }",
-    "  return false;",
+    "  try {",
+    "    const root=globalThis;",
+    "    const c=root&&root.character;",
+    "    const g=root&&root.G;",
+    "    const fn=root&&root[" + requiredLiteral + "];",
+    "    return !!(c&&Array.isArray(c.items)&&c.slots&&g&&g.items&&typeof fn==='function');",
+    "  } catch { return false; }",
     "})()",
   ].join("\n");
 }
