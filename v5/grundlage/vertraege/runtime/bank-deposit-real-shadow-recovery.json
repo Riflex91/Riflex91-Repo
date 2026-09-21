@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_BANK_SHADOW_RECOVERY_MANUAL_RECONCILIATION_NO_WRITE",
+  "stand": "2026-09-21",
+  "status": "IMPLEMENTIERT_NO_WRITE",
+  "voraussetzungen": {
+    "offeneBankTransaktion": false,
+    "exaktEineOffeneLease": true,
+    "leaseZustand": "RECOVERY_PENDING",
+    "startAusserhalbBank": true,
+    "gleicheAccountCharacterServerBindung": true
+  },
+  "operatorPhasen": [
+    "BANK_MANUELL_BETRETEN",
+    "STABILEN_MOUNT_BEOBACHTEN",
+    "BANK_MANUELL_VERLASSEN",
+    "STABILEN_EXIT_BEOBACHTEN"
+  ],
+  "reconciliation": {
+    "erstNachExit": true,
+    "erwarteterEndzustand": "RELEASED",
+    "epochMussGleichBleiben": true
+  },
+  "sourceLock": {
+    "actualGitHeadMustEqualSourceSha": true
+  },
+  "writeBoundary": {
+    "browserGameplayWrites": 0,
+    "gameplayWrites": 0,
+    "adapterCalls": 0,
+    "oneShotAuthorityIssued": false,
+    "bankDepositExecuted": false,
+    "sameIntentRetry": false
+  },
+  "failure": {
+    "mountTimeout": "BLOCKIERT_RECOVERY_PENDING",
+    "exitTimeout": "BLOCKIERT_RECOVERY_PENDING",
+    "bindingDrift": "BLOCKIERT_RECOVERY_PENDING",
+    "openTransaction": "BLOCKIERT",
+    "multipleOpenLeases": "BLOCKIERT"
+  },
+  "reportPath": "runtime/canary/bank-deposit-real-shadow-recovery/latest.json"
+}
