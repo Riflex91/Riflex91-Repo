@@ -1,7 +1,7 @@
 local addonName, MG = ...
 
-MG.RestedXPParser = MG.RestedXPParser or {}
-local P = MG.RestedXPParser
+MG.RestEDXPParser = MG.RestEDXPParser or {}
+local P = MG.RestEDXPParser
 
 local function splitTabs(line)
     local out, start = {}, 1
@@ -17,105 +17,103 @@ local function splitTabs(line)
     return out
 end
 
-local function addMetadata(metadata, key, value)
-    if metadata[key] == nil then
-        metadata[key] = value
-    elseif type(metadata[key]) == "table" then
-        metadata[key][#metadata[key] + 1] = value
+local function trim(value)
+    value = tostring(value or "")
+    return value:gsub("^%s+", ""):gsub("%s+$", "")
+end
+
+local function appendMeta(meta, key, value)
+    if meta[key] == nil then
+        meta[key] = value
+    elseif type(meta[key]) == "table" then
+        meta[key][#meta[key] + 1] = value
     else
-        metadata[key] = { metadata[key], value }
+        meta[key] = { meta[key], value }
     end
 end
 
-local function finishGuide(guides, guide)
-    if not guide then return nil end
-    if guide.sourceFile and #(guide.steps or {}) > 0 then
-        guides[#guides + 1] = guide
-    end
-    return nil
-end
+function P:Parse()
+    if self.cache then return self.cache end
+    local guides, currentGuide, currentStep = {}, nil, nil
+    local raw = MG.RestEDXPForeverRaw or {}
 
-function P:Parse(force)
-    if self.guides and not force then return self.guides end
-    local source = MG.RestEDXPForeverRaw
-    if not source or type(source.chunks) ~= "table" then
-        MG:Log("ERROR", "rxp.data_missing", "RestedXP-Datensätze wurden nicht geladen.")
-        self.guides = {}
-        return self.guides
+    local function finishStep()
+        if currentGuide and currentStep then
+            currentGuide.steps[#currentGuide.steps + 1] = currentStep
+        end
+        currentStep = nil
     end
 
-    local guides, guide, step = {}, nil, nil
-    local rawLine = 0
+    local function finishGuide()
+        finishStep()
+        if currentGuide then
+            currentGuide.rawStepCount = #currentGuide.steps
+            guides[#guides + 1] = currentGuide
+        end
+        currentGuide = nil
+    end
 
-    for chunkIndex, chunk in ipairs(source.chunks) do
-        for line in string.gmatch(chunk or "", "[^\r\n]+") do
-            rawLine = rawLine + 1
+    for chunkIndex, chunk in ipairs(raw.chunks or {}) do
+        for line in tostring(chunk):gmatch("[^\r\n]+") do
             local fields = splitTabs(line)
             local record = fields[1]
 
             if record == "G" then
-                guide = finishGuide(guides, guide)
-                guide = {
-                    sourceFile = fields[2],
+                finishGuide()
+                currentGuide = {
+                    sourceFile = trim(fields[2]),
                     metadata = {},
                     steps = {},
-                    raw = { chunk = chunkIndex, line = rawLine },
+                    sourceChunk = chunkIndex,
                 }
-                step = nil
-            elseif record == "M" and guide then
-                addMetadata(guide.metadata, fields[2], fields[3] or "")
-            elseif record == "S" and guide then
-                step = {
-                    selector = fields[2] or "",
+            elseif record == "M" and currentGuide then
+                appendMeta(currentGuide.metadata, trim(fields[2]), trim(fields[3]))
+            elseif record == "S" and currentGuide then
+                finishStep()
+                currentStep = {
+                    selector = trim(fields[2]),
                     tags = {},
                     actions = {},
-                    raw = { chunk = chunkIndex, line = rawLine },
+                    rawIndex = #currentGuide.steps + 1,
                 }
-                guide.steps[#guide.steps + 1] = step
-            elseif record == "T" and step then
-                step.tags[#step.tags + 1] = {
-                    name = fields[2] or "",
-                    value = fields[3] or "",
-                    rawLine = rawLine,
+            elseif record == "T" and currentStep then
+                currentStep.tags[#currentStep.tags + 1] = {
+                    name = trim(fields[2]),
+                    value = trim(fields[3]),
                 }
-            elseif record == "A" and step then
-                step.actions[#step.actions + 1] = {
-                    kind = fields[2] or "",
-                    args = fields[3] or "",
-                    rawLine = rawLine,
+            elseif record == "A" and currentStep then
+                currentStep.actions[#currentStep.actions + 1] = {
+                    kind = trim(fields[2]),
+                    args = trim(fields[3]),
+                    rawIndex = #currentStep.actions + 1,
                 }
             elseif record == "E" then
-                guide = finishGuide(guides, guide)
-                step = nil
-            elseif record ~= "" then
-                MG:Log("WARN", "rxp.unknown_record", "Unbekannter RestedXP-Datensatz.", {
-                    record = record, line = rawLine, chunk = chunkIndex,
-                })
+                finishGuide()
             end
         end
     end
-    finishGuide(guides, guide)
+    finishGuide()
 
-    self.guides = guides
+    self.cache = guides
     return guides
 end
 
+function P:GetSource()
+    return MG.RestEDXPForeverRaw and MG.RestEDXPForeverRaw.source or {}
+end
+
 function P:GetStats()
-    local guides = self:Parse()
-    local steps, actions, tags = 0, 0, 0
-    for _, guide in ipairs(guides) do
+    local steps, actions = 0, 0
+    for _, guide in ipairs(self:Parse()) do
         steps = steps + #(guide.steps or {})
         for _, step in ipairs(guide.steps or {}) do
             actions = actions + #(step.actions or {})
-            tags = tags + #(step.tags or {})
         end
     end
     return {
-        guides = #guides,
+        guides = #self:Parse(),
         steps = steps,
         actions = actions,
-        tags = tags,
-        sourceCommit = MG.RestEDXPForeverRaw and MG.RestEDXPForeverRaw.source and
-            MG.RestEDXPForeverRaw.source.commit or nil,
+        source = self:GetSource(),
     }
 end
