@@ -525,6 +525,44 @@ for(const m of [
   }
 }
 
+
+const bankWithdrawRealShadowEvidence=JSON.parse(
+  lies("roadmap/pr20-2-bank-withdraw-real-browser-shadow-evidence.json"),
+);
+if(bankWithdrawRealShadowEvidence.status!=="BESTANDEN"
+    ||bankWithdrawRealShadowEvidence.evidenceArt
+      !=="V5_BANK_WITHDRAW_REAL_BROWSER_SHADOW_NO_WRITE"
+    ||bankWithdrawRealShadowEvidence.testedSourceSha
+      !=="15620374566b83c9532e492d63e15c2fed6709e5"
+    ||bankWithdrawRealShadowEvidence.admissionStatus
+      !=="ADMISSION_BESTANDEN_KEIN_SEND"
+    ||bankWithdrawRealShadowEvidence.journalTerminalArt!=="ABBRUCH"
+    ||bankWithdrawRealShadowEvidence.sendBoundaryState!=="NICHT_GESENDET"
+    ||bankWithdrawRealShadowEvidence.sameIntentRetry!==false
+    ||bankWithdrawRealShadowEvidence.browserGameplayWrites!==0
+    ||bankWithdrawRealShadowEvidence.hostGameplayWrites!==0
+    ||bankWithdrawRealShadowEvidence.gameplayWrites!==0
+    ||bankWithdrawRealShadowEvidence.adapterAufrufe!==0
+    ||bankWithdrawRealShadowEvidence.bankStartNachherBereit!==true
+    ||bankWithdrawRealShadowEvidence.leaseStatus?.length!==1
+    ||bankWithdrawRealShadowEvidence.leaseStatus[0]?.epoche!==4
+    ||bankWithdrawRealShadowEvidence.leaseStatus[0]?.zustand!=="RELEASED"
+    ||bankWithdrawRealShadowEvidence.hostNachher
+      ?.bankWithdrawEinmalAuthorityOffen!==false
+    ||bankWithdrawRealShadowEvidence.rawWriteBypass!==false
+    ||bankWithdrawRealShadowEvidence
+      .breiteRuntimeFreigabeDurchDiesenTest!==false) {
+  fehler.push("BANK_WITHDRAW_REAL_SHADOW_EVIDENCE_UNGUELTIG");
+}
+if(Object.values(bankWithdrawRealShadowEvidence.exitGate??{})
+    .some(x=>x!==true)) {
+  fehler.push("BANK_WITHDRAW_REAL_SHADOW_EXIT_GATE_UNGUELTIG");
+}
+if(bankWithdrawRealShadowEvidence.nextGate
+    !=="PR20.2_BANK_WITHDRAW_1_WRITE_ADAPTER_UND_LIVE_RUNNER_VORBEREITEN") {
+  fehler.push("BANK_WITHDRAW_REAL_SHADOW_NEXT_GATE_UNGUELTIG");
+}
+
 const equipmentModul=lies("grundlage/quelle/equipment/modul-vertrag.ts");
 for(const m of [
   'EQUIPMENT_CORE_MODUL_ID = "equipment-core"',
