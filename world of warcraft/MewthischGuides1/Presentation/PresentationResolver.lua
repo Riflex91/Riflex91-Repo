@@ -3,9 +3,28 @@ local addonName, MG = ...
 MG.PresentationResolver = MG.PresentationResolver or {}
 local P = MG.PresentationResolver
 
+local questTitleCache = {}
+
+local function apiQuestTitle(questID)
+    questID = tonumber(questID)
+    if not questID then return nil end
+    if questTitleCache[questID] ~= nil then
+        return questTitleCache[questID] or nil
+    end
+
+    local title
+    if C_QuestLog and C_QuestLog.GetTitleForQuestID then
+        local ok, value = pcall(C_QuestLog.GetTitleForQuestID, questID)
+        if ok and type(value) == "string" and value ~= "" then title = value end
+    end
+    questTitleCache[questID] = title or false
+    return title
+end
+
 local function questTitle(state, facts)
     local quest = state.questID and facts and facts.quests and facts.quests[state.questID]
-    return quest and quest.title or (state.questID and ("Quest " .. tostring(state.questID)) or nil)
+    return quest and quest.title or apiQuestTitle(state.questID) or
+        (state.questID and ("Quest " .. tostring(state.questID)) or nil)
 end
 
 local function objectiveText(state, facts)
