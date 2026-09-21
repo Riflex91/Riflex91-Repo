@@ -136,6 +136,59 @@ jobs:
           print("Named RestedXP waypoint distance PASS")
           LUA
 
+      - name: Validate presentation does not duplicate quest progress
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={RestEDXPActionCatalog=nil}
+          C_QuestLog=nil
+          assert(loadfile("world of warcraft/MewthischGuides1/Presentation/PresentationResolver.lua"))("MewthischGuides1",MG)
+          local state={
+            id="g1",action="complete",questID=750,objectiveIndex=1,
+            current=2,required=10,status="incomplete",completionKnown=true,
+            sourceGoal={},
+          }
+          local facts={quests={[750]={
+            title="Die Jagd geht weiter",
+            objectives={[1]={text="Bergpumapelz: 2/10"}},
+          }}}
+          local row=MG.PresentationResolver:GoalRow(state,facts,"step")
+          assert(row.text=="Bergpumapelz: 2/10")
+          assert(row.progress==nil,"progress must not duplicate 2/10 already in objective text")
+          print("Presentation duplicate-progress regression PASS")
+          LUA
+
+      - name: Validate navigator bearing directions
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={}
+          assert(loadfile("world of warcraft/MewthischGuides1/Navigation/Bearing.lua"))("MewthischGuides1",MG)
+          local B=MG.NavigationBearing
+          local p={mapID=7,mapName="Mulgore",x=.50,y=.50}
+          local north=B:Resolve(p,{mapID=7,x=.50,y=.40},0)
+          local east=B:Resolve(p,{mapID=7,x=.60,y=.50},0)
+          local south=B:Resolve(p,{mapID=7,x=.50,y=.60},0)
+          local west=B:Resolve(p,{mapID=7,x=.40,y=.50},0)
+          assert(north and math.abs(north.relative) < 0.0001)
+          assert(east and east.relative < -1.5 and east.relative > -1.7)
+          assert(south and math.abs(math.abs(south.relative)-math.pi) < 0.0001)
+          assert(west and west.relative > 1.5 and west.relative < 1.7)
+          local noFacing=B:Resolve(p,{mapID=7,x=.50,y=.40},nil)
+          assert(noFacing and not noFacing.reliable and noFacing.relative==nil)
+          print("Navigator bearing PASS")
+          LUA
+
+      - name: Validate navigator preserves distance mode return
+        run: |
+          set -euo pipefail
+          NAV="world of warcraft/MewthischGuides1/UI/NavigatorFrame.lua"
+          grep -q 'distance, distanceMode = MG.NavigationDistance:Between' "$NAV"
+          if grep -q 'distance, distanceMode = MG.NavigationDistance and' "$NAV"; then
+            echo "multi-return value would be collapsed by logical-and expression" >&2
+            exit 1
+          fi
+          grep -q 'NavigationBearing:Resolve' "$NAV"
+          echo "Navigator multi-return contract PASS"
+
       - name: Validate RestedXP raw-step preservation
         run: |
           lua5.1 - <<'LUA'
