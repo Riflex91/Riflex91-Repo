@@ -519,7 +519,6 @@ for(const [kennung,muster] of [
 const equipProdRunner=lies("werkzeuge/equipment-equip-produktions-live.mjs");
 for(const m of [
   "fuehreEquipEinmalTransaktion",
-  "fuehreBankDepositRealShadow",
   "EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG",
   "EQUIP_PROD_SOURCE_SHA_ERFORDERLICH",
   "runtime/canary/equipment-equip-production/latest.json",
