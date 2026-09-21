@@ -109,7 +109,7 @@ function MG:InitializeNavigator()
     end
 
     local frame = CreateFrame("Frame", "MewthischGuidesNavigatorFrame", UIParent)
-    frame:SetSize(104, 112)
+    frame:SetSize(104, 130)
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -131,6 +131,14 @@ function MG:InitializeNavigator()
     distance:SetTextColor(0.78, 0.94, 1.0, 1.0)
     distance:SetText("")
     navigator.distance = distance
+
+    local eta = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    local etaFont, _, etaFlags = eta:GetFont()
+    if etaFont then eta:SetFont(etaFont, 11, etaFlags) end
+    eta:SetPoint("TOP", distance, "BOTTOM", 0, -1)
+    eta:SetTextColor(0.75, 0.82, 0.88, 1.0)
+    eta:SetText("")
+    navigator.eta = eta
 
     frame:SetScript("OnDragStart", function(self)
         if MG.db.settings.navigatorLocked then return end
@@ -286,6 +294,19 @@ function MG:ToggleNavigator()
     })
 end
 
+local function formatETA(seconds)
+    seconds = tonumber(seconds)
+    if not seconds then return "" end
+    seconds = math.max(0, math.floor(seconds + 0.5))
+    if seconds >= 3600 then
+        local h = math.floor(seconds / 3600)
+        local m = math.floor((seconds % 3600) / 60)
+        local s = seconds % 60
+        return string.format("%d:%02d:%02d", h, m, s)
+    end
+    return string.format("%d:%02d", math.floor(seconds / 60), seconds % 60)
+end
+
 function MG:RefreshNavigator()
     if not navigator.frame or not self.db then return end
 
@@ -312,6 +333,14 @@ function MG:RefreshNavigator()
         end
     else
         navigator.distance:SetText("")
+    end
+
+    if navigator.eta then
+        if self.db.settings.travelShowEstimatedTime ~= false and nav.etaSeconds ~= nil then
+            navigator.eta:SetText("ETA ≈ " .. formatETA(nav.etaSeconds))
+        else
+            navigator.eta:SetText("")
+        end
     end
 
     if nav.directionReliable and nav.relativeAngle ~= nil and navigator.arrow.SetRotation then
