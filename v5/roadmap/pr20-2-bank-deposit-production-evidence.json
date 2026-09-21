@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-21T18:06:25.040Z",
+  "status": "BESTANDEN",
+  "evidenceArt": "V5_PRODUCTION_BANK_DEPOSIT_ONE_GOLD_ONE_SHOT_LIVE",
+  "source": "USER_PROVIDED_RUNNER_STDOUT",
+  "testedSourceSha": "a540d4107343a87b9d8ef5f3f301b3bbad819c4c",
+  "documentationBaseMain": "05b93ac7dbb6ef294294c38030d9e4b48962f7d3",
+  "transaktionsId": "BANK-DEPOSIT-PROD-TX-1790013959392-9c25f657",
+  "accountBindungSha256": "18be41682a0c809cb26db3dfff9336deb164730e175c182a11d321445fde0085",
+  "charakterBindungSha256": "0e1ab7dca28c9f270efb495560d97572a76bcd9517196b342a37523496352a68",
+  "server": {
+    "region": "EU",
+    "kennung": "I"
+  },
+  "capabilityId": "merchant.bank.gold_einlagern",
+  "provider": "merchant-bank-core@1",
+  "actionContractId": "AL-ACTION-BANK-DEPOSIT",
+  "recoveryContractId": "AL-RECOVERY-BANK-DEPOSIT",
+  "verifierId": "AL-VERIFIER-BANK-DEPOSIT",
+  "betragGold": 1,
+  "startAusserhalbBank": true,
+  "manualMountTransition": true,
+  "manualExitRequired": true,
+  "result": {
+    "status": "COMMITTED",
+    "transportArt": "SERVER_ERGEBNIS",
+    "recovery": {
+      "art": "COMMITTED",
+      "klassifikation": "BESTAETIGT",
+      "beobachtungen": 1,
+      "restDomaenen": [],
+      "neuerIntentErforderlich": false,
+      "sameIntentErneutSenden": false,
+      "fehlerDomaeneId": "account:bank"
+    },
+    "journalTerminalArt": "COMMIT",
+    "leaseEpoche": 3,
+    "mountEpoche": 1790013967041,
+    "sameIntentErneutSenden": false,
+    "adapterAufrufeErwartetMaximal": 1,
+    "betrag": 1
+  },
+  "adapterAufrufe": 1,
+  "gameWrites": 1,
+  "moeglicherSend": true,
+  "sameIntentRetry": false,
+  "bankStartNachherBereit": true,
+  "leaseStatus": [
+    {
+      "epoche": 3,
+      "zustand": "RELEASED"
+    }
+  ],
+  "hostNachher": {
+    "zustand": "LAEUFT",
+    "bankDepositEinmalAuthorityOffen": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "actionAuthority": false
+  },
+  "breiteRuntimeFreigabeDurchDiesenTest": false,
+  "rawWriteBypass": false,
+  "reportPfad": "D:\\AdventureLand-V5\\runtime\\canary\\bank-deposit-production\\latest.json",
+  "exitGate": {
+    "exactSourceSha": true,
+    "exactAmountOneGold": true,
+    "committed": true,
+    "recoveryConfirmed": true,
+    "journalCommit": true,
+    "exactlyOneAdapterCall": true,
+    "exactlyOneGameplayWrite": true,
+    "noSameIntentRetry": true,
+    "bankStartReadyAfter": true,
+    "leaseReleased": true,
+    "authoritiesClosedAfter": true,
+    "noRawWriteBypass": true,
+    "noBroadRuntimeRelease": true
+  },
+  "scope": {
+    "proven": [
+      "BANK_DEPOSIT_GOLD_ONE_SHOT"
+    ],
+    "notYetProven": [
+      "BANK_WITHDRAW_GOLD",
+      "BANK_STORE_ITEM",
+      "BANK_RETRIEVE_ITEM",
+      "BANK_SWAP",
+      "OPEN_BANK_PACK",
+      "AUTONOMOUS_MULTI_OPERATION_BANK_LOOP",
+      "FIVE_MINUTE_BANK_FUNCTION_EVIDENCE"
+    ]
+  },
+  "nextGate": "PR20.2_BANK_AUTONOMY_REST_CAPABILITIES_AND_5M_FUNCTION_EVIDENCE"
+}
