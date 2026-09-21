@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_BANK_WITHDRAW_MUTATIONSFAEHIGKEIT",
+  "stand": "2026-09-21",
+  "modulId": "merchant-bank-core",
+  "modulVersion": "1",
+  "faehigkeit": {
+    "faehigkeitId": "merchant.bank.gold_auslagern",
+    "modus": "MUTIEREN",
+    "status": "VERFUEGBAR",
+    "standardAktiv": false,
+    "singleOwner": true
+  },
+  "aktionsBindung": {
+    "actionContractId": "AL-ACTION-BANK-WITHDRAW",
+    "recoveryContractId": "AL-RECOVERY-BANK-WITHDRAW",
+    "verifierId": "AL-VERIFIER-BANK-WITHDRAW",
+    "betragGold": 1
+  },
+  "aktivierung": {
+    "durchDiesenVertragErlaubt": false,
+    "automatisch": false,
+    "produktiverAktivierungspfadVorhanden": false
+  },
+  "authority": {
+    "gameplayAutoritaetDurchRegistrierung": false,
+    "rawWriteAutoritaetDurchRegistrierung": false,
+    "actionAuthorityDurchRegistrierung": false
+  }
+}
