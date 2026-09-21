@@ -146,5 +146,18 @@
       "unreconciled_open_transaction",
       "unrecognized_session_party_world_bank_inventory_drift"
     ]
+  },
+  "parallelPreparation": {
+    "id": "PR20.2_BANK",
+    "status": "VORBEREITET_NO_WRITE",
+    "blockedBy": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
+    "produktiveRegistrierungErlaubt": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "artifacts": [
+      "v5/dokumentation/PR20-2-BANK-PRODUKTIV-VORBEREITUNG.md",
+      "v5/grundlage/vertraege/runtime/bank-production-preparation.json",
+      "v5/grundlage/tests/pr20-bank-production-preparation.test.mjs"
+    ]
   }
 }
