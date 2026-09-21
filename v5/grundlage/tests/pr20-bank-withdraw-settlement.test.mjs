@@ -27,12 +27,12 @@ function bindung(override = {}) {
   };
 }
 
-test("naechster Bank-Live-Kandidat ist exakt ein Gold Withdraw mit vorbereitetem Write-Pfad ohne Live-Write", () => {
+test("Bank-Withdraw-Kandidat bleibt nach Zwei-Test-Closeout exakt begrenzt", () => {
   const kandidat = lies(
     "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
   );
   assert.equal(BANK_WITHDRAW_ERSTER_BETRAG, 1);
-  assert.equal(kandidat.status, "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE");
+  assert.equal(kandidat.status, "TWO_TEST_LIMIT_REACHED_CODE_BRIDGE_READ_ONLY_BESTAETIGT");
   assert.equal(kandidat.actionContractId, "AL-ACTION-BANK-WITHDRAW");
   assert.equal(kandidat.recoveryContractId, "AL-RECOVERY-BANK-WITHDRAW");
   assert.equal(kandidat.verifierId, "AL-VERIFIER-BANK-WITHDRAW");
@@ -44,8 +44,15 @@ test("naechster Bank-Live-Kandidat ist exakt ein Gold Withdraw mit vorbereitetem
   assert.equal(kandidat.authorityGrenze.authorityInDiesemSchritt, true);
   assert.equal(kandidat.authorityGrenze.adapterInDiesemSchritt, true);
   assert.equal(kandidat.authorityGrenze.liveRunnerInDiesemSchritt, true);
-  assert.equal(kandidat.authorityGrenze.gameplayWritesInDiesemSchritt, 0);
-  assert.equal(kandidat.writeGate.realLiveWritePerformed, false);
+  assert.equal(kandidat.authorityGrenze.gameplayWritesInDiesemSchritt, 1);
+  assert.equal(kandidat.writeGate.realLiveWritePerformed, true);
+  assert.equal(kandidat.writeGate.liveWriteEvidence, "NICHT_BESTANDEN_TESTLIMIT_ERREICHT");
+  assert.equal(kandidat.writeGate.functionalTestLimit, 2);
+  assert.equal(kandidat.writeGate.functionalTestsConsumed, 2);
+  assert.equal(kandidat.writeGate.additionalFunctionalTestAllowed, false);
+  assert.equal(kandidat.writeGate.officialCodeBridge, "call_code_function_f");
+  assert.equal(kandidat.writeGate.codeBridgeReadOnlyEvidence, "BESTANDEN");
+  assert.equal(kandidat.writeGate.productionWideActivationAllowed, false);
   assert.equal(kandidat.writeGate.publicFunctionCallCountStatic, 1);
   assert.equal(kandidat.writeGate.sameIntentRetry, false);
 });
