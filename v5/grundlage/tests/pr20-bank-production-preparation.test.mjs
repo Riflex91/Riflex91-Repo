@@ -22,7 +22,7 @@ const erwartete = new Map([
 
 test("PR20.2 Vorbereitung bleibt strikt NO-WRITE; PR20.1 ist als vorausgehendes Gate dokumentiert", () => {
   assert.equal(prep.schemaVersion, 1);
-  assert.equal(prep.status, "ONE_SHOT_GRENZE_IMPLEMENTIERT_NO_WRITE");
+  assert.equal(prep.status, "PERSISTENTE_LEASE_UND_ADMISSION_SHADOW_IN_ARBEIT_NO_WRITE");
   assert.equal(prep.blockingGate, "PR20.1_EQUIP_PRODUKTIONSNACHWEIS");
   assert.equal(prep.blockingGateStatus, "BESTANDEN");
   assert.equal(prep.authorityGrenze.produktiveRegistrierungErlaubt, true);
@@ -35,6 +35,10 @@ test("PR20.2 Vorbereitung bleibt strikt NO-WRITE; PR20.1 ist als vorausgehendes 
   assert.equal(prep.authorityGrenze.actionAuthority, false);
   assert.equal(prep.authorityGrenze.direkteAdventureLandPublicFunctionAufrufe, 0);
   assert.equal(prep.authorityGrenze.browserGameplayWrites, 0);
+  assert.equal(prep.authorityGrenze.persistenteBankLeaseImplementiert, true);
+  assert.equal(prep.authorityGrenze.restartReconciliationImplementiert, true);
+  assert.equal(prep.authorityGrenze.r9AdmissionShadowImplementiert, true);
+  assert.equal(prep.authorityGrenze.shadowGameplayWrites, 0);
   assert.equal(prep.bestehendePlanung.capabilityId, "merchant.bank.planen");
   assert.equal(prep.bestehendePlanung.mutationsAuthorityAusPlanung, false);
 });
@@ -43,7 +47,7 @@ test("PR20.2 Vorbereitung bleibt strikt NO-WRITE; PR20.1 ist als vorausgehendes 
 test("PR20.2 erster Live-Kandidat ist eng auf bank_deposit(1) begrenzt", () => {
   const kandidat = prep.ersterLiveKandidat;
   assert.ok(kandidat);
-  assert.equal(kandidat.status, "ONE_SHOT_PREFLIGHT_GRENZE_IMPLEMENTIERT_NO_WRITE");
+  assert.equal(kandidat.status, "PERSISTENTE_LEASE_UND_ADMISSION_SHADOW_IN_ARBEIT_NO_WRITE");
   assert.equal(kandidat.publicFunction, "bank_deposit");
   assert.equal(kandidat.betragGold, 1);
   assert.equal(kandidat.actionContractId, "AL-ACTION-BANK-DEPOSIT");
@@ -58,6 +62,10 @@ test("PR20.2 erster Live-Kandidat ist eng auf bank_deposit(1) begrenzt", () => {
   assert.equal(kandidat.oneShotAuthorityImplementiert, true);
   assert.equal(kandidat.currentFenceImplementiert, true);
   assert.equal(kandidat.readOnlyPreflightImplementiert, true);
+  assert.equal(kandidat.persistentBankLease, true);
+  assert.equal(kandidat.restartReconciliation, true);
+  assert.equal(kandidat.r9AdmissionShadow, true);
+  assert.equal(kandidat.shadowGameplayWrites, 0);
   assert.equal(kandidat.writeAdapterNochNichtVorhanden, true);
   assert.equal(kandidat.liveRunnerNochNichtVorhanden, true);
 });
