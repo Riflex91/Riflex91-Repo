@@ -103,7 +103,8 @@
     "ingame:bank-withdraw:shadow": "npm run bauen && node werkzeuge/bank-withdraw-real-browser-shadow.mjs",
     "ingame:bank-withdraw:preflight": "npm run bauen && node werkzeuge/bank-withdraw-produktions-live.mjs --preflight",
     "ingame:bank-withdraw:live": "npm run bauen && node werkzeuge/bank-withdraw-produktions-live.mjs",
-    "ingame:bank-withdraw:reconcile": "node werkzeuge/bank-withdraw-ingame-reconcile.mjs"
+    "ingame:bank-withdraw:reconcile": "node werkzeuge/bank-withdraw-ingame-reconcile.mjs",
+    "ingame:bank-withdraw:postsend-reconcile": "node werkzeuge/bank-withdraw-postsend-reconcile.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
