@@ -1,0 +1,163 @@
+name: Mewthisch Guides 1.0
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "world of warcraft/MewthischGuides1/**"
+      - ".github/workflows/mewthisch-guides-1.yml"
+  pull_request:
+    paths:
+      - "world of warcraft/MewthischGuides1/**"
+      - ".github/workflows/mewthisch-guides-1.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Lua 5.1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1
+
+      - name: Validate Lua syntax
+        run: |
+          set -euo pipefail
+          find "world of warcraft/MewthischGuides1" -name '*.lua' -print0 | while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            luac5.1 -p "$file"
+          done
+
+      - name: Validate RestedXP raw-step preservation
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={}
+          assert(loadfile("world of warcraft/MewthischGuides1/Core/Namespace.lua"))("MewthischGuides1",MG)
+          MG.db={settings={rxpSeason=0,rxpRate=1,rxpHardcoreMode=false,rxpSoDMode=false}}
+          for i=1,5 do
+            assert(loadfile(string.format(
+              "world of warcraft/MewthischGuides1/Data/RestedXPForeverData_%02d.lua",i)))(
+              "MewthischGuides1",MG)
+          end
+          assert(loadfile("world of warcraft/MewthischGuides1/Data/RestedXPActionCatalog.lua"))("MewthischGuides1",MG)
+          assert(loadfile("world of warcraft/MewthischGuides1/Guide/RestedXPParser.lua"))("MewthischGuides1",MG)
+          assert(loadfile("world of warcraft/MewthischGuides1/Guide/GuideCompiler.lua"))("MewthischGuides1",MG)
+
+          local raw=MG.RestEDXPParser:Parse()
+          local compiled=MG.GuideCompiler:CompileAll()
+          local rawSteps,compiledSteps,sticky=0,0,0
+          for _,g in ipairs(raw) do rawSteps=rawSteps+#(g.steps or {}) end
+          for _,g in ipairs(compiled) do
+            compiledSteps=compiledSteps+#(g.steps or {})
+            for _,s in ipairs(g.steps or {}) do if s.sticky then sticky=sticky+1 end end
+          end
+          assert(#raw==#compiled,"guide count changed in compiler")
+          assert(rawSteps==compiledSteps,"RestedXP raw-step boundaries were lost")
+          assert(rawSteps>12000,"unexpectedly small RestedXP corpus")
+          assert(sticky>0,"sticky semantics not detected")
+          assert(MG.GuideCompiler:GetStats().levelCapAssumption==false)
+          print("RestedXP semantic compile PASS",#raw,rawSteps,sticky)
+          LUA
+
+      - name: Validate multi-goal and hidden blocker semantics
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={db={settings={showCompletedGoals=false,showPassiveHints=true}}}
+          MG.GetPlayerProfile=function() return {level=10,class="MAGE",race="Human",faction="Alliance"} end
+          MG.RestedXPSelector={
+            Matches=function() return true,"ok" end,
+            TagsMatch=function() return true,"ok" end,
+          }
+          assert(loadfile("world of warcraft/MewthischGuides1/Resolver/RequirementResolver.lua"))("MewthischGuides1",MG)
+          assert(loadfile("world of warcraft/MewthischGuides1/Resolver/VisibilityResolver.lua"))("MewthischGuides1",MG)
+          assert(loadfile("world of warcraft/MewthischGuides1/Resolver/CompletionResolver.lua"))("MewthischGuides1",MG)
+          assert(loadfile("world of warcraft/MewthischGuides1/Resolver/GoalStateResolver.lua"))("MewthischGuides1",MG)
+          assert(loadfile("world of warcraft/MewthischGuides1/Resolver/StepStateResolver.lua"))("MewthischGuides1",MG)
+
+          local facts={quests={
+            [10]={active=true,completed=false,objectives={
+              [1]={finished=false,current=2,required=8},
+              [2]={finished=false,current=1,required=5},
+            }},
+          },inventory={}}
+          local base={role="goal",passive=false,optional=false,visibleByDefault=true,
+            requirements={stepSelector="",actionSelector="",tags={}},questID=10}
+          local g1={};for k,v in pairs(base) do g1[k]=v end
+          g1.id="g1";g1.action="complete";g1.completionKind="quest_objective";g1.objectiveIndex=1
+          local g2={};for k,v in pairs(base) do g2[k]=v end
+          g2.id="g2";g2.action="complete";g2.completionKind="quest_objective";g2.objectiveIndex=2
+          local condition={id="c1",role="condition",passive=false,optional=false,
+            visibleByDefault=false,requirements={stepSelector="",actionSelector="",tags={}},
+            action="isOnQuest",completionKind="quest_active",questID=10}
+
+          local states={
+            MG.GoalStateResolver:Resolve(g1,facts),
+            MG.GoalStateResolver:Resolve(g2,facts),
+            MG.GoalStateResolver:Resolve(condition,facts),
+          }
+          assert(states[1].visible and states[2].visible)
+          assert(not states[3].visible and states[3].blocking and states[3].complete)
+          local step=MG.StepStateResolver:Resolve({id="s"},states,nil)
+          assert(step.blockingGoals==3)
+          assert(not step.complete)
+          print("Multi-goal + hidden blocker PASS")
+          LUA
+
+      - name: Validate runtime revision and transition rules
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={}
+          assert(loadfile("world of warcraft/MewthischGuides1/Runtime/RuntimeStore.lua"))("MewthischGuides1",MG)
+          assert(loadfile("world of warcraft/MewthischGuides1/Runtime/TransitionDetector.lua"))("MewthischGuides1",MG)
+
+          local first=MG.RuntimeStore:Commit({
+            stepID="s1",
+            goalStates={{id="g1",complete=true,visible=true,current=1,required=1}},
+            stickies={},
+            stepState={complete=false},
+          })
+          assert(first.revision==1)
+          local initial=MG.TransitionDetector:Detect(nil,first)
+          assert(#initial==0,"initial complete state must not emit transition")
+
+          local second=MG.RuntimeStore:Commit({
+            stepID="s1",
+            goalStates={{id="g1",complete=true,visible=true,current=1,required=1},
+                        {id="g2",complete=false,visible=true,current=1,required=5}},
+            stickies={},
+            stepState={complete=false},
+          })
+          assert(second.revision==2)
+          local third=MG.RuntimeStore:Commit({
+            stepID="s1",
+            goalStates={{id="g1",complete=true,visible=true,current=1,required=1},
+                        {id="g2",complete=true,visible=true,current=5,required=5}},
+            stickies={},
+            stepState={complete=true},
+          })
+          local events=MG.TransitionDetector:Detect(second,third)
+          local completed,stepComplete=false,false
+          for _,e in ipairs(events) do
+            if e.type=="GOAL_COMPLETED" and e.goalID=="g2" then completed=true end
+            if e.type=="STEP_COMPLETE" then stepComplete=true end
+          end
+          assert(completed and stepComplete)
+          assert(third.revision==3)
+          print("Runtime revision + transitions PASS")
+          LUA
+
+      - name: Validate TOC contract
+        run: |
+          set -euo pipefail
+          TOC="world of warcraft/MewthischGuides1/MewthischGuides1.toc"
+          grep -q 'Guide/GuideCompiler.lua' "$TOC"
+          grep -q 'Runtime/RuntimeStore.lua' "$TOC"
+          grep -q 'Resolver/StepStateResolver.lua' "$TOC"
+          grep -q 'UI/ErrorLogWindow.lua' "$TOC"
+          grep -q 'Core/Bootstrap.lua' "$TOC"
