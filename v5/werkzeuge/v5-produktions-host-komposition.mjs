@@ -11,7 +11,6 @@ import {
   EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
   EQUIPMENT_EQUIP_RECOVERY_CONTRACT_ID,
   EQUIPMENT_EQUIP_VERIFIER_ID,
-  ProduktiveEquipTransaktionsOrchestrierung,
   ProduktivesEquipEinmalAdmissionGate,
   ProduktivesV5GesamtfreigabeGate,
   V5ProduktionsBootstrap,
@@ -73,8 +72,7 @@ class NodeV5ProduktionsHost {
   #dateisystem;
   #gesamtfreigabeGate;
   #equipJournal;
-  #runtimeKomponenten;
-  #equipOrchestrierung;
+  #runtime;
 
   constructor(
     host,
@@ -82,15 +80,14 @@ class NodeV5ProduktionsHost {
     dateisystem,
     gesamtfreigabeGate,
     equipJournal,
-    runtimeKomponenten,
+    runtime,
   ) {
     this.#host = host;
     this.#bedienerRichtlinie = bedienerRichtlinie;
     this.#dateisystem = dateisystem;
     this.#gesamtfreigabeGate = gesamtfreigabeGate;
     this.#equipJournal = equipJournal;
-    this.#runtimeKomponenten = runtimeKomponenten;
-    this.#equipOrchestrierung = new ProduktiveEquipTransaktionsOrchestrierung();
+    this.#runtime = runtime;
   }
 
   async starte(jetztMs) {
@@ -200,7 +197,7 @@ class NodeV5ProduktionsHost {
         () => this.#host.status(),
         authority,
       );
-      return await this.#equipOrchestrierung.fuehreEinmalAus(
+      return await this.#runtime.fuehreEquipEinmalTransaktion(
         Object.freeze({
           schemaVersion: 1,
           freigabeId: anfrage.freigabeId,
@@ -210,7 +207,10 @@ class NodeV5ProduktionsHost {
           characterId: anfrage.characterId,
           kandidat: Object.freeze({ ...anfrage.kandidat }),
           ausgestelltAmMs: admissionMs,
-          gueltigBisMs: Math.min(admissionMs + 1_500, authority.daten().gueltigBisMs),
+          gueltigBisMs: Math.min(
+            admissionMs + 1_500,
+            authority.daten().gueltigBisMs,
+          ),
           authority,
           wissensSnapshot: Object.freeze({
             gitCommit: anfrage.wissensSnapshot.gitCommit,
@@ -222,14 +222,9 @@ class NodeV5ProduktionsHost {
           prestateFingerprint: anfrage.prestateFingerprint,
         }),
         Object.freeze({
-          operatorRichtlinie: this.#bedienerRichtlinie,
           laufzeitGate: gate,
           liveVoraussetzungen: anfrage.liveVoraussetzungen,
           journal: this.#equipJournal,
-          ressourcen: this.#runtimeKomponenten.ressourcen,
-          socketBudget: this.#runtimeKomponenten.socketBudget,
-          mutationsKanaele: this.#runtimeKomponenten.mutationsKanaele,
-          ausfuehrung: this.#runtimeKomponenten.ausfuehrung,
           adapter: anfrage.adapter,
           recoveryBeobachter: anfrage.recoveryBeobachter,
           jetztMs: () => Date.now(),
@@ -334,7 +329,6 @@ export async function erstelleNodeV5ProduktionsHost({
     operationsQuelle,
   );
   const equipJournal = new NodeEquipTransaktionsJournal(dateisystem);
-  const runtimeKomponenten = runtime.kernKomponenten();
 
   return new NodeV5ProduktionsHost(
     host,
@@ -342,6 +336,6 @@ export async function erstelleNodeV5ProduktionsHost({
     dateisystem,
     gesamtfreigabeGate,
     equipJournal,
-    runtimeKomponenten,
+    runtime,
   );
 }
