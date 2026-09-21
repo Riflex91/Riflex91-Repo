@@ -200,9 +200,19 @@ PR20.2n dokumentiert die reale bestandene Withdraw-Shadow-Evidence auf
 `RELEASED` und Bankstart danach wieder bereit. Evidence:
 `roadmap/pr20-2-bank-withdraw-real-browser-shadow-evidence.json`.
 
-Damit darf als naechstes ein separater Write-Adapter/Live-Runner-Gate fuer
-exakt `bank_withdraw(1)` vorbereitet werden. Vor einem echten Send bleibt ein
-read-only Write-Preflight auf exakt demselben gruengeprueften Head Pflicht.
+PR20.2o setzt genau dieses Implementierungsgate um: ein eigener
+Withdraw-Produktions-Transaktionscore, ein isolierter Browser-Write-Adapter
+mit statisch genau einem moeglichen `root.bank_withdraw(1)`-Aufruf sowie ein
+source-locked Live-Runner sind vorbereitet. Der Pfad bleibt auf einen
+Adapter-Aufruf begrenzt, verbietet Raw-Socket-Bypass und Same-Intent-Retry und
+committet nur bei frischem, identisch gebundenem `+1/-1`-Gold-Settlement.
+
+In PR20.2o wird **kein echter `bank_withdraw(1)`-Write ausgefuehrt**. Nach
+vollstaendig gruener Exact-Head-CI und Merge folgt zuerst der source-locked
+read-only Write-Preflight auf exakt dem gruenen Head. Erst ein Ergebnis
+`BEREIT` erlaubt den spaeteren, separat explizit bestaetigten One-Shot-Live-
+Lauf. ADR:
+`architektur/adr/ADR-043-PR20-2O-BANK-WITHDRAW-WRITE-RUNNER-PREPARATION.md`.
 
 
 Vorhandene Bankplanung, Bank-Lease, Fencing und Bankkatalog-Fundamente werden mit echten Bankmutationen verbunden.

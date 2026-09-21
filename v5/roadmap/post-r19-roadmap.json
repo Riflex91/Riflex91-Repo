@@ -82,9 +82,10 @@
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN und im Repo dokumentiert",
     "PR20.2 bank_deposit(1) One-Shot-Live-Evidence ist BESTANDEN",
     "bank_withdraw(1) Real-Browser-Shadow ist source-exakt BESTANDEN: ADMISSION_BESTANDEN_KEIN_SEND, ABBRUCH, NICHT_GESENDET, 0 Gameplay-Writes, 0 Adapter-Aufrufe, Lease Epoche 4 RELEASED",
-    "als naechstes Write-Adapter und Live-Runner fuer exakt bank_withdraw(1) getrennt vorbereiten und komplett CI-gruen pruefen",
-    "vor echtem Withdraw-Write read-only Write-Preflight auf exakt demselben geprueften Head ausfuehren",
-    "danach exakt einen kontrollierten bank_withdraw(1)-Write mit Settlement/Recovery-Evidence nachweisen",
+    "Write-Adapter, Produktions-Transaktionscore und source-locked Live-Runner fuer exakt bank_withdraw(1) sind in PR20.2o vorbereitet; in diesem Implementierungsschritt kein echter Withdraw-Write",
+    "PR20.2o auf exakt dem PR-Head vollstaendig CI-gruen pruefen",
+    "nach Merge source-locked read-only Write-Preflight auf exakt dem gruenen Head ausfuehren und BEREIT verlangen",
+    "erst danach exakt einen explizit bestaetigten bank_withdraw(1)-Write mit Settlement/Recovery-Evidence nachweisen; Same-Intent-Retry bleibt verboten",
     "danach Store/Retrieve/Swap jeweils eng vorbereiten und einzeln produktiv nachweisen",
     "Capacity-/Workspace- und Open-Bank-Pack-Gates separat behandeln",
     "danach reale 5m-Bank-Funktionsevidence ohne Duplicate/UNKNOWN-Restzustand absolvieren",
@@ -294,7 +295,7 @@
   "parallelPreparations": [
     {
       "id": "PR20.2_BANK",
-      "status": "DEPOSIT_ONE_SHOT_LIVE_BESTANDEN_RESTBANK_AUSSTEHEND",
+      "status": "WITHDRAW_WRITE_PATH_IMPLEMENTIERT_NO_LIVE_WRITE",
       "blockedBy": [],
       "produktiveRegistrierungErlaubt": true,
       "gameplayAuthority": false,
@@ -357,7 +358,11 @@
         "v5/grundlage/quelle/merchant/bank-withdraw-admission-gate.ts",
         "v5/werkzeuge/bank-withdraw-real-browser-shadow.mjs",
         "v5/grundlage/tests/r11-bank-withdraw-real-shadow-browser.test.mjs",
-        "v5/roadmap/pr20-2-bank-withdraw-real-browser-shadow-evidence.json"
+        "v5/roadmap/pr20-2-bank-withdraw-real-browser-shadow-evidence.json",
+        "v5/grundlage/quelle/merchant/bank-withdraw-produktions-transaktion.ts",
+        "v5/werkzeuge/bank-withdraw-produktions-write-browser.mjs",
+        "v5/werkzeuge/bank-withdraw-produktions-live.mjs",
+        "v5/architektur/adr/ADR-043-PR20-2O-BANK-WITHDRAW-WRITE-RUNNER-PREPARATION.md"
       ],
       "firstLiveCandidate": {
         "publicFunction": "bank_deposit",

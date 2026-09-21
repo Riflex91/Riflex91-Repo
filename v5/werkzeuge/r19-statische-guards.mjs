@@ -856,19 +856,121 @@ const bankWithdrawCandidate=lies(
   "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
 );
 for(const m of [
-  '"status": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE"',
+  '"status": "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE"',
   '"publicFunction": "bank_withdraw"',
   '"characterGoldDelta": 1',
   '"bankGoldDelta": -1',
   '"sameIntentRetry": false',
-  '"produktiveCapabilityInDiesemSchritt": false',
-  '"authorityInDiesemSchritt": false',
-  '"adapterInDiesemSchritt": false',
-  '"liveRunnerInDiesemSchritt": false',
+  '"produktiveCapabilityInDiesemSchritt": true',
+  '"authorityInDiesemSchritt": true',
+  '"adapterInDiesemSchritt": true',
+  '"liveRunnerInDiesemSchritt": true',
   '"gameplayWritesInDiesemSchritt": 0',
+  '"realLiveWritePerformed": false',
+  '"publicFunctionCallCountStatic": 1',
 ]){
   if(!bankWithdrawCandidate.includes(m)) {
     fehler.push("BANK_WITHDRAW_CANDIDATE_GRENZE_FEHLT:"+m);
+  }
+}
+const bankWithdrawWriteBrowser=lies(
+  "werkzeuge/bank-withdraw-produktions-write-browser.mjs",
+);
+if((bankWithdrawWriteBrowser.match(/root\.bank_withdraw\(1\)/g)??[]).length!==1) {
+  fehler.push("BANK_WITHDRAW_WRITE_BROWSER_EXAKT_EIN_WITHDRAW_1_ERFORDERLICH");
+}
+for(const m of [
+  "BANK_WITHDRAW_WRITE_MEHR_ALS_EIN_ADAPTER_AUFRUF",
+  'const ACTION = "AL-ACTION-BANK-WITHDRAW"',
+  'const RECOVERY = "AL-RECOVERY-BANK-WITHDRAW"',
+  'const VERIFIER = "AL-VERIFIER-BANK-WITHDRAW"',
+  "ACCOUNT_DRIFT",
+  "SESSION_DRIFT",
+  "SERVER_DRIFT",
+  "CHARACTER_GOLD_DRIFT",
+  "BANK_GOLD_DRIFT",
+  "DISCONNECT_NACH_MOEGLICHEM_SEND",
+]){
+  if(!bankWithdrawWriteBrowser.includes(m)) {
+    fehler.push("BANK_WITHDRAW_WRITE_BROWSER_GRENZE_FEHLT:"+m);
+  }
+}
+if(/\.emit\s*\(/.test(bankWithdrawWriteBrowser)
+    ||/\bbank_deposit\s*\(/.test(bankWithdrawWriteBrowser)
+    ||/\bbank_store\s*\(/.test(bankWithdrawWriteBrowser)
+    ||/\bbank_retrieve\s*\(/.test(bankWithdrawWriteBrowser)
+    ||/\bbank_swap\s*\(/.test(bankWithdrawWriteBrowser)
+    ||/\bopen_bank_pack\s*\(/.test(bankWithdrawWriteBrowser)) {
+  fehler.push("BANK_WITHDRAW_WRITE_BROWSER_FREMDWRITE_VERBOTEN");
+}
+const bankWithdrawProdCore=lies(
+  "grundlage/quelle/merchant/bank-withdraw-produktions-transaktion.ts",
+);
+for(const m of [
+  "ProduktiveBankWithdrawTransaktionsOrchestrierung",
+  "PersistVorMutationTor",
+  "ErteilteAusfuehrungsFreigabe",
+  "RecoveryKernel",
+  "v.bankGold < 1",
+  "same_intent_retry: false",
+  "adapterAufrufeErwartetMaximal: 1",
+]){
+  if(!bankWithdrawProdCore.includes(m)) {
+    fehler.push("BANK_WITHDRAW_PROD_CORE_GRENZE_FEHLT:"+m);
+  }
+}
+if(/\bbank_withdraw\s*\(/.test(bankWithdrawProdCore)
+    ||/\.emit\s*\(/.test(bankWithdrawProdCore)) {
+  fehler.push("BANK_WITHDRAW_PROD_CORE_RAW_WRITE_VERBOTEN");
+}
+const bankWithdrawLiveRunner=lies(
+  "werkzeuge/bank-withdraw-produktions-live.mjs",
+);
+for(const m of [
+  "V5_PRODUCTION_BANK_WITHDRAW_ONE_GOLD_ONE_SHOT_LIVE",
+  "BANK_WITHDRAW_EINMAL_BESTAETIGUNG",
+  "BANK_WITHDRAW_PROD_SOURCE_SHA_MISMATCH",
+  'const ACTION = "AL-ACTION-BANK-WITHDRAW"',
+  'const RECOVERY = "AL-RECOVERY-BANK-WITHDRAW"',
+  'const VERIFIER = "AL-VERIFIER-BANK-WITHDRAW"',
+  'const CAPABILITY = "merchant.bank.gold_auslagern"',
+  "fuehreBankWithdrawEinGoldTransaktion",
+  "sameIntentRetry: false",
+  "const erwartetSha = pruefeSha(sourceSha)",
+  "if (preflight)",
+]){
+  if(!bankWithdrawLiveRunner.includes(m)) {
+    fehler.push("BANK_WITHDRAW_LIVE_RUNNER_GRENZE_FEHLT:"+m);
+  }
+}
+if(/\bbank_withdraw\s*\(/.test(bankWithdrawLiveRunner)
+    ||/\.emit\s*\(/.test(bankWithdrawLiveRunner)) {
+  fehler.push("BANK_WITHDRAW_LIVE_RUNNER_DIREKTWRITE_VERBOTEN");
+}
+const bankWithdrawWriteRuntime=lies(
+  "grundlage/quelle/runtime/produktions-runtime.ts",
+);
+const bankWithdrawWriteHost=lies(
+  "werkzeuge/v5-produktions-host-komposition.mjs",
+);
+for(const m of [
+  "fuehreBankWithdrawEinGoldTransaktion",
+  "ProduktiveBankWithdrawTransaktionsOrchestrierung",
+  "V5_BANK_WITHDRAW_PROD_TX_AUTHORITY_NICHT_AKTUELL",
+]){
+  if(!bankWithdrawWriteRuntime.includes(m)) {
+    fehler.push("BANK_WITHDRAW_RUNTIME_WRITE_BINDUNG_FEHLT:"+m);
+  }
+}
+for(const m of [
+  "fuehreBankWithdrawEinGoldTransaktion",
+  "ProduktivesBankWithdrawEinmalAdmissionGate",
+  "bank_withdraw_one_shot_live",
+  "this.#bankWithdrawJournal",
+  "mount.bankGold < 1",
+]){
+  if(!bankWithdrawWriteHost.includes(m)) {
+    fehler.push("BANK_WITHDRAW_HOST_WRITE_BINDUNG_FEHLT:"+m);
   }
 }
 

@@ -202,13 +202,13 @@ test("open_bank_pack bleibt wegen eigener Capacity-/Backend-Risiken bewusst auss
   assert.equal(contract.idempotency, "NON_IDEMPOTENT");
 });
 
-test("PR20.2 bank_withdraw(1) besitzt Preflight und Admission-Shadow weiterhin NO-WRITE", () => {
+test("PR20.2 bank_withdraw(1) besitzt vorbereiteten Write-Pfad ohne ausgefuehrten Live-Write", () => {
   const kandidat = prep.naechsterLiveKandidat;
   const vertrag = lies(
     "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
   );
   assert.ok(kandidat);
-  assert.equal(kandidat.status, "REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_AUSSTEHEND");
+  assert.equal(kandidat.status, "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE");
   assert.equal(kandidat.publicFunction, "bank_withdraw");
   assert.equal(kandidat.betragGold, 1);
   assert.equal(kandidat.actionContractId, "AL-ACTION-BANK-WITHDRAW");
@@ -249,18 +249,24 @@ test("PR20.2 bank_withdraw(1) besitzt Preflight und Admission-Shadow weiterhin N
   assert.equal(kandidat.realBrowserShadowLeaseEpoche, 4);
   assert.equal(kandidat.realBrowserShadowLeaseTerminalStatus, "RELEASED");
   assert.equal(kandidat.realBrowserShadowSendBoundaryState, "NICHT_GESENDET");
-  assert.equal(kandidat.writeAdapterImplementiert, false);
-  assert.equal(kandidat.liveRunnerImplementiert, false);
+  assert.equal(kandidat.writeAdapterImplementiert, true);
+  assert.equal(kandidat.writeAdapter, "werkzeuge/bank-withdraw-produktions-write-browser.mjs");
+  assert.equal(kandidat.liveRunnerImplementiert, true);
+  assert.equal(kandidat.liveRunner, "werkzeuge/bank-withdraw-produktions-live.mjs");
+  assert.equal(kandidat.sourceLockedWritePreflight, true);
+  assert.equal(kandidat.realLiveWritePerformed, false);
   assert.equal(kandidat.gameplayWritesInDiesemSchritt, 0);
   assert.equal(vertrag.publicFunction, "bank_withdraw");
   assert.equal(vertrag.settlement.characterGoldDelta, 1);
   assert.equal(vertrag.settlement.bankGoldDelta, -1);
   assert.equal(vertrag.settlement.sameIntentRetry, false);
-  assert.equal(vertrag.authorityGrenze.produktiveCapabilityInDiesemSchritt, false);
-  assert.equal(vertrag.authorityGrenze.authorityInDiesemSchritt, false);
-  assert.equal(vertrag.authorityGrenze.adapterInDiesemSchritt, false);
-  assert.equal(vertrag.authorityGrenze.liveRunnerInDiesemSchritt, false);
+  assert.equal(vertrag.authorityGrenze.produktiveCapabilityInDiesemSchritt, true);
+  assert.equal(vertrag.authorityGrenze.authorityInDiesemSchritt, true);
+  assert.equal(vertrag.authorityGrenze.adapterInDiesemSchritt, true);
+  assert.equal(vertrag.authorityGrenze.liveRunnerInDiesemSchritt, true);
   assert.equal(vertrag.authorityGrenze.gameplayWritesInDiesemSchritt, 0);
+  assert.equal(vertrag.writeGate.realLiveWritePerformed, false);
+  assert.equal(vertrag.writeGate.publicFunctionCallCountStatic, 1);
 });
 
 test("Produktionskomposition registriert Deposit und Withdraw unter demselben Bank-Single-Owner default-off", () => {

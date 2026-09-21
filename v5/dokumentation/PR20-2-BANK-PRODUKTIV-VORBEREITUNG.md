@@ -79,10 +79,10 @@ Fingerprint vorliegt und gleichzeitig exakt `character.gold - 1` sowie
 `bank.gold + 1` nachgewiesen sind. Nur Senderverlust oder nur Bankzuwachs
 reichen nicht. Same-Intent-Retry bleibt immer verboten.
 
-Die Capability und die kurzlebige One-Shot-Authority sind inzwischen
-implementiert. Die Capability bleibt `standardAktiv=false`; die Authority ist
-maximal 2000 ms gueltig und genau einmal verbrauchbar. Weiterhin fehlen bewusst
-Write-Adapter und Live-Runner.
+Deposit ist inzwischen inklusive engem Write-Adapter, source-locked Live-Runner
+und real bestandener One-Shot-Evidence umgesetzt. Die Capability bleibt
+`standardAktiv=false`; jede mutierende Authority ist kurzlebig, exakt gebunden
+und maximal einmal verbrauchbar.
 
 ## PR20.2j – naechster Kandidat bank_withdraw(1) NO-WRITE
 
@@ -254,6 +254,29 @@ Damit ist der Withdraw-NO-WRITE-Shadow-Gate bestanden. Dies erlaubt **nur**
 die getrennte Implementierung und CI-Pruefung eines engen Write-Adapters und
 Live-Runners fuer exakt `bank_withdraw(1)`. Ein echter Withdraw-Write ist
 noch nicht ausgefuehrt oder automatisch freigegeben.
+
+## PR20.2o – Withdraw Write-Adapter und Live-Runner vorbereitet, NO LIVE WRITE
+
+Der enge produktive Pfad fuer exakt `bank_withdraw(1)` ist nun technisch
+vorbereitet:
+
+- eigener Produktions-Transaktionscore mit durable Intent, accountweiter
+  Bank-Lease, External-/Snapshot-Fencing, FIFO-`bank`-Kanal und Socket-Budget;
+- eigener Browser-Write-Adapter mit statisch exakt einem moeglichen
+  `root.bank_withdraw(1)`-Aufruf;
+- kein `.emit(...)`, kein Deposit/Store/Retrieve/Swap/Open-Pack und kein
+  generischer Raw-Write im Adapter;
+- maximal ein Adapter-Aufruf, niemals Same-Intent-Retry;
+- source-locked Live-Runner mit eigener Withdraw-Bestaetigung;
+- Settlement nur bei frischer identischer Bindung, neuem Fingerprint und
+  gleichzeitig exakt `character.gold + 1` sowie `bank.gold - 1`.
+
+**Dieser Implementierungs-PR fuehrt keinen echten Withdraw-Write aus.**
+Nach vollstaendig gruener Exact-Head-CI und Merge ist zuerst ein source-locked
+read-only Write-Preflight auf exakt dem gruenen Head auszufuehren. Nur
+`BEREIT` darf anschliessend zu einem separat explizit bestaetigten
+One-Shot-Live-Lauf fuehren. ADR:
+`architektur/adr/ADR-043-PR20-2O-BANK-WITHDRAW-WRITE-RUNNER-PREPARATION.md`.
 
 ## Admission-Grenze fuer die spaetere Implementierung
 
