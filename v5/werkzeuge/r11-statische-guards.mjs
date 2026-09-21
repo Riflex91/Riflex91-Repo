@@ -409,6 +409,64 @@ if (/\bbank_deposit\s*\(/.test(bankDepositLiveRunner)
   fehler.push("BANK_DEPOSIT_LIVE_RUNNER_DIREKTWRITE_VERBOTEN");
 }
 
+
+const bankWithdrawSettlementCore = liesText(
+  "grundlage/quelle/merchant/bank-withdraw-settlement.ts",
+);
+for (const marker of [
+  "BANK_WITHDRAW_ERSTER_BETRAG",
+  "pruefeBankWithdrawEinGoldBereitschaft",
+  "pruefeBankWithdrawEinGoldSettlement",
+  "BANK_WITHDRAW_EXAKTES_GOLD_DELTA",
+  "sameIntentErneutSenden: false",
+  "gameplayAutoritaet: false",
+  "rawWriteAutoritaet: false",
+]) {
+  if (!bankWithdrawSettlementCore.includes(marker)) {
+    fehler.push("BANK_WITHDRAW_SETTLEMENT_CORE_MARKER_FEHLT:" + marker);
+  }
+}
+for (const [kennung, muster] of [
+  ["BANK_WITHDRAW_WRITE", /\bbank_withdraw\s*\(/],
+  ["RAW_EMIT", /\.emit\s*\(/],
+  ["EXECUTION_KERNEL", /\bAusfuehrungsKernel\b/],
+  ["EXECUTION_ADAPTER", /\bAusfuehrungsAdapter\b/],
+  ["AUTHORITY", /erteile\w*Authority\s*\(/],
+]) {
+  if (muster.test(bankWithdrawSettlementCore)) {
+    fehler.push("BANK_WITHDRAW_SETTLEMENT_CORE_NO_WRITE_VERLETZT:" + kennung);
+  }
+}
+const bankWithdrawCandidate = liesText(
+  "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
+);
+for (const marker of [
+  '"status": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE"',
+  '"publicFunction": "bank_withdraw"',
+  '"characterGoldDelta": 1',
+  '"bankGoldDelta": -1',
+  '"sameIntentRetry": false',
+  '"produktiveCapabilityInDiesemSchritt": false',
+  '"authorityInDiesemSchritt": false',
+  '"adapterInDiesemSchritt": false',
+  '"liveRunnerInDiesemSchritt": false',
+  '"gameplayWritesInDiesemSchritt": 0',
+]) {
+  if (!bankWithdrawCandidate.includes(marker)) {
+    fehler.push("BANK_WITHDRAW_CANDIDATE_GRENZE_FEHLT:" + marker);
+  }
+}
+for (const verboten of [
+  '"produktiveCapabilityInDiesemSchritt": true',
+  '"authorityInDiesemSchritt": true',
+  '"adapterInDiesemSchritt": true',
+  '"liveRunnerInDiesemSchritt": true',
+]) {
+  if (bankWithdrawCandidate.includes(verboten)) {
+    fehler.push("BANK_WITHDRAW_CANDIDATE_NO_WRITE_VERLETZT:" + verboten);
+  }
+}
+
 const equipProduktionsBrowser = liesText(
   "werkzeuge/equipment-equip-produktions-browser.mjs",
 );
