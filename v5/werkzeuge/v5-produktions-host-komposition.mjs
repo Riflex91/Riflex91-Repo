@@ -13,6 +13,11 @@ import {
   BANK_WITHDRAW_EINMAL_POLICY_ID,
   BANK_WITHDRAW_RECOVERY_CONTRACT_ID,
   BANK_WITHDRAW_VERIFIER_ID,
+  BANK_STORE_ACTION_CONTRACT_ID,
+  BANK_STORE_EINMAL_BESTAETIGUNG,
+  BANK_STORE_EINMAL_POLICY_ID,
+  BANK_STORE_RECOVERY_CONTRACT_ID,
+  BANK_STORE_VERIFIER_ID,
   BedienerRichtlinienDienst,
   PersistenterBankLeaseController,
   EQUIPMENT_CORE_MODUL_ID,
@@ -26,8 +31,10 @@ import {
   MERCHANT_BANK_CORE_MODUL_VERSION,
   MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
   MERCHANT_BANK_WITHDRAW_FAEHIGKEIT_ID,
+  MERCHANT_BANK_STORE_FAEHIGKEIT_ID,
   ProduktivesBankDepositEinmalAdmissionGate,
   ProduktivesBankWithdrawEinmalAdmissionGate,
+  ProduktivesBankStoreEinmalAdmissionGate,
   ProduktivesEquipEinmalAdmissionGate,
   ProduktivesV5GesamtfreigabeGate,
   V5ProduktionsBootstrap,
@@ -54,11 +61,17 @@ import {
   NodeBankWithdrawEinmalAuthorityProtokoll,
 } from "../grundlage/adapter/persistenz/node-bank-withdraw-einmal-authority-protokoll.mjs";
 import {
+  NodeBankStoreEinmalAuthorityProtokoll,
+} from "../grundlage/adapter/persistenz/node-bank-store-einmal-authority-protokoll.mjs";
+import {
   NodeBankDepositTransaktionsJournal,
 } from "../grundlage/adapter/persistenz/node-bank-deposit-transaktionsjournal.mjs";
 import {
   NodeBankWithdrawTransaktionsJournal,
 } from "../grundlage/adapter/persistenz/node-bank-withdraw-transaktionsjournal.mjs";
+import {
+  NodeBankStoreTransaktionsJournal,
+} from "../grundlage/adapter/persistenz/node-bank-store-transaktionsjournal.mjs";
 import {
   NodeBankLeasePersistenz,
 } from "../grundlage/adapter/persistenz/node-bank-lease-persistenz.mjs";
@@ -106,6 +119,7 @@ class NodeV5ProduktionsHost {
   #equipJournal;
   #bankDepositJournal;
   #bankWithdrawJournal;
+  #bankStoreJournal;
   #bankLeaseController;
   #runtime;
 
@@ -117,6 +131,7 @@ class NodeV5ProduktionsHost {
     equipJournal,
     bankDepositJournal,
     bankWithdrawJournal,
+    bankStoreJournal,
     bankLeaseController,
     runtime,
   ) {
@@ -127,6 +142,7 @@ class NodeV5ProduktionsHost {
     this.#equipJournal = equipJournal;
     this.#bankDepositJournal = bankDepositJournal;
     this.#bankWithdrawJournal = bankWithdrawJournal;
+    this.#bankStoreJournal = bankStoreJournal;
     this.#bankLeaseController = bankLeaseController;
     this.#runtime = runtime;
   }
@@ -161,17 +177,24 @@ class NodeV5ProduktionsHost {
     return this.#host.erteileBankWithdrawEinmalAuthority(anfrage, jetztMs);
   }
 
+  async erteileBankStoreEinmalAuthority(anfrage, jetztMs) {
+    pruefeZeit(jetztMs);
+    return this.#host.erteileBankStoreEinmalAuthority(anfrage, jetztMs);
+  }
+
   async pruefeBankDepositStartBereit() {
     const journal = await this.#bankDepositJournal.pruefeStartBereit();
     const withdrawJournal = await this.#bankWithdrawJournal.pruefeStartBereit();
+    const storeJournal = await this.#bankStoreJournal.pruefeStartBereit();
     const offeneLeases = this.#bankLeaseController.sicht().filter(
       x => x.zustand !== "RELEASED",
     );
     return Object.freeze({
       bereit: journal.bereit && withdrawJournal.bereit
-        && offeneLeases.length === 0,
+        && storeJournal.bereit && offeneLeases.length === 0,
       offeneTransaktionsId: journal.offeneTransaktionsId
-        ?? withdrawJournal.offeneTransaktionsId,
+        ?? withdrawJournal.offeneTransaktionsId
+        ?? storeJournal.offeneTransaktionsId,
       offeneBankLease: offeneLeases.length === 0
         ? null
         : Object.freeze({
@@ -188,14 +211,44 @@ class NodeV5ProduktionsHost {
   async pruefeBankWithdrawStartBereit() {
     const journal = await this.#bankWithdrawJournal.pruefeStartBereit();
     const depositJournal = await this.#bankDepositJournal.pruefeStartBereit();
+    const storeJournal = await this.#bankStoreJournal.pruefeStartBereit();
     const offeneLeases = this.#bankLeaseController.sicht().filter(
       x => x.zustand !== "RELEASED",
     );
     return Object.freeze({
       bereit: journal.bereit && depositJournal.bereit
-        && offeneLeases.length === 0,
+        && storeJournal.bereit && offeneLeases.length === 0,
       offeneTransaktionsId: journal.offeneTransaktionsId
-        ?? depositJournal.offeneTransaktionsId,
+        ?? depositJournal.offeneTransaktionsId
+        ?? storeJournal.offeneTransaktionsId,
+      offeneBankLease: offeneLeases.length === 0
+        ? null
+        : Object.freeze({
+          accountId: offeneLeases[0].accountId,
+          ownerCharacterId: offeneLeases[0].ownerCharacterId,
+          epoche: offeneLeases[0].epoche,
+          zustand: offeneLeases[0].zustand,
+          serverRegion: offeneLeases[0].serverRegion,
+          serverIdentifier: offeneLeases[0].serverIdentifier,
+        }),
+    });
+  }
+
+  async pruefeBankStoreStartBereit() {
+    const storeJournal = await this.#bankStoreJournal.pruefeStartBereit();
+    const depositJournal = await this.#bankDepositJournal.pruefeStartBereit();
+    const withdrawJournal = await this.#bankWithdrawJournal.pruefeStartBereit();
+    const offeneLeases = this.#bankLeaseController.sicht().filter(
+      x => x.zustand !== "RELEASED",
+    );
+    return Object.freeze({
+      bereit: storeJournal.bereit
+        && depositJournal.bereit
+        && withdrawJournal.bereit
+        && offeneLeases.length === 0,
+      offeneTransaktionsId: storeJournal.offeneTransaktionsId
+        ?? depositJournal.offeneTransaktionsId
+        ?? withdrawJournal.offeneTransaktionsId,
       offeneBankLease: offeneLeases.length === 0
         ? null
         : Object.freeze({
@@ -1369,6 +1422,264 @@ class NodeV5ProduktionsHost {
     }
   }
 
+  async fuehreBankStoreRealShadow(anfrage, jetztMs) {
+    pruefeZeit(jetztMs);
+    if (anfrage === null || typeof anfrage !== "object") {
+      throw new Error("NODE_BANK_STORE_SHADOW_ANFRAGE_UNGUELTIG");
+    }
+    for (const feld of [
+      "aktivierungsId",
+      "transaktionsId",
+      "freigabeId",
+      "auftragId",
+      "ablaufId",
+      "shadowBestaetigungText",
+    ]) {
+      const wert = anfrage[feld];
+      if (typeof wert !== "string"
+          || wert.trim().length === 0
+          || wert.length > 192) {
+        throw new Error("NODE_BANK_STORE_SHADOW_FELD_UNGUELTIG:" + feld);
+      }
+    }
+    if (anfrage.shadowBestaetigungText
+        !== "V5 BANK STORE SHADOW OHNE WRITE AUSFUEHREN") {
+      throw new Error("NODE_BANK_STORE_SHADOW_BESTAETIGUNG_FEHLT");
+    }
+    if (!anfrage.ausgang
+        || typeof anfrage.ausgang !== "object"
+        || anfrage.ausgang.bankGemountet !== false
+        || !anfrage.mountBeobachter
+        || typeof anfrage.mountBeobachter.warteAufMount !== "function"
+        || !anfrage.releaseBeobachter
+        || typeof anfrage.releaseBeobachter.beobachte !== "function") {
+      throw new Error("NODE_BANK_STORE_SHADOW_PORT_ODER_AUSGANG_UNGUELTIG");
+    }
+    for (const feld of [
+      "accountId",
+      "charakterName",
+      "sessionId",
+      "serverRegion",
+      "serverKennung",
+    ]) {
+      const wert = anfrage.ausgang[feld];
+      if (typeof wert !== "string"
+          || wert.trim().length === 0
+          || wert.length > 192) {
+        throw new Error("NODE_BANK_STORE_SHADOW_BINDUNG_UNGUELTIG:" + feld);
+      }
+    }
+
+    const startBereit = await this.pruefeBankStoreStartBereit();
+    if (!startBereit.bereit) {
+      throw new Error("NODE_BANK_STORE_SHADOW_START_BLOCKIERT");
+    }
+    const tick = await this.#host.tick(jetztMs);
+    if (tick.zustand !== "LAEUFT"
+        || tick.aktivePlanenFaehigkeiten.length !== 0
+        || tick.equipEinmalAuthorityOffen
+        || tick.bankDepositEinmalAuthorityOffen
+        || tick.bankStoreEinmalAuthorityOffen) {
+      throw new Error("NODE_BANK_STORE_SHADOW_HOST_NICHT_BEREIT:" + tick.grund);
+    }
+
+    let leaseToken = null;
+    let authority = null;
+    try {
+      leaseToken = await this.#bankLeaseController.beanspruche(
+        anfrage.ausgang.accountId,
+        anfrage.ausgang.charakterName,
+        anfrage.ablaufId,
+        "bank_store_real_browser_shadow",
+        anfrage.ausgang.serverRegion,
+        anfrage.ausgang.serverKennung,
+        jetztMs,
+        300_000,
+      );
+
+      const mount = await anfrage.mountBeobachter.warteAufMount(Object.freeze({
+        schemaVersion: 1,
+        accountId: leaseToken.accountId,
+        characterId: leaseToken.ownerCharacterId,
+        sessionId: anfrage.ausgang.sessionId,
+        serverRegion: anfrage.ausgang.serverRegion,
+        serverIdentifier: anfrage.ausgang.serverKennung,
+        leaseEpoche: leaseToken.epoche,
+        leaseErworbenAmMs: jetztMs,
+        gameplayWrites: 0,
+      }));
+      if (!mount
+          || typeof mount !== "object"
+          || mount.bankGemountet !== true
+          || mount.accountId !== leaseToken.accountId
+          || mount.charakterName !== leaseToken.ownerCharacterId
+          || mount.sessionId !== anfrage.ausgang.sessionId
+          || mount.serverRegion !== anfrage.ausgang.serverRegion
+          || mount.serverKennung !== anfrage.ausgang.serverKennung
+          || !Number.isSafeInteger(mount.beobachtetAmMs)
+          || mount.beobachtetAmMs < jetztMs
+          || !Number.isSafeInteger(mount.sourceSlot)
+          || mount.sourceSlot < 0
+          || mount.sourceSlot > 41
+          || typeof mount.targetPack !== "string"
+          || !/^items[0-9]+$/.test(mount.targetPack)
+          || !Number.isSafeInteger(mount.targetSlot)
+          || mount.targetSlot < 0
+          || mount.targetSlot > 41
+          || typeof mount.sourceItemFingerprint !== "string"
+          || !/^[0-9a-f]{64}$/i.test(mount.sourceItemFingerprint)
+          || mount.targetItemFingerprint !== null
+          || typeof mount.fingerprint !== "string"
+          || mount.fingerprint.length < 16) {
+        throw new Error("NODE_BANK_STORE_SHADOW_MOUNT_EVIDENCE_UNGUELTIG");
+      }
+
+      const fence = Object.freeze({
+        serverRegion: mount.serverRegion,
+        serverIdentifier: mount.serverKennung,
+        mountedCharacterId: mount.charakterName,
+        konflikt: false,
+      });
+      const authorityMs = Date.now();
+      const authorityErgebnis =
+        await this.#host.erteileBankStoreEinmalAuthority(
+          Object.freeze({
+            schemaVersion: 1,
+            aktivierungsId: anfrage.aktivierungsId,
+            transaktionsId: anfrage.transaktionsId,
+            faehigkeitId: MERCHANT_BANK_STORE_FAEHIGKEIT_ID,
+            anbieterModulId: MERCHANT_BANK_CORE_MODUL_ID,
+            anbieterVersion: MERCHANT_BANK_CORE_MODUL_VERSION,
+            actionContractId: BANK_STORE_ACTION_CONTRACT_ID,
+            recoveryContractId: BANK_STORE_RECOVERY_CONTRACT_ID,
+            verifierId: BANK_STORE_VERIFIER_ID,
+            policyId: BANK_STORE_EINMAL_POLICY_ID,
+            bestaetigungText: BANK_STORE_EINMAL_BESTAETIGUNG,
+            gueltigBisMs: authorityMs + 2_000,
+          }),
+          authorityMs,
+        );
+      if (!authorityErgebnis.erfolgreich
+          || authorityErgebnis.authority === null) {
+        throw new Error(
+          "NODE_BANK_STORE_SHADOW_AUTHORITY_BLOCKIERT:"
+          + authorityErgebnis.grund,
+        );
+      }
+      authority = authorityErgebnis.authority;
+
+      const admissionMs = Date.now();
+      if (!authority.gueltigFuer(admissionMs)) {
+        throw new Error("NODE_BANK_STORE_SHADOW_AUTHORITY_VOR_ADMISSION_ABGELAUFEN");
+      }
+      const gueltigBisMs = Math.min(
+        admissionMs + 1_500,
+        authority.daten().gueltigBisMs,
+      );
+      if (mount.beobachtetAmMs > admissionMs
+          || admissionMs - mount.beobachtetAmMs > 1_000) {
+        throw new Error("NODE_BANK_STORE_SHADOW_MOUNT_EVIDENCE_STALE");
+      }
+      const liveVoraussetzungen = Object.freeze({
+        async pruefe(ids, zeitMs) {
+          if (zeitMs !== admissionMs || !Array.isArray(ids)) {
+            return Object.freeze([]);
+          }
+          return Object.freeze(ids.map(id => Object.freeze({
+            voraussetzungId: id,
+            fingerprint: String(
+              id + ":" + mount.fingerprint + ":"
+              + String(mount.inventorySha256 || ""),
+            ),
+            beobachtetAmMs: mount.beobachtetAmMs,
+            gueltigBisMs,
+          })));
+        },
+      });
+      const gate = new ProduktivesBankStoreEinmalAdmissionGate(
+        this.#gesamtfreigabeGate,
+        () => this.#host.status(),
+        authority,
+      );
+
+      const ergebnis = await this.#runtime.fuehreBankStoreShadowAdmission(
+        Object.freeze({
+          schemaVersion: 1,
+          freigabeId: anfrage.freigabeId,
+          auftragId: anfrage.auftragId,
+          ablaufId: anfrage.ablaufId,
+          transaktionsId: anfrage.transaktionsId,
+          accountId: mount.accountId,
+          characterId: mount.charakterName,
+          serverRegion: mount.serverRegion,
+          serverIdentifier: mount.serverKennung,
+          ausgestelltAmMs: admissionMs,
+          gueltigBisMs,
+          leaseDauerMs: 300_000,
+          maximaleSnapshotAlterMs: 1_000,
+          externalFence: fence,
+          externalFenceBeobachtetAmMs: mount.beobachtetAmMs,
+          snapshot: Object.freeze({
+            schemaVersion: 1,
+            accountId: mount.accountId,
+            ownerCharacterId: mount.charakterName,
+            beobachtetAmMs: mount.beobachtetAmMs,
+            fingerprint: mount.fingerprint,
+            sourceSlot: mount.sourceSlot,
+            targetPack: mount.targetPack,
+            targetSlot: mount.targetSlot,
+            sourceItemFingerprint: mount.sourceItemFingerprint,
+            targetItemFingerprint: null,
+          }),
+          authority,
+        }),
+        Object.freeze({
+          laufzeitGate: gate,
+          liveVoraussetzungen,
+          journal: this.#bankStoreJournal,
+          leaseController: this.#bankLeaseController,
+          releaseBeobachter: anfrage.releaseBeobachter,
+          vorabLeaseToken: leaseToken,
+          jetztMs: () => Date.now(),
+        }),
+      );
+
+      return Object.freeze({
+        ...ergebnis,
+        manualMountTransition: true,
+        manualExitRequired: true,
+        browserGameplayWrites: 0,
+        hostGameplayWrites: 0,
+      });
+    } catch (fehler) {
+      if (leaseToken !== null) {
+        try {
+          const sichtbar = this.#bankLeaseController.sicht().find(x =>
+            x.accountId === leaseToken.accountId
+            && x.epoche === leaseToken.epoche);
+          if (sichtbar?.zustand === "ACTIVE"
+              || sichtbar?.zustand === "ACQUIRING"
+              || sichtbar?.zustand === "RELEASING") {
+            await this.#bankLeaseController.markiereRecovery(
+              leaseToken,
+              Date.now(),
+            );
+          }
+        } catch {
+          // Fail-closed: bestehende Lease-Evidence bleibt erhalten.
+        }
+      }
+      throw fehler;
+    } finally {
+      if (authority !== null) authority.widerrufe();
+      try {
+        await this.#host.tick(Date.now());
+      } catch {
+        // Shadow bleibt ohne Write; Revalidation kann nur weiter sperren.
+      }
+    }
+  }
+
   async wendeDenyAn(befehl, jetztMs) {
     pruefeZeit(jetztMs);
     const snapshot = await this.#bedienerRichtlinie.wendeDenyAn(befehl);
@@ -1436,6 +1747,8 @@ export async function erstelleNodeV5ProduktionsHost({
     new NodeBankDepositEinmalAuthorityProtokoll(dateisystem);
   const bankWithdrawEinmalAuthorityProtokoll =
     new NodeBankWithdrawEinmalAuthorityProtokoll(dateisystem);
+  const bankStoreEinmalAuthorityProtokoll =
+    new NodeBankStoreEinmalAuthorityProtokoll(dateisystem);
   const runtime = new V5ProduktionsRuntime(
     erstelleKanonischeProduktionsKomposition(),
     bedienerRichtlinie,
@@ -1443,6 +1756,7 @@ export async function erstelleNodeV5ProduktionsHost({
     equipEinmalAuthorityProtokoll,
     bankDepositEinmalAuthorityProtokoll,
     bankWithdrawEinmalAuthorityProtokoll,
+    bankStoreEinmalAuthorityProtokoll,
   );
   const gesamtfreigabeGate = new ProduktivesV5GesamtfreigabeGate(
     effektiveBereitschaft,
@@ -1466,6 +1780,7 @@ export async function erstelleNodeV5ProduktionsHost({
   const equipJournal = new NodeEquipTransaktionsJournal(dateisystem);
   const bankDepositJournal = new NodeBankDepositTransaktionsJournal(dateisystem);
   const bankWithdrawJournal = new NodeBankWithdrawTransaktionsJournal(dateisystem);
+  const bankStoreJournal = new NodeBankStoreTransaktionsJournal(dateisystem);
   const bankLeaseController = new PersistenterBankLeaseController(
     runtime.bankLeaseKoordinator(),
     new NodeBankLeasePersistenz(dateisystem),
@@ -1480,6 +1795,7 @@ export async function erstelleNodeV5ProduktionsHost({
     equipJournal,
     bankDepositJournal,
     bankWithdrawJournal,
+    bankStoreJournal,
     bankLeaseController,
     runtime,
   );
