@@ -273,8 +273,15 @@ test("PR20.2 bank_withdraw(1) ist nach zwei Funktionstests fail-closed und CODE-
   assert.equal(vertrag.authorityGrenze.authorityInDiesemSchritt, true);
   assert.equal(vertrag.authorityGrenze.adapterInDiesemSchritt, true);
   assert.equal(vertrag.authorityGrenze.liveRunnerInDiesemSchritt, true);
-  assert.equal(vertrag.authorityGrenze.gameplayWritesInDiesemSchritt, 0);
-  assert.equal(vertrag.writeGate.realLiveWritePerformed, false);
+  assert.equal(vertrag.authorityGrenze.gameplayWritesInDiesemSchritt, 1);
+  assert.equal(vertrag.writeGate.realLiveWritePerformed, true);
+  assert.equal(vertrag.writeGate.liveWriteEvidence, "NICHT_BESTANDEN_TESTLIMIT_ERREICHT");
+  assert.equal(vertrag.writeGate.functionalTestLimit, 2);
+  assert.equal(vertrag.writeGate.functionalTestsConsumed, 2);
+  assert.equal(vertrag.writeGate.additionalFunctionalTestAllowed, false);
+  assert.equal(vertrag.writeGate.officialCodeBridge, "call_code_function_f");
+  assert.equal(vertrag.writeGate.codeBridgeReadOnlyEvidence, "BESTANDEN");
+  assert.equal(vertrag.writeGate.productionWideActivationAllowed, false);
   assert.equal(vertrag.writeGate.publicFunctionCallCountStatic, 1);
 });
 
