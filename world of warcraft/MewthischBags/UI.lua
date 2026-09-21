@@ -5,20 +5,28 @@ local UI = MB.UI
 local API = MB.API
 local L = MB.L
 
-local MAIN_WIDTH = 476
+local DEFAULT_MAIN_WIDTH = 476
 local HEADER_HEIGHT = 36
 local MONEY_HEIGHT = 22
 local SEARCH_HEIGHT = 30
 local SLOT_SIZE = 40
 local SLOT_GAP = 5
-local SLOT_COLUMNS = 10
+local MIN_SLOT_COLUMNS = 4
 local CONTENT_PADDING = 12
 local SLOT_TOP = 104
+local MIN_MAIN_WIDTH =
+    CONTENT_PADDING * 2 +
+    MIN_SLOT_COLUMNS * SLOT_SIZE +
+    (MIN_SLOT_COLUMNS - 1) * SLOT_GAP
 
 local PANEL_WIDTH = 218
 local BAG_SLOT_SIZE = 42
 local BAG_GAP = 6
 local AVAILABLE_COLUMNS = 4
+local AVAILABLE_TOP = 126
+local PANEL_BOTTOM_PADDING = 10
+local PANEL_EMPTY_HEIGHT = 136
+local PANEL_MAX_HEIGHT = 520
 
 local COLORS = {
     background = {0.035, 0.045, 0.055, 0.97},
@@ -173,15 +181,51 @@ local function hideTooltip()
     if GameTooltip then GameTooltip:Hide() end
 end
 
+function UI:GetSlotColumns()
+    if not self.frame then return MIN_SLOT_COLUMNS end
+    local available = math.max(0, (self.frame:GetWidth() or DEFAULT_MAIN_WIDTH) - CONTENT_PADDING * 2)
+    local columns = math.floor((available + SLOT_GAP) / (SLOT_SIZE + SLOT_GAP))
+    return math.max(MIN_SLOT_COLUMNS, columns)
+end
+
+function UI:SaveSize()
+    if not self.frame or not MB.db then return end
+    MB.db.windowWidth = math.max(MIN_MAIN_WIDTH, self.frame:GetWidth() or DEFAULT_MAIN_WIDTH)
+end
+
+function UI:RestoreSize()
+    if not self.frame then return end
+    local width = MB.db and tonumber(MB.db.windowWidth) or DEFAULT_MAIN_WIDTH
+    width = math.max(MIN_MAIN_WIDTH, width or DEFAULT_MAIN_WIDTH)
+
+    local parentWidth = UIParent and UIParent:GetWidth() or nil
+    if parentWidth and parentWidth > 80 then
+        width = math.min(width, parentWidth - 40)
+    end
+
+    self.frame:SetWidth(width)
+end
+
 function UI:Create()
     if self.frame then return end
 
     local frame = CreateFrame("Frame", "MewthischBagsFrame", UIParent)
-    frame:SetSize(MAIN_WIDTH, 420)
+    frame:SetSize(DEFAULT_MAIN_WIDTH, 420)
     frame:SetFrameStrata("HIGH")
     frame:SetClampedToScreen(true)
     frame:EnableMouse(true)
     frame:SetMovable(true)
+    if frame.SetResizable then frame:SetResizable(true) end
+
+    local maxWidth = math.max(MIN_MAIN_WIDTH, (UIParent:GetWidth() or 1600) - 40)
+    local maxHeight = math.max(220, (UIParent:GetHeight() or 1000) - 40)
+    if frame.SetResizeBounds then
+        frame:SetResizeBounds(MIN_MAIN_WIDTH, 160, maxWidth, maxHeight)
+    else
+        if frame.SetMinResize then frame:SetMinResize(MIN_MAIN_WIDTH, 160) end
+        if frame.SetMaxResize then frame:SetMaxResize(maxWidth, maxHeight) end
+    end
+
     addBackground(frame, COLORS.background)
     addBorder(frame, 1, COLORS.borderStrong)
     self.frame = frame
@@ -257,7 +301,7 @@ function UI:Create()
     searchFrame:SetPoint("TOPRIGHT", -CONTENT_PADDING, -(HEADER_HEIGHT + MONEY_HEIGHT + 12))
     searchFrame:SetHeight(SEARCH_HEIGHT)
     addBackground(searchFrame, {0.025, 0.038, 0.050, 1})
-    addBorder(searchFrame, 1, COLORS.accent)
+    addBorder(searchFrame, 1, COLORS.border)
     self.searchFrame = searchFrame
 
     local search = CreateFrame("EditBox", nil, searchFrame)
@@ -279,6 +323,12 @@ function UI:Create()
         placeholder:SetShown(not hasText)
         UI:ApplySearch()
     end)
+    search:SetScript("OnEditFocusGained", function()
+        setBorderColor(searchFrame, COLORS.accent)
+    end)
+    search:SetScript("OnEditFocusLost", function()
+        setBorderColor(searchFrame, COLORS.border)
+    end)
     search:SetScript("OnEscapePressed", function(self)
         self:SetText("")
         self:ClearFocus()
@@ -287,9 +337,45 @@ function UI:Create()
         self:ClearFocus()
     end)
 
+    local resizeHandle = CreateFrame("Button", nil, frame)
+    resizeHandle:SetSize(10, 56)
+    resizeHandle:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+    resizeHandle:EnableMouse(true)
+    resizeHandle.line = resizeHandle:CreateTexture(nil, "ARTWORK")
+    resizeHandle.line:SetWidth(2)
+    resizeHandle.line:SetHeight(32)
+    resizeHandle.line:SetPoint("CENTER")
+    setTextureColor(resizeHandle.line, COLORS.border)
+    resizeHandle:SetScript("OnEnter", function(self)
+        setTextureColor(self.line, COLORS.accent)
+    end)
+    resizeHandle:SetScript("OnLeave", function(self)
+        setTextureColor(self.line, COLORS.border)
+    end)
+    resizeHandle:SetScript("OnMouseDown", function(_, button)
+        if button == "LeftButton" and frame.StartSizing then
+            frame:StartSizing("RIGHT")
+        end
+    end)
+    resizeHandle:SetScript("OnMouseUp", function()
+        frame:StopMovingOrSizing()
+        UI:SaveSize()
+        UI:LayoutSlots()
+        UI:UpdateBagPanelSide()
+    end)
+    self.resizeHandle = resizeHandle
+
     self.slotButtons = {}
+    self.currentSlots = {}
     self:CreateBagPanel()
+    self:RestoreSize()
     self:RestorePosition()
+
+    frame:SetScript("OnSizeChanged", function()
+        if UI._settingLayoutHeight then return end
+        UI:LayoutSlots()
+        UI:UpdateBagPanelSide()
+    end)
 
     frame:SetScript("OnShow", function()
         UI:RefreshAll()
@@ -303,7 +389,7 @@ function UI:CreateBagPanel()
     if self.bagPanel then return end
 
     local panel = CreateFrame("Frame", "MewthischBagsBagPanel", UIParent)
-    panel:SetSize(PANEL_WIDTH, 320)
+    panel:SetSize(PANEL_WIDTH, PANEL_EMPTY_HEIGHT)
     panel:SetFrameStrata("HIGH")
     panel:SetClampedToScreen(true)
     addBackground(panel, COLORS.panel)
@@ -360,8 +446,8 @@ function UI:CreateBagPanel()
     self.availableTitle = availableTitle
 
     local scroll = CreateFrame("ScrollFrame", nil, panel)
-    scroll:SetPoint("TOPLEFT", 10, -126)
-    scroll:SetPoint("BOTTOMRIGHT", -10, 10)
+    scroll:SetPoint("TOPLEFT", 10, -AVAILABLE_TOP)
+    scroll:SetPoint("BOTTOMRIGHT", -10, PANEL_BOTTOM_PADDING)
     scroll:EnableMouseWheel(true)
     self.availableScroll = scroll
 
@@ -404,8 +490,11 @@ function UI:ResetPosition()
     if MB.db then
         MB.db.positionX = 0
         MB.db.positionY = 0
+        MB.db.windowWidth = DEFAULT_MAIN_WIDTH
     end
+    self:RestoreSize()
     self:RestorePosition()
+    self:LayoutSlots()
     self:UpdateBagPanelSide()
 end
 
@@ -495,6 +584,41 @@ function UI:AcquireSlotButton(index)
     return button
 end
 
+function UI:LayoutSlots()
+    if not self.frame or not self.currentSlots then return end
+
+    local columns = self:GetSlotColumns()
+    local slotCount = #self.currentSlots
+
+    for index = 1, slotCount do
+        local button = self.slotButtons[index]
+        if button then
+            local col = (index - 1) % columns
+            local row = math.floor((index - 1) / columns)
+
+            button:ClearAllPoints()
+            button:SetPoint(
+                "TOPLEFT",
+                self.frame,
+                "TOPLEFT",
+                CONTENT_PADDING + col * (SLOT_SIZE + SLOT_GAP),
+                -(SLOT_TOP + row * (SLOT_SIZE + SLOT_GAP))
+            )
+        end
+    end
+
+    local rows = math.max(1, math.ceil(slotCount / columns))
+    local requiredHeight =
+        SLOT_TOP +
+        rows * (SLOT_SIZE + SLOT_GAP) +
+        CONTENT_PADDING -
+        SLOT_GAP
+
+    self._settingLayoutHeight = true
+    self.frame:SetHeight(requiredHeight)
+    self._settingLayoutHeight = false
+end
+
 function UI:RefreshSlots()
     if not self.frame then return end
 
@@ -505,20 +629,10 @@ function UI:RefreshSlots()
             slots[#slots + 1] = API:GetContainerItemInfo(bagID, slotID)
         end
     end
+    self.currentSlots = slots
 
     for index, info in ipairs(slots) do
         local button = self:AcquireSlotButton(index)
-        local col = (index - 1) % SLOT_COLUMNS
-        local row = math.floor((index - 1) / SLOT_COLUMNS)
-
-        button:ClearAllPoints()
-        button:SetPoint(
-            "TOPLEFT",
-            self.frame,
-            "TOPLEFT",
-            CONTENT_PADDING + col * (SLOT_SIZE + SLOT_GAP),
-            -(SLOT_TOP + row * (SLOT_SIZE + SLOT_GAP))
-        )
 
         button.bagID = info.bagID
         button.slotID = info.slotID
@@ -550,13 +664,7 @@ function UI:RefreshSlots()
         self.slotButtons[index]:Hide()
     end
 
-    local rows = math.max(1, math.ceil(#slots / SLOT_COLUMNS))
-    local height = SLOT_TOP + rows * (SLOT_SIZE + SLOT_GAP) + CONTENT_PADDING - SLOT_GAP
-    self.frame:SetHeight(height)
-
-    local panelHeight = math.max(300, math.min(height, 520))
-    self.bagPanel:SetHeight(panelHeight)
-
+    self:LayoutSlots()
     self:ApplySearch()
 end
 
@@ -618,6 +726,32 @@ function UI:AcquireAvailableBagButton(index)
 
     self.availableButtons[index] = button
     return button
+end
+
+function UI:ResizeBagPanelForAvailableCount(count)
+    if not self.bagPanel or not self.availableScroll or not self.availableChild then return end
+
+    count = math.max(0, tonumber(count) or 0)
+    if count == 0 then
+        self.availableChild:SetHeight(1)
+        self.availableScroll:SetVerticalScroll(0)
+        self.availableScroll:Hide()
+        self.bagPanel:SetHeight(PANEL_EMPTY_HEIGHT)
+        return
+    end
+
+    local rows = math.ceil(count / AVAILABLE_COLUMNS)
+    local contentHeight =
+        rows * BAG_SLOT_SIZE +
+        math.max(0, rows - 1) * BAG_GAP
+
+    self.availableChild:SetHeight(math.max(1, contentHeight))
+    self.availableScroll:Show()
+
+    local desiredHeight = AVAILABLE_TOP + contentHeight + PANEL_BOTTOM_PADDING
+    local screenLimit = (UIParent:GetHeight() or PANEL_MAX_HEIGHT) - 40
+    local maxHeight = math.max(PANEL_EMPTY_HEIGHT, math.min(PANEL_MAX_HEIGHT, screenLimit))
+    self.bagPanel:SetHeight(math.max(PANEL_EMPTY_HEIGHT, math.min(desiredHeight, maxHeight)))
 end
 
 function UI:RefreshBagPanel()
@@ -689,8 +823,7 @@ function UI:RefreshBagPanel()
         self.availableButtons[index]:Hide()
     end
 
-    local rows = math.max(1, math.ceil(#available / AVAILABLE_COLUMNS))
-    self.availableChild:SetHeight(rows * (BAG_SLOT_SIZE + BAG_GAP))
+    self:ResizeBagPanelForAvailableCount(#available)
 end
 
 function UI:RefreshAll()
