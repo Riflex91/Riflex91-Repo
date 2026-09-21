@@ -21,11 +21,11 @@
     "preSendException": "Only when durable journal evidence proves SEND_NOT_ATTEMPTED may the scheduler re-attempt the same intent after fresh admission."
   },
   "summary": {
-    "total": 60,
-    "verifiedRecoveryPolicy": 59,
+    "total": 61,
+    "verifiedRecoveryPolicy": 60,
     "disabledWithActionContract": 1,
     "byRecoveryClass": {
-      "STATE_REOBSERVE": 24,
+      "STATE_REOBSERVE": 25,
       "ACCOUNT_SHARED_STATE": 5,
       "MIXED_PATH_RECONCILE": 1,
       "ROUTER_DELEGATE": 1,
@@ -3944,6 +3944,75 @@
       "notes": [
         "Derived from AL-ACTION-DESTROY-ITEM (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
         "Action postcondition: destroyed item/quantity no longer exists at the re-resolved physical inventory identity"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RECOVERY-MLUCK-SAME-ACCOUNT",
+      "actionContractId": "AL-ACTION-MLUCK-SAME-ACCOUNT",
+      "publicFunction": "use_skill",
+      "status": "VERIFIED_RECOVERY_POLICY",
+      "recoveryClass": "STATE_REOBSERVE",
+      "unknownEntryTriggers": [
+        "TIMEOUT_AFTER_SEND_POSSIBLE",
+        "DISCONNECT_AFTER_SEND_POSSIBLE",
+        "PROCESS_CRASH_AFTER_DURABLE_INTENT_BEFORE_SETTLEMENT",
+        "RESPONSE_LOST_AFTER_POSSIBLE_COMMIT",
+        "POSTCONDITION_CONTRADICTION"
+      ],
+      "reobserveSources": [
+        "sender_character_session",
+        "sender_mp",
+        "skill_cooldown",
+        "recipient_entity",
+        "recipient_session",
+        "target_mluck_condition_source_strength"
+      ],
+      "settlementRules": {
+        "committed": [
+          "Fresh target evidence from the same bound recipient session shows active mluck with source f equal to the intended merchant.",
+          "For same-account service, fresh target evidence shows strong=true.",
+          "Fresh sender MP/cooldown evidence is consistent with exactly one accepted use."
+        ],
+        "notApplied": [
+          "Fresh target evidence remains equal to the pinned pre-state and sender MP/cooldown evidence positively proves no accepted use.",
+          "No competing same-scope MLuck mutation can explain the observed state."
+        ],
+        "partial": [
+          "Sender MP/cooldown changed but the intended target condition cannot be proven; never resend the original intent.",
+          "Target condition changed but source/session binding contradicts the intended merchant/recipient; quarantine or operator review."
+        ],
+        "stillPending": [
+          "Only classify STILL_PENDING when an authoritative correlated skill transport state explicitly proves the request is in progress."
+        ],
+        "unresolved": [
+          "Sender or target evidence is stale, missing, contradictory, or insufficient to distinguish applied from not-applied."
+        ]
+      },
+      "retryPolicy": {
+        "sameIntentAfterPossibleSend": "NEVER",
+        "afterNotApplied": "NEW_INTENT_AFTER_FRESH_ADMISSION_ONLY",
+        "afterPartial": "REPLAN_REMAINDER_AS_NEW_INTENT",
+        "afterStillPending": "WAIT_AND_REOBSERVE_NO_SEND",
+        "afterUnresolved": "QUARANTINE_OR_OPERATOR_NO_SEND"
+      },
+      "journalRequirements": [
+        "intent_id",
+        "attempt_id",
+        "action_contract_id",
+        "recovery_contract_id",
+        "knowledge_snapshot_id",
+        "pinned_prestate_fingerprint",
+        "resource_claims_and_fencing",
+        "send_boundary_state",
+        "correlation_or_request_id_if_any",
+        "server_result_if_any",
+        "observation_timestamps",
+        "postcondition_evidence"
+      ],
+      "notes": [
+        "Derived from AL-ACTION-MLUCK-SAME-ACCOUNT and official client/server source snapshots.",
+        "MP is consumed before the server decides whether an existing strong MLuck is overwritten, so target condition source/strength must be pinned before send."
       ]
     }
   ]
