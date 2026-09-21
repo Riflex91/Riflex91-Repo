@@ -152,7 +152,14 @@ frame:SetScript("OnEvent", function(_, event, ...)
     local args = { ... }
     MG:Safe("event." .. event, function()
         if event == "ADDON_LOADED" then
-            if args[1] == addonName then MG:EnsureDB() end
+            if args[1] == addonName then
+                MG:EnsureDB()
+                MG:Log("INFO", "addon.loaded", "Mewthisch Guides Build geladen.", {
+                    version = MG.VERSION,
+                    build = MG.BUILD,
+                    interface = MG.INTERFACE,
+                })
+            end
             return
         end
 
