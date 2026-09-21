@@ -2,7 +2,7 @@
 
 **Status:** AKTIV / POST-R19 PRODUKTIVIERUNG  
 **Stand:** 2026-09-21  
-**Basis-main:** `04dbc2cf5ab70992ec0dac9c7952cafb1ca4a0db`  
+**Basis-main:** `5dca18494fb6414d0d3f10b10d449c0c6abbb32d`  
 **Vorgaenger:** `dokumentation/V5-MASTER-ROADMAP.md` (R0-R19 abgeschlossen)  
 
 ## 1. Zweck
@@ -66,7 +66,7 @@ Fuer alle Post-R19-Stufen gelten unveraendert:
 
 | Stufe | Ziel | Status | Harte Voraussetzung |
 |---|---|---|---|
-| PR20 | Merchant produktiv vervollstaendigen | IN_PROGRESS | aktueller Equip-Live-Nachweis |
+| PR20 | Merchant produktiv vervollstaendigen | IN_PROGRESS | PR20.1 bestanden; aktuelles Gate PR20.2 Bank |
 | PR21 | Merchant Gesamtintegration zertifizieren | BLOCKED_BY_PR20 | PR20 komplett |
 | PR22 | Produktive Multi-Character-Koordination | BLOCKED_BY_PR21 | stabiler Merchant |
 | PR23 | Farmer Movement/Combat/Loot/AoE produktiv | BLOCKED_BY_PR22 | produktive Character-Koordination |
@@ -86,30 +86,37 @@ Fuer alle Post-R19-Stufen gelten unveraendert:
 
 ### PR20.1 – Equip-Produktionsnachweis
 
-Aktueller naechster Schritt:
+**Status:** BESTANDEN.
 
-1. read-only Preflight auf dem realen Merchant;
-2. erwarteter Preflight: kein Gameplay-Write;
-3. danach exakt ein explizit bestaetigter produktiver `equipment.equip`-Write;
-4. Transaction Journal, Adapteraufrufe, Gameplay-Writes, Postcondition, Authority-Lifecycle und Recovery auswerten;
-5. bei UNKNOWN/BLOCKED/offener Transaktion kein erneuter Send, sondern Evidence-Analyse.
+Der reale Nachweis wurde auf dem dafuer festgehaltenen Source-SHA
+`04dbc2cf5ab70992ec0dac9c7952cafb1ca4a0db` ausgefuehrt. Der read-only
+Preflight war `BEREIT` mit `browserGameplayWrites=0`. Der anschliessende
+Einmal-Lauf erzeugte exakt einen Adapteraufruf und exakt einen erwarteten
+Gameplay-Write. Die Transaktion
+`EQUIP-PROD-TX-1790003670981-1df091d1` endete `COMMITTED`, Recovery
+klassifizierte `BESTAETIGT`, das Journal endete mit `COMMIT`,
+`sameIntentRetry=false` und nach dem Lauf war keine Equip-Einmal-Authority
+offen.
 
-**Exit Gate:**
-- Preflight sauber;
-- exakt ein erwarteter Write im Live-Lauf;
-- `sameIntentRetry=false`;
-- fachliche Postcondition bestaetigt;
-- keine offene Transaktion;
-- keine unerwartete Authority;
-- Evidence im Repo dokumentiert.
+Ein vorheriger Lauf wurde wegen fehlerhafter Windows/npm-Argumentweitergabe
+der Operator-Bestaetigung vor Transaktions-ID, Adapter und Orchestrierung
+blockiert. Vor dem erfolgreichen Einmal-Lauf wurden Current-Pointer,
+Authority-Verzeichnis und Live-Report read-only geprueft; alle waren absent.
+Es erfolgte kein Blind-Retry eines moeglicherweise gesendeten Intents.
+
+Evidence:
+`roadmap/pr20-1-equip-production-evidence.json`.
+
+**Exit Gate:** BESTANDEN.
 
 ### PR20.2 – Bank-Autonomie produktiv
 
 **Vorbereitung:** `VORBEREITET_NO_WRITE`. Die sichere Vorarbeit ist bereits unter
 `dokumentation/PR20-2-BANK-PRODUKTIV-VORBEREITUNG.md` und
 `grundlage/vertraege/runtime/bank-production-preparation.json` festgehalten.
-Sie bleibt hinter `PR20.1_EQUIP_PRODUKTIONSNACHWEIS` blockiert und registriert
-weder Bank-Mutationsauthority noch einen Gameplay-Write-Pfad.
+PR20.1 ist bestanden. Damit ist die NO-WRITE-Vorbereitung fuer die
+kontrollierte PR20.2-Produktivierung freigegeben. Sie registriert weiterhin
+noch keine Bank-Mutationsauthority und keinen Gameplay-Write-Pfad.
 
 Vorhandene Bankplanung, Bank-Lease, Fencing und Bankkatalog-Fundamente werden mit echten Bankmutationen verbunden.
 
@@ -162,9 +169,10 @@ Abzudecken:
 **Vorbereitung:** `VORBEREITET_NO_WRITE`. Die sichere Vorarbeit ist bereits unter
 `dokumentation/PR20-4-LOGISTIK-TRANSFER-PRODUKTIV-VORBEREITUNG.md` und
 `grundlage/vertraege/runtime/logistics-transfer-production-preparation.json`
-festgehalten. Dabei ist eine konkrete Restluecke bewusst offen markiert:
-`send_gold` benoetigt vor Produktivierung noch einen typisierten
-Empfaenger-Gold-Settlement-Vertrag.
+festgehalten. Der zuvor offene Gold-Empfaenger-Settlement-Core ist inzwischen
+authority-frei implementiert. Produktive Capability, Authority, Journal,
+Preflight, Adapter und Live-Evidence bleiben davon unberuehrt und weiter
+gesperrt.
 
 CAP-038 und die vorhandenen Logistik-Fundamente werden mit echten Item-/Gold-Transfers verbunden.
 
@@ -652,14 +660,15 @@ Ein echter Android-/Termux-Host ist eine separate spaetere Entscheidung.
 
 ## 18. Aktueller naechster Schritt
 
-Der verbindliche naechste Schritt bleibt PR20.1:
+PR20.1 ist bestanden. Der verbindliche naechste Schritt ist jetzt
+`PR20.2_BANK_PRODUKTIVIERUNG`.
 
-1. realer Merchant;
-2. V3/V4 alternative Runtime inaktiv;
-3. `equipment-equip-production:preflight`;
-4. Ausgabe auswerten;
-5. nur bei sauberem Preflight exakt einen produktiven Equip-Write;
-6. Evidence auswerten;
-7. erst danach PR20.2 Bank-Mutationen beginnen.
+1. genau einen ersten Bank-Live-Kandidaten festlegen;
+2. enge Mutations-Capability und Single Owner ratifizieren;
+3. Authority, Admission und Transaktionsjournal/Current-Fence implementieren;
+4. read-only Preflight bauen;
+5. Unit-, Replay-, Fault-, Restart- und UNKNOWN-Tests vollstaendig gruen;
+6. Shadow nachweisen;
+7. erst danach ein neues reales Bank-Live-Gate oeffnen.
 
-Die bestehende Produktionsdokumentation `dokumentation/PRODUKTIONS-KOMPOSITION.md` bleibt fuer diesen unmittelbaren Gate verbindlich.
+Bis zu diesem neuen Live-Gate werden keine echten Bank-Writes ausgefuehrt.
