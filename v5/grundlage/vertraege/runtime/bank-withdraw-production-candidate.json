@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_PR20_2_BANK_WITHDRAW_NAECHSTER_LIVE_KANDIDAT",
+  "stand": "2026-09-21",
+  "status": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE",
+  "sourceMain": "ed4a23b3f228dba08abc66fa07f81a83315b0b5f",
+  "capabilitySpaeter": "merchant.bank.gold_auslagern",
+  "providerSpaeter": "merchant-bank-core@1",
+  "actionContractId": "AL-ACTION-BANK-WITHDRAW",
+  "recoveryContractId": "AL-RECOVERY-BANK-WITHDRAW",
+  "verifierId": "AL-VERIFIER-BANK-WITHDRAW",
+  "publicFunction": "bank_withdraw",
+  "ersterLiveBetragGold": 1,
+  "auswahlbegruendung": [
+    "gleiche eng beobachtbare Gold-Effektdomaenen wie der bestandene Deposit-Pfad",
+    "exakt beobachtbares +1/-1 Delta ohne physisches Item-Mapping oder Zielslot",
+    "bestehende accountweite Bank-Lease, FIFO-bank-Channel- und Socket-Budget-Grenzen sind fachlich wiederverwendbar",
+    "Action/Recovery/Verifier sind bereits R9-gebunden und NON_IDEMPOTENT",
+    "same-intent retry nach moeglichem Send bleibt verboten"
+  ],
+  "offizielleSemantik": {
+    "snapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "client": "bank_withdraw(gold) -> FIFO deferred channel bank -> socket event bank { operation: withdraw, amount: gold }",
+    "response": "bank_withdraw",
+    "effectDomains": [
+      "gold",
+      "bank_gold"
+    ],
+    "executionModel": "ATOMIC_HANDLER"
+  },
+  "admissionMinimum": [
+    "ctype merchant",
+    "character alive and idle",
+    "bank mounted",
+    "alternative V3/V4 runtime inactive",
+    "fresh character/bank/inventory evidence",
+    "active account-wide bank lease belongs to the character",
+    "lease epoch and mount epoch match fresh evidence",
+    "session and server binding unchanged",
+    "no open bank transaction",
+    "bank gold >= 1",
+    "durable intent before send",
+    "local bank action-channel and character socket budget fenced"
+  ],
+  "settlement": {
+    "characterGoldDelta": 1,
+    "bankGoldDelta": -1,
+    "requireNewFingerprint": true,
+    "requireSameCharacter": true,
+    "requireSameSession": true,
+    "requireSameServer": true,
+    "requireSameLeaseEpoch": true,
+    "requireSameMountEpoch": true,
+    "sameIntentRetry": false
+  },
+  "authorityGrenze": {
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "produktiveCapabilityInDiesemSchritt": false,
+    "authorityInDiesemSchritt": false,
+    "adapterInDiesemSchritt": false,
+    "liveRunnerInDiesemSchritt": false,
+    "gameplayWritesInDiesemSchritt": 0
+  },
+  "naechsterSchritt": "DEFAULT_OFF_CAPABILITY_UND_ONE_SHOT_AUTHORITY_NO_WRITE_NACH_EXACT_HEAD_CI"
+}

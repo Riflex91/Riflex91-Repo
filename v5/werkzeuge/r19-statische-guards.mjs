@@ -602,6 +602,49 @@ if(/\bbank_deposit\s*\(/.test(bankDepositLiveRunner)
   fehler.push("BANK_DEPOSIT_LIVE_RUNNER_DIREKTWRITE_VERBOTEN");
 }
 
+
+const bankWithdrawSettlementCore=lies(
+  "grundlage/quelle/merchant/bank-withdraw-settlement.ts",
+);
+for(const m of [
+  "BANK_WITHDRAW_ERSTER_BETRAG",
+  "pruefeBankWithdrawEinGoldBereitschaft",
+  "pruefeBankWithdrawEinGoldSettlement",
+  "BANK_WITHDRAW_EXAKTES_GOLD_DELTA",
+  "sameIntentErneutSenden: false",
+  "gameplayAutoritaet: false",
+  "rawWriteAutoritaet: false",
+]){
+  if(!bankWithdrawSettlementCore.includes(m)) {
+    fehler.push("BANK_WITHDRAW_SETTLEMENT_CORE_GRENZE_FEHLT:"+m);
+  }
+}
+if(/\bbank_withdraw\s*\(/.test(bankWithdrawSettlementCore)
+    ||/\.emit\s*\(/.test(bankWithdrawSettlementCore)
+    ||/\bAusfuehrungsKernel\b/.test(bankWithdrawSettlementCore)
+    ||/\bAusfuehrungsAdapter\b/.test(bankWithdrawSettlementCore)) {
+  fehler.push("BANK_WITHDRAW_SETTLEMENT_CORE_NO_WRITE_VERLETZT");
+}
+const bankWithdrawCandidate=lies(
+  "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
+);
+for(const m of [
+  '"status": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE"',
+  '"publicFunction": "bank_withdraw"',
+  '"characterGoldDelta": 1',
+  '"bankGoldDelta": -1',
+  '"sameIntentRetry": false',
+  '"produktiveCapabilityInDiesemSchritt": false',
+  '"authorityInDiesemSchritt": false',
+  '"adapterInDiesemSchritt": false',
+  '"liveRunnerInDiesemSchritt": false',
+  '"gameplayWritesInDiesemSchritt": 0',
+]){
+  if(!bankWithdrawCandidate.includes(m)) {
+    fehler.push("BANK_WITHDRAW_CANDIDATE_GRENZE_FEHLT:"+m);
+  }
+}
+
 const equipProdRunner=lies("werkzeuge/equipment-equip-produktions-live.mjs");
 for(const m of [
   "fuehreEquipEinmalTransaktion",

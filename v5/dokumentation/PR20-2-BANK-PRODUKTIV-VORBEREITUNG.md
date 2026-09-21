@@ -84,6 +84,43 @@ implementiert. Die Capability bleibt `standardAktiv=false`; die Authority ist
 maximal 2000 ms gueltig und genau einmal verbrauchbar. Weiterhin fehlen bewusst
 Write-Adapter und Live-Runner.
 
+## PR20.2j – naechster Kandidat bank_withdraw(1) NO-WRITE
+
+Nach dem bestandenen Deposit-One-Shot ist exakt `bank_withdraw(1)` als
+naechster enger Kandidat ratifiziert. Withdraw ist gegenueber Store der
+kleinere naechste Schritt, weil die fachliche Wirkung weiterhin nur die beiden
+Gold-Domaenen umfasst und kein Item-, Stack- oder Zielslot-Mapping benoetigt.
+
+Neu vorhanden sind ausschliesslich:
+
+- authority-freier Settlement-/Drift-Core
+  `grundlage/quelle/merchant/bank-withdraw-settlement.ts`;
+- maschinenlesbarer Kandidatenvertrag
+  `grundlage/vertraege/runtime/bank-withdraw-production-candidate.json`;
+- automatische Tests fuer Bereitschaft, exaktes Delta, stale Evidence und
+  Session-/Server-/Lease-/Mount-Drift;
+- ADR-039 als explizite NO-WRITE-Ratifizierung.
+
+Ein spaeteres COMMIT ist nur modelliert, wenn dieselbe Bindung frisch und mit
+neuem Fingerprint beobachtet wird und gleichzeitig exakt
+`character.gold + 1` sowie `bank.gold - 1` gilt. Einseitige Deltas oder
+stale Evidence sind kein Erfolg.
+
+In PR20.2j bewusst **nicht** vorhanden:
+
+- keine Capability `merchant.bank.gold_auslagern`;
+- keine Withdraw-One-Shot-Authority;
+- kein Withdraw-Current-Fence;
+- kein Write-Adapter;
+- kein Live-Runner;
+- kein direkter produktiver `bank_withdraw`-Aufruf;
+- keine Gameplay-/Raw-Write-Authority;
+- exakt 0 Gameplay-Writes.
+
+Der naechste Schritt darf erst nach gruener Exact-Head-CI die default-off
+Capability, eine eigene kurzlebige One-Shot-Authority und einen durable
+Current-Fence vorbereiten. Auch dieser Folgeschritt bleibt zunaechst NO-WRITE.
+
 ## Admission-Grenze fuer die spaetere Implementierung
 
 Unmittelbar vor jedem moeglichen Bank-Send muessen mindestens erneut bewiesen sein:

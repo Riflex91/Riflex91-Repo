@@ -202,6 +202,38 @@ test("open_bank_pack bleibt wegen eigener Capacity-/Backend-Risiken bewusst auss
   assert.equal(contract.idempotency, "NON_IDEMPOTENT");
 });
 
+test("PR20.2 naechster Live-Kandidat ist bank_withdraw(1) strikt NO-WRITE", () => {
+  const kandidat = prep.naechsterLiveKandidat;
+  const vertrag = lies(
+    "grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
+  );
+  assert.ok(kandidat);
+  assert.equal(kandidat.status, "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE");
+  assert.equal(kandidat.publicFunction, "bank_withdraw");
+  assert.equal(kandidat.betragGold, 1);
+  assert.equal(kandidat.actionContractId, "AL-ACTION-BANK-WITHDRAW");
+  assert.equal(kandidat.recoveryContractId, "AL-RECOVERY-BANK-WITHDRAW");
+  assert.equal(kandidat.verifierId, "AL-VERIFIER-BANK-WITHDRAW");
+  assert.equal(kandidat.sameIntentRetry, false);
+  assert.equal(kandidat.gameplayAutoritaet, false);
+  assert.equal(kandidat.rawWriteAutoritaet, false);
+  assert.equal(kandidat.produktiveCapabilityImplementiert, false);
+  assert.equal(kandidat.oneShotAuthorityImplementiert, false);
+  assert.equal(kandidat.currentFenceImplementiert, false);
+  assert.equal(kandidat.writeAdapterImplementiert, false);
+  assert.equal(kandidat.liveRunnerImplementiert, false);
+  assert.equal(kandidat.gameplayWritesInDiesemSchritt, 0);
+  assert.equal(vertrag.publicFunction, "bank_withdraw");
+  assert.equal(vertrag.settlement.characterGoldDelta, 1);
+  assert.equal(vertrag.settlement.bankGoldDelta, -1);
+  assert.equal(vertrag.settlement.sameIntentRetry, false);
+  assert.equal(vertrag.authorityGrenze.produktiveCapabilityInDiesemSchritt, false);
+  assert.equal(vertrag.authorityGrenze.authorityInDiesemSchritt, false);
+  assert.equal(vertrag.authorityGrenze.adapterInDiesemSchritt, false);
+  assert.equal(vertrag.authorityGrenze.liveRunnerInDiesemSchritt, false);
+  assert.equal(vertrag.authorityGrenze.gameplayWritesInDiesemSchritt, 0);
+});
+
 test("Produktionskomposition registriert nur den engen Deposit-Single-Owner default-off", () => {
   assert.ok(
     produktionsKomposition.includes(

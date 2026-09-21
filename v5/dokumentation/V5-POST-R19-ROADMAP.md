@@ -156,6 +156,16 @@ Damit ist Gold-Deposit als enger One-Shot-Produktivpfad real bewiesen. Die
 gesamte Bank-Autonomie bleibt jedoch offen, bis Withdraw/Store/Retrieve/Swap
 und die abschliessende 5m-Funktionsevidence bestanden sind.
 
+PR20.2j ratifiziert als naechsten engen Kandidaten exakt `bank_withdraw(1)`.
+In diesem Schritt existiert ausschliesslich ein authority-freier
+Settlement-/Drift-Core mit dem erforderlichen gemeinsamen Delta
+`character.gold + 1` und `bank.gold - 1`. Capability, One-Shot-Authority,
+Current-Fence, Write-Adapter und Live-Runner sind fuer Withdraw weiterhin
+**nicht** implementiert; dieser Schritt erzeugt exakt 0 Gameplay-Writes.
+Same-Intent-Retry bleibt verboten. ADR:
+`architektur/adr/ADR-039-PR20-2J-BANK-WITHDRAW-ONE-GOLD-NO-WRITE.md`.
+
+
 Vorhandene Bankplanung, Bank-Lease, Fencing und Bankkatalog-Fundamente werden mit echten Bankmutationen verbunden.
 
 Abzudecken:
