@@ -108,3 +108,37 @@ Produktions-Transaktionscore, Browser-Write-Adapter, Live-Runner und deren
 Runtime-/Host-Wiring entfernt werden, ohne Spielzustands-Rollback zu benoetigen.
 Bereits vorhandene Withdraw-Shadow-, Authority-, Lease- und Settlement-Evidence
 bleibt davon unberuehrt.
+
+
+## Addendum PR20.2p – Zwei-Test-Closeout und CODE-Bridge
+
+Dieses Addendum ersetzt fuer den aktuellen Stand die in ADR-043 beschriebene
+Annahme, dass der erlaubte Public-Function-Write direkt als
+`root.bank_withdraw(1)` im Character-Page-Kontext verfuegbar ist.
+
+Die reale Browser-Diagnose zeigte, dass `bank_withdraw` in Adventure Land im
+separaten CODE-Runner bereitgestellt wird. Der Character-Page-Kontext stellt
+stattdessen die offizielle Bruecke `call_code_function_f` bereit. Der
+Withdraw-Adapter nutzt deshalb nun den Page-Kontext und darf, falls der Runner
+inaktiv ist, ausschliesslich den No-op
+`call_code_function_f('eval','void 0')` zum bounded Bootstrap verwenden.
+Danach muss der komplette Prestate erneut validiert werden. Erst dann existiert
+genau ein moeglicher Aufruf
+`maincode.contentWindow.bank_withdraw(1)`.
+
+Der Zwei-Test-Abnahmeplan fuer `bank_withdraw(1)` ist ausgeschöpft. Test 1
+erreichte einen moeglichen Send/Gameplay-Write, Settlement blieb jedoch
+ungeklaert. Test 2 erreichte den Adapter, sendete aber wegen des fehlenden
+CODE-Runners nicht. Nach dem Bridge-Fix wurde der Runner-Bootstrap real mit
+0 Gameplay-Writes und 0 Withdraw-Aufrufen als `BEREIT` nachgewiesen.
+
+Folglich gilt:
+- kein dritter Withdraw-Funktionstest;
+- keine breite Produktionsfreigabe aus der Bridge-Evidence;
+- `sameIntentRetry=false`;
+- kein Raw-Socket-`.emit`;
+- korrigierter Bridge-Pfad read-only bestaetigt, Live-Write-Evidence weiterhin
+  nicht bestanden.
+
+Maschinenlesbare Evidence:
+`roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json`.

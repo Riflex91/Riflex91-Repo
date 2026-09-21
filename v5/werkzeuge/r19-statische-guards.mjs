@@ -905,6 +905,23 @@ if(/\.emit\s*\(/.test(bankWithdrawWriteBrowser)
     ||/\bopen_bank_pack\s*\(/.test(bankWithdrawWriteBrowser)) {
   fehler.push("BANK_WITHDRAW_WRITE_BROWSER_FREMDWRITE_VERBOTEN");
 }
+
+const bankWithdrawCloseoutEvidence=JSON.parse(
+  lies("roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json"),
+);
+if(bankWithdrawCloseoutEvidence.status!=="FUNKTIONS_TEST_LIMIT_ERREICHT_BRIDGE_READ_ONLY_BESTAETIGT"
+    ||bankWithdrawCloseoutEvidence.testPolicy?.maxTrueFunctionalTestsPerFunction!==2
+    ||bankWithdrawCloseoutEvidence.testPolicy?.additionalTrueFunctionalTestAllowed!==false
+    ||bankWithdrawCloseoutEvidence.functionalTests?.length!==2
+    ||bankWithdrawCloseoutEvidence.certification?.realLiveWriteEvidence!=="NICHT_BESTANDEN"
+    ||bankWithdrawCloseoutEvidence.certification?.correctedBridgePathReadOnlyEvidence!=="BESTANDEN"
+    ||bankWithdrawCloseoutEvidence.certification?.productionWideActivationAllowed!==false
+    ||bankWithdrawCloseoutEvidence.implementationAfterCloseout?.bridgeFunction!=="call_code_function_f"
+    ||bankWithdrawCloseoutEvidence.implementationAfterCloseout?.rawSocketEmit!==false
+    ||bankWithdrawCloseoutEvidence.implementationAfterCloseout?.sameIntentRetry!==false) {
+  fehler.push("BANK_WITHDRAW_CLOSEOUT_EVIDENCE_UNGUELTIG");
+}
+
 const bankWithdrawProdCore=lies(
   "grundlage/quelle/merchant/bank-withdraw-produktions-transaktion.ts",
 );
