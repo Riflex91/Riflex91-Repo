@@ -20,8 +20,12 @@ const pflicht=[
   "grundlage/quelle/equipment/faehigkeits-vertrag.ts",
   "grundlage/quelle/equipment/produktions-einmal-authority.ts",
   "grundlage/adapter/persistenz/node-equip-einmal-authority-protokoll.mjs",
+  "grundlage/quelle/equipment/produktions-equip-admission-gate.ts",
+  "grundlage/quelle/equipment/produktions-equip-transaktion.ts",
+  "grundlage/adapter/persistenz/node-equip-transaktionsjournal.mjs",
   "grundlage/vertraege/runtime/equipment-equip-mutationsfaehigkeit.json",
   "grundlage/vertraege/runtime/equipment-equip-one-shot-authority.json",
+  "grundlage/vertraege/runtime/equipment-equip-production-transaction.json",
   "grundlage/quelle/merchant/demand.ts",
   "grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json",
   "grundlage/vertraege/runtime/durable-planen-authority.json",
@@ -37,6 +41,7 @@ const pflicht=[
   "architektur/adr/ADR-031-BANK-PLANEN-OBSERVER-CANARY.md",
   "architektur/adr/ADR-032-PRODUKTIVE-EQUIP-MUTATIONSFAEHIGKEIT.md",
   "architektur/adr/ADR-033-EQUIP-EINMAL-AUTHORITY.md",
+  "architektur/adr/ADR-034-PRODUKTIVE-EQUIP-TRANSAKTION.md",
   "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
   "grundlage/tests/r11-bank-planen-observer-canary.test.mjs",
   "werkzeuge/bank-planen-canary-browser.mjs",
@@ -50,6 +55,11 @@ const pflicht=[
   "grundlage/tests/r11-planen-aktivierungs-persistenz.test.mjs",
   "grundlage/tests/r11-equip-einmal-authority.test.mjs",
   "grundlage/tests/r11-equip-einmal-authority-persistenz.test.mjs",
+  "grundlage/tests/r11-equip-produktions-transaktion.test.mjs",
+  "grundlage/tests/r11-equip-produktions-journal.test.mjs",
+  "grundlage/tests/r11-equip-produktions-browser.test.mjs",
+  "werkzeuge/equipment-equip-produktions-browser.mjs",
+  "werkzeuge/equipment-equip-produktions-live.mjs",
   "grundlage/tests/r19-evidence-ladder.test.mjs",
   "grundlage/tests/r19-production-certification.test.mjs",
   "grundlage/tests/r19-shadow-certification.test.mjs",
@@ -225,6 +235,127 @@ if(equipAuthorityVertrag.capability?.id!=="equipment.equip"
     || equipAuthorityVertrag.wirkung?.adapterSendDurchAuthorityAusstellung!==0) {
   fehler.push("EQUIP_EINMAL_AUTHORITY_VERTRAG_UNGUELTIG");
 }
+const equipProdVertrag=JSON.parse(
+  lies("grundlage/vertraege/runtime/equipment-equip-production-transaction.json"),
+);
+if(equipProdVertrag.kennung!=="V5_EQUIPMENT_EQUIP_PRODUCTION_ONE_SHOT_TRANSACTION"
+    || equipProdVertrag.capability?.id!=="equipment.equip"
+    || equipProdVertrag.capability?.providerModulId!=="equipment-core"
+    || equipProdVertrag.capability?.providerVersion!=="1"
+    || equipProdVertrag.capability?.registryAktivierung!==false
+    || equipProdVertrag.operator?.bestaetigungText!=="V5 EQUIP EINMAL AUSFUEHREN"
+    || equipProdVertrag.candidate?.characterType!=="merchant"
+    || equipProdVertrag.candidate?.zielslotMussLeerSein!==true
+    || equipProdVertrag.candidate?.waffenSlotsErlaubt!==false
+    || equipProdVertrag.candidate?.itemMussUnlockedSein!==true
+    || equipProdVertrag.admission?.gesamtfreigabeErforderlich!==true
+    || equipProdVertrag.admission?.aktivePlanenCapabilitiesErlaubt!==false
+    || equipProdVertrag.admission?.oneShotAuthorityErforderlich!==true
+    || equipProdVertrag.admission?.operatorRecheckErforderlich!==true
+    || equipProdVertrag.admission?.actionContractId!=="AL-ACTION-EQUIP"
+    || equipProdVertrag.admission?.recoveryContractId!=="AL-RECOVERY-EQUIP"
+    || equipProdVertrag.admission?.verifierId!=="AL-VERIFIER-EQUIP"
+    || equipProdVertrag.admission?.socketBudgetGewicht!==3
+    || equipProdVertrag.admission?.durableIntentVorSend!==true
+    || equipProdVertrag.execution?.adapterId!=="v5-production-cdp-equip-once"
+    || equipProdVertrag.execution?.maxAdapterAufrufe!==1
+    || equipProdVertrag.execution?.maxGameplayWrites!==1
+    || equipProdVertrag.execution?.sameIntentRetry!==false
+    || equipProdVertrag.recovery?.sameIntentAfterPossibleSend!=="NEVER"
+    || equipProdVertrag.recovery?.maxBeobachtungen!==4
+    || equipProdVertrag.recovery?.commitNurBeiBestaetigt!==true
+    || equipProdVertrag.journal?.globalerCurrentPointer!==true
+    || equipProdVertrag.journal?.offeneTransaktionBlockiertNeue!==true
+    || equipProdVertrag.journal?.maxEintraegeProTransaktion!==16
+    || equipProdVertrag.browser?.cdpNurLoopback!==true
+    || equipProdVertrag.browser?.alternativeRuntimeVerboten!==true
+    || equipProdVertrag.preflight?.readOnly!==true
+    || equipProdVertrag.preflight?.browserGameplayWrites!==0
+    || equipProdVertrag.authority?.breiteRuntimeFreigabeDurchTransaktion!==false
+    || equipProdVertrag.authority?.rawWriteBypass!==false
+    || equipProdVertrag.authority?.generischeMutierenAktivierung!==false
+    || equipProdVertrag.naechsterNachweis?.gameplayWritesErwartet!==1
+    || equipProdVertrag.naechsterNachweis?.nachGruenerExactHeadCiErforderlich!==true) {
+  fehler.push("EQUIP_PROD_TX_VERTRAG_UNGUELTIG");
+}
+const equipProdTx=lies(
+  "grundlage/quelle/equipment/produktions-equip-transaktion.ts",
+);
+for(const m of [
+  "ErteilteAusfuehrungsFreigabe",
+  "PersistVorMutationTor",
+  "RecoveryKernel",
+  "PRODUKTIVE_EQUIP_INVARIANTEN",
+  '"equipment_slot_empty"',
+  'erstelleMutationsKanalPlan(a.characterId, "equip", 3)',
+  "same_intent_retry: false",
+  "vorherigesSlotItem !== null",
+]) {
+  if(!equipProdTx.includes(m)) fehler.push("EQUIP_PROD_TX_QUELLE_FEHLT:"+m);
+}
+const equipProdJournal=lies(
+  "grundlage/adapter/persistenz/node-equip-transaktionsjournal.mjs",
+);
+for(const m of [
+  'const BASIS = "runtime/transactions/equipment-equip"',
+  'const CURRENT = BASIS + "/current.json"',
+  "const MAX_EINTRAEGE = 16",
+  "EQUIP_TX_OFFENE_TRANSAKTION_BLOCKIERT",
+  "erstelleExklusivDurable",
+  "schreibeAtomarDurable",
+]) {
+  if(!equipProdJournal.includes(m)) fehler.push("EQUIP_PROD_TX_JOURNAL_FEHLT:"+m);
+}
+const equipProdBrowser=lies("werkzeuge/equipment-equip-produktions-browser.mjs");
+for(const m of [
+  'this.adapterId = "v5-production-cdp-equip-once"',
+  "MERCHANT_ERFORDERLICH",
+  "ALTERNATIVE_RUNTIME_AKTIV",
+  "EQUIPMENT_SLOT_NICHT_LEER",
+  "EQUIP_PROD_MEHR_ALS_EIN_ADAPTER_AUFRUF",
+]) {
+  if(!equipProdBrowser.includes(m)) fehler.push("EQUIP_PROD_BROWSER_FEHLT:"+m);
+}
+const equipProdWrites=equipProdBrowser.match(/root\.equip\s*\(/g)??[];
+if(equipProdWrites.length!==1) {
+  fehler.push("EQUIP_PROD_BROWSER_EXAKT_EIN_WRITE_ERFORDERLICH");
+}
+for(const [kennung,muster] of [
+  ["ATTACK",/\battack\s*\(/],
+  ["MOVE",/\bmove\s*\(/],
+  ["SMART_MOVE",/\bsmart_move\s*\(/],
+  ["USE_SKILL",/\buse_skill\s*\(/],
+  ["BANK_STORE",/\bbank_store\s*\(/],
+  ["BANK_RETRIEVE",/\bbank_retrieve\s*\(/],
+  ["BUY",/\bbuy\s*\(/],
+  ["SELL",/\bsell\s*\(/],
+  ["EXCHANGE",/\bexchange\s*\(/],
+  ["CRAFT",/\bcraft\s*\(/],
+  ["UPGRADE",/\bupgrade\s*\(/],
+  ["COMPOUND",/\bcompound\s*\(/],
+  ["SEND_ITEM",/\bsend_item\s*\(/],
+  ["SEND_GOLD",/\bsend_gold\s*\(/],
+  ["RAW_EMIT",/\.emit\s*\(/],
+]) {
+  if(muster.test(equipProdBrowser)) {
+    fehler.push("EQUIP_PROD_BROWSER_FREMDWRITE_VERBOTEN:"+kennung);
+  }
+}
+const equipProdRunner=lies("werkzeuge/equipment-equip-produktions-live.mjs");
+for(const m of [
+  "fuehreEquipEinmalTransaktion",
+  "EQUIPMENT_EQUIP_EINMAL_BESTAETIGUNG",
+  "EQUIP_PROD_SOURCE_SHA_ERFORDERLICH",
+  "runtime/canary/equipment-equip-production/latest.json",
+  "sameIntentRetry: false",
+  "browserGameplayWrites: 0",
+]) {
+  if(!equipProdRunner.includes(m)) fehler.push("EQUIP_PROD_RUNNER_FEHLT:"+m);
+}
+if(/root\.equip\s*\(/.test(equipProdRunner)||/\.emit\s*\(/.test(equipProdRunner)) {
+  fehler.push("EQUIP_PROD_RUNNER_DIREKTWRITE_VERBOTEN");
+}
+
 const runtimeKomposition=lies("grundlage/quelle/runtime/produktions-runtime.ts");
 for(const m of [
   "PRODUKTIONS_KOMPOSITION_FAEHIGKEIT_PROVIDER_FEHLT",
@@ -342,7 +473,10 @@ for(const m of [
   "ladeWirksameDenyBefehle",
   "NodePlanenAktivierungsProtokoll",
   "NodeEquipEinmalAuthorityProtokoll",
+  "NodeEquipTransaktionsJournal",
   "erteileEquipEinmalAuthority",
+  "fuehreEquipEinmalTransaktion",
+  "ProduktivesEquipEinmalAdmissionGate",
   "NodeProduktionsOperationsQuelle",
   "V5ProduktionsHostController",
 ]){
@@ -371,6 +505,8 @@ if(nodeHostVertrag.operatorDeny?.restartReplayErforderlich!==true
     || nodeHostVertrag.komposition?.postStartRevalidierungsfehlerStopptRuntime!==true
     || nodeHostVertrag.komposition?.equipEinmalAuthorityPfadExponiert!==true
     || nodeHostVertrag.komposition?.generischeMutierenAktivierungExponiert!==false
+    || nodeHostVertrag.komposition?.equipEinmalTransaktionExponiert!==true
+    || nodeHostVertrag.komposition?.generischeMutierenAusfuehrungExponiert!==false
     || nodeHostVertrag.equipEinmalAuthority?.capabilityId!=="equipment.equip"
     || nodeHostVertrag.equipEinmalAuthority?.provider!=="equipment-core@1"
     || nodeHostVertrag.equipEinmalAuthority?.maximaleVerwendungen!==1
@@ -378,10 +514,23 @@ if(nodeHostVertrag.operatorDeny?.restartReplayErforderlich!==true
     || nodeHostVertrag.equipEinmalAuthority?.durableVorAusstellung!==true
     || nodeHostVertrag.equipEinmalAuthority?.registryAktivierung!==false
     || nodeHostVertrag.equipEinmalAuthority?.gameplayWriteDurchAusstellung!==0
+    || nodeHostVertrag.equipEinmalTransaktion?.capabilityId!=="equipment.equip"
+    || nodeHostVertrag.equipEinmalTransaktion?.provider!=="equipment-core@1"
+    || nodeHostVertrag.equipEinmalTransaktion?.preflightReadOnly!==true
+    || nodeHostVertrag.equipEinmalTransaktion?.leererZielslotErforderlich!==true
+    || nodeHostVertrag.equipEinmalTransaktion?.durableIntentVorSend!==true
+    || nodeHostVertrag.equipEinmalTransaktion?.fencingEquipmentInventoryActionChannel!==true
+    || nodeHostVertrag.equipEinmalTransaktion?.socketBudgetGewicht!==3
+    || nodeHostVertrag.equipEinmalTransaktion?.maxAdapterAufrufe!==1
+    || nodeHostVertrag.equipEinmalTransaktion?.maxGameplayWrites!==1
+    || nodeHostVertrag.equipEinmalTransaktion?.sameIntentRetry!==false
+    || nodeHostVertrag.equipEinmalTransaktion?.recoveryMaxBeobachtungen!==4
+    || nodeHostVertrag.equipEinmalTransaktion?.offeneTransaktionBlockiertNeue!==true
+    || nodeHostVertrag.authority?.breiteGameplayAutoritaet!==false
     || nodeHostVertrag.authority?.gameplayAutoritaet!==false
     || nodeHostVertrag.authority?.rawWriteAutoritaet!==false
     || nodeHostVertrag.authority?.actionAuthority!==false
-    || nodeHostVertrag.mutierendeCapabilitiesDurchDiesenVertrag!==0) {
+    || nodeHostVertrag.mutierendeCapabilitiesDurchDiesenVertrag!==1) {
   fehler.push("NODE_PRODUKTIONS_HOST_VERTRAG_UNGUELTIG");
 }
 
