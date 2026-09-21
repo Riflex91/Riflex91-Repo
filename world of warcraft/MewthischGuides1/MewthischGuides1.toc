@@ -1,0 +1,48 @@
+## Interface: 16001
+## Title: Mewthisch Guides
+## Notes: RestedXP-powered semantic leveling guide inspired by best-in-class guide UX.
+## Author: Riflex91
+## Version: 1.0.0-dev
+## SavedVariables: MewthischGuides1DB
+
+Core/Namespace.lua
+Runtime/RuntimeStore.lua
+Core/ErrorLog.lua
+
+Data/RestedXPForeverData_01.lua
+Data/RestedXPForeverData_02.lua
+Data/RestedXPForeverData_03.lua
+Data/RestedXPForeverData_04.lua
+Data/RestedXPForeverData_05.lua
+Data/RestedXPActionCatalog.lua
+
+Guide/RestedXPSelector.lua
+Guide/RestedXPParser.lua
+Guide/GuideCompiler.lua
+Guide/GuideCatalog.lua
+Guide/GuideSession.lua
+Guide/RecoveryPolicy.lua
+
+Facts/QuestFacts.lua
+Facts/InventoryFacts.lua
+Facts/PositionFacts.lua
+Facts/FactSnapshot.lua
+
+Resolver/RequirementResolver.lua
+Resolver/VisibilityResolver.lua
+Resolver/CompletionResolver.lua
+Resolver/GoalStateResolver.lua
+Resolver/StepStateResolver.lua
+Resolver/NavigationTargetResolver.lua
+
+Runtime/TransitionDetector.lua
+Presentation/PresentationResolver.lua
+Runtime/RuntimeEngine.lua
+
+Navigation/Distance.lua
+
+UI/ErrorLogWindow.lua
+UI/NavigatorFrame.lua
+UI/GuideViewer.lua
+
+Core/Bootstrap.lua
