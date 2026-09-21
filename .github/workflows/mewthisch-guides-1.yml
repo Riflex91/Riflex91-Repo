@@ -78,6 +78,64 @@ jobs:
           print("Forever UI compatibility PASS")
           LUA
 
+      - name: Validate recovery does not jump to future turn-in
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={QuestFacts={},InventoryFacts={}}
+          assert(loadfile("world of warcraft/MewthischGuides1/Guide/RecoveryPolicy.lua"))("MewthischGuides1",MG)
+
+          local guide={steps={
+            {id="objective",goals={{
+              id="g1",action="complete",questID=750,objectiveIndex=1,
+            }}},
+            {id="other",goals={}},
+            {id="turnin",goals={{
+              id="g2",action="turnin",questID=750,
+            },{
+              id="g3",action="accept",questID=780,
+            }}},
+          }}
+
+          local facts={quests={
+            [750]={
+              active=true,completed=false,readyForTurnIn=false,
+              objectives={[1]={finished=false,current=2,required=10}},
+            },
+          },inventory={}}
+
+          local index,reason=MG.RecoveryPolicy:FindResumeIndex(guide,facts)
+          assert(index==1,
+            "active unfinished objective must win over later turn-in, got "..tostring(index))
+          assert(reason=="unfinished_objective",
+            "unexpected recovery reason "..tostring(reason))
+
+          facts.quests[750].objectives[1].finished=true
+          facts.quests[750].readyForTurnIn=true
+          local turninIndex,turninReason=MG.RecoveryPolicy:FindResumeIndex(guide,facts)
+          assert(turninIndex==3,
+            "ready quest must recover to turn-in step")
+          assert(turninReason=="ready_turnin")
+          print("Recovery actionable-goal ordering PASS")
+          LUA
+
+      - name: Validate named RestedXP waypoint distance
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={}
+          C_Map=nil
+          assert(loadfile("world of warcraft/MewthischGuides1/Navigation/Distance.lua"))("MewthischGuides1",MG)
+          local d,mode=MG.NavigationDistance:Between(
+            {mapID=7,mapName="Mulgore",x=.44,y=.78},
+            {mapName="Mulgore",x=.4492,y=.7712})
+          assert(d and d>0)
+          assert(mode=="normalized_map_distance")
+          local none,reason=MG.NavigationDistance:Between(
+            {mapID=7,mapName="Mulgore",x=.44,y=.78},
+            {mapName="Durotar",x=.44,y=.78})
+          assert(none==nil and reason=="different_map_name")
+          print("Named RestedXP waypoint distance PASS")
+          LUA
+
       - name: Validate RestedXP raw-step preservation
         run: |
           lua5.1 - <<'LUA'
@@ -205,6 +263,8 @@ jobs:
           grep -q 'Resolver/StepStateResolver.lua' "$TOC"
           grep -q 'UI/ErrorLogWindow.lua' "$TOC"
           grep -q 'Core/Bootstrap.lua' "$TOC"
+          grep -q 'desiredHeight' "world of warcraft/MewthischGuides1/UI/GuideViewer.lua"
+          grep -q 'unfinished_objective' "world of warcraft/MewthischGuides1/Guide/RecoveryPolicy.lua"
 
 
       - name: Build installable addon ZIP
