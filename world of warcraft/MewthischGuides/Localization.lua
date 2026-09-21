@@ -38,6 +38,11 @@ local en={
  direction_missing="Direction unavailable",equipped="was equipped.",close="Close",back="Back",next="Next",previous="Previous",page="Page",
  profile="Profile",default_profile="Default",manage_profile="Manage profile",client_language="WoW client language",journey="Journey",quest_search="Quest search",
  route_calc="Route calculation",travel_hints="Travel hints",sound_hints="Sound hints",data_management="Data management",runtime_status="Runtime status",
+ quest="Quest",quest_giver="Quest giver",source="Source",location="Location",
+ accept_quest='Accept "%s".',accept_quest_at='Accept "%s" from %s.',turnin_quest='Turn in "%s".',turnin_quest_at='Turn in "%s" to %s.',
+ kill_count="Kill %dx %s.",kill_target="Kill %s.",collect_count="Collect %dx %s.",collect_count_from="Collect %dx %s from %s.",
+ collect_from="Collect %s from %s.",collect_target="Collect %s.",interact_with="Interact with %s.",continue_quest='Continue "%s".',
+
 }
 
 local de={
@@ -67,6 +72,11 @@ local de={
  direction_missing="Richtung nicht verfügbar",equipped="wurde angelegt.",close="Schließen",back="Zurück",next="Weiter",previous="Zurück",page="Seite",
  profile="Profil",default_profile="Standard",manage_profile="Profil verwalten",client_language="WoW-Client-Sprache",journey="Verlauf",quest_search="Questsuche",
  route_calc="Routenberechnung",travel_hints="Reisehinweise",sound_hints="Soundhinweise",data_management="Datenverwaltung",runtime_status="Runtime-Status",
+ quest="Quest",quest_giver="Questgeber",source="Quelle",location="Gebiet",
+ accept_quest='Nimm „%s“ an.',accept_quest_at='Nimm „%s“ bei %s an.',turnin_quest='Gib „%s“ ab.',turnin_quest_at='Gib „%s“ bei %s ab.',
+ kill_count="Töte %dx %s.",kill_target="Töte %s.",collect_count="Sammle %dx %s.",collect_count_from="Sammle %dx %s von %s.",
+ collect_from="Sammle %s von %s.",collect_target="Sammle %s.",interact_with="Interagiere mit %s.",continue_quest='Setze „%s“ fort.',
+
 }
 
 local es={
@@ -95,6 +105,11 @@ local es={
  direction_missing="Dirección no disponible",equipped="se equipó.",close="Cerrar",back="Atrás",next="Siguiente",previous="Anterior",page="Página",
  profile="Perfil",default_profile="Predeterminado",manage_profile="Gestionar perfil",client_language="Idioma del cliente WoW",journey="Historial",quest_search="Buscar misiones",
  route_calc="Cálculo de ruta",travel_hints="Indicaciones de viaje",sound_hints="Avisos de sonido",data_management="Gestión de datos",runtime_status="Estado de ejecución",
+ quest="Misión",quest_giver="Dador de misión",source="Fuente",location="Zona",
+ accept_quest='Acepta "%s".',accept_quest_at='Acepta "%s" de %s.',turnin_quest='Entrega "%s".',turnin_quest_at='Entrega "%s" a %s.',
+ kill_count="Mata %dx %s.",kill_target="Mata %s.",collect_count="Recoge %dx %s.",collect_count_from="Recoge %dx %s de %s.",
+ collect_from="Recoge %s de %s.",collect_target="Recoge %s.",interact_with="Interactúa con %s.",continue_quest='Continúa "%s".',
+
 }
 
 local fr={
@@ -124,6 +139,11 @@ local fr={
  direction_missing="Direction indisponible",equipped="a été équipé.",close="Fermer",back="Retour",next="Suivant",previous="Précédent",page="Page",
  profile="Profil",default_profile="Par défaut",manage_profile="Gérer le profil",client_language="Langue du client WoW",journey="Historique",quest_search="Recherche de quêtes",
  route_calc="Calcul d'itinéraire",travel_hints="Indications de voyage",sound_hints="Alertes sonores",data_management="Gestion des données",runtime_status="État d'exécution",
+ quest="Quête",quest_giver="Donneur de quête",source="Source",location="Zone",
+ accept_quest='Acceptez « %s ».',accept_quest_at='Acceptez « %s » auprès de %s.',turnin_quest='Rendez « %s ».',turnin_quest_at='Rendez « %s » à %s.',
+ kill_count="Tuez %dx %s.",kill_target="Tuez %s.",collect_count="Ramassez %dx %s.",collect_count_from="Ramassez %dx %s sur %s.",
+ collect_from="Ramassez %s sur %s.",collect_target="Ramassez %s.",interact_with="Interagissez avec %s.",continue_quest='Continuez « %s ».',
+
 }
 
 local ru={
@@ -153,6 +173,11 @@ local ru={
  direction_missing="Направление недоступно",equipped="экипирован.",close="Закрыть",back="Назад",next="Далее",previous="Назад",page="Страница",
  profile="Профиль",default_profile="Стандарт",manage_profile="Управление профилем",client_language="Язык клиента WoW",journey="История",quest_search="Поиск заданий",
  route_calc="Расчёт маршрута",travel_hints="Подсказки путешествия",sound_hints="Звуковые подсказки",data_management="Управление данными",runtime_status="Состояние выполнения",
+ quest="Задание",quest_giver="Выдающий задание",source="Источник",location="Место",
+ accept_quest='Возьмите задание «%s».',accept_quest_at='Возьмите задание «%s» у %s.',turnin_quest='Сдайте задание «%s».',turnin_quest_at='Сдайте задание «%s» у %s.',
+ kill_count="Убейте %dx %s.",kill_target="Убейте %s.",collect_count="Соберите %dx %s.",collect_count_from="Соберите %dx %s с %s.",
+ collect_from="Соберите %s с %s.",collect_target="Соберите %s.",interact_with="Взаимодействуйте с %s.",continue_quest='Продолжайте «%s».',
+
 }
 
 local zh={
@@ -176,6 +201,11 @@ local zh={
  direction_missing="方向不可用",equipped="已装备。",close="关闭",back="返回",next="下一步",previous="上一步",page="页",profile="配置",default_profile="默认",
  manage_profile="管理配置",client_language="WoW 客户端语言",journey="历程",quest_search="任务搜索",route_calc="路线计算",travel_hints="旅行提示",
  sound_hints="声音提示",data_management="数据管理",runtime_status="运行状态",
+ quest="任务",quest_giver="任务给予者",source="来源",location="区域",
+ accept_quest='接受“%s”。',accept_quest_at='从 %s 接受“%s”。',turnin_quest='提交“%s”。',turnin_quest_at='向 %s 提交“%s”。',
+ kill_count="击杀 %d 个%s。",kill_target="击杀%s。",collect_count="收集 %d 个%s。",collect_count_from="从%s收集 %d 个%s。",
+ collect_from="从%s收集%s。",collect_target="收集%s。",interact_with="与%s互动。",continue_quest='继续“%s”。',
+
 }
 
 local hi={
@@ -203,6 +233,11 @@ local hi={
  direction_missing="दिशा उपलब्ध नहीं",equipped="पहनाया गया।",close="बंद करें",back="वापस",next="अगला",previous="पिछला",page="पृष्ठ",
  profile="प्रोफ़ाइल",default_profile="डिफ़ॉल्ट",manage_profile="प्रोफ़ाइल प्रबंधित करें",client_language="WoW क्लाइंट भाषा",journey="इतिहास",quest_search="क्वेस्ट खोज",
  route_calc="रूट गणना",travel_hints="यात्रा संकेत",sound_hints="ध्वनि संकेत",data_management="डेटा प्रबंधन",runtime_status="रनटाइम स्थिति",
+ quest="क्वेस्ट",quest_giver="क्वेस्ट देने वाला",source="स्रोत",location="क्षेत्र",
+ accept_quest='"%s" क्वेस्ट स्वीकार करें।',accept_quest_at='%s से "%s" क्वेस्ट स्वीकार करें।',turnin_quest='"%s" क्वेस्ट जमा करें।',turnin_quest_at='%s को "%s" क्वेस्ट जमा करें।',
+ kill_count="%dx %s को मारें।",kill_target="%s को मारें।",collect_count="%dx %s इकट्ठा करें।",collect_count_from="%s से %dx %s इकट्ठा करें।",
+ collect_from="%s से %s इकट्ठा करें।",collect_target="%s इकट्ठा करें।",interact_with="%s से बातचीत करें।",continue_quest='"%s" जारी रखें।',
+
 }
 
 L.strings={en=en,de=de,es=es,fr=fr,ru=ru,zh=zh,hi=hi}
