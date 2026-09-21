@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-21T17:23:46.448Z",
+  "status": "BESTANDEN",
+  "evidenceArt": "V5_BANK_DEPOSIT_REAL_BROWSER_SHADOW_NO_WRITE",
+  "source": "USER_PROVIDED_RUNNER_STDOUT",
+  "testedSourceSha": "9ed665692e71ee8ae131e7399db2306ff9e4a627",
+  "documentationBaseMain": "aef9d84b13956c81799e9fa150cfa22438160470",
+  "transaktionsId": "BANK-SHADOW-TX-1790011412909-2c42b7de",
+  "accountBindungSha256": "18be41682a0c809cb26db3dfff9336deb164730e175c182a11d321445fde0085",
+  "charakterBindungSha256": "0e1ab7dca28c9f270efb495560d97572a76bcd9517196b342a37523496352a68",
+  "server": {
+    "region": "EU",
+    "kennung": "I"
+  },
+  "startAusserhalbBank": true,
+  "manualMountTransition": true,
+  "manualExitRequired": true,
+  "admissionStatus": "ADMISSION_BESTANDEN_KEIN_SEND",
+  "journalTerminalArt": "ABBRUCH",
+  "sendBoundaryState": "NICHT_GESENDET",
+  "sameIntentRetry": false,
+  "browserGameplayWrites": 0,
+  "hostGameplayWrites": 0,
+  "gameplayWrites": 0,
+  "adapterAufrufe": 0,
+  "bankStartNachherBereit": true,
+  "leaseStatus": [
+    {
+      "epoche": 2,
+      "zustand": "RELEASED"
+    }
+  ],
+  "hostNachher": {
+    "zustand": "LAEUFT",
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "actionAuthority": false,
+    "bankDepositEinmalAuthorityOffen": false
+  },
+  "breiteRuntimeFreigabeDurchDiesenTest": false,
+  "rawWriteBypass": false,
+  "reportPfad": "D:\\AdventureLand-V5\\runtime\\canary\\bank-deposit-real-shadow\\latest.json",
+  "exitGate": {
+    "sourceShaExakt": true,
+    "startAusserhalbBank": true,
+    "manuellerMountNachLease": true,
+    "admissionBestanden": true,
+    "keinSend": true,
+    "journalTerminalAbbruch": true,
+    "manuellerExitBeobachtet": true,
+    "leaseReleased": true,
+    "bankStartNachherBereit": true,
+    "gameplayWritesNull": true,
+    "adapterAufrufeNull": true,
+    "authorityNachherGeschlossen": true,
+    "sameIntentRetryFalse": true,
+    "rawWriteBypassFalse": true,
+    "breiteRuntimeFreigabeFalse": true
+  },
+  "nextGate": "PR20.2_BANK_DEPOSIT_1_WRITE_ADAPTER_UND_LIVE_RUNNER_VORBEREITEN"
+}
