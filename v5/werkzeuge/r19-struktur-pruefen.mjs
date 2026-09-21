@@ -26,12 +26,22 @@ for(const p of [
   "grundlage/quelle/equipment/faehigkeits-vertrag.ts",
   "grundlage/quelle/equipment/produktions-einmal-authority.ts",
   "grundlage/adapter/persistenz/node-equip-einmal-authority-protokoll.mjs",
+  "grundlage/quelle/equipment/produktions-equip-admission-gate.ts",
+  "grundlage/quelle/equipment/produktions-equip-transaktion.ts",
+  "grundlage/adapter/persistenz/node-equip-transaktionsjournal.mjs",
   "grundlage/vertraege/runtime/equipment-equip-mutationsfaehigkeit.json",
   "grundlage/vertraege/runtime/equipment-equip-one-shot-authority.json",
+  "grundlage/vertraege/runtime/equipment-equip-production-transaction.json",
   "architektur/adr/ADR-032-PRODUKTIVE-EQUIP-MUTATIONSFAEHIGKEIT.md",
   "architektur/adr/ADR-033-EQUIP-EINMAL-AUTHORITY.md",
+  "architektur/adr/ADR-034-PRODUKTIVE-EQUIP-TRANSAKTION.md",
   "grundlage/tests/r11-equip-einmal-authority.test.mjs",
   "grundlage/tests/r11-equip-einmal-authority-persistenz.test.mjs",
+  "grundlage/tests/r11-equip-produktions-transaktion.test.mjs",
+  "grundlage/tests/r11-equip-produktions-journal.test.mjs",
+  "grundlage/tests/r11-equip-produktions-browser.test.mjs",
+  "werkzeuge/equipment-equip-produktions-browser.mjs",
+  "werkzeuge/equipment-equip-produktions-live.mjs",
   "grundlage/vertraege/runtime/merchant-core-a-planungsfaehigkeiten.json",
   "architektur/adr/ADR-026-MERCHANT-PLANUNGSFAEHIGKEITEN.md",
   "grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
@@ -167,6 +177,59 @@ if(equipmentEquipAuthority.schemaVersion!==1
     ||equipmentEquipAuthority.wirkung?.adapterSendDurchAuthorityAusstellung!==0
     ||equipmentEquipAuthority.wirkung?.executionNochSeparatErforderlich!==true) {
   fehler("Equipment Equip Einmal-Authority-Vertrag ungueltig.");
+}
+
+const equipmentEquipProduction=lies(
+  "grundlage/vertraege/runtime/equipment-equip-production-transaction.json",
+);
+if(equipmentEquipProduction.schemaVersion!==1
+    ||equipmentEquipProduction.vertragVersion!=="1"
+    ||equipmentEquipProduction.kennung!=="V5_EQUIPMENT_EQUIP_PRODUCTION_ONE_SHOT_TRANSACTION"
+    ||equipmentEquipProduction.capability?.id!=="equipment.equip"
+    ||equipmentEquipProduction.capability?.providerModulId!=="equipment-core"
+    ||equipmentEquipProduction.capability?.providerVersion!=="1"
+    ||equipmentEquipProduction.capability?.modus!=="MUTIEREN"
+    ||equipmentEquipProduction.capability?.registryAktivierung!==false
+    ||equipmentEquipProduction.operator?.bestaetigungText!=="V5 EQUIP EINMAL AUSFUEHREN"
+    ||equipmentEquipProduction.operator?.denyOnlyPolicyBleibtWirksam!==true
+    ||equipmentEquipProduction.operator?.nothaltBleibtWirksam!==true
+    ||equipmentEquipProduction.candidate?.characterType!=="merchant"
+    ||equipmentEquipProduction.candidate?.zielslotMussLeerSein!==true
+    ||equipmentEquipProduction.candidate?.waffenSlotsErlaubt!==false
+    ||equipmentEquipProduction.candidate?.itemMussUnlockedSein!==true
+    ||equipmentEquipProduction.admission?.gesamtfreigabeErforderlich!==true
+    ||equipmentEquipProduction.admission?.hostMussLaufen!==true
+    ||equipmentEquipProduction.admission?.aktivePlanenCapabilitiesErlaubt!==false
+    ||equipmentEquipProduction.admission?.oneShotAuthorityErforderlich!==true
+    ||equipmentEquipProduction.admission?.operatorRecheckErforderlich!==true
+    ||equipmentEquipProduction.admission?.actionContractId!=="AL-ACTION-EQUIP"
+    ||equipmentEquipProduction.admission?.recoveryContractId!=="AL-RECOVERY-EQUIP"
+    ||equipmentEquipProduction.admission?.verifierId!=="AL-VERIFIER-EQUIP"
+    ||equipmentEquipProduction.admission?.socketBudgetGewicht!==3
+    ||equipmentEquipProduction.admission?.durableIntentVorSend!==true
+    ||equipmentEquipProduction.execution?.adapterId!=="v5-production-cdp-equip-once"
+    ||equipmentEquipProduction.execution?.maxAdapterAufrufe!==1
+    ||equipmentEquipProduction.execution?.maxGameplayWrites!==1
+    ||equipmentEquipProduction.execution?.sameIntentRetry!==false
+    ||equipmentEquipProduction.recovery?.sameIntentAfterPossibleSend!=="NEVER"
+    ||equipmentEquipProduction.recovery?.maxBeobachtungen!==4
+    ||equipmentEquipProduction.recovery?.commitNurBeiBestaetigt!==true
+    ||equipmentEquipProduction.journal?.globalerCurrentPointer!==true
+    ||equipmentEquipProduction.journal?.offeneTransaktionBlockiertNeue!==true
+    ||equipmentEquipProduction.journal?.maxEintraegeProTransaktion!==16
+    ||equipmentEquipProduction.browser?.cdpNurLoopback!==true
+    ||equipmentEquipProduction.browser?.adventureLandOrigin!=="https://adventure.land"
+    ||equipmentEquipProduction.browser?.alternativeRuntimeVerboten!==true
+    ||equipmentEquipProduction.preflight?.readOnly!==true
+    ||equipmentEquipProduction.preflight?.browserGameplayWrites!==0
+    ||equipmentEquipProduction.evidence?.sourceShaErforderlich!==true
+    ||equipmentEquipProduction.authority?.breiteRuntimeFreigabeDurchTransaktion!==false
+    ||equipmentEquipProduction.authority?.rawWriteBypass!==false
+    ||equipmentEquipProduction.authority?.generischeMutierenAktivierung!==false
+    ||equipmentEquipProduction.naechsterNachweis?.art!=="MANUELLER_INGAME_ONE_SHOT"
+    ||equipmentEquipProduction.naechsterNachweis?.gameplayWritesErwartet!==1
+    ||equipmentEquipProduction.naechsterNachweis?.nachGruenerExactHeadCiErforderlich!==true) {
+  fehler("Equipment Equip Production Transaction Vertrag ungueltig.");
 }
 
 const cap045=lies("roadmap/cap045-production-live-evidence.json");
