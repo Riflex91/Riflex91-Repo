@@ -1106,3 +1106,14 @@ Die globale Freigabe ersetzt keine lokale Capability- oder Aktionsfreigabe. Auth
 Verbindlicher Vertrag: `dokumentation/GESAMTFREIGABE.md`.  
 Validator: `werkzeuge/gesamtfreigabe-pruefen.mjs`.
 
+
+## Post-R19 Produktivierung
+
+R0-R19 bleiben terminal abgeschlossen. Die anschliessende Produktivierung wird ab 2026-09-21 in einer separaten, verbindlichen Fortsetzungsroadmap gefuehrt:
+
+- Dokument: `dokumentation/V5-POST-R19-ROADMAP.md`;
+- maschinenlesbarer Status: `roadmap/post-r19-roadmap.json`;
+- aktuelle Stufe: `PR20 – Merchant produktiv vervollstaendigen`;
+- aktuelles Gate: `PR20.1 – Equip-Produktionsnachweis`.
+
+Die Reihenfolge der Post-R19-Stufen ist verbindlich. Insbesondere wird der allgemeine Task-/Party-Optimizer erst nach produktiven Farmern, der Gruppen-Konstellationsmatrix und realer Gruppen-Live-Evidence begonnen. Der Account Progression Balancer folgt erst danach.
