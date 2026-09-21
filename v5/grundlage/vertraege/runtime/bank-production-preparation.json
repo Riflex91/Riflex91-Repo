@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_PR20_2_BANK_PRODUCTION_PREPARATION",
+  "stand": "2026-09-21",
+  "status": "VORBEREITET_NO_WRITE",
+  "basisMain": "a962512557d08bacfc57022697b77bd26e314b45",
+  "blockingGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
+  "zweck": "PR20.2 technisch vorbereiten, ohne produktive Bankmutation, Registrierung oder Gameplay-Authority zu oeffnen.",
+  "authorityGrenze": {
+    "produktiveRegistrierungErlaubt": false,
+    "produktiverAktivierungspfadErlaubt": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "actionAuthority": false,
+    "direkteAdventureLandPublicFunctionAufrufe": 0,
+    "browserGameplayWrites": 0
+  },
+  "bestehendePlanung": {
+    "modulId": "merchant-core-a",
+    "modulVersion": "1",
+    "capabilityId": "merchant.bank.planen",
+    "modus": "PLANEN",
+    "mutationsAuthorityAusPlanung": false
+  },
+  "kandidaten": [
+    {
+      "actionContractId": "AL-ACTION-BANK-DEPOSIT",
+      "recoveryContractId": "AL-RECOVERY-BANK-DEPOSIT",
+      "verifierId": "AL-VERIFIER-BANK-DEPOSIT",
+      "publicFunction": "bank_deposit",
+      "fachbereich": "GOLD_EINLAGERN"
+    },
+    {
+      "actionContractId": "AL-ACTION-BANK-WITHDRAW",
+      "recoveryContractId": "AL-RECOVERY-BANK-WITHDRAW",
+      "verifierId": "AL-VERIFIER-BANK-WITHDRAW",
+      "publicFunction": "bank_withdraw",
+      "fachbereich": "GOLD_AUSLAGERN"
+    },
+    {
+      "actionContractId": "AL-ACTION-BANK-STORE",
+      "recoveryContractId": "AL-RECOVERY-BANK-STORE",
+      "verifierId": "AL-VERIFIER-BANK-STORE",
+      "publicFunction": "bank_store",
+      "fachbereich": "ITEM_EINLAGERN"
+    },
+    {
+      "actionContractId": "AL-ACTION-BANK-RETRIEVE",
+      "recoveryContractId": "AL-RECOVERY-BANK-RETRIEVE",
+      "verifierId": "AL-VERIFIER-BANK-RETRIEVE",
+      "publicFunction": "bank_retrieve",
+      "fachbereich": "ITEM_AUSLAGERN"
+    },
+    {
+      "actionContractId": "AL-ACTION-BANK-SWAP",
+      "recoveryContractId": "AL-RECOVERY-BANK-SWAP",
+      "verifierId": "AL-VERIFIER-BANK-SWAP",
+      "publicFunction": "bank_swap",
+      "fachbereich": "BANK_KONSOLIDIEREN"
+    }
+  ],
+  "bewusstZurueckgestellt": [
+    {
+      "actionContractId": "AL-ACTION-OPEN-BANK-PACK",
+      "publicFunction": "open_bank_pack",
+      "grund": "Eigene wertveraendernde Capacity-/Currency-Mutation mit ASYNC_BACKEND_TX; nicht Teil des ersten PR20.2-Mutationssatzes."
+    }
+  ],
+  "verpflichtendeAdmissionVorSend": [
+    "produktiver Host laeuft und Gesamtfreigabe ist gueltig",
+    "Operator-Deny und NOTHALT sind unmittelbar vor Mutation negativ",
+    "alternative V3/V4 Runtime ist inaktiv",
+    "exakt eine aktive accountweite Bank-Lease fuer den ausfuehrenden Character",
+    "Bank-Lease-Epoche und lokaler bank-Action-Channel besitzen gueltiges Fencing",
+    "externes Bank-Fence meldet keinen Konflikt und exakt den Lease-Owner als mounted Character",
+    "frischer Bank-Snapshot ist an Account, Owner und Lease-Epoche gebunden",
+    "Character-, Bank- und Inventory-Evidence ist frisch",
+    "keine alte offene gleichartige Banktransaktion blockiert",
+    "Workspace/Capacity fuer den konkreten Delta ist positiv",
+    "Socket-Budget ist reserviert",
+    "durable Transaction Intent ist vor moeglichem Send bestaetigt"
+  ],
+  "transaktionsRegeln": {
+    "bankChannel": "bank",
+    "correlation": "FIFO_DEFERRED",
+    "requestIdBeiErstemMutationssatz": false,
+    "maxInFlightProBankChannel": 1,
+    "sameIntentRetry": false,
+    "unknownOutcome": "REOBSERVE_RECONCILE_NO_BLIND_RETRY",
+    "bankLeaseBleibtBisTerminalemSettlementGehalten": true,
+    "leaseReleaseErfordertKeineOffenenTransaktionen": true,
+    "restartMitNichtterminalerLease": "RECOVERY_PENDING"
+  },
+  "recoveryBeobachtung": [
+    "frischer Characterzustand",
+    "frischer Bankzustand",
+    "frisches Inventory",
+    "Gold/Bank-Gold bei Deposit/Withdraw",
+    "exakte Itemidentitaet und Mengen bei Store/Retrieve/Swap",
+    "Lease-/Mount-/Session-Epoche"
+  ],
+  "nachEquipErforderlicheFreigabeschritte": [
+    "PR20.1 Live-Evidence auswerten und als bestanden dokumentieren",
+    "Bank-Mutationsfaehigkeit mit Single Owner separat ratifizieren",
+    "exakte Action-/Recovery-/Verifier-Bindung fuer den ersten Live-Kandidaten ratifizieren",
+    "produktive Bank-Authority separat und eng begrenzt implementieren",
+    "durables Bank-Transaktionsjournal implementieren",
+    "read-only Bank-Mutations-Preflight implementieren",
+    "Shadow/Fault/Restart-Tests bestehen",
+    "erst danach einen einzelnen kontrollierten Bank-Live-Write zulassen"
+  ]
+}
