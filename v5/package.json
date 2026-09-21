@@ -82,7 +82,10 @@
     "bank-deposit-production:real-shadow-pruefen": "npm run bauen && node --check werkzeuge/bank-deposit-real-browser-shadow.mjs && node --check werkzeuge/bank-deposit-produktions-browser.mjs && node --test grundlage/tests/r11-bank-deposit-real-shadow-browser.test.mjs grundlage/tests/r11-bank-deposit-shadow-admission.test.mjs grundlage/tests/r11-node-produktions-host-komposition.test.mjs",
     "bank-deposit-production:real-shadow": "npm run bauen && node werkzeuge/bank-deposit-real-browser-shadow.mjs",
     "bank-deposit-production:real-shadow-recovery:pruefen": "npm run bauen && node --check werkzeuge/bank-deposit-real-shadow-recovery.mjs && node --test grundlage/tests/r11-bank-shadow-recovery-runner.test.mjs grundlage/tests/r13-persistenter-bank-lease.test.mjs grundlage/tests/r11-node-produktions-host-komposition.test.mjs",
-    "bank-deposit-production:real-shadow-recovery": "npm run bauen && node werkzeuge/bank-deposit-real-shadow-recovery.mjs"
+    "bank-deposit-production:real-shadow-recovery": "npm run bauen && node werkzeuge/bank-deposit-real-shadow-recovery.mjs",
+    "bank-deposit-production:write-pruefen": "npm run bauen && node --check werkzeuge/bank-deposit-produktions-write-browser.mjs && node --check werkzeuge/bank-deposit-produktions-live.mjs && node --test grundlage/tests/r11-bank-deposit-produktions-write-browser.test.mjs grundlage/tests/r11-bank-deposit-produktions-transaktion.test.mjs grundlage/tests/r11-node-produktions-host-komposition.test.mjs grundlage/tests/r11-bank-deposit-produktions-journal.test.mjs",
+    "bank-deposit-production:write-preflight": "npm run bauen && node werkzeuge/bank-deposit-produktions-live.mjs --preflight",
+    "bank-deposit-production:write-live": "npm run bauen && node werkzeuge/bank-deposit-produktions-live.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

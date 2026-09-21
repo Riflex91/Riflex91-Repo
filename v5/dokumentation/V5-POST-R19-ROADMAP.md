@@ -111,7 +111,7 @@ Evidence:
 
 ### PR20.2 – Bank-Autonomie produktiv
 
-**Status:** `REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_VORBEREITUNG`. PR20.1 ist bestanden
+**Status:** `WRITE_PATH_IMPLEMENTIERT_LIVE_EVIDENCE_AUSSTEHEND`. PR20.1 ist bestanden
 und PR20.2a (Settlement-/Drift-Core fuer `bank_deposit(1)`) ist gemerged.
 PR20.2b fuehrt den separaten Single Owner `merchant-bank-core@1`, die exakt
 eine default-off MUTIEREN-Capability `merchant.bank.gold_einlagern`, eine
@@ -137,9 +137,16 @@ vollstaendig bestanden. Admission endete mit `NICHT_GESENDET`, Journal mit
 Gameplay-Writes und Adapter-Aufrufe blieben jeweils 0. Evidence:
 `roadmap/pr20-2-bank-real-browser-shadow-evidence.json`.
 
-Damit darf nun nur der enge Write-Adapter/Live-Runner fuer exakt
-`bank_deposit(1)` vorbereitet und CI-geprueft werden. Ein echter Bank-Write
-ist weiterhin ein separates Live-Gate.
+Der enge Write-Adapter/Live-Runner fuer exakt `bank_deposit(1)` ist nun
+implementiert. Der Adapter enthaelt statisch genau einen erlaubten
+Public-Function-Aufruf, keinen Raw-Socket-Bypass und maximal einen
+Adapter-Aufruf. Durable Intent, accountweite Lease, Character-Gold-Fence,
+lokaler Bank-Action-Channel, Socket-Budget, R9-Admission und Recovery mit
+exaktem -1/+1-Gold-Settlement liegen vor.
+
+Ein echter Bank-Write wurde dadurch noch nicht ausgefuehrt. Live-Evidence
+bleibt `AUSSTEHEND`; zuerst muessen komplette Exact-Head-CI und der read-only
+Write-Preflight bestehen.
 
 Vorhandene Bankplanung, Bank-Lease, Fencing und Bankkatalog-Fundamente werden mit echten Bankmutationen verbunden.
 
@@ -695,7 +702,8 @@ PR20.1 ist bestanden. Der verbindliche naechste Schritt ist jetzt
 7. **ERLEDIGT:** Unit-, Replay-, Fault-, Restart- und UNKNOWN-Tests vollstaendig gruen;
 8. **ERLEDIGT:** echten F5-/Restart-Fault zero-write auf `RECOVERY_PENDING -> RELEASED` reconciliieren und dokumentieren;
 9. **ERLEDIGT:** normalen Real-Browser-Shadow ohne Write vollstaendig bis `BESTANDEN` ausfuehren;
-10. **NAECHSTES GATE:** Write-Adapter und Live-Runner fuer exakt `bank_deposit(1)` separat implementieren und CI-gruen pruefen;
-11. erst nach erneut gruener Exact-Head-CI ein einzelnes reales Bank-Live-Gate oeffnen.
+10. **IN ARBEIT:** Write-Adapter und Live-Runner fuer exakt `bank_deposit(1)` komplett CI-gruen pruefen;
+11. read-only Write-Preflight auf exakt demselben Head ausfuehren;
+12. erst danach ein einzelnes reales `bank_deposit(1)`-Live-Gate oeffnen und dessen Evidence pruefen.
 
 Bis zu diesem neuen Live-Gate werden keine echten Bank-Writes ausgefuehrt.

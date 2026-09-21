@@ -540,6 +540,68 @@ for(const [kennung,muster] of [
     fehler.push("EQUIP_PROD_BROWSER_FREMDWRITE_VERBOTEN:"+kennung);
   }
 }
+const bankDepositWriteBrowser=lies(
+  "werkzeuge/bank-deposit-produktions-write-browser.mjs",
+);
+const bankDepositWrites=
+  bankDepositWriteBrowser.match(/root\.bank_deposit\(1\)/g) ?? [];
+if(bankDepositWrites.length!==1) {
+  fehler.push("BANK_DEPOSIT_WRITE_EXAKT_EIN_DEPOSIT_1_ERFORDERLICH");
+}
+for(const m of [
+  "BANK_DEPOSIT_WRITE_MEHR_ALS_EIN_ADAPTER_AUFRUF",
+  "DISCONNECT_NACH_MOEGLICHEM_SEND",
+  "CHARACTER_GOLD_DRIFT",
+  "BANK_GOLD_DRIFT",
+]){
+  if(!bankDepositWriteBrowser.includes(m)) {
+    fehler.push("BANK_DEPOSIT_WRITE_BROWSER_GRENZE_FEHLT:"+m);
+  }
+}
+if(/\.emit\s*\(/.test(bankDepositWriteBrowser)
+    ||/\bbank_withdraw\s*\(/.test(bankDepositWriteBrowser)
+    ||/\bbank_store\s*\(/.test(bankDepositWriteBrowser)
+    ||/\bbank_retrieve\s*\(/.test(bankDepositWriteBrowser)) {
+  fehler.push("BANK_DEPOSIT_WRITE_BROWSER_FREMDWRITE_VERBOTEN");
+}
+const bankDepositProdCore=lies(
+  "grundlage/quelle/merchant/bank-deposit-produktions-transaktion.ts",
+);
+for(const m of [
+  "ProduktiveBankDepositTransaktionsOrchestrierung",
+  "PersistVorMutationTor",
+  "ErteilteAusfuehrungsFreigabe",
+  "RecoveryKernel",
+  "same_intent_retry: false",
+  "adapterAufrufeErwartetMaximal: 1",
+]){
+  if(!bankDepositProdCore.includes(m)) {
+    fehler.push("BANK_DEPOSIT_PROD_CORE_GRENZE_FEHLT:"+m);
+  }
+}
+if(/\bbank_deposit\s*\(/.test(bankDepositProdCore)
+    ||/\.emit\s*\(/.test(bankDepositProdCore)) {
+  fehler.push("BANK_DEPOSIT_PROD_CORE_RAW_WRITE_VERBOTEN");
+}
+const bankDepositLiveRunner=lies(
+  "werkzeuge/bank-deposit-produktions-live.mjs",
+);
+for(const m of [
+  "V5_PRODUCTION_BANK_DEPOSIT_ONE_GOLD_ONE_SHOT_LIVE",
+  "BANK_DEPOSIT_EINMAL_BESTAETIGUNG",
+  "BANK_DEPOSIT_PROD_SOURCE_SHA_MISMATCH",
+  "fuehreBankDepositEinGoldTransaktion",
+  "sameIntentRetry: false",
+]){
+  if(!bankDepositLiveRunner.includes(m)) {
+    fehler.push("BANK_DEPOSIT_LIVE_RUNNER_GRENZE_FEHLT:"+m);
+  }
+}
+if(/\bbank_deposit\s*\(/.test(bankDepositLiveRunner)
+    ||/\.emit\s*\(/.test(bankDepositLiveRunner)) {
+  fehler.push("BANK_DEPOSIT_LIVE_RUNNER_DIREKTWRITE_VERBOTEN");
+}
+
 const equipProdRunner=lies("werkzeuge/equipment-equip-produktions-live.mjs");
 for(const m of [
   "fuehreEquipEinmalTransaktion",
@@ -675,6 +737,7 @@ for(const m of [
   "NodeEquipTransaktionsJournal",
   "erteileEquipEinmalAuthority",
   "fuehreEquipEinmalTransaktion",
+  "fuehreBankDepositEinGoldTransaktion",
   "ProduktivesEquipEinmalAdmissionGate",
   "NodeProduktionsOperationsQuelle",
   "V5ProduktionsHostController",

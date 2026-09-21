@@ -455,6 +455,157 @@ test("negativer External-Fence-Restart-Abgleich quarantiniert Bank-Lease dauerha
   }
 });
 
+test("Node-Host fuehrt exakt einen synthetischen bank_deposit(1)-Write bis COMMIT", async () => {
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "v5-node-bank-deposit-one-gold-"),
+  );
+  try {
+    const host = await erstelleNodeV5ProduktionsHost(hostOptionen(root));
+    const startMs = Date.now();
+    assert.equal((await host.starte(startMs)).zustand, "LAEUFT");
+
+    let state = {
+      characterGold: 100,
+      bankGold: 500,
+      fingerprint: "a".repeat(64),
+      beobachtetAmMs: Date.now(),
+    };
+    let adapterCalls = 0;
+    let mountEpoche = null;
+
+    const result = await host.fuehreBankDepositEinGoldTransaktion({
+      aktivierungsId: "NODE-BANK-DEPOSIT-LIVE-AUTH-1",
+      transaktionsId: "NODE-BANK-DEPOSIT-LIVE-TX-1",
+      freigabeId: "NODE-BANK-DEPOSIT-LIVE-FREE-1",
+      auftragId: "NODE-BANK-DEPOSIT-LIVE-ORDER-1",
+      ablaufId: "NODE-BANK-DEPOSIT-LIVE-WF-1",
+      bestaetigungText: BANK_DEPOSIT_EINMAL_BESTAETIGUNG,
+      configFingerprint: "e".repeat(64),
+      wissensSnapshot: {
+        gitCommit: "d".repeat(40),
+        quellenSha256: ["c".repeat(64)],
+      },
+      ausgang: {
+        accountId: "account-1",
+        charakterName: "merchant",
+        sessionId: "session-1",
+        serverRegion: "EU",
+        serverKennung: "I",
+        bankGemountet: false,
+      },
+      mountBeobachter: {
+        async warteAufMount(kontext) {
+          mountEpoche = Date.now();
+          state = {
+            characterGold: 100,
+            bankGold: 500,
+            fingerprint: "a".repeat(64),
+            beobachtetAmMs: mountEpoche,
+          };
+          assert.equal(kontext.accountId, "account-1");
+          assert.equal(kontext.characterId, "merchant");
+          return {
+            accountId: "account-1",
+            charakterName: "merchant",
+            sessionId: "session-1",
+            serverRegion: "EU",
+            serverKennung: "I",
+            bankGemountet: true,
+            charakterGold: 100,
+            characterGold: 100,
+            bankGold: 500,
+            beobachtetAmMs: mountEpoche,
+            fingerprint: state.fingerprint,
+            inventorySha256: "f".repeat(64),
+          };
+        },
+      },
+      adapter: {
+        adapterId: "synthetic-bank-deposit-one-gold",
+        actionContractId: BANK_DEPOSIT_ACTION_CONTRACT_ID,
+        recoveryContractId: BANK_DEPOSIT_RECOVERY_CONTRACT_ID,
+        verifierId: BANK_DEPOSIT_VERIFIER_ID,
+        async sende(_freigabe, anfrage) {
+          adapterCalls += 1;
+          assert.equal(anfrage.betrag, 1);
+          assert.equal(anfrage.erwartetesCharacterGold, 100);
+          assert.equal(anfrage.erwartetesBankGold, 500);
+          state = {
+            characterGold: 99,
+            bankGold: 501,
+            fingerprint: "b".repeat(64),
+            beobachtetAmMs: Date.now() + 1,
+          };
+          return {
+            art: "SERVER_ERGEBNIS",
+            korrelationId: "NODE-BANK-K-1",
+            ergebnis: { response: "bank_store" },
+          };
+        },
+      },
+      bankBeobachter: {
+        async beobachte(leaseEpoche, beobachteteMountEpoche) {
+          assert.ok(leaseEpoche >= 1);
+          assert.equal(beobachteteMountEpoche, mountEpoche);
+          return {
+            schemaVersion: 1,
+            characterId: "merchant",
+            sessionId: "session-1",
+            serverRegion: "EU",
+            serverKennung: "I",
+            leaseEpoche,
+            mountEpoche: beobachteteMountEpoche,
+            beobachtetAmMs: state.beobachtetAmMs,
+            characterGold: state.characterGold,
+            bankGold: state.bankGold,
+            fingerprint: state.fingerprint,
+          };
+        },
+      },
+      releaseBeobachter: {
+        async beobachte() {
+          return {
+            offeneTransaktionen: 0,
+            backendInProgress: false,
+            bankActionInFlight: false,
+            characterBankAktiv: false,
+            erwarteterExitBeobachtet: true,
+          };
+        },
+      },
+    }, startMs);
+
+    assert.equal(result.status, "COMMITTED");
+    assert.equal(result.transportArt, "SERVER_ERGEBNIS");
+    assert.equal(result.journalTerminalArt, "COMMIT");
+    assert.equal(result.betrag, 1);
+    assert.equal(result.sameIntentErneutSenden, false);
+    assert.equal(adapterCalls, 1);
+    assert.equal(host.status().bankDepositEinmalAuthorityOffen, false);
+    assert.equal((await host.pruefeBankDepositStartBereit()).bereit, true);
+    assert.equal(host.bankLeaseStatus()[0].zustand, "RELEASED");
+
+    const stateFile = JSON.parse(await fs.readFile(
+      path.join(
+        root,
+        "runtime",
+        "transactions",
+        "bank-deposit",
+        "NODE-BANK-DEPOSIT-LIVE-TX-1",
+        "state.json",
+      ),
+      "utf8",
+    ));
+    assert.equal(stateFile.status, "TERMINAL");
+    assert.deepEqual(
+      stateFile.eintraege.map(x => x.art),
+      ["INTENT", "SERVER_ERGEBNIS", "POSTCONDITION", "COMMIT"],
+    );
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test("Node-Host fuehrt Real-Browser-Bank-Shadow bis R9-Admission ohne Gameplay-Write", async () => {
   const root = await fs.mkdtemp(
     path.join(os.tmpdir(), "v5-node-bank-real-shadow-"),

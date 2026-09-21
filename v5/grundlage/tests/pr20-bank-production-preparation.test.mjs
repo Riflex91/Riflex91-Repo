@@ -22,7 +22,7 @@ const erwartete = new Map([
 
 test("PR20.2 Vorbereitung bleibt strikt NO-WRITE; PR20.1 ist als vorausgehendes Gate dokumentiert", () => {
   assert.equal(prep.schemaVersion, 1);
-  assert.equal(prep.status, "REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_VORBEREITUNG");
+  assert.equal(prep.status, "WRITE_PATH_IMPLEMENTIERT_LIVE_EVIDENCE_AUSSTEHEND");
   assert.equal(prep.blockingGate, "PR20.1_EQUIP_PRODUKTIONSNACHWEIS");
   assert.equal(prep.blockingGateStatus, "BESTANDEN");
   assert.equal(prep.authorityGrenze.produktiveRegistrierungErlaubt, true);
@@ -45,6 +45,14 @@ test("PR20.2 Vorbereitung bleibt strikt NO-WRITE; PR20.1 ist als vorausgehendes 
     "roadmap/pr20-2-bank-shadow-recovery-evidence.json",
   );
   assert.equal(prep.authorityGrenze.realBrowserShadowLiveEvidence, "BESTANDEN");
+  assert.equal(prep.authorityGrenze.writeAdapterImplementiert, true);
+  assert.equal(prep.authorityGrenze.liveRunnerImplementiert, true);
+  assert.equal(prep.authorityGrenze.exakterLiveBetragGold, 1);
+  assert.equal(prep.authorityGrenze.maximaleAdapterAufrufe, 1);
+  assert.equal(prep.authorityGrenze.maximaleGameplayWrites, 1);
+  assert.equal(prep.authorityGrenze.sameIntentRetry, false);
+  assert.equal(prep.authorityGrenze.realLiveWritePerformed, false);
+  assert.equal(prep.authorityGrenze.liveEvidence, "AUSSTEHEND");
   assert.equal(
     prep.authorityGrenze.realBrowserShadowEvidencePfad,
     "roadmap/pr20-2-bank-real-browser-shadow-evidence.json",
@@ -57,7 +65,7 @@ test("PR20.2 Vorbereitung bleibt strikt NO-WRITE; PR20.1 ist als vorausgehendes 
 test("PR20.2 erster Live-Kandidat ist eng auf bank_deposit(1) begrenzt", () => {
   const kandidat = prep.ersterLiveKandidat;
   assert.ok(kandidat);
-  assert.equal(kandidat.status, "REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_VORBEREITUNG");
+  assert.equal(kandidat.status, "WRITE_PATH_IMPLEMENTIERT_LIVE_EVIDENCE_AUSSTEHEND");
   assert.equal(kandidat.publicFunction, "bank_deposit");
   assert.equal(kandidat.betragGold, 1);
   assert.equal(kandidat.actionContractId, "AL-ACTION-BANK-DEPOSIT");
@@ -86,8 +94,16 @@ test("PR20.2 erster Live-Kandidat ist eng auf bank_deposit(1) begrenzt", () => {
     kandidat.realBrowserShadowEvidencePfad,
     "roadmap/pr20-2-bank-real-browser-shadow-evidence.json",
   );
-  assert.equal(kandidat.writeAdapterNochNichtVorhanden, true);
-  assert.equal(kandidat.liveRunnerNochNichtVorhanden, true);
+  assert.equal(kandidat.writeAdapterNochNichtVorhanden, false);
+  assert.equal(kandidat.liveRunnerNochNichtVorhanden, false);
+  assert.equal(kandidat.writeAdapterImplementiert, true);
+  assert.equal(kandidat.liveRunnerImplementiert, true);
+  assert.equal(kandidat.exakterLiveBetragGold, 1);
+  assert.equal(kandidat.maximaleAdapterAufrufe, 1);
+  assert.equal(kandidat.maximaleGameplayWrites, 1);
+  assert.equal(kandidat.sameIntentRetry, false);
+  assert.equal(kandidat.realLiveWritePerformed, false);
+  assert.equal(kandidat.liveEvidence, "AUSSTEHEND");
 });
 
 test("PR20.2 Kandidaten besitzen exakt vorhandene R9 Action/Recovery/Verifier-Bindungen", () => {
