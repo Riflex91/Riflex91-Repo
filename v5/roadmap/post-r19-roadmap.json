@@ -81,8 +81,9 @@
   "currentNextSteps": [
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN und im Repo dokumentiert",
     "PR20.2 bank_deposit(1) One-Shot-Live-Evidence ist BESTANDEN: COMMIT, 1 Adapter-Aufruf, 1 Gameplay-Write, kein Retry, Lease RELEASED",
-    "Bank-Deposit-Gold-One-Shot ist real nachgewiesen; dies beweist noch nicht die gesamte Bank-Autonomie",
-    "als naechstes Withdraw/Store/Retrieve/Swap jeweils eng vorbereiten und einzeln produktiv nachweisen",
+    "bank_withdraw(1) ist als naechster Kandidat mit authority-freiem Settlement-/Drift-Core NO-WRITE ratifiziert",
+    "als naechstes fuer bank_withdraw(1) default-off Capability, One-Shot-Authority und Current-Fence weiterhin NO-WRITE vorbereiten und separat pruefen",
+    "danach Store/Retrieve/Swap jeweils eng vorbereiten und einzeln produktiv nachweisen",
     "Capacity-/Workspace- und Open-Bank-Pack-Gates separat behandeln",
     "danach reale 5m-Bank-Funktionsevidence ohne Duplicate/UNKNOWN-Restzustand absolvieren",
     "erst nach komplettem PR20.2-Exit-Gate PR20.3 Markt produktiv oeffnen"
@@ -189,7 +190,11 @@
       "v5/werkzeuge/bank-deposit-produktions-live.mjs",
       "v5/grundlage/tests/r11-bank-deposit-produktions-transaktion.test.mjs",
       "v5/grundlage/tests/r11-bank-deposit-produktions-write-browser.test.mjs",
-      "v5/roadmap/pr20-2-bank-deposit-production-evidence.json"
+      "v5/roadmap/pr20-2-bank-deposit-production-evidence.json",
+      "v5/architektur/adr/ADR-039-PR20-2J-BANK-WITHDRAW-ONE-GOLD-NO-WRITE.md",
+      "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
+      "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
+      "v5/grundlage/tests/pr20-bank-withdraw-settlement.test.mjs"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",
@@ -226,6 +231,27 @@
       "recoveryKlassifikation": "BESTAETIGT",
       "leaseEpoche": 3,
       "leaseTerminalStatus": "RELEASED"
+    },
+    "nextLiveCandidate": {
+      "publicFunction": "bank_withdraw",
+      "amountGold": 1,
+      "status": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE",
+      "contract": "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
+      "settlementCore": "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
+      "providerSpaeter": "merchant-bank-core@1",
+      "capabilityIdSpaeter": "merchant.bank.gold_auslagern",
+      "oneShotAuthority": false,
+      "durableCurrentFence": false,
+      "writeAdapter": false,
+      "liveRunner": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "gameplayWritesInThisStep": 0,
+      "sameIntentRetry": false,
+      "settlement": {
+        "characterGoldDelta": 1,
+        "bankGoldDelta": -1
+      }
     }
   },
   "parallelPreparations": [
@@ -270,7 +296,11 @@
         "v5/werkzeuge/bank-deposit-produktions-live.mjs",
         "v5/grundlage/tests/r11-bank-deposit-produktions-transaktion.test.mjs",
         "v5/grundlage/tests/r11-bank-deposit-produktions-write-browser.test.mjs",
-        "v5/roadmap/pr20-2-bank-deposit-production-evidence.json"
+        "v5/roadmap/pr20-2-bank-deposit-production-evidence.json",
+        "v5/architektur/adr/ADR-039-PR20-2J-BANK-WITHDRAW-ONE-GOLD-NO-WRITE.md",
+        "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
+        "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
+        "v5/grundlage/tests/pr20-bank-withdraw-settlement.test.mjs"
       ],
       "firstLiveCandidate": {
         "publicFunction": "bank_deposit",
@@ -307,6 +337,27 @@
         "recoveryKlassifikation": "BESTAETIGT",
         "leaseEpoche": 3,
         "leaseTerminalStatus": "RELEASED"
+      },
+      "nextLiveCandidate": {
+        "publicFunction": "bank_withdraw",
+        "amountGold": 1,
+        "status": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE",
+        "contract": "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
+        "settlementCore": "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
+        "providerSpaeter": "merchant-bank-core@1",
+        "capabilityIdSpaeter": "merchant.bank.gold_auslagern",
+        "oneShotAuthority": false,
+        "durableCurrentFence": false,
+        "writeAdapter": false,
+        "liveRunner": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "gameplayWritesInThisStep": 0,
+        "sameIntentRetry": false,
+        "settlement": {
+          "characterGoldDelta": 1,
+          "bankGoldDelta": -1
+        }
       }
     },
     {
@@ -447,7 +498,7 @@
     "writeAdapter": true,
     "liveRunner": true,
     "gameplayWrites": 1,
-    "nextSafetyGap": "WITHDRAW_STORE_RETRIEVE_SWAP_UND_5M_BANK_FUNCTION_EVIDENCE",
+    "nextSafetyGap": "BANK_WITHDRAW_CAPABILITY_AUTHORITY_CURRENT_FENCE_NO_WRITE_THEN_STORE_RETRIEVE_SWAP_UND_5M_BANK_FUNCTION_EVIDENCE",
     "persistentBankLease": true,
     "restartReconciliation": true,
     "r9AdmissionShadow": true,
@@ -467,6 +518,15 @@
     "actualAdapterCalls": 1,
     "actualGameplayWrites": 1,
     "leaseEpoche": 3,
-    "leaseTerminalStatus": "RELEASED"
+    "leaseTerminalStatus": "RELEASED",
+    "nextLiveCandidate": "bank_withdraw(1)",
+    "nextLiveCandidateStatus": "SETTLEMENT_CORE_RATIFIZIERT_NO_WRITE",
+    "nextLiveCandidateContract": "v5/grundlage/vertraege/runtime/bank-withdraw-production-candidate.json",
+    "nextLiveCandidateSettlementCore": "v5/grundlage/quelle/merchant/bank-withdraw-settlement.ts",
+    "nextLiveCandidateGameplayWrites": 0,
+    "nextLiveCandidateCapabilityImplemented": false,
+    "nextLiveCandidateAuthorityImplemented": false,
+    "nextLiveCandidateAdapterImplemented": false,
+    "nextLiveCandidateLiveRunnerImplemented": false
   }
 }
