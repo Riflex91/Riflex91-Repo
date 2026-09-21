@@ -19,6 +19,37 @@ export const ADVENTURE_LAND_CONTEXT_PROBE = `(() => {
   return false;
 })()`;
 
+
+function validiereRequiredGlobalFunction(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "string"
+      || !/^[A-Za-z_$][A-Za-z0-9_$]{0,127}$/.test(value)) {
+    throw new Error("R12_CDP_REQUIRED_GLOBAL_FUNCTION_UNGUELTIG");
+  }
+  return value;
+}
+
+function contextProbe(requiredGlobalFunction) {
+  const required = validiereRequiredGlobalFunction(requiredGlobalFunction);
+  if (required === null) return ADVENTURE_LAND_CONTEXT_PROBE;
+  const requiredLiteral = JSON.stringify(required);
+  return [
+    "(() => {",
+    "  const roots=[globalThis];",
+    "  try { if (globalThis.parent && globalThis.parent!==globalThis) roots.push(globalThis.parent); } catch {}",
+    "  for (const root of roots) {",
+    "    try {",
+    "      const c=root&&root.character;",
+    "      const g=root&&root.G;",
+    "      const fn=root&&root[" + requiredLiteral + "];",
+    "      if (c&&Array.isArray(c.items)&&c.slots&&g&&g.items&&typeof fn==='function') return true;",
+    "    } catch {}",
+    "  }",
+    "  return false;",
+    "})()",
+  ].join("\n");
+}
+
 export function validiereLoopbackCdp(value) {
   const url = new URL(value);
   const host = url.hostname.toLowerCase();
@@ -117,7 +148,11 @@ export class CdpSession {
   }
 }
 
-export async function findeAdventureLandKontext(cdpBase) {
+export async function findeAdventureLandKontext(
+  cdpBase,
+  { requiredGlobalFunction = null } = {},
+) {
+  const probe = contextProbe(requiredGlobalFunction);
   const listUrl = new URL("json/list", cdpBase);
   const response = await fetch(listUrl, { signal: AbortSignal.timeout(5000) });
   if (!response.ok) throw new Error("R12_CDP_TARGET_LIST_HTTP_" + response.status);
@@ -145,16 +180,41 @@ export async function findeAdventureLandKontext(cdpBase) {
         .slice(0, 32);
       for (const context of contexts) {
         const ok = await session.evaluate(
-          ADVENTURE_LAND_CONTEXT_PROBE,
+          probe,
           context.id,
         ).catch(() => false);
-        if (ok === true) return { session, contextId: context.id, targetUrl: target.url };
+        if (ok === true) {
+          return {
+            session,
+            contextId: context.id,
+            targetUrl: target.url,
+            requiredGlobalFunction:
+              validiereRequiredGlobalFunction(requiredGlobalFunction),
+            contextName:
+              typeof context.name === "string" ? context.name : "",
+            contextType:
+              typeof context.auxData?.type === "string"
+                ? context.auxData.type
+                : null,
+            contextIsDefault: context.auxData?.isDefault === true,
+            frameId:
+              typeof context.auxData?.frameId === "string"
+                ? context.auxData.frameId
+                : null,
+          };
+        }
       }
     } catch {
       session.close();
       continue;
     }
     session.close();
+  }
+  const required = validiereRequiredGlobalFunction(requiredGlobalFunction);
+  if (required !== null) {
+    throw new Error(
+      "R12_ADVENTURE_LAND_CODEKONTEXT_CAPABILITY_FEHLT:" + required,
+    );
   }
   throw new Error("R12_ADVENTURE_LAND_CODEKONTEXT_FEHLT");
 }
