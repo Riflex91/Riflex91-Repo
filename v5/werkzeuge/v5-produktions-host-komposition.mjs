@@ -1082,7 +1082,7 @@ class NodeV5ProduktionsHost {
         }),
         Object.freeze({
           laufzeitGate: gate,
-          journal: this.#bankDepositJournal,
+          journal: this.#bankWithdrawJournal,
           leaseController: this.#bankLeaseController,
           adapter: anfrage.adapter,
           bankBeobachter: anfrage.bankBeobachter,
