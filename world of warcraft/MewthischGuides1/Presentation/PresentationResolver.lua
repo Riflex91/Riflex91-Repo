@@ -38,12 +38,12 @@ local function rowText(state, facts)
     local goal = state.sourceGoal or {}
     local action = state.action
     local title = questTitle(state, facts)
-    if action == "accept" then return "Nimm „" .. tostring(title or "Quest") .. "“ an" end
-    if action == "turnin" then return "Gib „" .. tostring(title or "Quest") .. "“ ab" end
+    if action == "accept" then return 'Nimm "' .. tostring(title or "Quest") .. '" an' end
+    if action == "turnin" then return 'Gib "' .. tostring(title or "Quest") .. '" ab' end
     if action == "complete" then
         return objectiveText(state, facts) or
-            ("Schließe Questziel " .. tostring(state.objectiveIndex or "") ..
-             " von „" .. tostring(title or "Quest") .. "“ ab")
+            ('Schließe Questziel ' .. tostring(state.objectiveIndex or "") ..
+             ' von "' .. tostring(title or "Quest") .. '" ab')
     end
     if action == "collect" then
         return "Sammle " .. tostring(state.required or "") ..
@@ -69,15 +69,23 @@ local function rowText(state, facts)
 end
 
 function P:GoalRow(state, facts, source)
+    local text = rowText(state, facts)
     local progress
     if state.current ~= nil or state.required ~= nil then
-        progress = tostring(state.current or 0) .. " / " .. tostring(state.required or "?")
+        local current = tostring(state.current or 0)
+        local required = tostring(state.required or "?")
+        local compactPattern = current .. "%s*/%s*" .. required
+        -- WoW objective text commonly already contains "2/10". Do not append
+        -- the semantic progress a second time.
+        if not string.find(tostring(text or ""), compactPattern) then
+            progress = current .. " / " .. required
+        end
     end
     return {
         id = state.id,
         source = source or "step",
         status = state.status,
-        text = rowText(state, facts),
+        text = text,
         progress = progress,
         passive = state.passive,
         optional = state.optional,
