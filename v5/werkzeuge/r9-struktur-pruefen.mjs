@@ -82,7 +82,7 @@ if (trace.length !== erwarteteAnforderungen.size
 }
 
 const bindungen = lies("grundlage/vertraege/r9/action-bindungen.json");
-if (bindungen.summary.gebunden !== 59 || bindungen.summary.deaktiviert !== 1) {
+if (bindungen.summary.gebunden !== 60 || bindungen.summary.deaktiviert !== 1) {
   fehler("R9 Action-/Verifier-/Recovery-Bindungsabdeckung ungueltig.");
 }
 
