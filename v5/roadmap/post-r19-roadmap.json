@@ -3,7 +3,7 @@
   "stand": "2026-09-21",
   "roadmap": "V5_POST_R19_PRODUKTIV",
   "status": "AKTIV",
-  "basisMain": "aef9d84b13956c81799e9fa150cfa22438160470",
+  "basisMain": "a2364c8a9054022666d32074db11376978c9f6b1",
   "dokumentation": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
   "testzeitStandard": "v5/roadmap/testzeit-standard.json",
   "currentStage": "PR20",
@@ -81,14 +81,11 @@
   "currentNextSteps": [
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN und im Repo dokumentiert",
     "PR20.2 erster Live-Kandidat ist exakt bank_deposit(1 Gold)",
-    "PR20.2a authority-freier Deposit-Settlement-/Drift-Core ist CI-gruen gemerged",
-    "PR20.2b Single Owner, default-off Capability, One-Shot-Authority, Current-Fence und read-only Preflight sind CI-gruen gemerged",
-    "PR20.2c persistente accountweite Bank-Lease/Restart-Reconciliation und No-Write-R9-Admission-Shadow sind CI-gruen gemerged",
-    "PR20.2d source-locked Real-Browser-Shadow-Runner ohne Write ist CI-gruen gemerged",
-    "PR20.2e echter F5-/Restart-Fault wurde zero-write auf RECOVERY_PENDING -> RELEASED reconciliiert und ist dokumentiert",
-    "PR20.2g normaler Real-Browser-Shadow ohne Write ist BESTANDEN und wird im Repo dokumentiert",
-    "jetzt Write-Adapter und Live-Runner fuer exakt bank_deposit(1) separat vorbereiten",
-    "erst nach erneut gruener Exact-Head-CI einen einzelnen kontrollierten bank_deposit(1)-Write als neues Live-Gate ausfuehren"
+    "PR20.2a bis PR20.2g Settlement, One-Shot-Authority, Lease/Restart, No-Write-Admission, F5-Recovery und Real-Browser-Shadow sind BESTANDEN bzw. CI-gruen gemerged",
+    "PR20.2h Write-Adapter und Live-Runner fuer exakt bank_deposit(1) vollstaendig CI-gruen machen",
+    "danach read-only Write-Preflight auf exakt dem geprueften Head ausfuehren",
+    "erst danach einen einzelnen kontrollierten bank_deposit(1)-Write als separates Live-Gate ausfuehren",
+    "Live-Evidence pruefen und erst bei BESTANDEN PR20.2 Bank-Deposit-Produktion als nachgewiesen markieren"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -153,7 +150,7 @@
   },
   "parallelPreparation": {
     "id": "PR20.2_BANK",
-    "status": "REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_VORBEREITUNG",
+    "status": "WRITE_PATH_IMPLEMENTIERT_LIVE_EVIDENCE_AUSSTEHEND",
     "blockedBy": null,
     "produktiveRegistrierungErlaubt": true,
     "gameplayAuthority": false,
@@ -184,7 +181,14 @@
       "v5/grundlage/tests/r11-bank-deposit-shadow-admission.test.mjs",
       "v5/roadmap/pr20-2-bank-shadow-recovery-evidence.json",
       "v5/werkzeuge/bank-deposit-real-shadow-recovery.mjs",
-      "v5/roadmap/pr20-2-bank-real-browser-shadow-evidence.json"
+      "v5/roadmap/pr20-2-bank-real-browser-shadow-evidence.json",
+      "v5/architektur/adr/ADR-038-PR20-2H-BANK-DEPOSIT-ONE-GOLD-WRITE-PATH.md",
+      "v5/grundlage/vertraege/runtime/bank-deposit-production-live-gate.json",
+      "v5/grundlage/quelle/merchant/bank-deposit-produktions-transaktion.ts",
+      "v5/werkzeuge/bank-deposit-produktions-write-browser.mjs",
+      "v5/werkzeuge/bank-deposit-produktions-live.mjs",
+      "v5/grundlage/tests/r11-bank-deposit-produktions-transaktion.test.mjs",
+      "v5/grundlage/tests/r11-bank-deposit-produktions-write-browser.test.mjs"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",
@@ -197,8 +201,8 @@
       "oneShotAuthority": true,
       "durableCurrentFence": true,
       "readOnlyPreflight": true,
-      "writeAdapter": false,
-      "liveRunner": false,
+      "writeAdapter": true,
+      "liveRunner": true,
       "gameplayAuthority": false,
       "persistentBankLease": true,
       "restartReconciliation": true,
@@ -206,13 +210,18 @@
       "shadowGameplayWrites": 0,
       "restartRecoveryRealEvidence": "BESTANDEN",
       "realBrowserShadowLiveEvidence": "BESTANDEN",
-      "realBrowserShadowEvidencePfad": "v5/roadmap/pr20-2-bank-real-browser-shadow-evidence.json"
+      "realBrowserShadowEvidencePfad": "v5/roadmap/pr20-2-bank-real-browser-shadow-evidence.json",
+      "maximumAdapterCalls": 1,
+      "maximumGameplayWrites": 1,
+      "sameIntentRetry": false,
+      "realLiveWritePerformed": false,
+      "liveEvidence": "AUSSTEHEND"
     }
   },
   "parallelPreparations": [
     {
       "id": "PR20.2_BANK",
-      "status": "REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_VORBEREITUNG",
+      "status": "WRITE_PATH_IMPLEMENTIERT_LIVE_EVIDENCE_AUSSTEHEND",
       "blockedBy": [],
       "produktiveRegistrierungErlaubt": true,
       "gameplayAuthority": false,
@@ -243,7 +252,14 @@
         "v5/grundlage/tests/r11-bank-deposit-shadow-admission.test.mjs",
         "v5/roadmap/pr20-2-bank-shadow-recovery-evidence.json",
         "v5/werkzeuge/bank-deposit-real-shadow-recovery.mjs",
-        "v5/roadmap/pr20-2-bank-real-browser-shadow-evidence.json"
+        "v5/roadmap/pr20-2-bank-real-browser-shadow-evidence.json",
+        "v5/architektur/adr/ADR-038-PR20-2H-BANK-DEPOSIT-ONE-GOLD-WRITE-PATH.md",
+        "v5/grundlage/vertraege/runtime/bank-deposit-production-live-gate.json",
+        "v5/grundlage/quelle/merchant/bank-deposit-produktions-transaktion.ts",
+        "v5/werkzeuge/bank-deposit-produktions-write-browser.mjs",
+        "v5/werkzeuge/bank-deposit-produktions-live.mjs",
+        "v5/grundlage/tests/r11-bank-deposit-produktions-transaktion.test.mjs",
+        "v5/grundlage/tests/r11-bank-deposit-produktions-write-browser.test.mjs"
       ],
       "firstLiveCandidate": {
         "publicFunction": "bank_deposit",
@@ -256,8 +272,8 @@
         "oneShotAuthority": true,
         "durableCurrentFence": true,
         "readOnlyPreflight": true,
-        "writeAdapter": false,
-        "liveRunner": false,
+        "writeAdapter": true,
+        "liveRunner": true,
         "gameplayAuthority": false,
         "persistentBankLease": true,
         "restartReconciliation": true,
@@ -265,7 +281,12 @@
         "shadowGameplayWrites": 0,
         "restartRecoveryRealEvidence": "BESTANDEN",
         "realBrowserShadowLiveEvidence": "BESTANDEN",
-        "realBrowserShadowEvidencePfad": "v5/roadmap/pr20-2-bank-real-browser-shadow-evidence.json"
+        "realBrowserShadowEvidencePfad": "v5/roadmap/pr20-2-bank-real-browser-shadow-evidence.json",
+        "maximumAdapterCalls": 1,
+        "maximumGameplayWrites": 1,
+        "sameIntentRetry": false,
+        "realLiveWritePerformed": false,
+        "liveEvidence": "AUSSTEHEND"
       }
     },
     {
@@ -394,7 +415,7 @@
     "recovery": "COMMITTED"
   },
   "pr20_2": {
-    "status": "REAL_BROWSER_SHADOW_BESTANDEN_WRITE_GATE_VORBEREITUNG",
+    "status": "WRITE_PATH_IMPLEMENTIERT_LIVE_EVIDENCE_AUSSTEHEND",
     "firstLiveCandidate": "bank_deposit(1)",
     "provider": "merchant-bank-core@1",
     "capabilityId": "merchant.bank.gold_einlagern",
@@ -403,15 +424,20 @@
     "oneShotAuthorityMaxLifetimeMs": 2000,
     "durableCurrentFence": true,
     "readOnlyPreflight": true,
-    "writeAdapter": false,
-    "liveRunner": false,
+    "writeAdapter": true,
+    "liveRunner": true,
     "gameplayWrites": 0,
-    "nextSafetyGap": "BANK_DEPOSIT_1_WRITE_ADAPTER_UND_LIVE_RUNNER_SEPARAT_VORBEREITEN",
+    "nextSafetyGap": "EXACT_HEAD_CI_DANN_READ_ONLY_PREFLIGHT_DANN_EINZELNER_BANK_DEPOSIT_1_LIVE_WRITE",
     "persistentBankLease": true,
     "restartReconciliation": true,
     "r9AdmissionShadow": true,
     "shadowGameplayWrites": 0,
     "restartRecoveryRealEvidence": "v5/roadmap/pr20-2-bank-shadow-recovery-evidence.json",
-    "realBrowserShadowLiveEvidence": "v5/roadmap/pr20-2-bank-real-browser-shadow-evidence.json"
+    "realBrowserShadowLiveEvidence": "v5/roadmap/pr20-2-bank-real-browser-shadow-evidence.json",
+    "amountGold": 1,
+    "maximumAdapterCalls": 1,
+    "maximumGameplayWrites": 1,
+    "realLiveWritePerformed": false,
+    "liveEvidence": "AUSSTEHEND"
   }
 }
