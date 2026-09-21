@@ -7,6 +7,17 @@ der Benutzer kann alternativ einen manuellen Modus wählen, der angenommene
 Quests nach dem aktuell kürzesten erreichbaren Ziel ordnet. Das aktuelle Ziel
 kann zusätzlich als Blizzard-Weltkarten-Wegpunkt markiert werden.
 
+## Architektur-Migrationsreferenz
+
+Die verbindliche, lebende Referenz für den weiteren Architekturumbau liegt in
+[ARCHITECTURE_GAP_MATRIX.md](ARCHITECTURE_GAP_MATRIX.md).
+
+Dort sind das Zielmodell **Guide → Steps → Goals**, die aktuelle Gap-Matrix,
+Resolver-/Runtime-Grenzen, fehlende Regressionstests und die empfohlene
+Migrationsreihenfolge dokumentiert. Für zukünftige Architekturarbeit soll diese
+Datei vor größeren Refactors zuerst gelesen und bei relevanten Änderungen
+aktualisiert werden.
+
 ## Roadmap state
 
 1. UI + standalone Navigator — implemented
@@ -20,8 +31,10 @@ kann zusätzlich als Blizzard-Weltkarten-Wegpunkt markiert werden.
 9. BuildState + TalentAdvisor — implemented
 10. State/Sync + Diagnostics/local telemetry + Themes — implemented
 
-Step 10 is the final planned engine step. From here, runtime findings are
-handled as fixes/hardening instead of adding another architectural layer.
+Die obige Liste beschreibt den implementierten v0.12.0-Baseline-Stand. Die
+weitere semantische Architektur-Migration ist in
+`ARCHITECTURE_GAP_MATRIX.md` festgehalten; insbesondere werden Domain,
+Resolver, Runtime-State und Consumer dort schrittweise stärker getrennt.
 
 ## Runtime architecture
 
