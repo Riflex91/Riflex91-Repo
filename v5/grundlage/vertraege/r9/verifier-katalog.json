@@ -3,8 +3,8 @@
   "stand": "2026-09-20",
   "quelle": "v5/wissensbasis/vertraege/action-contracts.json",
   "summary": {
-    "total": 60,
-    "verified": 59,
+    "total": 61,
+    "verified": 60,
     "disabled": 1
   },
   "verifiers": [
@@ -1372,6 +1372,37 @@
       ],
       "postconditions": [
         "destroyed item/quantity no longer exists at the re-resolved physical inventory identity"
+      ],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-VERIFIER-MLUCK-SAME-ACCOUNT",
+      "actionContractId": "AL-ACTION-MLUCK-SAME-ACCOUNT",
+      "publicFunction": "use_skill",
+      "status": "VERIFIED_POSTCONDITION_MODEL",
+      "effectDomains": [
+        "character_mp",
+        "skill_cooldown",
+        "target_mluck_condition"
+      ],
+      "liveRevalidation": [
+        "sender_character_session",
+        "recipient_entity",
+        "recipient_session",
+        "same_account",
+        "same_server",
+        "same_instance",
+        "distance",
+        "sender_class_level_mp_disabled",
+        "skill_cooldown",
+        "target_mluck_condition_source_strength"
+      ],
+      "postconditions": [
+        "same bound target session has active mluck condition",
+        "target mluck condition source f equals the sending merchant name",
+        "same-account target mluck condition is strong=true",
+        "sender MP/cooldown state is consistent with exactly one accepted mluck use"
       ],
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
     }
