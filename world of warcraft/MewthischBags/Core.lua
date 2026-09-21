@@ -51,10 +51,14 @@ function MB:HideBlizzardBagFrames()
     end
 end
 
+-- Toggle actions deliberately outrank nested Open*/Close* hooks.
+-- Blizzard's ToggleBackpack/ToggleAllBags can internally open or close a
+-- container frame. Because those Blizzard frames are always hidden by this
+-- addon, the final top-level toggle must follow the state of our own window.
 local actionPriority = {
-    toggle = 1,
-    show = 2,
-    hide = 2,
+    show = 1,
+    hide = 1,
+    toggle = 2,
 }
 
 function MB:QueueBagAction(action)
@@ -62,13 +66,7 @@ function MB:QueueBagAction(action)
 
     local pending = self._pendingBagAction
     if not pending or (actionPriority[action] or 0) >= (actionPriority[pending] or 0) then
-        if pending == "show" and action == "toggle" then
-            -- Keep the explicit show requested by an inner OpenAllBags call.
-        elseif pending == "hide" and action == "toggle" then
-            -- Keep the explicit hide requested by an inner CloseAllBags call.
-        else
-            self._pendingBagAction = action
-        end
+        self._pendingBagAction = action
     end
 
     if self._bagActionScheduled then return end
