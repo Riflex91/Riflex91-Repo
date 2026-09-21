@@ -6,7 +6,7 @@ local LegacyRefreshInfo=MG.RefreshInfo
 
 MG.UI2=MG.UI2 or {}
 local U=MG.UI2
-local MAIN_W,MAIN_H=390,262
+local MAIN_W,MAIN_H=390,230
 local SETTINGS_W,SETTINGS_H=720,560
 local BROWSER_W,BROWSER_H=600,520
 local PAGE_SIZE=6
@@ -59,9 +59,9 @@ local function edit(parent,w,h)
   local e=CreateFrame("EditBox",nil,parent);e:SetSize(w,h or 24);e:SetAutoFocus(false);e:SetFontObject(GameFontHighlightSmall);e:SetTextInsets(8,8,0,0);decorate(e,"panel");return e
 end
 local function check(parent,key,text,x,y)
-  local b=CreateFrame("Button",nil,parent);b:SetSize(18,18);b:SetPoint("TOPLEFT",x,y);b._mg2Background=b:CreateTexture(nil,"BACKGROUND");b._mg2Background:SetAllPoints();makeBorders(b)
-  b._mg2Mark=b:CreateTexture(nil,"ARTWORK");b._mg2Mark:SetTexture("Interface\\Buttons\\UI-CheckBox-Check");b._mg2Mark:SetAllPoints()
-  local t=label(parent,11,"text");t:SetPoint("LEFT",b,"RIGHT",7,0);t:SetPoint("RIGHT",parent,-10,0);t:SetWordWrap(false);t:SetText(text or "")
+  local b=CreateFrame("Button",nil,parent);b:SetSize(22,22);b:SetPoint("TOPLEFT",x,y);b._mg2Background=b:CreateTexture(nil,"BACKGROUND");b._mg2Background:SetAllPoints();makeBorders(b)
+  b._mg2Mark=b:CreateTexture(nil,"ARTWORK");b._mg2Mark:SetTexture("Interface\\Buttons\\UI-CheckBox-Check");b._mg2Mark:SetPoint("TOPLEFT",2,-2);b._mg2Mark:SetPoint("BOTTOMRIGHT",-2,2)
+  local t=label(parent,11,"text");t:SetPoint("LEFT",b,"RIGHT",8,0);t:SetPoint("RIGHT",parent,-10,0);t:SetWordWrap(false);t:SetText(text or "")
   b._mg2SettingKey=key;b._mg2Text=t
   function b:SetChecked(v) self._mg2Checked=v and true or false;show(self._mg2Mark,self._mg2Checked) end
   function b:GetChecked() return self._mg2Checked and true or false end
@@ -86,13 +86,52 @@ local function saveMain(f)
   local x,y=f:GetCenter();local ux,uy=UIParent:GetCenter();if x and y and ux and uy then MG.db.settings.viewerX=math.floor(x-ux+0.5);MG.db.settings.viewerY=math.floor(y-uy+0.5) end
 end
 local function stepIcon(step)
-  local k=step and ((step.goal and step.goal.type) or step.phase);if k=="collect" or k=="collect_currency" then return "Interface\\Icons\\INV_Misc_Bag_08" elseif k=="kill" then return "Interface\\Icons\\Ability_DualWield" elseif k=="turnin" then return "Interface\\Icons\\INV_Letter_15" elseif k=="accept" then return "Interface\\Icons\\INV_Misc_Note_01" elseif k=="interact" then return "Interface\\Icons\\INV_Misc_Gear_01" end
+  local k=step and ((step.goal and step.goal.type) or step.phase)
+  if k=="collect" or k=="collect_currency" then return "Interface\\Icons\\INV_Misc_Bag_08"
+  elseif k=="kill" or k=="kill_player" then return "Interface\\Icons\\Ability_DualWield"
+  elseif k=="turnin" then return "Interface\\GossipFrame\\ActiveQuestIcon"
+  elseif k=="accept" then return "Interface\\GossipFrame\\AvailableQuestIcon"
+  elseif k=="interact" then return "Interface\\Icons\\INV_Misc_Gear_01" end
   return "Interface\\Icons\\INV_Misc_Map_01"
 end
+local function actionGlyph(step)
+  local tex=stepIcon(step)
+  return "|T"..tex..":18:18:0:0|t "
+end
+local function instructionContext(step)
+  if not step or not step.definition or not MG.RestEDXPImport or
+     not MG.RestEDXPImport.GetInstructionContext then return {} end
+  return MG.RestEDXPImport:GetInstructionContext(
+    step.definition,step.phase,MG:GetPlayerProfile(),
+    step.goal and step.goal.index or nil) or {}
+end
+local function instruction(step)
+  if not step then return L("target_missing") end
+  local ctx=instructionContext(step);local title=tostring(step.title or "")
+  local goal=step.goal or {};local typ=tostring(goal.type or step.phase or "")
+  local text
+  if step.phase=="accept" then
+    text=ctx.questGiver and L("accept_quest_at",title,ctx.questGiver) or L("accept_quest",title)
+  elseif step.phase=="turnin" then
+    text=ctx.questGiver and L("turnin_quest_at",title,ctx.questGiver) or L("turnin_quest",title)
+  elseif typ=="kill" or typ=="kill_player" then
+    text=goal.required and L("kill_count",goal.required,goal.name or "") or L("kill_target",goal.name or "")
+  elseif typ=="collect" or typ=="collect_currency" then
+    if goal.required and ctx.source then text=L("collect_count_from",goal.required,goal.name or "",ctx.source)
+    elseif goal.required then text=L("collect_count",goal.required,goal.name or "")
+    elseif ctx.source then text=L("collect_from",goal.name or "",ctx.source)
+    else text=L("collect_target",goal.name or "") end
+  elseif typ=="interact" then text=L("interact_with",goal.name or "")
+  elseif typ=="progress" then text=L("continue_quest",title)
+  else text=L("continue_quest",title) end
+  return actionGlyph(step)..text
+end
 local function details(step)
-  local out={};if step and step.goal and step.goal.instruction then out[#out+1]=step.goal.instruction end
-  if MG.travelPlan and MG.travelPlan.best and MG.db.settings.travelShowDetails then out[#out+1]=MG.TravelPlanner and MG.TravelPlanner:GetPrimaryHint() or MG.travelPlan.best.label end
-  for _,a in ipairs(MG.actionPlan or {}) do if #out>=3 then break end;if a.text and a.text~="" then out[#out+1]=a.text end end
+  local out={};local ctx=instructionContext(step)
+  if ctx.questGiver then out[#out+1]=L("quest_giver")..": "..ctx.questGiver end
+  if ctx.source and ctx.source~=ctx.questGiver then out[#out+1]=L("source")..": "..ctx.source end
+  if ctx.location then out[#out+1]=L("location")..": "..ctx.location end
+  if #out==0 and step and step.title and step.title~="" then out[#out+1]=L("quest")..": "..step.title end
   while #out<3 do out[#out+1]="" end;return out
 end
 
@@ -107,17 +146,15 @@ local function createMain()
   U.guideIcon=g:CreateTexture(nil,"ARTWORK");U.guideIcon:SetSize(24,24);U.guideIcon:SetPoint("LEFT",8,0);U.guideIcon:SetTexture("Interface\\Icons\\INV_Misc_Map_01")
   U.guideTitle=label(g,13,"text");U.guideTitle:SetPoint("LEFT",U.guideIcon,"RIGHT",8,0);U.guideTitle:SetPoint("RIGHT",-78,0);U.guideTitle:SetWordWrap(false)
   local prev=button(g,"<",30,26,function() MG:SelectRelativeStep(-1,"ui2_prev") end);prev:SetPoint("RIGHT",-39,0);local nxt=button(g,">",30,26,function() MG:SelectRelativeStep(1,"ui2_next") end);nxt:SetPoint("RIGHT",-5,0)
-  local body=panel(f,nil,146,"panel");body:SetPoint("TOPLEFT",7,-78);body:SetPoint("TOPRIGHT",-7,-78)
+  local body=panel(f,nil,144,"panel");body:SetPoint("TOPLEFT",7,-78);body:SetPoint("TOPRIGHT",-7,-78)
   U.stepCounter=label(body,14,"accent");U.stepCounter:SetPoint("TOPLEFT",10,-9)
-  U.stepIcon=body:CreateTexture(nil,"ARTWORK");U.stepIcon:SetSize(22,22);U.stepIcon:SetPoint("TOPLEFT",10,-35)
-  U.instruction=label(body,14,"text");U.instruction:SetPoint("TOPLEFT",U.stepIcon,"TOPRIGHT",8,2);U.instruction:SetPoint("RIGHT",-78,0);U.instruction:SetHeight(42)
+  U.instruction=label(body,14,"text");U.instruction:SetPoint("TOPLEFT",10,-35);U.instruction:SetPoint("RIGHT",-72,0);U.instruction:SetHeight(44)
   U.bigStepIcon=body:CreateTexture(nil,"ARTWORK");U.bigStepIcon:SetSize(48,48);U.bigStepIcon:SetPoint("TOPRIGHT",-14,-29)
   U.stepProgress=label(body,10,"text");U.stepProgress:SetPoint("TOP",U.bigStepIcon,"BOTTOM",0,-2);U.stepProgress:SetJustifyH("CENTER")
   U.detailLines={}
   for i=1,3 do local bullet=label(body,10,i==1 and "accent" or "muted");bullet:SetPoint("TOPLEFT",14,-88-(i-1)*19);bullet:SetText(i==1 and ">" or "-");local tx=label(body,11,i==1 and "text" or "muted");tx:SetPoint("LEFT",bullet,"RIGHT",7,0);tx:SetPoint("RIGHT",-10,0);tx:SetWordWrap(false);U.detailLines[i]=tx end
-  local ft=panel(f,nil,32,"header");ft:SetPoint("BOTTOMLEFT",7,7);ft:SetPoint("BOTTOMRIGHT",-7,7);U.footer={}
-  local defs={{"targets",function() MG:ToggleInfo() end},{"map",function() if ToggleWorldMap then pcall(ToggleWorldMap) end end},{"details",function() MG:ToggleInfo() end},{"skip",function() MG:SelectRelativeStep(1,"ui2_skip") end}}
-  for i,d in ipairs(defs) do local def=d;local b=button(ft,L(def[1]),86,23,def[2]);b:SetPoint("LEFT",4+(i-1)*90,0);b._mg2LabelKey=def[1];U.footer[#U.footer+1]=b end
+  U.footer={}
+
 end
 
 local function guideIcon(g)
@@ -144,7 +181,7 @@ local function cycle(values,current)
 end
 local function createBrowser()
   if U.browser then return end
-  local f=CreateFrame("Frame","MewthischGuidesGuideBrowserV2",UIParent);f:SetSize(BROWSER_W,BROWSER_H);f:SetPoint("CENTER");f:SetFrameStrata("DIALOG");f:SetClampedToScreen(true);decorate(f,"background");U.browser=f;f:Hide()
+  local f=CreateFrame("Frame","MewthischGuidesGuideBrowserV2",UIParent);f:SetSize(BROWSER_W,BROWSER_H);f:SetPoint("CENTER");f:SetFrameStrata("FULLSCREEN_DIALOG");f:SetFrameLevel(200);if f.SetToplevel then f:SetToplevel(true) end;f:SetClampedToScreen(true);decorate(f,"background");U.browser=f;f:Hide()
   local h=panel(f,nil,30,"header");h:SetPoint("TOPLEFT",1,-1);h:SetPoint("TOPRIGHT",-1,-1);local title=label(h,13,"accent");title:SetPoint("LEFT",10,0);title:SetText("Mewthisch Guides")
   local close=button(h,"X",28,22,function() MG:ToggleGuideBrowser(false) end);close:SetPoint("RIGHT",-4,0)
   U.browserTabs={};local tabs={{"recommended","recommended"},{"all","all_guides"},{"favorites","favorites"}}
@@ -200,8 +237,8 @@ function MG:ToggleLanguageMenu()
 end
 local function createSettings()
   if U.settings then return end
-  local f=CreateFrame("Frame","MewthischGuidesSettingsV2",UIParent);f:SetSize(SETTINGS_W,SETTINGS_H);f:SetPoint("CENTER");f:SetFrameStrata("DIALOG");f:SetClampedToScreen(true);decorate(f,"background");U.settings=f;f:Hide()
-  local h=panel(f,nil,32,"header");h:SetPoint("TOPLEFT",1,-1);h:SetPoint("TOPRIGHT",-1,-1);U.settingsTitle=label(h,13,"accent");U.settingsTitle:SetPoint("LEFT",12,0);local close=button(h,"X",28,22,function() MG:ToggleSettings(false) end);close:SetPoint("RIGHT",-5,0)
+  local f=CreateFrame("Frame","MewthischGuidesSettingsV2",UIParent);f:SetSize(SETTINGS_W,SETTINGS_H);f:SetPoint("CENTER",UIParent,"CENTER",tonumber(MG.db.settings.settingsX) or 0,tonumber(MG.db.settings.settingsY) or 0);f:SetFrameStrata("FULLSCREEN_DIALOG");f:SetFrameLevel(190);if f.SetToplevel then f:SetToplevel(true) end;f:SetClampedToScreen(true);f:SetMovable(true);decorate(f,"background");U.settings=f;f:Hide()
+  local h=panel(f,nil,32,"header");h:SetPoint("TOPLEFT",1,-1);h:SetPoint("TOPRIGHT",-1,-1);h:EnableMouse(true);h:RegisterForDrag("LeftButton");h:SetScript("OnDragStart",function() if not (InCombatLockdown and InCombatLockdown()) then f:StartMoving() end end);h:SetScript("OnDragStop",function() f:StopMovingOrSizing();local x,y=f:GetCenter();local ux,uy=UIParent:GetCenter();if x and y and ux and uy then MG.db.settings.settingsX=math.floor(x-ux+0.5);MG.db.settings.settingsY=math.floor(y-uy+0.5) end end);U.settingsTitle=label(h,13,"accent");U.settingsTitle:SetPoint("LEFT",12,0);local close=button(h,"X",28,22,function() MG:ToggleSettings(false) end);close:SetPoint("RIGHT",-5,0)
   local side=panel(f,190,nil,"panel");side:SetPoint("TOPLEFT",8,-40);side:SetPoint("BOTTOMLEFT",8,8);U.categoryButtons={};local y=-8
   for _,c in ipairs(MG.SettingsSchema:GetCategories()) do local categoryID,categoryKey=c.id,c.labelKey;local b=button(side,L(categoryKey),174,28,function() U.settingsCategory=categoryID;MG:RefreshSettings() end);b:SetPoint("TOPLEFT",8,y);b._mg2CategoryID=categoryID;b._mg2LabelKey=categoryKey;U.categoryButtons[#U.categoryButtons+1]=b;y=y-31 end
   local content=panel(f,nil,nil,"panel");content:SetPoint("TOPLEFT",side,"TOPRIGHT",8,0);content:SetPoint("BOTTOMRIGHT",-8,8);U.settingsContent=content
@@ -215,6 +252,7 @@ end
 function MG:RefreshTheme()
   if LegacyRefreshTheme then LegacyRefreshTheme(self) end;local t=theme();local alpha=1-math.max(0,math.min(0.8,tonumber(self.db and self.db.settings.windowTransparency) or 0))
   for _,f in ipairs(U.frames) do styleFrame(f,t) end;for _,b in ipairs(U.buttons) do styleButton(b,t) end;for _,l in ipairs(U.labels) do styleLabel(l,t) end
+  for _,b in ipairs(U.checks) do local bg=b._mg2Checked and {t.accent[1]*0.28,t.accent[2]*0.28,t.accent[3]*0.28,1} or t.panel;setTex(b._mg2Background,bg);if b._mg2Borders then for _,x in pairs(b._mg2Borders) do setTex(x,b._mg2Checked and t.accent or t.border) end end;if b._mg2Mark and b._mg2Mark.SetVertexColor then b._mg2Mark:SetVertexColor(color(t.accent)) end end
   if U.main then U.main:SetAlpha(alpha) end;if U.settings then U.settings:SetAlpha(alpha) end;if U.browser then U.browser:SetAlpha(alpha) end
 end
 function MG:RefreshLocalizedUI()
@@ -228,8 +266,8 @@ end
 function MG:RefreshUI()
   if not U.main then return end;local step=self.currentStep;local guide=self.GetActiveGuideDefinition and self:GetActiveGuideDefinition();local mode=self.GetRouteMode and self:GetRouteMode() or "manual"
   U.guideTitle:SetText(mode=="manual" and L("manual_mode_title") or (guide and guide.title or L("all_guides")));local count=#(self.steps or {});local idx=tonumber(self.currentStepIndex) or 0
-  U.stepCounter:SetText(L("step").." "..idx.." "..L("of").." "..count);local icon=stepIcon(step);U.stepIcon:SetTexture(icon);U.bigStepIcon:SetTexture(icon)
-  U.instruction:SetText(step and (step.action or step.detail or step.title) or L("target_missing"));U.stepProgress:SetText(step and step.goal and step.goal.progressText or "")
+  U.stepCounter:SetText(L("step").." "..idx.." "..L("of").." "..count);local icon=stepIcon(step);U.bigStepIcon:SetTexture(icon);if U.bigStepIcon.SetVertexColor then if step and step.goal and (step.goal.type=="kill" or step.goal.type=="kill_player") then U.bigStepIcon:SetVertexColor(1,0.2,0.2,1) else U.bigStepIcon:SetVertexColor(1,1,1,1) end end
+  U.instruction:SetText(instruction(step));U.stepProgress:SetText(step and step.goal and step.goal.progressText or "")
   local d=details(step);for i=1,3 do U.detailLines[i]:SetText(d[i] or "") end;show(U.main,self.db.settings.showWindow~=false);self:RefreshTheme()
 end
 function MG:RefreshGuideBrowser()
@@ -258,6 +296,6 @@ function MG:ToggleWindow() self.db.settings.showWindow=not self.db.settings.show
 function MG:ShowWindow() self.db.settings.showWindow=true;if U.main then U.main:Show() end end
 function MG:HideWindow() self.db.settings.showWindow=false;if U.main then U.main:Hide() end end
 function MG:ToggleSettings(force) if not U.settings then return end;local on=force;if on==nil then on=not U.settings:IsShown() end;show(U.settings,on);self.db.settings.showSettings=on and true or false;if on then self:RefreshSettings() end end
-function MG:ToggleGuideBrowser(force) if not U.browser then return end;local on=force;if on==nil then on=not U.browser:IsShown() end;show(U.browser,on);if on then U.browserFaction=self:GetPlayerProfile().faction;U.browserSearch="";U.browserPage=1;if U.search then U.search:SetText("") end;self:RefreshGuideBrowser() end end
+function MG:ToggleGuideBrowser(force) if not U.browser then return end;local on=force;if on==nil then on=not U.browser:IsShown() end;show(U.browser,on);if on then if U.browser.Raise then U.browser:Raise() end;U.browserFaction=self:GetPlayerProfile().faction;U.browserSearch="";U.browserPage=1;if U.search then U.search:SetText("") end;self:RefreshGuideBrowser() end end
 function MG:ToggleGuideSelector(force) return self:ToggleGuideBrowser(force) end
 if LegacyRefreshInfo then function MG:RefreshInfo() return LegacyRefreshInfo(self) end end
