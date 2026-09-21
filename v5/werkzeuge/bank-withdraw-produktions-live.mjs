@@ -19,6 +19,7 @@ import {
   erstelleBankWithdrawShadowReleaseBeobachter,
   validiereBankWithdrawShadowAusgangsBeobachtung,
   warteAufManuellenBankMountReadOnly,
+  warteAufStabilenStartAusserhalbBankReadOnly,
 } from "./bank-withdraw-produktions-browser.mjs";
 import {
   ProduktionsCdpBankWithdrawEinGoldAdapter,
@@ -193,11 +194,14 @@ export async function fuehreBankWithdrawEinGoldLiveAus({
   let adapter = null;
 
   try {
-    const ausgang = validiereBankWithdrawShadowAusgangsBeobachtung(
-      await beobachteBankWithdrawRohReadOnly(
-        live.session,
-        live.contextId,
-      ),
+    const ausgang = await warteAufStabilenStartAusserhalbBankReadOnly(
+      live.session,
+      live.contextId,
+      {
+        timeoutMs: 90_000,
+        pollMs: 500,
+        onPhase: phase,
+      },
     );
 
     host = await erstelleNodeV5ProduktionsHost(hostOptionen);
