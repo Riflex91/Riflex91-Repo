@@ -75,7 +75,9 @@
     "bank-planen-canary:live": "npm run bauen && node werkzeuge/bank-planen-observer-canary.mjs",
     "equipment-equip-production:pruefen": "npm run bauen && node --check werkzeuge/equipment-equip-produktions-browser.mjs && node --check werkzeuge/equipment-equip-produktions-live.mjs && node --check grundlage/adapter/persistenz/node-equip-transaktionsjournal.mjs && node --test grundlage/tests/r11-equip-produktions-transaktion.test.mjs grundlage/tests/r11-equip-produktions-journal.test.mjs grundlage/tests/r11-equip-produktions-browser.test.mjs",
     "equipment-equip-production:preflight": "npm run bauen && node werkzeuge/equipment-equip-produktions-live.mjs --preflight",
-    "equipment-equip-production:live": "npm run bauen && node werkzeuge/equipment-equip-produktions-live.mjs"
+    "equipment-equip-production:live": "npm run bauen && node werkzeuge/equipment-equip-produktions-live.mjs",
+    "bank-deposit-production:pruefen": "npm run bauen && node --check werkzeuge/bank-deposit-produktions-browser.mjs && node --check werkzeuge/bank-deposit-produktions-preflight.mjs && node --check grundlage/adapter/persistenz/node-bank-deposit-transaktionsjournal.mjs && node --check grundlage/adapter/persistenz/node-bank-deposit-einmal-authority-protokoll.mjs && node --test grundlage/tests/r11-bank-deposit-einmal-authority.test.mjs grundlage/tests/r11-bank-deposit-produktions-journal.test.mjs grundlage/tests/r11-bank-deposit-produktions-browser.test.mjs",
+    "bank-deposit-production:preflight": "npm run bauen && node werkzeuge/bank-deposit-produktions-preflight.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
