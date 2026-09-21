@@ -69,3 +69,8 @@ Die Umstellung reduziert Testwiederholungen, nicht die Runtime-Sicherheitslogik.
 - Blindes Wiederholen eines Same-Intent bleibt verboten.
 
 Fuer den aktuellen Withdraw-Pfad steht dafuer der read-only Diagnosebefehl `npm run ingame:bank-withdraw:reconcile` bereit.
+
+
+### Post-Send-Reconcile fuer Withdraw
+
+Wenn ein echter Withdraw-Lauf `gameWrites: 1` und `moeglicherSend: true` erreicht, aber Settlement/Recovery nicht bestaetigt werden konnte, ist ein weiterer Write verboten. Zuerst muss `npm run ingame:bank-withdraw:postsend-reconcile` ausgefuehrt werden. Der Runner liest den persistenten INTENT-Prestate, beobachtet einen frischen realen Bank-Snapshot und vergleicht exakt `characterGold +1` / `bankGold -1`. Er erzeugt 0 Gameplay-Writes und zaehlt nicht als Funktions-Test.
