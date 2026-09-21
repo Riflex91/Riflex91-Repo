@@ -165,6 +165,7 @@ class NodeV5ProduktionsHost {
       throw new Error("NODE_EQUIP_PROD_TX_HOST_NICHT_BEREIT:" + tick.grund);
     }
 
+    const authorityMs = Date.now();
     const authorityErgebnis = await this.#host.erteileEquipEinmalAuthority(
       Object.freeze({
         schemaVersion: 1,
@@ -178,9 +179,9 @@ class NodeV5ProduktionsHost {
         verifierId: EQUIPMENT_EQUIP_VERIFIER_ID,
         policyId: EQUIPMENT_EQUIP_EINMAL_POLICY_ID,
         bestaetigungText: anfrage.bestaetigungText,
-        gueltigBisMs: jetztMs + 2_000,
+        gueltigBisMs: authorityMs + 2_000,
       }),
-      jetztMs,
+      authorityMs,
     );
     if (!authorityErgebnis.erfolgreich || authorityErgebnis.authority === null) {
       throw new Error(
