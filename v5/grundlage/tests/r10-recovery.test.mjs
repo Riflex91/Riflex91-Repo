@@ -233,7 +233,7 @@ test("Disconnect-Fault fuer alle 60 produktiven Action-Bindungen erzeugt keinen 
     "utf8",
   ));
   const produktiv = katalog.bindungen.filter(x => x.status === "R9_ADMISSION_GEBUNDEN");
-  assert.equal(produktiv.length, 59);
+  assert.equal(produktiv.length, 60);
 
   let sendAufrufe = 0;
   for (const bindung of produktiv) {
