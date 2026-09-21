@@ -15,9 +15,7 @@ import {
   validiereLoopbackCdp,
 } from "./r12-live/cdp.mjs";
 import {
-  beobachteBankWithdrawRohReadOnly,
   erstelleBankWithdrawShadowReleaseBeobachter,
-  validiereBankWithdrawShadowAusgangsBeobachtung,
   warteAufManuellenBankMountReadOnly,
   warteAufStabilenStartAusserhalbBankReadOnly,
 } from "./bank-withdraw-produktions-browser.mjs";
