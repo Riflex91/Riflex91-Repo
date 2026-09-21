@@ -8,6 +8,7 @@
 Core/Namespace.lua
 Runtime/RuntimeStore.lua
 Core/ErrorLog.lua
+Core/UICompat.lua
 
 Data/RestedXPForeverData_01.lua
 Data/RestedXPForeverData_02.lua
