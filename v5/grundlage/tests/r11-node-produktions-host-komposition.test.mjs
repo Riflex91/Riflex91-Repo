@@ -629,11 +629,11 @@ test("Node-Host fuehrt exakt einen synthetischen bank_withdraw(1)-Write bis COMM
     let mountEpoche = null;
 
     const result = await host.fuehreBankWithdrawEinGoldTransaktion({
-      aktivierungsId: "NODE-BANK-DEPOSIT-LIVE-AUTH-1",
-      transaktionsId: "NODE-BANK-DEPOSIT-LIVE-TX-1",
-      freigabeId: "NODE-BANK-DEPOSIT-LIVE-FREE-1",
-      auftragId: "NODE-BANK-DEPOSIT-LIVE-ORDER-1",
-      ablaufId: "NODE-BANK-DEPOSIT-LIVE-WF-1",
+      aktivierungsId: "NODE-BANK-WITHDRAW-LIVE-AUTH-1",
+      transaktionsId: "NODE-BANK-WITHDRAW-LIVE-TX-1",
+      freigabeId: "NODE-BANK-WITHDRAW-LIVE-FREE-1",
+      auftragId: "NODE-BANK-WITHDRAW-LIVE-ORDER-1",
+      ablaufId: "NODE-BANK-WITHDRAW-LIVE-WF-1",
       bestaetigungText: BANK_WITHDRAW_EINMAL_BESTAETIGUNG,
       configFingerprint: "e".repeat(64),
       wissensSnapshot: {
@@ -736,7 +736,7 @@ test("Node-Host fuehrt exakt einen synthetischen bank_withdraw(1)-Write bis COMM
     assert.equal(result.betrag, 1);
     assert.equal(result.sameIntentErneutSenden, false);
     assert.equal(adapterCalls, 1);
-    assert.equal(host.status().bankDepositEinmalAuthorityOffen, false);
+    assert.equal(host.status().bankWithdrawEinmalAuthorityOffen, false);
     assert.equal((await host.pruefeBankWithdrawStartBereit()).bereit, true);
     assert.equal(host.bankLeaseStatus()[0].zustand, "RELEASED");
 
@@ -746,7 +746,7 @@ test("Node-Host fuehrt exakt einen synthetischen bank_withdraw(1)-Write bis COMM
         "runtime",
         "transactions",
         "bank-withdraw",
-        "NODE-BANK-DEPOSIT-LIVE-TX-1",
+        "NODE-BANK-WITHDRAW-LIVE-TX-1",
         "state.json",
       ),
       "utf8",
