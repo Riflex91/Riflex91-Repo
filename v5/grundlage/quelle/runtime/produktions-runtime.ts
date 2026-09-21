@@ -79,6 +79,12 @@ import {
   type ProduktiveEquipTransaktionsAnforderung,
   type ProduktiveEquipTransaktionsErgebnis,
 } from "../equipment/produktions-equip-transaktion.js";
+import {
+  ProduktiveBankDepositShadowAdmission,
+  type BankDepositShadowAbhaengigkeiten,
+  type BankDepositShadowAnforderung,
+  type BankDepositShadowErgebnis,
+} from "../merchant/bank-deposit-shadow-admission.js";
 import { KontrollierteLaufsteuerung } from "../recovery/laufsteuerung.js";
 import type {
   V5ProduktionsProzessErgebnis,
@@ -1373,6 +1379,38 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
         mutationsKanaele: this.#mutationsKanaele,
         ausfuehrung: this.#ausfuehrung,
       }));
+  }
+
+  public async fuehreBankDepositShadowAdmission(
+    anforderung: BankDepositShadowAnforderung,
+    abhaengigkeiten: Omit<
+      BankDepositShadowAbhaengigkeiten,
+      | "operatorRichtlinie"
+      | "ressourcen"
+      | "socketBudget"
+      | "mutationsKanaele"
+    >,
+  ): Promise<BankDepositShadowErgebnis> {
+    if (!this.#prozessLaeuft || this.#zustand !== "LAEUFT") {
+      throw new Error("V5_BANK_DEPOSIT_SHADOW_RUNTIME_LAEUFT_NICHT");
+    }
+    if (this.#bedienerRichtlinie === null) {
+      throw new Error("V5_BANK_DEPOSIT_SHADOW_BEDIENER_RICHTLINIE_FEHLT");
+    }
+    if (this.#bankDepositEinmalAuthority !== anforderung.authority) {
+      throw new Error("V5_BANK_DEPOSIT_SHADOW_AUTHORITY_NICHT_AKTUELL");
+    }
+
+    return new ProduktiveBankDepositShadowAdmission().pruefe(
+      anforderung,
+      Object.freeze({
+        ...abhaengigkeiten,
+        operatorRichtlinie: this.#bedienerRichtlinie,
+        ressourcen: this.#ressourcen,
+        socketBudget: this.#socketBudget,
+        mutationsKanaele: this.#mutationsKanaele,
+      }),
+    );
   }
 
   public revalidierePlanenAuthority(

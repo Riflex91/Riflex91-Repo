@@ -101,6 +101,7 @@ export interface BankDepositShadowAbhaengigkeiten {
   readonly liveVoraussetzungen: LiveVoraussetzungsPrueferPort;
   readonly journal: TransaktionsJournalPort;
   readonly releaseBeobachter: BankDepositShadowReleaseBeobachterPort;
+  readonly vorabLeaseToken?: BankLeaseToken;
   readonly jetztMs: () => number;
 }
 
@@ -166,7 +167,7 @@ function validiereAnforderung(a: BankDepositShadowAnforderung): void {
       || a.gueltigBisMs - a.ausgestelltAmMs > 2_000
       || !Number.isSafeInteger(a.leaseDauerMs)
       || a.leaseDauerMs < 1
-      || a.leaseDauerMs > 60_000
+      || a.leaseDauerMs > 300_000
       || !Number.isSafeInteger(a.maximaleSnapshotAlterMs)
       || a.maximaleSnapshotAlterMs < 1
       || a.maximaleSnapshotAlterMs > 10_000) {
@@ -244,16 +245,34 @@ export class ProduktiveBankDepositShadowAdmission {
     let terminalGeschrieben = false;
 
     try {
-      leaseToken = await d.leaseController.beanspruche(
-        a.accountId,
-        a.characterId,
-        a.ablaufId,
-        "bank_deposit_shadow",
-        a.serverRegion,
-        a.serverIdentifier,
-        a.ausgestelltAmMs,
-        a.leaseDauerMs,
-      );
+      if (d.vorabLeaseToken !== undefined) {
+        const token = d.vorabLeaseToken;
+        if (token.accountId !== a.accountId
+            || token.ownerCharacterId !== a.characterId
+            || token.ablaufId !== a.ablaufId) {
+          throw new Error("BANK_DEPOSIT_SHADOW_VORAB_LEASE_BINDUNG_UNGUELTIG");
+        }
+        const sichtbar = d.leaseController.sicht().find(x =>
+          x.accountId === token.accountId
+          && x.ownerCharacterId === token.ownerCharacterId
+          && x.ablaufId === token.ablaufId
+          && x.epoche === token.epoche);
+        if (sichtbar?.zustand !== "ACQUIRING") {
+          throw new Error("BANK_DEPOSIT_SHADOW_VORAB_LEASE_NICHT_ACQUIRING");
+        }
+        leaseToken = token;
+      } else {
+        leaseToken = await d.leaseController.beanspruche(
+          a.accountId,
+          a.characterId,
+          a.ablaufId,
+          "bank_deposit_shadow",
+          a.serverRegion,
+          a.serverIdentifier,
+          a.ausgestelltAmMs,
+          a.leaseDauerMs,
+        );
+      }
       const lease = await d.leaseController.aktiviere(
         leaseToken,
         a.externalFence,
@@ -467,13 +486,27 @@ export class ProduktiveBankDepositShadowAdmission {
               nachweis,
               d.jetztMs(),
             );
-          }
-        } catch {
-          try {
+          } else if (sicht?.zustand === "ACQUIRING"
+              || sicht?.zustand === "RELEASING") {
             await d.leaseController.markiereRecovery(
               leaseToken,
               d.jetztMs(),
             );
+          }
+        } catch {
+          try {
+            const sichtbar = d.leaseController.sicht().find(
+              x => x.accountId === leaseToken?.accountId
+                && x.epoche === leaseToken?.epoche,
+            );
+            if (sichtbar?.zustand === "ACTIVE"
+                || sichtbar?.zustand === "ACQUIRING"
+                || sichtbar?.zustand === "RELEASING") {
+              await d.leaseController.markiereRecovery(
+                leaseToken,
+                d.jetztMs(),
+              );
+            }
           } catch {
             // Persistenz-/Recoveryfehler blockiert spaetere Neuvergabe.
           }

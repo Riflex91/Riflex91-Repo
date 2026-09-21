@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_PR20_2D_BANK_DEPOSIT_REAL_BROWSER_SHADOW",
+  "stand": "2026-09-21",
+  "status": "IMPLEMENTIERT_NO_WRITE_EVIDENCE_AUSSTEHEND",
+  "basisMain": "c2f7a080ed27c520c82d638168b331c67094ea92",
+  "capabilityId": "merchant.bank.gold_einlagern",
+  "provider": "merchant-bank-core@1",
+  "actionContractId": "AL-ACTION-BANK-DEPOSIT",
+  "recoveryContractId": "AL-RECOVERY-BANK-DEPOSIT",
+  "verifierId": "AL-VERIFIER-BANK-DEPOSIT",
+  "start": {
+    "characterType": "merchant",
+    "bankMounted": false,
+    "alternativeRuntimeActive": false,
+    "idleRequired": true,
+    "characterGoldMinimum": 1,
+    "openTransactionForbidden": true,
+    "openBankLeaseForbidden": true
+  },
+  "manualPhases": {
+    "leaseBeforeMount": true,
+    "manualMountRequired": true,
+    "mountTransition": "FALSE_TO_TRUE_AFTER_LOCAL_LEASE",
+    "sameAccountCharacterSessionServerRequired": true,
+    "manualExitRequired": true,
+    "exitObservedBeforeLeaseRelease": true
+  },
+  "admission": {
+    "persistentAccountBankLease": true,
+    "externalFenceFromPostLeaseMountTransition": true,
+    "localBankActionChannel": true,
+    "socketBudget": true,
+    "durableIntentBeforeAdmission": true,
+    "r9Admission": true,
+    "oneShotAuthorityMaxUses": 1,
+    "oneShotAuthorityMaxLifetimeMs": 2000
+  },
+  "sourceLock": {
+    "actualGitHeadMustEqualSourceSha": true,
+    "mismatchBlocks": true
+  },
+  "writeBoundary": {
+    "bankDepositCalls": 0,
+    "socketEmitCalls": 0,
+    "executionAdapter": false,
+    "executionKernel": false,
+    "browserGameplayWrites": 0,
+    "hostGameplayWrites": 0,
+    "gameplayWrites": 0,
+    "adapterCalls": 0,
+    "sendBoundaryState": "NICHT_GESENDET",
+    "terminalJournalArt": "ABBRUCH",
+    "sameIntentRetry": false
+  },
+  "failure": {
+    "mountTimeout": "RECOVERY_PENDING_NO_RETRY",
+    "sessionOrServerDrift": "RECOVERY_PENDING_NO_RETRY",
+    "exitTimeout": "RECOVERY_PENDING_NO_RETRY",
+    "disconnect": "RECOVERY_PENDING_NO_RETRY",
+    "unknown": "RECONCILE_NO_BLIND_RETRY"
+  },
+  "evidence": {
+    "reportPath": "runtime/canary/bank-deposit-real-shadow/latest.json",
+    "requiredStatus": "BESTANDEN",
+    "implementationAloneDoesNotOpenWriteGate": true,
+    "realBrowserEvidenceRequiredBeforeWriteAdapter": true
+  }
+}

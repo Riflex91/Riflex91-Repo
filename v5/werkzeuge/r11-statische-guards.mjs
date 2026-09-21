@@ -132,6 +132,7 @@ for (const marker of [
   "NodeBankDepositTransaktionsJournal",
   "pruefeBankDepositStartBereit",
   "fuehreEquipEinmalTransaktion",
+  "fuehreBankDepositRealShadow",
   "NodeProduktionsOperationsQuelle",
   "V5ProduktionsHostController",
   "wendeDenyAn",
@@ -236,6 +237,39 @@ for (const [kennung, muster] of [
 ]) {
   if (muster.test(bankDepositShadow)) {
     fehler.push("BANK_DEPOSIT_SHADOW_WRITE_GRENZE_VERLETZT:" + kennung);
+  }
+}
+const bankDepositRealShadow = liesText(
+  "werkzeuge/bank-deposit-real-browser-shadow.mjs",
+);
+for (const marker of [
+  "BANK_DEPOSIT_REAL_SHADOW_BESTAETIGUNG",
+  "V5_BANK_DEPOSIT_REAL_BROWSER_SHADOW_NO_WRITE",
+  "git",
+  "rev-parse",
+  "BANK_SHADOW_SOURCE_SHA_MISMATCH",
+  "startAusserhalbBank: true",
+  "manualMountTransition",
+  "manualExitRequired",
+  "browserGameplayWrites: 0",
+  "gameplayWrites: 0",
+  "adapterAufrufe: 0",
+]) {
+  if (!bankDepositRealShadow.includes(marker)) {
+    fehler.push("BANK_DEPOSIT_REAL_SHADOW_MARKER_FEHLT:" + marker);
+  }
+}
+for (const [kennung, muster] of [
+  ["BANK_DEPOSIT", /\bbank_deposit\s*\(/],
+  ["BANK_WITHDRAW", /\bbank_withdraw\s*\(/],
+  ["BANK_STORE", /\bbank_store\s*\(/],
+  ["BANK_RETRIEVE", /\bbank_retrieve\s*\(/],
+  ["RAW_EMIT", /\.emit\s*\(/],
+  ["EXECUTION_KERNEL", /\bAusfuehrungsKernel\b/],
+  ["EXECUTION_ADAPTER", /\bAusfuehrungsAdapter\b/],
+]) {
+  if (muster.test(bankDepositRealShadow)) {
+    fehler.push("BANK_DEPOSIT_REAL_SHADOW_WRITE_GRENZE_VERLETZT:" + kennung);
   }
 }
 const bankDepositPreflightBrowser = liesText(
