@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: Mewthisch Bags
+## Notes: Schlichte, moderne Taschenanzeige für World of Warcraft: Forever.
+## Author: Riflex91
+## Version: 0.1.0
+## SavedVariables: MewthischBagsDB
+
+Locale.lua
+API.lua
+UI.lua
+Core.lua

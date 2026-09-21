@@ -1,0 +1,91 @@
+name: Mewthisch Bags addon v0.1
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "world of warcraft/MewthischBags/**"
+      - ".github/workflows/mewthisch-bags-addon.yml"
+  pull_request:
+    paths:
+      - "world of warcraft/MewthischBags/**"
+      - ".github/workflows/mewthisch-bags-addon.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Lua 5.1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1 zip
+
+      - name: Validate Lua 5.1 syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "world of warcraft/MewthischBags" -name '*.lua' -print0 | while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            luac5.1 -p "$file"
+          done
+
+      - name: Validate addon contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="world of warcraft/MewthischBags"
+          TOC="$ROOT/MewthischBags.toc"
+
+          grep -q '^## Interface: 16001$' "$TOC"
+          grep -q '^## Title: Mewthisch Bags$' "$TOC"
+          grep -q '^## Version: 0.1.0$' "$TOC"
+          grep -q '^## SavedVariables: MewthischBagsDB$' "$TOC"
+
+          grep -q 'TITLE = "Tasche"' "$ROOT/Locale.lua"
+          grep -q 'for bagID = 0, 4 do' "$ROOT/UI.lua"
+          grep -q 'for bagID = 1, 4 do' "$ROOT/UI.lua"
+          grep -q 'UI-GoldIcon' "$ROOT/API.lua"
+          grep -q 'UI-SilverIcon' "$ROOT/API.lua"
+          grep -q 'UI-CopperIcon' "$ROOT/API.lua"
+          grep -q 'Button-Backpack-Up' "$ROOT/UI.lua"
+          grep -q 'MIN_SLOT_COLUMNS = 4' "$ROOT/UI.lua"
+          grep -q 'OnEditFocusGained' "$ROOT/UI.lua"
+          grep -q 'OnEditFocusLost' "$ROOT/UI.lua"
+          grep -q 'ResizeBagPanelForAvailableCount' "$ROOT/UI.lua"
+          grep -q 'windowWidth = 476' "$ROOT/Core.lua"
+          grep -q 'mainCenterX >= screenCenterX' "$ROOT/UI.lua"
+          grep -q 'hooksecurefunc' "$ROOT/Core.lua"
+
+          if grep -q 'GOLD_AMOUNT_SYMBOL\|SILVER_AMOUNT_SYMBOL\|COPPER_AMOUNT_SYMBOL' "$ROOT/API.lua"; then
+            echo "Currency must use Blizzard coin textures, not localized g/s/c symbols."
+            exit 1
+          fi
+
+          if grep -q 'Mewthisch Bags' "$ROOT/UI.lua"; then
+            echo "The visible UI must use the localized title, not the addon name."
+            exit 1
+          fi
+
+      - name: Package addon
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/MewthischBags
+          cp -R "world of warcraft/MewthischBags/"* artifacts/MewthischBags/
+          cd artifacts
+          zip -r MewthischBags-v0.1.zip MewthischBags
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischBags-v0.1
+          path: artifacts/MewthischBags-v0.1.zip
+          if-no-files-found: error
