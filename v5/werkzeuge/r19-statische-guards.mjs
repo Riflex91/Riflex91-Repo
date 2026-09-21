@@ -272,6 +272,30 @@ if(/\bbank_deposit\s*\(/.test(bankShadow)
     ||/\bAusfuehrungsAdapter\b/.test(bankShadow)) {
   fehler.push("BANK_DEPOSIT_SHADOW_WRITE_GRENZE_VERLETZT");
 }
+const bankShadowRecovery=lies(
+  "werkzeuge/bank-deposit-real-shadow-recovery.mjs",
+);
+for(const m of [
+  "V5 BANK SHADOW RECOVERY MANUELL ABGLEICHEN",
+  "BANK_SHADOW_RECOVERY_SOURCE_SHA_MISMATCH",
+  "RECOVERY_PENDING_BESTAETIGT_BANK_MANUELL_BETRETEN",
+  "schliesseBankLeaseRestartAbgleichAb",
+  "browserGameplayWrites: 0",
+  "gameplayWrites: 0",
+  "adapterAufrufe: 0",
+  "oneShotAuthorityAusgestellt: false",
+]){
+  if(!bankShadowRecovery.includes(m)) {
+    fehler.push("BANK_SHADOW_RECOVERY_GRENZE_FEHLT:"+m);
+  }
+}
+if(/\bbank_deposit\s*\(/.test(bankShadowRecovery)
+    ||/\.emit\s*\(/.test(bankShadowRecovery)
+    ||/erteileBankDepositEinmalAuthority\s*\(/.test(bankShadowRecovery)
+    ||/\bAusfuehrungsKernel\b/.test(bankShadowRecovery)
+    ||/\bAusfuehrungsAdapter\b/.test(bankShadowRecovery)) {
+  fehler.push("BANK_SHADOW_RECOVERY_WRITE_GRENZE_VERLETZT");
+}
 const bankRealShadow=lies(
   "werkzeuge/bank-deposit-real-browser-shadow.mjs",
 );
