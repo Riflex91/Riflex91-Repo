@@ -132,3 +132,77 @@ test("Withdraw-Startbereitschaft teilt Bank-Lease-Grenze, aber besitzt eigenen C
     await fs.rm(root, { recursive: true, force: true });
   }
 });
+
+test("Node-Host durchlaeuft Withdraw-Real-Shadow ohne Send", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "v5-node-bank-withdraw-shadow-"));
+  try {
+    const host = await erstelleNodeV5ProduktionsHost(hostOptionen(root));
+    const startMs = Date.now();
+    assert.equal((await host.starte(startMs)).zustand, "LAEUFT");
+
+    const ergebnis = await host.fuehreBankWithdrawRealShadow({
+      aktivierungsId: "NODE-WITHDRAW-SHADOW-AUTH-1",
+      transaktionsId: "NODE-WITHDRAW-SHADOW-TX-1",
+      freigabeId: "NODE-WITHDRAW-SHADOW-FREE-1",
+      auftragId: "NODE-WITHDRAW-SHADOW-ORDER-1",
+      ablaufId: "NODE-WITHDRAW-SHADOW-WF-1",
+      shadowBestaetigungText:
+        "V5 BANK WITHDRAW SHADOW OHNE WRITE AUSFUEHREN",
+      ausgang: {
+        accountId: "account-1",
+        charakterName: "Merchant",
+        sessionId: "merchant-session",
+        serverRegion: "EU",
+        serverKennung: "I",
+        bankGemountet: false,
+      },
+      mountBeobachter: {
+        async warteAufMount() {
+          return {
+            accountId: "account-1",
+            charakterName: "Merchant",
+            sessionId: "merchant-session",
+            serverRegion: "EU",
+            serverKennung: "I",
+            bankGemountet: true,
+            beobachtetAmMs: Date.now(),
+            fingerprint: "f".repeat(64),
+            inventorySha256: "i".repeat(64),
+            characterGold: 100,
+            bankGold: 1000,
+          };
+        },
+      },
+      releaseBeobachter: {
+        async beobachte() {
+          return {
+            offeneTransaktionen: 0,
+            backendInProgress: false,
+            bankActionInFlight: false,
+            characterBankAktiv: false,
+            erwarteterExitBeobachtet: true,
+          };
+        },
+      },
+    }, startMs);
+
+    assert.equal(ergebnis.status, "ADMISSION_BESTANDEN_KEIN_SEND");
+    assert.equal(ergebnis.sendBoundaryState, "NICHT_GESENDET");
+    assert.equal(ergebnis.journalTerminalArt, "ABBRUCH");
+    assert.equal(ergebnis.sameIntentErneutSenden, false);
+    assert.equal(ergebnis.browserGameplayWrites, 0);
+    assert.equal(ergebnis.hostGameplayWrites, 0);
+    assert.equal(ergebnis.gameplayWrites, 0);
+    assert.equal(ergebnis.adapterAufrufe, 0);
+    assert.equal(host.status().bankWithdrawEinmalAuthorityOffen, false);
+    assert.equal(
+      host.bankLeaseStatus().every(x => x.zustand === "RELEASED"),
+      true,
+    );
+    assert.equal((await host.pruefeBankWithdrawStartBereit()).bereit, true);
+
+    await host.stoppe("TEST_ENDE");
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
