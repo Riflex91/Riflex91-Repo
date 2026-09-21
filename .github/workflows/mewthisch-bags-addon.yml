@@ -52,12 +52,22 @@ jobs:
           grep -q 'TITLE = "Tasche"' "$ROOT/Locale.lua"
           grep -q 'for bagID = 0, 4 do' "$ROOT/UI.lua"
           grep -q 'for bagID = 1, 4 do' "$ROOT/UI.lua"
-          grep -q 'GOLD_AMOUNT_SYMBOL' "$ROOT/API.lua"
-          grep -q 'SILVER_AMOUNT_SYMBOL' "$ROOT/API.lua"
-          grep -q 'COPPER_AMOUNT_SYMBOL' "$ROOT/API.lua"
+          grep -q 'UI-GoldIcon' "$ROOT/API.lua"
+          grep -q 'UI-SilverIcon' "$ROOT/API.lua"
+          grep -q 'UI-CopperIcon' "$ROOT/API.lua"
           grep -q 'Button-Backpack-Up' "$ROOT/UI.lua"
+          grep -q 'MIN_SLOT_COLUMNS = 4' "$ROOT/UI.lua"
+          grep -q 'OnEditFocusGained' "$ROOT/UI.lua"
+          grep -q 'OnEditFocusLost' "$ROOT/UI.lua"
+          grep -q 'ResizeBagPanelForAvailableCount' "$ROOT/UI.lua"
+          grep -q 'windowWidth = 476' "$ROOT/Core.lua"
           grep -q 'mainCenterX >= screenCenterX' "$ROOT/UI.lua"
           grep -q 'hooksecurefunc' "$ROOT/Core.lua"
+
+          if grep -q 'GOLD_AMOUNT_SYMBOL\|SILVER_AMOUNT_SYMBOL\|COPPER_AMOUNT_SYMBOL' "$ROOT/API.lua"; then
+            echo "Currency must use Blizzard coin textures, not localized g/s/c symbols."
+            exit 1
+          fi
 
           if grep -q 'Mewthisch Bags' "$ROOT/UI.lua"; then
             echo "The visible UI must use the localized title, not the addon name."
