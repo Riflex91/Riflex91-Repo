@@ -76,6 +76,9 @@ test("Bank-Withdraw-Adapter sendet bei exakter Bindung genau einmal", async () =
     },
   };
   const adapter = new ProduktionsCdpBankWithdrawEinGoldAdapter(session, 7);
+  assert.equal(adapter.actionContractId, "AL-ACTION-BANK-WITHDRAW");
+  assert.equal(adapter.recoveryContractId, "AL-RECOVERY-BANK-WITHDRAW");
+  assert.equal(adapter.verifierId, "AL-VERIFIER-BANK-WITHDRAW");
   const result = await adapter.sende({}, request());
 
   assert.equal(result.art, "SERVER_ERGEBNIS");
