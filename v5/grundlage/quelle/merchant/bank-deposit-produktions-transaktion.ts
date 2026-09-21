@@ -501,7 +501,7 @@ export class ProduktiveBankDepositTransaktionsOrchestrierung {
         throw new Error("BANK_DEPOSIT_PROD_TX_LEASE_NICHT_ACTIVE");
       }
 
-      [goldToken] = d.ressourcen.beanspruche(
+      const goldTokens = d.ressourcen.beanspruche(
         a.ablaufId,
         [{
           ressourcenId: "character:" + a.characterId + ":gold",
@@ -510,6 +510,11 @@ export class ProduktiveBankDepositTransaktionsOrchestrierung {
         }],
         a.ausgestelltAmMs,
       );
+      const ersterGoldToken = goldTokens[0];
+      if (ersterGoldToken === undefined) {
+        throw new Error("BANK_DEPOSIT_PROD_TX_GOLD_TOKEN_FEHLT");
+      }
+      goldToken = ersterGoldToken;
 
       kanal = d.mutationsKanaele.reserviere(
         a.transaktionsId + ":budget",
