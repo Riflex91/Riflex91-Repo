@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "researchId": "V5-P0-02",
   "status": "DONE",
-  "generatedAt": "2026-09-19",
+  "generatedAt": "2026-09-21",
   "basis": {
     "actionContracts": "v5/wissensbasis/vertraege/action-contracts.json",
     "principle": "Recovery policy is a V5 safety policy derived from verified action contracts; it is not a claim that the game exposes transactional rollback.",
-    "actionContractCount": 60
+    "actionContractCount": 61
   },
   "globalRules": {
     "unknownIsPersistedState": true,
