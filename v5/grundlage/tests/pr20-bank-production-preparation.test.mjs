@@ -11,7 +11,7 @@ const produktionsKomposition = fs.readFileSync(
   "grundlage/quelle/runtime/produktions-komposition.ts",
   "utf8",
 );
-const postR19Roadmap = lies("../../roadmap/post-r19-roadmap.json");
+const postR19Roadmap = lies("roadmap/post-r19-roadmap.json");
 
 const erwartete = new Map([
   ["AL-ACTION-BANK-DEPOSIT", ["AL-RECOVERY-BANK-DEPOSIT", "AL-VERIFIER-BANK-DEPOSIT", "bank_deposit"]],
