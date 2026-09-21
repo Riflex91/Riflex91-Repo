@@ -187,6 +187,7 @@ export class PersistenterBankLeaseController {
   readonly #persistenz: BankLeasePersistenzPort;
   #persistierteFloors: readonly PersistierteBankLeaseSicht[] =
     Object.freeze([]);
+  #persistenzGesperrt = false;
 
   public constructor(
     koordinator: BankLeaseKoordinator,
@@ -263,6 +264,7 @@ export class PersistenterBankLeaseController {
     jetztMs: number,
     leaseDauerMs: number,
   ): Promise<BankLeaseToken> {
+    this.#pruefePersistenzOffen();
     const token = this.#koordinator.beanspruche(
       accountId,
       ownerCharacterId,
@@ -277,6 +279,7 @@ export class PersistenterBankLeaseController {
       await this.#persistiere(jetztMs);
       return token;
     } catch (fehler) {
+      this.#persistenzGesperrt = true;
       try {
         this.#koordinator.markiereRecovery(token, jetztMs);
       } catch {
@@ -291,11 +294,13 @@ export class PersistenterBankLeaseController {
     fence: BankExternalFence,
     jetztMs: number,
   ): Promise<BankLeaseSicht> {
+    this.#pruefePersistenzOffen();
     const sicht = this.#koordinator.aktiviere(token, fence, jetztMs);
     try {
       await this.#persistiere(jetztMs);
       return sicht;
     } catch (fehler) {
+      this.#persistenzGesperrt = true;
       if (sicht.zustand === "ACTIVE") {
         try {
           this.#koordinator.markiereRecovery(token, jetztMs);
@@ -312,11 +317,13 @@ export class PersistenterBankLeaseController {
     jetztMs: number,
     leaseDauerMs: number,
   ): Promise<BankLeaseToken> {
+    this.#pruefePersistenzOffen();
     const neu = this.#koordinator.heartbeat(token, jetztMs, leaseDauerMs);
     try {
       await this.#persistiere(jetztMs);
       return neu;
     } catch (fehler) {
+      this.#persistenzGesperrt = true;
       try {
         this.#koordinator.markiereRecovery(neu, jetztMs);
       } catch {
@@ -358,6 +365,7 @@ export class PersistenterBankLeaseController {
     token: BankLeaseToken,
     jetztMs: number,
   ): Promise<BankLeaseSicht> {
+    this.#pruefePersistenzOffen();
     const sicht = this.#koordinator.markiereRecovery(token, jetztMs);
     await this.#persistiere(jetztMs);
     return sicht;
@@ -367,6 +375,7 @@ export class PersistenterBankLeaseController {
     token: BankLeaseToken,
     jetztMs: number,
   ): Promise<BankLeaseSicht> {
+    this.#pruefePersistenzOffen();
     const sicht = this.#koordinator.beginneFreigabe(token, jetztMs);
     await this.#persistiere(jetztMs);
     return sicht;
@@ -377,6 +386,7 @@ export class PersistenterBankLeaseController {
     nachweis: BankFreigabeNachweis,
     jetztMs: number,
   ): Promise<BankLeaseSicht> {
+    this.#pruefePersistenzOffen();
     const sicht = this.#koordinator.gibFrei(token, nachweis, jetztMs);
     await this.#persistiere(jetztMs);
     return sicht;
@@ -388,6 +398,7 @@ export class PersistenterBankLeaseController {
     externeBelegungFrei: boolean,
     jetztMs: number,
   ): Promise<BankLeaseSicht> {
+    this.#pruefePersistenzOffen();
     const sicht = this.#koordinator.schliesseRestartAbgleichAb(
       accountId,
       erwarteteEpoche,
@@ -400,6 +411,12 @@ export class PersistenterBankLeaseController {
 
   public sicht(): readonly BankLeaseSicht[] {
     return this.#koordinator.sicht();
+  }
+
+  #pruefePersistenzOffen(): void {
+    if (this.#persistenzGesperrt) {
+      throw new Error("BANK_LEASE_PERSISTENZ_FEHLER_GESPERRT");
+    }
   }
 
   async #persistiere(jetztMs: number): Promise<void> {
