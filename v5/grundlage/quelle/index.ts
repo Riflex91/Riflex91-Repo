@@ -85,6 +85,7 @@ export * from "./merchant/disposition.js";
 export * from "./merchant/workspace.js";
 export * from "./merchant/gold-budget.js";
 export * from "./koordination/account-bank-lease.js";
+export * from "./koordination/persistenter-bank-lease-controller.js";
 export * from "./merchant/markt-evidence.js";
 export * from "./merchant/demand.js";
 export * from "./merchant/modul-vertrag.js";
