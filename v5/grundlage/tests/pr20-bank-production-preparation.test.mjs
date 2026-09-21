@@ -11,6 +11,7 @@ const produktionsKomposition = fs.readFileSync(
   "grundlage/quelle/runtime/produktions-komposition.ts",
   "utf8",
 );
+const postR19Roadmap = lies("../../roadmap/post-r19-roadmap.json");
 
 const erwartete = new Map([
   ["AL-ACTION-BANK-DEPOSIT", ["AL-RECOVERY-BANK-DEPOSIT", "AL-VERIFIER-BANK-DEPOSIT", "bank_deposit"]],
@@ -267,6 +268,31 @@ test("PR20.2 bank_withdraw(1) besitzt vorbereiteten Write-Pfad ohne ausgefuehrte
   assert.equal(vertrag.authorityGrenze.gameplayWritesInDiesemSchritt, 0);
   assert.equal(vertrag.writeGate.realLiveWritePerformed, false);
   assert.equal(vertrag.writeGate.publicFunctionCallCountStatic, 1);
+});
+
+test("Post-R19-Roadmap spiegelt den vorbereiteten Withdraw-Write-Pfad konsistent", () => {
+  const status = "WRITE_ADAPTER_LIVE_RUNNER_IMPLEMENTIERT_NO_LIVE_WRITE";
+  const next = postR19Roadmap.parallelPreparation?.nextLiveCandidate;
+  assert.ok(next);
+  assert.equal(next.status, status);
+  assert.equal(next.writeAdapter, true);
+  assert.equal(next.liveRunner, true);
+  assert.equal(next.gameplayWritesInThisStep, 0);
+  assert.equal(next.sameIntentRetry, false);
+
+  for (const prep of postR19Roadmap.parallelPreparations ?? []) {
+    if (prep?.nextLiveCandidate?.publicFunction !== "bank_withdraw") continue;
+    assert.equal(prep.nextLiveCandidate.status, status);
+    assert.equal(prep.nextLiveCandidate.writeAdapter, true);
+    assert.equal(prep.nextLiveCandidate.liveRunner, true);
+    assert.equal(prep.nextLiveCandidate.gameplayWritesInThisStep, 0);
+    assert.equal(prep.nextLiveCandidate.sameIntentRetry, false);
+  }
+
+  assert.equal(postR19Roadmap.pr20_2?.nextLiveCandidateStatus, status);
+  assert.equal(postR19Roadmap.pr20_2?.nextLiveCandidateAdapterImplemented, true);
+  assert.equal(postR19Roadmap.pr20_2?.nextLiveCandidateLiveRunnerImplemented, true);
+  assert.equal(postR19Roadmap.pr20_2?.nextLiveCandidateGameplayWrites, 0);
 });
 
 test("Produktionskomposition registriert Deposit und Withdraw unter demselben Bank-Single-Owner default-off", () => {
