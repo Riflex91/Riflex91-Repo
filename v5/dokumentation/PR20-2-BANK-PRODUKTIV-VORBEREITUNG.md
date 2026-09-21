@@ -1,9 +1,9 @@
 # PR20.2 – Bank-Produktion: One-Shot-Grenze / NO-WRITE
 
-**Status:** PERSISTENTE LEASE + ADMISSION-SHADOW IN ARBEIT / NO-WRITE  
+**Status:** REALER RESTART-RECOVERY-FAULT BESTANDEN / REAL-BROWSER-SHADOW NOCH AUSSTEHEND  
 **Stand:** 2026-09-21  
 **Vorausgehendes Gate:** `PR20.1_EQUIP_PRODUKTIONSNACHWEIS` – BESTANDEN  
-**Basis-main:** `a0d250067bf4eec142f2a8ede8272ac4685e99b9`
+**Basis-main:** `938a79810ebd1124269926b16b8afefac829924c`
 
 ## Zweck
 
@@ -143,9 +143,38 @@ Fuer den ersten Mutationssatz gilt vorbereitet:
 - Shadow endet terminal mit `NICHT_GESENDET`, `gameplayWrites=0` und
   `adapterAufrufe=0`.
 
+## Reale F5-/Restart-Recovery-Evidence
+
+Ein echter Browser-Reload waehrend des Real-Browser-Shadows wurde fail-closed
+behandelt. Es entstand keine offene Bank-Transaktion und kein Real-Shadow-
+Report, die bereits erworbene Lease Epoche 1 wurde jedoch durable als
+`RECOVERY_PENDING` erhalten.
+
+Mit dem source-locked Recovery-Runner wurde danach ein manueller
+Bank-Mount->Exit-Uebergang derselben Bindung beobachtet und exakt diese Lease
+von `RECOVERY_PENDING` auf `RELEASED` reconciliiert.
+
+Der reale Bericht belegt:
+
+- `browserGameplayWrites=0`;
+- `gameplayWrites=0`;
+- `adapterAufrufe=0`;
+- keine One-Shot-Authority;
+- kein `bank_deposit`;
+- `sameIntentRetry=false`;
+- keine offene Transaktion vor oder nach Recovery;
+- keine breite Runtime-Freigabe und kein Raw-Write-Bypass.
+
+Repo-Evidence:
+`roadmap/pr20-2-bank-shadow-recovery-evidence.json`.
+
+Diese Evidence beweist den echten Restart-/Recovery-Faultpfad, **nicht** den
+vollstaendig bestandenen normalen Real-Browser-Shadow. Der Write-Gate bleibt
+deshalb geschlossen.
+
 ## Noch bewusst nicht implementiert
 
-- realer Browser-Shadow mit Fault-/Restart-Recovery-Evidence;
+- vollstaendig bestandener normaler Real-Browser-Shadow ohne Write;
 - Bank-CDP-/Write-Adapter;
 - Bank-Live-Runner;
 - irgendein echter Bank-Write;
@@ -161,9 +190,10 @@ Wenn PR20.1 gruen ist, kann ohne erneute Grundlagenanalyse direkt begonnen werde
 4. **ERLEDIGT:** eng begrenzte One-Shot-Authority + Admission-Gate implementieren;
 5. **ERLEDIGT:** Bank-Transaktionsjournal mit globalem/open-current Fence implementieren;
 6. **ERLEDIGT:** read-only Preflight bauen;
-7. **IN ARBEIT:** persistente Bank-Lease, Restart-Reconciliation und Fault-Tests;
-8. **IN ARBEIT:** No-Write-R9-Admission-Shadow;
-9. realen Browser-Shadow/Fault-Recovery ohne Write nachweisen;
-10. erst danach Write-Adapter/Live-Runner und exakt einen kontrollierten `bank_deposit(1)`-Write.
+7. **ERLEDIGT:** persistente Bank-Lease, Restart-Reconciliation und Fault-Tests;
+8. **ERLEDIGT:** No-Write-R9-Admission-Shadow;
+9. **ERLEDIGT:** echten F5-/Restart-Fault zero-write reconciliieren und dokumentieren;
+10. **AUSSTEHEND:** normalen Real-Browser-Shadow ohne Write vollstaendig bis BESTANDEN ausfuehren;
+11. erst danach Write-Adapter/Live-Runner und exakt einen kontrollierten `bank_deposit(1)`-Write.
 
 Withdraw, Store, Retrieve, Swap und `open_bank_pack` bleiben bis nach dem separat nachgewiesenen ersten Deposit-Pfad produktiv gesperrt.

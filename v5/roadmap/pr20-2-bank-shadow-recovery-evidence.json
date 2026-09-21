@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-21T17:12:45.375Z",
+  "status": "BESTANDEN",
+  "evidenceArt": "V5_BANK_SHADOW_RECOVERY_MANUAL_RECONCILIATION_NO_WRITE",
+  "source": "USER_PROVIDED_RUNNER_STDOUT",
+  "testedSourceSha": "bff4d02ab5b5ca5ab83c16dd435bc314d8074f87",
+  "documentationBaseMain": "938a79810ebd1124269926b16b8afefac829924c",
+  "ausloeser": {
+    "art": "BROWSER_F5_RELOAD_WAEHREND_REAL_SHADOW",
+    "normalShadowStatus": "BLOCKIERT",
+    "fehler": "BANK_SHADOW_START_EVIDENCE_BLOCKIERT",
+    "currentExists": false,
+    "realShadowReportExists": false,
+    "leaseVorRecovery": {
+      "epoche": 1,
+      "zustand": "RECOVERY_PENDING",
+      "purpose": "bank_deposit_real_browser_shadow",
+      "serverRegion": "EU",
+      "serverIdentifier": "I"
+    },
+    "sameIntentRetry": false,
+    "browserGameplayWrites": 0,
+    "gameplayWrites": 0,
+    "adapterAufrufe": 0
+  },
+  "recoveryReport": {
+    "schemaVersion": 1,
+    "evidenceArt": "V5_BANK_SHADOW_RECOVERY_MANUAL_RECONCILIATION_NO_WRITE",
+    "stand": "2026-09-21T17:12:45.375Z",
+    "status": "BESTANDEN",
+    "sourceSha": "bff4d02ab5b5ca5ab83c16dd435bc314d8074f87",
+    "actualHeadSha": "bff4d02ab5b5ca5ab83c16dd435bc314d8074f87",
+    "accountBindungSha256": "18be41682a0c809cb26db3dfff9336deb164730e175c182a11d321445fde0085",
+    "charakterBindungSha256": "0e1ab7dca28c9f270efb495560d97572a76bcd9517196b342a37523496352a68",
+    "server": {
+      "region": "EU",
+      "kennung": "I"
+    },
+    "lease": {
+      "epoche": 1,
+      "vorher": "RECOVERY_PENDING",
+      "nachher": "RELEASED"
+    },
+    "manualMountObserved": true,
+    "manualExitObserved": true,
+    "offeneTransaktionVorher": null,
+    "offeneTransaktionNachher": null,
+    "browserGameplayWrites": 0,
+    "gameplayWrites": 0,
+    "adapterAufrufe": 0,
+    "oneShotAuthorityAusgestellt": false,
+    "bankDepositAusgefuehrt": false,
+    "sameIntentRetry": false,
+    "breiteRuntimeFreigabeDurchDiesenTest": false,
+    "rawWriteBypass": false,
+    "reportPfad": "D:\\AdventureLand-V5\\runtime\\canary\\bank-deposit-real-shadow-recovery\\latest.json"
+  },
+  "bewertung": {
+    "echteRestartRecoveryNachgewiesen": true,
+    "offeneTransaktionNachRecovery": false,
+    "leaseReleased": true,
+    "gameplayWriteDurchRecovery": false,
+    "authorityDurchRecovery": false,
+    "blindRetry": false,
+    "normalerRealBrowserShadowBestanden": false
+  },
+  "nextGate": "PR20.2_REAL_BROWSER_SHADOW_NO_WRITE_ERNEUT_AUSFUEHREN"
+}
