@@ -19,6 +19,10 @@ test("V5 Auto-Deploy manifest is narrow, immutable, ingame-owned and normal-runt
   assert.equal(manifest.coordinatorClass, "merchant");
   assert.equal(manifest.workerDistribution, "PACKAGE_OWNED_COMMAND_CHARACTER");
   assert.equal(manifest.deploymentTransport, "V3_INGAME_BOOTSTRAP");
+  assert.equal(manifest.requiresPrevious.testId, "pr20-5-merchant-stability-autonomous-4char");
+  assert.equal(manifest.requiresPrevious.stateKey, "AIO_V5_PR20_5_AUTONOMOUS_TEST_V1");
+  assert.equal(manifest.requiresPrevious.terminal, true);
+  assert.deepEqual(manifest.requiresPrevious.statuses, ["BESTANDEN"]);
   assert.match(manifest.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(manifest.packageSha256, /^[0-9a-f]{64}$/);
   assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js");
@@ -40,6 +44,7 @@ test("V3 delivers the V5 test bootstrap without Windows Bridge execution authori
     "raw.githubusercontent.com/Riflex91/Riflex91-Repo/main/v5/roadmap/v5-autonomous-test-manifest.json",
     "EVALUATION_BOUNDARY_ENTERED",
     "DEPLOYMENT_UNKNOWN_NO_RETRY",
+    "PREVIOUS_TEST_TERMINAL_EVIDENCE_MISSING",
     "sameIntentRetry: false",
     "AIO_V3_AUTOSTART = false",
     "this.state.characterClass !== 'merchant'",
