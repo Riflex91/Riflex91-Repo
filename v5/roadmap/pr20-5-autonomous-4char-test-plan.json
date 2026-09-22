@@ -24,7 +24,19 @@
     "transport": "existing Windows Bridge -> bot-debug-ingest -> Supabase",
     "directBrowserSupabaseSecrets": false,
     "monthlyEdgeInvocationLimit": 500000,
-    "safetyReserve": 5000
+    "safetyReserve": 5000,
+    "localObservationSeconds": 5,
+    "supabaseStatusSeconds": 60,
+    "aggregateStatusPerInterval": 1,
+    "terminalEventImmediate": true,
+    "completionEmailEachTerminalTest": true,
+    "completionEmailStatuses": [
+      "BESTANDEN",
+      "NICHT_BESTANDEN",
+      "BLOCKIERT",
+      "FEHLER",
+      "ABGEBROCHEN"
+    ]
   },
   "checks": [
     "fresh 4-character roster",
