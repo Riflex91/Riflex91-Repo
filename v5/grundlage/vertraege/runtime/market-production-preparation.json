@@ -7,7 +7,7 @@
   "produktiveFreigabeBlockiertBis": [
     "PR20.3_EIGENE_CAPABILITY_AUTHORITY_JOURNAL_ADMISSION_SHADOW_LIVE_GATES"
   ],
-  "zweck": "PR20.3 Markt/Kaufen/Verkaufen ist fuer die eigene Testkette freigegeben. Diese Freigabe erlaubt Vorbereitung, read-only Preflight, Shadow und spaeter explizit ratifizierte kontrollierte Funktionstests; sie erteilt noch keine produktive Market-Mutation, Registrierung oder Gameplay-Authority.",
+  "zweck": "PR20.3 Markt/Kaufen/Verkaufen ist nach breiter PR20.2-Bankfreigabe fuer die eigene Testkette freigegeben. Diese Freigabe erlaubt Vorbereitung, read-only Preflight, Shadow und spaeter explizit ratifizierte kontrollierte Funktionstests; sie erteilt noch keine produktive Market-Mutation, Registrierung oder Gameplay-Authority.",
   "authorityGrenze": {
     "produktiveRegistrierungErlaubt": false,
     "produktiverAktivierungspfadErlaubt": false,
@@ -138,8 +138,9 @@
     "erst danach einen einzelnen kontrollierten Markt-Live-Write zulassen"
   ],
   "pr20_2Transition": {
-    "status": "MILESTONE_ABGESCHLOSSEN_MIT_AKZEPTIERTEN_AUSNAHMEN",
+    "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
     "evidence": "roadmap/pr20-2-bank-operator-transition-acceptance.json",
-    "bankExceptionsRemainDisabled": true
+    "broadBankActivationAllowed": true,
+    "bankExceptionsRemainLocallyGated": true
   }
 }
