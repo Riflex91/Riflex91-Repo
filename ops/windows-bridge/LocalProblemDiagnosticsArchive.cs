@@ -66,7 +66,7 @@ public sealed class LocalProblemDiagnosticsArchive
         var bundle = new Dictionary<string, object?>
         {
             ["schemaVersion"] = 1,
-            ["type"] = "AIO_V3_PROBLEM_DIAGNOSTICS_BUNDLE",
+            ["type"] = "AIO_V5_PROBLEM_DIAGNOSTICS_BUNDLE",
             ["bundleId"] = BundleId(signal),
             ["botId"] = _config.BotId,
             ["capturedAt"] = DateTimeOffset.UtcNow.ToString("O"),
@@ -105,7 +105,7 @@ public sealed class LocalProblemDiagnosticsArchive
         var bundle = new Dictionary<string, object?>
         {
             ["schemaVersion"] = 1,
-            ["type"] = "AIO_V3_PROBLEM_DIAGNOSTICS_BUNDLE",
+            ["type"] = "AIO_V5_PROBLEM_DIAGNOSTICS_BUNDLE",
             ["bundleId"] = BundleId(signal),
             ["botId"] = _config.BotId,
             ["capturedAt"] = DateTimeOffset.UtcNow.ToString("O"),
@@ -184,7 +184,7 @@ public sealed class LocalProblemDiagnosticsArchive
     {
         var botId = SafeSegment(metadata.BotId);
         var day = SafeSegment(metadata.Day);
-        return $"diagnostics/v3/{botId}/{day}/{SafeSegment(metadata.Filename)}";
+        return $"diagnostics/v5/{botId}/{day}/{SafeSegment(metadata.Filename)}";
     }
 
     private async Task WriteBundleAsync(
