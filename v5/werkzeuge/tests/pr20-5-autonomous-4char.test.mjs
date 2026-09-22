@@ -24,6 +24,12 @@ test("PR20.5 package remains strict NO-WRITE", () => {
   assert.equal(plan.sameIntentRetry, false);
 });
 
+test("PR20.5 waits for persistent PR20.4 closeout before starting", () => {
+  assert.ok(source.includes("AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1"));
+  assert.ok(source.includes("WAITING_FOR_PR20_4"));
+  assert.ok(source.includes("step16?.status === 'BESTANDEN'"));
+});
+
 test("PR20.5 package contains full stability matrix and 5m soak", () => {
   for (const marker of [
     "IRREVERSIBLE_MUTATION_OFFEN",
