@@ -146,6 +146,23 @@ function P:GoalRow(state,facts,source)
     }
 end
 
+function P:PreviewStep(step,facts)
+    if not step then return nil end
+    local goal=(step.goals or {})[1]
+    if not goal then return nil end
+    local state={
+        action=goal.action,
+        sourceGoal=goal,
+        questID=goal.questID,
+        questIDs=goal.questIDs,
+        objectiveIndex=goal.objectiveIndex,
+        itemID=goal.itemID,
+        required=goal.required,
+        targetName=goal.targetName,
+    }
+    return self:CleanText(rowText(state,facts))
+end
+
 function P:Build(step,goalStates,stickyRuntime,facts,navigation)
     local projection={
         stepID=step and step.id or nil,
