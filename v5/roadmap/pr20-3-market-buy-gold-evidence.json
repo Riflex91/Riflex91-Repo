@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "status": "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
+  "evidenceArt": "V5_PR20_3_MARKET_BUY_GOLD_REAL_INGAME",
+  "source": "USER_PROVIDED_INGAME_GUI_RESULT",
+  "testedSourceSha": "ceeeb9f1fa5eb8c1e70e38de85d007987fcdacb0",
+  "controllerVersion": "1.0.0",
+  "testKennung": "pr20-3-market-buy-gold-step-test",
+  "testArt": "PR20_3_BUY_GOLD_STEP_TEST",
+  "startedAt": "2026-09-22T17:10:09.155Z",
+  "completedAt": "2026-09-22T17:16:35.167Z",
+  "privacy": {
+    "accountIdStored": false,
+    "accountTokenStored": false
+  },
+  "environment": {
+    "serverRegion": "EU",
+    "serverKennung": "I",
+    "serverBindungQuelle": "SERVER_OBJECT",
+    "ctype": "merchant",
+    "map": "main",
+    "rip": false,
+    "queueEmpty": true,
+    "alternativeRuntimeAktiv": false,
+    "performanceTrick": {
+      "aktiv": true,
+      "playing": true,
+      "howlState": "loaded"
+    }
+  },
+  "preCandidateBlockedAttempts": {
+    "count": 5,
+    "gameplayWrites": 0,
+    "mutatingPublicFunctionCalls": 0,
+    "reasons": [
+      "KEIN_SICHERER_GOLD_KAUF_KANDIDAT_IN_REICHWEITE",
+      "ein Versuch zusaetzlich CHARAKTER_BEWEGT_SICH"
+    ],
+    "classification": "EXPECTED_ENVIRONMENTAL_PREFLIGHT_BLOCKS_NO_BUDGET"
+  },
+  "candidate": {
+    "itemName": "hpot0",
+    "quantity": 1,
+    "unitCostGold": 20,
+    "expectedCostGold": 20,
+    "map": "main",
+    "vendorId": "fancypots",
+    "vendorDistance": 67.71,
+    "allowedDistance": 102,
+    "itemDefinitionFingerprint": "f199935fd45490de",
+    "vendorFingerprint": "779099f248c245b8",
+    "candidateKey": "9bb060d8c46638f3"
+  },
+  "steps": {
+    "1": {
+      "name": "Umgebung / Bindung",
+      "status": "BESTANDEN",
+      "write": false
+    },
+    "2": {
+      "name": "Kandidat stabil pinnen",
+      "status": "BESTANDEN",
+      "write": false
+    },
+    "3": {
+      "name": "Read-only Shadow / Admission",
+      "status": "BESTANDEN",
+      "write": false,
+      "samples": 3,
+      "blockerSamples": 0
+    },
+    "4": {
+      "name": "LIVE 1 · buy_with_gold(..., 1)",
+      "status": "BESTANDEN",
+      "write": true
+    },
+    "5": {
+      "name": "Frische Re-Admission",
+      "status": "BESTANDEN",
+      "write": false
+    },
+    "6": {
+      "name": "LIVE 2 · buy_with_gold(..., 1)",
+      "status": "BESTANDEN",
+      "write": true
+    },
+    "7": {
+      "name": "NO-WRITE 5M Stabilitaet",
+      "status": "BESTANDEN",
+      "write": false
+    }
+  },
+  "liveTests": [
+    {
+      "testNr": 1,
+      "status": "BESTANDEN",
+      "publicFunction": "buy_with_gold",
+      "quantity": 1,
+      "publicFunctionCalls": 1,
+      "gameplayWrites": 1,
+      "functionalTestBudgetConsumed": true,
+      "promiseStatus": "RESOLVED",
+      "promiseSuccess": true,
+      "settlement": {
+        "status": "BESTAETIGT",
+        "reason": "EXAKTES_GOLD_UND_ITEM_DELTA",
+        "goldDelta": -20,
+        "itemQuantityDelta": 1,
+        "newInventoryFingerprint": true,
+        "candidateStillReachable": true
+      },
+      "sameIntentRetry": false
+    },
+    {
+      "testNr": 2,
+      "status": "BESTANDEN",
+      "publicFunction": "buy_with_gold",
+      "quantity": 1,
+      "publicFunctionCalls": 1,
+      "gameplayWrites": 1,
+      "functionalTestBudgetConsumed": true,
+      "promiseStatus": "RESOLVED",
+      "promiseSuccess": true,
+      "settlement": {
+        "status": "BESTAETIGT",
+        "reason": "EXAKTES_GOLD_UND_ITEM_DELTA",
+        "goldDelta": -20,
+        "itemQuantityDelta": 1,
+        "newInventoryFingerprint": true,
+        "candidateStillReachable": true
+      },
+      "sameIntentRetry": false
+    }
+  ],
+  "liveBudget": {
+    "consumed": 2,
+    "max": 2,
+    "additionalTrueFunctionalTestAllowed": false
+  },
+  "noWrite5m": {
+    "status": "BESTANDEN",
+    "durationMs": 300002,
+    "samples": 21,
+    "sampleGaps": 0,
+    "blockerSamples": 0,
+    "gameplayWrites": 0,
+    "mutatingPublicFunctionCalls": 0,
+    "functionalTestBudgetConsumed": false,
+    "sameIntentRetry": false
+  },
+  "aggregate": {
+    "allSevenStepsPassed": true,
+    "totalGameplayWrites": 2,
+    "totalMutatingPublicFunctionCalls": 2,
+    "exactSettlements": 2,
+    "unresolvedSettlements": 0,
+    "driftSettlements": 0,
+    "sameIntentRetry": false
+  },
+  "gateEffect": {
+    "buyGoldFirstPathPassed": true,
+    "buyGoldAdditionalLiveTestAllowed": false,
+    "sellStepTestReady": true,
+    "productiveMarketAuthorityGranted": false,
+    "pr20_3Complete": false
+  },
+  "nextAction": "PR20_3_NPC_SELL_STUFENTEST_STARTEN"
+}
