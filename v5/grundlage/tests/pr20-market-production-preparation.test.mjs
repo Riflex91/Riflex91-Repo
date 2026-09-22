@@ -49,6 +49,28 @@ test("PR20.3 Testkette ist nach breiter PR20.2-Freigabe NO-WRITE startbereit", (
   assert.equal(prep.ersterLiveKandidat.mergeZwischenTestschrittenErforderlich, false);
   assert.equal(prep.ersterLiveKandidat.maxTrueTests, 2);
   assert.equal(prep.ersterLiveKandidat.produktiveGameplayAutoritaet, false);
+  assert.equal(
+    prep.naechsterVorbereiteterKandidat.status,
+    "VORBEREITET_WARTET_AUF_BUY_GOLD_7_OF_7",
+  );
+  assert.equal(prep.naechsterVorbereiteterKandidat.publicFunction, "sell");
+  assert.equal(prep.naechsterVorbereiteterKandidat.menge, 1);
+  assert.equal(
+    prep.naechsterVorbereiteterKandidat.sourceBuyStateKey,
+    "AIO_V5_PR20_3_BUY_GOLD_STEP_TEST_V1",
+  );
+  assert.equal(
+    prep.naechsterVorbereiteterKandidat.testHarness,
+    "werkzeuge/pr20-3-market-sell-step-test-paket.js",
+  );
+  assert.equal(prep.naechsterVorbereiteterKandidat.testHarnessSchritte, 7);
+  assert.equal(
+    prep.naechsterVorbereiteterKandidat.mergeZwischenTestschrittenErforderlich,
+    false,
+  );
+  assert.equal(prep.naechsterVorbereiteterKandidat.maxTrueTests, 2);
+  assert.equal(prep.naechsterVorbereiteterKandidat.produktiveGameplayAutoritaet, false);
+  assert.equal(prep.naechsterVorbereiteterKandidat.sameIntentRetry, false);
 });
 
 test("PR20.3 Kandidaten besitzen exakt vorhandene R9 Action/Recovery/Verifier-Bindungen", () => {
