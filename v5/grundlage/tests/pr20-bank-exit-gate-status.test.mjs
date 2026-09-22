@@ -138,5 +138,15 @@ test("Roadmap steht nach PR20.2 auf PR20.3 und Bank-Ausnahmen bleiben lokal gega
   assert.equal(roadmap.pr20_2.broadBankActivationAllowed, true);
   assert.equal(roadmap.pr20_2.withdrawActivationAllowed, false);
   assert.equal(roadmap.pr20_2.openBankPackActivationAllowed, false);
-  assert.equal(roadmap.pr20_3.status, "TESTKETTE_START_FREIGEGEBEN_NO_WRITE");
+  assert.equal(roadmap.pr20_3.status, "STUFENTEST_VORBEREITET_EIN_MERGE");
+  assert.equal(roadmap.pr20_3.firstLiveCandidateSelected, true);
+  assert.equal(roadmap.pr20_3.firstLiveCandidate, "buy_with_gold(item, 1)");
+  assert.equal(
+    roadmap.pr20_3.testHarness,
+    "v5/werkzeuge/pr20-3-market-buy-gold-step-test-paket.js",
+  );
+  assert.equal(roadmap.pr20_3.mergeZwischenTestschrittenErforderlich, false);
+  assert.equal(roadmap.pr20_3.maxTrueTests, 2);
+  assert.equal(roadmap.pr20_3.gameplayAuthority, false);
+  assert.equal(roadmap.pr20_3.sameIntentRetry, false);
 });
