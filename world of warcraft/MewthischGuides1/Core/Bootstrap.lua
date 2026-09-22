@@ -19,7 +19,16 @@ local function refreshRuntime(reason, allowAdvance)
     local runtime = MG.RuntimeEngine:Refresh(reason)
     if runtime and allowAdvance and MG.db.settings.autoAdvance then
         local advanced = MG.RuntimeEngine:AdvanceWhileSafe(25)
-        if advanced > 0 then runtime = MG.RuntimeStore:Get() end
+        if advanced > 0 then
+            runtime = MG.RuntimeStore:Get()
+            local settings=MG:EnsureDB().settings
+            if settings.notifyGuideEvents and MG.NotificationCenter then
+                MG.NotificationCenter:Notify("guide","Guide fortgesetzt",
+                    tostring(advanced).." Schritt(e) automatisch weitergeschaltet.",{
+                        advanced=advanced,reason=reason,
+                    })
+            end
+        end
     end
 
     if MG.RefreshUI then MG:RefreshUI() end
@@ -82,6 +91,10 @@ local function slash(msg)
             MG.GuideBrowser:Toggle()
         elseif command == "build" or command == "talents" then
             MG.BuildWindow:Toggle()
+        elseif command == "notifications" or command == "notify" then
+            if MG.NotificationWindow then MG.NotificationWindow:Toggle() end
+        elseif command == "inventory" or command == "bags" then
+            if MG.InventoryWindow then MG.InventoryWindow:Toggle() end
         elseif command == "start" then
             local runtime, err = MG.GuideController:StartByQuery(rest, "slash")
             if not runtime then
@@ -109,7 +122,7 @@ local function slash(msg)
         elseif command == "settings" or command == "options" or command == "opt" then
             MG.SettingsWindow:Toggle()
         else
-            print("|cffffb000Mewthisch Guides|r /mg1 [show|hide|status|browser|guides|start <id/title>|next|prev|refresh|done|build|errors|settings]")
+            print("|cffffb000Mewthisch Guides|r /mg1 [show|hide|status|browser|guides|start <id/title>|next|prev|refresh|done|build|inventory|notifications|errors|settings]")
         end
     end)
 end
@@ -149,6 +162,9 @@ local events = {
     "PLAYER_CONTROL_GAINED",
     "TAXIMAP_OPENED",
     "MERCHANT_SHOW",
+    "MERCHANT_CLOSED",
+    "PLAYER_REGEN_DISABLED",
+    "PLAYER_REGEN_ENABLED",
     "TRAINER_SHOW",
     "GOSSIP_SHOW",
     "BANKFRAME_OPENED",
@@ -211,6 +227,9 @@ frame:SetScript("OnEvent", function(_, event, ...)
             MG.NavigatorFrame:Create()
             MG.ActionBar:Create()
             MG.WorldMapOverlay:Create()
+            if MG.NotificationWindow then MG.NotificationWindow:Create() end
+            if MG.InventoryWindow then MG.InventoryWindow:Create() end
+            if MG.InventoryTools then MG.InventoryTools:CheckLowSlots("login") end
             if MG.TravelGraph then MG.TravelGraph:Load() end
             if MG.BuildState then MG.BuildState:Refresh("login") end
             if MG.TalentAdvisor then MG.TalentAdvisor:Refresh("login") end
@@ -250,6 +269,12 @@ frame:SetScript("OnEvent", function(_, event, ...)
 
         recordEvent(event, args)
 
+        if event == "MERCHANT_SHOW" and MG.MerchantAutomation then
+            MG.MerchantAutomation:OnMerchantShow()
+        elseif event == "MERCHANT_CLOSED" and MG.MerchantAutomation then
+            MG.MerchantAutomation:OnMerchantClosed()
+        end
+
         if event == "QUEST_DETAIL" then
             MG.AutomationPolicy:OnQuestDetail()
         elseif event == "QUEST_PROGRESS" then
@@ -263,6 +288,10 @@ frame:SetScript("OnEvent", function(_, event, ...)
 
         if event == "BAG_UPDATE_DELAYED" or event == "PLAYER_EQUIPMENT_CHANGED" then
             if MG.GearAdvisor then MG.GearAdvisor:Refresh(event) end
+            if event=="BAG_UPDATE_DELAYED" and MG.InventoryTools then
+                MG.InventoryTools:CheckLowSlots(event)
+            end
+            if MG.InventoryWindow then MG.InventoryWindow:Refresh() end
         end
 
         if event == "PLAYER_LEVEL_UP" or event == "LEARNED_SPELL_IN_TAB" or

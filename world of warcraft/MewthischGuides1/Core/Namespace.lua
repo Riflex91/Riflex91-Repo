@@ -79,12 +79,21 @@ function MG:EnsureDB()
         allowAuctionHouse = true,
         theme = "Forever Classic",
         showViewer = true,
+        viewerLocked = false,
+        viewerScale = 1,
+        viewerOpacity = 1,
+        hideViewerInCombat = false,
+        showGuideProgress = true,
+        showNextStepPreview = true,
         showNavigator = true,
         showMinimapButton = true,
         minimapAngle = 215,
         navigatorLocked = false,
         navigatorScale = 1,
         navigatorArrowCalibration = -90,
+        showNavigatorDistance = true,
+        showNavigatorTarget = true,
+        showNavigatorRoute = true,
         autoSuperTrack = true,
         showWorldMapMarker = true,
         showActionBar = true,
@@ -97,6 +106,21 @@ function MG:EnsureDB()
         autoAcceptQuests = false,
         autoTurnInQuests = false,
         autoSelectSingleReward = false,
+        notificationsEnabled = true,
+        notificationPopups = true,
+        notificationChat = false,
+        notificationDuration = 6,
+        notifyGuideEvents = false,
+        notifyInventoryEvents = true,
+        notifyMerchantEvents = true,
+        notifyLowBagSpace = true,
+        notifyMerchantSummary = true,
+        autoSellGray = false,
+        autoRepair = false,
+        repairUseGuild = false,
+        repairFallbackOwnMoney = true,
+        inventoryLowSlotsThreshold = 4,
+        inventoryOpenAtMerchant = false,
         diagnostics = true,
     }
     for key, value in pairs(defaults) do
@@ -110,6 +134,7 @@ function MG:EnsureDB()
     db.runtime.build = self.BUILD
     db.browser = db.browser or {}
     db.automation = db.automation or {}
+    db.notifications = db.notifications or {}
     self.db = db
     return db
 end

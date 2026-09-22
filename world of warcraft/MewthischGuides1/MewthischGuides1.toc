@@ -9,6 +9,7 @@ Core/Namespace.lua
 Runtime/RuntimeStore.lua
 Core/ErrorLog.lua
 Core/Telemetry.lua
+Core/NotificationCenter.lua
 Core/UICompat.lua
 Core/ForeverAPI.lua
 
@@ -31,6 +32,8 @@ Guide/GuideController.lua
 Facts/QuestFacts.lua
 Facts/InventoryFacts.lua
 Facts/InventoryScanner.lua
+Inventory/InventoryTools.lua
+Inventory/MerchantAutomation.lua
 Facts/PositionFacts.lua
 Facts/PlayerFacts.lua
 Runtime/ActionMemory.lua
@@ -65,6 +68,8 @@ Presentation/PresentationResolver.lua
 Runtime/RuntimeEngine.lua
 
 UI/ThemeManager.lua
+UI/NotificationWindow.lua
+UI/InventoryWindow.lua
 UI/MinimapButton.lua
 UI/ErrorLogWindow.lua
 UI/SettingsWindow.lua
