@@ -8,10 +8,11 @@
   "controllerVersion": "1.0.0",
   "coordinatorClass": "merchant",
   "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
-  "sourceCommit": "d0823081da6f07a8a60002b1b809c24916555521",
+  "sourceCommit": "5c6e8f44bf0f1725cc6e7cee3ada6b69b1e3c7e0",
   "packagePath": "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
-  "packageSha256": "26acb41bb17ff1da0719b0a4604621a5fa4bcd87f5e78b3cc647bf112a25753b",
+  "packageSha256": "66e2d58858f2504c72e1abdb9abec22cbf8c3b8008dcbcdf4de5488b604ac02a",
   "maxPackageBytes": 131072,
   "expectedGlobal": "V5PR206MluckTest",
-  "normalRuntimeAllowed": false
+  "normalRuntimeAllowed": false,
+  "deploymentTransport": "V3_INGAME_BOOTSTRAP"
 }
