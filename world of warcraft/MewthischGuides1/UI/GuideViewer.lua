@@ -157,10 +157,15 @@ function V:Create()
     if title.SetTextColor then title:SetTextColor(1, 0.73, 0.08) end
     setFontShadow(title)
 
-    local errors = makeFlatButton(frame, "!", 24, 22, function()
-        if MG.ErrorLogWindow then MG.ErrorLogWindow:Toggle(true) end
+    local errors = makeFlatButton(frame, "LOG", 38, 22, function()
+        if MG.ErrorLogWindow then MG.ErrorLogWindow:Toggle() end
     end)
-    errors:SetPoint("TOPRIGHT", -33, -5)
+    errors:SetPoint("TOPRIGHT", -75, -5)
+
+    local settings = makeFlatButton(frame, "OPT", 38, 22, function()
+        if MG.SettingsWindow then MG.SettingsWindow:Toggle() end
+    end)
+    settings:SetPoint("TOPRIGHT", -33, -5)
 
     local close = makeFlatButton(frame, "x", 24, 22, function()
         if MG.db and MG.db.settings then MG.db.settings.showViewer = false end
@@ -171,7 +176,7 @@ function V:Create()
     local guideTitle = frame:CreateFontString(nil, "OVERLAY",
         UI:SafeFont("GameFontNormal", "GameFontNormal"))
     guideTitle:SetPoint("TOPLEFT", 11, -41)
-    guideTitle:SetPoint("RIGHT", -90, 0)
+    guideTitle:SetPoint("RIGHT", -118, 0)
     guideTitle:SetJustifyH("LEFT")
     if guideTitle.SetTextColor then guideTitle:SetTextColor(1, 0.72, 0.10) end
     setFontShadow(guideTitle)
