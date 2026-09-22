@@ -406,12 +406,3 @@ PR20.1 Equip ist real abgeschlossen. **PR20.2 Bank ist breit freigegeben** (`VOL
 ## Direkte Ingame-Tests
 
 V5-Funktionsfreigaben werden durch source-locked JavaScript-Tests direkt im echten Adventure-Land-Browser erbracht. Fuer Public-CODE-Funktionen ist der browser-native Adventure-Land-CODE-Runner die funktionale Wahrheit; Node/CDP/PowerShell dienen nur als Diagnose-, Repo-, Recovery- oder Legacy-Werkzeuge. Offline-Unit-, Mock-, Struktur- und Phasentests ergaenzen die Safety-Pruefung, ersetzen aber keinen realen Ingame-Funktionsnachweis. Details: `dokumentation/DIREKTE-INGAME-TESTS.md`.
-
-
-## Verbindliche V5-Testkampagne ab PR20.5
-
-Ab 2026-09-22 ist `roadmap/v5-verbindlicher-testplan.json` die verbindliche maschinenlesbare Quelle fuer die aktuelle V5-Testkampagne. Ein Agent/Chat muss die Gates **PR20.5 → PR20.6 → PR20.7 → PR20.8 → PR20.9 → PR20.10 → PR20.11 → PR21** in dieser Reihenfolge abarbeiten, nach **BESTANDEN** automatisch fortsetzen und bei Fehler/Stillstand/Anomalie stoppen, reparieren und das betroffene Gate wiederholen.
-
-PR20.10 prueft zusaetzlich Ranger/Priest/Mage-Klassenskills sowie Farmer↔Merchant-Item-/Gold-Uebergaben und HP-/MP-Potion-Anforderungen. PR20.11 prueft 24/7-Reliability/Recovery; **ein Supabase-Ausfalltest ist explizit ausgeschlossen**. Nach bestandenem PR21 folgt automatisch der 24h-Abnahmelauf mit Merchant + Ranger + Priest + Mage. Details: `dokumentation/V5-VERBINDLICHER-TESTPLAN.md`.
-
-Die bestehende nachgelagerte Post-R19-Roadmap PR22–PR32 bleibt davon unberuehrt.
