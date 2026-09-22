@@ -32,11 +32,21 @@ end
 
 local function itemInfo(link)
     if not link or not GetItemInfo then return nil end
-    local ok, name, _, quality, itemLevel, _, _, _, equipLoc, icon = pcall(GetItemInfo, link)
+    local ok, name, itemLink, quality, itemLevel, reqLevel,
+        itemType, itemSubType, stackCount, equipLoc, icon = pcall(GetItemInfo, link)
     if not ok then return nil end
     return {
-        name=name,quality=quality,itemLevel=tonumber(itemLevel) or 0,
-        equipLoc=equipLoc,icon=icon,slot=SLOT_BY_EQUIPLOC[equipLoc],
+        name=name,
+        link=itemLink,
+        quality=quality,
+        itemLevel=tonumber(itemLevel) or 0,
+        requiredLevel=tonumber(reqLevel),
+        itemType=itemType,
+        itemSubType=itemSubType,
+        stackCount=tonumber(stackCount),
+        equipLoc=equipLoc,
+        icon=icon,
+        slot=SLOT_BY_EQUIPLOC[equipLoc],
     }
 end
 
