@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20.5_AUTONOMOUS_4CHAR_TEST",
+  "status": "BEREIT_NACH_PR20_4",
+  "requires": [
+    "PR20.4_ABGESCHLOSSEN",
+    "merchant",
+    "ranger",
+    "priest",
+    "mage"
+  ],
+  "package": "v5/werkzeuge/pr20-5-merchant-stability-autonomous-4char.js",
+  "stateKey": "AIO_V5_PR20_5_AUTONOMOUS_TEST_V1",
+  "actorsKey": "AIO_V5_PR20_5_AUTONOMOUS_ACTORS_V1",
+  "autoStart": true,
+  "operatorInteractionAfterLoad": false,
+  "coordinatorClass": "merchant",
+  "workerClasses": [
+    "ranger",
+    "priest",
+    "mage"
+  ],
+  "telemetry": {
+    "transport": "existing Windows Bridge -> bot-debug-ingest -> Supabase",
+    "directBrowserSupabaseSecrets": false,
+    "monthlyEdgeInvocationLimit": 500000,
+    "safetyReserve": 5000
+  },
+  "checks": [
+    "fresh 4-character roster",
+    "single merchant/ranger/priest/mage",
+    "same server",
+    "no competing V3/V4 runtime",
+    "irreversible mutation blocks preemption",
+    "unsafe/non-durable checkpoint blocks preemption",
+    "scheduler priority remains authoritative",
+    "safety preemption",
+    "starvation escape at safe durable checkpoint",
+    "minimum hold time",
+    "switch cooldown",
+    "bounded switch budget",
+    "stable switch allowance",
+    "5 minute 4-character no-write soak"
+  ],
+  "gameplayWrites": 0,
+  "rawWriteCalls": 0,
+  "sameIntentRetry": false,
+  "terminalStates": [
+    "BESTANDEN",
+    "NICHT_BESTANDEN",
+    "BLOCKED",
+    "FEHLER",
+    "STOPPED"
+  ]
+}
