@@ -211,6 +211,13 @@ function V:Refresh()
     if state.complete then footerText="|cff55dd77Schritt abgeschlossen|r";footerExtra=14
     elseif (state.unknownBlockingGoals or 0)>0 then footerText="|cffffa020Zielstatus wird geprüft|r";footerExtra=14
     elseif state.reason=="optional_only" then footerText="Optionaler Schritt";footerExtra=14 end
+
+    local nextText=runtime.presentation and runtime.presentation.nextStep
+    if nextText and nextText~="" then
+        local preview="|cff888888Nächster: "..tostring(nextText).."|r"
+        footerText=footerText~="" and (footerText.."   "..preview) or preview
+        footerExtra=math.max(footerExtra,14)
+    end
     self.footer:SetText(footerText)
 
     local height=ROW_START+rowCount*ROW_HEIGHT+FOOTER_HEIGHT+footerExtra
