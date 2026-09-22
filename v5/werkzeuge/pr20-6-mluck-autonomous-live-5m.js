@@ -161,6 +161,8 @@
       const K='AIO_V5_PR20_6_MLUCK_ACTORS_V1';
       const I=2000;
       function t(v){return String(v==null?'':v).trim();}
+      const workerClass=t(globalThis.character?.ctype).toLowerCase();
+      if(!['ranger','priest','mage'].includes(workerClass))return;
       function fp(v){
         const x=JSON.stringify(v);
         let h=2166136261;
