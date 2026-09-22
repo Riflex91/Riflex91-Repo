@@ -303,7 +303,7 @@
             <Border Grid.Row="12" Style="{StaticResource Card}">
                 <StackPanel>
                     <TextBlock Text="Sichere Supabase-Anmeldung" FontSize="20" FontWeight="SemiBold" />
-                    <TextBlock Text="Der Endpunkt und die Bot-ID sind vorkonfiguriert. Ein vorhandener AIO_V3_DEBUG_TELEMETRY_TOKEN wird beim ersten Start automatisch importiert und per Windows-DPAPI geschützt gespeichert."
+                    <TextBlock Text="Der Endpunkt und die Bot-ID sind vorkonfiguriert. Ein vorhandener AIO_V5_TELEMETRY_TOKEN wird beim ersten Start automatisch importiert und per Windows-DPAPI geschützt gespeichert."
                                Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,6,0,16" />
                     <Grid>
                         <Grid.ColumnDefinitions>
