@@ -119,7 +119,9 @@ function N:RefreshLive()
     local d,mode,detail
     if MG.NavigationDistance then d,mode,detail=MG.NavigationDistance:Between(position,nav.waypoint) end
 
-    if d and (mode=="restedxp_world_coordinates" or mode=="world_coordinates" or mode=="map_world_size") then
+    if settings.showNavigatorDistance==false then
+        self.distance:SetText("")
+    elseif d and (mode=="restedxp_world_coordinates" or mode=="world_coordinates" or mode=="map_world_size") then
         local meters=d*.9144
         self.distance:SetText(meters>=1000 and string.format("%.2f km",meters/1000) or string.format("%.0f m",meters))
     elseif d and mode=="normalized_map_distance" then
@@ -145,11 +147,15 @@ function N:RefreshLive()
 
     local row=findNavigatedRow(runtime)
     local arrowText=runtime and runtime.presentation and runtime.presentation.arrowText
-    if arrowText and arrowText~="" then self.target:SetText(arrowText)
+    if settings.showNavigatorTarget==false then
+        self.target:SetText("")
+    elseif arrowText and arrowText~="" then self.target:SetText(arrowText)
     else self.target:SetText(row and row.text or "Aktuelles Ziel") end
 
     local segment=runtime and runtime.currentRouteSegment
-    if segment and segment.count and segment.count>1 then
+    if settings.showNavigatorRoute==false then
+        self.route:SetText("")
+    elseif segment and segment.count and segment.count>1 then
         self.route:SetText((segment.loop and "Loop " or "Route ")..
             tostring(segment.index).."/"..tostring(segment.count))
     else self.route:SetText("") end

@@ -87,6 +87,8 @@ function V:Create()
     if frame.RegisterForDrag then frame:RegisterForDrag("LeftButton") end
     applyPosition(frame)
     frame:SetScript("OnDragStart",function(self)
+        local settings=MG.db and MG.db.settings or {}
+        if settings.viewerLocked then return end
         if not (InCombatLockdown and InCombatLockdown()) and self.StartMoving then self:StartMoving() end
     end)
     frame:SetScript("OnDragStop",function(self)
@@ -172,9 +174,14 @@ end
 function V:Refresh()
     local frame=self:Create()
     local db=MG:EnsureDB()
+    if frame.SetScale then pcall(frame.SetScale,frame,tonumber(db.settings.viewerScale) or 1) end
+    if frame.SetAlpha then pcall(frame.SetAlpha,frame,tonumber(db.settings.viewerOpacity) or 1) end
     local runtime=MG.RuntimeStore and MG.RuntimeStore:Get() or nil
 
     if db.settings.showViewer==false then frame:Hide();return end
+    if db.settings.hideViewerInCombat and InCombatLockdown and InCombatLockdown() then
+        frame:Hide();return
+    end
     if runtime and runtime.step and runtime.step.hideWindow and db.settings.respectHideWindow then
         frame:Hide();return
     end
@@ -193,6 +200,8 @@ function V:Refresh()
     self.stepText:SetText(tostring(index).."/"..tostring(total))
     local width=self.barBg.GetWidth and self.barBg:GetWidth() or (FRAME_WIDTH-20)
     self.bar:SetWidth(math.max(1,width*(total>0 and index/total or 0)))
+    UI:SetShown(self.barBg,db.settings.showGuideProgress~=false)
+    UI:SetShown(self.bar,db.settings.showGuideProgress~=false)
 
     local visible={}
     for _,row in ipairs(runtime.presentation and runtime.presentation.rows or {}) do
@@ -214,7 +223,7 @@ function V:Refresh()
     elseif (state.unknownBlockingGoals or 0)>0 then footerText="|cffffa020Zielstatus wird geprüft|r";footerExtra=14
     elseif state.reason=="optional_only" then footerText="Optionaler Schritt";footerExtra=14 end
 
-    local nextText=runtime.presentation and runtime.presentation.nextStep
+    local nextText=db.settings.showNextStepPreview~=false and runtime.presentation and runtime.presentation.nextStep
     if nextText and nextText~="" then
         local preview="|cff888888Nächster: "..tostring(nextText).."|r"
         footerText=footerText~="" and (footerText.."   "..preview) or preview
@@ -248,4 +257,5 @@ function MG:RefreshUI()
     if MG.NavigatorFrame then MG.NavigatorFrame:Refresh() end
     if MG.ActionBar then MG.ActionBar:Refresh() end
     if MG.WorldMapOverlay then MG.WorldMapOverlay:Refresh() end
+    if MG.MinimapButton then MG.MinimapButton:Refresh() end
 end

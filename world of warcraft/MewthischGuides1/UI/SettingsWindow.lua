@@ -4,35 +4,89 @@ MG.SettingsWindow = MG.SettingsWindow or {}
 local S = MG.SettingsWindow
 local UI = MG.UICompat
 
-local WIDTH = 430
-local ROW_HEIGHT = 28
+local WIDTH,HEIGHT=570,610
+local MAX_ROWS=14
+local ROW_HEIGHT=30
 
-local BOOL_OPTIONS = {
-    { key="showViewer", label="Hauptfenster anzeigen" },
-    { key="showNavigator", label="Navigator anzeigen" },
-    { key="showMinimapButton", label="Minimap-Button anzeigen" },
-    { key="navigatorLocked", label="Navigator sperren" },
-    { key="autoSuperTrack", label="Questziel automatisch SuperTracken" },
-    { key="showWorldMapMarker", label="Weltkartenmarker anzeigen" },
-    { key="showActionBar", label="Aktionsleiste anzeigen" },
-    { key="showGearAdvisor", label="Questbelohnungs-Berater anzeigen" },
-    { key="showBuildAdvisor", label="Build-/Training-Hinweise anzeigen" },
-    { key="showPassiveHints", label="Passive Hinweise anzeigen" },
-    { key="showCompletedGoals", label="Abgeschlossene Ziele anzeigen" },
-    { key="respectHideWindow", label="RestedXP hidewindow beachten" },
-    { key="autoAdvance", label="Schritte automatisch weiterschalten" },
-    { key="autoAcceptQuests", label="Quests automatisch annehmen" },
-    { key="autoTurnInQuests", label="Quests ohne Belohnungswahl auto-abgeben" },
-    { key="diagnostics", label="Diagnoseprotokoll aktivieren" },
-    { key="rxpEraMode", label="RestedXP: Era aktiv" },
-    { key="rxpSoMMode", label="RestedXP: Season of Mastery" },
-    { key="rxpSoDMode", label="RestedXP: Season of Discovery" },
-    { key="rxpHardcoreMode", label="RestedXP: Hardcore-Guide" },
-    { key="rxpSSFMode", label="Self-Found / SSF" },
-    { key="allowAuctionHouse", label="Auktionshaus-Schritte erlauben" },
+local PAGES={
+    display={
+        title="Anzeige",
+        subtitle="Viewer, Navigator, Karte und Skin",
+        options={
+            {key="showViewer",label="Hauptfenster anzeigen",type="bool"},
+            {key="viewerLocked",label="Hauptfenster sperren",type="bool"},
+            {key="viewerScale",label="Hauptfenster-Skalierung",type="cycle",values={.8,.9,1,1.1,1.2,1.3,1.4},suffix="x"},
+            {key="viewerOpacity",label="Hauptfenster-Deckkraft",type="cycle",values={.45,.6,.75,.9,1},format="percent"},
+            {key="hideViewerInCombat",label="Hauptfenster im Kampf ausblenden",type="bool"},
+            {key="showGuideProgress",label="Guide-Fortschrittsbalken anzeigen",type="bool"},
+            {key="showNextStepPreview",label="Vorschau auf nächsten Schritt",type="bool"},
+            {key="showNavigator",label="Navigator anzeigen",type="bool"},
+            {key="navigatorLocked",label="Navigator sperren",type="bool"},
+            {key="navigatorScale",label="Navigator-Skalierung",type="cycle",values={.8,1,1.2,1.4},suffix="x"},
+            {key="navigatorArrowCalibration",label="Pfeil-Kalibrierung",type="cycle",values={-90,0,90,180},suffix="°"},
+            {key="showNavigatorDistance",label="Navigator: Distanz anzeigen",type="bool"},
+            {key="showNavigatorTarget",label="Navigator: Zieltext anzeigen",type="bool"},
+            {key="showNavigatorRoute",label="Navigator: Routenstatus anzeigen",type="bool"},
+        },
+    },
+    notifications={
+        title="Meldungen",
+        subtitle="Popups, Archiv und Ereignisfilter",
+        options={
+            {key="notificationsEnabled",label="Benachrichtigungen aktiv",type="bool"},
+            {key="notificationPopups",label="Popup-Meldungen anzeigen",type="bool"},
+            {key="notificationChat",label="Meldungen zusätzlich im Chat",type="bool"},
+            {key="notificationDuration",label="Popup-Dauer",type="cycle",values={3,5,6,8,10},suffix="s"},
+            {key="notifyGuideEvents",label="Guide-Fortschritt melden",type="bool"},
+            {key="notifyInventoryEvents",label="Inventar-Ereignisse melden",type="bool"},
+            {key="notifyMerchantEvents",label="Händler-/Reparatur-Ereignisse melden",type="bool"},
+            {key="notifyLowBagSpace",label="Bei wenig Taschenplatz warnen",type="bool"},
+            {key="notifyMerchantSummary",label="Händler-Zusammenfassung anzeigen",type="bool"},
+            {key="diagnostics",label="Diagnoseprotokoll aktivieren",type="bool"},
+        },
+    },
+    convenience={
+        title="Komfort",
+        subtitle="Inventar, Händler und sichere Automationen",
+        options={
+            {key="autoSellGray",label="Graue Gegenstände automatisch verkaufen",type="bool",danger=true},
+            {key="autoRepair",label="Beim Händler automatisch reparieren",type="bool"},
+            {key="repairUseGuild",label="Wenn möglich Gildenreparatur verwenden",type="bool"},
+            {key="repairFallbackOwnMoney",label="Sonst eigenes Gold für Reparatur",type="bool"},
+            {key="inventoryLowSlotsThreshold",label="Warnschwelle freie Taschenplätze",type="cycle",values={1,2,3,4,5,6,8,10}},
+            {key="inventoryOpenAtMerchant",label="Inventar-Komfortfenster beim Händler öffnen",type="bool"},
+            {key="showGearAdvisor",label="Questbelohnungs-Berater anzeigen",type="bool"},
+            {key="showBuildAdvisor",label="Build-/Training-Hinweise anzeigen",type="bool"},
+            {key="autoSuperTrack",label="Questziel automatisch SuperTracken",type="bool"},
+            {key="autoAcceptQuests",label="Quests automatisch annehmen",type="bool",danger=true},
+            {key="autoTurnInQuests",label="Quests ohne Auswahl auto-abgeben",type="bool",danger=true},
+            {key="autoSelectSingleReward",label="Einzelne Questbelohnung automatisch wählen",type="bool",danger=true},
+        },
+    },
+    guide={
+        title="Guide",
+        subtitle="Guide-Verhalten und importierte Routendaten",
+        options={
+            {key="autoAdvance",label="Schritte automatisch weiterschalten",type="bool",guide=true},
+            {key="showCompletedGoals",label="Abgeschlossene Ziele anzeigen",type="bool"},
+            {key="showPassiveHints",label="Passive Hinweise anzeigen",type="bool"},
+            {key="respectHideWindow",label="Guide-Anweisung zum Ausblenden beachten",type="bool"},
+            {key="rxpEraMode",label="Era-Routen aktiv",type="bool",guide=true},
+            {key="rxpSoMMode",label="Season-of-Mastery-Routen aktiv",type="bool",guide=true},
+            {key="rxpSoDMode",label="Season-of-Discovery-Routen aktiv",type="bool",guide=true},
+            {key="rxpHardcoreMode",label="Hardcore-Routen verwenden",type="bool",guide=true},
+            {key="rxpSSFMode",label="Self-Found / SSF",type="bool",guide=true},
+            {key="allowAuctionHouse",label="Auktionshaus-Schritte erlauben",type="bool",guide=true},
+            {key="rxpPhase",label="Content-Phase",type="cycle",values={1,2,3,4,5,6},prefix="P",guide=true},
+            {key="rxpRate",label="XP-Rate",type="cycle",values={1,1.5,2,3},suffix="x",guide=true},
+            {key="theme",label="Skin",type="theme"},
+            {key="showMinimapButton",label="Minimap-Button anzeigen",type="bool"},
+        },
+    },
 }
+local PAGE_ORDER={"display","notifications","convenience","guide"}
 
-local function makeSolid(parent, layer, r, g, b, a)
+local function solid(parent,layer,r,g,b,a)
     local t=parent:CreateTexture(nil,layer or "BACKGROUND")
     UI:SetSolid(t,r,g,b,a);return t
 end
@@ -44,15 +98,15 @@ end
 
 local function button(parent,text,width,height,callback)
     local b=CreateFrame("Button",nil,parent);UI:SetSize(b,width,height)
-    local bg=makeSolid(b,"BACKGROUND",.10,.07,.03,1);bg:SetAllPoints()
-    local top=makeSolid(b,"BORDER",.78,.47,.08,.9)
+    local bg=solid(b,"BACKGROUND",.10,.07,.03,1);bg:SetAllPoints()
+    local top=solid(b,"BORDER",.78,.47,.08,.9)
     top:SetPoint("TOPLEFT");top:SetPoint("TOPRIGHT");top:SetHeight(1)
     local l=b:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontNormal","GameFontNormal"))
     l:SetPoint("CENTER");l:SetText(text);shadow(l)
     if l.SetTextColor then l:SetTextColor(1,.74,.12) end
     b:SetScript("OnEnter",function() UI:SetSolid(bg,.19,.11,.03,1) end)
     b:SetScript("OnLeave",function() UI:SetSolid(bg,.10,.07,.03,1) end)
-    b:SetScript("OnClick",callback);b.label=l;return b
+    b:SetScript("OnClick",callback);b.label=l;b.bg=bg;return b
 end
 
 local function modeChange()
@@ -60,15 +114,47 @@ local function modeChange()
     if MG.RuntimeEngine and MG.RuntimeEngine.session then
         MG.RuntimeEngine:Refresh("settings_mode_changed")
     end
+end
+
+local function cycleValue(option,current)
+    local values=option.values or {}
+    local index=1
+    for i,value in ipairs(values) do if value==current then index=i break end end
+    return values[index%#values+1] or current
+end
+
+local function optionText(option,value)
+    if option.type=="bool" then return value and "AN" or "AUS" end
+    if option.type=="theme" then return tostring(value or "Mewthisch Classic") end
+    if option.format=="percent" then return tostring(math.floor((tonumber(value) or 1)*100+.5)).."%" end
+    return tostring(option.prefix or "")..tostring(value)..tostring(option.suffix or "")
+end
+
+local function changeOption(option)
+    local db=MG:EnsureDB()
+    local current=db.settings[option.key]
+    if option.type=="bool" then
+        db.settings[option.key]=not current
+    elseif option.type=="cycle" then
+        db.settings[option.key]=cycleValue(option,current)
+    elseif option.type=="theme" and MG.ThemeManager then
+        local order=MG.ThemeManager.order or {}
+        local index=1
+        for i,name in ipairs(order) do if name==current then index=i break end end
+        MG.ThemeManager:Set(order[index%#order+1] or order[1])
+    end
+
+    if option.guide then modeChange() end
+    if option.key=="showMinimapButton" and MG.MinimapButton then MG.MinimapButton:Refresh() end
     if MG.RefreshUI then MG:RefreshUI() end
+    if MG.InventoryWindow then MG.InventoryWindow:Refresh() end
+    S:Refresh()
 end
 
 function S:Create()
     if self.frame then return self.frame end
-
-    local height=180+#BOOL_OPTIONS*ROW_HEIGHT+84
     local frame=CreateFrame("Frame","MewthischGuides1Settings",UIParent)
-    UI:SetSize(frame,WIDTH,height);frame:SetPoint("CENTER",0,10)
+    UI:SetSize(frame,WIDTH,HEIGHT);frame:SetPoint("CENTER",0,10)
     UI:SetFrameStrata(frame,"FULLSCREEN_DIALOG");UI:SetClampedToScreen(frame,true)
     frame:SetMovable(true);frame:EnableMouse(true)
     if frame.RegisterForDrag then frame:RegisterForDrag("LeftButton") end
@@ -77,153 +163,100 @@ function S:Create()
     end)
     frame:SetScript("OnDragStop",function(self) if self.StopMovingOrSizing then self:StopMovingOrSizing() end end)
 
-    local bg=makeSolid(frame,"BACKGROUND",.012,.015,.02,1);bg:SetAllPoints()
-    local header=makeSolid(frame,"BORDER",.035,.04,.05,1)
-    header:SetPoint("TOPLEFT",1,-1);header:SetPoint("TOPRIGHT",-1,-1);header:SetHeight(36)
-    local top=makeSolid(frame,"ARTWORK",.95,.56,.06,1)
+    local bg=solid(frame,"BACKGROUND",.012,.015,.02,1);bg:SetAllPoints()
+    local header=solid(frame,"BORDER",.035,.04,.05,1)
+    header:SetPoint("TOPLEFT",1,-1);header:SetPoint("TOPRIGHT",-1,-1);header:SetHeight(38)
+    local top=solid(frame,"ARTWORK",.95,.56,.06,1)
     top:SetPoint("TOPLEFT",1,-1);top:SetPoint("TOPRIGHT",-1,-1);top:SetHeight(1)
 
     local title=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontNormalLarge","GameFontNormal"))
-    title:SetPoint("TOPLEFT",12,-10);title:SetText("Mewthisch Guides - Einstellungen");shadow(title)
+    title:SetPoint("TOPLEFT",12,-11);title:SetText("Mewthisch Guides - Einstellungen");shadow(title)
     if title.SetTextColor then title:SetTextColor(1,.74,.10) end
+    local close=button(frame,"x",24,22,function() frame:Hide() end);close:SetPoint("TOPRIGHT",-7,-8)
 
-    local close=button(frame,"x",24,22,function() frame:Hide() end)
-    close:SetPoint("TOPRIGHT",-6,-7)
-
+    local pageTitle=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontNormal","GameFontNormal"))
+    pageTitle:SetPoint("TOPLEFT",14,-50);shadow(pageTitle)
     local subtitle=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
-    subtitle:SetPoint("TOPLEFT",12,-47)
-    subtitle:SetText("Änderungen gelten sofort. Automationen sind standardmäßig AUS.")
-    if subtitle.SetTextColor then subtitle:SetTextColor(.72,.72,.72) end;shadow(subtitle)
+    subtitle:SetPoint("TOPLEFT",14,-69);subtitle:SetWidth(WIDTH-28);subtitle:SetJustifyH("LEFT");shadow(subtitle)
+    if subtitle.SetTextColor then subtitle:SetTextColor(.68,.68,.68) end
 
-    local quickBrowser=button(frame,"GUIDES",82,24,function()
-        if MG.GuideBrowser then MG.GuideBrowser:Toggle(true) end
-    end)
-    quickBrowser:SetPoint("TOPLEFT",12,-68)
-    local quickBuild=button(frame,"BUILD",72,24,function()
-        if MG.BuildWindow then MG.BuildWindow:Toggle(true) end
-    end)
-    quickBuild:SetPoint("LEFT",quickBrowser,"RIGHT",6,0)
-    local quickLog=button(frame,"LOG",62,24,function()
-        if MG.ErrorLogWindow then MG.ErrorLogWindow:Toggle() end
-    end)
-    quickLog:SetPoint("LEFT",quickBuild,"RIGHT",6,0)
-    local themeButton=button(frame,"THEME",84,24,function()
-        if MG.ThemeManager then
-            MG.ThemeManager:Next()
-            S:Refresh()
-        end
-    end)
-    themeButton:SetPoint("LEFT",quickLog,"RIGHT",6,0)
-
-    local phaseLabel=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
-    phaseLabel:SetPoint("TOPLEFT",12,-105);phaseLabel:SetText("RestedXP Phase");shadow(phaseLabel)
-    local phase=button(frame,"",66,22,function()
-        local db=MG:EnsureDB()
-        local value=(tonumber(db.settings.rxpPhase) or 6)+1
-        if value>6 then value=1 end
-        db.settings.rxpPhase=value
-        S:Refresh();modeChange()
-    end)
-    phase:SetPoint("TOPLEFT",112,-100)
-
-    local scaleLabel=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
-    scaleLabel:SetPoint("TOPLEFT",338,-105);scaleLabel:SetText("Pfeil");shadow(scaleLabel)
-    local scale=button(frame,"",58,22,function()
-        local db=MG:EnsureDB()
-        local values={0.8,1,1.2,1.4}
-        local current=tonumber(db.settings.navigatorScale) or 1
-        local index=1
-        for i,v in ipairs(values) do if v==current then index=i break end end
-        index=index%#values+1
-        db.settings.navigatorScale=values[index]
-        S:Refresh()
-        if MG.RefreshUI then MG:RefreshUI() end
-    end)
-    scale:SetPoint("TOPLEFT",368,-100)
-
-    local rateLabel=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
-    rateLabel:SetPoint("TOPLEFT",198,-105);rateLabel:SetText("XP-Rate");shadow(rateLabel)
-    local rate=button(frame,"",70,22,function()
-        local db=MG:EnsureDB()
-        local values={1,1.5,2,3}
-        local current=tonumber(db.settings.rxpRate) or 1
-        local index=1
-        for i,v in ipairs(values) do if v==current then index=i break end end
-        index=index%#values+1
-        db.settings.rxpRate=values[index]
-        S:Refresh();modeChange()
-    end)
-    rate:SetPoint("TOPLEFT",260,-100)
-
-    local calibration=button(frame,"",58,22,function()
-        local db=MG:EnsureDB()
-        local values={-90,0,90,180}
-        local current=tonumber(db.settings.navigatorArrowCalibration) or -90
-        local index=1
-        for i,v in ipairs(values) do if v==current then index=i break end end
-        index=index%#values+1
-        db.settings.navigatorArrowCalibration=values[index]
-        S:Refresh()
-        if MG.RefreshUI then MG:RefreshUI() end
-    end)
-    calibration:SetPoint("TOPRIGHT",-14,-128)
-    local calibrationLabel=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
-    calibrationLabel:SetPoint("RIGHT",calibration,"LEFT",-8,0)
-    calibrationLabel:SetText("Pfeil-Kalibrierung");shadow(calibrationLabel)
-
-    local rows={}
-    for i,option in ipairs(BOOL_OPTIONS) do
-        local y=-166-(i-1)*ROW_HEIGHT
-        local label=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlight","GameFontNormal"))
-        label:SetPoint("TOPLEFT",14,y);label:SetWidth(310);label:SetJustifyH("LEFT")
-        label:SetText(option.label);shadow(label)
-
-        local toggle=button(frame,"",64,22,function()
-            local db=MG:EnsureDB()
-            db.settings[option.key]=not db.settings[option.key]
-            S:Refresh()
-            if string.sub(option.key,1,3)=="rxp" or option.key=="allowAuctionHouse" then
-                modeChange()
-            elseif option.key=="showMinimapButton" and MG.MinimapButton then
-                MG.MinimapButton:Refresh()
-            elseif MG.RefreshUI then
-                MG:RefreshUI()
-            end
-        end)
-        toggle:SetPoint("TOPRIGHT",-14,y+4)
-        rows[#rows+1]={option=option,button=toggle}
+    local tabs={}
+    local tabNames={display="ANZEIGE",notifications="MELDUNGEN",convenience="KOMFORT",guide="GUIDE"}
+    for i,key in ipairs(PAGE_ORDER) do
+        local tab=button(frame,tabNames[key],126,24,function() S.page=key;S:Refresh() end)
+        tab:SetPoint("TOPLEFT",14+(i-1)*134,-91);tabs[key]=tab
     end
 
-    local reset=button(frame,"Fenster-/Minimap-Positionen zurücksetzen",260,26,function()
+    local rows={}
+    for i=1,MAX_ROWS do
+        local y=-132-(i-1)*ROW_HEIGHT
+        local label=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlight","GameFontNormal"))
+        label:SetPoint("TOPLEFT",18,y);label:SetWidth(385);label:SetJustifyH("LEFT");shadow(label)
+        local toggle=button(frame,"",124,22,function()
+            local row=rows[i]
+            if row and row.option then changeOption(row.option) end
+        end)
+        toggle:SetPoint("TOPRIGHT",-18,y+4)
+        rows[i]={label=label,button=toggle}
+    end
+
+    local guides=button(frame,"GUIDES",72,24,function() if MG.GuideBrowser then MG.GuideBrowser:Toggle(true) end end)
+    guides:SetPoint("BOTTOMLEFT",14,14)
+    local inventory=button(frame,"INVENTAR",82,24,function() if MG.InventoryWindow then MG.InventoryWindow:Toggle(true) end end)
+    inventory:SetPoint("LEFT",guides,"RIGHT",6,0)
+    local notify=button(frame,"MELDUNGEN",94,24,function() if MG.NotificationWindow then MG.NotificationWindow:Toggle(true) end end)
+    notify:SetPoint("LEFT",inventory,"RIGHT",6,0)
+    local log=button(frame,"LOG",54,24,function() if MG.ErrorLogWindow then MG.ErrorLogWindow:Toggle() end end)
+    log:SetPoint("LEFT",notify,"RIGHT",6,0)
+    local reset=button(frame,"POSITIONEN RESET",122,24,function()
         local db=MG:EnsureDB();db.ui={};db.settings.minimapAngle=215
         if MG.GuideViewer and MG.GuideViewer.ResetPosition then MG.GuideViewer:ResetPosition() end
         if MG.NavigatorFrame and MG.NavigatorFrame.ResetPosition then MG.NavigatorFrame:ResetPosition() end
         if MG.MinimapButton then MG.MinimapButton:Refresh() end
     end)
-    reset:SetPoint("BOTTOM",0,14)
+    reset:SetPoint("BOTTOMRIGHT",-14,14)
 
-    self.frame=frame;self.rows=rows;self.phaseButton=phase;self.rateButton=rate
-    self.scaleButton=scale;self.calibrationButton=calibration;self.themeButton=themeButton
-    frame:Hide();return frame
+    self.frame=frame;self.rows=rows;self.tabs=tabs;self.pageTitle=pageTitle;self.subtitle=subtitle
+    self.page=self.page or "display"
+    frame:SetScript("OnShow",function() S:Refresh() end)
+    frame:Hide()
+    if MG.ThemeManager then MG.ThemeManager:ApplyAll() end
+    return frame
 end
 
 function S:Refresh()
     self:Create()
+    local page=PAGES[self.page] or PAGES.display
     local db=MG:EnsureDB()
-    self.phaseButton.label:SetText("P"..tostring(db.settings.rxpPhase or 6))
-    self.rateButton.label:SetText(tostring(db.settings.rxpRate or 1).."x")
-    self.scaleButton.label:SetText(tostring(db.settings.navigatorScale or 1).."x")
-    self.calibrationButton.label:SetText(tostring(db.settings.navigatorArrowCalibration or -90).."°")
-    self.themeButton.label:SetText(tostring(db.settings.theme or "Forever Classic"))
+    self.pageTitle:SetText(page.title)
+    self.subtitle:SetText(page.subtitle)
 
-    for _,row in ipairs(self.rows or {}) do
-        local enabled=db.settings[row.option.key] and true or false
-        row.button.label:SetText(enabled and "AN" or "AUS")
-        if row.button.label.SetTextColor then
-            if enabled then row.button.label:SetTextColor(.35,.95,.48)
-            else row.button.label:SetTextColor(.95,.42,.32) end
+    for key,tab in pairs(self.tabs or {}) do
+        tab.label:SetText((key==self.page and "> " or "")..
+            ({display="ANZEIGE",notifications="MELDUNGEN",convenience="KOMFORT",guide="GUIDE"})[key])
+    end
+
+    for i,row in ipairs(self.rows) do
+        local option=page.options[i]
+        row.option=option
+        if option then
+            row.label:Show();row.button:Show()
+            row.label:SetText(option.label)
+            local value=db.settings[option.key]
+            row.button.label:SetText(optionText(option,value))
+            if option.type=="bool" and row.button.label.SetTextColor then
+                if value then row.button.label:SetTextColor(.35,.95,.48)
+                else row.button.label:SetTextColor(.95,.42,.32) end
+            elseif row.button.label.SetTextColor then
+                local theme=MG.ThemeManager and MG.ThemeManager:GetCurrent()
+                local color=theme and theme.title or {1,.74,.12,1}
+                row.button.label:SetTextColor(color[1],color[2],color[3],color[4] or 1)
+            end
+        else
+            row.label:Hide();row.button:Hide()
         end
     end
+    if MG.ThemeManager then MG.ThemeManager:ApplyAll() end
 end
 
 function S:Toggle(force)

@@ -202,10 +202,22 @@ function T:ApplyNavigator(nav)
 end
 
 function T:ApplyAll()
+    local theme=self:GetCurrent()
     if MG.GuideViewer then self:ApplyViewer(MG.GuideViewer) end
     if MG.NavigatorFrame then self:ApplyNavigator(MG.NavigatorFrame) end
     if MG.MinimapButton and MG.MinimapButton.ApplyTheme then
-        local theme=self:GetCurrent()
         MG.MinimapButton:ApplyTheme(theme)
+    end
+    if MG.UICompat and MG.UICompat.ApplyThemeTree then
+        local modules={
+            "GuideViewer","NavigatorFrame","SettingsWindow","GuideBrowser",
+            "BuildWindow","RewardAdvisorFrame","ErrorLogWindow","ActionBar",
+            "WorldMapOverlay","InventoryWindow","NotificationWindow",
+        }
+        for _,name in ipairs(modules) do
+            local module=MG[name]
+            if module and module.frame then MG.UICompat:ApplyThemeTree(module.frame,theme) end
+            if module and module.toast then MG.UICompat:ApplyThemeTree(module.toast,theme) end
+        end
     end
 end
