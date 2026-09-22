@@ -240,7 +240,7 @@ Abzudecken:
 
 ### PR20.3 – Markt, Kaufen und Verkaufen produktiv
 
-**Aktueller Status:** `STUFENTEST_VORBEREITET_EIN_MERGE`. PR20.2 ist breit freigegeben und blockiert die Markt-Testkette nicht mehr. Als erster Kandidat ist `buy_with_gold(item, 1)` ueber die explizite Goldroute ratifiziert. Ein einziges persistentes 7-Stufen-Ingame-Paket deckt Preflight, Kandidaten-Pinning, Shadow/Admission, zwei kontrollierte Live-Writes mit hartem 2/2-Budget und den anschliessenden 5m-NO-WRITE-Lauf ab; zwischen diesen Stufen ist kein weiterer Merge erforderlich. Die sichere Vorarbeit liegt unter
+**Aktueller Status:** `ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN`. PR20.2 ist breit freigegeben und PR20.3 wurde formal gegen sein Exit-Gate geschlossen. Als erster Kandidat ist `buy_with_gold(item, 1)` ueber die explizite Goldroute ratifiziert. Ein einziges persistentes 7-Stufen-Ingame-Paket deckt Preflight, Kandidaten-Pinning, Shadow/Admission, zwei kontrollierte Live-Writes mit hartem 2/2-Budget und den anschliessenden 5m-NO-WRITE-Lauf ab; zwischen diesen Stufen ist kein weiterer Merge erforderlich. Die sichere Vorarbeit liegt unter
 `dokumentation/PR20-3-MARKT-PRODUKTIV-VORBEREITUNG.md` und
 `grundlage/vertraege/runtime/market-production-preparation.json`.
 Produktive Market-Authority entsteht dadurch noch nicht; PR20.3 muss seine eigenen Capability-, Authority-, Journal-, Admission-, Shadow- und Live-Evidence-Gates bestehen.
@@ -264,6 +264,8 @@ Abzudecken:
 - kein falscher Verkauf und kein Doppeltrade.
 
 ### PR20.4 – Transfers, Supply, Collection und Rendezvous produktiv
+
+**Aktueller Status:** `VORBEREITUNG_FREIGEGEBEN_NO_WRITE`. PR20.1-PR20.3 sind abgeschlossen; produktive Transfer-Mutation bleibt bis zu den eigenen PR20.4-Gates gesperrt.
 
 **Vorbereitung:** `VORBEREITET_NO_WRITE`. Die sichere Vorarbeit ist bereits unter
 `dokumentation/PR20-4-LOGISTIK-TRANSFER-PRODUKTIV-VORBEREITUNG.md` und
@@ -966,3 +968,15 @@ Evidence:
 `roadmap/pr20-3-trade-operator-acceptance.json`.
 
 Aktives Ingame-Gate bleibt NPC Sell.
+
+
+### PR20.3 formaler Exit
+
+Das maschinenlesbare Gate
+`roadmap/pr20-3-market-exit-gate-status.json` schliesst PR20.3 fuer die
+Roadmap. Buy und NPC-Sell besitzen reale 7/7-/2/2-/5M-Evidence.
+`trade_buy` und `trade_sell` zaehlen aufgrund der expliziten
+Operator-Ratifikation fuer die Roadmap als abgeschlossen, aber weiterhin
+**nicht** als Live-Evidence. Daraus entsteht keine produktive Trade-Authority.
+
+Aktives Gate ist nun **PR20.4 Logistik/Transfers**.
