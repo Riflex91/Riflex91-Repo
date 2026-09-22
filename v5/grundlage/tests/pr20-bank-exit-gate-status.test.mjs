@@ -6,6 +6,10 @@ const gate = JSON.parse(fs.readFileSync(
   "roadmap/pr20-2-bank-exit-gate-status.json",
   "utf8",
 ));
+const acceptance = JSON.parse(fs.readFileSync(
+  "roadmap/pr20-2-bank-operator-transition-acceptance.json",
+  "utf8",
+));
 const roadmap = JSON.parse(fs.readFileSync(
   "roadmap/post-r19-roadmap.json",
   "utf8",
@@ -19,9 +23,13 @@ const openAdmission = JSON.parse(fs.readFileSync(
   "utf8",
 ));
 
-test("PR20.2 Aggregate Exit-Gate ist ehrlich blockiert und fail-closed", () => {
-  assert.equal(gate.status, "BLOCKIERT_FAIL_CLOSED");
-  assert.deepEqual(gate.blocker, [
+test("PR20.2 ist breit freigegeben, obwohl historische Evidence-Ausnahmen erhalten bleiben", () => {
+  assert.equal(
+    gate.status,
+    "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
+  );
+  assert.deepEqual(gate.blocker, []);
+  assert.deepEqual(gate.evidenceExceptions, [
     "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
     "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE",
   ]);
@@ -30,37 +38,53 @@ test("PR20.2 Aggregate Exit-Gate ist ehrlich blockiert und fail-closed", () => {
   assert.equal(gate.firstMutationSet.bank_retrieve, "BESTANDEN_2_OF_2");
   assert.equal(gate.firstMutationSet.bank_store, "BESTANDEN_2_OF_2");
   assert.equal(gate.firstMutationSet.bank_swap, "BESTANDEN_2_OF_2");
-  assert.equal(gate.firstMutationSet.bank_withdraw, "NICHT_BESTANDEN_TESTLIMIT_ERREICHT");
+  assert.equal(
+    gate.firstMutationSet.bank_withdraw,
+    "NICHT_BESTANDEN_TESTLIMIT_ERREICHT",
+  );
 });
 
-test("Exit-Gate verbietet dritten Withdraw-Test, breite Bankfreigabe und PR20.3", () => {
+test("Operator-Ratifikation erteilt breite Bankfreigabe mit lokalen Capability-Gates", () => {
+  assert.equal(
+    acceptance.status,
+    "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
+  );
+  assert.equal(acceptance.transitionPolicy.pr20_2RoadmapMilestoneClosed, true);
+  assert.equal(acceptance.transitionPolicy.pr20_2MilestoneRelease, "VOLL_FREIGEGEBEN");
+  assert.equal(acceptance.transitionPolicy.broadBankActivationAllowed, true);
+  assert.equal(
+    acceptance.transitionPolicy.broadBankReleaseScope,
+    "BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES",
+  );
+  assert.equal(acceptance.transitionPolicy.withdrawActivationAllowed, false);
+  assert.equal(acceptance.transitionPolicy.openBankPackActivationAllowed, false);
+  assert.equal(acceptance.transitionPolicy.pr20_3TestWorkAllowed, true);
+  assert.equal(
+    acceptance.transitionPolicy.pr20_3ProductiveMutationAutomaticallyAllowed,
+    false,
+  );
+  assert.equal(acceptance.transitionPolicy.sameIntentRetry, false);
+  assert.equal(acceptance.acceptedExceptions.length, 2);
+  for (const x of acceptance.acceptedExceptions) {
+    assert.equal(x.acceptedForBroadBankRelease, true);
+    assert.equal(x.countsAsPassedEvidence, false);
+    assert.equal(x.capabilityRemainsLocallyGated, true);
+  }
+});
+
+test("Breite Bankfreigabe oeffnet weder dritten Withdraw-Test noch Open-Pack-Live ohne Admission", () => {
+  assert.equal(gate.policy.breiteBankAktivierungErlaubt, true);
+  assert.equal(gate.policy.pr20_3MarktStartErlaubt, true);
   assert.equal(gate.policy.withdrawFunctionalTestsConsumed, 2);
   assert.equal(gate.policy.withdrawAdditionalFunctionalTestAllowed, false);
   assert.equal(gate.policy.openPackLiveMutationFreigegeben, false);
   assert.equal(gate.policy.sameIntentRetry, false);
-  assert.equal(gate.policy.breiteBankAktivierungErlaubt, false);
-  assert.equal(gate.policy.pr20_3MarktStartErlaubt, false);
-  assert.equal(gate.policy.evaluationGameplayWrites, 0);
-  assert.equal(gate.policy.evaluationMutatingPublicFunctionCalls, 0);
-  assert.equal(roadmap.currentGate, "PR20.2_BANK_PRODUKTIVIERUNG");
-  assert.equal(roadmap.parallelPreparation.pr20_2ExitGate.status, "BLOCKIERT_FAIL_CLOSED");
-  assert.equal(roadmap.parallelPreparation.pr20_2ExitGate.pr20_3MarktStartErlaubt, false);
-});
-
-test("Open-Pack bleibt nach bestandener read-only Admission fachlich resource-blocked", () => {
-  assert.equal(gate.openBankPack.shadowSafetyCheck, "BESTANDEN");
-  assert.equal(gate.openBankPack.admissionReadOnlySafetyCheck, "BESTANDEN");
-  assert.equal(gate.openBankPack.functionalResult, "RESOURCE_BLOCKED_NO_LIVE");
-  assert.equal(gate.openBankPack.characterGold, 15993820);
-  assert.equal(gate.openBankPack.goldKosten, 75000000);
-  assert.equal(gate.openBankPack.characterShells, 0);
-  assert.equal(gate.openBankPack.shellKosten, 600);
   assert.equal(openAdmission.admissionResult.liveMutationFreigegeben, false);
   assert.equal(openAdmission.admissionResult.durableIntentErzeugt, false);
   assert.equal(openAdmission.admissionResult.authorityAusgestellt, false);
 });
 
-test("Direkte Ingame-Evidence bleibt 4/5 und Open-Pack ist separat read-only geschlossen", () => {
+test("Historische direkte Ingame-Evidence wird durch Operator-Freigabe nicht umgeschrieben", () => {
   assert.equal(direct.exitGate.depositBestanden, true);
   assert.equal(direct.exitGate.retrieveBestanden, true);
   assert.equal(direct.exitGate.storeBestanden, true);
@@ -74,16 +98,10 @@ test("Direkte Ingame-Evidence bleibt 4/5 und Open-Pack ist separat read-only ges
   );
 });
 
-
-test("Bestandener 5m NO-WRITE-Lauf bleibt gate-neutral und beendet weitere Testpflicht", () => {
+test("Bestandener 5m NO-WRITE-Lauf bleibt Teil der Freigabeevidence", () => {
   assert.equal(
     gate.noWriteIntegration.bank5mStatus,
     "BESTANDEN_REAL_INGAME_READ_ONLY",
-  );
-  assert.equal(gate.noWriteIntegration.controllerVersion, "1.0.1");
-  assert.equal(
-    gate.noWriteIntegration.evidence,
-    "v5/roadmap/pr20-2-bank-no-write-5m-evidence.json",
   );
   assert.equal(gate.noWriteIntegration.durationMs, 300017);
   assert.equal(gate.noWriteIntegration.samples, 21);
@@ -93,19 +111,32 @@ test("Bestandener 5m NO-WRITE-Lauf bleibt gate-neutral und beendet weitere Testp
   assert.equal(gate.noWriteIntegration.gameplayWrites, 0);
   assert.equal(gate.noWriteIntegration.mutatingPublicFunctionCalls, 0);
   assert.equal(gate.noWriteIntegration.functionalTestBudgetConsumed, false);
-  assert.equal(gate.noWriteIntegration.schliesstBlockerNicht, true);
-  assert.equal(gate.noWriteIntegration.integration15mRequiredNow, false);
+});
+
+test("Roadmap steht nach PR20.2 auf PR20.3 und Bank-Ausnahmen bleiben lokal gegatet", () => {
+  assert.equal(roadmap.currentGate, "PR20.3_MARKT_PRODUKTIVIERUNG");
   assert.equal(
-    gate.noWriteIntegration.blockerCloseout,
-    "v5/roadmap/pr20-2-bank-blocker-closeout.json",
+    roadmap.parallelPreparation.pr20_2ExitGate.status,
+    "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
   );
-  assert.equal(gate.nextAction, "WAIT_FOR_REOPEN_TRIGGER_NO_FURTHER_INGAME_TEST");
-  assert.equal(roadmap.parallelPreparation.pr20_2ExitGate.status, "BLOCKIERT_FAIL_CLOSED");
   assert.equal(
-    roadmap.parallelPreparation.pr20_2ExitGate.noWrite5mStatus,
-    "BESTANDEN_REAL_INGAME_READ_ONLY",
+    roadmap.parallelPreparation.pr20_2ExitGate.breiteBankAktivierungErlaubt,
+    true,
   );
-  assert.equal(roadmap.parallelPreparation.pr20_2ExitGate.integration15mRequiredNow, false);
-  assert.equal(roadmap.parallelPreparation.pr20_2ExitGate.weitereIngameTestsJetztErforderlich, false);
-  assert.equal(roadmap.parallelPreparation.pr20_2ExitGate.pr20_3MarktStartErlaubt, false);
+  assert.equal(
+    roadmap.parallelPreparation.pr20_2ExitGate.withdrawLokalGegatet,
+    true,
+  );
+  assert.equal(
+    roadmap.parallelPreparation.pr20_2ExitGate.openBankPackLokalGegatet,
+    true,
+  );
+  assert.equal(
+    roadmap.parallelPreparation.pr20_2ExitGate.pr20_3MarktStartErlaubt,
+    true,
+  );
+  assert.equal(roadmap.pr20_2.broadBankActivationAllowed, true);
+  assert.equal(roadmap.pr20_2.withdrawActivationAllowed, false);
+  assert.equal(roadmap.pr20_2.openBankPackActivationAllowed, false);
+  assert.equal(roadmap.pr20_3.status, "TESTKETTE_START_FREIGEGEBEN_NO_WRITE");
 });
