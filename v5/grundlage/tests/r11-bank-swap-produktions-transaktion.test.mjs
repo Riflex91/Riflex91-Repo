@@ -64,7 +64,7 @@ async function env({mode="SERVER",mutate=true,operator=true}={}){
  return {auth,lease,journal,calls:()=>calls,sawIntent:()=>sawIntent,deps:{leaseController,operatorRichtlinie:{pruefe(){return {erlaubt:operator,generation:2}}},
   laufzeitGate:{pruefe(){return {freigegeben:true,generation:3,nachweisId:"G"}}},journal,ressourcen,socketBudget,
   mutationsKanaele:new MutationsKanalKoordination(ressourcen,socketBudget),ausfuehrung:new AusfuehrungsKernel(),adapter,
-  bankBeobachter:{async beobachte(epoche,mount){const b=binding(epoche,swapped,swapped);return {...b,mountEpoche:mount}},
+  bankBeobachter:{async beobachte(epoche,mount){const b=binding(epoche,swapped,swapped);return {...b,mountEpoche:mount}}},
   releaseBeobachter:{async beobachte(){return {offeneTransaktionen:0,backendInProgress:false,bankActionInFlight:false,characterBankAktiv:false,erwarteterExitBeobachtet:true}}},
   vorabLeaseToken:lease,jetztMs:()=>110}};
 }
