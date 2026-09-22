@@ -25,24 +25,10 @@ public sealed class CdpAdventureLandClient
 
     public async Task<string> FindBotTargetUrlAsync(CancellationToken cancellationToken)
     {
-        var targets = await FindTargetsAsync(cancellationToken);
-        foreach (var target in targets)
-        {
-            try
-            {
-                using var socket = new ClientWebSocket();
-                await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
-                var contextId = await FindOperationsContextAsync(socket, cancellationToken);
-                if (contextId.HasValue) return target.Url;
-            }
-            catch (WebSocketException)
-            {
-            }
-            catch (InvalidOperationException)
-            {
-            }
-        }
-
+        var targets = await RankTargetsByBotPreferenceAsync(
+            await FindTargetsAsync(cancellationToken),
+            cancellationToken);
+        if (targets.Count > 0) return targets[0].Target.Url;
         throw new InvalidOperationException("AIO_V3_OPERATIONS_UNAVAILABLE");
     }
 
@@ -55,22 +41,25 @@ public sealed class CdpAdventureLandClient
         bool includeDeepDiagnostics,
         CancellationToken cancellationToken)
     {
-        var targets = await FindTargetsAsync(cancellationToken);
-        foreach (var target in targets)
+        var targets = await RankTargetsByBotPreferenceAsync(
+            await FindTargetsAsync(cancellationToken),
+            cancellationToken);
+        foreach (var ranked in targets)
         {
+            var target = ranked.Target;
             using var socket = new ClientWebSocket();
             try
             {
                 await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
-                var contextId = await FindOperationsContextAsync(socket, cancellationToken);
-                if (!contextId.HasValue) continue;
+                var context = await FindOperationsContextAsync(socket, cancellationToken);
+                if (context is null) continue;
 
                 var snapshot = await EvaluateAsync(
                     socket,
                     includeDeepDiagnostics ? DeepSnapshotExpression : SnapshotExpression,
-                    contextId.Value,
+                    context.ContextId,
                     cancellationToken);
-                var eventBatch = await EvaluateAsync(socket, BuildEventsExpression(afterSeq, eventLimit), contextId.Value, cancellationToken);
+                var eventBatch = await EvaluateAsync(socket, BuildEventsExpression(afterSeq, eventLimit), context.ContextId, cancellationToken);
 
                 JsonElement events;
                 if (eventBatch.ValueKind == JsonValueKind.Object
@@ -124,17 +113,20 @@ public sealed class CdpAdventureLandClient
     {
         if (maxSeq <= 0) return TelemetryAckResult.Empty;
 
-        var targets = await FindTargetsAsync(cancellationToken);
-        foreach (var target in targets)
+        var targets = await RankTargetsByBotPreferenceAsync(
+            await FindTargetsAsync(cancellationToken),
+            cancellationToken);
+        foreach (var ranked in targets)
         {
+            var target = ranked.Target;
             using var socket = new ClientWebSocket();
             try
             {
                 await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
-                var contextId = await FindOperationsContextAsync(socket, cancellationToken);
-                if (!contextId.HasValue) continue;
+                var context = await FindOperationsContextAsync(socket, cancellationToken);
+                if (context is null) continue;
 
-                var value = await EvaluateAsync(socket, BuildAcknowledgeExpression(maxSeq), contextId.Value, cancellationToken);
+                var value = await EvaluateAsync(socket, BuildAcknowledgeExpression(maxSeq), context.ContextId, cancellationToken);
                 if (value.ValueKind != JsonValueKind.Object)
                     return TelemetryAckResult.Empty;
 
@@ -182,15 +174,84 @@ public sealed class CdpAdventureLandClient
         return matches;
     }
 
-    private async Task<int?> FindOperationsContextAsync(ClientWebSocket socket, CancellationToken cancellationToken)
+    private sealed record OperationsContextCandidate(int ContextId, int Priority);
+    private sealed record RankedTarget(CdpTarget Target, int Priority);
+
+    public static int OperationsContextPriority(
+        bool valid,
+        bool hasV5AutonomousTest,
+        string? v5Status,
+        string? v5Phase,
+        string? ctype)
+    {
+        if (!valid) return 0;
+        if (!hasV5AutonomousTest) return 10;
+
+        var status = (v5Status ?? string.Empty).Trim();
+        var phase = (v5Phase ?? string.Empty).Trim();
+        var characterClass = (ctype ?? string.Empty).Trim();
+
+        if (string.Equals(status, "WORKER", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(phase, "HEARTBEAT", StringComparison.OrdinalIgnoreCase))
+            return 50;
+
+        if (string.Equals(characterClass, "merchant", StringComparison.OrdinalIgnoreCase))
+            return 200;
+
+        return 100;
+    }
+
+    private async Task<IReadOnlyList<RankedTarget>> RankTargetsByBotPreferenceAsync(
+        IReadOnlyList<CdpTarget> targets,
+        CancellationToken cancellationToken)
+    {
+        var ranked = new List<RankedTarget>();
+        foreach (var target in targets)
+        {
+            try
+            {
+                using var socket = new ClientWebSocket();
+                await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
+                var context = await FindOperationsContextAsync(socket, cancellationToken);
+                if (context is not null)
+                    ranked.Add(new RankedTarget(target, context.Priority));
+            }
+            catch (WebSocketException)
+            {
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        }
+
+        return ranked
+            .OrderByDescending(x => x.Priority)
+            .ToArray();
+    }
+
+    private async Task<OperationsContextCandidate?> FindOperationsContextAsync(
+        ClientWebSocket socket,
+        CancellationToken cancellationToken)
     {
         var contexts = await CollectAllowedExecutionContextsAsync(socket, cancellationToken);
+        OperationsContextCandidate? best = null;
         foreach (var contextId in contexts)
         {
             try
             {
                 var probe = await EvaluateAsync(socket, OperationsProbeExpression, contextId, cancellationToken);
-                if (probe.ValueKind == JsonValueKind.True) return contextId;
+                if (probe.ValueKind != JsonValueKind.Object) continue;
+
+                var valid = ReadBoolean(probe, "valid", false);
+                var hasV5 = ReadBoolean(probe, "hasV5AutonomousTest", false);
+                var status = ReadString(probe, "v5Status");
+                var phase = ReadString(probe, "v5Phase");
+                var ctype = ReadString(probe, "ctype");
+                var priority = OperationsContextPriority(valid, hasV5, status, phase, ctype);
+                if (priority <= 0) continue;
+
+                if (best is null || priority > best.Priority)
+                    best = new OperationsContextCandidate(contextId, priority);
             }
             catch (InvalidOperationException)
             {
@@ -198,7 +259,7 @@ public sealed class CdpAdventureLandClient
             }
         }
 
-        return null;
+        return best;
     }
 
     private async Task<IReadOnlyList<int>> CollectAllowedExecutionContextsAsync(ClientWebSocket socket, CancellationToken cancellationToken)
@@ -425,15 +486,56 @@ public sealed class CdpAdventureLandClient
         return fallback;
     }
 
+    private static string? ReadString(JsonElement value, string property)
+    {
+        if (value.ValueKind == JsonValueKind.Object
+            && value.TryGetProperty(property, out var node)
+            && node.ValueKind == JsonValueKind.String)
+            return node.GetString();
+        return null;
+    }
+
     private const string OperationsProbeExpression = """
     (() => {
-      const operations = globalThis.AIO_V3 && globalThis.AIO_V3.operations;
-      return !!operations
+      const aio = globalThis.AIO_V3;
+      const operations = aio && aio.operations;
+      const valid = !!operations
         && typeof operations === 'object'
         && typeof operations.status === 'function'
         && typeof operations.hostHeartbeat === 'function'
         && typeof operations.reconciliationStatus === 'function'
         && typeof operations.peekTelemetry === 'function';
+      if (!valid) {
+        return {
+          valid: false,
+          hasV5AutonomousTest: false,
+          v5Status: null,
+          v5Phase: null,
+          ctype: null
+        };
+      }
+
+      let status = null;
+      try { status = operations.status(); } catch {}
+      const v5 = status && status.v5AutonomousTest && typeof status.v5AutonomousTest === 'object'
+        ? status.v5AutonomousTest
+        : null;
+
+      let ctype = '';
+      try {
+        const character = globalThis.character
+          || (globalThis.parent && globalThis.parent.character)
+          || null;
+        ctype = String(character && character.ctype || '').toLowerCase();
+      } catch {}
+
+      return {
+        valid: true,
+        hasV5AutonomousTest: !!v5,
+        v5Status: v5 ? String(v5.status || '') : null,
+        v5Phase: v5 ? String(v5.phase || '') : null,
+        ctype
+      };
     })()
     """;
 

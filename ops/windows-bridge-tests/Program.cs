@@ -324,6 +324,11 @@ Assert(!TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow
 Assert(TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(60), null, null), "V5_STATUS_DUE_AT_60S");
 Assert(TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(5), "test|1|BESTANDEN", null), "V5_TERMINAL_IMMEDIATE");
 Assert(!TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(5), "test|1|BESTANDEN", "test|1|BESTANDEN"), "V5_TERMINAL_DEDUPED");
+Assert(CdpAdventureLandClient.OperationsContextPriority(false, false, null, null, null) == 0, "V5_CONTEXT_INVALID_REJECTED");
+Assert(CdpAdventureLandClient.OperationsContextPriority(true, false, null, null, "priest") == 10, "V5_CONTEXT_LEGACY_FALLBACK");
+Assert(CdpAdventureLandClient.OperationsContextPriority(true, true, "WORKER", "HEARTBEAT", "priest") == 50, "V5_CONTEXT_WORKER_PRIORITY");
+Assert(CdpAdventureLandClient.OperationsContextPriority(true, true, "WAITING_FOR_4_CHARACTERS", "ROSTER", "priest") == 100, "V5_CONTEXT_NONWORKER_PRIORITY");
+Assert(CdpAdventureLandClient.OperationsContextPriority(true, true, "RUNNING", "FIFTEEN_MINUTE_NO_WRITE", "merchant") == 200, "V5_CONTEXT_MERCHANT_COORDINATOR_PRIORITY");
 ExpectInvalid(defaults with { SupabaseStatusIntervalSeconds = 59 }, "SUPABASE_STATUS_INTERVAL_MUST_BE_60_SECONDS");
 
 Assert(TelemetryBridgeService.ComputeBackoffSeconds(5, 300, 1) == 5, "BACKOFF_1");
