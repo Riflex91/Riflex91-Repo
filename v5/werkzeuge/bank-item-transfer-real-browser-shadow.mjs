@@ -48,7 +48,10 @@ async function report(root,mode,b){const dir=path.join(root,"runtime","canary","
 export async function fuehreBankItemTransferRealBrowserShadow({modus,cdpText,sourceSha,bestaetigungText,mountTimeoutMs=90_000,exitTimeoutMs=90_000,hostOptionen={}}={}){
  const mode=m(modus),s=sha(sourceSha),h=head();if(s!==h)throw new Error("BANK_ITEM_TRANSFER_SHADOW_SOURCE_SHA_DRIFT:"+s+":"+h);if(bestaetigungText!==confirm(mode))throw new Error("BANK_"+mode+"_SHADOW_OPERATOR_BESTAETIGUNG_FEHLT");
  const ds=new NodeProduktionsDateisystem(hostOptionen.dateisystemOptionen??{});const bridge=await verlangeBankItemTransferAbendVorstufe(ds,mode,BANK_ITEM_TRANSFER_ABEND_STUFEN.CODE_BRIDGE,s);
- const live=await findeAdventureLandKontext(validiereLoopbackCdp(cdpText||process.env.V5_CDP_URL||"http://127.0.0.1:9222/"));let host=null;
+ const live=await findeAdventureLandKontext(
+  validiereLoopbackCdp(cdpText||process.env.V5_CDP_URL||"http://127.0.0.1:9222/"),
+  {requiredGlobalFunction:"call_code_function_f"},
+ );let host=null;
  try{
   const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);
   const ausgang=validiereBankItemTransferAusgangsBeobachtung(await beobachteBankItemTransferRohReadOnly(live.session,live.contextId));

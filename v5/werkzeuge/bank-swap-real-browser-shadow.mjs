@@ -148,7 +148,10 @@ export async function fuehreBankSwapRealBrowserShadow({
   const cdp = validiereLoopbackCdp(
     cdpText || process.env.V5_CDP_URL || "http://127.0.0.1:9222/",
   );
-  const live = await findeAdventureLandKontext(cdp);
+  const live = await findeAdventureLandKontext(
+    cdp,
+    { requiredGlobalFunction: "call_code_function_f" },
+  );
   let host = null;
   try {
     const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);
