@@ -107,6 +107,13 @@ function S:Create()
         if MG.ErrorLogWindow then MG.ErrorLogWindow:Toggle() end
     end)
     quickLog:SetPoint("LEFT",quickBuild,"RIGHT",6,0)
+    local themeButton=button(frame,"THEME",84,24,function()
+        if MG.ThemeManager then
+            MG.ThemeManager:Next()
+            S:Refresh()
+        end
+    end)
+    themeButton:SetPoint("LEFT",quickLog,"RIGHT",6,0)
 
     local phaseLabel=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
     phaseLabel:SetPoint("TOPLEFT",12,-105);phaseLabel:SetText("RestedXP Phase");shadow(phaseLabel)
@@ -176,7 +183,8 @@ function S:Create()
     end)
     reset:SetPoint("BOTTOM",0,14)
 
-    self.frame=frame;self.rows=rows;self.phaseButton=phase;self.rateButton=rate;self.scaleButton=scale
+    self.frame=frame;self.rows=rows;self.phaseButton=phase;self.rateButton=rate
+    self.scaleButton=scale;self.themeButton=themeButton
     frame:Hide();return frame
 end
 
@@ -186,6 +194,7 @@ function S:Refresh()
     self.phaseButton.label:SetText("P"..tostring(db.settings.rxpPhase or 6))
     self.rateButton.label:SetText(tostring(db.settings.rxpRate or 1).."x")
     self.scaleButton.label:SetText(tostring(db.settings.navigatorScale or 1).."x")
+    self.themeButton.label:SetText(tostring(db.settings.theme or "Forever Classic"))
 
     for _,row in ipairs(self.rows or {}) do
         local enabled=db.settings[row.option.key] and true or false
