@@ -54,6 +54,9 @@ import {
   NodeBankWithdrawEinmalAuthorityProtokoll,
 } from "../grundlage/adapter/persistenz/node-bank-withdraw-einmal-authority-protokoll.mjs";
 import {
+  NodeBankSwapEinmalAuthorityProtokoll,
+} from "../grundlage/adapter/persistenz/node-bank-swap-einmal-authority-protokoll.mjs";
+import {
   NodeBankDepositTransaktionsJournal,
 } from "../grundlage/adapter/persistenz/node-bank-deposit-transaktionsjournal.mjs";
 import {
@@ -165,6 +168,11 @@ class NodeV5ProduktionsHost {
   async erteileBankWithdrawEinmalAuthority(anfrage, jetztMs) {
     pruefeZeit(jetztMs);
     return this.#host.erteileBankWithdrawEinmalAuthority(anfrage, jetztMs);
+  }
+
+  async erteileBankSwapEinmalAuthority(anfrage, jetztMs) {
+    pruefeZeit(jetztMs);
+    return this.#host.erteileBankSwapEinmalAuthority(anfrage, jetztMs);
   }
 
   async pruefeBankDepositStartBereit() {
@@ -1477,6 +1485,8 @@ export async function erstelleNodeV5ProduktionsHost({
     new NodeBankDepositEinmalAuthorityProtokoll(dateisystem);
   const bankWithdrawEinmalAuthorityProtokoll =
     new NodeBankWithdrawEinmalAuthorityProtokoll(dateisystem);
+  const bankSwapEinmalAuthorityProtokoll =
+    new NodeBankSwapEinmalAuthorityProtokoll(dateisystem);
   const runtime = new V5ProduktionsRuntime(
     erstelleKanonischeProduktionsKomposition(),
     bedienerRichtlinie,
@@ -1484,6 +1494,7 @@ export async function erstelleNodeV5ProduktionsHost({
     equipEinmalAuthorityProtokoll,
     bankDepositEinmalAuthorityProtokoll,
     bankWithdrawEinmalAuthorityProtokoll,
+    bankSwapEinmalAuthorityProtokoll,
   );
   const gesamtfreigabeGate = new ProduktivesV5GesamtfreigabeGate(
     effektiveBereitschaft,
