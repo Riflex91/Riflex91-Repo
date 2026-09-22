@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_PR20_2_BANK_SWAP_NAECHSTER_NO_WRITE_KANDIDAT",
+  "stand": "2026-09-22",
+  "status": "READ_ONLY_PREFLIGHT_IMPLEMENTIERT_LIVE_EVIDENCE_AUSSTEHEND",
+  "sourceMain": "caa3e6e33963cf3881e61d07a50229bcc43be31a",
+  "officialSourceSnapshotCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+  "providerSpaeter": "merchant-bank-core@1",
+  "capabilitySpaeter": "merchant.bank.konsolidieren",
+  "actionContractId": "AL-ACTION-BANK-SWAP",
+  "recoveryContractId": "AL-RECOVERY-BANK-SWAP",
+  "verifierId": "AL-VERIFIER-BANK-SWAP",
+  "publicFunction": "bank_swap",
+  "auswahlbegruendung": [
+    "wirkt nur innerhalb eines bereits gemounteten Bank-Packs",
+    "kein Character-Inventory-Capacity- oder Zielslot-Transfer notwendig",
+    "erster kontrollierter Kandidat nutzt genau einen belegten normalen Slot und einen leeren Slot im selben Pack",
+    "dadurch ist Stack-Merge im kontrollierten Kandidaten ausgeschlossen",
+    "same-intent retry nach moeglichem Send bleibt verboten"
+  ],
+  "kontrollierterKandidat": {
+    "gleichePack": true,
+    "quellsSlot": "BELEGT_NICHT_PLACEHOLDER",
+    "zielSlot": "LEER",
+    "slotBereich": [
+      0,
+      41
+    ],
+    "stackMergeErlaubt": false,
+    "characterInventoryMussUnveraendertBleiben": true
+  },
+  "settlement": {
+    "quellslotNachherLeer": true,
+    "zielslotNachherGleicherItemFingerprint": true,
+    "inventoryFingerprintUnveraendert": true,
+    "packFingerprintMussSichAendern": true,
+    "sameIntentRetry": false
+  },
+  "authorityGrenze": {
+    "produktiveCapabilityInDiesemSchritt": false,
+    "authorityInDiesemSchritt": false,
+    "adapterInDiesemSchritt": false,
+    "liveRunnerInDiesemSchritt": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "gameplayWritesInDiesemSchritt": 0
+  },
+  "preflight": {
+    "implementiert": true,
+    "sourceShaPinning": true,
+    "browserReadOnly": true,
+    "gameplayWrites": 0,
+    "authorityAusstellung": false,
+    "leaseAusstellung": false,
+    "autoCandidateSelection": true
+  },
+  "naechsterSchritt": "REAL_BROWSER_READ_ONLY_PREFLIGHT_BEREIT_NACHWEISEN"
+}
