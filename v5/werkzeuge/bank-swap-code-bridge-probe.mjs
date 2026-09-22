@@ -18,8 +18,7 @@ function head(){return sha(execFileSync("git",["rev-parse","HEAD"],{cwd:ROOT,enc
 function arg(n,f){const i=process.argv.indexOf(n);if(i<0)return f;const v=process.argv[i+1];if(!v||v.startsWith("--"))throw new Error("BANK_SWAP_BRIDGE_ARGUMENT_FEHLT:"+n);return v}
 const EXPR=[
 "(()=>new Promise((resolve,reject)=>{",
-" const r=globalThis; let before=false; try{
-  const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);before=r.code_active===true}catch{};",
+" const r=globalThis; let before=false; try{before=r.code_active===true}catch{};",
 " if(typeof r.call_code_function_f!=='function')return reject(new Error('BANK_SWAP_BRIDGE_FUNCTION_FEHLT'));",
 " let bootstrap=false; if(!before){bootstrap=true; try{r.call_code_function_f('eval','void 0')}catch(e){return reject(e)}}",
 " const start=Date.now(); const tick=()=>{try{const frame=r.maincode;const fn=frame&&frame.contentWindow&&frame.contentWindow.bank_swap;",
@@ -35,6 +34,7 @@ export async function fuehreBankSwapCodeBridgeProbe({cdpText,sourceSha,dateisyst
  const cdp=validiereLoopbackCdp(cdpText||process.env.V5_CDP_URL||"http://127.0.0.1:9222/");
  const live=await findeAdventureLandKontext(cdp,{requiredGlobalFunction:"call_code_function_f"});
  try{
+   const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);
    const pre=await beobachteBankSwapPreflightReadOnly(live.session,live.contextId);
    if(pre.fingerprint!==vor.secondFingerprint)throw new Error("BANK_SWAP_BRIDGE_PRESTATE_DRIFT");
    const probe=await live.session.evaluate(EXPR,live.contextId);

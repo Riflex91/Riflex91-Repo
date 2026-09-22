@@ -19,8 +19,7 @@ function arg(n,f){const i=process.argv.indexOf(n);if(i<0)return f;const v=proces
 function cand(o,mode){return mode==="RETRIEVE"?o.retrieveKandidat:o.storeKandidat}
 function expr(mode){const fn=mode==="RETRIEVE"?"bank_retrieve":"bank_store";return [
 "(()=>new Promise((resolve,reject)=>{",
-" const r=globalThis; let before=false; try{
-  const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);before=r.code_active===true}catch{};",
+" const r=globalThis; let before=false; try{before=r.code_active===true}catch{};",
 " if(typeof r.call_code_function_f!=='function')return reject(new Error('BANK_ITEM_TRANSFER_BRIDGE_FUNCTION_FEHLT'));",
 " let bootstrap=false; if(!before){bootstrap=true; try{r.call_code_function_f('eval','void 0')}catch(e){return reject(e)}}",
 " const start=Date.now(); const tick=()=>{try{const frame=r.maincode;const f=frame&&frame.contentWindow&&frame.contentWindow['"+fn+"'];",
@@ -34,6 +33,7 @@ export async function fuehreBankItemTransferCodeBridgeProbe({modus,cdpText,sourc
  const vor=await verlangeBankItemTransferAbendVorstufe(ds,mode,BANK_ITEM_TRANSFER_ABEND_STUFEN.STABILITAET,s);
  const live=await findeAdventureLandKontext(validiereLoopbackCdp(cdpText||process.env.V5_CDP_URL||"http://127.0.0.1:9222/"),{requiredGlobalFunction:"call_code_function_f"});
  try{
+  const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);
   const pre=await beobachteBankItemTransferPreflightReadOnly(live.session,live.contextId);const x=cand(pre,mode);
   if(pre.fingerprint!==vor.secondFingerprint||!x||x.pack!==vor.candidate.pack||x.bankSlot!==vor.candidate.bankSlot||x.inventorySlot!==vor.candidate.inventorySlot||x.item.fingerprint!==vor.candidate.item.fingerprint)throw new Error("BANK_"+mode+"_BRIDGE_PRESTATE_DRIFT");
   const probe=await live.session.evaluate(expr(mode),live.contextId);
