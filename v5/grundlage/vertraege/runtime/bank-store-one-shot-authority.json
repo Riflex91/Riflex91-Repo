@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_BANK_STORE_ONE_SHOT_AUTHORITY",
+  "stand": "2026-09-22",
+  "capability": {
+    "id": "merchant.bank.item_einlagern",
+    "providerModulId": "merchant-bank-core",
+    "providerVersion": "1",
+    "registryAktivierung": false,
+    "maximaleVerwendungenProAuthority": 1
+  },
+  "bindung": {
+    "actionContractId": "AL-ACTION-BANK-STORE",
+    "recoveryContractId": "AL-RECOVERY-BANK-STORE",
+    "verifierId": "AL-VERIFIER-BANK-STORE",
+    "bestaetigungText": "V5 BANK STORE EINMAL AUSFUEHREN"
+  },
+  "authority": {
+    "maximaleLebensdauerMs": 2000,
+    "durchAdmissionPruefungZuVerbrauchen": true,
+    "breiteRuntimeFreigabe": false,
+    "rawWriteAutoritaet": false
+  },
+  "durability": {
+    "vorAuthorityAusstellung": true,
+    "pfad": "runtime/authority/mutieren/bank-store/",
+    "restartAktiviertAuthorityNichtWieder": true
+  },
+  "currentFence": {
+    "alleBankMutationenGegenseitigAusschliessend": true,
+    "aktiveAccountBankLeaseBlockiertVorNeuerAuthority": true
+  },
+  "wirkung": {
+    "gameplayWriteDurchAuthorityAusstellung": 0,
+    "adapterSendDurchAuthorityAusstellung": 0
+  },
+  "hostIntegrationInDiesemSchritt": false,
+  "writeAdapterInDiesemSchritt": false,
+  "liveRunnerInDiesemSchritt": false,
+  "gameplayWritesInDiesemSchritt": 0
+}

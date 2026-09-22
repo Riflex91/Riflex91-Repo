@@ -8,6 +8,10 @@ export const MERCHANT_BANK_WITHDRAW_FAEHIGKEIT_ID =
   "merchant.bank.gold_auslagern";
 export const MERCHANT_BANK_SWAP_FAEHIGKEIT_ID =
   "merchant.bank.intern_tauschen";
+export const MERCHANT_BANK_RETRIEVE_FAEHIGKEIT_ID =
+  "merchant.bank.item_auslagern";
+export const MERCHANT_BANK_STORE_FAEHIGKEIT_ID =
+  "merchant.bank.item_einlagern";
 
 export function merchantBankCoreModulDefinition(): ModulDefinition {
   return Object.freeze({
@@ -18,6 +22,8 @@ export function merchantBankCoreModulDefinition(): ModulDefinition {
       MERCHANT_BANK_DEPOSIT_FAEHIGKEIT_ID,
       MERCHANT_BANK_WITHDRAW_FAEHIGKEIT_ID,
       MERCHANT_BANK_SWAP_FAEHIGKEIT_ID,
+      MERCHANT_BANK_RETRIEVE_FAEHIGKEIT_ID,
+      MERCHANT_BANK_STORE_FAEHIGKEIT_ID,
     ]),
     benoetigteFaehigkeiten: Object.freeze([]),
     bereitgestelltePorts: Object.freeze([]),

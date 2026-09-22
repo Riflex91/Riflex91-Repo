@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_BANK_STORE_MUTATIONSFAEHIGKEIT",
+  "stand": "2026-09-22",
+  "modulId": "merchant-bank-core",
+  "modulVersion": "1",
+  "faehigkeit": {
+    "faehigkeitId": "merchant.bank.item_einlagern",
+    "modus": "MUTIEREN",
+    "status": "VERFUEGBAR",
+    "standardAktiv": false,
+    "singleOwner": true
+  },
+  "aktionsBindung": {
+    "actionContractId": "AL-ACTION-BANK-STORE",
+    "recoveryContractId": "AL-RECOVERY-BANK-STORE",
+    "verifierId": "AL-VERIFIER-BANK-STORE"
+  },
+  "aktivierung": {
+    "durchDiesenVertragErlaubt": false,
+    "automatisch": false,
+    "produktiverAktivierungspfadVorhanden": false
+  },
+  "authority": {
+    "gameplayAutoritaetDurchRegistrierung": false,
+    "rawWriteAutoritaetDurchRegistrierung": false,
+    "actionAuthorityDurchRegistrierung": false
+  },
+  "ersterKandidat": {
+    "inventorySlot": "EXPLIZIT_ITEM",
+    "bankSlot": "EXPLIZIT_LEER_0_41",
+    "automatischeZielwahl": false,
+    "blockiertBei": [
+      "placeholder",
+      "b",
+      "m",
+      "v"
+    ]
+  }
+}
