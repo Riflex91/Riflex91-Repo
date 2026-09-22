@@ -921,7 +921,7 @@
     "roundtripsRestored": true
   },
   "pr20_5": {
-    "status": "SCHEDULER_INTEGRIERT_15M_AUTO_ON_LOAD_BEREIT",
+    "status": "FREIGEGEBEN_FUER_PRODUKTIVIERUNG",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "foundation": "v5/grundlage/quelle/merchant/dienst-stabilitaet.ts",
@@ -944,6 +944,7 @@
       "statusIntervalSeconds": 60,
       "terminalEventImmediate": true,
       "completionEmailEachTerminalTest": true
-    }
+    },
+    "integrationStatus": "SCHEDULER_INTEGRIERT_15M_AUTO_ON_LOAD_BEREIT"
   }
 }
