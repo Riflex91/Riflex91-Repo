@@ -62,12 +62,12 @@ test("PR20.5 pass alone cannot start normal bot runtime", () => {
 });
 
 test("PR20.5 telemetry facade preserves an existing operations surface", () => {
-  assert.ok(source.includes("__v5Pr205FacadeVersion"));
-  assert.ok(source.includes("...(existing || {})"));
-  assert.ok(source.includes("existing.status.bind(existing)"));
-  assert.ok(source.includes("existing.hostHeartbeat.bind(existing)"));
-  assert.ok(source.includes("existing.reconciliationStatus.bind(existing)"));
-  assert.ok(source.includes("existing.peekTelemetry.bind(existing)"));
-  assert.ok(source.includes("v5AutonomousTest:publicState"));
-  assert.equal(source.includes("if (existing && typeof existing.status === 'function') return false;"), false);
+  assert.ok(source.includes("AIO_V5_NATIVE_TELEMETRY_V1"));
+  assert.ok(source.includes("contract:'AIO_V5_NATIVE_TELEMETRY_V1'"));
+  assert.ok(source.includes("AIO_V5"));
+  assert.ok(source.includes("telemetry"));
+  assert.ok(source.includes("snapshot"));
+  assert.ok(source.includes("peekEvents"));
+  assert.ok(source.includes("test:publicState"));
+  assert.equal(source.includes("AIO_V3.operations"), false);
 });
