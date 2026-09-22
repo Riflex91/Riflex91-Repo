@@ -4,6 +4,8 @@ MG.QuestFacts = MG.QuestFacts or {}
 local Q = MG.QuestFacts
 
 local function flaggedCompleted(questID)
+    questID = tonumber(questID)
+    if not questID then return false end
     if C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
         local ok, value = pcall(C_QuestLog.IsQuestFlaggedCompleted, questID)
         if ok then return value and true or false end
@@ -13,6 +15,14 @@ local function flaggedCompleted(questID)
         if ok then return value and true or false end
     end
     return false
+end
+
+local function questTitle(questID)
+    if C_QuestLog and C_QuestLog.GetTitleForQuestID then
+        local ok, value = pcall(C_QuestLog.GetTitleForQuestID, questID)
+        if ok and value and value ~= "" then return value end
+    end
+    return nil
 end
 
 local function modernObjectives(questID)
@@ -54,7 +64,7 @@ local function legacyObjectives(questLogIndex)
     return out
 end
 
-function Q:Snapshot()
+function Q:Snapshot(relevantQuestIDs)
     local out = {}
 
     if C_QuestLog and C_QuestLog.GetNumQuestLogEntries and C_QuestLog.GetInfo then
@@ -70,14 +80,14 @@ function Q:Snapshot()
                         ready = rOk and rValue and true or false
                     end
                     out[questID] = {
-                        questID = questID,
-                        active = true,
-                        completed = flaggedCompleted(questID),
-                        readyForTurnIn = ready,
-                        title = info.title,
-                        level = info.level,
-                        questLogIndex = index,
-                        objectives = modernObjectives(questID) or legacyObjectives(index),
+                        questID=questID,
+                        active=true,
+                        completed=flaggedCompleted(questID),
+                        readyForTurnIn=ready,
+                        title=info.title,
+                        level=info.level,
+                        questLogIndex=index,
+                        objectives=modernObjectives(questID) or legacyObjectives(index),
                     }
                 end
             end
@@ -96,17 +106,33 @@ function Q:Snapshot()
                         ready = rOk and rValue and true or false
                     end
                     out[questID] = {
-                        questID = questID,
-                        active = true,
-                        completed = flaggedCompleted(questID),
-                        readyForTurnIn = ready,
-                        title = title,
-                        level = level,
-                        questLogIndex = index,
-                        objectives = legacyObjectives(index),
+                        questID=questID,
+                        active=true,
+                        completed=flaggedCompleted(questID),
+                        readyForTurnIn=ready,
+                        title=title,
+                        level=level,
+                        questLogIndex=index,
+                        objectives=legacyObjectives(index),
                     }
                 end
             end
+        end
+    end
+
+    for questID in pairs(relevantQuestIDs or {}) do
+        questID = tonumber(questID)
+        if questID and not out[questID] then
+            local completed = flaggedCompleted(questID)
+            out[questID] = {
+                questID=questID,
+                active=false,
+                completed=completed,
+                readyForTurnIn=false,
+                title=questTitle(questID),
+                objectives={},
+                synthetic=true,
+            }
         end
     end
 
