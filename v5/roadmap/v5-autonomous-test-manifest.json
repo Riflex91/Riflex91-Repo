@@ -14,5 +14,13 @@
   "maxPackageBytes": 131072,
   "expectedGlobal": "V5PR206MluckTest",
   "normalRuntimeAllowed": false,
-  "deploymentTransport": "V3_INGAME_BOOTSTRAP"
+  "deploymentTransport": "V3_INGAME_BOOTSTRAP",
+  "requiresPrevious": {
+    "testId": "pr20-5-merchant-stability-autonomous-4char",
+    "stateKey": "AIO_V5_PR20_5_AUTONOMOUS_TEST_V1",
+    "terminal": true,
+    "statuses": [
+      "BESTANDEN"
+    ]
+  }
 }
