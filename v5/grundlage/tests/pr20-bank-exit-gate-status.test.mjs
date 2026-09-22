@@ -75,36 +75,37 @@ test("Direkte Ingame-Evidence bleibt 4/5 und Open-Pack ist separat read-only ges
 });
 
 
-test("Vorbereiteter 5m NO-WRITE-Lauf oeffnet keinen PR20.2-Blocker", () => {
+test("Bestandener 5m NO-WRITE-Lauf bleibt gate-neutral und beendet weitere Testpflicht", () => {
   assert.equal(
     gate.noWriteIntegration.bank5mStatus,
-    "SERVER_BINDING_FIX_CI_AUSSTEHEND_DANN_INGAME_READ_ONLY_ERNEUT",
+    "BESTANDEN_REAL_INGAME_READ_ONLY",
   );
   assert.equal(gate.noWriteIntegration.controllerVersion, "1.0.1");
   assert.equal(
-    gate.noWriteIntegration.previousBlockedPreflightEvidence,
-    "v5/roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json",
+    gate.noWriteIntegration.evidence,
+    "v5/roadmap/pr20-2-bank-no-write-5m-evidence.json",
   );
-  assert.equal(
-    gate.noWriteIntegration.testPlan,
-    "v5/roadmap/pr20-2-bank-no-write-5m-test-plan.json",
-  );
-  assert.equal(
-    gate.noWriteIntegration.package,
-    "v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js",
-  );
+  assert.equal(gate.noWriteIntegration.durationMs, 300017);
+  assert.equal(gate.noWriteIntegration.samples, 21);
+  assert.equal(gate.noWriteIntegration.sampleGaps, 0);
+  assert.equal(gate.noWriteIntegration.driftSamples, 0);
+  assert.equal(gate.noWriteIntegration.performanceTrickErrors, 0);
   assert.equal(gate.noWriteIntegration.gameplayWrites, 0);
   assert.equal(gate.noWriteIntegration.mutatingPublicFunctionCalls, 0);
   assert.equal(gate.noWriteIntegration.functionalTestBudgetConsumed, false);
   assert.equal(gate.noWriteIntegration.schliesstBlockerNicht, true);
+  assert.equal(gate.noWriteIntegration.integration15mRequiredNow, false);
   assert.equal(
-    gate.nextAction,
-    "PR20_2_BANK_NO_WRITE_5M_PREFLIGHT_NACH_SERVER_BINDING_FIX_ERNEUT_AUSFUEHREN",
+    gate.noWriteIntegration.blockerCloseout,
+    "v5/roadmap/pr20-2-bank-blocker-closeout.json",
   );
+  assert.equal(gate.nextAction, "WAIT_FOR_REOPEN_TRIGGER_NO_FURTHER_INGAME_TEST");
   assert.equal(roadmap.parallelPreparation.pr20_2ExitGate.status, "BLOCKIERT_FAIL_CLOSED");
   assert.equal(
     roadmap.parallelPreparation.pr20_2ExitGate.noWrite5mStatus,
-    "SERVER_BINDING_FIX_CI_AUSSTEHEND_DANN_INGAME_READ_ONLY_ERNEUT",
+    "BESTANDEN_REAL_INGAME_READ_ONLY",
   );
+  assert.equal(roadmap.parallelPreparation.pr20_2ExitGate.integration15mRequiredNow, false);
+  assert.equal(roadmap.parallelPreparation.pr20_2ExitGate.weitereIngameTestsJetztErforderlich, false);
   assert.equal(roadmap.parallelPreparation.pr20_2ExitGate.pr20_3MarktStartErlaubt, false);
 });
