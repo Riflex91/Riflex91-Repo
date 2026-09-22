@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_BANK_RETRIEVE_READ_ONLY_PREFLIGHT",
+  "stand": "2026-09-22",
+  "status": "IMPLEMENTIERT_EVIDENCE_AUSSTEHEND",
+  "sourceMain": "92c95e1a4dbc262e25a1b22b84e5302321dc2322",
+  "modus": "RETRIEVE",
+  "browserReadOnly": true,
+  "sourceShaLock": true,
+  "callCodeFunctionFRequired": true,
+  "bootstrapAusgeloest": false,
+  "authorityAusgestellt": false,
+  "leaseErworben": false,
+  "journalIntentGeschrieben": false,
+  "gameplayWrites": 0,
+  "mutatingPublicFunctionCalls": 0,
+  "adapterAufrufe": 0,
+  "rawSocketEmit": false,
+  "sameIntentRetry": false,
+  "kandidat": {
+    "bankSlot": "EXPLIZIT_BELEGT",
+    "inventorySlot": "EXPLIZIT_LEER",
+    "automaticTarget": false
+  },
+  "naechsterSchritt": "RETRIEVE_ADMISSION_SHADOW_NO_WRITE_NACH_EVIDENCE"
+}\n

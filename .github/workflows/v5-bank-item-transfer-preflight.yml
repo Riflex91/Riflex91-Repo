@@ -1,0 +1,32 @@
+name: v5-bank-item-transfer-preflight
+on:
+  pull_request:
+    paths:
+      - 'v5/werkzeuge/bank-item-transfer-**'
+      - 'v5/werkzeuge/v5-produktions-host-komposition.mjs'
+      - 'v5/grundlage/vertraege/runtime/bank-retrieve-read-only-preflight.json'
+      - 'v5/grundlage/vertraege/runtime/bank-store-read-only-preflight.json'
+      - 'v5/grundlage/tests/*bank-item-transfer*'
+      - 'v5/package.json'
+      - '.github/workflows/v5-bank-item-transfer-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - working-directory: v5
+        run: npm ci
+      - working-directory: v5
+        run: npm run bank-item-transfer-production:preflight-pruefen
+      - working-directory: v5
+        run: npm run bank-item-transfer-production:core-pruefen
+      - working-directory: v5
+        run: npm run bank-swap-evening:write-pruefen
