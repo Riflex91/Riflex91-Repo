@@ -401,7 +401,7 @@ CI: `.github/workflows/v5-gesamtfreigabe.yml`
 
 Der aktuelle Contract-Katalog wurde fuer die sichere Merchant-Vorbereitung um den engen same-account MLuck-Vertrag erweitert: **61 Action/Recovery/Verifier-Bindungen insgesamt, 60 verifiziert und 1 (`cave_buy`) weiterhin deaktiviert**. Die Erweiterung oeffnet keine generische `use_skill`-Authority und keine produktive MLuck-Capability.
 
-PR20.1 Equip ist real abgeschlossen. Das aktive Gate ist **PR20.2 Bank** und bleibt bewusst `BLOCKIERT_FAIL_CLOSED`: Deposit ist real bestanden, Retrieve/Store/Swap jeweils 2/2 bestanden, Withdraw hat sein 2/2-Testlimit ohne vollstaendige Live-Evidence erreicht und Open-Pack bleibt ressourcenbedingt `RESOURCE_BLOCKED_NO_LIVE`. Der reale Bank-NO-WRITE-5M-Lauf ist mit 300017 ms / 21 Samples / 0 Gaps / 0 Drift / 0 Gameplay-Writes bestanden. Aktuell ist kein weiterer Bank-Ingame-Test gate-wirksam; PR20.3 Markt bleibt gesperrt.
+PR20.1 Equip ist real abgeschlossen. **PR20.2 Bank ist breit freigegeben** (`VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN`) und blockiert die Roadmap nicht mehr. Deposit ist real bestanden, Retrieve/Store/Swap jeweils 2/2 bestanden und der Bank-NO-WRITE-5M-Lauf ist bestanden. Withdraw bleibt historisch ohne vollstaendige Live-Evidence und lokal gegatet; Open-Pack bleibt bis ausreichenden Ressourcen durch Admission blockiert. Das aktive Gate ist jetzt **PR20.3 Markt**; dessen Testkette ist NO-WRITE freigegeben, produktive Market-Authority jedoch noch nicht.
 
 ## Direkte Ingame-Tests
 
