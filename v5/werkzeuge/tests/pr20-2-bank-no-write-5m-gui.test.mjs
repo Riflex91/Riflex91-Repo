@@ -5,6 +5,10 @@ import vm from "node:vm";
 
 const controller = fs.readFileSync("werkzeuge/pr20-2-bank-no-write-5m-gui.js", "utf8");
 const paket = fs.readFileSync("werkzeuge/pr20-2-bank-no-write-5m-paket.js", "utf8");
+const blockedEvidence = JSON.parse(fs.readFileSync(
+  "roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json",
+  "utf8",
+));
 
 test("PR20.2 Bank NO-WRITE 5M besitzt exakt das ratifizierte 5-Minuten-Profil", () => {
   assert.ok(controller.includes("const VERSION = '1.0.1'"));
@@ -261,4 +265,22 @@ test("Serverobjekt ist ebenfalls eine gueltige read-only Runner-Surface", async 
   assert.equal(r.snapshot.bindung.serverKennung, "I");
   assert.equal(r.snapshot.bindung.serverBindungQuelle, "SERVER_OBJECT");
   assert.equal(r.functionalTestBudgetConsumed, false);
+});
+
+
+test("Realer blockierter Preflight ist als zero-write Diagnose ratifiziert", () => {
+  assert.equal(blockedEvidence.status, "BLOCKIERT_HARNESS_SERVER_BINDUNG_UNVOLLSTAENDIG");
+  assert.equal(blockedEvidence.testedSourceSha, "8b1ba278b5d1026e6cb6afcbe7be59da62ac69cb");
+  assert.equal(blockedEvidence.controllerVersion, "1.0.0");
+  assert.deepEqual(blockedEvidence.preflight.blocker, ["SERVER_BINDUNG_FEHLT"]);
+  assert.equal(blockedEvidence.rootCause.klassifikation, "HARNESS_OBSERVATION_BUG");
+  assert.equal(blockedEvidence.rootCause.gameStateProblem, false);
+  assert.equal(blockedEvidence.rootCause.serverProblem, false);
+  assert.equal(blockedEvidence.safety.gameplayWrites, 0);
+  assert.equal(blockedEvidence.safety.mutatingPublicFunctionCalls, 0);
+  assert.equal(blockedEvidence.safety.durableIntentErzeugt, false);
+  assert.equal(blockedEvidence.safety.authorityAusgestellt, false);
+  assert.equal(blockedEvidence.safety.liveMutationFreigegeben, false);
+  assert.equal(blockedEvidence.safety.functionalTestBudgetConsumed, false);
+  assert.equal(blockedEvidence.safety.sameIntentRetry, false);
 });
