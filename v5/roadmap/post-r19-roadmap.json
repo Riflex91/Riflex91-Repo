@@ -86,9 +86,10 @@
     "bank_swap ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
     "bank_withdraw hat das Maximum von zwei echten Funktionstests erreicht und bleibt ohne vollstaendig bestandene Live-Evidence breit deaktiviert; kein dritter Write-Test",
     "open_bank_pack Shadow und Admission read-only sind als Sicherheitspruefungen BESTANDEN; fachlich RESOURCE_BLOCKED_NO_LIVE",
-    "PR20.2 Aggregate Exit-Gate ist CI-erzwungen BLOCKIERT_FAIL_CLOSED mit genau Withdraw-Testlimit und Open-Pack-Ressourcen als Blockern",
-    "keine breite Bank-Aktivierung; PR20.3 Markt bleibt gesperrt",
-    "nur weitere NO-WRITE-/Integrationsarbeit bis neue reale Evidence oder ausreichende Open-Pack-Ressourcen vorliegen"
+    "PR20.2 Aggregate Exit-Gate bleibt BLOCKIERT_FAIL_CLOSED mit Withdraw-Testlimit und Open-Pack-Ressourcen als Blockern",
+    "naechster zulaessiger Nachweis: PR20.2 Bank NO-WRITE 5M direkt im Adventure-Land-CODE-Runner",
+    "der 5m-Lauf verbraucht kein Live-Testbudget und schliesst weder Withdraw noch Open-Pack-Live",
+    "keine breite Bank-Aktivierung; PR20.3 Markt bleibt gesperrt"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -241,7 +242,13 @@
       "v5/grundlage/tests/pr20-bank-open-pack-admission-evidence.test.mjs",
       "v5/roadmap/pr20-2-bank-exit-gate-status.json",
       "v5/werkzeuge/pr20-2-bank-exit-gate-pruefen.mjs",
-      "v5/grundlage/tests/pr20-bank-exit-gate-status.test.mjs"
+      "v5/grundlage/tests/pr20-bank-exit-gate-status.test.mjs",
+      "v5/roadmap/pr20-2-bank-no-write-5m-test-plan.json",
+      "v5/werkzeuge/pr20-2-bank-no-write-5m-gui.js",
+      "v5/werkzeuge/pr20-2-bank-no-write-5m-paket-bauen.mjs",
+      "v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js",
+      "v5/werkzeuge/tests/pr20-2-bank-no-write-5m-gui.test.mjs",
+      "v5/dokumentation/V5-PR20-2-BANK-NO-WRITE-5M.md"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",
@@ -393,7 +400,10 @@
       "checker": "v5/werkzeuge/pr20-2-bank-exit-gate-pruefen.mjs",
       "breiteBankAktivierungErlaubt": false,
       "pr20_3MarktStartErlaubt": false,
-      "sameIntentRetry": false
+      "sameIntentRetry": false,
+      "noWrite5mStatus": "BEREIT_FUER_INGAME_READ_ONLY",
+      "noWrite5mTestPlan": "v5/roadmap/pr20-2-bank-no-write-5m-test-plan.json",
+      "noWrite5mPackage": "v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js"
     }
   },
   "parallelPreparations": [
@@ -471,7 +481,13 @@
         "v5/grundlage/tests/pr20-bank-open-pack-admission-evidence.test.mjs",
         "v5/roadmap/pr20-2-bank-exit-gate-status.json",
         "v5/werkzeuge/pr20-2-bank-exit-gate-pruefen.mjs",
-        "v5/grundlage/tests/pr20-bank-exit-gate-status.test.mjs"
+        "v5/grundlage/tests/pr20-bank-exit-gate-status.test.mjs",
+        "v5/roadmap/pr20-2-bank-no-write-5m-test-plan.json",
+        "v5/werkzeuge/pr20-2-bank-no-write-5m-gui.js",
+        "v5/werkzeuge/pr20-2-bank-no-write-5m-paket-bauen.mjs",
+        "v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js",
+        "v5/werkzeuge/tests/pr20-2-bank-no-write-5m-gui.test.mjs",
+        "v5/dokumentation/V5-PR20-2-BANK-NO-WRITE-5M.md"
       ],
       "firstLiveCandidate": {
         "publicFunction": "bank_deposit",
@@ -566,7 +582,10 @@
         "checker": "v5/werkzeuge/pr20-2-bank-exit-gate-pruefen.mjs",
         "breiteBankAktivierungErlaubt": false,
         "pr20_3MarktStartErlaubt": false,
-        "sameIntentRetry": false
+        "sameIntentRetry": false,
+        "noWrite5mStatus": "BEREIT_FUER_INGAME_READ_ONLY",
+        "noWrite5mTestPlan": "v5/roadmap/pr20-2-bank-no-write-5m-test-plan.json",
+        "noWrite5mPackage": "v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js"
       }
     },
     {
