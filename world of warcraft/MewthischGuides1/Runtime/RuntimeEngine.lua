@@ -101,9 +101,18 @@ function R:FocusSession(session, reason)
 
     snapshot.presentation = MG.PresentationResolver:Build(
         step, goalStates, stickyRuntime, facts, navigation)
+    local nextStep=session.guide and session.guide.steps and
+        session.guide.steps[(session.currentIndex or 1)+1] or nil
+    snapshot.presentation.nextStep =
+        MG.PresentationResolver:PreviewStep(nextStep,facts)
 
     snapshot = MG.RuntimeStore:Commit(snapshot)
     snapshot.events = MG.TransitionDetector:Detect(previous, snapshot)
+
+    if MG.SuperTrackPolicy then
+        local ok,trackReason=MG.SuperTrackPolicy:Apply(snapshot)
+        snapshot.superTrack={ok=ok,reason=trackReason}
+    end
 
     MG:Log("INFO", "runtime.snapshot", "Semantischer Runtime-Snapshot aktualisiert.", {
         revision=snapshot.revision,
