@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 import { roadmapIstMindestens } from "../../werkzeuge/roadmap-gate-rang.mjs";
-import { roadmapIstMindestens } from "../../werkzeuge/roadmap-gate-rang.mjs";
 
 const gate = JSON.parse(fs.readFileSync(
   "roadmap/pr20-2-bank-exit-gate-status.json",
