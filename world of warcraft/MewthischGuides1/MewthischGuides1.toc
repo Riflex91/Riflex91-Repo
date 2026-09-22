@@ -9,6 +9,7 @@ Core/Namespace.lua
 Runtime/RuntimeStore.lua
 Core/ErrorLog.lua
 Core/UICompat.lua
+Core/ForeverAPI.lua
 
 Data/RestedXPForeverData_01.lua
 Data/RestedXPForeverData_02.lua
@@ -21,12 +22,14 @@ Guide/RestedXPSelector.lua
 Guide/RestedXPParser.lua
 Guide/GuideCompiler.lua
 Guide/GuideCatalog.lua
+Guide/Validation.lua
 Guide/GuideSession.lua
 Guide/RecoveryPolicy.lua
 Guide/GuideController.lua
 
 Facts/QuestFacts.lua
 Facts/InventoryFacts.lua
+Facts/InventoryScanner.lua
 Facts/PositionFacts.lua
 Facts/PlayerFacts.lua
 Runtime/ActionMemory.lua
@@ -48,7 +51,9 @@ Travel/TravelPlanner.lua
 
 Policy/AutomationPolicy.lua
 Policy/ActionPolicy.lua
+Policy/SuperTrackPolicy.lua
 Gear/GearScore.lua
+Gear/GearAdvisor.lua
 Gear/RewardAdvisor.lua
 Build/BuildState.lua
 Build/TalentAdvisor.lua
