@@ -5,14 +5,14 @@ namespace AioBotWindowsBridge;
 
 public sealed record BridgeConfig
 {
-    public const int CurrentConfigVersion = 9;
+    public const int CurrentConfigVersion = 10;
 
     public int ConfigVersion { get; init; } = CurrentConfigVersion;
     public string CdpEndpoint { get; init; } = "http://127.0.0.1:9222";
     public string AllowedOrigin { get; init; } = "https://adventure.land";
-    public string TelemetryIngestUrl { get; init; } = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest";
+    public string TelemetryIngestUrl { get; init; } = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-v5-telemetry-ingest";
     public string SignalControlUrl { get; init; } = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-chatgpt-signal-control";
-    public string TelemetryTokenEnvironmentVariable { get; init; } = "AIO_V3_DEBUG_TELEMETRY_TOKEN";
+    public string TelemetryTokenEnvironmentVariable { get; init; } = "AIO_V5_TELEMETRY_TOKEN";
     public string BotId { get; init; } = "pi-main";
     public bool TelemetryEnabled { get; init; }
     public bool AutoStartBrowser { get; init; } = true;
@@ -95,7 +95,21 @@ public sealed record BridgeConfig
                     : loaded.PreferredBrowser,
                 PollIntervalSeconds = storedVersion < 9 && loaded.PollIntervalSeconds == 60
                     ? 5
-                    : loaded.PollIntervalSeconds
+                    : loaded.PollIntervalSeconds,
+                TelemetryIngestUrl = storedVersion < 10
+                    && string.Equals(
+                        loaded.TelemetryIngestUrl,
+                        "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest",
+                        StringComparison.OrdinalIgnoreCase)
+                    ? "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-v5-telemetry-ingest"
+                    : loaded.TelemetryIngestUrl,
+                TelemetryTokenEnvironmentVariable = storedVersion < 10
+                    && string.Equals(
+                        loaded.TelemetryTokenEnvironmentVariable,
+                        "AIO_V3_DEBUG_TELEMETRY_TOKEN",
+                        StringComparison.Ordinal)
+                    ? "AIO_V5_TELEMETRY_TOKEN"
+                    : loaded.TelemetryTokenEnvironmentVariable
             };
             await loaded.SaveAsync(cancellationToken);
         }
