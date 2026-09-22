@@ -11,6 +11,10 @@ const paket = fs.readFileSync(
   "werkzeuge/pr20-4-logistics-transfer-step-test-paket.js",
   "utf8",
 );
+const ingamePolicy = JSON.parse(fs.readFileSync(
+  "grundlage/vertraege/runtime/ingame-test-execution-policy.json",
+  "utf8",
+));
 
 function baueBus({ mutateItem = true, mutateGold = true } = {}) {
   const speicher = new Map();
@@ -207,6 +211,53 @@ test("send_item deckt Supply und Collection mit exakt 2/2 bestaetigten Roundtrip
   assert.equal(state.intents.filter(x => x.kind === "ITEM").every(x => x.recipientSettlement === "BESTAETIGT"), true);
   assert.equal(bus.merchant.character.items[0].q, 5);
   assert.equal(bus.partner.character.items[0].q, 1);
+});
+
+test("Collection nutzt bestaetigte Outbound-Evidence statt erneuter Erstkandidaten-Metadaten", async () => {
+  const bus = baueBus();
+  await lade(bus);
+  let r = await bus.merchant.aktionen.get("step-1").ausfuehren();
+  assert.equal(r.status, "BESTANDEN");
+  r = await bus.merchant.aktionen.get("step-2").ausfuehren();
+  assert.equal(r.status, "BESTANDEN");
+  r = await bus.merchant.aktionen.get("step-3-item-live-1").ausfuehren();
+  assert.equal(r.status, "BESTANDEN");
+  await bus.partner.aktionen.get("actor-refresh").ausfuehren();
+  r = await bus.partner.aktionen.get("step-4-item-settle-1").ausfuehren();
+  assert.equal(r.status, "BESTANDEN");
+
+  delete bus.partner.root.G.items.hpot0.s;
+  await bus.merchant.aktionen.get("actor-refresh").ausfuehren();
+  r = await bus.partner.aktionen.get("step-5-item-return-pin").ausfuehren();
+  assert.equal(r.status, "BESTANDEN");
+  r = await bus.partner.aktionen.get("step-6-item-live-2").ausfuehren();
+  assert.equal(r.status, "BESTANDEN");
+  assert.equal(r.testsConsumed, 2);
+  assert.equal(r.sameIntentErneutSenden, false);
+});
+
+test("PR20.4 Browserpaket ist AUTO_ON_LOAD und sperrt manuelle Live-Schrittsteuerung", () => {
+  assert.ok(controller.includes("const AUTO_RUN_ENABLED = true"));
+  assert.ok(controller.includes("mode: 'AUTO_ON_LOAD'"));
+  assert.ok(controller.includes("startAutoRunner();"));
+  assert.ok(controller.includes("CONTROLLER_VERSION_DRIFT"));
+  assert.ok(controller.includes("AUTORUN_PEER_FEHLT"));
+  assert.ok(controller.includes("autoRunTick"));
+  assert.ok(controller.includes("gui.setzeAktionAktiv(id, false)"));
+  assert.ok(controller.includes("sameIntentErneutSenden: false"));
+});
+
+test("V5-Ingame-Testpolicy verlangt fuer weitere Tests selbstenthaltenes AUTO_ON_LOAD", () => {
+  assert.equal(ingamePolicy.status, "AKTIV");
+  assert.equal(ingamePolicy.executionMode, "AUTO_ON_LOAD");
+  assert.equal(ingamePolicy.requirements.selfContainedJavascriptPackage, true);
+  assert.equal(ingamePolicy.requirements.automaticStartAfterLoad, true);
+  assert.equal(ingamePolicy.requirements.manualPerStepClicks, false);
+  assert.equal(ingamePolicy.requirements.automaticMultiActorCoordination, true);
+  assert.equal(ingamePolicy.requirements.liveFunctionBudgetMustRemainHard, true);
+  assert.equal(ingamePolicy.requirements.sameIntentRetry, false);
+  assert.equal(ingamePolicy.requirements.noRawSocketBypass, true);
+  assert.equal(ingamePolicy.requirements.productiveAuthorityMustNotBeEnabledByTestHarness, true);
 });
 
 test("moeglicher send_item ohne Wirkung verbraucht Versuch und erlaubt keinen Blind-Retry", async () => {

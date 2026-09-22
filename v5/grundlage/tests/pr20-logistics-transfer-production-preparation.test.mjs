@@ -5,6 +5,7 @@ import fs from "node:fs";
 const lies = pfad => JSON.parse(fs.readFileSync(pfad, "utf8"));
 
 const prep = lies("grundlage/vertraege/runtime/logistics-transfer-production-preparation.json");
+const ingamePolicy = lies("grundlage/vertraege/runtime/ingame-test-execution-policy.json");
 const bindungen = lies("grundlage/vertraege/r9/action-bindungen.json").bindungen;
 const actionContracts = lies("wissensbasis/vertraege/action-contracts.json").contracts;
 const produktionsKomposition = fs.readFileSync(
@@ -24,6 +25,24 @@ const erwartete = new Map([
   ["AL-ACTION-SEND-ITEM", ["AL-RECOVERY-SEND-ITEM", "AL-VERIFIER-SEND-ITEM", "send_item"]],
   ["AL-ACTION-SEND-GOLD", ["AL-RECOVERY-SEND-GOLD", "AL-VERIFIER-SEND-GOLD", "send_gold"]],
 ]);
+
+test("PR20.4 Harness und kuenftige Ingame-Tests laufen AUTO_ON_LOAD", () => {
+  assert.equal(prep.testHarness.executionMode, "AUTO_ON_LOAD");
+  assert.equal(prep.testHarness.controllerVersion, "1.1.0");
+  assert.equal(prep.testHarness.autoStartAfterJavascriptLoad, true);
+  assert.equal(prep.testHarness.manualStepClicksRequired, false);
+  assert.equal(prep.testHarness.peerVersionGate, true);
+  assert.equal(prep.testHarness.productiveTransferAuthority, false);
+  assert.equal(prep.testHarness.sameIntentRetry, false);
+
+  assert.equal(ingamePolicy.status, "AKTIV");
+  assert.equal(ingamePolicy.executionMode, "AUTO_ON_LOAD");
+  assert.equal(ingamePolicy.requirements.automaticStartAfterLoad, true);
+  assert.equal(ingamePolicy.requirements.manualPerStepClicks, false);
+  assert.equal(ingamePolicy.requirements.liveFunctionBudgetMustRemainHard, true);
+  assert.equal(ingamePolicy.requirements.sameIntentRetry, false);
+  assert.equal(ingamePolicy.requirements.productiveAuthorityMustNotBeEnabledByTestHarness, true);
+});
 
 test("PR20.4 Gesamttest ist vorbereitet; produktive Authority bleibt strikt default-off", () => {
   assert.equal(prep.schemaVersion, 1);

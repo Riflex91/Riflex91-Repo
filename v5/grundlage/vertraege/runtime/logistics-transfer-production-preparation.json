@@ -3,7 +3,7 @@
   "kennung": "V5_PR20_4_LOGISTIK_TRANSFER_PRODUCTION_PREPARATION",
   "stand": "2026-09-22",
   "status": "BEREIT_FUER_INGAME_GESAMTSTUFENTEST",
-  "basisMain": "8b0731f55ec2be9282842278e998528b06fc6a65",
+  "basisMain": "8981308e1758593da9b192089cb07abc5caa3375",
   "produktiveFreigabeBlockiertBis": [
     "PR20.4_EIGENE_CAPABILITY_OWNER_AUTHORITY_JOURNAL_ADMISSION_PREFLIGHT_SHADOW_LIVE_GATES"
   ],
@@ -145,13 +145,10 @@
     "pr20_3ExitGate": "roadmap/pr20-3-market-exit-gate-status.json"
   },
   "naechsteArbeit": [
-    "PR20.4 Gesamt-Stufentest im echten Adventure-Land-Browser auf genau Merchant + einem Partner ausfuehren",
-    "Item LIVE 1 als Supply Merchant->Partner, danach Recipient Settlement",
-    "Item LIVE 2 als Collection Partner->Merchant, danach Recipient Settlement und Roundtrip",
-    "ITEM 5M NO-WRITE",
-    "Gold LIVE 1 Merchant->Partner und LIVE 2 Partner->Merchant mit je 1 Gold und Recipient Settlement",
-    "GOLD 5M NO-WRITE",
-    "Gesamt-Closeout mit Restart/UNKNOWN/Duplicate fail-closed",
+    "PR20.4 AUTO_ON_LOAD Gesamtpaket im echten Adventure-Land-Browser auf genau Merchant + einem Partner laden",
+    "Auto-Runner fuehrt Item Supply/Settlement/Collection/Roundtrip und ITEM 5M NO-WRITE selbst aus",
+    "Auto-Runner fuehrt Gold Roundtrip mit je 1 Gold, Recipient Settlement und GOLD 5M NO-WRITE selbst aus",
+    "Gesamt-Closeout automatisch; Operator kopiert nur den finalen Gesamtbericht",
     "kein Same-Intent-Blind-Retry; kein dritter Live-Test je Public Function"
   ],
   "testHarness": {
@@ -168,6 +165,12 @@
     "itemQuantityEach": 1,
     "goldAmountEach": 1,
     "productiveTransferAuthority": false,
-    "sameIntentRetry": false
+    "sameIntentRetry": false,
+    "executionMode": "AUTO_ON_LOAD",
+    "controllerVersion": "1.1.0",
+    "autoStartAfterJavascriptLoad": true,
+    "manualStepClicksRequired": false,
+    "peerVersionGate": true,
+    "collectionReturnCapacity": "CONFIRMED_OUTBOUND_CREATED_EXACT_RETURN_CAPACITY"
   }
 }

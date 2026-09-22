@@ -3,11 +3,11 @@
   "stand": "2026-09-22",
   "kennung": "V5_PR20_4_LOGISTICS_TRANSFER_STEP_TEST_PLAN",
   "status": "BEREIT_FUER_INGAME_GESAMTSTUFENTEST",
-  "basisMain": "8b0731f55ec2be9282842278e998528b06fc6a65",
+  "basisMain": "8981308e1758593da9b192089cb07abc5caa3375",
   "paket": "v5/werkzeuge/pr20-4-logistics-transfer-step-test-paket.js",
   "stateKey": "AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1",
   "actorsKey": "AIO_V5_PR20_4_TRANSFER_ACTORS_V1",
-  "controllerVersion": "1.0.0",
+  "controllerVersion": "1.1.0",
   "mergeZwischenTestschrittenErforderlich": false,
   "produktiveTransferAuthority": false,
   "prerequisites": [
@@ -49,104 +49,128 @@
       "nr": 1,
       "name": "Pair / Rendezvous / Umgebung",
       "actor": "MERCHANT",
-      "write": false
+      "write": false,
+      "execution": "AUTO"
     },
     {
       "nr": 2,
       "name": "Item Source-Pin / Recipient-Baseline / Fault-Matrix",
       "actor": "MERCHANT",
-      "write": false
+      "write": false,
+      "execution": "AUTO"
     },
     {
       "nr": 3,
       "name": "LIVE ITEM 1 · Supply Merchant -> Partner",
       "actor": "MERCHANT",
       "write": true,
-      "confirmation": "PR20.4-ITEM-LIVE-1-SUPPLY"
+      "confirmation": "PR20.4-ITEM-LIVE-1-SUPPLY",
+      "execution": "AUTO",
+      "manualConfirmationRequired": false,
+      "confirmationTokenRetainedForAudit": true
     },
     {
       "nr": 4,
       "name": "Recipient Settlement ITEM 1",
       "actor": "PARTNER",
-      "write": false
+      "write": false,
+      "execution": "AUTO"
     },
     {
       "nr": 5,
       "name": "Collection Source-Pin / Merchant-Baseline",
       "actor": "PARTNER",
-      "write": false
+      "write": false,
+      "execution": "AUTO"
     },
     {
       "nr": 6,
       "name": "LIVE ITEM 2 · Collection Partner -> Merchant",
       "actor": "PARTNER",
       "write": true,
-      "confirmation": "PR20.4-ITEM-LIVE-2-COLLECTION"
+      "confirmation": "PR20.4-ITEM-LIVE-2-COLLECTION",
+      "execution": "AUTO",
+      "manualConfirmationRequired": false,
+      "confirmationTokenRetainedForAudit": true
     },
     {
       "nr": 7,
       "name": "Recipient Settlement ITEM 2 / Roundtrip",
       "actor": "MERCHANT",
-      "write": false
+      "write": false,
+      "execution": "AUTO"
     },
     {
       "nr": 8,
       "name": "ITEM 5M NO-WRITE",
       "actor": "MERCHANT",
-      "write": false
+      "write": false,
+      "execution": "AUTO"
     },
     {
       "nr": 9,
       "name": "Gold-Baselines / Safety-Reserve / Fault-Matrix",
       "actor": "MERCHANT",
-      "write": false
+      "write": false,
+      "execution": "AUTO"
     },
     {
       "nr": 10,
       "name": "LIVE GOLD 1 · 1 Gold Merchant -> Partner",
       "actor": "MERCHANT",
       "write": true,
-      "confirmation": "PR20.4-GOLD-LIVE-1"
+      "confirmation": "PR20.4-GOLD-LIVE-1",
+      "execution": "AUTO",
+      "manualConfirmationRequired": false,
+      "confirmationTokenRetainedForAudit": true
     },
     {
       "nr": 11,
       "name": "Recipient Settlement GOLD 1",
       "actor": "PARTNER",
-      "write": false
+      "write": false,
+      "execution": "AUTO"
     },
     {
       "nr": 12,
       "name": "Reverse Gold-Baselines pinnen",
       "actor": "PARTNER",
-      "write": false
+      "write": false,
+      "execution": "AUTO"
     },
     {
       "nr": 13,
       "name": "LIVE GOLD 2 · 1 Gold Partner -> Merchant",
       "actor": "PARTNER",
       "write": true,
-      "confirmation": "PR20.4-GOLD-LIVE-2"
+      "confirmation": "PR20.4-GOLD-LIVE-2",
+      "execution": "AUTO",
+      "manualConfirmationRequired": false,
+      "confirmationTokenRetainedForAudit": true
     },
     {
       "nr": 14,
       "name": "Recipient Settlement GOLD 2 / Roundtrip",
       "actor": "MERCHANT",
-      "write": false
+      "write": false,
+      "execution": "AUTO"
     },
     {
       "nr": 15,
       "name": "GOLD 5M NO-WRITE",
       "actor": "MERCHANT",
-      "write": false
+      "write": false,
+      "execution": "AUTO"
     },
     {
       "nr": 16,
       "name": "Gesamt-Closeout / Duplicate / Restart",
       "actor": "MERCHANT",
-      "write": false
+      "write": false,
+      "execution": "AUTO"
     }
   ],
-  "actorRefreshRule": "Vor jedem Rollenwechsel auf dem neu benoetigten Empfaenger/Sender zuerst 'Actor / Performance / Status aktualisieren'; nach Settlement vor Reverse-Pinning auch den kuenftigen Recipient frisch aktualisieren.",
+  "actorRefreshRule": "AUTO: beide Paketinstanzen publizieren fortlaufend frische Actor-/Performance-Snapshots; keine manuellen Refresh-Klicks erforderlich.",
   "faultCoverage": [
     "stale/offline recipient",
     "session/server/map drift",
@@ -171,6 +195,18 @@
     "bei NICHT_BESTANDEN/DRIFT/FAILED_SAFE sofort keine weiteren Live-Sends ausfuehren",
     "wenn ein Live-Budget 2/2 erreicht ist, ist ein dritter Test verboten",
     "bei Session-/Server-/Map-/Recipient-/Source-Drift vor Send blockieren",
-    "Gesamtbericht nach Schritt 16 genau einmal kopieren"
+    "Gesamtbericht nach automatischem Schritt 16 genau einmal kopieren"
+  ],
+  "executionMode": "AUTO_ON_LOAD",
+  "autoStartAfterJavascriptLoad": true,
+  "manualStepClicksRequired": false,
+  "multiActorCoordination": "PERSISTENT_LOCALSTORAGE_AUTORUN",
+  "peerVersionGate": "BEIDE_ACTORS_MUESSEN_CONTROLLER_VERSION_1_1_0_UND_AUTORUN_CAPABLE_SEIN",
+  "operatorAblauf": [
+    "Gesamtpaket auf Merchant laden",
+    "dasselbe Gesamtpaket auf genau einem Partner laden",
+    "danach keine Einzelschritte klicken; Auto-Runner fuehrt alle zulaessigen Schritte selbst aus",
+    "bei sicherem Blocker oder Fehler stoppt der Auto-Runner ohne zusaetzlichen Live-Send",
+    "nach BESTANDEN Gesamtbericht kopieren"
   ]
 }

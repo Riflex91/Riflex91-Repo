@@ -899,13 +899,18 @@
     "rawWriteAuthority": false,
     "preparation": "v5/grundlage/vertraege/runtime/logistics-transfer-production-preparation.json",
     "documentation": "v5/dokumentation/PR20-4-LOGISTIK-TRANSFER-PRODUKTIV-VORBEREITUNG.md",
-    "nextAction": "INGAME_PR20_4_GESAMTSTUFENTEST",
+    "nextAction": "LOAD_PR20_4_AUTORUN_PACKAGE_ON_MERCHANT_AND_PARTNER",
     "sameIntentRetry": false,
     "testHarness": "v5/werkzeuge/pr20-4-logistics-transfer-step-test-paket.js",
     "testPlan": "v5/roadmap/pr20-4-logistics-transfer-step-test-plan.json",
     "testHarnessSteps": 16,
     "mergeZwischenTestschrittenErforderlich": false,
     "itemLiveTestsMax": 2,
-    "goldLiveTestsMax": 2
+    "goldLiveTestsMax": 2,
+    "executionMode": "AUTO_ON_LOAD",
+    "autoStartAfterJavascriptLoad": true,
+    "manualStepClicksRequired": false,
+    "ingameTestPolicy": "v5/grundlage/vertraege/runtime/ingame-test-execution-policy.json",
+    "controllerVersion": "1.1.0"
   }
 }
