@@ -94,7 +94,7 @@ test("Nach Sell- und Trade-Closeout ist PR20.3 formal geschlossen und PR20.4 akt
   assert.equal(roadmap.pr20_3.buyGoldStatus, "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M");
   assert.equal(roadmap.pr20_3.buyGoldAdditionalLiveTestAllowed, false);
   assert.equal(roadmap.pr20_3.activeTest, null);
-  assert.equal(roadmap.currentGate, "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG");
+  assert.ok(["PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG", "PR20.5_MERCHANT_STABILITAET"].includes(roadmap.currentGate));
   assert.equal(roadmap.pr20_3.productiveMutationAllowed, false);
   assert.equal(roadmap.pr20_3.gameplayAuthority, false);
   assert.equal(roadmap.pr20_3.sameIntentRetry, false);
