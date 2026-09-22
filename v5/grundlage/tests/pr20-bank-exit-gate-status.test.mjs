@@ -73,3 +73,27 @@ test("Direkte Ingame-Evidence bleibt 4/5 und Open-Pack ist separat read-only ges
     "SHADOW_AND_ADMISSION_READ_ONLY_BESTANDEN_RESOURCE_BLOCKED_NO_LIVE",
   );
 });
+
+
+test("Vorbereiteter 5m NO-WRITE-Lauf oeffnet keinen PR20.2-Blocker", () => {
+  assert.equal(gate.noWriteIntegration.bank5mStatus, "BEREIT_FUER_INGAME_READ_ONLY");
+  assert.equal(
+    gate.noWriteIntegration.testPlan,
+    "v5/roadmap/pr20-2-bank-no-write-5m-test-plan.json",
+  );
+  assert.equal(
+    gate.noWriteIntegration.package,
+    "v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js",
+  );
+  assert.equal(gate.noWriteIntegration.gameplayWrites, 0);
+  assert.equal(gate.noWriteIntegration.mutatingPublicFunctionCalls, 0);
+  assert.equal(gate.noWriteIntegration.functionalTestBudgetConsumed, false);
+  assert.equal(gate.noWriteIntegration.schliesstBlockerNicht, true);
+  assert.equal(gate.nextAction, "PR20_2_BANK_NO_WRITE_5M_INGAME_AUSFUEHREN");
+  assert.equal(roadmap.parallelPreparation.pr20_2ExitGate.status, "BLOCKIERT_FAIL_CLOSED");
+  assert.equal(
+    roadmap.parallelPreparation.pr20_2ExitGate.noWrite5mStatus,
+    "BEREIT_FUER_INGAME_READ_ONLY",
+  );
+  assert.equal(roadmap.parallelPreparation.pr20_2ExitGate.pr20_3MarktStartErlaubt, false);
+});

@@ -578,3 +578,36 @@ Das Gate erzwingt deshalb:
 
 Bis neue reale Evidence oder ausreichende Open-Pack-Ressourcen vorliegen,
 bleibt nur NO-WRITE-/Integrationsarbeit innerhalb PR20.2 zulaessig.
+
+
+## PR20.2w – Bank NO-WRITE 5M vorbereitet
+
+Als naechster noch zulaessiger Nachweis innerhalb des blockierten PR20.2-Gates
+ist jetzt ein eigener **5-Minuten-NO-WRITE-Lauf** fuer den echten
+Adventure-Land-CODE-Runner vorbereitet.
+
+Paket:
+`werkzeuge/pr20-2-bank-no-write-5m-paket.js`
+
+Testplan:
+`roadmap/pr20-2-bank-no-write-5m-test-plan.json`
+
+Der Harness beobachtet alle 15 Sekunden fuer mindestens 300.000 ms die stabile
+Account-/Character-/Session-/Serverbindung, Bank/Inventory/Ressourcen,
+das vorhandene Bank-Funktionstestjournal und die weiterhin blockierte
+Open-Pack-Finanzierbarkeit. `performance_trick()` muss waehrend des gesamten
+Laufs aktiv und `playing=true` bleiben.
+
+Die Grenze bleibt strikt read-only:
+
+- 0 Gameplay-Writes;
+- 0 mutierende Public-Function-Aufrufe;
+- kein Intent;
+- keine Authority;
+- keine Live-Mutation;
+- kein Reset oder Verbrauch von `AIO_V5_BANK_FUNCTION_TEST_STATE_V1`;
+- `sameIntentErneutSenden=false`.
+
+Auch ein bestandener Lauf schliesst weder die fehlende Withdraw-Live-Evidence
+noch Open-Pack-Live. PR20.2 bleibt deshalb
+`BLOCKIERT_FAIL_CLOSED` und PR20.3 bleibt gesperrt.

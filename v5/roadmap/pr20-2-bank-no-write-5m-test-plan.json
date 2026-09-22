@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "status": "BEREIT_FUER_INGAME_READ_ONLY",
+  "kennung": "V5_PR20_2_BANK_NO_WRITE_5M_TESTPLAN",
+  "basisMain": "d10e48bf341b1aa4291eb9c7c6954c80a81f1208",
+  "testArt": "PR20_2_BANK_NO_WRITE_5M",
+  "executionContext": "ADVENTURE_LAND_CODE_RUNNER",
+  "dauerMs": 300000,
+  "intervallMs": 15000,
+  "maxSampleGapMs": 45000,
+  "minSamples": 20,
+  "performanceTrickRequired": true,
+  "bankFunctionJournal": {
+    "key": "AIO_V5_BANK_FUNCTION_TEST_STATE_V1",
+    "zugriff": "READ_ONLY",
+    "resetErlaubt": false
+  },
+  "gameplayWrites": 0,
+  "mutatingPublicFunctionCalls": 0,
+  "durableIntentErzeugt": false,
+  "authorityAusgestellt": false,
+  "liveMutationFreigegeben": false,
+  "functionalTestBudgetConsumed": false,
+  "sameIntentRetry": false,
+  "beobachtet": [
+    "Account/Character/Session/Server-Bindung",
+    "Merchant/Bank-Mount/Alive/Stationary/Queue",
+    "Inventory-Fingerprint",
+    "Bank-Fingerprint",
+    "Character-Gold/Shells und Bank-Gold",
+    "browserpersistentes Bank-Funktionstestjournal nur read-only",
+    "Open-Pack-Kandidat und weiter blockierte Finanzierbarkeit",
+    "performance_trick aktiv/playing",
+    "alternative Runtime inaktiv",
+    "Evidence-Kette und Sample-Gaps"
+  ],
+  "failClosedBei": [
+    "Bindungsdrift",
+    "Bank/Inventory/Ressourcen-/Journaldrift",
+    "Open-Pack-Pfad wird finanzierbar",
+    "alternative Runtime aktiv",
+    "Character tot/bewegt/Queue nicht leer",
+    "performance_trick nicht aktiv/playing",
+    "Sample-Gap > 45000 ms"
+  ],
+  "exitGateWirkung": {
+    "pr20_2ExitGateBleibt": "BLOCKIERT_FAIL_CLOSED",
+    "schliesstWithdrawNicht": true,
+    "schliesstOpenPackLiveNicht": true,
+    "breiteBankAktivierungErlaubt": false,
+    "pr20_3MarktStartErlaubt": false
+  }
+}

@@ -854,3 +854,20 @@ Bank-Aktivierung oder ein Start von PR20.3 abgeleitet wird.
 
 Solange diese Blocker bestehen, bleibt `PR20.2_BANK_PRODUKTIVIERUNG` das
 aktive Gate; nur NO-WRITE-/Integrationsarbeit ist zulaessig.
+
+
+## PR20.2w – Naechster realer Schritt: Bank NO-WRITE 5M
+
+Der naechste zulaessige reale Nachweis ist ein fuenfminuetiger read-only
+Bank-Stabilitaetslauf direkt im Adventure-Land-CODE-Runner. Das source-locked
+Paket liegt unter
+`werkzeuge/pr20-2-bank-no-write-5m-paket.js`.
+
+Dieser Lauf verbraucht kein Live-Funktionstestbudget und fuehrt keinen
+Bank-Send aus. Er kann deshalb trotz ausgeschöpftem Withdraw-Testlimit sicher
+ausgefuehrt werden. Er dokumentiert nur, ob die aktuelle Bank-/Inventory-/
+Ressourcenlage, das bestehende Testjournal und `performance_trick()` ueber
+fuenf Minuten stabil bleiben.
+
+Selbst bei `BESTANDEN` bleibt das PR20.2-Exit-Gate blockiert, bis die
+separaten Withdraw-/Open-Pack-Live-Blocker fachlich geschlossen werden koennen.
