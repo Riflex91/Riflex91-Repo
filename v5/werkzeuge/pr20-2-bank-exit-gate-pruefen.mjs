@@ -91,8 +91,19 @@ if (gate.blocker?.length !== expectedBlockers.size
   fail("AGGREGATE_GATE_BLOCKER_DRIFT");
 }
 
+const noWrite5m = gate.noWriteIntegration;
+if (noWrite5m?.bank5mStatus !== "BEREIT_FUER_INGAME_READ_ONLY"
+    || noWrite5m?.gameplayWrites !== 0
+    || noWrite5m?.mutatingPublicFunctionCalls !== 0
+    || noWrite5m?.functionalTestBudgetConsumed !== false
+    || noWrite5m?.schliesstBlockerNicht !== true
+    || gate.nextAction !== "PR20_2_BANK_NO_WRITE_5M_INGAME_AUSFUEHREN") {
+  fail("NO_WRITE_5M_VORBEREITUNG_DARF_EXIT_GATE_NICHT_OEFFNEN");
+}
+
 if (roadmap.currentGate !== "PR20.2_BANK_PRODUKTIVIERUNG"
     || roadmap.parallelPreparation?.pr20_2ExitGate?.status !== "BLOCKIERT_FAIL_CLOSED"
+    || roadmap.parallelPreparation?.pr20_2ExitGate?.noWrite5mStatus !== "BEREIT_FUER_INGAME_READ_ONLY"
     || roadmap.parallelPreparation?.pr20_2ExitGate?.pr20_3MarktStartErlaubt !== false) {
   fail("ROADMAP_DARF_PR20_2_NICHT_UEBERSPRINGEN");
 }
