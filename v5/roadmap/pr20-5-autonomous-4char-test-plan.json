@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20.5_AUTONOMOUS_4CHAR_TEST",
+  "status": "BEREIT_PR20_4_BESTANDEN",
+  "requires": [
+    "PR20.4_EXIT_GATE_BESTANDEN_REAL_INGAME_16_OF_16",
+    "merchant",
+    "ranger",
+    "priest",
+    "mage"
+  ],
+  "package": "v5/werkzeuge/pr20-5-merchant-stability-autonomous-4char.js",
+  "stateKey": "AIO_V5_PR20_5_AUTONOMOUS_TEST_V1",
+  "actorsKey": "AIO_V5_PR20_5_AUTONOMOUS_ACTORS_V1",
+  "autoStart": true,
+  "operatorInteractionAfterLoad": false,
+  "coordinatorClass": "merchant",
+  "workerClasses": [
+    "ranger",
+    "priest",
+    "mage"
+  ],
+  "telemetry": {
+    "transport": "existing Windows Bridge -> bot-debug-ingest -> Supabase",
+    "directBrowserSupabaseSecrets": false,
+    "monthlyEdgeInvocationLimit": 500000,
+    "safetyReserve": 5000,
+    "localObservationSeconds": 5,
+    "supabaseStatusSeconds": 60,
+    "aggregateStatusPerInterval": 1,
+    "terminalEventImmediate": true,
+    "completionEmailEachTerminalTest": true,
+    "completionEmailStatuses": [
+      "BESTANDEN",
+      "NICHT_BESTANDEN",
+      "BLOCKIERT",
+      "FEHLER",
+      "ABGEBROCHEN"
+    ]
+  },
+  "checks": [
+    "fresh 4-character roster",
+    "single merchant/ranger/priest/mage",
+    "same server",
+    "no competing V3/V4 runtime",
+    "irreversible mutation blocks preemption",
+    "unsafe/non-durable checkpoint blocks preemption",
+    "scheduler priority remains authoritative",
+    "safety preemption",
+    "starvation escape at safe durable checkpoint",
+    "minimum hold time",
+    "switch cooldown",
+    "bounded switch budget",
+    "stable switch allowance",
+    "15 minute 4-character no-write integration soak"
+  ],
+  "gameplayWrites": 0,
+  "rawWriteCalls": 0,
+  "sameIntentRetry": false,
+  "terminalStates": [
+    "BESTANDEN",
+    "NICHT_BESTANDEN",
+    "BLOCKED",
+    "FEHLER",
+    "STOPPED"
+  ],
+  "pr20_4Gate": {
+    "repoStatus": "BESTANDEN_REAL_INGAME_16_OF_16",
+    "localPersistentEvidenceOptional": true
+  },
+  "allTestsGate": {
+    "normalBotRuntimeStartsAfterPr20_5Only": false,
+    "normalBotRuntimeRequiresAllRemainingV5TestsBestanden": true,
+    "nextStageAfterPass": "CONTINUE_WITH_NEXT_V5_TEST_GATE"
+  }
+}

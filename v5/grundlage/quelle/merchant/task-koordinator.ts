@@ -1,13 +1,34 @@
 import {
   MerchantDemandInbox,
   MerchantWorkflowProvider,
+  type MerchantDemand,
+  type MerchantDemandArt,
   type MerchantDemandEintrag,
 } from "./demand.js";
+import {
+  bewerteMerchantDienstWechsel,
+  type MerchantDienstBereich,
+  type MerchantDienstStabilitaetsRichtlinie,
+} from "./dienst-stabilitaet.js";
 import {
   AblaufScheduler,
   type SchedulerEintrag,
 } from "../scheduler/ablauf-scheduler.js";
-import type { AblaufStatus } from "../scheduler/workflow-vertrag.js";
+import type {
+  AblaufStatus,
+  UnterbrechungsPunkt,
+} from "../scheduler/workflow-vertrag.js";
+
+export const MERCHANT_DIENST_STABILITAETS_RICHTLINIE:
+MerchantDienstStabilitaetsRichtlinie = Object.freeze({
+  richtlinienVersion: "merchant-stability-v1",
+  mindestHaltedauerMs: 30_000,
+  wechselCooldownMs: 10_000,
+  wechselFensterMs: 60_000,
+  maximaleWechselImFenster: 3,
+  starvationGrenzeMs: 120_000,
+  maximaleHistorie: 16,
+});
 
 export interface MerchantPlanungsErgebnis {
   readonly schemaVersion: 1;
@@ -25,8 +46,20 @@ export interface MerchantTaskKoordinatorStatus {
   readonly erledigteDemands: number;
   readonly abgebrocheneDemands: number;
   readonly registrierteAblaeufe: number;
+  readonly aktuellerDemandId: string | null;
+  readonly aktuellerBereich: MerchantDienstBereich | null;
+  readonly letzterWechselAmMs: number | null;
+  readonly wechselHistorie: number;
   readonly gameplayAutoritaet: false;
   readonly rawWriteAutoritaet: false;
+}
+
+function bereichFuerDemandArt(art: MerchantDemandArt): MerchantDienstBereich {
+  if (art.startsWith("BANK_")) return "BANK";
+  if (art.startsWith("NPC_")) return "NPC";
+  if (art.startsWith("MARKT_") || art === "STAND_LISTING") return "MARKT";
+  if (art === "MLUCK_SERVICE") return "MLUCK";
+  return "SONSTIG";
 }
 
 function pruefeZeit(jetztMs: number): void {
@@ -59,15 +92,24 @@ export class MerchantTaskKoordinator {
   readonly #inbox: MerchantDemandInbox;
   readonly #provider: MerchantWorkflowProvider;
   readonly #scheduler: AblaufScheduler;
+  readonly #stabilitaetsRichtlinie: MerchantDienstStabilitaetsRichtlinie;
+  #aktuellerDemandId: string | null = null;
+  #aktuellerBereich: MerchantDienstBereich | null = null;
+  #bereichBegonnenAmMs: number | null = null;
+  #letzterWechselAmMs: number | null = null;
+  #wechselHistorieMs: readonly number[] = Object.freeze([]);
 
   public constructor(
     inbox: MerchantDemandInbox,
     provider: MerchantWorkflowProvider,
     scheduler: AblaufScheduler,
+    stabilitaetsRichtlinie: MerchantDienstStabilitaetsRichtlinie =
+      MERCHANT_DIENST_STABILITAETS_RICHTLINIE,
   ) {
     this.#inbox = inbox;
     this.#provider = provider;
     this.#scheduler = scheduler;
+    this.#stabilitaetsRichtlinie = Object.freeze({ ...stabilitaetsRichtlinie });
   }
 
   public planeOffene(
@@ -137,15 +179,107 @@ export class MerchantTaskKoordinator {
       throw new Error("MERCHANT_TASK_DEMAND_STATUS_DRIFT");
     }
 
+    const laufende = this.#scheduler.sicht().filter(
+      x => x.plan.ablaufId.startsWith("merchant:")
+        && (x.status === "LAUFEND" || x.status === "SICHER_UNTERBRECHBAR"),
+    );
+    if (laufende.length > 1) {
+      throw new Error("MERCHANT_TASK_MEHRFACH_LAUFEND_DRIFT");
+    }
+
+    const laufend = laufende[0];
+    if (laufend !== undefined) {
+      const schedulerEntscheidung = this.#scheduler.bewerteUnterbrechung(
+        laufend.plan.ablaufId,
+        naechster.plan.ablaufId,
+        jetztMs,
+      );
+      if (schedulerEntscheidung !== "UNTERBRECHEN") return null;
+
+      const laufenderDemand = this.#findeDemandFuerAblauf(laufend);
+      const aktuellerBereich = bereichFuerDemandArt(laufenderDemand.demand.art);
+      const bewerberBereich = bereichFuerDemandArt(demand.demand.art);
+
+      if (aktuellerBereich !== bewerberBereich) {
+        const bereichBegonnenAmMs =
+          this.#aktuellerDemandId === laufenderDemand.demand.demandId
+          && this.#bereichBegonnenAmMs !== null
+            ? this.#bereichBegonnenAmMs
+            : jetztMs;
+        const wechsel = bewerteMerchantDienstWechsel(
+          {
+            aktuellerBereich,
+            aktuellePrioritaetsKlasse: laufend.plan.prioritaetsKlasse,
+            bereichBegonnenAmMs,
+            letzterWechselAmMs: this.#letzterWechselAmMs,
+            sichereUnterbrechung: laufend.unterbrechung.erlaubt,
+            checkpointDurable: laufend.unterbrechung.checkpointDurable,
+            irreversibleMutationOffen: laufend.unterbrechung.irreversibleMutationOffen,
+            wechselHistorieMs: this.#wechselHistorieMs,
+          },
+          {
+            bereich: bewerberBereich,
+            prioritaetsKlasse: naechster.plan.prioritaetsKlasse,
+            wartetSeitMs: naechster.plan.erstelltAmMs,
+            deadlineAmMs: naechster.plan.deadlineAmMs,
+            schedulerVorrang: true,
+          },
+          this.#stabilitaetsRichtlinie,
+          jetztMs,
+        );
+        if (!wechsel.wechselErlaubt) return null;
+
+        this.#letzterWechselAmMs = jetztMs;
+        this.#bereichBegonnenAmMs = jetztMs;
+        this.#wechselHistorieMs = Object.freeze(
+          [...this.#wechselHistorieMs, jetztMs]
+            .slice(-this.#stabilitaetsRichtlinie.maximaleHistorie),
+        );
+      }
+
+      this.#scheduler.setzeStatus(
+        laufend.plan.ablaufId,
+        "PAUSIERT",
+        jetztMs,
+      );
+    } else {
+      this.#bereichBegonnenAmMs = jetztMs;
+    }
+
     this.#scheduler.setzeStatus(
       naechster.plan.ablaufId,
       "LAUFEND",
       jetztMs,
     );
+    this.#aktuellerDemandId = demand.demand.demandId;
+    this.#aktuellerBereich = bereichFuerDemandArt(demand.demand.art);
     return this.#inbox.setzeStatus(
       demand.demand.demandId,
       "LAUFEND",
     );
+  }
+
+  public markiereSicherUnterbrechbar(
+    demandId: string,
+    punkt: UnterbrechungsPunkt,
+    jetztMs: number,
+  ): MerchantDemandEintrag {
+    pruefeZeit(jetztMs);
+    const { demand, ablauf } = this.#findePaar(demandId);
+    if (demand.status !== "LAUFEND" || ablauf.status !== "LAUFEND") {
+      throw new Error("MERCHANT_TASK_UNTERBRECHUNG_STATUS_UNGUELTIG");
+    }
+    this.#scheduler.meldeUnterbrechungsPunkt(
+      ablauf.plan.ablaufId,
+      punkt,
+      jetztMs,
+    );
+    this.#scheduler.setzeStatus(
+      ablauf.plan.ablaufId,
+      "SICHER_UNTERBRECHBAR",
+      jetztMs,
+    );
+    return demand;
   }
 
   public markiereWartetBeobachtung(
@@ -207,6 +341,11 @@ export class MerchantTaskKoordinator {
       "ABGESCHLOSSEN",
       jetztMs,
     );
+    if (this.#aktuellerDemandId === demandId) {
+      this.#aktuellerDemandId = null;
+      this.#aktuellerBereich = null;
+      this.#bereichBegonnenAmMs = null;
+    }
     return this.#inbox.setzeStatus(demandId, "ERLEDIGT");
   }
 
@@ -226,6 +365,11 @@ export class MerchantTaskKoordinator {
       "ABGEBROCHEN",
       jetztMs,
     );
+    if (this.#aktuellerDemandId === demandId) {
+      this.#aktuellerDemandId = null;
+      this.#aktuellerBereich = null;
+      this.#bereichBegonnenAmMs = null;
+    }
     return this.#inbox.setzeStatus(demandId, "ABGEBROCHEN");
   }
 
@@ -242,6 +386,10 @@ export class MerchantTaskKoordinator {
       registrierteAblaeufe: ablaeufe.filter(
         x => x.plan.ablaufId.startsWith("merchant:"),
       ).length,
+      aktuellerDemandId: this.#aktuellerDemandId,
+      aktuellerBereich: this.#aktuellerBereich,
+      letzterWechselAmMs: this.#letzterWechselAmMs,
+      wechselHistorie: this.#wechselHistorieMs.length,
       gameplayAutoritaet: false,
       rawWriteAutoritaet: false,
     });

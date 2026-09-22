@@ -5,7 +5,7 @@ namespace AioBotWindowsBridge;
 
 public sealed record BridgeConfig
 {
-    public const int CurrentConfigVersion = 7;
+    public const int CurrentConfigVersion = 9;
 
     public int ConfigVersion { get; init; } = CurrentConfigVersion;
     public string CdpEndpoint { get; init; } = "http://127.0.0.1:9222";
@@ -18,6 +18,7 @@ public sealed record BridgeConfig
     public bool AutoStartBrowser { get; init; } = true;
     public string PreferredBrowser { get; init; } = "Brave";
     public int PollIntervalSeconds { get; init; } = 5;
+    public int SupabaseStatusIntervalSeconds { get; init; } = 60;
     public int MaxBackoffSeconds { get; init; } = 300;
     public int EventLimit { get; init; } = 100;
 
@@ -91,7 +92,10 @@ public sealed record BridgeConfig
                 ConfigVersion = CurrentConfigVersion,
                 PreferredBrowser = !hasConfigVersion && string.Equals(loaded.PreferredBrowser, "Edge", StringComparison.OrdinalIgnoreCase)
                     ? "Brave"
-                    : loaded.PreferredBrowser
+                    : loaded.PreferredBrowser,
+                PollIntervalSeconds = storedVersion < 9 && loaded.PollIntervalSeconds == 60
+                    ? 5
+                    : loaded.PollIntervalSeconds
             };
             await loaded.SaveAsync(cancellationToken);
         }
@@ -140,6 +144,8 @@ public sealed record BridgeConfig
             throw new InvalidOperationException("PREFERRED_BROWSER_INVALID");
         if (PollIntervalSeconds is < 2 or > 60)
             throw new InvalidOperationException("POLL_INTERVAL_OUT_OF_RANGE");
+        if (SupabaseStatusIntervalSeconds != 60)
+            throw new InvalidOperationException("SUPABASE_STATUS_INTERVAL_MUST_BE_60_SECONDS");
         if (MaxBackoffSeconds < PollIntervalSeconds || MaxBackoffSeconds > 3600)
             throw new InvalidOperationException("MAX_BACKOFF_OUT_OF_RANGE");
         if (EventLimit is < 1 or > 200)
