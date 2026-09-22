@@ -85,11 +85,10 @@
     "bank_store ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
     "bank_swap ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
     "bank_withdraw hat das Maximum von zwei echten Funktionstests erreicht und bleibt ohne vollstaendig bestandene Live-Evidence breit deaktiviert; kein dritter Write-Test",
-    "open_bank_pack Shadow ist BESTANDEN und Open-Pack Admission read-only ist als Sicherheitspruefung BESTANDEN",
-    "open_bank_pack bleibt fachlich RESOURCE_BLOCKED_NO_LIVE: 15.993.820 < 75.000.000 Gold und 0 < 600 Shells; 0 Gameplay-Writes, 0 mutierende Public-Function-Aufrufe, kein Intent, keine Authority",
-    "PR20.2 Exit-Gate bleibt fail-closed; keine breite Bank-Aktivierung",
-    "PR20.3 Markt bleibt bis zum korrekt geschlossenen PR20.2-Exit-Gate produktiv gesperrt",
-    "noch moegliche NO-WRITE-/Integrationsarbeiten innerhalb PR20.2 fortsetzen"
+    "open_bank_pack Shadow und Admission read-only sind als Sicherheitspruefungen BESTANDEN; fachlich RESOURCE_BLOCKED_NO_LIVE",
+    "PR20.2 Aggregate Exit-Gate ist CI-erzwungen BLOCKIERT_FAIL_CLOSED mit genau Withdraw-Testlimit und Open-Pack-Ressourcen als Blockern",
+    "keine breite Bank-Aktivierung; PR20.3 Markt bleibt gesperrt",
+    "nur weitere NO-WRITE-/Integrationsarbeit bis neue reale Evidence oder ausreichende Open-Pack-Ressourcen vorliegen"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -239,7 +238,10 @@
       "v5/grundlage/tests/r11-bank-swap-produktions-transaktion.test.mjs",
       "v5/roadmap/pr20-2-bank-direct-ingame-function-evidence.json",
       "v5/roadmap/pr20-2-bank-open-pack-admission-evidence.json",
-      "v5/grundlage/tests/pr20-bank-open-pack-admission-evidence.test.mjs"
+      "v5/grundlage/tests/pr20-bank-open-pack-admission-evidence.test.mjs",
+      "v5/roadmap/pr20-2-bank-exit-gate-status.json",
+      "v5/werkzeuge/pr20-2-bank-exit-gate-pruefen.mjs",
+      "v5/grundlage/tests/pr20-bank-exit-gate-status.test.mjs"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",
@@ -387,6 +389,8 @@
         "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
         "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
       ],
+      "evidence": "v5/roadmap/pr20-2-bank-exit-gate-status.json",
+      "checker": "v5/werkzeuge/pr20-2-bank-exit-gate-pruefen.mjs",
       "breiteBankAktivierungErlaubt": false,
       "pr20_3MarktStartErlaubt": false,
       "sameIntentRetry": false
@@ -464,7 +468,10 @@
         "v5/werkzeuge/bank-withdraw-produktions-live.mjs",
         "v5/architektur/adr/ADR-043-PR20-2O-BANK-WITHDRAW-WRITE-RUNNER-PREPARATION.md",
         "v5/roadmap/pr20-2-bank-open-pack-admission-evidence.json",
-        "v5/grundlage/tests/pr20-bank-open-pack-admission-evidence.test.mjs"
+        "v5/grundlage/tests/pr20-bank-open-pack-admission-evidence.test.mjs",
+        "v5/roadmap/pr20-2-bank-exit-gate-status.json",
+        "v5/werkzeuge/pr20-2-bank-exit-gate-pruefen.mjs",
+        "v5/grundlage/tests/pr20-bank-exit-gate-status.test.mjs"
       ],
       "firstLiveCandidate": {
         "publicFunction": "bank_deposit",
@@ -555,6 +562,8 @@
           "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
           "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
         ],
+        "evidence": "v5/roadmap/pr20-2-bank-exit-gate-status.json",
+        "checker": "v5/werkzeuge/pr20-2-bank-exit-gate-pruefen.mjs",
         "breiteBankAktivierungErlaubt": false,
         "pr20_3MarktStartErlaubt": false,
         "sameIntentRetry": false
