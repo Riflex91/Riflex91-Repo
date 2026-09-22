@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "kennung": "V5_PR20_3_PLAYER_MARKET_TRADE_OPERATOR_ACCEPTANCE",
+  "status": "VOLLSTAENDIG_ABGENOMMEN_DURCH_OPERATOR_OHNE_LIVE_EVIDENCE",
+  "source": "USER_DIRECTIVE_IN_CHAT",
+  "basisMain": "1dcebb6fa05821deabcfb7dbdb3769ea74af6785",
+  "zweck": "trade_buy und trade_sell fuer die PR20.3-Roadmap vollstaendig abnehmen, ohne nicht vorhandene Live-Evidence als bestanden auszugeben.",
+  "paths": {
+    "trade_buy": {
+      "publicFunction": "trade_buy",
+      "actionContractId": "AL-ACTION-TRADE-BUY",
+      "recoveryContractId": "AL-RECOVERY-TRADE-BUY",
+      "verifierId": "AL-VERIFIER-TRADE-BUY",
+      "roadmapStatus": "VOLL_ABGENOMMEN_OPERATOR",
+      "countsAsPassedForRoadmap": true,
+      "countsAsPassedEvidence": false,
+      "liveTestPerformed": false,
+      "liveEvidence": "NICHT_VORHANDEN",
+      "productiveMutationAutomaticallyAllowed": false,
+      "localCapabilityGateRequired": true
+    },
+    "trade_sell": {
+      "publicFunction": "trade_sell",
+      "actionContractId": "AL-ACTION-TRADE-SELL",
+      "recoveryContractId": "AL-RECOVERY-TRADE-SELL",
+      "verifierId": "AL-VERIFIER-TRADE-SELL",
+      "roadmapStatus": "VOLL_ABGENOMMEN_OPERATOR",
+      "countsAsPassedForRoadmap": true,
+      "countsAsPassedEvidence": false,
+      "liveTestPerformed": false,
+      "liveEvidence": "NICHT_VORHANDEN",
+      "productiveMutationAutomaticallyAllowed": false,
+      "localCapabilityGateRequired": true
+    }
+  },
+  "safetyRetained": {
+    "freshNonEmptyRidRequired": true,
+    "listingFingerprintRequired": true,
+    "listingSideItemLevelPriceQuantityRevalidation": true,
+    "ridIsIdempotencyKey": false,
+    "ridIsQuantityVersion": false,
+    "partialFillMayKeepRid": true,
+    "remoteListingCanDrift": true,
+    "tradeSellMustReproduceServerSelectedItem": true,
+    "physicalVariantAmbiguityBlocks": true,
+    "sameIntentRetry": false,
+    "unknownOutcome": "REOBSERVE_RECONCILE_NO_BLIND_RETRY"
+  },
+  "transitionPolicy": {
+    "blocksPr20_3Sequencing": false,
+    "requiresDedicatedTradeLiveTestsForRoadmap": false,
+    "grantsProductiveTradeAuthority": false,
+    "grantsRawWriteAuthority": false,
+    "rewritesHistoricalEvidence": false
+  }
+}
