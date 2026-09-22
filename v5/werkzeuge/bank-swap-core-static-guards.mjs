@@ -13,6 +13,7 @@ if (![
   "CORE_VORBEREITET_READ_ONLY_PREFLIGHT_AUSSTEHEND",
   "READ_ONLY_PREFLIGHT_IMPLEMENTIERT_EVIDENCE_AUSSTEHEND",
   "WRITE_ADAPTER_UND_ABEND_NO_WRITE_KETTE_IMPLEMENTIERT_LIVE_RUNNER_AUSSTEHEND",
+  "ABEND_TESTKETTE_VOLLSTAENDIG_IMPLEMENTIERT_REALE_EVIDENCE_AUSSTEHEND",
 ].includes(candidate.status)
     || candidate.publicFunction !== "bank_swap"
     || candidate.officialSource?.serverOperation !== "move"
@@ -25,7 +26,10 @@ if (![
     || candidate.implementation?.readOnlyBrowserObserverImplemented !== true
     || candidate.implementation?.readOnlyPreflightImplemented !== true
     || candidate.implementation?.writeAdapterImplemented !== true
-    || candidate.implementation?.liveRunnerImplemented !== false
+    || candidate.implementation?.liveRunnerImplemented !== true
+    || candidate.implementation?.writePreflightImplemented !== true
+    || candidate.implementation?.durableTwoTestLimitImplemented !== true
+    || candidate.implementation?.maxTrueFunctionalTests !== 2
     || candidate.implementation?.gameplayWritesInThisStep !== 0) {
   errors.push("BANK_SWAP_CANDIDATE_GRENZE_UNGUELTIG");
 }
@@ -73,6 +77,29 @@ if (!fs.existsSync(writeAdapterPfad)) {
       || !write.includes("FINAL_PRESTATE_DRIFT")
       || !write.includes("DISCONNECT_NACH_MOEGLICHEM_SEND")) {
     errors.push("BANK_SWAP_WRITE_ADAPTER_SAFETY_UNGUELTIG");
+  }
+}
+
+const liveRunnerPfad = "werkzeuge/bank-swap-produktions-live.mjs";
+const testLimitPfad = "grundlage/adapter/persistenz/node-bank-swap-live-test-limit.mjs";
+if (!fs.existsSync(liveRunnerPfad) || !fs.existsSync(testLimitPfad)) {
+  errors.push("BANK_SWAP_LIVE_KETTE_FEHLT");
+} else {
+  const live = read(liveRunnerPfad);
+  const limit = read(testLimitPfad);
+  if (/\.emit\s*\(/.test(live)
+      || !live.includes("LIVE_TEST_1")
+      || !live.includes("LIVE_TEST_2")
+      || !live.includes("verlangeBankSwapAbendVorstufe")
+      || !live.includes("markiereMoeglichenSend")
+      || !live.includes("testNummer===2")
+      || !live.includes("COMMITTED")
+      || !live.includes("BESTAETIGT")
+      || !limit.includes("maximaleEchteFunktionstests: 2")
+      || !limit.includes("TEST_1_NICHT_SAUBER")
+      || !limit.includes("NICHT_EXAKTER_REVERSE")
+      || !limit.includes("sameIntentRetry: false")) {
+    errors.push("BANK_SWAP_LIVE_KETTE_SAFETY_UNGUELTIG");
   }
 }
 

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_2_BANK_SWAP_ERSTER_KANDIDAT",
   "stand": "2026-09-22",
-  "status": "WRITE_ADAPTER_UND_ABEND_NO_WRITE_KETTE_IMPLEMENTIERT_LIVE_RUNNER_AUSSTEHEND",
+  "status": "ABEND_TESTKETTE_VOLLSTAENDIG_IMPLEMENTIERT_REALE_EVIDENCE_AUSSTEHEND",
   "sourceMain": "9092549b88764995afcc3134a49904d2fa6c59a5",
   "capabilitySpaeter": "merchant.bank.intern_tauschen",
   "providerSpaeter": "merchant-bank-core@1",
@@ -85,7 +85,7 @@
     "admissionShadowImplemented": true,
     "realBrowserShadowImplemented": true,
     "writeAdapterImplemented": true,
-    "liveRunnerImplemented": false,
+    "liveRunnerImplemented": true,
     "gameplayWritesInThisStep": 0,
     "readOnlyBrowserObserver": "werkzeuge/bank-swap-produktions-browser.mjs",
     "readOnlyPreflight": "werkzeuge/bank-swap-produktions-preflight.mjs",
@@ -94,9 +94,17 @@
     "admissionShadow": "grundlage/quelle/merchant/bank-swap-shadow-admission.ts",
     "realBrowserShadow": "werkzeuge/bank-swap-real-browser-shadow.mjs",
     "writeAdapter": "werkzeuge/bank-swap-produktions-write-browser.mjs",
-    "productionTransaction": "grundlage/quelle/merchant/bank-swap-produktions-transaktion.ts"
+    "productionTransaction": "grundlage/quelle/merchant/bank-swap-produktions-transaktion.ts",
+    "writePreflightImplemented": true,
+    "durableTwoTestLimitImplemented": true,
+    "liveRunner": "werkzeuge/bank-swap-produktions-live.mjs",
+    "writePreflight": "werkzeuge/bank-swap-produktions-live.mjs --preflight",
+    "liveTestLimit": "grundlage/adapter/persistenz/node-bank-swap-live-test-limit.mjs",
+    "eveningStageHarness": "werkzeuge/bank-swap-abend-stage.ps1",
+    "eveningEvidenceChain": "werkzeuge/bank-swap-evening-evidence.mjs",
+    "maxTrueFunctionalTests": 2
   },
-  "nextStep": "WRITE_PREFLIGHT_UND_PERSISTENTES_ZWEI_TEST_LIMIT_FERTIGSTELLEN; DANACH LIVE_RUNNER; ERST NACH MERGE LOKALE ABENDKETTE AUSFUEHREN",
+  "nextStep": "NACH_MERGE DIE_SIEBEN_ABEND_STUFEN_SOURCE_EXAKT_EINZELN_AUSFUEHREN; BEI_JEDEM_BLOCKER_STOPP; TEST_2_NUR_NACH_COMMITTED_BESTAETIGT_TEST_1",
   "preflightGate": {
     "sourceShaExactHeadRequired": true,
     "loopbackCdpOnly": true,
@@ -108,5 +116,19 @@
     "mutatingPublicFunctionCalls": 0,
     "gameplayWrites": 0,
     "adapterCalls": 0
+  },
+  "preparedAgainstMain": "914106403f5540825c7971de057f8ed321d9bd94",
+  "liveGate": {
+    "maximumTrueFunctionalTests": 2,
+    "test2RequiresTest1CommittedConfirmed": true,
+    "test2RequiresExactReversePrestate": true,
+    "possibleSendDurablyMarked": true,
+    "testStartDurablyConsumedAfterStableMount": true,
+    "sameIntentRetry": false,
+    "maxAdapterCallsPerIntent": 1,
+    "maxGameplayWritesPerIntent": 1,
+    "rawSocketEmitAllowed": false,
+    "productionWideActivationAllowed": false,
+    "realEvidenceStatus": "AUSSTEHEND"
   }
 }

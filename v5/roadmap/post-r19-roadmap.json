@@ -87,7 +87,7 @@
     "Test 2 erreichte den Adapter, sendete aber nicht; Root Cause war ein inaktiver Adventure-Land-CODE-Runner und fehlendes globales bank_withdraw im Page-Kontext",
     "der korrigierte offizielle Page->CODE-Bridge-Pfad via call_code_function_f wurde danach real read-only mit 0 Gameplay-Writes und 0 bank_withdraw-Aufrufen als BEREIT bestaetigt",
     "Withdraw bleibt ohne vollstaendig bestandene Live-Write-Evidence breit deaktiviert; kein Same-Intent-Retry und kein dritter Funktionstest",
-    "bank_swap ist als naechster separater Bankpfad gewaehlt; Core ist write-frei vorbereitet, naechstes Gate ist der source-exakte reale Read-only-Preflight mit 0 Gameplay-Writes",
+    "bank_swap Abend-Testkette ist vollstaendig implementiert; naechstes Gate sind sieben source-exakte lokale Stufen, davon nur Stufe 6/7 echte Funktionstests und Stufe 7 nur nach sauberem COMMITTED/BESTAETIGT Test 1",
     "Capacity-/Workspace- und Open-Bank-Pack-Gates separat behandeln",
     "erst nach komplettem PR20.2-Exit-Gate PR20.3 Markt produktiv oeffnen"
   ],
@@ -154,7 +154,7 @@
   },
   "parallelPreparation": {
     "id": "PR20.2_BANK",
-    "status": "WITHDRAW_TESTLIMIT_ERREICHT_BRIDGE_FIX_READ_ONLY_BESTAETIGT_SWAP_PREFLIGHT_EVIDENCE_AUSSTEHEND",
+    "status": "WITHDRAW_TESTLIMIT_ERREICHT_SWAP_ABEND_TESTKETTE_IMPLEMENTIERT_REALE_EVIDENCE_AUSSTEHEND",
     "blockedBy": null,
     "produktiveRegistrierungErlaubt": true,
     "gameplayAuthority": false,
@@ -222,7 +222,19 @@
       "v5/grundlage/vertraege/runtime/bank-swap-read-only-preflight.json",
       "v5/werkzeuge/bank-swap-produktions-browser.mjs",
       "v5/werkzeuge/bank-swap-produktions-preflight.mjs",
-      "v5/architektur/adr/ADR-046-PR20-2Q-BANK-SWAP-READ-ONLY-PREFLIGHT.md"
+      "v5/architektur/adr/ADR-046-PR20-2Q-BANK-SWAP-READ-ONLY-PREFLIGHT.md",
+      "v5/grundlage/quelle/merchant/bank-swap-produktions-transaktion.ts",
+      "v5/grundlage/quelle/merchant/bank-swap-admission-gate.ts",
+      "v5/grundlage/adapter/persistenz/node-bank-swap-live-test-limit.mjs",
+      "v5/werkzeuge/bank-swap-evening-evidence.mjs",
+      "v5/werkzeuge/bank-swap-candidate-stability.mjs",
+      "v5/werkzeuge/bank-swap-code-bridge-probe.mjs",
+      "v5/werkzeuge/bank-swap-real-browser-shadow.mjs",
+      "v5/werkzeuge/bank-swap-produktions-write-browser.mjs",
+      "v5/werkzeuge/bank-swap-produktions-live.mjs",
+      "v5/werkzeuge/bank-swap-abend-stage.ps1",
+      "v5/roadmap/pr20-2-bank-swap-evening-test-plan.json",
+      "v5/architektur/adr/ADR-047-PR20-2R-BANK-SWAP-ABEND-TESTKETTE.md"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",
@@ -305,6 +317,26 @@
       "correctedCodeBridgeSourceSha": "d9528c6dccd4befeb8021cf1a0a6c1b936e0f3c3",
       "officialCodeBridge": "call_code_function_f",
       "runnerBootstrapNoGameplayWrite": true,
+      "productionWideActivationAllowed": false
+    },
+    "bankSwapCandidate": {
+      "publicFunction": "bank_swap",
+      "status": "ABEND_TESTKETTE_VOLLSTAENDIG_IMPLEMENTIERT_REALE_EVIDENCE_AUSSTEHEND",
+      "contract": "v5/grundlage/vertraege/runtime/bank-swap-production-candidate.json",
+      "provider": "merchant-bank-core@1",
+      "capabilityId": "merchant.bank.intern_tauschen",
+      "oneShotAuthority": true,
+      "durableCurrentFence": true,
+      "persistentBankLease": true,
+      "writeAdapter": true,
+      "liveRunner": true,
+      "sourceShaPinning": true,
+      "maxTrueFunctionalTests": 2,
+      "testsConsumed": 0,
+      "test2RequiresCleanTest1": true,
+      "test2ExactReverseIntent": true,
+      "sameIntentRetry": false,
+      "rawWriteAuthority": false,
       "productionWideActivationAllowed": false
     }
   },
