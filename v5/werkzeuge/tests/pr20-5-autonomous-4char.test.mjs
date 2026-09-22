@@ -64,10 +64,10 @@ test("PR20.5 pass alone cannot start normal bot runtime", () => {
 test("PR20.5 telemetry facade preserves an existing operations surface", () => {
   assert.ok(source.includes("__v5Pr205FacadeVersion"));
   assert.ok(source.includes("...(existing || {})"));
-  assert.ok(source.includes("existingStatus.bind(existing)"));
-  assert.ok(source.includes("existingHeartbeat.bind(existing)"));
-  assert.ok(source.includes("existingReconciliation.bind(existing)"));
-  assert.ok(source.includes("existingPeekTelemetry.bind(existing)"));
+  assert.ok(source.includes("existing.status.bind(existing)"));
+  assert.ok(source.includes("existing.hostHeartbeat.bind(existing)"));
+  assert.ok(source.includes("existing.reconciliationStatus.bind(existing)"));
+  assert.ok(source.includes("existing.peekTelemetry.bind(existing)"));
   assert.ok(source.includes("v5AutonomousTest:publicState"));
   assert.equal(source.includes("if (existing && typeof existing.status === 'function') return false;"), false);
 });
