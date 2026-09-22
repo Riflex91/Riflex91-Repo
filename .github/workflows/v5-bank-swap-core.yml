@@ -12,6 +12,7 @@ on:
       - 'v5/grundlage/quelle/runtime/produktions-komposition.ts'
       - 'v5/grundlage/quelle/index.ts'
       - 'v5/werkzeuge/bank-swap-**'
+      - 'v5/werkzeuge/r12-live/performance-trick.mjs'
       - 'v5/package.json'
       - '.github/workflows/v5-bank-swap-core.yml'
   workflow_dispatch:

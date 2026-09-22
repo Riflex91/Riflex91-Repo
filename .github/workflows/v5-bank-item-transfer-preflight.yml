@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'v5/werkzeuge/bank-item-transfer-**'
+      - 'v5/werkzeuge/r12-live/performance-trick.mjs'
       - 'v5/werkzeuge/v5-produktions-host-komposition.mjs'
       - 'v5/grundlage/vertraege/runtime/bank-retrieve-read-only-preflight.json'
       - 'v5/grundlage/vertraege/runtime/bank-store-read-only-preflight.json'

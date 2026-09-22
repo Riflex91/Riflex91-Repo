@@ -4,6 +4,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { findeAdventureLandKontext, validiereLoopbackCdp } from "./r12-live/cdp.mjs";
+import { aktiviereUndVerifiziereBrowserPerformanceTrick } from "./r12-live/performance-trick.mjs";
 import {
   BANK_ITEM_TRANSFER_REAL_SHADOW_GAMEPLAY_WRITES,
   beobachteBankItemTransferRohReadOnly,
@@ -33,6 +34,15 @@ function id(p){return p+"-"+Date.now()+"-"+crypto.randomBytes(4).toString("hex")
 function hash(v){return crypto.createHash("sha256").update(String(v)).digest("hex")}
 function cand(s,mode){return mode==="RETRIEVE"?s.retrieveKandidat:s.storeKandidat}
 function confirm(mode){return "V5 BANK "+mode+" SHADOW OHNE WRITE AUSFUEHREN"}
+function confirmToken(mode){return "V5_BANK_"+mode+"_SHADOW_OHNE_WRITE_AUSFUEHREN"}
+export function loeseBankItemTransferShadowBestaetigung(modeWert, confirmWert, tokenWert){
+ const mode=m(modeWert);
+ if(tokenWert!==null&&tokenWert!==undefined){
+  if(String(tokenWert)!==confirmToken(mode))throw new Error("BANK_"+mode+"_SHADOW_OPERATOR_BESTAETIGUNG_FEHLT");
+  return confirm(mode);
+ }
+ return confirmWert;
+}
 function phase(mode,text){process.stdout.write("[V5-BANK-"+mode+"-SHADOW] "+text+"\n")}
 async function report(root,mode,b){const dir=path.join(root,"runtime","canary","bank-"+mode.toLowerCase()+"-real-shadow");await fs.mkdir(dir,{recursive:true});const z=path.join(dir,"latest.json"),t=z+".tmp-"+process.pid+"-"+Date.now();await fs.writeFile(t,JSON.stringify(b,null,2)+"\n","utf8");await fs.rename(t,z);return z}
 export async function fuehreBankItemTransferRealBrowserShadow({modus,cdpText,sourceSha,bestaetigungText,mountTimeoutMs=90_000,exitTimeoutMs=90_000,hostOptionen={}}={}){
@@ -40,6 +50,7 @@ export async function fuehreBankItemTransferRealBrowserShadow({modus,cdpText,sou
  const ds=new NodeProduktionsDateisystem(hostOptionen.dateisystemOptionen??{});const bridge=await verlangeBankItemTransferAbendVorstufe(ds,mode,BANK_ITEM_TRANSFER_ABEND_STUFEN.CODE_BRIDGE,s);
  const live=await findeAdventureLandKontext(validiereLoopbackCdp(cdpText||process.env.V5_CDP_URL||"http://127.0.0.1:9222/"));let host=null;
  try{
+  const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);
   const ausgang=validiereBankItemTransferAusgangsBeobachtung(await beobachteBankItemTransferRohReadOnly(live.session,live.contextId));
   host=await erstelleNodeV5ProduktionsHost(hostOptionen);const startMs=Date.now(),start=await host.starte(startMs);if(start.zustand!=="LAEUFT")throw new Error("BANK_"+mode+"_SHADOW_HOST_BLOCKIERT:"+start.grund);
   const ready=mode==="RETRIEVE"?await host.pruefeBankRetrieveStartBereit():await host.pruefeBankStoreStartBereit();if(!ready.bereit)throw new Error("BANK_"+mode+"_SHADOW_START_EVIDENCE_BLOCKIERT");
@@ -54,7 +65,7 @@ export async function fuehreBankItemTransferRealBrowserShadow({modus,cdpText,sou
   if(!mount||!k||k.pack!==bridge.candidate.pack||k.bankSlot!==bridge.candidate.bankSlot||k.inventorySlot!==bridge.candidate.inventorySlot||k.item.fingerprint!==bridge.candidate.item.fingerprint)throw new Error("BANK_"+mode+"_SHADOW_KANDIDAT_DRIFT");
   const ok=result.status==="ADMISSION_BESTANDEN_KEIN_SEND"&&result.gameplayWrites===0&&result.adapterAufrufe===0&&result.browserGameplayWrites===0&&after.bereit&&leases.every(x=>x.zustand==="RELEASED");
   const b=Object.freeze({schemaVersion:1,modus:mode,stufe:BANK_ITEM_TRANSFER_ABEND_STUFEN.SHADOW,evidenceArt:"V5_BANK_"+mode+"_REAL_BROWSER_SHADOW_NO_WRITE",stand:new Date().toISOString(),status:ok?"BESTANDEN":"NICHT_BESTANDEN",
-   sourceSha:s,actualHeadSha:h,transaktionsId:tx,accountBindungSha256:hash(ausgang.accountId),charakterBindungSha256:hash(ausgang.charakterName+":"+ausgang.sessionId),server:Object.freeze({region:ausgang.serverRegion,kennung:ausgang.serverKennung}),
+   sourceSha:s,actualHeadSha:h,performanceTrick,transaktionsId:tx,accountBindungSha256:hash(ausgang.accountId),charakterBindungSha256:hash(ausgang.charakterName+":"+ausgang.sessionId),server:Object.freeze({region:ausgang.serverRegion,kennung:ausgang.serverKennung}),
    startAusserhalbBank:true,manualMountTransition:true,manualExitRequired:true,admissionStatus:result.status,journalTerminalArt:result.journalTerminalArt,sendBoundaryState:result.sendBoundaryState,sameIntentRetry:false,
    browserGameplayWrites:BANK_ITEM_TRANSFER_REAL_SHADOW_GAMEPLAY_WRITES,hostGameplayWrites:result.hostGameplayWrites,gameplayWrites:result.gameplayWrites,adapterAufrufe:result.adapterAufrufe,candidate:k,bankStartNachherBereit:after.bereit,
    leaseStatus:leases.map(x=>Object.freeze({epoche:x.epoche,zustand:x.zustand})),hostNachher:Object.freeze({zustand:status.zustand,gameplayAutoritaet:status.gameplayAutoritaet,rawWriteAutoritaet:status.rawWriteAutoritaet,actionAuthority:status.actionAuthority}),
@@ -63,6 +74,6 @@ export async function fuehreBankItemTransferRealBrowserShadow({modus,cdpText,sou
  }finally{if(host)await host.stoppe("BANK_"+mode+"_REAL_SHADOW_ENDE").catch(()=>{});live.session.close()}
 }
 const direct=process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href;
-if(direct){const mode=m(leseBankItemTransferShadowArgument("--mode"));fuehreBankItemTransferRealBrowserShadow({modus:mode,cdpText:leseBankItemTransferShadowArgument("--cdp","http://127.0.0.1:9222/"),sourceSha:leseBankItemTransferShadowArgument("--source-sha"),bestaetigungText:leseBankItemTransferShadowArgument("--confirm")})
+if(direct){const mode=m(leseBankItemTransferShadowArgument("--mode"));fuehreBankItemTransferRealBrowserShadow({modus:mode,cdpText:leseBankItemTransferShadowArgument("--cdp","http://127.0.0.1:9222/"),sourceSha:leseBankItemTransferShadowArgument("--source-sha"),bestaetigungText:loeseBankItemTransferShadowBestaetigung(mode,leseBankItemTransferShadowArgument("--confirm",null),leseBankItemTransferShadowArgument("--confirm-token",null))})
 .then(r=>{process.stdout.write(JSON.stringify(r,null,2)+"\n");if(r.status!=="BESTANDEN")process.exitCode=2})
 .catch(e=>{process.stderr.write(JSON.stringify({schemaVersion:1,status:"BLOCKIERT",fehler:String(e?.message||e),gameplayWrites:0,adapterAufrufe:0,publicFunctionAufrufe:0,sameIntentRetry:false,hinweis:"Nicht automatisch erneut ausfuehren; bei offener Lease zuerst Evidence/Reconciliation pruefen."},null,2)+"\n");process.exitCode=1})}

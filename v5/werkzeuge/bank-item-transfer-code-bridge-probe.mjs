@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { NodeProduktionsDateisystem } from "../grundlage/adapter/persistenz/node-produktions-dateisystem.mjs";
 import { findeAdventureLandKontext, validiereLoopbackCdp } from "./r12-live/cdp.mjs";
+import { aktiviereUndVerifiziereBrowserPerformanceTrick } from "./r12-live/performance-trick.mjs";
 import { beobachteBankItemTransferPreflightReadOnly } from "./bank-item-transfer-produktions-browser.mjs";
 import {
   BANK_ITEM_TRANSFER_ABEND_STUFEN,
@@ -32,6 +33,7 @@ export async function fuehreBankItemTransferCodeBridgeProbe({modus,cdpText,sourc
  const vor=await verlangeBankItemTransferAbendVorstufe(ds,mode,BANK_ITEM_TRANSFER_ABEND_STUFEN.STABILITAET,s);
  const live=await findeAdventureLandKontext(validiereLoopbackCdp(cdpText||process.env.V5_CDP_URL||"http://127.0.0.1:9222/"),{requiredGlobalFunction:"call_code_function_f"});
  try{
+  const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);
   const pre=await beobachteBankItemTransferPreflightReadOnly(live.session,live.contextId);const x=cand(pre,mode);
   if(pre.fingerprint!==vor.secondFingerprint||!x||x.pack!==vor.candidate.pack||x.bankSlot!==vor.candidate.bankSlot||x.inventorySlot!==vor.candidate.inventorySlot||x.item.fingerprint!==vor.candidate.item.fingerprint)throw new Error("BANK_"+mode+"_BRIDGE_PRESTATE_DRIFT");
   const probe=await live.session.evaluate(expr(mode),live.contextId);
@@ -39,7 +41,7 @@ export async function fuehreBankItemTransferCodeBridgeProbe({modus,cdpText,sourc
   const post=await beobachteBankItemTransferPreflightReadOnly(live.session,live.contextId);const y=cand(post,mode);
   if(post.fingerprint!==pre.fingerprint||!y||y.pack!==x.pack||y.bankSlot!==x.bankSlot||y.inventorySlot!==x.inventorySlot||y.item.fingerprint!==x.item.fingerprint)throw new Error("BANK_"+mode+"_BRIDGE_BOOTSTRAP_GAMESTATE_DRIFT");
   const bericht=Object.freeze({schemaVersion:1,modus:mode,stufe:BANK_ITEM_TRANSFER_ABEND_STUFEN.CODE_BRIDGE,evidenceArt:"V5_BANK_"+mode+"_CODE_BRIDGE_BOOTSTRAP_NO_GAMEPLAY_WRITE",
-   status:"BESTANDEN",sourceSha:s,actualHeadSha:h,probe,candidate:y,preFingerprint:pre.fingerprint,postFingerprint:post.fingerprint,sameIntentRetry:false,
+   status:"BESTANDEN",sourceSha:s,actualHeadSha:h,performanceTrick,probe,candidate:y,preFingerprint:pre.fingerprint,postFingerprint:post.fingerprint,sameIntentRetry:false,
    safety:Object.freeze({gameplayWrites:0,adapterAufrufe:0,publicFunctionAufrufe:0,mutatingPublicFunctionCalls:0,rawSocketEmit:false})});
   await schreibeBankItemTransferAbendEvidence(ds,mode,BANK_ITEM_TRANSFER_ABEND_STUFEN.CODE_BRIDGE,bericht);return bericht;
  }finally{live.session.close()}

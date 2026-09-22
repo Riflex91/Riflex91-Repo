@@ -10,6 +10,7 @@ import {
   findeAdventureLandKontext,
   validiereLoopbackCdp,
 } from "./r12-live/cdp.mjs";
+import { aktiviereUndVerifiziereBrowserPerformanceTrick } from "./r12-live/performance-trick.mjs";
 import {
   BANK_SWAP_PREFLIGHT_GAMEPLAY_WRITES,
   BANK_SWAP_PREFLIGHT_MUTATING_PUBLIC_FUNCTION_CALLS,
@@ -85,6 +86,7 @@ export async function fuehreBankSwapPreflight({
   );
   let host = null;
   try {
+    const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);
     const beobachtung = await beobachteBankSwapPreflightReadOnly(
       live.session,
       live.contextId,
@@ -125,7 +127,7 @@ export async function fuehreBankSwapPreflight({
       evidenceArt: "V5_BANK_SWAP_READ_ONLY_PREFLIGHT",
       status: bereit ? "BEREIT" : "BLOCKIERT",
       sourceSha: erwartet,
-      actualHeadSha,
+      actualHeadSha,performanceTrick,
       context: Object.freeze({
         targetUrl: live.targetUrl,
         contextId: live.contextId,

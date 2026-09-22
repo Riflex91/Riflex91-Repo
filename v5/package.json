@@ -117,7 +117,7 @@
     "bank-swap-evening:no-write-pruefen": "npm run bauen && node --check werkzeuge/bank-swap-evening-evidence.mjs && node --check werkzeuge/bank-swap-candidate-stability.mjs && node --check werkzeuge/bank-swap-code-bridge-probe.mjs && node --check werkzeuge/bank-swap-real-browser-shadow.mjs && node --test grundlage/tests/r11-bank-swap-produktions-browser.test.mjs",
     "bank-swap-evening:write-preflight": "npm run bauen && node werkzeuge/bank-swap-write-preflight.mjs",
     "bank-swap-evening:live": "npm run bauen && node werkzeuge/bank-swap-produktions-live.mjs",
-    "bank-swap-evening:write-pruefen": "npm run bauen && node --check werkzeuge/bank-swap-produktions-write-browser.mjs && node --check werkzeuge/bank-swap-write-preflight.mjs && node --check werkzeuge/bank-swap-produktions-live.mjs && node --check grundlage/adapter/persistenz/node-bank-swap-live-test-limit.mjs && node --test grundlage/tests/r11-bank-swap-produktions-write-browser.test.mjs grundlage/tests/r11-bank-swap-produktions-transaktion.test.mjs grundlage/tests/r11-bank-swap-live-test-limit.test.mjs grundlage/tests/r11-bank-swap-live-runner-static.test.mjs",
+    "bank-swap-evening:write-pruefen": "npm run bauen && node --check werkzeuge/bank-swap-produktions-write-browser.mjs && node --check werkzeuge/bank-swap-write-preflight.mjs && node --check werkzeuge/bank-swap-produktions-live.mjs && node --check grundlage/adapter/persistenz/node-bank-swap-live-test-limit.mjs && node --test grundlage/tests/r11-bank-swap-produktions-write-browser.test.mjs grundlage/tests/r11-bank-swap-produktions-transaktion.test.mjs grundlage/tests/r11-bank-swap-live-test-limit.test.mjs grundlage/tests/r11-bank-swap-live-runner-static.test.mjs && npm run bank-browser-performance:pruefen",
     "ingame:bank-swap:stability": "npm run bauen && node werkzeuge/bank-swap-candidate-stability.mjs",
     "ingame:bank-swap:bridge": "npm run bauen && node werkzeuge/bank-swap-code-bridge-probe.mjs",
     "ingame:bank-swap:shadow": "npm run bauen && node werkzeuge/bank-swap-real-browser-shadow.mjs",
@@ -127,7 +127,7 @@
     "bank-item-transfer-production:preflight-pruefen": "npm run bauen && node --check werkzeuge/bank-item-transfer-produktions-browser.mjs && node --check werkzeuge/bank-item-transfer-produktions-preflight.mjs && node --test grundlage/tests/r11-bank-item-transfer-produktions-browser.test.mjs grundlage/tests/r11-bank-item-transfer-preflight-static.test.mjs",
     "ingame:bank-retrieve:preflight": "npm run bauen && node werkzeuge/bank-item-transfer-produktions-preflight.mjs --mode RETRIEVE",
     "ingame:bank-store:preflight": "npm run bauen && node werkzeuge/bank-item-transfer-produktions-preflight.mjs --mode STORE",
-    "bank-item-transfer-evening:no-write-pruefen": "npm run bauen && node --check werkzeuge/bank-item-transfer-evening-evidence.mjs && node --check werkzeuge/bank-item-transfer-candidate-stability.mjs && node --check werkzeuge/bank-item-transfer-code-bridge-probe.mjs && node --test grundlage/tests/r11-bank-item-transfer-evening-evidence.test.mjs grundlage/tests/r11-bank-item-transfer-shadow-runtime.test.mjs",
+    "bank-item-transfer-evening:no-write-pruefen": "npm run bauen && node --check werkzeuge/bank-item-transfer-evening-evidence.mjs && node --check werkzeuge/bank-item-transfer-candidate-stability.mjs && node --check werkzeuge/bank-item-transfer-code-bridge-probe.mjs && node --test grundlage/tests/r11-bank-item-transfer-evening-evidence.test.mjs grundlage/tests/r11-bank-item-transfer-shadow-runtime.test.mjs && npm run bank-browser-performance:pruefen",
     "ingame:bank-retrieve:stability": "npm run bauen && node werkzeuge/bank-item-transfer-candidate-stability.mjs --mode RETRIEVE",
     "ingame:bank-retrieve:bridge": "npm run bauen && node werkzeuge/bank-item-transfer-code-bridge-probe.mjs --mode RETRIEVE",
     "ingame:bank-store:stability": "npm run bauen && node werkzeuge/bank-item-transfer-candidate-stability.mjs --mode STORE",
@@ -135,7 +135,8 @@
     "bank-item-transfer-evening:shadow-pruefen": "npm run bauen && node --check werkzeuge/bank-item-transfer-real-browser-shadow.mjs && node --check werkzeuge/bank-item-transfer-produktions-browser.mjs && node --test grundlage/tests/r11-bank-item-transfer-shadow-runtime.test.mjs grundlage/tests/r11-bank-item-transfer-real-shadow-static.test.mjs",
     "ingame:bank-retrieve:shadow": "npm run bauen && node werkzeuge/bank-item-transfer-real-browser-shadow.mjs --mode RETRIEVE",
     "ingame:bank-store:shadow": "npm run bauen && node werkzeuge/bank-item-transfer-real-browser-shadow.mjs --mode STORE",
-    "bank-shadow-cli:pruefen": "node --check werkzeuge/bank-item-transfer-real-browser-shadow.mjs && node --check werkzeuge/bank-swap-real-browser-shadow.mjs && node --test grundlage/tests/r11-bank-shadow-cli-argumente.test.mjs"
+    "bank-shadow-cli:pruefen": "node --check werkzeuge/bank-item-transfer-real-browser-shadow.mjs && node --check werkzeuge/bank-swap-real-browser-shadow.mjs && node --test grundlage/tests/r11-bank-shadow-cli-argumente.test.mjs",
+    "bank-browser-performance:pruefen": "node --check werkzeuge/r12-live/performance-trick.mjs && node --test grundlage/tests/r11-bank-browser-performance-trick.test.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { NodeProduktionsDateisystem } from "../grundlage/adapter/persistenz/node-produktions-dateisystem.mjs";
 import { findeAdventureLandKontext, validiereLoopbackCdp } from "./r12-live/cdp.mjs";
+import { aktiviereUndVerifiziereBrowserPerformanceTrick } from "./r12-live/performance-trick.mjs";
 import { beobachteBankSwapPreflightReadOnly } from "./bank-swap-produktions-browser.mjs";
 import {
   BANK_SWAP_ABEND_STUFEN,
@@ -33,6 +34,7 @@ export async function fuehreBankSwapCodeBridgeProbe({cdpText,sourceSha,dateisyst
  const cdp=validiereLoopbackCdp(cdpText||process.env.V5_CDP_URL||"http://127.0.0.1:9222/");
  const live=await findeAdventureLandKontext(cdp,{requiredGlobalFunction:"call_code_function_f"});
  try{
+   const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);
    const pre=await beobachteBankSwapPreflightReadOnly(live.session,live.contextId);
    if(pre.fingerprint!==vor.secondFingerprint)throw new Error("BANK_SWAP_BRIDGE_PRESTATE_DRIFT");
    const probe=await live.session.evaluate(EXPR,live.contextId);
@@ -41,7 +43,7 @@ export async function fuehreBankSwapCodeBridgeProbe({cdpText,sourceSha,dateisyst
    if(post.fingerprint!==pre.fingerprint||post.kandidat.pack!==pre.kandidat.pack||post.kandidat.a!==pre.kandidat.a||post.kandidat.b!==pre.kandidat.b)
      throw new Error("BANK_SWAP_BRIDGE_BOOTSTRAP_GAMESTATE_DRIFT");
    const bericht=Object.freeze({schemaVersion:1,stufe:BANK_SWAP_ABEND_STUFEN.CODE_BRIDGE,evidenceArt:"V5_BANK_SWAP_CODE_BRIDGE_BOOTSTRAP_NO_GAMEPLAY_WRITE",
-     status:"BESTANDEN",sourceSha:s,actualHeadSha:h,probe,candidate:post.kandidat,preFingerprint:pre.fingerprint,postFingerprint:post.fingerprint,
+     status:"BESTANDEN",sourceSha:s,actualHeadSha:h,performanceTrick,probe,candidate:post.kandidat,preFingerprint:pre.fingerprint,postFingerprint:post.fingerprint,
      sameIntentRetry:false,safety:Object.freeze({gameplayWrites:0,adapterAufrufe:0,bankSwapAufrufe:0,mutatingPublicFunctionCalls:0,rawSocketEmit:false})});
    await schreibeBankSwapAbendEvidence(ds,BANK_SWAP_ABEND_STUFEN.CODE_BRIDGE,bericht);return bericht;
  }finally{live.session.close()}

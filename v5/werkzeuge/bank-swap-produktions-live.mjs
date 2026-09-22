@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { NodeProduktionsDateisystem } from "../grundlage/adapter/persistenz/node-produktions-dateisystem.mjs";
 import { NodeBankSwapLiveTestLimit } from "../grundlage/adapter/persistenz/node-bank-swap-live-test-limit.mjs";
 import { findeAdventureLandKontext, validiereLoopbackCdp } from "./r12-live/cdp.mjs";
+import { aktiviereUndVerifiziereBrowserPerformanceTrick } from "./r12-live/performance-trick.mjs";
 import {
   erstelleBankSwapReleaseBeobachter,
   erstelleProduktivenBankSwapBeobachter,
@@ -36,8 +37,8 @@ function head(){return sha(execFileSync("git",["rev-parse","HEAD"],{cwd:REPO_ROO
 function id(p){return p+"-"+Date.now()+"-"+crypto.randomBytes(4).toString("hex")}
 function phase(s){process.stdout.write("[V5-BANK-SWAP-LIVE] "+s+"\n")}
 function parse(argv){
- const o={cdp:"http://127.0.0.1:9222/",sourceSha:null,preflight:false,testNummer:null,confirm:null};
- const flags=new Set(["--cdp","--source-sha","--preflight","--test-number","--confirm"]);
+ const o={cdp:"http://127.0.0.1:9222/",sourceSha:null,preflight:false,testNummer:null,confirm:null,confirmToken:null};
+ const flags=new Set(["--cdp","--source-sha","--preflight","--test-number","--confirm","--confirm-token"]);
  for(let i=0;i<argv.length;i++){
   const a=argv[i];
   if(a==="--preflight")o.preflight=true;
@@ -45,6 +46,7 @@ function parse(argv){
   else if(a==="--source-sha")o.sourceSha=argv[++i];
   else if(a==="--test-number")o.testNummer=Number(argv[++i]);
   else if(a==="--confirm"){const x=[];while(i+1<argv.length&&!flags.has(argv[i+1]))x.push(argv[++i]);o.confirm=x.join(" ").replace(/^["']|["']$/g,"").trim()}
+  else if(a==="--confirm-token")o.confirmToken=argv[++i];
   else throw new Error("BANK_SWAP_LIVE_CLI_ARGUMENT_UNBEKANNT:"+a);
  }
  return o;
@@ -100,6 +102,7 @@ export async function fuehreBankSwapProduktionslauf({
  const browser=await findeAdventureLandKontext(cdp,{requiredGlobalFunction:"call_code_function_f"});
  let host=null;
  try{
+  const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(browser.session,browser.contextId);
   const ausgang=await warteAufStabilenBankSwapStartAusserhalbBankReadOnly(browser.session,browser.contextId,{
    timeoutMs:mountTimeoutMs,pollMs:500,onPhase:phase,
   });
@@ -121,7 +124,7 @@ export async function fuehreBankSwapProduktionslauf({
    const report=Object.freeze({
     schemaVersion:1,stufe:BANK_SWAP_ABEND_STUFEN.WRITE_PREFLIGHT,
     evidenceArt:"V5_BANK_SWAP_WRITE_PREFLIGHT_NO_GAMEPLAY_WRITE",status:"BEREIT",
-    sourceSha:expected,actualHeadSha:actual,candidate:shadow.candidate,
+    sourceSha:expected,actualHeadSha:actual,performanceTrick,candidate:shadow.candidate,
     accountBindungSha256:hash(ausgang.accountId),charakterBindungSha256:hash(ausgang.charakterName+":"+ausgang.sessionId),
     server:Object.freeze({region:ausgang.serverRegion,kennung:ausgang.serverKennung}),
     startAusserhalbBank:true,testBudgetVerbraucht:0,sameIntentRetry:false,
@@ -134,7 +137,8 @@ export async function fuehreBankSwapProduktionslauf({
 
   if(testNummer!==1&&testNummer!==2)throw new Error("BANK_SWAP_LIVE_TESTNUMMER_ERFORDERLICH");
   const confirm=testNummer===1?BANK_SWAP_LIVE_TEST_1_BESTAETIGUNG:BANK_SWAP_LIVE_TEST_2_BESTAETIGUNG;
-  if(bestaetigungText!==confirm)throw new Error("BANK_SWAP_LIVE_OPERATOR_BESTAETIGUNG_FEHLT:"+confirm);
+  const token=testNummer===1?"V5_BANK_SWAP_LIVE_TEST_1_EINMAL_AUSFUEHREN":"V5_BANK_SWAP_LIVE_TEST_2_EINMAL_AUSFUEHREN";
+  if(bestaetigungText!==confirm&&bestaetigungText!==token)throw new Error("BANK_SWAP_LIVE_OPERATOR_BESTAETIGUNG_FEHLT:"+confirm);
   const writePreflight=await verlangeBankSwapAbendVorstufe(
    ds,BANK_SWAP_ABEND_STUFEN.WRITE_PREFLIGHT,expected
   );
@@ -223,7 +227,7 @@ export async function fuehreBankSwapProduktionslauf({
   const report=Object.freeze({
    schemaVersion:1,stufe:stage,evidenceArt:BANK_SWAP_PRODUCTION_EVIDENCE_ART,
    stand:new Date().toISOString(),status:clean?"BESTANDEN":"NICHT_BESTANDEN",
-   sourceSha:expected,actualHeadSha:actual,testNummer,transaktionsId:ids.tx,
+   sourceSha:expected,actualHeadSha:actual,performanceTrick,testNummer,transaktionsId:ids.tx,
    result,prestate:result.prestate??null,candidate:mount?.kandidat??null,
    adapterAufrufe:adapter.adapterAufrufe,gameplayWrites:adapter.gameWrites,
    moeglicherSend:adapter.moeglicherSend,sameIntentRetry:false,

@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { pruefeBankItemTransferVorAuthorityCurrentFence } from "../erzeugt/index.js";
 import { findeAdventureLandKontext, validiereLoopbackCdp } from "./r12-live/cdp.mjs";
+import { aktiviereUndVerifiziereBrowserPerformanceTrick } from "./r12-live/performance-trick.mjs";
 import {
  BANK_ITEM_TRANSFER_PREFLIGHT_GAMEPLAY_WRITES,
  BANK_ITEM_TRANSFER_PREFLIGHT_MUTATING_PUBLIC_FUNCTION_CALLS,
@@ -26,6 +27,7 @@ export async function fuehreBankItemTransferPreflight({modus,cdpText,sourceSha,h
  const m=mode(modus),s=sha(sourceSha),actual=head();if(s!==actual)throw new Error("BANK_ITEM_TRANSFER_PREFLIGHT_SOURCE_SHA_DRIFT:"+s+":"+actual);
  const live=await findeAdventureLandKontext(validiereLoopbackCdp(cdpText||process.env.V5_CDP_URL||"http://127.0.0.1:9222/"),{requiredGlobalFunction:"call_code_function_f"});
  let host=null;try{
+  const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);
   const obs=await beobachteBankItemTransferPreflightReadOnly(live.session,live.contextId);const kandidat=m==="RETRIEVE"?obs.retrieveKandidat:obs.storeKandidat;
   if(!kandidat)throw new Error(m==="RETRIEVE"?"BANK_RETRIEVE_KEIN_SICHERER_KANDIDAT":"BANK_STORE_KEIN_SICHERER_KANDIDAT");
   host=await erstelleNodeV5ProduktionsHost(hostOptionen);const start=await host.starte(Date.now());if(start.zustand!=="LAEUFT")throw new Error("BANK_ITEM_TRANSFER_PREFLIGHT_HOST_BLOCKIERT:"+start.grund);
@@ -38,7 +40,7 @@ export async function fuehreBankItemTransferPreflight({modus,cdpText,sourceSha,h
   const bericht=Object.freeze({schemaVersion:1,stufe:BANK_ITEM_TRANSFER_ABEND_STUFEN.PREFLIGHT,evidenceArt:"V5_BANK_"+m+"_READ_ONLY_PREFLIGHT",status:bereit?"BEREIT":"BLOCKIERT",modus:m,sourceSha:s,actualHeadSha:actual,
    context:Object.freeze({targetUrl:live.targetUrl,contextId:live.contextId,requiredGlobalFunction:"call_code_function_f"}),accountBindungSha256:h(obs.accountId),charakterBindungSha256:h(obs.charakterName+":"+obs.sessionId),
    server:Object.freeze({region:obs.serverRegion,kennung:obs.serverKennung}),mount:Object.freeze({map:obs.map,bankGemountet:true,beobachtetePacks:obs.beobachtetePacks}),candidate:kandidat,
-   baseline:Object.freeze({fingerprint:obs.fingerprint,characterGold:obs.characterGold,bankGold:obs.bankGold,inventoryCapacity:obs.inventoryCapacity,beobachtetAmMs:obs.beobachtetAmMs}),
+   baseline:Object.freeze({fingerprint:obs.fingerprint,characterGold:obs.characterGold,bankGold:obs.bankGold,inventoryCapacity:obs.inventoryCapacity,beobachtetAmMs:obs.beobachtetAmMs}),performanceTrick,
    current,fence,safety:Object.freeze({browserReadOnly:true,gameplayWrites:BANK_ITEM_TRANSFER_PREFLIGHT_GAMEPLAY_WRITES,mutatingPublicFunctionCalls:BANK_ITEM_TRANSFER_PREFLIGHT_MUTATING_PUBLIC_FUNCTION_CALLS,
     authorityAusgestellt:false,leaseErworben:false,journalIntentGeschrieben:false,adapterAufrufe:0,publicFunctionAufrufe:0,rawSocketEmit:false,sameIntentRetry:false}),
    sameIntentRetry:false,naechsterSchritt:bereit?m+"_KANDIDATEN_STABILITAET":"BLOCKER_LOKALISIEREN_KEIN_RETRY"});
