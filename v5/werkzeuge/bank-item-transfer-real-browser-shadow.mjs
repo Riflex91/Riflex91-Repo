@@ -23,7 +23,12 @@ const V5=path.resolve(path.dirname(fileURLToPath(import.meta.url)),".."),ROOT=pa
 function m(v){const x=String(v||"").toUpperCase();if(!["RETRIEVE","STORE"].includes(x))throw new Error("BANK_ITEM_TRANSFER_SHADOW_MODUS_UNGUELTIG");return x}
 function sha(v){if(typeof v!=="string"||!/^[a-f0-9]{40}$/i.test(v))throw new Error("BANK_ITEM_TRANSFER_SHADOW_SHA_UNGUELTIG");return v.toLowerCase()}
 function head(){return sha(execFileSync("git",["rev-parse","HEAD"],{cwd:ROOT,encoding:"utf8",windowsHide:true}).trim())}
-function arg(n,f){const i=process.argv.indexOf(n);if(i<0)return f;const v=process.argv[i+1];if(!v||v.startsWith("--"))throw new Error("BANK_ITEM_TRANSFER_SHADOW_ARGUMENT_FEHLT:"+n);return v}
+export function leseBankItemTransferShadowArgument(n,f=null,argv=process.argv){
+ const i=argv.indexOf(n);if(i<0)return f;
+ const teile=[];for(let j=i+1;j<argv.length&&!String(argv[j]).startsWith("--");j+=1)teile.push(String(argv[j]));
+ if(teile.length===0)throw new Error("BANK_ITEM_TRANSFER_SHADOW_ARGUMENT_FEHLT:"+n);
+ return teile.join(" ");
+}
 function id(p){return p+"-"+Date.now()+"-"+crypto.randomBytes(4).toString("hex")}
 function hash(v){return crypto.createHash("sha256").update(String(v)).digest("hex")}
 function cand(s,mode){return mode==="RETRIEVE"?s.retrieveKandidat:s.storeKandidat}
@@ -58,6 +63,6 @@ export async function fuehreBankItemTransferRealBrowserShadow({modus,cdpText,sou
  }finally{if(host)await host.stoppe("BANK_"+mode+"_REAL_SHADOW_ENDE").catch(()=>{});live.session.close()}
 }
 const direct=process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href;
-if(direct){const mode=m(arg("--mode"));fuehreBankItemTransferRealBrowserShadow({modus:mode,cdpText:arg("--cdp","http://127.0.0.1:9222/"),sourceSha:arg("--source-sha"),bestaetigungText:arg("--confirm")})
+if(direct){const mode=m(leseBankItemTransferShadowArgument("--mode"));fuehreBankItemTransferRealBrowserShadow({modus:mode,cdpText:leseBankItemTransferShadowArgument("--cdp","http://127.0.0.1:9222/"),sourceSha:leseBankItemTransferShadowArgument("--source-sha"),bestaetigungText:leseBankItemTransferShadowArgument("--confirm")})
 .then(r=>{process.stdout.write(JSON.stringify(r,null,2)+"\n");if(r.status!=="BESTANDEN")process.exitCode=2})
 .catch(e=>{process.stderr.write(JSON.stringify({schemaVersion:1,status:"BLOCKIERT",fehler:String(e?.message||e),gameplayWrites:0,adapterAufrufe:0,publicFunctionAufrufe:0,sameIntentRetry:false,hinweis:"Nicht automatisch erneut ausfuehren; bei offener Lease zuerst Evidence/Reconciliation pruefen."},null,2)+"\n");process.exitCode=1})}
