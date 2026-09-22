@@ -26,6 +26,7 @@ public partial class MainWindow : Window
         WindowsBridgeSelfUpdater.CleanupPreviousExecutable();
         InitializeComponent();
         Title = BuildWindowTitle();
+        StartSelfUpdater();
         Loaded += MainWindow_Loaded;
         Closed += MainWindow_Closed;
     }
@@ -50,14 +51,7 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        try
-        {
-            await InitializeAsync();
-        }
-        finally
-        {
-            StartSelfUpdater();
-        }
+        await InitializeAsync();
     }
 
     private void StartSelfUpdater()
