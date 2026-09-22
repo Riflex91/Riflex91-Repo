@@ -1,6 +1,6 @@
 # PR20.3 – Markt/Kaufen/Verkaufen: NO-WRITE-Vorbereitung
 
-**Status:** TESTKETTE START FREIGEGEBEN / NO-WRITE  
+**Status:** ERSTER KANDIDAT RATIFIZIERT / BUY-WITH-GOLD CORE NO-WRITE  
 **Stand:** 2026-09-22  
 **Voraussetzung:** PR20.2 breite Bankfreigabe erteilt; PR20.3 muss jetzt seine eigenen Safety-/Live-Gates bestehen  
 **Basis-main:** `0c7bffa935d7055d074fa4a3b93d11c861515153`
@@ -21,6 +21,29 @@ Nicht enthalten sind:
 Maschinenlesbarer Vertrag:
 
 `grundlage/vertraege/runtime/market-production-preparation.json`.
+
+## Erster kontrollierter Kandidat
+
+Als erster PR20.3-Mutationspfad ist jetzt **`buy_with_gold(item, 1)`**
+ratifiziert. Bewusst wird nicht das generische `buy()` verwendet, weil dieses
+bei geeigneten Cash-Items automatisch auf `buy_with_shells` routen kann.
+
+Der erste Pfad ist deshalb:
+
+- exakt Menge 1;
+- explizite Goldroute;
+- `AL-ACTION-BUY-WITH-GOLD` / `AL-RECOVERY-BUY-WITH-GOLD` /
+  `AL-VERIFIER-BUY-WITH-GOLD`;
+- FIFO-Deferred-Kanal `buy`;
+- kein Same-Intent-Retry nach moeglichem Send;
+- COMMIT nur bei gemeinsamem exaktem Gold- und Itemmengen-Delta;
+- in diesem Schritt 0 Gameplay-Writes und keine produktive Authority.
+
+Vertrag:
+`grundlage/vertraege/runtime/market-buy-gold-production-candidate.json`
+
+Settlement-Core:
+`grundlage/quelle/merchant/market-buy-gold-settlement.ts`
 
 ## Vorhandene V5-Grundlagen
 
