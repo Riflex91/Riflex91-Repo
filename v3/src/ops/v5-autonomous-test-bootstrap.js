@@ -51,6 +51,27 @@ function parseV5AutonomousTestManifest(value) {
   const testId = text(raw.testId, 160);
   const controllerVersion = text(raw.controllerVersion, 80);
   const expectedGlobal = text(raw.expectedGlobal, 120);
+  let requiresPrevious = null;
+  if (raw.requiresPrevious != null) {
+    if (!raw.requiresPrevious || typeof raw.requiresPrevious !== 'object') {
+      throw new Error('V5_TEST_MANIFEST_PREVIOUS_INVALID');
+    }
+    const previousTestId = text(raw.requiresPrevious.testId, 160);
+    const previousStateKey = text(raw.requiresPrevious.stateKey, 180);
+    const statuses = Array.isArray(raw.requiresPrevious.statuses)
+      ? raw.requiresPrevious.statuses.map((value) => text(value, 80)).filter(Boolean)
+      : [];
+    if (!previousTestId || !previousStateKey || statuses.length < 1
+        || raw.requiresPrevious.terminal !== true) {
+      throw new Error('V5_TEST_MANIFEST_PREVIOUS_FIELDS');
+    }
+    requiresPrevious = Object.freeze({
+      testId: previousTestId,
+      stateKey: previousStateKey,
+      terminal: true,
+      statuses: Object.freeze(statuses)
+    });
+  }
 
   if (!sourceCommit) throw new Error('V5_TEST_MANIFEST_COMMIT');
   if (!packageSha256) throw new Error('V5_TEST_MANIFEST_SHA256');
@@ -72,6 +93,7 @@ function parseV5AutonomousTestManifest(value) {
     packageSha256,
     maxPackageBytes,
     expectedGlobal,
+    requiresPrevious,
     normalRuntimeAllowed: raw.normalRuntimeAllowed === true
   });
 }
@@ -256,6 +278,25 @@ class V5AutonomousTestBootstrap {
     return (0, eval)(code);
   }
 
+  _previousGateSatisfied(manifest) {
+    const required = manifest && manifest.requiresPrevious;
+    if (!required) return true;
+    const store = this._storage();
+    if (!store) return false;
+    try {
+      const raw = store.getItem(required.stateKey);
+      if (!raw) return false;
+      const state = JSON.parse(raw);
+      return !!state
+        && typeof state === 'object'
+        && String(state.testId || '') === required.testId
+        && state.terminal === true
+        && required.statuses.includes(String(state.status || ''));
+    } catch (_) {
+      return false;
+    }
+  }
+
   _reconcileDeployment(manifest, current) {
     const deployment = this._readDeployment();
     if (!deployment || deployment.schemaVersion !== 1) return { blocked: false };
@@ -312,6 +353,14 @@ class V5AutonomousTestBootstrap {
       this.state.desiredSha256 = manifest.packageSha256;
 
       const current = currentV5AutonomousTest(this.root);
+      if (!this._previousGateSatisfied(manifest)) {
+        this.state.phase = 'PREVIOUS_TEST_TERMINAL_EVIDENCE_MISSING';
+        this.state.lastError = {
+          atMs: this.now(),
+          reason: 'PREVIOUS_TEST_TERMINAL_EVIDENCE_MISSING'
+        };
+        return false;
+      }
       const reconciled = this._reconcileDeployment(manifest, current);
       if (reconciled.blocked) {
         this.state.phase = reconciled.reason;
