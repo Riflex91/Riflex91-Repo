@@ -871,3 +871,19 @@ fuenf Minuten stabil bleiben.
 
 Selbst bei `BESTANDEN` bleibt das PR20.2-Exit-Gate blockiert, bis die
 separaten Withdraw-/Open-Pack-Live-Blocker fachlich geschlossen werden koennen.
+
+
+## PR20.2x – Bank NO-WRITE 5M Server-Binding-Korrektur
+
+Der erste reale read-only Preflight blockierte mit
+`SERVER_BINDUNG_FEHLT`, bevor der 5-Minuten-Lauf gestartet wurde. Die
+Sicherheitsgrenze blieb vollstaendig erhalten: 0 Gameplay-Writes, 0 mutierende
+Public-Function-Aufrufe und kein Verbrauch des Funktionstestbudgets.
+
+Controller 1.0.1 korrigiert ausschliesslich die Beobachtung der Serverbindung:
+neben direkten Legacy-Globals werden das offizielle Runner-`server`-Objekt
+und die entsprechenden Parent-Surfaces gelesen. Fehlt auch dort eine
+vollstaendige Bindung, bleibt der Preflight fail-closed.
+
+Nach gruener Exact-Head-CI ist der read-only Preflight erneut ingame
+auszufuehren. PR20.2 und PR20.3 bleiben bis dahin unveraendert gesperrt.
