@@ -66,7 +66,7 @@ if (trade.transitionPolicy?.blocksPr20_3Sequencing !== false
 if (roadmap.currentGate !== "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG"
     || roadmap.pr20_3?.status !== "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN"
     || roadmap.pr20_3?.productiveTradeAuthority !== false
-    || roadmap.pr20_4?.status !== "VORBEREITUNG_FREIGEGEBEN_NO_WRITE"
+    || !["VORBEREITUNG_FREIGEGEBEN_NO_WRITE", "INGAME_GESAMTSTUFENTEST_BEREIT"].includes(roadmap.pr20_4?.status)
     || roadmap.pr20_4?.productiveMutationAllowed !== false) {
   fail("PR20_3_ROADMAP_TRANSITION_UNGUELTIG");
 }
