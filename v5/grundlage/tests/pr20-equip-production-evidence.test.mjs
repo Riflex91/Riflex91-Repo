@@ -1,4 +1,5 @@
 import test from "node:test";
+import { roadmapIstMindestens } from "../../werkzeuge/roadmap-gate-rang.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
@@ -48,7 +49,7 @@ test("PR20.1 Exit-Gate öffnet nur PR20.2 und keine breite Gameplay-Authority", 
   assert.equal(evidence.liveReport.breiteRuntimeFreigabeDurchDiesenTest, false);
   assert.equal(evidence.liveReport.rawWriteBypass, false);
   assert.equal(roadmap.currentStage, "PR20");
-  assert.equal(roadmap.currentGate, "PR20.2_BANK_PRODUKTIVIERUNG");
+  assert.equal(roadmapIstMindestens(roadmap.currentGate, "PR20.2_BANK_PRODUKTIVIERUNG"), true);
   assert.equal(roadmap.pr20_1.status, "BESTANDEN");
   assert.equal(roadmap.pr20_1.evidence, "v5/roadmap/pr20-1-equip-production-evidence.json");
 });
