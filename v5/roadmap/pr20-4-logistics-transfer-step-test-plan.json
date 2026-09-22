@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "kennung": "V5_PR20_4_LOGISTICS_TRANSFER_STEP_TEST_PLAN",
+  "status": "BEREIT_FUER_INGAME_GESAMTSTUFENTEST",
+  "basisMain": "8b0731f55ec2be9282842278e998528b06fc6a65",
+  "paket": "v5/werkzeuge/pr20-4-logistics-transfer-step-test-paket.js",
+  "stateKey": "AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1",
+  "actorsKey": "AIO_V5_PR20_4_TRANSFER_ACTORS_V1",
+  "controllerVersion": "1.0.0",
+  "mergeZwischenTestschrittenErforderlich": false,
+  "produktiveTransferAuthority": false,
+  "prerequisites": [
+    "genau zwei Testcharaktere: ein Merchant und ein Partner",
+    "beide im selben Browserprofil, selben Account, selben Server und derselben Map",
+    "beide mit demselben Testpaket geladen",
+    "Rendezvous-Distanz <= 300",
+    "performance_trick() auf beiden aktiv/verifiziert",
+    "V3/V4-Alternativruntime inaktiv",
+    "Merchant besitzt mindestens einen sicheren stackbaren Testgegenstand; bevorzugt hpot0/mpot0",
+    "beide Charaktere besitzen fuer Gold-Roundtrip mindestens die geforderte Safety-Reserve"
+  ],
+  "liveBudget": {
+    "send_item": {
+      "maxTrueTests": 2,
+      "quantityEach": 1,
+      "persistent": true,
+      "resetImGui": false
+    },
+    "send_gold": {
+      "maxTrueTests": 2,
+      "amountEach": 1,
+      "persistent": true,
+      "resetImGui": false
+    },
+    "sameIntentRetry": false
+  },
+  "semantics": {
+    "itemLive1": "SUPPLY_DELIVERY Merchant -> Partner",
+    "itemLive2": "COLLECTION Partner -> Merchant",
+    "goldLive1": "1 Gold Merchant -> Partner",
+    "goldLive2": "1 Gold Partner -> Merchant",
+    "itemRoundtripRestoredRequired": true,
+    "goldRoundtripRestoredRequired": true,
+    "recipientSettlementRequired": true
+  },
+  "steps": [
+    {
+      "nr": 1,
+      "name": "Pair / Rendezvous / Umgebung",
+      "actor": "MERCHANT",
+      "write": false
+    },
+    {
+      "nr": 2,
+      "name": "Item Source-Pin / Recipient-Baseline / Fault-Matrix",
+      "actor": "MERCHANT",
+      "write": false
+    },
+    {
+      "nr": 3,
+      "name": "LIVE ITEM 1 · Supply Merchant -> Partner",
+      "actor": "MERCHANT",
+      "write": true,
+      "confirmation": "PR20.4-ITEM-LIVE-1-SUPPLY"
+    },
+    {
+      "nr": 4,
+      "name": "Recipient Settlement ITEM 1",
+      "actor": "PARTNER",
+      "write": false
+    },
+    {
+      "nr": 5,
+      "name": "Collection Source-Pin / Merchant-Baseline",
+      "actor": "PARTNER",
+      "write": false
+    },
+    {
+      "nr": 6,
+      "name": "LIVE ITEM 2 · Collection Partner -> Merchant",
+      "actor": "PARTNER",
+      "write": true,
+      "confirmation": "PR20.4-ITEM-LIVE-2-COLLECTION"
+    },
+    {
+      "nr": 7,
+      "name": "Recipient Settlement ITEM 2 / Roundtrip",
+      "actor": "MERCHANT",
+      "write": false
+    },
+    {
+      "nr": 8,
+      "name": "ITEM 5M NO-WRITE",
+      "actor": "MERCHANT",
+      "write": false
+    },
+    {
+      "nr": 9,
+      "name": "Gold-Baselines / Safety-Reserve / Fault-Matrix",
+      "actor": "MERCHANT",
+      "write": false
+    },
+    {
+      "nr": 10,
+      "name": "LIVE GOLD 1 · 1 Gold Merchant -> Partner",
+      "actor": "MERCHANT",
+      "write": true,
+      "confirmation": "PR20.4-GOLD-LIVE-1"
+    },
+    {
+      "nr": 11,
+      "name": "Recipient Settlement GOLD 1",
+      "actor": "PARTNER",
+      "write": false
+    },
+    {
+      "nr": 12,
+      "name": "Reverse Gold-Baselines pinnen",
+      "actor": "PARTNER",
+      "write": false
+    },
+    {
+      "nr": 13,
+      "name": "LIVE GOLD 2 · 1 Gold Partner -> Merchant",
+      "actor": "PARTNER",
+      "write": true,
+      "confirmation": "PR20.4-GOLD-LIVE-2"
+    },
+    {
+      "nr": 14,
+      "name": "Recipient Settlement GOLD 2 / Roundtrip",
+      "actor": "MERCHANT",
+      "write": false
+    },
+    {
+      "nr": 15,
+      "name": "GOLD 5M NO-WRITE",
+      "actor": "MERCHANT",
+      "write": false
+    },
+    {
+      "nr": 16,
+      "name": "Gesamt-Closeout / Duplicate / Restart",
+      "actor": "MERCHANT",
+      "write": false
+    }
+  ],
+  "actorRefreshRule": "Vor jedem Rollenwechsel auf dem neu benoetigten Empfaenger/Sender zuerst 'Actor / Performance / Status aktualisieren'; nach Settlement vor Reverse-Pinning auch den kuenftigen Recipient frisch aktualisieren.",
+  "faultCoverage": [
+    "stale/offline recipient",
+    "session/server/map drift",
+    "distance drift",
+    "restart of nonterminal possible-send -> RECOVERY_PENDING",
+    "partial settlement -> UNKNOWN/FAILED_SAFE, no blind retry",
+    "duplicate intent blocked",
+    "recipient capacity",
+    "source slot/item fingerprint drift"
+  ],
+  "soak": {
+    "perMutationClass": true,
+    "durationMs": 300000,
+    "intervalMs": 15000,
+    "maxSampleGapMs": 45000,
+    "minSamples": 20,
+    "maxSamples": 30,
+    "gameplayWritesDuringSoak": 0
+  },
+  "stopRules": [
+    "nach moeglichem Send bei unklarem Ergebnis niemals denselben Intent erneut senden",
+    "bei NICHT_BESTANDEN/DRIFT/FAILED_SAFE sofort keine weiteren Live-Sends ausfuehren",
+    "wenn ein Live-Budget 2/2 erreicht ist, ist ein dritter Test verboten",
+    "bei Session-/Server-/Map-/Recipient-/Source-Drift vor Send blockieren",
+    "Gesamtbericht nach Schritt 16 genau einmal kopieren"
+  ]
+}
