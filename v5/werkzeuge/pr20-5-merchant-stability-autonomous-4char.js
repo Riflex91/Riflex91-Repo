@@ -2,7 +2,7 @@
   'use strict';
 
   const API = 'V5PR205AutonomousFourCharacterTest';
-  const VERSION = '1.2.0';
+  const VERSION = '1.3.0';
   const TEST_ID = 'pr20-5-merchant-stability-autonomous-4char';
   const STATE_KEY = 'AIO_V5_PR20_5_AUTONOMOUS_TEST_V1';
   const ACTORS_KEY = 'AIO_V5_PR20_5_AUTONOMOUS_ACTORS_V1';
@@ -268,6 +268,7 @@
   }
 
   let seq = 0;
+  let acknowledgedSeq = 0;
   const telemetryEvents = [];
   let publicState = {
     schemaVersion:1,
@@ -299,96 +300,82 @@
     return publicState;
   }
 
-  function installTelemetryFacade() {
-    const r = root();
-    r.AIO_V3 = r.AIO_V3 || {};
-    const existing = r.AIO_V3.operations && typeof r.AIO_V3.operations === 'object'
-      ? r.AIO_V3.operations
-      : null;
-    if (existing?.__v5Pr205FacadeVersion === VERSION) return true;
+  function telemetryRole() {
+    const me = snapshot();
+    return me.ctype === 'merchant' ? 'COORDINATOR' : 'WORKER';
+  }
 
-    const existingStatus = existing && typeof existing.status === 'function'
-      ? existing.status.bind(existing)
-      : null;
-    const existingHeartbeat = existing && typeof existing.hostHeartbeat === 'function'
-      ? existing.hostHeartbeat.bind(existing)
-      : null;
-    const existingReconciliation = existing && typeof existing.reconciliationStatus === 'function'
-      ? existing.reconciliationStatus.bind(existing)
-      : null;
-    const existingPeekTelemetry = existing && typeof existing.peekTelemetry === 'function'
-      ? existing.peekTelemetry.bind(existing)
-      : null;
+  function telemetryHealth() {
+    const status = text(publicState.status).toUpperCase();
+    if (['NICHT_BESTANDEN','BLOCKED','BLOCKIERT','FEHLER','STOPPED','ABGEBROCHEN'].includes(status)) {
+      return { state:'DEGRADED', reason:'TEST_' + status };
+    }
+    if (status === 'BESTANDEN') return { state:'HEALTHY', reason:'TEST_BESTANDEN' };
+    return { state:'RUNNING', reason:publicState.phase || status || 'BOOT' };
+  }
 
-    const baseStatus = () => {
-      if (!existingStatus) return {};
-      try {
-        const value = existingStatus();
-        return value && typeof value === 'object' ? value : {};
-      } catch (error) {
-        return {
-          legacyOperationsStatusUnavailable: true,
-          legacyOperationsStatusError: String(error?.message || error || 'UNKNOWN').slice(0,160)
-        };
-      }
+  function nativeTelemetrySnapshot() {
+    const me = snapshot();
+    return {
+      schemaVersion:1,
+      type:'AIO_V5_TELEMETRY_SNAPSHOT',
+      observedAtMs:now(),
+      role:telemetryRole(),
+      runtime:{
+        mode:'TEST',
+        version:VERSION,
+        status:publicState.status,
+        phase:publicState.phase,
+        terminal:publicState.terminal === true
+      },
+      character:{
+        name:me.name,
+        ctype:me.ctype,
+        map:me.map,
+        hp:me.hp,
+        mp:me.mp,
+        gold:me.gold,
+        serverRegion:me.serverRegion,
+        serverIdentifier:me.serverIdentifier,
+        runtimeConflict:me.runtimeConflict
+      },
+      test:publicState,
+      roster:publicState.fourCharacterRoster,
+      health:telemetryHealth(),
+      transport:{
+        queued:telemetryEvents.filter(e => Number(e.seq) > acknowledgedSeq).length,
+        lastCapturedSeq:seq,
+        lastAcknowledgedSeq:acknowledgedSeq,
+        dropped:0
+      },
+      anomalies:[]
     };
+  }
 
-    r.AIO_V3.operations = {
-      ...(existing || {}),
-      __v5Pr205FacadeVersion: VERSION,
-      status: () => {
-        const base = baseStatus();
-        return {
-          ...base,
-          schemaVersion: Number(base.schemaVersion) || 1,
-          mode:'V5_AUTONOMOUS_TEST',
-          v5AutonomousTest:publicState,
-          telemetry: base.telemetry && typeof base.telemetry === 'object'
-            ? base.telemetry
-            : { queued:telemetryEvents.length, lastCapturedSeq:seq, dropped:0 }
-        };
-      },
-      hostHeartbeat: () => {
-        if (existingHeartbeat) {
-          try {
-            const value = existingHeartbeat();
-            if (value && typeof value === 'object') {
-              return { ...value, v5Mode:'V5_AUTONOMOUS_TEST', v5ObservedAtMs:now() };
-            }
-          } catch {}
-        }
-        return { schemaVersion:1, alive:true, mode:'V5_AUTONOMOUS_TEST', observedAtMs:now() };
-      },
-      reconciliationStatus: () => {
-        if (existingReconciliation) {
-          try {
-            const value = existingReconciliation();
-            if (value && typeof value === 'object') {
-              return {
-                ...value,
-                v5AutonomousTestStatus:publicState.status,
-                v5Terminal:publicState.terminal === true,
-                sameIntentRetry:false
-              };
-            }
-          } catch {}
+  function installNativeTelemetrySurface() {
+    const r = root();
+    r.AIO_V5 = r.AIO_V5 || {};
+    r.AIO_V5.version = '5';
+    r.AIO_V5.telemetry = {
+      schemaVersion:1,
+      contract:'AIO_V5_NATIVE_TELEMETRY_V1',
+      role:() => telemetryRole(),
+      snapshot:() => nativeTelemetrySnapshot(),
+      peekEvents:(limit = 2000) => telemetryEvents
+        .filter(e => Number(e.seq) > acknowledgedSeq)
+        .slice(0, Math.max(1, Math.min(2000, Number(limit) || 2000))),
+      acknowledgeThrough:(maxSeq) => {
+        const bounded = Math.max(0, Number(maxSeq) || 0);
+        acknowledgedSeq = Math.max(acknowledgedSeq, bounded);
+        while (telemetryEvents.length && Number(telemetryEvents[0]?.seq || 0) <= acknowledgedSeq) {
+          telemetryEvents.shift();
         }
         return {
           schemaVersion:1,
-          status: publicState.terminal ? 'TERMINAL' : 'NO_MUTATION_RECONCILIATION_REQUIRED',
-          v5AutonomousTestStatus:publicState.status,
-          v5Terminal:publicState.terminal === true,
-          sameIntentRetry:false
+          acknowledgedThrough:acknowledgedSeq,
+          remaining:telemetryEvents.length,
+          lastCapturedSeq:seq
         };
-      },
-      peekTelemetry: (limit = 2000) => {
-        if (existingPeekTelemetry) {
-          try {
-            const rows = existingPeekTelemetry(limit);
-            if (Array.isArray(rows)) return rows;
-          } catch {}
-        }
-        return telemetryEvents.slice(-Math.max(1, Math.min(2000, Number(limit) || 2000)));
       }
     };
     return true;
@@ -439,7 +426,7 @@
 
   async function coordinator() {
     const me = publishActor();
-    installTelemetryFacade();
+    installNativeTelemetrySurface();
     if (me.ctype !== 'merchant') {
       setState({ status:'WORKER', phase:'HEARTBEAT', terminal:false });
       try { if (globalThis.__V5_PR20_5_WORKER_TIMER) clearInterval(globalThis.__V5_PR20_5_WORKER_TIMER); } catch {}
@@ -482,7 +469,7 @@
         emit('PR20_5_STOPPED','WARN',{ reason:'MANUAL_STOP' });
       }
     };
-    installTelemetryFacade();
+    installNativeTelemetrySurface();
     emit('PR20_5_AUTONOMOUS_TEST_BOOT','INFO',{ version:VERSION, requiredClasses:REQUIRED_CLASSES });
     coordinator().catch(error => {
       const reason=String(error?.message || error || 'UNKNOWN');

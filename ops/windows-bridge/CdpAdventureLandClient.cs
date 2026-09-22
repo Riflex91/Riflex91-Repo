@@ -25,25 +25,9 @@ public sealed class CdpAdventureLandClient
 
     public async Task<string> FindBotTargetUrlAsync(CancellationToken cancellationToken)
     {
-        var targets = await FindTargetsAsync(cancellationToken);
-        foreach (var target in targets)
-        {
-            try
-            {
-                using var socket = new ClientWebSocket();
-                await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
-                var contextId = await FindOperationsContextAsync(socket, cancellationToken);
-                if (contextId.HasValue) return target.Url;
-            }
-            catch (WebSocketException)
-            {
-            }
-            catch (InvalidOperationException)
-            {
-            }
-        }
-
-        throw new InvalidOperationException("AIO_V3_OPERATIONS_UNAVAILABLE");
+        var ranked = await RankTargetsAsync(await FindTargetsAsync(cancellationToken), cancellationToken);
+        if (ranked.Count == 0) throw new InvalidOperationException("AIO_V5_TELEMETRY_UNAVAILABLE");
+        return ranked[0].Target.Url;
     }
 
     public Task<DebugReadResult> ReadAsync(long afterSeq, int eventLimit, CancellationToken cancellationToken) =>
@@ -55,22 +39,26 @@ public sealed class CdpAdventureLandClient
         bool includeDeepDiagnostics,
         CancellationToken cancellationToken)
     {
-        var targets = await FindTargetsAsync(cancellationToken);
-        foreach (var target in targets)
+        var ranked = await RankTargetsAsync(await FindTargetsAsync(cancellationToken), cancellationToken);
+        foreach (var candidate in ranked)
         {
             using var socket = new ClientWebSocket();
             try
             {
-                await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
-                var contextId = await FindOperationsContextAsync(socket, cancellationToken);
-                if (!contextId.HasValue) continue;
+                await socket.ConnectAsync(new Uri(candidate.Target.WebSocketDebuggerUrl), cancellationToken);
+                var context = await FindTelemetryContextAsync(socket, cancellationToken);
+                if (context is null) continue;
 
                 var snapshot = await EvaluateAsync(
                     socket,
-                    includeDeepDiagnostics ? DeepSnapshotExpression : SnapshotExpression,
-                    contextId.Value,
+                    SnapshotExpression,
+                    context.ContextId,
                     cancellationToken);
-                var eventBatch = await EvaluateAsync(socket, BuildEventsExpression(afterSeq, eventLimit), contextId.Value, cancellationToken);
+                var eventBatch = await EvaluateAsync(
+                    socket,
+                    BuildEventsExpression(afterSeq, eventLimit),
+                    context.ContextId,
+                    cancellationToken);
 
                 JsonElement events;
                 if (eventBatch.ValueKind == JsonValueKind.Object
@@ -96,9 +84,7 @@ public sealed class CdpAdventureLandClient
                     if (row.ValueKind == JsonValueKind.Object
                         && row.TryGetProperty("seq", out var seqNode)
                         && seqNode.TryGetInt64(out var seq))
-                    {
                         maxSeq = Math.Max(maxSeq, seq);
-                    }
                 }
 
                 return new DebugReadResult(
@@ -109,37 +95,42 @@ public sealed class CdpAdventureLandClient
                     maxSeq,
                     lastCapturedSeq,
                     hasMoreEvents,
-                    target.Url);
+                    candidate.Target.Url);
             }
             catch (WebSocketException)
             {
-                // Another same-origin Adventure Land target may contain the running bot.
+            }
+            catch (InvalidOperationException)
+            {
             }
         }
 
-        throw new InvalidOperationException("AIO_V3_OPERATIONS_UNAVAILABLE");
+        throw new InvalidOperationException("AIO_V5_TELEMETRY_UNAVAILABLE");
     }
 
     public async Task<TelemetryAckResult> AcknowledgeThroughAsync(long maxSeq, CancellationToken cancellationToken)
     {
         if (maxSeq <= 0) return TelemetryAckResult.Empty;
 
-        var targets = await FindTargetsAsync(cancellationToken);
-        foreach (var target in targets)
+        var ranked = await RankTargetsAsync(await FindTargetsAsync(cancellationToken), cancellationToken);
+        foreach (var candidate in ranked)
         {
             using var socket = new ClientWebSocket();
             try
             {
-                await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
-                var contextId = await FindOperationsContextAsync(socket, cancellationToken);
-                if (!contextId.HasValue) continue;
+                await socket.ConnectAsync(new Uri(candidate.Target.WebSocketDebuggerUrl), cancellationToken);
+                var context = await FindTelemetryContextAsync(socket, cancellationToken);
+                if (context is null) continue;
 
-                var value = await EvaluateAsync(socket, BuildAcknowledgeExpression(maxSeq), contextId.Value, cancellationToken);
-                if (value.ValueKind != JsonValueKind.Object)
-                    return TelemetryAckResult.Empty;
+                var value = await EvaluateAsync(
+                    socket,
+                    BuildAcknowledgeExpression(maxSeq),
+                    context.ContextId,
+                    cancellationToken);
+                if (value.ValueKind != JsonValueKind.Object) return TelemetryAckResult.Empty;
 
                 return new TelemetryAckResult(
-                    ReadBoolean(value, "supported", false),
+                    ReadBoolean(value, "supported", true),
                     (int)Math.Clamp(ReadInt64(value, "acknowledged", 0), 0, int.MaxValue),
                     (int)Math.Clamp(ReadInt64(value, "remaining", 0), 0, int.MaxValue),
                     ReadInt64(value, "lastAcknowledgedSeq", 0),
@@ -148,11 +139,32 @@ public sealed class CdpAdventureLandClient
             }
             catch (WebSocketException)
             {
-                // Try another same-origin Adventure Land target.
+            }
+            catch (InvalidOperationException)
+            {
             }
         }
 
-        throw new InvalidOperationException("AIO_V3_OPERATIONS_UNAVAILABLE");
+        throw new InvalidOperationException("AIO_V5_TELEMETRY_UNAVAILABLE");
+    }
+
+    public static int TelemetryContextPriority(
+        bool valid,
+        string? role,
+        string? ctype,
+        string? runtimeMode)
+    {
+        if (!valid) return 0;
+        var normalizedRole = (role ?? string.Empty).Trim().ToUpperInvariant();
+        var normalizedClass = (ctype ?? string.Empty).Trim().ToLowerInvariant();
+        var normalizedMode = (runtimeMode ?? string.Empty).Trim().ToUpperInvariant();
+
+        if (normalizedRole == "COORDINATOR") return 400;
+        if (normalizedRole == "RUNTIME") return 350;
+        if (normalizedClass == "merchant" && normalizedRole != "WORKER") return 300;
+        if (normalizedMode == "PRODUCTION") return 250;
+        if (normalizedRole == "WORKER") return 100;
+        return 50;
     }
 
     private async Task<List<CdpTarget>> FindTargetsAsync(CancellationToken cancellationToken)
@@ -178,37 +190,72 @@ public sealed class CdpAdventureLandClient
 
         if (matches.Count == 0)
             throw new InvalidOperationException("ADVENTURE_LAND_CDP_TARGET_NOT_FOUND");
-
         return matches;
     }
 
-    private async Task<int?> FindOperationsContextAsync(ClientWebSocket socket, CancellationToken cancellationToken)
+    private sealed record TelemetryContext(int ContextId, int Priority);
+    private sealed record RankedTarget(CdpTarget Target, int Priority);
+
+    private async Task<IReadOnlyList<RankedTarget>> RankTargetsAsync(
+        IReadOnlyList<CdpTarget> targets,
+        CancellationToken cancellationToken)
+    {
+        var ranked = new List<RankedTarget>();
+        foreach (var target in targets)
+        {
+            try
+            {
+                using var socket = new ClientWebSocket();
+                await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
+                var context = await FindTelemetryContextAsync(socket, cancellationToken);
+                if (context is not null) ranked.Add(new RankedTarget(target, context.Priority));
+            }
+            catch (WebSocketException)
+            {
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        }
+        return ranked.OrderByDescending(x => x.Priority).ToArray();
+    }
+
+    private async Task<TelemetryContext?> FindTelemetryContextAsync(
+        ClientWebSocket socket,
+        CancellationToken cancellationToken)
     {
         var contexts = await CollectAllowedExecutionContextsAsync(socket, cancellationToken);
+        TelemetryContext? best = null;
         foreach (var contextId in contexts)
         {
             try
             {
-                var probe = await EvaluateAsync(socket, OperationsProbeExpression, contextId, cancellationToken);
-                if (probe.ValueKind == JsonValueKind.True) return contextId;
+                var probe = await EvaluateAsync(socket, TelemetryProbeExpression, contextId, cancellationToken);
+                if (probe.ValueKind != JsonValueKind.Object) continue;
+
+                var valid = ReadBoolean(probe, "valid", false);
+                var priority = TelemetryContextPriority(
+                    valid,
+                    ReadString(probe, "role"),
+                    ReadString(probe, "ctype"),
+                    ReadString(probe, "runtimeMode"));
+                if (priority <= 0) continue;
+                if (best is null || priority > best.Priority)
+                    best = new TelemetryContext(contextId, priority);
             }
             catch (InvalidOperationException)
             {
-                // Contexts can disappear while Adventure Land changes frames. Try the next allowed context.
             }
         }
-
-        return null;
+        return best;
     }
 
-    private async Task<IReadOnlyList<int>> CollectAllowedExecutionContextsAsync(ClientWebSocket socket, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<int>> CollectAllowedExecutionContextsAsync(
+        ClientWebSocket socket,
+        CancellationToken cancellationToken)
     {
         var id = Interlocked.Increment(ref _nextCommandId);
-        var command = JsonSerializer.SerializeToUtf8Bytes(new
-        {
-            id,
-            method = "Runtime.enable"
-        });
+        var command = JsonSerializer.SerializeToUtf8Bytes(new { id, method = "Runtime.enable" });
         await socket.SendAsync(command, WebSocketMessageType.Text, true, cancellationToken);
 
         var contexts = new List<int>();
@@ -216,7 +263,6 @@ public sealed class CdpAdventureLandClient
         {
             using var message = await ReceiveJsonAsync(socket, cancellationToken);
             var root = message.RootElement;
-
             if (root.ValueKind == JsonValueKind.Object
                 && root.TryGetProperty("method", out var methodNode)
                 && string.Equals(methodNode.GetString(), "Runtime.executionContextCreated", StringComparison.Ordinal)
@@ -224,22 +270,16 @@ public sealed class CdpAdventureLandClient
                 && paramsNode.ValueKind == JsonValueKind.Object
                 && paramsNode.TryGetProperty("context", out var contextNode)
                 && TryGetAllowedContextId(contextNode, out var contextId))
-            {
                 contexts.Add(contextId);
-            }
 
             if (!root.TryGetProperty("id", out var idNode)
                 || !idNode.TryGetInt32(out var responseId)
                 || responseId != id)
-            {
                 continue;
-            }
-
             if (root.TryGetProperty("error", out var error))
                 throw new InvalidOperationException("CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
             break;
         }
-
         return contexts.Distinct().ToArray();
     }
 
@@ -257,10 +297,7 @@ public sealed class CdpAdventureLandClient
             && auxData.ValueKind == JsonValueKind.Object
             && auxData.TryGetProperty("isDefault", out var isDefault)
             && isDefault.ValueKind == JsonValueKind.False)
-        {
             return false;
-        }
-
         return true;
     }
 
@@ -269,7 +306,11 @@ public sealed class CdpAdventureLandClient
         && string.Equals(left.Host, right.Host, StringComparison.OrdinalIgnoreCase)
         && left.Port == right.Port;
 
-    private async Task<JsonElement> EvaluateAsync(ClientWebSocket socket, string expression, int contextId, CancellationToken cancellationToken)
+    private async Task<JsonElement> EvaluateAsync(
+        ClientWebSocket socket,
+        string expression,
+        int contextId,
+        CancellationToken cancellationToken)
     {
         var id = Interlocked.Increment(ref _nextCommandId);
         var command = JsonSerializer.SerializeToUtf8Bytes(new
@@ -285,14 +326,15 @@ public sealed class CdpAdventureLandClient
                 userGesture = false
             }
         });
-
         await socket.SendAsync(command, WebSocketMessageType.Text, true, cancellationToken);
 
         while (true)
         {
             using var message = await ReceiveJsonAsync(socket, cancellationToken);
             var root = message.RootElement;
-            if (!root.TryGetProperty("id", out var idNode) || !idNode.TryGetInt32(out var responseId) || responseId != id)
+            if (!root.TryGetProperty("id", out var idNode)
+                || !idNode.TryGetInt32(out var responseId)
+                || responseId != id)
                 continue;
             if (root.TryGetProperty("error", out var error))
                 throw new InvalidOperationException("CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
@@ -330,35 +372,30 @@ public sealed class CdpAdventureLandClient
         var boundedLimit = Math.Clamp(limit, 1, 200);
         return $$"""
         (() => {
-          const aio = globalThis.AIO_V3;
-          const operations = aio && aio.operations;
-          if (!operations || typeof operations !== 'object') throw new Error('AIO_V3_OPERATIONS_UNAVAILABLE');
-          if (typeof operations.peekTelemetry !== 'function') throw new Error('DEBUG_EVENTS_UNAVAILABLE');
+          const telemetry = globalThis.AIO_V5 && globalThis.AIO_V5.telemetry;
+          if (!telemetry || typeof telemetry.peekEvents !== 'function' || typeof telemetry.snapshot !== 'function') {
+            throw new Error('AIO_V5_TELEMETRY_UNAVAILABLE');
+          }
           const requestedAfterSeq = {{boundedAfter}};
           const limit = {{boundedLimit}};
-          const rows = operations.peekTelemetry(2000);
-          const internalOutbox = aio && aio.__operations && aio.__operations.telemetry;
-          const telemetry = internalOutbox && typeof internalOutbox.status === 'function'
-            ? internalOutbox.status()
-            : ((operations.status() || {}).telemetry || {});
-          const lastCapturedSeq = Math.max(0, Number(telemetry.lastCapturedSeq) || 0);
-          const effectiveAfterSeq = lastCapturedSeq > 0 && requestedAfterSeq > lastCapturedSeq
-            ? 0
-            : requestedAfterSeq;
+          const rows = telemetry.peekEvents(2000);
+          const snap = telemetry.snapshot();
+          const transport = snap && snap.transport || {};
+          const lastCapturedSeq = Math.max(0, Number(transport.lastCapturedSeq) || 0);
+          const effectiveAfterSeq = lastCapturedSeq > 0 && requestedAfterSeq > lastCapturedSeq ? 0 : requestedAfterSeq;
           const candidates = Array.isArray(rows)
-            ? rows.filter((row) => row && Number(row.seq) > effectiveAfterSeq)
+            ? rows.filter(row => row && Number(row.seq) > effectiveAfterSeq)
             : [];
           const events = candidates.slice(0, limit);
           return {
-            schemaVersion: 2,
-            type: 'AIO_V3_DEBUG_EVENTS',
+            schemaVersion: 1,
+            type: 'AIO_V5_TELEMETRY_EVENTS',
             requestedAfterSeq,
             effectiveAfterSeq,
             lastCapturedSeq,
             availableAfterSeq: candidates.length,
             hasMore: candidates.length > events.length,
             cursorReset: effectiveAfterSeq !== requestedAfterSeq,
-            telemetry,
             events
           };
         })()
@@ -370,37 +407,33 @@ public sealed class CdpAdventureLandClient
         var boundedMax = Math.Max(0, maxSeq);
         return $$"""
         (() => {
-          const aio = globalThis.AIO_V3;
-          const operations = aio && aio.operations;
-          if (!operations || typeof operations !== 'object') throw new Error('AIO_V3_OPERATIONS_UNAVAILABLE');
-          const internalOutbox = aio && aio.__operations && aio.__operations.telemetry;
-          const status = () => internalOutbox && typeof internalOutbox.status === 'function'
-            ? internalOutbox.status()
-            : ((operations.status() || {}).telemetry || {});
-          if (!internalOutbox || typeof internalOutbox.ackThrough !== 'function') {
-            const telemetry = status();
+          const telemetry = globalThis.AIO_V5 && globalThis.AIO_V5.telemetry;
+          if (!telemetry || typeof telemetry.acknowledgeThrough !== 'function') {
             return {
-              schemaVersion: 1,
-              type: 'AIO_V3_TELEMETRY_ACK',
-              supported: false,
-              acknowledged: 0,
-              remaining: Number(telemetry.queued) || 0,
-              lastAcknowledgedSeq: Number(telemetry.lastAcknowledgedSeq) || 0,
-              lastCapturedSeq: Number(telemetry.lastCapturedSeq) || 0,
-              dropped: Number(telemetry.dropped) || 0
+              schemaVersion:1,
+              supported:false,
+              acknowledged:0,
+              remaining:0,
+              lastAcknowledgedSeq:0,
+              lastCapturedSeq:0,
+              dropped:0
             };
           }
-          const result = internalOutbox.ackThrough({{boundedMax}});
-          const telemetry = status();
+          const before = telemetry.snapshot && telemetry.snapshot();
+          const beforeTransport = before && before.transport || {};
+          const result = telemetry.acknowledgeThrough({{boundedMax}}) || {};
+          const after = telemetry.snapshot && telemetry.snapshot();
+          const transport = after && after.transport || {};
+          const beforeQueued = Math.max(0, Number(beforeTransport.queued) || 0);
+          const remaining = Math.max(0, Number(transport.queued) || Number(result.remaining) || 0);
           return {
-            schemaVersion: 1,
-            type: 'AIO_V3_TELEMETRY_ACK',
-            supported: true,
-            acknowledged: Number(result && result.acknowledged) || 0,
-            remaining: Number(telemetry.queued) || 0,
-            lastAcknowledgedSeq: Number(telemetry.lastAcknowledgedSeq) || 0,
-            lastCapturedSeq: Number(telemetry.lastCapturedSeq) || 0,
-            dropped: Number(telemetry.dropped) || 0
+            schemaVersion:1,
+            supported:true,
+            acknowledged:Math.max(0, beforeQueued - remaining),
+            remaining,
+            lastAcknowledgedSeq:Math.max(0, Number(transport.lastAcknowledgedSeq) || Number(result.acknowledgedThrough) || 0),
+            lastCapturedSeq:Math.max(0, Number(transport.lastCapturedSeq) || Number(result.lastCapturedSeq) || 0),
+            dropped:Math.max(0, Number(transport.dropped) || 0)
           };
         })()
         """;
@@ -425,155 +458,40 @@ public sealed class CdpAdventureLandClient
         return fallback;
     }
 
-    private const string OperationsProbeExpression = """
+    private static string? ReadString(JsonElement value, string property)
+    {
+        if (value.ValueKind == JsonValueKind.Object
+            && value.TryGetProperty(property, out var node)
+            && node.ValueKind == JsonValueKind.String)
+            return node.GetString();
+        return null;
+    }
+
+    private const string TelemetryProbeExpression = """
     (() => {
-      const operations = globalThis.AIO_V3 && globalThis.AIO_V3.operations;
-      return !!operations
-        && typeof operations === 'object'
-        && typeof operations.status === 'function'
-        && typeof operations.hostHeartbeat === 'function'
-        && typeof operations.reconciliationStatus === 'function'
-        && typeof operations.peekTelemetry === 'function';
+      const telemetry = globalThis.AIO_V5 && globalThis.AIO_V5.telemetry;
+      const valid = !!telemetry
+        && typeof telemetry === 'object'
+        && typeof telemetry.snapshot === 'function'
+        && typeof telemetry.peekEvents === 'function';
+      if (!valid) return { valid:false, role:null, ctype:null, runtimeMode:null };
+      let snap = null;
+      try { snap = telemetry.snapshot(); } catch {}
+      let role = '';
+      try { role = typeof telemetry.role === 'function' ? String(telemetry.role() || '') : String(snap && snap.role || ''); } catch {}
+      const ctype = String(snap && snap.character && snap.character.ctype || '').toLowerCase();
+      const runtimeMode = String(snap && snap.runtime && snap.runtime.mode || '').toUpperCase();
+      return { valid:true, role, ctype, runtimeMode };
     })()
     """;
 
     private const string SnapshotExpression = """
     (() => {
-      const aio = globalThis.AIO_V3;
-      const operations = aio && aio.operations;
-      if (!operations || typeof operations !== 'object') throw new Error('AIO_V3_OPERATIONS_UNAVAILABLE');
-      if (typeof operations.status !== 'function') throw new Error('DEBUG_STATUS_UNAVAILABLE');
-      if (typeof operations.hostHeartbeat !== 'function') throw new Error('DEBUG_HEARTBEAT_UNAVAILABLE');
-      if (typeof operations.reconciliationStatus !== 'function') throw new Error('DEBUG_RECONCILIATION_UNAVAILABLE');
-      return {
-        schemaVersion: 2,
-        type: 'AIO_V3_DEBUG_SNAPSHOT',
-        status: operations.status(),
-        heartbeat: operations.hostHeartbeat(),
-        reconciliation: operations.reconciliationStatus(),
-        diagnostics: null
-      };
-    })()
-    """;
-
-    private const string DeepSnapshotExpression = """
-    (() => {
-      const aio = globalThis.AIO_V3;
-      const operations = aio && aio.operations;
-      if (!operations || typeof operations !== 'object') throw new Error('AIO_V3_OPERATIONS_UNAVAILABLE');
-      if (typeof operations.status !== 'function') throw new Error('DEBUG_STATUS_UNAVAILABLE');
-      if (typeof operations.hostHeartbeat !== 'function') throw new Error('DEBUG_HEARTBEAT_UNAVAILABLE');
-      if (typeof operations.reconciliationStatus !== 'function') throw new Error('DEBUG_RECONCILIATION_UNAVAILABLE');
-
-      const clone = (value) => {
-        if (value === undefined) return null;
-        return value == null ? value : JSON.parse(JSON.stringify(value));
-      };
-      const safe = (fn) => {
-        try { return clone(typeof fn === 'function' ? fn() : null); }
-        catch (error) {
-          const message = String(error && error.message || error || 'DIAGNOSTIC_READ_FAILED');
-          return { unavailable: true, error: message.slice(0, 160) };
-        }
-      };
-
-      const status = operations.status();
-      const heartbeat = operations.hostHeartbeat();
-      const reconciliation = operations.reconciliationStatus();
-      const diagnostics = {
-        schemaVersion: 1,
-        type: 'AIO_V3_AUTONOMY_DIAGNOSTICS',
-        generatedAt: Date.now(),
-        version: aio && aio.version || null,
-        monitor: safe(() => aio.monitor && aio.monitor.summary && aio.monitor.summary()),
-        farmer: {
-          status: safe(() => aio.farmer && aio.farmer.status && aio.farmer.status()),
-          loot: safe(() => aio.farmer && aio.farmer.lootStatus && aio.farmer.lootStatus()),
-          localFarming: safe(() => aio.localFarming && aio.localFarming.status && aio.localFarming.status())
-        },
-        brain: {
-          status: safe(() => aio.brain && aio.brain.status && aio.brain.status()),
-          replay: safe(() => aio.brain && aio.brain.replay && aio.brain.replay(16))
-        },
-        supervisor: safe(() => aio.supervisor && aio.supervisor.status && aio.supervisor.status()),
-        contentDrift: {
-          status: safe(() => aio.contentDrift && aio.contentDrift.status && aio.contentDrift.status()),
-          records: safe(() => aio.contentDrift && aio.contentDrift.records && aio.contentDrift.records(32))
-        },
-        inventory: {
-          status: safe(() => aio.inventory && aio.inventory.status && aio.inventory.status()),
-          entries: safe(() => aio.inventory && aio.inventory.entries && aio.inventory.entries(64))
-        },
-        gearProgression: {
-          status: safe(() => aio.gearProgression && aio.gearProgression.status && aio.gearProgression.status()),
-          goals: safe(() => aio.gearProgression && aio.gearProgression.goals && aio.gearProgression.goals(64))
-        },
-        economy: {
-          status: safe(() => aio.economy && aio.economy.status && aio.economy.status()),
-          transactions: {
-            status: safe(() => aio.economy && aio.economy.transactions && aio.economy.transactions.status && aio.economy.transactions.status()),
-            recent: safe(() => aio.economy && aio.economy.transactions && aio.economy.transactions.list && aio.economy.transactions.list(32))
-          },
-          bankCapacity: safe(() => aio.economy && aio.economy.bankCapacity && aio.economy.bankCapacity.status && aio.economy.bankCapacity.status()),
-          bankExpansion: {
-            status: safe(() => aio.economy && aio.economy.bankExpansion && aio.economy.bankExpansion.status && aio.economy.bankExpansion.status()),
-            recent: safe(() => aio.economy && aio.economy.bankExpansion && aio.economy.bankExpansion.list && aio.economy.bankExpansion.list(16))
-          },
-          spaceRecovery: {
-            status: safe(() => aio.economy && aio.economy.spaceRecovery && aio.economy.spaceRecovery.status && aio.economy.spaceRecovery.status()),
-            recent: safe(() => aio.economy && aio.economy.spaceRecovery && aio.economy.spaceRecovery.list && aio.economy.spaceRecovery.list(16))
-          }
-        },
-        travel: {
-          status: safe(() => aio.travel && aio.travel.status && aio.travel.status()),
-          recent: safe(() => aio.travel && aio.travel.list && aio.travel.list(32))
-        },
-        merchantService: safe(() => aio.merchantService && aio.merchantService.status && aio.merchantService.status()),
-        party: {
-          status: safe(() => aio.party && aio.party.status && aio.party.status()),
-          registry: safe(() => aio.party && aio.party.registry && aio.party.registry()),
-          decision: safe(() => aio.party && aio.party.decision && aio.party.decision()),
-          fingerprints: safe(() => aio.party && aio.party.fingerprints && aio.party.fingerprints()),
-          performance: safe(() => aio.party && aio.party.performance && aio.party.performance()),
-          telemetry: safe(() => aio.party && aio.party.telemetry && aio.party.telemetry()),
-          transition: safe(() => aio.party && aio.party.transition && aio.party.transition()),
-          controlLease: safe(() => aio.party && aio.party.controlLease && aio.party.controlLease()),
-          lifecycle: {
-            status: safe(() => aio.party && aio.party.lifecycle && aio.party.lifecycle.status && aio.party.lifecycle.status()),
-            characters: safe(() => aio.party && aio.party.lifecycle && aio.party.lifecycle.characters && aio.party.lifecycle.characters()),
-            controlled: safe(() => aio.party && aio.party.lifecycle && aio.party.lifecycle.controlled && aio.party.lifecycle.controlled.status && aio.party.lifecycle.controlled.status()),
-            aura: safe(() => aio.party && aio.party.lifecycle && aio.party.lifecycle.aura && aio.party.lifecycle.aura.status && aio.party.lifecycle.aura.status())
-          }
-        },
-        backgroundExecution: safe(() => aio.backgroundExecution && aio.backgroundExecution.status && aio.backgroundExecution.status()),
-        autoRespawn: safe(() => aio.autoRespawn && aio.autoRespawn.status && aio.autoRespawn.status()),
-        alerts: safe(() => operations.peekAlerts && operations.peekAlerts(50)),
-        stateReplica: safe(() => operations.peekStateReplica && operations.peekStateReplica())
-      };
-
-      let approxChars = 0;
-      try { approxChars = JSON.stringify(diagnostics).length; } catch (_) {}
-      if (approxChars > 350000) {
-        diagnostics.sizeLimited = true;
-        diagnostics.stateReplica = { omitted: true, reason: 'DIAGNOSTIC_BUNDLE_SIZE_LIMIT' };
-        if (diagnostics.inventory) diagnostics.inventory.entries = { omitted: true, reason: 'DIAGNOSTIC_BUNDLE_SIZE_LIMIT' };
-        if (diagnostics.gearProgression) diagnostics.gearProgression.goals = { omitted: true, reason: 'DIAGNOSTIC_BUNDLE_SIZE_LIMIT' };
-        if (diagnostics.contentDrift) diagnostics.contentDrift.records = { omitted: true, reason: 'DIAGNOSTIC_BUNDLE_SIZE_LIMIT' };
-        if (diagnostics.brain) diagnostics.brain.replay = { omitted: true, reason: 'DIAGNOSTIC_BUNDLE_SIZE_LIMIT' };
-        if (diagnostics.economy && diagnostics.economy.transactions) diagnostics.economy.transactions.recent = { omitted: true, reason: 'DIAGNOSTIC_BUNDLE_SIZE_LIMIT' };
-        if (diagnostics.travel) diagnostics.travel.recent = { omitted: true, reason: 'DIAGNOSTIC_BUNDLE_SIZE_LIMIT' };
-        try { approxChars = JSON.stringify(diagnostics).length; } catch (_) {}
-      }
-      diagnostics.approxChars = approxChars;
-
-      return {
-        schemaVersion: 2,
-        type: 'AIO_V3_DEBUG_SNAPSHOT',
-        status,
-        heartbeat,
-        reconciliation,
-        diagnostics
-      };
+      const telemetry = globalThis.AIO_V5 && globalThis.AIO_V5.telemetry;
+      if (!telemetry || typeof telemetry.snapshot !== 'function') throw new Error('AIO_V5_TELEMETRY_UNAVAILABLE');
+      const value = telemetry.snapshot();
+      if (!value || typeof value !== 'object') throw new Error('AIO_V5_TELEMETRY_SNAPSHOT_INVALID');
+      return value;
     })()
     """;
 
