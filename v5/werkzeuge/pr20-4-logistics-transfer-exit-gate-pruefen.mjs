@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { roadmapIstMindestens } from "./roadmap-gate-rang.mjs";
 
 const lies = pfad => JSON.parse(fs.readFileSync(pfad, "utf8"));
 const evidence = lies("roadmap/pr20-4-logistics-transfer-evidence.json");
@@ -59,14 +60,18 @@ if (gate.status !== "ROADMAP_ABGESCHLOSSEN_REAL_INGAME"
   fail("PR20_4_EXIT_GATE_UNGUELTIG");
 }
 
-if (roadmap.currentGate !== "PR20.5_MERCHANT_STABILITAET"
+if (!roadmapIstMindestens(roadmap.currentGate, "PR20.5_MERCHANT_STABILITAET")
     || roadmap.pr20_4?.status !== "ROADMAP_ABGESCHLOSSEN_REAL_INGAME"
     || roadmap.pr20_4?.productiveMutationAllowed !== false
     || roadmap.pr20_4?.gameplayAuthority !== false
     || roadmap.pr20_4?.rawWriteAuthority !== false
-    || roadmap.pr20_5?.status !== "FREIGEGEBEN_FUER_PRODUKTIVIERUNG"
+    || !["FREIGEGEBEN_FUER_PRODUKTIVIERUNG", "ROADMAP_ABGESCHLOSSEN_REAL_INGAME"].includes(roadmap.pr20_5?.status)
     || roadmap.pr20_5?.gameplayAuthority !== false
-    || roadmap.pr20_5?.integration15mRequired !== true) {
+    || (roadmap.pr20_5?.status === "FREIGEGEBEN_FUER_PRODUKTIVIERUNG"
+      && roadmap.pr20_5?.integration15mRequired !== true)
+    || (roadmap.pr20_5?.status === "ROADMAP_ABGESCHLOSSEN_REAL_INGAME"
+      && (roadmap.pr20_5?.integration15mRequired !== false
+        || roadmap.pr20_5?.evidence !== "v5/roadmap/pr20-5-merchant-stability-evidence.json"))) {
   fail("PR20_4_ROADMAP_TRANSITION_UNGUELTIG");
 }
 
