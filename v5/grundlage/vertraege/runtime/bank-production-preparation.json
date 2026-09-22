@@ -92,7 +92,16 @@
     {
       "actionContractId": "AL-ACTION-OPEN-BANK-PACK",
       "publicFunction": "open_bank_pack",
-      "grund": "Eigene wertveraendernde Capacity-/Currency-Mutation mit ASYNC_BACKEND_TX; nicht Teil des ersten PR20.2-Mutationssatzes."
+      "grund": "Eigene wertveraendernde Capacity-/Currency-Mutation mit ASYNC_BACKEND_TX; nicht Teil des ersten PR20.2-Mutationssatzes.",
+      "status": "SHADOW_BESTANDEN_LIVE_RESOURCE_BLOCKED_NO_WRITE",
+      "shadowEvidence": "roadmap/pr20-2-bank-open-pack-shadow-evidence.json",
+      "kandidat": {
+        "pack": "items2",
+        "map": "bank",
+        "goldKosten": 75000000,
+        "shellKosten": 600
+      },
+      "liveMutationFreigegeben": false
     }
   ],
   "verpflichtendeAdmissionVorSend": [
@@ -138,7 +147,7 @@
     "read-only Write-Preflight war auf exakt demselben Head BEREIT",
     "bank_deposit(1)-Live-Evidence ist BESTANDEN: COMMIT, ein Adapter-Aufruf, ein Gameplay-Write, kein Retry, Lease RELEASED",
     "bank_withdraw(1): Real-Browser-Shadow ist source-exakt BESTANDEN, NICHT_GESENDET, 0 Gameplay-Writes, 0 Adapter-Aufrufe, Lease RELEASED; naechstes Gate ist getrennte Write-Adapter/Live-Runner-Vorbereitung",
-    "Capacity/Open-Bank-Pack bleibt separates wertveraenderndes Gate",
+    "Capacity/Open-Bank-Pack bleibt separates wertveraenderndes Gate; Shadow BESTANDEN, Live wegen 15.993.820 Gold / 0 Shells gegen 75.000.000 / 600 blockiert",
     "abschliessend reale 5m-Bank-Funktionsevidence ohne Duplicate/UNKNOWN-Restzustand"
   ],
   "blockingGateStatus": "BESTANDEN",
@@ -272,4 +281,4 @@
     "productionWideActivationAllowed": false,
     "sameIntentRetry": false
   }
-}
+}\n

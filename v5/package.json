@@ -139,7 +139,8 @@
     "bank-browser-performance:pruefen": "node --check werkzeuge/r12-live/performance-trick.mjs && node --test grundlage/tests/r11-bank-browser-performance-trick.test.mjs",
     "bank-code-bridge-context:pruefen": "node --check werkzeuge/bank-item-transfer-produktions-browser.mjs && node --check werkzeuge/bank-swap-produktions-browser.mjs && node --check werkzeuge/bank-item-transfer-real-browser-shadow.mjs && node --check werkzeuge/bank-swap-real-browser-shadow.mjs && node --test grundlage/tests/r11-bank-code-bridge-context.test.mjs",
     "bank-function-test-gui:bauen": "node werkzeuge/bank-function-test-paket-bauen.mjs",
-    "bank-function-test-gui:pruefen": "node --check werkzeuge/bank-function-test-gui.js && node --check werkzeuge/bank-function-test-paket.js && node werkzeuge/bank-function-test-paket-bauen.mjs --check && node --test werkzeuge/tests/bank-function-test-gui.test.mjs && node --test grundlage/tests/pr20-bank-direct-ingame-function-evidence.test.mjs"
+    "bank-function-test-gui:pruefen": "node --check werkzeuge/bank-function-test-gui.js && node --check werkzeuge/bank-function-test-paket.js && node werkzeuge/bank-function-test-paket-bauen.mjs --check && node --test werkzeuge/tests/bank-function-test-gui.test.mjs && node --test grundlage/tests/pr20-bank-direct-ingame-function-evidence.test.mjs",
+    "bank-open-pack-shadow:pruefen": "npm run bauen && node --test grundlage/tests/pr20-bank-open-pack-settlement.test.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
@@ -147,4 +148,4 @@
   "engines": {
     "node": ">=22"
   }
-}
+}\n

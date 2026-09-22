@@ -492,3 +492,21 @@ Alle sechs Live-Aufrufe hatten jeweils exakt einen Gameplay-Write und exakt eine
 Evidence: `roadmap/pr20-2-bank-direct-ingame-function-evidence.json`.
 
 Der erste PR20.2-Mutationssatz ist damit **4 von 5** real bestanden: Deposit, Store, Retrieve und Swap sind bestanden. Withdraw bleibt wegen des bereits ausgeschöpften Maximums von zwei echten Funktionstests ohne vollstaendig bestandene Live-Evidence und darf nicht durch einen dritten Write-Test umgangen werden. `open_bank_pack` bleibt weiterhin ausserhalb dieses ersten Satzes und benoetigt spaeter einen eigenen Mixed-Path-Nachweis.
+
+
+## PR20.2t – Open-Bank-Pack direkter Shadow + Mixed-Path Settlement, NO-WRITE
+
+Der direkte Ingame-Shadow fuer `open_bank_pack` wurde auf `a5b010be412ee69d2402a0a4f1f427a2f1a44a34` real bestanden. Beobachtet wurde `items2` auf `bank` mit Kosten von **75.000.000 Gold oder 600 Shells**. Zum Shadow-Zeitpunkt waren **15.993.820 Gold und 0 Shells** vorhanden; beide Zahlungswege waren damit nicht finanzierbar.
+
+Der Shadow erzeugte exakt 0 Gameplay-Writes und 0 mutierende Public-Function-Aufrufe; `liveMutationFreigegeben=false`. Ein Live-Test wurde nicht gestartet und ist aktuell ressourcenbedingt blockiert.
+
+Neu vorbereitet wird ausschliesslich NO-WRITE:
+
+- maschinenlesbarer Kandidatenvertrag `grundlage/vertraege/runtime/bank-open-pack-production-candidate.json`;
+- authority-freier Mixed-Path-Settlement-Core `grundlage/quelle/merchant/bank-open-pack-settlement.ts`;
+- Goldpfad: Pack-Unlock + exaktes Gold-Kostendelta;
+- Shellpfad: Request-ID/Backendpfad, `IN_PROGRESS` => `AUSSTEHEND`, warten und reobserve ohne Send;
+- Teilwirkung/Restbank-Drift => fail-closed;
+- kein Live-Runner, kein Write-Adapter, keine Open-Pack-Capability und keine Gameplay-Authority.
+
+Evidence: `roadmap/pr20-2-bank-open-pack-shadow-evidence.json`. ADR: `architektur/adr/ADR-048-PR20-2T-BANK-OPEN-PACK-SHADOW-SETTLEMENT-NO-WRITE.md`.

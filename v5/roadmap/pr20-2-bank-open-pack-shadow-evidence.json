@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "status": "BESTANDEN",
+  "evidenceArt": "V5_BANK_OPEN_PACK_DIRECT_INGAME_SHADOW_NO_WRITE",
+  "source": "USER_PROVIDED_INGAME_GUI_RESULT",
+  "testedSourceSha": "a5b010be412ee69d2402a0a4f1f427a2f1a44a34",
+  "testArt": "SHADOW",
+  "performanceTrick": {
+    "verfuegbar": true,
+    "audioGefunden": true,
+    "cplaying": false,
+    "playing": true,
+    "howlState": "loaded",
+    "aktiv": true,
+    "visibilityState": "visible",
+    "aufgerufen": true,
+    "fehler": null,
+    "verifikation": "HOWLER_PLAYING_TRUE"
+  },
+  "beobachtungen": 2,
+  "intervallMs": 750,
+  "kandidat": {
+    "art": "OPEN_BANK_PACK",
+    "pack": "items2",
+    "map": "bank",
+    "goldKosten": 75000000,
+    "shellKosten": 600
+  },
+  "zahlung": {
+    "characterGold": 15993820,
+    "characterShells": 0,
+    "goldBezahlbar": false,
+    "shellsBezahlbar": false
+  },
+  "officialRunnerSemantik": {
+    "erlaubteWaehrungen": [
+      "gold",
+      "shells"
+    ],
+    "goldPfad": "BANK_DEFERRED",
+    "shellsPfad": "ASYNC_BACKEND_TX_MIT_IN_PROGRESS_UND_GAME_RESPONSE",
+    "officialSourceObservedCommit": "90052162eb3ebda36c893e1eb4af643913c8f984"
+  },
+  "sameIntentErneutSenden": false,
+  "gameplayWrites": 0,
+  "mutatingPublicFunctionCalls": 0,
+  "liveMutationFreigegeben": false,
+  "liveStatus": "RESOURCE_BLOCKED_NO_LIVE_TEST",
+  "blocker": [
+    "GOLD_ZU_NIEDRIG",
+    "SHELLS_ZU_NIEDRIG"
+  ],
+  "nextGate": "SETTLEMENT_RECOVERY_AND_ADMISSION_NO_WRITE_ONLY"
+}\n

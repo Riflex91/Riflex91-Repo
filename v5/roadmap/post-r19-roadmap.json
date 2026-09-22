@@ -85,9 +85,11 @@
     "bank_store ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
     "bank_swap ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
     "bank_withdraw hat das Maximum von zwei echten Funktionstests erreicht und bleibt ohne vollstaendig bestandene Live-Evidence breit deaktiviert; kein dritter Write-Test",
-    "open_bank_pack bleibt wegen Capacity-/Currency-Mutation und ASYNC_BACKEND_TX ein separater spaeterer Mixed-Path-Nachweis",
     "PR20.2 ist damit noch nicht komplett; keine breite Bank-Aktivierung",
-    "PR20.3 Markt bleibt bis zum PR20.2-Exit-Gate produktiv gesperrt"
+    "PR20.3 Markt bleibt bis zum PR20.2-Exit-Gate produktiv gesperrt",
+    "open_bank_pack Shadow ist BESTANDEN: items2 kostet 75.000.000 Gold oder 600 Shells; aktuelle Ressourcen 15.993.820 Gold / 0 Shells, daher kein Live-Test",
+    "open_bank_pack Mixed-Path Settlement/Recovery wird NO-WRITE vorbereitet; Shell IN_PROGRESS bedeutet warten/reobserve ohne Send",
+    "PR20.2 bleibt wegen Withdraw-Testlimit und fehlender Open-Pack-Live-Admission nicht komplett; keine breite Bank-Aktivierung"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -353,6 +355,22 @@
         "testsConsumed": 2,
         "additionalFunctionalTestAllowed": false
       }
+    },
+    "openBankPackCandidate": {
+      "publicFunction": "open_bank_pack",
+      "status": "SHADOW_BESTANDEN_LIVE_RESOURCE_BLOCKED_NO_WRITE",
+      "pack": "items2",
+      "map": "bank",
+      "goldKosten": 75000000,
+      "shellKosten": 600,
+      "characterGold": 15993820,
+      "characterShells": 0,
+      "goldBezahlbar": false,
+      "shellsBezahlbar": false,
+      "shadowEvidence": "v5/roadmap/pr20-2-bank-open-pack-shadow-evidence.json",
+      "settlementCore": "v5/grundlage/quelle/merchant/bank-open-pack-settlement.ts",
+      "liveMutationFreigegeben": false,
+      "sameIntentRetry": false
     }
   },
   "parallelPreparations": [
@@ -649,7 +667,7 @@
     "writeAdapter": true,
     "liveRunner": true,
     "gameplayWrites": 1,
-    "nextSafetyGap": "WITHDRAW_KEIN_DRITTER_LIVE_TEST; OPEN_BANK_PACK_SEPARATER_MIXED_PATH_NACHWEIS",
+    "nextSafetyGap": "WITHDRAW_KEIN_DRITTER_LIVE_TEST; OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_WRITE_ADMISSION_PREPARATION_ONLY",
     "persistentBankLease": true,
     "restartReconciliation": true,
     "r9AdmissionShadow": true,
@@ -698,6 +716,10 @@
     "bankRetrieveStatus": "BESTANDEN_2_OF_2_DIRECT_INGAME",
     "bankStoreStatus": "BESTANDEN_2_OF_2_DIRECT_INGAME",
     "bankSwapStatus": "BESTANDEN_2_OF_2_DIRECT_INGAME",
-    "openBankPackStatus": "SEPARATER_NACHWEIS_AUSSTEHEND"
+    "openBankPackStatus": "SHADOW_BESTANDEN_LIVE_RESOURCE_BLOCKED_NO_WRITE",
+    "openBankPackShadowEvidence": "v5/roadmap/pr20-2-bank-open-pack-shadow-evidence.json",
+    "openBankPackCandidateContract": "v5/grundlage/vertraege/runtime/bank-open-pack-production-candidate.json",
+    "openBankPackSettlementCore": "v5/grundlage/quelle/merchant/bank-open-pack-settlement.ts",
+    "openBankPackLiveAllowed": false
   }
-}
+}\n
