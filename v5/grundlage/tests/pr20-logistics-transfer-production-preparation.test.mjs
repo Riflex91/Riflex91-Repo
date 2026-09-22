@@ -25,9 +25,9 @@ const erwartete = new Map([
   ["AL-ACTION-SEND-GOLD", ["AL-RECOVERY-SEND-GOLD", "AL-VERIFIER-SEND-GOLD", "send_gold"]],
 ]);
 
-test("PR20.4 Vorbereitung ist nach den Vorstufen freigegeben, bleibt aber strikt NO-WRITE", () => {
+test("PR20.4 Gesamttest ist vorbereitet; produktive Authority bleibt strikt default-off", () => {
   assert.equal(prep.schemaVersion, 1);
-  assert.equal(prep.status, "PR20_4_VORBEREITUNG_FREIGEGEBEN_NO_WRITE");
+  assert.equal(prep.status, "BEREIT_FUER_INGAME_GESAMTSTUFENTEST");
   assert.equal(prep.authorityGrenze.produktiveRegistrierungErlaubt, false);
   assert.equal(prep.authorityGrenze.produktiverAktivierungspfadErlaubt, false);
   assert.equal(prep.authorityGrenze.gameplayAutoritaet, false);
