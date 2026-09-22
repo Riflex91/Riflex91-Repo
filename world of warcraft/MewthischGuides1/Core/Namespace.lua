@@ -3,7 +3,7 @@ local addonName, MG = ...
 _G.MewthischGuides1 = MG
 MG.NAME = "Mewthisch Guides"
 MG.VERSION = "1.0.0-dev"
-MG.BUILD = "2026-09-22-worldnav-ui-2"
+MG.BUILD = "2026-09-22-full-1.0-dev1"
 MG.INTERFACE = 16001
 
 MG.Util = MG.Util or {}
@@ -72,13 +72,25 @@ function MG:EnsureDB()
         rxpRate = 1,
         rxpHardcoreMode = false,
         rxpSoDMode = false,
+        rxpEraMode = true,
+        rxpSoMMode = false,
+        rxpSSFMode = false,
+        rxpHardcoreServer = false,
+        rxpPhase = 6,
+        allowAuctionHouse = true,
         showViewer = true,
         showNavigator = true,
+        showWorldMapMarker = true,
+        showActionBar = true,
+        showGearAdvisor = true,
+        showBuildAdvisor = true,
         showCompletedGoals = false,
         showPassiveHints = true,
+        respectHideWindow = true,
         autoAdvance = true,
         autoAcceptQuests = false,
         autoTurnInQuests = false,
+        autoSelectSingleReward = false,
         diagnostics = true,
     }
     for key, value in pairs(defaults) do
@@ -90,6 +102,8 @@ function MG:EnsureDB()
     db.ui = db.ui or {}
     db.runtime = db.runtime or {}
     db.runtime.build = self.BUILD
+    db.browser = db.browser or {}
+    db.automation = db.automation or {}
     self.db = db
     return db
 end
