@@ -178,3 +178,44 @@ test("Produktionskomposition registriert waehrend PR20.3-Vorbereitung keine Mark
     assert.equal(produktionsKomposition.includes(marker), false);
   }
 });
+
+
+test("trade_buy und trade_sell blockieren PR20.3 nach Operator-Abnahme nicht mehr", () => {
+  assert.equal(
+    prep.playerMarketTradeOperatorAcceptance.status,
+    "VOLLSTAENDIG_ABGENOMMEN_DURCH_OPERATOR_OHNE_LIVE_EVIDENCE",
+  );
+  assert.equal(
+    prep.playerMarketTradeOperatorAcceptance.trade_buy.roadmapStatus,
+    "VOLL_ABGENOMMEN_OPERATOR",
+  );
+  assert.equal(
+    prep.playerMarketTradeOperatorAcceptance.trade_sell.roadmapStatus,
+    "VOLL_ABGENOMMEN_OPERATOR",
+  );
+  assert.equal(
+    prep.playerMarketTradeOperatorAcceptance.trade_buy.countsAsPassedForRoadmap,
+    true,
+  );
+  assert.equal(
+    prep.playerMarketTradeOperatorAcceptance.trade_sell.countsAsPassedForRoadmap,
+    true,
+  );
+  assert.equal(
+    prep.playerMarketTradeOperatorAcceptance.trade_buy.countsAsPassedEvidence,
+    false,
+  );
+  assert.equal(
+    prep.playerMarketTradeOperatorAcceptance.trade_sell.countsAsPassedEvidence,
+    false,
+  );
+  assert.equal(
+    prep.playerMarketTradeOperatorAcceptance.blocksPr20_3Sequencing,
+    false,
+  );
+  assert.equal(
+    prep.playerMarketTradeOperatorAcceptance.grantsProductiveTradeAuthority,
+    false,
+  );
+  assert.equal(prep.playerMarketTradeOperatorAcceptance.sameIntentRetry, false);
+});
