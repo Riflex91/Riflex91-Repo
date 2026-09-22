@@ -182,12 +182,12 @@ jobs:
         run: |
           set -euo pipefail
           NAV="world of warcraft/MewthischGuides1/UI/NavigatorFrame.lua"
-          grep -q 'MG.NavigationDistance:Between(position,nav.waypoint)' "$NAV"
-          if grep -q 'distance, distanceMode = MG.NavigationDistance and' "$NAV"; then
+          grep -Fq 'MG.NavigationDistance:Between(position,nav.waypoint)' "$NAV"
+          if grep -Fq 'distance, distanceMode = MG.NavigationDistance and' "$NAV"; then
             echo "multi-return value would be collapsed by logical-and expression" >&2
             exit 1
           fi
-          grep -q 'NavigationBearing:Resolve' "$NAV"
+          grep -Fq 'NavigationBearing:Resolve' "$NAV"
           echo "Navigator multi-return contract PASS"
 
       - name: Validate Forever RestedXP absolute world-coordinate navigation
@@ -244,23 +244,23 @@ jobs:
           VIEW="world of warcraft/MewthischGuides1/UI/GuideViewer.lua"
           NS="world of warcraft/MewthischGuides1/Core/Namespace.lua"
 
-          grep -q 'restedxp_world_coordinates' "$NAV"
-          grep -q 'bearing.relative + TEXTURE_ZERO_OFFSET' "$NAV"
-          grep -q 'UI:SetSize(frame,170,118)' "$NAV"
+          grep -Fq 'restedxp_world_coordinates' "$NAV"
+          grep -Fq 'bearing.relative + TEXTURE_ZERO_OFFSET' "$NAV"
+          grep -Fq 'UI:SetSize(frame,170,118)' "$NAV"
 
-          grep -q 'FRAME_WIDTH = 400' "$VIEW"
-          grep -q 'Zusätzliche Ziele' "$VIEW"
-          grep -q 'showViewer=false' "$VIEW"
-          grep -q 'viewerX' "$VIEW"
-          grep -q 'viewerY' "$VIEW"
+          grep -Fq 'FRAME_WIDTH = 400' "$VIEW"
+          grep -Fq 'Zusätzliche Ziele' "$VIEW"
+          grep -Fq 'showViewer=false' "$VIEW"
+          grep -Fq 'viewerX' "$VIEW"
+          grep -Fq 'viewerY' "$VIEW"
 
-          grep -q '2026-09-22-full-1.0-dev1' "$NS"
+          grep -Fq '2026-09-22-full-1.0-dev1' "$NS"
 
-          if grep -q 'Runtime " .. tostring(runtime.revision' "$VIEW"; then
+          if grep -Fq 'Runtime " .. tostring(runtime.revision' "$VIEW"; then
             echo "runtime debug revision leaked into player-facing viewer" >&2
             exit 1
           fi
-          if grep -q 'Richtung ?' "$NAV"; then
+          if grep -Fq 'Richtung ?' "$NAV"; then
             echo "obsolete direction placeholder leaked into navigator" >&2
             exit 1
           fi
@@ -295,6 +295,88 @@ jobs:
           assert(sticky>0,"sticky semantics not detected")
           assert(MG.GuideCompiler:GetStats().levelCapAssumption==false)
           print("RestedXP semantic compile PASS",#raw,rawSteps,sticky)
+          LUA
+
+      - name: Validate full RestedXP 1.0 semantic coverage
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={}
+          assert(loadfile("world of warcraft/MewthischGuides1/Core/Namespace.lua"))("MewthischGuides1",MG)
+          MG:EnsureDB()
+          for i=1,5 do
+            assert(loadfile(string.format(
+              "world of warcraft/MewthischGuides1/Data/RestedXPForeverData_%02d.lua",i)))(
+              "MewthischGuides1",MG)
+          end
+          assert(loadfile("world of warcraft/MewthischGuides1/Data/RestedXPActionCatalog.lua"))("MewthischGuides1",MG)
+          assert(loadfile("world of warcraft/MewthischGuides1/Guide/RestedXPSelector.lua"))("MewthischGuides1",MG)
+          assert(loadfile("world of warcraft/MewthischGuides1/Guide/RestedXPParser.lua"))("MewthischGuides1",MG)
+          assert(loadfile("world of warcraft/MewthischGuides1/Guide/GuideCompiler.lua"))("MewthischGuides1",MG)
+
+          local compiled=MG.GuideCompiler:CompileAll(true)
+          local stats=MG.GuideCompiler:GetStats()
+          assert(stats.steps>12000)
+          assert(stats.deferred>1000,"completewith coverage unexpectedly low")
+          assert(stats.loops>0,"loop routes not compiled")
+          assert(stats.labels>0,"labels not compiled")
+
+          local seen={}
+          for _,guide in ipairs(compiled) do
+            for _,step in ipairs(guide.steps or {}) do
+              if step.completeWith then assert(step.stickyRelation) end
+              for _,entry in ipairs(step.entries or {}) do
+                seen[entry.action]=true
+                if entry.action=="xp" then assert(entry.xpTarget and entry.completionKind=="xp") end
+                if entry.action=="money" then assert(entry.moneyTarget and entry.completionKind=="money") end
+                if entry.action=="skill" then assert(entry.skillTarget and entry.completionKind=="skill") end
+                if entry.action=="reputation" then assert(entry.reputationTarget and entry.completionKind=="reputation") end
+                if entry.action=="timer" then assert(entry.timerSeconds and entry.completionKind=="timer") end
+              end
+            end
+          end
+          for _,action in ipairs({"xp","money","skill","reputation","fly","fp","hs","equip","use"}) do
+            assert(seen[action],"expected RestedXP action not represented: "..action)
+          end
+          print("Full RestedXP 1.0 semantic coverage PASS",stats.steps,stats.deferred,stats.loops,stats.labels)
+          LUA
+
+      - name: Validate completewith lifecycle
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={Util={}}
+          function MG.Util:Trim(v) return tostring(v or ""):match("^%s*(.-)%s*$") end
+          assert(loadfile("world of warcraft/MewthischGuides1/Guide/GuideSession.lua"))("MewthischGuides1",MG)
+          local guide={id="g",steps={
+            {id="s1",order=1,stickyRelation=true,completeWith="next",completeWithIndex=2},
+            {id="s2",order=2},
+            {id="s3",order=3},
+          }}
+          local session=assert(MG.GuideSession:Create(guide,1))
+          assert(session.stickyIndexes[1],"completewith must activate as parallel goal")
+          MG.GuideSession:SetIndex(session,2)
+          assert(session.stickyIndexes[1],"completewith next must remain active through target step")
+          MG.GuideSession:SetIndex(session,3)
+          assert(not session.stickyIndexes[1],"completewith must expire after target step")
+          print("CompleteWith lifecycle PASS")
+          LUA
+
+      - name: Validate reward item API mapping
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={}
+          GetItemInfo=function()
+            return "Test Sword","item:1",3,25,20,"Weapon","Sword",1,"INVTYPE_WEAPON",12345,500
+          end
+          GetDetailedItemLevelInfo=function() return 25 end
+          GetInventoryItemLink=function() return "item:2" end
+          assert(loadfile("world of warcraft/MewthischGuides1/Gear/GearScore.lua"))("MewthischGuides1",MG)
+          local result=MG.GearScore:CompareToEquipped("item:1")
+          assert(result.name=="Test Sword")
+          assert(result.equipLoc=="INVTYPE_WEAPON")
+          assert(result.slot==16)
+          assert(result.icon==12345)
+          assert(result.score==25)
+          print("Reward item API mapping PASS")
           LUA
 
       - name: Validate multi-goal and hidden blocker semantics
@@ -384,18 +466,51 @@ jobs:
           print("Runtime revision + transitions PASS")
           LUA
 
-      - name: Validate TOC contract
+      - name: Validate full 1.0 TOC and subsystem contract
         run: |
           set -euo pipefail
           TOC="world of warcraft/MewthischGuides1/MewthischGuides1.toc"
-          grep -q 'Guide/GuideCompiler.lua' "$TOC"
-          grep -q 'Runtime/RuntimeStore.lua' "$TOC"
-          grep -q 'Resolver/StepStateResolver.lua' "$TOC"
-          grep -q 'UI/ErrorLogWindow.lua' "$TOC"
-          grep -q 'Core/Bootstrap.lua' "$TOC"
-          grep -q 'desiredHeight' "world of warcraft/MewthischGuides1/UI/GuideViewer.lua"
-          grep -q 'unfinished_objective' "world of warcraft/MewthischGuides1/Guide/RecoveryPolicy.lua"
+          required=(
+            "Runtime/RuntimeStore.lua"
+            "Guide/GuideCompiler.lua"
+            "Guide/GuideController.lua"
+            "Facts/PlayerFacts.lua"
+            "Runtime/ActionMemory.lua"
+            "Resolver/StepStateResolver.lua"
+            "Navigation/CoordinateConverter.lua"
+            "Navigation/Distance.lua"
+            "Navigation/Bearing.lua"
+            "Navigation/RoutePlanner.lua"
+            "Travel/TravelPlanner.lua"
+            "Policy/AutomationPolicy.lua"
+            "Policy/ActionPolicy.lua"
+            "Gear/GearScore.lua"
+            "Gear/RewardAdvisor.lua"
+            "Build/BuildAdvisor.lua"
+            "Presentation/PresentationResolver.lua"
+            "UI/ErrorLogWindow.lua"
+            "UI/SettingsWindow.lua"
+            "UI/GuideBrowser.lua"
+            "UI/BuildWindow.lua"
+            "UI/RewardAdvisorFrame.lua"
+            "UI/WorldMapOverlay.lua"
+            "UI/ActionBar.lua"
+            "UI/NavigatorFrame.lua"
+            "UI/GuideViewer.lua"
+            "Core/Bootstrap.lua"
+          )
+          for file in "${required[@]}"; do
+            grep -Fq "$file" "$TOC"
+            test -f "world of warcraft/MewthischGuides1/$file"
+          done
 
+          grep -Fq 'LOG' "world of warcraft/MewthischGuides1/UI/GuideViewer.lua"
+          grep -Fq 'OPT' "world of warcraft/MewthischGuides1/UI/GuideViewer.lua"
+          grep -Fq 'GUIDES' "world of warcraft/MewthischGuides1/UI/GuideViewer.lua"
+          grep -Fq 'GetDiagnosticSnapshot' "world of warcraft/MewthischGuides1/Core/ErrorLog.lua"
+          grep -Fq 'unfinished_objective' "world of warcraft/MewthischGuides1/Guide/RecoveryPolicy.lua"
+          grep -Fq 'AdvanceWhileSafe' "world of warcraft/MewthischGuides1/Runtime/RuntimeEngine.lua"
+          grep -Fq 'GuideController:Start' "world of warcraft/MewthischGuides1/Core/Bootstrap.lua"
 
       - name: Build installable addon ZIP
         run: |
