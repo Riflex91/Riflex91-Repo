@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_2_BANK_PRODUCTION_PREPARATION",
   "stand": "2026-09-22",
-  "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_NO_WRITE_5M_BESTANDEN_BLOCKED",
+  "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
   "basisMain": "05b93ac7dbb6ef294294c38030d9e4b48962f7d3",
   "blockingGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
-  "zweck": "PR20.2 Bank-Autonomie schrittweise produktiv nachweisen. bank_deposit(1), bank_retrieve, bank_store und bank_swap sind real bestanden. bank_withdraw(1) hat zwei echte Funktionstests verbraucht und bleibt ohne vollstaendig bestandene Live-Write-Evidence breit deaktiviert. Open-Pack Shadow und read-only Admission sind als Sicherheitspruefungen bestanden; fachlich bleibt open_bank_pack wegen 15.993.820 < 75.000.000 Gold und 0 < 600 Shells RESOURCE_BLOCKED_NO_LIVE. Der reale Bank-NO-WRITE-5M-Lauf ist BESTANDEN. PR20.2 bleibt BLOCKIERT_FAIL_CLOSED; aktuell ist kein weiterer Ingame-Test gate-wirksam.",
+  "zweck": "PR20.2 Bank ist auf Operatorentscheidung breit freigegeben und fuer die Roadmap abgeschlossen. Deposit, Retrieve, Store, Swap und NO-WRITE-5M besitzen bestandene Evidence. Withdraw bleibt als nicht vollstaendig live-bestanden dokumentiert und lokal gegatet; Open-Pack bleibt bei fehlenden Ressourcen durch Admission blockiert. Breite Bankfreigabe umgeht keine Capability-, Authority-, Lease-, Fencing-, Admission-, Recovery- oder Operator-Deny-Grenze.",
   "authorityGrenze": {
     "produktiveRegistrierungErlaubt": true,
     "produktiverAktivierungspfadErlaubt": false,
@@ -42,7 +42,9 @@
     "liveRecovery": "COMMITTED",
     "liveRecoveryKlassifikation": "BESTAETIGT",
     "liveLeaseEpoche": 3,
-    "liveLeaseTerminalStatus": "RELEASED"
+    "liveLeaseTerminalStatus": "RELEASED",
+    "operatorBreiteBankfreigabeErteilt": true,
+    "breiteBankFreigabeScope": "BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES"
   },
   "bestehendePlanung": {
     "modulId": "merchant-core-a",
@@ -151,16 +153,12 @@
   ],
   "nachEquipErforderlicheFreigabeschritte": [
     "PR20.1 Equip-Live-Evidence ist BESTANDEN",
-    "PR20.2 Real-Browser-Shadow und echter F5-/Restart-Recovery-Fault sind BESTANDEN",
-    "bank_deposit(1)-Live-Evidence ist BESTANDEN: COMMIT, ein Adapter-Aufruf, ein Gameplay-Write, kein Retry, Lease RELEASED",
-    "bank_retrieve ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
-    "bank_store ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
-    "bank_swap ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
-    "bank_withdraw(1) hat das Maximum von zwei echten Funktionstests erreicht; korrigierte CODE-Bridge read-only BESTANDEN, vollstaendige Live-Evidence fehlt, kein dritter Write-Test",
-    "open_bank_pack Shadow und Admission read-only sind als Sicherheitspruefungen BESTANDEN; fachlich RESOURCE_BLOCKED_NO_LIVE wegen 15.993.820 < 75.000.000 Gold und 0 < 600 Shells",
-    "Bank-NO-WRITE-5M ist real BESTANDEN: 300017 ms, 21 Samples, 0 Gaps, 0 Drift, 0 performance_trick-Fehler, 0 Gameplay-Writes",
-    "PR20.2 Exit-Gate bleibt BLOCKIERT_FAIL_CLOSED; keine breite Bank-Aktivierung und kein Sprung zu PR20.3",
-    "kein weiterer Ingame-Test ist aktuell erforderlich oder gate-wirksam; Reopen nur bei dokumentiertem Zustands-, Ressourcen- oder Code-Trigger"
+    "bank_deposit(1), bank_retrieve, bank_store und bank_swap besitzen bestandene reale Evidence",
+    "bank_withdraw bleibt als NICHT_BESTANDEN_TESTLIMIT_ERREICHT dokumentiert und lokal gegatet; kein dritter Test",
+    "open_bank_pack Shadow/Admission sind read-only bestanden; fehlende Ressourcen blockieren lokal weiterhin Live-Mutation",
+    "Bank-NO-WRITE-5M ist real BESTANDEN",
+    "Operator hat breite Bankfreigabe auf Modul-/Milestone-Ebene erteilt; lokale Capability-/Admission-Gates bleiben zwingend",
+    "PR20.2 ist fuer die Roadmap VOLL_FREIGEGEBEN; PR20.3-Testkette darf starten"
   ],
   "blockingGateStatus": "BESTANDEN",
   "ersterLiveKandidat": {
@@ -294,19 +292,24 @@
     "sameIntentRetry": false
   },
   "pr20_2ExitGate": {
-    "status": "BLOCKIERT_FAIL_CLOSED",
-    "blocker": [
-      "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
-      "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
-    ],
+    "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
     "noWrite5mStatus": "BESTANDEN_REAL_INGAME_READ_ONLY",
     "noWrite5mEvidence": "roadmap/pr20-2-bank-no-write-5m-evidence.json",
     "blockerCloseout": "roadmap/pr20-2-bank-blocker-closeout.json",
     "integration15mRequiredNow": false,
     "weitereIngameTestsJetztErforderlich": false,
-    "breiteBankAktivierungErlaubt": false,
-    "pr20_3MarktStartErlaubt": false,
-    "sameIntentRetry": false
+    "breiteBankAktivierungErlaubt": true,
+    "pr20_3MarktStartErlaubt": true,
+    "sameIntentRetry": false,
+    "operatorTransitionAcceptance": "roadmap/pr20-2-bank-operator-transition-acceptance.json",
+    "evidenceComplete": false,
+    "breiteBankFreigabeScope": "BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES",
+    "withdrawLokalGegatet": true,
+    "openBankPackLokalGegatet": true,
+    "evidenceExceptions": [
+      "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
+      "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
+    ]
   },
   "noWrite5m": {
     "status": "BESTANDEN_REAL_INGAME_READ_ONLY",
@@ -323,7 +326,7 @@
     "integration15mRequiredNow": false
   },
   "blockerCloseout": {
-    "status": "BLOCKIERT_FAIL_CLOSED_NO_FURTHER_INGAME_TEST_JUSTIFIED",
+    "status": "CLOSED_AS_ACCEPTED_EVIDENCE_EXCEPTIONS",
     "evidencePfad": "roadmap/pr20-2-bank-blocker-closeout.json",
     "weitereIngameTestsJetztErforderlich": false
   }

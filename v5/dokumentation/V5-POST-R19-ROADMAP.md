@@ -66,7 +66,7 @@ Fuer alle Post-R19-Stufen gelten unveraendert:
 
 | Stufe | Ziel | Status | Harte Voraussetzung |
 |---|---|---|---|
-| PR20 | Merchant produktiv vervollstaendigen | IN_PROGRESS | PR20.1 bestanden; aktuelles Gate PR20.2 Bank |
+| PR20 | Merchant produktiv vervollstaendigen | IN_PROGRESS | PR20.1 und PR20.2 freigegeben; aktuelles Gate PR20.3 Markt |
 | PR21 | Merchant Gesamtintegration zertifizieren | BLOCKED_BY_PR20 | PR20 komplett |
 | PR22 | Produktive Multi-Character-Koordination | BLOCKED_BY_PR21 | stabiler Merchant |
 | PR23 | Farmer Movement/Combat/Loot/AoE produktiv | BLOCKED_BY_PR22 | produktive Character-Koordination |
@@ -111,7 +111,9 @@ Evidence:
 
 ### PR20.2 – Bank-Autonomie produktiv
 
-**Status:** `DEPOSIT_ONE_SHOT_LIVE_BESTANDEN_RESTBANK_AUSSTEHEND`. PR20.1 ist bestanden
+**Aktueller Status:** `VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN`. Die breite Bankfreigabe ist auf Operatorentscheidung erteilt; historische Zwischenstaende in diesem Abschnitt bleiben als Entwicklungschronik erhalten. Withdraw bleibt lokal gegatet und Open-Pack bei fehlenden Ressourcen durch Admission blockiert. PR20.3 darf starten.
+
+**Historischer Aufbau:** PR20.1 ist bestanden
 und PR20.2a (Settlement-/Drift-Core fuer `bank_deposit(1)`) ist gemerged.
 PR20.2b fuehrt den separaten Single Owner `merchant-bank-core@1`, die exakt
 eine default-off MUTIEREN-Capability `merchant.bank.gold_einlagern`, eine
@@ -238,10 +240,10 @@ Abzudecken:
 
 ### PR20.3 – Markt, Kaufen und Verkaufen produktiv
 
-**Vorbereitung:** `VORBEREITET_NO_WRITE`. Die sichere Vorarbeit ist bereits unter
+**Aktueller Status:** `TESTKETTE_START_FREIGEGEBEN_NO_WRITE`. PR20.2 ist breit freigegeben und blockiert die Markt-Testkette nicht mehr. Die sichere Vorarbeit liegt unter
 `dokumentation/PR20-3-MARKT-PRODUKTIV-VORBEREITUNG.md` und
-`grundlage/vertraege/runtime/market-production-preparation.json` festgehalten.
-Die produktive Freigabe bleibt hinter PR20.1 und dem Abschluss von PR20.2 blockiert.
+`grundlage/vertraege/runtime/market-production-preparation.json`.
+Produktive Market-Authority entsteht dadurch noch nicht; PR20.3 muss seine eigenen Capability-, Authority-, Journal-, Admission-, Shadow- und Live-Evidence-Gates bestehen.
 
 Abzudecken:
 
@@ -903,3 +905,20 @@ Der 15-Minuten-Integrationsstandard wird deshalb noch nicht gestartet: solange
 das Gate fachlich nicht exit-faehig ist, wuerde ein weiterer read-only Soak
 keinen Blocker schliessen. Der naechste Ingame-Test wartet auf einen echten
 Reopen-Trigger. PR20.3 bleibt gesperrt.
+
+
+## PR20.2z – Breite Bankfreigabe / PR20.3 gestartet
+
+Der Operator hat die breite Bankfreigabe explizit erteilt. PR20.2 ist fuer
+die Roadmap damit `VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN`.
+Der Freigabe-Scope lautet `BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES`.
+
+Die historischen Befunde bleiben unveraendert sichtbar: Withdraw besitzt
+keine vollstaendig bestandene Live-Evidence und bekommt keinen dritten
+Funktionstest; Open-Pack bleibt bei fehlenden Ressourcen durch Admission
+blockiert. Diese Ausnahmen zaehlen nicht als nachtraeglich bestandene Evidence,
+blockieren aber den PR20.2-Meilenstein nicht mehr.
+
+Das aktive Gate ist jetzt **PR20.3 Markt**. Dessen NO-WRITE-Testkette darf
+beginnen; produktive Market-Mutation oder Gameplay-Authority wird erst durch
+die eigenen PR20.3-Gates erteilt.

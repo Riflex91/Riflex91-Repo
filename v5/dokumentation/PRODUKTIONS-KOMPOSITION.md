@@ -385,8 +385,12 @@ vervollstaendigt und Fault-/Restart-/UNKNOWN-/Shadow-geprueft werden.
 
 ## Naechster Integrationsschritt
 
-PR20.2 bleibt das aktive Gate. Als naechstes wird die bereits vorhandene
-accountweite `BankLeaseKoordinator`-Grenze restart-sicher persistent an den
-One-Shot-Pfad gebunden. Erst danach werden Write-Adapter und Live-Runner
-separat eingefuehrt. Markt und alle spaeteren Merchant-Mutationen bleiben
-hinter ihren eigenen Gates.
+PR20.2 ist auf Operatorentscheidung breit freigegeben. Die Freigabe ist auf
+`BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES` begrenzt: lokale Authority-,
+Admission-, Lease-, Fencing- und Recovery-Gates bleiben zwingend; insbesondere
+werden die historische Withdraw-Evidence-Luecke und der resource-blocked
+Open-Pack-Pfad nicht ueberschrieben.
+
+Das aktive Gate ist jetzt PR20.3 Markt. Market-Mutationen bleiben weiterhin
+default-off und erhalten erst nach eigener Capability-/Authority-/Journal-/
+Admission-/Shadow-/Live-Evidence produktive Wirkung.

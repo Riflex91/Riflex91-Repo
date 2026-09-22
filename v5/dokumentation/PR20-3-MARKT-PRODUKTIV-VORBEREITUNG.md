@@ -1,13 +1,13 @@
 # PR20.3 – Markt/Kaufen/Verkaufen: NO-WRITE-Vorbereitung
 
-**Status:** VORBEREITET / NO-WRITE  
-**Stand:** 2026-09-21  
-**Produktive Freigabe blockiert bis:** PR20.1 bestanden und PR20.2 abgeschlossen  
+**Status:** TESTKETTE START FREIGEGEBEN / NO-WRITE  
+**Stand:** 2026-09-22  
+**Voraussetzung:** PR20.2 breite Bankfreigabe erteilt; PR20.3 muss jetzt seine eigenen Safety-/Live-Gates bestehen  
 **Basis-main:** `0c7bffa935d7055d074fa4a3b93d11c861515153`
 
 ## Zweck
 
-PR20.3 wird soweit vorbereitet, dass nach dem Bank-Meilenstein keine erneute Grundlagenanalyse notwendig ist. Diese Vorbereitung erteilt **keine Gameplay-Authority** und veraendert weder die produktive Komposition noch den Equip-/Bank-Live-Pfad.
+PR20.2 ist fuer die Roadmap breit freigegeben. PR20.3 darf daher jetzt seine eigene Testkette starten. Diese Freigabe erteilt **noch keine Gameplay-Authority** und veraendert weder die produktive Komposition noch bestehende Bank-Local-Gates.
 
 Nicht enthalten sind:
 
@@ -95,9 +95,9 @@ Nach unklarem moeglichem Send wird **nicht** erneut gesendet. Stattdessen werden
 
 Erst eine positive fachliche Postcondition erlaubt COMMIT. Widerspruch oder unzureichende Evidence bleibt fail-closed/operator-required.
 
-## Noch bewusst gesperrt
+## Bis zu den eigenen PR20.3-Gates weiterhin gesperrt
 
-Bis PR20.1 und PR20.2 abgeschlossen sind, bleiben verboten:
+Trotz gestarteter Testkette bleiben bis zur eigenen PR20.3-Evidence verboten:
 
 - produktive Market-/Sell-MUTIEREN-Capabilities;
 - Market-One-Shot-/Dauer-Authority;

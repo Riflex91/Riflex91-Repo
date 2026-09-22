@@ -45,31 +45,36 @@ test("Reale PR20.2 Bank NO-WRITE 5M Evidence ist vollstaendig bestanden", () => 
   assert.equal(evidence.safety.sameIntentRetry, false);
 });
 
-test("5m Evidence schliesst weder Withdraw noch Open-Pack-Live", () => {
+test("5m Evidence bleibt historisch gate-neutral; spaetere Operator-Freigabe ist separat", () => {
   assert.equal(evidence.gateEffect.pr20_2ExitGateBleibt, "BLOCKIERT_FAIL_CLOSED");
   assert.equal(evidence.gateEffect.schliesstWithdrawNicht, true);
   assert.equal(evidence.gateEffect.schliesstOpenPackLiveNicht, true);
   assert.equal(evidence.gateEffect.pr20_3MarktStartErlaubt, false);
-  assert.equal(gate.status, "BLOCKIERT_FAIL_CLOSED");
-  assert.equal(gate.policy.pr20_3MarktStartErlaubt, false);
+  assert.equal(
+    gate.status,
+    "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
+  );
+  assert.equal(gate.policy.breiteBankAktivierungErlaubt, true);
+  assert.equal(gate.policy.pr20_3MarktStartErlaubt, true);
 });
 
-test("Blocker-Closeout fordert jetzt keinen wertlosen 15m- oder dritten Withdraw-Test", () => {
-  assert.equal(closeout.status, "BLOCKIERT_FAIL_CLOSED_NO_FURTHER_INGAME_TEST_JUSTIFIED");
+test("Operator-Closeout fordert keinen weiteren PR20.2-Soak oder dritten Withdraw-Test", () => {
+  assert.equal(closeout.status, "CLOSED_AS_ACCEPTED_EVIDENCE_EXCEPTIONS");
   assert.equal(closeout.testStrategy.function5mCompleted, true);
   assert.equal(closeout.testStrategy.integration15mRequiredNow, false);
+  assert.equal(closeout.testStrategy.operatorReleaseOverridesAdditionalPr20_2Soak, true);
   assert.equal(closeout.testStrategy.additionalReadOnlySoakValueNow, "KEIN_GATE_NUTZEN");
   assert.equal(closeout.policy.withdrawTest3Erlaubt, false);
   assert.equal(closeout.policy.openPackLiveErlaubt, false);
   assert.equal(closeout.policy.weitereIngameTestsJetztErforderlich, false);
-  assert.equal(closeout.policy.breiteBankAktivierungErlaubt, false);
-  assert.equal(closeout.policy.pr20_3MarktStartErlaubt, false);
+  assert.equal(closeout.policy.breiteBankAktivierungErlaubt, true);
+  assert.equal(closeout.policy.pr20_3MarktStartErlaubt, true);
   assert.equal(standard.funktion.testdauerMs, 300000);
   assert.equal(standard.integrationRelease.testdauerMs, 900000);
 });
 
 test("Reopen-Trigger fuer Open-Pack verlangt zuerst neue read-only Admission", () => {
-  const open = closeout.hardBlockers.find((x) => x.id === "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE");
+  const open = closeout.historischeBlocker.find((x) => x.id === "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE");
   assert.ok(open);
   assert.equal(open.nextIngameTestAllowedNow, false);
   assert.match(open.reopenCondition, /zuerst neue read-only Admission/);

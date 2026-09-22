@@ -19,13 +19,18 @@ const erwartete = new Map([
   ["AL-ACTION-TRADE-SELL", ["AL-RECOVERY-TRADE-SELL", "AL-VERIFIER-TRADE-SELL", "trade_sell"]],
 ]);
 
-test("PR20.3 Vorbereitung bleibt NO-WRITE und produktiv hinter PR20.1/PR20.2 blockiert", () => {
+test("PR20.3 Testkette ist nach breiter PR20.2-Freigabe NO-WRITE startbereit", () => {
   assert.equal(prep.schemaVersion, 1);
-  assert.equal(prep.status, "VORBEREITET_NO_WRITE");
+  assert.equal(prep.status, "TESTKETTE_START_FREIGEGEBEN_NO_WRITE");
   assert.deepEqual(prep.produktiveFreigabeBlockiertBis, [
-    "PR20.1_EQUIP_PRODUKTIONSNACHWEIS_BESTANDEN",
-    "PR20.2_BANK_PRODUKTIV_ABGESCHLOSSEN",
+    "PR20.3_EIGENE_CAPABILITY_AUTHORITY_JOURNAL_ADMISSION_SHADOW_LIVE_GATES",
   ]);
+  assert.equal(
+    prep.pr20_2Transition.status,
+    "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
+  );
+  assert.equal(prep.pr20_2Transition.broadBankActivationAllowed, true);
+  assert.equal(prep.pr20_2Transition.bankExceptionsRemainLocallyGated, true);
   assert.equal(prep.authorityGrenze.produktiveRegistrierungErlaubt, false);
   assert.equal(prep.authorityGrenze.produktiverAktivierungspfadErlaubt, false);
   assert.equal(prep.authorityGrenze.gameplayAutoritaet, false);
