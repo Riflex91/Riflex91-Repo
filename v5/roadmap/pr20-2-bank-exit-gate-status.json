@@ -44,14 +44,16 @@
     "openPackShadow": "v5/roadmap/pr20-2-bank-open-pack-shadow-evidence.json",
     "openPackAdmission": "v5/roadmap/pr20-2-bank-open-pack-admission-evidence.json"
   },
-  "nextAction": "PR20_2_BANK_NO_WRITE_5M_INGAME_AUSFUEHREN",
+  "nextAction": "PR20_2_BANK_NO_WRITE_5M_PREFLIGHT_NACH_SERVER_BINDING_FIX_ERNEUT_AUSFUEHREN",
   "noWriteIntegration": {
-    "bank5mStatus": "BEREIT_FUER_INGAME_READ_ONLY",
+    "bank5mStatus": "SERVER_BINDING_FIX_CI_AUSSTEHEND_DANN_INGAME_READ_ONLY_ERNEUT",
     "testPlan": "v5/roadmap/pr20-2-bank-no-write-5m-test-plan.json",
     "package": "v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js",
     "gameplayWrites": 0,
     "mutatingPublicFunctionCalls": 0,
     "functionalTestBudgetConsumed": false,
-    "schliesstBlockerNicht": true
+    "schliesstBlockerNicht": true,
+    "controllerVersion": "1.0.1",
+    "previousBlockedPreflightEvidence": "v5/roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json"
   }
 }
