@@ -89,6 +89,7 @@ function N:Create()
 
     self.frame=frame;self.arrow=arrow;self.glow=glow;self.unavailable=unavailable
     self.distance=distance;self.target=target;self.route=route
+    if MG.ThemeManager then MG.ThemeManager:ApplyNavigator(self) end
 
     local elapsed=0
     frame:SetScript("OnUpdate",function(_,delta)
