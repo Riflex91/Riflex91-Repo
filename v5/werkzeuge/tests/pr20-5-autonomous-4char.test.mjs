@@ -60,3 +60,14 @@ test("PR20.5 pass alone cannot start normal bot runtime", () => {
   assert.equal(plan.allTestsGate.normalBotRuntimeStartsAfterPr20_5Only, false);
   assert.equal(plan.allTestsGate.normalBotRuntimeRequiresAllRemainingV5TestsBestanden, true);
 });
+
+test("PR20.5 telemetry facade preserves an existing operations surface", () => {
+  assert.ok(source.includes("__v5Pr205FacadeVersion"));
+  assert.ok(source.includes("...(existing || {})"));
+  assert.ok(source.includes("existing.status.bind(existing)"));
+  assert.ok(source.includes("existing.hostHeartbeat.bind(existing)"));
+  assert.ok(source.includes("existing.reconciliationStatus.bind(existing)"));
+  assert.ok(source.includes("existing.peekTelemetry.bind(existing)"));
+  assert.ok(source.includes("v5AutonomousTest:publicState"));
+  assert.equal(source.includes("if (existing && typeof existing.status === 'function') return false;"), false);
+});
