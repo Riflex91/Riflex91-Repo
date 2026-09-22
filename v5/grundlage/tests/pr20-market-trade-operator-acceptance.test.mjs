@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 import { roadmapIstMindestens } from "../../werkzeuge/roadmap-gate-rang.mjs";
-import { roadmapIstMindestens } from "../../werkzeuge/roadmap-gate-rang.mjs";
 
 const lies = pfad => JSON.parse(fs.readFileSync(pfad, "utf8"));
 
