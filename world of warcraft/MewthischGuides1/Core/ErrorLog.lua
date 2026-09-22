@@ -185,8 +185,10 @@ function MG:GetDiagnosticSnapshot()
             CreateVector2D = CreateVector2D ~= nil,
         },
         modules = {
+            ForeverAPI = self.ForeverAPI ~= nil,
             GuideCatalog = self.GuideCatalog ~= nil,
             GuideCompiler = self.GuideCompiler ~= nil,
+            GuideValidation = self.GuideValidation ~= nil,
             RuntimeEngine = self.RuntimeEngine ~= nil,
             RuntimeStore = self.RuntimeStore ~= nil,
             CoordinateConverter = self.CoordinateConverter ~= nil,
@@ -200,8 +202,11 @@ function MG:GetDiagnosticSnapshot()
             GuideController = self.GuideController ~= nil,
             AutomationPolicy = self.AutomationPolicy ~= nil,
             ActionPolicy = self.ActionPolicy ~= nil,
+            InventoryScanner = self.InventoryScanner ~= nil,
             GearScore = self.GearScore ~= nil,
+            GearAdvisor = self.GearAdvisor ~= nil,
             RewardAdvisor = self.RewardAdvisor ~= nil,
+            SuperTrackPolicy = self.SuperTrackPolicy ~= nil,
             BuildAdvisor = self.BuildAdvisor ~= nil,
             GuideViewer = self.GuideViewer ~= nil,
             NavigatorFrame = self.NavigatorFrame ~= nil,
@@ -245,6 +250,9 @@ function MG:GetDiagnosticSnapshot()
         buildAdvice = self.BuildAdvisor and self.BuildAdvisor:Snapshot(runtime) or nil,
         rewardAdvice = self.RewardAdvisor and self.RewardAdvisor:Get() or nil,
         travelGraph = self.TravelGraph and self.TravelGraph:Snapshot() or nil,
+        gearAdvice = self.GearAdvisor and self.GearAdvisor:Get() or nil,
+        apiCapabilities = self.ForeverAPI and self.ForeverAPI:Probe() or nil,
+        validation = db.runtime and db.runtime.validation or nil,
         relevantQuests = relevantQuests,
         settings = db.settings,
         guideSelection = db.guide,
@@ -312,6 +320,9 @@ function MG:GetErrorLogText(includeInfo)
         buildAdvice=snapshot.buildAdvice,
         rewardAdvice=snapshot.rewardAdvice,
         travelGraph=snapshot.travelGraph,
+        gearAdvice=snapshot.gearAdvice,
+        apiCapabilities=snapshot.apiCapabilities,
+        validation=snapshot.validation,
     })
     appendSection(lines, "RELEVANTE QUESTS", snapshot.relevantQuests)
     appendSection(lines, "EINSTELLUNGEN / UI", {
