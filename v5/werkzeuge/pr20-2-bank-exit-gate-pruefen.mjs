@@ -134,11 +134,11 @@ if (roadmap.currentGate !== "PR20.3_MARKT_PRODUKTIVIERUNG"
     || roadmap.pr20_2?.broadBankActivationAllowed !== true
     || roadmap.pr20_2?.withdrawActivationAllowed !== false
     || roadmap.pr20_2?.openBankPackActivationAllowed !== false
-    || roadmap.pr20_3?.status !== "STUFENTEST_VORBEREITET_EIN_MERGE") {
+    || roadmap.pr20_3?.status !== "BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT") {
   fail("ROADMAP_TRANSITION_ZU_PR20_3_UNGUELTIG");
 }
 
-if (market.status !== "STUFENTEST_VORBEREITET_EIN_MERGE"
+if (market.status !== "BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT"
     || market.pr20_2Transition?.status !== "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN"
     || market.pr20_2Transition?.broadBankActivationAllowed !== true
     || market.pr20_2Transition?.bankExceptionsRemainLocallyGated !== true
@@ -151,7 +151,13 @@ if (market.status !== "STUFENTEST_VORBEREITET_EIN_MERGE"
     || market.ersterLiveKandidat?.mergeZwischenTestschrittenErforderlich !== false
     || market.ersterLiveKandidat?.maxTrueTests !== 2
     || market.ersterLiveKandidat?.produktiveGameplayAutoritaet !== false
-    || market.ersterLiveKandidat?.sameIntentRetry !== false) {
+    || market.ersterLiveKandidat?.sameIntentRetry !== false
+    || market.ersterLiveKandidat?.status !== "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M"
+    || market.ersterLiveKandidat?.liveTestsConsumed !== 2
+    || market.ersterLiveKandidat?.additionalTrueFunctionalTestAllowed !== false
+    || market.naechsterVorbereiteterKandidat?.status !== "BEREIT_FUER_INGAME_NPC_SELL_STUFENTEST"
+    || market.naechsterVorbereiteterKandidat?.produktiveGameplayAutoritaet !== false
+    || market.naechsterVorbereiteterKandidat?.sameIntentRetry !== false) {
   fail("PR20_3_TESTKETTE_GRENZE_UNGUELTIG");
 }
 

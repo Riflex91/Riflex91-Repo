@@ -21,7 +21,7 @@ const erwartete = new Map([
 
 test("PR20.3 Testkette ist nach breiter PR20.2-Freigabe NO-WRITE startbereit", () => {
   assert.equal(prep.schemaVersion, 1);
-  assert.equal(prep.status, "STUFENTEST_VORBEREITET_EIN_MERGE");
+  assert.equal(prep.status, "BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT");
   assert.deepEqual(prep.produktiveFreigabeBlockiertBis, [
     "PR20.3_EIGENE_CAPABILITY_AUTHORITY_JOURNAL_ADMISSION_SHADOW_LIVE_GATES",
   ]);
@@ -50,8 +50,18 @@ test("PR20.3 Testkette ist nach breiter PR20.2-Freigabe NO-WRITE startbereit", (
   assert.equal(prep.ersterLiveKandidat.maxTrueTests, 2);
   assert.equal(prep.ersterLiveKandidat.produktiveGameplayAutoritaet, false);
   assert.equal(
+    prep.ersterLiveKandidat.status,
+    "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
+  );
+  assert.equal(
+    prep.ersterLiveKandidat.evidence,
+    "roadmap/pr20-3-market-buy-gold-evidence.json",
+  );
+  assert.equal(prep.ersterLiveKandidat.liveTestsConsumed, 2);
+  assert.equal(prep.ersterLiveKandidat.additionalTrueFunctionalTestAllowed, false);
+  assert.equal(
     prep.naechsterVorbereiteterKandidat.status,
-    "VORBEREITET_WARTET_AUF_BUY_GOLD_7_OF_7",
+    "BEREIT_FUER_INGAME_NPC_SELL_STUFENTEST",
   );
   assert.equal(prep.naechsterVorbereiteterKandidat.publicFunction, "sell");
   assert.equal(prep.naechsterVorbereiteterKandidat.menge, 1);
@@ -71,6 +81,10 @@ test("PR20.3 Testkette ist nach breiter PR20.2-Freigabe NO-WRITE startbereit", (
   assert.equal(prep.naechsterVorbereiteterKandidat.maxTrueTests, 2);
   assert.equal(prep.naechsterVorbereiteterKandidat.produktiveGameplayAutoritaet, false);
   assert.equal(prep.naechsterVorbereiteterKandidat.sameIntentRetry, false);
+  assert.equal(
+    prep.naechsterVorbereiteterKandidat.buyGoldEvidence,
+    "roadmap/pr20-3-market-buy-gold-evidence.json",
+  );
 });
 
 test("PR20.3 Kandidaten besitzen exakt vorhandene R9 Action/Recovery/Verifier-Bindungen", () => {

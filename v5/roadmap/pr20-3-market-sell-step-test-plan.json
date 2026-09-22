@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-22",
   "kennung": "V5_PR20_3_MARKET_SELL_STEP_TEST_PLAN",
-  "status": "VORBEREITET_WARTET_AUF_BUY_GOLD_7_OF_7",
+  "status": "BEREIT_FUER_INGAME_NPC_SELL_STUFENTEST",
   "basisMain": "ceeeb9f1fa5eb8c1e70e38de85d007987fcdacb0",
   "paket": "v5/werkzeuge/pr20-3-market-sell-step-test-paket.js",
   "stateKey": "AIO_V5_PR20_3_SELL_STEP_TEST_V1",
@@ -90,5 +90,7 @@
     "bei UNKNOWN/Drift/Timeout kein Same-Intent-Retry",
     "Reload setzt Testbudget nicht zurueck"
   ],
-  "completion": "Nach Schritt 7 einmal Gesamtbericht kopieren; kein Merge zwischen den sieben Ingame-Schritten."
+  "completion": "Nach Schritt 7 einmal Gesamtbericht kopieren; kein Merge zwischen den sieben Ingame-Schritten. Buy-Gold-Voraussetzung ist real bestanden.",
+  "buyGoldEvidence": "v5/roadmap/pr20-3-market-buy-gold-evidence.json",
+  "sourceRequirementSatisfiedByRepoEvidence": true
 }

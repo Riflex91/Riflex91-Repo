@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_3_MARKT_PRODUCTION_PREPARATION",
   "stand": "2026-09-22",
-  "status": "STUFENTEST_VORBEREITET_EIN_MERGE",
+  "status": "BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT",
   "basisMain": "55446d26ac13888816761c97b02006aeafa65bcb",
   "produktiveFreigabeBlockiertBis": [
     "PR20.3_EIGENE_CAPABILITY_AUTHORITY_JOURNAL_ADMISSION_SHADOW_LIVE_GATES"
@@ -128,17 +128,12 @@
   "nachVorstufenErforderlicheFreigabeschritte": [
     "ERLEDIGT: PR20.1 Equip-Evidence bestanden",
     "ERLEDIGT: PR20.2 Bank breit freigegeben",
-    "ERLEDIGT: buy_with_gold(item, 1) als ersten Kandidaten ratifiziert",
-    "ERLEDIGT: Settlement-/Drift-Core und Offline-Tests",
-    "ERLEDIGT: ein persistenter Ingame-Stufentest fuer alle verbleibenden Testgates gebaut",
-    "INGAME: Schritt 1 Umgebung/Bindung",
-    "INGAME: Schritt 2 stabilen Gold-Kauf-Kandidaten pinnen",
-    "INGAME: Schritt 3 read-only Shadow/Admission",
-    "INGAME: Schritt 4 kontrollierter LIVE 1 Write",
-    "INGAME: Schritt 5 frische Re-Admission ohne Write",
-    "INGAME: Schritt 6 kontrollierter LIVE 2 Write",
-    "INGAME: Schritt 7 5-Minuten NO-WRITE Stabilitaet",
-    "danach Gesamtbericht einmalig dokumentieren; kein Merge zwischen den sieben Ingame-Schritten"
+    "ERLEDIGT: buy_with_gold(item, 1) 7/7 real Ingame BESTANDEN",
+    "ERLEDIGT: Buy-Gold LIVE 1 und LIVE 2 jeweils COMMITTED/BESTAETIGT",
+    "ERLEDIGT: Buy-Gold 5-Minuten NO-WRITE mit 21 Samples / 0 Gaps / 0 Blocker-Samples BESTANDEN",
+    "AKTUELL: NPC-Sell Stufentest 1 bis 7 ausfuehren; kein Merge zwischen den Schritten",
+    "danach Sell-Gesamtbericht als reale Evidence dokumentieren",
+    "PR20.3 produktive Gesamtfreigabe bleibt bis zu den weiteren Market-Gates gesperrt"
   ],
   "pr20_2Transition": {
     "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
@@ -147,7 +142,7 @@
     "bankExceptionsRemainLocallyGated": true
   },
   "ersterLiveKandidat": {
-    "status": "STUFENTEST_VORBEREITET_EIN_MERGE",
+    "status": "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
     "publicFunction": "buy_with_gold",
     "menge": 1,
     "route": "GOLD_ONLY",
@@ -167,10 +162,16 @@
     "maxTrueTests": 2,
     "bestaetigungLive1": "PR20.3-BUY-GOLD-LIVE-1",
     "bestaetigungLive2": "PR20.3-BUY-GOLD-LIVE-2",
-    "produktiveGameplayAutoritaet": false
+    "produktiveGameplayAutoritaet": false,
+    "evidence": "roadmap/pr20-3-market-buy-gold-evidence.json",
+    "liveTestsConsumed": 2,
+    "additionalTrueFunctionalTestAllowed": false,
+    "noWrite5mStatus": "BESTANDEN",
+    "noWrite5mDurationMs": 300002,
+    "noWrite5mSamples": 21
   },
   "naechsterVorbereiteterKandidat": {
-    "status": "VORBEREITET_WARTET_AUF_BUY_GOLD_7_OF_7",
+    "status": "BEREIT_FUER_INGAME_NPC_SELL_STUFENTEST",
     "publicFunction": "sell",
     "menge": 1,
     "actionContractId": "AL-ACTION-SELL",
@@ -188,6 +189,7 @@
     "bestaetigungLive1": "PR20.3-SELL-LIVE-1",
     "bestaetigungLive2": "PR20.3-SELL-LIVE-2",
     "produktiveGameplayAutoritaet": false,
-    "sameIntentRetry": false
+    "sameIntentRetry": false,
+    "buyGoldEvidence": "roadmap/pr20-3-market-buy-gold-evidence.json"
   }
 }

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_3_MARKET_SELL_NAECHSTER_KANDIDAT",
   "stand": "2026-09-22",
-  "status": "VORBEREITET_WARTET_AUF_BUY_GOLD_7_OF_7",
+  "status": "BEREIT_FUER_INGAME_NPC_SELL_STUFENTEST",
   "basisMain": "ceeeb9f1fa5eb8c1e70e38de85d007987fcdacb0",
   "publicFunction": "sell",
   "menge": 1,
@@ -47,5 +47,8 @@
     "registered": false,
     "gameplayAuthority": false,
     "rawWriteAuthority": false
-  }
+  },
+  "buyGoldEvidence": "roadmap/pr20-3-market-buy-gold-evidence.json",
+  "sourceRequirementSatisfiedByRepoEvidence": true,
+  "nextAction": "INGAME_SELL_STUFEN_1_BIS_7_ABARBEITEN"
 }
