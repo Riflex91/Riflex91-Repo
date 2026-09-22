@@ -80,10 +80,15 @@
   ],
   "currentNextSteps": [
     "PR20.1 bis PR20.4 sind abgeschlossen bzw. fuer ihre Roadmap-Gates freigegeben",
-    "PR20.5 Scheduler-Stabilitaet ist in MerchantTaskKoordinator integriert",
+    "VERBINDLICHER MASTERPLAN: v5/roadmap/v5-verbindlicher-testplan.json",
     "AKTUELL: PR20.5 15m AUTO_ON_LOAD-Gesamttest auf Merchant + Ranger + Priest + Mage real ingame ausfuehren",
-    "PR20.5 BESTANDEN startet keinen Normalbetrieb; danach mit dem naechsten V5-Test-Gate fortfahren",
-    "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
+    "Nach BESTANDEN automatisch PR20.6 -> PR20.7 -> PR20.8 -> PR20.9 -> PR20.10 -> PR20.11 -> PR21 abarbeiten",
+    "Bei NICHT_BESTANDEN/Stillstand/Anomalie sofort stoppen, Ursache beheben und dasselbe Gate erneut testen",
+    "PR20.10 umfasst Farmer Combat/Class Skills plus Item-/Gold-Uebergabe und HP-/MP-Potion-Anforderung an den Merchant",
+    "PR20.11 umfasst 24/7 Reliability & Recovery; Supabase-Ausfalltest ist ausdruecklich ausgeschlossen",
+    "Nach bestandenem PR21 automatisch den 24h-Abnahmelauf mit Merchant + Ranger + Priest + Mage starten",
+    "Normalbetrieb fuer diese Testkampagne erst nach bestandenem 24h-Abnahmelauf",
+    "Die nachgelagerte Post-R19-Roadmap PR22-PR32 bleibt unveraendert bestehen"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -946,5 +951,39 @@
       "completionEmailEachTerminalTest": true
     },
     "integrationStatus": "SCHEDULER_INTEGRIERT_15M_AUTO_ON_LOAD_BEREIT"
+  },
+  "mandatoryTestMasterPlan": "v5/roadmap/v5-verbindlicher-testplan.json",
+  "mandatoryTestDocumentation": "v5/dokumentation/V5-VERBINDLICHER-TESTPLAN.md",
+  "testExecutionDirective": {
+    "status": "VERBINDLICH",
+    "campaign": "V5_MANDATORY_TEST_MASTER_PLAN",
+    "startAt": "PR20.5",
+    "gateOrder": [
+      "PR20.5",
+      "PR20.6",
+      "PR20.7",
+      "PR20.8",
+      "PR20.9",
+      "PR20.10",
+      "PR20.11",
+      "PR21"
+    ],
+    "autoContinueAfterPass": true,
+    "stopImmediatelyOnFailureOrAnomaly": true,
+    "repairThenRepeatFailedGate": true,
+    "skipGateAllowed": false,
+    "realIngameEvidenceWhereSpecified": true,
+    "supabaseMonitoringRequired": true,
+    "supabaseOutageTestExcluded": true,
+    "afterPR21": "V5_24H_FINAL_ACCEPTANCE",
+    "finalAcceptanceHours": 24,
+    "finalAcceptanceActors": [
+      "merchant",
+      "ranger",
+      "priest",
+      "mage"
+    ],
+    "normalOperationBeforeFinalAcceptance": false,
+    "broaderPostR19RoadmapPreserved": true
   }
 }
