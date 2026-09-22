@@ -2,7 +2,7 @@
   'use strict';
 
   const API = 'V5PR205AutonomousFourCharacterTest';
-  const VERSION = '1.1.0';
+  const VERSION = '1.2.0';
   const TEST_ID = 'pr20-5-merchant-stability-autonomous-4char';
   const STATE_KEY = 'AIO_V5_PR20_5_AUTONOMOUS_TEST_V1';
   const ACTORS_KEY = 'AIO_V5_PR20_5_AUTONOMOUS_ACTORS_V1';
@@ -120,7 +120,7 @@
       try { if (globalThis.__V5_PR20_5_WORKER_TIMER) clearInterval(globalThis.__V5_PR20_5_WORKER_TIMER); } catch {}
       pub();
       globalThis.__V5_PR20_5_WORKER_TIMER=setInterval(pub,I);
-      globalThis.V5PR205Worker={version:'1.0.0',status:()=>s()};
+      globalThis.V5PR205Worker={version:'1.2.0',status:()=>s()};
     };
     return '(' + body.toString() + ')();';
   }
@@ -301,14 +301,95 @@
 
   function installTelemetryFacade() {
     const r = root();
-    const existing = r.AIO_V3?.operations;
-    if (existing && typeof existing.status === 'function') return false;
     r.AIO_V3 = r.AIO_V3 || {};
+    const existing = r.AIO_V3.operations && typeof r.AIO_V3.operations === 'object'
+      ? r.AIO_V3.operations
+      : null;
+    if (existing?.__v5Pr205FacadeVersion === VERSION) return true;
+
+    const existingStatus = existing && typeof existing.status === 'function'
+      ? existing.status.bind(existing)
+      : null;
+    const existingHeartbeat = existing && typeof existing.hostHeartbeat === 'function'
+      ? existing.hostHeartbeat.bind(existing)
+      : null;
+    const existingReconciliation = existing && typeof existing.reconciliationStatus === 'function'
+      ? existing.reconciliationStatus.bind(existing)
+      : null;
+    const existingPeekTelemetry = existing && typeof existing.peekTelemetry === 'function'
+      ? existing.peekTelemetry.bind(existing)
+      : null;
+
+    const baseStatus = () => {
+      if (!existingStatus) return {};
+      try {
+        const value = existingStatus();
+        return value && typeof value === 'object' ? value : {};
+      } catch (error) {
+        return {
+          legacyOperationsStatusUnavailable: true,
+          legacyOperationsStatusError: String(error?.message || error || 'UNKNOWN').slice(0,160)
+        };
+      }
+    };
+
     r.AIO_V3.operations = {
-      status: () => ({ schemaVersion:1, mode:'V5_AUTONOMOUS_TEST', v5AutonomousTest:publicState, telemetry:{ queued:telemetryEvents.length, lastCapturedSeq:seq, dropped:0 } }),
-      hostHeartbeat: () => ({ schemaVersion:1, alive:true, mode:'V5_AUTONOMOUS_TEST', observedAtMs:now() }),
-      reconciliationStatus: () => ({ schemaVersion:1, status: publicState.terminal ? 'TERMINAL' : 'NO_MUTATION_RECONCILIATION_REQUIRED', sameIntentRetry:false }),
-      peekTelemetry: (limit = 2000) => telemetryEvents.slice(-Math.max(1, Math.min(2000, Number(limit) || 2000)))
+      ...(existing || {}),
+      __v5Pr205FacadeVersion: VERSION,
+      status: () => {
+        const base = baseStatus();
+        return {
+          ...base,
+          schemaVersion: Number(base.schemaVersion) || 1,
+          mode:'V5_AUTONOMOUS_TEST',
+          v5AutonomousTest:publicState,
+          telemetry: base.telemetry && typeof base.telemetry === 'object'
+            ? base.telemetry
+            : { queued:telemetryEvents.length, lastCapturedSeq:seq, dropped:0 }
+        };
+      },
+      hostHeartbeat: () => {
+        if (existingHeartbeat) {
+          try {
+            const value = existingHeartbeat();
+            if (value && typeof value === 'object') {
+              return { ...value, v5Mode:'V5_AUTONOMOUS_TEST', v5ObservedAtMs:now() };
+            }
+          } catch {}
+        }
+        return { schemaVersion:1, alive:true, mode:'V5_AUTONOMOUS_TEST', observedAtMs:now() };
+      },
+      reconciliationStatus: () => {
+        if (existingReconciliation) {
+          try {
+            const value = existingReconciliation();
+            if (value && typeof value === 'object') {
+              return {
+                ...value,
+                v5AutonomousTestStatus:publicState.status,
+                v5Terminal:publicState.terminal === true,
+                sameIntentRetry:false
+              };
+            }
+          } catch {}
+        }
+        return {
+          schemaVersion:1,
+          status: publicState.terminal ? 'TERMINAL' : 'NO_MUTATION_RECONCILIATION_REQUIRED',
+          v5AutonomousTestStatus:publicState.status,
+          v5Terminal:publicState.terminal === true,
+          sameIntentRetry:false
+        };
+      },
+      peekTelemetry: (limit = 2000) => {
+        if (existingPeekTelemetry) {
+          try {
+            const rows = existingPeekTelemetry(limit);
+            if (Array.isArray(rows)) return rows;
+          } catch {}
+        }
+        return telemetryEvents.slice(-Math.max(1, Math.min(2000, Number(limit) || 2000)));
+      }
     };
     return true;
   }
