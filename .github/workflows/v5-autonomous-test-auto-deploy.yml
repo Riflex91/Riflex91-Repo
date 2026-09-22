@@ -1,0 +1,38 @@
+name: v5-autonomous-test-auto-deploy
+
+on:
+  pull_request:
+    paths:
+      - 'v5/roadmap/v5-autonomous-test-manifest.json'
+      - 'v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js'
+      - 'v5/werkzeuge/tests/v5-autonomous-test-manifest.test.mjs'
+      - 'v5/grundlage/vertraege/runtime/ingame-test-execution-policy.json'
+      - 'v5/roadmap/post-r19-roadmap.json'
+      - 'v5/package.json'
+      - '.github/workflows/v5-autonomous-test-auto-deploy.yml'
+  push:
+    paths:
+      - 'v5/roadmap/v5-autonomous-test-manifest.json'
+      - 'v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js'
+      - 'v5/werkzeuge/tests/v5-autonomous-test-manifest.test.mjs'
+      - 'v5/grundlage/vertraege/runtime/ingame-test-execution-policy.json'
+      - 'v5/roadmap/post-r19-roadmap.json'
+      - 'v5/package.json'
+      - '.github/workflows/v5-autonomous-test-auto-deploy.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify V5 autonomous test auto-deploy contract
+        run: npm run autonomous-test-deploy:pruefen

@@ -345,6 +345,43 @@ Assert(CdpAdventureLandClient.OperationsContextPriority(true, false, null, null,
 Assert(CdpAdventureLandClient.OperationsContextPriority(true, true, "WORKER", "HEARTBEAT", "priest") == 50, "V5_CONTEXT_WORKER_PRIORITY");
 Assert(CdpAdventureLandClient.OperationsContextPriority(true, true, "WAITING_FOR_4_CHARACTERS", "ROSTER", "priest") == 100, "V5_CONTEXT_NONWORKER_PRIORITY");
 Assert(CdpAdventureLandClient.OperationsContextPriority(true, true, "RUNNING", "FIFTEEN_MINUTE_NO_WRITE", "merchant") == 200, "V5_CONTEXT_MERCHANT_COORDINATOR_PRIORITY");
+
+var v5AutoManifestJson = """
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "repository": "Riflex91/Riflex91-Repo",
+  "branch": "main",
+  "gate": "PR20.6_MLUCK",
+  "testId": "pr20-6-mluck-autonomous-live-5m",
+  "controllerVersion": "1.0.0",
+  "coordinatorClass": "merchant",
+  "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
+  "sourceCommit": "d0823081da6f07a8a60002b1b809c24916555521",
+  "packagePath": "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
+  "packageSha256": "26acb41bb17ff1da0719b0a4604621a5fa4bcd87f5e78b3cc647bf112a25753b",
+  "maxPackageBytes": 131072,
+  "expectedGlobal": "V5PR206MluckTest",
+  "normalRuntimeAllowed": false
+}
+""";
+var v5AutoManifest = CdpAdventureLandClient.ParseAndValidateV5AutonomousTestManifest(v5AutoManifestJson);
+Assert(v5AutoManifest.TestId == "pr20-6-mluck-autonomous-live-5m", "V5_AUTO_MANIFEST_TEST_ID");
+Assert(v5AutoManifest.CoordinatorClass == "merchant", "V5_AUTO_MANIFEST_MERCHANT_ONLY");
+Assert(v5AutoManifest.WorkerDistribution == "PACKAGE_OWNED_COMMAND_CHARACTER", "V5_AUTO_MANIFEST_WORKER_DISTRIBUTION");
+Assert(!v5AutoManifest.NormalRuntimeAllowed, "V5_AUTO_MANIFEST_NORMAL_RUNTIME_BLOCKED");
+Assert(CdpAdventureLandClient.BuildV5AutonomousTestPackageUrl(v5AutoManifest)
+    == "https://raw.githubusercontent.com/Riflex91/Riflex91-Repo/d0823081da6f07a8a60002b1b809c24916555521/v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
+    "V5_AUTO_MANIFEST_IMMUTABLE_PACKAGE_URL");
+Assert(CdpAdventureLandClient.ShouldDeployV5AutonomousTest(v5AutoManifest.TestId, null, false), "V5_AUTO_DEPLOY_WHEN_NO_TEST");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(v5AutoManifest.TestId, v5AutoManifest.TestId, false), "V5_AUTO_NO_RELOAD_SAME_TEST");
+Assert(CdpAdventureLandClient.ShouldDeployV5AutonomousTest(v5AutoManifest.TestId, "pr20-5-merchant-stability-autonomous-4char", true), "V5_AUTO_ADVANCE_AFTER_TERMINAL");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(v5AutoManifest.TestId, "other-nonterminal", false), "V5_AUTO_BLOCK_OTHER_NONTERMINAL");
+
+var v5DeployNow = DateTimeOffset.UtcNow;
+Assert(TelemetryBridgeService.ShouldEnsureV5AutonomousTestDeployment(null, v5DeployNow), "V5_AUTO_DEPLOY_INITIAL");
+Assert(!TelemetryBridgeService.ShouldEnsureV5AutonomousTestDeployment(v5DeployNow, v5DeployNow.AddSeconds(14)), "V5_AUTO_DEPLOY_THROTTLED");
+Assert(TelemetryBridgeService.ShouldEnsureV5AutonomousTestDeployment(v5DeployNow, v5DeployNow.AddSeconds(15)), "V5_AUTO_DEPLOY_15S");
 ExpectInvalid(defaults with { SupabaseStatusIntervalSeconds = 59 }, "SUPABASE_STATUS_INTERVAL_MUST_BE_60_SECONDS");
 
 Assert(TelemetryBridgeService.ComputeBackoffSeconds(5, 300, 1) == 5, "BACKOFF_1");

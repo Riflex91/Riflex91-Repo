@@ -22,6 +22,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     public const int MaxCatchUpBatches = 8;
     public const int DeepDiagnosticsIntervalSeconds = 30;
     public const int DeepDiagnosticEventLimit = 40;
+    public const int V5AutonomousTestDeploymentIntervalSeconds = 15;
     private const int CatchUpDelayMilliseconds = 100;
 
     private readonly BridgeConfig _config;
@@ -94,6 +95,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         DateTimeOffset? lastDeepDiagnosticsAt = null;
         DateTimeOffset? lastV5UploadAt = null;
         string? lastV5TerminalFingerprint = null;
+        DateTimeOffset? lastV5DeploymentAttemptAt = null;
         var failures = 0;
 
         while (!cancellationToken.IsCancellationRequested)
@@ -113,6 +115,13 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 var browserConnection = await _launcher.EnsureReadyAsync(cancellationToken);
                 browserReady = browserConnection.Ready;
                 if (!browserReady) throw new InvalidOperationException(browserConnection.State);
+
+                var deployNow = DateTimeOffset.UtcNow;
+                if (ShouldEnsureV5AutonomousTestDeployment(lastV5DeploymentAttemptAt, deployNow))
+                {
+                    await EnsureV5AutonomousTestDeploymentSafeAsync(cancellationToken);
+                    lastV5DeploymentAttemptAt = deployNow;
+                }
 
                 (dashboardState, dashboardError) = await SyncDashboardProfileAsync(cancellationToken);
                 (backblazeState, backblazeError) = await SyncBackblazeProfileAsync(cancellationToken);
@@ -241,6 +250,32 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 await Task.Delay(TimeSpan.FromSeconds(backoff), cancellationToken);
             }
         }
+    }
+
+    private async Task EnsureV5AutonomousTestDeploymentSafeAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _browser.EnsureV5AutonomousTestAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // Test deployment is fail-closed and independent from observational telemetry.
+            // A download/hash/session failure must never become a gameplay retry or stop telemetry.
+        }
+    }
+
+    public static bool ShouldEnsureV5AutonomousTestDeployment(
+        DateTimeOffset? lastAttemptAt,
+        DateTimeOffset now)
+    {
+        if (!lastAttemptAt.HasValue) return true;
+        return now - lastAttemptAt.Value
+            >= TimeSpan.FromSeconds(V5AutonomousTestDeploymentIntervalSeconds);
     }
 
     private async Task CaptureDiagnosticsSafeAsync(DebugReadResult read, CancellationToken cancellationToken)

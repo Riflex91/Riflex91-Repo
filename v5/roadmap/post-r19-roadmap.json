@@ -950,5 +950,44 @@
     "integrationStatus": "BESTANDEN_REAL_INGAME_4CHAR_15M",
     "evidence": "v5/roadmap/pr20-5-merchant-stability-evidence.json",
     "exitGate": "v5/roadmap/pr20-5-merchant-stability-exit-gate-status.json"
+  },
+  "autonomousTestDeployment": {
+    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
+    "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "bridgePollSeconds": 15,
+    "coordinatorClass": "merchant",
+    "repository": "Riflex91/Riflex91-Repo",
+    "branch": "main",
+    "commitPinnedPackage": true,
+    "sha256Verification": true,
+    "farmerWorkerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
+    "farmerClasses": [
+      "ranger",
+      "priest",
+      "mage"
+    ],
+    "manualJavascriptLoadRequired": false,
+    "genericRemoteJavascriptEndpoint": false,
+    "normalRuntimeAllowed": false
+  },
+  "pr20_6": {
+    "status": "AUTO_DEPLOY_BEREIT_LIVE_TEST_AUSSTEHEND",
+    "package": "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
+    "testPlan": "v5/roadmap/pr20-6-mluck-autonomous-test-plan.json",
+    "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "executionMode": "AUTO_ON_LOAD",
+    "deploymentMode": "GITHUB_MANIFEST_AUTO_DEPLOY",
+    "requiredCharacterClasses": [
+      "merchant",
+      "ranger",
+      "priest",
+      "mage"
+    ],
+    "merchantAutoFetch": true,
+    "farmerAutoDistribution": true,
+    "gameplayWritesMaximum": 1,
+    "rawWriteCallsMaximum": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAfterAllTestsOnly": true
   }
 }
