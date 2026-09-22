@@ -56,8 +56,14 @@ public sealed class V5ReadinessSystemtest
         Pruefe(
             "CONFIG_VERSION",
             config.ConfigVersion == BridgeConfig.CurrentConfigVersion
-                && BridgeConfig.CurrentConfigVersion == 8,
+                && BridgeConfig.CurrentConfigVersion == 9,
             $"installiert={config.ConfigVersion}; erwartet={BridgeConfig.CurrentConfigVersion}");
+
+        Pruefe(
+            "V5_SUPABASE_STATUS_TAKT",
+            config.PollIntervalSeconds == 5
+                && config.SupabaseStatusIntervalSeconds == 60,
+            $"lokal={config.PollIntervalSeconds}s; Supabase={config.SupabaseStatusIntervalSeconds}s; Terminal=sofort");
 
         Pruefe(
             "WISSENSWAECHTER_AKTIV",
