@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Windows;
 
 namespace AioBotWindowsBridge;
@@ -24,8 +25,27 @@ public partial class MainWindow : Window
     {
         WindowsBridgeSelfUpdater.CleanupPreviousExecutable();
         InitializeComponent();
+        Title = BuildWindowTitle();
         Loaded += MainWindow_Loaded;
         Closed += MainWindow_Closed;
+    }
+
+    private static string BuildWindowTitle()
+    {
+        var info = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+
+        if (string.IsNullOrWhiteSpace(info))
+            return "AIO Bot Windows Bridge";
+
+        var plusIndex = info.IndexOf('+');
+        if (plusIndex < 0 || plusIndex == info.Length - 1)
+            return $"AIO Bot Windows Bridge · {info}";
+
+        var sha = info[(plusIndex + 1)..];
+        var shortSha = sha[..Math.Min(8, sha.Length)];
+        return $"AIO Bot Windows Bridge · {info[..plusIndex]} · {shortSha}";
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
