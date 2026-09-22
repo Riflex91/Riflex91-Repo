@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "status": "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN",
+  "gate": "PR20.3_MARKT_PRODUKTIVIERUNG",
+  "basisMain": "9c96d54c51b664e3cc67181ef6c88582f87c224e",
+  "exitContract": "v5/dokumentation/V5-POST-R19-ROADMAP.md#pr203--markt-kaufen-und-verkaufen-produktiv",
+  "evidence": {
+    "buyGold": "v5/roadmap/pr20-3-market-buy-gold-evidence.json",
+    "npcSell": "v5/roadmap/pr20-3-market-sell-evidence.json",
+    "tradeOperatorAcceptance": "v5/roadmap/pr20-3-trade-operator-acceptance.json"
+  },
+  "exitCriteria": {
+    "echteBuySellPfadeRatifiziert": true,
+    "reale5mEvidenceBuy": true,
+    "reale5mEvidenceSell": true,
+    "unverifiedActionUsage": false,
+    "falscherVerkaufBeobachtet": false,
+    "doppeltradeBeobachtet": false
+  },
+  "buyGold": {
+    "status": "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
+    "sevenOfSeven": true,
+    "exactSettlements": 2,
+    "liveTestsConsumed": 2,
+    "liveTestsMax": 2,
+    "noWrite5m": "BESTANDEN",
+    "additionalLiveTestAllowed": false
+  },
+  "npcSell": {
+    "status": "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
+    "sevenOfSeven": true,
+    "exactSettlements": 2,
+    "liveTestsConsumed": 2,
+    "liveTestsMax": 2,
+    "noWrite5m": "BESTANDEN",
+    "evidenceReconstructedFromOperatorConfirmedFacts": true,
+    "rawGuiReportAvailable": false,
+    "additionalLiveTestAllowed": false
+  },
+  "tradeException": {
+    "status": "VOLLSTAENDIG_ABGENOMMEN_DURCH_OPERATOR_OHNE_LIVE_EVIDENCE",
+    "countsAsPassedForRoadmap": true,
+    "countsAsPassedEvidence": false,
+    "dedicatedTradeLiveTestsRequiredForRoadmap": false,
+    "productiveTradeAuthorityGranted": false,
+    "rawWriteAuthorityGranted": false,
+    "localCapabilityGatesRemainRequired": true
+  },
+  "safetyRetained": {
+    "sameIntentRetry": false,
+    "unknownOutcome": "REOBSERVE_RECONCILE_NO_BLIND_RETRY",
+    "tradeRidListingRecoveryGatesRemain": true,
+    "noAutomaticMarketWideAuthority": true,
+    "noHistoricalEvidenceRewrite": true
+  },
+  "transitionPolicy": {
+    "pr20_3RoadmapMilestoneClosed": true,
+    "pr20_4RepoAndNoWritePreparationAllowed": true,
+    "pr20_4IngameTestingAllowedOnlyAfterItsOwnAdmissionGates": true,
+    "pr20_4ProductiveMutationAutomaticallyAllowed": false,
+    "tradeProductiveMutationAutomaticallyAllowed": false
+  },
+  "nextGate": "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG"
+}
