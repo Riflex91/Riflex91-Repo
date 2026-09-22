@@ -245,7 +245,7 @@ jobs:
           NS="world of warcraft/MewthischGuides1/Core/Namespace.lua"
 
           grep -Fq 'restedxp_world_coordinates' "$NAV"
-          grep -Fq 'bearing.relative + TEXTURE_ZERO_OFFSET' "$NAV"
+          grep -Fq 'bearing.relative+TEXTURE_ZERO_OFFSET' "$NAV"
           grep -Fq 'UI:SetSize(frame,170,118)' "$NAV"
 
           grep -Fq 'FRAME_WIDTH = 400' "$VIEW"
