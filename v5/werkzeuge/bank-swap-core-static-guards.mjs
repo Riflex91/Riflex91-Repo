@@ -9,7 +9,12 @@ const capability = json("grundlage/vertraege/runtime/bank-swap-mutationsfaehigke
 const authority = json("grundlage/vertraege/runtime/bank-swap-one-shot-authority.json");
 const composition = read("grundlage/quelle/runtime/produktions-komposition.ts");
 
-if (!["CORE_VORBEREITET_READ_ONLY_PREFLIGHT_AUSSTEHEND", "READ_ONLY_PREFLIGHT_IMPLEMENTIERT_EVIDENCE_AUSSTEHEND"].includes(candidate.status)
+if (![
+  "CORE_VORBEREITET_READ_ONLY_PREFLIGHT_AUSSTEHEND",
+  "READ_ONLY_PREFLIGHT_IMPLEMENTIERT_EVIDENCE_AUSSTEHEND",
+  "WRITE_ADAPTER_UND_ABEND_NO_WRITE_KETTE_IMPLEMENTIERT_LIVE_RUNNER_AUSSTEHEND",
+  "ABEND_TESTKETTE_VOLLSTAENDIG_IMPLEMENTIERT_REALE_EVIDENCE_AUSSTEHEND",
+].includes(candidate.status)
     || candidate.publicFunction !== "bank_swap"
     || candidate.officialSource?.serverOperation !== "move"
     || candidate.ersterKandidat?.slotMinimum !== 0
@@ -20,8 +25,11 @@ if (!["CORE_VORBEREITET_READ_ONLY_PREFLIGHT_AUSSTEHEND", "READ_ONLY_PREFLIGHT_IM
     || candidate.safety?.rawSocketEmitAllowed !== false
     || candidate.implementation?.readOnlyBrowserObserverImplemented !== true
     || candidate.implementation?.readOnlyPreflightImplemented !== true
-    || candidate.implementation?.writeAdapterImplemented !== false
-    || candidate.implementation?.liveRunnerImplemented !== false
+    || candidate.implementation?.writeAdapterImplemented !== true
+    || candidate.implementation?.liveRunnerImplemented !== true
+    || candidate.implementation?.writePreflightImplemented !== true
+    || candidate.implementation?.durableTwoTestLimitImplemented !== true
+    || candidate.implementation?.maxTrueFunctionalTests !== 2
     || candidate.implementation?.gameplayWritesInThisStep !== 0) {
   errors.push("BANK_SWAP_CANDIDATE_GRENZE_UNGUELTIG");
 }
@@ -56,12 +64,47 @@ if (!composition.includes("merchantBankSwapMutationsFaehigkeitDefinition")
     || composition.includes("bank_swap(")) {
   errors.push("BANK_SWAP_PRODUKTIONSKOMPOSITION_GRENZE_UNGUELTIG");
 }
-if (fs.existsSync("werkzeuge/bank-swap-produktions-write-browser.mjs")) {
-  errors.push("BANK_SWAP_WRITE_ADAPTER_ZU_FRUEH");
+const writeAdapterPfad = "werkzeuge/bank-swap-produktions-write-browser.mjs";
+if (!fs.existsSync(writeAdapterPfad)) {
+  errors.push("BANK_SWAP_WRITE_ADAPTER_FEHLT");
+} else {
+  const write = read(writeAdapterPfad);
+  const swapAufrufe = (write.match(/\.bank_swap\s*\(/g) ?? []).length;
+  if (swapAufrufe !== 1
+      || /\.emit\s*\(/.test(write)
+      || !write.includes("call_code_function_f")
+      || !write.includes("MEHR_ALS_EIN_ADAPTER_AUFRUF")
+      || !write.includes("FINAL_PRESTATE_DRIFT")
+      || !write.includes("DISCONNECT_NACH_MOEGLICHEM_SEND")) {
+    errors.push("BANK_SWAP_WRITE_ADAPTER_SAFETY_UNGUELTIG");
+  }
+}
+
+const liveRunnerPfad = "werkzeuge/bank-swap-produktions-live.mjs";
+const testLimitPfad = "grundlage/adapter/persistenz/node-bank-swap-live-test-limit.mjs";
+if (!fs.existsSync(liveRunnerPfad) || !fs.existsSync(testLimitPfad)) {
+  errors.push("BANK_SWAP_LIVE_KETTE_FEHLT");
+} else {
+  const live = read(liveRunnerPfad);
+  const limit = read(testLimitPfad);
+  if (/\.emit\s*\(/.test(live)
+      || !live.includes("LIVE_TEST_1")
+      || !live.includes("LIVE_TEST_2")
+      || !live.includes("verlangeBankSwapAbendVorstufe")
+      || !live.includes("markiereMoeglichenSend")
+      || !live.includes("testNummer===2")
+      || !live.includes("COMMITTED")
+      || !live.includes("BESTAETIGT")
+      || !limit.includes("maximaleEchteFunktionstests: 2")
+      || !limit.includes("TEST_1_NICHT_SAUBER")
+      || !limit.includes("NICHT_EXAKTER_REVERSE")
+      || !limit.includes("sameIntentRetry: false")) {
+    errors.push("BANK_SWAP_LIVE_KETTE_SAFETY_UNGUELTIG");
+  }
 }
 
 if (errors.length) {
   console.error("[V5-BANK-SWAP-CORE-GUARD] FEHLER\n" + errors.join("\n"));
   process.exit(1);
 }
-console.log("[V5-BANK-SWAP-CORE-GUARD] OK / write-freie Swap-Grundlage");
+console.log("[V5-BANK-SWAP-CORE-GUARD] OK / Swap Safety Core + gebundener One-Shot-Adapter");

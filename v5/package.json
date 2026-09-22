@@ -110,7 +110,19 @@
     "ingame:code-bridge:bootstrap": "node werkzeuge/adventure-land-code-bridge-bootstrap.mjs",
     "bank-swap-production:core-pruefen": "npm run bauen && node werkzeuge/bank-swap-core-static-guards.mjs && node --test grundlage/tests/pr20-bank-swap-settlement.test.mjs grundlage/tests/r11-bank-swap-einmal-authority.test.mjs grundlage/tests/r11-bank-swap-current-fence.test.mjs grundlage/tests/r11-bank-swap-persistenz.test.mjs",
     "bank-swap-production:preflight-pruefen": "npm run bauen && node --check werkzeuge/bank-swap-produktions-browser.mjs && node --check werkzeuge/bank-swap-produktions-preflight.mjs && node --test grundlage/tests/r11-bank-swap-produktions-browser.test.mjs grundlage/tests/r11-bank-swap-host-readiness.test.mjs grundlage/tests/r11-bank-swap-preflight-static.test.mjs",
-    "ingame:bank-swap:preflight": "npm run bauen && node werkzeuge/bank-swap-produktions-preflight.mjs"
+    "ingame:bank-swap:preflight": "npm run bauen && node werkzeuge/bank-swap-produktions-preflight.mjs",
+    "bank-swap-evening:stability": "npm run bauen && node werkzeuge/bank-swap-candidate-stability.mjs",
+    "bank-swap-evening:bridge": "npm run bauen && node werkzeuge/bank-swap-code-bridge-probe.mjs",
+    "bank-swap-evening:shadow": "npm run bauen && node werkzeuge/bank-swap-real-browser-shadow.mjs",
+    "bank-swap-evening:no-write-pruefen": "npm run bauen && node --check werkzeuge/bank-swap-evening-evidence.mjs && node --check werkzeuge/bank-swap-candidate-stability.mjs && node --check werkzeuge/bank-swap-code-bridge-probe.mjs && node --check werkzeuge/bank-swap-real-browser-shadow.mjs && node --test grundlage/tests/r11-bank-swap-produktions-browser.test.mjs",
+    "bank-swap-evening:write-preflight": "npm run bauen && node werkzeuge/bank-swap-write-preflight.mjs",
+    "bank-swap-evening:live": "npm run bauen && node werkzeuge/bank-swap-produktions-live.mjs",
+    "bank-swap-evening:write-pruefen": "npm run bauen && node --check werkzeuge/bank-swap-produktions-write-browser.mjs && node --check werkzeuge/bank-swap-write-preflight.mjs && node --check werkzeuge/bank-swap-produktions-live.mjs && node --check grundlage/adapter/persistenz/node-bank-swap-live-test-limit.mjs && node --test grundlage/tests/r11-bank-swap-produktions-write-browser.test.mjs grundlage/tests/r11-bank-swap-produktions-transaktion.test.mjs grundlage/tests/r11-bank-swap-live-test-limit.test.mjs grundlage/tests/r11-bank-swap-live-runner-static.test.mjs",
+    "ingame:bank-swap:stability": "npm run bauen && node werkzeuge/bank-swap-candidate-stability.mjs",
+    "ingame:bank-swap:bridge": "npm run bauen && node werkzeuge/bank-swap-code-bridge-probe.mjs",
+    "ingame:bank-swap:shadow": "npm run bauen && node werkzeuge/bank-swap-real-browser-shadow.mjs",
+    "ingame:bank-swap:write-preflight": "npm run bauen && node werkzeuge/bank-swap-write-preflight.mjs",
+    "ingame:bank-swap:live": "npm run bauen && node werkzeuge/bank-swap-produktions-live.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "kennung": "V5_BANK_SWAP_ABEND_TESTPLAN",
+  "grundsatz": "Jede Stage einzeln ausfuehren. Kein automatisches Weiterlaufen.",
+  "stages": [
+    {
+      "stage": 1,
+      "name": "Read-only Preflight",
+      "functionalTest": false,
+      "expected": "BEREIT",
+      "gameplayWrites": 0
+    },
+    {
+      "stage": 2,
+      "name": "Kandidaten-Stabilitaet",
+      "functionalTest": false,
+      "expected": "BESTANDEN",
+      "gameplayWrites": 0
+    },
+    {
+      "stage": 3,
+      "name": "CODE-Bridge-Probe",
+      "functionalTest": false,
+      "expected": "BESTANDEN",
+      "gameplayWrites": 0
+    },
+    {
+      "stage": 4,
+      "name": "Admission-Shadow",
+      "functionalTest": false,
+      "expected": "BESTANDEN",
+      "gameplayWrites": 0
+    },
+    {
+      "stage": 5,
+      "name": "Write-Preflight",
+      "functionalTest": false,
+      "expected": "BEREIT",
+      "gameplayWrites": 0
+    },
+    {
+      "stage": 6,
+      "name": "Live-Test 1",
+      "functionalTest": true,
+      "expected": "BESTANDEN",
+      "maxGameplayWrites": 1,
+      "maxAdapterCalls": 1
+    },
+    {
+      "stage": 7,
+      "name": "Live-Test 2 Reverse-Intent",
+      "functionalTest": true,
+      "expected": "BESTANDEN",
+      "maxGameplayWrites": 1,
+      "maxAdapterCalls": 1,
+      "prerequisite": "Stage 6 COMMITTED + Recovery COMMITTED/BESTAETIGT + COMMIT + Lease RELEASED + durable test-limit clean"
+    }
+  ],
+  "stopRule": "Bei BLOCKIERT/NICHT_BESTANDEN/UNBEKANNT/Fehler/moeglichem ungeklärtem Send/ungeklärtem Settlement nicht erneut ausfuehren.",
+  "maxTrueFunctionalTests": 2,
+  "sameIntentRetry": false,
+  "productionWideActivationAllowed": false,
+  "powershell": "werkzeuge/bank-swap-abend-stage.ps1"
+}

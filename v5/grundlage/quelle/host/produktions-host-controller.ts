@@ -246,6 +246,70 @@ export interface ProduktionsBankWithdrawEinmalRevalidierungsErgebnis {
   readonly breiteRuntimeFreigabe: false;
 }
 
+export interface ProduktionsBankSwapEinmalAuthorityPort {
+  pruefe(
+    faehigkeitId: string,
+    eigentuemerModulId: string,
+  ): {
+    readonly erlaubt: boolean;
+    readonly mutierend: boolean;
+    readonly generation: number;
+  };
+  gueltigFuer(jetztMs: number): boolean;
+  verbraucht(): boolean;
+  widerrufe(): void;
+  daten(): {
+    readonly aktivierungsId: string;
+    readonly transaktionsId: string;
+    readonly actionContractId: string;
+    readonly recoveryContractId: string;
+    readonly verifierId: string;
+    readonly gueltigBisMs: number;
+  };
+}
+
+export interface ProduktionsBankSwapEinmalAuthorityAnforderung {
+  readonly schemaVersion: 1;
+  readonly aktivierungsId: string;
+  readonly transaktionsId: string;
+  readonly faehigkeitId: "merchant.bank.intern_tauschen";
+  readonly anbieterModulId: "merchant-bank-core";
+  readonly anbieterVersion: "1";
+  readonly actionContractId: "AL-ACTION-BANK-WITHDRAW";
+  readonly recoveryContractId: "AL-RECOVERY-BANK-WITHDRAW";
+  readonly verifierId: "AL-VERIFIER-BANK-WITHDRAW";
+  readonly policyId: "BANK-WITHDRAW-PRODUKTION-EINMAL-V1";
+  readonly bestaetigungText: "V5 BANK SWAP EINMAL AUSFUEHREN";
+  readonly healthEvidence: readonly HealthEvidence[];
+  readonly jetztMs: number;
+  readonly gueltigBisMs: number;
+}
+
+export interface ProduktionsBankSwapEinmalAuthorityErgebnis {
+  readonly schemaVersion: 1;
+  readonly erfolgreich: boolean;
+  readonly grund: string;
+  readonly aktivierungsId: string;
+  readonly transaktionsId: string;
+  readonly authority: ProduktionsBankSwapEinmalAuthorityPort | null;
+  readonly evidenceIds: readonly string[];
+  readonly maximaleVerwendungen: 1;
+  readonly gameplayWriteAusgefuehrt: false;
+  readonly rawWriteAutoritaet: false;
+  readonly breiteRuntimeFreigabe: false;
+}
+
+export interface ProduktionsBankSwapEinmalRevalidierungsErgebnis {
+  readonly schemaVersion: 1;
+  readonly bereit: boolean;
+  readonly grund: string;
+  readonly authorityOffen: boolean;
+  readonly authorityWiderrufen: boolean;
+  readonly gameplayWriteAusgefuehrt: false;
+  readonly rawWriteAutoritaet: false;
+  readonly breiteRuntimeFreigabe: false;
+}
+
 export interface ProduktionsPlanenRuntimePort {
   status(): V5ProduktionsProzessStatus;
   erfasseOperationsMetrik(metrik: OperationsMetrik): boolean;
@@ -277,6 +341,13 @@ export interface ProduktionsPlanenRuntimePort {
     healthEvidence: readonly HealthEvidence[],
     jetztMs: number,
   ): ProduktionsBankWithdrawEinmalRevalidierungsErgebnis;
+  erteileBankSwapEinmalAuthority(
+    anforderung: ProduktionsBankSwapEinmalAuthorityAnforderung,
+  ): Promise<ProduktionsBankSwapEinmalAuthorityErgebnis>;
+  revalidiereBankSwapEinmalAuthority(
+    healthEvidence: readonly HealthEvidence[],
+    jetztMs: number,
+  ): ProduktionsBankSwapEinmalRevalidierungsErgebnis;
 }
 
 export type HostPlanenAktivierungsAnfrage = Omit<
@@ -298,6 +369,10 @@ export type HostBankWithdrawEinmalAuthorityAnfrage = Omit<
   ProduktionsBankWithdrawEinmalAuthorityAnforderung,
   "healthEvidence" | "jetztMs"
 >;
+export type HostBankSwapEinmalAuthorityAnfrage = Omit<
+  ProduktionsBankSwapEinmalAuthorityAnforderung,
+  "healthEvidence" | "jetztMs"
+>;
 
 export type ProduktionsHostZustand =
   | "GESTOPPT"
@@ -317,6 +392,7 @@ export interface ProduktionsHostStatus {
   readonly equipEinmalAuthorityOffen: boolean;
   readonly bankDepositEinmalAuthorityOffen: boolean;
   readonly bankWithdrawEinmalAuthorityOffen: boolean;
+  readonly bankSwapEinmalAuthorityOffen: boolean;
   readonly gameplayAutoritaet: false;
   readonly rawWriteAutoritaet: false;
   readonly actionAuthority: false;
@@ -359,6 +435,7 @@ export class V5ProduktionsHostController {
   #equipEinmalAuthorityOffen = false;
   #bankDepositEinmalAuthorityOffen = false;
   #bankWithdrawEinmalAuthorityOffen = false;
+  #bankSwapEinmalAuthorityOffen = false;
 
   public constructor(
     bootstrap: V5ProduktionsBootstrap,
@@ -497,6 +574,30 @@ export class V5ProduktionsHostController {
       );
     }
 
+    const swapRevalidierung =
+      this.#runtime.revalidiereBankSwapEinmalAuthority(
+        beobachtung.healthEvidence,
+        jetztMs,
+      );
+    this.#bankSwapEinmalAuthorityOffen = swapRevalidierung.authorityOffen;
+    if (!swapRevalidierung.bereit) {
+      try {
+        this.#letzterBootstrap = await this.#bootstrap.stoppe(
+          "POST_START_BANK_SWAP_REVALIDIERUNG_FEHLGESCHLAGEN",
+        );
+      } catch {
+        return this.#setze(
+          "FEHLER",
+          "PRODUKTIONS_HOST_POST_START_STOPP_AUSNAHME",
+        );
+      }
+      return this.#setze(
+        "GESPERRT",
+        "PRODUKTIONS_HOST_BANK_SWAP_REVALIDIERUNG_NICHT_BEREIT:"
+          + swapRevalidierung.grund,
+      );
+    }
+
     return this.#setze("LAEUFT", "V5_PRODUKTIONS_HOST_GESTARTET");
   }
 
@@ -516,6 +617,7 @@ export class V5ProduktionsHostController {
     this.#equipEinmalAuthorityOffen = false;
     this.#bankDepositEinmalAuthorityOffen = false;
     this.#bankWithdrawEinmalAuthorityOffen = false;
+    this.#bankSwapEinmalAuthorityOffen = false;
     if (bootstrap.zustand !== "GESTOPPT") {
       return this.#setze(
         "FEHLER",
@@ -555,6 +657,13 @@ export class V5ProduktionsHostController {
         );
       this.#bankWithdrawEinmalAuthorityOffen =
         withdrawRevalidierungFailClosed.authorityOffen;
+      const swapRevalidierungFailClosed =
+        this.#runtime.revalidiereBankSwapEinmalAuthority(
+          Object.freeze([]),
+          jetztMs,
+        );
+      this.#bankSwapEinmalAuthorityOffen =
+        swapRevalidierungFailClosed.authorityOffen;
       return this.#setze(
         "GESPERRT",
         "PRODUKTIONS_HOST_OPERATIONS_QUELLE_NICHT_BEREIT",
@@ -615,6 +724,19 @@ export class V5ProduktionsHostController {
         "GESPERRT",
         "PRODUKTIONS_HOST_BANK_WITHDRAW_REVALIDIERUNG_NICHT_BEREIT:"
           + withdrawRevalidierung.grund,
+      );
+    }
+    const swapRevalidierung =
+      this.#runtime.revalidiereBankSwapEinmalAuthority(
+        beobachtung.healthEvidence,
+        jetztMs,
+      );
+    this.#bankSwapEinmalAuthorityOffen = swapRevalidierung.authorityOffen;
+    if (!swapRevalidierung.bereit) {
+      return this.#setze(
+        "GESPERRT",
+        "PRODUKTIONS_HOST_BANK_SWAP_REVALIDIERUNG_NICHT_BEREIT:"
+          + swapRevalidierung.grund,
       );
     }
 
@@ -783,6 +905,11 @@ export class V5ProduktionsHostController {
         "PRODUKTIONS_HOST_BANK_DEPOSIT_EINMAL_WITHDRAW_AUTHORITY_OFFEN",
       );
     }
+    if (this.#bankSwapEinmalAuthorityOffen) {
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_DEPOSIT_EINMAL_SWAP_AUTHORITY_OFFEN",
+      );
+    }
 
     const beobachtung = await this.#beobachteFailClosed(jetztMs);
     if (beobachtung === null) {
@@ -860,6 +987,11 @@ export class V5ProduktionsHostController {
         "PRODUKTIONS_HOST_BANK_WITHDRAW_EINMAL_DEPOSIT_AUTHORITY_OFFEN",
       );
     }
+    if (this.#bankSwapEinmalAuthorityOffen) {
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_WITHDRAW_EINMAL_SWAP_AUTHORITY_OFFEN",
+      );
+    }
     if (this.#bankWithdrawEinmalAuthorityOffen) {
       throw new Error(
         "PRODUKTIONS_HOST_BANK_WITHDRAW_EINMAL_WITHDRAW_AUTHORITY_OFFEN",
@@ -915,6 +1047,93 @@ export class V5ProduktionsHostController {
       }),
     );
     this.#bankWithdrawEinmalAuthorityOffen = ergebnis.erfolgreich
+      && ergebnis.authority !== null;
+    return ergebnis;
+  }
+
+  public async erteileBankSwapEinmalAuthority(
+    anfrage: HostBankSwapEinmalAuthorityAnfrage,
+    jetztMs: number,
+  ): Promise<ProduktionsBankSwapEinmalAuthorityErgebnis> {
+    pruefeZeit(jetztMs);
+    if (this.#zustand !== "LAEUFT") {
+      throw new Error("PRODUKTIONS_HOST_BANK_SWAP_EINMAL_HOST_NICHT_BEREIT");
+    }
+    if (this.#aktivePlanenFaehigkeiten.length > 0) {
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_SWAP_EINMAL_PLANEN_NOCH_AKTIV",
+      );
+    }
+    if (this.#equipEinmalAuthorityOffen) {
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_SWAP_EINMAL_EQUIP_AUTHORITY_OFFEN",
+      );
+    }
+    if (this.#bankDepositEinmalAuthorityOffen) {
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_SWAP_EINMAL_DEPOSIT_AUTHORITY_OFFEN",
+      );
+    }
+    if (this.#bankWithdrawEinmalAuthorityOffen) {
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_SWAP_EINMAL_WITHDRAW_AUTHORITY_OFFEN",
+      );
+    }
+    if (this.#bankSwapEinmalAuthorityOffen) {
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_SWAP_EINMAL_WITHDRAW_AUTHORITY_OFFEN",
+      );
+    }
+
+    const beobachtung = await this.#beobachteFailClosed(jetztMs);
+    if (beobachtung === null) {
+      this.#runtime.revalidiereBankSwapEinmalAuthority(
+        Object.freeze([]),
+        jetztMs,
+      );
+      this.#bankSwapEinmalAuthorityOffen = false;
+      this.#setze(
+        "GESPERRT",
+        "PRODUKTIONS_HOST_OPERATIONS_QUELLE_NICHT_BEREIT",
+      );
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_SWAP_EINMAL_OPERATIONS_NICHT_BEREIT",
+      );
+    }
+
+    const planen = this.#runtime.revalidierePlanenAuthority(
+      beobachtung.healthEvidence,
+      jetztMs,
+    );
+    this.#aktivePlanenFaehigkeiten = Object.freeze([
+      ...planen.aktivePlanenFaehigkeiten,
+    ]);
+    if (!planen.bereit || this.#aktivePlanenFaehigkeiten.length > 0) {
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_SWAP_EINMAL_PLANEN_NICHT_BEREIT",
+      );
+    }
+
+    const vorAuthority =
+      this.#runtime.revalidiereBankSwapEinmalAuthority(
+        beobachtung.healthEvidence,
+        jetztMs,
+      );
+    this.#bankSwapEinmalAuthorityOffen = vorAuthority.authorityOffen;
+    if (!vorAuthority.bereit || vorAuthority.authorityOffen) {
+      throw new Error(
+        "PRODUKTIONS_HOST_BANK_SWAP_EINMAL_AUTHORITY_NICHT_FREI",
+      );
+    }
+
+    const ergebnis = await this.#runtime.erteileBankSwapEinmalAuthority(
+      Object.freeze({
+        ...anfrage,
+        healthEvidence: beobachtung.healthEvidence,
+        jetztMs,
+      }),
+    );
+    this.#bankSwapEinmalAuthorityOffen = ergebnis.erfolgreich
       && ergebnis.authority !== null;
     return ergebnis;
   }
@@ -989,6 +1208,8 @@ export class V5ProduktionsHostController {
         this.#bankDepositEinmalAuthorityOffen,
       bankWithdrawEinmalAuthorityOffen:
         this.#bankWithdrawEinmalAuthorityOffen,
+      bankSwapEinmalAuthorityOffen:
+        this.#bankSwapEinmalAuthorityOffen,
       gameplayAutoritaet: false,
       rawWriteAutoritaet: false,
       actionAuthority: false,
