@@ -83,6 +83,7 @@ function MG:EnsureDB()
         viewerScale = 1,
         viewerOpacity = 1,
         hideViewerInCombat = false,
+        viewerCompactMode = false,
         showGuideProgress = true,
         showNextStepPreview = true,
         showNavigator = true,

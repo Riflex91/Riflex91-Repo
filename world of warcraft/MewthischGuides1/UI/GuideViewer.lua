@@ -115,9 +115,12 @@ function V:Create()
     local log=flatButton(frame,"LOG",34,20,function()
         if MG.ErrorLogWindow then MG.ErrorLogWindow:Toggle() end
     end);log:SetPoint("TOPRIGHT",-69,-5)
+    local notify=flatButton(frame,"N",34,20,function()
+        if MG.NotificationWindow then MG.NotificationWindow:Toggle() end
+    end);notify:SetPoint("TOPRIGHT",-107,-5)
 
     local guideTitle=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontNormal","GameFontNormal"))
-    guideTitle:SetPoint("TOPLEFT",10,-38);guideTitle:SetPoint("RIGHT",-82,0)
+    guideTitle:SetPoint("TOPLEFT",10,-38);guideTitle:SetPoint("RIGHT",-120,0)
     guideTitle:SetJustifyH("LEFT");shadow(guideTitle)
     if guideTitle.SetTextColor then guideTitle:SetTextColor(1,.72,.1) end
 
@@ -165,6 +168,7 @@ function V:Create()
 
     self.frame=frame;self.guideTitle=guideTitle;self.stepText=stepText
     self.bar=bar;self.barBg=barBg;self.rows=rows;self.footer=footer
+    self.notifyButton=notify
     self.themeBackground=bg;self.themeHeader=header;self.themeTop=top;self.themeTitle=title
     if MG.ThemeManager then MG.ThemeManager:ApplyViewer(self) end
     UI:SetShown(frame,true)
@@ -214,7 +218,8 @@ function V:Refresh()
         end
     end
 
-    local count=math.min(MAX_ROWS,#visible)
+    local rowLimit=db.settings.viewerCompactMode and 4 or MAX_ROWS
+    local count=math.min(rowLimit,#visible)
     local rowCount=math.max(1,count)
     local footerExtra=0
     local state=runtime.stepState or {}
@@ -230,6 +235,10 @@ function V:Refresh()
         footerExtra=math.max(footerExtra,14)
     end
     self.footer:SetText(footerText)
+    if self.notifyButton and self.notifyButton.label and MG.NotificationCenter then
+        local unread=MG.NotificationCenter:GetUnreadCount()
+        self.notifyButton.label:SetText(unread>9 and "N9+" or (unread>0 and ("N"..tostring(unread)) or "N"))
+    end
 
     local height=ROW_START+rowCount*ROW_HEIGHT+FOOTER_HEIGHT+footerExtra
     UI:SetSize(frame,FRAME_WIDTH,math.max(132,math.min(410,height)))

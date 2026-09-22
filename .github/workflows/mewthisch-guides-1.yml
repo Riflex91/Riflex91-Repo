@@ -251,6 +251,8 @@ jobs:
 
           grep -Fq 'FRAME_WIDTH = 400' "$VIEW"
           grep -Fq 'Zusätzliche Ziele' "$VIEW"
+          grep -Fq 'viewerCompactMode' "$VIEW"
+          grep -Fq 'NotificationCenter:GetUnreadCount' "$VIEW"
           grep -Fq 'showViewer=false' "$VIEW"
           grep -Fq 'viewerX' "$VIEW"
           grep -Fq 'viewerY' "$VIEW"

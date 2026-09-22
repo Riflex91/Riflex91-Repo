@@ -4,8 +4,8 @@ MG.SettingsWindow = MG.SettingsWindow or {}
 local S = MG.SettingsWindow
 local UI = MG.UICompat
 
-local WIDTH,HEIGHT=570,610
-local MAX_ROWS=14
+local WIDTH,HEIGHT=570,635
+local MAX_ROWS=15
 local ROW_HEIGHT=30
 
 local PAGES={
@@ -18,6 +18,7 @@ local PAGES={
             {key="viewerScale",label="Hauptfenster-Skalierung",type="cycle",values={.8,.9,1,1.1,1.2,1.3,1.4},suffix="x"},
             {key="viewerOpacity",label="Hauptfenster-Deckkraft",type="cycle",values={.45,.6,.75,.9,1},format="percent"},
             {key="hideViewerInCombat",label="Hauptfenster im Kampf ausblenden",type="bool"},
+            {key="viewerCompactMode",label="Kompaktmodus (weniger Ziele)",type="bool"},
             {key="showGuideProgress",label="Guide-Fortschrittsbalken anzeigen",type="bool"},
             {key="showNextStepPreview",label="Vorschau auf nächsten Schritt",type="bool"},
             {key="showNavigator",label="Navigator anzeigen",type="bool"},
