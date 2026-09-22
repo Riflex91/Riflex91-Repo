@@ -49,6 +49,8 @@ Policy/AutomationPolicy.lua
 Policy/ActionPolicy.lua
 Gear/GearScore.lua
 Gear/RewardAdvisor.lua
+Build/BuildState.lua
+Build/TalentAdvisor.lua
 Build/BuildAdvisor.lua
 
 Runtime/TransitionDetector.lua
