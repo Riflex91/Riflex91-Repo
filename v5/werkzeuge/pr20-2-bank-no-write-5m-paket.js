@@ -463,7 +463,7 @@
   'use strict';
 
   const API_NAME = 'V5PR202BankNoWrite5m';
-  const VERSION = '1.0.0';
+  const VERSION = '1.0.1';
   const SESSION_KEY = 'AIO_V5_PR20_2_BANK_NO_WRITE_5M_V1';
   const BANK_FUNCTION_STATE_KEY = 'AIO_V5_BANK_FUNCTION_TEST_STATE_V1';
   const BESTAETIGUNG = 'PR20.2-BANK-NO-WRITE-5M-START';
@@ -473,16 +473,56 @@
   const MIN_SAMPLES = 20;
   const MAX_SAMPLES = 30;
 
+  function roots() {
+    const out = [];
+    try { out.push(globalThis); } catch {}
+    try { if (parent && parent !== globalThis) out.push(parent); } catch {}
+    for (const root of [...out]) {
+      try {
+        if (root?.parent && root.parent !== root && !out.includes(root.parent)) {
+          out.push(root.parent);
+        }
+      } catch {}
+    }
+    return out;
+  }
+
+  function text(wert) {
+    return wert === null || wert === undefined ? '' : String(wert).trim();
+  }
+
   function rootFenster() {
-    const kandidaten = [];
-    try { kandidaten.push(globalThis); } catch {}
-    try { if (parent && parent !== globalThis) kandidaten.push(parent); } catch {}
+    const kandidaten = roots();
     for (const root of kandidaten) {
       try {
         if (root?.character && root.character.bank && root.bank_packs) return root;
       } catch {}
     }
     throw new Error('PR20_2_BANK_5M_ADVENTURE_LAND_CODEKONTEXT_FEHLT');
+  }
+
+  function serverBindung() {
+    const kandidaten = roots();
+    const region = kandidaten.map((r) => {
+      try { return text(r?.server_region || r?.server?.region); } catch { return ''; }
+    }).find(Boolean) || '';
+    const kennung = kandidaten.map((r) => {
+      try { return text(r?.server_identifier || r?.server?.id); } catch { return ''; }
+    }).find(Boolean) || '';
+    const quelle = kandidaten.map((r) => {
+      try {
+        if (text(r?.server_region) && text(r?.server_identifier)) return 'SERVER_GLOBALS';
+        if (text(r?.server?.region) && text(r?.server?.id)) return 'SERVER_OBJECT';
+      } catch {}
+      return '';
+    }).find(Boolean) || 'FEHLT';
+    return Object.freeze({ region, kennung, quelle });
+  }
+
+  function accountBindung(root) {
+    return roots().map((r) => {
+      try { return text(r?.user_id || r?.character?.owner); } catch { return ''; }
+    }).find(Boolean) || text(root?.character?.owner);
   }
 
   function guiApi() {
@@ -603,14 +643,16 @@
     const gold = Number(c.gold);
     const shells = Number(c.cash);
     const bankGold = Number(c.bank?.gold);
+    const server = serverBindung();
     const bindung = Object.freeze({
-      accountId: String(c.owner ?? root.user_id ?? ''),
-      characterName: String(c.name ?? ''),
-      sessionId: String(c.id ?? ''),
-      serverRegion: String(root.server_region ?? ''),
-      serverKennung: String(root.server_identifier ?? ''),
-      ctype: String(c.ctype ?? ''),
-      map: String(c.map ?? '')
+      accountId: accountBindung(root),
+      characterName: text(c.name),
+      sessionId: text(c.id),
+      serverRegion: server.region,
+      serverKennung: server.kennung,
+      serverBindungQuelle: server.quelle,
+      ctype: text(c.ctype || c.type).toLowerCase(),
+      map: text(c.map)
     });
     const inventory = JSON.stringify(Array.isArray(c.items) ? c.items : []);
     const bank = JSON.stringify(c.bank ?? {});
