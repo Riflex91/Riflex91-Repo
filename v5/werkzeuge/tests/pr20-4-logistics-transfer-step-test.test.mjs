@@ -16,7 +16,7 @@ const ingamePolicy = JSON.parse(fs.readFileSync(
   "utf8",
 ));
 
-function baueBus({ mutateItem = true, mutateGold = true } = {}) {
+function baueBus({ mutateItem = true, mutateGold = true, partnerGift = false } = {}) {
   const speicher = new Map();
   const roots = {};
   function storage() {
@@ -119,6 +119,7 @@ function baueBus({ mutateItem = true, mutateGold = true } = {}) {
   }
   const merchant = make("Merchant", "merchant", 0, 5000, 5);
   const partner = make("Partner", "ranger", 20, 3000, 1);
+  if (partnerGift) partner.character.items[0].gift = 1;
   return { speicher, roots, merchant, partner };
 }
 
@@ -234,6 +235,52 @@ test("Collection nutzt bestaetigte Outbound-Evidence statt erneuter Erstkandidat
   assert.equal(r.status, "BESTANDEN");
   assert.equal(r.testsConsumed, 2);
   assert.equal(r.sameIntentErneutSenden, false);
+});
+
+test("Collection akzeptiert gift-markierten Commodity-Stack nur im bestaetigten Rueckweg", async () => {
+  const bus = baueBus({ partnerGift: true });
+  await lade(bus);
+  let r = await bus.merchant.aktionen.get("step-1").ausfuehren();
+  assert.equal(r.status, "BESTANDEN");
+  r = await bus.merchant.aktionen.get("step-2").ausfuehren();
+  assert.equal(r.status, "BESTANDEN");
+  r = await bus.merchant.aktionen.get("step-3-item-live-1").ausfuehren();
+  assert.equal(r.status, "BESTANDEN");
+
+  await bus.partner.aktionen.get("actor-refresh").ausfuehren();
+  r = await bus.partner.aktionen.get("step-4-item-settle-1").ausfuehren();
+  assert.equal(r.status, "BESTANDEN");
+  assert.equal(bus.partner.character.items[0].gift, 1);
+
+  await bus.merchant.aktionen.get("actor-refresh").ausfuehren();
+  r = await bus.partner.aktionen.get("step-5-item-return-pin").ausfuehren();
+  assert.equal(r.status, "BESTANDEN");
+  assert.equal(r.kandidat.giftMarkerTolerated, true);
+  assert.equal(r.collectionDiagnose.giftMarkedStacks, 1);
+  assert.equal(r.collectionDiagnose.admissibleReturnStacks, 1);
+
+  r = await bus.partner.aktionen.get("step-6-item-live-2").ausfuehren();
+  assert.equal(r.status, "BESTANDEN");
+  assert.equal(r.testsConsumed, 2);
+  await bus.merchant.aktionen.get("actor-refresh").ausfuehren();
+  r = await bus.merchant.aktionen.get("step-7-item-settle-2").ausfuehren();
+  assert.equal(r.status, "BESTANDEN");
+  assert.equal(r.itemRoundtripRestored, true);
+  assert.equal(bus.partner.character.items[0].q, 1);
+  assert.equal(bus.partner.character.items[0].gift, 1);
+  assert.equal(bus.merchant.character.items[0].q, 5);
+});
+
+test("Collection gift-Toleranz bleibt bei Lock/Block/Property/Data fail-closed", () => {
+  for (const marker of [
+    "meta.blocked !== true",
+    "meta.propertyPresent !== true",
+    "meta.statTypePresent !== true",
+    "meta.graceNonzero !== true",
+    "meta.expiresPresent !== true",
+    "meta.dataPresent !== true",
+    "giftMarkerToleratedForConfirmedReturn: true"
+  ]) assert.ok(controller.includes(marker), marker);
 });
 
 test("PR20.4 Browserpaket ist AUTO_ON_LOAD und sperrt manuelle Live-Schrittsteuerung", () => {
