@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "kennung": "V5_INGAME_TEST_EXECUTION_POLICY",
+  "status": "AKTIV",
+  "executionMode": "AUTO_ON_LOAD",
+  "userDirective": "Alle weiteren Ingame-Tests als selbstenthaltenes Gesamtpaket bauen, das nach Laden des JavaScript-Codes automatisch startet.",
+  "requirements": {
+    "selfContainedJavascriptPackage": true,
+    "automaticStartAfterLoad": true,
+    "manualPerStepClicks": false,
+    "automaticActorHeartbeat": true,
+    "automaticMultiActorCoordination": true,
+    "persistentEvidenceState": true,
+    "failClosedOnDriftOrAmbiguousOutcome": true,
+    "liveFunctionBudgetMustRemainHard": true,
+    "sameIntentRetry": false,
+    "noRawSocketBypass": true,
+    "productiveAuthorityMustNotBeEnabledByTestHarness": true
+  },
+  "multiActor": {
+    "peerPackageVersionGate": true,
+    "onlyMatchingControllerVersionMayParticipate": true,
+    "stalePeerMustBlockBeforeLiveWrite": true
+  },
+  "completion": {
+    "finalReportOnlyOperatorAction": true,
+    "autoStopOnPassed": true,
+    "autoStopOnSafetyFailure": true
+  }
+}
