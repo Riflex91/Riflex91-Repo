@@ -4,7 +4,7 @@
   "kennung": "V5_INGAME_TEST_EXECUTION_POLICY",
   "status": "AKTIV",
   "executionMode": "AUTO_ON_LOAD",
-  "userDirective": "Alle weiteren Ingame-Tests als selbstenthaltenes Gesamtpaket bauen, das nach Laden des JavaScript-Codes automatisch startet.",
+  "userDirective": "Alle weiteren Ingame-Tests automatisch aus dem freigegebenen GitHub-Testmanifest laden und nach erfolgreicher Commit-/SHA-256-Pruefung als selbstenthaltenes Gesamtpaket starten; keine manuellen Farmer-Loads und keine manuellen Testschritte.",
   "requirements": {
     "selfContainedJavascriptPackage": true,
     "automaticStartAfterLoad": true,
@@ -16,16 +16,30 @@
     "liveFunctionBudgetMustRemainHard": true,
     "sameIntentRetry": false,
     "noRawSocketBypass": true,
-    "productiveAuthorityMustNotBeEnabledByTestHarness": true
+    "productiveAuthorityMustNotBeEnabledByTestHarness": true,
+    "automaticRepositoryFetch": true,
+    "commitPinnedPackage": true,
+    "sha256VerificationBeforeExecution": true,
+    "merchantOnlyRepositoryCoordinator": true,
+    "farmerWorkerDistributionViaCommandCharacter": true,
+    "noGenericRemoteJavascriptEndpoint": true
   },
   "multiActor": {
     "peerPackageVersionGate": true,
     "onlyMatchingControllerVersionMayParticipate": true,
-    "stalePeerMustBlockBeforeLiveWrite": true
+    "stalePeerMustBlockBeforeLiveWrite": true,
+    "merchantLoadsVerifiedPackage": true,
+    "merchantDistributesWorkerToFarmerClasses": true,
+    "farmerClasses": [
+      "ranger",
+      "priest",
+      "mage"
+    ]
   },
   "completion": {
     "finalReportOnlyOperatorAction": true,
     "autoStopOnPassed": true,
     "autoStopOnSafetyFailure": true
-  }
+  },
+  "deploymentMode": "GITHUB_MANIFEST_AUTO_DEPLOY"
 }
