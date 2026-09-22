@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "status": "BESTANDEN",
+  "evidenceArt": "V5_BANK_OPEN_PACK_DIRECT_INGAME_ADMISSION_READ_ONLY",
+  "source": "USER_PROVIDED_INGAME_GUI_RESULT",
+  "testedSourceSha": "a92b94e0c6edf6aa1df1c0713a8233631d1fdd64",
+  "sicherheitspruefung": "BESTANDEN",
+  "fachstatus": "RESOURCE_BLOCKED_NO_LIVE",
+  "admissionResult": {
+    "status": "BLOCKIERT",
+    "art": "OPEN_BANK_PACK",
+    "testArt": "ADMISSION_READ_ONLY",
+    "kandidat": {
+      "art": "OPEN_BANK_PACK",
+      "pack": "items2",
+      "map": "bank",
+      "goldKosten": 75000000,
+      "shellKosten": 600
+    },
+    "performanceTrick": {
+      "aktiv": true,
+      "playing": true,
+      "howlState": "loaded",
+      "verifikation": "HOWLER_PLAYING_TRUE"
+    },
+    "pfade": {
+      "gold": {
+        "status": "BLOCKIERT",
+        "blocker": [
+          "BANK_OPEN_PACK_GOLD_ZU_NIEDRIG"
+        ],
+        "kosten": 75000000,
+        "verfuegbar": 15993820,
+        "korrelation": "FIFO_DEFERRED_BANK"
+      },
+      "shells": {
+        "status": "BLOCKIERT",
+        "blocker": [
+          "BANK_OPEN_PACK_SHELLS_ZU_NIEDRIG"
+        ],
+        "kosten": 600,
+        "verfuegbar": 0,
+        "korrelation": "REQUEST_ID_ASYNC_BACKEND_TX",
+        "inProgressPolicy": "WAIT_AND_REOBSERVE_NO_SEND"
+      }
+    },
+    "selectedPath": null,
+    "durableIntentErzeugt": false,
+    "authorityAusgestellt": false,
+    "sameIntentErneutSenden": false,
+    "gameplayWrites": 0,
+    "mutatingPublicFunctionCalls": 0,
+    "liveMutationFreigegeben": false,
+    "naechsterSchritt": "RESSOURCEN_BLOCKIERT_KEIN_LIVE"
+  },
+  "liveTestErlaubt": false,
+  "produktionsweiteAktivierungErlaubt": false
+}
