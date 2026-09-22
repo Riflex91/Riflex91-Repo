@@ -27,7 +27,7 @@ public sealed class SupabaseProblemDiagnosticsSink
         var payload = new
         {
             schemaVersion = 1,
-            type = "AIO_V3_PROBLEM_DIAGNOSTICS_MIRROR",
+            type = "AIO_V5_PROBLEM_DIAGNOSTICS_MIRROR",
             botId = _config.BotId,
             archive = new
             {
@@ -52,7 +52,7 @@ public sealed class SupabaseProblemDiagnosticsSink
 
         using var request = new HttpRequestMessage(HttpMethod.Post, _config.TelemetryIngestUrl);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
-        request.Headers.TryAddWithoutValidation("x-aio-v3-bot-id", _config.BotId);
+        request.Headers.TryAddWithoutValidation("x-aio-v5-bot-id", _config.BotId);
         request.Content = new ByteArrayContent(payload);
         request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
 
