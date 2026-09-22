@@ -86,5 +86,5 @@ test("Market-Vertrag und Roadmap spiegeln Operator-Abnahme ohne produktive Autho
   assert.equal(roadmap.pr20_3.tradeSellStatus, "VOLL_ABGENOMMEN_OPERATOR_OHNE_LIVE_EVIDENCE");
   assert.equal(roadmap.pr20_3.tradePathsBlockSequencing, false);
   assert.equal(roadmap.pr20_3.productiveTradeAuthority, false);
-  assert.equal(roadmap.pr20_3.activeTest, "NPC_SELL_STEP_TEST");
+  assert.equal(roadmap.pr20_3.activeTest, "PR20_3_EXIT_GATE_FORMAL_PRUEFUNG");
 });
