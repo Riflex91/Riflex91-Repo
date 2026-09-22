@@ -7,6 +7,11 @@ on:
       - 'v5/werkzeuge/v5-adventure-land-test-gui.js'
       - 'v5/werkzeuge/tests/bank-function-test-gui.test.mjs'
       - 'v5/dokumentation/V5-BANK-FUNKTIONSTEST-GUI.md'
+      - 'v5/dokumentation/DIREKTE-INGAME-TESTS.md'
+      - 'v5/dokumentation/PR20-2-BANK-PRODUKTIV-VORBEREITUNG.md'
+      - 'v5/roadmap/pr20-2-bank-direct-ingame-function-evidence.json'
+      - 'v5/roadmap/post-r19-roadmap.json'
+      - 'v5/grundlage/tests/pr20-bank-direct-ingame-function-evidence.test.mjs'
       - 'v5/package.json'
       - '.github/workflows/v5-bank-function-test-gui.yml'
   workflow_dispatch:
