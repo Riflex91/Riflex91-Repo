@@ -154,6 +154,7 @@ export * from "./merchant/bank-produktions-faehigkeits-vertrag.js";
 export * from "./merchant/bank-deposit-einmal-authority.js";
 export * from "./merchant/bank-withdraw-einmal-authority.js";
 export * from "./merchant/bank-swap-settlement.js";
+export * from "./merchant/bank-open-pack-settlement.js";
 export * from "./merchant/bank-item-transfer-settlement.js";
 export * from "./merchant/bank-retrieve-einmal-authority.js";
 export * from "./merchant/bank-store-einmal-authority.js";

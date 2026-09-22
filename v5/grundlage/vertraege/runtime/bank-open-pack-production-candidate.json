@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "status": "SHADOW_BESTANDEN_LIVE_RESOURCE_BLOCKED_NO_WRITE",
+  "publicFunction": "open_bank_pack",
+  "actionContractId": "AL-ACTION-OPEN-BANK-PACK",
+  "recoveryContractId": "AL-RECOVERY-OPEN-BANK-PACK",
+  "verifierId": "AL-VERIFIER-OPEN-BANK-PACK",
+  "providerSpaeter": "merchant-bank-core@1",
+  "effectDomains": [
+    "gold_or_shells",
+    "bank_capacity"
+  ],
+  "candidate": {
+    "pack": "items2",
+    "map": "bank",
+    "goldKosten": 75000000,
+    "shellKosten": 600
+  },
+  "pathSemantics": {
+    "gold": {
+      "correlation": "FIFO_DEFERRED",
+      "channel": "bank",
+      "requestId": false,
+      "settlement": [
+        "requested_pack_unlocked",
+        "character_gold_exact_cost_delta",
+        "other_currency_unchanged"
+      ]
+    },
+    "shells": {
+      "correlation": "REQUEST_ID_AFTER_BANK_ACK",
+      "channel": "bank",
+      "requestId": true,
+      "backendState": "ASYNC_BACKEND_TX",
+      "stillPending": "IN_PROGRESS_WAIT_AND_REOBSERVE_NO_SEND",
+      "settlement": [
+        "requested_pack_unlocked",
+        "account_shells_exact_cost_delta",
+        "gold_unchanged"
+      ]
+    }
+  },
+  "shadowEvidence": "v5/roadmap/pr20-2-bank-open-pack-shadow-evidence.json",
+  "resourceStateAtShadow": {
+    "characterGold": 15993820,
+    "characterShells": 0,
+    "goldBezahlbar": false,
+    "shellsBezahlbar": false
+  },
+  "gameplayAuthority": false,
+  "rawWriteAuthority": false,
+  "liveMutationFreigegeben": false,
+  "sameIntentRetry": false,
+  "productionWideActivationAllowed": false
+}
