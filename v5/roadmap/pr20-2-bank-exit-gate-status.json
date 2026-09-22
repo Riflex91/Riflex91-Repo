@@ -44,5 +44,14 @@
     "openPackShadow": "v5/roadmap/pr20-2-bank-open-pack-shadow-evidence.json",
     "openPackAdmission": "v5/roadmap/pr20-2-bank-open-pack-admission-evidence.json"
   },
-  "nextAction": "PR20_2_NO_WRITE_INTEGRATION_ONLY_UNTIL_NEW_REAL_EVIDENCE_OR_OPEN_PACK_RESOURCES"
+  "nextAction": "PR20_2_BANK_NO_WRITE_5M_INGAME_AUSFUEHREN",
+  "noWriteIntegration": {
+    "bank5mStatus": "BEREIT_FUER_INGAME_READ_ONLY",
+    "testPlan": "v5/roadmap/pr20-2-bank-no-write-5m-test-plan.json",
+    "package": "v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js",
+    "gameplayWrites": 0,
+    "mutatingPublicFunctionCalls": 0,
+    "functionalTestBudgetConsumed": false,
+    "schliesstBlockerNicht": true
+  }
 }
