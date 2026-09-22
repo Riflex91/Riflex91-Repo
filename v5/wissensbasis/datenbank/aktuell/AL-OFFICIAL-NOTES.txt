@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<script src="/js/phrases.js?v=17139"></script>
-<script src="/phrases/en.js?v=17139"></script>
+		<script src="/js/phrases.js?v=17167"></script>
+<script src="/phrases/en.js?v=17167"></script>
 <script>
 	var language_account = false;
 	var language_initialized = false;
@@ -10,7 +10,7 @@
 	document.documentElement.lang = phrase.language;
 </script>
 
-<script src="/js/language_picker.js?v=17139"></script>
+<script src="/js/language_picker.js?v=17167"></script>
 <script>
 	if (window.desktop) {
 		initialize_desktop_language();
@@ -27,11 +27,11 @@
 		<!--[if IE]><link rel="shortcut icon" href="/images/favicon.png"><![endif]--> <!-- .ico -->
 		<meta name="msapplication-TileImage" content="/images/favicon.png"> <!-- 144 -->
 		<script src="/js/jquery/jquery-3.2.0.min.js"></script>
-		<script src="/js/common_functions.js?v=17139"></script>
-		<script src="/js/old_common_functions.js?v=17139"></script>
-		<script src="/js/functions.js?v=17139"></script>
-		<link href="/css/common.css?v=17139" rel="stylesheet" type="text/css"/>
-		<link href="/css/index.css?v=17139" rel="stylesheet" type="text/css"/>
+		<script src="/js/common_functions.js?v=17167"></script>
+		<script src="/js/old_common_functions.js?v=17167"></script>
+		<script src="/js/functions.js?v=17167"></script>
+		<link href="/css/common.css?v=17167" rel="stylesheet" type="text/css"/>
+		<link href="/css/index.css?v=17167" rel="stylesheet" type="text/css"/>
 		<style>
 			html{
 				background: black;
@@ -98,7 +98,7 @@
 	<body>
 		<div id="devlogs" class="update-notes">
 			<div class="update-notes-title">Update Notes</div>
-			<div class="update-notes-subtitle">Last Update [21/09/26]</div>
+			<div class="update-notes-subtitle">Last Update [22/09/26]</div>
 			
 				<div class="update-notes-entry"><span class="update-notes-date">[20/09/26]</span><span>New Make-up and New Accessory are now available from Mr. Dworf. Take them to Haila for head sets, unique heads or accessories. New heads include Cyclops, Eyeball, Mimic, Slime, Lantern, Lava Glass and Storm; Lava Glass and Storm animate even while standing still.</span></div>
 			
