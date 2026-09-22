@@ -71,8 +71,8 @@ if (!fs.existsSync("werkzeuge/bank-swap-produktions-write-browser.mjs")) {
   if (calls.length !== 1
       || /\.emit\s*\(/.test(write)
       || !write.includes("call_code_function_f('eval','void 0')")
-      || !write.includes("this.adapterAufrufe !== 0")
-      || !write.includes("this.moeglicherSend = true")) {
+      || !/this\.adapterAufrufe\s*!==\s*0/.test(write)
+      || !/this\.moeglicherSend\s*=\s*true/.test(write)) {
     errors.push("BANK_SWAP_WRITE_ADAPTER_SAFETY_UNGUELTIG");
   }
 }
