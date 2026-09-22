@@ -139,8 +139,9 @@ if (roadmap.currentGate !== "PR20.3_MARKT_PRODUKTIVIERUNG"
 }
 
 if (market.status !== "TESTKETTE_START_FREIGEGEBEN_NO_WRITE"
-    || market.pr20_2Transition?.status !== "MILESTONE_ABGESCHLOSSEN_MIT_AKZEPTIERTEN_AUSNAHMEN"
-    || market.pr20_2Transition?.bankExceptionsRemainDisabled !== true
+    || market.pr20_2Transition?.status !== "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN"
+    || market.pr20_2Transition?.broadBankActivationAllowed !== true
+    || market.pr20_2Transition?.bankExceptionsRemainLocallyGated !== true
     || market.authorityGrenze?.produktiveRegistrierungErlaubt !== false
     || market.authorityGrenze?.gameplayAutoritaet !== false
     || market.authorityGrenze?.rawWriteAutoritaet !== false) {
