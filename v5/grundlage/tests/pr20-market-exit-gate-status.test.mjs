@@ -53,6 +53,6 @@ test("Roadmap wechselt ausschliesslich auf PR20.4 NO-WRITE-Vorbereitung", () => 
   assert.equal(roadmap.pr20_3.status, "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN");
   assert.equal(roadmap.pr20_4.status, "VORBEREITUNG_FREIGEGEBEN_NO_WRITE");
   assert.equal(roadmap.pr20_4.productiveMutationAllowed, false);
-  assert.equal(logistics.status, "PR20_4_VORBEREITUNG_FREIGEGEBEN_NO_WRITE");
+  assert.equal(logistics.status, "BEREIT_FUER_INGAME_GESAMTSTUFENTEST");
   assert.equal(logistics.authorityGrenze.gameplayAutoritaet, false);
 });
