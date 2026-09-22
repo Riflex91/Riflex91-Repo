@@ -8,6 +8,7 @@
 Core/Namespace.lua
 Runtime/RuntimeStore.lua
 Core/ErrorLog.lua
+Core/Telemetry.lua
 Core/UICompat.lua
 Core/ForeverAPI.lua
 
@@ -63,6 +64,7 @@ Runtime/TransitionDetector.lua
 Presentation/PresentationResolver.lua
 Runtime/RuntimeEngine.lua
 
+UI/ThemeManager.lua
 UI/ErrorLogWindow.lua
 UI/SettingsWindow.lua
 UI/GuideBrowser.lua
