@@ -107,7 +107,8 @@
     "ingame:bank-withdraw:postsend-reconcile": "node werkzeuge/bank-withdraw-postsend-reconcile.mjs",
     "ingame:bank-withdraw:final-preflight-diagnose": "node werkzeuge/bank-withdraw-final-preflight-diagnose.mjs",
     "ingame:context-inventory": "node werkzeuge/adventure-land-context-inventory.mjs",
-    "ingame:code-bridge:bootstrap": "node werkzeuge/adventure-land-code-bridge-bootstrap.mjs"
+    "ingame:code-bridge:bootstrap": "node werkzeuge/adventure-land-code-bridge-bootstrap.mjs",
+    "bank-swap-production:core-pruefen": "npm run bauen && node werkzeuge/bank-swap-core-static-guards.mjs && node --test grundlage/tests/pr20-bank-swap-settlement.test.mjs grundlage/tests/r11-bank-swap-einmal-authority.test.mjs grundlage/tests/r11-bank-swap-current-fence.test.mjs grundlage/tests/r11-bank-swap-persistenz.test.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

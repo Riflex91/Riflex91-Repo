@@ -1,0 +1,42 @@
+name: v5-bank-swap-core
+
+on:
+  pull_request:
+    paths:
+      - 'v5/grundlage/quelle/merchant/bank-swap-**'
+      - 'v5/grundlage/adapter/persistenz/node-bank-swap-**'
+      - 'v5/grundlage/vertraege/runtime/bank-swap-**'
+      - 'v5/grundlage/tests/*bank-swap*'
+      - 'v5/grundlage/tests/r11-produktions-kompositionskatalog.test.mjs'
+      - 'v5/grundlage/quelle/merchant/bank-produktions-**'
+      - 'v5/grundlage/quelle/runtime/produktions-komposition.ts'
+      - 'v5/grundlage/quelle/index.ts'
+      - 'v5/werkzeuge/bank-swap-**'
+      - 'v5/package.json'
+      - '.github/workflows/v5-bank-swap-core.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - name: Gepinnte Abhaengigkeiten installieren
+        working-directory: v5
+        run: npm ci
+      - name: Bank-Swap Core Safety
+        working-directory: v5
+        run: npm run bank-swap-production:core-pruefen
+      - name: Produktionskomposition bleibt default-off
+        working-directory: v5
+        run: node --test grundlage/tests/r11-produktions-kompositionskatalog.test.mjs

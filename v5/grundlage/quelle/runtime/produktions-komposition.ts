@@ -11,6 +11,7 @@ import {
 import {
   merchantBankDepositMutationsFaehigkeitDefinition,
   merchantBankWithdrawMutationsFaehigkeitDefinition,
+  merchantBankSwapMutationsFaehigkeitDefinition,
 } from "../merchant/bank-produktions-faehigkeits-vertrag.js";
 import {
   equipmentCoreModulDefinition,
@@ -58,6 +59,7 @@ export function erstelleKanonischeProduktionsKomposition(
       ...merchantCoreAPlanungsFaehigkeitDefinitionen(),
       merchantBankDepositMutationsFaehigkeitDefinition(),
       merchantBankWithdrawMutationsFaehigkeitDefinition(),
+      merchantBankSwapMutationsFaehigkeitDefinition(),
       equipmentEquipMutationsFaehigkeitDefinition(),
     ]),
     healthAnforderungen: kopiereHealthAnforderungen(healthAnforderungen),
