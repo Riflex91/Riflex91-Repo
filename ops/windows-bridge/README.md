@@ -204,6 +204,8 @@ Der Update-Ablauf ist fail-safe:
 
 Der Updater akzeptiert weder frei konfigurierbare Repositorys noch frei konfigurierbare Asset-URLs. Der Release-Download ist fest auf `Riflex91/Riflex91-Repo` und `AioBotWindowsBridge.exe` begrenzt.
 
+Für End-to-End-Regressionstests kann ein dokumentations-only Main-Build als harmloses Update-Ziel verwendet werden; die Update-Entscheidung bleibt ausschließlich an der monoton steigenden Workflow-Buildnummer gebunden.
+
 Der Update-Check startet direkt beim Fensterstart und wartet nicht auf Browser-, Supabase- oder Wissenswächter-Initialisierung. Der letzte Check-/Apply-Status wird ohne Geheimnisse unter folgendem Pfad abgelegt:
 
 ```text
