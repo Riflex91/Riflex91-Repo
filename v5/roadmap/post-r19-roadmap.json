@@ -7,7 +7,7 @@
   "dokumentation": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
   "testzeitStandard": "v5/roadmap/testzeit-standard.json",
   "currentStage": "PR20",
-  "currentGate": "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG",
+  "currentGate": "PR20.5_MERCHANT_STABILITAET",
   "reihenfolgeVerbindlich": true,
   "optimizerVorGruppenLiveEvidenceVerboten": true,
   "merchantVorFarmerProduktivierung": true,
@@ -82,10 +82,9 @@
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN",
     "PR20.2 Bank ist breit freigegeben; lokale Withdraw/Open-Pack-Gates bleiben erhalten",
     "PR20.3 Markt ist fuer die Roadmap abgeschlossen; Market-/Trade-Authority bleibt unveraendert",
-    "PR20.4 persistentes 16-Stufen-Gesamttestpaket ist repo-seitig vorbereitet",
-    "AKTUELL: PR20.4 Gesamt-Stufentest im echten Adventure-Land-Browser auf Merchant + genau einem Partner",
-    "kein Merge zwischen den PR20.4-Teststufen erforderlich",
-    "send_item maximal 2 echte Tests; send_gold maximal 2 echte Tests; sameIntentRetry=false"
+    "PR20.4 Logistik/Transfer ist real ingame 16/16 bestanden: send_item 2/2, send_gold 2/2, beide Roundtrips und beide 5m-NO-WRITE bestanden",
+    "AKTUELL: PR20.5 Merchant-Pingpong-/Starvation-Schutz produktiv integrieren und 15m-Integrationslauf vorbereiten",
+    "weitere Ingame-Tests standardmaessig als AUTO_ON_LOAD-Gesamtpaket"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -659,38 +658,32 @@
     },
     {
       "id": "PR20.4_LOGISTIK_TRANSFER",
-      "status": "VORBEREITET_NO_WRITE",
-      "blockedBy": [
-        "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
-        "PR20.2_BANK_PRODUKTIV",
-        "PR20.3_MARKT_PRODUKTIV"
-      ],
+      "status": "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
+      "blockedBy": [],
       "produktiveRegistrierungErlaubt": false,
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
-      "erkannteRestluecken": [
-        "SEND_GOLD_RECIPIENT_GOLD_SETTLEMENT_CONTRACT"
-      ],
+      "erkannteRestluecken": [],
       "artifacts": [
         "v5/dokumentation/PR20-4-LOGISTIK-TRANSFER-PRODUKTIV-VORBEREITUNG.md",
         "v5/grundlage/vertraege/runtime/logistics-transfer-production-preparation.json",
-        "v5/grundlage/tests/pr20-logistics-transfer-production-preparation.test.mjs"
-      ]
+        "v5/grundlage/tests/pr20-logistics-transfer-production-preparation.test.mjs",
+        "v5/roadmap/pr20-4-logistics-transfer-evidence.json",
+        "v5/roadmap/pr20-4-logistics-transfer-exit-gate-status.json"
+      ],
+      "evidence": "v5/roadmap/pr20-4-logistics-transfer-evidence.json",
+      "exitGate": "v5/roadmap/pr20-4-logistics-transfer-exit-gate-status.json"
     },
     {
       "id": "PR20.5_MERCHANT_STABILITAET",
-      "status": "CORE_VORBEREITET_NO_WRITE",
-      "blockedBy": [
-        "PR20.1",
-        "PR20.2",
-        "PR20.3",
-        "PR20.4"
-      ],
+      "status": "FREIGEGEBEN_FUER_PRODUKTIVIERUNG",
+      "blockedBy": [],
       "gameplayAuthority": false,
       "artifacts": [
         "v5/grundlage/quelle/merchant/dienst-stabilitaet.ts",
         "v5/grundlage/tests/pr20-merchant-dienst-stabilitaet.test.mjs"
-      ]
+      ],
+      "nextAction": "MERCHANT_STABILITAET_PRODUKTIV_INTEGRIEREN_UND_15M_TEST"
     },
     {
       "id": "PR20.6_MLUCK",
@@ -753,7 +746,7 @@
     "newGameplayWriteAdapterBeforeGate": false,
     "liveRunnerBeforeCapabilityGate": false,
     "planningContractsTestsAndRecoveryAllowed": true,
-    "activeLiveGate": "PR20.3_MARKT_PRODUKTIVIERUNG"
+    "activeLiveGate": "PR20.5_MERCHANT_STABILITAET"
   },
   "pr20_1": {
     "status": "BESTANDEN",
@@ -893,13 +886,13 @@
     }
   },
   "pr20_4": {
-    "status": "INGAME_GESAMTSTUFENTEST_BEREIT",
+    "status": "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
     "productiveMutationAllowed": false,
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "preparation": "v5/grundlage/vertraege/runtime/logistics-transfer-production-preparation.json",
     "documentation": "v5/dokumentation/PR20-4-LOGISTIK-TRANSFER-PRODUKTIV-VORBEREITUNG.md",
-    "nextAction": "LOAD_PR20_4_AUTORUN_PACKAGE_ON_MERCHANT_AND_PARTNER",
+    "nextAction": "PR20_5_MERCHANT_STABILITAET",
     "sameIntentRetry": false,
     "testHarness": "v5/werkzeuge/pr20-4-logistics-transfer-step-test-paket.js",
     "testPlan": "v5/roadmap/pr20-4-logistics-transfer-step-test-plan.json",
@@ -912,6 +905,30 @@
     "manualStepClicksRequired": false,
     "ingameTestPolicy": "v5/grundlage/vertraege/runtime/ingame-test-execution-policy.json",
     "controllerVersion": "1.2.0",
-    "collectionReturnGiftMarkerTolerated": true
+    "collectionReturnGiftMarkerTolerated": true,
+    "evidence": "v5/roadmap/pr20-4-logistics-transfer-evidence.json",
+    "exitGate": {
+      "status": "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
+      "evidence": "v5/roadmap/pr20-4-logistics-transfer-exit-gate-status.json",
+      "checker": "v5/werkzeuge/pr20-4-logistics-transfer-exit-gate-pruefen.mjs",
+      "pr20_5MerchantStabilityAllowed": true,
+      "productiveTransferAuthority": false
+    },
+    "allSixteenStepsPassed": true,
+    "itemLiveTestsConsumed": 2,
+    "goldLiveTestsConsumed": 2,
+    "itemNoWrite5m": "BESTANDEN",
+    "goldNoWrite5m": "BESTANDEN",
+    "roundtripsRestored": true
+  },
+  "pr20_5": {
+    "status": "FREIGEGEBEN_FUER_PRODUKTIVIERUNG",
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "foundation": "v5/grundlage/quelle/merchant/dienst-stabilitaet.ts",
+    "test": "v5/grundlage/tests/pr20-merchant-dienst-stabilitaet.test.mjs",
+    "nextAction": "PRODUKTIVE_SCHEDULER_INTEGRATION_PLUS_15M_AUTO_ON_LOAD",
+    "integration15mRequired": true,
+    "executionPolicy": "v5/grundlage/vertraege/runtime/ingame-test-execution-policy.json"
   }
 }
