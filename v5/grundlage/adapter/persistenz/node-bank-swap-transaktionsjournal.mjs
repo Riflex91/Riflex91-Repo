@@ -244,7 +244,7 @@ export class NodeBankSwapTransaktionsJournal {
   #ack(e, name) {
     return Object.freeze({
       durable: true,
-      bestaetigungsId: "BANK-WITHDRAW-TX:" + name,
+      bestaetigungsId: "BANK-SWAP-TX:" + name,
       journalId: e.journalId,
       transaktionsId: e.transaktionsId,
       sequenz: e.sequenz,

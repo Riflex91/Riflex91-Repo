@@ -16,7 +16,7 @@ if (candidate.status !== "CORE_VORBEREITET_READ_ONLY_PREFLIGHT_AUSSTEHEND"
     || candidate.ersterKandidat?.slotMaximum !== 41
     || candidate.ersterKandidat?.unterschiedlicheItemNamenErforderlich !== true
     || candidate.safety?.serverClampingNeverReliedUpon !== true
-    || candidate.safety?.sameIntentRetry === true
+    || candidate.settlement?.sameIntentRetry !== false
     || candidate.safety?.rawSocketEmitAllowed !== false
     || candidate.implementation?.writeAdapterImplemented !== false
     || candidate.implementation?.liveRunnerImplemented !== false
