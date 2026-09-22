@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-22",
   "kennung": "V5_PR20_3_MARKET_BUY_GOLD_STEP_TEST_PLAN",
-  "status": "BEREIT_NACH_EINMALIGEM_MERGE",
+  "status": "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
   "basisMain": "55446d26ac13888816761c97b02006aeafa65bcb",
   "paket": "v5/werkzeuge/pr20-3-market-buy-gold-step-test-paket.js",
   "stateKey": "AIO_V5_PR20_3_BUY_GOLD_STEP_TEST_V1",
@@ -20,7 +20,8 @@
     "maxTrueTests": 2,
     "persistent": true,
     "resetImGui": false,
-    "sameIntentRetry": false
+    "sameIntentRetry": false,
+    "additionalTrueFunctionalTestAllowed": false
   },
   "steps": [
     {
@@ -82,5 +83,25 @@
     "Reload setzt Testbudget nicht zurueck",
     "Produktionskomposition bleibt waehrend des Testharness default-off"
   ],
-  "completion": "Nach Schritt 7 einmal Gesamtbericht kopieren; erst dann Repo-Evidence dokumentieren."
+  "completion": "BESTANDEN; keine weiteren Buy-Gold-Live-Funktionstests. Naechstes Gate: NPC-Sell-Stufentest.",
+  "resultEvidence": "v5/roadmap/pr20-3-market-buy-gold-evidence.json",
+  "actual": {
+    "startedAt": "2026-09-22T17:10:09.155Z",
+    "completedAt": "2026-09-22T17:16:35.167Z",
+    "candidate": "hpot0",
+    "unitCostGold": 20,
+    "liveTestsConsumed": 2,
+    "liveTestsMax": 2,
+    "live1Settlement": "BESTAETIGT",
+    "live2Settlement": "BESTAETIGT",
+    "live1GoldDelta": -20,
+    "live1ItemDelta": 1,
+    "live2GoldDelta": -20,
+    "live2ItemDelta": 1,
+    "noWrite5mDurationMs": 300002,
+    "noWrite5mSamples": 21,
+    "noWrite5mSampleGaps": 0,
+    "noWrite5mBlockerSamples": 0,
+    "sameIntentRetry": false
+  }
 }
