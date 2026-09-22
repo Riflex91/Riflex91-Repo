@@ -46,8 +46,9 @@ test("PR20.5 package contains full stability matrix and 15m integration soak", (
   ]) assert.ok(source.includes(marker), marker);
 });
 
-test("Supabase transport reuses observational bridge and exposes no secret", () => {
-  assert.ok(source.includes("AIO_V3.operations"));
+test("Supabase transport uses native V5 observational bridge and exposes no secret", () => {
+  assert.ok(source.includes("AIO_V5_NATIVE_TELEMETRY_V1"));
+  assert.ok(source.includes("r.AIO_V5.telemetry"));
   assert.ok(source.includes("WINDOWS_BRIDGE_5S_LOCAL_OBSERVE_60S_AGGREGATE_PLUS_TERMINAL_PUSH"));
   for (const secret of ["service_role", "SUPABASE_SERVICE_ROLE_KEY", "sb_secret_", "Bearer "]) {
     assert.equal(source.includes(secret), false, secret);
@@ -61,7 +62,7 @@ test("PR20.5 pass alone cannot start normal bot runtime", () => {
   assert.equal(plan.allTestsGate.normalBotRuntimeRequiresAllRemainingV5TestsBestanden, true);
 });
 
-test("PR20.5 telemetry facade preserves an existing operations surface", () => {
+test("PR20.5 exposes native V5 telemetry surface without V3 dependency", () => {
   assert.ok(source.includes("AIO_V5_NATIVE_TELEMETRY_V1"));
   assert.ok(source.includes("contract:'AIO_V5_NATIVE_TELEMETRY_V1'"));
   assert.ok(source.includes("AIO_V5"));
