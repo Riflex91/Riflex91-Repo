@@ -1,4 +1,6 @@
 using System.Net.WebSockets;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace AioBotWindowsBridge;
@@ -30,6 +32,198 @@ public sealed class CdpAdventureLandClient
             cancellationToken);
         if (targets.Count > 0) return targets[0].Target.Url;
         throw new InvalidOperationException("AIO_V3_OPERATIONS_UNAVAILABLE");
+    }
+
+    public const string V5AutonomousTestManifestUrl =
+        "https://raw.githubusercontent.com/Riflex91/Riflex91-Repo/main/v5/roadmap/v5-autonomous-test-manifest.json";
+    public const int V5AutonomousTestManifestMaxBytes = 32 * 1024;
+    public const int V5AutonomousTestPackageHardMaxBytes = 128 * 1024;
+
+    public async Task<V5AutonomousTestDeploymentResult> EnsureV5AutonomousTestAsync(
+        CancellationToken cancellationToken)
+    {
+        var manifestBytes = await DownloadBoundedAsync(
+            V5AutonomousTestManifestUrl,
+            V5AutonomousTestManifestMaxBytes,
+            cancellationToken);
+        var manifestJson = Encoding.UTF8.GetString(manifestBytes);
+        var manifest = ParseAndValidateV5AutonomousTestManifest(manifestJson);
+
+        var targets = await FindTargetsAsync(cancellationToken);
+        foreach (var target in targets)
+        {
+            using var socket = new ClientWebSocket();
+            try
+            {
+                await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
+                var contexts = await CollectAllowedExecutionContextsAsync(socket, cancellationToken);
+                foreach (var contextId in contexts)
+                {
+                    JsonElement probe;
+                    try
+                    {
+                        probe = await EvaluateAsync(socket, V5DeploymentProbeExpression, contextId, cancellationToken);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        continue;
+                    }
+
+                    if (!string.Equals(ReadString(probe, "ctype"), "merchant", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    var currentTestId = ReadString(probe, "currentTestId");
+                    var currentTerminal = ReadBoolean(probe, "currentTerminal", false);
+                    if (!ShouldDeployV5AutonomousTest(manifest.TestId, currentTestId, currentTerminal))
+                    {
+                        var same = string.Equals(currentTestId, manifest.TestId, StringComparison.Ordinal);
+                        return new V5AutonomousTestDeploymentResult(
+                            same ? "ALREADY_PRESENT" : "BLOCKED_ACTIVE_TEST",
+                            Changed: false,
+                            manifest.TestId,
+                            target.Url);
+                    }
+
+                    var packageUrl = BuildV5AutonomousTestPackageUrl(manifest);
+                    var packageBytes = await DownloadBoundedAsync(
+                        packageUrl,
+                        manifest.MaxPackageBytes,
+                        cancellationToken);
+                    var actualSha256 = Convert.ToHexString(SHA256.HashData(packageBytes)).ToLowerInvariant();
+                    if (!string.Equals(actualSha256, manifest.PackageSha256, StringComparison.Ordinal))
+                        throw new InvalidOperationException("V5_TEST_PACKAGE_SHA256_MISMATCH");
+
+                    var packageSource = Encoding.UTF8.GetString(packageBytes);
+                    if (!packageSource.Contains(manifest.TestId, StringComparison.Ordinal)
+                        || !packageSource.Contains(manifest.ExpectedGlobal, StringComparison.Ordinal))
+                        throw new InvalidOperationException("V5_TEST_PACKAGE_MARKER_MISSING");
+
+                    var expression = "(() => {\n" + packageSource + "\n; return { installed: true }; })()";
+                    await EvaluateAsync(socket, expression, contextId, cancellationToken);
+
+                    var verify = await EvaluateAsync(socket, V5DeploymentProbeExpression, contextId, cancellationToken);
+                    if (!string.Equals(ReadString(verify, "currentTestId"), manifest.TestId, StringComparison.Ordinal)
+                        || !string.Equals(ReadString(verify, "desiredApiVersion"), manifest.ControllerVersion, StringComparison.Ordinal))
+                        throw new InvalidOperationException("V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED");
+
+                    return new V5AutonomousTestDeploymentResult(
+                        "DEPLOYED",
+                        Changed: true,
+                        manifest.TestId,
+                        target.Url);
+                }
+            }
+            catch (WebSocketException)
+            {
+                // Try another same-origin Adventure Land target.
+            }
+        }
+
+        return new V5AutonomousTestDeploymentResult(
+            "MERCHANT_CONTEXT_NOT_FOUND",
+            Changed: false,
+            manifest.TestId,
+            TargetUrl: null);
+    }
+
+    public static V5AutonomousTestManifest ParseAndValidateV5AutonomousTestManifest(string json)
+    {
+        var manifest = JsonSerializer.Deserialize<V5AutonomousTestManifest>(
+            json,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+            ?? throw new InvalidOperationException("V5_TEST_MANIFEST_INVALID");
+
+        if (manifest.SchemaVersion != 1
+            || !manifest.Enabled
+            || !string.Equals(manifest.Repository, "Riflex91/Riflex91-Repo", StringComparison.Ordinal)
+            || !string.Equals(manifest.Branch, "main", StringComparison.Ordinal)
+            || !string.Equals(manifest.CoordinatorClass, "merchant", StringComparison.Ordinal)
+            || !string.Equals(manifest.WorkerDistribution, "PACKAGE_OWNED_COMMAND_CHARACTER", StringComparison.Ordinal))
+            throw new InvalidOperationException("V5_TEST_MANIFEST_SCOPE_INVALID");
+
+        if (!IsLowerHex(manifest.SourceCommit, 40)
+            || !IsLowerHex(manifest.PackageSha256, 64))
+            throw new InvalidOperationException("V5_TEST_MANIFEST_DIGEST_INVALID");
+
+        var path = (manifest.PackagePath ?? string.Empty).Replace('\\', '/');
+        if (!path.StartsWith("v5/werkzeuge/", StringComparison.Ordinal)
+            || !path.EndsWith(".js", StringComparison.Ordinal)
+            || path.Contains("..", StringComparison.Ordinal)
+            || path.Contains("//", StringComparison.Ordinal)
+            || path.Length > 180)
+            throw new InvalidOperationException("V5_TEST_MANIFEST_PACKAGE_PATH_INVALID");
+
+        if (string.IsNullOrWhiteSpace(manifest.Gate)
+            || string.IsNullOrWhiteSpace(manifest.TestId)
+            || string.IsNullOrWhiteSpace(manifest.ControllerVersion)
+            || string.IsNullOrWhiteSpace(manifest.ExpectedGlobal))
+            throw new InvalidOperationException("V5_TEST_MANIFEST_FIELDS_MISSING");
+
+        if (manifest.MaxPackageBytes is < 1024 or > V5AutonomousTestPackageHardMaxBytes)
+            throw new InvalidOperationException("V5_TEST_MANIFEST_PACKAGE_LIMIT_INVALID");
+
+        return manifest with { PackagePath = path };
+    }
+
+    public static string BuildV5AutonomousTestPackageUrl(V5AutonomousTestManifest manifest) =>
+        $"https://raw.githubusercontent.com/Riflex91/Riflex91-Repo/{manifest.SourceCommit}/{manifest.PackagePath}";
+
+    public static bool ShouldDeployV5AutonomousTest(
+        string desiredTestId,
+        string? currentTestId,
+        bool currentTerminal)
+    {
+        if (string.IsNullOrWhiteSpace(currentTestId)) return true;
+        if (string.Equals(currentTestId, desiredTestId, StringComparison.Ordinal)) return false;
+        return currentTerminal;
+    }
+
+    private async Task<byte[]> DownloadBoundedAsync(
+        string url,
+        int maximumBytes,
+        CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue
+        {
+            NoCache = true,
+            NoStore = true
+        };
+        using var response = await _httpClient.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        if (response.Content.Headers.ContentLength is long declared && declared > maximumBytes)
+            throw new InvalidOperationException("V5_TEST_DOWNLOAD_TOO_LARGE");
+
+        await using var input = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var output = new MemoryStream();
+        var buffer = new byte[16 * 1024];
+        while (true)
+        {
+            var read = await input.ReadAsync(buffer, cancellationToken);
+            if (read == 0) break;
+            if (output.Length + read > maximumBytes)
+                throw new InvalidOperationException("V5_TEST_DOWNLOAD_TOO_LARGE");
+            output.Write(buffer, 0, read);
+        }
+
+        if (output.Length == 0)
+            throw new InvalidOperationException("V5_TEST_DOWNLOAD_EMPTY");
+        return output.ToArray();
+    }
+
+    private static bool IsLowerHex(string? value, int length)
+    {
+        if (value is null || value.Length != length) return false;
+        foreach (var ch in value)
+        {
+            if (!((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f')))
+                return false;
+        }
+        return true;
     }
 
     public Task<DebugReadResult> ReadAsync(long afterSeq, int eventLimit, CancellationToken cancellationToken) =>
@@ -495,6 +689,45 @@ public sealed class CdpAdventureLandClient
         return null;
     }
 
+    private const string V5DeploymentProbeExpression = """
+    (() => {
+      let ctype = '';
+      try {
+        const character = globalThis.character
+          || (globalThis.parent && globalThis.parent.character)
+          || null;
+        ctype = String(character && character.ctype || '').toLowerCase();
+      } catch {}
+
+      let current = null;
+      try {
+        const aio = globalThis.AIO_V3
+          || (globalThis.parent && globalThis.parent.AIO_V3)
+          || null;
+        const operations = aio && aio.operations;
+        const status = typeof operations?.status === 'function' ? operations.status() : null;
+        current = status && status.v5AutonomousTest && typeof status.v5AutonomousTest === 'object'
+          ? status.v5AutonomousTest
+          : null;
+      } catch {}
+
+      let desiredApiVersion = null;
+      try {
+        const api = globalThis.V5PR206MluckTest
+          || (globalThis.parent && globalThis.parent.V5PR206MluckTest)
+          || null;
+        desiredApiVersion = api && typeof api.version === 'string' ? api.version : null;
+      } catch {}
+
+      return {
+        ctype,
+        currentTestId: current ? String(current.testId || '') : null,
+        currentTerminal: current ? current.terminal === true : false,
+        desiredApiVersion
+      };
+    })()
+    """;
+
     private const string OperationsProbeExpression = """
     (() => {
       const aio = globalThis.AIO_V3;
@@ -688,6 +921,29 @@ public sealed class CdpAdventureLandClient
         public string WebSocketDebuggerUrl { get; init; } = string.Empty;
     }
 }
+
+public sealed record V5AutonomousTestManifest(
+    int SchemaVersion,
+    bool Enabled,
+    string Repository,
+    string Branch,
+    string Gate,
+    string TestId,
+    string ControllerVersion,
+    string CoordinatorClass,
+    string WorkerDistribution,
+    string SourceCommit,
+    string PackagePath,
+    string PackageSha256,
+    int MaxPackageBytes,
+    string ExpectedGlobal,
+    bool NormalRuntimeAllowed);
+
+public sealed record V5AutonomousTestDeploymentResult(
+    string State,
+    bool Changed,
+    string TestId,
+    string? TargetUrl);
 
 public sealed record DebugReadResult(
     JsonElement Snapshot,
