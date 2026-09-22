@@ -55,6 +55,8 @@ function N:Create()
     frame:SetMovable(true);frame:EnableMouse(true);applyPosition(frame)
     if frame.RegisterForDrag then frame:RegisterForDrag("LeftButton") end
     frame:SetScript("OnDragStart",function(self)
+        local settings=MG.db and MG.db.settings or {}
+        if settings.navigatorLocked then return end
         if not (InCombatLockdown and InCombatLockdown()) and self.StartMoving then self:StartMoving() end
     end)
     frame:SetScript("OnDragStop",function(self)
@@ -99,6 +101,10 @@ end
 
 function N:RefreshLive()
     local frame=self:Create()
+    local settings=MG.db and MG.db.settings or {}
+    if frame.SetScale then
+        pcall(frame.SetScale,frame,tonumber(settings.navigatorScale) or 1)
+    end
     local runtime=MG.RuntimeStore and MG.RuntimeStore:Get() or nil
     local nav=runtime and runtime.navigation
 
