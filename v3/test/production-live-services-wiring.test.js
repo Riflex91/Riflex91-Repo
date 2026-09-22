@@ -32,6 +32,8 @@ test('production live services wire Alpha25 cloud control, Alpha26 updater, and 
   assert.match(source, /const alpha27 = installAlpha27CombatMerchantConvergence[\s\S]*if \(runtime\.productionLiveServices/);
   assert.match(source, /cloudControlPlaneInstalled/);
   assert.match(source, /safeAutoUpdaterInstalled/);
+  assert.match(source, /installV5AutonomousTestBootstrap/);
+  assert.match(source, /v5AutonomousTestBootstrapInstalled/);
 });
 
 test('Alpha31 and Alpha32 live recovery stay passive during install and run only from the runtime tick chain', () => {
@@ -116,4 +118,5 @@ test('live diagnostics expose cloud, updater, convergence, live-authority, and A
   assert.match(source, /convergence:/);
   assert.match(source, /liveAuthority:/);
   assert.match(source, /navigationMerchantRecovery:/);
+  assert.match(source, /v5TestBootstrap:/);
 });
