@@ -12,7 +12,13 @@ on:
       - 'v5/roadmap/pr20-2-bank-direct-ingame-function-evidence.json'
       - 'v5/roadmap/post-r19-roadmap.json'
       - 'v5/grundlage/tests/pr20-bank-direct-ingame-function-evidence.test.mjs'
-      - 'v5/grundlage/quelle/merchant/bank-open-pack-settlement.ts'\n      - 'v5/grundlage/vertraege/runtime/bank-open-pack-production-candidate.json'\n      - 'v5/grundlage/tests/pr20-bank-open-pack-settlement.test.mjs'\n      - 'v5/roadmap/pr20-2-bank-open-pack-shadow-evidence.json'\n      - 'v5/architektur/adr/ADR-048-PR20-2T-BANK-OPEN-PACK-SHADOW-SETTLEMENT-NO-WRITE.md'\n      - 'v5/grundlage/vertraege/runtime/bank-production-preparation.json'\n      - 'v5/package.json'
+      - 'v5/grundlage/quelle/merchant/bank-open-pack-settlement.ts'
+      - 'v5/grundlage/vertraege/runtime/bank-open-pack-production-candidate.json'
+      - 'v5/grundlage/tests/pr20-bank-open-pack-settlement.test.mjs'
+      - 'v5/roadmap/pr20-2-bank-open-pack-shadow-evidence.json'
+      - 'v5/architektur/adr/ADR-048-PR20-2T-BANK-OPEN-PACK-SHADOW-SETTLEMENT-NO-WRITE.md'
+      - 'v5/grundlage/vertraege/runtime/bank-production-preparation.json'
+      - 'v5/package.json'
       - '.github/workflows/v5-bank-function-test-gui.yml'
   workflow_dispatch:
 
@@ -33,3 +39,5 @@ jobs:
         run: npm ci
       - working-directory: v5
         run: npm run bank-function-test-gui:pruefen
+      - working-directory: v5
+        run: npm run bank-open-pack-shadow:pruefen
