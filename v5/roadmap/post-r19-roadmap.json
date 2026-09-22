@@ -85,11 +85,11 @@
     "bank_store ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
     "bank_swap ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
     "bank_withdraw hat das Maximum von zwei echten Funktionstests erreicht und bleibt ohne vollstaendig bestandene Live-Evidence breit deaktiviert; kein dritter Write-Test",
-    "PR20.2 ist damit noch nicht komplett; keine breite Bank-Aktivierung",
-    "PR20.3 Markt bleibt bis zum PR20.2-Exit-Gate produktiv gesperrt",
-    "open_bank_pack Shadow ist BESTANDEN: items2 kostet 75.000.000 Gold oder 600 Shells; aktuelle Ressourcen 15.993.820 Gold / 0 Shells, daher kein Live-Test",
-    "open_bank_pack Mixed-Path Settlement/Recovery wird NO-WRITE vorbereitet; Shell IN_PROGRESS bedeutet warten/reobserve ohne Send",
-    "PR20.2 bleibt wegen Withdraw-Testlimit und fehlender Open-Pack-Live-Admission nicht komplett; keine breite Bank-Aktivierung"
+    "open_bank_pack Shadow ist BESTANDEN und Open-Pack Admission read-only ist als Sicherheitspruefung BESTANDEN",
+    "open_bank_pack bleibt fachlich RESOURCE_BLOCKED_NO_LIVE: 15.993.820 < 75.000.000 Gold und 0 < 600 Shells; 0 Gameplay-Writes, 0 mutierende Public-Function-Aufrufe, kein Intent, keine Authority",
+    "PR20.2 Exit-Gate bleibt fail-closed; keine breite Bank-Aktivierung",
+    "PR20.3 Markt bleibt bis zum korrekt geschlossenen PR20.2-Exit-Gate produktiv gesperrt",
+    "noch moegliche NO-WRITE-/Integrationsarbeiten innerhalb PR20.2 fortsetzen"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -154,7 +154,7 @@
   },
   "parallelPreparation": {
     "id": "PR20.2_BANK",
-    "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_WITHDRAW_TESTLIMIT_ERREICHT",
+    "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_WITHDRAW_TESTLIMIT_OPEN_PACK_RESOURCE_BLOCKED",
     "blockedBy": null,
     "produktiveRegistrierungErlaubt": true,
     "gameplayAuthority": false,
@@ -237,7 +237,9 @@
       "v5/architektur/adr/ADR-047-PR20-2R-BANK-SWAP-ABEND-TESTKETTE.md",
       "v5/werkzeuge/bank-swap-write-preflight.mjs",
       "v5/grundlage/tests/r11-bank-swap-produktions-transaktion.test.mjs",
-      "v5/roadmap/pr20-2-bank-direct-ingame-function-evidence.json"
+      "v5/roadmap/pr20-2-bank-direct-ingame-function-evidence.json",
+      "v5/roadmap/pr20-2-bank-open-pack-admission-evidence.json",
+      "v5/grundlage/tests/pr20-bank-open-pack-admission-evidence.test.mjs"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",
@@ -358,7 +360,7 @@
     },
     "openBankPackCandidate": {
       "publicFunction": "open_bank_pack",
-      "status": "SHADOW_BESTANDEN_LIVE_RESOURCE_BLOCKED_NO_WRITE",
+      "status": "SHADOW_AND_ADMISSION_READ_ONLY_BESTANDEN_RESOURCE_BLOCKED_NO_LIVE",
       "pack": "items2",
       "map": "bank",
       "goldKosten": 75000000,
@@ -370,13 +372,30 @@
       "shadowEvidence": "v5/roadmap/pr20-2-bank-open-pack-shadow-evidence.json",
       "settlementCore": "v5/grundlage/quelle/merchant/bank-open-pack-settlement.ts",
       "liveMutationFreigegeben": false,
+      "sameIntentRetry": false,
+      "admissionReadOnlySafetyCheck": "BESTANDEN",
+      "admissionFunctionalResult": "RESOURCE_BLOCKED_NO_LIVE",
+      "admissionEvidence": "v5/roadmap/pr20-2-bank-open-pack-admission-evidence.json",
+      "gameplayWritesAdmission": 0,
+      "mutatingPublicFunctionCallsAdmission": 0,
+      "durableIntentErzeugt": false,
+      "authorityAusgestellt": false
+    },
+    "pr20_2ExitGate": {
+      "status": "BLOCKIERT_FAIL_CLOSED",
+      "blocker": [
+        "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
+        "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
+      ],
+      "breiteBankAktivierungErlaubt": false,
+      "pr20_3MarktStartErlaubt": false,
       "sameIntentRetry": false
     }
   },
   "parallelPreparations": [
     {
       "id": "PR20.2_BANK",
-      "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_WITHDRAW_TESTLIMIT_ERREICHT",
+      "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_WITHDRAW_TESTLIMIT_OPEN_PACK_RESOURCE_BLOCKED",
       "blockedBy": [],
       "produktiveRegistrierungErlaubt": true,
       "gameplayAuthority": false,
@@ -443,7 +462,9 @@
         "v5/grundlage/quelle/merchant/bank-withdraw-produktions-transaktion.ts",
         "v5/werkzeuge/bank-withdraw-produktions-write-browser.mjs",
         "v5/werkzeuge/bank-withdraw-produktions-live.mjs",
-        "v5/architektur/adr/ADR-043-PR20-2O-BANK-WITHDRAW-WRITE-RUNNER-PREPARATION.md"
+        "v5/architektur/adr/ADR-043-PR20-2O-BANK-WITHDRAW-WRITE-RUNNER-PREPARATION.md",
+        "v5/roadmap/pr20-2-bank-open-pack-admission-evidence.json",
+        "v5/grundlage/tests/pr20-bank-open-pack-admission-evidence.test.mjs"
       ],
       "firstLiveCandidate": {
         "publicFunction": "bank_deposit",
@@ -527,6 +548,16 @@
         "officialCodeBridge": "call_code_function_f",
         "runnerBootstrapNoGameplayWrite": true,
         "productionWideActivationAllowed": false
+      },
+      "pr20_2ExitGate": {
+        "status": "BLOCKIERT_FAIL_CLOSED",
+        "blocker": [
+          "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
+          "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
+        ],
+        "breiteBankAktivierungErlaubt": false,
+        "pr20_3MarktStartErlaubt": false,
+        "sameIntentRetry": false
       }
     },
     {
