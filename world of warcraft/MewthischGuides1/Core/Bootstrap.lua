@@ -42,8 +42,8 @@ local function printStatus()
     local counts = MG:GetLogCounts()
 
     print("|cffffb000Mewthisch Guides 1.0|r Build " .. tostring(MG.BUILD or "-"))
-    print(" RestedXP: " .. tostring(parser.guides) .. " Guides / " ..
-        tostring(parser.steps) .. " Raw-Steps / " .. tostring(parser.actions) .. " Actions")
+    print(" Datenbasis: " .. tostring(parser.guides) .. " Guides / " ..
+        tostring(parser.steps) .. " Raw-Steps / " .. tostring(parser.actions) .. " Aktionen")
     print(" Compiled: " .. tostring(compiled.steps) .. " Steps / " ..
         tostring(compiled.goals) .. " Goals / " .. tostring(compiled.stickies) ..
         " Stickies / " .. tostring(compiled.deferred or 0) .. " CompleteWith")
@@ -58,7 +58,7 @@ end
 
 local function printGuides()
     local guides = MG.GuideCatalog:ListApplicable()
-    print("|cffffb000Mewthisch Guides|r passende RestedXP-Guides: " .. tostring(#guides))
+    print("|cffffb000Mewthisch Guides|r passende Guides: " .. tostring(#guides))
     for index = 1, math.min(#guides, 20) do
         local guide = guides[index]
         print(" " .. tostring(index) .. ". " .. tostring(guide.title) ..
@@ -252,7 +252,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
                     MG.GuideController:Start(guide, "login", true)
                 else
                     MG:Log("WARN", "guide.none_applicable",
-                        "Kein passender RestedXP-Guide für diesen Charakter gefunden.",
+                        "Kein passender Guide für diesen Charakter gefunden.",
                         { player=MG:GetPlayerProfile() })
                 end
             end)

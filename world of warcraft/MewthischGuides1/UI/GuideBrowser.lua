@@ -11,6 +11,17 @@ local function solid(parent, layer, r,g,b,a)
     return t
 end
 
+local function publicGroup(value)
+    local group=tostring(value or "")
+    local lower=string.lower(group)
+    if string.find(lower,"survival guide",1,true) then return "Hardcore" end
+    if string.find(lower,"restedxp",1,true) or string.find(lower,"forever guide",1,true) then
+        return "Leveling"
+    end
+    group=group:gsub("RestedXP",""):gsub("^%s+",""):gsub("%s+$","")
+    return group~="" and group or "Guides"
+end
+
 local function shadow(font)
     if font.SetShadowColor then font:SetShadowColor(0,0,0,1) end
     if font.SetShadowOffset then font:SetShadowOffset(1,-1) end
@@ -161,7 +172,7 @@ function B:Refresh()
             row:Show()
             row.name:SetText(tostring(item.guide.title or item.guide.id))
             row.meta:SetText(table.concat({
-                tostring(item.guide.group or "RestedXP"),
+                publicGroup(item.guide.group),
                 tostring(item.guide.subgroup or ""),
             },"  -  "))
             row.state:SetText(item.applicable and "|cff55dd77PASSEND|r" or "|cffdd8844ANDERER|r")

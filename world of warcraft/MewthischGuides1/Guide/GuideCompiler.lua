@@ -62,7 +62,7 @@ local function parseCoordinate(args)
         floor = tonumber(floor),
         radius = tonumber(parts[4]),
         flags = parts[5],
-        source = "RestedXP",
+        source = "ImportedRoute",
     }
 
     if a and b then
@@ -271,7 +271,7 @@ function C:CompileEntry(step, rawStep, action, actionIndex, lastWaypoint)
             tags = MG.Util:Copy(rawStep.tags or {}),
             requiresLabel = step.requires,
         },
-        source = "RestedXP",
+        source = "ImportedRoute",
         raw = {
             stepIndex = rawStep.rawIndex,
             actionIndex = action.rawIndex or actionIndex,
@@ -478,7 +478,7 @@ end
 
 function C:CompileGuide(rawGuide, index)
     local metadata = rawGuide.metadata or {}
-    local name = first(metadata.name) or ("RestedXP Guide " .. tostring(index))
+    local name = first(metadata.name) or ("Guide " .. tostring(index))
     local minLevel, maxLevel = levelRange(name)
     local guide = {
         id = "rxp:" .. MG.Util:Slug(rawGuide.sourceFile) .. ":" ..
@@ -486,8 +486,7 @@ function C:CompileGuide(rawGuide, index)
         title = name,
         displayName = first(metadata.displayname),
         sourceFile = rawGuide.sourceFile,
-        source = "RestedXP",
-        sourceCommit = MG.RestEDXPParser:GetSource().commit,
+        source = "ImportedRoute",
         group = first(metadata.group),
         subgroup = first(metadata.subgroup),
         selector = first(metadata.selector),

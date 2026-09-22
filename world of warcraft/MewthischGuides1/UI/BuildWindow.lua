@@ -52,7 +52,7 @@ function B:Create()
 
     local note=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
     note:SetPoint("TOPLEFT",14,-78);note:SetPoint("RIGHT",-14,0);note:SetJustifyH("LEFT")
-    note:SetText("Training basiert auf RestedXP-Direktiven. Es werden keine proprietären Talent-Builds übernommen.")
+    note:SetText("Training basiert auf importierten öffentlichen Routendaten und Live-Charakterdaten.")
     if note.SetTextColor then note:SetTextColor(.66,.66,.66) end;shadow(note)
 
     local rows={}

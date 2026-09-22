@@ -8,6 +8,15 @@ local function timestamp()
     return tostring(time and time() or 0)
 end
 
+local function publicText(value)
+    local text=tostring(value or "")
+    text=text:gsub("RestedXP","Imported")
+    text=text:gsub("restedxp","imported")
+    text=text:gsub("RESTEDXP","IMPORTED")
+    text=text:gsub("rxp:","mg:")
+    return text
+end
+
 local function sanitize(value, depth, seen)
     depth = depth or 0
     if depth > 6 then return "<max-depth>" end
@@ -84,18 +93,18 @@ local function flatten(value, prefix, out, depth)
         return out
     end
     if type(value) ~= "table" then
-        out[#out + 1] = tostring(prefix or "value") .. "=" .. tostring(value)
+        out[#out + 1] = publicText(prefix or "value") .. "=" .. publicText(value)
         return out
     end
     local keys = {}
     for key in pairs(value) do keys[#keys + 1] = key end
     table.sort(keys, function(a,b) return tostring(a) < tostring(b) end)
     for _, key in ipairs(keys) do
-        local p = prefix and (prefix .. "." .. tostring(key)) or tostring(key)
+        local p = prefix and (publicText(prefix) .. "." .. publicText(key)) or publicText(key)
         if type(value[key]) == "table" then
             flatten(value[key], p, out, depth + 1)
         else
-            out[#out + 1] = p .. "=" .. tostring(value[key])
+            out[#out + 1] = p .. "=" .. publicText(value[key])
         end
     end
     return out
@@ -132,8 +141,6 @@ end
 function MG:GetDiagnosticSnapshot()
     local db = self:EnsureDB()
     local runtime = self.RuntimeStore and self.RuntimeStore:Get() or {}
-    local source = self.RestEDXPForeverRaw and self.RestEDXPForeverRaw.source or {}
-
     local livePosition = self.PositionFacts and
         safeCall(self.PositionFacts.Snapshot, self.PositionFacts) or nil
     local facing = GetPlayerFacing and safeCall(GetPlayerFacing) or nil
@@ -148,6 +155,7 @@ function MG:GetDiagnosticSnapshot()
     local parserStats
     if self.RestEDXPParser and self.RestEDXPParser.GetStats then
         parserStats = safeCall(self.RestEDXPParser.GetStats, self.RestEDXPParser)
+        if type(parserStats)=="table" then parserStats.source=nil end
     end
     local compilerStats
     if self.GuideCompiler and self.GuideCompiler.GetStats then
@@ -166,12 +174,8 @@ function MG:GetDiagnosticSnapshot()
             loadedAt = timestamp(),
         },
         source = {
-            name = source.name,
-            repository = source.repository,
-            commit = source.commit,
-            license = source.license,
-            transformed = source.transformed,
-            proseCopied = source.proseCopied,
+            kind = "imported_public_route_data",
+            transformed = true,
         },
         player = self.GetPlayerProfile and self:GetPlayerProfile() or nil,
         api = {
@@ -302,7 +306,7 @@ function MG:GetErrorLogText(includeInfo)
         string.rep("=", 78),
     }
 
-    appendSection(lines, "ADDON / QUELLE", {
+    appendSection(lines, "ADDON / DATENBASIS", {
         addon=snapshot.addon,
         source=snapshot.source,
         corpus=snapshot.corpus,
@@ -350,7 +354,7 @@ function MG:GetErrorLogText(includeInfo)
                 tostring(entry.level), tostring(entry.seq),
                 tostring(entry.at), tostring(entry.event),
                 tostring(entry.runtimeRevision or 0))
-            lines[#lines + 1] = tostring(entry.message)
+            lines[#lines + 1] = publicText(entry.message)
             for _, detail in ipairs(flatten(entry.data)) do
                 lines[#lines + 1] = "  " .. detail
             end

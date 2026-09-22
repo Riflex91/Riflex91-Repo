@@ -50,6 +50,6 @@ function B:Snapshot(runtime)
         talentRecommendation=talent,
         automaticTalentSpending=false,
         upcomingTraining=upcoming,
-        source="RestedXP training directives + live character facts",
+        source="Importierte Trainingsdaten + Live-Charakterdaten",
     }
 end
