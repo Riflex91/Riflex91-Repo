@@ -125,7 +125,7 @@ if (noWrite5m?.bank5mStatus !== "BESTANDEN_REAL_INGAME_READ_ONLY"
   fail("NO_WRITE_5M_EVIDENCE_UNGUELTIG");
 }
 
-if (!["PR20.3_MARKT_PRODUKTIVIERUNG", "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG"].includes(roadmap.currentGate)
+if (!["PR20.3_MARKT_PRODUKTIVIERUNG", "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG", "PR20.5_MERCHANT_STABILITAET"].includes(roadmap.currentGate)
     || roadmap.parallelPreparation?.pr20_2ExitGate?.status !== "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN"
     || roadmap.parallelPreparation?.pr20_2ExitGate?.breiteBankAktivierungErlaubt !== true
     || roadmap.parallelPreparation?.pr20_2ExitGate?.withdrawLokalGegatet !== true
