@@ -40,3 +40,6 @@ jobs:
       - name: Produktionskomposition bleibt default-off
         working-directory: v5
         run: node --test grundlage/tests/r11-produktions-kompositionskatalog.test.mjs
+      - name: Bank-Swap Read-only Preflight Safety
+        working-directory: v5
+        run: npm run bank-swap-production:preflight-pruefen

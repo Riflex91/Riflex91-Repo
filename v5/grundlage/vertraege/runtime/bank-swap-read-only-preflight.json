@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_BANK_SWAP_READ_ONLY_PREFLIGHT",
+  "stand": "2026-09-22",
+  "status": "IMPLEMENTIERT_EVIDENCE_AUSSTEHEND",
+  "sourceLock": {
+    "required": true,
+    "gitHeadExact": true
+  },
+  "cdp": {
+    "loopbackOnly": true,
+    "requiredGlobalFunction": "call_code_function_f"
+  },
+  "browser": {
+    "readOnly": true,
+    "requiresMerchant": true,
+    "requiresAlive": true,
+    "requiresIdle": true,
+    "requiresEmptyQueue": true,
+    "requiresBankMounted": true,
+    "requiresCurrentPackMapMatch": true,
+    "requiresTwoOccupiedDifferentNamedSlots": true,
+    "codeRunnerBootstrap": false
+  },
+  "host": {
+    "requiresRunning": true,
+    "requiresNoActivePlanCapability": true,
+    "requiresNoEquipAuthority": true,
+    "requiresNoDepositAuthority": true,
+    "requiresNoWithdrawAuthority": true,
+    "swapAuthorityHostPathExists": false,
+    "requiresDepositJournalClear": true,
+    "requiresWithdrawJournalClear": true,
+    "requiresSwapJournalClear": true,
+    "requiresNoActiveBankLease": true
+  },
+  "writes": {
+    "authorityIssuance": 0,
+    "bankLeaseAcquire": 0,
+    "transactionIntent": 0,
+    "adapterCalls": 0,
+    "gameplayWrites": 0,
+    "bankSwapCalls": 0,
+    "rawSocketEmits": 0
+  },
+  "functionalTest": false,
+  "next": "LOCAL_READ_ONLY_PREFLIGHT"
+}

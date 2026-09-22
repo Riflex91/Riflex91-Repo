@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_2_BANK_SWAP_ERSTER_KANDIDAT",
   "stand": "2026-09-22",
-  "status": "CORE_VORBEREITET_READ_ONLY_PREFLIGHT_AUSSTEHEND",
-  "sourceMain": "caa3e6e33963cf3881e61d07a50229bcc43be31a",
+  "status": "READ_ONLY_PREFLIGHT_IMPLEMENTIERT_EVIDENCE_AUSSTEHEND",
+  "sourceMain": "9092549b88764995afcc3134a49904d2fa6c59a5",
   "capabilitySpaeter": "merchant.bank.intern_tauschen",
   "providerSpaeter": "merchant-bank-core@1",
   "actionContractId": "AL-ACTION-BANK-SWAP",
@@ -80,13 +80,29 @@
     "authorityAuditAdapter": "grundlage/adapter/persistenz/node-bank-swap-einmal-authority-protokoll.mjs",
     "currentFenceCore": "grundlage/quelle/merchant/bank-swap-current-fence.ts",
     "currentJournal": "grundlage/adapter/persistenz/node-bank-swap-transaktionsjournal.mjs",
-    "readOnlyBrowserObserverImplemented": false,
-    "readOnlyPreflightImplemented": false,
+    "readOnlyBrowserObserverImplemented": true,
+    "readOnlyPreflightImplemented": true,
     "admissionShadowImplemented": false,
     "realBrowserShadowImplemented": false,
     "writeAdapterImplemented": false,
     "liveRunnerImplemented": false,
-    "gameplayWritesInThisStep": 0
+    "gameplayWritesInThisStep": 0,
+    "readOnlyBrowserObserver": "werkzeuge/bank-swap-produktions-browser.mjs",
+    "readOnlyPreflight": "werkzeuge/bank-swap-produktions-preflight.mjs",
+    "readOnlyHostJournalFencing": true,
+    "hostMutationIntegrationImplemented": false
   },
-  "nextStep": "READ_ONLY_BROWSER_OBSERVER_UND_PREFLIGHT_IMPLEMENTIEREN; DANACH ECHTEN LOKALEN PREFLIGHT_AUSFUEHREN"
+  "nextStep": "ECHTEN_LOKALEN_READ_ONLY_PREFLIGHT_AUF_EXAKTEM_MERGED_MAIN_AUSFUEHREN; EVIDENCE_PRUEFEN; ERST_DANACH_ADMISSION_SHADOW",
+  "preflightGate": {
+    "sourceShaExactHeadRequired": true,
+    "loopbackCdpOnly": true,
+    "requiredGlobalFunction": "call_code_function_f",
+    "codeRunnerBootstrapAllowed": false,
+    "authorityIssuanceAllowed": false,
+    "leaseAcquireAllowed": false,
+    "journalIntentAllowed": false,
+    "mutatingPublicFunctionCalls": 0,
+    "gameplayWrites": 0,
+    "adapterCalls": 0
+  }
 }
