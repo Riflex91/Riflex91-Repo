@@ -86,10 +86,10 @@
     "bank_swap ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
     "bank_withdraw hat das Maximum von zwei echten Funktionstests erreicht und bleibt ohne vollstaendig bestandene Live-Evidence breit deaktiviert; kein dritter Write-Test",
     "open_bank_pack Shadow und Admission read-only sind als Sicherheitspruefungen BESTANDEN; fachlich RESOURCE_BLOCKED_NO_LIVE",
-    "PR20.2 Aggregate Exit-Gate bleibt BLOCKIERT_FAIL_CLOSED",
-    "erster Bank-NO-WRITE-5M-Preflight blockierte korrekt vor Start mit SERVER_BINDUNG_FEHLT und 0 Writes/0 Testbudgetverbrauch",
-    "Harness-Root-Cause: Controller 1.0.0 las nur root.server_region/root.server_identifier; Controller 1.0.1 nutzt die offiziellen Runner-/Parent-Server-Surfaces",
-    "nach gruener Exact-Head-CI denselben read-only Preflight ingame erneut ausfuehren",
+    "PR20.2 Bank NO-WRITE 5M ist real BESTANDEN: 300017 ms, 21 Samples, 0 Gaps, 0 Drift, 0 performance_trick-Fehler, 0 Gameplay-Writes",
+    "PR20.2 Aggregate Exit-Gate bleibt BLOCKIERT_FAIL_CLOSED mit genau Withdraw-Testlimit und Open-Pack-Ressourcen als harten Blockern",
+    "kein weiterer Ingame-Test ist aktuell gate-wirksam oder erforderlich; insbesondere kein dritter Withdraw-Test und kein wertloser 15m-Soak",
+    "Reopen erst bei Open-Pack-Ressourcen, einer betroffenen Codeaenderung oder einer explizit ratifizierten neuen Withdraw-Testpolicy",
     "keine breite Bank-Aktivierung; PR20.3 Markt bleibt gesperrt"
   ],
   "invariants": {
@@ -155,7 +155,7 @@
   },
   "parallelPreparation": {
     "id": "PR20.2_BANK",
-    "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_WITHDRAW_TESTLIMIT_OPEN_PACK_RESOURCE_BLOCKED",
+    "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_NO_WRITE_5M_BESTANDEN_BLOCKED",
     "blockedBy": null,
     "produktiveRegistrierungErlaubt": true,
     "gameplayAuthority": false,
@@ -250,7 +250,10 @@
       "v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js",
       "v5/werkzeuge/tests/pr20-2-bank-no-write-5m-gui.test.mjs",
       "v5/dokumentation/V5-PR20-2-BANK-NO-WRITE-5M.md",
-      "v5/roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json"
+      "v5/roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json",
+      "v5/roadmap/pr20-2-bank-no-write-5m-evidence.json",
+      "v5/roadmap/pr20-2-bank-blocker-closeout.json",
+      "v5/grundlage/tests/pr20-bank-no-write-5m-evidence.test.mjs"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",
@@ -403,17 +406,21 @@
       "breiteBankAktivierungErlaubt": false,
       "pr20_3MarktStartErlaubt": false,
       "sameIntentRetry": false,
-      "noWrite5mStatus": "SERVER_BINDING_FIX_CI_AUSSTEHEND_DANN_INGAME_READ_ONLY_ERNEUT",
+      "noWrite5mStatus": "BESTANDEN_REAL_INGAME_READ_ONLY",
       "noWrite5mTestPlan": "v5/roadmap/pr20-2-bank-no-write-5m-test-plan.json",
       "noWrite5mPackage": "v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js",
       "noWrite5mControllerVersion": "1.0.1",
-      "previousBlockedPreflightEvidence": "v5/roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json"
+      "previousBlockedPreflightEvidence": "v5/roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json",
+      "noWrite5mEvidence": "v5/roadmap/pr20-2-bank-no-write-5m-evidence.json",
+      "blockerCloseout": "v5/roadmap/pr20-2-bank-blocker-closeout.json",
+      "integration15mRequiredNow": false,
+      "weitereIngameTestsJetztErforderlich": false
     }
   },
   "parallelPreparations": [
     {
       "id": "PR20.2_BANK",
-      "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_WITHDRAW_TESTLIMIT_OPEN_PACK_RESOURCE_BLOCKED",
+      "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_NO_WRITE_5M_BESTANDEN_BLOCKED",
       "blockedBy": [],
       "produktiveRegistrierungErlaubt": true,
       "gameplayAuthority": false,
@@ -491,7 +498,10 @@
         "v5/werkzeuge/pr20-2-bank-no-write-5m-paket-bauen.mjs",
         "v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js",
         "v5/werkzeuge/tests/pr20-2-bank-no-write-5m-gui.test.mjs",
-        "v5/dokumentation/V5-PR20-2-BANK-NO-WRITE-5M.md"
+        "v5/dokumentation/V5-PR20-2-BANK-NO-WRITE-5M.md",
+        "v5/roadmap/pr20-2-bank-no-write-5m-evidence.json",
+        "v5/roadmap/pr20-2-bank-blocker-closeout.json",
+        "v5/grundlage/tests/pr20-bank-no-write-5m-evidence.test.mjs"
       ],
       "firstLiveCandidate": {
         "publicFunction": "bank_deposit",
@@ -587,9 +597,13 @@
         "breiteBankAktivierungErlaubt": false,
         "pr20_3MarktStartErlaubt": false,
         "sameIntentRetry": false,
-        "noWrite5mStatus": "BEREIT_FUER_INGAME_READ_ONLY",
+        "noWrite5mStatus": "BESTANDEN_REAL_INGAME_READ_ONLY",
         "noWrite5mTestPlan": "v5/roadmap/pr20-2-bank-no-write-5m-test-plan.json",
-        "noWrite5mPackage": "v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js"
+        "noWrite5mPackage": "v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js",
+        "noWrite5mEvidence": "v5/roadmap/pr20-2-bank-no-write-5m-evidence.json",
+        "blockerCloseout": "v5/roadmap/pr20-2-bank-blocker-closeout.json",
+        "integration15mRequiredNow": false,
+        "weitereIngameTestsJetztErforderlich": false
       }
     },
     {
