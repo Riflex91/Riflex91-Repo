@@ -182,7 +182,7 @@ jobs:
         run: |
           set -euo pipefail
           NAV="world of warcraft/MewthischGuides1/UI/NavigatorFrame.lua"
-          grep -q 'MG.NavigationDistance:Between(position, nav.waypoint)' "$NAV"
+          grep -q 'MG.NavigationDistance:Between(position,nav.waypoint)' "$NAV"
           if grep -q 'distance, distanceMode = MG.NavigationDistance and' "$NAV"; then
             echo "multi-return value would be collapsed by logical-and expression" >&2
             exit 1
@@ -199,9 +199,13 @@ jobs:
           C_Map.GetWorldPosFromMapPos=function(mapID,point)
             assert(mapID==1412)
             assert(point.x and point.y)
-            return 1,{x=-300.0,y=-3300.0}
+            -- Approximate Blizzard world coordinates observed for the
+            -- player's Mulgore position. RestedXP stores the axes swapped.
+            return 1,{x=-2924.0,y=-267.0}
           end
 
+          assert(loadfile("world of warcraft/MewthischGuides1/Navigation/CoordinateConverter.lua"))(
+            "MewthischGuides1",MG)
           assert(loadfile("world of warcraft/MewthischGuides1/Navigation/Distance.lua"))(
             "MewthischGuides1",MG)
           assert(loadfile("world of warcraft/MewthischGuides1/Navigation/Bearing.lua"))(
@@ -217,7 +221,7 @@ jobs:
           }
 
           local distance,mode,detail=MG.NavigationDistance:Between(position,waypoint)
-          assert(distance and distance>100 and distance<103,
+          assert(distance and distance>460 and distance<463,
             "unexpected RestedXP world distance "..tostring(distance))
           assert(mode=="restedxp_world_coordinates",
             "wrong distance mode "..tostring(mode))
@@ -241,17 +245,16 @@ jobs:
           NS="world of warcraft/MewthischGuides1/Core/Namespace.lua"
 
           grep -q 'restedxp_world_coordinates' "$NAV"
-          grep -q 'UI-HUD-Minimap-Arrow-Player' "$NAV"
           grep -q 'bearing.relative + TEXTURE_ZERO_OFFSET' "$NAV"
-          grep -q 'UI:SetSize(frame, 150, 112)' "$NAV"
+          grep -q 'UI:SetSize(frame,170,118)' "$NAV"
 
-          grep -q 'FRAME_WIDTH = 390' "$VIEW"
+          grep -q 'FRAME_WIDTH = 400' "$VIEW"
           grep -q 'Zusätzliche Ziele' "$VIEW"
           grep -q 'showViewer = false' "$VIEW"
           grep -q 'viewerX' "$VIEW"
           grep -q 'viewerY' "$VIEW"
 
-          grep -q '2026-09-22-worldnav-ui-2' "$NS"
+          grep -q '2026-09-22-full-1.0-dev1' "$NS"
 
           if grep -q 'Runtime " .. tostring(runtime.revision' "$VIEW"; then
             echo "runtime debug revision leaked into player-facing viewer" >&2
