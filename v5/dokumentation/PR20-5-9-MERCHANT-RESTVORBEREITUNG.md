@@ -1,7 +1,7 @@
 # PR20.5–PR20.9 – Merchant Restvorbereitung ohne Gameplay-Writes
 
 **Status:** VORBEREITET / NO-WRITE  
-**Stand:** 2026-09-21  
+**Stand:** 2026-09-22  
 **PR20.1:** `BESTANDEN`  
 **Aktives produktives Gate:** `PR20.2_BANK_PRODUKTIVIERUNG`
 
@@ -38,6 +38,48 @@ Damit wird spaeter nicht jede geringfuegig bessere Aufgabe sofort zu
 Bank -> Farmer -> Markt -> Bank-Pingpong.
 
 Der Core besitzt `gameplayAutoritaet=false` und `rawWriteAutoritaet=false`.
+
+### Autonomer PR20.5-Vier-Charakter-Test
+
+Fuer den naechsten Test ist ein selbststartendes Paket vorbereitet:
+
+`werkzeuge/pr20-5-merchant-stability-autonomous-4char.js`
+
+Es ist fuer genau einen Merchant, einen Ranger, einen Priest und einen Mage ausgelegt.
+Der Merchant ist Koordinator; die drei anderen Klassen werden als read-only Worker
+erkannt bzw. ueber `command_character(...)` mit einem reinen Heartbeat-Worker
+versehen. Nach dem Laden ist keine weitere Operator-Interaktion erforderlich.
+
+Der Runner wartet fail-closed auf den persistenten PR20.4-Closeout
+`AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1.steps.16.status=BESTANDEN`. Solange der
+manuelle PR20.4-Gesamttest nicht abgeschlossen ist, beginnt PR20.5 nicht.
+
+Nach Freigabe prueft der Runner automatisch die komplette
+Pingpong-/Starvation-Entscheidungsmatrix und danach einen 5-Minuten-NO-WRITE-Lauf
+mit allen vier Charakteren. Bei Roster-, Server- oder Runtime-Drift wird blockiert;
+es gibt keinen Gameplay-Write, keinen Raw-Socket-Pfad und keinen Same-Intent-Retry.
+
+Der Status wird ueber eine read-only Telemetrie-Kompatibilitaetsflaeche an die
+bestehende Windows-Bridge gegeben. Die Bridge uebertraegt ihn ueber
+`bot-debug-ingest` nach Supabase. Im Adventure-Land-Code liegen dabei weder
+Supabase-Service-Role noch andere Supabase-Secrets.
+
+Der Supabase-Free-Plan umfasst 500.000 Edge-Function-Aufrufe pro Monat. Fuer
+unbeaufsichtigte Tests wird ein Sicherheitsrest von 5.000 Aufrufen reserviert.
+Die Windows-Bridge-Konfiguration v9 trennt deshalb lokale Beobachtung und
+Supabase-Transport: lokal wird der Test alle 5 Sekunden read-only beobachtet,
+regulaer wird aber nur ein aggregierter Gesamtstatus pro 60 Sekunden an
+`bot-debug-ingest` gesendet. Ein neu erkannter terminaler Zustand wird
+zusaetzlich sofort uebertragen. Dadurch beschleunigt die lokale Testkette nicht
+die Supabase-Aufrufrate.
+
+Supabase pflegt dafuer `aio_v5_test_status` als aktuellen Teststatus und eine
+deduplizierte `aio_v5_test_notifications`-Queue. Nach jedem terminal
+abgeschlossenen Test wird genau eine Abschluss-E-Mail vorgesehen:
+`BESTANDEN`, `NICHT_BESTANDEN`, `BLOCKIERT`, `FEHLER` oder
+`ABGEBROCHEN`. Fehler-/Blocker-Mails enthalten die kompakten relevanten
+Diagnoseereignisse; Erfolgs-Mails bleiben knapp. Der Mailversand ist
+idempotent pro `bot_id + test_id + startedAtMs`.
 
 ## PR20.6 – MLuck
 

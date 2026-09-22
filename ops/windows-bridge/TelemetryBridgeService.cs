@@ -1,4 +1,4 @@
-namespace AioBotWindowsBridge;
+using System.Text.Json;\n\nnamespace AioBotWindowsBridge;
 
 public sealed record RuntimeBridgeStatus(
     string State,
@@ -90,6 +90,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         var state = await BridgeState.LoadAsync(cancellationToken);
         DateTimeOffset? lastSuccess = null;
         DateTimeOffset? lastDeepDiagnosticsAt = null;
+        DateTimeOffset? lastV5UploadAt = null;
+        string? lastV5TerminalFingerprint = null;
         var failures = 0;
 
         while (!cancellationToken.IsCancellationRequested)
@@ -127,6 +129,34 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
 
                     await CaptureDiagnosticsSafeAsync(read, cancellationToken);
 
+                    var v5Transport = ReadV5TransportState(read.Snapshot);
+                    if (v5Transport.IsV5
+                        && !ShouldUploadV5(
+                            lastV5UploadAt,
+                            _config.SupabaseStatusIntervalSeconds,
+                            now,
+                            v5Transport.TerminalFingerprint,
+                            lastV5TerminalFingerprint))
+                    {
+                        latestStatus = new RuntimeBridgeStatus(
+                            "V5_LOCAL_OBSERVE",
+                            true,
+                            lastSuccess.HasValue,
+                            attempt,
+                            lastSuccess,
+                            state.LastEventSeq,
+                            read.EventCount,
+                            null,
+                            read.TargetUrl,
+                            dashboardState,
+                            dashboardError,
+                            backblazeState,
+                            backblazeError);
+                        Publish(latestStatus);
+                        await SaveStatusAsync(latestStatus, cancellationToken);
+                        break;
+                    }
+
                     // During catch-up an empty second read is only a probe that the backlog is gone.
                     // Avoid creating an extra empty Supabase row unless this is the normal poll or a deep diagnostic sample is due.
                     if (batchIndex > 0 && read.EventCount == 0 && !includeDeepDiagnostics)
@@ -147,6 +177,12 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                     failures = 0;
                     lastSuccess = DateTimeOffset.UtcNow;
                     if (includeDeepDiagnostics) lastDeepDiagnosticsAt = lastSuccess;
+                    if (v5Transport.IsV5)
+                    {
+                        lastV5UploadAt = lastSuccess;
+                        if (!string.IsNullOrWhiteSpace(v5Transport.TerminalFingerprint))
+                            lastV5TerminalFingerprint = v5Transport.TerminalFingerprint;
+                    }
 
                     latestStatus = new RuntimeBridgeStatus(
                         read.HasMoreEvents ? "CATCHING_UP" : "HEALTHY",
@@ -165,7 +201,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                     Publish(latestStatus);
                     await SaveStatusAsync(latestStatus, cancellationToken);
 
-                    if (!ShouldCatchUp(read.EventCount, readLimit, read.HasMoreEvents, batchIndex + 1))
+                    if (v5Transport.IsV5
+                        || !ShouldCatchUp(read.EventCount, readLimit, read.HasMoreEvents, batchIndex + 1))
                         break;
 
                     await Task.Delay(TimeSpan.FromMilliseconds(CatchUpDelayMilliseconds), cancellationToken);
@@ -353,6 +390,49 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     }
 
     private void Publish(RuntimeBridgeStatus status) => StatusChanged?.Invoke(status);
+
+    private sealed record V5TransportState(bool IsV5, string? TerminalFingerprint);
+
+    private static V5TransportState ReadV5TransportState(JsonElement snapshot)
+    {
+        if (snapshot.ValueKind != JsonValueKind.Object
+            || !snapshot.TryGetProperty("status", out var statusNode)
+            || statusNode.ValueKind != JsonValueKind.Object
+            || !statusNode.TryGetProperty("v5AutonomousTest", out var v5)
+            || v5.ValueKind != JsonValueKind.Object)
+            return new V5TransportState(false, null);
+
+        var terminal = v5.TryGetProperty("terminal", out var terminalNode)
+            && terminalNode.ValueKind == JsonValueKind.True;
+        if (!terminal) return new V5TransportState(true, null);
+
+        var testId = v5.TryGetProperty("testId", out var testNode)
+            ? testNode.GetString() ?? "unknown"
+            : "unknown";
+        var status = v5.TryGetProperty("status", out var statusValue)
+            ? statusValue.GetString() ?? "UNKNOWN"
+            : "UNKNOWN";
+        var startedAt = v5.TryGetProperty("startedAtMs", out var startedNode)
+            && startedNode.TryGetInt64(out var started)
+            ? started
+            : 0;
+
+        return new V5TransportState(true, $"{testId}|{startedAt}|{status}");
+    }
+
+    public static bool ShouldUploadV5(
+        DateTimeOffset? lastUploadAt,
+        int statusIntervalSeconds,
+        DateTimeOffset now,
+        string? terminalFingerprint,
+        string? lastTerminalFingerprint)
+    {
+        var regularDue = !lastUploadAt.HasValue
+            || now - lastUploadAt.Value >= TimeSpan.FromSeconds(statusIntervalSeconds);
+        var terminalDue = !string.IsNullOrWhiteSpace(terminalFingerprint)
+            && !string.Equals(terminalFingerprint, lastTerminalFingerprint, StringComparison.Ordinal);
+        return regularDue || terminalDue;
+    }
 
     public static int EventLimitForRead(int configuredEventLimit, bool includeDeepDiagnostics)
     {
