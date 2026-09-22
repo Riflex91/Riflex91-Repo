@@ -341,37 +341,44 @@ public sealed class WindowsBridgeSelfUpdater : IAsyncDisposable
                 && (contentLength > MaxAssetBytes || contentLength != manifest.SizeBytes))
                 throw new InvalidOperationException("SELF_UPDATE_DOWNLOAD_SIZE_MISMATCH");
 
-            await using var input = await response.Content.ReadAsStreamAsync(cancellationToken);
-            await using var output = new FileStream(
-                temporaryPath,
-                FileMode.CreateNew,
-                FileAccess.Write,
-                FileShare.None,
-                bufferSize: 64 * 1024,
-                options: FileOptions.Asynchronous | FileOptions.SequentialScan);
-            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-
-            var buffer = new byte[64 * 1024];
             long total = 0;
-            while (true)
+            string actualHash;
+
+            // Close both HTTP/input and output file streams before renaming the
+            // downloaded executable. Windows rejects File.Move while the output
+            // handle is still open with FileShare.None.
             {
-                var read = await input.ReadAsync(buffer, cancellationToken);
-                if (read == 0) break;
+                await using var input = await response.Content.ReadAsStreamAsync(cancellationToken);
+                await using var output = new FileStream(
+                    temporaryPath,
+                    FileMode.CreateNew,
+                    FileAccess.Write,
+                    FileShare.None,
+                    bufferSize: 64 * 1024,
+                    options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+                using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
 
-                total += read;
-                if (total > MaxAssetBytes || total > manifest.SizeBytes)
-                    throw new InvalidOperationException("SELF_UPDATE_DOWNLOAD_TOO_LARGE");
+                var buffer = new byte[64 * 1024];
+                while (true)
+                {
+                    var read = await input.ReadAsync(buffer, cancellationToken);
+                    if (read == 0) break;
 
-                hash.AppendData(buffer, 0, read);
-                await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                    total += read;
+                    if (total > MaxAssetBytes || total > manifest.SizeBytes)
+                        throw new InvalidOperationException("SELF_UPDATE_DOWNLOAD_TOO_LARGE");
+
+                    hash.AppendData(buffer, 0, read);
+                    await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                }
+
+                await output.FlushAsync(cancellationToken);
+                actualHash = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
             }
-
-            await output.FlushAsync(cancellationToken);
 
             if (total != manifest.SizeBytes)
                 throw new InvalidOperationException("SELF_UPDATE_DOWNLOAD_SIZE_MISMATCH");
 
-            var actualHash = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
             if (!string.Equals(actualHash, manifest.Sha256, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("SELF_UPDATE_SHA256_MISMATCH");
 
