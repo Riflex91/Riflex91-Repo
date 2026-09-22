@@ -12,7 +12,7 @@ AIO Bot Windows Bridge
         └─ DPAPI-protected Backblaze credentials → verified bot runtime context
 ```
 
-The app has **no gameplay authority** and no generic JavaScript, shell, movement, combat, Merchant, update, FTP, or remote-command endpoint. Telemetry evaluates only the fixed v3 debug expressions required for status and telemetry. Profile configuration is restricted to fixed same-origin Adventure Land contexts.
+The app has **no gameplay authority** and no generic JavaScript, shell, movement, combat, Merchant, FTP, or remote-command endpoint. Its only software-update path is the fixed GitHub Release self-updater described below; it cannot execute arbitrary commands or arbitrary download URLs. Telemetry evaluates only the fixed v3 debug expressions required for status and telemetry. Profile configuration is restricted to fixed same-origin Adventure Land contexts.
 
 ## What the app does
 
@@ -186,6 +186,28 @@ Run:
 
 ```powershell
 .\artifacts\windows-bridge\AioBotWindowsBridge.exe
+```
+
+## Automatische Bridge-Updates
+
+Die installierte Bridge prüft **alle 60 Sekunden** den festen GitHub-Release-Kanal `windows-bridge-latest`. Nur ein erfolgreich durch den Workflow `.github/workflows/windows-bridge.yml` gebauter und durch die Smoke-Tests gelaufener `main`-Build wird dort veröffentlicht.
+
+Der Update-Ablauf ist fail-safe:
+
+1. Die Bridge lädt ein kleines Versionsmanifest ausschließlich vom festen Release-Pfad dieses Repositories.
+2. Das Manifest enthält die monotone GitHub-Actions-Buildnummer, den Commit-SHA, die erwartete Dateigröße und SHA-256 der EXE.
+3. Es wird nur aktualisiert, wenn die veröffentlichte Buildnummer **größer** als die laufende ist. Dadurch kann ein veralteter CDN-/Cache-Treffer keine neuere Bridge downgraden.
+4. Die neue `AioBotWindowsBridge.exe` wird zunächst in `%LOCALAPPDATA%\AioBotWindowsBridge\SelfUpdate\...` geladen und vollständig gegen Größe und SHA-256 geprüft.
+5. Erst danach startet diese geprüfte EXE im separaten `--apply-update`-Modus. Die laufende Bridge fährt herunter.
+6. Der Updater wartet auf das Prozessende, legt eine Rollback-Kopie an, ersetzt die EXE und startet anschließend die neue Version.
+7. Scheitern Prüfung, Download oder Vorbereitung, bleibt die laufende Version aktiv und versucht es nach 60 Sekunden erneut. Scheitert das Ersetzen, versucht der Updater die vorherige EXE wiederherzustellen und neu zu starten.
+
+Der Updater akzeptiert weder frei konfigurierbare Repositorys noch frei konfigurierbare Asset-URLs. Der Release-Download ist fest auf `Riflex91/Riflex91-Repo` und `AioBotWindowsBridge.exe` begrenzt.
+
+Der letzte Apply-Status wird ohne Geheimnisse unter folgendem Pfad abgelegt:
+
+```text
+%LOCALAPPDATA%\AioBotWindowsBridge\self-update-status.json
 ```
 
 ## V5 Readiness-Test
