@@ -34,6 +34,13 @@ function response(body) {
 
 function fixture({ ctype = 'merchant', evaluateThrows = false } = {}) {
   const store = storage();
+  store.setItem('AIO_V5_PR20_5_AUTONOMOUS_TEST_V1', JSON.stringify({
+    schemaVersion: 1,
+    testId: 'pr20-5-merchant-stability-autonomous-4char',
+    status: 'BESTANDEN',
+    phase: 'COMPLETE',
+    terminal: true
+  }));
   const current = {
     testId: 'pr20-5-merchant-stability-autonomous-4char',
     version: '1.2.0',
@@ -69,6 +76,12 @@ function fixture({ ctype = 'merchant', evaluateThrows = false } = {}) {
     coordinatorClass: 'merchant',
     workerDistribution: 'PACKAGE_OWNED_COMMAND_CHARACTER',
     deploymentTransport: 'V3_INGAME_BOOTSTRAP',
+    requiresPrevious: {
+      testId: 'pr20-5-merchant-stability-autonomous-4char',
+      stateKey: 'AIO_V5_PR20_5_AUTONOMOUS_TEST_V1',
+      terminal: true,
+      statuses: ['BESTANDEN']
+    },
     sourceCommit: 'a'.repeat(40),
     packagePath: 'v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js',
     packageSha256,
@@ -129,6 +142,14 @@ test('V5 manifest is repository-, branch-, commit- and SHA-bound', () => {
   );
 });
 
+test('manifest requires durable terminal evidence from the previous V5 gate', () => {
+  const fx = fixture();
+  const parsed = parseV5AutonomousTestManifest(fx.manifest);
+  assert.equal(parsed.requiresPrevious.testId, 'pr20-5-merchant-stability-autonomous-4char');
+  assert.equal(parsed.requiresPrevious.stateKey, 'AIO_V5_PR20_5_AUTONOMOUS_TEST_V1');
+  assert.deepEqual(parsed.requiresPrevious.statuses, ['BESTANDEN']);
+});
+
 test('deployment advances only from no test or a terminal previous test', () => {
   assert.equal(shouldDeployV5AutonomousTest('next', null, false), true);
   assert.equal(shouldDeployV5AutonomousTest('next', 'next', false), false);
@@ -149,6 +170,16 @@ test('merchant downloads verified package, stops V3, and starts desired V5 test'
   const deployment = JSON.parse(fx.store.getItem(V5_AUTONOMOUS_TEST_DEPLOY_KEY));
   assert.equal(deployment.status, 'COMMITTED');
   assert.equal(deployment.sameIntentRetry, false);
+});
+
+test('missing durable previous-gate evidence blocks before package download', async () => {
+  const fx = fixture();
+  fx.store.removeItem('AIO_V5_PR20_5_AUTONOMOUS_TEST_V1');
+  assert.equal(await fx.bootstrap.cycle(), false);
+  assert.equal(fx.fetchCalls, 1);
+  assert.equal(fx.evaluateCalls, 0);
+  assert.equal(fx.stopCalls, 0);
+  assert.equal(fx.bootstrap.status().phase, 'PREVIOUS_TEST_TERMINAL_EVIDENCE_MISSING');
 });
 
 test('farmer never fetches repository code', async () => {
