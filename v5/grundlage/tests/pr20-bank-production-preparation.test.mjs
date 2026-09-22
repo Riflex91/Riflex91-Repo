@@ -21,9 +21,12 @@ const erwartete = new Map([
   ["AL-ACTION-BANK-SWAP", ["AL-RECOVERY-BANK-SWAP", "AL-VERIFIER-BANK-SWAP", "bank_swap"]],
 ]);
 
-test("PR20.2 dokumentiert bestandenen Deposit-One-Shot und haelt Restbank weiter eng", () => {
+test("PR20.2 dokumentiert aktuellen 4/5-Live- und 5m-Closeout fail-closed", () => {
   assert.equal(prep.schemaVersion, 1);
-  assert.equal(prep.status, "DEPOSIT_ONE_SHOT_LIVE_BESTANDEN_RESTBANK_AUSSTEHEND");
+  assert.equal(
+    prep.status,
+    "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_NO_WRITE_5M_BESTANDEN_BLOCKED",
+  );
   assert.equal(prep.blockingGate, "PR20.1_EQUIP_PRODUKTIONSNACHWEIS");
   assert.equal(prep.blockingGateStatus, "BESTANDEN");
   assert.equal(prep.authorityGrenze.produktiveRegistrierungErlaubt, true);
@@ -340,4 +343,46 @@ test("Produktionskomposition registriert Deposit und Withdraw unter demselben Ba
   assert.equal(produktionsKomposition.includes("open_bank_pack"), false);
   assert.equal(produktionsKomposition.includes("merchant.bank.mutieren"), false);
   assert.equal(produktionsKomposition.includes("bankMutations"), false);
+});
+
+
+test("PR20.2 Produktionsvertrag spiegelt bestandenen Bank-NO-WRITE-5M-Lauf", () => {
+  assert.equal(prep.noWrite5m.status, "BESTANDEN_REAL_INGAME_READ_ONLY");
+  assert.equal(prep.noWrite5m.controllerVersion, "1.0.1");
+  assert.equal(
+    prep.noWrite5m.evidencePfad,
+    "roadmap/pr20-2-bank-no-write-5m-evidence.json",
+  );
+  assert.equal(prep.noWrite5m.dauerMs, 300017);
+  assert.equal(prep.noWrite5m.sampleAnzahl, 21);
+  assert.equal(prep.noWrite5m.sampleGaps, 0);
+  assert.equal(prep.noWrite5m.driftSamples, 0);
+  assert.equal(prep.noWrite5m.performanceTrickFehler, 0);
+  assert.equal(prep.noWrite5m.gameplayWrites, 0);
+  assert.equal(prep.noWrite5m.mutatingPublicFunctionCalls, 0);
+  assert.equal(prep.noWrite5m.functionalTestBudgetConsumed, false);
+  assert.equal(prep.noWrite5m.integration15mRequiredNow, false);
+});
+
+test("PR20.2 Produktionsvertrag verlangt aktuell keinen weiteren Ingame-Test", () => {
+  assert.equal(
+    prep.blockerCloseout.status,
+    "BLOCKIERT_FAIL_CLOSED_NO_FURTHER_INGAME_TEST_JUSTIFIED",
+  );
+  assert.equal(
+    prep.blockerCloseout.evidencePfad,
+    "roadmap/pr20-2-bank-blocker-closeout.json",
+  );
+  assert.equal(prep.blockerCloseout.weitereIngameTestsJetztErforderlich, false);
+  assert.equal(prep.pr20_2ExitGate.status, "BLOCKIERT_FAIL_CLOSED");
+  assert.deepEqual(prep.pr20_2ExitGate.blocker, [
+    "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
+    "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE",
+  ]);
+  assert.equal(prep.pr20_2ExitGate.noWrite5mStatus, "BESTANDEN_REAL_INGAME_READ_ONLY");
+  assert.equal(prep.pr20_2ExitGate.integration15mRequiredNow, false);
+  assert.equal(prep.pr20_2ExitGate.weitereIngameTestsJetztErforderlich, false);
+  assert.equal(prep.pr20_2ExitGate.breiteBankAktivierungErlaubt, false);
+  assert.equal(prep.pr20_2ExitGate.pr20_3MarktStartErlaubt, false);
+  assert.equal(prep.pr20_2ExitGate.sameIntentRetry, false);
 });
