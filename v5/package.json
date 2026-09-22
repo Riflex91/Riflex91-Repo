@@ -141,7 +141,9 @@
     "bank-function-test-gui:bauen": "node werkzeuge/bank-function-test-paket-bauen.mjs",
     "bank-function-test-gui:pruefen": "node --check werkzeuge/bank-function-test-gui.js && node --check werkzeuge/bank-function-test-paket.js && node werkzeuge/bank-function-test-paket-bauen.mjs --check && node --test werkzeuge/tests/bank-function-test-gui.test.mjs && node --test grundlage/tests/pr20-bank-direct-ingame-function-evidence.test.mjs",
     "bank-open-pack-shadow:pruefen": "npm run bauen && node --test grundlage/tests/pr20-bank-open-pack-settlement.test.mjs grundlage/tests/pr20-bank-open-pack-admission-evidence.test.mjs",
-    "bank-pr20-2-exit-gate:pruefen": "node werkzeuge/pr20-2-bank-exit-gate-pruefen.mjs && node --test grundlage/tests/pr20-bank-exit-gate-status.test.mjs"
+    "bank-pr20-2-exit-gate:pruefen": "node werkzeuge/pr20-2-bank-exit-gate-pruefen.mjs && node --test grundlage/tests/pr20-bank-exit-gate-status.test.mjs",
+    "bank-pr20-2-5m-no-write:bauen": "node werkzeuge/pr20-2-bank-no-write-5m-paket-bauen.mjs",
+    "bank-pr20-2-5m-no-write:pruefen": "node --check werkzeuge/pr20-2-bank-no-write-5m-gui.js && node --check werkzeuge/pr20-2-bank-no-write-5m-paket.js && node werkzeuge/pr20-2-bank-no-write-5m-paket-bauen.mjs --check && node --test werkzeuge/tests/pr20-2-bank-no-write-5m-gui.test.mjs && npm run bank-pr20-2-exit-gate:pruefen"
   },
   "devDependencies": {
     "typescript": "5.9.3"
