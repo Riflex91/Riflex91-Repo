@@ -1,5 +1,5 @@
 {
-  "configVersion": 8,
+  "configVersion": 9,
   "cdpEndpoint": "http://127.0.0.1:9222",
   "allowedOrigin": "https://adventure.land",
   "telemetryIngestUrl": "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest",
@@ -9,7 +9,8 @@
   "telemetryEnabled": false,
   "autoStartBrowser": true,
   "preferredBrowser": "Brave",
-  "pollIntervalSeconds": 60,
+  "pollIntervalSeconds": 5,
+  "supabaseStatusIntervalSeconds": 60,
   "maxBackoffSeconds": 300,
   "eventLimit": 100,
   "wissenswaechterAktiv": true,
