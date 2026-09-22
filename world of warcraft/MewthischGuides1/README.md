@@ -31,8 +31,11 @@ SuperTrack policy, local-only telemetry and diagnostics.
 Player-facing systems additionally include:
 
 - movable/lockable/scalable guide viewer with opacity and combat-hide options
+- contextual quest hints for kill/collect/interact/NPC/travel goals
+- progress-aware semantic coloring for the current goal
 - movable/lockable/scalable navigator with calibrated direction
 - world map marker and minimap launcher
+- transparent additive navigator arrow without an opaque background tile
 - notification popups plus persistent notification archive
 - low-bag-space notifications
 - inventory/merchant utility window

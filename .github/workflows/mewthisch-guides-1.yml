@@ -247,17 +247,24 @@ jobs:
           grep -Fq 'restedxp_world_coordinates' "$NAV"
           grep -Fq 'navigatorArrowCalibration' "$NAV"
           grep -Fq 'DEFAULT_TEXTURE_ZERO_OFFSET = -math.pi / 2' "$NAV"
+          grep -Fq 'SetBlendMode,arrow,"ADD"' "$NAV"
+          if grep -Fq 'self.glow:Show()' "$NAV"; then
+            echo "opaque navigator glow was re-enabled" >&2
+            exit 1
+          fi
           grep -Fq 'UI:SetSize(frame,170,118)' "$NAV"
 
-          grep -Fq 'FRAME_WIDTH = 400' "$VIEW"
+          grep -Fq 'FRAME_WIDTH = 430' "$VIEW"
           grep -Fq 'Zusätzliche Ziele' "$VIEW"
+          grep -Fq 'Hinweis:' "$VIEW"
+          grep -Fq 'progressRatio' "$VIEW"
           grep -Fq 'viewerCompactMode' "$VIEW"
           grep -Fq 'NotificationCenter:GetUnreadCount' "$VIEW"
           grep -Fq 'showViewer=false' "$VIEW"
           grep -Fq 'viewerX' "$VIEW"
           grep -Fq 'viewerY' "$VIEW"
 
-          grep -Fq '2026-09-22-full-1.0-dev3' "$NS"
+          grep -Fq '2026-09-22-full-1.0-dev4' "$NS"
 
           if grep -Fq 'Runtime " .. tostring(runtime.revision' "$VIEW"; then
             echo "runtime debug revision leaked into player-facing viewer" >&2
@@ -571,6 +578,7 @@ jobs:
             "Build/BuildState.lua"
             "Build/TalentAdvisor.lua"
             "Build/BuildAdvisor.lua"
+            "Presentation/QuestHintResolver.lua"
             "Presentation/PresentationResolver.lua"
             "UI/ThemeManager.lua"
             "UI/NotificationWindow.lua"
@@ -623,6 +631,80 @@ jobs:
           grep -Fq 'notificationsEnabled' "world of warcraft/MewthischGuides1/UI/SettingsWindow.lua"
           echo "Safety defaults + local telemetry PASS"
 
+      - name: Validate contextual quest hint and progress styling model
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={Util={}}
+          function MG.Util:Trim(value)
+            return tostring(value or ""):gsub("^%s+",""):gsub("%s+$","")
+          end
+          assert(loadfile("world of warcraft/MewthischGuides1/Presentation/QuestHintResolver.lua"))(
+            "MewthischGuides1",MG)
+          assert(loadfile("world of warcraft/MewthischGuides1/Presentation/PresentationResolver.lua"))(
+            "MewthischGuides1",MG)
+
+          local goal={
+            id="g1",order=2,action="complete",role="goal",questID=750,objectiveIndex=1,
+            waypoint={mapID=1412,x=.4492,y=.7712},
+          }
+          local state={
+            id="g1",sourceGoal=goal,role="goal",action="complete",
+            questID=750,objectiveIndex=1,visible=true,possible=true,passive=false,
+            optional=false,complete=false,status="incomplete",current=2,required=10,
+            completionKnown=true,
+          }
+          local facts={quests={[750]={
+            title="Die Jagd geht weiter",
+            objectives={[1]={text="Bergpumapelz: 2/10",type="monster",finished=false,current=2,required=10}},
+          }}}
+          local step={id="s1",entries={},route={goal.waypoint},goals={goal}}
+          local nav={goalState=state,waypoint=goal.waypoint}
+          local hint=assert(MG.QuestHintResolver:Resolve(step,{state},facts,nav))
+          assert(hint.kind=="kill")
+          assert(string.find(hint.text,"Bergpumapelz",1,true))
+          assert(string.find(hint.text,"2/10",1,true))
+          assert(string.find(hint.text,"44.9 / 77.1",1,true))
+
+          local projection=MG.PresentationResolver:Build(step,{state},{},facts,nav)
+          assert(projection.hint and projection.hint.kind=="kill")
+          assert(projection.rows[1].current==true)
+          assert(math.abs((projection.rows[1].progressRatio or 0)-.2)<.0001)
+          print("Contextual quest hint + progress styling model PASS")
+          LUA
+
+      - name: Validate removed guide settings stay removed
+        run: |
+          set -euo pipefail
+          SETTINGS="world of warcraft/MewthischGuides1/UI/SettingsWindow.lua"
+          NS="world of warcraft/MewthischGuides1/Core/Namespace.lua"
+          BOOT="world of warcraft/MewthischGuides1/Core/Bootstrap.lua"
+          RUNTIME="world of warcraft/MewthischGuides1/Runtime/RuntimeEngine.lua"
+
+          forbidden=(
+            'key="autoAdvance"'
+            'key="rxpEraMode"'
+            'key="rxpSoDMode"'
+            'key="rxpHardcoreMode"'
+            'key="rxpSSFMode"'
+            'key="rxpPhase"'
+            'key="rxpRate"'
+          )
+          for token in "${forbidden[@]}"; do
+            if grep -Fq "$token" "$SETTINGS"; then
+              echo "removed setting still exposed: $token" >&2
+              exit 1
+            fi
+          done
+          if grep -Fq 'autoAdvance = true' "$NS"; then
+            echo "autoAdvance persisted as user setting" >&2
+            exit 1
+          fi
+          if grep -Fq 'MG.db.settings.autoAdvance' "$BOOT" "$RUNTIME"; then
+            echo "runtime still depends on removed autoAdvance setting" >&2
+            exit 1
+          fi
+          grep -Fq 'routeSoMMode' "$SETTINGS"
+          echo "Removed guide settings contract PASS"
       - name: Validate notification and inventory comfort logic
         run: |
           lua5.1 - <<'LUA'
