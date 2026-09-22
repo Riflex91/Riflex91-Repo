@@ -16,8 +16,24 @@ const R2_LIST_MAX = 200;
 const lastArchiveDigest = new Map();
 const RELEASE_OBJECTS = Object.freeze({
   '/v3/src/release-version.js': 'releases/v3/src/release-version.js',
-  '/v3/dist/aio-v3.js': 'releases/v3/dist/aio-v3.js'
+  '/v3/dist/aio-v3.js': 'releases/v3/dist/aio-v3.js',
+  '/v5/roadmap/v5-autonomous-test-manifest.json': 'releases/v5/roadmap/v5-autonomous-test-manifest.json',
+  '/v5/werkzeuge/v5-autonomous-test-ingame-updater.js': 'releases/v5/werkzeuge/v5-autonomous-test-ingame-updater.js'
 });
+
+function releaseObjectKey(path) {
+  if (RELEASE_OBJECTS[path]) return RELEASE_OBJECTS[path];
+  if (/^\/v5\/werkzeuge\/[A-Za-z0-9._-]+\.js$/.test(String(path || ''))) {
+    return 'releases' + path;
+  }
+  return null;
+}
+
+function releaseContentType(path) {
+  return String(path || '').endsWith('.json')
+    ? 'application/json; charset=utf-8'
+    : 'application/javascript; charset=utf-8';
+}
 
 function number(value, fallback = 0) {
   const parsed = Number(value);
@@ -207,7 +223,7 @@ async function handleRuntime(request, env, ctx) {
 }
 
 async function handleReleaseArtifact(request, env, path) {
-  const key = RELEASE_OBJECTS[path];
+  const key = releaseObjectKey(path);
   const cors = { 'access-control-allow-origin': '*' };
   if (!key) return json({ ok: false, error: 'release artifact not found' }, 404, cors);
   if (!env.LOG_ARCHIVE || typeof env.LOG_ARCHIVE.get !== 'function') {
@@ -217,7 +233,7 @@ async function handleReleaseArtifact(request, env, path) {
   if (!object) return json({ ok: false, error: 'release artifact not published' }, 404, cors);
   const headers = new Headers(securityHeaders());
   if (typeof object.writeHttpMetadata === 'function') object.writeHttpMetadata(headers);
-  headers.set('content-type', 'application/javascript; charset=utf-8');
+  headers.set('content-type', releaseContentType(path));
   headers.set('access-control-allow-origin', '*');
   headers.set('cache-control', 'no-store, max-age=0');
   if (object.httpEtag || object.etag) headers.set('etag', object.httpEtag || object.etag);
@@ -307,6 +323,8 @@ async function handleHealth(request, env, ctx) {
 
 export {
   RELEASE_OBJECTS,
+  releaseObjectKey,
+  releaseContentType,
   archiveRuntimeEvents,
   filteredRuntimeRequest,
   handleReleaseArtifact,
@@ -318,7 +336,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
-    if (request.method === 'GET' && RELEASE_OBJECTS[path]) return handleReleaseArtifact(request, env, path);
+    if (request.method === 'GET' && releaseObjectKey(path)) return handleReleaseArtifact(request, env, path);
     if (request.method === 'POST' && path === '/api/v3/runtime') return handleRuntime(request, env, ctx);
     if (request.method === 'GET' && path === '/api/v3/log-archives') return handleArchiveList(request, env);
     if (request.method === 'GET' && path === '/api/v3/log-archive') return handleArchiveObject(request, env);
