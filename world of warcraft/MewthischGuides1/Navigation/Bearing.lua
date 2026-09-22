@@ -36,11 +36,9 @@ function B:AbsoluteFromMapDelta(deltaEast, deltaNorth)
     return normalizeAbsolute(atan2(-deltaEast, deltaNorth))
 end
 
-function B:AbsoluteFromWorldDelta(deltaWorldX, deltaWorldY)
-    if deltaWorldX == nil or deltaWorldY == nil then return nil end
-    -- Blizzard world coordinates are rotated against UI-map axes. This is
-    -- the same convention proven by the legacy Mewthisch Forever navigator.
-    return normalizeAbsolute(atan2(deltaWorldY, deltaWorldX))
+function B:AbsoluteFromRestedXPWorldDelta(deltaX, deltaY)
+    if deltaX == nil or deltaY == nil then return nil end
+    return normalizeAbsolute(atan2(deltaY, deltaX))
 end
 
 local function withFacing(absolute, playerFacing, reason, extra)
@@ -69,8 +67,8 @@ function B:Resolve(position, waypoint, playerFacing)
     end
 
     if tonumber(waypoint.worldX) and tonumber(waypoint.worldY) and
-       MG.NavigationDistance and MG.NavigationDistance.MapToWorld then
-        local playerWorld = MG.NavigationDistance:MapToWorld(
+       MG.NavigationDistance and MG.NavigationDistance.MapToRestedXPWorld then
+        local playerWorld = MG.NavigationDistance:MapToRestedXPWorld(
             tonumber(position.mapID),
             tonumber(position.x),
             tonumber(position.y))
@@ -78,7 +76,7 @@ function B:Resolve(position, waypoint, playerFacing)
         if playerWorld then
             local dx = tonumber(waypoint.worldX) - playerWorld.x
             local dy = tonumber(waypoint.worldY) - playerWorld.y
-            local absolute = self:AbsoluteFromWorldDelta(dx, dy)
+            local absolute = self:AbsoluteFromRestedXPWorldDelta(dx, dy)
             return withFacing(
                 absolute,
                 playerFacing,
