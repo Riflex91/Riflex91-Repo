@@ -6,6 +6,7 @@
   const TEST_ID = 'pr20-5-merchant-stability-autonomous-4char';
   const STATE_KEY = 'AIO_V5_PR20_5_AUTONOMOUS_TEST_V1';
   const ACTORS_KEY = 'AIO_V5_PR20_5_AUTONOMOUS_ACTORS_V1';
+  const PR20_4_STATE_KEY = 'AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1';
   const REQUIRED_CLASSES = Object.freeze(['merchant', 'ranger', 'priest', 'mage']);
   const WORKER_HEARTBEAT_MS = 5_000;
   const ACTOR_STALE_MS = 20_000;
@@ -136,6 +137,30 @@
         if (typeof r.command_character === 'function') r.command_character(name, source);
         else if (typeof globalThis.command_character === 'function') globalThis.command_character(name, source);
       } catch {}
+    }
+  }
+
+  function pr204Gate() {
+    const state = readJson(PR20_4_STATE_KEY, null);
+    const step16 = state?.steps?.['16'];
+    const passed = step16?.status === 'BESTANDEN';
+    return {
+      passed,
+      status: passed ? 'BESTANDEN' : 'AUSSTEHEND',
+      step16: step16?.status || null,
+      sameIntentRetry: state?.sameIntentErneutSenden === false ? false : null
+    };
+  }
+
+  async function waitForPr204() {
+    while (true) {
+      const gate = pr204Gate();
+      setState({ status:'WAITING_FOR_PR20_4', phase:'PR20_4_GATE', pr20_4:gate });
+      if (gate.passed) {
+        emit('PR20_4_GATE_OBSERVED_PASSED','INFO',{ step16:gate.step16 });
+        return gate;
+      }
+      await sleep(DISCOVERY_INTERVAL_MS);
     }
   }
 
@@ -343,6 +368,7 @@
       return;
     }
 
+    await waitForPr204();
     await waitForRoster();
     setState({ status:'RUNNING', phase:'DETERMINISTIC_CORE' });
     const deterministic = deterministicScenarios();
