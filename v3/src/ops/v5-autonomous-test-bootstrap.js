@@ -317,6 +317,10 @@ class V5AutonomousTestBootstrap {
       return { blocked: true, committed: true, reason: 'DESIRED_TEST_RECONCILED' };
     }
 
+    if (sameIntent && deployment.status === 'COMMITTED') {
+      return { blocked: true, committed: true, reason: 'COMMITTED_INTENT_NOT_REEVALUATED' };
+    }
+
     if (sameIntent && deployment.status === 'EVALUATION_BOUNDARY_ENTERED') {
       return { blocked: true, committed: false, reason: 'DEPLOYMENT_UNKNOWN_NO_RETRY' };
     }
