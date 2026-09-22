@@ -519,9 +519,13 @@ jobs:
           TOC="world of warcraft/MewthischGuides1/MewthischGuides1.toc"
           required=(
             "Runtime/RuntimeStore.lua"
+            "Core/ForeverAPI.lua"
+            "Core/Telemetry.lua"
             "Guide/GuideCompiler.lua"
+            "Guide/Validation.lua"
             "Guide/GuideController.lua"
             "Facts/PlayerFacts.lua"
+            "Facts/InventoryScanner.lua"
             "Runtime/ActionMemory.lua"
             "Resolver/StepStateResolver.lua"
             "Navigation/CoordinateConverter.lua"
@@ -532,12 +536,15 @@ jobs:
             "Travel/TravelPlanner.lua"
             "Policy/AutomationPolicy.lua"
             "Policy/ActionPolicy.lua"
+            "Policy/SuperTrackPolicy.lua"
             "Gear/GearScore.lua"
+            "Gear/GearAdvisor.lua"
             "Gear/RewardAdvisor.lua"
             "Build/BuildState.lua"
             "Build/TalentAdvisor.lua"
             "Build/BuildAdvisor.lua"
             "Presentation/PresentationResolver.lua"
+            "UI/ThemeManager.lua"
             "UI/ErrorLogWindow.lua"
             "UI/SettingsWindow.lua"
             "UI/GuideBrowser.lua"
@@ -561,6 +568,20 @@ jobs:
           grep -Fq 'unfinished_objective' "world of warcraft/MewthischGuides1/Guide/RecoveryPolicy.lua"
           grep -Fq 'AdvanceWhileSafe' "world of warcraft/MewthischGuides1/Runtime/RuntimeEngine.lua"
           grep -Fq 'GuideController:Start' "world of warcraft/MewthischGuides1/Core/Bootstrap.lua"
+
+      - name: Validate safety defaults and local-only telemetry
+        run: |
+          set -euo pipefail
+          NS="world of warcraft/MewthischGuides1/Core/Namespace.lua"
+          TAL="world of warcraft/MewthischGuides1/Build/TalentAdvisor.lua"
+          REW="world of warcraft/MewthischGuides1/Gear/RewardAdvisor.lua"
+          TEL="world of warcraft/MewthischGuides1/Core/Telemetry.lua"
+          grep -Fq 'autoAcceptQuests = false' "$NS"
+          grep -Fq 'autoTurnInQuests = false' "$NS"
+          grep -Fq 'automaticSpending=false' "$TAL"
+          grep -Fq 'autoSelection=false' "$REW"
+          grep -Fq 'localOnly=true' "$TEL"
+          echo "Safety defaults + local telemetry PASS"
 
       - name: Build installable addon ZIP
         run: |
