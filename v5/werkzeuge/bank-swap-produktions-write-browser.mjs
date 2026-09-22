@@ -21,10 +21,11 @@ function validRequest(a){
 }
 
 export class ProduktionsCdpBankSwapAdapter {
- constructor(session,contextId){
+ constructor(session,contextId,{vorMoeglichemSend=null}={}){
   if(!session||typeof session.evaluate!=="function"||!Number.isInteger(contextId))throw new Error("BANK_SWAP_WRITE_CDP_KONTEXT_UNGUELTIG");
+  if(vorMoeglichemSend!==null&&typeof vorMoeglichemSend!=="function")throw new Error("BANK_SWAP_WRITE_SEND_GATE_UNGUELTIG");
   this.adapterId="v5-production-cdp-bank-swap-two-slot-once";this.actionContractId=ACTION;this.recoveryContractId=RECOVERY;this.verifierId=VERIFIER;
-  this.session=session;this.contextId=contextId;this.adapterAufrufe=0;this.gameWrites=0;this.moeglicherSend=false;
+  this.session=session;this.contextId=contextId;this.vorMoeglichemSend=vorMoeglichemSend;this.adapterAufrufe=0;this.gameWrites=0;this.moeglicherSend=false;
  }
  async sende(_freigabe,a){
   if(this.adapterAufrufe!==0)throw new Error("BANK_SWAP_WRITE_MEHR_ALS_EIN_ADAPTER_AUFRUF");
@@ -78,6 +79,10 @@ export class ProduktionsCdpBankSwapAdapter {
    "})()"
   ].join("\n");
   try{
+   if(this.vorMoeglichemSend!==null){
+    try{await this.vorMoeglichemSend(Object.freeze({...a}))}
+    catch{return Object.freeze({art:"NICHT_GESENDET",grund:"BANK_SWAP_WRITE_SEND_GATE_BLOCKIERT"})}
+   }
    this.moeglicherSend=true;
    const result=await this.session.evaluate(expr,this.contextId,{userGesture:true});
    if(!result?.sent){this.moeglicherSend=false;return Object.freeze({art:"NICHT_GESENDET",grund:String(result?.reason||"BANK_SWAP_WRITE_PRESTATE_DRIFT")})}
