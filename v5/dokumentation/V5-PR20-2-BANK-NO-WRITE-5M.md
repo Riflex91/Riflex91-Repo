@@ -1,6 +1,6 @@
 # PR20.2 Bank – NO-WRITE 5-Minuten-Stabilitaetstest
 
-**Status:** SERVER-BINDING-FIX 1.0.1 VORBEREITET / ERNEUTER REALER READ-ONLY-PREFLIGHT AUSSTEHEND  
+**Status:** REAL BESTANDEN / READ-ONLY / PR20.2 BLEIBT BLOCKIERT_FAIL_CLOSED  
 **Stand:** 2026-09-22  
 **Aktives Gate:** `PR20.2_BANK_PRODUKTIVIERUNG` bleibt `BLOCKIERT_FAIL_CLOSED`
 
@@ -109,3 +109,49 @@ wie die bestehenden produktiven Browserpfade:
 Fehlt danach weiterhin eine vollstaendige Serverbindung, bleibt der Preflight
 weiterhin blockiert. Evidence:
 `roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json`.
+
+
+## Realer 5-Minuten-Lauf – BESTANDEN
+
+Der reale Lauf auf
+`bb3d1d9108457acae36d30a896549f91598621aa` mit Controller 1.0.1 ist
+vollstaendig **BESTANDEN**:
+
+- Dauer: **300017 ms**;
+- **21 Samples**;
+- **0 Sample-Gaps**;
+- **0 Drift-Samples**;
+- Evidence-Kette gueltig;
+- **0 performance_trick-Fehler**;
+- **0 alternative Runtime-Samples**;
+- **0 Gameplay-Writes**;
+- **0 mutierende Public-Function-Aufrufe**;
+- kein Intent;
+- keine Authority;
+- kein Live-Testbudget verbraucht;
+- `sameIntentRetry=false`.
+
+Open-Pack blieb ueber den Lauf ressourcenbedingt blockiert:
+15.993.820 / 75.000.000 Gold und 0 / 600 Shells.
+
+Evidence:
+`roadmap/pr20-2-bank-no-write-5m-evidence.json`.
+
+## Kein 15-Minuten-Lauf jetzt
+
+Der ratifizierte Testzeit-Standard reserviert 15 Minuten fuer
+Integrations-/Releasegates. PR20.2 ist aktuell wegen Withdraw-Testlimit und
+Open-Pack-Ressourcen **nicht exit-faehig**. Ein weiterer read-only 15m-Lauf
+koennte keinen dieser beiden Blocker schliessen und haette deshalb aktuell
+keinen Gate-Nutzen.
+
+Daher gilt jetzt:
+
+- kein dritter Withdraw-Test;
+- kein Open-Pack-Live ohne neue Finanzierbarkeit und neue read-only Admission;
+- kein weiterer Bank-Ingame-Test nur zur Wiederholung derselben Stabilitaet;
+- PR20.3 bleibt gesperrt;
+- Reopen erst bei einem dokumentierten Zustands- oder Code-Trigger.
+
+Maschinenlesbarer Closeout:
+`roadmap/pr20-2-bank-blocker-closeout.json`.
