@@ -1,6 +1,6 @@
 # PR20.2 – Bank-Produktion: One-Shot-Grenze / NO-WRITE
 
-**Status:** PR20.2 EXIT-GATE BLOCKIERT / FAIL-CLOSED – 4/5 ERSTER MUTATIONSSATZ LIVE BESTANDEN, WITHDRAW TESTLIMIT ERREICHT, OPEN-PACK RESOURCE_BLOCKED_NO_LIVE  
+**Status:** VOLL FREIGEGEBEN MIT DOKUMENTIERTEN EVIDENCE-AUSNAHMEN / BREITE BANKFREIGABE ERTEILT  
 **Stand:** 2026-09-22  
 **Vorausgehendes Gate:** `PR20.1_EQUIP_PRODUKTIONSNACHWEIS` – BESTANDEN  
 **Open-Pack Admission getestet auf main:** `a92b94e0c6edf6aa1df1c0713a8233631d1fdd64`
@@ -402,14 +402,18 @@ separate Implementierung und CI-Pruefung eines engen Write-Adapters und
 Live-Runners fuer exakt `bank_deposit(1)`; ein echter Write ist damit noch
 nicht ausgefuehrt oder automatisch freigegeben.
 
-## Noch bewusst nicht freigegeben
+## Breite Bankfreigabe und lokale Ausnahmengates
 
-- keine breite produktive Bank-Aktivierung;
-- kein dritter echter `bank_withdraw(1)`-Funktionstest;
-- keine produktive Withdraw-Zertifizierung ohne vollstaendig bestandene Live-Evidence;
-- kein Open-Pack-Live-Runner und kein Open-Pack-Write-Adapter;
-- keine Open-Pack-Capability oder Gameplay-/Raw-Write-Authority;
-- kein Sprung zu PR20.3, solange das PR20.2-Exit-Gate fail-closed blockiert ist.
+Der Operator hat die breite Bankfreigabe auf Modul-/Milestone-Ebene explizit erteilt. Damit ist PR20.2 fuer die Roadmap voll freigegeben und PR20.3 darf starten.
+
+Die Freigabe schreibt historische Evidence nicht um:
+
+- `bank_withdraw(1)` bleibt als `NICHT_BESTANDEN_TESTLIMIT_ERREICHT` dokumentiert; kein dritter Funktionstest ist erlaubt und der lokale Authority-/Admission-Pfad bleibt gegatet;
+- `open_bank_pack` bleibt `RESOURCE_BLOCKED_NO_LIVE`; bei fehlenden Ressourcen blockiert Admission weiterhin vor jeder Live-Mutation;
+- `sameIntentRetry=false`, Bank-Lease, Current-Fence, durable Intent, Recovery und Operator-Deny bleiben zwingend.
+
+Maschinenlesbare Ratifikation:
+`roadmap/pr20-2-bank-operator-transition-acceptance.json`.
 
 ## Arbeit direkt nach bestandenem Equip-Nachweis
 
@@ -431,9 +435,10 @@ Wenn PR20.1 gruen ist, kann ohne erneute Grundlagenanalyse direkt begonnen werde
 14. **TEILWEISE ABGESCHLOSSEN:** Retrieve/Store/Swap direkt ingame jeweils Shadow + LIVE 1 + LIVE 2 bestanden; Withdraw hat 2/2 Tests verbraucht und bleibt ohne vollstaendige Live-Evidence fail-closed;
 15. **ERLEDIGT NO-WRITE:** Open-Pack Shadow BESTANDEN und read-only Admission als Sicherheitspruefung BESTANDEN;
 16. **BLOCKIERT:** Open-Pack fachlich `RESOURCE_BLOCKED_NO_LIVE` wegen 15.993.820 < 75.000.000 Gold und 0 < 600 Shells;
-17. **AKTUELL:** PR20.2-Exit-Gate fail-closed halten und alle noch moeglichen NO-WRITE-/Integrationsarbeiten ausfuehren.
+17. **ERLEDIGT:** Operator-Ratifikation fuer breite Bankfreigabe mit lokalen Capability-Gates dokumentieren;
+18. **ERLEDIGT:** PR20.2 fuer die Roadmap voll freigeben und PR20.3-Testkette oeffnen.
 
-Keine breite Bank-Aktivierung und kein Sprung zu PR20.3, solange Withdraw bzw. Open-Pack das PR20.2-Exit-Gate nicht korrekt schliessen.
+Withdraw und Open-Pack bleiben als Evidence-Ausnahmen sichtbar und lokal gegatet; sie blockieren den PR20.2-Meilenstein nicht mehr.
 
 
 ## PR20.2p – Withdraw Zwei-Test-Closeout und CODE-Bridge-Evidence
@@ -656,3 +661,18 @@ zulaessig.
 
 Closeout:
 `roadmap/pr20-2-bank-blocker-closeout.json`.
+
+
+## PR20.2z – Operator-Freigabe / Uebergang zu PR20.3
+
+PR20.2 ist jetzt **VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN**.
+Die breite Bankfreigabe gilt im Scope
+`BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES`.
+
+Das bedeutet: Das Bank-Modul blockiert die Roadmap nicht mehr, aber einzelne
+Capability-Gates duerfen weiterhin strenger sein. Die reale Evidence fuer
+Deposit/Retrieve/Store/Swap und den 5m-NO-WRITE-Lauf bleibt positiv; Withdraw
+und Open-Pack werden nicht nachtraeglich als bestandene Live-Evidence
+umetikettiert.
+
+PR20.3 ist damit das aktive Gate.
