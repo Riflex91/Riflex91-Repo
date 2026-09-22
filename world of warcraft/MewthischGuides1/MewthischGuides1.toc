@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: Mewthisch Guides
-## Notes: RestedXP-powered semantic leveling guide inspired by best-in-class guide UX.
+## Notes: Semantic leveling and navigation guide with integrated travel, gear, build and inventory assistance.
 ## Author: Riflex91
 ## Version: 1.0.0-dev
 ## SavedVariables: MewthischGuides1DB

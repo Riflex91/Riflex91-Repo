@@ -245,7 +245,8 @@ jobs:
           NS="world of warcraft/MewthischGuides1/Core/Namespace.lua"
 
           grep -Fq 'restedxp_world_coordinates' "$NAV"
-          grep -Fq 'bearing.relative+TEXTURE_ZERO_OFFSET' "$NAV"
+          grep -Fq 'navigatorArrowCalibration' "$NAV"
+          grep -Fq 'DEFAULT_TEXTURE_ZERO_OFFSET = -math.pi / 2' "$NAV"
           grep -Fq 'UI:SetSize(frame,170,118)' "$NAV"
 
           grep -Fq 'FRAME_WIDTH = 400' "$VIEW"
@@ -254,7 +255,7 @@ jobs:
           grep -Fq 'viewerX' "$VIEW"
           grep -Fq 'viewerY' "$VIEW"
 
-          grep -Fq '2026-09-22-full-1.0-dev1' "$NS"
+          grep -Fq '2026-09-22-full-1.0-dev3' "$NS"
 
           if grep -Fq 'Runtime " .. tostring(runtime.revision' "$VIEW"; then
             echo "runtime debug revision leaked into player-facing viewer" >&2
@@ -265,6 +266,26 @@ jobs:
             exit 1
           fi
           echo "Compact player-facing GUI contract PASS"
+
+      - name: Validate coordinate conversion accepts numeric API returns
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={}
+          CreateVector2D=function(x,y) return {x=x,y=y} end
+          C_Map={}
+          C_Map.GetWorldPosFromMapPos=function(mapID,point)
+            return 1,{x=100,y=200}
+          end
+          C_Map.GetMapPosFromWorldPos=function(continentID,point,mapID)
+            return 1412,{x=.45,y=.78}
+          end
+          assert(loadfile("world of warcraft/MewthischGuides1/Navigation/CoordinateConverter.lua"))(
+            "MewthischGuides1",MG)
+          local point,reason=MG.CoordinateConverter:RestedXPWorldToMap(1412,200,100)
+          assert(point and point.mapID==1412,reason)
+          assert(math.abs(point.x-.45)<.0001 and math.abs(point.y-.78)<.0001)
+          print("Coordinate numeric-return regression PASS")
+          LUA
 
       - name: Validate RestedXP raw-step preservation
         run: |
@@ -507,6 +528,8 @@ jobs:
           assert(MG.GearScore and MG.RewardAdvisor)
           assert(MG.BuildState and MG.TalentAdvisor and MG.BuildAdvisor)
           assert(MG.GuideBrowser and MG.SettingsWindow and MG.ErrorLogWindow)
+          assert(MG.NotificationCenter and MG.InventoryTools and MG.MerchantAutomation)
+          assert(MG.NotificationWindow and MG.InventoryWindow and MG.MinimapButton)
           assert(MG.ActionBar and MG.WorldMapOverlay and MG.NavigatorFrame and MG.GuideViewer)
           assert(type(SlashCmdList.MEWTHISCHGUIDES1)=="function")
           assert(type(driver.OnEvent)=="function")
@@ -521,11 +544,14 @@ jobs:
             "Runtime/RuntimeStore.lua"
             "Core/ForeverAPI.lua"
             "Core/Telemetry.lua"
+            "Core/NotificationCenter.lua"
             "Guide/GuideCompiler.lua"
             "Guide/Validation.lua"
             "Guide/GuideController.lua"
             "Facts/PlayerFacts.lua"
             "Facts/InventoryScanner.lua"
+            "Inventory/InventoryTools.lua"
+            "Inventory/MerchantAutomation.lua"
             "Runtime/ActionMemory.lua"
             "Resolver/StepStateResolver.lua"
             "Navigation/CoordinateConverter.lua"
@@ -545,6 +571,9 @@ jobs:
             "Build/BuildAdvisor.lua"
             "Presentation/PresentationResolver.lua"
             "UI/ThemeManager.lua"
+            "UI/NotificationWindow.lua"
+            "UI/InventoryWindow.lua"
+            "UI/MinimapButton.lua"
             "UI/ErrorLogWindow.lua"
             "UI/SettingsWindow.lua"
             "UI/GuideBrowser.lua"
@@ -578,9 +607,18 @@ jobs:
           TEL="world of warcraft/MewthischGuides1/Core/Telemetry.lua"
           grep -Fq 'autoAcceptQuests = false' "$NS"
           grep -Fq 'autoTurnInQuests = false' "$NS"
+          grep -Fq 'autoSellGray = false' "$NS"
+          grep -Fq 'autoRepair = false' "$NS"
+          if grep -Fq 'rxpHardcoreServer' "$NS"; then
+            echo "obsolete hardcore-server setting still present" >&2
+            exit 1
+          fi
           grep -Fq 'automaticSpending=false' "$TAL"
           grep -Fq 'autoSelection=false' "$REW"
           grep -Fq 'localOnly=true' "$TEL"
+          grep -Fq 'autoSellGray' "world of warcraft/MewthischGuides1/UI/SettingsWindow.lua"
+          grep -Fq 'autoRepair' "world of warcraft/MewthischGuides1/UI/SettingsWindow.lua"
+          grep -Fq 'notificationsEnabled' "world of warcraft/MewthischGuides1/UI/SettingsWindow.lua"
           echo "Safety defaults + local telemetry PASS"
 
       - name: Build installable addon ZIP
