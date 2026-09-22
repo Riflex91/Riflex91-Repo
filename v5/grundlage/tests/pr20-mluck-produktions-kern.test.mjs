@@ -200,6 +200,7 @@ test("PR20.6 committed transaction sends at most once and verifies exact target 
         targetMluckStrong: true,
         senderMpNachher: 490,
         cooldownAktivNachher: true,
+        senderExecutionEvidenceConsistent: true,
         fingerprint: "post-1",
       };
     },
@@ -279,6 +280,7 @@ test("PR20.6 UNKNOWN never resends same intent and fails closed when unresolved"
         targetMluckStrong: false,
         senderMpNachher: 490,
         cooldownAktivNachher: true,
+        senderExecutionEvidenceConsistent: true,
         fingerprint: "unknown-" + versuch,
       };
     },
