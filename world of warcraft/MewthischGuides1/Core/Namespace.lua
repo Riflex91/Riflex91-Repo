@@ -78,6 +78,7 @@ function MG:EnsureDB()
         rxpHardcoreServer = false,
         rxpPhase = 6,
         allowAuctionHouse = true,
+        theme = "Forever Classic",
         showViewer = true,
         showNavigator = true,
         navigatorLocked = false,
