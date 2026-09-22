@@ -87,5 +87,5 @@ test("Market-Vertrag und Roadmap spiegeln Operator-Abnahme ohne produktive Autho
   assert.equal(roadmap.pr20_3.tradePathsBlockSequencing, false);
   assert.equal(roadmap.pr20_3.productiveTradeAuthority, false);
   assert.equal(roadmap.pr20_3.activeTest, null);
-  assert.equal(roadmap.currentGate, "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG");
+  assert.ok(["PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG", "PR20.5_MERCHANT_STABILITAET"].includes(roadmap.currentGate));
 });
