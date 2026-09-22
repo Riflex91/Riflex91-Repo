@@ -76,6 +76,8 @@ export interface BankSwapZweiSlotAdapterAnfrage {
   readonly sessionId: string;
   readonly serverRegion: string;
   readonly serverIdentifier: string;
+  readonly erwartetesItemAName: string;
+  readonly erwartetesItemBName: string;
   readonly erwartetesItemAFingerprint: string;
   readonly erwartetesItemBFingerprint: string;
   readonly erwarteterPackRestFingerprint: string;
@@ -702,6 +704,8 @@ export class ProduktiveBankSwapTransaktionsOrchestrierung {
             sessionId: a.sessionId,
             serverRegion: a.serverRegion,
             serverIdentifier: a.serverIdentifier,
+            erwartetesItemAName: a.vorher.slotAItem.name,
+            erwartetesItemBName: a.vorher.slotBItem.name,
             erwartetesItemAFingerprint: a.vorher.slotAItem.fingerprint,
             erwartetesItemBFingerprint: a.vorher.slotBItem.fingerprint,
             erwarteterPackRestFingerprint: a.vorher.packRestFingerprint,
