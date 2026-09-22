@@ -1,19 +1,20 @@
 # V5 Direkte Ingame-Testpolitik
 
 **Status:** VERBINDLICH  
-**Stand:** 2026-09-21
+**Stand:** 2026-09-22
 
 ## Grundsatz
 
-Ein V5-Funktionstest gilt nur dann als echter Funktionsnachweis, wenn der zu pruefende JavaScript-Pfad gegen einen real laufenden Adventure-Land-Browser ueber den Loopback-CDP-Endpunkt ausgefuehrt wird und dabei realen Spielzustand beobachtet.
+Ein V5-Funktionstest gilt nur dann als echter Funktionsnachweis, wenn der zu pruefende JavaScript-Pfad in einem real laufenden Adventure-Land-Browser ausgefuehrt wird und dabei realen Spielzustand beobachtet. Fuer Public-CODE-Funktionen ist der browser-native Adventure-Land-CODE-Runner der bevorzugte Testtreiber; CDP/Node bleibt Diagnose-, Legacy- und Host-Reconcile-Werkzeug.
 
 Node-Unit-Tests, Mocks, statische Guards, Typpruefungen, Strukturpruefungen und historische R3-R19-Matrizen duerfen weiterhin manuell zur Diagnose verwendet werden. Sie koennen jedoch keinen Ingame-Funktionsnachweis ersetzen und blockieren nicht mehr automatisch jeden Entwicklungs-PR.
 
 ## Verbindliche Eigenschaften direkter Tests
 
 - Ziel ist ein realer Adventure-Land-Kontext auf `https://adventure.land`.
-- CDP bleibt auf Loopback begrenzt, standardmaessig `http://127.0.0.1:9222/`.
-- Der ausgefuehrte Git-Commit wird als `sourceSha` gebunden.
+- Browser-native Testpakete werden direkt im Adventure-Land-CODE-Runner ausgefuehrt und duerfen keine Raw-Socket-Bypaesse enthalten.
+- Falls CDP fuer Diagnose, Host-Reconcile oder noch nicht migrierte Runner verwendet wird, bleibt es auf Loopback begrenzt, standardmaessig `http://127.0.0.1:9222/`.
+- Der getestete Paket-/Git-Stand wird als `sourceSha` bzw. source-locked Paketstand gebunden.
 - Read-only-Preflights muessen reale Character-, Session-, Server- und Domaenenzustaende im Spiel lesen.
 - Shadow-Laeufe muessen im echten Browser stattfinden, auch wenn sie absichtlich 0 Gameplay-Writes erzeugen.
 - Mutierende Tests benoetigen eine eigene explizite One-Shot-Bestaetigung.
@@ -32,6 +33,10 @@ Fuer jede neue Capability wird der kuerzeste reale Pfad verwendet:
 4. reale Funktions-/Soak-Beobachtung, wenn die Capability Dauerverhalten besitzt.
 
 Nicht jede Aenderung muss alle vier Stufen wiederholen. Getestet wird direkt die betroffene Funktion und ihre reale Abhaengigkeitskette.
+
+## Bevorzugter browser-nativer Bank-Harness
+
+`werkzeuge/bank-function-test-paket.js` ist der bevorzugte direkte Ingame-Harness fuer `bank_retrieve`, `bank_store` und `bank_swap`. Er aktiviert/verifiziert `performance_trick()`, bietet Shadow/LIVE 1/LIVE 2, persistiert das Testbudget im Browser und zeigt kopierbare Ergebnis-/Diagnoseberichte. Nach moeglichem Send mit unklarem Ergebnis bleibt jeder weitere Live-Button derselben Funktion gesperrt.
 
 ## Verfuegbare direkte Runner
 

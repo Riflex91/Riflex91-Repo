@@ -81,15 +81,13 @@
   "currentNextSteps": [
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN und im Repo dokumentiert",
     "PR20.2 bank_deposit(1) One-Shot-Live-Evidence ist BESTANDEN",
-    "bank_withdraw(1) Real-Browser-Shadow ist source-exakt BESTANDEN",
-    "bank_withdraw(1) hat das vereinbarte Maximum von zwei echten Funktionstests erreicht; kein dritter Gameplay-Write-Test",
-    "Test 1 erreichte einen moeglichen Send/1 Gameplay-Write, Settlement blieb ungeklärt; Recovery-Zero-Bank-Bug wurde behoben",
-    "Test 2 erreichte den Adapter, sendete aber nicht; Root Cause war ein inaktiver Adventure-Land-CODE-Runner und fehlendes globales bank_withdraw im Page-Kontext",
-    "der korrigierte offizielle Page->CODE-Bridge-Pfad via call_code_function_f wurde danach real read-only mit 0 Gameplay-Writes und 0 bank_withdraw-Aufrufen als BEREIT bestaetigt",
-    "Withdraw bleibt ohne vollstaendig bestandene Live-Write-Evidence breit deaktiviert; kein Same-Intent-Retry und kein dritter Funktionstest",
-    "bank_swap Abend-Testkette ist vollstaendig implementiert; naechstes Gate sind sieben source-exakte lokale Stufen, davon nur Stufe 6/7 echte Funktionstests und Stufe 7 nur nach sauberem COMMITTED/BESTAETIGT Test 1",
-    "Capacity-/Workspace- und Open-Bank-Pack-Gates separat behandeln",
-    "erst nach komplettem PR20.2-Exit-Gate PR20.3 Markt produktiv oeffnen"
+    "bank_retrieve ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
+    "bank_store ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
+    "bank_swap ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
+    "bank_withdraw hat das Maximum von zwei echten Funktionstests erreicht und bleibt ohne vollstaendig bestandene Live-Evidence breit deaktiviert; kein dritter Write-Test",
+    "open_bank_pack bleibt wegen Capacity-/Currency-Mutation und ASYNC_BACKEND_TX ein separater spaeterer Mixed-Path-Nachweis",
+    "PR20.2 ist damit noch nicht komplett; keine breite Bank-Aktivierung",
+    "PR20.3 Markt bleibt bis zum PR20.2-Exit-Gate produktiv gesperrt"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -154,7 +152,7 @@
   },
   "parallelPreparation": {
     "id": "PR20.2_BANK",
-    "status": "WITHDRAW_TESTLIMIT_ERREICHT_SWAP_ABEND_TESTKETTE_IMPLEMENTIERT_REALE_EVIDENCE_AUSSTEHEND",
+    "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_WITHDRAW_TESTLIMIT_ERREICHT",
     "blockedBy": null,
     "produktiveRegistrierungErlaubt": true,
     "gameplayAuthority": false,
@@ -236,7 +234,8 @@
       "v5/roadmap/pr20-2-bank-swap-evening-test-plan.json",
       "v5/architektur/adr/ADR-047-PR20-2R-BANK-SWAP-ABEND-TESTKETTE.md",
       "v5/werkzeuge/bank-swap-write-preflight.mjs",
-      "v5/grundlage/tests/r11-bank-swap-produktions-transaktion.test.mjs"
+      "v5/grundlage/tests/r11-bank-swap-produktions-transaktion.test.mjs",
+      "v5/roadmap/pr20-2-bank-direct-ingame-function-evidence.json"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",
@@ -323,7 +322,7 @@
     },
     "bankSwapCandidate": {
       "publicFunction": "bank_swap",
-      "status": "ABEND_TESTKETTE_VOLLSTAENDIG_IMPLEMENTIERT_REALE_EVIDENCE_AUSSTEHEND",
+      "status": "BESTANDEN_2_OF_2_DIRECT_INGAME",
       "contract": "v5/grundlage/vertraege/runtime/bank-swap-production-candidate.json",
       "provider": "merchant-bank-core@1",
       "capabilityId": "merchant.bank.intern_tauschen",
@@ -334,18 +333,32 @@
       "liveRunner": true,
       "sourceShaPinning": true,
       "maxTrueFunctionalTests": 2,
-      "testsConsumed": 0,
+      "testsConsumed": 2,
       "test2RequiresCleanTest1": true,
       "test2ExactReverseIntent": true,
       "sameIntentRetry": false,
       "rawWriteAuthority": false,
-      "productionWideActivationAllowed": false
+      "productionWideActivationAllowed": false,
+      "evidence": "v5/roadmap/pr20-2-bank-direct-ingame-function-evidence.json"
+    },
+    "bankItemTransferCandidates": {
+      "evidence": "v5/roadmap/pr20-2-bank-direct-ingame-function-evidence.json",
+      "bankRetrieve": {
+        "status": "BESTANDEN_2_OF_2_DIRECT_INGAME",
+        "testsConsumed": 2,
+        "additionalFunctionalTestAllowed": false
+      },
+      "bankStore": {
+        "status": "BESTANDEN_2_OF_2_DIRECT_INGAME",
+        "testsConsumed": 2,
+        "additionalFunctionalTestAllowed": false
+      }
     }
   },
   "parallelPreparations": [
     {
       "id": "PR20.2_BANK",
-      "status": "WITHDRAW_TESTLIMIT_ERREICHT_BRIDGE_FIX_READ_ONLY_BESTAETIGT",
+      "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_WITHDRAW_TESTLIMIT_ERREICHT",
       "blockedBy": [],
       "produktiveRegistrierungErlaubt": true,
       "gameplayAuthority": false,
@@ -624,7 +637,7 @@
     "recovery": "COMMITTED"
   },
   "pr20_2": {
-    "status": "DEPOSIT_ONE_SHOT_LIVE_BESTANDEN_RESTBANK_AUSSTEHEND",
+    "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_WITHDRAW_TESTLIMIT_ERREICHT",
     "firstLiveCandidate": "bank_deposit(1)",
     "provider": "merchant-bank-core@1",
     "capabilityId": "merchant.bank.gold_einlagern",
@@ -636,7 +649,7 @@
     "writeAdapter": true,
     "liveRunner": true,
     "gameplayWrites": 1,
-    "nextSafetyGap": "BANK_WITHDRAW_WRITE_ADAPTER_LIVE_RUNNER_PREPARATION_THEN_READ_ONLY_WRITE_PREFLIGHT",
+    "nextSafetyGap": "WITHDRAW_KEIN_DRITTER_LIVE_TEST; OPEN_BANK_PACK_SEPARATER_MIXED_PATH_NACHWEIS",
     "persistentBankLease": true,
     "restartReconciliation": true,
     "r9AdmissionShadow": true,
@@ -680,6 +693,11 @@
     "nextLiveCandidateLiveEvidence": "NICHT_BESTANDEN_TESTLIMIT_ERREICHT",
     "nextLiveCandidateLiveEvidencePfad": "v5/roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json",
     "nextLiveCandidateCodeBridgeReadOnlyEvidence": "BESTANDEN",
-    "nextLiveCandidateProductionWideActivationAllowed": false
+    "nextLiveCandidateProductionWideActivationAllowed": false,
+    "directIngameEvidence": "v5/roadmap/pr20-2-bank-direct-ingame-function-evidence.json",
+    "bankRetrieveStatus": "BESTANDEN_2_OF_2_DIRECT_INGAME",
+    "bankStoreStatus": "BESTANDEN_2_OF_2_DIRECT_INGAME",
+    "bankSwapStatus": "BESTANDEN_2_OF_2_DIRECT_INGAME",
+    "openBankPackStatus": "SEPARATER_NACHWEIS_AUSSTEHEND"
   }
 }

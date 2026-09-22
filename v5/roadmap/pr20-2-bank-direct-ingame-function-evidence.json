@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "status": "TEILBESTANDEN_4_VON_5_ERSTER_BANK_MUTATIONSSATZ",
+  "evidenceArt": "V5_DIRECT_INGAME_BANK_FUNCTION_GUI_LIVE",
+  "source": "USER_PROVIDED_INGAME_GUI_RESULTS",
+  "testedSourceSha": "e0f818af88dd5b5191a7a5d6ff99eb8b539feac5",
+  "harness": {
+    "paket": "v5/werkzeuge/bank-function-test-paket.js",
+    "controllerVersion": "1.0.0",
+    "guiVersion": "1.1.0",
+    "executionContext": "ADVENTURE_LAND_CODE_RUNNER",
+    "performanceTrickRequired": true,
+    "settlementDirectIngame": true,
+    "rawSocketBypass": false,
+    "sameIntentRetry": false,
+    "maxTrueFunctionalTestsPerFunction": 2
+  },
+  "firstMutationSet": {
+    "bank_deposit": {
+      "status": "BESTANDEN",
+      "evidence": "v5/roadmap/pr20-2-bank-deposit-production-evidence.json"
+    },
+    "bank_withdraw": {
+      "status": "NICHT_BESTANDEN_TESTLIMIT_ERREICHT",
+      "functionalTestsConsumed": 2,
+      "additionalFunctionalTestAllowed": false,
+      "evidence": "v5/roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json",
+      "correctedReadOnlyCodeBridgeEvidence": "BESTANDEN",
+      "productionWideActivationAllowed": false
+    },
+    "bank_retrieve": {
+      "status": "BESTANDEN",
+      "shadow": {
+        "status": "BESTANDEN",
+        "gameplayWrites": 0,
+        "mutatingPublicFunctionCalls": 0
+      },
+      "live": [
+        {
+          "testNummer": 1,
+          "attemptId": "BANK-RETRIEVE-LIVE-1-1790089906548-9e2a24ba",
+          "journalStatus": "COMMITTED",
+          "kandidat": {
+            "pack": "items0",
+            "bankSlot": 0,
+            "inventorySlot": 9,
+            "itemName": "cscale"
+          },
+          "settlement": "BANK_RETRIEVE_EXAKT_BESTAETIGT",
+          "gameplayWrites": 1,
+          "publicFunctionAufrufe": 1,
+          "callFehler": null,
+          "sameIntentErneutSenden": false
+        },
+        {
+          "testNummer": 2,
+          "attemptId": "BANK-RETRIEVE-LIVE-2-1790089957052-a170f7d5",
+          "journalStatus": "COMMITTED",
+          "kandidat": {
+            "pack": "items0",
+            "bankSlot": 1,
+            "inventorySlot": 21,
+            "itemName": "cake"
+          },
+          "settlement": "BANK_RETRIEVE_EXAKT_BESTAETIGT",
+          "gameplayWrites": 1,
+          "publicFunctionAufrufe": 1,
+          "callFehler": null,
+          "sameIntentErneutSenden": false
+        }
+      ],
+      "functionalTestsConsumed": 2,
+      "additionalFunctionalTestAllowed": false
+    },
+    "bank_store": {
+      "status": "BESTANDEN",
+      "shadow": {
+        "status": "BESTANDEN",
+        "gameplayWrites": 0,
+        "mutatingPublicFunctionCalls": 0
+      },
+      "live": [
+        {
+          "testNummer": 1,
+          "attemptId": "BANK-STORE-LIVE-1-1790090034411-68d319a3",
+          "journalStatus": "COMMITTED",
+          "kandidat": {
+            "pack": "items0",
+            "bankSlot": 0,
+            "inventorySlot": 0,
+            "itemName": "wshoes"
+          },
+          "settlement": "BANK_STORE_EXAKT_BESTAETIGT",
+          "gameplayWrites": 1,
+          "publicFunctionAufrufe": 1,
+          "callFehler": null,
+          "sameIntentErneutSenden": false
+        },
+        {
+          "testNummer": 2,
+          "attemptId": "BANK-STORE-LIVE-2-1790090070027-8c67708a",
+          "journalStatus": "COMMITTED",
+          "kandidat": {
+            "pack": "items0",
+            "bankSlot": 1,
+            "inventorySlot": 1,
+            "itemName": "poker"
+          },
+          "settlement": "BANK_STORE_EXAKT_BESTAETIGT",
+          "gameplayWrites": 1,
+          "publicFunctionAufrufe": 1,
+          "callFehler": null,
+          "sameIntentErneutSenden": false
+        }
+      ],
+      "functionalTestsConsumed": 2,
+      "additionalFunctionalTestAllowed": false
+    },
+    "bank_swap": {
+      "status": "BESTANDEN",
+      "shadow": {
+        "status": "BESTANDEN",
+        "gameplayWrites": 0,
+        "mutatingPublicFunctionCalls": 0,
+        "stackMergeDurchNamensgleichheitAusgeschlossen": true
+      },
+      "live": [
+        {
+          "testNummer": 1,
+          "attemptId": "BANK-SWAP-LIVE-1-1790090150431-fa2ea83c",
+          "journalStatus": "COMMITTED",
+          "kandidat": {
+            "pack": "items0",
+            "slotA": 0,
+            "itemA": "wshoes",
+            "slotB": 1,
+            "itemB": "poker"
+          },
+          "settlement": "BANK_SWAP_EXAKT_BESTAETIGT",
+          "gameplayWrites": 1,
+          "publicFunctionAufrufe": 1,
+          "callFehler": null,
+          "sameIntentErneutSenden": false
+        },
+        {
+          "testNummer": 2,
+          "attemptId": "BANK-SWAP-LIVE-2-1790090183581-35268acc",
+          "journalStatus": "COMMITTED",
+          "kandidat": {
+            "pack": "items0",
+            "slotA": 0,
+            "itemA": "poker",
+            "slotB": 1,
+            "itemB": "wshoes"
+          },
+          "settlement": "BANK_SWAP_EXAKT_BESTAETIGT",
+          "gameplayWrites": 1,
+          "publicFunctionAufrufe": 1,
+          "callFehler": null,
+          "sameIntentErneutSenden": false
+        }
+      ],
+      "functionalTestsConsumed": 2,
+      "additionalFunctionalTestAllowed": false
+    }
+  },
+  "deferred": {
+    "open_bank_pack": {
+      "status": "SEPARATER_NACHWEIS_AUSSTEHEND",
+      "reason": "Capacity-/Currency-Mutation mit ASYNC_BACKEND_TX; nicht Teil des ersten PR20.2-Mutationssatzes."
+    }
+  },
+  "exitGate": {
+    "depositBestanden": true,
+    "retrieveBestanden": true,
+    "storeBestanden": true,
+    "swapBestanden": true,
+    "withdrawBestanden": false,
+    "firstMutationSetComplete": false,
+    "pr20_2Complete": false,
+    "productionWideActivationAllowed": false
+  }
+}

@@ -1,7 +1,7 @@
 # PR20.2 – Bank-Produktion: One-Shot-Grenze / NO-WRITE
 
-**Status:** DEPOSIT-ONE-SHOT LIVE BESTANDEN / RESTBANK AUSSTEHEND  
-**Stand:** 2026-09-21  
+**Status:** ERSTER BANK-MUTATIONSSATZ 4/5 LIVE BESTANDEN / WITHDRAW TESTLIMIT ERREICHT  
+**Stand:** 2026-09-22  
 **Vorausgehendes Gate:** `PR20.1_EQUIP_PRODUKTIONSNACHWEIS` – BESTANDEN  
 **Basis-main:** `05b93ac7dbb6ef294294c38030d9e4b48962f7d3`
 
@@ -473,3 +473,22 @@ breit deaktiviert und darf nicht als produktiv zertifiziert markiert werden.
 
 Evidence:
 `roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json`.
+
+
+## PR20.2s – Direkte Ingame-Abnahme fuer Retrieve / Store / Swap
+
+Auf dem source-locked Paketstand `e0f818af88dd5b5191a7a5d6ff99eb8b539feac5` wurde der Testtreiber fuer die Item-/Swap-Pfade in den Adventure-Land-CODE-Runner verlagert. Der selbstenthaltene Harness `werkzeuge/bank-function-test-paket.js` fuehrt Shadow und Live direkt im echten Spielkontext aus; Node/CDP ist fuer diese drei Funktionsnachweise nicht mehr der eigentliche Testtreiber.
+
+Reale Ergebnisse:
+
+| Funktion | Shadow | LIVE 1 | LIVE 2 | Testlimit |
+|---|---|---|---|---|
+| `bank_retrieve` | BESTANDEN / 0 Writes | COMMITTED + exakt bestaetigt | COMMITTED + exakt bestaetigt | 2/2 verbraucht |
+| `bank_store` | BESTANDEN / 0 Writes | COMMITTED + exakt bestaetigt | COMMITTED + exakt bestaetigt | 2/2 verbraucht |
+| `bank_swap` | BESTANDEN / 0 Writes | COMMITTED + exakt bestaetigt | COMMITTED + exakt bestaetigt | 2/2 verbraucht |
+
+Alle sechs Live-Aufrufe hatten jeweils exakt einen Gameplay-Write und exakt einen Public-Function-Aufruf, `callFehler=null` und `sameIntentErneutSenden=false`. Beim Swap war die Namensverschiedenheit der beiden Items jeweils vorab gebunden, sodass ein Stack-Merge durch Namensgleichheit ausgeschlossen war.
+
+Evidence: `roadmap/pr20-2-bank-direct-ingame-function-evidence.json`.
+
+Der erste PR20.2-Mutationssatz ist damit **4 von 5** real bestanden: Deposit, Store, Retrieve und Swap sind bestanden. Withdraw bleibt wegen des bereits ausgeschöpften Maximums von zwei echten Funktionstests ohne vollstaendig bestandene Live-Evidence und darf nicht durch einen dritten Write-Test umgangen werden. `open_bank_pack` bleibt weiterhin ausserhalb dieses ersten Satzes und benoetigt spaeter einen eigenen Mixed-Path-Nachweis.
