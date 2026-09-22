@@ -85,7 +85,10 @@
     "PR20.4 persistentes 16-Stufen-Gesamttestpaket ist repo-seitig vorbereitet",
     "AKTUELL: PR20.4 Gesamt-Stufentest im echten Adventure-Land-Browser auf Merchant + genau einem Partner",
     "kein Merge zwischen den PR20.4-Teststufen erforderlich",
-    "send_item maximal 2 echte Tests; send_gold maximal 2 echte Tests; sameIntentRetry=false"
+    "send_item maximal 2 echte Tests; send_gold maximal 2 echte Tests; sameIntentRetry=false",
+    "PR20.5 autonomer Vier-Charakter-Test ist vorbereitet und wartet automatisch auf PR20.4 Schritt 16 BESTANDEN",
+    "PR20.5 erkennt Merchant/Ranger/Priest/Mage selbst und benoetigt nach dem Laden keine Operator-Interaktion",
+    "PR20.5 Ergebnis wird ueber die bestehende Windows-Bridge nach Supabase gespiegelt; keine Supabase-Secrets im Spielcode"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -912,5 +915,31 @@
     "manualStepClicksRequired": false,
     "ingameTestPolicy": "v5/grundlage/vertraege/runtime/ingame-test-execution-policy.json",
     "controllerVersion": "1.1.0"
+  },
+  "pr20_5": {
+    "status": "AUTONOMOUS_4CHAR_TEST_BEREIT_BLOCKED_BY_PR20_4",
+    "productiveMutationAllowed": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "requiredCharacterClasses": [
+      "merchant",
+      "ranger",
+      "priest",
+      "mage"
+    ],
+    "coordinatorClass": "merchant",
+    "autoStart": true,
+    "operatorInteractionAfterLoad": false,
+    "pr20_4RuntimeGate": "AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1.steps.16.status=BESTANDEN",
+    "package": "v5/werkzeuge/pr20-5-merchant-stability-autonomous-4char.js",
+    "testPlan": "v5/roadmap/pr20-5-autonomous-4char-test-plan.json",
+    "fiveMinuteNoWrite": true,
+    "sameIntentRetry": false,
+    "supabase": {
+      "transport": "WINDOWS_BRIDGE_EXISTING_TELEMETRY",
+      "browserSecrets": false,
+      "monthlyEdgeInvocationLimit": 500000,
+      "safetyReserve": 5000
+    }
   }
 }
