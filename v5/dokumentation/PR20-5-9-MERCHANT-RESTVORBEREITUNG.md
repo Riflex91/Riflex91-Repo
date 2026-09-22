@@ -66,8 +66,20 @@ Supabase-Service-Role noch andere Supabase-Secrets.
 
 Der Supabase-Free-Plan umfasst 500.000 Edge-Function-Aufrufe pro Monat. Fuer
 unbeaufsichtigte Tests wird ein Sicherheitsrest von 5.000 Aufrufen reserviert.
-Die Windows-Bridge-Konfiguration v8 verwendet deshalb standardmaessig ein
-60-Sekunden-Polling statt 5 Sekunden.
+Die Windows-Bridge-Konfiguration v9 trennt deshalb lokale Beobachtung und
+Supabase-Transport: lokal wird der Test alle 5 Sekunden read-only beobachtet,
+regulaer wird aber nur ein aggregierter Gesamtstatus pro 60 Sekunden an
+`bot-debug-ingest` gesendet. Ein neu erkannter terminaler Zustand wird
+zusaetzlich sofort uebertragen. Dadurch beschleunigt die lokale Testkette nicht
+die Supabase-Aufrufrate.
+
+Supabase pflegt dafuer `aio_v5_test_status` als aktuellen Teststatus und eine
+deduplizierte `aio_v5_test_notifications`-Queue. Nach jedem terminal
+abgeschlossenen Test wird genau eine Abschluss-E-Mail vorgesehen:
+`BESTANDEN`, `NICHT_BESTANDEN`, `BLOCKIERT`, `FEHLER` oder
+`ABGEBROCHEN`. Fehler-/Blocker-Mails enthalten die kompakten relevanten
+Diagnoseereignisse; Erfolgs-Mails bleiben knapp. Der Mailversand ist
+idempotent pro `bot_id + test_id + startedAtMs`.
 
 ## PR20.6 – MLuck
 
