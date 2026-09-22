@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_3_MARKT_PRODUCTION_PREPARATION",
   "stand": "2026-09-22",
-  "status": "TESTKETTE_START_FREIGEGEBEN_NO_WRITE",
-  "basisMain": "0c7bffa935d7055d074fa4a3b93d11c861515153",
+  "status": "ERSTER_KANDIDAT_RATIFIZIERT_NO_WRITE",
+  "basisMain": "55446d26ac13888816761c97b02006aeafa65bcb",
   "produktiveFreigabeBlockiertBis": [
     "PR20.3_EIGENE_CAPABILITY_AUTHORITY_JOURNAL_ADMISSION_SHADOW_LIVE_GATES"
   ],
@@ -127,20 +127,36 @@
   ],
   "nachVorstufenErforderlicheFreigabeschritte": [
     "PR20.1 Equip-Evidence bestanden dokumentieren",
-    "PR20.2 Bank produktiv und integrativ abschliessen",
-    "einen einzigen ersten Markt-Live-Kandidaten festlegen",
+    "PR20.2 Bank breit freigegeben dokumentieren",
+    "ERLEDIGT: ersten Markt-Kandidaten auf buy_with_gold(item, 1) / Goldroute festlegen",
+    "ERLEDIGT: authority-freien Settlement-/Drift-Core und Offline-Tests bereitstellen",
     "Mutationsfaehigkeit und Single Owner separat ratifizieren",
     "eng begrenzte Authority + Admission implementieren",
-    "durables Markt-Transaktionsjournal implementieren",
-    "read-only Preflight fuer den ersten Kandidaten implementieren",
-    "Unit/Replay/Fault/Restart/RID-Drift/UNKNOWN-Tests bestehen",
-    "Shadow bestehen",
-    "erst danach einen einzelnen kontrollierten Markt-Live-Write zulassen"
+    "durables Markt-Buy-Transaktionsjournal implementieren",
+    "read-only Ingame-Preflight fuer Kandidat/Vendor/Item/Preis implementieren",
+    "Unit/Replay/Fault/Restart/UNKNOWN-Tests bestehen",
+    "realen Ingame-Shadow ohne Write bestehen",
+    "erst danach einen einzelnen kontrollierten buy_with_gold(item, 1)-Write zulassen"
   ],
   "pr20_2Transition": {
     "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
     "evidence": "roadmap/pr20-2-bank-operator-transition-acceptance.json",
     "broadBankActivationAllowed": true,
     "bankExceptionsRemainLocallyGated": true
+  },
+  "ersterLiveKandidat": {
+    "status": "ERSTER_KANDIDAT_RATIFIZIERT_NO_WRITE",
+    "publicFunction": "buy_with_gold",
+    "menge": 1,
+    "route": "GOLD_ONLY",
+    "contract": "grundlage/vertraege/runtime/market-buy-gold-production-candidate.json",
+    "settlementCore": "grundlage/quelle/merchant/market-buy-gold-settlement.ts",
+    "actionContractId": "AL-ACTION-BUY-WITH-GOLD",
+    "recoveryContractId": "AL-RECOVERY-BUY-WITH-GOLD",
+    "verifierId": "AL-VERIFIER-BUY-WITH-GOLD",
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "gameplayWritesInDiesemSchritt": 0,
+    "sameIntentRetry": false
   }
 }
