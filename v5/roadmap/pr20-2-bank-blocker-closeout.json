@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "status": "BLOCKIERT_FAIL_CLOSED_NO_FURTHER_INGAME_TEST_JUSTIFIED",
+  "kennung": "V5_PR20_2_BANK_BLOCKER_CLOSEOUT",
+  "basisMain": "bb3d1d9108457acae36d30a896549f91598621aa",
+  "completedEvidence": {
+    "deposit": "BESTANDEN",
+    "retrieve": "BESTANDEN_2_OF_2",
+    "store": "BESTANDEN_2_OF_2",
+    "swap": "BESTANDEN_2_OF_2",
+    "openPackShadow": "BESTANDEN",
+    "openPackAdmissionReadOnly": "BESTANDEN_RESOURCE_BLOCKED_NO_LIVE",
+    "bankNoWrite5m": "BESTANDEN"
+  },
+  "hardBlockers": [
+    {
+      "id": "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
+      "status": "FAIL_CLOSED",
+      "functionalTestsConsumed": 2,
+      "additionalFunctionalTestAllowed": false,
+      "nextIngameTestAllowedNow": false
+    },
+    {
+      "id": "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE",
+      "status": "RESOURCE_BLOCKED",
+      "characterGold": 15993820,
+      "goldKosten": 75000000,
+      "characterShells": 0,
+      "shellKosten": 600,
+      "nextIngameTestAllowedNow": false,
+      "reopenCondition": "Gold >= 75000000 oder Shells >= 600; danach zuerst neue read-only Admission, kein unmittelbarer Live-Send"
+    }
+  ],
+  "testStrategy": {
+    "function5mCompleted": true,
+    "integration15mRequiredNow": false,
+    "integration15mReason": "Ein 15-Minuten-Integrations-/Releasegate ist erst sinnvoll, wenn PR20.2 fachlich exit-faehig ist. Der aktuelle Lauf koennte die beiden harten Blocker nicht schliessen.",
+    "additionalReadOnlySoakValueNow": "KEIN_GATE_NUTZEN",
+    "noBlindRetry": true,
+    "sameIntentRetry": false
+  },
+  "policy": {
+    "breiteBankAktivierungErlaubt": false,
+    "pr20_3MarktStartErlaubt": false,
+    "withdrawTest3Erlaubt": false,
+    "openPackLiveErlaubt": false,
+    "weitereIngameTestsJetztErforderlich": false
+  },
+  "reopenTriggers": [
+    "Open-Pack-Ressourcen erreichen mindestens einen bezahlbaren Pfad",
+    "eine echte Codeaenderung betrifft einen bereits zertifizierten Bankpfad und oeffnet dessen Funktionsgate nach Testzeit-Standard erneut",
+    "eine explizit ratifizierte neue Withdraw-Testpolicy ersetzt die bestehende 2-of-2-Grenze"
+  ],
+  "nextAction": "REPO_SIDE_NO_WRITE_CLOSEOUT_ONLY_THEN_WAIT_FOR_REOPEN_TRIGGER"
+}
