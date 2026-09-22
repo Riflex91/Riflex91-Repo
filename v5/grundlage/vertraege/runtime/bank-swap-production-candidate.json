@@ -85,16 +85,17 @@
     "admissionShadowImplemented": true,
     "realBrowserShadowImplemented": true,
     "writeAdapterImplemented": true,
-    "liveRunnerImplemented": false,
+    "liveRunnerImplemented": true,
     "gameplayWritesInThisStep": 0,
     "readOnlyBrowserObserver": "werkzeuge/bank-swap-produktions-browser.mjs",
     "readOnlyPreflight": "werkzeuge/bank-swap-produktions-preflight.mjs",
     "readOnlyHostJournalFencing": true,
     "hostMutationIntegrationImplemented": false,
     "writeAdapter": "werkzeuge/bank-swap-produktions-write-browser.mjs",
-    "transactionCore": "grundlage/quelle/merchant/bank-swap-produktions-transaktion.ts"
+    "transactionCore": "grundlage/quelle/merchant/bank-swap-produktions-transaktion.ts",
+    "liveRunner": "werkzeuge/bank-swap-produktions-live.mjs"
   },
-  "nextStep": "ABEND_TESTKETTE_VOLLSTAENDIG_IMPLEMENTIEREN_UND_CI_GRUEN; DANACH LOKAL_STUFENWEISE_AUSFUEHREN",
+  "nextStep": "CI_GRUEN_DANN_ABEND_TESTKETTE_STUFEN_01_BIS_06; TEST_07_NUR_NACH_VOLLSTAENDIG_BESTANDENEM_TEST_06",
   "preflightGate": {
     "sourceShaExactHeadRequired": true,
     "loopbackCdpOnly": true,
