@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_2_BANK_PRODUCTION_PREPARATION",
   "stand": "2026-09-22",
-  "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_NO_WRITE_5M_BESTANDEN_BLOCKED",
+  "status": "MILESTONE_ABGESCHLOSSEN_MIT_AKZEPTIERTEN_AUSNAHMEN",
   "basisMain": "05b93ac7dbb6ef294294c38030d9e4b48962f7d3",
   "blockingGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
-  "zweck": "PR20.2 Bank-Autonomie schrittweise produktiv nachweisen. bank_deposit(1), bank_retrieve, bank_store und bank_swap sind real bestanden. bank_withdraw(1) hat zwei echte Funktionstests verbraucht und bleibt ohne vollstaendig bestandene Live-Write-Evidence breit deaktiviert. Open-Pack Shadow und read-only Admission sind als Sicherheitspruefungen bestanden; fachlich bleibt open_bank_pack wegen 15.993.820 < 75.000.000 Gold und 0 < 600 Shells RESOURCE_BLOCKED_NO_LIVE. Der reale Bank-NO-WRITE-5M-Lauf ist BESTANDEN. PR20.2 bleibt BLOCKIERT_FAIL_CLOSED; aktuell ist kein weiterer Ingame-Test gate-wirksam.",
+  "zweck": "PR20.2 Bank-Meilenstein ist fuer die sequenzielle Roadmap mit explizit akzeptierten Ausnahmen abgeschlossen. Deposit, Retrieve, Store, Swap und NO-WRITE-5M sind bestanden. Withdraw bleibt ohne vollstaendig bestandene Live-Evidence deaktiviert; Open-Pack bleibt RESOURCE_BLOCKED_NO_LIVE und deaktiviert. PR20.3-Testarbeit darf beginnen, ohne diese beiden Bankpfade als bestanden oder aktiv zu behandeln.",
   "authorityGrenze": {
     "produktiveRegistrierungErlaubt": true,
     "produktiverAktivierungspfadErlaubt": false,
@@ -294,7 +294,7 @@
     "sameIntentRetry": false
   },
   "pr20_2ExitGate": {
-    "status": "BLOCKIERT_FAIL_CLOSED",
+    "status": "MILESTONE_ABGESCHLOSSEN_MIT_AKZEPTIERTEN_AUSNAHMEN",
     "blocker": [
       "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
       "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
@@ -305,8 +305,9 @@
     "integration15mRequiredNow": false,
     "weitereIngameTestsJetztErforderlich": false,
     "breiteBankAktivierungErlaubt": false,
-    "pr20_3MarktStartErlaubt": false,
-    "sameIntentRetry": false
+    "pr20_3MarktStartErlaubt": true,
+    "sameIntentRetry": false,
+    "operatorTransitionAcceptance": "roadmap/pr20-2-bank-operator-transition-acceptance.json"
   },
   "noWrite5m": {
     "status": "BESTANDEN_REAL_INGAME_READ_ONLY",
@@ -323,7 +324,7 @@
     "integration15mRequiredNow": false
   },
   "blockerCloseout": {
-    "status": "BLOCKIERT_FAIL_CLOSED_NO_FURTHER_INGAME_TEST_JUSTIFIED",
+    "status": "MILESTONE_CLOSED_EXCEPTIONS_RETAINED",
     "evidencePfad": "roadmap/pr20-2-bank-blocker-closeout.json",
     "weitereIngameTestsJetztErforderlich": false
   }
