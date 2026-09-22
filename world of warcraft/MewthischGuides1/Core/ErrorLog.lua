@@ -215,6 +215,8 @@ function MG:GetDiagnosticSnapshot()
             WorldMapOverlay = self.WorldMapOverlay ~= nil,
             RewardAdvisorFrame = self.RewardAdvisorFrame ~= nil,
             BuildWindow = self.BuildWindow ~= nil,
+            ThemeManager = self.ThemeManager ~= nil,
+            Telemetry = self.Telemetry ~= nil,
             SettingsWindow = self.SettingsWindow ~= nil,
             ErrorLogWindow = self.ErrorLogWindow ~= nil,
         },
@@ -253,6 +255,8 @@ function MG:GetDiagnosticSnapshot()
         gearAdvice = self.GearAdvisor and self.GearAdvisor:Get() or nil,
         apiCapabilities = self.ForeverAPI and self.ForeverAPI:Probe() or nil,
         validation = db.runtime and db.runtime.validation or nil,
+        telemetry = self.Telemetry and self.Telemetry:GetSnapshot() or nil,
+        theme = self.ThemeManager and select(2,self.ThemeManager:GetCurrent()) or nil,
         relevantQuests = relevantQuests,
         settings = db.settings,
         guideSelection = db.guide,
@@ -323,6 +327,8 @@ function MG:GetErrorLogText(includeInfo)
         gearAdvice=snapshot.gearAdvice,
         apiCapabilities=snapshot.apiCapabilities,
         validation=snapshot.validation,
+        telemetry=snapshot.telemetry,
+        theme=snapshot.theme,
     })
     appendSection(lines, "RELEVANTE QUESTS", snapshot.relevantQuests)
     appendSection(lines, "EINSTELLUNGEN / UI", {
