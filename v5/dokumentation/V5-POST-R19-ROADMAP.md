@@ -922,3 +922,16 @@ blockieren aber den PR20.2-Meilenstein nicht mehr.
 Das aktive Gate ist jetzt **PR20.3 Markt**. Dessen NO-WRITE-Testkette darf
 beginnen; produktive Market-Mutation oder Gameplay-Authority wird erst durch
 die eigenen PR20.3-Gates erteilt.
+
+
+### Bereits vorbereitet nach Buy-Gold: NPC Sell
+
+Der aktive PR20.3-Test bleibt zunaechst der Buy-Gold-Stufentest. Parallel ist
+der anschliessende NPC-Sell-Test bereits als vollstaendiges persistentes
+7-Stufen-Paket vorbereitet:
+
+`werkzeuge/pr20-3-market-sell-step-test-paket.js`
+
+Er wird erst nach lokal bestaetigtem Buy-Gold-Status 7/7 aktiv und verkauft
+nur die zwei durch Buy-LIVE-1/2 bestaetigten Testeinheiten. Zwischen seinen
+Stufen ist kein weiterer Merge erforderlich.
