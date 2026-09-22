@@ -137,7 +137,9 @@
     "ingame:bank-store:shadow": "npm run bauen && node werkzeuge/bank-item-transfer-real-browser-shadow.mjs --mode STORE",
     "bank-shadow-cli:pruefen": "node --check werkzeuge/bank-item-transfer-real-browser-shadow.mjs && node --check werkzeuge/bank-swap-real-browser-shadow.mjs && node --test grundlage/tests/r11-bank-shadow-cli-argumente.test.mjs",
     "bank-browser-performance:pruefen": "node --check werkzeuge/r12-live/performance-trick.mjs && node --test grundlage/tests/r11-bank-browser-performance-trick.test.mjs",
-    "bank-code-bridge-context:pruefen": "node --check werkzeuge/bank-item-transfer-produktions-browser.mjs && node --check werkzeuge/bank-swap-produktions-browser.mjs && node --check werkzeuge/bank-item-transfer-real-browser-shadow.mjs && node --check werkzeuge/bank-swap-real-browser-shadow.mjs && node --test grundlage/tests/r11-bank-code-bridge-context.test.mjs"
+    "bank-code-bridge-context:pruefen": "node --check werkzeuge/bank-item-transfer-produktions-browser.mjs && node --check werkzeuge/bank-swap-produktions-browser.mjs && node --check werkzeuge/bank-item-transfer-real-browser-shadow.mjs && node --check werkzeuge/bank-swap-real-browser-shadow.mjs && node --test grundlage/tests/r11-bank-code-bridge-context.test.mjs",
+    "bank-function-test-gui:bauen": "node werkzeuge/bank-function-test-paket-bauen.mjs",
+    "bank-function-test-gui:pruefen": "node --check werkzeuge/bank-function-test-gui.js && node --check werkzeuge/bank-function-test-paket.js && node werkzeuge/bank-function-test-paket-bauen.mjs --check && node --test werkzeuge/tests/bank-function-test-gui.test.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
