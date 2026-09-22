@@ -3,7 +3,7 @@ local addonName, MG = ...
 _G.MewthischGuides1 = MG
 MG.NAME = "Mewthisch Guides"
 MG.VERSION = "1.0.0-dev"
-MG.BUILD = "2026-09-22-worldnav-ui-1"
+MG.BUILD = "2026-09-22-worldnav-ui-2"
 MG.INTERFACE = 16001
 
 MG.Util = MG.Util or {}
