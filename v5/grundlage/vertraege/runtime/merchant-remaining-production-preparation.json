@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kennung": "V5_PR20_5_9_MERCHANT_RESTVORBEREITUNG",
-  "stand": "2026-09-21",
+  "stand": "2026-09-22",
   "status": "VORBEREITET_NO_WRITE",
   "basisMain": "f9b909918f4118c4b184ecb56e9170093e28781c",
   "authorityGrenze": {
@@ -15,7 +15,7 @@
   },
   "pr20_5": {
     "ziel": "Merchant-Pingpong und Starvation verhindern",
-    "status": "CORE_VORBEREITET_NO_WRITE",
+    "status": "AUTONOMOUS_4CHAR_TEST_BEREIT_BLOCKED_BY_PR20_4",
     "core": "grundlage/quelle/merchant/dienst-stabilitaet.ts",
     "regeln": [
       "kein Bereichswechsel waehrend irreversibler Mutation",
@@ -33,8 +33,21 @@
       "PR20.3",
       "PR20.4"
     ],
-    "test": "grundlage/tests/pr20-merchant-dienst-stabilitaet.test.mjs",
-    "runtimeIntegrationErlaubt": false
+    "test": "werkzeuge/pr20-5-merchant-stability-autonomous-4char.js",
+    "runtimeIntegrationErlaubt": false,
+    "testPlan": "roadmap/pr20-5-autonomous-4char-test-plan.json",
+    "requiredCharacterClasses": [
+      "merchant",
+      "ranger",
+      "priest",
+      "mage"
+    ],
+    "autoStart": true,
+    "operatorInteractionAfterLoad": false,
+    "supabaseTransport": "WINDOWS_BRIDGE_EXISTING_TELEMETRY",
+    "supabaseMonthlyInvocationLimit": 500000,
+    "supabaseSafetyReserve": 5000,
+    "pr20_4RuntimeGate": "AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1.steps.16.status=BESTANDEN"
   },
   "pr20_6": {
     "ziel": "MLuck-Service produktiv",
