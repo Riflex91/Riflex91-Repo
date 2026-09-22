@@ -463,7 +463,7 @@
   'use strict';
 
   const API_NAME = 'V5BankFunctionTest';
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
   const TESTKENNUNG = 'bank-function-tests';
   const STATE_KEY = 'AIO_V5_BANK_FUNCTION_TEST_STATE_V1';
   const STABILITY_MS = 750;
@@ -624,6 +624,52 @@
     return '';
   }
 
+  function bankPackKatalogSnapshot(root, bank) {
+    let katalog = null;
+    for (const r of roots()) {
+      try {
+        if (r?.bank_packs && typeof r.bank_packs === 'object') {
+          katalog = r.bank_packs;
+          break;
+        }
+      } catch {}
+    }
+    if (!katalog) return Object.freeze([]);
+    const out = [];
+    for (const pack of Object.keys(katalog).sort((a, b) => {
+      const na = Number(String(a).replace(/^items/, ''));
+      const nb = Number(String(b).replace(/^items/, ''));
+      return na - nb;
+    })) {
+      if (!/^items[0-9]+$/.test(pack)) continue;
+      const meta = katalog[pack];
+      let map = '';
+      let goldKosten = null;
+      let shellKosten = null;
+      if (Array.isArray(meta)) {
+        map = text(meta[0]);
+        const g = Number(meta[1]);
+        const s = Number(meta[2]);
+        goldKosten = Number.isSafeInteger(g) && g >= 0 ? g : null;
+        shellKosten = Number.isSafeInteger(s) && s >= 0 ? s : null;
+      } else if (meta && typeof meta === 'object') {
+        map = text(meta.map || meta.place);
+        const g = Number(meta.gold);
+        const s = Number(meta.shells);
+        goldKosten = Number.isSafeInteger(g) && g >= 0 ? g : null;
+        shellKosten = Number.isSafeInteger(s) && s >= 0 ? s : null;
+      }
+      out.push(Object.freeze({
+        pack,
+        map,
+        goldKosten,
+        shellKosten,
+        freigeschaltet: !!(bank && Array.isArray(bank[pack]))
+      }));
+    }
+    return Object.freeze(out);
+  }
+
   function snapshot() {
     const root = rootFenster();
     const c = root.character;
@@ -654,7 +700,9 @@
       }
     }
     const characterGold = Number(c.gold);
+    const characterCash = Number(c.cash);
     const bankGold = bank ? Number(bank.gold) : NaN;
+    const packKatalog = bankPackKatalogSnapshot(root, bank);
     const basis = {
       accountId: accountId(root),
       charakter: text(c.name),
@@ -669,8 +717,10 @@
       bankGemountet: !!bank,
       alternativeRuntimeAktiv: alternativeRuntimeAktiv(),
       characterGold: Number.isSafeInteger(characterGold) && characterGold >= 0 ? characterGold : null,
+      characterCash: Number.isSafeInteger(characterCash) && characterCash >= 0 ? characterCash : null,
       bankGold: Number.isSafeInteger(bankGold) && bankGold >= 0 ? bankGold : null,
       inventoryCapacity,
+      packKatalog,
       inventory,
       packs
     };
@@ -685,7 +735,15 @@
         serverRegion: basis.serverRegion,
         serverKennung: basis.serverKennung,
         characterGold: basis.characterGold,
+        characterCash: basis.characterCash,
         bankGold: basis.bankGold,
+        packKatalog: packKatalog.map(x => ({
+          pack: x.pack,
+          map: x.map,
+          goldKosten: x.goldKosten,
+          shellKosten: x.shellKosten,
+          freigeschaltet: x.freigeschaltet
+        })),
         inventory: inventory.map(x => x?.fingerprint ?? null),
         packs: packs.map(p => ({
           pack: p.pack,
@@ -782,6 +840,28 @@
       }
     }
     return null;
+  }
+
+  function waehleOpenBankPack(s) {
+    for (const row of s.packKatalog ?? []) {
+      if (row.map !== s.map || row.freigeschaltet) continue;
+      if (!Number.isSafeInteger(row.goldKosten) || row.goldKosten < 0
+          || !Number.isSafeInteger(row.shellKosten) || row.shellKosten < 0) continue;
+      if (row.goldKosten === 0 && row.shellKosten === 0) continue;
+      return Object.freeze({
+        art: 'OPEN_BANK_PACK',
+        pack: row.pack,
+        map: row.map,
+        goldKosten: row.goldKosten,
+        shellKosten: row.shellKosten
+      });
+    }
+    return null;
+  }
+
+  function openPackKandidatKey(k) {
+    if (!k) return null;
+    return [k.art, k.pack, k.map, k.goldKosten, k.shellKosten].join('|');
   }
 
   function kandidat(s, art) {
@@ -1069,6 +1149,90 @@
       ...result,
       testArt: 'SHADOW',
       mutatingPublicFunctionCalls: 0
+    });
+  }
+
+  async function openBankPackShadow() {
+    const performanceTrick = await guiApi().aktivierePerformanceTrick();
+    if (!performanceTrick?.aktiv) {
+      return Object.freeze({
+        status: 'BLOCKIERT',
+        art: 'OPEN_BANK_PACK',
+        blocker: ['PERFORMANCE_TRICK_NICHT_AKTIV'],
+        performanceTrick,
+        gameplayWrites: 0,
+        mutatingPublicFunctionCalls: 0,
+        liveMutationFreigegeben: false
+      });
+    }
+
+    const first = snapshot();
+    const blocker = basisBlocker(first);
+    const root = rootFenster();
+    if (typeof root.open_bank_pack !== 'function') blocker.push('PUBLIC_FUNCTION_FEHLT');
+    const firstKandidat = waehleOpenBankPack(first);
+    if (!firstKandidat) blocker.push('KEIN_GESPERRTER_KOSTENPFLICHTIGER_PACK_AUF_DIESER_BANK');
+
+    if (blocker.length) {
+      return Object.freeze({
+        status: 'BLOCKIERT',
+        art: 'OPEN_BANK_PACK',
+        blocker: Object.freeze(blocker),
+        performanceTrick,
+        first,
+        kandidat: firstKandidat,
+        gameplayWrites: 0,
+        mutatingPublicFunctionCalls: 0,
+        liveMutationFreigegeben: false
+      });
+    }
+
+    await sleep(STABILITY_MS);
+    const second = snapshot();
+    const secondKandidat = waehleOpenBankPack(second);
+    if (first.fingerprint !== second.fingerprint
+        || openPackKandidatKey(firstKandidat) !== openPackKandidatKey(secondKandidat)) {
+      return Object.freeze({
+        status: 'BLOCKIERT',
+        art: 'OPEN_BANK_PACK',
+        blocker: ['KANDIDAT_ODER_GAMESTATE_NICHT_STABIL'],
+        performanceTrick,
+        firstFingerprint: first.fingerprint,
+        secondFingerprint: second.fingerprint,
+        firstKandidat,
+        secondKandidat,
+        gameplayWrites: 0,
+        mutatingPublicFunctionCalls: 0,
+        liveMutationFreigegeben: false
+      });
+    }
+
+    return Object.freeze({
+      status: 'BESTANDEN',
+      art: 'OPEN_BANK_PACK',
+      testArt: 'SHADOW',
+      performanceTrick,
+      beobachtungen: 2,
+      intervallMs: STABILITY_MS,
+      kandidat: secondKandidat,
+      zahlung: Object.freeze({
+        characterGold: second.characterGold,
+        characterShells: second.characterCash,
+        goldBezahlbar: Number.isSafeInteger(second.characterGold)
+          && second.characterGold >= secondKandidat.goldKosten,
+        shellsBezahlbar: Number.isSafeInteger(second.characterCash)
+          && second.characterCash >= secondKandidat.shellKosten
+      }),
+      officialRunnerSemantik: Object.freeze({
+        erlaubteWaehrungen: Object.freeze(['gold', 'shells']),
+        goldPfad: 'BANK_DEFERRED',
+        shellsPfad: 'ASYNC_BACKEND_TX_MIT_IN_PROGRESS_UND_GAME_RESPONSE'
+      }),
+      sameIntentErneutSenden: false,
+      gameplayWrites: 0,
+      mutatingPublicFunctionCalls: 0,
+      liveMutationFreigegeben: false,
+      naechsterSchritt: 'NUR_DIAGNOSE_KOPIEREN_KEIN_OPEN_BANK_PACK_LIVE'
     });
   }
 
@@ -1402,6 +1566,22 @@
   }
 
   gui.registriereAktion({
+    kennung: 'open-pack-shadow',
+    titel: 'OPEN PACK · Shadow',
+    art: 'primaer',
+    async ausfuehren() {
+      const result = await openBankPackShadow();
+      gui.protokolliere('OPEN BANK PACK Shadow', result);
+      return setzeResultat(
+        result,
+        result.status === 'BESTANDEN'
+          ? 'OPEN PACK Shadow BESTANDEN. Kosten/Pfad beobachtet; kein Spend und kein Gameplay-Write.'
+          : 'OPEN PACK Shadow blockiert. Diagnose kopieren; kein Spend.'
+      );
+    }
+  });
+
+  gui.registriereAktion({
     kennung: 'diagnose',
     titel: 'Diagnose / Testbudget',
     async ausfuehren() {
@@ -1426,6 +1606,7 @@
     shadow,
     live,
     diagnose,
+    openBankPackShadow,
     bestaetigung,
     kopiereBericht: () => gui.kopiereBericht()
   });

@@ -7,6 +7,7 @@ Unterstuetzte Funktionen:
 - `bank_retrieve(pack, bankSlot, inventorySlot)`
 - `bank_store(inventorySlot, pack, bankSlot)`
 - `bank_swap(pack, a, b)`
+- `open_bank_pack(pack, currency, timeout_ms)` – **nur Shadow/read-only**, kein Live-/Spend-Button
 
 ## Grundsaetze
 
@@ -20,6 +21,7 @@ Unterstuetzte Funktionen:
 - Nach moeglichem Send mit offenem oder unklarem Ergebnis wird kein Retry freigegeben.
 - Kein Raw-Socket-Emit ist Teil des Testpakets.
 - Das Fenster zeigt strukturierte Diagnose und bietet **Ergebnis kopieren** sowie **Gesamtbericht kopieren**.
+- `OPEN PACK · Shadow` liest den ersten gesperrten kostenpflichtigen Pack auf der aktuellen Bank, Gold-/Shell-Kosten und beide Guthaben. Der Shadow ruft `open_bank_pack()` niemals auf und setzt `liveMutationFreigegeben=false`.
 
 ## Bedienung
 

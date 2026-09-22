@@ -144,3 +144,86 @@ test("unklarer moeglicher Send sperrt denselben Funktionspfad gegen Retry", asyn
   assert.ok(Array.from(second.blocker).includes("VORHERIGER_MOEGLICHER_SEND_UNGEKLAERT"));
   assert.equal(calls(), 1);
 });
+
+
+test("OPEN BANK PACK besitzt ausschliesslich einen read-only Shadow ohne Spend-Pfad", () => {
+  assert.ok(controller.includes("OPEN PACK · Shadow"));
+  assert.ok(controller.includes("liveMutationFreigegeben: false"));
+  assert.ok(controller.includes("ASYNC_BACKEND_TX_MIT_IN_PROGRESS_UND_GAME_RESPONSE"));
+  assert.ok(controller.includes("goldBezahlbar"));
+  assert.ok(controller.includes("shellsBezahlbar"));
+  assert.equal((controller.match(/\.open_bank_pack\s*\(/g) ?? []).length, 0);
+  assert.equal((controller.match(/open_bank_pack\s*\(/g) ?? []).length, 0);
+});
+
+test("OPEN BANK PACK Shadow waehlt stabilen gesperrten Pack und schreibt nichts", async () => {
+  const speicher = new Map();
+  const gui = {
+    registriereAktion() {},
+    protokolliere() {},
+    setzeErgebnis() {},
+    setzeAktionAktiv() {},
+    kopiereBericht() { return true; }
+  };
+  let jetzt = 1000;
+  const basis = {
+    parent: null,
+    user_id: "account-1",
+    server_region: "EU",
+    server_identifier: "I",
+    bank_packs: {
+      items0: ["bank", 0, 0],
+      items1: ["bank", 0, 0],
+      items2: ["bank", 75000000, 600]
+    },
+    character: {
+      name: "Merchant",
+      id: "session-1",
+      owner: "account-1",
+      ctype: "merchant",
+      map: "bank",
+      rip: false,
+      moving: false,
+      q: {},
+      gold: 80000000,
+      cash: 700,
+      isize: 4,
+      items: [null, null, null, null],
+      bank: {
+        gold: 500,
+        items0: [null],
+        items1: [null]
+      }
+    },
+    G: { items: {} },
+    localStorage: {
+      getItem(key) { return speicher.has(key) ? speicher.get(key) : null; },
+      setItem(key, value) { speicher.set(key, String(value)); }
+    },
+    V5TestGui: {
+      performanceTrickStatus() { return { aktiv: true, playing: true }; },
+      async aktivierePerformanceTrick() { return { aktiv: true, playing: true }; },
+      erstelleTest() { return gui; }
+    },
+    bank_retrieve() {},
+    bank_store() {},
+    bank_swap() {},
+    open_bank_pack() { throw new Error("DARF_NICHT_AUFGERUFEN_WERDEN"); },
+    setTimeout(fn) { fn(); return 1; },
+    clearTimeout() {},
+    Date: { now() { jetzt += 1000; return jetzt; } },
+    console
+  };
+  const context = vm.createContext(basis);
+  vm.runInContext(controller, context);
+  const result = await context.V5BankFunctionTest.openBankPackShadow();
+  assert.equal(result.status, "BESTANDEN");
+  assert.equal(result.kandidat.pack, "items2");
+  assert.equal(result.kandidat.goldKosten, 75000000);
+  assert.equal(result.kandidat.shellKosten, 600);
+  assert.equal(result.zahlung.goldBezahlbar, true);
+  assert.equal(result.zahlung.shellsBezahlbar, true);
+  assert.equal(result.gameplayWrites, 0);
+  assert.equal(result.mutatingPublicFunctionCalls, 0);
+  assert.equal(result.liveMutationFreigegeben, false);
+});
