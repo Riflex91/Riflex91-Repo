@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_PR20_3_MARKET_BUY_GOLD_ERSTER_KANDIDAT",
+  "stand": "2026-09-22",
+  "status": "STUFENTEST_VORBEREITET_EIN_MERGE",
+  "basisMain": "55446d26ac13888816761c97b02006aeafa65bcb",
+  "publicFunction": "buy_with_gold",
+  "menge": 1,
+  "route": "GOLD_ONLY",
+  "actionContractId": "AL-ACTION-BUY-WITH-GOLD",
+  "recoveryContractId": "AL-RECOVERY-BUY-WITH-GOLD",
+  "verifierId": "AL-VERIFIER-BUY-WITH-GOLD",
+  "providerSpaeter": "merchant-market-core@1",
+  "capabilitySpaeter": "merchant.markt.npc_kauf_gold",
+  "auswahlbegruendung": [
+    "kleinster wertveraendernder PR20.3-Kaufpfad ohne Player-Market-RID",
+    "explizite Goldroute vermeidet automatisches Routing auf buy_with_shells",
+    "FIFO deferred channel buy und atomarer Serverhandler sind bereits source-verifiziert",
+    "Settlement kann ueber exakten Gold- und Itemmengen-Delta gemeinsam bestaetigt werden",
+    "same-intent retry nach moeglichem Send bleibt verboten"
+  ],
+  "offizielleSemantik": {
+    "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "client": "buy_with_gold(name, quantity) -> FIFO deferred channel buy -> socket event buy {name, quantity}",
+    "executionModel": "ATOMIC_HANDLER",
+    "effectDomains": [
+      "gold",
+      "inventory"
+    ]
+  },
+  "admissionMinimum": [
+    "ctype merchant",
+    "character alive and idle",
+    "alternative V3/V4 runtime inactive",
+    "fresh character/session/server binding",
+    "fresh item definition and vendor reachability",
+    "exact quantity = 1",
+    "fresh pinned gold unit price and total cost",
+    "inventory can accept exactly one purchased item",
+    "GoldBudgetLedger permits exact cost while preserving safety reserve",
+    "no open equal market-buy transaction",
+    "durable intent before any possible send",
+    "buy action-channel and character socket budget fenced"
+  ],
+  "settlement": {
+    "quantity": 1,
+    "requireExactGoldDelta": true,
+    "requireExactItemQuantityDelta": true,
+    "requireNewInventoryFingerprint": true,
+    "requireSameCharacter": true,
+    "requireSameSession": true,
+    "requireSameServer": true,
+    "requireSameItemDefinitionFingerprint": true,
+    "requireSameVendorFingerprint": true,
+    "sameIntentRetry": false
+  },
+  "authorityGrenze": {
+    "produktiveCapabilityInDiesemSchritt": false,
+    "produktiveAuthorityInDiesemSchritt": false,
+    "produktiverAdapterInDiesemSchritt": false,
+    "produktiverLiveRunnerInDiesemSchritt": false,
+    "testHarnessMitKontrolliertemLiveWrite": true,
+    "testHarnessMaxTrueTests": 2,
+    "testHarnessStateKey": "AIO_V5_PR20_3_BUY_GOLD_STEP_TEST_V1",
+    "testHarnessPaket": "werkzeuge/pr20-3-market-buy-gold-step-test-paket.js",
+    "testHarnessSchritte": 7,
+    "mergeZwischenTestschrittenErforderlich": false,
+    "gameplayAutoritaetProduktiv": false,
+    "rawWriteAutoritaet": false,
+    "sameIntentRetry": false
+  },
+  "nextAction": "EINMAL_MERGEN_DANN_STUFEN_1_BIS_7_DIREKT_INGAME_ABARBEITEN"
+}

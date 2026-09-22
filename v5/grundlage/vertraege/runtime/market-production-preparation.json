@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_3_MARKT_PRODUCTION_PREPARATION",
   "stand": "2026-09-22",
-  "status": "TESTKETTE_START_FREIGEGEBEN_NO_WRITE",
-  "basisMain": "0c7bffa935d7055d074fa4a3b93d11c861515153",
+  "status": "STUFENTEST_VORBEREITET_EIN_MERGE",
+  "basisMain": "55446d26ac13888816761c97b02006aeafa65bcb",
   "produktiveFreigabeBlockiertBis": [
     "PR20.3_EIGENE_CAPABILITY_AUTHORITY_JOURNAL_ADMISSION_SHADOW_LIVE_GATES"
   ],
@@ -126,21 +126,47 @@
     "bei NPC-Sell der exakte verkaufte physische Gegenstand und Gold-Delta"
   ],
   "nachVorstufenErforderlicheFreigabeschritte": [
-    "PR20.1 Equip-Evidence bestanden dokumentieren",
-    "PR20.2 Bank produktiv und integrativ abschliessen",
-    "einen einzigen ersten Markt-Live-Kandidaten festlegen",
-    "Mutationsfaehigkeit und Single Owner separat ratifizieren",
-    "eng begrenzte Authority + Admission implementieren",
-    "durables Markt-Transaktionsjournal implementieren",
-    "read-only Preflight fuer den ersten Kandidaten implementieren",
-    "Unit/Replay/Fault/Restart/RID-Drift/UNKNOWN-Tests bestehen",
-    "Shadow bestehen",
-    "erst danach einen einzelnen kontrollierten Markt-Live-Write zulassen"
+    "ERLEDIGT: PR20.1 Equip-Evidence bestanden",
+    "ERLEDIGT: PR20.2 Bank breit freigegeben",
+    "ERLEDIGT: buy_with_gold(item, 1) als ersten Kandidaten ratifiziert",
+    "ERLEDIGT: Settlement-/Drift-Core und Offline-Tests",
+    "ERLEDIGT: ein persistenter Ingame-Stufentest fuer alle verbleibenden Testgates gebaut",
+    "INGAME: Schritt 1 Umgebung/Bindung",
+    "INGAME: Schritt 2 stabilen Gold-Kauf-Kandidaten pinnen",
+    "INGAME: Schritt 3 read-only Shadow/Admission",
+    "INGAME: Schritt 4 kontrollierter LIVE 1 Write",
+    "INGAME: Schritt 5 frische Re-Admission ohne Write",
+    "INGAME: Schritt 6 kontrollierter LIVE 2 Write",
+    "INGAME: Schritt 7 5-Minuten NO-WRITE Stabilitaet",
+    "danach Gesamtbericht einmalig dokumentieren; kein Merge zwischen den sieben Ingame-Schritten"
   ],
   "pr20_2Transition": {
     "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
     "evidence": "roadmap/pr20-2-bank-operator-transition-acceptance.json",
     "broadBankActivationAllowed": true,
     "bankExceptionsRemainLocallyGated": true
+  },
+  "ersterLiveKandidat": {
+    "status": "STUFENTEST_VORBEREITET_EIN_MERGE",
+    "publicFunction": "buy_with_gold",
+    "menge": 1,
+    "route": "GOLD_ONLY",
+    "contract": "grundlage/vertraege/runtime/market-buy-gold-production-candidate.json",
+    "settlementCore": "grundlage/quelle/merchant/market-buy-gold-settlement.ts",
+    "actionContractId": "AL-ACTION-BUY-WITH-GOLD",
+    "recoveryContractId": "AL-RECOVERY-BUY-WITH-GOLD",
+    "verifierId": "AL-VERIFIER-BUY-WITH-GOLD",
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "gameplayWritesInDiesemSchritt": 0,
+    "sameIntentRetry": false,
+    "testHarness": "werkzeuge/pr20-3-market-buy-gold-step-test-paket.js",
+    "testHarnessStateKey": "AIO_V5_PR20_3_BUY_GOLD_STEP_TEST_V1",
+    "testHarnessSchritte": 7,
+    "mergeZwischenTestschrittenErforderlich": false,
+    "maxTrueTests": 2,
+    "bestaetigungLive1": "PR20.3-BUY-GOLD-LIVE-1",
+    "bestaetigungLive2": "PR20.3-BUY-GOLD-LIVE-2",
+    "produktiveGameplayAutoritaet": false
   }
 }

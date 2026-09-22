@@ -1,6 +1,6 @@
 # PR20.3 – Markt/Kaufen/Verkaufen: NO-WRITE-Vorbereitung
 
-**Status:** TESTKETTE START FREIGEGEBEN / NO-WRITE  
+**Status:** STUFENTEST VORBEREITET / EIN MERGE / DANACH 7 DIREKTE INGAME-STUFEN  
 **Stand:** 2026-09-22  
 **Voraussetzung:** PR20.2 breite Bankfreigabe erteilt; PR20.3 muss jetzt seine eigenen Safety-/Live-Gates bestehen  
 **Basis-main:** `0c7bffa935d7055d074fa4a3b93d11c861515153`
@@ -21,6 +21,29 @@ Nicht enthalten sind:
 Maschinenlesbarer Vertrag:
 
 `grundlage/vertraege/runtime/market-production-preparation.json`.
+
+## Erster kontrollierter Kandidat
+
+Als erster PR20.3-Mutationspfad ist jetzt **`buy_with_gold(item, 1)`**
+ratifiziert. Bewusst wird nicht das generische `buy()` verwendet, weil dieses
+bei geeigneten Cash-Items automatisch auf `buy_with_shells` routen kann.
+
+Der erste Pfad ist deshalb:
+
+- exakt Menge 1;
+- explizite Goldroute;
+- `AL-ACTION-BUY-WITH-GOLD` / `AL-RECOVERY-BUY-WITH-GOLD` /
+  `AL-VERIFIER-BUY-WITH-GOLD`;
+- FIFO-Deferred-Kanal `buy`;
+- kein Same-Intent-Retry nach moeglichem Send;
+- COMMIT nur bei gemeinsamem exaktem Gold- und Itemmengen-Delta;
+- in diesem Schritt 0 Gameplay-Writes und keine produktive Authority.
+
+Vertrag:
+`grundlage/vertraege/runtime/market-buy-gold-production-candidate.json`
+
+Settlement-Core:
+`grundlage/quelle/merchant/market-buy-gold-settlement.ts`
 
 ## Vorhandene V5-Grundlagen
 
@@ -116,3 +139,46 @@ Trotz gestarteter Testkette bleiben bis zur eigenen PR20.3-Evidence verboten:
 6. Fault-/RID-Drift-/Partial-Fill-/Restart-/UNKNOWN-Tests;
 7. Shadow;
 8. exakt einen kontrollierten realen Write.
+
+
+## Ein Testpaket fuer die komplette erste Buy-Gold-Abnahme
+
+Fuer den ersten PR20.3-Kandidaten existiert jetzt genau **ein**
+selbstenthaltenes Ingame-Paket:
+
+`werkzeuge/pr20-3-market-buy-gold-step-test-paket.js`
+
+Nach dem einmaligen Merge dieses Pakets ist zwischen den Ingame-Schritten
+**kein weiterer Merge erforderlich**. Der Fortschritt wird persistent unter
+
+`AIO_V5_PR20_3_BUY_GOLD_STEP_TEST_V1`
+
+gespeichert.
+
+Die sieben Stufen sind:
+
+1. Umgebung / Character-/Session-/Serverbindung read-only pruefen;
+2. guenstigsten sicheren, aktuell erreichbaren Gold-NPC-Kandidaten stabil pinnen;
+3. drei read-only Shadow-/Admission-Beobachtungen ohne Drift bestehen;
+4. LIVE 1: exakt `buy_with_gold(item, 1)`;
+5. nach dem ersten Commit eine komplett frische Re-Admission bestehen;
+6. LIVE 2: erneut exakt ein frisch zugelassener `buy_with_gold(item, 1)`;
+7. anschliessend 5 Minuten NO-WRITE-Stabilitaet.
+
+Die Live-Bestaetigungen lauten exakt:
+
+- `PR20.3-BUY-GOLD-LIVE-1`
+- `PR20.3-BUY-GOLD-LIVE-2`
+
+Das Live-Testbudget ist persistent auf **2** begrenzt und kann im GUI nicht
+zurueckgesetzt werden. Ein moeglicher Send verbraucht den Versuch bereits vor
+der Settlement-Entscheidung. Nach UNKNOWN/Drift/Timeout gilt weiterhin
+`sameIntentRetry=false`.
+
+Der Harness waehlt nur einen aktuell erreichbaren Nicht-Cash-/Nicht-P2W-
+Goldkandidaten mit maximal 10.000 Gold Kosten und bewahrt mindestens
+1.000.000 Gold Testreserve. Ein vorhandener nicht voller Stack wird
+bevorzugt.
+
+Erst nach Schritt 7 wird der Gesamtbericht einmalig in die Repo-Evidence
+uebernommen.

@@ -134,17 +134,24 @@ if (roadmap.currentGate !== "PR20.3_MARKT_PRODUKTIVIERUNG"
     || roadmap.pr20_2?.broadBankActivationAllowed !== true
     || roadmap.pr20_2?.withdrawActivationAllowed !== false
     || roadmap.pr20_2?.openBankPackActivationAllowed !== false
-    || roadmap.pr20_3?.status !== "TESTKETTE_START_FREIGEGEBEN_NO_WRITE") {
+    || roadmap.pr20_3?.status !== "STUFENTEST_VORBEREITET_EIN_MERGE") {
   fail("ROADMAP_TRANSITION_ZU_PR20_3_UNGUELTIG");
 }
 
-if (market.status !== "TESTKETTE_START_FREIGEGEBEN_NO_WRITE"
+if (market.status !== "STUFENTEST_VORBEREITET_EIN_MERGE"
     || market.pr20_2Transition?.status !== "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN"
     || market.pr20_2Transition?.broadBankActivationAllowed !== true
     || market.pr20_2Transition?.bankExceptionsRemainLocallyGated !== true
     || market.authorityGrenze?.produktiveRegistrierungErlaubt !== false
     || market.authorityGrenze?.gameplayAutoritaet !== false
-    || market.authorityGrenze?.rawWriteAutoritaet !== false) {
+    || market.authorityGrenze?.rawWriteAutoritaet !== false
+    || market.ersterLiveKandidat?.publicFunction !== "buy_with_gold"
+    || market.ersterLiveKandidat?.menge !== 1
+    || market.ersterLiveKandidat?.route !== "GOLD_ONLY"
+    || market.ersterLiveKandidat?.mergeZwischenTestschrittenErforderlich !== false
+    || market.ersterLiveKandidat?.maxTrueTests !== 2
+    || market.ersterLiveKandidat?.produktiveGameplayAutoritaet !== false
+    || market.ersterLiveKandidat?.sameIntentRetry !== false) {
   fail("PR20_3_TESTKETTE_GRENZE_UNGUELTIG");
 }
 

@@ -240,7 +240,7 @@ Abzudecken:
 
 ### PR20.3 – Markt, Kaufen und Verkaufen produktiv
 
-**Aktueller Status:** `TESTKETTE_START_FREIGEGEBEN_NO_WRITE`. PR20.2 ist breit freigegeben und blockiert die Markt-Testkette nicht mehr. Die sichere Vorarbeit liegt unter
+**Aktueller Status:** `STUFENTEST_VORBEREITET_EIN_MERGE`. PR20.2 ist breit freigegeben und blockiert die Markt-Testkette nicht mehr. Als erster Kandidat ist `buy_with_gold(item, 1)` ueber die explizite Goldroute ratifiziert. Ein einziges persistentes 7-Stufen-Ingame-Paket deckt Preflight, Kandidaten-Pinning, Shadow/Admission, zwei kontrollierte Live-Writes mit hartem 2/2-Budget und den anschliessenden 5m-NO-WRITE-Lauf ab; zwischen diesen Stufen ist kein weiterer Merge erforderlich. Die sichere Vorarbeit liegt unter
 `dokumentation/PR20-3-MARKT-PRODUKTIV-VORBEREITUNG.md` und
 `grundlage/vertraege/runtime/market-production-preparation.json`.
 Produktive Market-Authority entsteht dadurch noch nicht; PR20.3 muss seine eigenen Capability-, Authority-, Journal-, Admission-, Shadow- und Live-Evidence-Gates bestehen.

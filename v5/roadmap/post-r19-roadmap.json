@@ -80,12 +80,15 @@
   ],
   "currentNextSteps": [
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN",
-    "PR20.2 Bank ist VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
-    "breite Bankfreigabe ist auf Modul-/Milestone-Ebene erteilt; lokale Capability-/Admission-Gates bleiben zwingend",
-    "bank_withdraw bleibt historisch NICHT_BESTANDEN_TESTLIMIT_ERREICHT und lokal gegatet; kein dritter Test",
-    "open_bank_pack bleibt bis ausreichenden Ressourcen lokal resource-blocked",
-    "PR20.3 Markt-Testkette darf jetzt starten",
-    "PR20.3 muss eigene Capability-, Authority-, Journal-, Admission-, Shadow- und Live-Evidence-Gates bestehen"
+    "PR20.2 Bank ist breit freigegeben; lokale Withdraw/Open-Pack-Gates bleiben erhalten",
+    "PR20.3 erster Kandidat ist buy_with_gold(item, 1) ueber die explizite Goldroute",
+    "PR20.3 besitzt einen einzigen persistenten 7-Stufen-Ingame-Test; kein Merge zwischen den Stufen",
+    "Schritte 1-3: Umgebung, Kandidat, Shadow/Admission read-only",
+    "Schritt 4: kontrollierter LIVE 1 Write mit persistentem Testbudget",
+    "Schritt 5: frische Re-Admission read-only",
+    "Schritt 6: kontrollierter LIVE 2 Write; danach Testbudget 2/2",
+    "Schritt 7: 5-Minuten NO-WRITE Stabilitaet",
+    "danach Gesamtbericht einmalig als reale PR20.3-Evidence dokumentieren"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -613,7 +616,7 @@
     },
     {
       "id": "PR20.3_MARKT",
-      "status": "TESTKETTE_START_FREIGEGEBEN_NO_WRITE",
+      "status": "STUFENTEST_VORBEREITET_EIN_MERGE",
       "blockedBy": [],
       "produktiveRegistrierungErlaubt": false,
       "gameplayAuthority": false,
@@ -621,9 +624,22 @@
       "artifacts": [
         "v5/dokumentation/PR20-3-MARKT-PRODUKTIV-VORBEREITUNG.md",
         "v5/grundlage/vertraege/runtime/market-production-preparation.json",
-        "v5/grundlage/tests/pr20-market-production-preparation.test.mjs"
+        "v5/grundlage/tests/pr20-market-production-preparation.test.mjs",
+        "v5/grundlage/vertraege/runtime/market-buy-gold-production-candidate.json",
+        "v5/grundlage/quelle/merchant/market-buy-gold-settlement.ts",
+        "v5/grundlage/tests/pr20-market-buy-gold-settlement.test.mjs",
+        "v5/werkzeuge/pr20-3-market-buy-gold-step-test-gui.js",
+        "v5/werkzeuge/pr20-3-market-buy-gold-step-test-paket-bauen.mjs",
+        "v5/werkzeuge/pr20-3-market-buy-gold-step-test-paket.js",
+        "v5/werkzeuge/tests/pr20-3-market-buy-gold-step-test.test.mjs",
+        "v5/roadmap/pr20-3-market-buy-gold-step-test-plan.json"
       ],
-      "pr20_2Transition": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN"
+      "pr20_2Transition": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
+      "firstLiveCandidate": "buy_with_gold(item, 1)",
+      "route": "GOLD_ONLY",
+      "testHarness": "v5/werkzeuge/pr20-3-market-buy-gold-step-test-paket.js",
+      "mergeZwischenTestschrittenErforderlich": false,
+      "maxTrueTests": 2
     },
     {
       "id": "PR20.4_LOGISTIK_TRANSFER",
@@ -810,10 +826,18 @@
     "broadBankReleaseScope": "BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES"
   },
   "pr20_3": {
-    "status": "TESTKETTE_START_FREIGEGEBEN_NO_WRITE",
+    "status": "STUFENTEST_VORBEREITET_EIN_MERGE",
     "productiveMutationAllowed": false,
     "gameplayAuthority": false,
-    "firstLiveCandidateSelected": false,
-    "nextAction": "ERSTEN_MARKT_KANDIDATEN_RATIFIZIEREN_UND_READ_ONLY_TESTKETTE_BAUEN"
+    "firstLiveCandidateSelected": true,
+    "firstLiveCandidate": "buy_with_gold(item, 1)",
+    "route": "GOLD_ONLY",
+    "testHarness": "v5/werkzeuge/pr20-3-market-buy-gold-step-test-paket.js",
+    "testHarnessStateKey": "AIO_V5_PR20_3_BUY_GOLD_STEP_TEST_V1",
+    "testHarnessSteps": 7,
+    "mergeZwischenTestschrittenErforderlich": false,
+    "maxTrueTests": 2,
+    "sameIntentRetry": false,
+    "nextAction": "EINMALIG_MERGEN_DANN_INGAME_STUFEN_1_BIS_7_ABARBEITEN"
   }
 }

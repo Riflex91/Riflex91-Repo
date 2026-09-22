@@ -21,7 +21,7 @@ const erwartete = new Map([
 
 test("PR20.3 Testkette ist nach breiter PR20.2-Freigabe NO-WRITE startbereit", () => {
   assert.equal(prep.schemaVersion, 1);
-  assert.equal(prep.status, "TESTKETTE_START_FREIGEGEBEN_NO_WRITE");
+  assert.equal(prep.status, "STUFENTEST_VORBEREITET_EIN_MERGE");
   assert.deepEqual(prep.produktiveFreigabeBlockiertBis, [
     "PR20.3_EIGENE_CAPABILITY_AUTHORITY_JOURNAL_ADMISSION_SHADOW_LIVE_GATES",
   ]);
@@ -38,6 +38,17 @@ test("PR20.3 Testkette ist nach breiter PR20.2-Freigabe NO-WRITE startbereit", (
   assert.equal(prep.authorityGrenze.actionAuthority, false);
   assert.equal(prep.authorityGrenze.direkteAdventureLandPublicFunctionAufrufe, 0);
   assert.equal(prep.authorityGrenze.browserGameplayWrites, 0);
+  assert.equal(prep.ersterLiveKandidat.publicFunction, "buy_with_gold");
+  assert.equal(prep.ersterLiveKandidat.menge, 1);
+  assert.equal(prep.ersterLiveKandidat.route, "GOLD_ONLY");
+  assert.equal(
+    prep.ersterLiveKandidat.testHarness,
+    "werkzeuge/pr20-3-market-buy-gold-step-test-paket.js",
+  );
+  assert.equal(prep.ersterLiveKandidat.testHarnessSchritte, 7);
+  assert.equal(prep.ersterLiveKandidat.mergeZwischenTestschrittenErforderlich, false);
+  assert.equal(prep.ersterLiveKandidat.maxTrueTests, 2);
+  assert.equal(prep.ersterLiveKandidat.produktiveGameplayAutoritaet, false);
 });
 
 test("PR20.3 Kandidaten besitzen exakt vorhandene R9 Action/Recovery/Verifier-Bindungen", () => {
