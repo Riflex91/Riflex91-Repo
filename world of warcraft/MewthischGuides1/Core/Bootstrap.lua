@@ -205,6 +205,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
 
         if event == "PLAYER_LOGIN" then
             MG:EnsureDB()
+            if MG.ForeverAPI then MG.ForeverAPI:Probe() end
 
             MG.GuideViewer:Create()
             MG.NavigatorFrame:Create()
@@ -218,6 +219,15 @@ frame:SetScript("OnEvent", function(_, event, ...)
 
             local ok = MG:Safe("login.guide_catalog", function()
                 MG.GuideCatalog:Load()
+                if MG.GuideValidation then
+                    local validation=MG.GuideValidation:ValidateAll()
+                    if validation.errors>0 then
+                        MG:Log("ERROR","guide.validation","Guide-Validierung meldet Fehler.",validation)
+                    elseif validation.warnings>0 then
+                        MG:Log("WARN","guide.validation","Guide-Validierung meldet Hinweise.",validation)
+                    end
+                end
+                if MG.GearAdvisor then MG.GearAdvisor:Refresh("login") end
                 local guide = chooseLoginGuide()
                 if guide then
                     MG.GuideController:Start(guide, "login", true)
@@ -249,6 +259,10 @@ frame:SetScript("OnEvent", function(_, event, ...)
             MG.AutomationPolicy:OnQuestComplete()
         elseif event == "QUEST_FINISHED" then
             MG.RewardAdvisorFrame:Hide()
+        end
+
+        if event == "BAG_UPDATE_DELAYED" or event == "PLAYER_EQUIPMENT_CHANGED" then
+            if MG.GearAdvisor then MG.GearAdvisor:Refresh(event) end
         end
 
         if event == "PLAYER_LEVEL_UP" or event == "LEARNED_SPELL_IN_TAB" or
