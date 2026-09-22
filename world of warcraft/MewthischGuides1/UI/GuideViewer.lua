@@ -4,11 +4,11 @@ MG.GuideViewer = MG.GuideViewer or {}
 local V = MG.GuideViewer
 local UI = MG.UICompat
 
-local FRAME_WIDTH = 400
+local FRAME_WIDTH = 430
 local MAX_ROWS = 12
-local ROW_HEIGHT = 22
-local ROW_START = 76
-local FOOTER_HEIGHT = 36
+local ROW_HEIGHT = 26
+local ROW_START = 80
+local FOOTER_HEIGHT = 40
 
 local function solid(parent,layer,r,g,b,a)
     local t=parent:CreateTexture(nil,layer or "BACKGROUND")
@@ -19,6 +19,28 @@ local function shadow(font)
     if not font then return end
     if font.SetShadowColor then font:SetShadowColor(0,0,0,1) end
     if font.SetShadowOffset then font:SetShadowOffset(1,-1) end
+end
+
+local function fontSize(font,size)
+    if not font or not font.GetFont or not font.SetFont then return end
+    local ok,path,_,flags=pcall(font.GetFont,font)
+    if ok and path then pcall(font.SetFont,font,path,size,flags) end
+end
+
+local function semanticColor(row)
+    if row.stickyHeader then return 1,.76,.18 end
+    if row.status=="complete" or row.status=="complete_hidden" then return .30,.95,.48 end
+    if row.status=="warning" or row.warning then return 1,.58,.16 end
+    if row.passive then return .58,.82,1 end
+    if row.optional then return .78,.78,.78 end
+    if row.current then
+        local ratio=tonumber(row.progressRatio)
+        if ratio and ratio>=.66 then return .56,.95,.34 end
+        if ratio and ratio>=.33 then return .95,.86,.24 end
+        if ratio and ratio>0 then return 1,.68,.18 end
+        return 1,.86,.42
+    end
+    return .96,.96,.96
 end
 
 local function flatButton(parent,text,width,height,callback)
@@ -37,7 +59,9 @@ end
 
 local function markerFor(row)
     if row.stickyHeader then return "",1,.74,.08 end
-    if row.navigated then return ">",1,.74,.08 end
+    if row.current or row.navigated then
+        local r,g,b=semanticColor(row);return ">",r,g,b
+    end
     if row.status=="complete" or row.status=="complete_hidden" then return "v",.3,.9,.45 end
     if row.status=="warning" or row.warning then return "!",1,.48,.10 end
     if row.passive then return "i",.4,.72,1 end
@@ -46,12 +70,7 @@ local function markerFor(row)
 end
 
 local function textColor(row)
-    if row.stickyHeader then return 1,.74,.08 end
-    if row.status=="complete" or row.status=="complete_hidden" then return .55,.75,.58 end
-    if row.status=="warning" or row.warning then return 1,.68,.25 end
-    if row.passive then return .70,.82,1 end
-    if row.optional then return .76,.76,.76 end
-    return .95,.95,.95
+    return semanticColor(row)
 end
 
 local function savePosition(frame)
@@ -105,6 +124,7 @@ function V:Create()
     local title=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontNormalLarge","GameFontNormal"))
     title:SetPoint("TOPLEFT",10,-8);title:SetText("Mewthisch Guides 1.0");shadow(title)
     if title.SetTextColor then title:SetTextColor(1,.74,.08) end
+    fontSize(title,15)
 
     local close=flatButton(frame,"x",22,20,function()
         MG:EnsureDB().settings.showViewer=false;frame:Hide()
@@ -122,11 +142,13 @@ function V:Create()
     local guideTitle=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontNormal","GameFontNormal"))
     guideTitle:SetPoint("TOPLEFT",10,-38);guideTitle:SetPoint("RIGHT",-120,0)
     guideTitle:SetJustifyH("LEFT");shadow(guideTitle)
-    if guideTitle.SetTextColor then guideTitle:SetTextColor(1,.72,.1) end
+    if guideTitle.SetTextColor then guideTitle:SetTextColor(1,.82,.18) end
+    fontSize(guideTitle,13)
 
     local stepText=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
     stepText:SetPoint("TOPRIGHT",-10,-39);stepText:SetWidth(68);stepText:SetJustifyH("RIGHT");shadow(stepText)
-    if stepText.SetTextColor then stepText:SetTextColor(.75,.75,.75) end
+    if stepText.SetTextColor then stepText:SetTextColor(.84,.84,.84) end
+    fontSize(stepText,11)
 
     local barBg=solid(frame,"BACKGROUND",.07,.07,.07,1)
     barBg:SetPoint("TOPLEFT",10,-57);UI:SetSize(barBg,FRAME_WIDTH-20,5)
@@ -141,12 +163,14 @@ function V:Create()
         rf:SetHeight(ROW_HEIGHT)
 
         local hi=solid(rf,"BACKGROUND",.95,.60,.08,.09);hi:SetAllPoints();hi:Hide()
+        local strip=solid(rf,"ARTWORK",.95,.60,.08,.9)
+        strip:SetPoint("TOPLEFT",1,-3);strip:SetPoint("BOTTOMLEFT",1,3);strip:SetWidth(3);strip:Hide()
         local marker=rf:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontNormal","GameFontNormal"))
-        marker:SetPoint("LEFT",3,0);marker:SetWidth(16);marker:SetJustifyH("CENTER");shadow(marker)
+        marker:SetPoint("LEFT",7,0);marker:SetWidth(16);marker:SetJustifyH("CENTER");shadow(marker);fontSize(marker,13)
         local text=rf:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlight","GameFontNormal"))
-        text:SetPoint("LEFT",marker,"RIGHT",4,0);text:SetPoint("RIGHT",-4,0)
-        text:SetJustifyH("LEFT");UI:SetWordWrap(text,false);shadow(text)
-        rows[i]={frame=rf,highlight=hi,marker=marker,text=text}
+        text:SetPoint("LEFT",marker,"RIGHT",5,0);text:SetPoint("RIGHT",-5,0)
+        text:SetJustifyH("LEFT");UI:SetWordWrap(text,false);shadow(text);fontSize(text,13)
+        rows[i]={frame=rf,highlight=hi,statusStrip=strip,marker=marker,text=text}
     end
 
     local prev=flatButton(frame,"<",30,22,function()
@@ -163,11 +187,20 @@ function V:Create()
         if MG.RefreshUI then MG:RefreshUI() end
     end);nextB:SetPoint("BOTTOMRIGHT",-8,7)
 
+    local hintBg=solid(frame,"BACKGROUND",.03,.035,.045,.94)
+    hintBg:SetPoint("BOTTOMLEFT",8,48);hintBg:SetPoint("BOTTOMRIGHT",-8,48);hintBg:SetHeight(38);hintBg:Hide()
+    local hint=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlight","GameFontNormal"))
+    hint:SetPoint("TOPLEFT",hintBg,8,-6);hint:SetPoint("BOTTOMRIGHT",hintBg,-8,6)
+    hint:SetJustifyH("LEFT");hint:SetJustifyV("MIDDLE");UI:SetWordWrap(hint,true);shadow(hint);fontSize(hint,12)
+    if hint.SetTextColor then hint:SetTextColor(.94,.90,.72) end
+    hint:Hide()
+
     local footer=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
-    footer:SetPoint("BOTTOM",0,31);footer:SetWidth(FRAME_WIDTH-80);footer:SetJustifyH("CENTER");shadow(footer)
+    footer:SetPoint("BOTTOM",0,31);footer:SetWidth(FRAME_WIDTH-80);footer:SetJustifyH("CENTER");shadow(footer);fontSize(footer,10)
 
     self.frame=frame;self.guideTitle=guideTitle;self.stepText=stepText
     self.bar=bar;self.barBg=barBg;self.rows=rows;self.footer=footer
+    self.hintBg=hintBg;self.hint=hint
     self.notifyButton=notify
     self.themeBackground=bg;self.themeHeader=header;self.themeTop=top;self.themeTitle=title
     if MG.ThemeManager then MG.ThemeManager:ApplyViewer(self) end
@@ -195,8 +228,10 @@ function V:Refresh()
         self.bar:SetWidth(1)
         for _,row in ipairs(self.rows) do row.frame:Hide() end
         self.rows[1].frame:Show();self.rows[1].marker:SetText("i")
-        self.rows[1].text:SetText("RestedXP-Daten werden vorbereitet")
-        self.footer:SetText("");UI:SetSize(frame,FRAME_WIDTH,134);frame:Show();return
+        self.rows[1].text:SetText("Guide-Daten werden vorbereitet")
+        if self.hint then self.hint:Hide() end
+        if self.hintBg then self.hintBg:Hide() end
+        self.footer:SetText("");UI:SetSize(frame,FRAME_WIDTH,138);frame:Show();return
     end
 
     self.guideTitle:SetText(tostring(runtime.guide.title or runtime.guideID))
@@ -235,13 +270,23 @@ function V:Refresh()
         footerExtra=math.max(footerExtra,14)
     end
     self.footer:SetText(footerText)
+
+    local hintModel=runtime.presentation and runtime.presentation.hint
+    local hintExtra=0
+    if hintModel and hintModel.text and hintModel.text~="" then
+        self.hint:SetText("Hinweis: "..tostring(hintModel.text))
+        self.hint:Show();self.hintBg:Show();hintExtra=44
+    else
+        self.hint:SetText("");self.hint:Hide();self.hintBg:Hide()
+    end
+
     if self.notifyButton and self.notifyButton.label and MG.NotificationCenter then
         local unread=MG.NotificationCenter:GetUnreadCount()
         self.notifyButton.label:SetText(unread>9 and "N9+" or (unread>0 and ("N"..tostring(unread)) or "N"))
     end
 
-    local height=ROW_START+rowCount*ROW_HEIGHT+FOOTER_HEIGHT+footerExtra
-    UI:SetSize(frame,FRAME_WIDTH,math.max(132,math.min(410,height)))
+    local height=ROW_START+rowCount*ROW_HEIGHT+FOOTER_HEIGHT+footerExtra+hintExtra
+    UI:SetSize(frame,FRAME_WIDTH,math.max(138,math.min(500,height)))
 
     for i,uiRow in ipairs(self.rows) do
         local row=visible[i]
@@ -253,9 +298,25 @@ function V:Refresh()
             uiRow.text:SetText(tostring(row.text or "")..progress)
             local tr,tg,tb=textColor(row)
             if uiRow.text.SetTextColor then uiRow.text:SetTextColor(tr,tg,tb) end
-            if row.navigated then uiRow.highlight:Show() else uiRow.highlight:Hide() end
+            if row.current or row.navigated then
+                if uiRow.highlight.SetColorTexture then
+                    pcall(uiRow.highlight.SetColorTexture,uiRow.highlight,tr,tg,tb,.13)
+                end
+                if uiRow.statusStrip.SetColorTexture then
+                    pcall(uiRow.statusStrip.SetColorTexture,uiRow.statusStrip,tr,tg,tb,.95)
+                end
+                uiRow.highlight:Show();uiRow.statusStrip:Show()
+            elseif row.status=="complete" or row.status=="complete_hidden" then
+                if uiRow.statusStrip.SetColorTexture then
+                    pcall(uiRow.statusStrip.SetColorTexture,uiRow.statusStrip,tr,tg,tb,.85)
+                end
+                uiRow.highlight:Hide();uiRow.statusStrip:Show()
+            else
+                uiRow.highlight:Hide();uiRow.statusStrip:Hide()
+            end
         else
             uiRow.frame:Hide()
+            if uiRow.statusStrip then uiRow.statusStrip:Hide() end
         end
     end
     frame:Show()

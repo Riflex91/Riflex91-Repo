@@ -131,12 +131,21 @@ function P:GoalRow(state,facts,source)
         local pattern=current.."%s*/%s*"..required
         if not string.find(text,pattern) then progress=current.." / "..required end
     end
+    local ratio
+    if state.complete then
+        ratio=1
+    elseif tonumber(state.current) and tonumber(state.required) and tonumber(state.required)>0 then
+        ratio=math.max(0,math.min(1,tonumber(state.current)/tonumber(state.required)))
+    end
     return {
         id=state.id,
         source=source or "step",
         status=state.status,
         text=text,
         progress=progress,
+        currentValue=state.current,
+        requiredValue=state.required,
+        progressRatio=ratio,
         passive=state.passive,
         optional=state.optional,
         warning=not state.completionKnown and not state.passive,
@@ -168,17 +177,30 @@ function P:Build(step,goalStates,stickyRuntime,facts,navigation)
         stepID=step and step.id or nil,
         arrowText=self:CleanText(step and step.arrowText or ""),
         mapHint=step and step.mapHint or nil,
+        hint=nil,
         rows={},
         stickies={},
     }
     local destinationID=navigation and navigation.goalState and navigation.goalState.id
+    local currentID=destinationID
+    if not currentID then
+        for _,state in ipairs(goalStates or {}) do
+            if state.visible and state.possible and not state.passive and not state.complete and
+               state.role=="goal" then currentID=state.id break end
+        end
+    end
 
     for _,state in ipairs(goalStates or {}) do
         if state.visible then
             local row=self:GoalRow(state,facts,"step")
             row.navigated=row.id==destinationID
+            row.current=row.id==currentID
             projection.rows[#projection.rows+1]=row
         end
+    end
+
+    if MG.QuestHintResolver then
+        projection.hint=MG.QuestHintResolver:Resolve(step,goalStates,facts,navigation)
     end
 
     for _,sticky in ipairs(stickyRuntime or {}) do

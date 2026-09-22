@@ -64,6 +64,7 @@ Build/TalentAdvisor.lua
 Build/BuildAdvisor.lua
 
 Runtime/TransitionDetector.lua
+Presentation/QuestHintResolver.lua
 Presentation/PresentationResolver.lua
 Runtime/RuntimeEngine.lua
 
