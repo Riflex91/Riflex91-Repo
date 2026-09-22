@@ -540,6 +540,9 @@ public sealed class WindowsBridgeSelfUpdater : IAsyncDisposable
 
 public static class WindowsBridgeUpdateBootstrap
 {
+    public const int FileOperationRetryCount = 40;
+    public const int FileOperationRetryDelayMilliseconds = 500;
+
     private sealed record ApplyRequest(int ParentPid, string TargetPath, string Sha256, long BuildNumber);
 
     public static bool IsApplyUpdateMode(string[] args) =>
@@ -549,11 +552,18 @@ public static class WindowsBridgeUpdateBootstrap
     {
         ApplyRequest? request = null;
         string? backupPath = null;
+        string? phase = null;
 
         try
         {
             request = Parse(args);
+            phase = "WAITING_FOR_PARENT";
+            await WriteStatusAsync("APPLY_WAITING_FOR_PARENT", request, null, phase);
             await WaitForParentAsync(request.ParentPid);
+
+            // Windows can keep the just-exited image or antivirus scan handles alive
+            // briefly after Process.WaitForExit has completed.
+            await Task.Delay(FileOperationRetryDelayMilliseconds);
 
             var sourcePath = Environment.ProcessPath
                 ?? throw new InvalidOperationException("SELF_UPDATE_INSTALLER_PATH_MISSING");
@@ -562,6 +572,8 @@ public static class WindowsBridgeUpdateBootstrap
             if (string.Equals(sourcePath, request.TargetPath, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("SELF_UPDATE_INSTALLER_EQUALS_TARGET");
 
+            phase = "VERIFYING_SOURCE";
+            await WriteStatusAsync("APPLY_VERIFYING_SOURCE", request, null, phase);
             var sourceHash = await ComputeSha256Async(sourcePath);
             if (!string.Equals(sourceHash, request.Sha256, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("SELF_UPDATE_INSTALLER_HASH_MISMATCH");
@@ -572,44 +584,65 @@ public static class WindowsBridgeUpdateBootstrap
 
             backupPath = request.TargetPath + ".previous";
             if (File.Exists(request.TargetPath))
-                File.Copy(request.TargetPath, backupPath, overwrite: true);
+            {
+                phase = "BACKING_UP";
+                await WriteStatusAsync("APPLY_BACKING_UP", request, null, phase);
+                await CopyFileWithRetryAsync(request.TargetPath, backupPath, overwrite: true);
+            }
 
             var replacementPath = request.TargetPath + ".new-" + Guid.NewGuid().ToString("N");
             try
             {
-                File.Copy(sourcePath, replacementPath, overwrite: false);
+                phase = "PREPARING_REPLACEMENT";
+                await WriteStatusAsync("APPLY_PREPARING_REPLACEMENT", request, null, phase);
+                await CopyFileWithRetryAsync(sourcePath, replacementPath, overwrite: false);
+
                 var replacementHash = await ComputeSha256Async(replacementPath);
                 if (!string.Equals(replacementHash, request.Sha256, StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException("SELF_UPDATE_REPLACEMENT_HASH_MISMATCH");
 
-                File.Move(replacementPath, request.TargetPath, overwrite: true);
+                phase = "REPLACING_TARGET";
+                await WriteStatusAsync("APPLY_REPLACING_TARGET", request, null, phase);
+                await MoveFileWithRetryAsync(replacementPath, request.TargetPath, overwrite: true);
+
+                var installedHash = await ComputeSha256WithRetryAsync(request.TargetPath);
+                if (!string.Equals(installedHash, request.Sha256, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("SELF_UPDATE_INSTALLED_HASH_MISMATCH");
             }
             finally
             {
                 TryDelete(replacementPath);
             }
 
-            StartTarget(request.TargetPath);
-            await WriteStatusAsync("APPLIED", request, null);
+            phase = "RESTARTING";
+            await WriteStatusAsync("APPLY_RESTARTING", request, null, phase);
+            StartTargetWithRetry(request.TargetPath);
+            await WriteStatusAsync("APPLIED", request, null, "COMPLETE");
             return 0;
         }
         catch (Exception error)
         {
             if (request is not null)
             {
+                var restoreError = string.Empty;
                 try
                 {
                     if (!string.IsNullOrWhiteSpace(backupPath) && File.Exists(backupPath))
-                        File.Copy(backupPath, request.TargetPath, overwrite: true);
+                        await CopyFileWithRetryAsync(backupPath, request.TargetPath, overwrite: true);
 
                     if (File.Exists(request.TargetPath))
-                        StartTarget(request.TargetPath);
+                        StartTargetWithRetry(request.TargetPath);
                 }
-                catch
+                catch (Exception restoreException)
                 {
+                    restoreError = " | ROLLBACK: " + restoreException.GetType().Name + ": " + restoreException.Message;
                 }
 
-                await WriteStatusAsync("APPLY_FAILED", request, error.Message);
+                await WriteStatusAsync(
+                    "APPLY_FAILED",
+                    request,
+                    error.GetType().Name + ": " + error.Message + restoreError,
+                    phase);
             }
 
             return 2;
@@ -667,41 +700,130 @@ public static class WindowsBridgeUpdateBootstrap
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
-    private static void StartTarget(string targetPath)
+    private static async Task CopyFileWithRetryAsync(string sourcePath, string destinationPath, bool overwrite)
     {
-        var startInfo = new ProcessStartInfo
+        Exception? lastError = null;
+        for (var attempt = 1; attempt <= FileOperationRetryCount; attempt++)
         {
-            FileName = targetPath,
-            WorkingDirectory = Path.GetDirectoryName(targetPath)!,
-            UseShellExecute = true
-        };
+            try
+            {
+                File.Copy(sourcePath, destinationPath, overwrite);
+                return;
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                lastError = error;
+                if (attempt == FileOperationRetryCount) break;
+                await Task.Delay(FileOperationRetryDelayMilliseconds);
+            }
+        }
 
-        if (Process.Start(startInfo) is null)
-            throw new InvalidOperationException("SELF_UPDATE_RESTART_FAILED");
+        throw new IOException("SELF_UPDATE_COPY_RETRY_EXHAUSTED", lastError);
     }
 
-    private static async Task WriteStatusAsync(string state, ApplyRequest request, string? error)
+    private static async Task MoveFileWithRetryAsync(string sourcePath, string destinationPath, bool overwrite)
+    {
+        Exception? lastError = null;
+        for (var attempt = 1; attempt <= FileOperationRetryCount; attempt++)
+        {
+            try
+            {
+                File.Move(sourcePath, destinationPath, overwrite);
+                return;
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                lastError = error;
+                if (attempt == FileOperationRetryCount) break;
+                await Task.Delay(FileOperationRetryDelayMilliseconds);
+            }
+        }
+
+        throw new IOException("SELF_UPDATE_MOVE_RETRY_EXHAUSTED", lastError);
+    }
+
+    private static async Task<string> ComputeSha256WithRetryAsync(string path)
+    {
+        Exception? lastError = null;
+        for (var attempt = 1; attempt <= FileOperationRetryCount; attempt++)
+        {
+            try
+            {
+                return await ComputeSha256Async(path);
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                lastError = error;
+                if (attempt == FileOperationRetryCount) break;
+                await Task.Delay(FileOperationRetryDelayMilliseconds);
+            }
+        }
+
+        throw new IOException("SELF_UPDATE_HASH_RETRY_EXHAUSTED", lastError);
+    }
+
+    private static void StartTargetWithRetry(string targetPath)
+    {
+        Exception? lastError = null;
+        for (var attempt = 1; attempt <= FileOperationRetryCount; attempt++)
+        {
+            try
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = targetPath,
+                    WorkingDirectory = Path.GetDirectoryName(targetPath)!,
+                    UseShellExecute = true
+                };
+
+                if (Process.Start(startInfo) is not null)
+                    return;
+
+                lastError = new InvalidOperationException("Process.Start returned null.");
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+            {
+                lastError = error;
+            }
+
+            if (attempt < FileOperationRetryCount)
+                Thread.Sleep(FileOperationRetryDelayMilliseconds);
+        }
+
+        throw new InvalidOperationException("SELF_UPDATE_RESTART_RETRY_EXHAUSTED", lastError);
+    }
+
+    private static async Task WriteStatusAsync(string state, ApplyRequest request, string? error, string? phase = null)
     {
         try
         {
             Directory.CreateDirectory(BridgeConfig.LocalAppDirectory);
-            var path = Path.Combine(BridgeConfig.LocalAppDirectory, "self-update-status.json");
-            var temporaryPath = path + ".tmp";
+            var path = Path.Combine(BridgeConfig.LocalAppDirectory, WindowsBridgeSelfUpdater.StatusFileName);
+            var temporaryPath = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            var boundedError = string.IsNullOrWhiteSpace(error)
+                ? null
+                : error.Length <= 1000 ? error : error[..1000];
             var payload = JsonSerializer.Serialize(
                 new
                 {
-                    schemaVersion = 1,
+                    schemaVersion = 3,
                     state,
+                    phase,
                     buildNumber = request.BuildNumber,
                     target = WindowsBridgeSelfUpdater.AssetFileName,
                     at = DateTimeOffset.UtcNow,
-                    error = string.IsNullOrWhiteSpace(error)
-                        ? null
-                        : error.Length <= 512 ? error : error[..512]
+                    error = boundedError
                 },
                 BridgeConfig.JsonOptions);
-            await File.WriteAllTextAsync(temporaryPath, payload, Encoding.UTF8);
-            File.Move(temporaryPath, path, overwrite: true);
+            try
+            {
+                await File.WriteAllTextAsync(temporaryPath, payload, Encoding.UTF8);
+                File.Move(temporaryPath, path, overwrite: true);
+            }
+            finally
+            {
+                TryDelete(temporaryPath);
+            }
         }
         catch
         {
