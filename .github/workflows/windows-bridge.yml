@@ -32,10 +32,73 @@ jobs:
       - name: Run smoke tests
         run: dotnet run --project .\ops\windows-bridge-tests\AioBotWindowsBridge.SmokeTests.csproj -c Release --no-restore
       - name: Publish win-x64
-        run: dotnet publish .\ops\windows-bridge\AioBotWindowsBridge.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o .\artifacts\windows-bridge
+        run: dotnet publish .\ops\windows-bridge\AioBotWindowsBridge.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:InformationalVersion=1.0.${{ github.run_number }}+${{ github.sha }} -p:IncludeSourceRevisionInInformationalVersion=false -o .\artifacts\windows-bridge
       - name: Upload Windows app
         uses: actions/upload-artifact@v4
         with:
           name: AioBotWindowsBridge-win-x64
           path: .\artifacts\windows-bridge\
           if-no-files-found: error
+
+  publish-stable-self-update:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-test-publish
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: windows-bridge-stable-release
+      cancel-in-progress: true
+    steps:
+      - name: Download tested Windows Bridge artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: AioBotWindowsBridge-win-x64
+          path: .\release
+
+      - name: Create self-update manifest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Resolve-Path '.\release\AioBotWindowsBridge.exe'
+          $sha256 = (Get-FileHash -Algorithm SHA256 $exe).Hash.ToLowerInvariant()
+          $size = (Get-Item $exe).Length
+          $manifest = [ordered]@{
+            schemaVersion = 1
+            buildNumber = [int64]'${{ github.run_number }}'
+            version = '${{ github.sha }}'
+            assetUrl = 'https://github.com/Riflex91/Riflex91-Repo/releases/download/windows-bridge-latest/AioBotWindowsBridge.exe'
+            sha256 = $sha256
+            sizeBytes = [int64]$size
+            publishedAt = [DateTimeOffset]::UtcNow.ToString('O')
+          }
+          $manifest | ConvertTo-Json | Set-Content -Path '.\release\AioBotWindowsBridge.version.json' -Encoding utf8NoBOM
+
+      - name: Publish stable self-update release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = 'windows-bridge-latest'
+
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release delete $tag --repo $env:GITHUB_REPOSITORY --yes --cleanup-tag
+            if ($LASTEXITCODE -ne 0) {
+              throw 'Could not remove previous Windows Bridge self-update release.'
+            }
+          }
+
+          gh release create $tag `
+            '.\release\AioBotWindowsBridge.exe' `
+            '.\release\AioBotWindowsBridge.version.json' `
+            --repo $env:GITHUB_REPOSITORY `
+            --target $env:GITHUB_SHA `
+            --title 'AIO Bot Windows Bridge — automatic latest' `
+            --notes "Automated, smoke-tested Windows Bridge build from commit $env:GITHUB_SHA (workflow build ${{ github.run_number }})." `
+            --prerelease
+
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Could not publish Windows Bridge self-update release.'
+          }
