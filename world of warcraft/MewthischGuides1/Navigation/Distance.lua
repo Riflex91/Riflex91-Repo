@@ -22,7 +22,7 @@ local function vectorXY(value)
     return nil, nil
 end
 
-local function mapToWorld(mapID, x, y)
+local function mapToBlizzardWorld(mapID, x, y)
     if not tonumber(mapID) or x == nil or y == nil or
        not C_Map or not C_Map.GetWorldPosFromMapPos then
         return nil
@@ -43,8 +43,26 @@ local function mapToWorld(mapID, x, y)
     }
 end
 
-function D:MapToWorld(mapID, x, y)
-    return mapToWorld(mapID, x, y)
+local function blizzardToRestedXP(world)
+    if not world then return nil end
+    -- RestedXP Forever stores its absolute coordinates in the legacy
+    -- coordinate convention: RXP X == Blizzard world Y and
+    -- RXP Y == Blizzard world X.
+    return {
+        continentID = world.continentID,
+        x = world.y,
+        y = world.x,
+        blizzardX = world.x,
+        blizzardY = world.y,
+    }
+end
+
+function D:MapToBlizzardWorld(mapID, x, y)
+    return mapToBlizzardWorld(mapID, x, y)
+end
+
+function D:MapToRestedXPWorld(mapID, x, y)
+    return blizzardToRestedXP(mapToBlizzardWorld(mapID, x, y))
 end
 
 function D:Between(position, waypoint)
@@ -53,11 +71,8 @@ function D:Between(position, waypoint)
         return nil, "player_map_coordinates_missing"
     end
 
-    -- The Forever RestedXP corpus frequently carries absolute world
-    -- coordinates (worldX/worldY) rather than normalized map x/y. Convert the
-    -- player to world coordinates and compare in the same coordinate space.
     if tonumber(waypoint.worldX) and tonumber(waypoint.worldY) then
-        local playerWorld = mapToWorld(
+        local playerWorld = self:MapToRestedXPWorld(
             tonumber(position.mapID),
             tonumber(position.x),
             tonumber(position.y))
@@ -98,9 +113,9 @@ function D:Between(position, waypoint)
     end
 
     if effectiveMapID then
-        local playerWorld = mapToWorld(
+        local playerWorld = mapToBlizzardWorld(
             effectiveMapID, tonumber(position.x), tonumber(position.y))
-        local targetWorld = mapToWorld(
+        local targetWorld = mapToBlizzardWorld(
             effectiveMapID, tonumber(waypoint.x), tonumber(waypoint.y))
 
         if playerWorld and targetWorld and
