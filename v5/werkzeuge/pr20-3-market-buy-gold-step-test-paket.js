@@ -1039,8 +1039,14 @@
     const c = root.character;
     const server = serverBindung();
     const def = root.G?.items?.[candidate.itemName];
-    const currentRows = kandidaten(root);
-    const currentCandidate = currentRows.find(x => x.key === candidate.key) ?? null;
+    const vendor = {
+      x: candidate.vendorX,
+      y: candidate.vendorY,
+      id: candidate.vendorId
+    };
+    const sameMap = text(c.map) === candidate.map;
+    const range = Math.max(45, sellDistance() * 0.85);
+    const reachable = sameMap && distanz(c, vendor) < range;
     return Object.freeze({
       zeitMs: Date.now(),
       characterName: text(c.name),
@@ -1052,8 +1058,10 @@
       itemGesamtmenge: itemGesamtmenge(c, candidate.itemName),
       inventoryFingerprint: inventoryFingerprint(c),
       itemDefinitionFingerprint: itemDefinitionFingerprint(def),
-      vendorFingerprint: currentCandidate?.vendorFingerprint ?? null,
-      candidateNochErreichbar: currentCandidate !== null
+      vendorFingerprint: sameMap
+        ? vendorFingerprint(candidate.map, candidate.itemName, vendor)
+        : null,
+      candidateNochErreichbar: reachable
     });
   }
 
