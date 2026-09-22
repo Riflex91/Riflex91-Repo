@@ -935,3 +935,20 @@ der anschliessende NPC-Sell-Test bereits als vollstaendiges persistentes
 Er wird erst nach lokal bestaetigtem Buy-Gold-Status 7/7 aktiv und verkauft
 nur die zwei durch Buy-LIVE-1/2 bestaetigten Testeinheiten. Zwischen seinen
 Stufen ist kein weiterer Merge erforderlich.
+
+
+### PR20.3 Buy-Gold reale Evidence
+
+Der erste Market-Write-Pfad `buy_with_gold(item, 1)` ist real 7/7
+bestanden. Beide kontrollierten Live-Writes wurden fachlich mit exakt
+-20 Gold / +1 `hpot0` bestaetigt. Das persistente Live-Testbudget ist
+2/2 verbraucht; weitere echte Buy-Gold-Funktionstests sind nicht erlaubt.
+
+Der anschliessende 5-Minuten-NO-WRITE-Lauf bestand mit 300002 ms,
+21 Samples, 0 Sample-Gaps und 0 Blocker-Samples.
+
+Evidence:
+`roadmap/pr20-3-market-buy-gold-evidence.json`.
+
+Das aktive PR20.3-Ingame-Gate ist jetzt **NPC Sell** ueber
+`werkzeuge/pr20-3-market-sell-step-test-paket.js`.
