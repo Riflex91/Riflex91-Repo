@@ -35,14 +35,14 @@ test("Manifest SHA-256 matches the exact checked-in PR20.6 package", () => {
 
 test("V3 delivers the V5 test bootstrap without Windows Bridge execution authority", () => {
   for (const marker of [
-    "V5_INGAME_TEST_BOOTSTRAP",
+    "v5-ingame-test-bootstrap-v1",
     "V3_INGAME_BOOTSTRAP",
     "raw.githubusercontent.com/Riflex91/Riflex91-Repo/main/v5/roadmap/v5-autonomous-test-manifest.json",
     "EVALUATION_BOUNDARY_ENTERED",
     "DEPLOYMENT_UNKNOWN_NO_RETRY",
     "sameIntentRetry: false",
     "AIO_V3_AUTOSTART = false",
-    "characterClass(this.root) !== 'merchant'",
+    "this.state.characterClass !== 'merchant'",
     "farmerRepositoryFetch: false"
   ]) assert.ok(v3BootstrapSource.includes(marker), marker);
   assert.equal(v3BootstrapSource.includes("windows-bridge"), false);
