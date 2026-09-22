@@ -12,7 +12,7 @@ AIO Bot Windows Bridge
         └─ DPAPI-protected Backblaze credentials → verified bot runtime context
 ```
 
-The app exposes **no generic JavaScript, shell, movement, combat, Merchant, FTP, or remote-command endpoint**. In addition to the fixed Bridge self-updater, it has one narrow V5 test-deployment path: it may read only the fixed `v5/roadmap/v5-autonomous-test-manifest.json` from `Riflex91/Riflex91-Repo/main`, accept only `v5/werkzeuge/*.js`, construct an immutable raw URL from the manifest's 40-hex commit, verify the exact SHA-256 and size, and install that verified package only into a Merchant Adventure Land context after the previous V5 test is terminal. No caller can supply a URL or JavaScript body. Gameplay authority remains inside the package's own V5 one-shot gates.
+The app has **no gameplay authority** and no generic JavaScript, shell, movement, combat, Merchant, FTP, or remote-command endpoint. Its only software-update path is the fixed GitHub Release self-updater described below; it cannot execute arbitrary commands or arbitrary download URLs. Telemetry evaluates only the fixed v3 debug expressions required for status and telemetry. Profile configuration is restricted to fixed same-origin Adventure Land contexts.
 
 ## What the app does
 
@@ -211,23 +211,6 @@ Der Update-Check startet direkt beim Fensterstart und wartet nicht auf Browser-,
 ```
 
 Dort sind unter anderem die Zustände `CHECKING`, `UP_TO_DATE`, `UPDATE_FOUND`, `READY_TO_INSTALL`, `INSTALLER_STARTED`, `CHECK_FAILED`, `APPLIED` und `APPLY_FAILED` nachvollziehbar.
-
-## Automatisches V5-Test-Deployment
-
-Wenn Telemetrie aktiv ist, prüft die Bridge alle **15 Sekunden** zunächst nur das feste V5-Testmanifest auf GitHub. Ist der gewünschte Test bereits aktiv, wird das Testpaket nicht erneut heruntergeladen. Ist ein anderer V5-Test noch nicht terminal, wird fail-closed nichts ersetzt.
-
-Nur wenn ein neuer Test eingesetzt werden darf:
-
-1. Das Manifest muss exakt `Riflex91/Riflex91-Repo`, Branch `main`, Coordinator `merchant` und `PACKAGE_OWNED_COMMAND_CHARACTER` deklarieren.
-2. Der Paketpfad muss unter `v5/werkzeuge/` liegen und eine JavaScript-Datei sein.
-3. Der Quell-Commit muss exakt 40 kleine Hex-Zeichen und der SHA-256 exakt 64 kleine Hex-Zeichen besitzen.
-4. Die Bridge konstruiert die Raw-GitHub-Adresse selbst; eine URL aus dem Manifest wird nicht akzeptiert.
-5. Größe und SHA-256 werden vor der Ausführung geprüft.
-6. Das Paket wird nur in einen `merchant`-Kontext eingesetzt.
-7. Das Paket verteilt seinen eng begrenzten Worker danach selbst per `command_character` an Ranger, Priest und Mage. Andere Klassen verweigern den Worker sofort.
-8. Download-, Hash-, Kontext- oder Handshake-Fehler bleiben fail-closed und stoppen die beobachtende Telemetrie nicht.
-
-Damit ist nach einem Merge kein manuelles Kopieren des Test-JavaScripts auf Merchant oder Farmer erforderlich. Der Mechanismus erteilt keine breite normale V5-Runtime-Freigabe; diese bleibt bis zum Abschluss aller Roadmap-Gates gesperrt.
 
 ## V5 Readiness-Test
 
