@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "kennung": "V5_PR20_3_MARKET_BUY_GOLD_STEP_TEST_PLAN",
+  "status": "BEREIT_NACH_EINMALIGEM_MERGE",
+  "basisMain": "55446d26ac13888816761c97b02006aeafa65bcb",
+  "paket": "v5/werkzeuge/pr20-3-market-buy-gold-step-test-paket.js",
+  "stateKey": "AIO_V5_PR20_3_BUY_GOLD_STEP_TEST_V1",
+  "controllerVersion": "1.0.0",
+  "mergeZwischenTestschrittenErforderlich": false,
+  "candidate": {
+    "publicFunction": "buy_with_gold",
+    "menge": 1,
+    "route": "GOLD_ONLY",
+    "maxTestCostGold": 10000,
+    "protectedGoldReserve": 1000000,
+    "autoSelection": "guenstigster sicherer erreichbarer Nicht-Cash-/Nicht-P2W-NPC-Kandidat; vorhandener Teilstack wird bevorzugt"
+  },
+  "liveBudget": {
+    "maxTrueTests": 2,
+    "persistent": true,
+    "resetImGui": false,
+    "sameIntentRetry": false
+  },
+  "steps": [
+    {
+      "nr": 1,
+      "name": "Umgebung / Bindung",
+      "write": false,
+      "nextWithoutMerge": true
+    },
+    {
+      "nr": 2,
+      "name": "Kandidat stabil pinnen",
+      "write": false,
+      "nextWithoutMerge": true
+    },
+    {
+      "nr": 3,
+      "name": "Read-only Shadow / Admission",
+      "write": false,
+      "nextWithoutMerge": true
+    },
+    {
+      "nr": 4,
+      "name": "LIVE 1 · buy_with_gold(item, 1)",
+      "write": true,
+      "confirmation": "PR20.3-BUY-GOLD-LIVE-1",
+      "nextWithoutMerge": true
+    },
+    {
+      "nr": 5,
+      "name": "Frische Re-Admission",
+      "write": false,
+      "nextWithoutMerge": true
+    },
+    {
+      "nr": 6,
+      "name": "LIVE 2 · buy_with_gold(item, 1)",
+      "write": true,
+      "confirmation": "PR20.3-BUY-GOLD-LIVE-2",
+      "nextWithoutMerge": true
+    },
+    {
+      "nr": 7,
+      "name": "NO-WRITE 5M Stabilitaet",
+      "write": false,
+      "nextWithoutMerge": false
+    }
+  ],
+  "soak": {
+    "durationMs": 300000,
+    "intervalMs": 15000,
+    "maxSampleGapMs": 45000,
+    "minSamples": 20,
+    "maxSamples": 30
+  },
+  "failClosed": [
+    "jeder Schritt muss BESTANDEN sein bevor der naechste aktiviert wird",
+    "ein moeglicher Send verbraucht einen echten Live-Versuch bevor Settlement feststeht",
+    "bei unaufgeloestem/Drift-Ergebnis kein Same-Intent-Retry",
+    "Reload setzt Testbudget nicht zurueck",
+    "Produktionskomposition bleibt waehrend des Testharness default-off"
+  ],
+  "completion": "Nach Schritt 7 einmal Gesamtbericht kopieren; erst dann Repo-Evidence dokumentieren."
+}
