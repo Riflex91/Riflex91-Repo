@@ -48,7 +48,7 @@ public partial class MainWindow : Window
             _token = await _tokenStore.LoadAsync(_config.TelemetryTokenEnvironmentVariable);
             TokenStateText.Text = SecureTokenStore.IsValidToken(_token)
                 ? "Token vorhanden und für diesen Windows-Benutzer geschützt gespeichert."
-                : "Kein Token gefunden. Einmalig einfügen oder als AIO_V3_DEBUG_TELEMETRY_TOKEN setzen.";
+                : "Kein Token gefunden. Einmalig einfügen oder als AIO_V5_TELEMETRY_TOKEN setzen.";
 
             _dashboardWriteKey = await _dashboardKeyStore.LoadAsync(_config.WebDashboardWriteKeyEnvironmentVariable);
             UpdateDashboardCredentialStatus();
