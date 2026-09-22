@@ -92,21 +92,29 @@ if (gate.blocker?.length !== expectedBlockers.size
 }
 
 const noWrite5m = gate.noWriteIntegration;
-if (noWrite5m?.bank5mStatus !== "SERVER_BINDING_FIX_CI_AUSSTEHEND_DANN_INGAME_READ_ONLY_ERNEUT"
+if (noWrite5m?.bank5mStatus !== "BESTANDEN_REAL_INGAME_READ_ONLY"
     || noWrite5m?.controllerVersion !== "1.0.1"
-    || noWrite5m?.previousBlockedPreflightEvidence !== "v5/roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json"
+    || noWrite5m?.evidence !== "v5/roadmap/pr20-2-bank-no-write-5m-evidence.json"
+    || noWrite5m?.durationMs !== 300017
+    || noWrite5m?.samples !== 21
+    || noWrite5m?.sampleGaps !== 0
+    || noWrite5m?.driftSamples !== 0
+    || noWrite5m?.performanceTrickErrors !== 0
     || noWrite5m?.gameplayWrites !== 0
     || noWrite5m?.mutatingPublicFunctionCalls !== 0
     || noWrite5m?.functionalTestBudgetConsumed !== false
     || noWrite5m?.schliesstBlockerNicht !== true
-    || gate.nextAction !== "PR20_2_BANK_NO_WRITE_5M_PREFLIGHT_NACH_SERVER_BINDING_FIX_ERNEUT_AUSFUEHREN") {
-  fail("NO_WRITE_5M_VORBEREITUNG_DARF_EXIT_GATE_NICHT_OEFFNEN");
+    || noWrite5m?.integration15mRequiredNow !== false
+    || noWrite5m?.blockerCloseout !== "v5/roadmap/pr20-2-bank-blocker-closeout.json"
+    || gate.nextAction !== "WAIT_FOR_REOPEN_TRIGGER_NO_FURTHER_INGAME_TEST") {
+  fail("NO_WRITE_5M_EVIDENCE_ODER_CLOSEOUT_UNGUELTIG");
 }
 
 if (roadmap.currentGate !== "PR20.2_BANK_PRODUKTIVIERUNG"
     || roadmap.parallelPreparation?.pr20_2ExitGate?.status !== "BLOCKIERT_FAIL_CLOSED"
-    || roadmap.parallelPreparation?.pr20_2ExitGate?.noWrite5mStatus !== "SERVER_BINDING_FIX_CI_AUSSTEHEND_DANN_INGAME_READ_ONLY_ERNEUT"
-    || roadmap.parallelPreparation?.pr20_2ExitGate?.noWrite5mControllerVersion !== "1.0.1"
+    || roadmap.parallelPreparation?.pr20_2ExitGate?.noWrite5mStatus !== "BESTANDEN_REAL_INGAME_READ_ONLY"
+    || roadmap.parallelPreparation?.pr20_2ExitGate?.integration15mRequiredNow !== false
+    || roadmap.parallelPreparation?.pr20_2ExitGate?.weitereIngameTestsJetztErforderlich !== false
     || roadmap.parallelPreparation?.pr20_2ExitGate?.pr20_3MarktStartErlaubt !== false) {
   fail("ROADMAP_DARF_PR20_2_NICHT_UEBERSPRINGEN");
 }
