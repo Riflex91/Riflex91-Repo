@@ -97,9 +97,8 @@ function C:Score(guide, profile)
     end
 
     local group = tostring(guide.group or "")
-    local hardcore = MG.db and MG.db.settings and MG.db.settings.rxpHardcoreMode
-    if string.find(group, "Forever Guide", 1, true) then score = score + (hardcore and 10 or 100) end
-    if string.find(group, "Survival Guide", 1, true) then score = score + (hardcore and 200 or -50) end
+    if string.find(group, "Forever Guide", 1, true) then score = score + 100 end
+    if string.find(group, "Survival Guide", 1, true) then score = score - 50 end
     return score
 end
 

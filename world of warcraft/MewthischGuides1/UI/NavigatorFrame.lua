@@ -65,10 +65,12 @@ function N:Create()
     end)
 
     local glow=frame:CreateTexture(nil,"BACKGROUND")
-    glow:SetPoint("TOP",0,2);UI:SetSize(glow,76,76);UI:SetSolid(glow,0,0,0,.18)
+    glow:SetPoint("TOP",0,2);UI:SetSize(glow,76,76);UI:SetSolid(glow,0,0,0,0);glow:Hide()
 
     local arrow=frame:CreateTexture(nil,"ARTWORK")
     arrow:SetTexture("Interface\\Minimap\\MinimapArrow")
+    if arrow.SetBlendMode then pcall(arrow.SetBlendMode,arrow,"ADD") end
+    if arrow.SetAlpha then pcall(arrow.SetAlpha,arrow,1) end
     UI:SetSize(arrow,64,64);arrow:SetPoint("TOP",0,7)
 
     local unavailable=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontNormalLarge","GameFontNormal"))
@@ -139,7 +141,7 @@ function N:RefreshLive()
         local offset=degrees and math.rad(degrees) or DEFAULT_TEXTURE_ZERO_OFFSET
         local ok=pcall(self.arrow.SetRotation,self.arrow,bearing.relative+offset)
         if ok then
-            self.unavailable:SetText("");self.glow:Show();self.arrow:Show();arrowShown=true
+            self.unavailable:SetText("");self.glow:Hide();self.arrow:Show();arrowShown=true
         else self.arrow:Hide();self.glow:Hide();self.unavailable:SetText("?") end
     else
         self.arrow:Hide();self.glow:Hide();self.unavailable:SetText("?")

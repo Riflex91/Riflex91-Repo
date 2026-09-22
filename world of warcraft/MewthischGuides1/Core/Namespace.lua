@@ -3,7 +3,7 @@ local addonName, MG = ...
 _G.MewthischGuides1 = MG
 MG.NAME = "Mewthisch Guides"
 MG.VERSION = "1.0.0-dev"
-MG.BUILD = "2026-09-22-full-1.0-dev3"
+MG.BUILD = "2026-09-22-full-1.0-dev4"
 MG.INTERFACE = 16001
 
 MG.Util = MG.Util or {}
@@ -68,14 +68,8 @@ function MG:EnsureDB()
     local db = MewthischGuides1DB
     db.settings = db.settings or {}
     local defaults = {
-        rxpSeason = 0,
-        rxpRate = 1,
-        rxpHardcoreMode = false,
-        rxpSoDMode = false,
-        rxpEraMode = true,
-        rxpSoMMode = false,
-        rxpSSFMode = false,
-        rxpPhase = 6,
+        routeSoMMode = false,
+        guideSeason = 0,
         allowAuctionHouse = true,
         theme = "Forever Classic",
         showViewer = true,
@@ -103,7 +97,6 @@ function MG:EnsureDB()
         showCompletedGoals = false,
         showPassiveHints = true,
         respectHideWindow = true,
-        autoAdvance = true,
         autoAcceptQuests = false,
         autoTurnInQuests = false,
         autoSelectSingleReward = false,
@@ -126,6 +119,18 @@ function MG:EnsureDB()
     }
     for key, value in pairs(defaults) do
         if db.settings[key] == nil then db.settings[key] = value end
+    end
+    if db.settings.routeSoMMode == nil and db.settings.rxpSoMMode ~= nil then
+        db.settings.routeSoMMode = db.settings.rxpSoMMode and true or false
+    end
+    if db.settings.guideSeason == nil and db.settings.rxpSeason ~= nil then
+        db.settings.guideSeason = tonumber(db.settings.rxpSeason) or 0
+    end
+    for _, legacyKey in ipairs({
+        "autoAdvance","rxpSeason","rxpRate","rxpHardcoreMode","rxpSoDMode",
+        "rxpEraMode","rxpSoMMode","rxpSSFMode","rxpPhase","rxpHardcoreServer",
+    }) do
+        db.settings[legacyKey] = nil
     end
     db.logs = db.logs or {}
     db.logSequence = db.logSequence or 0

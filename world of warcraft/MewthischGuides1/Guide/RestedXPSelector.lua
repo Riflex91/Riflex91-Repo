@@ -29,13 +29,13 @@ local function atomMatches(atom, profile, settings)
     if lower == "skip" then
         matched = false
     elseif lower == "sod" then
-        matched = settings.rxpSoDMode and true or false
+        matched = false
     elseif lower == "era" then
-        matched = settings.rxpEraMode ~= false
+        matched = true
     elseif lower == "som" then
-        matched = settings.rxpSoMMode and true or false
+        matched = settings.routeSoMMode and true or false
     elseif lower == "ssf" then
-        matched = settings.rxpSSFMode and true or false
+        matched = false
     elseif RACES[lower] then
         matched = tostring(profile.race or "") == RACES[lower]
     elseif CLASSES[lower] then
@@ -105,10 +105,10 @@ end
 function S:TagsMatch(tags, profile)
     profile = profile or MG:GetPlayerProfile()
     local settings = MG.db and MG.db.settings or {}
-    local season = tonumber(settings.rxpSeason) or 0
-    local xpRate = tonumber(settings.rxpRate) or 1
-    local hardcore = settings.rxpHardcoreMode and true or false
-    local phase = tonumber(settings.rxpPhase) or 6
+    local season = tonumber(settings.guideSeason) or 0
+    local xpRate = 1
+    local hardcore = false
+    local phase = 6
     local level = tonumber(profile.level) or 1
 
     for _, tag in ipairs(tags or {}) do
@@ -133,17 +133,11 @@ function S:TagsMatch(tags, profile)
             return false, "hardcore_server"
         elseif name == "softcoreserver" and hardcore then
             return false, "softcore_server"
-        elseif name == "era" and settings.rxpEraMode == false then
-            return false, "era"
-        elseif name == "som" and not settings.rxpSoMMode then
+        elseif name == "som" and not settings.routeSoMMode then
             return false, "som"
-        elseif name == "era/som" and not (
-            settings.rxpEraMode ~= false or settings.rxpSoMMode) then
-            return false, "era_or_som"
-        elseif name == "ssf" and not settings.rxpSSFMode then
+        elseif name == "ssf" then
             return false, "ssf"
-        elseif name == "ah" and (
-            settings.rxpSSFMode or settings.allowAuctionHouse == false) then
+        elseif name == "ah" and settings.allowAuctionHouse == false then
             return false, "auction_house_disabled"
         elseif name == "season" then
             local accepted = false

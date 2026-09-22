@@ -177,7 +177,6 @@ end
 function R:AutoAdvance()
     local current = MG.RuntimeStore:Get()
     if not current or not current.stepState then return false, "missing_state" end
-    if not MG.db.settings.autoAdvance then return false, "disabled" end
 
     local safe = current.stepState.autoAdvanceSafe or current.stepState.skipSafe
     if not safe then return false, "not_safe" end

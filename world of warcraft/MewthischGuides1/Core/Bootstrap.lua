@@ -17,7 +17,7 @@ local function refreshRuntime(reason, allowAdvance)
     if not MG.RuntimeEngine.session then return nil, "no_active_session" end
 
     local runtime = MG.RuntimeEngine:Refresh(reason)
-    if runtime and allowAdvance and MG.db.settings.autoAdvance then
+    if runtime and allowAdvance then
         local advanced = MG.RuntimeEngine:AdvanceWhileSafe(25)
         if advanced > 0 then
             runtime = MG.RuntimeStore:Get()
