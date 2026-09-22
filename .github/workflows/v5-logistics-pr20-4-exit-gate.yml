@@ -1,0 +1,40 @@
+name: v5-logistics-pr20-4-exit-gate
+
+on:
+  pull_request:
+    paths:
+      - 'v5/roadmap/pr20-4-logistics-transfer-evidence.json'
+      - 'v5/roadmap/pr20-4-logistics-transfer-exit-gate-status.json'
+      - 'v5/roadmap/post-r19-roadmap.json'
+      - 'v5/grundlage/vertraege/runtime/logistics-transfer-production-preparation.json'
+      - 'v5/grundlage/vertraege/runtime/ingame-test-execution-policy.json'
+      - 'v5/werkzeuge/pr20-4-logistics-transfer-exit-gate-pruefen.mjs'
+      - 'v5/grundlage/tests/pr20-logistics-transfer-exit-gate-status.test.mjs'
+      - 'v5/grundlage/tests/pr20-logistics-transfer-production-preparation.test.mjs'
+      - 'v5/grundlage/tests/pr20-market-exit-gate-status.test.mjs'
+      - 'v5/werkzeuge/pr20-3-market-exit-gate-pruefen.mjs'
+      - 'v5/dokumentation/V5-POST-R19-ROADMAP.md'
+      - 'v5/dokumentation/PR20-4-LOGISTIK-TRANSFER-PRODUKTIV-VORBEREITUNG.md'
+      - 'v5/package.json'
+      - '.github/workflows/v5-logistics-pr20-4-exit-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  logistics-exit-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - working-directory: v5
+        run: npm ci
+      - working-directory: v5
+        run: npm run logistics-pr20-4-exit-gate:pruefen
+      - working-directory: v5
+        run: npm run market-pr20-3-exit-gate:pruefen
