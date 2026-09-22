@@ -466,6 +466,53 @@ jobs:
           print("Runtime revision + transitions PASS")
           LUA
 
+      - name: Validate exact TOC load order smoke
+        run: |
+          lua5.1 - <<'LUA'
+          MewthischGuides1DB={}
+          SlashCmdList={}
+          UIParent={}
+          UnitClass=function() return "Mage","MAGE",8 end
+          UnitRace=function() return "Human","Human",1 end
+          UnitLevel=function() return 12 end
+          UnitFactionGroup=function() return "Alliance" end
+          GetRealmName=function() return "TestRealm" end
+
+          local driver={}
+          function driver:RegisterEvent() end
+          function driver:SetScript(name,fn) self[name]=fn end
+          CreateFrame=function() return driver end
+
+          local root="world of warcraft/MewthischGuides1/"
+          local toc=assert(io.open(root.."MewthischGuides1.toc","r"))
+          local MG={}
+          local loaded={}
+          for line in toc:lines() do
+            line=line:gsub("^%s+",""):gsub("%s+$","")
+            if line~="" and not line:match("^##") and line:match("%.lua$") then
+              local chunk,err=loadfile(root..line)
+              assert(chunk,line..": "..tostring(err))
+              chunk("MewthischGuides1",MG)
+              loaded[#loaded+1]=line
+            end
+          end
+          toc:close()
+
+          assert(#loaded>35,"unexpectedly small TOC load")
+          assert(MG.GuideCompiler and MG.GuideController)
+          assert(MG.PlayerFacts and MG.ActionMemory)
+          assert(MG.CoordinateConverter and MG.NavigationDistance and MG.NavigationBearing)
+          assert(MG.RoutePlanner and MG.TravelGraph and MG.TravelPlanner)
+          assert(MG.AutomationPolicy and MG.ActionPolicy)
+          assert(MG.GearScore and MG.RewardAdvisor)
+          assert(MG.BuildState and MG.TalentAdvisor and MG.BuildAdvisor)
+          assert(MG.GuideBrowser and MG.SettingsWindow and MG.ErrorLogWindow)
+          assert(MG.ActionBar and MG.WorldMapOverlay and MG.NavigatorFrame and MG.GuideViewer)
+          assert(type(SlashCmdList.MEWTHISCHGUIDES1)=="function")
+          assert(type(driver.OnEvent)=="function")
+          print("Exact TOC load-order smoke PASS",#loaded)
+          LUA
+
       - name: Validate full 1.0 TOC and subsystem contract
         run: |
           set -euo pipefail
@@ -481,11 +528,14 @@ jobs:
             "Navigation/Distance.lua"
             "Navigation/Bearing.lua"
             "Navigation/RoutePlanner.lua"
+            "Travel/TravelGraph.lua"
             "Travel/TravelPlanner.lua"
             "Policy/AutomationPolicy.lua"
             "Policy/ActionPolicy.lua"
             "Gear/GearScore.lua"
             "Gear/RewardAdvisor.lua"
+            "Build/BuildState.lua"
+            "Build/TalentAdvisor.lua"
             "Build/BuildAdvisor.lua"
             "Presentation/PresentationResolver.lua"
             "UI/ErrorLogWindow.lua"
