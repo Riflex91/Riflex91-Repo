@@ -1747,6 +1747,486 @@ class NodeV5ProduktionsHost {
     }
   }
 
+  async fuehreBankStoreExplizitTransaktion(anfrage, jetztMs) {
+    pruefeZeit(jetztMs);
+    if (anfrage === null || typeof anfrage !== "object") {
+      throw new Error("NODE_BANK_STORE_PROD_TX_ANFRAGE_UNGUELTIG");
+    }
+    for (const feld of [
+      "aktivierungsId", "transaktionsId", "freigabeId",
+      "auftragId", "ablaufId", "bestaetigungText", "configFingerprint",
+    ]) {
+      const wert = anfrage[feld];
+      if (typeof wert !== "string" || wert.trim().length === 0 || wert.length > 192) {
+        throw new Error("NODE_BANK_STORE_PROD_TX_FELD_UNGUELTIG:" + feld);
+      }
+    }
+    if (anfrage.bestaetigungText !== BANK_STORE_EINMAL_BESTAETIGUNG) {
+      throw new Error("NODE_BANK_STORE_PROD_TX_BESTAETIGUNG_FEHLT");
+    }
+    if (!anfrage.ausgang || typeof anfrage.ausgang !== "object"
+        || anfrage.ausgang.bankGemountet !== false
+        || !anfrage.mountBeobachter
+        || typeof anfrage.mountBeobachter.warteAufMount !== "function"
+        || !anfrage.releaseBeobachter
+        || typeof anfrage.releaseBeobachter.beobachte !== "function"
+        || !anfrage.adapter || typeof anfrage.adapter.sende !== "function"
+        || !anfrage.bankBeobachter || typeof anfrage.bankBeobachter.beobachte !== "function"
+        || !anfrage.wissensSnapshot || typeof anfrage.wissensSnapshot !== "object") {
+      throw new Error("NODE_BANK_STORE_PROD_TX_PORT_ODER_AUSGANG_UNGUELTIG");
+    }
+    for (const feld of ["accountId", "charakterName", "sessionId", "serverRegion", "serverKennung"]) {
+      const wert = anfrage.ausgang[feld];
+      if (typeof wert !== "string" || wert.trim().length === 0 || wert.length > 192) {
+        throw new Error("NODE_BANK_STORE_PROD_TX_BINDUNG_UNGUELTIG:" + feld);
+      }
+    }
+    if (!Array.isArray(anfrage.wissensSnapshot.quellenSha256)
+        || typeof anfrage.wissensSnapshot.gitCommit !== "string") {
+      throw new Error("NODE_BANK_STORE_PROD_TX_WISSENSSNAPSHOT_UNGUELTIG");
+    }
+
+    const startBereit = await this.pruefeBankStoreStartBereit();
+    if (!startBereit.bereit) throw new Error("NODE_BANK_STORE_PROD_TX_START_BLOCKIERT");
+    const tick = await this.#host.tick(jetztMs);
+    if (tick.zustand !== "LAEUFT"
+        || tick.aktivePlanenFaehigkeiten.length !== 0
+        || tick.equipEinmalAuthorityOffen
+        || tick.bankDepositEinmalAuthorityOffen
+        || tick.bankWithdrawEinmalAuthorityOffen
+        || tick.bankStoreEinmalAuthorityOffen) {
+      throw new Error("NODE_BANK_STORE_PROD_TX_HOST_NICHT_BEREIT:" + tick.grund);
+    }
+
+    let leaseToken = null;
+    let authority = null;
+    try {
+      leaseToken = await this.#bankLeaseController.beanspruche(
+        anfrage.ausgang.accountId,
+        anfrage.ausgang.charakterName,
+        anfrage.ablaufId,
+        "bank_store_two_slot_one_shot_live",
+        anfrage.ausgang.serverRegion,
+        anfrage.ausgang.serverKennung,
+        jetztMs,
+        300_000,
+      );
+      const mount = await anfrage.mountBeobachter.warteAufMount(Object.freeze({
+        schemaVersion: 1,
+        accountId: leaseToken.accountId,
+        characterId: leaseToken.ownerCharacterId,
+        sessionId: anfrage.ausgang.sessionId,
+        serverRegion: anfrage.ausgang.serverRegion,
+        serverIdentifier: anfrage.ausgang.serverKennung,
+        leaseEpoche: leaseToken.epoche,
+        leaseErworbenAmMs: jetztMs,
+        gameplayWrites: 0,
+      }));
+      const k = mount?.expliziterKandidat ?? mount?.storeKandidat;
+      if (!mount || typeof mount !== "object" || mount.bankGemountet !== true
+          || mount.accountId !== leaseToken.accountId
+          || mount.charakterName !== leaseToken.ownerCharacterId
+          || mount.sessionId !== anfrage.ausgang.sessionId
+          || mount.serverRegion !== anfrage.ausgang.serverRegion
+          || mount.serverKennung !== anfrage.ausgang.serverKennung
+          || !Number.isSafeInteger(mount.beobachtetAmMs) || mount.beobachtetAmMs < jetztMs
+          || !Number.isSafeInteger(mount.characterGold) || mount.characterGold < 0
+          || !Number.isSafeInteger(mount.bankGold) || mount.bankGold < 0
+          || !Number.isSafeInteger(mount.inventoryCapacity) || mount.inventoryCapacity < 1 || mount.inventoryCapacity > 64
+          || typeof mount.fingerprint !== "string" || !/^[a-f0-9]{64}$/i.test(mount.fingerprint)
+          || !k || !/^items[0-9]+$/.test(String(k.pack || ""))
+          || !Number.isInteger(k.bankSlot) || k.bankSlot < 0 || k.bankSlot > 41
+          || !Number.isInteger(k.inventorySlot) || k.inventorySlot < 0 || k.inventorySlot >= mount.inventoryCapacity
+          || !k.item || !/^[a-f0-9]{64}$/i.test(String(k.item.fingerprint || ""))
+          || !/^[a-f0-9]{64}$/i.test(String(k.packRestFingerprint || ""))
+          || !/^[a-f0-9]{64}$/i.test(String(k.inventoryRestFingerprint || ""))) {
+        throw new Error("NODE_BANK_STORE_PROD_TX_MOUNT_EVIDENCE_UNGUELTIG");
+      }
+
+      if (typeof anfrage.nachMountPrestateGate === "function") {
+        await anfrage.nachMountPrestateGate(mount);
+      }
+
+      const authorityMs = Date.now();
+      if (mount.beobachtetAmMs > authorityMs || authorityMs - mount.beobachtetAmMs > 1_000) {
+        throw new Error("NODE_BANK_STORE_PROD_TX_MOUNT_EVIDENCE_STALE");
+      }
+      const authorityErgebnis = await this.#host.erteileBankStoreEinmalAuthority(
+        Object.freeze({
+          schemaVersion: 1,
+          aktivierungsId: anfrage.aktivierungsId,
+          transaktionsId: anfrage.transaktionsId,
+          faehigkeitId: MERCHANT_BANK_STORE_FAEHIGKEIT_ID,
+          anbieterModulId: MERCHANT_BANK_CORE_MODUL_ID,
+          anbieterVersion: MERCHANT_BANK_CORE_MODUL_VERSION,
+          actionContractId: BANK_STORE_ACTION_CONTRACT_ID,
+          recoveryContractId: BANK_STORE_RECOVERY_CONTRACT_ID,
+          verifierId: BANK_STORE_VERIFIER_ID,
+          policyId: BANK_STORE_EINMAL_POLICY_ID,
+          bestaetigungText: anfrage.bestaetigungText,
+          gueltigBisMs: authorityMs + 2_000,
+        }),
+        authorityMs,
+      );
+      if (!authorityErgebnis.erfolgreich || authorityErgebnis.authority === null) {
+        throw new Error("NODE_BANK_STORE_PROD_TX_AUTHORITY_BLOCKIERT:" + authorityErgebnis.grund);
+      }
+      authority = authorityErgebnis.authority;
+      const admissionMs = Date.now();
+      if (!authority.gueltigFuer(admissionMs)) {
+        throw new Error("NODE_BANK_STORE_PROD_TX_AUTHORITY_VOR_ADMISSION_ABGELAUFEN");
+      }
+      if (admissionMs - mount.beobachtetAmMs > 1_000) {
+        throw new Error("NODE_BANK_STORE_PROD_TX_PRESTATE_STALE");
+      }
+      const fence = Object.freeze({
+        serverRegion: mount.serverRegion,
+        serverIdentifier: mount.serverKennung,
+        mountedCharacterId: mount.charakterName,
+        konflikt: false,
+      });
+      const vorher = Object.freeze({
+        schemaVersion: 1,
+        richtung: "STORE",
+        characterId: mount.charakterName,
+        sessionId: mount.sessionId,
+        serverRegion: mount.serverRegion,
+        serverKennung: mount.serverKennung,
+        leaseEpoche: leaseToken.epoche,
+        mountEpoche: mount.beobachtetAmMs,
+        beobachtetAmMs: mount.beobachtetAmMs,
+        bankPack: k.pack,
+        bankSlot: k.bankSlot,
+        inventorySlot: k.inventorySlot,
+        inventoryCapacity: mount.inventoryCapacity,
+        transferItem: Object.freeze({ name: k.item.name, fingerprint: k.item.fingerprint }),
+        bankSlotItem: "STORE" === "RETRIEVE"
+          ? Object.freeze({ name: k.item.name, fingerprint: k.item.fingerprint })
+          : null,
+        inventorySlotItem: "STORE" === "STORE"
+          ? Object.freeze({ name: k.item.name, fingerprint: k.item.fingerprint })
+          : null,
+        packRestFingerprint: k.packRestFingerprint,
+        inventoryRestFingerprint: k.inventoryRestFingerprint,
+        characterGold: mount.characterGold,
+        bankGold: mount.bankGold,
+        fingerprint: mount.fingerprint,
+      });;
+      const gate = new ProduktivesBankStoreEinmalAdmissionGate(
+        this.#gesamtfreigabeGate,
+        () => this.#host.status(),
+        authority,
+      );
+      const ergebnis = await this.#runtime.fuehreBankStoreExplizitTransaktion(
+        Object.freeze({
+          schemaVersion: 1,
+          freigabeId: anfrage.freigabeId,
+          auftragId: anfrage.auftragId,
+          ablaufId: anfrage.ablaufId,
+          transaktionsId: anfrage.transaktionsId,
+          accountId: mount.accountId,
+          characterId: mount.charakterName,
+          sessionId: mount.sessionId,
+          serverRegion: mount.serverRegion,
+          serverIdentifier: mount.serverKennung,
+          pack: k.pack,
+          bankSlot: k.bankSlot,
+          inventorySlot: k.inventorySlot,
+          ausgestelltAmMs: admissionMs,
+          gueltigBisMs: Math.min(admissionMs + 1_500, authority.daten().gueltigBisMs),
+          leaseDauerMs: 300_000,
+          maximaleSnapshotAlterMs: 1_000,
+          externalFence: fence,
+          externalFenceBeobachtetAmMs: mount.beobachtetAmMs,
+          vorher,
+          authority,
+          wissensSnapshot: Object.freeze({
+            gitCommit: anfrage.wissensSnapshot.gitCommit,
+            quellenSha256: Object.freeze([...anfrage.wissensSnapshot.quellenSha256]),
+          }),
+          configFingerprint: anfrage.configFingerprint,
+          prestateFingerprint: mount.fingerprint,
+        }),
+        Object.freeze({
+          laufzeitGate: gate,
+          journal: this.#bankStoreJournal,
+          leaseController: this.#bankLeaseController,
+          adapter: anfrage.adapter,
+          bankBeobachter: anfrage.bankBeobachter,
+          releaseBeobachter: anfrage.releaseBeobachter,
+          vorabLeaseToken: leaseToken,
+          jetztMs: () => Date.now(),
+        }),
+      );
+      return Object.freeze({
+        ...ergebnis,
+        manualMountTransition: true,
+        manualExitRequired: true,
+        prestate: vorher,
+      });
+    } catch (fehler) {
+      if (leaseToken !== null) {
+        try {
+          const sichtbar = this.#bankLeaseController.sicht().find(x =>
+            x.accountId === leaseToken.accountId && x.epoche === leaseToken.epoche);
+          if (sichtbar?.zustand === "ACTIVE"
+              || sichtbar?.zustand === "ACQUIRING"
+              || sichtbar?.zustand === "RELEASING") {
+            await this.#bankLeaseController.markiereRecovery(leaseToken, Date.now());
+          }
+        } catch {
+          // Persistent evidence remains fail-closed.
+        }
+      }
+      throw fehler;
+    } finally {
+      if (authority !== null) authority.widerrufe();
+      try { await this.#host.tick(Date.now()); } catch {
+        // Local authority is revoked; later revalidation can only block.
+      }
+    }
+  }
+
+  async fuehreBankRetrieveExplizitTransaktion(anfrage, jetztMs) {
+    pruefeZeit(jetztMs);
+    if (anfrage === null || typeof anfrage !== "object") {
+      throw new Error("NODE_BANK_RETRIEVE_PROD_TX_ANFRAGE_UNGUELTIG");
+    }
+    for (const feld of [
+      "aktivierungsId", "transaktionsId", "freigabeId",
+      "auftragId", "ablaufId", "bestaetigungText", "configFingerprint",
+    ]) {
+      const wert = anfrage[feld];
+      if (typeof wert !== "string" || wert.trim().length === 0 || wert.length > 192) {
+        throw new Error("NODE_BANK_RETRIEVE_PROD_TX_FELD_UNGUELTIG:" + feld);
+      }
+    }
+    if (anfrage.bestaetigungText !== BANK_RETRIEVE_EINMAL_BESTAETIGUNG) {
+      throw new Error("NODE_BANK_RETRIEVE_PROD_TX_BESTAETIGUNG_FEHLT");
+    }
+    if (!anfrage.ausgang || typeof anfrage.ausgang !== "object"
+        || anfrage.ausgang.bankGemountet !== false
+        || !anfrage.mountBeobachter
+        || typeof anfrage.mountBeobachter.warteAufMount !== "function"
+        || !anfrage.releaseBeobachter
+        || typeof anfrage.releaseBeobachter.beobachte !== "function"
+        || !anfrage.adapter || typeof anfrage.adapter.sende !== "function"
+        || !anfrage.bankBeobachter || typeof anfrage.bankBeobachter.beobachte !== "function"
+        || !anfrage.wissensSnapshot || typeof anfrage.wissensSnapshot !== "object") {
+      throw new Error("NODE_BANK_RETRIEVE_PROD_TX_PORT_ODER_AUSGANG_UNGUELTIG");
+    }
+    for (const feld of ["accountId", "charakterName", "sessionId", "serverRegion", "serverKennung"]) {
+      const wert = anfrage.ausgang[feld];
+      if (typeof wert !== "string" || wert.trim().length === 0 || wert.length > 192) {
+        throw new Error("NODE_BANK_RETRIEVE_PROD_TX_BINDUNG_UNGUELTIG:" + feld);
+      }
+    }
+    if (!Array.isArray(anfrage.wissensSnapshot.quellenSha256)
+        || typeof anfrage.wissensSnapshot.gitCommit !== "string") {
+      throw new Error("NODE_BANK_RETRIEVE_PROD_TX_WISSENSSNAPSHOT_UNGUELTIG");
+    }
+
+    const startBereit = await this.pruefeBankRetrieveStartBereit();
+    if (!startBereit.bereit) throw new Error("NODE_BANK_RETRIEVE_PROD_TX_START_BLOCKIERT");
+    const tick = await this.#host.tick(jetztMs);
+    if (tick.zustand !== "LAEUFT"
+        || tick.aktivePlanenFaehigkeiten.length !== 0
+        || tick.equipEinmalAuthorityOffen
+        || tick.bankDepositEinmalAuthorityOffen
+        || tick.bankWithdrawEinmalAuthorityOffen
+        || tick.bankRetrieveEinmalAuthorityOffen) {
+      throw new Error("NODE_BANK_RETRIEVE_PROD_TX_HOST_NICHT_BEREIT:" + tick.grund);
+    }
+
+    let leaseToken = null;
+    let authority = null;
+    try {
+      leaseToken = await this.#bankLeaseController.beanspruche(
+        anfrage.ausgang.accountId,
+        anfrage.ausgang.charakterName,
+        anfrage.ablaufId,
+        "bank_retrieve_two_slot_one_shot_live",
+        anfrage.ausgang.serverRegion,
+        anfrage.ausgang.serverKennung,
+        jetztMs,
+        300_000,
+      );
+      const mount = await anfrage.mountBeobachter.warteAufMount(Object.freeze({
+        schemaVersion: 1,
+        accountId: leaseToken.accountId,
+        characterId: leaseToken.ownerCharacterId,
+        sessionId: anfrage.ausgang.sessionId,
+        serverRegion: anfrage.ausgang.serverRegion,
+        serverIdentifier: anfrage.ausgang.serverKennung,
+        leaseEpoche: leaseToken.epoche,
+        leaseErworbenAmMs: jetztMs,
+        gameplayWrites: 0,
+      }));
+      const k = mount?.expliziterKandidat ?? mount?.retrieveKandidat;
+      if (!mount || typeof mount !== "object" || mount.bankGemountet !== true
+          || mount.accountId !== leaseToken.accountId
+          || mount.charakterName !== leaseToken.ownerCharacterId
+          || mount.sessionId !== anfrage.ausgang.sessionId
+          || mount.serverRegion !== anfrage.ausgang.serverRegion
+          || mount.serverKennung !== anfrage.ausgang.serverKennung
+          || !Number.isSafeInteger(mount.beobachtetAmMs) || mount.beobachtetAmMs < jetztMs
+          || !Number.isSafeInteger(mount.characterGold) || mount.characterGold < 0
+          || !Number.isSafeInteger(mount.bankGold) || mount.bankGold < 0
+          || !Number.isSafeInteger(mount.inventoryCapacity) || mount.inventoryCapacity < 1 || mount.inventoryCapacity > 64
+          || typeof mount.fingerprint !== "string" || !/^[a-f0-9]{64}$/i.test(mount.fingerprint)
+          || !k || !/^items[0-9]+$/.test(String(k.pack || ""))
+          || !Number.isInteger(k.bankSlot) || k.bankSlot < 0 || k.bankSlot > 41
+          || !Number.isInteger(k.inventorySlot) || k.inventorySlot < 0 || k.inventorySlot >= mount.inventoryCapacity
+          || !k.item || !/^[a-f0-9]{64}$/i.test(String(k.item.fingerprint || ""))
+          || !/^[a-f0-9]{64}$/i.test(String(k.packRestFingerprint || ""))
+          || !/^[a-f0-9]{64}$/i.test(String(k.inventoryRestFingerprint || ""))) {
+        throw new Error("NODE_BANK_RETRIEVE_PROD_TX_MOUNT_EVIDENCE_UNGUELTIG");
+      }
+
+      if (typeof anfrage.nachMountPrestateGate === "function") {
+        await anfrage.nachMountPrestateGate(mount);
+      }
+
+      const authorityMs = Date.now();
+      if (mount.beobachtetAmMs > authorityMs || authorityMs - mount.beobachtetAmMs > 1_000) {
+        throw new Error("NODE_BANK_RETRIEVE_PROD_TX_MOUNT_EVIDENCE_STALE");
+      }
+      const authorityErgebnis = await this.#host.erteileBankRetrieveEinmalAuthority(
+        Object.freeze({
+          schemaVersion: 1,
+          aktivierungsId: anfrage.aktivierungsId,
+          transaktionsId: anfrage.transaktionsId,
+          faehigkeitId: MERCHANT_BANK_RETRIEVE_FAEHIGKEIT_ID,
+          anbieterModulId: MERCHANT_BANK_CORE_MODUL_ID,
+          anbieterVersion: MERCHANT_BANK_CORE_MODUL_VERSION,
+          actionContractId: BANK_RETRIEVE_ACTION_CONTRACT_ID,
+          recoveryContractId: BANK_RETRIEVE_RECOVERY_CONTRACT_ID,
+          verifierId: BANK_RETRIEVE_VERIFIER_ID,
+          policyId: BANK_RETRIEVE_EINMAL_POLICY_ID,
+          bestaetigungText: anfrage.bestaetigungText,
+          gueltigBisMs: authorityMs + 2_000,
+        }),
+        authorityMs,
+      );
+      if (!authorityErgebnis.erfolgreich || authorityErgebnis.authority === null) {
+        throw new Error("NODE_BANK_RETRIEVE_PROD_TX_AUTHORITY_BLOCKIERT:" + authorityErgebnis.grund);
+      }
+      authority = authorityErgebnis.authority;
+      const admissionMs = Date.now();
+      if (!authority.gueltigFuer(admissionMs)) {
+        throw new Error("NODE_BANK_RETRIEVE_PROD_TX_AUTHORITY_VOR_ADMISSION_ABGELAUFEN");
+      }
+      if (admissionMs - mount.beobachtetAmMs > 1_000) {
+        throw new Error("NODE_BANK_RETRIEVE_PROD_TX_PRESTATE_STALE");
+      }
+      const fence = Object.freeze({
+        serverRegion: mount.serverRegion,
+        serverIdentifier: mount.serverKennung,
+        mountedCharacterId: mount.charakterName,
+        konflikt: false,
+      });
+      const vorher = Object.freeze({
+        schemaVersion: 1,
+        richtung: "RETRIEVE",
+        characterId: mount.charakterName,
+        sessionId: mount.sessionId,
+        serverRegion: mount.serverRegion,
+        serverKennung: mount.serverKennung,
+        leaseEpoche: leaseToken.epoche,
+        mountEpoche: mount.beobachtetAmMs,
+        beobachtetAmMs: mount.beobachtetAmMs,
+        bankPack: k.pack,
+        bankSlot: k.bankSlot,
+        inventorySlot: k.inventorySlot,
+        inventoryCapacity: mount.inventoryCapacity,
+        transferItem: Object.freeze({ name: k.item.name, fingerprint: k.item.fingerprint }),
+        bankSlotItem: "RETRIEVE" === "RETRIEVE"
+          ? Object.freeze({ name: k.item.name, fingerprint: k.item.fingerprint })
+          : null,
+        inventorySlotItem: "RETRIEVE" === "STORE"
+          ? Object.freeze({ name: k.item.name, fingerprint: k.item.fingerprint })
+          : null,
+        packRestFingerprint: k.packRestFingerprint,
+        inventoryRestFingerprint: k.inventoryRestFingerprint,
+        characterGold: mount.characterGold,
+        bankGold: mount.bankGold,
+        fingerprint: mount.fingerprint,
+      });;
+      const gate = new ProduktivesBankRetrieveEinmalAdmissionGate(
+        this.#gesamtfreigabeGate,
+        () => this.#host.status(),
+        authority,
+      );
+      const ergebnis = await this.#runtime.fuehreBankRetrieveExplizitTransaktion(
+        Object.freeze({
+          schemaVersion: 1,
+          freigabeId: anfrage.freigabeId,
+          auftragId: anfrage.auftragId,
+          ablaufId: anfrage.ablaufId,
+          transaktionsId: anfrage.transaktionsId,
+          accountId: mount.accountId,
+          characterId: mount.charakterName,
+          sessionId: mount.sessionId,
+          serverRegion: mount.serverRegion,
+          serverIdentifier: mount.serverKennung,
+          pack: k.pack,
+          bankSlot: k.bankSlot,
+          inventorySlot: k.inventorySlot,
+          ausgestelltAmMs: admissionMs,
+          gueltigBisMs: Math.min(admissionMs + 1_500, authority.daten().gueltigBisMs),
+          leaseDauerMs: 300_000,
+          maximaleSnapshotAlterMs: 1_000,
+          externalFence: fence,
+          externalFenceBeobachtetAmMs: mount.beobachtetAmMs,
+          vorher,
+          authority,
+          wissensSnapshot: Object.freeze({
+            gitCommit: anfrage.wissensSnapshot.gitCommit,
+            quellenSha256: Object.freeze([...anfrage.wissensSnapshot.quellenSha256]),
+          }),
+          configFingerprint: anfrage.configFingerprint,
+          prestateFingerprint: mount.fingerprint,
+        }),
+        Object.freeze({
+          laufzeitGate: gate,
+          journal: this.#bankRetrieveJournal,
+          leaseController: this.#bankLeaseController,
+          adapter: anfrage.adapter,
+          bankBeobachter: anfrage.bankBeobachter,
+          releaseBeobachter: anfrage.releaseBeobachter,
+          vorabLeaseToken: leaseToken,
+          jetztMs: () => Date.now(),
+        }),
+      );
+      return Object.freeze({
+        ...ergebnis,
+        manualMountTransition: true,
+        manualExitRequired: true,
+        prestate: vorher,
+      });
+    } catch (fehler) {
+      if (leaseToken !== null) {
+        try {
+          const sichtbar = this.#bankLeaseController.sicht().find(x =>
+            x.accountId === leaseToken.accountId && x.epoche === leaseToken.epoche);
+          if (sichtbar?.zustand === "ACTIVE"
+              || sichtbar?.zustand === "ACQUIRING"
+              || sichtbar?.zustand === "RELEASING") {
+            await this.#bankLeaseController.markiereRecovery(leaseToken, Date.now());
+          }
+        } catch {
+          // Persistent evidence remains fail-closed.
+        }
+      }
+      throw fehler;
+    } finally {
+      if (authority !== null) authority.widerrufe();
+      try { await this.#host.tick(Date.now()); } catch {
+        // Local authority is revoked; later revalidation can only block.
+      }
+    }
+  }
+
   async fuehreBankSwapRealShadow(anfrage, jetztMs) {
     pruefeZeit(jetztMs);
     if (anfrage === null || typeof anfrage !== "object") {

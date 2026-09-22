@@ -187,6 +187,18 @@ import {
   type ProduktiveBankSwapTransaktionsAnforderung,
   type ProduktiveBankSwapTransaktionsErgebnis,
 } from "../merchant/bank-swap-produktions-transaktion.js";
+import {
+  ProduktiveBankRetrieveTransaktionsOrchestrierung,
+  type ProduktiveBankRetrieveTransaktionsAbhaengigkeiten,
+  type ProduktiveBankRetrieveTransaktionsAnforderung,
+  type ProduktiveBankRetrieveTransaktionsErgebnis,
+} from "../merchant/bank-retrieve-produktions-transaktion.js";
+import {
+  ProduktiveBankStoreTransaktionsOrchestrierung,
+  type ProduktiveBankStoreTransaktionsAbhaengigkeiten,
+  type ProduktiveBankStoreTransaktionsAnforderung,
+  type ProduktiveBankStoreTransaktionsErgebnis,
+} from "../merchant/bank-store-produktions-transaktion.js";
 import { KontrollierteLaufsteuerung } from "../recovery/laufsteuerung.js";
 import type {
   V5ProduktionsProzessErgebnis,
@@ -3139,6 +3151,70 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
     }
 
     return new ProduktiveBankSwapTransaktionsOrchestrierung()
+      .fuehreEinmalAus(anforderung, Object.freeze({
+        ...abhaengigkeiten,
+        operatorRichtlinie: this.#bedienerRichtlinie,
+        ressourcen: this.#ressourcen,
+        socketBudget: this.#socketBudget,
+        mutationsKanaele: this.#mutationsKanaele,
+        ausfuehrung: this.#ausfuehrung,
+      }));
+  }
+
+  public async fuehreBankStoreExplizitTransaktion<Ergebnis>(
+    anforderung: ProduktiveBankStoreTransaktionsAnforderung,
+    abhaengigkeiten: Omit<
+      ProduktiveBankStoreTransaktionsAbhaengigkeiten<Ergebnis>,
+      | "operatorRichtlinie"
+      | "ressourcen"
+      | "socketBudget"
+      | "mutationsKanaele"
+      | "ausfuehrung"
+    >,
+  ): Promise<ProduktiveBankStoreTransaktionsErgebnis> {
+    if (!this.#prozessLaeuft || this.#zustand !== "LAEUFT") {
+      throw new Error("V5_BANK_STORE_PROD_TX_RUNTIME_LAEUFT_NICHT");
+    }
+    if (this.#bedienerRichtlinie === null) {
+      throw new Error("V5_BANK_STORE_PROD_TX_BEDIENER_RICHTLINIE_FEHLT");
+    }
+    if (this.#bankStoreEinmalAuthority !== anforderung.authority) {
+      throw new Error("V5_BANK_STORE_PROD_TX_AUTHORITY_NICHT_AKTUELL");
+    }
+
+    return new ProduktiveBankStoreTransaktionsOrchestrierung()
+      .fuehreEinmalAus(anforderung, Object.freeze({
+        ...abhaengigkeiten,
+        operatorRichtlinie: this.#bedienerRichtlinie,
+        ressourcen: this.#ressourcen,
+        socketBudget: this.#socketBudget,
+        mutationsKanaele: this.#mutationsKanaele,
+        ausfuehrung: this.#ausfuehrung,
+      }));
+  }
+
+  public async fuehreBankRetrieveExplizitTransaktion<Ergebnis>(
+    anforderung: ProduktiveBankRetrieveTransaktionsAnforderung,
+    abhaengigkeiten: Omit<
+      ProduktiveBankRetrieveTransaktionsAbhaengigkeiten<Ergebnis>,
+      | "operatorRichtlinie"
+      | "ressourcen"
+      | "socketBudget"
+      | "mutationsKanaele"
+      | "ausfuehrung"
+    >,
+  ): Promise<ProduktiveBankRetrieveTransaktionsErgebnis> {
+    if (!this.#prozessLaeuft || this.#zustand !== "LAEUFT") {
+      throw new Error("V5_BANK_RETRIEVE_PROD_TX_RUNTIME_LAEUFT_NICHT");
+    }
+    if (this.#bedienerRichtlinie === null) {
+      throw new Error("V5_BANK_RETRIEVE_PROD_TX_BEDIENER_RICHTLINIE_FEHLT");
+    }
+    if (this.#bankRetrieveEinmalAuthority !== anforderung.authority) {
+      throw new Error("V5_BANK_RETRIEVE_PROD_TX_AUTHORITY_NICHT_AKTUELL");
+    }
+
+    return new ProduktiveBankRetrieveTransaktionsOrchestrierung()
       .fuehreEinmalAus(anforderung, Object.freeze({
         ...abhaengigkeiten,
         operatorRichtlinie: this.#bedienerRichtlinie,

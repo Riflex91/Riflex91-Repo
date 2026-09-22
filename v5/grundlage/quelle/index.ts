@@ -168,6 +168,8 @@ export * from "./merchant/bank-swap-admission-gate.js";
 export * from "./merchant/bank-retrieve-admission-gate.js";
 export * from "./merchant/bank-store-admission-gate.js";
 export * from "./merchant/bank-swap-produktions-transaktion.js";
+export * from "./merchant/bank-retrieve-produktions-transaktion.js";
+export * from "./merchant/bank-store-produktions-transaktion.js";
 export * from "./merchant/bank-withdraw-admission-gate.js";
 export * from "./merchant/bank-deposit-admission-gate.js";
 export * from "./merchant/bank-deposit-shadow-admission.js";
