@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "gestartetAm": "2026-09-22T20:38:52.5145688+00:00",
-  "beendetAm": "2026-09-22T20:38:59.598107+00:00",
+  "gestartetAm": "2026-09-22T21:11:39.6896814+00:00",
+  "beendetAm": "2026-09-22T21:11:45.8242139+00:00",
   "intervallMinuten": 60,
   "gepruefteQuellen": 21,
-  "geaenderteQuellen": 4,
+  "geaenderteQuellen": 1,
   "neueKandidaten": 0,
   "registrierteQuellen": 21,
   "uploadStatus": "GITHUB_PUSH_GEPLANT",
