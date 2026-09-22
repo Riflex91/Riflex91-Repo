@@ -20,9 +20,16 @@ if (!["CORE_VORBEREITET_READ_ONLY_PREFLIGHT_AUSSTEHEND", "READ_ONLY_PREFLIGHT_IM
     || candidate.safety?.rawSocketEmitAllowed !== false
     || candidate.implementation?.readOnlyBrowserObserverImplemented !== true
     || candidate.implementation?.readOnlyPreflightImplemented !== true
-    || candidate.implementation?.writeAdapterImplemented !== false
-    || candidate.implementation?.liveRunnerImplemented !== false
-    || candidate.implementation?.gameplayWritesInThisStep !== 0) {
+    || candidate.implementation?.writeAdapterImplemented !== true
+    || candidate.implementation?.gameplayWritesInThisStep !== 0
+    || candidate.writeGate?.sourceLocked !== true
+    || candidate.writeGate?.maxFunctionalTests !== 2
+    || candidate.writeGate?.maxAdapterCallsPerIntent !== 1
+    || candidate.writeGate?.maxGameplayWritesPerIntent !== 1
+    || candidate.writeGate?.sameIntentRetry !== false
+    || candidate.writeGate?.rawSocketEmitAllowed !== false
+    || candidate.writeGate?.productionWideActivationAllowed !== false
+    || candidate.writeGate?.realLiveWritePerformed !== false) {
   errors.push("BANK_SWAP_CANDIDATE_GRENZE_UNGUELTIG");
 }
 
@@ -56,8 +63,18 @@ if (!composition.includes("merchantBankSwapMutationsFaehigkeitDefinition")
     || composition.includes("bank_swap(")) {
   errors.push("BANK_SWAP_PRODUKTIONSKOMPOSITION_GRENZE_UNGUELTIG");
 }
-if (fs.existsSync("werkzeuge/bank-swap-produktions-write-browser.mjs")) {
-  errors.push("BANK_SWAP_WRITE_ADAPTER_ZU_FRUEH");
+if (!fs.existsSync("werkzeuge/bank-swap-produktions-write-browser.mjs")) {
+  errors.push("BANK_SWAP_WRITE_ADAPTER_FEHLT");
+} else {
+  const write = read("werkzeuge/bank-swap-produktions-write-browser.mjs");
+  const calls = write.match(/runner\.bank_swap\s*\(/g) ?? [];
+  if (calls.length !== 1
+      || /\.emit\s*\(/.test(write)
+      || !write.includes("call_code_function_f('eval','void 0')")
+      || !write.includes("this.adapterAufrufe !== 0")
+      || !write.includes("this.moeglicherSend = true")) {
+    errors.push("BANK_SWAP_WRITE_ADAPTER_SAFETY_UNGUELTIG");
+  }
 }
 
 if (errors.length) {
