@@ -32,6 +32,7 @@ public sealed class WindowsBridgeSelfUpdater : IAsyncDisposable
     public const string ReleaseTag = "windows-bridge-latest";
     public const string AssetFileName = "AioBotWindowsBridge.exe";
     public const string ManifestFileName = "AioBotWindowsBridge.version.json";
+    public const string StatusFileName = "self-update-status.json";
     public const string AssetUrl = "https://github.com/Riflex91/Riflex91-Repo/releases/download/windows-bridge-latest/AioBotWindowsBridge.exe";
     public const string ManifestUrl = "https://github.com/Riflex91/Riflex91-Repo/releases/download/windows-bridge-latest/AioBotWindowsBridge.version.json";
 
@@ -85,6 +86,14 @@ public sealed class WindowsBridgeSelfUpdater : IAsyncDisposable
                 if (prepared is not null)
                 {
                     LaunchInstaller(prepared);
+                    var (currentBuildNumber, currentBuildId) = CurrentBuild();
+                    await WriteCheckStatusAsync(
+                        "INSTALLER_STARTED",
+                        currentBuildNumber,
+                        currentBuildId,
+                        prepared.BuildNumber,
+                        prepared.Version,
+                        null);
                     try
                     {
                         UpdateInstallerStarted?.Invoke(prepared);
@@ -120,38 +129,91 @@ public sealed class WindowsBridgeSelfUpdater : IAsyncDisposable
 
     public async Task<PreparedWindowsBridgeUpdate?> CheckAndPrepareAsync(CancellationToken cancellationToken = default)
     {
-        var manifest = await LoadManifestAsync(cancellationToken);
-        ValidateManifest(manifest);
-
         var (currentBuildNumber, currentBuildId) = CurrentBuild();
-        if (!IsUpdateRequired(currentBuildNumber, currentBuildId, manifest))
-            return null;
+        WindowsBridgeUpdateManifest? manifest = null;
 
-        var targetPath = Environment.ProcessPath;
-        if (string.IsNullOrWhiteSpace(targetPath)
-            || !string.Equals(Path.GetFileName(targetPath), AssetFileName, StringComparison.OrdinalIgnoreCase)
-            || !File.Exists(targetPath))
-            throw new InvalidOperationException("SELF_UPDATE_TARGET_INVALID");
+        await WriteCheckStatusAsync(
+            "CHECKING",
+            currentBuildNumber,
+            currentBuildId,
+            null,
+            null,
+            null);
 
-        targetPath = Path.GetFullPath(targetPath);
-        EnsureTargetDirectoryWritable(targetPath);
+        try
+        {
+            manifest = await LoadManifestAsync(cancellationToken);
+            ValidateManifest(manifest);
 
-        var stagingDirectory = Path.Combine(
-            BridgeConfig.LocalAppDirectory,
-            "SelfUpdate",
-            $"{manifest.BuildNumber}-{manifest.Version[..12].ToLowerInvariant()}");
-        Directory.CreateDirectory(stagingDirectory);
+            if (!IsUpdateRequired(currentBuildNumber, currentBuildId, manifest))
+            {
+                await WriteCheckStatusAsync(
+                    "UP_TO_DATE",
+                    currentBuildNumber,
+                    currentBuildId,
+                    manifest.BuildNumber,
+                    manifest.Version,
+                    null);
+                return null;
+            }
 
-        var stagedPath = Path.Combine(stagingDirectory, "AioBotWindowsBridge.update.exe");
-        if (!await IsValidStagedFileAsync(stagedPath, manifest, cancellationToken))
-            await DownloadAndVerifyAsync(manifest, stagedPath, cancellationToken);
+            await WriteCheckStatusAsync(
+                "UPDATE_FOUND",
+                currentBuildNumber,
+                currentBuildId,
+                manifest.BuildNumber,
+                manifest.Version,
+                null);
 
-        return new PreparedWindowsBridgeUpdate(
-            manifest.BuildNumber,
-            manifest.Version.ToLowerInvariant(),
-            stagedPath,
-            targetPath,
-            manifest.Sha256.ToLowerInvariant());
+            var targetPath = Environment.ProcessPath;
+            if (string.IsNullOrWhiteSpace(targetPath)
+                || !string.Equals(Path.GetFileName(targetPath), AssetFileName, StringComparison.OrdinalIgnoreCase)
+                || !File.Exists(targetPath))
+                throw new InvalidOperationException("SELF_UPDATE_TARGET_INVALID");
+
+            targetPath = Path.GetFullPath(targetPath);
+            EnsureTargetDirectoryWritable(targetPath);
+
+            var stagingDirectory = Path.Combine(
+                BridgeConfig.LocalAppDirectory,
+                "SelfUpdate",
+                $"{manifest.BuildNumber}-{manifest.Version[..12].ToLowerInvariant()}");
+            Directory.CreateDirectory(stagingDirectory);
+
+            var stagedPath = Path.Combine(stagingDirectory, "AioBotWindowsBridge.update.exe");
+            if (!await IsValidStagedFileAsync(stagedPath, manifest, cancellationToken))
+                await DownloadAndVerifyAsync(manifest, stagedPath, cancellationToken);
+
+            await WriteCheckStatusAsync(
+                "READY_TO_INSTALL",
+                currentBuildNumber,
+                currentBuildId,
+                manifest.BuildNumber,
+                manifest.Version,
+                null);
+
+            return new PreparedWindowsBridgeUpdate(
+                manifest.BuildNumber,
+                manifest.Version.ToLowerInvariant(),
+                stagedPath,
+                targetPath,
+                manifest.Sha256.ToLowerInvariant());
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception error)
+        {
+            await WriteCheckStatusAsync(
+                "CHECK_FAILED",
+                currentBuildNumber,
+                currentBuildId,
+                manifest?.BuildNumber,
+                manifest?.Version,
+                error.GetType().Name + ": " + error.Message);
+            throw;
+        }
     }
 
     public static void ValidateManifest(WindowsBridgeUpdateManifest manifest)
@@ -395,6 +457,47 @@ public sealed class WindowsBridgeSelfUpdater : IAsyncDisposable
 
         if (Process.Start(startInfo) is null)
             throw new InvalidOperationException("SELF_UPDATE_INSTALLER_START_FAILED");
+    }
+
+    internal static async Task WriteCheckStatusAsync(
+        string state,
+        long currentBuildNumber,
+        string? currentBuildId,
+        long? latestBuildNumber,
+        string? latestVersion,
+        string? error)
+    {
+        try
+        {
+            Directory.CreateDirectory(BridgeConfig.LocalAppDirectory);
+            var path = Path.Combine(BridgeConfig.LocalAppDirectory, StatusFileName);
+            var temporaryPath = path + ".tmp";
+            var boundedError = string.IsNullOrWhiteSpace(error)
+                ? null
+                : error.Length <= 1000 ? error : error[..1000];
+
+            var payload = JsonSerializer.Serialize(
+                new
+                {
+                    schemaVersion = 2,
+                    state,
+                    currentBuildNumber,
+                    currentBuildId,
+                    latestBuildNumber,
+                    latestVersion,
+                    target = AssetFileName,
+                    at = DateTimeOffset.UtcNow,
+                    error = boundedError
+                },
+                BridgeConfig.JsonOptions);
+
+            await File.WriteAllTextAsync(temporaryPath, payload, Encoding.UTF8);
+            File.Move(temporaryPath, path, overwrite: true);
+        }
+        catch
+        {
+            // Diagnostics must never break or block the running Bridge.
+        }
     }
 
     private static void TryDelete(string path)
