@@ -108,7 +108,9 @@
     "ingame:bank-withdraw:final-preflight-diagnose": "node werkzeuge/bank-withdraw-final-preflight-diagnose.mjs",
     "ingame:context-inventory": "node werkzeuge/adventure-land-context-inventory.mjs",
     "ingame:code-bridge:bootstrap": "node werkzeuge/adventure-land-code-bridge-bootstrap.mjs",
-    "bank-swap-production:core-pruefen": "npm run bauen && node werkzeuge/bank-swap-core-static-guards.mjs && node --test grundlage/tests/pr20-bank-swap-settlement.test.mjs grundlage/tests/r11-bank-swap-einmal-authority.test.mjs grundlage/tests/r11-bank-swap-current-fence.test.mjs grundlage/tests/r11-bank-swap-persistenz.test.mjs"
+    "bank-swap-production:core-pruefen": "npm run bauen && node werkzeuge/bank-swap-core-static-guards.mjs && node --test grundlage/tests/pr20-bank-swap-settlement.test.mjs grundlage/tests/r11-bank-swap-einmal-authority.test.mjs grundlage/tests/r11-bank-swap-current-fence.test.mjs grundlage/tests/r11-bank-swap-persistenz.test.mjs",
+    "bank-swap-production:preflight-pruefen": "npm run bauen && node --check werkzeuge/bank-swap-produktions-browser.mjs && node --check werkzeuge/bank-swap-produktions-preflight.mjs && node --test grundlage/tests/r11-bank-swap-produktions-browser.test.mjs grundlage/tests/r11-bank-swap-host-readiness.test.mjs grundlage/tests/r11-bank-swap-preflight-static.test.mjs",
+    "ingame:bank-swap:preflight": "npm run bauen && node werkzeuge/bank-swap-produktions-preflight.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

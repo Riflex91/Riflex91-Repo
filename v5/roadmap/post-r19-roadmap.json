@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "stand": "2026-09-21",
+  "stand": "2026-09-22",
   "roadmap": "V5_POST_R19_PRODUKTIV",
   "status": "AKTIV",
   "basisMain": "05b93ac7dbb6ef294294c38030d9e4b48962f7d3",
@@ -87,7 +87,7 @@
     "Test 2 erreichte den Adapter, sendete aber nicht; Root Cause war ein inaktiver Adventure-Land-CODE-Runner und fehlendes globales bank_withdraw im Page-Kontext",
     "der korrigierte offizielle Page->CODE-Bridge-Pfad via call_code_function_f wurde danach real read-only mit 0 Gameplay-Writes und 0 bank_withdraw-Aufrufen als BEREIT bestaetigt",
     "Withdraw bleibt ohne vollstaendig bestandene Live-Write-Evidence breit deaktiviert; kein Same-Intent-Retry und kein dritter Funktionstest",
-    "als naechsten separaten Bankpfad Store/Retrieve/Swap eng vorbereiten und jeweils bis zum naechsten realen Test-Gate entwickeln",
+    "bank_swap ist als naechster separater Bankpfad gewaehlt; Core ist write-frei vorbereitet, naechstes Gate ist der source-exakte reale Read-only-Preflight mit 0 Gameplay-Writes",
     "Capacity-/Workspace- und Open-Bank-Pack-Gates separat behandeln",
     "erst nach komplettem PR20.2-Exit-Gate PR20.3 Markt produktiv oeffnen"
   ],
@@ -154,7 +154,7 @@
   },
   "parallelPreparation": {
     "id": "PR20.2_BANK",
-    "status": "WITHDRAW_TESTLIMIT_ERREICHT_BRIDGE_FIX_READ_ONLY_BESTAETIGT_RESTBANK_AUSSTEHEND",
+    "status": "WITHDRAW_TESTLIMIT_ERREICHT_BRIDGE_FIX_READ_ONLY_BESTAETIGT_SWAP_PREFLIGHT_EVIDENCE_AUSSTEHEND",
     "blockedBy": null,
     "produktiveRegistrierungErlaubt": true,
     "gameplayAuthority": false,
@@ -217,7 +217,12 @@
       "v5/grundlage/quelle/merchant/bank-withdraw-admission-gate.ts",
       "v5/werkzeuge/bank-withdraw-real-browser-shadow.mjs",
       "v5/grundlage/tests/r11-bank-withdraw-real-shadow-browser.test.mjs",
-      "v5/roadmap/pr20-2-bank-withdraw-real-browser-shadow-evidence.json"
+      "v5/roadmap/pr20-2-bank-withdraw-real-browser-shadow-evidence.json",
+      "v5/grundlage/vertraege/runtime/bank-swap-production-candidate.json",
+      "v5/grundlage/vertraege/runtime/bank-swap-read-only-preflight.json",
+      "v5/werkzeuge/bank-swap-produktions-browser.mjs",
+      "v5/werkzeuge/bank-swap-produktions-preflight.mjs",
+      "v5/architektur/adr/ADR-046-PR20-2Q-BANK-SWAP-READ-ONLY-PREFLIGHT.md"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",

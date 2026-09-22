@@ -60,6 +60,9 @@ import {
   NodeBankWithdrawTransaktionsJournal,
 } from "../grundlage/adapter/persistenz/node-bank-withdraw-transaktionsjournal.mjs";
 import {
+  NodeBankSwapTransaktionsJournal,
+} from "../grundlage/adapter/persistenz/node-bank-swap-transaktionsjournal.mjs";
+import {
   NodeBankLeasePersistenz,
 } from "../grundlage/adapter/persistenz/node-bank-lease-persistenz.mjs";
 import {
@@ -106,6 +109,7 @@ class NodeV5ProduktionsHost {
   #equipJournal;
   #bankDepositJournal;
   #bankWithdrawJournal;
+  #bankSwapJournal;
   #bankLeaseController;
   #runtime;
 
@@ -117,6 +121,7 @@ class NodeV5ProduktionsHost {
     equipJournal,
     bankDepositJournal,
     bankWithdrawJournal,
+    bankSwapJournal,
     bankLeaseController,
     runtime,
   ) {
@@ -127,6 +132,7 @@ class NodeV5ProduktionsHost {
     this.#equipJournal = equipJournal;
     this.#bankDepositJournal = bankDepositJournal;
     this.#bankWithdrawJournal = bankWithdrawJournal;
+    this.#bankSwapJournal = bankSwapJournal;
     this.#bankLeaseController = bankLeaseController;
     this.#runtime = runtime;
   }
@@ -164,14 +170,16 @@ class NodeV5ProduktionsHost {
   async pruefeBankDepositStartBereit() {
     const journal = await this.#bankDepositJournal.pruefeStartBereit();
     const withdrawJournal = await this.#bankWithdrawJournal.pruefeStartBereit();
+    const swapJournal = await this.#bankSwapJournal.pruefeStartBereit();
     const offeneLeases = this.#bankLeaseController.sicht().filter(
       x => x.zustand !== "RELEASED",
     );
     return Object.freeze({
-      bereit: journal.bereit && withdrawJournal.bereit
+      bereit: journal.bereit && withdrawJournal.bereit && swapJournal.bereit
         && offeneLeases.length === 0,
       offeneTransaktionsId: journal.offeneTransaktionsId
-        ?? withdrawJournal.offeneTransaktionsId,
+        ?? withdrawJournal.offeneTransaktionsId
+        ?? swapJournal.offeneTransaktionsId,
       offeneBankLease: offeneLeases.length === 0
         ? null
         : Object.freeze({
@@ -188,14 +196,47 @@ class NodeV5ProduktionsHost {
   async pruefeBankWithdrawStartBereit() {
     const journal = await this.#bankWithdrawJournal.pruefeStartBereit();
     const depositJournal = await this.#bankDepositJournal.pruefeStartBereit();
+    const swapJournal = await this.#bankSwapJournal.pruefeStartBereit();
     const offeneLeases = this.#bankLeaseController.sicht().filter(
       x => x.zustand !== "RELEASED",
     );
     return Object.freeze({
-      bereit: journal.bereit && depositJournal.bereit
+      bereit: journal.bereit && depositJournal.bereit && swapJournal.bereit
         && offeneLeases.length === 0,
       offeneTransaktionsId: journal.offeneTransaktionsId
-        ?? depositJournal.offeneTransaktionsId,
+        ?? depositJournal.offeneTransaktionsId
+        ?? swapJournal.offeneTransaktionsId,
+      offeneBankLease: offeneLeases.length === 0
+        ? null
+        : Object.freeze({
+          accountId: offeneLeases[0].accountId,
+          ownerCharacterId: offeneLeases[0].ownerCharacterId,
+          epoche: offeneLeases[0].epoche,
+          zustand: offeneLeases[0].zustand,
+          serverRegion: offeneLeases[0].serverRegion,
+          serverIdentifier: offeneLeases[0].serverIdentifier,
+        }),
+    });
+  }
+
+  async pruefeBankSwapStartBereit() {
+    const depositJournal = await this.#bankDepositJournal.pruefeStartBereit();
+    const withdrawJournal = await this.#bankWithdrawJournal.pruefeStartBereit();
+    const swapJournal = await this.#bankSwapJournal.pruefeStartBereit();
+    const offeneLeases = this.#bankLeaseController.sicht().filter(
+      x => x.zustand !== "RELEASED",
+    );
+    return Object.freeze({
+      bereit: depositJournal.bereit
+        && withdrawJournal.bereit
+        && swapJournal.bereit
+        && offeneLeases.length === 0,
+      offeneBankDepositTransaktionId: depositJournal.offeneTransaktionsId,
+      offeneBankWithdrawTransaktionId: withdrawJournal.offeneTransaktionsId,
+      offeneBankSwapTransaktionId: swapJournal.offeneTransaktionsId,
+      offeneTransaktionsId: depositJournal.offeneTransaktionsId
+        ?? withdrawJournal.offeneTransaktionsId
+        ?? swapJournal.offeneTransaktionsId,
       offeneBankLease: offeneLeases.length === 0
         ? null
         : Object.freeze({
@@ -1466,6 +1507,7 @@ export async function erstelleNodeV5ProduktionsHost({
   const equipJournal = new NodeEquipTransaktionsJournal(dateisystem);
   const bankDepositJournal = new NodeBankDepositTransaktionsJournal(dateisystem);
   const bankWithdrawJournal = new NodeBankWithdrawTransaktionsJournal(dateisystem);
+  const bankSwapJournal = new NodeBankSwapTransaktionsJournal(dateisystem);
   const bankLeaseController = new PersistenterBankLeaseController(
     runtime.bankLeaseKoordinator(),
     new NodeBankLeasePersistenz(dateisystem),
@@ -1480,6 +1522,7 @@ export async function erstelleNodeV5ProduktionsHost({
     equipJournal,
     bankDepositJournal,
     bankWithdrawJournal,
+    bankSwapJournal,
     bankLeaseController,
     runtime,
   );
