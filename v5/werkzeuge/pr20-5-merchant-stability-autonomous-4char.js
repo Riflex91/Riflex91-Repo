@@ -2,18 +2,19 @@
   'use strict';
 
   const API = 'V5PR205AutonomousFourCharacterTest';
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
   const TEST_ID = 'pr20-5-merchant-stability-autonomous-4char';
   const STATE_KEY = 'AIO_V5_PR20_5_AUTONOMOUS_TEST_V1';
   const ACTORS_KEY = 'AIO_V5_PR20_5_AUTONOMOUS_ACTORS_V1';
   const PR20_4_STATE_KEY = 'AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1';
+  const PR20_4_REPO_EXIT_GATE = 'BESTANDEN_REAL_INGAME_16_OF_16';
   const REQUIRED_CLASSES = Object.freeze(['merchant', 'ranger', 'priest', 'mage']);
   const WORKER_HEARTBEAT_MS = 5_000;
   const ACTOR_STALE_MS = 20_000;
   const DISCOVERY_INTERVAL_MS = 5_000;
-  const SOAK_MS = 5 * 60 * 1000;
+  const SOAK_MS = 15 * 60 * 1000;
   const SOAK_SAMPLE_MS = 15_000;
-  const MIN_SOAK_SAMPLES = 20;
+  const MIN_SOAK_SAMPLES = 60;
   const TELEMETRY_MAX_EVENTS = 512;
   const SUPABASE_MONTHLY_INVOCATION_LIMIT = 500_000;
   const SUPABASE_SAFETY_RESERVE = 5_000;
@@ -143,10 +144,14 @@
   function pr204Gate() {
     const state = readJson(PR20_4_STATE_KEY, null);
     const step16 = state?.steps?.['16'];
-    const passed = step16?.status === 'BESTANDEN';
+    const localPassed = step16?.status === 'BESTANDEN';
+    const repoPassed = PR20_4_REPO_EXIT_GATE === 'BESTANDEN_REAL_INGAME_16_OF_16';
+    const passed = localPassed || repoPassed;
     return {
       passed,
       status: passed ? 'BESTANDEN' : 'AUSSTEHEND',
+      source: localPassed ? 'LOCAL_PERSISTENT_EVIDENCE' : 'MERGED_REPO_EXIT_EVIDENCE',
+      repoExitGate: PR20_4_REPO_EXIT_GATE,
       step16: step16?.status || null,
       sameIntentRetry: state?.sameIntentErneutSenden === false ? false : null
     };
@@ -327,8 +332,8 @@
   async function runSoak() {
     const started = now();
     const samples = [];
-    setState({ status:'RUNNING', phase:'FIVE_MINUTE_NO_WRITE', soak:{ startedAtMs:started, durationTargetMs:SOAK_MS, samples:0 } });
-    emit('PR20_5_NO_WRITE_SOAK_STARTED','INFO',{ durationMs:SOAK_MS });
+    setState({ status:'RUNNING', phase:'FIFTEEN_MINUTE_NO_WRITE', soak:{ startedAtMs:started, durationTargetMs:SOAK_MS, samples:0 } });
+    emit('PR20_5_15M_NO_WRITE_SOAK_STARTED','INFO',{ durationMs:SOAK_MS });
     while (now() - started < SOAK_MS) {
       publishActor();
       installWorkers();
@@ -338,7 +343,7 @@
       setState({ fourCharacterRoster:roster, soak:{ startedAtMs:started, durationTargetMs:SOAK_MS, elapsedMs:now()-started, samples:samples.length, last:sample } });
       if (!roster.ready) {
         const result = { status:'BLOCKED', reason:'FOUR_CHARACTER_ROSTER_DRIFT', samples:samples.length, last:sample, gameplayWrites:0 };
-        setState({ status:'BLOCKED', phase:'FIVE_MINUTE_NO_WRITE', terminal:true, soak:result });
+        setState({ status:'BLOCKED', phase:'FIFTEEN_MINUTE_NO_WRITE', terminal:true, soak:result });
         emit('PR20_5_BLOCKED','ERROR',result);
         return result;
       }

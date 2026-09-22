@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "id": "PR20.5_AUTONOMOUS_4CHAR_TEST",
-  "status": "BEREIT_NACH_PR20_4",
+  "status": "BEREIT_PR20_4_BESTANDEN",
   "requires": [
-    "PR20.4_ABGESCHLOSSEN",
+    "PR20.4_EXIT_GATE_BESTANDEN_REAL_INGAME_16_OF_16",
     "merchant",
     "ranger",
     "priest",
@@ -52,7 +52,7 @@
     "switch cooldown",
     "bounded switch budget",
     "stable switch allowance",
-    "5 minute 4-character no-write soak"
+    "15 minute 4-character no-write integration soak"
   ],
   "gameplayWrites": 0,
   "rawWriteCalls": 0,
@@ -63,5 +63,14 @@
     "BLOCKED",
     "FEHLER",
     "STOPPED"
-  ]
+  ],
+  "pr20_4Gate": {
+    "repoStatus": "BESTANDEN_REAL_INGAME_16_OF_16",
+    "localPersistentEvidenceOptional": true
+  },
+  "allTestsGate": {
+    "normalBotRuntimeStartsAfterPr20_5Only": false,
+    "normalBotRuntimeRequiresAllRemainingV5TestsBestanden": true,
+    "nextStageAfterPass": "CONTINUE_WITH_NEXT_V5_TEST_GATE"
+  }
 }

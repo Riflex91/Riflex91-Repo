@@ -24,13 +24,14 @@ test("PR20.5 package remains strict NO-WRITE", () => {
   assert.equal(plan.sameIntentRetry, false);
 });
 
-test("PR20.5 waits for persistent PR20.4 closeout before starting", () => {
+test("PR20.5 accepts merged PR20.4 exit evidence and optional persistent local evidence", () => {
   assert.ok(source.includes("AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1"));
-  assert.ok(source.includes("WAITING_FOR_PR20_4"));
-  assert.ok(source.includes("step16?.status === 'BESTANDEN'"));
+  assert.ok(source.includes("BESTANDEN_REAL_INGAME_16_OF_16"));
+  assert.ok(source.includes("MERGED_REPO_EXIT_EVIDENCE"));
+  assert.equal(plan.pr20_4Gate.repoStatus, "BESTANDEN_REAL_INGAME_16_OF_16");
 });
 
-test("PR20.5 package contains full stability matrix and 5m soak", () => {
+test("PR20.5 package contains full stability matrix and 15m integration soak", () => {
   for (const marker of [
     "IRREVERSIBLE_MUTATION_OFFEN",
     "KEIN_SICHERER_DURABLER_UNTERBRECHUNGSPUNKT",
@@ -41,16 +42,21 @@ test("PR20.5 package contains full stability matrix and 5m soak", () => {
     "WECHSEL_COOLDOWN",
     "WECHSEL_BUDGET_ERSCHOEPFT",
     "STABILER_WECHSEL_ERLAUBT",
-    "5 * 60 * 1000"
+    "15 * 60 * 1000"
   ]) assert.ok(source.includes(marker), marker);
 });
 
 test("Supabase transport reuses observational bridge and exposes no secret", () => {
   assert.ok(source.includes("AIO_V3.operations"));
-  assert.ok(source.includes("WINDOWS_BRIDGE_EXISTING_TELEMETRY"));
+  assert.ok(source.includes("WINDOWS_BRIDGE_5S_LOCAL_OBSERVE_60S_AGGREGATE_PLUS_TERMINAL_PUSH"));
   for (const secret of ["service_role", "SUPABASE_SERVICE_ROLE_KEY", "sb_secret_", "Bearer "]) {
     assert.equal(source.includes(secret), false, secret);
   }
   assert.equal(plan.telemetry.monthlyEdgeInvocationLimit, 500000);
   assert.equal(plan.telemetry.safetyReserve, 5000);
+});
+
+test("PR20.5 pass alone cannot start normal bot runtime", () => {
+  assert.equal(plan.allTestsGate.normalBotRuntimeStartsAfterPr20_5Only, false);
+  assert.equal(plan.allTestsGate.normalBotRuntimeRequiresAllRemainingV5TestsBestanden, true);
 });

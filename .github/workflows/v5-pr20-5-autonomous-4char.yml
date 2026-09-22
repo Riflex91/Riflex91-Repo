@@ -7,6 +7,8 @@ on:
       - 'v5/werkzeuge/tests/pr20-5-autonomous-4char.test.mjs'
       - 'v5/roadmap/pr20-5-autonomous-4char-test-plan.json'
       - 'v5/grundlage/quelle/merchant/dienst-stabilitaet.ts'
+      - 'v5/grundlage/quelle/merchant/task-koordinator.ts'
+      - 'v5/grundlage/tests/pr20-merchant-dienst-stabilitaet-integration.test.mjs'
       - 'v5/grundlage/tests/pr20-merchant-dienst-stabilitaet.test.mjs'
       - 'v5/package.json'
       - '.github/workflows/v5-pr20-5-autonomous-4char.yml'
