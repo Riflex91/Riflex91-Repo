@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "kennung": "V5_PR20_4_LOGISTICS_TRANSFER_REAL_INGAME_EVIDENCE",
+  "status": "BESTANDEN_REAL_INGAME_16_OF_16_ITEM_GOLD_2_OF_2_PLUS_5M",
+  "test": "V5 · PR20.4 Logistik · Gesamt-Stufentest",
+  "testKennung": "pr20-4-logistics-transfer-step-test",
+  "guiVersion": "1.1.0",
+  "controllerVersion": "1.2.0",
+  "executionMode": "AUTO_ON_LOAD",
+  "repositoryMainAtEvidenceCapture": "70396aafa313016e3cbe608dedad64b7fcb5a75b",
+  "exactSourceShaClaimed": false,
+  "sourceShaLimitation": "Der GUI-Bericht enthaelt keinen Git-SHA; gespeichert wird nur die berichtete Controller-Version und der zum Evidence-Zeitpunkt aktuelle Main.",
+  "evidenceSource": {
+    "type": "OPERATOR_PROVIDED_REAL_INGAME_GUI_REPORT",
+    "rawGuiReportAvailable": true,
+    "fullProtocolProvided": true,
+    "accountIdStored": false,
+    "sessionIdStored": false,
+    "identifyingTokensStored": false
+  },
+  "aggregate": {
+    "allSixteenStepsPassed": true,
+    "stepsPassed": 16,
+    "stepsTotal": 16,
+    "gameplayWritesTotal": 4,
+    "sameIntentRetry": false,
+    "duplicateTransferObserved": false,
+    "staleOfflineRecipientBlocked": true,
+    "restartReconciliationFailClosed": true,
+    "partialUnknownNoBlindRetry": true,
+    "rendezvousPassed": true,
+    "sourcePinningPassed": true,
+    "recipientSettlementPassed": true
+  },
+  "itemTransfer": {
+    "publicFunction": "send_item",
+    "liveBudget": {
+      "consumed": 2,
+      "max": 2,
+      "additionalTrueFunctionalTestAllowed": false
+    },
+    "supplyDeliveryPassed": true,
+    "collectionPassed": true,
+    "allCommitted": true,
+    "exactRecipientSettlements": 2,
+    "roundtripRestored": true,
+    "collectionGiftMarkerTolerated": true,
+    "collectionObservedItem": {
+      "name": "hpot0",
+      "level": 0,
+      "quantitySentBack": 1
+    },
+    "collectionDiagnostics": {
+      "identityStacks": 1,
+      "totalQuantityObserved": 7365,
+      "unlockedStacks": 1,
+      "giftMarkedStacks": 1,
+      "blockedStacks": 0,
+      "propertyOrStatStacks": 0,
+      "graceOrExpiryStacks": 0,
+      "dataStacks": 0,
+      "admissibleReturnStacks": 1
+    },
+    "noWrite5m": {
+      "status": "BESTANDEN",
+      "durationMs": 300013,
+      "samples": 21,
+      "sampleGaps": 0,
+      "blockerSamples": 0,
+      "performanceTrickErrors": 0,
+      "gameplayWrites": 0,
+      "mutatingPublicFunctionCalls": 0
+    }
+  },
+  "goldTransfer": {
+    "publicFunction": "send_gold",
+    "amountEach": 1,
+    "liveBudget": {
+      "consumed": 2,
+      "max": 2,
+      "additionalTrueFunctionalTestAllowed": false
+    },
+    "allCommitted": true,
+    "exactRecipientSettlements": 2,
+    "roundtripRestored": true,
+    "noWrite5m": {
+      "status": "BESTANDEN",
+      "durationMs": 300003,
+      "samples": 21,
+      "sampleGaps": 0,
+      "blockerSamples": 0,
+      "performanceTrickErrors": 0,
+      "gameplayWrites": 0,
+      "mutatingPublicFunctionCalls": 0
+    }
+  },
+  "representativeProtocol": {
+    "itemSettlement2": {
+      "status": "BESTAETIGT",
+      "reason": "ITEM_SENDER_UND_RECIPIENT_EXAKT",
+      "recipientDelta": 1,
+      "restInventoryUnveraendert": true
+    },
+    "goldSettlement1": {
+      "status": "BESTAETIGT",
+      "reason": "GOLD_SENDER_UND_RECIPIENT_EXAKT",
+      "recipientDelta": 1
+    },
+    "goldSettlement2": {
+      "status": "BESTAETIGT",
+      "reason": "GOLD_SENDER_UND_RECIPIENT_EXAKT",
+      "recipientDelta": 1
+    },
+    "transportStatuses": [
+      "RESOLVED"
+    ],
+    "senderDeltaConfirmed": true
+  },
+  "safety": {
+    "sameIntentRetry": false,
+    "noBlindRetry": true,
+    "liveBudgetHardLimitRetained": true,
+    "noThirdItemTest": true,
+    "noThirdGoldTest": true,
+    "productiveTransferAuthorityGranted": false,
+    "rawWriteAuthorityGranted": false,
+    "marketTradeAuthorityChanged": false
+  }
+}
