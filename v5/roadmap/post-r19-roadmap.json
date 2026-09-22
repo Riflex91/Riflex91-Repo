@@ -81,10 +81,11 @@
   "currentNextSteps": [
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN",
     "PR20.2 Bank ist breit freigegeben; lokale Withdraw/Open-Pack-Gates bleiben erhalten",
-    "PR20.3 Markt ist fuer die Roadmap abgeschlossen: Buy und Sell real bestanden, trade_buy/trade_sell operator-abgenommen ohne Live-Evidence",
-    "Trade-Live-Evidence und produktive Trade-Authority werden durch den PR20.3-Roadmap-Abschluss nicht erfunden oder automatisch erteilt",
-    "AKTUELL: PR20.4 Logistik/Transfers repo-seitig vollstaendig vorbereiten",
-    "PR20.4 bleibt bis zu seinen eigenen Capability-/Authority-/Journal-/Admission-/Shadow-/Live-Gates ohne produktive Mutation"
+    "PR20.3 Markt ist fuer die Roadmap abgeschlossen; Market-/Trade-Authority bleibt unveraendert",
+    "PR20.4 persistentes 16-Stufen-Gesamttestpaket ist repo-seitig vorbereitet",
+    "AKTUELL: PR20.4 Gesamt-Stufentest im echten Adventure-Land-Browser auf Merchant + genau einem Partner",
+    "kein Merge zwischen den PR20.4-Teststufen erforderlich",
+    "send_item maximal 2 echte Tests; send_gold maximal 2 echte Tests; sameIntentRetry=false"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -892,13 +893,19 @@
     }
   },
   "pr20_4": {
-    "status": "VORBEREITUNG_FREIGEGEBEN_NO_WRITE",
+    "status": "INGAME_GESAMTSTUFENTEST_BEREIT",
     "productiveMutationAllowed": false,
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "preparation": "v5/grundlage/vertraege/runtime/logistics-transfer-production-preparation.json",
     "documentation": "v5/dokumentation/PR20-4-LOGISTIK-TRANSFER-PRODUKTIV-VORBEREITUNG.md",
-    "nextAction": "PERSISTENTES_GESAMT_TESTPAKET_REPO_SEITIG_BAUEN",
-    "sameIntentRetry": false
+    "nextAction": "INGAME_PR20_4_GESAMTSTUFENTEST",
+    "sameIntentRetry": false,
+    "testHarness": "v5/werkzeuge/pr20-4-logistics-transfer-step-test-paket.js",
+    "testPlan": "v5/roadmap/pr20-4-logistics-transfer-step-test-plan.json",
+    "testHarnessSteps": 16,
+    "mergeZwischenTestschrittenErforderlich": false,
+    "itemLiveTestsMax": 2,
+    "goldLiveTestsMax": 2
   }
 }
