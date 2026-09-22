@@ -15,12 +15,14 @@ public partial class MainWindow : Window
     private BackblazeCredentials? _backblazeCredentials;
     private TelemetryBridgeService? _bridge;
     private WissenswaechterDienst? _wissenswaechter;
+    private WindowsBridgeSelfUpdater? _selfUpdater;
     private string? _githubKonto;
     private bool _initializing = true;
     private bool _changingSignal;
 
     public MainWindow()
     {
+        WindowsBridgeSelfUpdater.CleanupPreviousExecutable();
         InitializeComponent();
         Loaded += MainWindow_Loaded;
         Closed += MainWindow_Closed;
@@ -28,7 +30,32 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        await InitializeAsync();
+        try
+        {
+            await InitializeAsync();
+        }
+        finally
+        {
+            StartSelfUpdater();
+        }
+    }
+
+    private void StartSelfUpdater()
+    {
+        if (_selfUpdater is not null) return;
+
+        _selfUpdater = new WindowsBridgeSelfUpdater();
+        _selfUpdater.UpdateInstallerStarted += OnSelfUpdateInstallerStarted;
+        _ = _selfUpdater.StartAsync();
+    }
+
+    private void OnSelfUpdateInstallerStarted(PreparedWindowsBridgeUpdate update)
+    {
+        _ = Dispatcher.InvokeAsync(() =>
+        {
+            TelemetryDetailText.Text = $"Bridge-Update Build {update.BuildNumber} wird installiert …";
+            Application.Current.Shutdown();
+        });
     }
 
     private async Task InitializeAsync()
@@ -97,6 +124,13 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Closed(object? sender, EventArgs e)
     {
+        if (_selfUpdater is not null)
+        {
+            _selfUpdater.UpdateInstallerStarted -= OnSelfUpdateInstallerStarted;
+            await _selfUpdater.DisposeAsync();
+            _selfUpdater = null;
+        }
+
         if (_wissenswaechter is not null)
         {
             _wissenswaechter.StatusGeaendert -= OnWissenswaechterStatus;
