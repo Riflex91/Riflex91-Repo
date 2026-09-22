@@ -930,7 +930,7 @@
   async function step1Umgebung() {
     await frischePerformance();
     const s = snapshot();
-    const blocker = basisBlocker(s, true);
+    const blocker = basisBlocker(s, false);
     const result = Object.freeze({
       schemaVersion: 1,
       status: blocker.length ? 'BLOCKIERT' : 'BESTANDEN',
