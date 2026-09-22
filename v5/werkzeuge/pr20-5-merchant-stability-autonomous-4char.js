@@ -279,7 +279,7 @@
     gameplayWrites:0,
     rawWriteCalls:0,
     sameIntentRetry:false,
-    supabase:{ monthlyInvocationLimit:SUPABASE_MONTHLY_INVOCATION_LIMIT, safetyReserve:SUPABASE_SAFETY_RESERVE, runnerDirectInvocations:0, transport:'WINDOWS_BRIDGE_EXISTING_TELEMETRY' }
+    supabase:{ monthlyInvocationLimit:SUPABASE_MONTHLY_INVOCATION_LIMIT, safetyReserve:SUPABASE_SAFETY_RESERVE, runnerDirectInvocations:0, transport:'WINDOWS_BRIDGE_5S_LOCAL_OBSERVE_60S_AGGREGATE_PLUS_TERMINAL_PUSH', localObservationSeconds:5, statusIntervalSeconds:60, terminalEventImmediate:true, completionEmailEachTerminalTest:true }
   };
 
   function emit(type, severity, data = {}) {
