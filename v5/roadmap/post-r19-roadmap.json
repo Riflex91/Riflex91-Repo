@@ -7,7 +7,7 @@
   "dokumentation": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
   "testzeitStandard": "v5/roadmap/testzeit-standard.json",
   "currentStage": "PR20",
-  "currentGate": "PR20.3_MARKT_PRODUKTIVIERUNG",
+  "currentGate": "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG",
   "reihenfolgeVerbindlich": true,
   "optimizerVorGruppenLiveEvidenceVerboten": true,
   "merchantVorFarmerProduktivierung": true,
@@ -81,12 +81,10 @@
   "currentNextSteps": [
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN",
     "PR20.2 Bank ist breit freigegeben; lokale Withdraw/Open-Pack-Gates bleiben erhalten",
-    "PR20.3 buy_with_gold(item, 1) ist real 7/7 BESTANDEN mit 2/2 exakten Live-Settlements und bestandenem 5m-NO-WRITE",
-    "PR20.3 NPC-Sell ist real 7/7 BESTANDEN mit 2/2 exakten Live-Settlements und bestandenem 5m-NO-WRITE",
-    "keine weiteren Buy-Gold- oder NPC-Sell-Live-Funktionstests",
-    "trade_buy und trade_sell sind fuer die Roadmap vollstaendig durch Operator abgenommen; keine Live-Evidence wird behauptet",
-    "AKTUELL: PR20.3 Exit-Gate gegen die vorhandenen Vertraege formal pruefen",
-    "bei bestandenem Exit-Gate PR20.4 Logistik/Transfers freigeben"
+    "PR20.3 Markt ist fuer die Roadmap abgeschlossen: Buy und Sell real bestanden, trade_buy/trade_sell operator-abgenommen ohne Live-Evidence",
+    "Trade-Live-Evidence und produktive Trade-Authority werden durch den PR20.3-Roadmap-Abschluss nicht erfunden oder automatisch erteilt",
+    "AKTUELL: PR20.4 Logistik/Transfers repo-seitig vollstaendig vorbereiten",
+    "PR20.4 bleibt bis zu seinen eigenen Capability-/Authority-/Journal-/Admission-/Shadow-/Live-Gates ohne produktive Mutation"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -843,7 +841,7 @@
     "broadBankReleaseScope": "BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES"
   },
   "pr20_3": {
-    "status": "BUY_GOLD_UND_SELL_BESTANDEN_EXIT_GATE_BEREIT",
+    "status": "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN",
     "productiveMutationAllowed": false,
     "gameplayAuthority": false,
     "firstLiveCandidateSelected": true,
@@ -855,7 +853,7 @@
     "mergeZwischenTestschrittenErforderlich": false,
     "maxTrueTests": 2,
     "sameIntentRetry": false,
-    "nextAction": "PR20_3_EXIT_GATE_FORMAL_PRUEFEN",
+    "nextAction": "PR20_4_LOGISTIK_TRANSFER_VORBEREITEN",
     "nextPreparedCandidate": {
       "status": "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
       "publicFunction": "sell",
@@ -875,7 +873,7 @@
     "buyGoldStatus": "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
     "buyGoldEvidence": "v5/roadmap/pr20-3-market-buy-gold-evidence.json",
     "buyGoldAdditionalLiveTestAllowed": false,
-    "activeTest": "PR20_3_EXIT_GATE_FORMAL_PRUEFUNG",
+    "activeTest": null,
     "activeTestHarness": null,
     "tradeBuyStatus": "VOLL_ABGENOMMEN_OPERATOR_OHNE_LIVE_EVIDENCE",
     "tradeSellStatus": "VOLL_ABGENOMMEN_OPERATOR_OHNE_LIVE_EVIDENCE",
@@ -884,6 +882,23 @@
     "productiveTradeAuthority": false,
     "sellStatus": "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
     "sellEvidence": "v5/roadmap/pr20-3-market-sell-evidence.json",
-    "sellAdditionalLiveTestAllowed": false
+    "sellAdditionalLiveTestAllowed": false,
+    "exitGate": {
+      "status": "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN",
+      "evidence": "v5/roadmap/pr20-3-market-exit-gate-status.json",
+      "checker": "v5/werkzeuge/pr20-3-market-exit-gate-pruefen.mjs",
+      "pr20_4RepoAndNoWritePreparationAllowed": true,
+      "productiveTradeAuthority": false
+    }
+  },
+  "pr20_4": {
+    "status": "VORBEREITUNG_FREIGEGEBEN_NO_WRITE",
+    "productiveMutationAllowed": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "preparation": "v5/grundlage/vertraege/runtime/logistics-transfer-production-preparation.json",
+    "documentation": "v5/dokumentation/PR20-4-LOGISTIK-TRANSFER-PRODUKTIV-VORBEREITUNG.md",
+    "nextAction": "PERSISTENTES_GESAMT_TESTPAKET_REPO_SEITIG_BAUEN",
+    "sameIntentRetry": false
   }
 }
