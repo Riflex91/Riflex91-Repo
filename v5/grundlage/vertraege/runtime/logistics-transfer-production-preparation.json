@@ -167,10 +167,21 @@
     "productiveTransferAuthority": false,
     "sameIntentRetry": false,
     "executionMode": "AUTO_ON_LOAD",
-    "controllerVersion": "1.1.0",
+    "controllerVersion": "1.2.0",
     "autoStartAfterJavascriptLoad": true,
     "manualStepClicksRequired": false,
     "peerVersionGate": true,
-    "collectionReturnCapacity": "CONFIRMED_OUTBOUND_CREATED_EXACT_RETURN_CAPACITY"
+    "collectionReturnCapacity": "CONFIRMED_OUTBOUND_CREATED_EXACT_RETURN_CAPACITY",
+    "collectionReturnGiftMarkerTolerated": true,
+    "collectionReturnGiftMarkerScope": "CONFIRMED_COLLECTION_RETURN_ONLY",
+    "collectionReturnStillFailClosedFor": [
+      "locked",
+      "blocked",
+      "property",
+      "stat_type",
+      "grace",
+      "expires",
+      "data"
+    ]
   }
 }
