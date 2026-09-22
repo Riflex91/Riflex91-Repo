@@ -25,7 +25,7 @@ function V:Create()
     if self.frame then return self.frame end
 
     local frame = CreateFrame("Frame", "MewthischGuides1Viewer", UIParent)
-    UI:SetSize(frame, 430, 235)
+    UI:SetSize(frame, 390, 210)
     frame:SetPoint("LEFT", UIParent, "LEFT", 24, 80)
     UI:SetFrameStrata(frame, "HIGH")
     frame:SetMovable(true)
@@ -74,7 +74,7 @@ function V:Create()
 
     local barBg = frame:CreateTexture(nil, "BACKGROUND")
     barBg:SetPoint("TOPLEFT", 12, -92)
-    UI:SetSize(barBg, 406, 8)
+    UI:SetSize(barBg, 366, 7)
     UI:SetSolid(barBg, 0.12, 0.12, 0.12, 1)
 
     local bar = frame:CreateTexture(nil, "ARTWORK")
@@ -137,10 +137,9 @@ function V:Refresh()
     self.guideTitle:SetText(tostring(runtime.guide.title or runtime.guideID))
     local total = #(runtime.guide.steps or {})
     local index = tonumber(runtime.stepIndex) or 1
-    self.stepText:SetText("Schritt " .. tostring(index) .. " / " .. tostring(total) ..
-        "   -   Runtime " .. tostring(runtime.revision or 0))
+    self.stepText:SetText("Schritt " .. tostring(index) .. " / " .. tostring(total))
 
-    local width = self.barBg.GetWidth and self.barBg:GetWidth() or 406
+    local width = self.barBg.GetWidth and self.barBg:GetWidth() or 366
     self.bar:SetWidth(math.max(1, width * (total > 0 and index / total or 0)))
 
     local visible = {}
@@ -155,8 +154,8 @@ function V:Refresh()
     end
 
     local visibleCount = math.min(MAX_ROWS, #visible)
-    local desiredHeight = math.max(220, math.min(430, 180 + math.max(1, visibleCount) * 23))
-    UI:SetSize(frame, 430, desiredHeight)
+    local desiredHeight = math.max(195, math.min(400, 155 + math.max(1, visibleCount) * 23))
+    UI:SetSize(frame, 390, desiredHeight)
 
     for rowIndex, font in ipairs(self.rows) do
         local row = visible[rowIndex]
