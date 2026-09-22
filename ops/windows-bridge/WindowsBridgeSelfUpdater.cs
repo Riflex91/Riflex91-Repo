@@ -478,7 +478,7 @@ public sealed class WindowsBridgeSelfUpdater : IAsyncDisposable
         {
             Directory.CreateDirectory(BridgeConfig.LocalAppDirectory);
             var path = Path.Combine(BridgeConfig.LocalAppDirectory, StatusFileName);
-            var temporaryPath = path + ".tmp";
+            var temporaryPath = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             var boundedError = string.IsNullOrWhiteSpace(error)
                 ? null
                 : error.Length <= 1000 ? error : error[..1000];
@@ -595,7 +595,7 @@ public static class WindowsBridgeUpdateBootstrap
             {
                 phase = "PREPARING_REPLACEMENT";
                 await WriteStatusAsync("APPLY_PREPARING_REPLACEMENT", request, null, phase);
-                await CopyFileWithRetryAsync(sourcePath, replacementPath, overwrite: false);
+                await CopyFileWithRetryAsync(sourcePath, replacementPath, overwrite: true);
 
                 var replacementHash = await ComputeSha256Async(replacementPath);
                 if (!string.Equals(replacementHash, request.Sha256, StringComparison.OrdinalIgnoreCase))
