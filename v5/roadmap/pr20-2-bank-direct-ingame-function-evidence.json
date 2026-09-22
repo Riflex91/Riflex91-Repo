@@ -167,8 +167,13 @@
   },
   "deferred": {
     "open_bank_pack": {
-      "status": "SEPARATER_NACHWEIS_AUSSTEHEND",
-      "reason": "Capacity-/Currency-Mutation mit ASYNC_BACKEND_TX; nicht Teil des ersten PR20.2-Mutationssatzes."
+      "status": "SHADOW_AND_ADMISSION_READ_ONLY_BESTANDEN_RESOURCE_BLOCKED_NO_LIVE",
+      "shadowEvidence": "v5/roadmap/pr20-2-bank-open-pack-shadow-evidence.json",
+      "admissionEvidence": "v5/roadmap/pr20-2-bank-open-pack-admission-evidence.json",
+      "safetyChecks": "BESTANDEN",
+      "functionalResult": "RESOURCE_BLOCKED_NO_LIVE",
+      "liveMutationFreigegeben": false,
+      "reason": "Capacity-/Currency-Mutation bleibt ohne Live-Nachweis; aktuelle Ressourcen reichen weder fuer 75.000.000 Gold noch fuer 600 Shells."
     }
   },
   "exitGate": {
@@ -179,6 +184,10 @@
     "withdrawBestanden": false,
     "firstMutationSetComplete": false,
     "pr20_2Complete": false,
-    "productionWideActivationAllowed": false
+    "productionWideActivationAllowed": false,
+    "openPackShadowBestanden": true,
+    "openPackAdmissionReadOnlyBestanden": true,
+    "openPackLiveBestanden": false,
+    "aggregateGate": "v5/roadmap/pr20-2-bank-exit-gate-status.json"
   }
 }
