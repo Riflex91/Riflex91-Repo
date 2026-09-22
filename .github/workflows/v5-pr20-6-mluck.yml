@@ -1,0 +1,54 @@
+name: v5-pr20-6-mluck
+
+on:
+  push:
+    paths:
+      - 'v5/grundlage/quelle/merchant/mluck-**'
+      - 'v5/grundlage/adapter/persistenz/node-mluck-**'
+      - 'v5/grundlage/quelle/runtime/produktions-komposition.ts'
+      - 'v5/grundlage/quelle/index.ts'
+      - 'v5/grundlage/tests/r13-mluck-service.test.mjs'
+      - 'v5/grundlage/tests/pr20-mluck-produktions-kern.test.mjs'
+      - 'v5/grundlage/tests/r11-produktions-kompositionskatalog.test.mjs'
+      - 'v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js'
+      - 'v5/werkzeuge/tests/pr20-6-mluck-autonomous-live-5m.test.mjs'
+      - 'v5/roadmap/pr20-6-mluck-autonomous-test-plan.json'
+      - 'v5/roadmap/post-r19-roadmap.json'
+      - 'v5/package.json'
+      - '.github/workflows/v5-pr20-6-mluck.yml'
+  pull_request:
+    paths:
+      - 'v5/grundlage/quelle/merchant/mluck-**'
+      - 'v5/grundlage/adapter/persistenz/node-mluck-**'
+      - 'v5/grundlage/quelle/runtime/produktions-komposition.ts'
+      - 'v5/grundlage/quelle/index.ts'
+      - 'v5/grundlage/tests/r13-mluck-service.test.mjs'
+      - 'v5/grundlage/tests/pr20-mluck-produktions-kern.test.mjs'
+      - 'v5/grundlage/tests/r11-produktions-kompositionskatalog.test.mjs'
+      - 'v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js'
+      - 'v5/werkzeuge/tests/pr20-6-mluck-autonomous-live-5m.test.mjs'
+      - 'v5/roadmap/pr20-6-mluck-autonomous-test-plan.json'
+      - 'v5/roadmap/post-r19-roadmap.json'
+      - 'v5/package.json'
+      - '.github/workflows/v5-pr20-6-mluck.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  mluck-core:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - run: npm ci
+      - run: npm run merchant-pr20-6-core:pruefen

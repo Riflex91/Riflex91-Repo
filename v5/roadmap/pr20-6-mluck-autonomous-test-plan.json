@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20.6_MLUCK_AUTONOMOUS_LIVE_5M",
+  "status": "BEREIT_PR20_5_BESTANDEN",
+  "requires": [
+    "PR20.5_BESTANDEN_REAL_INGAME_4CHAR_15M",
+    "merchant",
+    "ranger",
+    "priest",
+    "mage"
+  ],
+  "package": "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
+  "stateKey": "AIO_V5_PR20_6_MLUCK_LIVE_5M_V1",
+  "actorsKey": "AIO_V5_PR20_6_MLUCK_ACTORS_V1",
+  "testId": "pr20-6-mluck-autonomous-live-5m",
+  "controllerVersion": "1.0.0",
+  "autoStart": true,
+  "operatorInteractionAfterLoad": false,
+  "coordinatorClass": "merchant",
+  "workerClasses": [
+    "ranger",
+    "priest",
+    "mage"
+  ],
+  "preconditions": {
+    "sameAccount": true,
+    "sameServer": true,
+    "sameInstance": true,
+    "merchantLevelAtLeast": 40,
+    "merchantMpAtLeast": 10,
+    "mluckRangeAtMost": 320,
+    "cooldownMustBeClear": true,
+    "targetSessionBound": true,
+    "foreignStrongMluckBlocks": true,
+    "criticalMerchantWorkBlocks": true,
+    "competingV3V4RuntimeBlocks": true
+  },
+  "authority": {
+    "publicFunction": "use_skill",
+    "skill": "mluck",
+    "genericUseSkillAuthority": false,
+    "oneShot": true,
+    "durableIntentBeforePossibleSend": true,
+    "gameplayWritesMaximum": 1,
+    "rawWriteCallsMaximum": 0
+  },
+  "recovery": {
+    "unknownRequiresReobserveReconcile": true,
+    "blindRetry": false,
+    "sameIntentRetry": false,
+    "unresolvedUnknown": "OPERATOR_REQUIRED"
+  },
+  "soak": {
+    "durationMs": 300000,
+    "sampleIntervalMs": 5000,
+    "minimumSamples": 60,
+    "requiresCommittedIntent": true,
+    "requiresExactlyOneGameplayWrite": true,
+    "requiresNoSecondIntent": true,
+    "requiresBoundTargetSession": true,
+    "requiresMluckSourceMerchant": true,
+    "requiresStrongMluck": true
+  },
+  "telemetry": {
+    "transport": "existing Windows Bridge -> bot-debug-ingest -> Supabase",
+    "directBrowserSupabaseSecrets": false,
+    "localObservationSeconds": 5,
+    "supabaseStatusSeconds": 60,
+    "aggregateStatusPerInterval": 1,
+    "terminalEventImmediate": true,
+    "completionEmailEachTerminalTest": true,
+    "completionEmailStatuses": [
+      "BESTANDEN",
+      "NICHT_BESTANDEN",
+      "BLOCKIERT",
+      "FEHLER",
+      "ABGEBROCHEN"
+    ]
+  },
+  "checks": [
+    "fresh 4-character roster",
+    "same account/server and same target instance",
+    "no competing V3/V4 runtime",
+    "deterministic fail-closed safety scenarios",
+    "safe MLuck target selection",
+    "live preflight and immediate pre-send revalidation",
+    "durable intent before SEND_BOUNDARY_ENTERED",
+    "exactly one public use_skill mluck send",
+    "sender execution evidence",
+    "target settlement reconciliation without retry",
+    "5 minute committed one-write soak with at least 60 samples"
+  ],
+  "gameplayWrites": 1,
+  "rawWriteCalls": 0,
+  "sameIntentRetry": false,
+  "terminalStates": [
+    "BESTANDEN",
+    "NICHT_BESTANDEN",
+    "BLOCKIERT",
+    "FEHLER",
+    "ABGEBROCHEN"
+  ],
+  "pr20_5Gate": {
+    "repoStatus": "BESTANDEN_REAL_INGAME_4CHAR_15M"
+  },
+  "allTestsGate": {
+    "normalBotRuntimeStartsAfterPr20_6Only": false,
+    "normalBotRuntimeRequiresAllRemainingV5TestsBestanden": true,
+    "nextStageAfterPass": "CONTINUE_WITH_NEXT_V5_TEST_GATE"
+  }
+}

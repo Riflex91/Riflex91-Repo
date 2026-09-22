@@ -15,6 +15,9 @@ import {
   MERCHANT_BANK_SWAP_FAEHIGKEIT_ID,
   MERCHANT_BANK_RETRIEVE_FAEHIGKEIT_ID,
   MERCHANT_BANK_STORE_FAEHIGKEIT_ID,
+  MERCHANT_MLUCK_CORE_MODUL_ID,
+  MERCHANT_MLUCK_CORE_MODUL_VERSION,
+  MERCHANT_MLUCK_FAEHIGKEIT_ID,
   MerchantWorkflowProvider,
   PRODUKTIONS_KOMPOSITIONS_KATALOG_STATUS,
   V5ProduktionsRuntime,
@@ -58,11 +61,11 @@ test("kanonische Produktionskomposition registriert nur belegte Module default-d
     "DEFAULT_DENY_PLANEN_EQUIP_UND_BANK_GOLD_MUTIEREN_REGISTRIERT_INAKTIV",
   );
   assert.equal(definition.schemaVersion, 1);
-  assert.equal(definition.modulDefinitionen.length, 3);
-  assert.equal(definition.faehigkeitsDefinitionen.length, 14);
+  assert.equal(definition.modulDefinitionen.length, 4);
+  assert.equal(definition.faehigkeitsDefinitionen.length, 15);
   assert.deepEqual(definition.healthAnforderungen, healthAnforderungen());
 
-  const [merchant, bank, equipment] = definition.modulDefinitionen;
+  const [merchant, bank, equipment, mluck] = definition.modulDefinitionen;
   assert.equal(merchant.modulId, MERCHANT_CORE_A_MODUL_ID);
   assert.equal(merchant.modulId, "merchant-core-a");
   assert.equal(merchant.modulVersion, MERCHANT_CORE_A_MODUL_VERSION);
@@ -98,6 +101,16 @@ test("kanonische Produktionskomposition registriert nur belegte Module default-d
     [EQUIPMENT_EQUIP_FAEHIGKEIT_ID],
   );
   assert.deepEqual(equipment.benoetigteFaehigkeiten, []);
+
+  assert.equal(mluck.modulId, MERCHANT_MLUCK_CORE_MODUL_ID);
+  assert.equal(mluck.modulId, "merchant-mluck-core");
+  assert.equal(mluck.modulVersion, MERCHANT_MLUCK_CORE_MODUL_VERSION);
+  assert.equal(mluck.standardAktiv, false);
+  assert.deepEqual(
+    mluck.bereitgestellteFaehigkeiten,
+    [MERCHANT_MLUCK_FAEHIGKEIT_ID],
+  );
+  assert.deepEqual(mluck.benoetigteFaehigkeiten, []);
 });
 
 test("Merchant-Workflows verwenden exakt die kanonische Modulidentitaet", () => {
@@ -115,9 +128,9 @@ test("Start der kanonischen Komposition aktiviert weder Module noch Capabilities
   );
 
   const vorStart = runtime.status();
-  assert.equal(vorStart.registrierteModule, 3);
+  assert.equal(vorStart.registrierteModule, 4);
   assert.equal(vorStart.aktiveModule, 0);
-  assert.equal(vorStart.registrierteFaehigkeiten, 14);
+  assert.equal(vorStart.registrierteFaehigkeiten, 15);
   assert.equal(vorStart.aktiveFaehigkeiten, 0);
   assert.equal(vorStart.aktiveMutierendeFaehigkeiten, 0);
 
@@ -171,7 +184,7 @@ test("Merchant-Produktionskatalog registriert exakt acht PLANEN-Capabilities ina
 
   const runtime = new V5ProduktionsRuntime(definition);
   const eintraege = runtime.kernKomponenten().faehigkeiten.sicht();
-  assert.equal(eintraege.length, 14);
+  assert.equal(eintraege.length, 15);
   assert.equal(
     eintraege.filter(x => x.modus === "PLANEN").length,
     8,
@@ -179,7 +192,7 @@ test("Merchant-Produktionskatalog registriert exakt acht PLANEN-Capabilities ina
   assert.equal(eintraege.every(x => x.aktiv === false), true);
 });
 
-test("Produktionskatalog registriert Equip und alle fuenf Bank-Mutationen getrennt default-off", () => {
+test("Produktionskatalog registriert Equip, Bank und MLuck getrennt default-off", () => {
   const definition = erstelleKanonischeProduktionsKomposition(
     healthAnforderungen(),
   );
@@ -187,7 +200,7 @@ test("Produktionskatalog registriert Equip und alle fuenf Bank-Mutationen getren
     x => x.modus === "MUTIEREN",
   );
 
-  assert.equal(mutierend.length, 6);
+  assert.equal(mutierend.length, 7);
   const equip = mutierend.find(
     x => x.faehigkeitId === EQUIPMENT_EQUIP_FAEHIGKEIT_ID,
   );
@@ -206,12 +219,16 @@ test("Produktionskatalog registriert Equip und alle fuenf Bank-Mutationen getren
   const store = mutierend.find(
     x => x.faehigkeitId === MERCHANT_BANK_STORE_FAEHIGKEIT_ID,
   );
+  const mluck = mutierend.find(
+    x => x.faehigkeitId === MERCHANT_MLUCK_FAEHIGKEIT_ID,
+  );
   assert.ok(equip);
   assert.ok(bank);
   assert.ok(withdraw);
   assert.ok(swap);
   assert.ok(retrieve);
   assert.ok(store);
+  assert.ok(mluck);
   assert.equal(equip.anbieterModulId, EQUIPMENT_CORE_MODUL_ID);
   assert.equal(equip.anbieterVersion, EQUIPMENT_CORE_MODUL_VERSION);
   assert.equal(bank.anbieterModulId, MERCHANT_BANK_CORE_MODUL_ID);
@@ -224,6 +241,8 @@ test("Produktionskatalog registriert Equip und alle fuenf Bank-Mutationen getren
   assert.equal(retrieve.anbieterVersion, MERCHANT_BANK_CORE_MODUL_VERSION);
   assert.equal(store.anbieterModulId, MERCHANT_BANK_CORE_MODUL_ID);
   assert.equal(store.anbieterVersion, MERCHANT_BANK_CORE_MODUL_VERSION);
+  assert.equal(mluck.anbieterModulId, MERCHANT_MLUCK_CORE_MODUL_ID);
+  assert.equal(mluck.anbieterVersion, MERCHANT_MLUCK_CORE_MODUL_VERSION);
   assert.equal(
     mutierend.every(x =>
       x.status === "VERFUEGBAR" && x.standardAktiv === false),
@@ -250,24 +269,30 @@ test("Produktionskatalog registriert Equip und alle fuenf Bank-Mutationen getren
   const storeEintrag = eintraege.find(
     x => x.faehigkeitId === MERCHANT_BANK_STORE_FAEHIGKEIT_ID,
   );
+  const mluckEintrag = eintraege.find(
+    x => x.faehigkeitId === MERCHANT_MLUCK_FAEHIGKEIT_ID,
+  );
   assert.ok(equipEintrag);
   assert.ok(bankEintrag);
   assert.ok(withdrawEintrag);
   assert.ok(swapEintrag);
   assert.ok(retrieveEintrag);
   assert.ok(storeEintrag);
+  assert.ok(mluckEintrag);
   assert.equal(equipEintrag.modus, "MUTIEREN");
   assert.equal(bankEintrag.modus, "MUTIEREN");
   assert.equal(withdrawEintrag.modus, "MUTIEREN");
   assert.equal(swapEintrag.modus, "MUTIEREN");
   assert.equal(retrieveEintrag.modus, "MUTIEREN");
   assert.equal(storeEintrag.modus, "MUTIEREN");
+  assert.equal(mluckEintrag.modus, "MUTIEREN");
   assert.equal(equipEintrag.aktiv, false);
   assert.equal(bankEintrag.aktiv, false);
   assert.equal(withdrawEintrag.aktiv, false);
   assert.equal(swapEintrag.aktiv, false);
   assert.equal(retrieveEintrag.aktiv, false);
   assert.equal(storeEintrag.aktiv, false);
+  assert.equal(mluckEintrag.aktiv, false);
   assert.equal(runtime.status().aktiveMutierendeFaehigkeiten, 0);
   assert.equal(
     "aktiviereNichtMutierend" in runtime.kernKomponenten().faehigkeiten,
