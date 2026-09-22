@@ -155,9 +155,13 @@ test("PR20.4 Harness ist ein persistentes 16-Stufen-Paket mit vier harten Live-G
     "PR20.4-GOLD-LIVE-1",
     "PR20.4-GOLD-LIVE-2",
   ]) assert.ok(controller.includes(text), text);
-  for (let i = 1; i <= 16; i += 1) {
-    assert.ok(controller.includes("schritt: " + i), "Schritt " + i);
-  }
+  for (const id of [
+    "step-1","step-2","step-3-item-live-1","step-4-item-settle-1",
+    "step-5-item-return-pin","step-6-item-live-2","step-7-item-settle-2",
+    "step-8-item-soak","step-9-gold-pin","step-10-gold-live-1",
+    "step-11-gold-settle-1","step-12-gold-return-pin","step-13-gold-live-2",
+    "step-14-gold-settle-2","step-15-gold-soak","step-16-closeout"
+  ]) assert.ok(controller.includes("kennung: '" + id + "'"), id);
   assert.ok(controller.includes("sameIntentErneutSenden: false"));
   assert.ok(controller.includes("productiveTransferAuthority: false"));
 });
