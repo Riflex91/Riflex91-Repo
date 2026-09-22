@@ -3,6 +3,35 @@ local addonName, MG = ...
 MG.GuideController = MG.GuideController or {}
 local C = MG.GuideController
 
+function C:CollectRecoveryRelevant(guide)
+    local quests, items = {}, {}
+    for _, step in ipairs(guide and guide.steps or {}) do
+        for _, goal in ipairs(step.goals or {}) do
+            if goal.questID then quests[tonumber(goal.questID)] = true end
+            for _, questID in ipairs(goal.questIDs or {}) do
+                quests[tonumber(questID)] = true
+            end
+            if goal.itemID then items[tonumber(goal.itemID)] = true end
+            for _, itemID in ipairs(goal.itemIDs or {}) do
+                items[tonumber(itemID)] = true
+            end
+        end
+        for _, condition in ipairs(step.conditions or {}) do
+            if condition.questID then quests[tonumber(condition.questID)] = true end
+        end
+    end
+    return quests, items
+end
+
+function C:BuildRecoveryFacts(guide)
+    local quests, items = self:CollectRecoveryRelevant(guide)
+    return {
+        quests=MG.QuestFacts:Snapshot(quests),
+        inventory=MG.InventoryFacts and MG.InventoryFacts:Snapshot(items) or {},
+        player=MG:GetPlayerProfile(),
+    }
+end
+
 function C:Start(guide, reason, resume)
     if not guide then return nil, "no_guide" end
     MG:EnsureDB()
@@ -10,11 +39,7 @@ function C:Start(guide, reason, resume)
     local index = 1
     local recoveryReason = "guide_start"
     if resume ~= false then
-        local facts = {
-            quests=MG.QuestFacts:Snapshot(),
-            inventory=MG.InventoryFacts and MG.InventoryFacts:Snapshot() or {},
-            player=MG:GetPlayerProfile(),
-        }
+        local facts = self:BuildRecoveryFacts(guide)
         index, recoveryReason = MG.RecoveryPolicy:FindResumeIndex(guide, facts)
     end
 
