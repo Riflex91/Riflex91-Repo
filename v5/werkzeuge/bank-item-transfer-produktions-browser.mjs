@@ -112,6 +112,51 @@ export function erstelleBankItemTransferReleaseBeobachter(session,contextId,moun
 }
 export function validiereBankItemTransferPreflightBeobachtung(v,zeit=Date.now()){return mounted(v,zeit)}
 export async function beobachteBankItemTransferPreflightReadOnly(session,contextId){return mounted(await session.evaluate(EXPR,contextId),Date.now())}
+
+export function erstelleBankItemTransferBindungExplizit(v,ausgang,zeit,modusWert,erwartet,leaseEpoche,mountEpoche){
+ const m=mode(modusWert),b=basis(v);
+ if(b.bewegtSich||b.queueAktiv)throw new Error("BANK_"+m+"_BEOBACHTER_NICHT_IDLE");
+ if(!b.bankGemountet||!Number.isSafeInteger(b.bankGold)||b.bankGold<0)throw new Error("BANK_"+m+"_BEOBACHTER_BANK_NICHT_BEREIT");
+ if(!gleicheIdentitaet(b,ausgang))throw new Error("BANK_"+m+"_BEOBACHTER_BINDUNG_DRIFT");
+ if(!Number.isSafeInteger(leaseEpoche)||leaseEpoche<1||!Number.isSafeInteger(mountEpoche)||mountEpoche<0)throw new Error("BANK_"+m+"_BEOBACHTER_EPOCHE_UNGUELTIG");
+ if(!erwartet||typeof erwartet!=="object"||!/^items[0-9]+$/.test(String(erwartet.pack||""))
+   ||!Number.isInteger(erwartet.bankSlot)||erwartet.bankSlot<0||erwartet.bankSlot>41
+   ||!Number.isInteger(erwartet.inventorySlot)||erwartet.inventorySlot<0||erwartet.inventorySlot>=b.inventoryCapacity
+   ||!erwartet.item||typeof erwartet.item.name!=="string"||!/^[a-f0-9]{64}$/i.test(String(erwartet.item.fingerprint||"")))
+   throw new Error("BANK_"+m+"_BEOBACHTER_KANDIDAT_UNGUELTIG");
+ const rawPack=b.packs.find(x=>String(x?.pack||"")===erwartet.pack&&String(x?.packMap||"")===b.map);
+ if(!rawPack)throw new Error("BANK_"+m+"_BEOBACHTER_PACK_DRIFT");
+ const packs=[];
+ for(const row of b.packs){
+  if(!row||typeof row!=="object"||!/^items[0-9]+$/.test(String(row.pack||""))||!Array.isArray(row.slots)||row.slots.length>42)throw new Error("BANK_"+m+"_BEOBACHTER_PACK_UNGUELTIG");
+  if(String(row.packMap||"")!==b.map)continue;
+  packs.push(Object.freeze({pack:String(row.pack),slots:Object.freeze(row.slots.map(itemInfo))}));
+ }
+ const pack=packs.find(x=>x.pack===erwartet.pack);if(!pack)throw new Error("BANK_"+m+"_BEOBACHTER_PACK_NICHT_GEMOUNTET");
+ const inv=Object.freeze(Array.from({length:b.inventoryCapacity},(_,i)=>itemInfo(b.inventory[i]??null)));
+ const bankItem=pack.slots[erwartet.bankSlot]??null,invItem=inv[erwartet.inventorySlot]??null;
+ const eq=x=>x!==null&&x.name===erwartet.item.name&&x.fingerprint===erwartet.item.fingerprint;
+ const pre=m==="RETRIEVE"?(eq(bankItem)&&invItem===null):(bankItem===null&&eq(invItem));
+ const post=m==="RETRIEVE"?(bankItem===null&&eq(invItem)):(eq(bankItem)&&invItem===null);
+ if(!pre&&!post)throw new Error("BANK_"+m+"_BEOBACHTER_SLOT_DRIFT");
+ const packRestFingerprint=hash(pack.slots.map((x,i)=>i===erwartet.bankSlot?i+":<transfer>":i+":"+(x?.fingerprint||"_")).join("|"));
+ const inventoryRestFingerprint=hash(inv.map((x,i)=>i===erwartet.inventorySlot?i+":<transfer>":i+":"+(x?.fingerprint||"_")).join("|"));
+ const allPack=hash(stable(packs.map(p=>({pack:p.pack,slots:p.slots.map(x=>x?.fingerprint||null)}))));
+ const allInv=hash(stable(inv.map(x=>x?.fingerprint||null)));
+ const fingerprint=hash(stable({accountId:b.accountId,charakterName:b.charakterName,sessionId:b.sessionId,serverRegion:b.serverRegion,serverKennung:b.serverKennung,map:b.map,characterGold:b.characterGold,bankGold:b.bankGold,allPack,allInv}));
+ return Object.freeze({schemaVersion:1,richtung:m,characterId:b.charakterName,sessionId:b.sessionId,serverRegion:b.serverRegion,serverKennung:b.serverKennung,
+  leaseEpoche,mountEpoche,beobachtetAmMs:zeit,bankPack:erwartet.pack,bankSlot:erwartet.bankSlot,inventorySlot:erwartet.inventorySlot,inventoryCapacity:b.inventoryCapacity,
+  transferItem:Object.freeze({name:erwartet.item.name,fingerprint:erwartet.item.fingerprint}),bankSlotItem:bankItem===null?null:Object.freeze({name:bankItem.name,fingerprint:bankItem.fingerprint}),
+  inventorySlotItem:invItem===null?null:Object.freeze({name:invItem.name,fingerprint:invItem.fingerprint}),packRestFingerprint,inventoryRestFingerprint,
+  characterGold:b.characterGold,bankGold:b.bankGold,fingerprint,beobachtungsPhase:pre?"PRESTATE":"POSTSTATE"});
+}
+export function erstelleProduktivenBankItemTransferBeobachter(session,contextId,ausgang,modusWert,erwartet){
+ const m=mode(modusWert);return Object.freeze({async beobachte(leaseEpoche,mountEpoche){
+  const roh=await beobachteBankItemTransferRohReadOnly(session,contextId);
+  return erstelleBankItemTransferBindungExplizit(roh,ausgang,Date.now(),m,erwartet,leaseEpoche,mountEpoche);
+ }});
+}
+
 export const BANK_ITEM_TRANSFER_PREFLIGHT_BROWSER_READ_ONLY=true;
 export const BANK_ITEM_TRANSFER_PREFLIGHT_GAMEPLAY_WRITES=0;
 export const BANK_ITEM_TRANSFER_PREFLIGHT_MUTATING_PUBLIC_FUNCTION_CALLS=0;
