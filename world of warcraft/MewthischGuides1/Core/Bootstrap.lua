@@ -121,10 +121,12 @@ local function slash(msg)
             MG:RefreshUI()
         elseif command == "refresh" then
             refreshRuntime("slash_refresh", false)
-        elseif command == "errors" or command == "errorlog" then
-            MG.ErrorLogWindow:Toggle(true)
+        elseif command == "errors" or command == "errorlog" or command == "log" then
+            MG.ErrorLogWindow:Toggle()
+        elseif command == "settings" or command == "options" or command == "opt" then
+            MG.SettingsWindow:Toggle()
         else
-            print("|cffffb000Mewthisch Guides|r /mg1 [show|hide|status|guides|start <id/title>|next|prev|refresh|errors]")
+            print("|cffffb000Mewthisch Guides|r /mg1 [show|hide|status|guides|start <id/title>|next|prev|refresh|errors|settings]")
         end
     end)
 end
