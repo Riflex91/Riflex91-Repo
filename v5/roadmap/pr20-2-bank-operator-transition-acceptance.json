@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "stand": "2026-09-22",
   "kennung": "V5_PR20_2_BANK_OPERATOR_TRANSITION_ACCEPTANCE",
-  "status": "MILESTONE_ABGESCHLOSSEN_MIT_AKZEPTIERTEN_AUSNAHMEN",
+  "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
   "basisMain": "b8334e1f60144c1262efac40a4c60d430b064f33",
   "source": "USER_DIRECTIVE_IN_CHAT",
-  "zweck": "PR20.2 fuer die sequenzielle Roadmap abschliessen und PR20.3-Testarbeit freigeben, ohne fehlende Bank-Evidence als bestanden auszugeben.",
+  "zweck": "PR20.2 fuer die sequenzielle Roadmap und die breite Banknutzung freigeben, ohne fehlende Einzel-Evidence als bestanden auszugeben. Lokale Capability-/Admission-Gates bleiben zwingend.",
   "evidenceTruth": {
     "bankDeposit": "BESTANDEN",
     "bankRetrieve": "BESTANDEN_2_OF_2",
@@ -20,22 +20,26 @@
       "id": "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
       "acceptedForMilestoneSequencing": true,
       "countsAsPassedEvidence": false,
-      "capabilityRemainsDisabled": true,
-      "additionalFunctionalTestAllowed": false
+      "additionalFunctionalTestAllowed": false,
+      "acceptedForBroadBankRelease": true,
+      "capabilityRemainsLocallyGated": true
     },
     {
       "id": "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE",
       "acceptedForMilestoneSequencing": true,
       "countsAsPassedEvidence": false,
-      "capabilityRemainsDisabled": true,
-      "liveMutationAllowed": false
+      "liveMutationAllowed": false,
+      "acceptedForBroadBankRelease": true,
+      "capabilityRemainsLocallyGated": true
     }
   ],
   "transitionPolicy": {
     "pr20_2RoadmapMilestoneClosed": true,
+    "pr20_2MilestoneRelease": "VOLL_FREIGEGEBEN",
     "pr20_3TestWorkAllowed": true,
     "pr20_3ProductiveMutationAutomaticallyAllowed": false,
-    "broadBankActivationAllowed": false,
+    "broadBankActivationAllowed": true,
+    "broadBankReleaseScope": "BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES",
     "withdrawActivationAllowed": false,
     "openBankPackActivationAllowed": false,
     "sameIntentRetry": false
@@ -44,5 +48,24 @@
     "PR20.3 darf eigene NO-WRITE-, Shadow- und kontrollierte Funktions-Testgates vorbereiten",
     "PR20.3 muss seine eigenen Capability-, Authority-, Journal-, Admission-, Recovery- und Live-Evidence-Gates weiterhin bestehen",
     "PR20.2-Ausnahmen duerfen durch PR20.3 weder ueberschrieben noch als bestanden interpretiert werden"
-  ]
+  ],
+  "broadBankRelease": {
+    "status": "ERTEILT",
+    "allowedCapabilities": [
+      "merchant.bank.gold_einlagern",
+      "merchant.bank.item_auslagern",
+      "merchant.bank.item_einlagern",
+      "merchant.bank.intern_tauschen"
+    ],
+    "locallyGatedCapabilities": [
+      "merchant.bank.gold_auslagern",
+      "open_bank_pack"
+    ],
+    "disablesAdmission": false,
+    "disablesAuthority": false,
+    "disablesFencing": false,
+    "disablesLease": false,
+    "disablesRecovery": false,
+    "disablesOperatorDeny": false
+  }
 }
