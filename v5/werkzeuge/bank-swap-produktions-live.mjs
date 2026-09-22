@@ -58,6 +58,7 @@ async function sourceHashes(){
   "grundlage/quelle/merchant/bank-swap-admission-gate.ts",
   "werkzeuge/bank-swap-produktions-browser.mjs",
   "werkzeuge/bank-swap-produktions-write-browser.mjs",
+  "werkzeuge/bank-swap-write-preflight.mjs",
   "grundlage/adapter/persistenz/node-bank-swap-live-test-limit.mjs",
  ];
  const out=[];for(const rel of paths)out.push(hash(await fs.readFile(path.join(V5_ROOT,rel),"utf8")));
@@ -134,7 +135,9 @@ export async function fuehreBankSwapProduktionslauf({
   if(testNummer!==1&&testNummer!==2)throw new Error("BANK_SWAP_LIVE_TESTNUMMER_ERFORDERLICH");
   const confirm=testNummer===1?BANK_SWAP_LIVE_TEST_1_BESTAETIGUNG:BANK_SWAP_LIVE_TEST_2_BESTAETIGUNG;
   if(bestaetigungText!==confirm)throw new Error("BANK_SWAP_LIVE_OPERATOR_BESTAETIGUNG_FEHLT:"+confirm);
-  await verlangeBankSwapAbendVorstufe(ds,BANK_SWAP_ABEND_STUFEN.WRITE_PREFLIGHT,expected);
+  const writePreflight=await verlangeBankSwapAbendVorstufe(
+   ds,BANK_SWAP_ABEND_STUFEN.WRITE_PREFLIGHT,expected
+  );
   if(testNummer===2){
    await verlangeBankSwapAbendVorstufe(ds,BANK_SWAP_ABEND_STUFEN.LIVE_TEST_1,expected,{noWrite:false});
   }
@@ -149,7 +152,7 @@ export async function fuehreBankSwapProduktionslauf({
    const m=await warteAufManuellenBankSwapMountReadOnly(browser.session,browser.contextId,ausgang,{
     timeoutMs:mountTimeoutMs,pollMs:500,onPhase:phase,
    });
-   if(testNummer===1&&!kandidatPasst(m.kandidat,shadow.candidate)){
+   if(testNummer===1&&!kandidatPasst(m.kandidat,writePreflight.candidate)){
     throw new Error("BANK_SWAP_LIVE_TEST_1_KANDIDAT_DRIFT");
    }
    const ps=prestateAusMount(m);

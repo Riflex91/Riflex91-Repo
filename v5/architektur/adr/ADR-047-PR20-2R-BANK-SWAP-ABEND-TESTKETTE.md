@@ -13,7 +13,11 @@ startet die folgende automatisch.
 2. Read-only Kandidaten-Stabilitaet.
 3. CODE-Bridge-Probe / gegebenenfalls No-op-Runner-Bootstrap, 0 Gameplay-Writes.
 4. Real-Browser Admission-Shadow, 0 Gameplay-Writes.
-5. Write-Preflight, 0 Gameplay-Writes.
+5. Write-Preflight, 0 Gameplay-Writes: Bank ist real gemountet, derselbe Kandidat muss
+   in zwei aufeinanderfolgenden Read-only-Beobachtungen inklusive Gesamt-
+   Fingerprint stabil bleiben, dem Shadow-Kandidaten entsprechen, der CODE-
+   Runner muss `bank_swap` bereitstellen und das echte Zwei-Test-Budget muss
+   noch unbenutzt sein.
 6. Echter Funktionstest 1, maximal ein Adapter-Aufruf und ein Gameplay-Write.
 7. Echter Funktionstest 2 nur als neuer Reverse-Intent nach eindeutig sauberem Test 1.
 

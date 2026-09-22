@@ -98,7 +98,7 @@
     "writePreflightImplemented": true,
     "durableTwoTestLimitImplemented": true,
     "liveRunner": "werkzeuge/bank-swap-produktions-live.mjs",
-    "writePreflight": "werkzeuge/bank-swap-produktions-live.mjs --preflight",
+    "writePreflight": "werkzeuge/bank-swap-write-preflight.mjs",
     "liveTestLimit": "grundlage/adapter/persistenz/node-bank-swap-live-test-limit.mjs",
     "eveningStageHarness": "werkzeuge/bank-swap-abend-stage.ps1",
     "eveningEvidenceChain": "werkzeuge/bank-swap-evening-evidence.mjs",
@@ -129,6 +129,9 @@
     "maxGameplayWritesPerIntent": 1,
     "rawSocketEmitAllowed": false,
     "productionWideActivationAllowed": false,
-    "realEvidenceStatus": "AUSSTEHEND"
+    "realEvidenceStatus": "AUSSTEHEND",
+    "writePreflightRequiresStableMountedCandidate": true,
+    "writePreflightRequiresCodeRunnerBankSwapFunction": true,
+    "writePreflightRequiresUnusedFunctionalTestBudget": true
   }
 }

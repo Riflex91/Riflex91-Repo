@@ -234,7 +234,9 @@
       "v5/werkzeuge/bank-swap-produktions-live.mjs",
       "v5/werkzeuge/bank-swap-abend-stage.ps1",
       "v5/roadmap/pr20-2-bank-swap-evening-test-plan.json",
-      "v5/architektur/adr/ADR-047-PR20-2R-BANK-SWAP-ABEND-TESTKETTE.md"
+      "v5/architektur/adr/ADR-047-PR20-2R-BANK-SWAP-ABEND-TESTKETTE.md",
+      "v5/werkzeuge/bank-swap-write-preflight.mjs",
+      "v5/grundlage/tests/r11-bank-swap-produktions-transaktion.test.mjs"
     ],
     "firstLiveCandidate": {
       "publicFunction": "bank_deposit",
