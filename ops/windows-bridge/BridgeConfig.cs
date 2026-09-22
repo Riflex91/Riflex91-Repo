@@ -5,7 +5,7 @@ namespace AioBotWindowsBridge;
 
 public sealed record BridgeConfig
 {
-    public const int CurrentConfigVersion = 7;
+    public const int CurrentConfigVersion = 8;
 
     public int ConfigVersion { get; init; } = CurrentConfigVersion;
     public string CdpEndpoint { get; init; } = "http://127.0.0.1:9222";
@@ -17,7 +17,7 @@ public sealed record BridgeConfig
     public bool TelemetryEnabled { get; init; }
     public bool AutoStartBrowser { get; init; } = true;
     public string PreferredBrowser { get; init; } = "Brave";
-    public int PollIntervalSeconds { get; init; } = 5;
+    public int PollIntervalSeconds { get; init; } = 60;
     public int MaxBackoffSeconds { get; init; } = 300;
     public int EventLimit { get; init; } = 100;
 
@@ -91,7 +91,10 @@ public sealed record BridgeConfig
                 ConfigVersion = CurrentConfigVersion,
                 PreferredBrowser = !hasConfigVersion && string.Equals(loaded.PreferredBrowser, "Edge", StringComparison.OrdinalIgnoreCase)
                     ? "Brave"
-                    : loaded.PreferredBrowser
+                    : loaded.PreferredBrowser,
+                PollIntervalSeconds = storedVersion < 8 && loaded.PollIntervalSeconds == 5
+                    ? 60
+                    : loaded.PollIntervalSeconds
             };
             await loaded.SaveAsync(cancellationToken);
         }
