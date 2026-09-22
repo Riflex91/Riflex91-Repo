@@ -1512,6 +1512,7 @@
     kennung: 'step-1',
     titel: '1 · Umgebung / Bindung abhaken',
     art: 'primaer',
+    einmalig: true,
     async ausfuehren() {
       const { result, state } = await step1Umgebung();
       gui.protokolliere('PR20.3 Schritt 1', result);
@@ -1532,6 +1533,7 @@
     titel: '2 · Kandidat stabil pinnen',
     art: 'primaer',
     aktiviert: false,
+    einmalig: true,
     async ausfuehren() {
       const { result, state } = await step2Kandidat();
       gui.protokolliere('PR20.3 Schritt 2', result);
@@ -1552,6 +1554,7 @@
     titel: '3 · Read-only Shadow / Admission',
     art: 'primaer',
     aktiviert: false,
+    einmalig: true,
     async ausfuehren() {
       const { result, state } = await step3Shadow();
       gui.protokolliere('PR20.3 Schritt 3', result);
@@ -1594,6 +1597,7 @@
     titel: '5 · Frische Re-Admission abhaken',
     art: 'primaer',
     aktiviert: false,
+    einmalig: true,
     async ausfuehren() {
       const { result, state } = await step5Readmission();
       gui.protokolliere('PR20.3 Schritt 5', result);
