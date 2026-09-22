@@ -31,7 +31,18 @@ export interface V5BankSwapEinmalAuthorityAnforderung {
   readonly healthEvidence: readonly HealthEvidence[];
   readonly jetztMs: number;
   readonly gueltigBisMs: number;
-  readonly faehigkeitsGeneration: number;
+  readonly faehigkeitsGeneration?: number;
+}
+
+export interface V5BankSwapEinmalAuthorityRevalidierungsErgebnis {
+  readonly schemaVersion: 1;
+  readonly bereit: boolean;
+  readonly grund: string;
+  readonly authorityOffen: boolean;
+  readonly authorityWiderrufen: boolean;
+  readonly gameplayWriteAusgefuehrt: false;
+  readonly rawWriteAutoritaet: false;
+  readonly breiteRuntimeFreigabe: false;
 }
 
 export interface V5BankSwapEinmalAuthorityDurableIntent {
@@ -216,7 +227,7 @@ export async function erteileProduktiveBankSwapEinmalAuthority(
       || anforderung.gueltigBisMs < anforderung.jetztMs
       || anforderung.gueltigBisMs - anforderung.jetztMs > 2_000
       || !Number.isSafeInteger(anforderung.faehigkeitsGeneration)
-      || anforderung.faehigkeitsGeneration < 1) {
+      || Number(anforderung.faehigkeitsGeneration) < 1) {
     return blockiert("V5_BANK_SWAP_EINMAL_ZEIT_ODER_GENERATION_UNGUELTIG");
   }
   const ids = evidenceIds(anforderung.healthEvidence, anforderung.jetztMs);
@@ -272,7 +283,7 @@ export async function erteileProduktiveBankSwapEinmalAuthority(
     policyId: BANK_SWAP_EINMAL_POLICY_ID,
     ausgestelltAmMs: anforderung.jetztMs,
     gueltigBisMs: anforderung.gueltigBisMs,
-    faehigkeitsGeneration: anforderung.faehigkeitsGeneration,
+    faehigkeitsGeneration: Number(anforderung.faehigkeitsGeneration),
     evidenceIds: ids,
     maximaleVerwendungen: 1,
   }));

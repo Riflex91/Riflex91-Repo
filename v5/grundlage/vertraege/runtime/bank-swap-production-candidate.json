@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_2_BANK_SWAP_ERSTER_KANDIDAT",
   "stand": "2026-09-22",
-  "status": "READ_ONLY_PREFLIGHT_IMPLEMENTIERT_EVIDENCE_AUSSTEHEND",
-  "sourceMain": "9092549b88764995afcc3134a49904d2fa6c59a5",
+  "status": "WRITE_PATH_VORBEREITET_LIVE_EVIDENCE_AUSSTEHEND",
+  "sourceMain": "914106403f5540825c7971de057f8ed321d9bd94",
   "capabilitySpaeter": "merchant.bank.intern_tauschen",
   "providerSpaeter": "merchant-bank-core@1",
   "actionContractId": "AL-ACTION-BANK-SWAP",
@@ -82,17 +82,20 @@
     "currentJournal": "grundlage/adapter/persistenz/node-bank-swap-transaktionsjournal.mjs",
     "readOnlyBrowserObserverImplemented": true,
     "readOnlyPreflightImplemented": true,
-    "admissionShadowImplemented": false,
-    "realBrowserShadowImplemented": false,
-    "writeAdapterImplemented": false,
-    "liveRunnerImplemented": false,
+    "admissionShadowImplemented": true,
+    "realBrowserShadowImplemented": true,
+    "writeAdapterImplemented": true,
+    "liveRunnerImplemented": true,
     "gameplayWritesInThisStep": 0,
     "readOnlyBrowserObserver": "werkzeuge/bank-swap-produktions-browser.mjs",
     "readOnlyPreflight": "werkzeuge/bank-swap-produktions-preflight.mjs",
     "readOnlyHostJournalFencing": true,
-    "hostMutationIntegrationImplemented": false
+    "hostMutationIntegrationImplemented": false,
+    "writeAdapter": "werkzeuge/bank-swap-produktions-write-browser.mjs",
+    "transactionCore": "grundlage/quelle/merchant/bank-swap-produktions-transaktion.ts",
+    "liveRunner": "werkzeuge/bank-swap-produktions-live.mjs"
   },
-  "nextStep": "ECHTEN_LOKALEN_READ_ONLY_PREFLIGHT_AUF_EXAKTEM_MERGED_MAIN_AUSFUEHREN; EVIDENCE_PRUEFEN; ERST_DANACH_ADMISSION_SHADOW",
+  "nextStep": "CI_GRUEN_DANN_ABEND_TESTKETTE_STUFEN_01_BIS_06; TEST_07_NUR_NACH_VOLLSTAENDIG_BESTANDENEM_TEST_06",
   "preflightGate": {
     "sourceShaExactHeadRequired": true,
     "loopbackCdpOnly": true,
@@ -104,5 +107,23 @@
     "mutatingPublicFunctionCalls": 0,
     "gameplayWrites": 0,
     "adapterCalls": 0
+  },
+  "writeGate": {
+    "sourceLocked": true,
+    "evidenceChainRequired": [
+      "01-preflight",
+      "02-kandidaten-stabilitaet",
+      "03-code-bridge",
+      "04-admission-shadow",
+      "05-write-preflight"
+    ],
+    "maxFunctionalTests": 2,
+    "maxAdapterCallsPerIntent": 1,
+    "maxGameplayWritesPerIntent": 1,
+    "sameIntentRetry": false,
+    "rawSocketEmitAllowed": false,
+    "productionWideActivationAllowed": false,
+    "realLiveWritePerformed": false,
+    "liveEvidence": "AUSSTEHEND"
   }
 }
