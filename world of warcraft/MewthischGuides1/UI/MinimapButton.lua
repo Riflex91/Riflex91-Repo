@@ -56,6 +56,9 @@ function M:Create()
     bg:SetPoint("TOPLEFT",2,-2);bg:SetPoint("BOTTOMRIGHT",-2,2)
     local label=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontNormalSmall","GameFontNormal"))
     label:SetPoint("CENTER",0,0);label:SetText("MG")
+    local badge=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontNormalSmall","GameFontNormal"))
+    badge:SetPoint("TOPRIGHT",4,4);badge:SetText("");badge:Hide()
+    if badge.SetTextColor then badge:SetTextColor(1,.74,.1) end
 
     if frame.RegisterForClicks then frame:RegisterForClicks("LeftButtonUp","RightButtonUp") end
     if frame.RegisterForDrag then frame:RegisterForDrag("LeftButton") end
@@ -96,7 +99,7 @@ function M:Create()
     end)
     frame:SetScript("OnLeave",function() if GameTooltip then GameTooltip:Hide() end end)
 
-    self.frame=frame;self.background=bg;self.border=border;self.label=label
+    self.frame=frame;self.background=bg;self.border=border;self.label=label;self.badge=badge
     position(frame)
     if MG.ThemeManager then self:ApplyTheme(MG.ThemeManager:GetCurrent()) end
     self:Refresh()
@@ -108,6 +111,12 @@ function M:Refresh()
     if not frame then return end
     local db=MG:EnsureDB()
     position(frame)
+    local unread=MG.NotificationCenter and MG.NotificationCenter:GetUnreadCount() or 0
+    if self.badge then
+        if unread>0 then
+            self.badge:SetText(unread>9 and "9+" or tostring(unread));self.badge:Show()
+        else self.badge:Hide() end
+    end
     UI:SetShown(frame,db.settings.showMinimapButton~=false)
 end
 

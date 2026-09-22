@@ -93,6 +93,7 @@ function M:StartSellGray(manual)
     self.sellStacks=scan.stacks
     self.sellCount=scan.count
     self.sellManual=manual and true or false
+    self.moneyBefore=GetMoney and tonumber(GetMoney()) or nil
     self.soldAttempted=0
     self.pendingRepair=MG:EnsureDB().settings.autoRepair and true or false
     self:EnsureDriver()
@@ -118,12 +119,15 @@ function M:EnsureDriver()
         end
         self:Hide()
         local settings=MG:EnsureDB().settings
+        local moneyAfter=GetMoney and tonumber(GetMoney()) or nil
+        local actualGain=M.moneyBefore and moneyAfter and math.max(0,moneyAfter-M.moneyBefore) or nil
+        local shownValue=actualGain or M.sellExpected or 0
         if MG.NotificationCenter and settings.notifyMerchantSummary~=false and
            (M.sellStacks or 0)>0 then
             MG.NotificationCenter:Notify("merchant","Graue Gegenstände verkauft",
-                tostring(M.sellStacks or 0).." Stapel · "..moneyText(M.sellExpected or 0),{
-                    stacks=M.sellStacks,count=M.sellCount,value=M.sellExpected,
-                    manual=M.sellManual,
+                tostring(M.sellStacks or 0).." Stapel · "..moneyText(shownValue),{
+                    stacks=M.sellStacks,count=M.sellCount,value=shownValue,
+                    expectedValue=M.sellExpected,manual=M.sellManual,
                 })
         end
         if MG.Telemetry then MG.Telemetry:Count("merchant.sell_gray",{
@@ -146,8 +150,8 @@ function M:OnMerchantShow()
     end
 
     if settings.autoSellGray then
-        local queued=self:StartSellGray(false)
-        if not queued and settings.autoRepair then self:Repair(false) end
+        local ok,status=self:StartSellGray(false)
+        if settings.autoRepair and (not ok or status~="queued") then self:Repair(false) end
     elseif settings.autoRepair then
         self:Repair(false)
     elseif settings.notifyMerchantSummary~=false and MG.NotificationCenter and snapshot then

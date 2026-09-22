@@ -97,7 +97,7 @@ end
 
 local function vendorValue(id,link)
     if not GetItemInfo then return nil,nil end
-    local ok,name,_,quality,_,_,_,_,_,_,sellPrice=pcall(GetItemInfo,id or link)
+    local ok,name,_,quality,_,_,_,_,_,_,_,sellPrice=pcall(GetItemInfo,id or link)
     if not ok then return nil,nil end
     return tonumber(quality),tonumber(sellPrice) or 0,name
 end

@@ -72,5 +72,8 @@ function N:Notify(kind,title,message,data)
         MG.NotificationWindow:ShowToast(entry)
     end
     if MG.MinimapButton and MG.MinimapButton.Refresh then MG.MinimapButton:Refresh() end
+    if MG.GuideViewer and MG.GuideViewer.frame and MG.GuideViewer.Refresh then
+        MG.GuideViewer:Refresh()
+    end
     return entry
 end
