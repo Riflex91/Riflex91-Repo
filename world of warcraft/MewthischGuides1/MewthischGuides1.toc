@@ -23,10 +23,13 @@ Guide/GuideCompiler.lua
 Guide/GuideCatalog.lua
 Guide/GuideSession.lua
 Guide/RecoveryPolicy.lua
+Guide/GuideController.lua
 
 Facts/QuestFacts.lua
 Facts/InventoryFacts.lua
 Facts/PositionFacts.lua
+Facts/PlayerFacts.lua
+Runtime/ActionMemory.lua
 Facts/FactSnapshot.lua
 
 Resolver/RequirementResolver.lua
@@ -36,16 +39,29 @@ Resolver/GoalStateResolver.lua
 Resolver/StepStateResolver.lua
 Resolver/NavigationTargetResolver.lua
 
+Navigation/CoordinateConverter.lua
+Navigation/Distance.lua
+Navigation/Bearing.lua
+Navigation/RoutePlanner.lua
+Travel/TravelPlanner.lua
+
+Policy/AutomationPolicy.lua
+Policy/ActionPolicy.lua
+Gear/GearScore.lua
+Gear/RewardAdvisor.lua
+Build/BuildAdvisor.lua
+
 Runtime/TransitionDetector.lua
 Presentation/PresentationResolver.lua
 Runtime/RuntimeEngine.lua
 
-Navigation/CoordinateConverter.lua
-Navigation/Distance.lua
-Navigation/Bearing.lua
-
 UI/ErrorLogWindow.lua
 UI/SettingsWindow.lua
+UI/GuideBrowser.lua
+UI/BuildWindow.lua
+UI/RewardAdvisorFrame.lua
+UI/WorldMapOverlay.lua
+UI/ActionBar.lua
 UI/NavigatorFrame.lua
 UI/GuideViewer.lua
 
