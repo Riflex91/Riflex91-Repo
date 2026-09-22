@@ -73,7 +73,8 @@ function R:Refresh(show)
     self.detail:SetText(
         "Itemlevel "..tostring(best.score or 0)..
         "  |  Ausgerüstet "..tostring(best.equippedScore or 0)..
-        "  |  Differenz "..string.format("%+d",tonumber(best.delta) or 0))
+        "  |  Differenz "..string.format("%+d",tonumber(best.delta) or 0)..
+        "  |  Konfidenz "..tostring(best.confidence or "none"))
     if show~=false then frame:Show() end
     return data
 end
