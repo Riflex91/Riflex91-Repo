@@ -293,10 +293,6 @@
   },
   "pr20_2ExitGate": {
     "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
-    "blocker": [
-      "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
-      "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
-    ],
     "noWrite5mStatus": "BESTANDEN_REAL_INGAME_READ_ONLY",
     "noWrite5mEvidence": "roadmap/pr20-2-bank-no-write-5m-evidence.json",
     "blockerCloseout": "roadmap/pr20-2-bank-blocker-closeout.json",
@@ -309,7 +305,11 @@
     "evidenceComplete": false,
     "breiteBankFreigabeScope": "BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES",
     "withdrawLokalGegatet": true,
-    "openBankPackLokalGegatet": true
+    "openBankPackLokalGegatet": true,
+    "evidenceExceptions": [
+      "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
+      "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
+    ]
   },
   "noWrite5m": {
     "status": "BESTANDEN_REAL_INGAME_READ_ONLY",
