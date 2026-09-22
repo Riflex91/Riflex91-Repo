@@ -1,0 +1,34 @@
+name: v5-market-pr20-3-buy-gold-core
+on:
+  pull_request:
+    paths:
+      - 'v5/grundlage/quelle/merchant/market-buy-gold-**'
+      - 'v5/grundlage/vertraege/runtime/market-buy-gold-**'
+      - 'v5/grundlage/vertraege/runtime/market-production-preparation.json'
+      - 'v5/grundlage/tests/*market-buy-gold*'
+      - 'v5/grundlage/tests/pr20-market-production-preparation.test.mjs'
+      - 'v5/grundlage/quelle/runtime/produktions-komposition.ts'
+      - 'v5/dokumentation/PR20-3-MARKT-PRODUKTIV-VORBEREITUNG.md'
+      - 'v5/package.json'
+      - '.github/workflows/v5-market-pr20-3-buy-gold-core.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - name: Installieren
+        working-directory: v5
+        run: npm ci
+      - name: PR20.3 Buy-Gold Core Safety
+        working-directory: v5
+        run: npm run market-buy-gold-production:core-pruefen
