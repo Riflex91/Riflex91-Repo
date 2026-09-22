@@ -10,6 +10,7 @@ local ROW_HEIGHT = 28
 local BOOL_OPTIONS = {
     { key="showViewer", label="Hauptfenster anzeigen" },
     { key="showNavigator", label="Navigator anzeigen" },
+    { key="showMinimapButton", label="Minimap-Button anzeigen" },
     { key="navigatorLocked", label="Navigator sperren" },
     { key="autoSuperTrack", label="Questziel automatisch SuperTracken" },
     { key="showWorldMapMarker", label="Weltkartenmarker anzeigen" },
@@ -168,6 +169,8 @@ function S:Create()
             S:Refresh()
             if string.sub(option.key,1,3)=="rxp" or option.key=="allowAuctionHouse" then
                 modeChange()
+            elseif option.key=="showMinimapButton" and MG.MinimapButton then
+                MG.MinimapButton:Refresh()
             elseif MG.RefreshUI then
                 MG:RefreshUI()
             end
@@ -176,10 +179,11 @@ function S:Create()
         rows[#rows+1]={option=option,button=toggle}
     end
 
-    local reset=button(frame,"Fensterpositionen zurücksetzen",220,26,function()
-        local db=MG:EnsureDB();db.ui={}
+    local reset=button(frame,"Fenster-/Minimap-Positionen zurücksetzen",260,26,function()
+        local db=MG:EnsureDB();db.ui={};db.settings.minimapAngle=215
         if MG.GuideViewer and MG.GuideViewer.ResetPosition then MG.GuideViewer:ResetPosition() end
         if MG.NavigatorFrame and MG.NavigatorFrame.ResetPosition then MG.NavigatorFrame:ResetPosition() end
+        if MG.MinimapButton then MG.MinimapButton:Refresh() end
     end)
     reset:SetPoint("BOTTOM",0,14)
 

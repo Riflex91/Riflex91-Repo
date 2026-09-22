@@ -80,12 +80,8 @@ function B:Resolve(position, waypoint, playerFacing)
             "restedxp_world_coordinates",
             {
                 playerWorld=playerWorld,
-                targetWorld={
-                    x=tonumber(waypoint.worldX),
-                    y=tonumber(waypoint.worldY),
-                },
-                deltaWorldX=dx,
-                deltaWorldY=dy,
+                targetWorld={x=tonumber(waypoint.worldX),y=tonumber(waypoint.worldY)},
+                deltaWorldX=dx,deltaWorldY=dy,
             })
     end
 
@@ -101,11 +97,30 @@ function B:Resolve(position, waypoint, playerFacing)
         return nil, "waypoint_map_coordinates_missing"
     end
 
+    local effectiveMapID=tonumber(waypoint.mapID) or tonumber(position.mapID)
+    if effectiveMapID and MG.CoordinateConverter then
+        local playerWorld=MG.CoordinateConverter:MapToBlizzardWorld(
+            effectiveMapID,position.x,position.y)
+        local targetWorld=MG.CoordinateConverter:MapToBlizzardWorld(
+            effectiveMapID,waypoint.x,waypoint.y)
+        if playerWorld and targetWorld and
+           playerWorld.continentID==targetWorld.continentID then
+            local dx=targetWorld.x-playerWorld.x
+            local dy=targetWorld.y-playerWorld.y
+            return withFacing(
+                self:AbsoluteFromRestedXPWorldDelta(dx,dy),
+                playerFacing,
+                "world_coordinates",
+                {playerWorld=playerWorld,targetWorld=targetWorld,
+                 deltaWorldX=dx,deltaWorldY=dy})
+        end
+    end
+
     local deltaEast = tonumber(waypoint.x) - tonumber(position.x)
     local deltaNorth = tonumber(position.y) - tonumber(waypoint.y)
     return withFacing(
         self:AbsoluteFromMapDelta(deltaEast, deltaNorth),
         playerFacing,
-        "map_delta_and_player_facing",
+        "normalized_map_fallback",
         {deltaEast=deltaEast,deltaNorth=deltaNorth})
 end

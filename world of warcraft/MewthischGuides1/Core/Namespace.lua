@@ -81,6 +81,8 @@ function MG:EnsureDB()
         theme = "Forever Classic",
         showViewer = true,
         showNavigator = true,
+        showMinimapButton = true,
+        minimapAngle = 215,
         navigatorLocked = false,
         navigatorScale = 1,
         autoSuperTrack = true,

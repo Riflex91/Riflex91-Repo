@@ -1,86 +1,65 @@
 # Mewthisch Guides 1.0
 
-Clean-room rebuild of Mewthisch Guides around a semantic **Guide → Step → Goals**
-runtime. The only guide source is the transformed public RestedXP
-Forever/Survival dataset packaged in \`Data/\`.
+Mewthisch Guides 1.0 is an independent WoW Forever guide addon built around one
+semantic runtime: **Guide -> Steps -> Goals**.
 
-The design follows the strongest architectural and UX lessons from mature guide
-addons without copying proprietary code, assets or text.
+The guide source is exclusively the transformed public RestedXP
+Forever/Survival dataset in \`Data/\`. No proprietary guide text, code or assets
+are required by this addon.
 
-## Architecture
+## Runtime contract
 
-~~~text
-RestedXP structured data
-        ↓
-RestedXPParser
-        ↓
-GuideCompiler
-        ↓
-CompiledGuide → CompiledStep → CompiledGoal
-        ↓
-Facts (player / quest / inventory / position)
-        ↓
-Requirement / Visibility / Completion resolvers
-        ↓
-GoalState[] + StepState
-        ↓
-RuntimeStore (one RuntimeRevision)
-        ↓
-ViewerProjection / DestinationGoal / Navigator / diagnostics
-~~~
+- RestedXP raw-step boundaries are preserved 1:1.
+- Multiple goals may be active inside the same current step.
+- Sticky / completewith goals remain parallel runtime state.
+- Completion, visibility, routing and UI all project the same RuntimeRevision.
+- DestinationGoal is separate from route and current waypoint.
+- Navigation never completes kill/collect semantics by arrival alone.
+- Unknown or unsafe completion and automation cases fail closed.
 
-### Core rules
+## 1.0 systems
 
-- RestedXP raw-step boundaries are preserved exactly.
-- A current step may contain multiple equally active goals.
-- Sticky steps are runtime state parallel to the current step.
-- Consumers never decide completion or visibility themselves.
-- Initial state is not a completion transition.
-- DestinationGoal and route/waypoint are separate concepts.
-- Navigation arrival never completes a kill/collect goal.
-- The engine has no level-20 cap. Available RestedXP data determines coverage.
-- Unknown completion semantics fail closed and expose reason codes.
+The 1.0 branch contains the semantic parser/compiler, guide catalog/controller,
+recovery, quest/inventory/player/position facts, completion resolvers,
+ActionMemory, route/travel planning, quest automation policy, action bar,
+gear/reward advising, build/talent advising, guide browser, settings, world map
+marker, SuperTrack policy, local-only telemetry and the diagnostic/error log.
 
-## First 1.0 development slice
+Player-facing UI includes a compact movable main viewer, movable/lockable/
+scalable navigator, next-step preview, movable minimap launcher and five themes:
+Forever Classic, Obsidian, Arcane, Warcraft Heritage and ElvUI. The ElvUI theme
+adapts to exposed ElvUI colors and font data when available.
 
-Implemented:
+Navigation prefers guide-provided coordinates. If an otherwise navigable quest
+goal has no guide waypoint, the resolver may use capability-probed live quest
+coordinates (QuestLine / quest-map POI / next waypoint) without changing the
+semantic DestinationGoal. Arrow direction prefers world-coordinate conversion.
 
-- isolated current RestedXP transformed dataset
-- RestedXP selector/tag evaluator
-- raw parser
-- CompiledGuide / CompiledStep / CompiledGoal
-- guide catalog and suggestion scoring
-- guide sessions and sticky tracking
-- centralized quest/inventory/position facts
-- RequirementResolver
-- VisibilityResolver
-- CompletionResolver
-- GoalStateResolver
-- StepStateResolver
-- NavigationTargetResolver
-- RuntimeStore with monotonic RuntimeRevision
-- semantic TransitionDetector
-- ViewerProjection
-- recovery/resume policy
-- compact in-game guide viewer
-- navigator panel
-- copyable diagnostics/error window
-- \`/mg1\` development commands
+## Safety defaults
 
-Next slices deepen RestedXP directive semantics, waypoint/world-coordinate
-conversion, route planning, guide browser, polished Zygor-like presentation,
-safe quest automation, action buttons and full explainability.
+- Auto-Accept: OFF
+- Auto-Turn-in: OFF
+- multiple rewards are never auto-selected
+- talent points are never spent automatically
+- gear recommendations are fail-closed
+- no arrow is rendered without player-facing information
+- uncertain APIs are guarded with capability probing / pcall
+- telemetry remains local in SavedVariables and sends nothing
 
 ## Commands
 
 - \`/mg1\`
+- \`/mg1 show|hide\`
 - \`/mg1 status\`
+- \`/mg1 browser\`
 - \`/mg1 guides\`
-- \`/mg1 start <guide-id>\`
-- \`/mg1 next\`
-- \`/mg1 prev\`
+- \`/mg1 start <id/title>\`
+- \`/mg1 next|prev\`
 - \`/mg1 refresh\`
+- \`/mg1 done\`
+- \`/mg1 build\`
 - \`/mg1 errors\`
+- \`/mg1 settings\`
 
 ## Data licensing
 

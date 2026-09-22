@@ -65,6 +65,7 @@ Presentation/PresentationResolver.lua
 Runtime/RuntimeEngine.lua
 
 UI/ThemeManager.lua
+UI/MinimapButton.lua
 UI/ErrorLogWindow.lua
 UI/SettingsWindow.lua
 UI/GuideBrowser.lua
