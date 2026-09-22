@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "stand": "2026-09-22",
-  "status": "MILESTONE_ABGESCHLOSSEN_MIT_AKZEPTIERTEN_AUSNAHMEN",
+  "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
   "evidenceArt": "V5_PR20_2_BANK_AGGREGATE_EXIT_GATE",
   "sourceMainSha": "bb3d1d9108457acae36d30a896549f91598621aa",
   "currentGate": "PR20.3_MARKT_PRODUKTIVIERUNG",
@@ -23,16 +23,13 @@
     "characterShells": 0,
     "shellKosten": 600
   },
-  "blocker": [
-    "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
-    "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
-  ],
+  "blocker": [],
   "policy": {
     "withdrawFunctionalTestsConsumed": 2,
     "withdrawAdditionalFunctionalTestAllowed": false,
     "openPackLiveMutationFreigegeben": false,
     "sameIntentRetry": false,
-    "breiteBankAktivierungErlaubt": false,
+    "breiteBankAktivierungErlaubt": true,
     "pr20_3MarktStartErlaubt": true,
     "evaluationGameplayWrites": 0,
     "evaluationMutatingPublicFunctionCalls": 0
@@ -47,7 +44,7 @@
     "blockerCloseout": "v5/roadmap/pr20-2-bank-blocker-closeout.json",
     "operatorTransitionAcceptance": "v5/roadmap/pr20-2-bank-operator-transition-acceptance.json"
   },
-  "nextAction": "PR20_3_MARKT_TESTKETTE_VORBEREITEN",
+  "nextAction": "PR20_3_MARKT_TESTKETTE_STARTEN",
   "noWriteIntegration": {
     "bank5mStatus": "BESTANDEN_REAL_INGAME_READ_ONLY",
     "controllerVersion": "1.0.1",
@@ -68,19 +65,30 @@
     {
       "id": "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
       "acceptedForMilestoneSequencing": true,
-      "countsAsPassedEvidence": false
+      "countsAsPassedEvidence": false,
+      "acceptedForBroadBankRelease": true,
+      "capabilityRemainsLocallyGated": true
     },
     {
       "id": "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE",
       "acceptedForMilestoneSequencing": true,
-      "countsAsPassedEvidence": false
+      "countsAsPassedEvidence": false,
+      "acceptedForBroadBankRelease": true,
+      "capabilityRemainsLocallyGated": true
     }
   ],
   "milestoneTransition": {
     "roadmapMilestoneClosed": true,
+    "milestoneRelease": "VOLL_FREIGEGEBEN",
     "evidenceComplete": false,
     "operatorAcceptedExceptions": true,
+    "broadBankActivationAllowed": true,
+    "broadBankReleaseScope": "BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES",
     "pr20_3TestWorkAllowed": true,
     "pr20_3ProductiveMutationAutomaticallyAllowed": false
-  }
+  },
+  "evidenceExceptions": [
+    "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
+    "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
+  ]
 }
