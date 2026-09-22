@@ -77,6 +77,25 @@ export function validiereBankItemTransferAusgangsBeobachtung(v){
 export function validiereBankItemTransferMountBeobachtung(v,ausgang,zeit,modus,erwarteterKandidat=null){
  const m=mode(modus),snap=mounted(v,zeit);if(!gleicheIdentitaet(snap,ausgang))throw new Error("BANK_"+m+"_BINDUNG_DRIFT");const k=kandidat(snap,m);if(!k)throw new Error("BANK_"+m+"_KEIN_SICHERER_KANDIDAT");if(erwarteterKandidat&&!kandidatGleich(k,erwarteterKandidat))throw new Error("BANK_"+m+"_KANDIDAT_DRIFT");return snap;
 }
+export function validiereBankItemTransferExplizitenKandidaten(v,ausgang,zeit,modus,erwartet){
+ const m=mode(modus),b=basis(v),snap=mounted(v,zeit);if(!gleicheIdentitaet(snap,ausgang))throw new Error("BANK_"+m+"_EXPLIZIT_BINDUNG_DRIFT");
+ if(!erwartet||typeof erwartet!=="object"||!/^items[0-9]+$/.test(String(erwartet.pack||""))
+   ||!Number.isInteger(erwartet.bankSlot)||erwartet.bankSlot<0||erwartet.bankSlot>41
+   ||!Number.isInteger(erwartet.inventorySlot)||erwartet.inventorySlot<0||erwartet.inventorySlot>=b.inventoryCapacity
+   ||!erwartet.item||typeof erwartet.item!=="object"||typeof erwartet.item.name!=="string"
+   ||!/^[a-f0-9]{64}$/i.test(String(erwartet.item.fingerprint||"")))throw new Error("BANK_"+m+"_EXPLIZIT_KANDIDAT_UNGUELTIG");
+ const row=b.packs.find(x=>String(x?.pack||"")===erwartet.pack&&String(x?.packMap||"")===b.map);if(!row)throw new Error("BANK_"+m+"_EXPLIZIT_PACK_MOUNT_DRIFT");
+ const bankRaw=row.slots[erwartet.bankSlot]??null,invRaw=b.inventory[erwartet.inventorySlot]??null,bankItem=itemInfo(bankRaw),invItem=itemInfo(invRaw);
+ const transfer=m==="RETRIEVE"?bankItem:invItem,leer=m==="RETRIEVE"?invItem:bankItem;
+ if(!transfer||leer!==null||transfer.name!==erwartet.item.name||transfer.fingerprint!==erwartet.item.fingerprint)throw new Error("BANK_"+m+"_EXPLIZIT_SLOT_PRESTATE_DRIFT");
+ if(transfer.placeholder===true||transfer.name==="placeholder")throw new Error("BANK_"+m+"_EXPLIZIT_PLACEHOLDER_BLOCKIERT");
+ if(m==="STORE"&&(transfer.blocked===true||transfer.hasM===true||transfer.hasV===true))throw new Error("BANK_STORE_EXPLIZIT_METADATEN_BLOCKIERT");
+ const packInfos=row.slots.slice(0,42).map(itemInfo),invInfos=Array.from({length:b.inventoryCapacity},(_,i)=>itemInfo(b.inventory[i]??null));
+ const packRestFingerprint=hash(packInfos.map((x,i)=>i===erwartet.bankSlot?i+":<transfer>":i+":"+(x?.fingerprint||"_")).join("|"));
+ const inventoryRestFingerprint=hash(invInfos.map((x,i)=>i===erwartet.inventorySlot?i+":<transfer>":i+":"+(x?.fingerprint||"_")).join("|"));
+ return Object.freeze({...snap,expliziterKandidat:Object.freeze({schemaVersion:1,richtung:m,pack:erwartet.pack,bankSlot:erwartet.bankSlot,inventorySlot:erwartet.inventorySlot,
+  item:Object.freeze({name:transfer.name,fingerprint:transfer.fingerprint}),packRestFingerprint,inventoryRestFingerprint,characterGold:snap.characterGold,bankGold:snap.bankGold})});
+}
 export async function warteAufManuellenBankItemTransferMountReadOnly(session,contextId,ausgang,modus,erwarteterKandidat,{timeoutMs=90_000,pollMs=500,onPhase=()=>{}}={}){
  const m=mode(modus),start=Date.now();let letzter=null;onPhase("LEASE_ERWORBEN_BANK_MANUELL_BETRETEN");
  while(Date.now()-start<=timeoutMs){const roh=await beobachteBankItemTransferRohReadOnly(session,contextId);if(!gleicheIdentitaet(roh,ausgang))throw new Error("BANK_"+m+"_MOUNT_BINDUNG_DRIFT");

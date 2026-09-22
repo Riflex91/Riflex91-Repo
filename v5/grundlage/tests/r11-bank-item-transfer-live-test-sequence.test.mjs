@@ -1,0 +1,12 @@
+import test from "node:test";import assert from "node:assert/strict";
+import {NodeBankItemTransferLiveTestSequence,BANK_ITEM_TRANSFER_MAX_ECHTE_FUNKTIONSTESTS_PRO_FUNKTION,BANK_ITEM_TRANSFER_MAX_GESAMT_WRITES} from "../adapter/persistenz/node-bank-item-transfer-live-test-sequence.mjs";
+const S="a".repeat(40),F="b".repeat(64),P="c".repeat(64),I="d".repeat(64);
+class Mem{constructor(){this.x=new Map()}async liesText(p){return this.x.get(p)}async schreibeAtomarDurable(p,v){this.x.set(p,v)}}
+const k=()=>({pack:"items0",bankSlot:1,inventorySlot:2,item:{name:"helmet",fingerprint:F},packRestFingerprint:P,inventoryRestFingerprint:I,characterGold:10,bankGold:0});
+test("Sequenz erlaubt exakt Retrieve1 Store1 Retrieve2 Store2",async()=>{const l=new NodeBankItemTransferLiveTestSequence(new Mem());assert.equal(BANK_ITEM_TRANSFER_MAX_ECHTE_FUNKTIONSTESTS_PRO_FUNKTION,2);assert.equal(BANK_ITEM_TRANSFER_MAX_GESAMT_WRITES,4);
+ for(const [i,[modus,n]] of [["RETRIEVE",1],["STORE",1],["RETRIEVE",2],["STORE",2]].entries()){const tx="TX"+i;await l.beginneTest({sourceSha:S,modus,testNummer:n,transaktionsId:tx,prestate:k(),zeitMs:i*3+1});await l.markiereMoeglichenSend({sourceSha:S,transaktionsId:tx,zeitMs:i*3+2});await l.finalisiere({sourceSha:S,transaktionsId:tx,sauberCommitted:true,ergebnis:{status:"COMMITTED"},zeitMs:i*3+3})}
+ await assert.rejects(()=>l.pruefeVorTest({sourceSha:S,modus:"RETRIEVE",testNummer:3,prestate:k()}),/ALLE_TESTS_VERBRAUCHT/);
+});
+test("Unsauberer erster Test sperrt Store und ein falscher Ruecktransfer wird blockiert",async()=>{const l=new NodeBankItemTransferLiveTestSequence(new Mem());await l.beginneTest({sourceSha:S,modus:"RETRIEVE",testNummer:1,transaktionsId:"X",prestate:k(),zeitMs:1});await l.finalisiere({sourceSha:S,transaktionsId:"X",sauberCommitted:false,ergebnis:{},zeitMs:2});await assert.rejects(()=>l.pruefeVorTest({sourceSha:S,modus:"STORE",testNummer:1,prestate:k()}),/VORSTUFE_NICHT_SAUBER/);
+ const l2=new NodeBankItemTransferLiveTestSequence(new Mem());await l2.beginneTest({sourceSha:S,modus:"RETRIEVE",testNummer:1,transaktionsId:"Y",prestate:k(),zeitMs:1});await l2.markiereMoeglichenSend({sourceSha:S,transaktionsId:"Y",zeitMs:2});await l2.finalisiere({sourceSha:S,transaktionsId:"Y",sauberCommitted:true,ergebnis:{},zeitMs:3});await assert.rejects(()=>l2.pruefeVorTest({sourceSha:S,modus:"STORE",testNummer:1,prestate:{...k(),bankSlot:3}}),/RUECKTRANSFER/);
+});
