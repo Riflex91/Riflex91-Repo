@@ -1,10 +1,10 @@
 {
-  "configVersion": 9,
+  "configVersion": 10,
   "cdpEndpoint": "http://127.0.0.1:9222",
   "allowedOrigin": "https://adventure.land",
-  "telemetryIngestUrl": "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest",
+  "telemetryIngestUrl": "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-v5-telemetry-ingest",
   "signalControlUrl": "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-chatgpt-signal-control",
-  "telemetryTokenEnvironmentVariable": "AIO_V3_DEBUG_TELEMETRY_TOKEN",
+  "telemetryTokenEnvironmentVariable": "AIO_V5_TELEMETRY_TOKEN",
   "botId": "pi-main",
   "telemetryEnabled": false,
   "autoStartBrowser": true,
