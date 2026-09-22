@@ -108,6 +108,14 @@ function R:FocusSession(session, reason)
 
     snapshot = MG.RuntimeStore:Commit(snapshot)
     snapshot.events = MG.TransitionDetector:Detect(previous, snapshot)
+    if MG.Telemetry then
+        MG.Telemetry:Count("runtime.commit",{
+            revision=snapshot.revision,
+            reason=snapshot.reason,
+            stepID=snapshot.stepID,
+            guideID=snapshot.guideID,
+        })
+    end
 
     if MG.SuperTrackPolicy then
         local ok,trackReason=MG.SuperTrackPolicy:Apply(snapshot)
