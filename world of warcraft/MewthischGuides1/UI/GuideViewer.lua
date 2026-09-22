@@ -4,371 +4,239 @@ MG.GuideViewer = MG.GuideViewer or {}
 local V = MG.GuideViewer
 local UI = MG.UICompat
 
-local FRAME_WIDTH = 390
+local FRAME_WIDTH = 400
 local MAX_ROWS = 12
-local ROW_HEIGHT = 24
-local ROW_START_Y = 101
-local BOTTOM_AREA = 42
+local ROW_HEIGHT = 22
+local ROW_START = 76
+local FOOTER_HEIGHT = 36
 
-local function makeSolid(parent, layer, r, g, b, a)
-    local tex = parent:CreateTexture(nil, layer or "BACKGROUND")
-    UI:SetSolid(tex, r, g, b, a)
-    return tex
+local function solid(parent,layer,r,g,b,a)
+    local t=parent:CreateTexture(nil,layer or "BACKGROUND")
+    UI:SetSolid(t,r,g,b,a);return t
 end
 
-local function setFontShadow(font)
+local function shadow(font)
     if not font then return end
-    if font.SetShadowColor then font:SetShadowColor(0, 0, 0, 1) end
-    if font.SetShadowOffset then font:SetShadowOffset(1, -1) end
+    if font.SetShadowColor then font:SetShadowColor(0,0,0,1) end
+    if font.SetShadowOffset then font:SetShadowOffset(1,-1) end
 end
 
-local function makeFlatButton(parent, text, width, height, callback)
-    local button = CreateFrame("Button", nil, parent)
-    UI:SetSize(button, width, height)
-
-    local bg = makeSolid(button, "BACKGROUND", 0.12, 0.08, 0.03, 0.95)
-    bg:SetAllPoints()
-
-    local border = makeSolid(button, "BORDER", 0.92, 0.55, 0.08, 0.78)
-    border:SetPoint("TOPLEFT", 0, 0)
-    border:SetPoint("TOPRIGHT", 0, 0)
-    border:SetHeight(1)
-
-    local label = button:CreateFontString(nil, "OVERLAY",
-        UI:SafeFont("GameFontNormal", "GameFontNormal"))
-    label:SetPoint("CENTER", 0, 0)
-    label:SetText(text)
-    if label.SetTextColor then label:SetTextColor(1, 0.72, 0.10) end
-    setFontShadow(label)
-
-    button:SetScript("OnEnter", function()
-        UI:SetSolid(bg, 0.22, 0.13, 0.03, 0.98)
-    end)
-    button:SetScript("OnLeave", function()
-        UI:SetSolid(bg, 0.12, 0.08, 0.03, 0.95)
-    end)
-    button:SetScript("OnClick", callback)
-    button.label = label
-    return button
-end
-
-local function savePosition(frame)
-    if not MG.db then return end
-    MG.db.ui = MG.db.ui or {}
-    if not frame.GetCenter or not UIParent or not UIParent.GetCenter then return end
-    local x, y = frame:GetCenter()
-    local ux, uy = UIParent:GetCenter()
-    if x and y and ux and uy then
-        MG.db.ui.viewerX = x - ux
-        MG.db.ui.viewerY = y - uy
-    end
-end
-
-local function applyPosition(frame)
-    if frame.ClearAllPoints then frame:ClearAllPoints() end
-    local x = MG.db and MG.db.ui and tonumber(MG.db.ui.viewerX)
-    local y = MG.db and MG.db.ui and tonumber(MG.db.ui.viewerY)
-    if x and y then
-        frame:SetPoint("CENTER", UIParent, "CENTER", x, y)
-    else
-        frame:SetPoint("LEFT", UIParent, "LEFT", 24, 80)
-    end
+local function flatButton(parent,text,width,height,callback)
+    local b=CreateFrame("Button",nil,parent);UI:SetSize(b,width,height)
+    local bg=solid(b,"BACKGROUND",.10,.07,.03,.98);bg:SetAllPoints()
+    local top=solid(b,"BORDER",.82,.49,.07,.9)
+    top:SetPoint("TOPLEFT");top:SetPoint("TOPRIGHT");top:SetHeight(1)
+    local l=b:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontNormal","GameFontNormal"))
+    l:SetPoint("CENTER");l:SetText(text);shadow(l)
+    if l.SetTextColor then l:SetTextColor(1,.74,.10) end
+    b:SetScript("OnEnter",function() UI:SetSolid(bg,.19,.11,.03,1) end)
+    b:SetScript("OnLeave",function() UI:SetSolid(bg,.10,.07,.03,.98) end)
+    b:SetScript("OnClick",callback);b.label=l
+    return b
 end
 
 local function markerFor(row)
-    if row.stickyHeader then return "", 1.0, 0.74, 0.08 end
-    if row.navigated then return ">", 1.0, 0.74, 0.08 end
-    if row.status == "complete" or row.status == "complete_hidden" then
-        return "v", 0.30, 0.90, 0.45
-    end
-    if row.status == "warning" or row.warning then
-        return "!", 1.0, 0.48, 0.10
-    end
-    if row.passive then return "i", 0.40, 0.72, 1.0 end
-    return "o", 0.80, 0.80, 0.80
+    if row.stickyHeader then return "",1,.74,.08 end
+    if row.navigated then return ">",1,.74,.08 end
+    if row.status=="complete" or row.status=="complete_hidden" then return "v",.3,.9,.45 end
+    if row.status=="warning" or row.warning then return "!",1,.48,.10 end
+    if row.passive then return "i",.4,.72,1 end
+    if row.optional then return "~",.75,.75,.75 end
+    return "o",.82,.82,.82
 end
 
-local function rowTextColor(row)
-    if row.stickyHeader then return 1.0, 0.74, 0.08 end
-    if row.status == "complete" or row.status == "complete_hidden" then
-        return 0.55, 0.75, 0.58
+local function textColor(row)
+    if row.stickyHeader then return 1,.74,.08 end
+    if row.status=="complete" or row.status=="complete_hidden" then return .55,.75,.58 end
+    if row.status=="warning" or row.warning then return 1,.68,.25 end
+    if row.passive then return .70,.82,1 end
+    if row.optional then return .76,.76,.76 end
+    return .95,.95,.95
+end
+
+local function savePosition(frame)
+    if not MG.db or not frame.GetCenter or not UIParent or not UIParent.GetCenter then return end
+    local x,y=frame:GetCenter();local ux,uy=UIParent:GetCenter()
+    if x and y and ux and uy then
+        MG.db.ui.viewerX=x-ux;MG.db.ui.viewerY=y-uy
     end
-    if row.status == "warning" or row.warning then
-        return 1.0, 0.68, 0.25
-    end
-    if row.passive then return 0.70, 0.82, 1.0 end
-    return 0.94, 0.94, 0.94
+end
+
+function V:ResetPosition()
+    local frame=self:Create()
+    if frame.ClearAllPoints then frame:ClearAllPoints() end
+    frame:SetPoint("LEFT",UIParent,"LEFT",24,80)
+    if MG.db and MG.db.ui then MG.db.ui.viewerX=nil;MG.db.ui.viewerY=nil end
+end
+
+local function applyPosition(frame)
+    local x=MG.db and MG.db.ui and tonumber(MG.db.ui.viewerX)
+    local y=MG.db and MG.db.ui and tonumber(MG.db.ui.viewerY)
+    if frame.ClearAllPoints then frame:ClearAllPoints() end
+    if x and y then frame:SetPoint("CENTER",UIParent,"CENTER",x,y)
+    else frame:SetPoint("LEFT",UIParent,"LEFT",24,80) end
 end
 
 function V:Create()
     if self.frame then return self.frame end
 
-    local frame = CreateFrame("Frame", "MewthischGuides1Viewer", UIParent)
-    UI:SetSize(frame, FRAME_WIDTH, 185)
-    UI:SetFrameStrata(frame, "HIGH")
-    UI:SetClampedToScreen(frame, true)
-    frame:SetMovable(true)
-    frame:EnableMouse(true)
+    local frame=CreateFrame("Frame","MewthischGuides1Viewer",UIParent)
+    UI:SetSize(frame,FRAME_WIDTH,134)
+    UI:SetFrameStrata(frame,"HIGH");UI:SetClampedToScreen(frame,true)
+    frame:SetMovable(true);frame:EnableMouse(true)
     if frame.RegisterForDrag then frame:RegisterForDrag("LeftButton") end
     applyPosition(frame)
-
-    frame:SetScript("OnDragStart", function(self)
-        if not (InCombatLockdown and InCombatLockdown()) and self.StartMoving then
-            self:StartMoving()
-        end
+    frame:SetScript("OnDragStart",function(self)
+        if not (InCombatLockdown and InCombatLockdown()) and self.StartMoving then self:StartMoving() end
     end)
-    frame:SetScript("OnDragStop", function(self)
+    frame:SetScript("OnDragStop",function(self)
         if self.StopMovingOrSizing then self:StopMovingOrSizing() end
         savePosition(self)
     end)
 
-    local bg = makeSolid(frame, "BACKGROUND", 0.012, 0.015, 0.020, 0.94)
-    bg:SetAllPoints()
+    local bg=solid(frame,"BACKGROUND",.008,.010,.014,.985);bg:SetAllPoints()
+    local header=solid(frame,"BORDER",.028,.032,.040,1)
+    header:SetPoint("TOPLEFT",1,-1);header:SetPoint("TOPRIGHT",-1,-1);header:SetHeight(30)
+    local top=solid(frame,"ARTWORK",.96,.57,.05,1)
+    top:SetPoint("TOPLEFT",1,-1);top:SetPoint("TOPRIGHT",-1,-1);top:SetHeight(1)
 
-    local header = makeSolid(frame, "BORDER", 0.035, 0.040, 0.050, 0.98)
-    header:SetPoint("TOPLEFT", 1, -1)
-    header:SetPoint("TOPRIGHT", -1, -1)
-    header:SetHeight(32)
+    local title=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontNormalLarge","GameFontNormal"))
+    title:SetPoint("TOPLEFT",10,-8);title:SetText("Mewthisch Guides 1.0");shadow(title)
+    if title.SetTextColor then title:SetTextColor(1,.74,.08) end
 
-    local topLine = makeSolid(frame, "ARTWORK", 0.95, 0.56, 0.06, 0.95)
-    topLine:SetPoint("TOPLEFT", 1, -1)
-    topLine:SetPoint("TOPRIGHT", -1, -1)
-    topLine:SetHeight(1)
-
-    local bottomLine = makeSolid(frame, "ARTWORK", 0.45, 0.28, 0.06, 0.75)
-    bottomLine:SetPoint("BOTTOMLEFT", 1, 1)
-    bottomLine:SetPoint("BOTTOMRIGHT", -1, 1)
-    bottomLine:SetHeight(1)
-
-    local leftLine = makeSolid(frame, "ARTWORK", 0.30, 0.20, 0.06, 0.65)
-    leftLine:SetPoint("TOPLEFT", 1, -1)
-    leftLine:SetPoint("BOTTOMLEFT", 1, 1)
-    leftLine:SetWidth(1)
-
-    local rightLine = makeSolid(frame, "ARTWORK", 0.30, 0.20, 0.06, 0.65)
-    rightLine:SetPoint("TOPRIGHT", -1, -1)
-    rightLine:SetPoint("BOTTOMRIGHT", -1, 1)
-    rightLine:SetWidth(1)
-
-    local title = frame:CreateFontString(nil, "OVERLAY",
-        UI:SafeFont("GameFontNormalLarge", "GameFontNormal"))
-    title:SetPoint("TOPLEFT", 11, -8)
-    title:SetText("Mewthisch Guides 1.0")
-    if title.SetTextColor then title:SetTextColor(1, 0.73, 0.08) end
-    setFontShadow(title)
-
-    local errors = makeFlatButton(frame, "LOG", 38, 22, function()
-        if MG.ErrorLogWindow then MG.ErrorLogWindow:Toggle() end
-    end)
-    errors:SetPoint("TOPRIGHT", -75, -5)
-
-    local settings = makeFlatButton(frame, "OPT", 38, 22, function()
+    local close=flatButton(frame,"x",22,20,function()
+        MG:EnsureDB().settings.showViewer=false;frame:Hide()
+    end);close:SetPoint("TOPRIGHT",-5,-5)
+    local opt=flatButton(frame,"OPT",34,20,function()
         if MG.SettingsWindow then MG.SettingsWindow:Toggle() end
-    end)
-    settings:SetPoint("TOPRIGHT", -33, -5)
+    end);opt:SetPoint("TOPRIGHT",-31,-5)
+    local log=flatButton(frame,"LOG",34,20,function()
+        if MG.ErrorLogWindow then MG.ErrorLogWindow:Toggle() end
+    end);log:SetPoint("TOPRIGHT",-69,-5)
 
-    local close = makeFlatButton(frame, "x", 24, 22, function()
-        if MG.db and MG.db.settings then MG.db.settings.showViewer = false end
-        frame:Hide()
-    end)
-    close:SetPoint("TOPRIGHT", -5, -5)
+    local guideTitle=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontNormal","GameFontNormal"))
+    guideTitle:SetPoint("TOPLEFT",10,-38);guideTitle:SetPoint("RIGHT",-82,0)
+    guideTitle:SetJustifyH("LEFT");shadow(guideTitle)
+    if guideTitle.SetTextColor then guideTitle:SetTextColor(1,.72,.1) end
 
-    local guideTitle = frame:CreateFontString(nil, "OVERLAY",
-        UI:SafeFont("GameFontNormal", "GameFontNormal"))
-    guideTitle:SetPoint("TOPLEFT", 11, -41)
-    guideTitle:SetPoint("RIGHT", -118, 0)
-    guideTitle:SetJustifyH("LEFT")
-    if guideTitle.SetTextColor then guideTitle:SetTextColor(1, 0.72, 0.10) end
-    setFontShadow(guideTitle)
+    local stepText=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
+    stepText:SetPoint("TOPRIGHT",-10,-39);stepText:SetWidth(68);stepText:SetJustifyH("RIGHT");shadow(stepText)
+    if stepText.SetTextColor then stepText:SetTextColor(.75,.75,.75) end
 
-    local stepText = frame:CreateFontString(nil, "OVERLAY",
-        UI:SafeFont("GameFontHighlightSmall", "GameFontNormalSmall"))
-    stepText:SetPoint("TOPRIGHT", -11, -42)
-    stepText:SetJustifyH("RIGHT")
-    if stepText.SetTextColor then stepText:SetTextColor(0.72, 0.72, 0.72) end
-    setFontShadow(stepText)
+    local barBg=solid(frame,"BACKGROUND",.07,.07,.07,1)
+    barBg:SetPoint("TOPLEFT",10,-57);UI:SetSize(barBg,FRAME_WIDTH-20,5)
+    local bar=solid(frame,"ARTWORK",.18,.78,.32,1)
+    bar:SetPoint("TOPLEFT",barBg,"TOPLEFT");bar:SetHeight(5)
 
-    local barBg = makeSolid(frame, "BACKGROUND", 0.08, 0.08, 0.08, 0.95)
-    barBg:SetPoint("TOPLEFT", 11, -63)
-    UI:SetSize(barBg, FRAME_WIDTH - 22, 5)
+    local rows={}
+    for i=1,MAX_ROWS do
+        local rf=CreateFrame("Frame",nil,frame)
+        rf:SetPoint("TOPLEFT",7,-(ROW_START+(i-1)*ROW_HEIGHT))
+        rf:SetPoint("TOPRIGHT",-7,-(ROW_START+(i-1)*ROW_HEIGHT))
+        rf:SetHeight(ROW_HEIGHT)
 
-    local bar = makeSolid(frame, "ARTWORK", 0.18, 0.78, 0.32, 1)
-    bar:SetPoint("TOPLEFT", barBg, "TOPLEFT")
-    bar:SetHeight(5)
-
-    local separator = makeSolid(frame, "BORDER", 0.18, 0.14, 0.08, 0.60)
-    separator:SetPoint("TOPLEFT", 11, -77)
-    separator:SetPoint("TOPRIGHT", -11, -77)
-    separator:SetHeight(1)
-
-    local rows = {}
-    for index = 1, MAX_ROWS do
-        local rowFrame = CreateFrame("Frame", nil, frame)
-        rowFrame:SetPoint("TOPLEFT", 8, -(ROW_START_Y + (index - 1) * ROW_HEIGHT))
-        rowFrame:SetPoint("TOPRIGHT", -8, -(ROW_START_Y + (index - 1) * ROW_HEIGHT))
-        rowFrame:SetHeight(ROW_HEIGHT)
-
-        local highlight = makeSolid(rowFrame, "BACKGROUND", 0.95, 0.60, 0.08, 0.07)
-        highlight:SetAllPoints()
-        highlight:Hide()
-
-        local marker = rowFrame:CreateFontString(nil, "OVERLAY",
-            UI:SafeFont("GameFontNormalLarge", "GameFontNormal"))
-        marker:SetPoint("LEFT", 4, 0)
-        marker:SetWidth(16)
-        marker:SetJustifyH("CENTER")
-        setFontShadow(marker)
-
-        local text = rowFrame:CreateFontString(nil, "OVERLAY",
-            UI:SafeFont("GameFontHighlight", "GameFontNormal"))
-        text:SetPoint("LEFT", marker, "RIGHT", 5, 0)
-        text:SetPoint("RIGHT", -5, 0)
-        text:SetJustifyH("LEFT")
-        UI:SetWordWrap(text, false)
-        setFontShadow(text)
-
-        rows[index] = {
-            frame = rowFrame,
-            highlight = highlight,
-            marker = marker,
-            text = text,
-        }
+        local hi=solid(rf,"BACKGROUND",.95,.60,.08,.09);hi:SetAllPoints();hi:Hide()
+        local marker=rf:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontNormal","GameFontNormal"))
+        marker:SetPoint("LEFT",3,0);marker:SetWidth(16);marker:SetJustifyH("CENTER");shadow(marker)
+        local text=rf:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlight","GameFontNormal"))
+        text:SetPoint("LEFT",marker,"RIGHT",4,0);text:SetPoint("RIGHT",-4,0)
+        text:SetJustifyH("LEFT");UI:SetWordWrap(text,false);shadow(text)
+        rows[i]={frame=rf,highlight=hi,marker=marker,text=text}
     end
 
-    local prev = makeFlatButton(frame, "<", 30, 22, function()
-        if MG.RuntimeEngine then MG.RuntimeEngine:MoveStep(-1, "viewer_prev") end
+    local prev=flatButton(frame,"<",30,22,function()
+        if MG.RuntimeEngine then MG.RuntimeEngine:MoveStep(-1,"viewer_prev") end
         if MG.RefreshUI then MG:RefreshUI() end
-    end)
-    prev:SetPoint("BOTTOMLEFT", 9, 8)
+    end);prev:SetPoint("BOTTOMLEFT",8,7)
 
-    local nextButton = makeFlatButton(frame, ">", 30, 22, function()
-        if MG.RuntimeEngine then MG.RuntimeEngine:MoveStep(1, "viewer_next") end
+    local guides=flatButton(frame,"GUIDES",66,22,function()
+        if MG.GuideBrowser then MG.GuideBrowser:Toggle() end
+    end);guides:SetPoint("BOTTOM",0,7)
+
+    local nextB=flatButton(frame,">",30,22,function()
+        if MG.RuntimeEngine then MG.RuntimeEngine:MoveStep(1,"viewer_next") end
         if MG.RefreshUI then MG:RefreshUI() end
-    end)
-    nextButton:SetPoint("BOTTOMRIGHT", -9, 8)
+    end);nextB:SetPoint("BOTTOMRIGHT",-8,7)
 
-    local footer = frame:CreateFontString(nil, "OVERLAY",
-        UI:SafeFont("GameFontHighlightSmall", "GameFontNormalSmall"))
-    footer:SetPoint("BOTTOM", 0, 13)
-    footer:SetWidth(FRAME_WIDTH - 100)
-    footer:SetJustifyH("CENTER")
-    if footer.SetTextColor then footer:SetTextColor(0.70, 0.70, 0.70) end
-    setFontShadow(footer)
+    local footer=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
+    footer:SetPoint("BOTTOM",0,31);footer:SetWidth(FRAME_WIDTH-80);footer:SetJustifyH("CENTER");shadow(footer)
 
-    self.frame = frame
-    self.guideTitle = guideTitle
-    self.stepText = stepText
-    self.bar = bar
-    self.barBg = barBg
-    self.rows = rows
-    self.footer = footer
-
-    UI:SetShown(frame, true)
+    self.frame=frame;self.guideTitle=guideTitle;self.stepText=stepText
+    self.bar=bar;self.barBg=barBg;self.rows=rows;self.footer=footer
+    UI:SetShown(frame,true)
     return frame
 end
 
 function V:Refresh()
-    local frame = self:Create()
-    local runtime = MG.RuntimeStore and MG.RuntimeStore:Get() or nil
+    local frame=self:Create()
+    local db=MG:EnsureDB()
+    local runtime=MG.RuntimeStore and MG.RuntimeStore:Get() or nil
+
+    if db.settings.showViewer==false then frame:Hide();return end
+    if runtime and runtime.step and runtime.step.hideWindow and db.settings.respectHideWindow then
+        frame:Hide();return
+    end
 
     if not runtime or not runtime.guide then
-        self.guideTitle:SetText("Guide wird geladen ...")
-        self.stepText:SetText("")
+        self.guideTitle:SetText("Guide wird geladen ...");self.stepText:SetText("")
         self.bar:SetWidth(1)
-        for _, row in ipairs(self.rows) do
-            row.marker:SetText("")
-            row.text:SetText("")
-            row.highlight:Hide()
-            row.frame:Hide()
-        end
-        self.rows[1].frame:Show()
-        self.rows[1].marker:SetText("i")
+        for _,row in ipairs(self.rows) do row.frame:Hide() end
+        self.rows[1].frame:Show();self.rows[1].marker:SetText("i")
         self.rows[1].text:SetText("RestedXP-Daten werden vorbereitet")
-        self.footer:SetText("")
-        UI:SetSize(frame, FRAME_WIDTH, 185)
-        UI:SetShown(frame, MG.db and MG.db.settings and
-            MG.db.settings.showViewer ~= false)
-        return
+        self.footer:SetText("");UI:SetSize(frame,FRAME_WIDTH,134);frame:Show();return
     end
 
     self.guideTitle:SetText(tostring(runtime.guide.title or runtime.guideID))
+    local total=#(runtime.guide.steps or {});local index=tonumber(runtime.stepIndex) or 1
+    self.stepText:SetText(tostring(index).."/"..tostring(total))
+    local width=self.barBg.GetWidth and self.barBg:GetWidth() or (FRAME_WIDTH-20)
+    self.bar:SetWidth(math.max(1,width*(total>0 and index/total or 0)))
 
-    local total = #(runtime.guide.steps or {})
-    local index = tonumber(runtime.stepIndex) or 1
-    self.stepText:SetText(tostring(index) .. " / " .. tostring(total))
-
-    local width = self.barBg.GetWidth and self.barBg:GetWidth() or (FRAME_WIDTH - 22)
-    self.bar:SetWidth(math.max(1, width * (total > 0 and index / total or 0)))
-
-    local visible = {}
-    for _, row in ipairs(runtime.presentation and runtime.presentation.rows or {}) do
-        visible[#visible + 1] = row
+    local visible={}
+    for _,row in ipairs(runtime.presentation and runtime.presentation.rows or {}) do
+        visible[#visible+1]=row
     end
-    for _, sticky in ipairs(runtime.presentation and runtime.presentation.stickies or {}) do
-        if #(sticky.rows or {}) > 0 then
-            visible[#visible + 1] = {
-                text = "Zusätzliche Ziele",
-                stickyHeader = true,
-                passive = true,
-            }
-            for _, row in ipairs(sticky.rows or {}) do
-                visible[#visible + 1] = row
-            end
+    for _,sticky in ipairs(runtime.presentation and runtime.presentation.stickies or {}) do
+        if #(sticky.rows or {})>0 then
+            visible[#visible+1]={text="Zusätzliche Ziele",stickyHeader=true,passive=true}
+            for _,row in ipairs(sticky.rows or {}) do visible[#visible+1]=row end
         end
     end
 
-    local visibleCount = math.min(MAX_ROWS, #visible)
-    local rowCountForHeight = math.max(1, visibleCount)
-    local desiredHeight = math.max(
-        178,
-        math.min(430, ROW_START_Y + rowCountForHeight * ROW_HEIGHT + BOTTOM_AREA))
-    UI:SetSize(frame, FRAME_WIDTH, desiredHeight)
+    local count=math.min(MAX_ROWS,#visible)
+    local rowCount=math.max(1,count)
+    local footerExtra=0
+    local state=runtime.stepState or {}
+    local footerText=""
+    if state.complete then footerText="|cff55dd77Schritt abgeschlossen|r";footerExtra=14
+    elseif (state.unknownBlockingGoals or 0)>0 then footerText="|cffffa020Zielstatus wird geprüft|r";footerExtra=14
+    elseif state.reason=="optional_only" then footerText="Optionaler Schritt";footerExtra=14 end
+    self.footer:SetText(footerText)
 
-    for rowIndex, uiRow in ipairs(self.rows) do
-        local row = visible[rowIndex]
+    local height=ROW_START+rowCount*ROW_HEIGHT+FOOTER_HEIGHT+footerExtra
+    UI:SetSize(frame,FRAME_WIDTH,math.max(132,math.min(410,height)))
+
+    for i,uiRow in ipairs(self.rows) do
+        local row=visible[i]
         if row then
             uiRow.frame:Show()
-
-            local marker, mr, mg, mb = markerFor(row)
-            uiRow.marker:SetText(marker)
-            if uiRow.marker.SetTextColor then
-                uiRow.marker:SetTextColor(mr, mg, mb)
-            end
-
-            local progress = row.progress and ("  " .. row.progress) or ""
-            uiRow.text:SetText(tostring(row.text or "") .. progress)
-            local tr, tg, tb = rowTextColor(row)
-            if uiRow.text.SetTextColor then
-                uiRow.text:SetTextColor(tr, tg, tb)
-            end
-
-            if row.navigated then
-                uiRow.highlight:Show()
-            else
-                uiRow.highlight:Hide()
-            end
+            local m,r,g,b=markerFor(row);uiRow.marker:SetText(m)
+            if uiRow.marker.SetTextColor then uiRow.marker:SetTextColor(r,g,b) end
+            local progress=row.progress and ("  "..row.progress) or ""
+            uiRow.text:SetText(tostring(row.text or "")..progress)
+            local tr,tg,tb=textColor(row)
+            if uiRow.text.SetTextColor then uiRow.text:SetTextColor(tr,tg,tb) end
+            if row.navigated then uiRow.highlight:Show() else uiRow.highlight:Hide() end
         else
-            uiRow.marker:SetText("")
-            uiRow.text:SetText("")
-            uiRow.highlight:Hide()
             uiRow.frame:Hide()
         end
     end
-
-    local state = runtime.stepState or {}
-    if state.complete then
-        self.footer:SetText("|cff55dd77Schritt abgeschlossen|r")
-    elseif (state.unknownBlockingGoals or 0) > 0 then
-        self.footer:SetText("|cffffa020Zielstatus wird geprüft|r")
-    else
-        self.footer:SetText("")
-    end
-
-    UI:SetShown(frame, MG.db and MG.db.settings and
-        MG.db.settings.showViewer ~= false)
+    frame:Show()
 end
 
 function MG:RefreshUI()
     if MG.GuideViewer then MG.GuideViewer:Refresh() end
     if MG.NavigatorFrame then MG.NavigatorFrame:Refresh() end
+    if MG.ActionBar then MG.ActionBar:Refresh() end
+    if MG.WorldMapOverlay then MG.WorldMapOverlay:Refresh() end
 end
