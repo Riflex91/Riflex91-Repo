@@ -5,7 +5,7 @@ namespace AioBotWindowsBridge;
 
 public sealed class SupabaseTelemetrySink
 {
-    // The existing bot-debug-ingest Edge Function rejects bodies above 512 KiB.
+    // Native V5 telemetry is intentionally bounded below the Edge Function body limit.
     // Keep explicit headroom for HTTP/JSON growth and future small schema additions.
     public const int MaxPayloadBytes = 480 * 1024;
 
@@ -40,7 +40,7 @@ public sealed class SupabaseTelemetrySink
 
         using var request = new HttpRequestMessage(HttpMethod.Post, _endpoint);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
-        request.Headers.TryAddWithoutValidation("x-aio-v3-bot-id", _botId);
+        request.Headers.TryAddWithoutValidation("x-aio-v5-bot-id", _botId);
         request.Content = new ByteArrayContent(payloadBytes);
         request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json")
         {
@@ -63,7 +63,7 @@ public sealed class SupabaseTelemetrySink
         var payload = new
         {
             schemaVersion = 1,
-            type = "AIO_V3_DEBUG_TELEMETRY_BATCH",
+            type = "AIO_V5_TELEMETRY_BATCH",
             botId = _botId,
             observedAt,
             cursor = new { afterSeq, maxSeq = read.MaxSeq },
@@ -72,7 +72,7 @@ public sealed class SupabaseTelemetrySink
                 processRunning = true,
                 restartCount = 0,
                 harnessStartedAt = _startedAt,
-                platform = "windows-desktop-bridge"
+                platform = "windows-v5-desktop-bridge"
             },
             snapshot,
             events = read.Events
@@ -85,25 +85,21 @@ public sealed class SupabaseTelemetrySink
     {
         var fallback = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
-            ["schemaVersion"] = 2,
-            ["type"] = "AIO_V3_DEBUG_SNAPSHOT",
-            ["diagnostics"] = new
-            {
-                schemaVersion = 1,
-                type = "AIO_V3_AUTONOMY_DIAGNOSTICS",
-                sizeLimited = true,
-                omitted = true,
-                reason = "INGEST_PAYLOAD_BUDGET"
-            }
+            ["schemaVersion"] = 1,
+            ["type"] = "AIO_V5_TELEMETRY_SNAPSHOT",
+            ["sizeLimited"] = true,
+            ["omitted"] = true,
+            ["reason"] = "INGEST_PAYLOAD_BUDGET"
         };
 
         if (snapshot.ValueKind == JsonValueKind.Object)
         {
-            CopyIfPresent(snapshot, fallback, "schemaVersion");
-            CopyIfPresent(snapshot, fallback, "type");
-            CopyIfPresent(snapshot, fallback, "status");
-            CopyIfPresent(snapshot, fallback, "heartbeat");
-            CopyIfPresent(snapshot, fallback, "reconciliation");
+            foreach (var field in new[]
+            {
+                "schemaVersion", "type", "observedAtMs", "role", "runtime",
+                "character", "test", "roster", "health", "transport", "anomalies"
+            })
+                CopyIfPresent(snapshot, fallback, field);
         }
 
         return fallback;
