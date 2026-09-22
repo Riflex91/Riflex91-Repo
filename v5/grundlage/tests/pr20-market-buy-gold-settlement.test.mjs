@@ -63,7 +63,7 @@ test("Kandidat stimmt mit Action/Recovery/Verifier-Vertraegen ueberein", () => {
   );
   const actions = lies("wissensbasis/vertraege/action-contracts.json").contracts;
   const recovery = lies("wissensbasis/vertraege/recovery-contracts.json").actions;
-  const verifier = lies("grundlage/vertraege/r9/verifier-katalog.json").verifier;
+  const verifier = lies("grundlage/vertraege/r9/verifier-katalog.json").verifiers;
   const action = actions.find(x => x.id === kandidat.actionContractId);
   const rec = recovery.find(x => x.id === kandidat.recoveryContractId);
   const ver = verifier.find(x => x.id === kandidat.verifierId);
