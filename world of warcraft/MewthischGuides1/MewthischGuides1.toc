@@ -44,6 +44,7 @@ Navigation/Distance.lua
 Navigation/Bearing.lua
 
 UI/ErrorLogWindow.lua
+UI/SettingsWindow.lua
 UI/NavigatorFrame.lua
 UI/GuideViewer.lua
 
