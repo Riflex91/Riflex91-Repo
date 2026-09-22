@@ -2,7 +2,7 @@
   'use strict';
 
   const API_NAME = 'V5BankFunctionTest';
-  const VERSION = '1.1.0';
+  const VERSION = '1.2.0';
   const TESTKENNUNG = 'bank-function-tests';
   const STATE_KEY = 'AIO_V5_BANK_FUNCTION_TEST_STATE_V1';
   const STABILITY_MS = 750;
@@ -775,6 +775,66 @@
     });
   }
 
+  async function openBankPackAdmission() {
+    const shadow = await openBankPackShadow();
+    if (shadow.status !== 'BESTANDEN') {
+      return Object.freeze({
+        status: 'BLOCKIERT',
+        art: 'OPEN_BANK_PACK',
+        testArt: 'ADMISSION_READ_ONLY',
+        blocker: Object.freeze([...(shadow.blocker ?? ['SHADOW_NICHT_BESTANDEN'])]),
+        shadow,
+        sameIntentErneutSenden: false,
+        gameplayWrites: 0,
+        mutatingPublicFunctionCalls: 0,
+        liveMutationFreigegeben: false
+      });
+    }
+
+    const goldBlocker = [];
+    const shellsBlocker = [];
+    if (!shadow.zahlung.goldBezahlbar) goldBlocker.push('BANK_OPEN_PACK_GOLD_ZU_NIEDRIG');
+    if (!shadow.zahlung.shellsBezahlbar) shellsBlocker.push('BANK_OPEN_PACK_SHELLS_ZU_NIEDRIG');
+
+    const gold = Object.freeze({
+      waehrung: 'gold',
+      status: goldBlocker.length === 0 ? 'BEREIT' : 'BLOCKIERT',
+      blocker: Object.freeze(goldBlocker),
+      kosten: shadow.kandidat.goldKosten,
+      verfuegbar: shadow.zahlung.characterGold,
+      korrelation: 'FIFO_DEFERRED_BANK'
+    });
+    const shells = Object.freeze({
+      waehrung: 'shells',
+      status: shellsBlocker.length === 0 ? 'BEREIT' : 'BLOCKIERT',
+      blocker: Object.freeze(shellsBlocker),
+      kosten: shadow.kandidat.shellKosten,
+      verfuegbar: shadow.zahlung.characterShells,
+      korrelation: 'REQUEST_ID_ASYNC_BACKEND_TX',
+      inProgressPolicy: 'WAIT_AND_REOBSERVE_NO_SEND'
+    });
+    const irgendeinPfadBereit = gold.status === 'BEREIT' || shells.status === 'BEREIT';
+
+    return Object.freeze({
+      status: irgendeinPfadBereit ? 'BEREIT' : 'BLOCKIERT',
+      art: 'OPEN_BANK_PACK',
+      testArt: 'ADMISSION_READ_ONLY',
+      kandidat: shadow.kandidat,
+      performanceTrick: shadow.performanceTrick,
+      pfade: Object.freeze({ gold, shells }),
+      selectedPath: null,
+      durableIntentErzeugt: false,
+      authorityAusgestellt: false,
+      sameIntentErneutSenden: false,
+      gameplayWrites: 0,
+      mutatingPublicFunctionCalls: 0,
+      liveMutationFreigegeben: false,
+      naechsterSchritt: irgendeinPfadBereit
+        ? 'PFAD_BEREIT_ABER_LIVE_WEITERHIN_NICHT_FREIGEGEBEN'
+        : 'RESSOURCEN_BLOCKIERT_KEIN_LIVE'
+    });
+  }
+
   async function warteSettlement(pre, art, k) {
     const start = Date.now();
     let letzter = null;
@@ -1121,6 +1181,21 @@
   });
 
   gui.registriereAktion({
+    kennung: 'open-pack-admission',
+    titel: 'OPEN PACK · Admission',
+    async ausfuehren() {
+      const result = await openBankPackAdmission();
+      gui.protokolliere('OPEN BANK PACK Admission', result);
+      return setzeResultat(
+        result,
+        result.status === 'BEREIT'
+          ? 'OPEN PACK Admission hat mindestens einen finanzierbaren Pfad; Live bleibt trotzdem gesperrt.'
+          : 'OPEN PACK Admission BLOCKIERT. Kein Spend, kein Gameplay-Write.'
+      );
+    }
+  });
+
+  gui.registriereAktion({
     kennung: 'diagnose',
     titel: 'Diagnose / Testbudget',
     async ausfuehren() {
@@ -1146,6 +1221,7 @@
     live,
     diagnose,
     openBankPackShadow,
+    openBankPackAdmission,
     bestaetigung,
     kopiereBericht: () => gui.kopiereBericht()
   });
