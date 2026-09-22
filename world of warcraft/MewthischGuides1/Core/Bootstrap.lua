@@ -152,6 +152,8 @@ local events = {
     "TRAINER_SHOW",
     "GOSSIP_SHOW",
     "BANKFRAME_OPENED",
+    "UNIT_ENTERED_VEHICLE",
+    "CHAT_MSG_TEXT_EMOTE",
 }
 for _, event in ipairs(events) do pcall(frame.RegisterEvent, frame, event) end
 
@@ -179,6 +181,10 @@ local function recordEvent(event, args)
         MG.ActionMemory:Record("fp", "*", { event=event })
     elseif event == "PLAYER_EQUIPMENT_CHANGED" then
         MG.ActionMemory:Record("equip", tonumber(args[1]) or "*", { event=event })
+    elseif event == "UNIT_ENTERED_VEHICLE" and (not args[1] or args[1] == "player") then
+        MG.ActionMemory:Record("vehicle", "*", { event=event })
+    elseif event == "CHAT_MSG_TEXT_EMOTE" then
+        MG.ActionMemory:Record("emote", "*", { event=event })
     end
 end
 
@@ -204,6 +210,9 @@ frame:SetScript("OnEvent", function(_, event, ...)
             MG.NavigatorFrame:Create()
             MG.ActionBar:Create()
             MG.WorldMapOverlay:Create()
+            if MG.TravelGraph then MG.TravelGraph:Load() end
+            if MG.BuildState then MG.BuildState:Refresh("login") end
+            if MG.TalentAdvisor then MG.TalentAdvisor:Refresh("login") end
             MG:RefreshUI()
             print("|cffffb000Mewthisch Guides 1.0|r geladen - /mg1")
 
@@ -240,6 +249,12 @@ frame:SetScript("OnEvent", function(_, event, ...)
             MG.AutomationPolicy:OnQuestComplete()
         elseif event == "QUEST_FINISHED" then
             MG.RewardAdvisorFrame:Hide()
+        end
+
+        if event == "PLAYER_LEVEL_UP" or event == "LEARNED_SPELL_IN_TAB" or
+           event == "SPELL_UPDATE_USABLE" then
+            if MG.BuildState then MG.BuildState:Refresh(event) end
+            if MG.TalentAdvisor then MG.TalentAdvisor:Refresh(event) end
         end
 
         local canAdvance =
