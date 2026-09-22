@@ -168,5 +168,26 @@
     "bestaetigungLive1": "PR20.3-BUY-GOLD-LIVE-1",
     "bestaetigungLive2": "PR20.3-BUY-GOLD-LIVE-2",
     "produktiveGameplayAutoritaet": false
+  },
+  "naechsterVorbereiteterKandidat": {
+    "status": "VORBEREITET_WARTET_AUF_BUY_GOLD_7_OF_7",
+    "publicFunction": "sell",
+    "menge": 1,
+    "actionContractId": "AL-ACTION-SELL",
+    "recoveryContractId": "AL-RECOVERY-SELL",
+    "verifierId": "AL-VERIFIER-SELL",
+    "sourceBuyStateKey": "AIO_V5_PR20_3_BUY_GOLD_STEP_TEST_V1",
+    "sourceRequirement": "BUY_GOLD_STEP_7_BESTANDEN_UND_2_OF_2_COMMITTED",
+    "contract": "grundlage/vertraege/runtime/market-sell-production-candidate.json",
+    "settlementCore": "grundlage/quelle/merchant/market-sell-settlement.ts",
+    "testHarness": "werkzeuge/pr20-3-market-sell-step-test-paket.js",
+    "testHarnessStateKey": "AIO_V5_PR20_3_SELL_STEP_TEST_V1",
+    "testHarnessSchritte": 7,
+    "mergeZwischenTestschrittenErforderlich": false,
+    "maxTrueTests": 2,
+    "bestaetigungLive1": "PR20.3-SELL-LIVE-1",
+    "bestaetigungLive2": "PR20.3-SELL-LIVE-2",
+    "produktiveGameplayAutoritaet": false,
+    "sameIntentRetry": false
   }
 }

@@ -182,3 +182,54 @@ bevorzugt.
 
 Erst nach Schritt 7 wird der Gesamtbericht einmalig in die Repo-Evidence
 uebernommen.
+
+
+## Naechster vorbereiteter Gesamttest: NPC Sell
+
+Waehrend der Buy-Gold-Stufentest das aktive Gate bleibt, ist der direkt
+darauffolgende NPC-Sell-Test bereits komplett vorbereitet.
+
+Paket:
+
+`werkzeuge/pr20-3-market-sell-step-test-paket.js`
+
+Persistenter State:
+
+`AIO_V5_PR20_3_SELL_STEP_TEST_V1`
+
+Der Sell-Test startet **nicht**, solange
+`AIO_V5_PR20_3_BUY_GOLD_STEP_TEST_V1` nicht Schritt 7 als
+`BESTANDEN` und genau zwei `COMMITTED` Live-Settlements enthaelt.
+
+Er verkauft ausschliesslich je eine Einheit aus den zwei durch den
+Buy-Gold-Test bestaetigten Testkaeufen. Dadurch wird kein beliebiges
+Alt-Inventar als Sell-Testobjekt verwendet.
+
+Die sieben Stufen sind:
+
+1. Buy-Gold-Evidence und Umgebung read-only pruefen;
+2. exakten sicheren Sell-Slot fuer Buy-LIVE-1 stabil pinnen;
+3. read-only Sell-Shadow/Admission;
+4. LIVE 1: exakt `sell(index, 1)`;
+5. Sell-Kandidat fuer Buy-LIVE-2 komplett frisch pinnen;
+6. LIVE 2: exakt `sell(index, 1)`;
+7. anschliessend 5 Minuten NO-WRITE-Stabilitaet.
+
+Die Live-Bestaetigungen lauten:
+
+- `PR20.3-SELL-LIVE-1`
+- `PR20.3-SELL-LIVE-2`
+
+Zwischen den sieben Stufen ist **kein Merge erforderlich**.
+
+Fail-closed gilt insbesondere:
+
+- nur normale stackbare Nicht-Cash-/Nicht-P2W-Items;
+- keine Upgrade-/Compound-/Quest-/Exchange-/Event-/Soulbound-Definitionen;
+- keine locked/blocked/gift/expiring/special/stat-modified physischen Items;
+- NPC-Auszahlungswert wird unmittelbar vor Send read-only mit
+  `item_value(item)` gepinnt;
+- COMMIT nur bei exakt `-1` Gesamtitemmenge, exakt passendem Goldzuwachs
+  und unveraendertem Restinventar;
+- ein moeglicher Send verbraucht einen der zwei persistenten Live-Versuche;
+- `sameIntentRetry=false`.
