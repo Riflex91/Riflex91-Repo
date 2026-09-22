@@ -8,6 +8,7 @@ on:
       - 'v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js'
       - 'v5/werkzeuge/tests/pr20-2-bank-no-write-5m-gui.test.mjs'
       - 'v5/roadmap/pr20-2-bank-no-write-5m-test-plan.json'
+      - 'v5/roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json'
       - 'v5/roadmap/pr20-2-bank-exit-gate-status.json'
       - 'v5/roadmap/post-r19-roadmap.json'
       - 'v5/dokumentation/V5-PR20-2-BANK-NO-WRITE-5M.md'
