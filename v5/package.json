@@ -134,7 +134,8 @@
     "ingame:bank-store:bridge": "npm run bauen && node werkzeuge/bank-item-transfer-code-bridge-probe.mjs --mode STORE",
     "bank-item-transfer-evening:shadow-pruefen": "npm run bauen && node --check werkzeuge/bank-item-transfer-real-browser-shadow.mjs && node --check werkzeuge/bank-item-transfer-produktions-browser.mjs && node --test grundlage/tests/r11-bank-item-transfer-shadow-runtime.test.mjs grundlage/tests/r11-bank-item-transfer-real-shadow-static.test.mjs",
     "ingame:bank-retrieve:shadow": "npm run bauen && node werkzeuge/bank-item-transfer-real-browser-shadow.mjs --mode RETRIEVE",
-    "ingame:bank-store:shadow": "npm run bauen && node werkzeuge/bank-item-transfer-real-browser-shadow.mjs --mode STORE"
+    "ingame:bank-store:shadow": "npm run bauen && node werkzeuge/bank-item-transfer-real-browser-shadow.mjs --mode STORE",
+    "bank-shadow-cli:pruefen": "node --check werkzeuge/bank-item-transfer-real-browser-shadow.mjs && node --check werkzeuge/bank-swap-real-browser-shadow.mjs && node --test grundlage/tests/r11-bank-shadow-cli-argumente.test.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

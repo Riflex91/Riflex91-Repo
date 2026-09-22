@@ -40,14 +40,21 @@ function hash(wert) {
   return crypto.createHash("sha256").update(String(wert)).digest("hex");
 }
 
-function leseArgument(name, fallback = null) {
-  const i = process.argv.indexOf(name);
+export function leseBankSwapShadowArgument(
+  name,
+  fallback = null,
+  argv = process.argv,
+) {
+  const i = argv.indexOf(name);
   if (i < 0) return fallback;
-  const wert = process.argv[i + 1];
-  if (!wert || wert.startsWith("--")) {
+  const teile = [];
+  for (let j = i + 1; j < argv.length && !String(argv[j]).startsWith("--"); j += 1) {
+    teile.push(String(argv[j]));
+  }
+  if (teile.length === 0) {
     throw new Error("BANK_SHADOW_ARGUMENT_FEHLT:" + name);
   }
-  return wert;
+  return teile.join(" ");
 }
 
 function pruefeSha(wert) {
@@ -301,12 +308,12 @@ const direkt = process.argv[1]
   && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (direkt) {
   fuehreBankSwapRealBrowserShadow({
-    cdpText: leseArgument(
+    cdpText: leseBankSwapShadowArgument(
       "--cdp",
       process.env.V5_CDP_URL || "http://127.0.0.1:9222/",
     ),
-    sourceSha: leseArgument("--source-sha"),
-    bestaetigungText: leseArgument("--confirm"),
+    sourceSha: leseBankSwapShadowArgument("--source-sha"),
+    bestaetigungText: leseBankSwapShadowArgument("--confirm"),
   }).then(bericht => {
     process.stdout.write(JSON.stringify(bericht, null, 2) + "\n");
     if (bericht.status !== "BESTANDEN") process.exitCode = 2;
