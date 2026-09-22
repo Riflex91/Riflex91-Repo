@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "status": "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
+  "gate": "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG",
+  "basisMain": "70396aafa313016e3cbe608dedad64b7fcb5a75b",
+  "exitContract": "v5/dokumentation/V5-POST-R19-ROADMAP.md#pr204--transfers-supply-collection-und-rendezvous-produktiv",
+  "evidence": "v5/roadmap/pr20-4-logistics-transfer-evidence.json",
+  "exitCriteria": {
+    "finalerEmpfaengerzustandVerifiziert": true,
+    "keinBlindRetry": true,
+    "keinDuplicateTransfer": true,
+    "staleCharacterSessionZieleBlockiert": true,
+    "itemSupplyCollectionRealBestanden": true,
+    "itemRoundtripRestored": true,
+    "goldRoundtripRestored": true,
+    "reale5mEvidenceItem": true,
+    "reale5mEvidenceGold": true
+  },
+  "liveEvidence": {
+    "status": "BESTANDEN_REAL_INGAME_16_OF_16_ITEM_GOLD_2_OF_2_PLUS_5M",
+    "allSixteenStepsPassed": true,
+    "itemLiveTestsConsumed": 2,
+    "itemLiveTestsMax": 2,
+    "goldLiveTestsConsumed": 2,
+    "goldLiveTestsMax": 2,
+    "gameplayWritesTotal": 4,
+    "itemSoak5m": "BESTANDEN",
+    "goldSoak5m": "BESTANDEN",
+    "sameIntentRetry": false
+  },
+  "safetyRetained": {
+    "productiveTransferAuthorityGranted": false,
+    "rawWriteAuthorityGranted": false,
+    "sameIntentRetry": false,
+    "unknownOutcome": "REOBSERVE_RECONCILE_NO_BLIND_RETRY",
+    "localCapabilityAuthorityStillRequired": true,
+    "noAutomaticTransferWideAuthority": true
+  },
+  "transitionPolicy": {
+    "pr20_4RoadmapMilestoneClosed": true,
+    "pr20_5MerchantStabilityAllowed": true,
+    "pr20_4ProductiveMutationAutomaticallyAllowed": false,
+    "transferProductiveAuthorityAutomaticallyGranted": false,
+    "historicalEvidenceRewritten": false
+  },
+  "nextGate": "PR20.5_MERCHANT_STABILITAET"
+}
