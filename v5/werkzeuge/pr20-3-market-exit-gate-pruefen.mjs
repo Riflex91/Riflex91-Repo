@@ -79,7 +79,7 @@ if (market.status !== "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN"
   fail("PR20_3_MARKET_AUTHORITY_GRENZE_UNGUELTIG");
 }
 
-if (logistics.status !== "PR20_4_VORBEREITUNG_FREIGEGEBEN_NO_WRITE"
+if (!["PR20_4_VORBEREITUNG_FREIGEGEBEN_NO_WRITE", "BEREIT_FUER_INGAME_GESAMTSTUFENTEST"].includes(logistics.status)
     || logistics.authorityGrenze?.produktiveRegistrierungErlaubt !== false
     || logistics.authorityGrenze?.gameplayAutoritaet !== false
     || logistics.authorityGrenze?.rawWriteAutoritaet !== false
