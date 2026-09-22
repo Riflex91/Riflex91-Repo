@@ -148,6 +148,7 @@ function B:Create()
     local db=MG:EnsureDB();self.query=db.browser.query or "";search:SetText(self.query)
     frame:SetScript("OnShow",function() B:Refresh() end)
     frame:Hide()
+    if MG.ThemeManager then MG.ThemeManager:ApplyAll() end
     return frame
 end
 

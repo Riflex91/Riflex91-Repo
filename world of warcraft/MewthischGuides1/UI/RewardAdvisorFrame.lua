@@ -60,7 +60,9 @@ function R:Create()
     close:SetPoint("BOTTOMRIGHT",-12,12)
 
     self.frame=frame;self.text=text;self.detail=detail;self.choose=choose
-    frame:Hide();return frame
+    frame:Hide()
+    if MG.ThemeManager then MG.ThemeManager:ApplyAll() end
+    return frame
 end
 
 function R:Refresh(show)

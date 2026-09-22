@@ -86,6 +86,7 @@ function A:Create()
 
     self.frame=frame;self.icon=icon;self.title=title;self.hint=hint;self.button=action
     frame:Hide()
+    if MG.ThemeManager then MG.ThemeManager:ApplyAll() end
     return frame
 end
 

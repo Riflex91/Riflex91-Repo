@@ -193,6 +193,7 @@ function E:Create()
 
     frame:Hide()
     self:UpdateButtons()
+    if MG.ThemeManager then MG.ThemeManager:ApplyAll() end
     return frame
 end
 

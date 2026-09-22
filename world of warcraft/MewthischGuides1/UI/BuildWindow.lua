@@ -64,7 +64,9 @@ function B:Create()
 
     self.frame=frame;self.summary=summary;self.rows=rows
     frame:SetScript("OnShow",function() B:Refresh() end)
-    frame:Hide();return frame
+    frame:Hide()
+    if MG.ThemeManager then MG.ThemeManager:ApplyAll() end
+    return frame
 end
 
 function B:Refresh()

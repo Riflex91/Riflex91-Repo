@@ -65,6 +65,7 @@ function W:Create()
     marker:SetScript("OnLeave",function() if GameTooltip then GameTooltip:Hide() end end)
     marker:Hide()
     self.marker=marker
+    self.frame=marker
 
     driver:SetScript("OnUpdate",function(_,delta)
         W.elapsed=W.elapsed+(tonumber(delta) or 0)
@@ -72,6 +73,7 @@ function W:Create()
         W.elapsed=0
         W:Refresh()
     end)
+    if MG.ThemeManager then MG.ThemeManager:ApplyAll() end
     return driver
 end
 
