@@ -21,6 +21,12 @@ import {
 import {
   equipmentEquipMutationsFaehigkeitDefinition,
 } from "../equipment/faehigkeits-vertrag.js";
+import {
+  merchantMluckCoreModulDefinition,
+} from "../merchant/mluck-produktions-modul-vertrag.js";
+import {
+  merchantMluckMutationsFaehigkeitDefinition,
+} from "../merchant/mluck-produktions-faehigkeits-vertrag.js";
 import type {
   V5ProduktionsKompositionsDefinition,
 } from "./produktions-runtime.js";
@@ -56,6 +62,7 @@ export function erstelleKanonischeProduktionsKomposition(
       merchantCoreABasisModulDefinition(),
       merchantBankCoreModulDefinition(),
       equipmentCoreModulDefinition(),
+      merchantMluckCoreModulDefinition(),
     ]),
     faehigkeitsDefinitionen: Object.freeze([
       ...merchantCoreAPlanungsFaehigkeitDefinitionen(),
@@ -65,6 +72,7 @@ export function erstelleKanonischeProduktionsKomposition(
       merchantBankRetrieveMutationsFaehigkeitDefinition(),
       merchantBankStoreMutationsFaehigkeitDefinition(),
       equipmentEquipMutationsFaehigkeitDefinition(),
+      merchantMluckMutationsFaehigkeitDefinition(),
     ]),
     healthAnforderungen: kopiereHealthAnforderungen(healthAnforderungen),
   });
