@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_2_BANK_PRODUCTION_PREPARATION",
   "stand": "2026-09-22",
-  "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_WITHDRAW_TESTLIMIT_OPEN_PACK_RESOURCE_BLOCKED",
+  "status": "FIRST_BANK_MUTATION_SET_4_OF_5_LIVE_BESTANDEN_NO_WRITE_5M_BESTANDEN_BLOCKED",
   "basisMain": "05b93ac7dbb6ef294294c38030d9e4b48962f7d3",
   "blockingGate": "PR20.1_EQUIP_PRODUKTIONSNACHWEIS",
-  "zweck": "PR20.2 Bank-Autonomie schrittweise produktiv nachweisen. bank_deposit(1), bank_retrieve, bank_store und bank_swap sind real bestanden. bank_withdraw(1) hat zwei echte Funktionstests verbraucht und bleibt ohne vollstaendig bestandene Live-Write-Evidence breit deaktiviert. Open-Pack Shadow und read-only Admission sind als Sicherheitspruefungen bestanden; fachlich bleibt open_bank_pack wegen 15.993.820 < 75.000.000 Gold und 0 < 600 Shells RESOURCE_BLOCKED_NO_LIVE. Keine breite Bank-Aktivierung.",
+  "zweck": "PR20.2 Bank-Autonomie schrittweise produktiv nachweisen. bank_deposit(1), bank_retrieve, bank_store und bank_swap sind real bestanden. bank_withdraw(1) hat zwei echte Funktionstests verbraucht und bleibt ohne vollstaendig bestandene Live-Write-Evidence breit deaktiviert. Open-Pack Shadow und read-only Admission sind als Sicherheitspruefungen bestanden; fachlich bleibt open_bank_pack wegen 15.993.820 < 75.000.000 Gold und 0 < 600 Shells RESOURCE_BLOCKED_NO_LIVE. Der reale Bank-NO-WRITE-5M-Lauf ist BESTANDEN. PR20.2 bleibt BLOCKIERT_FAIL_CLOSED; aktuell ist kein weiterer Ingame-Test gate-wirksam.",
   "authorityGrenze": {
     "produktiveRegistrierungErlaubt": true,
     "produktiverAktivierungspfadErlaubt": false,
@@ -158,8 +158,9 @@
     "bank_swap ist direkt ingame 2/2 COMMITTED und exakt BESTAETIGT; keine weiteren Live-Tests",
     "bank_withdraw(1) hat das Maximum von zwei echten Funktionstests erreicht; korrigierte CODE-Bridge read-only BESTANDEN, vollstaendige Live-Evidence fehlt, kein dritter Write-Test",
     "open_bank_pack Shadow und Admission read-only sind als Sicherheitspruefungen BESTANDEN; fachlich RESOURCE_BLOCKED_NO_LIVE wegen 15.993.820 < 75.000.000 Gold und 0 < 600 Shells",
-    "PR20.2 Exit-Gate bleibt fail-closed; keine breite Bank-Aktivierung und kein Sprung zu PR20.3",
-    "noch moegliche NO-WRITE-/Integrationsarbeiten fortsetzen"
+    "Bank-NO-WRITE-5M ist real BESTANDEN: 300017 ms, 21 Samples, 0 Gaps, 0 Drift, 0 performance_trick-Fehler, 0 Gameplay-Writes",
+    "PR20.2 Exit-Gate bleibt BLOCKIERT_FAIL_CLOSED; keine breite Bank-Aktivierung und kein Sprung zu PR20.3",
+    "kein weiterer Ingame-Test ist aktuell erforderlich oder gate-wirksam; Reopen nur bei dokumentiertem Zustands-, Ressourcen- oder Code-Trigger"
   ],
   "blockingGateStatus": "BESTANDEN",
   "ersterLiveKandidat": {
@@ -298,8 +299,32 @@
       "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
       "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
     ],
+    "noWrite5mStatus": "BESTANDEN_REAL_INGAME_READ_ONLY",
+    "noWrite5mEvidence": "roadmap/pr20-2-bank-no-write-5m-evidence.json",
+    "blockerCloseout": "roadmap/pr20-2-bank-blocker-closeout.json",
+    "integration15mRequiredNow": false,
+    "weitereIngameTestsJetztErforderlich": false,
     "breiteBankAktivierungErlaubt": false,
     "pr20_3MarktStartErlaubt": false,
     "sameIntentRetry": false
+  },
+  "noWrite5m": {
+    "status": "BESTANDEN_REAL_INGAME_READ_ONLY",
+    "controllerVersion": "1.0.1",
+    "evidencePfad": "roadmap/pr20-2-bank-no-write-5m-evidence.json",
+    "dauerMs": 300017,
+    "sampleAnzahl": 21,
+    "sampleGaps": 0,
+    "driftSamples": 0,
+    "performanceTrickFehler": 0,
+    "gameplayWrites": 0,
+    "mutatingPublicFunctionCalls": 0,
+    "functionalTestBudgetConsumed": false,
+    "integration15mRequiredNow": false
+  },
+  "blockerCloseout": {
+    "status": "BLOCKIERT_FAIL_CLOSED_NO_FURTHER_INGAME_TEST_JUSTIFIED",
+    "evidencePfad": "roadmap/pr20-2-bank-blocker-closeout.json",
+    "weitereIngameTestsJetztErforderlich": false
   }
 }
