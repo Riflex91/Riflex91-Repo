@@ -75,8 +75,8 @@ test("Buy-Gold Live-Budget ist 2/2 verbraucht und weitere echte Tests bleiben ge
   assert.equal(plan.resultEvidence, "v5/roadmap/pr20-3-market-buy-gold-evidence.json");
 });
 
-test("Nach zusaetzlicher Sell-Evidence ist PR20.3 zur formalen Exit-Gate-Pruefung bereit", () => {
-  assert.equal(prep.status, "BUY_GOLD_UND_SELL_BESTANDEN_EXIT_GATE_BEREIT");
+test("Nach Sell- und Trade-Closeout ist PR20.3 formal geschlossen und PR20.4 aktiv", () => {
+  assert.equal(prep.status, "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN");
   assert.equal(prep.ersterLiveKandidat.status, "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M");
   assert.equal(prep.ersterLiveKandidat.liveTestsConsumed, 2);
   assert.equal(prep.ersterLiveKandidat.additionalTrueFunctionalTestAllowed, false);
@@ -93,7 +93,8 @@ test("Nach zusaetzlicher Sell-Evidence ist PR20.3 zur formalen Exit-Gate-Pruefun
   assert.equal(sellPlan.sourceRequirementSatisfiedByRepoEvidence, true);
   assert.equal(roadmap.pr20_3.buyGoldStatus, "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M");
   assert.equal(roadmap.pr20_3.buyGoldAdditionalLiveTestAllowed, false);
-  assert.equal(roadmap.pr20_3.activeTest, "PR20_3_EXIT_GATE_FORMAL_PRUEFUNG");
+  assert.equal(roadmap.pr20_3.activeTest, null);
+  assert.equal(roadmap.currentGate, "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG");
   assert.equal(roadmap.pr20_3.productiveMutationAllowed, false);
   assert.equal(roadmap.pr20_3.gameplayAuthority, false);
   assert.equal(roadmap.pr20_3.sameIntentRetry, false);

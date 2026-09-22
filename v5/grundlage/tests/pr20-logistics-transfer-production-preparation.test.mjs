@@ -25,9 +25,9 @@ const erwartete = new Map([
   ["AL-ACTION-SEND-GOLD", ["AL-RECOVERY-SEND-GOLD", "AL-VERIFIER-SEND-GOLD", "send_gold"]],
 ]);
 
-test("PR20.4 Vorbereitung bleibt strikt NO-WRITE und hinter den Vorstufen blockiert", () => {
+test("PR20.4 Vorbereitung ist nach den Vorstufen freigegeben, bleibt aber strikt NO-WRITE", () => {
   assert.equal(prep.schemaVersion, 1);
-  assert.equal(prep.status, "VORBEREITET_NO_WRITE");
+  assert.equal(prep.status, "PR20_4_VORBEREITUNG_FREIGEGEBEN_NO_WRITE");
   assert.equal(prep.authorityGrenze.produktiveRegistrierungErlaubt, false);
   assert.equal(prep.authorityGrenze.produktiverAktivierungspfadErlaubt, false);
   assert.equal(prep.authorityGrenze.gameplayAutoritaet, false);
@@ -35,8 +35,12 @@ test("PR20.4 Vorbereitung bleibt strikt NO-WRITE und hinter den Vorstufen blocki
   assert.equal(prep.authorityGrenze.actionAuthority, false);
   assert.equal(prep.authorityGrenze.direkteAdventureLandPublicFunctionAufrufe, 0);
   assert.equal(prep.authorityGrenze.browserGameplayWrites, 0);
-  assert.ok(prep.produktiveFreigabeBlockiertBis.includes("PR20.1_EQUIP_PRODUKTIONSNACHWEIS_BESTANDEN"));
-  assert.ok(prep.produktiveFreigabeBlockiertBis.includes("PR20.3_MARKT_PRODUKTIV_ABGESCHLOSSEN"));
+  assert.equal(prep.vorstufenAbgeschlossen.pr20_1, true);
+  assert.equal(prep.vorstufenAbgeschlossen.pr20_2, true);
+  assert.equal(prep.vorstufenAbgeschlossen.pr20_3, true);
+  assert.deepEqual(prep.produktiveFreigabeBlockiertBis, [
+    "PR20.4_EIGENE_CAPABILITY_OWNER_AUTHORITY_JOURNAL_ADMISSION_PREFLIGHT_SHADOW_LIVE_GATES",
+  ]);
 });
 
 test("send_item und send_gold besitzen vorhandene R9 Action/Recovery/Verifier-Bindungen", () => {

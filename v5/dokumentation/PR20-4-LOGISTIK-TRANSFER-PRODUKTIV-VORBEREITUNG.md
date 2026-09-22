@@ -1,9 +1,9 @@
 # PR20.4 – Logistik/Transfers: NO-WRITE-Vorbereitung
 
-**Status:** VORBEREITET / NO-WRITE  
-**Stand:** 2026-09-21  
-**Produktive Freigabe blockiert bis:** PR20.1, PR20.2 und PR20.3 abgeschlossen  
-**Basis-main:** `8acff88298c4f6d3c76a5fdfe0540aad9bef2249`
+**Status:** FREIGEGEBEN FUER PR20.4-VORBEREITUNG / NO-WRITE  
+**Stand:** 2026-09-22  
+**Vorstufen:** PR20.1, PR20.2 und PR20.3 abgeschlossen; produktive PR20.4-Mutation bleibt bis zu den eigenen Capability-/Authority-/Journal-/Admission-/Shadow-/Live-Gates gesperrt  
+**Basis-main:** `9c96d54c51b664e3cc67181ef6c88582f87c224e`
 
 ## Zweck
 
@@ -119,3 +119,15 @@ Nach moeglichem Send gilt:
 5. Fault-/Disconnect-/Restart-/Stale-Recipient-/Partial-Settlement-Tests;
 6. Shadow;
 7. exakt einen kontrollierten realen Transfer-Write.
+
+
+## PR20.3-Transition abgeschlossen
+
+Das formale Market-Exit-Gate liegt unter
+`roadmap/pr20-3-market-exit-gate-status.json`.
+
+PR20.4 darf damit repo-seitig und read-only vollstaendig vorbereitet werden.
+Diese Transition erteilt **keine** Transfer-Mutation, keine breite
+`send_item`-/`send_gold`-Authority und keinen Raw-Socket-Pfad. Die naechste
+Aufgabe ist ein persistentes Gesamttestpaket mit sequenziellen Gates und
+hartem Live-Testbudget.

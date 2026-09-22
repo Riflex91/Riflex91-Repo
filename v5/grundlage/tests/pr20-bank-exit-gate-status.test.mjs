@@ -114,7 +114,7 @@ test("Bestandener 5m NO-WRITE-Lauf bleibt Teil der Freigabeevidence", () => {
 });
 
 test("Roadmap steht nach PR20.2 auf PR20.3 und Bank-Ausnahmen bleiben lokal gegatet", () => {
-  assert.equal(roadmap.currentGate, "PR20.3_MARKT_PRODUKTIVIERUNG");
+  assert.equal(roadmap.currentGate, "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG");
   assert.equal(
     roadmap.parallelPreparation.pr20_2ExitGate.status,
     "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
@@ -138,13 +138,13 @@ test("Roadmap steht nach PR20.2 auf PR20.3 und Bank-Ausnahmen bleiben lokal gega
   assert.equal(roadmap.pr20_2.broadBankActivationAllowed, true);
   assert.equal(roadmap.pr20_2.withdrawActivationAllowed, false);
   assert.equal(roadmap.pr20_2.openBankPackActivationAllowed, false);
-  assert.equal(roadmap.pr20_3.status, "BUY_GOLD_UND_SELL_BESTANDEN_EXIT_GATE_BEREIT");
+  assert.equal(roadmap.pr20_3.status, "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN");
   assert.equal(
     roadmap.pr20_3.buyGoldStatus,
     "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
   );
   assert.equal(roadmap.pr20_3.buyGoldAdditionalLiveTestAllowed, false);
-  assert.equal(roadmap.pr20_3.activeTest, "PR20_3_EXIT_GATE_FORMAL_PRUEFUNG");
+  assert.equal(roadmap.pr20_3.activeTest, null);
   assert.equal(roadmap.pr20_3.firstLiveCandidateSelected, true);
   assert.equal(roadmap.pr20_3.firstLiveCandidate, "buy_with_gold(item, 1)");
   assert.equal(

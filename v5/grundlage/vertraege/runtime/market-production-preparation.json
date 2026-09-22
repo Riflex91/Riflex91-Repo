@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_3_MARKT_PRODUCTION_PREPARATION",
   "stand": "2026-09-22",
-  "status": "BUY_GOLD_UND_SELL_BESTANDEN_EXIT_GATE_BEREIT",
+  "status": "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN",
   "basisMain": "55446d26ac13888816761c97b02006aeafa65bcb",
   "produktiveFreigabeBlockiertBis": [
     "PR20.3_EIGENE_CAPABILITY_AUTHORITY_JOURNAL_ADMISSION_SHADOW_LIVE_GATES"
@@ -126,17 +126,12 @@
     "bei NPC-Sell der exakte verkaufte physische Gegenstand und Gold-Delta"
   ],
   "nachVorstufenErforderlicheFreigabeschritte": [
-    "ERLEDIGT: PR20.1 Equip-Evidence bestanden",
-    "ERLEDIGT: PR20.2 Bank breit freigegeben",
-    "ERLEDIGT: buy_with_gold(item, 1) 7/7 real Ingame BESTANDEN",
-    "ERLEDIGT: Buy-Gold LIVE 1 und LIVE 2 jeweils COMMITTED/BESTAETIGT",
-    "ERLEDIGT: Buy-Gold 5-Minuten NO-WRITE mit 21 Samples / 0 Gaps / 0 Blocker-Samples BESTANDEN",
-    "ERLEDIGT: NPC-Sell 7/7 real Ingame BESTANDEN",
-    "ERLEDIGT: Sell LIVE 1 und LIVE 2 jeweils BESTAETIGT; Testbudget 2/2 verbraucht",
-    "ERLEDIGT: Sell 5-Minuten NO-WRITE mit 21 Samples / 0 Gaps / 0 Blocker-Samples BESTANDEN",
-    "ERLEDIGT DURCH OPERATOR-ABNAHME: trade_buy und trade_sell blockieren PR20.3 nicht mehr; keine Live-Evidence behauptet",
-    "AKTUELL: PR20.3 Exit-Gate anhand Buy-/Sell-Evidence und Trade-Operator-Abnahme formal pruefen",
-    "produktive Gesamtfreigabe nur gemaess lokalem Capability-/Authority-/Admission-Scope; keine automatische Trade-Authority"
+    "ERLEDIGT: Buy-Gold 7/7, 2/2 Settlement und 5m NO-WRITE",
+    "ERLEDIGT: NPC-Sell 7/7, 2/2 Settlement und 5m NO-WRITE",
+    "ERLEDIGT FUER ROADMAP: trade_buy und trade_sell per Operator abgenommen; keine Live-Evidence behauptet",
+    "ERLEDIGT: PR20.3 Exit-Gate formal geschlossen",
+    "LOKALE GATES BLEIBEN: Trade-RID/Listing/Recovery und produktive Capability-/Authority-Grenzen",
+    "NAECHSTES ROADMAP-GATE: PR20.4 Logistik/Transfers"
   ],
   "pr20_2Transition": {
     "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
@@ -230,5 +225,13 @@
     "liveTestsConsumed": 2,
     "liveTestsMax": 2,
     "sameIntentRetry": false
+  },
+  "exitGate": {
+    "status": "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN",
+    "evidence": "roadmap/pr20-3-market-exit-gate-status.json",
+    "pr20_3RoadmapMilestoneClosed": true,
+    "pr20_4RepoAndNoWritePreparationAllowed": true,
+    "productiveTradeAuthorityGranted": false,
+    "productiveMarketWideAuthorityAutomaticallyGranted": false
   }
 }

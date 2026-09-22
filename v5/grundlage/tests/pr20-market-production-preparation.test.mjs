@@ -19,12 +19,15 @@ const erwartete = new Map([
   ["AL-ACTION-TRADE-SELL", ["AL-RECOVERY-TRADE-SELL", "AL-VERIFIER-TRADE-SELL", "trade_sell"]],
 ]);
 
-test("PR20.3 Buy-Gold und NPC-Sell sind bestanden; Exit-Gate bleibt ohne automatische Authority", () => {
+test("PR20.3 Roadmap ist geschlossen; Market-Authority bleibt trotzdem default-off", () => {
   assert.equal(prep.schemaVersion, 1);
-  assert.equal(prep.status, "BUY_GOLD_UND_SELL_BESTANDEN_EXIT_GATE_BEREIT");
+  assert.equal(prep.status, "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN");
   assert.deepEqual(prep.produktiveFreigabeBlockiertBis, [
     "PR20.3_EIGENE_CAPABILITY_AUTHORITY_JOURNAL_ADMISSION_SHADOW_LIVE_GATES",
   ]);
+  assert.equal(prep.exitGate.pr20_3RoadmapMilestoneClosed, true);
+  assert.equal(prep.exitGate.pr20_4RepoAndNoWritePreparationAllowed, true);
+  assert.equal(prep.exitGate.productiveTradeAuthorityGranted, false);
   assert.equal(
     prep.pr20_2Transition.status,
     "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",

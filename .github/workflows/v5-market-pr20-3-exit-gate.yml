@@ -1,0 +1,44 @@
+name: v5-market-pr20-3-exit-gate
+
+on:
+  pull_request:
+    paths:
+      - 'v5/roadmap/pr20-3-market-buy-gold-evidence.json'
+      - 'v5/roadmap/pr20-3-market-sell-evidence.json'
+      - 'v5/roadmap/pr20-3-trade-operator-acceptance.json'
+      - 'v5/roadmap/pr20-3-market-exit-gate-status.json'
+      - 'v5/roadmap/post-r19-roadmap.json'
+      - 'v5/grundlage/vertraege/runtime/market-production-preparation.json'
+      - 'v5/grundlage/vertraege/runtime/logistics-transfer-production-preparation.json'
+      - 'v5/werkzeuge/pr20-3-market-exit-gate-pruefen.mjs'
+      - 'v5/grundlage/tests/pr20-market-exit-gate-status.test.mjs'
+      - 'v5/grundlage/tests/pr20-market-buy-gold-evidence.test.mjs'
+      - 'v5/grundlage/tests/pr20-market-sell-evidence.test.mjs'
+      - 'v5/grundlage/tests/pr20-market-trade-operator-acceptance.test.mjs'
+      - 'v5/grundlage/tests/pr20-market-production-preparation.test.mjs'
+      - 'v5/grundlage/tests/pr20-logistics-transfer-production-preparation.test.mjs'
+      - 'v5/dokumentation/PR20-3-MARKT-PRODUKTIV-VORBEREITUNG.md'
+      - 'v5/dokumentation/PR20-4-LOGISTIK-TRANSFER-PRODUKTIV-VORBEREITUNG.md'
+      - 'v5/dokumentation/V5-POST-R19-ROADMAP.md'
+      - 'v5/README.md'
+      - 'v5/package.json'
+      - '.github/workflows/v5-market-pr20-3-exit-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  market-exit-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - working-directory: v5
+        run: npm ci
+      - working-directory: v5
+        run: npm run market-pr20-3-exit-gate:pruefen
