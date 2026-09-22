@@ -193,7 +193,10 @@ function MG:GetDiagnosticSnapshot()
             NavigationDistance = self.NavigationDistance ~= nil,
             NavigationBearing = self.NavigationBearing ~= nil,
             RoutePlanner = self.RoutePlanner ~= nil,
+            TravelGraph = self.TravelGraph ~= nil,
             TravelPlanner = self.TravelPlanner ~= nil,
+            BuildState = self.BuildState ~= nil,
+            TalentAdvisor = self.TalentAdvisor ~= nil,
             GuideController = self.GuideController ~= nil,
             AutomationPolicy = self.AutomationPolicy ~= nil,
             ActionPolicy = self.ActionPolicy ~= nil,
@@ -237,8 +240,11 @@ function MG:GetDiagnosticSnapshot()
         navigator = db.runtime and db.runtime.navigator or nil,
         worldMap = db.runtime and db.runtime.worldMap or nil,
         actionMemory = self.ActionMemory and self.ActionMemory:Snapshot() or nil,
+        buildState = self.BuildState and self.BuildState:GetState() or nil,
+        talentAdvice = self.TalentAdvisor and self.TalentAdvisor:GetRecommendation() or nil,
         buildAdvice = self.BuildAdvisor and self.BuildAdvisor:Snapshot(runtime) or nil,
         rewardAdvice = self.RewardAdvisor and self.RewardAdvisor:Get() or nil,
+        travelGraph = self.TravelGraph and self.TravelGraph:Snapshot() or nil,
         relevantQuests = relevantQuests,
         settings = db.settings,
         guideSelection = db.guide,
@@ -300,9 +306,12 @@ function MG:GetErrorLogText(includeInfo)
         worldMap=snapshot.worldMap,
         actionMemory=snapshot.actionMemory,
     })
-    appendSection(lines, "BUILD / REWARD", {
+    appendSection(lines, "BUILD / TALENT / REWARD / TRAVEL", {
+        buildState=snapshot.buildState,
+        talentAdvice=snapshot.talentAdvice,
         buildAdvice=snapshot.buildAdvice,
         rewardAdvice=snapshot.rewardAdvice,
+        travelGraph=snapshot.travelGraph,
     })
     appendSection(lines, "RELEVANTE QUESTS", snapshot.relevantQuests)
     appendSection(lines, "EINSTELLUNGEN / UI", {
