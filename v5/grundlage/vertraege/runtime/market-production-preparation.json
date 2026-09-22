@@ -1,14 +1,13 @@
 {
   "schemaVersion": 1,
   "kennung": "V5_PR20_3_MARKT_PRODUCTION_PREPARATION",
-  "stand": "2026-09-21",
-  "status": "VORBEREITET_NO_WRITE",
+  "stand": "2026-09-22",
+  "status": "TESTKETTE_START_FREIGEGEBEN_NO_WRITE",
   "basisMain": "0c7bffa935d7055d074fa4a3b93d11c861515153",
   "produktiveFreigabeBlockiertBis": [
-    "PR20.1_EQUIP_PRODUKTIONSNACHWEIS_BESTANDEN",
-    "PR20.2_BANK_PRODUKTIV_ABGESCHLOSSEN"
+    "PR20.3_EIGENE_CAPABILITY_AUTHORITY_JOURNAL_ADMISSION_SHADOW_LIVE_GATES"
   ],
-  "zweck": "PR20.3 Markt/Kaufen/Verkaufen technisch vorbereiten, ohne produktive Market-Mutation, Registrierung oder Gameplay-Authority.",
+  "zweck": "PR20.3 Markt/Kaufen/Verkaufen ist fuer die eigene Testkette freigegeben. Diese Freigabe erlaubt Vorbereitung, read-only Preflight, Shadow und spaeter explizit ratifizierte kontrollierte Funktionstests; sie erteilt noch keine produktive Market-Mutation, Registrierung oder Gameplay-Authority.",
   "authorityGrenze": {
     "produktiveRegistrierungErlaubt": false,
     "produktiverAktivierungspfadErlaubt": false,
@@ -137,5 +136,10 @@
     "Unit/Replay/Fault/Restart/RID-Drift/UNKNOWN-Tests bestehen",
     "Shadow bestehen",
     "erst danach einen einzelnen kontrollierten Markt-Live-Write zulassen"
-  ]
+  ],
+  "pr20_2Transition": {
+    "status": "MILESTONE_ABGESCHLOSSEN_MIT_AKZEPTIERTEN_AUSNAHMEN",
+    "evidence": "roadmap/pr20-2-bank-operator-transition-acceptance.json",
+    "bankExceptionsRemainDisabled": true
+  }
 }
