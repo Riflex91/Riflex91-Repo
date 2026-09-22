@@ -2,10 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createHash, webcrypto } from "node:crypto";
 import { TextEncoder, TextDecoder } from "node:util";
 
-const source = fs.readFileSync("werkzeuge/v5-autonomous-test-ingame-updater.js", "utf8");
+const here = path.dirname(fileURLToPath(import.meta.url));
+const source = fs.readFileSync(path.join(here, "..", "v5-autonomous-test-ingame-updater.js"), "utf8");
 
 function storage() {
   const values = new Map();
