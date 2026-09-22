@@ -67,57 +67,45 @@ function B:Resolve(position, waypoint, playerFacing)
     end
 
     if tonumber(waypoint.worldX) and tonumber(waypoint.worldY) and
-       MG.NavigationDistance and MG.NavigationDistance.MapToRestedXPWorld then
-        local playerWorld = MG.NavigationDistance:MapToRestedXPWorld(
-            tonumber(position.mapID),
-            tonumber(position.x),
-            tonumber(position.y))
+       MG.CoordinateConverter then
+        local playerWorld, reason = MG.CoordinateConverter:MapToRestedXPWorld(
+            position.mapID, position.x, position.y)
+        if not playerWorld then return nil, reason or "player_world_coordinates_unavailable" end
 
-        if playerWorld then
-            local dx = tonumber(waypoint.worldX) - playerWorld.x
-            local dy = tonumber(waypoint.worldY) - playerWorld.y
-            local absolute = self:AbsoluteFromRestedXPWorldDelta(dx, dy)
-            return withFacing(
-                absolute,
-                playerFacing,
-                "restedxp_world_coordinates",
-                {
-                    playerWorld = playerWorld,
-                    targetWorld = {
-                        x = tonumber(waypoint.worldX),
-                        y = tonumber(waypoint.worldY),
-                    },
-                    deltaWorldX = dx,
-                    deltaWorldY = dy,
-                })
-        end
-
-        return nil, "player_world_coordinates_unavailable"
+        local dx = tonumber(waypoint.worldX) - playerWorld.x
+        local dy = tonumber(waypoint.worldY) - playerWorld.y
+        return withFacing(
+            self:AbsoluteFromRestedXPWorldDelta(dx, dy),
+            playerFacing,
+            "restedxp_world_coordinates",
+            {
+                playerWorld=playerWorld,
+                targetWorld={
+                    x=tonumber(waypoint.worldX),
+                    y=tonumber(waypoint.worldY),
+                },
+                deltaWorldX=dx,
+                deltaWorldY=dy,
+            })
     end
 
     if waypoint.mapID and position.mapID and
        tonumber(waypoint.mapID) ~= tonumber(position.mapID) then
         return nil, "different_map"
     end
-
     if not waypoint.mapID and waypoint.mapName and position.mapName and
        not sameName(waypoint.mapName, position.mapName) then
         return nil, "different_map_name"
     end
-
     if waypoint.x == nil or waypoint.y == nil then
         return nil, "waypoint_map_coordinates_missing"
     end
 
     local deltaEast = tonumber(waypoint.x) - tonumber(position.x)
     local deltaNorth = tonumber(position.y) - tonumber(waypoint.y)
-    local absolute = self:AbsoluteFromMapDelta(deltaEast, deltaNorth)
     return withFacing(
-        absolute,
+        self:AbsoluteFromMapDelta(deltaEast, deltaNorth),
         playerFacing,
         "map_delta_and_player_facing",
-        {
-            deltaEast = deltaEast,
-            deltaNorth = deltaNorth,
-        })
+        {deltaEast=deltaEast,deltaNorth=deltaNorth})
 end
