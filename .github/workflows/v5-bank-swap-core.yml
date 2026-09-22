@@ -43,3 +43,6 @@ jobs:
       - name: Bank-Swap Read-only Preflight Safety
         working-directory: v5
         run: npm run bank-swap-production:preflight-pruefen
+      - name: Bank-Swap Abend No-Write Kette
+        working-directory: v5
+        run: npm run bank-swap-evening:no-write-pruefen

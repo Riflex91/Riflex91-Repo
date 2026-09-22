@@ -18,6 +18,13 @@ import {
 import {
   erstelleNodeV5ProduktionsHost,
 } from "./v5-produktions-host-komposition.mjs";
+import {
+  NodeProduktionsDateisystem,
+} from "../grundlage/adapter/persistenz/node-produktions-dateisystem.mjs";
+import {
+  BANK_SWAP_ABEND_STUFEN,
+  schreibeBankSwapAbendEvidence,
+} from "./bank-swap-evening-evidence.mjs";
 
 const V5_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REPO_ROOT = path.resolve(V5_ROOT, "..");
@@ -94,7 +101,8 @@ export async function fuehreBankSwapPreflight({
       equipEinmalAuthorityOffen: status.equipEinmalAuthorityOffen,
       bankDepositEinmalAuthorityOffen: status.bankDepositEinmalAuthorityOffen,
       bankWithdrawEinmalAuthorityOffen: status.bankWithdrawEinmalAuthorityOffen,
-      bankSwapEinmalAuthorityOffen: false,
+      bankSwapEinmalAuthorityOffen:
+        status.bankSwapEinmalAuthorityOffen,
       offeneBankDepositTransaktionId:
         current.offeneBankDepositTransaktionId,
       offeneBankWithdrawTransaktionId:
@@ -111,8 +119,9 @@ export async function fuehreBankSwapPreflight({
       && status.rawWriteAutoritaet === false
       && status.actionAuthority === false;
 
-    return Object.freeze({
+    const bericht = Object.freeze({
       schemaVersion: 1,
+      stufe: BANK_SWAP_ABEND_STUFEN.PREFLIGHT,
       evidenceArt: "V5_BANK_SWAP_READ_ONLY_PREFLIGHT",
       status: bereit ? "BEREIT" : "BLOCKIERT",
       sourceSha: erwartet,
@@ -169,7 +178,8 @@ export async function fuehreBankSwapPreflight({
           status.bankDepositEinmalAuthorityOffen,
         bankWithdrawEinmalAuthorityOffen:
           status.bankWithdrawEinmalAuthorityOffen,
-        bankSwapEinmalAuthorityOffen: false,
+        bankSwapEinmalAuthorityOffen:
+          status.bankSwapEinmalAuthorityOffen,
         gameplayAutoritaet: status.gameplayAutoritaet,
         rawWriteAutoritaet: status.rawWriteAutoritaet,
         actionAuthority: status.actionAuthority,
@@ -187,10 +197,22 @@ export async function fuehreBankSwapPreflight({
         rawSocketEmit: false,
         sameIntentRetry: false,
       }),
+      sameIntentRetry: false,
       naechsterSchritt: bereit
-        ? "BANK_SWAP_ADMISSION_SHADOW_NO_WRITE_ERST_NACH_EVIDENCE_REVIEW"
+        ? "BANK_SWAP_KANDIDATEN_STABILITAET_READ_ONLY"
         : "BLOCKER_LOKALISIEREN_KEIN_RETRY",
     });
+    if (bereit) {
+      const ds = new NodeProduktionsDateisystem(
+        hostOptionen.dateisystemOptionen ?? {},
+      );
+      await schreibeBankSwapAbendEvidence(
+        ds,
+        BANK_SWAP_ABEND_STUFEN.PREFLIGHT,
+        bericht,
+      );
+    }
+    return bericht;
   } finally {
     if (host !== null) {
       await host.stoppe("BANK_SWAP_PREFLIGHT_ENDE").catch(() => {});
