@@ -141,6 +141,7 @@ jobs:
           lua5.1 - <<'LUA'
           local MG={RestEDXPActionCatalog=nil}
           C_QuestLog=nil
+          assert(loadfile("world of warcraft/MewthischGuides1/Core/Namespace.lua"))("MewthischGuides1",MG)
           assert(loadfile("world of warcraft/MewthischGuides1/Presentation/PresentationResolver.lua"))("MewthischGuides1",MG)
           local state={
             id="g1",action="complete",questID=750,objectiveIndex=1,
