@@ -158,6 +158,7 @@ export * from "./merchant/bank-swap-einmal-authority.js";
 export * from "./merchant/bank-swap-current-fence.js";
 export * from "./merchant/bank-withdraw-shadow-admission.js";
 export * from "./merchant/bank-swap-shadow-admission.js";
+export * from "./merchant/bank-swap-admission-gate.js";
 export * from "./merchant/bank-swap-produktions-transaktion.js";
 export * from "./merchant/bank-withdraw-admission-gate.js";
 export * from "./merchant/bank-deposit-admission-gate.js";
