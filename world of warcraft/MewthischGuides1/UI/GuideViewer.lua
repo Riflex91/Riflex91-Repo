@@ -163,6 +163,8 @@ function V:Create()
 
     self.frame=frame;self.guideTitle=guideTitle;self.stepText=stepText
     self.bar=bar;self.barBg=barBg;self.rows=rows;self.footer=footer
+    self.themeBackground=bg;self.themeHeader=header;self.themeTop=top;self.themeTitle=title
+    if MG.ThemeManager then MG.ThemeManager:ApplyViewer(self) end
     UI:SetShown(frame,true)
     return frame
 end
