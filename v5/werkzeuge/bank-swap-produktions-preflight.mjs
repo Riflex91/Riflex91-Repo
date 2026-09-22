@@ -118,7 +118,7 @@ export async function fuehreBankSwapPreflight({
       sourceSha: erwartet,
       actualHeadSha,
       context: Object.freeze({
-        targetUrl: live.url,
+        targetUrl: live.targetUrl,
         contextId: live.contextId,
         requiredGlobalFunction: "call_code_function_f",
       }),

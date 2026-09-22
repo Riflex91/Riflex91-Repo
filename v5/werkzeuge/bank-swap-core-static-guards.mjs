@@ -9,7 +9,7 @@ const capability = json("grundlage/vertraege/runtime/bank-swap-mutationsfaehigke
 const authority = json("grundlage/vertraege/runtime/bank-swap-one-shot-authority.json");
 const composition = read("grundlage/quelle/runtime/produktions-komposition.ts");
 
-if (candidate.status !== "CORE_VORBEREITET_READ_ONLY_PREFLIGHT_AUSSTEHEND"
+if (!["CORE_VORBEREITET_READ_ONLY_PREFLIGHT_AUSSTEHEND", "READ_ONLY_PREFLIGHT_IMPLEMENTIERT_EVIDENCE_AUSSTEHEND"].includes(candidate.status)
     || candidate.publicFunction !== "bank_swap"
     || candidate.officialSource?.serverOperation !== "move"
     || candidate.ersterKandidat?.slotMinimum !== 0
@@ -18,6 +18,8 @@ if (candidate.status !== "CORE_VORBEREITET_READ_ONLY_PREFLIGHT_AUSSTEHEND"
     || candidate.safety?.serverClampingNeverReliedUpon !== true
     || candidate.settlement?.sameIntentRetry !== false
     || candidate.safety?.rawSocketEmitAllowed !== false
+    || candidate.implementation?.readOnlyBrowserObserverImplemented !== true
+    || candidate.implementation?.readOnlyPreflightImplemented !== true
     || candidate.implementation?.writeAdapterImplemented !== false
     || candidate.implementation?.liveRunnerImplemented !== false
     || candidate.implementation?.gameplayWritesInThisStep !== 0) {
