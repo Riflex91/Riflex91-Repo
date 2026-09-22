@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { NodeProduktionsDateisystem } from "../grundlage/adapter/persistenz/node-produktions-dateisystem.mjs";
 import { findeAdventureLandKontext, validiereLoopbackCdp } from "./r12-live/cdp.mjs";
+import { aktiviereUndVerifiziereBrowserPerformanceTrick } from "./r12-live/performance-trick.mjs";
 import { beobachteBankSwapPreflightReadOnly } from "./bank-swap-produktions-browser.mjs";
 import {
   BANK_SWAP_ABEND_STUFEN,
@@ -26,6 +27,7 @@ export async function fuehreBankSwapKandidatenStabilitaet({cdpText,sourceSha,dat
  const cdp=validiereLoopbackCdp(cdpText||process.env.V5_CDP_URL||"http://127.0.0.1:9222/");
  const live=await findeAdventureLandKontext(cdp,{requiredGlobalFunction:"call_code_function_f"});
  try{
+  const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);
    const a=await beobachteBankSwapPreflightReadOnly(live.session,live.contextId);
    await sleep(750);
    const b=await beobachteBankSwapPreflightReadOnly(live.session,live.contextId);
@@ -34,7 +36,7 @@ export async function fuehreBankSwapKandidatenStabilitaet({cdpText,sourceSha,dat
       ||vor.candidate.itemA.fingerprint!==a.kandidat.itemA.fingerprint
       ||vor.candidate.itemB.fingerprint!==a.kandidat.itemB.fingerprint)throw new Error("BANK_SWAP_KANDIDAT_DRIFT_SEIT_PREFLIGHT");
    const bericht=Object.freeze({schemaVersion:1,stufe:BANK_SWAP_ABEND_STUFEN.STABILITAET,evidenceArt:"V5_BANK_SWAP_CANDIDATE_STABILITY_READ_ONLY",
-     status:"BESTANDEN",sourceSha:s,actualHeadSha:h,candidate:a.kandidat,firstFingerprint:a.fingerprint,secondFingerprint:b.fingerprint,
+     status:"BESTANDEN",sourceSha:s,actualHeadSha:h,performanceTrick,candidate:a.kandidat,firstFingerprint:a.fingerprint,secondFingerprint:b.fingerprint,
      observations:2,intervalMs:750,sameIntentRetry:false,safety:Object.freeze({gameplayWrites:0,adapterAufrufe:0,bankSwapAufrufe:0,mutatingPublicFunctionCalls:0,rawSocketEmit:false})});
    await schreibeBankSwapAbendEvidence(ds,BANK_SWAP_ABEND_STUFEN.STABILITAET,bericht);return bericht;
  }finally{live.session.close()}

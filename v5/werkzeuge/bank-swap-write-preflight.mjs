@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { NodeProduktionsDateisystem } from "../grundlage/adapter/persistenz/node-produktions-dateisystem.mjs";
 import { NodeBankSwapLiveTestLimit } from "../grundlage/adapter/persistenz/node-bank-swap-live-test-limit.mjs";
 import { findeAdventureLandKontext, validiereLoopbackCdp } from "./r12-live/cdp.mjs";
+import { aktiviereUndVerifiziereBrowserPerformanceTrick } from "./r12-live/performance-trick.mjs";
 import { beobachteBankSwapPreflightReadOnly } from "./bank-swap-produktions-browser.mjs";
 import { erstelleNodeV5ProduktionsHost } from "./v5-produktions-host-komposition.mjs";
 import {
@@ -76,6 +77,7 @@ export async function fuehreBankSwapWritePreflight({
 
   let host = null;
   try {
+    const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);
     const first = await beobachteBankSwapPreflightReadOnly(live.session, live.contextId);
     await sleep(500);
     const second = await beobachteBankSwapPreflightReadOnly(live.session, live.contextId);
@@ -120,7 +122,7 @@ export async function fuehreBankSwapWritePreflight({
       evidenceArt: "V5_BANK_SWAP_WRITE_PREFLIGHT_NO_WRITE",
       status: bereit ? "BEREIT" : "BLOCKIERT",
       sourceSha: source,
-      actualHeadSha: actual,
+      actualHeadSha: actual,performanceTrick,
       candidate: second.kandidat,
       baselineFingerprint: second.fingerprint,
       codeRunner: runner,

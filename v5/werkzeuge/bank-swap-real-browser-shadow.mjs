@@ -8,6 +8,7 @@ import {
   findeAdventureLandKontext,
   validiereLoopbackCdp,
 } from "./r12-live/cdp.mjs";
+import { aktiviereUndVerifiziereBrowserPerformanceTrick } from "./r12-live/performance-trick.mjs";
 import {
   BANK_SWAP_REAL_SHADOW_GAMEPLAY_WRITES,
   beobachteBankSwapRohReadOnly,
@@ -29,6 +30,8 @@ export const BANK_SWAP_REAL_SHADOW_BESTAETIGUNG =
   "V5 BANK SWAP SHADOW OHNE WRITE AUSFUEHREN";
 export const BANK_SWAP_REAL_SHADOW_EVIDENCE_ART =
   "V5_BANK_SWAP_REAL_BROWSER_SHADOW_NO_WRITE";
+export const BANK_SWAP_REAL_SHADOW_BESTAETIGUNG_TOKEN =
+  "V5_BANK_SWAP_SHADOW_OHNE_WRITE_AUSFUEHREN";
 
 const V5_WURZEL = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -55,6 +58,16 @@ export function leseBankSwapShadowArgument(
     throw new Error("BANK_SHADOW_ARGUMENT_FEHLT:" + name);
   }
   return teile.join(" ");
+}
+
+export function loeseBankSwapShadowBestaetigung(text, token) {
+  if (token !== null && token !== undefined) {
+    if (String(token) !== BANK_SWAP_REAL_SHADOW_BESTAETIGUNG_TOKEN) {
+      throw new Error("BANK_SHADOW_OPERATOR_BESTAETIGUNG_FEHLT");
+    }
+    return BANK_SWAP_REAL_SHADOW_BESTAETIGUNG;
+  }
+  return text;
 }
 
 function pruefeSha(wert) {
@@ -138,6 +151,7 @@ export async function fuehreBankSwapRealBrowserShadow({
   const live = await findeAdventureLandKontext(cdp);
   let host = null;
   try {
+    const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);
     const ausgang = validiereBankSwapAusgangsBeobachtung(
       await beobachteBankSwapRohReadOnly(
         live.session,
@@ -235,7 +249,7 @@ export async function fuehreBankSwapRealBrowserShadow({
       stand: new Date().toISOString(),
       status: bestanden ? "BESTANDEN" : "NICHT_BESTANDEN",
       sourceSha: erwartetSha,
-      actualHeadSha: head,
+      actualHeadSha: head,performanceTrick,
       transaktionsId,
       accountBindungSha256: hash(ausgang.accountId),
       charakterBindungSha256: hash(
@@ -313,7 +327,10 @@ if (direkt) {
       process.env.V5_CDP_URL || "http://127.0.0.1:9222/",
     ),
     sourceSha: leseBankSwapShadowArgument("--source-sha"),
-    bestaetigungText: leseBankSwapShadowArgument("--confirm"),
+    bestaetigungText: loeseBankSwapShadowBestaetigung(
+      leseBankSwapShadowArgument("--confirm", null),
+      leseBankSwapShadowArgument("--confirm-token", null),
+    ),
   }).then(bericht => {
     process.stdout.write(JSON.stringify(bericht, null, 2) + "\n");
     if (bericht.status !== "BESTANDEN") process.exitCode = 2;

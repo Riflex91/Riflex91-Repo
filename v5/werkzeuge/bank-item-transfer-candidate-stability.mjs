@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { NodeProduktionsDateisystem } from "../grundlage/adapter/persistenz/node-produktions-dateisystem.mjs";
 import { findeAdventureLandKontext, validiereLoopbackCdp } from "./r12-live/cdp.mjs";
+import { aktiviereUndVerifiziereBrowserPerformanceTrick } from "./r12-live/performance-trick.mjs";
 import { beobachteBankItemTransferPreflightReadOnly } from "./bank-item-transfer-produktions-browser.mjs";
 import {
   BANK_ITEM_TRANSFER_ABEND_STUFEN,
@@ -24,12 +25,13 @@ export async function fuehreBankItemTransferKandidatenStabilitaet({modus,cdpText
  const vor=await verlangeBankItemTransferAbendVorstufe(ds,mode,BANK_ITEM_TRANSFER_ABEND_STUFEN.PREFLIGHT,s);
  const live=await findeAdventureLandKontext(validiereLoopbackCdp(cdpText||process.env.V5_CDP_URL||"http://127.0.0.1:9222/"),{requiredGlobalFunction:"call_code_function_f"});
  try{
+  const performanceTrick=await aktiviereUndVerifiziereBrowserPerformanceTrick(live.session,live.contextId);
   const a=await beobachteBankItemTransferPreflightReadOnly(live.session,live.contextId);await sleep(750);const b=await beobachteBankItemTransferPreflightReadOnly(live.session,live.contextId);
   if(!same(a,b,mode))throw new Error("BANK_"+mode+"_KANDIDAT_NICHT_STABIL");
   const x=cand(a,mode),v=vor.candidate;
   if(!v||v.pack!==x.pack||v.bankSlot!==x.bankSlot||v.inventorySlot!==x.inventorySlot||v.item.fingerprint!==x.item.fingerprint)throw new Error("BANK_"+mode+"_KANDIDAT_DRIFT_SEIT_PREFLIGHT");
   const bericht=Object.freeze({schemaVersion:1,modus:mode,stufe:BANK_ITEM_TRANSFER_ABEND_STUFEN.STABILITAET,evidenceArt:"V5_BANK_"+mode+"_CANDIDATE_STABILITY_READ_ONLY",
-   status:"BESTANDEN",sourceSha:s,actualHeadSha:h,candidate:x,firstFingerprint:a.fingerprint,secondFingerprint:b.fingerprint,observations:2,intervalMs:750,sameIntentRetry:false,
+   status:"BESTANDEN",sourceSha:s,actualHeadSha:h,performanceTrick,candidate:x,firstFingerprint:a.fingerprint,secondFingerprint:b.fingerprint,observations:2,intervalMs:750,sameIntentRetry:false,
    safety:Object.freeze({gameplayWrites:0,adapterAufrufe:0,publicFunctionAufrufe:0,mutatingPublicFunctionCalls:0,rawSocketEmit:false})});
   await schreibeBankItemTransferAbendEvidence(ds,mode,BANK_ITEM_TRANSFER_ABEND_STUFEN.STABILITAET,bericht);return bericht;
  }finally{live.session.close()}
