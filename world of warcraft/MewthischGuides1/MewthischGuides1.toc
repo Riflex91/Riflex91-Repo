@@ -43,6 +43,7 @@ Navigation/CoordinateConverter.lua
 Navigation/Distance.lua
 Navigation/Bearing.lua
 Navigation/RoutePlanner.lua
+Travel/TravelGraph.lua
 Travel/TravelPlanner.lua
 
 Policy/AutomationPolicy.lua
