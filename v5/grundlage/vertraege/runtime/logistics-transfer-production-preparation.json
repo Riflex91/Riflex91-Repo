@@ -1,13 +1,11 @@
 {
   "schemaVersion": 1,
   "kennung": "V5_PR20_4_LOGISTIK_TRANSFER_PRODUCTION_PREPARATION",
-  "stand": "2026-09-21",
-  "status": "VORBEREITET_NO_WRITE",
-  "basisMain": "8acff88298c4f6d3c76a5fdfe0540aad9bef2249",
+  "stand": "2026-09-22",
+  "status": "PR20_4_VORBEREITUNG_FREIGEGEBEN_NO_WRITE",
+  "basisMain": "9c96d54c51b664e3cc67181ef6c88582f87c224e",
   "produktiveFreigabeBlockiertBis": [
-    "PR20.1_EQUIP_PRODUKTIONSNACHWEIS_BESTANDEN",
-    "PR20.2_BANK_PRODUKTIV_ABGESCHLOSSEN",
-    "PR20.3_MARKT_PRODUKTIV_ABGESCHLOSSEN"
+    "PR20.4_EIGENE_CAPABILITY_OWNER_AUTHORITY_JOURNAL_ADMISSION_PREFLIGHT_SHADOW_LIVE_GATES"
   ],
   "zweck": "PR20.4 Supply/Collection/Rendezvous und Item-/Goldtransfer vorbereiten, ohne Transfer-Mutation, produktive Registrierung oder Gameplay-Authority.",
   "authorityGrenze": {
@@ -139,5 +137,18 @@
     "Unit/Replay/Fault/Restart/Disconnect/Stale-Recipient/Partial-Settlement-Tests bestehen",
     "Shadow bestehen",
     "erst danach einen einzelnen kontrollierten Transfer-Live-Write zulassen"
+  ],
+  "vorstufenAbgeschlossen": {
+    "pr20_1": true,
+    "pr20_2": true,
+    "pr20_3": true,
+    "pr20_3ExitGate": "roadmap/pr20-3-market-exit-gate-status.json"
+  },
+  "naechsteArbeit": [
+    "persistentes Gesamt-Testpaket fuer Rendezvous, Itemtransfer, Goldtransfer, Supply und Collection bauen",
+    "read-only Source-Pinning, Recipient-Baselines, stale/offline, Restart/Reconciliation und UNKNOWN/Partial vor Live-Writes pruefen",
+    "Itemtransfer und Goldtransfer jeweils maximal zwei echte Live-Funktionstests",
+    "sameIntentRetry=false und kein Duplicate Transfer",
+    "5m Funktionsevidence fuer produktivierte Transfer-Mutationsklassen"
   ]
 }
