@@ -133,7 +133,11 @@
     "ERLEDIGT: Buy-Gold 5-Minuten NO-WRITE mit 21 Samples / 0 Gaps / 0 Blocker-Samples BESTANDEN",
     "AKTUELL: NPC-Sell Stufentest 1 bis 7 ausfuehren; kein Merge zwischen den Schritten",
     "danach Sell-Gesamtbericht als reale Evidence dokumentieren",
-    "PR20.3 produktive Gesamtfreigabe bleibt bis zu den weiteren Market-Gates gesperrt"
+    "PR20.3 produktive Gesamtfreigabe bleibt bis zu den weiteren Market-Gates gesperrt",
+    "ERLEDIGT DURCH OPERATOR-ABNAHME: trade_buy und trade_sell blockieren PR20.3 nicht mehr; keine Live-Evidence behauptet",
+    "AKTUELL: NPC-Sell Stufentest 1 bis 7 ausfuehren; kein Merge zwischen den Schritten",
+    "danach Sell-Gesamtbericht als reale Evidence dokumentieren",
+    "PR20.3 produktive Gesamtfreigabe bleibt bis zum Abschluss des NPC-Sell-Gates gesperrt"
   ],
   "pr20_2Transition": {
     "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
@@ -191,5 +195,26 @@
     "produktiveGameplayAutoritaet": false,
     "sameIntentRetry": false,
     "buyGoldEvidence": "roadmap/pr20-3-market-buy-gold-evidence.json"
+  },
+  "playerMarketTradeOperatorAcceptance": {
+    "status": "VOLLSTAENDIG_ABGENOMMEN_DURCH_OPERATOR_OHNE_LIVE_EVIDENCE",
+    "evidence": "roadmap/pr20-3-trade-operator-acceptance.json",
+    "trade_buy": {
+      "roadmapStatus": "VOLL_ABGENOMMEN_OPERATOR",
+      "countsAsPassedForRoadmap": true,
+      "countsAsPassedEvidence": false,
+      "liveTestPerformed": false,
+      "productiveMutationAutomaticallyAllowed": false
+    },
+    "trade_sell": {
+      "roadmapStatus": "VOLL_ABGENOMMEN_OPERATOR",
+      "countsAsPassedForRoadmap": true,
+      "countsAsPassedEvidence": false,
+      "liveTestPerformed": false,
+      "productiveMutationAutomaticallyAllowed": false
+    },
+    "blocksPr20_3Sequencing": false,
+    "grantsProductiveTradeAuthority": false,
+    "sameIntentRetry": false
   }
 }

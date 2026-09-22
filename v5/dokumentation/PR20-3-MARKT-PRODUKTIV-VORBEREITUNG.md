@@ -259,3 +259,30 @@ Umwelt-/Reichweitenbedingungen und verbrauchten kein Live-Testbudget.
 
 Damit ist der naechste aktive PR20.3-Ingame-Test der bereits gemergte
 NPC-Sell-Stufentest.
+
+
+## Operator-Abnahme Player-Market Trade
+
+Die beiden Player-Market-Pfade `trade_buy` und `trade_sell` sind fuer die
+PR20.3-Roadmap durch explizite Operatorentscheidung **vollstaendig
+abgenommen**.
+
+Maschinenlesbare Ratifikation:
+
+`roadmap/pr20-3-trade-operator-acceptance.json`
+
+Wichtig ist die Trennung zwischen Roadmap-Abnahme und Test-Evidence:
+
+- `trade_buy`: `VOLL_ABGENOMMEN_OPERATOR`;
+- `trade_sell`: `VOLL_ABGENOMMEN_OPERATOR`;
+- beide zaehlen als abgeschlossen fuer die PR20.3-Sequenz;
+- fuer beide wurde **kein eigener Live-Test ausgefuehrt**;
+- `countsAsPassedEvidence=false`;
+- daraus entsteht keine produktive Trade-Authority.
+
+Die bestehenden Safety-Grenzen bleiben unveraendert: frische nichtleere RID,
+Listing-Fingerprint, Seite/Item/Level/Preis/Menge, Target-/Distance-Kontext,
+Partial-Fill-Reconciliation, Server-Selected-Item-Reproduktion bei
+`trade_sell`, Variant-Ambiguity-Block und `sameIntentRetry=false`.
+
+Der aktuell laufende NPC-Sell-Stufentest bleibt das aktive PR20.3-Ingame-Gate.
