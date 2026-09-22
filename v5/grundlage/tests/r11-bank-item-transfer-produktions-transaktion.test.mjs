@@ -1,0 +1,36 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+ AusfuehrungsKernel,BankLeaseKoordinator,CharacterSocketBudget,MERCHANT_BANK_CORE_MODUL_ID,MERCHANT_BANK_CORE_MODUL_VERSION,
+ MutationsKanalKoordination,PersistenterBankLeaseController,RessourcenVerwalter,
+ BANK_RETRIEVE_ACTION_CONTRACT_ID,BANK_RETRIEVE_EINMAL_POLICY_ID,BANK_RETRIEVE_RECOVERY_CONTRACT_ID,BANK_RETRIEVE_VERIFIER_ID,MERCHANT_BANK_RETRIEVE_FAEHIGKEIT_ID,ProduktiveBankRetrieveEinmalAuthority,ProduktiveBankRetrieveTransaktionsOrchestrierung,
+ BANK_STORE_ACTION_CONTRACT_ID,BANK_STORE_EINMAL_POLICY_ID,BANK_STORE_RECOVERY_CONTRACT_ID,BANK_STORE_VERIFIER_ID,MERCHANT_BANK_STORE_FAEHIGKEIT_ID,ProduktiveBankStoreEinmalAuthority,ProduktiveBankStoreTransaktionsOrchestrierung,
+} from "../../erzeugt/index.js";
+const SHA="1".repeat(40),HASH="2".repeat(64),ITEM="a".repeat(64),REST="c".repeat(64),INV="d".repeat(64),PRE="e".repeat(64),POST="f".repeat(64);
+class J{constructor(){this.entries=[]}async haengeDurableAn(e){this.entries.push(e);return {durable:true,bestaetigungsId:"M:"+e.journalId,journalId:e.journalId,transaktionsId:e.transaktionsId,sequenz:e.sequenz}}async liesTransaktion(tx){return this.entries.filter(x=>x.transaktionsId===tx)}}
+const CFG={
+ RETRIEVE:{Action:BANK_RETRIEVE_ACTION_CONTRACT_ID,Policy:BANK_RETRIEVE_EINMAL_POLICY_ID,Recovery:BANK_RETRIEVE_RECOVERY_CONTRACT_ID,Verifier:BANK_RETRIEVE_VERIFIER_ID,Cap:MERCHANT_BANK_RETRIEVE_FAEHIGKEIT_ID,Authority:ProduktiveBankRetrieveEinmalAuthority,Orch:ProduktiveBankRetrieveTransaktionsOrchestrierung},
+ STORE:{Action:BANK_STORE_ACTION_CONTRACT_ID,Policy:BANK_STORE_EINMAL_POLICY_ID,Recovery:BANK_STORE_RECOVERY_CONTRACT_ID,Verifier:BANK_STORE_VERIFIER_ID,Cap:MERCHANT_BANK_STORE_FAEHIGKEIT_ID,Authority:ProduktiveBankStoreEinmalAuthority,Orch:ProduktiveBankStoreTransaktionsOrchestrierung},
+};
+function auth(mode,tx){const x=CFG[mode];return new x.Authority({schemaVersion:1,aktivierungsId:mode+"-AUTH",transaktionsId:tx,faehigkeitId:x.Cap,anbieterModulId:MERCHANT_BANK_CORE_MODUL_ID,anbieterVersion:MERCHANT_BANK_CORE_MODUL_VERSION,
+ actionContractId:x.Action,recoveryContractId:x.Recovery,verifierId:x.Verifier,policyId:x.Policy,ausgestelltAmMs:100,gueltigBisMs:2000,faehigkeitsGeneration:7,evidenceIds:["H"],maximaleVerwendungen:1})}
+function bind(mode,lease,after=false,changed=true){const item={name:"helmet",fingerprint:ITEM};return {schemaVersion:1,richtung:mode,characterId:"merchant",sessionId:"session-1",serverRegion:"EU",serverKennung:"I",leaseEpoche:lease,mountEpoche:77,
+ beobachtetAmMs:after?110:100,bankPack:"items0",bankSlot:0,inventorySlot:1,inventoryCapacity:42,transferItem:item,
+ bankSlotItem:mode==="RETRIEVE"?(after?null:item):(after?item:null),inventorySlotItem:mode==="RETRIEVE"?(after?item:null):(after?null:item),
+ packRestFingerprint:REST,inventoryRestFingerprint:INV,characterGold:100,bankGold:0,fingerprint:changed?(after?POST:PRE):PRE}}
+function req(mode,a,lease,over={}){return {schemaVersion:1,freigabeId:"F",auftragId:"O",ablaufId:"FLOW",transaktionsId:a.daten().transaktionsId,accountId:"account-1",characterId:"merchant",sessionId:"session-1",serverRegion:"EU",serverIdentifier:"I",
+ pack:"items0",bankSlot:0,inventorySlot:1,ausgestelltAmMs:100,gueltigBisMs:500,leaseDauerMs:10000,maximaleSnapshotAlterMs:1000,externalFence:{serverRegion:"EU",serverIdentifier:"I",mountedCharacterId:"merchant",konflikt:false},externalFenceBeobachtetAmMs:100,
+ vorher:bind(mode,lease),authority:a,wissensSnapshot:{gitCommit:SHA,quellenSha256:[HASH]},configFingerprint:HASH,prestateFingerprint:PRE,...over}}
+async function env(mode,{transport="SERVER",mutate=true}={}){const x=CFG[mode],res=new RessourcenVerwalter(),budget=new CharacterSocketBudget(),koord=new BankLeaseKoordinator(res);let persisted;const lc=new PersistenterBankLeaseController(koord,{async lies(){return persisted},async schreibeDurable(v){persisted=v}});
+ const lease=await lc.beanspruche("account-1","merchant","FLOW","bank_"+mode.toLowerCase()+"_explicit_live","EU","I",100,10000),journal=new J();let after=false,calls=0,saw=false;
+ const adapter={adapterId:"synthetic-"+mode,actionContractId:x.Action,recoveryContractId:x.Recovery,verifierId:x.Verifier,async sende(_f,a){calls++;saw=journal.entries[0]?.art==="INTENT";assert.equal(a.modus,mode);assert.equal(a.pack,"items0");assert.equal(a.bankSlot,0);assert.equal(a.inventorySlot,1);assert.equal(a.erwartetesItemFingerprint,ITEM);if(mutate)after=true;
+  if(transport==="UNKNOWN")return {art:"UNBEKANNT",grund:"DISCONNECT_NACH_MOEGLICHEM_SEND",korrelationId:null};if(transport==="NOT_SENT"){after=false;return {art:"NICHT_GESENDET",grund:"PRESTATE_DRIFT"}}return {art:"SERVER_ERGEBNIS",korrelationId:"K",ergebnis:{response:mode}}}};
+ const a=auth(mode,mode+"-TX-1");return {a,lease,journal,calls:()=>calls,saw:()=>saw,deps:{leaseController:lc,operatorRichtlinie:{pruefe(){return {erlaubt:true,generation:2}}},laufzeitGate:{pruefe(){return {freigegeben:true,generation:3,nachweisId:"G"}}},journal,ressourcen:res,socketBudget:budget,mutationsKanaele:new MutationsKanalKoordination(res,budget),ausfuehrung:new AusfuehrungsKernel(),adapter,
+ bankBeobachter:{async beobachte(epoche,mount){return {...bind(mode,epoche,after,after),mountEpoche:mount}}},releaseBeobachter:{async beobachte(){return {offeneTransaktionen:0,backendInProgress:false,bankActionInFlight:false,characterBankAktiv:false,erwarteterExitBeobachtet:true}}},vorabLeaseToken:lease,jetztMs:()=>110}}}
+for(const mode of ["RETRIEVE","STORE"]){
+ test(mode+" committed nur nach durable Intent und exaktem Settlement",async()=>{const e=await env(mode),r=await new CFG[mode].Orch().fuehreEinmalAus(req(mode,e.a,e.lease.epoche),e.deps);assert.equal(r.status,"COMMITTED");assert.equal(r.journalTerminalArt,"COMMIT");assert.equal(r.bankSlot,0);assert.equal(r.inventorySlot,1);assert.equal(r.sameIntentErneutSenden,false);assert.equal(e.calls(),1);assert.equal(e.saw(),true);assert.deepEqual(e.journal.entries.map(x=>x.art),["INTENT","SERVER_ERGEBNIS","POSTCONDITION","COMMIT"])});
+ test(mode+" UNKNOWN mit beobachtetem Transfer wird committed ohne Retry",async()=>{const e=await env(mode,{transport:"UNKNOWN"}),r=await new CFG[mode].Orch().fuehreEinmalAus(req(mode,e.a,e.lease.epoche),e.deps);assert.equal(r.status,"COMMITTED");assert.equal(r.transportArt,"UNBEKANNT");assert.equal(e.calls(),1)});
+ test(mode+" UNKNOWN ohne Wirkung wird OPERATOR_REQUIRED",async()=>{const e=await env(mode,{transport:"UNKNOWN",mutate:false}),r=await new CFG[mode].Orch().fuehreEinmalAus(req(mode,e.a,e.lease.epoche),e.deps);assert.equal(r.status,"OPERATOR_REQUIRED");assert.equal(r.sameIntentErneutSenden,false);assert.equal(e.calls(),1)});
+ test(mode+" NICHT_GESENDET wird ABBRUCH",async()=>{const e=await env(mode,{transport:"NOT_SENT",mutate:false}),r=await new CFG[mode].Orch().fuehreEinmalAus(req(mode,e.a,e.lease.epoche),e.deps);assert.equal(r.status,"ABORTED");assert.equal(r.journalTerminalArt,"ABBRUCH");assert.equal(e.calls(),1)});
+ test(mode+" ungueltige Slots werden vor Intent verworfen",async()=>{const e=await env(mode);await assert.rejects(()=>new CFG[mode].Orch().fuehreEinmalAus(req(mode,e.a,e.lease.epoche,{bankSlot:42}),e.deps),/KANDIDAT_UNGUELTIG/);assert.equal(e.calls(),0);assert.equal(e.journal.entries.length,0)});
+}
