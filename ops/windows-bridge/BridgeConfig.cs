@@ -17,7 +17,8 @@ public sealed record BridgeConfig
     public bool TelemetryEnabled { get; init; }
     public bool AutoStartBrowser { get; init; } = true;
     public string PreferredBrowser { get; init; } = "Brave";
-    public int PollIntervalSeconds { get; init; } = 5;\n    public int SupabaseStatusIntervalSeconds { get; init; } = 60;
+    public int PollIntervalSeconds { get; init; } = 5;
+    public int SupabaseStatusIntervalSeconds { get; init; } = 60;
     public int MaxBackoffSeconds { get; init; } = 300;
     public int EventLimit { get; init; } = 100;
 
