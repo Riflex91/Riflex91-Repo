@@ -3,24 +3,69 @@ local addonName, MG = ...
 MG.GuideSession = MG.GuideSession or {}
 local S = MG.GuideSession
 
+local function labelKey(value)
+    value = string.lower(MG.Util:Trim(value or ""))
+    return value:gsub("[^%w]+", "")
+end
+
 function S:Create(guide, startIndex)
     if not guide then return nil, "missing_guide" end
     local session = {
-        guide = guide,
-        guideID = guide.id,
-        currentIndex = math.max(1, math.min(tonumber(startIndex) or 1, #guide.steps)),
-        stickyIndexes = {},
+        guide=guide,
+        guideID=guide.id,
+        currentIndex=math.max(1, math.min(tonumber(startIndex) or 1, #guide.steps)),
+        stickyIndexes={},
+        completedLabels={},
     }
     self:SyncStickies(session)
     return session
 end
 
+function S:MarkStepCompleted(session, step)
+    if not session or not step then return end
+    if step.label and MG.Util:Trim(step.label) ~= "" then
+        session.completedLabels[labelKey(step.label)] = true
+    end
+end
+
+function S:IsRelationActive(session, index, step)
+    if not session or not step then return false end
+    if index > session.currentIndex then return false end
+
+    if step.completeWithIndex then
+        return session.currentIndex <= tonumber(step.completeWithIndex)
+    end
+
+    if step.deferred and not step.completeWithIndex then
+        -- Unresolved relation is kept visible rather than silently lost.
+        return true
+    end
+
+    if step.sticky then return true end
+    return false
+end
+
 function S:SyncStickies(session)
-    session.stickyIndexes = session.stickyIndexes or {}
+    if not session or not session.guide then return end
+    local nextSet = {}
+
     for index = 1, session.currentIndex do
         local step = session.guide.steps[index]
-        if step and step.sticky then session.stickyIndexes[index] = true end
+        if step and step.stickyRelation and self:IsRelationActive(session, index, step) then
+            nextSet[index] = true
+        end
     end
+
+    -- Explicit sticky goals survive until semantically complete. Preserve a
+    -- previously active explicit sticky even if currentIndex was moved back.
+    for index in pairs(session.stickyIndexes or {}) do
+        local step = session.guide.steps[index]
+        if step and step.sticky and index <= session.currentIndex then
+            nextSet[index] = true
+        end
+    end
+
+    session.stickyIndexes = nextSet
 end
 
 function S:GetCurrentStep(session)
@@ -56,8 +101,18 @@ function S:PruneCompletedStickies(session, stickyRuntime)
     if not session then return end
     for _, entry in ipairs(stickyRuntime or {}) do
         if entry.stepState and entry.stepState.complete then
-            local index = entry.step and entry.step.rawStepIndex
-            if index then session.stickyIndexes[index] = nil end
+            local index = entry.step and entry.step.order
+            if index then
+                self:MarkStepCompleted(session, entry.step)
+                session.stickyIndexes[index] = nil
+            end
+        end
+    end
+
+    for index in pairs(session.stickyIndexes or {}) do
+        local step = session.guide and session.guide.steps[index]
+        if not step or not self:IsRelationActive(session, index, step) then
+            session.stickyIndexes[index] = nil
         end
     end
 end
