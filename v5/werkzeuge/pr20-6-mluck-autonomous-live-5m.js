@@ -163,6 +163,11 @@
       function t(v){return String(v==null?'':v).trim();}
       const workerClass=t(globalThis.character?.ctype).toLowerCase();
       if(!['ranger','priest','mage'].includes(workerClass))return;
+      try{
+        globalThis.AIO_V3_AUTOSTART=false;
+        const old=globalThis.AIO_V3;
+        if(old&&typeof old.stop==='function')old.stop();
+      }catch{}
       function fp(v){
         const x=JSON.stringify(v);
         let h=2166136261;
