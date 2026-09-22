@@ -114,7 +114,7 @@ test("Bestandener 5m NO-WRITE-Lauf bleibt Teil der Freigabeevidence", () => {
 });
 
 test("Roadmap steht nach PR20.2 auf PR20.3 und Bank-Ausnahmen bleiben lokal gegatet", () => {
-  assert.equal(roadmap.currentGate, "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG");
+  assert.ok(["PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG", "PR20.5_MERCHANT_STABILITAET"].includes(roadmap.currentGate));
   assert.equal(
     roadmap.parallelPreparation.pr20_2ExitGate.status,
     "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",

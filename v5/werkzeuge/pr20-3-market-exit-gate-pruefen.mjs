@@ -63,10 +63,10 @@ if (trade.transitionPolicy?.blocksPr20_3Sequencing !== false
   fail("PR20_3_TRADE_TRANSITION_UNGUELTIG");
 }
 
-if (roadmap.currentGate !== "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG"
+if (!["PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG", "PR20.5_MERCHANT_STABILITAET"].includes(roadmap.currentGate)
     || roadmap.pr20_3?.status !== "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN"
     || roadmap.pr20_3?.productiveTradeAuthority !== false
-    || !["VORBEREITUNG_FREIGEGEBEN_NO_WRITE", "INGAME_GESAMTSTUFENTEST_BEREIT"].includes(roadmap.pr20_4?.status)
+    || !["VORBEREITUNG_FREIGEGEBEN_NO_WRITE", "INGAME_GESAMTSTUFENTEST_BEREIT", "ROADMAP_ABGESCHLOSSEN_REAL_INGAME"].includes(roadmap.pr20_4?.status)
     || roadmap.pr20_4?.productiveMutationAllowed !== false) {
   fail("PR20_3_ROADMAP_TRANSITION_UNGUELTIG");
 }
@@ -79,7 +79,7 @@ if (market.status !== "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN"
   fail("PR20_3_MARKET_AUTHORITY_GRENZE_UNGUELTIG");
 }
 
-if (!["PR20_4_VORBEREITUNG_FREIGEGEBEN_NO_WRITE", "BEREIT_FUER_INGAME_GESAMTSTUFENTEST"].includes(logistics.status)
+if (!["PR20_4_VORBEREITUNG_FREIGEGEBEN_NO_WRITE", "BEREIT_FUER_INGAME_GESAMTSTUFENTEST", "ROADMAP_ABGESCHLOSSEN_REAL_INGAME"].includes(logistics.status)
     || logistics.authorityGrenze?.produktiveRegistrierungErlaubt !== false
     || logistics.authorityGrenze?.gameplayAutoritaet !== false
     || logistics.authorityGrenze?.rawWriteAutoritaet !== false

@@ -66,7 +66,7 @@ Fuer alle Post-R19-Stufen gelten unveraendert:
 
 | Stufe | Ziel | Status | Harte Voraussetzung |
 |---|---|---|---|
-| PR20 | Merchant produktiv vervollstaendigen | IN_PROGRESS | PR20.1 und PR20.2 freigegeben; aktuelles Gate PR20.3 Markt |
+| PR20 | Merchant produktiv vervollstaendigen | IN_PROGRESS | PR20.1–PR20.4 abgeschlossen; aktuelles Gate PR20.5 Merchant-Stabilitaet |
 | PR21 | Merchant Gesamtintegration zertifizieren | BLOCKED_BY_PR20 | PR20 komplett |
 | PR22 | Produktive Multi-Character-Koordination | BLOCKED_BY_PR21 | stabiler Merchant |
 | PR23 | Farmer Movement/Combat/Loot/AoE produktiv | BLOCKED_BY_PR22 | produktive Character-Koordination |
@@ -265,7 +265,9 @@ Abzudecken:
 
 ### PR20.4 – Transfers, Supply, Collection und Rendezvous produktiv
 
-**Aktueller Status:** `VORBEREITUNG_FREIGEGEBEN_NO_WRITE`. PR20.1-PR20.3 sind abgeschlossen; produktive Transfer-Mutation bleibt bis zu den eigenen PR20.4-Gates gesperrt.
+**Aktueller Status:** `ROADMAP_ABGESCHLOSSEN_REAL_INGAME`. Der reale AUTO_ON_LOAD-Gesamttest ist 16/16 bestanden. `send_item` und `send_gold` haben jeweils das harte 2/2-Live-Budget ausgeschöpft, alle vier Transfers wurden per Recipient-Settlement bestätigt, Item- und Gold-Roundtrip wurden wiederhergestellt und beide 5-Minuten-NO-WRITE-Phasen bestanden. Evidence: `roadmap/pr20-4-logistics-transfer-evidence.json`; Exit-Gate: `roadmap/pr20-4-logistics-transfer-exit-gate-status.json`.
+
+Die Roadmap-Abnahme erteilt **keine automatische produktive Transfer-Authority**. Gameplay-/Raw-Write-Authority bleiben false und produktive Capability-/Owner-/Authority-/Journal-/Admission-Gates bleiben separat erforderlich.
 
 **Vorbereitung:** `VORBEREITET_NO_WRITE`. Die sichere Vorarbeit ist bereits unter
 `dokumentation/PR20-4-LOGISTIK-TRANSFER-PRODUKTIV-VORBEREITUNG.md` und
@@ -297,6 +299,8 @@ Abzudecken:
 - stale Character-/Session-Ziele werden blockiert.
 
 ### PR20.5 – Merchant-Pingpong- und Starvation-Schutz
+
+**Aktueller Status:** `FREIGEGEBEN_FUER_PRODUKTIVIERUNG`. PR20.1–PR20.4 sind als Roadmap-Vorstufen abgeschlossen. Als naechstes wird der vorhandene Stabilitaets-Core produktiv in den Scheduler integriert; das Exit-Gate verlangt weiterhin einen 15-Minuten-Integrationslauf ohne Thrash. Der Ingame-Lauf wird gemaess der verbindlichen Testpolicy als selbstenthaltenes `AUTO_ON_LOAD`-Gesamtpaket gebaut.
 
 **Vorbereitung:** `CORE_VORBEREITET_NO_WRITE` unter
 `grundlage/quelle/merchant/dienst-stabilitaet.ts` mit automatischen Tests.

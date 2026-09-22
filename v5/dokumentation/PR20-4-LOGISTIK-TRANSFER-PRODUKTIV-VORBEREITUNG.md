@@ -1,6 +1,6 @@
 # PR20.4 – Logistik/Transfers: NO-WRITE-Vorbereitung
 
-**Status:** INGAME-GESAMTSTUFENTEST BEREIT / PRODUKTIVE AUTHORITY WEITER DEFAULT-OFF  
+**Status:** ROADMAP_ABGESCHLOSSEN_REAL_INGAME / PRODUKTIVE AUTHORITY WEITER DEFAULT-OFF  
 **Stand:** 2026-09-22  
 **Vorstufen:** PR20.1, PR20.2 und PR20.3 abgeschlossen; produktive PR20.4-Mutation bleibt bis zu den eigenen Capability-/Authority-/Journal-/Admission-/Shadow-/Live-Gates gesperrt  
 **Basis-main:** `8981308e1758593da9b192089cb07abc5caa3375`
@@ -214,3 +214,41 @@ wird dieser Marker deshalb als zulaessiges Stack-Metadatum behandelt.
 Diese Ausnahme gilt nur fuer den bestaetigten Rueckweg. Lock/Block,
 Property-/Stat-Modifikationen, Grace, Expiry und `data` bleiben
 fail-closed. Die allgemeine Erstkandidaten-Zulassung wird nicht gelockert.
+
+
+## Reale PR20.4-Abnahme
+
+Der finale AUTO_ON_LOAD-Gesamttest mit Controller 1.2.0 ist real im
+Adventure-Land-Browser **16/16 BESTANDEN**.
+
+Maschinenlesbare Evidence:
+
+`roadmap/pr20-4-logistics-transfer-evidence.json`
+
+Exit-Gate:
+
+`roadmap/pr20-4-logistics-transfer-exit-gate-status.json`
+
+Nachgewiesen wurden:
+
+- `send_item` exakt 2/2 Live-Tests, beide committed;
+- Supply und Collection bestanden;
+- Item-Roundtrip wiederhergestellt;
+- ITEM 5M NO-WRITE: 300013 ms, 21 Samples, 0 Sample-Gaps, 0 Blocker,
+  0 Performance-Trick-Fehler und 0 Writes;
+- `send_gold` exakt 2/2 Live-Tests, beide committed;
+- Gold-Roundtrip wiederhergestellt;
+- GOLD 5M NO-WRITE: 300003 ms, 21 Samples, 0 Sample-Gaps, 0 Blocker,
+  0 Performance-Trick-Fehler und 0 Writes;
+- insgesamt exakt 4 Gameplay-Writes;
+- `sameIntentRetry=false`;
+- stale/offline Recipient, Restart-Reconciliation, Partial/UNKNOWN und
+  Duplicate-Schutz bleiben fail-closed.
+
+Der GUI-Bericht enthielt keinen Git-SHA. Deshalb behauptet die Evidence
+keinen erfundenen exakten Source-SHA; sie speichert Controller-Version 1.2.0
+und den zum Evidence-Zeitpunkt aktuellen Main separat.
+
+Diese Roadmap-Abnahme schaltet **keine** breite produktive
+Transfer-Authority frei. PR20.5 Merchant-Stabilitaet ist als naechstes Gate
+freigegeben.

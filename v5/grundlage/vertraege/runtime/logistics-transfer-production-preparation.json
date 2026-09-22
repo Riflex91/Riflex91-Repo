@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_4_LOGISTIK_TRANSFER_PRODUCTION_PREPARATION",
   "stand": "2026-09-22",
-  "status": "BEREIT_FUER_INGAME_GESAMTSTUFENTEST",
-  "basisMain": "8981308e1758593da9b192089cb07abc5caa3375",
+  "status": "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
+  "basisMain": "70396aafa313016e3cbe608dedad64b7fcb5a75b",
   "produktiveFreigabeBlockiertBis": [
-    "PR20.4_EIGENE_CAPABILITY_OWNER_AUTHORITY_JOURNAL_ADMISSION_PREFLIGHT_SHADOW_LIVE_GATES"
+    "SEPARATE_PRODUKTIVE_CAPABILITY_OWNER_AUTHORITY_JOURNAL_ADMISSION_GATES"
   ],
   "zweck": "PR20.4 Supply/Collection/Rendezvous und Item-/Goldtransfer vorbereiten, ohne Transfer-Mutation, produktive Registrierung oder Gameplay-Authority.",
   "authorityGrenze": {
@@ -142,17 +142,18 @@
     "pr20_1": true,
     "pr20_2": true,
     "pr20_3": true,
-    "pr20_3ExitGate": "roadmap/pr20-3-market-exit-gate-status.json"
+    "pr20_3ExitGate": "roadmap/pr20-3-market-exit-gate-status.json",
+    "pr20_4RealIngame": true,
+    "pr20_4Evidence": "roadmap/pr20-4-logistics-transfer-evidence.json"
   },
   "naechsteArbeit": [
-    "PR20.4 AUTO_ON_LOAD Gesamtpaket im echten Adventure-Land-Browser auf genau Merchant + einem Partner laden",
-    "Auto-Runner fuehrt Item Supply/Settlement/Collection/Roundtrip und ITEM 5M NO-WRITE selbst aus",
-    "Auto-Runner fuehrt Gold Roundtrip mit je 1 Gold, Recipient Settlement und GOLD 5M NO-WRITE selbst aus",
-    "Gesamt-Closeout automatisch; Operator kopiert nur den finalen Gesamtbericht",
-    "kein Same-Intent-Blind-Retry; kein dritter Live-Test je Public Function"
+    "PR20.4 Roadmap-Milestone ist real ingame abgeschlossen",
+    "keine automatische breite Transfer-Authority aus Test-Evidence ableiten",
+    "PR20.5 Merchant-Pingpong-/Starvation-Schutz produktiv integrieren",
+    "PR20.5 15m-Integrationslauf als AUTO_ON_LOAD-Gesamtpaket vorbereiten"
   ],
   "testHarness": {
-    "status": "BEREIT",
+    "status": "BESTANDEN_REAL_INGAME",
     "package": "werkzeuge/pr20-4-logistics-transfer-step-test-paket.js",
     "controller": "werkzeuge/pr20-4-logistics-transfer-step-test-gui.js",
     "plan": "roadmap/pr20-4-logistics-transfer-step-test-plan.json",
@@ -182,6 +183,14 @@
       "grace",
       "expires",
       "data"
-    ]
+    ],
+    "evidence": "roadmap/pr20-4-logistics-transfer-evidence.json",
+    "exitGate": "roadmap/pr20-4-logistics-transfer-exit-gate-status.json",
+    "allSixteenStepsPassed": true,
+    "itemLiveTestsConsumed": 2,
+    "goldLiveTestsConsumed": 2,
+    "itemNoWrite5m": "BESTANDEN",
+    "goldNoWrite5m": "BESTANDEN",
+    "roundtripsRestored": true
   }
 }

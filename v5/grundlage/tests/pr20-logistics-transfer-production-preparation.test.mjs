@@ -49,9 +49,9 @@ test("PR20.4 Harness und kuenftige Ingame-Tests laufen AUTO_ON_LOAD", () => {
   assert.equal(ingamePolicy.requirements.productiveAuthorityMustNotBeEnabledByTestHarness, true);
 });
 
-test("PR20.4 Gesamttest ist vorbereitet; produktive Authority bleibt strikt default-off", () => {
+test("PR20.4 ist real ingame abgeschlossen; produktive Authority bleibt strikt default-off", () => {
   assert.equal(prep.schemaVersion, 1);
-  assert.equal(prep.status, "BEREIT_FUER_INGAME_GESAMTSTUFENTEST");
+  assert.equal(prep.status, "ROADMAP_ABGESCHLOSSEN_REAL_INGAME");
   assert.equal(prep.authorityGrenze.produktiveRegistrierungErlaubt, false);
   assert.equal(prep.authorityGrenze.produktiverAktivierungspfadErlaubt, false);
   assert.equal(prep.authorityGrenze.gameplayAutoritaet, false);
@@ -63,8 +63,16 @@ test("PR20.4 Gesamttest ist vorbereitet; produktive Authority bleibt strikt defa
   assert.equal(prep.vorstufenAbgeschlossen.pr20_2, true);
   assert.equal(prep.vorstufenAbgeschlossen.pr20_3, true);
   assert.deepEqual(prep.produktiveFreigabeBlockiertBis, [
-    "PR20.4_EIGENE_CAPABILITY_OWNER_AUTHORITY_JOURNAL_ADMISSION_PREFLIGHT_SHADOW_LIVE_GATES",
+    "SEPARATE_PRODUKTIVE_CAPABILITY_OWNER_AUTHORITY_JOURNAL_ADMISSION_GATES",
   ]);
+  assert.equal(prep.vorstufenAbgeschlossen.pr20_4RealIngame, true);
+  assert.equal(prep.testHarness.status, "BESTANDEN_REAL_INGAME");
+  assert.equal(prep.testHarness.allSixteenStepsPassed, true);
+  assert.equal(prep.testHarness.itemLiveTestsConsumed, 2);
+  assert.equal(prep.testHarness.goldLiveTestsConsumed, 2);
+  assert.equal(prep.testHarness.itemNoWrite5m, "BESTANDEN");
+  assert.equal(prep.testHarness.goldNoWrite5m, "BESTANDEN");
+  assert.equal(prep.testHarness.roundtripsRestored, true);
 });
 
 test("send_item und send_gold besitzen vorhandene R9 Action/Recovery/Verifier-Bindungen", () => {
