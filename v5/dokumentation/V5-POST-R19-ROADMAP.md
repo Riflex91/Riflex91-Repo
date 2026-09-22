@@ -839,3 +839,18 @@ Evidence:
 Damit bleibt PR20.2 fail-closed. Das ist kein Grund, die Bank kuenstlich
 freizugeben oder zu PR20.3 zu springen; stattdessen werden nur noch moegliche
 NO-WRITE-/Integrationsarbeiten innerhalb PR20.2 fortgesetzt.
+
+
+## PR20.2v – Aggregiertes Bank-Exit-Gate
+
+PR20.2 besitzt nun ein eigenes maschinenlesbares Gesamtgate:
+`roadmap/pr20-2-bank-exit-gate-status.json`.
+
+Der erwartete aktuelle Zustand ist `BLOCKIERT_FAIL_CLOSED`. Die beiden
+Blocker sind das ausgeschöpfte Withdraw-Testlimit ohne vollstaendig bestandene
+Live-Evidence und der ressourcenbedingt nicht moegliche Open-Pack-Live-Pfad.
+Der CI-Checker verhindert, dass daraus versehentlich eine breite
+Bank-Aktivierung oder ein Start von PR20.3 abgeleitet wird.
+
+Solange diese Blocker bestehen, bleibt `PR20.2_BANK_PRODUKTIVIERUNG` das
+aktive Gate; nur NO-WRITE-/Integrationsarbeit ist zulaessig.
