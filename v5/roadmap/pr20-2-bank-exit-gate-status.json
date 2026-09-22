@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "stand": "2026-09-22",
-  "status": "BLOCKIERT_FAIL_CLOSED",
+  "status": "MILESTONE_ABGESCHLOSSEN_MIT_AKZEPTIERTEN_AUSNAHMEN",
   "evidenceArt": "V5_PR20_2_BANK_AGGREGATE_EXIT_GATE",
   "sourceMainSha": "bb3d1d9108457acae36d30a896549f91598621aa",
-  "currentGate": "PR20.2_BANK_PRODUKTIVIERUNG",
+  "currentGate": "PR20.3_MARKT_PRODUKTIVIERUNG",
   "firstMutationSet": {
     "bank_deposit": "BESTANDEN",
     "bank_withdraw": "NICHT_BESTANDEN_TESTLIMIT_ERREICHT",
@@ -33,7 +33,7 @@
     "openPackLiveMutationFreigegeben": false,
     "sameIntentRetry": false,
     "breiteBankAktivierungErlaubt": false,
-    "pr20_3MarktStartErlaubt": false,
+    "pr20_3MarktStartErlaubt": true,
     "evaluationGameplayWrites": 0,
     "evaluationMutatingPublicFunctionCalls": 0
   },
@@ -44,9 +44,10 @@
     "openPackShadow": "v5/roadmap/pr20-2-bank-open-pack-shadow-evidence.json",
     "openPackAdmission": "v5/roadmap/pr20-2-bank-open-pack-admission-evidence.json",
     "bankNoWrite5m": "v5/roadmap/pr20-2-bank-no-write-5m-evidence.json",
-    "blockerCloseout": "v5/roadmap/pr20-2-bank-blocker-closeout.json"
+    "blockerCloseout": "v5/roadmap/pr20-2-bank-blocker-closeout.json",
+    "operatorTransitionAcceptance": "v5/roadmap/pr20-2-bank-operator-transition-acceptance.json"
   },
-  "nextAction": "WAIT_FOR_REOPEN_TRIGGER_NO_FURTHER_INGAME_TEST",
+  "nextAction": "PR20_3_MARKT_TESTKETTE_VORBEREITEN",
   "noWriteIntegration": {
     "bank5mStatus": "BESTANDEN_REAL_INGAME_READ_ONLY",
     "controllerVersion": "1.0.1",
@@ -62,5 +63,24 @@
     "schliesstBlockerNicht": true,
     "integration15mRequiredNow": false,
     "blockerCloseout": "v5/roadmap/pr20-2-bank-blocker-closeout.json"
+  },
+  "acceptedExceptions": [
+    {
+      "id": "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
+      "acceptedForMilestoneSequencing": true,
+      "countsAsPassedEvidence": false
+    },
+    {
+      "id": "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE",
+      "acceptedForMilestoneSequencing": true,
+      "countsAsPassedEvidence": false
+    }
+  ],
+  "milestoneTransition": {
+    "roadmapMilestoneClosed": true,
+    "evidenceComplete": false,
+    "operatorAcceptedExceptions": true,
+    "pr20_3TestWorkAllowed": true,
+    "pr20_3ProductiveMutationAutomaticallyAllowed": false
   }
 }
