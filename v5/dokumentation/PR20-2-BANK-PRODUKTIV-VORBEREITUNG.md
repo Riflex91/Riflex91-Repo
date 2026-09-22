@@ -1,9 +1,9 @@
 # PR20.2 – Bank-Produktion: One-Shot-Grenze / NO-WRITE
 
-**Status:** ERSTER BANK-MUTATIONSSATZ 4/5 LIVE BESTANDEN / WITHDRAW TESTLIMIT ERREICHT  
+**Status:** PR20.2 EXIT-GATE BLOCKIERT / FAIL-CLOSED – 4/5 ERSTER MUTATIONSSATZ LIVE BESTANDEN, WITHDRAW TESTLIMIT ERREICHT, OPEN-PACK RESOURCE_BLOCKED_NO_LIVE  
 **Stand:** 2026-09-22  
 **Vorausgehendes Gate:** `PR20.1_EQUIP_PRODUKTIONSNACHWEIS` – BESTANDEN  
-**Basis-main:** `05b93ac7dbb6ef294294c38030d9e4b48962f7d3`
+**Open-Pack Admission getestet auf main:** `a92b94e0c6edf6aa1df1c0713a8233631d1fdd64`
 
 ## Zweck
 
@@ -402,13 +402,14 @@ separate Implementierung und CI-Pruefung eines engen Write-Adapters und
 Live-Runners fuer exakt `bank_deposit(1)`; ein echter Write ist damit noch
 nicht ausgefuehrt oder automatisch freigegeben.
 
-## Noch bewusst nicht implementiert
+## Noch bewusst nicht freigegeben
 
-- Bank-CDP-/Write-Adapter fuer exakt `bank_deposit(1)`;
-- Bank-Live-Runner fuer exakt `bank_deposit(1)`;
-- Bank-Live-Runner;
-- irgendein echter Bank-Write;
-- Withdraw/Store/Retrieve/Swap/Open-Pack-Produktivpfade.
+- keine breite produktive Bank-Aktivierung;
+- kein dritter echter `bank_withdraw(1)`-Funktionstest;
+- keine produktive Withdraw-Zertifizierung ohne vollstaendig bestandene Live-Evidence;
+- kein Open-Pack-Live-Runner und kein Open-Pack-Write-Adapter;
+- keine Open-Pack-Capability oder Gameplay-/Raw-Write-Authority;
+- kein Sprung zu PR20.3, solange das PR20.2-Exit-Gate fail-closed blockiert ist.
 
 ## Arbeit direkt nach bestandenem Equip-Nachweis
 
@@ -427,10 +428,12 @@ Wenn PR20.1 gruen ist, kann ohne erneute Grundlagenanalyse direkt begonnen werde
 11. **ERLEDIGT:** Write-Adapter/Live-Runner fuer exakt `bank_deposit(1)` implementieren und komplett CI-gruen pruefen;
 12. **ERLEDIGT:** read-only Write-Preflight auf exakt dem geprueften Head ausfuehren;
 13. **ERLEDIGT:** exakt einen kontrollierten `bank_deposit(1)`-Write mit COMMIT/BESTAETIGT/1 Write nachweisen;
-14. **NAECHSTES GATE:** Withdraw/Store/Retrieve/Swap jeweils separat vorbereiten und produktiv nachweisen;
-15. danach 5m-Bank-Funktionsevidence fuer die freigegebenen Bankpfade.
+14. **TEILWEISE ABGESCHLOSSEN:** Retrieve/Store/Swap direkt ingame jeweils Shadow + LIVE 1 + LIVE 2 bestanden; Withdraw hat 2/2 Tests verbraucht und bleibt ohne vollstaendige Live-Evidence fail-closed;
+15. **ERLEDIGT NO-WRITE:** Open-Pack Shadow BESTANDEN und read-only Admission als Sicherheitspruefung BESTANDEN;
+16. **BLOCKIERT:** Open-Pack fachlich `RESOURCE_BLOCKED_NO_LIVE` wegen 15.993.820 < 75.000.000 Gold und 0 < 600 Shells;
+17. **AKTUELL:** PR20.2-Exit-Gate fail-closed halten und alle noch moeglichen NO-WRITE-/Integrationsarbeiten ausfuehren.
 
-Withdraw, Store, Retrieve, Swap und `open_bank_pack` bleiben bis nach dem separat nachgewiesenen ersten Deposit-Pfad produktiv gesperrt.
+Keine breite Bank-Aktivierung und kein Sprung zu PR20.3, solange Withdraw bzw. Open-Pack das PR20.2-Exit-Gate nicht korrekt schliessen.
 
 
 ## PR20.2p – Withdraw Zwei-Test-Closeout und CODE-Bridge-Evidence
@@ -510,3 +513,34 @@ Neu vorbereitet wird ausschliesslich NO-WRITE:
 - kein Live-Runner, kein Write-Adapter, keine Open-Pack-Capability und keine Gameplay-Authority.
 
 Evidence: `roadmap/pr20-2-bank-open-pack-shadow-evidence.json`. ADR: `architektur/adr/ADR-048-PR20-2T-BANK-OPEN-PACK-SHADOW-SETTLEMENT-NO-WRITE.md`.
+
+
+## PR20.2u – Open-Bank-Pack Admission read-only reale Evidence
+
+Nach PR20.2t und dem separaten Admission-GUI-Commit wurde der reale
+`OPEN PACK · Admission` auf `a92b94e0c6edf6aa1df1c0713a8233631d1fdd64`
+direkt im Adventure-Land-CODE-Runner ausgefuehrt.
+
+Die **Sicherheitspruefung ist BESTANDEN**: der Lauf war vollstaendig read-only,
+`performance_trick()` war mit `HOWLER_PLAYING_TRUE` verifiziert und es
+entstanden exakt **0 Gameplay-Writes** sowie **0 mutierende
+Public-Function-Aufrufe**. Es wurde **kein durable Intent** erzeugt, **keine
+Authority** ausgestellt und `liveMutationFreigegeben=false` blieb erhalten.
+
+Das fachliche Admission-Ergebnis ist dennoch bewusst
+`RESOURCE_BLOCKED_NO_LIVE`:
+
+- Goldpfad: `BLOCKIERT`, weil **15.993.820 < 75.000.000 Gold**;
+- Shellpfad: `BLOCKIERT`, weil **0 < 600 Shells**;
+- `selectedPath=null`;
+- Shell-`IN_PROGRESS` bleibt `WAIT_AND_REOBSERVE_NO_SEND`;
+- `sameIntentErneutSenden=false`;
+- kein `open_bank_pack()`-Live-Aufruf.
+
+Evidence:
+`roadmap/pr20-2-bank-open-pack-admission-evidence.json`.
+
+Damit ist Open-Pack auf Shadow- und Admission-Ebene sauber NO-WRITE
+nachgewiesen, aber **nicht live produktiviert**. Das PR20.2-Exit-Gate bleibt
+zusammen mit dem bereits ausgeschöpften Withdraw-Testlimit fail-closed. Eine
+breite Bank-Aktivierung oder ein Sprung zu PR20.3 waere sachlich falsch.
