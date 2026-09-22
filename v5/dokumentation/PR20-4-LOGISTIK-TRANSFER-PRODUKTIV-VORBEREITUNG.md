@@ -203,3 +203,14 @@ startet die Testlogik automatisch; manuelle Einzelschritt-Klicks sind nicht
 Teil des normalen Ablaufs. Harte Live-Budgets, `sameIntentRetry=false`,
 fail-closed Drift-/Recovery-Gates und das Verbot von Raw-Socket-Bypaessen
 bleiben davon unberuehrt.
+
+
+### Collection-Rueckweg: gift-markierte Commodity-Stacks
+
+Der reale PR20.4-Lauf hat gezeigt, dass der bestaetigte Empfaenger-Stack
+einen Adventure-Land-`gift`-Marker tragen kann. Fuer den bereits durch
+Sender-Delta plus Recipient-Settlement bestaetigten Collection-Rueckweg
+wird dieser Marker deshalb als zulaessiges Stack-Metadatum behandelt.
+Diese Ausnahme gilt nur fuer den bestaetigten Rueckweg. Lock/Block,
+Property-/Stat-Modifikationen, Grace, Expiry und `data` bleiben
+fail-closed. Die allgemeine Erstkandidaten-Zulassung wird nicht gelockert.
