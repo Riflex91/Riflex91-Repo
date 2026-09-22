@@ -1,6 +1,6 @@
 # PR20.2 Bank – NO-WRITE 5-Minuten-Stabilitaetstest
 
-**Status:** BEREIT FUER REALEN INGAME-READ-ONLY-LAUF  
+**Status:** SERVER-BINDING-FIX 1.0.1 VORBEREITET / ERNEUTER REALER READ-ONLY-PREFLIGHT AUSSTEHEND  
 **Stand:** 2026-09-22  
 **Aktives Gate:** `PR20.2_BANK_PRODUKTIVIERUNG` bleibt `BLOCKIERT_FAIL_CLOSED`
 
@@ -76,3 +76,36 @@ Auch ein bestandener Lauf:
 
 Er ist ausschliesslich zusaetzliche read-only Stabilitaets-/Integrationsevidence
 fuer die derzeit noch moegliche Arbeit innerhalb PR20.2.
+
+
+## Preflight 1 – SERVER_BINDUNG_FEHLT, sicher blockiert
+
+Der erste reale Preflight auf `8b1ba278b5d1026e6cb6afcbe7be59da62ac69cb`
+wurde vor dem 5-Minuten-Lauf mit `SERVER_BINDUNG_FEHLT` blockiert.
+
+Sicherheitsnachweis:
+
+- `performance_trick()`: aktiv und `playing=true`;
+- Merchant in `bank`, alive, stationary, Queue leer;
+- Open-Pack weiterhin 15.993.820 / 75.000.000 Gold und 0 / 600 Shells;
+- 0 Gameplay-Writes;
+- 0 mutierende Public-Function-Aufrufe;
+- kein Intent;
+- keine Authority;
+- kein Live-Testbudget verbraucht.
+
+Die Ursache war ein Harness-Beobachtungsfehler in Controller 1.0.0: die
+Serverbindung wurde nur ueber direkte `root.server_region` /
+`root.server_identifier` gelesen.
+
+Controller 1.0.1 liest fail-closed aus denselben Adventure-Land-Runner-Surfaces
+wie die bestehenden produktiven Browserpfade:
+
+- direkte Legacy-Globals;
+- `server.region/server.id`;
+- Parent-Legacy-Globals;
+- Parent-`server.region/server.id`.
+
+Fehlt danach weiterhin eine vollstaendige Serverbindung, bleibt der Preflight
+weiterhin blockiert. Evidence:
+`roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json`.

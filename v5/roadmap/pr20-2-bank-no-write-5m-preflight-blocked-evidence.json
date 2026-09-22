@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "status": "BLOCKIERT_HARNESS_SERVER_BINDUNG_UNVOLLSTAENDIG",
+  "evidenceArt": "V5_PR20_2_BANK_NO_WRITE_5M_PREFLIGHT_DIAGNOSE",
+  "source": "USER_PROVIDED_INGAME_GUI_RESULT",
+  "testedSourceSha": "8b1ba278b5d1026e6cb6afcbe7be59da62ac69cb",
+  "controllerVersion": "1.0.0",
+  "testArt": "PR20_2_BANK_NO_WRITE_5M_PREFLIGHT",
+  "preflight": {
+    "status": "BLOCKIERT",
+    "blocker": [
+      "SERVER_BINDUNG_FEHLT"
+    ],
+    "merchant": true,
+    "bankMounted": true,
+    "moving": false,
+    "rip": false,
+    "queueEmpty": true,
+    "performanceTrick": {
+      "aktiv": true,
+      "playing": true,
+      "howlState": "loaded",
+      "verification": "HOWLER_PLAYING_TRUE"
+    },
+    "alternativeRuntimeAktiv": false,
+    "resources": {
+      "characterGold": 15993820,
+      "characterShells": 0,
+      "bankGold": 11110
+    },
+    "openPack": {
+      "pack": "items2",
+      "map": "bank",
+      "goldKosten": 75000000,
+      "shellKosten": 600,
+      "goldBezahlbar": false,
+      "shellsBezahlbar": false
+    }
+  },
+  "rootCause": {
+    "klassifikation": "HARNESS_OBSERVATION_BUG",
+    "beschreibung": "Controller 1.0.0 las die Serverbindung nur von root.server_region/root.server_identifier. Im echten CODE-Runner waren diese Surfaces leer, obwohl Parent-/Runner-Surfaces zulaessige Serverdaten liefern koennen.",
+    "gameStateProblem": false,
+    "serverProblem": false
+  },
+  "safety": {
+    "gameplayWrites": 0,
+    "mutatingPublicFunctionCalls": 0,
+    "durableIntentErzeugt": false,
+    "authorityAusgestellt": false,
+    "liveMutationFreigegeben": false,
+    "functionalTestBudgetConsumed": false,
+    "sameIntentRetry": false
+  },
+  "nextAction": "FIX_SERVER_BINDING_SURFACE_AND_REPEAT_READ_ONLY_PREFLIGHT"
+}

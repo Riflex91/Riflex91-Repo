@@ -3,7 +3,7 @@
   "stand": "2026-09-22",
   "status": "BEREIT_FUER_INGAME_READ_ONLY",
   "kennung": "V5_PR20_2_BANK_NO_WRITE_5M_TESTPLAN",
-  "basisMain": "d10e48bf341b1aa4291eb9c7c6954c80a81f1208",
+  "basisMain": "8b1ba278b5d1026e6cb6afcbe7be59da62ac69cb",
   "testArt": "PR20_2_BANK_NO_WRITE_5M",
   "executionContext": "ADVENTURE_LAND_CODE_RUNNER",
   "dauerMs": 300000,
@@ -50,5 +50,17 @@
     "schliesstOpenPackLiveNicht": true,
     "breiteBankAktivierungErlaubt": false,
     "pr20_3MarktStartErlaubt": false
-  }
+  },
+  "controllerVersion": "1.0.1",
+  "serverBindung": {
+    "required": true,
+    "allowedReadOnlySurfaces": [
+      "root.server_region + root.server_identifier",
+      "root.server.region + root.server.id",
+      "parent.server_region + parent.server_identifier",
+      "parent.server.region + parent.server.id"
+    ],
+    "failClosedIfMissing": true
+  },
+  "previousPreflightEvidence": "v5/roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json"
 }

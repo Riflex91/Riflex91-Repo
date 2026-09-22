@@ -611,3 +611,22 @@ Die Grenze bleibt strikt read-only:
 Auch ein bestandener Lauf schliesst weder die fehlende Withdraw-Live-Evidence
 noch Open-Pack-Live. PR20.2 bleibt deshalb
 `BLOCKIERT_FAIL_CLOSED` und PR20.3 bleibt gesperrt.
+
+
+## PR20.2x – NO-WRITE-5M Preflight Server-Binding-Fix
+
+Der erste reale NO-WRITE-5M-Preflight blockierte korrekt mit
+`SERVER_BINDUNG_FEHLT`. Es wurden 0 Gameplay-Writes, 0 mutierende
+Public-Function-Aufrufe und 0 Live-Testbudget verbraucht.
+
+Die Ursache lag im Test-Harness, nicht im Bankzustand: Controller 1.0.0 las
+die Serverbindung nur von direkten Root-Globals. Controller 1.0.1 verwendet
+nun zusaetzlich das offizielle Runner-`server`-Objekt und die entsprechenden
+Parent-Surfaces. Die Bindung bleibt weiterhin zwingend und fail-closed.
+
+Evidence:
+`roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json`.
+
+Nach gruener Exact-Head-CI ist derselbe read-only Preflight erneut ingame
+auszufuehren. Das Withdraw-Testlimit und Open-Pack-Live bleiben unveraendert
+gesperrt.
