@@ -32,12 +32,12 @@ function bindung(override = {}) {
   };
 }
 
-test("PR20.3 erster Kandidat ist exakt buy_with_gold Menge 1 und strikt NO-WRITE", () => {
+test("PR20.3 erster Kandidat ist buy_with_gold Menge 1; produktiv default-off, Testharness separat", () => {
   const kandidat = lies(
     "grundlage/vertraege/runtime/market-buy-gold-production-candidate.json",
   );
   assert.equal(MARKET_BUY_GOLD_ERSTE_MENGE, 1);
-  assert.equal(kandidat.status, "ERSTER_KANDIDAT_RATIFIZIERT_NO_WRITE");
+  assert.equal(kandidat.status, "STUFENTEST_VORBEREITET_EIN_MERGE");
   assert.equal(kandidat.publicFunction, "buy_with_gold");
   assert.equal(kandidat.menge, 1);
   assert.equal(kandidat.route, "GOLD_ONLY");
@@ -45,10 +45,16 @@ test("PR20.3 erster Kandidat ist exakt buy_with_gold Menge 1 und strikt NO-WRITE
   assert.equal(kandidat.recoveryContractId, "AL-RECOVERY-BUY-WITH-GOLD");
   assert.equal(kandidat.verifierId, "AL-VERIFIER-BUY-WITH-GOLD");
   assert.equal(kandidat.authorityGrenze.produktiveCapabilityInDiesemSchritt, false);
-  assert.equal(kandidat.authorityGrenze.authorityInDiesemSchritt, false);
-  assert.equal(kandidat.authorityGrenze.adapterInDiesemSchritt, false);
-  assert.equal(kandidat.authorityGrenze.liveRunnerInDiesemSchritt, false);
-  assert.equal(kandidat.authorityGrenze.gameplayWritesInDiesemSchritt, 0);
+  assert.equal(kandidat.authorityGrenze.produktiveAuthorityInDiesemSchritt, false);
+  assert.equal(kandidat.authorityGrenze.produktiverAdapterInDiesemSchritt, false);
+  assert.equal(kandidat.authorityGrenze.produktiverLiveRunnerInDiesemSchritt, false);
+  assert.equal(kandidat.authorityGrenze.testHarnessMitKontrolliertemLiveWrite, true);
+  assert.equal(kandidat.authorityGrenze.testHarnessMaxTrueTests, 2);
+  assert.equal(kandidat.authorityGrenze.testHarnessSchritte, 7);
+  assert.equal(kandidat.authorityGrenze.mergeZwischenTestschrittenErforderlich, false);
+  assert.equal(kandidat.authorityGrenze.gameplayAutoritaetProduktiv, false);
+  assert.equal(kandidat.authorityGrenze.rawWriteAutoritaet, false);
+  assert.equal(kandidat.authorityGrenze.sameIntentRetry, false);
 });
 
 test("Kandidat stimmt mit Action/Recovery/Verifier-Vertraegen ueberein", () => {
