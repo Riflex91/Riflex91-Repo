@@ -129,9 +129,9 @@ function S:TagsMatch(tags, profile)
             return false, "hardcore"
         elseif (name == "softcore" or name == "sofcore") and hardcore then
             return false, "softcore"
-        elseif name == "hardcoreserver" and not settings.rxpHardcoreServer then
+        elseif name == "hardcoreserver" and not hardcore then
             return false, "hardcore_server"
-        elseif name == "softcoreserver" and settings.rxpHardcoreServer then
+        elseif name == "softcoreserver" and hardcore then
             return false, "softcore_server"
         elseif name == "era" and settings.rxpEraMode == false then
             return false, "era"

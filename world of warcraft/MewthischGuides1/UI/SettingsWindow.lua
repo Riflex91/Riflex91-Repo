@@ -28,7 +28,6 @@ local BOOL_OPTIONS = {
     { key="rxpSoMMode", label="RestedXP: Season of Mastery" },
     { key="rxpSoDMode", label="RestedXP: Season of Discovery" },
     { key="rxpHardcoreMode", label="RestedXP: Hardcore-Guide" },
-    { key="rxpHardcoreServer", label="Server ist Hardcore" },
     { key="rxpSSFMode", label="Self-Found / SSF" },
     { key="allowAuctionHouse", label="Auktionshaus-Schritte erlauben" },
 }
@@ -67,7 +66,7 @@ end
 function S:Create()
     if self.frame then return self.frame end
 
-    local height=154+#BOOL_OPTIONS*ROW_HEIGHT+84
+    local height=180+#BOOL_OPTIONS*ROW_HEIGHT+84
     local frame=CreateFrame("Frame","MewthischGuides1Settings",UIParent)
     UI:SetSize(frame,WIDTH,height);frame:SetPoint("CENTER",0,10)
     UI:SetFrameStrata(frame,"FULLSCREEN_DIALOG");UI:SetClampedToScreen(frame,true)
@@ -156,9 +155,25 @@ function S:Create()
     end)
     rate:SetPoint("TOPLEFT",260,-100)
 
+    local calibration=button(frame,"",58,22,function()
+        local db=MG:EnsureDB()
+        local values={-90,0,90,180}
+        local current=tonumber(db.settings.navigatorArrowCalibration) or -90
+        local index=1
+        for i,v in ipairs(values) do if v==current then index=i break end end
+        index=index%#values+1
+        db.settings.navigatorArrowCalibration=values[index]
+        S:Refresh()
+        if MG.RefreshUI then MG:RefreshUI() end
+    end)
+    calibration:SetPoint("TOPRIGHT",-14,-128)
+    local calibrationLabel=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
+    calibrationLabel:SetPoint("RIGHT",calibration,"LEFT",-8,0)
+    calibrationLabel:SetText("Pfeil-Kalibrierung");shadow(calibrationLabel)
+
     local rows={}
     for i,option in ipairs(BOOL_OPTIONS) do
-        local y=-140-(i-1)*ROW_HEIGHT
+        local y=-166-(i-1)*ROW_HEIGHT
         local label=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlight","GameFontNormal"))
         label:SetPoint("TOPLEFT",14,y);label:SetWidth(310);label:SetJustifyH("LEFT")
         label:SetText(option.label);shadow(label)
@@ -188,7 +203,7 @@ function S:Create()
     reset:SetPoint("BOTTOM",0,14)
 
     self.frame=frame;self.rows=rows;self.phaseButton=phase;self.rateButton=rate
-    self.scaleButton=scale;self.themeButton=themeButton
+    self.scaleButton=scale;self.calibrationButton=calibration;self.themeButton=themeButton
     frame:Hide();return frame
 end
 
@@ -198,6 +213,7 @@ function S:Refresh()
     self.phaseButton.label:SetText("P"..tostring(db.settings.rxpPhase or 6))
     self.rateButton.label:SetText(tostring(db.settings.rxpRate or 1).."x")
     self.scaleButton.label:SetText(tostring(db.settings.navigatorScale or 1).."x")
+    self.calibrationButton.label:SetText(tostring(db.settings.navigatorArrowCalibration or -90).."°")
     self.themeButton.label:SetText(tostring(db.settings.theme or "Forever Classic"))
 
     for _,row in ipairs(self.rows or {}) do

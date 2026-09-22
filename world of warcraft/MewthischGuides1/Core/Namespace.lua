@@ -3,7 +3,7 @@ local addonName, MG = ...
 _G.MewthischGuides1 = MG
 MG.NAME = "Mewthisch Guides"
 MG.VERSION = "1.0.0-dev"
-MG.BUILD = "2026-09-22-full-1.0-dev1"
+MG.BUILD = "2026-09-22-full-1.0-dev3"
 MG.INTERFACE = 16001
 
 MG.Util = MG.Util or {}
@@ -75,7 +75,6 @@ function MG:EnsureDB()
         rxpEraMode = true,
         rxpSoMMode = false,
         rxpSSFMode = false,
-        rxpHardcoreServer = false,
         rxpPhase = 6,
         allowAuctionHouse = true,
         theme = "Forever Classic",
@@ -85,6 +84,7 @@ function MG:EnsureDB()
         minimapAngle = 215,
         navigatorLocked = false,
         navigatorScale = 1,
+        navigatorArrowCalibration = -90,
         autoSuperTrack = true,
         showWorldMapMarker = true,
         showActionBar = true,

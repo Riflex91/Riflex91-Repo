@@ -4,7 +4,7 @@ MG.NavigatorFrame = MG.NavigatorFrame or {}
 local N = MG.NavigatorFrame
 local UI = MG.UICompat
 local UPDATE_INTERVAL = 0.06
-local TEXTURE_ZERO_OFFSET = 0
+local DEFAULT_TEXTURE_ZERO_OFFSET = -math.pi / 2
 
 local function shadow(font)
     if font.SetShadowColor then font:SetShadowColor(0,0,0,1) end
@@ -133,7 +133,9 @@ function N:RefreshLive()
 
     local arrowShown=false
     if bearing and bearing.reliable and bearing.relative~=nil and self.arrow.SetRotation then
-        local ok=pcall(self.arrow.SetRotation,self.arrow,bearing.relative+TEXTURE_ZERO_OFFSET)
+        local degrees=tonumber(settings.navigatorArrowCalibration)
+        local offset=degrees and math.rad(degrees) or DEFAULT_TEXTURE_ZERO_OFFSET
+        local ok=pcall(self.arrow.SetRotation,self.arrow,bearing.relative+offset)
         if ok then
             self.unavailable:SetText("");self.glow:Show();self.arrow:Show();arrowShown=true
         else self.arrow:Hide();self.glow:Hide();self.unavailable:SetText("?") end
@@ -162,7 +164,9 @@ function N:RefreshLive()
             route=runtime.route,currentRouteSegment=segment,
             distance=d,distanceMode=mode,distanceDetail=detail,playerFacing=facing,
             arrowHasSetRotation=self.arrow.SetRotation and true or false,arrowShown=arrowShown,
-            bearing=bearing,bearingReason=bearingReason,targetText=self.target:GetText(),
+            bearing=bearing,bearingReason=bearingReason,
+            arrowCalibration=tonumber(settings.navigatorArrowCalibration) or -90,
+            targetText=self.target:GetText(),
         }
         MG.db.runtime.navigator=diagnostic
         local signature=table.concat({

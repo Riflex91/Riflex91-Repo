@@ -4,12 +4,19 @@ MG.CoordinateConverter = MG.CoordinateConverter or {}
 local C = MG.CoordinateConverter
 
 local function vectorXY(value)
-    if not value then return nil, nil end
-    if tonumber(value.x) and tonumber(value.y) then
-        return tonumber(value.x), tonumber(value.y)
+    if value == nil then return nil, nil end
+    local kind = type(value)
+    if kind ~= "table" and kind ~= "userdata" then
+        return nil, nil
     end
-    if value.GetXY then
-        local ok, x, y = pcall(value.GetXY, value)
+    local okX, rawX = pcall(function() return value.x end)
+    local okY, rawY = pcall(function() return value.y end)
+    if okX and okY and tonumber(rawX) and tonumber(rawY) then
+        return tonumber(rawX), tonumber(rawY)
+    end
+    local okMethod, method = pcall(function() return value.GetXY end)
+    if okMethod and type(method) == "function" then
+        local ok, x, y = pcall(method, value)
         if ok and tonumber(x) and tonumber(y) then
             return tonumber(x), tonumber(y)
         end
