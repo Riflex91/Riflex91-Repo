@@ -42,8 +42,9 @@ defaults.Validate();
 Assert(defaults.TelemetryEnabled == false, "TELEMETRY_MUST_DEFAULT_OFF");
 Assert(defaults.PreferredBrowser == "Brave", "BRAVE_MUST_DEFAULT");
 Assert(defaults.ConfigVersion == BridgeConfig.CurrentConfigVersion, "CONFIG_VERSION");
-Assert(BridgeConfig.CurrentConfigVersion == 8, "CONFIG_VERSION_8");
-Assert(defaults.PollIntervalSeconds == 60, "TELEMETRY_QUOTA_SAFE_POLL_DEFAULT");
+Assert(BridgeConfig.CurrentConfigVersion == 9, "CONFIG_VERSION_9");
+Assert(defaults.PollIntervalSeconds == 5, "V5_LOCAL_OBSERVATION_DEFAULT");
+Assert(defaults.SupabaseStatusIntervalSeconds == 60, "V5_SUPABASE_STATUS_INTERVAL_60S");
 Assert(defaults.TelemetryIngestUrl.StartsWith("https://", StringComparison.Ordinal), "INGEST_MUST_DEFAULT_HTTPS");
 Assert(defaults.SignalControlUrl.StartsWith("https://", StringComparison.Ordinal), "SIGNAL_CONTROL_MUST_DEFAULT_HTTPS");
 Assert(defaults.WebDashboardEnabled, "WEB_DASHBOARD_PROFILE_SYNC_DEFAULT_ON");
@@ -316,6 +317,14 @@ Assert(SsdVolumeGesundheitsPruefer.Bewerte(gesundeSsd with { FreiBytes = 149 }).
     BackblazeBucket = "al-aio-bot",
     BackblazePrefix = "v4"
 }).Validate();
+
+var v5TransportNow = DateTimeOffset.UtcNow;
+Assert(TelemetryBridgeService.ShouldUploadV5(null, 60, v5TransportNow, null, null), "V5_STATUS_INITIAL_UPLOAD");
+Assert(!TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(59), null, null), "V5_STATUS_THROTTLED_BEFORE_60S");
+Assert(TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(60), null, null), "V5_STATUS_DUE_AT_60S");
+Assert(TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(5), "test|1|BESTANDEN", null), "V5_TERMINAL_IMMEDIATE");
+Assert(!TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(5), "test|1|BESTANDEN", "test|1|BESTANDEN"), "V5_TERMINAL_DEDUPED");
+ExpectInvalid(defaults with { SupabaseStatusIntervalSeconds = 59 }, "SUPABASE_STATUS_INTERVAL_MUST_BE_60_SECONDS");
 
 Assert(TelemetryBridgeService.ComputeBackoffSeconds(5, 300, 1) == 5, "BACKOFF_1");
 Assert(TelemetryBridgeService.ComputeBackoffSeconds(5, 300, 2) == 10, "BACKOFF_2");
