@@ -90,7 +90,10 @@
     "Sell Schritt 5 pinnt den zweiten Testkandidaten frisch",
     "Sell Schritt 6 ist kontrollierter LIVE 2 Write",
     "Sell Schritt 7 ist 5-Minuten NO-WRITE Stabilitaet",
-    "danach Sell-Gesamtbericht einmalig als reale PR20.3-Evidence dokumentieren"
+    "danach Sell-Gesamtbericht einmalig als reale PR20.3-Evidence dokumentieren",
+    "trade_buy und trade_sell sind fuer die Roadmap vollstaendig durch Operator abgenommen; keine Live-Evidence wird behauptet",
+    "AKTUELL bleibt der laufende NPC-Sell-Gesamttest",
+    "nach dessen Evidence koennen die verbleibenden PR20.3-Gates bewertet werden"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -643,7 +646,8 @@
         "v5/werkzeuge/pr20-3-market-sell-step-test-paket.js",
         "v5/werkzeuge/tests/pr20-3-market-sell-step-test.test.mjs",
         "v5/roadmap/pr20-3-market-sell-step-test-plan.json",
-        "v5/roadmap/pr20-3-market-buy-gold-evidence.json"
+        "v5/roadmap/pr20-3-market-buy-gold-evidence.json",
+        "v5/roadmap/pr20-3-trade-operator-acceptance.json"
       ],
       "pr20_2Transition": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
       "firstLiveCandidate": "buy_with_gold(item, 1)",
@@ -655,7 +659,11 @@
       "nextTestHarness": "v5/werkzeuge/pr20-3-market-sell-step-test-paket.js",
       "nextTestRequiresBuyGold7Of7": false,
       "buyGoldStatus": "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
-      "buyGoldEvidence": "v5/roadmap/pr20-3-market-buy-gold-evidence.json"
+      "buyGoldEvidence": "v5/roadmap/pr20-3-market-buy-gold-evidence.json",
+      "tradeBuyStatus": "VOLL_ABGENOMMEN_OPERATOR_OHNE_LIVE_EVIDENCE",
+      "tradeSellStatus": "VOLL_ABGENOMMEN_OPERATOR_OHNE_LIVE_EVIDENCE",
+      "tradeOperatorAcceptance": "v5/roadmap/pr20-3-trade-operator-acceptance.json",
+      "tradePathsBlockSequencing": false
     },
     {
       "id": "PR20.4_LOGISTIK_TRANSFER",
@@ -872,6 +880,11 @@
     "buyGoldEvidence": "v5/roadmap/pr20-3-market-buy-gold-evidence.json",
     "buyGoldAdditionalLiveTestAllowed": false,
     "activeTest": "NPC_SELL_STEP_TEST",
-    "activeTestHarness": "v5/werkzeuge/pr20-3-market-sell-step-test-paket.js"
+    "activeTestHarness": "v5/werkzeuge/pr20-3-market-sell-step-test-paket.js",
+    "tradeBuyStatus": "VOLL_ABGENOMMEN_OPERATOR_OHNE_LIVE_EVIDENCE",
+    "tradeSellStatus": "VOLL_ABGENOMMEN_OPERATOR_OHNE_LIVE_EVIDENCE",
+    "tradeOperatorAcceptance": "v5/roadmap/pr20-3-trade-operator-acceptance.json",
+    "tradePathsBlockSequencing": false,
+    "productiveTradeAuthority": false
   }
 }
