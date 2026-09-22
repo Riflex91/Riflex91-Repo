@@ -463,7 +463,7 @@
   'use strict';
 
   const API_NAME = 'V5PR204TransferStepTest';
-  const VERSION = '1.1.0';
+  const VERSION = '1.2.0';
   const TESTKENNUNG = 'pr20-4-logistics-transfer-step-test';
   const STATE_KEY = 'AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1';
   const ACTORS_KEY = 'AIO_V5_PR20_4_TRANSFER_ACTORS_V1';
@@ -620,7 +620,20 @@
         ? Math.max(0, Math.trunc(Number(def.g ?? def.gold)))
         : 0
     };
-    return Object.freeze({ ...basis, itemFingerprint: fingerprint(basis) });
+    const returnMeta = Object.freeze({
+      blocked: item?.b === true || item?.blocked === true,
+      propertyPresent: item?.p != null,
+      statTypePresent: item?.stat_type != null,
+      graceNonzero: Number(item?.grace || 0) !== 0,
+      expiresPresent: item?.expires != null,
+      giftPresent: item?.gift != null,
+      dataPresent: item?.data != null
+    });
+    return Object.freeze({
+      ...basis,
+      returnMeta,
+      itemFingerprint: fingerprint(basis)
+    });
   }
 
   function inventarSnapshot(root) {
@@ -912,13 +925,43 @@
   }
 
   function collectionReturnCandidate(item, supplyPin) {
+    const meta = item?.returnMeta || {};
     return !!item
       && !!supplyPin
       && item.name === supplyPin.name
       && Number(item.level || 0) === Number(supplyPin.level || 0)
-      && item.plain
       && !item.locked
-      && item.menge >= ITEM_MENGE;
+      && item.menge >= ITEM_MENGE
+      && meta.blocked !== true
+      && meta.propertyPresent !== true
+      && meta.statTypePresent !== true
+      && meta.graceNonzero !== true
+      && meta.expiresPresent !== true
+      && meta.dataPresent !== true;
+  }
+
+  function collectionReturnDiagnose(partner, supplyPin) {
+    const identity = partner?.items?.filter(x =>
+      !!supplyPin
+      && x.name === supplyPin.name
+      && Number(x.level || 0) === Number(supplyPin.level || 0)
+    ) || [];
+    return {
+      identityStacks: identity.length,
+      totalQuantity: identity.reduce((sum, x) => sum + Number(x.menge || 0), 0),
+      unlockedStacks: identity.filter(x => !x.locked).length,
+      giftMarkedStacks: identity.filter(x => x.returnMeta?.giftPresent === true).length,
+      blockedStacks: identity.filter(x => x.returnMeta?.blocked === true).length,
+      propertyOrStatStacks: identity.filter(x =>
+        x.returnMeta?.propertyPresent === true || x.returnMeta?.statTypePresent === true
+      ).length,
+      graceOrExpiryStacks: identity.filter(x =>
+        x.returnMeta?.graceNonzero === true || x.returnMeta?.expiresPresent === true
+      ).length,
+      dataStacks: identity.filter(x => x.returnMeta?.dataPresent === true).length,
+      admissibleReturnStacks: identity.filter(x => collectionReturnCandidate(x, supplyPin)).length,
+      giftMarkerToleratedForConfirmedReturn: true
+    };
   }
 
   function collectionReturnCapacity(state, merchant, supplyPin) {
@@ -1619,22 +1662,28 @@
     const supplyPin = state.itemPins?.supply || null;
     const sourceCandidates = partner?.items
       ?.filter(x => collectionReturnCandidate(x, supplyPin))
-      ?.sort((a, b) => a.index - b.index) || [];
+      ?.sort((a, b) => {
+        const ag = a.returnMeta?.giftPresent === true ? 1 : 0;
+        const bg = b.returnMeta?.giftPresent === true ? 1 : 0;
+        return ag - bg || a.index - b.index;
+      }) || [];
     const item = sourceCandidates[0] || null;
-    const capacity = item && merchant
+    const capacity = merchant
       ? collectionReturnCapacity(state, merchant, supplyPin)
       : { ok: false, inferredFromConfirmedOutbound: false };
+    const diagnose = collectionReturnDiagnose(partner, supplyPin);
     if (!item) blocker.push('COLLECTION_SOURCE_ITEM_FEHLT');
     if (!capacity.ok) blocker.push('MERCHANT_RECIPIENT_CAPACITY_FEHLT');
     if (blocker.length) {
-      state = setStep(state, 5, { status: 'BLOCKIERT', blocker });
-      return { result: { schritt: 5, status: 'BLOCKIERT', blocker }, state };
+      state = setStep(state, 5, { status: 'BLOCKIERT', blocker, diagnose });
+      return { result: { schritt: 5, status: 'BLOCKIERT', blocker, diagnose }, state };
     }
     const basePin = pinItem(partner, merchant, { item, capacity }, 'PARTNER_TO_MERCHANT');
     const pin = Object.freeze({
       ...basePin,
       collectionReturnCapacityConfirmed: true,
-      collectionReturnCapacityReason: 'CONFIRMED_OUTBOUND_CREATED_EXACT_RETURN_CAPACITY'
+      collectionReturnCapacityReason: 'CONFIRMED_OUTBOUND_CREATED_EXACT_RETURN_CAPACITY',
+      collectionGiftMarkerTolerated: item.returnMeta?.giftPresent === true
     });
     state = schreibeState({ ...state, itemPins: { ...state.itemPins, collection: pin } });
     state = setStep(state, 5, {
@@ -1648,7 +1697,13 @@
         schritt: 5, status: 'BESTANDEN',
         collectionSourcePinned: true,
         recipientBaselinePinned: true,
-        kandidat: { name: pin.name, level: pin.level, menge: pin.quantity },
+        kandidat: {
+          name: pin.name,
+          level: pin.level,
+          menge: pin.quantity,
+          giftMarkerTolerated: pin.collectionGiftMarkerTolerated === true
+        },
+        collectionDiagnose: diagnose,
         gameplayWrites: 0
       }, state
     };
