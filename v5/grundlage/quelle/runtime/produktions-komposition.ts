@@ -11,6 +11,7 @@ import {
 import {
   merchantBankDepositMutationsFaehigkeitDefinition,
   merchantBankWithdrawMutationsFaehigkeitDefinition,
+  merchantBankSwapMutationsFaehigkeitDefinition,
 } from "../merchant/bank-produktions-faehigkeits-vertrag.js";
 import {
   equipmentCoreModulDefinition,
@@ -23,7 +24,7 @@ import type {
 } from "./produktions-runtime.js";
 
 export const PRODUKTIONS_KOMPOSITIONS_KATALOG_STATUS =
-  "DEFAULT_DENY_PLANEN_EQUIP_UND_BANK_GOLD_MUTIEREN_REGISTRIERT_INAKTIV";
+  "DEFAULT_DENY_PLANEN_EQUIP_UND_BANK_MUTIEREN_REGISTRIERT_INAKTIV";
 
 export const V5_PRODUKTIONS_STORAGE_HEALTH_ID = "produktiver-speicher";
 
@@ -58,6 +59,7 @@ export function erstelleKanonischeProduktionsKomposition(
       ...merchantCoreAPlanungsFaehigkeitDefinitionen(),
       merchantBankDepositMutationsFaehigkeitDefinition(),
       merchantBankWithdrawMutationsFaehigkeitDefinition(),
+      merchantBankSwapMutationsFaehigkeitDefinition(),
       equipmentEquipMutationsFaehigkeitDefinition(),
     ]),
     healthAnforderungen: kopiereHealthAnforderungen(healthAnforderungen),

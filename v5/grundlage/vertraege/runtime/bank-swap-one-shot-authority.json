@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_BANK_SWAP_ONE_SHOT_AUTHORITY",
+  "stand": "2026-09-22",
+  "capability": {
+    "id": "merchant.bank.intern_tauschen",
+    "providerModulId": "merchant-bank-core",
+    "providerVersion": "1",
+    "registryAktivierung": false,
+    "maximaleVerwendungenProAuthority": 1
+  },
+  "bindung": {
+    "actionContractId": "AL-ACTION-BANK-SWAP",
+    "recoveryContractId": "AL-RECOVERY-BANK-SWAP",
+    "verifierId": "AL-VERIFIER-BANK-SWAP",
+    "bestaetigungText": "V5 BANK SWAP EINMAL AUSFUEHREN"
+  },
+  "authority": {
+    "maximaleLebensdauerMs": 2000,
+    "durchAdmissionPruefungZuVerbrauchen": true,
+    "breiteRuntimeFreigabe": false,
+    "rawWriteAutoritaet": false
+  },
+  "durability": {
+    "vorAuthorityAusstellung": true,
+    "pfad": "runtime/authority/mutieren/bank-swap/",
+    "restartAktiviertAuthorityNichtWieder": true
+  },
+  "currentFence": {
+    "journalCurrentPfad": "runtime/transactions/bank-swap/current.json",
+    "offeneSwapTransaktionBlockiertNeue": true,
+    "offeneDepositTransaktionBlockiert": true,
+    "offeneWithdrawTransaktionBlockiert": true,
+    "offeneEquipAuthorityBlockiert": true,
+    "aktiveAccountBankLeaseBlockiertVorNeuerAuthority": true
+  },
+  "gegenseitigeAusschliessung": [
+    "equipment.equip",
+    "merchant.bank.gold_einlagern",
+    "merchant.bank.gold_auslagern",
+    "merchant.bank.intern_tauschen",
+    "account:bank_lease"
+  ],
+  "wirkung": {
+    "gameplayWriteDurchAuthorityAusstellung": 0,
+    "adapterSendDurchAuthorityAusstellung": 0
+  },
+  "hostIntegrationInDiesemSchritt": false,
+  "writeAdapterInDiesemSchritt": false,
+  "liveRunnerInDiesemSchritt": false,
+  "gameplayWritesInDiesemSchritt": 0
+}
