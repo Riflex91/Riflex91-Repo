@@ -125,7 +125,7 @@ if (noWrite5m?.bank5mStatus !== "BESTANDEN_REAL_INGAME_READ_ONLY"
   fail("NO_WRITE_5M_EVIDENCE_UNGUELTIG");
 }
 
-if (roadmap.currentGate !== "PR20.3_MARKT_PRODUKTIVIERUNG"
+if (!["PR20.3_MARKT_PRODUKTIVIERUNG", "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG"].includes(roadmap.currentGate)
     || roadmap.parallelPreparation?.pr20_2ExitGate?.status !== "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN"
     || roadmap.parallelPreparation?.pr20_2ExitGate?.breiteBankAktivierungErlaubt !== true
     || roadmap.parallelPreparation?.pr20_2ExitGate?.withdrawLokalGegatet !== true
@@ -134,11 +134,11 @@ if (roadmap.currentGate !== "PR20.3_MARKT_PRODUKTIVIERUNG"
     || roadmap.pr20_2?.broadBankActivationAllowed !== true
     || roadmap.pr20_2?.withdrawActivationAllowed !== false
     || roadmap.pr20_2?.openBankPackActivationAllowed !== false
-    || !["BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT", "BUY_GOLD_UND_SELL_BESTANDEN_EXIT_GATE_BEREIT"].includes(roadmap.pr20_3?.status)) {
+    || !["BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT", "BUY_GOLD_UND_SELL_BESTANDEN_EXIT_GATE_BEREIT", "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN"].includes(roadmap.pr20_3?.status)) {
   fail("ROADMAP_TRANSITION_ZU_PR20_3_UNGUELTIG");
 }
 
-if (!["BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT", "BUY_GOLD_UND_SELL_BESTANDEN_EXIT_GATE_BEREIT"].includes(market.status)
+if (!["BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT", "BUY_GOLD_UND_SELL_BESTANDEN_EXIT_GATE_BEREIT", "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN"].includes(market.status)
     || market.pr20_2Transition?.status !== "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN"
     || market.pr20_2Transition?.broadBankActivationAllowed !== true
     || market.pr20_2Transition?.bankExceptionsRemainLocallyGated !== true
