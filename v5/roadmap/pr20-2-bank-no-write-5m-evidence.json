@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "status": "BESTANDEN",
+  "evidenceArt": "V5_PR20_2_BANK_NO_WRITE_5M_REAL_INGAME",
+  "source": "USER_PROVIDED_INGAME_GUI_RESULT",
+  "testedSourceSha": "bb3d1d9108457acae36d30a896549f91598621aa",
+  "controllerVersion": "1.0.1",
+  "testArt": "PR20_2_BANK_NO_WRITE_5M",
+  "preflight": {
+    "status": "BESTANDEN",
+    "serverRegion": "EU",
+    "serverKennung": "I",
+    "serverBindungQuelle": "SERVER_OBJECT",
+    "merchant": true,
+    "map": "bank",
+    "moving": false,
+    "rip": false,
+    "queueEmpty": true,
+    "performanceTrick": {
+      "aktiv": true,
+      "playing": true,
+      "howlState": "loaded",
+      "verification": "HOWLER_PLAYING_TRUE"
+    },
+    "alternativeRuntimeAktiv": false,
+    "resources": {
+      "characterGold": 15993820,
+      "characterShells": 0,
+      "bankGold": 11110
+    },
+    "openPack": {
+      "pack": "items2",
+      "map": "bank",
+      "goldKosten": 75000000,
+      "shellKosten": 600,
+      "goldBezahlbar": false,
+      "shellsBezahlbar": false
+    }
+  },
+  "result": {
+    "status": "BESTANDEN",
+    "dauerMs": 300017,
+    "sampleAnzahl": 21,
+    "sampleGaps": 0,
+    "driftSamples": 0,
+    "evidenceKetteGueltig": true,
+    "ersteEvidence": "0ce749f9",
+    "letzteEvidence": "36158b20",
+    "performanceTrickFehler": 0,
+    "alternativeRuntimeSamples": 0,
+    "blocker": [],
+    "grenzen": {
+      "testdauerMs": 300000,
+      "intervallMs": 15000,
+      "maximalerSampleGapMs": 45000,
+      "minimaleSamples": 20,
+      "maximaleSamples": 30
+    }
+  },
+  "safety": {
+    "gameplayWrites": 0,
+    "mutatingPublicFunctionCalls": 0,
+    "durableIntentErzeugt": false,
+    "authorityAusgestellt": false,
+    "liveMutationFreigegeben": false,
+    "functionalTestBudgetConsumed": false,
+    "withdrawTestbudgetVerbraucht": false,
+    "sameIntentRetry": false
+  },
+  "gateEffect": {
+    "pr20_2ExitGateBleibt": "BLOCKIERT_FAIL_CLOSED",
+    "schliesstWithdrawNicht": true,
+    "schliesstOpenPackLiveNicht": true,
+    "pr20_3MarktStartErlaubt": false
+  }
+}

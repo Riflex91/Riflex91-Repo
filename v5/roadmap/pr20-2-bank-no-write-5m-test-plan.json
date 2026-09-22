@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "stand": "2026-09-22",
-  "status": "BEREIT_FUER_INGAME_READ_ONLY",
+  "status": "BESTANDEN_REAL_INGAME_READ_ONLY",
   "kennung": "V5_PR20_2_BANK_NO_WRITE_5M_TESTPLAN",
   "basisMain": "8b1ba278b5d1026e6cb6afcbe7be59da62ac69cb",
   "testArt": "PR20_2_BANK_NO_WRITE_5M",
@@ -49,7 +49,9 @@
     "schliesstWithdrawNicht": true,
     "schliesstOpenPackLiveNicht": true,
     "breiteBankAktivierungErlaubt": false,
-    "pr20_3MarktStartErlaubt": false
+    "pr20_3MarktStartErlaubt": false,
+    "integration15mRequiredNow": false,
+    "weitereIngameTestsJetztErforderlich": false
   },
   "controllerVersion": "1.0.1",
   "serverBindung": {
@@ -62,5 +64,17 @@
     ],
     "failClosedIfMissing": true
   },
-  "previousPreflightEvidence": "v5/roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json"
+  "previousPreflightEvidence": "v5/roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json",
+  "resultEvidence": "v5/roadmap/pr20-2-bank-no-write-5m-evidence.json",
+  "actual": {
+    "dauerMs": 300017,
+    "sampleAnzahl": 21,
+    "sampleGaps": 0,
+    "driftSamples": 0,
+    "performanceTrickFehler": 0,
+    "alternativeRuntimeSamples": 0,
+    "gameplayWrites": 0,
+    "mutatingPublicFunctionCalls": 0,
+    "functionalTestBudgetConsumed": false
+  }
 }

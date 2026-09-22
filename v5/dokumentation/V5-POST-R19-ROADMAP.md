@@ -887,3 +887,19 @@ vollstaendige Bindung, bleibt der Preflight fail-closed.
 
 Nach gruener Exact-Head-CI ist der read-only Preflight erneut ingame
 auszufuehren. PR20.2 und PR20.3 bleiben bis dahin unveraendert gesperrt.
+
+
+## PR20.2y – Bank 5m bestanden, weitere Tests warten auf Reopen
+
+Der reale Bank-NO-WRITE-5M-Lauf ist BESTANDEN: 300017 ms, 21 Samples,
+0 Gaps, 0 Drift und 0 Gameplay-Writes. Die Evidence ist unter
+`roadmap/pr20-2-bank-no-write-5m-evidence.json` abgelegt.
+
+PR20.2 bleibt trotzdem bewusst `BLOCKIERT_FAIL_CLOSED`. Withdraw ist nach
+2/2 Tests ohne vollstaendig bestandene Live-Evidence geschlossen; Open-Pack
+ist ressourcenbedingt weiterhin nicht live testbar.
+
+Der 15-Minuten-Integrationsstandard wird deshalb noch nicht gestartet: solange
+das Gate fachlich nicht exit-faehig ist, wuerde ein weiterer read-only Soak
+keinen Blocker schliessen. Der naechste Ingame-Test wartet auf einen echten
+Reopen-Trigger. PR20.3 bleibt gesperrt.

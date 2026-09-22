@@ -630,3 +630,29 @@ Evidence:
 Nach gruener Exact-Head-CI ist derselbe read-only Preflight erneut ingame
 auszufuehren. Das Withdraw-Testlimit und Open-Pack-Live bleiben unveraendert
 gesperrt.
+
+
+## PR20.2y – 5m BESTANDEN / Blocker-Closeout
+
+Der reale PR20.2 Bank-NO-WRITE-5M-Lauf ist mit 300017 ms, 21 Samples,
+0 Sample-Gaps, 0 Drift, 0 `performance_trick`-Fehlern und 0 Gameplay-Writes
+BESTANDEN.
+
+Evidence:
+`roadmap/pr20-2-bank-no-write-5m-evidence.json`.
+
+Damit ist die aktuell noch sinnvolle read-only Bank-Stabilitaetsevidence
+geschlossen. Das PR20.2-Exit-Gate bleibt dennoch
+`BLOCKIERT_FAIL_CLOSED`, weil:
+
+1. Withdraw nach 2/2 echten Tests keine vollstaendig bestandene Live-Evidence
+   besitzt und kein dritter Test erlaubt ist;
+2. Open-Pack weiterhin weder ueber Gold noch Shells finanzierbar ist.
+
+Ein 15-Minuten-NO-WRITE-Test wird **jetzt nicht angefordert**, weil er als
+Integrations-/Releasegate keinen der beiden fachlichen Blocker schliessen
+koennte. Weitere Ingame-Tests werden erst durch einen echten Reopen-Trigger
+zulaessig.
+
+Closeout:
+`roadmap/pr20-2-bank-blocker-closeout.json`.
