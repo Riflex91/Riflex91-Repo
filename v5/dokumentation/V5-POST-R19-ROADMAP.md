@@ -952,3 +952,17 @@ Evidence:
 
 Das aktive PR20.3-Ingame-Gate ist jetzt **NPC Sell** ueber
 `werkzeuge/pr20-3-market-sell-step-test-paket.js`.
+
+
+### PR20.3 Player-Market Trade operator-abgenommen
+
+`trade_buy` und `trade_sell` sind fuer die Roadmap vollstaendig durch
+Operatorentscheidung abgenommen. Es wird dabei keine nicht vorhandene
+Live-Evidence erzeugt oder umetikettiert. Beide Pfade blockieren die
+PR20.3-Sequenz nicht mehr; ihre lokalen RID-/Listing-/Recovery-/Authority-Gates
+bleiben erhalten.
+
+Evidence:
+`roadmap/pr20-3-trade-operator-acceptance.json`.
+
+Aktives Ingame-Gate bleibt NPC Sell.
