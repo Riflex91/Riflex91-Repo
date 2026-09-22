@@ -544,3 +544,37 @@ Damit ist Open-Pack auf Shadow- und Admission-Ebene sauber NO-WRITE
 nachgewiesen, aber **nicht live produktiviert**. Das PR20.2-Exit-Gate bleibt
 zusammen mit dem bereits ausgeschöpften Withdraw-Testlimit fail-closed. Eine
 breite Bank-Aktivierung oder ein Sprung zu PR20.3 waere sachlich falsch.
+
+
+## PR20.2v – Aggregiertes Exit-Gate fail-closed
+
+Nach Merge der realen Open-Pack-Admission-Evidence wird der PR20.2-Gesamtstatus
+jetzt nicht nur textuell, sondern als eigenes maschinenlesbares Gate
+abgesichert:
+
+`roadmap/pr20-2-bank-exit-gate-status.json`.
+
+Der zugehoerige Checker
+`werkzeuge/pr20-2-bank-exit-gate-pruefen.mjs` leitet den sicheren Zustand aus
+den vorhandenen Deposit-, Retrieve-, Store-, Swap-, Withdraw- und Open-Pack-
+Evidence-Artefakten ab. **BLOCKIERT_FAIL_CLOSED ist aktuell der erwartete
+korrekte Zustand und kein CI-Fehler.** CI soll vielmehr fehlschlagen, wenn eine
+der Sperren versehentlich aufgeweicht wird.
+
+Aktuell sind exakt zwei harte Blocker aktiv:
+
+1. `BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2`;
+2. `OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE`.
+
+Das Gate erzwingt deshalb:
+
+- kein dritter Withdraw-Funktionstest;
+- keine Open-Pack-Live-Freigabe;
+- `sameIntentRetry=false`;
+- keine breite Bank-Aktivierung;
+- `pr20_3MarktStartErlaubt=false`;
+- 0 Gameplay-Writes und 0 mutierende Public-Function-Aufrufe durch die
+  Gate-Auswertung.
+
+Bis neue reale Evidence oder ausreichende Open-Pack-Ressourcen vorliegen,
+bleibt nur NO-WRITE-/Integrationsarbeit innerhalb PR20.2 zulaessig.
