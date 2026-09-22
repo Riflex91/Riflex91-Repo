@@ -250,7 +250,7 @@ jobs:
 
           grep -q 'FRAME_WIDTH = 400' "$VIEW"
           grep -q 'Zusätzliche Ziele' "$VIEW"
-          grep -q 'showViewer = false' "$VIEW"
+          grep -q 'showViewer=false' "$VIEW"
           grep -q 'viewerX' "$VIEW"
           grep -q 'viewerY' "$VIEW"
 
