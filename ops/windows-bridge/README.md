@@ -204,11 +204,13 @@ Der Update-Ablauf ist fail-safe:
 
 Der Updater akzeptiert weder frei konfigurierbare Repositorys noch frei konfigurierbare Asset-URLs. Der Release-Download ist fest auf `Riflex91/Riflex91-Repo` und `AioBotWindowsBridge.exe` begrenzt.
 
-Der letzte Apply-Status wird ohne Geheimnisse unter folgendem Pfad abgelegt:
+Der Update-Check startet direkt beim Fensterstart und wartet nicht auf Browser-, Supabase- oder Wissenswächter-Initialisierung. Der letzte Check-/Apply-Status wird ohne Geheimnisse unter folgendem Pfad abgelegt:
 
 ```text
 %LOCALAPPDATA%\AioBotWindowsBridge\self-update-status.json
 ```
+
+Dort sind unter anderem die Zustände `CHECKING`, `UP_TO_DATE`, `UPDATE_FOUND`, `READY_TO_INSTALL`, `INSTALLER_STARTED`, `CHECK_FAILED`, `APPLIED` und `APPLY_FAILED` nachvollziehbar.
 
 ## V5 Readiness-Test
 
