@@ -310,6 +310,7 @@ export interface MluckRecoveryBeobachtung {
   readonly targetMluckStrong: boolean;
   readonly senderMpNachher: number;
   readonly cooldownAktivNachher: boolean;
+  readonly senderExecutionEvidenceConsistent: boolean;
   readonly fingerprint: string;
 }
 
@@ -468,6 +469,7 @@ export class ProduktiveMluckTransaktion {
       target_mluck_strong: obs.targetMluckStrong,
       sender_mp_nachher: obs.senderMpNachher,
       cooldown_aktiv_nachher: obs.cooldownAktivNachher,
+      sender_execution_evidence_consistent: obs.senderExecutionEvidenceConsistent,
       evidence_fingerprint: obs.fingerprint,
       same_intent_retry: false,
     }));
@@ -476,8 +478,7 @@ export class ProduktiveMluckTransaktion {
       && obs.targetMluckActive
       && obs.targetMluckSource === a.liveEvidence.merchantId
       && obs.targetMluckStrong
-      && obs.senderMpNachher <= a.liveEvidence.senderMp - MLUCK_MIN_MP
-      && obs.cooldownAktivNachher;
+      && obs.senderExecutionEvidenceConsistent;
     const notApplied = obs.klassifikation === "NICHT_AUSGEFUEHRT";
     const terminal = committed ? "COMMIT" : notApplied ? "ABBRUCH" : "SICHER_FEHLGESCHLAGEN";
     await journalPort.haengeDurableAn(journal(a, sequenz, terminal, {
