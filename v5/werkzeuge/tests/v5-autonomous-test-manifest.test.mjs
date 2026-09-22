@@ -7,6 +7,8 @@ const manifest = JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest
 const packageBytes = fs.readFileSync("werkzeuge/pr20-6-mluck-autonomous-live-5m.js");
 const packageSource = packageBytes.toString("utf8");
 const v3BootstrapSource = fs.readFileSync("../v3/src/ops/v5-autonomous-test-bootstrap.js", "utf8");
+const bridgeCdpSource = fs.readFileSync("../ops/windows-bridge/CdpAdventureLandClient.cs", "utf8");
+const bridgeTelemetrySource = fs.readFileSync("../ops/windows-bridge/TelemetryBridgeService.cs", "utf8");
 const sha256 = crypto.createHash("sha256").update(packageBytes).digest("hex");
 
 test("V5 Auto-Deploy manifest is narrow, immutable, ingame-owned and normal-runtime closed", () => {
@@ -63,4 +65,12 @@ test("Merchant package distributes only a narrow worker and each farmer stops V3
   assert.ok(packageSource.includes("if(old&&typeof old.stop==='function')old.stop()"));
   assert.equal(packageSource.includes("socket.emit("), false);
   assert.equal(packageSource.includes(".socket.emit("), false);
+});
+
+test("Windows Bridge remains observational and cannot deploy V5 test code", () => {
+  for (const source of [bridgeCdpSource, bridgeTelemetrySource]) {
+    assert.equal(source.includes("EnsureV5AutonomousTestAsync"), false);
+    assert.equal(source.includes("v5-autonomous-test-manifest.json"), false);
+    assert.equal(source.includes("V5AutonomousTestDeployment"), false);
+  }
 });
