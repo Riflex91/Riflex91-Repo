@@ -73,9 +73,19 @@ function B:Refresh()
     self.summary:SetText(
         "Klasse: "..tostring(snapshot.class or "-")..
         "   Level: "..tostring(snapshot.level or "-")..
+        "   Spezialisierung: "..tostring(snapshot.specialization or "-")..
         "   Freie Talentpunkte: "..tostring(snapshot.unspentTalentPoints or 0))
-    for i,row in ipairs(self.rows) do
-        local item=snapshot.upcomingTraining and snapshot.upcomingTraining[i]
+
+    local talent=snapshot.talentRecommendation
+    if talent then
+        self.rows[1]:SetText("Talent: "..tostring(talent.name or talent.spellID)..
+            "  |cff55dd77("..tostring(talent.confidence or "data-backed")..")|r")
+    else
+        self.rows[1]:SetText("Talent: keine datenbasierte Empfehlung verfügbar")
+    end
+    for i=2,#self.rows do
+        local row=self.rows[i]
+        local item=snapshot.upcomingTraining and snapshot.upcomingTraining[i-1]
         if item then
             row:SetText(
                 tostring(item.stepIndex)..".  "..tostring(item.name)..
