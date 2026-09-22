@@ -10,6 +10,8 @@ local ROW_HEIGHT = 28
 local BOOL_OPTIONS = {
     { key="showViewer", label="Hauptfenster anzeigen" },
     { key="showNavigator", label="Navigator anzeigen" },
+    { key="navigatorLocked", label="Navigator sperren" },
+    { key="autoSuperTrack", label="Questziel automatisch SuperTracken" },
     { key="showWorldMapMarker", label="Weltkartenmarker anzeigen" },
     { key="showActionBar", label="Aktionsleiste anzeigen" },
     { key="showGearAdvisor", label="Questbelohnungs-Berater anzeigen" },
@@ -117,6 +119,21 @@ function S:Create()
     end)
     phase:SetPoint("TOPLEFT",112,-100)
 
+    local scaleLabel=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
+    scaleLabel:SetPoint("TOPLEFT",338,-105);scaleLabel:SetText("Pfeil");shadow(scaleLabel)
+    local scale=button(frame,"",58,22,function()
+        local db=MG:EnsureDB()
+        local values={0.8,1,1.2,1.4}
+        local current=tonumber(db.settings.navigatorScale) or 1
+        local index=1
+        for i,v in ipairs(values) do if v==current then index=i break end end
+        index=index%#values+1
+        db.settings.navigatorScale=values[index]
+        S:Refresh()
+        if MG.RefreshUI then MG:RefreshUI() end
+    end)
+    scale:SetPoint("TOPLEFT",368,-100)
+
     local rateLabel=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
     rateLabel:SetPoint("TOPLEFT",198,-105);rateLabel:SetText("XP-Rate");shadow(rateLabel)
     local rate=button(frame,"",70,22,function()
@@ -159,7 +176,7 @@ function S:Create()
     end)
     reset:SetPoint("BOTTOM",0,14)
 
-    self.frame=frame;self.rows=rows;self.phaseButton=phase;self.rateButton=rate
+    self.frame=frame;self.rows=rows;self.phaseButton=phase;self.rateButton=rate;self.scaleButton=scale
     frame:Hide();return frame
 end
 
@@ -168,6 +185,7 @@ function S:Refresh()
     local db=MG:EnsureDB()
     self.phaseButton.label:SetText("P"..tostring(db.settings.rxpPhase or 6))
     self.rateButton.label:SetText(tostring(db.settings.rxpRate or 1).."x")
+    self.scaleButton.label:SetText(tostring(db.settings.navigatorScale or 1).."x")
 
     for _,row in ipairs(self.rows or {}) do
         local enabled=db.settings[row.option.key] and true or false
