@@ -33,15 +33,68 @@ end
 
 function B:AbsoluteFromMapDelta(deltaEast, deltaNorth)
     if deltaEast == nil or deltaNorth == nil then return nil end
-    -- WoW facing convention used by the minimap arrow:
-    -- 0 = north, positive rotation turns towards west.
     return normalizeAbsolute(atan2(-deltaEast, deltaNorth))
+end
+
+function B:AbsoluteFromWorldDelta(deltaWorldX, deltaWorldY)
+    if deltaWorldX == nil or deltaWorldY == nil then return nil end
+    -- Blizzard world coordinates are rotated against UI-map axes. This is
+    -- the same convention proven by the legacy Mewthisch Forever navigator.
+    return normalizeAbsolute(atan2(deltaWorldY, deltaWorldX))
+end
+
+local function withFacing(absolute, playerFacing, reason, extra)
+    if absolute == nil then return nil end
+    local result = extra or {}
+    result.absolute = absolute
+    result.reason = reason
+
+    playerFacing = tonumber(playerFacing)
+    if playerFacing == nil then
+        result.relative = nil
+        result.reliable = false
+        result.reason = "player_facing_unavailable"
+        return result
+    end
+
+    result.relative = normalizeRelative(absolute - playerFacing)
+    result.reliable = true
+    return result
 end
 
 function B:Resolve(position, waypoint, playerFacing)
     if not position or not waypoint then return nil, "missing_position" end
-    if not position.x or not position.y or not waypoint.x or not waypoint.y then
-        return nil, "map_coordinates_missing"
+    if position.x == nil or position.y == nil or not tonumber(position.mapID) then
+        return nil, "player_map_coordinates_missing"
+    end
+
+    if tonumber(waypoint.worldX) and tonumber(waypoint.worldY) and
+       MG.NavigationDistance and MG.NavigationDistance.MapToWorld then
+        local playerWorld = MG.NavigationDistance:MapToWorld(
+            tonumber(position.mapID),
+            tonumber(position.x),
+            tonumber(position.y))
+
+        if playerWorld then
+            local dx = tonumber(waypoint.worldX) - playerWorld.x
+            local dy = tonumber(waypoint.worldY) - playerWorld.y
+            local absolute = self:AbsoluteFromWorldDelta(dx, dy)
+            return withFacing(
+                absolute,
+                playerFacing,
+                "restedxp_world_coordinates",
+                {
+                    playerWorld = playerWorld,
+                    targetWorld = {
+                        x = tonumber(waypoint.worldX),
+                        y = tonumber(waypoint.worldY),
+                    },
+                    deltaWorldX = dx,
+                    deltaWorldY = dy,
+                })
+        end
+
+        return nil, "player_world_coordinates_unavailable"
     end
 
     if waypoint.mapID and position.mapID and
@@ -54,26 +107,19 @@ function B:Resolve(position, waypoint, playerFacing)
         return nil, "different_map_name"
     end
 
-    local deltaEast = tonumber(waypoint.x) - tonumber(position.x)
-    -- UI-map Y grows downwards, so north is the inverse Y delta.
-    local deltaNorth = tonumber(position.y) - tonumber(waypoint.y)
-    local absolute = self:AbsoluteFromMapDelta(deltaEast, deltaNorth)
-    if absolute == nil then return nil, "bearing_unavailable" end
-
-    playerFacing = tonumber(playerFacing)
-    if playerFacing == nil then
-        return {
-            absolute = absolute,
-            relative = nil,
-            reliable = false,
-            reason = "player_facing_unavailable",
-        }
+    if waypoint.x == nil or waypoint.y == nil then
+        return nil, "waypoint_map_coordinates_missing"
     end
 
-    return {
-        absolute = absolute,
-        relative = normalizeRelative(absolute - playerFacing),
-        reliable = true,
-        reason = "map_delta_and_player_facing",
-    }
+    local deltaEast = tonumber(waypoint.x) - tonumber(position.x)
+    local deltaNorth = tonumber(position.y) - tonumber(waypoint.y)
+    local absolute = self:AbsoluteFromMapDelta(deltaEast, deltaNorth)
+    return withFacing(
+        absolute,
+        playerFacing,
+        "map_delta_and_player_facing",
+        {
+            deltaEast = deltaEast,
+            deltaNorth = deltaNorth,
+        })
 end
