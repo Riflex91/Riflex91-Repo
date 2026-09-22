@@ -1,6 +1,6 @@
 # PR20.3 – Markt/Kaufen/Verkaufen: NO-WRITE-Vorbereitung
 
-**Status:** BUY-GOLD 7/7 REAL BESTANDEN / NPC-SELL STUFENTEST BEREIT  
+**Status:** BUY-GOLD 7/7 + NPC-SELL 7/7 REAL BESTANDEN / EXIT-GATE BEREIT  
 **Stand:** 2026-09-22  
 **Voraussetzung:** PR20.2 breite Bankfreigabe erteilt; PR20.3 muss jetzt seine eigenen Safety-/Live-Gates bestehen  
 **Basis-main:** `0c7bffa935d7055d074fa4a3b93d11c861515153`
@@ -257,8 +257,7 @@ Ergebnis:
 Die anfaenglichen Kandidaten-Blockaden waren reine read-only
 Umwelt-/Reichweitenbedingungen und verbrauchten kein Live-Testbudget.
 
-Damit ist der naechste aktive PR20.3-Ingame-Test der bereits gemergte
-NPC-Sell-Stufentest.
+Der NPC-Sell-Stufentest wurde inzwischen ebenfalls real 7/7 bestanden.
 
 
 ## Operator-Abnahme Player-Market Trade
@@ -285,4 +284,35 @@ Listing-Fingerprint, Seite/Item/Level/Preis/Menge, Target-/Distance-Kontext,
 Partial-Fill-Reconciliation, Server-Selected-Item-Reproduktion bei
 `trade_sell`, Variant-Ambiguity-Block und `sameIntentRetry=false`.
 
-Der aktuell laufende NPC-Sell-Stufentest bleibt das aktive PR20.3-Ingame-Gate.
+Nach Buy-Gold-, NPC-Sell- und Trade-Roadmap-Abnahme ist jetzt das formale PR20.3-Exit-Gate zu pruefen.
+
+
+## Reale NPC-Sell-Evidence
+
+Der persistente `V5 · PR20.3 Markt · NPC-Sell Stufentest` wurde real im
+Adventure-Land-Browser vollstaendig ausgefuehrt und **7/7 BESTANDEN**.
+
+Der GUI-Gesamtbericht wurde nach dem Test versehentlich nicht kopiert. Die
+Repo-Evidence wurde deshalb transparent aus den vom Operator direkt
+bestaetigten Testergebnissen rekonstruiert:
+
+`roadmap/pr20-3-market-sell-evidence.json`
+
+Es werden bewusst keine nicht mehr belegbaren Laufzeitdetails erfunden. Die
+gespeicherten Fakten sind:
+
+- LIVE 1: exakt `sell(index, 1)`, ein Gameplay-Write, Promise RESOLVED,
+  +12 Gold / -1 Item, Restinventar unveraendert, Slot und Merchant-Gate OK,
+  Settlement `BESTAETIGT`;
+- LIVE 2: dieselben fachlichen Postconditions, erneut +12 Gold / -1 Item,
+  Settlement `BESTAETIGT`;
+- beide verkauften Einheiten stammen aus den zuvor bestaetigten
+  Buy-Gold-Testeinheiten `hpot0`;
+- Sell-Live-Testbudget 2/2 verbraucht; kein weiterer echter NPC-Sell-Test;
+- 5M NO-WRITE: 300010 ms, 21 Samples, 0 Gaps, 0 Blocker-Samples,
+  0 Gameplay-Writes und 0 mutierende Public-Function-Aufrufe;
+- `sameIntentRetry=false`;
+- keine Account-ID oder identifizierenden Tokens in der Evidence.
+
+Die Rekonstruktion ist als solche maschinenlesbar markiert
+(`rawGuiReportAvailable=false`) und ersetzt keinen erfundenen Rohbericht.

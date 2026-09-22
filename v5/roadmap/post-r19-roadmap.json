@@ -82,18 +82,11 @@
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN",
     "PR20.2 Bank ist breit freigegeben; lokale Withdraw/Open-Pack-Gates bleiben erhalten",
     "PR20.3 buy_with_gold(item, 1) ist real 7/7 BESTANDEN mit 2/2 exakten Live-Settlements und bestandenem 5m-NO-WRITE",
-    "keine weiteren Buy-Gold-Live-Funktionstests",
-    "AKTUELL: NPC-Sell-Gesamttest aus dem bereits gemergten 7-Stufen-Paket",
-    "Sell Schritt 1 prueft die persistente Buy-Gold-Evidence und Umgebung",
-    "Sell Schritte 2-3 pinnen Kandidat und pruefen Shadow/Admission read-only",
-    "Sell Schritt 4 ist kontrollierter LIVE 1 Write",
-    "Sell Schritt 5 pinnt den zweiten Testkandidaten frisch",
-    "Sell Schritt 6 ist kontrollierter LIVE 2 Write",
-    "Sell Schritt 7 ist 5-Minuten NO-WRITE Stabilitaet",
-    "danach Sell-Gesamtbericht einmalig als reale PR20.3-Evidence dokumentieren",
+    "PR20.3 NPC-Sell ist real 7/7 BESTANDEN mit 2/2 exakten Live-Settlements und bestandenem 5m-NO-WRITE",
+    "keine weiteren Buy-Gold- oder NPC-Sell-Live-Funktionstests",
     "trade_buy und trade_sell sind fuer die Roadmap vollstaendig durch Operator abgenommen; keine Live-Evidence wird behauptet",
-    "AKTUELL bleibt der laufende NPC-Sell-Gesamttest",
-    "nach dessen Evidence koennen die verbleibenden PR20.3-Gates bewertet werden"
+    "AKTUELL: PR20.3 Exit-Gate gegen die vorhandenen Vertraege formal pruefen",
+    "bei bestandenem Exit-Gate PR20.4 Logistik/Transfers freigeben"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -850,7 +843,7 @@
     "broadBankReleaseScope": "BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES"
   },
   "pr20_3": {
-    "status": "BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT",
+    "status": "BUY_GOLD_UND_SELL_BESTANDEN_EXIT_GATE_BEREIT",
     "productiveMutationAllowed": false,
     "gameplayAuthority": false,
     "firstLiveCandidateSelected": true,
@@ -862,9 +855,9 @@
     "mergeZwischenTestschrittenErforderlich": false,
     "maxTrueTests": 2,
     "sameIntentRetry": false,
-    "nextAction": "INGAME_NPC_SELL_STUFEN_1_BIS_7",
+    "nextAction": "PR20_3_EXIT_GATE_FORMAL_PRUEFEN",
     "nextPreparedCandidate": {
-      "status": "VORBEREITET_WARTET_AUF_BUY_GOLD_7_OF_7",
+      "status": "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
       "publicFunction": "sell",
       "quantity": 1,
       "source": "two committed Buy-Gold test units",
@@ -874,17 +867,23 @@
       "mergeBetweenStepsRequired": false,
       "maxTrueTests": 2,
       "productiveGameplayAuthority": false,
-      "sameIntentRetry": false
+      "sameIntentRetry": false,
+      "evidence": "v5/roadmap/pr20-3-market-sell-evidence.json",
+      "liveTestsConsumed": 2,
+      "additionalTrueFunctionalTestAllowed": false
     },
     "buyGoldStatus": "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
     "buyGoldEvidence": "v5/roadmap/pr20-3-market-buy-gold-evidence.json",
     "buyGoldAdditionalLiveTestAllowed": false,
-    "activeTest": "NPC_SELL_STEP_TEST",
-    "activeTestHarness": "v5/werkzeuge/pr20-3-market-sell-step-test-paket.js",
+    "activeTest": "PR20_3_EXIT_GATE_FORMAL_PRUEFUNG",
+    "activeTestHarness": null,
     "tradeBuyStatus": "VOLL_ABGENOMMEN_OPERATOR_OHNE_LIVE_EVIDENCE",
     "tradeSellStatus": "VOLL_ABGENOMMEN_OPERATOR_OHNE_LIVE_EVIDENCE",
     "tradeOperatorAcceptance": "v5/roadmap/pr20-3-trade-operator-acceptance.json",
     "tradePathsBlockSequencing": false,
-    "productiveTradeAuthority": false
+    "productiveTradeAuthority": false,
+    "sellStatus": "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
+    "sellEvidence": "v5/roadmap/pr20-3-market-sell-evidence.json",
+    "sellAdditionalLiveTestAllowed": false
   }
 }

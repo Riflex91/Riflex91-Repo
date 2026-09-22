@@ -75,25 +75,25 @@ test("Buy-Gold Live-Budget ist 2/2 verbraucht und weitere echte Tests bleiben ge
   assert.equal(plan.resultEvidence, "v5/roadmap/pr20-3-market-buy-gold-evidence.json");
 });
 
-test("Nach Buy-Gold-Evidence wird NPC-Sell zum naechsten Ingame-Gate ohne produktive Gesamtfreigabe", () => {
-  assert.equal(prep.status, "BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT");
+test("Nach zusaetzlicher Sell-Evidence ist PR20.3 zur formalen Exit-Gate-Pruefung bereit", () => {
+  assert.equal(prep.status, "BUY_GOLD_UND_SELL_BESTANDEN_EXIT_GATE_BEREIT");
   assert.equal(prep.ersterLiveKandidat.status, "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M");
   assert.equal(prep.ersterLiveKandidat.liveTestsConsumed, 2);
   assert.equal(prep.ersterLiveKandidat.additionalTrueFunctionalTestAllowed, false);
   assert.equal(
     prep.naechsterVorbereiteterKandidat.status,
-    "BEREIT_FUER_INGAME_NPC_SELL_STUFENTEST",
+    "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
   );
   assert.equal(
     sell.status,
     "BEREIT_FUER_INGAME_NPC_SELL_STUFENTEST",
   );
   assert.equal(sell.sourceRequirementSatisfiedByRepoEvidence, true);
-  assert.equal(sellPlan.status, "BEREIT_FUER_INGAME_NPC_SELL_STUFENTEST");
+  assert.equal(sellPlan.status, "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M");
   assert.equal(sellPlan.sourceRequirementSatisfiedByRepoEvidence, true);
   assert.equal(roadmap.pr20_3.buyGoldStatus, "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M");
   assert.equal(roadmap.pr20_3.buyGoldAdditionalLiveTestAllowed, false);
-  assert.equal(roadmap.pr20_3.activeTest, "NPC_SELL_STEP_TEST");
+  assert.equal(roadmap.pr20_3.activeTest, "PR20_3_EXIT_GATE_FORMAL_PRUEFUNG");
   assert.equal(roadmap.pr20_3.productiveMutationAllowed, false);
   assert.equal(roadmap.pr20_3.gameplayAuthority, false);
   assert.equal(roadmap.pr20_3.sameIntentRetry, false);

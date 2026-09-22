@@ -134,11 +134,11 @@ if (roadmap.currentGate !== "PR20.3_MARKT_PRODUKTIVIERUNG"
     || roadmap.pr20_2?.broadBankActivationAllowed !== true
     || roadmap.pr20_2?.withdrawActivationAllowed !== false
     || roadmap.pr20_2?.openBankPackActivationAllowed !== false
-    || roadmap.pr20_3?.status !== "BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT") {
+    || !["BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT", "BUY_GOLD_UND_SELL_BESTANDEN_EXIT_GATE_BEREIT"].includes(roadmap.pr20_3?.status)) {
   fail("ROADMAP_TRANSITION_ZU_PR20_3_UNGUELTIG");
 }
 
-if (market.status !== "BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT"
+if (!["BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT", "BUY_GOLD_UND_SELL_BESTANDEN_EXIT_GATE_BEREIT"].includes(market.status)
     || market.pr20_2Transition?.status !== "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN"
     || market.pr20_2Transition?.broadBankActivationAllowed !== true
     || market.pr20_2Transition?.bankExceptionsRemainLocallyGated !== true
@@ -155,7 +155,7 @@ if (market.status !== "BUY_GOLD_BESTANDEN_SELL_STUFENTEST_BEREIT"
     || market.ersterLiveKandidat?.status !== "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M"
     || market.ersterLiveKandidat?.liveTestsConsumed !== 2
     || market.ersterLiveKandidat?.additionalTrueFunctionalTestAllowed !== false
-    || market.naechsterVorbereiteterKandidat?.status !== "BEREIT_FUER_INGAME_NPC_SELL_STUFENTEST"
+    || !["BEREIT_FUER_INGAME_NPC_SELL_STUFENTEST", "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M"].includes(market.naechsterVorbereiteterKandidat?.status)
     || market.naechsterVorbereiteterKandidat?.produktiveGameplayAutoritaet !== false
     || market.naechsterVorbereiteterKandidat?.sameIntentRetry !== false) {
   fail("PR20_3_TESTKETTE_GRENZE_UNGUELTIG");

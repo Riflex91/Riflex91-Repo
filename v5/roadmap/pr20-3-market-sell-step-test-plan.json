@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-22",
   "kennung": "V5_PR20_3_MARKET_SELL_STEP_TEST_PLAN",
-  "status": "BEREIT_FUER_INGAME_NPC_SELL_STUFENTEST",
+  "status": "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
   "basisMain": "ceeeb9f1fa5eb8c1e70e38de85d007987fcdacb0",
   "paket": "v5/werkzeuge/pr20-3-market-sell-step-test-paket.js",
   "stateKey": "AIO_V5_PR20_3_SELL_STEP_TEST_V1",
@@ -25,7 +25,8 @@
     "maxTrueTests": 2,
     "persistent": true,
     "resetImGui": false,
-    "sameIntentRetry": false
+    "sameIntentRetry": false,
+    "additionalTrueFunctionalTestAllowed": false
   },
   "steps": [
     {
@@ -90,7 +91,28 @@
     "bei UNKNOWN/Drift/Timeout kein Same-Intent-Retry",
     "Reload setzt Testbudget nicht zurueck"
   ],
-  "completion": "Nach Schritt 7 einmal Gesamtbericht kopieren; kein Merge zwischen den sieben Ingame-Schritten. Buy-Gold-Voraussetzung ist real bestanden.",
+  "completion": "BESTANDEN; 7/7 abgeschlossen, Sell-Live-Testbudget 2/2 verbraucht, kein weiterer NPC-Sell-Funktionstest. PR20.3 Exit-Gate formal pruefen.",
   "buyGoldEvidence": "v5/roadmap/pr20-3-market-buy-gold-evidence.json",
-  "sourceRequirementSatisfiedByRepoEvidence": true
+  "sourceRequirementSatisfiedByRepoEvidence": true,
+  "resultEvidence": "v5/roadmap/pr20-3-market-sell-evidence.json",
+  "actual": {
+    "reconstruction": "OPERATOR_ATTESTED_INGAME_RESULT_MANUALLY_RECONSTRUCTED",
+    "rawGuiReportAvailable": false,
+    "sourceItem": "hpot0",
+    "liveTestsConsumed": 2,
+    "liveTestsMax": 2,
+    "live1Settlement": "BESTAETIGT",
+    "live2Settlement": "BESTAETIGT",
+    "live1GoldDelta": 12,
+    "live1ItemDelta": -1,
+    "live2GoldDelta": 12,
+    "live2ItemDelta": -1,
+    "live1RestInventoryUnveraendert": true,
+    "live2RestInventoryUnveraendert": true,
+    "noWrite5mDurationMs": 300010,
+    "noWrite5mSamples": 21,
+    "noWrite5mSampleGaps": 0,
+    "noWrite5mBlockerSamples": 0,
+    "sameIntentRetry": false
+  }
 }
