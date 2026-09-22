@@ -16,10 +16,11 @@
   "testStrategy": {
     "function5mCompleted": true,
     "integration15mRequiredNow": false,
-    "integration15mReason": "Ein 15-Minuten-Integrations-/Releasegate ist erst sinnvoll, wenn PR20.2 fachlich exit-faehig ist. Der aktuelle Lauf koennte die beiden harten Blocker nicht schliessen.",
+    "integration15mReason": "Die ausdrueckliche Operator-Breitfreigabe schliesst den PR20.2-Meilenstein fuer die Roadmap ohne weiteren 15m-Bank-Soak. Der globale Testzeitstandard bleibt fuer kuenftige Integrations-/Releasegates unveraendert; dies ist eine dokumentierte PR20.2-Freigabeentscheidung.",
     "additionalReadOnlySoakValueNow": "KEIN_GATE_NUTZEN",
     "noBlindRetry": true,
-    "sameIntentRetry": false
+    "sameIntentRetry": false,
+    "operatorReleaseOverridesAdditionalPr20_2Soak": true
   },
   "policy": {
     "breiteBankAktivierungErlaubt": true,
