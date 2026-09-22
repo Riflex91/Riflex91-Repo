@@ -76,7 +76,15 @@ test("Direkte Ingame-Evidence bleibt 4/5 und Open-Pack ist separat read-only ges
 
 
 test("Vorbereiteter 5m NO-WRITE-Lauf oeffnet keinen PR20.2-Blocker", () => {
-  assert.equal(gate.noWriteIntegration.bank5mStatus, "BEREIT_FUER_INGAME_READ_ONLY");
+  assert.equal(
+    gate.noWriteIntegration.bank5mStatus,
+    "SERVER_BINDING_FIX_CI_AUSSTEHEND_DANN_INGAME_READ_ONLY_ERNEUT",
+  );
+  assert.equal(gate.noWriteIntegration.controllerVersion, "1.0.1");
+  assert.equal(
+    gate.noWriteIntegration.previousBlockedPreflightEvidence,
+    "v5/roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json",
+  );
   assert.equal(
     gate.noWriteIntegration.testPlan,
     "v5/roadmap/pr20-2-bank-no-write-5m-test-plan.json",
@@ -89,11 +97,14 @@ test("Vorbereiteter 5m NO-WRITE-Lauf oeffnet keinen PR20.2-Blocker", () => {
   assert.equal(gate.noWriteIntegration.mutatingPublicFunctionCalls, 0);
   assert.equal(gate.noWriteIntegration.functionalTestBudgetConsumed, false);
   assert.equal(gate.noWriteIntegration.schliesstBlockerNicht, true);
-  assert.equal(gate.nextAction, "PR20_2_BANK_NO_WRITE_5M_INGAME_AUSFUEHREN");
+  assert.equal(
+    gate.nextAction,
+    "PR20_2_BANK_NO_WRITE_5M_PREFLIGHT_NACH_SERVER_BINDING_FIX_ERNEUT_AUSFUEHREN",
+  );
   assert.equal(roadmap.parallelPreparation.pr20_2ExitGate.status, "BLOCKIERT_FAIL_CLOSED");
   assert.equal(
     roadmap.parallelPreparation.pr20_2ExitGate.noWrite5mStatus,
-    "BEREIT_FUER_INGAME_READ_ONLY",
+    "SERVER_BINDING_FIX_CI_AUSSTEHEND_DANN_INGAME_READ_ONLY_ERNEUT",
   );
   assert.equal(roadmap.parallelPreparation.pr20_2ExitGate.pr20_3MarktStartErlaubt, false);
 });
