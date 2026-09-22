@@ -10,6 +10,11 @@ on:
       - 'v5/grundlage/quelle/merchant/task-koordinator.ts'
       - 'v5/grundlage/tests/pr20-merchant-dienst-stabilitaet-integration.test.mjs'
       - 'v5/grundlage/tests/pr20-merchant-dienst-stabilitaet.test.mjs'
+      - 'v5/roadmap/pr20-5-merchant-stability-evidence.json'
+      - 'v5/roadmap/pr20-5-merchant-stability-exit-gate-status.json'
+      - 'v5/werkzeuge/pr20-5-merchant-stability-exit-gate-pruefen.mjs'
+      - 'v5/grundlage/tests/pr20-merchant-stability-exit-gate-status.test.mjs'
+      - 'v5/roadmap/post-r19-roadmap.json'
       - 'v5/package.json'
       - '.github/workflows/v5-pr20-5-autonomous-4char.yml'
   workflow_dispatch:
