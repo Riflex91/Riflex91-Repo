@@ -116,7 +116,7 @@
     "bank-swap-evening:shadow": "npm run bauen && node werkzeuge/bank-swap-real-browser-shadow.mjs",
     "bank-swap-evening:no-write-pruefen": "npm run bauen && node --check werkzeuge/bank-swap-evening-evidence.mjs && node --check werkzeuge/bank-swap-candidate-stability.mjs && node --check werkzeuge/bank-swap-code-bridge-probe.mjs && node --check werkzeuge/bank-swap-real-browser-shadow.mjs && node --test grundlage/tests/r11-bank-swap-produktions-browser.test.mjs",
     "bank-swap-evening:write-preflight": "npm run bauen && node werkzeuge/bank-swap-write-preflight.mjs",
-    "bank-swap-evening:write-pruefen": "npm run bauen && node --check werkzeuge/bank-swap-produktions-write-browser.mjs && node --check werkzeuge/bank-swap-write-preflight.mjs && node --check werkzeuge/bank-swap-produktions-live.mjs",
+    "bank-swap-evening:write-pruefen": "npm run bauen && node --check werkzeuge/bank-swap-produktions-write-browser.mjs && node --check werkzeuge/bank-swap-write-preflight.mjs && node --check werkzeuge/bank-swap-produktions-live.mjs && node --test grundlage/tests/r11-bank-swap-produktions-transaktion.test.mjs grundlage/tests/r11-bank-swap-produktions-write-browser.test.mjs grundlage/tests/r11-bank-swap-runtime-surface.test.mjs",
     "bank-swap-evening:live": "npm run bauen && node werkzeuge/bank-swap-produktions-live.mjs"
   },
   "devDependencies": {
