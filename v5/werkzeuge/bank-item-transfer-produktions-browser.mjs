@@ -99,10 +99,23 @@ export function validiereBankItemTransferExplizitenKandidaten(v,ausgang,zeit,mod
 export async function warteAufManuellenBankItemTransferMountReadOnly(session,contextId,ausgang,modus,erwarteterKandidat,{timeoutMs=90_000,pollMs=500,onPhase=()=>{}}={}){
  const m=mode(modus),start=Date.now();let letzter=null;onPhase("LEASE_ERWORBEN_BANK_MANUELL_BETRETEN");
  while(Date.now()-start<=timeoutMs){const roh=await beobachteBankItemTransferRohReadOnly(session,contextId);if(!gleicheIdentitaet(roh,ausgang))throw new Error("BANK_"+m+"_MOUNT_BINDUNG_DRIFT");
-  if(roh.bankGemountet){const snap=validiereBankItemTransferMountBeobachtung(roh,ausgang,Date.now(),m,erwarteterKandidat),k=kandidat(snap,m);const key=snap.fingerprint+":"+k.pack+":"+k.bankSlot+":"+k.inventorySlot+":"+k.item.fingerprint;
+  if(roh.bankGemountet){
+   const snap=erwarteterKandidat
+    ?validiereBankItemTransferExplizitenKandidaten(roh,ausgang,Date.now(),m,erwarteterKandidat)
+    :validiereBankItemTransferMountBeobachtung(roh,ausgang,Date.now(),m,null);
+   const k=snap.expliziterKandidat??kandidat(snap,m);const key=snap.fingerprint+":"+k.pack+":"+k.bankSlot+":"+k.inventorySlot+":"+k.item.fingerprint;
    if(letzter===key){onPhase("BANK_"+m+"_MOUNT_STABIL_BEOBACHTET");return snap}letzter=key;
   }else letzter=null;await sleep(pollMs)}
  throw new Error("BANK_"+m+"_MANUELLER_MOUNT_TIMEOUT");
+}
+export async function warteAufStabilenBankItemTransferStartAusserhalbBankReadOnly(session,contextId,{timeoutMs=90_000,pollMs=500,onPhase=()=>{}}={}){
+ const start=Date.now();let key=null;onPhase("BANK_AUSSERHALB_ERFORDERLICH");
+ while(Date.now()-start<=timeoutMs){
+  const raw=validiereBankItemTransferAusgangsBeobachtung(await beobachteBankItemTransferRohReadOnly(session,contextId));
+  const current=hash(stable({accountId:raw.accountId,charakterName:raw.charakterName,sessionId:raw.sessionId,serverRegion:raw.serverRegion,serverKennung:raw.serverKennung,map:raw.map,inventory:raw.inventory,inventoryCapacity:raw.inventoryCapacity,characterGold:raw.characterGold}));
+  if(key===current){onPhase("BANK_AUSSERHALB_STABIL");return raw}key=current;await sleep(pollMs);
+ }
+ throw new Error("BANK_ITEM_TRANSFER_AUSSERHALB_BANK_TIMEOUT");
 }
 export function erstelleBankItemTransferReleaseBeobachter(session,contextId,mountBeobachtung,modus,{timeoutMs=90_000,pollMs=500,onPhase=()=>{}}={}){
  const m=mode(modus);return Object.freeze({async beobachte(){const start=Date.now();onPhase("BANK_"+m+"_BANK_MANUELL_VERLASSEN");

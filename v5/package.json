@@ -135,7 +135,12 @@
     "bank-item-transfer-evening:shadow-pruefen": "npm run bauen && node --check werkzeuge/bank-item-transfer-real-browser-shadow.mjs && node --check werkzeuge/bank-item-transfer-produktions-browser.mjs && node --test grundlage/tests/r11-bank-item-transfer-shadow-runtime.test.mjs grundlage/tests/r11-bank-item-transfer-real-shadow-static.test.mjs",
     "ingame:bank-retrieve:shadow": "npm run bauen && node werkzeuge/bank-item-transfer-real-browser-shadow.mjs --mode RETRIEVE",
     "ingame:bank-store:shadow": "npm run bauen && node werkzeuge/bank-item-transfer-real-browser-shadow.mjs --mode STORE",
-    "bank-item-transfer-evening:write-core-pruefen": "npm run bauen && node --check werkzeuge/bank-item-transfer-produktions-write-browser.mjs && node --check grundlage/adapter/persistenz/node-bank-item-transfer-live-test-sequence.mjs && node --test grundlage/tests/r11-bank-item-transfer-produktions-write-browser.test.mjs grundlage/tests/r11-bank-item-transfer-live-test-sequence.test.mjs grundlage/tests/r11-bank-item-transfer-produktions-transaktion.test.mjs grundlage/tests/r11-bank-item-transfer-runtime-live-surface.test.mjs"
+    "bank-item-transfer-evening:write-core-pruefen": "npm run bauen && node --check werkzeuge/bank-item-transfer-produktions-write-browser.mjs && node --check grundlage/adapter/persistenz/node-bank-item-transfer-live-test-sequence.mjs && node --test grundlage/tests/r11-bank-item-transfer-produktions-write-browser.test.mjs grundlage/tests/r11-bank-item-transfer-live-test-sequence.test.mjs grundlage/tests/r11-bank-item-transfer-produktions-transaktion.test.mjs grundlage/tests/r11-bank-item-transfer-runtime-live-surface.test.mjs",
+    "bank-item-transfer-evening:write-live-pruefen": "npm run bauen && node --check werkzeuge/bank-item-transfer-produktions-live.mjs && node --test grundlage/tests/r11-bank-item-transfer-live-static.test.mjs",
+    "ingame:bank-retrieve:write-preflight": "npm run bauen && node werkzeuge/bank-item-transfer-produktions-live.mjs --mode RETRIEVE --preflight",
+    "ingame:bank-retrieve:live": "npm run bauen && node werkzeuge/bank-item-transfer-produktions-live.mjs --mode RETRIEVE",
+    "ingame:bank-store:write-preflight": "npm run bauen && node werkzeuge/bank-item-transfer-produktions-live.mjs --mode STORE --preflight",
+    "ingame:bank-store:live": "npm run bauen && node werkzeuge/bank-item-transfer-produktions-live.mjs --mode STORE"
   },
   "devDependencies": {
     "typescript": "5.9.3"
