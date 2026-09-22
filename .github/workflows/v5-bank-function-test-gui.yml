@@ -16,6 +16,8 @@ on:
       - 'v5/grundlage/vertraege/runtime/bank-open-pack-production-candidate.json'
       - 'v5/grundlage/tests/pr20-bank-open-pack-settlement.test.mjs'
       - 'v5/roadmap/pr20-2-bank-open-pack-shadow-evidence.json'
+      - 'v5/roadmap/pr20-2-bank-open-pack-admission-evidence.json'
+      - 'v5/grundlage/tests/pr20-bank-open-pack-admission-evidence.test.mjs'
       - 'v5/architektur/adr/ADR-048-PR20-2T-BANK-OPEN-PACK-SHADOW-SETTLEMENT-NO-WRITE.md'
       - 'v5/grundlage/vertraege/runtime/bank-production-preparation.json'
       - 'v5/package.json'

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "SHADOW_BESTANDEN_LIVE_RESOURCE_BLOCKED_NO_WRITE",
+  "status": "SHADOW_AND_ADMISSION_READ_ONLY_BESTANDEN_RESOURCE_BLOCKED_NO_LIVE",
   "publicFunction": "open_bank_pack",
   "actionContractId": "AL-ACTION-OPEN-BANK-PACK",
   "recoveryContractId": "AL-RECOVERY-OPEN-BANK-PACK",
@@ -51,5 +51,14 @@
   "rawWriteAuthority": false,
   "liveMutationFreigegeben": false,
   "sameIntentRetry": false,
-  "productionWideActivationAllowed": false
+  "productionWideActivationAllowed": false,
+  "admissionEvidence": "v5/roadmap/pr20-2-bank-open-pack-admission-evidence.json",
+  "admissionSafetyCheck": "BESTANDEN",
+  "admissionFunctionalResult": "RESOURCE_BLOCKED_NO_LIVE",
+  "resourceStateAtAdmission": {
+    "characterGold": 15993820,
+    "characterShells": 0,
+    "goldBezahlbar": false,
+    "shellsBezahlbar": false
+  }
 }

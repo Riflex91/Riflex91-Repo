@@ -772,10 +772,13 @@ PR20.1 ist bestanden. Der verbindliche naechste Schritt ist jetzt
 10. **ERLEDIGT:** Write-Adapter und Live-Runner fuer exakt `bank_deposit(1)` komplett CI-gruen pruefen;
 11. **ERLEDIGT:** read-only Write-Preflight auf exakt demselben Head ausfuehren;
 12. **ERLEDIGT:** einzelnes reales `bank_deposit(1)`-Live-Gate mit COMMIT/BESTAETIGT/1 Write bestehen;
-13. **NAECHSTES GATE:** Withdraw/Store/Retrieve/Swap einzeln eng produktivieren;
-14. anschliessend 5m-Bank-Funktionsevidence ohne Duplicate/UNKNOWN-Restzustand.
+13. **TEILWEISE ABGESCHLOSSEN:** Retrieve/Store/Swap direkt ingame jeweils 2/2 COMMITTED und exakt bestaetigt; Withdraw-Testbudget 2/2 verbraucht, vollstaendige Live-Evidence fehlt und kein dritter Write-Test ist erlaubt;
+14. **ERLEDIGT NO-WRITE:** Open-Pack Shadow BESTANDEN sowie Admission read-only als Sicherheitspruefung BESTANDEN;
+15. **BLOCKIERT:** Open-Pack bleibt `RESOURCE_BLOCKED_NO_LIVE` wegen 15.993.820 < 75.000.000 Gold und 0 < 600 Shells;
+16. **AKTUELL:** PR20.2-Exit-Gate fail-closed halten, breite Bank-Aktivierung gesperrt lassen und verbleibende NO-WRITE-/Integrationsarbeiten abschliessen.
 
-Bis zu diesem neuen Live-Gate werden keine echten Bank-Writes ausgefuehrt.
+PR20.3 Markt startet nicht, solange das verbindliche PR20.2-Exit-Gate durch
+Withdraw bzw. Open-Pack noch blockiert ist.
 
 
 ## PR20.2p – Withdraw Zwei-Test-Closeout und CODE-Bridge-Evidence
@@ -818,3 +821,21 @@ breit deaktiviert und darf nicht als produktiv zertifiziert markiert werden.
 
 Evidence:
 `roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json`.
+
+
+## PR20.2u – Open-Pack Admission read-only
+
+Der reale `OPEN PACK · Admission`-Lauf auf
+`a92b94e0c6edf6aa1df1c0713a8233631d1fdd64` ist als Sicherheitspruefung
+**BESTANDEN**, fachlich aber `RESOURCE_BLOCKED_NO_LIVE`.
+
+Beide Zahlungswege sind blockiert: 15.993.820 Gold reichen nicht fuer
+75.000.000 Gold Kosten und 0 Shells reichen nicht fuer 600 Shells. Der Lauf
+hatte 0 Gameplay-Writes, 0 mutierende Public-Function-Aufrufe, erzeugte keinen
+Intent und keine Authority und liess `liveMutationFreigegeben=false`.
+Evidence:
+`roadmap/pr20-2-bank-open-pack-admission-evidence.json`.
+
+Damit bleibt PR20.2 fail-closed. Das ist kein Grund, die Bank kuenstlich
+freizugeben oder zu PR20.3 zu springen; stattdessen werden nur noch moegliche
+NO-WRITE-/Integrationsarbeiten innerhalb PR20.2 fortgesetzt.
