@@ -189,10 +189,24 @@ function MG:GetDiagnosticSnapshot()
             GuideCompiler = self.GuideCompiler ~= nil,
             RuntimeEngine = self.RuntimeEngine ~= nil,
             RuntimeStore = self.RuntimeStore ~= nil,
+            CoordinateConverter = self.CoordinateConverter ~= nil,
             NavigationDistance = self.NavigationDistance ~= nil,
             NavigationBearing = self.NavigationBearing ~= nil,
+            RoutePlanner = self.RoutePlanner ~= nil,
+            TravelPlanner = self.TravelPlanner ~= nil,
+            GuideController = self.GuideController ~= nil,
+            AutomationPolicy = self.AutomationPolicy ~= nil,
+            ActionPolicy = self.ActionPolicy ~= nil,
+            GearScore = self.GearScore ~= nil,
+            RewardAdvisor = self.RewardAdvisor ~= nil,
+            BuildAdvisor = self.BuildAdvisor ~= nil,
             GuideViewer = self.GuideViewer ~= nil,
             NavigatorFrame = self.NavigatorFrame ~= nil,
+            GuideBrowser = self.GuideBrowser ~= nil,
+            ActionBar = self.ActionBar ~= nil,
+            WorldMapOverlay = self.WorldMapOverlay ~= nil,
+            RewardAdvisorFrame = self.RewardAdvisorFrame ~= nil,
+            BuildWindow = self.BuildWindow ~= nil,
             SettingsWindow = self.SettingsWindow ~= nil,
             ErrorLogWindow = self.ErrorLogWindow ~= nil,
         },
@@ -211,12 +225,20 @@ function MG:GetDiagnosticSnapshot()
             destinationGoal = runtime.destinationGoal,
             destinationWaypoint = runtime.destinationWaypoint,
             navigation = runtime.navigation,
+            route = runtime.route,
+            currentRouteSegment = runtime.currentRouteSegment,
+            travel = runtime.travel,
+            presentation = runtime.presentation,
             factsPosition = facts.position,
             livePosition = livePosition,
             playerFacing = facing,
             events = runtime.events,
         },
         navigator = db.runtime and db.runtime.navigator or nil,
+        worldMap = db.runtime and db.runtime.worldMap or nil,
+        actionMemory = self.ActionMemory and self.ActionMemory:Snapshot() or nil,
+        buildAdvice = self.BuildAdvisor and self.BuildAdvisor:Snapshot(runtime) or nil,
+        rewardAdvice = self.RewardAdvisor and self.RewardAdvisor:Get() or nil,
         relevantQuests = relevantQuests,
         settings = db.settings,
         guideSelection = db.guide,
@@ -274,6 +296,14 @@ function MG:GetErrorLogText(includeInfo)
     })
     appendSection(lines, "RUNTIME", snapshot.runtime)
     appendSection(lines, "NAVIGATOR", snapshot.navigator)
+    appendSection(lines, "WELTKARTE / ACTION MEMORY", {
+        worldMap=snapshot.worldMap,
+        actionMemory=snapshot.actionMemory,
+    })
+    appendSection(lines, "BUILD / REWARD", {
+        buildAdvice=snapshot.buildAdvice,
+        rewardAdvice=snapshot.rewardAdvice,
+    })
     appendSection(lines, "RELEVANTE QUESTS", snapshot.relevantQuests)
     appendSection(lines, "EINSTELLUNGEN / UI", {
         settings=snapshot.settings,
