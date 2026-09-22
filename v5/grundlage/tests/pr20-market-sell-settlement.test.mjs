@@ -35,7 +35,12 @@ test("PR20.3 Sell-Kandidat ist auf bestaetigte Buy-Gold-Testeinheiten begrenzt",
   const kandidat = lies(
     "grundlage/vertraege/runtime/market-sell-production-candidate.json",
   );
-  assert.equal(kandidat.status, "VORBEREITET_WARTET_AUF_BUY_GOLD_7_OF_7");
+  assert.equal(kandidat.status, "BEREIT_FUER_INGAME_NPC_SELL_STUFENTEST");
+  assert.equal(kandidat.sourceRequirementSatisfiedByRepoEvidence, true);
+  assert.equal(
+    kandidat.buyGoldEvidence,
+    "roadmap/pr20-3-market-buy-gold-evidence.json",
+  );
   assert.equal(kandidat.publicFunction, "sell");
   assert.equal(kandidat.menge, 1);
   assert.equal(kandidat.actionContractId, "AL-ACTION-SELL");
