@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kennung": "V5_PR20_3_MARKET_BUY_GOLD_ERSTER_KANDIDAT",
   "stand": "2026-09-22",
-  "status": "ERSTER_KANDIDAT_RATIFIZIERT_NO_WRITE",
+  "status": "STUFENTEST_VORBEREITET_EIN_MERGE",
   "basisMain": "55446d26ac13888816761c97b02006aeafa65bcb",
   "publicFunction": "buy_with_gold",
   "menge": 1,
@@ -56,13 +56,18 @@
   },
   "authorityGrenze": {
     "produktiveCapabilityInDiesemSchritt": false,
-    "authorityInDiesemSchritt": false,
-    "journalInDiesemSchritt": false,
-    "adapterInDiesemSchritt": false,
-    "liveRunnerInDiesemSchritt": false,
-    "gameplayAutoritaet": false,
+    "produktiveAuthorityInDiesemSchritt": false,
+    "produktiverAdapterInDiesemSchritt": false,
+    "produktiverLiveRunnerInDiesemSchritt": false,
+    "testHarnessMitKontrolliertemLiveWrite": true,
+    "testHarnessMaxTrueTests": 2,
+    "testHarnessStateKey": "AIO_V5_PR20_3_BUY_GOLD_STEP_TEST_V1",
+    "testHarnessPaket": "werkzeuge/pr20-3-market-buy-gold-step-test-paket.js",
+    "testHarnessSchritte": 7,
+    "mergeZwischenTestschrittenErforderlich": false,
+    "gameplayAutoritaetProduktiv": false,
     "rawWriteAutoritaet": false,
-    "gameplayWritesInDiesemSchritt": 0
+    "sameIntentRetry": false
   },
-  "nextAction": "SETTLEMENT_CORE_UND_OFFLINE_TESTS_DANN_CAPABILITY_AUTHORITY_JOURNAL_NO_WRITE"
+  "nextAction": "EINMAL_MERGEN_DANN_STUFEN_1_BIS_7_DIREKT_INGAME_ABARBEITEN"
 }
