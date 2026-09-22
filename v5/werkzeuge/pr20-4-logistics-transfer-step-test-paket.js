@@ -463,7 +463,7 @@
   'use strict';
 
   const API_NAME = 'V5PR204TransferStepTest';
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
   const TESTKENNUNG = 'pr20-4-logistics-transfer-step-test';
   const STATE_KEY = 'AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1';
   const ACTORS_KEY = 'AIO_V5_PR20_4_TRANSFER_ACTORS_V1';
@@ -482,6 +482,12 @@
   const CONFIRM_ITEM_2 = 'PR20.4-ITEM-LIVE-2-COLLECTION';
   const CONFIRM_GOLD_1 = 'PR20.4-GOLD-LIVE-1';
   const CONFIRM_GOLD_2 = 'PR20.4-GOLD-LIVE-2';
+  const AUTO_RUN_ENABLED = true;
+  const AUTO_RUN_INTERVAL_MS = 2000;
+  const AUTO_RUN_LOCK_KEY = 'AIO_V5_PR20_4_TRANSFER_AUTORUN_LOCK_V1';
+  const AUTO_RUN_LOCK_TTL_MS = 10000;
+  const AUTO_CONTEXT_ID =
+    'ctx-' + String(Date.now()) + '-' + Math.random().toString(36).slice(2);
 
   function rootFenster() {
     const kandidaten = [];
@@ -676,6 +682,8 @@
       isize: Math.max(0, Math.trunc(Number(root.character?.isize || root.character?.items?.length || 0))),
       items,
       inventoryFingerprint: fingerprint(items),
+      controllerVersion: VERSION,
+      autoRunCapable: true,
       runtime: runtimeStatus(),
       performanceTrickAktiv: perf.aktiv === true,
       observedAtMs: Date.now()
@@ -712,6 +720,12 @@
       intents: [],
       soaks: {},
       steps: {},
+      autoRun: {
+        mode: 'AUTO_ON_LOAD',
+        controllerVersion: VERSION,
+        status: 'BEREIT',
+        sameIntentErneutSenden: false
+      },
       sameIntentErneutSenden: false
     };
   }
@@ -729,6 +743,14 @@
       intents: Array.isArray(raw.intents) ? raw.intents : [],
       soaks: raw.soaks || {},
       steps: raw.steps || {},
+      autoRun: raw.autoRun?.controllerVersion === VERSION
+        ? raw.autoRun
+        : {
+            mode: 'AUTO_ON_LOAD',
+            controllerVersion: VERSION,
+            status: 'BEREIT',
+            sameIntentErneutSenden: false
+          },
       sameIntentErneutSenden: false
     };
   }
@@ -764,6 +786,8 @@
       sessionGebunden: !!snap.sessionId,
       mapGebunden: !!snap.map,
       alternativeRuntimeAktiv: snap.runtime.alternativeRuntimeAktiv,
+      controllerVersion: snap.controllerVersion,
+      autoRunCapable: snap.autoRunCapable === true,
       observedAtMs: snap.observedAtMs
     });
   }
@@ -809,6 +833,12 @@
     if (current.map !== target.map) blocker.push('MAP_DRIFT');
     if (current.runtime.alternativeRuntimeAktiv || target.runtime.alternativeRuntimeAktiv) {
       blocker.push('ALTERNATIVE_RUNTIME_AKTIV');
+    }
+    if (current.controllerVersion !== VERSION || target.controllerVersion !== VERSION) {
+      blocker.push('CONTROLLER_VERSION_DRIFT');
+    }
+    if (current.autoRunCapable !== true || target.autoRunCapable !== true) {
+      blocker.push('AUTORUN_PEER_FEHLT');
     }
     if (!current.performanceTrickAktiv || !target.performanceTrickAktiv) {
       blocker.push('PERFORMANCE_TRICK_NICHT_AKTIV');
@@ -879,6 +909,51 @@
       && !item.cash && !item.quest && !item.event && !item.exchange
       && item.basisGold <= 10000
       && item.menge >= ITEM_MENGE;
+  }
+
+  function collectionReturnCandidate(item, supplyPin) {
+    return !!item
+      && !!supplyPin
+      && item.name === supplyPin.name
+      && Number(item.level || 0) === Number(supplyPin.level || 0)
+      && item.plain
+      && !item.locked
+      && item.menge >= ITEM_MENGE;
+  }
+
+  function collectionReturnCapacity(state, merchant, supplyPin) {
+    const prior = latestIntent(state, 'ITEM', 1);
+    if (!merchant || !supplyPin || !prior || prior.status !== 'COMMITTED') {
+      return { ok: false, inferredFromConfirmedOutbound: false };
+    }
+    const expected = supplyPin.senderTotalBaseline - supplyPin.quantity;
+    const currentTotal = totalMenge(merchant.items, supplyPin.name, supplyPin.level);
+    const currentOther = otherInventoryFingerprint(
+      merchant.items, supplyPin.name, supplyPin.level
+    );
+    const senderEvidenceOk = prior.senderDeltaConfirmed === true
+      && prior.senderPost?.total === expected
+      && prior.senderPost?.otherInventoryFingerprint
+        === supplyPin.senderOtherInventoryFingerprint;
+    const liveBaselineOk = currentTotal === expected
+      && currentOther === supplyPin.senderOtherInventoryFingerprint;
+    return {
+      ok: senderEvidenceOk && liveBaselineOk,
+      inferredFromConfirmedOutbound: senderEvidenceOk && liveBaselineOk,
+      freeUnitsAtLeast: senderEvidenceOk && liveBaselineOk ? supplyPin.quantity : 0
+    };
+  }
+
+  function recipientCapacityForTransfer(state, recipient, item, pin) {
+    if (pin?.direction !== 'PARTNER_TO_MERCHANT') {
+      return recipientCapacity(recipient, item);
+    }
+    const supplyPin = state.itemPins?.supply;
+    const evidence = collectionReturnCapacity(state, recipient, supplyPin);
+    if (!pin.collectionReturnCapacityConfirmed) {
+      return { ...evidence, ok: false };
+    }
+    return evidence;
   }
 
   function recipientCapacity(actor, item) {
@@ -1052,6 +1127,12 @@
       })),
       intents: state.intents.map(publicIntent),
       soaks: state.soaks,
+      autoRun: {
+        mode: 'AUTO_ON_LOAD',
+        controllerVersion: VERSION,
+        status: state.autoRun?.status || 'BEREIT',
+        reason: state.autoRun?.reason || null
+      },
       sameIntentErneutSenden: false
     };
   }
@@ -1259,7 +1340,9 @@
              !== pin.recipientOtherInventoryFingerprint) {
         throw new Error('ITEM_RECIPIENT_BASELINE_DRIFT');
       }
-      if (!recipientCapacity(recipient, item).ok) throw new Error('ITEM_RECIPIENT_CAPACITY_FEHLT');
+      if (!recipientCapacityForTransfer(state, recipient, item, pin).ok) {
+        throw new Error('ITEM_RECIPIENT_CAPACITY_FEHLT');
+      }
     } else {
       if (sender.gold !== pin.senderGoldBaseline) throw new Error('GOLD_SENDER_BASELINE_DRIFT');
       if (recipient.gold !== pin.recipientGoldBaseline
@@ -1533,18 +1616,26 @@
         && merchant.observedAtMs < latestIntent(state, 'ITEM', 1).committedAtMs) {
       blocker.push('MERCHANT_RECIPIENT_BASELINE_NICHT_FRISCH');
     }
+    const supplyPin = state.itemPins?.supply || null;
     const sourceCandidates = partner?.items
-      ?.filter(x => x.name === baseline?.name && x.level === baseline?.level && safeCandidate(x))
+      ?.filter(x => collectionReturnCandidate(x, supplyPin))
       ?.sort((a, b) => a.index - b.index) || [];
     const item = sourceCandidates[0] || null;
-    const capacity = item && merchant ? recipientCapacity(merchant, item) : { ok: false };
+    const capacity = item && merchant
+      ? collectionReturnCapacity(state, merchant, supplyPin)
+      : { ok: false, inferredFromConfirmedOutbound: false };
     if (!item) blocker.push('COLLECTION_SOURCE_ITEM_FEHLT');
     if (!capacity.ok) blocker.push('MERCHANT_RECIPIENT_CAPACITY_FEHLT');
     if (blocker.length) {
       state = setStep(state, 5, { status: 'BLOCKIERT', blocker });
       return { result: { schritt: 5, status: 'BLOCKIERT', blocker }, state };
     }
-    const pin = pinItem(partner, merchant, { item, capacity }, 'PARTNER_TO_MERCHANT');
+    const basePin = pinItem(partner, merchant, { item, capacity }, 'PARTNER_TO_MERCHANT');
+    const pin = Object.freeze({
+      ...basePin,
+      collectionReturnCapacityConfirmed: true,
+      collectionReturnCapacityReason: 'CONFIRMED_OUTBOUND_CREATED_EXACT_RETURN_CAPACITY'
+    });
     state = schreibeState({ ...state, itemPins: { ...state.itemPins, collection: pin } });
     state = setStep(state, 5, {
       status: 'BESTANDEN',
@@ -1933,7 +2024,297 @@
     });
   }
 
+  function autoRunBrowserVerfuegbar() {
+    if (!AUTO_RUN_ENABLED) return false;
+    try {
+      if (typeof document !== 'undefined' && document) return true;
+    } catch {}
+    try {
+      if (parent?.document) return true;
+    } catch {}
+    return false;
+  }
+
+  function autoRunLockNehmen(stepKey) {
+    const now = Date.now();
+    const prior = liesJson(AUTO_RUN_LOCK_KEY);
+    if (prior?.expiresAtMs > now && prior.owner !== AUTO_CONTEXT_ID) return false;
+    const lock = {
+      schemaVersion: 1,
+      owner: AUTO_CONTEXT_ID,
+      stepKey,
+      expiresAtMs: now + AUTO_RUN_LOCK_TTL_MS
+    };
+    schreibeJson(AUTO_RUN_LOCK_KEY, lock, 5000);
+    const verify = liesJson(AUTO_RUN_LOCK_KEY);
+    return verify?.owner === AUTO_CONTEXT_ID && verify?.stepKey === stepKey;
+  }
+
+  function autoRunLockFreigeben() {
+    try {
+      const prior = liesJson(AUTO_RUN_LOCK_KEY);
+      if (prior?.owner === AUTO_CONTEXT_ID) storage().removeItem(AUTO_RUN_LOCK_KEY);
+    } catch {}
+  }
+
+  function autoRunStateSetzen(status, reason = null) {
+    const state = liesState();
+    return schreibeState({
+      ...state,
+      autoRun: {
+        mode: 'AUTO_ON_LOAD',
+        controllerVersion: VERSION,
+        status,
+        reason,
+        atMs: Date.now(),
+        sameIntentErneutSenden: false
+      }
+    });
+  }
+
+  function autoRunNaechsteAktion(state) {
+    const currentName = nichtLeer(rootFenster().character?.name);
+    const currentType = nichtLeer(rootFenster().character?.ctype);
+    const role = rolle(state, currentName);
+    const open = offeneIntents(state);
+    const item1 = latestIntent(state, 'ITEM', 1);
+    const item2 = latestIntent(state, 'ITEM', 2);
+    const gold1 = latestIntent(state, 'GOLD', 1);
+    const gold2 = latestIntent(state, 'GOLD', 2);
+
+    if (!stepBestanden(state, 1)) {
+      return currentType === 'merchant'
+        ? { key: 'step-1', run: step1 }
+        : null;
+    }
+    if (!stepBestanden(state, 2)) {
+      return role === 'MERCHANT'
+        ? { key: 'step-2', run: step2 }
+        : null;
+    }
+    if (!stepBestanden(state, 3)) {
+      return role === 'MERCHANT' && state.itemBudget.length === 0 && open.length === 0
+        ? {
+            key: 'step-3-item-live-1',
+            run: () => liveTransfer('ITEM', 1, liesState().itemPins.supply, 3)
+          }
+        : null;
+    }
+    if (!stepBestanden(state, 4)) {
+      return role === 'PARTNER' && item1?.status === 'AWAITING_RECIPIENT_SETTLEMENT'
+        ? { key: 'step-4-item-settle-1', run: () => settle('ITEM', 1, liesState().itemPins.supply, 4) }
+        : null;
+    }
+    if (!stepBestanden(state, 5)) {
+      return role === 'PARTNER' ? { key: 'step-5-item-return-pin', run: step5 } : null;
+    }
+    if (!stepBestanden(state, 6)) {
+      return role === 'PARTNER' && state.itemBudget.length === 1 && open.length === 0
+        ? {
+            key: 'step-6-item-live-2',
+            run: () => liveTransfer('ITEM', 2, liesState().itemPins.collection, 6)
+          }
+        : null;
+    }
+    if (!stepBestanden(state, 7)) {
+      return role === 'MERCHANT' && item2?.status === 'AWAITING_RECIPIENT_SETTLEMENT'
+        ? { key: 'step-7-item-settle-2', run: step7 }
+        : null;
+    }
+    if (!stepBestanden(state, 8)) {
+      if (role !== 'MERCHANT' || state.soaks?.item?.status === 'RUNNING') return null;
+      return { key: 'step-8-item-soak', run: () => startSoak('ITEM', 8, gui) };
+    }
+    if (!stepBestanden(state, 9)) {
+      return role === 'MERCHANT' ? { key: 'step-9-gold-pin', run: step9 } : null;
+    }
+    if (!stepBestanden(state, 10)) {
+      return role === 'MERCHANT' && state.goldBudget.length === 0 && open.length === 0
+        ? {
+            key: 'step-10-gold-live-1',
+            run: () => liveTransfer('GOLD', 1, liesState().goldPins.outbound, 10)
+          }
+        : null;
+    }
+    if (!stepBestanden(state, 11)) {
+      return role === 'PARTNER' && gold1?.status === 'AWAITING_RECIPIENT_SETTLEMENT'
+        ? { key: 'step-11-gold-settle-1', run: () => settle('GOLD', 1, liesState().goldPins.outbound, 11) }
+        : null;
+    }
+    if (!stepBestanden(state, 12)) {
+      return role === 'PARTNER' ? { key: 'step-12-gold-return-pin', run: step12 } : null;
+    }
+    if (!stepBestanden(state, 13)) {
+      return role === 'PARTNER' && state.goldBudget.length === 1 && open.length === 0
+        ? {
+            key: 'step-13-gold-live-2',
+            run: () => liveTransfer('GOLD', 2, liesState().goldPins.inbound, 13)
+          }
+        : null;
+    }
+    if (!stepBestanden(state, 14)) {
+      return role === 'MERCHANT' && gold2?.status === 'AWAITING_RECIPIENT_SETTLEMENT'
+        ? { key: 'step-14-gold-settle-2', run: step14 }
+        : null;
+    }
+    if (!stepBestanden(state, 15)) {
+      if (role !== 'MERCHANT' || state.soaks?.gold?.status === 'RUNNING') return null;
+      return { key: 'step-15-gold-soak', run: () => startSoak('GOLD', 15, gui) };
+    }
+    if (!stepBestanden(state, 16)) {
+      return role === 'MERCHANT' ? { key: 'step-16-closeout', run: step16 } : null;
+    }
+    return null;
+  }
+
+  let autoRunBusy = false;
+  let autoRunTimer = null;
+  let autoRunStopped = false;
+  let autoRunLastSignature = '';
+
+  function autoRunBericht(actionKey, result, state) {
+    const signature = actionKey + ':' + String(result?.status || 'UNBEKANNT')
+      + ':' + JSON.stringify(result?.blocker || result?.reason || null);
+    if (signature !== autoRunLastSignature) {
+      autoRunLastSignature = signature;
+      gui.protokolliere('PR20.4 AUTO · ' + actionKey, result);
+    }
+    const status = result?.status || 'IN_PROGRESS';
+    const art = status === 'BESTANDEN' ? 'bestanden'
+      : status === 'NICHT_BESTANDEN' ? 'fehler'
+        : status === 'BLOCKIERT' ? 'blockiert'
+          : status === 'OFFEN_REOBSERVE' ? 'warnung' : 'info';
+    gui.setzeErgebnis(
+      {
+        autoRun: true,
+        controllerVersion: VERSION,
+        letzteAktion: actionKey,
+        ...result,
+        checkliste: checkliste(state)
+      },
+      art,
+      status === 'BESTANDEN'
+        ? 'AUTO: ' + actionKey + ' BESTANDEN · naechster Schritt wird automatisch ausgefuehrt.'
+        : status === 'BLOCKIERT'
+          ? 'AUTO wartet sicher auf die benoetigte Voraussetzung · kein zusaetzlicher Live-Send.'
+          : status === 'OFFEN_REOBSERVE'
+            ? 'AUTO beobachtet read-only weiter · derselbe Intent wird niemals erneut gesendet.'
+            : 'AUTO: ' + actionKey + ' · ' + status
+    );
+  }
+
+  async function autoRunTick() {
+    if (!autoRunBrowserVerfuegbar() || autoRunBusy || autoRunStopped) return;
+    autoRunBusy = true;
+    let lockHeld = false;
+    try {
+      await publishActor();
+      let state = liesState();
+
+      const hardIntent = state.intents.find(x =>
+        ['FAILED_SAFE', 'RECOVERY_PENDING', 'UNKNOWN'].includes(x.status));
+      const hardStep = Object.values(state.steps || {}).find(x => x?.status === 'NICHT_BESTANDEN');
+      if (hardIntent || hardStep) {
+        autoRunStateSetzen(
+          'GESTOPPT_SICHER',
+          hardIntent
+            ? 'NICHTTERMINALER_ODER_FEHLGESCHLAGENER_TRANSFER'
+            : 'SCHRITT_NICHT_BESTANDEN'
+        );
+        autoRunStopped = true;
+        gui.setzeErgebnis(
+          {
+            autoRun: true,
+            status: 'GESTOPPT_SICHER',
+            offeneIntents: offeneIntents(liesState()).map(publicIntent),
+            checkliste: checkliste(liesState()),
+            sameIntentErneutSenden: false
+          },
+          'fehler',
+          'AUTO sicher gestoppt · kein weiterer Live-Send.'
+        );
+        return;
+      }
+
+      if (stepBestanden(state, 16)) {
+        autoRunStateSetzen('BESTANDEN', null);
+        autoRunStopped = true;
+        return;
+      }
+
+      const action = autoRunNaechsteAktion(state);
+      if (!action) return;
+      if (!autoRunLockNehmen(action.key)) return;
+      lockHeld = true;
+
+      const out = await action.run();
+      state = out?.state || liesState();
+      autoRunBericht(action.key, out?.result || {}, state);
+
+      if (out?.result?.status === 'NICHT_BESTANDEN') {
+        autoRunStateSetzen('GESTOPPT_SICHER', action.key + '_NICHT_BESTANDEN');
+        autoRunStopped = true;
+      } else if (stepBestanden(state, 16)) {
+        autoRunStateSetzen('BESTANDEN', null);
+        autoRunStopped = true;
+      } else {
+        autoRunStateSetzen('LAEUFT', null);
+      }
+      synchronisiereAktionen(gui, liesState());
+    } catch (error) {
+      const reason = String(error?.message || error);
+      autoRunStateSetzen('GESTOPPT_SICHER', reason);
+      autoRunStopped = true;
+      gui.protokolliere('PR20.4 AUTO FEHLER', { reason, sameIntentErneutSenden: false });
+      gui.setzeErgebnis(
+        {
+          autoRun: true,
+          status: 'GESTOPPT_SICHER',
+          reason,
+          checkliste: checkliste(liesState()),
+          sameIntentErneutSenden: false
+        },
+        'fehler',
+        'AUTO sicher gestoppt · kein weiterer Live-Send.'
+      );
+    } finally {
+      if (lockHeld) autoRunLockFreigeben();
+      autoRunBusy = false;
+    }
+  }
+
+  function startAutoRunner() {
+    if (!autoRunBrowserVerfuegbar() || autoRunTimer || autoRunStopped) return false;
+    gui.protokolliere('PR20.4 AUTO gestartet', {
+      controllerVersion: VERSION,
+      mode: 'AUTO_ON_LOAD',
+      intervalMs: AUTO_RUN_INTERVAL_MS,
+      sameIntentErneutSenden: false
+    });
+    setTimeout(() => { autoRunTick().catch(() => {}); }, 250);
+    autoRunTimer = setInterval(() => {
+      autoRunTick().catch(() => {});
+      if (autoRunStopped && autoRunTimer) {
+        clearInterval(autoRunTimer);
+        autoRunTimer = null;
+      }
+    }, AUTO_RUN_INTERVAL_MS);
+    return true;
+  }
+
   function synchronisiereAktionen(gui, state = liesState()) {
+    if (autoRunBrowserVerfuegbar()) {
+      for (const id of [
+        'actor-refresh', 'step-1', 'step-2', 'step-3-item-live-1',
+        'step-4-item-settle-1', 'step-5-item-return-pin', 'step-6-item-live-2',
+        'step-7-item-settle-2', 'step-8-item-soak', 'step-9-gold-pin',
+        'step-10-gold-live-1', 'step-11-gold-settle-1',
+        'step-12-gold-return-pin', 'step-13-gold-live-2',
+        'step-14-gold-settle-2', 'step-15-gold-soak', 'step-16-closeout'
+      ]) gui.setzeAktionAktiv(id, false);
+      gui.setzeAktionAktiv('diagnose', true);
+      return;
+    }
     const role = rolle(state);
     const open = offeneIntents(state);
     const item1 = latestIntent(state, 'ITEM', 1);
@@ -2402,7 +2783,8 @@
     itemQuantity: ITEM_MENGE,
     goldAmount: GOLD_BETRAG,
     sameIntentErneutSenden: false,
-    productiveTransferAuthority: false
+    productiveTransferAuthority: false,
+    executionMode: 'AUTO_ON_LOAD'
   });
   gui.setzeErgebnis({
     schemaVersion: 1,
@@ -2413,11 +2795,12 @@
     itemLiveTestsConsumed: start.itemBudget.length,
     goldLiveTestsConsumed: start.goldBudget.length,
     sameIntentErneutSenden: false,
-    productiveTransferAuthority: false
+    productiveTransferAuthority: false,
+    executionMode: 'AUTO_ON_LOAD'
   }, stepBestanden(start, 16) ? 'bestanden' : 'bereit',
   stepBestanden(start, 16)
     ? 'Alle PR20.4-Schritte bereits BESTANDEN.'
-    : 'Paket auf genau Merchant + einem Partner laden. Auf beiden zuerst Actor / Performance / Status aktualisieren.');
+    : 'AUTO_ON_LOAD: Paket auf Merchant + Partner laden; danach laeuft der Gesamttest ohne Schritt-Klicks.');
   synchronisiereAktionen(gui, start);
 
   const api = Object.freeze({
@@ -2435,6 +2818,8 @@
     checkliste: () => checkliste(liesState()),
     rolle: () => rolle(liesState()),
     publishActor,
+    autoRunEnabled: true,
+    autoRunTick,
     test: gui,
     kopiereBericht: () => gui.kopiereBericht()
   });
@@ -2457,5 +2842,7 @@
       });
     }
   } catch {}
+
+  startAutoRunner();
 })();
 
