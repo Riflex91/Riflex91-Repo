@@ -1,0 +1,73 @@
+import crypto from "node:crypto";
+import {
+  waehleBankRetrieveErstenKandidaten,
+  waehleBankStoreErstenKandidaten,
+} from "../erzeugt/index.js";
+
+const EXPR=[
+"(()=>{",
+" const roots=[globalThis]; try{if(globalThis.parent&&globalThis.parent!==globalThis)roots.push(globalThis.parent)}catch{}",
+" let root=null; for(const r of roots){try{if(r&&r.character&&r.G){root=r;break}}catch{}}",
+" if(!root)return {status:'BLOCKIERT',grund:'BANK_ITEM_TRANSFER_SPIELKONTEXT_FEHLT'};",
+" const c=root.character; let accountId=''; for(const r of roots){try{accountId=String(r?.user_id||r?.character?.owner||'');if(accountId)break}catch{}}",
+" const regions=[root?.server_region,root?.server?.region]; const ids=[root?.server_identifier,root?.server?.id];",
+" try{regions.push(root?.parent?.server_region,root?.parent?.server?.region)}catch{}; try{ids.push(root?.parent?.server_identifier,root?.parent?.server?.id)}catch{};",
+" const serverRegion=regions.map(x=>typeof x==='string'?x.trim():'').find(Boolean)||''; const serverKennung=ids.map(x=>typeof x==='string'?x.trim():'').find(Boolean)||'';",
+" let alternativeRuntimeAktiv=false; try{const v3=root.AIO_V3&&root.AIO_V3.__runtime;const s3=v3&&typeof v3.status==='function'?v3.status():null;alternativeRuntimeAktiv=!!(v3&&(v3.timer||(s3&&s3.running===true)))}catch{alternativeRuntimeAktiv=true}",
+" try{const v4=root.AIO_V4||root.V4Runtime;const s4=v4&&typeof v4.status==='function'?v4.status():null;if(s4&&(s4.running===true||s4.aktivFreigegeben===true))alternativeRuntimeAktiv=true}catch{alternativeRuntimeAktiv=true}",
+" const bank=c.bank&&typeof c.bank==='object'&&!Array.isArray(c.bank)?c.bank:null; let catalog={}; try{catalog=(root.bank_packs&&typeof root.bank_packs==='object'?root.bank_packs:(root.parent&&root.parent.bank_packs)||{})}catch{}",
+" const packs=[]; if(bank){for(const pack of Object.keys(bank).sort()){if(!/^items[0-9]+$/.test(pack)||!Array.isArray(bank[pack]))continue;const meta=catalog&&catalog[pack];const packMap=Array.isArray(meta)?String(meta[0]||''):(meta&&typeof meta==='object'?String(meta.map||meta.place||''):'');packs.push({pack,packMap,slots:bank[pack].slice(0,42)})}}",
+" const inventory=Array.isArray(c.items)?c.items.slice(0,64):null; const capRaw=Number(c.isize); const inventoryCapacity=Number.isSafeInteger(capRaw)&&capRaw>=1&&capRaw<=64?capRaw:(Array.isArray(inventory)?inventory.length:0);",
+" const cg=Number(c.gold),bg=bank?Number(bank.gold):NaN; let bridge=false,codeActive=false; try{bridge=typeof root.call_code_function_f==='function'}catch{};try{codeActive=root.code_active===true}catch{}",
+" return {status:'OK',accountId,charakterName:String(c.name||''),sessionId:String(c.id||''),ctype:String(c.ctype||c.type||'').toLowerCase(),map:String(c.map||''),serverRegion,serverKennung,",
+" rip:c.rip===true,bewegtSich:c.moving===true,queueAktiv:!!(c.q&&typeof c.q==='object'&&Object.keys(c.q).length),alternativeRuntimeAktiv,bankGemountet:!!bank,bridgeFunctionAvailable:bridge,codeActive,",
+" characterGold:Number.isSafeInteger(cg)&&cg>=0?cg:null,bankGold:Number.isSafeInteger(bg)&&bg>=0?bg:null,inventory,inventoryCapacity,packs};",
+"})()"
+].join("\n");
+
+function hash(v){return crypto.createHash("sha256").update(String(v)).digest("hex")}
+function stable(v,d=0){if(d>12)throw new Error("BANK_ITEM_TRANSFER_BEOBACHTUNG_ZU_TIEF");if(v===null||typeof v==="string"||typeof v==="boolean")return JSON.stringify(v);if(typeof v==="number"){if(!Number.isFinite(v))throw new Error("BANK_ITEM_TRANSFER_ZAHL_UNGUELTIG");return JSON.stringify(v)}if(Array.isArray(v))return "["+v.map(x=>stable(x,d+1)).join(",")+"]";if(typeof v==="object"){const k=Object.keys(v).sort();return "{"+k.map(x=>JSON.stringify(x)+":"+stable(v[x],d+1)).join(",")+"}"}throw new Error("BANK_ITEM_TRANSFER_TYP_UNGUELTIG")}
+function txt(v,max,e){if(typeof v!=="string"||v.trim().length===0||v.length>max)throw new Error(e)}
+function itemInfo(x){
+ if(x==null)return null;if(typeof x!=="object"||Array.isArray(x))throw new Error("BANK_ITEM_TRANSFER_ITEM_UNGUELTIG");
+ const name=String(x.name||"");txt(name,192,"BANK_ITEM_TRANSFER_ITEM_NAME_FEHLT");const m=stable(x);if(m.length>20000)throw new Error("BANK_ITEM_TRANSFER_ITEM_ZU_GROSS");
+ return Object.freeze({name,fingerprint:hash(m),placeholder:name==="placeholder",blocked:x.b===true,hasM:Object.prototype.hasOwnProperty.call(x,"m"),hasV:Object.prototype.hasOwnProperty.call(x,"v")});
+}
+function basis(v){
+ if(!v||typeof v!=="object"||v.status!=="OK")throw new Error(String(v?.grund||"BANK_ITEM_TRANSFER_BEOBACHTUNG_UNGUELTIG"));
+ txt(v.accountId,192,"BANK_ITEM_TRANSFER_ACCOUNT_FEHLT");txt(v.charakterName,192,"BANK_ITEM_TRANSFER_CHARACTER_FEHLT");txt(v.sessionId,192,"BANK_ITEM_TRANSFER_SESSION_FEHLT");
+ txt(v.serverRegion,32,"BANK_ITEM_TRANSFER_REGION_FEHLT");txt(v.serverKennung,32,"BANK_ITEM_TRANSFER_SERVER_FEHLT");txt(v.map,96,"BANK_ITEM_TRANSFER_MAP_FEHLT");
+ if(v.ctype!=="merchant")throw new Error("BANK_ITEM_TRANSFER_MERCHANT_ERFORDERLICH");if(v.rip)throw new Error("BANK_ITEM_TRANSFER_CHARACTER_TOT");
+ if(v.alternativeRuntimeAktiv)throw new Error("BANK_ITEM_TRANSFER_ALTERNATIVE_RUNTIME_AKTIV");if(!v.bridgeFunctionAvailable)throw new Error("BANK_ITEM_TRANSFER_CODE_BRIDGE_FEHLT");
+ if(!Array.isArray(v.inventory)||!Number.isSafeInteger(v.inventoryCapacity)||v.inventoryCapacity<1||v.inventoryCapacity>64||v.inventory.length>v.inventoryCapacity)throw new Error("BANK_ITEM_TRANSFER_INVENTORY_UNGUELTIG");
+ if(!Array.isArray(v.packs)||v.packs.length>64)throw new Error("BANK_ITEM_TRANSFER_PACKS_UNGUELTIG");
+ if(!Number.isSafeInteger(v.characterGold)||v.characterGold<0)throw new Error("BANK_ITEM_TRANSFER_CHARACTER_GOLD_UNGUELTIG");
+ return v;
+}
+function mounted(v,zeit){
+ const b=basis(v);if(b.bewegtSich||b.queueAktiv)throw new Error("BANK_ITEM_TRANSFER_NICHT_IDLE");if(!b.bankGemountet)throw new Error("BANK_ITEM_TRANSFER_BANK_NICHT_GEMOUNTET");
+ if(!Number.isSafeInteger(b.bankGold)||b.bankGold<0)throw new Error("BANK_ITEM_TRANSFER_BANK_GOLD_UNGUELTIG");
+ const packs=[];for(const row of b.packs){if(!row||typeof row!=="object"||!/^items[0-9]+$/.test(String(row.pack||""))||!Array.isArray(row.slots)||row.slots.length>42)throw new Error("BANK_ITEM_TRANSFER_PACK_UNGUELTIG");if(String(row.packMap||"")!==b.map)continue;packs.push(Object.freeze({pack:String(row.pack),slots:Object.freeze(row.slots.map(itemInfo))}))}
+ if(!packs.length)throw new Error("BANK_ITEM_TRANSFER_KEIN_PACK_AM_MOUNT");
+ const inventory=Object.freeze(Array.from({length:b.inventoryCapacity},(_,i)=>itemInfo(b.inventory[i]??null)));
+ const retrieve=waehleBankRetrieveErstenKandidaten(packs,inventory,b.inventoryCapacity);
+ const store=waehleBankStoreErstenKandidaten(packs,inventory,b.inventoryCapacity);
+ const allPack=hash(stable(packs.map(p=>({pack:p.pack,slots:p.slots.map(x=>x?.fingerprint||null)}))));
+ const allInv=hash(stable(inventory.map(x=>x?.fingerprint||null)));
+ const fingerprint=hash(stable({accountId:b.accountId,charakterName:b.charakterName,sessionId:b.sessionId,serverRegion:b.serverRegion,serverKennung:b.serverKennung,map:b.map,characterGold:b.characterGold,bankGold:b.bankGold,allPack,allInv}));
+ function enrich(k){
+  if(!k)return null;const pack=packs.find(x=>x.pack===k.pack);
+  const packRest=hash(pack.slots.map((x,i)=>i===k.bankSlot?i+":<transfer>":i+":"+(x?.fingerprint||"_")).join("|"));
+  const invRest=hash(inventory.map((x,i)=>i===k.inventorySlot?i+":<transfer>":i+":"+(x?.fingerprint||"_")).join("|"));
+  return Object.freeze({...k,packRestFingerprint:packRest,inventoryRestFingerprint:invRest});
+ }
+ return Object.freeze({schemaVersion:1,accountId:b.accountId,charakterName:b.charakterName,sessionId:b.sessionId,ctype:b.ctype,map:b.map,serverRegion:b.serverRegion,serverKennung:b.serverKennung,
+  bankGemountet:true,bridgeFunctionAvailable:true,codeActive:b.codeActive===true,characterGold:b.characterGold,bankGold:b.bankGold,inventoryCapacity:b.inventoryCapacity,beobachtetAmMs:zeit,
+  fingerprint,beobachtetePacks:Object.freeze(packs.map(x=>x.pack)),retrieveKandidat:enrich(retrieve),storeKandidat:enrich(store)});
+}
+export async function beobachteBankItemTransferRohReadOnly(session,contextId){if(!session||typeof session.evaluate!=="function"||!Number.isInteger(contextId))throw new Error("BANK_ITEM_TRANSFER_CDP_KONTEXT_UNGUELTIG");return basis(await session.evaluate(EXPR,contextId))}
+export function validiereBankItemTransferPreflightBeobachtung(v,zeit=Date.now()){return mounted(v,zeit)}
+export async function beobachteBankItemTransferPreflightReadOnly(session,contextId){return mounted(await session.evaluate(EXPR,contextId),Date.now())}
+export const BANK_ITEM_TRANSFER_PREFLIGHT_BROWSER_READ_ONLY=true;
+export const BANK_ITEM_TRANSFER_PREFLIGHT_GAMEPLAY_WRITES=0;
+export const BANK_ITEM_TRANSFER_PREFLIGHT_MUTATING_PUBLIC_FUNCTION_CALLS=0;

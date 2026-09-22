@@ -123,7 +123,10 @@
     "ingame:bank-swap:shadow": "npm run bauen && node werkzeuge/bank-swap-real-browser-shadow.mjs",
     "ingame:bank-swap:write-preflight": "npm run bauen && node werkzeuge/bank-swap-write-preflight.mjs",
     "ingame:bank-swap:live": "npm run bauen && node werkzeuge/bank-swap-produktions-live.mjs",
-    "bank-item-transfer-production:core-pruefen": "npm run bauen && node --test grundlage/tests/pr20-bank-item-transfer-settlement.test.mjs grundlage/tests/r11-bank-retrieve-einmal-authority.test.mjs grundlage/tests/r11-bank-store-einmal-authority.test.mjs grundlage/tests/r11-bank-item-transfer-current-fence.test.mjs grundlage/tests/r11-produktions-kompositionskatalog.test.mjs"
+    "bank-item-transfer-production:core-pruefen": "npm run bauen && node --test grundlage/tests/pr20-bank-item-transfer-settlement.test.mjs grundlage/tests/r11-bank-retrieve-einmal-authority.test.mjs grundlage/tests/r11-bank-store-einmal-authority.test.mjs grundlage/tests/r11-bank-item-transfer-current-fence.test.mjs grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
+    "bank-item-transfer-production:preflight-pruefen": "npm run bauen && node --check werkzeuge/bank-item-transfer-produktions-browser.mjs && node --check werkzeuge/bank-item-transfer-produktions-preflight.mjs && node --test grundlage/tests/r11-bank-item-transfer-produktions-browser.test.mjs grundlage/tests/r11-bank-item-transfer-preflight-static.test.mjs",
+    "ingame:bank-retrieve:preflight": "npm run bauen && node werkzeuge/bank-item-transfer-produktions-preflight.mjs --mode RETRIEVE",
+    "ingame:bank-store:preflight": "npm run bauen && node werkzeuge/bank-item-transfer-produktions-preflight.mjs --mode STORE"
   },
   "devDependencies": {
     "typescript": "5.9.3"
@@ -131,4 +134,4 @@
   "engines": {
     "node": ">=22"
   }
-}
+}\n

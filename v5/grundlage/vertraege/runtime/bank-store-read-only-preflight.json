@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_BANK_STORE_READ_ONLY_PREFLIGHT",
+  "stand": "2026-09-22",
+  "status": "IMPLEMENTIERT_EVIDENCE_AUSSTEHEND",
+  "sourceMain": "92c95e1a4dbc262e25a1b22b84e5302321dc2322",
+  "modus": "STORE",
+  "browserReadOnly": true,
+  "sourceShaLock": true,
+  "callCodeFunctionFRequired": true,
+  "bootstrapAusgeloest": false,
+  "authorityAusgestellt": false,
+  "leaseErworben": false,
+  "journalIntentGeschrieben": false,
+  "gameplayWrites": 0,
+  "mutatingPublicFunctionCalls": 0,
+  "adapterAufrufe": 0,
+  "rawSocketEmit": false,
+  "sameIntentRetry": false,
+  "kandidat": {
+    "inventorySlot": "EXPLIZIT_SICHERES_ITEM",
+    "bankSlot": "EXPLIZIT_LEER",
+    "automaticTarget": false,
+    "blockiertBei": [
+      "placeholder",
+      "b",
+      "m",
+      "v"
+    ]
+  },
+  "naechsterSchritt": "STORE_ADMISSION_SHADOW_NO_WRITE_NACH_EVIDENCE"
+}\n

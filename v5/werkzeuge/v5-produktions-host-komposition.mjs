@@ -73,6 +73,12 @@ import {
   NodeBankSwapTransaktionsJournal,
 } from "../grundlage/adapter/persistenz/node-bank-swap-transaktionsjournal.mjs";
 import {
+  NodeBankRetrieveTransaktionsJournal,
+} from "../grundlage/adapter/persistenz/node-bank-retrieve-transaktionsjournal.mjs";
+import {
+  NodeBankStoreTransaktionsJournal,
+} from "../grundlage/adapter/persistenz/node-bank-store-transaktionsjournal.mjs";
+import {
   NodeBankLeasePersistenz,
 } from "../grundlage/adapter/persistenz/node-bank-lease-persistenz.mjs";
 import {
@@ -120,6 +126,8 @@ class NodeV5ProduktionsHost {
   #bankDepositJournal;
   #bankWithdrawJournal;
   #bankSwapJournal;
+  #bankRetrieveJournal;
+  #bankStoreJournal;
   #bankLeaseController;
   #runtime;
 
@@ -132,6 +140,8 @@ class NodeV5ProduktionsHost {
     bankDepositJournal,
     bankWithdrawJournal,
     bankSwapJournal,
+    bankRetrieveJournal,
+    bankStoreJournal,
     bankLeaseController,
     runtime,
   ) {
@@ -143,6 +153,8 @@ class NodeV5ProduktionsHost {
     this.#bankDepositJournal = bankDepositJournal;
     this.#bankWithdrawJournal = bankWithdrawJournal;
     this.#bankSwapJournal = bankSwapJournal;
+    this.#bankRetrieveJournal = bankRetrieveJournal;
+    this.#bankStoreJournal = bankStoreJournal;
     this.#bankLeaseController = bankLeaseController;
     this.#runtime = runtime;
   }
@@ -186,11 +198,14 @@ class NodeV5ProduktionsHost {
     const journal = await this.#bankDepositJournal.pruefeStartBereit();
     const withdrawJournal = await this.#bankWithdrawJournal.pruefeStartBereit();
     const swapJournal = await this.#bankSwapJournal.pruefeStartBereit();
+    const retrieveJournal = await this.#bankRetrieveJournal.pruefeStartBereit();
+    const storeJournal = await this.#bankStoreJournal.pruefeStartBereit();
     const offeneLeases = this.#bankLeaseController.sicht().filter(
       x => x.zustand !== "RELEASED",
     );
     return Object.freeze({
       bereit: journal.bereit && withdrawJournal.bereit && swapJournal.bereit
+        && retrieveJournal.bereit && storeJournal.bereit
         && offeneLeases.length === 0,
       offeneTransaktionsId: journal.offeneTransaktionsId
         ?? withdrawJournal.offeneTransaktionsId
@@ -212,11 +227,14 @@ class NodeV5ProduktionsHost {
     const journal = await this.#bankWithdrawJournal.pruefeStartBereit();
     const depositJournal = await this.#bankDepositJournal.pruefeStartBereit();
     const swapJournal = await this.#bankSwapJournal.pruefeStartBereit();
+    const retrieveJournal = await this.#bankRetrieveJournal.pruefeStartBereit();
+    const storeJournal = await this.#bankStoreJournal.pruefeStartBereit();
     const offeneLeases = this.#bankLeaseController.sicht().filter(
       x => x.zustand !== "RELEASED",
     );
     return Object.freeze({
       bereit: journal.bereit && depositJournal.bereit && swapJournal.bereit
+        && retrieveJournal.bereit && storeJournal.bereit
         && offeneLeases.length === 0,
       offeneTransaktionsId: journal.offeneTransaktionsId
         ?? depositJournal.offeneTransaktionsId
@@ -238,6 +256,8 @@ class NodeV5ProduktionsHost {
     const depositJournal = await this.#bankDepositJournal.pruefeStartBereit();
     const withdrawJournal = await this.#bankWithdrawJournal.pruefeStartBereit();
     const swapJournal = await this.#bankSwapJournal.pruefeStartBereit();
+    const retrieveJournal = await this.#bankRetrieveJournal.pruefeStartBereit();
+    const storeJournal = await this.#bankStoreJournal.pruefeStartBereit();
     const offeneLeases = this.#bankLeaseController.sicht().filter(
       x => x.zustand !== "RELEASED",
     );
@@ -245,6 +265,8 @@ class NodeV5ProduktionsHost {
       bereit: depositJournal.bereit
         && withdrawJournal.bereit
         && swapJournal.bereit
+        && retrieveJournal.bereit
+        && storeJournal.bereit
         && offeneLeases.length === 0,
       offeneBankDepositTransaktionId: depositJournal.offeneTransaktionsId,
       offeneBankWithdrawTransaktionId: withdrawJournal.offeneTransaktionsId,
@@ -263,7 +285,37 @@ class NodeV5ProduktionsHost {
           serverIdentifier: offeneLeases[0].serverIdentifier,
         }),
     });
+  }\n
+  async #pruefeBankItemTransferStartBereit() {
+    const depositJournal = await this.#bankDepositJournal.pruefeStartBereit();
+    const withdrawJournal = await this.#bankWithdrawJournal.pruefeStartBereit();
+    const swapJournal = await this.#bankSwapJournal.pruefeStartBereit();
+    const retrieveJournal = await this.#bankRetrieveJournal.pruefeStartBereit();
+    const storeJournal = await this.#bankStoreJournal.pruefeStartBereit();
+    const offeneLeases = this.#bankLeaseController.sicht().filter(x => x.zustand !== "RELEASED");
+    return Object.freeze({
+      bereit: depositJournal.bereit && withdrawJournal.bereit && swapJournal.bereit && retrieveJournal.bereit && storeJournal.bereit && offeneLeases.length === 0,
+      offeneBankDepositTransaktionId: depositJournal.offeneTransaktionsId,
+      offeneBankWithdrawTransaktionId: withdrawJournal.offeneTransaktionsId,
+      offeneBankSwapTransaktionId: swapJournal.offeneTransaktionsId,
+      offeneBankRetrieveTransaktionId: retrieveJournal.offeneTransaktionsId,
+      offeneBankStoreTransaktionId: storeJournal.offeneTransaktionsId,
+      offeneTransaktionsId: depositJournal.offeneTransaktionsId ?? withdrawJournal.offeneTransaktionsId ?? swapJournal.offeneTransaktionsId ?? retrieveJournal.offeneTransaktionsId ?? storeJournal.offeneTransaktionsId,
+      offeneBankLease: offeneLeases.length === 0 ? null : Object.freeze({
+        accountId: offeneLeases[0].accountId, ownerCharacterId: offeneLeases[0].ownerCharacterId, epoche: offeneLeases[0].epoche,
+        zustand: offeneLeases[0].zustand, serverRegion: offeneLeases[0].serverRegion, serverIdentifier: offeneLeases[0].serverIdentifier,
+      }),
+    });
   }
+
+  async pruefeBankRetrieveStartBereit() {
+    return this.#pruefeBankItemTransferStartBereit();
+  }
+
+  async pruefeBankStoreStartBereit() {
+    return this.#pruefeBankItemTransferStartBereit();
+  }
+
 
   async schliesseBankLeaseRestartAbgleichAb(
     accountId,
@@ -2010,6 +2062,8 @@ export async function erstelleNodeV5ProduktionsHost({
   const bankDepositJournal = new NodeBankDepositTransaktionsJournal(dateisystem);
   const bankWithdrawJournal = new NodeBankWithdrawTransaktionsJournal(dateisystem);
   const bankSwapJournal = new NodeBankSwapTransaktionsJournal(dateisystem);
+  const bankRetrieveJournal = new NodeBankRetrieveTransaktionsJournal(dateisystem);
+  const bankStoreJournal = new NodeBankStoreTransaktionsJournal(dateisystem);
   const bankLeaseController = new PersistenterBankLeaseController(
     runtime.bankLeaseKoordinator(),
     new NodeBankLeasePersistenz(dateisystem),
@@ -2025,6 +2079,8 @@ export async function erstelleNodeV5ProduktionsHost({
     bankDepositJournal,
     bankWithdrawJournal,
     bankSwapJournal,
+    bankRetrieveJournal,
+    bankStoreJournal,
     bankLeaseController,
     runtime,
   );
