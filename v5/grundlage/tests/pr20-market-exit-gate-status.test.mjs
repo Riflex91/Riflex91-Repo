@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
+import { roadmapIstMindestens } from "../../werkzeuge/roadmap-gate-rang.mjs";
 
 const lies = pfad => JSON.parse(fs.readFileSync(pfad, "utf8"));
 const gate = lies("roadmap/pr20-3-market-exit-gate-status.json");
@@ -49,10 +50,13 @@ test("Trade-Abnahme bleibt Roadmap-Abnahme ohne erfundene Live-Evidence", () => 
 });
 
 test("PR20.3 bleibt auch nach Fortschritt zu PR20.5 geschlossen und authority-frei", () => {
-  assert.ok([
-    "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG",
-    "PR20.5_MERCHANT_STABILITAET",
-  ].includes(roadmap.currentGate));
+  assert.equal(
+    roadmapIstMindestens(
+      roadmap.currentGate,
+      "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG",
+    ),
+    true,
+  );
   assert.equal(roadmap.pr20_3.status, "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN");
   assert.equal(roadmap.pr20_4.productiveMutationAllowed, false);
   assert.ok([

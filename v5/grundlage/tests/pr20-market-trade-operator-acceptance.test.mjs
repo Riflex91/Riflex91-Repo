@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
+import { roadmapIstMindestens } from "../../werkzeuge/roadmap-gate-rang.mjs";
 
 const lies = pfad => JSON.parse(fs.readFileSync(pfad, "utf8"));
 
@@ -87,5 +88,5 @@ test("Market-Vertrag und Roadmap spiegeln Operator-Abnahme ohne produktive Autho
   assert.equal(roadmap.pr20_3.tradePathsBlockSequencing, false);
   assert.equal(roadmap.pr20_3.productiveTradeAuthority, false);
   assert.equal(roadmap.pr20_3.activeTest, null);
-  assert.ok(["PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG", "PR20.5_MERCHANT_STABILITAET"].includes(roadmap.currentGate));
+  assert.equal(roadmapIstMindestens(roadmap.currentGate, "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG"), true);
 });

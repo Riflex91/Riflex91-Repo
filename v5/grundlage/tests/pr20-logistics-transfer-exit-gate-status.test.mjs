@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
+import { roadmapIstMindestens } from "../../werkzeuge/roadmap-gate-rang.mjs";
 
 const lies = pfad => JSON.parse(fs.readFileSync(pfad, "utf8"));
 
@@ -68,15 +69,26 @@ test("PR20.4 Exit-Gate schliesst Roadmap, nicht automatisch produktive Authority
   assert.equal(gate.safetyRetained.sameIntentRetry, false);
 });
 
-test("Roadmap steht jetzt auf PR20.5 und PR20.4 bleibt authority-frei", () => {
-  assert.equal(roadmap.currentGate, "PR20.5_MERCHANT_STABILITAET");
+test("Roadmap ist mindestens bei PR20.5 und PR20.4 bleibt authority-frei", () => {
+  assert.equal(roadmapIstMindestens(roadmap.currentGate, "PR20.5_MERCHANT_STABILITAET"), true);
   assert.equal(roadmap.pr20_4.status, "ROADMAP_ABGESCHLOSSEN_REAL_INGAME");
   assert.equal(roadmap.pr20_4.productiveMutationAllowed, false);
   assert.equal(roadmap.pr20_4.gameplayAuthority, false);
   assert.equal(roadmap.pr20_4.rawWriteAuthority, false);
-  assert.equal(roadmap.pr20_5.status, "FREIGEGEBEN_FUER_PRODUKTIVIERUNG");
+  assert.ok([
+    "FREIGEGEBEN_FUER_PRODUKTIVIERUNG",
+    "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
+  ].includes(roadmap.pr20_5.status));
   assert.equal(roadmap.pr20_5.gameplayAuthority, false);
-  assert.equal(roadmap.pr20_5.integration15mRequired, true);
+  if (roadmap.pr20_5.status === "ROADMAP_ABGESCHLOSSEN_REAL_INGAME") {
+    assert.equal(roadmap.pr20_5.integration15mRequired, false);
+    assert.equal(
+      roadmap.pr20_5.evidence,
+      "v5/roadmap/pr20-5-merchant-stability-evidence.json",
+    );
+  } else {
+    assert.equal(roadmap.pr20_5.integration15mRequired, true);
+  }
   assert.equal(prep.status, "ROADMAP_ABGESCHLOSSEN_REAL_INGAME");
   assert.equal(prep.testHarness.productiveTransferAuthority, false);
   assert.equal(policy.executionMode, "AUTO_ON_LOAD");

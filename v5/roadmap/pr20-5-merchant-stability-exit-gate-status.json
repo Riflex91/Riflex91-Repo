@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "status": "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
+  "gate": "PR20.5_MERCHANT_STABILITAET",
+  "basisMain": "ce6c5079efb5dc289060d103a2453ce70630122a",
+  "evidence": "v5/roadmap/pr20-5-merchant-stability-evidence.json",
+  "exitCriteria": {
+    "fourCharacterRosterReady": true,
+    "deterministicStabilityMatrixPassed": true,
+    "noWrite15mPassed": true,
+    "noMerchantPingpongRegression": true,
+    "starvationBoundaryPassed": true,
+    "safeCheckpointRulePassed": true,
+    "safetyPreemptionPassed": true,
+    "noRuntimeConflict": true,
+    "completionTelemetryPresent": true,
+    "completionEmailSent": true
+  },
+  "liveEvidence": {
+    "status": "BESTANDEN_REAL_INGAME_4CHAR_15M",
+    "durationMs": 900521,
+    "samples": 60,
+    "deterministicScenariosPassed": 9,
+    "deterministicScenariosTotal": 9,
+    "gameplayWrites": 0,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false
+  },
+  "transitionPolicy": {
+    "pr20_5RoadmapMilestoneClosed": true,
+    "pr20_6MLuckAllowed": true,
+    "normalRuntimeAutomaticallyAllowed": false,
+    "historicalEvidenceRewritten": false
+  },
+  "nextGate": "PR20.6_MLUCK"
+}

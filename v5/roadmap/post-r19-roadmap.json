@@ -7,7 +7,7 @@
   "dokumentation": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
   "testzeitStandard": "v5/roadmap/testzeit-standard.json",
   "currentStage": "PR20",
-  "currentGate": "PR20.5_MERCHANT_STABILITAET",
+  "currentGate": "PR20.6_MLUCK",
   "reihenfolgeVerbindlich": true,
   "optimizerVorGruppenLiveEvidenceVerboten": true,
   "merchantVorFarmerProduktivierung": true,
@@ -79,10 +79,10 @@
     }
   ],
   "currentNextSteps": [
-    "PR20.1 bis PR20.4 sind abgeschlossen bzw. fuer ihre Roadmap-Gates freigegeben",
-    "PR20.5 Scheduler-Stabilitaet ist in MerchantTaskKoordinator integriert",
-    "AKTUELL: PR20.5 15m AUTO_ON_LOAD-Gesamttest auf Merchant + Ranger + Priest + Mage real ingame ausfuehren",
-    "PR20.5 BESTANDEN startet keinen Normalbetrieb; danach mit dem naechsten V5-Test-Gate fortfahren",
+    "PR20.1 bis PR20.5 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
+    "PR20.5 15m AUTO_ON_LOAD-Gesamttest auf Merchant + Ranger + Priest + Mage ist BESTANDEN_REAL_INGAME_4CHAR_15M",
+    "AKTUELL: PR20.6 MLuck-Service produktiv absichern und den vorgesehenen Funktions-/Integrations-Test abarbeiten",
+    "PR20.6 BESTANDEN startet keinen Normalbetrieb; danach mit dem naechsten V5-Test-Gate fortfahren",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -675,14 +675,16 @@
     },
     {
       "id": "PR20.5_MERCHANT_STABILITAET",
-      "status": "FREIGEGEBEN_FUER_PRODUKTIVIERUNG",
+      "status": "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
       "blockedBy": [],
       "gameplayAuthority": false,
       "artifacts": [
         "v5/grundlage/quelle/merchant/dienst-stabilitaet.ts",
         "v5/grundlage/tests/pr20-merchant-dienst-stabilitaet.test.mjs"
       ],
-      "nextAction": "MERCHANT_STABILITAET_PRODUKTIV_INTEGRIEREN_UND_15M_TEST"
+      "nextAction": "PR20_6_MLUCK",
+      "evidence": "v5/roadmap/pr20-5-merchant-stability-evidence.json",
+      "exitGate": "v5/roadmap/pr20-5-merchant-stability-exit-gate-status.json"
     },
     {
       "id": "PR20.6_MLUCK",
@@ -745,7 +747,7 @@
     "newGameplayWriteAdapterBeforeGate": false,
     "liveRunnerBeforeCapabilityGate": false,
     "planningContractsTestsAndRecoveryAllowed": true,
-    "activeLiveGate": "PR20.5_MERCHANT_STABILITAET"
+    "activeLiveGate": "PR20.6_MLUCK"
   },
   "pr20_1": {
     "status": "BESTANDEN",
@@ -921,13 +923,13 @@
     "roundtripsRestored": true
   },
   "pr20_5": {
-    "status": "FREIGEGEBEN_FUER_PRODUKTIVIERUNG",
+    "status": "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "foundation": "v5/grundlage/quelle/merchant/dienst-stabilitaet.ts",
     "test": "v5/grundlage/tests/pr20-merchant-dienst-stabilitaet.test.mjs",
-    "nextAction": "PR20_5_15M_AUTO_ON_LOAD_REAL_INGAME_AUSFUEHREN",
-    "integration15mRequired": true,
+    "nextAction": "PR20_6_MLUCK",
+    "integration15mRequired": false,
     "executionPolicy": "v5/grundlage/vertraege/runtime/ingame-test-execution-policy.json",
     "normalRuntimeAfterAllTestsOnly": true,
     "package": "v5/werkzeuge/pr20-5-merchant-stability-autonomous-4char.js",
@@ -945,6 +947,8 @@
       "terminalEventImmediate": true,
       "completionEmailEachTerminalTest": true
     },
-    "integrationStatus": "SCHEDULER_INTEGRIERT_15M_AUTO_ON_LOAD_BEREIT"
+    "integrationStatus": "BESTANDEN_REAL_INGAME_4CHAR_15M",
+    "evidence": "v5/roadmap/pr20-5-merchant-stability-evidence.json",
+    "exitGate": "v5/roadmap/pr20-5-merchant-stability-exit-gate-status.json"
   }
 }

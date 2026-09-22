@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "kennung": "V5_PR20_5_MERCHANT_STABILITY_REAL_INGAME_EVIDENCE",
+  "status": "BESTANDEN_REAL_INGAME_4CHAR_15M",
+  "test": "V5 · PR20.5 Merchant Scheduler-Stabilitaet",
+  "testKennung": "pr20-5-merchant-stability-autonomous-4char",
+  "controllerVersion": "1.2.0",
+  "executionMode": "AUTO_ON_LOAD",
+  "repositoryMainAtEvidenceCapture": "ce6c5079efb5dc289060d103a2453ce70630122a",
+  "evidenceSource": {
+    "type": "SUPABASE_REPORTED_REAL_INGAME_TERMINAL_TEST",
+    "accountIdStored": false,
+    "sessionIdStored": false,
+    "characterNamesStored": false,
+    "identifyingTokensStored": false
+  },
+  "run": {
+    "startedAtMs": 1790108147371,
+    "terminalStatus": "BESTANDEN",
+    "phase": "COMPLETE",
+    "durationMs": 900521,
+    "samples": 60,
+    "minimumSamples": 60
+  },
+  "roster": {
+    "ready": true,
+    "requiredClasses": [
+      "merchant",
+      "ranger",
+      "priest",
+      "mage"
+    ],
+    "observedClasses": [
+      "merchant",
+      "ranger",
+      "priest",
+      "mage"
+    ],
+    "sameServer": true,
+    "missing": [],
+    "duplicates": [],
+    "runtimeConflicts": []
+  },
+  "deterministic": {
+    "status": "BESTANDEN",
+    "scenariosPassed": 9,
+    "scenariosTotal": 9,
+    "scenarios": [
+      "IRREVERSIBLE_MUTATION_OFFEN",
+      "KEIN_SICHERER_DURABLER_UNTERBRECHUNGSPUNKT",
+      "SCHEDULER_GIBT_KEINEN_VORRANG",
+      "SAFETY_PREEMPTION",
+      "STARVATION_GRENZE_ERREICHT",
+      "MINDEST_HALTEDAUER",
+      "WECHSEL_COOLDOWN",
+      "WECHSEL_BUDGET_ERSCHOEPFT",
+      "STABILER_WECHSEL_ERLAUBT"
+    ]
+  },
+  "safety": {
+    "gameplayWrites": 0,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeStarted": false,
+    "normalRuntimeStillBlockedUntilAllRemainingTestsPass": true
+  },
+  "notification": {
+    "completionEmail": "SENT",
+    "attempts": 1,
+    "error": null
+  }
+}

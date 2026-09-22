@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { roadmapIstMindestens } from "./roadmap-gate-rang.mjs";
 
 const lies = pfad => JSON.parse(fs.readFileSync(pfad, "utf8"));
 const gate = lies("roadmap/pr20-3-market-exit-gate-status.json");
@@ -63,7 +64,7 @@ if (trade.transitionPolicy?.blocksPr20_3Sequencing !== false
   fail("PR20_3_TRADE_TRANSITION_UNGUELTIG");
 }
 
-if (!["PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG", "PR20.5_MERCHANT_STABILITAET"].includes(roadmap.currentGate)
+if (!roadmapIstMindestens(roadmap.currentGate, "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG")
     || roadmap.pr20_3?.status !== "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN"
     || roadmap.pr20_3?.productiveTradeAuthority !== false
     || !["VORBEREITUNG_FREIGEGEBEN_NO_WRITE", "INGAME_GESAMTSTUFENTEST_BEREIT", "ROADMAP_ABGESCHLOSSEN_REAL_INGAME"].includes(roadmap.pr20_4?.status)
