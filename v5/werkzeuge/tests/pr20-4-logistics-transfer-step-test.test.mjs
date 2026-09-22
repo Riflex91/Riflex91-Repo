@@ -11,6 +11,10 @@ const paket = fs.readFileSync(
   "werkzeuge/pr20-4-logistics-transfer-step-test-paket.js",
   "utf8",
 );
+const ingamePolicy = JSON.parse(fs.readFileSync(
+  "grundlage/vertraege/runtime/ingame-test-execution-policy.json",
+  "utf8",
+));
 
 function baueBus({ mutateItem = true, mutateGold = true } = {}) {
   const speicher = new Map();
@@ -241,6 +245,19 @@ test("PR20.4 Browserpaket ist AUTO_ON_LOAD und sperrt manuelle Live-Schrittsteue
   assert.ok(controller.includes("autoRunTick"));
   assert.ok(controller.includes("gui.setzeAktionAktiv(id, false)"));
   assert.ok(controller.includes("sameIntentErneutSenden: false"));
+});
+
+test("V5-Ingame-Testpolicy verlangt fuer weitere Tests selbstenthaltenes AUTO_ON_LOAD", () => {
+  assert.equal(ingamePolicy.status, "AKTIV");
+  assert.equal(ingamePolicy.executionMode, "AUTO_ON_LOAD");
+  assert.equal(ingamePolicy.requirements.selfContainedJavascriptPackage, true);
+  assert.equal(ingamePolicy.requirements.automaticStartAfterLoad, true);
+  assert.equal(ingamePolicy.requirements.manualPerStepClicks, false);
+  assert.equal(ingamePolicy.requirements.automaticMultiActorCoordination, true);
+  assert.equal(ingamePolicy.requirements.liveFunctionBudgetMustRemainHard, true);
+  assert.equal(ingamePolicy.requirements.sameIntentRetry, false);
+  assert.equal(ingamePolicy.requirements.noRawSocketBypass, true);
+  assert.equal(ingamePolicy.requirements.productiveAuthorityMustNotBeEnabledByTestHarness, true);
 });
 
 test("moeglicher send_item ohne Wirkung verbraucht Versuch und erlaubt keinen Blind-Retry", async () => {
