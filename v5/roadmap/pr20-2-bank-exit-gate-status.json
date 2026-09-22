@@ -3,7 +3,7 @@
   "stand": "2026-09-22",
   "status": "BLOCKIERT_FAIL_CLOSED",
   "evidenceArt": "V5_PR20_2_BANK_AGGREGATE_EXIT_GATE",
-  "sourceMainSha": "36a80a4a75c02e841adab32290f903fbfe1b18ed",
+  "sourceMainSha": "bb3d1d9108457acae36d30a896549f91598621aa",
   "currentGate": "PR20.2_BANK_PRODUKTIVIERUNG",
   "firstMutationSet": {
     "bank_deposit": "BESTANDEN",
@@ -42,18 +42,25 @@
     "directIngameFunctions": "v5/roadmap/pr20-2-bank-direct-ingame-function-evidence.json",
     "withdrawCloseout": "v5/roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json",
     "openPackShadow": "v5/roadmap/pr20-2-bank-open-pack-shadow-evidence.json",
-    "openPackAdmission": "v5/roadmap/pr20-2-bank-open-pack-admission-evidence.json"
+    "openPackAdmission": "v5/roadmap/pr20-2-bank-open-pack-admission-evidence.json",
+    "bankNoWrite5m": "v5/roadmap/pr20-2-bank-no-write-5m-evidence.json",
+    "blockerCloseout": "v5/roadmap/pr20-2-bank-blocker-closeout.json"
   },
-  "nextAction": "PR20_2_BANK_NO_WRITE_5M_PREFLIGHT_NACH_SERVER_BINDING_FIX_ERNEUT_AUSFUEHREN",
+  "nextAction": "WAIT_FOR_REOPEN_TRIGGER_NO_FURTHER_INGAME_TEST",
   "noWriteIntegration": {
-    "bank5mStatus": "SERVER_BINDING_FIX_CI_AUSSTEHEND_DANN_INGAME_READ_ONLY_ERNEUT",
-    "testPlan": "v5/roadmap/pr20-2-bank-no-write-5m-test-plan.json",
-    "package": "v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js",
+    "bank5mStatus": "BESTANDEN_REAL_INGAME_READ_ONLY",
+    "controllerVersion": "1.0.1",
+    "evidence": "v5/roadmap/pr20-2-bank-no-write-5m-evidence.json",
+    "durationMs": 300017,
+    "samples": 21,
+    "sampleGaps": 0,
+    "driftSamples": 0,
+    "performanceTrickErrors": 0,
     "gameplayWrites": 0,
     "mutatingPublicFunctionCalls": 0,
     "functionalTestBudgetConsumed": false,
     "schliesstBlockerNicht": true,
-    "controllerVersion": "1.0.1",
-    "previousBlockedPreflightEvidence": "v5/roadmap/pr20-2-bank-no-write-5m-preflight-blocked-evidence.json"
+    "integration15mRequiredNow": false,
+    "blockerCloseout": "v5/roadmap/pr20-2-bank-blocker-closeout.json"
   }
 }
