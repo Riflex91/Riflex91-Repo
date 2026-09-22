@@ -107,5 +107,22 @@
     "normalBotRuntimeStartsAfterPr20_6Only": false,
     "normalBotRuntimeRequiresAllRemainingV5TestsBestanden": true,
     "nextStageAfterPass": "CONTINUE_WITH_NEXT_V5_TEST_GATE"
+  },
+  "deployment": {
+    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
+    "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "bridgePollSeconds": 15,
+    "coordinatorClass": "merchant",
+    "packageCommitPinned": true,
+    "packageSha256Verified": true,
+    "manualMerchantJavascriptLoadRequired": false,
+    "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
+    "farmerClasses": [
+      "ranger",
+      "priest",
+      "mage"
+    ],
+    "manualFarmerJavascriptLoadRequired": false,
+    "noGenericRemoteJavascriptEndpoint": true
   }
 }
