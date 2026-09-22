@@ -46,3 +46,6 @@ jobs:
       - name: Bank-Swap Abend No-Write Kette
         working-directory: v5
         run: npm run bank-swap-evening:no-write-pruefen
+      - name: Bank-Swap Write-Pfad statisch
+        working-directory: v5
+        run: npm run bank-swap-evening:write-pruefen

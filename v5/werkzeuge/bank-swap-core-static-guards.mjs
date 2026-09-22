@@ -9,7 +9,7 @@ const capability = json("grundlage/vertraege/runtime/bank-swap-mutationsfaehigke
 const authority = json("grundlage/vertraege/runtime/bank-swap-one-shot-authority.json");
 const composition = read("grundlage/quelle/runtime/produktions-komposition.ts");
 
-if (!["CORE_VORBEREITET_READ_ONLY_PREFLIGHT_AUSSTEHEND", "READ_ONLY_PREFLIGHT_IMPLEMENTIERT_EVIDENCE_AUSSTEHEND"].includes(candidate.status)
+if (!["CORE_VORBEREITET_READ_ONLY_PREFLIGHT_AUSSTEHEND", "READ_ONLY_PREFLIGHT_IMPLEMENTIERT_EVIDENCE_AUSSTEHEND", "WRITE_PATH_VORBEREITET_LIVE_EVIDENCE_AUSSTEHEND"].includes(candidate.status)
     || candidate.publicFunction !== "bank_swap"
     || candidate.officialSource?.serverOperation !== "move"
     || candidate.ersterKandidat?.slotMinimum !== 0
