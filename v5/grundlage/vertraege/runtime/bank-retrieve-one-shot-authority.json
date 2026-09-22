@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_BANK_RETRIEVE_ONE_SHOT_AUTHORITY",
+  "stand": "2026-09-22",
+  "capability": {
+    "id": "merchant.bank.item_auslagern",
+    "providerModulId": "merchant-bank-core",
+    "providerVersion": "1",
+    "registryAktivierung": false,
+    "maximaleVerwendungenProAuthority": 1
+  },
+  "bindung": {
+    "actionContractId": "AL-ACTION-BANK-RETRIEVE",
+    "recoveryContractId": "AL-RECOVERY-BANK-RETRIEVE",
+    "verifierId": "AL-VERIFIER-BANK-RETRIEVE",
+    "bestaetigungText": "V5 BANK RETRIEVE EINMAL AUSFUEHREN"
+  },
+  "authority": {
+    "maximaleLebensdauerMs": 2000,
+    "durchAdmissionPruefungZuVerbrauchen": true,
+    "breiteRuntimeFreigabe": false,
+    "rawWriteAutoritaet": false
+  },
+  "durability": {
+    "vorAuthorityAusstellung": true,
+    "pfad": "runtime/authority/mutieren/bank-retrieve/",
+    "restartAktiviertAuthorityNichtWieder": true
+  },
+  "currentFence": {
+    "alleBankMutationenGegenseitigAusschliessend": true,
+    "aktiveAccountBankLeaseBlockiertVorNeuerAuthority": true
+  },
+  "wirkung": {
+    "gameplayWriteDurchAuthorityAusstellung": 0,
+    "adapterSendDurchAuthorityAusstellung": 0
+  },
+  "hostIntegrationInDiesemSchritt": false,
+  "writeAdapterInDiesemSchritt": false,
+  "liveRunnerInDiesemSchritt": false,
+  "gameplayWritesInDiesemSchritt": 0
+}

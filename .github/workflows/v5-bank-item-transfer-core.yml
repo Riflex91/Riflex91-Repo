@@ -1,0 +1,41 @@
+name: v5-bank-item-transfer-core
+on:
+  pull_request:
+    paths:
+      - 'v5/grundlage/quelle/merchant/bank-item-transfer-**'
+      - 'v5/grundlage/quelle/merchant/bank-retrieve-**'
+      - 'v5/grundlage/quelle/merchant/bank-store-**'
+      - 'v5/grundlage/adapter/persistenz/node-bank-retrieve-**'
+      - 'v5/grundlage/adapter/persistenz/node-bank-store-**'
+      - 'v5/grundlage/vertraege/runtime/bank-retrieve-**'
+      - 'v5/grundlage/vertraege/runtime/bank-store-**'
+      - 'v5/grundlage/quelle/merchant/bank-produktions-**'
+      - 'v5/grundlage/quelle/runtime/produktions-komposition.ts'
+      - 'v5/grundlage/quelle/index.ts'
+      - 'v5/grundlage/tests/*bank-item-transfer*'
+      - 'v5/grundlage/tests/*bank-retrieve*'
+      - 'v5/grundlage/tests/*bank-store*'
+      - 'v5/grundlage/tests/r11-produktions-kompositionskatalog.test.mjs'
+      - 'v5/package.json'
+      - '.github/workflows/v5-bank-item-transfer-core.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - name: Installieren
+        working-directory: v5
+        run: npm ci
+      - name: Bank Item Transfer Core
+        working-directory: v5
+        run: npm run bank-item-transfer-production:core-pruefen
