@@ -206,6 +206,8 @@ Der Updater akzeptiert weder frei konfigurierbare Repositorys noch frei konfigur
 
 Für End-to-End-Regressionstests kann ein dokumentations-only Main-Build als harmloses Update-Ziel verwendet werden; die Update-Entscheidung bleibt ausschließlich an der monoton steigenden Workflow-Buildnummer gebunden.
 
+Der Apply-/Restart-Regressionspfad wird dabei separat gegen Windows-Dateisperren nach Parent-Prozessende geprüft.
+
 Der Update-Check startet direkt beim Fensterstart und wartet nicht auf Browser-, Supabase- oder Wissenswächter-Initialisierung. Der letzte Check-/Apply-Status wird ohne Geheimnisse unter folgendem Pfad abgelegt:
 
 ```text
