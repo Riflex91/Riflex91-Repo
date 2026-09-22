@@ -623,6 +623,108 @@ jobs:
           grep -Fq 'notificationsEnabled' "world of warcraft/MewthischGuides1/UI/SettingsWindow.lua"
           echo "Safety defaults + local telemetry PASS"
 
+      - name: Validate notification and inventory comfort logic
+        run: |
+          lua5.1 - <<'LUA'
+          MewthischGuides1DB={}
+          local MG={Util={}}
+          function MG.Util:Copy(value)
+            if type(value)~="table" then return value end
+            local out={};for k,v in pairs(value) do out[k]=MG.Util:Copy(v) end;return out
+          end
+          function MG:EnsureDB()
+            MewthischGuides1DB.settings=MewthischGuides1DB.settings or {
+              notificationsEnabled=true,notificationPopups=false,
+              notifyInventoryEvents=true,notifyMerchantEvents=true,
+              notifyGuideEvents=true,notifyLowBagSpace=true,
+              inventoryLowSlotsThreshold=4,autoSellGray=false,autoRepair=false,
+              notifyMerchantSummary=true,
+            }
+            MewthischGuides1DB.notifications=MewthischGuides1DB.notifications or {}
+            MewthischGuides1DB.runtime=MewthischGuides1DB.runtime or {}
+            self.db=MewthischGuides1DB
+            return self.db
+          end
+          time=function() return 123 end
+
+          assert(loadfile("world of warcraft/MewthischGuides1/Core/NotificationCenter.lua"))(
+            "MewthischGuides1",MG)
+          local entry=assert(MG.NotificationCenter:Notify("inventory","Test","Message"))
+          assert(entry.unread and MG.NotificationCenter:GetUnreadCount()==1)
+          MG.NotificationCenter:MarkAllRead()
+          assert(MG.NotificationCenter:GetUnreadCount()==0)
+          MG:EnsureDB().settings.notifyInventoryEvents=false
+          local blocked,reason=MG.NotificationCenter:Notify("inventory","Blocked","No")
+          assert(blocked==nil and reason=="disabled")
+          MG:EnsureDB().settings.notifyInventoryEvents=true
+
+          NUM_BAG_SLOTS=0
+          C_Container={}
+          C_Container.GetContainerNumSlots=function() return 3 end
+          C_Container.GetContainerNumFreeSlots=function() return 5 end
+          C_Container.GetContainerItemInfo=function(bag,slot)
+            if slot==1 then return {stackCount=2,quality=0,itemID=100,hyperlink="item:100"} end
+            if slot==2 then return {stackCount=1,quality=2,itemID=200,hyperlink="item:200"} end
+            return {stackCount=1,quality=0,itemID=300,hyperlink="item:300"}
+          end
+          C_Container.GetContainerItemID=function(bag,slot) return ({100,200,300})[slot] end
+          C_Container.GetContainerItemQuestInfo=function(bag,slot)
+            if slot==3 then return {questID=999,isQuestItem=true} end
+            return nil
+          end
+          C_Container.SortBags=function() _G.sorted=true end
+          GetItemInfo=function(id)
+            if id==100 then return "Gray","item:100",0,1,1,"Misc","Junk",20,"",111,50 end
+            if id==200 then return "Green","item:200",2,1,1,"Armor","",1,"",222,200 end
+            return "Quest Gray","item:300",0,1,1,"Quest","",1,"",333,100
+          end
+          assert(loadfile("world of warcraft/MewthischGuides1/Inventory/InventoryTools.lua"))(
+            "MewthischGuides1",MG)
+          local junk=MG.InventoryTools:ScanJunk()
+          assert(junk.stacks==1 and junk.count==2 and junk.value==100)
+          assert(junk.items[1].itemID==100)
+          assert(MG.InventoryTools:CountFreeSlots()==5)
+          assert(MG.InventoryTools:SortBags())
+          assert(sorted==true)
+
+          local driver={}
+          function driver:SetScript(name,fn) self[name]=fn end
+          function driver:Show() self.shown=true end
+          function driver:Hide() self.shown=false end
+          CreateFrame=function() return driver end
+          MerchantFrame={IsShown=function() return true end}
+          local money=1000
+          GetMoney=function() return money end
+          C_Container.UseContainerItem=function(bag,slot) money=money+100 end
+          MG.InventoryTools.ScanJunk=function()
+            return {items={{bag=0,slot=1,count=2,value=100}},stacks=1,count=2,value=100}
+          end
+          MG.InventoryTools.Refresh=function() return {freeSlots=5,junk={stacks=1,count=2,value=100}} end
+          MG.NotificationCenter.Notify=function(self,kind,title,message,data)
+            _G.lastNotification={kind=kind,title=title,message=message,data=data}
+            return _G.lastNotification
+          end
+          assert(loadfile("world of warcraft/MewthischGuides1/Inventory/MerchantAutomation.lua"))(
+            "MewthischGuides1",MG)
+          MG.MerchantAutomation.merchantOpen=true
+          local ok,status=MG.MerchantAutomation:StartSellGray(true)
+          assert(ok and status=="queued")
+          driver.OnUpdate(driver,.1)
+          driver.OnUpdate(driver,.1)
+          assert(money==1100)
+          assert(lastNotification and lastNotification.title=="Graue Gegenstände verkauft")
+          assert(lastNotification.data.value==100)
+
+          MG:EnsureDB().settings.autoSellGray=true
+          MG:EnsureDB().settings.autoRepair=true
+          MG.InventoryTools.ScanJunk=function() return {items={},stacks=0,count=0,value=0} end
+          local repaired=false
+          MG.MerchantAutomation.Repair=function() repaired=true;return true end
+          MG.MerchantAutomation:OnMerchantShow()
+          assert(repaired,"auto repair must still run when there is no gray junk")
+          print("Notification + inventory comfort logic PASS")
+          LUA
+
       - name: Build installable addon ZIP
         run: |
           cd "world of warcraft"
