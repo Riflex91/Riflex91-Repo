@@ -22,6 +22,7 @@ Unterstuetzte Funktionen:
 - Kein Raw-Socket-Emit ist Teil des Testpakets.
 - Das Fenster zeigt strukturierte Diagnose und bietet **Ergebnis kopieren** sowie **Gesamtbericht kopieren**.
 - `OPEN PACK · Shadow` liest den ersten gesperrten kostenpflichtigen Pack auf der aktuellen Bank, Gold-/Shell-Kosten und beide Guthaben. Der Shadow ruft `open_bank_pack()` niemals auf und setzt `liveMutationFreigegeben=false`.
+- `OPEN PACK · Admission` fuehrt denselben stabilen Shadow erneut read-only aus und bewertet Gold- und Shell-Pfad getrennt als `BEREIT` oder `BLOCKIERT`. Auch bei `BEREIT` bleibt `liveMutationFreigegeben=false`.
 
 ## Bedienung
 

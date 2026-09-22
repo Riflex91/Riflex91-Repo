@@ -227,3 +227,85 @@ test("OPEN BANK PACK Shadow waehlt stabilen gesperrten Pack und schreibt nichts"
   assert.equal(result.mutatingPublicFunctionCalls, 0);
   assert.equal(result.liveMutationFreigegeben, false);
 });
+
+
+test("OPEN BANK PACK Admission bleibt read-only und blockiert beide Pfade bei fehlenden Ressourcen", async () => {
+  const speicher = new Map();
+  const gui = {
+    registriereAktion() {},
+    protokolliere() {},
+    setzeErgebnis() {},
+    setzeAktionAktiv() {},
+    kopiereBericht() { return true; }
+  };
+  let jetzt = 1000;
+  let openCalls = 0;
+  const basis = {
+    parent: null,
+    user_id: "account-1",
+    server_region: "EU",
+    server_identifier: "I",
+    bank_packs: {
+      items0: ["bank", 0, 0],
+      items1: ["bank", 0, 0],
+      items2: ["bank", 75000000, 600]
+    },
+    character: {
+      name: "Merchant",
+      id: "session-1",
+      owner: "account-1",
+      ctype: "merchant",
+      map: "bank",
+      rip: false,
+      moving: false,
+      q: {},
+      gold: 15993820,
+      cash: 0,
+      isize: 4,
+      items: [null, null, null, null],
+      bank: {
+        gold: 500,
+        items0: [null],
+        items1: [null]
+      }
+    },
+    G: { items: {} },
+    localStorage: {
+      getItem(key) { return speicher.has(key) ? speicher.get(key) : null; },
+      setItem(key, value) { speicher.set(key, String(value)); }
+    },
+    V5TestGui: {
+      performanceTrickStatus() { return { aktiv: true, playing: true }; },
+      async aktivierePerformanceTrick() { return { aktiv: true, playing: true }; },
+      erstelleTest() { return gui; }
+    },
+    bank_retrieve() {},
+    bank_store() {},
+    bank_swap() {},
+    open_bank_pack() { openCalls += 1; throw new Error("DARF_NICHT_AUFGERUFEN_WERDEN"); },
+    setTimeout(fn) { fn(); return 1; },
+    clearTimeout() {},
+    Date: { now() { jetzt += 1000; return jetzt; } },
+    console
+  };
+  const context = vm.createContext(basis);
+  vm.runInContext(controller, context);
+  const result = await context.V5BankFunctionTest.openBankPackAdmission();
+  assert.equal(result.status, "BLOCKIERT");
+  assert.equal(result.testArt, "ADMISSION_READ_ONLY");
+  assert.equal(result.pfade.gold.status, "BLOCKIERT");
+  assert.ok(Array.from(result.pfade.gold.blocker).includes("BANK_OPEN_PACK_GOLD_ZU_NIEDRIG"));
+  assert.equal(result.pfade.shells.status, "BLOCKIERT");
+  assert.ok(Array.from(result.pfade.shells.blocker).includes("BANK_OPEN_PACK_SHELLS_ZU_NIEDRIG"));
+  assert.equal(result.gameplayWrites, 0);
+  assert.equal(result.mutatingPublicFunctionCalls, 0);
+  assert.equal(result.liveMutationFreigegeben, false);
+  assert.equal(openCalls, 0);
+});
+
+test("OPEN BANK PACK Admission kann Finanzierbarkeit anzeigen ohne Live freizugeben", async () => {
+  assert.ok(controller.includes("OPEN PACK · Admission"));
+  assert.ok(controller.includes("PFAD_BEREIT_ABER_LIVE_WEITERHIN_NICHT_FREIGEGEBEN"));
+  assert.ok(controller.includes("WAIT_AND_REOBSERVE_NO_SEND"));
+  assert.equal((controller.match(/open_bank_pack\s*\(/g) ?? []).length, 0);
+});
