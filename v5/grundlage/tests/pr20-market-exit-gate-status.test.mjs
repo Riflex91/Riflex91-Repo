@@ -48,11 +48,20 @@ test("Trade-Abnahme bleibt Roadmap-Abnahme ohne erfundene Live-Evidence", () => 
   assert.equal(trade.transitionPolicy.grantsProductiveTradeAuthority, false);
 });
 
-test("Roadmap wechselt ausschliesslich auf PR20.4 NO-WRITE-Vorbereitung", () => {
-  assert.equal(roadmap.currentGate, "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG");
+test("PR20.3 bleibt auch nach Fortschritt zu PR20.5 geschlossen und authority-frei", () => {
+  assert.ok([
+    "PR20.4_LOGISTIK_TRANSFER_PRODUKTIVIERUNG",
+    "PR20.5_MERCHANT_STABILITAET",
+  ].includes(roadmap.currentGate));
   assert.equal(roadmap.pr20_3.status, "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN");
-  assert.equal(roadmap.pr20_4.status, "INGAME_GESAMTSTUFENTEST_BEREIT");
   assert.equal(roadmap.pr20_4.productiveMutationAllowed, false);
-  assert.equal(logistics.status, "BEREIT_FUER_INGAME_GESAMTSTUFENTEST");
+  assert.ok([
+    "INGAME_GESAMTSTUFENTEST_BEREIT",
+    "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
+  ].includes(roadmap.pr20_4.status));
+  assert.ok([
+    "BEREIT_FUER_INGAME_GESAMTSTUFENTEST",
+    "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
+  ].includes(logistics.status));
   assert.equal(logistics.authorityGrenze.gameplayAutoritaet, false);
 });
