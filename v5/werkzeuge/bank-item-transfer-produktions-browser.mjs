@@ -65,9 +65,35 @@ function mounted(v,zeit){
   bankGemountet:true,bridgeFunctionAvailable:true,codeActive:b.codeActive===true,characterGold:b.characterGold,bankGold:b.bankGold,inventoryCapacity:b.inventoryCapacity,beobachtetAmMs:zeit,
   fingerprint,beobachtetePacks:Object.freeze(packs.map(x=>x.pack)),retrieveKandidat:enrich(retrieve),storeKandidat:enrich(store)});
 }
+function gleicheIdentitaet(a,b){return a.accountId===b.accountId&&a.charakterName===b.charakterName&&a.sessionId===b.sessionId&&a.serverRegion===b.serverRegion&&a.serverKennung===b.serverKennung}
+function mode(v){const x=String(v||"").toUpperCase();if(!["RETRIEVE","STORE"].includes(x))throw new Error("BANK_ITEM_TRANSFER_MODUS_UNGUELTIG");return x}
+function kandidat(s,m){return m==="RETRIEVE"?s.retrieveKandidat:s.storeKandidat}
+function kandidatGleich(a,b){return !!a&&!!b&&a.pack===b.pack&&a.bankSlot===b.bankSlot&&a.inventorySlot===b.inventorySlot&&a.item?.fingerprint===b.item?.fingerprint}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 export async function beobachteBankItemTransferRohReadOnly(session,contextId){if(!session||typeof session.evaluate!=="function"||!Number.isInteger(contextId))throw new Error("BANK_ITEM_TRANSFER_CDP_KONTEXT_UNGUELTIG");return basis(await session.evaluate(EXPR,contextId))}
+export function validiereBankItemTransferAusgangsBeobachtung(v){
+ const b=basis(v);if(b.bewegtSich)throw new Error("BANK_ITEM_TRANSFER_START_CHARACTER_BEWEGT_SICH");if(b.queueAktiv)throw new Error("BANK_ITEM_TRANSFER_START_CHARACTER_QUEUE_AKTIV");if(b.bankGemountet)throw new Error("BANK_ITEM_TRANSFER_START_MUSS_AUSSERHALB_BANK_SEIN");return Object.freeze({...b});
+}
+export function validiereBankItemTransferMountBeobachtung(v,ausgang,zeit,modus,erwarteterKandidat=null){
+ const m=mode(modus),snap=mounted(v,zeit);if(!gleicheIdentitaet(snap,ausgang))throw new Error("BANK_"+m+"_BINDUNG_DRIFT");const k=kandidat(snap,m);if(!k)throw new Error("BANK_"+m+"_KEIN_SICHERER_KANDIDAT");if(erwarteterKandidat&&!kandidatGleich(k,erwarteterKandidat))throw new Error("BANK_"+m+"_KANDIDAT_DRIFT");return snap;
+}
+export async function warteAufManuellenBankItemTransferMountReadOnly(session,contextId,ausgang,modus,erwarteterKandidat,{timeoutMs=90_000,pollMs=500,onPhase=()=>{}}={}){
+ const m=mode(modus),start=Date.now();let letzter=null;onPhase("LEASE_ERWORBEN_BANK_MANUELL_BETRETEN");
+ while(Date.now()-start<=timeoutMs){const roh=await beobachteBankItemTransferRohReadOnly(session,contextId);if(!gleicheIdentitaet(roh,ausgang))throw new Error("BANK_"+m+"_MOUNT_BINDUNG_DRIFT");
+  if(roh.bankGemountet){const snap=validiereBankItemTransferMountBeobachtung(roh,ausgang,Date.now(),m,erwarteterKandidat),k=kandidat(snap,m);const key=snap.fingerprint+":"+k.pack+":"+k.bankSlot+":"+k.inventorySlot+":"+k.item.fingerprint;
+   if(letzter===key){onPhase("BANK_"+m+"_MOUNT_STABIL_BEOBACHTET");return snap}letzter=key;
+  }else letzter=null;await sleep(pollMs)}
+ throw new Error("BANK_"+m+"_MANUELLER_MOUNT_TIMEOUT");
+}
+export function erstelleBankItemTransferReleaseBeobachter(session,contextId,mountBeobachtung,modus,{timeoutMs=90_000,pollMs=500,onPhase=()=>{}}={}){
+ const m=mode(modus);return Object.freeze({async beobachte(){const start=Date.now();onPhase("BANK_"+m+"_BANK_MANUELL_VERLASSEN");
+  while(Date.now()-start<=timeoutMs){const roh=await beobachteBankItemTransferRohReadOnly(session,contextId);if(!gleicheIdentitaet(roh,mountBeobachtung))throw new Error("BANK_"+m+"_EXIT_BINDUNG_DRIFT");
+   if(!roh.bankGemountet&&!roh.bewegtSich&&!roh.queueAktiv){onPhase("BANK_"+m+"_EXIT_STABIL_BEOBACHTET");return Object.freeze({offeneTransaktionen:0,backendInProgress:false,bankActionInFlight:false,characterBankAktiv:false,erwarteterExitBeobachtet:true})}
+   await sleep(pollMs)}throw new Error("BANK_"+m+"_MANUELLER_EXIT_TIMEOUT")}})
+}
 export function validiereBankItemTransferPreflightBeobachtung(v,zeit=Date.now()){return mounted(v,zeit)}
 export async function beobachteBankItemTransferPreflightReadOnly(session,contextId){return mounted(await session.evaluate(EXPR,contextId),Date.now())}
 export const BANK_ITEM_TRANSFER_PREFLIGHT_BROWSER_READ_ONLY=true;
 export const BANK_ITEM_TRANSFER_PREFLIGHT_GAMEPLAY_WRITES=0;
 export const BANK_ITEM_TRANSFER_PREFLIGHT_MUTATING_PUBLIC_FUNCTION_CALLS=0;
+export const BANK_ITEM_TRANSFER_REAL_SHADOW_GAMEPLAY_WRITES=0;

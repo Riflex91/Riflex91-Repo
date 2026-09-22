@@ -126,7 +126,15 @@
     "bank-item-transfer-production:core-pruefen": "npm run bauen && node --test grundlage/tests/pr20-bank-item-transfer-settlement.test.mjs grundlage/tests/r11-bank-retrieve-einmal-authority.test.mjs grundlage/tests/r11-bank-store-einmal-authority.test.mjs grundlage/tests/r11-bank-item-transfer-current-fence.test.mjs grundlage/tests/r11-produktions-kompositionskatalog.test.mjs",
     "bank-item-transfer-production:preflight-pruefen": "npm run bauen && node --check werkzeuge/bank-item-transfer-produktions-browser.mjs && node --check werkzeuge/bank-item-transfer-produktions-preflight.mjs && node --test grundlage/tests/r11-bank-item-transfer-produktions-browser.test.mjs grundlage/tests/r11-bank-item-transfer-preflight-static.test.mjs",
     "ingame:bank-retrieve:preflight": "npm run bauen && node werkzeuge/bank-item-transfer-produktions-preflight.mjs --mode RETRIEVE",
-    "ingame:bank-store:preflight": "npm run bauen && node werkzeuge/bank-item-transfer-produktions-preflight.mjs --mode STORE"
+    "ingame:bank-store:preflight": "npm run bauen && node werkzeuge/bank-item-transfer-produktions-preflight.mjs --mode STORE",
+    "bank-item-transfer-evening:no-write-pruefen": "npm run bauen && node --check werkzeuge/bank-item-transfer-evening-evidence.mjs && node --check werkzeuge/bank-item-transfer-candidate-stability.mjs && node --check werkzeuge/bank-item-transfer-code-bridge-probe.mjs && node --test grundlage/tests/r11-bank-item-transfer-evening-evidence.test.mjs grundlage/tests/r11-bank-item-transfer-shadow-runtime.test.mjs",
+    "ingame:bank-retrieve:stability": "npm run bauen && node werkzeuge/bank-item-transfer-candidate-stability.mjs --mode RETRIEVE",
+    "ingame:bank-retrieve:bridge": "npm run bauen && node werkzeuge/bank-item-transfer-code-bridge-probe.mjs --mode RETRIEVE",
+    "ingame:bank-store:stability": "npm run bauen && node werkzeuge/bank-item-transfer-candidate-stability.mjs --mode STORE",
+    "ingame:bank-store:bridge": "npm run bauen && node werkzeuge/bank-item-transfer-code-bridge-probe.mjs --mode STORE",
+    "bank-item-transfer-evening:shadow-pruefen": "npm run bauen && node --check werkzeuge/bank-item-transfer-real-browser-shadow.mjs && node --check werkzeuge/bank-item-transfer-produktions-browser.mjs && node --test grundlage/tests/r11-bank-item-transfer-shadow-runtime.test.mjs grundlage/tests/r11-bank-item-transfer-real-shadow-static.test.mjs",
+    "ingame:bank-retrieve:shadow": "npm run bauen && node werkzeuge/bank-item-transfer-real-browser-shadow.mjs --mode RETRIEVE",
+    "ingame:bank-store:shadow": "npm run bauen && node werkzeuge/bank-item-transfer-real-browser-shadow.mjs --mode STORE"
   },
   "devDependencies": {
     "typescript": "5.9.3"

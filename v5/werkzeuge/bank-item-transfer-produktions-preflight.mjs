@@ -10,6 +10,11 @@ import {
  beobachteBankItemTransferPreflightReadOnly,
 } from "./bank-item-transfer-produktions-browser.mjs";
 import { erstelleNodeV5ProduktionsHost } from "./v5-produktions-host-komposition.mjs";
+import { NodeProduktionsDateisystem } from "../grundlage/adapter/persistenz/node-produktions-dateisystem.mjs";
+import {
+  BANK_ITEM_TRANSFER_ABEND_STUFEN,
+  schreibeBankItemTransferAbendEvidence,
+} from "./bank-item-transfer-evening-evidence.mjs";
 
 const V5=path.resolve(path.dirname(fileURLToPath(import.meta.url)),".."),ROOT=path.resolve(V5,"..");
 function h(v){return crypto.createHash("sha256").update(String(v)).digest("hex")}
@@ -30,13 +35,18 @@ export async function fuehreBankItemTransferPreflight({modus,cdpText,sourceSha,h
    offeneBankDepositTransaktionId:current.offeneBankDepositTransaktionId,offeneBankWithdrawTransaktionId:current.offeneBankWithdrawTransaktionId,offeneBankSwapTransaktionId:current.offeneBankSwapTransaktionId,
    offeneBankRetrieveTransaktionId:current.offeneBankRetrieveTransaktionId,offeneBankStoreTransaktionId:current.offeneBankStoreTransaktionId,aktiveBankLease:current.offeneBankLease!==null});
   const bereit=current.bereit&&fence.status==="BEREIT"&&st.zustand==="LAEUFT"&&st.aktivePlanenFaehigkeiten.length===0&&st.gameplayAutoritaet===false&&st.rawWriteAutoritaet===false&&st.actionAuthority===false;
-  return Object.freeze({schemaVersion:1,evidenceArt:"V5_BANK_"+m+"_READ_ONLY_PREFLIGHT",status:bereit?"BEREIT":"BLOCKIERT",modus:m,sourceSha:s,actualHeadSha:actual,
+  const bericht=Object.freeze({schemaVersion:1,stufe:BANK_ITEM_TRANSFER_ABEND_STUFEN.PREFLIGHT,evidenceArt:"V5_BANK_"+m+"_READ_ONLY_PREFLIGHT",status:bereit?"BEREIT":"BLOCKIERT",modus:m,sourceSha:s,actualHeadSha:actual,
    context:Object.freeze({targetUrl:live.targetUrl,contextId:live.contextId,requiredGlobalFunction:"call_code_function_f"}),accountBindungSha256:h(obs.accountId),charakterBindungSha256:h(obs.charakterName+":"+obs.sessionId),
    server:Object.freeze({region:obs.serverRegion,kennung:obs.serverKennung}),mount:Object.freeze({map:obs.map,bankGemountet:true,beobachtetePacks:obs.beobachtetePacks}),candidate:kandidat,
    baseline:Object.freeze({fingerprint:obs.fingerprint,characterGold:obs.characterGold,bankGold:obs.bankGold,inventoryCapacity:obs.inventoryCapacity,beobachtetAmMs:obs.beobachtetAmMs}),
    current,fence,safety:Object.freeze({browserReadOnly:true,gameplayWrites:BANK_ITEM_TRANSFER_PREFLIGHT_GAMEPLAY_WRITES,mutatingPublicFunctionCalls:BANK_ITEM_TRANSFER_PREFLIGHT_MUTATING_PUBLIC_FUNCTION_CALLS,
     authorityAusgestellt:false,leaseErworben:false,journalIntentGeschrieben:false,adapterAufrufe:0,publicFunctionAufrufe:0,rawSocketEmit:false,sameIntentRetry:false}),
-   naechsterSchritt:bereit?m+"_ADMISSION_SHADOW_NO_WRITE":"BLOCKER_LOKALISIEREN_KEIN_RETRY"});
+   sameIntentRetry:false,naechsterSchritt:bereit?m+"_KANDIDATEN_STABILITAET":"BLOCKER_LOKALISIEREN_KEIN_RETRY"});
+  if( bereit ){
+    const ds=new NodeProduktionsDateisystem(hostOptionen.dateisystemOptionen ?? {});
+    await schreibeBankItemTransferAbendEvidence(ds,m,BANK_ITEM_TRANSFER_ABEND_STUFEN.PREFLIGHT,bericht);
+  }
+  return bericht;
  }finally{if(host)await host.stoppe("BANK_ITEM_TRANSFER_PREFLIGHT_ENDE").catch(()=>{});live.session.close()}
 }
 const direct=process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href;
