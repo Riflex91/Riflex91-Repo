@@ -7,7 +7,7 @@
   "paket": "v5/werkzeuge/pr20-4-logistics-transfer-step-test-paket.js",
   "stateKey": "AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1",
   "actorsKey": "AIO_V5_PR20_4_TRANSFER_ACTORS_V1",
-  "controllerVersion": "1.1.0",
+  "controllerVersion": "1.2.0",
   "mergeZwischenTestschrittenErforderlich": false,
   "produktiveTransferAuthority": false,
   "prerequisites": [
@@ -208,5 +208,11 @@
     "danach keine Einzelschritte klicken; Auto-Runner fuehrt alle zulaessigen Schritte selbst aus",
     "bei sicherem Blocker oder Fehler stoppt der Auto-Runner ohne zusaetzlichen Live-Send",
     "nach BESTANDEN Gesamtbericht kopieren"
-  ]
+  ],
+  "collectionReturnSemantics": {
+    "confirmedOutboundEvidenceRequired": true,
+    "giftMarkerTolerated": true,
+    "giftMarkerScope": "CONFIRMED_COLLECTION_RETURN_ONLY",
+    "lockedBlockedPropertyStatGraceExpiryDataRemainFailClosed": true
+  }
 }

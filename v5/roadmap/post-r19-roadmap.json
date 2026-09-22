@@ -911,6 +911,7 @@
     "autoStartAfterJavascriptLoad": true,
     "manualStepClicksRequired": false,
     "ingameTestPolicy": "v5/grundlage/vertraege/runtime/ingame-test-execution-policy.json",
-    "controllerVersion": "1.1.0"
+    "controllerVersion": "1.2.0",
+    "collectionReturnGiftMarkerTolerated": true
   }
 }

@@ -28,10 +28,15 @@ const erwartete = new Map([
 
 test("PR20.4 Harness und kuenftige Ingame-Tests laufen AUTO_ON_LOAD", () => {
   assert.equal(prep.testHarness.executionMode, "AUTO_ON_LOAD");
-  assert.equal(prep.testHarness.controllerVersion, "1.1.0");
+  assert.equal(prep.testHarness.controllerVersion, "1.2.0");
   assert.equal(prep.testHarness.autoStartAfterJavascriptLoad, true);
   assert.equal(prep.testHarness.manualStepClicksRequired, false);
   assert.equal(prep.testHarness.peerVersionGate, true);
+  assert.equal(prep.testHarness.collectionReturnGiftMarkerTolerated, true);
+  assert.equal(prep.testHarness.collectionReturnGiftMarkerScope, "CONFIRMED_COLLECTION_RETURN_ONLY");
+  assert.ok(prep.testHarness.collectionReturnStillFailClosedFor.includes("locked"));
+  assert.ok(prep.testHarness.collectionReturnStillFailClosedFor.includes("blocked"));
+  assert.ok(prep.testHarness.collectionReturnStillFailClosedFor.includes("data"));
   assert.equal(prep.testHarness.productiveTransferAuthority, false);
   assert.equal(prep.testHarness.sameIntentRetry, false);
 
