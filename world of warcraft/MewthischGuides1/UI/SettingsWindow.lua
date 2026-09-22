@@ -4,10 +4,10 @@ MG.SettingsWindow = MG.SettingsWindow or {}
 local S = MG.SettingsWindow
 local UI = MG.UICompat
 
-local WIDTH = 400
-local ROW_HEIGHT = 30
+local WIDTH = 430
+local ROW_HEIGHT = 28
 
-local OPTIONS = {
+local BOOL_OPTIONS = {
     { key="showViewer", label="Hauptfenster anzeigen" },
     { key="showNavigator", label="Navigator anzeigen" },
     { key="showWorldMapMarker", label="Weltkartenmarker anzeigen" },
@@ -21,6 +21,13 @@ local OPTIONS = {
     { key="autoAcceptQuests", label="Quests automatisch annehmen" },
     { key="autoTurnInQuests", label="Quests ohne Belohnungswahl auto-abgeben" },
     { key="diagnostics", label="Diagnoseprotokoll aktivieren" },
+    { key="rxpEraMode", label="RestedXP: Era aktiv" },
+    { key="rxpSoMMode", label="RestedXP: Season of Mastery" },
+    { key="rxpSoDMode", label="RestedXP: Season of Discovery" },
+    { key="rxpHardcoreMode", label="RestedXP: Hardcore-Guide" },
+    { key="rxpHardcoreServer", label="Server ist Hardcore" },
+    { key="rxpSSFMode", label="Self-Found / SSF" },
+    { key="allowAuctionHouse", label="Auktionshaus-Schritte erlauben" },
 }
 
 local function makeSolid(parent, layer, r, g, b, a)
@@ -46,10 +53,18 @@ local function button(parent,text,width,height,callback)
     b:SetScript("OnClick",callback);b.label=l;return b
 end
 
+local function modeChange()
+    if MG.GuideCatalog then MG.GuideCatalog:Load(true) end
+    if MG.RuntimeEngine and MG.RuntimeEngine.session then
+        MG.RuntimeEngine:Refresh("settings_mode_changed")
+    end
+    if MG.RefreshUI then MG:RefreshUI() end
+end
+
 function S:Create()
     if self.frame then return self.frame end
 
-    local height=102+#OPTIONS*ROW_HEIGHT+82
+    local height=154+#BOOL_OPTIONS*ROW_HEIGHT+84
     local frame=CreateFrame("Frame","MewthischGuides1Settings",UIParent)
     UI:SetSize(frame,WIDTH,height);frame:SetPoint("CENTER",0,10)
     UI:SetFrameStrata(frame,"FULLSCREEN_DIALOG");UI:SetClampedToScreen(frame,true)
@@ -74,7 +89,8 @@ function S:Create()
     close:SetPoint("TOPRIGHT",-6,-7)
 
     local subtitle=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
-    subtitle:SetPoint("TOPLEFT",12,-47);subtitle:SetText("Änderungen gelten sofort. Automationen sind standardmäßig AUS.")
+    subtitle:SetPoint("TOPLEFT",12,-47)
+    subtitle:SetText("Änderungen gelten sofort. Automationen sind standardmäßig AUS.")
     if subtitle.SetTextColor then subtitle:SetTextColor(.72,.72,.72) end;shadow(subtitle)
 
     local quickBrowser=button(frame,"GUIDES",82,24,function()
@@ -90,18 +106,47 @@ function S:Create()
     end)
     quickLog:SetPoint("LEFT",quickBuild,"RIGHT",6,0)
 
+    local phaseLabel=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
+    phaseLabel:SetPoint("TOPLEFT",12,-105);phaseLabel:SetText("RestedXP Phase");shadow(phaseLabel)
+    local phase=button(frame,"",66,22,function()
+        local db=MG:EnsureDB()
+        local value=(tonumber(db.settings.rxpPhase) or 6)+1
+        if value>6 then value=1 end
+        db.settings.rxpPhase=value
+        S:Refresh();modeChange()
+    end)
+    phase:SetPoint("TOPLEFT",112,-100)
+
+    local rateLabel=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlightSmall","GameFontNormalSmall"))
+    rateLabel:SetPoint("TOPLEFT",198,-105);rateLabel:SetText("XP-Rate");shadow(rateLabel)
+    local rate=button(frame,"",70,22,function()
+        local db=MG:EnsureDB()
+        local values={1,1.5,2,3}
+        local current=tonumber(db.settings.rxpRate) or 1
+        local index=1
+        for i,v in ipairs(values) do if v==current then index=i break end end
+        index=index%#values+1
+        db.settings.rxpRate=values[index]
+        S:Refresh();modeChange()
+    end)
+    rate:SetPoint("TOPLEFT",260,-100)
+
     local rows={}
-    for i,option in ipairs(OPTIONS) do
-        local y=-108-(i-1)*ROW_HEIGHT
+    for i,option in ipairs(BOOL_OPTIONS) do
+        local y=-140-(i-1)*ROW_HEIGHT
         local label=frame:CreateFontString(nil,"OVERLAY",UI:SafeFont("GameFontHighlight","GameFontNormal"))
-        label:SetPoint("TOPLEFT",14,y);label:SetWidth(285);label:SetJustifyH("LEFT")
+        label:SetPoint("TOPLEFT",14,y);label:SetWidth(310);label:SetJustifyH("LEFT")
         label:SetText(option.label);shadow(label)
 
         local toggle=button(frame,"",64,22,function()
             local db=MG:EnsureDB()
             db.settings[option.key]=not db.settings[option.key]
             S:Refresh()
-            if MG.RefreshUI then MG:RefreshUI() end
+            if string.sub(option.key,1,3)=="rxp" or option.key=="allowAuctionHouse" then
+                modeChange()
+            elseif MG.RefreshUI then
+                MG:RefreshUI()
+            end
         end)
         toggle:SetPoint("TOPRIGHT",-14,y+4)
         rows[#rows+1]={option=option,button=toggle}
@@ -114,13 +159,16 @@ function S:Create()
     end)
     reset:SetPoint("BOTTOM",0,14)
 
-    self.frame=frame;self.rows=rows
+    self.frame=frame;self.rows=rows;self.phaseButton=phase;self.rateButton=rate
     frame:Hide();return frame
 end
 
 function S:Refresh()
     self:Create()
     local db=MG:EnsureDB()
+    self.phaseButton.label:SetText("P"..tostring(db.settings.rxpPhase or 6))
+    self.rateButton.label:SetText(tostring(db.settings.rxpRate or 1).."x")
+
     for _,row in ipairs(self.rows or {}) do
         local enabled=db.settings[row.option.key] and true or false
         row.button.label:SetText(enabled and "AN" or "AUS")
