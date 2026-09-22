@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "stand": "2026-09-22",
-  "status": "BLOCKIERT_FAIL_CLOSED_NO_FURTHER_INGAME_TEST_JUSTIFIED",
+  "status": "MILESTONE_CLOSED_EXCEPTIONS_RETAINED",
   "kennung": "V5_PR20_2_BANK_BLOCKER_CLOSEOUT",
   "basisMain": "bb3d1d9108457acae36d30a896549f91598621aa",
   "completedEvidence": {
@@ -42,7 +42,7 @@
   },
   "policy": {
     "breiteBankAktivierungErlaubt": false,
-    "pr20_3MarktStartErlaubt": false,
+    "pr20_3MarktStartErlaubt": true,
     "withdrawTest3Erlaubt": false,
     "openPackLiveErlaubt": false,
     "weitereIngameTestsJetztErforderlich": false
@@ -52,5 +52,6 @@
     "eine echte Codeaenderung betrifft einen bereits zertifizierten Bankpfad und oeffnet dessen Funktionsgate nach Testzeit-Standard erneut",
     "eine explizit ratifizierte neue Withdraw-Testpolicy ersetzt die bestehende 2-of-2-Grenze"
   ],
-  "nextAction": "REPO_SIDE_NO_WRITE_CLOSEOUT_ONLY_THEN_WAIT_FOR_REOPEN_TRIGGER"
+  "nextAction": "PR20_3_TESTWORK_ALLOWED_BANK_EXCEPTIONS_REMAIN_DISABLED",
+  "operatorTransitionAcceptance": "v5/roadmap/pr20-2-bank-operator-transition-acceptance.json"
 }
