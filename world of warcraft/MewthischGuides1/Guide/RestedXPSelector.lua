@@ -4,14 +4,19 @@ MG.RestedXPSelector = MG.RestedXPSelector or {}
 local S = MG.RestedXPSelector
 
 local RACES = {
-    Orc="Orc", Troll="Troll", Tauren="Tauren", Undead="Scourge", Scourge="Scourge",
-    Human="Human", Dwarf="Dwarf", Gnome="Gnome", NightElf="NightElf",
-    ["Night Elf"]="NightElf", Skyborne="Skyborne",
+    orc="Orc", troll="Troll", tauren="Tauren", undead="Scourge", scourge="Scourge",
+    human="Human", dwarf="Dwarf", gnome="Gnome", nightelf="NightElf",
+    ["night elf"]="NightElf", skyborne="Skyborne",
 }
 local CLASSES = {
-    Warrior="WARRIOR", Paladin="PALADIN", Hunter="HUNTER", Rogue="ROGUE",
-    Priest="PRIEST", Shaman="SHAMAN", Mage="MAGE", Warlock="WARLOCK", Druid="DRUID",
+    warrior="WARRIOR", paladin="PALADIN", hunter="HUNTER", rogue="ROGUE",
+    priest="PRIEST", shaman="SHAMAN", mage="MAGE", warlock="WARLOCK", druid="DRUID",
 }
+
+local function normalizeAtom(value)
+    value = MG.Util:Trim(value)
+    return string.lower(value)
+end
 
 local function atomMatches(atom, profile, settings)
     atom = MG.Util:Trim(atom)
@@ -19,18 +24,24 @@ local function atomMatches(atom, profile, settings)
     local negative = string.sub(atom, 1, 1) == "!"
     if negative then atom = string.sub(atom, 2) end
 
-    local lower = string.lower(atom)
+    local lower = normalizeAtom(atom)
     local matched
     if lower == "skip" then
         matched = false
     elseif lower == "sod" then
         matched = settings.rxpSoDMode and true or false
-    elseif RACES[atom] then
-        matched = tostring(profile.race or "") == RACES[atom]
-    elseif CLASSES[atom] then
-        matched = tostring(profile.class or "") == CLASSES[atom]
-    elseif atom == "Horde" or atom == "Alliance" then
-        matched = tostring(profile.faction or "") == atom
+    elseif lower == "era" then
+        matched = settings.rxpEraMode ~= false
+    elseif lower == "som" then
+        matched = settings.rxpSoMMode and true or false
+    elseif lower == "ssf" then
+        matched = settings.rxpSSFMode and true or false
+    elseif RACES[lower] then
+        matched = tostring(profile.race or "") == RACES[lower]
+    elseif CLASSES[lower] then
+        matched = tostring(profile.class or "") == CLASSES[lower]
+    elseif lower == "horde" or lower == "alliance" then
+        matched = string.lower(tostring(profile.faction or "")) == lower
     else
         return false, "unknown_selector_atom:" .. tostring(atom)
     end
@@ -58,7 +69,9 @@ function S:Matches(selector, profile)
             local matched, reason = atomMatches(atom, profile, settings)
             if not matched then
                 branchMatches = false
-                if string.find(reason, "unknown_selector_atom:", 1, true) then unknown = reason end
+                if string.find(reason, "unknown_selector_atom:", 1, true) then
+                    unknown = reason
+                end
                 break
             end
         end
@@ -68,43 +81,96 @@ function S:Matches(selector, profile)
     return false, unknown or "selector_not_matched"
 end
 
+local function numberCompare(op, left, right)
+    if not op or right == nil then return true end
+    if op == "<" then return left < right end
+    if op == ">" then return left > right end
+    if op == "<=" then return left <= right end
+    if op == ">=" then return left >= right end
+    if op == "=" or op == "==" then return left == right end
+    return false
+end
+
+local function phaseMatches(value, phase)
+    value = MG.Util:Trim(value)
+    local a, b = value:match("^(%d+)%s*%-%s*(%d+)$")
+    if a then
+        return phase >= tonumber(a) and phase <= tonumber(b)
+    end
+    local exact = tonumber(value)
+    if exact then return phase == exact end
+    return true
+end
+
 function S:TagsMatch(tags, profile)
+    profile = profile or MG:GetPlayerProfile()
     local settings = MG.db and MG.db.settings or {}
     local season = tonumber(settings.rxpSeason) or 0
     local xpRate = tonumber(settings.rxpRate) or 1
     local hardcore = settings.rxpHardcoreMode and true or false
+    local phase = tonumber(settings.rxpPhase) or 6
+    local level = tonumber(profile.level) or 1
 
     for _, tag in ipairs(tags or {}) do
+        local name = string.lower(tostring(tag.name or ""))
+        name = name:gsub("%-%-xpgate$", "")
         local value, conditionalSelector = MG.Util:SplitCondition(tag.value)
+
         if conditionalSelector and conditionalSelector ~= "" then
             local conditional = self:Matches(conditionalSelector, profile)
             if not conditional then
-                -- The tag itself does not apply to this profile.
-            elseif tag.name == "hardcore" and not hardcore then
-                return false, "hardcore"
-            elseif tag.name == "softcore" and hardcore then
-                return false, "softcore"
+                -- Tag is scoped to a different class/race and therefore does
+                -- not constrain this player.
+                name = ""
             end
-        elseif tag.name == "hardcore" and not hardcore then
+        end
+
+        if name == "hardcore" and not hardcore then
             return false, "hardcore"
-        elseif tag.name == "softcore" and hardcore then
+        elseif (name == "softcore" or name == "sofcore") and hardcore then
             return false, "softcore"
-        elseif tag.name == "season" then
+        elseif name == "hardcoreserver" and not settings.rxpHardcoreServer then
+            return false, "hardcore_server"
+        elseif name == "softcoreserver" and settings.rxpHardcoreServer then
+            return false, "softcore_server"
+        elseif name == "era" and settings.rxpEraMode == false then
+            return false, "era"
+        elseif name == "som" and not settings.rxpSoMMode then
+            return false, "som"
+        elseif name == "era/som" and not (
+            settings.rxpEraMode ~= false or settings.rxpSoMMode) then
+            return false, "era_or_som"
+        elseif name == "ssf" and not settings.rxpSSFMode then
+            return false, "ssf"
+        elseif name == "ah" and (
+            settings.rxpSSFMode or settings.allowAuctionHouse == false) then
+            return false, "auction_house_disabled"
+        elseif name == "season" then
             local accepted = false
             for number in string.gmatch(value or "", "%d+") do
                 if tonumber(number) == season then accepted = true break end
             end
             if not accepted then return false, "season" end
-        elseif tag.name == "xprate" then
+        elseif name == "xprate" then
             local op, amount = tostring(value or ""):match("^%s*([<>]=?)%s*([%d%.]+)")
             amount = tonumber(amount)
-            if op and amount then
-                if op == "<" and not (xpRate < amount) then return false, "xprate" end
-                if op == ">" and not (xpRate > amount) then return false, "xprate" end
-                if op == "<=" and not (xpRate <= amount) then return false, "xprate" end
-                if op == ">=" and not (xpRate >= amount) then return false, "xprate" end
+            if op and amount and not numberCompare(op, xpRate, amount) then
+                return false, "xprate"
+            end
+        elseif name == "phase" then
+            if not phaseMatches(value or "", phase) then return false, "phase" end
+        elseif name == "level" then
+            local op, amount = tostring(value or ""):match("^%s*([<>]=?)%s*(%d+)")
+            if not amount then
+                amount = tonumber(tostring(value or ""):match("(%d+)"))
+                op = ">="
+            end
+            if amount and not numberCompare(op, level, tonumber(amount)) then
+                return false, "level"
             end
         end
+        -- Structural tags (completewith, label, requires, loop, sticky,
+        -- optional, arrowtext, map, hidewindow) intentionally do not filter.
     end
     return true, "tags_matched"
 end
