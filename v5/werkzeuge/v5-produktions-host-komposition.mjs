@@ -285,7 +285,8 @@ class NodeV5ProduktionsHost {
           serverIdentifier: offeneLeases[0].serverIdentifier,
         }),
     });
-  }\n
+  }
+
   async #pruefeBankItemTransferStartBereit() {
     const depositJournal = await this.#bankDepositJournal.pruefeStartBereit();
     const withdrawJournal = await this.#bankWithdrawJournal.pruefeStartBereit();
