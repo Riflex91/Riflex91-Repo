@@ -632,14 +632,25 @@
         "v5/werkzeuge/pr20-3-market-buy-gold-step-test-paket-bauen.mjs",
         "v5/werkzeuge/pr20-3-market-buy-gold-step-test-paket.js",
         "v5/werkzeuge/tests/pr20-3-market-buy-gold-step-test.test.mjs",
-        "v5/roadmap/pr20-3-market-buy-gold-step-test-plan.json"
+        "v5/roadmap/pr20-3-market-buy-gold-step-test-plan.json",
+        "v5/grundlage/vertraege/runtime/market-sell-production-candidate.json",
+        "v5/grundlage/quelle/merchant/market-sell-settlement.ts",
+        "v5/grundlage/tests/pr20-market-sell-settlement.test.mjs",
+        "v5/werkzeuge/pr20-3-market-sell-step-test-gui.js",
+        "v5/werkzeuge/pr20-3-market-sell-step-test-paket-bauen.mjs",
+        "v5/werkzeuge/pr20-3-market-sell-step-test-paket.js",
+        "v5/werkzeuge/tests/pr20-3-market-sell-step-test.test.mjs",
+        "v5/roadmap/pr20-3-market-sell-step-test-plan.json"
       ],
       "pr20_2Transition": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
       "firstLiveCandidate": "buy_with_gold(item, 1)",
       "route": "GOLD_ONLY",
       "testHarness": "v5/werkzeuge/pr20-3-market-buy-gold-step-test-paket.js",
       "mergeZwischenTestschrittenErforderlich": false,
-      "maxTrueTests": 2
+      "maxTrueTests": 2,
+      "nextPreparedCandidate": "sell(index, 1) from committed Buy-Gold test units",
+      "nextTestHarness": "v5/werkzeuge/pr20-3-market-sell-step-test-paket.js",
+      "nextTestRequiresBuyGold7Of7": true
     },
     {
       "id": "PR20.4_LOGISTIK_TRANSFER",
@@ -838,6 +849,19 @@
     "mergeZwischenTestschrittenErforderlich": false,
     "maxTrueTests": 2,
     "sameIntentRetry": false,
-    "nextAction": "EINMALIG_MERGEN_DANN_INGAME_STUFEN_1_BIS_7_ABARBEITEN"
+    "nextAction": "EINMALIG_MERGEN_DANN_INGAME_STUFEN_1_BIS_7_ABARBEITEN",
+    "nextPreparedCandidate": {
+      "status": "VORBEREITET_WARTET_AUF_BUY_GOLD_7_OF_7",
+      "publicFunction": "sell",
+      "quantity": 1,
+      "source": "two committed Buy-Gold test units",
+      "package": "v5/werkzeuge/pr20-3-market-sell-step-test-paket.js",
+      "stateKey": "AIO_V5_PR20_3_SELL_STEP_TEST_V1",
+      "steps": 7,
+      "mergeBetweenStepsRequired": false,
+      "maxTrueTests": 2,
+      "productiveGameplayAuthority": false,
+      "sameIntentRetry": false
+    }
   }
 }
