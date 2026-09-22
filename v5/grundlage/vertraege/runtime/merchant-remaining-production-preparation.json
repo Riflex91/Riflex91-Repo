@@ -44,10 +44,15 @@
     ],
     "autoStart": true,
     "operatorInteractionAfterLoad": false,
-    "supabaseTransport": "WINDOWS_BRIDGE_EXISTING_TELEMETRY",
+    "supabaseTransport": "WINDOWS_BRIDGE_5S_LOCAL_OBSERVE_60S_AGGREGATE_PLUS_TERMINAL_PUSH",
     "supabaseMonthlyInvocationLimit": 500000,
     "supabaseSafetyReserve": 5000,
-    "pr20_4RuntimeGate": "AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1.steps.16.status=BESTANDEN"
+    "pr20_4RuntimeGate": "AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1.steps.16.status=BESTANDEN",
+    "localObservationSeconds": 5,
+    "supabaseStatusIntervalSeconds": 60,
+    "aggregateStatusPerInterval": 1,
+    "terminalEventImmediate": true,
+    "completionEmailEachTerminalTest": true
   },
   "pr20_6": {
     "ziel": "MLuck-Service produktiv",
