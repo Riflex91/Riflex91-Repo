@@ -192,6 +192,19 @@ test('farmer never fetches repository code', async () => {
   assert.equal(fx.bootstrap.status().phase, 'NOT_MERCHANT');
 });
 
+test('committed package is never re-evaluated after facade loss or reload', async () => {
+  const fx = fixture();
+  assert.equal(await fx.bootstrap.cycle(), true);
+  assert.equal(fx.evaluateCalls, 1);
+  fx.root.AIO_V3.operations.status = () => ({ v5AutonomousTest: null });
+  delete fx.root.V5PR206MluckTest;
+
+  assert.equal(await fx.bootstrap.cycle(), false);
+  assert.equal(fx.evaluateCalls, 1);
+  assert.equal(fx.stopCalls, 1);
+  assert.equal(fx.bootstrap.status().phase, 'COMMITTED_INTENT_NOT_REEVALUATED');
+});
+
 test('ambiguous evaluation boundary is never retried automatically', async () => {
   const fx = fixture({ evaluateThrows: true });
   assert.equal(await fx.bootstrap.cycle(), false);
