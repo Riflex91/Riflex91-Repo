@@ -109,9 +109,10 @@
     "nextStageAfterPass": "CONTINUE_WITH_NEXT_V5_TEST_GATE"
   },
   "deployment": {
-    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
+    "mode": "V3_INGAME_BOOTSTRAP_AUTO_DEPLOY",
     "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
-    "bridgePollSeconds": 15,
+    "initialCarrier": "V3_SAFE_AUTO_UPDATER",
+    "ingamePollSeconds": 15,
     "coordinatorClass": "merchant",
     "packageCommitPinned": true,
     "packageSha256Verified": true,
@@ -122,7 +123,9 @@
       "priest",
       "mage"
     ],
+    "farmerRepositoryFetch": false,
     "manualFarmerJavascriptLoadRequired": false,
+    "windowsBridgeDeployment": false,
     "noGenericRemoteJavascriptEndpoint": true
   }
 }
