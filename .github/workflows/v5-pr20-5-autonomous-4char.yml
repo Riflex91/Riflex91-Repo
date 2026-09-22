@@ -1,0 +1,31 @@
+name: v5-pr20-5-autonomous-4char
+
+on:
+  pull_request:
+    paths:
+      - 'v5/werkzeuge/pr20-5-merchant-stability-autonomous-4char.js'
+      - 'v5/werkzeuge/tests/pr20-5-autonomous-4char.test.mjs'
+      - 'v5/roadmap/pr20-5-autonomous-4char-test-plan.json'
+      - 'v5/grundlage/quelle/merchant/dienst-stabilitaet.ts'
+      - 'v5/grundlage/tests/pr20-merchant-dienst-stabilitaet.test.mjs'
+      - 'v5/package.json'
+      - '.github/workflows/v5-pr20-5-autonomous-4char.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  autonomous-4char:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - working-directory: v5
+        run: npm ci
+      - working-directory: v5
+        run: npm run merchant-pr20-5-autonomous:pruefen
