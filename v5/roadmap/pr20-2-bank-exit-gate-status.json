@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "status": "BLOCKIERT_FAIL_CLOSED",
+  "evidenceArt": "V5_PR20_2_BANK_AGGREGATE_EXIT_GATE",
+  "sourceMainSha": "36a80a4a75c02e841adab32290f903fbfe1b18ed",
+  "currentGate": "PR20.2_BANK_PRODUKTIVIERUNG",
+  "firstMutationSet": {
+    "bank_deposit": "BESTANDEN",
+    "bank_withdraw": "NICHT_BESTANDEN_TESTLIMIT_ERREICHT",
+    "bank_retrieve": "BESTANDEN_2_OF_2",
+    "bank_store": "BESTANDEN_2_OF_2",
+    "bank_swap": "BESTANDEN_2_OF_2",
+    "complete": false
+  },
+  "openBankPack": {
+    "shadowSafetyCheck": "BESTANDEN",
+    "admissionReadOnlySafetyCheck": "BESTANDEN",
+    "functionalResult": "RESOURCE_BLOCKED_NO_LIVE",
+    "liveEvidence": "NICHT_VORHANDEN_RESOURCE_BLOCKED",
+    "characterGold": 15993820,
+    "goldKosten": 75000000,
+    "characterShells": 0,
+    "shellKosten": 600
+  },
+  "blocker": [
+    "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
+    "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
+  ],
+  "policy": {
+    "withdrawFunctionalTestsConsumed": 2,
+    "withdrawAdditionalFunctionalTestAllowed": false,
+    "openPackLiveMutationFreigegeben": false,
+    "sameIntentRetry": false,
+    "breiteBankAktivierungErlaubt": false,
+    "pr20_3MarktStartErlaubt": false,
+    "evaluationGameplayWrites": 0,
+    "evaluationMutatingPublicFunctionCalls": 0
+  },
+  "evidence": {
+    "deposit": "v5/roadmap/pr20-2-bank-deposit-production-evidence.json",
+    "directIngameFunctions": "v5/roadmap/pr20-2-bank-direct-ingame-function-evidence.json",
+    "withdrawCloseout": "v5/roadmap/pr20-2-bank-withdraw-two-test-limit-bridge-evidence.json",
+    "openPackShadow": "v5/roadmap/pr20-2-bank-open-pack-shadow-evidence.json",
+    "openPackAdmission": "v5/roadmap/pr20-2-bank-open-pack-admission-evidence.json"
+  },
+  "nextAction": "PR20_2_NO_WRITE_INTEGRATION_ONLY_UNTIL_NEW_REAL_EVIDENCE_OR_OPEN_PACK_RESOURCES"
+}

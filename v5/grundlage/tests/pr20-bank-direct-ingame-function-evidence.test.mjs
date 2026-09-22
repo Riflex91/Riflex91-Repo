@@ -29,7 +29,13 @@ test("Withdraw bleibt fail-closed und open_bank_pack separat", () => {
   assert.equal(evidence.firstMutationSet.bank_withdraw.status, "NICHT_BESTANDEN_TESTLIMIT_ERREICHT");
   assert.equal(evidence.firstMutationSet.bank_withdraw.functionalTestsConsumed, 2);
   assert.equal(evidence.firstMutationSet.bank_withdraw.additionalFunctionalTestAllowed, false);
-  assert.equal(evidence.deferred.open_bank_pack.status, "SEPARATER_NACHWEIS_AUSSTEHEND");
+  assert.equal(
+    evidence.deferred.open_bank_pack.status,
+    "SHADOW_AND_ADMISSION_READ_ONLY_BESTANDEN_RESOURCE_BLOCKED_NO_LIVE",
+  );
+  assert.equal(evidence.deferred.open_bank_pack.safetyChecks, "BESTANDEN");
+  assert.equal(evidence.deferred.open_bank_pack.functionalResult, "RESOURCE_BLOCKED_NO_LIVE");
+  assert.equal(evidence.deferred.open_bank_pack.liveMutationFreigegeben, false);
   assert.equal(evidence.exitGate.pr20_2Complete, false);
   assert.equal(evidence.exitGate.productionWideActivationAllowed, false);
   assert.equal(roadmap.pr20_2.bankRetrieveStatus, "BESTANDEN_2_OF_2_DIRECT_INGAME");
