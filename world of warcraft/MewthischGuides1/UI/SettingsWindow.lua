@@ -8,6 +8,7 @@ local WIDTH = 400
 local ROW_HEIGHT = 30
 
 local OPTIONS = {
+    { key="showViewer", label="Hauptfenster anzeigen" },
     { key="showNavigator", label="Navigator anzeigen" },
     { key="showWorldMapMarker", label="Weltkartenmarker anzeigen" },
     { key="showActionBar", label="Aktionsleiste anzeigen" },
