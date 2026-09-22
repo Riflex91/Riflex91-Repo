@@ -29,6 +29,8 @@ jobs:
       - working-directory: v5
         run: npm run bank-item-transfer-evening:no-write-pruefen
       - working-directory: v5
+        run: npm run bank-item-transfer-evening:shadow-pruefen
+      - working-directory: v5
         run: npm run bank-item-transfer-production:core-pruefen
       - working-directory: v5
         run: npm run bank-swap-evening:write-pruefen
