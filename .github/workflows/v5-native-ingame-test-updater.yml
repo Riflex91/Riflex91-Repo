@@ -1,0 +1,40 @@
+name: v5-native-ingame-test-updater
+
+on:
+  pull_request:
+    paths:
+      - 'v5/werkzeuge/v5-autonomous-test-ingame-updater.js'
+      - 'v5/werkzeuge/tests/v5-autonomous-test-ingame-updater.test.mjs'
+      - 'cloudflare-dashboard/src/worker-r2-logs.js'
+      - 'cloudflare-dashboard/src/worker-free-tier.js'
+      - 'cloudflare-dashboard/test/v5-test-release-mirror.test.js'
+      - '.github/workflows/deploy-cloudflare.yml'
+      - '.github/workflows/v5-native-ingame-test-updater.yml'
+  push:
+    paths:
+      - 'v5/werkzeuge/v5-autonomous-test-ingame-updater.js'
+      - 'v5/werkzeuge/tests/v5-autonomous-test-ingame-updater.test.mjs'
+      - 'cloudflare-dashboard/src/worker-r2-logs.js'
+      - 'cloudflare-dashboard/src/worker-free-tier.js'
+      - 'cloudflare-dashboard/test/v5-test-release-mirror.test.js'
+      - '.github/workflows/deploy-cloudflare.yml'
+      - '.github/workflows/v5-native-ingame-test-updater.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  native-updater:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax-check native V5 updater
+        run: node --check v5/werkzeuge/v5-autonomous-test-ingame-updater.js
+      - name: Test native V5 updater
+        run: node --test v5/werkzeuge/tests/v5-autonomous-test-ingame-updater.test.mjs
+      - name: Test Cloudflare/R2 release mirror
+        working-directory: cloudflare-dashboard
+        run: npm run check
