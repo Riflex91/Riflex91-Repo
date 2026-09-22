@@ -952,9 +952,10 @@
     "exitGate": "v5/roadmap/pr20-5-merchant-stability-exit-gate-status.json"
   },
   "autonomousTestDeployment": {
-    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
+    "mode": "V3_INGAME_BOOTSTRAP_AUTO_DEPLOY",
     "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
-    "bridgePollSeconds": 15,
+    "ingamePollSeconds": 15,
+    "initialCarrier": "V3_SAFE_AUTO_UPDATER",
     "coordinatorClass": "merchant",
     "repository": "Riflex91/Riflex91-Repo",
     "branch": "main",
@@ -966,7 +967,9 @@
       "priest",
       "mage"
     ],
+    "farmerRepositoryFetch": false,
     "manualJavascriptLoadRequired": false,
+    "windowsBridgeDeployment": false,
     "genericRemoteJavascriptEndpoint": false,
     "normalRuntimeAllowed": false
   },
@@ -976,7 +979,7 @@
     "testPlan": "v5/roadmap/pr20-6-mluck-autonomous-test-plan.json",
     "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
     "executionMode": "AUTO_ON_LOAD",
-    "deploymentMode": "GITHUB_MANIFEST_AUTO_DEPLOY",
+    "deploymentMode": "V3_INGAME_BOOTSTRAP_AUTO_DEPLOY",
     "requiredCharacterClasses": [
       "merchant",
       "ranger",
@@ -988,6 +991,7 @@
     "gameplayWritesMaximum": 1,
     "rawWriteCallsMaximum": 0,
     "sameIntentRetry": false,
-    "normalRuntimeAfterAllTestsOnly": true
+    "normalRuntimeAfterAllTestsOnly": true,
+    "windowsBridgeDeployment": false
   }
 }
