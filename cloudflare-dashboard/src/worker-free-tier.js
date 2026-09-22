@@ -1,4 +1,4 @@
-import r2Worker from './worker-r2-logs.js';
+import r2Worker, { releaseObjectKey } from './worker-r2-logs.js';
 import {
   R2_ARCHIVE_MIN_WRITE_MS,
   budgetPolicy,
@@ -29,6 +29,8 @@ const R2_BUCKET = 'aio-v3-logs';
 const PUBLIC_RELEASE_PATHS = new Set([
   '/v3/src/release-version.js',
   '/v3/dist/aio-v3.js',
+  '/v5/roadmap/v5-autonomous-test-manifest.json',
+  '/v5/werkzeuge/v5-autonomous-test-ingame-updater.js',
   RUNTIME_RELEASE_PATH
 ]);
 const lastR2WriteAt = new Map();
@@ -55,7 +57,10 @@ function archiveScope(key) {
 function isPublicReleaseRead(request) {
   if (!request || request.method !== 'GET') return false;
   try {
-    return PUBLIC_RELEASE_PATHS.has(new URL(request.url).pathname) || isV4RuntimeReleaseRead(request);
+    const path = new URL(request.url).pathname;
+    return PUBLIC_RELEASE_PATHS.has(path)
+      || !!releaseObjectKey(path)
+      || isV4RuntimeReleaseRead(request);
   } catch (_) {
     return false;
   }
