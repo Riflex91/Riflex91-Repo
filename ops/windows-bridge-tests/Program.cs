@@ -47,6 +47,7 @@ Assert(defaults.PollIntervalSeconds == 5, "V5_LOCAL_OBSERVATION_DEFAULT");
 Assert(defaults.SupabaseStatusIntervalSeconds == 60, "V5_SUPABASE_STATUS_INTERVAL_60S");
 Assert(WindowsBridgeSelfUpdater.CheckIntervalSeconds == 60, "SELF_UPDATE_INTERVAL_60S");
 Assert(WindowsBridgeSelfUpdater.ReleaseTag == "windows-bridge-latest", "SELF_UPDATE_RELEASE_TAG");
+Assert(WindowsBridgeSelfUpdater.StatusFileName == "self-update-status.json", "SELF_UPDATE_STATUS_FILE");
 Assert(WindowsBridgeSelfUpdater.AssetUrl == "https://github.com/Riflex91/Riflex91-Repo/releases/download/windows-bridge-latest/AioBotWindowsBridge.exe", "SELF_UPDATE_FIXED_ASSET_URL");
 var selfUpdateManifest = new WindowsBridgeUpdateManifest(
     SchemaVersion: 1,
