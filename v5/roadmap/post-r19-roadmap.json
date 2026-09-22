@@ -88,7 +88,9 @@
     "send_item maximal 2 echte Tests; send_gold maximal 2 echte Tests; sameIntentRetry=false",
     "PR20.5 autonomer Vier-Charakter-Test ist vorbereitet und wartet automatisch auf PR20.4 Schritt 16 BESTANDEN",
     "PR20.5 erkennt Merchant/Ranger/Priest/Mage selbst und benoetigt nach dem Laden keine Operator-Interaktion",
-    "PR20.5 Ergebnis wird ueber die bestehende Windows-Bridge nach Supabase gespiegelt; keine Supabase-Secrets im Spielcode"
+    "PR20.5 Ergebnis wird ueber die bestehende Windows-Bridge nach Supabase gespiegelt; keine Supabase-Secrets im Spielcode",
+    "PR20.5: lokal 5s read-only beobachten, nur 1 aggregierten Supabase-Status pro 60 Sekunden senden; terminale Zustaende sofort",
+    "PR20.5: nach jedem terminal abgeschlossenen Test genau eine E-Mail; Blocker/Fehler enthalten kompakte Diagnose"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -936,10 +938,15 @@
     "fiveMinuteNoWrite": true,
     "sameIntentRetry": false,
     "supabase": {
-      "transport": "WINDOWS_BRIDGE_EXISTING_TELEMETRY",
+      "transport": "WINDOWS_BRIDGE_5S_LOCAL_OBSERVE_60S_AGGREGATE_PLUS_TERMINAL_PUSH",
       "browserSecrets": false,
       "monthlyEdgeInvocationLimit": 500000,
-      "safetyReserve": 5000
+      "safetyReserve": 5000,
+      "localObservationSeconds": 5,
+      "statusIntervalSeconds": 60,
+      "aggregateStatusPerInterval": 1,
+      "terminalEventImmediate": true,
+      "completionEmailEachTerminalTest": true
     }
   }
 }
