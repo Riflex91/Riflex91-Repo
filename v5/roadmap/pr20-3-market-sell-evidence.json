@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-22",
+  "status": "BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M",
+  "evidenceArt": "V5_PR20_3_MARKET_SELL_REAL_INGAME",
+  "source": "OPERATOR_ATTESTED_INGAME_RESULT_MANUALLY_RECONSTRUCTED",
+  "reconstruction": {
+    "rawGuiReportAvailable": false,
+    "reason": "Der reale Ingame-Test wurde vollstaendig ausgefuehrt; der Gesamtbericht wurde danach versehentlich nicht kopiert.",
+    "onlyOperatorConfirmedFactsStored": true,
+    "inventedFieldsStored": false
+  },
+  "controllerVersion": "1.0.0",
+  "testKennung": "pr20-3-market-sell-step-test",
+  "testArt": "PR20_3_SELL_STEP_TEST",
+  "package": "v5/werkzeuge/pr20-3-market-sell-step-test-paket.js",
+  "privacy": {
+    "accountIdStored": false,
+    "accountTokenStored": false,
+    "identifyingTokensStored": false
+  },
+  "sourceBuyEvidence": {
+    "evidence": "v5/roadmap/pr20-3-market-buy-gold-evidence.json",
+    "itemName": "hpot0",
+    "confirmedTestUnitsConsumedBySell": 2
+  },
+  "steps": {
+    "1": {
+      "name": "Buy-Evidence / Umgebung",
+      "status": "BESTANDEN",
+      "write": false
+    },
+    "2": {
+      "name": "Sell-Kandidat 1 stabil pinnen",
+      "status": "BESTANDEN",
+      "write": false
+    },
+    "3": {
+      "name": "Read-only Sell Shadow / Admission",
+      "status": "BESTANDEN",
+      "write": false
+    },
+    "4": {
+      "name": "LIVE 1 · sell(index, 1)",
+      "status": "BESTANDEN",
+      "write": true
+    },
+    "5": {
+      "name": "Sell-Kandidat 2 frisch pinnen",
+      "status": "BESTANDEN",
+      "write": false
+    },
+    "6": {
+      "name": "LIVE 2 · sell(index, 1)",
+      "status": "BESTANDEN",
+      "write": true
+    },
+    "7": {
+      "name": "NO-WRITE 5M Stabilitaet",
+      "status": "BESTANDEN",
+      "write": false
+    }
+  },
+  "liveTests": [
+    {
+      "testNr": 1,
+      "status": "BESTANDEN",
+      "publicFunction": "sell",
+      "quantity": 1,
+      "publicFunctionCalls": 1,
+      "gameplayWrites": 1,
+      "functionalTestBudgetConsumed": true,
+      "testsConsumedAfterAttempt": 1,
+      "promiseStatus": "RESOLVED",
+      "settlement": {
+        "status": "BESTAETIGT",
+        "reason": "SELL_EXAKTES_ITEM_GOLD_DELTA",
+        "goldDelta": 12,
+        "itemQuantityDelta": -1,
+        "restInventoryUnveraendert": true,
+        "slotOk": true,
+        "merchantReachable": true
+      },
+      "sameIntentRetry": false
+    },
+    {
+      "testNr": 2,
+      "status": "BESTANDEN",
+      "publicFunction": "sell",
+      "quantity": 1,
+      "publicFunctionCalls": 1,
+      "gameplayWrites": 1,
+      "functionalTestBudgetConsumed": true,
+      "testsConsumedAfterAttempt": 2,
+      "promiseStatus": "RESOLVED",
+      "settlement": {
+        "status": "BESTAETIGT",
+        "reason": "SELL_EXAKTES_ITEM_GOLD_DELTA",
+        "goldDelta": 12,
+        "itemQuantityDelta": -1,
+        "restInventoryUnveraendert": true,
+        "slotOk": true,
+        "merchantReachable": true
+      },
+      "sameIntentRetry": false
+    }
+  ],
+  "liveBudget": {
+    "consumed": 2,
+    "max": 2,
+    "additionalTrueFunctionalTestAllowed": false,
+    "sameIntentRetry": false
+  },
+  "noWrite5m": {
+    "status": "BESTANDEN",
+    "durationMs": 300010,
+    "samples": 21,
+    "sampleGaps": 0,
+    "blockerSamples": 0,
+    "gameplayWrites": 0,
+    "mutatingPublicFunctionCalls": 0,
+    "functionalTestBudgetConsumed": false,
+    "liveTestsConsumed": 2,
+    "liveTestsMax": 2,
+    "sameIntentRetry": false
+  },
+  "aggregate": {
+    "allSevenStepsPassed": true,
+    "totalGameplayWrites": 2,
+    "totalMutatingPublicFunctionCalls": 2,
+    "exactSettlements": 2,
+    "unresolvedSettlements": 0,
+    "sameIntentRetry": false
+  },
+  "gateEffect": {
+    "npcSellPassed": true,
+    "sellAdditionalLiveTestAllowed": false,
+    "tradeBuyRoadmapAccepted": true,
+    "tradeSellRoadmapAccepted": true,
+    "pr20_3ExitGateReadyForFormalEvaluation": true,
+    "productiveMarketAuthorityGranted": false
+  },
+  "nextAction": "PR20_3_EXIT_GATE_FORMAL_PRUEFEN"
+}
