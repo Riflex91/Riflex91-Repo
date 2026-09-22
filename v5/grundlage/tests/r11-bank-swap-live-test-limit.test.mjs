@@ -28,18 +28,20 @@ function rev(){const x=k();return {...x,itemA:x.itemB,itemB:x.itemA};}
 test("Swap-Live-Testlimit ist hart auf zwei begrenzt", async()=>{
  const ds=new Mem(),limit=new NodeBankSwapLiveTestLimit(ds);
  assert.equal(BANK_SWAP_MAX_ECHTE_FUNKTIONSTESTS,2);
- await limit.armiereMoeglichenSend({sourceSha:S,testNummer:1,transaktionsId:"TX1",prestate:k(),zeitMs:1});
+ await limit.beginneTest({sourceSha:S,testNummer:1,transaktionsId:"TX1",prestate:k(),zeitMs:1});
  await assert.rejects(()=>limit.pruefeVorTest({sourceSha:S,testNummer:2,prestate:rev()}),/TEST_1_NICHT_SAUBER/);
  await assert.rejects(()=>limit.pruefeVorTest({sourceSha:S,testNummer:1,prestate:k()}),/BEREITS_VERBRAUCHT/);
- await limit.finalisiere({sourceSha:S,transaktionsId:"TX1",sauberCommitted:true,ergebnis:{recovery:"BESTAETIGT"},zeitMs:2});
- await limit.armiereMoeglichenSend({sourceSha:S,testNummer:2,transaktionsId:"TX2",prestate:rev(),zeitMs:3});
+ await limit.markiereMoeglichenSend({sourceSha:S,transaktionsId:"TX1",zeitMs:2});
+ await limit.finalisiere({sourceSha:S,transaktionsId:"TX1",sauberCommitted:true,ergebnis:{recovery:"BESTAETIGT"},zeitMs:3});
+ await limit.beginneTest({sourceSha:S,testNummer:2,transaktionsId:"TX2",prestate:rev(),zeitMs:4});
  await assert.rejects(()=>limit.pruefeVorTest({sourceSha:S,testNummer:2,prestate:rev()}),/REIHENFOLGE/);
 });
 
 test("Test 2 verlangt exakten Reverse und sauberen Test 1", async()=>{
  const ds=new Mem(),limit=new NodeBankSwapLiveTestLimit(ds);
- await limit.armiereMoeglichenSend({sourceSha:S,testNummer:1,transaktionsId:"TX1",prestate:k(),zeitMs:1});
- await limit.finalisiere({sourceSha:S,transaktionsId:"TX1",sauberCommitted:true,ergebnis:{},zeitMs:2});
+ await limit.beginneTest({sourceSha:S,testNummer:1,transaktionsId:"TX1",prestate:k(),zeitMs:1});
+ await limit.markiereMoeglichenSend({sourceSha:S,transaktionsId:"TX1",zeitMs:2});
+ await limit.finalisiere({sourceSha:S,transaktionsId:"TX1",sauberCommitted:true,ergebnis:{},zeitMs:3});
  await assert.rejects(()=>limit.pruefeVorTest({sourceSha:S,testNummer:2,prestate:k()}),/NICHT_EXAKTER_REVERSE/);
  const ready=await limit.pruefeVorTest({sourceSha:S,testNummer:2,prestate:rev()});
  assert.equal(ready.bereit,true);
@@ -47,7 +49,7 @@ test("Test 2 verlangt exakten Reverse und sauberen Test 1", async()=>{
 
 test("Unsicherer oder abgestuerzter Test 1 sperrt jeden weiteren Send", async()=>{
  const ds=new Mem(),limit=new NodeBankSwapLiveTestLimit(ds);
- await limit.armiereMoeglichenSend({sourceSha:S,testNummer:1,transaktionsId:"TX1",prestate:k(),zeitMs:1});
+ await limit.beginneTest({sourceSha:S,testNummer:1,transaktionsId:"TX1",prestate:k(),zeitMs:1});
  await assert.rejects(()=>limit.pruefeVorTest({sourceSha:S,testNummer:2,prestate:rev()}),/NICHT_SAUBER/);
  await limit.finalisiere({sourceSha:S,transaktionsId:"TX1",sauberCommitted:false,ergebnis:{transport:"UNBEKANNT"},zeitMs:2});
  await assert.rejects(()=>limit.pruefeVorTest({sourceSha:S,testNummer:2,prestate:rev()}),/NICHT_SAUBER/);

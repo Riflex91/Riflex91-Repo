@@ -141,7 +141,7 @@ export class NodeBankSwapLiveTestLimit {
     return Object.freeze({ bereit: true, testNummer, sourceSha: s, prestate: k });
   }
 
-  async armiereMoeglichenSend({ sourceSha, testNummer, transaktionsId, prestate, zeitMs }) {
+  async beginneTest({ sourceSha, testNummer, transaktionsId, prestate, zeitMs }) {
     if (!Number.isSafeInteger(zeitMs) || zeitMs < 0) {
       throw new Error("BANK_SWAP_TESTLIMIT_ZEIT_UNGUELTIG");
     }
@@ -153,7 +153,7 @@ export class NodeBankSwapLiveTestLimit {
       testNummer,
       sourceSha: gate.sourceSha,
       transaktionsId,
-      status: "MOEGLICHER_SEND_ARMED",
+      status: "TEST_GESTARTET_NOCH_NICHT_GESENDET",
       armiertAmMs: zeitMs,
       prestate: gate.prestate,
       sameIntentRetry: false,
@@ -165,9 +165,37 @@ export class NodeBankSwapLiveTestLimit {
     await this.ds.schreibeAtomarDurable(
       PFAD,
       JSON.stringify(next, null, 2) + "\n",
-      "bank-swap-live-test-limit-arm-" + testNummer + "-" + zeitMs,
+      "bank-swap-live-test-limit-start-" + testNummer + "-" + zeitMs,
     );
     return attempt;
+  }
+
+  async markiereMoeglichenSend({ sourceSha, transaktionsId, zeitMs }) {
+    if (!Number.isSafeInteger(zeitMs) || zeitMs < 0) {
+      throw new Error("BANK_SWAP_TESTLIMIT_SEND_ZEIT_UNGUELTIG");
+    }
+    const state = await this.lade(sourceSha);
+    if (state.attempts.length < 1) throw new Error("BANK_SWAP_TESTLIMIT_KEIN_GESTARTETER_TEST");
+    const last = state.attempts[state.attempts.length - 1];
+    if (last.transaktionsId !== transaktionsId
+        || last.status !== "TEST_GESTARTET_NOCH_NICHT_GESENDET") {
+      throw new Error("BANK_SWAP_TESTLIMIT_SEND_BINDUNG_UNGUELTIG");
+    }
+    const replacement = Object.freeze({
+      ...last,
+      status: "MOEGLICHER_SEND_ARMED",
+      moeglicherSendAmMs: zeitMs,
+      sameIntentRetry: false,
+    });
+    const attempts = [...state.attempts];
+    attempts[attempts.length - 1] = replacement;
+    const next = Object.freeze({ ...state, attempts: Object.freeze(attempts) });
+    await this.ds.schreibeAtomarDurable(
+      PFAD,
+      JSON.stringify(next, null, 2) + "\n",
+      "bank-swap-live-test-limit-send-" + last.testNummer + "-" + zeitMs,
+    );
+    return replacement;
   }
 
   async finalisiere({ sourceSha, transaktionsId, sauberCommitted, ergebnis, zeitMs }) {
@@ -177,8 +205,13 @@ export class NodeBankSwapLiveTestLimit {
     const state = await this.lade(sourceSha);
     if (state.attempts.length < 1) throw new Error("BANK_SWAP_TESTLIMIT_KEIN_ARMED_TEST");
     const last = state.attempts[state.attempts.length - 1];
-    if (last.transaktionsId !== transaktionsId || last.status !== "MOEGLICHER_SEND_ARMED") {
+    if (last.transaktionsId !== transaktionsId
+        || (last.status !== "MOEGLICHER_SEND_ARMED"
+          && last.status !== "TEST_GESTARTET_NOCH_NICHT_GESENDET")) {
       throw new Error("BANK_SWAP_TESTLIMIT_FINAL_BINDUNG_UNGUELTIG");
+    }
+    if (sauberCommitted && last.status !== "MOEGLICHER_SEND_ARMED") {
+      throw new Error("BANK_SWAP_TESTLIMIT_COMMIT_OHNE_MOEGLICHEN_SEND");
     }
     const replacement = Object.freeze({
       ...last,
