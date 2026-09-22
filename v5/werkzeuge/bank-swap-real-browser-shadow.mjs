@@ -25,7 +25,8 @@ import {
   verlangeBankSwapAbendVorstufe,
 } from "./bank-swap-evening-evidence.mjs";
 
-export const BANK_SWAP_REAL_SHADOW_BESTAETIGUNG =\n  "V5 BANK SWAP SHADOW OHNE WRITE AUSFUEHREN";
+export const BANK_SWAP_REAL_SHADOW_BESTAETIGUNG =
+  "V5 BANK SWAP SHADOW OHNE WRITE AUSFUEHREN";
 export const BANK_SWAP_REAL_SHADOW_EVIDENCE_ART =
   "V5_BANK_SWAP_REAL_BROWSER_SHADOW_NO_WRITE";
 
