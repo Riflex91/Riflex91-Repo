@@ -181,13 +181,86 @@ jobs:
         run: |
           set -euo pipefail
           NAV="world of warcraft/MewthischGuides1/UI/NavigatorFrame.lua"
-          grep -q 'distance, distanceMode = MG.NavigationDistance:Between' "$NAV"
+          grep -q 'MG.NavigationDistance:Between(position, nav.waypoint)' "$NAV"
           if grep -q 'distance, distanceMode = MG.NavigationDistance and' "$NAV"; then
             echo "multi-return value would be collapsed by logical-and expression" >&2
             exit 1
           fi
           grep -q 'NavigationBearing:Resolve' "$NAV"
           echo "Navigator multi-return contract PASS"
+
+      - name: Validate Forever RestedXP absolute world-coordinate navigation
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={}
+          CreateVector2D=function(x,y) return {x=x,y=y} end
+          C_Map={}
+          C_Map.GetWorldPosFromMapPos=function(mapID,point)
+            assert(mapID==1412)
+            assert(point.x and point.y)
+            return 1,{x=-300.0,y=-3300.0}
+          end
+
+          assert(loadfile("world of warcraft/MewthischGuides1/Navigation/Distance.lua"))(
+            "MewthischGuides1",MG)
+          assert(loadfile("world of warcraft/MewthischGuides1/Navigation/Bearing.lua"))(
+            "MewthischGuides1",MG)
+
+          local position={
+            mapID=1412,mapName="Mulgore",
+            x=0.4444275498390198,y=0.7803714275360107,
+          }
+          local waypoint={
+            mapID=1412,mapName="1412/1",floor=1,radius=50,
+            worldX=-243.41,worldY=-3384.87,source="RestedXP",
+          }
+
+          local distance,mode,detail=MG.NavigationDistance:Between(position,waypoint)
+          assert(distance and distance>100 and distance<103,
+            "unexpected RestedXP world distance "..tostring(distance))
+          assert(mode=="restedxp_world_coordinates",
+            "wrong distance mode "..tostring(mode))
+          assert(detail and detail.playerWorld and detail.targetWorld)
+
+          local bearing,reason=MG.NavigationBearing:Resolve(
+            position,waypoint,2.712008476257324)
+          assert(bearing and bearing.reliable,
+            "world-coordinate bearing unavailable: "..tostring(reason))
+          assert(bearing.reason=="restedxp_world_coordinates")
+          assert(type(bearing.relative)=="number")
+          assert(type(bearing.absolute)=="number")
+          print("Forever RestedXP world-coordinate navigation PASS")
+          LUA
+
+      - name: Validate compact player-facing GUI contract
+        run: |
+          set -euo pipefail
+          NAV="world of warcraft/MewthischGuides1/UI/NavigatorFrame.lua"
+          VIEW="world of warcraft/MewthischGuides1/UI/GuideViewer.lua"
+          NS="world of warcraft/MewthischGuides1/Core/Namespace.lua"
+
+          grep -q 'restedxp_world_coordinates' "$NAV"
+          grep -q 'UI-HUD-Minimap-Arrow-Player' "$NAV"
+          grep -q 'bearing.relative + TEXTURE_ZERO_OFFSET' "$NAV"
+          grep -q 'UI:SetSize(frame, 150, 112)' "$NAV"
+
+          grep -q 'FRAME_WIDTH = 390' "$VIEW"
+          grep -q 'Zusätzliche Ziele' "$VIEW"
+          grep -q 'showViewer = false' "$VIEW"
+          grep -q 'viewerX' "$VIEW"
+          grep -q 'viewerY' "$VIEW"
+
+          grep -q '2026-09-22-worldnav-ui-2' "$NS"
+
+          if grep -q 'Runtime " .. tostring(runtime.revision' "$VIEW"; then
+            echo "runtime debug revision leaked into player-facing viewer" >&2
+            exit 1
+          fi
+          if grep -q 'Richtung ?' "$NAV"; then
+            echo "obsolete direction placeholder leaked into navigator" >&2
+            exit 1
+          fi
+          echo "Compact player-facing GUI contract PASS"
 
       - name: Validate RestedXP raw-step preservation
         run: |
