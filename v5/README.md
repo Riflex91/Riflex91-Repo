@@ -401,8 +401,8 @@ CI: `.github/workflows/v5-gesamtfreigabe.yml`
 
 Der aktuelle Contract-Katalog wurde fuer die sichere Merchant-Vorbereitung um den engen same-account MLuck-Vertrag erweitert: **61 Action/Recovery/Verifier-Bindungen insgesamt, 60 verifiziert und 1 (`cave_buy`) weiterhin deaktiviert**. Die Erweiterung oeffnet keine generische `use_skill`-Authority und keine produktive MLuck-Capability.
 
-PR20.2 Bank, PR20.3 Markt und PR20.4 Logistik sind NO-WRITE vorbereitet. Zusaetzlich stehen jetzt ein authority-freier Gold-Recipient-Settlement-Verifier und ein Merchant-Dienst-Stabilitaetsplaner gegen Pingpong/Starvation bereit. Das aktive reale Gate bleibt PR20.1 Equip.
+PR20.1 Equip ist real abgeschlossen. Das aktive Gate ist **PR20.2 Bank** und bleibt bewusst `BLOCKIERT_FAIL_CLOSED`: Deposit ist real bestanden, Retrieve/Store/Swap jeweils 2/2 bestanden, Withdraw hat sein 2/2-Testlimit ohne vollstaendige Live-Evidence erreicht und Open-Pack bleibt ressourcenbedingt `RESOURCE_BLOCKED_NO_LIVE`. Der reale Bank-NO-WRITE-5M-Lauf ist mit 300017 ms / 21 Samples / 0 Gaps / 0 Drift / 0 Gameplay-Writes bestanden. Aktuell ist kein weiterer Bank-Ingame-Test gate-wirksam; PR20.3 Markt bleibt gesperrt.
 
 ## Direkte Ingame-Tests
 
-V5-Funktionsfreigaben werden ab jetzt durch source-locked JavaScript-Tests im echten Adventure-Land-Browser ueber Loopback-CDP erbracht. Offline-Unit-, Mock-, Struktur- und Phasentests sind nur noch manuelle Diagnose und kein Funktionsnachweis. Details: `dokumentation/DIREKTE-INGAME-TESTS.md`.
+V5-Funktionsfreigaben werden durch source-locked JavaScript-Tests direkt im echten Adventure-Land-Browser erbracht. Fuer Public-CODE-Funktionen ist der browser-native Adventure-Land-CODE-Runner die funktionale Wahrheit; Node/CDP/PowerShell dienen nur als Diagnose-, Repo-, Recovery- oder Legacy-Werkzeuge. Offline-Unit-, Mock-, Struktur- und Phasentests ergaenzen die Safety-Pruefung, ersetzen aber keinen realen Ingame-Funktionsnachweis. Details: `dokumentation/DIREKTE-INGAME-TESTS.md`.
