@@ -1,4 +1,6 @@
-using System.Text.Json;\n\nnamespace AioBotWindowsBridge;
+using System.Text.Json;
+
+namespace AioBotWindowsBridge;
 
 public sealed record RuntimeBridgeStatus(
     string State,
