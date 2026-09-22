@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "kennung": "V5_PR20_3_MARKET_SELL_NAECHSTER_KANDIDAT",
+  "stand": "2026-09-22",
+  "status": "VORBEREITET_WARTET_AUF_BUY_GOLD_7_OF_7",
+  "basisMain": "ceeeb9f1fa5eb8c1e70e38de85d007987fcdacb0",
+  "publicFunction": "sell",
+  "menge": 1,
+  "actionContractId": "AL-ACTION-SELL",
+  "recoveryContractId": "AL-RECOVERY-SELL",
+  "verifierId": "AL-VERIFIER-SELL",
+  "sourceBuyStateKey": "AIO_V5_PR20_3_BUY_GOLD_STEP_TEST_V1",
+  "sourceRequirement": {
+    "step7": "BESTANDEN",
+    "liveAttempts": 2,
+    "eachStatus": "COMMITTED",
+    "eachSettlement": "BESTAETIGT",
+    "sameIntentRetry": false
+  },
+  "candidatePolicy": [
+    "verkauft nur einen Itemnamen aus den zwei bestaetigten Buy-Gold-Live-Commits",
+    "nur normale stackbare Nicht-Cash-/Nicht-P2W-Items",
+    "keine Upgrade-/Compound-/Quest-/Exchange-/Event-/Soulbound-Definition",
+    "kein locked/blocked/gift/expiring/special/stat-modified physisches Item",
+    "exakter Inventarindex und physischer Fingerprint werden vor Send gepinnt",
+    "NPC-Auszahlungswert wird read-only ueber item_value(item) gepinnt",
+    "NPC-Auszahlungswert pro Testeinheit maximal 10000 Gold",
+    "Merchant muss in echter sell_dist-Reichweite sein"
+  ],
+  "settlement": {
+    "quantity": 1,
+    "requireExactGoldIncrease": true,
+    "requireExactTotalItemQuantityDecrease": true,
+    "requireUnrelatedInventoryUnchanged": true,
+    "sameIntentRetry": false
+  },
+  "testHarness": {
+    "package": "werkzeuge/pr20-3-market-sell-step-test-paket.js",
+    "stateKey": "AIO_V5_PR20_3_SELL_STEP_TEST_V1",
+    "steps": 7,
+    "maxTrueTests": 2,
+    "mergeBetweenStepsRequired": false,
+    "confirmationLive1": "PR20.3-SELL-LIVE-1",
+    "confirmationLive2": "PR20.3-SELL-LIVE-2"
+  },
+  "productionAuthority": {
+    "registered": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false
+  }
+}
