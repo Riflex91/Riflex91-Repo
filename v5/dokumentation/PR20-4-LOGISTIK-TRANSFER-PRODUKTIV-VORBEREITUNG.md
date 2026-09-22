@@ -3,7 +3,7 @@
 **Status:** INGAME-GESAMTSTUFENTEST BEREIT / PRODUKTIVE AUTHORITY WEITER DEFAULT-OFF  
 **Stand:** 2026-09-22  
 **Vorstufen:** PR20.1, PR20.2 und PR20.3 abgeschlossen; produktive PR20.4-Mutation bleibt bis zu den eigenen Capability-/Authority-/Journal-/Admission-/Shadow-/Live-Gates gesperrt  
-**Basis-main:** `9c96d54c51b664e3cc67181ef6c88582f87c224e`
+**Basis-main:** `8981308e1758593da9b192089cb07abc5caa3375`
 
 ## Zweck
 
@@ -128,7 +128,7 @@ Das formale Market-Exit-Gate liegt unter
 
 PR20.4 darf damit repo-seitig und read-only vollstaendig vorbereitet werden.
 Diese Transition erteilt **keine** Transfer-Mutation, keine breite
-`send_item`-/`send_gold`-Authority und keinen Raw-Socket-Pfad. Das persistente Gesamttestpaket ist jetzt gebaut. Es besitzt 16 sequenzielle Stufen, gemeinsame persistente Browser-Storage-Evidence und harte 2/2-Live-Budgets fuer `send_item` und `send_gold`; zwischen den Stufen ist kein Merge erforderlich.
+`send_item`-/`send_gold`-Authority und keinen Raw-Socket-Pfad. Das persistente Gesamttestpaket ist jetzt als **AUTO_ON_LOAD** gebaut. Es besitzt 16 sequenzielle Stufen, gemeinsame persistente Browser-Storage-Evidence und harte 2/2-Live-Budgets fuer `send_item` und `send_gold`; zwischen den Stufen ist kein Merge erforderlich. Nach dem Laden auf Merchant und Partner sind keine manuellen Schritt-Klicks mehr erforderlich.
 
 
 ## Persistentes PR20.4-Gesamttestpaket
@@ -144,6 +144,23 @@ Plan:
 Dasselbe Paket wird auf **genau zwei** Charakteren geladen: einem Merchant
 und einem Partner. Beide Instanzen teilen ausschließlich Testzustand ueber
 Browser-`localStorage`; produktive V5-Authority wird nicht registriert.
+
+**Ausfuehrungsmodus: `AUTO_ON_LOAD`.** Sobald dieselbe aktuelle Paketversion
+auf beiden Charakteren geladen ist, publizieren beide Instanzen automatisch
+Actor-/Performance-Heartbeats und der Auto-Runner fuehrt immer genau den
+naechsten fuer die jeweilige Rolle zulaessigen Schritt aus. Manuelle
+Einzelschritt- oder Live-Buttons sind im Browserlauf deaktiviert. Vor einem
+Live-Write verlangt das Paket weiterhin frische Pair-/Session-/Server-/Map-,
+Distance-, Source-/Recipient- und Budget-Gates. Ein Peer mit alter
+Controller-Version blockiert vor dem Live-Write.
+
+Der Rueckweg des Item-Roundtrips verwendet die bereits bestaetigte
+Outbound-Evidence: Der erste exakte Sender-Delta und das bestaetigte
+Recipient-Settlement beweisen, dass fuer exakt eine Einheit Rueckkapazitaet
+entstanden ist. Dadurch wird der Collection-Preflight nicht erneut von
+statischen Stack-Metadaten des Empfaengers abhaengig, waehrend Identity,
+Menge, Plain/Unlocked-Zustand und die exakte Merchant-Nachbaseline weiterhin
+fail-closed geprueft werden.
 
 Der reale Ablauf prueft nacheinander:
 
@@ -173,3 +190,16 @@ Ein Reload eines nichtterminalen Transfers wird zu `RECOVERY_PENDING`;
 Die Report-Ausgaben enthalten keine Account-ID und keine Session-ID. Interne
 Browser-Testbindung darf solche Werte fuer Drift-Erkennung temporaer nutzen,
 sie werden aber nicht in die zu commit­tende Evidence ausgegeben.
+
+
+## V5-Ingame-Testkonvention ab 2026-09-22
+
+Die verbindliche maschinenlesbare Vorgabe liegt unter
+`grundlage/vertraege/runtime/ingame-test-execution-policy.json`.
+
+Weitere Ingame-Tests werden standardmaessig als selbstenthaltenes
+JavaScript-Gesamtpaket mit `AUTO_ON_LOAD` gebaut. Nach dem Laden des Pakets
+startet die Testlogik automatisch; manuelle Einzelschritt-Klicks sind nicht
+Teil des normalen Ablaufs. Harte Live-Budgets, `sameIntentRetry=false`,
+fail-closed Drift-/Recovery-Gates und das Verbot von Raw-Socket-Bypaessen
+bleiben davon unberuehrt.
