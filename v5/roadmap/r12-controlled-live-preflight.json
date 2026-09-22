@@ -62,11 +62,9 @@
       "bot-debug-ingest",
       "bot-chatgpt-signal-control"
     ],
-    "bridgeVertrag": "Die Windows Bridge besitzt keinen generischen JavaScript-, Shell-, Movement-, Combat-, Merchant- oder Remote-Command-Endpunkt. Seit PR20.6 existiert ausschließlich ein fest verdrahteter V5-Test-Deploymentpfad über das Repo-eigene Manifest mit commit-gepinnter Quelle, Größenlimit und SHA-256-Prüfung; URLs oder JavaScript können nicht von außen vorgegeben werden.",
+    "bridgeVertrag": "Die Windows Bridge besitzt laut ops/windows-bridge/README.md keine Gameplay-Autoritaet und keinen generischen JavaScript-, Shell-, Movement-, Combat-, Merchant-, Update- oder Remote-Command-Endpunkt.",
     "controlledLiveUeberBridge": false,
-    "controlledLivePfad": "V5 One-Shot-Runner bleibt fachlicher Authority-Owner; die Bridge darf nur das manifest- und SHA-gebundene Testpaket in den Merchant-Kontext deployen.",
-    "boundedTestPackageDeploymentViaBridge": true,
-    "testDeploymentManifest": "v5/roadmap/v5-autonomous-test-manifest.json"
+    "controlledLivePfad": "Lokaler V5 One-Shot-Runner ueber loopback CDP; Bridge bleibt ohne Gameplay-Autoritaet."
   },
   "blocker": [],
   "freigabeBedingungen": [
