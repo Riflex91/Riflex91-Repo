@@ -1,6 +1,6 @@
 # PR20.3 – Markt/Kaufen/Verkaufen: NO-WRITE-Vorbereitung
 
-**Status:** STUFENTEST VORBEREITET / EIN MERGE / DANACH 7 DIREKTE INGAME-STUFEN  
+**Status:** BUY-GOLD 7/7 REAL BESTANDEN / NPC-SELL STUFENTEST BEREIT  
 **Stand:** 2026-09-22  
 **Voraussetzung:** PR20.2 breite Bankfreigabe erteilt; PR20.3 muss jetzt seine eigenen Safety-/Live-Gates bestehen  
 **Basis-main:** `0c7bffa935d7055d074fa4a3b93d11c861515153`
@@ -186,8 +186,7 @@ uebernommen.
 
 ## Naechster vorbereiteter Gesamttest: NPC Sell
 
-Waehrend der Buy-Gold-Stufentest das aktive Gate bleibt, ist der direkt
-darauffolgende NPC-Sell-Test bereits komplett vorbereitet.
+Der Buy-Gold-Stufentest ist real 7/7 bestanden. Der direkt darauffolgende NPC-Sell-Test ist bereits komplett vorbereitet und jetzt das aktive Ingame-Gate.
 
 Paket:
 
@@ -233,3 +232,30 @@ Fail-closed gilt insbesondere:
   und unveraendertem Restinventar;
 - ein moeglicher Send verbraucht einen der zwei persistenten Live-Versuche;
 - `sameIntentRetry=false`.
+
+
+## Reale Buy-Gold-Evidence
+
+Der erste PR20.3-Pfad `buy_with_gold(item, 1)` ist real Ingame
+**BESTANDEN_REAL_INGAME_2_OF_2_PLUS_5M**.
+
+Evidence:
+
+`roadmap/pr20-3-market-buy-gold-evidence.json`
+
+Ergebnis:
+
+- alle sieben Stufen BESTANDEN;
+- Kandidat `hpot0`, 20 Gold pro Testeinheit;
+- LIVE 1: exakt -20 Gold / +1 Item, Settlement BESTAETIGT;
+- LIVE 2: exakt -20 Gold / +1 Item, Settlement BESTAETIGT;
+- Live-Testbudget damit 2/2 verbraucht; kein weiterer echter Buy-Gold-Test;
+- anschliessender 5m-NO-WRITE-Lauf: 300002 ms, 21 Samples, 0 Sample-Gaps,
+  0 Blocker-Samples und 0 weitere Gameplay-Writes;
+- `sameIntentRetry=false` blieb durchgehend erhalten.
+
+Die anfaenglichen Kandidaten-Blockaden waren reine read-only
+Umwelt-/Reichweitenbedingungen und verbrauchten kein Live-Testbudget.
+
+Damit ist der naechste aktive PR20.3-Ingame-Test der bereits gemergte
+NPC-Sell-Stufentest.
