@@ -31,8 +31,9 @@ function R:Refresh()
         local row=MG.GearScore:CompareToEquipped(link)
         row.index=index
         rows[#rows+1]=row
-        if not best or row.delta>best.delta or
-           (row.delta==best.delta and row.score>best.score) then
+        if row.upgrade and (
+           not best or row.delta>best.delta or
+           (row.delta==best.delta and row.score>best.score)) then
             best=row
         end
     end
@@ -40,7 +41,8 @@ function R:Refresh()
     self.current={
         choices=rows,
         recommended=best,
-        reason=best and "highest_item_level_delta" or "no_item_data",
+        reason=best and "safe_positive_item_level_delta" or "no_safe_upgrade",
+        autoSelection=false,
     }
     return self.current
 end
