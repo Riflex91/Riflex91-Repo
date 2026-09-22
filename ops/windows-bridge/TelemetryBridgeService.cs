@@ -93,7 +93,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         DateTimeOffset? lastSuccess = null;
         DateTimeOffset? lastDeepDiagnosticsAt = null;
         DateTimeOffset? lastV5UploadAt = null;
-        string? lastV5TerminalFingerprint = null;
+        string? lastV5ImmediateFingerprint = null;
         var failures = 0;
 
         while (!cancellationToken.IsCancellationRequested)
@@ -129,16 +129,19 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                         includeDeepDiagnostics,
                         cancellationToken);
 
+                    var problemSignal = LocalProblemDiagnosticsArchive.FindProblemSignal(read.Events);
                     await CaptureDiagnosticsSafeAsync(read, cancellationToken);
 
                     var v5Transport = ReadV5TransportState(read.Snapshot);
+                    var immediateFingerprint = v5Transport.ImmediateFingerprint
+                        ?? problemSignal?.Fingerprint;
                     if (v5Transport.IsV5
                         && !ShouldUploadV5(
                             lastV5UploadAt,
                             _config.SupabaseStatusIntervalSeconds,
                             now,
-                            v5Transport.TerminalFingerprint,
-                            lastV5TerminalFingerprint))
+                            immediateFingerprint,
+                            lastV5ImmediateFingerprint))
                     {
                         latestStatus = new RuntimeBridgeStatus(
                             "V5_LOCAL_OBSERVE",
@@ -170,7 +173,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                     state = new BridgeState(read.MaxSeq);
                     await state.SaveAsync(cancellationToken);
 
-                    // Sequence-aware acknowledgement is best effort for older bot bundles and exact for new bundles.
+                    // Native V5 sequence acknowledgement is performed only after Supabase accepted the batch.
                     if (state.LastEventSeq > 0)
                         await _browser.AcknowledgeThroughAsync(state.LastEventSeq, cancellationToken);
 
@@ -182,8 +185,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                     if (v5Transport.IsV5)
                     {
                         lastV5UploadAt = lastSuccess;
-                        if (!string.IsNullOrWhiteSpace(v5Transport.TerminalFingerprint))
-                            lastV5TerminalFingerprint = v5Transport.TerminalFingerprint;
+                        if (!string.IsNullOrWhiteSpace(immediateFingerprint))
+                            lastV5ImmediateFingerprint = immediateFingerprint;
                     }
 
                     latestStatus = new RuntimeBridgeStatus(
@@ -393,47 +396,97 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
 
     private void Publish(RuntimeBridgeStatus status) => StatusChanged?.Invoke(status);
 
-    private sealed record V5TransportState(bool IsV5, string? TerminalFingerprint);
+    private sealed record V5TransportState(bool IsV5, string? ImmediateFingerprint);
 
     private static V5TransportState ReadV5TransportState(JsonElement snapshot)
     {
         if (snapshot.ValueKind != JsonValueKind.Object
-            || !snapshot.TryGetProperty("status", out var statusNode)
-            || statusNode.ValueKind != JsonValueKind.Object
-            || !statusNode.TryGetProperty("v5AutonomousTest", out var v5)
-            || v5.ValueKind != JsonValueKind.Object)
+            || !snapshot.TryGetProperty("type", out var typeNode)
+            || !string.Equals(
+                typeNode.GetString(),
+                "AIO_V5_TELEMETRY_SNAPSHOT",
+                StringComparison.Ordinal))
             return new V5TransportState(false, null);
 
-        var terminal = v5.TryGetProperty("terminal", out var terminalNode)
-            && terminalNode.ValueKind == JsonValueKind.True;
-        if (!terminal) return new V5TransportState(true, null);
+        if (snapshot.TryGetProperty("test", out var test)
+            && test.ValueKind == JsonValueKind.Object
+            && test.TryGetProperty("terminal", out var terminalNode)
+            && terminalNode.ValueKind == JsonValueKind.True)
+        {
+            var testId = test.TryGetProperty("testId", out var testNode)
+                ? testNode.GetString() ?? "unknown"
+                : "unknown";
+            var status = test.TryGetProperty("status", out var statusValue)
+                ? statusValue.GetString() ?? "UNKNOWN"
+                : "UNKNOWN";
+            var startedAt = test.TryGetProperty("startedAtMs", out var startedNode)
+                && startedNode.TryGetInt64(out var started)
+                ? started
+                : 0;
+            return new V5TransportState(
+                true,
+                $"terminal|{testId}|{startedAt}|{status}");
+        }
 
-        var testId = v5.TryGetProperty("testId", out var testNode)
-            ? testNode.GetString() ?? "unknown"
-            : "unknown";
-        var status = v5.TryGetProperty("status", out var statusValue)
-            ? statusValue.GetString() ?? "UNKNOWN"
-            : "UNKNOWN";
-        var startedAt = v5.TryGetProperty("startedAtMs", out var startedNode)
-            && startedNode.TryGetInt64(out var started)
-            ? started
-            : 0;
+        if (snapshot.TryGetProperty("anomalies", out var anomalies)
+            && anomalies.ValueKind == JsonValueKind.Array
+            && anomalies.GetArrayLength() > 0)
+        {
+            var anomaly = anomalies[anomalies.GetArrayLength() - 1];
+            if (anomaly.ValueKind == JsonValueKind.Object)
+            {
+                var fingerprint = ReadString(anomaly, "fingerprint");
+                if (string.IsNullOrWhiteSpace(fingerprint))
+                {
+                    var type = ReadString(anomaly, "type");
+                    if (string.IsNullOrWhiteSpace(type)) type = ReadString(anomaly, "event");
+                    var reason = ReadString(anomaly, "reason");
+                    var character = ReadString(anomaly, "character");
+                    fingerprint = $"{type}|{reason}|{character}";
+                }
+                if (!string.IsNullOrWhiteSpace(fingerprint))
+                    return new V5TransportState(true, "anomaly|" + fingerprint);
+            }
+        }
 
-        return new V5TransportState(true, $"{testId}|{startedAt}|{status}");
+        if (snapshot.TryGetProperty("health", out var health)
+            && health.ValueKind == JsonValueKind.Object)
+        {
+            var state = ReadString(health, "state").ToUpperInvariant();
+            if (!string.IsNullOrWhiteSpace(state)
+                && state is not "HEALTHY"
+                && state is not "RUNNING")
+            {
+                var reason = ReadString(health, "reason");
+                return new V5TransportState(true, $"health|{state}|{reason}");
+            }
+        }
+
+        return new V5TransportState(true, null);
+    }
+
+    private static string ReadString(JsonElement value, string property)
+    {
+        if (value.ValueKind != JsonValueKind.Object
+            || !value.TryGetProperty(property, out var node))
+            return string.Empty;
+        return node.ValueKind == JsonValueKind.String
+            ? node.GetString() ?? string.Empty
+            : node.ToString();
     }
 
     public static bool ShouldUploadV5(
         DateTimeOffset? lastUploadAt,
         int statusIntervalSeconds,
         DateTimeOffset now,
-        string? terminalFingerprint,
-        string? lastTerminalFingerprint)
+        string? immediateFingerprint,
+        string? lastImmediateFingerprint)
     {
         var regularDue = !lastUploadAt.HasValue
             || now - lastUploadAt.Value >= TimeSpan.FromSeconds(statusIntervalSeconds);
-        var terminalDue = !string.IsNullOrWhiteSpace(terminalFingerprint)
-            && !string.Equals(terminalFingerprint, lastTerminalFingerprint, StringComparison.Ordinal);
-        return regularDue || terminalDue;
+        var immediateDue = !string.IsNullOrWhiteSpace(immediateFingerprint)
+            && !string.Equals(immediateFingerprint, lastImmediateFingerprint, StringComparison.Ordinal);
+        return regularDue || immediateDue;
     }
 
     public static int EventLimitForRead(int configuredEventLimit, bool includeDeepDiagnostics)
