@@ -1,0 +1,38 @@
+name: v5-bank-pr20-2-5m-no-write
+
+on:
+  pull_request:
+    paths:
+      - 'v5/werkzeuge/pr20-2-bank-no-write-5m-gui.js'
+      - 'v5/werkzeuge/pr20-2-bank-no-write-5m-paket-bauen.mjs'
+      - 'v5/werkzeuge/pr20-2-bank-no-write-5m-paket.js'
+      - 'v5/werkzeuge/tests/pr20-2-bank-no-write-5m-gui.test.mjs'
+      - 'v5/roadmap/pr20-2-bank-no-write-5m-test-plan.json'
+      - 'v5/roadmap/pr20-2-bank-exit-gate-status.json'
+      - 'v5/roadmap/post-r19-roadmap.json'
+      - 'v5/dokumentation/V5-PR20-2-BANK-NO-WRITE-5M.md'
+      - 'v5/dokumentation/PR20-2-BANK-PRODUKTIV-VORBEREITUNG.md'
+      - 'v5/dokumentation/V5-POST-R19-ROADMAP.md'
+      - 'v5/package.json'
+      - '.github/workflows/v5-bank-pr20-2-5m-no-write.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  no-write-5m-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - working-directory: v5
+        run: npm ci
+      - working-directory: v5
+        run: npm run bank-pr20-2-5m-no-write:pruefen
+      - working-directory: v5
+        run: npm run bank-function-test-gui:pruefen
