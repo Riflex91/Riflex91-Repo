@@ -4,7 +4,7 @@
   "kennung": "V5_INGAME_TEST_EXECUTION_POLICY",
   "status": "AKTIV",
   "executionMode": "AUTO_ON_LOAD",
-  "userDirective": "Alle weiteren Ingame-Tests automatisch aus dem freigegebenen GitHub-Testmanifest laden und nach erfolgreicher Commit-/SHA-256-Pruefung als selbstenthaltenes Gesamtpaket starten; keine manuellen Farmer-Loads und keine manuellen Testschritte.",
+  "userDirective": "Alle weiteren Ingame-Tests automatisch durch den bereits aus V3 bekannten Ingame-Updatepfad laden: V3 SafeAutoUpdater liefert den dauerhaften V5-Testbootstrap in den Adventure-Land-Code-Slot; danach holt nur der Merchant das freigegebene GitHub-Testmanifest und das commit-/SHA-256-gebundene Testpaket. Farmer erhalten ausschließlich den paketgebundenen Worker per command_character. Keine Windows-Bridge-Ausfuehrung und keine manuellen Testschritte.",
   "requirements": {
     "selfContainedJavascriptPackage": true,
     "automaticStartAfterLoad": true,
@@ -22,7 +22,10 @@
     "sha256VerificationBeforeExecution": true,
     "merchantOnlyRepositoryCoordinator": true,
     "farmerWorkerDistributionViaCommandCharacter": true,
-    "noGenericRemoteJavascriptEndpoint": true
+    "noGenericRemoteJavascriptEndpoint": true,
+    "windowsBridgeDeployment": false,
+    "v3SafeAutoUpdaterCarriesBootstrap": true,
+    "browserBootstrapSurvivesV3RuntimeStop": true
   },
   "multiActor": {
     "peerPackageVersionGate": true,
@@ -34,12 +37,13 @@
       "ranger",
       "priest",
       "mage"
-    ]
+    ],
+    "farmerRepositoryFetch": false
   },
   "completion": {
     "finalReportOnlyOperatorAction": true,
     "autoStopOnPassed": true,
     "autoStopOnSafetyFailure": true
   },
-  "deploymentMode": "GITHUB_MANIFEST_AUTO_DEPLOY"
+  "deploymentMode": "V3_INGAME_BOOTSTRAP_AUTO_DEPLOY"
 }
