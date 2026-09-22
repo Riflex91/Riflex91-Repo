@@ -3,7 +3,7 @@
   "stand": "2026-09-22",
   "kennung": "V5_PR20_4_LOGISTICS_TRANSFER_STEP_TEST_PLAN",
   "status": "BEREIT_FUER_INGAME_GESAMTSTUFENTEST",
-  "basisMain": "8b0731f55ec2be9282842278e998528b06fc6a65",
+  "basisMain": "8981308e1758593da9b192089cb07abc5caa3375",
   "paket": "v5/werkzeuge/pr20-4-logistics-transfer-step-test-paket.js",
   "stateKey": "AIO_V5_PR20_4_TRANSFER_STEP_TEST_V1",
   "actorsKey": "AIO_V5_PR20_4_TRANSFER_ACTORS_V1",
