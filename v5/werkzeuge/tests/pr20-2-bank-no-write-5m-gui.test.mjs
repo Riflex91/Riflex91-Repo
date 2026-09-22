@@ -7,6 +7,7 @@ const controller = fs.readFileSync("werkzeuge/pr20-2-bank-no-write-5m-gui.js", "
 const paket = fs.readFileSync("werkzeuge/pr20-2-bank-no-write-5m-paket.js", "utf8");
 
 test("PR20.2 Bank NO-WRITE 5M besitzt exakt das ratifizierte 5-Minuten-Profil", () => {
+  assert.ok(controller.includes("const VERSION = '1.0.1'"));
   assert.ok(controller.includes("const DAUER_MS = 5 * 60 * 1000"));
   assert.ok(controller.includes("const INTERVALL_MS = 15 * 1000"));
   assert.ok(controller.includes("const MAX_SAMPLE_GAP_MS = 45 * 1000"));
@@ -170,4 +171,94 @@ test("Wird ein Open-Pack-Pfad finanzierbar, blockiert bereits die read-only Vorp
   assert.equal(r.mutatingPublicFunctionCalls, 0);
   assert.equal(r.functionalTestBudgetConsumed, false);
   assert.equal(k.bankJournalDanach(), k.bankJournal);
+});
+
+
+test("Serverbindung wird aus Parent-Runner-Surfaces gelesen, wenn CODE-Globals leer sind", async () => {
+  const bankJournal = JSON.stringify({
+    schemaVersion: 1,
+    journal: { RETRIEVE: [], STORE: [], SWAP: [] }
+  });
+  const speicher = new Map([["AIO_V5_BANK_FUNCTION_TEST_STATE_V1", bankJournal]]);
+  const gui = {
+    registriereAktion() {},
+    protokolliere() {},
+    setzeErgebnis(v) { return v; },
+    setzeAktionAktiv() {},
+    setzeRestzeit() {},
+    kopiereBericht() { return true; }
+  };
+  const parentRoot = {
+    server_region: "US",
+    server_identifier: "II",
+    user_id: "account-parent"
+  };
+  const basis = {
+    parent: parentRoot,
+    user_id: "account-root",
+    server_region: "",
+    server_identifier: "",
+    bank_packs: {
+      items0: ["bank", 0, 0],
+      items1: ["bank", 0, 0],
+      items2: ["bank", 75000000, 600]
+    },
+    character: {
+      name: "Merchant",
+      id: "session-1",
+      owner: "account-root",
+      ctype: "merchant",
+      map: "bank",
+      rip: false,
+      moving: false,
+      q: {},
+      gold: 15993820,
+      cash: 0,
+      items: [null],
+      bank: { gold: 11110, items0: [null], items1: [null] }
+    },
+    localStorage: {
+      getItem(key) { return speicher.has(key) ? speicher.get(key) : null; },
+      setItem(key, value) { speicher.set(key, String(value)); },
+      removeItem(key) { speicher.delete(key); }
+    },
+    V5TestGui: {
+      performanceTrickStatus() {
+        return { aktiv: true, playing: true, howlState: "loaded", visibilityState: "visible" };
+      },
+      async aktivierePerformanceTrick() {
+        return { aktiv: true, playing: true, howlState: "loaded", visibilityState: "visible" };
+      },
+      erstelleTest() { return gui; }
+    },
+    console
+  };
+  parentRoot.parent = parentRoot;
+  const context = vm.createContext(basis);
+  vm.runInContext(controller, context);
+  const r = await context.V5PR202BankNoWrite5m.passiveVorpruefung();
+
+  assert.equal(r.status, "BESTANDEN");
+  assert.equal(r.snapshot.bindung.serverRegion, "US");
+  assert.equal(r.snapshot.bindung.serverKennung, "II");
+  assert.equal(r.snapshot.bindung.serverBindungQuelle, "SERVER_GLOBALS");
+  assert.equal(r.gameplayWrites, 0);
+  assert.equal(r.mutatingPublicFunctionCalls, 0);
+  assert.equal(r.functionalTestBudgetConsumed, false);
+  assert.equal(speicher.get("AIO_V5_BANK_FUNCTION_TEST_STATE_V1"), bankJournal);
+});
+
+test("Serverobjekt ist ebenfalls eine gueltige read-only Runner-Surface", async () => {
+  const k = baueKontext();
+  k.context.server_region = "";
+  k.context.server_identifier = "";
+  k.context.server = { region: "EU", id: "I" };
+  vm.runInContext(controller, k.context);
+  const r = await k.context.V5PR202BankNoWrite5m.passiveVorpruefung();
+
+  assert.equal(r.status, "BESTANDEN");
+  assert.equal(r.snapshot.bindung.serverRegion, "EU");
+  assert.equal(r.snapshot.bindung.serverKennung, "I");
+  assert.equal(r.snapshot.bindung.serverBindungQuelle, "SERVER_OBJECT");
+  assert.equal(r.functionalTestBudgetConsumed, false);
 });
