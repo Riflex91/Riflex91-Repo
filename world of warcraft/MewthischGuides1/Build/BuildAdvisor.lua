@@ -37,11 +37,18 @@ function B:Snapshot(runtime)
         end
     end
 
-    local points = MG.PlayerFacts and MG.PlayerFacts:GetTalentPoints() or nil
+    local buildState=MG.BuildState and MG.BuildState:Refresh("build_advisor") or {}
+    local talent=MG.TalentAdvisor and MG.TalentAdvisor:Refresh("build_advisor") or nil
+    local points=buildState.unspentTalentPoints
     return {
-        class=MG:GetPlayerProfile().class,
-        level=MG:GetPlayerProfile().level,
+        class=buildState.class or MG:GetPlayerProfile().class,
+        level=buildState.level or MG:GetPlayerProfile().level,
+        specialization=buildState.specialization,
+        specializationID=buildState.specializationID,
+        role=buildState.role,
         unspentTalentPoints=points,
+        talentRecommendation=talent,
+        automaticTalentSpending=false,
         upcomingTraining=upcoming,
         source="RestedXP training directives + live character facts",
     }
