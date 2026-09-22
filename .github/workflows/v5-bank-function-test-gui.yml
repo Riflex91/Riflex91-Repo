@@ -1,0 +1,30 @@
+name: v5-bank-function-test-gui
+
+on:
+  pull_request:
+    paths:
+      - 'v5/werkzeuge/bank-function-test-**'
+      - 'v5/werkzeuge/v5-adventure-land-test-gui.js'
+      - 'v5/werkzeuge/tests/bank-function-test-gui.test.mjs'
+      - 'v5/dokumentation/V5-BANK-FUNKTIONSTEST-GUI.md'
+      - 'v5/package.json'
+      - '.github/workflows/v5-bank-function-test-gui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - working-directory: v5
+        run: npm ci
+      - working-directory: v5
+        run: npm run bank-function-test-gui:pruefen
