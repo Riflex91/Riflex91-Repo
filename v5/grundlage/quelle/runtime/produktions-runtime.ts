@@ -139,6 +139,12 @@ import {
   type ProduktiveBankWithdrawTransaktionsAnforderung,
   type ProduktiveBankWithdrawTransaktionsErgebnis,
 } from "../merchant/bank-withdraw-produktions-transaktion.js";
+import {
+  ProduktiveBankSwapTransaktionsOrchestrierung,
+  type ProduktiveBankSwapTransaktionsAbhaengigkeiten,
+  type ProduktiveBankSwapTransaktionsAnforderung,
+  type ProduktiveBankSwapTransaktionsErgebnis,
+} from "../merchant/bank-swap-produktions-transaktion.js";
 import { KontrollierteLaufsteuerung } from "../recovery/laufsteuerung.js";
 import type {
   V5ProduktionsProzessErgebnis,
@@ -2273,6 +2279,38 @@ export class V5ProduktionsRuntime implements V5ProduktionsProzessPort {
     }
 
     return new ProduktiveBankWithdrawTransaktionsOrchestrierung()
+      .fuehreEinmalAus(anforderung, Object.freeze({
+        ...abhaengigkeiten,
+        operatorRichtlinie: this.#bedienerRichtlinie,
+        ressourcen: this.#ressourcen,
+        socketBudget: this.#socketBudget,
+        mutationsKanaele: this.#mutationsKanaele,
+        ausfuehrung: this.#ausfuehrung,
+      }));
+  }
+
+  public async fuehreBankSwapZweiSlotTransaktion<Ergebnis>(
+    anforderung: ProduktiveBankSwapTransaktionsAnforderung,
+    abhaengigkeiten: Omit<
+      ProduktiveBankSwapTransaktionsAbhaengigkeiten<Ergebnis>,
+      | "operatorRichtlinie"
+      | "ressourcen"
+      | "socketBudget"
+      | "mutationsKanaele"
+      | "ausfuehrung"
+    >,
+  ): Promise<ProduktiveBankSwapTransaktionsErgebnis> {
+    if (!this.#prozessLaeuft || this.#zustand !== "LAEUFT") {
+      throw new Error("V5_BANK_SWAP_PROD_TX_RUNTIME_LAEUFT_NICHT");
+    }
+    if (this.#bedienerRichtlinie === null) {
+      throw new Error("V5_BANK_SWAP_PROD_TX_BEDIENER_RICHTLINIE_FEHLT");
+    }
+    if (this.#bankSwapEinmalAuthority !== anforderung.authority) {
+      throw new Error("V5_BANK_SWAP_PROD_TX_AUTHORITY_NICHT_AKTUELL");
+    }
+
+    return new ProduktiveBankSwapTransaktionsOrchestrierung()
       .fuehreEinmalAus(anforderung, Object.freeze({
         ...abhaengigkeiten,
         operatorRichtlinie: this.#bedienerRichtlinie,
