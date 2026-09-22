@@ -80,13 +80,11 @@
   ],
   "currentNextSteps": [
     "PR20.1 Equip-Produktionsnachweis ist BESTANDEN",
-    "PR20.2 Bank-Meilenstein ist fuer die Roadmap mit explizit akzeptierten Ausnahmen abgeschlossen",
-    "bank_deposit, bank_retrieve, bank_store und bank_swap bleiben durch reale Evidence bestaetigt",
-    "bank_withdraw bleibt NICHT_BESTANDEN_TESTLIMIT_ERREICHT und technisch deaktiviert; kein dritter Test",
-    "open_bank_pack bleibt RESOURCE_BLOCKED_NO_LIVE und technisch deaktiviert",
-    "Bank NO-WRITE 5M ist BESTANDEN; 0 Gameplay-Writes",
-    "PR20.3 Markt-Testkette darf jetzt vorbereitet und ausgefuehrt werden",
-    "PR20.3 besitzt dadurch noch keine produktive Mutation oder Gameplay-Authority",
+    "PR20.2 Bank ist VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
+    "breite Bankfreigabe ist auf Modul-/Milestone-Ebene erteilt; lokale Capability-/Admission-Gates bleiben zwingend",
+    "bank_withdraw bleibt historisch NICHT_BESTANDEN_TESTLIMIT_ERREICHT und lokal gegatet; kein dritter Test",
+    "open_bank_pack bleibt bis ausreichenden Ressourcen lokal resource-blocked",
+    "PR20.3 Markt-Testkette darf jetzt starten",
     "PR20.3 muss eigene Capability-, Authority-, Journal-, Admission-, Shadow- und Live-Evidence-Gates bestehen"
   ],
   "invariants": {
@@ -152,7 +150,7 @@
   },
   "parallelPreparation": {
     "id": "PR20.2_BANK",
-    "status": "MILESTONE_ABGESCHLOSSEN_MIT_AKZEPTIERTEN_AUSNAHMEN",
+    "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
     "blockedBy": null,
     "produktiveRegistrierungErlaubt": true,
     "gameplayAuthority": false,
@@ -394,14 +392,14 @@
       "authorityAusgestellt": false
     },
     "pr20_2ExitGate": {
-      "status": "MILESTONE_ABGESCHLOSSEN_MIT_AKZEPTIERTEN_AUSNAHMEN",
+      "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
       "blocker": [
         "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
         "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
       ],
       "evidence": "v5/roadmap/pr20-2-bank-exit-gate-status.json",
       "checker": "v5/werkzeuge/pr20-2-bank-exit-gate-pruefen.mjs",
-      "breiteBankAktivierungErlaubt": false,
+      "breiteBankAktivierungErlaubt": true,
       "pr20_3MarktStartErlaubt": true,
       "sameIntentRetry": false,
       "noWrite5mStatus": "BESTANDEN_REAL_INGAME_READ_ONLY",
@@ -413,13 +411,16 @@
       "blockerCloseout": "v5/roadmap/pr20-2-bank-blocker-closeout.json",
       "integration15mRequiredNow": false,
       "weitereIngameTestsJetztErforderlich": false,
-      "operatorTransitionAcceptance": "v5/roadmap/pr20-2-bank-operator-transition-acceptance.json"
+      "operatorTransitionAcceptance": "v5/roadmap/pr20-2-bank-operator-transition-acceptance.json",
+      "breiteBankFreigabeScope": "BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES",
+      "withdrawLokalGegatet": true,
+      "openBankPackLokalGegatet": true
     }
   },
   "parallelPreparations": [
     {
       "id": "PR20.2_BANK",
-      "status": "MILESTONE_ABGESCHLOSSEN_MIT_AKZEPTIERTEN_AUSNAHMEN",
+      "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
       "blockedBy": [],
       "produktiveRegistrierungErlaubt": true,
       "gameplayAuthority": false,
@@ -587,14 +588,14 @@
         "productionWideActivationAllowed": false
       },
       "pr20_2ExitGate": {
-        "status": "MILESTONE_ABGESCHLOSSEN_MIT_AKZEPTIERTEN_AUSNAHMEN",
+        "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
         "blocker": [
           "BANK_WITHDRAW_LIVE_EVIDENCE_UNVOLLSTAENDIG_TESTLIMIT_2_OF_2",
           "OPEN_BANK_PACK_RESOURCE_BLOCKED_NO_LIVE"
         ],
         "evidence": "v5/roadmap/pr20-2-bank-exit-gate-status.json",
         "checker": "v5/werkzeuge/pr20-2-bank-exit-gate-pruefen.mjs",
-        "breiteBankAktivierungErlaubt": false,
+        "breiteBankAktivierungErlaubt": true,
         "pr20_3MarktStartErlaubt": true,
         "sameIntentRetry": false,
         "noWrite5mStatus": "BESTANDEN_REAL_INGAME_READ_ONLY",
@@ -604,7 +605,10 @@
         "blockerCloseout": "v5/roadmap/pr20-2-bank-blocker-closeout.json",
         "integration15mRequiredNow": false,
         "weitereIngameTestsJetztErforderlich": false,
-        "operatorTransitionAcceptance": "v5/roadmap/pr20-2-bank-operator-transition-acceptance.json"
+        "operatorTransitionAcceptance": "v5/roadmap/pr20-2-bank-operator-transition-acceptance.json",
+        "breiteBankFreigabeScope": "BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES",
+        "withdrawLokalGegatet": true,
+        "openBankPackLokalGegatet": true
       }
     },
     {
@@ -619,7 +623,7 @@
         "v5/grundlage/vertraege/runtime/market-production-preparation.json",
         "v5/grundlage/tests/pr20-market-production-preparation.test.mjs"
       ],
-      "pr20_2Transition": "MILESTONE_ABGESCHLOSSEN_MIT_AKZEPTIERTEN_AUSNAHMEN"
+      "pr20_2Transition": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN"
     },
     {
       "id": "PR20.4_LOGISTIK_TRANSFER",
@@ -731,7 +735,7 @@
     "recovery": "COMMITTED"
   },
   "pr20_2": {
-    "status": "MILESTONE_ABGESCHLOSSEN_MIT_AKZEPTIERTEN_AUSNAHMEN",
+    "status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
     "firstLiveCandidate": "bank_deposit(1)",
     "provider": "merchant-bank-core@1",
     "capabilityId": "merchant.bank.gold_einlagern",
@@ -801,7 +805,9 @@
     "evidenceComplete": false,
     "withdrawActivationAllowed": false,
     "openBankPackActivationAllowed": false,
-    "pr20_3TestWorkAllowed": true
+    "pr20_3TestWorkAllowed": true,
+    "broadBankActivationAllowed": true,
+    "broadBankReleaseScope": "BANK_MODULE_WITH_LOCAL_CAPABILITY_GATES"
   },
   "pr20_3": {
     "status": "TESTKETTE_START_FREIGEGEBEN_NO_WRITE",
