@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20.7_GEAR_OCCUPIED_SLOT_READONLY_PREFLIGHT",
+  "status": "IMPLEMENTIERT_NICHT_LIVE",
+  "testId": "pr20-7-gear-occupied-slot-readonly-preflight",
+  "controllerVersion": "1.0.0",
+  "workerVersion": "1.0.0",
+  "package": "v5/werkzeuge/pr20-7-gear-occupied-slot-readonly-live.js",
+  "expectedGlobal": "V5PR207GearReadonlyTest",
+  "workerPackage": "v5/werkzeuge/pr20-7-gear-occupied-slot-readonly-worker.js",
+  "workerExpectedGlobal": "V5PR207GearWorker",
+  "coordinator": {
+    "name": "My_Merchant",
+    "ctype": "merchant",
+    "performanceTrickRequired": true
+  },
+  "workers": [
+    {
+      "name": "My_Ranger1",
+      "ctype": "ranger"
+    },
+    {
+      "name": "My_Priest",
+      "ctype": "priest"
+    },
+    {
+      "name": "My_Mage",
+      "ctype": "mage"
+    }
+  ],
+  "scope": {
+    "occupiedSafeSlots": [
+      "cape",
+      "belt",
+      "amulet",
+      "orb",
+      "helmet",
+      "gloves",
+      "shoes",
+      "pants",
+      "chest"
+    ],
+    "mainhand": "BLOCKED_SEPARATE_GATE",
+    "offhand": "BLOCKED_SEPARATE_GATE",
+    "emptySlot": "PR20_1_EXISTING_PATH_ONLY",
+    "previousVirtualB": "BLOCKED",
+    "lockedCandidate": "BLOCKED",
+    "lockedPreviousItem": "BLOCKED",
+    "duplicatePhysicalFingerprint": "BLOCKED"
+  },
+  "observation": {
+    "sameAccountRequired": true,
+    "sameServerRequired": true,
+    "exactSessionRequired": true,
+    "workerFreshnessMs": 15000,
+    "candidateFingerprintSha256": true,
+    "previousSlotFingerprintSha256": true,
+    "restInventoryFingerprintSha256": true,
+    "restEquipmentFingerprintSha256": true,
+    "exactTwoLocationSettlementModel": true
+  },
+  "selection": {
+    "priority": [
+      "ranger",
+      "priest",
+      "mage"
+    ],
+    "requiresAtLeastOneSafeCandidate": true,
+    "noCandidate": "BLOCKIERT"
+  },
+  "stability": {
+    "durationMs": 60000,
+    "sampleIntervalMs": 5000,
+    "minimumSamples": 12,
+    "sameRecipientSession": true,
+    "sameEvidenceFingerprint": true,
+    "rosterMustRemainFresh": true
+  },
+  "authority": {
+    "gameplayWrites": 0,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "publicMutationCalls": 0,
+    "normalRuntimeAllowed": false
+  },
+  "deployment": {
+    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY_AFTER_STAGE_A_MERGE",
+    "stageAContainsManifestSwitch": false,
+    "bridgeWorkerDistributionRequired": true,
+    "sourceCommitPinned": true,
+    "packageSha256Verified": true,
+    "workerSha256Verified": true
+  },
+  "nextAfterPass": "PR20_7_OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_AND_REAL_SHADOW_PREPARATION"
+}
