@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-23",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-occupied-slot-read-only-preflight",
+  "controllerVersion": "1.0.0",
+  "status": "BEREIT_FUER_REALEN_NO_WRITE_PREFLIGHT",
+  "deployment": {
+    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
+    "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "coordinatorClass": "merchant",
+    "packageCommitPinned": true,
+    "sourceCommit": "4b2109cf70a3dc1124379e699c3bcde74f55af34",
+    "packagePath": "v5/werkzeuge/pr20-7-gear-read-only-autonomous.js",
+    "packageSha256": "ca1006c02e05f6eeef3fac00455bd809ed82c3c9501e601b0c7f5d07865d8b07",
+    "expectedGlobal": "V5PR207GearReadOnlyTest",
+    "workerPackageConfigured": false,
+    "farmerWorkerDistribution": false
+  },
+  "recipient": {
+    "requiredCharacter": "My_Merchant",
+    "requiredClass": "merchant",
+    "exactSessionBinding": true,
+    "exactAccountBinding": true,
+    "exactServerBinding": true,
+    "stableDoubleObservation": true,
+    "safeOccupiedSlots": [
+      "cape",
+      "belt",
+      "amulet",
+      "orb",
+      "helmet",
+      "gloves",
+      "shoes",
+      "pants",
+      "chest"
+    ],
+    "candidateAutoSelection": true,
+    "candidateMustBePhysical": true,
+    "previousSlotItemMustBePhysical": true,
+    "candidateAndPreviousUnlocked": true,
+    "virtualBBlocked": true,
+    "indistinguishableFingerprintBlocked": true
+  },
+  "prerequisites": {
+    "performanceTrickRequired": true,
+    "performanceTrickVerification": "HOWLER_PLAYING_TRUE",
+    "characterAlive": true,
+    "characterStationary": true,
+    "noTarget": true,
+    "noAggro": true,
+    "queueEmpty": true,
+    "alternativeRuntimeBlocked": true
+  },
+  "mutationBoundary": {
+    "browserGameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "durableIntentCreated": false,
+    "authorityIssued": false,
+    "swapWriteRatification": false,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "passConditions": [
+    "terminal status BESTANDEN",
+    "real browser evidence status BESTANDEN",
+    "performance_trick active and playing",
+    "stable double observation",
+    "safe occupied non-weapon slot observed",
+    "candidate and previous item fingerprints distinct",
+    "0 gameplay writes",
+    "0 public gameplay function calls",
+    "0 raw writes",
+    "0 start/disconnect lifecycle calls",
+    "0 farmer worker installs",
+    "no authority or durable intent issued"
+  ],
+  "failClosed": [
+    "no safe occupied-slot candidate",
+    "binding drift",
+    "snapshot drift",
+    "performance_trick unavailable or not playing",
+    "runtime conflict",
+    "character movement target queue aggro or death"
+  ],
+  "evidence": "v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json",
+  "nextAfterPass": "PR20_7_OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_AND_FENCING_NO_WRITE"
+}
