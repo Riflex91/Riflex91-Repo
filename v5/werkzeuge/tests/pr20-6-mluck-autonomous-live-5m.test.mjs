@@ -15,7 +15,7 @@ test("PR20.6 autonomous MLuck package is AUTO_ON_LOAD for the 4-character roster
   assert.equal(plan.coordinatorClass, "merchant");
   assert.deepEqual(plan.workerClasses, ["ranger", "priest", "mage"]);
   assert.equal(plan.testId, "pr20-6-mluck-autonomous-live-5m");
-  assert.equal(plan.controllerVersion, "1.0.6");
+  assert.equal(plan.controllerVersion, "1.0.7");
   assert.equal(plan.stateKey, "AIO_V5_PR20_6_MLUCK_LIVE_5M_V1");
   assert.equal(plan.actorsKey, "AIO_V5_PR20_6_MLUCK_ACTORS_V1");
   assert.ok(source.includes("Promise.resolve().then(run)"));
@@ -176,6 +176,12 @@ test("PR20.6 v1.0.6 recovery accepts only the known zero-write legacy fingerprin
   assert.ok(source.includes("previous?.version==='1.0.3'"));
   assert.ok(source.includes("function safeKnownV104ParentBindingRecovery(previous)"));
   assert.ok(source.includes("previous?.version==='1.0.4'"));
+  assert.ok(source.includes("function safeKnownV105BridgeWorkerRecovery(previous)"));
+  assert.ok(source.includes("previous?.version==='1.0.5'"));
+  assert.ok(source.includes("rangerRecovery.postcondition==='TIMEOUT'"));
+  assert.ok(source.includes("rangerRecovery.targetName==='My_Ranger1'"));
+  assert.ok(source.includes("recoveredRestart('priest','My_Priest')"));
+  assert.ok(source.includes("recoveredRestart('mage','My_Mage')"));
   assert.ok(source.includes("blockers.includes('GET_CHARACTERS_UNAVAILABLE')"));
   assert.ok(source.includes("blockers.includes('ROSTER_RANGER_FEHLT')"));
   assert.ok(source.includes("previous?.status==='WAITING_FOR_4_CHARACTERS'"));

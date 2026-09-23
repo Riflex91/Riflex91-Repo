@@ -13,7 +13,7 @@
   "stateKey": "AIO_V5_PR20_6_MLUCK_LIVE_5M_V1",
   "actorsKey": "AIO_V5_PR20_6_MLUCK_ACTORS_V1",
   "testId": "pr20-6-mluck-autonomous-live-5m",
-  "controllerVersion": "1.0.6",
+  "controllerVersion": "1.0.7",
   "autoStart": true,
   "operatorInteractionAfterLoad": false,
   "coordinatorClass": "merchant",
@@ -134,7 +134,23 @@
     ],
     "manualFarmerJavascriptLoadRequired": false,
     "noGenericRemoteJavascriptEndpoint": true,
-    "autoStartMissingOwnedFarmerClasses": true
+    "autoStartMissingOwnedFarmerClasses": true,
+    "bridgeWorkerFallback": {
+      "enabled": true,
+      "mode": "WINDOWS_BRIDGE_CDP_HASH_VERIFIED_WORKER_ONLY",
+      "package": "v5/werkzeuge/pr20-6-mluck-worker.js",
+      "expectedGlobal": "V5PR206MluckWorker",
+      "version": "1.0.0",
+      "exactTargets": [
+        "My_Ranger1:ranger",
+        "My_Priest:priest",
+        "My_Mage:mage"
+      ],
+      "performanceTrickRequired": true,
+      "gameplayAuthority": false,
+      "lifecycleAuthority": false,
+      "rawSocketOrApiBypass": false
+    }
   },
   "characterLifecycle": {
     "accountRosterSource": "get_characters",
@@ -163,6 +179,7 @@
       "postconditionMaximumMs": 30000,
       "restartSafeNoSecondDisconnect": true
     },
-    "rawWriteCallsFromLifecycle": 0
+    "rawWriteCallsFromLifecycle": 0,
+    "bridgeFreshActorCanSatisfyRemoteTab": true
   }
 }

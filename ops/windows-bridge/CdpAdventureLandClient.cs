@@ -52,6 +52,8 @@ public sealed class CdpAdventureLandClient
         var manifest = ParseAndValidateV5AutonomousTestManifest(manifestJson);
 
         var targets = await FindTargetsAsync(cancellationToken);
+        var workerChanges = await EnsureConfiguredV5WorkersAsync(manifest, targets, cancellationToken);
+
         foreach (var target in targets)
         {
             using var socket = new ClientWebSocket();
@@ -80,8 +82,8 @@ public sealed class CdpAdventureLandClient
                     {
                         var same = string.Equals(currentTestId, manifest.TestId, StringComparison.Ordinal);
                         return new V5AutonomousTestDeploymentResult(
-                            same ? "ALREADY_PRESENT" : "BLOCKED_ACTIVE_TEST",
-                            Changed: false,
+                            workerChanges > 0 ? "WORKERS_DEPLOYED" : (same ? "ALREADY_PRESENT" : "BLOCKED_ACTIVE_TEST"),
+                            Changed: workerChanges > 0,
                             manifest.TestId,
                             target.Url);
                     }
@@ -109,7 +111,7 @@ public sealed class CdpAdventureLandClient
                         throw new InvalidOperationException("V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED");
 
                     return new V5AutonomousTestDeploymentResult(
-                        "DEPLOYED",
+                        workerChanges > 0 ? "DEPLOYED_WITH_WORKERS" : "DEPLOYED",
                         Changed: true,
                         manifest.TestId,
                         target.Url);
@@ -122,10 +124,98 @@ public sealed class CdpAdventureLandClient
         }
 
         return new V5AutonomousTestDeploymentResult(
-            "MERCHANT_CONTEXT_NOT_FOUND",
-            Changed: false,
+            workerChanges > 0 ? "WORKERS_DEPLOYED_MERCHANT_CONTEXT_NOT_FOUND" : "MERCHANT_CONTEXT_NOT_FOUND",
+            Changed: workerChanges > 0,
             manifest.TestId,
             TargetUrl: null);
+    }
+
+    private async Task<int> EnsureConfiguredV5WorkersAsync(
+        V5AutonomousTestManifest manifest,
+        IReadOnlyList<CdpTarget> targets,
+        CancellationToken cancellationToken)
+    {
+        if (!HasConfiguredV5WorkerPackage(manifest))
+            return 0;
+
+        byte[]? workerBytes = null;
+        string? workerSource = null;
+        var changed = 0;
+
+        foreach (var target in targets)
+        {
+            using var socket = new ClientWebSocket();
+            try
+            {
+                await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
+                var contexts = await CollectAllowedExecutionContextsAsync(socket, cancellationToken);
+                foreach (var contextId in contexts)
+                {
+                    JsonElement probe;
+                    try
+                    {
+                        probe = await EvaluateAsync(socket, V5DeploymentProbeExpression, contextId, cancellationToken);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        continue;
+                    }
+
+                    var name = ReadString(probe, "name");
+                    var ctype = ReadString(probe, "ctype");
+                    if (!IsConfiguredV5WorkerTarget(manifest, name, ctype))
+                        continue;
+
+                    var workerProbeExpression = BuildV5WorkerProbeExpression(manifest.WorkerExpectedGlobal!);
+                    try
+                    {
+                        var existing = await EvaluateAsync(socket, workerProbeExpression, contextId, cancellationToken);
+                        if (string.Equals(ReadString(existing, "testId"), manifest.TestId, StringComparison.Ordinal)
+                            && string.Equals(ReadString(existing, "version"), manifest.WorkerVersion, StringComparison.Ordinal)
+                            && string.Equals(ReadString(existing, "name"), name, StringComparison.Ordinal)
+                            && string.Equals(ReadString(existing, "ctype"), ctype, StringComparison.OrdinalIgnoreCase))
+                            continue;
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Missing worker global is expected before first install.
+                    }
+
+                    if (workerBytes is null)
+                    {
+                        workerBytes = await DownloadBoundedAsync(
+                            BuildV5AutonomousTestWorkerPackageUrl(manifest),
+                            manifest.MaxPackageBytes,
+                            cancellationToken);
+                        var actualSha256 = Convert.ToHexString(SHA256.HashData(workerBytes)).ToLowerInvariant();
+                        if (!string.Equals(actualSha256, manifest.WorkerPackageSha256, StringComparison.Ordinal))
+                            throw new InvalidOperationException("V5_TEST_WORKER_PACKAGE_SHA256_MISMATCH");
+                        workerSource = Encoding.UTF8.GetString(workerBytes);
+                        if (!workerSource.Contains(manifest.TestId, StringComparison.Ordinal)
+                            || !workerSource.Contains(manifest.WorkerExpectedGlobal!, StringComparison.Ordinal))
+                            throw new InvalidOperationException("V5_TEST_WORKER_PACKAGE_MARKER_MISSING");
+                    }
+
+                    var expression = "(() => {\n" + workerSource + "\n; return { installed: true }; })()";
+                    await EvaluateAsync(socket, expression, contextId, cancellationToken);
+
+                    var verify = await EvaluateAsync(socket, workerProbeExpression, contextId, cancellationToken);
+                    if (!string.Equals(ReadString(verify, "testId"), manifest.TestId, StringComparison.Ordinal)
+                        || !string.Equals(ReadString(verify, "version"), manifest.WorkerVersion, StringComparison.Ordinal)
+                        || !string.Equals(ReadString(verify, "name"), name, StringComparison.Ordinal)
+                        || !string.Equals(ReadString(verify, "ctype"), ctype, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("V5_TEST_WORKER_DEPLOYMENT_HANDSHAKE_FAILED");
+
+                    changed++;
+                }
+            }
+            catch (WebSocketException)
+            {
+                // Try another same-origin Adventure Land target.
+            }
+        }
+
+        return changed;
     }
 
     public async Task<V5LegacyRosterRecoveryResult> EnsureLegacyPr206RosterRecoveryAsync(
@@ -259,13 +349,7 @@ public sealed class CdpAdventureLandClient
             || !IsLowerHex(manifest.PackageSha256, 64))
             throw new InvalidOperationException("V5_TEST_MANIFEST_DIGEST_INVALID");
 
-        var path = (manifest.PackagePath ?? string.Empty).Replace('\\', '/');
-        if (!path.StartsWith("v5/werkzeuge/", StringComparison.Ordinal)
-            || !path.EndsWith(".js", StringComparison.Ordinal)
-            || path.Contains("..", StringComparison.Ordinal)
-            || path.Contains("//", StringComparison.Ordinal)
-            || path.Length > 180)
-            throw new InvalidOperationException("V5_TEST_MANIFEST_PACKAGE_PATH_INVALID");
+        var path = NormalizeV5PackagePath(manifest.PackagePath, "V5_TEST_MANIFEST_PACKAGE_PATH_INVALID");
 
         if (string.IsNullOrWhiteSpace(manifest.Gate)
             || string.IsNullOrWhiteSpace(manifest.TestId)
@@ -276,11 +360,83 @@ public sealed class CdpAdventureLandClient
         if (manifest.MaxPackageBytes is < 1024 or > V5AutonomousTestPackageHardMaxBytes)
             throw new InvalidOperationException("V5_TEST_MANIFEST_PACKAGE_LIMIT_INVALID");
 
+        var workerConfigured = HasAnyV5WorkerPackageField(manifest);
+        if (workerConfigured)
+        {
+            if (!string.Equals(manifest.TestId, "pr20-6-mluck-autonomous-live-5m", StringComparison.Ordinal)
+                || string.IsNullOrWhiteSpace(manifest.WorkerVersion)
+                || string.IsNullOrWhiteSpace(manifest.WorkerPackagePath)
+                || !IsLowerHex(manifest.WorkerPackageSha256, 64)
+                || string.IsNullOrWhiteSpace(manifest.WorkerExpectedGlobal)
+                || manifest.WorkerTargets is null)
+                throw new InvalidOperationException("V5_TEST_WORKER_MANIFEST_FIELDS_INVALID");
+
+            var workerPath = NormalizeV5PackagePath(
+                manifest.WorkerPackagePath,
+                "V5_TEST_WORKER_MANIFEST_PACKAGE_PATH_INVALID");
+            var expectedTargets = new HashSet<string>(
+                ["My_Ranger1:ranger", "My_Priest:priest", "My_Mage:mage"],
+                StringComparer.Ordinal);
+            var actualTargets = new HashSet<string>(
+                manifest.WorkerTargets.Select(value => (value ?? string.Empty).Trim()),
+                StringComparer.Ordinal);
+            if (actualTargets.Count != expectedTargets.Count || !actualTargets.SetEquals(expectedTargets))
+                throw new InvalidOperationException("V5_TEST_WORKER_TARGETS_INVALID");
+
+            manifest = manifest with { WorkerPackagePath = workerPath };
+        }
+
         return manifest with { PackagePath = path };
+    }
+
+    private static string NormalizeV5PackagePath(string? value, string error)
+    {
+        var path = (value ?? string.Empty).Replace('\\', '/');
+        if (!path.StartsWith("v5/werkzeuge/", StringComparison.Ordinal)
+            || !path.EndsWith(".js", StringComparison.Ordinal)
+            || path.Contains("..", StringComparison.Ordinal)
+            || path.Contains("//", StringComparison.Ordinal)
+            || path.Length > 180)
+            throw new InvalidOperationException(error);
+        return path;
+    }
+
+    private static bool HasAnyV5WorkerPackageField(V5AutonomousTestManifest manifest) =>
+        !string.IsNullOrWhiteSpace(manifest.WorkerVersion)
+        || !string.IsNullOrWhiteSpace(manifest.WorkerPackagePath)
+        || !string.IsNullOrWhiteSpace(manifest.WorkerPackageSha256)
+        || !string.IsNullOrWhiteSpace(manifest.WorkerExpectedGlobal)
+        || manifest.WorkerTargets is not null;
+
+    public static bool HasConfiguredV5WorkerPackage(V5AutonomousTestManifest manifest) =>
+        !string.IsNullOrWhiteSpace(manifest.WorkerVersion)
+        && !string.IsNullOrWhiteSpace(manifest.WorkerPackagePath)
+        && IsLowerHex(manifest.WorkerPackageSha256, 64)
+        && !string.IsNullOrWhiteSpace(manifest.WorkerExpectedGlobal)
+        && manifest.WorkerTargets is { Length: > 0 };
+
+    public static bool IsConfiguredV5WorkerTarget(
+        V5AutonomousTestManifest manifest,
+        string? name,
+        string? ctype)
+    {
+        if (!HasConfiguredV5WorkerPackage(manifest)
+            || string.IsNullOrWhiteSpace(name)
+            || string.IsNullOrWhiteSpace(ctype))
+            return false;
+        var key = name.Trim() + ":" + ctype.Trim().ToLowerInvariant();
+        return manifest.WorkerTargets!.Contains(key, StringComparer.Ordinal);
     }
 
     public static string BuildV5AutonomousTestPackageUrl(V5AutonomousTestManifest manifest) =>
         $"https://raw.githubusercontent.com/Riflex91/Riflex91-Repo/{manifest.SourceCommit}/{manifest.PackagePath}";
+
+    public static string BuildV5AutonomousTestWorkerPackageUrl(V5AutonomousTestManifest manifest)
+    {
+        if (!HasConfiguredV5WorkerPackage(manifest))
+            throw new InvalidOperationException("V5_TEST_WORKER_PACKAGE_NOT_CONFIGURED");
+        return $"https://raw.githubusercontent.com/Riflex91/Riflex91-Repo/{manifest.SourceCommit}/{manifest.WorkerPackagePath}";
+    }
 
     public static bool ShouldDeployV5AutonomousTest(
         string desiredTestId,
@@ -828,11 +984,13 @@ public sealed class CdpAdventureLandClient
 
     private const string V5DeploymentProbeExpression = """
     (() => {
+      let name = '';
       let ctype = '';
       try {
         const character = globalThis.character
           || (globalThis.parent && globalThis.parent.character)
           || null;
+        name = String(character && character.name || '');
         ctype = String(character && character.ctype || '').toLowerCase();
       } catch {}
 
@@ -857,6 +1015,7 @@ public sealed class CdpAdventureLandClient
       } catch {}
 
       return {
+        name,
         ctype,
         currentTestId: current ? String(current.testId || '') : null,
         currentVersion: current ? String(current.version || '') : null,
@@ -875,6 +1034,26 @@ public sealed class CdpAdventureLandClient
       };
     })()
     """;
+
+    private static string BuildV5WorkerProbeExpression(string expectedGlobal)
+    {
+        var globalName = JsonSerializer.Serialize(expectedGlobal);
+        return """
+        (() => {
+          const api = globalThis[__V5_WORKER_GLOBAL__];
+          let status = null;
+          try { status = typeof api?.status === 'function' ? api.status() : null; } catch {}
+          return {
+            testId: status ? String(status.testId || api?.testId || '') : String(api?.testId || ''),
+            version: status ? String(status.version || api?.version || '') : String(api?.version || ''),
+            name: status ? String(status.name || '') : '',
+            ctype: status ? String(status.ctype || '').toLowerCase() : '',
+            active: status ? status.active === true : false,
+            blocker: status ? String(status.blocker || '') : ''
+          };
+        })()
+        """.Replace("__V5_WORKER_GLOBAL__", globalName, StringComparison.Ordinal);
+    }
 
     private const string V5LegacyPr206RosterRecoveryExpression = """
     (() => {
@@ -1196,7 +1375,12 @@ public sealed record V5AutonomousTestManifest(
     string PackageSha256,
     int MaxPackageBytes,
     string ExpectedGlobal,
-    bool NormalRuntimeAllowed);
+    bool NormalRuntimeAllowed,
+    string? WorkerVersion = null,
+    string? WorkerPackagePath = null,
+    string? WorkerPackageSha256 = null,
+    string? WorkerExpectedGlobal = null,
+    string[]? WorkerTargets = null);
 
 public sealed record V5AutonomousTestDeploymentResult(
     string State,
