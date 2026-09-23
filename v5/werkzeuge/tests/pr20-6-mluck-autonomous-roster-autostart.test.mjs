@@ -241,6 +241,30 @@ test("PR20.6 resolves ambiguous ranger only from one fresh exact actor-registry 
     }
   }));
 
+  const seededRegistry = JSON.parse(storage.getItem("AIO_V5_PR20_6_MLUCK_ACTORS_V1"));
+  for (const [name, ctype] of [["P1", "priest"], ["M1", "mage"]]) {
+    seededRegistry.actors[name] = {
+      schemaVersion: 1,
+      testId: "pr20-6-mluck-autonomous-live-5m",
+      name,
+      ctype,
+      sessionId: name + "-session",
+      accountKey: accountFingerprint(account),
+      serverRegion: "EU",
+      serverIdentifier: "I",
+      map: "main",
+      x: 5,
+      y: 5,
+      hp: 1000,
+      mp: 1000,
+      level: 80,
+      rip: false,
+      runtimeConflict: null,
+      observedAtMs
+    };
+  }
+  storage.setItem("AIO_V5_PR20_6_MLUCK_ACTORS_V1", JSON.stringify(seededRegistry));
+
   const sandbox = {
     console, Date, JSON, Object, String, Number, Boolean, Math, Promise, RegExp, Error,
     localStorage: storage,
