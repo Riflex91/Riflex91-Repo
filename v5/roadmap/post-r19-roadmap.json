@@ -701,7 +701,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE",
+      "status": "ONE_SHOT_AUTHORITY_AND_FENCING_BEREIT_NO_WRITE",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -1048,7 +1048,7 @@
       "v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json",
       "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs"
     ],
-    "nextAction": "PR20_7_OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_AND_FENCING_NO_WRITE",
+    "nextAction": "PR20_7_OCCUPIED_SLOT_DURABLE_INTENT_RECONCILIATION_NO_WRITE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
