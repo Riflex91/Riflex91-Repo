@@ -20,6 +20,10 @@ const allowedPackages = Object.freeze({
   "pr20-6-native-updater-recovery-bootstrap-v3": Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
     expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
+  }),
+  "pr20-6-account-roster-x-recovery-v1": Object.freeze({
+    path: "v5/werkzeuge/pr20-6-account-roster-x-recovery.js",
+    expectedGlobal: "V5PR206AccountRosterXRecovery"
   })
 });
 const selected = allowedPackages[manifest.testId];
@@ -75,4 +79,18 @@ test("updater recovery bootstrap is terminal no-write only", () => {
   assert.equal(packageSource.includes("normalRuntimeAllowed: false"), true);
   assert.equal(packageSource.includes("use_skill("), false);
   assert.equal(packageSource.includes("start_character("), false);
+});
+
+test("account roster X recovery is read-only and performance-trick gated", () => {
+  if (manifest.testId !== "pr20-6-account-roster-x-recovery-v1") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(packageSource.includes("owner?.X?.characters"), true);
+  assert.equal(packageSource.includes("performance_trick"), true);
+  assert.equal(packageSource.includes("gameplayWrites: 0"), true);
+  assert.equal(packageSource.includes("rawWriteCalls: 0"), true);
+  assert.equal(packageSource.includes("sameIntentRetry: false"), true);
+  assert.equal(packageSource.includes("normalRuntimeAllowed: false"), true);
+  assert.equal(packageSource.includes("use_skill("), false);
+  assert.equal(packageSource.includes("start_character("), false);
+  assert.equal(packageSource.includes("/disconnect "), false);
 });
