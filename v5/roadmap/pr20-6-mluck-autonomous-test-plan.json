@@ -13,7 +13,7 @@
   "stateKey": "AIO_V5_PR20_6_MLUCK_LIVE_5M_V1",
   "actorsKey": "AIO_V5_PR20_6_MLUCK_ACTORS_V1",
   "testId": "pr20-6-mluck-autonomous-live-5m",
-  "controllerVersion": "1.0.1",
+  "controllerVersion": "1.0.2",
   "autoStart": true,
   "operatorInteractionAfterLoad": false,
   "coordinatorClass": "merchant",
@@ -138,6 +138,21 @@
     "startRetryMs": 10000,
     "rosterWaitMaximumMs": 120000,
     "gameplayWritesFromLifecycle": 0,
-    "remoteOrAmbiguousCharacterStateFailsClosed": true
+    "remoteOrAmbiguousCharacterStateFailsClosed": true,
+    "mode": "ACCOUNT_ROSTER_AUTOSTART_V2",
+    "freshActorRegistryDisambiguation": true,
+    "freshActorRegistryRequiresNameClassAccountServerSessionMatch": true,
+    "alreadyRunningRecovery": {
+      "publicCommandApi": "say",
+      "command": "/disconnect NAME",
+      "directApiCallAllowed": false,
+      "maximumDisconnectAttemptsPerClass": 1,
+      "persistBeforeCommandBoundary": true,
+      "postconditionSource": "get_characters",
+      "postcondition": "online === false",
+      "postconditionMaximumMs": 30000,
+      "restartSafeNoSecondDisconnect": true
+    },
+    "rawWriteCallsFromLifecycle": 0
   }
 }

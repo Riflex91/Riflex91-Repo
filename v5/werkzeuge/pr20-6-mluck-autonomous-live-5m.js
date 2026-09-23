@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0.1';
+  const VERSION = '1.0.2';
   const TEST_ID = 'pr20-6-mluck-autonomous-live-5m';
   const STATE_KEY = 'AIO_V5_PR20_6_MLUCK_LIVE_5M_V1';
   const ACTORS_KEY = 'AIO_V5_PR20_6_MLUCK_ACTORS_V1';
@@ -12,6 +12,7 @@
   const DISCOVERY_MS = 2_000;
   const ROSTER_WAIT_MAX_MS = 120_000;
   const START_RETRY_MS = 10_000;
+  const DISCONNECT_POSTCONDITION_MAX_MS = 30_000;
   const MAX_START_ATTEMPTS_PER_CLASS = 2;
   const ACTIVE_CHARACTER_STATES = Object.freeze(['self','starting','loading','active','code']);
   const MAX_RANGE = 320;
@@ -219,14 +220,151 @@
     return text(error).slice(0,120)||'START_CHARACTER_FAILED';
   }
 
+  function verifiedFreshActorsForOwnedClass(ctype,matches) {
+    const me=actorSnapshot();
+    if(!me.accountKey||!me.serverRegion||!me.serverIdentifier)return [];
+    const ownedNames=new Set(matches.map(row=>row.name));
+    return freshActors().filter(actor=>
+      actor
+      && actor.testId===TEST_ID
+      && actor.ctype===ctype
+      && ownedNames.has(actor.name)
+      && !!text(actor.sessionId)
+      && actor.accountKey===me.accountKey
+      && actor.serverRegion===me.serverRegion
+      && actor.serverIdentifier===me.serverIdentifier
+    );
+  }
+
   function selectRequiredOwnedCharacter(ctype, account, active) {
     const matches=account.rows.filter(row=>row.ctype===ctype);
     const activeMatches=matches.filter(row=>ACTIVE_CHARACTER_STATES.includes(text(active.rows[row.name])));
     if(activeMatches.length===1)return {ok:true,row:activeMatches[0],status:'ACTIVE_LOCAL'};
     if(activeMatches.length>1)return {ok:false,reason:'MEHRERE_AKTIVE_'+ctype.toUpperCase()};
+
+    const registryMatches=verifiedFreshActorsForOwnedClass(ctype,matches);
+    if(registryMatches.length===1){
+      const actor=registryMatches[0];
+      const row=matches.find(candidate=>candidate.name===actor.name);
+      return {ok:true,row,status:'ACTIVE_FRESH_ACTOR',actor};
+    }
+    if(registryMatches.length>1)
+      return {ok:false,reason:'MEHRERE_FRISCHE_'+ctype.toUpperCase()+'_ACTORS'};
+
     if(matches.length===1)return {ok:true,row:matches[0],status:'OWNED_NOT_LOCAL'};
     if(matches.length===0)return {ok:false,reason:'ACCOUNT_'+ctype.toUpperCase()+'_FEHLT'};
     return {ok:false,reason:'ACCOUNT_'+ctype.toUpperCase()+'_MEHRDEUTIG'};
+  }
+
+  function noWriteLifecycleRecoveryAllowed() {
+    return Number(state?.gameplayWrites||0)===0
+      && Number(state?.rawWriteCalls||0)===0
+      && state?.sameIntentRetry===false
+      && Array.isArray(state?.intents)
+      && state.intents.length===0;
+  }
+
+  function lifecycleRecoveryEntry(ctype) {
+    const entries=state?.lifecycleRecovery&&typeof state.lifecycleRecovery==='object'
+      ? state.lifecycleRecovery
+      : {};
+    const value=entries[ctype];
+    return value&&typeof value==='object'?value:null;
+  }
+
+  function persistLifecycleRecovery(ctype,patch) {
+    const entries=state?.lifecycleRecovery&&typeof state.lifecycleRecovery==='object'
+      ? state.lifecycleRecovery
+      : {};
+    const previous=entries[ctype]&&typeof entries[ctype]==='object'?entries[ctype]:{};
+    const next={...previous,...patch,ctype,updatedAtMs:now()};
+    state={
+      ...state,
+      lifecycleRecovery:{...entries,[ctype]:next},
+      updatedAtMs:now(),
+      rawWriteCalls:0,
+      sameIntentRetry:false
+    };
+    writeJson(STATE_KEY,state);
+    return next;
+  }
+
+  function publicSayBinding(r) {
+    if(typeof r.say==='function')return {fn:r.say,owner:r};
+    if(typeof globalThis.say==='function')return {fn:globalThis.say,owner:globalThis};
+    return null;
+  }
+
+  async function reconcileAlreadyRunning(ctype,target,result) {
+    const upper=ctype.toUpperCase();
+    const existing=lifecycleRecoveryEntry(ctype);
+    if(existing&&existing.targetName&&existing.targetName!==target.name){
+      const reason='DISCONNECT_'+upper+'_TARGET_DRIFT';
+      result.blockers.push(reason);
+      return {status:'BLOCKED',reason};
+    }
+
+    if(target.online!==true){
+      persistLifecycleRecovery(ctype,{
+        targetName:target.name,
+        postcondition:'OFFLINE_CONFIRMED',
+        offlineConfirmedAtMs:now()
+      });
+      return {status:'OFFLINE_CONFIRMED'};
+    }
+
+    if(!noWriteLifecycleRecoveryAllowed()){
+      const reason='DISCONNECT_'+upper+'_NO_WRITE_PRECONDITION_FEHLT';
+      result.blockers.push(reason);
+      return {status:'BLOCKED',reason};
+    }
+
+    if(existing?.boundaryEntered===true){
+      const age=now()-Number(existing.requestedAtMs||0);
+      if(age>=DISCONNECT_POSTCONDITION_MAX_MS){
+        const reason='DISCONNECT_'+upper+'_POSTCONDITION_TIMEOUT';
+        persistLifecycleRecovery(ctype,{postcondition:'TIMEOUT',reason});
+        result.blockers.push(reason);
+        return {status:'BLOCKED',reason};
+      }
+      return {status:'WAITING_OFFLINE_POSTCONDITION',ageMs:Math.max(0,age)};
+    }
+
+    if(!/^[A-Za-z0-9_]{1,40}$/.test(target.name)){
+      const reason='DISCONNECT_'+upper+'_NAME_UNSAFE';
+      result.blockers.push(reason);
+      return {status:'BLOCKED',reason};
+    }
+
+    const say=publicSayBinding(root());
+    if(!say){
+      const reason='OFFICIAL_DISCONNECT_COMMAND_UNAVAILABLE';
+      result.blockers.push(reason);
+      return {status:'BLOCKED',reason};
+    }
+
+    persistLifecycleRecovery(ctype,{
+      targetName:target.name,
+      method:'PUBLIC_SAY_DISCONNECT_V1',
+      sourceStartResult:'already_running',
+      boundaryEntered:true,
+      requestedAtMs:now(),
+      postcondition:'PENDING',
+      commandSettled:false
+    });
+    result.disconnectCalls+=1;
+
+    try {
+      await Promise.resolve(say.fn.call(say.owner,'/disconnect '+target.name));
+      persistLifecycleRecovery(ctype,{commandSettled:true,commandResult:'RESOLVED'});
+    } catch(error) {
+      persistLifecycleRecovery(ctype,{
+        commandSettled:true,
+        commandResult:'REJECTED_OR_UNKNOWN',
+        commandError:lifecycleError(error)
+      });
+    }
+    return {status:'WAITING_OFFLINE_POSTCONDITION',ageMs:0};
   }
 
   async function ensureRequiredCharacters() {
@@ -234,12 +372,13 @@
     const account=accountCharacters();
     const active=activeCharacters();
     const result={
-      mode:'ACCOUNT_ROSTER_AUTOSTART_V1',
+      mode:'ACCOUNT_ROSTER_AUTOSTART_V2',
       accountStateAvailable:account.available,
       activeStateAvailable:active.available,
       required:[],
       blockers:[],
-      startCalls:0
+      startCalls:0,
+      disconnectCalls:0
     };
     if(!account.available){
       result.blockers.push('GET_CHARACTERS_UNAVAILABLE');
@@ -261,43 +400,132 @@
       const target=selected.row;
       const activeState=text(active.rows[target.name]);
       if(ACTIVE_CHARACTER_STATES.includes(activeState)){
-        result.required.push({ctype,status:'ACTIVE_LOCAL',activeState});
+        result.required.push({ctype,status:'ACTIVE_LOCAL',name:target.name,activeState});
+        continue;
+      }
+      if(selected.status==='ACTIVE_FRESH_ACTOR'){
+        result.required.push({
+          ctype,
+          status:'ACTIVE_FRESH_ACTOR',
+          name:target.name,
+          sessionId:text(selected.actor?.sessionId)||null,
+          observedAtMs:Number(selected.actor?.observedAtMs)||null
+        });
         continue;
       }
 
       const ctl=lifecycleStartControl[ctype]||{attempts:0,lastAttemptAtMs:0,lastResult:null};
       lifecycleStartControl[ctype]=ctl;
+
+      const persistedBeforeStart=lifecycleRecoveryEntry(ctype);
+      if(persistedBeforeStart?.boundaryEntered===true
+          && persistedBeforeStart.targetName===target.name
+          && persistedBeforeStart.postcondition!=='OFFLINE_CONFIRMED'){
+        const recovery=await reconcileAlreadyRunning(ctype,target,result);
+        if(recovery.status!=='OFFLINE_CONFIRMED'){
+          result.required.push({
+            ctype,
+            status:recovery.status,
+            reason:recovery.reason||null,
+            name:target.name,
+            attempts:ctl.attempts,
+            lastResult:ctl.lastResult,
+            recovery:lifecycleRecoveryEntry(ctype)
+          });
+          continue;
+        }
+        ctl.lastAttemptAtMs=0;
+      } else if(ctl.lastResult==='already_running'){
+        const recovery=await reconcileAlreadyRunning(ctype,target,result);
+        if(recovery.status!=='OFFLINE_CONFIRMED'){
+          result.required.push({
+            ctype,
+            status:recovery.status,
+            reason:recovery.reason||null,
+            name:target.name,
+            attempts:ctl.attempts,
+            lastResult:ctl.lastResult,
+            recovery:lifecycleRecoveryEntry(ctype)
+          });
+          continue;
+        }
+        ctl.lastAttemptAtMs=0;
+      } else if(ctl.lastResult==='START_REQUEST_RESOLVED'){
+        result.required.push({
+          ctype,
+          status:'START_POSTCONDITION_PENDING',
+          name:target.name,
+          attempts:ctl.attempts,
+          lastResult:ctl.lastResult
+        });
+        continue;
+      }
+
+      const confirmedRecovery=lifecycleRecoveryEntry(ctype);
+      if(confirmedRecovery?.postcondition==='OFFLINE_CONFIRMED'
+          && confirmedRecovery?.postDisconnectStartBoundaryEntered===true){
+        result.required.push({
+          ctype,
+          status:'POST_DISCONNECT_START_POSTCONDITION_PENDING',
+          name:target.name,
+          attempts:ctl.attempts,
+          lastResult:ctl.lastResult,
+          recovery:confirmedRecovery
+        });
+        continue;
+      }
+
       if(ctl.attempts>=MAX_START_ATTEMPTS_PER_CLASS){
         const reason='START_'+ctype.toUpperCase()+'_VERSUCHE_AUSGESCHOEPFT';
-        result.required.push({ctype,status:'BLOCKED',reason,attempts:ctl.attempts,lastResult:ctl.lastResult});
+        result.required.push({ctype,status:'BLOCKED',reason,name:target.name,attempts:ctl.attempts,lastResult:ctl.lastResult});
         result.blockers.push(reason);
         continue;
       }
       if(ctl.lastAttemptAtMs&&now()-ctl.lastAttemptAtMs<START_RETRY_MS){
-        result.required.push({ctype,status:'START_BACKOFF',attempts:ctl.attempts,lastResult:ctl.lastResult});
+        result.required.push({ctype,status:'START_BACKOFF',name:target.name,attempts:ctl.attempts,lastResult:ctl.lastResult});
         continue;
       }
 
-      const start=typeof r.start_character==='function'
+      const startCharacter=typeof r.start_character==='function'
         ? r.start_character
         : (typeof globalThis.start_character==='function'?globalThis.start_character:null);
-      if(typeof start!=='function'){
+      if(typeof startCharacter!=='function'){
         const reason='START_CHARACTER_UNAVAILABLE';
-        result.required.push({ctype,status:'BLOCKED',reason});
+        result.required.push({ctype,status:'BLOCKED',reason,name:target.name});
         result.blockers.push(reason);
         continue;
+      }
+
+      const recoveryBeforeStart=lifecycleRecoveryEntry(ctype);
+      const postDisconnectStart=recoveryBeforeStart?.postcondition==='OFFLINE_CONFIRMED';
+      if(postDisconnectStart){
+        persistLifecycleRecovery(ctype,{
+          postDisconnectStartBoundaryEntered:true,
+          postDisconnectStartRequestedAtMs:now(),
+          postDisconnectStartResult:'UNKNOWN'
+        });
       }
 
       ctl.attempts+=1;
       ctl.lastAttemptAtMs=now();
       result.startCalls+=1;
       try {
-        await Promise.resolve(start.call(r,target.name));
+        await Promise.resolve(startCharacter.call(r,target.name));
         ctl.lastResult='START_REQUEST_RESOLVED';
-        result.required.push({ctype,status:'START_REQUEST_RESOLVED',attempts:ctl.attempts});
+        if(postDisconnectStart)
+          persistLifecycleRecovery(ctype,{postDisconnectStartResult:'RESOLVED'});
+        result.required.push({ctype,status:'START_REQUEST_RESOLVED',name:target.name,attempts:ctl.attempts});
       } catch(error) {
         ctl.lastResult=lifecycleError(error);
-        result.required.push({ctype,status:'START_REQUEST_REJECTED',attempts:ctl.attempts,lastResult:ctl.lastResult});
+        if(postDisconnectStart)
+          persistLifecycleRecovery(ctype,{postDisconnectStartResult:'REJECTED_OR_UNKNOWN',postDisconnectStartError:ctl.lastResult});
+        result.required.push({
+          ctype,
+          status:ctl.lastResult==='already_running'?'ALREADY_RUNNING_RECOVERY_REQUIRED':'START_REQUEST_REJECTED',
+          name:target.name,
+          attempts:ctl.attempts,
+          lastResult:ctl.lastResult
+        });
       }
     }
     return result;
@@ -392,7 +620,7 @@
     const reg=readJson(ACTORS_KEY,{schemaVersion:1,actors:{}});
     const at=now();
     return Object.values(reg.actors||{})
-      .filter(a=>a&&a.schemaVersion===1&&at-Number(a.observedAtMs||0)<=ACTOR_STALE_MS);
+      .filter(a=>a&&a.schemaVersion===1&&a.testId===TEST_ID&&at-Number(a.observedAtMs||0)<=ACTOR_STALE_MS);
   }
 
   function rosterStatus() {
@@ -413,8 +641,38 @@
       ready:missing.length===0&&duplicates.length===0&&servers.size===1&&accounts.size===1&&runtimeConflicts.length===0,
       missing,duplicates,sameServer:servers.size===1,sameAccount:accounts.size===1,
       runtimeConflicts,
-      actors:chosen.map(a=>({ctype:a.ctype,map:a.map,observedAtMs:a.observedAtMs}))
+      actors:chosen.map(a=>({
+        name:a.name,ctype:a.ctype,sessionId:a.sessionId||null,accountKey:a.accountKey||null,
+        serverRegion:a.serverRegion||null,serverIdentifier:a.serverIdentifier||null,
+        map:a.map,observedAtMs:a.observedAtMs
+      }))
     };
+  }
+
+  function safeKnownV101RosterRecovery(previous) {
+    const blockers=Array.isArray(previous?.blocker)?previous.blocker.map(text):[];
+    const required=Array.isArray(previous?.characterLifecycle?.required)
+      ? previous.characterLifecycle.required
+      : [];
+    const alreadyRunning=new Set(required
+      .filter(row=>['priest','mage'].includes(text(row?.ctype).toLowerCase())
+        && text(row?.lastResult)==='already_running')
+      .map(row=>text(row?.ctype).toLowerCase()));
+    return previous?.testId===TEST_ID
+      && previous?.version==='1.0.1'
+      && previous?.terminal===true
+      && previous?.status==='BLOCKIERT'
+      && previous?.phase==='ROSTER'
+      && Number(previous?.gameplayWrites||0)===0
+      && Number(previous?.rawWriteCalls||0)===0
+      && previous?.sameIntentRetry===false
+      && Array.isArray(previous?.intents)
+      && previous.intents.length===0
+      && blockers.includes('PR20_6_ROSTER_AUTOSTART_TIMEOUT')
+      && blockers.includes('ACCOUNT_RANGER_MEHRDEUTIG')
+      && text(previous?.characterLifecycle?.mode)==='ACCOUNT_ROSTER_AUTOSTART_V1'
+      && alreadyRunning.has('priest')
+      && alreadyRunning.has('mage');
   }
 
   let seq=0;
@@ -425,6 +683,7 @@
       schemaVersion:1,testId:TEST_ID,version:VERSION,status:'BOOT',phase:'BOOT',
       startedAtMs:now(),updatedAtMs:now(),terminal:false,pr20_5:{status:PR20_5_REPO_GATE},
       roster:null,deterministic:null,preflight:null,intents:[],live:null,soak:null,
+      lifecycleRecovery:{},
       gameplayWrites:0,rawWriteCalls:0,sameIntentRetry:false,
       supabase:{
         transport:'WINDOWS_BRIDGE_5S_LOCAL_OBSERVE_60S_AGGREGATE_PLUS_TERMINAL_PUSH',
@@ -434,7 +693,28 @@
     };
     writeJson(STATE_KEY,state);
   } else if(state.version!==VERSION) {
-    state={...state,version:VERSION,updatedAtMs:now()};
+    if(VERSION==='1.0.2'&&safeKnownV101RosterRecovery(state)){
+      state={
+        ...state,
+        version:VERSION,
+        status:'BOOT',
+        phase:'ROSTER_RECOVERY',
+        terminal:false,
+        blocker:[],
+        error:null,
+        startedAtMs:now(),
+        updatedAtMs:now(),
+        roster:null,
+        characterLifecycle:null,
+        lifecycleRecovery:{},
+        gameplayWrites:0,
+        rawWriteCalls:0,
+        sameIntentRetry:false,
+        intents:[]
+      };
+    } else {
+      state={...state,version:VERSION,updatedAtMs:now()};
+    }
     writeJson(STATE_KEY,state);
   }
 

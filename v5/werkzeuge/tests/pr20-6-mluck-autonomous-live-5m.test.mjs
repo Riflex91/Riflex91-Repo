@@ -15,7 +15,7 @@ test("PR20.6 autonomous MLuck package is AUTO_ON_LOAD for the 4-character roster
   assert.equal(plan.coordinatorClass, "merchant");
   assert.deepEqual(plan.workerClasses, ["ranger", "priest", "mage"]);
   assert.equal(plan.testId, "pr20-6-mluck-autonomous-live-5m");
-  assert.equal(plan.controllerVersion, "1.0.1");
+  assert.equal(plan.controllerVersion, "1.0.2");
   assert.equal(plan.stateKey, "AIO_V5_PR20_6_MLUCK_LIVE_5M_V1");
   assert.equal(plan.actorsKey, "AIO_V5_PR20_6_MLUCK_ACTORS_V1");
   assert.ok(source.includes("Promise.resolve().then(run)"));
@@ -27,16 +27,34 @@ test("PR20.6 auto-starts only owned missing farmer classes before worker distrib
   assert.equal(plan.characterLifecycle.autoStartMissingOwnedFarmerClasses, true);
   assert.equal(plan.characterLifecycle.startApi, "start_character");
   assert.equal(plan.characterLifecycle.startCodeSlotArgument, null);
+  assert.equal(plan.characterLifecycle.mode, "ACCOUNT_ROSTER_AUTOSTART_V2");
   assert.equal(plan.characterLifecycle.maximumStartAttemptsPerClass, 2);
   assert.equal(plan.characterLifecycle.rosterWaitMaximumMs, 120000);
   assert.equal(plan.characterLifecycle.gameplayWritesFromLifecycle, 0);
+  assert.equal(plan.characterLifecycle.rawWriteCallsFromLifecycle, 0);
+  assert.equal(plan.characterLifecycle.freshActorRegistryDisambiguation, true);
+  assert.equal(plan.characterLifecycle.freshActorRegistryRequiresNameClassAccountServerSessionMatch, true);
+  assert.equal(plan.characterLifecycle.alreadyRunningRecovery.publicCommandApi, "say");
+  assert.equal(plan.characterLifecycle.alreadyRunningRecovery.command, "/disconnect NAME");
+  assert.equal(plan.characterLifecycle.alreadyRunningRecovery.directApiCallAllowed, false);
+  assert.equal(plan.characterLifecycle.alreadyRunningRecovery.maximumDisconnectAttemptsPerClass, 1);
+  assert.equal(plan.characterLifecycle.alreadyRunningRecovery.persistBeforeCommandBoundary, true);
+  assert.equal(plan.characterLifecycle.alreadyRunningRecovery.postconditionSource, "get_characters");
+  assert.equal(plan.characterLifecycle.alreadyRunningRecovery.postcondition, "online === false");
+  assert.equal(plan.characterLifecycle.alreadyRunningRecovery.postconditionMaximumMs, 30000);
+  assert.equal(plan.characterLifecycle.alreadyRunningRecovery.restartSafeNoSecondDisconnect, true);
   for (const marker of [
-    "ACCOUNT_ROSTER_AUTOSTART_V1",
+    "ACCOUNT_ROSTER_AUTOSTART_V2",
     "get_characters",
     "start_character",
     "MAX_START_ATTEMPTS_PER_CLASS = 2",
     "ROSTER_WAIT_MAX_MS = 120_000",
-    "PR20_6_ROSTER_AUTOSTART_TIMEOUT"
+    "PR20_6_ROSTER_AUTOSTART_TIMEOUT",
+    "ACTIVE_FRESH_ACTOR",
+    "PUBLIC_SAY_DISCONNECT_V1",
+    "WAITING_OFFLINE_POSTCONDITION",
+    "DISCONNECT_POSTCONDITION_MAX_MS = 30_000",
+    "'/disconnect '+target.name"
   ]) assert.ok(source.includes(marker), marker);
   assert.ok(source.includes("ACTIVE_CHARACTER_STATES.includes(text(state))"));
   assert.ok(source.includes("TARGET_CLASSES.includes(owned.ctype)"));
@@ -54,6 +72,7 @@ test("PR20.6 exposes only the narrow one-shot MLuck gameplay write", () => {
   assert.ok(source.includes("const api=root().use_skill"));
   assert.equal(source.includes("socket.emit("), false);
   assert.equal(source.includes(".socket.emit("), false);
+  assert.equal(source.includes("api_call("), false);
 });
 
 test("PR20.6 persists intent before the possible send boundary and never retries UNKNOWN", () => {
