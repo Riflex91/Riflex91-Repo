@@ -15,7 +15,7 @@ test("PR20.6 autonomous MLuck package is AUTO_ON_LOAD for the 4-character roster
   assert.equal(plan.coordinatorClass, "merchant");
   assert.deepEqual(plan.workerClasses, ["ranger", "priest", "mage"]);
   assert.equal(plan.testId, "pr20-6-mluck-autonomous-live-5m");
-  assert.equal(plan.controllerVersion, "1.0.2");
+  assert.equal(plan.controllerVersion, "1.0.3");
   assert.equal(plan.stateKey, "AIO_V5_PR20_6_MLUCK_LIVE_5M_V1");
   assert.equal(plan.actorsKey, "AIO_V5_PR20_6_MLUCK_ACTORS_V1");
   assert.ok(source.includes("Promise.resolve().then(run)"));
@@ -148,4 +148,14 @@ test("PR20.6 remains gated behind PR20.5 and cannot unlock normal runtime by its
   assert.equal(plan.pr20_5Gate.repoStatus, "BESTANDEN_REAL_INGAME_4CHAR_15M");
   assert.equal(plan.allTestsGate.normalBotRuntimeStartsAfterPr20_6Only, false);
   assert.equal(plan.allTestsGate.normalBotRuntimeRequiresAllRemainingV5TestsBestanden, true);
+});
+
+
+test("PR20.6 performance_trick is mandatory before autonomous execution", () => {
+  assert.equal(plan.preconditions.performanceTrickRequired, true);
+  assert.equal(plan.preconditions.performanceTrickFunction, "performance_trick");
+  assert.equal(plan.preconditions.backgroundExecutionFailClosed, true);
+  assert.ok(source.includes("performance_trick"));
+  assert.ok(source.includes("PR20_6_PERFORMANCE_TRICK_UNAVAILABLE"));
+  assert.ok(source.includes("BACKGROUND_EXECUTION"));
 });
