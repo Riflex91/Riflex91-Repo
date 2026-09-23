@@ -8,6 +8,8 @@ const files = fs.readdirSync(dir)
     name.endsWith("-test-paket.js")
     || name.includes("-autonomous-")
     || name === "pr20-6-updater-recovery-bootstrap.js"
+    || name === "pr20-7-gear-occupied-slot-readonly-live.js"
+    || name === "pr20-7-gear-occupied-slot-readonly-worker.js"
     || name === "v5-autonomous-test-ingame-updater.js"
   )
   .sort();
