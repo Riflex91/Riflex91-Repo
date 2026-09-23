@@ -15,9 +15,31 @@ test("PR20.6 autonomous MLuck package is AUTO_ON_LOAD for the 4-character roster
   assert.equal(plan.coordinatorClass, "merchant");
   assert.deepEqual(plan.workerClasses, ["ranger", "priest", "mage"]);
   assert.equal(plan.testId, "pr20-6-mluck-autonomous-live-5m");
+  assert.equal(plan.controllerVersion, "1.0.1");
   assert.equal(plan.stateKey, "AIO_V5_PR20_6_MLUCK_LIVE_5M_V1");
   assert.equal(plan.actorsKey, "AIO_V5_PR20_6_MLUCK_ACTORS_V1");
   assert.ok(source.includes("Promise.resolve().then(run)"));
+});
+
+test("PR20.6 auto-starts only owned missing farmer classes before worker distribution", () => {
+  assert.equal(plan.characterLifecycle.accountRosterSource, "get_characters");
+  assert.equal(plan.characterLifecycle.activeRunnerSource, "get_active_characters");
+  assert.equal(plan.characterLifecycle.autoStartMissingOwnedFarmerClasses, true);
+  assert.equal(plan.characterLifecycle.startApi, "start_character");
+  assert.equal(plan.characterLifecycle.startCodeSlotArgument, null);
+  assert.equal(plan.characterLifecycle.maximumStartAttemptsPerClass, 2);
+  assert.equal(plan.characterLifecycle.rosterWaitMaximumMs, 120000);
+  assert.equal(plan.characterLifecycle.gameplayWritesFromLifecycle, 0);
+  for (const marker of [
+    "ACCOUNT_ROSTER_AUTOSTART_V1",
+    "get_characters",
+    "start_character",
+    "MAX_START_ATTEMPTS_PER_CLASS = 2",
+    "ROSTER_WAIT_MAX_MS = 120_000",
+    "PR20_6_ROSTER_AUTOSTART_TIMEOUT"
+  ]) assert.ok(source.includes(marker), marker);
+  assert.ok(source.includes("ACTIVE_CHARACTER_STATES.includes(text(state))"));
+  assert.ok(source.includes("TARGET_CLASSES.includes(owned.ctype)"));
 });
 
 test("PR20.6 exposes only the narrow one-shot MLuck gameplay write", () => {
