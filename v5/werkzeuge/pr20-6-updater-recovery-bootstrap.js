@@ -2,7 +2,7 @@ function installV5AutonomousTestIngameUpdaterV102() {
   'use strict';
 
   const API_NAME = 'V5AutonomousTestIngameUpdater';
-  const VERSION = '1.0.4';
+  const VERSION = '1.0.5';
   const MODE = 'NATIVE_INGAME_CLOUDFLARE_R2_V1';
   const BASE_URL = 'https://aio-bot-dashboard.hansijuergenlul.workers.dev';
   const MANIFEST_PATH = '/v5/roadmap/v5-autonomous-test-manifest.json';
@@ -509,8 +509,8 @@ installV5AutonomousTestIngameUpdaterV102();
 
 (() => {
   'use strict';
-  const TEST_ID = 'pr20-6-native-updater-recovery-bootstrap-v2';
-  const VERSION = '1.0.1';
+  const TEST_ID = 'pr20-6-native-updater-recovery-bootstrap-v3';
+  const VERSION = '1.0.2';
   const state = Object.freeze({
     schemaVersion: 1,
     testId: TEST_ID,
@@ -522,7 +522,7 @@ installV5AutonomousTestIngameUpdaterV102();
     rawWriteCalls: 0,
     sameIntentRetry: false,
     intents: [],
-    updaterVersion: '1.0.4',
+    updaterVersion: '1.0.5',
     normalRuntimeAllowed: false,
     observedAtMs: Date.now()
   });
@@ -562,7 +562,7 @@ installV5AutonomousTestIngameUpdaterV102();
   globalThis.V5PR206UpdaterRecoveryBootstrap = Object.freeze({
     version: VERSION,
     testId: TEST_ID,
-    updaterVersion: '1.0.4',
+    updaterVersion: '1.0.5',
     status: () => ({ ...state })
   });
 })();
