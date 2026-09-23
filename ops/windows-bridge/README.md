@@ -388,3 +388,13 @@ Der Import ist fail-closed:
 Fehlerhaftes lokales Live-Wissen ersetzt niemals den letzten gueltigen GitHub-Snapshot.
 
 Die Bridge erzeugt keine Gameplay-Fakten und besitzt weiterhin keine Gameplay-Autoritaet.
+
+## System-Tray
+
+Die Windows Bridge startet standardmäßig ohne sichtbares Hauptfenster und läuft als Tray-Icon weiter. Die Hintergrundinitialisierung, Telemetrie, der Wissenswächter und der Self-Updater starten trotzdem sofort.
+
+- Doppelklick auf das Tray-Icon oder **Öffnen** zeigt das Hauptfenster.
+- Das **X** am Hauptfenster versteckt die Bridge wieder in den Tray, statt den Prozess zu beenden.
+- **Beenden** im Tray-Menü beendet die Bridge vollständig.
+- Ein Self-Update verwendet einen separaten echten Shutdown-Pfad, damit die Bridge trotz Close-to-Tray sauber ersetzt und neu gestartet werden kann.
+
