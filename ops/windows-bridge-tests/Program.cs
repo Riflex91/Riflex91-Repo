@@ -380,7 +380,12 @@ var v5AutoManifestJson = """
   "packageSha256": "26acb41bb17ff1da0719b0a4604621a5fa4bcd87f5e78b3cc647bf112a25753b",
   "maxPackageBytes": 131072,
   "expectedGlobal": "V5PR206MluckTest",
-  "normalRuntimeAllowed": false
+  "normalRuntimeAllowed": false,
+  "workerPackagePath": "v5/werkzeuge/pr20-6-mluck-worker-heartbeat.js",
+  "workerPackageSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "workerPackageMaxBytes": 32768,
+  "workerExpectedGlobal": "V5PR206MluckWorker",
+  "workerVersion": "1.0.2"
 }
 """;
 var v5AutoManifest = CdpAdventureLandClient.ParseAndValidateV5AutonomousTestManifest(v5AutoManifestJson);
@@ -388,6 +393,20 @@ Assert(v5AutoManifest.TestId == "pr20-6-mluck-autonomous-live-5m", "V5_AUTO_MANI
 Assert(v5AutoManifest.CoordinatorClass == "merchant", "V5_AUTO_MANIFEST_MERCHANT_ONLY");
 Assert(v5AutoManifest.WorkerDistribution == "PACKAGE_OWNED_COMMAND_CHARACTER", "V5_AUTO_MANIFEST_WORKER_DISTRIBUTION");
 Assert(!v5AutoManifest.NormalRuntimeAllowed, "V5_AUTO_MANIFEST_NORMAL_RUNTIME_BLOCKED");
+Assert(v5AutoManifest.WorkerPackagePath == "v5/werkzeuge/pr20-6-mluck-worker-heartbeat.js", "V5_AUTO_WORKER_PACKAGE_PATH");
+Assert(v5AutoManifest.WorkerPackageSha256 == new string('a', 64), "V5_AUTO_WORKER_PACKAGE_SHA256");
+Assert(v5AutoManifest.WorkerPackageMaxBytes == 32768, "V5_AUTO_WORKER_PACKAGE_LIMIT");
+Assert(v5AutoManifest.WorkerExpectedGlobal == "V5PR206MluckWorker", "V5_AUTO_WORKER_GLOBAL");
+Assert(v5AutoManifest.WorkerVersion == "1.0.2", "V5_AUTO_WORKER_VERSION");
+Assert(CdpAdventureLandClient.HasV5WorkerPackage(v5AutoManifest), "V5_AUTO_WORKER_PACKAGE_CONFIGURED");
+Assert(CdpAdventureLandClient.BuildV5AutonomousTestWorkerPackageUrl(v5AutoManifest)
+    == "https://raw.githubusercontent.com/Riflex91/Riflex91-Repo/d0823081da6f07a8a60002b1b809c24916555521/v5/werkzeuge/pr20-6-mluck-worker-heartbeat.js",
+    "V5_AUTO_WORKER_IMMUTABLE_PACKAGE_URL");
+Assert(CdpAdventureLandClient.IsExactPr206WorkerCharacter("My_Ranger1", "ranger"), "V5_WORKER_EXACT_RANGER_ALLOWED");
+Assert(CdpAdventureLandClient.IsExactPr206WorkerCharacter("My_Priest", "priest"), "V5_WORKER_EXACT_PRIEST_ALLOWED");
+Assert(CdpAdventureLandClient.IsExactPr206WorkerCharacter("My_Mage", "mage"), "V5_WORKER_EXACT_MAGE_ALLOWED");
+Assert(!CdpAdventureLandClient.IsExactPr206WorkerCharacter("My_Ranger2", "ranger"), "V5_WORKER_OTHER_RANGER_REJECTED");
+Assert(!CdpAdventureLandClient.IsExactPr206WorkerCharacter("My_Merchant", "merchant"), "V5_WORKER_MERCHANT_REJECTED");
 Assert(CdpAdventureLandClient.BuildV5AutonomousTestPackageUrl(v5AutoManifest)
     == "https://raw.githubusercontent.com/Riflex91/Riflex91-Repo/d0823081da6f07a8a60002b1b809c24916555521/v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
     "V5_AUTO_MANIFEST_IMMUTABLE_PACKAGE_URL");
