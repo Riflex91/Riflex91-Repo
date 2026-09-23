@@ -7,6 +7,8 @@ namespace AioBotWindowsBridge;
 
 public sealed class CdpAdventureLandClient
 {
+    public const int CdpCommandTimeoutSeconds = 12;
+
     private readonly HttpClient _httpClient;
     private readonly Uri _cdpEndpoint;
     private readonly Uri _allowedOrigin;
@@ -570,44 +572,55 @@ public sealed class CdpAdventureLandClient
 
     private async Task<IReadOnlyList<int>> CollectAllowedExecutionContextsAsync(ClientWebSocket socket, CancellationToken cancellationToken)
     {
-        var id = Interlocked.Increment(ref _nextCommandId);
-        var command = JsonSerializer.SerializeToUtf8Bytes(new
-        {
-            id,
-            method = "Runtime.enable"
-        });
-        await socket.SendAsync(command, WebSocketMessageType.Text, true, cancellationToken);
+        using var commandCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        commandCts.CancelAfter(TimeSpan.FromSeconds(CdpCommandTimeoutSeconds));
+        var commandToken = commandCts.Token;
 
-        var contexts = new List<int>();
-        while (true)
+        try
         {
-            using var message = await ReceiveJsonAsync(socket, cancellationToken);
-            var root = message.RootElement;
-
-            if (root.ValueKind == JsonValueKind.Object
-                && root.TryGetProperty("method", out var methodNode)
-                && string.Equals(methodNode.GetString(), "Runtime.executionContextCreated", StringComparison.Ordinal)
-                && root.TryGetProperty("params", out var paramsNode)
-                && paramsNode.ValueKind == JsonValueKind.Object
-                && paramsNode.TryGetProperty("context", out var contextNode)
-                && TryGetAllowedContextId(contextNode, out var contextId))
+            var id = Interlocked.Increment(ref _nextCommandId);
+            var command = JsonSerializer.SerializeToUtf8Bytes(new
             {
-                contexts.Add(contextId);
+                id,
+                method = "Runtime.enable"
+            });
+            await socket.SendAsync(command, WebSocketMessageType.Text, true, commandToken);
+
+            var contexts = new List<int>();
+            while (true)
+            {
+                using var message = await ReceiveJsonAsync(socket, commandToken);
+                var root = message.RootElement;
+
+                if (root.ValueKind == JsonValueKind.Object
+                    && root.TryGetProperty("method", out var methodNode)
+                    && string.Equals(methodNode.GetString(), "Runtime.executionContextCreated", StringComparison.Ordinal)
+                    && root.TryGetProperty("params", out var paramsNode)
+                    && paramsNode.ValueKind == JsonValueKind.Object
+                    && paramsNode.TryGetProperty("context", out var contextNode)
+                    && TryGetAllowedContextId(contextNode, out var contextId))
+                {
+                    contexts.Add(contextId);
+                }
+
+                if (!root.TryGetProperty("id", out var idNode)
+                    || !idNode.TryGetInt32(out var responseId)
+                    || responseId != id)
+                {
+                    continue;
+                }
+
+                if (root.TryGetProperty("error", out var error))
+                    throw new InvalidOperationException("CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
+                break;
             }
 
-            if (!root.TryGetProperty("id", out var idNode)
-                || !idNode.TryGetInt32(out var responseId)
-                || responseId != id)
-            {
-                continue;
-            }
-
-            if (root.TryGetProperty("error", out var error))
-                throw new InvalidOperationException("CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
-            break;
+            return contexts.Distinct().ToArray();
         }
-
-        return contexts.Distinct().ToArray();
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new InvalidOperationException("CDP_COMMAND_TIMEOUT");
+        }
     }
 
     private bool TryGetAllowedContextId(JsonElement context, out int contextId)
@@ -616,19 +629,20 @@ public sealed class CdpAdventureLandClient
         if (context.ValueKind != JsonValueKind.Object) return false;
         if (!context.TryGetProperty("id", out var idNode) || !idNode.TryGetInt32(out contextId)) return false;
         if (!context.TryGetProperty("origin", out var originNode)) return false;
-        var origin = originNode.GetString();
-        if (string.IsNullOrWhiteSpace(origin) || !Uri.TryCreate(origin, UriKind.Absolute, out var originUri)) return false;
-        if (!SameOrigin(originUri, _allowedOrigin)) return false;
 
-        if (context.TryGetProperty("auxData", out var auxData)
-            && auxData.ValueKind == JsonValueKind.Object
-            && auxData.TryGetProperty("isDefault", out var isDefault)
-            && isDefault.ValueKind == JsonValueKind.False)
-        {
+        // Adventure Land executes character code in same-origin child execution
+        // contexts. Restrict by exact origin, then let the narrow AIO/merchant
+        // probes decide which context is usable. Rejecting auxData.isDefault=false
+        // hides the real bot context after browser/tab lifecycle changes.
+        return IsAllowedSameOriginExecutionContext(_allowedOrigin, originNode.GetString());
+    }
+
+    public static bool IsAllowedSameOriginExecutionContext(Uri allowedOrigin, string? contextOrigin)
+    {
+        if (string.IsNullOrWhiteSpace(contextOrigin)
+            || !Uri.TryCreate(contextOrigin, UriKind.Absolute, out var originUri))
             return false;
-        }
-
-        return true;
+        return SameOrigin(originUri, allowedOrigin);
     }
 
     private static bool SameOrigin(Uri left, Uri right) =>
@@ -638,39 +652,50 @@ public sealed class CdpAdventureLandClient
 
     private async Task<JsonElement> EvaluateAsync(ClientWebSocket socket, string expression, int contextId, CancellationToken cancellationToken)
     {
-        var id = Interlocked.Increment(ref _nextCommandId);
-        var command = JsonSerializer.SerializeToUtf8Bytes(new
+        using var commandCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        commandCts.CancelAfter(TimeSpan.FromSeconds(CdpCommandTimeoutSeconds));
+        var commandToken = commandCts.Token;
+
+        try
         {
-            id,
-            method = "Runtime.evaluate",
-            @params = new
+            var id = Interlocked.Increment(ref _nextCommandId);
+            var command = JsonSerializer.SerializeToUtf8Bytes(new
             {
-                expression,
-                contextId,
-                returnByValue = true,
-                awaitPromise = true,
-                userGesture = false
+                id,
+                method = "Runtime.evaluate",
+                @params = new
+                {
+                    expression,
+                    contextId,
+                    returnByValue = true,
+                    awaitPromise = true,
+                    userGesture = false
+                }
+            });
+
+            await socket.SendAsync(command, WebSocketMessageType.Text, true, commandToken);
+
+            while (true)
+            {
+                using var message = await ReceiveJsonAsync(socket, commandToken);
+                var root = message.RootElement;
+                if (!root.TryGetProperty("id", out var idNode) || !idNode.TryGetInt32(out var responseId) || responseId != id)
+                    continue;
+                if (root.TryGetProperty("error", out var error))
+                    throw new InvalidOperationException("CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
+
+                var result = root.GetProperty("result");
+                if (result.TryGetProperty("exceptionDetails", out var exception))
+                    throw new InvalidOperationException("CDP_EVALUATION_FAILED:" + Bounded(exception.ToString()));
+                var remoteObject = result.GetProperty("result");
+                if (!remoteObject.TryGetProperty("value", out var value))
+                    throw new InvalidOperationException("CDP_RESULT_VALUE_MISSING");
+                return value.Clone();
             }
-        });
-
-        await socket.SendAsync(command, WebSocketMessageType.Text, true, cancellationToken);
-
-        while (true)
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            using var message = await ReceiveJsonAsync(socket, cancellationToken);
-            var root = message.RootElement;
-            if (!root.TryGetProperty("id", out var idNode) || !idNode.TryGetInt32(out var responseId) || responseId != id)
-                continue;
-            if (root.TryGetProperty("error", out var error))
-                throw new InvalidOperationException("CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
-
-            var result = root.GetProperty("result");
-            if (result.TryGetProperty("exceptionDetails", out var exception))
-                throw new InvalidOperationException("CDP_EVALUATION_FAILED:" + Bounded(exception.ToString()));
-            var remoteObject = result.GetProperty("result");
-            if (!remoteObject.TryGetProperty("value", out var value))
-                throw new InvalidOperationException("CDP_RESULT_VALUE_MISSING");
-            return value.Clone();
+            throw new InvalidOperationException("CDP_COMMAND_TIMEOUT");
         }
     }
 

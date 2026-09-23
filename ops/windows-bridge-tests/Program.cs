@@ -350,6 +350,19 @@ Assert(CdpAdventureLandClient.OperationsContextPriority(true, false, null, null,
 Assert(CdpAdventureLandClient.OperationsContextPriority(true, true, "WORKER", "HEARTBEAT", "priest") == 50, "V5_CONTEXT_WORKER_PRIORITY");
 Assert(CdpAdventureLandClient.OperationsContextPriority(true, true, "WAITING_FOR_4_CHARACTERS", "ROSTER", "priest") == 100, "V5_CONTEXT_NONWORKER_PRIORITY");
 Assert(CdpAdventureLandClient.OperationsContextPriority(true, true, "RUNNING", "FIFTEEN_MINUTE_NO_WRITE", "merchant") == 200, "V5_CONTEXT_MERCHANT_COORDINATOR_PRIORITY");
+Assert(CdpAdventureLandClient.IsAllowedSameOriginExecutionContext(
+    new Uri("https://adventure.land"),
+    "https://adventure.land"), "CDP_CONTEXT_DEFAULT_SAME_ORIGIN_ALLOWED");
+Assert(CdpAdventureLandClient.IsAllowedSameOriginExecutionContext(
+    new Uri("https://adventure.land"),
+    "https://adventure.land"), "CDP_CONTEXT_CHILD_SAME_ORIGIN_ALLOWED");
+Assert(!CdpAdventureLandClient.IsAllowedSameOriginExecutionContext(
+    new Uri("https://adventure.land"),
+    "https://evil.example"), "CDP_CONTEXT_CROSS_ORIGIN_REJECTED");
+Assert(!CdpAdventureLandClient.IsAllowedSameOriginExecutionContext(
+    new Uri("https://adventure.land"),
+    "not-a-uri"), "CDP_CONTEXT_INVALID_ORIGIN_REJECTED");
+Assert(CdpAdventureLandClient.CdpCommandTimeoutSeconds == 12, "CDP_COMMAND_WATCHDOG_BOUND");
 
 var v5AutoManifestJson = """
 {
