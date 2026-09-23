@@ -8,7 +8,7 @@
   "controllerVersion": "1.0.0",
   "coordinatorClass": "merchant",
   "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
-  "sourceCommit": "077687087f491c0a0d8819b56a69d4d70eaef8f6",
+  "sourceCommit": "21713ee89d2e25ea721d9ac4df3b18978593ae18",
   "packagePath": "v5/werkzeuge/pr20-6-account-roster-x-recovery.js",
   "packageSha256": "2e396f80e47e7ad4cef0e922b6effdca98f876e1f5c6b9993d6c63eb7c12342e",
   "maxPackageBytes": 131072,
