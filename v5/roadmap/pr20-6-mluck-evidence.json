@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-23",
+  "kennung": "V5_PR20_6_MLUCK_REAL_INGAME_EVIDENCE",
+  "status": "BESTANDEN_REAL_INGAME_4CHAR_5M",
+  "test": "V5 · PR20.6 MLuck Service",
+  "testKennung": "pr20-6-mluck-autonomous-live-5m",
+  "controllerVersion": "1.0.7",
+  "executionMode": "AUTO_ON_LOAD",
+  "repositoryMainAtEvidenceCapture": "a7ba40fbf1842e62b826ffad2b821e701d28499e",
+  "sourcePin": {
+    "packageCommit": "cbccc322ea7e78e373e7b2ae7aaf09401160ab8a",
+    "packageSha256": "a85b74c5b9920e0eccd6533588b2269e8bf513656d5d4d4c85f39065911103eb",
+    "workerPackage": "v5/werkzeuge/pr20-6-mluck-worker.js",
+    "workerVersion": "1.0.0",
+    "workerPackageSha256": "1fd355270833f50a984e08998988c92ee5f717ecbc02480d0c4a395fc8b79a8f",
+    "bridgeReleaseCommit": "a7ba40fbf1842e62b826ffad2b821e701d28499e",
+    "bridgeWorkflowBuild": 385
+  },
+  "evidenceSource": {
+    "type": "SUPABASE_REPORTED_REAL_INGAME_TERMINAL_TEST",
+    "accountIdStored": false,
+    "sessionIdStored": false,
+    "characterNamesStored": false,
+    "identifyingTokensStored": false
+  },
+  "run": {
+    "startedAtMs": 1790190466491,
+    "updatedAtMs": 1790190832456,
+    "durationMs": 365965,
+    "terminalStatus": "BESTANDEN",
+    "phase": "COMPLETE"
+  },
+  "roster": {
+    "ready": true,
+    "requiredClasses": [
+      "merchant",
+      "ranger",
+      "priest",
+      "mage"
+    ],
+    "observedClasses": [
+      "merchant",
+      "ranger",
+      "priest",
+      "mage"
+    ],
+    "sameServer": true,
+    "sameAccount": true,
+    "missing": [],
+    "duplicates": [],
+    "runtimeConflicts": []
+  },
+  "deterministic": {
+    "status": "BESTANDEN",
+    "scenariosPassed": 8,
+    "scenariosTotal": 8,
+    "scenarios": [
+      "KRITISCHE_MERCHANT_ARBEIT_HAT_VORRANG",
+      "EVIDENCE_STALE",
+      "FREMDES_STARKES_MLUCK_BLOCKIERT",
+      "MLUCK_COOLDOWN_BLOCKIERT",
+      "MP_BLOCKIERT",
+      "RANGE_BLOCKIERT",
+      "TARGET_SESSION_DRIFT_BLOCKIERT",
+      "UNKNOWN_NO_SAME_INTENT_RETRY"
+    ]
+  },
+  "preflight": {
+    "status": "BESTANDEN",
+    "targetClass": "ranger",
+    "distance": 31,
+    "sameAccount": true,
+    "sameServer": true,
+    "sameInstance": true,
+    "blocker": []
+  },
+  "liveWrite": {
+    "status": "COMMITTED",
+    "transport": "RESOLVED",
+    "settlement": "BESTAETIGT",
+    "targetClass": "ranger",
+    "publicFunction": "use_skill",
+    "skill": "mluck",
+    "publicFunctionCalls": 1,
+    "gameplayWrites": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "senderExecutionEvidence": {
+      "beforeMp": 1930,
+      "afterMp": 1920,
+      "consistent": true
+    }
+  },
+  "soak": {
+    "status": "BESTANDEN",
+    "durationMs": 300509,
+    "samples": 60,
+    "minimumSamples": 60
+  },
+  "lifecycle": {
+    "startCallsDuringAcceptedRun": 0,
+    "disconnectCallsDuringAcceptedRun": 0,
+    "exactRangerPinned": true,
+    "persistedRangerUncertainBoundaryRetried": false,
+    "priestMagePreviousRecoveryPreserved": true
+  },
+  "safety": {
+    "gameplayWrites": 1,
+    "expectedGameplayWrites": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "secondIntentCreated": false,
+    "normalRuntimeStarted": false,
+    "normalRuntimeStillBlockedUntilAllRemainingTestsPass": true
+  }
+}
