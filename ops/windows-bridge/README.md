@@ -210,6 +210,8 @@ Der Apply-/Restart-Regressionspfad wird dabei separat gegen Windows-Dateisperren
 
 Der Pre-WPF-Bootstrap wird zusätzlich mit einem dokumentations-only Folgebuild als vollständiger Self-Update-Handoff getestet.
 
+Ein abschließender Kontrolllauf bestätigt den wiederholbaren automatischen Versionssprung nach erfolgreichem Pre-WPF-Handoff.
+
 Der Update-Check startet direkt beim Fensterstart und wartet nicht auf Browser-, Supabase- oder Wissenswächter-Initialisierung. Der letzte Check-/Apply-Status wird ohne Geheimnisse unter folgendem Pfad abgelegt:
 
 ```text
