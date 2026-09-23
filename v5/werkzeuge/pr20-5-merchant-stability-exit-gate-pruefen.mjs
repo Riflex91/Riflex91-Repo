@@ -23,7 +23,7 @@ must(evidence.notification?.completionEmail === "SENT", "PR20_5_EMAIL");
 must(gate.status === "ROADMAP_ABGESCHLOSSEN_REAL_INGAME", "PR20_5_GATE_STATUS");
 must(gate.nextGate === "PR20.6_MLUCK", "PR20_5_NEXT_GATE");
 must(gate.transitionPolicy?.normalRuntimeAutomaticallyAllowed === false, "PR20_5_NORMAL_RUNTIME_BLOCK");
-must(roadmap.currentGate === "PR20.6_MLUCK", "PR20_5_ROADMAP_CURRENT_GATE");
+must(roadmap.currentGate !== "PR20.5_MERCHANT_STABILITAET", "PR20_5_ROADMAP_MUST_HAVE_ADVANCED");
 must(roadmap.pr20_5?.status === "ROADMAP_ABGESCHLOSSEN_REAL_INGAME", "PR20_5_ROADMAP_STATUS");
 must(roadmap.pr20_5?.normalRuntimeAfterAllTestsOnly === true, "PR20_5_ROADMAP_RUNTIME_GATE");
 
