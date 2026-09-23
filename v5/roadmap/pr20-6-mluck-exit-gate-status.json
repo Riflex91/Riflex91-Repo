@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-23",
+  "status": "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
+  "gate": "PR20.6_MLUCK",
+  "basisMain": "a7ba40fbf1842e62b826ffad2b821e701d28499e",
+  "evidence": "v5/roadmap/pr20-6-mluck-evidence.json",
+  "exitCriteria": {
+    "fourCharacterRosterReady": true,
+    "deterministicMatrixPassed": true,
+    "preflightPassed": true,
+    "exactOneCommittedGameplayWrite": true,
+    "mluckSettlementConfirmed": true,
+    "noRawWrites": true,
+    "noSameIntentRetry": true,
+    "fiveMinuteSoakPassed": true,
+    "minimumSamplesReached": true,
+    "noLifecycleRetry": true,
+    "noRuntimeConflict": true
+  },
+  "liveEvidence": {
+    "status": "BESTANDEN_REAL_INGAME_4CHAR_5M_ONE_WRITE",
+    "durationMs": 300509,
+    "samples": 60,
+    "deterministicScenariosPassed": 8,
+    "deterministicScenariosTotal": 8,
+    "gameplayWrites": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "targetClass": "ranger",
+    "targetName": "My_Ranger1",
+    "settlement": "BESTAETIGT"
+  },
+  "transitionPolicy": {
+    "pr20_6RoadmapMilestoneClosed": true,
+    "pr20_7GearAllowed": true,
+    "normalRuntimeAutomaticallyAllowed": false,
+    "historicalEvidenceRewritten": false
+  },
+  "nextGate": "PR20.7_GEAR"
+}
