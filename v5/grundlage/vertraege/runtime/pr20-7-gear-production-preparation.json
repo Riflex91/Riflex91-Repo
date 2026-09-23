@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "ONE_SHOT_AUTHORITY_AND_FENCING_BEREIT_NO_WRITE",
+  "status": "DURABLE_INTENT_RECONCILE_BEREIT_NO_WRITE",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -76,8 +76,6 @@
   },
   "nextGate": {
     "requiredBeforeAnySwapWrite": [
-      "durable intent scoped to occupied non-weapon slot",
-      "post-send reobserve/reconcile implementation",
       "real no-write browser shadow evidence",
       "separate exact-head green CI"
     ],
@@ -85,7 +83,9 @@
     "satisfied": [
       "real exact-head read-only Adventure-Land recipient preflight evidence",
       "short-lived exact one-shot authority envelope without gameplay authority",
-      "exclusive equipment and inventory fencing claims"
+      "exclusive equipment and inventory fencing claims",
+      "durable intent persisted before any possible mutation",
+      "post-send reobserve/reconcile classifier with no same-intent retry"
     ]
   },
   "preflight": {
@@ -144,5 +144,28 @@
     "rawWriteAuthority": false,
     "swapWriteRatification": false,
     "gameplayWrites": 0
+  },
+  "durableIntentReconciliation": {
+    "implemented": true,
+    "source": "grundlage/quelle/equipment/pr20-7-gear-swap-durable-intent-reconcile.ts",
+    "persistBeforeMutation": true,
+    "exactJournalAckRequired": true,
+    "consumesExactOneShotBinding": true,
+    "sendBoundaryState": "NICHT_GESENDET",
+    "postSendReobserveClassifier": true,
+    "classifications": [
+      "COMMITTED",
+      "NOT_APPLIED",
+      "PARTIAL_OPERATOR_REQUIRED",
+      "UNKNOWN_OPERATOR_REQUIRED"
+    ],
+    "sameIntentRetry": false,
+    "newIntentAutomaticallyAllowed": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "swapWriteRatification": false
   }
 }
