@@ -80,9 +80,10 @@
   ],
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
-    "AKTUELL: PR20.7 realer read-only Browser-Preflight fuer belegten sicheren Nicht-Waffen-Slot ist BESTANDEN; 0 Gameplay-/Raw-/Public-Function-Writes",
-    "NAECHSTES: kurzlebige exakt gebundene One-Shot-Authority plus Equipment-/Inventory-Fencing vorbereiten; weiterhin kein Swap-Write",
-    "DANACH: Durable Intent und post-send Reobserve/Reconcile separat ratifizieren, danach realer NO-WRITE Shadow vor produktiver Swap-Ratifikation",
+    "PR20.7 realer read-only Browser-Preflight fuer belegten sicheren Nicht-Waffen-Slot ist BESTANDEN",
+    "AKTUELL: separate scope-gebundene One-Shot-Authority mit durable Audit sowie Equipment-/Inventory-Fencing ist NO-WRITE vorbereitet",
+    "NAECHSTES: Durable Mutation-Intent fuer den exakten Swap plus post-send Reobserve/Reconcile ohne Blind-Retry vorbereiten; weiterhin kein Swap-Write",
+    "DANACH: realer NO-WRITE Shadow der Authority/Fence/Reconcile-Kette vor produktiver Swap-Ratifikation",
     "mainhand/offhand bleiben ein separates spaeteres Gate",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
@@ -701,7 +702,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE",
+      "status": "OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_FENCING_BEREIT_NO_WRITE",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -717,9 +718,14 @@
         "v5/werkzeuge/pr20-7-gear-read-only-autonomous.js",
         "v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json",
         "v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json",
-        "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs"
+        "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs",
+        "v5/grundlage/quelle/equipment/pr20-7-gear-swap-einmal-authority.ts",
+        "v5/grundlage/adapter/persistenz/node-pr20-7-gear-swap-einmal-authority-protokoll.mjs",
+        "v5/grundlage/vertraege/runtime/pr20-7-gear-swap-one-shot-authority.json",
+        "v5/grundlage/tests/pr20-gear-swap-one-shot-authority.test.mjs",
+        "v5/grundlage/tests/pr20-gear-swap-one-shot-authority-persistenz.test.mjs"
       ],
-      "nextAction": "PR20_7_OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_AND_FENCING_NO_WRITE"
+      "nextAction": "PR20_7_DURABLE_SWAP_INTENT_REOBSERVE_RECONCILE_NO_WRITE"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1020,7 +1026,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE",
+    "status": "OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_FENCING_BEREIT_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1044,9 +1050,14 @@
       "v5/werkzeuge/pr20-7-gear-read-only-autonomous.js",
       "v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json",
       "v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json",
-      "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs"
+      "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs",
+      "v5/grundlage/quelle/equipment/pr20-7-gear-swap-einmal-authority.ts",
+      "v5/grundlage/adapter/persistenz/node-pr20-7-gear-swap-einmal-authority-protokoll.mjs",
+      "v5/grundlage/vertraege/runtime/pr20-7-gear-swap-one-shot-authority.json",
+      "v5/grundlage/tests/pr20-gear-swap-one-shot-authority.test.mjs",
+      "v5/grundlage/tests/pr20-gear-swap-one-shot-authority-persistenz.test.mjs"
     ],
-    "nextAction": "PR20_7_OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_AND_FENCING_NO_WRITE",
+    "nextAction": "PR20_7_DURABLE_SWAP_INTENT_REOBSERVE_RECONCILE_NO_WRITE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1077,6 +1088,29 @@
       "observedStartCalls": 0,
       "observedDisconnectCalls": 0,
       "observedFarmerWorkersInstalled": 0
+    },
+    "oneShotAuthorityFencing": {
+      "implemented": true,
+      "separateFromPr20_1EquipAuthority": true,
+      "exactScopePinned": true,
+      "maximumUses": 1,
+      "maximumTtlMs": 1500,
+      "durableBeforeAuthorityObject": true,
+      "equipmentFence": true,
+      "inventoryFence": true,
+      "fenceArt": "LANGLEBIG",
+      "fenceEpochPinned": true,
+      "concurrentFlowBlocked": true,
+      "expiredFenceState": "ABGELAUFEN_ABGLEICH",
+      "reconciliationRequiredAfterExpiry": true,
+      "restartReconstructsAuthority": false,
+      "hostExposed": false,
+      "executorWired": false,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "swapWriteRatification": false
     }
   }
 }
