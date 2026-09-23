@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "REAL_BROWSER_PREFLIGHT_AUTO_DEPLOY_BEREIT_NO_WRITE",
+    "status": "REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -84,6 +84,8 @@
     "produktiveErweiterungErstNach": [
       "PR20.1 Equip-Live-Nachweis",
       "PR20.4 Itemtransfer produktiv",
+      "kurzlebige One-Shot-Authority und Equipment-/Inventory-Fencing fuer belegte Nicht-Waffen-Slots",
+      "Durable Intent plus post-send Reobserve/Reconcile ohne Blind-Retry",
       "produktive One-Shot-Ratifikation fuer belegte Nicht-Waffen-Slots/Swap",
       "separate Ratifikation fuer Waffen/Offhand",
       "frische Recipient-Equipment-Postcondition"
@@ -113,7 +115,7 @@
       "stableDoubleObservation": true,
       "browserGameplayWrites": 0,
       "authorityAusstellung": false,
-      "realBrowserPreflightEvidence": false,
+      "realBrowserPreflightEvidence": true,
       "realReadOnlyAutonomousPackage": "werkzeuge/pr20-7-gear-read-only-autonomous.js",
       "realReadOnlyTestPlan": "roadmap/pr20-7-gear-read-only-preflight-test-plan.json",
       "realReadOnlyEvidence": "roadmap/pr20-7-gear-read-only-preflight-evidence.json",
@@ -121,7 +123,11 @@
       "farmerWorkerDistribution": false,
       "startCalls": 0,
       "disconnectCalls": 0,
-      "farmerWorkersInstalled": 0
+      "farmerWorkersInstalled": 0,
+      "realBrowserPreflightEvidenceStatus": "BESTANDEN_REAL_BROWSER_NO_WRITE",
+      "realBrowserPreflightObservedAtMs": 1790194007103,
+      "realBrowserPreflightRecipient": "My_Merchant",
+      "realBrowserPreflightSlot": "helmet"
     }
   },
   "pr20_8": {

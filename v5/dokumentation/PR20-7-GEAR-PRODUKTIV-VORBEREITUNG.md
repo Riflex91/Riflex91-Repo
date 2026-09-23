@@ -1,7 +1,7 @@
 # PR20.7 – Gear-Autonomie: belegter Slot / Swap Foundation
 
 **Stand:** 2026-09-23  
-**Status:** `REAL_BROWSER_PREFLIGHT_AUTO_DEPLOY_BEREIT_NO_WRITE`
+**Status:** `REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE`
 
 ## Zweck
 
@@ -107,11 +107,43 @@ Evidence:
 Der Evidence-Eintrag bleibt bis zu einem real beobachteten terminalen PASS
 explizit `OFFEN`; der vorbereitete Deploy allein ratifiziert nichts.
 
+## Reale Evidence – BESTANDEN
+
+Der reale Browserlauf wurde am 2026-09-23 terminal als `BESTANDEN`
+beobachtet und separat ratifiziert.
+
+Beobachtet auf `My_Merchant`:
+
+- Server `EU:I`, Map `main`;
+- belegter sicherer Slot `helmet`;
+- Kandidat am Inventarindex 7: `wcap +4`;
+- vorheriges Slot-Item: `partyhat +5`;
+- Kandidat und Altitem physisch, unlocked und nicht `b=true`;
+- stabile Doppelbeobachtung mit 350 ms Abstand;
+- `performance_trick()`: aktiv, `playing=true`,
+  Verifikation `HOWLER_PLAYING_TRUE`.
+
+Sicherheitszaehler des realen Laufs:
+
+- `gameplayWrites=0`;
+- `publicFunctionCalls=0`;
+- `rawWriteCalls=0`;
+- `startCalls=0`;
+- `disconnectCalls=0`;
+- `farmerWorkersInstalled=0`;
+- `authorityIssued=false`;
+- `durableIntentCreated=false`;
+- `swapWriteRatification=false`;
+- `sameIntentRetry=false`;
+- `normalRuntimeAllowed=false`.
+
+Damit ist ausschliesslich der reale **read-only Preflight** bestanden.
+Es wurde kein Gear-Swap ausgefuehrt.
+
 ## Naechstes Gate
 
-Vor einem echten belegten-Slot-Write sind separat erforderlich:
+Vor einem echten belegten-Slot-Write sind nach dem bestandenen realen read-only Preflight weiterhin separat erforderlich:
 
-- reale exact-head Evidence aus dem read-only Browser-Preflight am Recipient;
 - kurzlebige, exakt gebundene One-Shot-Authority;
 - Equipment-/Inventory-Fencing am Recipient;
 - durable Intent vor moeglicher Send-Grenze;
