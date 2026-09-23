@@ -15,7 +15,7 @@ test("PR20.6 autonomous MLuck package is AUTO_ON_LOAD for the 4-character roster
   assert.equal(plan.coordinatorClass, "merchant");
   assert.deepEqual(plan.workerClasses, ["ranger", "priest", "mage"]);
   assert.equal(plan.testId, "pr20-6-mluck-autonomous-live-5m");
-  assert.equal(plan.controllerVersion, "1.0.6");
+  assert.equal(plan.controllerVersion, "1.0.7");
   assert.equal(plan.stateKey, "AIO_V5_PR20_6_MLUCK_LIVE_5M_V1");
   assert.equal(plan.actorsKey, "AIO_V5_PR20_6_MLUCK_ACTORS_V1");
   assert.ok(source.includes("Promise.resolve().then(run)"));
@@ -176,6 +176,12 @@ test("PR20.6 v1.0.6 recovery accepts only the known zero-write legacy fingerprin
   assert.ok(source.includes("previous?.version==='1.0.3'"));
   assert.ok(source.includes("function safeKnownV104ParentBindingRecovery(previous)"));
   assert.ok(source.includes("previous?.version==='1.0.4'"));
+  assert.ok(source.includes("function safeKnownV105SeparateTabWorkerRecovery(previous)"));
+  assert.ok(source.includes("previous?.version==='1.0.5'"));
+  assert.ok(source.includes("rangerRecovery.postcondition==='TIMEOUT'"));
+  assert.ok(source.includes("rangerRecovery.targetName==='My_Ranger1'"));
+  assert.ok(source.includes("recovered('priest','My_Priest')"));
+  assert.ok(source.includes("recovered('mage','My_Mage')"));
   assert.ok(source.includes("blockers.includes('GET_CHARACTERS_UNAVAILABLE')"));
   assert.ok(source.includes("blockers.includes('ROSTER_RANGER_FEHLT')"));
   assert.ok(source.includes("previous?.status==='WAITING_FOR_4_CHARACTERS'"));
@@ -195,4 +201,21 @@ test("PR20.6 disambiguates duplicate owned classes only from one explicit online
   assert.ok(source.includes("status:'OWNED_UNIQUE_ONLINE'"));
   assert.ok(source.includes("MEHRERE_ONLINE_"));
   assert.ok(source.includes("ACCOUNT_'+ctype.toUpperCase()+'_MEHRDEUTIG"));
+});
+
+test("PR20.6 bridge worker fallback stays read-only and exact-character pinned", () => {
+  assert.equal(plan.deployment.bridgeWorkerFallback.enabled, true);
+  assert.equal(plan.deployment.bridgeWorkerFallback.package, "v5/werkzeuge/pr20-6-mluck-worker-heartbeat.js");
+  assert.equal(plan.deployment.bridgeWorkerFallback.workerVersion, "1.0.2");
+  assert.deepEqual(plan.deployment.bridgeWorkerFallback.exactCharacters, {
+    ranger: "My_Ranger1",
+    priest: "My_Priest",
+    mage: "My_Mage"
+  });
+  assert.equal(plan.deployment.bridgeWorkerFallback.sha256Verified, true);
+  assert.equal(plan.deployment.bridgeWorkerFallback.performanceTrickRequired, true);
+  assert.equal(plan.deployment.bridgeWorkerFallback.gameplayWrites, 0);
+  assert.equal(plan.deployment.bridgeWorkerFallback.rawWriteCalls, 0);
+  assert.equal(plan.deployment.bridgeWorkerFallback.sameIntentRetry, false);
+  assert.equal(plan.deployment.bridgeWorkerFallback.coordinatorAuthority, false);
 });
