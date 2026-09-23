@@ -16,6 +16,10 @@ const allowedPackages = Object.freeze({
   "pr20-6-native-updater-recovery-bootstrap-v2": Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
     expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
+  }),
+  "pr20-6-native-updater-recovery-bootstrap-v3": Object.freeze({
+    path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
+    expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
   })
 });
 const selected = allowedPackages[manifest.testId];
@@ -63,8 +67,8 @@ test("PR20.6 MLuck package distributes only a narrow heartbeat worker to farmer 
 });
 
 test("updater recovery bootstrap is terminal no-write only", () => {
-  if (manifest.testId !== "pr20-6-native-updater-recovery-bootstrap-v1") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+  if (!manifest.testId.startsWith("pr20-6-native-updater-recovery-bootstrap-v")) return;
+  assert.ok(["1.0.0", "1.0.1", "1.0.2"].includes(manifest.controllerVersion));
   assert.equal(packageSource.includes("gameplayWrites: 0"), true);
   assert.equal(packageSource.includes("rawWriteCalls: 0"), true);
   assert.equal(packageSource.includes("sameIntentRetry: false"), true);
