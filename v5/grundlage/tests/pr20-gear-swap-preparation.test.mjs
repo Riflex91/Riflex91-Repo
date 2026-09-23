@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE");
+  assert.equal(contract.status, "ONE_SHOT_AUTHORITY_AND_FENCING_BEREIT_NO_WRITE");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -254,5 +254,19 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.preflight.farmerWorkersInstalled, 0);
   assert.equal(contract.preflight.realEvidenceStatus, "BESTANDEN_REAL_BROWSER_NO_WRITE");
   assert.equal(contract.preflight.realEvidenceRatified, true);
+  assert.equal(contract.oneShotAuthority.implemented, true);
+  assert.equal(contract.oneShotAuthority.maximumUses, 1);
+  assert.equal(contract.oneShotAuthority.maximumTtlMs, 1500);
+  assert.equal(contract.oneShotAuthority.exactRecipientSessionBinding, true);
+  assert.equal(contract.oneShotAuthority.exactSlotBinding, true);
+  assert.equal(contract.oneShotAuthority.exactCandidateIndexBinding, true);
+  assert.equal(contract.oneShotAuthority.exactPrestateBinding, true);
+  assert.equal(contract.oneShotAuthority.equipmentFenceRequired, true);
+  assert.equal(contract.oneShotAuthority.inventoryFenceRequired, true);
+  assert.equal(contract.oneShotAuthority.fenceDriftRevokes, true);
+  assert.equal(contract.oneShotAuthority.gameplayAuthority, false);
+  assert.equal(contract.oneShotAuthority.rawWriteAuthority, false);
+  assert.equal(contract.oneShotAuthority.swapWriteRatification, false);
+  assert.equal(contract.oneShotAuthority.gameplayWrites, 0);
   assert.equal(contract.nextGate.weaponsAndOffhandRemainSeparate, true);
 });
