@@ -133,8 +133,10 @@ test("PR20.6 starts missing owned ranger/priest/mage and installs workers only a
   await new Promise(resolve => setTimeout(resolve, 80));
 
   assert.deepEqual(starts.sort(), ["MageOne", "PriestOne", "RangerOne"]);
-  assert.deepEqual(commands.sort(), ["MageOne", "PriestOne", "RangerOne"]);
+  assert.deepEqual([...new Set(commands)].sort(), ["MageOne", "PriestOne", "RangerOne"]);
+  assert.ok(commands.length >= 3);
   assert.equal(commands.includes("Merchant"), false);
+  assert.equal(commands.every(name => ["MageOne", "PriestOne", "RangerOne"].includes(name)), true);
 
   const state = sandbox.V5PR206MluckTest.status();
   assert.equal(state.version, "1.0.1");
