@@ -7,7 +7,10 @@ const manifest = JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest
 const allowedPackages = Object.freeze({
   "pr20-6-mluck-autonomous-live-5m": Object.freeze({
     path: "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
-    expectedGlobal: "V5PR206MluckTest"
+    expectedGlobal: "V5PR206MluckTest",
+    workerPath: "v5/werkzeuge/pr20-6-mluck-worker-heartbeat.js",
+    workerExpectedGlobal: "V5PR206MluckWorker",
+    workerVersion: "1.0.2"
   }),
   "pr20-6-native-updater-recovery-bootstrap-v1": Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
@@ -80,6 +83,31 @@ test("PR20.6 MLuck package distributes only a narrow heartbeat worker to farmer 
   assert.ok(packageSource.includes("r.command_character(name,src)"));
   assert.ok(packageSource.includes("['ranger','priest','mage'].includes(workerClass)"));
   assert.ok(packageSource.includes("if(!['ranger','priest','mage'].includes(workerClass))return;"));
+});
+
+test("PR20.6 live manifest pins a separate read-only bridge worker package", () => {
+  if (manifest.testId !== "pr20-6-mluck-autonomous-live-5m") return;
+  assert.equal(manifest.workerPackagePath, selected.workerPath);
+  assert.equal(manifest.workerExpectedGlobal, selected.workerExpectedGlobal);
+  assert.equal(manifest.workerVersion, selected.workerVersion);
+  assert.match(manifest.workerPackageSha256, /^[0-9a-f]{64}$/);
+  assert.ok(manifest.workerPackageMaxBytes >= 1024);
+  assert.ok(manifest.workerPackageMaxBytes <= 128 * 1024);
+
+  const workerFile = String(manifest.workerPackagePath || "").replace(/^v5\//, "");
+  const workerBytes = fs.readFileSync(workerFile);
+  const workerSource = workerBytes.toString("utf8");
+  const workerSha256 = crypto.createHash("sha256").update(workerBytes).digest("hex");
+  assert.equal(workerSha256, manifest.workerPackageSha256);
+  assert.ok(workerSource.includes(manifest.testId));
+  assert.ok(workerSource.includes(manifest.workerExpectedGlobal));
+  assert.ok(workerSource.includes("performance_trick"));
+  assert.ok(workerSource.includes("My_Ranger1"));
+  assert.ok(workerSource.includes("My_Priest"));
+  assert.ok(workerSource.includes("My_Mage"));
+  for (const forbidden of ["use_skill(", "socket.emit(", ".socket.emit(", "api_call(", "start_character(", "/disconnect "]) {
+    assert.equal(workerSource.includes(forbidden), false, forbidden);
+  }
 });
 
 test("updater recovery bootstrap is terminal no-write only", () => {
