@@ -184,3 +184,4 @@ export * from "./merchant/gold-transfer-settlement.js";
 export * from "./merchant/dienst-stabilitaet.js";
 
 export * from "./equipment/pr20-7-gear-swap-vorbereitung.js";
+export * from "./equipment/pr20-7-gear-swap-one-shot-authority.js";
