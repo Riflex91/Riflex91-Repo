@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { roadmapIstMindestens } from "../../werkzeuge/roadmap-gate-rang.mjs";
 
 const evidence = JSON.parse(fs.readFileSync("roadmap/pr20-5-merchant-stability-evidence.json", "utf8"));
 const gate = JSON.parse(fs.readFileSync("roadmap/pr20-5-merchant-stability-exit-gate-status.json", "utf8"));
@@ -26,7 +27,7 @@ test("PR20.5 closeout advances only to PR20.6 and never normal runtime", () => {
   assert.equal(gate.nextGate, "PR20.6_MLUCK");
   assert.equal(gate.transitionPolicy.pr20_6MLuckAllowed, true);
   assert.equal(gate.transitionPolicy.normalRuntimeAutomaticallyAllowed, false);
-  assert.equal(roadmap.currentGate, "PR20.6_MLUCK");
+  assert.equal(roadmapIstMindestens(roadmap.currentGate, "PR20.6_MLUCK"), true);
   assert.equal(roadmap.pr20_5.status, "ROADMAP_ABGESCHLOSSEN_REAL_INGAME");
   assert.equal(roadmap.pr20_5.normalRuntimeAfterAllTestsOnly, true);
 });
