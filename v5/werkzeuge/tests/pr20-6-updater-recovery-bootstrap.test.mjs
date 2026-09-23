@@ -8,10 +8,10 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const source = fs.readFileSync(path.join(here, "..", "pr20-6-updater-recovery-bootstrap.js"), "utf8");
 
-test("PR20.6 updater recovery bootstrap is terminal, no-write and installs updater 1.0.4", async () => {
-  assert.ok(source.includes("pr20-6-native-updater-recovery-bootstrap-v2"));
+test("PR20.6 updater recovery bootstrap v3 is terminal, no-write and installs updater 1.0.5", async () => {
+  assert.ok(source.includes("pr20-6-native-updater-recovery-bootstrap-v3"));
   assert.ok(source.includes("V5PR206UpdaterRecoveryBootstrap"));
-  assert.ok(source.includes("const VERSION = '1.0.4'"));
+  assert.ok(source.includes("const VERSION = '1.0.5'"));
   for (const forbidden of ["socket.emit(", ".socket.emit(", "api_call(", "use_skill(", "start_character("]) {
     assert.equal(source.includes(forbidden), false, forbidden);
   }
@@ -28,9 +28,9 @@ test("PR20.6 updater recovery bootstrap is terminal, no-write and installs updat
   vm.runInNewContext(source, sandbox, { filename: "pr20-6-updater-recovery-bootstrap.js" });
   await Promise.resolve();
 
-  assert.equal(sandbox.V5AutonomousTestIngameUpdater.version, "1.0.4");
+  assert.equal(sandbox.V5AutonomousTestIngameUpdater.version, "1.0.5");
   const state = sandbox.V5PR206UpdaterRecoveryBootstrap.status();
-  assert.equal(state.testId, "pr20-6-native-updater-recovery-bootstrap-v2");
+  assert.equal(state.testId, "pr20-6-native-updater-recovery-bootstrap-v3");
   assert.equal(state.status, "BESTANDEN");
   assert.equal(state.terminal, true);
   assert.equal(state.gameplayWrites, 0);
