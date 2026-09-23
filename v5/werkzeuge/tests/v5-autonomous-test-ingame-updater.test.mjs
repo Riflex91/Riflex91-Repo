@@ -110,7 +110,7 @@ async function runScenario({ current, packageBody = null, controllerVersion = "1
 }
 
 test("native updater is Cloudflare-only, merchant-only and exposes no generic evaluator", () => {
-  assert.ok(source.includes("const VERSION = '1.0.5'"));
+  assert.ok(source.includes("const VERSION = '1.0.6'"));
   assert.ok(source.includes("https://aio-bot-dashboard.hansijuergenlul.workers.dev"));
   assert.ok(source.includes("coordinatorClass !== 'merchant'"));
   assert.ok(source.includes("upload_code"));
@@ -359,4 +359,28 @@ test("terminal blocked PR20.6 v1.0.3 exact zero-write roster fingerprint upgrade
   });
   assert.equal(calls.upload.length, 1);
   assert.equal(calls.load.length, 1);
+});
+
+
+test("native updater arms performance_trick on all farmer tabs before refusing coordinator authority", async () => {
+  for (const [name, ctype] of [["My_Ranger1", "ranger"], ["My_Priest", "priest"], ["My_Mage", "mage"]]) {
+    let performanceCalls = 0;
+    const sandbox = {
+      console, Date, JSON, Object, String, Number, Boolean, Math, Promise, RegExp, Error,
+      setTimeout(fn, ms) { return setTimeout(fn, Math.min(Number(ms) || 0, 2)); },
+      clearTimeout,
+      setInterval() { return 1; },
+      clearInterval() {},
+      performance_trick() { performanceCalls += 1; return true; },
+      sounds: { empty: { cplaying: true, playing() { return true; } } },
+      character: { name, ctype, hp: 1000, max_hp: 1000, rip: false, dead: false }
+    };
+    sandbox.parent = sandbox;
+    vm.runInNewContext(source, sandbox, { filename: "v5-autonomous-test-ingame-updater.js" });
+    await new Promise(resolve => setTimeout(resolve, 15));
+    assert.ok(performanceCalls >= 1, name + " must call performance_trick");
+    const status = sandbox.V5AutonomousTestIngameUpdater.status();
+    assert.equal(status.phase, "FARMER_PERFORMANCE_TRICK_ARMED");
+    assert.equal(status.performanceTrick.active, true);
+  }
 });

@@ -21,6 +21,10 @@ const allowedPackages = Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
     expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
   }),
+  "pr20-6-native-updater-recovery-bootstrap-v4": Object.freeze({
+    path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
+    expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
+  }),
   "pr20-6-account-roster-x-recovery-v1": Object.freeze({
     path: "v5/werkzeuge/pr20-6-account-roster-x-recovery.js",
     expectedGlobal: "V5PR206AccountRosterXRecovery"
@@ -76,7 +80,7 @@ test("PR20.6 MLuck package distributes only a narrow heartbeat worker to farmer 
 
 test("updater recovery bootstrap is terminal no-write only", () => {
   if (!manifest.testId.startsWith("pr20-6-native-updater-recovery-bootstrap-v")) return;
-  assert.ok(["1.0.0", "1.0.1", "1.0.2"].includes(manifest.controllerVersion));
+  assert.ok(["1.0.0", "1.0.1", "1.0.2", "1.0.3"].includes(manifest.controllerVersion));
   assert.equal(packageSource.includes("gameplayWrites: 0"), true);
   assert.equal(packageSource.includes("rawWriteCalls: 0"), true);
   assert.equal(packageSource.includes("sameIntentRetry: false"), true);

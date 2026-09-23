@@ -2,7 +2,7 @@ function installV5AutonomousTestIngameUpdater() {
   'use strict';
 
   const API_NAME = 'V5AutonomousTestIngameUpdater';
-  const VERSION = '1.0.5';
+  const VERSION = '1.0.6';
   const MODE = 'NATIVE_INGAME_CLOUDFLARE_R2_V1';
   const BASE_URL = 'https://aio-bot-dashboard.hansijuergenlul.workers.dev';
   const MANIFEST_PATH = '/v5/roadmap/v5-autonomous-test-manifest.json';
@@ -382,17 +382,18 @@ function installV5AutonomousTestIngameUpdater() {
     state.error = null;
     state.lastCheckAtMs = Date.now();
 
-    if (characterClass() !== 'merchant') {
-      state.phase = 'NOT_MERCHANT';
-      return clone(state);
-    }
-
     try {
       const performanceTrick = await ensurePerformanceTrick();
       state.performanceTrick = performanceTrick;
       if (!performanceTrick.active) {
         state.phase = 'WAITING_FOR_PERFORMANCE_TRICK';
         state.error = performanceTrick.reason;
+        return clone(state);
+      }
+
+      if (characterClass() !== 'merchant') {
+        state.phase = 'FARMER_PERFORMANCE_TRICK_ARMED';
+        state.lastSuccessAtMs = Date.now();
         return clone(state);
       }
 

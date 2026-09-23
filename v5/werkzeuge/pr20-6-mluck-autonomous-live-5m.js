@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0.5';
+  const VERSION = '1.0.6';
   const TEST_ID = 'pr20-6-mluck-autonomous-live-5m';
   const STATE_KEY = 'AIO_V5_PR20_6_MLUCK_LIVE_5M_V1';
   const ACTORS_KEY = 'AIO_V5_PR20_6_MLUCK_ACTORS_V1';
@@ -570,6 +570,28 @@
       function t(v){return String(v==null?'':v).trim();}
       const workerClass=t(globalThis.character?.ctype).toLowerCase();
       if(!['ranger','priest','mage'].includes(workerClass))return;
+      let performanceTrickArmed=false;
+      try{
+        if(typeof globalThis.performance_trick==='function'){
+          globalThis.performance_trick();
+          performanceTrickArmed=true;
+        }
+      }catch{}
+      if(!performanceTrickArmed){
+        globalThis.V5PR206MluckWorker={
+          version:'1.0.1',
+          status:()=>({
+            schemaVersion:1,
+            testId:'pr20-6-mluck-autonomous-live-5m',
+            name:t(globalThis.character?.name),
+            ctype:workerClass,
+            performanceTrick:false,
+            blocker:'PR20_6_WORKER_PERFORMANCE_TRICK_UNAVAILABLE',
+            observedAtMs:Date.now()
+          })
+        };
+        return;
+      }
       function fp(v){
         const x=JSON.stringify(v);
         let h=2166136261;
@@ -615,7 +637,8 @@
           y:Number(r.character?.real_y??r.character?.y??0),
           hp:Number(r.character?.hp||0),mp:Number(r.character?.mp||0),
           level:Number(r.character?.level||0),rip:!!r.character?.rip,
-          mluck:effect(r.character),runtimeConflict:conflict,observedAtMs:Date.now()
+          mluck:effect(r.character),runtimeConflict:conflict,
+          performanceTrick:true,observedAtMs:Date.now()
         };
       }
       function pub(){
@@ -627,7 +650,7 @@
       try{if(globalThis.__V5_PR20_6_MLUCK_WORKER_TIMER)clearInterval(globalThis.__V5_PR20_6_MLUCK_WORKER_TIMER);}catch{}
       pub();
       globalThis.__V5_PR20_6_MLUCK_WORKER_TIMER=setInterval(pub,I);
-      globalThis.V5PR206MluckWorker={version:'1.0.0',status:()=>snap()};
+      globalThis.V5PR206MluckWorker={version:'1.0.1',status:()=>snap()};
     };
     return '('+body.toString()+')();';
   }

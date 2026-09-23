@@ -15,7 +15,7 @@ test("PR20.6 autonomous MLuck package is AUTO_ON_LOAD for the 4-character roster
   assert.equal(plan.coordinatorClass, "merchant");
   assert.deepEqual(plan.workerClasses, ["ranger", "priest", "mage"]);
   assert.equal(plan.testId, "pr20-6-mluck-autonomous-live-5m");
-  assert.equal(plan.controllerVersion, "1.0.5");
+  assert.equal(plan.controllerVersion, "1.0.6");
   assert.equal(plan.stateKey, "AIO_V5_PR20_6_MLUCK_LIVE_5M_V1");
   assert.equal(plan.actorsKey, "AIO_V5_PR20_6_MLUCK_ACTORS_V1");
   assert.ok(source.includes("Promise.resolve().then(run)"));
@@ -151,6 +151,15 @@ test("PR20.6 remains gated behind PR20.5 and cannot unlock normal runtime by its
 });
 
 
+test("PR20.6 farmer workers must arm performance_trick before heartbeat execution", () => {
+  assert.equal(plan.preconditions.workerPerformanceTrickRequired, true);
+  assert.deepEqual(plan.preconditions.workerPerformanceTrickClasses, ["ranger", "priest", "mage"]);
+  assert.equal(plan.preconditions.workerPerformanceTrickFailClosed, true);
+  assert.ok(source.includes("PR20_6_WORKER_PERFORMANCE_TRICK_UNAVAILABLE"));
+  assert.ok(source.includes("globalThis.performance_trick()"));
+  assert.ok(source.includes("performanceTrick:true"));
+});
+
 test("PR20.6 performance_trick is mandatory before autonomous execution", () => {
   assert.equal(plan.preconditions.performanceTrickRequired, true);
   assert.equal(plan.preconditions.performanceTrickFunction, "performance_trick");
@@ -161,7 +170,7 @@ test("PR20.6 performance_trick is mandatory before autonomous execution", () => 
 });
 
 
-test("PR20.6 v1.0.5 recovery accepts only the known zero-write legacy fingerprints", () => {
+test("PR20.6 v1.0.6 recovery accepts only the known zero-write legacy fingerprints", () => {
   assert.ok(source.includes("previous?.version==='1.0.1'"));
   assert.ok(source.includes("function safeKnownV103RosterRecovery(previous)"));
   assert.ok(source.includes("previous?.version==='1.0.3'"));

@@ -1,8 +1,8 @@
-function installV5AutonomousTestIngameUpdaterV102() {
+function installV5AutonomousTestIngameUpdaterV103() {
   'use strict';
 
   const API_NAME = 'V5AutonomousTestIngameUpdater';
-  const VERSION = '1.0.5';
+  const VERSION = '1.0.6';
   const MODE = 'NATIVE_INGAME_CLOUDFLARE_R2_V1';
   const BASE_URL = 'https://aio-bot-dashboard.hansijuergenlul.workers.dev';
   const MANIFEST_PATH = '/v5/roadmap/v5-autonomous-test-manifest.json';
@@ -315,7 +315,7 @@ function installV5AutonomousTestIngameUpdaterV102() {
   }
 
   function bootstrapSource() {
-    return '(' + installV5AutonomousTestIngameUpdaterV102.toString() + ')();\n';
+    return '(' + installV5AutonomousTestIngameUpdaterV103.toString() + ')();\n';
   }
 
   async function saveBundle(slotInfo, code, manifest) {
@@ -382,17 +382,18 @@ function installV5AutonomousTestIngameUpdaterV102() {
     state.error = null;
     state.lastCheckAtMs = Date.now();
 
-    if (characterClass() !== 'merchant') {
-      state.phase = 'NOT_MERCHANT';
-      return clone(state);
-    }
-
     try {
       const performanceTrick = await ensurePerformanceTrick();
       state.performanceTrick = performanceTrick;
       if (!performanceTrick.active) {
         state.phase = 'WAITING_FOR_PERFORMANCE_TRICK';
         state.error = performanceTrick.reason;
+        return clone(state);
+      }
+
+      if (characterClass() !== 'merchant') {
+        state.phase = 'FARMER_PERFORMANCE_TRICK_ARMED';
+        state.lastSuccessAtMs = Date.now();
         return clone(state);
       }
 
@@ -504,13 +505,13 @@ function installV5AutonomousTestIngameUpdaterV102() {
   return api;
 }
 
-installV5AutonomousTestIngameUpdaterV102();
+installV5AutonomousTestIngameUpdaterV103();
 
 
 (() => {
   'use strict';
-  const TEST_ID = 'pr20-6-native-updater-recovery-bootstrap-v3';
-  const VERSION = '1.0.2';
+  const TEST_ID = 'pr20-6-native-updater-recovery-bootstrap-v4';
+  const VERSION = '1.0.3';
   const state = Object.freeze({
     schemaVersion: 1,
     testId: TEST_ID,
@@ -522,7 +523,7 @@ installV5AutonomousTestIngameUpdaterV102();
     rawWriteCalls: 0,
     sameIntentRetry: false,
     intents: [],
-    updaterVersion: '1.0.5',
+    updaterVersion: '1.0.6',
     normalRuntimeAllowed: false,
     observedAtMs: Date.now()
   });
@@ -562,7 +563,7 @@ installV5AutonomousTestIngameUpdaterV102();
   globalThis.V5PR206UpdaterRecoveryBootstrap = Object.freeze({
     version: VERSION,
     testId: TEST_ID,
-    updaterVersion: '1.0.5',
+    updaterVersion: '1.0.6',
     status: () => ({ ...state })
   });
 })();
