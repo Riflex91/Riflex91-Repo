@@ -8,6 +8,7 @@
     <AssemblyName>AioBotWindowsBridge</AssemblyName>
     <RootNamespace>AioBotWindowsBridge</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <StartupObject>AioBotWindowsBridge.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
