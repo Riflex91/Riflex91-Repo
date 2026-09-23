@@ -19,7 +19,7 @@ function storage() {
   };
 }
 
-async function runScenario({ current, packageBody = null }) {
+async function runScenario({ current, packageBody = null, controllerVersion = "1.0.0" }) {
   const calls = { fetch: [], upload: [], load: [] };
   const manifest = {
     schemaVersion: 1,
@@ -28,7 +28,7 @@ async function runScenario({ current, packageBody = null }) {
     branch: "main",
     gate: "PR20.6_MLUCK",
     testId: "pr20-6-mluck-autonomous-live-5m",
-    controllerVersion: "1.0.0",
+    controllerVersion,
     coordinatorClass: "merchant",
     workerDistribution: "PACKAGE_OWNED_COMMAND_CHARACTER",
     sourceCommit: "d0823081da6f07a8a60002b1b809c24916555521",
@@ -123,6 +123,7 @@ test("already-present desired test causes manifest check only and no reload", as
   const { calls, sandbox } = await runScenario({
     current: {
       testId: "pr20-6-mluck-autonomous-live-5m",
+      version: "1.0.0",
       terminal: false
     }
   });
@@ -132,6 +133,52 @@ test("already-present desired test causes manifest check only and no reload", as
   assert.equal(
     sandbox.V5AutonomousTestIngameUpdater.status().phase,
     "DESIRED_TEST_ALREADY_PRESENT"
+  );
+});
+
+test("legacy PR20.6 v1.0.0 roster wait upgrades safely to manifest v1.0.1", async () => {
+  const packageBody = "(() => { globalThis.V5PR206MluckTest={version:'1.0.1'}; })();\n// pr20-6-mluck-autonomous-live-5m";
+  const { calls } = await runScenario({
+    controllerVersion: "1.0.1",
+    current: {
+      testId: "pr20-6-mluck-autonomous-live-5m",
+      version: "1.0.0",
+      status: "WAITING_FOR_4_CHARACTERS",
+      phase: "ROSTER",
+      terminal: false,
+      gameplayWrites: 0,
+      rawWriteCalls: 0,
+      sameIntentRetry: false,
+      intents: []
+    },
+    packageBody
+  });
+  assert.equal(calls.fetch.length, 2);
+  assert.equal(calls.upload.length, 1);
+  assert.equal(calls.load.length, 1);
+});
+
+test("same-test version mismatch blocks if any gameplay authority may have been used", async () => {
+  const { calls, sandbox } = await runScenario({
+    controllerVersion: "1.0.1",
+    current: {
+      testId: "pr20-6-mluck-autonomous-live-5m",
+      version: "1.0.0",
+      status: "WAITING_FOR_4_CHARACTERS",
+      phase: "ROSTER",
+      terminal: false,
+      gameplayWrites: 1,
+      rawWriteCalls: 0,
+      sameIntentRetry: false,
+      intents: []
+    }
+  });
+  assert.equal(calls.fetch.length, 1);
+  assert.equal(calls.upload.length, 0);
+  assert.equal(calls.load.length, 0);
+  assert.equal(
+    sandbox.V5AutonomousTestIngameUpdater.status().phase,
+    "SAME_TEST_VERSION_MISMATCH_BLOCKED"
   );
 });
 
