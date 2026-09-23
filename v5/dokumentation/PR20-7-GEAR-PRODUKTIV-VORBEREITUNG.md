@@ -1,7 +1,7 @@
 # PR20.7 – Gear-Autonomie: belegter Slot / Swap Foundation
 
 **Stand:** 2026-09-23  
-**Status:** `REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE`
+**Status:** `OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_FENCING_BEREIT_NO_WRITE`
 
 ## Zweck
 
@@ -77,8 +77,9 @@ kein Gameplay-Write. Der Preflight selbst ruft keine Equip-/Unequip-/Socket-
 oder sonstige Gameplay-Mutation auf. Er erzeugt weder Authority noch Durable
 Intent und trifft keine Gear-Progressionsentscheidung.
 
-Bis reale exact-head Browser-Evidence vorliegt, bleibt dieser Schritt
-**implementiert, aber nicht live ratifiziert**.
+Diese Preflight-Implementierung blieb bis zur realen exact-head Evidence
+nicht ratifiziert. Die nachfolgend dokumentierte reale Evidence hat
+ausschliesslich diesen read-only Schritt ratifiziert.
 
 ## Autonomer realer No-Write-Preflight
 
@@ -140,15 +141,53 @@ Sicherheitszaehler des realen Laufs:
 Damit ist ausschliesslich der reale **read-only Preflight** bestanden.
 Es wurde kein Gear-Swap ausgefuehrt.
 
+## One-Shot-Authority und Fencing – NO-WRITE vorbereitet
+
+Auf Basis der bestandenen realen Evidence besitzt PR20.7 jetzt eine eigene,
+vom PR20.1-Leer-Slot-Pfad getrennte Swap-Authority:
+
+- `grundlage/quelle/equipment/pr20-7-gear-swap-einmal-authority.ts`;
+- `grundlage/adapter/persistenz/node-pr20-7-gear-swap-einmal-authority-protokoll.mjs`;
+- `grundlage/vertraege/runtime/pr20-7-gear-swap-one-shot-authority.json`.
+
+Die Authority ist maximal 1500 ms gueltig, exakt einmal verwendbar und bindet
+Account, Recipient-Character, Session, Server, sicheren belegten Slot,
+Kandidatenindex, Kandidaten-/Altitem-Fingerprint, Rest-Inventar,
+Rest-Equipment, Prestate und Evidence-Fingerprint.
+
+Vor dem Authority-Objekt wird der komplette Scope inklusive der beiden
+Fence-Epochen exklusiv durable gespeichert. Die Ressourcen
+
+- `character:<recipient>:equipment`;
+- `character:<recipient>:inventory`
+
+werden als kurzlebige `LANGLEBIG`-Fences beansprucht. Ein konkurrierender
+Ablauf wird blockiert. Nach Lease-Ablauf wechseln die Ressourcen in
+`ABGELAUFEN_ABGLEICH`; eine stille Wiederverwendung ist verboten und
+Reconciliation erforderlich.
+
+Ein Restart rekonstruiert aus dem Audit **keine** RAM-Authority. PR20.1 und
+dessen `ProduktiveEquipEinmalAuthority` bleiben unveraendert.
+
+Dieser Schritt besitzt weiterhin:
+
+- keine produktive Registrierung;
+- kein Host-Exposure;
+- kein Executor-Wiring;
+- keinen Adapter-Send;
+- `gameplayAutoritaet=false`;
+- `rawWriteAutoritaet=false`;
+- `swapWriteRatification=false`;
+- `normalRuntimeAllowed=false`.
+
 ## Naechstes Gate
 
-Vor einem echten belegten-Slot-Write sind nach dem bestandenen realen read-only Preflight weiterhin separat erforderlich:
+Vor einem echten belegten-Slot-Write sind nach read-only Preflight sowie
+Authority/Fencing weiterhin separat erforderlich:
 
-- kurzlebige, exakt gebundene One-Shot-Authority;
-- Equipment-/Inventory-Fencing am Recipient;
-- durable Intent vor moeglicher Send-Grenze;
+- durable Mutation-Intent fuer den exakten Swap vor moeglicher Send-Grenze;
 - post-send Reobserve/Reconcile ohne Blind-Retry;
-- Real-Browser-Shadow-Evidence;
+- Real-Browser-Shadow-Evidence fuer die komplette Authority/Fence/Reconcile-Kette;
 - gruene Exact-Head-CI.
 
 Waffen/Offhand bleiben auch danach ein eigenes Gate.
