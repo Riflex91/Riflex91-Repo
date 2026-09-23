@@ -2,7 +2,7 @@ function installV5AutonomousTestIngameUpdater() {
   'use strict';
 
   const API_NAME = 'V5AutonomousTestIngameUpdater';
-  const VERSION = '1.0.3';
+  const VERSION = '1.0.4';
   const MODE = 'NATIVE_INGAME_CLOUDFLARE_R2_V1';
   const BASE_URL = 'https://aio-bot-dashboard.hansijuergenlul.workers.dev';
   const MANIFEST_PATH = '/v5/roadmap/v5-autonomous-test-manifest.json';
@@ -199,8 +199,8 @@ function installV5AutonomousTestIngameUpdater() {
       .map(row => text(row?.ctype, 40).toLowerCase()));
 
     return manifest.testId === 'pr20-6-mluck-autonomous-live-5m'
-      && text(active?.version, 80) === '1.0.1'
-      && manifest.controllerVersion === '1.0.3'
+      && ['1.0.1', '1.0.3'].includes(text(active?.version, 80))
+      && manifest.controllerVersion === '1.0.4'
       && active?.terminal === true
       && text(active?.status, 80) === 'BLOCKIERT'
       && text(active?.phase, 80) === 'ROSTER'
