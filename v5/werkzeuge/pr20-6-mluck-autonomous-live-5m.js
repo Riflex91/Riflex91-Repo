@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0.0';
+  const VERSION = '1.0.1';
   const TEST_ID = 'pr20-6-mluck-autonomous-live-5m';
   const STATE_KEY = 'AIO_V5_PR20_6_MLUCK_LIVE_5M_V1';
   const ACTORS_KEY = 'AIO_V5_PR20_6_MLUCK_ACTORS_V1';
@@ -10,6 +10,10 @@
   const ACTOR_STALE_MS = 15_000;
   const HEARTBEAT_MS = 2_000;
   const DISCOVERY_MS = 2_000;
+  const ROSTER_WAIT_MAX_MS = 120_000;
+  const START_RETRY_MS = 10_000;
+  const MAX_START_ATTEMPTS_PER_CLASS = 2;
+  const ACTIVE_CHARACTER_STATES = Object.freeze(['self','starting','loading','active','code']);
   const MAX_RANGE = 320;
   const MIN_MP = 10;
   const MIN_LEVEL = 40;
@@ -155,6 +159,150 @@
     return snap;
   }
 
+  function normalizeOnline(value) {
+    if (value === true || value === 1) return true;
+    if (value === false || value === 0 || value == null) return false;
+    const v=text(value).toLowerCase();
+    return !['','0','false','offline','none','null','undefined'].includes(v);
+  }
+
+  function accountCharacters() {
+    const r=root();
+    let raw=null;
+    try {
+      const fn=typeof r.get_characters==='function'
+        ? r.get_characters
+        : (typeof globalThis.get_characters==='function'?globalThis.get_characters:null);
+      if (typeof fn!=='function') return { available:false, rows:[] };
+      raw=fn.call(r);
+    } catch {
+      return { available:false, rows:[] };
+    }
+    const rows=Array.isArray(raw)?raw:(raw&&typeof raw==='object'?Object.values(raw):[]);
+    const normalized=[];
+    const seen=new Set();
+    for(const row of rows){
+      if(!row||typeof row!=='object')continue;
+      const name=text(row.name);
+      const ctype=text(row.ctype||row.type).toLowerCase();
+      if(!name||!ctype||seen.has(name))continue;
+      seen.add(name);
+      normalized.push({name,ctype,online:normalizeOnline(row.online)});
+    }
+    return { available:true, rows:normalized };
+  }
+
+  function activeCharacters() {
+    const r=root();
+    try {
+      const fn=typeof r.get_active_characters==='function'
+        ? r.get_active_characters
+        : (typeof globalThis.get_active_characters==='function'?globalThis.get_active_characters:null);
+      const value=typeof fn==='function'?fn.call(r):null;
+      return {
+        available:value!=null,
+        rows:value&&typeof value==='object'?{...value}:{}
+      };
+    } catch {
+      return { available:false, rows:{} };
+    }
+  }
+
+  const lifecycleStartControl=Object.create(null);
+
+  function lifecycleError(error) {
+    if(error&&typeof error==='object'){
+      const reason=text(error.reason||error.message);
+      if(reason)return reason.slice(0,120);
+      try{return JSON.stringify(error).slice(0,120);}catch{}
+    }
+    return text(error).slice(0,120)||'START_CHARACTER_FAILED';
+  }
+
+  function selectRequiredOwnedCharacter(ctype, account, active) {
+    const matches=account.rows.filter(row=>row.ctype===ctype);
+    const activeMatches=matches.filter(row=>ACTIVE_CHARACTER_STATES.includes(text(active.rows[row.name])));
+    if(activeMatches.length===1)return {ok:true,row:activeMatches[0],status:'ACTIVE_LOCAL'};
+    if(activeMatches.length>1)return {ok:false,reason:'MEHRERE_AKTIVE_'+ctype.toUpperCase()};
+    if(matches.length===1)return {ok:true,row:matches[0],status:'OWNED_NOT_LOCAL'};
+    if(matches.length===0)return {ok:false,reason:'ACCOUNT_'+ctype.toUpperCase()+'_FEHLT'};
+    return {ok:false,reason:'ACCOUNT_'+ctype.toUpperCase()+'_MEHRDEUTIG'};
+  }
+
+  async function ensureRequiredCharacters() {
+    const r=root();
+    const account=accountCharacters();
+    const active=activeCharacters();
+    const result={
+      mode:'ACCOUNT_ROSTER_AUTOSTART_V1',
+      accountStateAvailable:account.available,
+      activeStateAvailable:active.available,
+      required:[],
+      blockers:[],
+      startCalls:0
+    };
+    if(!account.available){
+      result.blockers.push('GET_CHARACTERS_UNAVAILABLE');
+      return result;
+    }
+    if(!active.available){
+      result.blockers.push('GET_ACTIVE_CHARACTERS_UNAVAILABLE');
+      return result;
+    }
+
+    for(const ctype of TARGET_CLASSES){
+      const selected=selectRequiredOwnedCharacter(ctype,account,active);
+      if(!selected.ok){
+        result.required.push({ctype,status:'BLOCKED',reason:selected.reason});
+        result.blockers.push(selected.reason);
+        continue;
+      }
+
+      const target=selected.row;
+      const activeState=text(active.rows[target.name]);
+      if(ACTIVE_CHARACTER_STATES.includes(activeState)){
+        result.required.push({ctype,status:'ACTIVE_LOCAL',activeState});
+        continue;
+      }
+
+      const ctl=lifecycleStartControl[ctype]||{attempts:0,lastAttemptAtMs:0,lastResult:null};
+      lifecycleStartControl[ctype]=ctl;
+      if(ctl.attempts>=MAX_START_ATTEMPTS_PER_CLASS){
+        const reason='START_'+ctype.toUpperCase()+'_VERSUCHE_AUSGESCHOEPFT';
+        result.required.push({ctype,status:'BLOCKED',reason,attempts:ctl.attempts,lastResult:ctl.lastResult});
+        result.blockers.push(reason);
+        continue;
+      }
+      if(ctl.lastAttemptAtMs&&now()-ctl.lastAttemptAtMs<START_RETRY_MS){
+        result.required.push({ctype,status:'START_BACKOFF',attempts:ctl.attempts,lastResult:ctl.lastResult});
+        continue;
+      }
+
+      const start=typeof r.start_character==='function'
+        ? r.start_character
+        : (typeof globalThis.start_character==='function'?globalThis.start_character:null);
+      if(typeof start!=='function'){
+        const reason='START_CHARACTER_UNAVAILABLE';
+        result.required.push({ctype,status:'BLOCKED',reason});
+        result.blockers.push(reason);
+        continue;
+      }
+
+      ctl.attempts+=1;
+      ctl.lastAttemptAtMs=now();
+      result.startCalls+=1;
+      try {
+        await Promise.resolve(start.call(r,target.name));
+        ctl.lastResult='START_REQUEST_RESOLVED';
+        result.required.push({ctype,status:'START_REQUEST_RESOLVED',attempts:ctl.attempts});
+      } catch(error) {
+        ctl.lastResult=lifecycleError(error);
+        result.required.push({ctype,status:'START_REQUEST_REJECTED',attempts:ctl.attempts,lastResult:ctl.lastResult});
+      }
+    }
+    return result;
+  }
+
   function workerSource() {
     const body = function () {
       'use strict';
@@ -227,12 +375,15 @@
 
   function installWorkers() {
     const r=root();
-    const active=typeof r.get_active_characters==='function'
-      ? r.get_active_characters()
-      : {};
+    const active=activeCharacters();
+    const account=accountCharacters();
+    const byName=new Map(account.rows.map(row=>[row.name,row]));
     const src=workerSource();
-    for(const name of Object.keys(active||{})){
+    for(const [name,state] of Object.entries(active.rows||{})){
       if(name===r.character?.name)continue;
+      if(!ACTIVE_CHARACTER_STATES.includes(text(state)))continue;
+      const owned=byName.get(name);
+      if(account.available&&(!owned||!TARGET_CLASSES.includes(owned.ctype)))continue;
       try{if(typeof r.command_character==='function')r.command_character(name,src);}catch{}
     }
   }
@@ -596,11 +747,59 @@
   }
 
   async function waitRoster(){
+    const started=now();
     while(true){
+      const lifecycle=await ensureRequiredCharacters();
       installWorkers();publishActor();
       const roster=rosterStatus();
-      setState({status:'WAITING_FOR_4_CHARACTERS',phase:'ROSTER',roster});
+      const durationMs=now()-started;
+      setState({
+        status:'WAITING_FOR_4_CHARACTERS',
+        phase:'ROSTER',
+        roster,
+        characterLifecycle:{
+          ...lifecycle,
+          durationMs,
+          maximumWaitMs:ROSTER_WAIT_MAX_MS,
+          startAttempts:Object.fromEntries(
+            Object.entries(lifecycleStartControl).map(([ctype,row])=>[
+              ctype,
+              {attempts:Number(row.attempts)||0,lastResult:row.lastResult||null}
+            ])
+          )
+        }
+      });
       if(roster.ready)return roster;
+      if(durationMs>=ROSTER_WAIT_MAX_MS){
+        setState({
+          status:'BLOCKIERT',
+          phase:'ROSTER',
+          terminal:true,
+          blocker:[
+            'PR20_6_ROSTER_AUTOSTART_TIMEOUT',
+            ...lifecycle.blockers,
+            ...roster.missing.map(ctype=>'ROSTER_'+String(ctype).toUpperCase()+'_FEHLT')
+          ],
+          roster,
+          characterLifecycle:{
+            ...lifecycle,
+            durationMs,
+            maximumWaitMs:ROSTER_WAIT_MAX_MS,
+            startAttempts:Object.fromEntries(
+              Object.entries(lifecycleStartControl).map(([ctype,row])=>[
+                ctype,
+                {attempts:Number(row.attempts)||0,lastResult:row.lastResult||null}
+              ])
+            )
+          }
+        });
+        emit('PR20_6_ROSTER_AUTOSTART_BLOCKED','ERROR',{
+          reason:'PR20_6_ROSTER_AUTOSTART_TIMEOUT',
+          missing:roster.missing,
+          lifecycleBlockers:lifecycle.blockers
+        });
+        throw new Error('PR20_6_ROSTER_AUTOSTART_TIMEOUT');
+      }
       await sleep(DISCOVERY_MS);
     }
   }
