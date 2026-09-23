@@ -5,6 +5,10 @@ on:
     paths:
       - 'v5/roadmap/v5-autonomous-test-manifest.json'
       - 'v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js'
+      - 'v5/werkzeuge/v5-autonomous-test-ingame-updater.js'
+      - 'v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js'
+      - 'v5/werkzeuge/tests/v5-autonomous-test-ingame-updater.test.mjs'
+      - 'v5/werkzeuge/tests/pr20-6-updater-recovery-bootstrap.test.mjs'
       - 'v5/werkzeuge/tests/v5-autonomous-test-manifest.test.mjs'
       - 'v5/grundlage/vertraege/runtime/ingame-test-execution-policy.json'
       - 'v5/roadmap/post-r19-roadmap.json'
@@ -14,6 +18,10 @@ on:
     paths:
       - 'v5/roadmap/v5-autonomous-test-manifest.json'
       - 'v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js'
+      - 'v5/werkzeuge/v5-autonomous-test-ingame-updater.js'
+      - 'v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js'
+      - 'v5/werkzeuge/tests/v5-autonomous-test-ingame-updater.test.mjs'
+      - 'v5/werkzeuge/tests/pr20-6-updater-recovery-bootstrap.test.mjs'
       - 'v5/werkzeuge/tests/v5-autonomous-test-manifest.test.mjs'
       - 'v5/grundlage/vertraege/runtime/ingame-test-execution-policy.json'
       - 'v5/roadmap/post-r19-roadmap.json'
