@@ -80,10 +80,10 @@
   ],
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
-    "AKTUELL: PR20.7 besitzt Settlement, read-only Browser-Preflight und ein SHA-gepinntes Merchant-only Auto-Deploy-Paket fuer reale Evidence",
-    "NAECHSTES: PR20.7 realen Browser-Preflight automatisch ausfuehren und Evidence nur bei terminalem BESTANDEN ratifizieren",
-    "DANACH: kurzlebige One-Shot-Authority, Equipment-/Inventory-Fencing und Durable Intent separat vorbereiten; weiterhin noch kein Swap-Write",
-    "mainhand/offhand sowie jede produktive Swap-Authority bleiben separate spaetere Gates",
+    "AKTUELL: PR20.7 realer read-only Browser-Preflight fuer belegten sicheren Nicht-Waffen-Slot ist BESTANDEN; 0 Gameplay-/Raw-/Public-Function-Writes",
+    "NAECHSTES: kurzlebige exakt gebundene One-Shot-Authority plus Equipment-/Inventory-Fencing vorbereiten; weiterhin kein Swap-Write",
+    "DANACH: Durable Intent und post-send Reobserve/Reconcile separat ratifizieren, danach realer NO-WRITE Shadow vor produktiver Swap-Ratifikation",
+    "mainhand/offhand bleiben ein separates spaeteres Gate",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -701,7 +701,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "REAL_BROWSER_PREFLIGHT_AUTO_DEPLOY_BEREIT_NO_WRITE",
+      "status": "REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -719,7 +719,7 @@
         "v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json",
         "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs"
       ],
-      "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_BROWSER_PREFLIGHT_EXECUTE"
+      "nextAction": "PR20_7_OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_AND_FENCING_NO_WRITE"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1020,7 +1020,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "REAL_BROWSER_PREFLIGHT_AUTO_DEPLOY_BEREIT_NO_WRITE",
+    "status": "REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1046,7 +1046,7 @@
       "v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json",
       "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs"
     ],
-    "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_BROWSER_PREFLIGHT_EXECUTE",
+    "nextAction": "PR20_7_OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_AND_FENCING_NO_WRITE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1060,13 +1060,23 @@
       "publicFunctionCalls": 0,
       "authorityIssued": false,
       "durableIntentCreated": false,
-      "realEvidenceStatus": "OFFEN",
+      "realEvidenceStatus": "BESTANDEN_REAL_BROWSER_NO_WRITE",
       "autonomousPackagePrepared": true,
       "workerPackageConfigured": false,
       "farmerWorkerDistribution": false,
       "startCalls": 0,
       "disconnectCalls": 0,
-      "farmerWorkersInstalled": 0
+      "farmerWorkersInstalled": 0,
+      "realEvidenceRatified": true,
+      "realEvidenceObservedAtMs": 1790194007103,
+      "realEvidenceRecipient": "My_Merchant",
+      "realEvidenceSlot": "helmet",
+      "observedGameplayWrites": 0,
+      "observedRawWriteCalls": 0,
+      "observedPublicFunctionCalls": 0,
+      "observedStartCalls": 0,
+      "observedDisconnectCalls": 0,
+      "observedFarmerWorkersInstalled": 0
     }
   }
 }
