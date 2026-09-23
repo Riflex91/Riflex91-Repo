@@ -13,10 +13,5 @@
   "packageSha256": "ca1006c02e05f6eeef3fac00455bd809ed82c3c9501e601b0c7f5d07865d8b07",
   "maxPackageBytes": 131072,
   "expectedGlobal": "V5PR207GearReadOnlyTest",
-  "normalRuntimeAllowed": false,
-  "workerVersion": null,
-  "workerPackagePath": null,
-  "workerPackageSha256": null,
-  "workerExpectedGlobal": null,
-  "workerTargets": []
+  "normalRuntimeAllowed": false
 }
