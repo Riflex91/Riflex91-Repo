@@ -144,7 +144,7 @@ test("PR20.6 resolves parent-only get_characters, starts missing owned farmer cl
   assert.equal(commands.every(name => ["MageOne", "PriestOne", "RangerOne"].includes(name)), true);
 
   const state = sandbox.V5PR206MluckTest.status();
-  assert.equal(state.version, "1.0.6");
+  assert.equal(state.version, "1.0.7");
   assert.equal(state.characterLifecycle.mode, "ACCOUNT_ROSTER_AUTOSTART_V2");
   assert.equal(state.characterLifecycle.startCalls, 3);
   assert.equal(state.roster.ready, true);
@@ -411,7 +411,7 @@ test("PR20.6 recovers exact already_running priest/mage through one official dis
   assert.equal(starts.filter(name => name === "MageOne").length, 2);
 
   const state = sandbox.V5PR206MluckTest.status();
-  assert.equal(state.version, "1.0.6");
+  assert.equal(state.version, "1.0.7");
   assert.equal(state.characterLifecycle.mode, "ACCOUNT_ROSTER_AUTOSTART_V2");
   assert.equal(state.roster.ready, true);
   assert.equal(state.lifecycleRecovery.priest.postcondition, "OFFLINE_CONFIRMED");
