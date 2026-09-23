@@ -346,6 +346,7 @@
     persistLifecycleRecovery(ctype,{
       targetName:target.name,
       method:'PUBLIC_SAY_DISCONNECT_V1',
+      sourceStartResult:'already_running',
       boundaryEntered:true,
       requestedAtMs:now(),
       postcondition:'PENDING',
@@ -416,7 +417,25 @@
       const ctl=lifecycleStartControl[ctype]||{attempts:0,lastAttemptAtMs:0,lastResult:null};
       lifecycleStartControl[ctype]=ctl;
 
-      if(ctl.lastResult==='already_running'){
+      const persistedBeforeStart=lifecycleRecoveryEntry(ctype);
+      if(persistedBeforeStart?.boundaryEntered===true
+          && persistedBeforeStart.targetName===target.name
+          && persistedBeforeStart.postcondition!=='OFFLINE_CONFIRMED'){
+        const recovery=await reconcileAlreadyRunning(ctype,target,result);
+        if(recovery.status!=='OFFLINE_CONFIRMED'){
+          result.required.push({
+            ctype,
+            status:recovery.status,
+            reason:recovery.reason||null,
+            name:target.name,
+            attempts:ctl.attempts,
+            lastResult:ctl.lastResult,
+            recovery:lifecycleRecoveryEntry(ctype)
+          });
+          continue;
+        }
+        ctl.lastAttemptAtMs=0;
+      } else if(ctl.lastResult==='already_running'){
         const recovery=await reconcileAlreadyRunning(ctype,target,result);
         if(recovery.status!=='OFFLINE_CONFIRMED'){
           result.required.push({
@@ -442,6 +461,20 @@
         continue;
       }
 
+      const confirmedRecovery=lifecycleRecoveryEntry(ctype);
+      if(confirmedRecovery?.postcondition==='OFFLINE_CONFIRMED'
+          && confirmedRecovery?.postDisconnectStartBoundaryEntered===true){
+        result.required.push({
+          ctype,
+          status:'POST_DISCONNECT_START_POSTCONDITION_PENDING',
+          name:target.name,
+          attempts:ctl.attempts,
+          lastResult:ctl.lastResult,
+          recovery:confirmedRecovery
+        });
+        continue;
+      }
+
       if(ctl.attempts>=MAX_START_ATTEMPTS_PER_CLASS){
         const reason='START_'+ctype.toUpperCase()+'_VERSUCHE_AUSGESCHOEPFT';
         result.required.push({ctype,status:'BLOCKED',reason,name:target.name,attempts:ctl.attempts,lastResult:ctl.lastResult});
@@ -463,15 +496,29 @@
         continue;
       }
 
+      const recoveryBeforeStart=lifecycleRecoveryEntry(ctype);
+      const postDisconnectStart=recoveryBeforeStart?.postcondition==='OFFLINE_CONFIRMED';
+      if(postDisconnectStart){
+        persistLifecycleRecovery(ctype,{
+          postDisconnectStartBoundaryEntered:true,
+          postDisconnectStartRequestedAtMs:now(),
+          postDisconnectStartResult:'UNKNOWN'
+        });
+      }
+
       ctl.attempts+=1;
       ctl.lastAttemptAtMs=now();
       result.startCalls+=1;
       try {
         await Promise.resolve(startCharacter.call(r,target.name));
         ctl.lastResult='START_REQUEST_RESOLVED';
+        if(postDisconnectStart)
+          persistLifecycleRecovery(ctype,{postDisconnectStartResult:'RESOLVED'});
         result.required.push({ctype,status:'START_REQUEST_RESOLVED',name:target.name,attempts:ctl.attempts});
       } catch(error) {
         ctl.lastResult=lifecycleError(error);
+        if(postDisconnectStart)
+          persistLifecycleRecovery(ctype,{postDisconnectStartResult:'REJECTED_OR_UNKNOWN',postDisconnectStartError:ctl.lastResult});
         result.required.push({
           ctype,
           status:ctl.lastResult==='already_running'?'ALREADY_RUNNING_RECOVERY_REQUIRED':'START_REQUEST_REJECTED',
