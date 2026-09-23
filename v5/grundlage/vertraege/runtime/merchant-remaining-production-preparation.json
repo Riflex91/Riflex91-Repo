@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE",
+    "status": "ONE_SHOT_AUTHORITY_AND_FENCING_BEREIT_NO_WRITE",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -79,7 +79,8 @@
       "PR20.1 liefert ersten engen Equip-Transaction-Pfad",
       "PR20.7 belegter Nicht-Waffen-Slot besitzt exakte Zwei-Ort-Swap-Postcondition NO-WRITE",
       "PR20.7 exakter Recipient-Browser-Preflight ist implementiert, source-gepinnt und zero-gameplay-write",
-      "PR20.7 Merchant-only Auto-Deploy-Paket fuer reale read-only Browser-Evidence ist SHA-gepinnt und workerlos"
+      "PR20.7 Merchant-only Auto-Deploy-Paket fuer reale read-only Browser-Evidence ist SHA-gepinnt und workerlos",
+      "PR20.7 exakt gebundene One-Shot-Authority-Huelle mit exklusivem Equipment-/Inventory-Fencing ist NO-WRITE vorhanden"
     ],
     "produktiveErweiterungErstNach": [
       "PR20.1 Equip-Live-Nachweis",
@@ -127,7 +128,16 @@
       "realBrowserPreflightEvidenceStatus": "BESTANDEN_REAL_BROWSER_NO_WRITE",
       "realBrowserPreflightObservedAtMs": 1790194007103,
       "realBrowserPreflightRecipient": "My_Merchant",
-      "realBrowserPreflightSlot": "helmet"
+      "realBrowserPreflightSlot": "helmet",
+      "oneShotAuthority": "grundlage/quelle/equipment/pr20-7-gear-swap-one-shot-authority.ts",
+      "oneShotMaximumUses": 1,
+      "oneShotMaximumTtlMs": 1500,
+      "exactRecipientSessionBinding": true,
+      "exactSlotAndIndexBinding": true,
+      "exactPrestateBinding": true,
+      "equipmentFenceRequired": true,
+      "inventoryFenceRequired": true,
+      "fenceDriftRevokes": true
     }
   },
   "pr20_8": {
