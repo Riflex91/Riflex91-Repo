@@ -13,7 +13,7 @@
   "stateKey": "AIO_V5_PR20_6_MLUCK_LIVE_5M_V1",
   "actorsKey": "AIO_V5_PR20_6_MLUCK_ACTORS_V1",
   "testId": "pr20-6-mluck-autonomous-live-5m",
-  "controllerVersion": "1.0.6",
+  "controllerVersion": "1.0.7",
   "autoStart": true,
   "operatorInteractionAfterLoad": false,
   "coordinatorClass": "merchant",
@@ -134,7 +134,24 @@
     ],
     "manualFarmerJavascriptLoadRequired": false,
     "noGenericRemoteJavascriptEndpoint": true,
-    "autoStartMissingOwnedFarmerClasses": true
+    "autoStartMissingOwnedFarmerClasses": true,
+    "bridgeWorkerFallback": {
+      "enabled": true,
+      "package": "v5/werkzeuge/pr20-6-mluck-worker-heartbeat.js",
+      "workerVersion": "1.0.2",
+      "exactCharacters": {
+        "ranger": "My_Ranger1",
+        "priest": "My_Priest",
+        "mage": "My_Mage"
+      },
+      "sha256Verified": true,
+      "sourceCommitPinned": true,
+      "performanceTrickRequired": true,
+      "gameplayWrites": 0,
+      "rawWriteCalls": 0,
+      "sameIntentRetry": false,
+      "coordinatorAuthority": false
+    }
   },
   "characterLifecycle": {
     "accountRosterSource": "get_characters",
