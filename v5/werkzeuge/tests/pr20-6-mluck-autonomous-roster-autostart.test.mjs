@@ -45,7 +45,6 @@ test("PR20.6 starts missing owned ranger/priest/mage and installs workers only a
       Error,
       localStorage: storage,
     performance_trick() { return true; },
-      performance_trick() { return true; },
       setInterval(fn) { timers.push(fn); return timers.length; },
       clearInterval() {},
       character: {
@@ -334,7 +333,6 @@ test("PR20.6 recovers exact already_running priest/mage through one official dis
       console, Date, JSON, Object, String, Number, Boolean, Math, Promise, RegExp, Error,
       localStorage: storage,
     performance_trick() { return true; },
-      performance_trick() { return true; },
       setInterval() { return 1; },
       clearInterval() {},
       character: {
