@@ -80,8 +80,9 @@
   ],
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
-    "AKTUELL: PR20.7 belegte Nicht-Waffen-Slots besitzen jetzt ein exaktes NO-WRITE Zwei-Ort-Swap-Settlement",
-    "NAECHSTES: read-only Adventure-Land Browser-Preflight fuer einen belegten sicheren Recipient-Slot; weiterhin 0 Gameplay-Writes",
+    "AKTUELL: PR20.7 besitzt fuer belegte Nicht-Waffen-Slots Settlement plus exact-head read-only Recipient-Browser-Preflight; weiterhin 0 Gameplay-Writes",
+    "NAECHSTES: realen exact-head Browser-Preflight auf einem belegten sicheren Recipient-Slot ausfuehren und Evidence ratifizieren",
+    "DANACH: kurzlebige One-Shot-Authority, Equipment-/Inventory-Fencing und Durable Intent separat vorbereiten; noch kein Swap-Write",
     "mainhand/offhand sowie jede produktive Swap-Authority bleiben separate spaetere Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
@@ -700,7 +701,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "BELEGTER_NICHTWAFFEN_SLOT_SWAP_SETTLEMENT_BEREIT_NO_WRITE",
+      "status": "OCCUPIED_SLOT_READ_ONLY_BROWSER_PREFLIGHT_IMPLEMENTIERT_NO_WRITE",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -709,9 +710,12 @@
         "v5/grundlage/quelle/equipment/pr20-7-gear-swap-vorbereitung.ts",
         "v5/grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
         "v5/grundlage/tests/pr20-gear-swap-preparation.test.mjs",
-        "v5/dokumentation/PR20-7-GEAR-PRODUKTIV-VORBEREITUNG.md"
+        "v5/dokumentation/PR20-7-GEAR-PRODUKTIV-VORBEREITUNG.md",
+        "v5/werkzeuge/pr20-7-gear-swap-produktions-browser.mjs",
+        "v5/werkzeuge/pr20-7-gear-swap-produktions-preflight.mjs",
+        "v5/grundlage/tests/pr20-gear-swap-browser-preflight.test.mjs"
       ],
-      "nextAction": "PR20_7_OCCUPIED_SLOT_READ_ONLY_BROWSER_PREFLIGHT"
+      "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_BROWSER_PREFLIGHT_EVIDENCE"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1012,7 +1016,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "BELEGTER_NICHTWAFFEN_SLOT_SWAP_SETTLEMENT_BEREIT_NO_WRITE",
+    "status": "OCCUPIED_SLOT_READ_ONLY_BROWSER_PREFLIGHT_IMPLEMENTIERT_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1029,8 +1033,26 @@
       "v5/grundlage/quelle/equipment/pr20-7-gear-swap-vorbereitung.ts",
       "v5/grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
       "v5/grundlage/tests/pr20-gear-swap-preparation.test.mjs",
-      "v5/dokumentation/PR20-7-GEAR-PRODUKTIV-VORBEREITUNG.md"
+      "v5/dokumentation/PR20-7-GEAR-PRODUKTIV-VORBEREITUNG.md",
+      "v5/werkzeuge/pr20-7-gear-swap-produktions-browser.mjs",
+      "v5/werkzeuge/pr20-7-gear-swap-produktions-preflight.mjs",
+      "v5/grundlage/tests/pr20-gear-swap-browser-preflight.test.mjs"
     ],
-    "nextAction": "PR20_7_OCCUPIED_SLOT_READ_ONLY_BROWSER_PREFLIGHT"
+    "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_BROWSER_PREFLIGHT_EVIDENCE",
+    "readOnlyBrowserPreflight": {
+      "implemented": true,
+      "exactHeadRequired": true,
+      "exactRecipientCharacterRequired": true,
+      "performanceTrickRequired": true,
+      "stableDoubleObservation": true,
+      "occupiedSafeNonWeaponSlotRequired": true,
+      "candidateAndPreviousUnlocked": true,
+      "indistinguishableFingerprintBlocked": true,
+      "browserGameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "authorityIssued": false,
+      "durableIntentCreated": false,
+      "realEvidenceStatus": "OFFEN"
+    }
   }
 }
