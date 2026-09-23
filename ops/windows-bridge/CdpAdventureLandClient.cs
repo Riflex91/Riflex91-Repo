@@ -126,6 +126,118 @@ public sealed class CdpAdventureLandClient
             TargetUrl: null);
     }
 
+    public async Task<V5LegacyRosterRecoveryResult> EnsureLegacyPr206RosterRecoveryAsync(
+        CancellationToken cancellationToken)
+    {
+        var targets = await FindTargetsAsync(cancellationToken);
+        foreach (var target in targets)
+        {
+            using var socket = new ClientWebSocket();
+            try
+            {
+                await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
+                var contexts = await CollectAllowedExecutionContextsAsync(socket, cancellationToken);
+                foreach (var contextId in contexts)
+                {
+                    JsonElement probe;
+                    try
+                    {
+                        probe = await EvaluateAsync(socket, V5DeploymentProbeExpression, contextId, cancellationToken);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        continue;
+                    }
+
+                    if (!string.Equals(ReadString(probe, "ctype"), "merchant", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    var currentTestId = ReadString(probe, "currentTestId");
+                    if (string.IsNullOrWhiteSpace(currentTestId))
+                        continue;
+
+                    var allowed = ShouldAttemptLegacyPr206RosterRecovery(
+                        currentTestId,
+                        ReadString(probe, "currentVersion"),
+                        ReadString(probe, "currentStatus"),
+                        ReadString(probe, "currentPhase"),
+                        ReadBoolean(probe, "currentTerminal", true),
+                        ReadInt64(probe, "currentGameplayWrites", long.MaxValue),
+                        ReadInt64(probe, "currentRawWriteCalls", long.MaxValue),
+                        ReadBoolean(probe, "currentSameIntentRetry", true),
+                        (int)Math.Clamp(ReadInt64(probe, "currentIntentCount", int.MaxValue), 0, int.MaxValue));
+
+                    if (!allowed)
+                    {
+                        return new V5LegacyRosterRecoveryResult(
+                            "NOT_APPLICABLE",
+                            Changed: false,
+                            StartedCount: 0,
+                            currentTestId,
+                            target.Url);
+                    }
+
+                    var recovery = await EvaluateAsync(
+                        socket,
+                        V5LegacyPr206RosterRecoveryExpression,
+                        contextId,
+                        cancellationToken);
+                    var startedCount = (int)Math.Clamp(
+                        ReadInt64(recovery, "startedCount", 0),
+                        0,
+                        3);
+                    var state = ReadString(recovery, "state") ?? "UNKNOWN";
+
+                    return new V5LegacyRosterRecoveryResult(
+                        state,
+                        Changed: startedCount > 0,
+                        StartedCount: startedCount,
+                        currentTestId,
+                        target.Url);
+                }
+            }
+            catch (WebSocketException)
+            {
+                // Try another same-origin Adventure Land target.
+            }
+        }
+
+        return new V5LegacyRosterRecoveryResult(
+            "MERCHANT_CONTEXT_NOT_FOUND",
+            Changed: false,
+            StartedCount: 0,
+            TestId: null,
+            TargetUrl: null);
+    }
+
+    public static bool ShouldAttemptLegacyPr206RosterRecovery(
+        string? currentTestId,
+        string? currentVersion,
+        string? currentStatus,
+        string? currentPhase,
+        bool currentTerminal,
+        long currentGameplayWrites,
+        long currentRawWriteCalls,
+        bool currentSameIntentRetry,
+        int currentIntentCount)
+    {
+        return string.Equals(
+                currentTestId,
+                "pr20-6-mluck-autonomous-live-5m",
+                StringComparison.Ordinal)
+            && string.Equals(currentVersion, "1.0.0", StringComparison.Ordinal)
+            && string.Equals(
+                currentStatus,
+                "WAITING_FOR_4_CHARACTERS",
+                StringComparison.Ordinal)
+            && string.Equals(currentPhase, "ROSTER", StringComparison.Ordinal)
+            && !currentTerminal
+            && currentGameplayWrites == 0
+            && currentRawWriteCalls == 0
+            && !currentSameIntentRetry
+            && currentIntentCount == 0;
+    }
+
     public static V5AutonomousTestManifest ParseAndValidateV5AutonomousTestManifest(string json)
     {
         var manifest = JsonSerializer.Deserialize<V5AutonomousTestManifest>(
@@ -722,8 +834,130 @@ public sealed class CdpAdventureLandClient
       return {
         ctype,
         currentTestId: current ? String(current.testId || '') : null,
+        currentVersion: current ? String(current.version || '') : null,
+        currentStatus: current ? String(current.status || '') : null,
+        currentPhase: current ? String(current.phase || '') : null,
         currentTerminal: current ? current.terminal === true : false,
+        currentGameplayWrites: current && Number.isFinite(Number(current.gameplayWrites))
+          ? Math.max(0, Number(current.gameplayWrites))
+          : null,
+        currentRawWriteCalls: current && Number.isFinite(Number(current.rawWriteCalls))
+          ? Math.max(0, Number(current.rawWriteCalls))
+          : null,
+        currentSameIntentRetry: current ? current.sameIntentRetry !== false : null,
+        currentIntentCount: current && Array.isArray(current.intents) ? current.intents.length : null,
         desiredApiVersion
+      };
+    })()
+    """;
+
+    private const string V5LegacyPr206RosterRecoveryExpression = """
+    (() => {
+      const TARGET_TEST_ID = 'pr20-6-mluck-autonomous-live-5m';
+      const LEGACY_VERSION = '1.0.0';
+      const REQUIRED_CLASSES = ['ranger', 'priest', 'mage'];
+      const ACTIVE_STATES = new Set(['self', 'starting', 'loading', 'active', 'code']);
+
+      const local = globalThis;
+      let host = globalThis;
+      try {
+        if (globalThis.parent && globalThis.parent !== globalThis)
+          host = globalThis.parent;
+      } catch {}
+
+      const bind = (name) => {
+        if (local && typeof local[name] === 'function')
+          return { fn: local[name], owner: local };
+        if (host && typeof host[name] === 'function')
+          return { fn: host[name], owner: host };
+        return null;
+      };
+
+      let character = null;
+      try { character = local.character || host.character || null; } catch {}
+      if (String(character && character.ctype || '').toLowerCase() !== 'merchant')
+        return { state: 'NOT_MERCHANT', startedCount: 0, started: [], blockers: ['NOT_MERCHANT'] };
+
+      let current = null;
+      try {
+        const aio = local.AIO_V3 || host.AIO_V3 || null;
+        const operations = aio && aio.operations;
+        const status = typeof operations?.status === 'function' ? operations.status() : null;
+        current = status && status.v5AutonomousTest && typeof status.v5AutonomousTest === 'object'
+          ? status.v5AutonomousTest
+          : null;
+      } catch {}
+
+      const safe = !!current
+        && String(current.testId || '') === TARGET_TEST_ID
+        && String(current.version || '') === LEGACY_VERSION
+        && String(current.status || '') === 'WAITING_FOR_4_CHARACTERS'
+        && String(current.phase || '') === 'ROSTER'
+        && current.terminal !== true
+        && Number.isFinite(Number(current.gameplayWrites))
+        && Number(current.gameplayWrites) === 0
+        && Number.isFinite(Number(current.rawWriteCalls))
+        && Number(current.rawWriteCalls) === 0
+        && current.sameIntentRetry === false
+        && Array.isArray(current.intents)
+        && current.intents.length === 0;
+      if (!safe)
+        return { state: 'STATE_CHANGED_BLOCKED', startedCount: 0, started: [], blockers: ['STATE_CHANGED_BLOCKED'] };
+
+      const getCharacters = bind('get_characters');
+      const getActive = bind('get_active_characters');
+      const startCharacter = bind('start_character');
+      if (!getCharacters || !getActive || !startCharacter)
+        return { state: 'LIFECYCLE_API_UNAVAILABLE', startedCount: 0, started: [], blockers: ['LIFECYCLE_API_UNAVAILABLE'] };
+
+      let accountRaw = null;
+      let activeRaw = null;
+      try {
+        accountRaw = getCharacters.fn.call(getCharacters.owner);
+        activeRaw = getActive.fn.call(getActive.owner);
+      } catch {
+        return { state: 'ROSTER_READ_FAILED', startedCount: 0, started: [], blockers: ['ROSTER_READ_FAILED'] };
+      }
+
+      const accountRows = Array.isArray(accountRaw)
+        ? accountRaw
+        : (accountRaw && typeof accountRaw === 'object' ? Object.values(accountRaw) : []);
+      const active = activeRaw && typeof activeRaw === 'object' ? activeRaw : {};
+      const started = [];
+      const blockers = [];
+
+      for (const ctype of REQUIRED_CLASSES) {
+        const matches = accountRows.filter((row) =>
+          row
+          && typeof row === 'object'
+          && String(row.name || '').trim()
+          && String(row.ctype || row.type || '').toLowerCase() === ctype);
+        if (matches.length !== 1) {
+          blockers.push('ACCOUNT_' + ctype.toUpperCase() + (matches.length ? '_MEHRDEUTIG' : '_FEHLT'));
+          continue;
+        }
+
+        const name = String(matches[0].name || '').trim();
+        if (ACTIVE_STATES.has(String(active[name] || '')))
+          continue;
+
+        try {
+          const result = startCharacter.fn.call(startCharacter.owner, name);
+          if (result && typeof result.catch === 'function')
+            result.catch(() => {});
+          started.push(name);
+        } catch {
+          blockers.push('START_' + ctype.toUpperCase() + '_FAILED');
+        }
+      }
+
+      return {
+        state: blockers.length
+          ? (started.length ? 'START_REQUESTED_WITH_BLOCKERS' : 'BLOCKED')
+          : (started.length ? 'START_REQUESTED' : 'ROSTER_ALREADY_LOCAL'),
+        startedCount: started.length,
+        started,
+        blockers
       };
     })()
     """;
@@ -943,6 +1177,13 @@ public sealed record V5AutonomousTestDeploymentResult(
     string State,
     bool Changed,
     string TestId,
+    string? TargetUrl);
+
+public sealed record V5LegacyRosterRecoveryResult(
+    string State,
+    bool Changed,
+    int StartedCount,
+    string? TestId,
     string? TargetUrl);
 
 public sealed record DebugReadResult(

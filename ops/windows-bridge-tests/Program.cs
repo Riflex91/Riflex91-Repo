@@ -381,6 +381,59 @@ Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(v5AutoManifest.TestI
 Assert(CdpAdventureLandClient.ShouldDeployV5AutonomousTest(v5AutoManifest.TestId, "pr20-5-merchant-stability-autonomous-4char", true), "V5_AUTO_ADVANCE_AFTER_TERMINAL");
 Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(v5AutoManifest.TestId, "other-nonterminal", false), "V5_AUTO_BLOCK_OTHER_NONTERMINAL");
 
+Assert(CdpAdventureLandClient.ShouldAttemptLegacyPr206RosterRecovery(
+    "pr20-6-mluck-autonomous-live-5m",
+    "1.0.0",
+    "WAITING_FOR_4_CHARACTERS",
+    "ROSTER",
+    currentTerminal: false,
+    currentGameplayWrites: 0,
+    currentRawWriteCalls: 0,
+    currentSameIntentRetry: false,
+    currentIntentCount: 0), "V5_LEGACY_ROSTER_RECOVERY_SAFE_PRE_SEND");
+Assert(!CdpAdventureLandClient.ShouldAttemptLegacyPr206RosterRecovery(
+    "pr20-6-mluck-autonomous-live-5m",
+    "1.0.1",
+    "WAITING_FOR_4_CHARACTERS",
+    "ROSTER",
+    false, 0, 0, false, 0), "V5_LEGACY_ROSTER_RECOVERY_ONLY_100");
+Assert(!CdpAdventureLandClient.ShouldAttemptLegacyPr206RosterRecovery(
+    "pr20-6-mluck-autonomous-live-5m",
+    "1.0.0",
+    "WAITING_FOR_4_CHARACTERS",
+    "ROSTER",
+    false, 1, 0, false, 0), "V5_LEGACY_ROSTER_RECOVERY_BLOCKS_GAMEPLAY_WRITE");
+Assert(!CdpAdventureLandClient.ShouldAttemptLegacyPr206RosterRecovery(
+    "pr20-6-mluck-autonomous-live-5m",
+    "1.0.0",
+    "WAITING_FOR_4_CHARACTERS",
+    "ROSTER",
+    false, 0, 1, false, 0), "V5_LEGACY_ROSTER_RECOVERY_BLOCKS_RAW_WRITE");
+Assert(!CdpAdventureLandClient.ShouldAttemptLegacyPr206RosterRecovery(
+    "pr20-6-mluck-autonomous-live-5m",
+    "1.0.0",
+    "WAITING_FOR_4_CHARACTERS",
+    "ROSTER",
+    false, 0, 0, true, 0), "V5_LEGACY_ROSTER_RECOVERY_BLOCKS_RETRY_DRIFT");
+Assert(!CdpAdventureLandClient.ShouldAttemptLegacyPr206RosterRecovery(
+    "pr20-6-mluck-autonomous-live-5m",
+    "1.0.0",
+    "WAITING_FOR_4_CHARACTERS",
+    "ROSTER",
+    false, 0, 0, false, 1), "V5_LEGACY_ROSTER_RECOVERY_BLOCKS_OPEN_INTENT");
+Assert(!CdpAdventureLandClient.ShouldAttemptLegacyPr206RosterRecovery(
+    "pr20-6-mluck-autonomous-live-5m",
+    "1.0.0",
+    "RUNNING",
+    "LIVE_SEND",
+    false, 0, 0, false, 0), "V5_LEGACY_ROSTER_RECOVERY_ROSTER_PHASE_ONLY");
+Assert(!CdpAdventureLandClient.ShouldAttemptLegacyPr206RosterRecovery(
+    "other-test",
+    "1.0.0",
+    "WAITING_FOR_4_CHARACTERS",
+    "ROSTER",
+    false, 0, 0, false, 0), "V5_LEGACY_ROSTER_RECOVERY_EXACT_TEST_ONLY");
+
 var v5DeployNow = DateTimeOffset.UtcNow;
 Assert(TelemetryBridgeService.ShouldEnsureV5AutonomousTestDeployment(null, v5DeployNow), "V5_AUTO_DEPLOY_INITIAL");
 Assert(!TelemetryBridgeService.ShouldEnsureV5AutonomousTestDeployment(v5DeployNow, v5DeployNow.AddSeconds(14)), "V5_AUTO_DEPLOY_THROTTLED");

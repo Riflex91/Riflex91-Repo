@@ -120,6 +120,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 if (ShouldEnsureV5AutonomousTestDeployment(lastV5DeploymentAttemptAt, deployNow))
                 {
                     await EnsureV5AutonomousTestDeploymentSafeAsync(cancellationToken);
+                    await EnsureLegacyPr206RosterRecoverySafeAsync(cancellationToken);
                     lastV5DeploymentAttemptAt = deployNow;
                 }
 
@@ -266,6 +267,23 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         {
             // Test deployment is fail-closed and independent from observational telemetry.
             // A download/hash/session failure must never become a gameplay retry or stop telemetry.
+        }
+    }
+
+    private async Task EnsureLegacyPr206RosterRecoverySafeAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _browser.EnsureLegacyPr206RosterRecoveryAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // This is a one-purpose host lifecycle recovery for the legacy PR20.6
+            // roster wait. It never authorizes gameplay and must never block telemetry.
         }
     }
 
