@@ -214,3 +214,31 @@ test("PR20.7 Foundation enthaelt keinerlei Gameplay- oder Raw-Write-Pfad", () =>
   assert.ok(source.includes("rawWriteAutoritaet: false"));
   assert.ok(source.includes("swapWriteRatification: false"));
 });
+
+
+test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand", () => {
+  const contract = JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
+    "utf8",
+  ));
+  assert.equal(contract.status, "BELEGTER_SLOT_SWAP_SETTLEMENT_BEREIT_NO_WRITE");
+  assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
+  assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
+  assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
+  assert.equal(
+    contract.serverSemantik.settlement,
+    "ATOMIC_REPLACE_AND_RETURN_PREVIOUS_TO_SOURCE_INDEX",
+  );
+  assert.equal(contract.serverSemantik.virtualExistingB, "BLOCKED_FOR_PR20_7");
+  assert.equal(contract.scope.mainhand, "SEPARATE_GATE");
+  assert.equal(contract.scope.offhand, "SEPARATE_GATE");
+  assert.equal(contract.authority.produktiveRegistrierungErlaubt, false);
+  assert.equal(contract.authority.produktiverAktivierungspfadErlaubt, false);
+  assert.equal(contract.authority.ausfuehrungsAutoritaet, false);
+  assert.equal(contract.authority.gameplayAutoritaet, false);
+  assert.equal(contract.authority.rawWriteAutoritaet, false);
+  assert.equal(contract.authority.swapWriteRatification, false);
+  assert.equal(contract.settlement.sameIntentRetry, false);
+  assert.equal(contract.settlement.newIntentAutomaticallyAllowed, false);
+  assert.equal(contract.nextGate.weaponsAndOffhandRemainSeparate, true);
+});
