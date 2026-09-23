@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "DURABLE_INTENT_RECONCILE_BEREIT_NO_WRITE",
+  "status": "REAL_SHADOW_AUTO_DEPLOY_BEREIT_NO_WRITE",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -167,5 +167,25 @@
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "swapWriteRatification": false
+  },
+  "realShadow": {
+    "prepared": true,
+    "autonomousPackage": "werkzeuge/pr20-7-gear-shadow-no-write-autonomous.js",
+    "testPlan": "roadmap/pr20-7-gear-shadow-no-write-test-plan.json",
+    "evidence": "roadmap/pr20-7-gear-shadow-no-write-evidence.json",
+    "controllerVersion": "1.0.0",
+    "merchantOnly": true,
+    "workerPackageConfigured": false,
+    "shadowDurableIntentReadback": true,
+    "sendBoundaryState": "NICHT_GESENDET",
+    "expectedReconciliation": "NOT_APPLIED",
+    "stablePostIntentReobserve": true,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "authorityIssued": false,
+    "swapWriteRatification": false,
+    "sameIntentRetry": false,
+    "realEvidenceStatus": "OFFEN"
   }
 }
