@@ -106,8 +106,14 @@ public sealed class CdpAdventureLandClient
                     await EvaluateAsync(socket, expression, contextId, cancellationToken);
 
                     var verify = await EvaluateAsync(socket, V5DeploymentProbeExpression, contextId, cancellationToken);
+                    var apiVerify = await EvaluateAsync(
+                        socket,
+                        BuildV5ExpectedApiProbeExpression(manifest.ExpectedGlobal),
+                        contextId,
+                        cancellationToken);
                     if (!string.Equals(ReadString(verify, "currentTestId"), manifest.TestId, StringComparison.Ordinal)
-                        || !string.Equals(ReadString(verify, "desiredApiVersion"), manifest.ControllerVersion, StringComparison.Ordinal))
+                        || !string.Equals(ReadString(apiVerify, "testId"), manifest.TestId, StringComparison.Ordinal)
+                        || !string.Equals(ReadString(apiVerify, "version"), manifest.ControllerVersion, StringComparison.Ordinal))
                         throw new InvalidOperationException("V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED");
 
                     return new V5AutonomousTestDeploymentResult(
@@ -363,8 +369,7 @@ public sealed class CdpAdventureLandClient
         var workerConfigured = HasAnyV5WorkerPackageField(manifest);
         if (workerConfigured)
         {
-            if (!string.Equals(manifest.TestId, "pr20-6-mluck-autonomous-live-5m", StringComparison.Ordinal)
-                || string.IsNullOrWhiteSpace(manifest.WorkerVersion)
+            if (string.IsNullOrWhiteSpace(manifest.WorkerVersion)
                 || string.IsNullOrWhiteSpace(manifest.WorkerPackagePath)
                 || !IsLowerHex(manifest.WorkerPackageSha256, 64)
                 || string.IsNullOrWhiteSpace(manifest.WorkerExpectedGlobal)
@@ -382,6 +387,18 @@ public sealed class CdpAdventureLandClient
                 StringComparer.Ordinal);
             if (actualTargets.Count != expectedTargets.Count || !actualTargets.SetEquals(expectedTargets))
                 throw new InvalidOperationException("V5_TEST_WORKER_TARGETS_INVALID");
+
+            var knownWorkerContract =
+                (string.Equals(manifest.TestId, "pr20-6-mluck-autonomous-live-5m", StringComparison.Ordinal)
+                    && string.Equals(manifest.WorkerVersion, "1.0.0", StringComparison.Ordinal)
+                    && string.Equals(workerPath, "v5/werkzeuge/pr20-6-mluck-worker.js", StringComparison.Ordinal)
+                    && string.Equals(manifest.WorkerExpectedGlobal, "V5PR206MluckWorker", StringComparison.Ordinal))
+                || (string.Equals(manifest.TestId, "pr20-7-gear-occupied-slot-readonly-preflight", StringComparison.Ordinal)
+                    && string.Equals(manifest.WorkerVersion, "1.0.0", StringComparison.Ordinal)
+                    && string.Equals(workerPath, "v5/werkzeuge/pr20-7-gear-occupied-slot-readonly-worker.js", StringComparison.Ordinal)
+                    && string.Equals(manifest.WorkerExpectedGlobal, "V5PR207GearWorker", StringComparison.Ordinal));
+            if (!knownWorkerContract)
+                throw new InvalidOperationException("V5_TEST_WORKER_CONTRACT_NOT_ALLOWED");
 
             manifest = manifest with { WorkerPackagePath = workerPath };
         }
@@ -1034,6 +1051,27 @@ public sealed class CdpAdventureLandClient
       };
     })()
     """;
+
+    private static string BuildV5ExpectedApiProbeExpression(string expectedGlobal)
+    {
+        var globalName = JsonSerializer.Serialize(expectedGlobal);
+        return """
+        (() => {
+          let api = null;
+          try {
+            api = globalThis[__V5_API_GLOBAL__]
+              || (globalThis.parent && globalThis.parent[__V5_API_GLOBAL__])
+              || null;
+          } catch {}
+          let status = null;
+          try { status = typeof api?.status === 'function' ? api.status() : null; } catch {}
+          return {
+            testId: status ? String(status.testId || api?.testId || '') : String(api?.testId || ''),
+            version: status ? String(status.version || api?.version || '') : String(api?.version || '')
+          };
+        })()
+        """.Replace("__V5_API_GLOBAL__", globalName, StringComparison.Ordinal);
+    }
 
     private static string BuildV5WorkerProbeExpression(string expectedGlobal)
     {
