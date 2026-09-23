@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0.6';
+  const VERSION = '1.0.7';
   const TEST_ID = 'pr20-6-mluck-autonomous-live-5m';
   const STATE_KEY = 'AIO_V5_PR20_6_MLUCK_LIVE_5M_V1';
   const ACTORS_KEY = 'AIO_V5_PR20_6_MLUCK_ACTORS_V1';
@@ -815,6 +815,77 @@
       && recovered('mage');
   }
 
+  function safeKnownV105SeparateTabWorkerRecovery(previous) {
+    const blockers=Array.isArray(previous?.blocker)?previous.blocker.map(text):[];
+    const lifecycle=previous?.characterLifecycle&&typeof previous.characterLifecycle==='object'
+      ? previous.characterLifecycle
+      : {};
+    const recovery=previous?.lifecycleRecovery&&typeof previous.lifecycleRecovery==='object'
+      ? previous.lifecycleRecovery
+      : {};
+    const required=Array.isArray(lifecycle?.required)?lifecycle.required:[];
+    const row=(ctype)=>required.find(item=>text(item?.ctype).toLowerCase()===ctype)||null;
+    const recovered=(ctype,name)=>{
+      const item=recovery[ctype];
+      return !!item
+        && item.method==='PUBLIC_SAY_DISCONNECT_V1'
+        && item.targetName===name
+        && item.boundaryEntered===true
+        && item.commandSettled===true
+        && item.commandResult==='RESOLVED'
+        && item.postcondition==='OFFLINE_CONFIRMED'
+        && item.postDisconnectStartBoundaryEntered===true
+        && item.postDisconnectStartResult==='RESOLVED';
+    };
+    const rangerRecovery=recovery.ranger;
+    const ranger=row('ranger');
+    const priest=row('priest');
+    const mage=row('mage');
+    return previous?.testId===TEST_ID
+      && previous?.version==='1.0.5'
+      && previous?.terminal===true
+      && previous?.status==='BLOCKIERT'
+      && previous?.phase==='ROSTER'
+      && Number(previous?.gameplayWrites||0)===0
+      && Number(previous?.rawWriteCalls||0)===0
+      && previous?.sameIntentRetry===false
+      && Array.isArray(previous?.intents)
+      && previous.intents.length===0
+      && blockers.length===5
+      && blockers.includes('PR20_6_ROSTER_AUTOSTART_TIMEOUT')
+      && blockers.includes('DISCONNECT_RANGER_POSTCONDITION_TIMEOUT')
+      && blockers.includes('ROSTER_RANGER_FEHLT')
+      && blockers.includes('ROSTER_PRIEST_FEHLT')
+      && blockers.includes('ROSTER_MAGE_FEHLT')
+      && text(lifecycle?.mode)==='ACCOUNT_ROSTER_AUTOSTART_V2'
+      && lifecycle?.accountStateAvailable===true
+      && lifecycle?.activeStateAvailable===true
+      && Number(lifecycle?.startCalls||0)===0
+      && Number(lifecycle?.disconnectCalls||0)===0
+      && required.length===3
+      && ranger?.name==='My_Ranger1'
+      && ranger?.status==='BLOCKED'
+      && ranger?.reason==='DISCONNECT_RANGER_POSTCONDITION_TIMEOUT'
+      && Number(ranger?.attempts||0)===1
+      && ranger?.lastResult==='already_running'
+      && priest?.name==='My_Priest'
+      && priest?.status==='POST_DISCONNECT_START_POSTCONDITION_PENDING'
+      && Number(priest?.attempts||0)===0
+      && mage?.name==='My_Mage'
+      && mage?.status==='POST_DISCONNECT_START_POSTCONDITION_PENDING'
+      && Number(mage?.attempts||0)===0
+      && !!rangerRecovery
+      && rangerRecovery.method==='PUBLIC_SAY_DISCONNECT_V1'
+      && rangerRecovery.targetName==='My_Ranger1'
+      && rangerRecovery.boundaryEntered===true
+      && rangerRecovery.commandSettled===true
+      && rangerRecovery.commandResult==='RESOLVED'
+      && rangerRecovery.postcondition==='TIMEOUT'
+      && rangerRecovery.reason==='DISCONNECT_RANGER_POSTCONDITION_TIMEOUT'
+      && recovered('priest','My_Priest')
+      && recovered('mage','My_Mage');
+  }
+
   let seq=0;
   const events=[];
   let state=readJson(STATE_KEY,null);
@@ -836,8 +907,9 @@
     const recoverV101=safeKnownV101RosterRecovery(state);
     const recoverV103=safeKnownV103RosterRecovery(state);
     const recoverV104=safeKnownV104ParentBindingRecovery(state);
-    if(recoverV101||recoverV103||recoverV104){
-      const preservedLifecycleRecovery=(recoverV103||recoverV104)
+    const recoverV105=safeKnownV105SeparateTabWorkerRecovery(state);
+    if(recoverV101||recoverV103||recoverV104||recoverV105){
+      const preservedLifecycleRecovery=(recoverV103||recoverV104||recoverV105)
         ? JSON.parse(JSON.stringify(state.lifecycleRecovery||{}))
         : {};
       state={
