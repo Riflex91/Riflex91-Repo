@@ -1,10 +1,11 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0.0';
-  const TEST_ID = 'pr20-6-account-roster-x-recovery-v1';
+  const VERSION = '1.0.1';
+  const TEST_ID = 'pr20-6-account-roster-x-recovery-v2';
   const CONTROLLER_TEST_ID = 'pr20-6-mluck-autonomous-live-5m';
   const CONTROLLER_VERSION = '1.0.5';
+  const OPERATOR_RANGER_NAME = 'My_Ranger1';
 
   function text(v) { return String(v == null ? '' : v).trim(); }
   function root() {
@@ -74,12 +75,26 @@
       return;
     }
     const normalized = rows.filter(row => row && typeof row === 'object' && text(row.name) && text(row.ctype || row.type));
-    if (!normalized.some(row => text(row.ctype || row.type).toLowerCase() === 'ranger')) {
-      Object.assign(status, { status:'BLOCKIERT', terminal:true, blocker:['ACCOUNT_RANGER_FEHLT'] });
+    const exactRangers = normalized.filter(row =>
+      text(row.name) === OPERATOR_RANGER_NAME
+      && text(row.ctype || row.type).toLowerCase() === 'ranger'
+    );
+    if (exactRangers.length !== 1) {
+      Object.assign(status, {
+        status:'BLOCKIERT',
+        terminal:true,
+        blocker:[exactRangers.length === 0
+          ? 'ACCOUNT_MY_RANGER1_FEHLT'
+          : 'ACCOUNT_MY_RANGER1_MEHRFACH']
+      });
       return;
     }
+    const narrowed = normalized.filter(row =>
+      text(row.ctype || row.type).toLowerCase() !== 'ranger'
+      || text(row.name) === OPERATOR_RANGER_NAME
+    );
 
-    const fallback = () => rows;
+    const fallback = () => narrowed;
     if (typeof globalThis.get_characters !== 'function') globalThis.get_characters = fallback;
     try {
       const r = root();
@@ -92,7 +107,7 @@
       return;
     }
 
-    Object.assign(status, { status:'BESTANDEN', terminal:true, accountCharacters:normalized.length, rangerPresent:true });
+    Object.assign(status, { status:'BESTANDEN', terminal:true, accountCharacters:narrowed.length, rangerPresent:true, rangerName:OPERATOR_RANGER_NAME });
     await Promise.resolve(controller.start());
   }
 
