@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "BELEGTER_NICHTWAFFEN_SLOT_SWAP_SETTLEMENT_BEREIT_NO_WRITE");
+    "READ_ONLY_BROWSER_PREFLIGHT_IMPLEMENTIERT_NO_WRITE");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);\n  assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);\n  assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);\n  assert.equal(prep.pr20_7.sicherVorbereitet.stableDoubleObservation, true);\n  assert.equal(prep.pr20_7.sicherVorbereitet.browserGameplayWrites, 0);\n  assert.equal(prep.pr20_7.sicherVorbereitet.authorityAusstellung, false);\n  assert.equal(prep.pr20_7.sicherVorbereitet.realBrowserPreflightEvidence, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.sameIntentRetry, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.gameplayAutoritaet, false);
