@@ -80,10 +80,9 @@
   ],
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
-    "AKTUELL: PR20.7 realer read-only Browser-Preflight fuer belegten sicheren Nicht-Waffen-Slot ist BESTANDEN; 0 Gameplay-/Raw-/Public-Function-Writes",
-    "NAECHSTES: kurzlebige exakt gebundene One-Shot-Authority plus Equipment-/Inventory-Fencing vorbereiten; weiterhin kein Swap-Write",
-    "DANACH: Durable Intent und post-send Reobserve/Reconcile separat ratifizieren, danach realer NO-WRITE Shadow vor produktiver Swap-Ratifikation",
-    "mainhand/offhand bleiben ein separates spaeteres Gate",
+    "AKTUELL: PR20.7 read-only Browser-Evidence, exakt gebundene One-Shot/Fencing-Foundation und Durable-Intent/Reconcile sind NO-WRITE ratifiziert",
+    "NAECHSTES: realen NO-WRITE Browser-Shadow fuer belegten sicheren Nicht-Waffen-Slot ausfuehren",
+    "DANACH: produktive Einmal-Swap-Ratifikation und 5m-Funktionsevidence; mainhand/offhand bleiben getrennt",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -701,7 +700,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "ONE_SHOT_AUTHORITY_AND_FENCING_BEREIT_NO_WRITE",
+      "status": "DURABLE_INTENT_RECONCILE_BEREIT_NO_WRITE",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -718,10 +717,12 @@
         "v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json",
         "v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json",
         "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs",
-      "v5/grundlage/quelle/equipment/pr20-7-gear-swap-one-shot-authority.ts",
-      "v5/grundlage/tests/pr20-gear-swap-one-shot-authority.test.mjs"
+        "v5/grundlage/quelle/equipment/pr20-7-gear-swap-one-shot-authority.ts",
+        "v5/grundlage/tests/pr20-gear-swap-one-shot-authority.test.mjs",
+        "v5/grundlage/quelle/equipment/pr20-7-gear-swap-durable-intent-reconcile.ts",
+        "v5/grundlage/tests/pr20-gear-swap-durable-intent-reconcile.test.mjs"
       ],
-      "nextAction": "PR20_7_OCCUPIED_SLOT_DURABLE_INTENT_RECONCILIATION_NO_WRITE"
+      "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_NO_WRITE_SHADOW"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1022,7 +1023,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "ONE_SHOT_AUTHORITY_AND_FENCING_BEREIT_NO_WRITE",
+    "status": "DURABLE_INTENT_RECONCILE_BEREIT_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1046,9 +1047,13 @@
       "v5/werkzeuge/pr20-7-gear-read-only-autonomous.js",
       "v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json",
       "v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json",
-      "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs"
+      "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs",
+      "v5/grundlage/quelle/equipment/pr20-7-gear-swap-one-shot-authority.ts",
+      "v5/grundlage/tests/pr20-gear-swap-one-shot-authority.test.mjs",
+      "v5/grundlage/quelle/equipment/pr20-7-gear-swap-durable-intent-reconcile.ts",
+      "v5/grundlage/tests/pr20-gear-swap-durable-intent-reconcile.test.mjs"
     ],
-    "nextAction": "PR20_7_OCCUPIED_SLOT_DURABLE_INTENT_RECONCILIATION_NO_WRITE",
+    "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_NO_WRITE_SHADOW",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1079,6 +1084,18 @@
       "observedStartCalls": 0,
       "observedDisconnectCalls": 0,
       "observedFarmerWorkersInstalled": 0
+    },
+    "durableIntentReconciliation": {
+      "implemented": true,
+      "persistBeforeMutation": true,
+      "exactJournalAckRequired": true,
+      "consumesExactOneShotBinding": true,
+      "sendBoundaryState": "NICHT_GESENDET",
+      "postSendReobserveClassifier": true,
+      "sameIntentRetry": false,
+      "newIntentAutomaticallyAllowed": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false
     }
   }
 }

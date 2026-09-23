@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "ONE_SHOT_AUTHORITY_AND_FENCING_BEREIT_NO_WRITE");
+    "DURABLE_INTENT_RECONCILE_BEREIT_NO_WRITE");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -151,6 +151,12 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.fenceDriftRevokes, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.gameplayAutoritaet, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.rawWriteAutoritaet, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.persistBeforeMutation, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.exactJournalAckRequired, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.sendBoundaryState, "NICHT_GESENDET");
+  assert.equal(prep.pr20_7.sicherVorbereitet.postSendReobserveClassifier, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.sameIntentRetry, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.newIntentAutomaticallyAllowed, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.realBrowserPreflightEvidenceStatus, "BESTANDEN_REAL_BROWSER_NO_WRITE");
   assert.equal(prep.pr20_7.sicherVorbereitet.workerPackageConfigured, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.farmerWorkerDistribution, false);

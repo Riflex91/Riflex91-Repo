@@ -3,6 +3,8 @@ name: v5-pr20-7-gear
 on:
   push:
     paths:
+      - 'v5/grundlage/tests/pr20-gear-swap-durable-intent-reconcile.test.mjs'
+      - 'v5/grundlage/quelle/equipment/pr20-7-gear-swap-durable-intent-reconcile.ts'
       - 'v5/grundlage/tests/pr20-gear-swap-one-shot-authority.test.mjs'
       - 'v5/grundlage/quelle/equipment/pr20-7-gear-swap-one-shot-authority.ts'
       - 'v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs'
@@ -27,6 +29,8 @@ on:
       - '.github/workflows/v5-pr20-7-gear.yml'
   pull_request:
     paths:
+      - 'v5/grundlage/tests/pr20-gear-swap-durable-intent-reconcile.test.mjs'
+      - 'v5/grundlage/quelle/equipment/pr20-7-gear-swap-durable-intent-reconcile.ts'
       - 'v5/grundlage/tests/pr20-gear-swap-one-shot-authority.test.mjs'
       - 'v5/grundlage/quelle/equipment/pr20-7-gear-swap-one-shot-authority.ts'
       - 'v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs'

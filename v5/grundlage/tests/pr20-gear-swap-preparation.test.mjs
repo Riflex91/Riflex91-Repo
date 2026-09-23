@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "ONE_SHOT_AUTHORITY_AND_FENCING_BEREIT_NO_WRITE");
+  assert.equal(contract.status, "DURABLE_INTENT_RECONCILE_BEREIT_NO_WRITE");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -268,5 +268,19 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.oneShotAuthority.rawWriteAuthority, false);
   assert.equal(contract.oneShotAuthority.swapWriteRatification, false);
   assert.equal(contract.oneShotAuthority.gameplayWrites, 0);
+  assert.equal(contract.durableIntentReconciliation.implemented, true);
+  assert.equal(contract.durableIntentReconciliation.persistBeforeMutation, true);
+  assert.equal(contract.durableIntentReconciliation.exactJournalAckRequired, true);
+  assert.equal(contract.durableIntentReconciliation.consumesExactOneShotBinding, true);
+  assert.equal(contract.durableIntentReconciliation.sendBoundaryState, "NICHT_GESENDET");
+  assert.equal(contract.durableIntentReconciliation.postSendReobserveClassifier, true);
+  assert.equal(contract.durableIntentReconciliation.sameIntentRetry, false);
+  assert.equal(contract.durableIntentReconciliation.newIntentAutomaticallyAllowed, false);
+  assert.equal(contract.durableIntentReconciliation.gameplayWrites, 0);
+  assert.equal(contract.durableIntentReconciliation.publicFunctionCalls, 0);
+  assert.equal(contract.durableIntentReconciliation.rawWriteCalls, 0);
+  assert.equal(contract.durableIntentReconciliation.gameplayAuthority, false);
+  assert.equal(contract.durableIntentReconciliation.rawWriteAuthority, false);
+  assert.equal(contract.durableIntentReconciliation.swapWriteRatification, false);
   assert.equal(contract.nextGate.weaponsAndOffhandRemainSeparate, true);
 });
