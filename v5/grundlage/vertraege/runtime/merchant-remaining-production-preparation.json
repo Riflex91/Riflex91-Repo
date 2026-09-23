@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "READ_ONLY_BROWSER_PREFLIGHT_IMPLEMENTIERT_NO_WRITE",
+    "status": "REAL_BROWSER_PREFLIGHT_AUTO_DEPLOY_BEREIT_NO_WRITE",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -78,7 +78,8 @@
       "GearProgression blockiert stale/inkompatible/unverifizierte Kandidaten",
       "PR20.1 liefert ersten engen Equip-Transaction-Pfad",
       "PR20.7 belegter Nicht-Waffen-Slot besitzt exakte Zwei-Ort-Swap-Postcondition NO-WRITE",
-      "PR20.7 exakter Recipient-Browser-Preflight ist implementiert, source-gepinnt und zero-gameplay-write"
+      "PR20.7 exakter Recipient-Browser-Preflight ist implementiert, source-gepinnt und zero-gameplay-write",
+      "PR20.7 Merchant-only Auto-Deploy-Paket fuer reale read-only Browser-Evidence ist SHA-gepinnt und workerlos"
     ],
     "produktiveErweiterungErstNach": [
       "PR20.1 Equip-Live-Nachweis",
@@ -112,7 +113,15 @@
       "stableDoubleObservation": true,
       "browserGameplayWrites": 0,
       "authorityAusstellung": false,
-      "realBrowserPreflightEvidence": false
+      "realBrowserPreflightEvidence": false,
+      "realReadOnlyAutonomousPackage": "werkzeuge/pr20-7-gear-read-only-autonomous.js",
+      "realReadOnlyTestPlan": "roadmap/pr20-7-gear-read-only-preflight-test-plan.json",
+      "realReadOnlyEvidence": "roadmap/pr20-7-gear-read-only-preflight-evidence.json",
+      "workerPackageConfigured": false,
+      "farmerWorkerDistribution": false,
+      "startCalls": 0,
+      "disconnectCalls": 0,
+      "farmerWorkersInstalled": 0
     }
   },
   "pr20_8": {

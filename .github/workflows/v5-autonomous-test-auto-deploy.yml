@@ -3,6 +3,10 @@ name: v5-autonomous-test-auto-deploy
 on:
   pull_request:
     paths:
+      - 'v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs'
+      - 'v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json'
+      - 'v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json'
+      - 'v5/werkzeuge/pr20-7-gear-read-only-autonomous.js'
       - 'v5/roadmap/v5-autonomous-test-manifest.json'
       - 'v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js'
       - 'v5/werkzeuge/v5-autonomous-test-ingame-updater.js'
@@ -16,6 +20,10 @@ on:
       - '.github/workflows/v5-autonomous-test-auto-deploy.yml'
   push:
     paths:
+      - 'v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs'
+      - 'v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json'
+      - 'v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json'
+      - 'v5/werkzeuge/pr20-7-gear-read-only-autonomous.js'
       - 'v5/roadmap/v5-autonomous-test-manifest.json'
       - 'v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js'
       - 'v5/werkzeuge/v5-autonomous-test-ingame-updater.js'
@@ -39,6 +47,8 @@ jobs:
         working-directory: v5
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

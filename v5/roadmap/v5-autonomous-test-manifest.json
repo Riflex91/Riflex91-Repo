@@ -3,24 +3,15 @@
   "enabled": true,
   "repository": "Riflex91/Riflex91-Repo",
   "branch": "main",
-  "gate": "PR20.6_MLUCK",
-  "testId": "pr20-6-mluck-autonomous-live-5m",
-  "controllerVersion": "1.0.7",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-occupied-slot-read-only-preflight",
+  "controllerVersion": "1.0.0",
   "coordinatorClass": "merchant",
   "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
-  "sourceCommit": "cbccc322ea7e78e373e7b2ae7aaf09401160ab8a",
-  "packagePath": "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
-  "packageSha256": "a85b74c5b9920e0eccd6533588b2269e8bf513656d5d4d4c85f39065911103eb",
+  "sourceCommit": "4b2109cf70a3dc1124379e699c3bcde74f55af34",
+  "packagePath": "v5/werkzeuge/pr20-7-gear-read-only-autonomous.js",
+  "packageSha256": "ca1006c02e05f6eeef3fac00455bd809ed82c3c9501e601b0c7f5d07865d8b07",
   "maxPackageBytes": 131072,
-  "expectedGlobal": "V5PR206MluckTest",
-  "normalRuntimeAllowed": false,
-  "workerVersion": "1.0.0",
-  "workerPackagePath": "v5/werkzeuge/pr20-6-mluck-worker.js",
-  "workerPackageSha256": "1fd355270833f50a984e08998988c92ee5f717ecbc02480d0c4a395fc8b79a8f",
-  "workerExpectedGlobal": "V5PR206MluckWorker",
-  "workerTargets": [
-    "My_Ranger1:ranger",
-    "My_Priest:priest",
-    "My_Mage:mage"
-  ]
+  "expectedGlobal": "V5PR207GearReadOnlyTest",
+  "normalRuntimeAllowed": false
 }
