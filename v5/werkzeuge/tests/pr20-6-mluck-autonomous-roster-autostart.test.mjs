@@ -17,7 +17,7 @@ function makeStorage() {
   };
 }
 
-test("PR20.6 starts missing owned ranger/priest/mage and installs workers only after local activation", async () => {
+test("PR20.6 resolves parent-only get_characters, starts missing owned farmer classes and installs workers after local activation", async () => {
   const storage = makeStorage();
   const active = { Merchant: "self" };
   const rows = [
@@ -110,7 +110,6 @@ test("PR20.6 starts missing owned ranger/priest/mage and installs workers only a
       priest: { name: "PriestOne", s: {} },
       mage: { name: "MageOne", s: {} }
     },
-    get_characters() { return rows; },
     get_active_characters() { return { ...active }; },
     async start_character(name) {
       starts.push(name);
@@ -129,7 +128,9 @@ test("PR20.6 starts missing owned ranger/priest/mage and installs workers only a
     is_on_cooldown() { return true; },
     use_skill() { throw new Error("use_skill must not be reached in this lifecycle test"); }
   };
-  sandbox.parent = sandbox;
+  sandbox.parent = {
+    get_characters() { return rows; }
+  };
 
   vm.runInNewContext(source, sandbox, { filename: "pr20-6.js" });
   await new Promise(resolve => setTimeout(resolve, 80));
@@ -141,7 +142,7 @@ test("PR20.6 starts missing owned ranger/priest/mage and installs workers only a
   assert.equal(commands.every(name => ["MageOne", "PriestOne", "RangerOne"].includes(name)), true);
 
   const state = sandbox.V5PR206MluckTest.status();
-  assert.equal(state.version, "1.0.4");
+  assert.equal(state.version, "1.0.5");
   assert.equal(state.characterLifecycle.mode, "ACCOUNT_ROSTER_AUTOSTART_V2");
   assert.equal(state.characterLifecycle.startCalls, 3);
   assert.equal(state.roster.ready, true);
@@ -408,7 +409,7 @@ test("PR20.6 recovers exact already_running priest/mage through one official dis
   assert.equal(starts.filter(name => name === "MageOne").length, 2);
 
   const state = sandbox.V5PR206MluckTest.status();
-  assert.equal(state.version, "1.0.4");
+  assert.equal(state.version, "1.0.5");
   assert.equal(state.characterLifecycle.mode, "ACCOUNT_ROSTER_AUTOSTART_V2");
   assert.equal(state.roster.ready, true);
   assert.equal(state.lifecycleRecovery.priest.postcondition, "OFFLINE_CONFIRMED");
