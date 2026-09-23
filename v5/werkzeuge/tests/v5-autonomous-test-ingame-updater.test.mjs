@@ -110,7 +110,7 @@ async function runScenario({ current, packageBody = null, controllerVersion = "1
 }
 
 test("native updater is Cloudflare-only, merchant-only and exposes no generic evaluator", () => {
-  assert.ok(source.includes("const VERSION = '1.0.4'"));
+  assert.ok(source.includes("const VERSION = '1.0.5'"));
   assert.ok(source.includes("https://aio-bot-dashboard.hansijuergenlul.workers.dev"));
   assert.ok(source.includes("coordinatorClass !== 'merchant'"));
   assert.ok(source.includes("upload_code"));
