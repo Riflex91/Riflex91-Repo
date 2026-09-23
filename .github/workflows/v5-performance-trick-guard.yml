@@ -1,0 +1,34 @@
+name: v5-performance-trick-guard
+
+on:
+  push:
+    paths:
+      - 'v5/werkzeuge/*.js'
+      - 'v5/werkzeuge/v5-test-performance-trick-guard.mjs'
+      - 'v5/package.json'
+      - '.github/workflows/v5-performance-trick-guard.yml'
+  pull_request:
+    paths:
+      - 'v5/werkzeuge/*.js'
+      - 'v5/werkzeuge/v5-test-performance-trick-guard.mjs'
+      - 'v5/package.json'
+      - '.github/workflows/v5-performance-trick-guard.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  performance-trick-required:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - run: npm ci
+      - run: npm run v5-test-performance-trick:pruefen
