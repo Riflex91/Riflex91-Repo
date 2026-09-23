@@ -13,7 +13,7 @@
   "stateKey": "AIO_V5_PR20_6_MLUCK_LIVE_5M_V1",
   "actorsKey": "AIO_V5_PR20_6_MLUCK_ACTORS_V1",
   "testId": "pr20-6-mluck-autonomous-live-5m",
-  "controllerVersion": "1.0.0",
+  "controllerVersion": "1.0.1",
   "autoStart": true,
   "operatorInteractionAfterLoad": false,
   "coordinatorClass": "merchant",
@@ -116,13 +116,28 @@
     "packageCommitPinned": true,
     "packageSha256Verified": true,
     "manualMerchantJavascriptLoadRequired": false,
-    "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
+    "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER_AFTER_ACCOUNT_ROSTER_AUTOSTART",
     "farmerClasses": [
       "ranger",
       "priest",
       "mage"
     ],
     "manualFarmerJavascriptLoadRequired": false,
-    "noGenericRemoteJavascriptEndpoint": true
+    "noGenericRemoteJavascriptEndpoint": true,
+    "autoStartMissingOwnedFarmerClasses": true
+  },
+  "characterLifecycle": {
+    "accountRosterSource": "get_characters",
+    "activeRunnerSource": "get_active_characters",
+    "autoStartMissingOwnedFarmerClasses": true,
+    "startApi": "start_character",
+    "startCodeSlotArgument": null,
+    "directWorkerInstallRequiresObservedActive": true,
+    "workerInstallApi": "command_character",
+    "maximumStartAttemptsPerClass": 2,
+    "startRetryMs": 10000,
+    "rosterWaitMaximumMs": 120000,
+    "gameplayWritesFromLifecycle": 0,
+    "remoteOrAmbiguousCharacterStateFailsClosed": true
   }
 }
