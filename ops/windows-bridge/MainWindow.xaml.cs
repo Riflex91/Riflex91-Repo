@@ -27,7 +27,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         Title = BuildWindowTitle();
         StartSelfUpdater();
-        Loaded += MainWindow_Loaded;
+        StartBackgroundInitialization();
         Closed += MainWindow_Closed;
     }
 
@@ -49,9 +49,20 @@ public partial class MainWindow : Window
         return $"AIO Bot Windows Bridge · {info[..plusIndex]} · {shortSha}";
     }
 
-    private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    private async void StartBackgroundInitialization()
     {
-        await InitializeAsync();
+        try
+        {
+            await InitializeAsync();
+        }
+        catch (Exception error)
+        {
+            TelemetryErrorText.Text = Bounded(error.Message);
+            SupabaseStateText.Text = "FEHLER";
+            DashboardStateText.Text = "FEHLER";
+            BackblazeStateText.Text = "FEHLER";
+            BackblazeErrorText.Text = Bounded(error.Message);
+        }
     }
 
     private void StartSelfUpdater()
@@ -68,7 +79,10 @@ public partial class MainWindow : Window
         _ = Dispatcher.InvokeAsync(() =>
         {
             TelemetryDetailText.Text = $"Bridge-Update Build {update.BuildNumber} wird installiert …";
-            Application.Current.Shutdown();
+            if (Application.Current is App app)
+                app.ShutdownForUpdate();
+            else
+                Application.Current.Shutdown();
         });
     }
 
