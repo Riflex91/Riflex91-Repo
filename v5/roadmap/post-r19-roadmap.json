@@ -80,9 +80,9 @@
   ],
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
-    "AKTUELL: PR20.7 besitzt fuer belegte Nicht-Waffen-Slots Settlement plus exact-head read-only Recipient-Browser-Preflight; weiterhin 0 Gameplay-Writes",
-    "NAECHSTES: realen exact-head Browser-Preflight auf einem belegten sicheren Recipient-Slot ausfuehren und Evidence ratifizieren",
-    "DANACH: kurzlebige One-Shot-Authority, Equipment-/Inventory-Fencing und Durable Intent separat vorbereiten; noch kein Swap-Write",
+    "AKTUELL: PR20.7 besitzt Settlement, read-only Browser-Preflight und ein SHA-gepinntes Merchant-only Auto-Deploy-Paket fuer reale Evidence",
+    "NAECHSTES: PR20.7 realen Browser-Preflight automatisch ausfuehren und Evidence nur bei terminalem BESTANDEN ratifizieren",
+    "DANACH: kurzlebige One-Shot-Authority, Equipment-/Inventory-Fencing und Durable Intent separat vorbereiten; weiterhin noch kein Swap-Write",
     "mainhand/offhand sowie jede produktive Swap-Authority bleiben separate spaetere Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
@@ -701,7 +701,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "OCCUPIED_SLOT_READ_ONLY_BROWSER_PREFLIGHT_IMPLEMENTIERT_NO_WRITE",
+      "status": "REAL_BROWSER_PREFLIGHT_AUTO_DEPLOY_BEREIT_NO_WRITE",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -713,9 +713,13 @@
         "v5/dokumentation/PR20-7-GEAR-PRODUKTIV-VORBEREITUNG.md",
         "v5/werkzeuge/pr20-7-gear-swap-produktions-browser.mjs",
         "v5/werkzeuge/pr20-7-gear-swap-produktions-preflight.mjs",
-        "v5/grundlage/tests/pr20-gear-swap-browser-preflight.test.mjs"
+        "v5/grundlage/tests/pr20-gear-swap-browser-preflight.test.mjs",
+        "v5/werkzeuge/pr20-7-gear-read-only-autonomous.js",
+        "v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json",
+        "v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json",
+        "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs"
       ],
-      "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_BROWSER_PREFLIGHT_EVIDENCE"
+      "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_BROWSER_PREFLIGHT_EXECUTE"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1016,7 +1020,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "OCCUPIED_SLOT_READ_ONLY_BROWSER_PREFLIGHT_IMPLEMENTIERT_NO_WRITE",
+    "status": "REAL_BROWSER_PREFLIGHT_AUTO_DEPLOY_BEREIT_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1036,9 +1040,13 @@
       "v5/dokumentation/PR20-7-GEAR-PRODUKTIV-VORBEREITUNG.md",
       "v5/werkzeuge/pr20-7-gear-swap-produktions-browser.mjs",
       "v5/werkzeuge/pr20-7-gear-swap-produktions-preflight.mjs",
-      "v5/grundlage/tests/pr20-gear-swap-browser-preflight.test.mjs"
+      "v5/grundlage/tests/pr20-gear-swap-browser-preflight.test.mjs",
+      "v5/werkzeuge/pr20-7-gear-read-only-autonomous.js",
+      "v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json",
+      "v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json",
+      "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs"
     ],
-    "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_BROWSER_PREFLIGHT_EVIDENCE",
+    "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_BROWSER_PREFLIGHT_EXECUTE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1052,7 +1060,13 @@
       "publicFunctionCalls": 0,
       "authorityIssued": false,
       "durableIntentCreated": false,
-      "realEvidenceStatus": "OFFEN"
+      "realEvidenceStatus": "OFFEN",
+      "autonomousPackagePrepared": true,
+      "workerPackageConfigured": false,
+      "farmerWorkerDistribution": false,
+      "startCalls": 0,
+      "disconnectCalls": 0,
+      "farmerWorkersInstalled": 0
     }
   }
 }
