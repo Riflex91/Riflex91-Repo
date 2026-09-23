@@ -2,7 +2,7 @@ function installV5AutonomousTestIngameUpdaterV102() {
   'use strict';
 
   const API_NAME = 'V5AutonomousTestIngameUpdater';
-  const VERSION = '1.0.2';
+  const VERSION = '1.0.3';
   const MODE = 'NATIVE_INGAME_CLOUDFLARE_R2_V1';
   const BASE_URL = 'https://aio-bot-dashboard.hansijuergenlul.workers.dev';
   const MANIFEST_PATH = '/v5/roadmap/v5-autonomous-test-manifest.json';
@@ -25,6 +25,7 @@ function installV5AutonomousTestIngameUpdaterV102() {
     desiredSha256: null,
     activeSlot: null,
     lastApply: null,
+    performanceTrick: null,
     error: null
   };
 
@@ -40,6 +41,56 @@ function installV5AutonomousTestIngameUpdaterV102() {
   const text = (value, max = 240) =>
     String(value == null ? '' : value).trim().slice(0, max);
   const clone = value => JSON.parse(JSON.stringify(value));
+
+  function performanceRoots() {
+    const roots = [];
+    try { roots.push(globalThis); } catch {}
+    try {
+      const host = root();
+      if (host && !roots.includes(host)) roots.push(host);
+    } catch {}
+    return roots;
+  }
+
+  function performanceStatus() {
+    let available = false;
+    let playing = false;
+    let cplaying = false;
+    for (const host of performanceRoots()) {
+      try {
+        if (typeof host?.performance_trick === 'function') available = true;
+        const empty = host?.sounds?.empty;
+        if (!empty) continue;
+        if (empty.cplaying === true) cplaying = true;
+        if (typeof empty.playing === 'function' && empty.playing() === true) playing = true;
+      } catch {}
+    }
+    return { available, playing, cplaying, active: available && playing };
+  }
+
+  async function ensurePerformanceTrick() {
+    let called = false;
+    let lastError = null;
+    for (const host of performanceRoots()) {
+      try {
+        if (typeof host?.performance_trick !== 'function') continue;
+        host.performance_trick();
+        called = true;
+        break;
+      } catch (error) {
+        lastError = text(error?.message || error || 'PERFORMANCE_TRICK_FAILED', 160);
+      }
+    }
+    if (called) await new Promise(resolve => setTimeout(resolve, 350));
+    const status = performanceStatus();
+    return {
+      ...status,
+      called,
+      reason: status.active
+        ? null
+        : (status.available ? 'PERFORMANCE_TRICK_NOT_PLAYING' : (lastError || 'PERFORMANCE_TRICK_UNAVAILABLE'))
+    };
+  }
 
   function binding(name) {
     const local = globalThis;
@@ -149,7 +200,7 @@ function installV5AutonomousTestIngameUpdaterV102() {
 
     return manifest.testId === 'pr20-6-mluck-autonomous-live-5m'
       && text(active?.version, 80) === '1.0.1'
-      && manifest.controllerVersion === '1.0.2'
+      && manifest.controllerVersion === '1.0.3'
       && active?.terminal === true
       && text(active?.status, 80) === 'BLOCKIERT'
       && text(active?.phase, 80) === 'ROSTER'
@@ -337,6 +388,14 @@ function installV5AutonomousTestIngameUpdaterV102() {
     }
 
     try {
+      const performanceTrick = await ensurePerformanceTrick();
+      state.performanceTrick = performanceTrick;
+      if (!performanceTrick.active) {
+        state.phase = 'WAITING_FOR_PERFORMANCE_TRICK';
+        state.error = performanceTrick.reason;
+        return clone(state);
+      }
+
       state.phase = 'CHECKING';
       const manifestDownload = await fetchBounded(MANIFEST_PATH, MANIFEST_MAX_BYTES);
       const manifest = validateManifest(JSON.parse(manifestDownload.body));
@@ -463,7 +522,7 @@ installV5AutonomousTestIngameUpdaterV102();
     rawWriteCalls: 0,
     sameIntentRetry: false,
     intents: [],
-    updaterVersion: '1.0.2',
+    updaterVersion: '1.0.3',
     normalRuntimeAllowed: false,
     observedAtMs: Date.now()
   });
@@ -503,7 +562,7 @@ installV5AutonomousTestIngameUpdaterV102();
   globalThis.V5PR206UpdaterRecoveryBootstrap = Object.freeze({
     version: VERSION,
     testId: TEST_ID,
-    updaterVersion: '1.0.2',
+    updaterVersion: '1.0.3',
     status: () => ({ ...state })
   });
 })();

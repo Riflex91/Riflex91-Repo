@@ -58,11 +58,13 @@ async function runScenario({ current, packageBody = null, controllerVersion = "1
     Promise,
     RegExp,
     Error,
-    setTimeout,
+    setTimeout(fn, ms) { return setTimeout(fn, Math.min(Number(ms) || 0, 2)); },
     clearTimeout,
     setInterval() { return 1; },
     clearInterval() {},
     localStorage: storage(),
+    performance_trick() { return true; },
+    sounds: { empty: { cplaying: true, playing() { return true; } } },
     character: {
       name: "Merchant",
       ctype: "merchant",
@@ -108,7 +110,7 @@ async function runScenario({ current, packageBody = null, controllerVersion = "1
 }
 
 test("native updater is Cloudflare-only, merchant-only and exposes no generic evaluator", () => {
-  assert.ok(source.includes("const VERSION = '1.0.2'"));
+  assert.ok(source.includes("const VERSION = '1.0.3'"));
   assert.ok(source.includes("https://aio-bot-dashboard.hansijuergenlul.workers.dev"));
   assert.ok(source.includes("coordinatorClass !== 'merchant'"));
   assert.ok(source.includes("upload_code"));
@@ -238,7 +240,9 @@ test("wrong package hash blocks save and reload", async () => {
   };
   const sandbox = {
     console, crypto: webcrypto, TextEncoder, Uint8Array, ArrayBuffer, Date, JSON, Object, String, Number, Boolean, Math, Promise, RegExp, Error,
-    setTimeout, clearTimeout, setInterval(){return 1;}, clearInterval(){}, localStorage: storage(),
+    setTimeout(fn, ms) { return setTimeout(fn, Math.min(Number(ms) || 0, 2)); }, clearTimeout, setInterval(){return 1;}, clearInterval(){}, localStorage: storage(),
+    performance_trick(){return true;},
+    sounds:{empty:{cplaying:true,playing(){return true;}}},
     character:{name:"Merchant",ctype:"merchant",hp:100,max_hp:100},
     get_entities(){return {};},
     get_active_code_slot(){return {slot:7,name:"AIO V5"};},
@@ -262,10 +266,10 @@ test("wrong package hash blocks save and reload", async () => {
 });
 
 
-test("terminal blocked PR20.6 v1.0.1 with the exact no-write roster blocker upgrades safely to v1.0.2", async () => {
-  const packageBody = "(() => { globalThis.V5PR206MluckTest={version:'1.0.2'}; })();\n// pr20-6-mluck-autonomous-live-5m";
+test("terminal blocked PR20.6 v1.0.1 with the exact no-write roster blocker upgrades safely to v1.0.3", async () => {
+  const packageBody = "(() => { globalThis.V5PR206MluckTest={version:'1.0.3'}; })();\n// pr20-6-mluck-autonomous-live-5m";
   const { calls } = await runScenario({
-    controllerVersion: "1.0.2",
+    controllerVersion: "1.0.3",
     current: {
       testId: "pr20-6-mluck-autonomous-live-5m",
       version: "1.0.1",
@@ -300,7 +304,7 @@ test("terminal blocked PR20.6 v1.0.1 with the exact no-write roster blocker upgr
 
 test("terminal same-test upgrade stays blocked when the exact roster recovery fingerprint is absent", async () => {
   const { calls, sandbox } = await runScenario({
-    controllerVersion: "1.0.2",
+    controllerVersion: "1.0.3",
     current: {
       testId: "pr20-6-mluck-autonomous-live-5m",
       version: "1.0.1",
@@ -328,4 +332,12 @@ test("terminal same-test upgrade stays blocked when the exact roster recovery fi
     sandbox.V5AutonomousTestIngameUpdater.status().phase,
     "SAME_TEST_VERSION_MISMATCH_BLOCKED"
   );
+});
+
+
+test("native updater requires an active performance_trick before deployment work", () => {
+  assert.ok(source.includes("performance_trick"));
+  assert.ok(source.includes("WAITING_FOR_PERFORMANCE_TRICK"));
+  assert.ok(source.includes("PERFORMANCE_TRICK_NOT_PLAYING"));
+  assert.ok(source.includes("PERFORMANCE_TRICK_UNAVAILABLE"));
 });

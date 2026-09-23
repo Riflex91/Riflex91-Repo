@@ -13,7 +13,7 @@
   "stateKey": "AIO_V5_PR20_6_MLUCK_LIVE_5M_V1",
   "actorsKey": "AIO_V5_PR20_6_MLUCK_ACTORS_V1",
   "testId": "pr20-6-mluck-autonomous-live-5m",
-  "controllerVersion": "1.0.2",
+  "controllerVersion": "1.0.3",
   "autoStart": true,
   "operatorInteractionAfterLoad": false,
   "coordinatorClass": "merchant",
@@ -33,7 +33,10 @@
     "targetSessionBound": true,
     "foreignStrongMluckBlocks": true,
     "criticalMerchantWorkBlocks": true,
-    "competingV3V4RuntimeBlocks": true
+    "competingV3V4RuntimeBlocks": true,
+    "performanceTrickRequired": true,
+    "performanceTrickFunction": "performance_trick",
+    "backgroundExecutionFailClosed": true
   },
   "authority": {
     "publicFunction": "use_skill",

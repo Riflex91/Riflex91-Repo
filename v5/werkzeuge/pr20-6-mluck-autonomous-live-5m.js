@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0.2';
+  const VERSION = '1.0.3';
   const TEST_ID = 'pr20-6-mluck-autonomous-live-5m';
   const STATE_KEY = 'AIO_V5_PR20_6_MLUCK_LIVE_5M_V1';
   const ACTORS_KEY = 'AIO_V5_PR20_6_MLUCK_ACTORS_V1';
@@ -40,6 +40,23 @@
   function text(v) { return String(v == null ? '' : v).trim(); }
   function now() { return Date.now(); }
   function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  function armPerformanceTrick() {
+    const r = root();
+    try {
+      if (typeof r.performance_trick === 'function') {
+        r.performance_trick();
+        return true;
+      }
+    } catch {}
+    try {
+      if (typeof globalThis.performance_trick === 'function') {
+        globalThis.performance_trick();
+        return true;
+      }
+    } catch {}
+    return false;
+  }
 
   function canonical(value) {
     if (value === null || typeof value !== 'object') return JSON.stringify(value);
@@ -1092,6 +1109,11 @@
     if(text(root().character?.ctype).toLowerCase()!=='merchant'){
       setState({status:'BLOCKIERT',phase:'COORDINATOR',terminal:true,blocker:['PR20_6_AUF_MERCHANT_LADEN']});
       emit('MLUCK_WRONG_COORDINATOR','ERROR',{reason:'PR20_6_AUF_MERCHANT_LADEN'});
+      return;
+    }
+    if(!armPerformanceTrick()){
+      setState({status:'BLOCKIERT',phase:'BACKGROUND_EXECUTION',terminal:true,blocker:['PR20_6_PERFORMANCE_TRICK_UNAVAILABLE'],gameplayWrites:0,rawWriteCalls:0,sameIntentRetry:false});
+      emit('PR20_6_PERFORMANCE_TRICK_BLOCKED','ERROR',{reason:'PR20_6_PERFORMANCE_TRICK_UNAVAILABLE'});
       return;
     }
     if(PR20_5_REPO_GATE!=='BESTANDEN_REAL_INGAME_4CHAR_15M')throw new Error('PR20_5_GATE_NICHT_BESTANDEN');

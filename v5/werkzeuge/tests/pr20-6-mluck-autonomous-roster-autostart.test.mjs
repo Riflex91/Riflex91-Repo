@@ -44,6 +44,8 @@ test("PR20.6 starts missing owned ranger/priest/mage and installs workers only a
       RegExp,
       Error,
       localStorage: storage,
+    performance_trick() { return true; },
+      performance_trick() { return true; },
       setInterval(fn) { timers.push(fn); return timers.length; },
       clearInterval() {},
       character: {
@@ -80,6 +82,7 @@ test("PR20.6 starts missing owned ranger/priest/mage and installs workers only a
     RegExp,
     Error,
     localStorage: storage,
+    performance_trick() { return true; },
     setTimeout,
     clearTimeout,
     setInterval(fn) { timers.push(fn); return timers.length; },
@@ -139,7 +142,7 @@ test("PR20.6 starts missing owned ranger/priest/mage and installs workers only a
   assert.equal(commands.every(name => ["MageOne", "PriestOne", "RangerOne"].includes(name)), true);
 
   const state = sandbox.V5PR206MluckTest.status();
-  assert.equal(state.version, "1.0.2");
+  assert.equal(state.version, "1.0.3");
   assert.equal(state.characterLifecycle.mode, "ACCOUNT_ROSTER_AUTOSTART_V2");
   assert.equal(state.characterLifecycle.startCalls, 3);
   assert.equal(state.roster.ready, true);
@@ -157,6 +160,7 @@ test("PR20.6 does not start ambiguous same-class account characters", async () =
   const sandbox = {
     console, Date, JSON, Object, String, Number, Boolean, Math, Promise, RegExp, Error,
     localStorage: storage,
+    performance_trick() { return true; },
     setTimeout(fn, ms) { const timer = setTimeout(fn, ms); timer.unref?.(); return timer; },
     clearTimeout,
     setInterval() { return 1; },
@@ -268,6 +272,7 @@ test("PR20.6 resolves ambiguous ranger only from one fresh exact actor-registry 
   const sandbox = {
     console, Date, JSON, Object, String, Number, Boolean, Math, Promise, RegExp, Error,
     localStorage: storage,
+    performance_trick() { return true; },
     setTimeout(fn, ms) { return setTimeout(fn, Math.min(Number(ms) || 0, 2)); },
     clearTimeout,
     setInterval() { return 1; },
@@ -328,6 +333,8 @@ test("PR20.6 recovers exact already_running priest/mage through one official dis
     const ctx = {
       console, Date, JSON, Object, String, Number, Boolean, Math, Promise, RegExp, Error,
       localStorage: storage,
+    performance_trick() { return true; },
+      performance_trick() { return true; },
       setInterval() { return 1; },
       clearInterval() {},
       character: {
@@ -345,6 +352,7 @@ test("PR20.6 recovers exact already_running priest/mage through one official dis
   const sandbox = {
     console, Date, JSON, Object, String, Number, Boolean, Math, Promise, RegExp, Error,
     localStorage: storage,
+    performance_trick() { return true; },
     setTimeout(fn, ms) { return setTimeout(fn, Math.min(Number(ms) || 0, 2)); },
     clearTimeout,
     setInterval() { return 1; },
@@ -402,7 +410,7 @@ test("PR20.6 recovers exact already_running priest/mage through one official dis
   assert.equal(starts.filter(name => name === "MageOne").length, 2);
 
   const state = sandbox.V5PR206MluckTest.status();
-  assert.equal(state.version, "1.0.2");
+  assert.equal(state.version, "1.0.3");
   assert.equal(state.characterLifecycle.mode, "ACCOUNT_ROSTER_AUTOSTART_V2");
   assert.equal(state.roster.ready, true);
   assert.equal(state.lifecycleRecovery.priest.postcondition, "OFFLINE_CONFIRMED");

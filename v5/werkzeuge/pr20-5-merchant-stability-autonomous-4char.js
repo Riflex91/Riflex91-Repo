@@ -2,7 +2,7 @@
   'use strict';
 
   const API = 'V5PR205AutonomousFourCharacterTest';
-  const VERSION = '1.2.0';
+  const VERSION = '1.2.1';
   const TEST_ID = 'pr20-5-merchant-stability-autonomous-4char';
   const STATE_KEY = 'AIO_V5_PR20_5_AUTONOMOUS_TEST_V1';
   const ACTORS_KEY = 'AIO_V5_PR20_5_AUTONOMOUS_ACTORS_V1';
@@ -35,6 +35,23 @@
   function now() { return Date.now(); }
   function text(v) { return String(v == null ? '' : v).trim(); }
   function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  function armPerformanceTrick() {
+    const r = root();
+    try {
+      if (typeof r.performance_trick === 'function') {
+        r.performance_trick();
+        return true;
+      }
+    } catch {}
+    try {
+      if (typeof globalThis.performance_trick === 'function') {
+        globalThis.performance_trick();
+        return true;
+      }
+    } catch {}
+    return false;
+  }
 
   function readJson(key, fallback) {
     try {
@@ -118,9 +135,10 @@
         try { localStorage.setItem(K,JSON.stringify({schemaVersion:1,actors:{...actors,[snap.name]:snap}})); } catch {}
       }
       try { if (globalThis.__V5_PR20_5_WORKER_TIMER) clearInterval(globalThis.__V5_PR20_5_WORKER_TIMER); } catch {}
+      try { if (typeof globalThis.performance_trick === 'function') globalThis.performance_trick(); else if (globalThis.parent && typeof globalThis.parent.performance_trick === 'function') globalThis.parent.performance_trick(); } catch {}
       pub();
       globalThis.__V5_PR20_5_WORKER_TIMER=setInterval(pub,I);
-      globalThis.V5PR205Worker={version:'1.2.0',status:()=>s()};
+      globalThis.V5PR205Worker={version:'1.2.1',status:()=>s()};
     };
     return '(' + body.toString() + ')();';
   }
@@ -440,6 +458,11 @@
   async function coordinator() {
     const me = publishActor();
     installTelemetryFacade();
+    if (!armPerformanceTrick()) {
+      setState({ status:'BLOCKED', phase:'BACKGROUND_EXECUTION', terminal:true, blocker:['PR20_5_PERFORMANCE_TRICK_UNAVAILABLE'] });
+      emit('PR20_5_BLOCKED','ERROR',{ reason:'PR20_5_PERFORMANCE_TRICK_UNAVAILABLE' });
+      return;
+    }
     if (me.ctype !== 'merchant') {
       setState({ status:'WORKER', phase:'HEARTBEAT', terminal:false });
       try { if (globalThis.__V5_PR20_5_WORKER_TIMER) clearInterval(globalThis.__V5_PR20_5_WORKER_TIMER); } catch {}

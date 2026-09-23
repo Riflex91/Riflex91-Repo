@@ -71,3 +71,10 @@ test("PR20.5 telemetry facade preserves an existing operations surface", () => {
   assert.ok(source.includes("v5AutonomousTest:publicState"));
   assert.equal(source.includes("if (existing && typeof existing.status === 'function') return false;"), false);
 });
+
+
+test("PR20.5 autonomous test requires performance_trick for browser background execution", () => {
+  assert.ok(source.includes("performance_trick"));
+  assert.ok(source.includes("PR20_5_PERFORMANCE_TRICK_UNAVAILABLE"));
+  assert.ok(source.includes("BACKGROUND_EXECUTION"));
+});
