@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0.4';
+  const VERSION = '1.0.5';
   const TEST_ID = 'pr20-6-mluck-autonomous-live-5m';
   const STATE_KEY = 'AIO_V5_PR20_6_MLUCK_LIVE_5M_V1';
   const ACTORS_KEY = 'AIO_V5_PR20_6_MLUCK_ACTORS_V1';
@@ -188,11 +188,21 @@
     const r=root();
     let raw=null;
     try {
-      const fn=typeof r.get_characters==='function'
-        ? r.get_characters
-        : (typeof globalThis.get_characters==='function'?globalThis.get_characters:null);
-      if (typeof fn!=='function') return { available:false, rows:[] };
-      raw=fn.call(r);
+      const candidates=[r];
+      if(globalThis&&!candidates.includes(globalThis))candidates.push(globalThis);
+      try {
+        const p=r?.parent&&r.parent!==r?r.parent:null;
+        if(p&&!candidates.includes(p))candidates.push(p);
+      } catch {}
+      try {
+        const p=globalThis?.parent&&globalThis.parent!==globalThis?globalThis.parent:null;
+        if(p&&!candidates.includes(p))candidates.push(p);
+      } catch {}
+      const binding=candidates
+        .map(owner=>({owner,fn:owner?.get_characters}))
+        .find(entry=>typeof entry.fn==='function');
+      if(!binding) return { available:false, rows:[] };
+      raw=binding.fn.call(binding.owner);
     } catch {
       return { available:false, rows:[] };
     }
@@ -735,6 +745,53 @@
       && recovered('mage');
   }
 
+  function safeKnownV104ParentBindingRecovery(previous) {
+    const blockers=Array.isArray(previous?.blocker)?previous.blocker.map(text):[];
+    const lifecycle=previous?.characterLifecycle&&typeof previous.characterLifecycle==='object'
+      ? previous.characterLifecycle
+      : {};
+    const recovery=previous?.lifecycleRecovery&&typeof previous.lifecycleRecovery==='object'
+      ? previous.lifecycleRecovery
+      : {};
+    const recovered=(ctype)=>{
+      const row=recovery[ctype];
+      return !!row
+        && row.method==='PUBLIC_SAY_DISCONNECT_V1'
+        && row.boundaryEntered===true
+        && row.commandSettled===true
+        && row.commandResult==='RESOLVED'
+        && row.postcondition==='OFFLINE_CONFIRMED'
+        && row.postDisconnectStartBoundaryEntered===true
+        && row.postDisconnectStartResult==='RESOLVED';
+    };
+    const lifecycleBlockers=Array.isArray(lifecycle?.blockers)?lifecycle.blockers.map(text):[];
+    return previous?.testId===TEST_ID
+      && previous?.version==='1.0.4'
+      && previous?.terminal===true
+      && previous?.status==='BLOCKIERT'
+      && previous?.phase==='ROSTER'
+      && Number(previous?.gameplayWrites||0)===0
+      && Number(previous?.rawWriteCalls||0)===0
+      && previous?.sameIntentRetry===false
+      && Array.isArray(previous?.intents)
+      && previous.intents.length===0
+      && blockers.length===3
+      && blockers.includes('PR20_6_ROSTER_AUTOSTART_TIMEOUT')
+      && blockers.includes('GET_CHARACTERS_UNAVAILABLE')
+      && blockers.includes('ROSTER_RANGER_FEHLT')
+      && text(lifecycle?.mode)==='ACCOUNT_ROSTER_AUTOSTART_V2'
+      && lifecycle?.accountStateAvailable===false
+      && lifecycle?.activeStateAvailable===true
+      && Array.isArray(lifecycle?.required)
+      && lifecycle.required.length===0
+      && Number(lifecycle?.startCalls||0)===0
+      && Number(lifecycle?.disconnectCalls||0)===0
+      && lifecycleBlockers.length===1
+      && lifecycleBlockers[0]==='GET_CHARACTERS_UNAVAILABLE'
+      && recovered('priest')
+      && recovered('mage');
+  }
+
   let seq=0;
   const events=[];
   let state=readJson(STATE_KEY,null);
@@ -755,8 +812,9 @@
   } else if(state.version!==VERSION) {
     const recoverV101=safeKnownV101RosterRecovery(state);
     const recoverV103=safeKnownV103RosterRecovery(state);
-    if(recoverV101||recoverV103){
-      const preservedLifecycleRecovery=recoverV103
+    const recoverV104=safeKnownV104ParentBindingRecovery(state);
+    if(recoverV101||recoverV103||recoverV104){
+      const preservedLifecycleRecovery=(recoverV103||recoverV104)
         ? JSON.parse(JSON.stringify(state.lifecycleRecovery||{}))
         : {};
       state={

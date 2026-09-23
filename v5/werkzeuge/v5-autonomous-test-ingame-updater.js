@@ -2,7 +2,7 @@ function installV5AutonomousTestIngameUpdater() {
   'use strict';
 
   const API_NAME = 'V5AutonomousTestIngameUpdater';
-  const VERSION = '1.0.4';
+  const VERSION = '1.0.5';
   const MODE = 'NATIVE_INGAME_CLOUDFLARE_R2_V1';
   const BASE_URL = 'https://aio-bot-dashboard.hansijuergenlul.workers.dev';
   const MANIFEST_PATH = '/v5/roadmap/v5-autonomous-test-manifest.json';

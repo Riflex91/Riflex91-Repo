@@ -15,7 +15,7 @@ test("PR20.6 autonomous MLuck package is AUTO_ON_LOAD for the 4-character roster
   assert.equal(plan.coordinatorClass, "merchant");
   assert.deepEqual(plan.workerClasses, ["ranger", "priest", "mage"]);
   assert.equal(plan.testId, "pr20-6-mluck-autonomous-live-5m");
-  assert.equal(plan.controllerVersion, "1.0.4");
+  assert.equal(plan.controllerVersion, "1.0.5");
   assert.equal(plan.stateKey, "AIO_V5_PR20_6_MLUCK_LIVE_5M_V1");
   assert.equal(plan.actorsKey, "AIO_V5_PR20_6_MLUCK_ACTORS_V1");
   assert.ok(source.includes("Promise.resolve().then(run)"));
@@ -161,14 +161,23 @@ test("PR20.6 performance_trick is mandatory before autonomous execution", () => 
 });
 
 
-test("PR20.6 v1.0.4 recovery accepts only the known zero-write legacy fingerprints", () => {
+test("PR20.6 v1.0.5 recovery accepts only the known zero-write legacy fingerprints", () => {
   assert.ok(source.includes("previous?.version==='1.0.1'"));
   assert.ok(source.includes("function safeKnownV103RosterRecovery(previous)"));
   assert.ok(source.includes("previous?.version==='1.0.3'"));
+  assert.ok(source.includes("function safeKnownV104ParentBindingRecovery(previous)"));
+  assert.ok(source.includes("previous?.version==='1.0.4'"));
+  assert.ok(source.includes("blockers.includes('GET_CHARACTERS_UNAVAILABLE')"));
+  assert.ok(source.includes("blockers.includes('ROSTER_RANGER_FEHLT')"));
   assert.ok(source.includes("previous?.status==='WAITING_FOR_4_CHARACTERS'"));
   assert.ok(source.includes("lifecycleRecovery:preservedLifecycleRecovery"));
   assert.ok(source.includes("postDisconnectStartResult==='RESOLVED'"));
   assert.equal(source.includes("VERSION==='1.0.2'"), false);
+});
+
+test("PR20.6 account roster lookup also checks the Adventure Land parent host", () => {
+  assert.ok(source.includes("owner?.get_characters"));
+  assert.ok(source.includes("globalThis?.parent"));
 });
 
 test("PR20.6 disambiguates duplicate owned classes only from one explicit online account row", () => {
