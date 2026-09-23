@@ -162,7 +162,19 @@ test("PR20.6 performance_trick is mandatory before autonomous execution", () => 
 
 
 test("PR20.6 v1.0.4 recovery accepts only the known zero-write legacy fingerprints", () => {
-  assert.ok(source.includes("['1.0.1','1.0.3'].includes(previous?.version)"));
+  assert.ok(source.includes("previous?.version==='1.0.1'"));
+  assert.ok(source.includes("function safeKnownV103RosterRecovery(previous)"));
+  assert.ok(source.includes("previous?.version==='1.0.3'"));
+  assert.ok(source.includes("previous?.status==='WAITING_FOR_4_CHARACTERS'"));
+  assert.ok(source.includes("lifecycleRecovery:preservedLifecycleRecovery"));
+  assert.ok(source.includes("postDisconnectStartResult==='RESOLVED'"));
   assert.equal(source.includes("VERSION==='1.0.2'"), false);
-  assert.ok(source.includes("safeKnownV101RosterRecovery(state)"));
+});
+
+test("PR20.6 disambiguates duplicate owned classes only from one explicit online account row", () => {
+  assert.ok(source.includes("const onlineMatches=matches.filter(row=>row.online===true)"));
+  assert.ok(source.includes("onlineMatches.length===1"));
+  assert.ok(source.includes("status:'OWNED_UNIQUE_ONLINE'"));
+  assert.ok(source.includes("MEHRERE_ONLINE_"));
+  assert.ok(source.includes("ACCOUNT_'+ctype.toUpperCase()+'_MEHRDEUTIG"));
 });
