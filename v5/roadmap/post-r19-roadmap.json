@@ -701,7 +701,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE",
+      "status": "ONE_SHOT_AUTHORITY_AND_FENCING_BEREIT_NO_WRITE",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -717,9 +717,11 @@
         "v5/werkzeuge/pr20-7-gear-read-only-autonomous.js",
         "v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json",
         "v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json",
-        "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs"
+        "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs",
+      "v5/grundlage/quelle/equipment/pr20-7-gear-swap-one-shot-authority.ts",
+      "v5/grundlage/tests/pr20-gear-swap-one-shot-authority.test.mjs"
       ],
-      "nextAction": "PR20_7_OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_AND_FENCING_NO_WRITE"
+      "nextAction": "PR20_7_OCCUPIED_SLOT_DURABLE_INTENT_RECONCILIATION_NO_WRITE"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1020,7 +1022,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE",
+    "status": "ONE_SHOT_AUTHORITY_AND_FENCING_BEREIT_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1046,7 +1048,7 @@
       "v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json",
       "v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs"
     ],
-    "nextAction": "PR20_7_OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_AND_FENCING_NO_WRITE",
+    "nextAction": "PR20_7_OCCUPIED_SLOT_DURABLE_INTENT_RECONCILIATION_NO_WRITE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
