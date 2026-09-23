@@ -110,7 +110,7 @@ async function runScenario({ current, packageBody = null, controllerVersion = "1
 }
 
 test("native updater is Cloudflare-only, merchant-only and exposes no generic evaluator", () => {
-  assert.ok(source.includes("const VERSION = '1.0.3'"));
+  assert.ok(source.includes("const VERSION = '1.0.4'"));
   assert.ok(source.includes("https://aio-bot-dashboard.hansijuergenlul.workers.dev"));
   assert.ok(source.includes("coordinatorClass !== 'merchant'"));
   assert.ok(source.includes("upload_code"));
@@ -267,9 +267,9 @@ test("wrong package hash blocks save and reload", async () => {
 
 
 test("terminal blocked PR20.6 v1.0.1 with the exact no-write roster blocker upgrades safely to v1.0.3", async () => {
-  const packageBody = "(() => { globalThis.V5PR206MluckTest={version:'1.0.3'}; })();\n// pr20-6-mluck-autonomous-live-5m";
+  const packageBody = "(() => { globalThis.V5PR206MluckTest={version:'1.0.4'}; })();\n// pr20-6-mluck-autonomous-live-5m";
   const { calls } = await runScenario({
-    controllerVersion: "1.0.3",
+    controllerVersion: "1.0.4",
     current: {
       testId: "pr20-6-mluck-autonomous-live-5m",
       version: "1.0.1",
@@ -304,7 +304,7 @@ test("terminal blocked PR20.6 v1.0.1 with the exact no-write roster blocker upgr
 
 test("terminal same-test upgrade stays blocked when the exact roster recovery fingerprint is absent", async () => {
   const { calls, sandbox } = await runScenario({
-    controllerVersion: "1.0.3",
+    controllerVersion: "1.0.4",
     current: {
       testId: "pr20-6-mluck-autonomous-live-5m",
       version: "1.0.1",
@@ -340,4 +340,23 @@ test("native updater requires an active performance_trick before deployment work
   assert.ok(source.includes("WAITING_FOR_PERFORMANCE_TRICK"));
   assert.ok(source.includes("PERFORMANCE_TRICK_NOT_PLAYING"));
   assert.ok(source.includes("PERFORMANCE_TRICK_UNAVAILABLE"));
+});
+
+
+test("terminal blocked PR20.6 v1.0.3 exact zero-write roster fingerprint upgrades safely to v1.0.4", async () => {
+  const packageBody = "(() => { globalThis.V5PR206MluckTest={version:'1.0.4'}; })();\n// pr20-6-mluck-autonomous-live-5m";
+  const { calls } = await runScenario({
+    controllerVersion: "1.0.4",
+    packageBody,
+    current: {
+      testId: "pr20-6-mluck-autonomous-live-5m", version: "1.0.3", terminal: true,
+      status: "BLOCKIERT", phase: "ROSTER", gameplayWrites: 0, rawWriteCalls: 0,
+      sameIntentRetry: false, intents: [], blocker: ["PR20_6_ROSTER_AUTOSTART_TIMEOUT","ACCOUNT_RANGER_MEHRDEUTIG"],
+      characterLifecycle: { mode: "ACCOUNT_ROSTER_AUTOSTART_V1", required: [
+        {ctype:"priest",lastResult:"already_running"},{ctype:"mage",lastResult:"already_running"}
+      ] }
+    }
+  });
+  assert.equal(calls.upload.length, 1);
+  assert.equal(calls.load.length, 1);
 });
