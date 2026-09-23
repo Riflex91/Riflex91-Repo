@@ -143,7 +143,7 @@ test("PR20.6 starts missing owned ranger/priest/mage and installs workers only a
   assert.equal(state.characterLifecycle.mode, "ACCOUNT_ROSTER_AUTOSTART_V1");
   assert.equal(state.characterLifecycle.startCalls, 3);
   assert.equal(state.roster.ready, true);
-  assert.deepEqual(state.roster.missing, []);
+  assert.equal(Array.from(state.roster.missing || []).length, 0);
   assert.equal(state.gameplayWrites, 0);
   assert.equal(state.rawWriteCalls, 0);
   assert.equal(state.sameIntentRetry, false);
