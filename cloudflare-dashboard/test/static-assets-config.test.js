@@ -16,7 +16,7 @@ test('wrangler keeps the live V5 dashboard root and APIs worker-first', async ()
   assert.ok(wrangler.assets.run_worker_first.includes('/'));
   assert.ok(wrangler.assets.run_worker_first.includes('/api/*'));
   assert.match(DASHBOARD_HTML, /\/api\/v3\/overview/);
-  assert.match(DASHBOARD_HTML, /\/api\/v3\/events\\?limit=50/);
+  assert.match(DASHBOARD_HTML, /\/api\/v3\/events\?limit=50/);
   assert.match(DASHBOARD_HTML, /AioBot v5/);
   assert.doesNotMatch(DASHBOARD_HTML, /api\('\/api\/status'/);
 });
