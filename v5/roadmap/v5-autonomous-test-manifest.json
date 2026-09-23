@@ -4,14 +4,23 @@
   "repository": "Riflex91/Riflex91-Repo",
   "branch": "main",
   "gate": "PR20.6_MLUCK",
-  "testId": "pr20-6-native-updater-recovery-bootstrap-v5",
-  "controllerVersion": "1.0.5",
+  "testId": "pr20-6-mluck-autonomous-live-5m",
+  "controllerVersion": "1.0.7",
   "coordinatorClass": "merchant",
   "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
-  "sourceCommit": "7501e40e786c122546c06db77095bac0b1a89f26",
-  "packagePath": "v5/werkzeuge/pr20-6-updater-recovery-bootstrap-v5.js",
-  "packageSha256": "c4edb647ea8b4c4fd38ec791ba28ffb8c2c897c04e7cd40d287489b5bd952fea",
+  "sourceCommit": "cbccc322ea7e78e373e7b2ae7aaf09401160ab8a",
+  "packagePath": "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
+  "packageSha256": "a85b74c5b9920e0eccd6533588b2269e8bf513656d5d4d4c85f39065911103eb",
   "maxPackageBytes": 131072,
-  "expectedGlobal": "V5PR206UpdaterRecoveryBootstrap",
-  "normalRuntimeAllowed": false
+  "expectedGlobal": "V5PR206MluckTest",
+  "normalRuntimeAllowed": false,
+  "workerVersion": "1.0.0",
+  "workerPackagePath": "v5/werkzeuge/pr20-6-mluck-worker.js",
+  "workerPackageSha256": "1fd355270833f50a984e08998988c92ee5f717ecbc02480d0c4a395fc8b79a8f",
+  "workerExpectedGlobal": "V5PR206MluckWorker",
+  "workerTargets": [
+    "My_Ranger1:ranger",
+    "My_Priest:priest",
+    "My_Mage:mage"
+  ]
 }
