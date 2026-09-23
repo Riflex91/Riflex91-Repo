@@ -133,7 +133,12 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "PLANUNG_UND_RESERVIERUNG_BEREIT_LIVE_ERWEITERUNG_GESPERRT");
+    "BELEGTER_NICHTWAFFEN_SLOT_SWAP_SETTLEMENT_BEREIT_NO_WRITE");
+  assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.sameIntentRetry, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.gameplayAutoritaet, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.rawWriteAutoritaet, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponsOffhandSeparateGate, true);
 });
 
 test("Upgrade Compound Exchange und Craft bleiben vorhandenen no-retry Contracts unterworfen", () => {

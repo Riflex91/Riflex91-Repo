@@ -182,3 +182,5 @@ export * from "./merchant/mluck-produktions-faehigkeits-vertrag.js";
 export * from "./merchant/mluck-produktions-kern.js";
 export * from "./merchant/gold-transfer-settlement.js";
 export * from "./merchant/dienst-stabilitaet.js";
+
+export * from "./equipment/pr20-7-gear-swap-vorbereitung.js";

@@ -80,9 +80,9 @@
   ],
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
-    "PR20.5 15m AUTO_ON_LOAD-Gesamttest auf Merchant + Ranger + Priest + Mage ist BESTANDEN_REAL_INGAME_4CHAR_15M",
-    "PR20.6 MLuck ist BESTANDEN_REAL_INGAME_4CHAR_5M_ONE_WRITE: 4/4 Roster, 8/8 deterministisch, exakt 1 bestaetigter mluck-Write, 60 Soak-Samples",
-    "AKTUELL: PR20.7 Gear-Autonomie produktiv erweitern und die neuen Mutationsklassen einzeln ratifizieren",
+    "AKTUELL: PR20.7 belegte Nicht-Waffen-Slots besitzen jetzt ein exaktes NO-WRITE Zwei-Ort-Swap-Settlement",
+    "NAECHSTES: read-only Adventure-Land Browser-Preflight fuer einen belegten sicheren Recipient-Slot; weiterhin 0 Gameplay-Writes",
+    "mainhand/offhand sowie jede produktive Swap-Authority bleiben separate spaetere Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -700,10 +700,18 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "FOUNDATION_BEREIT_PRODUKTIVIERUNG_FREIGEGEBEN",
+      "status": "BELEGTER_NICHTWAFFEN_SLOT_SWAP_SETTLEMENT_BEREIT_NO_WRITE",
       "blockedBy": [],
       "gameplayAuthority": false,
-      "normalRuntimeAllowed": false
+      "normalRuntimeAllowed": false,
+      "rawWriteAuthority": false,
+      "artifacts": [
+        "v5/grundlage/quelle/equipment/pr20-7-gear-swap-vorbereitung.ts",
+        "v5/grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
+        "v5/grundlage/tests/pr20-gear-swap-preparation.test.mjs",
+        "v5/dokumentation/PR20-7-GEAR-PRODUKTIV-VORBEREITUNG.md"
+      ],
+      "nextAction": "PR20_7_OCCUPIED_SLOT_READ_ONLY_BROWSER_PREFLIGHT"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1004,7 +1012,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "FOUNDATION_BEREIT_PRODUKTIVIERUNG_FREIGEGEBEN",
+    "status": "BELEGTER_NICHTWAFFEN_SLOT_SWAP_SETTLEMENT_BEREIT_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1017,8 +1025,12 @@
       "v5/grundlage/quelle/merchant/gear-allokation.ts",
       "v5/grundlage/quelle/merchant/gear-progression.ts",
       "v5/grundlage/quelle/equipment/produktions-equip-transaktion.ts",
-      "v5/grundlage/quelle/equipment/produktions-equip-admission-gate.ts"
+      "v5/grundlage/quelle/equipment/produktions-equip-admission-gate.ts",
+      "v5/grundlage/quelle/equipment/pr20-7-gear-swap-vorbereitung.ts",
+      "v5/grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
+      "v5/grundlage/tests/pr20-gear-swap-preparation.test.mjs",
+      "v5/dokumentation/PR20-7-GEAR-PRODUKTIV-VORBEREITUNG.md"
     ],
-    "nextAction": "PR20_7_GEAR_MUTATIONSKLASSEN_ENG_RATIFIZIEREN"
+    "nextAction": "PR20_7_OCCUPIED_SLOT_READ_ONLY_BROWSER_PREFLIGHT"
   }
 }
