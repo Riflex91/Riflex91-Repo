@@ -119,6 +119,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 var deployNow = DateTimeOffset.UtcNow;
                 if (ShouldEnsureV5AutonomousTestDeployment(lastV5DeploymentAttemptAt, deployNow))
                 {
+                    await EnsurePr206PerformanceTrickRecoverySafeAsync(cancellationToken);
                     await EnsureV5AutonomousTestDeploymentSafeAsync(cancellationToken);
                     await EnsureLegacyPr206RosterRecoverySafeAsync(cancellationToken);
                     lastV5DeploymentAttemptAt = deployNow;
@@ -250,6 +251,23 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 var backoff = ComputeBackoffSeconds(_config.PollIntervalSeconds, _config.MaxBackoffSeconds, failures);
                 await Task.Delay(TimeSpan.FromSeconds(backoff), cancellationToken);
             }
+        }
+    }
+
+    private async Task EnsurePr206PerformanceTrickRecoverySafeAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _browser.EnsurePr206PerformanceTrickRecoveryAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // Fixed one-purpose browser wake-up for the exact terminal, zero-write
+            // PR20.6 v1.0.1 roster blocker. No gameplay or generic script authority.
         }
     }
 
