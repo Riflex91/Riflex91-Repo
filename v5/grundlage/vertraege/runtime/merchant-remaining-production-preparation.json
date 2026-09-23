@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "DURABLE_INTENT_RECONCILE_BEREIT_NO_WRITE",
+    "status": "REAL_SHADOW_AUTO_DEPLOY_BEREIT_NO_WRITE",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -82,7 +82,8 @@
       "PR20.7 Merchant-only Auto-Deploy-Paket fuer reale read-only Browser-Evidence ist SHA-gepinnt und workerlos",
       "PR20.7 exakt gebundene One-Shot-Authority-Huelle mit exklusivem Equipment-/Inventory-Fencing ist NO-WRITE vorhanden",
       "PR20.7 Durable Intent wird vor jeder moeglichen Wirkung exakt journal-durable gespeichert",
-      "PR20.7 Post-Send Reobserve/Reconcile klassifiziert BESTAETIGT/NICHT_AUSGEFUEHRT/TEILWEISE/UNGEKLAERT ohne Same-Intent-Retry"
+      "PR20.7 Post-Send Reobserve/Reconcile klassifiziert BESTAETIGT/NICHT_AUSGEFUEHRT/TEILWEISE/UNGEKLAERT ohne Same-Intent-Retry",
+      "PR20.7 realer Merchant-only Browser-Shadow ist SHA-gepinnt und workerlos vorbereitet"
     ],
     "produktiveErweiterungErstNach": [
       "PR20.1 Equip-Live-Nachweis",
@@ -145,7 +146,17 @@
       "exactJournalAckRequired": true,
       "sendBoundaryState": "NICHT_GESENDET",
       "postSendReobserveClassifier": true,
-      "newIntentAutomaticallyAllowed": false
+      "newIntentAutomaticallyAllowed": false,
+      "realShadowAutonomousPackage": "werkzeuge/pr20-7-gear-shadow-no-write-autonomous.js",
+      "realShadowTestPlan": "roadmap/pr20-7-gear-shadow-no-write-test-plan.json",
+      "realShadowEvidence": "roadmap/pr20-7-gear-shadow-no-write-evidence.json",
+      "realShadowDurableReadback": true,
+      "realShadowSendBoundaryState": "NICHT_GESENDET",
+      "realShadowExpectedReconciliation": "NOT_APPLIED",
+      "realShadowGameplayWrites": 0,
+      "realShadowRawWriteCalls": 0,
+      "realShadowAuthorityIssued": false,
+      "realShadowEvidenceStatus": "OFFEN"
     }
   },
   "pr20_8": {
