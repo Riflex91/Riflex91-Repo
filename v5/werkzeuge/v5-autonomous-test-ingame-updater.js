@@ -2,7 +2,7 @@ function installV5AutonomousTestIngameUpdater() {
   'use strict';
 
   const API_NAME = 'V5AutonomousTestIngameUpdater';
-  const VERSION = '1.0.1';
+  const VERSION = '1.0.2';
   const MODE = 'NATIVE_INGAME_CLOUDFLARE_R2_V1';
   const BASE_URL = 'https://aio-bot-dashboard.hansijuergenlul.workers.dev';
   const MANIFEST_PATH = '/v5/roadmap/v5-autonomous-test-manifest.json';
@@ -126,20 +126,50 @@ function installV5AutonomousTestIngameUpdater() {
     });
   }
 
-  function safeSameTestVersionUpgrade(active, manifest) {
-    return manifest.testId === 'pr20-6-mluck-autonomous-live-5m'
-      && text(active?.version, 80) === '1.0.0'
-      && manifest.controllerVersion === '1.0.1'
-      && active?.terminal !== true
-      && text(active?.status, 80) === 'WAITING_FOR_4_CHARACTERS'
-      && text(active?.phase, 80) === 'ROSTER'
-      && Number.isFinite(Number(active?.gameplayWrites))
+  function zeroWriteSameIntentState(active) {
+    return Number.isFinite(Number(active?.gameplayWrites))
       && Number(active.gameplayWrites) === 0
       && Number.isFinite(Number(active?.rawWriteCalls))
       && Number(active.rawWriteCalls) === 0
       && active?.sameIntentRetry === false
       && Array.isArray(active?.intents)
       && active.intents.length === 0;
+  }
+
+  function safeTerminalPr206RecoveryUpgrade(active, manifest) {
+    const blockers = Array.isArray(active?.blocker)
+      ? active.blocker.map(value => text(value, 160))
+      : [];
+    const lifecycle = active?.characterLifecycle;
+    const required = Array.isArray(lifecycle?.required) ? lifecycle.required : [];
+    const alreadyRunning = new Set(required
+      .filter(row => ['priest', 'mage'].includes(text(row?.ctype, 40).toLowerCase())
+        && text(row?.lastResult, 120) === 'already_running')
+      .map(row => text(row?.ctype, 40).toLowerCase()));
+
+    return manifest.testId === 'pr20-6-mluck-autonomous-live-5m'
+      && text(active?.version, 80) === '1.0.1'
+      && manifest.controllerVersion === '1.0.2'
+      && active?.terminal === true
+      && text(active?.status, 80) === 'BLOCKIERT'
+      && text(active?.phase, 80) === 'ROSTER'
+      && zeroWriteSameIntentState(active)
+      && blockers.includes('PR20_6_ROSTER_AUTOSTART_TIMEOUT')
+      && blockers.includes('ACCOUNT_RANGER_MEHRDEUTIG')
+      && text(lifecycle?.mode, 100) === 'ACCOUNT_ROSTER_AUTOSTART_V1'
+      && alreadyRunning.has('priest')
+      && alreadyRunning.has('mage');
+  }
+
+  function safeSameTestVersionUpgrade(active, manifest) {
+    const legacyWaitUpgrade = manifest.testId === 'pr20-6-mluck-autonomous-live-5m'
+      && text(active?.version, 80) === '1.0.0'
+      && manifest.controllerVersion === '1.0.1'
+      && active?.terminal !== true
+      && text(active?.status, 80) === 'WAITING_FOR_4_CHARACTERS'
+      && text(active?.phase, 80) === 'ROSTER'
+      && zeroWriteSameIntentState(active);
+    return legacyWaitUpgrade || safeTerminalPr206RecoveryUpgrade(active, manifest);
   }
 
   function deploymentDecision(manifest) {
