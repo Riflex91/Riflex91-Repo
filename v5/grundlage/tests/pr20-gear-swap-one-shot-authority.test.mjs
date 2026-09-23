@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 
 import {
   PR20_7_GEAR_SWAP_AUTHORITY_BESTAETIGUNG,
@@ -300,5 +301,65 @@ test("PR20.7 blockiert ungepruefte Evidence, Waffen, Identitaetsambiguitaet und 
     assert.equal(result.authority, null);
     assert.equal(durable.entries.length, 0);
     assert.equal(resources.sicht().length, 0);
+  }
+});
+
+
+test("PR20.7 Authority/Fencing-Vertrag bleibt strikt NO-WRITE und nicht verdrahtet", () => {
+  const contract = JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr20-7-gear-swap-one-shot-authority.json",
+    "utf8",
+  ));
+  assert.equal(contract.status, "BEREIT_NO_WRITE");
+  assert.equal(
+    contract.prerequisiteEvidence.requiredStatus,
+    "BESTANDEN_REAL_BROWSER_NO_WRITE",
+  );
+  assert.equal(contract.prerequisiteEvidence.ratified, true);
+  assert.equal(contract.scope.maximumUses, 1);
+  assert.equal(contract.scope.maximumTtlMs, 1500);
+  assert.equal(contract.fencing.resourceArt, "LANGLEBIG");
+  assert.equal(contract.fencing.epochePinned, true);
+  assert.equal(contract.fencing.concurrentFlowBlocked, true);
+  assert.equal(
+    contract.fencing.expiredLeaseState,
+    "ABGELAUFEN_ABGLEICH",
+  );
+  assert.equal(contract.fencing.silentReuseAfterExpiry, false);
+  assert.equal(contract.fencing.reconciliationRequiredAfterExpiry, true);
+  assert.equal(contract.authorityBoundary.produktiveRegistrierungErlaubt, false);
+  assert.equal(contract.authorityBoundary.hostExposed, false);
+  assert.equal(contract.authorityBoundary.executorWired, false);
+  assert.equal(contract.authorityBoundary.gameplayWriteAusgefuehrt, false);
+  assert.equal(contract.authorityBoundary.gameplayAutoritaet, false);
+  assert.equal(contract.authorityBoundary.rawWriteAutoritaet, false);
+  assert.equal(contract.authorityBoundary.swapWriteRatification, false);
+  assert.equal(contract.authorityBoundary.publicFunctionCalls, 0);
+  assert.equal(contract.authorityBoundary.browserGameplayWrites, 0);
+  assert.equal(contract.authorityBoundary.normalRuntimeAllowed, false);
+  assert.equal(contract.nextGate.weaponsAndOffhandRemainSeparate, true);
+});
+
+test("PR20.7 Authority- und Persistenzquellen enthalten keinen Gameplay-Write-Pfad", () => {
+  const files = [
+    "grundlage/quelle/equipment/pr20-7-gear-swap-einmal-authority.ts",
+    "grundlage/adapter/persistenz/node-pr20-7-gear-swap-einmal-authority-protokoll.mjs",
+  ];
+  const forbidden = [
+    [".", "equip", "("],
+    ["un", "equip", "("],
+    ["use", "_", "skill", "("],
+    ["send", "_", "item", "("],
+    ["api", "_", "call", "("],
+    ["socket", ".", "emit", "("],
+    ["start", "_", "character", "("],
+    ["command", "_", "character", "("],
+    ["/", "disconnect", " "],
+  ].map(parts => parts.join(""));
+  for (const file of files) {
+    const source = fs.readFileSync(file, "utf8");
+    for (const marker of forbidden) {
+      assert.equal(source.includes(marker), false, file + ":" + marker);
+    }
   }
 });
