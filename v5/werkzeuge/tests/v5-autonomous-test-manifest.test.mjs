@@ -181,10 +181,11 @@ test("PR20.6 final manifest pins the bridge worker fallback to exact no-write fa
 test("PR20.7 Gear package is terminal read-only and does not touch farmer lifecycle", () => {
   if (manifest.testId !== "pr20-7-gear-occupied-slot-read-only-preflight") return;
   assert.equal(manifest.controllerVersion, "1.0.0");
-  assert.equal(manifest.workerPackagePath, null);
-  assert.equal(manifest.workerPackageSha256, null);
-  assert.equal(manifest.workerExpectedGlobal, null);
-  assert.deepEqual(manifest.workerTargets, []);
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.equal("workerPackageSha256" in manifest, false);
+  assert.equal("workerExpectedGlobal" in manifest, false);
+  assert.equal("workerTargets" in manifest, false);
   assert.ok(packageSource.includes("performance_trick"));
   assert.ok(packageSource.includes("stableDoubleObservation"));
   assert.ok(packageSource.includes("gameplayWrites: 0"));
