@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 import { DASHBOARD_HTML } from '../src/dashboard.js';
 import { SETTINGS_SCHEMA_VERSION, SETTINGS_BY_KEY, normalizeSetting } from '../src/settings-schema.js';
 
@@ -56,4 +57,10 @@ test('V5 GUI is responsive and respects reduced motion', () => {
   assert.match(DASHBOARD_HTML, /@media\(max-width:1150px\)/);
   assert.match(DASHBOARD_HTML, /@media\(max-width:760px\)/);
   assert.match(DASHBOARD_HTML, /prefers-reduced-motion:reduce/);
+});
+
+test('embedded V5 dashboard browser script parses cleanly', () => {
+  const match = DASHBOARD_HTML.match(/<script>([\s\S]*?)<\/script>/i);
+  assert.ok(match && match[1]);
+  assert.doesNotThrow(() => new vm.Script(match[1], { filename: 'v5-dashboard-inline.js' }));
 });
