@@ -319,7 +319,6 @@
   }
 
   async function run() {
-    installTelemetryFacade();
     try {
       const performanceTrick = await ensurePerformanceTrick();
       setState({ performanceTrick });
@@ -498,6 +497,8 @@
       });
     }
   }
+
+  installTelemetryFacade();
 
   Object.defineProperty(globalThis, 'V5PR207GearReadonlyTest', {
     configurable: true,
