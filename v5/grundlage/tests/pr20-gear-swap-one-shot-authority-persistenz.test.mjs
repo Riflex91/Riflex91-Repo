@@ -49,12 +49,14 @@ function intent(overrides = {}) {
     fences: [
       {
         ressourcenId: "character:My_Merchant:equipment",
+        ablaufId: "PR20-7-GEAR-FLOW-1",
         epoche: 1,
         art: "LANGLEBIG",
         leaseBisMs: 1_600,
       },
       {
         ressourcenId: "character:My_Merchant:inventory",
+        ablaufId: "PR20-7-GEAR-FLOW-1",
         epoche: 1,
         art: "LANGLEBIG",
         leaseBisMs: 1_600,
@@ -113,10 +115,10 @@ test("PR20.7 Swap-Authority-Audit persistiert Scope und Fence-Epochen exklusiv d
     assert.equal(stored.scope.slot, "helmet");
     assert.equal(stored.scope.kandidatIndex, 7);
     assert.deepEqual(
-      stored.fences.map(x => [x.ressourcenId, x.epoche]),
+      stored.fences.map(x => [x.ressourcenId, x.ablaufId, x.epoche]),
       [
-        ["character:My_Merchant:equipment", 1],
-        ["character:My_Merchant:inventory", 1],
+        ["character:My_Merchant:equipment", "PR20-7-GEAR-FLOW-1", 1],
+        ["character:My_Merchant:inventory", "PR20-7-GEAR-FLOW-1", 1],
       ],
     );
     assert.equal(stored.produktiveRegistrierungErlaubt, false);
