@@ -126,6 +126,128 @@ public sealed class CdpAdventureLandClient
             TargetUrl: null);
     }
 
+    public async Task<V5PerformanceTrickRecoveryResult> EnsurePr206PerformanceTrickRecoveryAsync(
+        CancellationToken cancellationToken)
+    {
+        var targets = await FindTargetsAsync(cancellationToken);
+        foreach (var target in targets)
+        {
+            using var socket = new ClientWebSocket();
+            try
+            {
+                await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
+                var contexts = await CollectAllowedExecutionContextsAsync(socket, cancellationToken);
+                foreach (var contextId in contexts)
+                {
+                    JsonElement probe;
+                    try
+                    {
+                        probe = await EvaluateAsync(socket, V5DeploymentProbeExpression, contextId, cancellationToken);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        continue;
+                    }
+
+                    if (!string.Equals(ReadString(probe, "ctype"), "merchant", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    var currentTestId = ReadString(probe, "currentTestId");
+                    if (string.IsNullOrWhiteSpace(currentTestId))
+                        continue;
+
+                    var allowed = ShouldAttemptPr206PerformanceTrickRecovery(
+                        currentTestId,
+                        ReadString(probe, "currentVersion"),
+                        ReadString(probe, "currentStatus"),
+                        ReadString(probe, "currentPhase"),
+                        ReadBoolean(probe, "currentTerminal", false),
+                        ReadInt64(probe, "currentGameplayWrites", long.MaxValue),
+                        ReadInt64(probe, "currentRawWriteCalls", long.MaxValue),
+                        ReadBoolean(probe, "currentSameIntentRetry", true),
+                        (int)Math.Clamp(ReadInt64(probe, "currentIntentCount", int.MaxValue), 0, int.MaxValue),
+                        ReadBoolean(probe, "currentHasRosterTimeoutBlocker", false),
+                        ReadBoolean(probe, "currentHasAmbiguousRangerBlocker", false),
+                        ReadString(probe, "currentLifecycleMode"),
+                        ReadBoolean(probe, "currentPriestAlreadyRunning", false),
+                        ReadBoolean(probe, "currentMageAlreadyRunning", false));
+
+                    if (!allowed)
+                    {
+                        return new V5PerformanceTrickRecoveryResult(
+                            "NOT_APPLICABLE",
+                            Changed: false,
+                            Active: false,
+                            currentTestId,
+                            target.Url);
+                    }
+
+                    var recovery = await EvaluateAsync(
+                        socket,
+                        V5Pr206PerformanceTrickRecoveryExpression,
+                        contextId,
+                        cancellationToken);
+                    var state = ReadString(recovery, "state") ?? "UNKNOWN";
+                    var called = ReadBoolean(recovery, "called", false);
+                    var active = ReadBoolean(recovery, "active", false);
+
+                    return new V5PerformanceTrickRecoveryResult(
+                        state,
+                        Changed: called,
+                        Active: active,
+                        currentTestId,
+                        target.Url);
+                }
+            }
+            catch (WebSocketException)
+            {
+                // Try another same-origin Adventure Land target.
+            }
+        }
+
+        return new V5PerformanceTrickRecoveryResult(
+            "MERCHANT_CONTEXT_NOT_FOUND",
+            Changed: false,
+            Active: false,
+            TestId: null,
+            TargetUrl: null);
+    }
+
+    public static bool ShouldAttemptPr206PerformanceTrickRecovery(
+        string? currentTestId,
+        string? currentVersion,
+        string? currentStatus,
+        string? currentPhase,
+        bool currentTerminal,
+        long currentGameplayWrites,
+        long currentRawWriteCalls,
+        bool currentSameIntentRetry,
+        int currentIntentCount,
+        bool currentHasRosterTimeoutBlocker,
+        bool currentHasAmbiguousRangerBlocker,
+        string? currentLifecycleMode,
+        bool currentPriestAlreadyRunning,
+        bool currentMageAlreadyRunning)
+    {
+        return string.Equals(
+                currentTestId,
+                "pr20-6-mluck-autonomous-live-5m",
+                StringComparison.Ordinal)
+            && string.Equals(currentVersion, "1.0.1", StringComparison.Ordinal)
+            && string.Equals(currentStatus, "BLOCKIERT", StringComparison.Ordinal)
+            && string.Equals(currentPhase, "ROSTER", StringComparison.Ordinal)
+            && currentTerminal
+            && currentGameplayWrites == 0
+            && currentRawWriteCalls == 0
+            && !currentSameIntentRetry
+            && currentIntentCount == 0
+            && currentHasRosterTimeoutBlocker
+            && currentHasAmbiguousRangerBlocker
+            && string.Equals(currentLifecycleMode, "ACCOUNT_ROSTER_AUTOSTART_V1", StringComparison.Ordinal)
+            && currentPriestAlreadyRunning
+            && currentMageAlreadyRunning;
+    }
+
     public async Task<V5LegacyRosterRecoveryResult> EnsureLegacyPr206RosterRecoveryAsync(
         CancellationToken cancellationToken)
     {
@@ -846,7 +968,128 @@ public sealed class CdpAdventureLandClient
           : null,
         currentSameIntentRetry: current ? current.sameIntentRetry !== false : null,
         currentIntentCount: current && Array.isArray(current.intents) ? current.intents.length : null,
+        currentHasRosterTimeoutBlocker: current && Array.isArray(current.blocker)
+          ? current.blocker.map((value) => String(value || '')).includes('PR20_6_ROSTER_AUTOSTART_TIMEOUT')
+          : false,
+        currentHasAmbiguousRangerBlocker: current && Array.isArray(current.blocker)
+          ? current.blocker.map((value) => String(value || '')).includes('ACCOUNT_RANGER_MEHRDEUTIG')
+          : false,
+        currentLifecycleMode: current && current.characterLifecycle
+          ? String(current.characterLifecycle.mode || '')
+          : null,
+        currentPriestAlreadyRunning: current && current.characterLifecycle && Array.isArray(current.characterLifecycle.required)
+          ? current.characterLifecycle.required.some((row) =>
+              row && String(row.ctype || '').toLowerCase() === 'priest'
+              && String(row.lastResult || '') === 'already_running')
+          : false,
+        currentMageAlreadyRunning: current && current.characterLifecycle && Array.isArray(current.characterLifecycle.required)
+          ? current.characterLifecycle.required.some((row) =>
+              row && String(row.ctype || '').toLowerCase() === 'mage'
+              && String(row.lastResult || '') === 'already_running')
+          : false,
         desiredApiVersion
+      };
+    })()
+    """;
+
+    private const string V5Pr206PerformanceTrickRecoveryExpression = """
+    (() => {
+      const TARGET_TEST_ID = 'pr20-6-mluck-autonomous-live-5m';
+      const TARGET_VERSION = '1.0.1';
+
+      const local = globalThis;
+      let host = globalThis;
+      try {
+        if (globalThis.parent && globalThis.parent !== globalThis)
+          host = globalThis.parent;
+      } catch {}
+
+      let character = null;
+      try { character = local.character || host.character || null; } catch {}
+      if (String(character && character.ctype || '').toLowerCase() !== 'merchant')
+        return { state: 'NOT_MERCHANT', called: false, active: false };
+
+      let current = null;
+      try {
+        const aio = local.AIO_V3 || host.AIO_V3 || null;
+        const operations = aio && aio.operations;
+        const status = typeof operations?.status === 'function' ? operations.status() : null;
+        current = status && status.v5AutonomousTest && typeof status.v5AutonomousTest === 'object'
+          ? status.v5AutonomousTest
+          : null;
+      } catch {}
+
+      const blockers = current && Array.isArray(current.blocker)
+        ? current.blocker.map((value) => String(value || ''))
+        : [];
+      const lifecycle = current && current.characterLifecycle && typeof current.characterLifecycle === 'object'
+        ? current.characterLifecycle
+        : null;
+      const required = lifecycle && Array.isArray(lifecycle.required) ? lifecycle.required : [];
+      const priestAlreadyRunning = required.some((row) =>
+        row && String(row.ctype || '').toLowerCase() === 'priest'
+        && String(row.lastResult || '') === 'already_running');
+      const mageAlreadyRunning = required.some((row) =>
+        row && String(row.ctype || '').toLowerCase() === 'mage'
+        && String(row.lastResult || '') === 'already_running');
+
+      const safe = !!current
+        && String(current.testId || '') === TARGET_TEST_ID
+        && String(current.version || '') === TARGET_VERSION
+        && String(current.status || '') === 'BLOCKIERT'
+        && String(current.phase || '') === 'ROSTER'
+        && current.terminal === true
+        && Number.isFinite(Number(current.gameplayWrites))
+        && Number(current.gameplayWrites) === 0
+        && Number.isFinite(Number(current.rawWriteCalls))
+        && Number(current.rawWriteCalls) === 0
+        && current.sameIntentRetry === false
+        && Array.isArray(current.intents)
+        && current.intents.length === 0
+        && blockers.includes('PR20_6_ROSTER_AUTOSTART_TIMEOUT')
+        && blockers.includes('ACCOUNT_RANGER_MEHRDEUTIG')
+        && String(lifecycle && lifecycle.mode || '') === 'ACCOUNT_ROSTER_AUTOSTART_V1'
+        && priestAlreadyRunning
+        && mageAlreadyRunning;
+      if (!safe)
+        return { state: 'STATE_CHANGED_BLOCKED', called: false, active: false };
+
+      const roots = host === local ? [local] : [local, host];
+      let performanceOwner = null;
+      for (const candidate of roots) {
+        try {
+          if (candidate && typeof candidate.performance_trick === 'function') {
+            performanceOwner = candidate;
+            break;
+          }
+        } catch {}
+      }
+      if (!performanceOwner)
+        return { state: 'PERFORMANCE_TRICK_UNAVAILABLE', called: false, active: false };
+
+      try {
+        performanceOwner.performance_trick();
+      } catch {
+        return { state: 'PERFORMANCE_TRICK_FAILED', called: false, active: false };
+      }
+
+      let playing = false;
+      let cplaying = false;
+      for (const candidate of roots) {
+        try {
+          const empty = candidate && candidate.sounds && candidate.sounds.empty;
+          if (!empty) continue;
+          if (empty.cplaying === true) cplaying = true;
+          if (typeof empty.playing === 'function' && empty.playing() === true)
+            playing = true;
+        } catch {}
+      }
+
+      return {
+        state: playing ? 'ARMED' : 'CALLED_NOT_PLAYING',
+        called: true,
+        active: playing,
+        cplaying
       };
     })()
     """;
@@ -1177,6 +1420,13 @@ public sealed record V5AutonomousTestDeploymentResult(
     string State,
     bool Changed,
     string TestId,
+    string? TargetUrl);
+
+public sealed record V5PerformanceTrickRecoveryResult(
+    string State,
+    bool Changed,
+    bool Active,
+    string? TestId,
     string? TargetUrl);
 
 public sealed record V5LegacyRosterRecoveryResult(
