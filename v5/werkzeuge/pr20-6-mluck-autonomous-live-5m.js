@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0.3';
+  const VERSION = '1.0.4';
   const TEST_ID = 'pr20-6-mluck-autonomous-live-5m';
   const STATE_KEY = 'AIO_V5_PR20_6_MLUCK_LIVE_5M_V1';
   const ACTORS_KEY = 'AIO_V5_PR20_6_MLUCK_ACTORS_V1';
@@ -676,7 +676,7 @@
         && text(row?.lastResult)==='already_running')
       .map(row=>text(row?.ctype).toLowerCase()));
     return previous?.testId===TEST_ID
-      && previous?.version==='1.0.1'
+      && ['1.0.1','1.0.3'].includes(previous?.version)
       && previous?.terminal===true
       && previous?.status==='BLOCKIERT'
       && previous?.phase==='ROSTER'
@@ -710,7 +710,7 @@
     };
     writeJson(STATE_KEY,state);
   } else if(state.version!==VERSION) {
-    if(VERSION==='1.0.2'&&safeKnownV101RosterRecovery(state)){
+    if(safeKnownV101RosterRecovery(state)){
       state={
         ...state,
         version:VERSION,

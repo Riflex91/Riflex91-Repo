@@ -2,7 +2,7 @@ function installV5AutonomousTestIngameUpdaterV102() {
   'use strict';
 
   const API_NAME = 'V5AutonomousTestIngameUpdater';
-  const VERSION = '1.0.3';
+  const VERSION = '1.0.4';
   const MODE = 'NATIVE_INGAME_CLOUDFLARE_R2_V1';
   const BASE_URL = 'https://aio-bot-dashboard.hansijuergenlul.workers.dev';
   const MANIFEST_PATH = '/v5/roadmap/v5-autonomous-test-manifest.json';
@@ -199,8 +199,8 @@ function installV5AutonomousTestIngameUpdaterV102() {
       .map(row => text(row?.ctype, 40).toLowerCase()));
 
     return manifest.testId === 'pr20-6-mluck-autonomous-live-5m'
-      && text(active?.version, 80) === '1.0.1'
-      && manifest.controllerVersion === '1.0.3'
+      && ['1.0.1', '1.0.3'].includes(text(active?.version, 80))
+      && manifest.controllerVersion === '1.0.4'
       && active?.terminal === true
       && text(active?.status, 80) === 'BLOCKIERT'
       && text(active?.phase, 80) === 'ROSTER'
@@ -509,8 +509,8 @@ installV5AutonomousTestIngameUpdaterV102();
 
 (() => {
   'use strict';
-  const TEST_ID = 'pr20-6-native-updater-recovery-bootstrap-v1';
-  const VERSION = '1.0.0';
+  const TEST_ID = 'pr20-6-native-updater-recovery-bootstrap-v2';
+  const VERSION = '1.0.1';
   const state = Object.freeze({
     schemaVersion: 1,
     testId: TEST_ID,
@@ -522,7 +522,7 @@ installV5AutonomousTestIngameUpdaterV102();
     rawWriteCalls: 0,
     sameIntentRetry: false,
     intents: [],
-    updaterVersion: '1.0.3',
+    updaterVersion: '1.0.4',
     normalRuntimeAllowed: false,
     observedAtMs: Date.now()
   });
@@ -562,7 +562,7 @@ installV5AutonomousTestIngameUpdaterV102();
   globalThis.V5PR206UpdaterRecoveryBootstrap = Object.freeze({
     version: VERSION,
     testId: TEST_ID,
-    updaterVersion: '1.0.3',
+    updaterVersion: '1.0.4',
     status: () => ({ ...state })
   });
 })();

@@ -12,6 +12,10 @@ const allowedPackages = Object.freeze({
   "pr20-6-native-updater-recovery-bootstrap-v1": Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
     expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
+  }),
+  "pr20-6-native-updater-recovery-bootstrap-v2": Object.freeze({
+    path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
+    expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
   })
 });
 const selected = allowedPackages[manifest.testId];

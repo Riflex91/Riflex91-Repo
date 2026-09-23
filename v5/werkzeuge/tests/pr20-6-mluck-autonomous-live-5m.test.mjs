@@ -15,7 +15,7 @@ test("PR20.6 autonomous MLuck package is AUTO_ON_LOAD for the 4-character roster
   assert.equal(plan.coordinatorClass, "merchant");
   assert.deepEqual(plan.workerClasses, ["ranger", "priest", "mage"]);
   assert.equal(plan.testId, "pr20-6-mluck-autonomous-live-5m");
-  assert.equal(plan.controllerVersion, "1.0.3");
+  assert.equal(plan.controllerVersion, "1.0.4");
   assert.equal(plan.stateKey, "AIO_V5_PR20_6_MLUCK_LIVE_5M_V1");
   assert.equal(plan.actorsKey, "AIO_V5_PR20_6_MLUCK_ACTORS_V1");
   assert.ok(source.includes("Promise.resolve().then(run)"));
@@ -158,4 +158,11 @@ test("PR20.6 performance_trick is mandatory before autonomous execution", () => 
   assert.ok(source.includes("performance_trick"));
   assert.ok(source.includes("PR20_6_PERFORMANCE_TRICK_UNAVAILABLE"));
   assert.ok(source.includes("BACKGROUND_EXECUTION"));
+});
+
+
+test("PR20.6 v1.0.4 recovery accepts only the known zero-write legacy fingerprints", () => {
+  assert.ok(source.includes("['1.0.1','1.0.3'].includes(previous?.version)"));
+  assert.equal(source.includes("VERSION==='1.0.2'"), false);
+  assert.ok(source.includes("safeKnownV101RosterRecovery(state)"));
 });
