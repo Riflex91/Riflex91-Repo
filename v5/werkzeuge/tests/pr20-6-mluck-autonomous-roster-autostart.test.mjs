@@ -29,6 +29,7 @@ test("PR20.6 resolves parent-only get_characters, starts missing owned farmer cl
   const starts = [];
   const commands = [];
   const timers = [];
+  const workerPerformanceTrickCalls = [];
 
   function workerContext(name, ctype) {
     return {
@@ -44,7 +45,7 @@ test("PR20.6 resolves parent-only get_characters, starts missing owned farmer cl
       RegExp,
       Error,
       localStorage: storage,
-    performance_trick() { return true; },
+    performance_trick() { workerPerformanceTrickCalls.push(name); return true; },
       setInterval(fn) { timers.push(fn); return timers.length; },
       clearInterval() {},
       character: {
@@ -137,12 +138,13 @@ test("PR20.6 resolves parent-only get_characters, starts missing owned farmer cl
 
   assert.deepEqual(starts.sort(), ["MageOne", "PriestOne", "RangerOne"]);
   assert.deepEqual([...new Set(commands)].sort(), ["MageOne", "PriestOne", "RangerOne"]);
+  assert.deepEqual([...new Set(workerPerformanceTrickCalls)].sort(), ["MageOne", "PriestOne", "RangerOne"]);
   assert.ok(commands.length >= 3);
   assert.equal(commands.includes("Merchant"), false);
   assert.equal(commands.every(name => ["MageOne", "PriestOne", "RangerOne"].includes(name)), true);
 
   const state = sandbox.V5PR206MluckTest.status();
-  assert.equal(state.version, "1.0.5");
+  assert.equal(state.version, "1.0.6");
   assert.equal(state.characterLifecycle.mode, "ACCOUNT_ROSTER_AUTOSTART_V2");
   assert.equal(state.characterLifecycle.startCalls, 3);
   assert.equal(state.roster.ready, true);
@@ -409,7 +411,7 @@ test("PR20.6 recovers exact already_running priest/mage through one official dis
   assert.equal(starts.filter(name => name === "MageOne").length, 2);
 
   const state = sandbox.V5PR206MluckTest.status();
-  assert.equal(state.version, "1.0.5");
+  assert.equal(state.version, "1.0.6");
   assert.equal(state.characterLifecycle.mode, "ACCOUNT_ROSTER_AUTOSTART_V2");
   assert.equal(state.roster.ready, true);
   assert.equal(state.lifecycleRecovery.priest.postcondition, "OFFLINE_CONFIRMED");
