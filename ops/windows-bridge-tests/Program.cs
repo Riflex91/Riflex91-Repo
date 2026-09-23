@@ -436,6 +436,66 @@ Assert(!CdpAdventureLandClient.ShouldAttemptLegacyPr206RosterRecovery(
     "ROSTER",
     false, 0, 0, false, 0), "V5_LEGACY_ROSTER_RECOVERY_EXACT_TEST_ONLY");
 
+Assert(CdpAdventureLandClient.ShouldAttemptPr206PerformanceTrickRecovery(
+    "pr20-6-mluck-autonomous-live-5m",
+    "1.0.1",
+    "BLOCKIERT",
+    "ROSTER",
+    currentTerminal: true,
+    currentGameplayWrites: 0,
+    currentRawWriteCalls: 0,
+    currentSameIntentRetry: false,
+    currentIntentCount: 0,
+    currentHasRosterTimeoutBlocker: true,
+    currentHasAmbiguousRangerBlocker: true,
+    currentLifecycleMode: "ACCOUNT_ROSTER_AUTOSTART_V1",
+    currentPriestAlreadyRunning: true,
+    currentMageAlreadyRunning: true), "V5_PR206_PERFORMANCE_RECOVERY_EXACT_SAFE_STATE");
+Assert(!CdpAdventureLandClient.ShouldAttemptPr206PerformanceTrickRecovery(
+    "pr20-6-mluck-autonomous-live-5m", "1.0.2", "BLOCKIERT", "ROSTER",
+    true, 0, 0, false, 0, true, true, "ACCOUNT_ROSTER_AUTOSTART_V1", true, true),
+    "V5_PR206_PERFORMANCE_RECOVERY_EXACT_VERSION_ONLY");
+Assert(!CdpAdventureLandClient.ShouldAttemptPr206PerformanceTrickRecovery(
+    "pr20-6-mluck-autonomous-live-5m", "1.0.1", "BLOCKIERT", "ROSTER",
+    true, 1, 0, false, 0, true, true, "ACCOUNT_ROSTER_AUTOSTART_V1", true, true),
+    "V5_PR206_PERFORMANCE_RECOVERY_BLOCKS_GAMEPLAY_WRITE");
+Assert(!CdpAdventureLandClient.ShouldAttemptPr206PerformanceTrickRecovery(
+    "pr20-6-mluck-autonomous-live-5m", "1.0.1", "BLOCKIERT", "ROSTER",
+    true, 0, 1, false, 0, true, true, "ACCOUNT_ROSTER_AUTOSTART_V1", true, true),
+    "V5_PR206_PERFORMANCE_RECOVERY_BLOCKS_RAW_WRITE");
+Assert(!CdpAdventureLandClient.ShouldAttemptPr206PerformanceTrickRecovery(
+    "pr20-6-mluck-autonomous-live-5m", "1.0.1", "BLOCKIERT", "ROSTER",
+    true, 0, 0, true, 0, true, true, "ACCOUNT_ROSTER_AUTOSTART_V1", true, true),
+    "V5_PR206_PERFORMANCE_RECOVERY_BLOCKS_RETRY_DRIFT");
+Assert(!CdpAdventureLandClient.ShouldAttemptPr206PerformanceTrickRecovery(
+    "pr20-6-mluck-autonomous-live-5m", "1.0.1", "BLOCKIERT", "ROSTER",
+    true, 0, 0, false, 1, true, true, "ACCOUNT_ROSTER_AUTOSTART_V1", true, true),
+    "V5_PR206_PERFORMANCE_RECOVERY_BLOCKS_OPEN_INTENT");
+Assert(!CdpAdventureLandClient.ShouldAttemptPr206PerformanceTrickRecovery(
+    "pr20-6-mluck-autonomous-live-5m", "1.0.1", "BLOCKIERT", "ROSTER",
+    true, 0, 0, false, 0, false, true, "ACCOUNT_ROSTER_AUTOSTART_V1", true, true),
+    "V5_PR206_PERFORMANCE_RECOVERY_REQUIRES_ROSTER_TIMEOUT");
+Assert(!CdpAdventureLandClient.ShouldAttemptPr206PerformanceTrickRecovery(
+    "pr20-6-mluck-autonomous-live-5m", "1.0.1", "BLOCKIERT", "ROSTER",
+    true, 0, 0, false, 0, true, false, "ACCOUNT_ROSTER_AUTOSTART_V1", true, true),
+    "V5_PR206_PERFORMANCE_RECOVERY_REQUIRES_AMBIGUOUS_RANGER");
+Assert(!CdpAdventureLandClient.ShouldAttemptPr206PerformanceTrickRecovery(
+    "pr20-6-mluck-autonomous-live-5m", "1.0.1", "BLOCKIERT", "ROSTER",
+    true, 0, 0, false, 0, true, true, "ACCOUNT_ROSTER_AUTOSTART_V2", true, true),
+    "V5_PR206_PERFORMANCE_RECOVERY_REQUIRES_LEGACY_LIFECYCLE");
+Assert(!CdpAdventureLandClient.ShouldAttemptPr206PerformanceTrickRecovery(
+    "pr20-6-mluck-autonomous-live-5m", "1.0.1", "BLOCKIERT", "ROSTER",
+    true, 0, 0, false, 0, true, true, "ACCOUNT_ROSTER_AUTOSTART_V1", false, true),
+    "V5_PR206_PERFORMANCE_RECOVERY_REQUIRES_PRIEST_ALREADY_RUNNING");
+Assert(!CdpAdventureLandClient.ShouldAttemptPr206PerformanceTrickRecovery(
+    "pr20-6-mluck-autonomous-live-5m", "1.0.1", "BLOCKIERT", "ROSTER",
+    true, 0, 0, false, 0, true, true, "ACCOUNT_ROSTER_AUTOSTART_V1", true, false),
+    "V5_PR206_PERFORMANCE_RECOVERY_REQUIRES_MAGE_ALREADY_RUNNING");
+Assert(!CdpAdventureLandClient.ShouldAttemptPr206PerformanceTrickRecovery(
+    "other-test", "1.0.1", "BLOCKIERT", "ROSTER",
+    true, 0, 0, false, 0, true, true, "ACCOUNT_ROSTER_AUTOSTART_V1", true, true),
+    "V5_PR206_PERFORMANCE_RECOVERY_EXACT_TEST_ONLY");
+
 var v5DeployNow = DateTimeOffset.UtcNow;
 Assert(TelemetryBridgeService.ShouldEnsureV5AutonomousTestDeployment(null, v5DeployNow), "V5_AUTO_DEPLOY_INITIAL");
 Assert(!TelemetryBridgeService.ShouldEnsureV5AutonomousTestDeployment(v5DeployNow, v5DeployNow.AddSeconds(14)), "V5_AUTO_DEPLOY_THROTTLED");
