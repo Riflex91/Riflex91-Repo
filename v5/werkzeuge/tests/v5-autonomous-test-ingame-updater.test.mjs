@@ -108,6 +108,7 @@ async function runScenario({ current, packageBody = null, controllerVersion = "1
 }
 
 test("native updater is Cloudflare-only, merchant-only and exposes no generic evaluator", () => {
+  assert.ok(source.includes("const VERSION = '1.0.2'"));
   assert.ok(source.includes("https://aio-bot-dashboard.hansijuergenlul.workers.dev"));
   assert.ok(source.includes("coordinatorClass !== 'merchant'"));
   assert.ok(source.includes("upload_code"));
@@ -258,4 +259,73 @@ test("wrong package hash blocks save and reload", async () => {
   assert.equal(calls.load.length,0);
   assert.equal(sandbox.V5AutonomousTestIngameUpdater.status().phase,"BLOCKED");
   assert.equal(sandbox.V5AutonomousTestIngameUpdater.status().error,"PACKAGE_SHA256_MISMATCH");
+});
+
+
+test("terminal blocked PR20.6 v1.0.1 with the exact no-write roster blocker upgrades safely to v1.0.2", async () => {
+  const packageBody = "(() => { globalThis.V5PR206MluckTest={version:'1.0.2'}; })();\n// pr20-6-mluck-autonomous-live-5m";
+  const { calls } = await runScenario({
+    controllerVersion: "1.0.2",
+    current: {
+      testId: "pr20-6-mluck-autonomous-live-5m",
+      version: "1.0.1",
+      status: "BLOCKIERT",
+      phase: "ROSTER",
+      terminal: true,
+      blocker: [
+        "PR20_6_ROSTER_AUTOSTART_TIMEOUT",
+        "ACCOUNT_RANGER_MEHRDEUTIG",
+        "START_PRIEST_VERSUCHE_AUSGESCHOEPFT",
+        "START_MAGE_VERSUCHE_AUSGESCHOEPFT"
+      ],
+      gameplayWrites: 0,
+      rawWriteCalls: 0,
+      sameIntentRetry: false,
+      intents: [],
+      characterLifecycle: {
+        mode: "ACCOUNT_ROSTER_AUTOSTART_V1",
+        required: [
+          { ctype: "ranger", status: "BLOCKED", reason: "ACCOUNT_RANGER_MEHRDEUTIG" },
+          { ctype: "priest", status: "BLOCKED", attempts: 2, lastResult: "already_running" },
+          { ctype: "mage", status: "BLOCKED", attempts: 2, lastResult: "already_running" }
+        ]
+      }
+    },
+    packageBody
+  });
+  assert.equal(calls.fetch.length, 2);
+  assert.equal(calls.upload.length, 1);
+  assert.equal(calls.load.length, 1);
+});
+
+test("terminal same-test upgrade stays blocked when the exact roster recovery fingerprint is absent", async () => {
+  const { calls, sandbox } = await runScenario({
+    controllerVersion: "1.0.2",
+    current: {
+      testId: "pr20-6-mluck-autonomous-live-5m",
+      version: "1.0.1",
+      status: "BLOCKIERT",
+      phase: "ROSTER",
+      terminal: true,
+      blocker: ["PR20_6_ROSTER_AUTOSTART_TIMEOUT", "ACCOUNT_RANGER_MEHRDEUTIG"],
+      gameplayWrites: 0,
+      rawWriteCalls: 0,
+      sameIntentRetry: false,
+      intents: [],
+      characterLifecycle: {
+        mode: "ACCOUNT_ROSTER_AUTOSTART_V1",
+        required: [
+          { ctype: "priest", status: "BLOCKED", attempts: 2, lastResult: "already_running" },
+          { ctype: "mage", status: "BLOCKED", attempts: 2, lastResult: "timeout" }
+        ]
+      }
+    }
+  });
+  assert.equal(calls.fetch.length, 1);
+  assert.equal(calls.upload.length, 0);
+  assert.equal(calls.load.length, 0);
+  assert.equal(
+    sandbox.V5AutonomousTestIngameUpdater.status().phase,
+    "SAME_TEST_VERSION_MISMATCH_BLOCKED"
+  );
 });
