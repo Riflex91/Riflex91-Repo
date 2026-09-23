@@ -1,3 +1,2 @@
-// V5 dashboard replaces the legacy V3 command-center presentation.
-// Transport and backend APIs remain unchanged and read-only from this surface.
+// V5 dashboard: read-only telemetry plus revisioned configuration writes via the existing settings API.
 export { DASHBOARD_HTML } from './dashboard-v5.js';
