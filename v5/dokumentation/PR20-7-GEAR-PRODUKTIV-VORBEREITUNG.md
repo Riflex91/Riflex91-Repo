@@ -1,7 +1,7 @@
 # PR20.7 – Gear-Autonomie: belegter Slot / Swap Foundation
 
 **Stand:** 2026-09-23  
-**Status:** `BELEGTER_SLOT_SWAP_SETTLEMENT_BEREIT_NO_WRITE`
+**Status:** `READ_ONLY_BROWSER_PREFLIGHT_IMPLEMENTIERT_NO_WRITE`
 
 ## Zweck
 
@@ -27,7 +27,8 @@ PR20.7 blockiert diesen Sonderfall deshalb komplett.
 
 ## Dieser Schritt erlaubt
 
-Nur read-only Planung und Settlement-Klassifikation fuer belegte Slots:
+Read-only Planung, Settlement-Klassifikation und einen exact-head gepinnten
+Recipient-Browser-Preflight fuer belegte Slots:
 
 `cape`, `belt`, `amulet`, `orb`, `helmet`, `gloves`,
 `shoes`, `pants`, `chest`.
@@ -56,11 +57,34 @@ Der Foundation-Code besitzt explizit
 `rawWriteAutoritaet=false` und
 `swapWriteRatification=false`.
 
+## Read-only Browser-Preflight
+
+Der neue Preflight besteht aus:
+
+- `werkzeuge/pr20-7-gear-swap-produktions-browser.mjs`;
+- `werkzeuge/pr20-7-gear-swap-produktions-preflight.mjs`;
+- `grundlage/tests/pr20-gear-swap-browser-preflight.test.mjs`.
+
+Er bindet einen expliziten Adventure-Land-Character an einen Same-Origin-CDP-
+Kontext, verlangt den lokalen exakten Git-HEAD, aktiviert und verifiziert
+`performance_trick()`, beobachtet Recipient und Kandidat zweimal stabil und
+akzeptiert nur einen belegten sicheren Nicht-Waffen-Slot. Kandidat und
+vorheriges Slot-Item muessen physisch, unlocked, nicht `b=true` und anhand
+ihrer Beobachtungsfingerprints unterscheidbar sein.
+
+`performance_trick()` ist dabei eine Browser-Performance-Voraussetzung und
+kein Gameplay-Write. Der Preflight selbst ruft keine Equip-/Unequip-/Socket-
+oder sonstige Gameplay-Mutation auf. Er erzeugt weder Authority noch Durable
+Intent und trifft keine Gear-Progressionsentscheidung.
+
+Bis reale exact-head Browser-Evidence vorliegt, bleibt dieser Schritt
+**implementiert, aber nicht live ratifiziert**.
+
 ## Naechstes Gate
 
 Vor einem echten belegten-Slot-Write sind separat erforderlich:
 
-- read-only Browser-Preflight am Recipient;
+- reale exact-head Evidence aus dem read-only Browser-Preflight am Recipient;
 - kurzlebige, exakt gebundene One-Shot-Authority;
 - Equipment-/Inventory-Fencing am Recipient;
 - durable Intent vor moeglicher Send-Grenze;
