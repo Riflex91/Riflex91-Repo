@@ -28,10 +28,10 @@ public sealed class TrayIconService : IDisposable
         var exitItem = new ToolStripMenuItem("Beenden");
         exitItem.Click += (_, _) => _requestExit();
 
+        openItem.Font = new Font(openItem.Font, FontStyle.Bold);
         _menu.Items.Add(openItem);
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add(exitItem);
-        _menu.Opening += (_, _) => openItem.Font = new Font(openItem.Font, FontStyle.Bold);
 
         _icon = LoadIcon();
         _notifyIcon = new NotifyIcon
