@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-23",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-occupied-slot-read-only-preflight",
+  "controllerVersion": "1.0.0",
+  "status": "OFFEN",
+  "evidenceArt": "V5_PR20_7_OCCUPIED_SLOT_REAL_BROWSER_PREFLIGHT",
+  "sourceCommit": "4b2109cf70a3dc1124379e699c3bcde74f55af34",
+  "packageSha256": "ca1006c02e05f6eeef3fac00455bd809ed82c3c9501e601b0c7f5d07865d8b07",
+  "manifestMainCommit": null,
+  "observedAtMs": null,
+  "terminal": null,
+  "result": null,
+  "expectedSafetyBoundary": {
+    "browserGameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "durableIntentCreated": false,
+    "authorityIssued": false,
+    "swapWriteRatification": false,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "ratified": false,
+  "blocker": [
+    "REAL_BROWSER_PREFLIGHT_NOCH_NICHT_AUSGEFUEHRT"
+  ]
+}
