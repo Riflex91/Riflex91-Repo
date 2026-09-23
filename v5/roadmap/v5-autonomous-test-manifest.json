@@ -8,9 +8,9 @@
   "controllerVersion": "1.0.0",
   "coordinatorClass": "merchant",
   "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
-  "sourceCommit": "0b927178115770b45f75591a06850b167e575366",
+  "sourceCommit": "5754d16e8938edb57f883aba7712ce7853161b74",
   "packagePath": "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
-  "packageSha256": "315b28608245a24119e0644b923d25777c421e035d897da04d4afd8c8ff5c7b0",
+  "packageSha256": "d7a2dbf3ab2ae90ea3e274b985b4648b671ce796acef6bc569ddcb41e95f7ade",
   "maxPackageBytes": 131072,
   "expectedGlobal": "V5PR206UpdaterRecoveryBootstrap",
   "normalRuntimeAllowed": false
