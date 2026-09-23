@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "READ_ONLY_BROWSER_PREFLIGHT_IMPLEMENTIERT_NO_WRITE");
+    "REAL_BROWSER_PREFLIGHT_AUTO_DEPLOY_BEREIT_NO_WRITE");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -141,6 +141,11 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.browserGameplayWrites, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.authorityAusstellung, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.realBrowserPreflightEvidence, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.workerPackageConfigured, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.farmerWorkerDistribution, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.startCalls, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.disconnectCalls, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.farmerWorkersInstalled, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.sameIntentRetry, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.gameplayAutoritaet, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.rawWriteAutoritaet, false);
