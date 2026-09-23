@@ -9,6 +9,10 @@ const allowedPackages = Object.freeze({
     path: "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
     expectedGlobal: "V5PR206MluckTest"
   }),
+  "pr20-7-gear-occupied-slot-readonly-preflight": Object.freeze({
+    path: "v5/werkzeuge/pr20-7-gear-occupied-slot-readonly-live.js",
+    expectedGlobal: "V5PR207GearReadonlyTest"
+  }),
   "pr20-6-native-updater-recovery-bootstrap-v1": Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
     expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
@@ -57,8 +61,8 @@ test("V5 Auto-Deploy manifest is narrow, immutable and normal-runtime closed", (
   assert.equal(manifest.enabled, true);
   assert.equal(manifest.repository, "Riflex91/Riflex91-Repo");
   assert.equal(manifest.branch, "main");
-  assert.equal(manifest.gate, "PR20.6_MLUCK");
-  assert.ok(selected, "manifest testId must be an explicitly allowed PR20.6 package");
+  assert.ok(["PR20.6_MLUCK", "PR20.7_GEAR"].includes(manifest.gate));
+  assert.ok(selected, "manifest testId must be an explicitly allowed V5 package");
   assert.equal(manifest.coordinatorClass, "merchant");
   assert.equal(manifest.workerDistribution, "PACKAGE_OWNED_COMMAND_CHARACTER");
   assert.match(manifest.sourceCommit, /^[0-9a-f]{40}$/);
@@ -162,4 +166,36 @@ test("PR20.6 final manifest pins the bridge worker fallback to exact no-write fa
   assert.equal(workerPackageSource.includes("socket.emit("), false);
   assert.equal(workerPackageSource.includes("start_character("), false);
   assert.equal(workerPackageSource.includes("/disconnect "), false);
+});
+
+
+test("PR20.7 read-only manifest stays zero-write and exact-farmer pinned", () => {
+  if (manifest.testId !== "pr20-7-gear-occupied-slot-readonly-preflight") return;
+  assert.equal(manifest.gate, "PR20.7_GEAR");
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.workerVersion, "1.0.0");
+  assert.equal(manifest.workerPackagePath,
+    "v5/werkzeuge/pr20-7-gear-occupied-slot-readonly-worker.js");
+  assert.equal(manifest.workerExpectedGlobal, "V5PR207GearWorker");
+  assert.deepEqual(manifest.workerTargets, [
+    "My_Ranger1:ranger",
+    "My_Priest:priest",
+    "My_Mage:mage"
+  ]);
+  assert.equal(workerSha256, manifest.workerPackageSha256);
+  assert.ok(packageSource.includes("performance_trick"));
+  assert.ok(workerPackageSource.includes("performance_trick"));
+  for (const source of [packageSource, workerPackageSource]) {
+    for (const forbidden of [
+      "use_skill(", "equip(", "unequip(", "api_call(",
+      "socket.emit(", ".socket.emit(", "send_item(", "send_gold(",
+      "start_character(", "/disconnect "
+    ]) {
+      assert.equal(source.includes(forbidden), false, forbidden);
+    }
+  }
+  assert.ok(packageSource.includes("gameplayWrites: 0"));
+  assert.ok(packageSource.includes("rawWriteCalls: 0"));
+  assert.ok(packageSource.includes("sameIntentRetry: false"));
+  assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
 });
