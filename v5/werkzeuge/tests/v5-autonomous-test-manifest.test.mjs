@@ -24,6 +24,10 @@ const allowedPackages = Object.freeze({
   "pr20-6-account-roster-x-recovery-v1": Object.freeze({
     path: "v5/werkzeuge/pr20-6-account-roster-x-recovery.js",
     expectedGlobal: "V5PR206AccountRosterXRecovery"
+  }),
+  "pr20-6-account-roster-x-recovery-v2": Object.freeze({
+    path: "v5/werkzeuge/pr20-6-account-roster-x-recovery.js",
+    expectedGlobal: "V5PR206AccountRosterXRecovery"
   })
 });
 const selected = allowedPackages[manifest.testId];
@@ -81,9 +85,9 @@ test("updater recovery bootstrap is terminal no-write only", () => {
   assert.equal(packageSource.includes("start_character("), false);
 });
 
-test("account roster X recovery is read-only and performance-trick gated", () => {
-  if (manifest.testId !== "pr20-6-account-roster-x-recovery-v1") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+test("account roster X recovery is read-only, performance-trick gated and exact-ranger pinned", () => {
+  if (!manifest.testId.startsWith("pr20-6-account-roster-x-recovery-v")) return;
+  assert.ok(["1.0.0", "1.0.1"].includes(manifest.controllerVersion));
   assert.equal(packageSource.includes("owner?.X?.characters"), true);
   assert.equal(packageSource.includes("performance_trick"), true);
   assert.equal(packageSource.includes("gameplayWrites: 0"), true);
@@ -93,4 +97,9 @@ test("account roster X recovery is read-only and performance-trick gated", () =>
   assert.equal(packageSource.includes("use_skill("), false);
   assert.equal(packageSource.includes("start_character("), false);
   assert.equal(packageSource.includes("/disconnect "), false);
+  if (manifest.testId === "pr20-6-account-roster-x-recovery-v2") {
+    assert.equal(packageSource.includes("OPERATOR_RANGER_NAME = 'My_Ranger1'"), true);
+    assert.equal(packageSource.includes("ACCOUNT_MY_RANGER1_FEHLT"), true);
+    assert.equal(packageSource.includes("text(row.name) === OPERATOR_RANGER_NAME"), true);
+  }
 });
