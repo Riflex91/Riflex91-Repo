@@ -69,19 +69,20 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "PLANUNG_UND_RESERVIERUNG_BEREIT_LIVE_ERWEITERUNG_GESPERRT",
+    "status": "BELEGTER_NICHTWAFFEN_SLOT_SWAP_SETTLEMENT_BEREIT_NO_WRITE",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
       "Farmer vor Merchant-Self",
       "Restart nichtterminal => RECOVERY_PENDING",
       "GearProgression blockiert stale/inkompatible/unverifizierte Kandidaten",
-      "PR20.1 liefert ersten engen Equip-Transaction-Pfad"
+      "PR20.1 liefert ersten engen Equip-Transaction-Pfad",
+      "PR20.7 belegter Nicht-Waffen-Slot besitzt exakte Zwei-Ort-Swap-Postcondition NO-WRITE"
     ],
     "produktiveErweiterungErstNach": [
       "PR20.1 Equip-Live-Nachweis",
       "PR20.4 Itemtransfer produktiv",
-      "separate Ratifikation fuer belegte Slots/Swap",
+      "produktive One-Shot-Ratifikation fuer belegte Nicht-Waffen-Slots/Swap",
       "separate Ratifikation fuer Waffen/Offhand",
       "frische Recipient-Equipment-Postcondition"
     ],
@@ -95,7 +96,14 @@
       "gearProgression": "grundlage/quelle/merchant/gear-progression.ts",
       "physischerKandidatEinmal": true,
       "recipientSlotEinmal": true,
-      "restartRecoveryPending": true
+      "restartRecoveryPending": true,
+      "occupiedNonWeaponSwapFoundation": "grundlage/quelle/equipment/pr20-7-gear-swap-vorbereitung.ts",
+      "occupiedNonWeaponSwapContract": "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
+      "exactTwoLocationSettlement": true,
+      "sameIntentRetry": false,
+      "gameplayAutoritaet": false,
+      "rawWriteAutoritaet": false,
+      "weaponsOffhandSeparateGate": true
     }
   },
   "pr20_8": {
