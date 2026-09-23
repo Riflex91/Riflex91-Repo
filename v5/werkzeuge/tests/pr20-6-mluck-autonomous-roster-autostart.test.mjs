@@ -155,7 +155,8 @@ test("PR20.6 does not start ambiguous same-class account characters", async () =
   const sandbox = {
     console, Date, JSON, Object, String, Number, Boolean, Math, Promise, RegExp, Error,
     localStorage: storage,
-    setTimeout, clearTimeout,
+    setTimeout(fn, ms) { const timer = setTimeout(fn, ms); timer.unref?.(); return timer; },
+    clearTimeout,
     setInterval() { return 1; },
     clearInterval() {},
     character: {
