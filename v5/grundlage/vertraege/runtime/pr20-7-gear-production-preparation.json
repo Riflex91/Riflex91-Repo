@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE",
+  "status": "ONE_SHOT_AUTHORITY_AND_FENCING_BEREIT_NO_WRITE",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -76,15 +76,16 @@
   },
   "nextGate": {
     "requiredBeforeAnySwapWrite": [
-      "durable one-shot authority scoped to occupied non-weapon slot",
-      "resource/fencing claims for recipient equipment and inventory",
+      "durable intent scoped to occupied non-weapon slot",
       "post-send reobserve/reconcile implementation",
       "real no-write browser shadow evidence",
       "separate exact-head green CI"
     ],
     "weaponsAndOffhandRemainSeparate": true,
     "satisfied": [
-      "real exact-head read-only Adventure-Land recipient preflight evidence"
+      "real exact-head read-only Adventure-Land recipient preflight evidence",
+      "short-lived exact one-shot authority envelope without gameplay authority",
+      "exclusive equipment and inventory fencing claims"
     ]
   },
   "preflight": {
@@ -122,5 +123,26 @@
     "realEvidenceManifestMainCommit": "63f0218974f793e08eee0a5c2284dffab2f9a018",
     "realEvidenceRecipient": "My_Merchant",
     "realEvidenceSlot": "helmet"
+  },
+  "oneShotAuthority": {
+    "implemented": true,
+    "source": "grundlage/quelle/equipment/pr20-7-gear-swap-one-shot-authority.ts",
+    "policyId": "PR20-7-GEAR-OCCUPIED-NONWEAPON-ONE-SHOT-V1",
+    "maximumUses": 1,
+    "maximumTtlMs": 1500,
+    "exactRecipientSessionBinding": true,
+    "exactRosterEpochBinding": true,
+    "exactRosterFingerprintBinding": true,
+    "exactServerBinding": true,
+    "exactSlotBinding": true,
+    "exactCandidateIndexBinding": true,
+    "exactPrestateBinding": true,
+    "equipmentFenceRequired": true,
+    "inventoryFenceRequired": true,
+    "fenceDriftRevokes": true,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "swapWriteRatification": false,
+    "gameplayWrites": 0
   }
 }
