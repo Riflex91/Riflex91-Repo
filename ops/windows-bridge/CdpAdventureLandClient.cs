@@ -838,10 +838,14 @@ public sealed class CdpAdventureLandClient
         currentStatus: current ? String(current.status || '') : null,
         currentPhase: current ? String(current.phase || '') : null,
         currentTerminal: current ? current.terminal === true : false,
-        currentGameplayWrites: current ? Math.max(0, Number(current.gameplayWrites) || 0) : null,
-        currentRawWriteCalls: current ? Math.max(0, Number(current.rawWriteCalls) || 0) : null,
-        currentSameIntentRetry: current ? current.sameIntentRetry === true : null,
-        currentIntentCount: current && Array.isArray(current.intents) ? current.intents.length : 0,
+        currentGameplayWrites: current && Number.isFinite(Number(current.gameplayWrites))
+          ? Math.max(0, Number(current.gameplayWrites))
+          : null,
+        currentRawWriteCalls: current && Number.isFinite(Number(current.rawWriteCalls))
+          ? Math.max(0, Number(current.rawWriteCalls))
+          : null,
+        currentSameIntentRetry: current ? current.sameIntentRetry !== false : null,
+        currentIntentCount: current && Array.isArray(current.intents) ? current.intents.length : null,
         desiredApiVersion
       };
     })()
@@ -890,10 +894,13 @@ public sealed class CdpAdventureLandClient
         && String(current.status || '') === 'WAITING_FOR_4_CHARACTERS'
         && String(current.phase || '') === 'ROSTER'
         && current.terminal !== true
-        && (Number(current.gameplayWrites) || 0) === 0
-        && (Number(current.rawWriteCalls) || 0) === 0
-        && current.sameIntentRetry !== true
-        && (!Array.isArray(current.intents) || current.intents.length === 0);
+        && Number.isFinite(Number(current.gameplayWrites))
+        && Number(current.gameplayWrites) === 0
+        && Number.isFinite(Number(current.rawWriteCalls))
+        && Number(current.rawWriteCalls) === 0
+        && current.sameIntentRetry === false
+        && Array.isArray(current.intents)
+        && current.intents.length === 0;
       if (!safe)
         return { state: 'STATE_CHANGED_BLOCKED', startedCount: 0, started: [], blockers: ['STATE_CHANGED_BLOCKED'] };
 
