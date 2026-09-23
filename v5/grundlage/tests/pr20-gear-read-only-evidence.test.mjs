@@ -75,28 +75,50 @@ test("PR20.7 real preflight keeps all mutation and lifecycle authority closed", 
   }
 });
 
-test("PR20.7 evidence placeholder cannot masquerade as a real PASS", () => {
-  assert.equal(evidence.status, "OFFEN");
-  assert.equal(evidence.observedAtMs, null);
-  assert.equal(evidence.terminal, null);
-  assert.equal(evidence.result, null);
-  assert.equal(evidence.ratified, false);
-  assert.deepEqual(
-    evidence.blocker,
-    ["REAL_BROWSER_PREFLIGHT_NOCH_NICHT_AUSGEFUEHRT"],
+test("PR20.7 evidence ratifies the exact real no-write PASS", () => {
+  assert.equal(evidence.status, "BESTANDEN_REAL_BROWSER_NO_WRITE");
+  assert.equal(evidence.manifestMainCommit, "63f0218974f793e08eee0a5c2284dffab2f9a018");
+  assert.equal(evidence.observedAtMs, 1790194007103);
+  assert.equal(evidence.terminal, true);
+  assert.equal(evidence.result.status, "BESTANDEN");
+  assert.equal(evidence.result.phase, "COMPLETE");
+  assert.equal(evidence.result.version, "1.0.0");
+  assert.equal(evidence.result.recipient.characterName, "My_Merchant");
+  assert.equal(evidence.result.recipient.ctype, "merchant");
+  assert.equal(evidence.result.recipient.serverRegion, "EU");
+  assert.equal(evidence.result.recipient.serverIdentifier, "I");
+  assert.equal(evidence.result.candidate.slot, "helmet");
+  assert.equal(evidence.result.candidate.inventoryIndex, 7);
+  assert.equal(evidence.result.candidate.physical, true);
+  assert.equal(evidence.result.candidate.locked, false);
+  assert.equal(evidence.result.candidate.virtualB, false);
+  assert.equal(evidence.result.previousSlotItem.physical, true);
+  assert.equal(evidence.result.previousSlotItem.locked, false);
+  assert.equal(evidence.result.previousSlotItem.virtualB, false);
+  assert.notEqual(
+    evidence.result.candidate.fingerprintSha256,
+    evidence.result.previousSlotItem.fingerprintSha256,
   );
+  assert.equal(evidence.result.stableDoubleObservation, true);
+  assert.equal(evidence.result.performanceTrick.active, true);
+  assert.equal(evidence.result.performanceTrick.playing, true);
   assert.equal(
-    evidence.expectedSafetyBoundary.browserGameplayWrites,
-    0,
+    evidence.result.performanceTrick.verification,
+    "HOWLER_PLAYING_TRUE",
   );
-  assert.equal(
-    evidence.expectedSafetyBoundary.authorityIssued,
-    false,
-  );
-  assert.equal(
-    evidence.expectedSafetyBoundary.normalRuntimeAllowed,
-    false,
-  );
+  assert.equal(evidence.observedSafetyBoundary.browserGameplayWrites, 0);
+  assert.equal(evidence.observedSafetyBoundary.publicFunctionCalls, 0);
+  assert.equal(evidence.observedSafetyBoundary.rawWriteCalls, 0);
+  assert.equal(evidence.observedSafetyBoundary.startCalls, 0);
+  assert.equal(evidence.observedSafetyBoundary.disconnectCalls, 0);
+  assert.equal(evidence.observedSafetyBoundary.farmerWorkersInstalled, 0);
+  assert.equal(evidence.observedSafetyBoundary.authorityIssued, false);
+  assert.equal(evidence.observedSafetyBoundary.durableIntentCreated, false);
+  assert.equal(evidence.observedSafetyBoundary.swapWriteRatification, false);
+  assert.equal(evidence.observedSafetyBoundary.sameIntentRetry, false);
+  assert.equal(evidence.observedSafetyBoundary.normalRuntimeAllowed, false);
+  assert.equal(evidence.ratified, true);
+  assert.deepEqual(evidence.blocker, []);
 });
 
 test("PR20.7 safe slot list excludes weapons and offhand", () => {
