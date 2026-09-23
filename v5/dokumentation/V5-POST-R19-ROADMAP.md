@@ -325,26 +325,29 @@ Abzudecken:
 
 ### PR20.6 – MLuck-Service produktiv
 
-**Vorbereitung:** Planung sowie der enge same-account
-`AL-ACTION-MLUCK-SAME-ACCOUNT` / Recovery / Verifier sind ratifiziert.
-Es existieren weiterhin **keine** produktive MLuck-Mutations-Capability,
-Authority, Adapter oder Live-Runner.
+**Aktueller Status:** `ROADMAP_ABGESCHLOSSEN_REAL_INGAME`.
+Der autonome Vier-Charakter-Lauf mit Controller v1.0.7 ist real im Spiel
+bestanden. Das Roster war 4/4 frisch und account-/servergebunden, die
+deterministische Safety-Matrix 8/8 gruen, der Live-Preflight bestand und
+exakt ein `use_skill('mluck', target)`-Write auf die Ranger-Klasse wurde
+durable erfasst, per Settlement bestaetigt und anschliessend 5 Minuten mit
+60/60 Samples ohne zweiten Intent beobachtet. Raw-Writes: 0;
+Same-Intent-Retry: false.
 
-Abzudecken:
+Evidence: `roadmap/pr20-6-mluck-evidence.json`.
+Exit-Gate: `roadmap/pr20-6-mluck-exit-gate-status.json`.
 
-- frischer Empfaenger;
-- Session-/Serverbindung;
-- Range/Skill/MP/Cooldown-Evidence;
-- Priorisierung gegen wichtigere Merchant-Arbeit;
-- kein MLuck-Pingpong;
-- kein Service auf stale/offline Ziel.
-
-**Exit Gate:**
-- sicherer Live-Pfad;
-- 5m-Funktionsevidence;
-- MLuck kann kritischere Arbeit nicht verdraengen.
+Der Abschluss von PR20.6 startet **keinen** Normalbetrieb und erteilt
+PR20.7 keine automatische Gear-Mutations-Authority.
 
 ### PR20.7 – Gear-Autonomie produktiv erweitern
+
+**Aktueller Status:** `FOUNDATION_BEREIT_LIVE_ERWEITERUNG_GESPERRT`.
+PR20.6 ist real abgeschlossen; PR20.7 ist damit das aktive Gate. Die
+vorhandene Gear-Foundation darf jetzt weiter ratifiziert und getestet werden,
+aber neue Gear-Mutationsklassen bleiben bis zu ihren eigenen Capability-,
+Authority-, Journal-, Preflight-, Recovery- und Live-Evidence-Gates
+gesperrt.
 
 **Vorbereitung:** Gear-Allokation, Gear-Progression, physische
 Einmalreservierung, Recipient-Slot-Reservierung und Restart-Recovery sind
