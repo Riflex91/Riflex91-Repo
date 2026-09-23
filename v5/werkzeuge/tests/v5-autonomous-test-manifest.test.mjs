@@ -9,7 +9,8 @@ const allowedPackages = Object.freeze({
     path: "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
     expectedGlobal: "V5PR206MluckTest"
   }),
-  "pr20-6-native-updater-recovery-bootstrap-v1": Object.freeze({
+  "pr20-6-native-updater-recovery-bootstrap-v1",
+  "pr20-6-native-updater-recovery-bootstrap-v2": Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
     expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
   })
