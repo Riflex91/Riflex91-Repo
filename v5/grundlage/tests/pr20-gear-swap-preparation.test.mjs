@@ -104,6 +104,12 @@ test("PR20.7 blockiert Waffen, Offhand, leere Slots und virtuelle Altobjekte", (
       }),
       "ALTITEM_NICHT_PHYSISCH",
     ],
+    [
+      evidence({
+        vorherigesSlotItem: item("oldhat", { gesperrt: true }),
+      }),
+      "ALTITEM_GESPERRT",
+    ],
   ];
   for (const [input, blocker] of cases) {
     const result = pruefePr207GearSwapVorbereitung(input, 1_200);
