@@ -240,7 +240,9 @@ test("wrong package hash blocks save and reload", async () => {
   };
   const sandbox = {
     console, crypto: webcrypto, TextEncoder, Uint8Array, ArrayBuffer, Date, JSON, Object, String, Number, Boolean, Math, Promise, RegExp, Error,
-    setTimeout, clearTimeout, setInterval(){return 1;}, clearInterval(){}, localStorage: storage(),
+    setTimeout(fn, ms) { return setTimeout(fn, Math.min(Number(ms) || 0, 2)); }, clearTimeout, setInterval(){return 1;}, clearInterval(){}, localStorage: storage(),
+    performance_trick(){return true;},
+    sounds:{empty:{cplaying:true,playing(){return true;}}},
     character:{name:"Merchant",ctype:"merchant",hp:100,max_hp:100},
     get_entities(){return {};},
     get_active_code_slot(){return {slot:7,name:"AIO V5"};},
