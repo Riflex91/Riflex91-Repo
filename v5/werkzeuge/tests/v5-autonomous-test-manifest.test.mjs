@@ -16,6 +16,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR207GearReadOnlyTest",
     gate: "PR20.7_GEAR"
   }),
+  "pr20-7-gear-occupied-slot-shadow-no-write": Object.freeze({
+    path: "v5/werkzeuge/pr20-7-gear-shadow-no-write-autonomous.js",
+    expectedGlobal: "V5PR207GearShadowTest",
+    gate: "PR20.7_GEAR"
+  }),
   "pr20-6-native-updater-recovery-bootstrap-v1": Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
     expectedGlobal: "V5PR206UpdaterRecoveryBootstrap",
@@ -202,6 +207,36 @@ test("PR20.7 Gear package is terminal read-only and does not touch farmer lifecy
   assert.equal("workerTargets" in manifest, false);
   assert.ok(packageSource.includes("performance_trick"));
   assert.ok(packageSource.includes("stableDoubleObservation"));
+  assert.ok(packageSource.includes("gameplayWrites: 0"));
+  assert.ok(packageSource.includes("rawWriteCalls: 0"));
+  assert.ok(packageSource.includes("publicFunctionCalls: 0"));
+  assert.ok(packageSource.includes("startCalls: 0"));
+  assert.ok(packageSource.includes("disconnectCalls: 0"));
+  assert.ok(packageSource.includes("farmerWorkersInstalled: 0"));
+  assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
+  assert.equal(packageSource.includes("use_skill("), false);
+  assert.equal(packageSource.includes("start_character("), false);
+  assert.equal(packageSource.includes("command_character("), false);
+  assert.equal(packageSource.includes("/disconnect "), false);
+  assert.equal(packageSource.includes("equip("), false);
+  assert.equal(packageSource.includes("unequip("), false);
+  assert.equal(packageSource.includes("send_item("), false);
+});
+
+
+test("PR20.7 Gear shadow manifest stays merchant-only, durable-shadow and zero-write", () => {
+  if (manifest.testId !== "pr20-7-gear-occupied-slot-shadow-no-write") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.equal("workerPackageSha256" in manifest, false);
+  assert.equal("workerExpectedGlobal" in manifest, false);
+  assert.equal("workerTargets" in manifest, false);
+  assert.ok(packageSource.includes("performance_trick"));
+  assert.ok(packageSource.includes("SHADOW_DURABLE_INTENT_NO_GAMEPLAY_WRITE"));
+  assert.ok(packageSource.includes("durableReadback: true"));
+  assert.ok(packageSource.includes("sendBoundaryState: 'NICHT_GESENDET'"));
+  assert.ok(packageSource.includes("reconciliationClassification: 'NOT_APPLIED'"));
   assert.ok(packageSource.includes("gameplayWrites: 0"));
   assert.ok(packageSource.includes("rawWriteCalls: 0"));
   assert.ok(packageSource.includes("publicFunctionCalls: 0"));

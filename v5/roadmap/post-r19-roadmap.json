@@ -80,10 +80,10 @@
   ],
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
-    "AKTUELL: PR20.7 read-only Browser-Evidence, exakt gebundene One-Shot/Fencing-Foundation und Durable-Intent/Reconcile sind NO-WRITE ratifiziert",
-    "NAECHSTES: realen NO-WRITE Browser-Shadow fuer belegten sicheren Nicht-Waffen-Slot ausfuehren",
-    "DANACH: produktive Einmal-Swap-Ratifikation und 5m-Funktionsevidence; mainhand/offhand bleiben getrennt",
-    "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
+    "AKTUELL: PR20.7 One-Shot/Fencing und Durable-Intent/Reconcile sind NO-WRITE ratifiziert; realer Shadow ist Auto-Deploy-bereit",
+    "NAECHSTES: realen NO-WRITE Browser-Shadow ausfuehren und Evidence nur bei terminalem BESTANDEN ratifizieren",
+    "DANACH: produktive Einmal-Swap-Ratifikation und 5m-Funktionsevidence fuer belegten Nicht-Waffen-Slot",
+    "mainhand/offhand bleiben separat; Normalbetrieb bleibt gesperrt"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -700,7 +700,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "DURABLE_INTENT_RECONCILE_BEREIT_NO_WRITE",
+      "status": "REAL_SHADOW_AUTO_DEPLOY_BEREIT_NO_WRITE",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -720,9 +720,12 @@
         "v5/grundlage/quelle/equipment/pr20-7-gear-swap-one-shot-authority.ts",
         "v5/grundlage/tests/pr20-gear-swap-one-shot-authority.test.mjs",
         "v5/grundlage/quelle/equipment/pr20-7-gear-swap-durable-intent-reconcile.ts",
-        "v5/grundlage/tests/pr20-gear-swap-durable-intent-reconcile.test.mjs"
+        "v5/grundlage/tests/pr20-gear-swap-durable-intent-reconcile.test.mjs",
+        "v5/werkzeuge/pr20-7-gear-shadow-no-write-autonomous.js",
+        "v5/roadmap/pr20-7-gear-shadow-no-write-test-plan.json",
+        "v5/roadmap/pr20-7-gear-shadow-no-write-evidence.json"
       ],
-      "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_NO_WRITE_SHADOW"
+      "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_NO_WRITE_SHADOW_EXECUTE"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1023,7 +1026,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "DURABLE_INTENT_RECONCILE_BEREIT_NO_WRITE",
+    "status": "REAL_SHADOW_AUTO_DEPLOY_BEREIT_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1051,9 +1054,14 @@
       "v5/grundlage/quelle/equipment/pr20-7-gear-swap-one-shot-authority.ts",
       "v5/grundlage/tests/pr20-gear-swap-one-shot-authority.test.mjs",
       "v5/grundlage/quelle/equipment/pr20-7-gear-swap-durable-intent-reconcile.ts",
-      "v5/grundlage/tests/pr20-gear-swap-durable-intent-reconcile.test.mjs"
+      "v5/grundlage/tests/pr20-gear-swap-durable-intent-reconcile.test.mjs",
+      "v5/werkzeuge/pr20-7-gear-shadow-no-write-autonomous.js",
+      "v5/werkzeuge/tests/pr20-7-gear-shadow-no-write-autonomous.test.mjs",
+      "v5/roadmap/pr20-7-gear-shadow-no-write-test-plan.json",
+      "v5/roadmap/pr20-7-gear-shadow-no-write-evidence.json",
+      "v5/grundlage/tests/pr20-gear-shadow-no-write-evidence.test.mjs"
     ],
-    "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_NO_WRITE_SHADOW",
+    "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_NO_WRITE_SHADOW_EXECUTE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1096,6 +1104,22 @@
       "newIntentAutomaticallyAllowed": false,
       "gameplayAuthority": false,
       "rawWriteAuthority": false
+    },
+    "realShadow": {
+      "prepared": true,
+      "merchantOnly": true,
+      "workerPackageConfigured": false,
+      "shadowDurableIntentReadback": true,
+      "sendBoundaryState": "NICHT_GESENDET",
+      "expectedReconciliation": "NOT_APPLIED",
+      "stablePostIntentReobserve": true,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "authorityIssued": false,
+      "swapWriteRatification": false,
+      "sameIntentRetry": false,
+      "realEvidenceStatus": "OFFEN"
     }
   }
 }

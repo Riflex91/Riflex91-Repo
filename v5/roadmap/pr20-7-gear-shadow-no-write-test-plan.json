@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-23",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-occupied-slot-shadow-no-write",
+  "controllerVersion": "1.0.0",
+  "status": "BEREIT_FUER_REALEN_SHADOW_NO_WRITE",
+  "sourceCommit": "b035d9ea3eed7546948ca76c85335d9986d5a850",
+  "packagePath": "v5/werkzeuge/pr20-7-gear-shadow-no-write-autonomous.js",
+  "packageSha256": "584e3080462e66dde116823d7712781d0fc053ed1a4477dc620ab923d729ccb2",
+  "expectedGlobal": "V5PR207GearShadowTest",
+  "merchantOnly": true,
+  "workerPackageConfigured": false,
+  "prerequisites": {
+    "readOnlyPreflightEvidence": "BESTANDEN_REAL_BROWSER_NO_WRITE",
+    "oneShotAuthorityFencingFoundation": true,
+    "durableIntentReconcileFoundation": true,
+    "performanceTrickRequired": true,
+    "stableRealPrestateRequired": true
+  },
+  "shadow": {
+    "exactOccupiedSafeNonWeaponSlot": true,
+    "shadowDurableIntentReadback": true,
+    "durableStorage": "LOCAL_STORAGE_SHADOW_ONLY",
+    "sendBoundaryState": "NICHT_GESENDET",
+    "expectedReconciliation": "NOT_APPLIED",
+    "oneShotBindingPrepared": true,
+    "equipmentInventoryFenceClaimsPrepared": true,
+    "stablePostIntentReobserve": true
+  },
+  "safetyBoundary": {
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "authorityIssued": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "swapWriteRatification": false,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "evidence": "v5/roadmap/pr20-7-gear-shadow-no-write-evidence.json",
+  "nextAfterPass": "PR20_7_OCCUPIED_SLOT_PRODUCTIVE_ONE_SHOT_SWAP_PREPARATION"
+}

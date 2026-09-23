@@ -3,6 +3,11 @@ name: v5-autonomous-test-auto-deploy
 on:
   pull_request:
     paths:
+      - 'v5/grundlage/tests/pr20-gear-shadow-no-write-evidence.test.mjs'
+      - 'v5/roadmap/pr20-7-gear-shadow-no-write-evidence.json'
+      - 'v5/roadmap/pr20-7-gear-shadow-no-write-test-plan.json'
+      - 'v5/werkzeuge/tests/pr20-7-gear-shadow-no-write-autonomous.test.mjs'
+      - 'v5/werkzeuge/pr20-7-gear-shadow-no-write-autonomous.js'
       - 'v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs'
       - 'v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json'
       - 'v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json'
@@ -20,6 +25,11 @@ on:
       - '.github/workflows/v5-autonomous-test-auto-deploy.yml'
   push:
     paths:
+      - 'v5/grundlage/tests/pr20-gear-shadow-no-write-evidence.test.mjs'
+      - 'v5/roadmap/pr20-7-gear-shadow-no-write-evidence.json'
+      - 'v5/roadmap/pr20-7-gear-shadow-no-write-test-plan.json'
+      - 'v5/werkzeuge/tests/pr20-7-gear-shadow-no-write-autonomous.test.mjs'
+      - 'v5/werkzeuge/pr20-7-gear-shadow-no-write-autonomous.js'
       - 'v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs'
       - 'v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json'
       - 'v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json'
