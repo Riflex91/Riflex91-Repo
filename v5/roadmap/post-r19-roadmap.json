@@ -7,7 +7,7 @@
   "dokumentation": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
   "testzeitStandard": "v5/roadmap/testzeit-standard.json",
   "currentStage": "PR20",
-  "currentGate": "PR20.6_MLUCK",
+  "currentGate": "PR20.7_GEAR",
   "reihenfolgeVerbindlich": true,
   "optimizerVorGruppenLiveEvidenceVerboten": true,
   "merchantVorFarmerProduktivierung": true,
@@ -79,10 +79,10 @@
     }
   ],
   "currentNextSteps": [
-    "PR20.1 bis PR20.5 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
-    "PR20.5 15m AUTO_ON_LOAD-Gesamttest auf Merchant + Ranger + Priest + Mage ist BESTANDEN_REAL_INGAME_4CHAR_15M",
-    "AKTUELL: PR20.6 MLuck-Service produktiv absichern und den vorgesehenen Funktions-/Integrations-Test abarbeiten",
-    "PR20.6 BESTANDEN startet keinen Normalbetrieb; danach mit dem naechsten V5-Test-Gate fortfahren",
+    "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
+    "PR20.6 MLuck AUTO_ON_LOAD auf Merchant + Ranger + Priest + Mage ist BESTANDEN_REAL_INGAME_4CHAR_5M",
+    "AKTUELL: PR20.7 Gear-Autonomie aus der vorhandenen NO-WRITE-Foundation sicher bis zur ersten separat ratifizierten Mutationsklasse erweitern",
+    "PR20.7 erteilt keine breite Gear-Authority; belegte Slots/Swaps, Waffen/Offhand und Recipient-Settlement bleiben eigene Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -688,7 +688,7 @@
     },
     {
       "id": "PR20.6_MLUCK",
-      "status": "ACTION_RECOVERY_VERIFIER_RATIFIZIERT_NO_WRITE",
+      "status": "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -698,7 +698,9 @@
       ],
       "gameplayAuthority": false,
       "genericUseSkillAuthority": false,
-      "actionContractId": "AL-ACTION-MLUCK-SAME-ACCOUNT"
+      "actionContractId": "AL-ACTION-MLUCK-SAME-ACCOUNT",
+      "evidence": "v5/roadmap/pr20-6-mluck-evidence.json",
+      "exitGate": "v5/roadmap/pr20-6-mluck-exit-gate-status.json"
     },
     {
       "id": "PR20.7_GEAR",
@@ -747,7 +749,7 @@
     "newGameplayWriteAdapterBeforeGate": false,
     "liveRunnerBeforeCapabilityGate": false,
     "planningContractsTestsAndRecoveryAllowed": true,
-    "activeLiveGate": "PR20.6_MLUCK"
+    "activeLiveGate": "PR20.7_GEAR"
   },
   "pr20_1": {
     "status": "BESTANDEN",
@@ -971,7 +973,7 @@
     "normalRuntimeAllowed": false
   },
   "pr20_6": {
-    "status": "AUTO_DEPLOY_BEREIT_LIVE_TEST_AUSSTEHEND",
+    "status": "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
     "package": "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
     "testPlan": "v5/roadmap/pr20-6-mluck-autonomous-test-plan.json",
     "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
@@ -988,6 +990,13 @@
     "gameplayWritesMaximum": 1,
     "rawWriteCallsMaximum": 0,
     "sameIntentRetry": false,
-    "normalRuntimeAfterAllTestsOnly": true
+    "normalRuntimeAfterAllTestsOnly": true,
+    "controllerVersion": "1.0.7",
+    "integrationStatus": "BESTANDEN_REAL_INGAME_4CHAR_5M",
+    "evidence": "v5/roadmap/pr20-6-mluck-evidence.json",
+    "exitGate": "v5/roadmap/pr20-6-mluck-exit-gate-status.json",
+    "gameplayWrites": 1,
+    "rawWriteCalls": 0,
+    "nextAction": "PR20_7_GEAR"
   }
 }
