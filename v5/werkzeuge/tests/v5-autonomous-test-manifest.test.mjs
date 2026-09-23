@@ -122,3 +122,16 @@ test("bootstrap v4 keeps the legacy Windows-Bridge handshake compatible without 
   assert.equal(packageSource.includes("use_skill("), false);
   assert.equal(packageSource.includes("start_character("), false);
 });
+
+
+test("bootstrap v5 restores only the minimal Windows-Bridge observational contract", () => {
+  if (manifest.testId !== "pr20-6-native-updater-recovery-bootstrap-v5") return;
+  assert.equal(manifest.controllerVersion, "1.0.5");
+  assert.ok(packageSource.includes("hostHeartbeat"));
+  assert.ok(packageSource.includes("reconciliationStatus"));
+  assert.ok(packageSource.includes("peekTelemetry"));
+  assert.ok(packageSource.includes("updaterVersion: '1.0.6'"));
+  assert.equal(packageSource.includes("use_skill("), false);
+  assert.equal(packageSource.includes("start_character("), false);
+  assert.equal(packageSource.includes("/disconnect "), false);
+});
