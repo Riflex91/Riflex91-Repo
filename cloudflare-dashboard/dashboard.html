@@ -17,11 +17,12 @@ html,body{margin:0;min-height:100%;background:linear-gradient(160deg,#06101b,#09
 body{min-height:100vh}
 button,input,select{font:inherit}
 button{color:inherit}
+button:disabled{cursor:not-allowed;opacity:.5}
 .hidden{display:none!important}
 .shell{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh}
 .sidebar{position:sticky;top:0;height:100vh;border-right:1px solid #17314a;background:linear-gradient(180deg,#0a1624,#08121d 65%,#07101a);padding:20px 14px;display:flex;flex-direction:column}
 .brand{display:flex;align-items:center;gap:12px;padding:0 6px 20px}
-.logo{position:relative;width:58px;height:58px}
+.logo{position:relative;width:58px;height:58px;flex:0 0 auto}
 .logo:before,.logo:after{content:"";position:absolute;inset:7px 18px;background:linear-gradient(180deg,#43b8ff,#1679d8);clip-path:polygon(50% 0,100% 100%,73% 100%,50% 50%,27% 100%,0 100%)}
 .logo:after{inset:20px 7px 6px;transform:rotate(60deg);opacity:.72}
 .brand h1{font-size:25px;margin:0}.brand p{margin:3px 0 0;color:var(--muted)}
@@ -29,43 +30,45 @@ button{color:inherit}
 .side-btn{display:flex;align-items:center;gap:12px;border:0;border-radius:9px;background:transparent;padding:14px 13px;color:#bed0e3;cursor:pointer;text-align:left}
 .side-btn:hover{background:#10243a}.side-btn.active{background:linear-gradient(90deg,#12417b,#17385f);color:#fff;box-shadow:inset 0 0 0 1px #2d6296}
 .side-btn .ico{width:22px;text-align:center;font-size:19px}
-.stop-btn{margin-top:auto;border:1px solid #ff3349;border-radius:9px;background:linear-gradient(180deg,#dc2638,#c9182b);padding:15px 12px;font-weight:850;cursor:pointer;box-shadow:0 8px 25px #5b091855}
+.disconnect-btn{margin-top:auto;border:1px solid #9c3440;border-radius:9px;background:linear-gradient(180deg,#56212a,#3b171e);padding:15px 12px;font-weight:850;cursor:pointer}
 .connection{padding:18px 8px 0;color:#9cb0c4;font-size:13px;border-top:1px solid #17314a;margin-top:18px}
 .connection b{display:block;color:#8bd9a2;margin-bottom:4px}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green);margin-right:8px}
 .main{min-width:0}
 .topbar{height:98px;border-bottom:1px solid #17314a;background:#081421dd;display:flex;align-items:stretch;justify-content:space-between;padding:0 20px 0 28px;position:sticky;top:0;z-index:10;backdrop-filter:blur(18px)}
-.top-tabs{display:flex;gap:24px;align-items:stretch}
-.top-tab{min-width:95px;border:0;background:transparent;color:#afc1d3;display:grid;place-content:center;text-align:center;gap:6px;cursor:pointer;border-bottom:2px solid transparent}
+.top-tabs{display:flex;gap:18px;align-items:stretch;min-width:0}
+.top-tab{min-width:88px;border:0;background:transparent;color:#afc1d3;display:grid;place-content:center;text-align:center;gap:6px;cursor:pointer;border-bottom:2px solid transparent}
 .top-tab .ico{font-size:25px}.top-tab.active{color:#39b8ff;border-bottom-color:#39b8ff;background:#102236}
-.bot-live{display:flex;align-items:center;gap:11px;color:var(--green);font-weight:850;font-size:19px}
-.bot-live small{display:block;color:#9fb4c8;font-weight:500;font-size:13px;margin-top:3px}
-.live-orb{width:18px;height:18px;border-radius:50%;background:var(--green);box-shadow:0 0 17px var(--green)}
-.content{padding:16px;max-width:1600px;margin:auto}
-.grid{display:grid;grid-template-columns:1.45fr .75fr;gap:15px}
-.row3{display:grid;grid-template-columns:1.2fr 1fr .9fr;gap:15px;margin-top:15px}
-.row3b{display:grid;grid-template-columns:1.2fr .85fr 1fr;gap:15px;margin-top:15px}
-.card{background:linear-gradient(155deg,#0c1927,#0b1724);border:1px solid #20364e;border-radius:11px;box-shadow:var(--shadow);padding:19px}
-.card h2{font-size:18px;margin:0 0 16px}.subtle{color:var(--muted)}
-.character-layout{display:grid;grid-template-columns:145px 1fr;gap:22px}
-.identity{display:grid;grid-template-columns:110px 1fr;gap:18px;align-items:center}
+.bot-live{display:flex;align-items:center;gap:11px;color:var(--green);font-weight:850;font-size:19px;white-space:nowrap}
+.bot-live small{display:block;color:#9fb4c8;font-weight:500;font-size:13px;margin-top:3px}.live-orb{width:18px;height:18px;border-radius:50%;background:var(--green);box-shadow:0 0 17px var(--green);flex:0 0 auto}
+.content{padding:16px;max-width:1600px;margin:auto}.view{display:none}.view.active{display:block}
+.grid{display:grid;grid-template-columns:1.45fr .75fr;gap:15px}.row3{display:grid;grid-template-columns:1.2fr 1fr .9fr;gap:15px;margin-top:15px}.row3b{display:grid;grid-template-columns:1.2fr .85fr 1fr;gap:15px;margin-top:15px}
+.card{background:linear-gradient(155deg,#0c1927,#0b1724);border:1px solid #20364e;border-radius:11px;box-shadow:var(--shadow);padding:19px}.card h2{font-size:18px;margin:0 0 16px}.subtle{color:var(--muted)}
+/* The identity column must be wide enough for avatar + name; this fixes the V5 name/HP overlap. */
+.character-layout{display:grid;grid-template-columns:minmax(270px,.8fr) minmax(320px,1.2fr);gap:22px;min-width:0}
+.identity{display:grid;grid-template-columns:110px minmax(0,1fr);gap:18px;align-items:center;min-width:0}.identity>div:last-child{min-width:0}
 .avatar{width:110px;height:145px;border-radius:11px;border:1px solid #2c4967;background:linear-gradient(180deg,#1d3148,#132338);display:grid;place-items:center;font-size:60px;box-shadow:inset 0 0 30px #0005}
-.name{font-size:30px;font-weight:900;letter-spacing:-.03em}.level{font-size:24px;color:#45aaff;font-weight:800;margin-top:8px}.class{color:#b9cce0;margin-top:6px}
-.vitals{border-left:1px solid #20364e;padding-left:20px;display:grid;gap:27px;align-content:center}
+.name{font-size:30px;font-weight:900;letter-spacing:-.03em;line-height:1.05;overflow-wrap:anywhere;word-break:break-word}.level{font-size:24px;color:#45aaff;font-weight:800;margin-top:8px}.class{color:#b9cce0;margin-top:6px}
+.vitals{border-left:1px solid #20364e;padding-left:20px;display:grid;gap:27px;align-content:center;min-width:0}
 .vital-label{display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;color:#d7e2ee}.bar{height:18px;border-radius:999px;background:#26384a;overflow:hidden;position:relative}.bar>i{display:block;height:100%;border-radius:inherit;transition:width .35s ease}.bar.hp>i{background:linear-gradient(90deg,#ff3e48,#ff656c)}.bar.mp>i{background:linear-gradient(90deg,#258fe8,#35b9ff)}.bar.xp>i{background:linear-gradient(90deg,#4bd36e,#63ee91)}
-.status-card{display:grid;align-content:start;gap:10px}.status-big{display:flex;align-items:center;gap:14px;color:var(--green);font-size:25px;font-weight:900}.task-title{font-size:20px;font-weight:850;margin-top:3px}.task-meta{color:#a7bbcf}
-.task-list{display:grid}.task-row{display:grid;grid-template-columns:28px 1fr auto;gap:7px;align-items:center;padding:12px 0;border-bottom:1px solid #193149}.task-row:last-child{border-bottom:0}.check{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:2px solid #45d97a;color:#45d97a;font-size:12px}.task-time{color:#94a9bd;font-variant-numeric:tabular-nums}
+.status-card{display:grid;align-content:start;gap:10px}.status-big{display:flex;align-items:center;gap:14px;color:var(--green);font-size:25px;font-weight:900}.task-title{font-size:20px;font-weight:850;margin-top:3px;overflow-wrap:anywhere}.task-meta{color:#a7bbcf}
+.task-list{display:grid}.task-row{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:7px;align-items:center;padding:12px 0;border-bottom:1px solid #193149}.task-row:last-child{border-bottom:0}.check{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:2px solid #45d97a;color:#45d97a;font-size:12px}.task-time{color:#94a9bd;font-variant-numeric:tabular-nums}
 .metric-wrap{display:grid;gap:17px}.metric{display:grid;grid-template-columns:62px 1fr;gap:14px;align-items:center}.metric-icon{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;background:#17263a;border:1px solid #41516b;font-size:24px}.metric-icon.xp{color:#ffd34e;border-color:#866a16;background:#3a2c08}.metric-icon.gold{color:#ffd34e;border-color:#866a16;background:#302508}.metric small{display:block;color:#a5b8ca}.metric strong{display:block;font-size:27px;letter-spacing:.01em;margin-top:2px}
-.runtime{display:grid;grid-template-columns:65px 1fr;gap:14px;align-items:start}.clock{width:55px;height:55px;border:5px solid #c9dcf0;border-radius:50%;position:relative}.clock:before{content:"";position:absolute;width:3px;height:17px;background:#c9dcf0;left:22px;top:8px}.clock:after{content:"";position:absolute;width:15px;height:3px;background:#c9dcf0;left:22px;top:25px;transform:rotate(35deg);transform-origin:left center}.runtime-value{font-size:32px;font-weight:900;font-variant-numeric:tabular-nums}.kv{display:grid;grid-template-columns:95px 1fr;gap:7px;margin-top:12px;color:#b9cad9;font-size:13px}.kv b{color:#f4f8fc}.good{color:var(--green)!important}
-.progress-label{display:flex;justify-content:space-between;margin:4px 0 10px;color:#dce6f0}.progress-meta{margin-top:10px;color:#a6bbce}
-.quick{display:grid;gap:11px}.quick-row{display:grid;grid-template-columns:28px 92px 1fr;align-items:center;color:#c2d1df}.quick-row b{color:#f4f8fc;font-weight:600}.quick-row .ok{color:#60e98a}
-.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}.control-btn{height:92px;border-radius:9px;border:1px solid #314a65;background:linear-gradient(180deg,#1c3048,#16283e);cursor:pointer;display:grid;place-items:center;align-content:center;gap:8px}.control-btn .ico{font-size:27px}.control-btn:hover{filter:brightness(1.12)}
-.log-card{margin-top:15px;padding:8px 12px}.log{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;color:#ccd8e4;min-height:95px;display:grid;align-content:start;gap:5px}.log-row{display:grid;grid-template-columns:80px 18px 1fr;gap:5px}.log-row .ok{color:#65ee8a}.log-actions{display:flex;justify-content:flex-end;margin-top:7px}.ghost{border:1px solid #314a65;border-radius:8px;background:#17283e;color:#e5eef7;padding:10px 14px;cursor:pointer}
-.character-select{margin-left:auto;background:#0c1a28;color:#dce7f1;border:1px solid #2b4560;border-radius:8px;padding:7px 9px;max-width:220px}
-.card-head{display:flex;align-items:center;gap:12px}.card-head h2{margin-right:auto}
-.login{position:fixed;z-index:100;inset:0;background:#050c14eF;display:grid;place-items:center;padding:20px}.login-box{width:min(440px,100%);background:#0d1b2a;border:1px solid #28445f;border-radius:15px;padding:24px;box-shadow:0 25px 80px #000b}.login-box h2{margin:0 0 6px}.login-box p{color:#99afc3}.login-box input{width:100%;padding:12px;border:1px solid #35536d;border-radius:8px;background:#071421;color:#fff;margin:10px 0 12px}.primary{width:100%;border:0;border-radius:8px;background:#2d9cf0;color:white;padding:12px;font-weight:800;cursor:pointer}.error{color:#ff7180;margin-top:10px}
-.toast{position:fixed;right:20px;bottom:20px;z-index:200;padding:12px 15px;border-radius:9px;background:#11243a;border:1px solid #2c4c6c;box-shadow:0 12px 38px #0009;color:#eaf2fa}
-@media(max-width:1150px){.shell{grid-template-columns:82px minmax(0,1fr)}.brand h1,.brand p,.side-btn span:not(.ico),.connection,.stop-btn span{display:none}.brand{justify-content:center}.sidebar{padding-left:10px;padding-right:10px}.side-btn{justify-content:center}.stop-btn{font-size:0}.stop-btn:after{content:"■";font-size:18px}.grid,.row3,.row3b{grid-template-columns:1fr}.character-layout{grid-template-columns:1fr}.vitals{border-left:0;border-top:1px solid #20364e;padding-left:0;padding-top:17px}}
-@media(max-width:760px){.shell{display:block}.sidebar{display:none}.topbar{height:72px;padding:0 10px}.top-tabs{gap:2px}.top-tab{min-width:58px;font-size:0}.top-tab .ico{font-size:22px}.bot-live{font-size:14px}.content{padding:10px}.identity{grid-template-columns:75px 1fr}.avatar{width:75px;height:98px;font-size:42px}.name{font-size:23px}.level{font-size:19px}.row3,.row3b,.grid{gap:10px}.controls{margin-top:12px}.metric strong{font-size:23px}}
+.runtime{display:grid;grid-template-columns:65px 1fr;gap:14px;align-items:start}.clock{width:55px;height:55px;border:5px solid #c9dcf0;border-radius:50%;position:relative}.clock:before{content:"";position:absolute;width:3px;height:17px;background:#c9dcf0;left:22px;top:8px}.clock:after{content:"";position:absolute;width:15px;height:3px;background:#c9dcf0;left:22px;top:25px;transform:rotate(35deg);transform-origin:left center}.runtime-value{font-size:32px;font-weight:900;font-variant-numeric:tabular-nums}.kv{display:grid;grid-template-columns:95px 1fr;gap:7px;margin-top:12px;color:#b9cad9;font-size:13px}.kv b{color:#f4f8fc}.good{color:var(--green)!important}.warn{color:var(--gold)!important}.bad{color:var(--red)!important}
+.progress-label{display:flex;justify-content:space-between;margin:4px 0 10px;color:#dce6f0}.progress-meta{margin-top:10px;color:#a6bbce}.quick{display:grid;gap:11px}.quick-row{display:grid;grid-template-columns:28px 92px 1fr;align-items:center;color:#c2d1df}.quick-row b{color:#f4f8fc;font-weight:600}.quick-row .ok{color:#60e98a}
+.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}.control-btn{min-height:92px;border-radius:9px;border:1px solid #314a65;background:linear-gradient(180deg,#1c3048,#16283e);cursor:pointer;display:grid;place-items:center;align-content:center;gap:8px;padding:10px}.control-btn .ico{font-size:27px}.control-btn:hover{filter:brightness(1.12)}
+.log-card{margin-top:15px;padding:8px 12px}.log{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;color:#ccd8e4;min-height:95px;display:grid;align-content:start;gap:5px}.log-row{display:grid;grid-template-columns:80px 18px minmax(0,1fr);gap:5px}.log-row .ok{color:#65ee8a}.log-row .warnmark{color:var(--gold)}.log-row .badmark{color:var(--red)}.log-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:7px}.ghost,.primary-small{border:1px solid #314a65;border-radius:8px;background:#17283e;color:#e5eef7;padding:10px 14px;cursor:pointer}.primary-small{background:#1675b9;border-color:#2d9cf0;font-weight:800}
+.character-select{margin-left:auto;background:#0c1a28;color:#dce7f1;border:1px solid #2b4560;border-radius:8px;padding:7px 9px;max-width:220px}.card-head{display:flex;align-items:center;gap:12px}.card-head h2{margin-right:auto}
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:2px 0 16px}.page-head h1{margin:0;font-size:28px}.page-head p{margin:6px 0 0;color:var(--muted)}.toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.toolbar input,.toolbar select,.field input{background:#081522;color:var(--text);border:1px solid #2b4560;border-radius:8px;padding:10px 11px}.toolbar input{min-width:240px;flex:1}.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #2b4560;border-radius:999px;padding:6px 10px;color:#b8cbdd;background:#0c1a28;font-size:12px}.pill.good{color:var(--green);border-color:#285d51}.pill.warn{color:var(--gold);border-color:#66532d}.pill.bad{color:var(--red);border-color:#63313a}
+.character-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.character-card{display:grid;gap:12px}.character-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.character-card h3{margin:0;font-size:21px}.mini-bar{height:10px;border-radius:99px;background:#24384a;overflow:hidden}.mini-bar i{display:block;height:100%;background:#38a9f5}.mini-bar.hp i{background:#ff5967}.mini-kv{display:grid;grid-template-columns:90px 1fr;gap:5px;color:#9fb3c7;font-size:13px}.mini-kv b{color:#f1f5f9;overflow-wrap:anywhere}
+.table-wrap{overflow:auto}.data-table{width:100%;border-collapse:collapse;min-width:760px}.data-table th,.data-table td{text-align:left;padding:11px 9px;border-bottom:1px solid #1c344a;vertical-align:top}.data-table th{color:#91a7bd;font-size:12px;text-transform:uppercase;letter-spacing:.04em}.data-table td{font-size:13px}.severity{font-weight:800}.severity.error,.severity.critical,.severity.fatal{color:var(--red)}.severity.warn,.severity.warning{color:var(--gold)}.severity.info{color:var(--green)}
+.settings-shell{display:grid;gap:14px}.settings-toolbar{position:sticky;top:112px;z-index:8;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#0b1724ed;border:1px solid #20364e;border-radius:11px;padding:10px;backdrop-filter:blur(16px)}.settings-toolbar input{flex:1;min-width:230px;background:#071421;border:1px solid #35536d;border-radius:8px;color:#fff;padding:10px}.settings-summary{display:flex;gap:8px;flex-wrap:wrap}.settings-groups{display:grid;gap:12px}.settings-group{border:1px solid #20364e;border-radius:11px;background:#0b1724}.settings-group summary{cursor:pointer;padding:14px 16px;font-weight:850;display:flex;justify-content:space-between;gap:12px}.settings-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0 14px 14px}.setting{border:1px solid #223b53;border-radius:9px;background:#0d1b2a;padding:13px;min-width:0}.setting.changed{border-color:#856920}.setting-head{display:flex;justify-content:space-between;gap:9px}.setting h3{font-size:14px;margin:0}.setting p{color:#8fa6ba;font-size:12px;line-height:1.45;margin:7px 0 11px}.setting small{display:block;color:#658097;margin-top:7px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}.setting-control{display:flex;gap:8px;align-items:center}.setting-control input[type=number],.setting-control select{width:100%;background:#071421;color:#fff;border:1px solid #35536d;border-radius:7px;padding:9px}.setting-control input[type=checkbox]{width:22px;height:22px}.notice{border:1px solid #314d66;border-radius:9px;padding:11px 12px;color:#b9cde0;background:#0c1c2b}.notice.warn{border-color:#6d5828;color:#f6cf65}.notice.bad{border-color:#69313b;color:#ff8390}
+.stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stat-tile{padding:16px;border:1px solid #20364e;border-radius:11px;background:#0b1724}.stat-tile small{color:#8fa7bc}.stat-tile strong{display:block;font-size:28px;margin-top:4px}
+.help-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.help-card p,.help-card li{color:#a9bdd0;line-height:1.55}.help-card code{color:#8fd7ff}
+.login{position:fixed;z-index:100;inset:0;background:#050c14ef;display:grid;place-items:center;padding:20px}.login-box{width:min(480px,100%);background:#0d1b2a;border:1px solid #28445f;border-radius:15px;padding:24px;box-shadow:0 25px 80px #000b}.login-box h2{margin:0 0 6px}.login-box p{color:#99afc3}.field{display:grid;gap:5px;margin-top:10px}.field label{color:#bdd0e1;font-size:13px}.field .hint{color:#748ca1;font-size:11px}.field input{width:100%}.primary{width:100%;border:0;border-radius:8px;background:#2d9cf0;color:white;padding:12px;font-weight:800;cursor:pointer;margin-top:14px}.error{color:#ff7180;margin-top:10px}
+.toast{position:fixed;right:20px;bottom:20px;z-index:200;padding:12px 15px;border-radius:9px;background:#11243a;border:1px solid #2c4c6c;box-shadow:0 12px 38px #0009;color:#eaf2fa;max-width:min(520px,calc(100vw - 40px))}
+@media(max-width:1250px){.top-tabs{gap:5px}.top-tab{min-width:72px}.character-grid,.settings-list{grid-template-columns:1fr}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:1150px){.shell{grid-template-columns:82px minmax(0,1fr)}.brand h1,.brand p,.side-btn span:not(.ico),.connection,.disconnect-btn span{display:none}.brand{justify-content:center}.sidebar{padding-left:10px;padding-right:10px}.side-btn{justify-content:center}.disconnect-btn{font-size:0}.disconnect-btn:after{content:"↪";font-size:18px}.grid,.row3,.row3b{grid-template-columns:1fr}.character-layout{grid-template-columns:1fr}.vitals{border-left:0;border-top:1px solid #20364e;padding-left:0;padding-top:17px}}
+@media(max-width:760px){.shell{display:block}.sidebar{display:none}.topbar{height:72px;padding:0 8px}.top-tabs{gap:0;overflow:auto}.top-tab{min-width:56px;font-size:0}.top-tab .ico{font-size:22px}.bot-live{font-size:13px}.bot-live small{display:none}.content{padding:10px}.identity{grid-template-columns:75px minmax(0,1fr)}.avatar{width:75px;height:98px;font-size:42px}.name{font-size:23px}.level{font-size:19px}.row3,.row3b,.grid{gap:10px}.controls{margin-top:12px}.metric strong{font-size:23px}.character-grid,.help-grid,.settings-list,.stat-grid{grid-template-columns:1fr}.page-head{flex-direction:column}.settings-toolbar{top:82px}.toolbar{width:100%}.toolbar input{min-width:100%}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
 </head>
@@ -73,8 +76,10 @@ button{color:inherit}
 <div class="login" id="login">
   <div class="login-box">
     <h2>AioBot v5 Dashboard</h2>
-    <p>READ_KEY eingeben, um die vorhandene Bot-Telemetrie zu öffnen.</p>
-    <input id="readKey" type="password" autocomplete="off" placeholder="READ_KEY">
+    <p>Verbinde das Dashboard mit der vorhandenen Cloudflare-Telemetrie. Der ADMIN_KEY ist nur für Einstellungen erforderlich.</p>
+    <div class="field"><label for="accountInput">Account</label><input id="accountInput" autocomplete="off" value="default"></div>
+    <div class="field"><label for="readKey">READ_KEY</label><input id="readKey" type="password" autocomplete="off" placeholder="READ_KEY"></div>
+    <div class="field"><label for="adminKey">ADMIN_KEY <span class="subtle">(optional)</span></label><input id="adminKey" type="password" autocomplete="off" placeholder="ADMIN_KEY"><span class="hint">Bleibt ausschließlich in dieser Browser-Sitzung.</span></div>
     <button class="primary" id="open">Dashboard öffnen</button>
     <div id="loginError" class="error"></div>
   </div>
@@ -83,90 +88,150 @@ button{color:inherit}
 <div class="shell">
   <aside class="sidebar">
     <div class="brand"><div class="logo" aria-hidden="true"></div><div><h1>AioBot v5</h1><p>Adventure Land Bot</p></div></div>
-    <nav class="side-nav">
-      <button class="side-btn active" data-jump="dashboard"><span class="ico">⌂</span><span>Dashboard</span></button>
-      <button class="side-btn" data-jump="character"><span class="ico">♟</span><span>Charaktere</span></button>
-      <button class="side-btn" data-jump="tasks"><span class="ico">☷</span><span>Aufgaben</span></button>
-      <button class="side-btn" data-jump="settings"><span class="ico">⚙</span><span>Einstellungen</span></button>
-      <button class="side-btn" data-jump="stats"><span class="ico">▥</span><span>Statistiken</span></button>
-      <button class="side-btn" data-jump="logs"><span class="ico">▤</span><span>Logs</span></button>
+    <nav class="side-nav" aria-label="Hauptnavigation">
+      <button class="side-btn active" data-page="dashboard"><span class="ico">⌂</span><span>Dashboard</span></button>
+      <button class="side-btn" data-page="characters"><span class="ico">♟</span><span>Charaktere</span></button>
+      <button class="side-btn" data-page="tasks"><span class="ico">☷</span><span>Aufgaben</span></button>
+      <button class="side-btn" data-page="settings"><span class="ico">⚙</span><span>Einstellungen</span></button>
+      <button class="side-btn" data-page="statistics"><span class="ico">▥</span><span>Statistiken</span></button>
+      <button class="side-btn" data-page="logs"><span class="ico">▤</span><span>Logs</span></button>
     </nav>
-    <button class="stop-btn" data-readonly-control="Bot stoppen"><span>■ &nbsp; Bot stoppen</span></button>
-    <div class="connection"><b><span class="dot"></span><span id="sidebarConnection">Verbunden</span></b>Adventure Land</div>
+    <button class="disconnect-btn" id="disconnect"><span>↪ &nbsp; Abmelden</span></button>
+    <div class="connection"><b><span class="dot" id="sidebarDot"></span><span id="sidebarConnection">Verbunden</span></b><span id="sidebarAccount">default</span></div>
   </aside>
 
-  <main class="main" id="dashboard">
+  <main class="main">
     <header class="topbar">
       <div class="top-tabs">
-        <button class="top-tab active"><span class="ico">⌂</span><span>Dashboard</span></button>
-        <button class="top-tab" data-jump="settings"><span class="ico">⚙</span><span>Einstellungen</span></button>
-        <button class="top-tab" data-jump="logs"><span class="ico">▤</span><span>Logs</span></button>
-        <button class="top-tab" data-jump="stats"><span class="ico">▥</span><span>Statistiken</span></button>
-        <button class="top-tab" data-readonly-control="Hilfe"><span class="ico">?</span><span>Hilfe</span></button>
+        <button class="top-tab active" data-page="dashboard"><span class="ico">⌂</span><span>Dashboard</span></button>
+        <button class="top-tab" data-page="settings"><span class="ico">⚙</span><span>Einstellungen</span></button>
+        <button class="top-tab" data-page="logs"><span class="ico">▤</span><span>Logs</span></button>
+        <button class="top-tab" data-page="statistics"><span class="ico">▥</span><span>Statistiken</span></button>
+        <button class="top-tab" data-page="help"><span class="ico">?</span><span>Hilfe</span></button>
       </div>
-      <div class="bot-live"><span class="live-orb" id="topLiveOrb"></span><div><span id="topStatus">Bot läuft</span><small>v5.0.0 · Statusansicht</small></div></div>
+      <div class="bot-live" id="topStatusWrap"><span class="live-orb" id="topLiveOrb"></span><div><span id="topStatus">Warte auf Daten</span><small><span id="refreshState">Live-Update aktiv</span> · <span id="adminState">Read-only</span></small></div></div>
     </header>
 
     <section class="content">
-      <div class="grid" id="character">
-        <article class="card">
-          <div class="card-head"><h2>Charakter</h2><select class="character-select" id="characterSelect" aria-label="Charakter auswählen"></select></div>
-          <div class="character-layout">
-            <div class="identity">
-              <div class="avatar" id="avatar">🏹</div>
-              <div><div class="name" id="name">–</div><div class="level" id="level">Level –</div><div class="class" id="className">–</div></div>
+      <section class="view active" data-view="dashboard">
+        <div class="grid" id="character">
+          <article class="card">
+            <div class="card-head"><h2>Charakter</h2><select class="character-select" id="characterSelect" aria-label="Charakter auswählen"></select></div>
+            <div class="character-layout">
+              <div class="identity">
+                <div class="avatar" id="avatar">✦</div>
+                <div><div class="name" id="name">–</div><div class="level" id="level">Level –</div><div class="class" id="className">–</div></div>
+              </div>
+              <div class="vitals">
+                <div><div class="vital-label"><span>HP</span><span><b id="hpText">–</b> &nbsp; <span id="hpPct">–</span></span></div><div class="bar hp"><i id="hpBar" style="width:0"></i></div></div>
+                <div><div class="vital-label"><span>MP</span><span><b id="mpText">–</b> &nbsp; <span id="mpPct">–</span></span></div><div class="bar mp"><i id="mpBar" style="width:0"></i></div></div>
+              </div>
             </div>
-            <div class="vitals">
-              <div><div class="vital-label"><span>HP</span><span><b id="hpText">–</b> &nbsp; <span id="hpPct">–</span></span></div><div class="bar hp"><i id="hpBar" style="width:0"></i></div></div>
-              <div><div class="vital-label"><span>MP</span><span><b id="mpText">–</b> &nbsp; <span id="mpPct">–</span></span></div><div class="bar mp"><i id="mpBar" style="width:0"></i></div></div>
-            </div>
+          </article>
+          <article class="card status-card">
+            <h2>Bot-Status</h2>
+            <div class="status-big" id="statusBig"><span class="live-orb" id="statusOrb"></span><span id="statusText">Warte auf Daten</span></div>
+            <div class="subtle">Aktuelle Aufgabe:</div>
+            <div class="task-title">⚔ &nbsp;<span id="currentTask">–</span></div>
+            <div class="task-meta">Map: <b id="currentMap">–</b> &nbsp;&nbsp; Seit: <b id="taskSince">–</b></div>
+          </article>
+        </div>
+
+        <div class="row3" id="tasks">
+          <article class="card"><h2>Letzte 3 ausgeführte Aufgaben</h2><div class="task-list" id="taskHistory"></div></article>
+          <article class="card" id="stats"><h2>Aktuelle Statistiken (pro Stunde)</h2><div class="metric-wrap">
+            <div class="metric"><div class="metric-icon xp">XP</div><div><small>EXP / h</small><strong id="xpPerHour">–</strong></div></div>
+            <div class="metric"><div class="metric-icon gold">●</div><div><small>Gold / h</small><strong id="goldPerHour">–</strong></div></div>
+          </div></article>
+          <article class="card"><h2>Laufzeit</h2><div class="runtime"><div class="clock"></div><div><div class="runtime-value" id="runtimeValue">–</div><div class="kv"><span>Startzeit:</span><b id="startTime">–</b><span>Läuft seit:</span><b id="runningSince">–</b><span>Status:</span><b id="stability">–</b></div></div></div></article>
+        </div>
+
+        <div class="row3b">
+          <article class="card"><h2>Fortschritt (aktuelles Level)</h2><div class="progress-label"><span id="progressLevel">Level –</span><span id="nextLevel">Level –</span></div><div class="bar xp"><i id="xpBar" style="width:0"></i></div><div class="progress-meta" id="xpProgressText">–</div></article>
+          <article class="card"><h2>Schnellinfos</h2><div class="quick">
+            <div class="quick-row"><span>●</span><span>Map:</span><b id="quickMap">–</b></div>
+            <div class="quick-row"><span>♣</span><span>Gruppe:</span><b id="quickParty">–</b></div>
+            <div class="quick-row"><span>▥</span><span>Ping (AL):</span><b class="ok" id="quickPing">–</b></div>
+            <div class="quick-row"><span>⌁</span><span>Verbindung:</span><b class="ok" id="quickConnection">–</b></div>
+          </div></article>
+          <article class="card" id="dashboardControls"><h2>Dashboard-Steuerung</h2><div class="controls">
+            <button class="control-btn" id="togglePolling"><span class="ico">Ⅱ</span><span id="pollingLabel">Live-Update pausieren</span></button>
+            <button class="control-btn" id="refreshNow"><span class="ico">↻</span><span>Daten neu laden</span></button>
+            <button class="control-btn" data-page="settings"><span class="ico">⚙</span><span>Optionen</span></button>
+          </div></article>
+        </div>
+
+        <article class="card log-card" id="logsPreview"><div class="log" id="logRows"></div><div class="log-actions"><button class="ghost" data-page="logs">▤ &nbsp; Logs öffnen</button></div></article>
+      </section>
+
+      <section class="view" data-view="characters">
+        <div class="page-head"><div><h1>Charaktere</h1><p>Alle bekannten Party-Charaktere mit Ressourcen, Verbindung und aktueller Arbeit.</p></div><div class="toolbar"><button class="ghost" data-action="refresh">↻ Aktualisieren</button></div></div>
+        <div class="character-grid" id="characterCards"></div>
+      </section>
+
+      <section class="view" data-view="tasks">
+        <div class="page-head"><div><h1>Aufgaben</h1><p>Aktuelle Aufgabe und letzte relevante Runtime-Ereignisse je Charakter.</p></div><div class="toolbar"><select id="taskCharacterFilter"><option value="">Alle Charaktere</option></select><button class="ghost" data-action="refresh">↻ Aktualisieren</button></div></div>
+        <article class="card"><div class="table-wrap"><table class="data-table"><thead><tr><th>Zeit</th><th>Charakter</th><th>Aufgabe / Event</th><th>Grund</th></tr></thead><tbody id="taskRows"></tbody></table></div></article>
+      </section>
+
+      <section class="view" data-view="settings">
+        <div class="page-head"><div><h1>Einstellungen</h1><p>Revisionierte Bot-Konfiguration über den vorhandenen Settings-Kanal. Safety-Locks bleiben unveränderbar.</p></div><div class="settings-summary"><span class="pill" id="settingsRevision">Revision –</span><span class="pill" id="settingsAdmin">Read-only</span><span class="pill" id="settingsDirty">0 Änderungen</span></div></div>
+        <div class="settings-shell">
+          <div class="settings-toolbar">
+            <input id="settingsSearch" placeholder="Einstellung, Schlüssel oder Beschreibung suchen …" aria-label="Einstellungen durchsuchen">
+            <button class="ghost" id="discardSettings">Verwerfen</button>
+            <button class="primary-small" id="saveSettings" disabled>Speichern</button>
+            <button class="ghost" id="reloadSettings">↻ Neu laden</button>
           </div>
-        </article>
+          <div id="settingsNotice" class="notice">Einstellungen werden geladen …</div>
+          <div class="settings-groups" id="settingsGroups"></div>
+        </div>
+      </section>
 
-        <article class="card status-card">
-          <h2>Bot-Status</h2>
-          <div class="status-big"><span class="live-orb" id="statusOrb"></span><span id="statusText">Bot läuft</span></div>
-          <div class="subtle">Aktuelle Aufgabe:</div>
-          <div class="task-title">⚔ &nbsp;<span id="currentTask">–</span></div>
-          <div class="task-meta">Map: <b id="currentMap">–</b> &nbsp;&nbsp; Seit: <b id="taskSince">–</b></div>
-        </article>
-      </div>
+      <section class="view" data-view="statistics">
+        <div class="page-head"><div><h1>Statistiken</h1><p>Live-Summen und Leistungswerte der verbundenen Charaktere.</p></div><div class="toolbar"><button class="ghost" data-action="refresh">↻ Aktualisieren</button></div></div>
+        <div class="stat-grid">
+          <div class="stat-tile"><small>Live</small><strong id="statLive">0</strong></div>
+          <div class="stat-tile"><small>Party-Gold</small><strong id="statGold">0</strong></div>
+          <div class="stat-tile"><small>EXP / h gesamt</small><strong id="statXpHour">0</strong></div>
+          <div class="stat-tile"><small>Gold / h gesamt</small><strong id="statGoldHour">0</strong></div>
+        </div>
+        <article class="card" style="margin-top:15px"><div class="table-wrap"><table class="data-table"><thead><tr><th>Charakter</th><th>Klasse</th><th>Level</th><th>Map</th><th>EXP / h</th><th>Gold / h</th><th>Status</th></tr></thead><tbody id="statsRows"></tbody></table></div></article>
+      </section>
 
-      <div class="row3" id="tasks">
-        <article class="card"><h2>Letzte 3 ausgeführte Aufgaben</h2><div class="task-list" id="taskHistory"></div></article>
-        <article class="card" id="stats"><h2>Aktuelle Statistiken (pro Stunde)</h2><div class="metric-wrap">
-          <div class="metric"><div class="metric-icon xp">XP</div><div><small>EXP / h</small><strong id="xpPerHour">–</strong></div></div>
-          <div class="metric"><div class="metric-icon gold">●</div><div><small>Gold / h</small><strong id="goldPerHour">–</strong></div></div>
-        </div></article>
-        <article class="card"><h2>Laufzeit</h2><div class="runtime"><div class="clock"></div><div><div class="runtime-value" id="runtimeValue">–</div><div class="kv"><span>Startzeit:</span><b id="startTime">–</b><span>Läuft seit:</span><b id="runningSince">–</b><span>Status:</span><b class="good" id="stability">Stabil</b></div></div></div></article>
-      </div>
+      <section class="view" data-view="logs">
+        <div class="page-head"><div><h1>Logs</h1><p>Runtime-Ereignisse durchsuchen, filtern und kopieren.</p></div></div>
+        <div class="toolbar" style="margin-bottom:12px">
+          <input id="logSearch" placeholder="Logs durchsuchen …" aria-label="Logs durchsuchen">
+          <select id="logSeverity"><option value="">Alle Severitys</option><option value="error">Error/Critical</option><option value="warn">Warn</option><option value="info">Info</option></select>
+          <button class="ghost" id="reloadLogs">↻ Aktualisieren</button>
+          <button class="ghost" id="copyLogs">Kopieren</button>
+        </div>
+        <article class="card"><div class="table-wrap"><table class="data-table"><thead><tr><th>Zeit</th><th>Severity</th><th>Charakter</th><th>Komponente</th><th>Event</th><th>Grund</th></tr></thead><tbody id="fullLogRows"></tbody></table></div></article>
+      </section>
 
-      <div class="row3b">
-        <article class="card"><h2>Fortschritt (aktuelles Level)</h2><div class="progress-label"><span id="progressLevel">Level –</span><span id="nextLevel">Level –</span></div><div class="bar xp"><i id="xpBar" style="width:0"></i></div><div class="progress-meta" id="xpProgressText">–</div></article>
-        <article class="card"><h2>Schnellinfos</h2><div class="quick">
-          <div class="quick-row"><span>●</span><span>Map:</span><b id="quickMap">–</b></div>
-          <div class="quick-row"><span>♣</span><span>Gruppe:</span><b id="quickParty">–</b></div>
-          <div class="quick-row"><span>▥</span><span>Ping (AL):</span><b class="ok" id="quickPing">–</b></div>
-          <div class="quick-row"><span>⌁</span><span>Verbindung:</span><b class="ok" id="quickConnection">–</b></div>
-        </div></article>
-        <article class="card" id="settings"><h2>Steuerung</h2><div class="controls">
-          <button class="control-btn" data-readonly-control="Pause"><span class="ico">Ⅱ</span><span>Pause</span></button>
-          <button class="control-btn" data-readonly-control="Neustart"><span class="ico">↻</span><span>Neustart</span></button>
-          <button class="control-btn" data-readonly-control="Optionen"><span class="ico">⚙</span><span>Optionen</span></button>
-        </div></article>
-      </div>
-
-      <article class="card log-card" id="logs"><div class="log" id="logRows"></div><div class="log-actions"><button class="ghost" data-readonly-control="Logs öffnen">▤ &nbsp; Logs öffnen</button></div></article>
+      <section class="view" data-view="help">
+        <div class="page-head"><div><h1>Hilfe</h1><p>Kurzübersicht zur Bedienung des V5-Web-Dashboards.</p></div></div>
+        <div class="help-grid">
+          <article class="card help-card"><h2>Zugang</h2><p>Der <code>READ_KEY</code> öffnet Telemetrie, Aufgaben, Statistiken und Logs. Der optionale <code>ADMIN_KEY</code> schaltet editierbare Einstellungen frei. Beide Schlüssel bleiben nur in der aktuellen Browser-Sitzung.</p></article>
+          <article class="card help-card"><h2>Live-Status</h2><p>Grün bedeutet live, gelb verzögert und rot offline. Die Anzeige basiert auf dem Alter des letzten Runtime-Snapshots des ausgewählten Charakters.</p></article>
+          <article class="card help-card"><h2>Einstellungen</h2><p>Änderungen werden gesammelt und mit der aktuellen Revision gespeichert. Bei einem Revisionskonflikt lädt das Dashboard die neuesten Werte, statt fremde Änderungen still zu überschreiben.</p></article>
+          <article class="card help-card"><h2>Dashboard-Steuerung</h2><p>„Live-Update pausieren“ stoppt nur das automatische Nachladen dieses Dashboards. „Daten neu laden“ führt sofort einen neuen Abruf aus. Bot-Lifecycle-Befehle werden nicht als Web-Funktion vorgetäuscht, wenn dafür kein Backend-Kanal existiert.</p></article>
+        </div>
+      </section>
     </section>
   </main>
 </div>
-<div id="toast" class="toast hidden"></div>
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
 <script>
 (function(){
 'use strict';
 var readKey=sessionStorage.getItem('aioV5ReadKey')||sessionStorage.getItem('aioV3ReadKey')||'';
-var overview=null,events=[],selectedCharacter='';
+var adminKey=sessionStorage.getItem('aioV5AdminKey')||'';
+var account=sessionStorage.getItem('aioV5Account')||'default';
+var overview=null,events=[],settingsPayload=null,pendingSettings={},selectedCharacter='',activePage='dashboard',pollingPaused=false,loading=false,pollMs=5000,pollTimer=null;
+
 function $(id){return document.getElementById(id)}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]})}
 function n(v,f){var x=Number(v);return Number.isFinite(x)?x:(f==null?0:f)}
@@ -175,114 +240,182 @@ function fmt(v){var x=n(v,NaN);return Number.isFinite(x)?Math.round(x).toLocaleS
 function hms(sec){var s=Math.max(0,Math.floor(n(sec))),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),z=s%60;return [h,m,z].map(function(v){return String(v).padStart(2,'0')}).join(':')}
 function durationWords(sec){var s=Math.max(0,Math.floor(n(sec))),h=Math.floor(s/3600),m=Math.floor((s%3600)/60);if(h)return h+' Stunden, '+m+' Minuten';if(m)return m+' Minuten';return s+' Sekunden'}
 function time(v){var x=n(v);return x?new Date(x).toLocaleTimeString('de-DE'):'–'}
+function dateTime(v){var x=n(v);return x?new Date(x).toLocaleString('de-DE'):'–'}
 function roleIcon(ctype){var x=String(ctype||'').toLowerCase();return x==='merchant'?'🧳':x==='priest'?'✚':x==='mage'?'✦':x==='warrior'?'🛡':x==='rogue'?'🗡':'🏹'}
-function api(path){return fetch(path,{cache:'no-store',headers:{'X-AIO-Read-Key':readKey}}).then(function(r){return r.json().catch(function(){return {ok:false,error:'Ungültige Antwort'}}).then(function(j){if(r.status===401)throw new Error('READ_KEY ist falsch.');if(!r.ok||j.ok===false)throw new Error(j.error||('HTTP '+r.status));return j})})}
+function field(o,paths,def){for(var i=0;i<paths.length;i++){var cur=o,parts=paths[i].split('.'),ok=true;for(var j=0;j<parts.length;j++){if(cur==null||typeof cur!=='object'||!(parts[j] in cur)){ok=false;break}cur=cur[parts[j]]}if(ok&&cur!=null&&cur!=='')return cur}return def}
+function withAccount(path){var sep=path.indexOf('?')>=0?'&':'?';return path+sep+'account='+encodeURIComponent(account||'default')}
+function api(path,opt){
+  opt=opt||{};
+  var headers={'X-AIO-Read-Key':readKey,'Accept':'application/json'};
+  if(opt.admin)headers['X-AIO-Admin-Key']=adminKey;
+  if(opt.body!=null)headers['Content-Type']='application/json; charset=utf-8';
+  return fetch(path,{method:opt.method||'GET',cache:'no-store',headers:headers,body:opt.body==null?undefined:JSON.stringify(opt.body)}).then(function(r){
+    return r.json().catch(function(){return {ok:false,error:'Ungültige Antwort'}}).then(function(j){
+      if(r.status===401)throw new Error('READ_KEY ist falsch.');
+      if(r.status===403)throw new Error(j.error||'ADMIN_KEY fehlt oder ist falsch.');
+      if(r.status===409){var e=new Error(j.error||'Einstellungen wurden zwischenzeitlich geändert.');e.code='REVISION_CONFLICT';throw e}
+      if(!r.ok||j.ok===false)throw new Error(j.error||('HTTP '+r.status));
+      return j;
+    });
+  });
+}
 function chars(){return overview&&Array.isArray(overview.characters)?overview.characters:[]}
 function selectedRow(){var rows=chars();return rows.find(function(r){return r.character===selectedCharacter})||rows[0]||null}
-function field(o,paths,def){for(var i=0;i<paths.length;i++){var cur=o,parts=paths[i].split('.'),ok=true;for(var j=0;j<parts.length;j++){if(cur==null||typeof cur!=='object'||!(parts[j] in cur)){ok=false;break}cur=cur[parts[j]]}if(ok&&cur!=null&&cur!=='')return cur}return def}
 function currentTask(status){
   var raw=field(status,['currentTask.label','currentTask.name','currentTask.title','currentTask','task.label','task.name','task','scheduler.current.label','scheduler.current.name','farmer.currentTask','farmer.task'],null);
   if(raw&&typeof raw==='object')raw=raw.label||raw.name||raw.id;
-  if(raw)return String(raw);
+  if(raw)return String(raw).replace(/_/g,' ');
   var f=status&&status.farmer||{};
-  if(f.state&&String(f.state).toLowerCase()!=='idle'){
-    var target=f.targetType||f.targetId||'';
-    return target?'Monster farmen ('+target+')':String(f.state);
-  }
+  if(f.state&&String(f.state).toLowerCase()!=='idle'){var target=f.targetType||f.targetId||'';return target?'Monster farmen ('+target+')':String(f.state).replace(/_/g,' ')}
   return 'Keine aktive Aufgabe';
 }
 function taskStarted(status){return n(field(status,['currentTask.startedAt','task.startedAt','taskStartedAt','scheduler.current.startedAt'],0))}
-function startedAt(status){
-  var v=n(field(status,['startedAt','botStartedAt','runtime.startedAt','operations.startedAt','lifecycle.startedAt','performance.startedAt'],0));
-  return v>1000000000000?v:0;
-}
-function partyLabel(status){
-  var p=status&&status.party;
-  if(Array.isArray(p&&p.characters))return p.characters.length?p.characters.length+' Mitglieder':'Keine';
-  if(Array.isArray(p))return p.length?p.length+' Mitglieder':'Keine';
-  if(p&&p.size!=null)return n(p.size)+' Mitglieder';
-  return 'Keine';
-}
+function startedAt(status){var v=n(field(status,['startedAt','botStartedAt','runtime.startedAt','operations.startedAt','lifecycle.startedAt','performance.startedAt'],0));return v>1000000000000?v:0}
+function partyLabel(status){var p=status&&status.party;if(Array.isArray(p&&p.characters))return p.characters.length?p.characters.length+' Mitglieder':'Keine';if(Array.isArray(p))return p.length?p.length+' Mitglieder':'Keine';if(p&&p.size!=null)return n(p.size)+' Mitglieder';var count=chars().filter(function(r){return r.connectionState==='live'}).length;return count?count+' Mitglieder':'Keine'}
 function ping(status){var x=field(status,['ping','network.ping','connection.ping','latencyMs','network.latencyMs'],null);return x==null?'–':fmt(x)+' ms'}
+function rates(status){return field(status,['performance.current.rates','performance.rates'],{})||{}}
 function histories(status,row){
-  var sources=[
-    field(status,['taskHistory'],null),
-    field(status,['tasks.history'],null),
-    field(status,['scheduler.history'],null),
-    field(status,['workflow.history'],null),
-    field(status,['farmer.history'],null)
-  ];
-  var out=[];
-  sources.forEach(function(list){if(!Array.isArray(list))return;list.slice().reverse().forEach(function(x){if(out.length>=3)return;var label=typeof x==='string'?x:(x&& (x.label||x.name||x.task||x.title||x.id||x.reason));if(label)out.push({label:String(label),at:n(x&& (x.completedAt||x.endedAt||x.at||x.time||x.ts),0)})})});
-  if(out.length<3){
-    events.filter(function(e){return !e.character||e.character===row.character}).forEach(function(e){
-      if(out.length>=3)return;
-      var name=String(e.event||'');
-      if(!/TASK|FARM|BANK|MERCHANT|DELIVERY|COLLECTION|RENDEZVOUS|PRODUCTION|COMPLET|DONE/i.test(name))return;
-      out.push({label:String(e.reason||name).replace(/_/g,' '),at:n(e.eventAt,0)});
-    });
-  }
+  var sources=[field(status,['taskHistory'],null),field(status,['tasks.history'],null),field(status,['scheduler.history'],null),field(status,['workflow.history'],null),field(status,['farmer.history'],null)],out=[];
+  sources.forEach(function(list){if(!Array.isArray(list))return;list.slice().reverse().forEach(function(x){if(out.length>=3)return;var label=typeof x==='string'?x:(x&&(x.label||x.name||x.task||x.title||x.id||x.reason));if(label)out.push({label:String(label).replace(/_/g,' '),at:n(x&&(x.completedAt||x.endedAt||x.at||x.time||x.ts),0)})})});
+  if(out.length<3){events.filter(function(e){return !e.character||e.character===row.character}).forEach(function(e){if(out.length>=3)return;var name=String(e.event||'');if(!/TASK|FARM|BANK|MERCHANT|DELIVERY|COLLECTION|RENDEZVOUS|PRODUCTION|COMPLET|DONE/i.test(name))return;out.push({label:String(e.reason||name).replace(/_/g,' '),at:n(e.eventAt,0)})})}
   return out.slice(0,3);
 }
-function logItems(row){
-  var list=events.filter(function(e){return !e.character||e.character===row.character}).slice(0,4).map(function(e){return {at:n(e.eventAt,0),text:(e.event||'Event')+(e.reason?' · '+e.reason:''),ok:!/(error|critical|fatal|warn)/i.test(String(e.severity||''))}});
-  if(!list.length)list=[{at:n(row.receivedAt,0),text:'Telemetrie empfangen',ok:true}];
-  return list;
-}
-function toast(msg){var el=$('toast');el.textContent=msg;el.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(function(){el.classList.add('hidden')},2200)}
+function logItems(row){var list=events.filter(function(e){return !e.character||e.character===row.character}).slice(0,4).map(function(e){return {at:n(e.eventAt,0),text:(e.event||'Event')+(e.reason?' · '+e.reason:''),level:eventLevel(e)}});if(!list.length)list=[{at:n(row.receivedAt,0),text:'Telemetrie empfangen',level:'ok'}];return list}
+function eventLevel(e){var s=String(e&&e.severity||'info').toLowerCase();if(/error|critical|fatal|emergency|alert/.test(s))return 'bad';if(/warn/.test(s))return 'warn';return 'ok'}
+function toast(msg,isError){var el=$('toast');el.textContent=msg;el.style.borderColor=isError?'#6b3039':'#2c4c6c';el.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(function(){el.classList.add('hidden')},2800)}
+function stateOf(row){return String(row&&(row.connectionState||(row.status&&row.status.connectionState))||'offline').toLowerCase()}
+function stateLabel(state){return state==='live'?'Live':state==='delayed'?'Verzögert':'Offline'}
+function stateClass(state){return state==='live'?'good':state==='delayed'?'warn':'bad'}
 function setConnection(state){
-  var live=state==='live',delayed=state==='delayed';
-  $('topStatus').textContent=live?'Bot läuft':delayed?'Bot verzögert':'Bot offline';
-  $('statusText').textContent=live?'Bot läuft':delayed?'Bot verzögert':'Bot offline';
-  $('sidebarConnection').textContent=live?'Verbunden':delayed?'Verzögert':'Offline';
-  $('quickConnection').textContent=live?'Stabil':delayed?'Verzögert':'Offline';
-  ['topLiveOrb','statusOrb'].forEach(function(id){var el=$(id);el.style.background=live?'var(--green)':delayed?'var(--gold)':'var(--red)';el.style.boxShadow='0 0 17px '+(live?'var(--green)':delayed?'var(--gold)':'var(--red)')});
+  var live=state==='live',delayed=state==='delayed',color=live?'var(--green)':delayed?'var(--gold)':'var(--red)',label=live?'Bot läuft':delayed?'Bot verzögert':'Bot offline';
+  $('topStatus').textContent=label;$('statusText').textContent=label;$('sidebarConnection').textContent=live?'Verbunden':delayed?'Verzögert':'Offline';$('quickConnection').textContent=live?'Stabil':delayed?'Verzögert':'Offline';
+  $('topStatusWrap').style.color=color;$('statusBig').style.color=color;
+  ['topLiveOrb','statusOrb','sidebarDot'].forEach(function(id){var el=$(id);el.style.background=color;el.style.boxShadow='0 0 17px '+color});
+  $('quickConnection').className=stateClass(state);
 }
-function render(){
-  var row=selectedRow();
-  if(!row)return;
-  var s=row.status||{},c=s.character||{},perf=field(s,['performance.current.rates'],{})||{};
-  var hp=n(c.hp),maxHp=n(c.max_hp),mp=n(c.mp),maxMp=n(c.max_mp),state=String(row.connectionState||s.connectionState||'offline').toLowerCase();
-  $('name').textContent=c.name||row.character||'Unbekannt';
-  $('level').textContent='Level '+(c.level==null?'–':fmt(c.level));
-  $('className').textContent=c.ctype||'–';
-  $('avatar').textContent=roleIcon(c.ctype);
+function renderEmptyDashboard(){
+  ['name','level','className','hpText','hpPct','mpText','mpPct','currentTask','currentMap','taskSince','xpPerHour','goldPerHour','runtimeValue','startTime','runningSince','progressLevel','nextLevel','xpProgressText','quickMap','quickParty','quickPing'].forEach(function(id){$(id).textContent='–'});
+  $('taskHistory').innerHTML='<div class="subtle">Noch keine Telemetrie vorhanden.</div>';$('logRows').innerHTML='<div class="subtle">Noch keine Logs vorhanden.</div>';
+  $('hpBar').style.width='0';$('mpBar').style.width='0';$('xpBar').style.width='0';$('stability').textContent='Offline';$('stability').className='bad';setConnection('offline');
+}
+function renderDashboard(){
+  var row=selectedRow();if(!row){renderEmptyDashboard();return}
+  var s=row.status||{},c=s.character||{},perf=rates(s),hp=n(c.hp),maxHp=n(c.max_hp||c.maxHp),mp=n(c.mp),maxMp=n(c.max_mp||c.maxMp),state=stateOf(row);
+  $('name').textContent=c.name||row.character||'Unbekannt';$('level').textContent='Level '+(c.level==null?'–':fmt(c.level));$('className').textContent=c.ctype||'–';$('avatar').textContent=roleIcon(c.ctype);
   $('hpText').textContent=fmt(hp)+' / '+fmt(maxHp);$('hpPct').textContent=maxHp?Math.round(pct(hp,maxHp))+'%':'–';$('hpBar').style.width=pct(hp,maxHp)+'%';
   $('mpText').textContent=fmt(mp)+' / '+fmt(maxMp);$('mpPct').textContent=maxMp?Math.round(pct(mp,maxMp))+'%':'–';$('mpBar').style.width=pct(mp,maxMp)+'%';
-  var task=currentTask(s),started=taskStarted(s),now=n(overview&&overview.now,Date.now());
-  $('currentTask').textContent=task;$('currentMap').textContent=c.map||'–';$('taskSince').textContent=started?hms((now-started)/1000):'–';
+  var task=currentTask(s),started=taskStarted(s),now=n(overview&&overview.now,Date.now());$('currentTask').textContent=task;$('currentMap').textContent=c.map||'–';$('taskSince').textContent=started?hms((now-started)/1000):'–';
   $('xpPerHour').textContent=fmt(perf.xpPerHour);$('goldPerHour').textContent=fmt(perf.goldPerHour);
-  var start=startedAt(s),uptime=start?Math.max(0,(now-start)/1000):n(field(s,['uptimeSeconds','runtime.uptimeSeconds','operations.uptimeSeconds'],0),0);
-  $('runtimeValue').textContent=uptime?hms(uptime):'–';$('startTime').textContent=start?new Date(start).toLocaleString('de-DE'):'–';$('runningSince').textContent=uptime?durationWords(uptime):'–';
-  $('stability').textContent=state==='live'?'Stabil':state==='delayed'?'Verzögert':'Offline';$('stability').className=state==='live'?'good':'';
+  var start=startedAt(s),uptime=start?Math.max(0,(now-start)/1000):n(field(s,['uptimeSeconds','runtime.uptimeSeconds','operations.uptimeSeconds'],0),0);$('runtimeValue').textContent=uptime?hms(uptime):'–';$('startTime').textContent=start?dateTime(start):'–';$('runningSince').textContent=uptime?durationWords(uptime):'–';$('stability').textContent=state==='live'?'Stabil':state==='delayed'?'Verzögert':'Offline';$('stability').className=stateClass(state);
   var xp=n(c.xp),maxXp=n(c.max_xp||c.maxXp),xpP=maxXp?pct(xp,maxXp):0;$('progressLevel').textContent='Level '+(c.level==null?'–':fmt(c.level));$('nextLevel').textContent=c.level==null?'Level –':'Level '+fmt(n(c.level)+1);$('xpBar').style.width=xpP+'%';$('xpProgressText').textContent=maxXp?fmt(xp)+' / '+fmt(maxXp)+' ('+xpP.toFixed(1).replace('.',',')+'%)':'–';
-  $('quickMap').textContent=c.map||'–';$('quickParty').textContent=partyLabel(s);$('quickPing').textContent=ping(s);
-  setConnection(state);
+  $('quickMap').textContent=c.map||'–';$('quickParty').textContent=partyLabel(s);$('quickPing').textContent=ping(s);setConnection(state);
   var hist=histories(s,row);$('taskHistory').innerHTML=[0,1,2].map(function(i){var x=hist[i];return '<div class="task-row"><span class="check">✓</span><span>'+(x?esc((i+1)+'. '+x.label):'<span class="subtle">'+(i+1)+'. Noch keine Aufgabe im Snapshot</span>')+'</span><span class="task-time">'+(x&&x.at?esc(time(x.at)):'–')+'</span></div>'}).join('');
-  $('logRows').innerHTML=logItems(row).map(function(x){return '<div class="log-row"><span>['+esc(time(x.at))+']</span><span class="'+(x.ok?'ok':'')+'">'+(x.ok?'✓':'!')+'</span><span>'+esc(x.text)+'</span></div>'}).join('');
+  $('logRows').innerHTML=logItems(row).map(function(x){var mark=x.level==='bad'?'!':x.level==='warn'?'!':'✓',cls=x.level==='bad'?'badmark':x.level==='warn'?'warnmark':'ok';return '<div class="log-row"><span>['+esc(time(x.at))+']</span><span class="'+cls+'">'+mark+'</span><span>'+esc(x.text)+'</span></div>'}).join('');
 }
 function renderCharacterSelect(){
-  var rows=chars(),sel=$('characterSelect');
-  var old=selectedCharacter;
+  var rows=chars(),sel=$('characterSelect'),old=selectedCharacter;
   sel.innerHTML=rows.map(function(r){var s=r.status||{},c=s.character||{};return '<option value="'+esc(r.character)+'">'+esc(c.name||r.character)+' · '+esc(c.ctype||'–')+'</option>'}).join('');
-  if(!old||!rows.some(function(r){return r.character===old})){var live=rows.find(function(r){return r.connectionState==='live'});selectedCharacter=(live||rows[0]||{}).character||''}
+  if(!old||!rows.some(function(r){return r.character===old})){var live=rows.find(function(r){return stateOf(r)==='live'});selectedCharacter=(live||rows[0]||{}).character||''}
   sel.value=selectedCharacter;
+  var filter=$('taskCharacterFilter'),filterOld=filter.value;filter.innerHTML='<option value="">Alle Charaktere</option>'+rows.map(function(r){return '<option value="'+esc(r.character)+'">'+esc((r.status&&r.status.character&&r.status.character.name)||r.character)+'</option>'}).join('');filter.value=rows.some(function(r){return r.character===filterOld})?filterOld:'';
 }
-function load(){
-  if(!readKey)return;
-  Promise.all([api('/api/v3/overview'),api('/api/v3/events?limit=50').catch(function(){return {ok:true,events:[]}})]).then(function(r){
-    overview=r[0];events=Array.isArray(r[1].events)?r[1].events:[];
-    $('login').classList.add('hidden');renderCharacterSelect();render();
-  }).catch(function(e){$('loginError').textContent=e.message})
+function renderCharacters(){
+  var rows=chars(),root=$('characterCards');
+  if(!rows.length){root.innerHTML='<article class="card subtle">Keine Charakterdaten vorhanden.</article>';return}
+  root.innerHTML=rows.map(function(r){var s=r.status||{},c=s.character||{},state=stateOf(r),hp=n(c.hp),mh=n(c.max_hp||c.maxHp),mp=n(c.mp),mm=n(c.max_mp||c.maxMp);return '<article class="card character-card"><div class="character-card-head"><div><h3>'+esc(c.name||r.character)+'</h3><div class="subtle">'+esc(c.ctype||'–')+' · Level '+esc(c.level==null?'–':fmt(c.level))+'</div></div><span class="pill '+stateClass(state)+'">'+stateLabel(state)+'</span></div><div><div class="vital-label"><span>HP</span><span>'+esc(fmt(hp))+' / '+esc(fmt(mh))+'</span></div><div class="mini-bar hp"><i style="width:'+pct(hp,mh)+'%"></i></div></div><div><div class="vital-label"><span>MP</span><span>'+esc(fmt(mp))+' / '+esc(fmt(mm))+'</span></div><div class="mini-bar"><i style="width:'+pct(mp,mm)+'%"></i></div></div><div class="mini-kv"><span>Map</span><b>'+esc(c.map||'–')+'</b><span>Aufgabe</span><b>'+esc(currentTask(s))+'</b><span>Snapshot</span><b>'+esc(r.ageSeconds==null?'–':fmt(r.ageSeconds)+' s alt')+'</b></div></article>'}).join('');
 }
-$('readKey').value=readKey;
-$('open').onclick=function(){readKey=$('readKey').value.trim();sessionStorage.setItem('aioV5ReadKey',readKey);load()};
-$('readKey').addEventListener('keydown',function(e){if(e.key==='Enter')$('open').click()});
-$('characterSelect').onchange=function(){selectedCharacter=this.value;render()};
-document.querySelectorAll('[data-readonly-control]').forEach(function(btn){btn.addEventListener('click',function(){toast(btn.getAttribute('data-readonly-control')+' ist in dieser ersten V5-GUI noch read-only.')})});
-document.querySelectorAll('[data-jump]').forEach(function(btn){btn.addEventListener('click',function(){var id=btn.getAttribute('data-jump');var target=$(id);if(target)target.scrollIntoView({behavior:'smooth',block:'start'});else toast('Dieser Bereich wird als Nächstes ergänzt.')})});
-if(readKey)load();
-setInterval(function(){if(readKey&&!document.hidden)load()},3000);
+function taskEvents(){
+  var filter=$('taskCharacterFilter').value;
+  var relevant=events.filter(function(e){return (!filter||e.character===filter)&&/TASK|FARM|TARGET|BANK|MERCHANT|DELIVERY|COLLECTION|RENDEZVOUS|PRODUCTION|COMPLET|DONE|TRAVEL/i.test(String(e.event||''))});
+  if(!relevant.length){chars().filter(function(r){return !filter||r.character===filter}).forEach(function(r){relevant.push({eventAt:r.receivedAt,character:r.character,event:currentTask(r.status||{}),reason:'Aktueller Snapshot'})})}
+  return relevant.slice(0,120);
+}
+function renderTasks(){
+  var rows=taskEvents();$('taskRows').innerHTML=rows.length?rows.map(function(e){return '<tr><td>'+esc(dateTime(e.eventAt))+'</td><td>'+esc(e.character||'–')+'</td><td>'+esc(String(e.event||'–').replace(/_/g,' '))+'</td><td>'+esc(e.reason||'–')+'</td></tr>'}).join(''):'<tr><td colspan="4" class="subtle">Keine Aufgabenereignisse vorhanden.</td></tr>';
+}
+function settingsValues(){return settingsPayload&&settingsPayload.settings&&settingsPayload.settings.values||{}}
+function settingValue(def){return Object.prototype.hasOwnProperty.call(pendingSettings,def.key)?pendingSettings[def.key]:(Object.prototype.hasOwnProperty.call(settingsValues(),def.key)?settingsValues()[def.key]:def.default)}
+function settingInput(def,value){
+  var disabled=(!adminKey||def.locked)?' disabled':'',key=esc(def.key);
+  if(def.type==='boolean')return '<label class="setting-control"><input type="checkbox" data-setting="'+key+'"'+(value===true?' checked':'')+disabled+'><span>'+(value===true?'Aktiv':'Aus')+'</span></label>';
+  if(def.type==='select')return '<div class="setting-control"><select data-setting="'+key+'"'+disabled+'>'+((def.values||[]).map(function(v){return '<option value="'+esc(v)+'"'+(String(v)===String(value)?' selected':'')+'>'+esc(v)+'</option>'}).join(''))+'</select></div>';
+  if(def.type==='number')return '<div class="setting-control"><input type="number" data-setting="'+key+'" value="'+esc(value)+'"'+(def.min!=null?' min="'+esc(def.min)+'"':'')+(def.max!=null?' max="'+esc(def.max)+'"':'')+(def.step!=null?' step="'+esc(def.step)+'"':'')+disabled+'></div>';
+  return '<div class="subtle">'+esc(value==null?'–':JSON.stringify(value))+'</div>';
+}
+function renderSettings(){
+  var root=$('settingsGroups'),schema=settingsPayload&&Array.isArray(settingsPayload.schema)?settingsPayload.schema.filter(function(d){return !d.hidden}):[];
+  var revision=settingsPayload&&settingsPayload.settings?settingsPayload.settings.revision:null;$('settingsRevision').textContent='Revision '+(revision==null?'–':fmt(revision));$('settingsAdmin').textContent=adminKey?'Admin aktiv':'Read-only';$('settingsAdmin').className='pill '+(adminKey?'good':'warn');
+  var dirtyCount=Object.keys(pendingSettings).length;$('settingsDirty').textContent=dirtyCount+' Änderungen';$('settingsDirty').className='pill '+(dirtyCount?'warn':'');$('saveSettings').disabled=!adminKey||!dirtyCount;
+  var dbAvailable=!(settingsPayload&&settingsPayload.database&&settingsPayload.database.available===false);
+  $('settingsNotice').className='notice '+(!dbAvailable?'warn':'');$('settingsNotice').textContent=!dbAvailable?'Datenbank ist im Fallback-Modus. Werte werden angezeigt; Schreiben kann bis zur Quota-Erholung blockiert sein.':adminKey?'ADMIN_KEY aktiv. Änderungen werden erst mit „Speichern“ übertragen.':'Read-only: Für Änderungen beim Anmelden einen ADMIN_KEY angeben.';
+  if(!schema.length){root.innerHTML='<div class="notice warn">Einstellungsschema ist nicht verfügbar.</div>';return}
+  var query=String($('settingsSearch').value||'').trim().toLowerCase(),groups={};
+  schema.forEach(function(def){var hay=(def.key+' '+def.category+' '+def.label+' '+def.description).toLowerCase();if(query&&hay.indexOf(query)<0)return;(groups[def.category]||(groups[def.category]=[])).push(def)});
+  root.innerHTML=Object.keys(groups).map(function(category){var defs=groups[category];return '<details class="settings-group" open><summary><span>'+esc(category)+'</span><span class="pill">'+defs.length+'</span></summary><div class="settings-list">'+defs.map(function(def){var changed=Object.prototype.hasOwnProperty.call(pendingSettings,def.key),tag=def.locked?'Safety Lock':def.hot?'Live':'Restart',tagClass=def.locked?'bad':def.hot?'good':'warn';return '<div class="setting'+(changed?' changed':'')+'"><div class="setting-head"><h3>'+esc(def.label)+'</h3><span class="pill '+tagClass+'">'+tag+'</span></div><p>'+esc(def.description||'')+'</p>'+settingInput(def,settingValue(def))+'<small>'+esc(def.key)+'</small></div>'}).join('')+'</div></details>'}).join('')||'<div class="notice">Keine Einstellung passt zur Suche.</div>';
+}
+function readControl(el){if(el.type==='checkbox')return el.checked;if(el.type==='number')return Number(el.value);return el.value}
+function loadSettings(showToast){
+  if(!readKey)return Promise.resolve();
+  return api(withAccount('/api/v3/settings')).then(function(j){settingsPayload=j;pendingSettings={};var configured=n(field(j,['settings.values.cloud.dashboardRefreshMs'],0),0);if(configured>=1000&&configured<=30000)pollMs=configured;renderSettings();schedulePoll();if(showToast)toast('Einstellungen aktualisiert.')}).catch(function(e){$('settingsNotice').className='notice bad';$('settingsNotice').textContent=e.message;if(showToast)toast(e.message,true);throw e});
+}
+function saveSettings(){
+  var keys=Object.keys(pendingSettings);if(!keys.length)return;if(!adminKey){toast('ADMIN_KEY erforderlich.',true);return}
+  var revision=settingsPayload&&settingsPayload.settings&&settingsPayload.settings.revision;
+  $('saveSettings').disabled=true;
+  api('/api/v3/settings',{method:'PATCH',admin:true,body:{account:account,expectedRevision:revision,patch:pendingSettings}}).then(function(j){settingsPayload=j;pendingSettings={};renderSettings();toast('Einstellungen gespeichert. Der Bot übernimmt sie beim nächsten Cloud-Sync.')}).catch(function(e){if(e.code==='REVISION_CONFLICT'){toast('Revisionskonflikt: Neueste Einstellungen werden geladen.',true);loadSettings(false)}else{toast(e.message,true);renderSettings()}});
+}
+function renderStats(){
+  var rows=chars(),live=0,totalGold=0,xph=0,gph=0;
+  rows.forEach(function(r){var s=r.status||{},c=s.character||{},perf=rates(s);if(stateOf(r)==='live')live++;totalGold+=n(c.gold);xph+=n(perf.xpPerHour);gph+=n(perf.goldPerHour)});
+  $('statLive').textContent=fmt(live);$('statGold').textContent=fmt(totalGold);$('statXpHour').textContent=fmt(xph);$('statGoldHour').textContent=fmt(gph);
+  $('statsRows').innerHTML=rows.length?rows.map(function(r){var s=r.status||{},c=s.character||{},perf=rates(s),state=stateOf(r);return '<tr><td><b>'+esc(c.name||r.character)+'</b></td><td>'+esc(c.ctype||'–')+'</td><td>'+esc(c.level==null?'–':fmt(c.level))+'</td><td>'+esc(c.map||'–')+'</td><td>'+esc(fmt(perf.xpPerHour))+'</td><td>'+esc(fmt(perf.goldPerHour))+'</td><td><span class="pill '+stateClass(state)+'">'+stateLabel(state)+'</span></td></tr>'}).join(''):'<tr><td colspan="7" class="subtle">Keine Charakterdaten vorhanden.</td></tr>';
+}
+function filteredLogs(){
+  var q=String($('logSearch').value||'').trim().toLowerCase(),sev=$('logSeverity').value;
+  return events.filter(function(e){var s=String(e.severity||'info').toLowerCase();if(sev==='error'&&!/error|critical|fatal|emergency|alert/.test(s))return false;if(sev==='warn'&&!/warn/.test(s))return false;if(sev==='info'&&/error|critical|fatal|emergency|alert|warn/.test(s))return false;if(!q)return true;return [e.character,e.component,e.event,e.reason,e.severity].join(' ').toLowerCase().indexOf(q)>=0});
+}
+function renderLogs(){
+  var list=filteredLogs();$('fullLogRows').innerHTML=list.length?list.map(function(e){var sev=String(e.severity||'info').toLowerCase();return '<tr><td>'+esc(dateTime(e.eventAt))+'</td><td><span class="severity '+esc(sev)+'">'+esc(sev.toUpperCase())+'</span></td><td>'+esc(e.character||'–')+'</td><td>'+esc(e.component||'–')+'</td><td>'+esc(e.event||'–')+'</td><td>'+esc(e.reason||'–')+'</td></tr>'}).join(''):'<tr><td colspan="6" class="subtle">Keine passenden Logs.</td></tr>';
+}
+function renderAll(){renderCharacterSelect();renderDashboard();renderCharacters();renderTasks();renderStats();renderLogs();$('sidebarAccount').textContent=account;$('adminState').textContent=adminKey?'Admin':'Read-only';$('settingsAdmin').textContent=adminKey?'Admin aktiv':'Read-only'}
+function loadTelemetry(eventLimit){
+  if(!readKey||loading)return Promise.resolve();loading=true;
+  return Promise.all([api(withAccount('/api/v3/overview')),api(withAccount('/api/v3/events?limit='+(eventLimit||80))).catch(function(){return {ok:true,events:[]}})]).then(function(r){overview=r[0];events=Array.isArray(r[1].events)?r[1].events:[];$('login').classList.add('hidden');$('loginError').textContent='';renderAll()}).catch(function(e){$('loginError').textContent=e.message;if($('login').classList.contains('hidden'))toast(e.message,true);throw e}).finally(function(){loading=false});
+}
+function refreshAll(){return loadTelemetry(activePage==='logs'?200:80).then(function(){if(activePage==='settings'&&!settingsPayload)return loadSettings(false)}).catch(function(){})}
+function showPage(page){
+  activePage=page||'dashboard';document.querySelectorAll('.view').forEach(function(v){v.classList.toggle('active',v.getAttribute('data-view')===activePage)});document.querySelectorAll('[data-page]').forEach(function(btn){btn.classList.toggle('active',btn.getAttribute('data-page')===activePage)});
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(activePage==='settings'&&!settingsPayload)loadSettings(false).catch(function(){});
+  if(activePage==='logs')loadTelemetry(200).catch(function(){});
+}
+function schedulePoll(){clearInterval(pollTimer);pollTimer=setInterval(function(){if(readKey&&!pollingPaused&&!document.hidden)loadTelemetry(activePage==='logs'?200:80).catch(function(){})},Math.max(1000,pollMs))}
+function setPollingPaused(value){pollingPaused=!!value;$('pollingLabel').textContent=pollingPaused?'Live-Update fortsetzen':'Live-Update pausieren';$('refreshState').textContent=pollingPaused?'Live-Update pausiert':'Live-Update aktiv';$('togglePolling').querySelector('.ico').textContent=pollingPaused?'▶':'Ⅱ';toast(pollingPaused?'Automatisches Nachladen pausiert.':'Automatisches Nachladen fortgesetzt.')}
+function login(){
+  readKey=$('readKey').value.trim();adminKey=$('adminKey').value.trim();account=$('accountInput').value.trim()||'default';
+  if(!readKey){$('loginError').textContent='READ_KEY fehlt.';return}
+  sessionStorage.setItem('aioV5ReadKey',readKey);sessionStorage.setItem('aioV5Account',account);if(adminKey)sessionStorage.setItem('aioV5AdminKey',adminKey);else sessionStorage.removeItem('aioV5AdminKey');
+  $('open').disabled=true;$('loginError').textContent='';
+  loadTelemetry(80).then(function(){return loadSettings(false).catch(function(){})}).then(function(){renderAll();schedulePoll()}).catch(function(){}).finally(function(){$('open').disabled=false});
+}
+function disconnect(){
+  sessionStorage.removeItem('aioV5ReadKey');sessionStorage.removeItem('aioV3ReadKey');sessionStorage.removeItem('aioV5AdminKey');sessionStorage.removeItem('aioV5Account');readKey='';adminKey='';overview=null;events=[];settingsPayload=null;pendingSettings={};clearInterval(pollTimer);$('login').classList.remove('hidden');$('readKey').value='';$('adminKey').value='';$('accountInput').value='default';$('loginError').textContent='';toast('Dashboard-Sitzung beendet.');
+}
+
+$('readKey').value=readKey;$('adminKey').value=adminKey;$('accountInput').value=account;
+$('open').onclick=login;$('readKey').addEventListener('keydown',function(e){if(e.key==='Enter')login()});$('adminKey').addEventListener('keydown',function(e){if(e.key==='Enter')login()});
+$('disconnect').onclick=disconnect;$('characterSelect').onchange=function(){selectedCharacter=this.value;renderDashboard()};
+document.querySelectorAll('[data-page]').forEach(function(btn){btn.addEventListener('click',function(){showPage(btn.getAttribute('data-page'))})});
+document.querySelectorAll('[data-action="refresh"]').forEach(function(btn){btn.addEventListener('click',function(){refreshAll()})});
+$('togglePolling').onclick=function(){setPollingPaused(!pollingPaused)};$('refreshNow').onclick=refreshAll;$('reloadSettings').onclick=function(){loadSettings(true).catch(function(){})};$('saveSettings').onclick=saveSettings;
+$('discardSettings').onclick=function(){pendingSettings={};renderSettings();toast('Ungespeicherte Änderungen verworfen.')};
+$('settingsSearch').addEventListener('input',renderSettings);$('taskCharacterFilter').addEventListener('change',renderTasks);$('logSearch').addEventListener('input',renderLogs);$('logSeverity').addEventListener('change',renderLogs);
+$('reloadLogs').onclick=function(){loadTelemetry(200).then(function(){toast('Logs aktualisiert.')}).catch(function(){})};
+$('copyLogs').onclick=function(){var text=filteredLogs().map(function(e){return '['+dateTime(e.eventAt)+'] '+String(e.severity||'info').toUpperCase()+' '+(e.character||'-')+' '+(e.component||'-')+' '+(e.event||'-')+(e.reason?' · '+e.reason:'')}).join('
+');if(!text){toast('Keine sichtbaren Logs zum Kopieren.',true);return}if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(function(){toast('Sichtbare Logs kopiert.')}).catch(function(){toast('Kopieren wurde vom Browser blockiert.',true)});else toast('Clipboard-API ist nicht verfügbar.',true)};
+$('settingsGroups').addEventListener('change',function(e){var el=e.target,key=el&&el.getAttribute&&el.getAttribute('data-setting');if(!key||!settingsPayload)return;var def=(settingsPayload.schema||[]).find(function(d){return d.key===key});if(!def||def.locked)return;pendingSettings[key]=readControl(el);renderSettings()});
+if(readKey){loadTelemetry(80).then(function(){return loadSettings(false).catch(function(){})}).then(function(){renderAll();schedulePoll()}).catch(function(){})}else{$('login').classList.remove('hidden')}
+schedulePoll();
 })();
 </script>
 </body>
