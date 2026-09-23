@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-23",
+  "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
+  "status": "BELEGTER_SLOT_SWAP_SETTLEMENT_BEREIT_NO_WRITE",
+  "blockingGate": "PR20.7_GEAR",
+  "basis": {
+    "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
+    "actionContractId": "AL-ACTION-EQUIP",
+    "recoveryContractId": "AL-RECOVERY-EQUIP",
+    "verifierId": "AL-VERIFIER-EQUIP",
+    "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+  },
+  "serverSemantik": {
+    "normalEquip": "existing = player.slots[slot]; player.slots[slot] = player.items[data.num]; player.items[data.num] = existing",
+    "settlement": "ATOMIC_REPLACE_AND_RETURN_PREVIOUS_TO_SOURCE_INDEX",
+    "virtualExistingB": "BLOCKED_FOR_PR20_7",
+    "source": "v5/wissensbasis/datenbank/aktuell/AL-SRC-SERVER.txt"
+  },
+  "scope": {
+    "safeOccupiedSlots": [
+      "cape",
+      "belt",
+      "amulet",
+      "orb",
+      "helmet",
+      "gloves",
+      "shoes",
+      "pants",
+      "chest"
+    ],
+    "emptySlots": "PR20_1_EXISTING_PATH_ONLY",
+    "mainhand": "SEPARATE_GATE",
+    "offhand": "SEPARATE_GATE",
+    "elixir": "OUT_OF_SCOPE",
+    "tradeSlots": "OUT_OF_SCOPE"
+  },
+  "admission": {
+    "sameAccount": true,
+    "recipientSessionPinned": true,
+    "serverPinned": true,
+    "rosterPinned": true,
+    "evidenceFresh": true,
+    "candidatePhysical": true,
+    "previousSlotItemPhysical": true,
+    "previousVirtualBMustBeFalse": true,
+    "candidateUnlocked": true,
+    "compatibilityVerified": true,
+    "contentVerified": true,
+    "dispositionAllowed": true,
+    "exactCandidateIndex": true
+  },
+  "settlement": {
+    "commitRequires": [
+      "recipient binding unchanged",
+      "candidate fingerprint in intended equipment slot",
+      "previous slot-item fingerprint at original candidate inventory index",
+      "rest inventory fingerprint unchanged",
+      "rest equipment fingerprint unchanged"
+    ],
+    "unchangedPrestate": "NICHT_AUSGEFUEHRT",
+    "oneSidedExpectedDelta": "TEILWEISE",
+    "driftOrContradiction": "UNGEKLAERT",
+    "sameIntentRetry": false,
+    "newIntentAutomaticallyAllowed": false
+  },
+  "authority": {
+    "produktiveRegistrierungErlaubt": false,
+    "produktiverAktivierungspfadErlaubt": false,
+    "ausfuehrungsAutoritaet": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "swapWriteRatification": false
+  },
+  "nextGate": {
+    "requiredBeforeAnySwapWrite": [
+      "read-only Adventure-Land recipient preflight",
+      "durable one-shot authority scoped to occupied non-weapon slot",
+      "resource/fencing claims for recipient equipment and inventory",
+      "post-send reobserve/reconcile implementation",
+      "real no-write browser shadow evidence",
+      "separate exact-head green CI"
+    ],
+    "weaponsAndOffhandRemainSeparate": true
+  }
+}
