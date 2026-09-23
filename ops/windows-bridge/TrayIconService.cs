@@ -28,7 +28,7 @@ public sealed class TrayIconService : IDisposable
         var exitItem = new ToolStripMenuItem("Beenden");
         exitItem.Click += (_, _) => _requestExit();
 
-        openItem.Font = new Font(openItem.Font, FontStyle.Bold);
+        openItem.Font = new System.Drawing.Font(openItem.Font, System.Drawing.FontStyle.Bold);
         _menu.Items.Add(openItem);
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add(exitItem);
