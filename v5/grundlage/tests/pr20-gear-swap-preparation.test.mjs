@@ -252,6 +252,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.preflight.startCalls, 0);
   assert.equal(contract.preflight.disconnectCalls, 0);
   assert.equal(contract.preflight.farmerWorkersInstalled, 0);
-  assert.equal(contract.preflight.realEvidenceStatus, "BESTANDEN_REAL_BROWSER_NO_WRITE");\n  assert.equal(contract.preflight.realEvidenceRatified, true);
+  assert.equal(contract.preflight.realEvidenceStatus, "BESTANDEN_REAL_BROWSER_NO_WRITE");
+  assert.equal(contract.preflight.realEvidenceRatified, true);
   assert.equal(contract.nextGate.weaponsAndOffhandRemainSeparate, true);
 });
