@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import { execFileSync } from "node:child_process";
 
 const manifest = JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest.json", "utf8"));
 const allowedPackages = Object.freeze({
@@ -87,6 +88,19 @@ test("Manifest SHA-256 matches the exact checked-in selected package", () => {
   assert.equal(sha256, manifest.packageSha256);
   assert.ok(packageSource.includes(manifest.testId));
   assert.ok(packageSource.includes(manifest.expectedGlobal));
+});
+
+test("Manifest sourceCommit contains the exact SHA-pinned package", () => {
+  const pinnedBytes = execFileSync(
+    "git",
+    ["show", manifest.sourceCommit + ":" + manifest.packagePath],
+    { encoding: null, maxBuffer: 256 * 1024 },
+  );
+  const pinnedSha256 = crypto.createHash("sha256")
+    .update(pinnedBytes)
+    .digest("hex");
+  assert.equal(pinnedSha256, manifest.packageSha256);
+  assert.deepEqual(pinnedBytes, packageBytes);
 });
 
 test("selected autonomous package keeps raw socket/API bypasses closed", () => {
