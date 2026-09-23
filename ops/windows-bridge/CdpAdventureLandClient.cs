@@ -1038,9 +1038,9 @@ public sealed class CdpAdventureLandClient
     private static string BuildV5WorkerProbeExpression(string expectedGlobal)
     {
         var globalName = JsonSerializer.Serialize(expectedGlobal);
-        return $"""
+        return """
         (() => {
-          const api = globalThis[{{globalName}}];
+          const api = globalThis[__V5_WORKER_GLOBAL__];
           let status = null;
           try { status = typeof api?.status === 'function' ? api.status() : null; } catch {}
           return {
@@ -1052,7 +1052,7 @@ public sealed class CdpAdventureLandClient
             blocker: status ? String(status.blocker || '') : ''
           };
         })()
-        """;
+        """.Replace("__V5_WORKER_GLOBAL__", globalName, StringComparison.Ordinal);
     }
 
     private const string V5LegacyPr206RosterRecoveryExpression = """
