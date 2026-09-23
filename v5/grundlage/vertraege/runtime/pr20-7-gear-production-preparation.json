@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE",
+  "status": "OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_FENCING_BEREIT_NO_WRITE",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -76,15 +76,16 @@
   },
   "nextGate": {
     "requiredBeforeAnySwapWrite": [
-      "durable one-shot authority scoped to occupied non-weapon slot",
-      "resource/fencing claims for recipient equipment and inventory",
-      "post-send reobserve/reconcile implementation",
-      "real no-write browser shadow evidence",
+      "durable mutation intent for the exact swap before send boundary",
+      "post-send reobserve/reconcile implementation with no blind retry",
+      "real no-write browser shadow evidence for authority/fence/reconcile chain",
       "separate exact-head green CI"
     ],
     "weaponsAndOffhandRemainSeparate": true,
     "satisfied": [
-      "real exact-head read-only Adventure-Land recipient preflight evidence"
+      "real exact-head read-only Adventure-Land recipient preflight evidence",
+      "durable one-shot authority scoped to occupied non-weapon slot",
+      "resource/fencing claims for recipient equipment and inventory"
     ]
   },
   "preflight": {
@@ -122,5 +123,43 @@
     "realEvidenceManifestMainCommit": "63f0218974f793e08eee0a5c2284dffab2f9a018",
     "realEvidenceRecipient": "My_Merchant",
     "realEvidenceSlot": "helmet"
+  },
+  "authorityFencing": {
+    "implemented": true,
+    "source": "grundlage/quelle/equipment/pr20-7-gear-swap-einmal-authority.ts",
+    "persistenceAdapter": "grundlage/adapter/persistenz/node-pr20-7-gear-swap-einmal-authority-protokoll.mjs",
+    "contract": "grundlage/vertraege/runtime/pr20-7-gear-swap-one-shot-authority.json",
+    "separateFromPr20_1EquipAuthority": true,
+    "exactScopePinned": true,
+    "accountPinned": true,
+    "recipientCharacterPinned": true,
+    "recipientSessionPinned": true,
+    "serverPinned": true,
+    "occupiedSafeSlotPinned": true,
+    "candidateInventoryIndexPinned": true,
+    "candidateFingerprintPinned": true,
+    "previousSlotItemFingerprintPinned": true,
+    "restInventoryFingerprintPinned": true,
+    "restEquipmentFingerprintPinned": true,
+    "prestateFingerprintPinned": true,
+    "evidenceFingerprintPinned": true,
+    "maximumUses": 1,
+    "maximumTtlMs": 1500,
+    "durableBeforeAuthorityObject": true,
+    "resourceFences": [
+      "character:<recipient>:equipment",
+      "character:<recipient>:inventory"
+    ],
+    "fenceArt": "LANGLEBIG",
+    "fenceEpochPinned": true,
+    "expiredFenceRequiresReconciliation": true,
+    "hostExposed": false,
+    "executorWired": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "produktiveRegistrierungErlaubt": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "swapWriteRatification": false
   }
 }
