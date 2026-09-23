@@ -80,7 +80,7 @@ test("PR20.6 MLuck package distributes only a narrow heartbeat worker to farmer 
 
 test("updater recovery bootstrap is terminal no-write only", () => {
   if (!manifest.testId.startsWith("pr20-6-native-updater-recovery-bootstrap-v")) return;
-  assert.ok(["1.0.0", "1.0.1", "1.0.2", "1.0.3"].includes(manifest.controllerVersion));
+  assert.ok(["1.0.0", "1.0.1", "1.0.2", "1.0.3", "1.0.5"].includes(manifest.controllerVersion));
   assert.equal(packageSource.includes("gameplayWrites: 0"), true);
   assert.equal(packageSource.includes("rawWriteCalls: 0"), true);
   assert.equal(packageSource.includes("sameIntentRetry: false"), true);
@@ -106,4 +106,15 @@ test("account roster X recovery is read-only, performance-trick gated and exact-
     assert.equal(packageSource.includes("ACCOUNT_MY_RANGER1_FEHLT"), true);
     assert.equal(packageSource.includes("text(row.name) === OPERATOR_RANGER_NAME"), true);
   }
+});
+
+
+test("bootstrap v4 keeps the legacy Windows-Bridge handshake compatible without changing package authority", () => {
+  if (manifest.testId !== "pr20-6-native-updater-recovery-bootstrap-v4") return;
+  assert.equal(manifest.controllerVersion, "1.0.5");
+  assert.ok(packageSource.includes("const TEST_ID = 'pr20-6-native-updater-recovery-bootstrap-v4'"));
+  assert.ok(packageSource.includes("const VERSION = '1.0.3'"));
+  assert.ok(packageSource.includes("updaterVersion: '1.0.6'"));
+  assert.equal(packageSource.includes("use_skill("), false);
+  assert.equal(packageSource.includes("start_character("), false);
 });
