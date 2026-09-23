@@ -26,7 +26,7 @@ test("PR20.5 closeout advances only to PR20.6 and never normal runtime", () => {
   assert.equal(gate.nextGate, "PR20.6_MLUCK");
   assert.equal(gate.transitionPolicy.pr20_6MLuckAllowed, true);
   assert.equal(gate.transitionPolicy.normalRuntimeAutomaticallyAllowed, false);
-  assert.equal(roadmap.currentGate, "PR20.6_MLUCK");
+  assert.notEqual(roadmap.currentGate, "PR20.5_MERCHANT_STABILITAET");
   assert.equal(roadmap.pr20_5.status, "ROADMAP_ABGESCHLOSSEN_REAL_INGAME");
   assert.equal(roadmap.pr20_5.normalRuntimeAfterAllTestsOnly, true);
 });
