@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-23",
+  "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_FENCING",
+  "status": "BEREIT_NO_WRITE",
+  "blockingGate": "PR20.7_GEAR",
+  "prerequisiteEvidence": {
+    "path": "v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json",
+    "requiredStatus": "BESTANDEN_REAL_BROWSER_NO_WRITE",
+    "ratified": true,
+    "observedRecipient": "My_Merchant",
+    "observedSlot": "helmet"
+  },
+  "scope": {
+    "safeOccupiedSlots": [
+      "cape",
+      "belt",
+      "amulet",
+      "orb",
+      "helmet",
+      "gloves",
+      "shoes",
+      "pants",
+      "chest"
+    ],
+    "mainhand": "SEPARATE_GATE",
+    "offhand": "SEPARATE_GATE",
+    "emptySlots": "PR20_1_EXISTING_PATH_ONLY",
+    "exactBindings": [
+      "accountId",
+      "characterId",
+      "sessionId",
+      "serverRegion",
+      "serverIdentifier",
+      "slot",
+      "kandidatIndex",
+      "kandidatFingerprint",
+      "vorherigesSlotItemFingerprint",
+      "restInventarFingerprint",
+      "restEquipmentFingerprint",
+      "prestateFingerprint",
+      "evidenceFingerprint"
+    ],
+    "maximumUses": 1,
+    "maximumTtlMs": 1500
+  },
+  "durableAuthority": {
+    "source": "v5/grundlage/quelle/equipment/pr20-7-gear-swap-einmal-authority.ts",
+    "persistenceAdapter": "v5/grundlage/adapter/persistenz/node-pr20-7-gear-swap-einmal-authority-protokoll.mjs",
+    "policyId": "PR20-7-GEAR-SWAP-OCCUPIED-ONE-SHOT-V1",
+    "durableArt": "PR20_7_GEAR_SWAP_AUTHORITY_VOR_WIRKUNG",
+    "confirmationText": "V5 PR20.7 BELEGTEN GEAR SWAP EINMAL VORBEREITEN",
+    "durableBeforeAuthorityObject": true,
+    "exactIdCollisionBlocked": true,
+    "restartReconstructsRamAuthority": false,
+    "idempotentIdenticalAuditOnly": true
+  },
+  "fencing": {
+    "resourceManager": "v5/grundlage/quelle/scheduler/ressourcen-verwalter.ts",
+    "resources": [
+      "character:<recipient>:equipment",
+      "character:<recipient>:inventory"
+    ],
+    "resourceArt": "LANGLEBIG",
+    "exactFlowBinding": true,
+    "epochePinned": true,
+    "leaseUntilAuthorityExpiry": true,
+    "concurrentFlowBlocked": true,
+    "expiredLeaseState": "ABGELAUFEN_ABGLEICH",
+    "silentReuseAfterExpiry": false,
+    "reconciliationRequiredAfterExpiry": true
+  },
+  "authorityBoundary": {
+    "produktiveRegistrierungErlaubt": false,
+    "hostExposed": false,
+    "executorWired": false,
+    "gameplayWriteAusgefuehrt": false,
+    "gameplayAutoritaet": false,
+    "rawWriteAutoritaet": false,
+    "swapWriteRatification": false,
+    "publicFunctionCalls": 0,
+    "browserGameplayWrites": 0,
+    "normalRuntimeAllowed": false
+  },
+  "nextGate": {
+    "satisfied": [
+      "real exact-head read-only Adventure-Land recipient preflight evidence",
+      "durable one-shot authority scoped to occupied non-weapon slot",
+      "resource/fencing claims for recipient equipment and inventory"
+    ],
+    "requiredBeforeAnySwapWrite": [
+      "durable mutation intent for the exact swap before send boundary",
+      "post-send reobserve/reconcile implementation with no blind retry",
+      "real no-write browser shadow evidence for authority/fence/reconcile chain",
+      "separate exact-head green CI"
+    ],
+    "weaponsAndOffhandRemainSeparate": true
+  }
+}
