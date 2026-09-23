@@ -101,7 +101,7 @@ function normalizeFences(fences, scope, ablaufId, gueltigBisMs) {
   const normalized = fences.map(fence => {
     if (!fence || typeof fence !== "object"
         || fence.art !== "LANGLEBIG"
-        || fence.ablaufId !== undefined
+        || fence.ablaufId !== ablaufId
         || !Number.isSafeInteger(fence.epoche)
         || fence.epoche < 1
         || fence.leaseBisMs !== gueltigBisMs) {
@@ -114,6 +114,7 @@ function normalizeFences(fences, scope, ablaufId, gueltigBisMs) {
     );
     return Object.freeze({
       ressourcenId: fence.ressourcenId,
+      ablaufId: fence.ablaufId,
       epoche: fence.epoche,
       art: "LANGLEBIG",
       leaseBisMs: fence.leaseBisMs,
