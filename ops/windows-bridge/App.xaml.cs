@@ -2,7 +2,7 @@ using System.Windows;
 
 namespace AioBotWindowsBridge;
 
-public partial class App : Application
+public partial class App : System.Windows.Application
 {
     private TrayIconService? _trayIcon;
 
