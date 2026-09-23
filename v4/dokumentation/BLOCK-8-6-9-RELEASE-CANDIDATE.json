@@ -51,10 +51,10 @@
   "publicHttpsVerified": true,
   "adventureLandShadowVerified": true,
   "adventureLandControlledLiveVerified": true,
-  "adventureLandSoakVerified": false,
-  "block86Completed": false,
-  "block9Freigegeben": false,
-  "nextOperationalStep": "adventure_land_soak",
+  "adventureLandSoakVerified": true,
+  "block86Completed": true,
+  "block9Freigegeben": true,
+  "nextOperationalStep": "block_9",
   "deploymentEvidence": {
     "workflow": "release-v4-block8-6-candidate-immutable",
     "runId": 35441831873,
@@ -111,5 +111,49 @@
     "gesamtCapabilityFehler": 0,
     "heartbeatFehlerGesamt": 0,
     "evidenceFile": "BLOCK-8-6-9-LIVE-FREIGABE-NACHWEIS.json"
+  },
+  "soakEvidence": {
+    "source": "chat_paste_bidirectional",
+    "laufKennung": "block8-6-schatten-1789822653521",
+    "reports": [
+      {
+        "reportFile": "Eingefügter Text(20260919-143535).txt",
+        "reportBytes": 682499,
+        "reportSha256": "30a491a27dda61decba2525d17cdac2a0d82f7c19e4cdbc4aa70a514e428f226",
+        "reportCreatedAt": "2026-09-19T14:35:31.055Z",
+        "lokalerCharakter": "My_Ranger1",
+        "zielName": "My_Ranger2",
+        "remoteLivenessNeu": 1,
+        "durationMs": 600000,
+        "samples": 120,
+        "expectedSamples": 118,
+        "heartbeatSuccessesBefore": 12,
+        "heartbeatSuccessesAfter": 312,
+        "heartbeatErrorsBefore": 0,
+        "heartbeatErrorsAfter": 0
+      },
+      {
+        "reportFile": "Eingefügter Text (2)(20260919-143540).txt",
+        "reportBytes": 681833,
+        "reportSha256": "30f55de9dde04602560ec730569fc91e5a08217d5ed15cf4902aa5962552035f",
+        "reportCreatedAt": "2026-09-19T14:35:38.225Z",
+        "lokalerCharakter": "My_Ranger2",
+        "zielName": "My_Ranger1",
+        "remoteLivenessNeu": 1,
+        "durationMs": 600000,
+        "samples": 120,
+        "expectedSamples": 118,
+        "heartbeatSuccessesBefore": 9,
+        "heartbeatSuccessesAfter": 309,
+        "heartbeatErrorsBefore": 0,
+        "heartbeatErrorsAfter": 0
+      }
+    ],
+    "totalRemoteLivenessNeu": 2,
+    "totalCapabilitySends": 0,
+    "totalCapabilitySendErrors": 0,
+    "totalHeartbeatErrors": 0,
+    "recoveryReplayVerifiedOnBoth": true,
+    "evidenceFile": "BLOCK-8-6-9-SOAK-FREIGABE-NACHWEIS.json"
   }
 }
