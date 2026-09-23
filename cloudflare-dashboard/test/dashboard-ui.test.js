@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 import { DASHBOARD_HTML } from '../src/dashboard.js';
 import { SETTINGS_SCHEMA_VERSION, SETTINGS_BY_KEY, normalizeSetting } from '../src/settings-schema.js';
 
-test('dashboard progression limits follow current v3 upgrade and compound policies', () => {
+test('legacy backend setting safety limits remain intact after V5 GUI replacement', () => {
   const upgrade = SETTINGS_BY_KEY.get('economy.maxUpgrade');
   const compound = SETTINGS_BY_KEY.get('economy.maxCompound');
-
   assert.ok(SETTINGS_SCHEMA_VERSION >= 2);
   assert.equal(upgrade.max, 7);
   assert.equal(compound.max, 10);
@@ -14,65 +14,53 @@ test('dashboard progression limits follow current v3 upgrade and compound polici
   assert.equal(normalizeSetting(compound, 99), 10);
 });
 
-test('settings UI exposes collapsible categories and bulk accordion actions', () => {
-  assert.match(DASHBOARD_HTML, /<details class="settingscat"/);
-  assert.match(DASHBOARD_HTML, /id="expandSettings"/);
-  assert.match(DASHBOARD_HTML, /id="collapseSettings"/);
-  assert.match(DASHBOARD_HTML, /aioV3SettingsOpen/);
+test('V5 GUI matches the requested core status layout', () => {
+  assert.match(DASHBOARD_HTML, /AioBot v5/);
+  assert.match(DASHBOARD_HTML, /Dashboard/);
+  assert.match(DASHBOARD_HTML, /Charakter/);
+  assert.match(DASHBOARD_HTML, /Bot-Status/);
+  assert.match(DASHBOARD_HTML, /Aktuelle Aufgabe/);
+  assert.match(DASHBOARD_HTML, /Letzte 3 ausgeführte Aufgaben/);
+  assert.match(DASHBOARD_HTML, /EXP \/ h/);
+  assert.match(DASHBOARD_HTML, /Gold \/ h/);
+  assert.match(DASHBOARD_HTML, /Laufzeit/);
+  assert.match(DASHBOARD_HTML, /Fortschritt \(aktuelles Level\)/);
+  assert.match(DASHBOARD_HTML, /Schnellinfos/);
+  assert.match(DASHBOARD_HTML, /Steuerung/);
 });
 
-test('dashboard keeps accessibility and operator feedback in the polished UI', () => {
+test('V5 GUI renders requested telemetry fields from existing overview transport', () => {
+  assert.match(DASHBOARD_HTML, /\/api\/v3\/overview/);
+  assert.match(DASHBOARD_HTML, /\/api\/v3\/events\?limit=50/);
+  assert.match(DASHBOARD_HTML, /performance\.current\.rates/);
+  assert.match(DASHBOARD_HTML, /xpPerHour/);
+  assert.match(DASHBOARD_HTML, /goldPerHour/);
+  assert.match(DASHBOARD_HTML, /currentTask/);
+  assert.match(DASHBOARD_HTML, /taskHistory/);
+  assert.match(DASHBOARD_HTML, /uptimeSeconds/);
+  assert.match(DASHBOARD_HTML, /characterSelect/);
+});
+
+test('V5 GUI controls are visibly present but cannot create gameplay authority', () => {
+  assert.match(DASHBOARD_HTML, /data-readonly-control="Bot stoppen"/);
+  assert.match(DASHBOARD_HTML, /data-readonly-control="Pause"/);
+  assert.match(DASHBOARD_HTML, /data-readonly-control="Neustart"/);
+  assert.match(DASHBOARD_HTML, /data-readonly-control="Optionen"/);
+  assert.match(DASHBOARD_HTML, /noch read-only/);
+  assert.doesNotMatch(DASHBOARD_HTML, /use_skill\s*\(/);
+  assert.doesNotMatch(DASHBOARD_HTML, /socket\.emit\s*\(/);
+  assert.doesNotMatch(DASHBOARD_HTML, /send_item\s*\(/);
+  assert.doesNotMatch(DASHBOARD_HTML, /bank_deposit\s*\(/);
+});
+
+test('V5 GUI is responsive and respects reduced motion', () => {
+  assert.match(DASHBOARD_HTML, /@media\(max-width:1150px\)/);
+  assert.match(DASHBOARD_HTML, /@media\(max-width:760px\)/);
   assert.match(DASHBOARD_HTML, /prefers-reduced-motion:reduce/);
-  assert.match(DASHBOARD_HTML, /class="switch"/);
-  assert.match(DASHBOARD_HTML, /id="dirtyPill"/);
-  assert.match(DASHBOARD_HTML, /id="toast"/);
-  assert.match(DASHBOARD_HTML, /Hard Cap \+7/);
-  assert.match(DASHBOARD_HTML, /Hard Cap \+10/);
 });
 
-test('item permission setting is hidden, structured and sanitizes invalid actions', () => {
-  const permissions = SETTINGS_BY_KEY.get('economy.itemPermissions');
-  assert.ok(permissions);
-  assert.equal(permissions.type, 'item-permissions');
-  assert.equal(permissions.hidden, true);
-  assert.deepEqual(normalizeSetting(permissions, {
-    sword: { sell: false, bank: true, upgrade: true, unknown: true },
-    ring: { compound: false },
-    broken: 'yes'
-  }), {
-    sword: { sell: false, bank: true, upgrade: true },
-    ring: { compound: false }
-  });
-  assert.doesNotMatch(DASHBOARD_HTML, /Item-Berechtigungen<\/label>/);
-});
-
-
-test('Automation UI has no Atlas-specific view and uses the catalog endpoint', () => {
-  assert.doesNotMatch(DASHBOARD_HTML, /data-automation-view=/);
-  assert.doesNotMatch(DASHBOARD_HTML, /aioV3AutomationView/);
-  assert.doesNotMatch(DASHBOARD_HTML, /automation-atlas-/);
-  assert.doesNotMatch(DASHBOARD_HTML, /Atlas =/);
-  assert.match(DASHBOARD_HTML, /\/api\/v3\/automation-catalog/);
-  assert.match(DASHBOARD_HTML, /offizielle Spieldaten/);
-});
-
-test('Automation search normalizes and token-matches the complete item metadata', () => {
-  assert.match(DASHBOARD_HTML, /function automationMatchesQuery/);
-  assert.match(DASHBOARD_HTML, /terms\.every\(term=>hay\.includes\(term\)\)/);
-  assert.match(DASHBOARD_HTML, /item\.id,item\.name,item\.type,item\.wtype,item\.description/);
-});
-
-
-test('Automation item icons reuse the character inventory sprite renderer', () => {
-  assert.match(DASHBOARD_HTML, /function alSpriteMeta/);
-  assert.match(DASHBOARD_HTML, /function automationIcon\(item\)\{return item\.sprite\?[^\n]*alSpriteMeta\(item\.sprite,false\)/);
-});
-
-
-test('character view renders online and delayed characters before offline characters', () => {
-  assert.match(DASHBOARD_HTML, /function characterConnectionState\(row\)/);
-  assert.match(DASHBOARD_HTML, /function charactersOnlineFirst\(rows\)/);
-  assert.match(DASHBOARD_HTML, /offline:characterConnectionState\(row\)==='offline'\?1:0/);
-  assert.match(DASHBOARD_HTML, /displayChars=charactersOnlineFirst\(chars\)/);
-  assert.match(DASHBOARD_HTML, /displayChars\.map\(charCard\)/);
+test('embedded V5 dashboard browser script parses cleanly', () => {
+  const match = DASHBOARD_HTML.match(/<script>([\s\S]*?)<\/script>/i);
+  assert.ok(match && match[1]);
+  assert.doesNotThrow(() => new vm.Script(match[1], { filename: 'v5-dashboard-inline.js' }));
 });

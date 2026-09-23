@@ -1,0 +1,29 @@
+name: v5-dashboard
+
+on:
+  pull_request:
+    paths:
+      - 'cloudflare-dashboard/**'
+      - '.github/workflows/v5-dashboard.yml'
+  push:
+    paths:
+      - 'cloudflare-dashboard/**'
+      - '.github/workflows/v5-dashboard.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dashboard dependencies
+        working-directory: cloudflare-dashboard
+        run: npm install
+      - name: Run dashboard checks
+        working-directory: cloudflare-dashboard
+        run: npm run check

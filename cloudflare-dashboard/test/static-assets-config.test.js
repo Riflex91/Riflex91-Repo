@@ -9,14 +9,15 @@ import { DASHBOARD_HTML } from '../src/dashboard.js';
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
 
-test('wrangler keeps the live v3 dashboard root and APIs worker-first', async () => {
+test('wrangler keeps the live V5 dashboard root and APIs worker-first', async () => {
   const wrangler = JSON.parse(await readFile(resolve(root, 'wrangler.jsonc'), 'utf8'));
   assert.equal(wrangler.assets.directory, './public');
   assert.equal(wrangler.assets.binding, 'ASSETS');
   assert.ok(wrangler.assets.run_worker_first.includes('/'));
   assert.ok(wrangler.assets.run_worker_first.includes('/api/*'));
   assert.match(DASHBOARD_HTML, /\/api\/v3\/overview/);
-  assert.match(DASHBOARD_HTML, /\/api\/v3\/brain/);
+  assert.match(DASHBOARD_HTML, /\/api\/v3\/events\?limit=50/);
+  assert.match(DASHBOARD_HTML, /AioBot v5/);
   assert.doesNotMatch(DASHBOARD_HTML, /api\('\/api\/status'/);
 });
 
