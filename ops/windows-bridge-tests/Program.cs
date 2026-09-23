@@ -48,6 +48,8 @@ Assert(defaults.SupabaseStatusIntervalSeconds == 60, "V5_SUPABASE_STATUS_INTERVA
 Assert(WindowsBridgeSelfUpdater.CheckIntervalSeconds == 60, "SELF_UPDATE_INTERVAL_60S");
 Assert(WindowsBridgeSelfUpdater.ReleaseTag == "windows-bridge-latest", "SELF_UPDATE_RELEASE_TAG");
 Assert(WindowsBridgeSelfUpdater.StatusFileName == "self-update-status.json", "SELF_UPDATE_STATUS_FILE");
+Assert(TrayIconService.ToolTipText == "AIO Bot Windows Bridge", "TRAY_TOOLTIP");
+Assert(typeof(App).GetMethod("ShutdownForUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic) is not null, "TRAY_UPDATE_SHUTDOWN_PATH");
 Assert(typeof(AioBotWindowsBridge.Program).GetMethod("Main", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static) is not null, "SELF_UPDATE_PRE_WPF_ENTRYPOINT");
 Assert(WindowsBridgeUpdateBootstrap.FileOperationRetryCount >= 20, "SELF_UPDATE_APPLY_RETRY_COUNT");
 Assert(WindowsBridgeUpdateBootstrap.FileOperationRetryDelayMilliseconds >= 250, "SELF_UPDATE_APPLY_RETRY_DELAY");

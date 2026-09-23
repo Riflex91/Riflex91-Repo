@@ -27,7 +27,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         Title = BuildWindowTitle();
         StartSelfUpdater();
-        Loaded += MainWindow_Loaded;
+        StartBackgroundInitialization();
         Closed += MainWindow_Closed;
     }
 
@@ -49,9 +49,20 @@ public partial class MainWindow : Window
         return $"AIO Bot Windows Bridge · {info[..plusIndex]} · {shortSha}";
     }
 
-    private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    private async void StartBackgroundInitialization()
     {
-        await InitializeAsync();
+        try
+        {
+            await InitializeAsync();
+        }
+        catch (Exception error)
+        {
+            TelemetryErrorText.Text = Bounded(error.Message);
+            SupabaseStateText.Text = "FEHLER";
+            DashboardStateText.Text = "FEHLER";
+            BackblazeStateText.Text = "FEHLER";
+            BackblazeErrorText.Text = Bounded(error.Message);
+        }
     }
 
     private void StartSelfUpdater()
@@ -68,7 +79,10 @@ public partial class MainWindow : Window
         _ = Dispatcher.InvokeAsync(() =>
         {
             TelemetryDetailText.Text = $"Bridge-Update Build {update.BuildNumber} wird installiert …";
-            Application.Current.Shutdown();
+            if (System.Windows.Application.Current is App app)
+                app.ShutdownForUpdate();
+            else
+                System.Windows.Application.Current.Shutdown();
         });
     }
 
@@ -164,7 +178,7 @@ public partial class MainWindow : Window
             TelemetryToggle.IsChecked = false;
             _initializing = false;
             UpdateToggleLabels();
-            MessageBox.Show("Für die Supabase-Verbindung fehlt der Telemetrie-Token.", "AIO Windows Bridge", MessageBoxButton.OK, MessageBoxImage.Warning);
+            System.Windows.MessageBox.Show("Für die Supabase-Verbindung fehlt der Telemetrie-Token.", "AIO Windows Bridge", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -384,7 +398,7 @@ public partial class MainWindow : Window
             BackblazeStateText.Text = $"BEREIT · {result.ContextsConfigured} BOT-KONTEXT(E) VERIFIZIERT";
             BackblazeErrorText.Text = string.Empty;
 
-            var liveTest = MessageBox.Show(
+            var liveTest = System.Windows.MessageBox.Show(
                 "Die Backblaze-Konfiguration ist jetzt im echten AIO-V3-Bot-Kontext verifiziert.\n\n" +
                 "Soll jetzt ein kleiner Live-Test ausgeführt werden? Der Bot lädt ein _health-JSON nach Backblaze hoch " +
                 "und prüft es anschließend per HEAD auf Größe und SHA-256-Metadatum. Das Testobjekt wird NICHT gelöscht.",
@@ -797,7 +811,7 @@ public partial class MainWindow : Window
                 UseShellExecute = true
             });
 
-            MessageBox.Show(
+            System.Windows.MessageBox.Show(
                 "GitHub wurde mit einer Least-Privilege-Vorlage geöffnet.\n\n" +
                 "Pflicht:\n" +
                 "1. Repository access: Only select repositories.\n" +
@@ -957,13 +971,13 @@ public partial class MainWindow : Window
             var test = new V5ReadinessSystemtest(_githubAnmeldung);
             var bericht = await test.FuehreAusAsync(_config, cts.Token);
             var text = V5ReadinessSystemtest.FormatiereBericht(bericht);
-            Clipboard.SetText(text);
+            System.Windows.Clipboard.SetText(text);
 
             V5ReadinessStateText.Text = bericht.Status == "NICHT_BESTANDEN"
                 ? "NICHT BESTANDEN · Gesamtbericht wurde kopiert."
                 : "AUTOMATISCHE PRÜFUNGEN BESTANDEN · Autorisierungsnachweis noch manuell · Gesamtbericht kopiert.";
 
-            MessageBox.Show(
+            System.Windows.MessageBox.Show(
                 V5ReadinessStateText.Text + "\n\nBitte den kopierten Gesamtbericht vollständig in ChatGPT einfügen.",
                 "V5 Readiness-Test",
                 MessageBoxButton.OK,
@@ -972,7 +986,7 @@ public partial class MainWindow : Window
         catch (Exception error)
         {
             V5ReadinessStateText.Text = "FEHLER · " + Bounded(error.Message);
-            MessageBox.Show(
+            System.Windows.MessageBox.Show(
                 "Der V5 Readiness-Test konnte nicht abgeschlossen werden:\n\n" + Bounded(error.Message),
                 "V5 Readiness-Test",
                 MessageBoxButton.OK,
