@@ -3,6 +3,9 @@ name: v5-pr20-7-gear
 on:
   push:
     paths:
+      - 'v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs'
+      - 'v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json'
+      - 'v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json'
       - 'v5/werkzeuge/pr20-7-gear-read-only-autonomous.js'
       - 'v5/werkzeuge/pr20-7-gear-swap-produktions-browser.mjs'
       - 'v5/werkzeuge/pr20-7-gear-swap-produktions-preflight.mjs'
@@ -22,6 +25,9 @@ on:
       - '.github/workflows/v5-pr20-7-gear.yml'
   pull_request:
     paths:
+      - 'v5/grundlage/tests/pr20-gear-read-only-evidence.test.mjs'
+      - 'v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json'
+      - 'v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json'
       - 'v5/werkzeuge/pr20-7-gear-read-only-autonomous.js'
       - 'v5/werkzeuge/pr20-7-gear-swap-produktions-browser.mjs'
       - 'v5/werkzeuge/pr20-7-gear-swap-produktions-preflight.mjs'
