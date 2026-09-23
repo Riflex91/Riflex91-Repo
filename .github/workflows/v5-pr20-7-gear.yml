@@ -3,6 +3,9 @@ name: v5-pr20-7-gear
 on:
   push:
     paths:
+      - 'v5/werkzeuge/pr20-7-gear-swap-produktions-browser.mjs'
+      - 'v5/werkzeuge/pr20-7-gear-swap-produktions-preflight.mjs'
+      - 'v5/grundlage/tests/pr20-gear-swap-browser-preflight.test.mjs'
       - 'v5/grundlage/quelle/equipment/pr20-7-gear-swap-vorbereitung.ts'
       - 'v5/grundlage/quelle/merchant/gear-allokation.ts'
       - 'v5/grundlage/quelle/merchant/gear-progression.ts'
@@ -18,6 +21,9 @@ on:
       - '.github/workflows/v5-pr20-7-gear.yml'
   pull_request:
     paths:
+      - 'v5/werkzeuge/pr20-7-gear-swap-produktions-browser.mjs'
+      - 'v5/werkzeuge/pr20-7-gear-swap-produktions-preflight.mjs'
+      - 'v5/grundlage/tests/pr20-gear-swap-browser-preflight.test.mjs'
       - 'v5/grundlage/quelle/equipment/pr20-7-gear-swap-vorbereitung.ts'
       - 'v5/grundlage/quelle/merchant/gear-allokation.ts'
       - 'v5/grundlage/quelle/merchant/gear-progression.ts'

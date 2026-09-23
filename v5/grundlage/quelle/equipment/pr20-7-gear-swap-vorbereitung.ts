@@ -25,12 +25,14 @@ export type Pr207GearSwapBlockGrund =
   | "SLOT_IST_LEER"
   | "KANDIDAT_NICHT_PHYSISCH"
   | "ALTITEM_NICHT_PHYSISCH"
+  | "ALTITEM_GESPERRT"
   | "KANDIDAT_GESPERRT"
   | "NICHT_KOMPATIBEL"
   | "CONTENT_NICHT_VERIFIZIERT"
   | "DISPOSITION_GESPERRT"
   | "KANDIDAT_INDEX_UNGUELTIG"
-  | "IDENTITAET_UNVOLLSTAENDIG";
+  | "IDENTITAET_UNVOLLSTAENDIG"
+  | "IDENTITAET_NICHT_EINDEUTIG";
 
 export interface Pr207GearSwapItemEvidence {
   readonly name: string;
@@ -248,6 +250,14 @@ export function pruefePr207GearSwapVorbereitung(
       && (!evidence.vorherigesSlotItem.physisch
         || evidence.vorherigesSlotItem.virtuellB)) {
     blocker.push("ALTITEM_NICHT_PHYSISCH");
+  }
+  if (evidence.vorherigesSlotItem?.gesperrt === true) {
+    blocker.push("ALTITEM_GESPERRT");
+  }
+  if (evidence.vorherigesSlotItem !== null
+      && evidence.kandidat.beobachtungsFingerprint
+        === evidence.vorherigesSlotItem.beobachtungsFingerprint) {
+    blocker.push("IDENTITAET_NICHT_EINDEUTIG");
   }
   if (!evidence.kompatibel) blocker.push("NICHT_KOMPATIBEL");
   if (!evidence.contentVerifiziert) blocker.push("CONTENT_NICHT_VERIFIZIERT");

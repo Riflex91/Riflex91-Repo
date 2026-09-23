@@ -118,6 +118,8 @@ test("PR20.7 blockiert stale oder unsichere Kandidaten vor jeder Ausfuehrungspla
   const cases = [
     [evidence({ gueltigBisMs: 1_100 }), "EVIDENCE_STALE"],
     [evidence({ kandidat: item("newhat", { gesperrt: true }) }), "KANDIDAT_GESPERRT"],
+    [evidence({ vorherigesSlotItem: item("oldhat", { gesperrt: true }) }), "ALTITEM_GESPERRT"],
+    [evidence({ vorherigesSlotItem: item("oldhat", { beobachtungsFingerprint: "fp:newhat" }) }), "IDENTITAET_NICHT_EINDEUTIG"],
     [evidence({ kompatibel: false }), "NICHT_KOMPATIBEL"],
     [evidence({ contentVerifiziert: false }), "CONTENT_NICHT_VERIFIZIERT"],
     [evidence({ dispositionErlaubt: false }), "DISPOSITION_GESPERRT"],
@@ -221,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "BELEGTER_SLOT_SWAP_SETTLEMENT_BEREIT_NO_WRITE");
+  assert.equal(contract.status, "READ_ONLY_BROWSER_PREFLIGHT_IMPLEMENTIERT_NO_WRITE");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -240,5 +242,10 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.authority.swapWriteRatification, false);
   assert.equal(contract.settlement.sameIntentRetry, false);
   assert.equal(contract.settlement.newIntentAutomaticallyAllowed, false);
+  assert.equal(contract.preflight.implemented, true);
+  assert.equal(contract.preflight.readOnly, true);
+  assert.equal(contract.preflight.performanceTrickRequiredAndVerified, true);
+  assert.equal(contract.preflight.authorityAusstellung, false);
+  assert.equal(contract.preflight.browserGameplayWrites, 0);
   assert.equal(contract.nextGate.weaponsAndOffhandRemainSeparate, true);
 });
