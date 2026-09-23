@@ -1,7 +1,7 @@
 # PR20.7 – Gear-Autonomie: belegter Slot / Swap Foundation
 
 **Stand:** 2026-09-23  
-**Status:** `READ_ONLY_BROWSER_PREFLIGHT_IMPLEMENTIERT_NO_WRITE`
+**Status:** `REAL_BROWSER_PREFLIGHT_AUTO_DEPLOY_BEREIT_NO_WRITE`
 
 ## Zweck
 
@@ -79,6 +79,33 @@ Intent und trifft keine Gear-Progressionsentscheidung.
 
 Bis reale exact-head Browser-Evidence vorliegt, bleibt dieser Schritt
 **implementiert, aber nicht live ratifiziert**.
+
+## Autonomer realer No-Write-Preflight
+
+Die reale Evidence wird ueber den bereits vorhandenen V5-Test-Deploy-Kanal
+ausgefuehrt. Das Paket `werkzeuge/pr20-7-gear-read-only-autonomous.js` ist
+Merchant-only, auf einen exakten Source-Commit und SHA-256 gepinnt und besitzt
+keine Worker-Konfiguration. Die Windows Bridge muss deshalb weder Farmer
+starten noch disconnecten noch Worker installieren.
+
+Der Test erwartet explizit:
+
+- `startCalls=0`;
+- `disconnectCalls=0`;
+- `farmerWorkersInstalled=0`;
+- `gameplayWrites=0`;
+- `publicFunctionCalls=0`;
+- `rawWriteCalls=0`;
+- keine Authority und keinen Durable Intent.
+
+Testplan:
+`roadmap/pr20-7-gear-read-only-preflight-test-plan.json`.
+
+Evidence:
+`roadmap/pr20-7-gear-read-only-preflight-evidence.json`.
+
+Der Evidence-Eintrag bleibt bis zu einem real beobachteten terminalen PASS
+explizit `OFFEN`; der vorbereitete Deploy allein ratifiziert nichts.
 
 ## Naechstes Gate
 
