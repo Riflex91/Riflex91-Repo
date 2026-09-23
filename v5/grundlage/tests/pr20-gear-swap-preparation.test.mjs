@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE");
+  assert.equal(contract.status, "OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_FENCING_BEREIT_NO_WRITE");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -254,5 +254,19 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.preflight.farmerWorkersInstalled, 0);
   assert.equal(contract.preflight.realEvidenceStatus, "BESTANDEN_REAL_BROWSER_NO_WRITE");
   assert.equal(contract.preflight.realEvidenceRatified, true);
+  assert.equal(contract.authorityFencing.implemented, true);
+  assert.equal(contract.authorityFencing.separateFromPr20_1EquipAuthority, true);
+  assert.equal(contract.authorityFencing.exactScopePinned, true);
+  assert.equal(contract.authorityFencing.maximumUses, 1);
+  assert.equal(contract.authorityFencing.maximumTtlMs, 1500);
+  assert.equal(contract.authorityFencing.durableBeforeAuthorityObject, true);
+  assert.equal(contract.authorityFencing.fenceArt, "LANGLEBIG");
+  assert.equal(contract.authorityFencing.fenceEpochPinned, true);
+  assert.equal(contract.authorityFencing.expiredFenceRequiresReconciliation, true);
+  assert.equal(contract.authorityFencing.hostExposed, false);
+  assert.equal(contract.authorityFencing.executorWired, false);
+  assert.equal(contract.authorityFencing.gameplayWrites, 0);
+  assert.equal(contract.authorityFencing.publicFunctionCalls, 0);
+  assert.equal(contract.authorityFencing.swapWriteRatification, false);
   assert.equal(contract.nextGate.weaponsAndOffhandRemainSeparate, true);
 });
