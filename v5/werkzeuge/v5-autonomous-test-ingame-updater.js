@@ -200,7 +200,7 @@ function installV5AutonomousTestIngameUpdater() {
 
     return manifest.testId === 'pr20-6-mluck-autonomous-live-5m'
       && text(active?.version, 80) === '1.0.1'
-      && manifest.controllerVersion === '1.0.2'
+      && manifest.controllerVersion === '1.0.3'
       && active?.terminal === true
       && text(active?.status, 80) === 'BLOCKIERT'
       && text(active?.phase, 80) === 'ROSTER'
