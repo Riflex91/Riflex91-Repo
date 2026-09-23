@@ -427,6 +427,47 @@ Assert(!CdpAdventureLandClient.IsConfiguredV5WorkerTarget(v5WorkerManifest, "My_
 Assert(CdpAdventureLandClient.BuildV5AutonomousTestWorkerPackageUrl(v5WorkerManifest)
     == "https://raw.githubusercontent.com/Riflex91/Riflex91-Repo/d0823081da6f07a8a60002b1b809c24916555521/v5/werkzeuge/pr20-6-mluck-worker.js",
     "V5_WORKER_IMMUTABLE_PACKAGE_URL");
+
+var v5Pr207ManifestJson = """
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "repository": "Riflex91/Riflex91-Repo",
+  "branch": "main",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-occupied-slot-readonly-preflight",
+  "controllerVersion": "1.0.0",
+  "coordinatorClass": "merchant",
+  "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
+  "sourceCommit": "d0823081da6f07a8a60002b1b809c24916555521",
+  "packagePath": "v5/werkzeuge/pr20-7-gear-occupied-slot-readonly-live.js",
+  "packageSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "maxPackageBytes": 131072,
+  "expectedGlobal": "V5PR207GearReadonlyTest",
+  "normalRuntimeAllowed": false,
+  "workerVersion": "1.0.0",
+  "workerPackagePath": "v5/werkzeuge/pr20-7-gear-occupied-slot-readonly-worker.js",
+  "workerPackageSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "workerExpectedGlobal": "V5PR207GearWorker",
+  "workerTargets": ["My_Ranger1:ranger", "My_Priest:priest", "My_Mage:mage"]
+}
+""";
+var v5Pr207Manifest = CdpAdventureLandClient.ParseAndValidateV5AutonomousTestManifest(v5Pr207ManifestJson);
+Assert(v5Pr207Manifest.TestId == "pr20-7-gear-occupied-slot-readonly-preflight", "V5_PR207_MANIFEST_TEST_ID");
+Assert(v5Pr207Manifest.ExpectedGlobal == "V5PR207GearReadonlyTest", "V5_PR207_MAIN_GLOBAL");
+Assert(v5Pr207Manifest.WorkerExpectedGlobal == "V5PR207GearWorker", "V5_PR207_WORKER_GLOBAL");
+Assert(CdpAdventureLandClient.HasConfiguredV5WorkerPackage(v5Pr207Manifest), "V5_PR207_WORKER_CONFIGURED");
+Assert(CdpAdventureLandClient.IsConfiguredV5WorkerTarget(v5Pr207Manifest, "My_Ranger1", "ranger"), "V5_PR207_RANGER_EXACT");
+Assert(CdpAdventureLandClient.IsConfiguredV5WorkerTarget(v5Pr207Manifest, "My_Priest", "priest"), "V5_PR207_PRIEST_EXACT");
+Assert(CdpAdventureLandClient.IsConfiguredV5WorkerTarget(v5Pr207Manifest, "My_Mage", "mage"), "V5_PR207_MAGE_EXACT");
+Assert(!CdpAdventureLandClient.IsConfiguredV5WorkerTarget(v5Pr207Manifest, "My_Ranger2", "ranger"), "V5_PR207_OTHER_RANGER_REJECTED");
+Assert(CdpAdventureLandClient.BuildV5AutonomousTestWorkerPackageUrl(v5Pr207Manifest)
+    == "https://raw.githubusercontent.com/Riflex91/Riflex91-Repo/d0823081da6f07a8a60002b1b809c24916555521/v5/werkzeuge/pr20-7-gear-occupied-slot-readonly-worker.js",
+    "V5_PR207_WORKER_IMMUTABLE_PACKAGE_URL");
+Assert(CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    v5Pr207Manifest.TestId,
+    "pr20-6-mluck-autonomous-live-5m",
+    true), "V5_PR207_ADVANCE_AFTER_PR206_TERMINAL");
 Assert(CdpAdventureLandClient.ShouldDeployV5AutonomousTest(v5AutoManifest.TestId, null, false), "V5_AUTO_DEPLOY_WHEN_NO_TEST");
 Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(v5AutoManifest.TestId, v5AutoManifest.TestId, false), "V5_AUTO_NO_RELOAD_SAME_TEST");
 Assert(CdpAdventureLandClient.ShouldDeployV5AutonomousTest(v5AutoManifest.TestId, "pr20-5-merchant-stability-autonomous-4char", true), "V5_AUTO_ADVANCE_AFTER_TERMINAL");
