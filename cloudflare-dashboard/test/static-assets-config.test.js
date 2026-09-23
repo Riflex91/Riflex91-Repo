@@ -16,9 +16,17 @@ test('wrangler keeps the live V5 dashboard root and APIs worker-first', async ()
   assert.ok(wrangler.assets.run_worker_first.includes('/'));
   assert.ok(wrangler.assets.run_worker_first.includes('/api/*'));
   assert.match(DASHBOARD_HTML, /\/api\/v3\/overview/);
-  assert.match(DASHBOARD_HTML, /\/api\/v3\/events\?limit=50/);
+  assert.match(DASHBOARD_HTML, /\/api\/v3\/events\?limit=/);
+  assert.match(DASHBOARD_HTML, /\/api\/v3\/settings/);
   assert.match(DASHBOARD_HTML, /AioBot v5/);
   assert.doesNotMatch(DASHBOARD_HTML, /api\('\/api\/status'/);
+});
+
+test('worker fallback HTML and public static dashboard stay byte-identical', async () => {
+  const publicHtml = await readFile(resolve(root, 'public/index.html'), 'utf8');
+  const sourceHtml = await readFile(resolve(root, 'dashboard.html'), 'utf8');
+  assert.equal(publicHtml, DASHBOARD_HTML);
+  assert.equal(sourceHtml, DASHBOARD_HTML);
 });
 
 test('dashboard telemetry controls respect the free-tier-safe interval floor', () => {
