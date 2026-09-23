@@ -1,4 +1,4 @@
-function installV5AutonomousTestIngameUpdater() {
+function installV5AutonomousTestIngameUpdaterV102() {
   'use strict';
 
   const API_NAME = 'V5AutonomousTestIngameUpdater';
@@ -264,7 +264,7 @@ function installV5AutonomousTestIngameUpdater() {
   }
 
   function bootstrapSource() {
-    return '(' + installV5AutonomousTestIngameUpdater.toString() + ')();\n';
+    return '(' + installV5AutonomousTestIngameUpdaterV102.toString() + ')();\n';
   }
 
   async function saveBundle(slotInfo, code, manifest) {
@@ -445,4 +445,65 @@ function installV5AutonomousTestIngameUpdater() {
   return api;
 }
 
-installV5AutonomousTestIngameUpdater();
+installV5AutonomousTestIngameUpdaterV102();
+
+
+(() => {
+  'use strict';
+  const TEST_ID = 'pr20-6-native-updater-recovery-bootstrap-v1';
+  const VERSION = '1.0.0';
+  const state = Object.freeze({
+    schemaVersion: 1,
+    testId: TEST_ID,
+    version: VERSION,
+    status: 'BESTANDEN',
+    phase: 'UPDATER_RECOVERY_BOOTSTRAP',
+    terminal: true,
+    gameplayWrites: 0,
+    rawWriteCalls: 0,
+    sameIntentRetry: false,
+    intents: [],
+    updaterVersion: '1.0.2',
+    normalRuntimeAllowed: false,
+    observedAtMs: Date.now()
+  });
+
+  const root = (() => {
+    try {
+      return globalThis.parent && globalThis.parent !== globalThis
+        ? globalThis.parent
+        : globalThis;
+    } catch {
+      return globalThis;
+    }
+  })();
+
+  root.AIO_V3 = root.AIO_V3 || {};
+  const existing = root.AIO_V3.operations && typeof root.AIO_V3.operations === 'object'
+    ? root.AIO_V3.operations
+    : {};
+  const oldStatus = typeof existing.status === 'function' ? existing.status.bind(existing) : null;
+  root.AIO_V3.operations = {
+    ...existing,
+    status: () => {
+      let base = {};
+      try {
+        const value = oldStatus ? oldStatus() : null;
+        if (value && typeof value === 'object') base = value;
+      } catch {}
+      return {
+        ...base,
+        schemaVersion: Number(base.schemaVersion) || 1,
+        mode: 'V5_AUTONOMOUS_TEST',
+        v5AutonomousTest: state
+      };
+    }
+  };
+
+  globalThis.V5PR206UpdaterRecoveryBootstrap = Object.freeze({
+    version: VERSION,
+    testId: TEST_ID,
+    updaterVersion: '1.0.2',
+    status: () => ({ ...state })
+  });
+})();
