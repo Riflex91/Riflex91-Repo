@@ -43,6 +43,14 @@ const packageFile = String(manifest.packagePath || "").replace(/^v5\//, "");
 const packageBytes = fs.readFileSync(packageFile);
 const packageSource = packageBytes.toString("utf8");
 const sha256 = crypto.createHash("sha256").update(packageBytes).digest("hex");
+const workerPackageFile = manifest.workerPackagePath
+  ? String(manifest.workerPackagePath).replace(/^v5\//, "")
+  : null;
+const workerPackageBytes = workerPackageFile ? fs.readFileSync(workerPackageFile) : null;
+const workerPackageSource = workerPackageBytes ? workerPackageBytes.toString("utf8") : null;
+const workerSha256 = workerPackageBytes
+  ? crypto.createHash("sha256").update(workerPackageBytes).digest("hex")
+  : null;
 
 test("V5 Auto-Deploy manifest is narrow, immutable and normal-runtime closed", () => {
   assert.equal(manifest.schemaVersion, 1);
@@ -134,4 +142,24 @@ test("bootstrap v5 restores only the minimal Windows-Bridge observational contra
   assert.equal(packageSource.includes("use_skill("), false);
   assert.equal(packageSource.includes("start_character("), false);
   assert.equal(packageSource.includes("/disconnect "), false);
+});
+
+test("PR20.6 final manifest pins the bridge worker fallback to exact no-write farmer targets", () => {
+  if (manifest.testId !== "pr20-6-mluck-autonomous-live-5m") return;
+  assert.equal(manifest.controllerVersion, "1.0.7");
+  assert.equal(manifest.workerVersion, "1.0.0");
+  assert.equal(manifest.workerPackagePath, "v5/werkzeuge/pr20-6-mluck-worker.js");
+  assert.equal(manifest.workerExpectedGlobal, "V5PR206MluckWorker");
+  assert.deepEqual(manifest.workerTargets, [
+    "My_Ranger1:ranger",
+    "My_Priest:priest",
+    "My_Mage:mage"
+  ]);
+  assert.equal(workerSha256, manifest.workerPackageSha256);
+  assert.ok(workerPackageSource.includes("performance_trick"));
+  assert.equal(workerPackageSource.includes("use_skill("), false);
+  assert.equal(workerPackageSource.includes("api_call("), false);
+  assert.equal(workerPackageSource.includes("socket.emit("), false);
+  assert.equal(workerPackageSource.includes("start_character("), false);
+  assert.equal(workerPackageSource.includes("/disconnect "), false);
 });
