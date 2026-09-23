@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "DURABLE_INTENT_RECONCILE_BEREIT_NO_WRITE");
+  assert.equal(contract.status, "REAL_SHADOW_AUTO_DEPLOY_BEREIT_NO_WRITE");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -282,5 +282,19 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.durableIntentReconciliation.gameplayAuthority, false);
   assert.equal(contract.durableIntentReconciliation.rawWriteAuthority, false);
   assert.equal(contract.durableIntentReconciliation.swapWriteRatification, false);
+  assert.equal(contract.realShadow.prepared, true);
+  assert.equal(contract.realShadow.merchantOnly, true);
+  assert.equal(contract.realShadow.workerPackageConfigured, false);
+  assert.equal(contract.realShadow.shadowDurableIntentReadback, true);
+  assert.equal(contract.realShadow.sendBoundaryState, "NICHT_GESENDET");
+  assert.equal(contract.realShadow.expectedReconciliation, "NOT_APPLIED");
+  assert.equal(contract.realShadow.stablePostIntentReobserve, true);
+  assert.equal(contract.realShadow.gameplayWrites, 0);
+  assert.equal(contract.realShadow.publicFunctionCalls, 0);
+  assert.equal(contract.realShadow.rawWriteCalls, 0);
+  assert.equal(contract.realShadow.authorityIssued, false);
+  assert.equal(contract.realShadow.swapWriteRatification, false);
+  assert.equal(contract.realShadow.sameIntentRetry, false);
+  assert.equal(contract.realShadow.realEvidenceStatus, "OFFEN");
   assert.equal(contract.nextGate.weaponsAndOffhandRemainSeparate, true);
 });
