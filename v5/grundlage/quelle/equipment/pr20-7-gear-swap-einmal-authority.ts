@@ -52,6 +52,7 @@ export interface Pr207GearSwapAuthorityAnforderung {
 
 export interface Pr207GearSwapAuthorityFence {
   readonly ressourcenId: string;
+  readonly ablaufId: string;
   readonly epoche: number;
   readonly art: "LANGLEBIG";
   readonly leaseBisMs: number;
@@ -331,6 +332,7 @@ function durableFence(
   }
   return Object.freeze({
     ressourcenId: token.ressourcenId,
+    ablaufId: token.ablaufId,
     epoche: token.epoche,
     art: "LANGLEBIG",
     leaseBisMs: token.leaseBisMs,
