@@ -2,7 +2,7 @@ function installV5AutonomousTestIngameUpdater() {
   'use strict';
 
   const API_NAME = 'V5AutonomousTestIngameUpdater';
-  const VERSION = '1.0.0';
+  const VERSION = '1.0.1';
   const MODE = 'NATIVE_INGAME_CLOUDFLARE_R2_V1';
   const BASE_URL = 'https://aio-bot-dashboard.hansijuergenlul.workers.dev';
   const MANIFEST_PATH = '/v5/roadmap/v5-autonomous-test-manifest.json';
@@ -126,12 +126,34 @@ function installV5AutonomousTestIngameUpdater() {
     });
   }
 
+  function safeSameTestVersionUpgrade(active, manifest) {
+    return manifest.testId === 'pr20-6-mluck-autonomous-live-5m'
+      && text(active?.version, 80) === '1.0.0'
+      && manifest.controllerVersion === '1.0.1'
+      && active?.terminal !== true
+      && text(active?.status, 80) === 'WAITING_FOR_4_CHARACTERS'
+      && text(active?.phase, 80) === 'ROSTER'
+      && Number.isFinite(Number(active?.gameplayWrites))
+      && Number(active.gameplayWrites) === 0
+      && Number.isFinite(Number(active?.rawWriteCalls))
+      && Number(active.rawWriteCalls) === 0
+      && active?.sameIntentRetry === false
+      && Array.isArray(active?.intents)
+      && active.intents.length === 0;
+  }
+
   function deploymentDecision(manifest) {
     const active = currentV5();
     if (!active) return { deploy: true, reason: 'NO_ACTIVE_V5_TEST' };
     const activeId = text(active.testId, 160);
-    if (activeId === manifest.testId)
-      return { deploy: false, reason: 'DESIRED_TEST_ALREADY_PRESENT' };
+    if (activeId === manifest.testId) {
+      const activeVersion = text(active.version, 80);
+      if (activeVersion === manifest.controllerVersion)
+        return { deploy: false, reason: 'DESIRED_TEST_ALREADY_PRESENT' };
+      if (safeSameTestVersionUpgrade(active, manifest))
+        return { deploy: true, reason: 'SAFE_SAME_TEST_VERSION_UPGRADE' };
+      return { deploy: false, reason: 'SAME_TEST_VERSION_MISMATCH_BLOCKED' };
+    }
     if (active.terminal === true)
       return { deploy: true, reason: 'PREVIOUS_TEST_TERMINAL' };
     return { deploy: false, reason: 'OTHER_V5_TEST_NONTERMINAL' };
