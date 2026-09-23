@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { roadmapIstMindestens } from "./roadmap-gate-rang.mjs";
 
 const evidence = JSON.parse(fs.readFileSync(new URL("../roadmap/pr20-5-merchant-stability-evidence.json", import.meta.url), "utf8"));
 const gate = JSON.parse(fs.readFileSync(new URL("../roadmap/pr20-5-merchant-stability-exit-gate-status.json", import.meta.url), "utf8"));
@@ -23,7 +24,7 @@ must(evidence.notification?.completionEmail === "SENT", "PR20_5_EMAIL");
 must(gate.status === "ROADMAP_ABGESCHLOSSEN_REAL_INGAME", "PR20_5_GATE_STATUS");
 must(gate.nextGate === "PR20.6_MLUCK", "PR20_5_NEXT_GATE");
 must(gate.transitionPolicy?.normalRuntimeAutomaticallyAllowed === false, "PR20_5_NORMAL_RUNTIME_BLOCK");
-must(roadmap.currentGate === "PR20.6_MLUCK", "PR20_5_ROADMAP_CURRENT_GATE");
+must(roadmapIstMindestens(roadmap.currentGate, "PR20.6_MLUCK"), "PR20_5_ROADMAP_CURRENT_GATE");
 must(roadmap.pr20_5?.status === "ROADMAP_ABGESCHLOSSEN_REAL_INGAME", "PR20_5_ROADMAP_STATUS");
 must(roadmap.pr20_5?.normalRuntimeAfterAllTestsOnly === true, "PR20_5_ROADMAP_RUNTIME_GATE");
 
