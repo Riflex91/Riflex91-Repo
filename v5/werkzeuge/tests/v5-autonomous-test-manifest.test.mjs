@@ -25,6 +25,10 @@ const allowedPackages = Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
     expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
   }),
+  "pr20-6-native-updater-recovery-bootstrap-v5": Object.freeze({
+    path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap-v5.js",
+    expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
+  }),
   "pr20-6-account-roster-x-recovery-v1": Object.freeze({
     path: "v5/werkzeuge/pr20-6-account-roster-x-recovery.js",
     expectedGlobal: "V5PR206AccountRosterXRecovery"
