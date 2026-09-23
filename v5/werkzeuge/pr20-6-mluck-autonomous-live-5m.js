@@ -433,6 +433,9 @@
       }
     };
     writeJson(STATE_KEY,state);
+  } else if(state.version!==VERSION) {
+    state={...state,version:VERSION,updatedAtMs:now()};
+    writeJson(STATE_KEY,state);
   }
 
   function emit(type,severity,data={}){
