@@ -423,3 +423,183 @@ test("PR20.6 recovers exact already_running priest/mage through one official dis
   assert.equal(state.sameIntentRetry, false);
   assert.deepEqual(Array.from(state.intents), []);
 });
+
+
+test("PR20.6 v1.0.7 adopts the exact v1.0.5 separate-tab blocker without repeating lifecycle writes", async () => {
+  const store = makeStorage();
+  const now = Date.now();
+  const account = "same-account";
+  const accountKey = accountFingerprint(account);
+  const actors = {};
+  for (const [name, ctype] of [
+    ["My_Ranger1", "ranger"],
+    ["My_Priest", "priest"],
+    ["My_Mage", "mage"]
+  ]) {
+    actors[name] = {
+      schemaVersion: 1,
+      testId: "pr20-6-mluck-autonomous-live-5m",
+      name,
+      ctype,
+      sessionId: name + "-session",
+      accountKey,
+      serverRegion: "EU",
+      serverIdentifier: "I",
+      map: "main",
+      x: 5,
+      y: 5,
+      hp: 1000,
+      mp: 1000,
+      level: 80,
+      rip: false,
+      mluck: { active: false, source: null, strong: false, remainingMs: null },
+      runtimeConflict: null,
+      performanceTrick: true,
+      observedAtMs: now
+    };
+  }
+  store.setItem("AIO_V5_PR20_6_MLUCK_ACTORS_V1", JSON.stringify({
+    schemaVersion: 1,
+    actors
+  }));
+
+  const recovered = (ctype, name) => ({
+    ctype,
+    method: "PUBLIC_SAY_DISCONNECT_V1",
+    targetName: name,
+    boundaryEntered: true,
+    commandSettled: true,
+    commandResult: "RESOLVED",
+    postcondition: "OFFLINE_CONFIRMED",
+    sourceStartResult: "already_running",
+    offlineConfirmedAtMs: now - 10_000,
+    postDisconnectStartBoundaryEntered: true,
+    postDisconnectStartRequestedAtMs: now - 9_000,
+    postDisconnectStartResult: "RESOLVED",
+    updatedAtMs: now - 9_000
+  });
+  const rangerRecovery = {
+    ctype: "ranger",
+    method: "PUBLIC_SAY_DISCONNECT_V1",
+    targetName: "My_Ranger1",
+    boundaryEntered: true,
+    commandSettled: true,
+    commandResult: "RESOLVED",
+    postcondition: "TIMEOUT",
+    reason: "DISCONNECT_RANGER_POSTCONDITION_TIMEOUT",
+    sourceStartResult: "already_running",
+    requestedAtMs: now - 60_000,
+    updatedAtMs: now - 30_000
+  };
+
+  store.setItem("AIO_V5_PR20_6_MLUCK_LIVE_5M_V1", JSON.stringify({
+    schemaVersion: 1,
+    testId: "pr20-6-mluck-autonomous-live-5m",
+    version: "1.0.5",
+    status: "BLOCKIERT",
+    phase: "ROSTER",
+    terminal: true,
+    blocker: [
+      "PR20_6_ROSTER_AUTOSTART_TIMEOUT",
+      "DISCONNECT_RANGER_POSTCONDITION_TIMEOUT",
+      "ROSTER_RANGER_FEHLT",
+      "ROSTER_PRIEST_FEHLT",
+      "ROSTER_MAGE_FEHLT"
+    ],
+    intents: [],
+    gameplayWrites: 0,
+    rawWriteCalls: 0,
+    sameIntentRetry: false,
+    lifecycleRecovery: {
+      ranger: rangerRecovery,
+      priest: recovered("priest", "My_Priest"),
+      mage: recovered("mage", "My_Mage")
+    },
+    characterLifecycle: {
+      mode: "ACCOUNT_ROSTER_AUTOSTART_V2",
+      accountStateAvailable: true,
+      activeStateAvailable: true,
+      startCalls: 0,
+      disconnectCalls: 0,
+      blockers: ["DISCONNECT_RANGER_POSTCONDITION_TIMEOUT"],
+      required: [
+        {
+          name: "My_Ranger1",
+          ctype: "ranger",
+          status: "BLOCKED",
+          reason: "DISCONNECT_RANGER_POSTCONDITION_TIMEOUT",
+          attempts: 1,
+          lastResult: "already_running",
+          recovery: rangerRecovery
+        },
+        {
+          name: "My_Priest",
+          ctype: "priest",
+          status: "POST_DISCONNECT_START_POSTCONDITION_PENDING",
+          attempts: 0,
+          lastResult: null
+        },
+        {
+          name: "My_Mage",
+          ctype: "mage",
+          status: "POST_DISCONNECT_START_POSTCONDITION_PENDING",
+          attempts: 0,
+          lastResult: null
+        }
+      ]
+    }
+  }));
+
+  let starts = 0;
+  let disconnects = 0;
+  const sandbox = {
+    console, Date, JSON, Object, String, Number, Boolean, Math, Promise, RegExp, Error,
+    localStorage: store,
+    performance_trick() { return true; },
+    setTimeout(fn, ms) { return setTimeout(fn, Math.min(Number(ms) || 0, 2)); },
+    clearTimeout,
+    setInterval() { return 1; },
+    clearInterval() {},
+    character: {
+      name: "My_Merchant", ctype: "merchant", id: "merchant-session", map: "main",
+      x: 0, y: 0, real_x: 0, real_y: 0, hp: 1000, mp: 1000, level: 80, rip: false, s: {}
+    },
+    user_id: account,
+    server_region: "EU",
+    server_identifier: "I",
+    G: { skills: { mluck: { level: 1, mp: 10, range: 320 } } },
+    entities: {
+      ranger: { name: "My_Ranger1", s: {} },
+      priest: { name: "My_Priest", s: {} },
+      mage: { name: "My_Mage", s: {} }
+    },
+    get_characters() {
+      return [
+        { name: "My_Merchant", ctype: "merchant", online: true },
+        { name: "My_Ranger1", ctype: "ranger", online: true },
+        { name: "My_Priest", ctype: "priest", online: true },
+        { name: "My_Mage", ctype: "mage", online: true }
+      ];
+    },
+    get_active_characters() { return { My_Merchant: "self" }; },
+    start_character() { starts += 1; throw new Error("start_character must not be repeated"); },
+    say() { disconnects += 1; throw new Error("disconnect must not be repeated"); },
+    command_character() {},
+    is_on_cooldown() { return true; },
+    use_skill() { throw new Error("use_skill must not be reached"); }
+  };
+  sandbox.parent = sandbox;
+
+  vm.runInNewContext(source, sandbox, { filename: "pr20-6-v107-recovery.js" });
+  await new Promise(resolve => setTimeout(resolve, 35));
+
+  const state = sandbox.V5PR206MluckTest.status();
+  assert.equal(state.version, "1.0.7");
+  assert.equal(starts, 0);
+  assert.equal(disconnects, 0);
+  assert.equal(state.gameplayWrites, 0);
+  assert.equal(state.rawWriteCalls, 0);
+  assert.equal(state.sameIntentRetry, false);
+  assert.equal(state.lifecycleRecovery.ranger.postcondition, "TIMEOUT");
+  assert.equal(state.lifecycleRecovery.ranger.targetName, "My_Ranger1");
+});
