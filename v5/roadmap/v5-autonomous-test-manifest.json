@@ -5,7 +5,7 @@
   "branch": "main",
   "gate": "PR20.6_MLUCK",
   "testId": "pr20-6-native-updater-recovery-bootstrap-v4",
-  "controllerVersion": "1.0.3",
+  "controllerVersion": "1.0.5",
   "coordinatorClass": "merchant",
   "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
   "sourceCommit": "15c341cbf3fe384fd157a353499a2035706be857",
