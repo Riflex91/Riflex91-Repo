@@ -268,6 +268,10 @@
     if(registryMatches.length>1)
       return {ok:false,reason:'MEHRERE_FRISCHE_'+ctype.toUpperCase()+'_ACTORS'};
 
+    const onlineMatches=matches.filter(row=>row.online===true);
+    if(onlineMatches.length===1)return {ok:true,row:onlineMatches[0],status:'OWNED_UNIQUE_ONLINE'};
+    if(onlineMatches.length>1)return {ok:false,reason:'MEHRERE_ONLINE_'+ctype.toUpperCase()};
+
     if(matches.length===1)return {ok:true,row:matches[0],status:'OWNED_NOT_LOCAL'};
     if(matches.length===0)return {ok:false,reason:'ACCOUNT_'+ctype.toUpperCase()+'_FEHLT'};
     return {ok:false,reason:'ACCOUNT_'+ctype.toUpperCase()+'_MEHRDEUTIG'};
@@ -676,7 +680,7 @@
         && text(row?.lastResult)==='already_running')
       .map(row=>text(row?.ctype).toLowerCase()));
     return previous?.testId===TEST_ID
-      && ['1.0.1','1.0.3'].includes(previous?.version)
+      && previous?.version==='1.0.1'
       && previous?.terminal===true
       && previous?.status==='BLOCKIERT'
       && previous?.phase==='ROSTER'
@@ -690,6 +694,45 @@
       && text(previous?.characterLifecycle?.mode)==='ACCOUNT_ROSTER_AUTOSTART_V1'
       && alreadyRunning.has('priest')
       && alreadyRunning.has('mage');
+  }
+
+  function safeKnownV103RosterRecovery(previous) {
+    const blockers=Array.isArray(previous?.blocker)?previous.blocker.map(text):[];
+    const lifecycle=previous?.characterLifecycle&&typeof previous.characterLifecycle==='object'
+      ? previous.characterLifecycle
+      : {};
+    const recovery=previous?.lifecycleRecovery&&typeof previous.lifecycleRecovery==='object'
+      ? previous.lifecycleRecovery
+      : {};
+    const recovered=(ctype)=>{
+      const row=recovery[ctype];
+      return !!row
+        && row.method==='PUBLIC_SAY_DISCONNECT_V1'
+        && row.boundaryEntered===true
+        && row.commandSettled===true
+        && row.commandResult==='RESOLVED'
+        && row.postcondition==='OFFLINE_CONFIRMED'
+        && row.postDisconnectStartBoundaryEntered===true
+        && row.postDisconnectStartResult==='RESOLVED';
+    };
+    return previous?.testId===TEST_ID
+      && previous?.version==='1.0.3'
+      && previous?.terminal===true
+      && previous?.status==='WAITING_FOR_4_CHARACTERS'
+      && previous?.phase==='ROSTER'
+      && Number(previous?.gameplayWrites||0)===0
+      && Number(previous?.rawWriteCalls||0)===0
+      && previous?.sameIntentRetry===false
+      && Array.isArray(previous?.intents)
+      && previous.intents.length===0
+      && blockers.includes('PR20_6_ROSTER_AUTOSTART_TIMEOUT')
+      && blockers.includes('ACCOUNT_RANGER_MEHRDEUTIG')
+      && text(lifecycle?.mode)==='ACCOUNT_ROSTER_AUTOSTART_V2'
+      && lifecycle?.accountStateAvailable===false
+      && Array.isArray(lifecycle?.blockers)
+      && lifecycle.blockers.map(text).includes('GET_CHARACTERS_UNAVAILABLE')
+      && recovered('priest')
+      && recovered('mage');
   }
 
   let seq=0;
@@ -710,7 +753,12 @@
     };
     writeJson(STATE_KEY,state);
   } else if(state.version!==VERSION) {
-    if(safeKnownV101RosterRecovery(state)){
+    const recoverV101=safeKnownV101RosterRecovery(state);
+    const recoverV103=safeKnownV103RosterRecovery(state);
+    if(recoverV101||recoverV103){
+      const preservedLifecycleRecovery=recoverV103
+        ? JSON.parse(JSON.stringify(state.lifecycleRecovery||{}))
+        : {};
       state={
         ...state,
         version:VERSION,
@@ -723,7 +771,7 @@
         updatedAtMs:now(),
         roster:null,
         characterLifecycle:null,
-        lifecycleRecovery:{},
+        lifecycleRecovery:preservedLifecycleRecovery,
         gameplayWrites:0,
         rawWriteCalls:0,
         sameIntentRetry:false,
