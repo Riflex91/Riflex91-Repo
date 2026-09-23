@@ -7,35 +7,48 @@ const manifest = JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest
 const allowedPackages = Object.freeze({
   "pr20-6-mluck-autonomous-live-5m": Object.freeze({
     path: "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
-    expectedGlobal: "V5PR206MluckTest"
+    expectedGlobal: "V5PR206MluckTest",
+    gate: "PR20.6_MLUCK"
+  }),
+  "pr20-7-gear-occupied-slot-read-only-preflight": Object.freeze({
+    path: "v5/werkzeuge/pr20-7-gear-read-only-autonomous.js",
+    expectedGlobal: "V5PR207GearReadOnlyTest",
+    gate: "PR20.7_GEAR"
   }),
   "pr20-6-native-updater-recovery-bootstrap-v1": Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
-    expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
+    expectedGlobal: "V5PR206UpdaterRecoveryBootstrap",
+    gate: "PR20.6_MLUCK"
   }),
   "pr20-6-native-updater-recovery-bootstrap-v2": Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
-    expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
+    expectedGlobal: "V5PR206UpdaterRecoveryBootstrap",
+    gate: "PR20.6_MLUCK"
   }),
   "pr20-6-native-updater-recovery-bootstrap-v3": Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
-    expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
+    expectedGlobal: "V5PR206UpdaterRecoveryBootstrap",
+    gate: "PR20.6_MLUCK"
   }),
   "pr20-6-native-updater-recovery-bootstrap-v4": Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
-    expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
+    expectedGlobal: "V5PR206UpdaterRecoveryBootstrap",
+    gate: "PR20.6_MLUCK"
   }),
   "pr20-6-native-updater-recovery-bootstrap-v5": Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap-v5.js",
-    expectedGlobal: "V5PR206UpdaterRecoveryBootstrap"
+    expectedGlobal: "V5PR206UpdaterRecoveryBootstrap",
+    gate: "PR20.6_MLUCK"
   }),
   "pr20-6-account-roster-x-recovery-v1": Object.freeze({
     path: "v5/werkzeuge/pr20-6-account-roster-x-recovery.js",
-    expectedGlobal: "V5PR206AccountRosterXRecovery"
+    expectedGlobal: "V5PR206AccountRosterXRecovery",
+    gate: "PR20.6_MLUCK"
   }),
   "pr20-6-account-roster-x-recovery-v2": Object.freeze({
     path: "v5/werkzeuge/pr20-6-account-roster-x-recovery.js",
-    expectedGlobal: "V5PR206AccountRosterXRecovery"
+    expectedGlobal: "V5PR206AccountRosterXRecovery",
+    gate: "PR20.6_MLUCK"
   })
 });
 const selected = allowedPackages[manifest.testId];
@@ -57,8 +70,8 @@ test("V5 Auto-Deploy manifest is narrow, immutable and normal-runtime closed", (
   assert.equal(manifest.enabled, true);
   assert.equal(manifest.repository, "Riflex91/Riflex91-Repo");
   assert.equal(manifest.branch, "main");
-  assert.equal(manifest.gate, "PR20.6_MLUCK");
-  assert.ok(selected, "manifest testId must be an explicitly allowed PR20.6 package");
+  assert.ok(selected, "manifest testId must be explicitly allowlisted");
+  assert.equal(manifest.gate, selected.gate);
   assert.equal(manifest.coordinatorClass, "merchant");
   assert.equal(manifest.workerDistribution, "PACKAGE_OWNED_COMMAND_CHARACTER");
   assert.match(manifest.sourceCommit, /^[0-9a-f]{40}$/);
@@ -162,4 +175,30 @@ test("PR20.6 final manifest pins the bridge worker fallback to exact no-write fa
   assert.equal(workerPackageSource.includes("socket.emit("), false);
   assert.equal(workerPackageSource.includes("start_character("), false);
   assert.equal(workerPackageSource.includes("/disconnect "), false);
+});
+
+
+test("PR20.7 Gear package is terminal read-only and does not touch farmer lifecycle", () => {
+  if (manifest.testId !== "pr20-7-gear-occupied-slot-read-only-preflight") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.workerPackagePath, null);
+  assert.equal(manifest.workerPackageSha256, null);
+  assert.equal(manifest.workerExpectedGlobal, null);
+  assert.deepEqual(manifest.workerTargets, []);
+  assert.ok(packageSource.includes("performance_trick"));
+  assert.ok(packageSource.includes("stableDoubleObservation"));
+  assert.ok(packageSource.includes("gameplayWrites: 0"));
+  assert.ok(packageSource.includes("rawWriteCalls: 0"));
+  assert.ok(packageSource.includes("publicFunctionCalls: 0"));
+  assert.ok(packageSource.includes("startCalls: 0"));
+  assert.ok(packageSource.includes("disconnectCalls: 0"));
+  assert.ok(packageSource.includes("farmerWorkersInstalled: 0"));
+  assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
+  assert.equal(packageSource.includes("use_skill("), false);
+  assert.equal(packageSource.includes("start_character("), false);
+  assert.equal(packageSource.includes("command_character("), false);
+  assert.equal(packageSource.includes("/disconnect "), false);
+  assert.equal(packageSource.includes("equip("), false);
+  assert.equal(packageSource.includes("unequip("), false);
+  assert.equal(packageSource.includes("send_item("), false);
 });
