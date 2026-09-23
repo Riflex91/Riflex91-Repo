@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE");
+    "OCCUPIED_SLOT_ONE_SHOT_AUTHORITY_FENCING_BEREIT_NO_WRITE");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -147,6 +147,17 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.startCalls, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.disconnectCalls, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.farmerWorkersInstalled, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.authorityScopePinned, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.authorityMaximumUses, 1);
+  assert.equal(prep.pr20_7.sicherVorbereitet.authorityMaximumTtlMs, 1500);
+  assert.equal(prep.pr20_7.sicherVorbereitet.durableBeforeAuthorityObject, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.equipmentFence, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.inventoryFence, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.expiredFenceRequiresReconciliation, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.pr20_1AuthorityUnchanged, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.hostExposed, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.executorWired, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.swapWriteRatification, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.sameIntentRetry, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.gameplayAutoritaet, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.rawWriteAutoritaet, false);
