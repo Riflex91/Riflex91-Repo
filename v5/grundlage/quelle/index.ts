@@ -186,3 +186,4 @@ export * from "./merchant/dienst-stabilitaet.js";
 export * from "./equipment/pr20-7-gear-swap-vorbereitung.js";
 export * from "./equipment/pr20-7-gear-swap-one-shot-authority.js";
 export * from "./equipment/pr20-7-gear-swap-durable-intent-reconcile.js";
+export * from "./equipment/pr20-7-weapon-offhand-vorbereitung.js";
