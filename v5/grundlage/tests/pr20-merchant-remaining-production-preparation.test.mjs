@@ -665,14 +665,6 @@ test("PR20.8 Upgrade Durable Shadow package stays no-send and authority-free", (
 });
 
 test("PR20.8 Upgrade Shadow Manifest is exact pinned and still NO-WRITE", () => {
-  assert.equal(
-    prep.pr20_8.status,
-    "UPGRADE_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
-  );
-  assert.equal(
-    prep.pr20_8.nextAction,
-    "PR20_8_UPGRADE_DURABLE_SHADOW_REAL_BROWSER_OBSERVE",
-  );
   const shadow = prep.pr20_8.upgradeDurableShadow;
   assert.equal(
     shadow.sourceCommit,
@@ -704,6 +696,57 @@ test("PR20.8 Upgrade Shadow Manifest is exact pinned and still NO-WRITE", () => 
   assert.equal(shadow.rawWriteCalls, 0);
   assert.equal(shadow.sameIntentRetry, false);
   assert.equal(shadow.normalRuntimeAllowed, false);
+});
+
+test("PR20.8 Upgrade Durable Shadow real-browser evidence is ratified no-write", () => {
+  assert.equal(
+    prep.pr20_8.status,
+    "UPGRADE_DURABLE_SHADOW_EVIDENCE_RATIFIED_NO_WRITE",
+  );
+  assert.equal(
+    prep.pr20_8.nextAction,
+    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION",
+  );
+  const shadow = prep.pr20_8.upgradeDurableShadow;
+  assert.equal(
+    shadow.evidence,
+    "roadmap/pr20-8-upgrade-durable-shadow-live-evidence.json",
+  );
+  assert.equal(
+    shadow.evidenceStatus,
+    "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE_RECOVERED",
+  );
+  assert.equal(shadow.evidenceRatified, true);
+  assert.equal(
+    shadow.evidenceManifestMainCommit,
+    "1d6c729c2870784f8f4ec71717288607731e28d9",
+  );
+  assert.equal(shadow.evidenceObservedAtMs, 1790260714146);
+  assert.equal(shadow.evidenceControllerVersion, "1.0.1");
+  assert.equal(shadow.evidenceRecoveredExistingTerminal, true);
+  assert.equal(shadow.evidenceRecoveredVersion, "1.0.0");
+  assert.equal(shadow.evidenceCreatedIntentThisRun, false);
+  assert.equal(shadow.evidencePersistedIntentRewritten, false);
+  assert.equal(shadow.evidenceSecondIntentCreated, false);
+  assert.equal(shadow.evidenceServiceReachabilityExactBinding, true);
+  assert.equal(shadow.evidenceStableDoubleObservation, true);
+  assert.equal(shadow.evidenceStablePostIntentReobserve, true);
+  assert.equal(shadow.evidenceDurableReadback, true);
+  assert.equal(shadow.evidenceJournalTerminalArt, "ABBRUCH");
+  assert.equal(shadow.evidenceSendBoundaryState, "NICHT_GESENDET");
+  assert.equal(
+    shadow.evidenceReconciliationClassification,
+    "NOT_APPLIED",
+  );
+  assert.equal(shadow.evidenceGameplayWrites, 0);
+  assert.equal(shadow.evidencePublicFunctionCalls, 0);
+  assert.equal(shadow.evidenceRawWriteCalls, 0);
+  assert.equal(shadow.evidenceUpgradeAuthority, false);
+  assert.equal(shadow.evidenceNormalUpgradeWriteRatification, false);
+  assert.equal(
+    shadow.nextGate,
+    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION",
+  );
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
