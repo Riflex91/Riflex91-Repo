@@ -4,16 +4,102 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write",
   "controllerVersion": "1.0.1",
-  "status": "OFFEN",
+  "status": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
   "evidenceArt": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE",
   "sourceCommit": "0b92ce4002438ef4282622699019b5148da58184",
   "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
   "packageSha256": "11c666638c111a3acd04e550bf33b52eb7611f53a0f8f02547b4b199df73793d",
-  "manifestMainCommit": null,
-  "observedAtMs": null,
-  "terminal": null,
-  "result": null,
-  "ratified": false,
+  "manifestMainCommit": "f96bb24402b3f0b274aa9d5b31dd370ff099eed0",
+  "observedAtMs": 1790243742400,
+  "terminal": true,
+  "result": {
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "version": "1.0.1",
+    "recipient": {
+      "characterName": "My_Merchant",
+      "sessionId": "My_Merchant",
+      "ctype": "merchant",
+      "level": 58,
+      "map": "main",
+      "serverRegion": "EU",
+      "serverIdentifier": "I"
+    },
+    "candidate": {
+      "itemName": "wshield",
+      "targetSlot": "offhand",
+      "quantity": 1,
+      "unitPrice": 4800,
+      "exactCost": 4800
+    },
+    "acquisition": {
+      "publicFunction": "buy_with_gold",
+      "publicFunctionAvailable": true,
+      "freeInventorySlots": 21,
+      "existingQuantity": 0,
+      "observedGold": 14493644,
+      "safetyReserve": 1000,
+      "goldAvailableAfterReserve": 14492644,
+      "vendorReachableNow": true,
+      "nearestVendorDistance": 88.59875647515783,
+      "sellDistance": 400,
+      "sellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
+      "sellDistanceBrowserObserved": false,
+      "sourcePinnedSellDistance": 400,
+      "officialServerSourceCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+      "officialServerBlobSha": "40d0aeda16b9a4320441e833020fe1b4db496e2c"
+    },
+    "shadowIntent": {
+      "storage": "LOCAL_STORAGE_SHADOW_ONLY",
+      "durableReadback": true,
+      "resourceClaims": [
+        "character:My_Merchant:gold",
+        "character:My_Merchant:inventory",
+        "character:My_Merchant:action_channel:buy"
+      ],
+      "goldBudgetLedger": {
+        "reservationAmount": 4800,
+        "safetyReserve": 1000,
+        "reservationSatisfied": true,
+        "availableAfterReserveAndReservation": 14487844
+      },
+      "socketBudget": {
+        "resource": "character:My_Merchant:socket_call_budget",
+        "planBudgetReserved": 100,
+        "serverLimit": 200,
+        "serverReserveUntouched": 100
+      },
+      "oneShot": {
+        "bindingPrepared": true,
+        "maximumUses": 1,
+        "purchaseAuthorityIssued": false
+      },
+      "journalTerminalArt": "ABBRUCH",
+      "sendBoundaryState": "NICHT_GESENDET",
+      "reconciliationClassification": "NOT_APPLIED",
+      "sameIntentRetry": false
+    },
+    "stableDoubleObservation": true,
+    "stablePostIntentReobserve": true,
+    "performanceTrick": {
+      "available": true,
+      "called": true,
+      "audioFound": true,
+      "playing": true,
+      "cplaying": true,
+      "active": true,
+      "verification": "HOWLER_PLAYING_TRUE"
+    },
+    "fingerprints": {
+      "prestateFingerprintSha256": "eb7b8e1d49d0ad8ad463af14a59f6ae304d8915610c59c2112694dadbf85dba5",
+      "postIntentPrestateFingerprintSha256": "eb7b8e1d49d0ad8ad463af14a59f6ae304d8915610c59c2112694dadbf85dba5",
+      "inventoryFingerprintSha256": "5406b19804e31127b045e440594e102e2103a192d4ca9d6df0043da626280d73",
+      "goldFingerprintSha256": "2e0ba827cd689a046bf99aef37e751f8bed4844dd06188ea312b9fe7482fc388",
+      "vendorFingerprintSha256": "6f300d01db51a0c9407ce8c16cbd4ab9848c26a3352200c36bcd6c83ae0efa9b",
+      "itemDefinitionFingerprintSha256": "a1bb300bbff48099251d44963bdb9287a94048fdf4e348942d09b89d7713f972"
+    }
+  },
+  "ratified": true,
   "prerequisiteEvidence": {
     "readOnlyEvidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json",
     "readOnlyStatus": "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE",
@@ -46,10 +132,8 @@
     "sameIntentRetry": false,
     "normalRuntimeAllowed": false
   },
-  "blocker": [
-    "REAL_WSHIELD_ACQUISITION_DURABLE_SHADOW_V1_0_1_NOCH_NICHT_AUSGEFUEHRT"
-  ],
-  "nextGate": null,
+  "blocker": [],
+  "nextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION",
   "previousAttempt": {
     "controllerVersion": "1.0.0",
     "manifestMainCommit": "a1fd977c8ccc8c953bbdd4304cc87691a96a2b4f",
@@ -70,5 +154,28 @@
     "sameIntentRetry": false,
     "normalRuntimeAllowed": false,
     "ratified": false
+  },
+  "observedSafetyBoundary": {
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "authorityIssued": false,
+    "purchaseAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "durableIntentCreated": false,
+    "durableIntentCreatedShadowOnly": true,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "deploymentEvidence": {
+    "bridgeState": "DEPLOYED",
+    "bridgeChanged": true,
+    "bridgeTestId": "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write",
+    "bridgeAt": "2026-09-24T09:55:41.3366381+00:00",
+    "telemetryReceivedAt": "2026-09-24T09:55:47.941+00:00"
   }
 }
