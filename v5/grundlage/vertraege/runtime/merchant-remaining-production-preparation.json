@@ -696,7 +696,10 @@
       },
       "scroll": {
         "name": "scroll0",
-        "consumeQuantity": 1
+        "consumeQuantity": 1,
+        "type": "uscroll",
+        "grade": 0,
+        "baseGold": 1000
       },
       "offering": null,
       "normalPathOnly": true,
@@ -716,7 +719,13 @@
       "gameplayWrites": 0,
       "publicFunctionCalls": 0,
       "rawWriteCalls": 0,
-      "normalRuntimeAllowed": false
+      "normalRuntimeAllowed": false,
+      "serviceReachabilityRequired": true,
+      "sourcePinnedSellDistance": 400,
+      "conservativeLiveSafetyDistanceMax": 300,
+      "serviceReference": "G.maps.main.ref.u_mid",
+      "exactItemDefinitionRequired": true,
+      "exactScrollDefinitionRequired": true
     }
   },
   "pr20_9": {
