@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "UPGRADE_COMMITTED_UPDATER_PERSISTED_BRIDGE_TERMINAL_RECOVERY_BESTANDEN_COMPOUND_EXCHANGE_READONLY_RESCAN_PREPARED",
+    "status": "UPGRADE_COMMITTED_COMPOUND_EXCHANGE_RESCAN_BESTANDEN_NO_LIVE_CANDIDATES",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+    "nextAction": "PR20_8_COMPOUND_EXCHANGE_SEPARATE_CANDIDATE_OR_ACQUISITION_PREPARATION",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -955,7 +955,7 @@
     },
     "bridgeHandshakeEvidence": "roadmap/pr20-8-bridge-handshake-probe-evidence.json",
     "remainingCandidateRescan": {
-      "status": "V1_0_1_REAL_BROWSER_HANDSHAKE_FAILED_V1_0_2_RECOVERY_PREPARED",
+      "status": "BESTANDEN_REAL_BROWSER_NO_CANDIDATES_ZERO_WRITE",
       "purpose": "REOBSERVE_REMAINING_COMPOUND_AND_EXCHANGE_NORMAL_CANDIDATES_AFTER_UPGRADE_COMMIT",
       "testId": "pr20-8-wertmutation-live-candidate-readonly",
       "controllerVersion": "1.0.2",
@@ -976,7 +976,7 @@
       "rawWriteCalls": 0,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_SEPARATE_CANDIDATE_OR_ACQUISITION_PREPARATION",
       "packageBytes": 21295,
       "observedV1Failure": {
         "observedAt": "2026-09-24T18:05:47.0307173+00:00",
@@ -1025,7 +1025,27 @@
         "rawWriteCallsObserved": 0,
         "additionalGameplayWriteObserved": false,
         "diagnosis": "OBSERVABILITY_PUBLISH_STILL_DEPENDED_ON_ROOT_WITH_G_ITEMS"
-      }
+      },
+      "evidence": "roadmap/pr20-8-compound-exchange-readonly-rescan-evidence.json",
+      "observedAtMs": 1790274034680,
+      "statusUpdatedAt": "2026-09-24T18:20:39.469+00:00",
+      "latestReceivedAt": "2026-09-24T18:21:45.869+00:00",
+      "bridgeObservedAt": "2026-09-24T18:21:44.3979577+00:00",
+      "bridgeState": "ALREADY_PRESENT",
+      "bridgeError": null,
+      "compound": {
+        "status": "KEIN_KANDIDAT",
+        "candidateCount": 0,
+        "selected": null
+      },
+      "exchange": {
+        "status": "KEIN_KANDIDAT",
+        "candidateCount": 0,
+        "selected": null
+      },
+      "noCandidateDoesNotAuthorizeAcquisitionOrMutation": true,
+      "compoundRatified": false,
+      "exchangeRatified": false
     }
   },
   "pr20_9": {
