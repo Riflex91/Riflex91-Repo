@@ -20,6 +20,8 @@ function sandboxWithRows(rows, active = []) {
     Boolean,
     JSON,
     Math,
+    setTimeout: fn => setImmediate(fn),
+    clearTimeout: () => {},
     performance_trick() {},
     sounds: {
       empty: {
@@ -102,8 +104,8 @@ async function execute(rows, active = []) {
   vm.runInContext(source, sandbox, {
     filename: "pr20-7-account-weapon-candidate-discovery.js",
   });
-  for (let i = 0; i < 100; i += 1) {
-    await Promise.resolve();
+  for (let i = 0; i < 1000; i += 1) {
+    await new Promise(resolve => setImmediate(resolve));
     const api = sandbox.V5PR207AccountWeaponCandidateDiscovery;
     const status = api?.status?.();
     if (status?.terminal) return status;
@@ -182,8 +184,8 @@ test("account discovery facade preserves the bridge operations contract", async 
   vm.runInContext(source, sandbox, {
     filename: "pr20-7-account-weapon-candidate-discovery.js",
   });
-  for (let i = 0; i < 100; i += 1) {
-    await Promise.resolve();
+  for (let i = 0; i < 1000; i += 1) {
+    await new Promise(resolve => setImmediate(resolve));
     if (sandbox.V5PR207AccountWeaponCandidateDiscovery?.status?.()?.terminal) break;
   }
 
@@ -199,13 +201,67 @@ test("account discovery facade preserves the bridge operations contract", async 
     bridgeStatus.v5AutonomousTest.testId,
     "pr20-7-gear-account-weapon-candidate-discovery",
   );
-  assert.equal(bridgeStatus.v5AutonomousTest.version, "1.0.1");
+  assert.equal(bridgeStatus.v5AutonomousTest.version, "1.0.2");
   assert.equal(bridgeStatus.v5AutonomousTest.status, "BESTANDEN");
   assert.equal(bridgeStatus.v5AutonomousTest.terminal, true);
   assert.equal(ops.hostHeartbeat().v5TestId,
     "pr20-7-gear-account-weapon-candidate-discovery");
   assert.equal(ops.reconciliationStatus().sameIntentRetry, false);
   assert.ok(Array.isArray(ops.peekTelemetry(2000)));
+});
+
+test("performance_trick works when audio lives only on parent context", async () => {
+  const rows = [
+    {
+      name: "My_Ranger1",
+      ctype: "ranger",
+      level: 70,
+      items: [],
+      slots: { mainhand: { name: "bow", level: 3 }, offhand: null },
+    },
+    {
+      name: "My_Priest",
+      ctype: "priest",
+      level: 70,
+      items: [{ name: "source1", level: 0 }],
+      slots: { mainhand: { name: "staff", level: 3 }, offhand: null },
+    },
+    {
+      name: "My_Mage",
+      ctype: "mage",
+      level: 70,
+      items: [],
+      slots: { mainhand: { name: "staff", level: 3 }, offhand: null },
+    },
+  ];
+  const sandbox = sandboxWithRows(rows, ["My_Ranger1", "My_Priest", "My_Mage"]);
+  const parentPerformanceTrick = sandbox.performance_trick;
+  const parentSounds = sandbox.sounds;
+  delete sandbox.performance_trick;
+  delete sandbox.sounds;
+  sandbox.parent = {
+    performance_trick: parentPerformanceTrick,
+    sounds: parentSounds,
+  };
+  sandbox.globalThis = sandbox;
+
+  vm.createContext(sandbox);
+  vm.runInContext(source, sandbox, {
+    filename: "pr20-7-account-weapon-candidate-discovery.js",
+  });
+  let status = null;
+  for (let i = 0; i < 100; i += 1) {
+    await new Promise(resolve => setImmediate(resolve));
+    status = sandbox.V5PR207AccountWeaponCandidateDiscovery?.status?.();
+    if (status?.terminal) break;
+  }
+  assert.equal(status?.status, "BESTANDEN");
+  assert.equal(status?.performanceTrick.available, true);
+  assert.equal(status?.performanceTrick.called, true);
+  assert.equal(status?.performanceTrick.audioFound, true);
+  assert.equal(status?.performanceTrick.playing, true);
+  assert.equal(status?.performanceTrick.active, true);
+  assert.equal(status?.performanceTrick.verification, "HOWLER_PLAYING_TRUE");
 });
 
 test("account discovery reports roster without inventories fail-closed", async () => {

@@ -3,11 +3,11 @@
   "stand": "2026-09-24",
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-account-weapon-candidate-discovery",
-  "controllerVersion": "1.0.1",
+  "controllerVersion": "1.0.2",
   "status": "OFFEN",
   "evidenceArt": "V5_PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY",
-  "sourceCommit": "6125f52b80901133d5a973d4998b665d9ac56a3d",
-  "packageSha256": "ba8cff0187adb116d8003f85f3d4ef36ada380c6bead8bc7aab1d3cff5e6b6ad",
+  "sourceCommit": "6863d1a19ebe8c42c7362ba7981866572f910474",
+  "packageSha256": "e6fb4e8ae0e5a98d73c26f7e81d5d66b8d50249f347ba74fcd27eaf07521e56d",
   "manifestMainCommit": null,
   "observedAtMs": null,
   "terminal": null,
@@ -29,5 +29,36 @@
   "ratified": false,
   "blocker": [
     "REAL_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_NOCH_NICHT_TERMINAL"
+  ],
+  "priorAttempts": [
+    {
+      "controllerVersion": "1.0.1",
+      "observedAtMs": 1790229583587,
+      "status": "BLOCKIERT",
+      "phase": "ACCOUNT_WEAPON_CANDIDATE_DISCOVERY",
+      "blocker": [
+        "PR20_7_ACCOUNT_DISCOVERY_PERFORMANCE_TRICK_BLOCKED"
+      ],
+      "performanceTrick": {
+        "available": true,
+        "called": true,
+        "audioFound": false,
+        "playing": false,
+        "cplaying": false,
+        "active": false,
+        "verification": "HOWLER_PLAYING_TRUE",
+        "error": null
+      },
+      "safety": {
+        "gameplayWrites": 0,
+        "publicFunctionCalls": 0,
+        "rawWriteCalls": 0,
+        "startCalls": 0,
+        "disconnectCalls": 0,
+        "farmerWorkersInstalled": 0,
+        "sameIntentRetry": false,
+        "normalRuntimeAllowed": false
+      }
+    }
   ]
 }
