@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 const manifest = JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest.json", "utf8"));
 const allowedPackages = Object.freeze({
   "pr20-8-upgrade-productive-one-write-live": Object.freeze({
-    path: "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live.js",
+    path: "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js",
     expectedGlobal: "V5PR208UpgradeProductiveOneWriteLive",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
@@ -288,7 +288,7 @@ test("PR20.7 Gear package is terminal read-only and does not touch farmer lifecy
 
 test("PR20.7 Gear shadow manifest stays merchant-only, durable-shadow and zero-write", () => {
   if (manifest.testId !== "pr20-7-gear-occupied-slot-shadow-no-write") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.controllerVersion, "1.0.1");
   assert.equal("workerVersion" in manifest, false);
   assert.equal("workerPackagePath" in manifest, false);
   assert.equal("workerPackageSha256" in manifest, false);
@@ -648,14 +648,14 @@ test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound"
 
 test("PR20.8 productive Upgrade one-write manifest is exact, one-shot and runtime-closed", () => {
   if (manifest.testId !== "pr20-8-upgrade-productive-one-write-live") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.controllerVersion, "1.0.1");
   assert.equal(
     manifest.sourceCommit,
-    "8cd2837b5094c5cf962bc787d32dc021ae221ebd",
+    "bdcf2256c8b392d1a8a535d371662c0381ef6672",
   );
   assert.equal(
     manifest.packageSha256,
-    "063c5143852efa2357c0a3e0930e013e7238bc0be8b0d81f7c3742f97c6ed4f9",
+    "5594d8bf3424e88d7528aac4f9a1146709960d436b322b6a4680f4e8189abc73",
   );
   assert.equal("workerVersion" in manifest, false);
   assert.equal("workerPackagePath" in manifest, false);
@@ -663,8 +663,13 @@ test("PR20.8 productive Upgrade one-write manifest is exact, one-shot and runtim
   assert.equal("workerExpectedGlobal" in manifest, false);
   assert.equal("workerTargets" in manifest, false);
   assert.ok(packageSource.includes(
+    'const VERSION = "1.0.1"',
+  ));
+  assert.ok(packageSource.includes(
     'const TEST_ID = "pr20-8-upgrade-productive-one-write-live"',
   ));
+  assert.ok(packageSource.includes("function reusableIncumbentState(value)"));
+  assert.ok(packageSource.includes("safeZeroWriteNoIntentFailure"));
   assert.ok(packageSource.includes('"Pr208UpgradeOneShotAuthority"'));
   assert.ok(packageSource.includes(
     'sendBoundaryState: "SEND_MOEGLICH_ODER_VERSUCHT"',
