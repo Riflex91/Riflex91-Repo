@@ -22,7 +22,10 @@
     "name": "scroll0",
     "consumeQuantity": 1,
     "observedQuantityFromEvidence": 36,
-    "currentIndexAndQuantityMustBeReresolved": true
+    "currentIndexAndQuantityMustBeReresolved": true,
+    "type": "uscroll",
+    "grade": 0,
+    "baseGold": 1000
   },
   "offering": null,
   "normalPathOnly": true,
@@ -45,7 +48,14 @@
     "performanceTrickRequired": true,
     "publicFunctionMustExist": true,
     "stableDoubleObservation": true,
-    "stablePostIntentReobserve": true
+    "stablePostIntentReobserve": true,
+    "serviceReachabilityRequired": true,
+    "serviceServerRule": "simple_distance(G.maps.main.upgrade,player) <= B.sell_dist unless computer",
+    "sourcePinnedSellDistance": 400,
+    "conservativeLiveSafetyDistanceMax": 300,
+    "serviceReference": "G.maps.main.ref.u_mid",
+    "scrollDefinitionExact": true,
+    "itemDefinitionExact": true
   },
   "durableShadow": {
     "storage": "LOCAL_STORAGE_SHADOW_ONLY",
