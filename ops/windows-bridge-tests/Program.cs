@@ -556,6 +556,23 @@ Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
     false, 0, 0, false, true, 0),
     "V5_PR208_BRIDGE_PROBE_TERMINALIZATION_REJECTS_OTHER_DESIRED_TEST");
 
+Assert(CdpAdventureLandClient.ShouldContinuePr208CandidateV103ContextConvergence(
+    "pr20-8-wertmutation-live-candidate-readonly", "1.0.3",
+    "pr20-8-wertmutation-live-candidate-readonly", "1.0.3"),
+    "V5_PR208_CANDIDATE_V103_CONTINUES_CONTEXT_CONVERGENCE");
+Assert(!CdpAdventureLandClient.ShouldContinuePr208CandidateV103ContextConvergence(
+    "pr20-8-wertmutation-live-candidate-readonly", "1.0.2",
+    "pr20-8-wertmutation-live-candidate-readonly", "1.0.2"),
+    "V5_PR208_CANDIDATE_V102_DOES_NOT_BROADEN_CONTEXT_CONVERGENCE");
+Assert(!CdpAdventureLandClient.ShouldContinuePr208CandidateV103ContextConvergence(
+    "pr20-8-wertmutation-live-candidate-readonly", "1.0.3",
+    "pr20-8-wertmutation-live-candidate-readonly", "1.0.2"),
+    "V5_PR208_CANDIDATE_V103_REQUIRES_EXACT_CURRENT_VERSION");
+Assert(!CdpAdventureLandClient.ShouldContinuePr208CandidateV103ContextConvergence(
+    "pr20-8-upgrade-productive-one-write-live", "1.0.3",
+    "pr20-8-upgrade-productive-one-write-live", "1.0.3"),
+    "V5_PR208_CANDIDATE_CONTEXT_CONVERGENCE_REJECTS_MUTATING_TEST");
+
 Assert(CdpAdventureLandClient.IsStrictlyNewerControllerVersion("1.0.2", "1.0.1"), "V5_VERSION_STRICTLY_NEWER");
 Assert(!CdpAdventureLandClient.IsStrictlyNewerControllerVersion("1.0.1", "1.0.1"), "V5_VERSION_EQUAL_NOT_NEWER");
 Assert(!CdpAdventureLandClient.IsStrictlyNewerControllerVersion("1.0.1", "1.0.2"), "V5_VERSION_DOWNGRADE_REJECTED");
