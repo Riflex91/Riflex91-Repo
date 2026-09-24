@@ -69,6 +69,7 @@ function sandbox(items, options = {}) {
     },
     server_region:"EU",
     server_identifier:"I",
+    B:{ sell_dist:400 },
     entities:{},
     upgrade() {
       upgradeCalls += 1;
@@ -80,6 +81,8 @@ function sandbox(items, options = {}) {
       ctype:"merchant",
       level:58,
       map:"main",
+      x:-100,
+      y:-160,
       moving:false,
       target:null,
       q:{},
@@ -90,6 +93,7 @@ function sandbox(items, options = {}) {
     },
     G:{
       items:defs(),
+      maps:{ main:{ ref:{ u_mid:[-235,-203] } } },
       ...options.G,
     },
     S:{ ugrace:{} },
@@ -141,6 +145,11 @@ test("PR20.8 Upgrade durable shadow persists exact no-send intent and reobserves
   assert.equal(e.offering,null);
   assert.equal(e.normalPathOnly,true);
   assert.equal(e.publicFunctionAvailable,true);
+  assert.equal(e.serviceReachability.reachable,true);
+  assert.equal(e.serviceReachability.viaComputer,false);
+  assert.equal(e.serviceReachability.serverLimit,400);
+  assert.equal(e.serviceReachability.safetyLimit,300);
+  assert.ok(e.serviceReachability.distance < 300);
   assert.equal(e.sourceSnapshotCommit,
     "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4");
   assert.equal(e.ratifiedCandidateEvidenceCommit,
@@ -178,6 +187,8 @@ test("PR20.8 Upgrade durable shadow persists exact no-send intent and reobserves
   assert.equal(durable.art,
     "PR20_8_UPGRADE_DURABLE_SHADOW_INTENT_NO_GAMEPLAY_WRITE");
   assert.equal(durable.actionContractId,"AL-ACTION-UPGRADE");
+  assert.equal(durable.serviceReachability.reachable,true);
+  assert.equal(durable.serviceReachability.serverLimit,400);
   assert.equal(durable.recoveryContractId,"AL-RECOVERY-UPGRADE");
   assert.equal(durable.verifierId,"AL-VERIFIER-UPGRADE");
   assert.equal(durable.candidate.index,6);
@@ -202,6 +213,41 @@ test("PR20.8 Upgrade shadow re-resolves current physical indexes instead of trus
   assert.equal(status.evidence.candidate.inventoryIndex,2);
   assert.equal(status.evidence.scroll.inventoryIndex,9);
   assert.equal(status.evidence.freshReresolutionRequiredBeforeFutureSend,true);
+});
+
+test("PR20.8 Upgrade shadow blocks service-distance and scroll-definition drift", async () => {
+  {
+    const items=Array(8).fill(null);
+    items[2]={ name:"gloves", level:0 };
+    items[3]={ name:"scroll0", q:2 };
+    const env=sandbox(items,{character:{x:1000,y:1000}});
+    const status=await run(env);
+    assert.equal(status.status,"FEHLER");
+    assert.ok(status.blocker.some(x =>
+      x.includes("PR20_8_UPGRADE_SHADOW_SERVICE_NICHT_ERREICHBAR")));
+    assert.equal(env.storage.rows.size,0);
+    assert.equal(env.upgradeCalls(),0);
+  }
+  {
+    const items=Array(8).fill(null);
+    items[2]={ name:"gloves", level:0 };
+    items[3]={ name:"scroll0", q:2 };
+    const env=sandbox(items,{
+      G:{
+        items:{
+          ...defs(),
+          scroll0:{type:"pscroll",g:1000,grade:0},
+        },
+        maps:{main:{ref:{u_mid:[-235,-203]}}},
+      },
+    });
+    const status=await run(env);
+    assert.equal(status.status,"FEHLER");
+    assert.ok(status.blocker.some(x =>
+      x.includes("PR20_8_UPGRADE_SHADOW_SCROLL_DEFINITION_DRIFT")));
+    assert.equal(env.storage.rows.size,0);
+    assert.equal(env.upgradeCalls(),0);
+  }
 });
 
 test("PR20.8 Upgrade shadow blocks active q before durable intent", async () => {
@@ -275,6 +321,9 @@ test("PR20.8 Upgrade shadow package contains no gameplay mutation bypass", () =>
     "maximumUses:1",
     "upgradeAuthorityIssued:false",
     "freshReresolutionRequiredBeforeFutureSend:true",
+    "SOURCE_PINNED_SELL_DISTANCE = 400",
+    "SERVICE_REACHABILITY_SAFETY_MAX = 300",
+    "scrollDef.type,64) !== 'uscroll'",
     "gameplayWrites:0",
     "publicFunctionCalls:0",
     "rawWriteCalls:0",
