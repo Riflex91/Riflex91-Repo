@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_COMMITTED_BRIDGE_RECOVERED_REMAINING_RESCAN_V1_0_2_FALSE_POSITIVE_V1_0_3_PREPARED",
+    "UPGRADE_COMMITTED_COMPOUND_EXCHANGE_NO_CANDIDATE_AUTHORITY_CLOSED",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_3_REAL_BROWSER_RUN",
+    "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
   );
   assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
   assert.equal(
@@ -840,7 +840,7 @@ test("PR20.8 bridge handshake and terminal recovery are confirmed zero-write", (
   assert.equal(r.evidence,"roadmap/pr20-8-bridge-handshake-terminal-recovery-evidence.json");
 });
 
-test("PR20.8 remaining Compound/Exchange candidate rescan requires a target-family candidate", () => {
+test("PR20.8 remaining Compound/Exchange candidate rescan ratifies no-candidate evidence and keeps authority closed", () => {
   const r=prep.pr20_8.remainingCandidateRescan;
   assert.equal(r.status,"V1_0_2_FALSE_POSITIVE_V1_0_3_TARGET_SEMANTICS_PREPARED");
   assert.equal(r.testId,"pr20-8-wertmutation-live-candidate-readonly");
@@ -859,7 +859,32 @@ test("PR20.8 remaining Compound/Exchange candidate rescan requires a target-fami
   assert.equal(r.rawWriteCalls,0);
   assert.equal(r.sameIntentRetry,false);
   assert.equal(r.normalRuntimeAllowed,false);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_3_REAL_BROWSER_RUN");
+  assert.equal(r.nextGate,"PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW");
+  assert.equal(r.evidence,"roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json");
+  assert.equal(r.evidenceRatified,true);
+  assert.equal(r.compoundRatified,false);
+  assert.equal(r.exchangeRatified,false);
+  assert.equal(r.acquisitionOrMutationToCreateCandidateAllowed,false);
+
+  const n=r.observedV1_0_3NoCandidate;
+  assert.equal(n.controllerVersion,"1.0.3");
+  assert.equal(n.status,"BLOCKIERT");
+  assert.equal(n.phase,"PR20_8_LIVE_CANDIDATE_SELECTION");
+  assert.equal(n.terminal,true);
+  assert.equal(n.blocker,"PR20_8_CANDIDATE_KEIN_COMPOUND_ODER_EXCHANGE_NORMALKANDIDAT");
+  assert.equal(n.bridgeState,"ALREADY_PRESENT");
+  assert.equal(n.bridgeError,null);
+  assert.deepEqual(n.upgradeInformationalCandidate,{name:"gloves",level:0,index:13,scrollName:"scroll0",scrollQuantity:35});
+  assert.equal(n.compoundCandidate,null);
+  assert.equal(n.exchangeCandidate,null);
+  assert.equal(n.gameplayWrites,0);
+  assert.equal(n.publicFunctionCalls,0);
+  assert.equal(n.rawWriteCalls,0);
+  assert.equal(n.sameIntentRetry,false);
+  assert.equal(n.authorityIssued,false);
+  assert.equal(n.compoundAuthority,false);
+  assert.equal(n.exchangeAuthority,false);
+  assert.equal(n.normalRuntimeAllowed,false);
 
   const f=r.observedV1_0_2FalsePositive;
   assert.equal(f.evidence,"roadmap/pr20-8-compound-exchange-rescan-v1-0-2-evidence.json");
