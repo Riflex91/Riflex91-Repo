@@ -82,9 +82,9 @@
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.7 belegter sicherer Nicht-Waffen-Slot ist produktiv mit genau 1 Write und 60x5s COMMITTED-Evidence BESTANDEN",
     "PR20.7 Waffen-/Offhand-Foundation ist NO-WRITE implementiert",
-    "AKTUELL: Merchant-only realer Waffen-/Offhand-Read-only-Preflight ist als workerloses Paket vorbereitet; Evidence bleibt OFFEN",
-    "NAECHSTES: Paket nach gruener CI mergen, immutable Source-Commit/SHA pinnen und Manifest separat umschalten",
-    "DANACH: reale Read-only-Evidence; erst danach One-Shot/Fencing/Durable-Intent-Shadow und produktiver 5m-Nachweis",
+    "AKTUELL: Waffen-/Offhand realer Merchant-only Read-only-Preflight ist immutable gepinnt und Manifest-Cutover bereit; Evidence bleibt OFFEN",
+    "NAECHSTES: Cutover mergen, deployen und realen read-only Browserlauf auswerten",
+    "DANACH: One-Shot/Fencing/Durable-Intent-Shadow und produktiver 5m-Nachweis fuer Waffen/Offhand",
     "Danach folgt die separate Gear-Allokation an Farmer",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
@@ -703,7 +703,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "WEAPON_OFFHAND_READ_ONLY_PACKAGE_BEREIT_EVIDENCE_OFFEN",
+      "status": "WEAPON_OFFHAND_READ_ONLY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -731,7 +731,7 @@
         "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-test-plan.json",
         "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json"
       ],
-      "nextAction": "PR20_7_WEAPON_OFFHAND_READ_ONLY_PACKAGE_MERGE_AND_MANIFEST_CUTOVER"
+      "nextAction": "PR20_7_WEAPON_OFFHAND_REAL_READ_ONLY_BROWSER_PREFLIGHT_EXECUTE"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1032,7 +1032,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "WEAPON_OFFHAND_READ_ONLY_PACKAGE_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_READ_ONLY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1080,7 +1080,7 @@
       "v5/roadmap/pr20-7-weapon-offhand-read-only-preflight-evidence.json",
       "v5/grundlage/tests/pr20-weapon-offhand-read-only-evidence.test.mjs"
     ],
-    "nextAction": "PR20_7_WEAPON_OFFHAND_READ_ONLY_PACKAGE_MERGE_AND_MANIFEST_CUTOVER",
+    "nextAction": "PR20_7_WEAPON_OFFHAND_REAL_READ_ONLY_BROWSER_PREFLIGHT_EXECUTE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1184,11 +1184,11 @@
       "observedSoakDurationMs": 300552
     },
     "remainingGates": {
-      "weaponOffhand": "READ_ONLY_PACKAGE_BEREIT_EVIDENCE_OFFEN",
+      "weaponOffhand": "READ_ONLY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "farmerGearAllocation": "OFFEN_SEPARATE_RATIFICATION"
     },
     "weaponOffhand": {
-      "status": "READ_ONLY_PACKAGE_BEREIT_EVIDENCE_OFFEN",
+      "status": "READ_ONLY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "contract": "v5/grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json",
       "explicitSlots": [
         "mainhand",
@@ -1219,7 +1219,10 @@
       "readOnlyGameplayWrites": 0,
       "readOnlyPublicFunctionCalls": 0,
       "readOnlyRawWriteCalls": 0,
-      "readOnlyEvidenceStatus": "OFFEN"
+      "readOnlyEvidenceStatus": "OFFEN",
+      "readOnlySourceCommit": "df4f23a4f633abaa62e817da0eb06ea1db3d94dd",
+      "readOnlyPackageSha256": "69e3bff8fa7d33c4f4038aff4635d89eebc0c397a2af77ad05486abbac04f562",
+      "readOnlyManifestCutoverPrepared": true
     }
   }
 }
