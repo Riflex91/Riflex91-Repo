@@ -131,7 +131,7 @@ public sealed class CdpAdventureLandClient
                         var same = string.Equals(currentTestId, manifest.TestId, StringComparison.Ordinal);
                         var sameVersion = same && string.Equals(currentVersion, manifest.ControllerVersion, StringComparison.Ordinal);
                         if (sameVersion
-                            && ShouldContinuePr208CandidateV103ContextConvergence(
+                            && ShouldContinuePr208CandidateReadonlyContextConvergence(
                                 manifest.TestId,
                                 manifest.ControllerVersion,
                                 currentTestId,
@@ -583,19 +583,22 @@ public sealed class CdpAdventureLandClient
             && currentIntentCount == 0;
     }
 
-    public static bool ShouldContinuePr208CandidateV103ContextConvergence(
+    public static bool ShouldContinuePr208CandidateReadonlyContextConvergence(
         string desiredTestId,
         string desiredVersion,
         string? currentTestId,
         string? currentVersion)
     {
-        return string.Equals(
+        if (!string.Equals(
                 desiredTestId,
                 "pr20-8-wertmutation-live-candidate-readonly",
                 StringComparison.Ordinal)
-            && string.Equals(desiredVersion, "1.0.3", StringComparison.Ordinal)
-            && string.Equals(currentTestId, desiredTestId, StringComparison.Ordinal)
-            && string.Equals(currentVersion, desiredVersion, StringComparison.Ordinal);
+            || !string.Equals(currentTestId, desiredTestId, StringComparison.Ordinal)
+            || !string.Equals(currentVersion, desiredVersion, StringComparison.Ordinal)
+            || !Version.TryParse(desiredVersion, out var parsed))
+            return false;
+
+        return parsed >= new Version(1, 0, 3);
     }
 
     public static bool IsStrictlyNewerControllerVersion(string? desiredVersion, string? currentVersion)
