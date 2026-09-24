@@ -24,6 +24,8 @@
   const FENCE_TTL_MS = 60000;
   const RECONCILE_ATTEMPTS = 160;
   const RECONCILE_DELAY_MS = 250;
+  const PUBLIC_FUNCTION_PROMISE_TIMEOUT_MS = 2000;
+  const RUNTIME_LEASE_KEY = "__V5PR208UpgradeProductiveOneWriteLiveLease";
   const INTENT_PREFIX = "v5:" + TEST_ID + ":intent:";
   const AUTHORITY_PREFIX = "v5:" + TEST_ID + ":authority:";
   const FENCE_PREFIX = "v5:" + TEST_ID + ":fence:";
@@ -120,6 +122,35 @@
       byte.toString(16).padStart(2, "0")).join("");
   }
 
+  function createInstanceId() {
+    const cryptoApi = globalThis.crypto;
+    if (typeof cryptoApi?.randomUUID === "function") {
+      return cryptoApi.randomUUID();
+    }
+    if (typeof cryptoApi?.getRandomValues === "function") {
+      const bytes = new Uint8Array(16);
+      cryptoApi.getRandomValues(bytes);
+      return Array.from(bytes, byte =>
+        byte.toString(16).padStart(2, "0")).join("");
+    }
+    throw new Error("PR20_8_UPGRADE_LIVE_INSTANCE_ID_CRYPTO_UNAVAILABLE");
+  }
+
+  const INSTANCE_ID = createInstanceId();
+
+  function stableScalarObject(value, maxKeys = 32) {
+    const out = {};
+    if (!value || typeof value !== "object") return out;
+    for (const key of Object.keys(value).sort().slice(0, maxKeys)) {
+      const v = value[key];
+      if (v === null
+          || typeof v === "string"
+          || typeof v === "number"
+          || typeof v === "boolean") out[key] = v;
+    }
+    return out;
+  }
+
   function stableItemMaterial(item) {
     if (!item || typeof item !== "object") return null;
     const out = {};
@@ -145,6 +176,8 @@
       || item?.lock === true
       || item?.b === true
       || item?.blocked === true
+      || item?.giveaway === true
+      || item?.list === true
       || item?.gift != null
       || item?.expires != null
       || item?.acl != null
@@ -444,6 +477,13 @@
       index, stableItemMaterial(item)
     ]));
     const qMaterial = canonical(c.q || {});
+    const upgradeEffectMaterial = canonical({
+      massproduction: stableScalarObject(c.s?.massproduction || {}, 32),
+      massproductionpp: stableScalarObject(c.s?.massproductionpp || {}, 32),
+      upgrace: stableScalarObject(c.p?.ugrace || {}, 32),
+      ograce: c.p?.ograce ?? null,
+      serverUgrace: stableScalarObject(r.S?.ugrace || {}, 32)
+    });
     const itemDefMaterial = canonical({
       name: ITEM_NAME,
       type: text(r.G.items[ITEM_NAME].type, 64),
@@ -471,6 +511,7 @@
     const qFingerprintSha256 = await sha256(qMaterial);
     const candidateFingerprintSha256 = await sha256(canonical(candidate));
     const scrollFingerprintSha256 = await sha256(canonical(scroll));
+    const upgradeEffectsFingerprintSha256 = await sha256(upgradeEffectMaterial);
     const itemDefinitionFingerprintSha256 = await sha256(itemDefMaterial);
     const scrollDefinitionFingerprintSha256 = await sha256(scrollDefMaterial);
     const prestateFingerprintSha256 = await sha256(canonical({
@@ -479,6 +520,7 @@
       qFingerprintSha256,
       candidateFingerprintSha256,
       scrollFingerprintSha256,
+      upgradeEffectsFingerprintSha256,
       itemDefinitionFingerprintSha256,
       scrollDefinitionFingerprintSha256,
       service
@@ -500,6 +542,7 @@
       },
       inventoryMaterial,
       qMaterial,
+      upgradeEffectMaterial,
       itemDefMaterial,
       scrollDefMaterial,
       fingerprints: {
@@ -508,6 +551,7 @@
         qFingerprintSha256,
         candidateFingerprintSha256,
         scrollFingerprintSha256,
+        upgradeEffectsFingerprintSha256,
         itemDefinitionFingerprintSha256,
         scrollDefinitionFingerprintSha256
       }
@@ -567,37 +611,100 @@
     return FENCE_PREFIX + encodeURIComponent(resource);
   }
 
+  function fenceOwner(txId) {
+    return txId + ":instance:" + INSTANCE_ID;
+  }
+
+  function acquireRuntimeLease() {
+    const r = root();
+    const existing = r[RUNTIME_LEASE_KEY];
+    if (existing?.instanceId && existing.instanceId !== INSTANCE_ID) {
+      throw new Error("PR20_8_UPGRADE_LIVE_DUPLIKAT_INSTANZ_AKTIV");
+    }
+    const lease = {
+      schemaVersion: 1,
+      testId: TEST_ID,
+      instanceId: INSTANCE_ID,
+      acquiredAtMs: Date.now()
+    };
+    r[RUNTIME_LEASE_KEY] = lease;
+    if (r[RUNTIME_LEASE_KEY]?.instanceId !== INSTANCE_ID) {
+      throw new Error("PR20_8_UPGRADE_LIVE_RUNTIME_LEASE_VERLOREN");
+    }
+    return lease;
+  }
+
+  function assertRuntimeLease() {
+    const current = root()[RUNTIME_LEASE_KEY];
+    if (current?.instanceId !== INSTANCE_ID || current?.testId !== TEST_ID) {
+      throw new Error("PR20_8_UPGRADE_LIVE_RUNTIME_LEASE_VERLOREN");
+    }
+  }
+
+  function releaseRuntimeLease() {
+    const r = root();
+    if (r[RUNTIME_LEASE_KEY]?.instanceId === INSTANCE_ID) {
+      try { delete r[RUNTIME_LEASE_KEY]; }
+      catch { r[RUNTIME_LEASE_KEY] = null; }
+    }
+  }
+
   function acquireFences(txId) {
     const now = Date.now();
+    const owner = fenceOwner(txId);
     const keys = [];
     for (const resource of RESOURCE_CLAIMS) {
       const key = fenceKey(resource);
       const old = readJson(key);
       if (old
           && Number(old.expiresAtMs) > now
-          && old.owner !== txId) {
+          && old.owner !== owner) {
         throw new Error("PR20_8_UPGRADE_LIVE_FENCE_BELEGT:" + resource);
       }
       const record = {
         schemaVersion: 1,
         testId: TEST_ID,
         resource,
-        owner: txId,
+        transactionId: txId,
+        owner,
+        ownerInstanceId: INSTANCE_ID,
         acquiredAtMs: now,
         expiresAtMs: now + FENCE_TTL_MS
       };
       writeJsonExact(key, record);
       keys.push(key);
     }
+    for (const resource of RESOURCE_CLAIMS) {
+      const current = readJson(fenceKey(resource));
+      if (current?.owner !== owner
+          || current?.ownerInstanceId !== INSTANCE_ID
+          || Number(current.expiresAtMs) <= Date.now()) {
+        throw new Error("PR20_8_UPGRADE_LIVE_FENCE_OWNERSHIP_VERLOREN:" + resource);
+      }
+    }
     return keys;
+  }
+
+  function assertFences(txId) {
+    const owner = fenceOwner(txId);
+    for (const resource of RESOURCE_CLAIMS) {
+      const current = readJson(fenceKey(resource));
+      if (current?.owner !== owner
+          || current?.ownerInstanceId !== INSTANCE_ID
+          || Number(current.expiresAtMs) <= Date.now()) {
+        throw new Error("PR20_8_UPGRADE_LIVE_FENCE_OWNERSHIP_VERLOREN:" + resource);
+      }
+    }
   }
 
   function releaseFences(txId) {
     const ls = storage();
+    const owner = fenceOwner(txId);
     for (const resource of RESOURCE_CLAIMS) {
       const key = fenceKey(resource);
       const current = readJson(key);
-      if (current?.owner === txId) ls.removeItem(key);
+      if (current?.owner === owner
+          && current?.ownerInstanceId === INSTANCE_ID) ls.removeItem(key);
     }
   }
 
@@ -618,6 +725,7 @@
       publicFunctionSignature: "upgrade(item_num, scroll_num, offering_num, only_calculate)",
       sourceSnapshotCommit: SOURCE_SNAPSHOT_COMMIT,
       prerequisiteShadowEvidenceBatchId: RATIFIED_SHADOW_EVIDENCE_BATCH,
+      runnerInstanceId: INSTANCE_ID,
       createdAtMs: Date.now(),
       updatedAtMs: Date.now(),
       status: "INTENT_DURABLE",
@@ -658,8 +766,13 @@
       outcome: null
     };
     const key = intentKey(pre);
+    const existing = readJson(key);
+    if (existing) return { key, value: existing, existing: true };
     const persisted = writeJsonExact(key, record);
-    return { key, value: persisted };
+    if (persisted.runnerInstanceId !== INSTANCE_ID) {
+      throw new Error("PR20_8_UPGRADE_LIVE_INTENT_OWNERSHIP_VERLOREN");
+    }
+    return { key, value: persisted, existing: false };
   }
 
   function issueAuthority(intent, observation) {
@@ -690,6 +803,9 @@
           observation.fingerprints.inventoryFingerprintSha256,
         qFingerprintSha256:
           observation.fingerprints.qFingerprintSha256,
+        upgradeEffectsFingerprintSha256:
+          observation.fingerprints.upgradeEffectsFingerprintSha256,
+        runnerInstanceId: INSTANCE_ID,
         candidateFingerprintSha256:
           observation.fingerprints.candidateFingerprintSha256,
         scrollFingerprintSha256:
@@ -721,6 +837,9 @@
         === observation.fingerprints.inventoryFingerprintSha256
       && b.qFingerprintSha256
         === observation.fingerprints.qFingerprintSha256
+      && b.upgradeEffectsFingerprintSha256
+        === observation.fingerprints.upgradeEffectsFingerprintSha256
+      && b.runnerInstanceId === INSTANCE_ID
       && b.candidateFingerprintSha256
         === observation.fingerprints.candidateFingerprintSha256
       && b.scrollFingerprintSha256
@@ -979,7 +1098,10 @@
         : "NICHT_GESENDET",
       outcome
     });
-    if (terminal) releaseFences(settled.transactionId);
+    if (terminal) {
+      releaseFences(settled.transactionId);
+      releaseRuntimeLease();
+    }
     const authority = {
       ...state.authority,
       upgradeAuthority: false,
@@ -1079,6 +1201,7 @@
     if (existing) return recoverExisting(existing);
 
     const created = createIntent(second);
+    if (created.existing === true) return recoverExisting(created);
     let intent = created.value;
     state.authority = {
       ...state.authority,
@@ -1092,6 +1215,7 @@
     publishTelemetryFacades();
 
     acquireFences(intent.transactionId);
+    assertRuntimeLease();
     const fresh = await strictObservation(performance);
     if (fresh.fingerprints.prestateFingerprintSha256
         !== intent.fingerprints.prestateFingerprintSha256
@@ -1117,6 +1241,15 @@
       return state;
     }
 
+    assertRuntimeLease();
+    assertFences(intent.transactionId);
+    const durableOwner = readJson(created.key);
+    if (durableOwner?.runnerInstanceId !== INSTANCE_ID
+        || durableOwner?.sendCount !== 0
+        || durableOwner?.status !== "INTENT_DURABLE") {
+      throw new Error("PR20_8_UPGRADE_LIVE_INTENT_OWNERSHIP_VERLOREN");
+    }
+
     const issued = issueAuthority(intent, fresh);
     state.authority = {
       ...state.authority,
@@ -1124,6 +1257,8 @@
       maximumUses: 1
     };
     publishTelemetryFacades();
+    assertRuntimeLease();
+    assertFences(intent.transactionId);
     const consumed = consumeAuthority(intent, issued, fresh);
     if (consumed.uses !== 1 || consumed.consumed !== true) {
       throw new Error("PR20_8_UPGRADE_LIVE_AUTHORITY_CONSUME_FEHLER");
@@ -1155,10 +1290,14 @@
 
     let sendResult = null;
     let sendError = null;
+    let sendPromiseTimedOut = false;
+    let sendPromise = null;
     state.gameplayWrites += 1;
     state.publicFunctionCalls += 1;
+    assertRuntimeLease();
+    assertFences(intent.transactionId);
     try {
-      sendResult = await Promise.resolve(
+      sendPromise = Promise.resolve(
         globalThis.upgrade(
           fresh.candidate.index,
           fresh.scroll.index,
@@ -1168,14 +1307,36 @@
       );
     } catch (error) {
       sendError = text(error?.message || error, 500);
-    } finally {
-      state.authority = {
-        ...state.authority,
-        upgradeAuthority: false,
-        gameplayAuthority: false,
-        rawWriteAuthority: false
-      };
-      publishTelemetryFacades();
+    }
+    state.authority = {
+      ...state.authority,
+      upgradeAuthority: false,
+      gameplayAuthority: false,
+      rawWriteAuthority: false
+    };
+    publishTelemetryFacades();
+
+    if (sendPromise) {
+      const promiseObservation = await Promise.race([
+        sendPromise.then(
+          value => ({ kind: "RESOLVED", value }),
+          error => ({
+            kind: "REJECTED",
+            error: text(error?.message || error, 500)
+          })
+        ),
+        sleep(PUBLIC_FUNCTION_PROMISE_TIMEOUT_MS).then(() => ({
+          kind: "TIMEOUT"
+        }))
+      ]);
+      if (promiseObservation.kind === "RESOLVED") {
+        sendResult = promiseObservation.value;
+      } else if (promiseObservation.kind === "REJECTED") {
+        sendError = promiseObservation.error;
+      } else {
+        sendPromiseTimedOut = true;
+        sendError = "PUBLIC_FUNCTION_PROMISE_TIMEOUT";
+      }
     }
 
     setState({ phase: "RECONCILE", status: "RECONCILE" });
@@ -1185,6 +1346,7 @@
       promiseResultObserved: sendResult !== null && sendResult !== undefined,
       promiseResult: sendResult ?? null,
       promiseError: sendError,
+      promiseTimedOut: sendPromiseTimedOut,
       promiseResultIsSupportingEvidenceOnly: true
     };
     return settleIntent({ key: created.key, value: intent }, withSend);
@@ -1211,6 +1373,7 @@
   async function run() {
     publishTelemetryFacades();
     try {
+      acquireRuntimeLease();
       const existing = findExistingIntent();
       if (existing) return await recoverExisting(existing);
       const performance = await ensurePerformanceTrick();
