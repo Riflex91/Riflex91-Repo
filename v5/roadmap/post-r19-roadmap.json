@@ -1046,7 +1046,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_CORRECTIVE_1_0_1_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1381,6 +1381,25 @@
       "acquisitionShadowSameIntentRetry": false,
       "acquisitionShadowNormalRuntimeAllowed": false,
       "acquisitionShadowEvidenceStatus": "OFFEN"
-    }
+    },
+    "acquisitionShadowPackage": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
+    "acquisitionShadowPackageTest": "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-shadow-v1-0-1-autonomous.test.mjs",
+    "acquisitionShadowControllerVersion": "1.0.1",
+    "acquisitionShadowSourceCommit": "0b92ce4002438ef4282622699019b5148da58184",
+    "acquisitionShadowPackageSha256": "11c666638c111a3acd04e550bf33b52eb7611f53a0f8f02547b4b199df73793d",
+    "acquisitionShadowManifestCutoverPrepared": true,
+    "acquisitionShadowEvidenceStatus": "OFFEN",
+    "acquisitionShadowPreviousControllerVersion": "1.0.0",
+    "acquisitionShadowPreviousLiveStatus": "FEHLER",
+    "acquisitionShadowPreviousLiveBlocker": "PR20_7_ACQUISITION_SHADOW_OFFHAND_CLASS_DRIFT",
+    "acquisitionShadowPreviousLiveTerminal": true,
+    "acquisitionShadowPreviousLiveGameplayWrites": 0,
+    "acquisitionShadowPreviousLivePublicFunctionCalls": 0,
+    "acquisitionShadowPreviousLiveRawWriteCalls": 0,
+    "acquisitionShadowPreviousLiveDurableIntentCreated": false,
+    "acquisitionShadowPreviousLiveSameIntentRetry": false,
+    "acquisitionShadowPreviousLiveRatified": false,
+    "acquisitionShadowClassRuleShape": "OBJECT_KEYS",
+    "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE_V1_0_1"
   }
 }

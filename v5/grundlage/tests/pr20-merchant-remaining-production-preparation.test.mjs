@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+    "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_CORRECTIVE_1_0_1_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -274,11 +274,11 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionObservedSellDistance, 400);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionObservedSellDistanceSource, "OFFICIAL_SERVER_SOURCE_PIN");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowFoundation, "grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts");
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowPackage, "werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowPackage, "werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowTestId, "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write");
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowControllerVersion, "1.0.0");
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowSourceCommit, "3f006c17934f0159fa575d2da0e4d048fbf0df09");
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowPackageSha256, "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowControllerVersion, "1.0.1");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowSourceCommit, "0b92ce4002438ef4282622699019b5148da58184");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowPackageSha256, "11c666638c111a3acd04e550bf33b52eb7611f53a0f8f02547b4b199df73793d");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowManifestCutoverPrepared, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowExactCost, 4800);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowMinimumGoldSafetyReserve, 1000);
@@ -303,7 +303,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowSameIntentRetry, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowNormalRuntimeAllowed, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowEvidenceStatus, "OFFEN");
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE_V1_0_1");
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionSourceCommit, /^[0-9a-f]{40}$/);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPackageSha256, /^[0-9a-f]{64}$/);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlySourceCommit, /^[0-9a-f]{40}$/);

@@ -37,7 +37,7 @@ const allowedPackages = Object.freeze({
     gate: "PR20.7_GEAR"
   }),
   "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write": Object.freeze({
-    path: "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js",
+    path: "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
     expectedGlobal: "V5PR207WeaponOffhandAcquisitionShadow",
     gate: "PR20.7_GEAR"
   }),
@@ -229,7 +229,7 @@ test("PR20.6 final manifest pins the bridge worker fallback to exact no-write fa
 
 test("PR20.7 Gear package is terminal read-only and does not touch farmer lifecycle", () => {
   if (manifest.testId !== "pr20-7-gear-occupied-slot-read-only-preflight") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.controllerVersion, "1.0.1");
   assert.equal("workerVersion" in manifest, false);
   assert.equal("workerPackagePath" in manifest, false);
   assert.equal("workerPackageSha256" in manifest, false);
@@ -417,10 +417,10 @@ test("PR20.7 offhand acquisition manifest is exact wshield read-only source pref
 
 test("PR20.7 offhand acquisition durable shadow manifest is exact no-send preparation", () => {
   if (manifest.testId !== "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
-  assert.equal(manifest.sourceCommit, "3f006c17934f0159fa575d2da0e4d048fbf0df09");
-  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js");
-  assert.equal(manifest.packageSha256, "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08");
+  assert.equal(manifest.controllerVersion, "1.0.1");
+  assert.equal(manifest.sourceCommit, "0b92ce4002438ef4282622699019b5148da58184");
+  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js");
+  assert.equal(manifest.packageSha256, "11c666638c111a3acd04e550bf33b52eb7611f53a0f8f02547b4b199df73793d");
   assert.equal(manifest.expectedGlobal, "V5PR207WeaponOffhandAcquisitionShadow");
   assert.equal("workerVersion" in manifest, false);
   assert.equal("workerPackagePath" in manifest, false);
@@ -433,6 +433,8 @@ test("PR20.7 offhand acquisition durable shadow manifest is exact no-send prepar
   assert.ok(packageSource.includes("EXACT_COST = 4800"));
   assert.ok(packageSource.includes("MIN_GOLD_RESERVE = 1000"));
   assert.ok(packageSource.includes("SOURCE_PINNED_SELL_DISTANCE = 400"));
+  assert.ok(packageSource.includes("Object.keys(merchantClass.offhand || {})"));
+  assert.ok(packageSource.includes("Object.keys(merchantClass.doublehand || {})"));
   assert.ok(packageSource.includes("AL-ACTION-BUY-WITH-GOLD"));
   assert.ok(packageSource.includes("character:My_Merchant:gold"));
   assert.ok(packageSource.includes("character:My_Merchant:inventory"));

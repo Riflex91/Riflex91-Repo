@@ -3,12 +3,12 @@
   "stand": "2026-09-24",
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write",
-  "controllerVersion": "1.0.0",
+  "controllerVersion": "1.0.1",
   "status": "OFFEN",
   "evidenceArt": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE",
-  "sourceCommit": "3f006c17934f0159fa575d2da0e4d048fbf0df09",
-  "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js",
-  "packageSha256": "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08",
+  "sourceCommit": "0b92ce4002438ef4282622699019b5148da58184",
+  "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
+  "packageSha256": "11c666638c111a3acd04e550bf33b52eb7611f53a0f8f02547b4b199df73793d",
   "manifestMainCommit": null,
   "observedAtMs": null,
   "terminal": null,
@@ -47,7 +47,28 @@
     "normalRuntimeAllowed": false
   },
   "blocker": [
-    "REAL_WSHIELD_ACQUISITION_DURABLE_SHADOW_NO_WRITE_NOCH_NICHT_AUSGEFUEHRT"
+    "REAL_WSHIELD_ACQUISITION_DURABLE_SHADOW_V1_0_1_NOCH_NICHT_AUSGEFUEHRT"
   ],
-  "nextGate": null
+  "nextGate": null,
+  "previousAttempt": {
+    "controllerVersion": "1.0.0",
+    "manifestMainCommit": "a1fd977c8ccc8c953bbdd4304cc87691a96a2b4f",
+    "runStartedAtMs": 1790242513545,
+    "observedAtMs": 1790242513899,
+    "status": "FEHLER",
+    "phase": "BOOT",
+    "terminal": true,
+    "blocker": [
+      "PR20_7_ACQUISITION_SHADOW_OFFHAND_CLASS_DRIFT"
+    ],
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "durableIntentCreated": false,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false,
+    "ratified": false
+  }
 }
