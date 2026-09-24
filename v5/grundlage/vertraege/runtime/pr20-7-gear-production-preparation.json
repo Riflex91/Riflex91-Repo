@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_PACKAGE_BEREIT_EVIDENCE_OFFEN",
+  "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -76,9 +76,7 @@
   },
   "nextGate": {
     "requiredBeforeAnySwapWrite": [
-      "separate exact-head green CI",
-      "manifest cutover to exact source commit and SHA-256",
-      "real productive one-shot 5m evidence"
+      "manifest cutover merge with exact-head green CI"
     ],
     "weaponsAndOffhandRemainSeparate": true,
     "satisfied": [
@@ -224,6 +222,10 @@
     "sameIntentRetry": false,
     "fiveMinuteSoakSamples": 60,
     "normalRuntimeAllowed": false,
-    "realEvidenceStatus": "OFFEN"
+    "realEvidenceStatus": "OFFEN",
+    "sourceCommit": "9d83e6376659a8cf0ff8f182850f988981c0828b",
+    "packageSha256": "4fb9a297a31f84aaa713d3b486783ca9c55b65cc16a164a99a9adba095559322",
+    "manifest": "roadmap/v5-autonomous-test-manifest.json",
+    "manifestCutoverPrepared": true
   }
 }

@@ -4,7 +4,7 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-occupied-slot-live-5m",
   "controllerVersion": "1.0.0",
-  "status": "PRODUCTIVE_ONE_SHOT_PACKAGE_BEREIT_VOR_MANIFEST_CUTOVER",
+  "status": "MANIFEST_CUTOVER_BEREIT_FUER_REALEN_ONE_SHOT_5M",
   "scope": {
     "coordinatorClass": "merchant",
     "exactRecipientCharacter": "My_Merchant",
@@ -62,5 +62,10 @@
     "noWorkerDistribution": true
   },
   "evidence": "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json",
-  "nextAfterPass": "PR20_7_REMAINING_WEAPON_OFFHAND_AND_FARMER_GEAR_GATES"
+  "nextAfterPass": "PR20_7_REMAINING_WEAPON_OFFHAND_AND_FARMER_GEAR_GATES",
+  "sourceCommit": "9d83e6376659a8cf0ff8f182850f988981c0828b",
+  "packagePath": "v5/werkzeuge/pr20-7-gear-occupied-slot-live-5m.js",
+  "packageSha256": "4fb9a297a31f84aaa713d3b486783ca9c55b65cc16a164a99a9adba095559322",
+  "expectedGlobal": "V5PR207GearOccupiedLiveTest",
+  "manifest": "v5/roadmap/v5-autonomous-test-manifest.json"
 }
