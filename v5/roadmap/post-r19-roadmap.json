@@ -81,10 +81,11 @@
   "currentNextSteps": [
     "PR20.1 bis PR20.7 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.8 Wertmutationen ist aktuelles Gate",
-    "PR20.8 Live-Candidate-Discovery ist real im Browser BESTANDEN und strikt zero-write ratifiziert",
-    "Beobachteter erster Normalpfad: Upgrade gloves Level 0 plus scroll0; physischer Index muss vor jedem spaeteren Send neu aufgeloest werden",
-    "Compound und Exchange hatten im frischen Snapshot keinen zulaessigen Normal-Kandidaten; daraus entsteht keine Acquisition- oder Mutation-Authority",
-    "AKTUELL: Upgrade Durable-Shadow NO-WRITE mit exact candidate/scroll/q/session/fence binding vorbereiten",
+    "PR20.8 Live-Candidate-Discovery ist real im Browser BESTANDEN und zero-write ratifiziert",
+    "Upgrade Durable-Shadow-Paket fuer gloves Level 0 + scroll0 ist vorbereitet; aktuelle physische Indizes werden frisch aufgeloest",
+    "Shadow endet durable als ABBRUCH / NICHT_GESENDET / NOT_APPLIED und stellt keine Upgrade-Authority aus",
+    "AKTUELL: Upgrade Durable-Shadow via gepinntem Autonomous-Test-Manifest ausrollen",
+    "Compound und Exchange bleiben mangels frischem Normal-Kandidaten ohne Mutation-/Acquisition-Authority",
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
@@ -753,7 +754,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "LIVE_CANDIDATE_EVIDENCE_RATIFIED_NO_WRITE",
+      "status": "UPGRADE_DURABLE_SHADOW_PACKAGE_BEREIT_NO_WRITE",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -763,7 +764,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_UPGRADE_DURABLE_SHADOW_NO_WRITE",
+      "nextAction": "PR20_8_UPGRADE_DURABLE_SHADOW_MANIFEST_CUTOVER",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -781,7 +782,10 @@
         "v5/roadmap/v5-autonomous-test-manifest.json",
         "v5/werkzeuge/tests/v5-autonomous-test-manifest.test.mjs",
         "v5/roadmap/pr20-8-live-candidate-readonly-evidence.json",
-        "v5/grundlage/tests/pr20-wertmutation-live-candidate-evidence.test.mjs"
+        "v5/grundlage/tests/pr20-wertmutation-live-candidate-evidence.test.mjs",
+        "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
+        "v5/werkzeuge/tests/pr20-8-upgrade-durable-shadow-no-write.test.mjs",
+        "v5/grundlage/vertraege/runtime/pr20-8-upgrade-durable-shadow-preparation.json"
       ]
     },
     {
@@ -1621,7 +1625,7 @@
     }
   },
   "pr20_8": {
-    "status": "LIVE_CANDIDATE_EVIDENCE_RATIFIED_NO_WRITE",
+    "status": "UPGRADE_DURABLE_SHADOW_PACKAGE_BEREIT_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1663,14 +1667,14 @@
     "exchangeLiveRunnerPresent": false,
     "remainingGates": {
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
-      "normalUpgrade": "OFFEN_SEPARATE_RATIFICATION",
+      "normalUpgrade": "DURABLE_SHADOW_PACKAGE_BEREIT_NO_WRITE",
       "normalCompound": "OFFEN_SEPARATE_RATIFICATION",
       "normalExchange": "OFFEN_SEPARATE_RATIFICATION",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY"
     },
-    "nextAction": "PR20_8_UPGRADE_DURABLE_SHADOW_NO_WRITE",
+    "nextAction": "PR20_8_UPGRADE_DURABLE_SHADOW_MANIFEST_CUTOVER",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -1728,6 +1732,14 @@
       "freshReresolutionBeforeSendRequired": true
     },
     "observedCompoundCandidate": null,
-    "observedExchangeCandidate": null
+    "observedExchangeCandidate": null,
+    "upgradeDurableShadowPackage": "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
+    "upgradeDurableShadowTest": "v5/werkzeuge/tests/pr20-8-upgrade-durable-shadow-no-write.test.mjs",
+    "upgradeDurableShadowContract": "v5/grundlage/vertraege/runtime/pr20-8-upgrade-durable-shadow-preparation.json",
+    "upgradeDurableShadowStatus": "PACKAGE_BEREIT_NO_WRITE",
+    "upgradeDurableShadowSendBoundaryState": "NICHT_GESENDET",
+    "upgradeDurableShadowReconciliation": "NOT_APPLIED",
+    "upgradeDurableShadowUpgradeAuthority": false,
+    "upgradeDurableShadowGameplayWrites": 0
   }
 }
