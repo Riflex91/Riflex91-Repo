@@ -88,7 +88,7 @@
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: Candidate-Rescan v1.0.2 mit root-unabhaengiger synchroner Observability-Fassade deployen; danach Compound/Exchange rein read-only neu beobachten. v1.0.0 und v1.0.1 Handshakefehler erzeugten keine Gameplay-Writes."
+    "AKTUELL: PR20.8 Remaining-Family-Rescan v1.0.3 real-browser ausfuehren; BESTANDEN nur wenn COMPOUND oder EXCHANGE einen zulässigen Normal-Kandidaten liefert; Upgrade bleibt rein informativ; keinerlei neue Write-Authority."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "UPGRADE_COMMITTED_UPDATER_PERSISTED_BRIDGE_TERMINAL_RECOVERY_BESTANDEN_COMPOUND_EXCHANGE_READONLY_RESCAN_PREPARED",
+      "status": "UPGRADE_COMMITTED_BRIDGE_RECOVERED_REMAINING_RESCAN_V1_0_2_FALSE_POSITIVE_V1_0_3_PREPARED",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+      "nextAction": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_3_REAL_BROWSER_RUN",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -1646,7 +1646,7 @@
     }
   },
   "pr20_8": {
-    "status": "UPGRADE_COMMITTED_UPDATER_PERSISTED_BRIDGE_TERMINAL_RECOVERY_BESTANDEN_COMPOUND_EXCHANGE_READONLY_RESCAN_PREPARED",
+    "status": "UPGRADE_COMMITTED_BRIDGE_RECOVERED_REMAINING_RESCAN_V1_0_2_FALSE_POSITIVE_V1_0_3_PREPARED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1695,7 +1695,7 @@
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY"
     },
-    "nextAction": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+    "nextAction": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_3_REAL_BROWSER_RUN",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -2001,15 +2001,15 @@
       "evidence": "v5/roadmap/pr20-8-bridge-handshake-probe-evidence.json"
     },
     "remainingCandidateRescan": {
-      "status": "V1_0_1_REAL_BROWSER_HANDSHAKE_FAILED_V1_0_2_RECOVERY_PREPARED",
+      "status": "V1_0_2_FALSE_POSITIVE_V1_0_3_TARGET_SEMANTICS_PREPARED",
       "purpose": "REOBSERVE_REMAINING_COMPOUND_AND_EXCHANGE_NORMAL_CANDIDATES_AFTER_UPGRADE_COMMIT",
       "testId": "pr20-8-wertmutation-live-candidate-readonly",
-      "controllerVersion": "1.0.2",
-      "package": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.js",
-      "test": "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.test.mjs",
+      "controllerVersion": "1.0.3",
+      "package": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js",
+      "test": "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.test.mjs",
       "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
-      "sourceCommit": "c3f7a066f08d1bb16218345f9f76095fe5874c4f",
-      "packageSha256": "2eb0d1f37f02afca5550572791be860cb221ffb0ab42e22809ad9f5b82fb31b5",
+      "sourceCommit": "a0625dd9611b1006dc6f09ef7222ce5b67361ca6",
+      "packageSha256": "f633b5ed877120aa9c76c2c788b64b8efb20eef155a0d38612fb5fca7c20da25",
       "priorEvidence": "v5/roadmap/pr20-8-live-candidate-readonly-evidence.json",
       "targetFamilies": [
         "COMPOUND",
@@ -2022,8 +2022,8 @@
       "rawWriteCalls": 0,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
-      "packageBytes": 21295,
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_3_REAL_BROWSER_RUN",
+      "packageBytes": 21343,
       "observedV1Failure": {
         "observedAt": "2026-09-24T18:05:47.0307173+00:00",
         "bridgeState": "ERROR",
@@ -2040,15 +2040,20 @@
         "additionalGameplayWriteObserved": false
       },
       "recovery": {
-        "status": "V1_0_2_ROOT_INDEPENDENT_HANDSHAKE_MANIFEST_CUTOVER_PREPARED",
-        "controllerVersion": "1.0.2",
-        "package": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.js",
-        "test": "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.test.mjs",
-        "sourceCommit": "c3f7a066f08d1bb16218345f9f76095fe5874c4f",
-        "packageSha256": "2eb0d1f37f02afca5550572791be860cb221ffb0ab42e22809ad9f5b82fb31b5",
-        "packageBytes": 21295,
-        "synchronousFacadeBeforeAsyncScan": true,
-        "observabilityRootIndependent": true,
+        "status": "V1_0_3_TARGET_FAMILY_SUCCESS_SEMANTICS_MANIFEST_CUTOVER_PREPARED",
+        "controllerVersion": "1.0.3",
+        "package": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js",
+        "test": "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.test.mjs",
+        "sourceCommit": "a0625dd9611b1006dc6f09ef7222ce5b67361ca6",
+        "packageSha256": "f633b5ed877120aa9c76c2c788b64b8efb20eef155a0d38612fb5fca7c20da25",
+        "packageBytes": 21343,
+        "targetFamilies": [
+          "COMPOUND",
+          "EXCHANGE"
+        ],
+        "successCriterion": "COMPOUND_OR_EXCHANGE_CANDIDATE_REQUIRED",
+        "upgradeFamilyInformationalOnly": true,
+        "upgradeCanSatisfySuccess": false,
         "readOnly": true,
         "gameplayWrites": 0,
         "publicFunctionCalls": 0,
@@ -2071,6 +2076,29 @@
         "rawWriteCallsObserved": 0,
         "additionalGameplayWriteObserved": false,
         "diagnosis": "OBSERVABILITY_PUBLISH_STILL_DEPENDED_ON_ROOT_WITH_G_ITEMS"
+      },
+      "observedV1_0_2FalsePositive": {
+        "evidence": "v5/roadmap/pr20-8-compound-exchange-rescan-v1-0-2-evidence.json",
+        "observedAtMs": 1790274824644,
+        "receivedAt": "2026-09-24T18:33:44.859+00:00",
+        "controllerVersion": "1.0.2",
+        "status": "BESTANDEN",
+        "phase": "COMPLETE",
+        "terminal": true,
+        "bridgeState": "ALREADY_PRESENT",
+        "bridgeError": null,
+        "upgradeCandidate": {
+          "name": "gloves",
+          "level": 0
+        },
+        "compoundCandidate": null,
+        "exchangeCandidate": null,
+        "gameplayWrites": 0,
+        "publicFunctionCalls": 0,
+        "rawWriteCalls": 0,
+        "targetCandidateObserved": false,
+        "reportedSuccessInvalidForTargetGate": true,
+        "mayAdvanceCompoundOrExchangeGate": false
       }
     }
   }
