@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-24",
   "kennung": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY",
-  "status": "DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+  "status": "DURABLE_SHADOW_CORRECTIVE_1_0_1_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "rationale": {
     "merchantReadOnlyPreflight": "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE",
@@ -123,19 +123,19 @@
       "no same-intent retry after possible send"
     ]
   },
-  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE",
+  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE_V1_0_1",
   "shadowPreparation": {
     "foundation": "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
     "foundationTest": "v5/grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
-    "package": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js",
-    "packageTest": "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.test.mjs",
+    "package": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
+    "packageTest": "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-shadow-v1-0-1-autonomous.test.mjs",
     "testPlan": "v5/roadmap/pr20-7-weapon-offhand-acquisition-shadow-no-write-test-plan.json",
     "evidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-shadow-no-write-evidence.json",
     "testId": "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write",
-    "controllerVersion": "1.0.0",
+    "controllerVersion": "1.0.1",
     "expectedGlobal": "V5PR207WeaponOffhandAcquisitionShadow",
-    "sourceCommit": "3f006c17934f0159fa575d2da0e4d048fbf0df09",
-    "packageSha256": "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08",
+    "sourceCommit": "0b92ce4002438ef4282622699019b5148da58184",
+    "packageSha256": "11c666638c111a3acd04e550bf33b52eb7611f53a0f8f02547b4b199df73793d",
     "manifestCutoverPrepared": true,
     "exactCost": 4800,
     "minimumGoldSafetyReserve": 1000,
@@ -165,6 +165,17 @@
     "rawWriteAuthority": false,
     "sameIntentRetry": false,
     "normalRuntimeAllowed": false,
-    "evidenceStatus": "OFFEN"
+    "evidenceStatus": "OFFEN",
+    "previousControllerVersion": "1.0.0",
+    "previousLiveStatus": "FEHLER",
+    "previousLiveBlocker": "PR20_7_ACQUISITION_SHADOW_OFFHAND_CLASS_DRIFT",
+    "previousLiveTerminal": true,
+    "previousLiveGameplayWrites": 0,
+    "previousLivePublicFunctionCalls": 0,
+    "previousLiveRawWriteCalls": 0,
+    "previousLiveDurableIntentCreated": false,
+    "previousLiveSameIntentRetry": false,
+    "previousLiveRatified": false,
+    "classRuleShape": "OBJECT_KEYS"
   }
 }
