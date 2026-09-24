@@ -4,7 +4,7 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write",
   "controllerVersion": "1.0.1",
-  "status": "CORRECTIVE_1_0_1_MANIFEST_CUTOVER_BEREIT_FUER_REALEN_DURABLE_SHADOW_NO_WRITE",
+  "status": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
   "purpose": "DURABLE_SHADOW_NO_WRITE_FOR_EXACT_WSHIELD_PURCHASE",
   "prerequisites": {
     "readOnlyEvidenceStatus": "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE",
@@ -102,5 +102,32 @@
     "v100UsedArrayShape": true,
     "v101UsesObjectKeys": true,
     "safetyScopeUnchanged": true
+  },
+  "realEvidence": {
+    "ratified": true,
+    "manifestMainCommit": "f96bb24402b3f0b274aa9d5b31dd370ff099eed0",
+    "observedAtMs": 1790243742400,
+    "result": "BESTANDEN",
+    "phase": "COMPLETE",
+    "controllerVersion": "1.0.1",
+    "bridgeState": "DEPLOYED",
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "purchaseAuthority": false,
+    "durableIntentCreatedShadowOnly": true,
+    "durableReadback": true,
+    "sendBoundaryState": "NICHT_GESENDET",
+    "journalTerminalArt": "ABBRUCH",
+    "reconciliationClassification": "NOT_APPLIED",
+    "stableDoubleObservation": true,
+    "stablePostIntentReobserve": true,
+    "goldBudgetReservationSatisfied": true,
+    "exactGoldReservation": 4800,
+    "minimumGoldSafetyReserve": 1000,
+    "vendorReachableNow": true,
+    "nearestVendorDistance": 88.59875647515783,
+    "sellDistance": 400,
+    "nextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION"
   }
 }

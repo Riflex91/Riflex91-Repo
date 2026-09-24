@@ -24,9 +24,9 @@ const runner = fs.readFileSync(
 );
 
 test("PR20.7 acquisition shadow package is exact, immutable and merchant-only", () => {
-  assert.equal(contract.status, "DURABLE_SHADOW_CORRECTIVE_1_0_1_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+  assert.equal(contract.status, "DURABLE_SHADOW_BESTANDEN_PRODUCTIVE_PURCHASE_PREPARATION_BEREIT_NO_PURCHASE_AUTHORITY");
   assert.equal(contract.blockingGate, "PR20.7_GEAR");
-  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE_V1_0_1");
+  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION");
 
   const shadow = contract.shadowPreparation;
   assert.equal(shadow.foundation, "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts");
@@ -40,7 +40,7 @@ test("PR20.7 acquisition shadow package is exact, immutable and merchant-only", 
 
   assert.equal(plan.testId, shadow.testId);
   assert.equal(plan.controllerVersion, shadow.controllerVersion);
-  assert.equal(plan.status, "CORRECTIVE_1_0_1_MANIFEST_CUTOVER_BEREIT_FUER_REALEN_DURABLE_SHADOW_NO_WRITE");
+  assert.equal(plan.status, "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE");
   assert.equal(plan.deployment.sourceCommit, shadow.sourceCommit);
   assert.equal(plan.deployment.packagePath, shadow.package);
   assert.equal(plan.deployment.packageSha256, shadow.packageSha256);
@@ -122,31 +122,45 @@ test("PR20.7 acquisition shadow binds exact gold budget, resource fencing and on
   assert.equal(plan.safetyModel.sameIntentRetry, false);
 });
 
-test("PR20.7 acquisition shadow evidence remains pending and authority remains closed", () => {
-  assert.equal(evidence.status, "OFFEN");
+test("PR20.7 acquisition shadow live evidence is ratified and authority remains closed", () => {
+  assert.equal(evidence.status, "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE");
   assert.equal(evidence.testId, plan.testId);
   assert.equal(evidence.controllerVersion, plan.controllerVersion);
   assert.equal(evidence.sourceCommit, plan.deployment.sourceCommit);
   assert.equal(evidence.packagePath, plan.deployment.packagePath);
   assert.equal(evidence.packageSha256, plan.deployment.packageSha256);
-  assert.equal(evidence.manifestMainCommit, null);
-  assert.equal(evidence.observedAtMs, null);
-  assert.equal(evidence.terminal, null);
-  assert.equal(evidence.result, null);
-  assert.equal(evidence.ratified, false);
-  assert.deepEqual(evidence.blocker, [
-    "REAL_WSHIELD_ACQUISITION_DURABLE_SHADOW_V1_0_1_NOCH_NICHT_AUSGEFUEHRT",
+  assert.equal(evidence.manifestMainCommit, "f96bb24402b3f0b274aa9d5b31dd370ff099eed0");
+  assert.equal(evidence.observedAtMs, 1790243742400);
+  assert.equal(evidence.terminal, true);
+  assert.equal(evidence.ratified, true);
+  assert.deepEqual(evidence.blocker, []);
+  assert.equal(evidence.nextGate,
+    "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION");
+  assert.equal(evidence.result.status, "BESTANDEN");
+  assert.equal(evidence.result.phase, "COMPLETE");
+  assert.equal(evidence.result.version, "1.0.1");
+  assert.equal(evidence.result.recipient.characterName, "My_Merchant");
+  assert.equal(evidence.result.recipient.serverRegion, "EU");
+  assert.equal(evidence.result.recipient.serverIdentifier, "I");
+  assert.equal(evidence.result.acquisition.observedGold, 14493644);
+  assert.equal(evidence.result.acquisition.safetyReserve, 1000);
+  assert.equal(evidence.result.acquisition.vendorReachableNow, true);
+  assert.equal(evidence.result.acquisition.nearestVendorDistance, 88.59875647515783);
+  assert.equal(evidence.result.acquisition.sellDistance, 400);
+  assert.equal(evidence.result.shadowIntent.goldBudgetLedger.reservationAmount, 4800);
+  assert.equal(evidence.result.shadowIntent.goldBudgetLedger.reservationSatisfied, true);
+  assert.equal(evidence.result.shadowIntent.durableReadback, true);
+  assert.equal(evidence.result.shadowIntent.sendBoundaryState, "NICHT_GESENDET");
+  assert.equal(evidence.result.shadowIntent.journalTerminalArt, "ABBRUCH");
+  assert.equal(evidence.result.shadowIntent.reconciliationClassification, "NOT_APPLIED");
+  assert.equal(evidence.result.shadowIntent.oneShot.purchaseAuthorityIssued, false);
+  assert.equal(evidence.result.stableDoubleObservation, true);
+  assert.equal(evidence.result.stablePostIntentReobserve, true);
+  assert.equal(evidence.previousAttempt.status, "FEHLER");
+  assert.equal(evidence.previousAttempt.ratified, false);
+  assert.deepEqual(evidence.previousAttempt.blocker, [
+    "PR20_7_ACQUISITION_SHADOW_OFFHAND_CLASS_DRIFT",
   ]);
-  assert.equal(evidence.expectedSafetyBoundary.gameplayWrites, 0);
-  assert.equal(evidence.expectedSafetyBoundary.publicFunctionCalls, 0);
-  assert.equal(evidence.expectedSafetyBoundary.rawWriteCalls, 0);
-  assert.equal(evidence.expectedSafetyBoundary.authorityIssued, false);
-  assert.equal(evidence.expectedSafetyBoundary.purchaseAuthority, false);
-  assert.equal(evidence.expectedSafetyBoundary.durableIntentCreatedShadowOnly, true);
-  assert.equal(evidence.expectedSafetyBoundary.sendBoundaryState, "NICHT_GESENDET");
-  assert.equal(evidence.expectedSafetyBoundary.journalTerminalArt, "ABBRUCH");
-  assert.equal(evidence.expectedSafetyBoundary.sameIntentRetry, false);
-  assert.equal(evidence.expectedSafetyBoundary.normalRuntimeAllowed, false);
 
   for (const [key, expected] of Object.entries({
     gameplayWrites: 0,
@@ -159,8 +173,23 @@ test("PR20.7 acquisition shadow evidence remains pending and authority remains c
     purchaseAuthority: false,
     gameplayAuthority: false,
     rawWriteAuthority: false,
+    durableIntentCreated: false,
+    durableIntentCreatedShadowOnly: true,
+    sameIntentRetry: false,
     normalRuntimeAllowed: false,
-  })) assert.equal(plan.safetyBoundary[key], expected, key);
+  })) assert.equal(evidence.observedSafetyBoundary[key], expected, key);
+
+  assert.equal(plan.realEvidence.ratified, true);
+  assert.equal(plan.realEvidence.result, "BESTANDEN");
+  assert.equal(plan.realEvidence.observedAtMs, 1790243742400);
+  assert.equal(plan.realEvidence.goldBudgetReservationSatisfied, true);
+  assert.equal(plan.realEvidence.nextGate,
+    "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION");
+  assert.equal(contract.shadowPreparation.evidenceStatus,
+    "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE");
+  assert.equal(contract.shadowPreparation.realEvidenceRatified, true);
+  assert.equal(contract.shadowPreparation.realEvidencePurchaseAuthority, false);
+  assert.equal(contract.shadowPreparation.productivePurchasePreparationAuthorized, false);
 });
 
 test("PR20.7 acquisition shadow contains no mutation adapter and never reuses PR20.3 live harness", () => {
