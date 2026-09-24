@@ -683,7 +683,7 @@
     "upgradeDurableShadow": {
       "status": "PACKAGE_BEREIT_NO_WRITE",
       "testId": "pr20-8-upgrade-durable-shadow-no-write",
-      "controllerVersion": "1.0.0",
+      "controllerVersion": "1.0.1",
       "package": "werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
       "test": "werkzeuge/tests/pr20-8-upgrade-durable-shadow-no-write.test.mjs",
       "contract": "grundlage/vertraege/runtime/pr20-8-upgrade-durable-shadow-preparation.json",
@@ -731,7 +731,12 @@
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
       "manifestCutoverPrepared": true,
       "handshakeMirrorsLocalAndGameRoot": true,
-      "handshakeFixCommit": "72a0a2c65fff19327d3137356c9e079bf5117203"
+      "handshakeFixCommit": "72a0a2c65fff19327d3137356c9e079bf5117203",
+      "exactTerminalIntentRecoveryAllowed": true,
+      "recoveryRequiresExactPersistedIntent": true,
+      "recoveryRewritesIntent": false,
+      "recoveryCreatesGameplayWrite": false,
+      "previousControllerVersionRecoverable": "1.0.0"
     }
   },
   "pr20_9": {
