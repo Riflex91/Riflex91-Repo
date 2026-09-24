@@ -19,7 +19,12 @@ function storage() {
   };
 }
 
-async function runScenario({ current, packageBody = null, controllerVersion = "1.0.0" }) {
+async function runScenario({
+  current,
+  packageBody = null,
+  controllerVersion = "1.0.0",
+  manifestOverrides = {}
+}) {
   const calls = { fetch: [], upload: [], load: [] };
   const manifest = {
     schemaVersion: 1,
@@ -38,7 +43,8 @@ async function runScenario({ current, packageBody = null, controllerVersion = "1
       : "26acb41bb17ff1da0719b0a4604621a5fa4bcd87f5e78b3cc647bf112a25753b",
     maxPackageBytes: 131072,
     expectedGlobal: "V5PR206MluckTest",
-    normalRuntimeAllowed: false
+    normalRuntimeAllowed: false,
+    ...manifestOverrides
   };
 
   const sandbox = {
@@ -110,7 +116,7 @@ async function runScenario({ current, packageBody = null, controllerVersion = "1
 }
 
 test("native updater is Cloudflare-only, merchant-only and exposes no generic evaluator", () => {
-  assert.ok(source.includes("const VERSION = '1.0.6'"));
+  assert.ok(source.includes("const VERSION = '1.0.7'"));
   assert.ok(source.includes("https://aio-bot-dashboard.hansijuergenlul.workers.dev"));
   assert.ok(source.includes("coordinatorClass !== 'merchant'"));
   assert.ok(source.includes("upload_code"));
@@ -159,6 +165,134 @@ test("legacy PR20.6 v1.0.0 roster wait upgrades safely to manifest v1.0.1", asyn
   assert.equal(calls.fetch.length, 2);
   assert.equal(calls.upload.length, 1);
   assert.equal(calls.load.length, 1);
+});
+
+test("terminal PR20.8 v1.0.0 exact zero-write duplicate blocker upgrades safely to v1.0.1", async () => {
+  const packageBody = "(() => { globalThis.V5PR208UpgradeProductiveOneWriteLive={version:'1.0.1'}; })();\n// pr20-8-upgrade-productive-one-write-live";
+  const { calls } = await runScenario({
+    controllerVersion: "1.0.1",
+    manifestOverrides: {
+      gate: "PR20.8_WERTMUTATIONEN",
+      testId: "pr20-8-upgrade-productive-one-write-live",
+      packagePath: "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js",
+      expectedGlobal: "V5PR208UpgradeProductiveOneWriteLive"
+    },
+    current: {
+      testId: "pr20-8-upgrade-productive-one-write-live",
+      version: "1.0.0",
+      status: "FEHLER",
+      phase: "ERROR",
+      terminal: true,
+      blocker: ["PR20_8_UPGRADE_LIVE_DUPLIKAT_INSTANZ_AKTIV"],
+      gameplayWrites: 0,
+      publicFunctionCalls: 0,
+      rawWriteCalls: 0,
+      sameIntentRetry: false,
+      intents: [],
+      authority: {
+        authorityIssued: false,
+        authorityConsumed: false,
+        durableIntentCreated: false,
+        upgradeAuthority: false,
+        gameplayAuthority: false,
+        rawWriteAuthority: false,
+        normalUpgradeWriteRatification: false
+      }
+    },
+    packageBody
+  });
+  assert.equal(calls.fetch.length, 2);
+  assert.equal(calls.upload.length, 1);
+  assert.equal(calls.load.length, 1);
+});
+
+test("terminal PR20.8 v1.0.1 exact zero-write duplicate blocker upgrades safely to v1.0.2", async () => {
+  const packageBody = "(() => { globalThis.V5PR208UpgradeProductiveOneWriteLive={version:'1.0.2'}; })();\n// pr20-8-upgrade-productive-one-write-live";
+  const { calls } = await runScenario({
+    controllerVersion: "1.0.2",
+    manifestOverrides: {
+      gate: "PR20.8_WERTMUTATIONEN",
+      testId: "pr20-8-upgrade-productive-one-write-live",
+      packagePath: "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js",
+      expectedGlobal: "V5PR208UpgradeProductiveOneWriteLive"
+    },
+    current: {
+      testId: "pr20-8-upgrade-productive-one-write-live",
+      version: "1.0.1",
+      status: "FEHLER",
+      phase: "ERROR",
+      terminal: true,
+      blocker: ["PR20_8_UPGRADE_LIVE_DUPLIKAT_INSTANZ_AKTIV"],
+      gameplayWrites: 0,
+      publicFunctionCalls: 0,
+      rawWriteCalls: 0,
+      sameIntentRetry: false,
+      intents: [],
+      authority: {
+        authorityIssued: false,
+        authorityConsumed: false,
+        durableIntentCreated: false,
+        upgradeAuthority: false,
+        gameplayAuthority: false,
+        rawWriteAuthority: false,
+        normalUpgradeWriteRatification: false
+      }
+    },
+    packageBody
+  });
+  assert.equal(calls.fetch.length, 2);
+  assert.equal(calls.upload.length, 1);
+  assert.equal(calls.load.length, 1);
+});
+
+test("PR20.8 same-test recovery remains blocked when exact zero-write fingerprint is absent", async () => {
+  const base = {
+    testId: "pr20-8-upgrade-productive-one-write-live",
+    version: "1.0.1",
+    status: "FEHLER",
+    phase: "ERROR",
+    terminal: true,
+    blocker: ["PR20_8_UPGRADE_LIVE_DUPLIKAT_INSTANZ_AKTIV"],
+    gameplayWrites: 0,
+    publicFunctionCalls: 0,
+    rawWriteCalls: 0,
+    sameIntentRetry: false,
+    intents: [],
+    authority: {
+      authorityIssued: false,
+      authorityConsumed: false,
+      durableIntentCreated: false,
+      upgradeAuthority: false,
+      gameplayAuthority: false,
+      rawWriteAuthority: false,
+      normalUpgradeWriteRatification: false
+    }
+  };
+  const variants = [
+    { ...base, publicFunctionCalls: 1 },
+    { ...base, blocker: ["OTHER_BLOCKER"] },
+    { ...base, authority: { ...base.authority, authorityIssued: true } },
+    { ...base, intents: [{ transactionId: "existing" }] }
+  ];
+  for (const current of variants) {
+    const { calls, sandbox } = await runScenario({
+      controllerVersion: "1.0.2",
+      manifestOverrides: {
+        gate: "PR20.8_WERTMUTATIONEN",
+        testId: "pr20-8-upgrade-productive-one-write-live",
+        packagePath: "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js",
+        expectedGlobal: "V5PR208UpgradeProductiveOneWriteLive"
+      },
+      current
+    });
+    assert.equal(calls.fetch.length, 1);
+    assert.equal(calls.upload.length, 0);
+    assert.equal(calls.load.length, 0);
+    assert.equal(
+      sandbox.V5AutonomousTestIngameUpdater.status().phase,
+      "SAME_TEST_VERSION_MISMATCH_BLOCKED"
+    );
+  }
 });
 
 test("same-test version mismatch blocks if any gameplay authority may have been used", async () => {
