@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_2_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+  "status": "WEAPON_OFFHAND_ACQUISITION_READ_ONLY_BESTANDEN_DURABLE_SHADOW_NEXT",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -344,7 +344,7 @@
     "acquisitionSourceCommit": "0228da63fe01e8717ef7aebb85af24bb3b35478b",
     "acquisitionPackageSha256": "1931312bfe6b15a2dd0764e774c52c84e6db09c376ee3fd33205b20cc5c9938c",
     "acquisitionManifestCutoverPrepared": true,
-    "acquisitionEvidenceStatus": "V1_0_1_BLOCKED_SELL_DIST_UNOBSERVABLE_V1_0_2_OFFEN",
+    "acquisitionEvidenceStatus": "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE",
     "acquisitionGameplayWrites": 0,
     "acquisitionPublicFunctionCalls": 0,
     "acquisitionRawWriteCalls": 0,
@@ -366,6 +366,15 @@
     "acquisitionExpectedServerRegion": "EU",
     "acquisitionExpectedServerIdentifier": "I",
     "acquisitionOfficialServerSourceCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
-    "acquisitionOfficialServerBlobSha": "40d0aeda16b9a4320441e833020fe1b4db496e2c"
+    "acquisitionOfficialServerBlobSha": "40d0aeda16b9a4320441e833020fe1b4db496e2c",
+    "acquisitionEvidenceRatified": true,
+    "acquisitionEvidenceObservedAtMs": 1790238192422,
+    "acquisitionEvidenceManifestMainCommit": "5a45b09c1ce7e439d80ada368980fc288fd76d35",
+    "acquisitionObservedVendorDistance": 88.59875647515783,
+    "acquisitionObservedSellDistance": 400,
+    "acquisitionObservedSellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
+    "acquisitionObservedGold": 14493644,
+    "acquisitionObservedFreeInventorySlots": 21,
+    "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE"
   }
 }
