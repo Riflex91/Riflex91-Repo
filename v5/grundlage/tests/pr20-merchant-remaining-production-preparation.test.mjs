@@ -524,8 +524,6 @@ test("PR20.8 Durable One-Shot Foundations bleiben family-separat und NO-WRITE", 
 });
 
 test("PR20.8 Read-only Preflights bleiben authority-frei und family-spezifisch", () => {
-  assert.equal(prep.pr20_8.status, "READ_ONLY_PREFLIGHTS_BEREIT_NO_WRITE");
-  assert.equal(prep.pr20_8.nextAction, "PR20_8_LIVE_CANDIDATE_SELECTION");
   const ro = prep.pr20_8.readOnlyPreflights;
   assert.equal(ro.status, "BEREIT_NO_WRITE");
   assert.deepEqual(ro.families, ["UPGRADE", "COMPOUND", "EXCHANGE"]);
@@ -543,6 +541,32 @@ test("PR20.8 Read-only Preflights bleiben authority-frei und family-spezifisch",
   assert.equal(ro.liveAdapterPresent, false);
   assert.equal(ro.liveRunnerPresent, false);
   assert.equal(ro.normalRuntimeAllowed, false);
+});
+
+test("PR20.8 Live-Candidate-Discovery-Paket bleibt strikt NO-WRITE", () => {
+  assert.equal(prep.pr20_8.status, "LIVE_CANDIDATE_PACKAGE_BEREIT_NO_WRITE");
+  assert.equal(prep.pr20_8.nextAction, "PR20_8_LIVE_CANDIDATE_MANIFEST_CUTOVER");
+  const live = prep.pr20_8.liveCandidateDiscovery;
+  assert.equal(live.status, "PACKAGE_BEREIT_NO_WRITE");
+  assert.equal(live.testId, "pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(live.controllerVersion, "1.0.0");
+  assert.equal(live.exactCharacter, "My_Merchant");
+  assert.equal(live.exactCharacterClass, "merchant");
+  assert.equal(live.exactServer, "EU:I");
+  assert.equal(live.qMustBeEmpty, true);
+  assert.equal(live.atLeastOneNormalCandidateRequired, true);
+  assert.deepEqual(live.families, ["UPGRADE", "COMPOUND", "EXCHANGE"]);
+  assert.equal(live.specialPathsExcluded, true);
+  assert.equal(live.candidateAuthority, false);
+  assert.equal(live.authorityIssued, false);
+  assert.equal(live.durableIntentCreated, false);
+  assert.equal(live.gameplayAuthority, false);
+  assert.equal(live.rawWriteAuthority, false);
+  assert.equal(live.gameplayWrites, 0);
+  assert.equal(live.publicFunctionCalls, 0);
+  assert.equal(live.rawWriteCalls, 0);
+  assert.equal(live.sameIntentRetry, false);
+  assert.equal(live.normalRuntimeAllowed, false);
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
