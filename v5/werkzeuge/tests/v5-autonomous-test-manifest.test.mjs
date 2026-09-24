@@ -6,6 +6,11 @@ import { execFileSync } from "node:child_process";
 
 const manifest = JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest.json", "utf8"));
 const allowedPackages = Object.freeze({
+  "pr20-8-wertmutation-live-candidate-readonly": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js",
+    expectedGlobal: "V5PR208ValueMutationLiveCandidateReadonly",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-6-mluck-autonomous-live-5m": Object.freeze({
     path: "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
     expectedGlobal: "V5PR206MluckTest",
@@ -549,3 +554,42 @@ test("PR20.7 offhand acquisition durable shadow manifest is exact no-send prepar
     "api_call(", "socket.emit(", ".socket.emit(", "/disconnect "
   ]) assert.equal(packageSource.includes(marker), false, marker);
 });
+
+test("PR20.8 candidate discovery manifest is exact read-only and special-path closed", () => {
+  if (manifest.testId !== "pr20-8-wertmutation-live-candidate-readonly") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit, "7307573841b86b1fb22fd5abfb73a3d461bf0049");
+  assert.equal(manifest.packagePath,
+    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js");
+  assert.equal(manifest.packageSha256,
+    "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5");
+  assert.equal(manifest.expectedGlobal,
+    "V5PR208ValueMutationLiveCandidateReadonly");
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.equal("workerPackageSha256" in manifest, false);
+  assert.equal("workerExpectedGlobal" in manifest, false);
+  assert.equal("workerTargets" in manifest, false);
+  assert.ok(packageSource.includes("EXPECTED_CHARACTER = 'My_Merchant'"));
+  assert.ok(packageSource.includes("EXPECTED_SERVER_REGION = 'EU'"));
+  assert.ok(packageSource.includes("EXPECTED_SERVER_IDENTIFIER = 'I'"));
+  assert.ok(packageSource.includes("MAX_UPGRADE_BASE_GOLD = 10000"));
+  assert.ok(packageSource.includes("MAX_COMPOUND_BASE_GOLD = 30000"));
+  assert.ok(packageSource.includes("MAX_EXCHANGE_BASE_GOLD = 50000"));
+  assert.ok(packageSource.includes("SPECIAL_EXCHANGE_NAMES"));
+  assert.ok(packageSource.includes("massExchangeAllowed:false"));
+  assert.ok(packageSource.includes("recursiveDropAuthority:false"));
+  assert.ok(packageSource.includes("specialMultiOutputAuthority:false"));
+  assert.ok(packageSource.includes("gameplayWrites: 0"));
+  assert.ok(packageSource.includes("publicFunctionCalls: 0"));
+  assert.ok(packageSource.includes("rawWriteCalls: 0"));
+  assert.ok(packageSource.includes("sameIntentRetry: false"));
+  assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
+  for (const marker of [
+    "upgrade(", "compound(", "exchange(", "buy(", "buy_with_gold(",
+    "equip(", "unequip(", "sell(", "bank_retrieve(", "bank_store(",
+    "send_item(", "send_gold(", "use_skill(", "start_character(",
+    "command_character(", "api_call(", "socket.emit(", ".socket.emit("
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
+
