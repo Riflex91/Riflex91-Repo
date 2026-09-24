@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_LIVE_CANDIDATE_READONLY_PACKAGE",
+  "status": "PACKAGE_BEREIT_NO_WRITE",
+  "testId": "pr20-8-wertmutation-live-candidate-readonly",
+  "controllerVersion": "1.0.0",
+  "exactRuntimeBinding": {
+    "characterName": "My_Merchant",
+    "characterClass": "merchant",
+    "serverRegion": "EU",
+    "serverIdentifier": "I",
+    "sessionRequired": true,
+    "qMustBeEmpty": true,
+    "movingMustBeFalse": true,
+    "targetMustBeEmpty": true,
+    "alternativeRuntimeMustBeInactive": true,
+    "performanceTrickRequired": true
+  },
+  "families": {
+    "UPGRADE": {
+      "normalPathOnly": true,
+      "maxBaseGold": 10000,
+      "maxLevel": 1,
+      "maximumScrollGrade": 2,
+      "offeringAllowed": false,
+      "lockedBlockedSpecialItemsAllowed": false,
+      "exactPhysicalIndexMustBeReresolvedBeforeSend": true
+    },
+    "COMPOUND": {
+      "normalPathOnly": true,
+      "exactEqualPhysicalInputs": 3,
+      "maxBaseGold": 30000,
+      "maxLevel": 1,
+      "maximumScrollGrade": 2,
+      "offeringAllowed": false,
+      "lockedBlockedSpecialItemsAllowed": false,
+      "exactPhysicalIndexesMustBeReresolvedBeforeSend": true
+    },
+    "EXCHANGE": {
+      "normalPathOnly": true,
+      "maxBaseGold": 50000,
+      "specialMultiOutputAllowed": false,
+      "massExchangeAllowed": false,
+      "recursiveDropAuthority": false,
+      "eventExclusiveSpecialItemsAllowed": false,
+      "fullRewardDomainReconciliationRequired": true,
+      "promiseRewardOnlySupportingEvidence": true,
+      "exactPhysicalIndexMustBeReresolvedBeforeSend": true
+    }
+  },
+  "discoverySemantics": {
+    "atLeastOneNormalCandidateRequiredForTopLevelSuccess": true,
+    "familyMayReportNoCandidateWithoutInventingWrite": true,
+    "freshInventoryMaterialCaptured": true,
+    "freshQMaterialCaptured": true,
+    "candidatesAreObservationOnly": true,
+    "candidatesDoNotCarryAuthority": true
+  },
+  "authorityBoundary": {
+    "authorityIssued": false,
+    "durableIntentCreated": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "upgradeAuthority": false,
+    "compoundAuthority": false,
+    "exchangeAuthority": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "artifacts": [
+    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js",
+    "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly.test.mjs"
+  ],
+  "nextGate": "PR20_8_LIVE_CANDIDATE_MANIFEST_CUTOVER"
+}
