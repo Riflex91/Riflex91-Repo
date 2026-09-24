@@ -15,7 +15,7 @@ test("PR20.8 real browser Upgrade durable shadow is terminal BESTANDEN and no-wr
   assert.equal(evidence.telemetryBatchId,8244);
   assert.equal(evidence.supportingTelemetryBatchId,8243);
   assert.equal(evidence.testId,"pr20-8-upgrade-durable-shadow-no-write");
-  assert.equal(evidence.observedControllerVersion,"1.0.0");
+  assert.equal(evidence.observedControllerVersion,"1.0.1");
   assert.equal(evidence.observedPackageSourceCommit,
     "72a0a2c65fff19327d3137356c9e079bf5117203");
   assert.equal(evidence.observedPackageSha256,
@@ -92,10 +92,10 @@ test("current recovery hardening evidence stays immutable while the manifest adv
   assert.equal(evidence.safetyBoundary.currentRecoveryPackageMayOnlyRecoverExactTerminalNoWriteIntent,true);
   assert.equal(evidence.safetyBoundary.recoveryMayNotRewriteIntent,true);
   assert.equal(evidence.safetyBoundary.recoveryMayNotCreateGameplayWrite,true);
-  assert.equal(manifest.testId,"pr20-8-compound-productive-one-write-live");
-  assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,"31edc5c7ce29bb64086be211b703f4f18dd3772b");
-  assert.equal(manifest.packageSha256,"c57c6cc38618392f1f26b7c91e0ea10163a8f8bfc33063eaea2785e39b56100c");
+  assert.equal(manifest.testId,"pr20-8-bridge-handshake-probe-v1");
+  assert.equal(manifest.controllerVersion,"1.0.1");
+  assert.equal(manifest.sourceCommit,"fe38f784d9d8bfeac3d9b30874a453716bd9e3bc");
+  assert.equal(manifest.packageSha256,"08d21dde622ed1cf2dd56438225e4274478263908363a5692bcb6c548b58303b");
   assert.notEqual(manifest.testId,evidence.testId);
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
