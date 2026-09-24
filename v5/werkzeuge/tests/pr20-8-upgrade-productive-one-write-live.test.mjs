@@ -78,6 +78,7 @@ function sandbox({
     server_identifier:"I",
     entities:{},
     B:{sell_dist:400},
+    S:{ugrace:{ms:0}},
     G:{
       items:{
         gloves:{type:"gloves",upgrade:true,scroll:true,g:3400},
@@ -99,6 +100,14 @@ function sandbox({
       moving:false,
       target:null,
       q:clone(q),
+      s:{
+        massproduction:{ms:0},
+        massproductionpp:{ms:0},
+      },
+      p:{
+        ugrace:{ms:0},
+        ograce:null,
+      },
       items:clone(items),
     },
     sounds:{
@@ -133,6 +142,14 @@ function sandbox({
     box.character.q.upgrade={ms:1000,num:itemIndex};
     box.character.items[itemIndex]={name:"placeholder"};
     box.character.items[scrollIndex].q -= 1;
+
+    if(mode==="hungPromise") {
+      box.setTimeout(() => {
+        delete box.character.q.upgrade;
+        box.character.items[itemIndex]={name:"gloves",level:1};
+      },1000);
+      return new Promise(() => {});
+    }
 
     if(mode==="pending") return {in_progress:true};
 
@@ -214,6 +231,18 @@ test("PR20.8 Upgrade one-write runner persists admission before exactly one succ
   assert.equal(beforeSend.authority.uses,1);
   assert.equal(beforeSend.authority.consumed,true);
   assert.equal(beforeSend.authority.revoked,false);
+  assert.match(
+    beforeSend.intent.fingerprints.upgradeEffectsFingerprintSha256,
+    /^[a-f0-9]{64}$/,
+  );
+  assert.equal(
+    beforeSend.authority.binding.upgradeEffectsFingerprintSha256,
+    beforeSend.intent.fingerprints.upgradeEffectsFingerprintSha256,
+  );
+  assert.equal(
+    beforeSend.authority.binding.runnerInstanceId,
+    beforeSend.intent.runnerInstanceId,
+  );
 
   const intents=intentRows(env.storage);
   assert.equal(intents.length,1);
@@ -292,6 +321,68 @@ test("PR20.8 Upgrade one-write runner restart reconciles terminal outcome withou
   assert.equal(authorityRows(shared).length,1);
 });
 
+test("PR20.8 Upgrade one-write runner reconciles after a bounded public-function promise timeout", async () => {
+  const env=sandbox({mode:"hungPromise"});
+  const status=await execute(env);
+  assert.equal(status.status,"BESTANDEN");
+  assert.equal(status.terminal,true);
+  assert.equal(env.upgradeCalls(),1);
+  assert.equal(status.gameplayWrites,1);
+  assert.equal(status.publicFunctionCalls,1);
+  assert.equal(status.evidence.promiseTimedOut,true);
+  assert.equal(
+    status.evidence.promiseError,
+    "PUBLIC_FUNCTION_PROMISE_TIMEOUT",
+  );
+  assert.equal(
+    status.evidence.reconciliation.classification,
+    "COMMITTED_SUCCESS",
+  );
+});
+
+test("PR20.8 Upgrade one-write runner rejects giveaway and listed targets before any send", async () => {
+  const items=baseItems();
+  items[6].giveaway=true;
+  items[13].list=true;
+  const env=sandbox({items});
+  const status=await execute(env);
+  assert.equal(status.status,"FEHLER");
+  assert.equal(status.terminal,true);
+  assert.equal(env.upgradeCalls(),0);
+  assert.equal(status.gameplayWrites,0);
+  assert.equal(status.publicFunctionCalls,0);
+  assert.match(status.blocker[0],/KANDIDAT_FEHLT/);
+});
+
+test("PR20.8 Duplicate package instances on one runtime cannot both send", async () => {
+  const env=sandbox({mode:"success"});
+  vm.createContext(env.box);
+
+  vm.runInContext(source,env.box,{
+    filename:"pr20-8-upgrade-productive-one-write-live.first.js",
+  });
+  const firstApi=env.box.V5PR208UpgradeProductiveOneWriteLive;
+
+  vm.runInContext(source,env.box,{
+    filename:"pr20-8-upgrade-productive-one-write-live.second.js",
+  });
+  const secondApi=env.box.V5PR208UpgradeProductiveOneWriteLive;
+
+  secondApi.start();
+  for(let i=0;i<6000;i+=1) {
+    await new Promise(resolve=>setImmediate(resolve));
+    if(firstApi.status().terminal===true && secondApi.status().terminal===true) break;
+  }
+
+  assert.equal(env.upgradeCalls(),1);
+  const statuses=[firstApi.status(),secondApi.status()];
+  assert.ok(statuses.some(s => s.status==="BESTANDEN"));
+  assert.ok(statuses.some(s =>
+    s.status==="FEHLER"
+    && s.blocker.some(b => /DUPLIKAT_INSTANZ_AKTIV/.test(b))
+  ));
+});
+
 test("PR20.8 Upgrade one-write runner keeps unresolved accepted mutation in recovery and never sends twice", async () => {
   const env=sandbox({mode:"pending"});
   const status=await execute(env,{terminal:false});
@@ -311,8 +402,14 @@ test("PR20.8 Upgrade one-write package exposes exact safety markers and no raw s
   for(const marker of [
     'const TEST_ID = "pr20-8-upgrade-productive-one-write-live"',
     'const AUTHORITY_TTL_MS = 1500',
+    'const PUBLIC_FUNCTION_PROMISE_TIMEOUT_MS = 2000',
     'const RATIFIED_SHADOW_EVIDENCE_BATCH = 8244',
     '"Pr208UpgradeOneShotAuthority"',
+    'function acquireRuntimeLease()',
+    'function assertFences(txId)',
+    'upgradeEffectsFingerprintSha256',
+    'item?.giveaway === true',
+    'item?.list === true',
     '"AL-ACTION-UPGRADE"',
     '"AL-RECOVERY-UPGRADE"',
     '"AL-VERIFIER-UPGRADE"',
