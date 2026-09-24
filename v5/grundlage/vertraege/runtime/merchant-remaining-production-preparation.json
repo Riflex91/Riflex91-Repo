@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_BESTANDEN_EQUIP_PREPARATION_BEREIT",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -194,7 +194,7 @@
       "weaponOffhandAutomaticUnequipAllowed": false,
       "weaponOffhandGameplayWrites": 0,
       "weaponOffhandRealReadOnlyEvidenceStatus": "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE",
-      "weaponOffhandProductiveEvidenceStatus": "OFFEN",
+      "weaponOffhandProductiveEvidenceStatus": "ACQUISITION_PURCHASE_BESTANDEN_EQUIP_OFFEN",
       "weaponOffhandReadOnlyAutonomousPackage": "werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js",
       "weaponOffhandReadOnlyTestPlan": "roadmap/pr20-7-weapon-offhand-read-only-preflight-test-plan.json",
       "weaponOffhandReadOnlyEvidence": "roadmap/pr20-7-weapon-offhand-read-only-preflight-evidence.json",
@@ -297,7 +297,7 @@
       "weaponOffhandAcquisitionObservedSellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
       "weaponOffhandAcquisitionObservedGold": 14493644,
       "weaponOffhandAcquisitionObservedFreeInventorySlots": 21,
-      "weaponOffhandAcquisitionNextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_5M_EXECUTE",
+      "weaponOffhandAcquisitionNextGate": "PR20_7_WEAPON_OFFHAND_PRODUCTIVE_EQUIP_PREPARATION",
       "weaponOffhandAcquisitionShadowFoundation": "grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
       "weaponOffhandAcquisitionShadowFoundationTest": "grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
       "weaponOffhandAcquisitionShadowPackage": "werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
@@ -396,7 +396,23 @@
       "weaponOffhandAcquisitionProductivePurchaseLiveSameIntentRetry": false,
       "weaponOffhandAcquisitionProductivePurchaseLiveRestartReconcileWithoutResend": true,
       "weaponOffhandAcquisitionProductivePurchaseLiveSoakMinimumSamples": 60,
-      "weaponOffhandAcquisitionProductivePurchaseLiveSoakMinimumDurationMs": 299000
+      "weaponOffhandAcquisitionProductivePurchaseLiveSoakMinimumDurationMs": 299000,
+      "weaponOffhandAcquisitionProductivePurchaseLiveEvidenceStatus": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
+      "weaponOffhandAcquisitionProductivePurchaseLiveEvidenceRatified": true,
+      "weaponOffhandAcquisitionProductivePurchaseLiveEvidenceManifestMainCommit": "8b23419ce8118600f00644ee5e1d678af198c0a5",
+      "weaponOffhandAcquisitionProductivePurchaseLiveEvidenceObservedAtMs": 1790247947961,
+      "weaponOffhandAcquisitionProductivePurchaseLiveObservedRecipient": "My_Merchant",
+      "weaponOffhandAcquisitionProductivePurchaseLiveObservedItem": "wshield",
+      "weaponOffhandAcquisitionProductivePurchaseLiveObservedGoldDelta": -4800,
+      "weaponOffhandAcquisitionProductivePurchaseLiveObservedItemDelta": 1,
+      "weaponOffhandAcquisitionProductivePurchaseLiveObservedReconciliation": "COMMITTED",
+      "weaponOffhandAcquisitionProductivePurchaseLiveObservedSettlement": "BESTAETIGT",
+      "weaponOffhandAcquisitionProductivePurchaseLiveObservedGameplayWrites": 1,
+      "weaponOffhandAcquisitionProductivePurchaseLiveObservedPublicFunctionCalls": 1,
+      "weaponOffhandAcquisitionProductivePurchaseLiveObservedRawWriteCalls": 0,
+      "weaponOffhandAcquisitionProductivePurchaseLiveObservedSameIntentRetry": false,
+      "weaponOffhandAcquisitionProductivePurchaseLiveObservedSoakSamples": 60,
+      "weaponOffhandAcquisitionProductivePurchaseLiveObservedSoakDurationMs": 300538
     }
   },
   "pr20_8": {

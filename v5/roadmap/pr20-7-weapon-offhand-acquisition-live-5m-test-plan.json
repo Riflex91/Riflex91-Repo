@@ -4,7 +4,7 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-live-5m",
   "controllerVersion": "1.0.0",
-  "status": "MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+  "status": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
   "scope": {
     "coordinatorClass": "merchant",
     "exactRecipientCharacter": "My_Merchant",
@@ -89,5 +89,23 @@
     "manifestCutoverPrepared": true
   },
   "evidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-live-5m-evidence.json",
-  "nextAfterPass": "PR20_7_WEAPON_OFFHAND_PRODUCTIVE_EQUIP_PREPARATION"
+  "nextAfterPass": "PR20_7_WEAPON_OFFHAND_PRODUCTIVE_EQUIP_PREPARATION",
+  "realEvidence": {
+    "ratified": true,
+    "manifestMainCommit": "8b23419ce8118600f00644ee5e1d678af198c0a5",
+    "observedAtMs": 1790247947961,
+    "reconciliation": "COMMITTED",
+    "settlement": "BESTAETIGT",
+    "goldDelta": -4800,
+    "itemQuantityDelta": 1,
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "durableIntentReadback": true,
+    "oneShotIssued": true,
+    "oneShotConsumed": true,
+    "soakSamples": 60,
+    "soakDurationMs": 300538
+  }
 }

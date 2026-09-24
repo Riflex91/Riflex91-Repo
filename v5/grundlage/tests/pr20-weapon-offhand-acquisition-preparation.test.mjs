@@ -34,7 +34,7 @@ const liveSource = fs.readFileSync(
 
 test("PR20.7 acquisition candidate is exact wshield Merchant offhand source", () => {
   assert.equal(contract.blockingGate, "PR20.7_GEAR");
-  assert.equal(contract.status, "PRODUCTIVE_PURCHASE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+  assert.equal(contract.status, "PRODUCTIVE_PURCHASE_BESTANDEN_EQUIP_PREPARATION_BEREIT");
   assert.equal(contract.rationale.procurementRequired, true);
   assert.equal(contract.rationale.farmerGearAllocationStillSeparate, true);
   assert.equal(contract.candidate.recipient, "My_Merchant");
@@ -151,7 +151,7 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.preflight.realObservedSellDistanceSource, "OFFICIAL_SERVER_SOURCE_PIN");
   assert.equal(contract.preflight.realObservedGold, 14493644);
   assert.equal(contract.preflight.realObservedFreeInventorySlots, 21);
-  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_5M_EXECUTE");
+  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_PRODUCTIVE_EQUIP_PREPARATION");
   assert.equal(contract.preflight.purchaseAuthority, false);
   assert.equal(contract.preflight.goldBudgetLedgerReservationRequired, true);
   assert.equal(contract.preflight.goldBudgetLedgerReservationSatisfied, false);
@@ -250,11 +250,11 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.purchasePreparation.broadPurchaseAuthority, false);
 });
 
-test("PR20.7 controlled wshield live package is pinned but manifest is still closed", () => {
+test("PR20.7 controlled wshield live package has ratified one-write evidence", () => {
   assert.equal(livePlan.testId,
     "pr20-7-gear-weapon-offhand-acquisition-live-5m");
   assert.equal(livePlan.controllerVersion, "1.0.0");
-  assert.equal(livePlan.status, "MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+  assert.equal(livePlan.status, "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
   assert.equal(livePlan.scope.exactRecipientCharacter, "My_Merchant");
   assert.equal(livePlan.scope.exactServer, "EU:I");
   assert.equal(livePlan.scope.exactItem, "wshield");
@@ -277,13 +277,36 @@ test("PR20.7 controlled wshield live package is pinned but manifest is still clo
   assert.equal(livePlan.deployment.packageSha256,
     "5cecc5a3ca36c2d75e4a6629c36991417b508e364a965c1a945a790aac8bd930");
   assert.equal(livePlan.deployment.manifestCutoverPrepared, true);
-  assert.equal(liveEvidence.status, "OFFEN");
-  assert.equal(liveEvidence.ratified, false);
-  assert.equal(liveEvidence.manifestMainCommit, null);
-  assert.equal(liveEvidence.observedAtMs, null);
-  assert.deepEqual(liveEvidence.blocker, [
-    "REAL_WSHIELD_ACQUISITION_LIVE_5M_NOCH_NICHT_AUSGEFUEHRT",
-  ]);
+  assert.equal(liveEvidence.status, "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
+  assert.equal(liveEvidence.ratified, true);
+  assert.equal(liveEvidence.manifestMainCommit, "8b23419ce8118600f00644ee5e1d678af198c0a5");
+  assert.equal(liveEvidence.observedAtMs, 1790247947961);
+  assert.equal(liveEvidence.terminal, true);
+  assert.deepEqual(liveEvidence.blocker, []);
+  assert.equal(liveEvidence.nextGate, "PR20_7_WEAPON_OFFHAND_PRODUCTIVE_EQUIP_PREPARATION");
+  assert.equal(liveEvidence.result.status, "BESTANDEN");
+  assert.equal(liveEvidence.result.reconciliation, "COMMITTED");
+  assert.equal(liveEvidence.result.settlement, "BESTAETIGT");
+  assert.equal(liveEvidence.result.prestate.gold, 14493644);
+  assert.equal(liveEvidence.result.poststate.gold, 14488844);
+  assert.equal(liveEvidence.result.poststate.goldDelta, -4800);
+  assert.equal(liveEvidence.result.poststate.itemQuantityDelta, 1);
+  assert.equal(liveEvidence.result.oneShotAuthority.issued, true);
+  assert.equal(liveEvidence.result.oneShotAuthority.consumed, true);
+  assert.equal(liveEvidence.result.durableIntentReadback, true);
+  assert.equal(liveEvidence.result.gameplayWrites, 1);
+  assert.equal(liveEvidence.result.publicFunctionCalls, 1);
+  assert.equal(liveEvidence.result.rawWriteCalls, 0);
+  assert.equal(liveEvidence.result.sameIntentRetry, false);
+  assert.equal(liveEvidence.result.soak.samples, 60);
+  assert.ok(liveEvidence.result.soak.durationMs >= 299000);
+  assert.equal(livePlan.realEvidence.ratified, true);
+  assert.equal(livePlan.realEvidence.reconciliation, "COMMITTED");
+  assert.equal(livePlan.realEvidence.settlement, "BESTAETIGT");
+  assert.equal(contract.livePurchase.realEvidenceRatified, true);
+  assert.equal(contract.livePurchase.realEvidenceStatus, "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
+  assert.equal(contract.livePurchase.broadPurchaseAuthority, false);
+  assert.equal(contract.livePurchase.rawWriteAuthority, false);
   assert.equal((liveSource.match(/r\.buy_with_gold\(/g) || []).length, 1);
   assert.equal(liveSource.includes("socket.emit("), false);
   assert.equal(liveSource.includes(".socket.emit("), false);
