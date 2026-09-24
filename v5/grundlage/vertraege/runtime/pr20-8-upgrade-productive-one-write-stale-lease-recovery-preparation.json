@@ -3,7 +3,7 @@
   "stand": "2026-09-24",
   "gate": "PR20.8_WERTMUTATIONEN",
   "kennung": "V5_PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_STALE_LEASE_RECOVERY",
-  "status": "PACKAGE_PATCH_BEREIT_NOT_DEPLOYED",
+  "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_EXECUTED",
   "incident": {
     "telemetryBatchId": 8250,
     "observedTestId": "pr20-8-upgrade-productive-one-write-live",
@@ -46,15 +46,18 @@
     "maximumPublicFunctionCalls": 1,
     "maximumRawWriteCalls": 0,
     "sameIntentRetry": false,
-    "normalRuntimeAllowed": false
+    "normalRuntimeAllowed": false,
+    "sourceCommit": "63820135c2c4ef1870a386692a6303aa2effae63",
+    "packageSha256": "d0a5909726d38df3d15954a3a4d5779a5f3419f1216469c45b1043bde9c1b8fc",
+    "packageBytes": 51238
   },
   "deploymentBoundary": {
-    "currentManifestStillPinsControllerVersion": "1.0.1",
-    "currentManifestPackage": "werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js",
+    "currentManifestStillPinsControllerVersion": "1.0.2",
+    "currentManifestPackage": "werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js",
     "preparedRecoveryPackage": "werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js",
-    "recoveryManifestCutoverPrepared": false,
+    "recoveryManifestCutoverPrepared": true,
     "recoveryPatchDeployed": false,
     "realUpgradeMutationObserved": false
   },
-  "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_STALE_LEASE_RECOVERY_MANIFEST_CUTOVER"
+  "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN_V1_0_2"
 }
