@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "EXCHANGE_SPECIALIZED_PLANNER_BEREIT_NO_WRITE",
+    "status": "DURABLE_ONE_SHOT_FOUNDATIONS_BEREIT_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -512,7 +512,10 @@
       "sameIntentErneutSenden=false",
       "NOT_APPLIED nur bei positiver Evidence fuer unveraenderte Inputs/Consumables/Conditions und ohne q/Placeholder",
       "ItemMutationsPlaner besitzt physische Identitaets-, Dispositions-, Workspace-, Wert- und Risikogrenzen fuer UPGRADE/COMPOUND",
-      "ExchangeProduktionsPlaner bindet exakte physische Inputidentitaet, gepinnten bounded Drop-Graph, konservativen Outputspace und alle Reward-Domaenen"
+      "ExchangeProduktionsPlaner bindet exakte physische Inputidentitaet, gepinnten bounded Drop-Graph, konservativen Outputspace und alle Reward-Domaenen",
+      "Upgrade/Compound/Exchange besitzen getrennte durable One-Shot-Authorities mit maxUses=1 und TTL<=1500ms",
+      "Shared Current-Fence blockiert konkurrierende Wertmutations-Authorities/Transaktionen ohne selbst Authority auszustellen",
+      "Durable Intent + exakter Journal-Readback sind vor Admission Pflicht; Admission endet NICHT_GESENDET"
     ],
     "erkannteRestluecken": [
       "jede Mutation benoetigt eigenes durables Produktionsjournal/Current-Fence/Preflight/One-Shot-Gate",
@@ -570,7 +573,37 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_DURABLE_ONE_SHOT_FOUNDATIONS"
+    "nextAction": "PR20_8_READ_ONLY_PREFLIGHTS",
+    "durableOneShotFoundations": {
+      "status": "BEREIT_NO_WRITE",
+      "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
+      "authoritySource": "grundlage/quelle/merchant/pr20-8-wertmutation-one-shot.ts",
+      "durableAdmissionSource": "grundlage/quelle/merchant/pr20-8-wertmutation-durable-admission.ts",
+      "test": "grundlage/tests/pr20-wertmutation-one-shot-foundation.test.mjs",
+      "separateAuthorityPerFamily": true,
+      "genericSharedMutationAuthority": false,
+      "maximumUses": 1,
+      "maximumTtlMs": 1500,
+      "durableAuthorityWriteRequired": true,
+      "exactDurableReadbackRequired": true,
+      "exactJournalReadbackRequired": true,
+      "driftRevokes": true,
+      "currentFenceBlocksAnyOpenMutationAuthority": true,
+      "currentFenceBlocksAnyOpenMutationTransaction": true,
+      "sendBoundaryState": "NICHT_GESENDET",
+      "sameIntentRetry": false,
+      "admissionConsumesOneShot": true,
+      "admissionPerformsSend": false,
+      "executionAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "liveAdapterPresent": false,
+      "liveRunnerPresent": false,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "normalRuntimeAllowed": false
+    }
   },
   "pr20_9": {
     "ziel": "Craft und Production produktiv",
