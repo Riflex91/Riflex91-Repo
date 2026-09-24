@@ -292,3 +292,29 @@ test("PR20.7 weapon/offhand contract stays no-write and forbids implicit unequip
   assert.equal(contract.live.maximumGameplayWrites, 0);
   assert.equal(contract.live.normalRuntimeAllowed, false);
 });
+
+test("PR20.7 weapon/offhand foundation is derivable from official can_equip semantics", () => {
+  const server = fs.readFileSync(
+    "wissensbasis/datenbank/aktuell/AL-SRC-SERVER.txt",
+    "utf8",
+  );
+  const classes = fs.readFileSync(
+    "wissensbasis/datenbank/aktuell/AL-DATA-CLASSES.txt",
+    "utf8",
+  );
+  for (const marker of [
+    'var comp = can_equip_item(player, def, slot);',
+    'class_def.doublehand[item.wtype] && !player.slots.offhand',
+    'class_def.offhand[item.type]',
+    'slot = "offhand";',
+    'slot = "mainhand";',
+  ]) assert.ok(server.includes(marker), marker);
+  for (const marker of [
+    '"merchant":{',
+    '"mainhand":{',
+    '"doublehand":{',
+    '"offhand":{',
+    '"quiver"',
+    '"source"',
+  ]) assert.ok(classes.includes(marker), marker);
+});
