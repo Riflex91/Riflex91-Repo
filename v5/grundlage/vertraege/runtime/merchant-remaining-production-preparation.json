@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "REAL_SHADOW_AUTO_DEPLOY_BEREIT_NO_WRITE",
+    "status": "REAL_SHADOW_BESTANDEN_NO_WRITE",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -83,7 +83,8 @@
       "PR20.7 exakt gebundene One-Shot-Authority-Huelle mit exklusivem Equipment-/Inventory-Fencing ist NO-WRITE vorhanden",
       "PR20.7 Durable Intent wird vor jeder moeglichen Wirkung exakt journal-durable gespeichert",
       "PR20.7 Post-Send Reobserve/Reconcile klassifiziert BESTAETIGT/NICHT_AUSGEFUEHRT/TEILWEISE/UNGEKLAERT ohne Same-Intent-Retry",
-      "PR20.7 realer Merchant-only Browser-Shadow ist SHA-gepinnt und workerlos vorbereitet"
+      "PR20.7 realer Merchant-only Browser-Shadow ist SHA-gepinnt und workerlos vorbereitet",
+      "PR20.7 realer Merchant-only Browser-Shadow ist BESTANDEN und mit 0 Writes ratifiziert"
     ],
     "produktiveErweiterungErstNach": [
       "PR20.1 Equip-Live-Nachweis",
@@ -156,7 +157,13 @@
       "realShadowGameplayWrites": 0,
       "realShadowRawWriteCalls": 0,
       "realShadowAuthorityIssued": false,
-      "realShadowEvidenceStatus": "OFFEN"
+      "realShadowEvidenceStatus": "BESTANDEN_REAL_BROWSER_SHADOW_NO_WRITE",
+      "realShadowEvidenceRatified": true,
+      "realShadowObservedAtMs": 1790196937277,
+      "realShadowRecipient": "My_Merchant",
+      "realShadowSlot": "helmet",
+      "realShadowObservedReconciliation": "NOT_APPLIED",
+      "realShadowPublicFunctionCalls": 0
     }
   },
   "pr20_8": {
