@@ -373,9 +373,6 @@ test("PR20.7 offhand acquisition manifest is exact wshield read-only source pref
   assert.equal(manifest.sourceCommit, "0228da63fe01e8717ef7aebb85af24bb3b35478b");
   assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-2-autonomous.js");
   assert.equal(manifest.packageSha256, "1931312bfe6b15a2dd0764e774c52c84e6db09c376ee3fd33205b20cc5c9938c");
-  assert.equal(manifest.sourceCommit, "bfcbc3186b1fe374fe37d0dd43d5677511480f5d");
-  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js");
-  assert.equal(manifest.packageSha256, "0d1378a0bca4ff0665dc14ab67920a15a0532f20ab141c6428edac414c0c3c72");
   assert.equal("workerVersion" in manifest, false);
   assert.equal("workerPackagePath" in manifest, false);
   assert.equal("workerPackageSha256" in manifest, false);
@@ -387,9 +384,9 @@ test("PR20.7 offhand acquisition manifest is exact wshield read-only source pref
   assert.ok(packageSource.includes("EXPECTED_UNIT_PRICE = 4800"));
   assert.ok(packageSource.includes("VENDOR_ID = 'basics'"));
   assert.ok(packageSource.includes("buyWithGoldAvailable"));
-  assert.ok(packageSource.includes("observedSellDistance"));
+  assert.ok(packageSource.includes("sellDistanceEvidence"));
   assert.ok(packageSource.includes("PR20_7_ACQUISITION_BUY_WITH_GOLD_FEHLT"));
-  assert.ok(packageSource.includes("PR20_7_ACQUISITION_SELL_DIST_FEHLT"));
+  assert.ok(packageSource.includes("PR20_7_ACQUISITION_SELL_DIST_UNGUELTIG"));
   assert.ok(packageSource.includes("PR20_7_ACQUISITION_VENDOR_NICHT_ERREICHBAR"));
   assert.ok(packageSource.includes("SOURCE_PINNED_SELL_DISTANCE = 400"));
   assert.ok(packageSource.includes("OFFICIAL_SERVER_SOURCE_COMMIT = '90052162eb3ebda36c893e1eb4af643913c8f984'"));
