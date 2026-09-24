@@ -394,6 +394,59 @@ test("PR20.8 Duplicate same-version package installs reuse the incumbent runner"
   );
 });
 
+test("PR20.8 terminal zero-write failed incumbent is replaced after foreign lease clears", async () => {
+  const env=sandbox({mode:"success"});
+  env.box.__V5PR208UpgradeProductiveOneWriteLiveLease={
+    schemaVersion:1,
+    testId:"pr20-8-upgrade-productive-one-write-live",
+    instanceId:"foreign-v1-0-0-instance",
+    acquiredAtMs:env.clock.now(),
+  };
+  vm.createContext(env.box);
+
+  vm.runInContext(source,env.box,{
+    filename:"pr20-8-upgrade-productive-one-write-live.blocked-first.js",
+  });
+  const firstApi=env.box.V5PR208UpgradeProductiveOneWriteLive;
+  firstApi.start();
+
+  for(let i=0;i<6000;i+=1) {
+    await new Promise(resolve=>setImmediate(resolve));
+    if(firstApi.status().terminal===true) break;
+  }
+
+  assert.equal(firstApi.status().status,"FEHLER");
+  assert.equal(firstApi.status().terminal,true);
+  assert.equal(firstApi.status().gameplayWrites,0);
+  assert.equal(firstApi.status().publicFunctionCalls,0);
+  assert.equal(firstApi.status().rawWriteCalls,0);
+  assert.equal(firstApi.status().intents.length,0);
+  assert.equal(firstApi.status().authority.durableIntentCreated,false);
+  assert.equal(env.upgradeCalls(),0);
+  assert.match(firstApi.status().blocker[0],/DUPLIKAT_INSTANZ_AKTIV/);
+
+  delete env.box.__V5PR208UpgradeProductiveOneWriteLiveLease;
+
+  vm.runInContext(source,env.box,{
+    filename:"pr20-8-upgrade-productive-one-write-live.recovery-second.js",
+  });
+  const secondApi=env.box.V5PR208UpgradeProductiveOneWriteLive;
+  assert.notEqual(secondApi,firstApi);
+  secondApi.start();
+
+  for(let i=0;i<6000;i+=1) {
+    await new Promise(resolve=>setImmediate(resolve));
+    if(secondApi.status().terminal===true) break;
+  }
+
+  assert.equal(secondApi.status().status,"BESTANDEN");
+  assert.equal(secondApi.status().terminal,true);
+  assert.equal(env.upgradeCalls(),1);
+  assert.equal(secondApi.status().gameplayWrites,1);
+  assert.equal(secondApi.status().publicFunctionCalls,1);
+  assert.equal(secondApi.status().rawWriteCalls,0);
+});
+
 test("PR20.8 Upgrade one-write runner keeps unresolved accepted mutation in recovery and never sends twice", async () => {
   const env=sandbox({mode:"pending"});
   const status=await execute(env,{terminal:false});
@@ -414,6 +467,7 @@ test("PR20.8 Upgrade one-write package exposes exact safety markers and no raw s
     'const VERSION = "1.0.1"',
     'const TEST_ID = "pr20-8-upgrade-productive-one-write-live"',
     'const API_NAME = "V5PR208UpgradeProductiveOneWriteLive"',
+    'function reusableIncumbentState(value)',
     'function incumbentSameVersionApi()',
     'safeZeroWriteNoIntentFailure',
     'const AUTHORITY_TTL_MS = 1500',
