@@ -195,7 +195,7 @@
       "weaponOffhandAutomaticUnequipAllowed": false,
       "weaponOffhandGameplayWrites": 0,
       "weaponOffhandRealReadOnlyEvidenceStatus": "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE",
-      "weaponOffhandProductiveEvidenceStatus": "ACQUISITION_PURCHASE_BESTANDEN_EQUIP_PACKAGE_BEREIT",
+      "weaponOffhandProductiveEvidenceStatus": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
       "weaponOffhandReadOnlyAutonomousPackage": "werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js",
       "weaponOffhandReadOnlyTestPlan": "roadmap/pr20-7-weapon-offhand-read-only-preflight-test-plan.json",
       "weaponOffhandReadOnlyEvidence": "roadmap/pr20-7-weapon-offhand-read-only-preflight-evidence.json",
