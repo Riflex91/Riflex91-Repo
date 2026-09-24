@@ -72,50 +72,67 @@ test("PR20.7 account discovery package has closed mutation boundary", () => {
   ]) assert.equal(source.includes(marker), false, marker);
 });
 
-test("PR20.7 account discovery pending evidence cannot count as pass", () => {
+test("PR20.7 account discovery real blocker is ratified without becoming a pass", () => {
   assert.equal(evidence.testId, "pr20-7-gear-account-weapon-candidate-discovery-v2");
-  assert.equal(evidence.status, "OFFEN");
+  assert.equal(
+    evidence.status,
+    "BLOCKIERT_REAL_BROWSER_NO_COMPATIBLE_ACCOUNT_CANDIDATE_ZERO_WRITE",
+  );
   assert.equal(evidence.supersedesTestId, "pr20-7-gear-account-weapon-candidate-discovery");
   assert.equal(evidence.controllerVersion, "1.0.3");
   assert.match(evidence.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(evidence.packageSha256, /^[0-9a-f]{64}$/);
-  assert.equal(evidence.observedAtMs, null);
-  assert.equal(evidence.terminal, null);
-  assert.equal(evidence.result, null);
-  assert.equal(evidence.ratified, false);
+  assert.equal(evidence.observedAtMs, 1790232916356);
+  assert.equal(evidence.terminal, true);
+  assert.equal(evidence.result, "BLOCKIERT");
+  assert.equal(evidence.ratified, true);
+  assert.deepEqual(evidence.blocker,
+    ["PR20_7_ACCOUNT_DISCOVERY_ROSTER_OHNE_INVENTAR_SLOTS"]);
+  assert.equal(evidence.realTerminal.controllerVersion, "1.0.3");
+  assert.equal(evidence.realTerminal.rosterSource, "X.characters");
+  assert.equal(evidence.realTerminal.rosterSourceCandidates.length, 2);
+  assert.equal(evidence.realTerminal.performanceTrick.active, true);
+  assert.equal(evidence.realTerminal.safety.gameplayWrites, 0);
+  assert.equal(evidence.realTerminal.safety.publicFunctionCalls, 0);
+  assert.equal(evidence.realTerminal.safety.rawWriteCalls, 0);
+  assert.equal(evidence.realTerminal.safety.startCalls, 0);
+  assert.equal(evidence.realTerminal.safety.disconnectCalls, 0);
+  assert.equal(evidence.realTerminal.safety.sameIntentRetry, false);
+
+  assert.equal(evidence.bridgeLiveContextEvidence.source,
+    "WINDOWS_BRIDGE_SAME_ORIGIN_EXISTING_CONTEXTS_READ_ONLY");
+  assert.equal(evidence.bridgeLiveContextEvidence.contexts.length, 3);
+  assert.deepEqual(
+    evidence.bridgeLiveContextEvidence.contexts.map(x => [x.name, x.inventoryItemCount, x.compatibleCandidates]),
+    [
+      ["My_Ranger1", 13, 0],
+      ["My_Priest", 4, 0],
+      ["My_Mage", 2, 0],
+    ],
+  );
+  assert.equal(
+    evidence.bridgeLiveContextEvidence.conclusion,
+    "NO_COMPATIBLE_EXISTING_ACCOUNT_WEAPON_OFFHAND_CANDIDATE",
+  );
+  assert.equal(evidence.bridgeLiveContextEvidence.safety.gameplayWrites, 0);
+  assert.equal(evidence.bridgeLiveContextEvidence.safety.rawWriteCalls, 0);
+  assert.equal(evidence.bridgeLiveContextEvidence.safety.startCalls, 0);
+  assert.equal(evidence.bridgeLiveContextEvidence.safety.disconnectCalls, 0);
+  assert.equal(evidence.resolution.existingCandidateSearchExhausted, true);
+  assert.equal(evidence.resolution.procurementRequired, true);
+  assert.equal(
+    evidence.resolution.nextGate,
+    "PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY_PREFLIGHT",
+  );
+  assert.equal(evidence.resolution.farmerGearAllocationStillSeparate, true);
+
   assert.equal(evidence.priorAttempts.length, 2);
   assert.equal(evidence.priorAttempts[0].controllerVersion, "1.0.1");
   assert.equal(evidence.priorAttempts[0].status, "BLOCKIERT");
-  assert.deepEqual(evidence.priorAttempts[0].blocker,
-    ["PR20_7_ACCOUNT_DISCOVERY_PERFORMANCE_TRICK_BLOCKED"]);
-  assert.equal(evidence.priorAttempts[0].performanceTrick.called, true);
-  assert.equal(evidence.priorAttempts[0].performanceTrick.audioFound, false);
-  assert.equal(evidence.priorAttempts[0].safety.gameplayWrites, 0);
-  assert.equal(evidence.priorAttempts[0].safety.rawWriteCalls, 0);
   assert.equal(evidence.priorAttempts[1].controllerVersion, "1.0.2");
   assert.equal(evidence.priorAttempts[1].status, "BLOCKIERT");
-  assert.deepEqual(evidence.priorAttempts[1].blocker,
-    ["PR20_7_ACCOUNT_DISCOVERY_ROSTER_OHNE_INVENTAR_SLOTS"]);
-  assert.equal(evidence.priorAttempts[1].performanceTrick.active, true);
-  assert.equal(evidence.priorAttempts[1].roster.source, "get_characters");
-  assert.equal(evidence.priorAttempts[1].roster.exactFarmerRows, 3);
-  assert.equal(evidence.priorAttempts[1].roster.rowsWithItemsAndSlots, 0);
-  assert.equal(evidence.priorAttempts[1].safety.gameplayWrites, 0);
-  assert.equal(evidence.priorAttempts[1].safety.rawWriteCalls, 0);
   assert.equal(plan.sourceSelection.preferMostCompleteExactFarmerRows, true);
-  assert.equal(plan.sourceSelection.richRowRequiresItemsAndSlots, true);
-  assert.equal(plan.sourceSelection.noLifecycleMutation, true);
   assert.equal(plan.sameTestUpgrade.windowsBridgeFailClosedGate, true);
-  assert.equal(plan.sameTestUpgrade.requiresTerminal, true);
-  assert.equal(plan.sameTestUpgrade.requiresGameplayWrites, 0);
-  assert.equal(plan.sameTestUpgrade.requiresRawWriteCalls, 0);
-  assert.equal(plan.sameTestUpgrade.requiresSameIntentRetry, false);
-  assert.equal(plan.sameTestUpgrade.requiresDurableIntentCreated, false);
-  assert.equal(plan.sameTestUpgrade.requiresNoIntents, true);
   assert.equal(evidence.sourceCommit, plan.deployment.sourceCommit);
   assert.equal(evidence.packageSha256, plan.deployment.packageSha256);
-  assert.deepEqual(
-    evidence.blocker,
-    ["REAL_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_V2_CONTROLLER_1_0_3_NOCH_NICHT_TERMINAL"],
-  );
 });
