@@ -2,12 +2,14 @@ using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace AioBotWindowsBridge;
 
 public sealed class CdpAdventureLandClient
 {
     public const int CdpCommandTimeoutSeconds = 12;
+    public const string BridgeFarmerGearDiagnosticsKey = "bridgeFarmerGearContexts";
 
     private readonly HttpClient _httpClient;
     private readonly Uri _cdpEndpoint;
@@ -557,8 +559,9 @@ public sealed class CdpAdventureLandClient
         bool includeDeepDiagnostics,
         CancellationToken cancellationToken)
     {
+        var allTargets = await FindTargetsAsync(cancellationToken);
         var targets = await RankTargetsByBotPreferenceAsync(
-            await FindTargetsAsync(cancellationToken),
+            allTargets,
             cancellationToken);
         foreach (var ranked in targets)
         {
@@ -575,6 +578,13 @@ public sealed class CdpAdventureLandClient
                     includeDeepDiagnostics ? DeepSnapshotExpression : SnapshotExpression,
                     context.ContextId,
                     cancellationToken);
+                if (includeDeepDiagnostics)
+                {
+                    var farmerGearContexts = await ObserveExistingFarmerGearContextsAsync(
+                        allTargets,
+                        cancellationToken);
+                    snapshot = AttachBridgeFarmerGearDiagnostics(snapshot, farmerGearContexts);
+                }
                 var eventBatch = await EvaluateAsync(socket, BuildEventsExpression(afterSeq, eventLimit), context.ContextId, cancellationToken);
 
                 JsonElement events;
@@ -662,6 +672,98 @@ public sealed class CdpAdventureLandClient
 
         throw new InvalidOperationException("AIO_V3_OPERATIONS_UNAVAILABLE");
     }
+
+    private async Task<IReadOnlyList<JsonElement>> ObserveExistingFarmerGearContextsAsync(
+        IReadOnlyList<CdpTarget> targets,
+        CancellationToken cancellationToken)
+    {
+        var byName = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (var target in targets)
+        {
+            using var socket = new ClientWebSocket();
+            try
+            {
+                await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
+                var contexts = await CollectAllowedExecutionContextsAsync(socket, cancellationToken);
+                foreach (var contextId in contexts)
+                {
+                    JsonElement observed;
+                    try
+                    {
+                        observed = await EvaluateAsync(
+                            socket,
+                            V5FarmerGearObservationExpression,
+                            contextId,
+                            cancellationToken);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        continue;
+                    }
+
+                    if (observed.ValueKind != JsonValueKind.Object
+                        || !ReadBoolean(observed, "eligible", false))
+                        continue;
+
+                    var name = ReadString(observed, "name");
+                    if (name is not ("My_Ranger1" or "My_Priest" or "My_Mage"))
+                        continue;
+
+                    if (!byName.ContainsKey(name))
+                        byName[name] = observed.Clone();
+                }
+            }
+            catch (WebSocketException)
+            {
+                // Existing browser targets can disappear at any time. Observation is best effort only.
+            }
+            catch (InvalidOperationException)
+            {
+                // A disappearing or non-observable context must never affect gameplay or normal telemetry.
+            }
+        }
+
+        return new[] { "My_Ranger1", "My_Priest", "My_Mage" }
+            .Where(byName.ContainsKey)
+            .Select(name => byName[name])
+            .ToArray();
+    }
+
+    private static JsonElement AttachBridgeFarmerGearDiagnostics(
+        JsonElement snapshot,
+        IReadOnlyList<JsonElement> observations)
+    {
+        if (snapshot.ValueKind != JsonValueKind.Object)
+            return snapshot.Clone();
+
+        JsonNode? parsed;
+        try
+        {
+            parsed = JsonNode.Parse(snapshot.GetRawText());
+        }
+        catch
+        {
+            return snapshot.Clone();
+        }
+
+        if (parsed is not JsonObject root
+            || root["diagnostics"] is not JsonObject diagnostics)
+            return snapshot.Clone();
+
+        var rows = new JsonArray();
+        foreach (var observation in observations.Take(3))
+        {
+            var row = JsonNode.Parse(observation.GetRawText());
+            if (row is not null) rows.Add(row);
+        }
+        diagnostics[BridgeFarmerGearDiagnosticsKey] = rows;
+
+        using var document = JsonDocument.Parse(root.ToJsonString());
+        return document.RootElement.Clone();
+    }
+
+    public static string BuildV5FarmerGearObservationExpression() =>
+        V5FarmerGearObservationExpression;
 
     private async Task<List<CdpTarget>> FindTargetsAsync(CancellationToken cancellationToken)
     {
@@ -1234,6 +1336,222 @@ public sealed class CdpAdventureLandClient
         startedCount: started.length,
         started,
         blockers
+      };
+    })()
+    """;
+
+    private const string V5FarmerGearObservationExpression = """
+    (async () => {
+      const allowed = Object.freeze({
+        My_Ranger1: 'ranger',
+        My_Priest: 'priest',
+        My_Mage: 'mage'
+      });
+
+      const local = globalThis;
+      let host = globalThis;
+      try {
+        if (globalThis.parent && globalThis.parent !== globalThis)
+          host = globalThis.parent;
+      } catch {}
+
+      const character = local.character || host.character || null;
+      const name = String(character && character.name || '');
+      const ctype = String(character && (character.ctype || character.type) || '').toLowerCase();
+      if (!name || allowed[name] !== ctype)
+        return { eligible: false };
+
+      const roots = [local];
+      if (host !== local) roots.push(host);
+
+      let performanceAvailable = false;
+      let performanceCalled = false;
+      let performanceError = null;
+      for (const candidate of roots) {
+        try {
+          if (typeof candidate?.performance_trick !== 'function') continue;
+          performanceAvailable = true;
+          candidate.performance_trick();
+          performanceCalled = true;
+          break;
+        } catch (error) {
+          performanceError = String(error && error.message || error || '').slice(0, 160);
+        }
+      }
+      if (performanceCalled)
+        await new Promise(resolve => setTimeout(resolve, 350));
+
+      const inspectAudio = () => {
+        let audioFound = false;
+        let playing = false;
+        let cplaying = false;
+        for (const candidate of roots) {
+          try {
+            const audio = candidate?.sounds?.empty;
+            if (!audio) continue;
+            audioFound = true;
+            if (audio.cplaying === true) cplaying = true;
+            if (typeof audio.playing === 'function' && audio.playing() === true)
+              playing = true;
+            else if (audio.playing === true)
+              playing = true;
+          } catch {}
+        }
+        return { audioFound, playing, cplaying };
+      };
+
+      let audio = inspectAudio();
+      if (performanceAvailable && performanceCalled && !audio.playing) {
+        for (const candidate of roots) {
+          try {
+            if (typeof candidate?.performance_trick === 'function') {
+              candidate.performance_trick();
+              break;
+            }
+          } catch {}
+        }
+        await new Promise(resolve => setTimeout(resolve, 150));
+        audio = inspectAudio();
+      }
+
+      const performanceTrick = {
+        available: performanceAvailable,
+        called: performanceCalled,
+        audioFound: audio.audioFound,
+        playing: audio.playing,
+        cplaying: audio.cplaying,
+        active: performanceAvailable && performanceCalled && audio.audioFound && audio.playing,
+        verification: 'HOWLER_PLAYING_TRUE',
+        error: performanceError
+      };
+
+      const G = local.G || host.G || null;
+      const items = Array.isArray(character?.items) ? character.items.slice(0, 128) : null;
+      const slots = character?.slots && typeof character.slots === 'object'
+        ? character.slots
+        : null;
+      if (!G?.items || !G?.classes || !items || !slots || !performanceTrick.active) {
+        return {
+          eligible: true,
+          name,
+          ctype,
+          level: Number(character?.level || 0),
+          map: String(character?.map || ''),
+          serverRegion: String(local.server_region || host.server_region || ''),
+          serverIdentifier: String(local.server_identifier || host.server_identifier || ''),
+          performanceTrick,
+          hasInventory: !!items,
+          hasSlots: !!slots,
+          inventoryItemCount: items ? items.filter(Boolean).length : null,
+          mainhand: null,
+          offhand: null,
+          candidates: [],
+          blocker: !performanceTrick.active
+            ? ['PR20_7_BRIDGE_FARMER_PERFORMANCE_TRICK_BLOCKED']
+            : ['PR20_7_BRIDGE_FARMER_INVENTORY_OR_GAME_DATA_UNAVAILABLE'],
+          gameplayWrites: 0,
+          publicFunctionCalls: 0,
+          rawWriteCalls: 0,
+          startCalls: 0,
+          disconnectCalls: 0,
+          normalRuntimeAllowed: false
+        };
+      }
+
+      const classDef = G.classes[ctype] || {};
+      const mainhandWtypes = Object.keys(classDef.mainhand || {}).sort();
+      const doublehandWtypes = Object.keys(classDef.doublehand || {}).sort();
+      const offhandKinds = Object.keys(classDef.offhand || {}).sort();
+
+      const view = (item, index = null) => {
+        if (!item || typeof item !== 'object') return null;
+        const itemName = String(item.name || '');
+        const def = G.items[itemName];
+        if (!itemName || !def) return null;
+        return {
+          index,
+          name: itemName,
+          level: Number(item.level || 0),
+          q: Number(item.q || 1),
+          type: String(def.type || ''),
+          wtype: String(def.wtype || ''),
+          classList: Array.isArray(def.class) ? def.class.map(String).sort() : [],
+          requiredLevel: Number(def.level || 0),
+          locked: item.l === true || item.locked === true || item.lock === true,
+          virtualB: item.b === true
+        };
+      };
+
+      const mainhand = view(slots.mainhand);
+      const offhand = view(slots.offhand);
+      const mainhandIsDouble = !!mainhand?.wtype && doublehandWtypes.includes(mainhand.wtype);
+      const candidates = [];
+
+      for (let index = 0; index < items.length; index += 1) {
+        const item = view(items[index], index);
+        if (!item || item.locked || item.virtualB) continue;
+        if (item.classList.length && !item.classList.includes(ctype)) continue;
+        if (item.requiredLevel > Number(character.level || 0)) continue;
+
+        const oneHand = !!item.wtype && mainhandWtypes.includes(item.wtype);
+        const doubleHand = !!item.wtype && doublehandWtypes.includes(item.wtype);
+        if ((oneHand || doubleHand) && (!doubleHand || !slots.offhand)) {
+          candidates.push({
+            slot: 'mainhand',
+            inventoryIndex: index,
+            candidate: item,
+            previous: mainhand,
+            opposite: offhand,
+            candidateIsDoublehand: doubleHand
+          });
+        }
+
+        const typeOffhand = ['shield','source','quiver','misc_offhand'].includes(item.type)
+          && offhandKinds.includes(item.type);
+        const weaponOffhand = ['weapon','tool'].includes(item.type)
+          && !!item.wtype
+          && offhandKinds.includes(item.wtype);
+        if ((typeOffhand || weaponOffhand) && !mainhandIsDouble) {
+          candidates.push({
+            slot: 'offhand',
+            inventoryIndex: index,
+            candidate: item,
+            previous: offhand,
+            opposite: mainhand,
+            candidateIsDoublehand: false
+          });
+        }
+      }
+
+      candidates.sort((a, b) =>
+        (a.slot === b.slot ? 0 : (a.slot === 'offhand' ? -1 : 1))
+        || Number(a.candidateIsDoublehand) - Number(b.candidateIsDoublehand)
+        || a.inventoryIndex - b.inventoryIndex
+      );
+
+      return {
+        eligible: true,
+        name,
+        ctype,
+        level: Number(character.level || 0),
+        map: String(character.map || ''),
+        serverRegion: String(local.server_region || host.server_region || ''),
+        serverIdentifier: String(local.server_identifier || host.server_identifier || ''),
+        performanceTrick,
+        hasInventory: true,
+        hasSlots: true,
+        inventoryItemCount: items.filter(Boolean).length,
+        mainhand,
+        offhand,
+        classRules: { mainhandWtypes, doublehandWtypes, offhandKinds },
+        candidates: candidates.slice(0, 16),
+        blocker: [],
+        gameplayWrites: 0,
+        publicFunctionCalls: 0,
+        rawWriteCalls: 0,
+        startCalls: 0,
+        disconnectCalls: 0,
+        normalRuntimeAllowed: false
       };
     })()
     """;
