@@ -4,7 +4,7 @@ import test from "node:test";
 import vm from "node:vm";
 
 const source = fs.readFileSync(
-  "werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-autonomous.js",
+  "werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js",
   "utf8",
 );
 
