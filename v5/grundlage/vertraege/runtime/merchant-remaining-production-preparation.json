@@ -683,7 +683,7 @@
     "upgradeDurableShadow": {
       "status": "PACKAGE_BEREIT_NO_WRITE",
       "testId": "pr20-8-upgrade-durable-shadow-no-write",
-      "controllerVersion": "1.0.0",
+      "controllerVersion": "1.0.1",
       "package": "werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
       "test": "werkzeuge/tests/pr20-8-upgrade-durable-shadow-no-write.test.mjs",
       "contract": "grundlage/vertraege/runtime/pr20-8-upgrade-durable-shadow-preparation.json",
@@ -729,7 +729,13 @@
       "sourceCommit": "79aec6e6d9d4568837641e3fadd48f67dea6adab",
       "packageSha256": "90d93a6c6970c7d1632918a2280b858451c5087be97b2fe5bc88cc10aa1121c5",
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
-      "manifestCutoverPrepared": true
+      "manifestCutoverPrepared": true,
+      "invalidOrNonterminalEqualIntentBlocked": true,
+      "exactTerminalNoSendIntentReconciledWithoutRewrite": true,
+      "terminalRecoveryRequiresExactBindingsAndFingerprints": true,
+      "recoveredIntentCreatesNewDurableWrite": false,
+      "recoveredIntentCanAuthorizeSend": false,
+      "bridgeFrameAndHostFacadeMirrored": true
     }
   },
   "pr20_9": {
