@@ -6,6 +6,11 @@ import { execFileSync } from "node:child_process";
 
 const manifest = JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest.json", "utf8"));
 const allowedPackages = Object.freeze({
+  "pr20-8-upgrade-productive-one-write-live": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live.js",
+    expectedGlobal: "V5PR208UpgradeProductiveOneWriteLive",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-upgrade-durable-shadow-no-write": Object.freeze({
     path: "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
     expectedGlobal: "V5PR208UpgradeDurableShadowNoWrite",
@@ -639,3 +644,43 @@ test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound"
   ]) assert.equal(packageSource.includes(marker), false, marker);
 });
 
+
+
+test("PR20.8 productive upgrade one-write manifest is exact, single-send and normal-runtime closed", () => {
+  if (manifest.testId !== "pr20-8-upgrade-productive-one-write-live") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit,
+    "8cd2837b5094c5cf962bc787d32dc021ae221ebd");
+  assert.equal(manifest.packagePath,
+    "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live.js");
+  assert.equal(manifest.packageSha256,
+    "063c5143852efa2357c0a3e0930e013e7238bc0be8b0d81f7c3742f97c6ed4f9");
+  assert.equal(manifest.expectedGlobal,
+    "V5PR208UpgradeProductiveOneWriteLive");
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.equal(manifest.normalRuntimeAllowed, false);
+
+  for (const required of [
+    'const TEST_ID = "pr20-8-upgrade-productive-one-write-live"',
+    'const AUTHORITY_TTL_MS = 1500',
+    'const PUBLIC_FUNCTION_PROMISE_TIMEOUT_MS = 2000',
+    '"Pr208UpgradeOneShotAuthority"',
+    'function acquireRuntimeLease()',
+    'function assertFences(txId)',
+    'upgradeEffectsFingerprintSha256',
+    'item?.giveaway === true',
+    'item?.list === true',
+    'sendBoundaryState: "SEND_MOEGLICH_ODER_VERSUCHT"',
+    'sameIntentRetry: false',
+    '"RECOVERY_PENDING"',
+    'normalRuntimeAllowed: false'
+  ]) assert.ok(packageSource.includes(required), required);
+
+  assert.equal((packageSource.match(/globalThis\.upgrade\(/g) || []).length, 1);
+  assert.equal(packageSource.includes(".socket.emit("), false);
+  assert.equal(packageSource.includes("socket.emit("), false);
+  assert.equal(packageSource.includes("api_call("), false);
+  assert.equal(packageSource.includes("sameIntentRetry: true"), false);
+  assert.equal(packageSource.includes("normalRuntimeAllowed: true"), false);
+});
