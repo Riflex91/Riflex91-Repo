@@ -174,10 +174,12 @@ function validiereItem(item: Pr207WeaponOffhandItemEvidence): void {
   for (const wert of [
     item.name,
     item.type,
-    item.wtype,
     item.physischeKennung,
     item.beobachtungsFingerprint,
   ]) text(wert, "PR20_7_WEAPON_ITEM_UNGUELTIG");
+  if (typeof item.wtype !== "string" || item.wtype.length > 96) {
+    throw new Error("PR20_7_WEAPON_ITEM_WTYPE_UNGUELTIG");
+  }
   if (!Number.isSafeInteger(item.level) || item.level < 0 || item.level > 1_000) {
     throw new Error("PR20_7_WEAPON_ITEM_LEVEL_UNGUELTIG");
   }
