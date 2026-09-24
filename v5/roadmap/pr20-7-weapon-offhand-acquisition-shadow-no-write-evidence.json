@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write",
+  "controllerVersion": "1.0.0",
+  "status": "OFFEN",
+  "evidenceArt": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE",
+  "sourceCommit": "3f006c17934f0159fa575d2da0e4d048fbf0df09",
+  "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js",
+  "packageSha256": "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08",
+  "manifestMainCommit": null,
+  "observedAtMs": null,
+  "terminal": null,
+  "result": null,
+  "ratified": false,
+  "prerequisiteEvidence": {
+    "readOnlyEvidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json",
+    "readOnlyStatus": "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE",
+    "readOnlyObservedAtMs": 1790238192422,
+    "readOnlyManifestMainCommit": "5a45b09c1ce7e439d80ada368980fc288fd76d35"
+  },
+  "exactScope": {
+    "recipient": "My_Merchant",
+    "server": "EU:I",
+    "itemName": "wshield",
+    "targetSlot": "offhand",
+    "quantity": 1,
+    "exactCost": 4800,
+    "minimumGoldSafetyReserve": 1000,
+    "actionChannel": "buy",
+    "socketPlanBudgetReserved": 100
+  },
+  "expectedSafetyBoundary": {
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "authorityIssued": false,
+    "purchaseAuthority": false,
+    "durableIntentCreatedShadowOnly": true,
+    "sendBoundaryState": "NICHT_GESENDET",
+    "journalTerminalArt": "ABBRUCH",
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "blocker": [
+    "REAL_WSHIELD_ACQUISITION_DURABLE_SHADOW_NO_WRITE_NOCH_NICHT_AUSGEFUEHRT"
+  ],
+  "nextGate": null
+}
