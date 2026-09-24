@@ -362,6 +362,10 @@ test("PR20.7 Farmer-Gear-Allocation ist als NO-WRITE Foundation ratifiziert", ()
     "roadmap/pr20-7-farmer-gear-allocation-ratification.json",
     "utf8",
   ));
+  const roadmap = JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
   const allocationSource = fs.readFileSync(
     "grundlage/quelle/merchant/gear-allokation.ts",
     "utf8",
@@ -426,6 +430,20 @@ test("PR20.7 Farmer-Gear-Allocation ist als NO-WRITE Foundation ratifiziert", ()
   assert.equal(ratification.ratified, true);
   assert.deepEqual(ratification.blocker, []);
   assert.equal(ratification.nextGate, "PR20.8_WERTMUTATIONEN");
+  assert.equal(roadmap.currentGate, "PR20.8_WERTMUTATIONEN");
+  assert.equal(roadmap.safePreparationBoundary.activeLiveGate, "PR20.8_WERTMUTATIONEN");
+  assert.equal(roadmap.pr20_7.status,
+    "ROADMAP_ABGESCHLOSSEN_MUTATIONS_RATIFIED_ALLOCATION_NO_WRITE");
+  assert.equal(roadmap.pr20_7.remainingGates.weaponOffhand,
+    "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
+  assert.equal(roadmap.pr20_7.remainingGates.farmerGearAllocation,
+    "BESTANDEN_NO_WRITE_FOUNDATION_RATIFIED");
+  assert.equal(roadmap.pr20_7.gameplayAuthority, false);
+  assert.equal(roadmap.pr20_7.rawWriteAuthority, false);
+  assert.equal(roadmap.pr20_7.normalRuntimeAllowed, false);
+  assert.equal(roadmap.pr20_7.nextAction, "PR20.8_WERTMUTATIONEN");
+  assert.equal(roadmap.pr20_7.weaponOffhand.acquisitionShadowEvidenceStatus,
+    "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE");
 
   for (const marker of [
     "GEAR_KANDIDAT_BEREITS_RESERVIERT",
