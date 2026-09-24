@@ -864,7 +864,7 @@
       "rawWriteCalls": 0,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN",
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
       "localAndParentObservabilityBridge": true,
       "synchronousBridgeHandshakeState": true,
       "priorBootstrapTestId": "pr20-8-native-updater-recovery-bootstrap-v1",
