@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_1_0_3_SAME_TEST_UPGRADE_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_MERCHANT_ACQUISITION_PREPARATION_REQUIRED",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
