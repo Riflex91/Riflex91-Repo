@@ -4,14 +4,14 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-account-weapon-candidate-discovery-v2",
   "controllerVersion": "1.0.3",
-  "status": "OFFEN",
+  "status": "BLOCKIERT_REAL_BROWSER_NO_COMPATIBLE_ACCOUNT_CANDIDATE_ZERO_WRITE",
   "evidenceArt": "V5_PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY",
   "sourceCommit": "7ecfabc9122be52ceb7231c9bfcba451657e10ce",
   "packageSha256": "3619dd3e56410458db5c5ce859a05fbbccd97b912d07e47d5d045eb93383f60f",
-  "manifestMainCommit": null,
-  "observedAtMs": null,
-  "terminal": null,
-  "result": null,
+  "manifestMainCommit": "8a3b988014ccbd3c0d071825d740071b9c97794b",
+  "observedAtMs": 1790232916356,
+  "terminal": true,
+  "result": "BLOCKIERT",
   "expectedSafetyBoundary": {
     "gameplayWrites": 0,
     "publicFunctionCalls": 0,
@@ -26,9 +26,9 @@
     "sameIntentRetry": false,
     "normalRuntimeAllowed": false
   },
-  "ratified": false,
+  "ratified": true,
   "blocker": [
-    "REAL_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_V2_CONTROLLER_1_0_3_NOCH_NICHT_TERMINAL"
+    "PR20_7_ACCOUNT_DISCOVERY_ROSTER_OHNE_INVENTAR_SLOTS"
   ],
   "priorAttempts": [
     {
@@ -100,5 +100,97 @@
       }
     }
   ],
-  "supersedesTestId": "pr20-7-gear-account-weapon-candidate-discovery"
+  "supersedesTestId": "pr20-7-gear-account-weapon-candidate-discovery",
+  "realTerminal": {
+    "controllerVersion": "1.0.3",
+    "testId": "pr20-7-gear-account-weapon-candidate-discovery-v2",
+    "phase": "ACCOUNT_WEAPON_CANDIDATE_DISCOVERY",
+    "rosterSource": "X.characters",
+    "rosterSourceCandidates": [
+      {
+        "source": "X.characters",
+        "exactFarmerRows": 3,
+        "richFarmerRows": 0,
+        "score": 38
+      },
+      {
+        "source": "get_characters",
+        "exactFarmerRows": 3,
+        "richFarmerRows": 0,
+        "score": 38
+      }
+    ],
+    "performanceTrick": {
+      "available": true,
+      "called": true,
+      "audioFound": true,
+      "playing": true,
+      "cplaying": true,
+      "active": true,
+      "verification": "HOWLER_PLAYING_TRUE",
+      "error": null
+    },
+    "safety": {
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "startCalls": 0,
+      "disconnectCalls": 0,
+      "farmerWorkersInstalled": 0,
+      "sameIntentRetry": false,
+      "durableIntentCreated": false,
+      "authorityIssued": false,
+      "normalRuntimeAllowed": false
+    }
+  },
+  "bridgeLiveContextEvidence": {
+    "observedAtMs": 1790233252537,
+    "source": "WINDOWS_BRIDGE_SAME_ORIGIN_EXISTING_CONTEXTS_READ_ONLY",
+    "server": "EU:I",
+    "performanceVerification": "HOWLER_PLAYING_TRUE",
+    "contexts": [
+      {
+        "name": "My_Ranger1",
+        "ctype": "ranger",
+        "level": 60,
+        "inventoryItemCount": 13,
+        "mainhand": "bow+5",
+        "offhand": "quiver+4",
+        "compatibleCandidates": 0
+      },
+      {
+        "name": "My_Priest",
+        "ctype": "priest",
+        "level": 35,
+        "inventoryItemCount": 4,
+        "mainhand": null,
+        "offhand": null,
+        "compatibleCandidates": 0
+      },
+      {
+        "name": "My_Mage",
+        "ctype": "mage",
+        "level": 35,
+        "inventoryItemCount": 2,
+        "mainhand": null,
+        "offhand": null,
+        "compatibleCandidates": 0
+      }
+    ],
+    "safety": {
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "startCalls": 0,
+      "disconnectCalls": 0,
+      "normalRuntimeAllowed": false
+    },
+    "conclusion": "NO_COMPATIBLE_EXISTING_ACCOUNT_WEAPON_OFFHAND_CANDIDATE"
+  },
+  "resolution": {
+    "existingCandidateSearchExhausted": true,
+    "procurementRequired": true,
+    "nextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY_PREFLIGHT",
+    "farmerGearAllocationStillSeparate": true
+  }
 }

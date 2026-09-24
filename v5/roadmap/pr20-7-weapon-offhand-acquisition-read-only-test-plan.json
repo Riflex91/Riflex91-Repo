@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight",
+  "controllerVersion": "1.0.0",
+  "status": "PACKAGE_BEREIT_MANIFEST_CUTOVER_NOCH_OFFEN",
+  "purpose": "READ_ONLY_WSHIELD_NPC_ACQUISITION_SOURCE_PREFLIGHT",
+  "deployment": {
+    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY_AFTER_SEPARATE_CUTOVER",
+    "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "coordinatorClass": "merchant",
+    "sourceCommit": "8cb1a5bf799bb7bfef0aa44a185009ae2606ded2",
+    "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-autonomous.js",
+    "packageSha256": "8d35a665d6bf78a83cab015b9c11cea65c39b6933939086949ad533697aebb9f",
+    "expectedGlobal": "V5PR207WeaponOffhandAcquisitionReadOnly",
+    "workerPackageConfigured": false,
+    "farmerWorkerDistribution": false
+  },
+  "exactCandidate": {
+    "recipient": "My_Merchant",
+    "itemName": "wshield",
+    "displayName": "Wooden Shield",
+    "targetSlot": "offhand",
+    "quantity": 1,
+    "expectedUnitPrice": 4800,
+    "vendorId": "basics",
+    "vendorName": "Gabriel",
+    "route": "GOLD_ONLY_NPC"
+  },
+  "readOnlyChecks": [
+    "exact Merchant/session/server",
+    "performance_trick HOWLER_PLAYING_TRUE",
+    "wshield definition type shield and exact price 4800",
+    "basics/Gabriel vendor still sells wshield",
+    "merchant offhand class rule still permits shield",
+    "current offhand empty",
+    "current mainhand is not doublehand",
+    "at least one free inventory slot",
+    "no existing wshield in Merchant inventory",
+    "base gold cost available",
+    "buy_with_gold public function exists",
+    "current-map vendor reachability observed",
+    "stable double observation over 350 ms"
+  ],
+  "safetyBoundary": {
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "purchaseAuthority": false,
+    "weaponOffhandWriteRatification": false,
+    "farmerGearAllocationRatification": false,
+    "durableIntentCreated": false,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "budgetBoundary": {
+    "baseAffordabilityObservationOnly": true,
+    "GoldBudgetLedgerReservationRequiredBeforePurchase": true,
+    "GoldBudgetLedgerReservationSatisfiedByThisTest": false,
+    "safetyReserveMustBePreserved": true
+  },
+  "completion": "BESTANDEN only ratifies acquisition source/current read-only preconditions; it does not authorize purchase or equip.",
+  "evidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json",
+  "nextAfterPass": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE"
+}

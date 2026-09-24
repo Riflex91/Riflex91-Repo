@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight",
+  "controllerVersion": "1.0.0",
+  "status": "OFFEN",
+  "evidenceArt": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY_PREFLIGHT",
+  "sourceCommit": "8cb1a5bf799bb7bfef0aa44a185009ae2606ded2",
+  "packageSha256": "8d35a665d6bf78a83cab015b9c11cea65c39b6933939086949ad533697aebb9f",
+  "manifestMainCommit": null,
+  "observedAtMs": null,
+  "terminal": null,
+  "result": null,
+  "recipient": "My_Merchant",
+  "candidate": {
+    "itemName": "wshield",
+    "targetSlot": "offhand",
+    "quantity": 1,
+    "expectedUnitPrice": 4800,
+    "vendorId": "basics"
+  },
+  "expectedSafetyBoundary": {
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "purchaseAuthority": false,
+    "durableIntentCreated": false,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "ratified": false,
+  "blocker": [
+    "REAL_WSHIELD_ACQUISITION_READ_ONLY_PREFLIGHT_NOCH_NICHT_AUSGEFUEHRT"
+  ]
+}

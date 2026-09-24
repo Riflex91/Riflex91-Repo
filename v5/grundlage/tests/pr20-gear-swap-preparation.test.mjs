@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_1_0_3_SAME_TEST_UPGRADE_BEREIT_EVIDENCE_OFFEN");
+  assert.equal(contract.status, "WEAPON_OFFHAND_ACQUISITION_READ_ONLY_PACKAGE_BEREIT_MANIFEST_OFFEN");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -347,7 +347,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryPublicFunctionCalls, 0);
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryRawWriteCalls, 0);
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryFarmerGearAllocationRatification, false);
-  assert.equal(contract.weaponOffhandFoundation.accountDiscoveryEvidenceStatus, "OFFEN");
+  assert.equal(contract.weaponOffhandFoundation.accountDiscoveryEvidenceStatus, "BLOCKIERT_REAL_BROWSER_NO_COMPATIBLE_ACCOUNT_CANDIDATE_ZERO_WRITE");
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryManifestCutoverPrepared, true);
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryControllerVersion, "1.0.3");
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryTestId, "pr20-7-gear-account-weapon-candidate-discovery-v2");
@@ -362,6 +362,32 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.accountDiscoverySameTestUpgradeGate, "WINDOWS_BRIDGE_TERMINAL_ZERO_WRITE_ONLY");
   assert.match(contract.weaponOffhandFoundation.accountDiscoverySourceCommit, /^[0-9a-f]{40}$/);
   assert.match(contract.weaponOffhandFoundation.accountDiscoveryPackageSha256, /^[0-9a-f]{64}$/);
+  assert.equal(contract.weaponOffhandFoundation.accountDiscoveryRatified, true);
+  assert.equal(contract.weaponOffhandFoundation.accountDiscoveryObservedAtMs, 1790232916356);
+  assert.equal(contract.weaponOffhandFoundation.accountDiscoveryResolution, "PROCUREMENT_REQUIRED");
+  assert.equal(contract.weaponOffhandFoundation.bridgeExistingContextObservation.exactFarmerContexts, 3);
+  assert.equal(contract.weaponOffhandFoundation.bridgeExistingContextObservation.totalCompatibleCandidates, 0);
+  assert.equal(contract.weaponOffhandFoundation.bridgeExistingContextObservation.gameplayWrites, 0);
+  assert.equal(contract.weaponOffhandFoundation.bridgeExistingContextObservation.rawWriteCalls, 0);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionPrepared, true);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionCandidate, "wshield");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionRecipient, "My_Merchant");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionTargetSlot, "offhand");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionExpectedUnitPrice, 4800);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionVendorId, "basics");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionControllerVersion, "1.0.0");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionManifestCutoverPrepared, false);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionEvidenceStatus, "OFFEN");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionGameplayWrites, 0);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionPublicFunctionCalls, 0);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionRawWriteCalls, 0);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionPurchaseAuthority, false);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionGoldBudgetLedgerReservationRequired, true);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionOldPr203HarnessReuseAllowed, false);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionSameIntentRetry, false);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionNormalRuntimeAllowed, false);
+  assert.match(contract.weaponOffhandFoundation.acquisitionSourceCommit, /^[0-9a-f]{40}$/);
+  assert.match(contract.weaponOffhandFoundation.acquisitionPackageSha256, /^[0-9a-f]{64}$/);
   assert.match(contract.weaponOffhandFoundation.readOnlySourceCommit, /^[0-9a-f]{40}$/);
   assert.match(contract.weaponOffhandFoundation.readOnlyPackageSha256, /^[0-9a-f]{64}$/);
   assert.equal(contract.nextGate.weaponsAndOffhandRemainSeparate, true);
