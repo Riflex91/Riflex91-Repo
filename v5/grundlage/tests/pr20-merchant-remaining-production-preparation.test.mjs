@@ -731,17 +731,17 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "COMPOUND_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
+    "COMPOUND_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_PENDING",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
+    "PR20_8_COMPOUND_LIVE_5M_PREPARATION",
   );
   const exit=prep.pr20_8.exitGateReview;
-  assert.equal(exit.status,"BLOCKED_COMPOUND_NOT_LIVE_RATIFIED_EXCHANGE_NO_CANDIDATE");
+  assert.equal(exit.status,"BLOCKED_COMPOUND_5M_EXCHANGE_NO_CANDIDATE");
   assert.equal(exit.evidence,"roadmap/pr20-8-no-candidate-exit-gate-review.json");
   assert.equal(exit.currentExitGateSatisfied,false);
-  assert.equal(exit.compoundRatified,false);
+  assert.equal(exit.compoundRatified,true);
   assert.equal(exit.compoundLive5mTested,false);
   assert.equal(exit.exchangeRatified,false);
   assert.equal(exit.exchangeLive5mTested,false);
@@ -1028,7 +1028,7 @@ test("PR20.8 Compound durable shadow preparation remains strictly no-write", () 
 
 test("PR20.8 Compound productive one-write preparation remains no-live-write", () => {
   const p=prep.pr20_8.compoundProductiveOneWritePreparation;
-  assert.equal(p.status,"MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE");
+  assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
   assert.equal(
     p.contract,
     "grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-preparation.json",
@@ -1078,19 +1078,19 @@ test("PR20.8 Compound productive one-write preparation remains no-live-write", (
   assert.equal(p.gameplayAuthority,false);
   assert.equal(p.rawWriteAuthority,false);
   assert.equal(p.normalRuntimeAllowed,false);
-  assert.equal(p.manifestCutoverPrepared,true);
+  assert.equal(p.manifestCutoverPrepared,false);
   assert.equal(p.deployed,false);
-  assert.equal(p.liveWriteEnabled,true);
+  assert.equal(p.liveWriteEnabled,false);
   assert.equal(p.manifest,"roadmap/v5-autonomous-test-manifest.json");
-  assert.equal(p.deploymentEvidenceObserved,false);
-  assert.equal(p.realCompoundMutationPerformed,false);
-  assert.equal(p.bridgeMayDeployPinnedRunner,true);
-  assert.equal(p.nextGate,"PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN");
+  assert.equal(p.deploymentEvidenceObserved,true);
+  assert.equal(p.realCompoundMutationPerformed,true);
+  assert.equal(p.bridgeMayDeployPinnedRunner,false);
+  assert.equal(p.nextGate,"PR20_8_COMPOUND_LIVE_5M_PREPARATION");
 });
 
 test("PR20.8 Compound productive one-write runner package has a separate aggregate boundary", () => {
   const r=prep.pr20_8.compoundProductiveOneWriteRunner;
-  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE");
+  assert.equal(r.status,"COMMITTED_SUCCESS_RETIRED_FROM_ACTIVE_MANIFEST");
   assert.equal(r.package,"werkzeuge/pr20-8-compound-productive-one-write-live.js");
   assert.equal(r.test,"werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs");
   assert.equal(
@@ -1110,18 +1110,45 @@ test("PR20.8 Compound productive one-write runner package has a separate aggrega
   assert.equal(r.finalEffectDomainReobserveAfterAuthorityConsume,true);
   assert.deepEqual(r.hpamuletCompoundDefinitionExact,{hp:240});
   assert.equal(r.zeroWritePreflightFailureReleasesRuntimeLease,true);
-  assert.equal(r.manifestCutoverPrepared,true);
-  assert.equal(r.deployed,false);
-  assert.equal(r.liveWriteEnabled,true);
+  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.deployed,true);
+  assert.equal(r.liveWriteEnabled,false);
   assert.equal(r.normalRuntimeAllowed,false);
   assert.equal(r.sourceCommit,"31edc5c7ce29bb64086be211b703f4f18dd3772b");
   assert.equal(r.packageSha256,"c57c6cc38618392f1f26b7c91e0ea10163a8f8bfc33063eaea2785e39b56100c");
   assert.equal(r.packageBytes,50445);
   assert.equal(r.manifest,"roadmap/v5-autonomous-test-manifest.json");
-  assert.equal(r.deploymentEvidenceObserved,false);
-  assert.equal(r.realCompoundMutationPerformed,false);
-  assert.equal(r.bridgeMayDeployPinnedRunner,true);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN");
+  assert.equal(r.deploymentEvidenceObserved,true);
+  assert.equal(r.realCompoundMutationPerformed,true);
+  assert.equal(r.bridgeMayDeployPinnedRunner,false);
+  assert.equal(r.evidence,"roadmap/pr20-8-compound-productive-one-write-evidence.json");
+  assert.equal(r.evidenceStatus,"RATIFIED_COMMITTED_SUCCESS");
+  assert.equal(r.evidenceReconciliation,"COMMITTED_SUCCESS");
+  assert.equal(r.evidenceSendCount,1);
+  assert.equal(r.evidenceGameplayWrites,1);
+  assert.equal(r.evidencePublicFunctionCalls,1);
+  assert.equal(r.evidenceRawWriteCalls,0);
+  assert.deepEqual(r.evidenceCandidateIndexes,[1,22,23]);
+  assert.equal(r.evidenceScrollIndex,18);
+  assert.equal(r.evidenceScrollQuantityBefore,20);
+  assert.equal(r.evidenceScrollQuantityAfter,19);
+  assert.equal(r.evidenceNoDuplicateValueChangingEffectObserved,true);
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_PREPARATION");
+});
+
+test("PR20.8 Compound one-write evidence is ratified while 5m and Exchange remain open", () => {
+  const e=prep.pr20_8.compoundProductiveOneWriteEvidence;
+  assert.equal(e.status,"RATIFIED_COMMITTED_SUCCESS");
+  assert.equal(e.evidence,"roadmap/pr20-8-compound-productive-one-write-evidence.json");
+  assert.equal(e.gameplayWrites,1);
+  assert.equal(e.publicFunctionCalls,1);
+  assert.equal(e.rawWriteCalls,0);
+  assert.equal(e.sendCount,1);
+  assert.equal(e.reconciliation,"COMMITTED_SUCCESS");
+  assert.equal(e.compoundRatified,true);
+  assert.equal(e.compoundLive5mTested,false);
+  assert.equal(e.exchangeRatified,false);
+  assert.equal(e.normalRuntimeAllowed,false);
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
