@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_BESTANDEN");
+  assert.equal(contract.status, "WEAPON_OFFHAND_FOUNDATION_NO_WRITE");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -232,8 +232,8 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "ATOMIC_REPLACE_AND_RETURN_PREVIOUS_TO_SOURCE_INDEX",
   );
   assert.equal(contract.serverSemantik.virtualExistingB, "BLOCKED_FOR_PR20_7");
-  assert.equal(contract.scope.mainhand, "SEPARATE_GATE");
-  assert.equal(contract.scope.offhand, "SEPARATE_GATE");
+  assert.equal(contract.scope.mainhand, "FOUNDATION_NO_WRITE_SEPARATE_RATIFICATION");
+  assert.equal(contract.scope.offhand, "FOUNDATION_NO_WRITE_SEPARATE_RATIFICATION");
   assert.equal(contract.authority.produktiveRegistrierungErlaubt, false);
   assert.equal(contract.authority.produktiverAktivierungspfadErlaubt, false);
   assert.equal(contract.authority.ausfuehrungsAutoritaet, false);
@@ -319,5 +319,16 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.productiveOccupiedSlotLive.manifestCutoverPrepared, true);
   assert.match(contract.productiveOccupiedSlotLive.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(contract.productiveOccupiedSlotLive.packageSha256, /^[0-9a-f]{64}$/);
+  assert.equal(contract.weaponOffhandFoundation.explicitSlotRequired, true);
+  assert.equal(contract.weaponOffhandFoundation.genericWeaponAutoSlotAllowed, false);
+  assert.equal(contract.weaponOffhandFoundation.classRulesPinned, true);
+  assert.equal(contract.weaponOffhandFoundation.oppositeHandPinned, true);
+  assert.equal(contract.weaponOffhandFoundation.doublehandOffhandConflictBlocked, true);
+  assert.equal(contract.weaponOffhandFoundation.automaticUnequipAllowed, false);
+  assert.equal(contract.weaponOffhandFoundation.sameIntentRetry, false);
+  assert.equal(contract.weaponOffhandFoundation.gameplayWrites, 0);
+  assert.equal(contract.weaponOffhandFoundation.gameplayAuthority, false);
+  assert.equal(contract.weaponOffhandFoundation.rawWriteAuthority, false);
+  assert.equal(contract.weaponOffhandFoundation.realReadOnlyEvidenceStatus, "OFFEN");
   assert.equal(contract.nextGate.weaponsAndOffhandRemainSeparate, true);
 });
