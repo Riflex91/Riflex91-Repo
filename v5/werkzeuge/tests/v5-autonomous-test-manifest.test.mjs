@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 const manifest = JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest.json", "utf8"));
 const allowedPackages = Object.freeze({
   "pr20-8-upgrade-productive-one-write-live": Object.freeze({
-    path: "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js",
+    path: "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js",
     expectedGlobal: "V5PR208UpgradeProductiveOneWriteLive",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
@@ -648,14 +648,14 @@ test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound"
 
 test("PR20.8 productive Upgrade one-write manifest is exact, one-shot and runtime-closed", () => {
   if (manifest.testId !== "pr20-8-upgrade-productive-one-write-live") return;
-  assert.equal(manifest.controllerVersion, "1.0.1");
+  assert.equal(manifest.controllerVersion, "1.0.2");
   assert.equal(
     manifest.sourceCommit,
-    "bdcf2256c8b392d1a8a535d371662c0381ef6672",
+    "63820135c2c4ef1870a386692a6303aa2effae63",
   );
   assert.equal(
     manifest.packageSha256,
-    "5594d8bf3424e88d7528aac4f9a1146709960d436b322b6a4680f4e8189abc73",
+    "d0a5909726d38df3d15954a3a4d5779a5f3419f1216469c45b1043bde9c1b8fc",
   );
   assert.equal("workerVersion" in manifest, false);
   assert.equal("workerPackagePath" in manifest, false);
@@ -663,12 +663,16 @@ test("PR20.8 productive Upgrade one-write manifest is exact, one-shot and runtim
   assert.equal("workerExpectedGlobal" in manifest, false);
   assert.equal("workerTargets" in manifest, false);
   assert.ok(packageSource.includes(
-    'const VERSION = "1.0.1"',
+    'const VERSION = "1.0.2"',
   ));
   assert.ok(packageSource.includes(
     'const TEST_ID = "pr20-8-upgrade-productive-one-write-live"',
   ));
   assert.ok(packageSource.includes("function reusableIncumbentState(value)"));
+  assert.ok(packageSource.includes("const RUNTIME_LEASE_STALE_NO_INTENT_MS = 120000"));
+  assert.ok(packageSource.includes("function terminalZeroWriteDuplicateBlockedState(value)"));
+  assert.ok(packageSource.includes("function canReclaimStaleRuntimeLease(r, existing)"));
+  assert.ok(packageSource.includes('"PR20_8_UPGRADE_LIVE_STALE_RUNTIME_LEASE_RECLAIMED"'));
   assert.ok(packageSource.includes("safeZeroWriteNoIntentFailure"));
   assert.ok(packageSource.includes('"Pr208UpgradeOneShotAuthority"'));
   assert.ok(packageSource.includes(
