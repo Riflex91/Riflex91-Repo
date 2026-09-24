@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-24",
   "kennung": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY",
-  "status": "READ_ONLY_SOURCE_PREFLIGHT_PREPARED_NO_PURCHASE_AUTHORITY",
+  "status": "READ_ONLY_SOURCE_PREFLIGHT_BESTANDEN_DURABLE_SHADOW_NEXT",
   "blockingGate": "PR20.7_GEAR",
   "rationale": {
     "merchantReadOnlyPreflight": "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE",
@@ -93,7 +93,16 @@
     "officialServerSourceCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
     "officialServerBlobSha": "40d0aeda16b9a4320441e833020fe1b4db496e2c",
     "sourceCommit": "0228da63fe01e8717ef7aebb85af24bb3b35478b",
-    "packageSha256": "1931312bfe6b15a2dd0764e774c52c84e6db09c376ee3fd33205b20cc5c9938c"
+    "packageSha256": "1931312bfe6b15a2dd0764e774c52c84e6db09c376ee3fd33205b20cc5c9938c",
+    "realEvidenceStatus": "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE",
+    "realEvidenceRatified": true,
+    "realEvidenceObservedAtMs": 1790238192422,
+    "realEvidenceManifestMainCommit": "5a45b09c1ce7e439d80ada368980fc288fd76d35",
+    "realObservedVendorDistance": 88.59875647515783,
+    "realObservedSellDistance": 400,
+    "realObservedSellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
+    "realObservedGold": 14493644,
+    "realObservedFreeInventorySlots": 21
   },
   "mutationBoundary": {
     "purchaseAllowed": false,
@@ -114,5 +123,5 @@
       "no same-intent retry after possible send"
     ]
   },
-  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_REAL_READ_ONLY_PREFLIGHT_V1_0_2"
+  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_PREPARE"
 }

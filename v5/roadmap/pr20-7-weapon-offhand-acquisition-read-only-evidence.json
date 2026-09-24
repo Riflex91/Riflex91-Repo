@@ -4,14 +4,14 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight",
   "controllerVersion": "1.0.2",
-  "status": "OFFEN",
+  "status": "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE",
   "evidenceArt": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY_PREFLIGHT",
   "sourceCommit": "0228da63fe01e8717ef7aebb85af24bb3b35478b",
   "packageSha256": "1931312bfe6b15a2dd0764e774c52c84e6db09c376ee3fd33205b20cc5c9938c",
-  "manifestMainCommit": null,
-  "observedAtMs": null,
-  "terminal": null,
-  "result": null,
+  "manifestMainCommit": "5a45b09c1ce7e439d80ada368980fc288fd76d35",
+  "observedAtMs": 1790238192422,
+  "terminal": true,
+  "result": "BESTANDEN",
   "recipient": "My_Merchant",
   "candidate": {
     "itemName": "wshield",
@@ -32,10 +32,8 @@
     "sameIntentRetry": false,
     "normalRuntimeAllowed": false
   },
-  "ratified": false,
-  "blocker": [
-    "REAL_WSHIELD_ACQUISITION_READ_ONLY_PREFLIGHT_V1_0_2_NOCH_NICHT_AUSGEFUEHRT"
-  ],
+  "ratified": true,
+  "blocker": [],
   "rejectedPreviousRun": {
     "controllerVersion": "1.0.0",
     "observedAtMs": 1790234495232,
@@ -84,5 +82,86 @@
     "sellDistance": 400,
     "buyCheck": "simple_distance(player, l) < B.sell_dist",
     "revalidatedAt": "2026-09-24"
-  }
+  },
+  "liveEvidence": {
+    "phase": "ACQUISITION_SOURCE_READY",
+    "recipient": {
+      "characterName": "My_Merchant",
+      "sessionId": "My_Merchant",
+      "ctype": "merchant",
+      "level": 58,
+      "map": "main",
+      "serverRegion": "EU",
+      "serverIdentifier": "I"
+    },
+    "candidate": {
+      "itemName": "wshield",
+      "displayName": "Wooden Shield",
+      "targetSlot": "offhand",
+      "quantity": 1,
+      "type": "shield",
+      "unitPrice": 4800,
+      "totalPrice": 4800,
+      "vendorId": "basics",
+      "vendorName": "Gabriel",
+      "requiredLevel": 0,
+      "classOffhandCompatible": true,
+      "currentMainhand": {
+        "name": "staff",
+        "type": "weapon",
+        "level": 0,
+        "wtype": "staff",
+        "locked": false,
+        "virtualB": false
+      },
+      "currentOffhand": null
+    },
+    "acquisition": {
+      "route": "GOLD_ONLY_NPC",
+      "publicFunction": "buy_with_gold",
+      "publicFunctionAvailable": true,
+      "freeInventorySlots": 21,
+      "existingQuantity": 0,
+      "observedGold": 14493644,
+      "baseCostAffordable": true,
+      "purchaseAuthority": false,
+      "vendorReachableNow": true,
+      "nearestVendorDistance": 88.59875647515783,
+      "sellDistance": 400,
+      "sellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
+      "sellDistanceBrowserObserved": false,
+      "sourcePinnedSellDistance": 400,
+      "officialServerSourceCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+      "officialServerBlobSha": "40d0aeda16b9a4320441e833020fe1b4db496e2c",
+      "goldBudgetLedgerReservationRequired": true,
+      "goldBudgetLedgerReservationSatisfied": false
+    },
+    "performanceTrick": {
+      "available": true,
+      "called": true,
+      "audioFound": true,
+      "playing": true,
+      "cplaying": true,
+      "active": true,
+      "verification": "HOWLER_PLAYING_TRUE",
+      "error": null
+    },
+    "stableDoubleObservation": true,
+    "sourceCandidateRatifiedOnly": true,
+    "purchaseStillRequiresGoldBudgetLedgerReservation": true,
+    "purchaseStillRequiresDurableIntentAndOneShotAuthority": true,
+    "equipStillSeparateMutation": true,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "durableIntentCreated": false,
+    "purchaseAuthority": false,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false,
+    "openIntentCount": 0
+  },
+  "nextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE"
 }

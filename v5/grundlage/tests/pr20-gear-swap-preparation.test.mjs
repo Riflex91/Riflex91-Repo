@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_2_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+  assert.equal(contract.status, "WEAPON_OFFHAND_ACQUISITION_READ_ONLY_BESTANDEN_DURABLE_SHADOW_NEXT");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -379,7 +379,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.acquisitionManifestCutoverPrepared, true);
   assert.equal(contract.weaponOffhandFoundation.acquisitionSameTestUpgradeStrictlyNewer, true);
   assert.equal(contract.weaponOffhandFoundation.acquisitionPreviousTerminalZeroWriteEligible, true);
-  assert.equal(contract.weaponOffhandFoundation.acquisitionEvidenceStatus, "V1_0_1_BLOCKED_SELL_DIST_UNOBSERVABLE_V1_0_2_OFFEN");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionEvidenceStatus, "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE");
   assert.equal(contract.weaponOffhandFoundation.acquisitionGameplayWrites, 0);
   assert.equal(contract.weaponOffhandFoundation.acquisitionPublicFunctionCalls, 0);
   assert.equal(contract.weaponOffhandFoundation.acquisitionRawWriteCalls, 0);
@@ -403,6 +403,12 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.acquisitionExpectedServerIdentifier, "I");
   assert.equal(contract.weaponOffhandFoundation.acquisitionOfficialServerSourceCommit, "90052162eb3ebda36c893e1eb4af643913c8f984");
   assert.equal(contract.weaponOffhandFoundation.acquisitionOfficialServerBlobSha, "40d0aeda16b9a4320441e833020fe1b4db496e2c");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionEvidenceRatified, true);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionEvidenceObservedAtMs, 1790238192422);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionObservedVendorDistance, 88.59875647515783);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionObservedSellDistance, 400);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionObservedSellDistanceSource, "OFFICIAL_SERVER_SOURCE_PIN");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE");
   assert.match(contract.weaponOffhandFoundation.acquisitionSourceCommit, /^[0-9a-f]{40}$/);
   assert.match(contract.weaponOffhandFoundation.acquisitionPackageSha256, /^[0-9a-f]{64}$/);
   assert.match(contract.weaponOffhandFoundation.readOnlySourceCommit, /^[0-9a-f]{40}$/);

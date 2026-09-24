@@ -21,7 +21,7 @@ const source = fs.readFileSync(
 
 test("PR20.7 acquisition candidate is exact wshield Merchant offhand source", () => {
   assert.equal(contract.blockingGate, "PR20.7_GEAR");
-  assert.equal(contract.status, "READ_ONLY_SOURCE_PREFLIGHT_PREPARED_NO_PURCHASE_AUTHORITY");
+  assert.equal(contract.status, "READ_ONLY_SOURCE_PREFLIGHT_BESTANDEN_DURABLE_SHADOW_NEXT");
   assert.equal(contract.rationale.procurementRequired, true);
   assert.equal(contract.rationale.farmerGearAllocationStillSeparate, true);
   assert.equal(contract.candidate.recipient, "My_Merchant");
@@ -52,7 +52,7 @@ test("PR20.7 acquisition candidate is exact wshield Merchant offhand source", ()
 test("PR20.7 acquisition preflight is immutable candidate discovery, never purchase authority", () => {
   assert.equal(plan.testId, "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight");
   assert.equal(plan.controllerVersion, "1.0.2");
-  assert.equal(plan.status, "CORRECTIVE_1_0_2_MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_PREFLIGHT");
+  assert.equal(plan.status, "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE");
   assert.equal(plan.deployment.coordinatorClass, "merchant");
   assert.match(plan.deployment.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(plan.deployment.packageSha256, /^[0-9a-f]{64}$/);
@@ -88,6 +88,13 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(plan.budgetBoundary.GoldBudgetLedgerReservationRequiredBeforePurchase, true);
   assert.equal(plan.budgetBoundary.GoldBudgetLedgerReservationSatisfiedByThisTest, false);
   assert.equal(plan.budgetBoundary.safetyReserveMustBePreserved, true);
+  assert.equal(plan.realEvidence.ratified, true);
+  assert.equal(plan.realEvidence.result, "BESTANDEN");
+  assert.equal(plan.realEvidence.observedAtMs, 1790238192422);
+  assert.equal(plan.realEvidence.gameplayWrites, 0);
+  assert.equal(plan.realEvidence.publicFunctionCalls, 0);
+  assert.equal(plan.realEvidence.rawWriteCalls, 0);
+  assert.equal(plan.realEvidence.purchaseAuthority, false);
 
   for (const [key, expected] of Object.entries({
     gameplayWrites: 0,
@@ -122,7 +129,16 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.preflight.manifestCutoverPrepared, true);
   assert.equal(contract.preflight.sameTestUpgradeStrictlyNewer, true);
   assert.equal(contract.preflight.previousTerminalZeroWriteEligible, true);
-  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_REAL_READ_ONLY_PREFLIGHT_V1_0_2");
+  assert.equal(contract.preflight.realEvidenceStatus, "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE");
+  assert.equal(contract.preflight.realEvidenceRatified, true);
+  assert.equal(contract.preflight.realEvidenceObservedAtMs, 1790238192422);
+  assert.equal(contract.preflight.realEvidenceManifestMainCommit, "5a45b09c1ce7e439d80ada368980fc288fd76d35");
+  assert.equal(contract.preflight.realObservedVendorDistance, 88.59875647515783);
+  assert.equal(contract.preflight.realObservedSellDistance, 400);
+  assert.equal(contract.preflight.realObservedSellDistanceSource, "OFFICIAL_SERVER_SOURCE_PIN");
+  assert.equal(contract.preflight.realObservedGold, 14493644);
+  assert.equal(contract.preflight.realObservedFreeInventorySlots, 21);
+  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_PREPARE");
   assert.equal(contract.preflight.purchaseAuthority, false);
   assert.equal(contract.preflight.goldBudgetLedgerReservationRequired, true);
   assert.equal(contract.preflight.goldBudgetLedgerReservationSatisfied, false);
@@ -134,16 +150,17 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.mutationBoundary.sameIntentRetry, false);
 });
 
-test("PR20.7 acquisition evidence stays open until real browser preflight", () => {
-  assert.equal(evidence.status, "OFFEN");
+test("PR20.7 acquisition v1.0.2 real browser evidence is ratified zero-write", () => {
+  assert.equal(evidence.status, "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE");
   assert.equal(evidence.testId, plan.testId);
   assert.equal(evidence.controllerVersion, plan.controllerVersion);
   assert.equal(evidence.sourceCommit, plan.deployment.sourceCommit);
   assert.equal(evidence.packageSha256, plan.deployment.packageSha256);
-  assert.equal(evidence.observedAtMs, null);
-  assert.equal(evidence.terminal, null);
-  assert.equal(evidence.result, null);
-  assert.equal(evidence.ratified, false);
+  assert.equal(evidence.manifestMainCommit, "5a45b09c1ce7e439d80ada368980fc288fd76d35");
+  assert.equal(evidence.observedAtMs, 1790238192422);
+  assert.equal(evidence.terminal, true);
+  assert.equal(evidence.result, "BESTANDEN");
+  assert.equal(evidence.ratified, true);
   assert.equal(evidence.packagePath, plan.deployment.packagePath);
   assert.equal(evidence.rejectedPreviousRun.controllerVersion, "1.0.0");
   assert.equal(evidence.rejectedPreviousRun.reportedStatus, "BESTANDEN");
@@ -165,10 +182,25 @@ test("PR20.7 acquisition evidence stays open until real browser preflight", () =
   assert.equal(evidence.blockedPreviousRunV1_0_1.sameIntentRetry, false);
   assert.equal(evidence.officialServerReachabilitySource.sellDistance, 400);
   assert.equal(evidence.officialServerReachabilitySource.commit, "90052162eb3ebda36c893e1eb4af643913c8f984");
-  assert.deepEqual(
-    evidence.blocker,
-    ["REAL_WSHIELD_ACQUISITION_READ_ONLY_PREFLIGHT_V1_0_2_NOCH_NICHT_AUSGEFUEHRT"],
-  );
+  assert.deepEqual(evidence.blocker, []);
+  assert.equal(evidence.nextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE");
+  assert.equal(evidence.liveEvidence.recipient.characterName, "My_Merchant");
+  assert.equal(evidence.liveEvidence.recipient.serverRegion, "EU");
+  assert.equal(evidence.liveEvidence.recipient.serverIdentifier, "I");
+  assert.equal(evidence.liveEvidence.acquisition.vendorReachableNow, true);
+  assert.equal(evidence.liveEvidence.acquisition.nearestVendorDistance, 88.59875647515783);
+  assert.equal(evidence.liveEvidence.acquisition.sellDistance, 400);
+  assert.equal(evidence.liveEvidence.acquisition.sellDistanceSource, "OFFICIAL_SERVER_SOURCE_PIN");
+  assert.equal(evidence.liveEvidence.acquisition.publicFunctionAvailable, true);
+  assert.equal(evidence.liveEvidence.acquisition.observedGold, 14493644);
+  assert.equal(evidence.liveEvidence.acquisition.freeInventorySlots, 21);
+  assert.equal(evidence.liveEvidence.acquisition.purchaseAuthority, false);
+  assert.equal(evidence.liveEvidence.gameplayWrites, 0);
+  assert.equal(evidence.liveEvidence.publicFunctionCalls, 0);
+  assert.equal(evidence.liveEvidence.rawWriteCalls, 0);
+  assert.equal(evidence.liveEvidence.durableIntentCreated, false);
+  assert.equal(evidence.liveEvidence.sameIntentRetry, false);
+  assert.equal(evidence.liveEvidence.normalRuntimeAllowed, false);
 });
 
 test("PR20.7 acquisition source is zero-write and does not reuse mutating harnesses", () => {
