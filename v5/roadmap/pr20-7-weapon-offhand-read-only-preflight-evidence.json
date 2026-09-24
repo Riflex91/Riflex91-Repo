@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-weapon-offhand-read-only-preflight",
+  "controllerVersion": "1.0.0",
+  "status": "OFFEN",
+  "evidenceArt": "V5_PR20_7_WEAPON_OFFHAND_REAL_BROWSER_PREFLIGHT",
+  "sourceCommit": null,
+  "packageSha256": null,
+  "manifestMainCommit": null,
+  "observedAtMs": null,
+  "terminal": null,
+  "result": null,
+  "expectedSafetyBoundary": {
+    "browserGameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "durableIntentCreated": false,
+    "authorityIssued": false,
+    "weaponOffhandWriteRatification": false,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "ratified": false,
+  "blocker": [
+    "REAL_BROWSER_WEAPON_OFFHAND_PREFLIGHT_NOCH_NICHT_AUSGEFUEHRT"
+  ]
+}
