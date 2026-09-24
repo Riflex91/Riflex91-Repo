@@ -628,7 +628,7 @@ test("PR20.8 Upgrade Durable Shadow package stays no-send and authority-free", (
   const shadow = prep.pr20_8.upgradeDurableShadow;
   assert.equal(shadow.status, "PACKAGE_BEREIT_NO_WRITE");
   assert.equal(shadow.testId, "pr20-8-upgrade-durable-shadow-no-write");
-  assert.equal(shadow.controllerVersion, "1.0.0");
+  assert.equal(shadow.controllerVersion, "1.0.1");
   assert.equal(shadow.candidate.name, "gloves");
   assert.equal(shadow.candidate.level, 0);
   assert.equal(shadow.candidate.baseGold, 3400);
@@ -652,6 +652,12 @@ test("PR20.8 Upgrade Durable Shadow package stays no-send and authority-free", (
   assert.equal(shadow.sendBoundaryState, "NICHT_GESENDET");
   assert.equal(shadow.reconciliationClassification, "NOT_APPLIED");
   assert.equal(shadow.sameIntentRetry, false);
+  assert.equal(shadow.invalidOrNonterminalEqualIntentBlocked, true);
+  assert.equal(shadow.exactTerminalNoSendIntentReconciledWithoutRewrite, true);
+  assert.equal(shadow.terminalRecoveryRequiresExactBindingsAndFingerprints, true);
+  assert.equal(shadow.recoveredIntentCreatesNewDurableWrite, false);
+  assert.equal(shadow.recoveredIntentCanAuthorizeSend, false);
+  assert.equal(shadow.bridgeFrameAndHostFacadeMirrored, true);
   assert.equal(shadow.oneShotMaximumUses, 1);
   assert.equal(shadow.upgradeAuthorityIssued, false);
   assert.equal(shadow.productionDurableIntentCreated, false);
