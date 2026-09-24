@@ -284,7 +284,7 @@ test("PR20.7 controlled wshield live package is pinned but manifest is still clo
   assert.deepEqual(liveEvidence.blocker, [
     "REAL_WSHIELD_ACQUISITION_LIVE_5M_NOCH_NICHT_AUSGEFUEHRT",
   ]);
-  assert.equal((liveSource.match(/r\\.buy_with_gold\\(/g) || []).length, 1);
+  assert.equal((liveSource.match(/r\.buy_with_gold\(/g) || []).length, 1);
   assert.equal(liveSource.includes("socket.emit("), false);
   assert.equal(liveSource.includes(".socket.emit("), false);
   assert.equal(liveSource.includes("api_call("), false);
