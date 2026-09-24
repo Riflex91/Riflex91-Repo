@@ -417,7 +417,7 @@ test("PR20.7 offhand acquisition manifest is exact wshield read-only source pref
 
 test("PR20.7 offhand acquisition durable shadow manifest is exact no-send preparation", () => {
   if (manifest.testId !== "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.controllerVersion, "1.0.1");
   assert.equal(manifest.sourceCommit, "0b92ce4002438ef4282622699019b5148da58184");
   assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js");
   assert.equal(manifest.packageSha256, "11c666638c111a3acd04e550bf33b52eb7611f53a0f8f02547b4b199df73793d");
