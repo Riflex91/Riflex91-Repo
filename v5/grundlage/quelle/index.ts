@@ -104,6 +104,8 @@ export * from "./koordination/cm-settlement.js";
 export * from "./merchant/werttransaktion.js";
 export * from "./merchant/item-mutations-planer.js";
 export * from "./merchant/exchange-produktions-planer.js";
+export * from "./merchant/pr20-8-wertmutation-one-shot.js";
+export * from "./merchant/pr20-8-wertmutation-durable-admission.js";
 export * from "./produktion/recipient-settlement.js";
 export * from "./produktion/production-intent.js";
 export * from "./produktion/production-planer.js";
