@@ -6,8 +6,8 @@
   "controllerVersion": "1.0.0",
   "status": "OFFEN",
   "evidenceArt": "V5_PR20_7_OCCUPIED_SLOT_LIVE_5M",
-  "sourceCommit": null,
-  "packageSha256": null,
+  "sourceCommit": "9d83e6376659a8cf0ff8f182850f988981c0828b",
+  "packageSha256": "4fb9a297a31f84aaa713d3b486783ca9c55b65cc16a164a99a9adba095559322",
   "manifestMainCommit": null,
   "observedAtMs": null,
   "terminal": null,
@@ -24,6 +24,6 @@
   },
   "ratified": false,
   "blocker": [
-    "PRODUCTIVE_ONE_SHOT_LIVE_5M_NOCH_NICHT_AUSGEFUEHRT"
+    "REALER_PRODUCTIVE_ONE_SHOT_LIVE_5M_NOCH_NICHT_TERMINAL_BESTANDEN"
   ]
 }
