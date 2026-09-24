@@ -105,3 +105,4 @@ jobs:
           cache-dependency-path: v5/package-lock.json
       - run: npm ci
       - run: npm run merchant-pr20-8-prep:pruefen
+      - run: node --check werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js && node --test werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-1.test.mjs
