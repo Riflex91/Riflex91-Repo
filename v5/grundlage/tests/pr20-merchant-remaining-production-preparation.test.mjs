@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "WEAPON_OFFHAND_EQUIP_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+    "WEAPON_OFFHAND_EQUIP_BESTANDEN_FARMER_GEAR_ALLOCATION_OFFEN");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -348,13 +348,36 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionProductivePurchaseLiveSameIntentRetry, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionProductivePurchaseLiveRestartReconcileWithoutResend, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionProductivePurchaseLiveSoakMinimumSamples, 60);
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionNextGate, "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_EXECUTE");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionNextGate, "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipPackagePrepared, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipExactItem, "wshield");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipTargetSlot, "offhand");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipPreviousTargetSlotMustBeEmpty, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipExactOppositeHand, "staff");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipManifestCutoverPrepared, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipEvidenceStatus,
+    "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipEvidenceRatified, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipEvidenceManifestMainCommit,
+    "72ba966878e1575df786ca1e60f50044e2aa89a5");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipEvidenceObservedAtMs, 1790251127933);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedInventoryIndex, 1);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedReconciliation, "COMMITTED");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedSettlement, "BESTAETIGT");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedGameplayWrites, 1);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedPublicFunctionCalls, 1);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedRawWriteCalls, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedSameIntentRetry, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedDurableIntentReadback, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedOneShotIssued, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedOneShotConsumed, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedExactEmptyOffhandPrestate, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedOppositeHandPinned, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedEquipmentInventoryFenceClaims, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedSoakSamples, 60);
+  assert.ok(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedSoakDurationMs >= 299000);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandNextGate,
+    "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipSameIntentRetry, false);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionSourceCommit, /^[0-9a-f]{40}$/);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPackageSha256, /^[0-9a-f]{64}$/);
