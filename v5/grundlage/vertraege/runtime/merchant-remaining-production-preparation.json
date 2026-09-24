@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "LIVE_CANDIDATE_PACKAGE_BEREIT_NO_WRITE",
+    "status": "LIVE_CANDIDATE_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_LIVE_CANDIDATE_MANIFEST_CUTOVER",
+    "nextAction": "PR20_8_LIVE_CANDIDATE_REAL_BROWSER_OBSERVE",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -656,7 +656,11 @@
       "publicFunctionCalls": 0,
       "rawWriteCalls": 0,
       "sameIntentRetry": false,
-      "normalRuntimeAllowed": false
+      "normalRuntimeAllowed": false,
+      "sourceCommit": "7307573841b86b1fb22fd5abfb73a3d461bf0049",
+      "packageSha256": "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5",
+      "manifest": "roadmap/v5-autonomous-test-manifest.json",
+      "manifestCutoverPrepared": true
     }
   },
   "pr20_9": {

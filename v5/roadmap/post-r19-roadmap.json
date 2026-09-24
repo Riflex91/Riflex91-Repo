@@ -82,8 +82,8 @@
     "PR20.1 bis PR20.7 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.8 Wertmutationen ist aktuelles Gate",
     "PR20.8 Exchange-Spezialplaner sowie getrennte Durable-/One-Shot-/Read-only-Preflight-Fundamente sind NO-WRITE vorbereitet",
-    "PR20.8 Live-Candidate-Discovery-Paket fuer Upgrade/Compound/Exchange ist NO-WRITE vorbereitet",
-    "AKTUELL: Paket ueber V5 Autonomous Test Manifest ausrollen und reale Kandidaten read-only beobachten",
+    "PR20.8 Live-Candidate-Discovery-Paket ist SHA-gepinnt und Manifest-Cutover vorbereitet",
+    "AKTUELL: realen Browserlauf fuer Upgrade/Compound/Exchange-Kandidaten read-only beobachten",
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
@@ -752,7 +752,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "LIVE_CANDIDATE_PACKAGE_BEREIT_NO_WRITE",
+      "status": "LIVE_CANDIDATE_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -762,7 +762,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_LIVE_CANDIDATE_MANIFEST_CUTOVER",
+      "nextAction": "PR20_8_LIVE_CANDIDATE_REAL_BROWSER_OBSERVE",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -776,7 +776,9 @@
         "v5/grundlage/tests/pr20-wertmutation-read-only-preflight.test.mjs",
         "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js",
         "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly.test.mjs",
-        "v5/grundlage/vertraege/runtime/pr20-8-live-candidate-readonly-preparation.json"
+        "v5/grundlage/vertraege/runtime/pr20-8-live-candidate-readonly-preparation.json",
+        "v5/roadmap/v5-autonomous-test-manifest.json",
+        "v5/werkzeuge/tests/v5-autonomous-test-manifest.test.mjs"
       ]
     },
     {
@@ -1616,7 +1618,7 @@
     }
   },
   "pr20_8": {
-    "status": "LIVE_CANDIDATE_PACKAGE_BEREIT_NO_WRITE",
+    "status": "LIVE_CANDIDATE_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1663,9 +1665,9 @@
       "normalExchange": "OFFEN_SEPARATE_RATIFICATION",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
-      "liveCandidateSelection": "PACKAGE_BEREIT_NO_WRITE"
+      "liveCandidateSelection": "MANIFEST_CUTOVER_PREPARED_NO_WRITE"
     },
-    "nextAction": "PR20_8_LIVE_CANDIDATE_MANIFEST_CUTOVER",
+    "nextAction": "PR20_8_LIVE_CANDIDATE_REAL_BROWSER_OBSERVE",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -1702,6 +1704,10 @@
     "liveCandidateDiscoveryPublicFunctionCalls": 0,
     "liveCandidateDiscoveryRawWriteCalls": 0,
     "liveCandidateDiscoveryAuthorityIssued": false,
-    "liveCandidateDiscoverySameIntentRetry": false
+    "liveCandidateDiscoverySameIntentRetry": false,
+    "liveCandidateDiscoverySourceCommit": "7307573841b86b1fb22fd5abfb73a3d461bf0049",
+    "liveCandidateDiscoveryPackageSha256": "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5",
+    "liveCandidateDiscoveryManifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "liveCandidateDiscoveryManifestCutoverPrepared": true
   }
 }
