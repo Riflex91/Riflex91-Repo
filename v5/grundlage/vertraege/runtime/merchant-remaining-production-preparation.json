@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_BESTANDEN",
+    "status": "WEAPON_OFFHAND_FOUNDATION_NO_WRITE",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -85,7 +85,8 @@
       "PR20.7 Post-Send Reobserve/Reconcile klassifiziert BESTAETIGT/NICHT_AUSGEFUEHRT/TEILWEISE/UNGEKLAERT ohne Same-Intent-Retry",
       "PR20.7 realer Merchant-only Browser-Shadow ist SHA-gepinnt und workerlos vorbereitet",
       "PR20.7 realer Merchant-only Browser-Shadow ist BESTANDEN und mit 0 Writes ratifiziert",
-      "PR20.7 realer belegter Nicht-Waffen-Slot One-Shot ist COMMITTED und mit 60x5s Evidence ratifiziert"
+      "PR20.7 realer belegter Nicht-Waffen-Slot One-Shot ist COMMITTED und mit 60x5s Evidence ratifiziert",
+      "PR20.7 Waffen-/Offhand-Foundation bindet explizite mainhand/offhand-Slots, Klassen-/WType-Regeln und Doublehand-Gegenhand NO-WRITE"
     ],
     "produktiveErweiterungErstNach": [
       "PR20.1 Equip-Live-Nachweis",
@@ -180,7 +181,17 @@
       "occupiedNonWeaponLiveSameIntentRetry": false,
       "occupiedNonWeaponLiveSoakSamples": 60,
       "occupiedNonWeaponLiveSoakDurationMs": 300552,
-      "farmerGearAllocationSeparateGate": true
+      "farmerGearAllocationSeparateGate": true,
+      "weaponOffhandFoundation": "grundlage/quelle/equipment/pr20-7-weapon-offhand-vorbereitung.ts",
+      "weaponOffhandContract": "grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json",
+      "weaponOffhandExplicitSlotRequired": true,
+      "weaponOffhandClassRulesPinned": true,
+      "weaponOffhandOppositeHandPinned": true,
+      "weaponOffhandDoublehandConflictBlocked": true,
+      "weaponOffhandAutomaticUnequipAllowed": false,
+      "weaponOffhandGameplayWrites": 0,
+      "weaponOffhandRealReadOnlyEvidenceStatus": "OFFEN",
+      "weaponOffhandProductiveEvidenceStatus": "OFFEN"
     }
   },
   "pr20_8": {
