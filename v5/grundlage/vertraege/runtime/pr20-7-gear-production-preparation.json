@@ -290,13 +290,20 @@
     "accountDiscoveryRawWriteCalls": 0,
     "accountDiscoveryFarmerGearAllocationRatification": false,
     "accountDiscoveryEvidenceStatus": "OFFEN",
-    "accountDiscoverySourceCommit": "6125f52b80901133d5a973d4998b665d9ac56a3d",
-    "accountDiscoveryPackageSha256": "ba8cff0187adb116d8003f85f3d4ef36ada380c6bead8bc7aab1d3cff5e6b6ad",
+    "accountDiscoverySourceCommit": "6863d1a19ebe8c42c7362ba7981866572f910474",
+    "accountDiscoveryPackageSha256": "e6fb4e8ae0e5a98d73c26f7e81d5d66b8d50249f347ba74fcd27eaf07521e56d",
     "accountDiscoveryManifest": "roadmap/v5-autonomous-test-manifest.json",
     "accountDiscoveryManifestCutoverPrepared": true,
-    "accountDiscoveryControllerVersion": "1.0.1",
+    "accountDiscoveryControllerVersion": "1.0.2",
     "accountDiscoveryBridgeContractFixed": true,
     "accountDiscoveryStatusEnvelope": "status.v5AutonomousTest",
-    "accountDiscoveryPeekTelemetryArray": true
+    "accountDiscoveryPeekTelemetryArray": true,
+    "accountDiscoveryPerformanceRoots": [
+      "globalThis",
+      "parent"
+    ],
+    "accountDiscoveryPerformanceActivationDelayMs": 350,
+    "accountDiscoveryPerformanceRetryDelayMs": 150,
+    "accountDiscoveryPriorAttemptStatus": "BLOCKIERT_PERFORMANCE_TRICK_ZERO_WRITE"
   }
 }
