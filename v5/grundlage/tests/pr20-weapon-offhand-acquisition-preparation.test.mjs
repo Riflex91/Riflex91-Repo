@@ -21,7 +21,7 @@ const source = fs.readFileSync(
 
 test("PR20.7 acquisition candidate is exact wshield Merchant offhand source", () => {
   assert.equal(contract.blockingGate, "PR20.7_GEAR");
-  assert.equal(contract.status, "READ_ONLY_SOURCE_PREFLIGHT_BESTANDEN_DURABLE_SHADOW_NEXT");
+  assert.equal(contract.status, "DURABLE_SHADOW_PACKAGE_BEREIT_MANIFEST_OFFEN");
   assert.equal(contract.rationale.procurementRequired, true);
   assert.equal(contract.rationale.farmerGearAllocationStillSeparate, true);
   assert.equal(contract.candidate.recipient, "My_Merchant");
@@ -138,7 +138,7 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.preflight.realObservedSellDistanceSource, "OFFICIAL_SERVER_SOURCE_PIN");
   assert.equal(contract.preflight.realObservedGold, 14493644);
   assert.equal(contract.preflight.realObservedFreeInventorySlots, 21);
-  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_PREPARE");
+  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_SHADOW_MANIFEST_CUTOVER");
   assert.equal(contract.preflight.purchaseAuthority, false);
   assert.equal(contract.preflight.goldBudgetLedgerReservationRequired, true);
   assert.equal(contract.preflight.goldBudgetLedgerReservationSatisfied, false);
@@ -148,6 +148,37 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.mutationBoundary.bankRetrieveAllowed, false);
   assert.equal(contract.mutationBoundary.oldPr20_3HarnessReuseAllowed, false);
   assert.equal(contract.mutationBoundary.sameIntentRetry, false);
+  assert.equal(contract.shadowPreparation.foundation, "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts");
+  assert.equal(contract.shadowPreparation.package, "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js");
+  assert.equal(contract.shadowPreparation.testId, "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write");
+  assert.equal(contract.shadowPreparation.controllerVersion, "1.0.0");
+  assert.equal(contract.shadowPreparation.expectedGlobal, "V5PR207WeaponOffhandAcquisitionShadow");
+  assert.equal(contract.shadowPreparation.sourceCommit, "3f006c17934f0159fa575d2da0e4d048fbf0df09");
+  assert.equal(contract.shadowPreparation.packageSha256, "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08");
+  assert.equal(contract.shadowPreparation.manifestCutoverPrepared, false);
+  assert.equal(contract.shadowPreparation.exactCost, 4800);
+  assert.equal(contract.shadowPreparation.minimumGoldSafetyReserve, 1000);
+  assert.equal(contract.shadowPreparation.goldBudgetLedgerReservationSatisfiedByFoundation, true);
+  assert.equal(contract.shadowPreparation.inventoryFencePrepared, true);
+  assert.equal(contract.shadowPreparation.goldFencePrepared, true);
+  assert.equal(contract.shadowPreparation.buyActionChannelFencePrepared, true);
+  assert.equal(contract.shadowPreparation.socketBudgetReservationPrepared, true);
+  assert.equal(contract.shadowPreparation.socketPlanBudgetReserved, 100);
+  assert.equal(contract.shadowPreparation.socketServerReserveUntouched, 100);
+  assert.equal(contract.shadowPreparation.durableReadbackRequired, true);
+  assert.equal(contract.shadowPreparation.journalTerminalArt, "ABBRUCH");
+  assert.equal(contract.shadowPreparation.sendBoundaryState, "NICHT_GESENDET");
+  assert.equal(contract.shadowPreparation.expectedReconciliation, "NOT_APPLIED");
+  assert.equal(contract.shadowPreparation.oneShotMaximumUses, 1);
+  assert.equal(contract.shadowPreparation.oneShotPurchaseAuthorityIssued, false);
+  assert.equal(contract.shadowPreparation.oldPr20_3HarnessReuseAllowed, false);
+  assert.equal(contract.shadowPreparation.purchaseAuthority, false);
+  assert.equal(contract.shadowPreparation.gameplayWrites, 0);
+  assert.equal(contract.shadowPreparation.publicFunctionCalls, 0);
+  assert.equal(contract.shadowPreparation.rawWriteCalls, 0);
+  assert.equal(contract.shadowPreparation.sameIntentRetry, false);
+  assert.equal(contract.shadowPreparation.normalRuntimeAllowed, false);
+  assert.equal(contract.shadowPreparation.evidenceStatus, "OFFEN");
 });
 
 test("PR20.7 acquisition v1.0.2 real browser evidence is ratified zero-write", () => {
