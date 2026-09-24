@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "COMPOUND_LIVE_5M_PREPARATION_READY_NO_LIVE_WRITE",
+    "COMPOUND_LIVE_5M_RUNNER_PACKAGE_READY_NOT_DEPLOYED",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE",
+    "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER",
   );
   const exit=prep.pr20_8.exitGateReview;
   assert.equal(exit.status,"BLOCKED_COMPOUND_5M_EXCHANGE_NO_CANDIDATE");
@@ -1153,7 +1153,7 @@ test("PR20.8 Compound one-write evidence is ratified while 5m and Exchange remai
 
 test("PR20.8 Compound 5m preparation continues the committed transaction with zero additional writes", () => {
   const p=prep.pr20_8.compoundLive5mPreparation;
-  assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
+  assert.equal(p.status,"RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED");
   assert.equal(
     p.contract,
     "grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json",
@@ -1188,7 +1188,21 @@ test("PR20.8 Compound 5m preparation continues the committed transaction with ze
   assert.equal(p.compoundWriteAuthority,false);
   assert.equal(p.gameplayAuthority,false);
   assert.equal(p.rawWriteAuthority,false);
-  assert.equal(p.liveRunnerPresent,false);
+  assert.equal(p.liveRunnerPresent,true);
+  assert.equal(p.runnerPackage,"werkzeuge/pr20-8-compound-live-5m.js");
+  assert.equal(p.runnerTest,"werkzeuge/tests/pr20-8-compound-live-5m.test.mjs");
+  assert.equal(
+    p.runnerContract,
+    "grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json",
+  );
+  assert.equal(p.runnerTestId,"pr20-8-compound-live-5m");
+  assert.equal(p.runnerControllerVersion,"1.0.0");
+  assert.equal(p.expectedGlobal,"V5PR208CompoundLive5m");
+  assert.equal(p.runnerSourceCommit,"61db398373d1909bc11eb883af5902ac339a123c");
+  assert.equal(p.runnerPackageSha256,"2c68619ffb7359373a6a817ac939c34278a66f5c69e7d3efba59a5ff5c00e221");
+  assert.equal(p.runnerPackageBytes,25081);
+  assert.equal(p.publicCompoundCallSites,0);
+  assert.equal(p.bridgeMayDeployPinnedRunner,false);
   assert.equal(p.manifestCutoverPrepared,false);
   assert.equal(p.deployed,false);
   assert.equal(p.liveWriteEnabled,false);
@@ -1198,7 +1212,57 @@ test("PR20.8 Compound 5m preparation continues the committed transaction with ze
   assert.equal(p.exchangeRatification,false);
   assert.equal(p.exchangeAutonomyProductiveProven,false);
   assert.equal(p.mayAdvanceToPr20_9,false);
-  assert.equal(p.nextGate,"PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE");
+  assert.equal(p.nextGate,"PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER");
+});
+
+test("PR20.8 Compound 5m observer runner package has a separate zero-write aggregate boundary", () => {
+  const r=prep.pr20_8.compoundLive5mRunner;
+  assert.equal(r.status,"PACKAGE_BEREIT_NOT_DEPLOYED");
+  assert.equal(r.package,"werkzeuge/pr20-8-compound-live-5m.js");
+  assert.equal(r.test,"werkzeuge/tests/pr20-8-compound-live-5m.test.mjs");
+  assert.equal(
+    r.contract,
+    "grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json",
+  );
+  assert.equal(r.testId,"pr20-8-compound-live-5m");
+  assert.equal(r.controllerVersion,"1.0.0");
+  assert.equal(r.expectedGlobal,"V5PR208CompoundLive5m");
+  assert.equal(r.sourceCommit,"61db398373d1909bc11eb883af5902ac339a123c");
+  assert.equal(r.packageSha256,"2c68619ffb7359373a6a817ac939c34278a66f5c69e7d3efba59a5ff5c00e221");
+  assert.equal(r.packageBytes,25081);
+  assert.equal(
+    r.sourceTransactionId,
+    "pr20-8-compound-productive-one-write-live:ff08418e6003250471c98f5893dec8dd",
+  );
+  assert.equal(r.sourceSendCount,1);
+  assert.equal(r.sourceReconciliation,"COMMITTED_SUCCESS");
+  assert.equal(r.exactCommittedResult,"hpamulet@1@index1");
+  assert.deepEqual(r.exactConsumedInputIndexes,[22,23]);
+  assert.equal(r.exactScrollPoststate,"cscroll0@index18:q19");
+  assert.equal(r.minimumSamples,60);
+  assert.equal(r.intervalMs,5000);
+  assert.equal(r.minimumDurationMs,299000);
+  assert.equal(r.maximumAdditionalGameplayWrites,0);
+  assert.equal(r.maximumAdditionalPublicFunctionCalls,0);
+  assert.equal(r.maximumAdditionalRawWriteCalls,0);
+  assert.equal(r.publicCompoundCallSites,0);
+  assert.equal(r.restartMayNeverResend,true);
+  assert.equal(r.sameIntentRetry,false);
+  assert.equal(r.compoundWriteAuthority,false);
+  assert.equal(r.gameplayAuthority,false);
+  assert.equal(r.rawWriteAuthority,false);
+  assert.equal(r.manifest,"roadmap/v5-autonomous-test-manifest.json");
+  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.deployed,false);
+  assert.equal(r.liveWriteEnabled,false);
+  assert.equal(r.bridgeMayDeployPinnedRunner,false);
+  assert.equal(r.normalRuntimeAllowed,false);
+  assert.equal(r.passMaySetCompoundLive5mTested,true);
+  assert.equal(r.passDoesNotSatisfyPr20_8ExitGateByItself,true);
+  assert.equal(r.exchangeRatification,false);
+  assert.equal(r.exchangeAutonomyProductiveProven,false);
+  assert.equal(r.mayAdvanceToPr20_9,false);
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER");
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
