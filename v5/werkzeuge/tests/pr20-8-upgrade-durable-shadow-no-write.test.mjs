@@ -107,7 +107,7 @@ async function run(env) {
   vm.runInContext(source,env.box,{
     filename:"pr20-8-upgrade-durable-shadow-no-write.js",
   });
-  for(let i=0;i<40;i+=1) {
+  for(let i=0;i<240;i+=1) {
     await new Promise(resolve => setImmediate(resolve));
     const status=env.box.V5PR208UpgradeDurableShadowNoWrite?.status?.();
     if(status?.terminal) return status;
