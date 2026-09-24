@@ -273,7 +273,7 @@ test("PR20.7 occupied-slot live manifest permits exactly one public equip and no
   assert.ok(packageSource.includes("completionStatus:\"BESTANDEN\""));
   assert.ok(packageSource.includes("restartReconciliation"));
   assert.ok(packageSource.includes("resendAttempted:false"));
-  assert.equal((packageSource.match(/r\\.equip\\(/g) || []).length, 1);
+  assert.equal((packageSource.match(/r\.equip\(/g) || []).length, 1);
   assert.equal(packageSource.includes("unequip("), false);
   assert.equal(packageSource.includes("use_skill("), false);
   assert.equal(packageSource.includes("start_character("), false);
