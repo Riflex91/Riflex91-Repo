@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "WEAPON_OFFHAND_ACQUISITION_READ_ONLY_PACKAGE_BEREIT_MANIFEST_OFFEN",
+    "status": "WEAPON_OFFHAND_ACQUISITION_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -265,7 +265,7 @@
       "weaponOffhandAcquisitionControllerVersion": "1.0.0",
       "weaponOffhandAcquisitionSourceCommit": "8cb1a5bf799bb7bfef0aa44a185009ae2606ded2",
       "weaponOffhandAcquisitionPackageSha256": "8d35a665d6bf78a83cab015b9c11cea65c39b6933939086949ad533697aebb9f",
-      "weaponOffhandAcquisitionManifestCutoverPrepared": false,
+      "weaponOffhandAcquisitionManifestCutoverPrepared": true,
       "weaponOffhandAcquisitionEvidenceStatus": "OFFEN",
       "weaponOffhandAcquisitionGameplayWrites": 0,
       "weaponOffhandAcquisitionPublicFunctionCalls": 0,
