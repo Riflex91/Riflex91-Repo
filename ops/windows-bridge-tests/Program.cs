@@ -525,6 +525,37 @@ Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
     false, 0, 0, false, false, 0),
     "V5_AUTO_BLOCK_OTHER_NONTERMINAL");
 
+Assert(CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-bridge-handshake-probe-v1", "1.0.1",
+    "pr20-8-bridge-handshake-probe-v1", "1.0.0",
+    false, 0, 0, false, true, 0),
+    "V5_PR208_BRIDGE_PROBE_EXACT_TERMINALIZATION_ALLOWED");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-bridge-handshake-probe-v1", "1.0.1",
+    "pr20-8-bridge-handshake-probe-v1", "1.0.0",
+    false, 1, 0, false, true, 0),
+    "V5_PR208_BRIDGE_PROBE_TERMINALIZATION_BLOCKS_GAMEPLAY_WRITE");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-bridge-handshake-probe-v1", "1.0.1",
+    "pr20-8-bridge-handshake-probe-v1", "1.0.0",
+    false, 0, 1, false, true, 0),
+    "V5_PR208_BRIDGE_PROBE_TERMINALIZATION_BLOCKS_RAW_WRITE");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-bridge-handshake-probe-v1", "1.0.1",
+    "pr20-8-bridge-handshake-probe-v1", "1.0.0",
+    false, 0, 0, true, true, 0),
+    "V5_PR208_BRIDGE_PROBE_TERMINALIZATION_BLOCKS_RETRY_DRIFT");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-bridge-handshake-probe-v1", "1.0.1",
+    "pr20-8-bridge-handshake-probe-v1", "1.0.0",
+    false, 0, 0, false, true, 1),
+    "V5_PR208_BRIDGE_PROBE_TERMINALIZATION_BLOCKS_OPEN_INTENT");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "other-test", "1.0.1",
+    "pr20-8-bridge-handshake-probe-v1", "1.0.0",
+    false, 0, 0, false, true, 0),
+    "V5_PR208_BRIDGE_PROBE_TERMINALIZATION_REJECTS_OTHER_DESIRED_TEST");
+
 Assert(CdpAdventureLandClient.IsStrictlyNewerControllerVersion("1.0.2", "1.0.1"), "V5_VERSION_STRICTLY_NEWER");
 Assert(!CdpAdventureLandClient.IsStrictlyNewerControllerVersion("1.0.1", "1.0.1"), "V5_VERSION_EQUAL_NOT_NEWER");
 Assert(!CdpAdventureLandClient.IsStrictlyNewerControllerVersion("1.0.1", "1.0.2"), "V5_VERSION_DOWNGRADE_REJECTED");
