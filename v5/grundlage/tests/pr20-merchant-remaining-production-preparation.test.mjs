@@ -842,7 +842,7 @@ test("PR20.8 bridge handshake and terminal recovery are confirmed zero-write", (
 
 test("PR20.8 remaining Compound/Exchange candidate rescan ratifies no-candidate evidence and keeps authority closed", () => {
   const r=prep.pr20_8.remainingCandidateRescan;
-  assert.equal(r.status,"V1_0_2_FALSE_POSITIVE_V1_0_3_TARGET_SEMANTICS_PREPARED");
+  assert.equal(r.status,"V1_0_3_REAL_BROWSER_BLOCKED_NO_TARGET_CANDIDATE_ZERO_WRITE");
   assert.equal(r.testId,"pr20-8-wertmutation-live-candidate-readonly");
   assert.equal(r.controllerVersion,"1.0.3");
   assert.equal(r.package,"werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js");
