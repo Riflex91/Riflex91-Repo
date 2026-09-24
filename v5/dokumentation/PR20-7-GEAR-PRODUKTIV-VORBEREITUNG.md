@@ -1,7 +1,7 @@
 # PR20.7 – Gear-Autonomie: belegter Slot / Swap Foundation
 
 **Stand:** 2026-09-24  
-**Status:** `WEAPON_OFFHAND_READ_ONLY_PACKAGE_BEREIT_EVIDENCE_OFFEN`
+**Status:** `WEAPON_OFFHAND_READ_ONLY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN`
 
 ## Zweck
 
@@ -281,8 +281,9 @@ Evidence:
 `roadmap/pr20-7-weapon-offhand-read-only-preflight-evidence.json`.
 
 Die Evidence bleibt bis zu einem real terminalen Lauf explizit `OFFEN`.
-Das Live-Manifest wird erst nach gruener Paket-CI und einem immutable
-Source-Commit/SHA separat umgeschaltet.
+Das Paket ist auf Source-Commit `df4f23a4f633abaa62e817da0eb06ea1db3d94dd`
+und SHA-256 `69e3bff8fa7d33c4f4038aff4635d89eebc0c397a2af77ad05486abbac04f562`
+gepinnt; der Manifest-Cutover ist vorbereitet.
 
 ## Naechstes Gate
 
@@ -290,9 +291,9 @@ Der belegte Nicht-Waffen-Slot ist damit als eigene Mutationsklasse
 produktiv ratifiziert. PR20.7 ist noch nicht abgeschlossen.
 
 Die Waffen-/Offhand-Foundation ist NO-WRITE vorhanden und das reale
-read-only Autonomous-Paket ist vorbereitet. Als naechstes wird dieses Paket
-nach gruener CI auf einen immutable Merge-Commit/SHA gepinnt und das Manifest
-separat umgeschaltet. Erst nach ratifizierter Read-only-Evidence folgen
+read-only Autonomous-Paket ist immutable gepinnt und der Manifest-Cutover
+ist vorbereitet. Als naechstes wird der Cutover gemergt und der reale
+Browserlauf ausgewertet. Erst nach ratifizierter Read-only-Evidence folgen
 One-Shot-/Fencing-/Durable-Intent-Shadow und ein separater produktiver
 5-Minuten-Nachweis.
 
