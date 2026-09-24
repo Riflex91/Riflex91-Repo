@@ -82,10 +82,10 @@
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.7 belegter Nicht-Waffen-Slot ist produktiv BESTANDEN",
     "PR20.7 accountweite Weapon-/Offhand-Discovery fand real 0 kompatible vorhandene Kandidaten",
-    "PR20.7 wshield Acquisition Read-only v1.0.2 ist real BESTANDEN, source-gepinnt und 0 Writes",
-    "AKTUELL: Acquisition Durable Shadow NO-WRITE ist immutable ins Auto-Deploy-Manifest geschnitten",
-    "NAECHSTES: realen Durable Shadow auswerten; PASS muss 4800-Gold-Reservation, >=1000 Safety Reserve, Gold/Inventory/buy-Channel/Socket-Schutz, Durable Readback, One-Shot-Binding und NICHT_GESENDET bei 0 Writes belegen",
-    "Kauf und Equip bleiben weiterhin separat und nicht autorisiert",
+    "PR20.7 wshield Acquisition Read-only und Durable Shadow sind real BESTANDEN",
+    "PR20.7 produktiver wshield-Kauf ist real BESTANDEN: exakt 1 Write, -4800 Gold, +1 wshield, COMMITTED/BESTAETIGT, 60 Samples ueber >5 Minuten",
+    "AKTUELL: getrennte Weapon-/Offhand-Equip-Vorbereitung fuer das gekaufte wshield",
+    "Kauf-Runtime bleibt breit gesperrt; Equip erhaelt nur einen neuen separat gebundenen One-Shot-Gate",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -1046,7 +1046,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_BESTANDEN_EQUIP_PREPARATION_BEREIT",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1106,7 +1106,7 @@
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json"
     ],
-    "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE",
+    "nextAction": "PR20_7_WEAPON_OFFHAND_PRODUCTIVE_EQUIP_PREPARATION",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1210,11 +1210,11 @@
       "observedSoakDurationMs": 300552
     },
     "remainingGates": {
-      "weaponOffhand": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+      "weaponOffhand": "ACQUISITION_PURCHASE_BESTANDEN_EQUIP_PREPARATION_BEREIT",
       "farmerGearAllocation": "OFFEN_SEPARATE_RATIFICATION"
     },
     "weaponOffhand": {
-      "status": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+      "status": "ACQUISITION_PURCHASE_BESTANDEN_EQUIP_PREPARATION_BEREIT",
       "contract": "v5/grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json",
       "explicitSlots": [
         "mainhand",
@@ -1233,7 +1233,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "realReadOnlyEvidenceStatus": "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE",
-      "productiveEvidenceStatus": "OFFEN",
+      "productiveEvidenceStatus": "ACQUISITION_PURCHASE_BESTANDEN_EQUIP_OFFEN",
       "readOnlyAutonomousPackage": "v5/werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js",
       "readOnlyTestPlan": "v5/roadmap/pr20-7-weapon-offhand-read-only-preflight-test-plan.json",
       "readOnlyEvidence": "v5/roadmap/pr20-7-weapon-offhand-read-only-preflight-evidence.json",
@@ -1345,7 +1345,7 @@
       "acquisitionObservedSellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
       "acquisitionObservedGold": 14493644,
       "acquisitionObservedFreeInventorySlots": 21,
-      "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE",
+      "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_PRODUCTIVE_EQUIP_PREPARATION",
       "acquisitionShadowFoundation": "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
       "acquisitionShadowFoundationTest": "v5/grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
       "acquisitionShadowPackage": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js",
@@ -1380,7 +1380,23 @@
       "acquisitionShadowPurchaseAuthority": false,
       "acquisitionShadowSameIntentRetry": false,
       "acquisitionShadowNormalRuntimeAllowed": false,
-      "acquisitionShadowEvidenceStatus": "OFFEN"
+      "acquisitionShadowEvidenceStatus": "OFFEN",
+      "acquisitionProductivePurchaseLiveEvidenceStatus": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
+      "acquisitionProductivePurchaseLiveEvidenceRatified": true,
+      "acquisitionProductivePurchaseLiveEvidenceManifestMainCommit": "8b23419ce8118600f00644ee5e1d678af198c0a5",
+      "acquisitionProductivePurchaseLiveEvidenceObservedAtMs": 1790247947961,
+      "acquisitionProductivePurchaseLiveObservedRecipient": "My_Merchant",
+      "acquisitionProductivePurchaseLiveObservedItem": "wshield",
+      "acquisitionProductivePurchaseLiveObservedGoldDelta": -4800,
+      "acquisitionProductivePurchaseLiveObservedItemDelta": 1,
+      "acquisitionProductivePurchaseLiveObservedReconciliation": "COMMITTED",
+      "acquisitionProductivePurchaseLiveObservedSettlement": "BESTAETIGT",
+      "acquisitionProductivePurchaseLiveObservedGameplayWrites": 1,
+      "acquisitionProductivePurchaseLiveObservedPublicFunctionCalls": 1,
+      "acquisitionProductivePurchaseLiveObservedRawWriteCalls": 0,
+      "acquisitionProductivePurchaseLiveObservedSameIntentRetry": false,
+      "acquisitionProductivePurchaseLiveObservedSoakSamples": 60,
+      "acquisitionProductivePurchaseLiveObservedSoakDurationMs": 300538
     },
     "acquisitionShadowPackage": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
     "acquisitionShadowPackageTest": "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-shadow-v1-0-1-autonomous.test.mjs",
@@ -1400,7 +1416,7 @@
     "acquisitionShadowPreviousLiveSameIntentRetry": false,
     "acquisitionShadowPreviousLiveRatified": false,
     "acquisitionShadowClassRuleShape": "OBJECT_KEYS",
-    "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_5M_EXECUTE",
+    "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_PRODUCTIVE_EQUIP_PREPARATION",
     "acquisitionShadowEvidenceRatified": true,
     "acquisitionShadowEvidenceManifestMainCommit": "f96bb24402b3f0b274aa9d5b31dd370ff099eed0",
     "acquisitionShadowEvidenceObservedAtMs": 1790243742400,
@@ -1447,6 +1463,20 @@
     "acquisitionProductivePurchaseLiveSameIntentRetry": false,
     "acquisitionProductivePurchaseLiveRestartReconcileWithoutResend": true,
     "acquisitionProductivePurchaseLiveSoakMinimumSamples": 60,
-    "acquisitionProductivePurchaseLiveSoakMinimumDurationMs": 299000
+    "acquisitionProductivePurchaseLiveSoakMinimumDurationMs": 299000,
+    "acquisitionProductivePurchaseLiveEvidenceStatus": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
+    "acquisitionProductivePurchaseLiveEvidenceRatified": true,
+    "acquisitionProductivePurchaseLiveEvidenceManifestMainCommit": "8b23419ce8118600f00644ee5e1d678af198c0a5",
+    "acquisitionProductivePurchaseLiveEvidenceObservedAtMs": 1790247947961,
+    "acquisitionProductivePurchaseLiveObservedGoldDelta": -4800,
+    "acquisitionProductivePurchaseLiveObservedItemDelta": 1,
+    "acquisitionProductivePurchaseLiveObservedReconciliation": "COMMITTED",
+    "acquisitionProductivePurchaseLiveObservedSettlement": "BESTAETIGT",
+    "acquisitionProductivePurchaseLiveObservedGameplayWrites": 1,
+    "acquisitionProductivePurchaseLiveObservedPublicFunctionCalls": 1,
+    "acquisitionProductivePurchaseLiveObservedRawWriteCalls": 0,
+    "acquisitionProductivePurchaseLiveObservedSameIntentRetry": false,
+    "acquisitionProductivePurchaseLiveObservedSoakSamples": 60,
+    "acquisitionProductivePurchaseLiveObservedSoakDurationMs": 300538
   }
 }
