@@ -1,7 +1,7 @@
 # PR20.7 – Gear-Autonomie: belegter Slot / Swap Foundation
 
 **Stand:** 2026-09-24  
-**Status:** `WEAPON_OFFHAND_READ_ONLY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN`
+**Status:** `WEAPON_OFFHAND_ACCOUNT_DISCOVERY_PACKAGE_BEREIT_EVIDENCE_OFFEN`
 
 ## Zweck
 
@@ -285,6 +285,43 @@ Das Paket ist auf Source-Commit `df4f23a4f633abaa62e817da0eb06ea1db3d94dd`
 und SHA-256 `69e3bff8fa7d33c4f4038aff4635d89eebc0c397a2af77ad05486abbac04f562`
 gepinnt; der Manifest-Cutover ist vorbereitet.
 
+## Waffen-/Offhand Merchant-Preflight – REAL BLOCKIERT / ZERO-WRITE
+
+Der reale Merchant-only Read-only-Preflight lief terminal fail-closed.
+
+Beobachtet auf `My_Merchant`:
+
+- `mainhand = staff +0`;
+- `offhand = leer`;
+- 21 Inventaritems;
+- kein nach den aktuellen Merchant-`mainhand`/`doublehand`/`offhand`-
+  Regeln kompatibler Kandidat;
+- `performance_trick()` aktiv und `HOWLER_PLAYING_TRUE`;
+- `gameplayWrites=0`, `publicFunctionCalls=0`, `rawWriteCalls=0`;
+- keine Authority, kein Durable Intent, kein Farmer-Lifecycle und kein Retry.
+
+Der Blocker `PR20_7_WEAPON_OFFHAND_KEIN_SICHERER_KANDIDAT` ist damit als
+reale Safety-/Resource-Evidence ratifiziert, aber **nicht** als PASS.
+
+## Accountweite Kandidatensuche – PAKET BEREIT / NO-WRITE
+
+Da weder der verbrauchte Market-Testharness noch default-off Bank-Retrieve
+als Abkuerzung verwendet werden duerfen, folgt eine reine owned-roster
+Discovery ueber Adventure Lands `get_characters()` / `X.characters`.
+
+Das Paket
+`werkzeuge/pr20-7-account-weapon-candidate-discovery.js` betrachtet nur
+`My_Ranger1`, `My_Priest` und `My_Mage`, speichert keine Secrets und
+prueft vorhandene Inventar-/Slotdaten gegen die aktuellen Klassenregeln.
+
+Ein Fund ist **nur eine Kandidatenauswahl**. Er erteilt keine Farmer-Gear-
+Authority und ersetzt keinen exakten Live-Session-Preflight auf dem
+ausgewaehlten Character.
+
+Die Mutation-Grenze bleibt komplett geschlossen: 0 Gameplay-, Public- und
+Raw-Writes, 0 Lifecycle-Aufrufe, keine Authority und
+`normalRuntimeAllowed=false`.
+
 ## Naechstes Gate
 
 Der belegte Nicht-Waffen-Slot ist damit als eigene Mutationsklasse
@@ -292,8 +329,9 @@ produktiv ratifiziert. PR20.7 ist noch nicht abgeschlossen.
 
 Die Waffen-/Offhand-Foundation ist NO-WRITE vorhanden und das reale
 read-only Autonomous-Paket ist immutable gepinnt und der Manifest-Cutover
-ist vorbereitet. Als naechstes wird der Cutover gemergt und der reale
-Browserlauf ausgewertet. Erst nach ratifizierter Read-only-Evidence folgen
+ist vorbereitet. Der Merchant-Preflight ist real ohne Kandidat fail-closed blockiert. Als
+naechstes wird die accountweite NO-WRITE-Kandidatensuche gemergt und real
+ausgefuehrt. Erst nach einem Fund und einem exakten Live-Session-Preflight folgen
 One-Shot-/Fencing-/Durable-Intent-Shadow und ein separater produktiver
 5-Minuten-Nachweis.
 

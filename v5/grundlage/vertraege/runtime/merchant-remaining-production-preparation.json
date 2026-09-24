@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "WEAPON_OFFHAND_READ_ONLY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_PACKAGE_BEREIT_EVIDENCE_OFFEN",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -87,7 +87,9 @@
       "PR20.7 realer Merchant-only Browser-Shadow ist BESTANDEN und mit 0 Writes ratifiziert",
       "PR20.7 realer belegter Nicht-Waffen-Slot One-Shot ist COMMITTED und mit 60x5s Evidence ratifiziert",
       "PR20.7 Waffen-/Offhand-Foundation bindet explizite mainhand/offhand-Slots, Klassen-/WType-Regeln und Doublehand-Gegenhand NO-WRITE",
-      "PR20.7 Waffen-/Offhand realer read-only Merchant-Preflight ist workerlos, zero-write und fail-closed vorbereitet"
+      "PR20.7 Waffen-/Offhand realer read-only Merchant-Preflight ist workerlos, zero-write und fail-closed vorbereitet",
+      "PR20.7 Merchant Waffen-/Offhand Read-only real fail-closed ohne Kandidat, 0 Writes",
+      "PR20.7 accountweite owned-roster Kandidatensuche NO-WRITE vorbereitet"
     ],
     "produktiveErweiterungErstNach": [
       "PR20.1 Equip-Live-Nachweis",
@@ -191,7 +193,7 @@
       "weaponOffhandDoublehandConflictBlocked": true,
       "weaponOffhandAutomaticUnequipAllowed": false,
       "weaponOffhandGameplayWrites": 0,
-      "weaponOffhandRealReadOnlyEvidenceStatus": "OFFEN",
+      "weaponOffhandRealReadOnlyEvidenceStatus": "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE",
       "weaponOffhandProductiveEvidenceStatus": "OFFEN",
       "weaponOffhandReadOnlyAutonomousPackage": "werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js",
       "weaponOffhandReadOnlyTestPlan": "roadmap/pr20-7-weapon-offhand-read-only-preflight-test-plan.json",
@@ -206,7 +208,20 @@
       "weaponOffhandReadOnlyRawWriteCalls": 0,
       "weaponOffhandReadOnlySourceCommit": "df4f23a4f633abaa62e817da0eb06ea1db3d94dd",
       "weaponOffhandReadOnlyPackageSha256": "69e3bff8fa7d33c4f4038aff4635d89eebc0c397a2af77ad05486abbac04f562",
-      "weaponOffhandReadOnlyManifestCutoverPrepared": true
+      "weaponOffhandReadOnlyManifestCutoverPrepared": true,
+      "weaponOffhandRealReadOnlyEvidenceRatified": true,
+      "weaponOffhandRealReadOnlyObservedAtMs": 1790226506589,
+      "weaponOffhandMerchantCandidateCount": 0,
+      "weaponOffhandMerchantInventoryItemCount": 21,
+      "accountWeaponDiscoveryPackage": "werkzeuge/pr20-7-account-weapon-candidate-discovery.js",
+      "accountWeaponDiscoveryTestPlan": "roadmap/pr20-7-account-weapon-candidate-discovery-test-plan.json",
+      "accountWeaponDiscoveryEvidence": "roadmap/pr20-7-account-weapon-candidate-discovery-evidence.json",
+      "accountWeaponDiscoveryPrepared": true,
+      "accountWeaponDiscoveryGameplayWrites": 0,
+      "accountWeaponDiscoveryPublicFunctionCalls": 0,
+      "accountWeaponDiscoveryRawWriteCalls": 0,
+      "accountWeaponDiscoveryFarmerGearAllocationRatification": false,
+      "accountWeaponDiscoveryEvidenceStatus": "OFFEN"
     }
   },
   "pr20_8": {

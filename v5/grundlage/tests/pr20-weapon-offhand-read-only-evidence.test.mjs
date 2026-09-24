@@ -65,21 +65,38 @@ test("PR20.7 weapon/offhand preflight keeps every mutation boundary closed", () 
   ]) assert.equal(source.includes(marker), false, marker);
 });
 
-test("PR20.7 weapon/offhand pending evidence cannot masquerade as pass", () => {
-  assert.equal(evidence.status, "OFFEN");
+test("PR20.7 weapon/offhand real preflight ratifies a zero-write resource blocker, not a pass", () => {
+  assert.equal(evidence.status, "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE");
   assert.match(evidence.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(evidence.packageSha256, /^[0-9a-f]{64}$/);
-  assert.equal(evidence.observedAtMs, null);
-  assert.equal(evidence.terminal, null);
-  assert.equal(evidence.result, null);
-  assert.equal(evidence.ratified, false);
-  assert.deepEqual(
-    evidence.blocker,
-    ["REAL_BROWSER_WEAPON_OFFHAND_PREFLIGHT_NOCH_NICHT_TERMINAL_BESTANDEN"],
-  );
-  assert.equal(evidence.expectedSafetyBoundary.browserGameplayWrites, 0);
-  assert.equal(evidence.expectedSafetyBoundary.publicFunctionCalls, 0);
-  assert.equal(evidence.expectedSafetyBoundary.rawWriteCalls, 0);
-  assert.equal(evidence.expectedSafetyBoundary.sameIntentRetry, false);
-  assert.equal(evidence.expectedSafetyBoundary.normalRuntimeAllowed, false);
+  assert.match(evidence.manifestMainCommit, /^[0-9a-f]{40}$/);
+  assert.equal(evidence.observedAtMs, 1790226506589);
+  assert.equal(evidence.terminal, true);
+  assert.equal(evidence.ratified, true);
+  assert.deepEqual(evidence.blocker, ["PR20_7_WEAPON_OFFHAND_KEIN_SICHERER_KANDIDAT"]);
+  assert.equal(evidence.result.status, "BLOCKIERT");
+  assert.equal(evidence.result.recipient.characterName, "My_Merchant");
+  assert.equal(evidence.result.recipient.ctype, "merchant");
+  assert.equal(evidence.result.weaponSlots[0].slot, "mainhand");
+  assert.equal(evidence.result.weaponSlots[0].name, "staff");
+  assert.equal(evidence.result.weaponSlots[1].slot, "offhand");
+  assert.equal(evidence.result.weaponSlots[1].occupied, false);
+  assert.equal(evidence.result.inventoryItemCount, 21);
+  assert.equal(evidence.result.performanceTrick.active, true);
+  assert.equal(evidence.result.performanceTrick.verification, "HOWLER_PLAYING_TRUE");
+  for (const [key, expected] of Object.entries({
+    browserGameplayWrites: 0,
+    publicFunctionCalls: 0,
+    rawWriteCalls: 0,
+    durableIntentCreated: false,
+    authorityIssued: false,
+    weaponOffhandWriteRatification: false,
+    startCalls: 0,
+    disconnectCalls: 0,
+    farmerWorkersInstalled: 0,
+    sameIntentRetry: false,
+    normalRuntimeAllowed: false,
+  })) {
+    assert.equal(evidence.observedSafetyBoundary[key], expected, key);
+  }
 });

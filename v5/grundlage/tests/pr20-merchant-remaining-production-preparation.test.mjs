@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "WEAPON_OFFHAND_READ_ONLY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+    "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_PACKAGE_BEREIT_EVIDENCE_OFFEN");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -197,7 +197,9 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandDoublehandConflictBlocked, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAutomaticUnequipAllowed, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandGameplayWrites, 0);
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandRealReadOnlyEvidenceStatus, "OFFEN");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandRealReadOnlyEvidenceStatus, "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandRealReadOnlyEvidenceRatified, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandMerchantCandidateCount, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlyPackagePrepared, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlyWorkerPackageConfigured, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlyFarmerWorkerDistribution, false);
@@ -207,6 +209,12 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlyPublicFunctionCalls, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlyRawWriteCalls, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlyManifestCutoverPrepared, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryPrepared, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryGameplayWrites, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryPublicFunctionCalls, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryRawWriteCalls, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryFarmerGearAllocationRatification, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryEvidenceStatus, "OFFEN");
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlySourceCommit, /^[0-9a-f]{40}$/);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlyPackageSha256, /^[0-9a-f]{64}$/);
 });

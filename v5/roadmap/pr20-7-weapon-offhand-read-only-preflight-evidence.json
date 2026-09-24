@@ -4,15 +4,93 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-read-only-preflight",
   "controllerVersion": "1.0.0",
-  "status": "OFFEN",
+  "status": "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE",
   "evidenceArt": "V5_PR20_7_WEAPON_OFFHAND_REAL_BROWSER_PREFLIGHT",
   "sourceCommit": "df4f23a4f633abaa62e817da0eb06ea1db3d94dd",
   "packageSha256": "69e3bff8fa7d33c4f4038aff4635d89eebc0c397a2af77ad05486abbac04f562",
-  "manifestMainCommit": null,
-  "observedAtMs": null,
-  "terminal": null,
-  "result": null,
-  "expectedSafetyBoundary": {
+  "manifestMainCommit": "e21c5ad38baf20f0575fb791bc140562dcbb1892",
+  "observedAtMs": 1790226506589,
+  "terminal": true,
+  "result": {
+    "status": "BLOCKIERT",
+    "phase": "REAL_READ_ONLY_PREFLIGHT",
+    "version": "1.0.0",
+    "blocker": [
+      "PR20_7_WEAPON_OFFHAND_KEIN_SICHERER_KANDIDAT"
+    ],
+    "recipient": {
+      "characterName": "My_Merchant",
+      "ctype": "merchant",
+      "level": 58,
+      "map": "main",
+      "serverRegion": "EU",
+      "serverIdentifier": "I"
+    },
+    "classRules": {
+      "mainhandWtypes": [
+        "bow",
+        "dagger",
+        "dartgun",
+        "fist",
+        "mace",
+        "short_sword",
+        "spear",
+        "staff"
+      ],
+      "doublehandWtypes": [
+        "axe",
+        "basher",
+        "pickaxe",
+        "rod"
+      ],
+      "offhandKinds": [
+        "misc_offhand",
+        "quiver",
+        "shield",
+        "source"
+      ]
+    },
+    "weaponSlots": [
+      {
+        "slot": "mainhand",
+        "occupied": true,
+        "name": "staff",
+        "level": 0,
+        "wtype": "staff"
+      },
+      {
+        "slot": "offhand",
+        "occupied": false,
+        "name": null,
+        "level": null,
+        "wtype": null
+      }
+    ],
+    "inventoryItemCount": 21,
+    "performanceTrick": {
+      "available": true,
+      "called": true,
+      "audioFound": true,
+      "playing": true,
+      "cplaying": true,
+      "active": true,
+      "verification": "HOWLER_PLAYING_TRUE",
+      "error": null
+    },
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "ratified": true,
+  "blocker": [
+    "PR20_7_WEAPON_OFFHAND_KEIN_SICHERER_KANDIDAT"
+  ],
+  "observedSafetyBoundary": {
     "browserGameplayWrites": 0,
     "publicFunctionCalls": 0,
     "rawWriteCalls": 0,
@@ -25,8 +103,5 @@
     "sameIntentRetry": false,
     "normalRuntimeAllowed": false
   },
-  "ratified": false,
-  "blocker": [
-    "REAL_BROWSER_WEAPON_OFFHAND_PREFLIGHT_NOCH_NICHT_TERMINAL_BESTANDEN"
-  ]
+  "supabaseUpdatedAt": "2026-09-24T05:08:30.853Z"
 }
