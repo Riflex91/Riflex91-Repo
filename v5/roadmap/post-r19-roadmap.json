@@ -81,8 +81,9 @@
   "currentNextSteps": [
     "PR20.1 bis PR20.7 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.8 Wertmutationen ist aktuelles Gate",
-    "PR20.8 Exchange besitzt jetzt einen spezialisierten NO-WRITE-Planer fuer exakte physische Inputs, bounded Drop-Graph, konservativen Outputspace und Multi-Domain-Reconciliation",
-    "AKTUELL: getrennte Durable-Journal-/Current-Fence-/One-Shot-/Preflight-Fundamente fuer Upgrade, Compound und Exchange vorbereiten",
+    "PR20.8 Exchange-Spezialplaner ist NO-WRITE vorbereitet",
+    "PR20.8 Upgrade/Compound/Exchange besitzen getrennte Durable-/Current-Fence-/One-Shot-/Admission-Fundamente; Admission endet NICHT_GESENDET",
+    "AKTUELL: family-spezifische read-only Preflights fuer Upgrade, Compound und Exchange vorbereiten",
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
@@ -751,7 +752,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "EXCHANGE_SPECIALIZED_PLANNER_BEREIT_NO_WRITE",
+      "status": "DURABLE_ONE_SHOT_FOUNDATIONS_BEREIT_NO_WRITE",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -761,11 +762,15 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_DURABLE_ONE_SHOT_FOUNDATIONS",
+      "nextAction": "PR20_8_READ_ONLY_PREFLIGHTS",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
-        "v5/grundlage/tests/pr20-exchange-produktions-planer.test.mjs"
+        "v5/grundlage/tests/pr20-exchange-produktions-planer.test.mjs",
+        "v5/grundlage/quelle/merchant/pr20-8-wertmutation-one-shot.ts",
+        "v5/grundlage/quelle/merchant/pr20-8-wertmutation-durable-admission.ts",
+        "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
+        "v5/grundlage/tests/pr20-wertmutation-one-shot-foundation.test.mjs"
       ]
     },
     {
@@ -1605,7 +1610,7 @@
     }
   },
   "pr20_8": {
-    "status": "EXCHANGE_SPECIALIZED_PLANNER_BEREIT_NO_WRITE",
+    "status": "DURABLE_ONE_SHOT_FOUNDATIONS_BEREIT_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1646,12 +1651,24 @@
     "exchangeLiveAdapterPresent": false,
     "exchangeLiveRunnerPresent": false,
     "remainingGates": {
-      "durableOneShotFoundations": "OFFEN",
+      "durableOneShotFoundations": "BEREIT_NO_WRITE",
       "normalUpgrade": "OFFEN_SEPARATE_RATIFICATION",
       "normalCompound": "OFFEN_SEPARATE_RATIFICATION",
       "normalExchange": "OFFEN_SEPARATE_RATIFICATION",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION"
     },
-    "nextAction": "PR20_8_DURABLE_ONE_SHOT_FOUNDATIONS"
+    "nextAction": "PR20_8_READ_ONLY_PREFLIGHTS",
+    "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
+    "separateAuthorityPerFamily": true,
+    "genericSharedMutationAuthority": false,
+    "maximumUses": 1,
+    "maximumTtlMs": 1500,
+    "durableAuthorityWriteRequired": true,
+    "exactDurableReadbackRequired": true,
+    "exactJournalReadbackRequired": true,
+    "currentFenceRequired": true,
+    "driftRevokes": true,
+    "admissionPerformsSend": false,
+    "sendBoundaryState": "NICHT_GESENDET"
   }
 }
