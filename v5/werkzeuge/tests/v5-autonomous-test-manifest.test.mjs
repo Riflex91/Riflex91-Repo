@@ -288,7 +288,7 @@ test("PR20.7 Gear package is terminal read-only and does not touch farmer lifecy
 
 test("PR20.7 Gear shadow manifest stays merchant-only, durable-shadow and zero-write", () => {
   if (manifest.testId !== "pr20-7-gear-occupied-slot-shadow-no-write") return;
-  assert.equal(manifest.controllerVersion, "1.0.1");
+  assert.equal(manifest.controllerVersion, "1.0.0");
   assert.equal("workerVersion" in manifest, false);
   assert.equal("workerPackagePath" in manifest, false);
   assert.equal("workerPackageSha256" in manifest, false);
