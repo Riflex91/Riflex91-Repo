@@ -4,16 +4,84 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-equip-live-5m",
   "controllerVersion": "1.0.0",
-  "status": "OFFEN",
+  "status": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
   "evidenceArt": "V5_PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M",
   "sourceCommit": "e633cbe60ba4c98e4c61424ff900c542e688090f",
   "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-equip-live-5m.js",
   "packageSha256": "381559606c016880921fdb9ee0c50776275a5ceb962c35d91bc1c86529deb3b0",
-  "manifestMainCommit": null,
-  "observedAtMs": null,
-  "terminal": null,
-  "result": null,
-  "ratified": false,
+  "manifestMainCommit": "72ba966878e1575df786ca1e60f50044e2aa89a5",
+  "observedAtMs": 1790251127933,
+  "terminal": true,
+  "result": {
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "transactionId": "PR20.7-WSHIELD-EQUIP-1790250827079",
+    "recipient": {
+      "characterName": "My_Merchant",
+      "sessionId": "My_Merchant",
+      "ctype": "merchant",
+      "serverRegion": "EU",
+      "serverIdentifier": "I",
+      "accountBindingSha256": "18be41682a0c809cb26db3dfff9336deb164730e175c182a11d321445fde0085",
+      "sessionBindingSha256": "6f87fd406e9b1cfa78273bbdfcefafe5c4c2cc9c8e685a0bd35244e7c419c32c"
+    },
+    "candidate": {
+      "name": "wshield",
+      "slot": "offhand",
+      "level": 0,
+      "inventoryIndex": 1,
+      "fingerprintSha256": "ebf89e36d48baa93e5df5b7d9e06a7c98acdcc694c7252b3299e99b2dbff499b"
+    },
+    "previousSlotItem": null,
+    "oppositeHand": {
+      "name": "staff",
+      "slot": "mainhand",
+      "level": 0,
+      "fingerprintSha256": "26868fd4cd4610c6f5d71e581998e5d8c32ae31312e4714ddee8040d75802660"
+    },
+    "prestateFingerprintSha256": "5cb154e056a7f6e466323f8ab89edf573b92b59a1885cdb1897e2e5929189650",
+    "postSlotMaterialSha256": "ebf89e36d48baa93e5df5b7d9e06a7c98acdcc694c7252b3299e99b2dbff499b",
+    "postIndexMaterialSha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+    "durableIntentReadback": true,
+    "sendBoundaryState": "MOEGLICH_GESENDET",
+    "reconciliation": "COMMITTED",
+    "settlement": "BESTAETIGT",
+    "oneShotAuthority": {
+      "issued": true,
+      "consumed": true,
+      "maximumUses": 1,
+      "exactRecipientSessionBinding": true,
+      "exactSlotAndIndexBinding": true,
+      "exactEmptyOffhandPrestate": true,
+      "oppositeHandPinned": true,
+      "equipmentInventoryFenceClaims": true
+    },
+    "performanceTrick": {
+      "available": true,
+      "called": true,
+      "audioFound": true,
+      "playing": true,
+      "cplaying": true,
+      "active": true,
+      "verification": "HOWLER_PLAYING_TRUE",
+      "error": null
+    },
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "sameIntentRetry": false,
+    "soak": {
+      "status": "BESTANDEN",
+      "samples": 60,
+      "durationMs": 300586,
+      "minimumSamples": 60
+    },
+    "normalRuntimeAllowed": false
+  },
+  "ratified": true,
   "prerequisiteEvidence": {
     "acquisitionEvidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-live-5m-evidence.json",
     "acquisitionStatus": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
@@ -37,8 +105,22 @@
     "soakMinimumDurationMs": 299000,
     "normalRuntimeAllowed": false
   },
-  "blocker": [
-    "REAL_WSHIELD_OFFHAND_EQUIP_LIVE_5M_NOCH_NICHT_AUSGEFUEHRT"
-  ],
-  "nextGate": null
+  "blocker": [],
+  "observedSafetyBoundary": {
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "normalRuntimeAllowed": false
+  },
+  "deploymentEvidence": {
+    "githubWorkflow": "deploy-cloudflare",
+    "workflowRunId": 35995541139,
+    "conclusion": "SUCCESS"
+  },
+  "supabaseUpdatedAt": "2026-09-24T11:58:48.312Z",
+  "nextGate": "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION"
 }

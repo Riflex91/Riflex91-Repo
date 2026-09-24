@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "WEAPON_OFFHAND_EQUIP_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_EQUIP_BESTANDEN_FARMER_GEAR_ALLOCATION_OFFEN",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -297,7 +297,7 @@
       "weaponOffhandAcquisitionObservedSellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
       "weaponOffhandAcquisitionObservedGold": 14493644,
       "weaponOffhandAcquisitionObservedFreeInventorySlots": 21,
-      "weaponOffhandAcquisitionNextGate": "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_EXECUTE",
+      "weaponOffhandAcquisitionNextGate": "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION",
       "weaponOffhandAcquisitionShadowFoundation": "grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
       "weaponOffhandAcquisitionShadowFoundationTest": "grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
       "weaponOffhandAcquisitionShadowPackage": "werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
@@ -436,7 +436,26 @@
       "weaponOffhandProductiveEquipRawWriteCalls": 0,
       "weaponOffhandProductiveEquipOneShotMaximumUses": 1,
       "weaponOffhandProductiveEquipSameIntentRetry": false,
-      "weaponOffhandProductiveEquipEvidenceStatus": "OFFEN"
+      "weaponOffhandProductiveEquipEvidenceStatus": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
+      "weaponOffhandProductiveEquipEvidenceRatified": true,
+      "weaponOffhandProductiveEquipEvidenceManifestMainCommit": "72ba966878e1575df786ca1e60f50044e2aa89a5",
+      "weaponOffhandProductiveEquipEvidenceObservedAtMs": 1790251127933,
+      "weaponOffhandProductiveEquipObservedInventoryIndex": 1,
+      "weaponOffhandProductiveEquipObservedReconciliation": "COMMITTED",
+      "weaponOffhandProductiveEquipObservedSettlement": "BESTAETIGT",
+      "weaponOffhandProductiveEquipObservedGameplayWrites": 1,
+      "weaponOffhandProductiveEquipObservedPublicFunctionCalls": 1,
+      "weaponOffhandProductiveEquipObservedRawWriteCalls": 0,
+      "weaponOffhandProductiveEquipObservedSameIntentRetry": false,
+      "weaponOffhandProductiveEquipObservedDurableIntentReadback": true,
+      "weaponOffhandProductiveEquipObservedOneShotIssued": true,
+      "weaponOffhandProductiveEquipObservedOneShotConsumed": true,
+      "weaponOffhandProductiveEquipObservedExactEmptyOffhandPrestate": true,
+      "weaponOffhandProductiveEquipObservedOppositeHandPinned": true,
+      "weaponOffhandProductiveEquipObservedEquipmentInventoryFenceClaims": true,
+      "weaponOffhandProductiveEquipObservedSoakSamples": 60,
+      "weaponOffhandProductiveEquipObservedSoakDurationMs": 300586,
+      "weaponOffhandNextGate": "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION"
     }
   },
   "pr20_8": {

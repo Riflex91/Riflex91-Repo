@@ -283,7 +283,7 @@ test("PR20.7 weapon/offhand foundation has no gameplay write path", () => {
 });
 
 test("PR20.7 weapon/offhand contract prepares only the separately pinned wshield live package", () => {
-  assert.equal(contract.status, "PRODUCTIVE_EQUIP_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+  assert.equal(contract.status, "PRODUCTIVE_EQUIP_BESTANDEN_FARMER_GEAR_ALLOCATION_OFFEN");
   assert.deepEqual(contract.sourceSemantik.explicitSlots, ["mainhand", "offhand"]);
   assert.equal(contract.sourceSemantik.genericWeaponAutoSlotAllowed, false);
   assert.equal(contract.foundation.explicitSlotRequired, true);
@@ -313,11 +313,30 @@ test("PR20.7 weapon/offhand contract prepares only the separately pinned wshield
   assert.equal(contract.live.rawWriteCalls, 0);
   assert.equal(contract.live.oneShotMaximumUses, 1);
   assert.equal(contract.live.sameIntentRetry, false);
-  assert.equal(contract.live.productiveEvidence, "OFFEN");
+  assert.equal(contract.live.productiveEvidence, "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
+  assert.equal(contract.live.productiveEquipEvidenceRatified, true);
+  assert.equal(contract.live.productiveEquipEvidenceManifestMainCommit,
+    "72ba966878e1575df786ca1e60f50044e2aa89a5");
+  assert.equal(contract.live.productiveEquipEvidenceObservedAtMs, 1790251127933);
+  assert.equal(contract.live.productiveEquipObservedInventoryIndex, 1);
+  assert.equal(contract.live.productiveEquipObservedReconciliation, "COMMITTED");
+  assert.equal(contract.live.productiveEquipObservedSettlement, "BESTAETIGT");
+  assert.equal(contract.live.productiveEquipObservedGameplayWrites, 1);
+  assert.equal(contract.live.productiveEquipObservedPublicFunctionCalls, 1);
+  assert.equal(contract.live.productiveEquipObservedRawWriteCalls, 0);
+  assert.equal(contract.live.productiveEquipObservedSameIntentRetry, false);
+  assert.equal(contract.live.productiveEquipObservedDurableIntentReadback, true);
+  assert.equal(contract.live.productiveEquipObservedOneShotIssued, true);
+  assert.equal(contract.live.productiveEquipObservedOneShotConsumed, true);
+  assert.equal(contract.live.productiveEquipObservedExactEmptyOffhandPrestate, true);
+  assert.equal(contract.live.productiveEquipObservedOppositeHandPinned, true);
+  assert.equal(contract.live.productiveEquipObservedEquipmentInventoryFenceClaims, true);
+  assert.equal(contract.live.productiveEquipObservedSoakSamples, 60);
+  assert.ok(contract.live.productiveEquipObservedSoakDurationMs >= 299000);
   assert.equal(contract.live.normalRuntimeAllowed, false);
-  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_EXECUTE");
+  assert.equal(contract.nextAction, "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION");
 
-  assert.equal(equipPlan.status, "MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+  assert.equal(equipPlan.status, "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
   assert.equal(equipPlan.scope.exactItem, "wshield");
   assert.equal(equipPlan.scope.targetSlot, "offhand");
   assert.equal(equipPlan.scope.previousTargetSlotMustBeEmpty, true);
@@ -326,10 +345,24 @@ test("PR20.7 weapon/offhand contract prepares only the separately pinned wshield
   assert.equal(equipPlan.deployment.sourceCommit, "e633cbe60ba4c98e4c61424ff900c542e688090f");
   assert.equal(equipPlan.deployment.packageSha256, "381559606c016880921fdb9ee0c50776275a5ceb962c35d91bc1c86529deb3b0");
   assert.equal(equipPlan.deployment.manifestCutoverPrepared, true);
-  assert.equal(equipEvidence.status, "OFFEN");
-  assert.equal(equipEvidence.ratified, false);
-  assert.equal(equipEvidence.manifestMainCommit, null);
-  assert.deepEqual(equipEvidence.blocker, ["REAL_WSHIELD_OFFHAND_EQUIP_LIVE_5M_NOCH_NICHT_AUSGEFUEHRT"]);
+  assert.equal(equipEvidence.status, "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
+  assert.equal(equipEvidence.ratified, true);
+  assert.equal(equipEvidence.manifestMainCommit, "72ba966878e1575df786ca1e60f50044e2aa89a5");
+  assert.equal(equipEvidence.observedAtMs, 1790251127933);
+  assert.equal(equipEvidence.terminal, true);
+  assert.deepEqual(equipEvidence.blocker, []);
+  assert.equal(equipEvidence.nextGate, "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION");
+  assert.equal(equipEvidence.result.reconciliation, "COMMITTED");
+  assert.equal(equipEvidence.result.settlement, "BESTAETIGT");
+  assert.equal(equipEvidence.result.candidate.inventoryIndex, 1);
+  assert.equal(equipEvidence.result.previousSlotItem, null);
+  assert.equal(equipEvidence.result.oppositeHand.name, "staff");
+  assert.equal(equipEvidence.result.gameplayWrites, 1);
+  assert.equal(equipEvidence.result.publicFunctionCalls, 1);
+  assert.equal(equipEvidence.result.rawWriteCalls, 0);
+  assert.equal(equipEvidence.result.sameIntentRetry, false);
+  assert.equal(equipEvidence.result.soak.samples, 60);
+  assert.ok(equipEvidence.result.soak.durationMs >= 299000);
 });
 
 test("PR20.7 weapon/offhand foundation is derivable from official can_equip semantics", () => {
