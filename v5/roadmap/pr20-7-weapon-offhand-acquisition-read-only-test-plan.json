@@ -4,10 +4,10 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight",
   "controllerVersion": "1.0.1",
-  "status": "CORRECTIVE_PACKAGE_1_0_1_BEREIT_MANIFEST_CUTOVER_OFFEN",
+  "status": "CORRECTIVE_MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_PREFLIGHT",
   "purpose": "READ_ONLY_WSHIELD_NPC_ACQUISITION_SOURCE_PREFLIGHT",
   "deployment": {
-    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY_AFTER_CORRECTIVE_CUTOVER",
+    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
     "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
     "coordinatorClass": "merchant",
     "sourceCommit": "bfcbc3186b1fe374fe37d0dd43d5677511480f5d",
@@ -16,9 +16,21 @@
     "expectedGlobal": "V5PR207WeaponOffhandAcquisitionReadOnly",
     "workerPackageConfigured": false,
     "farmerWorkerDistribution": false,
-    "manifestCutoverPrepared": false,
+    "manifestCutoverPrepared": true,
     "supersedesControllerVersion": "1.0.0",
-    "previousLiveRunRatified": false
+    "previousLiveRunRatified": false,
+    "sameTestUpgradeGuard": {
+      "previousControllerVersion": "1.0.0",
+      "nextControllerVersion": "1.0.1",
+      "strictlyNewer": true,
+      "previousTerminal": true,
+      "previousGameplayWrites": 0,
+      "previousRawWriteCalls": 0,
+      "previousSameIntentRetry": false,
+      "previousDurableIntentCreated": false,
+      "previousOpenIntentCount": 0,
+      "previousRunRatified": false
+    }
   },
   "exactCandidate": {
     "recipient": "My_Merchant",
