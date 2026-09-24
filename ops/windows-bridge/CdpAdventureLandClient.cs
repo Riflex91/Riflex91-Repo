@@ -10,17 +10,46 @@ public sealed class CdpAdventureLandClient
 {
     public const int CdpCommandTimeoutSeconds = 12;
     public const string BridgeFarmerGearDiagnosticsKey = "bridgeFarmerGearContexts";
+    public const string BridgeV5DeploymentDiagnosticsKey = "bridgeV5Deployment";
 
     private readonly HttpClient _httpClient;
     private readonly Uri _cdpEndpoint;
     private readonly Uri _allowedOrigin;
     private int _nextCommandId;
+    private V5AutonomousTestDeploymentDiagnostic? _lastV5DeploymentDiagnostic;
 
     public CdpAdventureLandClient(HttpClient httpClient, BridgeConfig config)
     {
         _httpClient = httpClient;
         _cdpEndpoint = new Uri(config.CdpEndpoint.TrimEnd('/') + "/");
         _allowedOrigin = new Uri(config.AllowedOrigin);
+    }
+
+    public V5AutonomousTestDeploymentDiagnostic? LastV5DeploymentDiagnostic =>
+        _lastV5DeploymentDiagnostic;
+
+    public void RecordV5AutonomousTestDeploymentResult(V5AutonomousTestDeploymentResult result)
+    {
+        _lastV5DeploymentDiagnostic = new V5AutonomousTestDeploymentDiagnostic(
+            DateTimeOffset.UtcNow,
+            result.State,
+            result.Changed,
+            result.TestId,
+            result.TargetUrl,
+            Error: null);
+    }
+
+    public void RecordV5AutonomousTestDeploymentFailure(Exception error)
+    {
+        var message = error.GetType().Name + ": " + error.Message;
+        if (message.Length > 320) message = message[..320];
+        _lastV5DeploymentDiagnostic = new V5AutonomousTestDeploymentDiagnostic(
+            DateTimeOffset.UtcNow,
+            "ERROR",
+            Changed: false,
+            TestId: null,
+            TargetUrl: null,
+            Error: message);
     }
 
     public async Task<string> FindTargetUrlAsync(CancellationToken cancellationToken)
@@ -583,7 +612,10 @@ public sealed class CdpAdventureLandClient
                     var farmerGearContexts = await ObserveExistingFarmerGearContextsAsync(
                         allTargets,
                         cancellationToken);
-                    snapshot = AttachBridgeFarmerGearDiagnostics(snapshot, farmerGearContexts);
+                    snapshot = AttachBridgeDiagnostics(
+                        snapshot,
+                        farmerGearContexts,
+                        _lastV5DeploymentDiagnostic);
                 }
                 var eventBatch = await EvaluateAsync(socket, BuildEventsExpression(afterSeq, eventLimit), context.ContextId, cancellationToken);
 
@@ -729,9 +761,10 @@ public sealed class CdpAdventureLandClient
             .ToArray();
     }
 
-    private static JsonElement AttachBridgeFarmerGearDiagnostics(
+    private static JsonElement AttachBridgeDiagnostics(
         JsonElement snapshot,
-        IReadOnlyList<JsonElement> observations)
+        IReadOnlyList<JsonElement> observations,
+        V5AutonomousTestDeploymentDiagnostic? deploymentDiagnostic)
     {
         if (snapshot.ValueKind != JsonValueKind.Object)
             return snapshot.Clone();
@@ -757,6 +790,12 @@ public sealed class CdpAdventureLandClient
             if (row is not null) rows.Add(row);
         }
         diagnostics[BridgeFarmerGearDiagnosticsKey] = rows;
+        if (deploymentDiagnostic is not null)
+        {
+            diagnostics[BridgeV5DeploymentDiagnosticsKey] = JsonSerializer.SerializeToNode(
+                deploymentDiagnostic,
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        }
 
         using var document = JsonDocument.Parse(root.ToJsonString());
         return document.RootElement.Clone();
@@ -1777,6 +1816,14 @@ public sealed record V5AutonomousTestDeploymentResult(
     bool Changed,
     string TestId,
     string? TargetUrl);
+
+public sealed record V5AutonomousTestDeploymentDiagnostic(
+    DateTimeOffset At,
+    string State,
+    bool Changed,
+    string? TestId,
+    string? TargetUrl,
+    string? Error);
 
 public sealed record V5LegacyRosterRecoveryResult(
     string State,

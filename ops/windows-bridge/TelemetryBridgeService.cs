@@ -257,14 +257,16 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     {
         try
         {
-            await _browser.EnsureV5AutonomousTestAsync(cancellationToken);
+            var result = await _browser.EnsureV5AutonomousTestAsync(cancellationToken);
+            _browser.RecordV5AutonomousTestDeploymentResult(result);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
-        catch
+        catch (Exception error)
         {
+            _browser.RecordV5AutonomousTestDeploymentFailure(error);
             // Test deployment is fail-closed and independent from observational telemetry.
             // A download/hash/session failure must never become a gameplay retry or stop telemetry.
         }
