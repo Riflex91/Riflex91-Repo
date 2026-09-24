@@ -7,6 +7,15 @@ const contract = JSON.parse(fs.readFileSync(
   "utf8",
 ));
 
+const equipPlan = JSON.parse(fs.readFileSync(
+  "roadmap/pr20-7-weapon-offhand-equip-live-5m-test-plan.json",
+  "utf8",
+));
+const equipEvidence = JSON.parse(fs.readFileSync(
+  "roadmap/pr20-7-weapon-offhand-equip-live-5m-evidence.json",
+  "utf8",
+));
+
 import {
   klassifizierePr207WeaponOffhandSettlement,
   pruefePr207WeaponOffhandVorbereitung,
@@ -273,8 +282,8 @@ test("PR20.7 weapon/offhand foundation has no gameplay write path", () => {
   assert.ok(source.includes("weaponOffhandWriteRatification: false"));
 });
 
-test("PR20.7 weapon/offhand contract stays no-write and forbids implicit unequip", () => {
-  assert.equal(contract.status, "FOUNDATION_NO_WRITE");
+test("PR20.7 weapon/offhand contract prepares only the separately pinned wshield live package", () => {
+  assert.equal(contract.status, "PRODUCTIVE_EQUIP_PACKAGE_BEREIT_MANIFEST_GESCHLOSSEN");
   assert.deepEqual(contract.sourceSemantik.explicitSlots, ["mainhand", "offhand"]);
   assert.equal(contract.sourceSemantik.genericWeaponAutoSlotAllowed, false);
   assert.equal(contract.foundation.explicitSlotRequired, true);
@@ -287,10 +296,40 @@ test("PR20.7 weapon/offhand contract stays no-write and forbids implicit unequip
   assert.equal(contract.authority.gameplayAutoritaet, false);
   assert.equal(contract.authority.rawWriteAutoritaet, false);
   assert.equal(contract.authority.weaponOffhandWriteRatification, false);
-  assert.equal(contract.live.realReadOnlyEvidence, "OFFEN");
+  assert.equal(contract.live.acquisitionEvidenceStatus, "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
+  assert.equal(contract.live.acquisitionEvidenceRatified, true);
+  assert.equal(contract.live.productiveEquipPackagePrepared, true);
+  assert.equal(contract.live.productiveEquipManifestCutoverPrepared, false);
+  assert.equal(contract.live.exactRecipient, "My_Merchant");
+  assert.equal(contract.live.exactServer, "EU:I");
+  assert.equal(contract.live.exactItem, "wshield");
+  assert.equal(contract.live.exactTargetSlot, "offhand");
+  assert.equal(contract.live.previousTargetSlotMustBeEmpty, true);
+  assert.equal(contract.live.exactOppositeHand, "staff");
+  assert.equal(contract.live.dynamicInventoryIndex, true);
+  assert.equal(contract.live.exactlyOneCompatibleCandidateRequired, true);
+  assert.equal(contract.live.maximumGameplayWrites, 1);
+  assert.equal(contract.live.maximumPublicFunctionCalls, 1);
+  assert.equal(contract.live.rawWriteCalls, 0);
+  assert.equal(contract.live.oneShotMaximumUses, 1);
+  assert.equal(contract.live.sameIntentRetry, false);
   assert.equal(contract.live.productiveEvidence, "OFFEN");
-  assert.equal(contract.live.maximumGameplayWrites, 0);
   assert.equal(contract.live.normalRuntimeAllowed, false);
+  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_MANIFEST_CUTOVER");
+
+  assert.equal(equipPlan.status, "PACKAGE_BEREIT_MANIFEST_GESCHLOSSEN");
+  assert.equal(equipPlan.scope.exactItem, "wshield");
+  assert.equal(equipPlan.scope.targetSlot, "offhand");
+  assert.equal(equipPlan.scope.previousTargetSlotMustBeEmpty, true);
+  assert.equal(equipPlan.transaction.maximumGameplayWrites, 1);
+  assert.equal(equipPlan.transaction.sameIntentRetry, false);
+  assert.equal(equipPlan.deployment.sourceCommit, "e633cbe60ba4c98e4c61424ff900c542e688090f");
+  assert.equal(equipPlan.deployment.packageSha256, "381559606c016880921fdb9ee0c50776275a5ceb962c35d91bc1c86529deb3b0");
+  assert.equal(equipPlan.deployment.manifestCutoverPrepared, false);
+  assert.equal(equipEvidence.status, "OFFEN");
+  assert.equal(equipEvidence.ratified, false);
+  assert.equal(equipEvidence.manifestMainCommit, null);
+  assert.deepEqual(equipEvidence.blocker, ["REAL_WSHIELD_OFFHAND_EQUIP_LIVE_5M_NOCH_NICHT_AUSGEFUEHRT"]);
 });
 
 test("PR20.7 weapon/offhand foundation is derivable from official can_equip semantics", () => {

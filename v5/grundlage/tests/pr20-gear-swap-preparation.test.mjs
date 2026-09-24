@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_BESTANDEN_EQUIP_PREPARATION_BEREIT");
+  assert.equal(contract.status, "WEAPON_OFFHAND_EQUIP_PACKAGE_BEREIT_MANIFEST_GESCHLOSSEN");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -483,7 +483,14 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveSameIntentRetry, false);
   assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveRestartReconcileWithoutResend, true);
   assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveSoakMinimumSamples, 60);
-  assert.equal(contract.weaponOffhandFoundation.acquisitionNextGate, "PR20_7_WEAPON_OFFHAND_PRODUCTIVE_EQUIP_PREPARATION");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionNextGate, "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_MANIFEST_CUTOVER");
+  assert.equal(contract.weaponOffhandFoundation.productiveEquipPackagePrepared, true);
+  assert.equal(contract.weaponOffhandFoundation.productiveEquipExactItem, "wshield");
+  assert.equal(contract.weaponOffhandFoundation.productiveEquipTargetSlot, "offhand");
+  assert.equal(contract.weaponOffhandFoundation.productiveEquipPreviousTargetSlotMustBeEmpty, true);
+  assert.equal(contract.weaponOffhandFoundation.productiveEquipExactOppositeHand, "staff");
+  assert.equal(contract.weaponOffhandFoundation.productiveEquipManifestCutoverPrepared, false);
+  assert.equal(contract.weaponOffhandFoundation.productiveEquipSameIntentRetry, false);
   assert.match(contract.weaponOffhandFoundation.acquisitionSourceCommit, /^[0-9a-f]{40}$/);
   assert.match(contract.weaponOffhandFoundation.acquisitionPackageSha256, /^[0-9a-f]{64}$/);
   assert.match(contract.weaponOffhandFoundation.readOnlySourceCommit, /^[0-9a-f]{40}$/);

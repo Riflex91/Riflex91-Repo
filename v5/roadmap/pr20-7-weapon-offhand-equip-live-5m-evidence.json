@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-weapon-offhand-equip-live-5m",
+  "controllerVersion": "1.0.0",
+  "status": "OFFEN",
+  "evidenceArt": "V5_PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M",
+  "sourceCommit": "e633cbe60ba4c98e4c61424ff900c542e688090f",
+  "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-equip-live-5m.js",
+  "packageSha256": "381559606c016880921fdb9ee0c50776275a5ceb962c35d91bc1c86529deb3b0",
+  "manifestMainCommit": null,
+  "observedAtMs": null,
+  "terminal": null,
+  "result": null,
+  "ratified": false,
+  "prerequisiteEvidence": {
+    "acquisitionEvidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-live-5m-evidence.json",
+    "acquisitionStatus": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
+    "acquisitionObservedAtMs": 1790247947961
+  },
+  "expectedSafetyBoundary": {
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "oneShotMaximumUses": 1,
+    "sameIntentRetry": false,
+    "restartReconcileWithoutResend": true,
+    "targetSlot": "offhand",
+    "previousSlotMustBeEmpty": true,
+    "expectedCandidate": "wshield",
+    "expectedOppositeHand": "staff",
+    "soakMinimumSamples": 60,
+    "soakMinimumDurationMs": 299000,
+    "normalRuntimeAllowed": false
+  },
+  "blocker": [
+    "REAL_WSHIELD_OFFHAND_EQUIP_LIVE_5M_NOCH_NICHT_AUSGEFUEHRT"
+  ],
+  "nextGate": null
+}

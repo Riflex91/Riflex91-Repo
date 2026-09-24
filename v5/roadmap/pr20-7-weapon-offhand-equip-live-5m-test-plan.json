@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-weapon-offhand-equip-live-5m",
+  "controllerVersion": "1.0.0",
+  "status": "PACKAGE_BEREIT_MANIFEST_GESCHLOSSEN",
+  "scope": {
+    "exactRecipientCharacter": "My_Merchant",
+    "exactServer": "EU:I",
+    "exactItem": "wshield",
+    "targetSlot": "offhand",
+    "previousTargetSlotMustBeEmpty": true,
+    "exactOppositeHandName": "staff",
+    "dynamicInventoryIndex": true,
+    "exactlyOneCompatibleCandidateRequired": true,
+    "merchantOnly": true
+  },
+  "prerequisites": {
+    "acquisitionLiveEvidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-live-5m-evidence.json",
+    "acquisitionLiveStatus": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
+    "acquisitionLiveRatified": true,
+    "acquisitionObservedAtMs": 1790247947961,
+    "acquiredQuantity": 1,
+    "acquisitionGoldDelta": -4800
+  },
+  "transaction": {
+    "actionContractId": "AL-ACTION-EQUIP",
+    "recoveryContractId": "AL-RECOVERY-EQUIP",
+    "verifierId": "AL-VERIFIER-EQUIP",
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "oneShotMaximumUses": 1,
+    "durableIntentBeforePossibleSend": true,
+    "durableReadbackRequired": true,
+    "equipmentFenceRequired": true,
+    "inventoryFenceRequired": true,
+    "exactEmptyOffhandPrestate": true,
+    "oppositeHandPinned": true,
+    "classRulesLiveChecked": true,
+    "restartReconcileWithoutResend": true,
+    "sameIntentRetry": false,
+    "newIntentAutomaticallyAllowed": false
+  },
+  "soak": {
+    "minimumSamples": 60,
+    "intervalMs": 5000,
+    "minimumDurationMs": 299000
+  },
+  "deployment": {
+    "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-equip-live-5m.js",
+    "packageTest": "v5/werkzeuge/tests/pr20-7-weapon-offhand-equip-live-5m.test.mjs",
+    "expectedGlobal": "V5PR207WeaponOffhandEquipLiveTest",
+    "sourceCommit": "e633cbe60ba4c98e4c61424ff900c542e688090f",
+    "packageSha256": "381559606c016880921fdb9ee0c50776275a5ceb962c35d91bc1c86529deb3b0",
+    "packageBytes": 37182,
+    "manifestCutoverPrepared": false
+  },
+  "authority": {
+    "broadGameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false
+  },
+  "nextAction": "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_MANIFEST_CUTOVER"
+}
