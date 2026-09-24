@@ -381,6 +381,24 @@ foreach (var forbidden in new[] {
 })
     Assert(!farmerGearProbe.Contains(forbidden, StringComparison.Ordinal), "V5_FARMER_GEAR_PROBE_FORBIDDEN_" + forbidden);
 
+Assert(CdpAdventureLandClient.BridgeV5DeploymentDiagnosticsKey == "bridgeV5Deployment", "V5_DEPLOYMENT_DIAGNOSTICS_KEY");
+using (var v5DiagnosticHttp = new HttpClient())
+{
+    var v5DiagnosticClient = new CdpAdventureLandClient(v5DiagnosticHttp, defaults);
+    v5DiagnosticClient.RecordV5AutonomousTestDeploymentResult(
+        new V5AutonomousTestDeploymentResult("DEPLOYED", true, "test-v5", "https://adventure.land/"));
+    Assert(v5DiagnosticClient.LastV5DeploymentDiagnostic?.State == "DEPLOYED", "V5_DEPLOYMENT_DIAGNOSTIC_SUCCESS_STATE");
+    Assert(v5DiagnosticClient.LastV5DeploymentDiagnostic?.Changed == true, "V5_DEPLOYMENT_DIAGNOSTIC_SUCCESS_CHANGED");
+    Assert(v5DiagnosticClient.LastV5DeploymentDiagnostic?.TestId == "test-v5", "V5_DEPLOYMENT_DIAGNOSTIC_SUCCESS_TEST_ID");
+    Assert(v5DiagnosticClient.LastV5DeploymentDiagnostic?.Error is null, "V5_DEPLOYMENT_DIAGNOSTIC_SUCCESS_NO_ERROR");
+
+    v5DiagnosticClient.RecordV5AutonomousTestDeploymentFailure(
+        new InvalidOperationException(new string('x', 500)));
+    Assert(v5DiagnosticClient.LastV5DeploymentDiagnostic?.State == "ERROR", "V5_DEPLOYMENT_DIAGNOSTIC_ERROR_STATE");
+    Assert(v5DiagnosticClient.LastV5DeploymentDiagnostic?.Changed == false, "V5_DEPLOYMENT_DIAGNOSTIC_ERROR_NO_CHANGE");
+    Assert((v5DiagnosticClient.LastV5DeploymentDiagnostic?.Error?.Length ?? 0) <= 320, "V5_DEPLOYMENT_DIAGNOSTIC_ERROR_BOUNDED");
+}
+
 
 var v5AutoManifestJson = """
 {
