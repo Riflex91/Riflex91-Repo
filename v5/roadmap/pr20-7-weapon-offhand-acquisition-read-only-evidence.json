@@ -3,11 +3,11 @@
   "stand": "2026-09-24",
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight",
-  "controllerVersion": "1.0.1",
+  "controllerVersion": "1.0.2",
   "status": "OFFEN",
   "evidenceArt": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY_PREFLIGHT",
-  "sourceCommit": "bfcbc3186b1fe374fe37d0dd43d5677511480f5d",
-  "packageSha256": "0d1378a0bca4ff0665dc14ab67920a15a0532f20ab141c6428edac414c0c3c72",
+  "sourceCommit": "0228da63fe01e8717ef7aebb85af24bb3b35478b",
+  "packageSha256": "1931312bfe6b15a2dd0764e774c52c84e6db09c376ee3fd33205b20cc5c9938c",
   "manifestMainCommit": null,
   "observedAtMs": null,
   "terminal": null,
@@ -34,7 +34,7 @@
   },
   "ratified": false,
   "blocker": [
-    "REAL_WSHIELD_ACQUISITION_READ_ONLY_PREFLIGHT_V1_0_1_NOCH_NICHT_AUSGEFUEHRT"
+    "REAL_WSHIELD_ACQUISITION_READ_ONLY_PREFLIGHT_V1_0_2_NOCH_NICHT_AUSGEFUEHRT"
   ],
   "rejectedPreviousRun": {
     "controllerVersion": "1.0.0",
@@ -57,5 +57,32 @@
     "durableIntentCreated": false,
     "sameIntentRetry": false
   },
-  "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js"
+  "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-2-autonomous.js",
+  "blockedPreviousRunV1_0_1": {
+    "controllerVersion": "1.0.1",
+    "observedAtMs": 1790236336626,
+    "status": "BLOCKIERT",
+    "terminal": true,
+    "blocker": [
+      "PR20_7_ACQUISITION_SELL_DIST_FEHLT"
+    ],
+    "ratified": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "durableIntentCreated": false,
+    "sameIntentRetry": false,
+    "openIntentCount": 0,
+    "reasonForV1_0_2": "Browser B.sell_dist was not observable; current official server source was independently revalidated and pins normal-server sell_dist=400 with buy reachability check."
+  },
+  "officialServerReachabilitySource": {
+    "repository": "kaansoral/adventureland_mongodb",
+    "commit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+    "serverBlobSha": "40d0aeda16b9a4320441e833020fe1b4db496e2c",
+    "sellDistance": 400,
+    "buyCheck": "simple_distance(player, l) < B.sell_dist",
+    "revalidatedAt": "2026-09-24"
+  }
 }
