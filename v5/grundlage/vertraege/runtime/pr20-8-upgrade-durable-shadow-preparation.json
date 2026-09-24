@@ -5,7 +5,7 @@
   "kennung": "V5_PR20_8_UPGRADE_DURABLE_SHADOW_NO_WRITE",
   "status": "PACKAGE_BEREIT_NO_WRITE",
   "testId": "pr20-8-upgrade-durable-shadow-no-write",
-  "controllerVersion": "1.0.0",
+  "controllerVersion": "1.0.1",
   "family": "UPGRADE",
   "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
   "ratifiedCandidateEvidenceCommit": "00847a4f314237bc5535e06024a1f08a7f35e8a2",
@@ -64,10 +64,16 @@
     "sendBoundaryState": "NICHT_GESENDET",
     "reconciliationClassification": "NOT_APPLIED",
     "sameIntentRetry": false,
-    "duplicateEqualIntentBlocked": true,
+    "duplicateEqualIntentBlocked": false,
     "exactCandidateIndexPinnedAtShadowTime": true,
     "exactScrollIndexPinnedAtShadowTime": true,
-    "freshReresolutionRequiredBeforeFutureSend": true
+    "freshReresolutionRequiredBeforeFutureSend": true,
+    "invalidOrNonterminalEqualIntentBlocked": true,
+    "exactTerminalNoSendIntentReconciledWithoutRewrite": true,
+    "terminalRecoveryRequiresExactBindingsAndFingerprints": true,
+    "recoveredIntentCreatesNewDurableWrite": false,
+    "recoveredIntentCanAuthorizeSend": false,
+    "bridgeFrameAndHostFacadeMirrored": true
   },
   "oneShotPreparation": {
     "bindingPrepared": true,
