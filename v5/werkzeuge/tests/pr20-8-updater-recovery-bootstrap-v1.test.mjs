@@ -25,7 +25,7 @@ async function flush() {
 
 test("PR20.8 updater persistence bootstrap installs updater 1.0.8, persists once and stays gameplay-no-write", async () => {
   assert.ok(source.includes("pr20-8-native-updater-recovery-bootstrap-v1"));
-  assert.ok(source.includes("updaterVersion: '1.0.8'"));
+  assert.ok(source.includes("const UPDATER_VERSION = '1.0.8'"));
   assert.ok(source.includes("const VERSION = '1.0.8'"));
   assert.ok(source.includes("function installPr208UpdaterRecoveryBootstrapV1()"));
   assert.ok(source.includes("cleanBundleSource"));
