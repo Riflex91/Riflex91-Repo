@@ -44,21 +44,44 @@ test("PR20.7 productive occupied-slot plan is exact one-shot and 5m bounded", ()
   assert.equal(plan.packageSha256, evidence.packageSha256);
 });
 
-test("PR20.7 productive live evidence placeholder cannot count as PASS", () => {
-  assert.equal(evidence.status, "OFFEN");
+test("PR20.7 productive live evidence is terminal one-write and 5m ratified", () => {
+  assert.equal(evidence.status, "BESTANDEN_REAL_INGAME_OCCUPIED_SLOT_ONE_WRITE_5M");
   assert.match(evidence.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(evidence.packageSha256, /^[0-9a-f]{64}$/);
-  assert.equal(evidence.observedAtMs, null);
-  assert.equal(evidence.terminal, null);
-  assert.equal(evidence.result, null);
-  assert.equal(evidence.ratified, false);
-  assert.deepEqual(
-    evidence.blocker,
-    ["REALER_PRODUCTIVE_ONE_SHOT_LIVE_5M_NOCH_NICHT_TERMINAL_BESTANDEN"],
-  );
-  assert.equal(evidence.expectedSafetyBoundary.gameplayWrites, 1);
-  assert.equal(evidence.expectedSafetyBoundary.publicFunctionCalls, 1);
-  assert.equal(evidence.expectedSafetyBoundary.rawWriteCalls, 0);
-  assert.equal(evidence.expectedSafetyBoundary.sameIntentRetry, false);
-  assert.equal(evidence.expectedSafetyBoundary.normalRuntimeAllowed, false);
+  assert.equal(evidence.manifestMainCommit, "8010826d263b01ce8b75e462f5b96fe07e0ac92c");
+  assert.equal(evidence.observedAtMs, 1790224307797);
+  assert.equal(evidence.terminal, true);
+  assert.equal(evidence.ratified, true);
+  assert.deepEqual(evidence.blocker, []);
+  assert.equal(evidence.result.status, "BESTANDEN");
+  assert.equal(evidence.result.phase, "COMPLETE");
+  assert.equal(evidence.result.recipient.characterName, "My_Merchant");
+  assert.equal(evidence.result.candidate.slot, "helmet");
+  assert.equal(evidence.result.candidate.inventoryIndex, 7);
+  assert.equal(evidence.result.candidate.name, "wcap");
+  assert.equal(evidence.result.previousSlotItem.name, "partyhat");
+  assert.equal(evidence.result.durableIntentReadback, true);
+  assert.equal(evidence.result.sendBoundaryState, "MOEGLICH_GESENDET");
+  assert.equal(evidence.result.reconciliation, "COMMITTED");
+  assert.equal(evidence.result.settlement, "BESTAETIGT");
+  assert.equal(evidence.result.oneShotAuthority.issued, true);
+  assert.equal(evidence.result.oneShotAuthority.consumed, true);
+  assert.equal(evidence.result.oneShotAuthority.maximumUses, 1);
+  assert.equal(evidence.result.oneShotAuthority.exactRecipientSessionBinding, true);
+  assert.equal(evidence.result.oneShotAuthority.exactSlotAndIndexBinding, true);
+  assert.equal(evidence.result.oneShotAuthority.equipmentInventoryFenceClaims, true);
+  assert.equal(evidence.result.performanceTrick.active, true);
+  assert.equal(evidence.result.gameplayWrites, 1);
+  assert.equal(evidence.result.publicFunctionCalls, 1);
+  assert.equal(evidence.result.rawWriteCalls, 0);
+  assert.equal(evidence.result.sameIntentRetry, false);
+  assert.equal(evidence.result.startCalls, 0);
+  assert.equal(evidence.result.disconnectCalls, 0);
+  assert.equal(evidence.result.farmerWorkersInstalled, 0);
+  assert.equal(evidence.result.normalRuntimeAllowed, false);
+  assert.equal(evidence.result.soak.status, "BESTANDEN");
+  assert.equal(evidence.result.soak.samples, 60);
+  assert.ok(evidence.result.soak.durationMs >= 299000);
+  assert.equal(evidence.deploymentEvidence.v5Publish, "SUCCESS");
+  assert.equal(evidence.deploymentEvidence.v5ReadbackVerify, "SUCCESS");
 });
