@@ -667,11 +667,11 @@ test("PR20.8 Upgrade Durable Shadow package stays no-send and authority-free", (
 test("PR20.8 Upgrade Shadow Manifest is exact pinned and still NO-WRITE", () => {
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_DURABLE_SHADOW_EVIDENCE_RATIFIED_NO_WRITE",
+    "UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION_BEREIT_NO_LIVE_WRITE",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION",
+    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE",
   );
   const shadow = prep.pr20_8.upgradeDurableShadow;
   assert.equal(
@@ -741,6 +741,44 @@ test("PR20.8 Upgrade Durable Shadow real-browser evidence is ratified and remain
   assert.equal(shadow.gameplayAuthority,false);
   assert.equal(shadow.rawWriteAuthority,false);
   assert.equal(shadow.normalRuntimeAllowed,false);
+});
+
+test("PR20.8 Upgrade productive one-write preparation is registered but not live-enabled", () => {
+  const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
+  assert.equal(
+    prep.pr20_8.status,
+    "UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION_BEREIT_NO_LIVE_WRITE",
+  );
+  assert.equal(
+    prep.pr20_8.nextAction,
+    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE",
+  );
+  assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
+  assert.equal(
+    p.contract,
+    "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-preparation.json",
+  );
+  assert.equal(
+    p.test,
+    "grundlage/tests/pr20-upgrade-productive-one-write-preparation.test.mjs",
+  );
+  assert.equal(p.exactCandidate,"gloves@0");
+  assert.equal(p.exactScroll,"scroll0");
+  assert.equal(p.offering,null);
+  assert.equal(p.futurePublicFunction,"upgrade");
+  assert.equal(p.maximumGameplayWrites,1);
+  assert.equal(p.maximumPublicFunctionCalls,1);
+  assert.equal(p.maximumRawWriteCalls,0);
+  assert.equal(p.durableIntentBeforePossibleSend,true);
+  assert.equal(p.exactJournalReadbackRequired,true);
+  assert.equal(p.oneShotMaximumUses,1);
+  assert.equal(p.oneShotMaximumTtlMs,1500);
+  assert.equal(p.freshIndexReresolutionImmediatelyBeforeSend,true);
+  assert.equal(p.sameIntentRetry,false);
+  assert.equal(p.liveRunnerPresent,false);
+  assert.equal(p.gameplayAuthority,false);
+  assert.equal(p.rawWriteAuthority,false);
+  assert.equal(p.normalRuntimeAllowed,false);
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
