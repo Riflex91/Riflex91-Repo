@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_1_0_3_SAME_TEST_UPGRADE_BEREIT_EVIDENCE_OFFEN");
+    "WEAPON_OFFHAND_MERCHANT_ACQUISITION_PREPARATION_REQUIRED");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -214,7 +214,23 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryPublicFunctionCalls, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryRawWriteCalls, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryFarmerGearAllocationRatification, false);
-  assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryEvidenceStatus, "OFFEN");
+  assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryEvidenceStatus, "BLOCKIERT_REAL_NO_EXISTING_CANDIDATE_ZERO_WRITE_RATIFIED");
+  assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryEvidenceRatified, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryRealObservedAtMs, 1790232916356);
+  assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryRealResult, "BLOCKIERT");
+  assert.deepEqual(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryRealBlocker, ["PR20_7_ACCOUNT_DISCOVERY_ROSTER_OHNE_INVENTAR_SLOTS"]);
+  assert.equal(prep.pr20_7.sicherVorbereitet.bridgeLiveFarmerContextCount, 3);
+  assert.equal(prep.pr20_7.sicherVorbereitet.bridgeLiveCompatibleCandidateCount, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.bridgeLivePerformanceTrickActive, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.bridgeLiveGameplayWrites, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.bridgeLiveRawWriteCalls, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.bridgeLiveStartCalls, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.bridgeLiveDisconnectCalls, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandMerchantAcquisitionRequired, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandMerchantAcquisitionPrepared, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandMerchantAcquisitionGameplayAuthority, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandMerchantAcquisitionRawWriteAuthority, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandMerchantAcquisitionCandidate, null);
   assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryManifestCutoverPrepared, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryControllerVersion, "1.0.3");
   assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryTestId, "pr20-7-gear-account-weapon-candidate-discovery-v2");
