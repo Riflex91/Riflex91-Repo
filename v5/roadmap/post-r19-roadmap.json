@@ -88,7 +88,7 @@
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: terminalen No-Write-Updater-Persistenz-Bootstrap beobachten und Code-Slot-Persistenz von Updater v1.0.8 bestaetigen; Upgrade-Runner nicht erneut aktivieren"
+    "AKTUELL: Split-Context Bootstrap v2 im realen Browser beobachten und Code-Slot-Persistenz von Updater v1.0.8 bestaetigen; Upgrade-Runner nicht erneut aktivieren"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTENCE_BOOTSTRAP_MANIFEST_CUTOVER_PREPARED",
+      "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTENCE_BOOTSTRAP_V2_MANIFEST_CUTOVER_PREPARED",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_REAL_BROWSER_RUN",
+      "nextAction": "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_V2_REAL_BROWSER_RUN",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -804,7 +804,9 @@
         "v5/roadmap/pr20-8-upgrade-productive-one-write-evidence.json",
         "v5/grundlage/vertraege/runtime/pr20-8-updater-persistence-bootstrap-preparation.json",
         "v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v1.js",
-        "v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v1.test.mjs"
+        "v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v1.test.mjs",
+        "v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v2.js",
+        "v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v2.test.mjs"
       ]
     },
     {
@@ -1644,7 +1646,7 @@
     }
   },
   "pr20_8": {
-    "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTENCE_BOOTSTRAP_MANIFEST_CUTOVER_PREPARED",
+    "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTENCE_BOOTSTRAP_V2_MANIFEST_CUTOVER_PREPARED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1693,7 +1695,7 @@
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY"
     },
-    "nextAction": "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_REAL_BROWSER_RUN",
+    "nextAction": "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_V2_REAL_BROWSER_RUN",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -1892,18 +1894,18 @@
       "evidenceScrollQuantityAfter": 35
     },
     "updaterPersistenceBootstrap": {
-      "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
+      "status": "V2_MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
       "contract": "v5/grundlage/vertraege/runtime/pr20-8-updater-persistence-bootstrap-preparation.json",
-      "package": "v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v1.js",
-      "test": "v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v1.test.mjs",
-      "testId": "pr20-8-native-updater-recovery-bootstrap-v1",
+      "package": "v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v2.js",
+      "test": "v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v2.test.mjs",
+      "testId": "pr20-8-native-updater-recovery-bootstrap-v2",
       "controllerVersion": "1.0.0",
       "updaterVersion": "1.0.8",
       "expectedGlobal": "V5PR208UpdaterRecoveryBootstrap",
       "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
-      "sourceCommit": "e6a52aafcacb5c23c4a2cdfef88250cbb0e3fe2e",
-      "packageSha256": "0745b836e660c1f6a1bd96a4418908c2822556542ca09e7876e624800d2888fb",
-      "packageBytes": 28532,
+      "sourceCommit": "5f791fc3daa6a173d553d07ac08c7589519df610",
+      "packageSha256": "3ebaf86cd8e454eccab0713035c6a40f2fe0dfd890ee92d59bf1a4e8c01f6e84",
+      "packageBytes": 29253,
       "selfPersisting": true,
       "maximumCodeSlotWritesPerFreshPersistence": 1,
       "maximumCodeSlotReloadsPerFreshPersistence": 1,
@@ -1912,7 +1914,13 @@
       "rawWriteCalls": 0,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_REAL_BROWSER_RUN"
+      "nextGate": "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_V2_REAL_BROWSER_RUN",
+      "localAndParentObservabilityBridge": true,
+      "synchronousBridgeHandshakeState": true,
+      "priorBootstrapTestId": "pr20-8-native-updater-recovery-bootstrap-v1",
+      "priorBridgeState": "ERROR",
+      "priorBridgeError": "V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED",
+      "priorBridgeObservedAt": "2026-09-24T17:03:44.6053409+00:00"
     }
   }
 }
