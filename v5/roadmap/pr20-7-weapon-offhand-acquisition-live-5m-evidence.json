@@ -4,16 +4,84 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-live-5m",
   "controllerVersion": "1.0.0",
-  "status": "OFFEN",
+  "status": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
   "evidenceArt": "V5_PR20_7_WSHIELD_ACQUISITION_LIVE_5M",
   "sourceCommit": "5efa5e2c92c258e1502ee388e84ba96d4c844027",
   "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-live-5m.js",
   "packageSha256": "5cecc5a3ca36c2d75e4a6629c36991417b508e364a965c1a945a790aac8bd930",
-  "manifestMainCommit": null,
-  "observedAtMs": null,
-  "terminal": null,
-  "result": null,
-  "ratified": false,
+  "manifestMainCommit": "8b23419ce8118600f00644ee5e1d678af198c0a5",
+  "observedAtMs": 1790247947961,
+  "terminal": true,
+  "result": {
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "recipient": {
+      "characterName": "My_Merchant",
+      "sessionId": "My_Merchant",
+      "serverRegion": "EU",
+      "serverIdentifier": "I"
+    },
+    "candidate": {
+      "itemName": "wshield",
+      "targetSlot": "offhand",
+      "quantity": 1,
+      "vendorId": "basics",
+      "vendorName": "Gabriel",
+      "exactCost": 4800
+    },
+    "prestate": {
+      "gold": 14493644,
+      "freeInventorySlots": 21,
+      "existingQuantity": 0,
+      "prestateFingerprintSha256": "2f5ccc113a2d757d42cebf0e5ea4ce9f8178c402d246108cd2cdcf8edc8b04af"
+    },
+    "poststate": {
+      "gold": 14488844,
+      "goldDelta": -4800,
+      "existingQuantity": 1,
+      "itemQuantityDelta": 1,
+      "inventoryFingerprintSha256": "5e0cd05ac6d27b4a302d9d01ae6aef0386ddd4dc5d06ccbc52b3ff8ac6cf85c1"
+    },
+    "goldBudgetLedger": {
+      "reservationAmount": 4800,
+      "reservationSatisfied": true,
+      "minimumGoldSafetyReserve": 1000
+    },
+    "oneShotAuthority": {
+      "issued": true,
+      "consumed": true,
+      "maximumUses": 1,
+      "exactItemQuantityCostBinding": true,
+      "exactRecipientSessionBinding": true,
+      "goldInventoryBuyChannelSocketFenceClaims": true
+    },
+    "durableIntentReadback": true,
+    "sendBoundaryState": "MOEGLICH_GESENDET",
+    "reconciliation": "COMMITTED",
+    "settlement": "BESTAETIGT",
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "sameIntentRetry": false,
+    "performanceTrickVerification": "HOWLER_PLAYING_TRUE",
+    "vendorReachability": {
+      "nearestVendorDistance": 88.59875647515783,
+      "sellDistance": 400,
+      "officialServerSourceCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+      "officialServerBlobSha": "40d0aeda16b9a4320441e833020fe1b4db496e2c"
+    },
+    "soak": {
+      "status": "BESTANDEN",
+      "samples": 60,
+      "durationMs": 300538,
+      "minimumSamples": 60
+    },
+    "normalRuntimeAllowed": false
+  },
+  "ratified": true,
   "prerequisiteEvidence": {
     "readOnlyEvidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json",
     "readOnlyStatus": "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE",
@@ -37,8 +105,6 @@
     "soakMinimumDurationMs": 299000,
     "normalRuntimeAllowed": false
   },
-  "blocker": [
-    "REAL_WSHIELD_ACQUISITION_LIVE_5M_NOCH_NICHT_AUSGEFUEHRT"
-  ],
-  "nextGate": null
+  "blocker": [],
+  "nextGate": "PR20_7_WEAPON_OFFHAND_PRODUCTIVE_EQUIP_PREPARATION"
 }
