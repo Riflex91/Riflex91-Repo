@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-24",
   "kennung": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY",
-  "status": "DURABLE_SHADOW_CORRECTIVE_1_0_1_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+  "status": "DURABLE_SHADOW_BESTANDEN_PRODUCTIVE_PURCHASE_PREPARATION_BEREIT_NO_PURCHASE_AUTHORITY",
   "blockingGate": "PR20.7_GEAR",
   "rationale": {
     "merchantReadOnlyPreflight": "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE",
@@ -123,7 +123,7 @@
       "no same-intent retry after possible send"
     ]
   },
-  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE_V1_0_1",
+  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION",
   "shadowPreparation": {
     "foundation": "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
     "foundationTest": "v5/grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
@@ -165,7 +165,7 @@
     "rawWriteAuthority": false,
     "sameIntentRetry": false,
     "normalRuntimeAllowed": false,
-    "evidenceStatus": "OFFEN",
+    "evidenceStatus": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
     "previousControllerVersion": "1.0.0",
     "previousLiveStatus": "FEHLER",
     "previousLiveBlocker": "PR20_7_ACQUISITION_SHADOW_OFFHAND_CLASS_DRIFT",
@@ -176,6 +176,25 @@
     "previousLiveDurableIntentCreated": false,
     "previousLiveSameIntentRetry": false,
     "previousLiveRatified": false,
-    "classRuleShape": "OBJECT_KEYS"
+    "classRuleShape": "OBJECT_KEYS",
+    "realEvidenceRatified": true,
+    "realEvidenceManifestMainCommit": "f96bb24402b3f0b274aa9d5b31dd370ff099eed0",
+    "realEvidenceObservedAtMs": 1790243742400,
+    "realEvidenceResult": "BESTANDEN",
+    "realEvidencePhase": "COMPLETE",
+    "realEvidenceBridgeState": "DEPLOYED",
+    "realEvidenceGameplayWrites": 0,
+    "realEvidencePublicFunctionCalls": 0,
+    "realEvidenceRawWriteCalls": 0,
+    "realEvidencePurchaseAuthority": false,
+    "realEvidenceDurableIntentCreatedShadowOnly": true,
+    "realEvidenceDurableReadback": true,
+    "realEvidenceStableDoubleObservation": true,
+    "realEvidenceStablePostIntentReobserve": true,
+    "realEvidenceGoldBudgetReservationSatisfied": true,
+    "realEvidenceVendorReachableNow": true,
+    "realEvidenceNearestVendorDistance": 88.59875647515783,
+    "realEvidenceSellDistance": 400,
+    "productivePurchasePreparationAuthorized": false
   }
 }
