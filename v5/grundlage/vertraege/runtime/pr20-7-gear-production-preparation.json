@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_PACKAGE_BEREIT_EVIDENCE_OFFEN",
+  "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -86,7 +86,7 @@
       "real no-write browser shadow evidence",
       "real productive occupied non-weapon slot one-shot swap with 5m committed evidence"
     ],
-    "next": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_PACKAGE_MERGE_AND_CUTOVER"
+    "next": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_EXECUTE"
   },
   "preflight": {
     "implemented": true,
@@ -289,6 +289,10 @@
     "accountDiscoveryPublicFunctionCalls": 0,
     "accountDiscoveryRawWriteCalls": 0,
     "accountDiscoveryFarmerGearAllocationRatification": false,
-    "accountDiscoveryEvidenceStatus": "OFFEN"
+    "accountDiscoveryEvidenceStatus": "OFFEN",
+    "accountDiscoverySourceCommit": "de3a9106193919327e708b22d78d1623ca5de5a5",
+    "accountDiscoveryPackageSha256": "bfc2d52d9968460c7d977472e7301c6b32f1f7f78f2661e04579573cd661397c",
+    "accountDiscoveryManifest": "roadmap/v5-autonomous-test-manifest.json",
+    "accountDiscoveryManifestCutoverPrepared": true
   }
 }
