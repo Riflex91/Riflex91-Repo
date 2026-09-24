@@ -88,7 +88,7 @@
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: Terminalen Bridge-Handshake-Probe v1.0.1 im realen Browser beobachten; nur exakter v1.0.0-0-write-Zustand darf wechseln; Ziel BESTANDEN/terminal=true; Upgrade-Runner bleibt retired; Compound/Exchange bleiben unratifiziert."
+    "AKTUELL: Nach bestaetigter terminaler Bridge-Recovery den vorhandenen PR20.8 Live-Candidate-Scanner rein read-only erneut ausfuehren; Compound/Exchange neu beobachten; Upgrade ist bereits COMMITTED_SUCCESS und bleibt ohne neue Write-Authority."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTED_BRIDGE_PROBE_CONFIRMED_TERMINAL_RECOVERY_MANIFEST_CUTOVER_PREPARED",
+      "status": "UPGRADE_COMMITTED_UPDATER_PERSISTED_BRIDGE_TERMINAL_RECOVERY_BESTANDEN_COMPOUND_EXCHANGE_READONLY_RESCAN_PREPARED",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN",
+      "nextAction": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -1646,7 +1646,7 @@
     }
   },
   "pr20_8": {
-    "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTED_BRIDGE_PROBE_CONFIRMED_TERMINAL_RECOVERY_MANIFEST_CUTOVER_PREPARED",
+    "status": "UPGRADE_COMMITTED_UPDATER_PERSISTED_BRIDGE_TERMINAL_RECOVERY_BESTANDEN_COMPOUND_EXCHANGE_READONLY_RESCAN_PREPARED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1695,7 +1695,7 @@
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY"
     },
-    "nextAction": "PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN",
+    "nextAction": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -1930,7 +1930,7 @@
       "persistedAtMs": 1790270182323
     },
     "bridgeHandshakeProbe": {
-      "status": "V1_REAL_BROWSER_HANDSHAKE_BESTANDEN_TERMINAL_RECOVERY_MANIFEST_CUTOVER_PREPARED",
+      "status": "TERMINAL_RECOVERY_BESTANDEN_ZERO_WRITE",
       "contract": "v5/grundlage/vertraege/runtime/pr20-8-bridge-handshake-probe-preparation.json",
       "package": "v5/werkzeuge/pr20-8-bridge-handshake-probe-v1.js",
       "test": "v5/werkzeuge/tests/pr20-8-bridge-handshake-probe-v1.test.mjs",
@@ -1958,7 +1958,7 @@
       "upgradeOneWriteRunnerRetired": true,
       "compoundRatified": false,
       "exchangeRatified": false,
-      "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN",
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
       "telemetryBatchId": 8256,
       "bridgeObservedAt": "2026-09-24T17:44:16.2552232+00:00",
       "bridgeState": "ALREADY_PRESENT",
@@ -1967,7 +1967,7 @@
       "observedPhase": "BRIDGE_HANDSHAKE_PROBE",
       "observedTerminal": false,
       "terminalRecovery": {
-        "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
+        "status": "BESTANDEN_REAL_BROWSER_ZERO_WRITE",
         "controllerVersion": "1.0.1",
         "package": "v5/werkzeuge/pr20-8-bridge-handshake-probe-v1-0-1.js",
         "test": "v5/werkzeuge/tests/pr20-8-bridge-handshake-probe-v1-0-1.test.mjs",
@@ -1990,9 +1990,39 @@
         "publicFunctionCalls": 0,
         "rawWriteCalls": 0,
         "sameIntentRetry": false,
-        "normalRuntimeAllowed": false
+        "normalRuntimeAllowed": false,
+        "evidence": "v5/roadmap/pr20-8-bridge-handshake-terminal-recovery-evidence.json",
+        "observedAtMs": 1790272609259,
+        "receivedAt": "2026-09-24T17:56:49.370+00:00",
+        "bridgeObservedAt": "2026-09-24T17:56:41.935018+00:00",
+        "bridgeState": "ALREADY_PRESENT",
+        "bridgeError": null
       },
       "evidence": "v5/roadmap/pr20-8-bridge-handshake-probe-evidence.json"
+    },
+    "remainingCandidateRescan": {
+      "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
+      "purpose": "REOBSERVE_REMAINING_COMPOUND_AND_EXCHANGE_NORMAL_CANDIDATES_AFTER_UPGRADE_COMMIT",
+      "testId": "pr20-8-wertmutation-live-candidate-readonly",
+      "controllerVersion": "1.0.0",
+      "package": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js",
+      "test": "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly.test.mjs",
+      "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
+      "sourceCommit": "7307573841b86b1fb22fd5abfb73a3d461bf0049",
+      "packageSha256": "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5",
+      "priorEvidence": "v5/roadmap/pr20-8-live-candidate-readonly-evidence.json",
+      "targetFamilies": [
+        "COMPOUND",
+        "EXCHANGE"
+      ],
+      "upgradeFamilyInformationalOnly": true,
+      "readOnly": true,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "sameIntentRetry": false,
+      "normalRuntimeAllowed": false,
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN"
     }
   }
 }
