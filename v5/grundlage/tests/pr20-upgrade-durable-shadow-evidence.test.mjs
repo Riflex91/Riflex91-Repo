@@ -96,14 +96,14 @@ test("current 1.0.1 recovery hardening does not rewrite the observed 1.0.0 evide
     manifest.testId,
     "pr20-8-wertmutation-live-candidate-readonly",
   );
-  assert.equal(manifest.controllerVersion,"1.0.2");
+  assert.equal(manifest.controllerVersion,"1.0.3");
   assert.equal(
     manifest.sourceCommit,
-    "c3f7a066f08d1bb16218345f9f76095fe5874c4f",
+    "a0625dd9611b1006dc6f09ef7222ce5b67361ca6",
   );
   assert.equal(
     manifest.packageSha256,
-    "2eb0d1f37f02afca5550572791be860cb221ffb0ab42e22809ad9f5b82fb31b5",
+    "f633b5ed877120aa9c76c2c788b64b8efb20eef155a0d38612fb5fca7c20da25",
   );
   assert.notEqual(manifest.testId,evidence.testId);
   assert.equal(manifest.normalRuntimeAllowed,false);
