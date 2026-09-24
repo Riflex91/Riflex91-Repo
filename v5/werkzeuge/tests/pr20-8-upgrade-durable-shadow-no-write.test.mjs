@@ -259,9 +259,9 @@ test("PR20.8 Upgrade shadow mirrors telemetry into stale local CDP and game root
   const localStatus=env.box.AIO_V3.operations.status().v5AutonomousTest;
   const hostStatus=env.host.AIO_V3.operations.status().v5AutonomousTest;
   assert.equal(localStatus.testId,"pr20-8-upgrade-durable-shadow-no-write");
-  assert.equal(localStatus.version,"1.0.0");
+  assert.equal(localStatus.version,"1.0.1");
   assert.equal(hostStatus.testId,"pr20-8-upgrade-durable-shadow-no-write");
-  assert.equal(hostStatus.version,"1.0.0");
+  assert.equal(hostStatus.version,"1.0.1");
   assert.equal(
     env.box.V5PR208UpgradeDurableShadowNoWrite.testId,
     "pr20-8-upgrade-durable-shadow-no-write",
@@ -345,17 +345,50 @@ test("PR20.8 Upgrade shadow blocks unsafe gift candidate and never invents autho
   assert.equal(status.authority.upgradeAuthority,false);
 });
 
-test("PR20.8 same shadow intent is never silently reused", async () => {
+test("PR20.8 exact terminal shadow intent is explicitly recovered without rewrite or send", async () => {
+  const items=Array(8).fill(null);
+  items[2]={ name:"gloves", level:0 };
+  items[3]={ name:"scroll0", q:2 };
+  const shared=new MemoryStorage();
+  const firstEnv=sandbox(items,{storage:shared});
+  const first=await run(firstEnv);
+  assert.equal(first.status,"BESTANDEN");
+  assert.equal(first.evidence.durableIntentCreatedShadowOnly,true);
+  assert.equal(first.evidence.durableTerminalIntentRecovered,false);
+  const before=[...shared.rows.values()][0];
+
+  const secondEnv=sandbox(items,{storage:shared});
+  const second=await run(secondEnv);
+  assert.equal(second.status,"BESTANDEN");
+  assert.equal(second.evidence.durableIntentCreatedShadowOnly,false);
+  assert.equal(second.evidence.durableTerminalIntentPresent,true);
+  assert.equal(second.evidence.durableTerminalIntentRecovered,true);
+  assert.equal(second.evidence.durableRecoveredVersion,"1.0.1");
+  assert.equal(second.evidence.shadowIntent.createdThisRun,false);
+  assert.equal(second.evidence.shadowIntent.recoveredExistingTerminal,true);
+  assert.equal(secondEnv.upgradeCalls(),0);
+  assert.equal(shared.rows.size,1);
+  assert.equal([...shared.rows.values()][0],before);
+});
+
+test("PR20.8 terminal shadow recovery rejects any persisted intent drift", async () => {
   const items=Array(8).fill(null);
   items[2]={ name:"gloves", level:0 };
   items[3]={ name:"scroll0", q:2 };
   const shared=new MemoryStorage();
   const first=await run(sandbox(items,{storage:shared}));
   assert.equal(first.status,"BESTANDEN");
-  const second=await run(sandbox(items,{storage:shared}));
+  const [key,value]=[...shared.rows.entries()][0];
+  const drift=JSON.parse(value);
+  drift.scroll.index=7;
+  shared.setItem(key,JSON.stringify(drift));
+
+  const env=sandbox(items,{storage:shared});
+  const second=await run(env);
   assert.equal(second.status,"FEHLER");
   assert.ok(second.blocker.some(x =>
-    x.includes("PR20_8_UPGRADE_SHADOW_GLEICHER_INTENT_BEREITS_TERMINAL")));
+    x.includes("PR20_8_UPGRADE_SHADOW_TERMINAL_INTENT_DRIFT")));
+  assert.equal(env.upgradeCalls(),0);
   assert.equal(shared.rows.size,1);
 });
 
@@ -389,6 +422,8 @@ test("PR20.8 Upgrade shadow package contains no gameplay mutation bypass", () =>
     "maximumUses:1",
     "upgradeAuthorityIssued:false",
     "freshReresolutionRequiredBeforeFutureSend:true",
+    "recoveredExistingTerminal",
+    "PR20_8_UPGRADE_SHADOW_TERMINAL_INTENT_DRIFT",
     "SOURCE_PINNED_SELL_DISTANCE = 400",
     "SERVICE_REACHABILITY_SAFETY_MAX = 300",
     "scrollDef.type,64) !== 'uscroll'",
