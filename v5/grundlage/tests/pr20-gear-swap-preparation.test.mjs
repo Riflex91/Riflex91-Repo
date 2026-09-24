@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_2_SOURCE_PIN_PACKAGE_BEREIT_MANIFEST_OFFEN");
+  assert.equal(contract.status, "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_2_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -376,7 +376,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.acquisitionExpectedUnitPrice, 4800);
   assert.equal(contract.weaponOffhandFoundation.acquisitionVendorId, "basics");
   assert.equal(contract.weaponOffhandFoundation.acquisitionControllerVersion, "1.0.2");
-  assert.equal(contract.weaponOffhandFoundation.acquisitionManifestCutoverPrepared, false);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionManifestCutoverPrepared, true);
   assert.equal(contract.weaponOffhandFoundation.acquisitionSameTestUpgradeStrictlyNewer, true);
   assert.equal(contract.weaponOffhandFoundation.acquisitionPreviousTerminalZeroWriteEligible, true);
   assert.equal(contract.weaponOffhandFoundation.acquisitionEvidenceStatus, "V1_0_1_BLOCKED_SELL_DIST_UNOBSERVABLE_V1_0_2_OFFEN");
