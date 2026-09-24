@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "WEAPON_OFFHAND_ACQUISITION_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_1_PACKAGE_BEREIT_MANIFEST_OFFEN",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -253,7 +253,7 @@
       "bridgeExistingFarmerContextsObserved": 3,
       "bridgeExistingFarmerCompatibleCandidates": 0,
       "weaponOffhandAcquisitionContract": "grundlage/vertraege/runtime/pr20-7-weapon-offhand-acquisition-preparation.json",
-      "weaponOffhandAcquisitionPackage": "werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-autonomous.js",
+      "weaponOffhandAcquisitionPackage": "werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js",
       "weaponOffhandAcquisitionTestPlan": "roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
       "weaponOffhandAcquisitionEvidence": "roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json",
       "weaponOffhandAcquisitionPrepared": true,
@@ -262,11 +262,11 @@
       "weaponOffhandAcquisitionTargetSlot": "offhand",
       "weaponOffhandAcquisitionExpectedUnitPrice": 4800,
       "weaponOffhandAcquisitionVendorId": "basics",
-      "weaponOffhandAcquisitionControllerVersion": "1.0.0",
-      "weaponOffhandAcquisitionSourceCommit": "8cb1a5bf799bb7bfef0aa44a185009ae2606ded2",
-      "weaponOffhandAcquisitionPackageSha256": "8d35a665d6bf78a83cab015b9c11cea65c39b6933939086949ad533697aebb9f",
-      "weaponOffhandAcquisitionManifestCutoverPrepared": true,
-      "weaponOffhandAcquisitionEvidenceStatus": "OFFEN",
+      "weaponOffhandAcquisitionControllerVersion": "1.0.1",
+      "weaponOffhandAcquisitionSourceCommit": "bfcbc3186b1fe374fe37d0dd43d5677511480f5d",
+      "weaponOffhandAcquisitionPackageSha256": "0d1378a0bca4ff0665dc14ab67920a15a0532f20ab141c6428edac414c0c3c72",
+      "weaponOffhandAcquisitionManifestCutoverPrepared": false,
+      "weaponOffhandAcquisitionEvidenceStatus": "V1_0_0_FALSE_POSITIVE_REJECTED_V1_0_1_OFFEN",
       "weaponOffhandAcquisitionGameplayWrites": 0,
       "weaponOffhandAcquisitionPublicFunctionCalls": 0,
       "weaponOffhandAcquisitionRawWriteCalls": 0,
@@ -274,7 +274,12 @@
       "weaponOffhandAcquisitionGoldBudgetLedgerReservationRequired": true,
       "weaponOffhandAcquisitionOldPr203HarnessReuseAllowed": false,
       "weaponOffhandAcquisitionSameIntentRetry": false,
-      "weaponOffhandAcquisitionNormalRuntimeAllowed": false
+      "weaponOffhandAcquisitionNormalRuntimeAllowed": false,
+      "weaponOffhandAcquisitionPreviousControllerVersionRejected": "1.0.0",
+      "weaponOffhandAcquisitionPreviousLiveRunRatified": false,
+      "weaponOffhandAcquisitionRequiredBuyApi": true,
+      "weaponOffhandAcquisitionRequiredObservedSellDistance": true,
+      "weaponOffhandAcquisitionRequiredVendorReachability": true
     }
   },
   "pr20_8": {
