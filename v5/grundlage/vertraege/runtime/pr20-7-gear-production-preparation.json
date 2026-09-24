@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "WEAPON_OFFHAND_READ_ONLY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+  "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_PACKAGE_BEREIT_EVIDENCE_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -86,7 +86,7 @@
       "real no-write browser shadow evidence",
       "real productive occupied non-weapon slot one-shot swap with 5m committed evidence"
     ],
-    "next": "PR20_7_WEAPON_OFFHAND_REAL_READ_ONLY_BROWSER_PREFLIGHT_EXECUTE"
+    "next": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_PACKAGE_MERGE_AND_CUTOVER"
   },
   "preflight": {
     "implemented": true,
@@ -258,7 +258,7 @@
     "gameplayWrites": 0,
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
-    "realReadOnlyEvidenceStatus": "OFFEN",
+    "realReadOnlyEvidenceStatus": "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE",
     "productiveEvidenceStatus": "OFFEN",
     "readOnlyAutonomousPackage": "werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js",
     "readOnlyTestPlan": "roadmap/pr20-7-weapon-offhand-read-only-preflight-test-plan.json",
@@ -275,6 +275,20 @@
     "readOnlySourceCommit": "df4f23a4f633abaa62e817da0eb06ea1db3d94dd",
     "readOnlyPackageSha256": "69e3bff8fa7d33c4f4038aff4635d89eebc0c397a2af77ad05486abbac04f562",
     "readOnlyManifest": "roadmap/v5-autonomous-test-manifest.json",
-    "readOnlyManifestCutoverPrepared": true
+    "readOnlyManifestCutoverPrepared": true,
+    "realReadOnlyEvidenceRatified": true,
+    "realReadOnlyEvidenceObservedAtMs": 1790226506589,
+    "realReadOnlyObservedMerchantCandidateCount": 0,
+    "realReadOnlyObservedMerchantInventoryItemCount": 21,
+    "accountDiscoveryPackage": "werkzeuge/pr20-7-account-weapon-candidate-discovery.js",
+    "accountDiscoveryTestPlan": "roadmap/pr20-7-account-weapon-candidate-discovery-test-plan.json",
+    "accountDiscoveryEvidence": "roadmap/pr20-7-account-weapon-candidate-discovery-evidence.json",
+    "accountDiscoveryPrepared": true,
+    "accountDiscoveryWorkerPackageConfigured": false,
+    "accountDiscoveryGameplayWrites": 0,
+    "accountDiscoveryPublicFunctionCalls": 0,
+    "accountDiscoveryRawWriteCalls": 0,
+    "accountDiscoveryFarmerGearAllocationRatification": false,
+    "accountDiscoveryEvidenceStatus": "OFFEN"
   }
 }
