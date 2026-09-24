@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_BRIDGE_HANDSHAKE_PROBE",
+  "status": "PACKAGE_PREPARED_NOT_ACTIVE",
+  "prerequisiteOneWriteEvidence": {
+    "evidence": "roadmap/pr20-8-upgrade-productive-one-write-evidence.json",
+    "telemetryBatchId": 8252,
+    "reconciliationClassification": "COMMITTED_SUCCESS",
+    "sendCount": 1,
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "noSecondSendAllowed": true
+  },
+  "observedBootstrapV2Failure": {
+    "activeManifestTestId": "pr20-8-native-updater-recovery-bootstrap-v2",
+    "bridgeObservedAt": "2026-09-24T17:15:16.3733796+00:00",
+    "bridgeState": "ERROR",
+    "bridgeError": "V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED",
+    "observedCurrentTestId": "pr20-8-upgrade-productive-one-write-live",
+    "observedCurrentVersion": "1.0.3",
+    "observedCurrentStatus": "BESTANDEN",
+    "observedCurrentPhase": "COMPLETE",
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "additionalGameplayWriteObserved": false
+  },
+  "probe": {
+    "testId": "pr20-8-bridge-handshake-probe-v1",
+    "controllerVersion": "1.0.0",
+    "package": "werkzeuge/pr20-8-bridge-handshake-probe-v1.js",
+    "test": "werkzeuge/tests/pr20-8-bridge-handshake-probe-v1.test.mjs",
+    "expectedGlobal": "V5PR208BridgeHandshakeProbe",
+    "synchronousOnly": true,
+    "updaterInstall": false,
+    "codeSlotPersistence": false,
+    "codeSlotReload": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "terminal": false,
+    "normalRuntimeAllowed": false,
+    "mirrorsLocalAndParentAio": true,
+    "mirrorsExpectedGlobalLocalAndParent": true
+  },
+  "diagnosticQuestion": "CAN_MINIMAL_SYNCHRONOUS_PACKAGE_PASS_BOTH_BRIDGE_HANDSHAKE_PROBES",
+  "safetyBoundary": {
+    "mutatingUpgradeRunnerMustRemainRetired": true,
+    "noGameplayMutationInProbe": true,
+    "noCodeSlotMutationInProbe": true,
+    "noUpdaterInstallInProbe": true,
+    "compoundRatification": false,
+    "exchangeRatification": false,
+    "normalRuntimeAllowed": false
+  },
+  "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_MANIFEST_CUTOVER"
+}
