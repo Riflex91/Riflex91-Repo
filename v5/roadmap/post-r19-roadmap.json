@@ -83,10 +83,11 @@
     "PR20.8 Wertmutationen ist aktuelles Gate",
     "PR20.8 Live-Candidate-Evidence ist real-browser ratifiziert; normaler Upgrade-Kandidat gloves@0 + scroll0 beobachtet",
     "PR20.8 Upgrade Durable Shadow ist SHA-gepinnt und Manifest-Cutover vorbereitet",
-    "AKTUELL: realen Browserlauf des Upgrade Durable Shadow beobachten; weiterhin kein Upgrade-Send",
+    "PR20.8 Upgrade Durable Shadow ist real-browser BESTANDEN und NO-WRITE ratifiziert",
     "Compound/Exchange besitzen aktuell keinen ratifizierten einfachen Live-Kandidaten",
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
-    "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
+    "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
+    "AKTUELL: produktiven exakt-ein-Upgrade-Write fuer den normalen gloves@0 + scroll0 Pfad vorbereiten; noch keine Write-Freigabe"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -1624,7 +1625,7 @@
     }
   },
   "pr20_8": {
-    "status": "UPGRADE_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+    "status": "UPGRADE_DURABLE_SHADOW_EVIDENCE_RATIFIED_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1666,14 +1667,14 @@
     "exchangeLiveRunnerPresent": false,
     "remainingGates": {
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
-      "normalUpgrade": "DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+      "normalUpgrade": "DURABLE_SHADOW_BESTANDEN_REAL_BROWSER_NO_WRITE",
       "normalCompound": "OFFEN_SEPARATE_RATIFICATION",
       "normalExchange": "OFFEN_SEPARATE_RATIFICATION",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY"
     },
-    "nextAction": "PR20_8_UPGRADE_DURABLE_SHADOW_REAL_BROWSER_OBSERVE",
+    "nextAction": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -1765,7 +1766,22 @@
       "recoveryRewritesIntent": false,
       "recoveryCreatesGameplayWrite": false,
       "previousControllerVersionRecoverable": "1.0.0",
-      "terminalRecoveryPackagePinned": true
+      "terminalRecoveryPackagePinned": true,
+      "evidence": "v5/roadmap/pr20-8-upgrade-durable-shadow-evidence.json",
+      "evidenceStatus": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
+      "evidenceRatified": true,
+      "evidenceTelemetryBatchId": 8244,
+      "evidenceObservedControllerVersion": "1.0.0",
+      "evidenceObservedAtMs": 1790258801223,
+      "evidenceCandidateIndex": 6,
+      "evidenceScrollIndex": 14,
+      "evidenceGameplayWrites": 0,
+      "evidencePublicFunctionCalls": 0,
+      "evidenceRawWriteCalls": 0,
+      "evidenceSendBoundaryState": "NICHT_GESENDET",
+      "evidenceReconciliation": "NOT_APPLIED",
+      "evidenceUpgradeAuthority": false,
+      "evidenceNormalUpgradeWriteRatification": false
     }
   }
 }

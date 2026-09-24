@@ -667,11 +667,11 @@ test("PR20.8 Upgrade Durable Shadow package stays no-send and authority-free", (
 test("PR20.8 Upgrade Shadow Manifest is exact pinned and still NO-WRITE", () => {
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+    "UPGRADE_DURABLE_SHADOW_EVIDENCE_RATIFIED_NO_WRITE",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_UPGRADE_DURABLE_SHADOW_REAL_BROWSER_OBSERVE",
+    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION",
   );
   const shadow = prep.pr20_8.upgradeDurableShadow;
   assert.equal(
@@ -704,6 +704,43 @@ test("PR20.8 Upgrade Shadow Manifest is exact pinned and still NO-WRITE", () => 
   assert.equal(shadow.rawWriteCalls, 0);
   assert.equal(shadow.sameIntentRetry, false);
   assert.equal(shadow.normalRuntimeAllowed, false);
+});
+
+test("PR20.8 Upgrade Durable Shadow real-browser evidence is ratified and remains no-write", () => {
+  const shadow=prep.pr20_8.upgradeDurableShadow;
+  assert.equal(
+    prep.pr20_8.status,
+    "UPGRADE_DURABLE_SHADOW_EVIDENCE_RATIFIED_NO_WRITE",
+  );
+  assert.equal(
+    prep.pr20_8.nextAction,
+    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION",
+  );
+  assert.equal(
+    shadow.evidence,
+    "roadmap/pr20-8-upgrade-durable-shadow-evidence.json",
+  );
+  assert.equal(
+    shadow.evidenceStatus,
+    "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
+  );
+  assert.equal(shadow.evidenceRatified,true);
+  assert.equal(shadow.evidenceTelemetryBatchId,8244);
+  assert.equal(shadow.evidenceObservedControllerVersion,"1.0.0");
+  assert.equal(shadow.evidenceObservedAtMs,1790258801223);
+  assert.equal(shadow.evidenceCandidateIndex,6);
+  assert.equal(shadow.evidenceScrollIndex,14);
+  assert.equal(shadow.evidenceGameplayWrites,0);
+  assert.equal(shadow.evidencePublicFunctionCalls,0);
+  assert.equal(shadow.evidenceRawWriteCalls,0);
+  assert.equal(shadow.evidenceSendBoundaryState,"NICHT_GESENDET");
+  assert.equal(shadow.evidenceReconciliation,"NOT_APPLIED");
+  assert.equal(shadow.evidenceUpgradeAuthority,false);
+  assert.equal(shadow.evidenceNormalUpgradeWriteRatification,false);
+  assert.equal(shadow.normalUpgradeWriteRatification,false);
+  assert.equal(shadow.gameplayAuthority,false);
+  assert.equal(shadow.rawWriteAuthority,false);
+  assert.equal(shadow.normalRuntimeAllowed,false);
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
