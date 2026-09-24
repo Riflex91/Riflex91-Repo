@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_BESTANDEN");
+    "WEAPON_OFFHAND_FOUNDATION_NO_WRITE");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -191,6 +191,13 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.ok(prep.pr20_7.sicherVorbereitet.occupiedNonWeaponLiveSoakDurationMs >= 299000);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponsOffhandSeparateGate, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.farmerGearAllocationSeparateGate, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandExplicitSlotRequired, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandClassRulesPinned, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandOppositeHandPinned, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandDoublehandConflictBlocked, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAutomaticUnequipAllowed, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandGameplayWrites, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandRealReadOnlyEvidenceStatus, "OFFEN");
 });
 
 test("Upgrade Compound Exchange und Craft bleiben vorhandenen no-retry Contracts unterworfen", () => {
