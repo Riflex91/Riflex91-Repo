@@ -749,7 +749,7 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   assert.equal(exit.mayAdvanceToPr20_9,false);
   assert.equal(exit.roadmapCriteriaRelaxed,false);
   assert.equal(exit.acquisitionOrMutationToCreateCandidateAllowed,false);
-  assert.equal(p.status,"RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED");
+  assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
   assert.equal(
     p.contract,
     "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-preparation.json",
@@ -1028,7 +1028,7 @@ test("PR20.8 Compound durable shadow preparation remains strictly no-write", () 
 
 test("PR20.8 Compound productive one-write preparation remains no-live-write", () => {
   const p=prep.pr20_8.compoundProductiveOneWritePreparation;
-  assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
+  assert.equal(p.status,"RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED");
   assert.equal(
     p.contract,
     "grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-preparation.json",
