@@ -15,7 +15,7 @@ test("PR20.8 real browser Upgrade durable shadow is terminal BESTANDEN and no-wr
   assert.equal(evidence.telemetryBatchId,8244);
   assert.equal(evidence.supportingTelemetryBatchId,8243);
   assert.equal(evidence.testId,"pr20-8-upgrade-durable-shadow-no-write");
-  assert.equal(evidence.observedControllerVersion,"1.0.1");
+  assert.equal(evidence.observedControllerVersion,"1.0.0");
   assert.equal(evidence.observedPackageSourceCommit,
     "72a0a2c65fff19327d3137356c9e079bf5117203");
   assert.equal(evidence.observedPackageSha256,
