@@ -703,7 +703,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "WEAPON_OFFHAND_ACQUISITION_READ_ONLY_PACKAGE_BEREIT_MANIFEST_OFFEN",
+      "status": "WEAPON_OFFHAND_ACQUISITION_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -737,7 +737,7 @@
         "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
         "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json"
       ],
-      "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_MANIFEST_CUTOVER"
+      "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY_EXECUTE"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1038,7 +1038,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "WEAPON_OFFHAND_ACQUISITION_READ_ONLY_PACKAGE_BEREIT_MANIFEST_OFFEN",
+    "status": "WEAPON_OFFHAND_ACQUISITION_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1097,7 +1097,7 @@
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json"
     ],
-    "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_MANIFEST_CUTOVER",
+    "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY_EXECUTE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1201,11 +1201,11 @@
       "observedSoakDurationMs": 300552
     },
     "remainingGates": {
-      "weaponOffhand": "WEAPON_OFFHAND_ACQUISITION_READ_ONLY_PACKAGE_BEREIT_MANIFEST_OFFEN",
+      "weaponOffhand": "WEAPON_OFFHAND_ACQUISITION_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "farmerGearAllocation": "OFFEN_SEPARATE_RATIFICATION"
     },
     "weaponOffhand": {
-      "status": "WEAPON_OFFHAND_ACQUISITION_READ_ONLY_PACKAGE_BEREIT_MANIFEST_OFFEN",
+      "status": "WEAPON_OFFHAND_ACQUISITION_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "contract": "v5/grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json",
       "explicitSlots": [
         "mainhand",
@@ -1304,7 +1304,7 @@
       "acquisitionControllerVersion": "1.0.0",
       "acquisitionSourceCommit": "8cb1a5bf799bb7bfef0aa44a185009ae2606ded2",
       "acquisitionPackageSha256": "8d35a665d6bf78a83cab015b9c11cea65c39b6933939086949ad533697aebb9f",
-      "acquisitionManifestCutoverPrepared": false,
+      "acquisitionManifestCutoverPrepared": true,
       "acquisitionEvidenceStatus": "OFFEN",
       "acquisitionGameplayWrites": 0,
       "acquisitionPublicFunctionCalls": 0,

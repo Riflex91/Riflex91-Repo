@@ -4,10 +4,10 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight",
   "controllerVersion": "1.0.0",
-  "status": "PACKAGE_BEREIT_MANIFEST_CUTOVER_NOCH_OFFEN",
+  "status": "MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_PREFLIGHT",
   "purpose": "READ_ONLY_WSHIELD_NPC_ACQUISITION_SOURCE_PREFLIGHT",
   "deployment": {
-    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY_AFTER_SEPARATE_CUTOVER",
+    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
     "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
     "coordinatorClass": "merchant",
     "sourceCommit": "8cb1a5bf799bb7bfef0aa44a185009ae2606ded2",
@@ -15,7 +15,8 @@
     "packageSha256": "8d35a665d6bf78a83cab015b9c11cea65c39b6933939086949ad533697aebb9f",
     "expectedGlobal": "V5PR207WeaponOffhandAcquisitionReadOnly",
     "workerPackageConfigured": false,
-    "farmerWorkerDistribution": false
+    "farmerWorkerDistribution": false,
+    "manifestCutoverPrepared": true
   },
   "exactCandidate": {
     "recipient": "My_Merchant",
