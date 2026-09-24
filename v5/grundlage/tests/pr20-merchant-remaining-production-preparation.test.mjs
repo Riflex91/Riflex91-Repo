@@ -628,7 +628,7 @@ test("PR20.8 Upgrade Durable Shadow package stays no-send and authority-free", (
   const shadow = prep.pr20_8.upgradeDurableShadow;
   assert.equal(shadow.status, "PACKAGE_BEREIT_NO_WRITE");
   assert.equal(shadow.testId, "pr20-8-upgrade-durable-shadow-no-write");
-  assert.equal(shadow.controllerVersion, "1.0.0");
+  assert.equal(shadow.controllerVersion, "1.0.1");
   assert.equal(shadow.candidate.name, "gloves");
   assert.equal(shadow.candidate.level, 0);
   assert.equal(shadow.candidate.baseGold, 3400);
@@ -676,15 +676,22 @@ test("PR20.8 Upgrade Shadow Manifest is exact pinned and still NO-WRITE", () => 
   const shadow = prep.pr20_8.upgradeDurableShadow;
   assert.equal(
     shadow.sourceCommit,
-    "72a0a2c65fff19327d3137356c9e079bf5117203",
+    "6d611de7fadf7a5cb3945ec25f3bc761acb14e3c",
   );
   assert.equal(
     shadow.packageSha256,
-    "5490c8b17a956f469b71e2e99c18897f3ffb1f67e00e36c64eb41a30d46498b9",
+    "7703cff2fa837c19c1febffc064c44084494effa142c3e0fb560feec1af5a9ff",
   );
   assert.equal(shadow.manifest, "roadmap/v5-autonomous-test-manifest.json");
   assert.equal(shadow.manifestCutoverPrepared, true);
   assert.equal(shadow.handshakeMirrorsLocalAndGameRoot, true);
+  assert.equal(shadow.controllerVersion, "1.0.1");
+  assert.equal(shadow.exactTerminalIntentRecoveryAllowed, true);
+  assert.equal(shadow.recoveryRequiresExactPersistedIntent, true);
+  assert.equal(shadow.recoveryRewritesIntent, false);
+  assert.equal(shadow.recoveryCreatesGameplayWrite, false);
+  assert.equal(shadow.previousControllerVersionRecoverable, "1.0.0");
+  assert.equal(shadow.terminalRecoveryPackagePinned, true);
   assert.equal(
     shadow.handshakeFixCommit,
     "72a0a2c65fff19327d3137356c9e079bf5117203",

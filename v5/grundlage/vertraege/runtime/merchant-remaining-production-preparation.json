@@ -683,7 +683,7 @@
     "upgradeDurableShadow": {
       "status": "PACKAGE_BEREIT_NO_WRITE",
       "testId": "pr20-8-upgrade-durable-shadow-no-write",
-      "controllerVersion": "1.0.0",
+      "controllerVersion": "1.0.1",
       "package": "werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
       "test": "werkzeuge/tests/pr20-8-upgrade-durable-shadow-no-write.test.mjs",
       "contract": "grundlage/vertraege/runtime/pr20-8-upgrade-durable-shadow-preparation.json",
@@ -726,12 +726,18 @@
       "serviceReference": "G.maps.main.ref.u_mid",
       "exactItemDefinitionRequired": true,
       "exactScrollDefinitionRequired": true,
-      "sourceCommit": "72a0a2c65fff19327d3137356c9e079bf5117203",
-      "packageSha256": "5490c8b17a956f469b71e2e99c18897f3ffb1f67e00e36c64eb41a30d46498b9",
+      "sourceCommit": "6d611de7fadf7a5cb3945ec25f3bc761acb14e3c",
+      "packageSha256": "7703cff2fa837c19c1febffc064c44084494effa142c3e0fb560feec1af5a9ff",
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
       "manifestCutoverPrepared": true,
       "handshakeMirrorsLocalAndGameRoot": true,
-      "handshakeFixCommit": "72a0a2c65fff19327d3137356c9e079bf5117203"
+      "handshakeFixCommit": "72a0a2c65fff19327d3137356c9e079bf5117203",
+      "exactTerminalIntentRecoveryAllowed": true,
+      "recoveryRequiresExactPersistedIntent": true,
+      "recoveryRewritesIntent": false,
+      "recoveryCreatesGameplayWrite": false,
+      "previousControllerVersionRecoverable": "1.0.0",
+      "terminalRecoveryPackagePinned": true
     }
   },
   "pr20_9": {

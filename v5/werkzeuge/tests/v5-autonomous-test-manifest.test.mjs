@@ -601,13 +601,13 @@ test("PR20.8 candidate discovery manifest is exact read-only and special-path cl
 
 test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound", () => {
   if (manifest.testId !== "pr20-8-upgrade-durable-shadow-no-write") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.controllerVersion, "1.0.1");
   assert.equal(manifest.sourceCommit,
-    "72a0a2c65fff19327d3137356c9e079bf5117203");
+    "6d611de7fadf7a5cb3945ec25f3bc761acb14e3c");
   assert.equal(manifest.packagePath,
     "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js");
   assert.equal(manifest.packageSha256,
-    "5490c8b17a956f469b71e2e99c18897f3ffb1f67e00e36c64eb41a30d46498b9");
+    "7703cff2fa837c19c1febffc064c44084494effa142c3e0fb560feec1af5a9ff");
   assert.equal(manifest.expectedGlobal,
     "V5PR208UpgradeDurableShadowNoWrite");
   assert.equal("workerVersion" in manifest, false);
@@ -619,6 +619,8 @@ test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound"
   assert.ok(packageSource.includes("SERVICE_REACHABILITY_SAFETY_MAX = 300"));
   assert.ok(packageSource.includes("publishTelemetryFacades()"));
   assert.ok(packageSource.includes("installTelemetryFacade(owner)"));
+  assert.ok(packageSource.includes("recoveredExistingTerminal"));
+  assert.ok(packageSource.includes("PR20_8_UPGRADE_SHADOW_TERMINAL_INTENT_DRIFT"));
   assert.ok(packageSource.includes("journalTerminalArt:'ABBRUCH'"));
   assert.ok(packageSource.includes("sendBoundaryState:'NICHT_GESENDET'"));
   assert.ok(packageSource.includes("reconciliationClassification:'NOT_APPLIED'"));

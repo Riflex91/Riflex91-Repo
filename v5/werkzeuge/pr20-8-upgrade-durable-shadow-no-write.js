@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0.0';
+  const VERSION = '1.0.1';
   const TEST_ID = 'pr20-8-upgrade-durable-shadow-no-write';
   const EXPECTED_CHARACTER = 'My_Merchant';
   const EXPECTED_CLASS = 'merchant';
@@ -511,25 +511,111 @@
     });
   }
 
-  function assertNoEqualIntent(store,key) {
-    const existing = store.getItem(key);
-    if (existing === null) return;
-    let decoded = null;
-    try { decoded = JSON.parse(existing); } catch {}
-    if (!decoded
-        || decoded.terminal !== true
-        || decoded.sendBoundaryState !== 'NICHT_GESENDET'
-        || decoded.sameIntentRetry !== false) {
-      throw new Error('PR20_8_UPGRADE_SHADOW_OFFENER_GLEICHER_INTENT');
+  function expectedResourceClaims() {
+    return [
+      'character:My_Merchant:inventory',
+      'character:My_Merchant:q',
+      'character:My_Merchant:action_channel:upgrade',
+      'character:My_Merchant:socket_call_budget'
+    ];
+  }
+
+  function readExactTerminalShadowIntent(store,key,record) {
+    const existing=store.getItem(key);
+    if(existing===null) return null;
+    let decoded=null;
+    try { decoded=JSON.parse(existing); } catch {}
+    const versionAllowed=decoded
+      && (decoded.version==='1.0.0' || decoded.version===VERSION);
+    const exact=decoded
+      && decoded.schemaVersion===1
+      && decoded.testId===TEST_ID
+      && versionAllowed
+      && decoded.art==='PR20_8_UPGRADE_DURABLE_SHADOW_INTENT_NO_GAMEPLAY_WRITE'
+      && decoded.terminal===true
+      && decoded.journalTerminalArt==='ABBRUCH'
+      && decoded.sendBoundaryState==='NICHT_GESENDET'
+      && decoded.sameIntentRetry===false
+      && decoded.actionContractId==='AL-ACTION-UPGRADE'
+      && decoded.recoveryContractId==='AL-RECOVERY-UPGRADE'
+      && decoded.verifierId==='AL-VERIFIER-UPGRADE'
+      && decoded.publicFunction==='upgrade'
+      && decoded.sourceSnapshotCommit===SOURCE_SNAPSHOT_COMMIT
+      && decoded.ratifiedCandidateEvidenceCommit===RATIFIED_CANDIDATE_EVIDENCE_COMMIT
+      && canonical(decoded.serviceReachability)===canonical(record.serviceReachability)
+      && decoded.recipient?.characterName===record.recipient.characterName
+      && decoded.recipient?.sessionId===record.recipient.sessionId
+      && decoded.recipient?.ctype===record.recipient.ctype
+      && decoded.recipient?.serverRegion===record.recipient.serverRegion
+      && decoded.recipient?.serverIdentifier===record.recipient.serverIdentifier
+      && decoded.candidate?.name===record.candidate.name
+      && decoded.candidate?.level===record.candidate.level
+      && decoded.candidate?.index===record.candidate.index
+      && decoded.candidate?.quantity===record.candidate.quantity
+      && decoded.candidate?.baseGold===record.candidate.baseGold
+      && decoded.candidate?.material===record.candidate.material
+      && decoded.scroll?.name===record.scroll.name
+      && decoded.scroll?.index===record.scroll.index
+      && decoded.scroll?.observedQuantity===record.scroll.observedQuantity
+      && decoded.scroll?.consumeQuantity===record.scroll.consumeQuantity
+      && decoded.scroll?.material===record.scroll.material
+      && decoded.offering===null
+      && decoded.normalPathOnly===true
+      && canonical(decoded.resourceClaims)===canonical(expectedResourceClaims())
+      && decoded.oneShot?.bindingPrepared===true
+      && decoded.oneShot?.maximumUses===1
+      && decoded.oneShot?.upgradeAuthorityIssued===false
+      && decoded.fingerprints?.prestate===record.prestateFingerprintSha256
+      && decoded.fingerprints?.inventory===record.inventoryFingerprintSha256
+      && decoded.fingerprints?.q===record.qFingerprintSha256
+      && decoded.fingerprints?.candidate===record.candidateFingerprintSha256
+      && decoded.fingerprints?.scroll===record.scrollFingerprintSha256
+      && decoded.fingerprints?.upgradeEffects===record.upgradeEffectsFingerprintSha256
+      && decoded.fingerprints?.itemDefinition===record.itemDefinitionFingerprintSha256
+      && decoded.fingerprints?.scrollDefinition===record.scrollDefinitionFingerprintSha256
+      && decoded.exactPhysicalCandidateIndexPinned===true
+      && decoded.exactPhysicalScrollIndexPinned===true
+      && decoded.freshReresolutionRequiredBeforeFutureSend===true
+      && decoded.durableShadowOnly===true
+      && decoded.gameplayAuthority===false
+      && decoded.rawWriteAuthority===false
+      && decoded.upgradeAuthority===false
+      && decoded.normalUpgradeWriteRatification===false
+      && decoded.normalRuntimeAllowed===false;
+    if(!exact) {
+      throw new Error('PR20_8_UPGRADE_SHADOW_TERMINAL_INTENT_DRIFT');
     }
-    throw new Error('PR20_8_UPGRADE_SHADOW_GLEICHER_INTENT_BEREITS_TERMINAL');
+    return decoded;
+  }
+
+  function shadowIntentSummary(key,decoded,recoveredExistingTerminal) {
+    return {
+      storage:'LOCAL_STORAGE_SHADOW_ONLY',
+      key,
+      durableReadback:true,
+      journalTerminalArt:'ABBRUCH',
+      sendBoundaryState:'NICHT_GESENDET',
+      sameIntentRetry:false,
+      resourceClaims:decoded.resourceClaims,
+      oneShot:decoded.oneShot,
+      exactPhysicalCandidateIndexPinned:true,
+      exactPhysicalScrollIndexPinned:true,
+      freshReresolutionRequiredBeforeFutureSend:true,
+      createdThisRun:recoveredExistingTerminal!==true,
+      recoveredExistingTerminal:recoveredExistingTerminal===true,
+      recoveredVersion:recoveredExistingTerminal===true ? decoded.version : null
+    };
   }
 
   function persistShadowIntent(record) {
-    const store = storage();
-    const key = INTENT_PREFIX + record.prestateFingerprintSha256;
-    assertNoEqualIntent(store,key);
-    const payload = JSON.stringify({
+    const store=storage();
+    const key=INTENT_PREFIX+record.prestateFingerprintSha256;
+    const existing=readExactTerminalShadowIntent(store,key,record);
+    if(existing) {
+      return shadowIntentSummary(key,existing,true);
+    }
+
+    const payload=JSON.stringify({
       schemaVersion:1,
       testId:TEST_ID,
       version:VERSION,
@@ -551,12 +637,7 @@
       scroll:record.scroll,
       offering:null,
       normalPathOnly:true,
-      resourceClaims:[
-        'character:My_Merchant:inventory',
-        'character:My_Merchant:q',
-        'character:My_Merchant:action_channel:upgrade',
-        'character:My_Merchant:socket_call_budget'
-      ],
+      resourceClaims:expectedResourceClaims(),
       oneShot:{
         bindingPrepared:true,
         maximumUses:1,
@@ -583,41 +664,15 @@
       normalRuntimeAllowed:false
     });
     store.setItem(key,payload);
-    const readback = store.getItem(key);
-    if (readback !== payload) {
+    const readback=store.getItem(key);
+    if(readback!==payload) {
       throw new Error('PR20_8_UPGRADE_SHADOW_DURABLE_READBACK_MISMATCH');
     }
-    let decoded = null;
-    try { decoded = JSON.parse(readback); } catch {}
-    if (!decoded
-        || decoded.terminal !== true
-        || decoded.journalTerminalArt !== 'ABBRUCH'
-        || decoded.sendBoundaryState !== 'NICHT_GESENDET'
-        || decoded.sameIntentRetry !== false
-        || decoded.oneShot?.maximumUses !== 1
-        || decoded.oneShot?.upgradeAuthorityIssued !== false
-        || decoded.upgradeAuthority !== false
-        || decoded.gameplayAuthority !== false
-        || decoded.rawWriteAuthority !== false
-        || decoded.normalUpgradeWriteRatification !== false
-        || decoded.normalRuntimeAllowed !== false
-        || decoded.candidate?.index !== record.candidate.index
-        || decoded.scroll?.index !== record.scroll.index) {
+    const decoded=readExactTerminalShadowIntent(store,key,record);
+    if(!decoded) {
       throw new Error('PR20_8_UPGRADE_SHADOW_DURABLE_INTENT_INVALID');
     }
-    return {
-      storage:'LOCAL_STORAGE_SHADOW_ONLY',
-      key,
-      durableReadback:true,
-      journalTerminalArt:'ABBRUCH',
-      sendBoundaryState:'NICHT_GESENDET',
-      sameIntentRetry:false,
-      resourceClaims:decoded.resourceClaims,
-      oneShot:decoded.oneShot,
-      exactPhysicalCandidateIndexPinned:true,
-      exactPhysicalScrollIndexPinned:true,
-      freshReresolutionRequiredBeforeFutureSend:true
-    };
+    return shadowIntentSummary(key,decoded,false);
   }
 
   function emit(type,severity,data={}) {
@@ -862,7 +917,10 @@
       shadowIntent,
       stableDoubleObservation:true,
       stablePostIntentReobserve:true,
-      durableIntentCreatedShadowOnly:true,
+      durableIntentCreatedShadowOnly:shadowIntent.createdThisRun===true,
+      durableTerminalIntentPresent:true,
+      durableTerminalIntentRecovered:shadowIntent.recoveredExistingTerminal===true,
+      durableRecoveredVersion:shadowIntent.recoveredVersion,
       durableReadback:true,
       journalTerminalArt:'ABBRUCH',
       sendBoundaryState:'NICHT_GESENDET',
