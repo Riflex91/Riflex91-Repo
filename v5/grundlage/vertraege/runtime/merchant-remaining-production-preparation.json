@@ -298,7 +298,7 @@
       "weaponOffhandAcquisitionObservedSellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
       "weaponOffhandAcquisitionObservedGold": 14493644,
       "weaponOffhandAcquisitionObservedFreeInventorySlots": 21,
-      "weaponOffhandAcquisitionNextGate": "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION",
+      "weaponOffhandAcquisitionNextGate": "PR20.8_WERTMUTATIONEN",
       "weaponOffhandAcquisitionShadowFoundation": "grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
       "weaponOffhandAcquisitionShadowFoundationTest": "grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
       "weaponOffhandAcquisitionShadowPackage": "werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
