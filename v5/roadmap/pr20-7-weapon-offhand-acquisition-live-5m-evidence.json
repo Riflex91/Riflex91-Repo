@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-weapon-offhand-acquisition-live-5m",
+  "controllerVersion": "1.0.0",
+  "status": "OFFEN",
+  "evidenceArt": "V5_PR20_7_WSHIELD_ACQUISITION_LIVE_5M",
+  "sourceCommit": "5efa5e2c92c258e1502ee388e84ba96d4c844027",
+  "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-live-5m.js",
+  "packageSha256": "5cecc5a3ca36c2d75e4a6629c36991417b508e364a965c1a945a790aac8bd930",
+  "manifestMainCommit": null,
+  "observedAtMs": null,
+  "terminal": null,
+  "result": null,
+  "ratified": false,
+  "prerequisiteEvidence": {
+    "readOnlyEvidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json",
+    "readOnlyStatus": "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE",
+    "shadowEvidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-shadow-no-write-evidence.json",
+    "shadowStatus": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
+    "shadowObservedAtMs": 1790243742400
+  },
+  "expectedSafetyBoundary": {
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "oneShotMaximumUses": 1,
+    "sameIntentRetry": false,
+    "restartReconcileWithoutResend": true,
+    "exactGoldDelta": -4800,
+    "exactItemQuantityDelta": 1,
+    "soakMinimumSamples": 60,
+    "soakMinimumDurationMs": 299000,
+    "normalRuntimeAllowed": false
+  },
+  "blocker": [
+    "REAL_WSHIELD_ACQUISITION_LIVE_5M_NOCH_NICHT_AUSGEFUEHRT"
+  ],
+  "nextGate": null
+}
