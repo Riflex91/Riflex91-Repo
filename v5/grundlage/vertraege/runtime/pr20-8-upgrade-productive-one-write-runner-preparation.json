@@ -55,7 +55,9 @@
       "candidateFingerprint",
       "scrollFingerprint",
       "candidateIndex",
-      "scrollIndex"
+      "scrollIndex",
+      "upgradeEffectsFingerprint",
+      "runnerInstanceId"
     ],
     "driftRevokes": true
   },
@@ -71,7 +73,13 @@
     "serviceReachabilityMax": 300,
     "sourcePinnedSellDistance": 400,
     "itemDefinitionExact": true,
-    "scrollDefinitionExact": true
+    "scrollDefinitionExact": true,
+    "giveawayCandidateForbidden": true,
+    "listedCandidateForbidden": true,
+    "upgradeEffectStateBound": true,
+    "runtimeInstanceLeaseRequired": true,
+    "resourceFenceOwnerInstanceUnique": true,
+    "resourceFenceOwnershipRecheckedBeforeSend": true
   },
   "settlement": {
     "promiseResultSupportingEvidenceOnly": true,
@@ -80,7 +88,9 @@
     "notApplied": "fresh positive unchanged target+scroll evidence and no q/placeholder",
     "stillPending": "q/placeholder or accepted consumable delta remains",
     "unresolved": "RECOVERY_PENDING",
-    "restartNeverResends": true
+    "restartNeverResends": true,
+    "publicFunctionPromiseTimeoutMs": 2000,
+    "promiseTimeoutFallsThroughToStateReconciliation": true
   },
   "packageBoundary": {
     "manifestCutoverPrepared": false,
@@ -91,7 +101,8 @@
     "maximumPublicFunctionCallsPerIntent": 1,
     "maximumRawWriteCalls": 0,
     "directSocketWriteForbidden": true,
-    "normalRuntimeAllowed": false
+    "normalRuntimeAllowed": false,
+    "concurrentDuplicateRunnerMustNotSend": true
   },
   "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER"
 }
