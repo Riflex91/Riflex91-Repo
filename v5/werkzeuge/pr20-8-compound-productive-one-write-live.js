@@ -1386,6 +1386,7 @@
         || fresh.fingerprints.conditionStateFingerprintSha256 !== intent.fingerprints.conditionStateFingerprintSha256
         || fresh.fingerprints.compoundEffectsFingerprintSha256 !== intent.fingerprints.compoundEffectsFingerprintSha256) {
       releaseFences(intent.transactionId);
+      releaseRuntimeLease();
       intent = updateIntent(created.key, intent, {
         status: "ABORTED_FRESH_ADMISSION_DRIFT",
         terminal: true,
@@ -1427,6 +1428,7 @@
       const revoked = {...issued, revoked: true, revokedAtMs: Date.now()};
       writeJsonExact(authorityKey(intent.transactionId), revoked);
       releaseFences(intent.transactionId);
+      releaseRuntimeLease();
       intent = updateIntent(created.key, intent, {
         status: "ABORTED_PRE_SEND_REOBSERVE_DRIFT",
         terminal: true,
