@@ -1066,9 +1066,9 @@ test("PR20.8 Compound productive one-write preparation remains no-live-write", (
   assert.equal(p.runnerTestId,"pr20-8-compound-productive-one-write-live");
   assert.equal(p.runnerControllerVersion,"1.0.0");
   assert.equal(p.expectedGlobal,"V5PR208CompoundProductiveOneWriteLive");
-  assert.equal(p.runnerSourceCommit,"41ce5ea0a12ff1d346a6febb620e025b7dcf1005");
-  assert.equal(p.runnerPackageSha256,"84c4350888ad0ee128b0683b25d8408271582e6beca1be637b457e09d780e9ba");
-  assert.equal(p.runnerPackageBytes,49755);
+  assert.equal(p.runnerSourceCommit,"31edc5c7ce29bb64086be211b703f4f18dd3772b");
+  assert.equal(p.runnerPackageSha256,"c57c6cc38618392f1f26b7c91e0ea10163a8f8bfc33063eaea2785e39b56100c");
+  assert.equal(p.runnerPackageBytes,50445);
   assert.equal(p.packageContainsExactlyOnePublicCompoundCallSite,true);
   assert.equal(p.conditionStateFencingRequired,true);
   assert.equal(p.finalEffectDomainReobserveAfterAuthorityConsume,true);
@@ -1106,9 +1106,9 @@ test("PR20.8 Compound productive one-write runner package has a separate aggrega
   assert.equal(r.deployed,false);
   assert.equal(r.liveWriteEnabled,false);
   assert.equal(r.normalRuntimeAllowed,false);
-  assert.equal(r.sourceCommit,"41ce5ea0a12ff1d346a6febb620e025b7dcf1005");
-  assert.equal(r.packageSha256,"84c4350888ad0ee128b0683b25d8408271582e6beca1be637b457e09d780e9ba");
-  assert.equal(r.packageBytes,49755);
+  assert.equal(r.sourceCommit,"31edc5c7ce29bb64086be211b703f4f18dd3772b");
+  assert.equal(r.packageSha256,"c57c6cc38618392f1f26b7c91e0ea10163a8f8bfc33063eaea2785e39b56100c");
+  assert.equal(r.packageBytes,50445);
   assert.equal(r.nextGate,"PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER");
 });
 
