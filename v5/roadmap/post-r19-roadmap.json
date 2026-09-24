@@ -82,8 +82,8 @@
     "PR20.1 bis PR20.7 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.8 Wertmutationen ist aktuelles Gate",
     "PR20.8 Live-Candidate-Evidence ist real-browser ratifiziert; normaler Upgrade-Kandidat gloves@0 + scroll0 beobachtet",
-    "PR20.8 Upgrade Durable Shadow ist SHA-gepinnt und Manifest-Cutover vorbereitet",
-    "AKTUELL: realen Browserlauf des Upgrade Durable Shadow beobachten; weiterhin kein Upgrade-Send",
+    "PR20.8 Upgrade Durable Shadow 1.0.1 ist real-browser BESTANDEN und hat den exakten terminalen 1.0.0-NO-WRITE-Intent ohne Rewrite recovered",
+    "AKTUELL: produktiven Upgrade-One-Write-Pfad separat vorbereiten; noch keine Upgrade-Write-Authority",
     "Compound/Exchange besitzen aktuell keinen ratifizierten einfachen Live-Kandidaten",
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
@@ -753,7 +753,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "UPGRADE_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+      "status": "UPGRADE_DURABLE_SHADOW_EVIDENCE_RATIFIED_NO_WRITE",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -763,7 +763,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_UPGRADE_DURABLE_SHADOW_REAL_BROWSER_OBSERVE",
+      "nextAction": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -784,7 +784,9 @@
         "v5/grundlage/tests/pr20-wertmutation-live-candidate-evidence.test.mjs",
         "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
         "v5/werkzeuge/tests/pr20-8-upgrade-durable-shadow-no-write.test.mjs",
-        "v5/grundlage/vertraege/runtime/pr20-8-upgrade-durable-shadow-preparation.json"
+        "v5/grundlage/vertraege/runtime/pr20-8-upgrade-durable-shadow-preparation.json",
+        "v5/roadmap/pr20-8-upgrade-durable-shadow-live-evidence.json",
+        "v5/grundlage/tests/pr20-upgrade-durable-shadow-live-evidence.test.mjs"
       ]
     },
     {
@@ -1624,7 +1626,7 @@
     }
   },
   "pr20_8": {
-    "status": "UPGRADE_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+    "status": "UPGRADE_DURABLE_SHADOW_EVIDENCE_RATIFIED_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1666,14 +1668,14 @@
     "exchangeLiveRunnerPresent": false,
     "remainingGates": {
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
-      "normalUpgrade": "DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+      "normalUpgrade": "DURABLE_SHADOW_EVIDENCE_RATIFIED_NO_WRITE",
       "normalCompound": "OFFEN_SEPARATE_RATIFICATION",
       "normalExchange": "OFFEN_SEPARATE_RATIFICATION",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY"
     },
-    "nextAction": "PR20_8_UPGRADE_DURABLE_SHADOW_REAL_BROWSER_OBSERVE",
+    "nextAction": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -1765,7 +1767,24 @@
       "recoveryRewritesIntent": false,
       "recoveryCreatesGameplayWrite": false,
       "previousControllerVersionRecoverable": "1.0.0",
-      "terminalRecoveryPackagePinned": true
+      "terminalRecoveryPackagePinned": true,
+      "evidence": "v5/roadmap/pr20-8-upgrade-durable-shadow-live-evidence.json",
+      "evidenceStatus": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE_RECOVERED",
+      "evidenceRatified": true,
+      "evidenceManifestMainCommit": "1d6c729c2870784f8f4ec71717288607731e28d9",
+      "evidenceObservedAtMs": 1790260714146,
+      "evidenceRecoveredExistingTerminal": true,
+      "evidenceRecoveredVersion": "1.0.0",
+      "evidenceCreatedIntentThisRun": false,
+      "evidencePersistedIntentRewritten": false,
+      "evidenceSecondIntentCreated": false,
+      "evidenceServiceReachabilityExactBinding": true,
+      "evidenceGameplayWrites": 0,
+      "evidencePublicFunctionCalls": 0,
+      "evidenceRawWriteCalls": 0,
+      "evidenceUpgradeAuthority": false,
+      "evidenceNormalUpgradeWriteRatification": false,
+      "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION"
     }
   }
 }
