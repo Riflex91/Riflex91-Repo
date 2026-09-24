@@ -84,11 +84,11 @@
     "PR20.8 Live-Candidate-Evidence ist real-browser ratifiziert; normaler Upgrade-Kandidat gloves@0 + scroll0 beobachtet",
     "PR20.8 Upgrade Durable Shadow ist SHA-gepinnt und Manifest-Cutover vorbereitet",
     "PR20.8 Upgrade Durable Shadow ist real-browser BESTANDEN und NO-WRITE ratifiziert",
-    "Compound/Exchange besitzen nach v1.0.3-Target-Family-Rescan keinen zulaessigen normalen Live-Kandidaten; dieser No-Candidate-Befund ist ratifiziert, die Mutationsfamilien selbst bleiben unratifiziert",
+    "PR20.8 v1.0.4 Target-Family-Rescan ist real-browser BESTANDEN: normaler Compound-Kandidat hpamulet@0 + cscroll0 beobachtet; Exchange besitzt weiterhin keinen zulaessigen Normal-Kandidaten.",
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: Der Operator hat passende Items in das Merchant-Inventar gelegt. PR20.8 Target-Family-Rescan v1.0.4 wird read-only erneut ausgefuehrt; Compound/Exchange-Authority bleibt bis zur separaten Live-Ratifikation geschlossen."
+    "AKTUELL: Compound-Kandidat hpamulet@0 ist read-only ratifiziert. Naechster sicherer Schritt: separate Compound-Durable-Shadow-Vorbereitung; Compound-/Exchange-Write-Authority bleibt geschlossen."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "UPGRADE_COMMITTED_TARGET_ITEMS_PRESENT_V1_0_4_RESCAN_PREPARED",
+      "status": "UPGRADE_COMMITTED_COMPOUND_CANDIDATE_RATIFIED_EXCHANGE_NO_CANDIDATE",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_4_REAL_BROWSER_RUN",
+      "nextAction": "PR20_8_COMPOUND_DURABLE_SHADOW_PREPARATION",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -812,7 +812,9 @@
         "v5/roadmap/pr20-8-no-candidate-exit-gate-review.json",
         "v5/grundlage/tests/pr20-no-candidate-exit-gate-review.test.mjs",
         "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js",
-        "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.test.mjs"
+        "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.test.mjs",
+        "v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json",
+        "v5/grundlage/tests/pr20-compound-exchange-target-family-rescan-v1-0-4-evidence.test.mjs"
       ]
     },
     {
@@ -1652,7 +1654,7 @@
     }
   },
   "pr20_8": {
-    "status": "UPGRADE_COMMITTED_TARGET_ITEMS_PRESENT_V1_0_4_RESCAN_PREPARED",
+    "status": "UPGRADE_COMMITTED_COMPOUND_CANDIDATE_RATIFIED_EXCHANGE_NO_CANDIDATE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1695,14 +1697,14 @@
     "remainingGates": {
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
       "normalUpgrade": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS",
-      "normalCompound": "BLOCKIERT_KEIN_NORMALKANDIDAT_AUTHORITY_CLOSED",
+      "normalCompound": "CANDIDATE_RATIFIED_SHADOW_PREPARATION_REQUIRED",
       "normalExchange": "BLOCKIERT_KEIN_NORMALKANDIDAT_AUTHORITY_CLOSED",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
-      "targetFamilyRescan": "BLOCKIERT_VALID_NO_TARGET_CANDIDATE_ZERO_WRITE"
+      "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_4_REAL_BROWSER_RUN",
+    "nextAction": "PR20_8_COMPOUND_DURABLE_SHADOW_PREPARATION",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -2008,7 +2010,7 @@
       "evidence": "v5/roadmap/pr20-8-bridge-handshake-probe-evidence.json"
     },
     "remainingCandidateRescan": {
-      "status": "V1_0_4_OPERATOR_ITEMS_PRESENT_RESCAN_PREPARED",
+      "status": "V1_0_4_REAL_BROWSER_BESTANDEN_COMPOUND_CANDIDATE_EXCHANGE_NO_CANDIDATE_ZERO_WRITE",
       "purpose": "REOBSERVE_REMAINING_COMPOUND_AND_EXCHANGE_NORMAL_CANDIDATES_AFTER_UPGRADE_COMMIT",
       "testId": "pr20-8-wertmutation-live-candidate-readonly",
       "controllerVersion": "1.0.4",
@@ -2029,7 +2031,7 @@
       "rawWriteCalls": 0,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_4_REAL_BROWSER_RUN",
+      "nextGate": "PR20_8_COMPOUND_DURABLE_SHADOW_PREPARATION",
       "packageBytes": 21343,
       "observedV1Failure": {
         "observedAt": "2026-09-24T18:05:47.0307173+00:00",
@@ -2107,7 +2109,7 @@
         "reportedSuccessInvalidForTargetGate": true,
         "mayAdvanceCompoundOrExchangeGate": false
       },
-      "evidence": "v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json",
+      "evidence": "v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json",
       "evidenceRatified": true,
       "compoundRatified": false,
       "exchangeRatified": false,
@@ -2146,10 +2148,44 @@
         "authorityGranted": false,
         "gameplayWriteRequested": false,
         "scannerSemanticsChanged": false
+      },
+      "compoundCandidateObservationRatified": true,
+      "observedV1_0_4CompoundCandidate": {
+        "observedAtMs": 1790278399271,
+        "updatedAt": "2026-09-24T19:34:32.157+00:00",
+        "controllerVersion": "1.0.4",
+        "status": "BESTANDEN",
+        "phase": "COMPLETE",
+        "terminal": true,
+        "blocker": [],
+        "bridgeState": "ALREADY_PRESENT",
+        "bridgeError": null,
+        "compoundCandidate": {
+          "name": "hpamulet",
+          "level": 0,
+          "baseGold": 20000,
+          "physicalIndexes": [
+            1,
+            22,
+            23
+          ],
+          "scrollName": "cscroll0",
+          "scrollQuantity": 20,
+          "normalPathOnly": true
+        },
+        "exchangeCandidate": null,
+        "gameplayWrites": 0,
+        "publicFunctionCalls": 0,
+        "rawWriteCalls": 0,
+        "sameIntentRetry": false,
+        "authorityIssued": false,
+        "compoundAuthority": false,
+        "exchangeAuthority": false,
+        "normalRuntimeAllowed": false
       }
     },
     "exitGateReview": {
-      "status": "RESCAN_V1_0_4_PENDING_TARGET_FAMILY_OBSERVATION",
+      "status": "BLOCKED_COMPOUND_NOT_LIVE_RATIFIED_EXCHANGE_NO_CANDIDATE",
       "evidence": "v5/roadmap/pr20-8-no-candidate-exit-gate-review.json",
       "currentExitGateSatisfied": false,
       "compoundRatified": false,
