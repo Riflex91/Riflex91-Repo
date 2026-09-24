@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "COMPOUND_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
+    "status": "COMPOUND_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_PENDING",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
+    "nextAction": "PR20_8_COMPOUND_LIVE_5M_PREPARATION",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1130,10 +1130,10 @@
       }
     },
     "exitGateReview": {
-      "status": "BLOCKED_COMPOUND_NOT_LIVE_RATIFIED_EXCHANGE_NO_CANDIDATE",
+      "status": "BLOCKED_COMPOUND_5M_EXCHANGE_NO_CANDIDATE",
       "evidence": "roadmap/pr20-8-no-candidate-exit-gate-review.json",
       "currentExitGateSatisfied": false,
-      "compoundRatified": false,
+      "compoundRatified": true,
       "compoundLive5mTested": false,
       "exchangeRatified": false,
       "exchangeLive5mTested": false,
@@ -1225,7 +1225,7 @@
       "evidenceNormalCompoundWriteRatification": false
     },
     "compoundProductiveOneWritePreparation": {
-      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
+      "status": "BEREIT_NO_LIVE_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-preparation.json",
       "test": "grundlage/tests/pr20-compound-productive-one-write-preparation.test.mjs",
       "prerequisiteShadowEvidence": "roadmap/pr20-8-compound-durable-shadow-evidence.json",
@@ -1249,10 +1249,10 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "manifestCutoverPrepared": true,
+      "manifestCutoverPrepared": false,
       "deployed": false,
-      "liveWriteEnabled": true,
-      "nextGate": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
+      "liveWriteEnabled": false,
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_PREPARATION",
       "runnerPackage": "werkzeuge/pr20-8-compound-productive-one-write-live.js",
       "runnerTest": "werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs",
       "runnerContract": "grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-runner-preparation.json",
@@ -1270,12 +1270,12 @@
       },
       "zeroWritePreflightFailureReleasesRuntimeLease": true,
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
-      "bridgeMayDeployPinnedRunner": true,
-      "deploymentEvidenceObserved": false,
-      "realCompoundMutationPerformed": false
+      "bridgeMayDeployPinnedRunner": false,
+      "deploymentEvidenceObserved": true,
+      "realCompoundMutationPerformed": true
     },
     "compoundProductiveOneWriteRunner": {
-      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
+      "status": "COMMITTED_SUCCESS_RETIRED_FROM_ACTIVE_MANIFEST",
       "package": "werkzeuge/pr20-8-compound-productive-one-write-live.js",
       "test": "werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs",
       "contract": "grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-runner-preparation.json",
@@ -1290,22 +1290,59 @@
       "sameIntentRetry": false,
       "conditionStateFencingRequired": true,
       "finalEffectDomainReobserveAfterAuthorityConsume": true,
-      "manifestCutoverPrepared": true,
-      "deployed": false,
-      "liveWriteEnabled": true,
+      "manifestCutoverPrepared": false,
+      "deployed": true,
+      "liveWriteEnabled": false,
       "normalRuntimeAllowed": false,
       "sourceCommit": "31edc5c7ce29bb64086be211b703f4f18dd3772b",
       "packageSha256": "c57c6cc38618392f1f26b7c91e0ea10163a8f8bfc33063eaea2785e39b56100c",
       "packageBytes": 50445,
-      "nextGate": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_PREPARATION",
       "hpamuletCompoundDefinitionExact": {
         "hp": 240
       },
       "zeroWritePreflightFailureReleasesRuntimeLease": true,
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
-      "deploymentEvidenceObserved": false,
-      "realCompoundMutationPerformed": false,
-      "bridgeMayDeployPinnedRunner": true
+      "deploymentEvidenceObserved": true,
+      "realCompoundMutationPerformed": true,
+      "bridgeMayDeployPinnedRunner": false,
+      "evidence": "roadmap/pr20-8-compound-productive-one-write-evidence.json",
+      "evidenceStatus": "RATIFIED_COMMITTED_SUCCESS",
+      "evidenceObservedAtMs": 1790283547127,
+      "evidenceRestartConfirmedAt": "2026-09-24T21:03:05.633Z",
+      "evidenceTransactionId": "pr20-8-compound-productive-one-write-live:ff08418e6003250471c98f5893dec8dd",
+      "evidenceReconciliation": "COMMITTED_SUCCESS",
+      "evidenceSendCount": 1,
+      "evidenceGameplayWrites": 1,
+      "evidencePublicFunctionCalls": 1,
+      "evidenceRawWriteCalls": 0,
+      "evidenceCandidate": "hpamulet@0 x3 -> hpamulet@1",
+      "evidenceCandidateIndexes": [
+        1,
+        22,
+        23
+      ],
+      "evidenceScroll": "cscroll0",
+      "evidenceScrollIndex": 18,
+      "evidenceScrollQuantityBefore": 20,
+      "evidenceScrollQuantityAfter": 19,
+      "evidenceNoDuplicateValueChangingEffectObserved": true
+    },
+    "compoundProductiveOneWriteEvidence": {
+      "status": "RATIFIED_COMMITTED_SUCCESS",
+      "evidence": "roadmap/pr20-8-compound-productive-one-write-evidence.json",
+      "observedAtMs": 1790283547127,
+      "restartConfirmedAt": "2026-09-24T21:03:05.633Z",
+      "transactionId": "pr20-8-compound-productive-one-write-live:ff08418e6003250471c98f5893dec8dd",
+      "gameplayWrites": 1,
+      "publicFunctionCalls": 1,
+      "rawWriteCalls": 0,
+      "sendCount": 1,
+      "reconciliation": "COMMITTED_SUCCESS",
+      "compoundRatified": true,
+      "compoundLive5mTested": false,
+      "exchangeRatified": false,
+      "normalRuntimeAllowed": false
     }
   },
   "pr20_9": {
