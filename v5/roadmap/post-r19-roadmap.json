@@ -88,7 +88,7 @@
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: Compound Productive One-Write Runner v1.0.0 ist SHA-gepinnt und offline vorbereitet, aber NICHT deployed. Naechstes separates Gate: Manifest-Cutover; Compound-Write-Authority und PR20.9 bleiben geschlossen."
+    "AKTUELL: Compound Productive One-Write v1.0.0 ist SHA-gepinnt im Autonomous-Test-Manifest. Naechster Gate: kontrollierter Real-Browser One-Write; normalRuntimeAllowed=false, Exchange und PR20.9 bleiben geschlossen."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "COMPOUND_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE_READY_NOT_DEPLOYED",
+      "status": "COMPOUND_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER",
+      "nextAction": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -1666,7 +1666,7 @@
     }
   },
   "pr20_8": {
-    "status": "COMPOUND_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE_READY_NOT_DEPLOYED",
+    "status": "COMPOUND_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1709,14 +1709,14 @@
     "remainingGates": {
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
       "normalUpgrade": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS",
-      "normalCompound": "PRODUCTIVE_ONE_WRITE_RUNNER_READY_MANIFEST_CUTOVER_REQUIRED",
+      "normalCompound": "PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
       "normalExchange": "BLOCKIERT_KEIN_NORMALKANDIDAT_AUTHORITY_CLOSED",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER",
+    "nextAction": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -2292,7 +2292,7 @@
       "evidenceNormalCompoundWriteRatification": false
     },
     "compoundProductiveOneWritePreparation": {
-      "status": "RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
       "contract": "v5/grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-preparation.json",
       "test": "v5/grundlage/tests/pr20-compound-productive-one-write-preparation.test.mjs",
       "prerequisiteShadowEvidence": "v5/roadmap/pr20-8-compound-durable-shadow-evidence.json",
@@ -2316,10 +2316,10 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
-      "liveWriteEnabled": false,
-      "nextGate": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER",
+      "liveWriteEnabled": true,
+      "nextGate": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
       "runnerPackage": "v5/werkzeuge/pr20-8-compound-productive-one-write-live.js",
       "runnerTest": "v5/werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs",
       "runnerContract": "v5/grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-runner-preparation.json",
@@ -2335,10 +2335,14 @@
       "hpamuletCompoundDefinitionExact": {
         "hp": 240
       },
-      "zeroWritePreflightFailureReleasesRuntimeLease": true
+      "zeroWritePreflightFailureReleasesRuntimeLease": true,
+      "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+      "bridgeMayDeployPinnedRunner": true,
+      "deploymentEvidenceObserved": false,
+      "realCompoundMutationPerformed": false
     },
     "compoundProductiveOneWriteRunner": {
-      "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
       "package": "v5/werkzeuge/pr20-8-compound-productive-one-write-live.js",
       "test": "v5/werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs",
       "contract": "v5/grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-runner-preparation.json",
@@ -2353,18 +2357,22 @@
       "sameIntentRetry": false,
       "conditionStateFencingRequired": true,
       "finalEffectDomainReobserveAfterAuthorityConsume": true,
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
-      "liveWriteEnabled": false,
+      "liveWriteEnabled": true,
       "normalRuntimeAllowed": false,
       "sourceCommit": "31edc5c7ce29bb64086be211b703f4f18dd3772b",
       "packageSha256": "c57c6cc38618392f1f26b7c91e0ea10163a8f8bfc33063eaea2785e39b56100c",
       "packageBytes": 50445,
-      "nextGate": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER",
+      "nextGate": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
       "hpamuletCompoundDefinitionExact": {
         "hp": 240
       },
-      "zeroWritePreflightFailureReleasesRuntimeLease": true
+      "zeroWritePreflightFailureReleasesRuntimeLease": true,
+      "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+      "deploymentEvidenceObserved": false,
+      "realCompoundMutationPerformed": false,
+      "bridgeMayDeployPinnedRunner": true
     }
   }
 }

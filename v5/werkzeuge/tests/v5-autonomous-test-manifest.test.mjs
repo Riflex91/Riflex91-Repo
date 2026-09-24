@@ -6,6 +6,11 @@ import { execFileSync } from "node:child_process";
 
 const manifest = JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest.json", "utf8"));
 const allowedPackages = Object.freeze({
+  "pr20-8-compound-productive-one-write-live": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-compound-productive-one-write-live.js",
+    expectedGlobal: "V5PR208CompoundProductiveOneWriteLive",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-upgrade-productive-one-write-live": Object.freeze({
     path: "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-3.js",
     expectedGlobal: "V5PR208UpgradeProductiveOneWriteLive",
@@ -871,6 +876,42 @@ test("PR20.8 productive Upgrade one-write manifest is exact, one-shot and runtim
   assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
   assert.equal((packageSource.match(/globalThis\.upgrade\(/g) || []).length, 1);
   assert.equal(packageSource.includes("globalThis.compound("), false);
+  assert.equal(packageSource.includes("globalThis.exchange("), false);
+  assert.equal(packageSource.includes(".socket.emit("), false);
+  assert.equal(packageSource.includes("api_call("), false);
+});
+
+
+test("PR20.8 productive Compound one-write manifest is exact, one-shot and runtime-closed", () => {
+  if (manifest.testId !== "pr20-8-compound-productive-one-write-live") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit, "31edc5c7ce29bb64086be211b703f4f18dd3772b");
+  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-8-compound-productive-one-write-live.js");
+  assert.equal(manifest.packageSha256, "c57c6cc38618392f1f26b7c91e0ea10163a8f8bfc33063eaea2785e39b56100c");
+  assert.equal(manifest.expectedGlobal, "V5PR208CompoundProductiveOneWriteLive");
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.equal("workerPackageSha256" in manifest, false);
+  assert.equal("workerExpectedGlobal" in manifest, false);
+  assert.equal("workerTargets" in manifest, false);
+  assert.ok(packageSource.includes('const VERSION = "1.0.0"'));
+  assert.ok(packageSource.includes('const TEST_ID = "pr20-8-compound-productive-one-write-live"'));
+  assert.ok(packageSource.includes('"Pr208CompoundOneShotAuthority"'));
+  assert.ok(packageSource.includes('sendBoundaryState: "SEND_MOEGLICH_ODER_VERSUCHT"'));
+  assert.ok(packageSource.includes("function acquireRuntimeLease()"));
+  assert.ok(packageSource.includes("function assertFences(txId)"));
+  assert.ok(packageSource.includes("compoundEffectsFingerprintSha256"));
+  assert.ok(packageSource.includes("massproduction"));
+  assert.ok(packageSource.includes("massproductionpp"));
+  assert.ok(packageSource.includes("compoundDefinitionExact"));
+  assert.ok(packageSource.includes("Number(compoundDef.hp) === 240"));
+  assert.ok(packageSource.includes("safeZeroWriteNoIntentFailure"));
+  assert.ok(packageSource.includes("sameIntentRetry: false"));
+  assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
+  assert.ok(packageSource.includes('"RECOVERY_PENDING"'));
+  assert.equal((packageSource.match(/globalThis\.compound\(/g) || []).length, 1);
+  assert.equal(packageSource.includes("globalThis.upgrade("), false);
   assert.equal(packageSource.includes("globalThis.exchange("), false);
   assert.equal(packageSource.includes(".socket.emit("), false);
   assert.equal(packageSource.includes("api_call("), false);

@@ -83,7 +83,7 @@ test("PR20.8 Upgrade shadow evidence proves durable no-send reconciliation", () 
   assert.equal(evidence.result.performanceTrick.verification,"HOWLER_PLAYING_TRUE");
 });
 
-test("current 1.0.1 recovery hardening does not rewrite the observed 1.0.0 evidence", () => {
+test("current recovery hardening evidence stays immutable while the manifest advances to Compound one-write", () => {
   assert.equal(evidence.currentRecoveryControllerVersion,"1.0.1");
   assert.equal(evidence.currentRecoverySourceCommit,
     "6d611de7fadf7a5cb3945ec25f3bc761acb14e3c");
@@ -92,19 +92,10 @@ test("current 1.0.1 recovery hardening does not rewrite the observed 1.0.0 evide
   assert.equal(evidence.safetyBoundary.currentRecoveryPackageMayOnlyRecoverExactTerminalNoWriteIntent,true);
   assert.equal(evidence.safetyBoundary.recoveryMayNotRewriteIntent,true);
   assert.equal(evidence.safetyBoundary.recoveryMayNotCreateGameplayWrite,true);
-  assert.equal(
-    manifest.testId,
-    "pr20-8-compound-durable-shadow-no-write",
-  );
+  assert.equal(manifest.testId,"pr20-8-compound-productive-one-write-live");
   assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(
-    manifest.sourceCommit,
-    "5577a45443db03a8cc0617ce61e0ec4b427d4aea",
-  );
-  assert.equal(
-    manifest.packageSha256,
-    "94685bc0d439eb86b3a31763ffa0a06854c06572d875f55584a7558c9c368547",
-  );
+  assert.equal(manifest.sourceCommit,"31edc5c7ce29bb64086be211b703f4f18dd3772b");
+  assert.equal(manifest.packageSha256,"c57c6cc38618392f1f26b7c91e0ea10163a8f8bfc33063eaea2785e39b56100c");
   assert.notEqual(manifest.testId,evidence.testId);
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
