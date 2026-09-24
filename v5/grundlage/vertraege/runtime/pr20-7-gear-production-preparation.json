@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_1_0_3_SAME_TEST_UPGRADE_BEREIT_EVIDENCE_OFFEN",
+  "status": "WEAPON_OFFHAND_MERCHANT_ACQUISITION_PREPARATION_REQUIRED",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
