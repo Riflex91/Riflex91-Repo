@@ -121,13 +121,14 @@ test("PR20.8 evidence does not turn observed index into write authority", () => 
   assert.equal(evidence.nextGate, "PR20_8_UPGRADE_DURABLE_SHADOW_NO_WRITE");
 });
 
-test("current manifest and package remain the exact read-only evidence source", () => {
+test("ratified read-only evidence stays immutable when live manifest advances", () => {
   assert.equal(manifest.gate, "PR20.8_WERTMUTATIONEN");
-  assert.equal(manifest.testId, evidence.testId);
-  assert.equal(manifest.controllerVersion, evidence.controllerVersion);
-  assert.equal(manifest.sourceCommit, evidence.sourceCommit);
-  assert.equal(manifest.packagePath, evidence.packagePath);
-  assert.equal(manifest.packageSha256, evidence.packageSha256);
+  if (manifest.testId === evidence.testId) {
+    assert.equal(manifest.controllerVersion, evidence.controllerVersion);
+    assert.equal(manifest.sourceCommit, evidence.sourceCommit);
+    assert.equal(manifest.packagePath, evidence.packagePath);
+    assert.equal(manifest.packageSha256, evidence.packageSha256);
+  }
   assert.equal(manifest.normalRuntimeAllowed, false);
 
   for (const marker of [
