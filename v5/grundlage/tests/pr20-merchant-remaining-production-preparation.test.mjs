@@ -1015,7 +1015,7 @@ test("PR20.8 Compound durable shadow preparation remains strictly no-write", () 
   assert.equal(s.evidenceReconciliation,"NOT_APPLIED");
   assert.equal(s.evidenceCompoundAuthority,false);
   assert.equal(s.evidenceNormalCompoundWriteRatification,false);
-  assert.equal(s.nextGate,"PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE");
+  assert.equal(s.nextGate,"PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_PREPARATION");
   assert.deepEqual(s.activeManifestTarget,{
     testId:"pr20-8-compound-durable-shadow-no-write",
     controllerVersion:"1.0.0",
