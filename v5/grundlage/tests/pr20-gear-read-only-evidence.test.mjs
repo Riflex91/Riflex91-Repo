@@ -40,13 +40,14 @@ test("PR20.7 real read-only plan pins the exact autonomous package", () => {
   assert.match(plan.deployment.sourceCommit, /^[0-9a-f]{40}$/);
   assert.equal(plan.deployment.packageSha256, packageSha256);
   // Historical evidence pins its own immutable package. The live manifest may
-  // advance to a later PR20.7 sub-gate without invalidating this ratified PASS.
-  assert.equal(manifest.gate, plan.gate);
+  // advance beyond PR20.7 without invalidating this ratified PASS.
+  if (manifest.testId === plan.testId) {
+    assert.equal(manifest.gate, plan.gate);
+  }
   assert.equal(manifest.repository, "Riflex91/Riflex91-Repo");
   assert.equal(manifest.branch, "main");
   assert.equal(manifest.coordinatorClass, "merchant");
   assert.equal(manifest.normalRuntimeAllowed, false);
-  assert.match(manifest.testId, /^pr20-7-gear-/);
 });
 
 test("PR20.7 real preflight keeps all mutation and lifecycle authority closed", () => {
