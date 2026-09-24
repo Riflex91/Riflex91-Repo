@@ -6,7 +6,7 @@
   "controllerVersion": "1.0.1",
   "status": "OFFEN",
   "evidenceArt": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY_PREFLIGHT",
-  "sourceCommit": "9aa3eaef9fb35cd94db9afe7cf9bcd1518b61eff",
+  "sourceCommit": "bfcbc3186b1fe374fe37d0dd43d5677511480f5d",
   "packageSha256": "0d1378a0bca4ff0665dc14ab67920a15a0532f20ab141c6428edac414c0c3c72",
   "manifestMainCommit": null,
   "observedAtMs": null,
@@ -56,5 +56,6 @@
     "disconnectCalls": 0,
     "durableIntentCreated": false,
     "sameIntentRetry": false
-  }
+  },
+  "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js"
 }
