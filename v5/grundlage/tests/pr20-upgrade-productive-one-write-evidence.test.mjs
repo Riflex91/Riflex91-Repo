@@ -56,19 +56,19 @@ test("PR20.8 productive Upgrade one-write evidence ratifies exactly one committe
 
 test("after committed Upgrade evidence the active manifest keeps mutation retired behind a read-only candidate rescan", () => {
   assert.equal(manifest.testId, "pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(manifest.controllerVersion, "1.0.3");
+  assert.equal(manifest.controllerVersion, "1.0.4");
   assert.equal(manifest.gate, "PR20.8_WERTMUTATIONEN");
   assert.equal(
     manifest.sourceCommit,
-    "a0625dd9611b1006dc6f09ef7222ce5b67361ca6",
+    "27e25e69dc0e26d8ae05328335718c36a6a0c659",
   );
   assert.equal(
     manifest.packagePath,
-    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js",
+    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js",
   );
   assert.equal(
     manifest.packageSha256,
-    "f633b5ed877120aa9c76c2c788b64b8efb20eef155a0d38612fb5fca7c20da25",
+    "0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b",
   );
   assert.equal(manifest.expectedGlobal, "V5PR208ValueMutationLiveCandidateReadonly");
   assert.equal(manifest.normalRuntimeAllowed, false);
