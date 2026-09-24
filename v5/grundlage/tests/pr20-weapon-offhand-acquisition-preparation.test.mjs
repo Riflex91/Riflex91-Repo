@@ -155,7 +155,7 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.shadowPreparation.expectedGlobal, "V5PR207WeaponOffhandAcquisitionShadow");
   assert.equal(contract.shadowPreparation.sourceCommit, "3f006c17934f0159fa575d2da0e4d048fbf0df09");
   assert.equal(contract.shadowPreparation.packageSha256, "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08");
-  assert.equal(contract.shadowPreparation.manifestCutoverPrepared, false);
+  assert.equal(contract.shadowPreparation.manifestCutoverPrepared, true);
   assert.equal(contract.shadowPreparation.exactCost, 4800);
   assert.equal(contract.shadowPreparation.minimumGoldSafetyReserve, 1000);
   assert.equal(contract.shadowPreparation.goldBudgetLedgerReservationSatisfiedByFoundation, true);
