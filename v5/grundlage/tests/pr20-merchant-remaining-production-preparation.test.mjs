@@ -676,14 +676,19 @@ test("PR20.8 Upgrade Shadow Manifest is exact pinned and still NO-WRITE", () => 
   const shadow = prep.pr20_8.upgradeDurableShadow;
   assert.equal(
     shadow.sourceCommit,
-    "79aec6e6d9d4568837641e3fadd48f67dea6adab",
+    "72a0a2c65fff19327d3137356c9e079bf5117203",
   );
   assert.equal(
     shadow.packageSha256,
-    "90d93a6c6970c7d1632918a2280b858451c5087be97b2fe5bc88cc10aa1121c5",
+    "5490c8b17a956f469b71e2e99c18897f3ffb1f67e00e36c64eb41a30d46498b9",
   );
   assert.equal(shadow.manifest, "roadmap/v5-autonomous-test-manifest.json");
   assert.equal(shadow.manifestCutoverPrepared, true);
+  assert.equal(shadow.handshakeMirrorsLocalAndGameRoot, true);
+  assert.equal(
+    shadow.handshakeFixCommit,
+    "72a0a2c65fff19327d3137356c9e079bf5117203",
+  );
   assert.equal(shadow.sendBoundaryState, "NICHT_GESENDET");
   assert.equal(shadow.upgradeAuthorityIssued, false);
   assert.equal(shadow.productionDurableIntentCreated, false);

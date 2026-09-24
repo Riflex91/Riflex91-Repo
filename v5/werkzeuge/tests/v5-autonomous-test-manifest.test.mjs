@@ -603,11 +603,11 @@ test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound"
   if (manifest.testId !== "pr20-8-upgrade-durable-shadow-no-write") return;
   assert.equal(manifest.controllerVersion, "1.0.0");
   assert.equal(manifest.sourceCommit,
-    "79aec6e6d9d4568837641e3fadd48f67dea6adab");
+    "72a0a2c65fff19327d3137356c9e079bf5117203");
   assert.equal(manifest.packagePath,
     "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js");
   assert.equal(manifest.packageSha256,
-    "90d93a6c6970c7d1632918a2280b858451c5087be97b2fe5bc88cc10aa1121c5");
+    "5490c8b17a956f469b71e2e99c18897f3ffb1f67e00e36c64eb41a30d46498b9");
   assert.equal(manifest.expectedGlobal,
     "V5PR208UpgradeDurableShadowNoWrite");
   assert.equal("workerVersion" in manifest, false);
@@ -617,6 +617,8 @@ test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound"
   assert.ok(packageSource.includes("SCROLL_NAME = 'scroll0'"));
   assert.ok(packageSource.includes("SOURCE_PINNED_SELL_DISTANCE = 400"));
   assert.ok(packageSource.includes("SERVICE_REACHABILITY_SAFETY_MAX = 300"));
+  assert.ok(packageSource.includes("publishTelemetryFacades()"));
+  assert.ok(packageSource.includes("installTelemetryFacade(owner)"));
   assert.ok(packageSource.includes("journalTerminalArt:'ABBRUCH'"));
   assert.ok(packageSource.includes("sendBoundaryState:'NICHT_GESENDET'"));
   assert.ok(packageSource.includes("reconciliationClassification:'NOT_APPLIED'"));
