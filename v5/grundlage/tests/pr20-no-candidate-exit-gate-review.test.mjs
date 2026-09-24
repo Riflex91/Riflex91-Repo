@@ -8,16 +8,16 @@ const review=JSON.parse(fs.readFileSync(
 ));
 
 test("PR20.8 no-candidate review keeps the roadmap exit gate blocked", () => {
-  assert.equal(review.status,"BLOCKED_BY_REQUIRED_COMPOUND_EXCHANGE_LIVE_RATIFICATION");
+  assert.equal(review.status,"BLOCKED_COMPOUND_5M_EXCHANGE_NO_CANDIDATE");
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
   assert.equal(review.roadmapCriteriaRelaxed,false);
 
   const families=review.exitGateCriteria.eachFamilyIndividuallyRatifiedAnd5mLiveTested;
   assert.equal(families.upgrade.ratified,true);
-  assert.equal(families.compound.ratified,false);
+  assert.equal(families.compound.ratified,true);
   assert.equal(families.compound.live5mTested,false);
-  assert.equal(families.compound.reason,"KEIN_NORMALKANDIDAT");
+  assert.equal(families.compound.reason,"PRODUCTIVE_ONE_WRITE_RATIFIED_LIVE_5M_PENDING");
   assert.equal(families.exchange.ratified,false);
   assert.equal(families.exchange.live5mTested,false);
   assert.equal(families.exchange.reason,"KEIN_NORMALKANDIDAT");
@@ -36,7 +36,6 @@ test("PR20.8 no-candidate evidence cannot silently create authority or substitut
   assert.equal(review.authority.acquisitionOrMutationToCreateCandidateAllowed,false);
   assert.equal(review.authority.normalRuntimeAllowed,false);
   assert.deepEqual(review.blockers,[
-    "PR20_8_COMPOUND_NOT_RATIFIED_NO_NORMAL_CANDIDATE",
     "PR20_8_COMPOUND_5M_LIVE_NOT_RUN",
     "PR20_8_EXCHANGE_NOT_RATIFIED_NO_NORMAL_CANDIDATE",
     "PR20_8_EXCHANGE_5M_LIVE_NOT_RUN",
@@ -44,6 +43,6 @@ test("PR20.8 no-candidate evidence cannot silently create authority or substitut
   ]);
   assert.equal(
     review.nextAction,
-    "WAIT_FOR_NATURAL_COMPOUND_OR_EXCHANGE_NORMAL_CANDIDATE_THEN_REPEAT_READONLY_TARGET_RESCAN",
+    "PR20_8_COMPOUND_LIVE_5M_PREPARATION",
   );
 });

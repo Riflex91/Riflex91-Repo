@@ -66,13 +66,13 @@ test("PR20.8 terminal recovery package remains immutable and no-write", () => {
   ]) assert.equal(source.includes(marker),false,marker);
 });
 
-test("terminal recovery evidence stays immutable while the current manifest advances to Compound one-write", () => {
-  assert.equal(manifest.testId, "pr20-8-compound-productive-one-write-live");
-  assert.equal(manifest.controllerVersion, "1.0.0");
-  assert.equal(manifest.sourceCommit, "31edc5c7ce29bb64086be211b703f4f18dd3772b");
-  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-8-compound-productive-one-write-live.js");
-  assert.equal(manifest.packageSha256, "c57c6cc38618392f1f26b7c91e0ea10163a8f8bfc33063eaea2785e39b56100c");
-  assert.equal(manifest.expectedGlobal, "V5PR208CompoundProductiveOneWriteLive");
+test("terminal recovery evidence stays immutable while the current manifest returns to the terminal zero-write probe", () => {
+  assert.equal(manifest.testId, "pr20-8-bridge-handshake-probe-v1");
+  assert.equal(manifest.controllerVersion, "1.0.1");
+  assert.equal(manifest.sourceCommit, "fe38f784d9d8bfeac3d9b30874a453716bd9e3bc");
+  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-8-bridge-handshake-probe-v1-0-1.js");
+  assert.equal(manifest.packageSha256, "08d21dde622ed1cf2dd56438225e4274478263908363a5692bcb6c548b58303b");
+  assert.equal(manifest.expectedGlobal, "V5PR208BridgeHandshakeProbe");
   assert.equal(manifest.normalRuntimeAllowed, false);
   assert.equal(evidence.nextGate, "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
 });
