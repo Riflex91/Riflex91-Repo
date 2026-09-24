@@ -44,7 +44,7 @@
     "package": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-autonomous.js",
     "test": "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-read-only-autonomous.test.mjs",
     "testId": "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight",
-    "controllerVersion": "1.0.0",
+    "controllerVersion": "1.0.1",
     "expectedGlobal": "V5PR207WeaponOffhandAcquisitionReadOnly",
     "merchantOnly": true,
     "performanceTrickRequired": true,
@@ -69,7 +69,12 @@
     "startCalls": 0,
     "disconnectCalls": 0,
     "farmerWorkersInstalled": 0,
-    "normalRuntimeAllowed": false
+    "normalRuntimeAllowed": false,
+    "publicFunctionAvailabilityRequired": true,
+    "sellDistanceObservationRequired": true,
+    "vendorReachabilityRequired": true,
+    "previousControllerVersionRejected": "1.0.0",
+    "previousLiveRunRatified": false
   },
   "mutationBoundary": {
     "purchaseAllowed": false,
@@ -90,5 +95,5 @@
       "no same-intent retry after possible send"
     ]
   },
-  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_REAL_READ_ONLY_PREFLIGHT"
+  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_1_0_1"
 }
