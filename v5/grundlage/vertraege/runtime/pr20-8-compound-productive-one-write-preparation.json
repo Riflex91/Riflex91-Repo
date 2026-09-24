@@ -70,7 +70,18 @@
     "massproductionConditionStateExact": true,
     "massproductionppConditionStateExact": true,
     "conditionStateFingerprintRequired": true,
-    "freshConditionStateReobserveImmediatelyBeforeSend": true
+    "freshConditionStateReobserveImmediatelyBeforeSend": true,
+    "compoundEffectDomainFingerprintRequired": true,
+    "compoundEffectDomain": [
+      "character.s.massproduction",
+      "character.s.massproductionpp",
+      "character.p.ograce",
+      "character.p.c_roll",
+      "character.p.c_item",
+      "character.p.c_itemx",
+      "S.cgrace"
+    ],
+    "freshCompoundEffectDomainReobserveImmediatelyBeforeSend": true
   },
   "durableTransaction": {
     "actionContractId": "AL-ACTION-COMPOUND",
@@ -120,7 +131,8 @@
     "massproductionConditionConsumptionReconciled": true,
     "massproductionppConditionConsumptionReconciled": true,
     "notAppliedRequiresPositiveUnchangedEvidenceForAllThreeInputsScrollAndConditions": true,
-    "committedRequiresVerifiedThreeInputConsumableAndConditionOutcome": true
+    "committedRequiresVerifiedThreeInputConsumableAndConditionOutcome": true,
+    "compoundEffectDomainDeltaReconciled": true
   },
   "officialSource": {
     "snapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
