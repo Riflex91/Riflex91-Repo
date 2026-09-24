@@ -32,7 +32,7 @@ const allowedPackages = Object.freeze({
     gate: "PR20.7_GEAR"
   }),
   "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight": Object.freeze({
-    path: "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-autonomous.js",
+    path: "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js",
     expectedGlobal: "V5PR207WeaponOffhandAcquisitionReadOnly",
     gate: "PR20.7_GEAR"
   }),
@@ -369,7 +369,10 @@ test("PR20.7 account weapon discovery manifest remains merchant-only and zero-wr
 
 test("PR20.7 offhand acquisition manifest is exact wshield read-only source preflight", () => {
   if (manifest.testId !== "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.controllerVersion, "1.0.1");
+  assert.equal(manifest.sourceCommit, "bfcbc3186b1fe374fe37d0dd43d5677511480f5d");
+  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js");
+  assert.equal(manifest.packageSha256, "0d1378a0bca4ff0665dc14ab67920a15a0532f20ab141c6428edac414c0c3c72");
   assert.equal("workerVersion" in manifest, false);
   assert.equal("workerPackagePath" in manifest, false);
   assert.equal("workerPackageSha256" in manifest, false);
@@ -380,6 +383,11 @@ test("PR20.7 offhand acquisition manifest is exact wshield read-only source pref
   assert.ok(packageSource.includes("TARGET_SLOT = 'offhand'"));
   assert.ok(packageSource.includes("EXPECTED_UNIT_PRICE = 4800"));
   assert.ok(packageSource.includes("VENDOR_ID = 'basics'"));
+  assert.ok(packageSource.includes("buyWithGoldAvailable"));
+  assert.ok(packageSource.includes("observedSellDistance"));
+  assert.ok(packageSource.includes("PR20_7_ACQUISITION_BUY_WITH_GOLD_FEHLT"));
+  assert.ok(packageSource.includes("PR20_7_ACQUISITION_SELL_DIST_FEHLT"));
+  assert.ok(packageSource.includes("PR20_7_ACQUISITION_VENDOR_NICHT_ERREICHBAR"));
   assert.ok(packageSource.includes("goldBudgetLedgerReservationRequired: true"));
   assert.ok(packageSource.includes("goldBudgetLedgerReservationSatisfied: false"));
   assert.ok(packageSource.includes("purchaseAuthority: false"));
