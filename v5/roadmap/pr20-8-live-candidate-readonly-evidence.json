@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "V5_PR20_8_LIVE_CANDIDATE_READONLY_EVIDENCE",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "status": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
+  "ratified": true,
+  "observedAtMs": 1790256949100,
+  "receivedAt": "2026-09-24T13:35:50.106022Z",
+  "manifestMainCommit": "4ca28e7593e7757a05e0be4ea4f87902d8e089a9",
+  "sourceCommit": "7307573841b86b1fb22fd5abfb73a3d461bf0049",
+  "packagePath": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js",
+  "packageSha256": "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5",
+  "testId": "pr20-8-wertmutation-live-candidate-readonly",
+  "controllerVersion": "1.0.0",
+  "result": {
+    "terminal": true,
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "blocker": [],
+    "recipient": {
+      "characterName": "My_Merchant",
+      "sessionId": "My_Merchant",
+      "ctype": "merchant",
+      "level": 58,
+      "map": "main",
+      "serverRegion": "EU",
+      "serverIdentifier": "I"
+    },
+    "qFingerprintMaterial": "{}",
+    "freshInventoryMaterialCaptured": true,
+    "freshQMaterialCaptured": true,
+    "performanceTrick": {
+      "active": true,
+      "called": true,
+      "playing": true,
+      "cplaying": true,
+      "audioFound": true,
+      "verification": "HOWLER_PLAYING_TRUE",
+      "error": null
+    },
+    "families": {
+      "UPGRADE": {
+        "status": "KANDIDAT_GEFUNDEN",
+        "candidateCount": 3,
+        "selected": {
+          "name": "gloves",
+          "level": 0,
+          "inventoryIndex": 6,
+          "quantity": 1,
+          "type": "gloves",
+          "baseGold": 3400,
+          "locked": false,
+          "blocked": false,
+          "specialProperty": false,
+          "gift": false,
+          "scrollName": "scroll0",
+          "observedScrollQuantity": 36,
+          "offering": null,
+          "normalPathOnly": true,
+          "exactPhysicalIndexMustBeReresolvedBeforeSend": true,
+          "liveAuthority": false
+        }
+      },
+      "COMPOUND": {
+        "status": "KEIN_KANDIDAT",
+        "candidateCount": 0,
+        "selected": null
+      },
+      "EXCHANGE": {
+        "status": "KEIN_KANDIDAT",
+        "candidateCount": 0,
+        "selected": null,
+        "observedRejected": [
+          {
+            "name": "anniversarygift",
+            "inventoryIndex": 4,
+            "reason": "UNSAFE_PHYSICAL_ITEM"
+          }
+        ]
+      }
+    }
+  },
+  "observedSafetyBoundary": {
+    "authorityIssued": false,
+    "durableIntentCreated": false,
+    "upgradeAuthority": false,
+    "compoundAuthority": false,
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "interpretation": {
+    "liveCandidateSelectionPassed": true,
+    "upgradeNormalCandidateObserved": true,
+    "compoundNormalCandidateObserved": false,
+    "exchangeNormalCandidateObserved": false,
+    "noCandidateDoesNotAuthorizeAcquisitionOrMutation": true,
+    "observedInventoryIndexDoesNotCarryWriteAuthority": true,
+    "freshReresolutionRequiredBeforeAnyFutureSend": true,
+    "specialPathsStillExcluded": [
+      "OFFERING",
+      "SCROLL4",
+      "MASS_EXCHANGE",
+      "RECURSIVE_DROP",
+      "SPECIAL_MULTI_OUTPUT"
+    ]
+  },
+  "nextGate": "PR20_8_UPGRADE_DURABLE_SHADOW_NO_WRITE"
+}

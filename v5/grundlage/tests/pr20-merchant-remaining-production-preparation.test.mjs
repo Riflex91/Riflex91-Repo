@@ -568,14 +568,6 @@ test("PR20.8 Live-Candidate-Discovery-Paket bleibt strikt NO-WRITE", () => {
 });
 
 test("PR20.8 Candidate-Manifest bleibt source- und package-gepinnt NO-WRITE", () => {
-  assert.equal(
-    prep.pr20_8.status,
-    "LIVE_CANDIDATE_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
-  );
-  assert.equal(
-    prep.pr20_8.nextAction,
-    "PR20_8_LIVE_CANDIDATE_REAL_BROWSER_OBSERVE",
-  );
   const live = prep.pr20_8.liveCandidateDiscovery;
   assert.equal(
     live.sourceCommit,
@@ -587,6 +579,51 @@ test("PR20.8 Candidate-Manifest bleibt source- und package-gepinnt NO-WRITE", ()
   );
   assert.equal(live.manifest, "roadmap/v5-autonomous-test-manifest.json");
   assert.equal(live.manifestCutoverPrepared, true);
+  assert.equal(live.authorityIssued, false);
+  assert.equal(live.gameplayWrites, 0);
+  assert.equal(live.publicFunctionCalls, 0);
+  assert.equal(live.rawWriteCalls, 0);
+  assert.equal(live.sameIntentRetry, false);
+  assert.equal(live.normalRuntimeAllowed, false);
+});
+
+test("PR20.8 Real-Browser Candidate-Evidence ist ratifiziert und zero-write", () => {
+  assert.equal(
+    prep.pr20_8.status,
+    "LIVE_CANDIDATE_EVIDENCE_RATIFIED_NO_WRITE",
+  );
+  assert.equal(
+    prep.pr20_8.nextAction,
+    "PR20_8_UPGRADE_DURABLE_SHADOW_NO_WRITE",
+  );
+  const live = prep.pr20_8.liveCandidateDiscovery;
+  assert.equal(
+    live.evidence,
+    "roadmap/pr20-8-live-candidate-readonly-evidence.json",
+  );
+  assert.equal(
+    live.evidenceStatus,
+    "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
+  );
+  assert.equal(live.evidenceRatified, true);
+  assert.equal(
+    live.evidenceManifestMainCommit,
+    "4ca28e7593e7757a05e0be4ea4f87902d8e089a9",
+  );
+  assert.equal(live.observedAtMs, 1790256949100);
+  assert.deepEqual(live.observedUpgradeCandidate, {
+    name: "gloves",
+    level: 0,
+    inventoryIndex: 6,
+    baseGold: 3400,
+    scrollName: "scroll0",
+    observedScrollQuantity: 36,
+    normalPathOnly: true,
+    observedIndexCarriesWriteAuthority: false,
+    freshReresolutionBeforeSendRequired: true,
+  });
+  assert.equal(live.observedCompoundCandidate, null);
+  assert.equal(live.observedExchangeCandidate, null);
   assert.equal(live.authorityIssued, false);
   assert.equal(live.gameplayWrites, 0);
   assert.equal(live.publicFunctionCalls, 0);
