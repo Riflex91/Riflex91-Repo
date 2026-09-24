@@ -628,7 +628,7 @@ test("PR20.8 Upgrade Durable Shadow package stays no-send and authority-free", (
   const shadow = prep.pr20_8.upgradeDurableShadow;
   assert.equal(shadow.status, "PACKAGE_BEREIT_NO_WRITE");
   assert.equal(shadow.testId, "pr20-8-upgrade-durable-shadow-no-write");
-  assert.equal(shadow.controllerVersion, "1.0.0");
+  assert.equal(shadow.controllerVersion, "1.0.1");
   assert.equal(shadow.candidate.name, "gloves");
   assert.equal(shadow.candidate.level, 0);
   assert.equal(shadow.candidate.baseGold, 3400);
