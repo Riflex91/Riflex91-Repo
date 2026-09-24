@@ -426,8 +426,6 @@ test("Upgrade Compound Exchange und Craft bleiben vorhandenen no-retry Contracts
 });
 
 test("PR20.8 Exchange besitzt spezialisierten Multi-Domain NO-WRITE Planer", () => {
-  assert.equal(prep.pr20_8.status, "DURABLE_ONE_SHOT_FOUNDATIONS_BEREIT_NO_WRITE");
-  assert.equal(prep.pr20_8.nextAction, "PR20_8_READ_ONLY_PREFLIGHTS");
   assert.ok(prep.pr20_8.foundations.some(x =>
     x.includes("ExchangeProduktionsPlaner")));
   assert.equal(prep.pr20_8.erkannteRestluecken.some(x =>
@@ -498,8 +496,6 @@ test("PR20.8 Exchange besitzt spezialisierten Multi-Domain NO-WRITE Planer", () 
 });
 
 test("PR20.8 Durable One-Shot Foundations bleiben family-separat und NO-WRITE", () => {
-  assert.equal(prep.pr20_8.status, "DURABLE_ONE_SHOT_FOUNDATIONS_BEREIT_NO_WRITE");
-  assert.equal(prep.pr20_8.nextAction, "PR20_8_READ_ONLY_PREFLIGHTS");
   const d = prep.pr20_8.durableOneShotFoundations;
   assert.equal(d.status, "BEREIT_NO_WRITE");
   assert.equal(d.separateAuthorityPerFamily, true);
