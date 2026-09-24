@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -23,11 +24,17 @@ public sealed record PreparedLinuxBridgeUpdate(
 
 public sealed class LinuxBridgeSelfUpdater : IAsyncDisposable
 {
-    public const string ReleaseTag = "linux-bridge-latest";
     public const string AssetFileName = "AioBotLinuxBridge";
     public const string ManifestFileName = "AioBotLinuxBridge.version.json";
-    public const string AssetUrl = "https://github.com/Riflex91/Riflex91-Repo/releases/download/linux-bridge-latest/AioBotLinuxBridge";
-    public const string ManifestUrl = "https://github.com/Riflex91/Riflex91-Repo/releases/download/linux-bridge-latest/AioBotLinuxBridge.version.json";
+    public static string ArchitectureSuffix => RuntimeInformation.ProcessArchitecture switch
+    {
+        Architecture.X64 => "linux-x64",
+        Architecture.Arm64 => "linux-arm64",
+        _ => "unsupported"
+    };
+    public static string ReleaseTag => "linux-bridge-latest-" + ArchitectureSuffix;
+    public static string AssetUrl => $"https://github.com/Riflex91/Riflex91-Repo/releases/download/{ReleaseTag}/{AssetFileName}";
+    public static string ManifestUrl => $"https://github.com/Riflex91/Riflex91-Repo/releases/download/{ReleaseTag}/{ManifestFileName}";
     public const string StatusFileName = "self-update-status.json";
     private const long MaxAssetBytes = 500L * 1024 * 1024;
     private readonly HttpClient _httpClient;
@@ -78,6 +85,12 @@ public sealed class LinuxBridgeSelfUpdater : IAsyncDisposable
 
     public async Task<PreparedLinuxBridgeUpdate?> CheckAndPrepareAsync(CancellationToken cancellationToken = default)
     {
+        if (ArchitectureSuffix == "unsupported")
+        {
+            await WriteStatusAsync("UP_TO_DATE", null, "SELF_UPDATE_ARCHITECTURE_UNSUPPORTED:" + RuntimeInformation.ProcessArchitecture, cancellationToken);
+            return null;
+        }
+
         var targetPath = Environment.ProcessPath;
         if (string.IsNullOrWhiteSpace(targetPath)
             || !string.Equals(Path.GetFileName(targetPath), AssetFileName, StringComparison.Ordinal))
