@@ -21,7 +21,7 @@ const source = fs.readFileSync(
 
 test("PR20.7 acquisition candidate is exact wshield Merchant offhand source", () => {
   assert.equal(contract.blockingGate, "PR20.7_GEAR");
-  assert.equal(contract.status, "DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+  assert.equal(contract.status, "DURABLE_SHADOW_CORRECTIVE_1_0_1_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
   assert.equal(contract.rationale.procurementRequired, true);
   assert.equal(contract.rationale.farmerGearAllocationStillSeparate, true);
   assert.equal(contract.candidate.recipient, "My_Merchant");
@@ -138,7 +138,7 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.preflight.realObservedSellDistanceSource, "OFFICIAL_SERVER_SOURCE_PIN");
   assert.equal(contract.preflight.realObservedGold, 14493644);
   assert.equal(contract.preflight.realObservedFreeInventorySlots, 21);
-  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE");
+  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE_V1_0_1");
   assert.equal(contract.preflight.purchaseAuthority, false);
   assert.equal(contract.preflight.goldBudgetLedgerReservationRequired, true);
   assert.equal(contract.preflight.goldBudgetLedgerReservationSatisfied, false);
@@ -149,12 +149,12 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.mutationBoundary.oldPr20_3HarnessReuseAllowed, false);
   assert.equal(contract.mutationBoundary.sameIntentRetry, false);
   assert.equal(contract.shadowPreparation.foundation, "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts");
-  assert.equal(contract.shadowPreparation.package, "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js");
+  assert.equal(contract.shadowPreparation.package, "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js");
   assert.equal(contract.shadowPreparation.testId, "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write");
-  assert.equal(contract.shadowPreparation.controllerVersion, "1.0.0");
+  assert.equal(contract.shadowPreparation.controllerVersion, "1.0.1");
   assert.equal(contract.shadowPreparation.expectedGlobal, "V5PR207WeaponOffhandAcquisitionShadow");
-  assert.equal(contract.shadowPreparation.sourceCommit, "3f006c17934f0159fa575d2da0e4d048fbf0df09");
-  assert.equal(contract.shadowPreparation.packageSha256, "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08");
+  assert.equal(contract.shadowPreparation.sourceCommit, "0b92ce4002438ef4282622699019b5148da58184");
+  assert.equal(contract.shadowPreparation.packageSha256, "11c666638c111a3acd04e550bf33b52eb7611f53a0f8f02547b4b199df73793d");
   assert.equal(contract.shadowPreparation.manifestCutoverPrepared, true);
   assert.equal(contract.shadowPreparation.exactCost, 4800);
   assert.equal(contract.shadowPreparation.minimumGoldSafetyReserve, 1000);
