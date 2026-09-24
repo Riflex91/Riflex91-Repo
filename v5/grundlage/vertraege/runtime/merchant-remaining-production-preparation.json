@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "WEAPON_OFFHAND_EQUIP_BESTANDEN_FARMER_GEAR_ALLOCATION_OFFEN",
+    "status": "ROADMAP_ABGESCHLOSSEN_MUTATIONS_RATIFIED_ALLOCATION_NO_WRITE",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -89,7 +89,8 @@
       "PR20.7 Waffen-/Offhand-Foundation bindet explizite mainhand/offhand-Slots, Klassen-/WType-Regeln und Doublehand-Gegenhand NO-WRITE",
       "PR20.7 Waffen-/Offhand realer read-only Merchant-Preflight ist workerlos, zero-write und fail-closed vorbereitet",
       "PR20.7 Merchant Waffen-/Offhand Read-only real fail-closed ohne Kandidat, 0 Writes",
-      "PR20.7 accountweite owned-roster Kandidatensuche NO-WRITE vorbereitet"
+      "PR20.7 accountweite owned-roster Kandidatensuche NO-WRITE vorbereitet",
+      "PR20.7 Farmer-Gear-Allocation NO-WRITE mit physischer Einmalreservierung, Recipient-Slot-Eindeutigkeit, Farmer-Prioritaet und Restart-Recovery ratifiziert"
     ],
     "produktiveErweiterungErstNach": [
       "PR20.1 Equip-Live-Nachweis",
@@ -184,7 +185,7 @@
       "occupiedNonWeaponLiveSameIntentRetry": false,
       "occupiedNonWeaponLiveSoakSamples": 60,
       "occupiedNonWeaponLiveSoakDurationMs": 300552,
-      "farmerGearAllocationSeparateGate": true,
+      "farmerGearAllocationSeparateGate": false,
       "weaponOffhandFoundation": "grundlage/quelle/equipment/pr20-7-weapon-offhand-vorbereitung.ts",
       "weaponOffhandContract": "grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json",
       "weaponOffhandExplicitSlotRequired": true,
@@ -455,8 +456,31 @@
       "weaponOffhandProductiveEquipObservedEquipmentInventoryFenceClaims": true,
       "weaponOffhandProductiveEquipObservedSoakSamples": 60,
       "weaponOffhandProductiveEquipObservedSoakDurationMs": 300586,
-      "weaponOffhandNextGate": "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION"
-    }
+      "weaponOffhandNextGate": "PR20.8_WERTMUTATIONEN",
+      "farmerGearAllocationRatified": true,
+      "farmerGearAllocationStatus": "BESTANDEN_NO_WRITE_FOUNDATION_RATIFIED",
+      "farmerGearAllocationRatification": "roadmap/pr20-7-farmer-gear-allocation-ratification.json",
+      "farmerGearAllocationGameplayWrites": 0,
+      "farmerGearAllocationPublicFunctionCalls": 0,
+      "farmerGearAllocationRawWriteCalls": 0,
+      "farmerGearAllocationExecutionAuthority": false,
+      "farmerGearAllocationGameplayAuthority": false,
+      "farmerGearAllocationRawWriteAuthority": false
+    },
+    "farmerGearAllocation": {
+      "status": "BESTANDEN_NO_WRITE_FOUNDATION_RATIFIED",
+      "ratification": "roadmap/pr20-7-farmer-gear-allocation-ratification.json",
+      "sourceMainCommit": "e5430a06e2088a03a6797b628a9526ce6b18a407",
+      "executionAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "normalRuntimeAllowed": false,
+      "nextGate": "PR20.8_WERTMUTATIONEN"
+    },
+    "nextGate": "PR20.8_WERTMUTATIONEN"
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
