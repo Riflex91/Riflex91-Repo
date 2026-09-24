@@ -37,7 +37,7 @@ const allowedPackages = Object.freeze({
     gate: "PR20.7_GEAR"
   }),
   "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write": Object.freeze({
-    path: "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js",
+    path: "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
     expectedGlobal: "V5PR207WeaponOffhandAcquisitionShadow",
     gate: "PR20.7_GEAR"
   }),
