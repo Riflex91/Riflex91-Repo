@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_COMMITTED_COMPOUND_CANDIDATE_RATIFIED_EXCHANGE_NO_CANDIDATE",
+    "COMPOUND_DURABLE_SHADOW_PREPARED_NO_WRITE",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_COMPOUND_DURABLE_SHADOW_PREPARATION",
+    "PR20_8_COMPOUND_DURABLE_SHADOW_MANIFEST_CUTOVER",
   );
   const exit=prep.pr20_8.exitGateReview;
   assert.equal(exit.status,"BLOCKED_COMPOUND_NOT_LIVE_RATIFIED_EXCHANGE_NO_CANDIDATE");
@@ -962,6 +962,48 @@ test("PR20.8 v1.0.4 rescan ratifies Compound candidate and keeps Exchange closed
   assert.equal(r.recovery.rawWriteCalls,0);
   assert.equal(r.recovery.normalRuntimeAllowed,false);
 });
+test("PR20.8 Compound durable shadow preparation remains strictly no-write", () => {
+  const s=prep.pr20_8.compoundDurableShadow;
+  assert.equal(s.status,"PACKAGE_BEREIT_NO_WRITE");
+  assert.equal(s.testId,"pr20-8-compound-durable-shadow-no-write");
+  assert.equal(s.controllerVersion,"1.0.0");
+  assert.equal(s.package,"werkzeuge/pr20-8-compound-durable-shadow-no-write.js");
+  assert.equal(s.test,"werkzeuge/tests/pr20-8-compound-durable-shadow-no-write.test.mjs");
+  assert.equal(s.contract,"grundlage/vertraege/runtime/pr20-8-compound-durable-shadow-preparation.json");
+  assert.equal(s.ratifiedCandidateEvidenceCommit,"5974e293e973493241e3d659ea30d3cae85ebc35");
+  assert.deepEqual(s.candidate,{name:"hpamulet",level:0,baseGold:20000,physicalQuantity:3});
+  assert.deepEqual(s.scroll,{name:"cscroll0",consumeQuantity:1,type:"cscroll",grade:0,baseGold:6400});
+  assert.equal(s.offering,null);
+  assert.equal(s.normalPathOnly,true);
+  assert.equal(s.exactThreeDistinctPhysicalItemsRequired,true);
+  assert.equal(s.currentPhysicalIndexesReresolved,true);
+  assert.equal(s.durableShadowOnly,true);
+  assert.equal(s.durableReadbackRequired,true);
+  assert.equal(s.journalTerminalArt,"ABBRUCH");
+  assert.equal(s.sendBoundaryState,"NICHT_GESENDET");
+  assert.equal(s.reconciliationClassification,"NOT_APPLIED");
+  assert.equal(s.sameIntentRetry,false);
+  assert.equal(s.oneShotMaximumUses,1);
+  assert.equal(s.compoundAuthorityIssued,false);
+  assert.equal(s.productionDurableIntentCreated,false);
+  assert.equal(s.gameplayAuthority,false);
+  assert.equal(s.rawWriteAuthority,false);
+  assert.equal(s.normalCompoundWriteRatification,false);
+  assert.equal(s.gameplayWrites,0);
+  assert.equal(s.publicFunctionCalls,0);
+  assert.equal(s.rawWriteCalls,0);
+  assert.equal(s.normalRuntimeAllowed,false);
+  assert.equal(s.serviceReference,"G.maps.main.ref.c_mid");
+  assert.equal(s.sourcePinnedSellDistance,400);
+  assert.equal(s.conservativeLiveSafetyDistanceMax,300);
+  assert.equal(s.sourceCommit,"5577a45443db03a8cc0617ce61e0ec4b427d4aea");
+  assert.equal(s.packageSha256,"94685bc0d439eb86b3a31763ffa0a06854c06572d875f55584a7558c9c368547");
+  assert.equal(s.packageBytes,34995);
+  assert.equal(s.expectedGlobal,"V5PR208CompoundDurableShadowNoWrite");
+  assert.equal(s.manifestCutoverPrepared,false);
+  assert.equal(s.deployed,false);
+});
+
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
   const wert = text("grundlage/quelle/merchant/werttransaktion.ts");
   const graph = text("grundlage/quelle/produktion/production-graph.ts");
