@@ -911,6 +911,7 @@
       oneShotAuthority:{
         issued:true,maximumUses:1,consumed:true,
         exactRecipientSessionBinding:true,exactSlotAndIndexBinding:true,
+        exactEmptyOffhandPrestate:true,oppositeHandPinned:true,
         equipmentInventoryFenceClaims:true
       },
       performanceTrick,
