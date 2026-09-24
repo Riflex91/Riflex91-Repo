@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_BOOTSTRAP_RECOVERY",
+  "status": "PACKAGE_PATCH_BEREIT_NOT_DEPLOYED",
+  "incident": {
+    "observedTestId": "pr20-8-upgrade-productive-one-write-live",
+    "observedControllerVersion": "1.0.0",
+    "blocker": "PR20_8_UPGRADE_LIVE_DUPLIKAT_INSTANZ_AKTIV",
+    "terminal": true,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "durableIntentCreated": false,
+    "authorityIssued": false,
+    "intentCount": 0,
+    "evidence": null,
+    "firstObservedReceivedAt": "2026-09-24T15:43:50.985Z",
+    "repeatedObservedReceivedAt": "2026-09-24T15:47:38.925Z",
+    "immutableTelemetryBatchAvailable": false
+  },
+  "diagnosis": {
+    "windowsBridgeManifestPollSeconds": 15,
+    "nativeIngameUpdaterPollSeconds": 60,
+    "bothDeploymentPathsMayObserveSameTerminalPredecessor": true,
+    "sameVersionDuplicateInstallMustBeIdempotent": true,
+    "sendLogicChanged": false
+  },
+  "patch": {
+    "package": "werkzeuge/pr20-8-upgrade-productive-one-write-live.js",
+    "test": "werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs",
+    "previousControllerVersion": "1.0.0",
+    "preparedControllerVersion": "1.0.1",
+    "sameVersionBootstrapReusesIncumbentApi": true,
+    "duplicateInstallCreatesSecondRunner": false,
+    "zeroWriteNoIntentFailureReleasesOwnedRuntimeLease": true,
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "maximumRawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "deploymentBoundary": {
+    "currentManifestStillPinsControllerVersion": "1.0.0",
+    "recoveryManifestCutoverPrepared": false,
+    "recoveryPatchDeployed": false,
+    "realUpgradeMutationObserved": false
+  },
+  "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_BOOTSTRAP_RECOVERY_MANIFEST_CUTOVER"
+}
