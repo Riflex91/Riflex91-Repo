@@ -32,7 +32,7 @@ const allowedPackages = Object.freeze({
     gate: "PR20.8_WERTMUTATIONEN"
   }),
   "pr20-8-wertmutation-live-candidate-readonly": Object.freeze({
-    path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js",
+    path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.js",
     expectedGlobal: "V5PR208ValueMutationLiveCandidateReadonly",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
@@ -682,12 +682,12 @@ test("PR20.7 offhand acquisition durable shadow manifest is exact no-send prepar
 
 test("PR20.8 candidate discovery manifest is exact read-only and special-path closed", () => {
   if (manifest.testId !== "pr20-8-wertmutation-live-candidate-readonly") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
-  assert.equal(manifest.sourceCommit, "7307573841b86b1fb22fd5abfb73a3d461bf0049");
+  assert.equal(manifest.controllerVersion, "1.0.1");
+  assert.equal(manifest.sourceCommit, "f82d3ed4cc2c89a5b6e8f5e06c9d6377fd631c1c");
   assert.equal(manifest.packagePath,
-    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js");
+    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.js");
   assert.equal(manifest.packageSha256,
-    "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5");
+    "36be29170d280ad78098c3e3a1901a82aa29328c8665e2a0dec4d84b914e41f4");
   assert.equal(manifest.expectedGlobal,
     "V5PR208ValueMutationLiveCandidateReadonly");
   assert.equal("workerVersion" in manifest, false);
@@ -695,6 +695,9 @@ test("PR20.8 candidate discovery manifest is exact read-only and special-path cl
   assert.equal("workerPackageSha256" in manifest, false);
   assert.equal("workerExpectedGlobal" in manifest, false);
   assert.equal("workerTargets" in manifest, false);
+  assert.ok(packageSource.includes("const VERSION = '1.0.1'"));
+  assert.ok(packageSource.includes("publish();"));
+  assert.ok(packageSource.indexOf("publish();") < packageSource.indexOf("Promise.resolve().then(run)"));
   assert.ok(packageSource.includes("EXPECTED_CHARACTER = 'My_Merchant'"));
   assert.ok(packageSource.includes("EXPECTED_SERVER_REGION = 'EU'"));
   assert.ok(packageSource.includes("EXPECTED_SERVER_IDENTIFIER = 'I'"));
