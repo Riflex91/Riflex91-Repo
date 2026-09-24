@@ -20,7 +20,13 @@
     "actionContractId": "AL-ACTION-BUY-WITH-GOLD",
     "recoveryContractId": "AL-RECOVERY-BUY-WITH-GOLD",
     "verifierId": "AL-VERIFIER-BUY-WITH-GOLD",
-    "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+    "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+    "officialServerRepository": "kaansoral/adventureland_mongodb",
+    "officialServerRevalidatedCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+    "officialServerBlobSha": "40d0aeda16b9a4320441e833020fe1b4db496e2c",
+    "sourcePinnedSellDistance": 400,
+    "buyReachabilityCheck": "simple_distance(player, l) < B.sell_dist",
+    "revalidatedAt": "2026-09-24"
   },
   "candidate": {
     "recipient": "My_Merchant",
@@ -41,10 +47,10 @@
     "existingInventoryQuantityMustBe": 0
   },
   "preflight": {
-    "package": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js",
+    "package": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-2-autonomous.js",
     "test": "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-read-only-autonomous.test.mjs",
     "testId": "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight",
-    "controllerVersion": "1.0.1",
+    "controllerVersion": "1.0.2",
     "expectedGlobal": "V5PR207WeaponOffhandAcquisitionReadOnly",
     "merchantOnly": true,
     "performanceTrickRequired": true,
@@ -71,13 +77,23 @@
     "farmerWorkersInstalled": 0,
     "normalRuntimeAllowed": false,
     "publicFunctionAvailabilityRequired": true,
-    "sellDistanceObservationRequired": true,
+    "sellDistanceObservationRequired": false,
     "vendorReachabilityRequired": true,
-    "previousControllerVersionRejected": "1.0.0",
+    "previousControllerVersionRejected": "1.0.1",
     "previousLiveRunRatified": false,
-    "manifestCutoverPrepared": true,
+    "manifestCutoverPrepared": false,
     "sameTestUpgradeStrictlyNewer": true,
-    "previousTerminalZeroWriteEligible": true
+    "previousTerminalZeroWriteEligible": true,
+    "expectedServerRegion": "EU",
+    "expectedServerIdentifier": "I",
+    "sourcePinnedSellDistanceAllowed": true,
+    "sourcePinnedSellDistance": 400,
+    "browserSellDistanceIfPresentMustMatchSourcePin": true,
+    "officialServerSourceRevalidated": true,
+    "officialServerSourceCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+    "officialServerBlobSha": "40d0aeda16b9a4320441e833020fe1b4db496e2c",
+    "sourceCommit": "0228da63fe01e8717ef7aebb85af24bb3b35478b",
+    "packageSha256": "1931312bfe6b15a2dd0764e774c52c84e6db09c376ee3fd33205b20cc5c9938c"
   },
   "mutationBoundary": {
     "purchaseAllowed": false,
@@ -98,5 +114,5 @@
       "no same-intent retry after possible send"
     ]
   },
-  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_REAL_READ_ONLY_PREFLIGHT_V1_0_1"
+  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_1_0_2"
 }
