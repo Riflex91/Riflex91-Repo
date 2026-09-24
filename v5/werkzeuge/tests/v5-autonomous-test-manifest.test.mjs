@@ -32,7 +32,7 @@ const allowedPackages = Object.freeze({
     gate: "PR20.8_WERTMUTATIONEN"
   }),
   "pr20-8-wertmutation-live-candidate-readonly": Object.freeze({
-    path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.js",
+    path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js",
     expectedGlobal: "V5PR208ValueMutationLiveCandidateReadonly",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
@@ -682,12 +682,12 @@ test("PR20.7 offhand acquisition durable shadow manifest is exact no-send prepar
 
 test("PR20.8 candidate discovery manifest is exact read-only and special-path closed", () => {
   if (manifest.testId !== "pr20-8-wertmutation-live-candidate-readonly") return;
-  assert.equal(manifest.controllerVersion, "1.0.2");
-  assert.equal(manifest.sourceCommit, "c3f7a066f08d1bb16218345f9f76095fe5874c4f");
+  assert.equal(manifest.controllerVersion, "1.0.3");
+  assert.equal(manifest.sourceCommit, "a0625dd9611b1006dc6f09ef7222ce5b67361ca6");
   assert.equal(manifest.packagePath,
-    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.js");
+    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js");
   assert.equal(manifest.packageSha256,
-    "2eb0d1f37f02afca5550572791be860cb221ffb0ab42e22809ad9f5b82fb31b5");
+    "f633b5ed877120aa9c76c2c788b64b8efb20eef155a0d38612fb5fca7c20da25");
   assert.equal(manifest.expectedGlobal,
     "V5PR208ValueMutationLiveCandidateReadonly");
   assert.equal("workerVersion" in manifest, false);
@@ -695,7 +695,7 @@ test("PR20.8 candidate discovery manifest is exact read-only and special-path cl
   assert.equal("workerPackageSha256" in manifest, false);
   assert.equal("workerExpectedGlobal" in manifest, false);
   assert.equal("workerTargets" in manifest, false);
-  assert.ok(packageSource.includes("const VERSION = '1.0.2'"));
+  assert.ok(packageSource.includes("const VERSION = '1.0.3'"));
   assert.ok(packageSource.includes("publish();"));
   assert.ok(packageSource.indexOf("publish();") < packageSource.indexOf("Promise.resolve().then(run)"));
   assert.ok(packageSource.includes("for (const owner of roots())"));
@@ -709,6 +709,9 @@ test("PR20.8 candidate discovery manifest is exact read-only and special-path cl
   assert.ok(packageSource.includes("MAX_COMPOUND_BASE_GOLD = 30000"));
   assert.ok(packageSource.includes("MAX_EXCHANGE_BASE_GOLD = 50000"));
   assert.ok(packageSource.includes("SPECIAL_EXCHANGE_NAMES"));
+  assert.ok(packageSource.includes("state.selectedCandidates.COMPOUND"));
+  assert.ok(packageSource.includes("state.selectedCandidates.EXCHANGE"));
+  assert.ok(packageSource.includes("PR20_8_CANDIDATE_KEIN_COMPOUND_ODER_EXCHANGE_NORMALKANDIDAT"));
   assert.ok(packageSource.includes("massExchangeAllowed:false"));
   assert.ok(packageSource.includes("recursiveDropAuthority:false"));
   assert.ok(packageSource.includes("specialMultiOutputAuthority:false"));
