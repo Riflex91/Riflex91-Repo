@@ -785,6 +785,25 @@
       "deployed": false,
       "liveWriteEnabled": false,
       "packageContainsExactlyOnePublicUpgradeCallSite": true
+    },
+    "upgradeProductiveOneWriteRunner": {
+      "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+      "package": "werkzeuge/pr20-8-upgrade-productive-one-write-live.js",
+      "test": "werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs",
+      "contract": "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json",
+      "testId": "pr20-8-upgrade-productive-one-write-live",
+      "controllerVersion": "1.0.0",
+      "expectedGlobal": "V5PR208UpgradeProductiveOneWriteLive",
+      "exactCandidate": "gloves@0",
+      "exactScroll": "scroll0",
+      "maximumGameplayWrites": 1,
+      "maximumPublicFunctionCalls": 1,
+      "maximumRawWriteCalls": 0,
+      "sameIntentRetry": false,
+      "manifestCutoverPrepared": false,
+      "deployed": false,
+      "liveWriteEnabled": false,
+      "normalRuntimeAllowed": false
     }
   },
   "pr20_9": {
