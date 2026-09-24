@@ -648,7 +648,7 @@ test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound"
 
 test("PR20.8 productive Upgrade one-write manifest is exact, one-shot and runtime-closed", () => {
   if (manifest.testId !== "pr20-8-upgrade-productive-one-write-live") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.controllerVersion, "1.0.1");
   assert.equal(
     manifest.sourceCommit,
     "bdcf2256c8b392d1a8a535d371662c0381ef6672",
