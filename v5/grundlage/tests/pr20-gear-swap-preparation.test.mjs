@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "WEAPON_OFFHAND_ACQUISITION_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+  assert.equal(contract.status, "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_1_PACKAGE_BEREIT_MANIFEST_OFFEN");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -375,9 +375,9 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.acquisitionTargetSlot, "offhand");
   assert.equal(contract.weaponOffhandFoundation.acquisitionExpectedUnitPrice, 4800);
   assert.equal(contract.weaponOffhandFoundation.acquisitionVendorId, "basics");
-  assert.equal(contract.weaponOffhandFoundation.acquisitionControllerVersion, "1.0.0");
-  assert.equal(contract.weaponOffhandFoundation.acquisitionManifestCutoverPrepared, true);
-  assert.equal(contract.weaponOffhandFoundation.acquisitionEvidenceStatus, "OFFEN");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionControllerVersion, "1.0.1");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionManifestCutoverPrepared, false);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionEvidenceStatus, "V1_0_0_FALSE_POSITIVE_REJECTED_V1_0_1_OFFEN");
   assert.equal(contract.weaponOffhandFoundation.acquisitionGameplayWrites, 0);
   assert.equal(contract.weaponOffhandFoundation.acquisitionPublicFunctionCalls, 0);
   assert.equal(contract.weaponOffhandFoundation.acquisitionRawWriteCalls, 0);
@@ -386,6 +386,14 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.acquisitionOldPr203HarnessReuseAllowed, false);
   assert.equal(contract.weaponOffhandFoundation.acquisitionSameIntentRetry, false);
   assert.equal(contract.weaponOffhandFoundation.acquisitionNormalRuntimeAllowed, false);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionPackage, "werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionSourceCommit, "bfcbc3186b1fe374fe37d0dd43d5677511480f5d");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionPackageSha256, "0d1378a0bca4ff0665dc14ab67920a15a0532f20ab141c6428edac414c0c3c72");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionPreviousControllerVersionRejected, "1.0.0");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionPreviousLiveRunRatified, false);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionRequiredBuyApi, true);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionRequiredObservedSellDistance, true);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionRequiredVendorReachability, true);
   assert.match(contract.weaponOffhandFoundation.acquisitionSourceCommit, /^[0-9a-f]{40}$/);
   assert.match(contract.weaponOffhandFoundation.acquisitionPackageSha256, /^[0-9a-f]{64}$/);
   assert.match(contract.weaponOffhandFoundation.readOnlySourceCommit, /^[0-9a-f]{40}$/);

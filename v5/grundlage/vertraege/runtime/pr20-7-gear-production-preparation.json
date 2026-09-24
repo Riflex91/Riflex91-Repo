@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "WEAPON_OFFHAND_ACQUISITION_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+  "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_1_PACKAGE_BEREIT_MANIFEST_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -331,7 +331,7 @@
       "performanceTrickVerified": true
     },
     "acquisitionContract": "grundlage/vertraege/runtime/pr20-7-weapon-offhand-acquisition-preparation.json",
-    "acquisitionPackage": "werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-autonomous.js",
+    "acquisitionPackage": "werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js",
     "acquisitionTestPlan": "roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
     "acquisitionEvidence": "roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json",
     "acquisitionPrepared": true,
@@ -340,11 +340,11 @@
     "acquisitionTargetSlot": "offhand",
     "acquisitionExpectedUnitPrice": 4800,
     "acquisitionVendorId": "basics",
-    "acquisitionControllerVersion": "1.0.0",
-    "acquisitionSourceCommit": "8cb1a5bf799bb7bfef0aa44a185009ae2606ded2",
-    "acquisitionPackageSha256": "8d35a665d6bf78a83cab015b9c11cea65c39b6933939086949ad533697aebb9f",
-    "acquisitionManifestCutoverPrepared": true,
-    "acquisitionEvidenceStatus": "OFFEN",
+    "acquisitionControllerVersion": "1.0.1",
+    "acquisitionSourceCommit": "bfcbc3186b1fe374fe37d0dd43d5677511480f5d",
+    "acquisitionPackageSha256": "0d1378a0bca4ff0665dc14ab67920a15a0532f20ab141c6428edac414c0c3c72",
+    "acquisitionManifestCutoverPrepared": false,
+    "acquisitionEvidenceStatus": "V1_0_0_FALSE_POSITIVE_REJECTED_V1_0_1_OFFEN",
     "acquisitionGameplayWrites": 0,
     "acquisitionPublicFunctionCalls": 0,
     "acquisitionRawWriteCalls": 0,
@@ -352,6 +352,11 @@
     "acquisitionGoldBudgetLedgerReservationRequired": true,
     "acquisitionOldPr203HarnessReuseAllowed": false,
     "acquisitionSameIntentRetry": false,
-    "acquisitionNormalRuntimeAllowed": false
+    "acquisitionNormalRuntimeAllowed": false,
+    "acquisitionPreviousControllerVersionRejected": "1.0.0",
+    "acquisitionPreviousLiveRunRatified": false,
+    "acquisitionRequiredBuyApi": true,
+    "acquisitionRequiredObservedSellDistance": true,
+    "acquisitionRequiredVendorReachability": true
   }
 }

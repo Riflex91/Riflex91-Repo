@@ -15,7 +15,7 @@ const evidence = JSON.parse(fs.readFileSync(
   "utf8",
 ));
 const source = fs.readFileSync(
-  "werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-autonomous.js",
+  "werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js",
   "utf8",
 );
 
@@ -46,14 +46,19 @@ test("PR20.7 acquisition candidate is exact wshield Merchant offhand source", ()
 
 test("PR20.7 acquisition preflight is immutable candidate discovery, never purchase authority", () => {
   assert.equal(plan.testId, "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight");
-  assert.equal(plan.controllerVersion, "1.0.0");
-  assert.equal(plan.status, "MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_PREFLIGHT");
+  assert.equal(plan.controllerVersion, "1.0.1");
+  assert.equal(plan.status, "CORRECTIVE_PACKAGE_1_0_1_BEREIT_MANIFEST_CUTOVER_OFFEN");
   assert.equal(plan.deployment.coordinatorClass, "merchant");
   assert.match(plan.deployment.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(plan.deployment.packageSha256, /^[0-9a-f]{64}$/);
   assert.equal(plan.deployment.workerPackageConfigured, false);
   assert.equal(plan.deployment.farmerWorkerDistribution, false);
-  assert.equal(plan.deployment.manifestCutoverPrepared, true);
+  assert.equal(plan.deployment.manifestCutoverPrepared, false);
+  assert.equal(plan.deployment.packagePath, "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js");
+  assert.equal(plan.deployment.sourceCommit, "bfcbc3186b1fe374fe37d0dd43d5677511480f5d");
+  assert.equal(plan.deployment.packageSha256, "0d1378a0bca4ff0665dc14ab67920a15a0532f20ab141c6428edac414c0c3c72");
+  assert.equal(plan.deployment.supersedesControllerVersion, "1.0.0");
+  assert.equal(plan.deployment.previousLiveRunRatified, false);
   assert.equal(plan.exactCandidate.itemName, "wshield");
   assert.equal(plan.exactCandidate.targetSlot, "offhand");
   assert.equal(plan.exactCandidate.expectedUnitPrice, 4800);
@@ -78,6 +83,13 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
     normalRuntimeAllowed: false,
   })) assert.equal(plan.safetyBoundary[key], expected, key);
 
+  assert.equal(contract.preflight.controllerVersion, "1.0.1");
+  assert.equal(contract.preflight.package, "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js");
+  assert.equal(contract.preflight.publicFunctionAvailabilityRequired, true);
+  assert.equal(contract.preflight.sellDistanceObservationRequired, true);
+  assert.equal(contract.preflight.vendorReachabilityRequired, true);
+  assert.equal(contract.preflight.previousControllerVersionRejected, "1.0.0");
+  assert.equal(contract.preflight.previousLiveRunRatified, false);
   assert.equal(contract.preflight.purchaseAuthority, false);
   assert.equal(contract.preflight.goldBudgetLedgerReservationRequired, true);
   assert.equal(contract.preflight.goldBudgetLedgerReservationSatisfied, false);
@@ -99,9 +111,19 @@ test("PR20.7 acquisition evidence stays open until real browser preflight", () =
   assert.equal(evidence.terminal, null);
   assert.equal(evidence.result, null);
   assert.equal(evidence.ratified, false);
+  assert.equal(evidence.packagePath, plan.deployment.packagePath);
+  assert.equal(evidence.rejectedPreviousRun.controllerVersion, "1.0.0");
+  assert.equal(evidence.rejectedPreviousRun.reportedStatus, "BESTANDEN");
+  assert.equal(evidence.rejectedPreviousRun.ratified, false);
+  assert.equal(evidence.rejectedPreviousRun.observedPublicFunctionAvailable, true);
+  assert.equal(evidence.rejectedPreviousRun.observedVendorReachableNow, false);
+  assert.equal(evidence.rejectedPreviousRun.observedSellDistance, null);
+  assert.equal(evidence.rejectedPreviousRun.gameplayWrites, 0);
+  assert.equal(evidence.rejectedPreviousRun.rawWriteCalls, 0);
+  assert.equal(evidence.rejectedPreviousRun.sameIntentRetry, false);
   assert.deepEqual(
     evidence.blocker,
-    ["REAL_WSHIELD_ACQUISITION_READ_ONLY_PREFLIGHT_NOCH_NICHT_AUSGEFUEHRT"],
+    ["REAL_WSHIELD_ACQUISITION_READ_ONLY_PREFLIGHT_V1_0_1_NOCH_NICHT_AUSGEFUEHRT"],
   );
 });
 

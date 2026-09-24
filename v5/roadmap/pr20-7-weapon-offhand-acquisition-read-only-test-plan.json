@@ -3,20 +3,22 @@
   "stand": "2026-09-24",
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight",
-  "controllerVersion": "1.0.0",
-  "status": "MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_PREFLIGHT",
+  "controllerVersion": "1.0.1",
+  "status": "CORRECTIVE_PACKAGE_1_0_1_BEREIT_MANIFEST_CUTOVER_OFFEN",
   "purpose": "READ_ONLY_WSHIELD_NPC_ACQUISITION_SOURCE_PREFLIGHT",
   "deployment": {
-    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
+    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY_AFTER_CORRECTIVE_CUTOVER",
     "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
     "coordinatorClass": "merchant",
-    "sourceCommit": "8cb1a5bf799bb7bfef0aa44a185009ae2606ded2",
-    "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-autonomous.js",
-    "packageSha256": "8d35a665d6bf78a83cab015b9c11cea65c39b6933939086949ad533697aebb9f",
+    "sourceCommit": "bfcbc3186b1fe374fe37d0dd43d5677511480f5d",
+    "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js",
+    "packageSha256": "0d1378a0bca4ff0665dc14ab67920a15a0532f20ab141c6428edac414c0c3c72",
     "expectedGlobal": "V5PR207WeaponOffhandAcquisitionReadOnly",
     "workerPackageConfigured": false,
     "farmerWorkerDistribution": false,
-    "manifestCutoverPrepared": true
+    "manifestCutoverPrepared": false,
+    "supersedesControllerVersion": "1.0.0",
+    "previousLiveRunRatified": false
   },
   "exactCandidate": {
     "recipient": "My_Merchant",
@@ -40,8 +42,9 @@
     "at least one free inventory slot",
     "no existing wshield in Merchant inventory",
     "base gold cost available",
-    "buy_with_gold public function exists",
-    "current-map vendor reachability observed",
+    "buy_with_gold public function exists and is observed on a same-origin root",
+    "positive finite sell_dist is observed on a same-origin root",
+    "current-map Gabriel/wshield vendor position is observable and inside sell_dist",
     "stable double observation over 350 ms"
   ],
   "safetyBoundary": {
