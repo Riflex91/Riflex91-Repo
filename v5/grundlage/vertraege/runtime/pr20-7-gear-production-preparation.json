@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_1_PACKAGE_BEREIT_MANIFEST_OFFEN",
+  "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -343,7 +343,7 @@
     "acquisitionControllerVersion": "1.0.1",
     "acquisitionSourceCommit": "bfcbc3186b1fe374fe37d0dd43d5677511480f5d",
     "acquisitionPackageSha256": "0d1378a0bca4ff0665dc14ab67920a15a0532f20ab141c6428edac414c0c3c72",
-    "acquisitionManifestCutoverPrepared": false,
+    "acquisitionManifestCutoverPrepared": true,
     "acquisitionEvidenceStatus": "V1_0_0_FALSE_POSITIVE_REJECTED_V1_0_1_OFFEN",
     "acquisitionGameplayWrites": 0,
     "acquisitionPublicFunctionCalls": 0,
@@ -357,6 +357,8 @@
     "acquisitionPreviousLiveRunRatified": false,
     "acquisitionRequiredBuyApi": true,
     "acquisitionRequiredObservedSellDistance": true,
-    "acquisitionRequiredVendorReachability": true
+    "acquisitionRequiredVendorReachability": true,
+    "acquisitionSameTestUpgradeStrictlyNewer": true,
+    "acquisitionPreviousTerminalZeroWriteEligible": true
   }
 }

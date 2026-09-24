@@ -74,7 +74,10 @@
     "sellDistanceObservationRequired": true,
     "vendorReachabilityRequired": true,
     "previousControllerVersionRejected": "1.0.0",
-    "previousLiveRunRatified": false
+    "previousLiveRunRatified": false,
+    "manifestCutoverPrepared": true,
+    "sameTestUpgradeStrictlyNewer": true,
+    "previousTerminalZeroWriteEligible": true
   },
   "mutationBoundary": {
     "purchaseAllowed": false,
@@ -95,5 +98,5 @@
       "no same-intent retry after possible send"
     ]
   },
-  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_1_0_1"
+  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_REAL_READ_ONLY_PREFLIGHT_V1_0_1"
 }
