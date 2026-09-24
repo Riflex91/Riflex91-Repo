@@ -416,7 +416,7 @@
     return rows.sort((a, b) => a.index - b.index);
   }
 
-  async async function strictObservation(performance) {
+  async function strictObservation(performance) {
     const r = root();
     const c = r.character;
     if (text(c.name, 192) !== EXPECTED_CHARACTER) throw new Error("PR20_8_COMPOUND_LIVE_RECIPIENT_DRIFT");
@@ -931,7 +931,7 @@
     };
   }
 
-  async async function reconcile(intent) {
+  async function reconcile(intent) {
     let acceptedEvidenceObserved = false;
     let last = null;
     for (let attempt = 0; attempt < RECONCILE_ATTEMPTS; attempt += 1) {
@@ -1165,7 +1165,7 @@
     return settled;
   }
 
-  async async function performFreshOneWrite(performance) {
+  async function performFreshOneWrite(performance) {
     setState({phase: "PREFLIGHT", status: "PREFLIGHT"});
     const first = await strictObservation(performance);
     await sleep(DOUBLE_OBSERVE_DELAY_MS);
