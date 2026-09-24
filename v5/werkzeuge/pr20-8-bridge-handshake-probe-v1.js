@@ -94,5 +94,4 @@
     }
   }
 
-  globalThis[API_NAME] = api;
 })();
