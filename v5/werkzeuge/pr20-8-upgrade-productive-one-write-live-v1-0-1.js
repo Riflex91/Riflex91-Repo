@@ -5,6 +5,17 @@
   const TEST_ID = "pr20-8-upgrade-productive-one-write-live";
   const API_NAME = "V5PR208UpgradeProductiveOneWriteLive";
 
+  function reusableIncumbentState(value) {
+    if (!value || typeof value !== "object") return false;
+    if (value.terminal !== true) return true;
+    const durableOrSent = Number(value.gameplayWrites) > 0
+      || Number(value.publicFunctionCalls) > 0
+      || value.authority?.durableIntentCreated === true
+      || (Array.isArray(value.intents) && value.intents.length > 0);
+    if (durableOrSent) return true;
+    return value.status !== "FEHLER";
+  }
+
   function incumbentSameVersionApi() {
     const hosts = [globalThis];
     try {
@@ -18,7 +29,8 @@
         if (api?.testId === TEST_ID
             && api?.version === VERSION
             && typeof api.status === "function"
-            && typeof api.start === "function") return api;
+            && typeof api.start === "function"
+            && reusableIncumbentState(api.status())) return api;
       } catch {}
     }
     return null;
