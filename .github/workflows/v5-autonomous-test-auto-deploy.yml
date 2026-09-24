@@ -41,6 +41,8 @@ on:
       - 'v5/grundlage/tests/pr20-weapon-offhand-acquisition-preparation.test.mjs'
       - 'v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js'
       - 'v5/werkzeuge/v5-autonomous-test-ingame-updater.js'
+      - 'v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v1.js'
+      - 'v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v1.test.mjs'
       - 'v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js'
       - 'v5/werkzeuge/tests/v5-autonomous-test-ingame-updater.test.mjs'
       - 'v5/werkzeuge/tests/pr20-6-updater-recovery-bootstrap.test.mjs'
@@ -89,6 +91,8 @@ on:
       - 'v5/grundlage/tests/pr20-weapon-offhand-acquisition-preparation.test.mjs'
       - 'v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js'
       - 'v5/werkzeuge/v5-autonomous-test-ingame-updater.js'
+      - 'v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v1.js'
+      - 'v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v1.test.mjs'
       - 'v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js'
       - 'v5/werkzeuge/tests/v5-autonomous-test-ingame-updater.test.mjs'
       - 'v5/werkzeuge/tests/pr20-6-updater-recovery-bootstrap.test.mjs'
@@ -122,3 +126,5 @@ jobs:
         run: node --check werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js && node --test werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-2.test.mjs
       - name: Verify PR20.8 item-definition recovery runner v1.0.3
         run: node --check werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-3.js && node --test werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-3.test.mjs
+      - name: Verify PR20.8 updater persistence bootstrap
+        run: node --check werkzeuge/pr20-8-updater-recovery-bootstrap-v1.js && node --test werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v1.test.mjs
