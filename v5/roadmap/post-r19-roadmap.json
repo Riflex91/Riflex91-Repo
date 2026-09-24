@@ -1032,7 +1032,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_1_0_3_SAME_TEST_UPGRADE_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_MERCHANT_ACQUISITION_PREPARATION_REQUIRED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1085,7 +1085,7 @@
       "v5/roadmap/pr20-7-account-weapon-candidate-discovery-evidence.json",
       "v5/grundlage/tests/pr20-account-weapon-candidate-discovery-evidence.test.mjs"
     ],
-    "nextAction": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_1_0_3_EXECUTE",
+    "nextAction": "PR20_7_WEAPON_OFFHAND_MERCHANT_ACQUISITION_PREPARE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1189,11 +1189,11 @@
       "observedSoakDurationMs": 300552
     },
     "remainingGates": {
-      "weaponOffhand": "ACCOUNT_DISCOVERY_1_0_3_SAME_TEST_UPGRADE_BEREIT_EVIDENCE_OFFEN",
+      "weaponOffhand": "MERCHANT_ACQUISITION_PREPARATION_REQUIRED",
       "farmerGearAllocation": "OFFEN_SEPARATE_RATIFICATION"
     },
     "weaponOffhand": {
-      "status": "ACCOUNT_DISCOVERY_1_0_3_SAME_TEST_UPGRADE_BEREIT_EVIDENCE_OFFEN",
+      "status": "MERCHANT_ACQUISITION_PREPARATION_REQUIRED",
       "contract": "v5/grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json",
       "explicitSlots": [
         "mainhand",
@@ -1236,7 +1236,7 @@
       "accountDiscoveryTestPlan": "v5/roadmap/pr20-7-account-weapon-candidate-discovery-test-plan.json",
       "accountDiscoveryEvidence": "v5/roadmap/pr20-7-account-weapon-candidate-discovery-evidence.json",
       "accountDiscoveryPrepared": true,
-      "accountDiscoveryEvidenceStatus": "OFFEN",
+      "accountDiscoveryEvidenceStatus": "BLOCKIERT_REAL_NO_EXISTING_CANDIDATE_ZERO_WRITE_RATIFIED",
       "accountDiscoveryGameplayWrites": 0,
       "accountDiscoveryPublicFunctionCalls": 0,
       "accountDiscoveryRawWriteCalls": 0,
@@ -1264,7 +1264,30 @@
         "X.characters"
       ],
       "accountDiscoveryPriorV2Status": "BLOCKIERT_ROSTER_OHNE_INVENTAR_SLOTS_ZERO_WRITE",
-      "accountDiscoverySameTestUpgradeGate": "WINDOWS_BRIDGE_TERMINAL_ZERO_WRITE_ONLY"
+      "accountDiscoverySameTestUpgradeGate": "WINDOWS_BRIDGE_TERMINAL_ZERO_WRITE_ONLY",
+      "accountDiscoveryEvidenceRatified": true,
+      "accountDiscoveryRealObservedAtMs": 1790232916356,
+      "accountDiscoveryRealResult": "BLOCKIERT",
+      "accountDiscoveryRealBlocker": [
+        "PR20_7_ACCOUNT_DISCOVERY_ROSTER_OHNE_INVENTAR_SLOTS"
+      ],
+      "accountDiscoveryRosterSource": "X.characters",
+      "accountDiscoveryExactFarmerRows": 3,
+      "accountDiscoveryRichFarmerRows": 0,
+      "bridgeLiveFarmerContextsObservedAt": 1790232986700,
+      "bridgeLiveFarmerContextCount": 3,
+      "bridgeLiveCompatibleCandidateCount": 0,
+      "bridgeLivePerformanceTrickActive": true,
+      "bridgeLiveGameplayWrites": 0,
+      "bridgeLiveRawWriteCalls": 0,
+      "bridgeLiveStartCalls": 0,
+      "bridgeLiveDisconnectCalls": 0,
+      "accountDiscoverySameTestDeploymentState": "ALREADY_PRESENT",
+      "merchantAcquisitionRequired": true,
+      "merchantAcquisitionPrepared": false,
+      "merchantAcquisitionGameplayAuthority": false,
+      "merchantAcquisitionRawWriteAuthority": false,
+      "merchantAcquisitionCandidate": null
     }
   }
 }
