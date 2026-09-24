@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "UPGRADE_COMMITTED_BRIDGE_RECOVERED_REMAINING_RESCAN_V1_0_2_FALSE_POSITIVE_V1_0_3_PREPARED",
+    "status": "UPGRADE_COMMITTED_COMPOUND_EXCHANGE_NO_CANDIDATE_AUTHORITY_CLOSED",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_3_REAL_BROWSER_RUN",
+    "nextAction": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -955,7 +955,7 @@
     },
     "bridgeHandshakeEvidence": "roadmap/pr20-8-bridge-handshake-probe-evidence.json",
     "remainingCandidateRescan": {
-      "status": "V1_0_2_FALSE_POSITIVE_V1_0_3_TARGET_SEMANTICS_PREPARED",
+      "status": "V1_0_3_REAL_BROWSER_BLOCKED_NO_TARGET_CANDIDATE_ZERO_WRITE",
       "purpose": "REOBSERVE_REMAINING_COMPOUND_AND_EXCHANGE_NORMAL_CANDIDATES_AFTER_UPGRADE_COMMIT",
       "testId": "pr20-8-wertmutation-live-candidate-readonly",
       "controllerVersion": "1.0.3",
@@ -976,7 +976,7 @@
       "rawWriteCalls": 0,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_3_REAL_BROWSER_RUN",
+      "nextGate": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
       "packageBytes": 21343,
       "observedV1Failure": {
         "observedAt": "2026-09-24T18:05:47.0307173+00:00",
@@ -1053,6 +1053,39 @@
         "targetCandidateObserved": false,
         "reportedSuccessInvalidForTargetGate": true,
         "mayAdvanceCompoundOrExchangeGate": false
+      },
+      "evidence": "roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json",
+      "evidenceRatified": true,
+      "compoundRatified": false,
+      "exchangeRatified": false,
+      "acquisitionOrMutationToCreateCandidateAllowed": false,
+      "observedV1_0_3NoCandidate": {
+        "observedAtMs": 1790275611960,
+        "updatedAt": "2026-09-24T18:53:23.770+00:00",
+        "controllerVersion": "1.0.3",
+        "status": "BLOCKIERT",
+        "phase": "PR20_8_LIVE_CANDIDATE_SELECTION",
+        "terminal": true,
+        "blocker": "PR20_8_CANDIDATE_KEIN_COMPOUND_ODER_EXCHANGE_NORMALKANDIDAT",
+        "bridgeState": "ALREADY_PRESENT",
+        "bridgeError": null,
+        "upgradeInformationalCandidate": {
+          "name": "gloves",
+          "level": 0,
+          "index": 13,
+          "scrollName": "scroll0",
+          "scrollQuantity": 35
+        },
+        "compoundCandidate": null,
+        "exchangeCandidate": null,
+        "gameplayWrites": 0,
+        "publicFunctionCalls": 0,
+        "rawWriteCalls": 0,
+        "sameIntentRetry": false,
+        "authorityIssued": false,
+        "compoundAuthority": false,
+        "exchangeAuthority": false,
+        "normalRuntimeAllowed": false
       }
     }
   },
