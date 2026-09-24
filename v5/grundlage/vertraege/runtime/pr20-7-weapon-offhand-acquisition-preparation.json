@@ -81,7 +81,7 @@
     "vendorReachabilityRequired": true,
     "previousControllerVersionRejected": "1.0.1",
     "previousLiveRunRatified": false,
-    "manifestCutoverPrepared": false,
+    "manifestCutoverPrepared": true,
     "sameTestUpgradeStrictlyNewer": true,
     "previousTerminalZeroWriteEligible": true,
     "expectedServerRegion": "EU",
@@ -114,5 +114,5 @@
       "no same-intent retry after possible send"
     ]
   },
-  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_1_0_2"
+  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_REAL_READ_ONLY_PREFLIGHT_V1_0_2"
 }
