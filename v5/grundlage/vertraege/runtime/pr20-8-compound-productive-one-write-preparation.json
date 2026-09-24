@@ -66,7 +66,11 @@
     "sourcePinnedSellDistance": 400,
     "conservativeLiveSafetyDistanceMax": 300,
     "offeringForbidden": true,
-    "specialCompoundPathsForbidden": true
+    "specialCompoundPathsForbidden": true,
+    "massproductionConditionStateExact": true,
+    "massproductionppConditionStateExact": true,
+    "conditionStateFingerprintRequired": true,
+    "freshConditionStateReobserveImmediatelyBeforeSend": true
   },
   "durableTransaction": {
     "actionContractId": "AL-ACTION-COMPOUND",
@@ -79,7 +83,9 @@
       "inventory",
       "q",
       "socketBudget",
-      "actionChannel"
+      "actionChannel",
+      "massproduction",
+      "massproductionpp"
     ],
     "familySpecificOneShotAuthority": "Pr208CompoundOneShotAuthority",
     "oneShotMaximumUses": 1,
@@ -110,8 +116,11 @@
     "expectedFailure": "all three hpamulet@0 inputs consumed + exactly one cscroll0 consumed + q/placeholder cleared",
     "restartNonTerminalRequiresReconciliation": true,
     "unknownNeverBlindRetry": true,
-    "notAppliedRequiresPositiveUnchangedEvidenceForAllThreeInputsAndScroll": true,
-    "committedRequiresVerifiedThreeInputAndConsumableOutcome": true
+    "conditionDeltaAcceptedInFlight": true,
+    "massproductionConditionConsumptionReconciled": true,
+    "massproductionppConditionConsumptionReconciled": true,
+    "notAppliedRequiresPositiveUnchangedEvidenceForAllThreeInputsScrollAndConditions": true,
+    "committedRequiresVerifiedThreeInputConsumableAndConditionOutcome": true
   },
   "officialSource": {
     "snapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
