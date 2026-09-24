@@ -664,15 +664,7 @@ test("PR20.8 Upgrade Durable Shadow package stays no-send and authority-free", (
   assert.equal(shadow.normalRuntimeAllowed, false);
 });
 
-test("PR20.8 Upgrade Shadow Manifest is exact pinned and still NO-WRITE", () => {
-  assert.equal(
-    prep.pr20_8.status,
-    "UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION_BEREIT_NO_LIVE_WRITE",
-  );
-  assert.equal(
-    prep.pr20_8.nextAction,
-    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE",
-  );
+test("PR20.8 Upgrade Shadow Manifest remains exact pinned and NO-WRITE after later gates", () => {
   const shadow = prep.pr20_8.upgradeDurableShadow;
   assert.equal(
     shadow.sourceCommit,
