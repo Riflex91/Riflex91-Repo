@@ -5,7 +5,9 @@ on:
     paths:
       - 'v5/werkzeuge/v5-autonomous-test-ingame-updater.js'
       - 'v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v1.js'
+      - 'v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v2.js'
       - 'v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v1.test.mjs'
+      - 'v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v2.test.mjs'
       - 'v5/werkzeuge/tests/v5-autonomous-test-ingame-updater.test.mjs'
       - 'cloudflare-dashboard/src/worker-r2-logs.js'
       - 'cloudflare-dashboard/src/worker-free-tier.js'
@@ -16,7 +18,9 @@ on:
     paths:
       - 'v5/werkzeuge/v5-autonomous-test-ingame-updater.js'
       - 'v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v1.js'
+      - 'v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v2.js'
       - 'v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v1.test.mjs'
+      - 'v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v2.test.mjs'
       - 'v5/werkzeuge/tests/v5-autonomous-test-ingame-updater.test.mjs'
       - 'cloudflare-dashboard/src/worker-r2-logs.js'
       - 'cloudflare-dashboard/src/worker-free-tier.js'
@@ -41,6 +45,8 @@ jobs:
         run: node --test v5/werkzeuge/tests/v5-autonomous-test-ingame-updater.test.mjs
       - name: Test PR20.8 updater persistence bootstrap
         run: node --check v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v1.js && node --test v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v1.test.mjs
+      - name: Test PR20.8 updater persistence bootstrap v2 split-context handshake
+        run: node --check v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v2.js && node --test v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v2.test.mjs
       - name: Test Cloudflare/R2 release mirror
         working-directory: cloudflare-dashboard
         run: npm run check
