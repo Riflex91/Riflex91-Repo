@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_1_0_3_SAME_TEST_UPGRADE_BEREIT_EVIDENCE_OFFEN",
+  "status": "WEAPON_OFFHAND_ACQUISITION_READ_ONLY_PACKAGE_BEREIT_MANIFEST_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -86,7 +86,9 @@
       "real no-write browser shadow evidence",
       "real productive occupied non-weapon slot one-shot swap with 5m committed evidence"
     ],
-    "next": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_1_0_3_EXECUTE"
+    "next": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_1_0_3_EXECUTE",
+    "weaponOffhandAcquisitionReadOnlyPrepared": true,
+    "weaponOffhandAcquisitionManifestCutoverNext": true
   },
   "preflight": {
     "implemented": true,
@@ -289,7 +291,7 @@
     "accountDiscoveryPublicFunctionCalls": 0,
     "accountDiscoveryRawWriteCalls": 0,
     "accountDiscoveryFarmerGearAllocationRatification": false,
-    "accountDiscoveryEvidenceStatus": "OFFEN",
+    "accountDiscoveryEvidenceStatus": "BLOCKIERT_REAL_BROWSER_NO_COMPATIBLE_ACCOUNT_CANDIDATE_ZERO_WRITE",
     "accountDiscoverySourceCommit": "7ecfabc9122be52ceb7231c9bfcba451657e10ce",
     "accountDiscoveryPackageSha256": "3619dd3e56410458db5c5ce859a05fbbccd97b912d07e47d5d045eb93383f60f",
     "accountDiscoveryManifest": "roadmap/v5-autonomous-test-manifest.json",
@@ -314,6 +316,42 @@
       "X.characters"
     ],
     "accountDiscoveryPriorV2Status": "BLOCKIERT_ROSTER_OHNE_INVENTAR_SLOTS_ZERO_WRITE",
-    "accountDiscoverySameTestUpgradeGate": "WINDOWS_BRIDGE_TERMINAL_ZERO_WRITE_ONLY"
+    "accountDiscoverySameTestUpgradeGate": "WINDOWS_BRIDGE_TERMINAL_ZERO_WRITE_ONLY",
+    "accountDiscoveryRatified": true,
+    "accountDiscoveryObservedAtMs": 1790232916356,
+    "accountDiscoveryResolution": "PROCUREMENT_REQUIRED",
+    "bridgeExistingContextObservation": {
+      "observedAtMs": 1790233252537,
+      "exactFarmerContexts": 3,
+      "totalCompatibleCandidates": 0,
+      "gameplayWrites": 0,
+      "rawWriteCalls": 0,
+      "startCalls": 0,
+      "disconnectCalls": 0,
+      "performanceTrickVerified": true
+    },
+    "acquisitionContract": "grundlage/vertraege/runtime/pr20-7-weapon-offhand-acquisition-preparation.json",
+    "acquisitionPackage": "werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-autonomous.js",
+    "acquisitionTestPlan": "roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
+    "acquisitionEvidence": "roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json",
+    "acquisitionPrepared": true,
+    "acquisitionCandidate": "wshield",
+    "acquisitionRecipient": "My_Merchant",
+    "acquisitionTargetSlot": "offhand",
+    "acquisitionExpectedUnitPrice": 4800,
+    "acquisitionVendorId": "basics",
+    "acquisitionControllerVersion": "1.0.0",
+    "acquisitionSourceCommit": "8cb1a5bf799bb7bfef0aa44a185009ae2606ded2",
+    "acquisitionPackageSha256": "8d35a665d6bf78a83cab015b9c11cea65c39b6933939086949ad533697aebb9f",
+    "acquisitionManifestCutoverPrepared": false,
+    "acquisitionEvidenceStatus": "OFFEN",
+    "acquisitionGameplayWrites": 0,
+    "acquisitionPublicFunctionCalls": 0,
+    "acquisitionRawWriteCalls": 0,
+    "acquisitionPurchaseAuthority": false,
+    "acquisitionGoldBudgetLedgerReservationRequired": true,
+    "acquisitionOldPr203HarnessReuseAllowed": false,
+    "acquisitionSameIntentRetry": false,
+    "acquisitionNormalRuntimeAllowed": false
   }
 }
