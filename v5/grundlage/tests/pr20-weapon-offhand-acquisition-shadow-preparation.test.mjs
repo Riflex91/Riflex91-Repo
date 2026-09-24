@@ -24,9 +24,9 @@ const runner = fs.readFileSync(
 );
 
 test("PR20.7 acquisition shadow package is exact, immutable and merchant-only", () => {
-  assert.equal(contract.status, "DURABLE_SHADOW_PACKAGE_BEREIT_MANIFEST_OFFEN");
+  assert.equal(contract.status, "DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
   assert.equal(contract.blockingGate, "PR20.7_GEAR");
-  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_SHADOW_MANIFEST_CUTOVER");
+  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE");
 
   const shadow = contract.shadowPreparation;
   assert.equal(shadow.foundation, "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts");
@@ -36,18 +36,18 @@ test("PR20.7 acquisition shadow package is exact, immutable and merchant-only", 
   assert.equal(shadow.expectedGlobal, "V5PR207WeaponOffhandAcquisitionShadow");
   assert.equal(shadow.sourceCommit, "3f006c17934f0159fa575d2da0e4d048fbf0df09");
   assert.equal(shadow.packageSha256, "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08");
-  assert.equal(shadow.manifestCutoverPrepared, false);
+  assert.equal(shadow.manifestCutoverPrepared, true);
 
   assert.equal(plan.testId, shadow.testId);
   assert.equal(plan.controllerVersion, shadow.controllerVersion);
-  assert.equal(plan.status, "PACKAGE_BEREIT_MANIFEST_CUTOVER_OFFEN");
+  assert.equal(plan.status, "MANIFEST_CUTOVER_BEREIT_FUER_REALEN_DURABLE_SHADOW_NO_WRITE");
   assert.equal(plan.deployment.sourceCommit, shadow.sourceCommit);
   assert.equal(plan.deployment.packagePath, shadow.package);
   assert.equal(plan.deployment.packageSha256, shadow.packageSha256);
   assert.equal(plan.deployment.expectedGlobal, shadow.expectedGlobal);
   assert.equal(plan.deployment.workerPackageConfigured, false);
   assert.equal(plan.deployment.farmerWorkerDistribution, false);
-  assert.equal(plan.deployment.manifestCutoverPrepared, false);
+  assert.equal(plan.deployment.manifestCutoverPrepared, true);
 });
 
 test("PR20.7 acquisition shadow requires the ratified read-only v1.0.2 source evidence", () => {

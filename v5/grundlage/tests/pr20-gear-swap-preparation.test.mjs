@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_PACKAGE_BEREIT_MANIFEST_OFFEN");
+  assert.equal(contract.status, "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -414,7 +414,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowControllerVersion, "1.0.0");
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowSourceCommit, "3f006c17934f0159fa575d2da0e4d048fbf0df09");
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowPackageSha256, "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08");
-  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowManifestCutoverPrepared, false);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowManifestCutoverPrepared, true);
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowExactCost, 4800);
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowMinimumGoldSafetyReserve, 1000);
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowGoldBudgetLedgerReservation, true);
@@ -438,7 +438,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowSameIntentRetry, false);
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowNormalRuntimeAllowed, false);
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowEvidenceStatus, "OFFEN");
-  assert.equal(contract.weaponOffhandFoundation.acquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_SHADOW_MANIFEST_CUTOVER");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE");
   assert.match(contract.weaponOffhandFoundation.acquisitionSourceCommit, /^[0-9a-f]{40}$/);
   assert.match(contract.weaponOffhandFoundation.acquisitionPackageSha256, /^[0-9a-f]{64}$/);
   assert.match(contract.weaponOffhandFoundation.readOnlySourceCommit, /^[0-9a-f]{40}$/);

@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_PACKAGE_BEREIT_MANIFEST_OFFEN");
+    "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -279,7 +279,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowControllerVersion, "1.0.0");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowSourceCommit, "3f006c17934f0159fa575d2da0e4d048fbf0df09");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowPackageSha256, "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08");
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowManifestCutoverPrepared, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowManifestCutoverPrepared, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowExactCost, 4800);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowMinimumGoldSafetyReserve, 1000);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowGoldBudgetLedgerReservation, true);
@@ -303,7 +303,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowSameIntentRetry, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowNormalRuntimeAllowed, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowEvidenceStatus, "OFFEN");
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_SHADOW_MANIFEST_CUTOVER");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE");
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionSourceCommit, /^[0-9a-f]{40}$/);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPackageSha256, /^[0-9a-f]{64}$/);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlySourceCommit, /^[0-9a-f]{40}$/);

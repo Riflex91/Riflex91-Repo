@@ -36,6 +36,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR207WeaponOffhandAcquisitionReadOnly",
     gate: "PR20.7_GEAR"
   }),
+  "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write": Object.freeze({
+    path: "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js",
+    expectedGlobal: "V5PR207WeaponOffhandAcquisitionShadow",
+    gate: "PR20.7_GEAR"
+  }),
   "pr20-7-gear-weapon-offhand-read-only-preflight": Object.freeze({
     path: "v5/werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js",
     expectedGlobal: "V5PR207WeaponOffhandReadOnlyTest",
@@ -400,6 +405,51 @@ test("PR20.7 offhand acquisition manifest is exact wshield read-only source pref
   assert.ok(packageSource.includes("rawWriteCalls: 0"));
   assert.ok(packageSource.includes("startCalls: 0"));
   assert.ok(packageSource.includes("disconnectCalls: 0"));
+  assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
+  for (const marker of [
+    "buy_with_gold(", "buy(", "equip(", "unequip(", "sell(",
+    "bank_retrieve(", "bank_store(", "send_item(", "send_gold(",
+    "use_skill(", "start_character(", "command_character(",
+    "api_call(", "socket.emit(", ".socket.emit(", "/disconnect "
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
+
+
+test("PR20.7 offhand acquisition durable shadow manifest is exact no-send preparation", () => {
+  if (manifest.testId !== "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit, "3f006c17934f0159fa575d2da0e4d048fbf0df09");
+  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js");
+  assert.equal(manifest.packageSha256, "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08");
+  assert.equal(manifest.expectedGlobal, "V5PR207WeaponOffhandAcquisitionShadow");
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.equal("workerPackageSha256" in manifest, false);
+  assert.equal("workerExpectedGlobal" in manifest, false);
+  assert.equal("workerTargets" in manifest, false);
+  assert.ok(packageSource.includes("performance_trick"));
+  assert.ok(packageSource.includes("ITEM_NAME = 'wshield'"));
+  assert.ok(packageSource.includes("TARGET_SLOT = 'offhand'"));
+  assert.ok(packageSource.includes("EXACT_COST = 4800"));
+  assert.ok(packageSource.includes("MIN_GOLD_RESERVE = 1000"));
+  assert.ok(packageSource.includes("SOURCE_PINNED_SELL_DISTANCE = 400"));
+  assert.ok(packageSource.includes("AL-ACTION-BUY-WITH-GOLD"));
+  assert.ok(packageSource.includes("character:My_Merchant:gold"));
+  assert.ok(packageSource.includes("character:My_Merchant:inventory"));
+  assert.ok(packageSource.includes("character:My_Merchant:action_channel:buy"));
+  assert.ok(packageSource.includes("character:My_Merchant:socket_call_budget"));
+  assert.ok(packageSource.includes("planBudgetReserved: 100"));
+  assert.ok(packageSource.includes("serverReserveUntouched: 100"));
+  assert.ok(packageSource.includes("ACQUISITION_DURABLE_SHADOW_INTENT_NO_GAMEPLAY_WRITE"));
+  assert.ok(packageSource.includes("journalTerminalArt: 'ABBRUCH'"));
+  assert.ok(packageSource.includes("sendBoundaryState: 'NICHT_GESENDET'"));
+  assert.ok(packageSource.includes("reconciliationClassification: 'NOT_APPLIED'"));
+  assert.ok(packageSource.includes("oneShotMaximumUses: 1"));
+  assert.ok(packageSource.includes("oneShotPurchaseAuthorityIssued: false"));
+  assert.ok(packageSource.includes("gameplayWrites: 0"));
+  assert.ok(packageSource.includes("publicFunctionCalls: 0"));
+  assert.ok(packageSource.includes("rawWriteCalls: 0"));
+  assert.ok(packageSource.includes("sameIntentRetry: false"));
   assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
   for (const marker of [
     "buy_with_gold(", "buy(", "equip(", "unequip(", "sell(",

@@ -4,7 +4,7 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write",
   "controllerVersion": "1.0.0",
-  "status": "PACKAGE_BEREIT_MANIFEST_CUTOVER_OFFEN",
+  "status": "MANIFEST_CUTOVER_BEREIT_FUER_REALEN_DURABLE_SHADOW_NO_WRITE",
   "purpose": "DURABLE_SHADOW_NO_WRITE_FOR_EXACT_WSHIELD_PURCHASE",
   "prerequisites": {
     "readOnlyEvidenceStatus": "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE",
@@ -18,7 +18,7 @@
     "buyWithGoldAvailableRatified": true
   },
   "deployment": {
-    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY_AFTER_SHADOW_CUTOVER",
+    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
     "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
     "coordinatorClass": "merchant",
     "sourceCommit": "3f006c17934f0159fa575d2da0e4d048fbf0df09",
@@ -27,7 +27,7 @@
     "expectedGlobal": "V5PR207WeaponOffhandAcquisitionShadow",
     "workerPackageConfigured": false,
     "farmerWorkerDistribution": false,
-    "manifestCutoverPrepared": false
+    "manifestCutoverPrepared": true
   },
   "safetyModel": {
     "actionContractId": "AL-ACTION-BUY-WITH-GOLD",

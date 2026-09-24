@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-24",
   "kennung": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY",
-  "status": "DURABLE_SHADOW_PACKAGE_BEREIT_MANIFEST_OFFEN",
+  "status": "DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "rationale": {
     "merchantReadOnlyPreflight": "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE",
@@ -123,7 +123,7 @@
       "no same-intent retry after possible send"
     ]
   },
-  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_SHADOW_MANIFEST_CUTOVER",
+  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE",
   "shadowPreparation": {
     "foundation": "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
     "foundationTest": "v5/grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
@@ -136,7 +136,7 @@
     "expectedGlobal": "V5PR207WeaponOffhandAcquisitionShadow",
     "sourceCommit": "3f006c17934f0159fa575d2da0e4d048fbf0df09",
     "packageSha256": "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08",
-    "manifestCutoverPrepared": false,
+    "manifestCutoverPrepared": true,
     "exactCost": 4800,
     "minimumGoldSafetyReserve": 1000,
     "stricterRuntimeReserveAllowed": true,
