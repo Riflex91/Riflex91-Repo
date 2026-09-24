@@ -38,19 +38,23 @@ test("PR20.7 productive occupied-slot plan is exact one-shot and 5m bounded", ()
   assert.equal(plan.soak.intervalMs, 5000);
   assert.ok(plan.soak.minimumDurationMs >= 299000);
   assert.equal(plan.safety.normalRuntimeAllowed, false);
+  assert.match(plan.sourceCommit, /^[0-9a-f]{40}$/);
+  assert.match(plan.packageSha256, /^[0-9a-f]{64}$/);
+  assert.equal(plan.sourceCommit, evidence.sourceCommit);
+  assert.equal(plan.packageSha256, evidence.packageSha256);
 });
 
 test("PR20.7 productive live evidence placeholder cannot count as PASS", () => {
   assert.equal(evidence.status, "OFFEN");
-  assert.equal(evidence.sourceCommit, null);
-  assert.equal(evidence.packageSha256, null);
+  assert.match(evidence.sourceCommit, /^[0-9a-f]{40}$/);
+  assert.match(evidence.packageSha256, /^[0-9a-f]{64}$/);
   assert.equal(evidence.observedAtMs, null);
   assert.equal(evidence.terminal, null);
   assert.equal(evidence.result, null);
   assert.equal(evidence.ratified, false);
   assert.deepEqual(
     evidence.blocker,
-    ["PRODUCTIVE_ONE_SHOT_LIVE_5M_NOCH_NICHT_AUSGEFUEHRT"],
+    ["REALER_PRODUCTIVE_ONE_SHOT_LIVE_5M_NOCH_NICHT_TERMINAL_BESTANDEN"],
   );
   assert.equal(evidence.expectedSafetyBoundary.gameplayWrites, 1);
   assert.equal(evidence.expectedSafetyBoundary.publicFunctionCalls, 1);
