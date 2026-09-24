@@ -21,7 +21,7 @@ const source = fs.readFileSync(
 
 test("PR20.7 acquisition candidate is exact wshield Merchant offhand source", () => {
   assert.equal(contract.blockingGate, "PR20.7_GEAR");
-  assert.equal(contract.status, "DURABLE_SHADOW_BESTANDEN_PRODUCTIVE_PURCHASE_PREPARATION_BEREIT_NO_PURCHASE_AUTHORITY");
+  assert.equal(contract.status, "PRODUCTIVE_PURCHASE_PACKAGE_BEREIT_MANIFEST_OFFEN");
   assert.equal(contract.rationale.procurementRequired, true);
   assert.equal(contract.rationale.farmerGearAllocationStillSeparate, true);
   assert.equal(contract.candidate.recipient, "My_Merchant");
@@ -138,7 +138,7 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.preflight.realObservedSellDistanceSource, "OFFICIAL_SERVER_SOURCE_PIN");
   assert.equal(contract.preflight.realObservedGold, 14493644);
   assert.equal(contract.preflight.realObservedFreeInventorySlots, 21);
-  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION");
+  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_5M_MANIFEST_CUTOVER");
   assert.equal(contract.preflight.purchaseAuthority, false);
   assert.equal(contract.preflight.goldBudgetLedgerReservationRequired, true);
   assert.equal(contract.preflight.goldBudgetLedgerReservationSatisfied, false);
@@ -215,6 +215,26 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.purchasePreparation.purchaseAuthorityIssued, false);
   assert.equal(contract.purchasePreparation.productiveAdapterPresent, false);
   assert.equal(contract.purchasePreparation.liveWriteRunnerPresent, false);
+  assert.equal(contract.purchasePreparation.livePackagePrepared, true);
+  assert.equal(contract.purchasePreparation.livePackage,
+    "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-live-5m.js");
+  assert.equal(contract.purchasePreparation.livePackageTest,
+    "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-live-5m.test.mjs");
+  assert.equal(contract.purchasePreparation.liveTestId,
+    "pr20-7-gear-weapon-offhand-acquisition-live-5m");
+  assert.equal(contract.purchasePreparation.liveControllerVersion, "1.0.0");
+  assert.equal(contract.purchasePreparation.liveSourceCommit,
+    "5efa5e2c92c258e1502ee388e84ba96d4c844027");
+  assert.equal(contract.purchasePreparation.livePackageSha256,
+    "5cecc5a3ca36c2d75e4a6629c36991417b508e364a965c1a945a790aac8bd930");
+  assert.equal(contract.purchasePreparation.liveManifestCutoverPrepared, false);
+  assert.equal(contract.purchasePreparation.liveMaximumGameplayWrites, 1);
+  assert.equal(contract.purchasePreparation.liveMaximumPublicFunctionCalls, 1);
+  assert.equal(contract.purchasePreparation.liveRawWriteCalls, 0);
+  assert.equal(contract.purchasePreparation.liveOneShotMaximumUses, 1);
+  assert.equal(contract.purchasePreparation.liveRestartReconcileWithoutResend, true);
+  assert.equal(contract.purchasePreparation.liveSoakMinimumSamples, 60);
+  assert.equal(contract.purchasePreparation.broadPurchaseAuthority, false);
 });
 
 test("PR20.7 acquisition v1.0.2 real browser evidence is ratified zero-write", () => {
