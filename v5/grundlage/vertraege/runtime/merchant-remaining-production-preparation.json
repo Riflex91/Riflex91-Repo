@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_V2_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_1_0_3_SAME_TEST_UPGRADE_BEREIT_EVIDENCE_OFFEN",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -222,11 +222,11 @@
       "accountWeaponDiscoveryRawWriteCalls": 0,
       "accountWeaponDiscoveryFarmerGearAllocationRatification": false,
       "accountWeaponDiscoveryEvidenceStatus": "OFFEN",
-      "accountWeaponDiscoverySourceCommit": "cb208ce57fd5bc5c07de81662d138220d5143af3",
-      "accountWeaponDiscoveryPackageSha256": "1f56a0080d113e525c160a399ecaacfb0c00ad54108ea199027ddeec027ff27c",
+      "accountWeaponDiscoverySourceCommit": "7ecfabc9122be52ceb7231c9bfcba451657e10ce",
+      "accountWeaponDiscoveryPackageSha256": "3619dd3e56410458db5c5ce859a05fbbccd97b912d07e47d5d045eb93383f60f",
       "accountWeaponDiscoveryManifest": "roadmap/v5-autonomous-test-manifest.json",
       "accountWeaponDiscoveryManifestCutoverPrepared": true,
-      "accountWeaponDiscoveryControllerVersion": "1.0.2",
+      "accountWeaponDiscoveryControllerVersion": "1.0.3",
       "accountWeaponDiscoveryBridgeContractFixed": true,
       "accountWeaponDiscoveryStatusEnvelope": "status.v5AutonomousTest",
       "accountWeaponDiscoveryPeekTelemetryArray": true,
@@ -239,7 +239,14 @@
       "accountWeaponDiscoveryPriorAttemptStatus": "BLOCKIERT_PERFORMANCE_TRICK_ZERO_WRITE",
       "accountWeaponDiscoveryTestId": "pr20-7-gear-account-weapon-candidate-discovery-v2",
       "accountWeaponDiscoverySupersedesTestId": "pr20-7-gear-account-weapon-candidate-discovery",
-      "accountWeaponDiscoverySameTestVersionUpgradeBypassed": false
+      "accountWeaponDiscoverySameTestVersionUpgradeBypassed": false,
+      "accountWeaponDiscoveryRichSourceSelection": true,
+      "accountWeaponDiscoverySources": [
+        "get_characters",
+        "X.characters"
+      ],
+      "accountWeaponDiscoveryPriorV2Status": "BLOCKIERT_ROSTER_OHNE_INVENTAR_SLOTS_ZERO_WRITE",
+      "accountWeaponDiscoverySameTestUpgradeGate": "WINDOWS_BRIDGE_TERMINAL_ZERO_WRITE_ONLY"
     }
   },
   "pr20_8": {
