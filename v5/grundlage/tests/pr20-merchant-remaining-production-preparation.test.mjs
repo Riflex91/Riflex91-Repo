@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "REAL_SHADOW_BESTANDEN_NO_WRITE");
+    "OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_BESTANDEN");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -178,7 +178,19 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.sameIntentRetry, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.gameplayAutoritaet, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.rawWriteAutoritaet, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.occupiedNonWeaponLiveEvidenceStatus,
+    "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
+  assert.equal(prep.pr20_7.sicherVorbereitet.occupiedNonWeaponLiveEvidenceRatified, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.occupiedNonWeaponLiveReconciliation, "COMMITTED");
+  assert.equal(prep.pr20_7.sicherVorbereitet.occupiedNonWeaponLiveSettlement, "BESTAETIGT");
+  assert.equal(prep.pr20_7.sicherVorbereitet.occupiedNonWeaponLiveGameplayWrites, 1);
+  assert.equal(prep.pr20_7.sicherVorbereitet.occupiedNonWeaponLivePublicFunctionCalls, 1);
+  assert.equal(prep.pr20_7.sicherVorbereitet.occupiedNonWeaponLiveRawWriteCalls, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.occupiedNonWeaponLiveSameIntentRetry, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.occupiedNonWeaponLiveSoakSamples, 60);
+  assert.ok(prep.pr20_7.sicherVorbereitet.occupiedNonWeaponLiveSoakDurationMs >= 299000);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponsOffhandSeparateGate, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.farmerGearAllocationSeparateGate, true);
 });
 
 test("Upgrade Compound Exchange und Craft bleiben vorhandenen no-retry Contracts unterworfen", () => {
