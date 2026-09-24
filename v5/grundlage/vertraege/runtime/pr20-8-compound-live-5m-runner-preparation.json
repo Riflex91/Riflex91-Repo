@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE",
+  "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+  "testId": "pr20-8-compound-live-5m",
+  "controllerVersion": "1.0.0",
+  "expectedGlobal": "V5PR208CompoundLive5m",
+  "package": "werkzeuge/pr20-8-compound-live-5m.js",
+  "test": "werkzeuge/tests/pr20-8-compound-live-5m.test.mjs",
+  "sourceCommit": "61db398373d1909bc11eb883af5902ac339a123c",
+  "packageSha256": "2c68619ffb7359373a6a817ac939c34278a66f5c69e7d3efba59a5ff5c00e221",
+  "packageBytes": 25081,
+  "preparation": {
+    "contract": "grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json",
+    "status": "BEREIT_NO_LIVE_WRITE",
+    "purpose": "CONTINUE_EXACT_RATIFIED_COMPOUND_TRANSACTION_WITH_FIVE_MINUTE_POSTCOMMIT_STABILITY_SOAK"
+  },
+  "prerequisite": {
+    "evidence": "roadmap/pr20-8-compound-productive-one-write-evidence.json",
+    "evidenceStatus": "RATIFIED_COMMITTED_SUCCESS",
+    "sourceTestId": "pr20-8-compound-productive-one-write-live",
+    "transactionId": "pr20-8-compound-productive-one-write-live:ff08418e6003250471c98f5893dec8dd",
+    "sourceIntentStatus": "COMMITTED",
+    "sourceIntentTerminal": true,
+    "sourceReconciliation": "COMMITTED_SUCCESS",
+    "sourceSendCount": 1,
+    "sourceAuthorityClass": "Pr208CompoundOneShotAuthority",
+    "sourceAuthorityConsumed": true,
+    "sourceAuthorityUses": 1,
+    "sourceAuthorityMaximumUses": 1,
+    "activeSourceFencesRequired": 0
+  },
+  "exactCommittedPostcondition": {
+    "resultItem": {
+      "name": "hpamulet",
+      "level": 1,
+      "inventoryIndex": 1
+    },
+    "consumedInputIndexes": [
+      22,
+      23
+    ],
+    "consumedInputSlotsMustRemainEmpty": true,
+    "scroll": {
+      "name": "cscroll0",
+      "inventoryIndex": 18,
+      "quantity": 19
+    },
+    "qMustBeEmpty": true,
+    "compoundQueueMustBeClear": true,
+    "placeholderCount": 0,
+    "massproductionPresent": false,
+    "massproductionppPresent": false,
+    "compoundEffectsMustBeClear": true
+  },
+  "soak": {
+    "minimumSamples": 60,
+    "intervalMs": 5000,
+    "minimumDurationMs": 299000,
+    "maxContinuationGapMs": 15000,
+    "stalePartialSoakResetsSampling": true,
+    "terminalProgressMayRecoverWithoutResampling": true,
+    "durableProgressReadbackRequired": true,
+    "exactSourceGuardEverySample": true,
+    "exactPostconditionEverySample": true
+  },
+  "packageBoundary": {
+    "observerOnly": true,
+    "publicCompoundCallSites": 0,
+    "upgradeCallSites": 0,
+    "exchangeCallSites": 0,
+    "apiCallSites": 0,
+    "rawSocketCallSites": 0,
+    "maximumAdditionalGameplayWrites": 0,
+    "maximumAdditionalPublicFunctionCalls": 0,
+    "maximumAdditionalRawWriteCalls": 0,
+    "compoundWriteAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "restartMayNeverResend": true,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "manifestBoundary": {
+    "manifest": "roadmap/v5-autonomous-test-manifest.json",
+    "manifestCutoverPrepared": false,
+    "deployed": false,
+    "liveWriteEnabled": false,
+    "bridgeMayDeployPinnedRunner": false,
+    "currentManifestMustRemainTerminalZeroWriteBridgeProbe": true
+  },
+  "exitSemantics": {
+    "successfulRealFiveMinuteRunMaySetCompoundLive5mTested": true,
+    "exchangeRatified": false,
+    "exchangeAutonomyProductiveProven": false,
+    "pr20_8ExitGateSatisfied": false,
+    "mayAdvanceToPr20_9": false
+  },
+  "nextGate": "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER"
+}

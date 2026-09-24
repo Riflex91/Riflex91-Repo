@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "COMPOUND_LIVE_5M_PREPARATION_READY_NO_LIVE_WRITE",
+    "status": "COMPOUND_LIVE_5M_RUNNER_PACKAGE_READY_NOT_DEPLOYED",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE",
+    "nextAction": "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1345,7 +1345,7 @@
       "normalRuntimeAllowed": false
     },
     "compoundLive5mPreparation": {
-      "status": "BEREIT_NO_LIVE_WRITE",
+      "status": "RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED",
       "contract": "grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json",
       "test": "grundlage/tests/pr20-compound-live-5m-preparation.test.mjs",
       "purpose": "CONTINUE_EXACT_RATIFIED_COMPOUND_TRANSACTION_WITH_FIVE_MINUTE_POSTCOMMIT_STABILITY_SOAK",
@@ -1374,7 +1374,7 @@
       "compoundWriteAuthority": false,
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
-      "liveRunnerPresent": false,
+      "liveRunnerPresent": true,
       "manifestCutoverPrepared": false,
       "deployed": false,
       "liveWriteEnabled": false,
@@ -1384,7 +1384,62 @@
       "exchangeRatification": false,
       "exchangeAutonomyProductiveProven": false,
       "mayAdvanceToPr20_9": false,
-      "nextGate": "PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE"
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER",
+      "runnerPackage": "werkzeuge/pr20-8-compound-live-5m.js",
+      "runnerTest": "werkzeuge/tests/pr20-8-compound-live-5m.test.mjs",
+      "runnerContract": "grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json",
+      "runnerTestId": "pr20-8-compound-live-5m",
+      "runnerControllerVersion": "1.0.0",
+      "expectedGlobal": "V5PR208CompoundLive5m",
+      "runnerSourceCommit": "61db398373d1909bc11eb883af5902ac339a123c",
+      "runnerPackageSha256": "2c68619ffb7359373a6a817ac939c34278a66f5c69e7d3efba59a5ff5c00e221",
+      "runnerPackageBytes": 25081,
+      "bridgeMayDeployPinnedRunner": false
+    },
+    "compoundLive5mRunner": {
+      "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+      "package": "werkzeuge/pr20-8-compound-live-5m.js",
+      "test": "werkzeuge/tests/pr20-8-compound-live-5m.test.mjs",
+      "contract": "grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json",
+      "testId": "pr20-8-compound-live-5m",
+      "controllerVersion": "1.0.0",
+      "expectedGlobal": "V5PR208CompoundLive5m",
+      "sourceCommit": "61db398373d1909bc11eb883af5902ac339a123c",
+      "packageSha256": "2c68619ffb7359373a6a817ac939c34278a66f5c69e7d3efba59a5ff5c00e221",
+      "packageBytes": 25081,
+      "sourceTransactionId": "pr20-8-compound-productive-one-write-live:ff08418e6003250471c98f5893dec8dd",
+      "sourceSendCount": 1,
+      "sourceReconciliation": "COMMITTED_SUCCESS",
+      "exactCommittedResult": "hpamulet@1@index1",
+      "exactConsumedInputIndexes": [
+        22,
+        23
+      ],
+      "exactScrollPoststate": "cscroll0@index18:q19",
+      "minimumSamples": 60,
+      "intervalMs": 5000,
+      "minimumDurationMs": 299000,
+      "maximumAdditionalGameplayWrites": 0,
+      "maximumAdditionalPublicFunctionCalls": 0,
+      "maximumAdditionalRawWriteCalls": 0,
+      "publicCompoundCallSites": 0,
+      "restartMayNeverResend": true,
+      "sameIntentRetry": false,
+      "compoundWriteAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "manifest": "roadmap/v5-autonomous-test-manifest.json",
+      "manifestCutoverPrepared": false,
+      "deployed": false,
+      "liveWriteEnabled": false,
+      "bridgeMayDeployPinnedRunner": false,
+      "normalRuntimeAllowed": false,
+      "passMaySetCompoundLive5mTested": true,
+      "passDoesNotSatisfyPr20_8ExitGateByItself": true,
+      "exchangeRatification": false,
+      "exchangeAutonomyProductiveProven": false,
+      "mayAdvanceToPr20_9": false,
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER"
     }
   },
   "pr20_9": {

@@ -50,15 +50,37 @@
     "PR20_8_EXCHANGE_5M_LIVE_NOT_RUN",
     "PR20_8_EXCHANGE_AUTONOMY_NOT_PRODUCTIVE_PROVEN"
   ],
-  "nextAction": "PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE",
+  "nextAction": "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER",
   "mayAdvanceToPr20_9": false,
   "roadmapCriteriaRelaxed": false,
   "compoundLive5mPreparation": {
-    "status": "BEREIT_NO_LIVE_WRITE",
+    "status": "RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED",
     "contract": "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json",
     "additionalGameplayWritesAllowed": 0,
     "additionalPublicFunctionCallsAllowed": 0,
     "rawWriteCallsAllowed": 0,
+    "maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass": true,
+    "runnerPackage": "v5/werkzeuge/pr20-8-compound-live-5m.js",
+    "runnerContract": "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json",
+    "publicCompoundCallSites": 0,
+    "manifestCutoverPrepared": false,
+    "deployed": false
+  },
+  "compoundLive5mRunner": {
+    "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+    "testId": "pr20-8-compound-live-5m",
+    "controllerVersion": "1.0.0",
+    "package": "v5/werkzeuge/pr20-8-compound-live-5m.js",
+    "sourceCommit": "61db398373d1909bc11eb883af5902ac339a123c",
+    "packageSha256": "2c68619ffb7359373a6a817ac939c34278a66f5c69e7d3efba59a5ff5c00e221",
+    "packageBytes": 25081,
+    "additionalGameplayWritesAllowed": 0,
+    "additionalPublicFunctionCallsAllowed": 0,
+    "rawWriteCallsAllowed": 0,
+    "publicCompoundCallSites": 0,
+    "compoundWriteAuthority": false,
+    "manifestCutoverPrepared": false,
+    "deployed": false,
     "maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass": true
   }
 }

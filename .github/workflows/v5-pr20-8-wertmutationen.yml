@@ -18,6 +18,7 @@ on:
       - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js'
       - 'v5/werkzeuge/pr20-8-compound-durable-shadow-no-write.js'
       - 'v5/werkzeuge/pr20-8-compound-productive-one-write-live.js'
+      - 'v5/werkzeuge/pr20-8-compound-live-5m.js'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.test.mjs'
@@ -25,6 +26,7 @@ on:
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-compound-durable-shadow-no-write.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs'
+      - 'v5/werkzeuge/tests/pr20-8-compound-live-5m.test.mjs'
       - 'v5/roadmap/pr20-8-compound-exchange-rescan-v1-0-2-evidence.json'
       - 'v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json'
       - 'v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json'
@@ -44,6 +46,7 @@ on:
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-runner-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json'
       - 'v5/werkzeuge/pr20-8-upgrade-productive-one-write-live.js'
@@ -89,6 +92,7 @@ on:
       - 'v5/roadmap/pr20-8-compound-productive-one-write-evidence.json'
       - 'v5/grundlage/tests/pr20-compound-productive-one-write-evidence.test.mjs'
       - 'v5/grundlage/tests/pr20-compound-live-5m-preparation.test.mjs'
+      - 'v5/grundlage/tests/pr20-compound-live-5m-runner-preparation.test.mjs'
       - 'v5/roadmap/v5-autonomous-test-manifest.json'
       - 'v5/werkzeuge/tests/v5-autonomous-test-manifest.test.mjs'
       - 'v5/roadmap/post-r19-roadmap.json'
@@ -111,6 +115,7 @@ on:
       - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js'
       - 'v5/werkzeuge/pr20-8-compound-durable-shadow-no-write.js'
       - 'v5/werkzeuge/pr20-8-compound-productive-one-write-live.js'
+      - 'v5/werkzeuge/pr20-8-compound-live-5m.js'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.test.mjs'
@@ -118,6 +123,7 @@ on:
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-compound-durable-shadow-no-write.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs'
+      - 'v5/werkzeuge/tests/pr20-8-compound-live-5m.test.mjs'
       - 'v5/roadmap/pr20-8-compound-exchange-rescan-v1-0-2-evidence.json'
       - 'v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json'
       - 'v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json'
@@ -137,6 +143,7 @@ on:
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-runner-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json'
       - 'v5/werkzeuge/pr20-8-upgrade-productive-one-write-live.js'
@@ -182,6 +189,7 @@ on:
       - 'v5/roadmap/pr20-8-compound-productive-one-write-evidence.json'
       - 'v5/grundlage/tests/pr20-compound-productive-one-write-evidence.test.mjs'
       - 'v5/grundlage/tests/pr20-compound-live-5m-preparation.test.mjs'
+      - 'v5/grundlage/tests/pr20-compound-live-5m-runner-preparation.test.mjs'
       - 'v5/roadmap/v5-autonomous-test-manifest.json'
       - 'v5/werkzeuge/tests/v5-autonomous-test-manifest.test.mjs'
       - 'v5/roadmap/post-r19-roadmap.json'
@@ -218,3 +226,4 @@ jobs:
       - run: node --check werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js && node --test werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.test.mjs
       - run: node --check werkzeuge/pr20-8-compound-durable-shadow-no-write.js && node --test werkzeuge/tests/pr20-8-compound-durable-shadow-no-write.test.mjs grundlage/tests/pr20-compound-durable-shadow-preparation.test.mjs
       - run: node --check werkzeuge/pr20-8-compound-productive-one-write-live.js && node --test werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs grundlage/tests/pr20-compound-productive-one-write-runner-preparation.test.mjs
+      - run: node --check werkzeuge/pr20-8-compound-live-5m.js && node --test werkzeuge/tests/pr20-8-compound-live-5m.test.mjs grundlage/tests/pr20-compound-live-5m-runner-preparation.test.mjs

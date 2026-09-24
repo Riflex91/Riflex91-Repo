@@ -43,13 +43,13 @@ test("PR20.8 no-candidate evidence cannot silently create authority or substitut
   ]);
   assert.equal(
     review.nextAction,
-    "PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE",
+    "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER",
   );
 });
 
 test("PR20.8 Compound 5m preparation changes no remaining exit authority", () => {
   const p=review.compoundLive5mPreparation;
-  assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
+  assert.equal(p.status,"RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED");
   assert.equal(
     p.contract,
     "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json",
@@ -58,7 +58,36 @@ test("PR20.8 Compound 5m preparation changes no remaining exit authority", () =>
   assert.equal(p.additionalPublicFunctionCallsAllowed,0);
   assert.equal(p.rawWriteCallsAllowed,0);
   assert.equal(p.maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass,true);
+  assert.equal(p.runnerPackage,"v5/werkzeuge/pr20-8-compound-live-5m.js");
+  assert.equal(
+    p.runnerContract,
+    "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json",
+  );
+  assert.equal(p.publicCompoundCallSites,0);
+  assert.equal(p.manifestCutoverPrepared,false);
+  assert.equal(p.deployed,false);
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
   assert.equal(review.roadmapCriteriaRelaxed,false);
+});
+
+test("PR20.8 Compound 5m runner package remains authority-closed before manifest cutover", () => {
+  const r=review.compoundLive5mRunner;
+  assert.equal(r.status,"PACKAGE_BEREIT_NOT_DEPLOYED");
+  assert.equal(r.testId,"pr20-8-compound-live-5m");
+  assert.equal(r.controllerVersion,"1.0.0");
+  assert.equal(r.package,"v5/werkzeuge/pr20-8-compound-live-5m.js");
+  assert.equal(r.sourceCommit,"61db398373d1909bc11eb883af5902ac339a123c");
+  assert.equal(r.packageSha256,"2c68619ffb7359373a6a817ac939c34278a66f5c69e7d3efba59a5ff5c00e221");
+  assert.equal(r.packageBytes,25081);
+  assert.equal(r.additionalGameplayWritesAllowed,0);
+  assert.equal(r.additionalPublicFunctionCallsAllowed,0);
+  assert.equal(r.rawWriteCallsAllowed,0);
+  assert.equal(r.publicCompoundCallSites,0);
+  assert.equal(r.compoundWriteAuthority,false);
+  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.deployed,false);
+  assert.equal(r.maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass,true);
+  assert.equal(review.currentExitGateSatisfied,false);
+  assert.equal(review.mayAdvanceToPr20_9,false);
 });
