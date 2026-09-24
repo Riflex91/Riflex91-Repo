@@ -545,29 +545,41 @@ function installV5AutonomousTestIngameUpdater() {
 
 installV5AutonomousTestIngameUpdater();
 
-(() => {
+function installPr208UpdaterRecoveryBootstrapV1() {
   'use strict';
+
+  const API_NAME = 'V5PR208UpdaterRecoveryBootstrap';
   const TEST_ID = 'pr20-8-native-updater-recovery-bootstrap-v1';
   const VERSION = '1.0.0';
-  const observedAtMs = Date.now();
-  const state = Object.freeze({
+  const UPDATER_VERSION = '1.0.8';
+  const PERSIST_MARKER_KEY = 'AIO_V5_PR20_8_UPDATER_BOOTSTRAP_V1_PERSISTED';
+
+  const state = {
     schemaVersion: 1,
     testId: TEST_ID,
     version: VERSION,
-    status: 'BESTANDEN',
-    phase: 'UPDATER_PERSISTENCE_BOOTSTRAP',
-    terminal: true,
+    status: 'LAEUFT',
+    phase: 'PERSISTENCE_PENDING',
+    terminal: false,
     gameplayWrites: 0,
     publicFunctionCalls: 0,
     rawWriteCalls: 0,
     sameIntentRetry: false,
     intents: [],
-    updaterVersion: '1.0.8',
+    updaterVersion: UPDATER_VERSION,
     normalRuntimeAllowed: false,
-    observedAtMs
-  });
+    codeSlotWrites: 0,
+    codeSlotReloads: 0,
+    persisted: false,
+    persistedAtMs: null,
+    activeSlot: null,
+    blocker: []
+  };
 
-  const root = (() => {
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const text = (value, max = 240) =>
+    String(value == null ? '' : value).trim().slice(0, max);
+  const root = () => {
     try {
       return globalThis.parent && globalThis.parent !== globalThis
         ? globalThis.parent
@@ -575,101 +587,246 @@ installV5AutonomousTestIngameUpdater();
     } catch {
       return globalThis;
     }
-  })();
+  };
 
-  root.AIO_V3 = root.AIO_V3 || {};
-  const existing = root.AIO_V3.operations && typeof root.AIO_V3.operations === 'object'
-    ? root.AIO_V3.operations
-    : {};
-  const oldStatus = typeof existing.status === 'function' ? existing.status.bind(existing) : null;
-  const oldHeartbeat = typeof existing.hostHeartbeat === 'function' ? existing.hostHeartbeat.bind(existing) : null;
-  const oldReconciliation = typeof existing.reconciliationStatus === 'function'
-    ? existing.reconciliationStatus.bind(existing)
-    : null;
-  const oldPeekTelemetry = typeof existing.peekTelemetry === 'function'
-    ? existing.peekTelemetry.bind(existing)
-    : null;
+  function binding(name) {
+    const local = globalThis;
+    const host = root();
+    if (local && typeof local[name] === 'function') return { fn: local[name], owner: local };
+    if (host && typeof host[name] === 'function') return { fn: host[name], owner: host };
+    return null;
+  }
 
-  const telemetry = Object.freeze({
-    queued: 0,
-    dropped: 0,
-    lastCapturedSeq: 0,
-    lastAcknowledgedSeq: 0
-  });
+  function currentCharacter() {
+    const host = root();
+    return globalThis.character || host.character || null;
+  }
 
-  const status = () => {
-    let base = {};
+  function safeForCodeSlotPersistence() {
+    const c = currentCharacter();
+    const reasons = [];
+    if (!c || !text(c.name, 100)) reasons.push('CHARACTER_UNKNOWN');
+    if (text(c?.ctype, 40).toLowerCase() !== 'merchant') reasons.push('NOT_MERCHANT');
+    if (c?.rip === true || c?.dead === true) reasons.push('CHARACTER_DEAD');
+    const hp = Number(c?.hp || 0);
+    const maxHp = Number(c?.max_hp || 0);
+    if (maxHp > 0 && hp / maxHp < 0.9) reasons.push('HP_BELOW_UPDATE_THRESHOLD');
     try {
-      const value = oldStatus ? oldStatus() : null;
-      if (value && typeof value === 'object') base = value;
-    } catch {}
-    return {
-      ...base,
-      schemaVersion: Number(base.schemaVersion) || 1,
-      mode: 'V5_AUTONOMOUS_TEST',
-      telemetry: base.telemetry && typeof base.telemetry === 'object'
-        ? base.telemetry
-        : telemetry,
-      v5AutonomousTest: state
-    };
-  };
-
-  const hostHeartbeat = () => {
-    if (oldHeartbeat) {
-      try {
-        const value = oldHeartbeat();
-        if (value && typeof value === 'object') return value;
-      } catch {}
+      const host = root();
+      const entities = typeof globalThis.get_entities === 'function'
+        ? Object.values(globalThis.get_entities() || {})
+        : Object.values(host.entities || {});
+      const self = text(c?.name, 100);
+      const aggro = entities.some(entity =>
+        entity
+        && entity.mtype
+        && !entity.dead
+        && !entity.rip
+        && text(entity.target, 100) === self);
+      if (aggro) reasons.push('ACTIVE_AGGRO');
+    } catch {
+      reasons.push('AGGRO_STATE_UNREADABLE');
     }
-    const now = Date.now();
-    return {
-      schemaVersion: 1,
-      mode: 'V5_AUTONOMOUS_TEST',
-      alive: true,
-      v5Mode: 'V5_AUTONOMOUS_TEST',
-      observedAtMs: now,
-      v5ObservedAtMs: now
-    };
-  };
+    return { safe: reasons.length === 0, reasons };
+  }
 
-  const reconciliationStatus = () => {
-    if (oldReconciliation) {
-      try {
-        const value = oldReconciliation();
-        if (value && typeof value === 'object') return value;
-      } catch {}
+  function activeSlot() {
+    const getSlot = binding('get_active_code_slot');
+    if (!getSlot) throw new Error('ACTIVE_CODE_SLOT_UNAVAILABLE');
+    const value = getSlot.fn.call(getSlot.owner);
+    if (value && typeof value === 'object') {
+      const slot = value.slot ?? value.id ?? value.name;
+      if (slot == null || slot === '') throw new Error('ACTIVE_CODE_SLOT_UNKNOWN');
+      return { slot, name: text(value.name, 100) || null };
     }
-    return {
-      schemaVersion: 1,
-      status: 'TERMINAL',
-      v5Terminal: true,
-      sameIntentRetry: false,
-      v5AutonomousTestStatus: state.status
-    };
-  };
+    if (value == null || value === '') throw new Error('ACTIVE_CODE_SLOT_UNKNOWN');
+    return { slot: value, name: null };
+  }
 
-  const peekTelemetry = (limit) => {
-    if (oldPeekTelemetry) {
-      try {
-        const rows = oldPeekTelemetry(limit);
-        if (Array.isArray(rows)) return rows;
-      } catch {}
+  function persistedMarker() {
+    try {
+      const raw = globalThis.localStorage?.getItem(PERSIST_MARKER_KEY);
+      if (!raw) return null;
+      const value = JSON.parse(raw);
+      if (!value || value.schemaVersion !== 1) return null;
+      if (value.testId !== TEST_ID || value.updaterVersion !== UPDATER_VERSION) return null;
+      return value;
+    } catch {
+      return null;
     }
-    return [];
-  };
+  }
 
-  root.AIO_V3.operations = {
-    ...existing,
-    status,
-    hostHeartbeat,
-    reconciliationStatus,
-    peekTelemetry
-  };
+  function setPersisted(marker) {
+    state.status = 'BESTANDEN';
+    state.phase = 'UPDATER_PERSISTENCE_BOOTSTRAP';
+    state.terminal = true;
+    state.persisted = true;
+    state.persistedAtMs = Number(marker?.atMs) || Date.now();
+    state.activeSlot = marker?.slot ?? state.activeSlot;
+    state.blocker = [];
+  }
 
-  globalThis.V5PR208UpdaterRecoveryBootstrap = Object.freeze({
+  function installObservabilityBridge() {
+    const host = root();
+    host.AIO_V3 = host.AIO_V3 || {};
+    const existing = host.AIO_V3.operations && typeof host.AIO_V3.operations === 'object'
+      ? host.AIO_V3.operations
+      : {};
+    const oldStatus = typeof existing.status === 'function' ? existing.status.bind(existing) : null;
+    const oldHeartbeat = typeof existing.hostHeartbeat === 'function' ? existing.hostHeartbeat.bind(existing) : null;
+    const oldReconciliation = typeof existing.reconciliationStatus === 'function'
+      ? existing.reconciliationStatus.bind(existing)
+      : null;
+    const oldPeekTelemetry = typeof existing.peekTelemetry === 'function'
+      ? existing.peekTelemetry.bind(existing)
+      : null;
+    const telemetry = Object.freeze({
+      queued: 0,
+      dropped: 0,
+      lastCapturedSeq: 0,
+      lastAcknowledgedSeq: 0
+    });
+
+    const status = () => {
+      let base = {};
+      try {
+        const value = oldStatus ? oldStatus() : null;
+        if (value && typeof value === 'object') base = value;
+      } catch {}
+      return {
+        ...base,
+        schemaVersion: Number(base.schemaVersion) || 1,
+        mode: 'V5_AUTONOMOUS_TEST',
+        telemetry: base.telemetry && typeof base.telemetry === 'object'
+          ? base.telemetry
+          : telemetry,
+        v5AutonomousTest: clone(state)
+      };
+    };
+
+    const hostHeartbeat = () => {
+      if (oldHeartbeat) {
+        try {
+          const value = oldHeartbeat();
+          if (value && typeof value === 'object') return value;
+        } catch {}
+      }
+      const now = Date.now();
+      return {
+        schemaVersion: 1,
+        mode: 'V5_AUTONOMOUS_TEST',
+        alive: true,
+        v5Mode: 'V5_AUTONOMOUS_TEST',
+        observedAtMs: now,
+        v5ObservedAtMs: now
+      };
+    };
+
+    const reconciliationStatus = () => {
+      if (oldReconciliation) {
+        try {
+          const value = oldReconciliation();
+          if (value && typeof value === 'object') return value;
+        } catch {}
+      }
+      return {
+        schemaVersion: 1,
+        status: state.terminal ? 'TERMINAL' : 'RUNNING',
+        v5Terminal: state.terminal === true,
+        sameIntentRetry: false,
+        v5AutonomousTestStatus: state.status
+      };
+    };
+
+    const peekTelemetry = limit => {
+      if (oldPeekTelemetry) {
+        try {
+          const rows = oldPeekTelemetry(limit);
+          if (Array.isArray(rows)) return rows;
+        } catch {}
+      }
+      return [];
+    };
+
+    host.AIO_V3.operations = {
+      ...existing,
+      status,
+      hostHeartbeat,
+      reconciliationStatus,
+      peekTelemetry
+    };
+  }
+
+  function cleanBundleSource() {
+    return installV5AutonomousTestIngameUpdater.toString()
+      + '\ninstallV5AutonomousTestIngameUpdater();\n\n'
+      + installPr208UpdaterRecoveryBootstrapV1.toString()
+      + '\ninstallPr208UpdaterRecoveryBootstrapV1();\n';
+  }
+
+  async function persistOnce() {
+    const existing = persistedMarker();
+    if (existing) {
+      setPersisted(existing);
+      return;
+    }
+
+    const safety = safeForCodeSlotPersistence();
+    if (!safety.safe) {
+      state.phase = 'WAITING_FOR_SAFE_MERCHANT';
+      state.blocker = safety.reasons;
+      return;
+    }
+
+    try {
+      const slotInfo = activeSlot();
+      state.activeSlot = slotInfo.slot;
+      const upload = binding('upload_code');
+      if (!upload) throw new Error('UPLOAD_CODE_UNAVAILABLE');
+      const bundle = cleanBundleSource();
+      const slotName = slotInfo.name || 'AIO V5 Autonomous Tests';
+      let result = upload.fn.call(upload.owner, slotInfo.slot, slotName, bundle);
+      if (result && typeof result.then === 'function') result = await result;
+      if (result?.failed === true) throw new Error('UPLOAD_CODE_FAILED');
+      state.codeSlotWrites += 1;
+
+      const marker = {
+        schemaVersion: 1,
+        testId: TEST_ID,
+        updaterVersion: UPDATER_VERSION,
+        atMs: Date.now(),
+        slot: slotInfo.slot
+      };
+      globalThis.localStorage?.setItem(PERSIST_MARKER_KEY, JSON.stringify(marker));
+      setPersisted(marker);
+
+      const load = binding('load_code');
+      if (load) {
+        state.codeSlotReloads += 1;
+        let reload = load.fn.call(load.owner, slotInfo.slot);
+        if (reload && typeof reload.then === 'function') await reload;
+      }
+    } catch (error) {
+      state.status = 'FEHLER';
+      state.phase = 'PERSISTENCE_ERROR';
+      state.terminal = true;
+      state.blocker = [text(error?.message || error || 'PERSISTENCE_FAILED', 240)];
+    }
+  }
+
+  installObservabilityBridge();
+
+  const api = Object.freeze({
     version: VERSION,
     testId: TEST_ID,
-    updaterVersion: '1.0.8',
-    status: () => ({ ...state })
+    updaterVersion: UPDATER_VERSION,
+    status: () => clone(state),
+    persist: persistOnce
   });
-})();
+  globalThis[API_NAME] = api;
+
+  Promise.resolve().then(() => persistOnce());
+  return api;
+}
+
+installPr208UpdaterRecoveryBootstrapV1();
