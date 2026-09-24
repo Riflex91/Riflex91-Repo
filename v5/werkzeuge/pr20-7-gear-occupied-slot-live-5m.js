@@ -6,6 +6,15 @@
   const SAFE_SLOTS = Object.freeze([
     "cape","belt","amulet","orb","helmet","gloves","shoes","pants","chest"
   ]);
+  const EXPECTED_SHADOW = Object.freeze({
+    characterName: "My_Merchant",
+    slot: "helmet",
+    inventoryIndex: 7,
+    candidateName: "wcap",
+    candidateLevel: 4,
+    previousName: "partyhat",
+    previousLevel: 5
+  });
   const DOUBLE_OBSERVE_DELAY_MS = 350;
   const RECONCILE_ATTEMPTS = 8;
   const RECONCILE_DELAY_MS = 250;
@@ -286,10 +295,16 @@
   function chooseCandidate(observed) {
     const candidates = [];
     for (const item of observed.inventory) {
+      if (observed.characterName !== EXPECTED_SHADOW.characterName) continue;
       if (!Number.isInteger(item.index) || item.index < 0 || item.index >= 128) continue;
-      if (!SAFE_SLOTS.includes(item.type)) continue;
+      if (item.index !== EXPECTED_SHADOW.inventoryIndex) continue;
+      if (!SAFE_SLOTS.includes(item.type) || item.type !== EXPECTED_SHADOW.slot) continue;
+      if (item.name !== EXPECTED_SHADOW.candidateName
+          || item.level !== EXPECTED_SHADOW.candidateLevel) continue;
       const previous = observed.slots[item.type];
       if (!previous) continue;
+      if (previous.name !== EXPECTED_SHADOW.previousName
+          || previous.level !== EXPECTED_SHADOW.previousLevel) continue;
       if (item.locked || item.virtualB || previous.locked || previous.virtualB) continue;
       if (previous.type !== item.type) continue;
       if (!item.material || !previous.material || item.material === previous.material) continue;
@@ -509,19 +524,6 @@
     emit("PR20_7_GEAR_OCCUPIED_SLOT_LIVE_STARTED","INFO");
 
     const oldIntent = existingIntent();
-    if (oldIntent) {
-      setState({
-        status:"BLOCKIERT",phase:"RESTART_RECONCILIATION",terminal:true,
-        blocker:["PR20_7_GEAR_EXISTING_INTENT_REQUIRES_RECONCILIATION"],
-        intents:[oldIntent.value],
-        gameplayWrites:0,publicFunctionCalls:0,
-        authority:{...state.authority,authorityIssued:false,gameplayAuthority:false}
-      });
-      emit("PR20_7_GEAR_OCCUPIED_SLOT_LIVE_BLOCKED","ERROR",{
-        reason:"PR20_7_GEAR_EXISTING_INTENT_REQUIRES_RECONCILIATION"
-      });
-      return;
-    }
 
     const performanceTrick = await ensurePerformanceTrick();
     if (!performanceTrick.active) {
@@ -529,6 +531,181 @@
         status:"BLOCKIERT",phase:"BACKGROUND_EXECUTION",terminal:true,
         blocker:["PR20_7_GEAR_PERFORMANCE_TRICK_NICHT_AKTIV"],
         performanceTrick,gameplayWrites:0,publicFunctionCalls:0
+      });
+      return;
+    }
+
+    if (oldIntent) {
+      const old = oldIntent.value;
+      const recoveryPlan = {
+        account:txt(old?.recipient?.account,192),
+        characterName:txt(old?.recipient?.characterName,192),
+        sessionId:txt(old?.recipient?.sessionId,192),
+        serverRegion:txt(old?.recipient?.serverRegion,32),
+        serverIdentifier:txt(old?.recipient?.serverIdentifier,32),
+        slot:txt(old?.slot,64),
+        inventoryIndex:Number(old?.inventoryIndex),
+        candidateMaterial:old?.candidateFingerprintMaterial || null,
+        previousMaterial:old?.previousFingerprintMaterial || null,
+        restInventoryMaterial:old?.restInventoryMaterial || null,
+        restEquipmentMaterial:old?.restEquipmentMaterial || null
+      };
+      if (!recoveryPlan.account
+          || !recoveryPlan.characterName
+          || !recoveryPlan.sessionId
+          || !SAFE_SLOTS.includes(recoveryPlan.slot)
+          || !Number.isInteger(recoveryPlan.inventoryIndex)
+          || !recoveryPlan.candidateMaterial
+          || !recoveryPlan.previousMaterial) {
+        setState({
+          status:"BLOCKIERT",phase:"RESTART_RECONCILIATION",terminal:true,
+          blocker:["PR20_7_GEAR_EXISTING_INTENT_UNVOLLSTAENDIG"],
+          intents:[old],performanceTrick,
+          gameplayWrites:Number(old?.gameplayWrites) || 0,
+          publicFunctionCalls:Number(old?.publicFunctionCalls) || 0,
+          authority:{...state.authority,authorityIssued:false,gameplayAuthority:false}
+        });
+        return;
+      }
+
+      const current = observation();
+      const recovered = classify(recoveryPlan,current);
+      if (old?.possibleSend !== true || recovered.status !== "COMMITTED") {
+        setState({
+          status:"BLOCKIERT",phase:"RESTART_RECONCILIATION",terminal:true,
+          blocker:["PR20_7_GEAR_RESTART_" + recovered.status],
+          intents:[{...old,restartReconciliation:recovered}],
+          performanceTrick,
+          gameplayWrites:Number(old?.gameplayWrites) || 0,
+          publicFunctionCalls:Number(old?.publicFunctionCalls) || 0,
+          evidence:{
+            schemaVersion:1,
+            evidenceArt:"V5_PR20_7_OCCUPIED_SLOT_RESTART_RECONCILIATION",
+            status:"NICHT_BESTANDEN",
+            reconciliation:recovered,
+            sameIntentRetry:false,
+            resendAttempted:false,
+            normalRuntimeAllowed:false
+          },
+          authority:{...state.authority,authorityIssued:false,gameplayAuthority:false}
+        });
+        emit("PR20_7_GEAR_OCCUPIED_SLOT_RESTART_BLOCKED","ERROR",{
+          reason:recovered.status
+        });
+        return;
+      }
+
+      if (old?.completionStatus === "BESTANDEN"
+          && old?.completionEvidence?.soak?.status === "BESTANDEN"
+          && Number(old?.completionEvidence?.soak?.samples) >= SOAK_SAMPLES
+          && Number(old?.completionEvidence?.soak?.durationMs)
+            >= SOAK_SAMPLES * SOAK_INTERVAL_MS - 1000) {
+        setState({
+          status:"BESTANDEN",phase:"COMPLETE",terminal:true,blocker:[],
+          performanceTrick,
+          intents:[{...old,restartReconciliation:recovered,resendAttempted:false}],
+          gameplayWrites:Number(old?.gameplayWrites) || 1,
+          publicFunctionCalls:Number(old?.publicFunctionCalls) || 1,
+          evidence:{
+            ...old.completionEvidence,
+            restartRecovered:true,
+            resendAttempted:false,
+            sameIntentRetry:false
+          },
+          authority:{
+            ...state.authority,authorityIssued:false,authorityConsumed:true,
+            gameplayAuthority:false,swapWriteRatification:true
+          }
+        });
+        emit("PR20_7_GEAR_OCCUPIED_SLOT_RESTART_RECOVERED","INFO",{
+          reconciliation:"COMMITTED",resendAttempted:false
+        });
+        return;
+      }
+
+      setState({
+        status:"SOAK",phase:"RESTART_FIVE_MINUTE_SOAK",terminal:false,
+        blocker:[],performanceTrick,
+        intents:[{...old,restartReconciliation:recovered,resendAttempted:false}],
+        gameplayWrites:Number(old?.gameplayWrites) || 1,
+        publicFunctionCalls:Number(old?.publicFunctionCalls) || 1,
+        authority:{
+          ...state.authority,authorityIssued:false,authorityConsumed:true,
+          gameplayAuthority:false,swapWriteRatification:true
+        }
+      });
+      const recoverySoakStartedAtMs = Date.now();
+      let recoverySamples = 0;
+      for (let i = 0; i < SOAK_SAMPLES; i += 1) {
+        await sleep(SOAK_INTERVAL_MS);
+        const sample = observation();
+        const classified = classify(recoveryPlan,sample);
+        if (classified.status !== "COMMITTED") {
+          setState({
+            status:"BLOCKIERT",phase:"RESTART_FIVE_MINUTE_SOAK",terminal:true,
+            blocker:["PR20_7_GEAR_RESTART_SOAK_STATE_DRIFT"],
+            evidence:{
+              schemaVersion:1,
+              evidenceArt:"V5_PR20_7_OCCUPIED_SLOT_RESTART_RECONCILIATION",
+              status:"NICHT_BESTANDEN",
+              reconciliation:classified,
+              samples:recoverySamples,
+              resendAttempted:false,
+              sameIntentRetry:false,
+              normalRuntimeAllowed:false
+            }
+          });
+          return;
+        }
+        recoverySamples += 1;
+      }
+      const recoveryDurationMs = Date.now() - recoverySoakStartedAtMs;
+      if (recoveryDurationMs < SOAK_SAMPLES * SOAK_INTERVAL_MS - 1000) {
+        throw new Error("PR20_7_GEAR_RESTART_SOAK_DAUER_ZU_KURZ");
+      }
+      const recoveredEvidence = {
+        schemaVersion:1,
+        evidenceArt:"V5_PR20_7_OCCUPIED_SLOT_LIVE_5M",
+        status:"BESTANDEN",
+        observedAtMs:Date.now(),
+        restartRecovered:true,
+        resendAttempted:false,
+        reconciliation:"COMMITTED",
+        settlement:"BESTAETIGT",
+        durableIntentReadback:true,
+        sameIntentRetry:false,
+        gameplayWrites:Number(old?.gameplayWrites) || 1,
+        publicFunctionCalls:Number(old?.publicFunctionCalls) || 1,
+        rawWriteCalls:0,
+        startCalls:0,
+        disconnectCalls:0,
+        farmerWorkersInstalled:0,
+        soak:{
+          status:"BESTANDEN",
+          samples:recoverySamples,
+          durationMs:recoveryDurationMs,
+          minimumSamples:SOAK_SAMPLES
+        },
+        normalRuntimeAllowed:false
+      };
+      const recoveredIntent = {
+        ...old,
+        terminal:true,
+        completionStatus:"BESTANDEN",
+        completionEvidence:recoveredEvidence,
+        restartReconciliation:recovered,
+        resendAttempted:false,
+        sameIntentRetry:false
+      };
+      writeReadback(oldIntent.key,recoveredIntent);
+      setState({
+        status:"BESTANDEN",phase:"COMPLETE",terminal:true,blocker:[],
+        performanceTrick,evidence:recoveredEvidence,intents:[recoveredIntent],
+        gameplayWrites:recoveredEvidence.gameplayWrites,
+        publicFunctionCalls:recoveredEvidence.publicFunctionCalls
+      });
+      emit("PR20_7_GEAR_OCCUPIED_SLOT_RESTART_RECOVERED","INFO",{
+        reconciliation:"COMMITTED",samples:recoverySamples,resendAttempted:false
       });
       return;
     }
@@ -578,7 +755,7 @@
       schemaVersion:1,testId:TEST_ID,version:VERSION,runId,
       transaktionsId:"PR20.7-GEAR-SWAP-" + Date.now(),
       createdAtMs:Date.now(),
-      recipient:{characterName:plan.characterName,sessionId:plan.sessionId,
+      recipient:{account:plan.account,characterName:plan.characterName,sessionId:plan.sessionId,
         serverRegion:plan.serverRegion,serverIdentifier:plan.serverIdentifier},
       slot:plan.slot,inventoryIndex:plan.inventoryIndex,
       candidateName:secondCandidate.candidate.name,
@@ -724,6 +901,9 @@
       samples += 1;
     }
     const soakDurationMs = Date.now() - soakStartedAtMs;
+    if (soakDurationMs < SOAK_SAMPLES * SOAK_INTERVAL_MS - 1000) {
+      throw new Error("PR20_7_GEAR_LIVE_SOAK_DAUER_ZU_KURZ");
+    }
 
     const evidence = {
       schemaVersion:1,
@@ -769,9 +949,18 @@
       normalRuntimeAllowed:false
     };
 
+    const completedIntent = {
+      ...terminalIntent,
+      completionStatus:"BESTANDEN",
+      completionEvidence:evidence,
+      soak:evidence.soak,
+      sameIntentRetry:false
+    };
+    writeReadback(intentKey,completedIntent);
+
     setState({
       status:"BESTANDEN",phase:"COMPLETE",terminal:true,blocker:[],
-      evidence,intents:[terminalIntent],gameplayWrites:1,publicFunctionCalls:1,
+      evidence,intents:[completedIntent],gameplayWrites:1,publicFunctionCalls:1,
       authority:{...state.authority,authorityConsumed:true,gameplayAuthority:false}
     });
     emit("PR20_7_GEAR_OCCUPIED_SLOT_LIVE_PASSED","INFO",{
