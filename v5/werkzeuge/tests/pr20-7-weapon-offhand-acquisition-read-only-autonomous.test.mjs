@@ -97,6 +97,11 @@ function fixture(overrides = {}) {
       },
     },
   };
+  if (overrides.buyWithGoldAvailable === false) delete root.buy_with_gold;
+  if (Object.prototype.hasOwnProperty.call(overrides, "sellDist")) {
+    if (overrides.sellDist === null) root.B = {};
+    else root.B = { sell_dist: overrides.sellDist };
+  }
   root.parent = root;
   return root;
 }
@@ -133,6 +138,7 @@ async function execute(overrides = {}) {
 test("wshield source preflight is stable, merchant-only and zero-write", async () => {
   const { status, sandbox } = await execute();
   assert.equal(status.status, "BESTANDEN");
+  assert.equal(status.version, "1.0.1");
   assert.equal(status.phase, "ACQUISITION_SOURCE_READY");
   assert.equal(status.terminal, true);
   assert.equal(status.evidence.recipient.characterName, "My_Merchant");
@@ -172,6 +178,28 @@ test("wshield source preflight is stable, merchant-only and zero-write", async (
   const envelope = sandbox.AIO_V3.operations.status();
   assert.equal(envelope.preserved, true);
   assert.equal(envelope.v5AutonomousTest.testId, "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight");
+});
+
+test("missing buy_with_gold blocks source ratification fail closed", async () => {
+  const { status } = await execute({ buyWithGoldAvailable: false });
+  assert.equal(status.status, "BLOCKIERT");
+  assert.deepEqual(Array.from(status.blocker), ["PR20_7_ACQUISITION_BUY_WITH_GOLD_FEHLT"]);
+  assert.equal(status.gameplayWrites, 0);
+  assert.equal(status.publicFunctionCalls, 0);
+});
+
+test("missing observed sell_dist blocks vendor reachability ratification", async () => {
+  const { status } = await execute({ sellDist: null });
+  assert.equal(status.status, "BLOCKIERT");
+  assert.deepEqual(Array.from(status.blocker), ["PR20_7_ACQUISITION_SELL_DIST_FEHLT"]);
+  assert.equal(status.gameplayWrites, 0);
+});
+
+test("vendor outside observed sell_dist blocks source ratification", async () => {
+  const { status } = await execute({ character: { x: 1000, y: 1000 }, sellDist: 120 });
+  assert.equal(status.status, "BLOCKIERT");
+  assert.deepEqual(Array.from(status.blocker), ["PR20_7_ACQUISITION_VENDOR_NICHT_ERREICHBAR"]);
+  assert.equal(status.gameplayWrites, 0);
 });
 
 test("occupied offhand fails closed before any acquisition authority", async () => {
