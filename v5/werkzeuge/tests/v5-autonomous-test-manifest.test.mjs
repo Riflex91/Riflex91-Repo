@@ -21,6 +21,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR207GearShadowTest",
     gate: "PR20.7_GEAR"
   }),
+  "pr20-7-gear-account-weapon-candidate-discovery": Object.freeze({
+    path: "v5/werkzeuge/pr20-7-account-weapon-candidate-discovery.js",
+    expectedGlobal: "V5PR207AccountWeaponCandidateDiscovery",
+    gate: "PR20.7_GEAR"
+  }),
   "pr20-7-gear-weapon-offhand-read-only-preflight": Object.freeze({
     path: "v5/werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js",
     expectedGlobal: "V5PR207WeaponOffhandReadOnlyTest",
@@ -316,4 +321,24 @@ test("PR20.7 weapon/offhand read-only manifest stays explicit-slot, class-bound 
   assert.equal(packageSource.includes("send_item("), false);
   assert.equal(packageSource.includes("api_call("), false);
   assert.equal(packageSource.includes("socket.emit("), false);
+});
+
+test("PR20.7 account weapon discovery manifest remains merchant-only and zero-write", () => {
+  if (manifest.testId !== "pr20-7-gear-account-weapon-candidate-discovery") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.equal("workerPackageSha256" in manifest, false);
+  assert.equal("workerExpectedGlobal" in manifest, false);
+  assert.equal("workerTargets" in manifest, false);
+  assert.ok(packageSource.includes("get_characters"));
+  assert.ok(packageSource.includes("X?.characters"));
+  assert.ok(packageSource.includes("exactLiveSessionPreflightStillRequired: true"));
+  assert.ok(packageSource.includes("gameplayWrites: 0"));
+  assert.ok(packageSource.includes("publicFunctionCalls: 0"));
+  assert.ok(packageSource.includes("rawWriteCalls: 0"));
+  assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
+  for (const marker of ["equip(", "unequip(", "buy(", "bank_retrieve(", "send_item(", "send_cm(", "use_skill(", "start_character(", "command_character(", "api_call(", "socket.emit("]) {
+    assert.equal(packageSource.includes(marker), false, marker);
+  }
 });
