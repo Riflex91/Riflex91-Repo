@@ -904,7 +904,8 @@ test("PR20.8 productive Compound one-write manifest is exact, one-shot and runti
   assert.ok(packageSource.includes("compoundEffectsFingerprintSha256"));
   assert.ok(packageSource.includes("massproduction"));
   assert.ok(packageSource.includes("massproductionpp"));
-  assert.ok(packageSource.includes("compoundDefinitionMaterial"));
+  assert.ok(packageSource.includes("compoundDefinitionExact"));
+  assert.ok(packageSource.includes("Number(compoundDef.hp) === 240"));
   assert.ok(packageSource.includes("safeZeroWriteNoIntentFailure"));
   assert.ok(packageSource.includes("sameIntentRetry: false"));
   assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
