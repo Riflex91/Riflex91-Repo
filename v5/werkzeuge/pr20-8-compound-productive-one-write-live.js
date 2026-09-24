@@ -364,8 +364,16 @@
 
   function candidateRows(items, G) {
     const def = G.items?.[ITEM_NAME];
+    const compoundDef = def?.compound;
+    const compoundKeys = compoundDef && typeof compoundDef === "object"
+      && !Array.isArray(compoundDef)
+      ? Object.keys(compoundDef).sort()
+      : [];
+    const compoundDefinitionExact = compoundKeys.length === 1
+      && compoundKeys[0] === "hp"
+      && Number(compoundDef.hp) === 240;
     if (unsafeDefinition(def)
-        || def.compound !== true
+        || !compoundDefinitionExact
         || text(def.type, 64) !== "amulet"
         || Number(def.g) !== ITEM_BASE_GOLD) {
       throw new Error("PR20_8_COMPOUND_LIVE_ITEM_DEFINITION_DRIFT");
@@ -476,7 +484,7 @@
     const itemDefMaterial = canonical({
       name: ITEM_NAME,
       type: text(itemDef?.type, 64),
-      compound: itemDef?.compound === true,
+      compound: stableScalarObject(itemDef?.compound || {}, 32),
       g: Number(itemDef?.g),
       grades: Array.isArray(itemDef?.grades) ? [...itemDef.grades] : null
     });
@@ -1298,6 +1306,14 @@
   function fail(error) {
     const message = text(error?.message || error, 500) || "UNBEKANNTER_FEHLER";
     emit("PR20_8_COMPOUND_LIVE_FEHLER", "error", { reason: message });
+    const safeZeroWriteNoIntentFailure = state.gameplayWrites === 0
+      && state.publicFunctionCalls === 0
+      && state.rawWriteCalls === 0
+      && state.authority.durableIntentCreated === false
+      && state.intents.length === 0;
+    if (safeZeroWriteNoIntentFailure) {
+      try { releaseRuntimeLease(); } catch {}
+    }
     setState({
       status: "FEHLER",
       phase: "ERROR",
