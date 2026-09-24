@@ -349,7 +349,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryFarmerGearAllocationRatification, false);
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryEvidenceStatus, "OFFEN");
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryManifestCutoverPrepared, true);
-  assert.equal(contract.weaponOffhandFoundation.accountDiscoveryControllerVersion, "1.0.1");
+  assert.equal(contract.weaponOffhandFoundation.accountDiscoveryControllerVersion, "1.0.2");
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryBridgeContractFixed, true);
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryStatusEnvelope, "status.v5AutonomousTest");
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryPeekTelemetryArray, true);
