@@ -1,7 +1,7 @@
 # PR20.7 – Gear-Autonomie: belegter Slot / Swap Foundation
 
 **Stand:** 2026-09-23  
-**Status:** `REAL_BROWSER_PREFLIGHT_BESTANDEN_NO_WRITE`
+**Status:** `REAL_SHADOW_BESTANDEN_NO_WRITE`
 
 ## Zweck
 
@@ -140,15 +140,58 @@ Sicherheitszaehler des realen Laufs:
 Damit ist ausschliesslich der reale **read-only Preflight** bestanden.
 Es wurde kein Gear-Swap ausgefuehrt.
 
+## One-Shot, Durable Intent und Reconcile – NO-WRITE
+
+Nach dem read-only Preflight wurden die fuer einen belegten Nicht-Waffen-Slot
+erforderlichen Sicherheitsbausteine separat implementiert:
+
+- maximal eine Verwendung und maximal 1500 ms TTL;
+- exakte Bindung an Recipient-Session, Roster-Epoche/-Fingerprint, Server,
+  Slot, Kandidatenindex und Prestate;
+- exklusive Equipment- und Inventory-Fencing-Claims;
+- Fence-/Binding-Drift widerruft fail-closed;
+- Durable Intent muss vor jeder moeglichen Mutation bestaetigt gespeichert sein;
+- post-send Reobserve/Reconcile klassifiziert ohne Same-Intent-Retry;
+- Waffen und Offhand bleiben ausgeschlossen.
+
+Diese Foundations erteilen fuer sich weiterhin keine Gameplay-Authority.
+
+## Reale Shadow-Evidence – BESTANDEN
+
+Der Merchant-only Shadow
+`pr20-7-gear-occupied-slot-shadow-no-write` wurde real terminal
+`BESTANDEN` beobachtet und ratifiziert.
+
+Beobachtet wurden derselbe sichere `helmet`-Kandidat, ein erfolgreicher
+Shadow-Durable-Readback, vorbereitete Equipment-/Inventory-Fencing-Claims und
+eine stabile Post-Intent-Reobservation. Die Send-Grenze blieb
+`NICHT_GESENDET`; die Reconciliation war `NOT_APPLIED`.
+
+Sicherheitswerte:
+
+- `gameplayWrites=0`;
+- `publicFunctionCalls=0`;
+- `rawWriteCalls=0`;
+- `startCalls=0`;
+- `disconnectCalls=0`;
+- `farmerWorkersInstalled=0`;
+- `authorityIssued=false`;
+- `swapWriteRatification=false`;
+- `sameIntentRetry=false`;
+- `normalRuntimeAllowed=false`.
+
+Evidence:
+`roadmap/pr20-7-gear-shadow-no-write-evidence.json`.
+
 ## Naechstes Gate
 
-Vor einem echten belegten-Slot-Write sind nach dem bestandenen realen read-only Preflight weiterhin separat erforderlich:
+Nach dem bestandenen realen Shadow ist als naechster Schritt ein enger
+produktiver One-Shot-Swap-Runner vorzubereiten. Er muss dieselben
+One-Shot-/Fencing-/Durable-Intent-/Reconcile-Grenzen erzwingen und darf erst
+nach eigener gruener Exact-Head-CI exakt einen sicheren belegten
+Nicht-Waffen-Slot-Swap ausfuehren.
 
-- kurzlebige, exakt gebundene One-Shot-Authority;
-- Equipment-/Inventory-Fencing am Recipient;
-- durable Intent vor moeglicher Send-Grenze;
-- post-send Reobserve/Reconcile ohne Blind-Retry;
-- Real-Browser-Shadow-Evidence;
-- gruene Exact-Head-CI.
+Danach ist fuer diese neue Mutationsklasse eine reale 5-Minuten-
+Funktionsevidence erforderlich.
 
-Waffen/Offhand bleiben auch danach ein eigenes Gate.
+Waffen/Offhand sowie Farmer-Gear-Allokation bleiben separate spaetere Gates.

@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "REAL_SHADOW_AUTO_DEPLOY_BEREIT_NO_WRITE");
+    "REAL_SHADOW_BESTANDEN_NO_WRITE");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -163,7 +163,12 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.realShadowGameplayWrites, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.realShadowRawWriteCalls, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.realShadowAuthorityIssued, false);
-  assert.equal(prep.pr20_7.sicherVorbereitet.realShadowEvidenceStatus, "OFFEN");
+  assert.equal(prep.pr20_7.sicherVorbereitet.realShadowEvidenceStatus, "BESTANDEN_REAL_BROWSER_SHADOW_NO_WRITE");
+  assert.equal(prep.pr20_7.sicherVorbereitet.realShadowEvidenceRatified, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.realShadowObservedReconciliation, "NOT_APPLIED");
+  assert.equal(prep.pr20_7.sicherVorbereitet.realShadowGameplayWrites, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.realShadowPublicFunctionCalls, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.realShadowRawWriteCalls, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.realBrowserPreflightEvidenceStatus, "BESTANDEN_REAL_BROWSER_NO_WRITE");
   assert.equal(prep.pr20_7.sicherVorbereitet.workerPackageConfigured, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.farmerWorkerDistribution, false);
