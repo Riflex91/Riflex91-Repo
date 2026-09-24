@@ -1151,6 +1151,7 @@ public sealed class CdpAdventureLandClient
     {
         if (value.ValueKind == JsonValueKind.Object
             && value.TryGetProperty(property, out var node)
+            && node.ValueKind == JsonValueKind.Number
             && node.TryGetInt64(out var result))
             return result;
         return fallback;
