@@ -54,23 +54,23 @@ test("PR20.8 productive Upgrade one-write evidence ratifies exactly one committe
   assert.equal(evidence.safetyBoundary.exchangeRatification, false);
 });
 
-test("after committed Upgrade evidence the active manifest keeps the mutating runner retired behind a zero-write bridge probe", () => {
-  assert.equal(manifest.testId, "pr20-8-bridge-handshake-probe-v1");
-  assert.equal(manifest.controllerVersion, "1.0.1");
+test("after committed Upgrade evidence the active manifest keeps mutation retired behind a read-only candidate rescan", () => {
+  assert.equal(manifest.testId, "pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(manifest.controllerVersion, "1.0.0");
   assert.equal(manifest.gate, "PR20.8_WERTMUTATIONEN");
   assert.equal(
     manifest.sourceCommit,
-    "fe38f784d9d8bfeac3d9b30874a453716bd9e3bc",
+    "7307573841b86b1fb22fd5abfb73a3d461bf0049",
   );
   assert.equal(
     manifest.packagePath,
-    "v5/werkzeuge/pr20-8-bridge-handshake-probe-v1-0-1.js",
+    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js",
   );
   assert.equal(
     manifest.packageSha256,
-    "08d21dde622ed1cf2dd56438225e4274478263908363a5692bcb6c548b58303b",
+    "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5",
   );
-  assert.equal(manifest.expectedGlobal, "V5PR208BridgeHandshakeProbe");
+  assert.equal(manifest.expectedGlobal, "V5PR208ValueMutationLiveCandidateReadonly");
   assert.equal(manifest.normalRuntimeAllowed, false);
   assert.equal(
     evidence.nextGate,
