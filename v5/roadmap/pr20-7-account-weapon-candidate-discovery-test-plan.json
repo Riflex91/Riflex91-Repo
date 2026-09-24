@@ -4,7 +4,7 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-account-weapon-candidate-discovery-v2",
   "controllerVersion": "1.0.3",
-  "status": "SAME_TEST_ZERO_WRITE_UPGRADE_BEREIT_FUER_REALEN_NO_WRITE_DISCOVERY",
+  "status": "BLOCKIERT_REAL_NO_EXISTING_CANDIDATE_ZERO_WRITE_RATIFIED",
   "purpose": "READ_ONLY_ACCOUNT_ROSTER_CANDIDATE_DISCOVERY_AFTER_MERCHANT_RESOURCE_BLOCK",
   "deployment": {
     "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
@@ -113,5 +113,45 @@
     "requiresSameIntentRetry": false,
     "requiresDurableIntentCreated": false,
     "requiresNoIntents": true
-  }
+  },
+  "actualOutcome": {
+    "controllerVersion": "1.0.3",
+    "observedAtMs": 1790232916356,
+    "terminal": true,
+    "result": "BLOCKIERT",
+    "blocker": [
+      "PR20_7_ACCOUNT_DISCOVERY_ROSTER_OHNE_INVENTAR_SLOTS"
+    ],
+    "rosterSource": "X.characters",
+    "rosterSourceCandidates": [
+      {
+        "source": "X.characters",
+        "exactFarmerRows": 3,
+        "richFarmerRows": 0
+      },
+      {
+        "source": "get_characters",
+        "exactFarmerRows": 3,
+        "richFarmerRows": 0
+      }
+    ],
+    "bridgeLiveFarmerContexts": {
+      "observedAt": 1790232986700,
+      "exactContexts": 3,
+      "compatibleCandidateCount": 0,
+      "allPerformanceTrickActive": true,
+      "gameplayWrites": 0,
+      "rawWriteCalls": 0,
+      "startCalls": 0,
+      "disconnectCalls": 0
+    }
+  },
+  "nextAfterSafeBlock": "PR20_7_WEAPON_OFFHAND_MERCHANT_ACQUISITION_PREPARE",
+  "safeBlockInterpretation": [
+    "account roster sources contain exact farmer metadata but no inventory/slot payload",
+    "existing same-origin live farmer contexts were observed read-only by Windows Bridge",
+    "no compatible mainhand/offhand candidate exists in the observed farmer inventories",
+    "do not start/stop characters or widen farmer authority just to manufacture a candidate",
+    "prepare a separate Merchant acquisition intent before any weapon/offhand equip write"
+  ]
 }
