@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "WEAPON_OFFHAND_EQUIP_BESTANDEN_FARMER_GEAR_ALLOCATION_OFFEN");
+    "ROADMAP_ABGESCHLOSSEN_MUTATIONS_RATIFIED_ALLOCATION_NO_WRITE");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -190,7 +190,23 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.occupiedNonWeaponLiveSoakSamples, 60);
   assert.ok(prep.pr20_7.sicherVorbereitet.occupiedNonWeaponLiveSoakDurationMs >= 299000);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponsOffhandSeparateGate, true);
-  assert.equal(prep.pr20_7.sicherVorbereitet.farmerGearAllocationSeparateGate, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.farmerGearAllocationSeparateGate, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.farmerGearAllocationRatified, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.farmerGearAllocationStatus,
+    "BESTANDEN_NO_WRITE_FOUNDATION_RATIFIED");
+  assert.equal(prep.pr20_7.sicherVorbereitet.farmerGearAllocationRatification,
+    "roadmap/pr20-7-farmer-gear-allocation-ratification.json");
+  assert.equal(prep.pr20_7.sicherVorbereitet.farmerGearAllocationGameplayWrites, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.farmerGearAllocationPublicFunctionCalls, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.farmerGearAllocationRawWriteCalls, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.farmerGearAllocationExecutionAuthority, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.farmerGearAllocationGameplayAuthority, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.farmerGearAllocationRawWriteAuthority, false);
+  assert.equal(prep.pr20_7.nextGate, "PR20.8_WERTMUTATIONEN");
+  assert.equal(prep.pr20_7.farmerGearAllocation.status,
+    "BESTANDEN_NO_WRITE_FOUNDATION_RATIFIED");
+  assert.equal(prep.pr20_7.farmerGearAllocation.gameplayAuthority, false);
+  assert.equal(prep.pr20_7.farmerGearAllocation.normalRuntimeAllowed, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandExplicitSlotRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandClassRulesPinned, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandOppositeHandPinned, true);
@@ -348,7 +364,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionProductivePurchaseLiveSameIntentRetry, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionProductivePurchaseLiveRestartReconcileWithoutResend, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionProductivePurchaseLiveSoakMinimumSamples, 60);
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionNextGate, "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionNextGate, "PR20.8_WERTMUTATIONEN");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipPackagePrepared, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipExactItem, "wshield");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipTargetSlot, "offhand");
@@ -377,7 +393,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedSoakSamples, 60);
   assert.ok(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipObservedSoakDurationMs >= 299000);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandNextGate,
-    "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION");
+    "PR20.8_WERTMUTATIONEN");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipSameIntentRetry, false);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionSourceCommit, /^[0-9a-f]{40}$/);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPackageSha256, /^[0-9a-f]{64}$/);
