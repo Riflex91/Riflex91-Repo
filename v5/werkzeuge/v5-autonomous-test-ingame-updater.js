@@ -2,7 +2,7 @@ function installV5AutonomousTestIngameUpdater() {
   'use strict';
 
   const API_NAME = 'V5AutonomousTestIngameUpdater';
-  const VERSION = '1.0.6';
+  const VERSION = '1.0.7';
   const MODE = 'NATIVE_INGAME_CLOUDFLARE_R2_V1';
   const BASE_URL = 'https://aio-bot-dashboard.hansijuergenlul.workers.dev';
   const MANIFEST_PATH = '/v5/roadmap/v5-autonomous-test-manifest.json';
@@ -212,6 +212,36 @@ function installV5AutonomousTestIngameUpdater() {
       && alreadyRunning.has('mage');
   }
 
+  function safeTerminalPr208RecoveryUpgrade(active, manifest) {
+    const blockers = Array.isArray(active?.blocker)
+      ? active.blocker.map(value => text(value, 160))
+      : [];
+    const authority = active?.authority;
+    const versionPair =
+      (text(active?.version, 80) === '1.0.0' && manifest.controllerVersion === '1.0.1')
+      || (text(active?.version, 80) === '1.0.1' && manifest.controllerVersion === '1.0.2');
+
+    return manifest.testId === 'pr20-8-upgrade-productive-one-write-live'
+      && versionPair
+      && active?.terminal === true
+      && text(active?.status, 80) === 'FEHLER'
+      && text(active?.phase, 80) === 'ERROR'
+      && zeroWriteSameIntentState(active)
+      && Number.isFinite(Number(active?.publicFunctionCalls))
+      && Number(active.publicFunctionCalls) === 0
+      && blockers.length === 1
+      && blockers[0] === 'PR20_8_UPGRADE_LIVE_DUPLIKAT_INSTANZ_AKTIV'
+      && authority
+      && typeof authority === 'object'
+      && authority.authorityIssued === false
+      && authority.authorityConsumed === false
+      && authority.durableIntentCreated === false
+      && authority.upgradeAuthority === false
+      && authority.gameplayAuthority === false
+      && authority.rawWriteAuthority === false
+      && authority.normalUpgradeWriteRatification === false;
+  }
+
   function safeSameTestVersionUpgrade(active, manifest) {
     const legacyWaitUpgrade = manifest.testId === 'pr20-6-mluck-autonomous-live-5m'
       && text(active?.version, 80) === '1.0.0'
@@ -220,7 +250,9 @@ function installV5AutonomousTestIngameUpdater() {
       && text(active?.status, 80) === 'WAITING_FOR_4_CHARACTERS'
       && text(active?.phase, 80) === 'ROSTER'
       && zeroWriteSameIntentState(active);
-    return legacyWaitUpgrade || safeTerminalPr206RecoveryUpgrade(active, manifest);
+    return legacyWaitUpgrade
+      || safeTerminalPr206RecoveryUpgrade(active, manifest)
+      || safeTerminalPr208RecoveryUpgrade(active, manifest);
   }
 
   function deploymentDecision(manifest) {
