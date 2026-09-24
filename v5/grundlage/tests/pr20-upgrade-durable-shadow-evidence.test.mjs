@@ -94,16 +94,16 @@ test("current 1.0.1 recovery hardening does not rewrite the observed 1.0.0 evide
   assert.equal(evidence.safetyBoundary.recoveryMayNotCreateGameplayWrite,true);
   assert.equal(
     manifest.testId,
-    "pr20-8-upgrade-productive-one-write-live",
+    "pr20-8-native-updater-recovery-bootstrap-v1",
   );
-  assert.equal(manifest.controllerVersion,"1.0.3");
+  assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(
     manifest.sourceCommit,
-    "a4f58c98edc4d794a23346183d6f2375dceb5308",
+    "e6a52aafcacb5c23c4a2cdfef88250cbb0e3fe2e",
   );
   assert.equal(
     manifest.packageSha256,
-    "1290b72479eb5683ebab2c1202d09a2d5918a7a1bbf1a1fd190e48f0e2bab3a1",
+    "0745b836e660c1f6a1bd96a4418908c2822556542ca09e7876e624800d2888fb",
   );
   assert.notEqual(manifest.testId,evidence.testId);
   assert.equal(manifest.normalRuntimeAllowed,false);
