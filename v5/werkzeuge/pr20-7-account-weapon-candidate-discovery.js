@@ -2,7 +2,7 @@
   'use strict';
 
   const TEST_ID = 'pr20-7-gear-account-weapon-candidate-discovery-v2';
-  const VERSION = '1.0.2';
+  const VERSION = '1.0.3';
   const FARMERS = Object.freeze([
     Object.freeze({ name:'My_Ranger1', ctype:'ranger' }),
     Object.freeze({ name:'My_Priest', ctype:'priest' }),
@@ -231,22 +231,66 @@
     try { if (globalThis && !owners.includes(globalThis)) owners.push(globalThis); } catch {}
     try { if (r.parent && !owners.includes(r.parent)) owners.push(r.parent); } catch {}
 
+    const candidates = [];
+    const pushRows = (source, rows) => {
+      if (!Array.isArray(rows) || !rows.length) return;
+      const exact = FARMERS.map(expected => {
+        const matches = rows.filter(row =>
+          row
+          && typeof row === 'object'
+          && text(row.name, 64) === expected.name
+          && text(row.ctype || row.type, 32).toLowerCase() === expected.ctype
+        );
+        if (matches.length !== 1) return { exact:false, rich:false };
+        const row = matches[0];
+        return {
+          exact:true,
+          rich:Array.isArray(row.items)
+            && !!row.slots
+            && typeof row.slots === 'object'
+        };
+      });
+      const exactCount = exact.filter(x => x.exact).length;
+      const richCount = exact.filter(x => x.rich).length;
+      candidates.push({
+        source,
+        rows,
+        score: richCount * 1000 + exactCount * 10 + rows.length,
+        exactCount,
+        richCount
+      });
+    };
+
     for (const owner of owners) {
       try {
         if (typeof owner.get_characters === 'function') {
-          const rows = owner.get_characters();
-          if (Array.isArray(rows)) return { source:'get_characters', rows };
+          pushRows('get_characters', owner.get_characters());
         }
       } catch {}
-    }
-    for (const owner of owners) {
       try {
-        if (Array.isArray(owner?.X?.characters)) {
-          return { source:'X.characters', rows: owner.X.characters };
-        }
+        pushRows('X.characters', owner?.X?.characters);
       } catch {}
     }
-    return { source:null, rows:null };
+
+    candidates.sort((a, b) =>
+      b.score - a.score
+      || b.richCount - a.richCount
+      || b.exactCount - a.exactCount
+      || (a.source === 'X.characters' ? -1 : 1)
+    );
+    const best = candidates[0] || null;
+    return best
+      ? {
+          source:best.source,
+          rows:best.rows,
+          sourceCandidates:candidates.map(row => ({
+            source:row.source,
+            exactFarmerRows:row.exactCount,
+            richFarmerRows:row.richCount,
+            score:row.score
+          }))
+        }
+      : { source:null, rows:null, sourceCandidates:[] };
   }
 
   function activeNames() {
@@ -425,6 +469,7 @@
     state.activeCharacters = activeNames();
     const found = accountRows();
     state.rosterSource = found.source;
+    state.rosterSourceCandidates = found.sourceCandidates;
     if (!Array.isArray(found.rows) || !found.rows.length) {
       finish('BLOCKIERT', ['PR20_7_ACCOUNT_DISCOVERY_ROSTER_UNAVAILABLE']);
       return;

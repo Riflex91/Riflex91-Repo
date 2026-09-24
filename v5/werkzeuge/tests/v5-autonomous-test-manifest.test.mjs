@@ -337,7 +337,7 @@ test("PR20.7 weapon/offhand read-only manifest stays explicit-slot, class-bound 
 
 test("PR20.7 account weapon discovery manifest remains merchant-only and zero-write", () => {
   if (!["pr20-7-gear-account-weapon-candidate-discovery", "pr20-7-gear-account-weapon-candidate-discovery-v2"].includes(manifest.testId)) return;
-  assert.equal(manifest.controllerVersion, "1.0.2");
+  assert.ok(["1.0.2", "1.0.3"].includes(manifest.controllerVersion));
   if (manifest.testId.endsWith("-v2")) assert.ok(packageSource.includes("candidate-discovery-v2"));
   assert.equal("workerVersion" in manifest, false);
   assert.equal("workerPackagePath" in manifest, false);
@@ -346,6 +346,11 @@ test("PR20.7 account weapon discovery manifest remains merchant-only and zero-wr
   assert.equal("workerTargets" in manifest, false);
   assert.ok(packageSource.includes("get_characters"));
   assert.ok(packageSource.includes("X?.characters"));
+  if (manifest.controllerVersion === "1.0.3") {
+    assert.ok(packageSource.includes("sourceCandidates"));
+    assert.ok(packageSource.includes("richFarmerRows"));
+    assert.ok(packageSource.includes("X.characters"));
+  }
   assert.ok(packageSource.includes("exactLiveSessionPreflightStillRequired: true"));
   assert.ok(packageSource.includes("gameplayWrites: 0"));
   assert.ok(packageSource.includes("publicFunctionCalls: 0"));

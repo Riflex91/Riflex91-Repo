@@ -17,7 +17,7 @@ const source = fs.readFileSync(
 
 test("PR20.7 account discovery remains a read-only selector, not farmer gear authority", () => {
   assert.equal(plan.gate, "PR20.7_GEAR");
-  assert.equal(plan.controllerVersion, "1.0.2");
+  assert.equal(plan.controllerVersion, "1.0.3");
   assert.equal(plan.bridgeContract.statusEnvelope, "status.v5AutonomousTest");
   assert.equal(plan.bridgeContract.peekTelemetryArray, true);
   assert.equal(plan.bridgeContract.preservesExistingOperations, true);
@@ -26,7 +26,7 @@ test("PR20.7 account discovery remains a read-only selector, not farmer gear aut
   assert.equal(plan.performanceTrick.retryDelayMs, 150);
   assert.equal(plan.performanceTrick.failClosed, true);
   assert.equal(plan.testId, "pr20-7-gear-account-weapon-candidate-discovery-v2");
-  assert.equal(plan.status, "V2_MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_DISCOVERY");
+  assert.equal(plan.status, "SAME_TEST_ZERO_WRITE_UPGRADE_BEREIT_FUER_REALEN_NO_WRITE_DISCOVERY");
   assert.equal(plan.supersedesTestId, "pr20-7-gear-account-weapon-candidate-discovery");
   assert.equal(plan.sameTestVersionUpgradeBypassed, false);
   assert.equal(plan.deployment.packageCommitPinned, true);
@@ -76,14 +76,14 @@ test("PR20.7 account discovery pending evidence cannot count as pass", () => {
   assert.equal(evidence.testId, "pr20-7-gear-account-weapon-candidate-discovery-v2");
   assert.equal(evidence.status, "OFFEN");
   assert.equal(evidence.supersedesTestId, "pr20-7-gear-account-weapon-candidate-discovery");
-  assert.equal(evidence.controllerVersion, "1.0.2");
+  assert.equal(evidence.controllerVersion, "1.0.3");
   assert.match(evidence.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(evidence.packageSha256, /^[0-9a-f]{64}$/);
   assert.equal(evidence.observedAtMs, null);
   assert.equal(evidence.terminal, null);
   assert.equal(evidence.result, null);
   assert.equal(evidence.ratified, false);
-  assert.equal(evidence.priorAttempts.length, 1);
+  assert.equal(evidence.priorAttempts.length, 2);
   assert.equal(evidence.priorAttempts[0].controllerVersion, "1.0.1");
   assert.equal(evidence.priorAttempts[0].status, "BLOCKIERT");
   assert.deepEqual(evidence.priorAttempts[0].blocker,
@@ -92,10 +92,30 @@ test("PR20.7 account discovery pending evidence cannot count as pass", () => {
   assert.equal(evidence.priorAttempts[0].performanceTrick.audioFound, false);
   assert.equal(evidence.priorAttempts[0].safety.gameplayWrites, 0);
   assert.equal(evidence.priorAttempts[0].safety.rawWriteCalls, 0);
+  assert.equal(evidence.priorAttempts[1].controllerVersion, "1.0.2");
+  assert.equal(evidence.priorAttempts[1].status, "BLOCKIERT");
+  assert.deepEqual(evidence.priorAttempts[1].blocker,
+    ["PR20_7_ACCOUNT_DISCOVERY_ROSTER_OHNE_INVENTAR_SLOTS"]);
+  assert.equal(evidence.priorAttempts[1].performanceTrick.active, true);
+  assert.equal(evidence.priorAttempts[1].roster.source, "get_characters");
+  assert.equal(evidence.priorAttempts[1].roster.exactFarmerRows, 3);
+  assert.equal(evidence.priorAttempts[1].roster.rowsWithItemsAndSlots, 0);
+  assert.equal(evidence.priorAttempts[1].safety.gameplayWrites, 0);
+  assert.equal(evidence.priorAttempts[1].safety.rawWriteCalls, 0);
+  assert.equal(plan.sourceSelection.preferMostCompleteExactFarmerRows, true);
+  assert.equal(plan.sourceSelection.richRowRequiresItemsAndSlots, true);
+  assert.equal(plan.sourceSelection.noLifecycleMutation, true);
+  assert.equal(plan.sameTestUpgrade.windowsBridgeFailClosedGate, true);
+  assert.equal(plan.sameTestUpgrade.requiresTerminal, true);
+  assert.equal(plan.sameTestUpgrade.requiresGameplayWrites, 0);
+  assert.equal(plan.sameTestUpgrade.requiresRawWriteCalls, 0);
+  assert.equal(plan.sameTestUpgrade.requiresSameIntentRetry, false);
+  assert.equal(plan.sameTestUpgrade.requiresDurableIntentCreated, false);
+  assert.equal(plan.sameTestUpgrade.requiresNoIntents, true);
   assert.equal(evidence.sourceCommit, plan.deployment.sourceCommit);
   assert.equal(evidence.packageSha256, plan.deployment.packageSha256);
   assert.deepEqual(
     evidence.blocker,
-    ["REAL_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_V2_NOCH_NICHT_TERMINAL"],
+    ["REAL_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_V2_CONTROLLER_1_0_3_NOCH_NICHT_TERMINAL"],
   );
 });

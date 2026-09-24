@@ -3,17 +3,17 @@
   "stand": "2026-09-24",
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-account-weapon-candidate-discovery-v2",
-  "controllerVersion": "1.0.2",
-  "status": "V2_MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_DISCOVERY",
+  "controllerVersion": "1.0.3",
+  "status": "SAME_TEST_ZERO_WRITE_UPGRADE_BEREIT_FUER_REALEN_NO_WRITE_DISCOVERY",
   "purpose": "READ_ONLY_ACCOUNT_ROSTER_CANDIDATE_DISCOVERY_AFTER_MERCHANT_RESOURCE_BLOCK",
   "deployment": {
     "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
     "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
     "coordinatorClass": "merchant",
     "packageCommitPinned": true,
-    "sourceCommit": "cb208ce57fd5bc5c07de81662d138220d5143af3",
+    "sourceCommit": "7ecfabc9122be52ceb7231c9bfcba451657e10ce",
     "packagePath": "v5/werkzeuge/pr20-7-account-weapon-candidate-discovery.js",
-    "packageSha256": "1f56a0080d113e525c160a399ecaacfb0c00ad54108ea199027ddeec027ff27c",
+    "packageSha256": "3619dd3e56410458db5c5ce859a05fbbccd97b912d07e47d5d045eb93383f60f",
     "expectedGlobal": "V5PR207AccountWeaponCandidateDiscovery",
     "workerPackageConfigured": false,
     "farmerWorkerDistribution": false
@@ -92,5 +92,26 @@
   },
   "supersedesTestId": "pr20-7-gear-account-weapon-candidate-discovery",
   "sameTestVersionUpgradeBypassed": false,
-  "newTestInstanceReason": "PREVIOUS_TERMINAL_TEST_ID_VERSION_MISMATCH_IS_INTENTIONALLY_NOT_UPGRADED_IN_PLACE"
+  "newTestInstanceReason": "PREVIOUS_TERMINAL_TEST_ID_VERSION_MISMATCH_IS_INTENTIONALLY_NOT_UPGRADED_IN_PLACE",
+  "sourceSelection": {
+    "candidates": [
+      "get_characters",
+      "X.characters"
+    ],
+    "preferMostCompleteExactFarmerRows": true,
+    "richRowRequiresItemsAndSlots": true,
+    "noLifecycleMutation": true
+  },
+  "sameTestUpgrade": {
+    "testIdStable": true,
+    "fromControllerVersion": "1.0.2",
+    "toControllerVersion": "1.0.3",
+    "windowsBridgeFailClosedGate": true,
+    "requiresTerminal": true,
+    "requiresGameplayWrites": 0,
+    "requiresRawWriteCalls": 0,
+    "requiresSameIntentRetry": false,
+    "requiresDurableIntentCreated": false,
+    "requiresNoIntents": true
+  }
 }
