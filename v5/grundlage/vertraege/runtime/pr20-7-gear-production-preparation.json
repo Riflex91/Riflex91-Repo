@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_BESTANDEN_PRODUCTIVE_PURCHASE_PREPARATION_BEREIT_NO_PURCHASE_AUTHORITY",
+  "status": "WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PACKAGE_BEREIT_MANIFEST_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -375,7 +375,7 @@
     "acquisitionObservedSellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
     "acquisitionObservedGold": 14493644,
     "acquisitionObservedFreeInventorySlots": 21,
-    "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION",
+    "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_5M_MANIFEST_CUTOVER",
     "acquisitionShadowFoundation": "grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
     "acquisitionShadowFoundationTest": "grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
     "acquisitionShadowPackage": "werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
@@ -457,6 +457,23 @@
     "acquisitionProductivePurchaseSettlementItemDelta": 1,
     "acquisitionProductivePurchaseSameIntentRetry": false,
     "acquisitionProductivePurchaseAdapterPresent": false,
-    "acquisitionProductivePurchaseLiveRunnerPresent": false
+    "acquisitionProductivePurchaseLiveRunnerPresent": false,
+    "acquisitionProductivePurchaseLivePackagePrepared": true,
+    "acquisitionProductivePurchaseLivePackage": "werkzeuge/pr20-7-weapon-offhand-acquisition-live-5m.js",
+    "acquisitionProductivePurchaseLivePackageTest": "werkzeuge/tests/pr20-7-weapon-offhand-acquisition-live-5m.test.mjs",
+    "acquisitionProductivePurchaseLiveTestPlan": "roadmap/pr20-7-weapon-offhand-acquisition-live-5m-test-plan.json",
+    "acquisitionProductivePurchaseLiveEvidence": "roadmap/pr20-7-weapon-offhand-acquisition-live-5m-evidence.json",
+    "acquisitionProductivePurchaseLiveTestId": "pr20-7-gear-weapon-offhand-acquisition-live-5m",
+    "acquisitionProductivePurchaseLiveControllerVersion": "1.0.0",
+    "acquisitionProductivePurchaseLiveSourceCommit": "5efa5e2c92c258e1502ee388e84ba96d4c844027",
+    "acquisitionProductivePurchaseLivePackageSha256": "5cecc5a3ca36c2d75e4a6629c36991417b508e364a965c1a945a790aac8bd930",
+    "acquisitionProductivePurchaseLiveManifestCutoverPrepared": false,
+    "acquisitionProductivePurchaseLiveMaximumGameplayWrites": 1,
+    "acquisitionProductivePurchaseLiveMaximumPublicFunctionCalls": 1,
+    "acquisitionProductivePurchaseLiveRawWriteCalls": 0,
+    "acquisitionProductivePurchaseLiveSameIntentRetry": false,
+    "acquisitionProductivePurchaseLiveRestartReconcileWithoutResend": true,
+    "acquisitionProductivePurchaseLiveSoakMinimumSamples": 60,
+    "acquisitionProductivePurchaseLiveSoakMinimumDurationMs": 299000
   }
 }
