@@ -16,6 +16,9 @@ const serverQuelle = text("wissensbasis/datenbank/aktuell/AL-SRC-SERVER.txt");
 const skillQuelle = text("wissensbasis/datenbank/aktuell/AL-DATA-SKILLS.txt");
 const exchangePlaner = text("grundlage/quelle/merchant/exchange-produktions-planer.ts");
 const exchangePrep = lies("grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json");
+const upgradeBootstrapRecoveryPrep = lies(
+  "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-bootstrap-recovery-preparation.json",
+);
 
 test("PR20.5-PR20.9 Vorbereitung bleibt strikt authority-frei", () => {
   assert.equal(prep.status, "VORBEREITET_NO_WRITE");
@@ -885,4 +888,39 @@ test("PR20.8 Upgrade productive one-write runner package has a separate aggregat
     "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_BOOTSTRAP_RECOVERY_MANIFEST_CUTOVER",
   );
   assert.equal(r.normalRuntimeAllowed,false);
+});
+
+
+test("PR20.8 bootstrap recovery patch preserves one-write boundaries", () => {
+  const recovery=upgradeBootstrapRecoveryPrep;
+  assert.equal(recovery.status,"PACKAGE_PATCH_BEREIT_NOT_DEPLOYED");
+  assert.equal(recovery.incident.observedControllerVersion,"1.0.0");
+  assert.equal(
+    recovery.incident.blocker,
+    "PR20_8_UPGRADE_LIVE_DUPLIKAT_INSTANZ_AKTIV",
+  );
+  assert.equal(recovery.incident.terminal,true);
+  assert.equal(recovery.incident.gameplayWrites,0);
+  assert.equal(recovery.incident.publicFunctionCalls,0);
+  assert.equal(recovery.incident.rawWriteCalls,0);
+  assert.equal(recovery.incident.durableIntentCreated,false);
+  assert.equal(recovery.incident.authorityIssued,false);
+  assert.equal(recovery.incident.intentCount,0);
+  assert.equal(recovery.patch.previousControllerVersion,"1.0.0");
+  assert.equal(recovery.patch.preparedControllerVersion,"1.0.1");
+  assert.equal(recovery.patch.sameVersionBootstrapReusesIncumbentApi,true);
+  assert.equal(recovery.patch.duplicateInstallCreatesSecondRunner,false);
+  assert.equal(recovery.patch.zeroWriteNoIntentFailureReleasesOwnedRuntimeLease,true);
+  assert.equal(recovery.patch.maximumGameplayWrites,1);
+  assert.equal(recovery.patch.maximumPublicFunctionCalls,1);
+  assert.equal(recovery.patch.maximumRawWriteCalls,0);
+  assert.equal(recovery.patch.sameIntentRetry,false);
+  assert.equal(recovery.patch.normalRuntimeAllowed,false);
+  assert.equal(recovery.deploymentBoundary.recoveryManifestCutoverPrepared,false);
+  assert.equal(recovery.deploymentBoundary.recoveryPatchDeployed,false);
+  assert.equal(recovery.deploymentBoundary.realUpgradeMutationObserved,false);
+  assert.equal(
+    recovery.nextGate,
+    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_BOOTSTRAP_RECOVERY_MANIFEST_CUTOVER",
+  );
 });
