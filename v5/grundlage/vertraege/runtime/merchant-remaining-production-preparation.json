@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "UPGRADE_COMMITTED_COMPOUND_CANDIDATE_RATIFIED_EXCHANGE_NO_CANDIDATE",
+    "status": "COMPOUND_DURABLE_SHADOW_PREPARED_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_DURABLE_SHADOW_PREPARATION",
+    "nextAction": "PR20_8_COMPOUND_DURABLE_SHADOW_MANIFEST_CUTOVER",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1141,6 +1141,62 @@
       "mayAdvanceToPr20_9": false,
       "roadmapCriteriaRelaxed": false,
       "acquisitionOrMutationToCreateCandidateAllowed": false
+    },
+    "compoundDurableShadow": {
+      "status": "PACKAGE_BEREIT_NO_WRITE",
+      "testId": "pr20-8-compound-durable-shadow-no-write",
+      "controllerVersion": "1.0.0",
+      "package": "werkzeuge/pr20-8-compound-durable-shadow-no-write.js",
+      "test": "werkzeuge/tests/pr20-8-compound-durable-shadow-no-write.test.mjs",
+      "contract": "grundlage/vertraege/runtime/pr20-8-compound-durable-shadow-preparation.json",
+      "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+      "ratifiedCandidateEvidenceCommit": "5974e293e973493241e3d659ea30d3cae85ebc35",
+      "candidate": {
+        "name": "hpamulet",
+        "level": 0,
+        "baseGold": 20000,
+        "physicalQuantity": 3
+      },
+      "scroll": {
+        "name": "cscroll0",
+        "consumeQuantity": 1,
+        "type": "cscroll",
+        "grade": 0,
+        "baseGold": 6400
+      },
+      "offering": null,
+      "normalPathOnly": true,
+      "exactThreeDistinctPhysicalItemsRequired": true,
+      "currentPhysicalIndexesReresolved": true,
+      "durableShadowOnly": true,
+      "durableReadbackRequired": true,
+      "journalTerminalArt": "ABBRUCH",
+      "sendBoundaryState": "NICHT_GESENDET",
+      "reconciliationClassification": "NOT_APPLIED",
+      "sameIntentRetry": false,
+      "oneShotMaximumUses": 1,
+      "compoundAuthorityIssued": false,
+      "productionDurableIntentCreated": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalCompoundWriteRatification": false,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "normalRuntimeAllowed": false,
+      "serviceReachabilityRequired": true,
+      "sourcePinnedSellDistance": 400,
+      "conservativeLiveSafetyDistanceMax": 300,
+      "serviceReference": "G.maps.main.ref.c_mid",
+      "exactItemDefinitionRequired": true,
+      "exactScrollDefinitionRequired": true,
+      "sourceCommit": "5577a45443db03a8cc0617ce61e0ec4b427d4aea",
+      "packageSha256": "94685bc0d439eb86b3a31763ffa0a06854c06572d875f55584a7558c9c368547",
+      "packageBytes": 34995,
+      "expectedGlobal": "V5PR208CompoundDurableShadowNoWrite",
+      "manifest": "roadmap/v5-autonomous-test-manifest.json",
+      "manifestCutoverPrepared": false,
+      "deployed": false
     }
   },
   "pr20_9": {
