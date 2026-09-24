@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "COMPOUND_DURABLE_SHADOW_RATIFIED_NO_WRITE",
+    "COMPOUND_PRODUCTIVE_ONE_WRITE_PREPARED_NO_LIVE_WRITE",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_PREPARATION",
+    "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE",
   );
   const exit=prep.pr20_8.exitGateReview;
   assert.equal(exit.status,"BLOCKED_COMPOUND_NOT_LIVE_RATIFIED_EXCHANGE_NO_CANDIDATE");
@@ -1015,7 +1015,7 @@ test("PR20.8 Compound durable shadow preparation remains strictly no-write", () 
   assert.equal(s.evidenceReconciliation,"NOT_APPLIED");
   assert.equal(s.evidenceCompoundAuthority,false);
   assert.equal(s.evidenceNormalCompoundWriteRatification,false);
-  assert.equal(s.nextGate,"PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_PREPARATION");
+  assert.equal(s.nextGate,"PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE");
   assert.deepEqual(s.activeManifestTarget,{
     testId:"pr20-8-compound-durable-shadow-no-write",
     controllerVersion:"1.0.0",
@@ -1024,6 +1024,47 @@ test("PR20.8 Compound durable shadow preparation remains strictly no-write", () 
     expectedGlobal:"V5PR208CompoundDurableShadowNoWrite",
     normalRuntimeAllowed:false,
   });
+});
+
+test("PR20.8 Compound productive one-write preparation remains no-live-write", () => {
+  const p=prep.pr20_8.compoundProductiveOneWritePreparation;
+  assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
+  assert.equal(
+    p.contract,
+    "grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-preparation.json",
+  );
+  assert.equal(
+    p.test,
+    "grundlage/tests/pr20-compound-productive-one-write-preparation.test.mjs",
+  );
+  assert.equal(
+    p.prerequisiteShadowEvidence,
+    "roadmap/pr20-8-compound-durable-shadow-evidence.json",
+  );
+  assert.equal(p.prerequisiteShadowObservedAtMs,1790280262923);
+  assert.equal(p.exactCandidate,"hpamulet@0 x3");
+  assert.equal(p.exactScroll,"cscroll0");
+  assert.equal(p.offering,null);
+  assert.equal(p.futurePublicFunction,"compound");
+  assert.equal(p.maximumGameplayWrites,1);
+  assert.equal(p.maximumPublicFunctionCalls,1);
+  assert.equal(p.maximumRawWriteCalls,0);
+  assert.equal(p.durableIntentBeforePossibleSend,true);
+  assert.equal(p.exactJournalReadbackRequired,true);
+  assert.equal(p.oneShotMaximumUses,1);
+  assert.equal(p.oneShotMaximumTtlMs,1500);
+  assert.equal(p.freshThreeCandidateIndexesReresolutionImmediatelyBeforeSend,true);
+  assert.equal(p.freshScrollIndexReresolutionImmediatelyBeforeSend,true);
+  assert.equal(p.sameIntentRetry,false);
+  assert.equal(p.liveRunnerPresent,false);
+  assert.equal(p.enabled,false);
+  assert.equal(p.gameplayAuthority,false);
+  assert.equal(p.rawWriteAuthority,false);
+  assert.equal(p.normalRuntimeAllowed,false);
+  assert.equal(p.manifestCutoverPrepared,false);
+  assert.equal(p.deployed,false);
+  assert.equal(p.liveWriteEnabled,false);
+  assert.equal(p.nextGate,"PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE");
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
