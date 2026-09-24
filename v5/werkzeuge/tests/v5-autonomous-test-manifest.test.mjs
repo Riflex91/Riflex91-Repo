@@ -31,6 +31,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR207AccountWeaponCandidateDiscovery",
     gate: "PR20.7_GEAR"
   }),
+  "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight": Object.freeze({
+    path: "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-autonomous.js",
+    expectedGlobal: "V5PR207WeaponOffhandAcquisitionReadOnly",
+    gate: "PR20.7_GEAR"
+  }),
   "pr20-7-gear-weapon-offhand-read-only-preflight": Object.freeze({
     path: "v5/werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js",
     expectedGlobal: "V5PR207WeaponOffhandReadOnlyTest",
@@ -359,4 +364,35 @@ test("PR20.7 account weapon discovery manifest remains merchant-only and zero-wr
   for (const marker of ["equip(", "unequip(", "buy(", "bank_retrieve(", "send_item(", "send_cm(", "use_skill(", "start_character(", "command_character(", "api_call(", "socket.emit("]) {
     assert.equal(packageSource.includes(marker), false, marker);
   }
+});
+
+
+test("PR20.7 offhand acquisition manifest is exact wshield read-only source preflight", () => {
+  if (manifest.testId !== "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.equal("workerPackageSha256" in manifest, false);
+  assert.equal("workerExpectedGlobal" in manifest, false);
+  assert.equal("workerTargets" in manifest, false);
+  assert.ok(packageSource.includes("performance_trick"));
+  assert.ok(packageSource.includes("ITEM_NAME = 'wshield'"));
+  assert.ok(packageSource.includes("TARGET_SLOT = 'offhand'"));
+  assert.ok(packageSource.includes("EXPECTED_UNIT_PRICE = 4800"));
+  assert.ok(packageSource.includes("VENDOR_ID = 'basics'"));
+  assert.ok(packageSource.includes("goldBudgetLedgerReservationRequired: true"));
+  assert.ok(packageSource.includes("goldBudgetLedgerReservationSatisfied: false"));
+  assert.ok(packageSource.includes("purchaseAuthority: false"));
+  assert.ok(packageSource.includes("gameplayWrites: 0"));
+  assert.ok(packageSource.includes("publicFunctionCalls: 0"));
+  assert.ok(packageSource.includes("rawWriteCalls: 0"));
+  assert.ok(packageSource.includes("startCalls: 0"));
+  assert.ok(packageSource.includes("disconnectCalls: 0"));
+  assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
+  for (const marker of [
+    "buy_with_gold(", "buy(", "equip(", "unequip(", "sell(",
+    "bank_retrieve(", "bank_store(", "send_item(", "send_gold(",
+    "use_skill(", "start_character(", "command_character(",
+    "api_call(", "socket.emit(", ".socket.emit(", "/disconnect "
+  ]) assert.equal(packageSource.includes(marker), false, marker);
 });
