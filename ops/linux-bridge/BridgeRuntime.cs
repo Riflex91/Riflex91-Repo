@@ -473,7 +473,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         {
             await dienst.FuehreAktualisierungJetztAusAsync(cancellationToken);
             _lastActionError = null;
-            return _wissensStatus ?? new { status = "ABGESCHLOSSEN" };
+            return (object?)_wissensStatus ?? new { status = "ABGESCHLOSSEN" };
         }
         catch (Exception error)
         {

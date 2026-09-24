@@ -292,6 +292,12 @@ public sealed class LinuxBridgeSelfUpdater : IAsyncDisposable
         }
     }
 
+    private static string Bound(string value)
+    {
+        var text = string.IsNullOrWhiteSpace(value) ? "UNBEKANNTER_FEHLER" : value.Trim();
+        return text.Length <= 500 ? text : text[..500];
+    }
+
     public async ValueTask DisposeAsync()
     {
         _cts.Cancel();
