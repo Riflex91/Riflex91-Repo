@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "COMPOUND_DURABLE_SHADOW_PREPARED_NO_WRITE",
+    "status": "COMPOUND_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_DURABLE_SHADOW_MANIFEST_CUTOVER",
+    "nextAction": "PR20_8_COMPOUND_DURABLE_SHADOW_REAL_BROWSER_RUN",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1143,7 +1143,7 @@
       "acquisitionOrMutationToCreateCandidateAllowed": false
     },
     "compoundDurableShadow": {
-      "status": "PACKAGE_BEREIT_NO_WRITE",
+      "status": "MANIFEST_CUTOVER_PREPARED_NO_WRITE",
       "testId": "pr20-8-compound-durable-shadow-no-write",
       "controllerVersion": "1.0.0",
       "package": "werkzeuge/pr20-8-compound-durable-shadow-no-write.js",
@@ -1195,8 +1195,17 @@
       "packageBytes": 34995,
       "expectedGlobal": "V5PR208CompoundDurableShadowNoWrite",
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
-      "manifestCutoverPrepared": false,
-      "deployed": false
+      "manifestCutoverPrepared": true,
+      "deployed": false,
+      "nextGate": "PR20_8_COMPOUND_DURABLE_SHADOW_REAL_BROWSER_RUN",
+      "activeManifestTarget": {
+        "testId": "pr20-8-compound-durable-shadow-no-write",
+        "controllerVersion": "1.0.0",
+        "sourceCommit": "5577a45443db03a8cc0617ce61e0ec4b427d4aea",
+        "packageSha256": "94685bc0d439eb86b3a31763ffa0a06854c06572d875f55584a7558c9c368547",
+        "expectedGlobal": "V5PR208CompoundDurableShadowNoWrite",
+        "normalRuntimeAllowed": false
+      }
     }
   },
   "pr20_9": {

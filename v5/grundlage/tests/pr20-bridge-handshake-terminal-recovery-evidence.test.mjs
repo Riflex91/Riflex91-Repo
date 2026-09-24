@@ -66,13 +66,13 @@ test("PR20.8 terminal recovery package remains immutable and no-write", () => {
   ]) assert.equal(source.includes(marker),false,marker);
 });
 
-test("after terminal recovery the manifest advances only to the read-only candidate scanner", () => {
-  assert.equal(manifest.testId, "pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(manifest.controllerVersion, "1.0.4");
-  assert.equal(manifest.sourceCommit, "27e25e69dc0e26d8ae05328335718c36a6a0c659");
-  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js");
-  assert.equal(manifest.packageSha256, "0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b");
-  assert.equal(manifest.expectedGlobal, "V5PR208ValueMutationLiveCandidateReadonly");
+test("after terminal recovery the current manifest advances to the no-write Compound durable shadow", () => {
+  assert.equal(manifest.testId, "pr20-8-compound-durable-shadow-no-write");
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit, "5577a45443db03a8cc0617ce61e0ec4b427d4aea");
+  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-8-compound-durable-shadow-no-write.js");
+  assert.equal(manifest.packageSha256, "94685bc0d439eb86b3a31763ffa0a06854c06572d875f55584a7558c9c368547");
+  assert.equal(manifest.expectedGlobal, "V5PR208CompoundDurableShadowNoWrite");
   assert.equal(manifest.normalRuntimeAllowed, false);
   assert.equal(evidence.nextGate, "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
 });

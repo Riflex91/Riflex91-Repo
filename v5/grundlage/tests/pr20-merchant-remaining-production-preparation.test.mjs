@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "COMPOUND_DURABLE_SHADOW_PREPARED_NO_WRITE",
+    "COMPOUND_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_COMPOUND_DURABLE_SHADOW_MANIFEST_CUTOVER",
+    "PR20_8_COMPOUND_DURABLE_SHADOW_REAL_BROWSER_RUN",
   );
   const exit=prep.pr20_8.exitGateReview;
   assert.equal(exit.status,"BLOCKED_COMPOUND_NOT_LIVE_RATIFIED_EXCHANGE_NO_CANDIDATE");
@@ -964,7 +964,7 @@ test("PR20.8 v1.0.4 rescan ratifies Compound candidate and keeps Exchange closed
 });
 test("PR20.8 Compound durable shadow preparation remains strictly no-write", () => {
   const s=prep.pr20_8.compoundDurableShadow;
-  assert.equal(s.status,"PACKAGE_BEREIT_NO_WRITE");
+  assert.equal(s.status,"MANIFEST_CUTOVER_PREPARED_NO_WRITE");
   assert.equal(s.testId,"pr20-8-compound-durable-shadow-no-write");
   assert.equal(s.controllerVersion,"1.0.0");
   assert.equal(s.package,"werkzeuge/pr20-8-compound-durable-shadow-no-write.js");
@@ -1000,8 +1000,17 @@ test("PR20.8 Compound durable shadow preparation remains strictly no-write", () 
   assert.equal(s.packageSha256,"94685bc0d439eb86b3a31763ffa0a06854c06572d875f55584a7558c9c368547");
   assert.equal(s.packageBytes,34995);
   assert.equal(s.expectedGlobal,"V5PR208CompoundDurableShadowNoWrite");
-  assert.equal(s.manifestCutoverPrepared,false);
+  assert.equal(s.manifestCutoverPrepared,true);
   assert.equal(s.deployed,false);
+  assert.equal(s.nextGate,"PR20_8_COMPOUND_DURABLE_SHADOW_REAL_BROWSER_RUN");
+  assert.deepEqual(s.activeManifestTarget,{
+    testId:"pr20-8-compound-durable-shadow-no-write",
+    controllerVersion:"1.0.0",
+    sourceCommit:"5577a45443db03a8cc0617ce61e0ec4b427d4aea",
+    packageSha256:"94685bc0d439eb86b3a31763ffa0a06854c06572d875f55584a7558c9c368547",
+    expectedGlobal:"V5PR208CompoundDurableShadowNoWrite",
+    normalRuntimeAllowed:false,
+  });
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {

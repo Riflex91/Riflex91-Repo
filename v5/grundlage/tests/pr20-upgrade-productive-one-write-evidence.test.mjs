@@ -54,23 +54,23 @@ test("PR20.8 productive Upgrade one-write evidence ratifies exactly one committe
   assert.equal(evidence.safetyBoundary.exchangeRatification, false);
 });
 
-test("after committed Upgrade evidence the active manifest keeps mutation retired behind a read-only candidate rescan", () => {
-  assert.equal(manifest.testId, "pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(manifest.controllerVersion, "1.0.4");
+test("after committed Upgrade evidence the active manifest advances to the no-write Compound durable shadow", () => {
+  assert.equal(manifest.testId, "pr20-8-compound-durable-shadow-no-write");
+  assert.equal(manifest.controllerVersion, "1.0.0");
   assert.equal(manifest.gate, "PR20.8_WERTMUTATIONEN");
   assert.equal(
     manifest.sourceCommit,
-    "27e25e69dc0e26d8ae05328335718c36a6a0c659",
+    "5577a45443db03a8cc0617ce61e0ec4b427d4aea",
   );
   assert.equal(
     manifest.packagePath,
-    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js",
+    "v5/werkzeuge/pr20-8-compound-durable-shadow-no-write.js",
   );
   assert.equal(
     manifest.packageSha256,
-    "0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b",
+    "94685bc0d439eb86b3a31763ffa0a06854c06572d875f55584a7558c9c368547",
   );
-  assert.equal(manifest.expectedGlobal, "V5PR208ValueMutationLiveCandidateReadonly");
+  assert.equal(manifest.expectedGlobal, "V5PR208CompoundDurableShadowNoWrite");
   assert.equal(manifest.normalRuntimeAllowed, false);
   assert.equal(
     evidence.nextGate,
