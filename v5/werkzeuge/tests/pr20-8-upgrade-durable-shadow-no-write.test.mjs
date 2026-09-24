@@ -126,7 +126,7 @@ test("PR20.8 Upgrade durable shadow persists exact no-send intent and reobserves
   assert.equal(status.status,"BESTANDEN");
   assert.equal(status.phase,"COMPLETE");
   assert.equal(status.terminal,true);
-  assert.deepEqual(status.blocker,[]);
+  assert.equal(status.blocker.length,0);
   assert.equal(env.upgradeCalls(),0);
 
   const e=status.evidence;
