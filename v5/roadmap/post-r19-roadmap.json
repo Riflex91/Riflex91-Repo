@@ -80,10 +80,10 @@
   ],
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
-    "AKTUELL: PR20.7 produktiver belegter Nicht-Waffen-Slot Live-5m-Runner ist gruen und auf einen immutable Source-Commit/SHA gepinnt",
-    "NAECHSTES: Manifest-Cutover mergen; danach exakt einen realen Merchant-Swap ausfuehren und 60x5s COMMITTED-Poststate beobachten",
-    "Bei Restart oder unklarem Send ausschliesslich Reconcile; niemals Same-Intent-Resend",
-    "mainhand/offhand sowie Farmer-Gear-Allokation bleiben separate spaetere PR20.7 Gates",
+    "PR20.7 belegter sicherer Nicht-Waffen-Slot ist produktiv mit genau 1 Write und 60x5s COMMITTED-Evidence BESTANDEN",
+    "AKTUELL: PR20.7 Waffen-/Offhand-Faelle separat vorbereiten und ratifizieren",
+    "DANACH: PR20.7 Gear-Allokation an Farmer separat ratifizieren",
+    "Bei UNKNOWN/TEILWEISE/Restart weiterhin ausschliesslich Reconcile; niemals Same-Intent-Resend",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -701,7 +701,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+      "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_BESTANDEN",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -729,7 +729,7 @@
         "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-test-plan.json",
         "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json"
       ],
-      "nextAction": "PR20_7_OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_EXECUTE"
+      "nextAction": "PR20_7_WEAPON_OFFHAND_SEPARATE_PREPARATION"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1030,7 +1030,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+    "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_BESTANDEN",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1070,7 +1070,7 @@
       "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json",
       "v5/grundlage/tests/pr20-gear-occupied-slot-live-5m-evidence.test.mjs"
     ],
-    "nextAction": "PR20_7_OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_EXECUTE",
+    "nextAction": "PR20_7_WEAPON_OFFHAND_SEPARATE_PREPARATION",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1154,10 +1154,28 @@
       "sameIntentRetry": false,
       "fiveMinuteSoakSamples": 60,
       "normalRuntimeAllowed": false,
-      "realEvidenceStatus": "OFFEN",
+      "realEvidenceStatus": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
       "sourceCommit": "9d83e6376659a8cf0ff8f182850f988981c0828b",
       "packageSha256": "4fb9a297a31f84aaa713d3b486783ca9c55b65cc16a164a99a9adba095559322",
-      "manifestCutoverPrepared": true
+      "manifestCutoverPrepared": true,
+      "realEvidenceRatified": true,
+      "realEvidenceObservedAtMs": 1790224307797,
+      "realEvidenceManifestMainCommit": "8010826d263b01ce8b75e462f5b96fe07e0ac92c",
+      "observedRecipient": "My_Merchant",
+      "observedSlot": "helmet",
+      "observedInventoryIndex": 7,
+      "observedReconciliation": "COMMITTED",
+      "observedSettlement": "BESTAETIGT",
+      "observedGameplayWrites": 1,
+      "observedPublicFunctionCalls": 1,
+      "observedRawWriteCalls": 0,
+      "observedSameIntentRetry": false,
+      "observedSoakSamples": 60,
+      "observedSoakDurationMs": 300552
+    },
+    "remainingGates": {
+      "weaponOffhand": "OFFEN_SEPARATE_RATIFICATION",
+      "farmerGearAllocation": "OFFEN_SEPARATE_RATIFICATION"
     }
   }
 }

@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "OCCUPIED_SLOT_PRODUCTIVE_LIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+  assert.equal(contract.status, "OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_BESTANDEN");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -306,7 +306,16 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.productiveOccupiedSlotLive.sameIntentRetry, false);
   assert.equal(contract.productiveOccupiedSlotLive.restartResendAllowed, false);
   assert.equal(contract.productiveOccupiedSlotLive.normalRuntimeAllowed, false);
-  assert.equal(contract.productiveOccupiedSlotLive.realEvidenceStatus, "OFFEN");
+  assert.equal(contract.productiveOccupiedSlotLive.realEvidenceStatus, "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
+  assert.equal(contract.productiveOccupiedSlotLive.realEvidenceRatified, true);
+  assert.equal(contract.productiveOccupiedSlotLive.observedReconciliation, "COMMITTED");
+  assert.equal(contract.productiveOccupiedSlotLive.observedSettlement, "BESTAETIGT");
+  assert.equal(contract.productiveOccupiedSlotLive.observedGameplayWrites, 1);
+  assert.equal(contract.productiveOccupiedSlotLive.observedPublicFunctionCalls, 1);
+  assert.equal(contract.productiveOccupiedSlotLive.observedRawWriteCalls, 0);
+  assert.equal(contract.productiveOccupiedSlotLive.observedSameIntentRetry, false);
+  assert.equal(contract.productiveOccupiedSlotLive.observedSoakSamples, 60);
+  assert.ok(contract.productiveOccupiedSlotLive.observedSoakDurationMs >= 299000);
   assert.equal(contract.productiveOccupiedSlotLive.manifestCutoverPrepared, true);
   assert.match(contract.productiveOccupiedSlotLive.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(contract.productiveOccupiedSlotLive.packageSha256, /^[0-9a-f]{64}$/);

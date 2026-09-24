@@ -44,21 +44,50 @@ test("PR20.7 productive occupied-slot plan is exact one-shot and 5m bounded", ()
   assert.equal(plan.packageSha256, evidence.packageSha256);
 });
 
-test("PR20.7 productive live evidence placeholder cannot count as PASS", () => {
-  assert.equal(evidence.status, "OFFEN");
+test("PR20.7 productive live evidence ratifies exact one-write committed 5m pass", () => {
+  assert.equal(evidence.status, "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
   assert.match(evidence.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(evidence.packageSha256, /^[0-9a-f]{64}$/);
-  assert.equal(evidence.observedAtMs, null);
-  assert.equal(evidence.terminal, null);
-  assert.equal(evidence.result, null);
-  assert.equal(evidence.ratified, false);
-  assert.deepEqual(
-    evidence.blocker,
-    ["REALER_PRODUCTIVE_ONE_SHOT_LIVE_5M_NOCH_NICHT_TERMINAL_BESTANDEN"],
-  );
-  assert.equal(evidence.expectedSafetyBoundary.gameplayWrites, 1);
-  assert.equal(evidence.expectedSafetyBoundary.publicFunctionCalls, 1);
-  assert.equal(evidence.expectedSafetyBoundary.rawWriteCalls, 0);
-  assert.equal(evidence.expectedSafetyBoundary.sameIntentRetry, false);
-  assert.equal(evidence.expectedSafetyBoundary.normalRuntimeAllowed, false);
+  assert.match(evidence.manifestMainCommit, /^[0-9a-f]{40}$/);
+  assert.equal(evidence.observedAtMs, 1790224307797);
+  assert.equal(evidence.terminal, true);
+  assert.equal(evidence.ratified, true);
+  assert.deepEqual(evidence.blocker, []);
+  assert.equal(evidence.result.status, "BESTANDEN");
+  assert.equal(evidence.result.phase, "COMPLETE");
+  assert.equal(evidence.result.recipient.characterName, "My_Merchant");
+  assert.equal(evidence.result.recipient.ctype, "merchant");
+  assert.equal(evidence.result.recipient.serverRegion, "EU");
+  assert.equal(evidence.result.recipient.serverIdentifier, "I");
+  assert.equal(evidence.result.candidate.slot, "helmet");
+  assert.equal(evidence.result.candidate.inventoryIndex, 7);
+  assert.equal(evidence.result.candidate.name, "wcap");
+  assert.equal(evidence.result.candidate.level, 4);
+  assert.equal(evidence.result.previousSlotItem.name, "partyhat");
+  assert.equal(evidence.result.previousSlotItem.level, 5);
+  assert.equal(evidence.result.durableIntentReadback, true);
+  assert.equal(evidence.result.reconciliation, "COMMITTED");
+  assert.equal(evidence.result.settlement, "BESTAETIGT");
+  assert.equal(evidence.result.oneShotAuthority.issued, true);
+  assert.equal(evidence.result.oneShotAuthority.consumed, true);
+  assert.equal(evidence.result.oneShotAuthority.maximumUses, 1);
+  assert.equal(evidence.result.performanceTrick.active, true);
+  assert.equal(evidence.result.performanceTrick.playing, true);
+  assert.equal(evidence.result.performanceTrick.verification, "HOWLER_PLAYING_TRUE");
+  assert.equal(evidence.result.soak.status, "BESTANDEN");
+  assert.equal(evidence.result.soak.samples, 60);
+  assert.ok(evidence.result.soak.durationMs >= 299000);
+  for (const [key, expected] of Object.entries({
+    gameplayWrites: 1,
+    publicFunctionCalls: 1,
+    rawWriteCalls: 0,
+    sameIntentRetry: false,
+    startCalls: 0,
+    disconnectCalls: 0,
+    farmerWorkersInstalled: 0,
+    normalRuntimeAllowed: false,
+  })) {
+    assert.equal(evidence.observedSafetyBoundary[key], expected, key);
+  }
+  assert.equal(evidence.deploymentEvidence.conclusion, "SUCCESS");
 });

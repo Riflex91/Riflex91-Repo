@@ -1,7 +1,7 @@
 # PR20.7 – Gear-Autonomie: belegter Slot / Swap Foundation
 
-**Stand:** 2026-09-23  
-**Status:** `REAL_SHADOW_BESTANDEN_NO_WRITE`
+**Stand:** 2026-09-24  
+**Status:** `OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_BESTANDEN`
 
 ## Zweck
 
@@ -183,15 +183,39 @@ Sicherheitswerte:
 Evidence:
 `roadmap/pr20-7-gear-shadow-no-write-evidence.json`.
 
+## Produktiver belegter Nicht-Waffen-Slot – BESTANDEN
+
+Der produktive Merchant-only One-Shot-Lauf
+`pr20-7-gear-occupied-slot-live-5m` ist real terminal `BESTANDEN`.
+
+Beobachtet:
+
+- Recipient: `My_Merchant`, Server `EU:I`;
+- Slot: `helmet`;
+- Kandidat: Inventarindex 7, `wcap +4`;
+- vorheriges Slot-Item: `partyhat +5`;
+- Durable Intent mit Readback vor der moeglichen Send-Grenze;
+- exakt eine One-Shot-Authority, einmal verbraucht;
+- Equipment-/Inventory-Fencing aktiv;
+- Reconciliation `COMMITTED`, Settlement `BESTAETIGT`;
+- genau `gameplayWrites=1` und `publicFunctionCalls=1`;
+- `rawWriteCalls=0`;
+- `sameIntentRetry=false`;
+- `startCalls=0`, `disconnectCalls=0`, `farmerWorkersInstalled=0`;
+- `performance_trick()` aktiv und mit `HOWLER_PLAYING_TRUE` verifiziert;
+- 60 stabile Postcondition-Samples ueber 300552 ms;
+- `normalRuntimeAllowed=false`.
+
+Die exakte Evidence liegt unter
+`roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json`.
+
 ## Naechstes Gate
 
-Nach dem bestandenen realen Shadow ist als naechster Schritt ein enger
-produktiver One-Shot-Swap-Runner vorzubereiten. Er muss dieselben
-One-Shot-/Fencing-/Durable-Intent-/Reconcile-Grenzen erzwingen und darf erst
-nach eigener gruener Exact-Head-CI exakt einen sicheren belegten
-Nicht-Waffen-Slot-Swap ausfuehren.
+Der belegte Nicht-Waffen-Slot ist damit als eigene Mutationsklasse
+produktiv ratifiziert. PR20.7 ist noch nicht abgeschlossen.
 
-Danach ist fuer diese neue Mutationsklasse eine reale 5-Minuten-
-Funktionsevidence erforderlich.
+Als naechstes werden Waffen-/Offhand-Faelle separat vorbereitet und
+ratifiziert. Danach folgt die separate Gear-Allokation an Farmer.
 
-Waffen/Offhand sowie Farmer-Gear-Allokation bleiben separate spaetere Gates.
+UNKNOWN, TEILWEISE oder Restart erlauben weiterhin keinen Same-Intent-Resend;
+zuerst ist immer Reobserve/Reconcile erforderlich.
