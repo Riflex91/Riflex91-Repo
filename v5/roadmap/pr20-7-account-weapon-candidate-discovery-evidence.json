@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "stand": "2026-09-24",
   "gate": "PR20.7_GEAR",
-  "testId": "pr20-7-gear-account-weapon-candidate-discovery",
+  "testId": "pr20-7-gear-account-weapon-candidate-discovery-v2",
   "controllerVersion": "1.0.2",
   "status": "OFFEN",
   "evidenceArt": "V5_PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY",
-  "sourceCommit": "6863d1a19ebe8c42c7362ba7981866572f910474",
-  "packageSha256": "e6fb4e8ae0e5a98d73c26f7e81d5d66b8d50249f347ba74fcd27eaf07521e56d",
+  "sourceCommit": "cb208ce57fd5bc5c07de81662d138220d5143af3",
+  "packageSha256": "1f56a0080d113e525c160a399ecaacfb0c00ad54108ea199027ddeec027ff27c",
   "manifestMainCommit": null,
   "observedAtMs": null,
   "terminal": null,
@@ -28,7 +28,7 @@
   },
   "ratified": false,
   "blocker": [
-    "REAL_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_NOCH_NICHT_TERMINAL"
+    "REAL_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_V2_NOCH_NICHT_TERMINAL"
   ],
   "priorAttempts": [
     {
@@ -60,5 +60,6 @@
         "normalRuntimeAllowed": false
       }
     }
-  ]
+  ],
+  "supersedesTestId": "pr20-7-gear-account-weapon-candidate-discovery"
 }
