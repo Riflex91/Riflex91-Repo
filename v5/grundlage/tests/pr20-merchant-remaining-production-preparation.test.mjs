@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_PRODUCTIVE_ONE_WRITE_STALE_LEASE_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
+    "UPGRADE_PRODUCTIVE_ONE_WRITE_ITEM_DEFINITION_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN_V1_0_2",
+    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN_V1_0_3",
   );
   assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
   assert.equal(
@@ -830,23 +830,23 @@ test("aktueller Vertragskatalog ist konsistent 61 total / 60 verifiziert / 1 dis
 
 test("PR20.8 Upgrade productive one-write runner package has a separate aggregate contract boundary", () => {
   const r=prep.pr20_8.upgradeProductiveOneWriteRunner;
-  assert.equal(r.status,"STALE_LEASE_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE");
-  assert.equal(r.package,"werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js");
-  assert.equal(r.test,"werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-2.test.mjs");
+  assert.equal(r.status,"ITEM_DEFINITION_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE");
+  assert.equal(r.package,"werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-3.js");
+  assert.equal(r.test,"werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-3.test.mjs");
   assert.equal(
     r.contract,
     "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json",
   );
   assert.equal(
     r.recoveryContract,
-    "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-stale-lease-recovery-preparation.json",
+    "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-item-definition-recovery-preparation.json",
   );
   assert.equal(
     r.priorRecoveryContract,
-    "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-bootstrap-recovery-preparation.json",
+    "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-stale-lease-recovery-preparation.json",
   );
   assert.equal(r.testId,"pr20-8-upgrade-productive-one-write-live");
-  assert.equal(r.controllerVersion,"1.0.2");
+  assert.equal(r.controllerVersion,"1.0.3");
   assert.equal(r.expectedGlobal,"V5PR208UpgradeProductiveOneWriteLive");
   assert.equal(r.exactCandidate,"gloves@0");
   assert.equal(r.exactScroll,"scroll0");
@@ -858,13 +858,13 @@ test("PR20.8 Upgrade productive one-write runner package has a separate aggregat
   assert.equal(r.manifest,"roadmap/v5-autonomous-test-manifest.json");
   assert.equal(
     r.sourceCommit,
-    "63820135c2c4ef1870a386692a6303aa2effae63",
+    "a4f58c98edc4d794a23346183d6f2375dceb5308",
   );
   assert.equal(
     r.packageSha256,
-    "d0a5909726d38df3d15954a3a4d5779a5f3419f1216469c45b1043bde9c1b8fc",
+    "1290b72479eb5683ebab2c1202d09a2d5918a7a1bbf1a1fd190e48f0e2bab3a1",
   );
-  assert.equal(r.packageBytes,51238);
+  assert.equal(r.packageBytes,51544);
   assert.equal(r.deployed,false);
   assert.equal(r.deploymentEvidenceObserved,false);
   assert.equal(r.liveWriteEnabled,true);
@@ -872,21 +872,17 @@ test("PR20.8 Upgrade productive one-write runner package has a separate aggregat
   assert.equal(r.bridgeMayDeployPinnedRunner,true);
   assert.equal(
     r.nextGate,
-    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN_V1_0_2",
+    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN_V1_0_3",
   );
-  assert.equal(r.previousControllerVersion,"1.0.1");
-  assert.equal(r.previousAttemptTelemetryBatchId,8250);
+  assert.equal(r.previousControllerVersion,"1.0.2");
+  assert.equal(r.previousAttemptTelemetryBatchId,8251);
   assert.equal(
     r.previousAttemptBlocker,
-    "PR20_8_UPGRADE_LIVE_DUPLIKAT_INSTANZ_AKTIV",
+    "PR20_8_UPGRADE_LIVE_ITEM_DEFINITION_DRIFT",
   );
   assert.equal(r.previousAttemptGameplayWrites,0);
   assert.equal(r.previousAttemptPublicFunctionCalls,0);
   assert.equal(r.previousAttemptRawWriteCalls,0);
-  assert.equal(r.staleLeaseRecoveryMinimumAgeMs,120000);
-  assert.equal(r.staleLeaseRecoveryRequiresZeroIntent,true);
-  assert.equal(r.staleLeaseRecoveryRequiresNoAuthority,true);
-  assert.equal(r.staleLeaseRecoveryRequiresNoPersistedGuardRows,true);
-  assert.equal(r.staleLeaseRecoveryRequiresIdleMutationQueue,true);
+  assert.equal(r.authoritativeUpgradeDefinitionShape,"OBJECT");
   assert.equal(r.normalRuntimeAllowed,false);
 });

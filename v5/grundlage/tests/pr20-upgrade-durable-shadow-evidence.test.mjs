@@ -96,14 +96,14 @@ test("current 1.0.1 recovery hardening does not rewrite the observed 1.0.0 evide
     manifest.testId,
     "pr20-8-upgrade-productive-one-write-live",
   );
-  assert.equal(manifest.controllerVersion,"1.0.2");
+  assert.equal(manifest.controllerVersion,"1.0.3");
   assert.equal(
     manifest.sourceCommit,
-    "63820135c2c4ef1870a386692a6303aa2effae63",
+    "a4f58c98edc4d794a23346183d6f2375dceb5308",
   );
   assert.equal(
     manifest.packageSha256,
-    "d0a5909726d38df3d15954a3a4d5779a5f3419f1216469c45b1043bde9c1b8fc",
+    "1290b72479eb5683ebab2c1202d09a2d5918a7a1bbf1a1fd190e48f0e2bab3a1",
   );
   assert.notEqual(manifest.testId,evidence.testId);
   assert.equal(manifest.normalRuntimeAllowed,false);

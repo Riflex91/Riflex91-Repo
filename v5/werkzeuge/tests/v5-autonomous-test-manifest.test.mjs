@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 const manifest = JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest.json", "utf8"));
 const allowedPackages = Object.freeze({
   "pr20-8-upgrade-productive-one-write-live": Object.freeze({
-    path: "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js",
+    path: "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-3.js",
     expectedGlobal: "V5PR208UpgradeProductiveOneWriteLive",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
@@ -648,14 +648,14 @@ test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound"
 
 test("PR20.8 productive Upgrade one-write manifest is exact, one-shot and runtime-closed", () => {
   if (manifest.testId !== "pr20-8-upgrade-productive-one-write-live") return;
-  assert.equal(manifest.controllerVersion, "1.0.2");
+  assert.equal(manifest.controllerVersion, "1.0.3");
   assert.equal(
     manifest.sourceCommit,
-    "63820135c2c4ef1870a386692a6303aa2effae63",
+    "a4f58c98edc4d794a23346183d6f2375dceb5308",
   );
   assert.equal(
     manifest.packageSha256,
-    "d0a5909726d38df3d15954a3a4d5779a5f3419f1216469c45b1043bde9c1b8fc",
+    "1290b72479eb5683ebab2c1202d09a2d5918a7a1bbf1a1fd190e48f0e2bab3a1",
   );
   assert.equal("workerVersion" in manifest, false);
   assert.equal("workerPackagePath" in manifest, false);
@@ -663,12 +663,15 @@ test("PR20.8 productive Upgrade one-write manifest is exact, one-shot and runtim
   assert.equal("workerExpectedGlobal" in manifest, false);
   assert.equal("workerTargets" in manifest, false);
   assert.ok(packageSource.includes(
-    'const VERSION = "1.0.2"',
+    'const VERSION = "1.0.3"',
   ));
   assert.ok(packageSource.includes(
     'const TEST_ID = "pr20-8-upgrade-productive-one-write-live"',
   ));
   assert.ok(packageSource.includes("function reusableIncumbentState(value)"));
+  assert.ok(packageSource.includes("function validUpgradeDefinition(def)"));
+  assert.ok(packageSource.includes("upgradeDefinitionKind"));
+  assert.ok(packageSource.includes("upgradeDefinitionMaterial"));
   assert.ok(packageSource.includes("const RUNTIME_LEASE_STALE_NO_INTENT_MS = 120000"));
   assert.ok(packageSource.includes("function terminalZeroWriteDuplicateBlockedState(value)"));
   assert.ok(packageSource.includes("function persistedMutationGuardStatePresent()"));
