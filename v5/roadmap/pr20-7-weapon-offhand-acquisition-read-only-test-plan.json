@@ -4,7 +4,7 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight",
   "controllerVersion": "1.0.2",
-  "status": "CORRECTIVE_1_0_2_MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_PREFLIGHT",
+  "status": "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE",
   "purpose": "READ_ONLY_WSHIELD_NPC_ACQUISITION_SOURCE_PREFLIGHT",
   "deployment": {
     "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
@@ -94,5 +94,30 @@
     "buyCheck": "simple_distance(player, l) < B.sell_dist",
     "expectedRuntimeServer": "EU:I",
     "browserSellDistancePolicy": "IF_PRESENT_MUST_EQUAL_SOURCE_PIN_ELSE_USE_SOURCE_PIN"
+  },
+  "realEvidence": {
+    "ratified": true,
+    "manifestMainCommit": "5a45b09c1ce7e439d80ada368980fc288fd76d35",
+    "observedAtMs": 1790238192422,
+    "result": "BESTANDEN",
+    "recipient": "My_Merchant",
+    "server": "EU:I",
+    "vendorReachableNow": true,
+    "nearestVendorDistance": 88.59875647515783,
+    "sellDistance": 400,
+    "sellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
+    "browserSellDistanceObserved": false,
+    "publicFunctionAvailable": true,
+    "observedGold": 14493644,
+    "freeInventorySlots": 21,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "durableIntentCreated": false,
+    "purchaseAuthority": false,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
   }
 }
