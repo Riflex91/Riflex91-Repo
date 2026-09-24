@@ -4,7 +4,7 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-equip-live-5m",
   "controllerVersion": "1.0.0",
-  "status": "PACKAGE_BEREIT_MANIFEST_GESCHLOSSEN",
+  "status": "MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
   "scope": {
     "exactRecipientCharacter": "My_Merchant",
     "exactServer": "EU:I",
@@ -55,12 +55,12 @@
     "sourceCommit": "e633cbe60ba4c98e4c61424ff900c542e688090f",
     "packageSha256": "381559606c016880921fdb9ee0c50776275a5ceb962c35d91bc1c86529deb3b0",
     "packageBytes": 37182,
-    "manifestCutoverPrepared": false
+    "manifestCutoverPrepared": true
   },
   "authority": {
     "broadGameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false
   },
-  "nextAction": "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_MANIFEST_CUTOVER"
+  "nextAction": "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_EXECUTE"
 }

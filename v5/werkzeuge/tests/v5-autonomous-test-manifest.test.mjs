@@ -46,6 +46,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR207WeaponOffhandAcquisitionLiveTest",
     gate: "PR20.7_GEAR"
   }),
+  "pr20-7-gear-weapon-offhand-equip-live-5m": Object.freeze({
+    path: "v5/werkzeuge/pr20-7-weapon-offhand-equip-live-5m.js",
+    expectedGlobal: "V5PR207WeaponOffhandEquipLiveTest",
+    gate: "PR20.7_GEAR"
+  }),
   "pr20-7-gear-weapon-offhand-read-only-preflight": Object.freeze({
     path: "v5/werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js",
     expectedGlobal: "V5PR207WeaponOffhandReadOnlyTest",
@@ -459,6 +464,43 @@ test("PR20.7 offhand acquisition live manifest is exact one-shot purchase", () =
     "send_item(", "send_gold(", "use_skill(", "start_character(",
     "command_character(", "api_call(", "socket.emit(", ".socket.emit(",
     "/disconnect "
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
+
+test("PR20.7 offhand equip live manifest is exact one-shot wshield equip", () => {
+  if (manifest.testId !== "pr20-7-gear-weapon-offhand-equip-live-5m") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit, "e633cbe60ba4c98e4c61424ff900c542e688090f");
+  assert.equal(manifest.packagePath,
+    "v5/werkzeuge/pr20-7-weapon-offhand-equip-live-5m.js");
+  assert.equal(manifest.packageSha256,
+    "381559606c016880921fdb9ee0c50776275a5ceb962c35d91bc1c86529deb3b0");
+  assert.equal(manifest.expectedGlobal, "V5PR207WeaponOffhandEquipLiveTest");
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.equal("workerPackageSha256" in manifest, false);
+  assert.equal("workerExpectedGlobal" in manifest, false);
+  assert.equal("workerTargets" in manifest, false);
+  assert.ok(packageSource.includes('characterName: "My_Merchant"'));
+  assert.ok(packageSource.includes('slot: "offhand"'));
+  assert.ok(packageSource.includes('candidateName: "wshield"'));
+  assert.ok(packageSource.includes('mainhandName: "staff"'));
+  assert.ok(packageSource.includes("Object.keys(merchantClass.offhand || {})"));
+  assert.ok(packageSource.includes("Object.keys(merchantClass.doublehand || {})"));
+  assert.ok(packageSource.includes("exactEmptyOffhandPrestate:true"));
+  assert.ok(packageSource.includes("oppositeHandPinned:true"));
+  assert.ok(packageSource.includes("durableIntentReadback:true"));
+  assert.ok(packageSource.includes('sendBoundaryState:"MOEGLICH_GESENDET"'));
+  assert.ok(packageSource.includes('reconciliation:"COMMITTED"'));
+  assert.ok(packageSource.includes('settlement:"BESTAETIGT"'));
+  assert.ok(packageSource.includes("sameIntentRetry:false"));
+  assert.ok(packageSource.includes("const SOAK_SAMPLES = 60"));
+  assert.equal((packageSource.match(/r\.equip\(/g) || []).length, 1);
+  for (const marker of [
+    "unequip(", "buy_with_gold(", "buy(", "sell(", "bank_retrieve(",
+    "bank_store(", "send_item(", "send_gold(", "use_skill(",
+    "start_character(", "command_character(", "api_call(", "socket.emit(",
+    ".socket.emit(", "/disconnect "
   ]) assert.equal(packageSource.includes(marker), false, marker);
 });
 
