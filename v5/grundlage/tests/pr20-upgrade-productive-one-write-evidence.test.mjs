@@ -54,23 +54,23 @@ test("PR20.8 productive Upgrade one-write evidence ratifies exactly one committe
   assert.equal(evidence.safetyBoundary.exchangeRatification, false);
 });
 
-test("after committed Upgrade evidence the active manifest retires the mutating runner into a terminal no-write updater bootstrap", () => {
-  assert.equal(manifest.testId, "pr20-8-native-updater-recovery-bootstrap-v2");
+test("after committed Upgrade evidence the active manifest keeps the mutating runner retired behind a zero-write bridge probe", () => {
+  assert.equal(manifest.testId, "pr20-8-bridge-handshake-probe-v1");
   assert.equal(manifest.controllerVersion, "1.0.0");
   assert.equal(manifest.gate, "PR20.8_WERTMUTATIONEN");
   assert.equal(
     manifest.sourceCommit,
-    "5f791fc3daa6a173d553d07ac08c7589519df610",
+    "d2ffea95f984421a9a34088c751471def6cc31d8",
   );
   assert.equal(
     manifest.packagePath,
-    "v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v2.js",
+    "v5/werkzeuge/pr20-8-bridge-handshake-probe-v1.js",
   );
   assert.equal(
     manifest.packageSha256,
-    "3ebaf86cd8e454eccab0713035c6a40f2fe0dfd890ee92d59bf1a4e8c01f6e84",
+    "a595bc1c2d351635e8f61b8134e9afe4146283238aa724c4217fd2b6c82ab472",
   );
-  assert.equal(manifest.expectedGlobal, "V5PR208UpdaterRecoveryBootstrap");
+  assert.equal(manifest.expectedGlobal, "V5PR208BridgeHandshakeProbe");
   assert.equal(manifest.normalRuntimeAllowed, false);
   assert.equal(
     evidence.nextGate,

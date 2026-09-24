@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTENCE_BOOTSTRAP_V2_MANIFEST_CUTOVER_PREPARED",
+    "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_BRIDGE_HANDSHAKE_PROBE_MANIFEST_CUTOVER_PREPARED",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_V2_REAL_BROWSER_RUN",
+    "PR20_8_BRIDGE_HANDSHAKE_PROBE_REAL_BROWSER_RUN",
   );
   assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
   assert.equal(
@@ -784,9 +784,9 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   assert.equal(p.normalRuntimeAllowed,false);
 });
 
-test("PR20.8 updater persistence bootstrap is the active no-write follow-up boundary", () => {
+test("PR20.8 updater persistence bootstrap v2 remains recorded as failed no-write live evidence", () => {
   const b=prep.pr20_8.updaterPersistenceBootstrap;
-  assert.equal(b.status,"V2_MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED");
+  assert.equal(b.status,"V2_REAL_BROWSER_HANDSHAKE_FAILED");
   assert.equal(
     b.contract,
     "grundlage/vertraege/runtime/pr20-8-updater-persistence-bootstrap-preparation.json",
@@ -807,8 +807,9 @@ test("PR20.8 updater persistence bootstrap is the active no-write follow-up boun
   assert.equal(b.localAndParentObservabilityBridge,true);
   assert.equal(b.synchronousBridgeHandshakeState,true);
   assert.equal(b.priorBootstrapTestId,"pr20-8-native-updater-recovery-bootstrap-v1");
-  assert.equal(b.priorBridgeState,"ERROR");
-  assert.equal(b.priorBridgeError,"V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED");
+  assert.equal(b.bridgeState,"ERROR");
+  assert.equal(b.bridgeError,"V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED");
+  assert.equal(b.additionalGameplayWriteObserved,false);
   assert.equal(b.maximumCodeSlotWritesPerFreshPersistence,1);
   assert.equal(b.maximumCodeSlotReloadsPerFreshPersistence,1);
   assert.equal(b.gameplayWrites,0);
@@ -816,7 +817,35 @@ test("PR20.8 updater persistence bootstrap is the active no-write follow-up boun
   assert.equal(b.rawWriteCalls,0);
   assert.equal(b.sameIntentRetry,false);
   assert.equal(b.normalRuntimeAllowed,false);
-  assert.equal(b.nextGate,"PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_V2_REAL_BROWSER_RUN");
+  assert.equal(b.nextGate,"PR20_8_BRIDGE_HANDSHAKE_PROBE_REAL_BROWSER_RUN");
+});
+
+test("PR20.8 bridge handshake probe is the active diagnostic zero-write boundary", () => {
+  const b=prep.pr20_8.bridgeHandshakeProbe;
+  assert.equal(b.status,"MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED");
+  assert.equal(b.contract,"grundlage/vertraege/runtime/pr20-8-bridge-handshake-probe-preparation.json");
+  assert.equal(b.package,"werkzeuge/pr20-8-bridge-handshake-probe-v1.js");
+  assert.equal(b.test,"werkzeuge/tests/pr20-8-bridge-handshake-probe-v1.test.mjs");
+  assert.equal(b.testId,"pr20-8-bridge-handshake-probe-v1");
+  assert.equal(b.controllerVersion,"1.0.0");
+  assert.equal(b.expectedGlobal,"V5PR208BridgeHandshakeProbe");
+  assert.equal(b.sourceCommit,"d2ffea95f984421a9a34088c751471def6cc31d8");
+  assert.equal(b.packageSha256,"a595bc1c2d351635e8f61b8134e9afe4146283238aa724c4217fd2b6c82ab472");
+  assert.equal(b.packageBytes,2333);
+  assert.equal(b.synchronousOnly,true);
+  assert.equal(b.localAndParentFacade,true);
+  assert.equal(b.updaterInstall,false);
+  assert.equal(b.codeSlotPersistence,false);
+  assert.equal(b.gameplayWrites,0);
+  assert.equal(b.publicFunctionCalls,0);
+  assert.equal(b.rawWriteCalls,0);
+  assert.equal(b.sameIntentRetry,false);
+  assert.equal(b.normalRuntimeAllowed,false);
+  assert.equal(b.diagnosticOnly,true);
+  assert.equal(b.upgradeOneWriteRunnerRetired,true);
+  assert.equal(b.compoundRatified,false);
+  assert.equal(b.exchangeRatified,false);
+  assert.equal(b.nextGate,"PR20_8_BRIDGE_HANDSHAKE_PROBE_REAL_BROWSER_RUN");
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {

@@ -21,6 +21,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208UpdaterRecoveryBootstrap",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-bridge-handshake-probe-v1": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-bridge-handshake-probe-v1.js",
+    expectedGlobal: "V5PR208BridgeHandshakeProbe",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-upgrade-durable-shadow-no-write": Object.freeze({
     path: "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
     expectedGlobal: "V5PR208UpgradeDurableShadowNoWrite",
@@ -249,6 +254,39 @@ test("PR20.8 updater persistence bootstrap v2 fixes split-context handshake and 
   ]) assert.equal(packageSource.includes(marker), false, marker);
 });
 
+
+test("PR20.8 bridge handshake probe is exact, synchronous, local+parent and zero-write", () => {
+  if (manifest.testId !== "pr20-8-bridge-handshake-probe-v1") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(
+    manifest.sourceCommit,
+    "d2ffea95f984421a9a34088c751471def6cc31d8",
+  );
+  assert.equal(
+    manifest.packageSha256,
+    "a595bc1c2d351635e8f61b8134e9afe4146283238aa724c4217fd2b6c82ab472",
+  );
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  assert.ok(packageSource.includes('const TEST_ID = "pr20-8-bridge-handshake-probe-v1"'));
+  assert.ok(packageSource.includes('const VERSION = "1.0.0"'));
+  assert.ok(packageSource.includes('const API_NAME = "V5PR208BridgeHandshakeProbe"'));
+  assert.ok(packageSource.includes("synchronous: true"));
+  assert.ok(packageSource.includes("updaterInstall: false"));
+  assert.ok(packageSource.includes("codeSlotPersistence: false"));
+  assert.ok(packageSource.includes("gameplayMutation: false"));
+  assert.ok(packageSource.includes("function roots()"));
+  assert.ok(packageSource.includes("globalThis.parent"));
+  assert.ok(packageSource.includes("function installFacade(owner)"));
+  assert.ok(packageSource.includes("for (const owner of roots())"));
+  assert.ok(packageSource.includes("gameplayWrites: 0"));
+  assert.ok(packageSource.includes("publicFunctionCalls: 0"));
+  assert.ok(packageSource.includes("rawWriteCalls: 0"));
+  for (const marker of [
+    "upload_code", "load_code", "upgrade(", "compound(", "exchange(",
+    "buy(", "sell(", "send_item(", "send_gold(", "socket.emit(", ".socket.emit(",
+    "api_call("
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
 
 test("updater recovery bootstrap is terminal no-write only", () => {
   if (!manifest.testId.startsWith("pr20-6-native-updater-recovery-bootstrap-v")) return;

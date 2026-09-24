@@ -3,7 +3,7 @@
   "stand": "2026-09-24",
   "gate": "PR20.8_WERTMUTATIONEN",
   "kennung": "V5_PR20_8_BRIDGE_HANDSHAKE_PROBE",
-  "status": "PACKAGE_PREPARED_NOT_ACTIVE",
+  "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
   "prerequisiteOneWriteEvidence": {
     "evidence": "roadmap/pr20-8-upgrade-productive-one-write-evidence.json",
     "telemetryBatchId": 8252,
@@ -45,7 +45,12 @@
     "terminal": false,
     "normalRuntimeAllowed": false,
     "mirrorsLocalAndParentAio": true,
-    "mirrorsExpectedGlobalLocalAndParent": true
+    "mirrorsExpectedGlobalLocalAndParent": true,
+    "sourceCommit": "d2ffea95f984421a9a34088c751471def6cc31d8",
+    "packageSha256": "a595bc1c2d351635e8f61b8134e9afe4146283238aa724c4217fd2b6c82ab472",
+    "packageBytes": 2333,
+    "manifest": "roadmap/v5-autonomous-test-manifest.json",
+    "manifestCutoverPrepared": true
   },
   "diagnosticQuestion": "CAN_MINIMAL_SYNCHRONOUS_PACKAGE_PASS_BOTH_BRIDGE_HANDSHAKE_PROBES",
   "safetyBoundary": {
@@ -57,5 +62,14 @@
     "exchangeRatification": false,
     "normalRuntimeAllowed": false
   },
-  "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_MANIFEST_CUTOVER"
+  "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_REAL_BROWSER_RUN",
+  "interpretation": {
+    "onSuccess": "BRIDGE_HANDSHAKE_WORKS_BOOTSTRAP_V2_PACKAGE_OR_PERSISTENCE_SEQUENCE_REMAINS_SUSPECT",
+    "onFailure": "BRIDGE_EXECUTION_CONTEXT_OR_VERIFY_MECHANISM_REMAINS_SUSPECT",
+    "bootstrapV2LiveFailure": "V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED",
+    "additionalGameplayWriteObserved": false,
+    "upgradeOneWriteRunnerRetired": true,
+    "compoundRatified": false,
+    "exchangeRatified": false
+  }
 }
