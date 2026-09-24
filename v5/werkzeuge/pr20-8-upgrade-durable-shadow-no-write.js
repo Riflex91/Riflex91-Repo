@@ -661,11 +661,11 @@
     return state;
   }
 
-  function installTelemetryFacade() {
-    const r = root();
-    r.AIO_V3 = r.AIO_V3 || {};
-    const existing = r.AIO_V3.operations && typeof r.AIO_V3.operations === 'object'
-      ? r.AIO_V3.operations
+  function installTelemetryFacade(owner) {
+    if (!owner) return;
+    owner.AIO_V3 = owner.AIO_V3 || {};
+    const existing = owner.AIO_V3.operations && typeof owner.AIO_V3.operations === 'object'
+      ? owner.AIO_V3.operations
       : null;
     const oldStatus = existing && typeof existing.status === 'function'
       ? existing.status.bind(existing)
@@ -673,7 +673,7 @@
     const oldHeartbeat = existing && typeof existing.hostHeartbeat === 'function'
       ? existing.hostHeartbeat.bind(existing)
       : null;
-    r.AIO_V3.operations = {
+    owner.AIO_V3.operations = {
       ...(existing || {}),
       __v5Pr208UpgradeShadowFacadeVersion:VERSION,
       status:() => {
@@ -711,8 +711,18 @@
     };
   }
 
+  function publishTelemetryFacades() {
+    const r = root();
+    installTelemetryFacade(r);
+    if (globalThis !== r) installTelemetryFacade(globalThis);
+    try {
+      const host = globalThis.parent;
+      if (host && host !== globalThis && host !== r) installTelemetryFacade(host);
+    } catch {}
+  }
+
   async function run() {
-    installTelemetryFacade();
+    publishTelemetryFacades();
     emit('PR20_8_UPGRADE_SHADOW_NO_WRITE_STARTED','INFO');
 
     const performanceTrick=await ensurePerformanceTrick();
@@ -898,13 +908,22 @@
     });
   }
 
-  installTelemetryFacade();
-  globalThis.V5PR208UpgradeDurableShadowNoWrite=Object.freeze({
+  publishTelemetryFacades();
+  const api=Object.freeze({
     version:VERSION,
     testId:TEST_ID,
     status:() => state,
     start:() => run()
   });
+  globalThis.V5PR208UpgradeDurableShadowNoWrite=api;
+  try {
+    const r=root();
+    if (r !== globalThis) r.V5PR208UpgradeDurableShadowNoWrite=api;
+  } catch {}
+  try {
+    if (globalThis.parent && globalThis.parent !== globalThis)
+      globalThis.parent.V5PR208UpgradeDurableShadowNoWrite=api;
+  } catch {}
 
   Promise.resolve().then(run).catch(error => {
     const message=text(error?.message||error||'PR20_8_UPGRADE_SHADOW_FEHLER',240);
