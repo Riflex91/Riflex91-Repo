@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "WEAPON_OFFHAND_READ_ONLY_PACKAGE_BEREIT_EVIDENCE_OFFEN",
+  "status": "WEAPON_OFFHAND_READ_ONLY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -86,7 +86,7 @@
       "real no-write browser shadow evidence",
       "real productive occupied non-weapon slot one-shot swap with 5m committed evidence"
     ],
-    "next": "PR20_7_WEAPON_OFFHAND_READ_ONLY_PACKAGE_MERGE_AND_MANIFEST_CUTOVER"
+    "next": "PR20_7_WEAPON_OFFHAND_REAL_READ_ONLY_BROWSER_PREFLIGHT_EXECUTE"
   },
   "preflight": {
     "implemented": true,
@@ -271,6 +271,10 @@
     "readOnlyCompleteRestEquipmentFence": true,
     "readOnlyGameplayWrites": 0,
     "readOnlyPublicFunctionCalls": 0,
-    "readOnlyRawWriteCalls": 0
+    "readOnlyRawWriteCalls": 0,
+    "readOnlySourceCommit": "df4f23a4f633abaa62e817da0eb06ea1db3d94dd",
+    "readOnlyPackageSha256": "69e3bff8fa7d33c4f4038aff4635d89eebc0c397a2af77ad05486abbac04f562",
+    "readOnlyManifest": "roadmap/v5-autonomous-test-manifest.json",
+    "readOnlyManifestCutoverPrepared": true
   }
 }

@@ -18,10 +18,15 @@ const source = fs.readFileSync(
 test("PR20.7 weapon/offhand read-only plan is explicit, class-bound and workerless", () => {
   assert.equal(plan.gate, "PR20.7_GEAR");
   assert.equal(plan.testId, "pr20-7-gear-weapon-offhand-read-only-preflight");
-  assert.equal(plan.status, "PACKAGE_BEREIT_MANIFEST_CUTOVER_OFFEN");
+  assert.equal(plan.status, "MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_PREFLIGHT");
   assert.equal(plan.deployment.coordinatorClass, "merchant");
   assert.equal(plan.deployment.workerPackageConfigured, false);
   assert.equal(plan.deployment.farmerWorkerDistribution, false);
+  assert.equal(plan.deployment.packageCommitPinned, true);
+  assert.match(plan.deployment.sourceCommit, /^[0-9a-f]{40}$/);
+  assert.match(plan.deployment.packageSha256, /^[0-9a-f]{64}$/);
+  assert.equal(plan.deployment.sourceCommit, evidence.sourceCommit);
+  assert.equal(plan.deployment.packageSha256, evidence.packageSha256);
   assert.deepEqual(plan.recipient.explicitSlots, ["mainhand", "offhand"]);
   assert.equal(plan.recipient.genericWeaponAutoSlotAllowed, false);
   assert.equal(plan.recipient.oppositeHandPinned, true);
@@ -62,15 +67,15 @@ test("PR20.7 weapon/offhand preflight keeps every mutation boundary closed", () 
 
 test("PR20.7 weapon/offhand pending evidence cannot masquerade as pass", () => {
   assert.equal(evidence.status, "OFFEN");
-  assert.equal(evidence.sourceCommit, null);
-  assert.equal(evidence.packageSha256, null);
+  assert.match(evidence.sourceCommit, /^[0-9a-f]{40}$/);
+  assert.match(evidence.packageSha256, /^[0-9a-f]{64}$/);
   assert.equal(evidence.observedAtMs, null);
   assert.equal(evidence.terminal, null);
   assert.equal(evidence.result, null);
   assert.equal(evidence.ratified, false);
   assert.deepEqual(
     evidence.blocker,
-    ["REAL_BROWSER_WEAPON_OFFHAND_PREFLIGHT_NOCH_NICHT_AUSGEFUEHRT"],
+    ["REAL_BROWSER_WEAPON_OFFHAND_PREFLIGHT_NOCH_NICHT_TERMINAL_BESTANDEN"],
   );
   assert.equal(evidence.expectedSafetyBoundary.browserGameplayWrites, 0);
   assert.equal(evidence.expectedSafetyBoundary.publicFunctionCalls, 0);
