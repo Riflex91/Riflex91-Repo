@@ -603,11 +603,11 @@ test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound"
   if (manifest.testId !== "pr20-8-upgrade-durable-shadow-no-write") return;
   assert.equal(manifest.controllerVersion, "1.0.1");
   assert.equal(manifest.sourceCommit,
-    "4106db292fe48d60ba190460491d5138283769d8");
+    "6d611de7fadf7a5cb3945ec25f3bc761acb14e3c");
   assert.equal(manifest.packagePath,
     "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js");
   assert.equal(manifest.packageSha256,
-    "c7030beb5d7353cec054661cbd47069c7e30f2169c0c0a51fb4bcd21e0fb50cd");
+    "7703cff2fa837c19c1febffc064c44084494effa142c3e0fb560feec1af5a9ff");
   assert.equal(manifest.expectedGlobal,
     "V5PR208UpgradeDurableShadowNoWrite");
   assert.equal("workerVersion" in manifest, false);
