@@ -144,5 +144,6 @@
     "gameplayWrites": 0,
     "publicFunctionCalls": 0,
     "rawWriteCalls": 0
-  }
+  },
+  "evidence": "roadmap/pr20-8-bridge-handshake-probe-evidence.json"
 }
