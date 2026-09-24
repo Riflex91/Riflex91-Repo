@@ -703,7 +703,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_1_0_3_SAME_TEST_UPGRADE_BEREIT_EVIDENCE_OFFEN",
+      "status": "WEAPON_OFFHAND_MERCHANT_ACQUISITION_PREPARATION_REQUIRED",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
