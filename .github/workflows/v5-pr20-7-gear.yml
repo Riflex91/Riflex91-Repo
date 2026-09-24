@@ -3,6 +3,11 @@ name: v5-pr20-7-gear
 on:
   push:
     paths:
+      - 'v5/werkzeuge/pr20-7-account-weapon-candidate-discovery.js'
+      - 'v5/werkzeuge/tests/pr20-7-account-weapon-candidate-discovery.test.mjs'
+      - 'v5/roadmap/pr20-7-account-weapon-candidate-discovery-test-plan.json'
+      - 'v5/roadmap/pr20-7-account-weapon-candidate-discovery-evidence.json'
+      - 'v5/grundlage/tests/pr20-account-weapon-candidate-discovery-evidence.test.mjs'
       - 'v5/werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js'
       - 'v5/werkzeuge/tests/pr20-7-weapon-offhand-read-only-autonomous.test.mjs'
       - 'v5/roadmap/pr20-7-weapon-offhand-read-only-preflight-test-plan.json'
@@ -47,6 +52,11 @@ on:
       - '.github/workflows/v5-pr20-7-gear.yml'
   pull_request:
     paths:
+      - 'v5/werkzeuge/pr20-7-account-weapon-candidate-discovery.js'
+      - 'v5/werkzeuge/tests/pr20-7-account-weapon-candidate-discovery.test.mjs'
+      - 'v5/roadmap/pr20-7-account-weapon-candidate-discovery-test-plan.json'
+      - 'v5/roadmap/pr20-7-account-weapon-candidate-discovery-evidence.json'
+      - 'v5/grundlage/tests/pr20-account-weapon-candidate-discovery-evidence.test.mjs'
       - 'v5/werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js'
       - 'v5/werkzeuge/tests/pr20-7-weapon-offhand-read-only-autonomous.test.mjs'
       - 'v5/roadmap/pr20-7-weapon-offhand-read-only-preflight-test-plan.json'
