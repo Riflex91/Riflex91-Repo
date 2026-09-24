@@ -132,8 +132,8 @@ async function execute(env) {
   vm.runInContext(source, env.sandbox, {
     filename: "pr20-7-gear-occupied-slot-live-5m.js",
   });
-  for (let i = 0; i < 300; i += 1) {
-    await Promise.resolve();
+  for (let i = 0; i < 1000; i += 1) {
+    await new Promise(resolve => setImmediate(resolve));
     const api = env.sandbox.V5PR207GearOccupiedLiveTest;
     if (api?.status()?.terminal === true) return api.status();
   }
