@@ -664,15 +664,7 @@ test("PR20.8 Upgrade Durable Shadow package stays no-send and authority-free", (
   assert.equal(shadow.normalRuntimeAllowed, false);
 });
 
-test("PR20.8 Upgrade Shadow Manifest is exact pinned and still NO-WRITE", () => {
-  assert.equal(
-    prep.pr20_8.status,
-    "UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION_BEREIT_NO_LIVE_WRITE",
-  );
-  assert.equal(
-    prep.pr20_8.nextAction,
-    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE",
-  );
+test("PR20.8 Upgrade Shadow Manifest remains exact pinned and NO-WRITE after later gates", () => {
   const shadow = prep.pr20_8.upgradeDurableShadow;
   assert.equal(
     shadow.sourceCommit,
@@ -735,15 +727,15 @@ test("PR20.8 Upgrade Durable Shadow real-browser evidence remains ratified after
   assert.equal(shadow.normalRuntimeAllowed,false);
 });
 
-test("PR20.8 Upgrade productive one-write preparation is registered but not live-enabled", () => {
+test("PR20.8 Upgrade productive one-write runner package is registered but not deployed", () => {
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION_BEREIT_NO_LIVE_WRITE",
+    "UPGRADE_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE",
+    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER",
   );
   assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
   assert.equal(
@@ -767,7 +759,26 @@ test("PR20.8 Upgrade productive one-write preparation is registered but not live
   assert.equal(p.oneShotMaximumTtlMs,1500);
   assert.equal(p.freshIndexReresolutionImmediatelyBeforeSend,true);
   assert.equal(p.sameIntentRetry,false);
-  assert.equal(p.liveRunnerPresent,false);
+  assert.equal(p.liveRunnerPresent,true);
+  assert.equal(
+    p.runnerPackage,
+    "werkzeuge/pr20-8-upgrade-productive-one-write-live.js",
+  );
+  assert.equal(
+    p.runnerTest,
+    "werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs",
+  );
+  assert.equal(
+    p.runnerContract,
+    "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json",
+  );
+  assert.equal(p.runnerTestId,"pr20-8-upgrade-productive-one-write-live");
+  assert.equal(p.runnerControllerVersion,"1.0.0");
+  assert.equal(p.expectedGlobal,"V5PR208UpgradeProductiveOneWriteLive");
+  assert.equal(p.manifestCutoverPrepared,false);
+  assert.equal(p.deployed,false);
+  assert.equal(p.liveWriteEnabled,false);
+  assert.equal(p.packageContainsExactlyOnePublicUpgradeCallSite,true);
   assert.equal(p.gameplayAuthority,false);
   assert.equal(p.rawWriteAuthority,false);
   assert.equal(p.normalRuntimeAllowed,false);
@@ -814,4 +825,29 @@ test("aktueller Vertragskatalog ist konsistent 61 total / 60 verifiziert / 1 dis
   assert.equal(recoveries.summary.disabledWithActionContract, 1);
   assert.equal(verifiers.summary.verified, 60);
   assert.equal(bindungen.summary.gebunden, 60);
+});
+
+
+test("PR20.8 Upgrade productive one-write runner package has a separate aggregate contract boundary", () => {
+  const r=prep.pr20_8.upgradeProductiveOneWriteRunner;
+  assert.equal(r.status,"PACKAGE_BEREIT_NOT_DEPLOYED");
+  assert.equal(r.package,"werkzeuge/pr20-8-upgrade-productive-one-write-live.js");
+  assert.equal(r.test,"werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs");
+  assert.equal(
+    r.contract,
+    "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json",
+  );
+  assert.equal(r.testId,"pr20-8-upgrade-productive-one-write-live");
+  assert.equal(r.controllerVersion,"1.0.0");
+  assert.equal(r.expectedGlobal,"V5PR208UpgradeProductiveOneWriteLive");
+  assert.equal(r.exactCandidate,"gloves@0");
+  assert.equal(r.exactScroll,"scroll0");
+  assert.equal(r.maximumGameplayWrites,1);
+  assert.equal(r.maximumPublicFunctionCalls,1);
+  assert.equal(r.maximumRawWriteCalls,0);
+  assert.equal(r.sameIntentRetry,false);
+  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.deployed,false);
+  assert.equal(r.liveWriteEnabled,false);
+  assert.equal(r.normalRuntimeAllowed,false);
 });
