@@ -31,6 +31,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208UpgradeDurableShadowNoWrite",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-compound-durable-shadow-no-write": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-compound-durable-shadow-no-write.js",
+    expectedGlobal: "V5PR208CompoundDurableShadowNoWrite",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-wertmutation-live-candidate-readonly": Object.freeze({
     path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js",
     expectedGlobal: "V5PR208ValueMutationLiveCandidateReadonly",
@@ -769,6 +774,52 @@ test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound"
   ]) assert.equal(packageSource.includes(marker), false, marker);
 });
 
+
+
+test("PR20.8 Compound durable shadow manifest is exact no-send and three-input bound", () => {
+  if (manifest.testId !== "pr20-8-compound-durable-shadow-no-write") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit,
+    "5577a45443db03a8cc0617ce61e0ec4b427d4aea");
+  assert.equal(manifest.packagePath,
+    "v5/werkzeuge/pr20-8-compound-durable-shadow-no-write.js");
+  assert.equal(manifest.packageSha256,
+    "94685bc0d439eb86b3a31763ffa0a06854c06572d875f55584a7558c9c368547");
+  assert.equal(manifest.expectedGlobal,
+    "V5PR208CompoundDurableShadowNoWrite");
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.equal("workerPackageSha256" in manifest, false);
+  assert.equal("workerExpectedGlobal" in manifest, false);
+  assert.equal("workerTargets" in manifest, false);
+  assert.ok(packageSource.includes("ITEM_NAME = 'hpamulet'"));
+  assert.ok(packageSource.includes("ITEM_LEVEL = 0"));
+  assert.ok(packageSource.includes("ITEM_BASE_GOLD = 20000"));
+  assert.ok(packageSource.includes("SCROLL_NAME = 'cscroll0'"));
+  assert.ok(packageSource.includes("DREI_KANDIDATEN_ERFORDERLICH"));
+  assert.ok(packageSource.includes("ref?.c_mid"));
+  assert.ok(packageSource.includes("Number(scrollDef.g) !== 6400"));
+  assert.ok(packageSource.includes("publishTelemetryFacades()"));
+  assert.ok(packageSource.includes("installTelemetryFacade(owner)"));
+  assert.ok(packageSource.includes("recoveredExistingTerminal"));
+  assert.ok(packageSource.includes("PR20_8_COMPOUND_SHADOW_TERMINAL_INTENT_DRIFT"));
+  assert.ok(packageSource.includes("journalTerminalArt:'ABBRUCH'"));
+  assert.ok(packageSource.includes("sendBoundaryState:'NICHT_GESENDET'"));
+  assert.ok(packageSource.includes("reconciliationClassification:'NOT_APPLIED'"));
+  assert.ok(packageSource.includes("compoundAuthorityIssued:false"));
+  assert.ok(packageSource.includes("normalCompoundWriteRatification:false"));
+  assert.ok(packageSource.includes("gameplayWrites:0"));
+  assert.ok(packageSource.includes("publicFunctionCalls:0"));
+  assert.ok(packageSource.includes("rawWriteCalls:0"));
+  assert.ok(packageSource.includes("sameIntentRetry:false"));
+  assert.ok(packageSource.includes("normalRuntimeAllowed:false"));
+  for (const marker of [
+    "upgrade(", "compound(", "exchange(", "buy(", "buy_with_gold(",
+    "equip(", "unequip(", "sell(", "bank_retrieve(", "bank_store(",
+    "send_item(", "send_gold(", "use_skill(", "start_character(",
+    "command_character(", "api_call(", "socket.emit(", ".socket.emit("
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
 
 
 test("PR20.8 productive Upgrade one-write manifest is exact, one-shot and runtime-closed", () => {
