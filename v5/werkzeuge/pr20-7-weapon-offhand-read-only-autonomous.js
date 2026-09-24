@@ -324,6 +324,10 @@
       serverIdentifier: server.identifier,
       inventory,
       slots,
+      equipmentMaterial: Object.keys(c.slots || {})
+        .filter(slot => !String(slot).startsWith('trade') && slot !== 'elixir')
+        .sort()
+        .map(slot => [slot, stableItemMaterial(c.slots?.[slot] || null)]),
       classRules: {
         mainhandWtypes: Object.keys(r.G.classes?.[text(c.ctype, 32).toLowerCase()]?.mainhand || {}).sort(),
         doublehandWtypes: Object.keys(r.G.classes?.[text(c.ctype, 32).toLowerCase()]?.doublehand || {}).sort(),
@@ -374,9 +378,8 @@
         const restInventory = observed.inventory
           .filter(row => row.index !== item.index)
           .map(row => [row.index, row.material]);
-        const restEquipment = SAFE_SLOTS
-          .filter(slot => slot !== option.slot && slot !== oppositeSlot)
-          .map(slot => [slot, observed.slots[slot]?.material ?? null]);
+        const restEquipment = observed.equipmentMaterial
+          .filter(([slot]) => slot !== option.slot && slot !== oppositeSlot);
 
         candidates.push({
           slot: option.slot,
