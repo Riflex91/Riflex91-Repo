@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-weapon-offhand-acquisition-live-5m",
+  "controllerVersion": "1.0.0",
+  "status": "PACKAGE_BEREIT_MANIFEST_OFFEN",
+  "exactScope": {
+    "recipient": "My_Merchant",
+    "server": "EU:I",
+    "itemName": "wshield",
+    "targetSlot": "offhand",
+    "quantity": 1,
+    "unitPrice": 4800,
+    "exactCost": 4800,
+    "vendorId": "basics",
+    "vendorName": "Gabriel",
+    "minimumGoldSafetyReserve": 1000
+  },
+  "prerequisites": {
+    "readOnlyEvidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json",
+    "readOnlyStatus": "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE",
+    "durableShadowEvidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-shadow-no-write-evidence.json",
+    "durableShadowStatus": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
+    "durableShadowRatified": true,
+    "productivePurchasePreparation": "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-purchase-preparation.ts",
+    "productivePurchasePreparationReady": true
+  },
+  "deployment": {
+    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
+    "sourceCommit": "e22dbf0ee4f8ac2eb7a7fb8930ec208eea447c61",
+    "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-live-5m.js",
+    "packageSha256": "795ef5438f23eb53a8e6cd9a9f27c2a3a8e8ad6fe69cbade28c608943ef9853c",
+    "expectedGlobal": "V5PR207WeaponOffhandAcquisitionLive",
+    "workerPackageConfigured": false,
+    "farmerWorkerDistribution": false,
+    "manifestCutoverPrepared": false
+  },
+  "transaction": {
+    "actionContractId": "AL-ACTION-BUY-WITH-GOLD",
+    "recoveryContractId": "AL-RECOVERY-BUY-WITH-GOLD",
+    "verifierId": "AL-VERIFIER-BUY-WITH-GOLD",
+    "actionChannel": "buy",
+    "idempotency": "NON_IDEMPOTENT",
+    "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+    "exactGoldReservation": 4800,
+    "minimumGoldSafetyReserve": 1000,
+    "resources": [
+      "character:My_Merchant:gold",
+      "character:My_Merchant:inventory",
+      "character:My_Merchant:action_channel:buy",
+      "character:My_Merchant:socket_call_budget"
+    ],
+    "socketPlanBudgetReserved": 100,
+    "socketServerLimit": 200,
+    "socketServerReserveUntouched": 100,
+    "durableIntentBeforePossibleSend": true,
+    "durableReadbackRequired": true,
+    "sendBoundaryBeforeCall": "MOEGLICH_GESENDET",
+    "oneShotMaximumUses": 1,
+    "sameIntentRetry": false,
+    "restartRecoveryResendAllowed": false
+  },
+  "settlement": {
+    "exactGoldDelta": -4800,
+    "exactItemDelta": 1,
+    "requireExactlyOneInventoryIndexChangeFromEmptyToWshield": true,
+    "partialIsOperatorRequired": true,
+    "contradictoryIsOperatorRequired": true
+  },
+  "safetyBoundary": {
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "normalRuntimeAllowed": false
+  },
+  "soak": {
+    "required": true,
+    "samples": 60,
+    "intervalMs": 5000,
+    "minimumDurationMs": 299000,
+    "additionalGameplayWritesAllowed": 0
+  },
+  "evidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-live-5m-evidence.json",
+  "nextAfterPass": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PURCHASE_EVIDENCE_RATIFICATION_THEN_OFFHAND_EQUIP"
+}
