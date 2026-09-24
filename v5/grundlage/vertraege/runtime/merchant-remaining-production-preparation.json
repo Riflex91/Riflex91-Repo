@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "LIVE_CANDIDATE_EVIDENCE_RATIFIED_NO_WRITE",
+    "status": "UPGRADE_DURABLE_SHADOW_PACKAGE_BEREIT_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_UPGRADE_DURABLE_SHADOW_NO_WRITE",
+    "nextAction": "PR20_8_UPGRADE_DURABLE_SHADOW_MANIFEST_CUTOVER",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -679,6 +679,44 @@
       },
       "observedCompoundCandidate": null,
       "observedExchangeCandidate": null
+    },
+    "upgradeDurableShadow": {
+      "status": "PACKAGE_BEREIT_NO_WRITE",
+      "testId": "pr20-8-upgrade-durable-shadow-no-write",
+      "controllerVersion": "1.0.0",
+      "package": "werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
+      "test": "werkzeuge/tests/pr20-8-upgrade-durable-shadow-no-write.test.mjs",
+      "contract": "grundlage/vertraege/runtime/pr20-8-upgrade-durable-shadow-preparation.json",
+      "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+      "ratifiedCandidateEvidenceCommit": "00847a4f314237bc5535e06024a1f08a7f35e8a2",
+      "candidate": {
+        "name": "gloves",
+        "level": 0,
+        "baseGold": 3400
+      },
+      "scroll": {
+        "name": "scroll0",
+        "consumeQuantity": 1
+      },
+      "offering": null,
+      "normalPathOnly": true,
+      "currentPhysicalIndexesReresolved": true,
+      "durableShadowOnly": true,
+      "durableReadbackRequired": true,
+      "journalTerminalArt": "ABBRUCH",
+      "sendBoundaryState": "NICHT_GESENDET",
+      "reconciliationClassification": "NOT_APPLIED",
+      "sameIntentRetry": false,
+      "oneShotMaximumUses": 1,
+      "upgradeAuthorityIssued": false,
+      "productionDurableIntentCreated": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalUpgradeWriteRatification": false,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "normalRuntimeAllowed": false
     }
   },
   "pr20_9": {
