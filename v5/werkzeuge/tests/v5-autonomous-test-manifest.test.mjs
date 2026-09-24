@@ -6,6 +6,11 @@ import { execFileSync } from "node:child_process";
 
 const manifest = JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest.json", "utf8"));
 const allowedPackages = Object.freeze({
+  "pr20-8-upgrade-productive-one-write-live": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live.js",
+    expectedGlobal: "V5PR208UpgradeProductiveOneWriteLive",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-upgrade-durable-shadow-no-write": Object.freeze({
     path: "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
     expectedGlobal: "V5PR208UpgradeDurableShadowNoWrite",
@@ -639,3 +644,45 @@ test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound"
   ]) assert.equal(packageSource.includes(marker), false, marker);
 });
 
+
+
+test("PR20.8 productive Upgrade one-write manifest is exact, one-shot and runtime-closed", () => {
+  if (manifest.testId !== "pr20-8-upgrade-productive-one-write-live") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(
+    manifest.sourceCommit,
+    "8cd2837b5094c5cf962bc787d32dc021ae221ebd",
+  );
+  assert.equal(
+    manifest.packageSha256,
+    "063c5143852efa2357c0a3e0930e013e7238bc0be8b0d81f7c3742f97c6ed4f9",
+  );
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.equal("workerPackageSha256" in manifest, false);
+  assert.equal("workerExpectedGlobal" in manifest, false);
+  assert.equal("workerTargets" in manifest, false);
+  assert.ok(packageSource.includes(
+    'const TEST_ID = "pr20-8-upgrade-productive-one-write-live"',
+  ));
+  assert.ok(packageSource.includes('"Pr208UpgradeOneShotAuthority"'));
+  assert.ok(packageSource.includes(
+    'sendBoundaryState: "SEND_MOEGLICH_ODER_VERSUCHT"',
+  ));
+  assert.ok(packageSource.includes("function acquireRuntimeLease()"));
+  assert.ok(packageSource.includes("function assertFences(txId)"));
+  assert.ok(packageSource.includes("upgradeEffectsFingerprintSha256"));
+  assert.ok(packageSource.includes("item?.giveaway === true"));
+  assert.ok(packageSource.includes("item?.list === true"));
+  assert.ok(packageSource.includes(
+    "const PUBLIC_FUNCTION_PROMISE_TIMEOUT_MS = 2000",
+  ));
+  assert.ok(packageSource.includes('"RECOVERY_PENDING"'));
+  assert.ok(packageSource.includes("sameIntentRetry: false"));
+  assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
+  assert.equal((packageSource.match(/globalThis\.upgrade\(/g) || []).length, 1);
+  assert.equal(packageSource.includes("globalThis.compound("), false);
+  assert.equal(packageSource.includes("globalThis.exchange("), false);
+  assert.equal(packageSource.includes(".socket.emit("), false);
+  assert.equal(packageSource.includes("api_call("), false);
+});

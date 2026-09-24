@@ -727,15 +727,15 @@ test("PR20.8 Upgrade Durable Shadow real-browser evidence remains ratified after
   assert.equal(shadow.normalRuntimeAllowed,false);
 });
 
-test("PR20.8 Upgrade productive one-write runner package is registered but not deployed", () => {
+test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutover advances separately", () => {
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED",
+    "UPGRADE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER",
+    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
   );
   assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
   assert.equal(
@@ -830,7 +830,7 @@ test("aktueller Vertragskatalog ist konsistent 61 total / 60 verifiziert / 1 dis
 
 test("PR20.8 Upgrade productive one-write runner package has a separate aggregate contract boundary", () => {
   const r=prep.pr20_8.upgradeProductiveOneWriteRunner;
-  assert.equal(r.status,"PACKAGE_BEREIT_NOT_DEPLOYED");
+  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE");
   assert.equal(r.package,"werkzeuge/pr20-8-upgrade-productive-one-write-live.js");
   assert.equal(r.test,"werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs");
   assert.equal(
@@ -846,8 +846,25 @@ test("PR20.8 Upgrade productive one-write runner package has a separate aggregat
   assert.equal(r.maximumPublicFunctionCalls,1);
   assert.equal(r.maximumRawWriteCalls,0);
   assert.equal(r.sameIntentRetry,false);
-  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.manifestCutoverPrepared,true);
+  assert.equal(r.manifest,"roadmap/v5-autonomous-test-manifest.json");
+  assert.equal(
+    r.sourceCommit,
+    "8cd2837b5094c5cf962bc787d32dc021ae221ebd",
+  );
+  assert.equal(
+    r.packageSha256,
+    "063c5143852efa2357c0a3e0930e013e7238bc0be8b0d81f7c3742f97c6ed4f9",
+  );
+  assert.equal(r.packageBytes,46151);
   assert.equal(r.deployed,false);
-  assert.equal(r.liveWriteEnabled,false);
+  assert.equal(r.deploymentEvidenceObserved,false);
+  assert.equal(r.liveWriteEnabled,true);
+  assert.equal(r.realUpgradeMutationPerformed,false);
+  assert.equal(r.bridgeMayDeployPinnedRunner,true);
+  assert.equal(
+    r.nextGate,
+    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
+  );
   assert.equal(r.normalRuntimeAllowed,false);
 });

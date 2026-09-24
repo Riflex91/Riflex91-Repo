@@ -92,10 +92,20 @@ test("current 1.0.1 recovery hardening does not rewrite the observed 1.0.0 evide
   assert.equal(evidence.safetyBoundary.currentRecoveryPackageMayOnlyRecoverExactTerminalNoWriteIntent,true);
   assert.equal(evidence.safetyBoundary.recoveryMayNotRewriteIntent,true);
   assert.equal(evidence.safetyBoundary.recoveryMayNotCreateGameplayWrite,true);
-  assert.equal(manifest.testId,evidence.testId);
-  assert.equal(manifest.controllerVersion,"1.0.1");
-  assert.equal(manifest.sourceCommit,evidence.currentRecoverySourceCommit);
-  assert.equal(manifest.packageSha256,evidence.currentRecoveryPackageSha256);
+  assert.equal(
+    manifest.testId,
+    "pr20-8-upgrade-productive-one-write-live",
+  );
+  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(
+    manifest.sourceCommit,
+    "8cd2837b5094c5cf962bc787d32dc021ae221ebd",
+  );
+  assert.equal(
+    manifest.packageSha256,
+    "063c5143852efa2357c0a3e0930e013e7238bc0be8b0d81f7c3742f97c6ed4f9",
+  );
+  assert.notEqual(manifest.testId,evidence.testId);
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 

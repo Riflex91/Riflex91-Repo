@@ -87,8 +87,8 @@
     "Compound/Exchange besitzen aktuell keinen ratifizierten einfachen Live-Kandidaten",
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
-    "AKTUELL: produktiven exakt-ein-Upgrade-Write fuer den normalen gloves@0 + scroll0 Pfad vorbereiten; noch keine Write-Freigabe",
-    "PR20.8 Upgrade One-Write Runner-Paket ist bereit und nicht deployed; AKTUELL: Manifest-Cutover separat vorbereiten"
+    "PR20.8 Upgrade One-Write Runner ist SHA-gepinnt im Autonomous-Test-Manifest; normalRuntimeAllowed bleibt false",
+    "AKTUELL: ersten realen exakt-ein-Upgrade-Write strikt beobachten und ratifizieren; Compound/Exchange bleiben separat"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "UPGRADE_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+      "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_UPGRADE_DURABLE_SHADOW_REAL_BROWSER_OBSERVE",
+      "nextAction": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -786,7 +786,10 @@
         "v5/grundlage/tests/pr20-wertmutation-live-candidate-evidence.test.mjs",
         "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
         "v5/werkzeuge/tests/pr20-8-upgrade-durable-shadow-no-write.test.mjs",
-        "v5/grundlage/vertraege/runtime/pr20-8-upgrade-durable-shadow-preparation.json"
+        "v5/grundlage/vertraege/runtime/pr20-8-upgrade-durable-shadow-preparation.json",
+        "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live.js",
+        "v5/werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs",
+        "v5/grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json"
       ]
     },
     {
@@ -1626,7 +1629,7 @@
     }
   },
   "pr20_8": {
-    "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED",
+    "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1668,14 +1671,14 @@
     "exchangeLiveRunnerPresent": false,
     "remainingGates": {
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
-      "normalUpgrade": "PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED",
+      "normalUpgrade": "PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
       "normalCompound": "OFFEN_SEPARATE_RATIFICATION",
       "normalExchange": "OFFEN_SEPARATE_RATIFICATION",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY"
     },
-    "nextAction": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER",
+    "nextAction": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -1817,7 +1820,7 @@
       "packageContainsExactlyOnePublicUpgradeCallSite": true
     },
     "upgradeProductiveOneWriteRunner": {
-      "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
       "package": "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live.js",
       "test": "v5/werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs",
       "contract": "v5/grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json",
@@ -1830,12 +1833,18 @@
       "maximumPublicFunctionCalls": 1,
       "maximumRawWriteCalls": 0,
       "sameIntentRetry": false,
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
-      "liveWriteEnabled": false,
+      "liveWriteEnabled": true,
       "realUpgradeMutationPerformed": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER"
+      "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
+      "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+      "sourceCommit": "8cd2837b5094c5cf962bc787d32dc021ae221ebd",
+      "packageSha256": "063c5143852efa2357c0a3e0930e013e7238bc0be8b0d81f7c3742f97c6ed4f9",
+      "packageBytes": 46151,
+      "deploymentEvidenceObserved": false,
+      "bridgeMayDeployPinnedRunner": true
     }
   }
 }

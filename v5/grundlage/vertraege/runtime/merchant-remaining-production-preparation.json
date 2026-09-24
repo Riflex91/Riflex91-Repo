@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED",
+    "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER",
+    "nextAction": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -787,7 +787,7 @@
       "packageContainsExactlyOnePublicUpgradeCallSite": true
     },
     "upgradeProductiveOneWriteRunner": {
-      "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
       "package": "werkzeuge/pr20-8-upgrade-productive-one-write-live.js",
       "test": "werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs",
       "contract": "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json",
@@ -800,10 +800,18 @@
       "maximumPublicFunctionCalls": 1,
       "maximumRawWriteCalls": 0,
       "sameIntentRetry": false,
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
-      "liveWriteEnabled": false,
-      "normalRuntimeAllowed": false
+      "liveWriteEnabled": true,
+      "normalRuntimeAllowed": false,
+      "manifest": "roadmap/v5-autonomous-test-manifest.json",
+      "sourceCommit": "8cd2837b5094c5cf962bc787d32dc021ae221ebd",
+      "packageSha256": "063c5143852efa2357c0a3e0930e013e7238bc0be8b0d81f7c3742f97c6ed4f9",
+      "packageBytes": 46151,
+      "deploymentEvidenceObserved": false,
+      "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
+      "realUpgradeMutationPerformed": false,
+      "bridgeMayDeployPinnedRunner": true
     }
   },
   "pr20_9": {
