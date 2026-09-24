@@ -82,8 +82,8 @@
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.7 belegter Nicht-Waffen-Slot ist produktiv BESTANDEN",
     "PR20.7 wshield-Beschaffung ist real BESTANDEN: exakt 1 Kauf-Write, COMMITTED/BESTAETIGT, 60 Samples ueber >5 Minuten",
-    "PR20.7 wshield-Offhand-Equip-Paket ist separat gepinnt und MANIFEST_GESCHLOSSEN",
-    "AKTUELL: Equip-Live-5m Manifest-Cutover vorbereiten; Zielslot offhand muss leer bleiben und mainhand staff unveraendert",
+    "PR20.7 wshield-Offhand-Equip-Paket ist separat gepinnt und per Manifest fuer den kontrollierten Live-Lauf freigegeben; Evidence ist noch OFFEN",
+    "AKTUELL: kontrollierten Equip-Live-5m-Lauf ausfuehren und reconciliieren; Zielslot offhand muss leer bleiben und mainhand staff unveraendert",
     "Equip bleibt One-Shot mit Durable Intent, Equipment/Inventory-Fencing und sameIntentRetry=false",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
@@ -1045,7 +1045,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "WEAPON_OFFHAND_EQUIP_PACKAGE_BEREIT_MANIFEST_GESCHLOSSEN",
+    "status": "WEAPON_OFFHAND_EQUIP_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1105,7 +1105,7 @@
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json"
     ],
-    "nextAction": "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_MANIFEST_CUTOVER",
+    "nextAction": "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_EXECUTE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1344,7 +1344,7 @@
       "acquisitionObservedSellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
       "acquisitionObservedGold": 14493644,
       "acquisitionObservedFreeInventorySlots": 21,
-      "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_MANIFEST_CUTOVER",
+      "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_EXECUTE",
       "acquisitionShadowFoundation": "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
       "acquisitionShadowFoundationTest": "v5/grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
       "acquisitionShadowPackage": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js",
@@ -1405,7 +1405,7 @@
       "productiveEquipControllerVersion": "1.0.0",
       "productiveEquipSourceCommit": "e633cbe60ba4c98e4c61424ff900c542e688090f",
       "productiveEquipPackageSha256": "381559606c016880921fdb9ee0c50776275a5ceb962c35d91bc1c86529deb3b0",
-      "productiveEquipManifestCutoverPrepared": false,
+      "productiveEquipManifestCutoverPrepared": true,
       "productiveEquipExactRecipient": "My_Merchant",
       "productiveEquipExactServer": "EU:I",
       "productiveEquipExactItem": "wshield",
@@ -1439,7 +1439,7 @@
     "acquisitionShadowPreviousLiveSameIntentRetry": false,
     "acquisitionShadowPreviousLiveRatified": false,
     "acquisitionShadowClassRuleShape": "OBJECT_KEYS",
-    "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_MANIFEST_CUTOVER",
+    "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_EXECUTE",
     "acquisitionShadowEvidenceRatified": true,
     "acquisitionShadowEvidenceManifestMainCommit": "f96bb24402b3f0b274aa9d5b31dd370ff099eed0",
     "acquisitionShadowEvidenceObservedAtMs": 1790243742400,
@@ -1504,6 +1504,6 @@
     "productiveEquipPackagePrepared": true,
     "productiveEquipSourceCommit": "e633cbe60ba4c98e4c61424ff900c542e688090f",
     "productiveEquipPackageSha256": "381559606c016880921fdb9ee0c50776275a5ceb962c35d91bc1c86529deb3b0",
-    "productiveEquipManifestCutoverPrepared": false
+    "productiveEquipManifestCutoverPrepared": true
   }
 }
