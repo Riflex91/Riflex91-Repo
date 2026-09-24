@@ -37,6 +37,9 @@ on:
       - 'v5/grundlage/tests/pr20-upgrade-productive-one-write-evidence.test.mjs'
       - 'v5/roadmap/pr20-8-upgrade-productive-one-write-evidence.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-updater-persistence-bootstrap-preparation.json'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-bridge-handshake-probe-preparation.json'
+      - 'v5/werkzeuge/pr20-8-bridge-handshake-probe-v1.js'
+      - 'v5/werkzeuge/tests/pr20-8-bridge-handshake-probe-v1.test.mjs'
       - 'v5/grundlage/tests/pr20-upgrade-productive-one-write-preparation.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr20-8-live-candidate-readonly-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json'
@@ -89,6 +92,9 @@ on:
       - 'v5/grundlage/tests/pr20-upgrade-productive-one-write-evidence.test.mjs'
       - 'v5/roadmap/pr20-8-upgrade-productive-one-write-evidence.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-updater-persistence-bootstrap-preparation.json'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-bridge-handshake-probe-preparation.json'
+      - 'v5/werkzeuge/pr20-8-bridge-handshake-probe-v1.js'
+      - 'v5/werkzeuge/tests/pr20-8-bridge-handshake-probe-v1.test.mjs'
       - 'v5/grundlage/tests/pr20-upgrade-productive-one-write-preparation.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr20-8-live-candidate-readonly-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json'
@@ -130,3 +136,4 @@ jobs:
       - run: node --check werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js && node --test werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-1.test.mjs
       - run: node --check werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js && node --test werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-2.test.mjs
       - run: node --check werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-3.js && node --test werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-3.test.mjs
+      - run: node --check werkzeuge/pr20-8-bridge-handshake-probe-v1.js && node --test werkzeuge/tests/pr20-8-bridge-handshake-probe-v1.test.mjs
