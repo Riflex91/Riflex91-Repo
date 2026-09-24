@@ -81,9 +81,10 @@
   "currentNextSteps": [
     "PR20.1 bis PR20.7 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.8 Wertmutationen ist aktuelles Gate",
-    "PR20.8 Exchange-Spezialplaner sowie getrennte Durable-/One-Shot-/Read-only-Preflight-Fundamente sind NO-WRITE vorbereitet",
-    "PR20.8 Live-Candidate-Discovery-Paket ist SHA-gepinnt und Manifest-Cutover vorbereitet",
-    "AKTUELL: realen Browserlauf fuer Upgrade/Compound/Exchange-Kandidaten read-only beobachten",
+    "PR20.8 Live-Candidate-Discovery ist real im Browser BESTANDEN und strikt zero-write ratifiziert",
+    "Beobachteter erster Normalpfad: Upgrade gloves Level 0 plus scroll0; physischer Index muss vor jedem spaeteren Send neu aufgeloest werden",
+    "Compound und Exchange hatten im frischen Snapshot keinen zulaessigen Normal-Kandidaten; daraus entsteht keine Acquisition- oder Mutation-Authority",
+    "AKTUELL: Upgrade Durable-Shadow NO-WRITE mit exact candidate/scroll/q/session/fence binding vorbereiten",
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
@@ -752,7 +753,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "LIVE_CANDIDATE_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+      "status": "LIVE_CANDIDATE_EVIDENCE_RATIFIED_NO_WRITE",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -762,7 +763,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_LIVE_CANDIDATE_REAL_BROWSER_OBSERVE",
+      "nextAction": "PR20_8_UPGRADE_DURABLE_SHADOW_NO_WRITE",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -778,7 +779,9 @@
         "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly.test.mjs",
         "v5/grundlage/vertraege/runtime/pr20-8-live-candidate-readonly-preparation.json",
         "v5/roadmap/v5-autonomous-test-manifest.json",
-        "v5/werkzeuge/tests/v5-autonomous-test-manifest.test.mjs"
+        "v5/werkzeuge/tests/v5-autonomous-test-manifest.test.mjs",
+        "v5/roadmap/pr20-8-live-candidate-readonly-evidence.json",
+        "v5/grundlage/tests/pr20-wertmutation-live-candidate-evidence.test.mjs"
       ]
     },
     {
@@ -1618,7 +1621,7 @@
     }
   },
   "pr20_8": {
-    "status": "LIVE_CANDIDATE_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+    "status": "LIVE_CANDIDATE_EVIDENCE_RATIFIED_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1665,9 +1668,9 @@
       "normalExchange": "OFFEN_SEPARATE_RATIFICATION",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
-      "liveCandidateSelection": "MANIFEST_CUTOVER_PREPARED_NO_WRITE"
+      "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY"
     },
-    "nextAction": "PR20_8_LIVE_CANDIDATE_REAL_BROWSER_OBSERVE",
+    "nextAction": "PR20_8_UPGRADE_DURABLE_SHADOW_NO_WRITE",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -1708,6 +1711,23 @@
     "liveCandidateDiscoverySourceCommit": "7307573841b86b1fb22fd5abfb73a3d461bf0049",
     "liveCandidateDiscoveryPackageSha256": "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5",
     "liveCandidateDiscoveryManifest": "v5/roadmap/v5-autonomous-test-manifest.json",
-    "liveCandidateDiscoveryManifestCutoverPrepared": true
+    "liveCandidateDiscoveryManifestCutoverPrepared": true,
+    "liveCandidateDiscoveryEvidence": "v5/roadmap/pr20-8-live-candidate-readonly-evidence.json",
+    "liveCandidateDiscoveryEvidenceStatus": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
+    "liveCandidateDiscoveryEvidenceRatified": true,
+    "liveCandidateDiscoveryEvidenceManifestMainCommit": "4ca28e7593e7757a05e0be4ea4f87902d8e089a9",
+    "liveCandidateDiscoveryObservedAtMs": 1790256949100,
+    "observedUpgradeCandidate": {
+      "name": "gloves",
+      "level": 0,
+      "observedInventoryIndex": 6,
+      "baseGold": 3400,
+      "scrollName": "scroll0",
+      "observedScrollQuantity": 36,
+      "observedIndexCarriesWriteAuthority": false,
+      "freshReresolutionBeforeSendRequired": true
+    },
+    "observedCompoundCandidate": null,
+    "observedExchangeCandidate": null
   }
 }
