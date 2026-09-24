@@ -731,14 +731,14 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_COMMITTED_TARGET_FAMILIES_NO_CANDIDATE_EXIT_GATE_BLOCKED",
+    "UPGRADE_COMMITTED_TARGET_ITEMS_PRESENT_V1_0_4_RESCAN_PREPARED",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "WAIT_FOR_NATURAL_COMPOUND_OR_EXCHANGE_NORMAL_CANDIDATE_THEN_REPEAT_READONLY_TARGET_RESCAN",
+    "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_4_REAL_BROWSER_RUN",
   );
   const exit=prep.pr20_8.exitGateReview;
-  assert.equal(exit.status,"BLOCKED_BY_REQUIRED_COMPOUND_EXCHANGE_LIVE_RATIFICATION");
+  assert.equal(exit.status,"RESCAN_V1_0_4_PENDING_TARGET_FAMILY_OBSERVATION");
   assert.equal(exit.evidence,"roadmap/pr20-8-no-candidate-exit-gate-review.json");
   assert.equal(exit.currentExitGateSatisfied,false);
   assert.equal(exit.compoundRatified,false);
@@ -854,14 +854,14 @@ test("PR20.8 bridge handshake and terminal recovery are confirmed zero-write", (
 
 test("PR20.8 remaining Compound/Exchange candidate rescan ratifies no-candidate evidence and keeps authority closed", () => {
   const r=prep.pr20_8.remainingCandidateRescan;
-  assert.equal(r.status,"V1_0_3_REAL_BROWSER_BLOCKED_NO_TARGET_CANDIDATE_ZERO_WRITE");
+  assert.equal(r.status,"V1_0_4_OPERATOR_ITEMS_PRESENT_RESCAN_PREPARED");
   assert.equal(r.testId,"pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(r.controllerVersion,"1.0.3");
-  assert.equal(r.package,"werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js");
-  assert.equal(r.test,"werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.test.mjs");
+  assert.equal(r.controllerVersion,"1.0.4");
+  assert.equal(r.package,"werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js");
+  assert.equal(r.test,"werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.test.mjs");
   assert.equal(r.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
-  assert.equal(r.sourceCommit,"a0625dd9611b1006dc6f09ef7222ce5b67361ca6");
-  assert.equal(r.packageSha256,"f633b5ed877120aa9c76c2c788b64b8efb20eef155a0d38612fb5fca7c20da25");
+  assert.equal(r.sourceCommit,"27e25e69dc0e26d8ae05328335718c36a6a0c659");
+  assert.equal(r.packageSha256,"0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b");
   assert.equal(r.packageBytes,21343);
   assert.deepEqual(r.targetFamilies,["COMPOUND","EXCHANGE"]);
   assert.equal(r.upgradeFamilyInformationalOnly,true);
@@ -877,6 +877,13 @@ test("PR20.8 remaining Compound/Exchange candidate rescan ratifies no-candidate 
   assert.equal(r.compoundRatified,false);
   assert.equal(r.exchangeRatified,false);
   assert.equal(r.acquisitionOrMutationToCreateCandidateAllowed,false);
+  assert.deepEqual(r.operatorInventoryRefresh,{
+    reported:true,
+    purpose:"REPEAT_READ_ONLY_TARGET_FAMILY_RESCAN_AFTER_OPERATOR_PLACED_SUITABLE_ITEMS",
+    authorityGranted:false,
+    gameplayWriteRequested:false,
+    scannerSemanticsChanged:false,
+  });
 
   const n=r.observedV1_0_3NoCandidate;
   assert.equal(n.controllerVersion,"1.0.3");
