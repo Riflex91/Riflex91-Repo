@@ -6,8 +6,8 @@
   "controllerVersion": "1.0.0",
   "status": "OFFEN",
   "evidenceArt": "V5_PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY",
-  "sourceCommit": null,
-  "packageSha256": null,
+  "sourceCommit": "de3a9106193919327e708b22d78d1623ca5de5a5",
+  "packageSha256": "bfc2d52d9968460c7d977472e7301c6b32f1f7f78f2661e04579573cd661397c",
   "manifestMainCommit": null,
   "observedAtMs": null,
   "terminal": null,
@@ -28,6 +28,6 @@
   },
   "ratified": false,
   "blocker": [
-    "ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_NOCH_NICHT_AUSGEFUEHRT"
+    "REAL_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_NOCH_NICHT_TERMINAL"
   ]
 }
