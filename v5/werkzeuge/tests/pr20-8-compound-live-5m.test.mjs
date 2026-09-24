@@ -24,6 +24,10 @@ class MemoryStorage {
   removeItem(key) { this.rows.delete(String(key)); }
 }
 
+function plain(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 function fakeClock(start=2_000_000) {
   let now=start;
   class FakeDate extends Date {
@@ -166,7 +170,7 @@ test("PR20.8 Compound 5m observer proves 60 stable samples with zero additional 
   assert.equal(status.status,"BESTANDEN");
   assert.equal(status.phase,"COMPLETE");
   assert.equal(status.terminal,true);
-  assert.deepEqual(status.blocker,[]);
+  assert.deepEqual(plain(status.blocker),[]);
   assert.equal(env.compoundCalls(),0);
   assert.equal(status.gameplayWrites,0);
   assert.equal(status.publicFunctionCalls,0);
@@ -190,18 +194,18 @@ test("PR20.8 Compound 5m observer proves 60 stable samples with zero additional 
   assert.equal(e.sourceAuthorityUses,1);
   assert.equal(e.sourceAuthorityMaximumUses,1);
   assert.equal(e.sourceActiveFences,0);
-  assert.deepEqual(e.historicalMutationCounters,{
+  assert.deepEqual(plain(e.historicalMutationCounters),{
     gameplayWrites:1,publicFunctionCalls:1,rawWriteCalls:0,
   });
-  assert.deepEqual(e.additionalMutationCounters,{
+  assert.deepEqual(plain(e.additionalMutationCounters),{
     gameplayWrites:0,publicFunctionCalls:0,rawWriteCalls:0,
   });
   assert.equal(e.noResendPathPresent,true);
   assert.equal(e.postcondition.stable,true);
-  assert.deepEqual(e.postcondition.resultItem,{index:1,name:"hpamulet",level:1});
-  assert.deepEqual(e.postcondition.consumedInputIndexes,[22,23]);
+  assert.deepEqual(plain(e.postcondition.resultItem),{index:1,name:"hpamulet",level:1});
+  assert.deepEqual(plain(e.postcondition.consumedInputIndexes),[22,23]);
   assert.equal(e.postcondition.consumedInputsEmpty,true);
-  assert.deepEqual(e.postcondition.scroll,{index:18,name:"cscroll0",quantity:19});
+  assert.deepEqual(plain(e.postcondition.scroll),{index:18,name:"cscroll0",quantity:19});
   assert.equal(e.soak.status,"BESTANDEN");
   assert.equal(e.soak.samples,60);
   assert.equal(e.soak.minimumSamples,60);
