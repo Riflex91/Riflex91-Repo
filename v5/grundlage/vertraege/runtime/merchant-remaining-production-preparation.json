@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_BRIDGE_HANDSHAKE_PROBE_MANIFEST_CUTOVER_PREPARED",
+    "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTED_BRIDGE_PROBE_CONFIRMED_TERMINAL_RECOVERY_MANIFEST_CUTOVER_PREPARED",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_BRIDGE_HANDSHAKE_PROBE_REAL_BROWSER_RUN",
+    "nextAction": "PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -844,7 +844,7 @@
       "evidenceScrollQuantityAfter": 35
     },
     "updaterPersistenceBootstrap": {
-      "status": "V2_REAL_BROWSER_HANDSHAKE_FAILED",
+      "status": "V2_REAL_BROWSER_BESTANDEN_PERSISTED",
       "contract": "grundlage/vertraege/runtime/pr20-8-updater-persistence-bootstrap-preparation.json",
       "package": "werkzeuge/pr20-8-updater-recovery-bootstrap-v2.js",
       "test": "werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v2.test.mjs",
@@ -864,20 +864,23 @@
       "rawWriteCalls": 0,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_REAL_BROWSER_RUN",
+      "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN",
       "localAndParentObservabilityBridge": true,
       "synchronousBridgeHandshakeState": true,
       "priorBootstrapTestId": "pr20-8-native-updater-recovery-bootstrap-v1",
       "priorBridgeState": "ERROR",
       "priorBridgeError": "V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED",
       "priorBridgeObservedAt": "2026-09-24T17:03:44.6053409+00:00",
-      "bridgeObservedAt": "2026-09-24T17:15:16.3733796+00:00",
-      "bridgeState": "ERROR",
-      "bridgeError": "V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED",
-      "additionalGameplayWriteObserved": false
+      "bridgeObservedAt": "2026-09-24T17:29:10.540138+00:00",
+      "bridgeState": "ALREADY_PRESENT",
+      "bridgeError": null,
+      "additionalGameplayWriteObserved": false,
+      "telemetryBatchId": 8255,
+      "persistedObserved": true,
+      "persistedAtMs": 1790270182323
     },
     "bridgeHandshakeProbe": {
-      "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
+      "status": "V1_REAL_BROWSER_HANDSHAKE_BESTANDEN_TERMINAL_RECOVERY_MANIFEST_CUTOVER_PREPARED",
       "contract": "grundlage/vertraege/runtime/pr20-8-bridge-handshake-probe-preparation.json",
       "package": "werkzeuge/pr20-8-bridge-handshake-probe-v1.js",
       "test": "werkzeuge/tests/pr20-8-bridge-handshake-probe-v1.test.mjs",
@@ -901,7 +904,41 @@
       "upgradeOneWriteRunnerRetired": true,
       "compoundRatified": false,
       "exchangeRatified": false,
-      "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_REAL_BROWSER_RUN"
+      "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN",
+      "telemetryBatchId": 8256,
+      "bridgeObservedAt": "2026-09-24T17:44:16.2552232+00:00",
+      "bridgeState": "ALREADY_PRESENT",
+      "bridgeError": null,
+      "observedStatus": "LAEUFT",
+      "observedPhase": "BRIDGE_HANDSHAKE_PROBE",
+      "observedTerminal": false,
+      "additionalGameplayWriteObserved": false,
+      "terminalRecovery": {
+        "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
+        "controllerVersion": "1.0.1",
+        "package": "werkzeuge/pr20-8-bridge-handshake-probe-v1-0-1.js",
+        "test": "werkzeuge/tests/pr20-8-bridge-handshake-probe-v1-0-1.test.mjs",
+        "expectedGlobal": "V5PR208BridgeHandshakeProbe",
+        "sourceCommit": "fe38f784d9d8bfeac3d9b30874a453716bd9e3bc",
+        "packageSha256": "08d21dde622ed1cf2dd56438225e4274478263908363a5692bcb6c548b58303b",
+        "packageBytes": 2390,
+        "exactPriorVersion": "1.0.0",
+        "exactPriorStatus": "LAEUFT",
+        "exactPriorPhase": "BRIDGE_HANDSHAKE_PROBE",
+        "exactPriorTerminal": false,
+        "requiresGameplayWrites": 0,
+        "requiresRawWriteCalls": 0,
+        "requiresSameIntentRetry": false,
+        "requiresIntentCount": 0,
+        "targetStatus": "BESTANDEN",
+        "targetPhase": "BRIDGE_HANDSHAKE_PROBE_COMPLETE",
+        "targetTerminal": true,
+        "gameplayWrites": 0,
+        "publicFunctionCalls": 0,
+        "rawWriteCalls": 0,
+        "sameIntentRetry": false,
+        "normalRuntimeAllowed": false
+      }
     }
   },
   "pr20_9": {
