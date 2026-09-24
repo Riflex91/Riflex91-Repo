@@ -16,6 +16,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208UpdaterRecoveryBootstrap",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-native-updater-recovery-bootstrap-v2": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v2.js",
+    expectedGlobal: "V5PR208UpdaterRecoveryBootstrap",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-upgrade-durable-shadow-no-write": Object.freeze({
     path: "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
     expectedGlobal: "V5PR208UpgradeDurableShadowNoWrite",
@@ -211,6 +216,39 @@ test("PR20.8 updater persistence bootstrap is exact, self-persisting and gamepla
     "send_item(", "send_gold("
   ]) assert.equal(packageSource.includes(marker), false, marker);
 });
+
+test("PR20.8 updater persistence bootstrap v2 fixes split-context handshake and stays gameplay-no-write", () => {
+  if (manifest.testId !== "pr20-8-native-updater-recovery-bootstrap-v2") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(
+    manifest.sourceCommit,
+    "5f791fc3daa6a173d553d07ac08c7589519df610",
+  );
+  assert.equal(
+    manifest.packageSha256,
+    "3ebaf86cd8e454eccab0713035c6a40f2fe0dfd890ee92d59bf1a4e8c01f6e84",
+  );
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  assert.ok(packageSource.includes("function installPr208UpdaterRecoveryBootstrapV2()"));
+  assert.ok(packageSource.includes("function installObservabilityBridgeOn(owner)"));
+  assert.ok(packageSource.includes("function runtimeRoots()"));
+  assert.ok(packageSource.includes("const UPDATER_VERSION = '1.0.8'"));
+  assert.ok(packageSource.includes("cleanBundleSource"));
+  assert.ok(packageSource.includes("upload_code"));
+  assert.ok(packageSource.includes("load_code"));
+  assert.ok(packageSource.includes("codeSlotWrites"));
+  assert.ok(packageSource.includes("codeSlotReloads"));
+  assert.ok(packageSource.includes("gameplayWrites: 0"));
+  assert.ok(packageSource.includes("publicFunctionCalls: 0"));
+  assert.ok(packageSource.includes("rawWriteCalls: 0"));
+  assert.ok(packageSource.includes("sameIntentRetry: false"));
+  for (const marker of [
+    "socket.emit(", ".socket.emit(", "api_call(", "use_skill(",
+    "upgrade(", "compound(", "exchange(", "craft(", "buy(", "sell(",
+    "send_item(", "send_gold("
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
+
 
 test("updater recovery bootstrap is terminal no-write only", () => {
   if (!manifest.testId.startsWith("pr20-6-native-updater-recovery-bootstrap-v")) return;

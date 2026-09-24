@@ -55,20 +55,20 @@ test("PR20.8 productive Upgrade one-write evidence ratifies exactly one committe
 });
 
 test("after committed Upgrade evidence the active manifest retires the mutating runner into a terminal no-write updater bootstrap", () => {
-  assert.equal(manifest.testId, "pr20-8-native-updater-recovery-bootstrap-v1");
+  assert.equal(manifest.testId, "pr20-8-native-updater-recovery-bootstrap-v2");
   assert.equal(manifest.controllerVersion, "1.0.0");
   assert.equal(manifest.gate, "PR20.8_WERTMUTATIONEN");
   assert.equal(
     manifest.sourceCommit,
-    "e6a52aafcacb5c23c4a2cdfef88250cbb0e3fe2e",
+    "5f791fc3daa6a173d553d07ac08c7589519df610",
   );
   assert.equal(
     manifest.packagePath,
-    "v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v1.js",
+    "v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v2.js",
   );
   assert.equal(
     manifest.packageSha256,
-    "0745b836e660c1f6a1bd96a4418908c2822556542ca09e7876e624800d2888fb",
+    "3ebaf86cd8e454eccab0713035c6a40f2fe0dfd890ee92d59bf1a4e8c01f6e84",
   );
   assert.equal(manifest.expectedGlobal, "V5PR208UpdaterRecoveryBootstrap");
   assert.equal(manifest.normalRuntimeAllowed, false);
