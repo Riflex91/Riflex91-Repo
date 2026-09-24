@@ -1414,9 +1414,38 @@
     const issued = issueAuthority(intent, fresh);
     state.authority = {...state.authority, authorityIssued: true, maximumUses: 1};
     publishTelemetryFacades();
+
     assertRuntimeLease();
     assertFences(intent.transactionId);
-    const consumed = consumeAuthority(intent, issued, fresh);
+    const sendFresh = await strictObservation(performance);
+    if (sendFresh.fingerprints.prestateFingerprintSha256 !== intent.fingerprints.prestateFingerprintSha256
+        || canonical(sendFresh.candidate.indexes) !== canonical(intent.candidate.indexes)
+        || canonical(sendFresh.candidate.fingerprintsSha256) !== canonical(intent.candidate.fingerprintsSha256)
+        || sendFresh.scroll.index !== intent.scroll.index
+        || sendFresh.fingerprints.conditionStateFingerprintSha256 !== intent.fingerprints.conditionStateFingerprintSha256
+        || sendFresh.fingerprints.compoundEffectsFingerprintSha256 !== intent.fingerprints.compoundEffectsFingerprintSha256) {
+      const revoked = {...issued, revoked: true, revokedAtMs: Date.now()};
+      writeJsonExact(authorityKey(intent.transactionId), revoked);
+      releaseFences(intent.transactionId);
+      intent = updateIntent(created.key, intent, {
+        status: "ABORTED_PRE_SEND_REOBSERVE_DRIFT",
+        terminal: true,
+        sendBoundaryState: "NICHT_GESENDET",
+        outcome: {classification: "NOT_APPLIED", reason: "PRE_SEND_REOBSERVE_DRIFT"}
+      });
+      setState({
+        status: "NICHT_BESTANDEN",
+        phase: "COMPLETE",
+        terminal: true,
+        blocker: ["PR20_8_COMPOUND_LIVE_PRE_SEND_REOBSERVE_DRIFT"],
+        evidence: terminalEvidence(intent, intent.outcome)
+      });
+      return state;
+    }
+
+    assertRuntimeLease();
+    assertFences(intent.transactionId);
+    const consumed = consumeAuthority(intent, issued, sendFresh);
     if (consumed.uses !== 1 || consumed.consumed !== true) {
       throw new Error("PR20_8_COMPOUND_LIVE_AUTHORITY_CONSUME_FEHLER");
     }
@@ -1448,10 +1477,10 @@
     try {
       sendPromise = Promise.resolve(
         globalThis.compound(
-          fresh.candidate.indexes[0],
-          fresh.candidate.indexes[1],
-          fresh.candidate.indexes[2],
-          fresh.scroll.index,
+          sendFresh.candidate.indexes[0],
+          sendFresh.candidate.indexes[1],
+          sendFresh.candidate.indexes[2],
+          sendFresh.scroll.index,
           null,
           false
         )
