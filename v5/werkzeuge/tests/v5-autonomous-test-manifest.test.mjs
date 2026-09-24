@@ -21,6 +21,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR207GearShadowTest",
     gate: "PR20.7_GEAR"
   }),
+  "pr20-7-gear-occupied-slot-live-5m": Object.freeze({
+    path: "v5/werkzeuge/pr20-7-gear-occupied-slot-live-5m.js",
+    expectedGlobal: "V5PR207GearOccupiedLiveTest",
+    gate: "PR20.7_GEAR"
+  }),
   "pr20-6-native-updater-recovery-bootstrap-v1": Object.freeze({
     path: "v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js",
     expectedGlobal: "V5PR206UpdaterRecoveryBootstrap",
@@ -251,4 +256,30 @@ test("PR20.7 Gear shadow manifest stays merchant-only, durable-shadow and zero-w
   assert.equal(packageSource.includes("equip("), false);
   assert.equal(packageSource.includes("unequip("), false);
   assert.equal(packageSource.includes("send_item("), false);
+});
+
+
+test("PR20.7 occupied-slot live manifest permits exactly one public equip and no bypass", () => {
+  if (manifest.testId !== "pr20-7-gear-occupied-slot-live-5m") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.equal("workerPackageSha256" in manifest, false);
+  assert.equal("workerExpectedGlobal" in manifest, false);
+  assert.equal("workerTargets" in manifest, false);
+  assert.ok(packageSource.includes("performance_trick"));
+  assert.ok(packageSource.includes('candidateName: "wcap"'));
+  assert.ok(packageSource.includes('slot: "helmet"'));
+  assert.ok(packageSource.includes("completionStatus:\"BESTANDEN\""));
+  assert.ok(packageSource.includes("restartReconciliation"));
+  assert.ok(packageSource.includes("resendAttempted:false"));
+  assert.equal((packageSource.match(/r\\.equip\\(/g) || []).length, 1);
+  assert.equal(packageSource.includes("unequip("), false);
+  assert.equal(packageSource.includes("use_skill("), false);
+  assert.equal(packageSource.includes("start_character("), false);
+  assert.equal(packageSource.includes("command_character("), false);
+  assert.equal(packageSource.includes("/disconnect "), false);
+  assert.equal(packageSource.includes("send_item("), false);
+  assert.equal(packageSource.includes("api_call("), false);
+  assert.equal(packageSource.includes("socket.emit("), false);
 });
