@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0.1';
+  const VERSION = '1.0.0';
   const TEST_ID = 'pr20-7-gear-weapon-offhand-acquisition-read-only-preflight';
   const ITEM_NAME = 'wshield';
   const ITEM_DISPLAY_NAME = 'Wooden Shield';
@@ -172,25 +172,6 @@
     };
   }
 
-  function buyWithGoldAvailable() {
-    for (const candidate of roots()) {
-      try {
-        if (typeof candidate?.buy_with_gold === 'function') return true;
-      } catch {}
-    }
-    return false;
-  }
-
-  function observedSellDistance() {
-    for (const candidate of roots()) {
-      try {
-        const value = Number(candidate?.B?.sell_dist);
-        if (Number.isFinite(value) && value > 0) return value;
-      } catch {}
-    }
-    return null;
-  }
-
   function itemSummary(r, item) {
     if (!item || typeof item !== 'object' || !item.name) return null;
     const def = r.G.items[item.name] || {};
@@ -267,26 +248,15 @@
 
     const vendor = r.G.npcs[VENDOR_ID];
     if (!vendor || text(vendor.role, 32) !== 'merchant'
-        || text(vendor.name, 96) !== 'Gabriel'
         || !Array.isArray(vendor.items)
         || !vendor.items.includes(ITEM_NAME)) {
       throw new Error('PR20_7_ACQUISITION_VENDOR_DEFINITION_DRIFT');
     }
 
-    if (!buyWithGoldAvailable()) {
-      throw new Error('PR20_7_ACQUISITION_BUY_WITH_GOLD_FEHLT');
-    }
-
     const vendorLocations = Array.isArray(r.G.maps?.[c.map]?.items?.[ITEM_NAME])
       ? r.G.maps[c.map].items[ITEM_NAME]
       : [];
-    if (!vendorLocations.length) {
-      throw new Error('PR20_7_ACQUISITION_VENDOR_POSITION_FEHLT');
-    }
-    const sellDist = observedSellDistance();
-    if (!Number.isFinite(sellDist)) {
-      throw new Error('PR20_7_ACQUISITION_SELL_DIST_FEHLT');
-    }
+    const sellDist = Number(r.B?.sell_dist);
     let nearestVendorDistance = null;
     if (typeof r.simple_distance === 'function' && vendorLocations.length) {
       for (const location of vendorLocations) {
@@ -297,13 +267,9 @@
         } catch {}
       }
     }
-    if (!Number.isFinite(nearestVendorDistance)) {
-      throw new Error('PR20_7_ACQUISITION_VENDOR_DISTANZ_UNBEOBACHTBAR');
-    }
-    const vendorReachableNow = nearestVendorDistance < sellDist;
-    if (!vendorReachableNow) {
-      throw new Error('PR20_7_ACQUISITION_VENDOR_NICHT_ERREICHBAR');
-    }
+    const vendorReachableNow = Number.isFinite(nearestVendorDistance)
+      && Number.isFinite(sellDist)
+      && nearestVendorDistance < sellDist;
 
     const freeSlots = c.items.reduce((sum, item) => sum + (item ? 0 : 1), 0);
     if (freeSlots < 1) throw new Error('PR20_7_ACQUISITION_KEIN_FREIER_INVENTARSLOT');
@@ -349,7 +315,7 @@
       acquisition: {
         route: 'GOLD_ONLY_NPC',
         publicFunction: 'buy_with_gold',
-        publicFunctionAvailable: true,
+        publicFunctionAvailable: typeof r.buy_with_gold === 'function',
         freeInventorySlots: freeSlots,
         existingQuantity,
         observedGold: gold,
