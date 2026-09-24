@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-account-weapon-candidate-discovery",
+  "controllerVersion": "1.0.0",
+  "status": "PACKAGE_BEREIT_MANIFEST_CUTOVER_OFFEN",
+  "purpose": "READ_ONLY_ACCOUNT_ROSTER_CANDIDATE_DISCOVERY_AFTER_MERCHANT_RESOURCE_BLOCK",
+  "deployment": {
+    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
+    "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "coordinatorClass": "merchant",
+    "packageCommitPinned": false,
+    "sourceCommit": null,
+    "packagePath": "v5/werkzeuge/pr20-7-account-weapon-candidate-discovery.js",
+    "packageSha256": null,
+    "expectedGlobal": "V5PR207AccountWeaponCandidateDiscovery",
+    "workerPackageConfigured": false,
+    "farmerWorkerDistribution": false
+  },
+  "scope": {
+    "exactMerchantCoordinator": "My_Merchant",
+    "exactFarmerRows": [
+      "My_Ranger1:ranger",
+      "My_Priest:priest",
+      "My_Mage:mage"
+    ],
+    "sources": [
+      "get_characters",
+      "X.characters"
+    ],
+    "liveSessionPreflightStillRequiredAfterDiscovery": true,
+    "discoveryDoesNotRatifyFarmerGearAllocation": true,
+    "noSecretsStored": true
+  },
+  "candidateRules": {
+    "explicitSlots": [
+      "mainhand",
+      "offhand"
+    ],
+    "classRulesFromG": true,
+    "itemClassRestrictionChecked": true,
+    "itemLevelChecked": true,
+    "doublehandRequiresEmptyOffhand": true,
+    "oppositeHandObserved": true,
+    "deterministicSelection": true
+  },
+  "mutationBoundary": {
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "durableIntentCreated": false,
+    "authorityIssued": false,
+    "weaponOffhandWriteRatification": false,
+    "farmerGearAllocationRatification": false,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "passConditions": [
+    "owned exact farmer row with items and slots exists",
+    "compatible mainhand or offhand candidate exists under current class rules",
+    "candidate is discovery-only and still requires exact live-session preflight",
+    "0 gameplay/public/raw writes"
+  ],
+  "failClosed": [
+    "get_characters/X.characters unavailable",
+    "owned rows lack inventory/slots",
+    "no compatible farmer candidate",
+    "performance_trick unavailable/not playing",
+    "merchant coordinator context missing"
+  ],
+  "evidence": "v5/roadmap/pr20-7-account-weapon-candidate-discovery-evidence.json",
+  "nextAfterPass": "PR20_7_WEAPON_OFFHAND_EXACT_FARMER_LIVE_READ_ONLY_PREFLIGHT"
+}
