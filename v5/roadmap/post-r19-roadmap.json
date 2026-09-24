@@ -87,8 +87,8 @@
     "Compound/Exchange besitzen aktuell keinen ratifizierten einfachen Live-Kandidaten",
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
-    "PR20.8 Upgrade One-Write v1.0.3 Item-Definition-Recovery ist SHA-gepinnt im Autonomous-Test-Manifest; normalRuntimeAllowed bleibt false",
-    "AKTUELL: v1.0.3 Item-Definition-Recovery im realen Browser beobachten; nur bei frischem Zustand exakt einen Upgrade-Write ratifizieren; Compound/Exchange bleiben separat"
+    "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
+    "AKTUELL: terminalen No-Write-Updater-Persistenz-Bootstrap beobachten und Code-Slot-Persistenz von Updater v1.0.8 bestaetigen; Upgrade-Runner nicht erneut aktivieren"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_ITEM_DEFINITION_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
+      "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTENCE_BOOTSTRAP_MANIFEST_CUTOVER_PREPARED",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN_V1_0_3",
+      "nextAction": "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_REAL_BROWSER_RUN",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -800,7 +800,11 @@
         "v5/werkzeuge/tests/v5-autonomous-test-ingame-updater.test.mjs",
         "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-3.js",
         "v5/werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-3.test.mjs",
-        "v5/grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-item-definition-recovery-preparation.json"
+        "v5/grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-item-definition-recovery-preparation.json",
+        "v5/roadmap/pr20-8-upgrade-productive-one-write-evidence.json",
+        "v5/grundlage/vertraege/runtime/pr20-8-updater-persistence-bootstrap-preparation.json",
+        "v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v1.js",
+        "v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v1.test.mjs"
       ]
     },
     {
@@ -1640,7 +1644,7 @@
     }
   },
   "pr20_8": {
-    "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_ITEM_DEFINITION_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
+    "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTENCE_BOOTSTRAP_MANIFEST_CUTOVER_PREPARED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1689,7 +1693,7 @@
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY"
     },
-    "nextAction": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN_V1_0_3",
+    "nextAction": "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_REAL_BROWSER_RUN",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -1831,7 +1835,7 @@
       "packageContainsExactlyOnePublicUpgradeCallSite": true
     },
     "upgradeProductiveOneWriteRunner": {
-      "status": "ITEM_DEFINITION_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
+      "status": "COMMITTED_SUCCESS_RETIRED_FROM_ACTIVE_MANIFEST",
       "package": "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-3.js",
       "test": "v5/werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-3.test.mjs",
       "contract": "v5/grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json",
@@ -1844,18 +1848,18 @@
       "maximumPublicFunctionCalls": 1,
       "maximumRawWriteCalls": 0,
       "sameIntentRetry": false,
-      "manifestCutoverPrepared": true,
-      "deployed": false,
-      "liveWriteEnabled": true,
-      "realUpgradeMutationPerformed": false,
+      "manifestCutoverPrepared": false,
+      "deployed": true,
+      "liveWriteEnabled": false,
+      "realUpgradeMutationPerformed": true,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN_V1_0_3",
+      "nextGate": "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_REAL_BROWSER_RUN",
       "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
       "sourceCommit": "a4f58c98edc4d794a23346183d6f2375dceb5308",
       "packageSha256": "1290b72479eb5683ebab2c1202d09a2d5918a7a1bbf1a1fd190e48f0e2bab3a1",
       "packageBytes": 51544,
-      "deploymentEvidenceObserved": false,
-      "bridgeMayDeployPinnedRunner": true,
+      "deploymentEvidenceObserved": true,
+      "bridgeMayDeployPinnedRunner": false,
       "recoveryContract": "v5/grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-item-definition-recovery-preparation.json",
       "previousControllerVersion": "1.0.2",
       "previousAttemptBlocker": "PR20_8_UPGRADE_LIVE_ITEM_DEFINITION_DRIFT",
@@ -1869,7 +1873,46 @@
       "staleLeaseRecoveryRequiresNoAuthority": true,
       "staleLeaseRecoveryRequiresNoPersistedGuardRows": true,
       "staleLeaseRecoveryRequiresIdleMutationQueue": true,
-      "authoritativeUpgradeDefinitionShape": "OBJECT"
+      "authoritativeUpgradeDefinitionShape": "OBJECT",
+      "evidence": "v5/roadmap/pr20-8-upgrade-productive-one-write-evidence.json",
+      "evidenceTelemetryBatchId": 8252,
+      "evidenceObservedControllerVersion": "1.0.3",
+      "evidenceStatus": "BESTANDEN",
+      "evidencePhase": "COMPLETE",
+      "evidenceReconciliation": "COMMITTED_SUCCESS",
+      "evidenceSendCount": 1,
+      "evidenceGameplayWrites": 1,
+      "evidencePublicFunctionCalls": 1,
+      "evidenceRawWriteCalls": 0,
+      "evidenceCandidate": "gloves@0->1",
+      "evidenceCandidateIndex": 6,
+      "evidenceScroll": "scroll0",
+      "evidenceScrollIndex": 14,
+      "evidenceScrollQuantityBefore": 36,
+      "evidenceScrollQuantityAfter": 35
+    },
+    "updaterPersistenceBootstrap": {
+      "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
+      "contract": "v5/grundlage/vertraege/runtime/pr20-8-updater-persistence-bootstrap-preparation.json",
+      "package": "v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v1.js",
+      "test": "v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v1.test.mjs",
+      "testId": "pr20-8-native-updater-recovery-bootstrap-v1",
+      "controllerVersion": "1.0.0",
+      "updaterVersion": "1.0.8",
+      "expectedGlobal": "V5PR208UpdaterRecoveryBootstrap",
+      "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+      "sourceCommit": "e6a52aafcacb5c23c4a2cdfef88250cbb0e3fe2e",
+      "packageSha256": "0745b836e660c1f6a1bd96a4418908c2822556542ca09e7876e624800d2888fb",
+      "packageBytes": 28532,
+      "selfPersisting": true,
+      "maximumCodeSlotWritesPerFreshPersistence": 1,
+      "maximumCodeSlotReloadsPerFreshPersistence": 1,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "sameIntentRetry": false,
+      "normalRuntimeAllowed": false,
+      "nextGate": "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_REAL_BROWSER_RUN"
     }
   }
 }

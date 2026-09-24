@@ -11,6 +11,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208UpgradeProductiveOneWriteLive",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-native-updater-recovery-bootstrap-v1": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v1.js",
+    expectedGlobal: "V5PR208UpdaterRecoveryBootstrap",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-upgrade-durable-shadow-no-write": Object.freeze({
     path: "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
     expectedGlobal: "V5PR208UpgradeDurableShadowNoWrite",
@@ -175,6 +180,36 @@ test("PR20.6 MLuck package distributes only a narrow heartbeat worker to farmer 
   assert.ok(packageSource.includes("r.command_character(name,src)"));
   assert.ok(packageSource.includes("['ranger','priest','mage'].includes(workerClass)"));
   assert.ok(packageSource.includes("if(!['ranger','priest','mage'].includes(workerClass))return;"));
+});
+
+test("PR20.8 updater persistence bootstrap is exact, self-persisting and gameplay-no-write", () => {
+  if (manifest.testId !== "pr20-8-native-updater-recovery-bootstrap-v1") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(
+    manifest.sourceCommit,
+    "e6a52aafcacb5c23c4a2cdfef88250cbb0e3fe2e",
+  );
+  assert.equal(
+    manifest.packageSha256,
+    "0745b836e660c1f6a1bd96a4418908c2822556542ca09e7876e624800d2888fb",
+  );
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  assert.ok(packageSource.includes("function installPr208UpdaterRecoveryBootstrapV1()"));
+  assert.ok(packageSource.includes("const UPDATER_VERSION = '1.0.8'"));
+  assert.ok(packageSource.includes("cleanBundleSource"));
+  assert.ok(packageSource.includes("upload_code"));
+  assert.ok(packageSource.includes("load_code"));
+  assert.ok(packageSource.includes("codeSlotWrites"));
+  assert.ok(packageSource.includes("codeSlotReloads"));
+  assert.ok(packageSource.includes("gameplayWrites: 0"));
+  assert.ok(packageSource.includes("publicFunctionCalls: 0"));
+  assert.ok(packageSource.includes("rawWriteCalls: 0"));
+  assert.ok(packageSource.includes("sameIntentRetry: false"));
+  for (const marker of [
+    "socket.emit(", ".socket.emit(", "api_call(", "use_skill(",
+    "upgrade(", "compound(", "exchange(", "craft(", "buy(", "sell(",
+    "send_item(", "send_gold("
+  ]) assert.equal(packageSource.includes(marker), false, marker);
 });
 
 test("updater recovery bootstrap is terminal no-write only", () => {
