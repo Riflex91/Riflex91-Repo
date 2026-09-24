@@ -84,6 +84,7 @@ public sealed class CdpAdventureLandClient
 
         var targets = await FindTargetsAsync(cancellationToken);
         var workerChanges = await EnsureConfiguredV5WorkersAsync(manifest, targets, cancellationToken);
+        string? convergedReadOnlyContextTargetUrl = null;
 
         foreach (var target in targets)
         {
@@ -129,6 +130,17 @@ public sealed class CdpAdventureLandClient
                     {
                         var same = string.Equals(currentTestId, manifest.TestId, StringComparison.Ordinal);
                         var sameVersion = same && string.Equals(currentVersion, manifest.ControllerVersion, StringComparison.Ordinal);
+                        if (sameVersion
+                            && ShouldContinuePr208CandidateV103ContextConvergence(
+                                manifest.TestId,
+                                manifest.ControllerVersion,
+                                currentTestId,
+                                currentVersion))
+                        {
+                            convergedReadOnlyContextTargetUrl ??= target.Url;
+                            continue;
+                        }
+
                         return new V5AutonomousTestDeploymentResult(
                             workerChanges > 0
                                 ? "WORKERS_DEPLOYED"
@@ -177,6 +189,15 @@ public sealed class CdpAdventureLandClient
             {
                 // Try another same-origin Adventure Land target.
             }
+        }
+
+        if (convergedReadOnlyContextTargetUrl is not null)
+        {
+            return new V5AutonomousTestDeploymentResult(
+                workerChanges > 0 ? "WORKERS_DEPLOYED" : "ALREADY_PRESENT",
+                Changed: workerChanges > 0,
+                manifest.TestId,
+                convergedReadOnlyContextTargetUrl);
         }
 
         return new V5AutonomousTestDeploymentResult(
@@ -560,6 +581,21 @@ public sealed class CdpAdventureLandClient
             && currentRawWriteCalls == 0
             && !currentSameIntentRetry
             && currentIntentCount == 0;
+    }
+
+    public static bool ShouldContinuePr208CandidateV103ContextConvergence(
+        string desiredTestId,
+        string desiredVersion,
+        string? currentTestId,
+        string? currentVersion)
+    {
+        return string.Equals(
+                desiredTestId,
+                "pr20-8-wertmutation-live-candidate-readonly",
+                StringComparison.Ordinal)
+            && string.Equals(desiredVersion, "1.0.3", StringComparison.Ordinal)
+            && string.Equals(currentTestId, desiredTestId, StringComparison.Ordinal)
+            && string.Equals(currentVersion, desiredVersion, StringComparison.Ordinal);
     }
 
     public static bool IsStrictlyNewerControllerVersion(string? desiredVersion, string? currentVersion)
