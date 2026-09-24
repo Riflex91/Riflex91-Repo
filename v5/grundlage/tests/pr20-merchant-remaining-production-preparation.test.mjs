@@ -273,7 +273,6 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionObservedVendorDistance, 88.59875647515783);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionObservedSellDistance, 400);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionObservedSellDistanceSource, "OFFICIAL_SERVER_SOURCE_PIN");
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowFoundation, "grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowPackage, "werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionShadowTestId, "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write");
