@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_COMPOUND_DURABLE_SHADOW_NO_WRITE",
+  "status": "PACKAGE_BEREIT_NO_WRITE",
+  "testId": "pr20-8-compound-durable-shadow-no-write",
+  "controllerVersion": "1.0.0",
+  "family": "COMPOUND",
+  "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+  "ratifiedCandidateEvidenceCommit": "5974e293e973493241e3d659ea30d3cae85ebc35",
+  "ratifiedCandidateEvidence": "roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json",
+  "exactCandidate": {
+    "name": "hpamulet",
+    "level": 0,
+    "baseGold": 20000,
+    "physicalQuantity": 3,
+    "observedIndexesFromEvidence": [
+      1,
+      22,
+      23
+    ],
+    "observedIndexesCarryAuthority": false,
+    "currentIndexesMustBeReresolved": true,
+    "exactThreeDistinctPhysicalItemsRequired": true
+  },
+  "exactScroll": {
+    "name": "cscroll0",
+    "consumeQuantity": 1,
+    "observedQuantityFromEvidence": 20,
+    "currentIndexAndQuantityMustBeReresolved": true,
+    "type": "cscroll",
+    "grade": 0,
+    "baseGold": 6400
+  },
+  "offering": null,
+  "normalPathOnly": true,
+  "bindings": {
+    "actionContractId": "AL-ACTION-COMPOUND",
+    "recoveryContractId": "AL-RECOVERY-COMPOUND",
+    "verifierId": "AL-VERIFIER-COMPOUND",
+    "publicFunction": "compound"
+  },
+  "preflight": {
+    "exactCharacter": "My_Merchant",
+    "exactClass": "merchant",
+    "exactServer": "EU:I",
+    "exactSessionRequired": true,
+    "qMustBeEmpty": true,
+    "movingMustBeFalse": true,
+    "targetMustBeEmpty": true,
+    "aggroMustBeZero": true,
+    "alternativeRuntimeMustBeInactive": true,
+    "performanceTrickRequired": true,
+    "publicFunctionMustExist": true,
+    "stableDoubleObservation": true,
+    "stablePostIntentReobserve": true,
+    "serviceReachabilityRequired": true,
+    "serviceServerRule": "compound service range must be reachable unless computer",
+    "sourcePinnedSellDistance": 400,
+    "conservativeLiveSafetyDistanceMax": 300,
+    "serviceReference": "G.maps.main.ref.c_mid",
+    "scrollDefinitionExact": true,
+    "itemDefinitionExact": true,
+    "threeInputMaterialsFingerprintRequired": true,
+    "compoundEffectDomainFingerprintRequired": true,
+    "compoundEffectDomain": [
+      "character.s.massproduction",
+      "character.s.massproductionpp",
+      "character.p.ograce",
+      "character.p.c_roll",
+      "character.p.c_item",
+      "character.p.c_itemx",
+      "S.cgrace"
+    ]
+  },
+  "durableShadow": {
+    "storage": "LOCAL_STORAGE_SHADOW_ONLY",
+    "durableReadbackRequired": true,
+    "journalTerminalArt": "ABBRUCH",
+    "sendBoundaryState": "NICHT_GESENDET",
+    "reconciliationClassification": "NOT_APPLIED",
+    "sameIntentRetry": false,
+    "exactCandidateIndexesPinnedAtShadowTime": true,
+    "exactScrollIndexPinnedAtShadowTime": true,
+    "freshReresolutionRequiredBeforeFutureSend": true,
+    "exactTerminalIntentRecoveryAllowed": true,
+    "recoveryRequiresExactPersistedIntent": true,
+    "recoveryRewritesIntent": false,
+    "recoveryCreatesGameplayWrite": false
+  },
+  "oneShotPreparation": {
+    "bindingPrepared": true,
+    "maximumUses": 1,
+    "compoundAuthorityIssued": false
+  },
+  "resourceClaims": [
+    "character:My_Merchant:inventory",
+    "character:My_Merchant:q",
+    "character:My_Merchant:action_channel:compound",
+    "character:My_Merchant:socket_call_budget"
+  ],
+  "package": {
+    "path": "werkzeuge/pr20-8-compound-durable-shadow-no-write.js",
+    "test": "werkzeuge/tests/pr20-8-compound-durable-shadow-no-write.test.mjs",
+    "sourceCommit": "5577a45443db03a8cc0617ce61e0ec4b427d4aea",
+    "sha256": "94685bc0d439eb86b3a31763ffa0a06854c06572d875f55584a7558c9c368547",
+    "bytes": 34995,
+    "expectedGlobal": "V5PR208CompoundDurableShadowNoWrite"
+  },
+  "authorityBoundary": {
+    "productionDurableIntentCreated": false,
+    "authorityIssued": false,
+    "compoundAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalCompoundWriteRatification": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "normalRuntimeAllowed": false
+  },
+  "artifacts": [
+    "v5/werkzeuge/pr20-8-compound-durable-shadow-no-write.js",
+    "v5/werkzeuge/tests/pr20-8-compound-durable-shadow-no-write.test.mjs"
+  ],
+  "nextGate": "PR20_8_COMPOUND_DURABLE_SHADOW_MANIFEST_CUTOVER"
+}
