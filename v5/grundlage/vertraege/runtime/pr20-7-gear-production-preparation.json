@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_V2_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+  "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_1_0_3_SAME_TEST_UPGRADE_BEREIT_EVIDENCE_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -86,7 +86,7 @@
       "real no-write browser shadow evidence",
       "real productive occupied non-weapon slot one-shot swap with 5m committed evidence"
     ],
-    "next": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_V2_EXECUTE"
+    "next": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_1_0_3_EXECUTE"
   },
   "preflight": {
     "implemented": true,
@@ -290,11 +290,11 @@
     "accountDiscoveryRawWriteCalls": 0,
     "accountDiscoveryFarmerGearAllocationRatification": false,
     "accountDiscoveryEvidenceStatus": "OFFEN",
-    "accountDiscoverySourceCommit": "cb208ce57fd5bc5c07de81662d138220d5143af3",
-    "accountDiscoveryPackageSha256": "1f56a0080d113e525c160a399ecaacfb0c00ad54108ea199027ddeec027ff27c",
+    "accountDiscoverySourceCommit": "7ecfabc9122be52ceb7231c9bfcba451657e10ce",
+    "accountDiscoveryPackageSha256": "3619dd3e56410458db5c5ce859a05fbbccd97b912d07e47d5d045eb93383f60f",
     "accountDiscoveryManifest": "roadmap/v5-autonomous-test-manifest.json",
     "accountDiscoveryManifestCutoverPrepared": true,
-    "accountDiscoveryControllerVersion": "1.0.2",
+    "accountDiscoveryControllerVersion": "1.0.3",
     "accountDiscoveryBridgeContractFixed": true,
     "accountDiscoveryStatusEnvelope": "status.v5AutonomousTest",
     "accountDiscoveryPeekTelemetryArray": true,
@@ -307,6 +307,13 @@
     "accountDiscoveryPriorAttemptStatus": "BLOCKIERT_PERFORMANCE_TRICK_ZERO_WRITE",
     "accountDiscoveryTestId": "pr20-7-gear-account-weapon-candidate-discovery-v2",
     "accountDiscoverySupersedesTestId": "pr20-7-gear-account-weapon-candidate-discovery",
-    "accountDiscoverySameTestVersionUpgradeBypassed": false
+    "accountDiscoverySameTestVersionUpgradeBypassed": false,
+    "accountDiscoveryRichSourceSelection": true,
+    "accountDiscoverySources": [
+      "get_characters",
+      "X.characters"
+    ],
+    "accountDiscoveryPriorV2Status": "BLOCKIERT_ROSTER_OHNE_INVENTAR_SLOTS_ZERO_WRITE",
+    "accountDiscoverySameTestUpgradeGate": "WINDOWS_BRIDGE_TERMINAL_ZERO_WRITE_ONLY"
   }
 }
