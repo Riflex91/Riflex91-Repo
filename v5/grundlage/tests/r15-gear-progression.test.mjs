@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import { createHash } from "node:crypto";
 
 import {
   GearAllokationsLedger,
@@ -344,4 +346,101 @@ test("priorisierteOffene bereinigt abgelaufene Ziele ebenfalls fail-safe", () =>
 
   assert.equal(ledger.priorisierteOffene(300).length, 0);
   assert.equal(ledger.snapshot()[0].status, "ABGEBROCHEN");
+});
+
+
+function gitBlobSha(text) {
+  const body = Buffer.from(text, "utf8");
+  return createHash("sha1")
+    .update(Buffer.from(`blob ${body.length}\0`, "utf8"))
+    .update(body)
+    .digest("hex");
+}
+
+test("PR20.7 Farmer-Gear-Allocation ist als NO-WRITE Foundation ratifiziert", () => {
+  const ratification = JSON.parse(fs.readFileSync(
+    "roadmap/pr20-7-farmer-gear-allocation-ratification.json",
+    "utf8",
+  ));
+  const allocationSource = fs.readFileSync(
+    "grundlage/quelle/merchant/gear-allokation.ts",
+    "utf8",
+  );
+  const progressionSource = fs.readFileSync(
+    "grundlage/quelle/merchant/gear-progression.ts",
+    "utf8",
+  );
+
+  assert.equal(ratification.gate, "PR20.7_GEAR");
+  assert.equal(ratification.status, "BESTANDEN_NO_WRITE_FOUNDATION_RATIFIED");
+  assert.equal(ratification.sourceMainCommit,
+    "e5430a06e2088a03a6797b628a9526ce6b18a407");
+  assert.equal(
+    gitBlobSha(allocationSource),
+    ratification.sources.gearAllokation.gitBlobSha,
+  );
+  assert.equal(
+    gitBlobSha(progressionSource),
+    ratification.sources.gearProgression.gitBlobSha,
+  );
+
+  for (const key of [
+    "physicalCandidateReservedAtMostOnce",
+    "recipientSlotReservedAtMostOnce",
+    "farmerBeforeMerchantSelf",
+    "evidenceFreshnessRequired",
+    "targetCurrentRequired",
+    "compatibilityRequired",
+    "contentVerifiedRequired",
+    "physicalAvailabilityRequired",
+    "dispositionAllowedRequired",
+    "minimumImprovementRequired",
+    "restartNonTerminalBecomesRecoveryPending",
+    "expiredReservationsBecomeAborted",
+  ]) assert.equal(ratification.invariants[key], true, key);
+
+  assert.equal(ratification.invariants.boundedNewGoalsMaximum, 64);
+  assert.equal(ratification.invariants.boundedEvidenceMaximum, 512);
+  assert.equal(ratification.authorityBoundary.planningOnly, true);
+  assert.equal(ratification.authorityBoundary.executionAuthority, false);
+  assert.equal(ratification.authorityBoundary.gameplayAuthority, false);
+  assert.equal(ratification.authorityBoundary.rawWriteAuthority, false);
+  assert.equal(ratification.authorityBoundary.farmerGameplayAuthority, false);
+  assert.equal(ratification.authorityBoundary.liveFarmerWorkerRequired, false);
+  assert.equal(ratification.authorityBoundary.gameplayWrites, 0);
+  assert.equal(ratification.authorityBoundary.publicFunctionCalls, 0);
+  assert.equal(ratification.authorityBoundary.rawWriteCalls, 0);
+  assert.equal(ratification.authorityBoundary.normalRuntimeAllowed, false);
+
+  assert.equal(ratification.prerequisiteMutationEvidence.occupiedNonWeapon.status,
+    "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
+  assert.equal(ratification.prerequisiteMutationEvidence.weaponOffhandPurchase.status,
+    "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
+  assert.equal(ratification.prerequisiteMutationEvidence.weaponOffhandEquip.status,
+    "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
+
+  assert.equal(ratification.interpretation.ratifiesAllocationPlanningAndReservation, true);
+  assert.equal(ratification.interpretation.doesNotRatifyFarmerTransferOrEquipExecution, true);
+  assert.equal(ratification.interpretation.noAdditionalLiveWriteRequiredForThisNoWriteGate, true);
+  assert.equal(ratification.interpretation.futureFarmerMutationStillRequiresItsOwnAuthorityAndEvidence, true);
+  assert.equal(ratification.ratified, true);
+  assert.deepEqual(ratification.blocker, []);
+  assert.equal(ratification.nextGate, "PR20.8_WERTMUTATIONEN");
+
+  for (const marker of [
+    "GEAR_KANDIDAT_BEREITS_RESERVIERT",
+    "GEAR_RECIPIENT_SLOT_BEREITS_BELEGT",
+    "RECOVERY_PENDING",
+  ]) assert.ok(allocationSource.includes(marker), marker);
+  for (const marker of [
+    "GEAR_PROGRESS_FARMER_PRIORITAET_ERFORDERLICH",
+    "EVIDENCE_STALE",
+    "CONTENT_NICHT_VERIFIZIERT",
+    "PHYSISCH_NICHT_VERFUEGBAR",
+    "DISPOSITION_GESPERRT",
+    "VERBESSERUNG_ZU_KLEIN",
+    "ausfuehrungsAutoritaet: false",
+    "gameplayAutoritaet: false",
+    "rawWriteAutoritaet: false",
+  ]) assert.ok(progressionSource.includes(marker), marker);
 });
