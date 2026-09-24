@@ -13,6 +13,8 @@
   const SCROLL_NAME = 'scroll0';
   const SCROLL_CONSUME_QUANTITY = 1;
   const SOURCE_SNAPSHOT_COMMIT = 'ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4';
+  const SOURCE_PINNED_SELL_DISTANCE = 400;
+  const SERVICE_REACHABILITY_SAFETY_MAX = 300;
   const RATIFIED_CANDIDATE_EVIDENCE_COMMIT = '00847a4f314237bc5535e06024a1f08a7f35e8a2';
   const DOUBLE_OBSERVE_DELAY_MS = 350;
   const INTENT_PREFIX = 'v5:' + TEST_ID + ':intent:';
@@ -227,6 +229,73 @@
     return false;
   }
 
+  function sellDistanceEvidence() {
+    let observed = null;
+    for (const candidate of roots()) {
+      try {
+        const value = Number(candidate?.B?.sell_dist);
+        if (Number.isFinite(value) && value > 0) {
+          observed = value;
+          break;
+        }
+      } catch {}
+    }
+    if (Number.isFinite(observed) && observed !== SOURCE_PINNED_SELL_DISTANCE) {
+      throw new Error('PR20_8_UPGRADE_SHADOW_SELL_DIST_DRIFT');
+    }
+    return {
+      value: Number.isFinite(observed) ? observed : SOURCE_PINNED_SELL_DISTANCE,
+      source: Number.isFinite(observed)
+        ? 'LIVE_BROWSER_B'
+        : 'OFFICIAL_SERVER_SOURCE_PIN',
+      browserObserved: Number.isFinite(observed)
+    };
+  }
+
+  function serviceReachability(r,c) {
+    const sellDistance = sellDistanceEvidence();
+    if (c.computer === true) {
+      return {
+        reachable:true,
+        viaComputer:true,
+        distance:null,
+        serverLimit:sellDistance.value,
+        safetyLimit:SERVICE_REACHABILITY_SAFETY_MAX,
+        sellDistanceSource:sellDistance.source,
+        browserObserved:sellDistance.browserObserved
+      };
+    }
+    if (text(c.map,96) !== 'main') {
+      throw new Error('PR20_8_UPGRADE_SHADOW_SERVICE_MAP_DRIFT');
+    }
+    const service = r.G?.maps?.main?.ref?.u_mid;
+    const sx = Number(Array.isArray(service) ? service[0] : service?.x);
+    const sy = Number(Array.isArray(service) ? service[1] : service?.y);
+    const px = Number(c.real_x ?? c.x);
+    const py = Number(c.real_y ?? c.y);
+    if (![sx,sy,px,py].every(Number.isFinite)) {
+      throw new Error('PR20_8_UPGRADE_SHADOW_SERVICE_POSITION_UNLESBAR');
+    }
+    const distance = Math.hypot(px-sx,py-sy);
+    const conservativeLimit = Math.min(
+      sellDistance.value,
+      SERVICE_REACHABILITY_SAFETY_MAX,
+    );
+    if (!Number.isFinite(distance) || distance > conservativeLimit) {
+      throw new Error('PR20_8_UPGRADE_SHADOW_SERVICE_NICHT_ERREICHBAR');
+    }
+    return {
+      reachable:true,
+      viaComputer:false,
+      distance,
+      serverLimit:sellDistance.value,
+      safetyLimit:conservativeLimit,
+      servicePoint:{map:'main',x:sx,y:sy},
+      sellDistanceSource:sellDistance.source,
+      browserObserved:sellDistance.browserObserved
+    };
+  }
+
   function itemBlocked(item, def) {
     return !item
       || !def
@@ -351,11 +420,20 @@
     }
 
     const itemDef = r.G.items?.[ITEM_NAME];
-    if (!itemDef?.upgrade || Number(itemDef.g) !== ITEM_BASE_GOLD) {
+    if (!itemDef?.upgrade
+        || text(itemDef.type,64) !== 'gloves'
+        || itemDef.scroll !== true
+        || Number(itemDef.g) !== ITEM_BASE_GOLD) {
       throw new Error('PR20_8_UPGRADE_SHADOW_ITEM_DEFINITION_DRIFT');
     }
     const scrollDef = r.G.items?.[SCROLL_NAME];
-    if (!scrollDef) throw new Error('PR20_8_UPGRADE_SHADOW_SCROLL_DEFINITION_FEHLT');
+    if (!scrollDef
+        || text(scrollDef.type,64) !== 'uscroll'
+        || Number(scrollDef.grade) !== 0
+        || Number(scrollDef.g) !== 1000) {
+      throw new Error('PR20_8_UPGRADE_SHADOW_SCROLL_DEFINITION_DRIFT');
+    }
+    const service = serviceReachability(r,c);
 
     const candidate = resolveCandidate(c.items,r.G);
     const scroll = resolveScroll(c.items,r.G);
@@ -403,6 +481,7 @@
       offering: null,
       normalPathOnly: true,
       publicFunctionAvailable: true,
+      service,
       inventoryMaterial,
       qMaterial,
       upgradeEffectMaterial,
@@ -423,6 +502,7 @@
       scroll:o.scroll,
       offering:o.offering,
       normalPathOnly:o.normalPathOnly,
+      service:o.service,
       inventoryMaterial:o.inventoryMaterial,
       qMaterial:o.qMaterial,
       upgradeEffectMaterial:o.upgradeEffectMaterial,
@@ -465,6 +545,7 @@
       publicFunction:'upgrade',
       sourceSnapshotCommit:SOURCE_SNAPSHOT_COMMIT,
       ratifiedCandidateEvidenceCommit:RATIFIED_CANDIDATE_EVIDENCE_COMMIT,
+      serviceReachability:record.serviceReachability,
       recipient:record.recipient,
       candidate:record.candidate,
       scroll:record.scroll,
@@ -683,6 +764,7 @@
         serverRegion:second.serverRegion,
         serverIdentifier:second.serverIdentifier
       },
+      serviceReachability:second.service,
       candidate:{
         name:second.candidate.name,
         level:second.candidate.level,
@@ -755,6 +837,7 @@
       publicFunctionAvailable:second.publicFunctionAvailable,
       sourceSnapshotCommit:SOURCE_SNAPSHOT_COMMIT,
       ratifiedCandidateEvidenceCommit:RATIFIED_CANDIDATE_EVIDENCE_COMMIT,
+      serviceReachability:second.service,
       fingerprints:{
         prestateFingerprintSha256,
         postIntentPrestateFingerprintSha256,
