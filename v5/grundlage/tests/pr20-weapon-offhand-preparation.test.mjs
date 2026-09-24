@@ -2,6 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
+const contract = JSON.parse(fs.readFileSync(
+  "grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json",
+  "utf8",
+));
+
 import {
   klassifizierePr207WeaponOffhandSettlement,
   pruefePr207WeaponOffhandVorbereitung,
@@ -266,4 +271,24 @@ test("PR20.7 weapon/offhand foundation has no gameplay write path", () => {
   assert.ok(source.includes("gameplayAutoritaet: false"));
   assert.ok(source.includes("rawWriteAutoritaet: false"));
   assert.ok(source.includes("weaponOffhandWriteRatification: false"));
+});
+
+test("PR20.7 weapon/offhand contract stays no-write and forbids implicit unequip", () => {
+  assert.equal(contract.status, "FOUNDATION_NO_WRITE");
+  assert.deepEqual(contract.sourceSemantik.explicitSlots, ["mainhand", "offhand"]);
+  assert.equal(contract.sourceSemantik.genericWeaponAutoSlotAllowed, false);
+  assert.equal(contract.foundation.explicitSlotRequired, true);
+  assert.equal(contract.foundation.doublehandOffhandConflictBlocked, true);
+  assert.equal(contract.foundation.automaticUnequipAllowed, false);
+  assert.equal(contract.foundation.oppositeHandPinned, true);
+  assert.equal(contract.settlement.sameIntentRetry, false);
+  assert.equal(contract.settlement.newIntentAutomaticallyAllowed, false);
+  assert.equal(contract.authority.ausfuehrungsAutoritaet, false);
+  assert.equal(contract.authority.gameplayAutoritaet, false);
+  assert.equal(contract.authority.rawWriteAutoritaet, false);
+  assert.equal(contract.authority.weaponOffhandWriteRatification, false);
+  assert.equal(contract.live.realReadOnlyEvidence, "OFFEN");
+  assert.equal(contract.live.productiveEvidence, "OFFEN");
+  assert.equal(contract.live.maximumGameplayWrites, 0);
+  assert.equal(contract.live.normalRuntimeAllowed, false);
 });
