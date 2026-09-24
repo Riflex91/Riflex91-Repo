@@ -414,7 +414,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowControllerVersion, "1.0.0");
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowSourceCommit, "3f006c17934f0159fa575d2da0e4d048fbf0df09");
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowPackageSha256, "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08");
-  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowManifestCutoverPrepared, false);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowManifestCutoverPrepared, true);
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowExactCost, 4800);
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowMinimumGoldSafetyReserve, 1000);
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowGoldBudgetLedgerReservation, true);
