@@ -88,7 +88,7 @@
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: PR20.8 Remaining-Family-Rescan v1.0.3 ist real-browser terminal BLOCKIERT und als korrekter Zero-Write-No-Candidate-Befund ratifiziert; COMPOUND/EXCHANGE bleiben ohne Write-Authority, und es darf kein Kandidat durch Kauf/Transfer/Mutation erzeugt werden. Naechster Schritt: PR20.8 Closeout gegen PR20.9-Gate pruefen."
+    "AKTUELL: PR20.8 bleibt durch das verbindliche Exit Gate blockiert: Compound und Exchange sind mangels normalem Kandidaten weder einzeln ratifiziert noch 5m live getestet; Exchange-Autonomie ist nicht produktiv nachgewiesen. Kein Kauf/Transfer/Mutation nur zur Kandidatenerzeugung. Naechster sicherer Schritt: auf einen natuerlich verfuegbaren Compound- oder Exchange-Normalkandidaten warten und dann den read-only Target-Rescan wiederholen."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "UPGRADE_COMMITTED_COMPOUND_EXCHANGE_NO_CANDIDATE_AUTHORITY_CLOSED",
+      "status": "UPGRADE_COMMITTED_TARGET_FAMILIES_NO_CANDIDATE_EXIT_GATE_BLOCKED",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
+      "nextAction": "WAIT_FOR_NATURAL_COMPOUND_OR_EXCHANGE_NORMAL_CANDIDATE_THEN_REPEAT_READONLY_TARGET_RESCAN",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -808,7 +808,9 @@
         "v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v2.js",
         "v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v2.test.mjs",
         "v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json",
-        "v5/grundlage/tests/pr20-compound-exchange-target-family-rescan-v1-0-3-evidence.test.mjs"
+        "v5/grundlage/tests/pr20-compound-exchange-target-family-rescan-v1-0-3-evidence.test.mjs",
+        "v5/roadmap/pr20-8-no-candidate-exit-gate-review.json",
+        "v5/grundlage/tests/pr20-no-candidate-exit-gate-review.test.mjs"
       ]
     },
     {
@@ -1648,7 +1650,7 @@
     }
   },
   "pr20_8": {
-    "status": "UPGRADE_COMMITTED_COMPOUND_EXCHANGE_NO_CANDIDATE_AUTHORITY_CLOSED",
+    "status": "UPGRADE_COMMITTED_TARGET_FAMILIES_NO_CANDIDATE_EXIT_GATE_BLOCKED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1698,7 +1700,7 @@
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BLOCKIERT_VALID_NO_TARGET_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
+    "nextAction": "WAIT_FOR_NATURAL_COMPOUND_OR_EXCHANGE_NORMAL_CANDIDATE_THEN_REPEAT_READONLY_TARGET_RESCAN",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -2136,6 +2138,19 @@
         "exchangeAuthority": false,
         "normalRuntimeAllowed": false
       }
+    },
+    "exitGateReview": {
+      "status": "BLOCKED_BY_REQUIRED_COMPOUND_EXCHANGE_LIVE_RATIFICATION",
+      "evidence": "v5/roadmap/pr20-8-no-candidate-exit-gate-review.json",
+      "currentExitGateSatisfied": false,
+      "compoundRatified": false,
+      "compoundLive5mTested": false,
+      "exchangeRatified": false,
+      "exchangeLive5mTested": false,
+      "exchangeAutonomyProductiveProven": false,
+      "mayAdvanceToPr20_9": false,
+      "roadmapCriteriaRelaxed": false,
+      "acquisitionOrMutationToCreateCandidateAllowed": false
     }
   }
 }
