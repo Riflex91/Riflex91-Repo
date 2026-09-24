@@ -1,7 +1,7 @@
 # PR20.7 – Gear-Autonomie: belegter Slot / Swap Foundation
 
 **Stand:** 2026-09-24  
-**Status:** `OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_BESTANDEN`
+**Status:** `WEAPON_OFFHAND_FOUNDATION_NO_WRITE`
 
 ## Zweck
 
@@ -209,13 +209,50 @@ Beobachtet:
 Die exakte Evidence liegt unter
 `roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json`.
 
+## Waffen-/Offhand-Foundation – NO-WRITE
+
+Die naechste separate PR20.7-Mutationsklasse modelliert ausschliesslich
+explizite `mainhand`-/`offhand`-Ziele. Die offizielle Serverlogik
+`can_equip_item` wird dabei enger nachgebildet:
+
+- kein generischer `weapon`-Auto-Slot; der Zielslot muss explizit sein;
+- Kandidaten-WType muss in den gepinnten Klassenregeln fuer
+  `mainhand`, `doublehand` oder `offhand` erlaubt sein;
+- Item-`class`-Beschraenkung und erforderliches Level werden fail-closed
+  geprueft;
+- ein Doublehand-Kandidat wird blockiert, solange `offhand` belegt ist;
+- ein Offhand-Kandidat wird blockiert, wenn die Gegenhand eine
+  Doublehand-Waffe ist;
+- die Gegenhand wird als eigener Fingerprint gepinnt und muss beim
+  Settlement unveraendert bleiben;
+- es gibt **kein automatisches unequip** und keinen mehrstufigen
+  Waffenwechsel;
+- belegte und leere Zielslots koennen als NO-WRITE-Plan modelliert werden;
+- Settlement bindet Zielslot, Ursprungsindex, Gegenhand, Restinventar und
+  Restequipment;
+- UNKNOWN/TEILWEISE erlaubt keinen Same-Intent-Retry.
+
+Foundation:
+`grundlage/quelle/equipment/pr20-7-weapon-offhand-vorbereitung.ts`.
+
+Maschinenlesbarer Vertrag:
+`grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json`.
+
+Diese Stufe besitzt weiterhin `gameplayAutoritaet=false`,
+`rawWriteAutoritaet=false` und genau **0 Gameplay-Writes**.
+
 ## Naechstes Gate
 
 Der belegte Nicht-Waffen-Slot ist damit als eigene Mutationsklasse
 produktiv ratifiziert. PR20.7 ist noch nicht abgeschlossen.
 
-Als naechstes werden Waffen-/Offhand-Faelle separat vorbereitet und
-ratifiziert. Danach folgt die separate Gear-Allokation an Farmer.
+Die Waffen-/Offhand-Foundation ist jetzt NO-WRITE vorhanden. Als naechstes
+folgt ein realer read-only Browser-Preflight fuer einen tatsaechlich
+kompatiblen `mainhand`- oder `offhand`-Kandidaten. Erst nach ratifizierter
+Read-only-Evidence folgen One-Shot-/Fencing-/Durable-Intent-Shadow und ein
+separater produktiver 5-Minuten-Nachweis.
+
+Danach folgt die separate Gear-Allokation an Farmer.
 
 UNKNOWN, TEILWEISE oder Restart erlauben weiterhin keinen Same-Intent-Resend;
 zuerst ist immer Reobserve/Reconcile erforderlich.
