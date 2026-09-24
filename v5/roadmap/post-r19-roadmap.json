@@ -88,7 +88,7 @@
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: Compound Productive One-Write v1.0.0 ist real-browser COMMITTED_SUCCESS ratifiziert: exakt 1 Gameplay-Write / 1 Public-Call / 0 Raw-Writes, Restart ohne zweiten Send. Naechster Gate: Compound 5m Live-Evidence; Exchange und PR20.9 bleiben geschlossen."
+    "AKTUELL: Compound Productive One-Write v1.0.0 ist real-browser COMMITTED_SUCCESS ratifiziert; der separate Compound-5m-Postcommit-Soak ist NO-WRITE vorbereitet und darf dieselbe durable Transaction nur beobachten. Naechstes separates Gate: Compound 5m Runner-Paket; Exchange und PR20.9 bleiben geschlossen."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -1666,7 +1666,7 @@
     }
   },
   "pr20_8": {
-    "status": "COMPOUND_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_PENDING",
+    "status": "COMPOUND_LIVE_5M_PREPARATION_READY_NO_LIVE_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1709,14 +1709,14 @@
     "remainingGates": {
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
       "normalUpgrade": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS",
-      "normalCompound": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_PENDING",
+      "normalCompound": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_PREPARATION_READY",
       "normalExchange": "BLOCKIERT_KEIN_NORMALKANDIDAT_AUTHORITY_CLOSED",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "PR20_8_COMPOUND_LIVE_5M_PREPARATION",
+    "nextAction": "PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -2410,6 +2410,48 @@
       "compoundLive5mTested": false,
       "exchangeRatified": false,
       "normalRuntimeAllowed": false
+    },
+    "compoundLive5mPreparation": {
+      "status": "BEREIT_NO_LIVE_WRITE",
+      "contract": "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json",
+      "test": "v5/grundlage/tests/pr20-compound-live-5m-preparation.test.mjs",
+      "purpose": "CONTINUE_EXACT_RATIFIED_COMPOUND_TRANSACTION_WITH_FIVE_MINUTE_POSTCOMMIT_STABILITY_SOAK",
+      "prerequisiteEvidence": "v5/roadmap/pr20-8-compound-productive-one-write-evidence.json",
+      "prerequisiteEvidenceStatus": "RATIFIED_COMMITTED_SUCCESS",
+      "transactionId": "pr20-8-compound-productive-one-write-live:ff08418e6003250471c98f5893dec8dd",
+      "prerequisiteSendCount": 1,
+      "prerequisiteGameplayWrites": 1,
+      "prerequisitePublicFunctionCalls": 1,
+      "prerequisiteRawWriteCalls": 0,
+      "exactCommittedResult": "hpamulet@1@index1",
+      "exactConsumedInputIndexes": [
+        22,
+        23
+      ],
+      "exactScrollPoststate": "cscroll0@index18:q19",
+      "minimumSamples": 60,
+      "intervalMs": 5000,
+      "minimumDurationMs": 299000,
+      "maximumAdditionalGameplayWrites": 0,
+      "maximumAdditionalPublicFunctionCalls": 0,
+      "maximumAdditionalRawWriteCalls": 0,
+      "publicCompoundCallSites": 0,
+      "restartMayNeverResend": true,
+      "sameIntentRetry": false,
+      "compoundWriteAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "liveRunnerPresent": false,
+      "manifestCutoverPrepared": false,
+      "deployed": false,
+      "liveWriteEnabled": false,
+      "normalRuntimeAllowed": false,
+      "passMaySetCompoundLive5mTested": true,
+      "passDoesNotSatisfyPr20_8ExitGateByItself": true,
+      "exchangeRatification": false,
+      "exchangeAutonomyProductiveProven": false,
+      "mayAdvanceToPr20_9": false,
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE"
     }
   }
 }
