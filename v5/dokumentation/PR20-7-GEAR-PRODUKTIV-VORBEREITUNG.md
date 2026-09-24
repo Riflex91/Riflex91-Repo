@@ -1,7 +1,7 @@
 # PR20.7 – Gear-Autonomie: belegter Slot / Swap Foundation
 
 **Stand:** 2026-09-24  
-**Status:** `WEAPON_OFFHAND_FOUNDATION_NO_WRITE`
+**Status:** `WEAPON_OFFHAND_READ_ONLY_PACKAGE_BEREIT_EVIDENCE_OFFEN`
 
 ## Zweck
 
@@ -241,16 +241,60 @@ Maschinenlesbarer Vertrag:
 Diese Stufe besitzt weiterhin `gameplayAutoritaet=false`,
 `rawWriteAutoritaet=false` und genau **0 Gameplay-Writes**.
 
+## Waffen-/Offhand realer Read-only-Preflight – PAKET BEREIT
+
+Der naechste reale Schritt ist weiterhin **NO-WRITE**. Das Merchant-only
+Autonomous-Paket
+`werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js` beobachtet:
+
+- explizit nur `mainhand` oder `offhand`;
+- die aktuellen `G.classes[ctype].mainhand`, `doublehand` und
+  `offhand`-Regeln;
+- Item-`class`- und Level-Beschraenkungen;
+- Kandidatenindex und Kandidatenfingerprint;
+- bisherigen Zielslot, falls belegt;
+- die komplette Gegenhand als eigenen Fingerprint;
+- das gesamte uebrige Equipment und Restinventar;
+- zwei stabile Beobachtungen mit 350 ms Abstand;
+- `performance_trick()` mit `HOWLER_PLAYING_TRUE`.
+
+Ein Doublehand-Kandidat ist nur zulässig, wenn `offhand` leer ist.
+Ein Offhand-Kandidat wird bei einer Doublehand-Hauptwaffe blockiert.
+Es gibt keinen generischen `weapon`-Auto-Slot und **kein automatisches
+unequip**.
+
+Das Paket besitzt keine Worker-Konfiguration und keine Farmer-Verteilung.
+Die Sicherheitsgrenze bleibt:
+
+- `gameplayWrites=0`;
+- `publicFunctionCalls=0`;
+- `rawWriteCalls=0`;
+- `authorityIssued=false`;
+- `durableIntentCreated=false`;
+- `sameIntentRetry=false`;
+- `normalRuntimeAllowed=false`.
+
+Testplan:
+`roadmap/pr20-7-weapon-offhand-read-only-preflight-test-plan.json`.
+
+Evidence:
+`roadmap/pr20-7-weapon-offhand-read-only-preflight-evidence.json`.
+
+Die Evidence bleibt bis zu einem real terminalen Lauf explizit `OFFEN`.
+Das Live-Manifest wird erst nach gruener Paket-CI und einem immutable
+Source-Commit/SHA separat umgeschaltet.
+
 ## Naechstes Gate
 
 Der belegte Nicht-Waffen-Slot ist damit als eigene Mutationsklasse
 produktiv ratifiziert. PR20.7 ist noch nicht abgeschlossen.
 
-Die Waffen-/Offhand-Foundation ist jetzt NO-WRITE vorhanden. Als naechstes
-folgt ein realer read-only Browser-Preflight fuer einen tatsaechlich
-kompatiblen `mainhand`- oder `offhand`-Kandidaten. Erst nach ratifizierter
-Read-only-Evidence folgen One-Shot-/Fencing-/Durable-Intent-Shadow und ein
-separater produktiver 5-Minuten-Nachweis.
+Die Waffen-/Offhand-Foundation ist NO-WRITE vorhanden und das reale
+read-only Autonomous-Paket ist vorbereitet. Als naechstes wird dieses Paket
+nach gruener CI auf einen immutable Merge-Commit/SHA gepinnt und das Manifest
+separat umgeschaltet. Erst nach ratifizierter Read-only-Evidence folgen
+One-Shot-/Fencing-/Durable-Intent-Shadow und ein separater produktiver
+5-Minuten-Nachweis.
 
 Danach folgt die separate Gear-Allokation an Farmer.
 
