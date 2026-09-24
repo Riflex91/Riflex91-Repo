@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_DURABLE_ONE_SHOT_FOUNDATIONS",
+  "status": "BEREIT_NO_WRITE",
+  "families": {
+    "UPGRADE": {
+      "actionContractId": "AL-ACTION-UPGRADE",
+      "recoveryContractId": "AL-RECOVERY-UPGRADE",
+      "verifierId": "AL-VERIFIER-UPGRADE",
+      "publicFunction": "upgrade",
+      "authorityClass": "Pr208UpgradeOneShotAuthority"
+    },
+    "COMPOUND": {
+      "actionContractId": "AL-ACTION-COMPOUND",
+      "recoveryContractId": "AL-RECOVERY-COMPOUND",
+      "verifierId": "AL-VERIFIER-COMPOUND",
+      "publicFunction": "compound",
+      "authorityClass": "Pr208CompoundOneShotAuthority"
+    },
+    "EXCHANGE": {
+      "actionContractId": "AL-ACTION-EXCHANGE",
+      "recoveryContractId": "AL-RECOVERY-EXCHANGE",
+      "verifierId": "AL-VERIFIER-EXCHANGE",
+      "publicFunction": "exchange",
+      "authorityClass": "Pr208ExchangeOneShotAuthority"
+    }
+  },
+  "separation": {
+    "genericSharedMutationAuthority": false,
+    "separateAuthorityPerFamily": true,
+    "sharedCurrentFenceMayOnlyBlockConflicts": true,
+    "sharedCurrentFenceMayIssueAuthority": false
+  },
+  "currentFence": {
+    "exactCharacter": true,
+    "exactSession": true,
+    "exactServer": true,
+    "exactPrestateFingerprint": true,
+    "exactInventoryFingerprint": true,
+    "exactQFingerprint": true,
+    "exactItemFingerprints": true,
+    "resourceEpochs": [
+      "inventory",
+      "q",
+      "socketBudget",
+      "actionChannel"
+    ],
+    "anyOpenMutationAuthorityBlocks": true,
+    "anyOpenMutationTransactionBlocks": true
+  },
+  "oneShot": {
+    "maximumUses": 1,
+    "maximumTtlMs": 1500,
+    "durableAuthorityWriteRequired": true,
+    "exactDurableReadbackRequired": true,
+    "driftRevokes": true
+  },
+  "transactionPreparation": {
+    "preflightRequired": true,
+    "durableIntentBeforePossibleSend": true,
+    "exactJournalReadbackRequired": true,
+    "sendBoundaryState": "NICHT_GESENDET",
+    "sameIntentRetry": false,
+    "admissionConsumesOneShot": true,
+    "admissionPerformsSend": false
+  },
+  "authorityBoundary": {
+    "executionAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "liveAdapterPresent": false,
+    "liveRunnerPresent": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "normalRuntimeAllowed": false
+  },
+  "artifacts": [
+    "v5/grundlage/quelle/merchant/pr20-8-wertmutation-one-shot.ts",
+    "v5/grundlage/quelle/merchant/pr20-8-wertmutation-durable-admission.ts",
+    "v5/grundlage/tests/pr20-wertmutation-one-shot-foundation.test.mjs"
+  ],
+  "nextGate": "PR20_8_READ_ONLY_PREFLIGHTS"
+}

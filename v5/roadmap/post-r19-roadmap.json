@@ -80,11 +80,11 @@
   ],
   "currentNextSteps": [
     "PR20.1 bis PR20.7 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
-    "PR20.7 belegter Nicht-Waffen-Slot ist produktiv BESTANDEN",
-    "PR20.7 wshield-Beschaffung ist real BESTANDEN: exakt 1 Kauf-Write, COMMITTED/BESTAETIGT, 60 Samples ueber >5 Minuten",
-    "PR20.7 wshield-Offhand-Equip ist real BESTANDEN: exakt 1 Equip-Write, COMMITTED/BESTAETIGT, 60 Samples ueber >5 Minuten",
-    "PR20.7 Farmer-Gear-Allocation ist als NO-WRITE Planungs-/Reservierungs-Gate ratifiziert; daraus entsteht keine Farmer-Gameplay-Authority",
-    "AKTUELL: PR20.8 Upgrade, Compound und Exchange getrennt produktiv vorbereiten und ratifizieren",
+    "PR20.8 Wertmutationen ist aktuelles Gate",
+    "PR20.8 Exchange-Spezialplaner ist NO-WRITE vorbereitet",
+    "PR20.8 Upgrade/Compound/Exchange besitzen getrennte Durable-/Current-Fence-/One-Shot-/Admission-Fundamente; Admission endet NICHT_GESENDET",
+    "AKTUELL: family-spezifische read-only Preflights fuer Upgrade, Compound und Exchange vorbereiten",
+    "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -752,14 +752,26 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "CONTRACTS_LEDGER_PLANER_TEILWEISE_BEREIT_NO_WRITE",
+      "status": "DURABLE_ONE_SHOT_FOUNDATIONS_BEREIT_NO_WRITE",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
         "PR20.3",
         "PR20.4"
       ],
-      "gameplayAuthority": false
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "nextAction": "PR20_8_READ_ONLY_PREFLIGHTS",
+      "artifacts": [
+        "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
+        "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
+        "v5/grundlage/tests/pr20-exchange-produktions-planer.test.mjs",
+        "v5/grundlage/quelle/merchant/pr20-8-wertmutation-one-shot.ts",
+        "v5/grundlage/quelle/merchant/pr20-8-wertmutation-durable-admission.ts",
+        "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
+        "v5/grundlage/tests/pr20-wertmutation-one-shot-foundation.test.mjs"
+      ]
     },
     {
       "id": "PR20.9_PRODUCTION",
@@ -1596,5 +1608,67 @@
       "normalRuntimeAllowed": false,
       "nextGate": "PR20.8_WERTMUTATIONEN"
     }
+  },
+  "pr20_8": {
+    "status": "DURABLE_ONE_SHOT_FOUNDATIONS_BEREIT_NO_WRITE",
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "actionContracts": [
+      [
+        "AL-ACTION-UPGRADE",
+        "AL-RECOVERY-UPGRADE",
+        "AL-VERIFIER-UPGRADE",
+        "upgrade"
+      ],
+      [
+        "AL-ACTION-COMPOUND",
+        "AL-RECOVERY-COMPOUND",
+        "AL-VERIFIER-COMPOUND",
+        "compound"
+      ],
+      [
+        "AL-ACTION-EXCHANGE",
+        "AL-RECOVERY-EXCHANGE",
+        "AL-VERIFIER-EXCHANGE",
+        "exchange"
+      ]
+    ],
+    "valueLedger": "v5/grundlage/quelle/merchant/werttransaktion.ts",
+    "itemMutationPlanner": "v5/grundlage/quelle/merchant/item-mutations-planer.ts",
+    "exchangeSpecializedPlanner": "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
+    "exchangePreparationContract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
+    "exchangePlannerTest": "v5/grundlage/tests/pr20-exchange-produktions-planer.test.mjs",
+    "exchangeSourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "exchangeFullRewardDomainReconciliationRequired": true,
+    "exchangePromiseRewardOnlySupportingEvidence": true,
+    "exchangeQPlaceholderAcceptedInFlight": true,
+    "exchangePhysicalIndexReresolveBeforeSend": true,
+    "exchangeSameIntentRetry": false,
+    "exchangeExecutionAuthority": false,
+    "exchangeGameplayAuthority": false,
+    "exchangeRawWriteAuthority": false,
+    "exchangeLiveAdapterPresent": false,
+    "exchangeLiveRunnerPresent": false,
+    "remainingGates": {
+      "durableOneShotFoundations": "BEREIT_NO_WRITE",
+      "normalUpgrade": "OFFEN_SEPARATE_RATIFICATION",
+      "normalCompound": "OFFEN_SEPARATE_RATIFICATION",
+      "normalExchange": "OFFEN_SEPARATE_RATIFICATION",
+      "specialPaths": "OFFEN_SEPARATE_RATIFICATION"
+    },
+    "nextAction": "PR20_8_READ_ONLY_PREFLIGHTS",
+    "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
+    "separateAuthorityPerFamily": true,
+    "genericSharedMutationAuthority": false,
+    "maximumUses": 1,
+    "maximumTtlMs": 1500,
+    "durableAuthorityWriteRequired": true,
+    "exactDurableReadbackRequired": true,
+    "exactJournalReadbackRequired": true,
+    "currentFenceRequired": true,
+    "driftRevokes": true,
+    "admissionPerformsSend": false,
+    "sendBoundaryState": "NICHT_GESENDET"
   }
 }

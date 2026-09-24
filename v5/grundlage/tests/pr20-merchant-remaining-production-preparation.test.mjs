@@ -14,6 +14,8 @@ const produktionsKomposition = text("grundlage/quelle/runtime/produktions-kompos
 const clientQuelle = text("wissensbasis/datenbank/aktuell/AL-SRC-FUNCTIONS.txt");
 const serverQuelle = text("wissensbasis/datenbank/aktuell/AL-SRC-SERVER.txt");
 const skillQuelle = text("wissensbasis/datenbank/aktuell/AL-DATA-SKILLS.txt");
+const exchangePlaner = text("grundlage/quelle/merchant/exchange-produktions-planer.ts");
+const exchangePrep = lies("grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json");
 
 test("PR20.5-PR20.9 Vorbereitung bleibt strikt authority-frei", () => {
   assert.equal(prep.status, "VORBEREITET_NO_WRITE");
@@ -421,6 +423,108 @@ test("Upgrade Compound Exchange und Craft bleiben vorhandenen no-retry Contracts
     assert.equal(action.unknownOutcomePolicy, "RECONCILE_NO_BLIND_RETRY");
     assert.equal(recovery.retryPolicy.sameIntentAfterPossibleSend, "NEVER");
   }
+});
+
+test("PR20.8 Exchange besitzt spezialisierten Multi-Domain NO-WRITE Planer", () => {
+  assert.equal(prep.pr20_8.status, "DURABLE_ONE_SHOT_FOUNDATIONS_BEREIT_NO_WRITE");
+  assert.equal(prep.pr20_8.nextAction, "PR20_8_READ_ONLY_PREFLIGHTS");
+  assert.ok(prep.pr20_8.foundations.some(x =>
+    x.includes("ExchangeProduktionsPlaner")));
+  assert.equal(prep.pr20_8.erkannteRestluecken.some(x =>
+    x.includes("EXCHANGE besitzt noch keinen gleichwertigen")), false);
+
+  const planner = prep.pr20_8.exchangeSpecializedPlanner;
+  assert.equal(planner.status, "SPECIALIZED_PLANNER_BEREIT_NO_WRITE");
+  assert.equal(planner.source, "grundlage/quelle/merchant/exchange-produktions-planer.ts");
+  assert.equal(planner.contract,
+    "grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json");
+  assert.equal(planner.sourceSnapshotCommit,
+    "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4");
+  assert.equal(planner.actionContractId, "AL-ACTION-EXCHANGE");
+  assert.equal(planner.recoveryContractId, "AL-RECOVERY-EXCHANGE");
+  assert.equal(planner.verifierId, "AL-VERIFIER-EXCHANGE");
+  assert.equal(planner.fullRewardDomainReconciliationRequired, true);
+  assert.deepEqual(planner.rewardDomains, [
+    "inventory", "gold", "shells", "account_cosmetics", "empty", "recursive_drop",
+  ]);
+  assert.equal(planner.promiseRewardOnlySupportingEvidence, true);
+  assert.equal(planner.qPlaceholderAcceptedInFlight, true);
+  assert.equal(planner.physicalIndexReresolveBeforeSend, true);
+  assert.equal(planner.sameIntentRetry, false);
+  assert.equal(planner.executionAuthority, false);
+  assert.equal(planner.gameplayAuthority, false);
+  assert.equal(planner.rawWriteAuthority, false);
+  assert.equal(planner.liveAdapterPresent, false);
+  assert.equal(planner.liveRunnerPresent, false);
+  assert.equal(planner.gameplayWrites, 0);
+  assert.equal(planner.publicFunctionCalls, 0);
+  assert.equal(planner.rawWriteCalls, 0);
+  assert.equal(planner.normalRuntimeAllowed, false);
+
+  assert.equal(exchangePrep.status, "SPECIALIZED_PLANNER_BEREIT_NO_WRITE");
+  assert.equal(exchangePrep.foundation.actionContractId, "AL-ACTION-EXCHANGE");
+  assert.equal(exchangePrep.foundation.recoveryContractId, "AL-RECOVERY-EXCHANGE");
+  assert.equal(exchangePrep.foundation.verifierId, "AL-VERIFIER-EXCHANGE");
+  assert.equal(exchangePrep.rewardReconciliation.promiseRewardOnlySupportingEvidence, true);
+  assert.equal(exchangePrep.rewardReconciliation.fullRewardDomainReconciliationRequired, true);
+  assert.equal(exchangePrep.recovery.qOrPlaceholderMeansAcceptedInFlight, true);
+  assert.equal(exchangePrep.recovery.sameIntentRetry, false);
+  assert.equal(exchangePrep.authority.planningOnly, true);
+  assert.equal(exchangePrep.authority.executionAuthority, false);
+  assert.equal(exchangePrep.authority.gameplayAuthority, false);
+  assert.equal(exchangePrep.authority.rawWriteAuthority, false);
+  assert.equal(exchangePrep.authority.exchangeAuthority, false);
+  assert.equal(exchangePrep.authority.liveAdapterPresent, false);
+  assert.equal(exchangePrep.authority.liveRunnerPresent, false);
+  assert.equal(exchangePrep.authority.normalRuntimeAllowed, false);
+  assert.equal(exchangePrep.nextGate, "PR20_8_DURABLE_ONE_SHOT_FOUNDATIONS");
+
+  for (const marker of [
+    "fullRewardDomainReconciliationRequired: true",
+    "promiseRewardIstNurSupportingEvidence: true",
+    "placeholderUndQAcceptedInFlight: true",
+    "exactPhysicalIndexMustBeReresolvedBeforeSend: true",
+    "sameIntentRetry: false",
+    "ausfuehrungsAutoritaet: false",
+    "gameplayAutoritaet: false",
+    "rawWriteAutoritaet: false",
+  ]) assert.ok(exchangePlaner.includes(marker), marker);
+  for (const raw of [
+    "exchange(",
+    "socket.emit(",
+    ".socket.emit(",
+    "api_call(",
+  ]) assert.equal(exchangePlaner.includes(raw), false, raw);
+});
+
+test("PR20.8 Durable One-Shot Foundations bleiben family-separat und NO-WRITE", () => {
+  assert.equal(prep.pr20_8.status, "DURABLE_ONE_SHOT_FOUNDATIONS_BEREIT_NO_WRITE");
+  assert.equal(prep.pr20_8.nextAction, "PR20_8_READ_ONLY_PREFLIGHTS");
+  const d = prep.pr20_8.durableOneShotFoundations;
+  assert.equal(d.status, "BEREIT_NO_WRITE");
+  assert.equal(d.separateAuthorityPerFamily, true);
+  assert.equal(d.genericSharedMutationAuthority, false);
+  assert.equal(d.maximumUses, 1);
+  assert.equal(d.maximumTtlMs, 1500);
+  assert.equal(d.durableAuthorityWriteRequired, true);
+  assert.equal(d.exactDurableReadbackRequired, true);
+  assert.equal(d.exactJournalReadbackRequired, true);
+  assert.equal(d.driftRevokes, true);
+  assert.equal(d.currentFenceBlocksAnyOpenMutationAuthority, true);
+  assert.equal(d.currentFenceBlocksAnyOpenMutationTransaction, true);
+  assert.equal(d.sendBoundaryState, "NICHT_GESENDET");
+  assert.equal(d.sameIntentRetry, false);
+  assert.equal(d.admissionConsumesOneShot, true);
+  assert.equal(d.admissionPerformsSend, false);
+  assert.equal(d.executionAuthority, false);
+  assert.equal(d.gameplayAuthority, false);
+  assert.equal(d.rawWriteAuthority, false);
+  assert.equal(d.liveAdapterPresent, false);
+  assert.equal(d.liveRunnerPresent, false);
+  assert.equal(d.gameplayWrites, 0);
+  assert.equal(d.publicFunctionCalls, 0);
+  assert.equal(d.rawWriteCalls, 0);
+  assert.equal(d.normalRuntimeAllowed, false);
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {

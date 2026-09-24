@@ -1,0 +1,63 @@
+name: v5-pr20-8-wertmutationen
+
+on:
+  push:
+    paths:
+      - 'v5/grundlage/quelle/merchant/werttransaktion.ts'
+      - 'v5/grundlage/quelle/merchant/item-mutations-planer.ts'
+      - 'v5/grundlage/quelle/merchant/exchange-produktions-planer.ts'
+      - 'v5/grundlage/quelle/merchant/pr20-8-wertmutation-one-shot.ts'
+      - 'v5/grundlage/quelle/merchant/pr20-8-wertmutation-durable-admission.ts'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json'
+      - 'v5/grundlage/tests/pr20-wertmutation-one-shot-foundation.test.mjs'
+      - 'v5/grundlage/quelle/index.ts'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json'
+      - 'v5/grundlage/vertraege/runtime/merchant-remaining-production-preparation.json'
+      - 'v5/grundlage/tests/r15-werttransaktion.test.mjs'
+      - 'v5/grundlage/tests/r15-item-mutations-planer.test.mjs'
+      - 'v5/grundlage/tests/pr20-exchange-produktions-planer.test.mjs'
+      - 'v5/grundlage/tests/pr20-merchant-remaining-production-preparation.test.mjs'
+      - 'v5/roadmap/post-r19-roadmap.json'
+      - 'v5/package.json'
+      - '.github/workflows/v5-pr20-8-wertmutationen.yml'
+  pull_request:
+    paths:
+      - 'v5/grundlage/quelle/merchant/werttransaktion.ts'
+      - 'v5/grundlage/quelle/merchant/item-mutations-planer.ts'
+      - 'v5/grundlage/quelle/merchant/exchange-produktions-planer.ts'
+      - 'v5/grundlage/quelle/merchant/pr20-8-wertmutation-one-shot.ts'
+      - 'v5/grundlage/quelle/merchant/pr20-8-wertmutation-durable-admission.ts'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json'
+      - 'v5/grundlage/tests/pr20-wertmutation-one-shot-foundation.test.mjs'
+      - 'v5/grundlage/quelle/index.ts'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json'
+      - 'v5/grundlage/vertraege/runtime/merchant-remaining-production-preparation.json'
+      - 'v5/grundlage/tests/r15-werttransaktion.test.mjs'
+      - 'v5/grundlage/tests/r15-item-mutations-planer.test.mjs'
+      - 'v5/grundlage/tests/pr20-exchange-produktions-planer.test.mjs'
+      - 'v5/grundlage/tests/pr20-merchant-remaining-production-preparation.test.mjs'
+      - 'v5/roadmap/post-r19-roadmap.json'
+      - 'v5/package.json'
+      - '.github/workflows/v5-pr20-8-wertmutationen.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  value-mutation-foundation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - run: npm ci
+      - run: npm run merchant-pr20-8-prep:pruefen
