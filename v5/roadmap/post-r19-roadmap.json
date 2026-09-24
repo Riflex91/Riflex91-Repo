@@ -79,11 +79,11 @@
     }
   ],
   "currentNextSteps": [
-    "PR20.1 bis PR20.6 sind abgeschlossen bzw. freigegeben",
-    "PR20.7 read-only Preflight und realer NO-WRITE Shadow fuer belegten Nicht-Waffen-Slot sind BESTANDEN",
-    "AKTUELL: produktives exakt einmaliges Occupied-Slot-Live-Paket ist implementiert; Manifest bleibt bis gruener CI noch auf dem Shadow",
-    "NAECHSTES: Package-Code gruen mergen, dann Manifest exakt auf Source-Commit/SHA-256 umschalten und realen 5m One-Shot-Swap ausfuehren",
-    "DANACH: Waffen/Offhand und Farmer-Gear-Allokation als separate PR20.7-Gates ratifizieren",
+    "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
+    "AKTUELL: PR20.7 produktiver belegter Nicht-Waffen-Slot Live-5m-Runner ist gruen und auf einen immutable Source-Commit/SHA gepinnt",
+    "NAECHSTES: Manifest-Cutover mergen; danach exakt einen realen Merchant-Swap ausfuehren und 60x5s COMMITTED-Poststate beobachten",
+    "Bei Restart oder unklarem Send ausschliesslich Reconcile; niemals Same-Intent-Resend",
+    "mainhand/offhand sowie Farmer-Gear-Allokation bleiben separate spaetere PR20.7 Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -701,7 +701,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_PACKAGE_BEREIT_EVIDENCE_OFFEN",
+      "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -729,7 +729,7 @@
         "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-test-plan.json",
         "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json"
       ],
-      "nextAction": "PR20_7_OCCUPIED_SLOT_PRODUCTIVE_PACKAGE_CI_AND_MANIFEST_CUTOVER"
+      "nextAction": "PR20_7_OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_EXECUTE"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1030,7 +1030,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_PACKAGE_BEREIT_EVIDENCE_OFFEN",
+    "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1070,7 +1070,7 @@
       "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json",
       "v5/grundlage/tests/pr20-gear-occupied-slot-live-5m-evidence.test.mjs"
     ],
-    "nextAction": "PR20_7_OCCUPIED_SLOT_PRODUCTIVE_PACKAGE_CI_AND_MANIFEST_CUTOVER",
+    "nextAction": "PR20_7_OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_EXECUTE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1154,7 +1154,10 @@
       "sameIntentRetry": false,
       "fiveMinuteSoakSamples": 60,
       "normalRuntimeAllowed": false,
-      "realEvidenceStatus": "OFFEN"
+      "realEvidenceStatus": "OFFEN",
+      "sourceCommit": "9d83e6376659a8cf0ff8f182850f988981c0828b",
+      "packageSha256": "4fb9a297a31f84aaa713d3b486783ca9c55b65cc16a164a99a9adba095559322",
+      "manifestCutoverPrepared": true
     }
   }
 }
