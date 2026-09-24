@@ -283,7 +283,7 @@ test("PR20.7 Gear package is terminal read-only and does not touch farmer lifecy
 
 test("PR20.7 Gear shadow manifest stays merchant-only, durable-shadow and zero-write", () => {
   if (manifest.testId !== "pr20-7-gear-occupied-slot-shadow-no-write") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.controllerVersion, "1.0.1");
   assert.equal("workerVersion" in manifest, false);
   assert.equal("workerPackagePath" in manifest, false);
   assert.equal("workerPackageSha256" in manifest, false);
@@ -603,11 +603,11 @@ test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound"
   if (manifest.testId !== "pr20-8-upgrade-durable-shadow-no-write") return;
   assert.equal(manifest.controllerVersion, "1.0.0");
   assert.equal(manifest.sourceCommit,
-    "72a0a2c65fff19327d3137356c9e079bf5117203");
+    "4106db292fe48d60ba190460491d5138283769d8");
   assert.equal(manifest.packagePath,
     "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js");
   assert.equal(manifest.packageSha256,
-    "5490c8b17a956f469b71e2e99c18897f3ffb1f67e00e36c64eb41a30d46498b9");
+    "c7030beb5d7353cec054661cbd47069c7e30f2169c0c0a51fb4bcd21e0fb50cd");
   assert.equal(manifest.expectedGlobal,
     "V5PR208UpgradeDurableShadowNoWrite");
   assert.equal("workerVersion" in manifest, false);
@@ -619,6 +619,8 @@ test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound"
   assert.ok(packageSource.includes("SERVICE_REACHABILITY_SAFETY_MAX = 300"));
   assert.ok(packageSource.includes("publishTelemetryFacades()"));
   assert.ok(packageSource.includes("installTelemetryFacade(owner)"));
+  assert.ok(packageSource.includes("recoveredExistingTerminal"));
+  assert.ok(packageSource.includes("PR20_8_UPGRADE_SHADOW_TERMINAL_INTENT_DRIFT"));
   assert.ok(packageSource.includes("journalTerminalArt:'ABBRUCH'"));
   assert.ok(packageSource.includes("sendBoundaryState:'NICHT_GESENDET'"));
   assert.ok(packageSource.includes("reconciliationClassification:'NOT_APPLIED'"));
