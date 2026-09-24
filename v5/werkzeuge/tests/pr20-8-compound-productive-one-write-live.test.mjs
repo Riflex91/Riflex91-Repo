@@ -95,7 +95,7 @@ function sandbox({
     S:{cgrace:{}},
     G:{
       items:{
-        hpamulet:{type:"amulet",compound:true,g:20000,grades:[7,8,9,10]},
+        hpamulet:{type:"amulet",compound:{hp:240},g:20000,grades:[7,8,9,10]},
         cscroll0:{type:"cscroll",grade:0,g:6400},
       },
       maps:{main:{ref:{c_mid:[-180,-203]}}},
@@ -402,6 +402,53 @@ test("PR20.8 Compound one-write reconciles after bounded public-function promise
     "COMMITTED_SUCCESS");
 });
 
+test("PR20.8 Compound one-write accepts exact object-valued hpamulet compound definition", async () => {
+  const env=sandbox({mode:"success"});
+  assert.deepEqual(env.box.G.items.hpamulet.compound,{hp:240});
+  const status=await execute(env);
+  assert.equal(status.status,"BESTANDEN");
+  assert.equal(env.compoundCalls(),1);
+});
+
+test("PR20.8 Compound one-write rejects drifted object-valued hpamulet compound definition before send", async () => {
+  const env=sandbox({mode:"success"});
+  env.box.G.items.hpamulet.compound={hp:241};
+  const status=await execute(env);
+  assert.equal(status.status,"FEHLER");
+  assert.equal(status.terminal,true);
+  assert.equal(env.compoundCalls(),0);
+  assert.equal(status.gameplayWrites,0);
+  assert.equal(status.publicFunctionCalls,0);
+  assert.match(status.blocker[0],/ITEM_DEFINITION_DRIFT/);
+});
+
+test("PR20.8 zero-write preflight failure releases runtime lease for safe reinjection", async () => {
+  const env=sandbox({mode:"success"});
+  env.box.G.items.hpamulet.compound={hp:241};
+  const first=await execute(env);
+  assert.equal(first.status,"FEHLER");
+  assert.equal(env.compoundCalls(),0);
+  assert.equal(first.gameplayWrites,0);
+  assert.equal(first.publicFunctionCalls,0);
+  assert.equal(first.authority.durableIntentCreated,false);
+  assert.equal(
+    env.box.__V5PR208CompoundProductiveOneWriteLiveLease,
+    undefined,
+  );
+
+  env.box.G.items.hpamulet.compound={hp:240};
+  vm.runInContext(source,env.box,{
+    filename:"pr20-8-compound-productive-one-write-live.reinject.js",
+  });
+  const api=env.box.V5PR208CompoundProductiveOneWriteLive;
+  for(let i=0;i<8000;i+=1) {
+    await new Promise(resolve=>setImmediate(resolve));
+    if(api.status().terminal===true) break;
+  }
+  assert.equal(api.status().status,"BESTANDEN");
+  assert.equal(env.compoundCalls(),1);
+});
+
 test("PR20.8 Compound one-write rejects unsafe candidates before any send", async () => {
   const items=baseItems();
   items[1].giveaway=true;
@@ -470,6 +517,9 @@ test("PR20.8 Compound one-write package exposes exact safety markers and no raw 
     'function acquireRuntimeLease()',
     'function assertFences(txId)',
     'compoundEffectsFingerprintSha256',
+    'Number(compoundDef.hp) === 240',
+    'compound: stableScalarObject(itemDef?.compound || {}, 32)',
+    'safeZeroWriteNoIntentFailure',
     'character:My_Merchant:condition:massproduction',
     'character:My_Merchant:condition:massproductionpp',
     'item?.giveaway === true',
