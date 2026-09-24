@@ -54,23 +54,23 @@ test("PR20.8 productive Upgrade one-write evidence ratifies exactly one committe
   assert.equal(evidence.safetyBoundary.exchangeRatification, false);
 });
 
-test("after committed Upgrade evidence the active manifest advances to the no-write Compound durable shadow", () => {
-  assert.equal(manifest.testId, "pr20-8-compound-durable-shadow-no-write");
+test("committed Upgrade evidence stays immutable while the active manifest advances to Compound one-write", () => {
+  assert.equal(manifest.testId, "pr20-8-compound-productive-one-write-live");
   assert.equal(manifest.controllerVersion, "1.0.0");
   assert.equal(manifest.gate, "PR20.8_WERTMUTATIONEN");
   assert.equal(
     manifest.sourceCommit,
-    "5577a45443db03a8cc0617ce61e0ec4b427d4aea",
+    "31edc5c7ce29bb64086be211b703f4f18dd3772b",
   );
   assert.equal(
     manifest.packagePath,
-    "v5/werkzeuge/pr20-8-compound-durable-shadow-no-write.js",
+    "v5/werkzeuge/pr20-8-compound-productive-one-write-live.js",
   );
   assert.equal(
     manifest.packageSha256,
-    "94685bc0d439eb86b3a31763ffa0a06854c06572d875f55584a7558c9c368547",
+    "c57c6cc38618392f1f26b7c91e0ea10163a8f8bfc33063eaea2785e39b56100c",
   );
-  assert.equal(manifest.expectedGlobal, "V5PR208CompoundDurableShadowNoWrite");
+  assert.equal(manifest.expectedGlobal, "V5PR208CompoundProductiveOneWriteLive");
   assert.equal(manifest.normalRuntimeAllowed, false);
   assert.equal(
     evidence.nextGate,
