@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_PACKAGE_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -221,7 +221,11 @@
       "accountWeaponDiscoveryPublicFunctionCalls": 0,
       "accountWeaponDiscoveryRawWriteCalls": 0,
       "accountWeaponDiscoveryFarmerGearAllocationRatification": false,
-      "accountWeaponDiscoveryEvidenceStatus": "OFFEN"
+      "accountWeaponDiscoveryEvidenceStatus": "OFFEN",
+      "accountWeaponDiscoverySourceCommit": "de3a9106193919327e708b22d78d1623ca5de5a5",
+      "accountWeaponDiscoveryPackageSha256": "bfc2d52d9968460c7d977472e7301c6b32f1f7f78f2661e04579573cd661397c",
+      "accountWeaponDiscoveryManifest": "roadmap/v5-autonomous-test-manifest.json",
+      "accountWeaponDiscoveryManifestCutoverPrepared": true
     }
   },
   "pr20_8": {
