@@ -4,7 +4,7 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-equip-live-5m",
   "controllerVersion": "1.0.0",
-  "status": "MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+  "status": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
   "scope": {
     "exactRecipientCharacter": "My_Merchant",
     "exactServer": "EU:I",
@@ -62,5 +62,24 @@
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false
   },
-  "nextAction": "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_EXECUTE"
+  "nextAction": "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION",
+  "realEvidence": {
+    "ratified": true,
+    "manifestMainCommit": "72ba966878e1575df786ca1e60f50044e2aa89a5",
+    "observedAtMs": 1790251127933,
+    "inventoryIndex": 1,
+    "reconciliation": "COMMITTED",
+    "settlement": "BESTAETIGT",
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "durableIntentReadback": true,
+    "oneShotIssued": true,
+    "oneShotConsumed": true,
+    "exactEmptyOffhandPrestate": true,
+    "oppositeHandPinned": true,
+    "soakSamples": 60,
+    "soakDurationMs": 300586
+  }
 }
