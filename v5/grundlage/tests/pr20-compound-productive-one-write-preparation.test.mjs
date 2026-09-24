@@ -89,6 +89,21 @@ test("PR20.8 Compound one-write preparation requires fresh three-input and durab
   assert.equal(p.conservativeLiveSafetyDistanceMax,300);
   assert.equal(p.offeringForbidden,true);
   assert.equal(p.specialCompoundPathsForbidden,true);
+  assert.equal(p.massproductionConditionStateExact,true);
+  assert.equal(p.massproductionppConditionStateExact,true);
+  assert.equal(p.conditionStateFingerprintRequired,true);
+  assert.equal(p.freshConditionStateReobserveImmediatelyBeforeSend,true);
+  assert.equal(p.compoundEffectDomainFingerprintRequired,true);
+  assert.deepEqual(p.compoundEffectDomain,[
+    "character.s.massproduction",
+    "character.s.massproductionpp",
+    "character.p.ograce",
+    "character.p.c_roll",
+    "character.p.c_item",
+    "character.p.c_itemx",
+    "S.cgrace",
+  ]);
+  assert.equal(p.freshCompoundEffectDomainReobserveImmediatelyBeforeSend,true);
 
   const d=prep.durableTransaction;
   assert.equal(d.actionContractId,"AL-ACTION-COMPOUND");
@@ -97,7 +112,7 @@ test("PR20.8 Compound one-write preparation requires fresh three-input and durab
   assert.equal(d.durableIntentBeforePossibleSend,true);
   assert.equal(d.exactJournalReadbackRequired,true);
   assert.equal(d.currentFenceRequired,true);
-  assert.deepEqual(d.resourceEpochs,["inventory","q","socketBudget","actionChannel"]);
+  assert.deepEqual(d.resourceEpochs,["inventory","q","socketBudget","actionChannel","massproduction","massproductionpp"]);
   assert.equal(d.familySpecificOneShotAuthority,"Pr208CompoundOneShotAuthority");
   assert.equal(d.oneShotMaximumUses,1);
   assert.equal(d.oneShotMaximumTtlMs,1500);
@@ -131,7 +146,11 @@ test("PR20.8 Compound reconciliation models accepted destructive in-flight state
   assert.match(r.expectedFailure,/all three hpamulet@0 inputs consumed/);
   assert.equal(r.restartNonTerminalRequiresReconciliation,true);
   assert.equal(r.unknownNeverBlindRetry,true);
-  assert.equal(r.notAppliedRequiresPositiveUnchangedEvidenceForAllThreeInputsAndScroll,true);
-  assert.equal(r.committedRequiresVerifiedThreeInputAndConsumableOutcome,true);
+  assert.equal(r.conditionDeltaAcceptedInFlight,true);
+  assert.equal(r.massproductionConditionConsumptionReconciled,true);
+  assert.equal(r.massproductionppConditionConsumptionReconciled,true);
+  assert.equal(r.compoundEffectDomainDeltaReconciled,true);
+  assert.equal(r.notAppliedRequiresPositiveUnchangedEvidenceForAllThreeInputsScrollAndConditions,true);
+  assert.equal(r.committedRequiresVerifiedThreeInputConsumableAndConditionOutcome,true);
   assert.equal(prep.nextGate,"PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE");
 });
