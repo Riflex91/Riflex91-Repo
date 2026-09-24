@@ -82,8 +82,9 @@
     "PR20.1 bis PR20.7 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.8 Wertmutationen ist aktuelles Gate",
     "PR20.8 Exchange-Spezialplaner ist NO-WRITE vorbereitet",
-    "PR20.8 Upgrade/Compound/Exchange besitzen getrennte Durable-/Current-Fence-/One-Shot-/Admission-Fundamente; Admission endet NICHT_GESENDET",
-    "AKTUELL: family-spezifische read-only Preflights fuer Upgrade, Compound und Exchange vorbereiten",
+    "PR20.8 getrennte Durable-/Current-Fence-/One-Shot-/Admission-Fundamente sind NO-WRITE vorbereitet",
+    "PR20.8 family-spezifische Read-only-Preflights fuer Upgrade, Compound und Exchange sind vorbereitet; keine Authority, kein Send",
+    "AKTUELL: niedrigwertige einfache Live-Kandidaten je Familie read-only ermitteln und gegeneinander isolieren",
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
@@ -752,7 +753,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "DURABLE_ONE_SHOT_FOUNDATIONS_BEREIT_NO_WRITE",
+      "status": "READ_ONLY_PREFLIGHTS_BEREIT_NO_WRITE",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -762,7 +763,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_READ_ONLY_PREFLIGHTS",
+      "nextAction": "PR20_8_LIVE_CANDIDATE_SELECTION",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -770,7 +771,10 @@
         "v5/grundlage/quelle/merchant/pr20-8-wertmutation-one-shot.ts",
         "v5/grundlage/quelle/merchant/pr20-8-wertmutation-durable-admission.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
-        "v5/grundlage/tests/pr20-wertmutation-one-shot-foundation.test.mjs"
+        "v5/grundlage/tests/pr20-wertmutation-one-shot-foundation.test.mjs",
+        "v5/grundlage/quelle/merchant/pr20-8-wertmutation-read-only-preflight.ts",
+        "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-read-only-preflight.json",
+        "v5/grundlage/tests/pr20-wertmutation-read-only-preflight.test.mjs"
       ]
     },
     {
@@ -1610,7 +1614,7 @@
     }
   },
   "pr20_8": {
-    "status": "DURABLE_ONE_SHOT_FOUNDATIONS_BEREIT_NO_WRITE",
+    "status": "READ_ONLY_PREFLIGHTS_BEREIT_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1655,9 +1659,11 @@
       "normalUpgrade": "OFFEN_SEPARATE_RATIFICATION",
       "normalCompound": "OFFEN_SEPARATE_RATIFICATION",
       "normalExchange": "OFFEN_SEPARATE_RATIFICATION",
-      "specialPaths": "OFFEN_SEPARATE_RATIFICATION"
+      "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
+      "readOnlyPreflights": "BEREIT_NO_WRITE",
+      "liveCandidateSelection": "OFFEN"
     },
-    "nextAction": "PR20_8_READ_ONLY_PREFLIGHTS",
+    "nextAction": "PR20_8_LIVE_CANDIDATE_SELECTION",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -1669,6 +1675,21 @@
     "currentFenceRequired": true,
     "driftRevokes": true,
     "admissionPerformsSend": false,
-    "sendBoundaryState": "NICHT_GESENDET"
+    "sendBoundaryState": "NICHT_GESENDET",
+    "readOnlyPreflights": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-read-only-preflight.json",
+    "readOnlyPreflightSource": "v5/grundlage/quelle/merchant/pr20-8-wertmutation-read-only-preflight.ts",
+    "readOnlyPreflightTest": "v5/grundlage/tests/pr20-wertmutation-read-only-preflight.test.mjs",
+    "readOnlyPreflightFamilies": [
+      "UPGRADE",
+      "COMPOUND",
+      "EXCHANGE"
+    ],
+    "readOnlyPreflightAuthorityIssued": false,
+    "readOnlyPreflightSendBoundaryState": "NICHT_GESENDET",
+    "readOnlyPreflightGameplayWrites": 0,
+    "readOnlyPreflightPublicFunctionCalls": 0,
+    "readOnlyPreflightRawWriteCalls": 0,
+    "readOnlyPreflightLiveAdapterPresent": false,
+    "readOnlyPreflightLiveRunnerPresent": false
   }
 }

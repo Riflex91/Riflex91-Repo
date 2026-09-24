@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "DURABLE_ONE_SHOT_FOUNDATIONS_BEREIT_NO_WRITE",
+    "status": "READ_ONLY_PREFLIGHTS_BEREIT_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_READ_ONLY_PREFLIGHTS",
+    "nextAction": "PR20_8_LIVE_CANDIDATE_SELECTION",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -602,6 +602,31 @@
       "gameplayWrites": 0,
       "publicFunctionCalls": 0,
       "rawWriteCalls": 0,
+      "normalRuntimeAllowed": false
+    },
+    "readOnlyPreflights": {
+      "status": "BEREIT_NO_WRITE",
+      "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-read-only-preflight.json",
+      "source": "grundlage/quelle/merchant/pr20-8-wertmutation-read-only-preflight.ts",
+      "test": "grundlage/tests/pr20-wertmutation-read-only-preflight.test.mjs",
+      "families": [
+        "UPGRADE",
+        "COMPOUND",
+        "EXCHANGE"
+      ],
+      "exactCharacter": true,
+      "exactSession": true,
+      "exactServer": true,
+      "merchantClassRequired": true,
+      "authorityIssued": false,
+      "durableIntentWritten": false,
+      "sendBoundaryState": "NICHT_GESENDET",
+      "sameIntentRetry": false,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "liveAdapterPresent": false,
+      "liveRunnerPresent": false,
       "normalRuntimeAllowed": false
     }
   },
