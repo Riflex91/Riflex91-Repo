@@ -120,13 +120,13 @@ test("PR20.8 Compound durable shadow persists exact three-input no-send intent",
   assert.equal(status.status,"BESTANDEN");
   assert.equal(status.phase,"COMPLETE");
   assert.equal(status.terminal,true);
-  assert.deepEqual(status.blocker,[]);
+  assert.deepEqual(Array.from(status.blocker),[]);
   assert.equal(env.compoundCalls(),0);
 
   const e=status.evidence;
   assert.equal(e.evidenceArt,"V5_PR20_8_COMPOUND_DURABLE_SHADOW_NO_WRITE");
   assert.equal(e.recipient.characterName,"My_Merchant");
-  assert.deepEqual(e.candidate.inventoryIndexes,[1,22,23]);
+  assert.deepEqual(Array.from(e.candidate.inventoryIndexes),[1,22,23]);
   assert.equal(e.candidate.name,"hpamulet");
   assert.equal(e.candidate.level,0);
   assert.equal(e.candidate.quantity,3);
@@ -196,7 +196,7 @@ test("PR20.8 Compound shadow deterministically selects the first three live phys
   const env=sandbox(liveItems([4,7,18,25],29));
   const status=await run(env);
   assert.equal(status.status,"BESTANDEN");
-  assert.deepEqual(status.evidence.candidate.inventoryIndexes,[4,7,18]);
+  assert.deepEqual(Array.from(status.evidence.candidate.inventoryIndexes),[4,7,18]);
   assert.equal(status.evidence.candidate.matchingCandidateCount,4);
   assert.equal(status.evidence.scroll.inventoryIndex,29);
   assert.equal(env.compoundCalls(),0);
@@ -206,7 +206,7 @@ test("PR20.8 Compound shadow blocks fewer than three safe physical inputs",async
   const env=sandbox(liveItems([1,22],14));
   const status=await run(env);
   assert.equal(status.status,"FEHLER");
-  assert.deepEqual(status.blocker,["PR20_8_COMPOUND_SHADOW_DREI_KANDIDATEN_ERFORDERLICH"]);
+  assert.deepEqual(Array.from(status.blocker),["PR20_8_COMPOUND_SHADOW_DREI_KANDIDATEN_ERFORDERLICH"]);
   assert.equal(env.storage.rows.size,0);
   assert.equal(env.compoundCalls(),0);
 });
@@ -218,21 +218,21 @@ test("PR20.8 Compound shadow blocks unsafe candidate, active q and scroll-defini
     const env=sandbox(items);
     const status=await run(env);
     assert.equal(status.status,"FEHLER");
-    assert.deepEqual(status.blocker,["PR20_8_COMPOUND_SHADOW_DREI_KANDIDATEN_ERFORDERLICH"]);
+    assert.deepEqual(Array.from(status.blocker),["PR20_8_COMPOUND_SHADOW_DREI_KANDIDATEN_ERFORDERLICH"]);
     assert.equal(env.storage.rows.size,0);
   }
   {
     const env=sandbox(liveItems(),{character:{q:{compound:{ms:500}}}});
     const status=await run(env);
     assert.equal(status.status,"FEHLER");
-    assert.deepEqual(status.blocker,["PR20_8_COMPOUND_SHADOW_Q_NICHT_FREI"]);
+    assert.deepEqual(Array.from(status.blocker),["PR20_8_COMPOUND_SHADOW_Q_NICHT_FREI"]);
     assert.equal(env.storage.rows.size,0);
   }
   {
     const env=sandbox(liveItems(),{itemDefOverrides:{cscroll0:{g:9999}}});
     const status=await run(env);
     assert.equal(status.status,"FEHLER");
-    assert.deepEqual(status.blocker,["PR20_8_COMPOUND_SHADOW_SCROLL_DEFINITION_DRIFT"]);
+    assert.deepEqual(Array.from(status.blocker),["PR20_8_COMPOUND_SHADOW_SCROLL_DEFINITION_DRIFT"]);
     assert.equal(env.storage.rows.size,0);
   }
 });
@@ -241,7 +241,7 @@ test("PR20.8 Compound shadow blocks service drift before durable intent",async()
   const env=sandbox(liveItems(),{character:{x:1000,y:1000}});
   const status=await run(env);
   assert.equal(status.status,"FEHLER");
-  assert.deepEqual(status.blocker,["PR20_8_COMPOUND_SHADOW_SERVICE_NICHT_ERREICHBAR"]);
+  assert.deepEqual(Array.from(status.blocker),["PR20_8_COMPOUND_SHADOW_SERVICE_NICHT_ERREICHBAR"]);
   assert.equal(env.storage.rows.size,0);
   assert.equal(env.compoundCalls(),0);
 });
