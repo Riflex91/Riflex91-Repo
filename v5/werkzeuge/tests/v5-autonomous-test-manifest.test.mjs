@@ -32,7 +32,7 @@ const allowedPackages = Object.freeze({
     gate: "PR20.8_WERTMUTATIONEN"
   }),
   "pr20-8-wertmutation-live-candidate-readonly": Object.freeze({
-    path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js",
+    path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js",
     expectedGlobal: "V5PR208ValueMutationLiveCandidateReadonly",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
@@ -695,7 +695,7 @@ test("PR20.8 candidate discovery manifest is exact read-only and special-path cl
   assert.equal("workerPackageSha256" in manifest, false);
   assert.equal("workerExpectedGlobal" in manifest, false);
   assert.equal("workerTargets" in manifest, false);
-  assert.ok(packageSource.includes("const VERSION = '1.0.3'"));
+  assert.ok(packageSource.includes("const VERSION = '1.0.4'"));
   assert.ok(packageSource.includes("publish();"));
   assert.ok(packageSource.indexOf("publish();") < packageSource.indexOf("Promise.resolve().then(run)"));
   assert.ok(packageSource.includes("for (const owner of roots())"));
