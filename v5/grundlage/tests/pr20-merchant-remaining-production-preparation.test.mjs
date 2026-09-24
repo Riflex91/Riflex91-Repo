@@ -625,14 +625,6 @@ test("PR20.8 Real-Browser Candidate-Evidence ist ratifiziert und zero-write", ()
 });
 
 test("PR20.8 Upgrade Durable Shadow package stays no-send and authority-free", () => {
-  assert.equal(
-    prep.pr20_8.status,
-    "UPGRADE_DURABLE_SHADOW_PACKAGE_BEREIT_NO_WRITE",
-  );
-  assert.equal(
-    prep.pr20_8.nextAction,
-    "PR20_8_UPGRADE_DURABLE_SHADOW_MANIFEST_CUTOVER",
-  );
   const shadow = prep.pr20_8.upgradeDurableShadow;
   assert.equal(shadow.status, "PACKAGE_BEREIT_NO_WRITE");
   assert.equal(shadow.testId, "pr20-8-upgrade-durable-shadow-no-write");
@@ -669,6 +661,36 @@ test("PR20.8 Upgrade Durable Shadow package stays no-send and authority-free", (
   assert.equal(shadow.gameplayWrites, 0);
   assert.equal(shadow.publicFunctionCalls, 0);
   assert.equal(shadow.rawWriteCalls, 0);
+  assert.equal(shadow.normalRuntimeAllowed, false);
+});
+
+test("PR20.8 Upgrade Shadow Manifest is exact pinned and still NO-WRITE", () => {
+  assert.equal(
+    prep.pr20_8.status,
+    "UPGRADE_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+  );
+  assert.equal(
+    prep.pr20_8.nextAction,
+    "PR20_8_UPGRADE_DURABLE_SHADOW_REAL_BROWSER_OBSERVE",
+  );
+  const shadow = prep.pr20_8.upgradeDurableShadow;
+  assert.equal(
+    shadow.sourceCommit,
+    "79aec6e6d9d4568837641e3fadd48f67dea6adab",
+  );
+  assert.equal(
+    shadow.packageSha256,
+    "90d93a6c6970c7d1632918a2280b858451c5087be97b2fe5bc88cc10aa1121c5",
+  );
+  assert.equal(shadow.manifest, "roadmap/v5-autonomous-test-manifest.json");
+  assert.equal(shadow.manifestCutoverPrepared, true);
+  assert.equal(shadow.sendBoundaryState, "NICHT_GESENDET");
+  assert.equal(shadow.upgradeAuthorityIssued, false);
+  assert.equal(shadow.productionDurableIntentCreated, false);
+  assert.equal(shadow.gameplayWrites, 0);
+  assert.equal(shadow.publicFunctionCalls, 0);
+  assert.equal(shadow.rawWriteCalls, 0);
+  assert.equal(shadow.sameIntentRetry, false);
   assert.equal(shadow.normalRuntimeAllowed, false);
 });
 
