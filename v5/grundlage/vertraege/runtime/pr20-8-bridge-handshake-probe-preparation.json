@@ -128,22 +128,5 @@
     "sameIntentRetry": false,
     "normalRuntimeAllowed": false
   },
-  "observedBootstrapV2Recovery": {
-    "telemetryBatchId": 8255,
-    "observedAt": "2026-09-24T17:29:10.540138+00:00",
-    "testId": "pr20-8-native-updater-recovery-bootstrap-v2",
-    "controllerVersion": "1.0.0",
-    "status": "BESTANDEN",
-    "phase": "UPDATER_PERSISTENCE_BOOTSTRAP",
-    "terminal": true,
-    "persisted": true,
-    "persistedAtMs": 1790270182323,
-    "updaterVersion": "1.0.8",
-    "bridgeState": "ALREADY_PRESENT",
-    "bridgeError": null,
-    "gameplayWrites": 0,
-    "publicFunctionCalls": 0,
-    "rawWriteCalls": 0
-  },
   "evidence": "roadmap/pr20-8-bridge-handshake-probe-evidence.json"
 }
