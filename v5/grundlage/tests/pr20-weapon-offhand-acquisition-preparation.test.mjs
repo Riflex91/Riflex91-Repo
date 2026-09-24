@@ -34,7 +34,7 @@ const liveSource = fs.readFileSync(
 
 test("PR20.7 acquisition candidate is exact wshield Merchant offhand source", () => {
   assert.equal(contract.blockingGate, "PR20.7_GEAR");
-  assert.equal(contract.status, "PRODUCTIVE_PURCHASE_PACKAGE_BEREIT_MANIFEST_OFFEN");
+  assert.equal(contract.status, "PRODUCTIVE_PURCHASE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
   assert.equal(contract.rationale.procurementRequired, true);
   assert.equal(contract.rationale.farmerGearAllocationStillSeparate, true);
   assert.equal(contract.candidate.recipient, "My_Merchant");
@@ -151,7 +151,7 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.preflight.realObservedSellDistanceSource, "OFFICIAL_SERVER_SOURCE_PIN");
   assert.equal(contract.preflight.realObservedGold, 14493644);
   assert.equal(contract.preflight.realObservedFreeInventorySlots, 21);
-  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_5M_MANIFEST_CUTOVER");
+  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_5M_EXECUTE");
   assert.equal(contract.preflight.purchaseAuthority, false);
   assert.equal(contract.preflight.goldBudgetLedgerReservationRequired, true);
   assert.equal(contract.preflight.goldBudgetLedgerReservationSatisfied, false);
@@ -240,7 +240,7 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
     "5efa5e2c92c258e1502ee388e84ba96d4c844027");
   assert.equal(contract.purchasePreparation.livePackageSha256,
     "5cecc5a3ca36c2d75e4a6629c36991417b508e364a965c1a945a790aac8bd930");
-  assert.equal(contract.purchasePreparation.liveManifestCutoverPrepared, false);
+  assert.equal(contract.purchasePreparation.liveManifestCutoverPrepared, true);
   assert.equal(contract.purchasePreparation.liveMaximumGameplayWrites, 1);
   assert.equal(contract.purchasePreparation.liveMaximumPublicFunctionCalls, 1);
   assert.equal(contract.purchasePreparation.liveRawWriteCalls, 0);
@@ -254,7 +254,7 @@ test("PR20.7 controlled wshield live package is pinned but manifest is still clo
   assert.equal(livePlan.testId,
     "pr20-7-gear-weapon-offhand-acquisition-live-5m");
   assert.equal(livePlan.controllerVersion, "1.0.0");
-  assert.equal(livePlan.status, "PACKAGE_BEREIT_MANIFEST_OFFEN");
+  assert.equal(livePlan.status, "MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
   assert.equal(livePlan.scope.exactRecipientCharacter, "My_Merchant");
   assert.equal(livePlan.scope.exactServer, "EU:I");
   assert.equal(livePlan.scope.exactItem, "wshield");
@@ -276,7 +276,7 @@ test("PR20.7 controlled wshield live package is pinned but manifest is still clo
     "5efa5e2c92c258e1502ee388e84ba96d4c844027");
   assert.equal(livePlan.deployment.packageSha256,
     "5cecc5a3ca36c2d75e4a6629c36991417b508e364a965c1a945a790aac8bd930");
-  assert.equal(livePlan.deployment.manifestCutoverPrepared, false);
+  assert.equal(livePlan.deployment.manifestCutoverPrepared, true);
   assert.equal(liveEvidence.status, "OFFEN");
   assert.equal(liveEvidence.ratified, false);
   assert.equal(liveEvidence.manifestMainCommit, null);

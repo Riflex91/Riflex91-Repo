@@ -4,7 +4,7 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-live-5m",
   "controllerVersion": "1.0.0",
-  "status": "PACKAGE_BEREIT_MANIFEST_OFFEN",
+  "status": "MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
   "scope": {
     "coordinatorClass": "merchant",
     "exactRecipientCharacter": "My_Merchant",
@@ -86,7 +86,7 @@
     "packageTest": "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-live-5m.test.mjs",
     "expectedGlobal": "V5PR207WeaponOffhandAcquisitionLiveTest",
     "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
-    "manifestCutoverPrepared": false
+    "manifestCutoverPrepared": true
   },
   "evidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-live-5m-evidence.json",
   "nextAfterPass": "PR20_7_WEAPON_OFFHAND_PRODUCTIVE_EQUIP_PREPARATION"
