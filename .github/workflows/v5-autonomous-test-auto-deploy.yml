@@ -47,6 +47,8 @@ on:
       - 'v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v2.test.mjs'
       - 'v5/werkzeuge/pr20-8-bridge-handshake-probe-v1.js'
       - 'v5/werkzeuge/tests/pr20-8-bridge-handshake-probe-v1.test.mjs'
+      - 'v5/werkzeuge/pr20-8-bridge-handshake-probe-v1-0-1.js'
+      - 'v5/werkzeuge/tests/pr20-8-bridge-handshake-probe-v1-0-1.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr20-8-bridge-handshake-probe-preparation.json'
       - 'v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js'
       - 'v5/werkzeuge/tests/v5-autonomous-test-ingame-updater.test.mjs'
@@ -102,6 +104,8 @@ on:
       - 'v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v2.test.mjs'
       - 'v5/werkzeuge/pr20-8-bridge-handshake-probe-v1.js'
       - 'v5/werkzeuge/tests/pr20-8-bridge-handshake-probe-v1.test.mjs'
+      - 'v5/werkzeuge/pr20-8-bridge-handshake-probe-v1-0-1.js'
+      - 'v5/werkzeuge/tests/pr20-8-bridge-handshake-probe-v1-0-1.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr20-8-bridge-handshake-probe-preparation.json'
       - 'v5/werkzeuge/pr20-6-updater-recovery-bootstrap.js'
       - 'v5/werkzeuge/tests/v5-autonomous-test-ingame-updater.test.mjs'
@@ -142,3 +146,5 @@ jobs:
         run: node --check werkzeuge/pr20-8-updater-recovery-bootstrap-v2.js && node --test werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v2.test.mjs
       - name: Verify PR20.8 minimal bridge handshake probe
         run: node --check werkzeuge/pr20-8-bridge-handshake-probe-v1.js && node --test werkzeuge/tests/pr20-8-bridge-handshake-probe-v1.test.mjs
+      - name: Verify PR20.8 terminal bridge handshake probe recovery
+        run: node --check werkzeuge/pr20-8-bridge-handshake-probe-v1-0-1.js && node --test werkzeuge/tests/pr20-8-bridge-handshake-probe-v1-0-1.test.mjs
