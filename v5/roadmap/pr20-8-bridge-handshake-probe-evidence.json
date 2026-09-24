@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "V5_PR20_8_BRIDGE_HANDSHAKE_PROBE_LIVE_EVIDENCE",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "status": "BESTANDEN_LIVE_HANDSHAKE_ZERO_WRITE",
+  "immutable": true,
+  "bootstrapV2Persistence": {
+    "telemetryBatchId": 8255,
+    "receivedAt": "2026-09-24T17:29:12.323617+00:00",
+    "testId": "pr20-8-native-updater-recovery-bootstrap-v2",
+    "controllerVersion": "1.0.0",
+    "status": "BESTANDEN",
+    "phase": "UPDATER_PERSISTENCE_BOOTSTRAP",
+    "terminal": true,
+    "persisted": true,
+    "updaterVersion": "1.0.8",
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "bridgeState": "ALREADY_PRESENT",
+    "bridgeError": null
+  },
+  "bridgeHandshakeProbe": {
+    "telemetryBatchId": 8256,
+    "receivedAt": "2026-09-24T17:44:23.707706+00:00",
+    "testId": "pr20-8-bridge-handshake-probe-v1",
+    "controllerVersion": "1.0.0",
+    "status": "LAEUFT",
+    "phase": "BRIDGE_HANDSHAKE_PROBE",
+    "terminal": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "bridgeState": "ALREADY_PRESENT",
+    "bridgeError": null,
+    "handshakeConfirmed": true
+  },
+  "conclusion": {
+    "bridgeHandshakeWorks": true,
+    "updater108Persisted": true,
+    "bootstrapV3Required": false,
+    "probeTerminalRecoveryRequired": true,
+    "reason": "PROBE_V1_0_0_IS_DIAGNOSTIC_AND_INTENTIONALLY_NONTERMINAL"
+  },
+  "terminalRecovery": {
+    "testId": "pr20-8-bridge-handshake-probe-v1",
+    "fromVersion": "1.0.0",
+    "toVersion": "1.0.1",
+    "package": "v5/werkzeuge/pr20-8-bridge-handshake-probe-v1-0-1.js",
+    "sourceCommit": "fe38f784d9d8bfeac3d9b30874a453716bd9e3bc",
+    "packageSha256": "08d21dde622ed1cf2dd56438225e4274478263908363a5692bcb6c548b58303b",
+    "packageBytes": 2390,
+    "targetStatus": "BESTANDEN",
+    "targetPhase": "BRIDGE_HANDSHAKE_PROBE_COMPLETE",
+    "terminal": true,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "normalRuntimeAllowed": false
+  },
+  "safety": {
+    "upgradeOneWriteRunnerRetired": true,
+    "noAdditionalGameplayWriteObserved": true,
+    "compoundRatified": false,
+    "exchangeRatified": false,
+    "normalRuntimeAllowed": false
+  },
+  "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN"
+}

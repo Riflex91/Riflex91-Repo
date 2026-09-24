@@ -3,7 +3,7 @@
   "stand": "2026-09-24",
   "gate": "PR20.8_WERTMUTATIONEN",
   "kennung": "V5_PR20_8_BRIDGE_HANDSHAKE_PROBE",
-  "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
+  "status": "V1_REAL_BROWSER_HANDSHAKE_BESTANDEN_TERMINAL_RECOVERY_MANIFEST_CUTOVER_PREPARED",
   "prerequisiteOneWriteEvidence": {
     "evidence": "roadmap/pr20-8-upgrade-productive-one-write-evidence.json",
     "telemetryBatchId": 8252,
@@ -50,9 +50,22 @@
     "packageSha256": "a595bc1c2d351635e8f61b8134e9afe4146283238aa724c4217fd2b6c82ab472",
     "packageBytes": 2333,
     "manifest": "roadmap/v5-autonomous-test-manifest.json",
-    "manifestCutoverPrepared": true
+    "manifestCutoverPrepared": true,
+    "liveEvidence": {
+      "telemetryBatchId": 8256,
+      "observedAt": "2026-09-24T17:44:16.2552232+00:00",
+      "controllerVersion": "1.0.0",
+      "status": "LAEUFT",
+      "phase": "BRIDGE_HANDSHAKE_PROBE",
+      "terminal": false,
+      "bridgeState": "ALREADY_PRESENT",
+      "bridgeError": null,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0
+    }
   },
-  "diagnosticQuestion": "CAN_MINIMAL_SYNCHRONOUS_PACKAGE_PASS_BOTH_BRIDGE_HANDSHAKE_PROBES",
+  "diagnosticQuestion": "ANSWERED_YES_MINIMAL_SYNCHRONOUS_PACKAGE_PASSES_BOTH_BRIDGE_HANDSHAKE_PROBES",
   "safetyBoundary": {
     "mutatingUpgradeRunnerMustRemainRetired": true,
     "noGameplayMutationInProbe": true,
@@ -62,14 +75,58 @@
     "exchangeRatification": false,
     "normalRuntimeAllowed": false
   },
-  "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_REAL_BROWSER_RUN",
+  "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN",
   "interpretation": {
-    "onSuccess": "BRIDGE_HANDSHAKE_WORKS_BOOTSTRAP_V2_PACKAGE_OR_PERSISTENCE_SEQUENCE_REMAINS_SUSPECT",
-    "onFailure": "BRIDGE_EXECUTION_CONTEXT_OR_VERIFY_MECHANISM_REMAINS_SUSPECT",
-    "bootstrapV2LiveFailure": "V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED",
+    "bootstrapV2PersistenceConfirmed": true,
+    "bridgeHandshakeConfirmed": true,
+    "nonterminalProbeExitRequired": true,
     "additionalGameplayWriteObserved": false,
     "upgradeOneWriteRunnerRetired": true,
     "compoundRatified": false,
     "exchangeRatified": false
-  }
+  },
+  "bootstrapV2RecoverySuccess": {
+    "telemetryBatchId": 8255,
+    "receivedAt": "2026-09-24T17:29:12.323617+00:00",
+    "testId": "pr20-8-native-updater-recovery-bootstrap-v2",
+    "controllerVersion": "1.0.0",
+    "status": "BESTANDEN",
+    "phase": "UPDATER_PERSISTENCE_BOOTSTRAP",
+    "terminal": true,
+    "persisted": true,
+    "updaterVersion": "1.0.8",
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "bridgeState": "ALREADY_PRESENT",
+    "bridgeError": null,
+    "additionalGameplayWriteObserved": false
+  },
+  "terminalRecovery": {
+    "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
+    "controllerVersion": "1.0.1",
+    "package": "werkzeuge/pr20-8-bridge-handshake-probe-v1-0-1.js",
+    "test": "werkzeuge/tests/pr20-8-bridge-handshake-probe-v1-0-1.test.mjs",
+    "expectedGlobal": "V5PR208BridgeHandshakeProbe",
+    "sourceCommit": "fe38f784d9d8bfeac3d9b30874a453716bd9e3bc",
+    "packageSha256": "08d21dde622ed1cf2dd56438225e4274478263908363a5692bcb6c548b58303b",
+    "packageBytes": 2390,
+    "exactPriorVersion": "1.0.0",
+    "exactPriorStatus": "LAEUFT",
+    "exactPriorPhase": "BRIDGE_HANDSHAKE_PROBE",
+    "exactPriorTerminal": false,
+    "requiresGameplayWrites": 0,
+    "requiresRawWriteCalls": 0,
+    "requiresSameIntentRetry": false,
+    "requiresIntentCount": 0,
+    "targetStatus": "BESTANDEN",
+    "targetPhase": "BRIDGE_HANDSHAKE_PROBE_COMPLETE",
+    "targetTerminal": true,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "evidence": "roadmap/pr20-8-bridge-handshake-probe-evidence.json"
 }
