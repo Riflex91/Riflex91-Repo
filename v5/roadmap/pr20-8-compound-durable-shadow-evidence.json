@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "V5_PR20_8_COMPOUND_DURABLE_SHADOW_NO_WRITE_EVIDENCE",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "status": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
+  "evidenceRatified": true,
+  "manifestMainCommit": "e4f24bea3ebd2ca3e4142ea2a2aa49ea579ca73a",
+  "infrastructureFollowupMainCommit": "029ed3e00fac2d8c7028d22170e5b42dbcbf9336",
+  "testId": "pr20-8-compound-durable-shadow-no-write",
+  "controllerVersion": "1.0.0",
+  "package": {
+    "sourceCommit": "5577a45443db03a8cc0617ce61e0ec4b427d4aea",
+    "path": "v5/werkzeuge/pr20-8-compound-durable-shadow-no-write.js",
+    "sha256": "94685bc0d439eb86b3a31763ffa0a06854c06572d875f55584a7558c9c368547",
+    "bytes": 34995,
+    "expectedGlobal": "V5PR208CompoundDurableShadowNoWrite"
+  },
+  "liveEvidence": {
+    "source": "public.aio_v5_test_status",
+    "botId": "pi-main",
+    "updatedAt": "2026-09-24T20:05:36.139+00:00",
+    "observedAtMs": 1790280262923,
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "terminal": true,
+    "blocker": [],
+    "recipient": {
+      "characterName": "My_Merchant",
+      "sessionId": "My_Merchant",
+      "ctype": "merchant",
+      "level": 58,
+      "map": "main",
+      "serverRegion": "EU",
+      "serverIdentifier": "I"
+    },
+    "candidate": {
+      "name": "hpamulet",
+      "level": 0,
+      "baseGold": 20000,
+      "quantity": 3,
+      "quantityEach": 1,
+      "inventoryIndexes": [
+        1,
+        22,
+        23
+      ],
+      "matchingCandidateCount": 3,
+      "fingerprintSha256": "dcba95b4b49ef5be33d7ef317a1748be878ea2df073f4b33a952923a4116c6af"
+    },
+    "scroll": {
+      "name": "cscroll0",
+      "inventoryIndex": 18,
+      "observedQuantity": 20,
+      "consumeQuantity": 1,
+      "fingerprintSha256": "c36e41077673e89b3213dae104ea100083640276191497bfba4475800b527c9d"
+    },
+    "offering": null,
+    "normalPathOnly": true,
+    "publicFunction": "compound",
+    "publicFunctionAvailable": true,
+    "serviceReachability": {
+      "reachable": true,
+      "viaComputer": false,
+      "distance": 130.13872083773435,
+      "serverLimit": 400,
+      "safetyLimit": 300,
+      "servicePoint": {
+        "map": "main",
+        "x": -180,
+        "y": -203
+      },
+      "sellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
+      "browserObserved": false
+    },
+    "performanceTrick": {
+      "active": true,
+      "called": true,
+      "available": true,
+      "audioFound": true,
+      "playing": true,
+      "cplaying": true,
+      "verification": "HOWLER_PLAYING_TRUE",
+      "error": null
+    },
+    "durable": {
+      "storage": "LOCAL_STORAGE_SHADOW_ONLY",
+      "createdThisRun": true,
+      "durableReadback": true,
+      "durableTerminalIntentPresent": true,
+      "journalTerminalArt": "ABBRUCH",
+      "sendBoundaryState": "NICHT_GESENDET",
+      "reconciliationClassification": "NOT_APPLIED",
+      "sameIntentRetry": false,
+      "oneShotMaximumUses": 1,
+      "exactPhysicalCandidateIndexesPinned": true,
+      "exactPhysicalScrollIndexPinned": true,
+      "freshReresolutionRequiredBeforeFutureSend": true
+    },
+    "fingerprints": {
+      "prestateFingerprintSha256": "cbae2ccf3a109f793041a4eb826c843dd2a63ad74869aca130875d925c6dab3b",
+      "postIntentPrestateFingerprintSha256": "cbae2ccf3a109f793041a4eb826c843dd2a63ad74869aca130875d925c6dab3b",
+      "inventoryFingerprintSha256": "962ad8435e83d0cc20efa81f3fde8e12f1cf0502a9b2f23b23825bb3598531da",
+      "qFingerprintSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "candidateFingerprintSha256": "dcba95b4b49ef5be33d7ef317a1748be878ea2df073f4b33a952923a4116c6af",
+      "scrollFingerprintSha256": "c36e41077673e89b3213dae104ea100083640276191497bfba4475800b527c9d",
+      "compoundEffectsFingerprintSha256": "e3878fbd1e59c63443bba6ded69360bc109db3648051f351c4aca0abf3391897",
+      "itemDefinitionFingerprintSha256": "505ae390fb5444a03ddeddc7a07c312dae8e38d597294f1007c97ca4dd989d6a",
+      "scrollDefinitionFingerprintSha256": "10349ea4fb4a7c9f713bad58c324394359d8e2644338b3737cf7d8ce48cb692a"
+    },
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "authorityIssued": false,
+    "compoundAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalCompoundWriteRatification": false,
+    "normalRuntimeAllowed": false
+  },
+  "bridge": {
+    "observedAt": "2026-09-24T20:05:34.6023001+00:00",
+    "state": "ALREADY_PRESENT",
+    "error": null,
+    "changed": false
+  },
+  "conclusion": {
+    "shadowRatified": true,
+    "stableDoubleObservation": true,
+    "stablePostIntentReobserve": true,
+    "durableReadbackConfirmed": true,
+    "noGameplayMutationObserved": true,
+    "compoundWriteRatified": false,
+    "compoundLive5mRatified": false,
+    "mayAuthorizeCompoundWrite": false,
+    "exchangeRatified": false,
+    "pr20_8ExitGateSatisfied": false
+  },
+  "nextGate": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_PREPARATION"
+}

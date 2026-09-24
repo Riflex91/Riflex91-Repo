@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "COMPOUND_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+    "status": "COMPOUND_DURABLE_SHADOW_RATIFIED_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_DURABLE_SHADOW_REAL_BROWSER_RUN",
+    "nextAction": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_PREPARATION",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1143,7 +1143,7 @@
       "acquisitionOrMutationToCreateCandidateAllowed": false
     },
     "compoundDurableShadow": {
-      "status": "MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+      "status": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
       "testId": "pr20-8-compound-durable-shadow-no-write",
       "controllerVersion": "1.0.0",
       "package": "werkzeuge/pr20-8-compound-durable-shadow-no-write.js",
@@ -1196,8 +1196,8 @@
       "expectedGlobal": "V5PR208CompoundDurableShadowNoWrite",
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
       "manifestCutoverPrepared": true,
-      "deployed": false,
-      "nextGate": "PR20_8_COMPOUND_DURABLE_SHADOW_REAL_BROWSER_RUN",
+      "deployed": true,
+      "nextGate": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_PREPARATION",
       "activeManifestTarget": {
         "testId": "pr20-8-compound-durable-shadow-no-write",
         "controllerVersion": "1.0.0",
@@ -1205,7 +1205,24 @@
         "packageSha256": "94685bc0d439eb86b3a31763ffa0a06854c06572d875f55584a7558c9c368547",
         "expectedGlobal": "V5PR208CompoundDurableShadowNoWrite",
         "normalRuntimeAllowed": false
-      }
+      },
+      "evidence": "roadmap/pr20-8-compound-durable-shadow-evidence.json",
+      "evidenceRatified": true,
+      "evidenceObservedAtMs": 1790280262923,
+      "evidenceCandidateIndexes": [
+        1,
+        22,
+        23
+      ],
+      "evidenceScrollIndex": 18,
+      "evidenceScrollQuantity": 20,
+      "evidenceGameplayWrites": 0,
+      "evidencePublicFunctionCalls": 0,
+      "evidenceRawWriteCalls": 0,
+      "evidenceSendBoundaryState": "NICHT_GESENDET",
+      "evidenceReconciliation": "NOT_APPLIED",
+      "evidenceCompoundAuthority": false,
+      "evidenceNormalCompoundWriteRatification": false
     }
   },
   "pr20_9": {
