@@ -363,6 +363,24 @@ Assert(!CdpAdventureLandClient.IsAllowedSameOriginExecutionContext(
     new Uri("https://adventure.land"),
     "not-a-uri"), "CDP_CONTEXT_INVALID_ORIGIN_REJECTED");
 Assert(CdpAdventureLandClient.CdpCommandTimeoutSeconds == 12, "CDP_COMMAND_WATCHDOG_BOUND");
+Assert(CdpAdventureLandClient.BridgeFarmerGearDiagnosticsKey == "bridgeFarmerGearContexts", "V5_FARMER_GEAR_DIAGNOSTICS_KEY");
+var farmerGearProbe = CdpAdventureLandClient.BuildV5FarmerGearObservationExpression();
+foreach (var required in new[] {
+    "My_Ranger1", "My_Priest", "My_Mage",
+    "character?.items", "character?.slots", "G?.items", "G?.classes",
+    "performance_trick", "HOWLER_PLAYING_TRUE",
+    "candidates.slice(0, 16)", "items.slice(0, 128)",
+    "gameplayWrites: 0", "publicFunctionCalls: 0", "rawWriteCalls: 0",
+    "startCalls: 0", "disconnectCalls: 0", "normalRuntimeAllowed: false"
+})
+    Assert(farmerGearProbe.Contains(required, StringComparison.Ordinal), "V5_FARMER_GEAR_PROBE_REQUIRED_" + required);
+foreach (var forbidden in new[] {
+    "start_character(", "command_character(", "observe_character(",
+    "socket.emit(", "api_call(", "equip(", "unequip(",
+    "buy(", "buy_with_gold(", "sell(", "send_item(", "send_gold("
+})
+    Assert(!farmerGearProbe.Contains(forbidden, StringComparison.Ordinal), "V5_FARMER_GEAR_PROBE_FORBIDDEN_" + forbidden);
+
 
 var v5AutoManifestJson = """
 {
