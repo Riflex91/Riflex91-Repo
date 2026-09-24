@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "UPGRADE_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+    "status": "UPGRADE_DURABLE_SHADOW_EVIDENCE_RATIFIED_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_UPGRADE_DURABLE_SHADOW_REAL_BROWSER_OBSERVE",
+    "nextAction": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -737,7 +737,22 @@
       "recoveryRewritesIntent": false,
       "recoveryCreatesGameplayWrite": false,
       "previousControllerVersionRecoverable": "1.0.0",
-      "terminalRecoveryPackagePinned": true
+      "terminalRecoveryPackagePinned": true,
+      "evidence": "roadmap/pr20-8-upgrade-durable-shadow-evidence.json",
+      "evidenceStatus": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
+      "evidenceRatified": true,
+      "evidenceTelemetryBatchId": 8244,
+      "evidenceObservedControllerVersion": "1.0.0",
+      "evidenceObservedAtMs": 1790258801223,
+      "evidenceCandidateIndex": 6,
+      "evidenceScrollIndex": 14,
+      "evidenceGameplayWrites": 0,
+      "evidencePublicFunctionCalls": 0,
+      "evidenceRawWriteCalls": 0,
+      "evidenceSendBoundaryState": "NICHT_GESENDET",
+      "evidenceReconciliation": "NOT_APPLIED",
+      "evidenceUpgradeAuthority": false,
+      "evidenceNormalUpgradeWriteRatification": false
     }
   },
   "pr20_9": {
