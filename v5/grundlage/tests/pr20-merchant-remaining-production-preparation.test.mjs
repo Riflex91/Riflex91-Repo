@@ -706,16 +706,8 @@ test("PR20.8 Upgrade Shadow Manifest is exact pinned and still NO-WRITE", () => 
   assert.equal(shadow.normalRuntimeAllowed, false);
 });
 
-test("PR20.8 Upgrade Durable Shadow real-browser evidence is ratified and remains no-write", () => {
+test("PR20.8 Upgrade Durable Shadow real-browser evidence remains ratified after later gates", () => {
   const shadow=prep.pr20_8.upgradeDurableShadow;
-  assert.equal(
-    prep.pr20_8.status,
-    "UPGRADE_DURABLE_SHADOW_EVIDENCE_RATIFIED_NO_WRITE",
-  );
-  assert.equal(
-    prep.pr20_8.nextAction,
-    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION",
-  );
   assert.equal(
     shadow.evidence,
     "roadmap/pr20-8-upgrade-durable-shadow-evidence.json",
