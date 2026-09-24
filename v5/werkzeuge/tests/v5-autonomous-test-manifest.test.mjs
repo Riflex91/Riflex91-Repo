@@ -22,7 +22,7 @@ const allowedPackages = Object.freeze({
     gate: "PR20.8_WERTMUTATIONEN"
   }),
   "pr20-8-bridge-handshake-probe-v1": Object.freeze({
-    path: "v5/werkzeuge/pr20-8-bridge-handshake-probe-v1.js",
+    path: "v5/werkzeuge/pr20-8-bridge-handshake-probe-v1-0-1.js",
     expectedGlobal: "V5PR208BridgeHandshakeProbe",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
@@ -255,22 +255,26 @@ test("PR20.8 updater persistence bootstrap v2 fixes split-context handshake and 
 });
 
 
-test("PR20.8 bridge handshake probe is exact, synchronous, local+parent and zero-write", () => {
+test("PR20.8 bridge handshake probe terminal recovery is exact, synchronous, local+parent and zero-write", () => {
   if (manifest.testId !== "pr20-8-bridge-handshake-probe-v1") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.controllerVersion, "1.0.1");
   assert.equal(
     manifest.sourceCommit,
-    "d2ffea95f984421a9a34088c751471def6cc31d8",
+    "fe38f784d9d8bfeac3d9b30874a453716bd9e3bc",
   );
   assert.equal(
     manifest.packageSha256,
-    "a595bc1c2d351635e8f61b8134e9afe4146283238aa724c4217fd2b6c82ab472",
+    "08d21dde622ed1cf2dd56438225e4274478263908363a5692bcb6c548b58303b",
   );
   assert.equal(manifest.normalRuntimeAllowed, false);
   assert.ok(packageSource.includes('const TEST_ID = "pr20-8-bridge-handshake-probe-v1"'));
-  assert.ok(packageSource.includes('const VERSION = "1.0.0"'));
+  assert.ok(packageSource.includes('const VERSION = "1.0.1"'));
   assert.ok(packageSource.includes('const API_NAME = "V5PR208BridgeHandshakeProbe"'));
+  assert.ok(packageSource.includes('status: "BESTANDEN"'));
+  assert.ok(packageSource.includes('phase: "BRIDGE_HANDSHAKE_PROBE_COMPLETE"'));
+  assert.ok(packageSource.includes("terminal: true"));
   assert.ok(packageSource.includes("synchronous: true"));
+  assert.ok(packageSource.includes("diagnosticCompletion: true"));
   assert.ok(packageSource.includes("updaterInstall: false"));
   assert.ok(packageSource.includes("codeSlotPersistence: false"));
   assert.ok(packageSource.includes("gameplayMutation: false"));
