@@ -43,6 +43,22 @@ test("PR20.8 no-candidate evidence cannot silently create authority or substitut
   ]);
   assert.equal(
     review.nextAction,
-    "PR20_8_COMPOUND_LIVE_5M_PREPARATION",
+    "PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE",
   );
+});
+
+test("PR20.8 Compound 5m preparation changes no remaining exit authority", () => {
+  const p=review.compoundLive5mPreparation;
+  assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
+  assert.equal(
+    p.contract,
+    "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json",
+  );
+  assert.equal(p.additionalGameplayWritesAllowed,0);
+  assert.equal(p.additionalPublicFunctionCallsAllowed,0);
+  assert.equal(p.rawWriteCallsAllowed,0);
+  assert.equal(p.maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass,true);
+  assert.equal(review.currentExitGateSatisfied,false);
+  assert.equal(review.mayAdvanceToPr20_9,false);
+  assert.equal(review.roadmapCriteriaRelaxed,false);
 });
