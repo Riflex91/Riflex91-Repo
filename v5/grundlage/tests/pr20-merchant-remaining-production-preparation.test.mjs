@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "COMPOUND_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+    "COMPOUND_DURABLE_SHADOW_RATIFIED_NO_WRITE",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_COMPOUND_DURABLE_SHADOW_REAL_BROWSER_RUN",
+    "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_PREPARATION",
   );
   const exit=prep.pr20_8.exitGateReview;
   assert.equal(exit.status,"BLOCKED_COMPOUND_NOT_LIVE_RATIFIED_EXCHANGE_NO_CANDIDATE");
@@ -964,7 +964,7 @@ test("PR20.8 v1.0.4 rescan ratifies Compound candidate and keeps Exchange closed
 });
 test("PR20.8 Compound durable shadow preparation remains strictly no-write", () => {
   const s=prep.pr20_8.compoundDurableShadow;
-  assert.equal(s.status,"MANIFEST_CUTOVER_PREPARED_NO_WRITE");
+  assert.equal(s.status,"BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE");
   assert.equal(s.testId,"pr20-8-compound-durable-shadow-no-write");
   assert.equal(s.controllerVersion,"1.0.0");
   assert.equal(s.package,"werkzeuge/pr20-8-compound-durable-shadow-no-write.js");
@@ -1001,8 +1001,21 @@ test("PR20.8 Compound durable shadow preparation remains strictly no-write", () 
   assert.equal(s.packageBytes,34995);
   assert.equal(s.expectedGlobal,"V5PR208CompoundDurableShadowNoWrite");
   assert.equal(s.manifestCutoverPrepared,true);
-  assert.equal(s.deployed,false);
-  assert.equal(s.nextGate,"PR20_8_COMPOUND_DURABLE_SHADOW_REAL_BROWSER_RUN");
+  assert.equal(s.deployed,true);
+  assert.equal(s.evidence,"roadmap/pr20-8-compound-durable-shadow-evidence.json");
+  assert.equal(s.evidenceRatified,true);
+  assert.equal(s.evidenceObservedAtMs,1790280262923);
+  assert.deepEqual(s.evidenceCandidateIndexes,[1,22,23]);
+  assert.equal(s.evidenceScrollIndex,18);
+  assert.equal(s.evidenceScrollQuantity,20);
+  assert.equal(s.evidenceGameplayWrites,0);
+  assert.equal(s.evidencePublicFunctionCalls,0);
+  assert.equal(s.evidenceRawWriteCalls,0);
+  assert.equal(s.evidenceSendBoundaryState,"NICHT_GESENDET");
+  assert.equal(s.evidenceReconciliation,"NOT_APPLIED");
+  assert.equal(s.evidenceCompoundAuthority,false);
+  assert.equal(s.evidenceNormalCompoundWriteRatification,false);
+  assert.equal(s.nextGate,"PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_PREPARATION");
   assert.deepEqual(s.activeManifestTarget,{
     testId:"pr20-8-compound-durable-shadow-no-write",
     controllerVersion:"1.0.0",
