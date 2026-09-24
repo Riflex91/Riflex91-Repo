@@ -16,9 +16,9 @@ test("PR20.8 Compound productive one-write runner contract remains exact and not
   assert.equal(contract.package,"werkzeuge/pr20-8-compound-productive-one-write-live.js");
   assert.equal(contract.test,"werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs");
   assert.equal(contract.expectedGlobal,"V5PR208CompoundProductiveOneWriteLive");
-  assert.equal(contract.sourceCommit,"41ce5ea0a12ff1d346a6febb620e025b7dcf1005");
-  assert.equal(contract.packageSha256,"84c4350888ad0ee128b0683b25d8408271582e6beca1be637b457e09d780e9ba");
-  assert.equal(contract.packageBytes,49755);
+  assert.equal(contract.sourceCommit,"31edc5c7ce29bb64086be211b703f4f18dd3772b");
+  assert.equal(contract.packageSha256,"c57c6cc38618392f1f26b7c91e0ea10163a8f8bfc33063eaea2785e39b56100c");
+  assert.equal(contract.packageBytes,50445);
   assert.equal(contract.prerequisiteShadowObservedAtMs,1790280262923);
   assert.equal(contract.exactScope.candidate,"hpamulet@0 x3");
   assert.equal(contract.exactScope.scroll,"cscroll0");
@@ -64,6 +64,9 @@ test("PR20.8 Compound runner package is immutable at source commit and has one b
     '"character:My_Merchant:condition:massproduction"',
     '"character:My_Merchant:condition:massproductionpp"',
     "compoundEffectsFingerprintSha256",
+    "Number(compoundDef.hp) === 240",
+    "compound: stableScalarObject(itemDef?.compound || {}, 32)",
+    "safeZeroWriteNoIntentFailure",
     '"FINAL_SEND_DRIFT"',
     '"COMMITTED_EXPECTED_FAILURE"',
     '"FAILED_SAFE_NOT_APPLIED"',
@@ -72,6 +75,9 @@ test("PR20.8 Compound runner package is immutable at source commit and has one b
 
 test("PR20.8 Compound runner binds condition/effect state through final-send revalidation",()=>{
   const r=contract.liveRevalidation;
+  assert.equal(r.itemDefinitionExact,true);
+  assert.deepEqual(r.hpamuletCompoundDefinitionExact,{hp:240});
+  assert.equal(r.zeroWritePreflightFailureReleasesRuntimeLease,true);
   assert.equal(r.finalEffectDomainReobserveAfterAuthorityConsume,true);
   assert.deepEqual(r.compoundEffectDomainBound,[
     "character.s.massproduction",
