@@ -4,15 +4,69 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-occupied-slot-shadow-no-write",
   "controllerVersion": "1.0.0",
-  "status": "OFFEN",
+  "status": "BESTANDEN_REAL_BROWSER_SHADOW_NO_WRITE",
   "evidenceArt": "V5_PR20_7_OCCUPIED_SLOT_REAL_BROWSER_SHADOW_NO_WRITE",
   "sourceCommit": "b035d9ea3eed7546948ca76c85335d9986d5a850",
   "packageSha256": "584e3080462e66dde116823d7712781d0fc053ed1a4477dc620ab923d729ccb2",
-  "manifestMainCommit": null,
-  "observedAtMs": null,
-  "terminal": null,
-  "result": null,
-  "expectedSafetyBoundary": {
+  "manifestMainCommit": "e3070df619d26ef09c8fdd4f77528f2d91b569b1",
+  "observedAtMs": 1790196937277,
+  "terminal": true,
+  "result": {
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "version": "1.0.0",
+    "recipient": {
+      "characterName": "My_Merchant",
+      "ctype": "merchant",
+      "level": 58,
+      "map": "main",
+      "serverRegion": "EU",
+      "serverIdentifier": "I",
+      "accountBindingSha256": "18be41682a0c809cb26db3dfff9336deb164730e175c182a11d321445fde0085",
+      "sessionBindingSha256": "6f87fd406e9b1cfa78273bbdfcefafe5c4c2cc9c8e685a0bd35244e7c419c32c"
+    },
+    "candidate": {
+      "slot": "helmet",
+      "inventoryIndex": 7,
+      "name": "wcap",
+      "level": 4,
+      "fingerprintSha256": "b526a3a83ce92b338fab074b6d2f943f3c0d3604430ba067bbe62f228005a13d",
+      "physical": true,
+      "locked": false,
+      "virtualB": false
+    },
+    "previousSlotItem": {
+      "name": "partyhat",
+      "level": 5,
+      "fingerprintSha256": "6ecb90bf5d76ab137e4bd3c6c4f7d28dce3fa0786f690a8d3560bac05a4d02ef",
+      "physical": true,
+      "locked": false,
+      "virtualB": false
+    },
+    "stableDoubleObservation": true,
+    "doubleObserveDelayMs": 350,
+    "prestateFingerprintSha256": "003a52f855cccf85eace98428b91292f0e23c759bf43293cfdc8c8a9046a213c",
+    "restInventoryFingerprintSha256": "1a755add58835a27b726e786702cd6d1df61d07908be5d47be470da4d205213c",
+    "restEquipmentFingerprintSha256": "744255aa45584e36f470a7074f1fa6b06f9c29ee2cb1a3837998aeab06397023",
+    "postIntentPrestateFingerprintSha256": "003a52f855cccf85eace98428b91292f0e23c759bf43293cfdc8c8a9046a213c",
+    "performanceTrick": {
+      "available": true,
+      "called": true,
+      "audioFound": true,
+      "playing": true,
+      "active": true,
+      "verification": "HOWLER_PLAYING_TRUE"
+    },
+    "shadowDurableIntentCreated": true,
+    "shadowDurableReadback": true,
+    "sendBoundaryState": "NICHT_GESENDET",
+    "reconciliationClassification": "NOT_APPLIED",
+    "oneShotBindingPrepared": true,
+    "equipmentInventoryFenceClaimsPrepared": true
+  },
+  "ratified": true,
+  "blocker": [],
+  "observedSafetyBoundary": {
     "gameplayWrites": 0,
     "publicFunctionCalls": 0,
     "rawWriteCalls": 0,
@@ -26,8 +80,11 @@
     "sameIntentRetry": false,
     "normalRuntimeAllowed": false
   },
-  "ratified": false,
-  "blocker": [
-    "REAL_BROWSER_SHADOW_NOCH_NICHT_AUSGEFUEHRT"
-  ]
+  "deploymentEvidence": {
+    "githubWorkflow": "deploy-cloudflare",
+    "workflowRunId": 35918622714,
+    "v5Publish": "SUCCESS",
+    "v5ReadbackVerify": "SUCCESS"
+  },
+  "supabaseUpdatedAt": "2026-09-24T03:57:24.535Z"
 }
