@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "V5_PR20_8_COMPOUND_EXCHANGE_RESCAN_V1_0_2_FALSE_POSITIVE_EVIDENCE",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "status": "INVALID_TARGET_SUCCESS_ZERO_WRITE",
+  "ratified": false,
+  "observedAtMs": 1790274824644,
+  "receivedAt": "2026-09-24T18:33:44.859+00:00",
+  "testId": "pr20-8-wertmutation-live-candidate-readonly",
+  "controllerVersion": "1.0.2",
+  "packagePath": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.js",
+  "sourceCommit": "c3f7a066f08d1bb16218345f9f76095fe5874c4f",
+  "packageSha256": "2eb0d1f37f02afca5550572791be860cb221ffb0ab42e22809ad9f5b82fb31b5",
+  "observed": {
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "terminal": true,
+    "bridgeState": "ALREADY_PRESENT",
+    "bridgeError": null,
+    "upgradeCandidate": {
+      "name": "gloves",
+      "level": 0
+    },
+    "compoundCandidate": null,
+    "exchangeCandidate": null,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0
+  },
+  "interpretation": {
+    "handshakeAndExecutionSucceeded": true,
+    "targetFamilies": [
+      "COMPOUND",
+      "EXCHANGE"
+    ],
+    "upgradeInformationalOnly": true,
+    "targetCandidateObserved": false,
+    "reportedSuccessIsFalsePositiveForTargetGate": true,
+    "mayAdvanceCompoundOrExchangeGate": false,
+    "compoundRatified": false,
+    "exchangeRatified": false
+  },
+  "recovery": {
+    "controllerVersion": "1.0.3",
+    "packagePath": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js",
+    "sourceCommit": "a0625dd9611b1006dc6f09ef7222ce5b67361ca6",
+    "packageSha256": "f633b5ed877120aa9c76c2c788b64b8efb20eef155a0d38612fb5fca7c20da25",
+    "packageBytes": 21343,
+    "successCriterion": "COMPOUND_OR_EXCHANGE_CANDIDATE_REQUIRED",
+    "upgradeCanSatisfySuccess": false,
+    "readOnly": true,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "normalRuntimeAllowed": false
+  },
+  "nextGate": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_3_REAL_BROWSER_RUN"
+}
