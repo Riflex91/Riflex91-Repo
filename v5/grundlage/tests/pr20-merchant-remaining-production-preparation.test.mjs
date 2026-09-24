@@ -852,7 +852,7 @@ test("PR20.8 bridge handshake and terminal recovery are confirmed zero-write", (
   assert.equal(r.evidence,"roadmap/pr20-8-bridge-handshake-terminal-recovery-evidence.json");
 });
 
-test("PR20.8 remaining Compound/Exchange candidate rescan ratifies no-candidate evidence and keeps authority closed", () => {
+test("PR20.8 remaining Compound/Exchange candidate rescan preserves no-candidate evidence and prepares v1.0.4 rerun", () => {
   const r=prep.pr20_8.remainingCandidateRescan;
   assert.equal(r.status,"V1_0_4_OPERATOR_ITEMS_PRESENT_RESCAN_PREPARED");
   assert.equal(r.testId,"pr20-8-wertmutation-live-candidate-readonly");
@@ -871,7 +871,7 @@ test("PR20.8 remaining Compound/Exchange candidate rescan ratifies no-candidate 
   assert.equal(r.rawWriteCalls,0);
   assert.equal(r.sameIntentRetry,false);
   assert.equal(r.normalRuntimeAllowed,false);
-  assert.equal(r.nextGate,"WAIT_FOR_NATURAL_COMPOUND_OR_EXCHANGE_NORMAL_CANDIDATE_THEN_REPEAT_READONLY_TARGET_RESCAN");
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_4_REAL_BROWSER_RUN");
   assert.equal(r.evidence,"roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json");
   assert.equal(r.evidenceRatified,true);
   assert.equal(r.compoundRatified,false);
