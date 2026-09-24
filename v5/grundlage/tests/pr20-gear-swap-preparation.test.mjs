@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_CORRECTIVE_1_0_1_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+  assert.equal(contract.status, "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_BESTANDEN_PRODUCTIVE_PURCHASE_PREPARATION_BEREIT_NO_PURCHASE_AUTHORITY");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -437,8 +437,21 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowRawWriteCalls, 0);
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowSameIntentRetry, false);
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowNormalRuntimeAllowed, false);
-  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowEvidenceStatus, "OFFEN");
-  assert.equal(contract.weaponOffhandFoundation.acquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE_V1_0_1");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowEvidenceStatus,
+    "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowEvidenceRatified, true);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowEvidenceObservedAtMs, 1790243742400);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowEvidenceResult, "BESTANDEN");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowEvidenceBridgeState, "DEPLOYED");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowEvidenceGameplayWrites, 0);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowEvidencePublicFunctionCalls, 0);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowEvidenceRawWriteCalls, 0);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowEvidencePurchaseAuthority, false);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowEvidenceDurableReadback, true);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowEvidenceGoldBudgetReservationSatisfied, true);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionShadowEvidenceVendorReachableNow, true);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseAuthority, false);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION");
   assert.match(contract.weaponOffhandFoundation.acquisitionSourceCommit, /^[0-9a-f]{40}$/);
   assert.match(contract.weaponOffhandFoundation.acquisitionPackageSha256, /^[0-9a-f]{64}$/);
   assert.match(contract.weaponOffhandFoundation.readOnlySourceCommit, /^[0-9a-f]{40}$/);
