@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "UPGRADE_COMMITTED_TARGET_ITEMS_PRESENT_V1_0_4_RESCAN_PREPARED",
+    "status": "UPGRADE_COMMITTED_COMPOUND_CANDIDATE_RATIFIED_EXCHANGE_NO_CANDIDATE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_4_REAL_BROWSER_RUN",
+    "nextAction": "PR20_8_COMPOUND_DURABLE_SHADOW_PREPARATION",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -955,7 +955,7 @@
     },
     "bridgeHandshakeEvidence": "roadmap/pr20-8-bridge-handshake-probe-evidence.json",
     "remainingCandidateRescan": {
-      "status": "V1_0_4_OPERATOR_ITEMS_PRESENT_RESCAN_PREPARED",
+      "status": "V1_0_4_REAL_BROWSER_BESTANDEN_COMPOUND_CANDIDATE_EXCHANGE_NO_CANDIDATE_ZERO_WRITE",
       "purpose": "REOBSERVE_REMAINING_COMPOUND_AND_EXCHANGE_NORMAL_CANDIDATES_AFTER_UPGRADE_COMMIT",
       "testId": "pr20-8-wertmutation-live-candidate-readonly",
       "controllerVersion": "1.0.4",
@@ -976,7 +976,7 @@
       "rawWriteCalls": 0,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_4_REAL_BROWSER_RUN",
+      "nextGate": "PR20_8_COMPOUND_DURABLE_SHADOW_PREPARATION",
       "packageBytes": 21343,
       "observedV1Failure": {
         "observedAt": "2026-09-24T18:05:47.0307173+00:00",
@@ -1054,7 +1054,7 @@
         "reportedSuccessInvalidForTargetGate": true,
         "mayAdvanceCompoundOrExchangeGate": false
       },
-      "evidence": "roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json",
+      "evidence": "roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json",
       "evidenceRatified": true,
       "compoundRatified": false,
       "exchangeRatified": false,
@@ -1093,10 +1093,44 @@
         "authorityGranted": false,
         "gameplayWriteRequested": false,
         "scannerSemanticsChanged": false
+      },
+      "compoundCandidateObservationRatified": true,
+      "observedV1_0_4CompoundCandidate": {
+        "observedAtMs": 1790278399271,
+        "updatedAt": "2026-09-24T19:34:32.157+00:00",
+        "controllerVersion": "1.0.4",
+        "status": "BESTANDEN",
+        "phase": "COMPLETE",
+        "terminal": true,
+        "blocker": [],
+        "bridgeState": "ALREADY_PRESENT",
+        "bridgeError": null,
+        "compoundCandidate": {
+          "name": "hpamulet",
+          "level": 0,
+          "baseGold": 20000,
+          "physicalIndexes": [
+            1,
+            22,
+            23
+          ],
+          "scrollName": "cscroll0",
+          "scrollQuantity": 20,
+          "normalPathOnly": true
+        },
+        "exchangeCandidate": null,
+        "gameplayWrites": 0,
+        "publicFunctionCalls": 0,
+        "rawWriteCalls": 0,
+        "sameIntentRetry": false,
+        "authorityIssued": false,
+        "compoundAuthority": false,
+        "exchangeAuthority": false,
+        "normalRuntimeAllowed": false
       }
     },
     "exitGateReview": {
-      "status": "RESCAN_V1_0_4_PENDING_TARGET_FAMILY_OBSERVATION",
+      "status": "BLOCKED_COMPOUND_NOT_LIVE_RATIFIED_EXCHANGE_NO_CANDIDATE",
       "evidence": "roadmap/pr20-8-no-candidate-exit-gate-review.json",
       "currentExitGateSatisfied": false,
       "compoundRatified": false,
