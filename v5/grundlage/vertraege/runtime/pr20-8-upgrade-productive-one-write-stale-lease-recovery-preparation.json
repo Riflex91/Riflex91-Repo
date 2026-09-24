@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_STALE_LEASE_RECOVERY",
+  "status": "PACKAGE_PATCH_BEREIT_NOT_DEPLOYED",
+  "incident": {
+    "telemetryBatchId": 8250,
+    "observedTestId": "pr20-8-upgrade-productive-one-write-live",
+    "observedControllerVersion": "1.0.1",
+    "blocker": "PR20_8_UPGRADE_LIVE_DUPLIKAT_INSTANZ_AKTIV",
+    "terminal": true,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "durableIntentCreated": false,
+    "authorityIssued": false,
+    "intentCount": 0,
+    "evidence": null,
+    "receivedAt": "2026-09-24T16:12:31.443877Z"
+  },
+  "diagnosis": {
+    "staleForeignRuntimeLeaseFromEarlierControllerMayRemain": true,
+    "currentControllerMustNotBlindlyDeleteForeignLease": true,
+    "previousDuplicateFailureRequiredForReclaim": true,
+    "minimumStaleAgeMs": 120000,
+    "durableMutationGuardRowsMustBeAbsent": true,
+    "mutationQueueMustBeIdle": true
+  },
+  "patch": {
+    "package": "werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js",
+    "test": "werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-2.test.mjs",
+    "previousControllerVersion": "1.0.1",
+    "preparedControllerVersion": "1.0.2",
+    "staleLeaseReclaimBoundToSameTest": true,
+    "exactPreviousBlockerRequired": "PR20_8_UPGRADE_LIVE_DUPLIKAT_INSTANZ_AKTIV",
+    "previousTerminalZeroWriteRequired": true,
+    "previousZeroIntentRequired": true,
+    "previousNoAuthorityRequired": true,
+    "freshForeignLeaseNeverReclaimed": true,
+    "persistedIntentAuthorityFenceBlocksReclaim": true,
+    "mutationQueueBusyBlocksReclaim": true,
+    "newLeaseStoresControllerVersion": true,
+    "sendLogicChanged": false,
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "maximumRawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "deploymentBoundary": {
+    "currentManifestStillPinsControllerVersion": "1.0.1",
+    "currentManifestPackage": "werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js",
+    "preparedRecoveryPackage": "werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js",
+    "recoveryManifestCutoverPrepared": false,
+    "recoveryPatchDeployed": false,
+    "realUpgradeMutationObserved": false
+  },
+  "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_STALE_LEASE_RECOVERY_MANIFEST_CUTOVER"
+}
