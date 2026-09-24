@@ -329,9 +329,9 @@ test("PR20.8 Upgrade one-write runner reconciles after a bounded public-function
   assert.equal(env.upgradeCalls(),1);
   assert.equal(status.gameplayWrites,1);
   assert.equal(status.publicFunctionCalls,1);
-  assert.equal(status.evidence.promiseTimedOut,true);
+  assert.equal(status.evidence.reconciliation.promiseTimedOut,true);
   assert.equal(
-    status.evidence.promiseError,
+    status.evidence.reconciliation.promiseError,
     "PUBLIC_FUNCTION_PROMISE_TIMEOUT",
   );
   assert.equal(
