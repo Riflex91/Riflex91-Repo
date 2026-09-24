@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_EXCHANGE_SPECIALIZED_PLANNER_FOUNDATION",
+  "status": "SPECIALIZED_PLANNER_BEREIT_NO_WRITE",
+  "sourceSnapshot": {
+    "commit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "contract": "v5/wissensbasis/vertraege/exchange-craft.json"
+  },
+  "foundation": {
+    "planner": "grundlage/quelle/merchant/exchange-produktions-planer.ts",
+    "test": "grundlage/tests/pr20-exchange-produktions-planer.test.mjs",
+    "valueLedger": "grundlage/quelle/merchant/werttransaktion.ts",
+    "actionContractId": "AL-ACTION-EXCHANGE",
+    "recoveryContractId": "AL-RECOVERY-EXCHANGE",
+    "verifierId": "AL-VERIFIER-EXCHANGE",
+    "publicFunction": "exchange",
+    "rawClientChannel": "exchange",
+    "executionModel": "MULTI_PHASE_Q"
+  },
+  "admission": {
+    "exactPhysicalInputIdentity": true,
+    "exactExchangeQuantity": true,
+    "contentVerified": true,
+    "serviceReachable": true,
+    "qMustBeFree": true,
+    "sourceSnapshotPinned": true,
+    "boundedDropGraphRequired": true,
+    "conservativeOutputspaceRequired": true,
+    "placeholderWorkspaceRequired": true,
+    "dispositionMustBeConsume": true,
+    "activeItemReservationConflictBlocked": true,
+    "activeGearReservationConflictBlocked": true,
+    "duplicateValueTransactionBlocked": true,
+    "physicalIndexReresolveBeforeSendRequired": true
+  },
+  "rewardReconciliation": {
+    "promiseRewardOnlySupportingEvidence": true,
+    "fullRewardDomainReconciliationRequired": true,
+    "domains": [
+      "inventory",
+      "gold",
+      "shells",
+      "account_cosmetics",
+      "empty",
+      "recursive_drop"
+    ],
+    "recursiveDropMustBeBoundedAndExplicit": true,
+    "specialMultiOutputMustBeBoundedAndExplicit": true,
+    "massExchangeMustBeExplicit": true
+  },
+  "recovery": {
+    "qOrPlaceholderMeansAcceptedInFlight": true,
+    "consumableDeltaMeansAcceptedInFlight": true,
+    "restartNonTerminalState": "ABGLEICH_ERFORDERLICH",
+    "notAppliedRequiresPositiveUnchangedEvidence": true,
+    "sameIntentRetry": false,
+    "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+  },
+  "authority": {
+    "planningOnly": true,
+    "executionAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "exchangeAuthority": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "liveAdapterPresent": false,
+    "liveRunnerPresent": false,
+    "normalRuntimeAllowed": false
+  },
+  "excludedFromFirstLiveScope": [
+    "unbounded recursive drop graphs",
+    "special multi-output paths without separate bounded evidence",
+    "mass exchange without separate condition accounting",
+    "rare or high-value inputs",
+    "generic shared item-mutation authority"
+  ],
+  "nextGate": "PR20_8_DURABLE_ONE_SHOT_FOUNDATIONS"
+}
