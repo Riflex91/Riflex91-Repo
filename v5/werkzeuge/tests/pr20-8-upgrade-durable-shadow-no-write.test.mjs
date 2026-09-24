@@ -200,6 +200,7 @@ test("PR20.8 Upgrade durable shadow persists exact no-send intent and reobserves
   assert.equal(e.stableDoubleObservation,true);
   assert.equal(e.stablePostIntentReobserve,true);
   assert.equal(e.durableIntentCreatedShadowOnly,true);
+  assert.equal(e.durableIntentRecovered,false);
   assert.equal(e.durableReadback,true);
   assert.equal(e.journalTerminalArt,"ABBRUCH");
   assert.equal(e.sendBoundaryState,"NICHT_GESENDET");
@@ -259,9 +260,9 @@ test("PR20.8 Upgrade shadow mirrors telemetry into stale local CDP and game root
   const localStatus=env.box.AIO_V3.operations.status().v5AutonomousTest;
   const hostStatus=env.host.AIO_V3.operations.status().v5AutonomousTest;
   assert.equal(localStatus.testId,"pr20-8-upgrade-durable-shadow-no-write");
-  assert.equal(localStatus.version,"1.0.0");
+  assert.equal(localStatus.version,"1.0.1");
   assert.equal(hostStatus.testId,"pr20-8-upgrade-durable-shadow-no-write");
-  assert.equal(hostStatus.version,"1.0.0");
+  assert.equal(hostStatus.version,"1.0.1");
   assert.equal(
     env.box.V5PR208UpgradeDurableShadowNoWrite.testId,
     "pr20-8-upgrade-durable-shadow-no-write",
@@ -345,18 +346,32 @@ test("PR20.8 Upgrade shadow blocks unsafe gift candidate and never invents autho
   assert.equal(status.authority.upgradeAuthority,false);
 });
 
-test("PR20.8 same shadow intent is never silently reused", async () => {
+test("PR20.8 terminal no-send shadow is reconciled without duplicate intent or retry", async () => {
   const items=Array(8).fill(null);
   items[2]={ name:"gloves", level:0 };
   items[3]={ name:"scroll0", q:2 };
   const shared=new MemoryStorage();
-  const first=await run(sandbox(items,{storage:shared}));
+
+  const firstEnv=sandbox(items,{storage:shared});
+  const first=await run(firstEnv);
   assert.equal(first.status,"BESTANDEN");
-  const second=await run(sandbox(items,{storage:shared}));
-  assert.equal(second.status,"FEHLER");
-  assert.ok(second.blocker.some(x =>
-    x.includes("PR20_8_UPGRADE_SHADOW_GLEICHER_INTENT_BEREITS_TERMINAL")));
+  assert.equal(first.evidence.durableIntentCreatedShadowOnly,true);
+  assert.equal(first.evidence.durableIntentRecovered,false);
+  assert.equal(first.evidence.sendBoundaryState,"NICHT_GESENDET");
+  assert.equal(first.evidence.sameIntentRetry,false);
   assert.equal(shared.rows.size,1);
+  assert.equal(firstEnv.upgradeCalls(),0);
+
+  const secondEnv=sandbox(items,{storage:shared});
+  const second=await run(secondEnv);
+  assert.equal(second.status,"BESTANDEN");
+  assert.equal(second.evidence.durableIntentCreatedShadowOnly,false);
+  assert.equal(second.evidence.durableIntentRecovered,true);
+  assert.equal(second.evidence.sendBoundaryState,"NICHT_GESENDET");
+  assert.equal(second.evidence.reconciliationClassification,"NOT_APPLIED");
+  assert.equal(second.evidence.sameIntentRetry,false);
+  assert.equal(shared.rows.size,1);
+  assert.equal(secondEnv.upgradeCalls(),0);
 });
 
 test("PR20.8 Upgrade shadow package contains no gameplay mutation bypass", () => {
@@ -394,6 +409,8 @@ test("PR20.8 Upgrade shadow package contains no gameplay mutation bypass", () =>
     "scrollDef.type,64) !== 'uscroll'",
     "publishTelemetryFacades()",
     "installTelemetryFacade(owner)",
+    "recoveredExistingTerminal:true",
+    "newlyPersisted:false",
     "gameplayWrites:0",
     "publicFunctionCalls:0",
     "rawWriteCalls:0",
