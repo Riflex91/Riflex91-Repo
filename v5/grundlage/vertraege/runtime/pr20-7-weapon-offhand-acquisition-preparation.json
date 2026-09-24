@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-24",
   "kennung": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY",
-  "status": "PRODUCTIVE_PURCHASE_PACKAGE_BEREIT_MANIFEST_OFFEN",
+  "status": "PRODUCTIVE_PURCHASE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "rationale": {
     "merchantReadOnlyPreflight": "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE",
@@ -123,7 +123,7 @@
       "no same-intent retry after possible send"
     ]
   },
-  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_5M_MANIFEST_CUTOVER",
+  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_5M_EXECUTE",
   "shadowPreparation": {
     "foundation": "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
     "foundationTest": "v5/grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
@@ -248,7 +248,7 @@
     "liveExpectedGlobal": "V5PR207WeaponOffhandAcquisitionLiveTest",
     "liveSourceCommit": "5efa5e2c92c258e1502ee388e84ba96d4c844027",
     "livePackageSha256": "5cecc5a3ca36c2d75e4a6629c36991417b508e364a965c1a945a790aac8bd930",
-    "liveManifestCutoverPrepared": false,
+    "liveManifestCutoverPrepared": true,
     "liveMaximumGameplayWrites": 1,
     "liveMaximumPublicFunctionCalls": 1,
     "liveRawWriteCalls": 0,
