@@ -4,7 +4,7 @@ import test from "node:test";
 import vm from "node:vm";
 
 const source = fs.readFileSync(
-  "werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js",
+  "werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-2-autonomous.js",
   "utf8",
 );
 
@@ -97,6 +97,8 @@ function fixture(overrides = {}) {
       },
     },
   };
+  if (Object.prototype.hasOwnProperty.call(overrides, "serverRegion")) root.server_region = overrides.serverRegion;
+  if (Object.prototype.hasOwnProperty.call(overrides, "serverIdentifier")) root.server_identifier = overrides.serverIdentifier;
   if (overrides.buyWithGoldAvailable === false) delete root.buy_with_gold;
   if (Object.prototype.hasOwnProperty.call(overrides, "sellDist")) {
     if (overrides.sellDist === null) root.B = {};
@@ -138,7 +140,7 @@ async function execute(overrides = {}) {
 test("wshield source preflight is stable, merchant-only and zero-write", async () => {
   const { status, sandbox } = await execute();
   assert.equal(status.status, "BESTANDEN");
-  assert.equal(status.version, "1.0.1");
+  assert.equal(status.version, "1.0.2");
   assert.equal(status.phase, "ACQUISITION_SOURCE_READY");
   assert.equal(status.terminal, true);
   assert.equal(status.evidence.recipient.characterName, "My_Merchant");
@@ -158,6 +160,12 @@ test("wshield source preflight is stable, merchant-only and zero-write", async (
   assert.equal(status.evidence.acquisition.publicFunction, "buy_with_gold");
   assert.equal(status.evidence.acquisition.publicFunctionAvailable, true);
   assert.equal(status.evidence.acquisition.vendorReachableNow, true);
+  assert.equal(status.evidence.acquisition.sellDistance, 400);
+  assert.equal(status.evidence.acquisition.sellDistanceSource, "LIVE_BROWSER_B");
+  assert.equal(status.evidence.acquisition.sellDistanceBrowserObserved, true);
+  assert.equal(status.evidence.acquisition.sourcePinnedSellDistance, 400);
+  assert.equal(status.evidence.acquisition.officialServerSourceCommit, "90052162eb3ebda36c893e1eb4af643913c8f984");
+  assert.equal(status.evidence.acquisition.officialServerBlobSha, "40d0aeda16b9a4320441e833020fe1b4db496e2c");
   assert.equal(status.evidence.acquisition.goldBudgetLedgerReservationRequired, true);
   assert.equal(status.evidence.acquisition.goldBudgetLedgerReservationSatisfied, false);
   assert.equal(status.evidence.acquisition.purchaseAuthority, false);
@@ -188,17 +196,37 @@ test("missing buy_with_gold blocks source ratification fail closed", async () =>
   assert.equal(status.publicFunctionCalls, 0);
 });
 
-test("missing observed sell_dist blocks vendor reachability ratification", async () => {
+test("missing browser sell_dist uses exact freshly revalidated official server source pin", async () => {
   const { status } = await execute({ sellDist: null });
+  assert.equal(status.status, "BESTANDEN");
+  assert.equal(status.evidence.acquisition.sellDistance, 400);
+  assert.equal(status.evidence.acquisition.sellDistanceSource, "OFFICIAL_SERVER_SOURCE_PIN");
+  assert.equal(status.evidence.acquisition.sellDistanceBrowserObserved, false);
+  assert.equal(status.evidence.acquisition.sourcePinnedSellDistance, 400);
+  assert.equal(status.evidence.acquisition.officialServerSourceCommit, "90052162eb3ebda36c893e1eb4af643913c8f984");
+  assert.equal(status.evidence.acquisition.officialServerBlobSha, "40d0aeda16b9a4320441e833020fe1b4db496e2c");
+  assert.equal(status.gameplayWrites, 0);
+  assert.equal(status.publicFunctionCalls, 0);
+});
+
+test("observed sell_dist drift blocks source ratification fail closed", async () => {
+  const { status } = await execute({ sellDist: 399 });
   assert.equal(status.status, "BLOCKIERT");
-  assert.deepEqual(Array.from(status.blocker), ["PR20_7_ACQUISITION_SELL_DIST_FEHLT"]);
+  assert.deepEqual(Array.from(status.blocker), ["PR20_7_ACQUISITION_SELL_DIST_DRIFT"]);
   assert.equal(status.gameplayWrites, 0);
 });
 
-test("vendor outside observed sell_dist blocks source ratification", async () => {
-  const { status } = await execute({ character: { x: 1000, y: 1000 }, sellDist: 120 });
+test("vendor outside source-pinned sell_dist blocks source ratification", async () => {
+  const { status } = await execute({ character: { x: 1000, y: 1000 }, sellDist: null });
   assert.equal(status.status, "BLOCKIERT");
   assert.deepEqual(Array.from(status.blocker), ["PR20_7_ACQUISITION_VENDOR_NICHT_ERREICHBAR"]);
+  assert.equal(status.gameplayWrites, 0);
+});
+
+test("server binding drift blocks source-pinned range use", async () => {
+  const { status } = await execute({ serverIdentifier: "II" });
+  assert.equal(status.status, "BLOCKIERT");
+  assert.deepEqual(Array.from(status.blocker), ["PR20_7_ACQUISITION_SERVER_BINDUNG_DRIFT"]);
   assert.equal(status.gameplayWrites, 0);
 });
 
