@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+    "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_2_SOURCE_PIN_PACKAGE_BEREIT_MANIFEST_OFFEN");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -240,11 +240,11 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionTargetSlot, "offhand");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionExpectedUnitPrice, 4800);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionVendorId, "basics");
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionControllerVersion, "1.0.1");
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionManifestCutoverPrepared, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionControllerVersion, "1.0.2");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionManifestCutoverPrepared, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionSameTestUpgradeStrictlyNewer, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPreviousTerminalZeroWriteEligible, true);
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionEvidenceStatus, "V1_0_0_FALSE_POSITIVE_REJECTED_V1_0_1_OFFEN");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionEvidenceStatus, "V1_0_1_BLOCKED_SELL_DIST_UNOBSERVABLE_V1_0_2_OFFEN");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionGameplayWrites, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPublicFunctionCalls, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionRawWriteCalls, 0);
@@ -253,14 +253,21 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionOldPr203HarnessReuseAllowed, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionSameIntentRetry, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionNormalRuntimeAllowed, false);
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPackage, "werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js");
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionSourceCommit, "bfcbc3186b1fe374fe37d0dd43d5677511480f5d");
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPackageSha256, "0d1378a0bca4ff0665dc14ab67920a15a0532f20ab141c6428edac414c0c3c72");
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPreviousControllerVersionRejected, "1.0.0");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPackage, "werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-2-autonomous.js");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionSourceCommit, "0228da63fe01e8717ef7aebb85af24bb3b35478b");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPackageSha256, "1931312bfe6b15a2dd0764e774c52c84e6db09c376ee3fd33205b20cc5c9938c");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPreviousControllerVersionRejected, "1.0.1");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPreviousLiveRunRatified, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionRequiredBuyApi, true);
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionRequiredObservedSellDistance, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionRequiredObservedSellDistance, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionRequiredVendorReachability, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionSourcePinnedSellDistanceAllowed, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionSourcePinnedSellDistance, 400);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionBrowserSellDistanceMustMatchSourcePin, true);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionExpectedServerRegion, "EU");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionExpectedServerIdentifier, "I");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionOfficialServerSourceCommit, "90052162eb3ebda36c893e1eb4af643913c8f984");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionOfficialServerBlobSha, "40d0aeda16b9a4320441e833020fe1b4db496e2c");
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionSourceCommit, /^[0-9a-f]{40}$/);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPackageSha256, /^[0-9a-f]{64}$/);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlySourceCommit, /^[0-9a-f]{40}$/);
