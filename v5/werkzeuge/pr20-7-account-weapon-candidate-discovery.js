@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const TEST_ID = 'pr20-7-gear-account-weapon-candidate-discovery';
+  const TEST_ID = 'pr20-7-gear-account-weapon-candidate-discovery-v2';
   const VERSION = '1.0.2';
   const FARMERS = Object.freeze([
     Object.freeze({ name:'My_Ranger1', ctype:'ranger' }),

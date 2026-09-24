@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+    "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_V2_CUTOVER_BEREIT_EVIDENCE_OFFEN");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -217,6 +217,9 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryEvidenceStatus, "OFFEN");
   assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryManifestCutoverPrepared, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryControllerVersion, "1.0.2");
+  assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryTestId, "pr20-7-gear-account-weapon-candidate-discovery-v2");
+  assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoverySupersedesTestId, "pr20-7-gear-account-weapon-candidate-discovery");
+  assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoverySameTestVersionUpgradeBypassed, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryBridgeContractFixed, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryStatusEnvelope, "status.v5AutonomousTest");
   assert.equal(prep.pr20_7.sicherVorbereitet.accountWeaponDiscoveryPeekTelemetryArray, true);

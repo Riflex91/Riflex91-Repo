@@ -2,18 +2,18 @@
   "schemaVersion": 1,
   "stand": "2026-09-24",
   "gate": "PR20.7_GEAR",
-  "testId": "pr20-7-gear-account-weapon-candidate-discovery",
+  "testId": "pr20-7-gear-account-weapon-candidate-discovery-v2",
   "controllerVersion": "1.0.2",
-  "status": "MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_DISCOVERY",
+  "status": "V2_MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_DISCOVERY",
   "purpose": "READ_ONLY_ACCOUNT_ROSTER_CANDIDATE_DISCOVERY_AFTER_MERCHANT_RESOURCE_BLOCK",
   "deployment": {
     "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
     "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
     "coordinatorClass": "merchant",
     "packageCommitPinned": true,
-    "sourceCommit": "6863d1a19ebe8c42c7362ba7981866572f910474",
+    "sourceCommit": "cb208ce57fd5bc5c07de81662d138220d5143af3",
     "packagePath": "v5/werkzeuge/pr20-7-account-weapon-candidate-discovery.js",
-    "packageSha256": "e6fb4e8ae0e5a98d73c26f7e81d5d66b8d50249f347ba74fcd27eaf07521e56d",
+    "packageSha256": "1f56a0080d113e525c160a399ecaacfb0c00ad54108ea199027ddeec027ff27c",
     "expectedGlobal": "V5PR207AccountWeaponCandidateDiscovery",
     "workerPackageConfigured": false,
     "farmerWorkerDistribution": false
@@ -89,5 +89,8 @@
     "activationDelayMs": 350,
     "retryDelayMs": 150,
     "failClosed": true
-  }
+  },
+  "supersedesTestId": "pr20-7-gear-account-weapon-candidate-discovery",
+  "sameTestVersionUpgradeBypassed": false,
+  "newTestInstanceReason": "PREVIOUS_TERMINAL_TEST_ID_VERSION_MISMATCH_IS_INTENTIONALLY_NOT_UPGRADED_IN_PLACE"
 }

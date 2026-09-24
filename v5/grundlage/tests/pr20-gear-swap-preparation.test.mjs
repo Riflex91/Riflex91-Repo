@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
+  assert.equal(contract.status, "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_V2_CUTOVER_BEREIT_EVIDENCE_OFFEN");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -350,6 +350,9 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryEvidenceStatus, "OFFEN");
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryManifestCutoverPrepared, true);
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryControllerVersion, "1.0.2");
+  assert.equal(contract.weaponOffhandFoundation.accountDiscoveryTestId, "pr20-7-gear-account-weapon-candidate-discovery-v2");
+  assert.equal(contract.weaponOffhandFoundation.accountDiscoverySupersedesTestId, "pr20-7-gear-account-weapon-candidate-discovery");
+  assert.equal(contract.weaponOffhandFoundation.accountDiscoverySameTestVersionUpgradeBypassed, false);
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryBridgeContractFixed, true);
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryStatusEnvelope, "status.v5AutonomousTest");
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryPeekTelemetryArray, true);

@@ -199,13 +199,13 @@ test("account discovery facade preserves the bridge operations contract", async 
   assert.equal(bridgeStatus.mode, "V5_AUTONOMOUS_TEST");
   assert.equal(
     bridgeStatus.v5AutonomousTest.testId,
-    "pr20-7-gear-account-weapon-candidate-discovery",
+    "pr20-7-gear-account-weapon-candidate-discovery-v2",
   );
   assert.equal(bridgeStatus.v5AutonomousTest.version, "1.0.2");
   assert.equal(bridgeStatus.v5AutonomousTest.status, "BESTANDEN");
   assert.equal(bridgeStatus.v5AutonomousTest.terminal, true);
   assert.equal(ops.hostHeartbeat().v5TestId,
-    "pr20-7-gear-account-weapon-candidate-discovery");
+    "pr20-7-gear-account-weapon-candidate-discovery-v2");
   assert.equal(ops.reconciliationStatus().sameIntentRetry, false);
   assert.ok(Array.isArray(ops.peekTelemetry(2000)));
 });

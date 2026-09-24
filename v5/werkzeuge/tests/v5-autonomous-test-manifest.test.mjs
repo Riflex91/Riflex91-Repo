@@ -26,6 +26,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR207AccountWeaponCandidateDiscovery",
     gate: "PR20.7_GEAR"
   }),
+  "pr20-7-gear-account-weapon-candidate-discovery-v2": Object.freeze({
+    path: "v5/werkzeuge/pr20-7-account-weapon-candidate-discovery.js",
+    expectedGlobal: "V5PR207AccountWeaponCandidateDiscovery",
+    gate: "PR20.7_GEAR"
+  }),
   "pr20-7-gear-weapon-offhand-read-only-preflight": Object.freeze({
     path: "v5/werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js",
     expectedGlobal: "V5PR207WeaponOffhandReadOnlyTest",
@@ -331,8 +336,9 @@ test("PR20.7 weapon/offhand read-only manifest stays explicit-slot, class-bound 
 });
 
 test("PR20.7 account weapon discovery manifest remains merchant-only and zero-write", () => {
-  if (manifest.testId !== "pr20-7-gear-account-weapon-candidate-discovery") return;
+  if (!["pr20-7-gear-account-weapon-candidate-discovery", "pr20-7-gear-account-weapon-candidate-discovery-v2"].includes(manifest.testId)) return;
   assert.equal(manifest.controllerVersion, "1.0.2");
+  if (manifest.testId.endsWith("-v2")) assert.ok(packageSource.includes("candidate-discovery-v2"));
   assert.equal("workerVersion" in manifest, false);
   assert.equal("workerPackagePath" in manifest, false);
   assert.equal("workerPackageSha256" in manifest, false);

@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_V2_CUTOVER_BEREIT_EVIDENCE_OFFEN",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -222,8 +222,8 @@
       "accountWeaponDiscoveryRawWriteCalls": 0,
       "accountWeaponDiscoveryFarmerGearAllocationRatification": false,
       "accountWeaponDiscoveryEvidenceStatus": "OFFEN",
-      "accountWeaponDiscoverySourceCommit": "6863d1a19ebe8c42c7362ba7981866572f910474",
-      "accountWeaponDiscoveryPackageSha256": "e6fb4e8ae0e5a98d73c26f7e81d5d66b8d50249f347ba74fcd27eaf07521e56d",
+      "accountWeaponDiscoverySourceCommit": "cb208ce57fd5bc5c07de81662d138220d5143af3",
+      "accountWeaponDiscoveryPackageSha256": "1f56a0080d113e525c160a399ecaacfb0c00ad54108ea199027ddeec027ff27c",
       "accountWeaponDiscoveryManifest": "roadmap/v5-autonomous-test-manifest.json",
       "accountWeaponDiscoveryManifestCutoverPrepared": true,
       "accountWeaponDiscoveryControllerVersion": "1.0.2",
@@ -236,7 +236,10 @@
       ],
       "accountWeaponDiscoveryPerformanceActivationDelayMs": 350,
       "accountWeaponDiscoveryPerformanceRetryDelayMs": 150,
-      "accountWeaponDiscoveryPriorAttemptStatus": "BLOCKIERT_PERFORMANCE_TRICK_ZERO_WRITE"
+      "accountWeaponDiscoveryPriorAttemptStatus": "BLOCKIERT_PERFORMANCE_TRICK_ZERO_WRITE",
+      "accountWeaponDiscoveryTestId": "pr20-7-gear-account-weapon-candidate-discovery-v2",
+      "accountWeaponDiscoverySupersedesTestId": "pr20-7-gear-account-weapon-candidate-discovery",
+      "accountWeaponDiscoverySameTestVersionUpgradeBypassed": false
     }
   },
   "pr20_8": {

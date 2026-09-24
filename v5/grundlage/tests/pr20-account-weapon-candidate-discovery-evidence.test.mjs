@@ -25,7 +25,10 @@ test("PR20.7 account discovery remains a read-only selector, not farmer gear aut
   assert.equal(plan.performanceTrick.activationDelayMs, 350);
   assert.equal(plan.performanceTrick.retryDelayMs, 150);
   assert.equal(plan.performanceTrick.failClosed, true);
-  assert.equal(plan.status, "MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_DISCOVERY");
+  assert.equal(plan.testId, "pr20-7-gear-account-weapon-candidate-discovery-v2");
+  assert.equal(plan.status, "V2_MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_DISCOVERY");
+  assert.equal(plan.supersedesTestId, "pr20-7-gear-account-weapon-candidate-discovery");
+  assert.equal(plan.sameTestVersionUpgradeBypassed, false);
   assert.equal(plan.deployment.packageCommitPinned, true);
   assert.match(plan.deployment.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(plan.deployment.packageSha256, /^[0-9a-f]{64}$/);
@@ -70,7 +73,9 @@ test("PR20.7 account discovery package has closed mutation boundary", () => {
 });
 
 test("PR20.7 account discovery pending evidence cannot count as pass", () => {
+  assert.equal(evidence.testId, "pr20-7-gear-account-weapon-candidate-discovery-v2");
   assert.equal(evidence.status, "OFFEN");
+  assert.equal(evidence.supersedesTestId, "pr20-7-gear-account-weapon-candidate-discovery");
   assert.equal(evidence.controllerVersion, "1.0.2");
   assert.match(evidence.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(evidence.packageSha256, /^[0-9a-f]{64}$/);
@@ -91,6 +96,6 @@ test("PR20.7 account discovery pending evidence cannot count as pass", () => {
   assert.equal(evidence.packageSha256, plan.deployment.packageSha256);
   assert.deepEqual(
     evidence.blocker,
-    ["REAL_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_NOCH_NICHT_TERMINAL"],
+    ["REAL_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_V2_NOCH_NICHT_TERMINAL"],
   );
 });
