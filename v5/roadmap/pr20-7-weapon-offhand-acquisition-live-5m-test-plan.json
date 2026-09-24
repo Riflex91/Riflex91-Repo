@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-weapon-offhand-acquisition-live-5m",
+  "controllerVersion": "1.0.0",
+  "status": "PACKAGE_BEREIT_MANIFEST_OFFEN",
+  "scope": {
+    "coordinatorClass": "merchant",
+    "exactRecipientCharacter": "My_Merchant",
+    "exactSession": "My_Merchant",
+    "exactServer": "EU:I",
+    "exactItem": "wshield",
+    "targetSlot": "offhand",
+    "quantity": 1,
+    "exactCost": 4800,
+    "vendorId": "basics",
+    "vendorName": "Gabriel",
+    "farmerGearAllocationExcluded": true,
+    "equipExcluded": true
+  },
+  "prerequisites": {
+    "readOnlyEvidence": "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE",
+    "durableShadowEvidence": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
+    "productivePurchasePreparationReady": true,
+    "purchasePreparationNoWrite": true,
+    "performanceTrickRequired": true,
+    "stableDoubleObservation": true,
+    "currentOffhandMustRemainEmpty": true,
+    "currentMainhandMustRemainNonDoublehand": true,
+    "existingWshieldQuantityMustBe": 0,
+    "freeInventorySlotRequired": true,
+    "vendorReachabilityRequired": true,
+    "buyWithGoldRequired": true
+  },
+  "transaction": {
+    "actionContractId": "AL-ACTION-BUY-WITH-GOLD",
+    "recoveryContractId": "AL-RECOVERY-BUY-WITH-GOLD",
+    "verifierId": "AL-VERIFIER-BUY-WITH-GOLD",
+    "maximumGameplayWrites": 1,
+    "publicFunction": "buy_with_gold",
+    "maximumPublicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "exactGoldReservation": 4800,
+    "minimumGoldSafetyReserve": 1000,
+    "goldFence": true,
+    "inventoryFence": true,
+    "buyActionChannelFence": true,
+    "socketBudgetFence": true,
+    "socketPlanBudgetReserved": 100,
+    "socketServerReserveUntouched": 100,
+    "durableIntentBeforePossibleSend": true,
+    "durableReadbackBeforePossibleSend": true,
+    "sendBoundaryPersistedBeforeCall": true,
+    "oneShotMaximumUses": 1,
+    "sameIntentRetry": false,
+    "restartReconcileWithoutResend": true,
+    "expectedCommittedSettlement": "BESTAETIGT",
+    "expectedGoldDelta": -4800,
+    "expectedItemQuantityDelta": 1
+  },
+  "soak": {
+    "minimumSamples": 60,
+    "intervalMs": 5000,
+    "minimumDurationMs": 299000,
+    "expectedPostconditionMustRemainCommitted": true
+  },
+  "lifecycle": {
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0
+  },
+  "safety": {
+    "normalRuntimeAllowed": false,
+    "noRawSocketBypass": true,
+    "noApiCallBypass": true,
+    "noEquip": true,
+    "noSell": true,
+    "noWorkerDistribution": true,
+    "broadPurchaseAuthority": false
+  },
+  "deployment": {
+    "sourceCommit": "5efa5e2c92c258e1502ee388e84ba96d4c844027",
+    "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-live-5m.js",
+    "packageSha256": "5cecc5a3ca36c2d75e4a6629c36991417b508e364a965c1a945a790aac8bd930",
+    "packageTest": "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-live-5m.test.mjs",
+    "expectedGlobal": "V5PR207WeaponOffhandAcquisitionLiveTest",
+    "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "manifestCutoverPrepared": false
+  },
+  "evidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-live-5m-evidence.json",
+  "nextAfterPass": "PR20_7_WEAPON_OFFHAND_PRODUCTIVE_EQUIP_PREPARATION"
+}
