@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "COMPOUND_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_PENDING",
+    "status": "COMPOUND_LIVE_5M_PREPARATION_READY_NO_LIVE_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_LIVE_5M_PREPARATION",
+    "nextAction": "PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1343,6 +1343,48 @@
       "compoundLive5mTested": false,
       "exchangeRatified": false,
       "normalRuntimeAllowed": false
+    },
+    "compoundLive5mPreparation": {
+      "status": "BEREIT_NO_LIVE_WRITE",
+      "contract": "grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json",
+      "test": "grundlage/tests/pr20-compound-live-5m-preparation.test.mjs",
+      "purpose": "CONTINUE_EXACT_RATIFIED_COMPOUND_TRANSACTION_WITH_FIVE_MINUTE_POSTCOMMIT_STABILITY_SOAK",
+      "prerequisiteEvidence": "roadmap/pr20-8-compound-productive-one-write-evidence.json",
+      "prerequisiteEvidenceStatus": "RATIFIED_COMMITTED_SUCCESS",
+      "transactionId": "pr20-8-compound-productive-one-write-live:ff08418e6003250471c98f5893dec8dd",
+      "prerequisiteSendCount": 1,
+      "prerequisiteGameplayWrites": 1,
+      "prerequisitePublicFunctionCalls": 1,
+      "prerequisiteRawWriteCalls": 0,
+      "exactCommittedResult": "hpamulet@1@index1",
+      "exactConsumedInputIndexes": [
+        22,
+        23
+      ],
+      "exactScrollPoststate": "cscroll0@index18:q19",
+      "minimumSamples": 60,
+      "intervalMs": 5000,
+      "minimumDurationMs": 299000,
+      "maximumAdditionalGameplayWrites": 0,
+      "maximumAdditionalPublicFunctionCalls": 0,
+      "maximumAdditionalRawWriteCalls": 0,
+      "publicCompoundCallSites": 0,
+      "restartMayNeverResend": true,
+      "sameIntentRetry": false,
+      "compoundWriteAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "liveRunnerPresent": false,
+      "manifestCutoverPrepared": false,
+      "deployed": false,
+      "liveWriteEnabled": false,
+      "normalRuntimeAllowed": false,
+      "passMaySetCompoundLive5mTested": true,
+      "passDoesNotSatisfyPr20_8ExitGateByItself": true,
+      "exchangeRatification": false,
+      "exchangeAutonomyProductiveProven": false,
+      "mayAdvanceToPr20_9": false,
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE"
     }
   },
   "pr20_9": {

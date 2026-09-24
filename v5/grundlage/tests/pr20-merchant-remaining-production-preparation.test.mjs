@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "COMPOUND_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_PENDING",
+    "COMPOUND_LIVE_5M_PREPARATION_READY_NO_LIVE_WRITE",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_COMPOUND_LIVE_5M_PREPARATION",
+    "PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE",
   );
   const exit=prep.pr20_8.exitGateReview;
   assert.equal(exit.status,"BLOCKED_COMPOUND_5M_EXCHANGE_NO_CANDIDATE");
@@ -1149,6 +1149,56 @@ test("PR20.8 Compound one-write evidence is ratified while 5m and Exchange remai
   assert.equal(e.compoundLive5mTested,false);
   assert.equal(e.exchangeRatified,false);
   assert.equal(e.normalRuntimeAllowed,false);
+});
+
+test("PR20.8 Compound 5m preparation continues the committed transaction with zero additional writes", () => {
+  const p=prep.pr20_8.compoundLive5mPreparation;
+  assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
+  assert.equal(
+    p.contract,
+    "grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json",
+  );
+  assert.equal(p.test,"grundlage/tests/pr20-compound-live-5m-preparation.test.mjs");
+  assert.equal(
+    p.purpose,
+    "CONTINUE_EXACT_RATIFIED_COMPOUND_TRANSACTION_WITH_FIVE_MINUTE_POSTCOMMIT_STABILITY_SOAK",
+  );
+  assert.equal(p.prerequisiteEvidence,"roadmap/pr20-8-compound-productive-one-write-evidence.json");
+  assert.equal(p.prerequisiteEvidenceStatus,"RATIFIED_COMMITTED_SUCCESS");
+  assert.equal(
+    p.transactionId,
+    "pr20-8-compound-productive-one-write-live:ff08418e6003250471c98f5893dec8dd",
+  );
+  assert.equal(p.prerequisiteSendCount,1);
+  assert.equal(p.prerequisiteGameplayWrites,1);
+  assert.equal(p.prerequisitePublicFunctionCalls,1);
+  assert.equal(p.prerequisiteRawWriteCalls,0);
+  assert.equal(p.exactCommittedResult,"hpamulet@1@index1");
+  assert.deepEqual(p.exactConsumedInputIndexes,[22,23]);
+  assert.equal(p.exactScrollPoststate,"cscroll0@index18:q19");
+  assert.equal(p.minimumSamples,60);
+  assert.equal(p.intervalMs,5000);
+  assert.equal(p.minimumDurationMs,299000);
+  assert.equal(p.maximumAdditionalGameplayWrites,0);
+  assert.equal(p.maximumAdditionalPublicFunctionCalls,0);
+  assert.equal(p.maximumAdditionalRawWriteCalls,0);
+  assert.equal(p.publicCompoundCallSites,0);
+  assert.equal(p.restartMayNeverResend,true);
+  assert.equal(p.sameIntentRetry,false);
+  assert.equal(p.compoundWriteAuthority,false);
+  assert.equal(p.gameplayAuthority,false);
+  assert.equal(p.rawWriteAuthority,false);
+  assert.equal(p.liveRunnerPresent,false);
+  assert.equal(p.manifestCutoverPrepared,false);
+  assert.equal(p.deployed,false);
+  assert.equal(p.liveWriteEnabled,false);
+  assert.equal(p.normalRuntimeAllowed,false);
+  assert.equal(p.passMaySetCompoundLive5mTested,true);
+  assert.equal(p.passDoesNotSatisfyPr20_8ExitGateByItself,true);
+  assert.equal(p.exchangeRatification,false);
+  assert.equal(p.exchangeAutonomyProductiveProven,false);
+  assert.equal(p.mayAdvanceToPr20_9,false);
+  assert.equal(p.nextGate,"PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE");
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {

@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_COMPOUND_LIVE_5M_PREPARATION",
+  "status": "BEREIT_NO_LIVE_WRITE",
+  "purpose": "CONTINUE_EXACT_RATIFIED_COMPOUND_TRANSACTION_WITH_FIVE_MINUTE_POSTCOMMIT_STABILITY_SOAK",
+  "prerequisiteOneWriteEvidence": {
+    "evidence": "roadmap/pr20-8-compound-productive-one-write-evidence.json",
+    "status": "RATIFIED_COMMITTED_SUCCESS",
+    "testId": "pr20-8-compound-productive-one-write-live",
+    "controllerVersion": "1.0.0",
+    "transactionId": "pr20-8-compound-productive-one-write-live:ff08418e6003250471c98f5893dec8dd",
+    "reconciliationClassification": "COMMITTED_SUCCESS",
+    "sendCount": 1,
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "noDuplicateValueChangingEffectObserved": true
+  },
+  "exactCommittedPostcondition": {
+    "recipient": {
+      "characterName": "My_Merchant",
+      "ctype": "merchant",
+      "serverRegion": "EU",
+      "serverIdentifier": "I"
+    },
+    "resultItem": {
+      "name": "hpamulet",
+      "level": 1,
+      "inventoryIndex": 1
+    },
+    "consumedInputIndexes": [
+      22,
+      23
+    ],
+    "consumedInputSlotsMustRemainEmpty": true,
+    "scroll": {
+      "name": "cscroll0",
+      "inventoryIndex": 18,
+      "quantityBefore": 20,
+      "quantityAfter": 19,
+      "consumeQuantity": 1
+    },
+    "compoundQueueMustBeClear": true,
+    "placeholderCount": 0,
+    "massproductionPresent": false,
+    "massproductionppPresent": false
+  },
+  "soak": {
+    "minimumSamples": 60,
+    "intervalMs": 5000,
+    "minimumDurationMs": 299000,
+    "exactTransactionMustRemainCommitted": true,
+    "sendCountMustRemainExactlyOne": true,
+    "postconditionMustRemainStable": true,
+    "qAndPlaceholderMustRemainClear": true,
+    "noNewCompoundEffectAccepted": true,
+    "noNewAuthorityMayOpen": true,
+    "restartMayOnlyResumeObservationOfSameCommittedTransaction": true,
+    "restartMayNeverResend": true,
+    "unknownOrDrift": "BLOCK_FAIL_CLOSED"
+  },
+  "packageBoundary": {
+    "preparationOnly": true,
+    "liveRunnerPresent": false,
+    "publicCompoundCallSites": 0,
+    "maximumAdditionalGameplayWrites": 0,
+    "maximumAdditionalPublicFunctionCalls": 0,
+    "maximumAdditionalRawWriteCalls": 0,
+    "compoundWriteAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "directSocketWriteForbidden": true,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false,
+    "manifestCutoverPrepared": false,
+    "deployed": false,
+    "liveWriteEnabled": false
+  },
+  "exitSemantics": {
+    "passMaySetCompoundLive5mTested": true,
+    "passDoesNotRelaxExchangeRatification": true,
+    "passDoesNotProveExchangeAutonomy": true,
+    "passDoesNotSatisfyPr20_8ExitGateByItself": true,
+    "mayAdvanceToPr20_9": false
+  },
+  "nextGate": "PR20_8_COMPOUND_LIVE_5M_RUNNER_PACKAGE"
+}
