@@ -735,15 +735,15 @@ test("PR20.8 Upgrade Durable Shadow real-browser evidence remains ratified after
   assert.equal(shadow.normalRuntimeAllowed,false);
 });
 
-test("PR20.8 Upgrade productive one-write preparation is registered but not live-enabled", () => {
+test("PR20.8 Upgrade productive one-write runner package is registered but not deployed", () => {
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_PRODUCTIVE_ONE_WRITE_PREPARATION_BEREIT_NO_LIVE_WRITE",
+    "UPGRADE_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE",
+    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER",
   );
   assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
   assert.equal(
@@ -767,7 +767,26 @@ test("PR20.8 Upgrade productive one-write preparation is registered but not live
   assert.equal(p.oneShotMaximumTtlMs,1500);
   assert.equal(p.freshIndexReresolutionImmediatelyBeforeSend,true);
   assert.equal(p.sameIntentRetry,false);
-  assert.equal(p.liveRunnerPresent,false);
+  assert.equal(p.liveRunnerPresent,true);
+  assert.equal(
+    p.runnerPackage,
+    "werkzeuge/pr20-8-upgrade-productive-one-write-live.js",
+  );
+  assert.equal(
+    p.runnerTest,
+    "werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs",
+  );
+  assert.equal(
+    p.runnerContract,
+    "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json",
+  );
+  assert.equal(p.runnerTestId,"pr20-8-upgrade-productive-one-write-live");
+  assert.equal(p.runnerControllerVersion,"1.0.0");
+  assert.equal(p.expectedGlobal,"V5PR208UpgradeProductiveOneWriteLive");
+  assert.equal(p.manifestCutoverPrepared,false);
+  assert.equal(p.deployed,false);
+  assert.equal(p.liveWriteEnabled,false);
+  assert.equal(p.packageContainsExactlyOnePublicUpgradeCallSite,true);
   assert.equal(p.gameplayAuthority,false);
   assert.equal(p.rawWriteAuthority,false);
   assert.equal(p.normalRuntimeAllowed,false);
