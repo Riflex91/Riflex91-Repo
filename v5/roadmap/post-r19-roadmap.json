@@ -84,8 +84,8 @@
     "PR20.7 Merchant Waffen-/Offhand Read-only ist real fail-closed ohne sicheren Merchant-Kandidaten und 0 Writes",
     "PR20.7 accountweite Discovery plus Bridge-Beobachtung fand 0 kompatible vorhandene Weapon-/Offhand-Kandidaten",
     "Acquisition v1.0.0 lief real zero-write, wird aber nicht ratifiziert: vendorReachableNow=false und sellDistance=null wurden nicht fail-closed erzwungen",
-    "AKTUELL: fail-closed Acquisition v1.0.1 ist als separates Staging-Package vorbereitet; Manifest-Cutover ist noch offen",
-    "NAECHSTES: v1.0.1 immutable in das Auto-Deploy-Manifest schneiden und real erneut ausfuehren",
+    "AKTUELL: Acquisition v1.0.1 ist fail-closed immutable gepinnt und fuer Manifest-Cutover vorbereitet",
+    "NAECHSTES: realen v1.0.1 Read-only-Preflight auswerten; nur ein echter PASS darf den Durable-Shadow freigeben",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -703,7 +703,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_1_PACKAGE_BEREIT_MANIFEST_OFFEN",
+      "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -1039,7 +1039,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_1_PACKAGE_BEREIT_MANIFEST_OFFEN",
+    "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1099,7 +1099,7 @@
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json"
     ],
-    "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_1_0_1",
+    "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY_EXECUTE_V1_0_1",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1203,11 +1203,11 @@
       "observedSoakDurationMs": 300552
     },
     "remainingGates": {
-      "weaponOffhand": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_1_PACKAGE_BEREIT_MANIFEST_OFFEN",
+      "weaponOffhand": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "farmerGearAllocation": "OFFEN_SEPARATE_RATIFICATION"
     },
     "weaponOffhand": {
-      "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_1_PACKAGE_BEREIT_MANIFEST_OFFEN",
+      "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "contract": "v5/grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json",
       "explicitSlots": [
         "mainhand",
@@ -1306,7 +1306,7 @@
       "acquisitionControllerVersion": "1.0.1",
       "acquisitionSourceCommit": "bfcbc3186b1fe374fe37d0dd43d5677511480f5d",
       "acquisitionPackageSha256": "0d1378a0bca4ff0665dc14ab67920a15a0532f20ab141c6428edac414c0c3c72",
-      "acquisitionManifestCutoverPrepared": false,
+      "acquisitionManifestCutoverPrepared": true,
       "acquisitionEvidenceStatus": "V1_0_0_FALSE_POSITIVE_REJECTED_V1_0_1_OFFEN",
       "acquisitionGameplayWrites": 0,
       "acquisitionPublicFunctionCalls": 0,
@@ -1320,7 +1320,9 @@
       "acquisitionPreviousLiveRunRatified": false,
       "acquisitionRequiredBuyApi": true,
       "acquisitionRequiredObservedSellDistance": true,
-      "acquisitionRequiredVendorReachability": true
+      "acquisitionRequiredVendorReachability": true,
+      "acquisitionSameTestUpgradeStrictlyNewer": true,
+      "acquisitionPreviousTerminalZeroWriteEligible": true
     }
   }
 }
