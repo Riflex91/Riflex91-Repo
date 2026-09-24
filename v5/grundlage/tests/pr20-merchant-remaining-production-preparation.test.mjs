@@ -1072,6 +1072,8 @@ test("PR20.8 Compound productive one-write preparation remains no-live-write", (
   assert.equal(p.packageContainsExactlyOnePublicCompoundCallSite,true);
   assert.equal(p.conditionStateFencingRequired,true);
   assert.equal(p.finalEffectDomainReobserveAfterAuthorityConsume,true);
+  assert.deepEqual(p.hpamuletCompoundDefinitionExact,{hp:240});
+  assert.equal(p.zeroWritePreflightFailureReleasesRuntimeLease,true);
   assert.equal(p.enabled,false);
   assert.equal(p.gameplayAuthority,false);
   assert.equal(p.rawWriteAuthority,false);
@@ -1102,6 +1104,8 @@ test("PR20.8 Compound productive one-write runner package has a separate aggrega
   assert.equal(r.sameIntentRetry,false);
   assert.equal(r.conditionStateFencingRequired,true);
   assert.equal(r.finalEffectDomainReobserveAfterAuthorityConsume,true);
+  assert.deepEqual(r.hpamuletCompoundDefinitionExact,{hp:240});
+  assert.equal(r.zeroWritePreflightFailureReleasesRuntimeLease,true);
   assert.equal(r.manifestCutoverPrepared,false);
   assert.equal(r.deployed,false);
   assert.equal(r.liveWriteEnabled,false);
