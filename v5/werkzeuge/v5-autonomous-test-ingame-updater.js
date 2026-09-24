@@ -2,7 +2,7 @@ function installV5AutonomousTestIngameUpdater() {
   'use strict';
 
   const API_NAME = 'V5AutonomousTestIngameUpdater';
-  const VERSION = '1.0.7';
+  const VERSION = '1.0.8';
   const MODE = 'NATIVE_INGAME_CLOUDFLARE_R2_V1';
   const BASE_URL = 'https://aio-bot-dashboard.hansijuergenlul.workers.dev';
   const MANIFEST_PATH = '/v5/roadmap/v5-autonomous-test-manifest.json';
@@ -217,12 +217,18 @@ function installV5AutonomousTestIngameUpdater() {
       ? active.blocker.map(value => text(value, 160))
       : [];
     const authority = active?.authority;
-    const versionPair =
-      (text(active?.version, 80) === '1.0.0' && manifest.controllerVersion === '1.0.1')
-      || (text(active?.version, 80) === '1.0.1' && manifest.controllerVersion === '1.0.2');
+    const activeVersion = text(active?.version, 80);
+    let expectedBlocker = null;
+    if (activeVersion === '1.0.0' && manifest.controllerVersion === '1.0.1') {
+      expectedBlocker = 'PR20_8_UPGRADE_LIVE_DUPLIKAT_INSTANZ_AKTIV';
+    } else if (activeVersion === '1.0.1' && manifest.controllerVersion === '1.0.2') {
+      expectedBlocker = 'PR20_8_UPGRADE_LIVE_DUPLIKAT_INSTANZ_AKTIV';
+    } else if (activeVersion === '1.0.2' && manifest.controllerVersion === '1.0.3') {
+      expectedBlocker = 'PR20_8_UPGRADE_LIVE_ITEM_DEFINITION_DRIFT';
+    }
 
     return manifest.testId === 'pr20-8-upgrade-productive-one-write-live'
-      && versionPair
+      && expectedBlocker !== null
       && active?.terminal === true
       && text(active?.status, 80) === 'FEHLER'
       && text(active?.phase, 80) === 'ERROR'
@@ -230,7 +236,7 @@ function installV5AutonomousTestIngameUpdater() {
       && Number.isFinite(Number(active?.publicFunctionCalls))
       && Number(active.publicFunctionCalls) === 0
       && blockers.length === 1
-      && blockers[0] === 'PR20_8_UPGRADE_LIVE_DUPLIKAT_INSTANZ_AKTIV'
+      && blockers[0] === expectedBlocker
       && authority
       && typeof authority === 'object'
       && authority.authorityIssued === false
