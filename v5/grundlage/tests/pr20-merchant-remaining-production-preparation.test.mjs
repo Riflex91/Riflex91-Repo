@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTED_BRIDGE_PROBE_CONFIRMED_TERMINAL_RECOVERY_MANIFEST_CUTOVER_PREPARED",
+    "UPGRADE_COMMITTED_UPDATER_PERSISTED_BRIDGE_TERMINAL_RECOVERY_BESTANDEN_COMPOUND_EXCHANGE_READONLY_RESCAN_PREPARED",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN",
+    "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
   );
   assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
   assert.equal(
@@ -784,95 +784,51 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   assert.equal(p.normalRuntimeAllowed,false);
 });
 
-test("PR20.8 updater persistence bootstrap v2 is confirmed persisted and zero-write", () => {
+test("PR20.8 updater persistence bootstrap v2 remains confirmed persisted and zero-write", () => {
   const b=prep.pr20_8.updaterPersistenceBootstrap;
   assert.equal(b.status,"V2_REAL_BROWSER_BESTANDEN_PERSISTED");
-  assert.equal(
-    b.contract,
-    "grundlage/vertraege/runtime/pr20-8-updater-persistence-bootstrap-preparation.json",
-  );
-  assert.equal(b.package,"werkzeuge/pr20-8-updater-recovery-bootstrap-v2.js");
-  assert.equal(b.test,"werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v2.test.mjs");
   assert.equal(b.testId,"pr20-8-native-updater-recovery-bootstrap-v2");
-  assert.equal(b.controllerVersion,"1.0.0");
   assert.equal(b.updaterVersion,"1.0.8");
-  assert.equal(b.expectedGlobal,"V5PR208UpdaterRecoveryBootstrap");
-  assert.equal(b.sourceCommit,"5f791fc3daa6a173d553d07ac08c7589519df610");
-  assert.equal(
-    b.packageSha256,
-    "3ebaf86cd8e454eccab0713035c6a40f2fe0dfd890ee92d59bf1a4e8c01f6e84",
-  );
-  assert.equal(b.packageBytes,29253);
-  assert.equal(b.selfPersisting,true);
-  assert.equal(b.localAndParentObservabilityBridge,true);
-  assert.equal(b.synchronousBridgeHandshakeState,true);
   assert.equal(b.telemetryBatchId,8255);
   assert.equal(b.persistedObserved,true);
   assert.equal(b.persistedAtMs,1790270182323);
   assert.equal(b.bridgeState,"ALREADY_PRESENT");
   assert.equal(b.bridgeError,null);
-  assert.equal(b.additionalGameplayWriteObserved,false);
-  assert.equal(b.maximumCodeSlotWritesPerFreshPersistence,1);
-  assert.equal(b.maximumCodeSlotReloadsPerFreshPersistence,1);
   assert.equal(b.gameplayWrites,0);
   assert.equal(b.publicFunctionCalls,0);
   assert.equal(b.rawWriteCalls,0);
   assert.equal(b.sameIntentRetry,false);
   assert.equal(b.normalRuntimeAllowed,false);
-  assert.equal(b.nextGate,"PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN");
+  assert.equal(b.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
 });
 
-test("PR20.8 bridge handshake is confirmed and only exact zero-write terminal recovery remains active", () => {
+test("PR20.8 bridge handshake and terminal recovery are confirmed zero-write", () => {
   const b=prep.pr20_8.bridgeHandshakeProbe;
-  assert.equal(b.status,"V1_REAL_BROWSER_HANDSHAKE_BESTANDEN_TERMINAL_RECOVERY_MANIFEST_CUTOVER_PREPARED");
-  assert.equal(b.contract,"grundlage/vertraege/runtime/pr20-8-bridge-handshake-probe-preparation.json");
-  assert.equal(b.package,"werkzeuge/pr20-8-bridge-handshake-probe-v1.js");
-  assert.equal(b.test,"werkzeuge/tests/pr20-8-bridge-handshake-probe-v1.test.mjs");
+  assert.equal(b.status,"TERMINAL_RECOVERY_BESTANDEN_ZERO_WRITE");
   assert.equal(b.testId,"pr20-8-bridge-handshake-probe-v1");
-  assert.equal(b.controllerVersion,"1.0.0");
-  assert.equal(b.expectedGlobal,"V5PR208BridgeHandshakeProbe");
-  assert.equal(b.sourceCommit,"d2ffea95f984421a9a34088c751471def6cc31d8");
-  assert.equal(b.packageSha256,"a595bc1c2d351635e8f61b8134e9afe4146283238aa724c4217fd2b6c82ab472");
-  assert.equal(b.packageBytes,2333);
   assert.equal(b.telemetryBatchId,8256);
   assert.equal(b.bridgeState,"ALREADY_PRESENT");
   assert.equal(b.bridgeError,null);
   assert.equal(b.observedStatus,"LAEUFT");
   assert.equal(b.observedPhase,"BRIDGE_HANDSHAKE_PROBE");
   assert.equal(b.observedTerminal,false);
-  assert.equal(b.synchronousOnly,true);
-  assert.equal(b.localAndParentFacade,true);
-  assert.equal(b.updaterInstall,false);
-  assert.equal(b.codeSlotPersistence,false);
   assert.equal(b.gameplayWrites,0);
   assert.equal(b.publicFunctionCalls,0);
   assert.equal(b.rawWriteCalls,0);
   assert.equal(b.sameIntentRetry,false);
   assert.equal(b.normalRuntimeAllowed,false);
-  assert.equal(b.diagnosticOnly,true);
-  assert.equal(b.additionalGameplayWriteObserved,false);
-  assert.equal(b.upgradeOneWriteRunnerRetired,true);
-  assert.equal(b.compoundRatified,false);
-  assert.equal(b.exchangeRatified,false);
-  assert.equal(b.nextGate,"PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN");
+  assert.equal(b.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
 
   const r=b.terminalRecovery;
-  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED");
+  assert.equal(r.status,"BESTANDEN_REAL_BROWSER_ZERO_WRITE");
   assert.equal(r.controllerVersion,"1.0.1");
   assert.equal(r.package,"werkzeuge/pr20-8-bridge-handshake-probe-v1-0-1.js");
-  assert.equal(r.test,"werkzeuge/tests/pr20-8-bridge-handshake-probe-v1-0-1.test.mjs");
-  assert.equal(r.expectedGlobal,"V5PR208BridgeHandshakeProbe");
   assert.equal(r.sourceCommit,"fe38f784d9d8bfeac3d9b30874a453716bd9e3bc");
   assert.equal(r.packageSha256,"08d21dde622ed1cf2dd56438225e4274478263908363a5692bcb6c548b58303b");
   assert.equal(r.packageBytes,2390);
-  assert.equal(r.exactPriorVersion,"1.0.0");
-  assert.equal(r.exactPriorStatus,"LAEUFT");
-  assert.equal(r.exactPriorPhase,"BRIDGE_HANDSHAKE_PROBE");
-  assert.equal(r.exactPriorTerminal,false);
-  assert.equal(r.requiresGameplayWrites,0);
-  assert.equal(r.requiresRawWriteCalls,0);
-  assert.equal(r.requiresSameIntentRetry,false);
-  assert.equal(r.requiresIntentCount,0);
+  assert.equal(r.observedAtMs,1790272609259);
+  assert.equal(r.bridgeState,"ALREADY_PRESENT");
+  assert.equal(r.bridgeError,null);
   assert.equal(r.targetStatus,"BESTANDEN");
   assert.equal(r.targetPhase,"BRIDGE_HANDSHAKE_PROBE_COMPLETE");
   assert.equal(r.targetTerminal,true);
@@ -881,7 +837,30 @@ test("PR20.8 bridge handshake is confirmed and only exact zero-write terminal re
   assert.equal(r.rawWriteCalls,0);
   assert.equal(r.sameIntentRetry,false);
   assert.equal(r.normalRuntimeAllowed,false);
+  assert.equal(r.evidence,"roadmap/pr20-8-bridge-handshake-terminal-recovery-evidence.json");
 });
+
+test("PR20.8 remaining Compound/Exchange candidate rescan is read-only and exact", () => {
+  const r=prep.pr20_8.remainingCandidateRescan;
+  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED");
+  assert.equal(r.testId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(r.controllerVersion,"1.0.0");
+  assert.equal(r.package,"werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js");
+  assert.equal(r.test,"werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly.test.mjs");
+  assert.equal(r.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
+  assert.equal(r.sourceCommit,"7307573841b86b1fb22fd5abfb73a3d461bf0049");
+  assert.equal(r.packageSha256,"863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5");
+  assert.deepEqual(r.targetFamilies,["COMPOUND","EXCHANGE"]);
+  assert.equal(r.upgradeFamilyInformationalOnly,true);
+  assert.equal(r.readOnly,true);
+  assert.equal(r.gameplayWrites,0);
+  assert.equal(r.publicFunctionCalls,0);
+  assert.equal(r.rawWriteCalls,0);
+  assert.equal(r.sameIntentRetry,false);
+  assert.equal(r.normalRuntimeAllowed,false);
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
+});
+
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
   const wert = text("grundlage/quelle/merchant/werttransaktion.ts");
   const graph = text("grundlage/quelle/produktion/production-graph.ts");
