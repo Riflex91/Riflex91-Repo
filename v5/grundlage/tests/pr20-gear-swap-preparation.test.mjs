@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_PACKAGE_BEREIT_EVIDENCE_OFFEN");
+  assert.equal(contract.status, "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -348,6 +348,9 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryRawWriteCalls, 0);
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryFarmerGearAllocationRatification, false);
   assert.equal(contract.weaponOffhandFoundation.accountDiscoveryEvidenceStatus, "OFFEN");
+  assert.equal(contract.weaponOffhandFoundation.accountDiscoveryManifestCutoverPrepared, true);
+  assert.match(contract.weaponOffhandFoundation.accountDiscoverySourceCommit, /^[0-9a-f]{40}$/);
+  assert.match(contract.weaponOffhandFoundation.accountDiscoveryPackageSha256, /^[0-9a-f]{64}$/);
   assert.match(contract.weaponOffhandFoundation.readOnlySourceCommit, /^[0-9a-f]{40}$/);
   assert.match(contract.weaponOffhandFoundation.readOnlyPackageSha256, /^[0-9a-f]{64}$/);
   assert.equal(contract.nextGate.weaponsAndOffhandRemainSeparate, true);
