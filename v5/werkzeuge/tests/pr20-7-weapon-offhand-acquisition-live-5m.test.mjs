@@ -157,9 +157,9 @@ function buildContext({
 
 async function waitTerminal(api, max = 3000) {
   for (let i = 0; i < max; i += 1) {
+    await new Promise(resolve => setImmediate(resolve));
     const status = api.status();
     if (status.terminal === true) return status;
-    await Promise.resolve();
   }
   throw new Error("test did not become terminal");
 }
