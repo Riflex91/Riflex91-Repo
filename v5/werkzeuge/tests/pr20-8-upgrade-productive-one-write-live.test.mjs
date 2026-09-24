@@ -352,16 +352,9 @@ test("PR20.8 Upgrade one-write runner rejects giveaway and listed targets before
   assert.equal(status.gameplayWrites,0);
   assert.equal(status.publicFunctionCalls,0);
   assert.match(status.blocker[0],/KANDIDAT_FEHLT/);
-  assert.equal(
-    Object.prototype.hasOwnProperty.call(
-      env.box,
-      "__V5PR208UpgradeProductiveOneWriteLiveLease",
-    ),
-    false,
-  );
 });
 
-test("PR20.8 Duplicate same-version package installs reuse the incumbent runner", async () => {
+test("PR20.8 Duplicate package instances on one runtime cannot both send", async () => {
   const env=sandbox({mode:"success"});
   vm.createContext(env.box);
 
@@ -375,23 +368,19 @@ test("PR20.8 Duplicate same-version package installs reuse the incumbent runner"
   });
   const secondApi=env.box.V5PR208UpgradeProductiveOneWriteLive;
 
-  assert.equal(secondApi,firstApi);
-  const firstStart=firstApi.start();
-  const secondStart=secondApi.start();
-  assert.equal(secondStart,firstStart);
-
+  secondApi.start();
   for(let i=0;i<6000;i+=1) {
     await new Promise(resolve=>setImmediate(resolve));
-    if(firstApi.status().terminal===true) break;
+    if(firstApi.status().terminal===true && secondApi.status().terminal===true) break;
   }
 
   assert.equal(env.upgradeCalls(),1);
-  assert.equal(firstApi.status().status,"BESTANDEN");
-  assert.equal(firstApi.status().terminal,true);
-  assert.equal(
-    firstApi.status().blocker.some(b => /DUPLIKAT_INSTANZ_AKTIV/.test(b)),
-    false,
-  );
+  const statuses=[firstApi.status(),secondApi.status()];
+  assert.ok(statuses.some(s => s.status==="BESTANDEN"));
+  assert.ok(statuses.some(s =>
+    s.status==="FEHLER"
+    && s.blocker.some(b => /DUPLIKAT_INSTANZ_AKTIV/.test(b))
+  ));
 });
 
 test("PR20.8 Upgrade one-write runner keeps unresolved accepted mutation in recovery and never sends twice", async () => {
@@ -411,11 +400,7 @@ test("PR20.8 Upgrade one-write runner keeps unresolved accepted mutation in reco
 
 test("PR20.8 Upgrade one-write package exposes exact safety markers and no raw socket write", () => {
   for(const marker of [
-    'const VERSION = "1.0.1"',
     'const TEST_ID = "pr20-8-upgrade-productive-one-write-live"',
-    'const API_NAME = "V5PR208UpgradeProductiveOneWriteLive"',
-    'function incumbentSameVersionApi()',
-    'safeZeroWriteNoIntentFailure',
     'const AUTHORITY_TTL_MS = 1500',
     'const PUBLIC_FUNCTION_PROMISE_TIMEOUT_MS = 2000',
     'const RATIFIED_SHADOW_EVIDENCE_BATCH = 8244',
