@@ -1046,7 +1046,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_CORRECTIVE_1_0_1_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_BESTANDEN_PRODUCTIVE_PURCHASE_PREPARATION_BEREIT_NO_PURCHASE_AUTHORITY",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1388,7 +1388,7 @@
     "acquisitionShadowSourceCommit": "0b92ce4002438ef4282622699019b5148da58184",
     "acquisitionShadowPackageSha256": "11c666638c111a3acd04e550bf33b52eb7611f53a0f8f02547b4b199df73793d",
     "acquisitionShadowManifestCutoverPrepared": true,
-    "acquisitionShadowEvidenceStatus": "OFFEN",
+    "acquisitionShadowEvidenceStatus": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
     "acquisitionShadowPreviousControllerVersion": "1.0.0",
     "acquisitionShadowPreviousLiveStatus": "FEHLER",
     "acquisitionShadowPreviousLiveBlocker": "PR20_7_ACQUISITION_SHADOW_OFFHAND_CLASS_DRIFT",
@@ -1400,6 +1400,24 @@
     "acquisitionShadowPreviousLiveSameIntentRetry": false,
     "acquisitionShadowPreviousLiveRatified": false,
     "acquisitionShadowClassRuleShape": "OBJECT_KEYS",
-    "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE_V1_0_1"
+    "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION",
+    "acquisitionShadowEvidenceRatified": true,
+    "acquisitionShadowEvidenceManifestMainCommit": "f96bb24402b3f0b274aa9d5b31dd370ff099eed0",
+    "acquisitionShadowEvidenceObservedAtMs": 1790243742400,
+    "acquisitionShadowEvidenceResult": "BESTANDEN",
+    "acquisitionShadowEvidencePhase": "COMPLETE",
+    "acquisitionShadowEvidenceBridgeState": "DEPLOYED",
+    "acquisitionShadowEvidenceGameplayWrites": 0,
+    "acquisitionShadowEvidencePublicFunctionCalls": 0,
+    "acquisitionShadowEvidenceRawWriteCalls": 0,
+    "acquisitionShadowEvidencePurchaseAuthority": false,
+    "acquisitionShadowEvidenceDurableIntentCreatedShadowOnly": true,
+    "acquisitionShadowEvidenceDurableReadback": true,
+    "acquisitionShadowEvidenceStablePostIntentReobserve": true,
+    "acquisitionShadowEvidenceGoldBudgetReservationSatisfied": true,
+    "acquisitionShadowEvidenceVendorReachableNow": true,
+    "acquisitionShadowEvidenceNearestVendorDistance": 88.59875647515783,
+    "acquisitionShadowEvidenceSellDistance": 400,
+    "acquisitionProductivePurchaseAuthority": false
   }
 }
