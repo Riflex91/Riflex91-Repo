@@ -4,14 +4,14 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-account-weapon-candidate-discovery-v2",
   "controllerVersion": "1.0.3",
-  "status": "OFFEN",
+  "status": "BLOCKIERT_REAL_ACCOUNT_ROSTER_NO_INVENTORY_ZERO_WRITE",
   "evidenceArt": "V5_PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY",
   "sourceCommit": "7ecfabc9122be52ceb7231c9bfcba451657e10ce",
   "packageSha256": "3619dd3e56410458db5c5ce859a05fbbccd97b912d07e47d5d045eb93383f60f",
-  "manifestMainCommit": null,
-  "observedAtMs": null,
-  "terminal": null,
-  "result": null,
+  "manifestMainCommit": "8a3b988014ccbd3c0d071825d740071b9c97794b",
+  "observedAtMs": 1790232916356,
+  "terminal": true,
+  "result": "BLOCKIERT",
   "expectedSafetyBoundary": {
     "gameplayWrites": 0,
     "publicFunctionCalls": 0,
@@ -26,9 +26,9 @@
     "sameIntentRetry": false,
     "normalRuntimeAllowed": false
   },
-  "ratified": false,
+  "ratified": true,
   "blocker": [
-    "REAL_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_V2_CONTROLLER_1_0_3_NOCH_NICHT_TERMINAL"
+    "PR20_7_ACCOUNT_DISCOVERY_ROSTER_OHNE_INVENTAR_SLOTS"
   ],
   "priorAttempts": [
     {
@@ -100,5 +100,128 @@
       }
     }
   ],
-  "supersedesTestId": "pr20-7-gear-account-weapon-candidate-discovery"
+  "supersedesTestId": "pr20-7-gear-account-weapon-candidate-discovery",
+  "actual": {
+    "controllerVersion": "1.0.3",
+    "phase": "ACCOUNT_WEAPON_CANDIDATE_DISCOVERY",
+    "rosterSource": "X.characters",
+    "rosterSourceCandidates": [
+      {
+        "source": "X.characters",
+        "score": 38,
+        "exactFarmerRows": 3,
+        "richFarmerRows": 0
+      },
+      {
+        "source": "get_characters",
+        "score": 38,
+        "exactFarmerRows": 3,
+        "richFarmerRows": 0
+      }
+    ],
+    "exactFarmerRows": 3,
+    "rowsWithItemsAndSlots": 0,
+    "selectedCandidate": null,
+    "performanceTrick": {
+      "available": true,
+      "called": true,
+      "audioFound": true,
+      "playing": true,
+      "cplaying": true,
+      "active": true,
+      "verification": "HOWLER_PLAYING_TRUE",
+      "error": null
+    },
+    "safety": {
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "startCalls": 0,
+      "disconnectCalls": 0,
+      "farmerWorkersInstalled": 0,
+      "sameIntentRetry": false,
+      "durableIntentCreated": false,
+      "authorityIssued": false,
+      "weaponOffhandWriteRatification": false,
+      "farmerGearAllocationRatification": false,
+      "normalRuntimeAllowed": false
+    }
+  },
+  "bridgeLiveFarmerContexts": {
+    "observedAt": 1790232986700,
+    "receivedAt": "2026-09-24T06:56:26.233Z",
+    "harnessStartedAt": 1790232915773,
+    "source": "WINDOWS_BRIDGE_EXISTING_SAME_ORIGIN_CONTEXTS_READ_ONLY",
+    "server": {
+      "region": "EU",
+      "identifier": "I"
+    },
+    "exactContexts": 3,
+    "compatibleCandidateCount": 0,
+    "characters": [
+      {
+        "name": "My_Ranger1",
+        "ctype": "ranger",
+        "level": 60,
+        "inventoryItemCount": 13,
+        "mainhand": {
+          "name": "bow",
+          "level": 5,
+          "wtype": "bow"
+        },
+        "offhand": {
+          "name": "quiver",
+          "level": 4,
+          "type": "quiver"
+        },
+        "candidateCount": 0,
+        "performanceTrickActive": true
+      },
+      {
+        "name": "My_Priest",
+        "ctype": "priest",
+        "level": 35,
+        "inventoryItemCount": 4,
+        "mainhand": null,
+        "offhand": null,
+        "candidateCount": 0,
+        "performanceTrickActive": true
+      },
+      {
+        "name": "My_Mage",
+        "ctype": "mage",
+        "level": 35,
+        "inventoryItemCount": 2,
+        "mainhand": null,
+        "offhand": null,
+        "candidateCount": 0,
+        "performanceTrickActive": true
+      }
+    ],
+    "safety": {
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "startCalls": 0,
+      "disconnectCalls": 0,
+      "normalRuntimeAllowed": false
+    },
+    "deploymentDiagnostic": {
+      "state": "ALREADY_PRESENT",
+      "changed": false,
+      "testId": "pr20-7-gear-account-weapon-candidate-discovery-v2",
+      "error": null,
+      "targetCharacter": "My_Merchant",
+      "targetServer": "EU:I"
+    }
+  },
+  "conclusion": {
+    "existingCompatibleCandidateFound": false,
+    "accountMetadataRouteExhausted": true,
+    "liveExistingFarmerContextsChecked": true,
+    "lifecycleMutationRequiredForDiscovery": false,
+    "farmerGearAllocationRatified": false,
+    "weaponOffhandWriteRatified": false,
+    "nextAction": "PR20_7_WEAPON_OFFHAND_MERCHANT_ACQUISITION_PREPARE"
+  }
 }
