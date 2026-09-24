@@ -1758,7 +1758,13 @@
       "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
       "manifestCutoverPrepared": true,
       "handshakeMirrorsLocalAndGameRoot": true,
-      "handshakeFixCommit": "72a0a2c65fff19327d3137356c9e079bf5117203"
+      "handshakeFixCommit": "72a0a2c65fff19327d3137356c9e079bf5117203",
+      "controllerVersion": "1.0.1",
+      "exactTerminalIntentRecoveryAllowed": true,
+      "recoveryRequiresExactPersistedIntent": true,
+      "recoveryRewritesIntent": false,
+      "recoveryCreatesGameplayWrite": false,
+      "previousControllerVersionRecoverable": "1.0.0"
     }
   }
 }
