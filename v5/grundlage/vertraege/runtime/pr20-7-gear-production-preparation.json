@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "REAL_SHADOW_BESTANDEN_NO_WRITE",
+  "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_PACKAGE_BEREIT_EVIDENCE_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -77,7 +77,8 @@
   "nextGate": {
     "requiredBeforeAnySwapWrite": [
       "separate exact-head green CI",
-      "productive one-shot swap runner with durable intent and reconciliation"
+      "manifest cutover to exact source commit and SHA-256",
+      "real productive one-shot 5m evidence"
     ],
     "weaponsAndOffhandRemainSeparate": true,
     "satisfied": [
@@ -196,5 +197,33 @@
     "observedGameplayWrites": 0,
     "observedPublicFunctionCalls": 0,
     "observedRawWriteCalls": 0
+  },
+  "productiveOccupiedSlotLive": {
+    "prepared": true,
+    "autonomousPackage": "werkzeuge/pr20-7-gear-occupied-slot-live-5m.js",
+    "testPlan": "roadmap/pr20-7-gear-occupied-slot-live-5m-test-plan.json",
+    "evidence": "roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json",
+    "controllerVersion": "1.0.0",
+    "merchantOnly": true,
+    "exactShadowCandidatePinned": true,
+    "expectedSlot": "helmet",
+    "expectedInventoryIndex": 7,
+    "expectedCandidate": "wcap",
+    "expectedPreviousSlotItem": "partyhat",
+    "classAndLevelCompatibilityRevalidated": true,
+    "durableIntentBeforePossibleSend": true,
+    "sendBoundaryPersistedBeforeEquip": true,
+    "equipmentFenceRequired": true,
+    "inventoryFenceRequired": true,
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "oneShotMaximumUses": 1,
+    "restartRequiresReconciliation": true,
+    "restartResendAllowed": false,
+    "sameIntentRetry": false,
+    "fiveMinuteSoakSamples": 60,
+    "normalRuntimeAllowed": false,
+    "realEvidenceStatus": "OFFEN"
   }
 }

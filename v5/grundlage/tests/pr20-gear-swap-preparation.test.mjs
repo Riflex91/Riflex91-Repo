@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "REAL_SHADOW_BESTANDEN_NO_WRITE");
+  assert.equal(contract.status, "OCCUPIED_SLOT_PRODUCTIVE_LIVE_PACKAGE_BEREIT_EVIDENCE_OFFEN");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -298,5 +298,14 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.realShadow.realEvidenceStatus, "BESTANDEN_REAL_BROWSER_SHADOW_NO_WRITE");
   assert.equal(contract.realShadow.realEvidenceRatified, true);
   assert.equal(contract.realShadow.observedReconciliation, "NOT_APPLIED");
+  assert.equal(contract.productiveOccupiedSlotLive.prepared, true);
+  assert.equal(contract.productiveOccupiedSlotLive.maximumGameplayWrites, 1);
+  assert.equal(contract.productiveOccupiedSlotLive.maximumPublicFunctionCalls, 1);
+  assert.equal(contract.productiveOccupiedSlotLive.rawWriteCalls, 0);
+  assert.equal(contract.productiveOccupiedSlotLive.oneShotMaximumUses, 1);
+  assert.equal(contract.productiveOccupiedSlotLive.sameIntentRetry, false);
+  assert.equal(contract.productiveOccupiedSlotLive.restartResendAllowed, false);
+  assert.equal(contract.productiveOccupiedSlotLive.normalRuntimeAllowed, false);
+  assert.equal(contract.productiveOccupiedSlotLive.realEvidenceStatus, "OFFEN");
   assert.equal(contract.nextGate.weaponsAndOffhandRemainSeparate, true);
 });

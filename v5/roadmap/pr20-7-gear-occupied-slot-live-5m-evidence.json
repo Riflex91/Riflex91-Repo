@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-occupied-slot-live-5m",
+  "controllerVersion": "1.0.0",
+  "status": "OFFEN",
+  "evidenceArt": "V5_PR20_7_OCCUPIED_SLOT_LIVE_5M",
+  "sourceCommit": null,
+  "packageSha256": null,
+  "manifestMainCommit": null,
+  "observedAtMs": null,
+  "terminal": null,
+  "result": null,
+  "expectedSafetyBoundary": {
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "normalRuntimeAllowed": false
+  },
+  "ratified": false,
+  "blocker": [
+    "PRODUCTIVE_ONE_SHOT_LIVE_5M_NOCH_NICHT_AUSGEFUEHRT"
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-occupied-slot-live-5m",
+  "controllerVersion": "1.0.0",
+  "status": "PRODUCTIVE_ONE_SHOT_PACKAGE_BEREIT_VOR_MANIFEST_CUTOVER",
+  "scope": {
+    "coordinatorClass": "merchant",
+    "exactRecipientCharacter": "My_Merchant",
+    "safeOccupiedNonWeaponOnly": true,
+    "expectedShadowCandidate": {
+      "slot": "helmet",
+      "inventoryIndex": 7,
+      "candidateName": "wcap",
+      "candidateLevel": 4,
+      "previousName": "partyhat",
+      "previousLevel": 5
+    },
+    "weaponsAndOffhandExcluded": true,
+    "farmerGearAllocationExcluded": true
+  },
+  "prerequisites": {
+    "readOnlyPreflight": "BESTANDEN_REAL_BROWSER_NO_WRITE",
+    "realShadow": "BESTANDEN_REAL_BROWSER_SHADOW_NO_WRITE",
+    "performanceTrickRequired": true,
+    "exactCandidateCompatibilityRevalidated": true,
+    "classRestrictionFailClosed": true,
+    "levelRestrictionFailClosed": true,
+    "stableDoubleObservation": true
+  },
+  "transaction": {
+    "maximumGameplayWrites": 1,
+    "publicFunction": "equip",
+    "maximumPublicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "durableIntentBeforePossibleSend": true,
+    "sendBoundaryPersistedBeforeCall": true,
+    "equipmentFence": true,
+    "inventoryFence": true,
+    "oneShotMaximumUses": 1,
+    "sameIntentRetry": false,
+    "restartReconcileWithoutResend": true,
+    "expectedCommittedSettlement": "BESTAETIGT"
+  },
+  "soak": {
+    "minimumSamples": 60,
+    "intervalMs": 5000,
+    "minimumDurationMs": 299000,
+    "expectedPostconditionMustRemainCommitted": true
+  },
+  "lifecycle": {
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0
+  },
+  "safety": {
+    "normalRuntimeAllowed": false,
+    "noRawSocketBypass": true,
+    "noApiCallBypass": true,
+    "noUnequip": true,
+    "noWorkerDistribution": true
+  },
+  "evidence": "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json",
+  "nextAfterPass": "PR20_7_REMAINING_WEAPON_OFFHAND_AND_FARMER_GEAR_GATES"
+}
