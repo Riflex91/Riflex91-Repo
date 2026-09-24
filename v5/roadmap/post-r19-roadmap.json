@@ -79,11 +79,11 @@
     }
   ],
   "currentNextSteps": [
-    "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
-    "AKTUELL: PR20.7 realer belegter Nicht-Waffen-Slot Shadow ist BESTANDEN; Durable Readback + NOT_APPLIED Reconciliation bei 0 Gameplay-/Raw-/Public-Function-Writes",
-    "NAECHSTES: produktiven exakt einmaligen Swap-Runner mit Durable Intent, Equipment-/Inventory-Fencing und post-send Reconcile vorbereiten",
-    "DANACH: exakt einen sicheren belegten Nicht-Waffen-Slot-Swap real ausfuehren und 5m Funktionsevidence sammeln",
-    "mainhand/offhand sowie Farmer-Gear-Allokation bleiben separate spaetere PR20.7 Gates",
+    "PR20.1 bis PR20.6 sind abgeschlossen bzw. freigegeben",
+    "PR20.7 read-only Preflight und realer NO-WRITE Shadow fuer belegten Nicht-Waffen-Slot sind BESTANDEN",
+    "AKTUELL: produktives exakt einmaliges Occupied-Slot-Live-Paket ist implementiert; Manifest bleibt bis gruener CI noch auf dem Shadow",
+    "NAECHSTES: Package-Code gruen mergen, dann Manifest exakt auf Source-Commit/SHA-256 umschalten und realen 5m One-Shot-Swap ausfuehren",
+    "DANACH: Waffen/Offhand und Farmer-Gear-Allokation als separate PR20.7-Gates ratifizieren",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -701,7 +701,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "REAL_SHADOW_BESTANDEN_NO_WRITE",
+      "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_PACKAGE_BEREIT_EVIDENCE_OFFEN",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -724,9 +724,12 @@
         "v5/grundlage/tests/pr20-gear-swap-durable-intent-reconcile.test.mjs",
         "v5/werkzeuge/pr20-7-gear-shadow-no-write-autonomous.js",
         "v5/roadmap/pr20-7-gear-shadow-no-write-test-plan.json",
-        "v5/roadmap/pr20-7-gear-shadow-no-write-evidence.json"
+        "v5/roadmap/pr20-7-gear-shadow-no-write-evidence.json",
+        "v5/werkzeuge/pr20-7-gear-occupied-slot-live-5m.js",
+        "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-test-plan.json",
+        "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json"
       ],
-      "nextAction": "PR20_7_OCCUPIED_SLOT_PRODUCTIVE_ONE_SHOT_SWAP_PREPARATION"
+      "nextAction": "PR20_7_OCCUPIED_SLOT_PRODUCTIVE_PACKAGE_CI_AND_MANIFEST_CUTOVER"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1027,7 +1030,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "REAL_SHADOW_BESTANDEN_NO_WRITE",
+    "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_PACKAGE_BEREIT_EVIDENCE_OFFEN",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1060,9 +1063,14 @@
       "v5/werkzeuge/tests/pr20-7-gear-shadow-no-write-autonomous.test.mjs",
       "v5/roadmap/pr20-7-gear-shadow-no-write-test-plan.json",
       "v5/roadmap/pr20-7-gear-shadow-no-write-evidence.json",
-      "v5/grundlage/tests/pr20-gear-shadow-no-write-evidence.test.mjs"
+      "v5/grundlage/tests/pr20-gear-shadow-no-write-evidence.test.mjs",
+      "v5/werkzeuge/pr20-7-gear-occupied-slot-live-5m.js",
+      "v5/werkzeuge/tests/pr20-7-gear-occupied-slot-live-5m.test.mjs",
+      "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-test-plan.json",
+      "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json",
+      "v5/grundlage/tests/pr20-gear-occupied-slot-live-5m-evidence.test.mjs"
     ],
-    "nextAction": "PR20_7_OCCUPIED_SLOT_PRODUCTIVE_ONE_SHOT_SWAP_PREPARATION",
+    "nextAction": "PR20_7_OCCUPIED_SLOT_PRODUCTIVE_PACKAGE_CI_AND_MANIFEST_CUTOVER",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1129,6 +1137,24 @@
       "observedGameplayWrites": 0,
       "observedPublicFunctionCalls": 0,
       "observedRawWriteCalls": 0
+    },
+    "productiveOccupiedSlotLive": {
+      "prepared": true,
+      "exactShadowCandidatePinned": true,
+      "expectedRecipient": "My_Merchant",
+      "expectedSlot": "helmet",
+      "expectedInventoryIndex": 7,
+      "maximumGameplayWrites": 1,
+      "maximumPublicFunctionCalls": 1,
+      "rawWriteCalls": 0,
+      "oneShotMaximumUses": 1,
+      "durableIntentBeforePossibleSend": true,
+      "equipmentInventoryFencing": true,
+      "restartReconcileWithoutResend": true,
+      "sameIntentRetry": false,
+      "fiveMinuteSoakSamples": 60,
+      "normalRuntimeAllowed": false,
+      "realEvidenceStatus": "OFFEN"
     }
   }
 }
