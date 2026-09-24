@@ -103,6 +103,7 @@ export * from "./koordination/character-agent.js";
 export * from "./koordination/cm-settlement.js";
 export * from "./merchant/werttransaktion.js";
 export * from "./merchant/item-mutations-planer.js";
+export * from "./merchant/exchange-produktions-planer.js";
 export * from "./produktion/recipient-settlement.js";
 export * from "./produktion/production-intent.js";
 export * from "./produktion/production-planer.js";
