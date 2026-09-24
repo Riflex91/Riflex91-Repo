@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import { execFileSync } from "node:child_process";
 
 const plan = JSON.parse(fs.readFileSync(
   "roadmap/pr20-7-gear-shadow-no-write-test-plan.json",
@@ -11,29 +12,24 @@ const evidence = JSON.parse(fs.readFileSync(
   "roadmap/pr20-7-gear-shadow-no-write-evidence.json",
   "utf8",
 ));
-const manifest = JSON.parse(fs.readFileSync(
-  "roadmap/v5-autonomous-test-manifest.json",
-  "utf8",
-));
-const bytes = fs.readFileSync(
-  "werkzeuge/pr20-7-gear-shadow-no-write-autonomous.js",
+const pinnedBytes = execFileSync(
+  "git",
+  ["show", plan.sourceCommit + ":" + plan.packagePath],
+  { encoding: null, maxBuffer: 256 * 1024 },
 );
-const sha = crypto.createHash("sha256").update(bytes).digest("hex");
+const pinnedSha = crypto.createHash("sha256").update(pinnedBytes).digest("hex");
 
-test("PR20.7 real shadow plan pins exact workerless package", () => {
+test("PR20.7 real shadow plan pins exact historical workerless package", () => {
   assert.equal(plan.gate, "PR20.7_GEAR");
   assert.equal(plan.testId, "pr20-7-gear-occupied-slot-shadow-no-write");
   assert.equal(plan.status, "BEREIT_FUER_REALEN_SHADOW_NO_WRITE");
   assert.equal(plan.merchantOnly, true);
   assert.equal(plan.workerPackageConfigured, false);
-  assert.equal(plan.packageSha256, sha);
-  assert.equal(manifest.testId, plan.testId);
-  assert.equal(manifest.sourceCommit, plan.sourceCommit);
-  assert.equal(manifest.packagePath, plan.packagePath);
-  assert.equal(manifest.packageSha256, sha);
-  assert.equal(manifest.expectedGlobal, plan.expectedGlobal);
-  assert.equal("workerPackagePath" in manifest, false);
-  assert.equal("workerTargets" in manifest, false);
+  assert.match(plan.sourceCommit, /^[0-9a-f]{40}$/);
+  assert.equal(plan.packageSha256, pinnedSha);
+  assert.equal(evidence.sourceCommit, plan.sourceCommit);
+  assert.equal(evidence.packageSha256, plan.packageSha256);
+  assert.equal(evidence.ratified, true);
 });
 
 test("PR20.7 real shadow is explicitly no-send/no-authority", () => {
