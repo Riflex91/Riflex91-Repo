@@ -81,11 +81,10 @@
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.7 belegter Nicht-Waffen-Slot ist produktiv BESTANDEN",
-    "PR20.7 Merchant Waffen-/Offhand Read-only und accountweite Discovery sind fail-closed abgeschlossen; accountweit 0 kompatible vorhandene Kandidaten",
-    "Acquisition v1.0.0 wird wegen Reachability-False-Positive nicht ratifiziert",
-    "Acquisition v1.0.1 lief real terminal BLOCKIERT mit PR20_7_ACQUISITION_SELL_DIST_FEHLT und 0 Writes",
-    "AKTUELL: v1.0.2 ist source-gepinnt, immutable und im Auto-Deploy-Manifest fuer EU:I vorbereitet",
-    "NAECHSTES: realen v1.0.2 Read-only-Preflight auswerten; nur ein echter PASS darf den Durable-Shadow freigeben",
+    "PR20.7 accountweite Weapon-/Offhand-Discovery fand real 0 kompatible vorhandene Kandidaten",
+    "PR20.7 wshield Acquisition Read-only v1.0.2 ist real BESTANDEN, source-gepinnt, 0 Writes und ohne Purchase-Authority",
+    "AKTUELL: Acquisition Durable Shadow NO-WRITE vorbereiten mit GoldBudgetLedger-Reservation, Durable Intent, One-Shot-Huelle und Gold/Inventory/Socket-Fencing",
+    "Kauf und Equip bleiben weiterhin separat und nicht autorisiert",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -703,7 +702,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_2_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+      "status": "WEAPON_OFFHAND_ACQUISITION_READ_ONLY_BESTANDEN_DURABLE_SHADOW_NEXT",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -739,7 +738,7 @@
         "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
         "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json"
       ],
-      "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY_EXECUTE_V1_0_2"
+      "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_PREPARE"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1040,7 +1039,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_2_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_ACQUISITION_READ_ONLY_BESTANDEN_DURABLE_SHADOW_NEXT",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1100,7 +1099,7 @@
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json"
     ],
-    "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY_EXECUTE_V1_0_2",
+    "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_PREPARE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1204,11 +1203,11 @@
       "observedSoakDurationMs": 300552
     },
     "remainingGates": {
-      "weaponOffhand": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_2_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+      "weaponOffhand": "WEAPON_OFFHAND_ACQUISITION_READ_ONLY_BESTANDEN_DURABLE_SHADOW_NEXT",
       "farmerGearAllocation": "OFFEN_SEPARATE_RATIFICATION"
     },
     "weaponOffhand": {
-      "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_2_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+      "status": "WEAPON_OFFHAND_ACQUISITION_READ_ONLY_BESTANDEN_DURABLE_SHADOW_NEXT",
       "contract": "v5/grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json",
       "explicitSlots": [
         "mainhand",
@@ -1308,7 +1307,7 @@
       "acquisitionSourceCommit": "0228da63fe01e8717ef7aebb85af24bb3b35478b",
       "acquisitionPackageSha256": "1931312bfe6b15a2dd0764e774c52c84e6db09c376ee3fd33205b20cc5c9938c",
       "acquisitionManifestCutoverPrepared": true,
-      "acquisitionEvidenceStatus": "V1_0_1_BLOCKED_SELL_DIST_UNOBSERVABLE_V1_0_2_OFFEN",
+      "acquisitionEvidenceStatus": "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE",
       "acquisitionGameplayWrites": 0,
       "acquisitionPublicFunctionCalls": 0,
       "acquisitionRawWriteCalls": 0,
@@ -1330,7 +1329,16 @@
       "acquisitionExpectedServerRegion": "EU",
       "acquisitionExpectedServerIdentifier": "I",
       "acquisitionOfficialServerSourceCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
-      "acquisitionOfficialServerBlobSha": "40d0aeda16b9a4320441e833020fe1b4db496e2c"
+      "acquisitionOfficialServerBlobSha": "40d0aeda16b9a4320441e833020fe1b4db496e2c",
+      "acquisitionEvidenceRatified": true,
+      "acquisitionEvidenceObservedAtMs": 1790238192422,
+      "acquisitionEvidenceManifestMainCommit": "5a45b09c1ce7e439d80ada368980fc288fd76d35",
+      "acquisitionObservedVendorDistance": 88.59875647515783,
+      "acquisitionObservedSellDistance": 400,
+      "acquisitionObservedSellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
+      "acquisitionObservedGold": 14493644,
+      "acquisitionObservedFreeInventorySlots": 21,
+      "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE"
     }
   }
 }
