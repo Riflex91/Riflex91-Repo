@@ -17,6 +17,10 @@ const source = fs.readFileSync(
 
 test("PR20.7 account discovery remains a read-only selector, not farmer gear authority", () => {
   assert.equal(plan.gate, "PR20.7_GEAR");
+  assert.equal(plan.status, "MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_DISCOVERY");
+  assert.equal(plan.deployment.packageCommitPinned, true);
+  assert.match(plan.deployment.sourceCommit, /^[0-9a-f]{40}$/);
+  assert.match(plan.deployment.packageSha256, /^[0-9a-f]{64}$/);
   assert.equal(plan.deployment.coordinatorClass, "merchant");
   assert.equal(plan.deployment.workerPackageConfigured, false);
   assert.equal(plan.deployment.farmerWorkerDistribution, false);
@@ -59,14 +63,16 @@ test("PR20.7 account discovery package has closed mutation boundary", () => {
 
 test("PR20.7 account discovery pending evidence cannot count as pass", () => {
   assert.equal(evidence.status, "OFFEN");
-  assert.equal(evidence.sourceCommit, null);
-  assert.equal(evidence.packageSha256, null);
+  assert.match(evidence.sourceCommit, /^[0-9a-f]{40}$/);
+  assert.match(evidence.packageSha256, /^[0-9a-f]{64}$/);
   assert.equal(evidence.observedAtMs, null);
   assert.equal(evidence.terminal, null);
   assert.equal(evidence.result, null);
   assert.equal(evidence.ratified, false);
+  assert.equal(evidence.sourceCommit, plan.deployment.sourceCommit);
+  assert.equal(evidence.packageSha256, plan.deployment.packageSha256);
   assert.deepEqual(
     evidence.blocker,
-    ["ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_NOCH_NICHT_AUSGEFUEHRT"],
+    ["REAL_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_NOCH_NICHT_TERMINAL"],
   );
 });
