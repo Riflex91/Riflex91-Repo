@@ -19,6 +19,19 @@ const source = fs.readFileSync(
   "utf8",
 );
 
+const livePlan = JSON.parse(fs.readFileSync(
+  "roadmap/pr20-7-weapon-offhand-acquisition-live-5m-test-plan.json",
+  "utf8",
+));
+const liveEvidence = JSON.parse(fs.readFileSync(
+  "roadmap/pr20-7-weapon-offhand-acquisition-live-5m-evidence.json",
+  "utf8",
+));
+const liveSource = fs.readFileSync(
+  "werkzeuge/pr20-7-weapon-offhand-acquisition-live-5m.js",
+  "utf8",
+);
+
 test("PR20.7 acquisition candidate is exact wshield Merchant offhand source", () => {
   assert.equal(contract.blockingGate, "PR20.7_GEAR");
   assert.equal(contract.status, "PRODUCTIVE_PURCHASE_PACKAGE_BEREIT_MANIFEST_OFFEN");
@@ -235,6 +248,46 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.purchasePreparation.liveRestartReconcileWithoutResend, true);
   assert.equal(contract.purchasePreparation.liveSoakMinimumSamples, 60);
   assert.equal(contract.purchasePreparation.broadPurchaseAuthority, false);
+});
+
+test("PR20.7 controlled wshield live package is pinned but manifest is still closed", () => {
+  assert.equal(livePlan.testId,
+    "pr20-7-gear-weapon-offhand-acquisition-live-5m");
+  assert.equal(livePlan.controllerVersion, "1.0.0");
+  assert.equal(livePlan.status, "PACKAGE_BEREIT_MANIFEST_OFFEN");
+  assert.equal(livePlan.scope.exactRecipientCharacter, "My_Merchant");
+  assert.equal(livePlan.scope.exactServer, "EU:I");
+  assert.equal(livePlan.scope.exactItem, "wshield");
+  assert.equal(livePlan.scope.targetSlot, "offhand");
+  assert.equal(livePlan.scope.exactCost, 4800);
+  assert.equal(livePlan.transaction.maximumGameplayWrites, 1);
+  assert.equal(livePlan.transaction.maximumPublicFunctionCalls, 1);
+  assert.equal(livePlan.transaction.rawWriteCalls, 0);
+  assert.equal(livePlan.transaction.exactGoldReservation, 4800);
+  assert.equal(livePlan.transaction.minimumGoldSafetyReserve, 1000);
+  assert.equal(livePlan.transaction.oneShotMaximumUses, 1);
+  assert.equal(livePlan.transaction.sameIntentRetry, false);
+  assert.equal(livePlan.transaction.restartReconcileWithoutResend, true);
+  assert.equal(livePlan.transaction.expectedGoldDelta, -4800);
+  assert.equal(livePlan.transaction.expectedItemQuantityDelta, 1);
+  assert.equal(livePlan.soak.minimumSamples, 60);
+  assert.equal(livePlan.soak.minimumDurationMs, 299000);
+  assert.equal(livePlan.deployment.sourceCommit,
+    "5efa5e2c92c258e1502ee388e84ba96d4c844027");
+  assert.equal(livePlan.deployment.packageSha256,
+    "5cecc5a3ca36c2d75e4a6629c36991417b508e364a965c1a945a790aac8bd930");
+  assert.equal(livePlan.deployment.manifestCutoverPrepared, false);
+  assert.equal(liveEvidence.status, "OFFEN");
+  assert.equal(liveEvidence.ratified, false);
+  assert.equal(liveEvidence.manifestMainCommit, null);
+  assert.equal(liveEvidence.observedAtMs, null);
+  assert.deepEqual(liveEvidence.blocker, [
+    "REAL_WSHIELD_ACQUISITION_LIVE_5M_NOCH_NICHT_AUSGEFUEHRT",
+  ]);
+  assert.equal((liveSource.match(/r\\.buy_with_gold\\(/g) || []).length, 1);
+  assert.equal(liveSource.includes("socket.emit("), false);
+  assert.equal(liveSource.includes(".socket.emit("), false);
+  assert.equal(liveSource.includes("api_call("), false);
 });
 
 test("PR20.7 acquisition v1.0.2 real browser evidence is ratified zero-write", () => {
