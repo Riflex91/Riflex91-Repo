@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "ACTION_RECOVERY_VERIFIER_VORHANDEN_NO_WRITE",
+    "status": "EXCHANGE_SPECIALIZED_PLANNER_BEREIT_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -511,10 +511,10 @@
       "Restart nichtterminal => ABGLEICH_ERFORDERLICH",
       "sameIntentErneutSenden=false",
       "NOT_APPLIED nur bei positiver Evidence fuer unveraenderte Inputs/Consumables/Conditions und ohne q/Placeholder",
-      "ItemMutationsPlaner besitzt physische Identitaets-, Dispositions-, Workspace-, Wert- und Risikogrenzen fuer UPGRADE/COMPOUND"
+      "ItemMutationsPlaner besitzt physische Identitaets-, Dispositions-, Workspace-, Wert- und Risikogrenzen fuer UPGRADE/COMPOUND",
+      "ExchangeProduktionsPlaner bindet exakte physische Inputidentitaet, gepinnten bounded Drop-Graph, konservativen Outputspace und alle Reward-Domaenen"
     ],
     "erkannteRestluecken": [
-      "EXCHANGE besitzt noch keinen gleichwertigen spezialisierten produktiven Planer wie UPGRADE/COMPOUND",
       "jede Mutation benoetigt eigenes durables Produktionsjournal/Current-Fence/Preflight/One-Shot-Gate",
       "Offering/scroll4/spezielle Pfade duerfen nicht mit normalem First-Live-Kandidaten vermischt werden"
     ],
@@ -532,7 +532,45 @@
       "UNKNOWN niemals direkt retrien",
       "spezielle Upgrade-/Offering-/Compound-Pfade getrennt nachweisen",
       "Exchange Multi-Domain-Rewards konservativ vollstaendig reconciliieren"
-    ]
+    ],
+    "exchangeSpecializedPlanner": {
+      "status": "SPECIALIZED_PLANNER_BEREIT_NO_WRITE",
+      "source": "grundlage/quelle/merchant/exchange-produktions-planer.ts",
+      "contract": "grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
+      "test": "grundlage/tests/pr20-exchange-produktions-planer.test.mjs",
+      "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+      "actionContractId": "AL-ACTION-EXCHANGE",
+      "recoveryContractId": "AL-RECOVERY-EXCHANGE",
+      "verifierId": "AL-VERIFIER-EXCHANGE",
+      "publicFunction": "exchange",
+      "exactPhysicalIdentity": true,
+      "exactQuantity": true,
+      "boundedDropGraphRequired": true,
+      "conservativeOutputspaceRequired": true,
+      "fullRewardDomainReconciliationRequired": true,
+      "rewardDomains": [
+        "inventory",
+        "gold",
+        "shells",
+        "account_cosmetics",
+        "empty",
+        "recursive_drop"
+      ],
+      "promiseRewardOnlySupportingEvidence": true,
+      "qPlaceholderAcceptedInFlight": true,
+      "physicalIndexReresolveBeforeSend": true,
+      "sameIntentRetry": false,
+      "executionAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "liveAdapterPresent": false,
+      "liveRunnerPresent": false,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "normalRuntimeAllowed": false
+    },
+    "nextAction": "PR20_8_DURABLE_ONE_SHOT_FOUNDATIONS"
   },
   "pr20_9": {
     "ziel": "Craft und Production produktiv",
