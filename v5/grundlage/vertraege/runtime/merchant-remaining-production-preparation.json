@@ -361,7 +361,25 @@
       "weaponOffhandAcquisitionShadowEvidenceVendorReachableNow": true,
       "weaponOffhandAcquisitionShadowEvidenceNearestVendorDistance": 88.59875647515783,
       "weaponOffhandAcquisitionShadowEvidenceSellDistance": 400,
-      "weaponOffhandAcquisitionProductivePurchaseAuthority": false
+      "weaponOffhandAcquisitionProductivePurchaseAuthority": false,
+      "weaponOffhandAcquisitionProductivePurchasePreparationFoundation": "grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-purchase-preparation.ts",
+      "weaponOffhandAcquisitionProductivePurchasePreparationTest": "grundlage/tests/pr20-weapon-offhand-acquisition-purchase-preparation.test.mjs",
+      "weaponOffhandAcquisitionProductivePurchasePreparationReady": true,
+      "weaponOffhandAcquisitionProductivePurchasePreparationNoWrite": true,
+      "weaponOffhandAcquisitionProductivePurchaseExactCost": 4800,
+      "weaponOffhandAcquisitionProductivePurchaseMinimumGoldReserve": 1000,
+      "weaponOffhandAcquisitionProductivePurchaseGoldReservationAmount": 4800,
+      "weaponOffhandAcquisitionProductivePurchaseActionChannel": "buy",
+      "weaponOffhandAcquisitionProductivePurchaseSocketPlanBudgetReserved": 100,
+      "weaponOffhandAcquisitionProductivePurchaseSocketServerReserveUntouched": 100,
+      "weaponOffhandAcquisitionProductivePurchaseOneShotMaximumUses": 1,
+      "weaponOffhandAcquisitionProductivePurchaseOneShotMaximumTtlMs": 1500,
+      "weaponOffhandAcquisitionProductivePurchaseDurableIntentRequired": true,
+      "weaponOffhandAcquisitionProductivePurchaseSettlementGoldDelta": -4800,
+      "weaponOffhandAcquisitionProductivePurchaseSettlementItemDelta": 1,
+      "weaponOffhandAcquisitionProductivePurchaseSameIntentRetry": false,
+      "weaponOffhandAcquisitionProductivePurchaseAdapterPresent": false,
+      "weaponOffhandAcquisitionProductivePurchaseLiveRunnerPresent": false
     }
   },
   "pr20_8": {
