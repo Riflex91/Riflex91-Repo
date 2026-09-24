@@ -2,7 +2,7 @@
   'use strict';
 
   const TEST_ID = 'pr20-7-gear-account-weapon-candidate-discovery';
-  const VERSION = '1.0.1';
+  const VERSION = '1.0.2';
   const FARMERS = Object.freeze([
     Object.freeze({ name:'My_Ranger1', ctype:'ranger' }),
     Object.freeze({ name:'My_Priest', ctype:'priest' }),
@@ -55,6 +55,23 @@
     try { if (globalThis.character) return globalThis; } catch {}
     try { if (parent && parent.character) return parent; } catch {}
     throw new Error('PR20_7_ACCOUNT_DISCOVERY_CONTEXT_MISSING');
+  }
+
+  function roots() {
+    const out = [];
+    try { out.push(globalThis); } catch {}
+    try {
+      if (globalThis.parent
+          && globalThis.parent !== globalThis
+          && !out.includes(globalThis.parent)) {
+        out.push(globalThis.parent);
+      }
+    } catch {}
+    return out;
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   function installTelemetryFacade(owner) {
@@ -143,41 +160,69 @@
     publish();
   }
 
-  function performanceStatus() {
-    const r = root();
-    const out = {
-      available: false,
-      called: false,
-      audioFound: false,
-      playing: false,
-      cplaying: false,
-      active: false,
-      verification: 'HOWLER_PLAYING_TRUE',
-      error: null
-    };
-    try {
-      const fn = typeof r.performance_trick === 'function'
-        ? r.performance_trick
-        : (typeof globalThis.performance_trick === 'function'
-          ? globalThis.performance_trick
-          : null);
-      out.available = !!fn;
-      if (!fn) return out;
-      fn.call(r);
-      out.called = true;
-      const audio = r.sounds?.empty || globalThis.sounds?.empty || null;
-      out.audioFound = !!audio;
-      if (!audio) return out;
-      out.playing = typeof audio.playing === 'function'
-        ? audio.playing() === true
-        : audio.playing === true;
-      out.cplaying = audio.cplaying === true || out.playing;
-      out.active = out.playing === true;
-      return out;
-    } catch (error) {
-      out.error = text(error?.message || error, 240);
-      return out;
+  async function performanceStatus() {
+    let available = false;
+    let called = false;
+    let lastError = null;
+
+    for (const candidate of roots()) {
+      try {
+        if (typeof candidate?.performance_trick !== 'function') continue;
+        available = true;
+        candidate.performance_trick();
+        called = true;
+        break;
+      } catch (error) {
+        lastError = text(error?.message || error, 160);
+      }
     }
+
+    if (called) await sleep(350);
+
+    const inspect = () => {
+      let audioFound = false;
+      let playing = false;
+      let cplaying = false;
+      for (const candidate of roots()) {
+        try {
+          const audio = candidate?.sounds?.empty;
+          if (!audio) continue;
+          audioFound = true;
+          if (audio.cplaying === true) cplaying = true;
+          if (typeof audio.playing === 'function' && audio.playing() === true) {
+            playing = true;
+          } else if (audio.playing === true) {
+            playing = true;
+          }
+        } catch {}
+      }
+      return { audioFound, playing, cplaying };
+    };
+
+    let status = inspect();
+    if (available && called && !status.playing) {
+      for (const candidate of roots()) {
+        try {
+          if (typeof candidate?.performance_trick === 'function') {
+            candidate.performance_trick();
+            break;
+          }
+        } catch {}
+      }
+      await sleep(150);
+      status = inspect();
+    }
+
+    return {
+      available,
+      called,
+      audioFound: status.audioFound,
+      playing: status.playing,
+      cplaying: status.cplaying,
+      active: available && called && status.audioFound && status.playing,
+      verification: 'HOWLER_PLAYING_TRUE',
+      error: lastError
+    };
   }
 
   function accountRows() {
@@ -371,7 +416,7 @@
       return;
     }
 
-    state.performanceTrick = performanceStatus();
+    state.performanceTrick = await performanceStatus();
     if (!state.performanceTrick.active) {
       finish('BLOCKIERT', ['PR20_7_ACCOUNT_DISCOVERY_PERFORMANCE_TRICK_BLOCKED']);
       return;
