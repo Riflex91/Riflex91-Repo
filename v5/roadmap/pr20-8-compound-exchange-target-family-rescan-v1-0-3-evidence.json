@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "V5_PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_3_EVIDENCE",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "status": "BLOCKIERT_KEIN_TARGET_FAMILY_NORMALKANDIDAT_ZERO_WRITE",
+  "evidenceRatified": true,
+  "manifestMainCommit": "112557d109168b92f545933b8e796537b604d273",
+  "bridgeConvergenceMainCommit": "a1d9f408cf9378675157205ce90138da7968c164",
+  "testId": "pr20-8-wertmutation-live-candidate-readonly",
+  "controllerVersion": "1.0.3",
+  "package": {
+    "sourceCommit": "a0625dd9611b1006dc6f09ef7222ce5b67361ca6",
+    "path": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js",
+    "sha256": "f633b5ed877120aa9c76c2c788b64b8efb20eef155a0d38612fb5fca7c20da25",
+    "bytes": 21343,
+    "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly"
+  },
+  "liveEvidence": {
+    "source": "public.aio_v5_test_status",
+    "botId": "pi-main",
+    "updatedAt": "2026-09-24T18:53:23.770+00:00",
+    "observedAtMs": 1790275611960,
+    "status": "BLOCKIERT",
+    "phase": "PR20_8_LIVE_CANDIDATE_SELECTION",
+    "terminal": true,
+    "blocker": [
+      "PR20_8_CANDIDATE_KEIN_COMPOUND_ODER_EXCHANGE_NORMALKANDIDAT"
+    ],
+    "upgradeInformationalCandidate": {
+      "name": "gloves",
+      "index": 13,
+      "level": 0,
+      "baseGold": 3400,
+      "scroll": {
+        "name": "scroll0",
+        "observedQuantity": 35
+      }
+    },
+    "compound": {
+      "status": "KEIN_KANDIDAT",
+      "candidateCount": 0,
+      "selected": null
+    },
+    "exchange": {
+      "status": "KEIN_KANDIDAT",
+      "candidateCount": 0,
+      "selected": null,
+      "rejected": [
+        {
+          "name": "anniversarygift",
+          "index": 4,
+          "reason": "UNSAFE_PHYSICAL_ITEM"
+        }
+      ]
+    },
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "bridge": {
+    "state": "ALREADY_PRESENT",
+    "error": null,
+    "observedAt": "2026-09-24T18:53:16.2289229+00:00",
+    "contextConvergenceFixMerged": true,
+    "windowsSelfUpdatePublished": true
+  },
+  "authority": {
+    "authorityIssued": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "upgradeAuthority": false,
+    "compoundAuthority": false,
+    "exchangeAuthority": false,
+    "durableIntentCreated": false
+  },
+  "conclusion": {
+    "targetFamilyRescanValid": true,
+    "compoundNormalCandidateObserved": false,
+    "exchangeNormalCandidateObserved": false,
+    "upgradeResultInformationalOnly": true,
+    "mayAuthorizeCompoundWrite": false,
+    "mayAuthorizeExchangeWrite": false,
+    "mayAcquireOrMutateToCreateCandidate": false,
+    "noCandidateDoesNotAuthorizeAcquisitionOrMutation": true,
+    "compoundRatified": false,
+    "exchangeRatified": false
+  },
+  "nextGate": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW"
+}

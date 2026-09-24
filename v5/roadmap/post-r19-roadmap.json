@@ -84,11 +84,11 @@
     "PR20.8 Live-Candidate-Evidence ist real-browser ratifiziert; normaler Upgrade-Kandidat gloves@0 + scroll0 beobachtet",
     "PR20.8 Upgrade Durable Shadow ist SHA-gepinnt und Manifest-Cutover vorbereitet",
     "PR20.8 Upgrade Durable Shadow ist real-browser BESTANDEN und NO-WRITE ratifiziert",
-    "Compound/Exchange besitzen aktuell keinen ratifizierten einfachen Live-Kandidaten",
+    "Compound/Exchange besitzen nach v1.0.3-Target-Family-Rescan keinen zulaessigen normalen Live-Kandidaten; dieser No-Candidate-Befund ist ratifiziert, die Mutationsfamilien selbst bleiben unratifiziert",
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: PR20.8 Remaining-Family-Rescan v1.0.3 real-browser ausfuehren; BESTANDEN nur wenn COMPOUND oder EXCHANGE einen zulässigen Normal-Kandidaten liefert; Upgrade bleibt rein informativ; keinerlei neue Write-Authority."
+    "AKTUELL: PR20.8 Remaining-Family-Rescan v1.0.3 ist real-browser terminal BLOCKIERT und als korrekter Zero-Write-No-Candidate-Befund ratifiziert; COMPOUND/EXCHANGE bleiben ohne Write-Authority, und es darf kein Kandidat durch Kauf/Transfer/Mutation erzeugt werden. Naechster Schritt: PR20.8 Closeout gegen PR20.9-Gate pruefen."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "UPGRADE_COMMITTED_BRIDGE_RECOVERED_REMAINING_RESCAN_V1_0_2_FALSE_POSITIVE_V1_0_3_PREPARED",
+      "status": "UPGRADE_COMMITTED_COMPOUND_EXCHANGE_NO_CANDIDATE_AUTHORITY_CLOSED",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_3_REAL_BROWSER_RUN",
+      "nextAction": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -806,7 +806,9 @@
         "v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v1.js",
         "v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v1.test.mjs",
         "v5/werkzeuge/pr20-8-updater-recovery-bootstrap-v2.js",
-        "v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v2.test.mjs"
+        "v5/werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v2.test.mjs",
+        "v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json",
+        "v5/grundlage/tests/pr20-compound-exchange-target-family-rescan-v1-0-3-evidence.test.mjs"
       ]
     },
     {
@@ -1646,7 +1648,7 @@
     }
   },
   "pr20_8": {
-    "status": "UPGRADE_COMMITTED_BRIDGE_RECOVERED_REMAINING_RESCAN_V1_0_2_FALSE_POSITIVE_V1_0_3_PREPARED",
+    "status": "UPGRADE_COMMITTED_COMPOUND_EXCHANGE_NO_CANDIDATE_AUTHORITY_CLOSED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1689,13 +1691,14 @@
     "remainingGates": {
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
       "normalUpgrade": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS",
-      "normalCompound": "OFFEN_SEPARATE_RATIFICATION",
-      "normalExchange": "OFFEN_SEPARATE_RATIFICATION",
+      "normalCompound": "BLOCKIERT_KEIN_NORMALKANDIDAT_AUTHORITY_CLOSED",
+      "normalExchange": "BLOCKIERT_KEIN_NORMALKANDIDAT_AUTHORITY_CLOSED",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
-      "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY"
+      "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
+      "targetFamilyRescan": "BLOCKIERT_VALID_NO_TARGET_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_3_REAL_BROWSER_RUN",
+    "nextAction": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -2001,7 +2004,7 @@
       "evidence": "v5/roadmap/pr20-8-bridge-handshake-probe-evidence.json"
     },
     "remainingCandidateRescan": {
-      "status": "V1_0_2_FALSE_POSITIVE_V1_0_3_TARGET_SEMANTICS_PREPARED",
+      "status": "V1_0_3_REAL_BROWSER_BLOCKED_NO_TARGET_CANDIDATE_ZERO_WRITE",
       "purpose": "REOBSERVE_REMAINING_COMPOUND_AND_EXCHANGE_NORMAL_CANDIDATES_AFTER_UPGRADE_COMMIT",
       "testId": "pr20-8-wertmutation-live-candidate-readonly",
       "controllerVersion": "1.0.3",
@@ -2022,7 +2025,7 @@
       "rawWriteCalls": 0,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_3_REAL_BROWSER_RUN",
+      "nextGate": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
       "packageBytes": 21343,
       "observedV1Failure": {
         "observedAt": "2026-09-24T18:05:47.0307173+00:00",
@@ -2099,6 +2102,39 @@
         "targetCandidateObserved": false,
         "reportedSuccessInvalidForTargetGate": true,
         "mayAdvanceCompoundOrExchangeGate": false
+      },
+      "evidence": "v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json",
+      "evidenceRatified": true,
+      "compoundRatified": false,
+      "exchangeRatified": false,
+      "acquisitionOrMutationToCreateCandidateAllowed": false,
+      "observedV1_0_3NoCandidate": {
+        "observedAtMs": 1790275611960,
+        "updatedAt": "2026-09-24T18:53:23.770+00:00",
+        "controllerVersion": "1.0.3",
+        "status": "BLOCKIERT",
+        "phase": "PR20_8_LIVE_CANDIDATE_SELECTION",
+        "terminal": true,
+        "blocker": "PR20_8_CANDIDATE_KEIN_COMPOUND_ODER_EXCHANGE_NORMALKANDIDAT",
+        "bridgeState": "ALREADY_PRESENT",
+        "bridgeError": null,
+        "upgradeInformationalCandidate": {
+          "name": "gloves",
+          "level": 0,
+          "index": 13,
+          "scrollName": "scroll0",
+          "scrollQuantity": 35
+        },
+        "compoundCandidate": null,
+        "exchangeCandidate": null,
+        "gameplayWrites": 0,
+        "publicFunctionCalls": 0,
+        "rawWriteCalls": 0,
+        "sameIntentRetry": false,
+        "authorityIssued": false,
+        "compoundAuthority": false,
+        "exchangeAuthority": false,
+        "normalRuntimeAllowed": false
       }
     }
   }
