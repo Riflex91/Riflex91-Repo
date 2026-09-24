@@ -88,7 +88,7 @@
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: Compound-Durable-Shadow fuer hpamulet@0 x3 + cscroll0 ist als strikt NO-WRITE Paket vorbereitet. Naechster Schritt: separater Manifest-Cutover und Real-Browser-Shadow; Compound-Write-Authority bleibt geschlossen."
+    "AKTUELL: Compound-Durable-Shadow hpamulet@0 x3 + cscroll0 ist exakt im Manifest-Cutover vorbereitet. Naechster Schritt: Real-Browser-Shadow NO-WRITE; Compound-Write-Authority bleibt geschlossen."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "COMPOUND_DURABLE_SHADOW_PREPARED_NO_WRITE",
+      "status": "COMPOUND_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_COMPOUND_DURABLE_SHADOW_MANIFEST_CUTOVER",
+      "nextAction": "PR20_8_COMPOUND_DURABLE_SHADOW_REAL_BROWSER_RUN",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -1658,7 +1658,7 @@
     }
   },
   "pr20_8": {
-    "status": "COMPOUND_DURABLE_SHADOW_PREPARED_NO_WRITE",
+    "status": "COMPOUND_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1701,14 +1701,14 @@
     "remainingGates": {
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
       "normalUpgrade": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS",
-      "normalCompound": "DURABLE_SHADOW_PREPARED_NO_WRITE",
+      "normalCompound": "DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
       "normalExchange": "BLOCKIERT_KEIN_NORMALKANDIDAT_AUTHORITY_CLOSED",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "PR20_8_COMPOUND_DURABLE_SHADOW_MANIFEST_CUTOVER",
+    "nextAction": "PR20_8_COMPOUND_DURABLE_SHADOW_REAL_BROWSER_RUN",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -2202,7 +2202,7 @@
       "acquisitionOrMutationToCreateCandidateAllowed": false
     },
     "compoundDurableShadow": {
-      "status": "PACKAGE_BEREIT_NO_WRITE",
+      "status": "MANIFEST_CUTOVER_PREPARED_NO_WRITE",
       "testId": "pr20-8-compound-durable-shadow-no-write",
       "controllerVersion": "1.0.0",
       "package": "v5/werkzeuge/pr20-8-compound-durable-shadow-no-write.js",
@@ -2254,8 +2254,17 @@
       "packageBytes": 34995,
       "expectedGlobal": "V5PR208CompoundDurableShadowNoWrite",
       "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
-      "manifestCutoverPrepared": false,
-      "deployed": false
+      "manifestCutoverPrepared": true,
+      "deployed": false,
+      "nextGate": "PR20_8_COMPOUND_DURABLE_SHADOW_REAL_BROWSER_RUN",
+      "activeManifestTarget": {
+        "testId": "pr20-8-compound-durable-shadow-no-write",
+        "controllerVersion": "1.0.0",
+        "sourceCommit": "5577a45443db03a8cc0617ce61e0ec4b427d4aea",
+        "packageSha256": "94685bc0d439eb86b3a31763ffa0a06854c06572d875f55584a7558c9c368547",
+        "expectedGlobal": "V5PR208CompoundDurableShadowNoWrite",
+        "normalRuntimeAllowed": false
+      }
     }
   }
 }
