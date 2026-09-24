@@ -588,14 +588,6 @@ test("PR20.8 Candidate-Manifest bleibt source- und package-gepinnt NO-WRITE", ()
 });
 
 test("PR20.8 Real-Browser Candidate-Evidence ist ratifiziert und zero-write", () => {
-  assert.equal(
-    prep.pr20_8.status,
-    "LIVE_CANDIDATE_EVIDENCE_RATIFIED_NO_WRITE",
-  );
-  assert.equal(
-    prep.pr20_8.nextAction,
-    "PR20_8_UPGRADE_DURABLE_SHADOW_NO_WRITE",
-  );
   const live = prep.pr20_8.liveCandidateDiscovery;
   assert.equal(
     live.evidence,
@@ -630,6 +622,54 @@ test("PR20.8 Real-Browser Candidate-Evidence ist ratifiziert und zero-write", ()
   assert.equal(live.rawWriteCalls, 0);
   assert.equal(live.sameIntentRetry, false);
   assert.equal(live.normalRuntimeAllowed, false);
+});
+
+test("PR20.8 Upgrade Durable Shadow package stays no-send and authority-free", () => {
+  assert.equal(
+    prep.pr20_8.status,
+    "UPGRADE_DURABLE_SHADOW_PACKAGE_BEREIT_NO_WRITE",
+  );
+  assert.equal(
+    prep.pr20_8.nextAction,
+    "PR20_8_UPGRADE_DURABLE_SHADOW_MANIFEST_CUTOVER",
+  );
+  const shadow = prep.pr20_8.upgradeDurableShadow;
+  assert.equal(shadow.status, "PACKAGE_BEREIT_NO_WRITE");
+  assert.equal(shadow.testId, "pr20-8-upgrade-durable-shadow-no-write");
+  assert.equal(shadow.controllerVersion, "1.0.0");
+  assert.equal(shadow.candidate.name, "gloves");
+  assert.equal(shadow.candidate.level, 0);
+  assert.equal(shadow.candidate.baseGold, 3400);
+  assert.equal(shadow.scroll.name, "scroll0");
+  assert.equal(shadow.scroll.consumeQuantity, 1);
+  assert.equal(shadow.scroll.type, "uscroll");
+  assert.equal(shadow.scroll.grade, 0);
+  assert.equal(shadow.scroll.baseGold, 1000);
+  assert.equal(shadow.serviceReachabilityRequired, true);
+  assert.equal(shadow.sourcePinnedSellDistance, 400);
+  assert.equal(shadow.conservativeLiveSafetyDistanceMax, 300);
+  assert.equal(shadow.serviceReference, "G.maps.main.ref.u_mid");
+  assert.equal(shadow.exactItemDefinitionRequired, true);
+  assert.equal(shadow.exactScrollDefinitionRequired, true);
+  assert.equal(shadow.offering, null);
+  assert.equal(shadow.normalPathOnly, true);
+  assert.equal(shadow.currentPhysicalIndexesReresolved, true);
+  assert.equal(shadow.durableShadowOnly, true);
+  assert.equal(shadow.durableReadbackRequired, true);
+  assert.equal(shadow.journalTerminalArt, "ABBRUCH");
+  assert.equal(shadow.sendBoundaryState, "NICHT_GESENDET");
+  assert.equal(shadow.reconciliationClassification, "NOT_APPLIED");
+  assert.equal(shadow.sameIntentRetry, false);
+  assert.equal(shadow.oneShotMaximumUses, 1);
+  assert.equal(shadow.upgradeAuthorityIssued, false);
+  assert.equal(shadow.productionDurableIntentCreated, false);
+  assert.equal(shadow.gameplayAuthority, false);
+  assert.equal(shadow.rawWriteAuthority, false);
+  assert.equal(shadow.normalUpgradeWriteRatification, false);
+  assert.equal(shadow.gameplayWrites, 0);
+  assert.equal(shadow.publicFunctionCalls, 0);
+  assert.equal(shadow.rawWriteCalls, 0);
+  assert.equal(shadow.normalRuntimeAllowed, false);
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {

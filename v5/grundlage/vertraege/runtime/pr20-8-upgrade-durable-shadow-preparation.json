@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_UPGRADE_DURABLE_SHADOW_NO_WRITE",
+  "status": "PACKAGE_BEREIT_NO_WRITE",
+  "testId": "pr20-8-upgrade-durable-shadow-no-write",
+  "controllerVersion": "1.0.0",
+  "family": "UPGRADE",
+  "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+  "ratifiedCandidateEvidenceCommit": "00847a4f314237bc5535e06024a1f08a7f35e8a2",
+  "exactCandidate": {
+    "name": "gloves",
+    "level": 0,
+    "baseGold": 3400,
+    "quantity": 1,
+    "observedIndexFromEvidence": 6,
+    "observedIndexCarriesAuthority": false,
+    "currentIndexMustBeReresolved": true
+  },
+  "exactScroll": {
+    "name": "scroll0",
+    "consumeQuantity": 1,
+    "observedQuantityFromEvidence": 36,
+    "currentIndexAndQuantityMustBeReresolved": true,
+    "type": "uscroll",
+    "grade": 0,
+    "baseGold": 1000
+  },
+  "offering": null,
+  "normalPathOnly": true,
+  "bindings": {
+    "actionContractId": "AL-ACTION-UPGRADE",
+    "recoveryContractId": "AL-RECOVERY-UPGRADE",
+    "verifierId": "AL-VERIFIER-UPGRADE",
+    "publicFunction": "upgrade"
+  },
+  "preflight": {
+    "exactCharacter": "My_Merchant",
+    "exactClass": "merchant",
+    "exactServer": "EU:I",
+    "exactSessionRequired": true,
+    "qMustBeEmpty": true,
+    "movingMustBeFalse": true,
+    "targetMustBeEmpty": true,
+    "aggroMustBeZero": true,
+    "alternativeRuntimeMustBeInactive": true,
+    "performanceTrickRequired": true,
+    "publicFunctionMustExist": true,
+    "stableDoubleObservation": true,
+    "stablePostIntentReobserve": true,
+    "serviceReachabilityRequired": true,
+    "serviceServerRule": "simple_distance(G.maps.main.upgrade,player) <= B.sell_dist unless computer",
+    "sourcePinnedSellDistance": 400,
+    "conservativeLiveSafetyDistanceMax": 300,
+    "serviceReference": "G.maps.main.ref.u_mid",
+    "scrollDefinitionExact": true,
+    "itemDefinitionExact": true
+  },
+  "durableShadow": {
+    "storage": "LOCAL_STORAGE_SHADOW_ONLY",
+    "durableReadbackRequired": true,
+    "journalTerminalArt": "ABBRUCH",
+    "sendBoundaryState": "NICHT_GESENDET",
+    "reconciliationClassification": "NOT_APPLIED",
+    "sameIntentRetry": false,
+    "duplicateEqualIntentBlocked": true,
+    "exactCandidateIndexPinnedAtShadowTime": true,
+    "exactScrollIndexPinnedAtShadowTime": true,
+    "freshReresolutionRequiredBeforeFutureSend": true
+  },
+  "oneShotPreparation": {
+    "bindingPrepared": true,
+    "maximumUses": 1,
+    "upgradeAuthorityIssued": false
+  },
+  "resourceClaims": [
+    "character:My_Merchant:inventory",
+    "character:My_Merchant:q",
+    "character:My_Merchant:action_channel:upgrade",
+    "character:My_Merchant:socket_call_budget"
+  ],
+  "authorityBoundary": {
+    "productionDurableIntentCreated": false,
+    "authorityIssued": false,
+    "upgradeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalUpgradeWriteRatification": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "normalRuntimeAllowed": false
+  },
+  "artifacts": [
+    "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
+    "v5/werkzeuge/tests/pr20-8-upgrade-durable-shadow-no-write.test.mjs"
+  ],
+  "nextGate": "PR20_8_UPGRADE_DURABLE_SHADOW_MANIFEST_CUTOVER"
+}
