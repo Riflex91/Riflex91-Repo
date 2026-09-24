@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_ITEM_DEFINITION_RECOVERY",
+  "status": "PACKAGE_PATCH_BEREIT_NOT_DEPLOYED",
+  "incident": {
+    "telemetryBatchId": 8251,
+    "receivedAt": "2026-09-24T16:27:56.618743Z",
+    "observedTestId": "pr20-8-upgrade-productive-one-write-live",
+    "observedControllerVersion": "1.0.2",
+    "blocker": "PR20_8_UPGRADE_LIVE_ITEM_DEFINITION_DRIFT",
+    "terminal": true,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "realUpgradeMutationObserved": false
+  },
+  "diagnosis": {
+    "authoritativeDefinitionSource": "v5/wissensbasis/datenbank/aktuell/AL-DATA-ITEMS.txt",
+    "exactItem": "gloves",
+    "exactType": "gloves",
+    "exactBaseGold": 3400,
+    "scrollFlag": true,
+    "authoritativeUpgradeDefinitionShape": "OBJECT",
+    "authoritativeUpgradeDefinitionExample": {},
+    "previousRunnerExpectedBooleanTrue": true,
+    "mismatchKind": "UPGRADE_DEFINITION_SHAPE_BOOLEAN_VS_OBJECT",
+    "readOnlyCandidateDiscoveryUsesTruthyUpgradeDefinition": true
+  },
+  "patch": {
+    "package": "werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-3.js",
+    "test": "werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-3.test.mjs",
+    "previousControllerVersion": "1.0.2",
+    "preparedControllerVersion": "1.0.3",
+    "upgradeDefinitionMustBeObject": true,
+    "upgradeDefinitionNullRejected": true,
+    "upgradeDefinitionArrayRejected": true,
+    "upgradeDefinitionBooleanRejected": true,
+    "exactTypeStillRequired": "gloves",
+    "exactScrollFlagStillRequired": true,
+    "exactBaseGoldStillRequired": 3400,
+    "sendLogicChanged": false,
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "maximumRawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "deploymentBoundary": {
+    "currentManifestStillPinsControllerVersion": "1.0.2",
+    "currentManifestPackage": "werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js",
+    "recoveryManifestCutoverPrepared": false,
+    "recoveryPatchDeployed": false,
+    "realUpgradeMutationObserved": false
+  },
+  "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_ITEM_DEFINITION_RECOVERY_MANIFEST_CUTOVER"
+}
