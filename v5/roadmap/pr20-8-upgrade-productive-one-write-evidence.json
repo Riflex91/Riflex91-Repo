@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "evidenceArt": "V5_PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_LIVE",
+  "status": "RATIFIED_COMMITTED_SUCCESS",
+  "immutableTelemetry": {
+    "table": "public.aio_debug_telemetry_batches",
+    "batchId": 8252,
+    "receivedAt": "2026-09-24T16:43:21.226654Z",
+    "observedAtMs": 1790268200552
+  },
+  "controller": {
+    "testId": "pr20-8-upgrade-productive-one-write-live",
+    "version": "1.0.3",
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "terminal": true,
+    "normalRuntimeAllowed": false
+  },
+  "mutation": {
+    "publicFunction": "upgrade",
+    "publicFunctionSignature": "upgrade(item_num, scroll_num, offering_num, only_calculate)",
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sendCount": 1,
+    "sameIntentRetry": false,
+    "sendBoundaryState": "SEND_MOEGLICH_ODER_VERSUCHT",
+    "journalStatus": "COMMITTED",
+    "reconciliationClassification": "COMMITTED_SUCCESS"
+  },
+  "candidate": {
+    "name": "gloves",
+    "levelBefore": 0,
+    "levelAfter": 1,
+    "indexAtSend": 6,
+    "quantity": 1,
+    "baseGold": 3400,
+    "fingerprintSha256": "cc2e0cda75f84bf86d8342c7b3a68a9b4176d4810d35e2cad6f8d62e636e29b0"
+  },
+  "scroll": {
+    "name": "scroll0",
+    "indexAtSend": 14,
+    "quantityBefore": 36,
+    "quantityAfter": 35,
+    "consumeQuantity": 1,
+    "fingerprintSha256": "fa921a88099fb862856ba2a40f54353b024d5cdf8f8b1c76d964e6021109a62c"
+  },
+  "recipient": {
+    "characterName": "My_Merchant",
+    "ctype": "merchant",
+    "level": 58,
+    "map": "main",
+    "serverRegion": "EU",
+    "serverIdentifier": "I"
+  },
+  "serviceReachability": {
+    "reachable": true,
+    "viaComputer": false,
+    "distance": 171.69863680370656,
+    "safetyLimit": 300,
+    "serverLimit": 400,
+    "sellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN"
+  },
+  "durability": {
+    "transactionId": "pr20-8-upgrade-productive-one-write-live:624e0fe4df2d604297b0d974d67d6c5b",
+    "durableIntentCreated": true,
+    "durableIntentReadback": true,
+    "authorityIssued": true,
+    "authorityConsumed": true,
+    "oneShotAuthorityMaximumUses": 1
+  },
+  "safetyBoundary": {
+    "exactOneGameplayWriteObserved": true,
+    "exactOnePublicFunctionCallObserved": true,
+    "zeroRawWritesObserved": true,
+    "noSameIntentRetryObserved": true,
+    "noSecondSendAllowed": true,
+    "normalRuntimeAllowed": false,
+    "compoundRatification": false,
+    "exchangeRatification": false
+  },
+  "prerequisiteShadowEvidenceBatchId": 8244,
+  "previousFailedAttemptBatchId": 8251,
+  "nextGate": "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_REAL_BROWSER_RUN"
+}
