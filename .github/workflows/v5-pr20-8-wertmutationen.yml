@@ -24,8 +24,11 @@ on:
       - 'v5/grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json'
       - 'v5/werkzeuge/pr20-8-upgrade-productive-one-write-live.js'
       - 'v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js'
+      - 'v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js'
       - 'v5/werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-1.test.mjs'
+      - 'v5/werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-2.test.mjs'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-stale-lease-recovery-preparation.json'
       - 'v5/grundlage/tests/pr20-upgrade-productive-one-write-preparation.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr20-8-live-candidate-readonly-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json'
@@ -65,8 +68,11 @@ on:
       - 'v5/grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json'
       - 'v5/werkzeuge/pr20-8-upgrade-productive-one-write-live.js'
       - 'v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js'
+      - 'v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js'
       - 'v5/werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-1.test.mjs'
+      - 'v5/werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-2.test.mjs'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-stale-lease-recovery-preparation.json'
       - 'v5/grundlage/tests/pr20-upgrade-productive-one-write-preparation.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr20-8-live-candidate-readonly-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json'
@@ -106,3 +112,4 @@ jobs:
       - run: npm ci
       - run: npm run merchant-pr20-8-prep:pruefen
       - run: node --check werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js && node --test werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-1.test.mjs
+      - run: node --check werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-2.js && node --test werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-2.test.mjs
