@@ -184,8 +184,8 @@ test("account discovery facade preserves the bridge operations contract", async 
   vm.runInContext(source, sandbox, {
     filename: "pr20-7-account-weapon-candidate-discovery.js",
   });
-  for (let i = 0; i < 100; i += 1) {
-    await Promise.resolve();
+  for (let i = 0; i < 1000; i += 1) {
+    await new Promise(resolve => setImmediate(resolve));
     if (sandbox.V5PR207AccountWeaponCandidateDiscovery?.status?.()?.terminal) break;
   }
 
