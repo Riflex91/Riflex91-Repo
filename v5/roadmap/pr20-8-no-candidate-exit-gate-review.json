@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "V5_PR20_8_NO_CANDIDATE_EXIT_GATE_REVIEW",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "status": "BLOCKED_BY_REQUIRED_COMPOUND_EXCHANGE_LIVE_RATIFICATION",
+  "reviewedAgainst": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
+  "reviewedAtMainCommit": "09d9e74382cd3e080a35496d31a0abeaa43c1f6e",
+  "currentExitGateSatisfied": false,
+  "exitGateCriteria": {
+    "eachFamilyIndividuallyRatifiedAnd5mLiveTested": {
+      "upgrade": {
+        "ratified": true,
+        "live5mEquivalentEvidenceAvailable": true,
+        "evidence": "v5/roadmap/pr20-8-upgrade-productive-one-write-evidence.json"
+      },
+      "compound": {
+        "ratified": false,
+        "live5mTested": false,
+        "reason": "KEIN_NORMALKANDIDAT"
+      },
+      "exchange": {
+        "ratified": false,
+        "live5mTested": false,
+        "reason": "KEIN_NORMALKANDIDAT"
+      }
+    },
+    "noDuplicateValueMutationObserved": true,
+    "exchangeAutonomyProductiveProven": false
+  },
+  "noCandidateEvidence": {
+    "evidence": "v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json",
+    "ratifiedObservation": true,
+    "substitutesForCompoundRatification": false,
+    "substitutesForExchangeRatification": false,
+    "observedAtMs": 1790275611960,
+    "blocker": "PR20_8_CANDIDATE_KEIN_COMPOUND_ODER_EXCHANGE_NORMALKANDIDAT"
+  },
+  "authority": {
+    "compoundAuthority": false,
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "acquisitionOrMutationToCreateCandidateAllowed": false,
+    "normalRuntimeAllowed": false
+  },
+  "blockers": [
+    "PR20_8_COMPOUND_NOT_RATIFIED_NO_NORMAL_CANDIDATE",
+    "PR20_8_COMPOUND_5M_LIVE_NOT_RUN",
+    "PR20_8_EXCHANGE_NOT_RATIFIED_NO_NORMAL_CANDIDATE",
+    "PR20_8_EXCHANGE_5M_LIVE_NOT_RUN",
+    "PR20_8_EXCHANGE_AUTONOMY_NOT_PRODUCTIVE_PROVEN"
+  ],
+  "nextAction": "WAIT_FOR_NATURAL_COMPOUND_OR_EXCHANGE_NORMAL_CANDIDATE_THEN_REPEAT_READONLY_TARGET_RESCAN",
+  "mayAdvanceToPr20_9": false,
+  "roadmapCriteriaRelaxed": false
+}
