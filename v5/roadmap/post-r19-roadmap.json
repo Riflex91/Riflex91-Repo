@@ -2027,7 +2027,7 @@
       "rawWriteCalls": 0,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
+      "nextGate": "WAIT_FOR_NATURAL_COMPOUND_OR_EXCHANGE_NORMAL_CANDIDATE_THEN_REPEAT_READONLY_TARGET_RESCAN",
       "packageBytes": 21343,
       "observedV1Failure": {
         "observedAt": "2026-09-24T18:05:47.0307173+00:00",
