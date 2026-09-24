@@ -1,7 +1,7 @@
 # PR20.7 – Gear-Autonomie: belegter Slot / Swap Foundation
 
 **Stand:** 2026-09-24  
-**Status:** `WEAPON_OFFHAND_ACCOUNT_DISCOVERY_PACKAGE_BEREIT_EVIDENCE_OFFEN`
+**Status:** `ROADMAP_ABGESCHLOSSEN_MUTATIONS_RATIFIED_ALLOCATION_NO_WRITE`
 
 ## Zweck
 
@@ -322,20 +322,44 @@ Die Mutation-Grenze bleibt komplett geschlossen: 0 Gameplay-, Public- und
 Raw-Writes, 0 Lifecycle-Aufrufe, keine Authority und
 `normalRuntimeAllowed=false`.
 
+## PR20.7 Closeout – BESTANDEN
+
+PR20.7 ist abgeschlossen.
+
+Die neuen Mutationsklassen wurden getrennt real ratifiziert:
+
+- belegter Nicht-Waffen-Slot: exakt ein produktiver Equip-Write mit
+  `COMMITTED/BESTAETIGT` und 60 Postcondition-Samples ueber >5 Minuten;
+- `wshield`-Beschaffung: exakt ein `buy_with_gold("wshield", 1)` mit
+  `COMMITTED/BESTAETIGT` und 60 Samples ueber >5 Minuten;
+- `wshield -> offhand`: exakt ein Equip-Write, leerer Offhand-Prestate,
+  unveraenderte `mainhand=staff`, `COMMITTED/BESTAETIGT` und
+  60 Samples ueber >5 Minuten.
+
+Die separate Farmer-Gear-Allocation ist als **NO-WRITE**
+Planungs-/Reservierungs-Gate ratifiziert. Gepinnt sind
+`gear-allokation.ts` und `gear-progression.ts`; nachgewiesen sind:
+
+- ein physischer Kandidat wird hoechstens einmal aktiv reserviert;
+- ein Recipient-Slot wird hoechstens einmal aktiv reserviert;
+- Farmer werden vor Merchant-Self priorisiert;
+- stale, inkompatible, unverifizierte, physisch nicht verfuegbare oder
+  dispositionsgesperrte Evidence wird fail-closed abgelehnt;
+- Restart setzt nichtterminale Reservierungen auf `RECOVERY_PENDING`;
+- die Allocation erzeugt keine Execution-, Gameplay- oder Raw-Write-Authority.
+
+Ratifizierung:
+`roadmap/pr20-7-farmer-gear-allocation-ratification.json`.
+
+Diese NO-WRITE-Ratifizierung erteilt **keine** Farmer-Transfer- oder
+Farmer-Equip-Authority. Spaetere Farmer-Mutationen benoetigen weiterhin
+eigene Authority-, Safety-, Reconciliation- und Live-Evidence-Gates.
+
+`normalRuntimeAllowed=false` bleibt bestehen.
+
 ## Naechstes Gate
 
-Der belegte Nicht-Waffen-Slot ist damit als eigene Mutationsklasse
-produktiv ratifiziert. PR20.7 ist noch nicht abgeschlossen.
-
-Die Waffen-/Offhand-Foundation ist NO-WRITE vorhanden und das reale
-read-only Autonomous-Paket ist immutable gepinnt und der Manifest-Cutover
-ist vorbereitet. Der Merchant-Preflight ist real ohne Kandidat fail-closed blockiert. Als
-naechstes wird die accountweite NO-WRITE-Kandidatensuche gemergt und real
-ausgefuehrt. Erst nach einem Fund und einem exakten Live-Session-Preflight folgen
-One-Shot-/Fencing-/Durable-Intent-Shadow und ein separater produktiver
-5-Minuten-Nachweis.
-
-Danach folgt die separate Gear-Allokation an Farmer.
-
-UNKNOWN, TEILWEISE oder Restart erlauben weiterhin keinen Same-Intent-Resend;
-zuerst ist immer Reobserve/Reconcile erforderlich.
+`PR20.8_WERTMUTATIONEN`: Upgrade, Compound und Exchange werden weiterhin
+getrennt behandelt. Jede Mutation benoetigt ihren eigenen durable Intent,
+Current/Fence-Bindung, One-Shot Admission, Settlement/Reconciliation und
+separate reale Evidence. UNKNOWN darf keinen Same-Intent-Retry ausloesen.

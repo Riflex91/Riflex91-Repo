@@ -283,7 +283,7 @@ test("PR20.7 weapon/offhand foundation has no gameplay write path", () => {
 });
 
 test("PR20.7 weapon/offhand contract prepares only the separately pinned wshield live package", () => {
-  assert.equal(contract.status, "PRODUCTIVE_EQUIP_BESTANDEN_FARMER_GEAR_ALLOCATION_OFFEN");
+  assert.equal(contract.status, "PRODUCTIVE_EQUIP_BESTANDEN_PR20_7_ABGESCHLOSSEN");
   assert.deepEqual(contract.sourceSemantik.explicitSlots, ["mainhand", "offhand"]);
   assert.equal(contract.sourceSemantik.genericWeaponAutoSlotAllowed, false);
   assert.equal(contract.foundation.explicitSlotRequired, true);
@@ -334,7 +334,10 @@ test("PR20.7 weapon/offhand contract prepares only the separately pinned wshield
   assert.equal(contract.live.productiveEquipObservedSoakSamples, 60);
   assert.ok(contract.live.productiveEquipObservedSoakDurationMs >= 299000);
   assert.equal(contract.live.normalRuntimeAllowed, false);
-  assert.equal(contract.nextAction, "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION");
+  assert.equal(contract.nextAction, "PR20.8_WERTMUTATIONEN");
+  assert.equal(contract.live.farmerGearAllocationRatification,
+    "BESTANDEN_NO_WRITE_FOUNDATION_RATIFIED");
+  assert.equal(contract.live.farmerGearAllocationAuthorityGranted, false);
 
   assert.equal(equipPlan.status, "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE");
   assert.equal(equipPlan.scope.exactItem, "wshield");

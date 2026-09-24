@@ -7,7 +7,7 @@
   "dokumentation": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
   "testzeitStandard": "v5/roadmap/testzeit-standard.json",
   "currentStage": "PR20",
-  "currentGate": "PR20.7_GEAR",
+  "currentGate": "PR20.8_WERTMUTATIONEN",
   "reihenfolgeVerbindlich": true,
   "optimizerVorGruppenLiveEvidenceVerboten": true,
   "merchantVorFarmerProduktivierung": true,
@@ -79,12 +79,12 @@
     }
   ],
   "currentNextSteps": [
-    "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
+    "PR20.1 bis PR20.7 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.7 belegter Nicht-Waffen-Slot ist produktiv BESTANDEN",
     "PR20.7 wshield-Beschaffung ist real BESTANDEN: exakt 1 Kauf-Write, COMMITTED/BESTAETIGT, 60 Samples ueber >5 Minuten",
     "PR20.7 wshield-Offhand-Equip ist real BESTANDEN: exakt 1 Equip-Write, COMMITTED/BESTAETIGT, 60 Samples ueber >5 Minuten",
-    "Weapon/Offhand bleibt nach dem One-Shot-Lauf breit geschlossen; normalRuntimeAllowed=false",
-    "AKTUELL: separate Farmer-Gear-Allocation-Ratifizierung abschliessen",
+    "PR20.7 Farmer-Gear-Allocation ist als NO-WRITE Planungs-/Reservierungs-Gate ratifiziert; daraus entsteht keine Farmer-Gameplay-Authority",
+    "AKTUELL: PR20.8 Upgrade, Compound und Exchange getrennt produktiv vorbereiten und ratifizieren",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -702,7 +702,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+      "status": "ROADMAP_ABGESCHLOSSEN_MUTATIONS_RATIFIED_ALLOCATION_NO_WRITE",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -742,9 +742,13 @@
         "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js",
         "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.test.mjs",
         "v5/roadmap/pr20-7-weapon-offhand-acquisition-shadow-no-write-test-plan.json",
-        "v5/roadmap/pr20-7-weapon-offhand-acquisition-shadow-no-write-evidence.json"
+        "v5/roadmap/pr20-7-weapon-offhand-acquisition-shadow-no-write-evidence.json",
+        "v5/roadmap/pr20-7-weapon-offhand-acquisition-live-5m-evidence.json",
+        "v5/roadmap/pr20-7-weapon-offhand-equip-live-5m-evidence.json",
+        "v5/roadmap/pr20-7-farmer-gear-allocation-ratification.json"
       ],
-      "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE"
+      "nextAction": "PR20.8_WERTMUTATIONEN",
+      "farmerGearAllocationRatification": "v5/roadmap/pr20-7-farmer-gear-allocation-ratification.json"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -784,7 +788,7 @@
     "newGameplayWriteAdapterBeforeGate": false,
     "liveRunnerBeforeCapabilityGate": false,
     "planningContractsTestsAndRecoveryAllowed": true,
-    "activeLiveGate": "PR20.7_GEAR"
+    "activeLiveGate": "PR20.8_WERTMUTATIONEN"
   },
   "pr20_1": {
     "status": "BESTANDEN",
@@ -1045,7 +1049,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "WEAPON_OFFHAND_EQUIP_BESTANDEN_FARMER_GEAR_ALLOCATION_OFFEN",
+    "status": "ROADMAP_ABGESCHLOSSEN_MUTATIONS_RATIFIED_ALLOCATION_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1105,7 +1109,7 @@
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json"
     ],
-    "nextAction": "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION",
+    "nextAction": "PR20.8_WERTMUTATIONEN",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1210,7 +1214,7 @@
     },
     "remainingGates": {
       "weaponOffhand": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
-      "farmerGearAllocation": "OFFEN_SEPARATE_RATIFICATION"
+      "farmerGearAllocation": "BESTANDEN_NO_WRITE_FOUNDATION_RATIFIED"
     },
     "weaponOffhand": {
       "status": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
@@ -1344,7 +1348,7 @@
       "acquisitionObservedSellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
       "acquisitionObservedGold": 14493644,
       "acquisitionObservedFreeInventorySlots": 21,
-      "acquisitionNextGate": "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION",
+      "acquisitionNextGate": "PR20.8_WERTMUTATIONEN",
       "acquisitionShadowFoundation": "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
       "acquisitionShadowFoundationTest": "v5/grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
       "acquisitionShadowPackage": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js",
@@ -1379,7 +1383,7 @@
       "acquisitionShadowPurchaseAuthority": false,
       "acquisitionShadowSameIntentRetry": false,
       "acquisitionShadowNormalRuntimeAllowed": false,
-      "acquisitionShadowEvidenceStatus": "OFFEN",
+      "acquisitionShadowEvidenceStatus": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
       "acquisitionProductivePurchaseLiveEvidenceStatus": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
       "acquisitionProductivePurchaseLiveEvidenceRatified": true,
       "acquisitionProductivePurchaseLiveEvidenceManifestMainCommit": "8b23419ce8118600f00644ee5e1d678af198c0a5",
@@ -1443,7 +1447,17 @@
       "productiveEquipObservedEquipmentInventoryFenceClaims": true,
       "productiveEquipObservedSoakSamples": 60,
       "productiveEquipObservedSoakDurationMs": 300586,
-      "productiveEquipNextGate": "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION"
+      "productiveEquipNextGate": "PR20.8_WERTMUTATIONEN",
+      "acquisitionShadowEvidenceRatified": true,
+      "acquisitionShadowEvidenceManifestMainCommit": "f96bb24402b3f0b274aa9d5b31dd370ff099eed0",
+      "acquisitionShadowEvidenceObservedAtMs": 1790243742400,
+      "acquisitionShadowEvidenceResult": "BESTANDEN",
+      "acquisitionShadowEvidencePhase": "COMPLETE",
+      "acquisitionShadowEvidenceGameplayWrites": 0,
+      "acquisitionShadowEvidencePublicFunctionCalls": 0,
+      "acquisitionShadowEvidenceRawWriteCalls": 0,
+      "acquisitionShadowEvidencePurchaseAuthority": false,
+      "acquisitionShadowEvidenceDurableReadback": true
     },
     "acquisitionShadowPackage": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
     "acquisitionShadowPackageTest": "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-shadow-v1-0-1-autonomous.test.mjs",
@@ -1463,7 +1477,7 @@
     "acquisitionShadowPreviousLiveSameIntentRetry": false,
     "acquisitionShadowPreviousLiveRatified": false,
     "acquisitionShadowClassRuleShape": "OBJECT_KEYS",
-    "acquisitionNextGate": "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION",
+    "acquisitionNextGate": "PR20.8_WERTMUTATIONEN",
     "acquisitionShadowEvidenceRatified": true,
     "acquisitionShadowEvidenceManifestMainCommit": "f96bb24402b3f0b274aa9d5b31dd370ff099eed0",
     "acquisitionShadowEvidenceObservedAtMs": 1790243742400,
@@ -1553,6 +1567,34 @@
     "productiveEquipObservedEquipmentInventoryFenceClaims": true,
     "productiveEquipObservedSoakSamples": 60,
     "productiveEquipObservedSoakDurationMs": 300586,
-    "productiveEquipNextGate": "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION"
+    "productiveEquipNextGate": "PR20.8_WERTMUTATIONEN",
+    "farmerGearAllocation": {
+      "status": "BESTANDEN_NO_WRITE_FOUNDATION_RATIFIED",
+      "ratification": "v5/roadmap/pr20-7-farmer-gear-allocation-ratification.json",
+      "sourceMainCommit": "e5430a06e2088a03a6797b628a9526ce6b18a407",
+      "gearAllocationSource": "v5/grundlage/quelle/merchant/gear-allokation.ts",
+      "gearAllocationGitBlobSha": "d4e452a1ee5860b9ee559224e61d39f945ccce8d",
+      "gearProgressionSource": "v5/grundlage/quelle/merchant/gear-progression.ts",
+      "gearProgressionGitBlobSha": "e8ed98859751d3b6e6167b68c9a0da9505b542f0",
+      "physicalCandidateReservedAtMostOnce": true,
+      "recipientSlotReservedAtMostOnce": true,
+      "farmerBeforeMerchantSelf": true,
+      "restartRecoveryPending": true,
+      "evidenceFreshnessRequired": true,
+      "compatibilityRequired": true,
+      "contentVerifiedRequired": true,
+      "physicalAvailabilityRequired": true,
+      "dispositionAllowedRequired": true,
+      "minimumImprovementRequired": true,
+      "planningOnly": true,
+      "executionAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "normalRuntimeAllowed": false,
+      "nextGate": "PR20.8_WERTMUTATIONEN"
+    }
   }
 }

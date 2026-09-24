@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "WEAPON_OFFHAND_EQUIP_BESTANDEN_FARMER_GEAR_ALLOCATION_OFFEN",
+  "status": "ROADMAP_ABGESCHLOSSEN_MUTATIONS_RATIFIED_ALLOCATION_NO_WRITE",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -85,9 +85,10 @@
       "post-send reobserve/reconcile classifier with no same-intent retry",
       "real no-write browser shadow evidence",
       "real productive occupied non-weapon slot one-shot swap with 5m committed evidence",
-      "real productive wshield offhand one-shot equip with 5m committed evidence"
+      "real productive wshield offhand one-shot equip with 5m committed evidence",
+      "Farmer gear allocation planning/reservation no-write foundation ratified"
     ],
-    "next": "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION",
+    "next": "PR20.8_WERTMUTATIONEN",
     "weaponOffhandAcquisitionReadOnlyPrepared": true,
     "weaponOffhandAcquisitionManifestCutoverNext": false
   },
@@ -376,7 +377,7 @@
     "acquisitionObservedSellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
     "acquisitionObservedGold": 14493644,
     "acquisitionObservedFreeInventorySlots": 21,
-    "acquisitionNextGate": "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION",
+    "acquisitionNextGate": "PR20.8_WERTMUTATIONEN",
     "acquisitionShadowFoundation": "grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
     "acquisitionShadowFoundationTest": "grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
     "acquisitionShadowPackage": "werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
@@ -516,7 +517,7 @@
     "productiveEquipOneShotMaximumUses": 1,
     "productiveEquipSameIntentRetry": false,
     "productiveEquipEvidenceStatus": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
-    "productiveEquipNextGate": "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION",
+    "productiveEquipNextGate": "PR20.8_WERTMUTATIONEN",
     "productiveEquipEvidenceRatified": true,
     "productiveEquipEvidenceManifestMainCommit": "72ba966878e1575df786ca1e60f50044e2aa89a5",
     "productiveEquipEvidenceObservedAtMs": 1790251127933,
@@ -540,5 +541,32 @@
     "productiveEquipObservedEquipmentInventoryFenceClaims": true,
     "productiveEquipObservedSoakSamples": 60,
     "productiveEquipObservedSoakDurationMs": 300586
+  },
+  "farmerGearAllocation": {
+    "status": "BESTANDEN_NO_WRITE_FOUNDATION_RATIFIED",
+    "ratification": "roadmap/pr20-7-farmer-gear-allocation-ratification.json",
+    "sourceMainCommit": "e5430a06e2088a03a6797b628a9526ce6b18a407",
+    "gearAllocationSource": "grundlage/quelle/merchant/gear-allokation.ts",
+    "gearAllocationGitBlobSha": "d4e452a1ee5860b9ee559224e61d39f945ccce8d",
+    "gearProgressionSource": "grundlage/quelle/merchant/gear-progression.ts",
+    "gearProgressionGitBlobSha": "e8ed98859751d3b6e6167b68c9a0da9505b542f0",
+    "physicalCandidateReservedAtMostOnce": true,
+    "recipientSlotReservedAtMostOnce": true,
+    "farmerBeforeMerchantSelf": true,
+    "restartRecoveryPending": true,
+    "staleEvidenceBlocked": true,
+    "incompatibleEvidenceBlocked": true,
+    "unverifiedContentBlocked": true,
+    "unavailablePhysicalCandidateBlocked": true,
+    "dispositionBlocked": true,
+    "minimumImprovementRequired": true,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "executionAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "nextGate": "PR20.8_WERTMUTATIONEN"
   }
 }

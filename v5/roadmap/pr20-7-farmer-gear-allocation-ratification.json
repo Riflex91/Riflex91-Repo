@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "evidenceArt": "V5_PR20_7_FARMER_GEAR_ALLOCATION_NO_WRITE_RATIFICATION",
+  "status": "BESTANDEN_NO_WRITE_FOUNDATION_RATIFIED",
+  "sourceMainCommit": "e5430a06e2088a03a6797b628a9526ce6b18a407",
+  "sources": {
+    "gearAllokation": {
+      "path": "v5/grundlage/quelle/merchant/gear-allokation.ts",
+      "gitBlobSha": "d4e452a1ee5860b9ee559224e61d39f945ccce8d"
+    },
+    "gearProgression": {
+      "path": "v5/grundlage/quelle/merchant/gear-progression.ts",
+      "gitBlobSha": "e8ed98859751d3b6e6167b68c9a0da9505b542f0"
+    }
+  },
+  "invariants": {
+    "physicalCandidateReservedAtMostOnce": true,
+    "recipientSlotReservedAtMostOnce": true,
+    "farmerBeforeMerchantSelf": true,
+    "evidenceFreshnessRequired": true,
+    "targetCurrentRequired": true,
+    "compatibilityRequired": true,
+    "contentVerifiedRequired": true,
+    "physicalAvailabilityRequired": true,
+    "dispositionAllowedRequired": true,
+    "minimumImprovementRequired": true,
+    "boundedNewGoalsMaximum": 64,
+    "boundedEvidenceMaximum": 512,
+    "restartNonTerminalBecomesRecoveryPending": true,
+    "expiredReservationsBecomeAborted": true
+  },
+  "authorityBoundary": {
+    "planningOnly": true,
+    "executionAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "farmerGameplayAuthority": false,
+    "liveFarmerWorkerRequired": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "normalRuntimeAllowed": false
+  },
+  "prerequisiteMutationEvidence": {
+    "occupiedNonWeapon": {
+      "status": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
+      "evidence": "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json"
+    },
+    "weaponOffhandPurchase": {
+      "status": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
+      "evidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-live-5m-evidence.json"
+    },
+    "weaponOffhandEquip": {
+      "status": "BESTANDEN_REAL_BROWSER_LIVE_5M_ONE_WRITE",
+      "evidence": "v5/roadmap/pr20-7-weapon-offhand-equip-live-5m-evidence.json"
+    }
+  },
+  "interpretation": {
+    "ratifiesAllocationPlanningAndReservation": true,
+    "doesNotRatifyFarmerTransferOrEquipExecution": true,
+    "noAdditionalLiveWriteRequiredForThisNoWriteGate": true,
+    "futureFarmerMutationStillRequiresItsOwnAuthorityAndEvidence": true
+  },
+  "ratified": true,
+  "blocker": [],
+  "nextGate": "PR20.8_WERTMUTATIONEN"
+}

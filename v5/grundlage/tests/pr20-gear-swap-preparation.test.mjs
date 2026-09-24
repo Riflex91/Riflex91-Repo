@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "WEAPON_OFFHAND_EQUIP_BESTANDEN_FARMER_GEAR_ALLOCATION_OFFEN");
+  assert.equal(contract.status, "ROADMAP_ABGESCHLOSSEN_MUTATIONS_RATIFIED_ALLOCATION_NO_WRITE");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -483,7 +483,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveSameIntentRetry, false);
   assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveRestartReconcileWithoutResend, true);
   assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveSoakMinimumSamples, 60);
-  assert.equal(contract.weaponOffhandFoundation.acquisitionNextGate, "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionNextGate, "PR20.8_WERTMUTATIONEN");
   assert.equal(contract.weaponOffhandFoundation.productiveEquipPackagePrepared, true);
   assert.equal(contract.weaponOffhandFoundation.productiveEquipExactItem, "wshield");
   assert.equal(contract.weaponOffhandFoundation.productiveEquipTargetSlot, "offhand");
@@ -513,10 +513,26 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.productiveEquipObservedSoakSamples, 60);
   assert.ok(contract.weaponOffhandFoundation.productiveEquipObservedSoakDurationMs >= 299000);
   assert.equal(contract.weaponOffhandFoundation.productiveEquipNextGate,
-    "PR20_7_FARMER_GEAR_ALLOCATION_RATIFICATION");
+    "PR20.8_WERTMUTATIONEN");
   assert.match(contract.weaponOffhandFoundation.acquisitionSourceCommit, /^[0-9a-f]{40}$/);
   assert.match(contract.weaponOffhandFoundation.acquisitionPackageSha256, /^[0-9a-f]{64}$/);
   assert.match(contract.weaponOffhandFoundation.readOnlySourceCommit, /^[0-9a-f]{40}$/);
   assert.match(contract.weaponOffhandFoundation.readOnlyPackageSha256, /^[0-9a-f]{64}$/);
   assert.equal(contract.nextGate.weaponsAndOffhandRemainSeparate, true);
+  assert.equal(contract.nextGate.next, "PR20.8_WERTMUTATIONEN");
+  assert.equal(contract.farmerGearAllocation.status, "BESTANDEN_NO_WRITE_FOUNDATION_RATIFIED");
+  assert.equal(contract.farmerGearAllocation.ratification,
+    "roadmap/pr20-7-farmer-gear-allocation-ratification.json");
+  assert.equal(contract.farmerGearAllocation.physicalCandidateReservedAtMostOnce, true);
+  assert.equal(contract.farmerGearAllocation.recipientSlotReservedAtMostOnce, true);
+  assert.equal(contract.farmerGearAllocation.farmerBeforeMerchantSelf, true);
+  assert.equal(contract.farmerGearAllocation.restartRecoveryPending, true);
+  assert.equal(contract.farmerGearAllocation.gameplayWrites, 0);
+  assert.equal(contract.farmerGearAllocation.publicFunctionCalls, 0);
+  assert.equal(contract.farmerGearAllocation.rawWriteCalls, 0);
+  assert.equal(contract.farmerGearAllocation.executionAuthority, false);
+  assert.equal(contract.farmerGearAllocation.gameplayAuthority, false);
+  assert.equal(contract.farmerGearAllocation.rawWriteAuthority, false);
+  assert.equal(contract.farmerGearAllocation.normalRuntimeAllowed, false);
+  assert.equal(contract.farmerGearAllocation.nextGate, "PR20.8_WERTMUTATIONEN");
 });
