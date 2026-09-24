@@ -88,7 +88,7 @@
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: PR20.8 bleibt durch das verbindliche Exit Gate blockiert: Compound und Exchange sind mangels normalem Kandidaten weder einzeln ratifiziert noch 5m live getestet; Exchange-Autonomie ist nicht produktiv nachgewiesen. Kein Kauf/Transfer/Mutation nur zur Kandidatenerzeugung. Naechster sicherer Schritt: auf einen natuerlich verfuegbaren Compound- oder Exchange-Normalkandidaten warten und dann den read-only Target-Rescan wiederholen."
+    "AKTUELL: Der Operator hat passende Items in das Merchant-Inventar gelegt. PR20.8 Target-Family-Rescan v1.0.4 wird read-only erneut ausgefuehrt; Compound/Exchange-Authority bleibt bis zur separaten Live-Ratifikation geschlossen."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "UPGRADE_COMMITTED_TARGET_FAMILIES_NO_CANDIDATE_EXIT_GATE_BLOCKED",
+      "status": "UPGRADE_COMMITTED_TARGET_ITEMS_PRESENT_V1_0_4_RESCAN_PREPARED",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "WAIT_FOR_NATURAL_COMPOUND_OR_EXCHANGE_NORMAL_CANDIDATE_THEN_REPEAT_READONLY_TARGET_RESCAN",
+      "nextAction": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_4_REAL_BROWSER_RUN",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -810,7 +810,9 @@
         "v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json",
         "v5/grundlage/tests/pr20-compound-exchange-target-family-rescan-v1-0-3-evidence.test.mjs",
         "v5/roadmap/pr20-8-no-candidate-exit-gate-review.json",
-        "v5/grundlage/tests/pr20-no-candidate-exit-gate-review.test.mjs"
+        "v5/grundlage/tests/pr20-no-candidate-exit-gate-review.test.mjs",
+        "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js",
+        "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.test.mjs"
       ]
     },
     {
@@ -1650,7 +1652,7 @@
     }
   },
   "pr20_8": {
-    "status": "UPGRADE_COMMITTED_TARGET_FAMILIES_NO_CANDIDATE_EXIT_GATE_BLOCKED",
+    "status": "UPGRADE_COMMITTED_TARGET_ITEMS_PRESENT_V1_0_4_RESCAN_PREPARED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1700,7 +1702,7 @@
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BLOCKIERT_VALID_NO_TARGET_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "WAIT_FOR_NATURAL_COMPOUND_OR_EXCHANGE_NORMAL_CANDIDATE_THEN_REPEAT_READONLY_TARGET_RESCAN",
+    "nextAction": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_4_REAL_BROWSER_RUN",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -2006,15 +2008,15 @@
       "evidence": "v5/roadmap/pr20-8-bridge-handshake-probe-evidence.json"
     },
     "remainingCandidateRescan": {
-      "status": "V1_0_3_REAL_BROWSER_BLOCKED_NO_TARGET_CANDIDATE_ZERO_WRITE",
+      "status": "V1_0_4_OPERATOR_ITEMS_PRESENT_RESCAN_PREPARED",
       "purpose": "REOBSERVE_REMAINING_COMPOUND_AND_EXCHANGE_NORMAL_CANDIDATES_AFTER_UPGRADE_COMMIT",
       "testId": "pr20-8-wertmutation-live-candidate-readonly",
-      "controllerVersion": "1.0.3",
-      "package": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js",
-      "test": "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.test.mjs",
+      "controllerVersion": "1.0.4",
+      "package": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js",
+      "test": "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.test.mjs",
       "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
-      "sourceCommit": "a0625dd9611b1006dc6f09ef7222ce5b67361ca6",
-      "packageSha256": "f633b5ed877120aa9c76c2c788b64b8efb20eef155a0d38612fb5fca7c20da25",
+      "sourceCommit": "27e25e69dc0e26d8ae05328335718c36a6a0c659",
+      "packageSha256": "0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b",
       "priorEvidence": "v5/roadmap/pr20-8-live-candidate-readonly-evidence.json",
       "targetFamilies": [
         "COMPOUND",
@@ -2027,7 +2029,7 @@
       "rawWriteCalls": 0,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "WAIT_FOR_NATURAL_COMPOUND_OR_EXCHANGE_NORMAL_CANDIDATE_THEN_REPEAT_READONLY_TARGET_RESCAN",
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_4_REAL_BROWSER_RUN",
       "packageBytes": 21343,
       "observedV1Failure": {
         "observedAt": "2026-09-24T18:05:47.0307173+00:00",
@@ -2137,10 +2139,17 @@
         "compoundAuthority": false,
         "exchangeAuthority": false,
         "normalRuntimeAllowed": false
+      },
+      "operatorInventoryRefresh": {
+        "reported": true,
+        "purpose": "REPEAT_READ_ONLY_TARGET_FAMILY_RESCAN_AFTER_OPERATOR_PLACED_SUITABLE_ITEMS",
+        "authorityGranted": false,
+        "gameplayWriteRequested": false,
+        "scannerSemanticsChanged": false
       }
     },
     "exitGateReview": {
-      "status": "BLOCKED_BY_REQUIRED_COMPOUND_EXCHANGE_LIVE_RATIFICATION",
+      "status": "RESCAN_V1_0_4_PENDING_TARGET_FAMILY_OBSERVATION",
       "evidence": "v5/roadmap/pr20-8-no-candidate-exit-gate-review.json",
       "currentExitGateSatisfied": false,
       "compoundRatified": false,
