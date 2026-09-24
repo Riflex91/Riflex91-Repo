@@ -16,9 +16,9 @@ test("PR20.8 Compound productive one-write runner contract remains exact and not
   assert.equal(contract.package,"werkzeuge/pr20-8-compound-productive-one-write-live.js");
   assert.equal(contract.test,"werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs");
   assert.equal(contract.expectedGlobal,"V5PR208CompoundProductiveOneWriteLive");
-  assert.equal(contract.sourceCommit,"aa76e254ce0af035a4033300ef06dceb8895465f");
-  assert.equal(contract.packageSha256,"79493a4b92ea31ed54d0cb8136dfd7b851718a9204c351a08b94b90740e0f5aa");
-  assert.equal(contract.packageBytes,49773);
+  assert.equal(contract.sourceCommit,"41ce5ea0a12ff1d346a6febb620e025b7dcf1005");
+  assert.equal(contract.packageSha256,"84c4350888ad0ee128b0683b25d8408271582e6beca1be637b457e09d780e9ba");
+  assert.equal(contract.packageBytes,49755);
   assert.equal(contract.prerequisiteShadowObservedAtMs,1790280262923);
   assert.equal(contract.exactScope.candidate,"hpamulet@0 x3");
   assert.equal(contract.exactScope.scroll,"cscroll0");
