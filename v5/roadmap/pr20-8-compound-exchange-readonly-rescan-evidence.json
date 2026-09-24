@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "V5_PR20_8_COMPOUND_EXCHANGE_READONLY_RESCAN_EVIDENCE",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "status": "BESTANDEN_REAL_BROWSER_NO_CANDIDATES_ZERO_WRITE",
+  "ratified": true,
+  "manifestMainCommit": "eb85d5b2dcab153ef78bd7cbd8ba77fb58749776",
+  "testId": "pr20-8-wertmutation-live-candidate-readonly",
+  "controllerVersion": "1.0.2",
+  "sourceCommit": "c3f7a066f08d1bb16218345f9f76095fe5874c4f",
+  "packagePath": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.js",
+  "packageSha256": "2eb0d1f37f02afca5550572791be860cb221ffb0ab42e22809ad9f5b82fb31b5",
+  "packageBytes": 21295,
+  "liveObservation": {
+    "observedAtMs": 1790274034680,
+    "statusUpdatedAt": "2026-09-24T18:20:39.469+00:00",
+    "latestReceivedAt": "2026-09-24T18:21:45.869+00:00",
+    "bridgeObservedAt": "2026-09-24T18:21:44.3979577+00:00",
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "terminal": true,
+    "bridgeState": "ALREADY_PRESENT",
+    "bridgeError": null,
+    "recipient": {
+      "characterName": "My_Merchant",
+      "sessionId": "My_Merchant",
+      "ctype": "merchant",
+      "level": 58,
+      "map": "main",
+      "serverRegion": "EU",
+      "serverIdentifier": "I"
+    },
+    "qFingerprintMaterial": "{}",
+    "performanceTrick": {
+      "active": true,
+      "playing": true,
+      "verification": "HOWLER_PLAYING_TRUE"
+    }
+  },
+  "families": {
+    "UPGRADE": {
+      "informationalOnly": true,
+      "status": "KANDIDAT_GEFUNDEN",
+      "candidateCount": 3,
+      "selected": {
+        "name": "gloves",
+        "level": 0,
+        "inventoryIndex": 13,
+        "quantity": 1,
+        "baseGold": 3400,
+        "scrollName": "scroll0",
+        "observedScrollQuantity": 35,
+        "offering": null,
+        "normalPathOnly": true,
+        "liveAuthority": false,
+        "exactPhysicalIndexMustBeReresolvedBeforeSend": true
+      }
+    },
+    "COMPOUND": {
+      "status": "KEIN_KANDIDAT",
+      "candidateCount": 0,
+      "selected": null,
+      "observedRejected": []
+    },
+    "EXCHANGE": {
+      "status": "KEIN_KANDIDAT",
+      "candidateCount": 0,
+      "selected": null,
+      "observedRejected": [
+        {
+          "name": "anniversarygift",
+          "inventoryIndex": 4,
+          "reason": "UNSAFE_PHYSICAL_ITEM"
+        }
+      ]
+    }
+  },
+  "observedSafetyBoundary": {
+    "authorityIssued": false,
+    "durableIntentCreated": false,
+    "upgradeAuthority": false,
+    "compoundAuthority": false,
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "interpretation": {
+    "candidateRescanPassed": true,
+    "upgradePriorRatificationUnchanged": true,
+    "compoundNormalCandidateObserved": false,
+    "exchangeNormalCandidateObserved": false,
+    "noCandidateDoesNotAuthorizeAcquisitionOrMutation": true,
+    "observedInventoryIndexDoesNotCarryWriteAuthority": true,
+    "freshReresolutionRequiredBeforeAnyFutureSend": true,
+    "compoundRatified": false,
+    "exchangeRatified": false,
+    "specialPathsStillExcluded": [
+      "OFFERING",
+      "SCROLL4",
+      "MASS_EXCHANGE",
+      "RECURSIVE_DROP",
+      "SPECIAL_MULTI_OUTPUT"
+    ]
+  },
+  "nextGate": "PR20_8_COMPOUND_EXCHANGE_SEPARATE_CANDIDATE_OR_ACQUISITION_PREPARATION"
+}
