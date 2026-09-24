@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0.0';
+  const VERSION = '1.0.1';
   const TEST_ID = 'pr20-8-upgrade-durable-shadow-no-write';
   const EXPECTED_CHARACTER = 'My_Merchant';
   const EXPECTED_CLASS = 'merchant';
@@ -511,24 +511,67 @@
     });
   }
 
-  function assertNoEqualIntent(store,key) {
-    const existing = store.getItem(key);
-    if (existing === null) return;
-    let decoded = null;
-    try { decoded = JSON.parse(existing); } catch {}
-    if (!decoded
-        || decoded.terminal !== true
-        || decoded.sendBoundaryState !== 'NICHT_GESENDET'
-        || decoded.sameIntentRetry !== false) {
-      throw new Error('PR20_8_UPGRADE_SHADOW_OFFENER_GLEICHER_INTENT');
-    }
-    throw new Error('PR20_8_UPGRADE_SHADOW_GLEICHER_INTENT_BEREITS_TERMINAL');
+  function validExistingTerminalShadow(decoded,record) {
+    return !!decoded
+      && decoded.schemaVersion === 1
+      && decoded.testId === TEST_ID
+      && decoded.terminal === true
+      && decoded.journalTerminalArt === 'ABBRUCH'
+      && decoded.sendBoundaryState === 'NICHT_GESENDET'
+      && decoded.sameIntentRetry === false
+      && decoded.actionContractId === 'AL-ACTION-UPGRADE'
+      && decoded.recoveryContractId === 'AL-RECOVERY-UPGRADE'
+      && decoded.verifierId === 'AL-VERIFIER-UPGRADE'
+      && decoded.sourceSnapshotCommit === SOURCE_SNAPSHOT_COMMIT
+      && decoded.ratifiedCandidateEvidenceCommit === RATIFIED_CANDIDATE_EVIDENCE_COMMIT
+      && decoded.oneShot?.maximumUses === 1
+      && decoded.oneShot?.upgradeAuthorityIssued === false
+      && decoded.upgradeAuthority === false
+      && decoded.gameplayAuthority === false
+      && decoded.rawWriteAuthority === false
+      && decoded.normalUpgradeWriteRatification === false
+      && decoded.normalRuntimeAllowed === false
+      && decoded.fingerprints?.prestate === record.prestateFingerprintSha256
+      && decoded.fingerprints?.inventory === record.inventoryFingerprintSha256
+      && decoded.fingerprints?.q === record.qFingerprintSha256
+      && decoded.fingerprints?.candidate === record.candidateFingerprintSha256
+      && decoded.fingerprints?.scroll === record.scrollFingerprintSha256
+      && decoded.candidate?.index === record.candidate.index
+      && decoded.candidate?.name === record.candidate.name
+      && decoded.candidate?.level === record.candidate.level
+      && decoded.scroll?.index === record.scroll.index
+      && decoded.scroll?.name === record.scroll.name
+      && decoded.serviceReachability?.reachable === true;
   }
 
-  function persistShadowIntent(record) {
+  function persistOrRecoverShadowIntent(record) {
     const store = storage();
     const key = INTENT_PREFIX + record.prestateFingerprintSha256;
-    assertNoEqualIntent(store,key);
+    const existing = store.getItem(key);
+    if (existing !== null) {
+      let decoded = null;
+      try { decoded = JSON.parse(existing); } catch {}
+      if (!validExistingTerminalShadow(decoded,record)) {
+        throw new Error('PR20_8_UPGRADE_SHADOW_OFFENER_ODER_UNGUELTIGER_GLEICHER_INTENT');
+      }
+      return {
+        storage:'LOCAL_STORAGE_SHADOW_ONLY',
+        key,
+        durableReadback:true,
+        newlyPersisted:false,
+        recoveredExistingTerminal:true,
+        journalTerminalArt:'ABBRUCH',
+        sendBoundaryState:'NICHT_GESENDET',
+        reconciliationClassification:'NOT_APPLIED',
+        sameIntentRetry:false,
+        resourceClaims:decoded.resourceClaims,
+        oneShot:decoded.oneShot,
+        exactPhysicalCandidateIndexPinned:true,
+        exactPhysicalScrollIndexPinned:true,
+        freshReresolutionRequiredBeforeFutureSend:true
+      };
+    }
+
     const payload = JSON.stringify({
       schemaVersion:1,
       testId:TEST_ID,
@@ -538,6 +581,7 @@
       terminal:true,
       journalTerminalArt:'ABBRUCH',
       sendBoundaryState:'NICHT_GESENDET',
+      reconciliationClassification:'NOT_APPLIED',
       sameIntentRetry:false,
       actionContractId:'AL-ACTION-UPGRADE',
       recoveryContractId:'AL-RECOVERY-UPGRADE',
@@ -589,28 +633,18 @@
     }
     let decoded = null;
     try { decoded = JSON.parse(readback); } catch {}
-    if (!decoded
-        || decoded.terminal !== true
-        || decoded.journalTerminalArt !== 'ABBRUCH'
-        || decoded.sendBoundaryState !== 'NICHT_GESENDET'
-        || decoded.sameIntentRetry !== false
-        || decoded.oneShot?.maximumUses !== 1
-        || decoded.oneShot?.upgradeAuthorityIssued !== false
-        || decoded.upgradeAuthority !== false
-        || decoded.gameplayAuthority !== false
-        || decoded.rawWriteAuthority !== false
-        || decoded.normalUpgradeWriteRatification !== false
-        || decoded.normalRuntimeAllowed !== false
-        || decoded.candidate?.index !== record.candidate.index
-        || decoded.scroll?.index !== record.scroll.index) {
+    if (!validExistingTerminalShadow(decoded,record)) {
       throw new Error('PR20_8_UPGRADE_SHADOW_DURABLE_INTENT_INVALID');
     }
     return {
       storage:'LOCAL_STORAGE_SHADOW_ONLY',
       key,
       durableReadback:true,
+      newlyPersisted:true,
+      recoveredExistingTerminal:false,
       journalTerminalArt:'ABBRUCH',
       sendBoundaryState:'NICHT_GESENDET',
+      reconciliationClassification:'NOT_APPLIED',
       sameIntentRetry:false,
       resourceClaims:decoded.resourceClaims,
       oneShot:decoded.oneShot,
@@ -766,7 +800,7 @@
       sha256(second.scrollDefinitionMaterial)
     ]);
 
-    const shadowIntent=persistShadowIntent({
+    const shadowIntent=persistOrRecoverShadowIntent({
       recipient:{
         characterName:second.characterName,
         sessionId:second.sessionId,
@@ -862,7 +896,8 @@
       shadowIntent,
       stableDoubleObservation:true,
       stablePostIntentReobserve:true,
-      durableIntentCreatedShadowOnly:true,
+      durableIntentCreatedShadowOnly:shadowIntent.newlyPersisted===true,
+      durableIntentRecovered:shadowIntent.recoveredExistingTerminal===true,
       durableReadback:true,
       journalTerminalArt:'ABBRUCH',
       sendBoundaryState:'NICHT_GESENDET',
