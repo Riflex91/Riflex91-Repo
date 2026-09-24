@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-weapon-offhand-acquisition-live-5m",
+  "controllerVersion": "1.0.0",
+  "status": "OFFEN",
+  "evidenceArt": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_LIVE_5M",
+  "sourceCommit": "e22dbf0ee4f8ac2eb7a7fb8930ec208eea447c61",
+  "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-live-5m.js",
+  "packageSha256": "795ef5438f23eb53a8e6cd9a9f27c2a3a8e8ad6fe69cbade28c608943ef9853c",
+  "manifestMainCommit": null,
+  "observedAtMs": null,
+  "terminal": null,
+  "result": null,
+  "ratified": false,
+  "expected": {
+    "recipient": "My_Merchant",
+    "server": "EU:I",
+    "itemName": "wshield",
+    "targetSlot": "offhand",
+    "exactCost": 4800,
+    "exactGoldDelta": -4800,
+    "exactItemDelta": 1,
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "soakSamples": 60,
+    "normalRuntimeAllowed": false
+  },
+  "blocker": [
+    "LIVE_PACKAGE_NOCH_NICHT_INS_MANIFEST_GESCHNITTEN"
+  ],
+  "nextGate": null
+}

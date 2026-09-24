@@ -69,7 +69,7 @@
   },
   "pr20_7": {
     "ziel": "Gear-Autonomie erweitern",
-    "status": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_BESTANDEN_PRODUCTIVE_PURCHASE_PREPARATION_BEREIT_NO_PURCHASE_AUTHORITY",
+    "status": "WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_PACKAGE_BEREIT_MANIFEST_OFFEN",
     "vorhandeneFoundations": [
       "GearAllokationsLedger reserviert physisches Item hoechstens einmal",
       "Recipient-Slot nur einmal gleichzeitig",
@@ -297,7 +297,7 @@
       "weaponOffhandAcquisitionObservedSellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
       "weaponOffhandAcquisitionObservedGold": 14493644,
       "weaponOffhandAcquisitionObservedFreeInventorySlots": 21,
-      "weaponOffhandAcquisitionNextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION",
+      "weaponOffhandAcquisitionNextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_MANIFEST_CUTOVER",
       "weaponOffhandAcquisitionShadowFoundation": "grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
       "weaponOffhandAcquisitionShadowFoundationTest": "grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
       "weaponOffhandAcquisitionShadowPackage": "werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
@@ -379,7 +379,24 @@
       "weaponOffhandAcquisitionProductivePurchaseSettlementItemDelta": 1,
       "weaponOffhandAcquisitionProductivePurchaseSameIntentRetry": false,
       "weaponOffhandAcquisitionProductivePurchaseAdapterPresent": false,
-      "weaponOffhandAcquisitionProductivePurchaseLiveRunnerPresent": false
+      "weaponOffhandAcquisitionProductivePurchaseLiveRunnerPresent": false,
+      "weaponOffhandAcquisitionLivePackage": "werkzeuge/pr20-7-weapon-offhand-acquisition-live-5m.js",
+      "weaponOffhandAcquisitionLivePackageTest": "werkzeuge/tests/pr20-7-weapon-offhand-acquisition-live-5m.test.mjs",
+      "weaponOffhandAcquisitionLiveTestPlan": "roadmap/pr20-7-weapon-offhand-acquisition-live-5m-test-plan.json",
+      "weaponOffhandAcquisitionLiveEvidence": "roadmap/pr20-7-weapon-offhand-acquisition-live-5m-evidence.json",
+      "weaponOffhandAcquisitionLiveTestId": "pr20-7-gear-weapon-offhand-acquisition-live-5m",
+      "weaponOffhandAcquisitionLiveControllerVersion": "1.0.0",
+      "weaponOffhandAcquisitionLiveSourceCommit": "e22dbf0ee4f8ac2eb7a7fb8930ec208eea447c61",
+      "weaponOffhandAcquisitionLivePackageSha256": "795ef5438f23eb53a8e6cd9a9f27c2a3a8e8ad6fe69cbade28c608943ef9853c",
+      "weaponOffhandAcquisitionLiveManifestCutoverPrepared": false,
+      "weaponOffhandAcquisitionLiveMaximumGameplayWrites": 1,
+      "weaponOffhandAcquisitionLiveMaximumPublicFunctionCalls": 1,
+      "weaponOffhandAcquisitionLiveRawWriteCalls": 0,
+      "weaponOffhandAcquisitionLiveOneShotMaximumUses": 1,
+      "weaponOffhandAcquisitionLiveRestartRecoveryResendAllowed": false,
+      "weaponOffhandAcquisitionLiveSameIntentRetry": false,
+      "weaponOffhandAcquisitionLiveSoakSamples": 60,
+      "weaponOffhandAcquisitionLiveNormalRuntimeAllowed": false
     }
   },
   "pr20_8": {

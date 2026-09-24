@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-24",
   "kennung": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY",
-  "status": "DURABLE_SHADOW_BESTANDEN_PRODUCTIVE_PURCHASE_PREPARATION_BEREIT_NO_PURCHASE_AUTHORITY",
+  "status": "PRODUCTIVE_PURCHASE_LIVE_PACKAGE_BEREIT_MANIFEST_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "rationale": {
     "merchantReadOnlyPreflight": "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE",
@@ -123,7 +123,7 @@
       "no same-intent retry after possible send"
     ]
   },
-  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION",
+  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_MANIFEST_CUTOVER",
   "shadowPreparation": {
     "foundation": "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
     "foundationTest": "v5/grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
@@ -238,5 +238,35 @@
     "productiveAdapterPresent": false,
     "liveWriteRunnerPresent": false,
     "normalRuntimeAllowed": false
+  },
+  "livePurchase": {
+    "package": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-live-5m.js",
+    "packageTest": "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-live-5m.test.mjs",
+    "testPlan": "v5/roadmap/pr20-7-weapon-offhand-acquisition-live-5m-test-plan.json",
+    "evidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-live-5m-evidence.json",
+    "testId": "pr20-7-gear-weapon-offhand-acquisition-live-5m",
+    "controllerVersion": "1.0.0",
+    "expectedGlobal": "V5PR207WeaponOffhandAcquisitionLive",
+    "sourceCommit": "e22dbf0ee4f8ac2eb7a7fb8930ec208eea447c61",
+    "packageSha256": "795ef5438f23eb53a8e6cd9a9f27c2a3a8e8ad6fe69cbade28c608943ef9853c",
+    "manifestCutoverPrepared": false,
+    "exactRecipient": "My_Merchant",
+    "exactServer": "EU:I",
+    "exactItem": "wshield",
+    "targetSlot": "offhand",
+    "exactQuantity": 1,
+    "exactCost": 4800,
+    "minimumGoldSafetyReserve": 1000,
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "oneShotMaximumUses": 1,
+    "durableIntentBeforePossibleSend": true,
+    "restartRecoveryResendAllowed": false,
+    "sameIntentRetry": false,
+    "fiveMinuteSoakSamples": 60,
+    "fiveMinuteSoakIntervalMs": 5000,
+    "normalRuntimeAllowed": false,
+    "activeInManifest": false
   }
 }
