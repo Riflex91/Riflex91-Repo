@@ -26,7 +26,7 @@ test("PR20.7 account discovery remains a read-only selector, not farmer gear aut
   assert.equal(plan.performanceTrick.retryDelayMs, 150);
   assert.equal(plan.performanceTrick.failClosed, true);
   assert.equal(plan.testId, "pr20-7-gear-account-weapon-candidate-discovery-v2");
-  assert.equal(plan.status, "V2_MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_DISCOVERY");
+  assert.equal(plan.status, "SAME_TEST_ZERO_WRITE_UPGRADE_BEREIT_FUER_REALEN_NO_WRITE_DISCOVERY");
   assert.equal(plan.supersedesTestId, "pr20-7-gear-account-weapon-candidate-discovery");
   assert.equal(plan.sameTestVersionUpgradeBypassed, false);
   assert.equal(plan.deployment.packageCommitPinned, true);
