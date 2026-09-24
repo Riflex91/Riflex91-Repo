@@ -28,8 +28,8 @@
     "sendLogicChanged": false
   },
   "patch": {
-    "package": "werkzeuge/pr20-8-upgrade-productive-one-write-live.js",
-    "test": "werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs",
+    "package": "werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js",
+    "test": "werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-1.test.mjs",
     "previousControllerVersion": "1.0.0",
     "preparedControllerVersion": "1.0.1",
     "sameVersionBootstrapReusesIncumbentApi": true,
@@ -45,7 +45,9 @@
     "currentManifestStillPinsControllerVersion": "1.0.0",
     "recoveryManifestCutoverPrepared": false,
     "recoveryPatchDeployed": false,
-    "realUpgradeMutationObserved": false
+    "realUpgradeMutationObserved": false,
+    "currentManifestPackage": "werkzeuge/pr20-8-upgrade-productive-one-write-live.js",
+    "recoveryPackageSeparateFromCurrentManifestPath": true
   },
   "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_BOOTSTRAP_RECOVERY_MANIFEST_CUTOVER"
 }
