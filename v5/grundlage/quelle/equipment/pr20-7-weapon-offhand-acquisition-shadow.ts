@@ -237,10 +237,6 @@ export class Pr207WeaponOffhandAcquisitionShadow {
       const claims = Object.freeze([
         ...resourceTokens.map(claim),
         claim(channel.kanalToken),
-        Object.freeze({
-          ressourcenId: "character:" + a.characterId + ":socket_call_budget",
-          epoche: channel.kanalToken.epoche,
-        }),
       ]);
 
       const intent = journalEintrag(
