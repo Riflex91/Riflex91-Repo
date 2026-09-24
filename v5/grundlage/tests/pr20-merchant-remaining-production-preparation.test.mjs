@@ -731,14 +731,14 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_COMMITTED_TARGET_ITEMS_PRESENT_V1_0_4_RESCAN_PREPARED",
+    "UPGRADE_COMMITTED_COMPOUND_CANDIDATE_RATIFIED_EXCHANGE_NO_CANDIDATE",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_4_REAL_BROWSER_RUN",
+    "PR20_8_COMPOUND_DURABLE_SHADOW_PREPARATION",
   );
   const exit=prep.pr20_8.exitGateReview;
-  assert.equal(exit.status,"RESCAN_V1_0_4_PENDING_TARGET_FAMILY_OBSERVATION");
+  assert.equal(exit.status,"BLOCKED_COMPOUND_NOT_LIVE_RATIFIED_EXCHANGE_NO_CANDIDATE");
   assert.equal(exit.evidence,"roadmap/pr20-8-no-candidate-exit-gate-review.json");
   assert.equal(exit.currentExitGateSatisfied,false);
   assert.equal(exit.compoundRatified,false);
@@ -852,9 +852,9 @@ test("PR20.8 bridge handshake and terminal recovery are confirmed zero-write", (
   assert.equal(r.evidence,"roadmap/pr20-8-bridge-handshake-terminal-recovery-evidence.json");
 });
 
-test("PR20.8 remaining Compound/Exchange candidate rescan preserves no-candidate evidence and prepares v1.0.4 rerun", () => {
+test("PR20.8 v1.0.4 rescan ratifies Compound candidate and keeps Exchange closed", () => {
   const r=prep.pr20_8.remainingCandidateRescan;
-  assert.equal(r.status,"V1_0_4_OPERATOR_ITEMS_PRESENT_RESCAN_PREPARED");
+  assert.equal(r.status,"V1_0_4_REAL_BROWSER_BESTANDEN_COMPOUND_CANDIDATE_EXCHANGE_NO_CANDIDATE_ZERO_WRITE");
   assert.equal(r.testId,"pr20-8-wertmutation-live-candidate-readonly");
   assert.equal(r.controllerVersion,"1.0.4");
   assert.equal(r.package,"werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js");
@@ -871,12 +871,40 @@ test("PR20.8 remaining Compound/Exchange candidate rescan preserves no-candidate
   assert.equal(r.rawWriteCalls,0);
   assert.equal(r.sameIntentRetry,false);
   assert.equal(r.normalRuntimeAllowed,false);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_4_REAL_BROWSER_RUN");
-  assert.equal(r.evidence,"roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json");
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_DURABLE_SHADOW_PREPARATION");
+  assert.equal(r.evidence,"roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json");
   assert.equal(r.evidenceRatified,true);
   assert.equal(r.compoundRatified,false);
   assert.equal(r.exchangeRatified,false);
   assert.equal(r.acquisitionOrMutationToCreateCandidateAllowed,false);
+  assert.equal(r.compoundCandidateObservationRatified,true);
+
+  const v104=r.observedV1_0_4CompoundCandidate;
+  assert.equal(v104.controllerVersion,"1.0.4");
+  assert.equal(v104.status,"BESTANDEN");
+  assert.equal(v104.phase,"COMPLETE");
+  assert.equal(v104.terminal,true);
+  assert.deepEqual(v104.blocker,[]);
+  assert.equal(v104.bridgeState,"ALREADY_PRESENT");
+  assert.equal(v104.bridgeError,null);
+  assert.deepEqual(v104.compoundCandidate,{
+    name:"hpamulet",
+    level:0,
+    baseGold:20000,
+    physicalIndexes:[1,22,23],
+    scrollName:"cscroll0",
+    scrollQuantity:20,
+    normalPathOnly:true,
+  });
+  assert.equal(v104.exchangeCandidate,null);
+  assert.equal(v104.gameplayWrites,0);
+  assert.equal(v104.publicFunctionCalls,0);
+  assert.equal(v104.rawWriteCalls,0);
+  assert.equal(v104.sameIntentRetry,false);
+  assert.equal(v104.authorityIssued,false);
+  assert.equal(v104.compoundAuthority,false);
+  assert.equal(v104.exchangeAuthority,false);
+  assert.equal(v104.normalRuntimeAllowed,false);
   assert.deepEqual(r.operatorInventoryRefresh,{
     reported:true,
     purpose:"REPEAT_READ_ONLY_TARGET_FAMILY_RESCAN_AFTER_OPERATOR_PLACED_SUITABLE_ITEMS",
