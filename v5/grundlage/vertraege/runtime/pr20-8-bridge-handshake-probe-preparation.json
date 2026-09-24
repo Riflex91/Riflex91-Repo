@@ -3,7 +3,7 @@
   "stand": "2026-09-24",
   "gate": "PR20.8_WERTMUTATIONEN",
   "kennung": "V5_PR20_8_BRIDGE_HANDSHAKE_PROBE",
-  "status": "V1_REAL_BROWSER_HANDSHAKE_BESTANDEN_TERMINAL_RECOVERY_MANIFEST_CUTOVER_PREPARED",
+  "status": "TERMINAL_RECOVERY_BESTANDEN_ZERO_WRITE",
   "prerequisiteOneWriteEvidence": {
     "evidence": "roadmap/pr20-8-upgrade-productive-one-write-evidence.json",
     "telemetryBatchId": 8252,
@@ -75,7 +75,7 @@
     "exchangeRatification": false,
     "normalRuntimeAllowed": false
   },
-  "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN",
+  "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
   "interpretation": {
     "bootstrapV2PersistenceConfirmed": true,
     "bridgeHandshakeConfirmed": true,
@@ -103,7 +103,7 @@
     "additionalGameplayWriteObserved": false
   },
   "terminalRecovery": {
-    "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
+    "status": "BESTANDEN_REAL_BROWSER_ZERO_WRITE",
     "controllerVersion": "1.0.1",
     "package": "werkzeuge/pr20-8-bridge-handshake-probe-v1-0-1.js",
     "test": "werkzeuge/tests/pr20-8-bridge-handshake-probe-v1-0-1.test.mjs",
@@ -126,7 +126,37 @@
     "publicFunctionCalls": 0,
     "rawWriteCalls": 0,
     "sameIntentRetry": false,
-    "normalRuntimeAllowed": false
+    "normalRuntimeAllowed": false,
+    "evidence": "roadmap/pr20-8-bridge-handshake-terminal-recovery-evidence.json",
+    "observedAtMs": 1790272609259,
+    "receivedAt": "2026-09-24T17:56:49.370+00:00",
+    "bridgeObservedAt": "2026-09-24T17:56:41.935018+00:00",
+    "bridgeState": "ALREADY_PRESENT",
+    "bridgeError": null
   },
-  "evidence": "roadmap/pr20-8-bridge-handshake-probe-evidence.json"
+  "evidence": "roadmap/pr20-8-bridge-handshake-probe-evidence.json",
+  "remainingCandidateRescan": {
+    "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
+    "purpose": "REOBSERVE_REMAINING_COMPOUND_AND_EXCHANGE_NORMAL_CANDIDATES_AFTER_UPGRADE_COMMIT",
+    "testId": "pr20-8-wertmutation-live-candidate-readonly",
+    "controllerVersion": "1.0.0",
+    "package": "werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js",
+    "test": "werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly.test.mjs",
+    "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
+    "sourceCommit": "7307573841b86b1fb22fd5abfb73a3d461bf0049",
+    "packageSha256": "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5",
+    "priorEvidence": "roadmap/pr20-8-live-candidate-readonly-evidence.json",
+    "targetFamilies": [
+      "COMPOUND",
+      "EXCHANGE"
+    ],
+    "upgradeFamilyInformationalOnly": true,
+    "readOnly": true,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false,
+    "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN"
+  }
 }

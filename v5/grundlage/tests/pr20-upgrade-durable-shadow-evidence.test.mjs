@@ -94,16 +94,16 @@ test("current 1.0.1 recovery hardening does not rewrite the observed 1.0.0 evide
   assert.equal(evidence.safetyBoundary.recoveryMayNotCreateGameplayWrite,true);
   assert.equal(
     manifest.testId,
-    "pr20-8-bridge-handshake-probe-v1",
+    "pr20-8-wertmutation-live-candidate-readonly",
   );
-  assert.equal(manifest.controllerVersion,"1.0.1");
+  assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(
     manifest.sourceCommit,
-    "fe38f784d9d8bfeac3d9b30874a453716bd9e3bc",
+    "7307573841b86b1fb22fd5abfb73a3d461bf0049",
   );
   assert.equal(
     manifest.packageSha256,
-    "08d21dde622ed1cf2dd56438225e4274478263908363a5692bcb6c548b58303b",
+    "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5",
   );
   assert.notEqual(manifest.testId,evidence.testId);
   assert.equal(manifest.normalRuntimeAllowed,false);

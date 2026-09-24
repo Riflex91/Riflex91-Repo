@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTED_BRIDGE_PROBE_CONFIRMED_TERMINAL_RECOVERY_MANIFEST_CUTOVER_PREPARED",
+    "status": "UPGRADE_COMMITTED_UPDATER_PERSISTED_BRIDGE_TERMINAL_RECOVERY_BESTANDEN_COMPOUND_EXCHANGE_READONLY_RESCAN_PREPARED",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN",
+    "nextAction": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -864,7 +864,7 @@
       "rawWriteCalls": 0,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN",
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
       "localAndParentObservabilityBridge": true,
       "synchronousBridgeHandshakeState": true,
       "priorBootstrapTestId": "pr20-8-native-updater-recovery-bootstrap-v1",
@@ -881,7 +881,7 @@
       "persisted": true
     },
     "bridgeHandshakeProbe": {
-      "status": "V1_REAL_BROWSER_HANDSHAKE_BESTANDEN_TERMINAL_RECOVERY_MANIFEST_CUTOVER_PREPARED",
+      "status": "TERMINAL_RECOVERY_BESTANDEN_ZERO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-bridge-handshake-probe-preparation.json",
       "package": "werkzeuge/pr20-8-bridge-handshake-probe-v1.js",
       "test": "werkzeuge/tests/pr20-8-bridge-handshake-probe-v1.test.mjs",
@@ -905,7 +905,7 @@
       "upgradeOneWriteRunnerRetired": true,
       "compoundRatified": false,
       "exchangeRatified": false,
-      "nextGate": "PR20_8_BRIDGE_HANDSHAKE_PROBE_TERMINAL_RECOVERY_REAL_BROWSER_RUN",
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
       "telemetryBatchId": 8256,
       "bridgeObservedAt": "2026-09-24T17:44:16.2552232+00:00",
       "bridgeState": "ALREADY_PRESENT",
@@ -915,7 +915,7 @@
       "observedTerminal": false,
       "additionalGameplayWriteObserved": false,
       "terminalRecovery": {
-        "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
+        "status": "BESTANDEN_REAL_BROWSER_ZERO_WRITE",
         "controllerVersion": "1.0.1",
         "package": "werkzeuge/pr20-8-bridge-handshake-probe-v1-0-1.js",
         "test": "werkzeuge/tests/pr20-8-bridge-handshake-probe-v1-0-1.test.mjs",
@@ -938,7 +938,13 @@
         "publicFunctionCalls": 0,
         "rawWriteCalls": 0,
         "sameIntentRetry": false,
-        "normalRuntimeAllowed": false
+        "normalRuntimeAllowed": false,
+        "evidence": "roadmap/pr20-8-bridge-handshake-terminal-recovery-evidence.json",
+        "observedAtMs": 1790272609259,
+        "receivedAt": "2026-09-24T17:56:49.370+00:00",
+        "bridgeObservedAt": "2026-09-24T17:56:41.935018+00:00",
+        "bridgeState": "ALREADY_PRESENT",
+        "bridgeError": null
       },
       "receivedAt": "2026-09-24T17:44:23.707706+00:00",
       "observedBridgeState": "ALREADY_PRESENT",
@@ -947,7 +953,31 @@
       "evidence": "roadmap/pr20-8-bridge-handshake-probe-evidence.json",
       "bootstrapV3Required": false
     },
-    "bridgeHandshakeEvidence": "roadmap/pr20-8-bridge-handshake-probe-evidence.json"
+    "bridgeHandshakeEvidence": "roadmap/pr20-8-bridge-handshake-probe-evidence.json",
+    "remainingCandidateRescan": {
+      "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
+      "purpose": "REOBSERVE_REMAINING_COMPOUND_AND_EXCHANGE_NORMAL_CANDIDATES_AFTER_UPGRADE_COMMIT",
+      "testId": "pr20-8-wertmutation-live-candidate-readonly",
+      "controllerVersion": "1.0.0",
+      "package": "werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js",
+      "test": "werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly.test.mjs",
+      "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
+      "sourceCommit": "7307573841b86b1fb22fd5abfb73a3d461bf0049",
+      "packageSha256": "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5",
+      "priorEvidence": "roadmap/pr20-8-live-candidate-readonly-evidence.json",
+      "targetFamilies": [
+        "COMPOUND",
+        "EXCHANGE"
+      ],
+      "upgradeFamilyInformationalOnly": true,
+      "readOnly": true,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "sameIntentRetry": false,
+      "normalRuntimeAllowed": false,
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN"
+    }
   },
   "pr20_9": {
     "ziel": "Craft und Production produktiv",
