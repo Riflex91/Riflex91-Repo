@@ -542,6 +542,7 @@
       && decoded.publicFunction==='upgrade'
       && decoded.sourceSnapshotCommit===SOURCE_SNAPSHOT_COMMIT
       && decoded.ratifiedCandidateEvidenceCommit===RATIFIED_CANDIDATE_EVIDENCE_COMMIT
+      && canonical(decoded.serviceReachability)===canonical(record.serviceReachability)
       && decoded.recipient?.characterName===record.recipient.characterName
       && decoded.recipient?.sessionId===record.recipient.sessionId
       && decoded.recipient?.ctype===record.recipient.ctype
