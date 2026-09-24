@@ -80,11 +80,11 @@
   ],
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
-    "PR20.7 belegter sicherer Nicht-Waffen-Slot ist produktiv mit genau 1 Write und 60x5s COMMITTED-Evidence BESTANDEN",
-    "PR20.7 Waffen-/Offhand Merchant-Read-only-Preflight lief real fail-closed: kein sicherer Kandidat bei 0 Writes",
-    "AKTUELL: accountweite owned-roster Waffen-/Offhand-Kandidatensuche ist Merchant-only und NO-WRITE vorbereitet",
-    "NAECHSTES: Discovery-Paket mergen, immutable pinnen und real ausfuehren",
-    "Bei Fund bleibt ein exakter Live-Session-Preflight auf dem ausgewaehlten Farmer zwingend; Discovery ratifiziert keine Farmer-Gear-Allokation",
+    "PR20.7 belegter Nicht-Waffen-Slot ist produktiv BESTANDEN",
+    "PR20.7 Merchant Waffen-/Offhand Read-only ist real fail-closed BLOCKIERT ohne sicheren Merchant-Kandidaten und 0 Writes",
+    "AKTUELL: accountweite owned-roster Waffen-Kandidatensuche ist immutable gepinnt und fuer realen NO-WRITE-Lauf im Manifest vorbereitet",
+    "NAECHSTES: realen accountweiten Discovery-Lauf auswerten; ein Fund ratifiziert noch keine Farmer-Gear-Allokation",
+    "Bei Fund folgt exakter Live-Session-Read-only-Preflight des konkreten Farmers; kein start_character und keine Farmer-Authority-Ausweitung",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -702,7 +702,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_PACKAGE_BEREIT_EVIDENCE_OFFEN",
+      "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -730,7 +730,7 @@
         "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-test-plan.json",
         "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json"
       ],
-      "nextAction": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_PACKAGE_MERGE_AND_CUTOVER"
+      "nextAction": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_EXECUTE"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1031,7 +1031,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_PACKAGE_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1084,7 +1084,7 @@
       "v5/roadmap/pr20-7-account-weapon-candidate-discovery-evidence.json",
       "v5/grundlage/tests/pr20-account-weapon-candidate-discovery-evidence.test.mjs"
     ],
-    "nextAction": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_PACKAGE_MERGE_AND_CUTOVER",
+    "nextAction": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_EXECUTE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1188,7 +1188,7 @@
       "observedSoakDurationMs": 300552
     },
     "remainingGates": {
-      "weaponOffhand": "ACCOUNT_DISCOVERY_PACKAGE_BEREIT_EVIDENCE_OFFEN",
+      "weaponOffhand": "ACCOUNT_DISCOVERY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "farmerGearAllocation": "OFFEN_SEPARATE_RATIFICATION"
     },
     "weaponOffhand": {
@@ -1239,7 +1239,10 @@
       "accountDiscoveryGameplayWrites": 0,
       "accountDiscoveryPublicFunctionCalls": 0,
       "accountDiscoveryRawWriteCalls": 0,
-      "accountDiscoveryRatifiesFarmerGearAllocation": false
+      "accountDiscoveryRatifiesFarmerGearAllocation": false,
+      "accountDiscoverySourceCommit": "de3a9106193919327e708b22d78d1623ca5de5a5",
+      "accountDiscoveryPackageSha256": "bfc2d52d9968460c7d977472e7301c6b32f1f7f78f2661e04579573cd661397c",
+      "accountDiscoveryManifestCutoverPrepared": true
     }
   }
 }
