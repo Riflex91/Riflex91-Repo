@@ -96,14 +96,14 @@ test("current 1.0.1 recovery hardening does not rewrite the observed 1.0.0 evide
     manifest.testId,
     "pr20-8-bridge-handshake-probe-v1",
   );
-  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(manifest.controllerVersion,"1.0.1");
   assert.equal(
     manifest.sourceCommit,
-    "d2ffea95f984421a9a34088c751471def6cc31d8",
+    "fe38f784d9d8bfeac3d9b30874a453716bd9e3bc",
   );
   assert.equal(
     manifest.packageSha256,
-    "a595bc1c2d351635e8f61b8134e9afe4146283238aa724c4217fd2b6c82ab472",
+    "08d21dde622ed1cf2dd56438225e4274478263908363a5692bcb6c548b58303b",
   );
   assert.notEqual(manifest.testId,evidence.testId);
   assert.equal(manifest.normalRuntimeAllowed,false);
