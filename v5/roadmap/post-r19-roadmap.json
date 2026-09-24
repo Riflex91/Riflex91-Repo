@@ -80,10 +80,11 @@
   ],
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
-    "AKTUELL: PR20.7 One-Shot/Fencing und Durable-Intent/Reconcile sind NO-WRITE ratifiziert; realer Shadow ist Auto-Deploy-bereit",
-    "NAECHSTES: realen NO-WRITE Browser-Shadow ausfuehren und Evidence nur bei terminalem BESTANDEN ratifizieren",
-    "DANACH: produktive Einmal-Swap-Ratifikation und 5m-Funktionsevidence fuer belegten Nicht-Waffen-Slot",
-    "mainhand/offhand bleiben separat; Normalbetrieb bleibt gesperrt"
+    "AKTUELL: PR20.7 realer belegter Nicht-Waffen-Slot Shadow ist BESTANDEN; Durable Readback + NOT_APPLIED Reconciliation bei 0 Gameplay-/Raw-/Public-Function-Writes",
+    "NAECHSTES: produktiven exakt einmaligen Swap-Runner mit Durable Intent, Equipment-/Inventory-Fencing und post-send Reconcile vorbereiten",
+    "DANACH: exakt einen sicheren belegten Nicht-Waffen-Slot-Swap real ausfuehren und 5m Funktionsevidence sammeln",
+    "mainhand/offhand sowie Farmer-Gear-Allokation bleiben separate spaetere PR20.7 Gates",
+    "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -700,7 +701,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "REAL_SHADOW_AUTO_DEPLOY_BEREIT_NO_WRITE",
+      "status": "REAL_SHADOW_BESTANDEN_NO_WRITE",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -725,7 +726,7 @@
         "v5/roadmap/pr20-7-gear-shadow-no-write-test-plan.json",
         "v5/roadmap/pr20-7-gear-shadow-no-write-evidence.json"
       ],
-      "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_NO_WRITE_SHADOW_EXECUTE"
+      "nextAction": "PR20_7_OCCUPIED_SLOT_PRODUCTIVE_ONE_SHOT_SWAP_PREPARATION"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1026,7 +1027,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "REAL_SHADOW_AUTO_DEPLOY_BEREIT_NO_WRITE",
+    "status": "REAL_SHADOW_BESTANDEN_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1061,7 +1062,7 @@
       "v5/roadmap/pr20-7-gear-shadow-no-write-evidence.json",
       "v5/grundlage/tests/pr20-gear-shadow-no-write-evidence.test.mjs"
     ],
-    "nextAction": "PR20_7_OCCUPIED_SLOT_REAL_NO_WRITE_SHADOW_EXECUTE",
+    "nextAction": "PR20_7_OCCUPIED_SLOT_PRODUCTIVE_ONE_SHOT_SWAP_PREPARATION",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1119,7 +1120,15 @@
       "authorityIssued": false,
       "swapWriteRatification": false,
       "sameIntentRetry": false,
-      "realEvidenceStatus": "OFFEN"
+      "realEvidenceStatus": "BESTANDEN_REAL_BROWSER_SHADOW_NO_WRITE",
+      "realEvidenceRatified": true,
+      "realEvidenceObservedAtMs": 1790196937277,
+      "realEvidenceRecipient": "My_Merchant",
+      "realEvidenceSlot": "helmet",
+      "observedReconciliation": "NOT_APPLIED",
+      "observedGameplayWrites": 0,
+      "observedPublicFunctionCalls": 0,
+      "observedRawWriteCalls": 0
     }
   }
 }
