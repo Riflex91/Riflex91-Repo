@@ -68,10 +68,10 @@ test("PR20.8 terminal recovery package remains immutable and no-write", () => {
 
 test("after terminal recovery the manifest advances only to the read-only candidate scanner", () => {
   assert.equal(manifest.testId, "pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(manifest.controllerVersion, "1.0.0");
-  assert.equal(manifest.sourceCommit, "7307573841b86b1fb22fd5abfb73a3d461bf0049");
-  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js");
-  assert.equal(manifest.packageSha256, "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5");
+  assert.equal(manifest.controllerVersion, "1.0.1");
+  assert.equal(manifest.sourceCommit, "f82d3ed4cc2c89a5b6e8f5e06c9d6377fd631c1c");
+  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.js");
+  assert.equal(manifest.packageSha256, "36be29170d280ad78098c3e3a1901a82aa29328c8665e2a0dec4d84b914e41f4");
   assert.equal(manifest.expectedGlobal, "V5PR208ValueMutationLiveCandidateReadonly");
   assert.equal(manifest.normalRuntimeAllowed, false);
   assert.equal(evidence.nextGate, "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
