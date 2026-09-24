@@ -41,7 +41,7 @@
     "existingInventoryQuantityMustBe": 0
   },
   "preflight": {
-    "package": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-autonomous.js",
+    "package": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js",
     "test": "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-read-only-autonomous.test.mjs",
     "testId": "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight",
     "controllerVersion": "1.0.1",
