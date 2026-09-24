@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "WEAPON_OFFHAND_READ_ONLY_PACKAGE_BEREIT_EVIDENCE_OFFEN");
+    "WEAPON_OFFHAND_READ_ONLY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -206,6 +206,9 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlyGameplayWrites, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlyPublicFunctionCalls, 0);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlyRawWriteCalls, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlyManifestCutoverPrepared, true);
+  assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlySourceCommit, /^[0-9a-f]{40}$/);
+  assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlyPackageSha256, /^[0-9a-f]{64}$/);
 });
 
 test("Upgrade Compound Exchange und Craft bleiben vorhandenen no-retry Contracts unterworfen", () => {
