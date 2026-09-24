@@ -3,8 +3,8 @@
   "stand": "2026-09-24",
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write",
-  "controllerVersion": "1.0.0",
-  "status": "MANIFEST_CUTOVER_BEREIT_FUER_REALEN_DURABLE_SHADOW_NO_WRITE",
+  "controllerVersion": "1.0.1",
+  "status": "CORRECTIVE_1_0_1_MANIFEST_CUTOVER_BEREIT_FUER_REALEN_DURABLE_SHADOW_NO_WRITE",
   "purpose": "DURABLE_SHADOW_NO_WRITE_FOR_EXACT_WSHIELD_PURCHASE",
   "prerequisites": {
     "readOnlyEvidenceStatus": "BESTANDEN_REAL_BROWSER_SOURCE_PINNED_NO_WRITE",
@@ -21,13 +21,29 @@
     "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
     "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
     "coordinatorClass": "merchant",
-    "sourceCommit": "3f006c17934f0159fa575d2da0e4d048fbf0df09",
-    "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js",
-    "packageSha256": "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08",
+    "sourceCommit": "0b92ce4002438ef4282622699019b5148da58184",
+    "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-v1-0-1-autonomous.js",
+    "packageSha256": "11c666638c111a3acd04e550bf33b52eb7611f53a0f8f02547b4b199df73793d",
     "expectedGlobal": "V5PR207WeaponOffhandAcquisitionShadow",
     "workerPackageConfigured": false,
     "farmerWorkerDistribution": false,
-    "manifestCutoverPrepared": true
+    "manifestCutoverPrepared": true,
+    "supersedesControllerVersion": "1.0.0",
+    "sameTestUpgradeGuard": {
+      "previousControllerVersion": "1.0.0",
+      "nextControllerVersion": "1.0.1",
+      "strictlyNewer": true,
+      "previousTerminal": true,
+      "previousStatus": "FEHLER",
+      "previousBlocker": "PR20_7_ACQUISITION_SHADOW_OFFHAND_CLASS_DRIFT",
+      "previousGameplayWrites": 0,
+      "previousPublicFunctionCalls": 0,
+      "previousRawWriteCalls": 0,
+      "previousSameIntentRetry": false,
+      "previousDurableIntentCreated": false,
+      "previousOpenIntentCount": 0,
+      "previousRunRatified": false
+    }
   },
   "safetyModel": {
     "actionContractId": "AL-ACTION-BUY-WITH-GOLD",
@@ -80,5 +96,11 @@
     "normalRuntimeAllowed": false
   },
   "evidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-shadow-no-write-evidence.json",
-  "nextAfterPass": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION"
+  "nextAfterPass": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION",
+  "correctiveChange": {
+    "reason": "LIVE_BROWSER_G_CLASSES_MERCHANT_OFFHAND_AND_DOUBLEHAND_ARE_OBJECTS",
+    "v100UsedArrayShape": true,
+    "v101UsesObjectKeys": true,
+    "safetyScopeUnchanged": true
+  }
 }
