@@ -3,6 +3,8 @@ name: v5-pr20-7-gear
 on:
   push:
     paths:
+      - 'v5/grundlage/tests/pr20-weapon-offhand-preparation.test.mjs'
+      - 'v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-vorbereitung.ts'
       - 'v5/grundlage/tests/pr20-gear-occupied-slot-live-5m-evidence.test.mjs'
       - 'v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json'
       - 'v5/roadmap/pr20-7-gear-occupied-slot-live-5m-test-plan.json'
@@ -39,6 +41,8 @@ on:
       - '.github/workflows/v5-pr20-7-gear.yml'
   pull_request:
     paths:
+      - 'v5/grundlage/tests/pr20-weapon-offhand-preparation.test.mjs'
+      - 'v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-vorbereitung.ts'
       - 'v5/grundlage/tests/pr20-gear-occupied-slot-live-5m-evidence.test.mjs'
       - 'v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json'
       - 'v5/roadmap/pr20-7-gear-occupied-slot-live-5m-test-plan.json'
