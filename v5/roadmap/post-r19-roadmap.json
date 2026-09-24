@@ -81,10 +81,10 @@
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.7 belegter Nicht-Waffen-Slot ist produktiv BESTANDEN",
-    "PR20.7 Merchant Waffen-/Offhand Read-only ist fail-closed ohne sicheren Merchant-Kandidaten und 0 Writes",
-    "Account-Discovery v1.0.1 wurde real zero-write durch performance_trick Frame-Lookup blockiert",
-    "AKTUELL: v1.0.2 uebernimmt den bewaehrten globalThis+parent Performance-Trick-Pfad mit 350ms Aktivierung und 150ms Retry",
-    "NAECHSTES: Exact-Head-CI mergen und Discovery real erneut ausfuehren",
+    "PR20.7 Merchant Waffen-/Offhand Read-only ist real fail-closed ohne sicheren Merchant-Kandidaten und 0 Writes",
+    "PR20.7 accountweite Discovery v1.0.1 wurde real fail-closed wegen lokal fehlendem Audioobjekt beendet; 0 Writes",
+    "AKTUELL: Discovery v1.0.2 wird als neue Testinstanz -v2 aktiviert, weil Same-Test-Version-Upgrades absichtlich blockiert bleiben",
+    "NAECHSTES: realen v2 NO-WRITE Discovery-Lauf auswerten",
     "Ein Fund erteilt keine Farmer-Gear-Authority; exakter Farmer-Live-Session-Read-only-Preflight bleibt zwingend",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
@@ -703,7 +703,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+      "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_V2_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -731,7 +731,7 @@
         "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-test-plan.json",
         "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json"
       ],
-      "nextAction": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_EXECUTE"
+      "nextAction": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_V2_EXECUTE"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1032,7 +1032,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_ACCOUNT_DISCOVERY_V2_CUTOVER_BEREIT_EVIDENCE_OFFEN",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1085,7 +1085,7 @@
       "v5/roadmap/pr20-7-account-weapon-candidate-discovery-evidence.json",
       "v5/grundlage/tests/pr20-account-weapon-candidate-discovery-evidence.test.mjs"
     ],
-    "nextAction": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_EXECUTE",
+    "nextAction": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_V2_EXECUTE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1189,11 +1189,11 @@
       "observedSoakDurationMs": 300552
     },
     "remainingGates": {
-      "weaponOffhand": "ACCOUNT_DISCOVERY_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+      "weaponOffhand": "ACCOUNT_DISCOVERY_V2_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "farmerGearAllocation": "OFFEN_SEPARATE_RATIFICATION"
     },
     "weaponOffhand": {
-      "status": "ACCOUNT_DISCOVERY_PACKAGE_BEREIT_EVIDENCE_OFFEN",
+      "status": "ACCOUNT_DISCOVERY_V2_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "contract": "v5/grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json",
       "explicitSlots": [
         "mainhand",
@@ -1241,8 +1241,8 @@
       "accountDiscoveryPublicFunctionCalls": 0,
       "accountDiscoveryRawWriteCalls": 0,
       "accountDiscoveryRatifiesFarmerGearAllocation": false,
-      "accountDiscoverySourceCommit": "6863d1a19ebe8c42c7362ba7981866572f910474",
-      "accountDiscoveryPackageSha256": "e6fb4e8ae0e5a98d73c26f7e81d5d66b8d50249f347ba74fcd27eaf07521e56d",
+      "accountDiscoverySourceCommit": "cb208ce57fd5bc5c07de81662d138220d5143af3",
+      "accountDiscoveryPackageSha256": "1f56a0080d113e525c160a399ecaacfb0c00ad54108ea199027ddeec027ff27c",
       "accountDiscoveryManifestCutoverPrepared": true,
       "accountDiscoveryControllerVersion": "1.0.2",
       "accountDiscoveryBridgeContractFixed": true,
@@ -1254,7 +1254,10 @@
       ],
       "accountDiscoveryPerformanceActivationDelayMs": 350,
       "accountDiscoveryPerformanceRetryDelayMs": 150,
-      "accountDiscoveryPriorAttemptStatus": "BLOCKIERT_PERFORMANCE_TRICK_ZERO_WRITE"
+      "accountDiscoveryPriorAttemptStatus": "BLOCKIERT_PERFORMANCE_TRICK_ZERO_WRITE",
+      "accountDiscoveryTestId": "pr20-7-gear-account-weapon-candidate-discovery-v2",
+      "accountDiscoverySupersedesTestId": "pr20-7-gear-account-weapon-candidate-discovery",
+      "accountDiscoverySameTestVersionUpgradeBypassed": false
     }
   }
 }
