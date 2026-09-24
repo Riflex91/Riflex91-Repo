@@ -826,3 +826,28 @@ test("aktueller Vertragskatalog ist konsistent 61 total / 60 verifiziert / 1 dis
   assert.equal(verifiers.summary.verified, 60);
   assert.equal(bindungen.summary.gebunden, 60);
 });
+
+
+test("PR20.8 Upgrade productive one-write runner package has a separate aggregate contract boundary", () => {
+  const r=prep.pr20_8.upgradeProductiveOneWriteRunner;
+  assert.equal(r.status,"PACKAGE_BEREIT_NOT_DEPLOYED");
+  assert.equal(r.package,"werkzeuge/pr20-8-upgrade-productive-one-write-live.js");
+  assert.equal(r.test,"werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs");
+  assert.equal(
+    r.contract,
+    "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json",
+  );
+  assert.equal(r.testId,"pr20-8-upgrade-productive-one-write-live");
+  assert.equal(r.controllerVersion,"1.0.0");
+  assert.equal(r.expectedGlobal,"V5PR208UpgradeProductiveOneWriteLive");
+  assert.equal(r.exactCandidate,"gloves@0");
+  assert.equal(r.exactScroll,"scroll0");
+  assert.equal(r.maximumGameplayWrites,1);
+  assert.equal(r.maximumPublicFunctionCalls,1);
+  assert.equal(r.maximumRawWriteCalls,0);
+  assert.equal(r.sameIntentRetry,false);
+  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.deployed,false);
+  assert.equal(r.liveWriteEnabled,false);
+  assert.equal(r.normalRuntimeAllowed,false);
+});
