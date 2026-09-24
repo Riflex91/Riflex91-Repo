@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_V3",
+  "status": "PACKAGE_PATCH_BEREIT_NOT_DEPLOYED",
+  "prerequisiteOneWrite": {
+    "evidence": "roadmap/pr20-8-upgrade-productive-one-write-evidence.json",
+    "telemetryBatchId": 8252,
+    "reconciliation": "COMMITTED_SUCCESS",
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sendCount": 1,
+    "noSecondSendAllowed": true
+  },
+  "failedBootstrapV1Observation": {
+    "manifestTestId": "pr20-8-native-updater-recovery-bootstrap-v1",
+    "bridgeObservedAt": "2026-09-24T17:03:44.6053409Z",
+    "telemetryReceivedAt": "2026-09-24T17:03:54.302Z",
+    "bridgeState": "ERROR",
+    "bridgeError": "V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED",
+    "liveStatusRemainedTestId": "pr20-8-upgrade-productive-one-write-live",
+    "liveStatusRemainedVersion": "1.0.3",
+    "liveGameplayWrites": 1,
+    "livePublicFunctionCalls": 1,
+    "liveRawWriteCalls": 0,
+    "additionalGameplayWritesObserved": 0,
+    "additionalPublicFunctionCallsObserved": 0,
+    "additionalRawWriteCallsObserved": 0
+  },
+  "diagnosis": {
+    "bridgeProbePrefersLocalAioBeforeParent": true,
+    "bootstrapV1WrappedOnlyParentAio": true,
+    "bootstrapV2WrapsLocalAndParent": true,
+    "bootstrapV2ImmediatePersistenceStillHasHandshakeRace": true,
+    "requiredFix": "SPLIT_CONTEXT_SYNCHRONOUS_HANDSHAKE_PLUS_DELAYED_SLOT_PERSISTENCE"
+  },
+  "patch": {
+    "package": "werkzeuge/pr20-8-updater-recovery-bootstrap-v3.js",
+    "test": "werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v3.test.mjs",
+    "testId": "pr20-8-native-updater-recovery-bootstrap-v3",
+    "controllerVersion": "1.0.0",
+    "updaterVersion": "1.0.8",
+    "expectedGlobal": "V5PR208UpdaterRecoveryBootstrap",
+    "bothLocalAndParentStatusWrappedSynchronously": true,
+    "bothLocalAndParentExpectedGlobalInstalledSynchronously": true,
+    "persistenceDelayMs": 3000,
+    "markerKey": "AIO_V5_PR20_8_UPDATER_BOOTSTRAP_V3_PERSISTED",
+    "maximumCodeSlotWritesPerFreshPersistence": 1,
+    "maximumCodeSlotReloadsPerFreshPersistence": 1,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "deploymentBoundary": {
+    "activeManifestStillPinsBootstrapV1": true,
+    "packageDeployed": false,
+    "manifestCutoverPrepared": false,
+    "upgradeRunnerMustNotBeReactivated": true
+  },
+  "nextGate": "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_V3_MANIFEST_CUTOVER"
+}
