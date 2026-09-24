@@ -544,8 +544,6 @@ test("PR20.8 Read-only Preflights bleiben authority-frei und family-spezifisch",
 });
 
 test("PR20.8 Live-Candidate-Discovery-Paket bleibt strikt NO-WRITE", () => {
-  assert.equal(prep.pr20_8.status, "LIVE_CANDIDATE_PACKAGE_BEREIT_NO_WRITE");
-  assert.equal(prep.pr20_8.nextAction, "PR20_8_LIVE_CANDIDATE_MANIFEST_CUTOVER");
   const live = prep.pr20_8.liveCandidateDiscovery;
   assert.equal(live.status, "PACKAGE_BEREIT_NO_WRITE");
   assert.equal(live.testId, "pr20-8-wertmutation-live-candidate-readonly");
@@ -562,6 +560,34 @@ test("PR20.8 Live-Candidate-Discovery-Paket bleibt strikt NO-WRITE", () => {
   assert.equal(live.durableIntentCreated, false);
   assert.equal(live.gameplayAuthority, false);
   assert.equal(live.rawWriteAuthority, false);
+  assert.equal(live.gameplayWrites, 0);
+  assert.equal(live.publicFunctionCalls, 0);
+  assert.equal(live.rawWriteCalls, 0);
+  assert.equal(live.sameIntentRetry, false);
+  assert.equal(live.normalRuntimeAllowed, false);
+});
+
+test("PR20.8 Candidate-Manifest bleibt source- und package-gepinnt NO-WRITE", () => {
+  assert.equal(
+    prep.pr20_8.status,
+    "LIVE_CANDIDATE_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+  );
+  assert.equal(
+    prep.pr20_8.nextAction,
+    "PR20_8_LIVE_CANDIDATE_REAL_BROWSER_OBSERVE",
+  );
+  const live = prep.pr20_8.liveCandidateDiscovery;
+  assert.equal(
+    live.sourceCommit,
+    "7307573841b86b1fb22fd5abfb73a3d461bf0049",
+  );
+  assert.equal(
+    live.packageSha256,
+    "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5",
+  );
+  assert.equal(live.manifest, "roadmap/v5-autonomous-test-manifest.json");
+  assert.equal(live.manifestCutoverPrepared, true);
+  assert.equal(live.authorityIssued, false);
   assert.equal(live.gameplayWrites, 0);
   assert.equal(live.publicFunctionCalls, 0);
   assert.equal(live.rawWriteCalls, 0);
