@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "V5_PR20_8_COMPOUND_EXCHANGE_TARGET_FAMILY_RESCAN_V1_0_4_EVIDENCE",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "status": "BESTANDEN_COMPOUND_CANDIDATE_EXCHANGE_NO_CANDIDATE_ZERO_WRITE",
+  "evidenceRatified": true,
+  "manifestMainCommit": "68b094ee870d64bda9d12a009f7941ffcc8bf38d",
+  "testId": "pr20-8-wertmutation-live-candidate-readonly",
+  "controllerVersion": "1.0.4",
+  "package": {
+    "sourceCommit": "27e25e69dc0e26d8ae05328335718c36a6a0c659",
+    "path": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js",
+    "sha256": "0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b",
+    "bytes": 21343,
+    "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly"
+  },
+  "liveEvidence": {
+    "source": "public.aio_v5_test_status",
+    "botId": "pi-main",
+    "updatedAt": "2026-09-24T19:34:32.157+00:00",
+    "observedAtMs": 1790278399271,
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "terminal": true,
+    "blocker": [],
+    "compound": {
+      "status": "KANDIDAT_GEFUNDEN",
+      "candidateCount": 1,
+      "selected": {
+        "name": "hpamulet",
+        "level": 0,
+        "baseGold": 20000,
+        "physicalIndexes": [
+          1,
+          22,
+          23
+        ],
+        "scroll": {
+          "name": "cscroll0",
+          "observedQuantity": 20
+        },
+        "offering": null,
+        "normalPathOnly": true,
+        "liveAuthority": false,
+        "exactPhysicalIndexesMustBeReresolvedBeforeSend": true
+      }
+    },
+    "exchange": {
+      "status": "KEIN_KANDIDAT",
+      "candidateCount": 0,
+      "selected": null,
+      "rejected": [
+        {
+          "name": "anniversarygift",
+          "index": 4,
+          "reason": "UNSAFE_PHYSICAL_ITEM"
+        }
+      ]
+    },
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "bridge": {
+    "state": "ALREADY_PRESENT",
+    "error": null,
+    "changed": false,
+    "observedAt": "2026-09-24T19:34:14.6174115+00:00"
+  },
+  "authority": {
+    "authorityIssued": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "upgradeAuthority": false,
+    "compoundAuthority": false,
+    "exchangeAuthority": false,
+    "durableIntentCreated": false
+  },
+  "conclusion": {
+    "targetFamilyRescanValid": true,
+    "compoundNormalCandidateObserved": true,
+    "compoundCandidateObservationRatified": true,
+    "compoundWriteRatified": false,
+    "compoundLive5mRatified": false,
+    "exchangeNormalCandidateObserved": false,
+    "exchangeCandidateObservationRatified": false,
+    "exchangeWriteRatified": false,
+    "exchangeLive5mRatified": false,
+    "mayAuthorizeCompoundWrite": false,
+    "mayAuthorizeExchangeWrite": false,
+    "pr20_8ExitGateSatisfied": false
+  },
+  "nextGate": "PR20_8_COMPOUND_DURABLE_SHADOW_PREPARATION"
+}
