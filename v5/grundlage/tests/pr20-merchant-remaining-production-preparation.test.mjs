@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "WEAPON_OFFHAND_EQUIP_PACKAGE_BEREIT_MANIFEST_GESCHLOSSEN");
+    "WEAPON_OFFHAND_EQUIP_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -348,13 +348,13 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionProductivePurchaseLiveSameIntentRetry, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionProductivePurchaseLiveRestartReconcileWithoutResend, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionProductivePurchaseLiveSoakMinimumSamples, 60);
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionNextGate, "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_MANIFEST_CUTOVER");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionNextGate, "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_EXECUTE");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipPackagePrepared, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipExactItem, "wshield");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipTargetSlot, "offhand");
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipPreviousTargetSlotMustBeEmpty, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipExactOppositeHand, "staff");
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipManifestCutoverPrepared, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipManifestCutoverPrepared, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandProductiveEquipSameIntentRetry, false);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionSourceCommit, /^[0-9a-f]{40}$/);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPackageSha256, /^[0-9a-f]{64}$/);
