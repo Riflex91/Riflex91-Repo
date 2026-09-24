@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "READ_ONLY_PREFLIGHTS_BEREIT_NO_WRITE",
+    "status": "LIVE_CANDIDATE_PACKAGE_BEREIT_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_LIVE_CANDIDATE_SELECTION",
+    "nextAction": "PR20_8_LIVE_CANDIDATE_MANIFEST_CUTOVER",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -627,6 +627,35 @@
       "rawWriteCalls": 0,
       "liveAdapterPresent": false,
       "liveRunnerPresent": false,
+      "normalRuntimeAllowed": false
+    },
+    "liveCandidateDiscovery": {
+      "status": "PACKAGE_BEREIT_NO_WRITE",
+      "testId": "pr20-8-wertmutation-live-candidate-readonly",
+      "controllerVersion": "1.0.0",
+      "package": "werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js",
+      "test": "werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly.test.mjs",
+      "contract": "grundlage/vertraege/runtime/pr20-8-live-candidate-readonly-preparation.json",
+      "exactCharacter": "My_Merchant",
+      "exactCharacterClass": "merchant",
+      "exactServer": "EU:I",
+      "qMustBeEmpty": true,
+      "atLeastOneNormalCandidateRequired": true,
+      "families": [
+        "UPGRADE",
+        "COMPOUND",
+        "EXCHANGE"
+      ],
+      "specialPathsExcluded": true,
+      "candidateAuthority": false,
+      "authorityIssued": false,
+      "durableIntentCreated": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "sameIntentRetry": false,
       "normalRuntimeAllowed": false
     }
   },
