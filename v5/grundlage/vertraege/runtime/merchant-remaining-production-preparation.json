@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
+    "status": "UPGRADE_PRODUCTIVE_ONE_WRITE_BOOTSTRAP_RECOVERY_PACKAGE_BEREIT_NOT_DEPLOYED",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
+    "nextAction": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_BOOTSTRAP_RECOVERY_MANIFEST_CUTOVER",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -787,7 +787,7 @@
       "packageContainsExactlyOnePublicUpgradeCallSite": true
     },
     "upgradeProductiveOneWriteRunner": {
-      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
+      "status": "BOOTSTRAP_RECOVERY_PACKAGE_BEREIT_NOT_DEPLOYED",
       "package": "werkzeuge/pr20-8-upgrade-productive-one-write-live.js",
       "test": "werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs",
       "contract": "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-runner-preparation.json",
@@ -801,7 +801,7 @@
       "maximumRawWriteCalls": 0,
       "sameIntentRetry": false,
       "manifestCutoverPrepared": true,
-      "deployed": false,
+      "deployed": true,
       "liveWriteEnabled": true,
       "normalRuntimeAllowed": false,
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
@@ -809,9 +809,23 @@
       "packageSha256": "063c5143852efa2357c0a3e0930e013e7238bc0be8b0d81f7c3742f97c6ed4f9",
       "packageBytes": 46151,
       "deploymentEvidenceObserved": false,
-      "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
+      "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_BOOTSTRAP_RECOVERY_MANIFEST_CUTOVER",
       "realUpgradeMutationPerformed": false,
-      "bridgeMayDeployPinnedRunner": true
+      "bridgeMayDeployPinnedRunner": true,
+      "deployedControllerVersion": "1.0.0",
+      "observedRuntimeFailure": "PR20_8_UPGRADE_LIVE_DUPLIKAT_INSTANZ_AKTIV",
+      "observedRuntimeFailureTerminal": true,
+      "observedRuntimeGameplayWrites": 0,
+      "observedRuntimePublicFunctionCalls": 0,
+      "observedRuntimeRawWriteCalls": 0,
+      "observedRuntimeIntentCount": 0,
+      "observedRuntimeDurableIntentCreated": false,
+      "recoveryContract": "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-bootstrap-recovery-preparation.json",
+      "recoveryPreparedControllerVersion": "1.0.1",
+      "recoverySameVersionBootstrapReusesIncumbentApi": true,
+      "recoveryZeroWriteNoIntentFailureReleasesOwnedRuntimeLease": true,
+      "recoveryManifestCutoverPrepared": false,
+      "recoveryPatchDeployed": false
     }
   },
   "pr20_9": {
