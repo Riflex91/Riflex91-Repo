@@ -102,6 +102,49 @@ function sandbox(items, options = {}) {
   return { box, storage, upgradeCalls:() => upgradeCalls };
 }
 
+function splitRootSandbox(items) {
+  const env=sandbox(items);
+  const host=env.box;
+  const local={
+    console,
+    Date,
+    Promise,
+    Object,
+    Array,
+    String,
+    Number,
+    Boolean,
+    JSON,
+    Math,
+    Set,
+    Map,
+    Uint8Array,
+    TextEncoder,
+    crypto:webcrypto,
+    localStorage:env.storage,
+    setTimeout:fn => setImmediate(fn),
+    clearTimeout:() => {},
+    AIO_V3:{
+      operations:{
+        status:() => ({
+          v5AutonomousTest:{
+            testId:"stale-test-id",
+            version:"0.0.0",
+            terminal:true,
+            gameplayWrites:0,
+            rawWriteCalls:0,
+            sameIntentRetry:false,
+            authority:{durableIntentCreated:false},
+            intents:[],
+          },
+        }),
+      },
+    },
+    parent:host,
+  };
+  return { box:local, host, storage:env.storage, upgradeCalls:env.upgradeCalls };
+}
+
 async function run(env) {
   vm.createContext(env.box);
   vm.runInContext(source,env.box,{
@@ -202,6 +245,31 @@ test("PR20.8 Upgrade durable shadow persists exact no-send intent and reobserves
   assert.equal(durable.gameplayAuthority,false);
   assert.equal(durable.rawWriteAuthority,false);
   assert.equal(durable.normalUpgradeWriteRatification,false);
+});
+
+test("PR20.8 Upgrade shadow mirrors telemetry into stale local CDP and game root", async () => {
+  const items=Array(8).fill(null);
+  items[2]={ name:"gloves", level:0 };
+  items[3]={ name:"scroll0", q:2 };
+  const env=splitRootSandbox(items);
+  const status=await run(env);
+  assert.equal(status.status,"BESTANDEN");
+  assert.equal(env.upgradeCalls(),0);
+
+  const localStatus=env.box.AIO_V3.operations.status().v5AutonomousTest;
+  const hostStatus=env.host.AIO_V3.operations.status().v5AutonomousTest;
+  assert.equal(localStatus.testId,"pr20-8-upgrade-durable-shadow-no-write");
+  assert.equal(localStatus.version,"1.0.0");
+  assert.equal(hostStatus.testId,"pr20-8-upgrade-durable-shadow-no-write");
+  assert.equal(hostStatus.version,"1.0.0");
+  assert.equal(
+    env.box.V5PR208UpgradeDurableShadowNoWrite.testId,
+    "pr20-8-upgrade-durable-shadow-no-write",
+  );
+  assert.equal(
+    env.host.V5PR208UpgradeDurableShadowNoWrite.testId,
+    "pr20-8-upgrade-durable-shadow-no-write",
+  );
 });
 
 test("PR20.8 Upgrade shadow re-resolves current physical indexes instead of trusting evidence index 6", async () => {
@@ -324,6 +392,8 @@ test("PR20.8 Upgrade shadow package contains no gameplay mutation bypass", () =>
     "SOURCE_PINNED_SELL_DISTANCE = 400",
     "SERVICE_REACHABILITY_SAFETY_MAX = 300",
     "scrollDef.type,64) !== 'uscroll'",
+    "publishTelemetryFacades()",
+    "installTelemetryFacade(owner)",
     "gameplayWrites:0",
     "publicFunctionCalls:0",
     "rawWriteCalls:0",
