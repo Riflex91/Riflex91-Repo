@@ -3,25 +3,25 @@
   "stand": "2026-09-24",
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight",
-  "controllerVersion": "1.0.1",
-  "status": "CORRECTIVE_MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_PREFLIGHT",
+  "controllerVersion": "1.0.2",
+  "status": "CORRECTIVE_PACKAGE_1_0_2_SOURCE_PIN_BEREIT_MANIFEST_CUTOVER_OFFEN",
   "purpose": "READ_ONLY_WSHIELD_NPC_ACQUISITION_SOURCE_PREFLIGHT",
   "deployment": {
-    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
+    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY_AFTER_CORRECTIVE_CUTOVER",
     "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
     "coordinatorClass": "merchant",
-    "sourceCommit": "bfcbc3186b1fe374fe37d0dd43d5677511480f5d",
-    "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js",
-    "packageSha256": "0d1378a0bca4ff0665dc14ab67920a15a0532f20ab141c6428edac414c0c3c72",
+    "sourceCommit": "0228da63fe01e8717ef7aebb85af24bb3b35478b",
+    "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-2-autonomous.js",
+    "packageSha256": "1931312bfe6b15a2dd0764e774c52c84e6db09c376ee3fd33205b20cc5c9938c",
     "expectedGlobal": "V5PR207WeaponOffhandAcquisitionReadOnly",
     "workerPackageConfigured": false,
     "farmerWorkerDistribution": false,
-    "manifestCutoverPrepared": true,
-    "supersedesControllerVersion": "1.0.0",
+    "manifestCutoverPrepared": false,
+    "supersedesControllerVersion": "1.0.1",
     "previousLiveRunRatified": false,
     "sameTestUpgradeGuard": {
-      "previousControllerVersion": "1.0.0",
-      "nextControllerVersion": "1.0.1",
+      "previousControllerVersion": "1.0.1",
+      "nextControllerVersion": "1.0.2",
       "strictlyNewer": true,
       "previousTerminal": true,
       "previousGameplayWrites": 0,
@@ -44,7 +44,7 @@
     "route": "GOLD_ONLY_NPC"
   },
   "readOnlyChecks": [
-    "exact Merchant/session/server",
+    "exact My_Merchant session and exact EU:I server binding",
     "performance_trick HOWLER_PLAYING_TRUE",
     "wshield definition type shield and exact price 4800",
     "basics/Gabriel vendor still sells wshield",
@@ -55,8 +55,9 @@
     "no existing wshield in Merchant inventory",
     "base gold cost available",
     "buy_with_gold public function exists and is observed on a same-origin root",
-    "positive finite sell_dist is observed on a same-origin root",
-    "current-map Gabriel/wshield vendor position is observable and inside sell_dist",
+    "official current server source pins B.sell_dist=400 and buy uses simple_distance(player,l)<B.sell_dist",
+    "browser B.sell_dist, when observable, must equal pinned 400 or fail closed",
+    "current-map wshield vendor position is observable and nearest distance is below effective pinned sell_dist",
     "stable double observation over 350 ms"
   ],
   "safetyBoundary": {
@@ -81,5 +82,17 @@
   },
   "completion": "BESTANDEN only ratifies acquisition source/current read-only preconditions; it does not authorize purchase or equip.",
   "evidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json",
-  "nextAfterPass": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE"
+  "nextAfterPass": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE",
+  "officialServerReachabilitySource": {
+    "repository": "kaansoral/adventureland_mongodb",
+    "branch": "main",
+    "revalidatedAt": "2026-09-24",
+    "commit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+    "serverPath": "node/server.js",
+    "serverBlobSha": "40d0aeda16b9a4320441e833020fe1b4db496e2c",
+    "sellDistance": 400,
+    "buyCheck": "simple_distance(player, l) < B.sell_dist",
+    "expectedRuntimeServer": "EU:I",
+    "browserSellDistancePolicy": "IF_PRESENT_MUST_EQUAL_SOURCE_PIN_ELSE_USE_SOURCE_PIN"
+  }
 }
