@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-24",
   "kennung": "V5_PR20_7_WEAPON_OFFHAND_FOUNDATION",
-  "status": "PRODUCTIVE_EQUIP_PACKAGE_BEREIT_MANIFEST_GESCHLOSSEN",
+  "status": "PRODUCTIVE_EQUIP_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "sourceSemantik": {
     "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
@@ -75,7 +75,7 @@
     "productiveEquipControllerVersion": "1.0.0",
     "productiveEquipSourceCommit": "e633cbe60ba4c98e4c61424ff900c542e688090f",
     "productiveEquipPackageSha256": "381559606c016880921fdb9ee0c50776275a5ceb962c35d91bc1c86529deb3b0",
-    "productiveEquipManifestCutoverPrepared": false,
+    "productiveEquipManifestCutoverPrepared": true,
     "exactRecipient": "My_Merchant",
     "exactServer": "EU:I",
     "exactItem": "wshield",
@@ -95,5 +95,5 @@
     "productiveEvidence": "OFFEN",
     "normalRuntimeAllowed": false
   },
-  "nextAction": "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_MANIFEST_CUTOVER"
+  "nextAction": "PR20_7_WEAPON_OFFHAND_EQUIP_LIVE_5M_EXECUTE"
 }
