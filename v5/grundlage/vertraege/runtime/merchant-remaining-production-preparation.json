@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "COMPOUND_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE_READY_NOT_DEPLOYED",
+    "status": "COMPOUND_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER",
+    "nextAction": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1225,7 +1225,7 @@
       "evidenceNormalCompoundWriteRatification": false
     },
     "compoundProductiveOneWritePreparation": {
-      "status": "RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-preparation.json",
       "test": "grundlage/tests/pr20-compound-productive-one-write-preparation.test.mjs",
       "prerequisiteShadowEvidence": "roadmap/pr20-8-compound-durable-shadow-evidence.json",
@@ -1249,10 +1249,10 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
-      "liveWriteEnabled": false,
-      "nextGate": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER",
+      "liveWriteEnabled": true,
+      "nextGate": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
       "runnerPackage": "werkzeuge/pr20-8-compound-productive-one-write-live.js",
       "runnerTest": "werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs",
       "runnerContract": "grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-runner-preparation.json",
@@ -1268,10 +1268,14 @@
       "hpamuletCompoundDefinitionExact": {
         "hp": 240
       },
-      "zeroWritePreflightFailureReleasesRuntimeLease": true
+      "zeroWritePreflightFailureReleasesRuntimeLease": true,
+      "manifest": "roadmap/v5-autonomous-test-manifest.json",
+      "bridgeMayDeployPinnedRunner": true,
+      "deploymentEvidenceObserved": false,
+      "realCompoundMutationPerformed": false
     },
     "compoundProductiveOneWriteRunner": {
-      "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
       "package": "werkzeuge/pr20-8-compound-productive-one-write-live.js",
       "test": "werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs",
       "contract": "grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-runner-preparation.json",
@@ -1286,18 +1290,22 @@
       "sameIntentRetry": false,
       "conditionStateFencingRequired": true,
       "finalEffectDomainReobserveAfterAuthorityConsume": true,
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
-      "liveWriteEnabled": false,
+      "liveWriteEnabled": true,
       "normalRuntimeAllowed": false,
       "sourceCommit": "31edc5c7ce29bb64086be211b703f4f18dd3772b",
       "packageSha256": "c57c6cc38618392f1f26b7c91e0ea10163a8f8bfc33063eaea2785e39b56100c",
       "packageBytes": 50445,
-      "nextGate": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER",
+      "nextGate": "PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN",
       "hpamuletCompoundDefinitionExact": {
         "hp": 240
       },
-      "zeroWritePreflightFailureReleasesRuntimeLease": true
+      "zeroWritePreflightFailureReleasesRuntimeLease": true,
+      "manifest": "roadmap/v5-autonomous-test-manifest.json",
+      "deploymentEvidenceObserved": false,
+      "realCompoundMutationPerformed": false,
+      "bridgeMayDeployPinnedRunner": true
     }
   },
   "pr20_9": {
