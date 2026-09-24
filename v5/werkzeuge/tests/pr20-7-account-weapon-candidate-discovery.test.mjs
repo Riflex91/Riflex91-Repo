@@ -8,7 +8,7 @@ const source = fs.readFileSync(
   "utf8",
 );
 
-function sandboxWithRows(rows, active = []) {
+function sandboxWithRows(rows, active = [], xRows = null) {
   const sandbox = {
     console,
     Date,
@@ -67,6 +67,7 @@ function sandboxWithRows(rows, active = []) {
     },
     get_characters: () => rows,
     get_active_characters: () => active,
+    X: xRows ? { characters: xRows } : {},
     AIO_V3: {
       operations: {
         status: () => ({
@@ -98,8 +99,8 @@ function sandboxWithRows(rows, active = []) {
   return sandbox;
 }
 
-async function execute(rows, active = []) {
-  const sandbox = sandboxWithRows(rows, active);
+async function execute(rows, active = [], xRows = null) {
+  const sandbox = sandboxWithRows(rows, active, xRows);
   vm.createContext(sandbox);
   vm.runInContext(source, sandbox, {
     filename: "pr20-7-account-weapon-candidate-discovery.js",
@@ -155,6 +156,53 @@ test("account discovery selects deterministic existing farmer candidate read-onl
   assert.equal(status.normalRuntimeAllowed, false);
 });
 
+test("account discovery prefers richer X.characters evidence over metadata-only get_characters", async () => {
+  const metadataRows = [
+    { name: "My_Ranger1", ctype: "ranger", level: 60 },
+    { name: "My_Priest", ctype: "priest", level: 35 },
+    { name: "My_Mage", ctype: "mage", level: 35 },
+  ];
+  const richRows = [
+    {
+      name: "My_Ranger1",
+      ctype: "ranger",
+      level: 60,
+      items: [],
+      slots: { mainhand: { name: "bow", level: 3 }, offhand: null },
+    },
+    {
+      name: "My_Priest",
+      ctype: "priest",
+      level: 35,
+      items: [{ name: "source1", level: 0 }],
+      slots: { mainhand: { name: "staff", level: 3 }, offhand: null },
+    },
+    {
+      name: "My_Mage",
+      ctype: "mage",
+      level: 35,
+      items: [],
+      slots: { mainhand: { name: "staff", level: 3 }, offhand: null },
+    },
+  ];
+  const status = await execute(metadataRows, ["My_Merchant"], richRows);
+  assert.equal(status.status, "BESTANDEN");
+  assert.equal(status.terminal, true);
+  assert.equal(status.rosterSource, "X.characters");
+  assert.equal(status.selectedCandidate.recipient, "My_Priest");
+  assert.equal(status.selectedCandidate.slot, "offhand");
+  assert.equal(status.selectedCandidate.candidateName, "source1");
+  assert.ok(Array.isArray(status.rosterSourceCandidates));
+  const getCharacters = status.rosterSourceCandidates.find(x => x.source === "get_characters");
+  const xCharacters = status.rosterSourceCandidates.find(x => x.source === "X.characters");
+  assert.equal(getCharacters.richFarmerRows, 0);
+  assert.equal(xCharacters.richFarmerRows, 3);
+  assert.ok(xCharacters.score > getCharacters.score);
+  assert.equal(status.gameplayWrites, 0);
+  assert.equal(status.publicFunctionCalls, 0);
+  assert.equal(status.rawWriteCalls, 0);
+});
+
 test("account discovery facade preserves the bridge operations contract", async () => {
   const rows = [
     {
@@ -201,7 +249,7 @@ test("account discovery facade preserves the bridge operations contract", async 
     bridgeStatus.v5AutonomousTest.testId,
     "pr20-7-gear-account-weapon-candidate-discovery-v2",
   );
-  assert.equal(bridgeStatus.v5AutonomousTest.version, "1.0.2");
+  assert.equal(bridgeStatus.v5AutonomousTest.version, "1.0.3");
   assert.equal(bridgeStatus.v5AutonomousTest.status, "BESTANDEN");
   assert.equal(bridgeStatus.v5AutonomousTest.terminal, true);
   assert.equal(ops.hostHeartbeat().v5TestId,
