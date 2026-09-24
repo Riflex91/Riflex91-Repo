@@ -1740,6 +1740,20 @@
     "upgradeDurableShadowSendBoundaryState": "NICHT_GESENDET",
     "upgradeDurableShadowReconciliation": "NOT_APPLIED",
     "upgradeDurableShadowUpgradeAuthority": false,
-    "upgradeDurableShadowGameplayWrites": 0
+    "upgradeDurableShadowGameplayWrites": 0,
+    "upgradeDurableShadow": {
+      "exactCandidate": "gloves@0",
+      "exactScroll": "scroll0",
+      "exactScrollType": "uscroll",
+      "exactScrollGrade": 0,
+      "exactScrollBaseGold": 1000,
+      "serviceReachabilityRequired": true,
+      "sourcePinnedSellDistance": 400,
+      "conservativeLiveSafetyDistanceMax": 300,
+      "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+      "sendBoundaryState": "NICHT_GESENDET",
+      "upgradeAuthorityIssued": false,
+      "normalUpgradeWriteRatification": false
+    }
   }
 }
