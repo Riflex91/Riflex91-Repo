@@ -52,14 +52,14 @@ test("PR20.7 acquisition candidate is exact wshield Merchant offhand source", ()
 test("PR20.7 acquisition preflight is immutable candidate discovery, never purchase authority", () => {
   assert.equal(plan.testId, "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight");
   assert.equal(plan.controllerVersion, "1.0.2");
-  assert.equal(plan.status, "CORRECTIVE_PACKAGE_1_0_2_SOURCE_PIN_BEREIT_MANIFEST_CUTOVER_OFFEN");
+  assert.equal(plan.status, "CORRECTIVE_1_0_2_MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_PREFLIGHT");
   assert.equal(plan.deployment.coordinatorClass, "merchant");
   assert.match(plan.deployment.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(plan.deployment.packageSha256, /^[0-9a-f]{64}$/);
   assert.equal(plan.deployment.workerPackageConfigured, false);
   assert.equal(plan.deployment.farmerWorkerDistribution, false);
-  assert.equal(plan.deployment.manifestCutoverPrepared, false);
-  assert.equal(plan.deployment.mode, "GITHUB_MANIFEST_AUTO_DEPLOY_AFTER_CORRECTIVE_CUTOVER");
+  assert.equal(plan.deployment.manifestCutoverPrepared, true);
+  assert.equal(plan.deployment.mode, "GITHUB_MANIFEST_AUTO_DEPLOY");
   assert.equal(plan.deployment.packagePath, "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-2-autonomous.js");
   assert.equal(plan.deployment.sourceCommit, "0228da63fe01e8717ef7aebb85af24bb3b35478b");
   assert.equal(plan.deployment.packageSha256, "1931312bfe6b15a2dd0764e774c52c84e6db09c376ee3fd33205b20cc5c9938c");
@@ -119,10 +119,10 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.preflight.vendorReachabilityRequired, true);
   assert.equal(contract.preflight.previousControllerVersionRejected, "1.0.1");
   assert.equal(contract.preflight.previousLiveRunRatified, false);
-  assert.equal(contract.preflight.manifestCutoverPrepared, false);
+  assert.equal(contract.preflight.manifestCutoverPrepared, true);
   assert.equal(contract.preflight.sameTestUpgradeStrictlyNewer, true);
   assert.equal(contract.preflight.previousTerminalZeroWriteEligible, true);
-  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_1_0_2");
+  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_REAL_READ_ONLY_PREFLIGHT_V1_0_2");
   assert.equal(contract.preflight.purchaseAuthority, false);
   assert.equal(contract.preflight.goldBudgetLedgerReservationRequired, true);
   assert.equal(contract.preflight.goldBudgetLedgerReservationSatisfied, false);
