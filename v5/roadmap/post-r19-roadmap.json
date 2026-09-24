@@ -1688,7 +1688,7 @@
     "exchangeLiveRunnerPresent": false,
     "remainingGates": {
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
-      "normalUpgrade": "PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
+      "normalUpgrade": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS",
       "normalCompound": "OFFEN_SEPARATE_RATIFICATION",
       "normalExchange": "OFFEN_SEPARATE_RATIFICATION",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
@@ -1991,7 +1991,8 @@
         "rawWriteCalls": 0,
         "sameIntentRetry": false,
         "normalRuntimeAllowed": false
-      }
+      },
+      "evidence": "v5/roadmap/pr20-8-bridge-handshake-probe-evidence.json"
     }
   }
 }
