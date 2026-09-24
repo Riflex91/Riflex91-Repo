@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTENCE_BOOTSTRAP_MANIFEST_CUTOVER_PREPARED",
+    "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTENCE_BOOTSTRAP_V2_MANIFEST_CUTOVER_PREPARED",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_REAL_BROWSER_RUN",
+    "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_V2_REAL_BROWSER_RUN",
   );
   assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
   assert.equal(
