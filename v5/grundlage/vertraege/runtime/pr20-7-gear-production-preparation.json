@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "WEAPON_OFFHAND_ACQUISITION_READ_ONLY_PACKAGE_BEREIT_MANIFEST_OFFEN",
+  "status": "WEAPON_OFFHAND_ACQUISITION_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -88,7 +88,7 @@
     ],
     "next": "PR20_7_ACCOUNT_WEAPON_CANDIDATE_DISCOVERY_1_0_3_EXECUTE",
     "weaponOffhandAcquisitionReadOnlyPrepared": true,
-    "weaponOffhandAcquisitionManifestCutoverNext": true
+    "weaponOffhandAcquisitionManifestCutoverNext": false
   },
   "preflight": {
     "implemented": true,
@@ -343,7 +343,7 @@
     "acquisitionControllerVersion": "1.0.0",
     "acquisitionSourceCommit": "8cb1a5bf799bb7bfef0aa44a185009ae2606ded2",
     "acquisitionPackageSha256": "8d35a665d6bf78a83cab015b9c11cea65c39b6933939086949ad533697aebb9f",
-    "acquisitionManifestCutoverPrepared": false,
+    "acquisitionManifestCutoverPrepared": true,
     "acquisitionEvidenceStatus": "OFFEN",
     "acquisitionGameplayWrites": 0,
     "acquisitionPublicFunctionCalls": 0,
