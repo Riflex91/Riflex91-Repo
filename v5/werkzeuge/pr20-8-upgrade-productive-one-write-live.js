@@ -37,6 +37,7 @@
   const events = [];
   let seq = 0;
   let recoveryTimer = null;
+  let runPromise = null;
   let state = {
     schemaVersion: 1,
     testId: TEST_ID,
@@ -420,8 +421,8 @@
     if (!performance?.active) {
       throw new Error("PR20_8_UPGRADE_LIVE_PERFORMANCE_TRICK_NICHT_AKTIV");
     }
-    if (typeof r.upgrade !== "function") {
-      throw new Error("PR20_8_UPGRADE_LIVE_PUBLIC_FUNCTION_FEHLT");
+    if (typeof globalThis.upgrade !== "function") {
+      throw new Error("PR20_8_UPGRADE_LIVE_CODE_WRAPPER_UPGRADE_FEHLT");
     }
 
     const service = serviceReachability(r, c);
@@ -991,6 +992,11 @@
       terminal,
       blocker: terminal ? [] : ["PR20_8_UPGRADE_LIVE_RECOVERY_PENDING"],
       evidence: terminalEvidence(settled, outcome),
+      intents: [{
+        transactionId: settled.transactionId,
+        status: settled.status,
+        sendCount: settled.sendCount
+      }],
       authority
     });
     emit(
@@ -1011,6 +1017,7 @@
         || intent.sendCount > 1) {
       throw new Error("PR20_8_UPGRADE_LIVE_EXISTING_INTENT_UNGUELTIG");
     }
+    const persistedAuthority = readJson(authorityKey(intent.transactionId));
     setState({
       phase: "RECOVERY",
       status: "RECOVERY",
@@ -1019,9 +1026,15 @@
         status: intent.status,
         sendCount: intent.sendCount
       }],
+      gameplayWrites: intent.sendCount === 1 ? 1 : 0,
+      publicFunctionCalls: intent.sendCount === 1 ? 1 : 0,
+      rawWriteCalls: 0,
       authority: {
         ...state.authority,
-        durableIntentCreated: true
+        durableIntentCreated: true,
+        authorityIssued: !!persistedAuthority,
+        authorityConsumed: persistedAuthority?.consumed === true,
+        maximumUses: 1
       }
     });
 
@@ -1146,7 +1159,7 @@
     state.publicFunctionCalls += 1;
     try {
       sendResult = await Promise.resolve(
-        root().upgrade(
+        globalThis.upgrade(
           fresh.candidate.index,
           fresh.scroll.index,
           null,
@@ -1207,6 +1220,11 @@
     }
   }
 
+  function startOnce() {
+    if (runPromise === null) runPromise = run();
+    return runPromise;
+  }
+
   publishTelemetryFacades();
   const api = Object.freeze({
     testId: TEST_ID,
@@ -1214,7 +1232,7 @@
     status: () => state,
     telemetry: (limit = 2000) =>
       events.slice(-Math.max(1, Math.min(2000, Number(limit) || 2000))),
-    start: () => run()
+    start: () => startOnce()
   });
   globalThis.V5PR208UpgradeProductiveOneWriteLive = api;
   try {
@@ -1227,5 +1245,5 @@
     }
   } catch {}
 
-  Promise.resolve().then(run).catch(fail);
+  Promise.resolve().then(startOnce).catch(fail);
 })();
