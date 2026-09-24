@@ -840,17 +840,17 @@ test("PR20.8 bridge handshake and terminal recovery are confirmed zero-write", (
   assert.equal(r.evidence,"roadmap/pr20-8-bridge-handshake-terminal-recovery-evidence.json");
 });
 
-test("PR20.8 remaining Compound/Exchange candidate rescan recovery is synchronous, read-only and exact", () => {
+test("PR20.8 remaining Compound/Exchange candidate rescan recovery is root-independent, read-only and exact", () => {
   const r=prep.pr20_8.remainingCandidateRescan;
-  assert.equal(r.status,"V1_0_0_REAL_BROWSER_HANDSHAKE_FAILED_V1_0_1_RECOVERY_PREPARED");
+  assert.equal(r.status,"V1_0_1_REAL_BROWSER_HANDSHAKE_FAILED_V1_0_2_RECOVERY_PREPARED");
   assert.equal(r.testId,"pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(r.controllerVersion,"1.0.1");
-  assert.equal(r.package,"werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.js");
-  assert.equal(r.test,"werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.test.mjs");
+  assert.equal(r.controllerVersion,"1.0.2");
+  assert.equal(r.package,"werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.js");
+  assert.equal(r.test,"werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.test.mjs");
   assert.equal(r.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
-  assert.equal(r.sourceCommit,"f82d3ed4cc2c89a5b6e8f5e06c9d6377fd631c1c");
-  assert.equal(r.packageSha256,"36be29170d280ad78098c3e3a1901a82aa29328c8665e2a0dec4d84b914e41f4");
-  assert.equal(r.packageBytes,21366);
+  assert.equal(r.sourceCommit,"c3f7a066f08d1bb16218345f9f76095fe5874c4f");
+  assert.equal(r.packageSha256,"2eb0d1f37f02afca5550572791be860cb221ffb0ab42e22809ad9f5b82fb31b5");
+  assert.equal(r.packageBytes,21295);
   assert.deepEqual(r.targetFamilies,["COMPOUND","EXCHANGE"]);
   assert.equal(r.upgradeFamilyInformationalOnly,true);
   assert.equal(r.readOnly,true);
@@ -861,10 +861,10 @@ test("PR20.8 remaining Compound/Exchange candidate rescan recovery is synchronou
   assert.equal(r.normalRuntimeAllowed,false);
   assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
 
-  const f=r.observedV1Failure;
+  const f=r.observedV1_0_1Failure;
   assert.equal(f.bridgeState,"ERROR");
   assert.equal(f.bridgeError,"InvalidOperationException: V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED");
-  assert.equal(f.attemptedControllerVersion,"1.0.0");
+  assert.equal(f.attemptedControllerVersion,"1.0.1");
   assert.equal(f.activeTestIdBeforeAttempt,"pr20-8-bridge-handshake-probe-v1");
   assert.equal(f.activeVersionBeforeAttempt,"1.0.1");
   assert.equal(f.activeStatusBeforeAttempt,"BESTANDEN");
@@ -873,9 +873,11 @@ test("PR20.8 remaining Compound/Exchange candidate rescan recovery is synchronou
   assert.equal(f.publicFunctionCallsObserved,0);
   assert.equal(f.rawWriteCallsObserved,0);
   assert.equal(f.additionalGameplayWriteObserved,false);
+  assert.equal(f.diagnosis,"OBSERVABILITY_PUBLISH_STILL_DEPENDED_ON_ROOT_WITH_G_ITEMS");
 
-  assert.equal(r.recovery.status,"V1_0_1_SYNCHRONOUS_HANDSHAKE_MANIFEST_CUTOVER_PREPARED");
+  assert.equal(r.recovery.status,"V1_0_2_ROOT_INDEPENDENT_HANDSHAKE_MANIFEST_CUTOVER_PREPARED");
   assert.equal(r.recovery.synchronousFacadeBeforeAsyncScan,true);
+  assert.equal(r.recovery.observabilityRootIndependent,true);
   assert.equal(r.recovery.readOnly,true);
   assert.equal(r.recovery.gameplayWrites,0);
   assert.equal(r.recovery.publicFunctionCalls,0);
