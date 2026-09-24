@@ -77,12 +77,31 @@ public sealed class CdpAdventureLandClient
                         continue;
 
                     var currentTestId = ReadString(probe, "currentTestId");
+                    var currentVersion = ReadString(probe, "currentVersion");
                     var currentTerminal = ReadBoolean(probe, "currentTerminal", false);
-                    if (!ShouldDeployV5AutonomousTest(manifest.TestId, currentTestId, currentTerminal))
+                    var currentGameplayWrites = ReadInt64(probe, "currentGameplayWrites", long.MaxValue);
+                    var currentRawWriteCalls = ReadInt64(probe, "currentRawWriteCalls", long.MaxValue);
+                    var currentSameIntentRetry = ReadBoolean(probe, "currentSameIntentRetry", true);
+                    var currentDurableIntentCreated = ReadBoolean(probe, "currentDurableIntentCreated", true);
+                    var currentIntentCount = ReadInt64(probe, "currentIntentCount", -1);
+                    if (!ShouldDeployV5AutonomousTest(
+                            manifest.TestId,
+                            manifest.ControllerVersion,
+                            currentTestId,
+                            currentVersion,
+                            currentTerminal,
+                            currentGameplayWrites,
+                            currentRawWriteCalls,
+                            currentSameIntentRetry,
+                            currentDurableIntentCreated,
+                            currentIntentCount))
                     {
                         var same = string.Equals(currentTestId, manifest.TestId, StringComparison.Ordinal);
+                        var sameVersion = same && string.Equals(currentVersion, manifest.ControllerVersion, StringComparison.Ordinal);
                         return new V5AutonomousTestDeploymentResult(
-                            workerChanges > 0 ? "WORKERS_DEPLOYED" : (same ? "ALREADY_PRESENT" : "BLOCKED_ACTIVE_TEST"),
+                            workerChanges > 0
+                                ? "WORKERS_DEPLOYED"
+                                : (sameVersion ? "ALREADY_PRESENT" : (same ? "BLOCKED_SAME_TEST_UPGRADE" : "BLOCKED_ACTIVE_TEST")),
                             Changed: workerChanges > 0,
                             manifest.TestId,
                             target.Url);
@@ -106,8 +125,14 @@ public sealed class CdpAdventureLandClient
                     await EvaluateAsync(socket, expression, contextId, cancellationToken);
 
                     var verify = await EvaluateAsync(socket, V5DeploymentProbeExpression, contextId, cancellationToken);
+                    var apiVerify = await EvaluateAsync(
+                        socket,
+                        BuildV5CoordinatorProbeExpression(manifest.ExpectedGlobal),
+                        contextId,
+                        cancellationToken);
                     if (!string.Equals(ReadString(verify, "currentTestId"), manifest.TestId, StringComparison.Ordinal)
-                        || !string.Equals(ReadString(verify, "desiredApiVersion"), manifest.ControllerVersion, StringComparison.Ordinal))
+                        || !string.Equals(ReadString(apiVerify, "testId"), manifest.TestId, StringComparison.Ordinal)
+                        || !string.Equals(ReadString(apiVerify, "version"), manifest.ControllerVersion, StringComparison.Ordinal))
                         throw new InvalidOperationException("V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED");
 
                     return new V5AutonomousTestDeploymentResult(
@@ -440,12 +465,39 @@ public sealed class CdpAdventureLandClient
 
     public static bool ShouldDeployV5AutonomousTest(
         string desiredTestId,
+        string desiredVersion,
         string? currentTestId,
-        bool currentTerminal)
+        string? currentVersion,
+        bool currentTerminal,
+        long currentGameplayWrites,
+        long currentRawWriteCalls,
+        bool currentSameIntentRetry,
+        bool currentDurableIntentCreated,
+        long currentIntentCount)
     {
         if (string.IsNullOrWhiteSpace(currentTestId)) return true;
-        if (string.Equals(currentTestId, desiredTestId, StringComparison.Ordinal)) return false;
-        return currentTerminal;
+        if (!string.Equals(currentTestId, desiredTestId, StringComparison.Ordinal))
+            return currentTerminal;
+
+        if (string.Equals(currentVersion, desiredVersion, StringComparison.Ordinal))
+            return false;
+        if (!IsStrictlyNewerControllerVersion(desiredVersion, currentVersion))
+            return false;
+
+        return currentTerminal
+            && currentGameplayWrites == 0
+            && currentRawWriteCalls == 0
+            && !currentSameIntentRetry
+            && !currentDurableIntentCreated
+            && currentIntentCount <= 0;
+    }
+
+    public static bool IsStrictlyNewerControllerVersion(string? desiredVersion, string? currentVersion)
+    {
+        if (!Version.TryParse(desiredVersion, out var desired)
+            || !Version.TryParse(currentVersion, out var current))
+            return false;
+        return desired > current;
     }
 
     private async Task<byte[]> DownloadBoundedAsync(
@@ -1006,14 +1058,6 @@ public sealed class CdpAdventureLandClient
           : null;
       } catch {}
 
-      let desiredApiVersion = null;
-      try {
-        const api = globalThis.V5PR206MluckTest
-          || (globalThis.parent && globalThis.parent.V5PR206MluckTest)
-          || null;
-        desiredApiVersion = api && typeof api.version === 'string' ? api.version : null;
-      } catch {}
-
       return {
         name,
         ctype,
@@ -1029,11 +1073,39 @@ public sealed class CdpAdventureLandClient
           ? Math.max(0, Number(current.rawWriteCalls))
           : null,
         currentSameIntentRetry: current ? current.sameIntentRetry !== false : null,
-        currentIntentCount: current && Array.isArray(current.intents) ? current.intents.length : null,
-        desiredApiVersion
+        currentDurableIntentCreated: current
+          && current.authority
+          && typeof current.authority === 'object'
+            ? current.authority.durableIntentCreated === true
+            : null,
+        currentIntentCount: current && Array.isArray(current.intents) ? current.intents.length : null
       };
     })()
     """;
+
+    public static string BuildV5CoordinatorProbeExpression(string expectedGlobal)
+    {
+        var globalName = JsonSerializer.Serialize(expectedGlobal);
+        return """
+        (() => {
+          const local = globalThis;
+          let host = globalThis;
+          try {
+            if (globalThis.parent && globalThis.parent !== globalThis)
+              host = globalThis.parent;
+          } catch {}
+          const api = local[__V5_COORDINATOR_GLOBAL__]
+            || host[__V5_COORDINATOR_GLOBAL__]
+            || null;
+          let status = null;
+          try { status = typeof api?.status === 'function' ? api.status() : null; } catch {}
+          return {
+            testId: status ? String(status.testId || api?.testId || '') : String(api?.testId || ''),
+            version: status ? String(status.version || api?.version || '') : String(api?.version || '')
+          };
+        })()
+        """.Replace("__V5_COORDINATOR_GLOBAL__", globalName, StringComparison.Ordinal);
+    }
 
     private static string BuildV5WorkerProbeExpression(string expectedGlobal)
     {
