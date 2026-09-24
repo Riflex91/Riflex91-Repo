@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_RUNNER_PACKAGE",
+  "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+  "testId": "pr20-8-upgrade-productive-one-write-live",
+  "controllerVersion": "1.0.0",
+  "package": "werkzeuge/pr20-8-upgrade-productive-one-write-live.js",
+  "test": "werkzeuge/tests/pr20-8-upgrade-productive-one-write-live.test.mjs",
+  "expectedGlobal": "V5PR208UpgradeProductiveOneWriteLive",
+  "prerequisitePreparation": "grundlage/vertraege/runtime/pr20-8-upgrade-productive-one-write-preparation.json",
+  "prerequisiteShadowEvidence": "roadmap/pr20-8-upgrade-durable-shadow-evidence.json",
+  "prerequisiteShadowTelemetryBatchId": 8244,
+  "exactScope": {
+    "characterName": "My_Merchant",
+    "characterClass": "merchant",
+    "serverRegion": "EU",
+    "serverIdentifier": "I",
+    "candidate": "gloves@0",
+    "candidateBaseGold": 3400,
+    "scroll": "scroll0",
+    "scrollType": "uscroll",
+    "scrollGrade": 0,
+    "offering": null,
+    "publicFunction": "upgrade",
+    "arguments": [
+      "freshCandidateIndex",
+      "freshScrollIndex",
+      null,
+      false
+    ]
+  },
+  "durableBoundary": {
+    "intentBeforePossibleSend": true,
+    "exactReadback": true,
+    "outcomePendingPersistedBeforePublicFunction": true,
+    "sendCountPersistedAsOneBeforePublicFunction": true,
+    "sendBoundaryStateBeforeCall": "SEND_MOEGLICH_ODER_VERSUCHT",
+    "sameIntentRetry": false
+  },
+  "oneShotAuthority": {
+    "class": "Pr208UpgradeOneShotAuthority",
+    "maximumUses": 1,
+    "maximumTtlMs": 1500,
+    "durableAuthorityReadback": true,
+    "consumedImmediatelyBeforeSend": true,
+    "bindingIncludes": [
+      "character",
+      "session",
+      "server",
+      "prestateFingerprint",
+      "inventoryFingerprint",
+      "qFingerprint",
+      "candidateFingerprint",
+      "scrollFingerprint",
+      "candidateIndex",
+      "scrollIndex"
+    ],
+    "driftRevokes": true
+  },
+  "liveRevalidation": {
+    "stableDoubleObservation": true,
+    "freshReresolutionImmediatelyBeforeSend": true,
+    "qMustBeEmpty": true,
+    "noTarget": true,
+    "noHostileAggro": true,
+    "stationary": true,
+    "alternativeRuntimeInactive": true,
+    "performanceTrickActive": true,
+    "serviceReachabilityMax": 300,
+    "sourcePinnedSellDistance": 400,
+    "itemDefinitionExact": true,
+    "scrollDefinitionExact": true
+  },
+  "settlement": {
+    "promiseResultSupportingEvidenceOnly": true,
+    "committedSuccess": "gloves@1 at pinned fresh target index + exact scroll consumption + q/placeholder cleared",
+    "committedExpectedFailure": "ordinary uscroll target destroyed + exact scroll consumption + q/placeholder cleared",
+    "notApplied": "fresh positive unchanged target+scroll evidence and no q/placeholder",
+    "stillPending": "q/placeholder or accepted consumable delta remains",
+    "unresolved": "RECOVERY_PENDING",
+    "restartNeverResends": true
+  },
+  "packageBoundary": {
+    "manifestCutoverPrepared": false,
+    "deployed": false,
+    "liveWriteEnabled": false,
+    "packageContainsExactlyOnePublicUpgradeCallSite": true,
+    "maximumGameplayWritesPerIntent": 1,
+    "maximumPublicFunctionCallsPerIntent": 1,
+    "maximumRawWriteCalls": 0,
+    "directSocketWriteForbidden": true,
+    "normalRuntimeAllowed": false
+  },
+  "nextGate": "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER"
+}
