@@ -6,6 +6,11 @@ import { execFileSync } from "node:child_process";
 
 const manifest = JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest.json", "utf8"));
 const allowedPackages = Object.freeze({
+  "pr20-8-upgrade-durable-shadow-no-write": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js",
+    expectedGlobal: "V5PR208UpgradeDurableShadowNoWrite",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-wertmutation-live-candidate-readonly": Object.freeze({
     path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js",
     expectedGlobal: "V5PR208ValueMutationLiveCandidateReadonly",
@@ -585,6 +590,43 @@ test("PR20.8 candidate discovery manifest is exact read-only and special-path cl
   assert.ok(packageSource.includes("rawWriteCalls: 0"));
   assert.ok(packageSource.includes("sameIntentRetry: false"));
   assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
+  for (const marker of [
+    "upgrade(", "compound(", "exchange(", "buy(", "buy_with_gold(",
+    "equip(", "unequip(", "sell(", "bank_retrieve(", "bank_store(",
+    "send_item(", "send_gold(", "use_skill(", "start_character(",
+    "command_character(", "api_call(", "socket.emit(", ".socket.emit("
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
+
+
+test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound", () => {
+  if (manifest.testId !== "pr20-8-upgrade-durable-shadow-no-write") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit,
+    "79aec6e6d9d4568837641e3fadd48f67dea6adab");
+  assert.equal(manifest.packagePath,
+    "v5/werkzeuge/pr20-8-upgrade-durable-shadow-no-write.js");
+  assert.equal(manifest.packageSha256,
+    "90d93a6c6970c7d1632918a2280b858451c5087be97b2fe5bc88cc10aa1121c5");
+  assert.equal(manifest.expectedGlobal,
+    "V5PR208UpgradeDurableShadowNoWrite");
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.ok(packageSource.includes("ITEM_NAME = 'gloves'"));
+  assert.ok(packageSource.includes("ITEM_LEVEL = 0"));
+  assert.ok(packageSource.includes("SCROLL_NAME = 'scroll0'"));
+  assert.ok(packageSource.includes("SOURCE_PINNED_SELL_DISTANCE = 400"));
+  assert.ok(packageSource.includes("SERVICE_REACHABILITY_SAFETY_MAX = 300"));
+  assert.ok(packageSource.includes("journalTerminalArt:'ABBRUCH'"));
+  assert.ok(packageSource.includes("sendBoundaryState:'NICHT_GESENDET'"));
+  assert.ok(packageSource.includes("reconciliationClassification:'NOT_APPLIED'"));
+  assert.ok(packageSource.includes("upgradeAuthorityIssued:false"));
+  assert.ok(packageSource.includes("normalUpgradeWriteRatification:false"));
+  assert.ok(packageSource.includes("gameplayWrites:0"));
+  assert.ok(packageSource.includes("publicFunctionCalls:0"));
+  assert.ok(packageSource.includes("rawWriteCalls:0"));
+  assert.ok(packageSource.includes("sameIntentRetry:false"));
+  assert.ok(packageSource.includes("normalRuntimeAllowed:false"));
   for (const marker of [
     "upgrade(", "compound(", "exchange(", "buy(", "buy_with_gold(",
     "equip(", "unequip(", "sell(", "bank_retrieve(", "bank_store(",
