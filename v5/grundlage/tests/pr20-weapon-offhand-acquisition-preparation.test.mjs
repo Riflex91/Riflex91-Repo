@@ -191,6 +191,30 @@ test("PR20.7 acquisition preflight is immutable candidate discovery, never purch
   assert.equal(contract.shadowPreparation.realEvidenceGoldBudgetReservationSatisfied, true);
   assert.equal(contract.shadowPreparation.realEvidenceVendorReachableNow, true);
   assert.equal(contract.shadowPreparation.productivePurchasePreparationAuthorized, false);
+  assert.equal(contract.purchasePreparation.prepared, true);
+  assert.equal(contract.purchasePreparation.noWrite, true);
+  assert.equal(contract.purchasePreparation.exactRecipient, "My_Merchant");
+  assert.equal(contract.purchasePreparation.exactServer, "EU:I");
+  assert.equal(contract.purchasePreparation.exactItem, "wshield");
+  assert.equal(contract.purchasePreparation.exactTargetSlot, "offhand");
+  assert.equal(contract.purchasePreparation.exactQuantity, 1);
+  assert.equal(contract.purchasePreparation.exactCost, 4800);
+  assert.equal(contract.purchasePreparation.minimumGoldSafetyReserve, 1000);
+  assert.equal(contract.purchasePreparation.goldBudgetReservationAmount, 4800);
+  assert.equal(contract.purchasePreparation.actionContractId, "AL-ACTION-BUY-WITH-GOLD");
+  assert.equal(contract.purchasePreparation.recoveryContractId, "AL-RECOVERY-BUY-WITH-GOLD");
+  assert.equal(contract.purchasePreparation.verifierId, "AL-VERIFIER-BUY-WITH-GOLD");
+  assert.equal(contract.purchasePreparation.actionChannel, "buy");
+  assert.equal(contract.purchasePreparation.socketPlanBudgetReserved, 100);
+  assert.equal(contract.purchasePreparation.socketServerReserveUntouched, 100);
+  assert.equal(contract.purchasePreparation.oneShotMaximumUses, 1);
+  assert.equal(contract.purchasePreparation.oneShotMaximumTtlMs, 1500);
+  assert.equal(contract.purchasePreparation.exactSettlementGoldDelta, -4800);
+  assert.equal(contract.purchasePreparation.exactSettlementItemDelta, 1);
+  assert.equal(contract.purchasePreparation.sameIntentRetry, false);
+  assert.equal(contract.purchasePreparation.purchaseAuthorityIssued, false);
+  assert.equal(contract.purchasePreparation.productiveAdapterPresent, false);
+  assert.equal(contract.purchasePreparation.liveWriteRunnerPresent, false);
 });
 
 test("PR20.7 acquisition v1.0.2 real browser evidence is ratified zero-write", () => {
