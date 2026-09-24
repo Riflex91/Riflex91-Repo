@@ -512,6 +512,17 @@ public sealed class CdpAdventureLandClient
 
         if (string.Equals(currentVersion, desiredVersion, StringComparison.Ordinal))
             return false;
+        if (IsSafePr208BridgeHandshakeProbeTerminalization(
+                desiredTestId,
+                desiredVersion,
+                currentTestId,
+                currentVersion,
+                currentTerminal,
+                currentGameplayWrites,
+                currentRawWriteCalls,
+                currentSameIntentRetry,
+                currentIntentCount))
+            return true;
         if (!IsStrictlyNewerControllerVersion(desiredVersion, currentVersion))
             return false;
 
@@ -521,6 +532,34 @@ public sealed class CdpAdventureLandClient
             && !currentSameIntentRetry
             && !currentDurableIntentCreated
             && currentIntentCount <= 0;
+    }
+
+    public static bool IsSafePr208BridgeHandshakeProbeTerminalization(
+        string desiredTestId,
+        string desiredVersion,
+        string? currentTestId,
+        string? currentVersion,
+        bool currentTerminal,
+        long currentGameplayWrites,
+        long currentRawWriteCalls,
+        bool currentSameIntentRetry,
+        long currentIntentCount)
+    {
+        return string.Equals(
+                desiredTestId,
+                "pr20-8-bridge-handshake-probe-v1",
+                StringComparison.Ordinal)
+            && string.Equals(desiredVersion, "1.0.1", StringComparison.Ordinal)
+            && string.Equals(
+                currentTestId,
+                "pr20-8-bridge-handshake-probe-v1",
+                StringComparison.Ordinal)
+            && string.Equals(currentVersion, "1.0.0", StringComparison.Ordinal)
+            && !currentTerminal
+            && currentGameplayWrites == 0
+            && currentRawWriteCalls == 0
+            && !currentSameIntentRetry
+            && currentIntentCount == 0;
     }
 
     public static bool IsStrictlyNewerControllerVersion(string? desiredVersion, string? currentVersion)
