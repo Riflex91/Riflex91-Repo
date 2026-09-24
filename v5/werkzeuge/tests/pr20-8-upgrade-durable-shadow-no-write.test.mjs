@@ -371,6 +371,28 @@ test("PR20.8 exact terminal shadow intent is explicitly recovered without rewrit
   assert.equal([...shared.rows.values()][0],before);
 });
 
+test("PR20.8 terminal shadow recovery rejects persisted service reachability drift", async () => {
+  const items=Array(8).fill(null);
+  items[2]={ name:"gloves", level:0 };
+  items[3]={ name:"scroll0", q:2 };
+  const shared=new MemoryStorage();
+  const first=await run(sandbox(items,{storage:shared}));
+  assert.equal(first.status,"BESTANDEN");
+  const [key,value]=[...shared.rows.entries()][0];
+  const drift=JSON.parse(value);
+  drift.serviceReachability.distance =
+    Number(drift.serviceReachability.distance || 0) + 1;
+  shared.setItem(key,JSON.stringify(drift));
+
+  const env=sandbox(items,{storage:shared});
+  const second=await run(env);
+  assert.equal(second.status,"FEHLER");
+  assert.ok(second.blocker.some(x =>
+    x.includes("PR20_8_UPGRADE_SHADOW_TERMINAL_INTENT_DRIFT")));
+  assert.equal(env.upgradeCalls(),0);
+  assert.equal(shared.rows.size,1);
+});
+
 test("PR20.8 terminal shadow recovery rejects any persisted intent drift", async () => {
   const items=Array(8).fill(null);
   items[2]={ name:"gloves", level:0 };
