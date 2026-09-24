@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_PRODUCTIVE_ONE_WRITE_ITEM_DEFINITION_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE",
+    "UPGRADE_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_UPDATER_PERSISTENCE_BOOTSTRAP_MANIFEST_CUTOVER_PREPARED",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN_V1_0_3",
+    "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_REAL_BROWSER_RUN",
   );
   assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
   assert.equal(
@@ -784,6 +784,36 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   assert.equal(p.normalRuntimeAllowed,false);
 });
 
+test("PR20.8 updater persistence bootstrap is the active no-write follow-up boundary", () => {
+  const b=prep.pr20_8.updaterPersistenceBootstrap;
+  assert.equal(b.status,"MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED");
+  assert.equal(
+    b.contract,
+    "grundlage/vertraege/runtime/pr20-8-updater-persistence-bootstrap-preparation.json",
+  );
+  assert.equal(b.package,"werkzeuge/pr20-8-updater-recovery-bootstrap-v1.js");
+  assert.equal(b.test,"werkzeuge/tests/pr20-8-updater-recovery-bootstrap-v1.test.mjs");
+  assert.equal(b.testId,"pr20-8-native-updater-recovery-bootstrap-v1");
+  assert.equal(b.controllerVersion,"1.0.0");
+  assert.equal(b.updaterVersion,"1.0.8");
+  assert.equal(b.expectedGlobal,"V5PR208UpdaterRecoveryBootstrap");
+  assert.equal(b.sourceCommit,"e6a52aafcacb5c23c4a2cdfef88250cbb0e3fe2e");
+  assert.equal(
+    b.packageSha256,
+    "0745b836e660c1f6a1bd96a4418908c2822556542ca09e7876e624800d2888fb",
+  );
+  assert.equal(b.packageBytes,28532);
+  assert.equal(b.selfPersisting,true);
+  assert.equal(b.maximumCodeSlotWritesPerFreshPersistence,1);
+  assert.equal(b.maximumCodeSlotReloadsPerFreshPersistence,1);
+  assert.equal(b.gameplayWrites,0);
+  assert.equal(b.publicFunctionCalls,0);
+  assert.equal(b.rawWriteCalls,0);
+  assert.equal(b.sameIntentRetry,false);
+  assert.equal(b.normalRuntimeAllowed,false);
+  assert.equal(b.nextGate,"PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_REAL_BROWSER_RUN");
+});
+
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
   const wert = text("grundlage/quelle/merchant/werttransaktion.ts");
   const graph = text("grundlage/quelle/produktion/production-graph.ts");
@@ -830,7 +860,7 @@ test("aktueller Vertragskatalog ist konsistent 61 total / 60 verifiziert / 1 dis
 
 test("PR20.8 Upgrade productive one-write runner package has a separate aggregate contract boundary", () => {
   const r=prep.pr20_8.upgradeProductiveOneWriteRunner;
-  assert.equal(r.status,"ITEM_DEFINITION_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_ONE_WRITE");
+  assert.equal(r.status,"COMMITTED_SUCCESS_RETIRED_FROM_ACTIVE_MANIFEST");
   assert.equal(r.package,"werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-3.js");
   assert.equal(r.test,"werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-3.test.mjs");
   assert.equal(
@@ -854,7 +884,7 @@ test("PR20.8 Upgrade productive one-write runner package has a separate aggregat
   assert.equal(r.maximumPublicFunctionCalls,1);
   assert.equal(r.maximumRawWriteCalls,0);
   assert.equal(r.sameIntentRetry,false);
-  assert.equal(r.manifestCutoverPrepared,true);
+  assert.equal(r.manifestCutoverPrepared,false);
   assert.equal(r.manifest,"roadmap/v5-autonomous-test-manifest.json");
   assert.equal(
     r.sourceCommit,
@@ -865,14 +895,14 @@ test("PR20.8 Upgrade productive one-write runner package has a separate aggregat
     "1290b72479eb5683ebab2c1202d09a2d5918a7a1bbf1a1fd190e48f0e2bab3a1",
   );
   assert.equal(r.packageBytes,51544);
-  assert.equal(r.deployed,false);
-  assert.equal(r.deploymentEvidenceObserved,false);
-  assert.equal(r.liveWriteEnabled,true);
-  assert.equal(r.realUpgradeMutationPerformed,false);
-  assert.equal(r.bridgeMayDeployPinnedRunner,true);
+  assert.equal(r.deployed,true);
+  assert.equal(r.deploymentEvidenceObserved,true);
+  assert.equal(r.liveWriteEnabled,false);
+  assert.equal(r.realUpgradeMutationPerformed,true);
+  assert.equal(r.bridgeMayDeployPinnedRunner,false);
   assert.equal(
     r.nextGate,
-    "PR20_8_UPGRADE_PRODUCTIVE_ONE_WRITE_REAL_BROWSER_RUN_V1_0_3",
+    "PR20_8_UPDATER_PERSISTENCE_BOOTSTRAP_REAL_BROWSER_RUN",
   );
   assert.equal(r.previousControllerVersion,"1.0.2");
   assert.equal(r.previousAttemptTelemetryBatchId,8251);
@@ -884,5 +914,21 @@ test("PR20.8 Upgrade productive one-write runner package has a separate aggregat
   assert.equal(r.previousAttemptPublicFunctionCalls,0);
   assert.equal(r.previousAttemptRawWriteCalls,0);
   assert.equal(r.authoritativeUpgradeDefinitionShape,"OBJECT");
+  assert.equal(r.evidence,"roadmap/pr20-8-upgrade-productive-one-write-evidence.json");
+  assert.equal(r.evidenceTelemetryBatchId,8252);
+  assert.equal(r.evidenceObservedControllerVersion,"1.0.3");
+  assert.equal(r.evidenceStatus,"BESTANDEN");
+  assert.equal(r.evidencePhase,"COMPLETE");
+  assert.equal(r.evidenceReconciliation,"COMMITTED_SUCCESS");
+  assert.equal(r.evidenceSendCount,1);
+  assert.equal(r.evidenceGameplayWrites,1);
+  assert.equal(r.evidencePublicFunctionCalls,1);
+  assert.equal(r.evidenceRawWriteCalls,0);
+  assert.equal(r.evidenceCandidate,"gloves@0->1");
+  assert.equal(r.evidenceCandidateIndex,6);
+  assert.equal(r.evidenceScroll,"scroll0");
+  assert.equal(r.evidenceScrollIndex,14);
+  assert.equal(r.evidenceScrollQuantityBefore,36);
+  assert.equal(r.evidenceScrollQuantityAfter,35);
   assert.equal(r.normalRuntimeAllowed,false);
 });
