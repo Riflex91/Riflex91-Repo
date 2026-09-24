@@ -497,6 +497,36 @@ test("PR20.8 Exchange besitzt spezialisierten Multi-Domain NO-WRITE Planer", () 
   ]) assert.equal(exchangePlaner.includes(raw), false, raw);
 });
 
+test("PR20.8 Durable One-Shot Foundations bleiben family-separat und NO-WRITE", () => {
+  assert.equal(prep.pr20_8.status, "DURABLE_ONE_SHOT_FOUNDATIONS_BEREIT_NO_WRITE");
+  assert.equal(prep.pr20_8.nextAction, "PR20_8_READ_ONLY_PREFLIGHTS");
+  const d = prep.pr20_8.durableOneShotFoundations;
+  assert.equal(d.status, "BEREIT_NO_WRITE");
+  assert.equal(d.separateAuthorityPerFamily, true);
+  assert.equal(d.genericSharedMutationAuthority, false);
+  assert.equal(d.maximumUses, 1);
+  assert.equal(d.maximumTtlMs, 1500);
+  assert.equal(d.durableAuthorityWriteRequired, true);
+  assert.equal(d.exactDurableReadbackRequired, true);
+  assert.equal(d.exactJournalReadbackRequired, true);
+  assert.equal(d.driftRevokes, true);
+  assert.equal(d.currentFenceBlocksAnyOpenMutationAuthority, true);
+  assert.equal(d.currentFenceBlocksAnyOpenMutationTransaction, true);
+  assert.equal(d.sendBoundaryState, "NICHT_GESENDET");
+  assert.equal(d.sameIntentRetry, false);
+  assert.equal(d.admissionConsumesOneShot, true);
+  assert.equal(d.admissionPerformsSend, false);
+  assert.equal(d.executionAuthority, false);
+  assert.equal(d.gameplayAuthority, false);
+  assert.equal(d.rawWriteAuthority, false);
+  assert.equal(d.liveAdapterPresent, false);
+  assert.equal(d.liveRunnerPresent, false);
+  assert.equal(d.gameplayWrites, 0);
+  assert.equal(d.publicFunctionCalls, 0);
+  assert.equal(d.rawWriteCalls, 0);
+  assert.equal(d.normalRuntimeAllowed, false);
+});
+
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
   const wert = text("grundlage/quelle/merchant/werttransaktion.ts");
   const graph = text("grundlage/quelle/produktion/production-graph.ts");
