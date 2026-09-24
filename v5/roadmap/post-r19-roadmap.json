@@ -88,7 +88,7 @@
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: Nach bestaetigter terminaler Bridge-Recovery den vorhandenen PR20.8 Live-Candidate-Scanner rein read-only erneut ausfuehren; Compound/Exchange neu beobachten; Upgrade ist bereits COMMITTED_SUCCESS und bleibt ohne neue Write-Authority."
+    "AKTUELL: Candidate-Rescan v1.0.1 mit synchroner Observability-Fassade deployen; danach Compound/Exchange rein read-only neu beobachten. Der v1.0.0 Handshake-Fehler erzeugte keine Gameplay-Writes."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -2001,15 +2001,15 @@
       "evidence": "v5/roadmap/pr20-8-bridge-handshake-probe-evidence.json"
     },
     "remainingCandidateRescan": {
-      "status": "MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED",
+      "status": "V1_0_0_REAL_BROWSER_HANDSHAKE_FAILED_V1_0_1_RECOVERY_PREPARED",
       "purpose": "REOBSERVE_REMAINING_COMPOUND_AND_EXCHANGE_NORMAL_CANDIDATES_AFTER_UPGRADE_COMMIT",
       "testId": "pr20-8-wertmutation-live-candidate-readonly",
-      "controllerVersion": "1.0.0",
-      "package": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js",
-      "test": "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly.test.mjs",
+      "controllerVersion": "1.0.1",
+      "package": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.js",
+      "test": "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.test.mjs",
       "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
-      "sourceCommit": "7307573841b86b1fb22fd5abfb73a3d461bf0049",
-      "packageSha256": "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5",
+      "sourceCommit": "f82d3ed4cc2c89a5b6e8f5e06c9d6377fd631c1c",
+      "packageSha256": "36be29170d280ad78098c3e3a1901a82aa29328c8665e2a0dec4d84b914e41f4",
       "priorEvidence": "v5/roadmap/pr20-8-live-candidate-readonly-evidence.json",
       "targetFamilies": [
         "COMPOUND",
@@ -2022,7 +2022,39 @@
       "rawWriteCalls": 0,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN"
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+      "packageBytes": 21366,
+      "observedV1Failure": {
+        "observedAt": "2026-09-24T18:05:47.0307173+00:00",
+        "bridgeState": "ERROR",
+        "bridgeError": "InvalidOperationException: V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED",
+        "attemptedControllerVersion": "1.0.0",
+        "attemptedPackage": "werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js",
+        "activeTestIdBeforeAttempt": "pr20-8-bridge-handshake-probe-v1",
+        "activeVersionBeforeAttempt": "1.0.1",
+        "activeStatusBeforeAttempt": "BESTANDEN",
+        "activeTerminalBeforeAttempt": true,
+        "gameplayWritesObserved": 0,
+        "publicFunctionCallsObserved": 0,
+        "rawWriteCallsObserved": 0,
+        "additionalGameplayWriteObserved": false
+      },
+      "recovery": {
+        "status": "V1_0_1_SYNCHRONOUS_HANDSHAKE_MANIFEST_CUTOVER_PREPARED",
+        "controllerVersion": "1.0.1",
+        "package": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.js",
+        "test": "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.test.mjs",
+        "sourceCommit": "f82d3ed4cc2c89a5b6e8f5e06c9d6377fd631c1c",
+        "packageSha256": "36be29170d280ad78098c3e3a1901a82aa29328c8665e2a0dec4d84b914e41f4",
+        "packageBytes": 21366,
+        "synchronousFacadeBeforeAsyncScan": true,
+        "readOnly": true,
+        "gameplayWrites": 0,
+        "publicFunctionCalls": 0,
+        "rawWriteCalls": 0,
+        "sameIntentRetry": false,
+        "normalRuntimeAllowed": false
+      }
     }
   }
 }

@@ -840,16 +840,17 @@ test("PR20.8 bridge handshake and terminal recovery are confirmed zero-write", (
   assert.equal(r.evidence,"roadmap/pr20-8-bridge-handshake-terminal-recovery-evidence.json");
 });
 
-test("PR20.8 remaining Compound/Exchange candidate rescan is read-only and exact", () => {
+test("PR20.8 remaining Compound/Exchange candidate rescan recovery is synchronous, read-only and exact", () => {
   const r=prep.pr20_8.remainingCandidateRescan;
-  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_NOT_YET_OBSERVED");
+  assert.equal(r.status,"V1_0_0_REAL_BROWSER_HANDSHAKE_FAILED_V1_0_1_RECOVERY_PREPARED");
   assert.equal(r.testId,"pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(r.controllerVersion,"1.0.0");
-  assert.equal(r.package,"werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js");
-  assert.equal(r.test,"werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly.test.mjs");
+  assert.equal(r.controllerVersion,"1.0.1");
+  assert.equal(r.package,"werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.js");
+  assert.equal(r.test,"werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.test.mjs");
   assert.equal(r.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
-  assert.equal(r.sourceCommit,"7307573841b86b1fb22fd5abfb73a3d461bf0049");
-  assert.equal(r.packageSha256,"863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5");
+  assert.equal(r.sourceCommit,"f82d3ed4cc2c89a5b6e8f5e06c9d6377fd631c1c");
+  assert.equal(r.packageSha256,"36be29170d280ad78098c3e3a1901a82aa29328c8665e2a0dec4d84b914e41f4");
+  assert.equal(r.packageBytes,21366);
   assert.deepEqual(r.targetFamilies,["COMPOUND","EXCHANGE"]);
   assert.equal(r.upgradeFamilyInformationalOnly,true);
   assert.equal(r.readOnly,true);
@@ -859,8 +860,28 @@ test("PR20.8 remaining Compound/Exchange candidate rescan is read-only and exact
   assert.equal(r.sameIntentRetry,false);
   assert.equal(r.normalRuntimeAllowed,false);
   assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
-});
 
+  const f=r.observedV1Failure;
+  assert.equal(f.bridgeState,"ERROR");
+  assert.equal(f.bridgeError,"InvalidOperationException: V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED");
+  assert.equal(f.attemptedControllerVersion,"1.0.0");
+  assert.equal(f.activeTestIdBeforeAttempt,"pr20-8-bridge-handshake-probe-v1");
+  assert.equal(f.activeVersionBeforeAttempt,"1.0.1");
+  assert.equal(f.activeStatusBeforeAttempt,"BESTANDEN");
+  assert.equal(f.activeTerminalBeforeAttempt,true);
+  assert.equal(f.gameplayWritesObserved,0);
+  assert.equal(f.publicFunctionCallsObserved,0);
+  assert.equal(f.rawWriteCallsObserved,0);
+  assert.equal(f.additionalGameplayWriteObserved,false);
+
+  assert.equal(r.recovery.status,"V1_0_1_SYNCHRONOUS_HANDSHAKE_MANIFEST_CUTOVER_PREPARED");
+  assert.equal(r.recovery.synchronousFacadeBeforeAsyncScan,true);
+  assert.equal(r.recovery.readOnly,true);
+  assert.equal(r.recovery.gameplayWrites,0);
+  assert.equal(r.recovery.publicFunctionCalls,0);
+  assert.equal(r.recovery.rawWriteCalls,0);
+  assert.equal(r.recovery.normalRuntimeAllowed,false);
+});
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
   const wert = text("grundlage/quelle/merchant/werttransaktion.ts");
   const graph = text("grundlage/quelle/produktion/production-graph.ts");
