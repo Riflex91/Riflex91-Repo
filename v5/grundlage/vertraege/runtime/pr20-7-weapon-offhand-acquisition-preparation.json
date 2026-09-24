@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-24",
   "kennung": "V5_PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY",
-  "status": "DURABLE_SHADOW_BESTANDEN_PRODUCTIVE_PURCHASE_PREPARATION_BEREIT_NO_PURCHASE_AUTHORITY",
+  "status": "PRODUCTIVE_PURCHASE_PACKAGE_BEREIT_MANIFEST_OFFEN",
   "blockingGate": "PR20.7_GEAR",
   "rationale": {
     "merchantReadOnlyPreflight": "BLOCKIERT_REAL_BROWSER_NO_SAFE_CANDIDATE_ZERO_WRITE",
@@ -123,7 +123,7 @@
       "no same-intent retry after possible send"
     ]
   },
-  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION",
+  "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_5M_MANIFEST_CUTOVER",
   "shadowPreparation": {
     "foundation": "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
     "foundationTest": "v5/grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
@@ -237,6 +237,25 @@
     "rawWriteAuthority": false,
     "productiveAdapterPresent": false,
     "liveWriteRunnerPresent": false,
-    "normalRuntimeAllowed": false
+    "normalRuntimeAllowed": false,
+    "livePackagePrepared": true,
+    "livePackage": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-live-5m.js",
+    "livePackageTest": "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-live-5m.test.mjs",
+    "liveTestPlan": "v5/roadmap/pr20-7-weapon-offhand-acquisition-live-5m-test-plan.json",
+    "liveEvidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-live-5m-evidence.json",
+    "liveTestId": "pr20-7-gear-weapon-offhand-acquisition-live-5m",
+    "liveControllerVersion": "1.0.0",
+    "liveExpectedGlobal": "V5PR207WeaponOffhandAcquisitionLiveTest",
+    "liveSourceCommit": "5efa5e2c92c258e1502ee388e84ba96d4c844027",
+    "livePackageSha256": "5cecc5a3ca36c2d75e4a6629c36991417b508e364a965c1a945a790aac8bd930",
+    "liveManifestCutoverPrepared": false,
+    "liveMaximumGameplayWrites": 1,
+    "liveMaximumPublicFunctionCalls": 1,
+    "liveRawWriteCalls": 0,
+    "liveOneShotMaximumUses": 1,
+    "liveRestartReconcileWithoutResend": true,
+    "liveSoakMinimumSamples": 60,
+    "liveSoakMinimumDurationMs": 299000,
+    "broadPurchaseAuthority": false
   }
 }

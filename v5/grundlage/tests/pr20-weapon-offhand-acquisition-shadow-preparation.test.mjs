@@ -24,9 +24,9 @@ const runner = fs.readFileSync(
 );
 
 test("PR20.7 acquisition shadow package is exact, immutable and merchant-only", () => {
-  assert.equal(contract.status, "DURABLE_SHADOW_BESTANDEN_PRODUCTIVE_PURCHASE_PREPARATION_BEREIT_NO_PURCHASE_AUTHORITY");
+  assert.equal(contract.status, "PRODUCTIVE_PURCHASE_PACKAGE_BEREIT_MANIFEST_OFFEN");
   assert.equal(contract.blockingGate, "PR20.7_GEAR");
-  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION");
+  assert.equal(contract.nextAction, "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_5M_MANIFEST_CUTOVER");
 
   const shadow = contract.shadowPreparation;
   assert.equal(shadow.foundation, "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts");
