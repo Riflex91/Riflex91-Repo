@@ -81,11 +81,11 @@
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.7 belegter Nicht-Waffen-Slot ist produktiv BESTANDEN",
-    "PR20.7 Merchant Waffen-/Offhand Read-only ist real fail-closed ohne sicheren Merchant-Kandidaten und 0 Writes",
-    "PR20.7 accountweite Discovery plus Bridge-Beobachtung fand 0 kompatible vorhandene Weapon-/Offhand-Kandidaten",
-    "Acquisition v1.0.0 lief real zero-write, wird aber nicht ratifiziert: vendorReachableNow=false und sellDistance=null wurden nicht fail-closed erzwungen",
-    "AKTUELL: Acquisition v1.0.1 ist fail-closed immutable gepinnt und fuer Manifest-Cutover vorbereitet",
-    "NAECHSTES: realen v1.0.1 Read-only-Preflight auswerten; nur ein echter PASS darf den Durable-Shadow freigeben",
+    "PR20.7 Merchant Waffen-/Offhand Read-only und accountweite Discovery sind fail-closed abgeschlossen; accountweit 0 kompatible vorhandene Kandidaten",
+    "Acquisition v1.0.0 wird wegen Reachability-False-Positive nicht ratifiziert",
+    "Acquisition v1.0.1 lief real terminal BLOCKIERT mit PR20_7_ACQUISITION_SELL_DIST_FEHLT und 0 Writes",
+    "AKTUELL: v1.0.2 ist als separates source-gepinntes Read-only-Package vorbereitet; offizieller Adventure-Land-Upstream wurde am 2026-09-24 auf sell_dist=400 und den serverseitigen Buy-Distanzcheck revalidiert",
+    "NAECHSTES: v1.0.2 immutable ins Manifest schneiden und real erneut ausfuehren",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -703,7 +703,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+      "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_2_SOURCE_PIN_PACKAGE_BEREIT_MANIFEST_OFFEN",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -733,12 +733,13 @@
         "v5/grundlage/vertraege/runtime/pr20-7-weapon-offhand-acquisition-preparation.json",
         "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-autonomous.js",
         "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js",
+        "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-2-autonomous.js",
         "v5/werkzeuge/tests/pr20-7-weapon-offhand-acquisition-read-only-autonomous.test.mjs",
         "v5/grundlage/tests/pr20-weapon-offhand-acquisition-preparation.test.mjs",
         "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
         "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json"
       ],
-      "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_1_0_1"
+      "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_1_0_2"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1039,7 +1040,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+    "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_2_SOURCE_PIN_PACKAGE_BEREIT_MANIFEST_OFFEN",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1099,7 +1100,7 @@
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json"
     ],
-    "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_READ_ONLY_EXECUTE_V1_0_1",
+    "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_1_0_2",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1203,11 +1204,11 @@
       "observedSoakDurationMs": 300552
     },
     "remainingGates": {
-      "weaponOffhand": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+      "weaponOffhand": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_2_SOURCE_PIN_PACKAGE_BEREIT_MANIFEST_OFFEN",
       "farmerGearAllocation": "OFFEN_SEPARATE_RATIFICATION"
     },
     "weaponOffhand": {
-      "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+      "status": "WEAPON_OFFHAND_ACQUISITION_CORRECTIVE_1_0_2_SOURCE_PIN_PACKAGE_BEREIT_MANIFEST_OFFEN",
       "contract": "v5/grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json",
       "explicitSlots": [
         "mainhand",
@@ -1294,7 +1295,7 @@
         "performanceTrickVerified": true
       },
       "acquisitionContract": "v5/grundlage/vertraege/runtime/pr20-7-weapon-offhand-acquisition-preparation.json",
-      "acquisitionPackage": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-1-autonomous.js",
+      "acquisitionPackage": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-read-only-v1-0-2-autonomous.js",
       "acquisitionTestPlan": "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
       "acquisitionEvidence": "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json",
       "acquisitionPrepared": true,
@@ -1303,11 +1304,11 @@
       "acquisitionTargetSlot": "offhand",
       "acquisitionExpectedUnitPrice": 4800,
       "acquisitionVendorId": "basics",
-      "acquisitionControllerVersion": "1.0.1",
-      "acquisitionSourceCommit": "bfcbc3186b1fe374fe37d0dd43d5677511480f5d",
-      "acquisitionPackageSha256": "0d1378a0bca4ff0665dc14ab67920a15a0532f20ab141c6428edac414c0c3c72",
-      "acquisitionManifestCutoverPrepared": true,
-      "acquisitionEvidenceStatus": "V1_0_0_FALSE_POSITIVE_REJECTED_V1_0_1_OFFEN",
+      "acquisitionControllerVersion": "1.0.2",
+      "acquisitionSourceCommit": "0228da63fe01e8717ef7aebb85af24bb3b35478b",
+      "acquisitionPackageSha256": "1931312bfe6b15a2dd0764e774c52c84e6db09c376ee3fd33205b20cc5c9938c",
+      "acquisitionManifestCutoverPrepared": false,
+      "acquisitionEvidenceStatus": "V1_0_1_BLOCKED_SELL_DIST_UNOBSERVABLE_V1_0_2_OFFEN",
       "acquisitionGameplayWrites": 0,
       "acquisitionPublicFunctionCalls": 0,
       "acquisitionRawWriteCalls": 0,
@@ -1316,13 +1317,20 @@
       "acquisitionOldPr203HarnessReuseAllowed": false,
       "acquisitionSameIntentRetry": false,
       "acquisitionNormalRuntimeAllowed": false,
-      "acquisitionPreviousControllerVersionRejected": "1.0.0",
+      "acquisitionPreviousControllerVersionRejected": "1.0.1",
       "acquisitionPreviousLiveRunRatified": false,
       "acquisitionRequiredBuyApi": true,
-      "acquisitionRequiredObservedSellDistance": true,
+      "acquisitionRequiredObservedSellDistance": false,
       "acquisitionRequiredVendorReachability": true,
       "acquisitionSameTestUpgradeStrictlyNewer": true,
-      "acquisitionPreviousTerminalZeroWriteEligible": true
+      "acquisitionPreviousTerminalZeroWriteEligible": true,
+      "acquisitionSourcePinnedSellDistanceAllowed": true,
+      "acquisitionSourcePinnedSellDistance": 400,
+      "acquisitionBrowserSellDistanceMustMatchSourcePin": true,
+      "acquisitionExpectedServerRegion": "EU",
+      "acquisitionExpectedServerIdentifier": "I",
+      "acquisitionOfficialServerSourceCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+      "acquisitionOfficialServerBlobSha": "40d0aeda16b9a4320441e833020fe1b4db496e2c"
     }
   }
 }
