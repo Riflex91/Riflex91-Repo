@@ -642,6 +642,15 @@ test("PR20.8 Upgrade Durable Shadow package stays no-send and authority-free", (
   assert.equal(shadow.candidate.baseGold, 3400);
   assert.equal(shadow.scroll.name, "scroll0");
   assert.equal(shadow.scroll.consumeQuantity, 1);
+  assert.equal(shadow.scroll.type, "uscroll");
+  assert.equal(shadow.scroll.grade, 0);
+  assert.equal(shadow.scroll.baseGold, 1000);
+  assert.equal(shadow.serviceReachabilityRequired, true);
+  assert.equal(shadow.sourcePinnedSellDistance, 400);
+  assert.equal(shadow.conservativeLiveSafetyDistanceMax, 300);
+  assert.equal(shadow.serviceReference, "G.maps.main.ref.u_mid");
+  assert.equal(shadow.exactItemDefinitionRequired, true);
+  assert.equal(shadow.exactScrollDefinitionRequired, true);
   assert.equal(shadow.offering, null);
   assert.equal(shadow.normalPathOnly, true);
   assert.equal(shadow.currentPhysicalIndexesReresolved, true);
