@@ -65,6 +65,31 @@ function sandboxWithRows(rows, active = []) {
     },
     get_characters: () => rows,
     get_active_characters: () => active,
+    AIO_V3: {
+      operations: {
+        status: () => ({
+          schemaVersion: 1,
+          mode: "V5_AUTONOMOUS_TEST",
+          v5AutonomousTest: {
+            testId: "previous-terminal-test",
+            version: "0.0.1",
+            status: "BESTANDEN",
+            phase: "COMPLETE",
+            terminal: true,
+          },
+        }),
+        hostHeartbeat: () => ({
+          schemaVersion: 1,
+          alive: true,
+          observedAtMs: 1,
+        }),
+        reconciliationStatus: () => ({
+          schemaVersion: 1,
+          status: "TERMINAL",
+        }),
+        peekTelemetry: () => [],
+      },
+    },
   };
   sandbox.parent = sandbox;
   sandbox.globalThis = sandbox;
@@ -126,6 +151,61 @@ test("account discovery selects deterministic existing farmer candidate read-onl
   assert.equal(status.disconnectCalls, 0);
   assert.equal(status.farmerWorkersInstalled, 0);
   assert.equal(status.normalRuntimeAllowed, false);
+});
+
+test("account discovery facade preserves the bridge operations contract", async () => {
+  const rows = [
+    {
+      name: "My_Ranger1",
+      ctype: "ranger",
+      level: 70,
+      items: [],
+      slots: { mainhand: { name: "bow", level: 3 }, offhand: null },
+    },
+    {
+      name: "My_Priest",
+      ctype: "priest",
+      level: 70,
+      items: [{ name: "source1", level: 0 }],
+      slots: { mainhand: { name: "staff", level: 3 }, offhand: null },
+    },
+    {
+      name: "My_Mage",
+      ctype: "mage",
+      level: 70,
+      items: [],
+      slots: { mainhand: { name: "staff", level: 3 }, offhand: null },
+    },
+  ];
+  const sandbox = sandboxWithRows(rows, ["My_Ranger1", "My_Priest", "My_Mage"]);
+  vm.createContext(sandbox);
+  vm.runInContext(source, sandbox, {
+    filename: "pr20-7-account-weapon-candidate-discovery.js",
+  });
+  for (let i = 0; i < 100; i += 1) {
+    await Promise.resolve();
+    if (sandbox.V5PR207AccountWeaponCandidateDiscovery?.status?.()?.terminal) break;
+  }
+
+  const ops = sandbox.AIO_V3.operations;
+  assert.equal(typeof ops.status, "function");
+  assert.equal(typeof ops.hostHeartbeat, "function");
+  assert.equal(typeof ops.reconciliationStatus, "function");
+  assert.equal(typeof ops.peekTelemetry, "function");
+
+  const bridgeStatus = ops.status();
+  assert.equal(bridgeStatus.mode, "V5_AUTONOMOUS_TEST");
+  assert.equal(
+    bridgeStatus.v5AutonomousTest.testId,
+    "pr20-7-gear-account-weapon-candidate-discovery",
+  );
+  assert.equal(bridgeStatus.v5AutonomousTest.version, "1.0.1");
+  assert.equal(bridgeStatus.v5AutonomousTest.status, "BESTANDEN");
+  assert.equal(bridgeStatus.v5AutonomousTest.terminal, true);
+  assert.equal(ops.hostHeartbeat().v5TestId,
+    "pr20-7-gear-account-weapon-candidate-discovery");
+  assert.equal(ops.reconciliationStatus().sameIntentRetry, false);
+  assert.ok(Array.isArray(ops.peekTelemetry(2000)));
 });
 
 test("account discovery reports roster without inventories fail-closed", async () => {

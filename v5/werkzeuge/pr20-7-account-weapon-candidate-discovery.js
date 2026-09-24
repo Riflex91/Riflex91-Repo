@@ -2,7 +2,7 @@
   'use strict';
 
   const TEST_ID = 'pr20-7-gear-account-weapon-candidate-discovery';
-  const VERSION = '1.0.0';
+  const VERSION = '1.0.1';
   const FARMERS = Object.freeze([
     Object.freeze({ name:'My_Ranger1', ctype:'ranger' }),
     Object.freeze({ name:'My_Priest', ctype:'priest' }),
@@ -57,37 +57,81 @@
     throw new Error('PR20_7_ACCOUNT_DISCOVERY_CONTEXT_MISSING');
   }
 
-  function publish() {
-    state.updatedAtMs = Date.now();
-    const snapshot = clone(state);
-    const ops = {
-      status: () => clone(snapshot),
-      hostHeartbeat: () => ({
-        schemaVersion: 1,
-        mode: 'V5_AUTONOMOUS_TEST',
-        v5Mode: 'V5_AUTONOMOUS_TEST',
-        v5TestId: TEST_ID,
-        alive: true,
-        observedAtMs: Date.now(),
-        v5ObservedAtMs: Date.now()
-      }),
+  function installTelemetryFacade(owner) {
+    if (!owner) return;
+    owner.AIO_V3 = owner.AIO_V3 || {};
+    const existing = owner.AIO_V3.operations
+      && typeof owner.AIO_V3.operations === 'object'
+      ? owner.AIO_V3.operations
+      : null;
+    if (existing?.__v5Pr207AccountDiscoveryFacadeVersion === VERSION) return;
+
+    const oldStatus = existing && typeof existing.status === 'function'
+      ? existing.status.bind(existing)
+      : null;
+    const oldHeartbeat = existing && typeof existing.hostHeartbeat === 'function'
+      ? existing.hostHeartbeat.bind(existing)
+      : null;
+
+    owner.AIO_V3.operations = {
+      ...(existing || {}),
+      __v5Pr207AccountDiscoveryFacadeVersion: VERSION,
+      status: () => {
+        let base = {};
+        try {
+          const value = oldStatus ? oldStatus() : null;
+          if (value && typeof value === 'object') base = value;
+        } catch {}
+        return {
+          ...base,
+          schemaVersion: Number(base.schemaVersion) || 1,
+          mode: 'V5_AUTONOMOUS_TEST',
+          v5AutonomousTest: clone(state),
+          telemetry: {
+            queued: 0,
+            lastCapturedSeq: 0,
+            dropped: 0
+          }
+        };
+      },
+      hostHeartbeat: () => {
+        try {
+          const value = oldHeartbeat ? oldHeartbeat() : null;
+          if (value && typeof value === 'object') {
+            return {
+              ...value,
+              v5Mode: 'V5_AUTONOMOUS_TEST',
+              v5TestId: TEST_ID,
+              v5ObservedAtMs: Date.now()
+            };
+          }
+        } catch {}
+        return {
+          schemaVersion: 1,
+          mode: 'V5_AUTONOMOUS_TEST',
+          v5Mode: 'V5_AUTONOMOUS_TEST',
+          v5TestId: TEST_ID,
+          alive: true,
+          observedAtMs: Date.now(),
+          v5ObservedAtMs: Date.now()
+        };
+      },
       reconciliationStatus: () => ({
         schemaVersion: 1,
-        status: snapshot.terminal ? 'TERMINAL_NO_MUTATION' : 'OBSERVING',
-        v5AutonomousTestStatus: snapshot.status,
-        v5Terminal: snapshot.terminal,
+        status: state.terminal ? 'TERMINAL_NO_MUTATION' : 'OBSERVING',
+        v5AutonomousTestStatus: state.status,
+        v5Terminal: state.terminal === true,
         sameIntentRetry: false
       }),
-      peekTelemetry: () => ({ events: [], queued: 0, dropped: 0, lastCapturedSeq: 0 })
+      peekTelemetry: () => []
     };
+  }
+
+  function publish() {
+    state.updatedAtMs = Date.now();
+    try { installTelemetryFacade(root()); } catch {}
     try {
-      const r = root();
-      r.AIO_V3 = r.AIO_V3 || {};
-      r.AIO_V3.operations = ops;
-    } catch {}
-    try {
-      globalThis.AIO_V3 = globalThis.AIO_V3 || {};
-      globalThis.AIO_V3.operations = ops;
+      if (globalThis !== root()) installTelemetryFacade(globalThis);
     } catch {}
   }
 

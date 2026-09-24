@@ -17,6 +17,10 @@ const source = fs.readFileSync(
 
 test("PR20.7 account discovery remains a read-only selector, not farmer gear authority", () => {
   assert.equal(plan.gate, "PR20.7_GEAR");
+  assert.equal(plan.controllerVersion, "1.0.1");
+  assert.equal(plan.bridgeContract.statusEnvelope, "status.v5AutonomousTest");
+  assert.equal(plan.bridgeContract.peekTelemetryArray, true);
+  assert.equal(plan.bridgeContract.preservesExistingOperations, true);
   assert.equal(plan.status, "MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_DISCOVERY");
   assert.equal(plan.deployment.packageCommitPinned, true);
   assert.match(plan.deployment.sourceCommit, /^[0-9a-f]{40}$/);
@@ -63,6 +67,7 @@ test("PR20.7 account discovery package has closed mutation boundary", () => {
 
 test("PR20.7 account discovery pending evidence cannot count as pass", () => {
   assert.equal(evidence.status, "OFFEN");
+  assert.equal(evidence.controllerVersion, "1.0.1");
   assert.match(evidence.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(evidence.packageSha256, /^[0-9a-f]{64}$/);
   assert.equal(evidence.observedAtMs, null);

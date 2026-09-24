@@ -81,10 +81,10 @@
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.7 belegter Nicht-Waffen-Slot ist produktiv BESTANDEN",
-    "PR20.7 Merchant Waffen-/Offhand Read-only ist real fail-closed BLOCKIERT ohne sicheren Merchant-Kandidaten und 0 Writes",
-    "AKTUELL: accountweite owned-roster Waffen-Kandidatensuche ist immutable gepinnt und fuer realen NO-WRITE-Lauf im Manifest vorbereitet",
-    "NAECHSTES: realen accountweiten Discovery-Lauf auswerten; ein Fund ratifiziert noch keine Farmer-Gear-Allokation",
-    "Bei Fund folgt exakter Live-Session-Read-only-Preflight des konkreten Farmers; kein start_character und keine Farmer-Authority-Ausweitung",
+    "PR20.7 Merchant Waffen-/Offhand Read-only ist fail-closed ohne sicheren Merchant-Kandidaten und 0 Writes",
+    "AKTUELL: accountweite owned-roster Discovery v1.0.1 korrigiert den Windows-Bridge status.v5AutonomousTest/peekTelemetry-Vertrag und bleibt NO-WRITE",
+    "NAECHSTES: Exact-Head-CI mergen und den realen Discovery-Lauf erneut beobachten",
+    "Ein Discovery-Fund erteilt keine Farmer-Gear-Authority; exakter Farmer-Live-Session-Read-only-Preflight bleibt zwingend",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -1240,9 +1240,13 @@
       "accountDiscoveryPublicFunctionCalls": 0,
       "accountDiscoveryRawWriteCalls": 0,
       "accountDiscoveryRatifiesFarmerGearAllocation": false,
-      "accountDiscoverySourceCommit": "de3a9106193919327e708b22d78d1623ca5de5a5",
-      "accountDiscoveryPackageSha256": "bfc2d52d9968460c7d977472e7301c6b32f1f7f78f2661e04579573cd661397c",
-      "accountDiscoveryManifestCutoverPrepared": true
+      "accountDiscoverySourceCommit": "6125f52b80901133d5a973d4998b665d9ac56a3d",
+      "accountDiscoveryPackageSha256": "ba8cff0187adb116d8003f85f3d4ef36ada380c6bead8bc7aab1d3cff5e6b6ad",
+      "accountDiscoveryManifestCutoverPrepared": true,
+      "accountDiscoveryControllerVersion": "1.0.1",
+      "accountDiscoveryBridgeContractFixed": true,
+      "accountDiscoveryStatusEnvelope": "status.v5AutonomousTest",
+      "accountDiscoveryPeekTelemetryArray": true
     }
   }
 }

@@ -229,6 +229,9 @@ test("PR20.7 Gear package is terminal read-only and does not touch farmer lifecy
   assert.ok(packageSource.includes("disconnectCalls: 0"));
   assert.ok(packageSource.includes("farmerWorkersInstalled: 0"));
   assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
+  assert.ok(packageSource.includes("__v5Pr207AccountDiscoveryFacadeVersion"));
+  assert.ok(packageSource.includes("v5AutonomousTest: clone(state)"));
+  assert.ok(packageSource.includes("peekTelemetry: () => []"));
   assert.equal(packageSource.includes("use_skill("), false);
   assert.equal(packageSource.includes("start_character("), false);
   assert.equal(packageSource.includes("command_character("), false);
@@ -325,7 +328,7 @@ test("PR20.7 weapon/offhand read-only manifest stays explicit-slot, class-bound 
 
 test("PR20.7 account weapon discovery manifest remains merchant-only and zero-write", () => {
   if (manifest.testId !== "pr20-7-gear-account-weapon-candidate-discovery") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.controllerVersion, "1.0.1");
   assert.equal("workerVersion" in manifest, false);
   assert.equal("workerPackagePath" in manifest, false);
   assert.equal("workerPackageSha256" in manifest, false);
