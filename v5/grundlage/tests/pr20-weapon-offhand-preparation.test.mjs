@@ -323,8 +323,8 @@ test("PR20.7 weapon/offhand contract prepares only the separately pinned wshield
   assert.equal(equipPlan.scope.previousTargetSlotMustBeEmpty, true);
   assert.equal(equipPlan.transaction.maximumGameplayWrites, 1);
   assert.equal(equipPlan.transaction.sameIntentRetry, false);
-  assert.equal(equipPlan.deployment.sourceCommit, "25841a4466e53f3f1be438bbcb487b5dae4e301c");
-  assert.equal(equipPlan.deployment.packageSha256, "f1876b52f5823ff408f394ca1aa64a1018c3dcebb362893b61a0182f32e8ee2e");
+  assert.equal(equipPlan.deployment.sourceCommit, "e633cbe60ba4c98e4c61424ff900c542e688090f");
+  assert.equal(equipPlan.deployment.packageSha256, "381559606c016880921fdb9ee0c50776275a5ceb962c35d91bc1c86529deb3b0");
   assert.equal(equipPlan.deployment.manifestCutoverPrepared, false);
   assert.equal(equipEvidence.status, "OFFEN");
   assert.equal(equipEvidence.ratified, false);
