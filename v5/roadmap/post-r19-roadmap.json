@@ -83,8 +83,8 @@
     "PR20.7 belegter Nicht-Waffen-Slot ist produktiv BESTANDEN",
     "PR20.7 accountweite Weapon-/Offhand-Discovery fand real 0 kompatible vorhandene Kandidaten",
     "PR20.7 wshield Acquisition Read-only v1.0.2 ist real BESTANDEN, source-gepinnt und 0 Writes",
-    "AKTUELL: Acquisition Durable Shadow NO-WRITE Package ist vorbereitet mit exakter 4800-Gold-Reservation, mindestens 1000 Gold Safety Reserve, Gold/Inventory/buy-Channel-Fencing, vollem V5-Socket-Planbudget, Durable Intent und One-Shot-Binding",
-    "NAECHSTES: separater Manifest-Cutover fuer den Acquisition Durable Shadow",
+    "AKTUELL: Acquisition Durable Shadow NO-WRITE ist immutable ins Auto-Deploy-Manifest geschnitten",
+    "NAECHSTES: realen Durable Shadow auswerten; PASS muss 4800-Gold-Reservation, >=1000 Safety Reserve, Gold/Inventory/buy-Channel/Socket-Schutz, Durable Readback, One-Shot-Binding und NICHT_GESENDET bei 0 Writes belegen",
     "Kauf und Equip bleiben weiterhin separat und nicht autorisiert",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
@@ -703,7 +703,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_PACKAGE_BEREIT_MANIFEST_OFFEN",
+      "status": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -745,7 +745,7 @@
         "v5/roadmap/pr20-7-weapon-offhand-acquisition-shadow-no-write-test-plan.json",
         "v5/roadmap/pr20-7-weapon-offhand-acquisition-shadow-no-write-evidence.json"
       ],
-      "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_SHADOW_MANIFEST_CUTOVER"
+      "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1046,7 +1046,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_PACKAGE_BEREIT_MANIFEST_OFFEN",
+    "status": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1106,7 +1106,7 @@
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-test-plan.json",
       "v5/roadmap/pr20-7-weapon-offhand-acquisition-read-only-evidence.json"
     ],
-    "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_SHADOW_MANIFEST_CUTOVER",
+    "nextAction": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1210,11 +1210,11 @@
       "observedSoakDurationMs": 300552
     },
     "remainingGates": {
-      "weaponOffhand": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_PACKAGE_BEREIT_MANIFEST_OFFEN",
+      "weaponOffhand": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "farmerGearAllocation": "OFFEN_SEPARATE_RATIFICATION"
     },
     "weaponOffhand": {
-      "status": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_PACKAGE_BEREIT_MANIFEST_OFFEN",
+      "status": "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
       "contract": "v5/grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json",
       "explicitSlots": [
         "mainhand",
@@ -1345,7 +1345,7 @@
       "acquisitionObservedSellDistanceSource": "OFFICIAL_SERVER_SOURCE_PIN",
       "acquisitionObservedGold": 14493644,
       "acquisitionObservedFreeInventorySlots": 21,
-      "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_SHADOW_MANIFEST_CUTOVER",
+      "acquisitionNextGate": "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE_EXECUTE",
       "acquisitionShadowFoundation": "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts",
       "acquisitionShadowFoundationTest": "v5/grundlage/tests/pr20-weapon-offhand-acquisition-shadow.test.mjs",
       "acquisitionShadowPackage": "v5/werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js",
@@ -1356,7 +1356,7 @@
       "acquisitionShadowControllerVersion": "1.0.0",
       "acquisitionShadowSourceCommit": "3f006c17934f0159fa575d2da0e4d048fbf0df09",
       "acquisitionShadowPackageSha256": "72554c3c90f4e8b09f26a679258ced7f8eb511f2a5eff16cbd084d8830933b08",
-      "acquisitionShadowManifestCutoverPrepared": false,
+      "acquisitionShadowManifestCutoverPrepared": true,
       "acquisitionShadowExactCost": 4800,
       "acquisitionShadowMinimumGoldSafetyReserve": 1000,
       "acquisitionShadowGoldBudgetLedgerReservation": true,
