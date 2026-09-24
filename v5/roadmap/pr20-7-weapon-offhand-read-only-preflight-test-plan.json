@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.7_GEAR",
+  "testId": "pr20-7-gear-weapon-offhand-read-only-preflight",
+  "controllerVersion": "1.0.0",
+  "status": "PACKAGE_BEREIT_MANIFEST_CUTOVER_OFFEN",
+  "deployment": {
+    "mode": "GITHUB_MANIFEST_AUTO_DEPLOY",
+    "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "coordinatorClass": "merchant",
+    "packageCommitPinned": false,
+    "sourceCommit": null,
+    "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js",
+    "packageSha256": null,
+    "expectedGlobal": "V5PR207WeaponOffhandReadOnlyTest",
+    "workerPackageConfigured": false,
+    "farmerWorkerDistribution": false
+  },
+  "recipient": {
+    "requiredCharacter": "My_Merchant",
+    "requiredClass": "merchant",
+    "exactSessionBinding": true,
+    "exactAccountBinding": true,
+    "exactServerBinding": true,
+    "stableDoubleObservation": true,
+    "explicitSlots": [
+      "mainhand",
+      "offhand"
+    ],
+    "genericWeaponAutoSlotAllowed": false,
+    "candidateAutoSelection": true,
+    "candidateMustBePhysical": true,
+    "candidateUnlocked": true,
+    "previousSlotItemUnlockedWhenPresent": true,
+    "oppositeHandPinned": true,
+    "oppositeHandUnlockedWhenPresent": true,
+    "itemClassRestrictionChecked": true,
+    "itemLevelChecked": true,
+    "classMainhandWtypeChecked": true,
+    "classOffhandCapabilityChecked": true,
+    "doublehandRequiresEmptyOffhand": true,
+    "automaticUnequipAllowed": false
+  },
+  "prerequisites": {
+    "performanceTrickRequired": true,
+    "performanceTrickVerification": "HOWLER_PLAYING_TRUE",
+    "characterAlive": true,
+    "characterStationary": true,
+    "noTarget": true,
+    "noAggro": true,
+    "queueEmpty": true,
+    "alternativeRuntimeBlocked": true
+  },
+  "mutationBoundary": {
+    "browserGameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "durableIntentCreated": false,
+    "authorityIssued": false,
+    "weaponOffhandWriteRatification": false,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "passConditions": [
+    "terminal status BESTANDEN",
+    "performance_trick active and playing",
+    "stable double observation",
+    "explicit mainhand or offhand candidate resolved from current class rules",
+    "candidate class/level compatible",
+    "opposite hand fingerprint pinned",
+    "doublehand candidate accepted only when offhand is empty",
+    "0 gameplay writes",
+    "0 public gameplay function calls",
+    "0 raw writes",
+    "0 farmer lifecycle calls",
+    "no authority or durable intent issued"
+  ],
+  "failClosed": [
+    "no safe weapon/offhand candidate",
+    "class or level mismatch",
+    "doublehand/offhand conflict",
+    "binding or snapshot drift",
+    "performance_trick unavailable or not playing",
+    "runtime conflict",
+    "character movement target queue aggro or death"
+  ],
+  "evidence": "v5/roadmap/pr20-7-weapon-offhand-read-only-preflight-evidence.json",
+  "nextAfterPass": "PR20_7_WEAPON_OFFHAND_ONE_SHOT_AUTHORITY_FENCING_SHADOW"
+}

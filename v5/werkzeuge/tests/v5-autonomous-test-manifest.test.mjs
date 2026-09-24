@@ -21,6 +21,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR207GearShadowTest",
     gate: "PR20.7_GEAR"
   }),
+  "pr20-7-gear-weapon-offhand-read-only-preflight": Object.freeze({
+    path: "v5/werkzeuge/pr20-7-weapon-offhand-read-only-autonomous.js",
+    expectedGlobal: "V5PR207WeaponOffhandReadOnlyTest",
+    gate: "PR20.7_GEAR"
+  }),
   "pr20-7-gear-occupied-slot-live-5m": Object.freeze({
     path: "v5/werkzeuge/pr20-7-gear-occupied-slot-live-5m.js",
     expectedGlobal: "V5PR207GearOccupiedLiveTest",
@@ -274,6 +279,35 @@ test("PR20.7 occupied-slot live manifest permits exactly one public equip and no
   assert.ok(packageSource.includes("restartReconciliation"));
   assert.ok(packageSource.includes("resendAttempted:false"));
   assert.equal((packageSource.match(/r\.equip\(/g) || []).length, 1);
+  assert.equal(packageSource.includes("unequip("), false);
+  assert.equal(packageSource.includes("use_skill("), false);
+  assert.equal(packageSource.includes("start_character("), false);
+  assert.equal(packageSource.includes("command_character("), false);
+  assert.equal(packageSource.includes("/disconnect "), false);
+  assert.equal(packageSource.includes("send_item("), false);
+  assert.equal(packageSource.includes("api_call("), false);
+  assert.equal(packageSource.includes("socket.emit("), false);
+});
+
+test("PR20.7 weapon/offhand read-only manifest stays explicit-slot, class-bound and zero-write", () => {
+  if (manifest.testId !== "pr20-7-gear-weapon-offhand-read-only-preflight") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.equal("workerPackageSha256" in manifest, false);
+  assert.equal("workerExpectedGlobal" in manifest, false);
+  assert.equal("workerTargets" in manifest, false);
+  assert.ok(packageSource.includes("performance_trick"));
+  assert.ok(packageSource.includes("mainhand"));
+  assert.ok(packageSource.includes("offhand"));
+  assert.ok(packageSource.includes("doublehandWtypes"));
+  assert.ok(packageSource.includes("oppositeHandPinned: true"));
+  assert.ok(packageSource.includes("classRulesVerified: true"));
+  assert.ok(packageSource.includes("gameplayWrites: 0"));
+  assert.ok(packageSource.includes("rawWriteCalls: 0"));
+  assert.ok(packageSource.includes("publicFunctionCalls: 0"));
+  assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
+  assert.equal(packageSource.includes("equip("), false);
   assert.equal(packageSource.includes("unequip("), false);
   assert.equal(packageSource.includes("use_skill("), false);
   assert.equal(packageSource.includes("start_character("), false);

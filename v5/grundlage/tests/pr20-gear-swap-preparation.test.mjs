@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "WEAPON_OFFHAND_FOUNDATION_NO_WRITE");
+  assert.equal(contract.status, "WEAPON_OFFHAND_READ_ONLY_PACKAGE_BEREIT_EVIDENCE_OFFEN");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -330,5 +330,13 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.gameplayAuthority, false);
   assert.equal(contract.weaponOffhandFoundation.rawWriteAuthority, false);
   assert.equal(contract.weaponOffhandFoundation.realReadOnlyEvidenceStatus, "OFFEN");
+  assert.equal(contract.weaponOffhandFoundation.readOnlyPackagePrepared, true);
+  assert.equal(contract.weaponOffhandFoundation.readOnlyWorkerPackageConfigured, false);
+  assert.equal(contract.weaponOffhandFoundation.readOnlyFarmerWorkerDistribution, false);
+  assert.equal(contract.weaponOffhandFoundation.readOnlyStableDoubleObservation, true);
+  assert.equal(contract.weaponOffhandFoundation.readOnlyCompleteRestEquipmentFence, true);
+  assert.equal(contract.weaponOffhandFoundation.readOnlyGameplayWrites, 0);
+  assert.equal(contract.weaponOffhandFoundation.readOnlyPublicFunctionCalls, 0);
+  assert.equal(contract.weaponOffhandFoundation.readOnlyRawWriteCalls, 0);
   assert.equal(contract.nextGate.weaponsAndOffhandRemainSeparate, true);
 });
