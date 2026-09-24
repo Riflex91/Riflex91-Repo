@@ -223,7 +223,7 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
     "grundlage/vertraege/runtime/pr20-7-gear-production-preparation.json",
     "utf8",
   ));
-  assert.equal(contract.status, "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_BESTANDEN_PRODUCTIVE_PURCHASE_PREPARATION_BEREIT_NO_PURCHASE_AUTHORITY");
+  assert.equal(contract.status, "WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PACKAGE_BEREIT_MANIFEST_OFFEN");
   assert.equal(contract.basis.actionContractId, "AL-ACTION-EQUIP");
   assert.equal(contract.basis.recoveryContractId, "AL-RECOVERY-EQUIP");
   assert.equal(contract.basis.verifierId, "AL-VERIFIER-EQUIP");
@@ -466,7 +466,24 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseSameIntentRetry, false);
   assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseAdapterPresent, false);
   assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveRunnerPresent, false);
-  assert.equal(contract.weaponOffhandFoundation.acquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLivePackagePrepared, true);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLivePackage,
+    "werkzeuge/pr20-7-weapon-offhand-acquisition-live-5m.js");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveTestId,
+    "pr20-7-gear-weapon-offhand-acquisition-live-5m");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveControllerVersion, "1.0.0");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveSourceCommit,
+    "5efa5e2c92c258e1502ee388e84ba96d4c844027");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLivePackageSha256,
+    "5cecc5a3ca36c2d75e4a6629c36991417b508e364a965c1a945a790aac8bd930");
+  assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveManifestCutoverPrepared, false);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveMaximumGameplayWrites, 1);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveMaximumPublicFunctionCalls, 1);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveRawWriteCalls, 0);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveSameIntentRetry, false);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveRestartReconcileWithoutResend, true);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionProductivePurchaseLiveSoakMinimumSamples, 60);
+  assert.equal(contract.weaponOffhandFoundation.acquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_5M_MANIFEST_CUTOVER");
   assert.match(contract.weaponOffhandFoundation.acquisitionSourceCommit, /^[0-9a-f]{40}$/);
   assert.match(contract.weaponOffhandFoundation.acquisitionPackageSha256, /^[0-9a-f]{64}$/);
   assert.match(contract.weaponOffhandFoundation.readOnlySourceCommit, /^[0-9a-f]{40}$/);
