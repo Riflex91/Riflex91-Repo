@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "LIVE_CANDIDATE_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+    "status": "LIVE_CANDIDATE_EVIDENCE_RATIFIED_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_LIVE_CANDIDATE_REAL_BROWSER_OBSERVE",
+    "nextAction": "PR20_8_UPGRADE_DURABLE_SHADOW_NO_WRITE",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -660,7 +660,25 @@
       "sourceCommit": "7307573841b86b1fb22fd5abfb73a3d461bf0049",
       "packageSha256": "863ed58adb421ba618d5deace65942397db09fed676f3ef8eec9f9b17871d7d5",
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
-      "manifestCutoverPrepared": true
+      "manifestCutoverPrepared": true,
+      "evidence": "roadmap/pr20-8-live-candidate-readonly-evidence.json",
+      "evidenceStatus": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
+      "evidenceRatified": true,
+      "evidenceManifestMainCommit": "4ca28e7593e7757a05e0be4ea4f87902d8e089a9",
+      "observedAtMs": 1790256949100,
+      "observedUpgradeCandidate": {
+        "name": "gloves",
+        "level": 0,
+        "inventoryIndex": 6,
+        "baseGold": 3400,
+        "scrollName": "scroll0",
+        "observedScrollQuantity": 36,
+        "normalPathOnly": true,
+        "observedIndexCarriesWriteAuthority": false,
+        "freshReresolutionBeforeSendRequired": true
+      },
+      "observedCompoundCandidate": null,
+      "observedExchangeCandidate": null
     }
   },
   "pr20_9": {
