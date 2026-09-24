@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-23",
   "kennung": "V5_PR20_7_GEAR_OCCUPIED_SLOT_SWAP_FOUNDATION",
-  "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_MANIFEST_CUTOVER_BEREIT_EVIDENCE_OFFEN",
+  "status": "OCCUPIED_NONWEAPON_SWAP_BESTANDEN_REAL_INGAME_5M",
   "blockingGate": "PR20.7_GEAR",
   "basis": {
     "pr20_1EquipEvidence": "v5/roadmap/pr20-1-equip-production-evidence.json",
@@ -75,9 +75,7 @@
     "swapWriteRatification": false
   },
   "nextGate": {
-    "requiredBeforeAnySwapWrite": [
-      "manifest cutover merge with exact-head green CI"
-    ],
+    "requiredBeforeAnySwapWrite": [],
     "weaponsAndOffhandRemainSeparate": true,
     "satisfied": [
       "real exact-head read-only Adventure-Land recipient preflight evidence",
@@ -85,7 +83,13 @@
       "exclusive equipment and inventory fencing claims",
       "durable intent persisted before any possible mutation",
       "post-send reobserve/reconcile classifier with no same-intent retry",
-      "real no-write browser shadow evidence"
+      "real no-write browser shadow evidence",
+      "productive occupied non-weapon one-shot swap with exact durable intent/fencing",
+      "real 5m committed poststate evidence with exactly one gameplay write"
+    ],
+    "nextSeparateGates": [
+      "explicit mainhand/offhand server-slot admission and read-only evidence",
+      "farmer gear allocation recipient delivery/settlement evidence"
     ]
   },
   "preflight": {
@@ -222,10 +226,22 @@
     "sameIntentRetry": false,
     "fiveMinuteSoakSamples": 60,
     "normalRuntimeAllowed": false,
-    "realEvidenceStatus": "OFFEN",
+    "realEvidenceStatus": "BESTANDEN_REAL_INGAME_OCCUPIED_SLOT_ONE_WRITE_5M",
     "sourceCommit": "9d83e6376659a8cf0ff8f182850f988981c0828b",
     "packageSha256": "4fb9a297a31f84aaa713d3b486783ca9c55b65cc16a164a99a9adba095559322",
     "manifest": "roadmap/v5-autonomous-test-manifest.json",
-    "manifestCutoverPrepared": true
+    "manifestCutoverPrepared": true,
+    "realEvidenceRatified": true,
+    "realEvidenceObservedAtMs": 1790224307797,
+    "actualGameplayWrites": 1,
+    "actualPublicFunctionCalls": 1,
+    "actualRawWriteCalls": 0,
+    "actualReconciliation": "COMMITTED",
+    "actualSettlement": "BESTAETIGT",
+    "actualSoakSamples": 60,
+    "actualSoakDurationMs": 300552,
+    "actualSameIntentRetry": false,
+    "performanceTrickVerified": true,
+    "oneShotAuthorityConsumed": true
   }
 }
