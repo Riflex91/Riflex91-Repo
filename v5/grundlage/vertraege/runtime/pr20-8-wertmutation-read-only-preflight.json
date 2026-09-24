@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_FAMILY_READ_ONLY_PREFLIGHTS",
+  "status": "BEREIT_NO_WRITE",
+  "families": {
+    "UPGRADE": {
+      "publicFunction": "upgrade",
+      "action": "AL-ACTION-UPGRADE",
+      "recovery": "AL-RECOVERY-UPGRADE",
+      "verifier": "AL-VERIFIER-UPGRADE"
+    },
+    "COMPOUND": {
+      "publicFunction": "compound",
+      "action": "AL-ACTION-COMPOUND",
+      "recovery": "AL-RECOVERY-COMPOUND",
+      "verifier": "AL-VERIFIER-COMPOUND"
+    },
+    "EXCHANGE": {
+      "publicFunction": "exchange",
+      "action": "AL-ACTION-EXCHANGE",
+      "recovery": "AL-RECOVERY-EXCHANGE",
+      "verifier": "AL-VERIFIER-EXCHANGE"
+    }
+  },
+  "sessionBinding": {
+    "exactCharacter": true,
+    "exactSession": true,
+    "exactServer": true,
+    "merchantClassRequired": true
+  },
+  "plannerBinding": {
+    "upgradeUsesItemMutationsPlanner": true,
+    "compoundUsesItemMutationsPlanner": true,
+    "exchangeUsesSpecializedExchangePlanner": true,
+    "plannerBlockersPropagateFailClosed": true
+  },
+  "authorityBoundary": {
+    "authorityIssued": false,
+    "durableIntentWritten": false,
+    "sendBoundaryState": "NICHT_GESENDET",
+    "sameIntentRetry": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "liveAdapterPresent": false,
+    "liveRunnerPresent": false,
+    "normalRuntimeAllowed": false
+  },
+  "artifacts": [
+    "v5/grundlage/quelle/merchant/pr20-8-wertmutation-read-only-preflight.ts",
+    "v5/grundlage/tests/pr20-wertmutation-read-only-preflight.test.mjs"
+  ],
+  "nextGate": "PR20_8_LIVE_CANDIDATE_SELECTION"
+}
