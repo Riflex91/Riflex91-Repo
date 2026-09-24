@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-24",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "evidenceArt": "V5_PR20_8_COMPOUND_PRODUCTIVE_ONE_WRITE_LIVE",
+  "status": "RATIFIED_COMMITTED_SUCCESS",
+  "manifestMainCommit": "27795aed7516c7069a531beff1b5d5fa6315079d",
+  "package": {
+    "testId": "pr20-8-compound-productive-one-write-live",
+    "controllerVersion": "1.0.0",
+    "sourceCommit": "31edc5c7ce29bb64086be211b703f4f18dd3772b",
+    "path": "v5/werkzeuge/pr20-8-compound-productive-one-write-live.js",
+    "sha256": "c57c6cc38618392f1f26b7c91e0ea10163a8f8bfc33063eaea2785e39b56100c",
+    "bytes": 50445,
+    "expectedGlobal": "V5PR208CompoundProductiveOneWriteLive"
+  },
+  "liveTelemetry": {
+    "table": "public.aio_v5_test_status",
+    "botId": "pi-main",
+    "firstTerminal": {
+      "runStartedAtMs": 1790283536206,
+      "observedAtMs": 1790283547127,
+      "updatedAt": "2026-09-24T20:59:14.717Z"
+    },
+    "restartRecovery": {
+      "runStartedAtMs": 1790283650736,
+      "observedAtMs": 1790283650737,
+      "lastConfirmedAt": "2026-09-24T21:03:05.633Z"
+    }
+  },
+  "controller": {
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "terminal": true,
+    "normalRuntimeAllowed": false
+  },
+  "mutation": {
+    "publicFunction": "compound",
+    "publicFunctionSignature": "compound(item0,item1,item2,scroll_num,offering_num,only_calculate)",
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sendCount": 1,
+    "sameIntentRetry": false,
+    "sendBoundaryState": "SEND_MOEGLICH_ODER_VERSUCHT",
+    "journalStatus": "COMMITTED",
+    "reconciliationClassification": "COMMITTED_SUCCESS"
+  },
+  "candidate": {
+    "name": "hpamulet",
+    "levelBefore": 0,
+    "levelAfter": 1,
+    "indexesAtSend": [
+      1,
+      22,
+      23
+    ],
+    "quantity": 3,
+    "quantityEach": 1,
+    "baseGold": 20000,
+    "resultSlots": [
+      {
+        "index": 1,
+        "name": "hpamulet",
+        "level": 1
+      },
+      {
+        "index": 22,
+        "value": null
+      },
+      {
+        "index": 23,
+        "value": null
+      }
+    ]
+  },
+  "scroll": {
+    "name": "cscroll0",
+    "indexAtSend": 18,
+    "quantityBefore": 20,
+    "quantityAfter": 19,
+    "consumeQuantity": 1
+  },
+  "reconciliation": {
+    "qActive": false,
+    "placeholderCount": 0,
+    "secondaryConsumed": true,
+    "scrollConsumedExactly": true,
+    "promiseTimedOut": true,
+    "promiseError": "PUBLIC_FUNCTION_PROMISE_TIMEOUT",
+    "promiseResultSupportingEvidenceOnly": true,
+    "stateReconciliationAuthoritative": true,
+    "conditionStateChanged": false,
+    "conditionConsumptionReconciled": true
+  },
+  "durability": {
+    "transactionId": "pr20-8-compound-productive-one-write-live:ff08418e6003250471c98f5893dec8dd",
+    "durableIntentCreated": true,
+    "durableIntentReadback": true,
+    "authorityIssued": true,
+    "authorityConsumed": true,
+    "oneShotAuthorityClass": "Pr208CompoundOneShotAuthority",
+    "oneShotAuthorityMaximumUses": 1,
+    "sameIntentRetry": false
+  },
+  "restartSafety": {
+    "laterRestartRecoveredSameTransaction": true,
+    "laterRestartTransactionId": "pr20-8-compound-productive-one-write-live:ff08418e6003250471c98f5893dec8dd",
+    "laterRestartSendCount": 1,
+    "laterRestartReconciliation": "COMMITTED_SUCCESS",
+    "noSecondSendAllowedByRunner": true,
+    "noDuplicateValueChangingEffectObserved": true
+  },
+  "legacyShadowAfterSuccess": {
+    "testId": "pr20-8-compound-durable-shadow-no-write",
+    "status": "FEHLER",
+    "phase": "BOOT",
+    "terminal": true,
+    "blocker": "PR20_8_COMPOUND_SHADOW_DREI_KANDIDATEN_ERFORDERLICH",
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "interpretation": "POST_SUCCESS_INPUTS_NO_LONGER_EXIST_ZERO_WRITE"
+  },
+  "safetyBoundary": {
+    "compoundWriteRatified": true,
+    "compoundLive5mTested": false,
+    "live5mCriterionRelaxed": false,
+    "exactOneGameplayWriteObserved": true,
+    "exactOnePublicFunctionCallObserved": true,
+    "zeroRawWritesObserved": true,
+    "noSameIntentRetryObserved": true,
+    "noDuplicateValueChangingEffectObserved": true,
+    "exchangeRatification": false,
+    "exchangeWriteAuthority": false,
+    "pr20_8ExitGateSatisfied": false,
+    "mayAdvanceToPr20_9": false,
+    "normalRuntimeAllowed": false
+  },
+  "nextGate": "PR20_8_COMPOUND_LIVE_5M_PREPARATION"
+}
