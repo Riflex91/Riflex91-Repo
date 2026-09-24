@@ -15,10 +15,12 @@ on:
       - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.js'
       - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.js'
       - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js'
+      - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.test.mjs'
+      - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.test.mjs'
       - 'v5/roadmap/pr20-8-compound-exchange-rescan-v1-0-2-evidence.json'
       - 'v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json'
       - 'v5/roadmap/pr20-8-no-candidate-exit-gate-review.json'
@@ -88,10 +90,12 @@ on:
       - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.js'
       - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.js'
       - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js'
+      - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-1.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.test.mjs'
+      - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.test.mjs'
       - 'v5/roadmap/pr20-8-compound-exchange-rescan-v1-0-2-evidence.json'
       - 'v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json'
       - 'v5/roadmap/pr20-8-no-candidate-exit-gate-review.json'
@@ -175,3 +179,4 @@ jobs:
       - run: node --check werkzeuge/pr20-8-bridge-handshake-probe-v1.js && node --test werkzeuge/tests/pr20-8-bridge-handshake-probe-v1.test.mjs
       - run: node --check werkzeuge/pr20-8-bridge-handshake-probe-v1-0-1.js && node --test werkzeuge/tests/pr20-8-bridge-handshake-probe-v1-0-1.test.mjs
       - run: node --check werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js && node --test werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.test.mjs grundlage/tests/pr20-compound-exchange-rescan-v1-0-2-evidence.test.mjs
+      - run: node --check werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js && node --test werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.test.mjs
