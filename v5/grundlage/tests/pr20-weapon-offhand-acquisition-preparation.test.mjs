@@ -47,12 +47,13 @@ test("PR20.7 acquisition candidate is exact wshield Merchant offhand source", ()
 test("PR20.7 acquisition preflight is immutable candidate discovery, never purchase authority", () => {
   assert.equal(plan.testId, "pr20-7-gear-weapon-offhand-acquisition-read-only-preflight");
   assert.equal(plan.controllerVersion, "1.0.0");
-  assert.equal(plan.status, "PACKAGE_BEREIT_MANIFEST_CUTOVER_NOCH_OFFEN");
+  assert.equal(plan.status, "MANIFEST_CUTOVER_BEREIT_FUER_REALEN_NO_WRITE_PREFLIGHT");
   assert.equal(plan.deployment.coordinatorClass, "merchant");
   assert.match(plan.deployment.sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(plan.deployment.packageSha256, /^[0-9a-f]{64}$/);
   assert.equal(plan.deployment.workerPackageConfigured, false);
   assert.equal(plan.deployment.farmerWorkerDistribution, false);
+  assert.equal(plan.deployment.manifestCutoverPrepared, true);
   assert.equal(plan.exactCandidate.itemName, "wshield");
   assert.equal(plan.exactCandidate.targetSlot, "offhand");
   assert.equal(plan.exactCandidate.expectedUnitPrice, 4800);
