@@ -601,7 +601,7 @@ test("PR20.8 candidate discovery manifest is exact read-only and special-path cl
 
 test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound", () => {
   if (manifest.testId !== "pr20-8-upgrade-durable-shadow-no-write") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.controllerVersion, "1.0.1");
   assert.equal(manifest.sourceCommit,
     "4106db292fe48d60ba190460491d5138283769d8");
   assert.equal(manifest.packagePath,
