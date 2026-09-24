@@ -133,7 +133,7 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
     "DISPOSITION_GESPERRT",
   ]) assert.ok(progression.includes(marker), marker);
   assert.equal(prep.pr20_7.status,
-    "WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_BESTANDEN_PRODUCTIVE_PURCHASE_PREPARATION_BEREIT_NO_PURCHASE_AUTHORITY");
+    "WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_PACKAGE_BEREIT_MANIFEST_OFFEN");
   assert.equal(prep.pr20_7.sicherVorbereitet.exactTwoLocationSettlement, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.performanceTrickRequired, true);
   assert.equal(prep.pr20_7.sicherVorbereitet.exactHeadRequired, true);
@@ -331,7 +331,23 @@ test("Gear Foundation bleibt reservierungs- und restart-gebunden", () => {
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionProductivePurchaseSameIntentRetry, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionProductivePurchaseAdapterPresent, false);
   assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionProductivePurchaseLiveRunnerPresent, false);
-  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_PREPARATION");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionLiveTestId,
+    "pr20-7-gear-weapon-offhand-acquisition-live-5m");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionLiveControllerVersion, "1.0.0");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionLiveSourceCommit,
+    "e22dbf0ee4f8ac2eb7a7fb8930ec208eea447c61");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionLivePackageSha256,
+    "795ef5438f23eb53a8e6cd9a9f27c2a3a8e8ad6fe69cbade28c608943ef9853c");
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionLiveManifestCutoverPrepared, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionLiveMaximumGameplayWrites, 1);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionLiveMaximumPublicFunctionCalls, 1);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionLiveRawWriteCalls, 0);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionLiveOneShotMaximumUses, 1);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionLiveRestartRecoveryResendAllowed, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionLiveSameIntentRetry, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionLiveSoakSamples, 60);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionLiveNormalRuntimeAllowed, false);
+  assert.equal(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_PRODUCTIVE_PURCHASE_LIVE_MANIFEST_CUTOVER");
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionSourceCommit, /^[0-9a-f]{40}$/);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandAcquisitionPackageSha256, /^[0-9a-f]{64}$/);
   assert.match(prep.pr20_7.sicherVorbereitet.weaponOffhandReadOnlySourceCommit, /^[0-9a-f]{40}$/);
