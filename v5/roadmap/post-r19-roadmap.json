@@ -81,9 +81,9 @@
   "currentNextSteps": [
     "PR20.1 bis PR20.6 sind fuer ihre Roadmap-Gates abgeschlossen bzw. freigegeben",
     "PR20.7 belegter sicherer Nicht-Waffen-Slot ist produktiv mit genau 1 Write und 60x5s COMMITTED-Evidence BESTANDEN",
-    "AKTUELL: PR20.7 Waffen-/Offhand-Faelle separat vorbereiten und ratifizieren",
-    "DANACH: PR20.7 Gear-Allokation an Farmer separat ratifizieren",
-    "Bei UNKNOWN/TEILWEISE/Restart weiterhin ausschliesslich Reconcile; niemals Same-Intent-Resend",
+    "AKTUELL: PR20.7 Waffen-/Offhand-Foundation modelliert explizite mainhand/offhand-Slots, Klassen-/WType-Regeln und Doublehand-Gegenhand-Fencing NO-WRITE",
+    "NAECHSTES: realen read-only Browser-Preflight fuer Waffen/Offhand vorbereiten und Evidence sammeln",
+    "DANACH: produktive Waffen-/Offhand-Ratifikation und anschliessend Farmer-Gear-Allokation",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind"
   ],
   "invariants": {
@@ -701,7 +701,7 @@
     },
     {
       "id": "PR20.7_GEAR",
-      "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_BESTANDEN",
+      "status": "WEAPON_OFFHAND_FOUNDATION_NO_WRITE",
       "blockedBy": [],
       "gameplayAuthority": false,
       "normalRuntimeAllowed": false,
@@ -729,7 +729,7 @@
         "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-test-plan.json",
         "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json"
       ],
-      "nextAction": "PR20_7_WEAPON_OFFHAND_SEPARATE_PREPARATION"
+      "nextAction": "PR20_7_WEAPON_OFFHAND_REAL_READ_ONLY_BROWSER_PREFLIGHT"
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
@@ -1030,7 +1030,7 @@
     "normalRuntimeAfterAllTestsOnly": true
   },
   "pr20_7": {
-    "status": "OCCUPIED_SLOT_PRODUCTIVE_LIVE_5M_BESTANDEN",
+    "status": "WEAPON_OFFHAND_FOUNDATION_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1068,9 +1068,12 @@
       "v5/werkzeuge/tests/pr20-7-gear-occupied-slot-live-5m.test.mjs",
       "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-test-plan.json",
       "v5/roadmap/pr20-7-gear-occupied-slot-live-5m-evidence.json",
-      "v5/grundlage/tests/pr20-gear-occupied-slot-live-5m-evidence.test.mjs"
+      "v5/grundlage/tests/pr20-gear-occupied-slot-live-5m-evidence.test.mjs",
+      "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-vorbereitung.ts",
+      "v5/grundlage/tests/pr20-weapon-offhand-preparation.test.mjs",
+      "v5/grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json"
     ],
-    "nextAction": "PR20_7_WEAPON_OFFHAND_SEPARATE_PREPARATION",
+    "nextAction": "PR20_7_WEAPON_OFFHAND_REAL_READ_ONLY_BROWSER_PREFLIGHT",
     "readOnlyBrowserPreflight": {
       "implemented": true,
       "exactHeadRequired": true,
@@ -1174,8 +1177,30 @@
       "observedSoakDurationMs": 300552
     },
     "remainingGates": {
-      "weaponOffhand": "OFFEN_SEPARATE_RATIFICATION",
+      "weaponOffhand": "FOUNDATION_NO_WRITE",
       "farmerGearAllocation": "OFFEN_SEPARATE_RATIFICATION"
+    },
+    "weaponOffhand": {
+      "status": "FOUNDATION_NO_WRITE",
+      "contract": "v5/grundlage/vertraege/runtime/pr20-7-weapon-offhand-production-preparation.json",
+      "explicitSlots": [
+        "mainhand",
+        "offhand"
+      ],
+      "genericWeaponAutoSlotAllowed": false,
+      "classRulesPinned": true,
+      "itemClassRestrictionChecked": true,
+      "itemLevelChecked": true,
+      "oppositeHandPinned": true,
+      "doublehandOffhandConflictBlocked": true,
+      "automaticUnequipAllowed": false,
+      "emptyTargetSupportedAsNoWritePlan": true,
+      "occupiedTargetSupportedAsNoWritePlan": true,
+      "sameIntentRetry": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "realReadOnlyEvidenceStatus": "OFFEN",
+      "productiveEvidenceStatus": "OFFEN"
     }
   }
 }
