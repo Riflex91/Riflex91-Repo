@@ -382,6 +382,19 @@ foreach (var forbidden in new[] {
     Assert(!farmerGearProbe.Contains(forbidden, StringComparison.Ordinal), "V5_FARMER_GEAR_PROBE_FORBIDDEN_" + forbidden);
 
 Assert(CdpAdventureLandClient.BridgeV5DeploymentDiagnosticsKey == "bridgeV5Deployment", "V5_DEPLOYMENT_DIAGNOSTICS_KEY");
+var readInt64 = typeof(CdpAdventureLandClient).GetMethod(
+    "ReadInt64",
+    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+    ?? throw new InvalidOperationException("V5_READ_INT64_REFLECTION_MISSING");
+using (var nullNumberDoc = JsonDocument.Parse("""{"value":null,"number":7}"""))
+{
+    var nullFallback = (long)(readInt64.Invoke(null, [nullNumberDoc.RootElement, "value", -1L])
+        ?? throw new InvalidOperationException("V5_READ_INT64_NULL_RESULT"));
+    var numberValue = (long)(readInt64.Invoke(null, [nullNumberDoc.RootElement, "number", -1L])
+        ?? throw new InvalidOperationException("V5_READ_INT64_NUMBER_RESULT"));
+    Assert(nullFallback == -1L, "V5_READ_INT64_NULL_FALLBACK");
+    Assert(numberValue == 7L, "V5_READ_INT64_NUMBER_VALUE");
+}
 using (var v5DiagnosticHttp = new HttpClient())
 {
     var v5DiagnosticClient = new CdpAdventureLandClient(v5DiagnosticHttp, defaults);
