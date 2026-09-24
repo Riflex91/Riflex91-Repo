@@ -909,7 +909,7 @@ test("PR20.8 productive Compound one-write manifest is exact, one-shot and runti
   assert.ok(packageSource.includes("sameIntentRetry: false"));
   assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
   assert.ok(packageSource.includes('"RECOVERY_PENDING"'));
-  assert.equal((packageSource.match(/globalThis\\.compound\\(/g) || []).length, 1);
+  assert.equal((packageSource.match(/globalThis\.compound\(/g) || []).length, 1);
   assert.equal(packageSource.includes("globalThis.upgrade("), false);
   assert.equal(packageSource.includes("globalThis.exchange("), false);
   assert.equal(packageSource.includes(".socket.emit("), false);
