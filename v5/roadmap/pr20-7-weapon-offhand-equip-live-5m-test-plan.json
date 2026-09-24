@@ -52,9 +52,9 @@
     "packagePath": "v5/werkzeuge/pr20-7-weapon-offhand-equip-live-5m.js",
     "packageTest": "v5/werkzeuge/tests/pr20-7-weapon-offhand-equip-live-5m.test.mjs",
     "expectedGlobal": "V5PR207WeaponOffhandEquipLiveTest",
-    "sourceCommit": "25841a4466e53f3f1be438bbcb487b5dae4e301c",
-    "packageSha256": "f1876b52f5823ff408f394ca1aa64a1018c3dcebb362893b61a0182f32e8ee2e",
-    "packageBytes": 37118,
+    "sourceCommit": "e633cbe60ba4c98e4c61424ff900c542e688090f",
+    "packageSha256": "381559606c016880921fdb9ee0c50776275a5ceb962c35d91bc1c86529deb3b0",
+    "packageBytes": 37182,
     "manifestCutoverPrepared": false
   },
   "authority": {
