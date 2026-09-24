@@ -1418,6 +1418,18 @@
     "acquisitionShadowEvidenceVendorReachableNow": true,
     "acquisitionShadowEvidenceNearestVendorDistance": 88.59875647515783,
     "acquisitionShadowEvidenceSellDistance": 400,
-    "acquisitionProductivePurchaseAuthority": false
+    "acquisitionProductivePurchaseAuthority": false,
+    "acquisitionProductivePurchasePreparationFoundation": "v5/grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-purchase-preparation.ts",
+    "acquisitionProductivePurchasePreparationTest": "v5/grundlage/tests/pr20-weapon-offhand-acquisition-purchase-preparation.test.mjs",
+    "acquisitionProductivePurchasePreparationReady": true,
+    "acquisitionProductivePurchasePreparationNoWrite": true,
+    "acquisitionProductivePurchaseExactCost": 4800,
+    "acquisitionProductivePurchaseMinimumGoldReserve": 1000,
+    "acquisitionProductivePurchaseGoldReservationAmount": 4800,
+    "acquisitionProductivePurchaseOneShotMaximumUses": 1,
+    "acquisitionProductivePurchaseOneShotMaximumTtlMs": 1500,
+    "acquisitionProductivePurchaseSameIntentRetry": false,
+    "acquisitionProductivePurchaseAdapterPresent": false,
+    "acquisitionProductivePurchaseLiveRunnerPresent": false
   }
 }
