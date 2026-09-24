@@ -4,15 +4,57 @@
   "gate": "PR20.7_GEAR",
   "testId": "pr20-7-gear-occupied-slot-live-5m",
   "controllerVersion": "1.0.0",
-  "status": "OFFEN",
+  "status": "BESTANDEN_REAL_INGAME_OCCUPIED_SLOT_ONE_WRITE_5M",
   "evidenceArt": "V5_PR20_7_OCCUPIED_SLOT_LIVE_5M",
   "sourceCommit": "9d83e6376659a8cf0ff8f182850f988981c0828b",
   "packageSha256": "4fb9a297a31f84aaa713d3b486783ca9c55b65cc16a164a99a9adba095559322",
-  "manifestMainCommit": null,
-  "observedAtMs": null,
-  "terminal": null,
-  "result": null,
-  "expectedSafetyBoundary": {
+  "manifestMainCommit": "8010826d263b01ce8b75e462f5b96fe07e0ac92c",
+  "observedAtMs": 1790224307797,
+  "terminal": true,
+  "result": {
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "version": "1.0.0",
+    "recipient": {
+      "characterName": "My_Merchant",
+      "ctype": "merchant",
+      "serverRegion": "EU",
+      "serverIdentifier": "I",
+      "accountBindingSha256": "18be41682a0c809cb26db3dfff9336deb164730e175c182a11d321445fde0085",
+      "sessionBindingSha256": "6f87fd406e9b1cfa78273bbdfcefafe5c4c2cc9c8e685a0bd35244e7c419c32c"
+    },
+    "candidate": {
+      "slot": "helmet",
+      "inventoryIndex": 7,
+      "name": "wcap",
+      "level": 4,
+      "fingerprintSha256": "b526a3a83ce92b338fab074b6d2f943f3c0d3604430ba067bbe62f228005a13d"
+    },
+    "previousSlotItem": {
+      "name": "partyhat",
+      "level": 5,
+      "fingerprintSha256": "6ecb90bf5d76ab137e4bd3c6c4f7d28dce3fa0786f690a8d3560bac05a4d02ef"
+    },
+    "durableIntentReadback": true,
+    "sendBoundaryState": "MOEGLICH_GESENDET",
+    "reconciliation": "COMMITTED",
+    "settlement": "BESTAETIGT",
+    "oneShotAuthority": {
+      "issued": true,
+      "consumed": true,
+      "maximumUses": 1,
+      "exactRecipientSessionBinding": true,
+      "exactSlotAndIndexBinding": true,
+      "equipmentInventoryFenceClaims": true
+    },
+    "performanceTrick": {
+      "available": true,
+      "called": true,
+      "audioFound": true,
+      "playing": true,
+      "active": true,
+      "verification": "HOWLER_PLAYING_TRUE"
+    },
     "gameplayWrites": 1,
     "publicFunctionCalls": 1,
     "rawWriteCalls": 0,
@@ -20,10 +62,24 @@
     "startCalls": 0,
     "disconnectCalls": 0,
     "farmerWorkersInstalled": 0,
-    "normalRuntimeAllowed": false
+    "normalRuntimeAllowed": false,
+    "soak": {
+      "status": "BESTANDEN",
+      "samples": 60,
+      "minimumSamples": 60,
+      "durationMs": 300552
+    },
+    "postSlotMaterialSha256": "b526a3a83ce92b338fab074b6d2f943f3c0d3604430ba067bbe62f228005a13d",
+    "postIndexMaterialSha256": "6ecb90bf5d76ab137e4bd3c6c4f7d28dce3fa0786f690a8d3560bac05a4d02ef",
+    "prestateFingerprintSha256": "003a52f855cccf85eace98428b91292f0e23c759bf43293cfdc8c8a9046a213c"
   },
-  "ratified": false,
-  "blocker": [
-    "REALER_PRODUCTIVE_ONE_SHOT_LIVE_5M_NOCH_NICHT_TERMINAL_BESTANDEN"
-  ]
+  "ratified": true,
+  "blocker": [],
+  "deploymentEvidence": {
+    "githubWorkflow": "deploy-cloudflare",
+    "workflowRunId": 35955574771,
+    "v5Publish": "SUCCESS",
+    "v5ReadbackVerify": "SUCCESS"
+  },
+  "supabaseUpdatedAt": "2026-09-24T04:33:50.907Z"
 }
