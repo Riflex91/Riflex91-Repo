@@ -731,12 +731,24 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "UPGRADE_COMMITTED_COMPOUND_EXCHANGE_NO_CANDIDATE_AUTHORITY_CLOSED",
+    "UPGRADE_COMMITTED_TARGET_FAMILIES_NO_CANDIDATE_EXIT_GATE_BLOCKED",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
+    "WAIT_FOR_NATURAL_COMPOUND_OR_EXCHANGE_NORMAL_CANDIDATE_THEN_REPEAT_READONLY_TARGET_RESCAN",
   );
+  const exit=prep.pr20_8.exitGateReview;
+  assert.equal(exit.status,"BLOCKED_BY_REQUIRED_COMPOUND_EXCHANGE_LIVE_RATIFICATION");
+  assert.equal(exit.evidence,"roadmap/pr20-8-no-candidate-exit-gate-review.json");
+  assert.equal(exit.currentExitGateSatisfied,false);
+  assert.equal(exit.compoundRatified,false);
+  assert.equal(exit.compoundLive5mTested,false);
+  assert.equal(exit.exchangeRatified,false);
+  assert.equal(exit.exchangeLive5mTested,false);
+  assert.equal(exit.exchangeAutonomyProductiveProven,false);
+  assert.equal(exit.mayAdvanceToPr20_9,false);
+  assert.equal(exit.roadmapCriteriaRelaxed,false);
+  assert.equal(exit.acquisitionOrMutationToCreateCandidateAllowed,false);
   assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
   assert.equal(
     p.contract,
@@ -859,7 +871,7 @@ test("PR20.8 remaining Compound/Exchange candidate rescan ratifies no-candidate 
   assert.equal(r.rawWriteCalls,0);
   assert.equal(r.sameIntentRetry,false);
   assert.equal(r.normalRuntimeAllowed,false);
-  assert.equal(r.nextGate,"PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW");
+  assert.equal(r.nextGate,"WAIT_FOR_NATURAL_COMPOUND_OR_EXCHANGE_NORMAL_CANDIDATE_THEN_REPEAT_READONLY_TARGET_RESCAN");
   assert.equal(r.evidence,"roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-3-evidence.json");
   assert.equal(r.evidenceRatified,true);
   assert.equal(r.compoundRatified,false);
