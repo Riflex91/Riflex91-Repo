@@ -64,6 +64,8 @@ export interface Pr207AcquisitionPurchasePlan {
   readonly quantity: 1;
   readonly exactCost: 4800;
   readonly minimumGoldSafetyReserve: 1000;
+  readonly goldBudgetReservationRequired: true;
+  readonly goldBudgetReservationAmount: 4800;
   readonly actionContractId: typeof PR20_7_ACQUISITION_PURCHASE_ACTION_CONTRACT_ID;
   readonly recoveryContractId: typeof PR20_7_ACQUISITION_PURCHASE_RECOVERY_CONTRACT_ID;
   readonly verifierId: typeof PR20_7_ACQUISITION_PURCHASE_VERIFIER_ID;
@@ -234,6 +236,8 @@ export function pruefePr207AcquisitionPurchaseVorbereitung(
     quantity: 1,
     exactCost: 4_800,
     minimumGoldSafetyReserve: 1_000,
+    goldBudgetReservationRequired: true,
+    goldBudgetReservationAmount: 4_800,
     actionContractId: PR20_7_ACQUISITION_PURCHASE_ACTION_CONTRACT_ID,
     recoveryContractId: PR20_7_ACQUISITION_PURCHASE_RECOVERY_CONTRACT_ID,
     verifierId: PR20_7_ACQUISITION_PURCHASE_VERIFIER_ID,
