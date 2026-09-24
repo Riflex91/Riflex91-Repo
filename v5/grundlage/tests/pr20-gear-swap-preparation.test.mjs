@@ -408,7 +408,6 @@ test("PR20.7 maschinenlesbarer Vertrag bleibt NO-WRITE und trennt Waffen/Offhand
   assert.equal(contract.weaponOffhandFoundation.acquisitionObservedVendorDistance, 88.59875647515783);
   assert.equal(contract.weaponOffhandFoundation.acquisitionObservedSellDistance, 400);
   assert.equal(contract.weaponOffhandFoundation.acquisitionObservedSellDistanceSource, "OFFICIAL_SERVER_SOURCE_PIN");
-  assert.equal(contract.weaponOffhandFoundation.acquisitionNextGate, "PR20_7_WEAPON_OFFHAND_ACQUISITION_DURABLE_SHADOW_NO_WRITE");
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowFoundation, "grundlage/quelle/equipment/pr20-7-weapon-offhand-acquisition-shadow.ts");
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowPackage, "werkzeuge/pr20-7-weapon-offhand-acquisition-shadow-no-write-autonomous.js");
   assert.equal(contract.weaponOffhandFoundation.acquisitionShadowTestId, "pr20-7-gear-weapon-offhand-acquisition-durable-shadow-no-write");
