@@ -59,14 +59,41 @@ test("PR20.7 real shadow is explicitly no-send/no-authority", () => {
   }
 });
 
-test("PR20.7 shadow evidence placeholder cannot count as PASS", () => {
-  assert.equal(evidence.status, "OFFEN");
-  assert.equal(evidence.observedAtMs, null);
-  assert.equal(evidence.terminal, null);
-  assert.equal(evidence.result, null);
-  assert.equal(evidence.ratified, false);
-  assert.deepEqual(
-    evidence.blocker,
-    ["REAL_BROWSER_SHADOW_NOCH_NICHT_AUSGEFUEHRT"],
-  );
+test("PR20.7 real shadow evidence is terminal, ratified and zero-write", () => {
+  assert.equal(evidence.status, "BESTANDEN_REAL_BROWSER_SHADOW_NO_WRITE");
+  assert.equal(evidence.observedAtMs, 1790196937277);
+  assert.equal(evidence.terminal, true);
+  assert.equal(evidence.ratified, true);
+  assert.deepEqual(evidence.blocker, []);
+  assert.equal(evidence.result.status, "BESTANDEN");
+  assert.equal(evidence.result.phase, "COMPLETE");
+  assert.equal(evidence.result.recipient.characterName, "My_Merchant");
+  assert.equal(evidence.result.candidate.slot, "helmet");
+  assert.equal(evidence.result.candidate.inventoryIndex, 7);
+  assert.equal(evidence.result.stableDoubleObservation, true);
+  assert.equal(evidence.result.performanceTrick.active, true);
+  assert.equal(evidence.result.shadowDurableIntentCreated, true);
+  assert.equal(evidence.result.shadowDurableReadback, true);
+  assert.equal(evidence.result.sendBoundaryState, "NICHT_GESENDET");
+  assert.equal(evidence.result.reconciliationClassification, "NOT_APPLIED");
+  assert.equal(evidence.result.oneShotBindingPrepared, true);
+  assert.equal(evidence.result.equipmentInventoryFenceClaimsPrepared, true);
+  for (const [key, expected] of Object.entries({
+    gameplayWrites: 0,
+    publicFunctionCalls: 0,
+    rawWriteCalls: 0,
+    startCalls: 0,
+    disconnectCalls: 0,
+    farmerWorkersInstalled: 0,
+    authorityIssued: false,
+    gameplayAuthority: false,
+    rawWriteAuthority: false,
+    swapWriteRatification: false,
+    sameIntentRetry: false,
+    normalRuntimeAllowed: false,
+  })) {
+    assert.equal(evidence.observedSafetyBoundary[key], expected, key);
+  }
+  assert.equal(evidence.deploymentEvidence.v5Publish, "SUCCESS");
+  assert.equal(evidence.deploymentEvidence.v5ReadbackVerify, "SUCCESS");
 });
