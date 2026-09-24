@@ -727,7 +727,7 @@ test("PR20.8 Upgrade Durable Shadow real-browser evidence remains ratified after
   assert.equal(shadow.normalRuntimeAllowed,false);
 });
 
-test("PR20.8 Upgrade productive one-write manifest cutover is pinned but not yet observed deployed", () => {
+test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutover advances separately", () => {
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
@@ -775,20 +775,9 @@ test("PR20.8 Upgrade productive one-write manifest cutover is pinned but not yet
   assert.equal(p.runnerTestId,"pr20-8-upgrade-productive-one-write-live");
   assert.equal(p.runnerControllerVersion,"1.0.0");
   assert.equal(p.expectedGlobal,"V5PR208UpgradeProductiveOneWriteLive");
-  assert.equal(p.manifestCutoverPrepared,true);
-  assert.equal(p.manifest,"roadmap/v5-autonomous-test-manifest.json");
-  assert.equal(
-    p.sourceCommit,
-    "8cd2837b5094c5cf962bc787d32dc021ae221ebd",
-  );
-  assert.equal(
-    p.packageSha256,
-    "063c5143852efa2357c0a3e0930e013e7238bc0be8b0d81f7c3742f97c6ed4f9",
-  );
-  assert.equal(p.packageBytes,46151);
+  assert.equal(p.manifestCutoverPrepared,false);
   assert.equal(p.deployed,false);
-  assert.equal(p.deploymentEvidenceObserved,false);
-  assert.equal(p.liveWriteEnabled,true);
+  assert.equal(p.liveWriteEnabled,false);
   assert.equal(p.packageContainsExactlyOnePublicUpgradeCallSite,true);
   assert.equal(p.gameplayAuthority,false);
   assert.equal(p.rawWriteAuthority,false);
