@@ -1,34 +1,8 @@
 (() => {
   "use strict";
 
-  const VERSION = "1.0.1";
+  const VERSION = "1.0.0";
   const TEST_ID = "pr20-8-upgrade-productive-one-write-live";
-  const API_NAME = "V5PR208UpgradeProductiveOneWriteLive";
-
-  function incumbentSameVersionApi() {
-    const hosts = [globalThis];
-    try {
-      if (globalThis.parent
-          && globalThis.parent !== globalThis
-          && !hosts.includes(globalThis.parent)) hosts.push(globalThis.parent);
-    } catch {}
-    for (const host of hosts) {
-      try {
-        const api = host?.[API_NAME];
-        if (api?.testId === TEST_ID
-            && api?.version === VERSION
-            && typeof api.status === "function"
-            && typeof api.start === "function") return api;
-      } catch {}
-    }
-    return null;
-  }
-
-  const INCUMBENT_SAME_VERSION_API = incumbentSameVersionApi();
-  if (INCUMBENT_SAME_VERSION_API) {
-    try { globalThis[API_NAME] = INCUMBENT_SAME_VERSION_API; } catch {}
-    return;
-  }
   const EXPECTED_CHARACTER = "My_Merchant";
   const EXPECTED_CLASS = "merchant";
   const EXPECTED_SERVER_REGION = "EU";
@@ -1381,14 +1355,6 @@
   function fail(error) {
     const message = text(error?.message || error, 500) || "UNBEKANNTER_FEHLER";
     emit("PR20_8_UPGRADE_LIVE_FEHLER", "error", { reason: message });
-    const safeZeroWriteNoIntentFailure = state.gameplayWrites === 0
-      && state.publicFunctionCalls === 0
-      && state.rawWriteCalls === 0
-      && state.authority.durableIntentCreated === false
-      && state.intents.length === 0;
-    if (safeZeroWriteNoIntentFailure) {
-      try { releaseRuntimeLease(); } catch {}
-    }
     setState({
       status: "FEHLER",
       phase: "ERROR",
@@ -1431,14 +1397,14 @@
       events.slice(-Math.max(1, Math.min(2000, Number(limit) || 2000))),
     start: () => startOnce()
   });
-  globalThis[API_NAME] = api;
+  globalThis.V5PR208UpgradeProductiveOneWriteLive = api;
   try {
     const r = root();
-    if (r !== globalThis) r[API_NAME] = api;
+    if (r !== globalThis) r.V5PR208UpgradeProductiveOneWriteLive = api;
   } catch {}
   try {
     if (globalThis.parent && globalThis.parent !== globalThis) {
-      globalThis.parent[API_NAME] = api;
+      globalThis.parent.V5PR208UpgradeProductiveOneWriteLive = api;
     }
   } catch {}
 
