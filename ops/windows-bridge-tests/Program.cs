@@ -427,10 +427,63 @@ Assert(!CdpAdventureLandClient.IsConfiguredV5WorkerTarget(v5WorkerManifest, "My_
 Assert(CdpAdventureLandClient.BuildV5AutonomousTestWorkerPackageUrl(v5WorkerManifest)
     == "https://raw.githubusercontent.com/Riflex91/Riflex91-Repo/d0823081da6f07a8a60002b1b809c24916555521/v5/werkzeuge/pr20-6-mluck-worker.js",
     "V5_WORKER_IMMUTABLE_PACKAGE_URL");
-Assert(CdpAdventureLandClient.ShouldDeployV5AutonomousTest(v5AutoManifest.TestId, null, false), "V5_AUTO_DEPLOY_WHEN_NO_TEST");
-Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(v5AutoManifest.TestId, v5AutoManifest.TestId, false), "V5_AUTO_NO_RELOAD_SAME_TEST");
-Assert(CdpAdventureLandClient.ShouldDeployV5AutonomousTest(v5AutoManifest.TestId, "pr20-5-merchant-stability-autonomous-4char", true), "V5_AUTO_ADVANCE_AFTER_TERMINAL");
-Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(v5AutoManifest.TestId, "other-nonterminal", false), "V5_AUTO_BLOCK_OTHER_NONTERMINAL");
+Assert(CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    v5AutoManifest.TestId, "1.0.2", null, null,
+    false, long.MaxValue, long.MaxValue, true, true, -1),
+    "V5_AUTO_DEPLOY_WHEN_NO_TEST");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    v5AutoManifest.TestId, "1.0.2", v5AutoManifest.TestId, "1.0.2",
+    true, 0, 0, false, false, 0),
+    "V5_AUTO_NO_RELOAD_SAME_VERSION");
+Assert(CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    v5AutoManifest.TestId, "1.0.2", v5AutoManifest.TestId, "1.0.1",
+    true, 0, 0, false, false, -1),
+    "V5_AUTO_SAFE_SAME_TEST_UPGRADE_AFTER_TERMINAL_ZERO_WRITE");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    v5AutoManifest.TestId, "1.0.1", v5AutoManifest.TestId, "1.0.2",
+    true, 0, 0, false, false, 0),
+    "V5_AUTO_BLOCKS_SAME_TEST_DOWNGRADE");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    v5AutoManifest.TestId, "1.0.2", v5AutoManifest.TestId, "1.0.1",
+    false, 0, 0, false, false, 0),
+    "V5_AUTO_BLOCKS_NONTERMINAL_SAME_TEST_UPGRADE");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    v5AutoManifest.TestId, "1.0.2", v5AutoManifest.TestId, "1.0.1",
+    true, 1, 0, false, false, 0),
+    "V5_AUTO_BLOCKS_SAME_TEST_UPGRADE_AFTER_GAMEPLAY_WRITE");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    v5AutoManifest.TestId, "1.0.2", v5AutoManifest.TestId, "1.0.1",
+    true, 0, 1, false, false, 0),
+    "V5_AUTO_BLOCKS_SAME_TEST_UPGRADE_AFTER_RAW_WRITE");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    v5AutoManifest.TestId, "1.0.2", v5AutoManifest.TestId, "1.0.1",
+    true, 0, 0, true, false, 0),
+    "V5_AUTO_BLOCKS_SAME_TEST_UPGRADE_WITH_RETRY_DRIFT");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    v5AutoManifest.TestId, "1.0.2", v5AutoManifest.TestId, "1.0.1",
+    true, 0, 0, false, true, 0),
+    "V5_AUTO_BLOCKS_SAME_TEST_UPGRADE_WITH_DURABLE_INTENT");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    v5AutoManifest.TestId, "1.0.2", v5AutoManifest.TestId, "1.0.1",
+    true, 0, 0, false, false, 1),
+    "V5_AUTO_BLOCKS_SAME_TEST_UPGRADE_WITH_OPEN_INTENT");
+Assert(CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    v5AutoManifest.TestId, "1.0.2", "pr20-5-merchant-stability-autonomous-4char", "1.0.0",
+    true, 3, 0, false, true, 1),
+    "V5_AUTO_ADVANCE_AFTER_OTHER_TERMINAL");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    v5AutoManifest.TestId, "1.0.2", "other-nonterminal", "1.0.0",
+    false, 0, 0, false, false, 0),
+    "V5_AUTO_BLOCK_OTHER_NONTERMINAL");
+
+Assert(CdpAdventureLandClient.IsStrictlyNewerControllerVersion("1.0.2", "1.0.1"), "V5_VERSION_STRICTLY_NEWER");
+Assert(!CdpAdventureLandClient.IsStrictlyNewerControllerVersion("1.0.1", "1.0.1"), "V5_VERSION_EQUAL_NOT_NEWER");
+Assert(!CdpAdventureLandClient.IsStrictlyNewerControllerVersion("1.0.1", "1.0.2"), "V5_VERSION_DOWNGRADE_REJECTED");
+Assert(!CdpAdventureLandClient.IsStrictlyNewerControllerVersion("garbage", "1.0.1"), "V5_VERSION_INVALID_REJECTED");
+
+var coordinatorProbe = CdpAdventureLandClient.BuildV5CoordinatorProbeExpression("V5PR207AccountWeaponCandidateDiscovery");
+Assert(coordinatorProbe.Contains("V5PR207AccountWeaponCandidateDiscovery", StringComparison.Ordinal), "V5_COORDINATOR_PROBE_EXPECTED_GLOBAL");
+Assert(!coordinatorProbe.Contains("V5PR206MluckTest", StringComparison.Ordinal), "V5_COORDINATOR_PROBE_NOT_HARDCODED_MLUCK");
 
 Assert(CdpAdventureLandClient.ShouldAttemptLegacyPr206RosterRecovery(
     "pr20-6-mluck-autonomous-live-5m",
