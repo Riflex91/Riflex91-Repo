@@ -426,8 +426,8 @@ test("Upgrade Compound Exchange und Craft bleiben vorhandenen no-retry Contracts
 });
 
 test("PR20.8 Exchange besitzt spezialisierten Multi-Domain NO-WRITE Planer", () => {
-  assert.equal(prep.pr20_8.status, "EXCHANGE_SPECIALIZED_PLANNER_BEREIT_NO_WRITE");
-  assert.equal(prep.pr20_8.nextAction, "PR20_8_DURABLE_ONE_SHOT_FOUNDATIONS");
+  assert.equal(prep.pr20_8.status, "DURABLE_ONE_SHOT_FOUNDATIONS_BEREIT_NO_WRITE");
+  assert.equal(prep.pr20_8.nextAction, "PR20_8_READ_ONLY_PREFLIGHTS");
   assert.ok(prep.pr20_8.foundations.some(x =>
     x.includes("ExchangeProduktionsPlaner")));
   assert.equal(prep.pr20_8.erkannteRestluecken.some(x =>
