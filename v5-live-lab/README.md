@@ -397,6 +397,23 @@ V5LiveLab.exportBugBundle()
 
 The bug bundle includes build identity, source-main SHA, current character/server state, full Live Lab configuration, current PR24-28 runtime state and bounded logs.
 
+## Restart / recovery behavior
+
+The browser runtime stores a bounded safety state in `localStorage` per character.
+
+Persisted safety state includes:
+
+- irreversible intent fences;
+- server-hop cooldown history;
+- bounded per-character training time;
+- whether the prior Live Lab session ended while still marked running.
+
+If a prior session disappeared while an irreversible action was `IN_FLIGHT`, the next runtime converts that record to `UNKNOWN` with `RESTART_DURING_IRREVERSIBLE_ACTION`. The same intent is not automatically resent.
+
+A detected unclean restart also injects the PR24 `RESTART` fault. With group fail-closed behavior enabled, the first reconciliating group tick remains blocked. After reconciliation, a subsequent fresh tick may return to `LIVE_GROUP_READY`.
+
+World action plans themselves are not blindly resumed across a code/browser restart. Fresh observations and a new pre-action revalidation are required.
+
 ## Isolation rules
 
 1. Live Lab code stays on the dedicated Live Lab branch.
