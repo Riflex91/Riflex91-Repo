@@ -52,8 +52,10 @@
   },
   "alreadySatisfiedOutcome": {
     "whenCurrentSeashellQuantityAtLeast": 20,
-    "action": "RUN_EXISTING_EXCHANGE_SCANNER",
-    "farmStillNotAllowed": true
+    "action": "PREPARE_SEASHELL_HANDOFF_SHADOW_NO_WRITE",
+    "farmStillNotAllowed": true,
+    "reason": "existing Exchange scanner is pinned to My_Merchant",
+    "merchantHandoffRequired": true
   },
   "futureRunnerBoundary": {
     "runnerPrepared": false,
