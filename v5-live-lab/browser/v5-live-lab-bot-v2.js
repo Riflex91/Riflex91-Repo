@@ -1178,13 +1178,23 @@
 
   function assignGroupRoles(active) {
     const roles = {};
-    const pick = function (capability) {
-      const candidates = active.filter(function (m) {
+    const assigned = new Set();
+    const sortedCandidates = function (capability) {
+      return active.filter(function (m) {
         return m.capabilities.includes(capability);
       }).sort(function (a, b) {
         return b.gearScore - a.gearScore || b.level - a.level || a.characterId.localeCompare(b.characterId);
       });
-      if (candidates[0]) roles[capability] = candidates[0].characterId;
+    };
+    const pick = function (capability) {
+      const candidates = sortedCandidates(capability);
+      const member = candidates.find(function (m) {
+        return !assigned.has(m.characterId);
+      }) || candidates[0] || null;
+      if (member) {
+        roles[capability] = member.characterId;
+        assigned.add(member.characterId);
+      }
     };
     ["TANK", "HEAL", "AOE", "CC", "KITE", "REVIVE"].forEach(pick);
     roles.DPS = Object.freeze(active.filter(function (m) {
