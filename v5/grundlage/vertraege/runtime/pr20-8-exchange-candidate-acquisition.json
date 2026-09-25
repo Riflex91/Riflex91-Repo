@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_8_EXCHANGE_CONTROLLED_CANDIDATE_ACQUISITION",
+  "status": "DISCOVERY_PREPARED_BANK_ACQUISITION_CONDITIONALLY_ALLOWED",
+  "supersedesDecisionOnly": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN",
+  "preservesHistoricalNoCandidateEvidence": true,
+  "sourceMain": "79d06785eee9e97c7f1a265ee09f071f49f0fa07",
+  "candidatePolicy": {
+    "scannerCriteriaMustRemainIdentical": true,
+    "maxExchangeBaseGold": 50000,
+    "specialExchangeNamesExcluded": [
+      "sixcake"
+    ],
+    "lockedBlockedGiftSpecialPropertyExcluded": true,
+    "cashEventQuestExclusiveExcluded": true,
+    "sufficientExchangeQuantityRequired": true
+  },
+  "sourceOrder": [
+    "CURRENT_INVENTORY",
+    "BANK",
+    "BUY_LATER_IF_SEPARATELY_PREPARED",
+    "FARM_LATER_IF_SEPARATELY_PREPARED"
+  ],
+  "inventory": {
+    "discoveryReadOnly": true,
+    "existingCandidateSkipsAcquisition": true,
+    "next": "RUN_EXISTING_EXCHANGE_SCANNER"
+  },
+  "bank": {
+    "discoveryReadOnly": true,
+    "controlledMutationMayCreateCandidate": true,
+    "exactPackAndBankSlotRequired": true,
+    "explicitEmptyInventorySlotRequired": true,
+    "oneShotBankRetrieveRequired": true,
+    "existingBankRetrieveSafetyFoundationsMustBeReused": true,
+    "durableIntentBeforePossibleSendRequired": true,
+    "currentFenceRequired": true,
+    "bankLeaseRequired": true,
+    "finalFreshCandidateReresolutionRequired": true,
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "maximumRawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY"
+  },
+  "buy": {
+    "allowedNow": false,
+    "requiresSeparatePreparation": true
+  },
+  "farm": {
+    "allowedNow": false,
+    "requiresSeparatePreparation": true
+  },
+  "separation": {
+    "acquisitionDoesNotCountAsExchangeRatification": true,
+    "acquisitionDoesNotCountAsExchange5mEvidence": true,
+    "acquisitionDoesNotCountAsExchangeAutonomyProof": true,
+    "existingExchangeScannerMustRunFreshAfterAcquisition": true,
+    "exchangeWriteAuthorityRemainsFalse": true,
+    "normalRuntimeAllowed": false
+  },
+  "foundation": {
+    "planner": "v5/grundlage/quelle/merchant/pr20-8-exchange-candidate-acquisition.ts",
+    "plannerTest": "v5/grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs",
+    "discoveryPackage": "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
+    "discoveryTest": "v5/werkzeuge/tests/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.test.mjs",
+    "discoveryTestId": "pr20-8-exchange-candidate-acquisition-readonly",
+    "discoveryControllerVersion": "1.0.1",
+    "expectedGlobal": "V5PR208ExchangeCandidateAcquisitionReadonly",
+    "discoveryGameplayWrites": 0,
+    "discoveryPublicFunctionCalls": 0,
+    "discoveryRawWriteCalls": 0
+  },
+  "nextAction": "DEPLOY_READ_ONLY_ACQUISITION_DISCOVERY_THEN_BRANCH_ON_RESULT"
+}

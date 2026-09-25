@@ -536,18 +536,18 @@ test("PR20.8 v1.0.6 rescan epoch records real deployment without authority widen
 });
 
 
-test("PR20.8 parallel preparation index mirrors the canonical current Exchange wait state", () => {
+test("PR20.8 parallel preparation index mirrors the superseding controlled acquisition discovery state", () => {
   const parallel=roadmap.parallelPreparations.find(x=>x?.id==="PR20.8_WERTMUTATIONEN");
   assert.ok(parallel);
   assert.equal(parallel.status,roadmap.pr20_8.status);
   assert.equal(parallel.nextAction,roadmap.pr20_8.nextAction);
   assert.equal(
     parallel.status,
-    "EXCHANGE_CURRENT_INVENTORY_NO_CANDIDATE_RATIFIED_WAIT_FUTURE_READONLY_RESCAN",
+    "EXCHANGE_CONTROLLED_ACQUISITION_DISCOVERY_PREPARED",
   );
   assert.equal(
     parallel.nextAction,
-    "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN",
+    "DEPLOY_EXCHANGE_ACQUISITION_DISCOVERY_READ_ONLY",
   );
   for (const artifact of [
     "v5/roadmap/pr20-8-compound-live-5m-evidence.json",
@@ -555,9 +555,14 @@ test("PR20.8 parallel preparation index mirrors the canonical current Exchange w
     "v5/roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json",
     "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js",
     "v5/roadmap/pr20-8-exchange-readonly-rescan-v1-0-6-evidence.json",
+    "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
+    "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
   ]) {
     assert.ok(parallel.artifacts.includes(artifact), `missing parallel PR20.8 artifact: ${artifact}`);
   }
+  assert.equal(roadmap.pr20_8.exchangeCandidateAcquisition.controlledBankMutationToCreateCandidateAllowed,true);
+  assert.equal(roadmap.pr20_8.exchangeCandidateAcquisition.buyToCreateCandidateAllowed,false);
+  assert.equal(roadmap.pr20_8.exchangeCandidateAcquisition.farmToCreateCandidateAllowed,false);
   assert.equal(roadmap.pr20_8.exitGateReview.currentExitGateSatisfied,false);
   assert.equal(roadmap.pr20_8.exitGateReview.mayAdvanceToPr20_9,false);
 });
