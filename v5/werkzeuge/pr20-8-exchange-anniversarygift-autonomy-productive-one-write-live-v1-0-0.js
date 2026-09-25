@@ -354,17 +354,6 @@
 
   function serviceReachability(r,c){
     const sellDistance=sellDistanceEvidence();
-    if(c.computer === true){
-      return {
-        reachable:true,
-        viaComputer:true,
-        distance:null,
-        serverLimit:sellDistance.value,
-        safetyLimit:SERVICE_REACHABILITY_SAFETY_MAX,
-        servicePoint:EXCHANGE_POINT,
-        sourceCommit:SOURCE_COMMIT
-      };
-    }
     if(text(c.map,96) !== EXCHANGE_POINT.map){
       throw new Error("PR20_8_EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_SERVICE_MAP_DRIFT");
     }
@@ -380,7 +369,7 @@
     }
     return {
       reachable:true,
-      viaComputer:false,
+      viaComputer:c.computer === true,
       distance,
       serverLimit:sellDistance.value,
       safetyLimit:conservativeLimit,
@@ -1155,7 +1144,9 @@
       await sleep(RECONCILE_DELAY_MS);
     }
     return {
-      ...(last || {classification:"UNRESOLVED",reason:"NO_OBSERVATION"}),
+      ...(last || {}),
+      classification:"UNKNOWN",
+      reason:last?.reason || "RECONCILIATION_UNPROVEN",
       acceptedEvidenceObserved,
       attempts:RECONCILE_ATTEMPTS
     };
