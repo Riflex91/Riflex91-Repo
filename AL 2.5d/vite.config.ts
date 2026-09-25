@@ -29,7 +29,10 @@ export default defineConfig({
       "/sounds": backendProxy,
       "/phrases": backendProxy,
       "/runner": backendProxy,
-      "/comm": backendProxy
+      "/comm": backendProxy,
+      "/character": backendProxy,
+      "/server": backendProxy,
+      "/mainframe": backendProxy
     }
   }
 });
