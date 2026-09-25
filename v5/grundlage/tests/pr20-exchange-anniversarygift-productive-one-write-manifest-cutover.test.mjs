@@ -38,26 +38,21 @@ test("anniversarygift productive cutover pins the exact one-write package",()=>{
   assert.equal(cutover.manifest.normalRuntimeAllowed,false);
 });
 
-test("manifest matches cutover and pinned runner bytes exactly",()=>{
-  assert.equal(manifest.testId,cutover.manifest.testId);
-  assert.equal(manifest.controllerVersion,cutover.manifest.controllerVersion);
-  assert.equal(manifest.sourceCommit,cutover.manifest.sourceCommit);
-  assert.equal(manifest.packagePath,cutover.manifest.packagePath);
-  assert.equal(manifest.packageSha256,cutover.manifest.packageSha256);
-  assert.equal(manifest.expectedGlobal,cutover.manifest.expectedGlobal);
-  assert.equal(manifest.normalRuntimeAllowed,false);
-
-  const localPath=manifest.packagePath.replace(/^v5\//,"");
+test("historical productive cutover package bytes remain exact after service-recovery advance",()=>{
+  const localPath=cutover.manifest.packagePath.replace(/^v5\//,"");
   const bytes=fs.readFileSync(localPath);
   assert.equal(bytes.length,cutover.manifest.packageBytes);
   assert.equal(
     crypto.createHash("sha256").update(bytes).digest("hex"),
-    manifest.packageSha256,
+    cutover.manifest.packageSha256,
   );
   const pinned=execFileSync("git",[
-    "show",manifest.sourceCommit+":"+manifest.packagePath,
+    "show",cutover.manifest.sourceCommit+":"+cutover.manifest.packagePath,
   ],{encoding:null,maxBuffer:256*1024});
   assert.deepEqual(pinned,bytes);
+  assert.notEqual(manifest.testId,cutover.manifest.testId);
+  assert.equal(manifest.testId,
+    "pr20-8-exchange-anniversarygift-service-reposition");
 });
 
 test("productive boundary remains exactly-once and fail-closed",()=>{
@@ -119,15 +114,15 @@ test("roadmap advances only to productive deployment observation",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   const live=a.anniversaryGiftProductiveOneWrite;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
+    "EXCHANGE_ANNIVERSARYGIFT_SERVICE_REPOSITION_MANIFEST_CUTOVER_PREPARED");
   assert.equal(roadmap.pr20_8.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE");
+    "DEPLOY_AND_OBSERVE_EXCHANGE_SERVICE_REPOSITION");
   assert.equal(a.status,
-    "ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
-  assert.equal(live.status,"MANIFEST_CUTOVER_PREPARED");
+    "ANNIVERSARYGIFT_SERVICE_REPOSITION_MANIFEST_CUTOVER_PREPARED");
+  assert.equal(live.status,"BLOCKED_SERVICE_UNREACHABLE_ZERO_WRITE");
   assert.equal(live.manifestCutoverPrepared,true);
-  assert.equal(live.deployed,false);
-  assert.equal(live.liveEvidenceObserved,false);
+  assert.equal(live.deployed,true);
+  assert.equal(live.liveEvidenceObserved,true);
   assert.equal(live.exchangeAuthority,false);
   assert.equal(live.gameplayAuthority,false);
   assert.equal(live.rawWriteAuthority,false);

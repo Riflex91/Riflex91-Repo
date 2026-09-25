@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_SERVICE_REPOSITION_MANIFEST_CUTOVER",
+  "status": "MANIFEST_CUTOVER_PREPARED",
+  "sourceMain": "0c96fdf5ab513c7f1b12a779acc7c27477eb0c61",
+  "prerequisite": {
+    "failureEvidence": "v5/roadmap/pr20-8-exchange-anniversarygift-service-unreachable-evidence.json",
+    "requiredFailureEvidenceStatus": "RATIFIED_FAIL_CLOSED_ZERO_WRITE_SERVICE_UNREACHABLE",
+    "latestNotificationId": 2813,
+    "requiredBlocker": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_LIVE_SERVICE_NICHT_ERREICHBAR",
+    "requiredGameplayWrites": 0,
+    "requiredPublicFunctionCalls": 0,
+    "requiredRawWriteCalls": 0,
+    "requiredAuthorityIssued": false
+  },
+  "officialSourcePin": {
+    "repository": "kaansoral/adventureland_mongodb",
+    "commit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+    "runnerFunctionsBlob": "8b40ac9931a48995cd179fa4cb6b3057df677b02",
+    "mapsBlob": "78350dac1a18c4eb0e7c6f545ebf08bb3d6729e4",
+    "smartMoveTarget": "exchange",
+    "smartMoveResolvedTarget": {
+      "map": "main",
+      "x": -26,
+      "y": -432
+    },
+    "exchangeNpc": {
+      "map": "main",
+      "x": -25,
+      "y": -478
+    },
+    "sourcePinnedSellDistance": 400,
+    "conservativeServiceDistance": 300
+  },
+  "manifest": {
+    "path": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "testId": "pr20-8-exchange-anniversarygift-service-reposition",
+    "controllerVersion": "1.0.0",
+    "sourceCommit": "d7f48070228e1bb620beb39717655287defc4e6f",
+    "packagePath": "v5/werkzeuge/pr20-8-exchange-anniversarygift-service-reposition-v1-0-0.js",
+    "packageSha256": "21121e5a8465848732b415dc05451935a7679dd33d23a7c42996c2f4456f54f7",
+    "packageBytes": 12769,
+    "expectedGlobal": "V5PR208ExchangeAnniversarygiftServiceReposition",
+    "coordinatorClass": "merchant",
+    "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
+    "normalRuntimeAllowed": false
+  },
+  "movementBoundary": {
+    "publicFunction": "smart_move",
+    "exactArgument": "exchange",
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "maximumRawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "exchangeCallAllowed": false,
+    "exchangeAuthority": false,
+    "gameplayBroadAuthority": false,
+    "rawWriteAuthority": false,
+    "alreadyReachableMayCompleteWithZeroWrites": true
+  },
+  "successCriteria": {
+    "character": "My_Merchant",
+    "class": "merchant",
+    "serverRegion": "EU",
+    "serverIdentifier": "I",
+    "qFreeRequired": true,
+    "performanceTrickRequired": true,
+    "noHostileAggroRequired": true,
+    "finalMap": "main",
+    "finalDistanceToExchangeNpcAtMost": 300,
+    "movementCompleted": true,
+    "nextAction": "RESTORE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_V1_0_1"
+  },
+  "separation": {
+    "movementDoesNotCountAsExchangeRatification": true,
+    "movementDoesNotCountAsProductiveOneWrite": true,
+    "anniversarygiftMustNotBeConsumed": true,
+    "productiveRunnerMustBeVersionBumpedBeforeReturn": true,
+    "productiveRunnerV1_0_0TerminalFailureMustNotBeReused": true
+  },
+  "nextAction": "DEPLOY_AND_OBSERVE_EXCHANGE_SERVICE_REPOSITION"
+}

@@ -46,26 +46,26 @@ test("v1.0.7 exception rescan remains fully zero-write and authority closed",()=
   assert.equal(contract.safety.normalRuntimeAllowed,false);
 });
 
-test("active manifest has advanced from the ratified scanner to the anniversarygift productive one-write runner",()=>{
+test("active manifest has advanced from the ratified scanner to the anniversarygift service reposition runner",()=>{
   assert.equal(manifest.testId,
-    "pr20-8-exchange-anniversarygift-productive-one-write-live");
+    "pr20-8-exchange-anniversarygift-service-reposition");
   assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.sourceCommit,
-    "5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
+    "d7f48070228e1bb620beb39717655287defc4e6f");
   assert.equal(manifest.packagePath,
-    "v5/werkzeuge/pr20-8-exchange-anniversarygift-productive-one-write-live.js");
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-service-reposition-v1-0-0.js");
   assert.equal(manifest.packageSha256,
-    "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
+    "21121e5a8465848732b415dc05451935a7679dd33d23a7c42996c2f4456f54f7");
   assert.equal(manifest.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
+    "V5PR208ExchangeAnniversarygiftServiceReposition");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 
 test("Seashell work stays prepared but inactive while anniversarygift path is current",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
-  assert.equal(roadmap.pr20_8.nextAction,"DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE");
+    "EXCHANGE_ANNIVERSARYGIFT_SERVICE_REPOSITION_MANIFEST_CUTOVER_PREPARED");
+  assert.equal(roadmap.pr20_8.nextAction,"DEPLOY_AND_OBSERVE_EXCHANGE_SERVICE_REPOSITION");
   assert.equal(a.seashellFarmShadow.activePath,false);
   assert.equal(a.seashellFarmShadow.supersededBy,"ANNIVERSARYGIFT_TEST_EXCEPTION_RESCAN");
   assert.equal(a.seashellFarmShadow.farmAuthority,false);

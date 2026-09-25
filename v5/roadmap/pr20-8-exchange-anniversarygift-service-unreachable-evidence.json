@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "evidenceArt": "V5_PR20_8_EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_SERVICE_UNREACHABLE",
+  "status": "RATIFIED_FAIL_CLOSED_ZERO_WRITE_SERVICE_UNREACHABLE",
+  "sourceMain": "0c96fdf5ab513c7f1b12a779acc7c27477eb0c61",
+  "testId": "pr20-8-exchange-anniversarygift-productive-one-write-live",
+  "controllerVersion": "1.0.0",
+  "package": {
+    "sourceCommit": "5c43c182e2cd2b9ef4361ce1699af00748ad0d95",
+    "sha256": "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74",
+    "bytes": 50047
+  },
+  "observations": [
+    {
+      "notificationId": 2811,
+      "runStartedAtMs": 1790344974036,
+      "createdAt": "2026-09-25T14:02:59.527234Z",
+      "status": "FEHLER",
+      "phase": "ERROR",
+      "blocker": [
+        "PR20_8_EXCHANGE_ANNIVERSARYGIFT_LIVE_SERVICE_NICHT_ERREICHBAR"
+      ],
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "durableIntentCreated": false,
+      "authorityIssued": false,
+      "authorityConsumed": false,
+      "exchangeAuthority": false,
+      "sameIntentRetry": false
+    },
+    {
+      "notificationId": 2813,
+      "runStartedAtMs": 1790345002340,
+      "createdAt": "2026-09-25T14:03:28.240440Z",
+      "status": "FEHLER",
+      "phase": "ERROR",
+      "blocker": [
+        "PR20_8_EXCHANGE_ANNIVERSARYGIFT_LIVE_SERVICE_NICHT_ERREICHBAR"
+      ],
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "durableIntentCreated": false,
+      "authorityIssued": false,
+      "authorityConsumed": false,
+      "exchangeAuthority": false,
+      "sameIntentRetry": false
+    }
+  ],
+  "safetyConclusion": {
+    "anniversarygiftConsumed": false,
+    "exchangeSendAttempted": false,
+    "gameplayWriteOccurred": false,
+    "publicExchangeCallOccurred": false,
+    "rawWriteOccurred": false,
+    "durableIntentCreated": false,
+    "exchangeAuthorityIssued": false,
+    "sameIntentRetry": false,
+    "productiveOneWriteRatified": false
+  },
+  "blockerConclusion": {
+    "blockerStableAcrossObservedRuns": true,
+    "blockerClass": "SERVICE_REACHABILITY",
+    "movementRecoveryRequiredBeforeNextProductiveAttempt": true,
+    "movementAndExchangeMustRemainSeparate": true
+  },
+  "nextAction": "DEPLOY_EXCHANGE_SERVICE_REPOSITION_MOVEMENT_ONLY"
+}
