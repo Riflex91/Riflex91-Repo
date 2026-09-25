@@ -317,6 +317,10 @@ export class LegacyCompatibilityRuntime {
     return this.graphicsMode;
   }
 
+  getLegacyDocument(): Document | null {
+    return this.source?.document ?? this.iframe?.contentDocument ?? null;
+  }
+
   async enterCharacter(name: string, timeoutMs = 15000): Promise<void> {
     const source = this.requireSource();
     const deadline = Date.now() + timeoutMs;

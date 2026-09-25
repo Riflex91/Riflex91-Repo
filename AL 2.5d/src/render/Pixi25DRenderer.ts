@@ -299,6 +299,166 @@ export class Pixi25DRenderer implements RenderBridge {
         alpha: 0.48
       });
     }
+
+    this.drawSurfaceDetail(graphics, surface, materialColor, height);
+  }
+
+  private drawSurfaceDetail(
+    graphics: Graphics,
+    surface: RenderMapSurface,
+    materialColor: number,
+    height: number
+  ): void {
+    const width = Math.max(1, surface.maxX - surface.minX);
+    const depth = Math.max(1, surface.maxY - surface.minY);
+    const structure = surface.layer === "structure";
+    const materialSeed = this.surfaceSeed(
+      surface,
+      surface.minX + width / 2,
+      surface.minY + depth / 2
+    );
+
+    if (!structure) {
+      const longAxis = Math.max(width, depth);
+      const spacing = Math.max(32, Math.min(72, Math.floor(longAxis / 9)));
+      const maxSamples = 96;
+      let samples = 0;
+
+      for (
+        let x = surface.minX + spacing / 2;
+        x < surface.maxX && samples < maxSamples;
+        x += spacing
+      ) {
+        for (
+          let y = surface.minY + spacing / 2;
+          y < surface.maxY && samples < maxSamples;
+          y += spacing
+        ) {
+          const seed = this.surfaceSeed(surface, x, y);
+          const jitterX = (this.seedUnit(seed * 7) - 0.5) * spacing * 0.34;
+          const jitterY = (this.seedUnit(seed * 11) - 0.5) * spacing * 0.34;
+          const point = projectWorldToScreen({
+            x: x + jitterX,
+            y: y + jitterY
+          });
+          const fleck = 1.5 + this.seedUnit(seed * 13) * 3.5;
+          const brightness = 0.82 + this.seedUnit(seed * 17) * 0.32;
+
+          graphics
+            .rect(
+              point.x - fleck / 2,
+              point.y - fleck / 3,
+              fleck,
+              Math.max(1, fleck * 0.55)
+            )
+            .fill({
+              color: this.shadeColor(materialColor, brightness),
+              alpha: 0.16
+            });
+
+          if (this.seedUnit(seed * 19) > 0.7) {
+            const a = projectWorldToScreen({
+              x: x - spacing * 0.16,
+              y
+            });
+            const b = projectWorldToScreen({
+              x: x + spacing * 0.16,
+              y
+            });
+            graphics
+              .moveTo(a.x, a.y)
+              .lineTo(b.x, b.y)
+              .stroke({
+                color: this.shadeColor(materialColor, 1.24),
+                width: 0.65,
+                alpha: 0.12
+              });
+          }
+
+          samples += 1;
+        }
+      }
+
+      return;
+    }
+
+    const shadowOffset = 9 + this.seedUnit(materialSeed) * 6;
+    const frontLeft = projectWorldToScreen({
+      x: surface.minX,
+      y: surface.maxY
+    });
+    const frontRight = projectWorldToScreen({
+      x: surface.maxX,
+      y: surface.maxY
+    });
+
+    graphics
+      .poly([
+        frontLeft.x,
+        frontLeft.y,
+        frontRight.x,
+        frontRight.y,
+        frontRight.x + shadowOffset,
+        frontRight.y + shadowOffset * 0.45,
+        frontLeft.x + shadowOffset,
+        frontLeft.y + shadowOffset * 0.45
+      ])
+      .fill({ color: 0x000000, alpha: 0.12 });
+
+    const ridgeCount = Math.max(
+      1,
+      Math.min(4, Math.floor((width + depth) / 160))
+    );
+
+    for (let ridge = 1; ridge <= ridgeCount; ridge += 1) {
+      const t = ridge / (ridgeCount + 1);
+      const start = projectWorldToScreen({
+        x: surface.minX + width * t,
+        y: surface.minY
+      });
+      const end = projectWorldToScreen({
+        x: surface.minX + width * t,
+        y: surface.maxY
+      });
+
+      graphics
+        .moveTo(start.x, start.y - height)
+        .lineTo(end.x, end.y - height)
+        .stroke({
+          color: this.shadeColor(materialColor, 0.72),
+          width: 1,
+          alpha: 0.22
+        });
+    }
+  }
+
+  private surfaceSeed(
+    surface: RenderMapSurface,
+    worldX: number,
+    worldY: number
+  ): number {
+    const key = [
+      surface.material,
+      surface.tile,
+      surface.layer,
+      Math.round(surface.minX),
+      Math.round(surface.minY),
+      Math.round(worldX),
+      Math.round(worldY)
+    ].join(":");
+
+    let hash = 2166136261;
+    for (let index = 0; index < key.length; index += 1) {
+      hash ^= key.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+
+    return hash >>> 0;
+  }
+
+  private seedUnit(seed: number): number {
+    const next = Math.imul(seed ^ 0x9e3779b9, 1664525) + 1013904223;
+    return ((next >>> 0) % 1000) / 1000;
   }
 
   private materialColor(material: string): number {

@@ -56,6 +56,7 @@ Status: in progress
 - [x] mirrored immutable tile placements/groups from G.geometry
 - [x] materialized 2.5D Main/Town surface massing from original placement footprints
 - [x] presentation cleanup: seamless ground surfaces, quieter grid, stronger structure massing
+- [x] tile-identity material detail pass for ground and structure surfaces
 - [x] procedural 2.5D ground/grid from immutable map bounds
 - [x] optional collision-debug visualization from copied G.geometry lines
 - [x] visible procedural fallbacks for characters, NPCs, monsters and props
@@ -65,6 +66,7 @@ Status: in progress
 - [x] baseline nameplates, HP/MP bars and target highlight
 - [x] priority-based HUD decluttering for dense NPC/monster clusters
 - [ ] baseline HUD
+- [x] graphics-mode toggle docked beside the original top-bar X control
 
 Deliverable: walkable Main with original gameplay logic.
 

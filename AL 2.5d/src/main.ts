@@ -136,6 +136,7 @@ async function boot(): Promise<void> {
     runtime.setGraphicsMode(graphicsMode);
     graphicsToggle.setMode(graphicsMode);
     graphicsToggle.setReady(true);
+    graphicsToggle.dockToLegacyUi(runtime.getLegacyDocument());
     startMirror(runtime.readGlobals);
   };
 
@@ -185,6 +186,7 @@ async function boot(): Promise<void> {
       legacyMirror = null;
       legacyRuntime?.stop();
       legacyRuntime = null;
+      graphicsToggle.dockToLegacyUi(null);
       graphicsToggle.setReady(false);
     },
     legacyRuntimeReady: () => legacyRuntime?.ready ?? false,
