@@ -556,6 +556,47 @@ Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
     false, 0, 0, false, true, 0),
     "V5_PR208_BRIDGE_PROBE_TERMINALIZATION_REJECTS_OTHER_DESIRED_TEST");
 
+Assert(CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.1",
+    "pr20-8-compound-live-5m", "1.0.0",
+    true, 0, 0, false, true, 0),
+    "V5_PR208_COMPOUND_5M_PERFORMANCE_RECOVERY_EXACT_ZERO_WRITE_ALLOWED");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.1",
+    "pr20-8-compound-live-5m", "1.0.0",
+    false, 0, 0, false, true, 0),
+    "V5_PR208_COMPOUND_5M_PERFORMANCE_RECOVERY_REQUIRES_TERMINAL");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.1",
+    "pr20-8-compound-live-5m", "1.0.0",
+    true, 1, 0, false, true, 0),
+    "V5_PR208_COMPOUND_5M_PERFORMANCE_RECOVERY_BLOCKS_GAMEPLAY_WRITE");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.1",
+    "pr20-8-compound-live-5m", "1.0.0",
+    true, 0, 1, false, true, 0),
+    "V5_PR208_COMPOUND_5M_PERFORMANCE_RECOVERY_BLOCKS_RAW_WRITE");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.1",
+    "pr20-8-compound-live-5m", "1.0.0",
+    true, 0, 0, true, true, 0),
+    "V5_PR208_COMPOUND_5M_PERFORMANCE_RECOVERY_BLOCKS_RETRY_DRIFT");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.1",
+    "pr20-8-compound-live-5m", "1.0.0",
+    true, 0, 0, false, true, 1),
+    "V5_PR208_COMPOUND_5M_PERFORMANCE_RECOVERY_BLOCKS_OPEN_INTENT");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.2",
+    "pr20-8-compound-live-5m", "1.0.0",
+    true, 0, 0, false, true, 0),
+    "V5_PR208_COMPOUND_5M_PERFORMANCE_RECOVERY_REJECTS_OTHER_TARGET_VERSION");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "other-test", "1.0.1",
+    "pr20-8-compound-live-5m", "1.0.0",
+    true, 0, 0, false, true, 0),
+    "V5_PR208_COMPOUND_5M_PERFORMANCE_RECOVERY_REJECTS_OTHER_DESIRED_TEST");
+
 Assert(CdpAdventureLandClient.ShouldContinuePr208CandidateReadonlyContextConvergence(
     "pr20-8-wertmutation-live-candidate-readonly", "1.0.3",
     "pr20-8-wertmutation-live-candidate-readonly", "1.0.3"),
