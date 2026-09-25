@@ -6,7 +6,7 @@ import vm from "node:vm";
 const source = fs.readFileSync("browser/v5-live-lab-bot-v2.js", "utf8");
 
 function makeEnv(overrides = {}) {
-  let nowMs = 1000000;
+  let nowMs = 1_000_000;
   const calls = [];
   const timers = new Map();
   let timerSeq = 0;
@@ -38,7 +38,7 @@ function makeEnv(overrides = {}) {
     ...overrides.character,
   };
 
-  const partyMembers = overrides.partyMembers || ["Ranger"];
+  const partyMembers = overrides.partyMembers || [character.name];
 
   const box = {
     console,
@@ -65,32 +65,94 @@ function makeEnv(overrides = {}) {
       },
       ...overrides.G,
     },
-    S: { ...(overrides.S || {}) },
+    S: overrides.S || {},
     server_region: "EU",
     server_identifier: "I",
-    get_party: () => Object.fromEntries(partyMembers.map((name) => [name, { name }])),
+    get_party: () => Object.fromEntries(
+      partyMembers.map((name) => [name, { name }]),
+    ),
     get_player: (name) => box.entities["player:" + name] || null,
-    can_attack: (target) => target && target.dead !== true,
+    can_attack: (target) => !!target && target.dead !== true,
     is_on_cooldown: () => false,
-    attack: async (target) => { calls.push(["attack", target && target.id]); return { ok: true }; },
-    smart_move: async (destination) => { calls.push(["smart_move", destination]); return { ok: true }; },
-    loot: async () => { calls.push(["loot"]); return { ok: true }; },
-    respawn: async () => { calls.push(["respawn"]); return { ok: true }; },
-    use_skill: async (...args) => { calls.push(["use_skill", ...args.map((x) => x && x.id || x && x.name || x)]); return { ok: true }; },
-    send_cm: async (...args) => { calls.push(["send_cm", ...args]); return { ok: true }; },
-    change_server: async (...args) => { calls.push(["change_server", ...args]); return { ok: true }; },
-    buy: async (...args) => { calls.push(["buy", ...args]); return { ok: true }; },
-    sell: async (...args) => { calls.push(["sell", ...args]); return { ok: true }; },
-    exchange: async (...args) => { calls.push(["exchange", ...args]); return { ok: true }; },
-    upgrade: async (...args) => { calls.push(["upgrade", ...args]); return { ok: true }; },
-    compound: async (...args) => { calls.push(["compound", ...args]); return { ok: true }; },
-    craft: async (...args) => { calls.push(["craft", ...args]); return { ok: true }; },
-    send_item: async (...args) => { calls.push(["send_item", ...args]); return { ok: true }; },
-    send_gold: async (...args) => { calls.push(["send_gold", ...args]); return { ok: true }; },
-    bank_store: async (...args) => { calls.push(["bank_store", ...args]); return { ok: true }; },
-    bank_retrieve: async (...args) => { calls.push(["bank_retrieve", ...args]); return { ok: true }; },
-    bank_swap: async (...args) => { calls.push(["bank_swap", ...args]); return { ok: true }; },
-    join: async (...args) => { calls.push(["join", ...args]); return { ok: true }; },
+    attack: async (target) => {
+      calls.push(["attack", target?.id]);
+      return { ok: true };
+    },
+    smart_move: async (destination) => {
+      calls.push(["smart_move", destination]);
+      return { ok: true };
+    },
+    loot: async () => {
+      calls.push(["loot"]);
+      return { ok: true };
+    },
+    respawn: async () => {
+      calls.push(["respawn"]);
+      return { ok: true };
+    },
+    use_skill: async (...args) => {
+      calls.push([
+        "use_skill",
+        ...args.map((value) => value?.id ?? value?.name ?? value),
+      ]);
+      return { ok: true };
+    },
+    send_cm: async (...args) => {
+      calls.push(["send_cm", ...args]);
+      return { ok: true };
+    },
+    change_server: async (...args) => {
+      calls.push(["change_server", ...args]);
+      return { ok: true };
+    },
+    buy: async (...args) => {
+      calls.push(["buy", ...args]);
+      return { ok: true };
+    },
+    sell: async (...args) => {
+      calls.push(["sell", ...args]);
+      return { ok: true };
+    },
+    exchange: async (...args) => {
+      calls.push(["exchange", ...args]);
+      return { ok: true };
+    },
+    upgrade: async (...args) => {
+      calls.push(["upgrade", ...args]);
+      return { ok: true };
+    },
+    compound: async (...args) => {
+      calls.push(["compound", ...args]);
+      return { ok: true };
+    },
+    craft: async (...args) => {
+      calls.push(["craft", ...args]);
+      return { ok: true };
+    },
+    send_item: async (...args) => {
+      calls.push(["send_item", ...args]);
+      return { ok: true };
+    },
+    send_gold: async (...args) => {
+      calls.push(["send_gold", ...args]);
+      return { ok: true };
+    },
+    bank_store: async (...args) => {
+      calls.push(["bank_store", ...args]);
+      return { ok: true };
+    },
+    bank_retrieve: async (...args) => {
+      calls.push(["bank_retrieve", ...args]);
+      return { ok: true };
+    },
+    bank_swap: async (...args) => {
+      calls.push(["bank_swap", ...args]);
+      return { ok: true };
+    },
+    join: async (...args) => {
+      calls.push(["join", ...args]);
+      return { ok: true };
+    },
     setInterval(fn) {
       const id = ++timerSeq;
       timers.set(id, fn);
@@ -105,40 +167,51 @@ function makeEnv(overrides = {}) {
   box.parent = box;
 
   vm.createContext(box);
-  vm.runInContext(source, box, { filename: "v5-live-lab-bot-v2.js" });
+  vm.runInContext(source, box, {
+    filename: "v5-live-lab-bot-v2.js",
+  });
 
   return {
     box,
     calls,
     timers,
-    advance(ms) { nowMs += ms; },
+    advance(ms) {
+      nowMs += ms;
+    },
   };
 }
 
-async function settle() {
-  await new Promise((resolve) => setImmediate(resolve));
-  await new Promise((resolve) => setImmediate(resolve));
+async function settle(rounds = 8) {
+  for (let i = 0; i < rounds; i += 1) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
 }
 
-async function tick(env) {
+async function startAndSettle(env) {
+  env.box.V5LiveLab.start({ ack: "V5_LIVE_LAB_START" });
+  await settle();
+}
+
+async function tickAndSettle(env) {
   await env.box.V5LiveLab.tickNow();
   await settle();
 }
 
-test("v2 installs all PR24-28 surfaces while stopped", () => {
+test("v2 installs PR24-28 live surfaces stopped and without raw authority", () => {
   const env = makeEnv();
   const status = env.box.V5LiveLab.status();
 
   assert.equal(env.box.V5LiveLab.version, "0.2.0");
   assert.equal(status.running, false);
   assert.equal(status.liveExecutionAllowed, false);
+  assert.equal(status.gameplayAuthority, false);
+  assert.equal(status.normalRuntimeAllowed, false);
   assert.equal(status.rawWriteAuthority, false);
-  assert.ok(status.group);
-  assert.ok(status.evidence);
   assert.ok(status.world);
+  assert.ok(status.evidence);
 });
 
-test("PR24 live group accepts fresh heal+dps topology and assigns healer", async () => {
+test("PR24 fresh heal+dps topology assigns HEAL and REVIVE to the priest", async () => {
   const env = makeEnv({
     partyMembers: ["Ranger", "Priest"],
     entities: {
@@ -153,7 +226,10 @@ test("PR24 live group accepts fresh heal+dps topology and assigns healer", async
   });
 
   env.box.V5LiveLab.configure({
-    coordination: { peers: ["Priest"], heartbeatMs: 100000 },
+    coordination: {
+      peers: ["Priest"],
+      heartbeatMs: 999999,
+    },
     group: {
       enabled: true,
       topologyId: "heal-dps",
@@ -163,7 +239,7 @@ test("PR24 live group accepts fresh heal+dps topology and assigns healer", async
     farm: { enabled: false },
   });
 
-  env.box.V5LiveLab.start({ ack: "V5_LIVE_LAB_START" });
+  await startAndSettle(env);
   env.box.on_cm("Priest", {
     type: "V5_LIVE_LAB_HEARTBEAT",
     profileId: "V5_LIVE_LAB_PR28",
@@ -177,21 +253,24 @@ test("PR24 live group accepts fresh heal+dps topology and assigns healer", async
     level: 75,
     gearScore: 700,
     dead: false,
-    moving: false,
     capabilities: ["HEAL", "SINGLE_TARGET", "REVIVE"],
   });
-  await tick(env);
+  await tickAndSettle(env);
 
-  const status = env.box.V5LiveLab.status();
-  assert.equal(status.group.status, "LIVE_GROUP_READY");
-  assert.equal(status.group.roles.HEAL, "Priest");
-  assert.ok(status.group.availableCapabilities.includes("HEAL"));
-  assert.equal(status.group.rawWriteAuthority, false);
+  const group = env.box.V5LiveLab.status().group;
+  assert.equal(group.status, "LIVE_GROUP_READY");
+  assert.equal(group.roles.HEAL, "Priest");
+  assert.equal(group.roles.REVIVE, "Priest");
+  assert.equal(group.rawWriteAuthority, false);
+  assert.equal(
+    env.box.V5LiveLab.exportLogs().some((row) => row.event === "TICK_ERROR"),
+    false,
+  );
 
   env.box.V5LiveLab.stop();
 });
 
-test("PR24 fail-closes on foreign party member", async () => {
+test("PR24 foreign party member fails closed", async () => {
   const env = makeEnv({
     partyMembers: ["Ranger", "Intruder"],
   });
@@ -204,8 +283,8 @@ test("PR24 fail-closes on foreign party member", async () => {
       failClosedOnFault: true,
     },
   });
-  env.box.V5LiveLab.start({ ack: "V5_LIVE_LAB_START" });
-  await tick(env);
+  await startAndSettle(env);
+  await tickAndSettle(env);
 
   const status = env.box.V5LiveLab.status();
   assert.equal(status.group.status, "BLOCKED");
@@ -215,13 +294,17 @@ test("PR24 fail-closes on foreign party member", async () => {
   env.box.V5LiveLab.stop();
 });
 
-test("PR25 records full 5m capability and 15m integration evidence", async () => {
+test("PR25 full 5m capability and 15m integration evidence passes", async () => {
   const env = makeEnv();
 
   env.box.V5LiveLab.configure({
-    evidence: { enabled: true, autoIntegration: false },
+    farm: { enabled: false },
+    evidence: {
+      enabled: true,
+      autoIntegration: false,
+    },
   });
-  env.box.V5LiveLab.start({ ack: "V5_LIVE_LAB_START" });
+  await startAndSettle(env);
 
   env.box.V5LiveLab.startEvidenceSegment({
     art: "CAPABILITY_5M",
@@ -245,18 +328,22 @@ test("PR25 records full 5m capability and 15m integration evidence", async () =>
   env.box.V5LiveLab.stop();
 });
 
-test("PR26 optimizer selects live event ahead of normal farm by deterministic priority", async () => {
+test("PR26 hard filter rejects unsafe high-priority learning candidate", async () => {
   const env = makeEnv({
-    S: { holiday: { active: true, phase: "live" } },
+    S: {
+      unsafeevent: {
+        active: true,
+      },
+    },
     entities: {
       goo1: {
         id: "goo1",
         type: "monster",
         mtype: "goo",
         map: "main",
-        x: 50,
+        x: 10,
         y: 0,
-        real_x: 50,
+        real_x: 10,
         real_y: 0,
         dead: false,
         rip: false,
@@ -265,34 +352,47 @@ test("PR26 optimizer selects live event ahead of normal farm by deterministic pr
   });
 
   env.box.V5LiveLab.configure({
-    farm: { enabled: true, monsters: ["goo"], loot: false },
+    farm: {
+      enabled: true,
+      monsters: ["goo"],
+      loot: false,
+    },
     world: {
       events: [{
-        id: "holiday",
-        stateKey: "holiday",
-        destination: { map: "main", x: 500, y: 500 },
-        priority: 80,
+        id: "unsafeevent",
+        stateKey: "unsafeevent",
+        known: false,
+        priority: 999,
+        learningScore: 100,
       }],
     },
   });
-  env.box.V5LiveLab.start({ ack: "V5_LIVE_LAB_START" });
-  await tick(env);
+  await startAndSettle(env);
+  await tickAndSettle(env);
 
   const status = env.box.V5LiveLab.status();
+  assert.equal(status.currentTask.type, "FARM");
+  assert.ok(
+    status.optimizer.rejectedCandidateIds.includes(
+      "world:EVENT:unsafeevent",
+    ),
+  );
   assert.equal(status.optimizer.learningCanRelaxHardFilter, false);
-  assert.equal(status.currentTask.type, "EVENT");
-  assert.match(status.currentTask.id, /^world:EVENT:/);
 
   env.box.V5LiveLab.stop();
 });
 
-test("PR27 selects weaker undertrained character when no mandatory role overrides", async () => {
+test("PR27 selects weaker undertrained character without mandatory-role override", async () => {
   const env = makeEnv({
     partyMembers: ["Ranger", "WeakMage"],
   });
 
   env.box.V5LiveLab.configure({
-    coordination: { peers: ["WeakMage"], heartbeatMs: 100000 },
+    farm: { enabled: false },
+    coordination: {
+      peers: ["WeakMage"],
+      heartbeatMs: 999999,
+    },
     progression: {
       enabled: true,
       targetCorridor: 0.05,
@@ -301,7 +401,7 @@ test("PR27 selects weaker undertrained character when no mandatory role override
       maxGearScore: 1000,
     },
   });
-  env.box.V5LiveLab.start({ ack: "V5_LIVE_LAB_START" });
+  await startAndSettle(env);
 
   env.box.on_cm("WeakMage", {
     type: "V5_LIVE_LAB_HEARTBEAT",
@@ -311,7 +411,7 @@ test("PR27 selects weaker undertrained character when no mandatory role override
     map: "main",
     hp: 400,
     maxHp: 1000,
-    mp: 800,
+    mp: 700,
     maxMp: 1000,
     level: 30,
     gearScore: 200,
@@ -320,7 +420,7 @@ test("PR27 selects weaker undertrained character when no mandatory role override
   });
 
   env.advance(1000);
-  await tick(env);
+  await tickAndSettle(env);
 
   const progression = env.box.V5LiveLab.status().progression;
   assert.equal(progression.status, "LIVE_SELECTION_READY");
@@ -330,9 +430,14 @@ test("PR27 selects weaker undertrained character when no mandatory role override
   env.box.V5LiveLab.stop();
 });
 
-test("PR28 active event is revalidated and can execute allowlisted public action", async () => {
+test("PR28 event public action is revalidated, deduped and recorded in world ledger", async () => {
   const env = makeEnv({
-    S: { goobrawl: { active: true, phase: 1 } },
+    S: {
+      goobrawl: {
+        active: true,
+        phase: 1,
+      },
+    },
   });
 
   env.box.V5LiveLab.configure({
@@ -350,21 +455,79 @@ test("PR28 active event is revalidated and can execute allowlisted public action
       allowedPublicActions: ["join"],
     },
   });
-  env.box.V5LiveLab.start({ ack: "V5_LIVE_LAB_START" });
-  await tick(env);
+  await startAndSettle(env);
+  await tickAndSettle(env);
 
-  assert.ok(env.calls.some((row) => row[0] === "join" && row[1] === "goobrawl"));
-  const blocked = env.box.V5LiveLab.exportLogs().filter((row) => row.event === "WORLD_REVALIDATION_BLOCKED");
-  assert.equal(blocked.length, 0);
+  const status = env.box.V5LiveLab.status();
+  assert.equal(
+    env.calls.filter((row) => row[0] === "join").length,
+    1,
+  );
+  assert.equal(status.world.plans.length, 1);
+  assert.equal(status.world.plans[0].status, "COMPLETED");
+  assert.equal(status.world.plans[0].lastValidation, "VALID");
+
+  await tickAndSettle(env);
+  assert.equal(
+    env.calls.filter((row) => row[0] === "join").length,
+    1,
+  );
 
   env.box.V5LiveLab.stop();
 });
 
-test("PR28 unknown monster discovery is quarantined and never selected for action", async () => {
+test("PR28 event drift between planning and action blocks the action", async () => {
+  let reads = 0;
+  const S = {};
+  Object.defineProperty(S, "driftevent", {
+    configurable: true,
+    get() {
+      reads += 1;
+      return {
+        active: true,
+        phase: reads === 1 ? 1 : 2,
+      };
+    },
+  });
+
+  const env = makeEnv({ S });
+  env.box.V5LiveLab.configure({
+    farm: { enabled: false },
+    world: {
+      events: [{
+        id: "driftevent",
+        stateKey: "driftevent",
+        action: {
+          type: "PUBLIC_FUNCTION",
+          name: "join",
+          args: ["driftevent"],
+        },
+      }],
+      allowedPublicActions: ["join"],
+    },
+  });
+  await startAndSettle(env);
+
+  assert.equal(
+    env.calls.some((row) => row[0] === "join"),
+    false,
+  );
+  assert.ok(
+    env.box.V5LiveLab.exportLogs().some(
+      (row) =>
+        row.event === "WORLD_REVALIDATION_BLOCKED"
+        && row.status === "REPLAN_REQUIRED",
+    ),
+  );
+
+  env.box.V5LiveLab.stop();
+});
+
+test("PR28 unknown discovery stays quarantined and receives no action authority", async () => {
   const env = makeEnv({
     entities: {
-      strange1: {
-        id: "strange1",
+      unknown1: {
+        id: "unknown1",
         type: "monster",
         mtype: "future_unknown_mob",
         map: "main",
@@ -383,18 +546,21 @@ test("PR28 unknown monster discovery is quarantined and never selected for actio
       knownMonsterTypes: ["goo"],
     },
   });
-  env.box.V5LiveLab.start({ ack: "V5_LIVE_LAB_START" });
-  await tick(env);
+  await startAndSettle(env);
+  await tickAndSettle(env);
 
   const status = env.box.V5LiveLab.status();
   assert.equal(status.world.quarantine.length, 1);
   assert.equal(status.currentTask, null);
-  assert.equal(env.calls.some((row) => row[0] === "attack"), false);
+  assert.equal(
+    env.calls.some((row) => row[0] === "attack"),
+    false,
+  );
 
   env.box.V5LiveLab.stop();
 });
 
-test("PR28 server hop uses fresh known NORMAL server and remains duplicate fenced", async () => {
+test("PR28 known NORMAL server hop executes once and enters cooldown history", async () => {
   const env = makeEnv();
 
   env.box.V5LiveLab.configure({
@@ -410,25 +576,39 @@ test("PR28 server hop uses fresh known NORMAL server and remains duplicate fence
       }],
     },
   });
-  env.box.V5LiveLab.start({ ack: "V5_LIVE_LAB_START" });
-  await tick(env);
+  await startAndSettle(env);
+  await tickAndSettle(env);
 
-  assert.ok(env.calls.some((row) =>
-    row[0] === "change_server" && row[1] === "EU" && row[2] === "II"
-  ));
+  assert.equal(
+    env.calls.filter(
+      (row) =>
+        row[0] === "change_server"
+        && row[1] === "EU"
+        && row[2] === "II",
+    ).length,
+    1,
+  );
+
   const status = env.box.V5LiveLab.status();
-  assert.equal(status.rawWriteAuthority, false);
   assert.equal(status.world.hopHistory.length, 1);
+  assert.equal(status.world.plans[0].status, "COMPLETED");
+  assert.equal(status.rawWriteAuthority, false);
 
-  await tick(env);
-  const hopCalls = env.calls.filter((row) => row[0] === "change_server");
-  assert.equal(hopCalls.length, 1);
+  await tickAndSettle(env);
+  assert.equal(
+    env.calls.filter((row) => row[0] === "change_server").length,
+    1,
+  );
 
   env.box.V5LiveLab.stop();
 });
 
-test("v2 source contains no raw socket/api_call bypass", () => {
-  for (const marker of ["socket.emit(", ".socket.emit(", "api_call("]) {
+test("v2 source contains no raw socket or api_call mutation bypass", () => {
+  for (const marker of [
+    "socket.emit(",
+    ".socket.emit(",
+    "api_call(",
+  ]) {
     assert.equal(source.includes(marker), false, marker);
   }
 });
