@@ -14,7 +14,8 @@
     "applyAdapterInstalled": false,
     "executionEnabled": false,
     "gateMutationPerformed": false,
-    "authorityIssued": false
+    "authorityIssued": false,
+    "cap022BindingRequiredForPr22Pr23": true
   },
   "reconciliation": {
     "source": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
@@ -22,7 +23,8 @@
     "newApplyAttemptAllowed": false,
     "gateMutationPerformedByReconciler": false,
     "appliedObservationRequiresDurableIntentAndTerminalSettlement": true,
-    "unknownOutcomeFailsClosed": true
+    "unknownOutcomeFailsClosed": true,
+    "cap022BindingPreserved": true
   },
   "safety": {
     "gameplayAuthority": false,
@@ -30,8 +32,31 @@
     "broadRuntimeGrant": false,
     "gesamtfreigabeRequiredSeparately": true,
     "noApplyPortImplemented": true,
-    "normalRuntimeAllowed": false
+    "normalRuntimeAllowed": false,
+    "cap022CannotBeDroppedBeforeReconciliation": true
   },
   "test": "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
-  "nextMilestone": "PREPARE_POST_APPLY_RECORDING_AND_ROLLBACK_PLAN_WITHOUT_GATE_MUTATION"
+  "nextMilestone": "PREPARE_POST_APPLY_RECORDING_AND_ROLLBACK_WITH_CAP022_BINDING_WITHOUT_GATE_MUTATION",
+  "cap022FullChainBoundary": {
+    "requiredStages": [
+      "PR22",
+      "PR23"
+    ],
+    "transactionFields": [
+      "cap022FullChainRequired",
+      "cap022FullChainSatisfied"
+    ],
+    "proposalMustCarrySatisfiedBinding": true,
+    "transactionFingerprintIncludesBinding": true,
+    "validationRequiresStageConsistentBinding": true,
+    "reconciliationRequiresSatisfiedBinding": true,
+    "applyAdapterInstalled": false,
+    "executionEnabled": false,
+    "gateMutationPerformed": false,
+    "authorityIssued": false,
+    "currentPr20_9RatificationCredit": false,
+    "candidateAcquisitionOrMutationAllowedNow": false,
+    "durableIntentCreated": false,
+    "productiveCraftAuthorityOpened": false
+  }
 }
