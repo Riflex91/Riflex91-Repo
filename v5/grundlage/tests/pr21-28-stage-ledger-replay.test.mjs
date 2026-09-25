@@ -1,0 +1,103 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import {bauePr21_28StageLedger,replayPr21_28AdvanceChain} from "../../erzeugt/index.js";
+
+const STAGES=["PR21","PR22","PR23","PR24","PR25","PR26","PR27","PR28"];
+function states(overrides={}){
+  return STAGES.map(stage=>({
+    stage,
+    foundationPrepared:true,
+    orchestrationPrepared:true,
+    featureGatePrepared:true,
+    milestoneRunnerPrepared:true,
+    checkpointRunbookPrepared:true,
+    ratificationRecordPrepared:true,
+    gateApplyTransactionPrepared:true,
+    gateSettlementPrepared:true,
+    liveEvidenceRatified:false,
+    explicitRatificationRecorded:false,
+    gateApplyVerified:false,
+    ...(overrides[stage]??{}),
+  }));
+}
+
+test("all PR21-28 preparation can be complete while productive chain remains closed",()=>{
+  const ledger=bauePr21_28StageLedger(states());
+  assert.equal(ledger.allPreparationComplete,true);
+  assert.equal(ledger.highestPreparationCompleteStage,"PR28");
+  assert.equal(ledger.allProductiveEligible,false);
+  assert.equal(ledger.highestProductiveEligibleStage,null);
+  assert.equal(ledger.replayOnly,true);
+  assert.equal(ledger.gateMutationPerformed,false);
+  assert.equal(ledger.authorityIssued,false);
+  assert.equal(ledger.broadRuntimeGrant,false);
+  assert.equal(ledger.normalRuntimeAllowed,false);
+  assert.match(ledger.ledgerFingerprint,/^[0-9a-f]{16}$/);
+
+  const replay=replayPr21_28AdvanceChain(ledger);
+  assert.equal(replay.status,"PREPARATION_COMPLETE_PRODUCTIVE_CHAIN_CLOSED");
+  assert.equal(replay.highestPreparationCompleteStage,"PR28");
+  assert.equal(replay.highestProductiveEligibleStage,null);
+  assert.ok(replay.blocker.includes("PR21_LIVE_EVIDENCE_REQUIRED"));
+  assert.ok(replay.blocker.includes("PR21_EXPLICIT_RATIFICATION_REQUIRED"));
+  assert.ok(replay.blocker.includes("PR21_VERIFIED_GATE_APPLY_REQUIRED"));
+  assert.equal(replay.replayMutatedGate,false);
+  assert.equal(replay.replayIssuedAuthority,false);
+});
+
+test("productive replay is strictly ordered and closes after first incomplete stage",()=>{
+  const ledger=bauePr21_28StageLedger(states({
+    PR21:{liveEvidenceRatified:true,explicitRatificationRecorded:true,gateApplyVerified:true},
+    PR22:{liveEvidenceRatified:true,explicitRatificationRecorded:true,gateApplyVerified:true},
+    PR23:{liveEvidenceRatified:false,explicitRatificationRecorded:false,gateApplyVerified:false},
+    PR24:{liveEvidenceRatified:true,explicitRatificationRecorded:true,gateApplyVerified:true},
+  }));
+  assert.equal(ledger.highestProductiveEligibleStage,"PR22");
+  assert.equal(ledger.entries[2].productiveChainEligible,false);
+  assert.equal(ledger.entries[3].productiveChainEligible,false);
+  const replay=replayPr21_28AdvanceChain(ledger);
+  assert.ok(replay.blocker.includes("PR23_LIVE_EVIDENCE_REQUIRED"));
+  assert.ok(replay.blocker.includes("PR24_PREDECESSOR_CHAIN_CLOSED"));
+});
+
+test("fully hypothetical evidence chain can replay eligible without mutating gates",()=>{
+  const all=Object.fromEntries(STAGES.map(stage=>[stage,{
+    liveEvidenceRatified:true,
+    explicitRatificationRecorded:true,
+    gateApplyVerified:true,
+  }]));
+  const ledger=bauePr21_28StageLedger(states(all));
+  const replay=replayPr21_28AdvanceChain(ledger);
+  assert.equal(ledger.allProductiveEligible,true);
+  assert.equal(ledger.highestProductiveEligibleStage,"PR28");
+  assert.equal(replay.status,"PRODUCTIVE_CHAIN_REPLAY_ELIGIBLE");
+  assert.deepEqual(replay.blocker,[]);
+  assert.equal(replay.replayMutatedGate,false);
+  assert.equal(replay.replayIssuedAuthority,false);
+  assert.equal(replay.broadRuntimeGrant,false);
+});
+
+test("missing preparation remains distinct from missing productive evidence",()=>{
+  const ledger=bauePr21_28StageLedger(states({
+    PR26:{gateSettlementPrepared:false},
+  }));
+  assert.equal(ledger.allPreparationComplete,false);
+  const replay=replayPr21_28AdvanceChain(ledger);
+  assert.equal(replay.status,"PREPARATION_INCOMPLETE");
+  assert.ok(replay.blocker.includes("PR26_PREPARATION_INCOMPLETE"));
+});
+
+test("ledger rejects duplicate or incomplete stage sets",()=>{
+  assert.throws(()=>bauePr21_28StageLedger(states().slice(0,7)),/PR21_28_STAGE_LEDGER_UNVOLLSTAENDIG/);
+  const duplicate=states();
+  duplicate[7]={...duplicate[7],stage:"PR21"};
+  assert.throws(()=>bauePr21_28StageLedger(duplicate),/PR21_28_STAGE_LEDGER_STAGE_DOPPELT/);
+});
+
+test("stage-ledger source contains no mutation or overall-grant bypass",()=>{
+  const source=fs.readFileSync("grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts","utf8");
+  for(const marker of ["socket.emit(","send_cm(","smart_move(","attack(","use_skill(","loot(","respawn(","change_server(","craft(","exchange(","upgrade(","compound(","V5 GESAMTFREIGABE ERTEILEN"]){
+    assert.equal(source.includes(marker),false,marker);
+  }
+});
