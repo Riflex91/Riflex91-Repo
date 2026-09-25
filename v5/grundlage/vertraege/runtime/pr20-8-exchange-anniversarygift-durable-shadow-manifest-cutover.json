@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_DURABLE_SHADOW_MANIFEST_CUTOVER",
+  "status": "MANIFEST_CUTOVER_PREPARED",
+  "sourceMain": "2ae338ac33f0088644593631f068407e9681fcb5",
+  "prerequisite": {
+    "preparationContract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-durable-shadow-preparation.json",
+    "requiredPreparationStatus": "PREPARED_NO_WRITE",
+    "evidence": "v5/roadmap/pr20-8-exchange-anniversarygift-rescan-v1-0-7-evidence.json",
+    "requiredEvidenceStatus": "RATIFIED_ANNIVERSARYGIFT_EXCHANGE_CANDIDATE_ZERO_WRITE",
+    "notificationId": 2726
+  },
+  "manifest": {
+    "path": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "testId": "pr20-8-exchange-anniversarygift-durable-shadow-no-write",
+    "controllerVersion": "1.0.0",
+    "sourceCommit": "737118b5ab4d043ca996594aa6db1df309a6a177",
+    "packagePath": "v5/werkzeuge/pr20-8-exchange-anniversarygift-durable-shadow-no-write.js",
+    "packageSha256": "04c765fc9d88b242170ca15d0d28d8dcca84572a745dcaa09ebf0c1caa44135e",
+    "packageBytes": 24528,
+    "expectedGlobal": "V5PR208ExchangeAnniversarygiftDurableShadowNoWrite",
+    "coordinatorClass": "merchant",
+    "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
+    "normalRuntimeAllowed": false
+  },
+  "deploymentBoundary": {
+    "bridgeMayDeployPinnedRunner": true,
+    "localStorageShadowWriteAllowed": true,
+    "gameplayWriteAllowed": false,
+    "publicExchangeCallAllowed": false,
+    "rawWriteAllowed": false,
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "normalExchangeWriteRatification": false,
+    "sameIntentRetry": false,
+    "deploymentCountsAsExchangeRatification": false
+  },
+  "expectedLiveOutcome": {
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "exactItem": "anniversarygift",
+    "journalTerminalArt": "ABBRUCH",
+    "sendBoundaryState": "NICHT_GESENDET",
+    "durableReadback": true,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0
+  },
+  "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW"
+}
