@@ -95,7 +95,8 @@
     "Automatische Materialbeschaffung darf erst nach den produktiven PR22-/PR23-Gates reale Farmer-Aktionen ausloesen; danach darf PR20.9 bei einem natuerlich entstandenen Craft-Kandidaten erneut geprueft werden.",
     "CAP-022 Production-Material-Acquisition ist in die PR21-28 Shadow-Pipeline eingebunden; BLOCKIERT-Evidence sperrt die Pipeline, produktive Material-Ausfuehrung sowie PR20.9-Candidate-Acquisition bleiben false.",
     "CAP-022 Material-Handoff ist NO-WRITE bis zur bestehenden COLLECTION/Rendezvous-Logistik geplant: MATERIAL_READY_FOR_HANDOFF stoppt Farming, pinnt einen physischen Stack und verlangt nach spaeterem Settlement einen frischen PR20.9-Craft-Rescan; die Planung selbst zaehlt nicht als Craft-Kandidat oder Ratifizierung.",
-    "CAP-022 besitzt jetzt auch die NO-WRITE-Bruecke vom spaeter real verifizierten COLLECTION-Settlement zu einem frischen NORMAL_CRAFT_ONLY-Rescan. Geplante oder synthetische Settlements duerfen PR20.9 nicht fortschreiben; nur reale Settlement-Evidence plus frischer Post-Settlement-Inventarstand darf einen neuen Craft-Preflight triggern."
+    "CAP-022 besitzt jetzt auch die NO-WRITE-Bruecke vom spaeter real verifizierten COLLECTION-Settlement zu einem frischen NORMAL_CRAFT_ONLY-Rescan. Geplante oder synthetische Settlements duerfen PR20.9 nicht fortschreiben; nur reale Settlement-Evidence plus frischer Post-Settlement-Inventarstand darf einen neuen Craft-Preflight triggern.",
+    "CAP-022 hat jetzt einen persistenten NO-WRITE-Lifecycle. Jeder nichtterminale Materialzustand wird nach Restart zuerst RECOVERY_PENDING; Blind-Resume und Same-Farm-/Same-Handoff-/Same-Rescan-Retry bleiben verboten. Produktive PR22/PR23-/Collection-/Craft-Authority bleibt geschlossen."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -960,7 +961,10 @@
         "v5/grundlage/tests/pr20-9-craft-durable-shadow-no-candidate-evidence.test.mjs",
         "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
         "v5/grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
-        "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs"
+        "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
+        "v5/grundlage/quelle/koordination/production-material-lifecycle.ts",
+        "v5/grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
+        "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs"
       ],
       "deferredAutomaticMaterialRecheck": {
         "status": "WAITING_FOR_FUTURE_PRODUCTIVE_MATERIAL_ACQUISITION",
@@ -1027,6 +1031,25 @@
           "publicFunctionCalls": 0,
           "rawWriteCalls": 0,
           "craftAuthority": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
+        },
+        "persistentLifecycle": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/koordination/production-material-lifecycle.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
+          "test": "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs",
+          "persistent": true,
+          "criticalPersistence": true,
+          "nonterminalRestartBecomesRecoveryPending": true,
+          "blindResumeAllowed": false,
+          "exactPriorPhaseReconciliationRequired": true,
+          "sameFarmObjectiveRetryAllowed": false,
+          "sameHandoffRetryAllowed": false,
+          "sameCraftRescanRetryAllowed": false,
+          "productiveExecutionAllowed": false,
+          "executionAuthority": false,
           "gameplayAuthority": false,
           "rawWriteAuthority": false,
           "normalRuntimeAllowed": false
@@ -1140,7 +1163,10 @@
         "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs",
         "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
         "v5/grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
-        "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs"
+        "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
+        "v5/grundlage/quelle/koordination/production-material-lifecycle.ts",
+        "v5/grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
+        "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1201,6 +1227,25 @@
             "rawWriteAuthority": false,
             "normalRuntimeAllowed": false
           }
+        },
+        "persistentLifecycle": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/koordination/production-material-lifecycle.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
+          "test": "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs",
+          "persistent": true,
+          "criticalPersistence": true,
+          "nonterminalRestartBecomesRecoveryPending": true,
+          "blindResumeAllowed": false,
+          "exactPriorPhaseReconciliationRequired": true,
+          "sameFarmObjectiveRetryAllowed": false,
+          "sameHandoffRetryAllowed": false,
+          "sameCraftRescanRetryAllowed": false,
+          "productiveExecutionAllowed": false,
+          "executionAuthority": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
         }
       }
     },
@@ -1256,7 +1301,10 @@
         "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs",
         "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
         "v5/grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
-        "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs"
+        "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
+        "v5/grundlage/quelle/koordination/production-material-lifecycle.ts",
+        "v5/grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
+        "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1320,6 +1368,25 @@
             "rawWriteAuthority": false,
             "normalRuntimeAllowed": false
           }
+        },
+        "persistentLifecycle": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/koordination/production-material-lifecycle.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
+          "test": "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs",
+          "persistent": true,
+          "criticalPersistence": true,
+          "nonterminalRestartBecomesRecoveryPending": true,
+          "blindResumeAllowed": false,
+          "exactPriorPhaseReconciliationRequired": true,
+          "sameFarmObjectiveRetryAllowed": false,
+          "sameHandoffRetryAllowed": false,
+          "sameCraftRescanRetryAllowed": false,
+          "productiveExecutionAllowed": false,
+          "executionAuthority": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
         }
       }
     },
@@ -4543,10 +4610,48 @@
         "craftAuthority": false,
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
-        "normalRuntimeAllowed": false
+        "normalRuntimeAllowed": false,
+        "persistentLifecycle": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/koordination/production-material-lifecycle.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
+          "test": "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs",
+          "persistent": true,
+          "criticalPersistence": true,
+          "nonterminalRestartBecomesRecoveryPending": true,
+          "blindResumeAllowed": false,
+          "exactPriorPhaseReconciliationRequired": true,
+          "sameFarmObjectiveRetryAllowed": false,
+          "sameHandoffRetryAllowed": false,
+          "sameCraftRescanRetryAllowed": false,
+          "productiveExecutionAllowed": false,
+          "executionAuthority": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
+        }
       },
       "syntheticOrPlannedSettlementMayAdvancePr20_9": false,
-      "onlyRealSettledHandoffMayTriggerFreshRescan": true
+      "onlyRealSettledHandoffMayTriggerFreshRescan": true,
+      "persistentLifecycle": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "v5/grundlage/quelle/koordination/production-material-lifecycle.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
+        "test": "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs",
+        "persistent": true,
+        "criticalPersistence": true,
+        "nonterminalRestartBecomesRecoveryPending": true,
+        "blindResumeAllowed": false,
+        "exactPriorPhaseReconciliationRequired": true,
+        "sameFarmObjectiveRetryAllowed": false,
+        "sameHandoffRetryAllowed": false,
+        "sameCraftRescanRetryAllowed": false,
+        "productiveExecutionAllowed": false,
+        "executionAuthority": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
+      }
     }
   },
   "acceleratedImplementation": {
@@ -4836,6 +4941,25 @@
           "rawWriteAuthority": false,
           "normalRuntimeAllowed": false
         }
+      },
+      "persistentLifecycle": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "v5/grundlage/quelle/koordination/production-material-lifecycle.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
+        "test": "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs",
+        "persistent": true,
+        "criticalPersistence": true,
+        "nonterminalRestartBecomesRecoveryPending": true,
+        "blindResumeAllowed": false,
+        "exactPriorPhaseReconciliationRequired": true,
+        "sameFarmObjectiveRetryAllowed": false,
+        "sameHandoffRetryAllowed": false,
+        "sameCraftRescanRetryAllowed": false,
+        "productiveExecutionAllowed": false,
+        "executionAuthority": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
       }
     }
   },
@@ -4945,6 +5069,25 @@
           "rawWriteAuthority": false,
           "normalRuntimeAllowed": false
         }
+      },
+      "persistentLifecycle": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "v5/grundlage/quelle/koordination/production-material-lifecycle.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
+        "test": "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs",
+        "persistent": true,
+        "criticalPersistence": true,
+        "nonterminalRestartBecomesRecoveryPending": true,
+        "blindResumeAllowed": false,
+        "exactPriorPhaseReconciliationRequired": true,
+        "sameFarmObjectiveRetryAllowed": false,
+        "sameHandoffRetryAllowed": false,
+        "sameCraftRescanRetryAllowed": false,
+        "productiveExecutionAllowed": false,
+        "executionAuthority": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
       }
     }
   },
