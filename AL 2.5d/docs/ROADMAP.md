@@ -55,8 +55,9 @@ Status: in progress
 - [ ] new Main/Town visual asset set
 - [x] mirrored immutable tile placements/groups from G.geometry
 - [x] materialized 2.5D Main/Town surface massing from original placement footprints
+- [x] presentation cleanup: seamless ground surfaces, quieter grid, stronger structure massing
 - [x] procedural 2.5D ground/grid from immutable map bounds
-- [x] projected collision-wall visualization from copied G.geometry lines
+- [x] optional collision-debug visualization from copied G.geometry lines
 - [x] visible procedural fallbacks for characters, NPCs, monsters and props
 - [x] camera follows the local character without changing gameplay coordinates
 - [x] click-to-move continues through the original map_click/on_map_click path
