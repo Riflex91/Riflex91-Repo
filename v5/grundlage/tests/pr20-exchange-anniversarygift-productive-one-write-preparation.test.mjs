@@ -177,14 +177,14 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
 
 test("active autonomous manifest is advanced to the Exchange 5m observer",()=>{
   assert.equal(manifest.testId,
-    "pr20-8-exchange-anniversarygift-live-5m");
+    "pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write");
   assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.sourceCommit,
-    "859c5be1067fbd5360c17ccfe0d912a98537bfc9");
+    "578b18dfa96fd7c4809d55aae4664eae5f37eb43");
   assert.equal(manifest.packageSha256,
-    "455593d7691dc5436af27a5b89afb5fc208f2ebca4253aa87d0726821abcda94");
+    "39084a646825c6bca6231b0968e41cebfbbf3548e8a93bba155dcb64b2fbf2be");
   assert.equal(manifest.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftLive5m");
+    "V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite");
   assert.equal(manifest.normalRuntimeAllowed,false);
   assert.equal(shadow.status,"PREPARED_NO_WRITE");
 });
