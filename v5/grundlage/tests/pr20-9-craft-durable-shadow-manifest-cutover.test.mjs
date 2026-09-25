@@ -66,18 +66,24 @@ test("PR20.9 cutover remains strict NORMAL_CRAFT_ONLY zero gameplay write",()=>{
   assert.equal(d.deploymentCountsAsCraftRatification,false);
 });
 
-test("PR20.9 roadmap and Merchant mirror advance only to live shadow observation",()=>{
+test("PR20.9 roadmap and Merchant mirror remain no-write after no-candidate observation",()=>{
   assert.equal(roadmap.currentGate,"PR20.9_PRODUCTION");
-  assert.equal(roadmap.pr20_9.status,"CRAFT_DURABLE_SHADOW_RESTORED_AFTER_SERVICE_MOUNT");
+  assert.equal(roadmap.pr20_9.status,"CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE");
   assert.deepEqual(roadmap.pr20_9.blockedBy,[]);
-  assert.equal(roadmap.pr20_9.nextAction,"DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW");
+  assert.equal(roadmap.pr20_9.nextAction,"REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE");
   assert.equal(roadmap.pr20_9.liveExecutionAllowed,false);
   assert.equal(roadmap.pr20_9.productiveCraftAuthority,false);
   assert.equal(roadmap.pr20_9.broadGraphExecutionAuthority,false);
   assert.equal(roadmap.pr20_9.normalRuntimeAllowed,false);
   assert.equal(roadmap.pr20_9.craftDurableShadowRunner.manifestCutoverPrepared,true);
   assert.equal(roadmap.pr20_9.craftDurableShadowRunner.active,true);
-  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.liveEvidenceObserved,false);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.liveEvidenceObserved,true);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.latestObservedStatus,"BLOCKIERT");
+  assert.equal(
+    roadmap.pr20_9.craftDurableShadowRunner.latestBlocker,
+    "PR20_9_CRAFT_SHADOW_KEIN_NORMALKANDIDAT",
+  );
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.latestNotificationId,3175);
   assert.equal(roadmap.pr20_9.craftDurableShadowRunner.craftRatified,false);
 
   const parallel=roadmap.parallelPreparations.find(x=>x?.id==="PR20.9_PRODUCTION");
