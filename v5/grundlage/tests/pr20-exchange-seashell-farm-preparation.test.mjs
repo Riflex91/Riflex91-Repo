@@ -157,9 +157,9 @@ test("market evidence or source drift blocks before any farm preparation",()=>{
   assert.ok(source.blocker.includes("PR20_8_SEASHELL_FARM_SOURCE_EVIDENCE_FEHLT"));
 });
 
-test("current roadmap advances only to the no-write Seashell farm shadow preparation",()=>{
-  assert.equal(roadmap.pr20_8.status,"EXCHANGE_SEASHELL_FARM_PREPARATION_READY_NO_WRITE");
-  assert.equal(roadmap.pr20_8.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_NO_WRITE");
+test("current roadmap advances only to read-only Seashell farm shadow-runner preparation",()=>{
+  assert.equal(roadmap.pr20_8.status,"EXCHANGE_SEASHELL_FARM_SHADOW_ADMISSION_READY_NO_WRITE");
+  assert.equal(roadmap.pr20_8.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_RUNNER_READ_ONLY");
   const prep=roadmap.pr20_8.exchangeCandidateAcquisition.seashellFarmPreparation;
   assert.equal(prep.status,"PREPARED_NO_WRITE");
   assert.equal(prep.targetItem,"seashell");
@@ -172,8 +172,8 @@ test("current roadmap advances only to the no-write Seashell farm shadow prepara
 
   const row=roadmap.parallelPreparations.find(x=>x.id==="PR20.8_WERTMUTATIONEN");
   assert.ok(row);
-  assert.equal(row.status,"EXCHANGE_SEASHELL_FARM_PREPARATION_READY_NO_WRITE");
-  assert.equal(row.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_NO_WRITE");
+  assert.equal(row.status,"EXCHANGE_SEASHELL_FARM_SHADOW_ADMISSION_READY_NO_WRITE");
+  assert.equal(row.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_RUNNER_READ_ONLY");
   assert.equal(row.gameplayAuthority,false);
   assert.equal(row.rawWriteAuthority,false);
   assert.equal(row.normalRuntimeAllowed,false);
