@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-25",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "evidenceArt": "V5_PR20_8_EXCHANGE_FRESH_READONLY_RESCAN_V1_0_6",
+  "status": "RATIFIED_FRESH_NO_CANDIDATE_ZERO_WRITE",
+  "manifestMainCommit": "c83a83c25cc23ed9ff27b6ddf49217e7d30d372b",
+  "package": {
+    "testId": "pr20-8-wertmutation-live-candidate-readonly",
+    "controllerVersion": "1.0.6",
+    "sourceCommit": "a5fd67cc9c587b2a20b163915936717c7b4e8321",
+    "path": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js",
+    "sha256": "fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387",
+    "bytes": 21688,
+    "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly"
+  },
+  "liveTelemetry": {
+    "statusTable": "public.aio_v5_test_status",
+    "notificationTable": "public.aio_v5_test_notifications",
+    "debugBatchTable": "public.aio_debug_telemetry_batches",
+    "botId": "pi-main",
+    "notificationId": 2382,
+    "runStartedAtMs": 1790318741735,
+    "observedAtMs": 1790318742137,
+    "updatedAt": "2026-09-25T06:45:48.670Z",
+    "notificationCreatedAt": "2026-09-25T06:45:48.946695Z",
+    "completionNotificationPersisted": true,
+    "deploymentObservedViaStatusAndCompletion": true,
+    "bridgeDeploymentState": "DEPLOYED",
+    "debugBatchForV1_0_6Observed": true,
+    "debugBatchId": 8306
+  },
+  "controller": {
+    "status": "BLOCKIERT",
+    "phase": "PR20_8_LIVE_CANDIDATE_SELECTION",
+    "terminal": true,
+    "blocker": [
+      "PR20_8_CANDIDATE_KEIN_COMPOUND_ODER_EXCHANGE_NORMALKANDIDAT"
+    ],
+    "startedAtMs": 1790318741735,
+    "performanceTrickVerification": "HOWLER_PLAYING_TRUE",
+    "normalRuntimeAllowed": false
+  },
+  "observations": {
+    "upgrade": {
+      "status": "KANDIDAT_GEFUNDEN",
+      "candidateCount": 3,
+      "informationalOnly": true,
+      "selected": {
+        "name": "gloves",
+        "level": 0,
+        "index": 13,
+        "scrollName": "scroll0",
+        "scrollQuantity": 35,
+        "normalPathOnly": true
+      }
+    },
+    "compound": {
+      "status": "KEIN_KANDIDAT",
+      "candidateCount": 0,
+      "selected": null
+    },
+    "exchange": {
+      "status": "KEIN_KANDIDAT",
+      "candidateCount": 0,
+      "selected": null,
+      "rejected": [
+        {
+          "name": "anniversarygift",
+          "index": 4,
+          "reason": "UNSAFE_PHYSICAL_ITEM"
+        }
+      ]
+    }
+  },
+  "postCompoundInventoryFacts": {
+    "priorCompoundEvidence": "v5/roadmap/pr20-8-compound-live-5m-evidence.json",
+    "hpamuletLevel1AtIndex1": true,
+    "priorCompoundInputIndexes22And23Empty": true,
+    "compoundScrollName": "cscroll0",
+    "compoundScrollQuantity": 19,
+    "noNormalCompoundCandidateObserved": true,
+    "noNormalExchangeCandidateObserved": true
+  },
+  "mutationCounters": {
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false
+  },
+  "authority": {
+    "authorityIssued": false,
+    "durableIntentCreated": false,
+    "upgradeAuthority": false,
+    "compoundAuthority": false,
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false
+  },
+  "rescanEpoch": {
+    "controllerVersion": "1.0.6",
+    "priorControllerVersion": "1.0.5",
+    "versionOnlyChangeFromPriorScanner": true,
+    "candidatePolicyChanged": false,
+    "bridgeAdmissionChanged": false,
+    "gameplayLogicChanged": false,
+    "rescanSemanticsChanged": false,
+    "safeSameTestBridgeUpgradeObserved": true
+  },
+  "exitBoundary": {
+    "upgradeRatified": true,
+    "compoundRatified": true,
+    "compoundLive5mTested": true,
+    "exchangeRatified": false,
+    "exchangeLive5mTested": false,
+    "exchangeAutonomyProductiveProven": false,
+    "currentExitGateSatisfied": false,
+    "mayAdvanceToPr20_9": false,
+    "acquisitionOrMutationToCreateCandidateAllowed": false,
+    "exchangeWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "roadmapCriteriaRelaxed": false
+  },
+  "priorFreshReadonlyEvidence": "v5/roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json",
+  "outcome": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN",
+  "nextAction": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN"
+}

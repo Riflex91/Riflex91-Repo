@@ -91,7 +91,9 @@ on:
       - 'v5/grundlage/tests/pr20-exchange-no-candidate-closeout-review.test.mjs'
       - 'v5/grundlage/tests/pr20-exchange-readonly-rescan-facade-recovery-preparation.test.mjs'
       - 'v5/grundlage/tests/pr20-exchange-readonly-rescan-v1-0-5-evidence.test.mjs'
+      - 'v5/grundlage/tests/pr20-exchange-readonly-rescan-v1-0-6-evidence.test.mjs'
       - 'v5/roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json'
+      - 'v5/roadmap/pr20-8-exchange-readonly-rescan-v1-0-6-evidence.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-facade-recovery-preparation.json'
       - 'v5/grundlage/tests/pr20-compound-productive-one-write-runner-preparation.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-durable-shadow-preparation.json'
@@ -202,7 +204,9 @@ on:
       - 'v5/grundlage/tests/pr20-exchange-no-candidate-closeout-review.test.mjs'
       - 'v5/grundlage/tests/pr20-exchange-readonly-rescan-facade-recovery-preparation.test.mjs'
       - 'v5/grundlage/tests/pr20-exchange-readonly-rescan-v1-0-5-evidence.test.mjs'
+      - 'v5/grundlage/tests/pr20-exchange-readonly-rescan-v1-0-6-evidence.test.mjs'
       - 'v5/roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json'
+      - 'v5/roadmap/pr20-8-exchange-readonly-rescan-v1-0-6-evidence.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-facade-recovery-preparation.json'
       - 'v5/grundlage/tests/pr20-compound-productive-one-write-runner-preparation.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-durable-shadow-preparation.json'
@@ -270,6 +274,8 @@ jobs:
         run: node --test grundlage/tests/pr20-exchange-readonly-rescan-v1-0-5-evidence.test.mjs
       - name: Verify PR20.8 fresh Exchange read-only rescan v1.0.5 evidence
         run: node --test grundlage/tests/pr20-exchange-readonly-rescan-v1-0-5-evidence.test.mjs
+      - name: Verify PR20.8 Exchange read-only rescan v1.0.6 evidence
+        run: node --test grundlage/tests/pr20-exchange-readonly-rescan-v1-0-6-evidence.test.mjs
       - name: Verify PR20.8 Compound durable shadow preparation
         run: node --check werkzeuge/pr20-8-compound-durable-shadow-no-write.js && node --test werkzeuge/tests/pr20-8-compound-durable-shadow-no-write.test.mjs grundlage/tests/pr20-compound-durable-shadow-preparation.test.mjs
       - name: Verify PR20.8 Compound productive one-write runner package

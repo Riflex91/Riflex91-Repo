@@ -755,7 +755,7 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   assert.equal(exit.freshReadOnlyRescanRequired,false);
   assert.equal(exit.freshReadOnlyRescanCompletedNoCandidate,true);
   assert.equal(exit.freshReadOnlyRescanEvidenceObserved,true);
-  assert.equal(exit.latestFreshReadOnlyRescanEvidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json");
+  assert.equal(exit.latestFreshReadOnlyRescanEvidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-6-evidence.json");
   assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
   assert.equal(
     p.contract,
@@ -1431,9 +1431,9 @@ test("PR20.8 Compound 5m evidence is ratified with zero additional mutation", ()
   assert.equal(e.normalRuntimeAllowed,false);
 });
 
-test("PR20.8 Exchange closeout records the fresh v1.0.5 no-candidate evidence", () => {
+test("PR20.8 Exchange closeout records the fresh v1.0.6 no-candidate evidence", () => {
   const r=prep.pr20_8.exchangeNoCandidateCloseoutReview;
-  assert.equal(r.status,"V1_0_5_FRESH_READONLY_RESCAN_NO_CANDIDATE_RATIFIED");
+  assert.equal(r.status,"V1_0_6_FRESH_READONLY_RESCAN_NO_CANDIDATE_RATIFIED");
   assert.equal(r.review,"roadmap/pr20-8-exchange-no-candidate-closeout-review.json");
   assert.equal(r.existingEvidence,"roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json");
   assert.equal(r.existingObservedAtMs,1790278399271);
@@ -1462,11 +1462,11 @@ test("PR20.8 Exchange closeout records the fresh v1.0.5 no-candidate evidence", 
   assert.equal(r.bridgeMayDeployPinnedRunner,false);
   assert.equal(r.deployed,true);
   assert.equal(r.evidenceObserved,true);
-  assert.equal(r.latestEvidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json");
-  assert.equal(r.latestControllerVersion,"1.0.5");
-  assert.equal(r.latestNotificationId,2332);
-  assert.equal(r.latestRunStartedAtMs,1790315652844);
-  assert.equal(r.latestObservedAtMs,1790315653250);
+  assert.equal(r.latestEvidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-6-evidence.json");
+  assert.equal(r.latestControllerVersion,"1.0.6");
+  assert.equal(r.latestNotificationId,2382);
+  assert.equal(r.latestRunStartedAtMs,1790318741735);
+  assert.equal(r.latestObservedAtMs,1790318742137);
   assert.equal(r.latestCompoundStatus,"KEIN_KANDIDAT");
   assert.equal(r.latestCompoundCandidateCount,0);
   assert.equal(r.latestExchangeStatus,"KEIN_KANDIDAT");
@@ -1486,11 +1486,11 @@ test("PR20.8 Exchange closeout records the fresh v1.0.5 no-candidate evidence", 
   assert.equal(r.observedCurrentSameIntentRetry,false);
   assert.equal(r.observedCurrentIntentCount,1);
   const fresh=r.freshRescanEvidence;
-  assert.equal(fresh.evidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json");
-  assert.equal(fresh.controllerVersion,"1.0.5");
-  assert.equal(fresh.notificationId,2332);
-  assert.equal(fresh.runStartedAtMs,1790315652844);
-  assert.equal(fresh.observedAtMs,1790315653250);
+  assert.equal(fresh.evidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-6-evidence.json");
+  assert.equal(fresh.controllerVersion,"1.0.6");
+  assert.equal(fresh.notificationId,2382);
+  assert.equal(fresh.runStartedAtMs,1790318741735);
+  assert.equal(fresh.observedAtMs,1790318742137);
   assert.equal(fresh.status,"BLOCKIERT");
   assert.equal(fresh.phase,"PR20_8_LIVE_CANDIDATE_SELECTION");
   assert.equal(fresh.terminal,true);
@@ -1591,11 +1591,11 @@ test("PR20.8 Exchange read-only scanner v1.0.5 completed fresh zero-write no-can
 test("PR20.8 fresh Exchange read-only rescan evidence keeps Exchange and PR20.9 blocked", () => {
   const e=prep.pr20_8.exchangeFreshReadonlyRescanEvidence;
   assert.equal(e.status,"RATIFIED_FRESH_NO_CANDIDATE_ZERO_WRITE");
-  assert.equal(e.evidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json");
-  assert.equal(e.controllerVersion,"1.0.5");
-  assert.equal(e.notificationId,2332);
-  assert.equal(e.runStartedAtMs,1790315652844);
-  assert.equal(e.observedAtMs,1790315653250);
+  assert.equal(e.evidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-6-evidence.json");
+  assert.equal(e.controllerVersion,"1.0.6");
+  assert.equal(e.notificationId,2382);
+  assert.equal(e.runStartedAtMs,1790318741735);
+  assert.equal(e.observedAtMs,1790318742137);
   assert.equal(e.statusObserved,"BLOCKIERT");
   assert.equal(e.phaseObserved,"PR20_8_LIVE_CANDIDATE_SELECTION");
   assert.equal(e.terminalObserved,true);
@@ -1757,3 +1757,53 @@ test("PR20.8 Upgrade productive one-write runner package has a separate aggregat
   assert.equal(r.evidenceScrollQuantityAfter,35);
   assert.equal(r.normalRuntimeAllowed,false);
 });
+
+test("PR20.8 current Exchange no-candidate v1.0.6 evidence remains non-substitutive", () => {
+  const e=prep.pr20_8.exchangeReadonlyRescanV1_0_6Evidence;
+  assert.equal(e.status,"RATIFIED_FRESH_NO_CANDIDATE_ZERO_WRITE");
+  assert.equal(e.evidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-6-evidence.json");
+  assert.equal(e.notificationId,2382);
+  assert.equal(e.runStartedAtMs,1790318741735);
+  assert.equal(e.observedAtMs,1790318742137);
+  assert.equal(e.exchangeStatus,"KEIN_KANDIDAT");
+  assert.equal(e.exchangeCandidateCount,0);
+  assert.equal(e.compoundStatus,"KEIN_KANDIDAT");
+  assert.equal(e.compoundCandidateCount,0);
+  assert.equal(e.gameplayWrites,0);
+  assert.equal(e.publicFunctionCalls,0);
+  assert.equal(e.rawWriteCalls,0);
+  assert.equal(e.exchangeAuthority,false);
+  assert.equal(e.durableIntentCreated,false);
+  assert.equal(e.normalRuntimeAllowed,false);
+  assert.equal(e.exchangeRatified,false);
+  assert.equal(e.exchangeLive5mTested,false);
+  assert.equal(e.exchangeAutonomyProductiveProven,false);
+  assert.equal(e.outcome,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
+});
+
+test("PR20.8 v1.0.6 rescan epoch records deployed zero-write observation", () => {
+  const e=prep.pr20_8.exchangeReadonlyRescanEpochV1_0_6;
+  assert.equal(e.status,"REAL_BROWSER_FRESH_RESCAN_COMPLETED_NO_CANDIDATE_ZERO_WRITE");
+  assert.equal(e.evidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-6-evidence.json");
+  assert.equal(e.controllerVersion,"1.0.6");
+  assert.equal(e.priorControllerVersion,"1.0.5");
+  assert.equal(e.versionOnlyChangeFromPriorScanner,true);
+  assert.equal(e.candidatePolicyChanged,false);
+  assert.equal(e.bridgeAdmissionChanged,false);
+  assert.equal(e.gameplayLogicChanged,false);
+  assert.equal(e.bridgeDeploymentState,"DEPLOYED");
+  assert.equal(e.notificationId,2382);
+  assert.equal(e.runStartedAtMs,1790318741735);
+  assert.equal(e.observedAtMs,1790318742137);
+  assert.equal(e.debugBatchId,8306);
+  assert.equal(e.maximumGameplayWrites,0);
+  assert.equal(e.maximumPublicFunctionCalls,0);
+  assert.equal(e.maximumRawWriteCalls,0);
+  assert.equal(e.exchangeAuthority,false);
+  assert.equal(e.gameplayAuthority,false);
+  assert.equal(e.rawWriteAuthority,false);
+  assert.equal(e.durableIntentCreated,false);
+  assert.equal(e.normalRuntimeAllowed,false);
+  assert.equal(e.nextGate,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
+});
+
