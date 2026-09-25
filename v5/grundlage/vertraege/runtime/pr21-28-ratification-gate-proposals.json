@@ -12,7 +12,8 @@
     "gateAdvancedByRatification": false,
     "authorityIssuedByRatification": false,
     "broadRuntimeGrant": false,
-    "gesamtfreigabeRequiredSeparately": true
+    "gesamtfreigabeRequiredSeparately": true,
+    "cap022PackageBindingRequiredForGroupCheckpoint": true
   },
   "gateAdvanceProposal": {
     "source": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
@@ -23,7 +24,9 @@
     "gateMutationPerformed": false,
     "authorityIssued": false,
     "broadRuntimeGrant": false,
-    "separateApplyRequired": true
+    "separateApplyRequired": true,
+    "cap022FullChainRequiredForPr22Pr23": true,
+    "cap022BindingCarriedForward": true
   },
   "safety": {
     "gameplayAuthority": false,
@@ -32,5 +35,30 @@
     "broadGesamtfreigabeNeverInferred": true
   },
   "test": "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs",
-  "nextMilestone": "PREPARE_SEPARATE_STAGE_GATE_APPLY_ADAPTERS_AS_DEFAULT_OFF_TRANSACTIONS"
+  "nextMilestone": "PREPARE_DEFAULT_OFF_GATE_APPLY_WITH_CAP022_BINDING_PRESERVED",
+  "cap022FullChainBoundary": {
+    "groupCheckpointRequiresBoundPackage": true,
+    "packageFields": [
+      "cap022FullChainRequired",
+      "cap022FullChainSatisfied",
+      "cap022FullChainBoundToPackage"
+    ],
+    "ratificationRecordPreservesBinding": true,
+    "gateAdvanceRequiredStages": [
+      "PR22",
+      "PR23"
+    ],
+    "gateViewFields": [
+      "cap022FullChainRequired",
+      "cap022FullChainSatisfied"
+    ],
+    "missingOrDriftedFullChainBlocksProposal": true,
+    "blocker": "PR21_28_GATE_ADVANCE_CAP022_FULL_CHAIN_NICHT_BEREIT",
+    "gateMutationPerformed": false,
+    "authorityIssued": false,
+    "currentPr20_9RatificationCredit": false,
+    "candidateAcquisitionOrMutationAllowedNow": false,
+    "durableIntentCreated": false,
+    "productiveCraftAuthorityOpened": false
+  }
 }
