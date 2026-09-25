@@ -858,7 +858,7 @@
     },
     {
       "id": "PR20.9_PRODUCTION",
-      "status": "CRAFT_READONLY_PREFLIGHT_BEREIT_NO_WRITE",
+      "status": "CRAFT_DURABLE_SHADOW_FOUNDATION_BEREIT_NO_WRITE",
       "blockedBy": [
         "PR20.2",
         "PR20.3",
@@ -869,7 +869,7 @@
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
       "liveExecutionAllowed": false,
-      "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION",
+      "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE",
       "artifacts": [
         "v5/grundlage/quelle/produktion/production-graph.ts",
         "v5/grundlage/quelle/produktion/production-planer.ts",
@@ -877,7 +877,10 @@
         "v5/grundlage/quelle/produktion/pr20-9-craft-read-only-preflight.ts",
         "v5/grundlage/vertraege/runtime/pr20-9-craft-read-only-preflight.json",
         "v5/grundlage/tests/r15-production-capabilities.test.mjs",
-        "v5/grundlage/tests/pr20-9-craft-read-only-preflight.test.mjs"
+        "v5/grundlage/tests/pr20-9-craft-read-only-preflight.test.mjs",
+        "v5/grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
+        "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-preparation.json",
+        "v5/grundlage/tests/pr20-9-craft-durable-shadow.test.mjs"
       ]
     },
     {
@@ -2988,7 +2991,7 @@
     }
   },
   "pr20_9": {
-    "status": "CRAFT_READONLY_PREFLIGHT_BEREIT_NO_WRITE",
+    "status": "CRAFT_DURABLE_SHADOW_FOUNDATION_BEREIT_NO_WRITE",
     "ziel": "Craft und Production produktiv",
     "blockedBy": [
       "PR20.2",
@@ -3044,6 +3047,30 @@
       "newProductiveStepsHaveFiveMinuteEvidence": false,
       "satisfied": false
     },
-    "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION"
+    "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE",
+    "craftDurableShadow": {
+      "status": "FOUNDATION_BEREIT_NO_WRITE",
+      "source": "v5/grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-preparation.json",
+      "test": "v5/grundlage/tests/pr20-9-craft-durable-shadow.test.mjs",
+      "durableStorage": "SpeicherPort critical write",
+      "exactReadbackRequired": true,
+      "existingExactTerminalRecoveryAllowed": true,
+      "recoveryRewritesIntent": false,
+      "conflictingExistingIntentFailsClosed": true,
+      "maximumPlanTtlMs": 1500,
+      "journalTerminalArt": "ABBRUCH",
+      "sendBoundaryState": "NICHT_GESENDET",
+      "reconciliationClassification": "NOT_APPLIED",
+      "sameIntentRetry": false,
+      "maximumGameplayWrites": 0,
+      "maximumPublicFunctionCalls": 0,
+      "maximumRawWriteCalls": 0,
+      "craftAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadGraphExecutionAuthority": false,
+      "normalRuntimeAllowed": false
+    }
   }
 }
