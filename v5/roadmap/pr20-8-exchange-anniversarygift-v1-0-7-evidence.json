@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "evidenceArt": "V5_PR20_8_EXCHANGE_ANNIVERSARYGIFT_EXCEPTION_RESCAN_REAL_BROWSER",
+  "status": "RATIFIED_ANNIVERSARYGIFT_CANDIDATE_ZERO_WRITE",
+  "manifestMainCommit": "4e04bc6e114f0f3959c562f6ff9e0571b983b371",
+  "testId": "pr20-8-wertmutation-live-candidate-readonly",
+  "controllerVersion": "1.0.7",
+  "package": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-7.js",
+  "sourceCommit": "5ae7e2699ca38381df4e90ea385732241cfbcd55",
+  "packageSha256": "00e2f5ed379f27a489af1c1a87f142cd7efe7fb7617d1e814d3033563137dbf9",
+  "packageBytes": 22004,
+  "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
+  "notificationId": 2729,
+  "priorSuccessfulNotificationId": 2726,
+  "runStartedAtMs": 1790340050592,
+  "observedAtMs": 1790340050999,
+  "terminalStatus": "BESTANDEN",
+  "phase": "COMPLETE",
+  "blocker": [],
+  "candidate": {
+    "family": "EXCHANGE",
+    "name": "anniversarygift",
+    "type": "gem",
+    "observedInventoryIndex": 4,
+    "observedQuantity": 106,
+    "level": 0,
+    "baseGold": 100,
+    "exchangeQuantity": 1,
+    "exclusive": true,
+    "exclusiveTestException": true,
+    "locked": false,
+    "blocked": false,
+    "specialProperty": false,
+    "material": "{\"name\":\"anniversarygift\",\"q\":106}"
+  },
+  "exchangePolicy": {
+    "candidateCount": 1,
+    "normalPathOnly": true,
+    "massExchangeAllowed": false,
+    "recursiveDropAuthority": false,
+    "specialMultiOutputAuthority": false,
+    "promiseRewardOnlySupportingEvidence": true,
+    "fullRewardDomainReconciliationRequired": true,
+    "exactPhysicalIndexMustBeReresolvedBeforeSend": true,
+    "genericExclusivePolicyRelaxed": false,
+    "otherExclusiveItemsRemainBlocked": true
+  },
+  "authority": {
+    "authorityIssued": false,
+    "durableIntentCreated": false,
+    "exchange": false,
+    "gameplay": false,
+    "rawWrite": false
+  },
+  "writes": {
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false
+  },
+  "evidenceSeparation": {
+    "candidateEvidenceDoesNotCountAsExchangeWriteRatification": true,
+    "candidateEvidenceDoesNotCountAsExchange5mEvidence": true,
+    "candidateEvidenceDoesNotCountAsExchangeAutonomyProof": true,
+    "exchangeStillUnratified": true
+  },
+  "normalRuntimeAllowed": false,
+  "outcome": "PREPARE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW",
+  "nextAction": "PREPARE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW"
+}
