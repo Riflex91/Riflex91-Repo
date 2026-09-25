@@ -1,11 +1,11 @@
 {
   "name": "adventure-land-v5-live-lab",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Isolated live-runtime overlay for early integrated V5 gameplay testing through PR28.",
+  "description": "Isolated live-runtime overlay for integrated V5 gameplay testing through PR28 with PR24/25 group runtime, PR26 task-party optimization, PR27 progression and PR28 world autonomy.",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check src/authority-profile.mjs && node --test tests/*.test.mjs"
+    "check": "node --check src/authority-profile.mjs && node --check src/stage-authority.mjs && node --check src/adventure-land-ports.mjs && node --check src/live-runtime-controller.mjs && node --check src/group-runtime.mjs && node --check src/autonomy-runtime.mjs && node --check browser/v5-live-lab-bot-v1.js && node --check browser/v5-live-lab-bot-v2.js && node --test tests/*.test.mjs"
   }
 }
