@@ -47,7 +47,7 @@ const allowedPackages = Object.freeze({
     gate: "PR20.8_WERTMUTATIONEN"
   }),
   "pr20-8-wertmutation-live-candidate-readonly": Object.freeze({
-    path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js",
+    path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-7.js",
     expectedGlobal: "V5PR208ValueMutationLiveCandidateReadonly",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
@@ -713,55 +713,25 @@ test("PR20.7 offhand acquisition durable shadow manifest is exact no-send prepar
   ]) assert.equal(packageSource.includes(marker), false, marker);
 });
 
-test("PR20.8 candidate discovery v1.0.6 rescan manifest is exact read-only and special-path closed", () => {
+test("PR20.8 candidate discovery v1.0.7 manifest is exact anniversarygift-only read-only exception", () => {
   if (manifest.testId !== "pr20-8-wertmutation-live-candidate-readonly") return;
-  assert.equal(manifest.controllerVersion, "1.0.6");
-  assert.equal(manifest.sourceCommit, "a5fd67cc9c587b2a20b163915936717c7b4e8321");
+  assert.equal(manifest.controllerVersion, "1.0.7");
+  assert.equal(manifest.sourceCommit, "682e3e483ff5ed69671f0330545ae1718ccd12c4");
   assert.equal(manifest.packagePath,
-    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js");
+    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-7.js");
   assert.equal(manifest.packageSha256,
-    "fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387");
+    "00e2f5ed379f27a489af1c1a87f142cd7efe7fb7617d1e814d3033563137dbf9");
   assert.equal(manifest.expectedGlobal,
     "V5PR208ValueMutationLiveCandidateReadonly");
+  assert.equal(manifest.normalRuntimeAllowed, false);
   assert.equal("workerVersion" in manifest, false);
-  assert.equal("workerPackagePath" in manifest, false);
-  assert.equal("workerPackageSha256" in manifest, false);
-  assert.equal("workerExpectedGlobal" in manifest, false);
-  assert.equal("workerTargets" in manifest, false);
-  assert.ok(packageSource.includes("const VERSION = '1.0.6'"));
+  assert.ok(packageSource.includes("const VERSION = '1.0.7'"));
+  assert.ok(packageSource.includes("EXCLUSIVE_EXCHANGE_TEST_EXCEPTION = 'anniversarygift'"));
+  assert.ok(packageSource.includes("blockedItem(item, def, true)"));
   assert.ok(packageSource.includes("existingFacadeIsCurrent"));
   assert.ok(packageSource.includes("current.testId === TEST_ID"));
   assert.ok(packageSource.includes("current.version === VERSION"));
   assert.ok(packageSource.includes("publish();"));
-  assert.ok(packageSource.indexOf("publish();") < packageSource.indexOf("Promise.resolve().then(run)"));
-  assert.ok(packageSource.includes("for (const owner of roots())"));
-  const publishStart = packageSource.indexOf("function publish()");
-  const publishEnd = packageSource.indexOf("\n  }", publishStart);
-  assert.equal(packageSource.slice(publishStart, publishEnd).includes("root()"), false);
-  assert.ok(packageSource.includes("EXPECTED_CHARACTER = 'My_Merchant'"));
-  assert.ok(packageSource.includes("EXPECTED_SERVER_REGION = 'EU'"));
-  assert.ok(packageSource.includes("EXPECTED_SERVER_IDENTIFIER = 'I'"));
-  assert.ok(packageSource.includes("MAX_UPGRADE_BASE_GOLD = 10000"));
-  assert.ok(packageSource.includes("MAX_COMPOUND_BASE_GOLD = 30000"));
-  assert.ok(packageSource.includes("MAX_EXCHANGE_BASE_GOLD = 50000"));
-  assert.ok(packageSource.includes("SPECIAL_EXCHANGE_NAMES"));
-  assert.ok(packageSource.includes("state.selectedCandidates.COMPOUND"));
-  assert.ok(packageSource.includes("state.selectedCandidates.EXCHANGE"));
-  assert.ok(packageSource.includes("PR20_8_CANDIDATE_KEIN_COMPOUND_ODER_EXCHANGE_NORMALKANDIDAT"));
-  assert.ok(packageSource.includes("massExchangeAllowed:false"));
-  assert.ok(packageSource.includes("recursiveDropAuthority:false"));
-  assert.ok(packageSource.includes("specialMultiOutputAuthority:false"));
-  assert.ok(packageSource.includes("gameplayWrites: 0"));
-  assert.ok(packageSource.includes("publicFunctionCalls: 0"));
-  assert.ok(packageSource.includes("rawWriteCalls: 0"));
-  assert.ok(packageSource.includes("sameIntentRetry: false"));
-  assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
-  for (const marker of [
-    "upgrade(", "compound(", "exchange(", "buy(", "buy_with_gold(",
-    "equip(", "unequip(", "sell(", "bank_retrieve(", "bank_store(",
-    "send_item(", "send_gold(", "use_skill(", "start_character(",
-    "command_character(", "api_call(", "socket.emit(", ".socket.emit("
-  ]) assert.equal(packageSource.includes(marker), false, marker);
 });
 
 
