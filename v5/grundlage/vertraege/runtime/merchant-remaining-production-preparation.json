@@ -1394,9 +1394,13 @@
       "runnerSourceCommit": "61db398373d1909bc11eb883af5902ac339a123c",
       "runnerPackageSha256": "2c68619ffb7359373a6a817ac939c34278a66f5c69e7d3efba59a5ff5c00e221",
       "runnerPackageBytes": 25081,
-      "bridgeMayDeployPinnedRunner": true,
+      "bridgeMayDeployPinnedRunner": false,
       "deploymentEvidenceObserved": false,
-      "realFiveMinuteRunCompleted": false
+      "realFiveMinuteRunCompleted": false,
+      "retiredFromActiveManifest": true,
+      "supersededByPerformanceRecovery": true,
+      "activeRecoveryControllerVersion": "1.0.1",
+      "activeRecoveryPackage": "werkzeuge/pr20-8-compound-live-5m-v1-0-1.js"
     },
     "compoundLive5mRunner": {
       "status": "V1_0_0_BLOCKED_PERFORMANCE_TRICK_ZERO_WRITE",
