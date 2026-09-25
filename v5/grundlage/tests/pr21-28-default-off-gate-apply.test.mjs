@@ -18,6 +18,8 @@ function proposal(overrides={}) {
     packageFingerprint:"0123456789abcdef",
     ratificationFingerprint:"fedcba9876543210",
     featureGateProductiveEligible:true,
+    cap022FullChainRequired:false,
+    cap022FullChainSatisfied:true,
     requiresFreshMainCheckAtApply:true,
     separateApplyRequired:true,
     gateMutationPerformed:false,
@@ -42,6 +44,8 @@ test("gate apply transaction is deterministic, bound and default-off",()=>{
   assert.equal(tx.durableIntentRequiredBeforeApply,true);
   assert.equal(tx.oneShotApplyRequired,true);
   assert.equal(tx.sameIntentRetryAllowed,false);
+  assert.equal(tx.cap022FullChainRequired,false);
+  assert.equal(tx.cap022FullChainSatisfied,true);
   assert.equal(tx.postconditionVerificationRequired,true);
   assert.equal(tx.unknownOutcomeRequiresReconciliation,true);
   assert.equal(tx.applyAdapterInstalled,false);
@@ -64,6 +68,8 @@ test("gate apply validation requires fresh main and exact evidence bindings",()=
   );
   assert.equal(ready.status,"READY_DEFAULT_OFF");
   assert.deepEqual(ready.blocker,[]);
+  assert.equal(ready.cap022FullChainRequired,false);
+  assert.equal(ready.cap022FullChainSatisfied,true);
   assert.equal(ready.applyAdapterInstalled,false);
   assert.equal(ready.executionEnabled,false);
   assert.equal(ready.gateMutationPerformed,false);
@@ -81,6 +87,58 @@ test("gate apply validation requires fresh main and exact evidence bindings",()=
   assert.ok(stale.blocker.includes("PR21_28_GATE_APPLY_MAIN_STALE"));
   assert.ok(stale.blocker.includes("PR21_28_GATE_APPLY_PACKAGE_FP_DRIFT"));
   assert.ok(stale.blocker.includes("PR21_28_GATE_APPLY_RATIFICATION_FP_DRIFT"));
+});
+
+
+
+test("PR22/PR23 gate apply requires CAP-022 binding from proposal through validation",()=>{
+  const tx=bereitePr21_28GateApplyTransaktionVor(
+    proposal({
+      stage:"PR23",
+      cap022FullChainRequired:true,
+      cap022FullChainSatisfied:true,
+    }),
+    "tx-pr23-1",
+    1000,
+  );
+  assert.equal(tx.cap022FullChainRequired,true);
+  assert.equal(tx.cap022FullChainSatisfied,true);
+
+  const ready=validierePr21_28GateApplyTransaktion(
+    tx,
+    tx.sourceMainCommit,
+    "PR23",
+    tx.packageFingerprint,
+    tx.ratificationFingerprint,
+  );
+  assert.equal(ready.status,"READY_DEFAULT_OFF");
+  assert.equal(ready.cap022FullChainRequired,true);
+  assert.equal(ready.cap022FullChainSatisfied,true);
+
+  assert.throws(
+    ()=>bereitePr21_28GateApplyTransaktionVor(
+      proposal({
+        stage:"PR23",
+        cap022FullChainRequired:true,
+        cap022FullChainSatisfied:false,
+      }),
+      "tx-pr23-unsafe",
+      1000,
+    ),
+    /PR21_28_GATE_APPLY_PROPOSAL_NICHT_BEREIT/,
+  );
+
+  assert.throws(
+    ()=>reconcilePr21_28GateApply({
+      schemaVersion:1,
+      transaction:{...tx,cap022FullChainSatisfied:false},
+      observedState:"NOT_APPLIED",
+      mutationAttemptObserved:false,
+      durableIntentObserved:false,
+      terminalSettlementObserved:false,
+    }),
+    /PR21_28_GATE_APPLY_RECONCILIATION_INPUT_UNGUELTIG/,
+  );
 });
 
 test("gate apply transaction rejects non-ready or authority-bearing proposals",()=>{
