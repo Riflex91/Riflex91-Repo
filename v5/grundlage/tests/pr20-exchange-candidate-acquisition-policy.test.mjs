@@ -24,11 +24,11 @@ test("controlled acquisition supersedes waiting policy without rewriting histori
 
   assert.equal(
     roadmap.pr20_8.status,
-    "EXCHANGE_SEASHELL_FARM_SHADOW_RUNNER_PREPARED_READ_ONLY",
+    "EXCHANGE_SEASHELL_FARM_SHADOW_COORDINATOR_PREPARED_READ_ONLY",
   );
   assert.equal(
     roadmap.pr20_8.nextAction,
-    "PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_READ_ONLY",
+    "PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_MANIFEST_CUTOVER",
   );
 });
 
@@ -135,8 +135,8 @@ test("read-only discovery package is pinned as zero-write preparation",()=>{
 test("parallel roadmap row points at controlled discovery but carries no Exchange authority",()=>{
   const row=roadmap.parallelPreparations.find(x=>x.id==="PR20.8_WERTMUTATIONEN");
   assert.ok(row);
-  assert.equal(row.status,"EXCHANGE_SEASHELL_FARM_SHADOW_RUNNER_PREPARED_READ_ONLY");
-  assert.equal(row.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_READ_ONLY");
+  assert.equal(row.status,"EXCHANGE_SEASHELL_FARM_SHADOW_COORDINATOR_PREPARED_READ_ONLY");
+  assert.equal(row.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_MANIFEST_CUTOVER");
   assert.equal(row.gameplayAuthority,false);
   assert.equal(row.rawWriteAuthority,false);
   assert.equal(row.normalRuntimeAllowed,false);
