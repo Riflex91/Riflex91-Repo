@@ -24,11 +24,11 @@ test("controlled acquisition supersedes waiting policy without rewriting histori
 
   assert.equal(
     roadmap.pr20_8.status,
-    "EXCHANGE_ACQUISITION_BANK_MOUNT_MANIFEST_CUTOVER_PREPARED",
+    "EXCHANGE_BANK_SNAPSHOT_NO_CANDIDATE_RATIFIED_MARKET_DISCOVERY_PREPARED",
   );
   assert.equal(
     roadmap.pr20_8.nextAction,
-    "DEPLOY_EXCHANGE_ACQUISITION_BANK_MOUNT",
+    "MERGE_MARKET_DISCOVERY_PACKAGE_THEN_CUTOVER",
   );
 });
 
@@ -80,14 +80,29 @@ test("acquisition remains strictly separate from Exchange ratification",()=>{
   assert.equal(r.latestPublicFunctionCalls,0);
   assert.equal(r.latestRawWriteCalls,0);
   assert.equal(r.latestSameIntentRetry,false);
-  assert.equal(r.bankMount.status,"MANIFEST_CUTOVER_PREPARED");
+  assert.equal(r.bankMount.status,"RATIFIED_BANK_SNAPSHOT_NO_CANDIDATE_ONE_MOVEMENT");
   assert.equal(r.bankMount.maximumGameplayWrites,1);
   assert.equal(r.bankMount.bankRetrieveAllowed,false);
   assert.equal(r.bankMount.sourceCommit,"5c84fc95b7fed97c3591462faba0a1315289fdce");
   assert.equal(r.bankMount.packageSha256,"94c053183363c0394922df4f6e422bede3260989e668a3b0942f3e876dbbdc54");
   assert.equal(r.bankMount.packageBytes,15430);
   assert.equal(r.bankMount.manifestCutoverPrepared,true);
-  assert.equal(r.bankMount.deployed,false);
+  assert.equal(r.bankMount.deployed,true);
+  assert.equal(r.bankMount.evidenceObserved,true);
+  assert.equal(r.bankMount.notificationId,2633);
+  assert.equal(r.bankMount.bankSnapshotAvailable,true);
+  assert.deepEqual(r.bankMount.observedBankPacks,["items0","items1"]);
+  assert.equal(r.bankMount.inventoryCandidateCount,0);
+  assert.equal(r.bankMount.bankCandidateCount,0);
+  assert.equal(r.bankMount.gameplayWrites,1);
+  assert.equal(r.bankMount.publicFunctionCalls,1);
+  assert.equal(r.bankMount.rawWriteCalls,0);
+  assert.equal(r.bankMount.sameIntentRetry,false);
+  assert.equal(r.marketDiscovery.status,"PACKAGE_PREPARED_NOT_DEPLOYED");
+  assert.equal(r.marketDiscovery.testId,"pr20-8-exchange-market-discovery");
+  assert.equal(r.marketDiscovery.tradeBuyAllowed,false);
+  assert.equal(r.marketDiscovery.farmAllowed,false);
+  assert.equal(r.marketDiscovery.exchangeAllowed,false);
 });
 
 test("read-only discovery package is pinned as zero-write preparation",()=>{
@@ -107,8 +122,8 @@ test("read-only discovery package is pinned as zero-write preparation",()=>{
 test("parallel roadmap row points at controlled discovery but carries no Exchange authority",()=>{
   const row=roadmap.parallelPreparations.find(x=>x.id==="PR20.8_WERTMUTATIONEN");
   assert.ok(row);
-  assert.equal(row.status,"EXCHANGE_ACQUISITION_BANK_MOUNT_MANIFEST_CUTOVER_PREPARED");
-  assert.equal(row.nextAction,"DEPLOY_EXCHANGE_ACQUISITION_BANK_MOUNT");
+  assert.equal(row.status,"EXCHANGE_BANK_SNAPSHOT_NO_CANDIDATE_RATIFIED_MARKET_DISCOVERY_PREPARED");
+  assert.equal(row.nextAction,"MERGE_MARKET_DISCOVERY_PACKAGE_THEN_CUTOVER");
   assert.equal(row.gameplayAuthority,false);
   assert.equal(row.rawWriteAuthority,false);
   assert.equal(row.normalRuntimeAllowed,false);
