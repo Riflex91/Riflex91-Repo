@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_DURABLE_SHADOW_PREPARATION",
+  "status": "PREPARED_NO_WRITE",
+  "sourceMain": "4e04bc6e114f0f3959c562f6ff9e0571b983b371",
+  "prerequisite": {
+    "evidence": "v5/roadmap/pr20-8-exchange-anniversarygift-rescan-v1-0-7-evidence.json",
+    "requiredStatus": "RATIFIED_ANNIVERSARYGIFT_EXCHANGE_CANDIDATE_ZERO_WRITE",
+    "notificationId": 2726,
+    "scannerVersion": "1.0.7",
+    "exactItem": "anniversarygift",
+    "observedQuantity": 106,
+    "requiredExchangeQuantity": 1,
+    "observedInventoryIndex": 4,
+    "observedInventoryIndexCarriesAuthority": false
+  },
+  "exactDefinition": {
+    "name": "anniversarygift",
+    "type": "gem",
+    "skin": "anniversarygift",
+    "displayName": "Anniversary Gift",
+    "explanation": "Ten years, tied with a ribbon.",
+    "stackLimit": 9999,
+    "baseGold": 100,
+    "exchangeQuantity": 1,
+    "exclusive": true,
+    "cash": false,
+    "event": false,
+    "quest": false,
+    "accent": "#3DB5A5"
+  },
+  "admission": {
+    "exactCharacter": "My_Merchant",
+    "exactClass": "merchant",
+    "exactServerRegion": "EU",
+    "exactServerIdentifier": "I",
+    "freshSessionRequired": true,
+    "aliveRequired": true,
+    "stationaryRequired": true,
+    "targetFreeRequired": true,
+    "qFreeRequired": true,
+    "alternativeRuntimeMustBeInactive": true,
+    "performanceTrickRequired": true,
+    "exchangePublicFunctionPresenceRequired": true,
+    "exactPhysicalCandidateReresolutionRequired": true,
+    "sufficientCurrentQuantityRequired": true,
+    "stableDoubleObservationRequired": true,
+    "durableStorageReadbackRequired": true,
+    "physicalUnsafeFlagsBlocked": [
+      "locked",
+      "blocked",
+      "giveaway",
+      "list",
+      "expires",
+      "acl",
+      "rid",
+      "p",
+      "gift"
+    ]
+  },
+  "durableShadow": {
+    "storage": "LOCAL_STORAGE_SHADOW_ONLY",
+    "journalTerminalArt": "ABBRUCH",
+    "sendBoundaryState": "NICHT_GESENDET",
+    "exactTerminalIntentRecoveryAllowed": true,
+    "recoveryRequiresExactPersistedIntent": true,
+    "recoveryRewritesIntent": false,
+    "sameIntentRetry": false,
+    "exactPhysicalCandidateIndexPinnedAtShadowTime": true,
+    "observedIndexCarriesFutureSendAuthority": false,
+    "freshReresolutionRequiredBeforeFutureSend": true,
+    "fullRewardDomainProofRequiredBeforeFutureSend": true,
+    "massExchangeAllowed": false,
+    "recursiveDropAuthority": false,
+    "specialMultiOutputAuthority": false
+  },
+  "oneShotPreparation": {
+    "bindingPrepared": true,
+    "maximumUses": 1,
+    "exchangeAuthorityIssued": false
+  },
+  "package": {
+    "testId": "pr20-8-exchange-anniversarygift-durable-shadow-no-write",
+    "controllerVersion": "1.0.0",
+    "path": "v5/werkzeuge/pr20-8-exchange-anniversarygift-durable-shadow-no-write.js",
+    "test": "v5/werkzeuge/tests/pr20-8-exchange-anniversarygift-durable-shadow-no-write.test.mjs",
+    "sourceCommit": "737118b5ab4d043ca996594aa6db1df309a6a177",
+    "sha256": "04c765fc9d88b242170ca15d0d28d8dcca84572a745dcaa09ebf0c1caa44135e",
+    "bytes": 24528,
+    "expectedGlobal": "V5PR208ExchangeAnniversarygiftDurableShadowNoWrite"
+  },
+  "authorityBoundary": {
+    "productionDurableIntentCreated": false,
+    "authorityIssued": false,
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalExchangeWriteRatification": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "normalRuntimeAllowed": false
+  },
+  "deployment": {
+    "autonomousManifestChanged": false,
+    "manifestCutoverPrepared": false,
+    "deployed": false,
+    "liveEvidenceObserved": false
+  },
+  "evidenceSeparation": {
+    "readOnlyCandidateEvidenceDoesNotCountAsExchangeRatification": true,
+    "shadowEvidenceDoesNotCountAsExchangeRatification": true,
+    "productiveOneWriteStillRequired": true,
+    "fiveMinuteObservationStillRequired": true,
+    "autonomyProofStillRequired": true
+  },
+  "nextAction": "PREPARE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW_MANIFEST_CUTOVER"
+}

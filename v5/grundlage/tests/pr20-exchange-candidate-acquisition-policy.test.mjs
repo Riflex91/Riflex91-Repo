@@ -24,11 +24,11 @@ test("controlled acquisition supersedes waiting policy without rewriting histori
 
   assert.equal(
     roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_EXCEPTION_RESCAN_MANIFEST_CUTOVER_PREPARED",
+    "EXCHANGE_ANNIVERSARYGIFT_DURABLE_SHADOW_PREPARED_NO_WRITE",
   );
   assert.equal(
     roadmap.pr20_8.nextAction,
-    "DEPLOY_ANNIVERSARYGIFT_EXCEPTION_RESCAN",
+    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW_MANIFEST_CUTOVER",
   );
 });
 
@@ -118,7 +118,7 @@ test("acquisition remains strictly separate from Exchange ratification",()=>{
   assert.equal(r.seashellFarmPreparation.normalRuntimeAllowed,false);
   assert.equal(r.seashellFarmShadow.activePath,false);
   assert.equal(r.seashellFarmShadow.supersededBy,"ANNIVERSARYGIFT_TEST_EXCEPTION_RESCAN");
-  assert.equal(r.anniversaryGiftExceptionRescan.status,"MANIFEST_CUTOVER_PREPARED");
+  assert.equal(r.anniversaryGiftExceptionRescan.status,"RATIFIED_ANNIVERSARYGIFT_EXCHANGE_CANDIDATE_ZERO_WRITE");
   assert.equal(r.anniversaryGiftExceptionRescan.exactItem,"anniversarygift");
   assert.equal(r.anniversaryGiftExceptionRescan.exchangeQuantity,1);
   assert.equal(r.anniversaryGiftExceptionRescan.exclusiveException,true);
@@ -148,8 +148,8 @@ test("read-only discovery package is pinned as zero-write preparation",()=>{
 test("parallel roadmap row points at controlled discovery but carries no Exchange authority",()=>{
   const row=roadmap.parallelPreparations.find(x=>x.id==="PR20.8_WERTMUTATIONEN");
   assert.ok(row);
-  assert.equal(row.status,"EXCHANGE_ANNIVERSARYGIFT_EXCEPTION_RESCAN_MANIFEST_CUTOVER_PREPARED");
-  assert.equal(row.nextAction,"DEPLOY_ANNIVERSARYGIFT_EXCEPTION_RESCAN");
+  assert.equal(row.status,"EXCHANGE_ANNIVERSARYGIFT_DURABLE_SHADOW_PREPARED_NO_WRITE");
+  assert.equal(row.nextAction,"PREPARE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW_MANIFEST_CUTOVER");
   assert.equal(row.gameplayAuthority,false);
   assert.equal(row.rawWriteAuthority,false);
   assert.equal(row.normalRuntimeAllowed,false);

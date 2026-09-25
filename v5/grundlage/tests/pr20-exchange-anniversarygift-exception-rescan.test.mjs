@@ -59,8 +59,8 @@ test("active manifest is exactly the v1.0.7 anniversarygift exception rescan",()
 test("Seashell work stays prepared but inactive while anniversarygift path is current",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_EXCEPTION_RESCAN_MANIFEST_CUTOVER_PREPARED");
-  assert.equal(roadmap.pr20_8.nextAction,"DEPLOY_ANNIVERSARYGIFT_EXCEPTION_RESCAN");
+    "EXCHANGE_ANNIVERSARYGIFT_DURABLE_SHADOW_PREPARED_NO_WRITE");
+  assert.equal(roadmap.pr20_8.nextAction,"PREPARE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW_MANIFEST_CUTOVER");
   assert.equal(a.seashellFarmShadow.activePath,false);
   assert.equal(a.seashellFarmShadow.supersededBy,"ANNIVERSARYGIFT_TEST_EXCEPTION_RESCAN");
   assert.equal(a.seashellFarmShadow.farmAuthority,false);
