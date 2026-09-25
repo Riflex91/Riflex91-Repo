@@ -48,6 +48,13 @@ describe("Windows local sandbox scripts", () => {
     expect(stop).toContain("mongodb.pid");
   });
 
+  it("adds the MessagePack socket path required by the pinned local game server", () => {
+    const setup = read("local-dev/windows/setup.ps1");
+
+    expect(setup).toContain('msgpack_path: "/socket.io-msgpack/"');
+    expect(setup).toContain("Adding the local MessagePack Socket.IO path");
+  });
+
   it("bootstraps the upstream pathfinding precompute globals and fails closed", () => {
     const setup = read("local-dev/windows/setup.ps1");
 
