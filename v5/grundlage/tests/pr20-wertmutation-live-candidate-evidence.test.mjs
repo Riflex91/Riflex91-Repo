@@ -122,7 +122,7 @@ test("PR20.8 evidence does not turn observed index into write authority", () => 
 });
 
 test("ratified read-only evidence stays immutable when live manifest advances", () => {
-  assert.equal(manifest.gate, "PR20.8_WERTMUTATIONEN");
+  assert.equal(manifest.gate, "PR20.9_PRODUCTION");
   if (manifest.testId === evidence.testId && manifest.controllerVersion === evidence.controllerVersion) {
     assert.equal(manifest.controllerVersion, evidence.controllerVersion);
     assert.equal(manifest.sourceCommit, evidence.sourceCommit);

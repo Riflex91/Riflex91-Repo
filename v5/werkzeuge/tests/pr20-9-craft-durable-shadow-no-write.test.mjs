@@ -366,7 +366,7 @@ test("PR20.9 Craft runner package contains no gameplay mutation bypass",()=>{
   ]) assert.ok(source.includes(marker),marker);
 });
 
-test("PR20.9 Craft runner contract and roadmap remain no-write and not active",()=>{
+test("PR20.9 Craft runner contract stays no-write while current roadmap advances to active shadow deployment",()=>{
   assert.equal(contract.status,"PACKAGE_BEREIT_NO_WRITE");
   assert.equal(contract.testId,"pr20-9-craft-durable-shadow-no-write");
   assert.equal(contract.controllerVersion,"1.0.0");
@@ -394,20 +394,20 @@ test("PR20.9 Craft runner contract and roadmap remain no-write and not active",(
 
   assert.equal(
     roadmap.pr20_9.status,
-    "CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE_BEREIT_NO_WRITE",
+    "CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
   );
   assert.equal(prep.pr20_9.status,roadmap.pr20_9.status);
   assert.equal(
     roadmap.pr20_9.nextAction,
-    "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER",
+    "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
   );
   assert.equal(prep.pr20_9.nextAction,roadmap.pr20_9.nextAction);
   assert.equal(roadmap.pr20_9.liveExecutionAllowed,false);
   assert.equal(roadmap.pr20_9.productiveCraftAuthority,false);
   assert.equal(roadmap.pr20_9.broadGraphExecutionAuthority,false);
   assert.equal(roadmap.pr20_9.normalRuntimeAllowed,false);
-  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.active,false);
-  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.manifestCutoverPrepared,false);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.active,true);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.manifestCutoverPrepared,true);
 
   const parallel=roadmap.parallelPreparations.find(x=>x?.id==="PR20.9_PRODUCTION");
   assert.ok(parallel);

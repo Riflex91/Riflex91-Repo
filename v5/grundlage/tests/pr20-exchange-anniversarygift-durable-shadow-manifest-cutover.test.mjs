@@ -48,7 +48,7 @@ test("historical shadow cutover package bytes remain exact after later manifest 
   ],{encoding:null,maxBuffer:256*1024});
   assert.deepEqual(pinned,bytes);
   assert.notEqual(manifest.testId,cutover.manifest.testId);
-  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live");
+  assert.equal(manifest.testId,"pr20-9-craft-durable-shadow-no-write");
 });
 
 test("cutover remains no-send, no-authority and non-ratifying",()=>{

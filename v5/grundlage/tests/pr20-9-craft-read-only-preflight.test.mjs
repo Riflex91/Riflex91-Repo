@@ -205,7 +205,7 @@ test("PR20.9 roadmap and merchant preparation retain the authority-free Craft pr
   const parallel=roadmap.parallelPreparations.find(x=>x?.id==="PR20.9_PRODUCTION");
   assert.ok(parallel);
   assert.equal(parallel.liveExecutionAllowed,false);
-  assert.ok(parallel.blockedBy.includes("PR20.8"));
+  assert.deepEqual(parallel.blockedBy,[]);
   assert.ok(parallel.artifacts.includes(
     "v5/grundlage/quelle/produktion/pr20-9-craft-read-only-preflight.ts",
   ));

@@ -430,7 +430,7 @@ test("PR20.7 Farmer-Gear-Allocation ist als NO-WRITE Foundation ratifiziert", ()
   assert.equal(ratification.ratified, true);
   assert.deepEqual(ratification.blocker, []);
   assert.equal(ratification.nextGate, "PR20.8_WERTMUTATIONEN");
-  assert.equal(roadmap.currentGate, "PR20.8_WERTMUTATIONEN");
+  assert.equal(roadmap.currentGate, "PR20.9_PRODUCTION");
   assert.equal(roadmap.safePreparationBoundary.activeLiveGate, "PR20.8_WERTMUTATIONEN");
   assert.equal(roadmap.pr20_7.status,
     "ROADMAP_ABGESCHLOSSEN_MUTATIONS_RATIFIED_ALLOCATION_NO_WRITE");
