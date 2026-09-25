@@ -360,7 +360,7 @@ test("PR20.8 Exchange closeout records the fresh v1.0.6 no-candidate evidence", 
   assert.equal(review.mayAdvanceToPr20_9,false);
 });
 
-test("PR20.8 Exchange read-only scanner facade recovery completed the fresh zero-write rescan", () => {
+test("PR20.8 historical v1.0.5 Exchange facade recovery completed zero-write rescan", () => {
   const r=review.exchangeReadonlyRescanFacadeRecovery;
   assert.equal(r.status,"REAL_BROWSER_FRESH_RESCAN_COMPLETED_NO_CANDIDATE_ZERO_WRITE");
   assert.equal(r.contract,"v5/grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-facade-recovery-preparation.json");
