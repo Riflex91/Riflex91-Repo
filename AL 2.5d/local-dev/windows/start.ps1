@@ -14,6 +14,7 @@ $MongoDataDir = Join-Path $MongoLocalRoot "data"
 $MongoLogDir = Join-Path $MongoLocalRoot "log"
 $MongoPidFile = Join-Path $RuntimeRoot "mongodb.pid"
 $RuntimeKeysPath = Join-Path $AdventureDir "secretsandconfig\keys.js"
+$MongoReplicaSet = "al25d-rs"
 
 if (-not (Test-Path (Join-Path $AdventureDir "main.js"))) {
   throw "Local runtime is missing. Run .\local-dev\windows\setup.ps1 first."
@@ -46,6 +47,93 @@ function Wait-Port([int]$Port, [string]$Name) {
   }
 
   throw "$Name did not become reachable on port $Port within 45 seconds."
+}
+
+function Test-MongoReplicaSet {
+  if (-not (Test-Port 27017)) {
+    return $false
+  }
+
+  $Probe = @'
+const { MongoClient } = require("mongodb");
+(async () => {
+  const client = new MongoClient("mongodb://127.0.0.1:27017/?directConnection=true", {
+    serverSelectionTimeoutMS: 2000
+  });
+  try {
+    await client.connect();
+    const hello = await client.db("admin").command({ hello: 1 });
+    process.exit(hello.setName === "al25d-rs" ? 0 : 2);
+  } finally {
+    await client.close().catch(() => {});
+  }
+})().catch(() => process.exit(3));
+'@
+
+  Push-Location $AdventureDir
+  try {
+    $Probe | node -
+    return ($LASTEXITCODE -eq 0)
+  } finally {
+    Pop-Location
+  }
+}
+
+function Initialize-MongoReplicaSet {
+  $Initializer = @'
+const { MongoClient } = require("mongodb");
+const uri = "mongodb://127.0.0.1:27017/?directConnection=true";
+const setName = "al25d-rs";
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+(async () => {
+  const client = new MongoClient(uri, { serverSelectionTimeoutMS: 3000 });
+  await client.connect();
+  const admin = client.db("admin");
+
+  let hello = await admin.command({ hello: 1 });
+  if (hello.setName !== setName) {
+    try {
+      await admin.command({
+        replSetInitiate: {
+          _id: setName,
+          members: [{ _id: 0, host: "127.0.0.1:27017" }]
+        }
+      });
+    } catch (error) {
+      if (error.codeName !== "AlreadyInitialized" && error.code !== 23) {
+        throw error;
+      }
+    }
+  }
+
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    try {
+      hello = await admin.command({ hello: 1 });
+      if (hello.setName === setName && hello.isWritablePrimary === true) {
+        await client.close();
+        return;
+      }
+    } catch (_) {}
+    await sleep(500);
+  }
+
+  throw new Error("MongoDB replica set did not become PRIMARY within 30 seconds.");
+})().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
+'@
+
+  Push-Location $AdventureDir
+  try {
+    $Initializer | node -
+    if ($LASTEXITCODE -ne 0) {
+      throw "MongoDB replica-set initialization failed."
+    }
+  } finally {
+    Pop-Location
+  }
 }
 
 function Get-PortableMongod {
@@ -146,7 +234,7 @@ if (-not (Test-Port 27017)) {
   Write-Host "==> MongoDB binary: $($Mongod.FullName)"
   Write-Host "==> MongoDB data path: $MongoDataDir"
 
-  $MongoArguments = "--dbpath `"$MongoDataDir`" --bind_ip 127.0.0.1 --port 27017 --logpath `"$MongoLogPath`" --logappend"
+  $MongoArguments = "--dbpath `"$MongoDataDir`" --bind_ip 127.0.0.1 --port 27017 --replSet $MongoReplicaSet --logpath `"$MongoLogPath`" --logappend"
   $MongoProcess = Start-Process -FilePath $Mongod.FullName -PassThru -WindowStyle Hidden -ArgumentList $MongoArguments
   Set-Content -Path $MongoPidFile -Value $MongoProcess.Id -Encoding ASCII
 
@@ -171,6 +259,21 @@ if (-not (Test-Port 27017)) {
 }
 
 Wait-Port 27017 "MongoDB"
+
+if (-not (Test-MongoReplicaSet)) {
+  Write-Host "==> Initializing/checking local MongoDB replica set"
+  try {
+    Initialize-MongoReplicaSet
+  } catch {
+    throw "MongoDB on port 27017 is not transaction-ready. Run .\local-dev\windows\setup.ps1 -SkipInstall -SkipSeed to repair the local replica set. $($_.Exception.Message)"
+  }
+}
+
+if (-not (Test-MongoReplicaSet)) {
+  throw "MongoDB replica set '$MongoReplicaSet' is not active."
+}
+
+Write-Host "==> MongoDB replica set '$MongoReplicaSet' is transaction-ready"
 
 $Started = @{}
 
