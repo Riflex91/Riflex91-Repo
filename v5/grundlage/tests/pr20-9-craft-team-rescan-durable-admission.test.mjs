@@ -341,3 +341,81 @@ test("CAP-022 Team-Rescan Durable-Admission besitzt keinen direkten Gameplay-Wri
     assert.equal(source.includes(marker),false,marker);
   }
 });
+
+
+test("CAP-022 Team-Admission-Vertrag und Roadmap halten PR20.9 fail-closed",()=>{
+  const contract=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr20-9-craft-team-rescan-durable-admission-foundation.json",
+    "utf8",
+  ));
+  assert.equal(contract.status,"PREPARED_NO_WRITE");
+  assert.equal(
+    contract.admissionRequirements.teamRescanStatus,
+    "TEAM_CRAFT_RESCAN_KANDIDAT_BEREIT_NO_WRITE",
+  );
+  assert.equal(
+    contract.admissionRequirements.originalPreflightRequestMustMatchResult,
+    true,
+  );
+  assert.equal(
+    contract.admissionRequirements.finalMerchantInventoryFingerprintMustMatchFence,
+    true,
+  );
+  assert.equal(contract.admissionRequirements.maximumDurablePlanTtlMs,1500);
+  assert.equal(contract.output.durableShadowPlanPrepared,true);
+  assert.equal(contract.output.durableIntentCreated,false);
+  assert.equal(contract.output.persistenceWrites,0);
+  assert.equal(contract.safetyBoundary.currentPr20_9RatificationCredit,false);
+  assert.equal(contract.safetyBoundary.foundationCountsAsCraftRatification,false);
+  assert.equal(contract.safetyBoundary.productiveCraftAuthorityOpened,false);
+  assert.equal(contract.safetyBoundary.gameplayWrites,0);
+  assert.equal(contract.safetyBoundary.publicFunctionCalls,0);
+  assert.equal(contract.safetyBoundary.rawWriteCalls,0);
+  assert.equal(contract.safetyBoundary.craftAuthority,false);
+  assert.equal(contract.safetyBoundary.gameplayAuthority,false);
+  assert.equal(contract.safetyBoundary.rawWriteAuthority,false);
+  assert.equal(contract.safetyBoundary.normalRuntimeAllowed,false);
+  assert.equal(contract.separationOfResponsibility.admissionMayPersistDurableIntent,false);
+  assert.equal(contract.separationOfResponsibility.onlyExistingDurableShadowControllerMayPersist,true);
+
+  const roadmap=JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+  );
+  assert.equal(
+    roadmap.pr20_9.craftDurableShadowRunner.candidateAcquisitionOrMutationAllowed,
+    false,
+  );
+  const admission=
+    roadmap.pr20_9.deferredAutomaticMaterialRecheck
+      .teamAllSettledCraftRescan.durableShadowAdmission;
+  assert.equal(admission.status,"PREPARED_NO_WRITE");
+  assert.equal(admission.durableShadowPlanPrepared,true);
+  assert.equal(admission.durableIntentCreated,false);
+  assert.equal(admission.persistenceWrites,0);
+  assert.equal(admission.currentPr20_9RatificationCredit,false);
+  assert.equal(admission.productiveCraftAuthorityOpened,false);
+  assert.equal(admission.craftAuthority,false);
+  assert.equal(admission.normalRuntimeAllowed,false);
+
+  const durable=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-preparation.json",
+    "utf8",
+  ));
+  assert.equal(
+    durable.upstreamAdmissions.cap022TeamRescan.status,
+    "PREPARED_NO_WRITE",
+  );
+  assert.equal(
+    durable.upstreamAdmissions.cap022TeamRescan.durableIntentCreatedByAdmission,
+    false,
+  );
+  assert.equal(
+    durable.upstreamAdmissions.cap022TeamRescan.durablePersistenceOwnedByThisController,
+    true,
+  );
+});
