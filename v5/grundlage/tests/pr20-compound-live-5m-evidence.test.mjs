@@ -10,6 +10,10 @@ const manifest=JSON.parse(fs.readFileSync(
   "roadmap/v5-autonomous-test-manifest.json",
   "utf8",
 ));
+const roadmap=JSON.parse(fs.readFileSync(
+  "roadmap/post-r19-roadmap.json",
+  "utf8",
+));
 
 test("PR20.8 Compound 5m evidence ratifies persisted terminal completion",()=>{
   assert.equal(evidence.status,"RATIFIED_BESTANDEN_ZERO_ADDITIONAL_MUTATION");
@@ -110,12 +114,35 @@ test("Compound 5m ratification closes only Compound and leaves PR20.8 blocked by
   assert.equal(evidence.nextGate,"PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW");
 });
 
-test("Compound 5m evidence stays immutable while the active manifest advances to the fresh read-only Exchange rescan",()=>{
-  assert.equal(manifest.testId,"pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(manifest.controllerVersion,"1.0.6");
-  assert.equal(manifest.sourceCommit,"a5fd67cc9c587b2a20b163915936717c7b4e8321");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js");
-  assert.equal(manifest.packageSha256,"fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387");
-  assert.equal(manifest.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
+test("Compound 5m evidence stays immutable while PR20.9 temporarily owns the no-write manifest slot",()=>{
+  assert.equal(manifest.testId,"pr20-9-craft-durable-shadow-no-write");
+  assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.normalRuntimeAllowed,false);
+
+  const restore=roadmap.pr20_9.craftDurableShadowRunner.restoreManifest;
+  assert.equal(
+    restore.testId,
+    "pr20-8-wertmutation-live-candidate-readonly",
+  );
+  assert.equal(restore.controllerVersion,"1.0.6");
+  assert.equal(
+    restore.sourceCommit,
+    "a5fd67cc9c587b2a20b163915936717c7b4e8321",
+  );
+  assert.equal(
+    restore.package,
+    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js",
+  );
+  assert.equal(
+    restore.packageSha256,
+    "fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387",
+  );
+  assert.equal(restore.packageBytes,21688);
+  assert.equal(restore.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
+  assert.equal(restore.normalRuntimeAllowed,false);
+  assert.equal(
+    roadmap.pr20_9.craftDurableShadowRunner
+      .pr20_8ManifestRestoreRequiredAfterTerminalEvidence,
+    true,
+  );
 });
