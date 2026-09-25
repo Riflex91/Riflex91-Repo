@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_8_EXCHANGE_CANDIDATE_ACQUISITION",
+  "status": "PREPARED_READ_ONLY_DISCOVERY",
+  "basisMain": "79d06785eee9e97c7f1a265ee09f071f49f0fa07",
+  "scope": "INVENTORY_THEN_EXISTING_BANK_CANDIDATE_ONLY",
+  "planner": "v5/grundlage/quelle/merchant/pr20-8-exchange-candidate-acquisition.ts",
+  "plannerTest": "v5/grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs",
+  "discoveryRunner": "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-discovery.mjs",
+  "scannerParity": {
+    "exchangeQuantityFromItemDefinitionE": true,
+    "singlePhysicalStackRequired": true,
+    "maximumBaseGold": 50000,
+    "specialNamesExcluded": [
+      "sixcake"
+    ],
+    "unsafePhysicalItemFlagsExcluded": true,
+    "eventQuestCashExclusiveExcluded": true,
+    "scannerPackage": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js",
+    "scannerMustReverifyAfterAnyAcquisition": true
+  },
+  "acquisitionPolicy": {
+    "broadAcquisitionOrMutationToCreateCandidateAllowed": false,
+    "controlledExistingBankCandidateRetrieveAllowed": true,
+    "retrieveMovesExistingCandidateOnly": true,
+    "buyToCreateCandidateAllowed": false,
+    "farmToCreateCandidateAllowed": false,
+    "bankMutationToCreateCandidateAllowed": false,
+    "inventoryMutationToManufactureCandidateAllowed": false,
+    "acquisitionCountsAsExchangeEvidence": false,
+    "exchangeWriteAuthority": false,
+    "bankRetrieveAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false
+  },
+  "discoverySafety": {
+    "gameplayWrites": 0,
+    "mutatingPublicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "durableIntentCreated": false,
+    "acquisitionPerformed": false,
+    "sameIntentRetry": false
+  },
+  "nextByOutcome": {
+    "INVENTORY_CANDIDATE_READY": "RUN_EXISTING_V1_0_6_SCANNER",
+    "BANK_RETRIEVE_CANDIDATE_READY": "PREPARE_BOUND_BANK_RETRIEVE_SHADOW",
+    "BANK_DISCOVERY_REQUIRED": "MOUNT_BANK_READ_ONLY_AND_RESCAN",
+    "BANK_CANDIDATE_BLOCKED_NO_FREE_INVENTORY_SLOT": "STOP_NO_FREE_SLOT_NO_MUTATION",
+    "NO_CANDIDATE": "CONSIDER_PURCHASE_FARM_STAGE_SEPARATELY_NOT_AUTHORIZED"
+  },
+  "currentNextAction": "RUN_EXCHANGE_CANDIDATE_ACQUISITION_DISCOVERY"
+}
