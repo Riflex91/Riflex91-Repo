@@ -2,10 +2,11 @@
   "use strict";
 
   const PROFILE_ID = "V5_LIVE_LAB_PR28";
-  const VERSION = "0.4.0";
-  const SOURCE_MAIN_SHA = "5be7d85fa3828fde0fa2eb226cbfa2e988ad5985";
-  const BUILD_CHANNEL = "chatgpt/v5-live-lab-pr28-r4";
-  const BUILD_ID = "V5_LIVE_LAB_PR28_R4_LIVE_EVIDENCE_1";
+  const VERSION = "0.5.0";
+  const SOURCE_MAIN_SHA = "a81ad3802980a5f9f54d831de6627d3e408609f3";
+  const BUILD_CHANNEL = "chatgpt/v5-live-lab-al25d-r5";
+  const BUILD_ID = "V5_LIVE_LAB_AL25D_R5_1";
+  const AL25D_PINNED_UPSTREAM_COMMIT = "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4";
   const START_ACK = "V5_LIVE_LAB_START";
   const MAX_LOGS = 4000;
   const MAX_PERSISTED_INTENTS = 512;
@@ -237,6 +238,7 @@
   let currentOptimizer = null;
   let currentProgression = null;
   let previousOnCm = null;
+  let cmTargetRoot = null;
   let lastOptimizerAt = 0;
   let lastTrainingTickAt = 0;
   let lastLocalDead = false;
@@ -274,46 +276,205 @@
     return Date.now();
   }
 
-  function character() {
+  function safeParent(candidate) {
     try {
-      return root.character || (root.parent && root.parent.character) || null;
+      return candidate && candidate.parent && candidate.parent !== candidate
+        ? candidate.parent
+        : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function isGameRuntimeCandidate(candidate) {
+    if (!candidate) return false;
+    try {
+      const hasGameData = !!(candidate.G && typeof candidate.G === "object");
+      const hasState = !!(
+        candidate.character
+        || candidate.entities
+        || candidate.S
+        || candidate.current_map
+      );
+      const hasGameplaySurface = [
+        "map_click",
+        "attack",
+        "use_skill",
+        "smart_move",
+        "get_party",
+        "get_player",
+      ].some(function (name) {
+        return typeof candidate[name] === "function";
+      });
+      return hasGameData && (hasState || hasGameplaySurface);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function al25dHostRoot() {
+    const candidates = [root, safeParent(root)].filter(Boolean);
+    for (const candidate of candidates) {
+      try {
+        if (candidate.AL25D && candidate.document) return candidate;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  function al25dLegacyFrame(host) {
+    if (!host) return null;
+    try {
+      const doc = host.document;
+      if (!doc || typeof doc.querySelector !== "function") return null;
+      const frame = doc.querySelector('iframe[data-al25d-legacy-runtime="true"]');
+      if (!frame || !frame.contentWindow) return null;
+      // Accessing document is the explicit same-origin proof used by AL 2.5D.
+      void frame.contentWindow.document;
+      return frame;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function resolveGameRoot() {
+    if (isGameRuntimeCandidate(root)) return root;
+
+    const parent = safeParent(root);
+    if (isGameRuntimeCandidate(parent)) return parent;
+
+    const host = al25dHostRoot();
+    const frame = al25dLegacyFrame(host);
+    if (frame) {
+      try {
+        const candidate = frame.contentWindow;
+        if (isGameRuntimeCandidate(candidate)) return candidate;
+      } catch (_) {}
+    }
+
+    return null;
+  }
+
+  function loopbackHostname(hostname) {
+    const value = String(hostname || "").trim().toLowerCase();
+    return (
+      value === "localhost"
+      || value === "127.0.0.1"
+      || value === "::1"
+      || value === "[::1]"
+    );
+  }
+
+  function runtimeEnvironment() {
+    const game = resolveGameRoot();
+    const host = al25dHostRoot();
+    let mode = "UNRESOLVED";
+    let hostName = "";
+    let legacyFramePresent = false;
+    let sameOriginLegacyFrame = false;
+    let advertisedUpstreamCommit = null;
+
+    if (host) {
+      try {
+        hostName = String(host.location && host.location.hostname || "");
+      } catch (_) {}
+      const frame = al25dLegacyFrame(host);
+      legacyFramePresent = !!frame;
+      sameOriginLegacyFrame = !!frame;
+    }
+
+    if (game) {
+      try {
+        advertisedUpstreamCommit = game.__AL25D_UPSTREAM_COMMIT__ || null;
+      } catch (_) {}
+
+      if (host && game === host) {
+        mode = "AL25D_ATTACHED";
+      } else if (host) {
+        const parent = safeParent(game);
+        mode = parent === host
+          ? "AL25D_LEGACY_FRAME"
+          : "AL25D_HOST_TO_LEGACY_IFRAME";
+      } else {
+        mode = "ADVENTURE_LAND_DIRECT";
+      }
+    } else if (host) {
+      mode = "AL25D_WAITING_FOR_LEGACY";
+    }
+
+    return Object.freeze({
+      mode: mode,
+      al25dDetected: !!host,
+      al25dLegacyRuntimeReady: !!game,
+      legacyFramePresent: legacyFramePresent,
+      sameOriginLegacyFrame: sameOriginLegacyFrame,
+      hostName: hostName || null,
+      loopbackHost: hostName ? loopbackHostname(hostName) : null,
+      advertisedUpstreamCommit: advertisedUpstreamCommit,
+      expectedUpstreamCommit: host ? AL25D_PINNED_UPSTREAM_COMMIT : null,
+      upstreamCommitCompatible: !host
+        || !advertisedUpstreamCommit
+        || advertisedUpstreamCommit === AL25D_PINNED_UPSTREAM_COMMIT,
+    });
+  }
+
+  function character() {
+    const game = resolveGameRoot();
+    try {
+      return game && game.character || null;
     } catch (_) {
       return null;
     }
   }
 
   function entities() {
+    const game = resolveGameRoot();
     try {
-      return root.entities || (root.parent && root.parent.entities) || {};
+      return game && game.entities || {};
     } catch (_) {
       return {};
     }
   }
 
   function globalGameData() {
+    const game = resolveGameRoot();
     try {
-      return root.G || (root.parent && root.parent.G) || {};
+      return game && game.G || {};
     } catch (_) {
       return {};
     }
   }
 
   function serverState() {
+    const game = resolveGameRoot();
     try {
-      return root.S || (root.parent && root.parent.S) || {};
+      return game && game.S || {};
     } catch (_) {
       return {};
     }
   }
 
   function currentServer() {
+    const game = resolveGameRoot();
     let region = "";
     let identifier = "";
     try {
-      region = String(root.server_region || (root.parent && root.parent.server_region) || (root.server && root.server.region) || "");
+      region = String(
+        game && (
+          game.server_region
+          || game.server && game.server.region
+        )
+        || ""
+      );
     } catch (_) {}
     try {
-      identifier = String(root.server_identifier || (root.parent && root.parent.server_identifier) || (root.server && root.server.id) || "");
+      identifier = String(
+        game && (
+          game.server_identifier
+          || game.server && game.server.id
+        )
+        || ""
+      );
     } catch (_) {}
     return { region: region, identifier: identifier };
   }
@@ -469,14 +630,23 @@
     return entry;
   }
 
+  function gameRootCandidates() {
+    const out = [];
+    const game = resolveGameRoot();
+    const parent = safeParent(game);
+    const rootParent = safeParent(root);
+    for (const candidate of [game, parent, root, rootParent]) {
+      if (candidate && !out.includes(candidate)) out.push(candidate);
+    }
+    return out;
+  }
+
   function publicFunction(name) {
-    const roots = [root];
-    try {
-      if (root.parent && root.parent !== root) roots.push(root.parent);
-    } catch (_) {}
-    for (const candidate of roots) {
+    for (const candidate of gameRootCandidates()) {
       try {
-        if (candidate && typeof candidate[name] === "function") return candidate[name].bind(candidate);
+        if (typeof candidate[name] === "function") {
+          return candidate[name].bind(candidate);
+        }
       } catch (_) {}
     }
     return null;
@@ -489,19 +659,25 @@
   }
 
   function alternativeRuntimeActive() {
-    try {
-      const v3 = root.AIO_V3 && root.AIO_V3.__runtime;
-      const status = v3 && typeof v3.status === "function" ? v3.status() : null;
-      if (v3 && (v3.timer || status && status.running === true)) return "AIO_V3_RUNTIME_ACTIVE";
-    } catch (_) {
-      return "AIO_V3_RUNTIME_UNREADABLE";
-    }
-    try {
-      const v4 = root.AIO_V4 || root.V4Runtime || root.V4ProduktionsLaufzeit;
-      const status = v4 && typeof v4.status === "function" ? v4.status() : null;
-      if (v4 && status && (status.running === true || status.aktivFreigegeben === true)) return "V4_RUNTIME_ACTIVE";
-    } catch (_) {
-      return "V4_RUNTIME_UNREADABLE";
+    for (const candidate of gameRootCandidates()) {
+      try {
+        const v3 = candidate.AIO_V3 && candidate.AIO_V3.__runtime;
+        const status = v3 && typeof v3.status === "function" ? v3.status() : null;
+        if (v3 && (v3.timer || status && status.running === true)) {
+          return "AIO_V3_RUNTIME_ACTIVE";
+        }
+      } catch (_) {
+        return "AIO_V3_RUNTIME_UNREADABLE";
+      }
+      try {
+        const v4 = candidate.AIO_V4 || candidate.V4Runtime || candidate.V4ProduktionsLaufzeit;
+        const status = v4 && typeof v4.status === "function" ? v4.status() : null;
+        if (v4 && status && (status.running === true || status.aktivFreigegeben === true)) {
+          return "V4_RUNTIME_ACTIVE";
+        }
+      } catch (_) {
+        return "V4_RUNTIME_UNREADABLE";
+      }
     }
     return null;
   }
@@ -550,7 +726,10 @@
     let party = {};
     try {
       const getParty = publicFunction("get_party");
-      party = getParty ? getParty() : root.party || (root.parent && root.parent.party) || {};
+      const game = resolveGameRoot();
+      party = getParty
+        ? getParty()
+        : game && game.party || {};
     } catch (_) {
       party = {};
     }
@@ -566,8 +745,15 @@
   function liveSafety() {
     const c = character();
     const blocker = [];
+    const environment = runtimeEnvironment();
     if (!running) blocker.push("LIVE_LAB_NOT_RUNNING");
     if (emergencyStop) blocker.push("LIVE_LAB_EMERGENCY_STOP");
+    if (environment.al25dDetected && !environment.al25dLegacyRuntimeReady) {
+      blocker.push("AL25D_LEGACY_RUNTIME_NOT_READY");
+    }
+    if (environment.al25dDetected && !environment.upstreamCommitCompatible) {
+      blocker.push("AL25D_UPSTREAM_COMMIT_MISMATCH");
+    }
     if (!c) blocker.push("LIVE_LAB_CHARACTER_UNAVAILABLE");
     if (c && !String(c.name || "").trim()) blocker.push("LIVE_LAB_CHARACTER_IDENTITY_MISSING");
     const server = currentServer();
@@ -579,6 +765,7 @@
       gameplayAuthority: blocker.length === 0,
       normalRuntimeAllowed: blocker.length === 0,
       rawWriteAuthority: false,
+      runtimeEnvironment: environment,
     };
   }
 
@@ -835,9 +1022,15 @@
   }
 
   function installCmHandler() {
-    if (previousOnCm !== null) return;
-    previousOnCm = typeof root.on_cm === "function" ? root.on_cm : false;
-    root.on_cm = function (name, data) {
+    const target = resolveGameRoot();
+    if (!target) return false;
+    if (cmTargetRoot === target && previousOnCm !== null) return true;
+
+    if (cmTargetRoot && cmTargetRoot !== target) restoreCmHandler();
+
+    cmTargetRoot = target;
+    previousOnCm = typeof target.on_cm === "function" ? target.on_cm : false;
+    target.on_cm = function (name, data) {
       try {
         if (data && data.type === "V5_LIVE_LAB_HEARTBEAT" && data.profileId === PROFILE_ID) {
           const peerName = String(name);
@@ -860,20 +1053,28 @@
       }
       if (typeof previousOnCm === "function") {
         try {
-          return previousOnCm(name, data);
+          return previousOnCm.call(target, name, data);
         } catch (error) {
           log("PREVIOUS_ON_CM_FAILED", { error: String(error && error.message || error) });
         }
       }
       return undefined;
     };
+    return true;
   }
 
   function restoreCmHandler() {
-    if (previousOnCm === null) return;
+    if (!cmTargetRoot || previousOnCm === null) {
+      cmTargetRoot = null;
+      previousOnCm = null;
+      return;
+    }
     if (previousOnCm === false) {
-      try { delete root.on_cm; } catch (_) { root.on_cm = undefined; }
-    } else root.on_cm = previousOnCm;
+      try { delete cmTargetRoot.on_cm; } catch (_) { cmTargetRoot.on_cm = undefined; }
+    } else {
+      cmTargetRoot.on_cm = previousOnCm;
+    }
+    cmTargetRoot = null;
     previousOnCm = null;
   }
 
@@ -2594,6 +2795,7 @@
     tickSeq += 1;
 
     try {
+      installCmHandler();
       const safety = liveSafety();
       if (!safety.admitted) {
         evidenceNote("safetyViolations", 1);
@@ -2895,6 +3097,10 @@
         + ", gameplay=" + String(status.gameplayAuthority === true)
         + ", normal=" + String(status.normalRuntimeAllowed === true)
         + ", raw=" + String(status.rawWriteAuthority === true),
+      "- Runtime environment: " + String(status.runtimeEnvironment && status.runtimeEnvironment.mode || "—"),
+      "- AL25D detected/legacy ready: "
+        + String(status.runtimeEnvironment && status.runtimeEnvironment.al25dDetected === true)
+        + "/" + String(status.runtimeEnvironment && status.runtimeEnvironment.al25dLegacyRuntimeReady === true),
       "",
       "## Current Situation",
       "- Task: " + String(status.currentTask && status.currentTask.type || "—")
@@ -3338,6 +3544,11 @@
         + String(status.gameplayAuthority === true) + "/"
         + String(status.normalRuntimeAllowed === true),
       "- rawWriteAuthority: " + String(status.rawWriteAuthority === true),
+      "- Runtime environment: " + String(status.runtimeEnvironment && status.runtimeEnvironment.mode || "—"),
+      "- AL25D detected: " + String(status.runtimeEnvironment && status.runtimeEnvironment.al25dDetected === true),
+      "- AL25D legacy ready: " + String(status.runtimeEnvironment && status.runtimeEnvironment.al25dLegacyRuntimeReady === true),
+      "- AL25D expected upstream: " + String(status.runtimeEnvironment && status.runtimeEnvironment.expectedUpstreamCommit || "—"),
+      "- AL25D advertised upstream: " + String(status.runtimeEnvironment && status.runtimeEnvironment.advertisedUpstreamCommit || "—"),
       "",
       "## Current task / PR26 party selection",
       "- Task: " + String(status.currentTask && status.currentTask.type || "—")
@@ -3498,6 +3709,7 @@
         + " · " + String(status.ctype || "—")
         + " · " + String(status.server && status.server.region || "—")
         + " " + String(status.server && status.server.identifier || "—")
+        + " · " + String(status.runtimeEnvironment && status.runtimeEnvironment.mode || "—")
     );
 
     const task = status.currentTask;
@@ -3842,6 +4054,7 @@
     situationWriterStatus: situationWriterStatus,
     buildSituationFileText: buildSituationFileText,
     capabilityLedger: capabilityLedgerSnapshot,
+    runtimeEnvironment: runtimeEnvironment,
 
     startEvidenceSegment: function (options) {
       options = options || {};
@@ -3868,6 +4081,7 @@
         gameplayAuthority: running && safety.admitted,
         normalRuntimeAllowed: running && safety.admitted,
         rawWriteAuthority: false,
+        runtimeEnvironment: runtimeEnvironment(),
         situationWriter: situationWriterStatus(),
         capabilityLedger: capabilityLedgerSnapshot(),
         persistenceAvailable: persistenceAvailable,
@@ -4000,5 +4214,6 @@
     persistenceAvailable: persistenceAvailable,
     restartDetected: restartDetected,
     restartReconciled: restartReconciled,
+    runtimeEnvironment: runtimeEnvironment(),
   });
 })(typeof globalThis !== "undefined" ? globalThis : window);
