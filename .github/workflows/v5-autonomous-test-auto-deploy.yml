@@ -52,6 +52,7 @@ on:
       - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.js'
       - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js'
       - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js'
+      - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js'
       - 'v5/werkzeuge/pr20-8-compound-durable-shadow-no-write.js'
       - 'v5/werkzeuge/pr20-8-compound-productive-one-write-live.js'
       - 'v5/werkzeuge/pr20-8-compound-live-5m.js'
@@ -62,6 +63,7 @@ on:
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.test.mjs'
+      - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-compound-durable-shadow-no-write.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-compound-live-5m.test.mjs'
@@ -85,6 +87,7 @@ on:
       - 'v5/grundlage/tests/pr20-compound-live-5m-notification-identity-recovery-preparation.test.mjs'
       - 'v5/grundlage/tests/pr20-compound-live-5m-evidence.test.mjs'
       - 'v5/grundlage/tests/pr20-exchange-no-candidate-closeout-review.test.mjs'
+      - 'v5/grundlage/tests/pr20-exchange-readonly-rescan-handshake-recovery-preparation.test.mjs'
       - 'v5/grundlage/tests/pr20-compound-productive-one-write-runner-preparation.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-durable-shadow-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-preparation.json'
@@ -95,6 +98,7 @@ on:
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-notification-identity-recovery-preparation.json'
       - 'v5/roadmap/pr20-8-compound-live-5m-evidence.json'
       - 'v5/roadmap/pr20-8-exchange-no-candidate-closeout-review.json'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-handshake-recovery-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-bridge-handshake-probe-preparation.json'
       - 'v5/roadmap/pr20-8-bridge-handshake-terminal-recovery-evidence.json'
       - 'v5/grundlage/tests/pr20-bridge-handshake-terminal-recovery-evidence.test.mjs'
@@ -157,6 +161,7 @@ on:
       - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.js'
       - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js'
       - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js'
+      - 'v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js'
       - 'v5/werkzeuge/pr20-8-compound-durable-shadow-no-write.js'
       - 'v5/werkzeuge/pr20-8-compound-productive-one-write-live.js'
       - 'v5/werkzeuge/pr20-8-compound-live-5m.js'
@@ -167,6 +172,7 @@ on:
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-2.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.test.mjs'
+      - 'v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-compound-durable-shadow-no-write.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs'
       - 'v5/werkzeuge/tests/pr20-8-compound-live-5m.test.mjs'
@@ -190,6 +196,7 @@ on:
       - 'v5/grundlage/tests/pr20-compound-live-5m-notification-identity-recovery-preparation.test.mjs'
       - 'v5/grundlage/tests/pr20-compound-live-5m-evidence.test.mjs'
       - 'v5/grundlage/tests/pr20-exchange-no-candidate-closeout-review.test.mjs'
+      - 'v5/grundlage/tests/pr20-exchange-readonly-rescan-handshake-recovery-preparation.test.mjs'
       - 'v5/grundlage/tests/pr20-compound-productive-one-write-runner-preparation.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-durable-shadow-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-preparation.json'
@@ -200,6 +207,7 @@ on:
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-notification-identity-recovery-preparation.json'
       - 'v5/roadmap/pr20-8-compound-live-5m-evidence.json'
       - 'v5/roadmap/pr20-8-exchange-no-candidate-closeout-review.json'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-handshake-recovery-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-bridge-handshake-probe-preparation.json'
       - 'v5/roadmap/pr20-8-bridge-handshake-terminal-recovery-evidence.json'
       - 'v5/grundlage/tests/pr20-bridge-handshake-terminal-recovery-evidence.test.mjs'
@@ -248,6 +256,8 @@ jobs:
         run: node --check werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.js && node --test werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-3.test.mjs grundlage/tests/pr20-compound-exchange-rescan-v1-0-2-evidence.test.mjs
       - name: Verify PR20.8 target-family candidate rescan v1.0.4
         run: node --check werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js && node --test werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.test.mjs
+      - name: Verify PR20.8 Exchange read-only rescan handshake recovery v1.0.5
+        run: node --check werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js && node --test werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs grundlage/tests/pr20-exchange-readonly-rescan-handshake-recovery-preparation.test.mjs
       - name: Verify PR20.8 Compound durable shadow preparation
         run: node --check werkzeuge/pr20-8-compound-durable-shadow-no-write.js && node --test werkzeuge/tests/pr20-8-compound-durable-shadow-no-write.test.mjs grundlage/tests/pr20-compound-durable-shadow-preparation.test.mjs
       - name: Verify PR20.8 Compound productive one-write runner package

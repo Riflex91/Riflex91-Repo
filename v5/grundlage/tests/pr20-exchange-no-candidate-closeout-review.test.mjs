@@ -8,7 +8,7 @@ const review=JSON.parse(fs.readFileSync(
 ));
 
 test("PR20.8 Exchange no-candidate closeout keeps the roadmap exit gate blocked",()=>{
-  assert.equal(review.status,"MANIFEST_CUTOVER_PREPARED_FOR_FRESH_READONLY_RESCAN");
+  assert.equal(review.status,"V1_0_4_DEPLOYMENT_HANDSHAKE_FAILED_RECOVERY_V1_0_5_PACKAGE_READY");
   assert.equal(review.reviewedAtMainCommit,"f5072e112c2a25fa872627e3269d1d26e63e5f66");
   assert.equal(review.roadmapExitGate.upgradeRatified,true);
   assert.equal(review.roadmapExitGate.compoundRatified,true);
@@ -81,15 +81,59 @@ test("fresh Exchange closeout rescan reuses the already ratified zero-write v1.0
   assert.equal(r.normalRuntimeAllowed,false);
   assert.equal(r.manifest,"v5/roadmap/v5-autonomous-test-manifest.json");
   assert.equal(r.manifestCutoverPrepared,true);
-  assert.equal(r.bridgeMayDeployPinnedRunner,true);
+  assert.equal(r.bridgeMayDeployPinnedRunner,false);
   assert.equal(r.deployed,false);
   assert.equal(r.evidenceObserved,false);
+  assert.equal(r.deploymentFailureObserved,true);
+  assert.equal(r.deploymentFailureBridgeAt,"2026-09-25T05:34:26.3182088Z");
+  assert.equal(r.deploymentFailureState,"ERROR");
+  assert.equal(r.deploymentFailureError,"InvalidOperationException: V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED");
+  assert.equal(r.deploymentFailureCurrentTestId,"pr20-8-compound-live-5m");
+  assert.equal(r.deploymentFailureCurrentVersion,"1.0.2");
+  assert.equal(r.deploymentFailureGameplayWrites,0);
+  assert.equal(r.deploymentFailurePublicFunctionCalls,0);
+  assert.equal(r.deploymentFailureRawWriteCalls,0);
+  assert.equal(r.freshScannerCompletionObserved,false);
 });
 
 test("all rescan outcomes remain fail-closed and PR20.9 stays unavailable",()=>{
   assert.equal(review.outcomes.exchangeCandidateFound,"PREPARE_EXCHANGE_DURABLE_SHADOW_NO_WRITE_ONLY");
   assert.equal(review.outcomes.exchangeNoCandidate,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
   assert.equal(review.outcomes.scannerFailure,"REMAIN_BLOCKED_NO_AUTHORITY");
-  assert.equal(review.nextAction,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
+  assert.equal(review.nextAction,"PR20_8_EXCHANGE_READONLY_RESCAN_HANDSHAKE_RECOVERY_MANIFEST_CUTOVER");
+  assert.equal(review.roadmapExitGate.mayAdvanceToPr20_9,false);
+});
+
+test("PR20.8 Exchange closeout handshake recovery v1.0.5 is package-ready only",()=>{
+  const r=review.handshakeRecovery;
+  assert.equal(r.status,"PACKAGE_READY_NOT_DEPLOYED");
+  assert.equal(r.contract,"v5/grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-handshake-recovery-preparation.json");
+  assert.equal(r.package,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js");
+  assert.equal(r.test,"v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs");
+  assert.equal(r.contractTest,"v5/grundlage/tests/pr20-exchange-readonly-rescan-handshake-recovery-preparation.test.mjs");
+  assert.equal(r.testId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(r.fromControllerVersion,"1.0.4");
+  assert.equal(r.controllerVersion,"1.0.5");
+  assert.equal(r.sourceCommit,"d4269f0e7998e265be4a3d1c1dffdd9b0e138c90");
+  assert.equal(r.packageSha256,"27d16d91fcba345b9e87ce2b8724a0e65bf202c1b74f73ab6187d488e4c55a92");
+  assert.equal(r.packageBytes,21792);
+  assert.equal(r.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
+  assert.equal(r.recoveryScope,"OBSERVABILITY_FACADE_HANDSHAKE_ONLY");
+  assert.equal(r.scannerSemanticsChanged,false);
+  assert.equal(r.maximumGameplayWrites,0);
+  assert.equal(r.maximumPublicFunctionCalls,0);
+  assert.equal(r.maximumRawWriteCalls,0);
+  assert.equal(r.exchangeAuthority,false);
+  assert.equal(r.gameplayAuthority,false);
+  assert.equal(r.rawWriteAuthority,false);
+  assert.equal(r.durableIntentCreated,false);
+  assert.equal(r.sameIntentRetry,false);
+  assert.equal(r.normalRuntimeAllowed,false);
+  assert.equal(r.acquisitionOrMutationToCreateCandidateAllowed,false);
+  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.deployed,false);
+  assert.equal(r.bridgeMayDeployPinnedRunner,false);
+  assert.equal(r.evidenceObserved,false);
+  assert.equal(r.nextGate,"PR20_8_EXCHANGE_READONLY_RESCAN_HANDSHAKE_RECOVERY_MANIFEST_CUTOVER");
   assert.equal(review.roadmapExitGate.mayAdvanceToPr20_9,false);
 });
