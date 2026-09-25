@@ -121,15 +121,15 @@ test("one-write authority is bounded to one public exchange call and no raw writ
 
 test("runner bytes and source commit are exact",()=>{
   assert.equal(contract.runner.testId,
-    "pr20-8-exchange-anniversarygift-service-reposition");
+    "pr20-8-exchange-anniversarygift-productive-one-write-live");
   assert.equal(contract.runner.controllerVersion,"1.0.0");
   assert.equal(contract.runner.sourceCommit,
-    "d7f48070228e1bb620beb39717655287defc4e6f");
+    "5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
   assert.equal(contract.runner.sha256,
-    "21121e5a8465848732b415dc05451935a7679dd33d23a7c42996c2f4456f54f7");
+    "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
   assert.equal(contract.runner.bytes,50047);
   assert.equal(contract.runner.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftServiceReposition");
+    "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
   assert.equal(contract.runner.maximumGameplayWrites,1);
   assert.equal(contract.runner.maximumPublicFunctionCalls,1);
   assert.equal(contract.runner.maximumRawWriteCalls,0);
@@ -137,7 +137,7 @@ test("runner bytes and source commit are exact",()=>{
   assert.equal(contract.runner.autonomousManifestChanged,false);
   assert.equal(contract.runner.deployed,false);
 
-  const localPath=contract.runner.path.replace(/^v5\//,"");
+  const localPath=contract.runner.path.replace(/^v5\\//,"");
   const bytes=fs.readFileSync(localPath);
   assert.equal(bytes.length,contract.runner.bytes);
   assert.equal(
@@ -177,14 +177,16 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
 
 test("active autonomous manifest is temporarily cut over to service reposition",()=>{
   assert.equal(manifest.testId,
-    "pr20-8-exchange-anniversarygift-productive-one-write-live");
+    "pr20-8-exchange-anniversarygift-service-reposition");
   assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.sourceCommit,
-    "5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
+    "d7f48070228e1bb620beb39717655287defc4e6f");
+  assert.equal(manifest.packagePath,
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-service-reposition-v1-0-0.js");
   assert.equal(manifest.packageSha256,
-    "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
+    "21121e5a8465848732b415dc05451935a7679dd33d23a7c42996c2f4456f54f7");
   assert.equal(manifest.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
+    "V5PR208ExchangeAnniversarygiftServiceReposition");
   assert.equal(manifest.normalRuntimeAllowed,false);
   assert.equal(shadow.status,"PREPARED_NO_WRITE");
 });
