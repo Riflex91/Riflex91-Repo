@@ -224,3 +224,5 @@ export * from "./runtime/pr21-28-gate-advance-proposal.js";
 
 export * from "./runtime/pr21-28-gate-apply-transaction.js";
 export * from "./runtime/pr21-28-gate-apply-reconciliation.js";
+
+export * from "./runtime/pr21-28-gate-settlement-rollback.js";

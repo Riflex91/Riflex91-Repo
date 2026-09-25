@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_28_GATE_SETTLEMENT_ROLLBACK_BATCH_8",
+  "status": "PREPARED_DEFAULT_OFF",
+  "sourceMain": "7497da76cd62a53c1aca77535ec98193dab943de",
+  "settlement": {
+    "source": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
+    "appliedRecordRequiresDurableIntent": true,
+    "appliedRecordRequiresPostcondition": true,
+    "appliedRecordRequiresTerminalSettlement": true,
+    "settlementPerformsGateMutation": false,
+    "settlementIssuesAuthority": false
+  },
+  "rollback": {
+    "preparedOnlyAfterVerifiedAppliedSettlement": true,
+    "freshMainCheckRequired": true,
+    "currentPostconditionVerificationRequired": true,
+    "durableRollbackIntentRequired": true,
+    "oneShotRollbackRequired": true,
+    "sameIntentRetryAllowed": false,
+    "rollbackAdapterInstalled": false,
+    "rollbackExecutionEnabled": false,
+    "rollbackMutationPerformed": false
+  },
+  "safety": {
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadRuntimeGrant": false,
+    "normalRuntimeAllowed": false
+  },
+  "test": "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
+  "nextMilestone": "PREPARE_STAGE_STATE_LEDGER_AND_ADVANCE_CHAIN_REPLAY_WITHOUT_APPLYING_GATES"
+}

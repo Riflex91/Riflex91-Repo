@@ -1,0 +1,138 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+import {
+  recordPr21_28GateSettlement,
+  planePr21_28GateRollback,
+} from "../../erzeugt/index.js";
+
+function transaction(overrides={}) {
+  return {
+    schemaVersion:1,
+    transactionId:"tx-pr21-1",
+    stage:"PR21",
+    operationKey:"pr21-28-gate-apply:PR21:0123456789abcdef:fedcba9876543210",
+    sourceMainCommit:"7497da76cd62a53c1aca77535ec98193dab943de",
+    packageFingerprint:"0123456789abcdef",
+    ratificationFingerprint:"fedcba9876543210",
+    preparedAtMs:1000,
+    status:"PREPARED_DEFAULT_OFF",
+    freshMainCheckRequiredAtApply:true,
+    durableIntentRequiredBeforeApply:true,
+    oneShotApplyRequired:true,
+    sameIntentRetryAllowed:false,
+    postconditionVerificationRequired:true,
+    unknownOutcomeRequiresReconciliation:true,
+    applyAdapterInstalled:false,
+    executionEnabled:false,
+    gateMutationPerformed:false,
+    authorityIssued:false,
+    broadRuntimeGrant:false,
+    gesamtfreigabeRequiredSeparately:true,
+    transactionFingerprint:"0011223344556677",
+    ...overrides,
+  };
+}
+
+test("no-mutation settlement records an abort only and performs no action",()=>{
+  const result=recordPr21_28GateSettlement(transaction(),2000,{
+    mutationAttemptObserved:false,
+    postconditionVerified:false,
+    durableIntentObserved:false,
+    terminalSettlementObserved:false,
+  });
+  assert.equal(result.status,"ABORTED_NO_MUTATION");
+  assert.equal(result.gateMutationPerformedBySettlement,false);
+  assert.equal(result.authorityIssuedBySettlement,false);
+  assert.equal(result.broadRuntimeGrant,false);
+  assert.match(result.settlementFingerprint,/^[0-9a-f]{16}$/);
+});
+
+test("verified applied settlement requires durable intent, postcondition and terminal settlement",()=>{
+  const result=recordPr21_28GateSettlement(transaction(),2000,{
+    mutationAttemptObserved:true,
+    postconditionVerified:true,
+    durableIntentObserved:true,
+    terminalSettlementObserved:true,
+  });
+  assert.equal(result.status,"APPLIED_VERIFIED_RECORD_ONLY");
+  assert.equal(result.durableIntentObserved,true);
+  assert.equal(result.postconditionVerified,true);
+  assert.equal(result.terminalSettlementObserved,true);
+  assert.equal(result.gateMutationPerformedBySettlement,false);
+  assert.equal(result.authorityIssuedBySettlement,false);
+});
+
+test("unverified mutation cannot be settled as applied",()=>{
+  for(const observed of [
+    {mutationAttemptObserved:true,postconditionVerified:false,durableIntentObserved:true,terminalSettlementObserved:true},
+    {mutationAttemptObserved:true,postconditionVerified:true,durableIntentObserved:false,terminalSettlementObserved:true},
+    {mutationAttemptObserved:true,postconditionVerified:true,durableIntentObserved:true,terminalSettlementObserved:false},
+  ]){
+    assert.throws(
+      ()=>recordPr21_28GateSettlement(transaction(),2000,observed),
+      /PR21_28_GATE_SETTLEMENT_UNVERIFIED_MUTATION/,
+    );
+  }
+});
+
+test("rollback plan exists only for verified applied settlement and remains default-off",()=>{
+  const settlement=recordPr21_28GateSettlement(transaction(),2000,{
+    mutationAttemptObserved:true,
+    postconditionVerified:true,
+    durableIntentObserved:true,
+    terminalSettlementObserved:true,
+  });
+  const rollback=planePr21_28GateRollback(settlement,"post-apply regression detected");
+  assert.equal(rollback.status,"PREPARED_DEFAULT_OFF");
+  assert.equal(rollback.stage,"PR21");
+  assert.equal(rollback.freshMainCheckRequired,true);
+  assert.equal(rollback.currentPostconditionVerificationRequired,true);
+  assert.equal(rollback.durableRollbackIntentRequired,true);
+  assert.equal(rollback.oneShotRollbackRequired,true);
+  assert.equal(rollback.sameIntentRetryAllowed,false);
+  assert.equal(rollback.rollbackAdapterInstalled,false);
+  assert.equal(rollback.rollbackExecutionEnabled,false);
+  assert.equal(rollback.rollbackMutationPerformed,false);
+  assert.equal(rollback.authorityIssued,false);
+  assert.equal(rollback.broadRuntimeGrant,false);
+});
+
+test("aborted no-mutation settlement cannot create rollback plan",()=>{
+  const settlement=recordPr21_28GateSettlement(transaction(),2000,{
+    mutationAttemptObserved:false,
+    postconditionVerified:false,
+    durableIntentObserved:false,
+    terminalSettlementObserved:false,
+  });
+  assert.throws(
+    ()=>planePr21_28GateRollback(settlement,"nothing to rollback"),
+    /PR21_28_ROLLBACK_SETTLEMENT_NICHT_BEREIT/,
+  );
+});
+
+test("settlement and rollback source contains no apply, rollback or gameplay bypass",()=>{
+  const source=fs.readFileSync(
+    "grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
+    "utf8",
+  );
+  for(const marker of [
+    "socket.emit(",
+    ".socket.emit(",
+    "send_cm(",
+    "smart_move(",
+    "attack(",
+    "use_skill(",
+    "loot(",
+    "respawn(",
+    "change_server(",
+    "craft(",
+    "exchange(",
+    "upgrade(",
+    "compound(",
+    "V5 GESAMTFREIGABE ERTEILEN",
+  ]){
+    assert.equal(source.includes(marker),false,marker);
+  }
+});
