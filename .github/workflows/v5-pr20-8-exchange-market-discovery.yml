@@ -1,0 +1,47 @@
+name: v5-pr20-8-exchange-market-discovery
+
+on:
+  push:
+    paths:
+      - 'v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js'
+      - 'v5/werkzeuge/tests/pr20-8-exchange-market-discovery-v1-0-0.test.mjs'
+      - 'v5/roadmap/pr20-8-exchange-candidate-bank-mount-evidence.json'
+      - 'v5/grundlage/tests/pr20-exchange-candidate-bank-mount-evidence.test.mjs'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-exchange-market-discovery.json'
+      - 'v5/roadmap/post-r19-roadmap.json'
+      - '.github/workflows/v5-pr20-8-exchange-market-discovery.yml'
+  pull_request:
+    paths:
+      - 'v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js'
+      - 'v5/werkzeuge/tests/pr20-8-exchange-market-discovery-v1-0-0.test.mjs'
+      - 'v5/roadmap/pr20-8-exchange-candidate-bank-mount-evidence.json'
+      - 'v5/grundlage/tests/pr20-exchange-candidate-bank-mount-evidence.test.mjs'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-exchange-market-discovery.json'
+      - 'v5/roadmap/post-r19-roadmap.json'
+      - '.github/workflows/v5-pr20-8-exchange-market-discovery.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  exchange-market-discovery:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - run: npm ci
+      - run: npm run bauen
+      - run: node --check werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js
+      - run: node --test werkzeuge/tests/pr20-8-exchange-market-discovery-v1-0-0.test.mjs grundlage/tests/pr20-exchange-candidate-bank-mount-evidence.test.mjs
+      - run: node --test werkzeuge/tests/pr20-8-exchange-candidate-bank-mount-v1-0-0.test.mjs werkzeuge/tests/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.test.mjs grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs
+      - run: npm run merchant-pr20-8-prep:pruefen

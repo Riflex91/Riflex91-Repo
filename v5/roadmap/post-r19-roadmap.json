@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "EXCHANGE_ACQUISITION_BANK_MOUNT_MANIFEST_CUTOVER_PREPARED",
+      "status": "EXCHANGE_BANK_SNAPSHOT_NO_CANDIDATE_RATIFIED_MARKET_DISCOVERY_PREPARED",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "DEPLOY_EXCHANGE_ACQUISITION_BANK_MOUNT",
+      "nextAction": "MERGE_MARKET_DISCOVERY_PACKAGE_THEN_CUTOVER",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -861,7 +861,12 @@
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-bank-mount.json",
         "v5/werkzeuge/pr20-8-exchange-candidate-bank-mount-v1-0-0.js",
-        "v5/werkzeuge/tests/pr20-8-exchange-candidate-bank-mount-v1-0-0.test.mjs"
+        "v5/werkzeuge/tests/pr20-8-exchange-candidate-bank-mount-v1-0-0.test.mjs",
+        "v5/roadmap/pr20-8-exchange-candidate-bank-mount-evidence.json",
+        "v5/grundlage/tests/pr20-exchange-candidate-bank-mount-evidence.test.mjs",
+        "v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js",
+        "v5/werkzeuge/tests/pr20-8-exchange-market-discovery-v1-0-0.test.mjs",
+        "v5/grundlage/vertraege/runtime/pr20-8-exchange-market-discovery.json"
       ]
     },
     {
@@ -2143,7 +2148,7 @@
     }
   },
   "pr20_8": {
-    "status": "EXCHANGE_ACQUISITION_BANK_MOUNT_MANIFEST_CUTOVER_PREPARED",
+    "status": "EXCHANGE_BANK_SNAPSHOT_NO_CANDIDATE_RATIFIED_MARKET_DISCOVERY_PREPARED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -2193,7 +2198,7 @@
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "DEPLOY_EXCHANGE_ACQUISITION_BANK_MOUNT",
+    "nextAction": "MERGE_MARKET_DISCOVERY_PACKAGE_THEN_CUTOVER",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -3427,7 +3432,7 @@
       "nextGate": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN"
     },
     "exchangeCandidateAcquisition": {
-      "status": "READONLY_DISCOVERY_OBSERVED_BANK_SNAPSHOT_REQUIRED",
+      "status": "BANK_SNAPSHOT_NO_CANDIDATE_RATIFIED_MARKET_DISCOVERY_PACKAGE_PREPARED",
       "policy": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
       "planner": "v5/grundlage/quelle/merchant/pr20-8-exchange-candidate-acquisition.ts",
       "plannerTest": "v5/grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs",
@@ -3459,7 +3464,7 @@
       "bridgeMayDeployPinnedRunner": true,
       "deployed": true,
       "evidenceObserved": true,
-      "nextAction": "DEPLOY_EXCHANGE_ACQUISITION_DISCOVERY_READ_ONLY",
+      "nextAction": "MERGE_MARKET_DISCOVERY_PACKAGE_THEN_CUTOVER",
       "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
       "package": "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
       "latestNotificationId": 2603,
@@ -3479,7 +3484,7 @@
       "latestRawWriteCalls": 0,
       "latestSameIntentRetry": false,
       "bankMount": {
-        "status": "MANIFEST_CUTOVER_PREPARED",
+        "status": "RATIFIED_BANK_SNAPSHOT_NO_CANDIDATE_ONE_MOVEMENT",
         "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-bank-mount.json",
         "package": "v5/werkzeuge/pr20-8-exchange-candidate-bank-mount-v1-0-0.js",
         "test": "v5/werkzeuge/tests/pr20-8-exchange-candidate-bank-mount-v1-0-0.test.mjs",
@@ -3496,14 +3501,52 @@
         "farmAllowed": false,
         "exchangeAllowed": false,
         "normalRuntimeAllowed": false,
-        "deployed": false,
-        "evidenceObserved": false,
-        "nextAction": "DEPLOY_AND_OBSERVE_BANK_MOUNT",
+        "deployed": true,
+        "evidenceObserved": true,
+        "nextAction": "PREPARE_PLAYER_MARKET_DISCOVERY_BEFORE_FARM",
         "sourceCommit": "5c84fc95b7fed97c3591462faba0a1315289fdce",
         "packageSha256": "94c053183363c0394922df4f6e422bede3260989e668a3b0942f3e876dbbdc54",
         "packageBytes": 15430,
         "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
-        "manifestCutoverPrepared": true
+        "manifestCutoverPrepared": true,
+        "evidence": "v5/roadmap/pr20-8-exchange-candidate-bank-mount-evidence.json",
+        "notificationId": 2633,
+        "runStartedAtMs": 1790334176463,
+        "observedAtMs": 1790334180335,
+        "bankSnapshotAvailable": true,
+        "observedBankPacks": [
+          "items0",
+          "items1"
+        ],
+        "inventoryCandidateCount": 0,
+        "bankCandidateCount": 0,
+        "emptyInventorySlot": 22,
+        "gameplayWrites": 1,
+        "publicFunctionCalls": 1,
+        "rawWriteCalls": 0
+      },
+      "marketDiscovery": {
+        "status": "PACKAGE_PREPARED_NOT_DEPLOYED",
+        "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-market-discovery.json",
+        "package": "v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js",
+        "test": "v5/werkzeuge/tests/pr20-8-exchange-market-discovery-v1-0-0.test.mjs",
+        "testId": "pr20-8-exchange-market-discovery",
+        "controllerVersion": "1.0.0",
+        "expectedGlobal": "V5PR208ExchangeMarketDiscovery",
+        "sourceCommit": "d977684f56ebe24f021cd46ae7efc502c406ecc6",
+        "packageSha256": "175adb93980af0e7cefe19835101255473031ac51bcc70369e5a4b7d521609cd",
+        "packageBytes": 12657,
+        "maxTotalAcquisitionGold": 50000,
+        "minimumGoldReserve": 1000,
+        "maximumGameplayWrites": 1,
+        "maximumPublicFunctionCalls": 1,
+        "maximumRawWriteCalls": 0,
+        "sameIntentRetry": false,
+        "tradeBuyAllowed": false,
+        "farmAllowed": false,
+        "exchangeAllowed": false,
+        "normalRuntimeAllowed": false,
+        "nextAction": "CUTOVER_AFTER_PACKAGE_CI"
       }
     }
   },
