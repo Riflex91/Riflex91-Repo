@@ -66,13 +66,13 @@ test("PR20.8 terminal recovery package remains immutable and no-write", () => {
   ]) assert.equal(source.includes(marker),false,marker);
 });
 
-test("terminal recovery evidence stays immutable while the current manifest advances to the anniversarygift productive one-write", () => {
-  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-productive-one-write-live");
+test("terminal recovery evidence stays immutable while the current manifest advances to the anniversarygift service reposition", () => {
+  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-service-reposition");
   assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,"5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-productive-one-write-live.js");
-  assert.equal(manifest.packageSha256,"eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
-  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
+  assert.equal(manifest.sourceCommit,"d7f48070228e1bb620beb39717655287defc4e6f");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-service-reposition.js");
+  assert.equal(manifest.packageSha256,"21121e5a8465848732b415dc05451935a7679dd33d23a7c42996c2f4456f54f7");
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftServiceReposition");
   assert.equal(manifest.normalRuntimeAllowed, false);
   assert.equal(evidence.nextGate, "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
 });
