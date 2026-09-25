@@ -5,6 +5,9 @@ on:
     paths:
       - 'v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts'
       - 'v5/grundlage/quelle/koordination/pr22-coordination-shadow-admission.ts'
+      - 'v5/grundlage/quelle/koordination/production-material-acquisition.ts'
+      - 'v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs'
+      - 'v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json'
       - 'v5/grundlage/quelle/farmer/pr23-farmer-shadow-admission.ts'
       - 'v5/grundlage/quelle/gruppe/pr24-group-constellation-matrix.ts'
       - 'v5/grundlage/quelle/gruppe/pr25-group-live-evidence-plan.ts'
@@ -21,6 +24,9 @@ on:
     paths:
       - 'v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts'
       - 'v5/grundlage/quelle/koordination/pr22-coordination-shadow-admission.ts'
+      - 'v5/grundlage/quelle/koordination/production-material-acquisition.ts'
+      - 'v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs'
+      - 'v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json'
       - 'v5/grundlage/quelle/farmer/pr23-farmer-shadow-admission.ts'
       - 'v5/grundlage/quelle/gruppe/pr24-group-constellation-matrix.ts'
       - 'v5/grundlage/quelle/gruppe/pr25-group-live-evidence-plan.ts'
