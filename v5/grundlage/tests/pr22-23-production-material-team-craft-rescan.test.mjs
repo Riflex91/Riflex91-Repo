@@ -440,3 +440,52 @@ test("CAP-022 Team-Craft-Rescan besitzt keinen direkten Gameplay-Write-Bypass", 
     assert.equal(sourceText.includes(marker), false, marker);
   }
 });
+
+
+test("CAP-022 Team-Rescan-Vertrag und Roadmap halten PR20.9 fail-closed", () => {
+  const contract = JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr22-23-production-material-team-craft-rescan-foundation.json",
+    "utf8",
+  ));
+  assert.equal(contract.status, "PREPARED_NO_WRITE");
+  assert.equal(contract.triggerRequirements.batchState, "ALLE_SETTLED");
+  assert.equal(contract.triggerRequirements.allTransferIdsSettledInOrder, true);
+  assert.equal(contract.triggerRequirements.activeTransferMustBeNull, true);
+  assert.equal(contract.triggerRequirements.freshPostSettlementMerchantInventoryRequired, true);
+  assert.equal(contract.triggerRequirements.batchMaterialMustMatchNormalRecipeInput, true);
+  assert.equal(contract.safetyBoundary.currentPr20_9RatificationCredit, false);
+  assert.equal(contract.safetyBoundary.foundationCountsAsCraftRatification, false);
+  assert.equal(contract.safetyBoundary.productiveCraftAuthorityOpened, false);
+  assert.equal(contract.safetyBoundary.gameplayWrites, 0);
+  assert.equal(contract.safetyBoundary.publicFunctionCalls, 0);
+  assert.equal(contract.safetyBoundary.rawWriteCalls, 0);
+  assert.equal(contract.safetyBoundary.craftAuthority, false);
+  assert.equal(contract.safetyBoundary.normalRuntimeAllowed, false);
+  assert.equal(
+    contract.currentGateBoundary.syntheticOrPlannedAllSettledMayNotRatifyPr20_9,
+    true,
+  );
+
+  const roadmap = JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+  );
+  assert.equal(
+    roadmap.pr20_9.craftDurableShadowRunner.candidateAcquisitionOrMutationAllowed,
+    false,
+  );
+  const bridge =
+    roadmap.pr20_9.deferredAutomaticMaterialRecheck.teamAllSettledCraftRescan;
+  assert.equal(bridge.status, "PREPARED_NO_WRITE");
+  assert.equal(bridge.allTransferIdsSettledInOrderRequired, true);
+  assert.equal(bridge.noActiveTransferRequired, true);
+  assert.equal(bridge.currentPr20_9RatificationCredit, false);
+  assert.equal(bridge.foundationCountsAsCraftRatification, false);
+  assert.equal(bridge.productiveCraftAuthorityOpened, false);
+  assert.equal(bridge.craftAuthority, false);
+  assert.equal(bridge.normalRuntimeAllowed, false);
+});
