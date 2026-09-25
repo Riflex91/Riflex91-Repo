@@ -204,3 +204,8 @@ export * from "./gruppe/pr25-group-live-evidence-plan.js";
 export * from "./optimierung/pr26-task-party-optimizer.js";
 export * from "./optimierung/pr27-account-progression-balancer.js";
 export * from "./welt/pr28-world-autonomy-gate.js";
+
+export * from "./runtime/pr21-28-shadow-orchestrator.js";
+export * from "./koordination/pr22-coordination-shadow-workflow.js";
+export * from "./gruppe/pr24-25-group-validation-suite.js";
+export * from "./optimierung/pr26-28-autonomy-shadow-plan.js";
