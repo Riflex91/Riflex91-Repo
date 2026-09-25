@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "upstream": {
+    "repository": "kaansoral/adventureland_mongodb",
+    "commit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "tree": "7bb2e90f4eed513b441ec3f463d872e10c85c86b",
+    "license": "AdventureLandOnlyUse"
+  },
+  "policy": {
+    "goal": "Preserve gameplay/network/persistence semantics while replacing the visual presentation with new 2.5D assets.",
+    "gameplayChangesAllowedByDefault": false,
+    "originalVisualAssetsAllowedInFinalBuild": false
+  },
+  "categories": {
+    "preserveServerSemantics": [
+      "node/server.js",
+      "node/server_functions.js",
+      "node/server_worker.js",
+      "models.js",
+      "adventure_functions.js"
+    ],
+    "preserveGameplayDataSemantics": [
+      "design/classes.js",
+      "design/conditions.js",
+      "design/drops.js",
+      "design/events.js",
+      "design/items.js",
+      "design/levels.js",
+      "design/monsters.js",
+      "design/npcs.js",
+      "design/projectiles.js",
+      "design/recipes.js",
+      "design/skills.js",
+      "design/tokens.js",
+      "design/upgrades.js"
+    ],
+    "mixedLogicAndPresentation": [
+      "js/game.js",
+      "js/functions.js",
+      "js/html.js",
+      "design/maps.js",
+      "design/dimensions.js",
+      "js/runner_functions.js"
+    ],
+    "preservePublicCodeApi": [
+      "js/runner_functions.js",
+      "js/runner_compat.js",
+      "docs/directory.js"
+    ],
+    "replacePresentation": [
+      "design/sprites.js",
+      "design/animations.js",
+      "design/precomputed_images.js",
+      "css/",
+      "images/sprites/",
+      "images/tiles/"
+    ]
+  },
+  "criticalLegacyHooks": [
+    {
+      "symbol": "add_character",
+      "file": "js/game.js",
+      "migration": "replace sprite construction with RenderBridge entity creation; preserve state mapping"
+    },
+    {
+      "symbol": "add_monster",
+      "file": "js/game.js",
+      "migration": "replace sprite construction with RenderBridge entity creation; preserve G.monsters lookup"
+    },
+    {
+      "symbol": "map_click",
+      "file": "js/game.js",
+      "migration": "convert 2.5D pointer coordinates back to authoritative world coordinates before existing logic"
+    },
+    {
+      "symbol": "on_map_click",
+      "file": "js/runner_functions.js",
+      "migration": "preserve public CODE callback signature and cancellation behavior"
+    },
+    {
+      "symbol": "draw_line",
+      "file": "js/runner_functions.js",
+      "migration": "preserve public CODE API while delegating drawing to new renderer"
+    },
+    {
+      "symbol": "draw_circle",
+      "file": "js/runner_functions.js",
+      "migration": "preserve public CODE API while delegating drawing to new renderer"
+    }
+  ],
+  "parityDomains": [
+    "socket events",
+    "movement destinations",
+    "collision/pathing",
+    "entity world coordinates",
+    "target selection",
+    "combat requests",
+    "skill requests",
+    "cooldowns",
+    "inventory/equipment",
+    "bank/trade/exchange",
+    "map transitions",
+    "quests/events",
+    "character persistence",
+    "CODE public functions and callbacks"
+  ]
+}
