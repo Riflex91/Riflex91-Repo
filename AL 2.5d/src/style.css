@@ -575,3 +575,89 @@ canvas {
     height: 46px;
   }
 }
+
+
+/* Presentation-only combat feedback generated from mirrored HP deltas. */
+#al25d-combat-feedback {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482580;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#al25d-combat-feedback[hidden] {
+  display: none !important;
+}
+
+.al25d-combat-float {
+  position: absolute;
+  min-width: 42px;
+  transform: translate(-50%, -50%);
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  text-shadow:
+    0 2px 2px #000,
+    0 0 5px #000;
+  animation: al25d-combat-float 680ms ease-out forwards;
+  will-change: transform, opacity;
+}
+
+.al25d-combat-float[data-kind="damage"] {
+  color: #ff6767;
+}
+
+.al25d-combat-float[data-kind="heal"] {
+  color: #62e89a;
+}
+
+.al25d-combat-float[data-kind="death"] {
+  color: #ffe28b;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  animation-duration: 860ms;
+}
+
+.al25d-combat-pulse {
+  position: absolute;
+  width: 42px;
+  height: 24px;
+  border: 2px solid rgba(255, 222, 127, 0.9);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.45);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.65),
+    0 0 14px rgba(255, 222, 127, 0.65);
+  animation: al25d-combat-pulse 500ms ease-out forwards;
+}
+
+@keyframes al25d-combat-float {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.86);
+  }
+
+  14% {
+    opacity: 1;
+    transform: translate(-50%, -55%) scale(1.08);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -160%) scale(0.96);
+  }
+}
+
+@keyframes al25d-combat-pulse {
+  0% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(0.45);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.65);
+  }
+}

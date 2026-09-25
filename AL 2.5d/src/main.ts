@@ -29,6 +29,7 @@ import {
   type WorldPoint
 } from "./render/projection";
 import { GraphicsModeToggle } from "./ui/GraphicsModeToggle";
+import { CombatFeedbackOverlay } from "./ui/CombatFeedbackOverlay";
 import { HudOverlay } from "./ui/HudOverlay";
 
 declare global {
@@ -115,12 +116,16 @@ async function boot(): Promise<void> {
   );
   hud.setMode(graphicsMode);
 
+  const combatFeedback = new CombatFeedbackOverlay(document.body);
+  combatFeedback.setMode(graphicsMode);
+
   graphicsToggle = new GraphicsModeToggle((nextMode) => {
     graphicsMode = nextMode;
     window.localStorage.setItem("al25d.graphicsMode", nextMode);
     legacyRuntime?.setGraphicsMode(nextMode);
     graphicsToggle.setMode(nextMode);
     hud.setMode(nextMode);
+    combatFeedback.setMode(nextMode);
   });
   graphicsToggle.setMode(graphicsMode);
 
@@ -133,17 +138,23 @@ async function boot(): Promise<void> {
       undefined,
       (snapshot) => {
         latestSnapshot = snapshot;
-        hud.render(snapshot);
         const local = snapshot.entities.find((entity) => entity.local);
-        if (!local) return;
 
-        const projected = projectWorldToScreen(local);
-        camera = {
-          x: projected.x,
-          y: projected.y,
-          zoom: camera.zoom
-        };
-        renderer.setCamera(camera);
+        if (local) {
+          const projected = projectWorldToScreen(local);
+          camera = {
+            x: projected.x,
+            y: projected.y,
+            zoom: camera.zoom
+          };
+          renderer.setCamera(camera);
+        }
+
+        hud.render(snapshot);
+        combatFeedback.render(snapshot, camera, {
+          width: host.clientWidth,
+          height: host.clientHeight
+        });
       }
     );
     legacyMirror.start();
@@ -170,6 +181,10 @@ async function boot(): Promise<void> {
     renderFrame: (snapshot) => {
       latestSnapshot = snapshot;
       hud.render(snapshot);
+      combatFeedback.render(snapshot, camera, {
+        width: host.clientWidth,
+        height: host.clientHeight
+      });
       renderer.renderFrame(snapshot);
     },
     setCamera: (nextCamera) => {
@@ -215,6 +230,7 @@ async function boot(): Promise<void> {
       legacyRuntime?.stop();
       legacyRuntime = null;
       hud.clear();
+      combatFeedback.clear();
       graphicsToggle.dockToLegacyUi(null);
       graphicsToggle.setReady(false);
     },
@@ -225,6 +241,7 @@ async function boot(): Promise<void> {
       legacyRuntime?.setGraphicsMode(mode);
       graphicsToggle.setMode(mode);
       hud.setMode(mode);
+      combatFeedback.setMode(mode);
     },
     getGraphicsMode: () => graphicsMode
   };
@@ -288,6 +305,10 @@ async function boot(): Promise<void> {
 
     try {
       legacyRuntime.dispatchEntityRightClick(hit.entity.id);
+      combatFeedback.pulse(hit.entity, camera, {
+        width: host.clientWidth,
+        height: host.clientHeight
+      });
     } catch (error) {
       console.warn(
         "AL 2.5D legacy right-click action was not dispatched",
@@ -328,6 +349,7 @@ async function boot(): Promise<void> {
           graphicsMode = "original";
           graphicsToggle.setMode("original");
           hud.setMode("original");
+          combatFeedback.setMode("original");
         }
 
         const runtime = new LegacyCompatibilityRuntime(host);

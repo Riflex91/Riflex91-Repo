@@ -79,25 +79,29 @@ Deliverable: walkable Main with original gameplay logic.
 
 ## AL25D-05 — Combat and VFX parity
 
-- attacks
-- projectiles
-- skills
-- damage/heal feedback
-- death/respawn
-- loot/chests
-- combat UI
+- [x] right-click attack input routed through the original combat handlers
+- [ ] attack animation parity
+- [ ] projectiles
+- [ ] skill VFX parity
+- [x] damage/heal floating feedback from mirrored authoritative HP deltas
+- [x] death feedback baseline when mirrored HP crosses to zero
+- [ ] full death/respawn presentation parity
+- [ ] loot/chests
+- [x] combat UI baseline: target frame + attack pulse + floating feedback
 
 ## AL25D-06 — Full HUD replacement
 
 - [x] character frame baseline
 - [ ] party frame
 - [x] target frame baseline
-- skill bars
-- chat
-- inventory/equipment
-- quests/events
-- minimap
-- menus/settings
+- [x] skill/hotbar baseline driven by original live keymap
+- [ ] chat
+- [x] inventory/equipment read-only baseline
+- [ ] interactive inventory/equipment actions
+- [ ] quests/events
+- [ ] minimap
+- [x] first-party gameplay menu baseline
+- [ ] settings
 
 ## AL25D-07 — Content coverage
 
