@@ -40,6 +40,15 @@ Post-Settlement-Craft-Rescan:
 
 Die Rescan-Bruecke akzeptiert nur ein korreliertes `COLLECTION`-`SETTLED` mit positivem Recipient-Mengen-Delta und einen **nach** diesem Settlement frisch beobachteten Merchant-Inventarstand. Das uebergebene Material muss Bestandteil des erneut geprueften NORMAL-Craft-Rezepts sein. Danach wird ausschliesslich der bestehende PR20.9 Read-only-Preflight erneut ausgefuehrt.
 
+
+Persistenter Lifecycle / Restart-Recovery:
+
+- `grundlage/quelle/koordination/production-material-lifecycle.ts`
+- `grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json`
+- `grundlage/tests/pr22-23-production-material-lifecycle.test.mjs`
+
+Der Lifecycle persistiert ausschliesslich Evidence- und Phasenmetadaten kritisch. Jeder nichtterminale Zustand wird nach Restart zu `RECOVERY_PENDING`; eine Fortsetzung ist erst nach exakter Reconciliation der vorherigen Phase erlaubt. Same-Farm-Objective-, Same-Handoff- und Same-Craft-Rescan-Retry bleiben immer `false`.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf
@@ -71,6 +80,9 @@ Diese Foundation besitzt und erzeugt keine:
 - Movement-/Combat-/Loot-Authority;
 - breite Production-Graph-Authority;
 - Normal-Runtime-Freigabe.
+
+- Blind-Resume nach Restart;
+- Same-Intent-Retry fuer Farmziel, Handoff oder Craft-Rescan.
 
 Produktive Materialbeschaffung bleibt gesperrt, bis die dafuer benoetigten PR22-/PR23-Gates mit realer Evidence ratifiziert sind.
 

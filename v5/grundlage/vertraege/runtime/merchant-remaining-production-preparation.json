@@ -2164,6 +2164,22 @@
           "rawWriteAuthority": false,
           "broadGraphExecutionAuthority": false,
           "normalRuntimeAllowed": false
+        },
+        "persistentLifecycle": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "grundlage/quelle/koordination/production-material-lifecycle.ts",
+          "contract": "grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
+          "test": "grundlage/tests/pr22-23-production-material-lifecycle.test.mjs",
+          "nonterminalRestartBecomesRecoveryPending": true,
+          "blindResumeAllowed": false,
+          "exactPriorPhaseReconciliationRequired": true,
+          "sameFarmObjectiveRetryAllowed": false,
+          "sameHandoffRetryAllowed": false,
+          "sameCraftRescanRetryAllowed": false,
+          "executionAuthority": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
         }
       },
       "automaticMaterialPathPreparedThroughCollectionPlanning": true,
@@ -2188,10 +2204,42 @@
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
         "broadGraphExecutionAuthority": false,
-        "normalRuntimeAllowed": false
+        "normalRuntimeAllowed": false,
+        "persistentLifecycle": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "grundlage/quelle/koordination/production-material-lifecycle.ts",
+          "contract": "grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
+          "test": "grundlage/tests/pr22-23-production-material-lifecycle.test.mjs",
+          "nonterminalRestartBecomesRecoveryPending": true,
+          "blindResumeAllowed": false,
+          "exactPriorPhaseReconciliationRequired": true,
+          "sameFarmObjectiveRetryAllowed": false,
+          "sameHandoffRetryAllowed": false,
+          "sameCraftRescanRetryAllowed": false,
+          "executionAuthority": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
+        }
       },
       "syntheticOrPlannedSettlementMayAdvancePr20_9": false,
-      "onlyRealSettledHandoffMayTriggerFreshRescan": true
+      "onlyRealSettledHandoffMayTriggerFreshRescan": true,
+      "persistentLifecycle": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "grundlage/quelle/koordination/production-material-lifecycle.ts",
+        "contract": "grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
+        "test": "grundlage/tests/pr22-23-production-material-lifecycle.test.mjs",
+        "nonterminalRestartBecomesRecoveryPending": true,
+        "blindResumeAllowed": false,
+        "exactPriorPhaseReconciliationRequired": true,
+        "sameFarmObjectiveRetryAllowed": false,
+        "sameHandoffRetryAllowed": false,
+        "sameCraftRescanRetryAllowed": false,
+        "executionAuthority": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
+      }
     }
   },
   "pr21": {
