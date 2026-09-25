@@ -1,6 +1,10 @@
 import type { Pr21MerchantIntegrationReadiness } from "../merchant/pr21-merchant-integration-readiness.js";
 import type { Pr22CoordinationShadowAdmission } from "../koordination/pr22-coordination-shadow-admission.js";
 import type { ProduktionsMaterialAkquisePlan } from "../koordination/production-material-acquisition.js";
+import {
+  bewerteCap022FoundationChain,
+  type Cap022FoundationChainRequest,
+} from "./cap022-foundation-chain-readiness.js";
 import type { Pr23FarmerShadowAdmission } from "../farmer/pr23-farmer-shadow-admission.js";
 import type { Pr24GruppenMatrixErgebnis } from "../gruppe/pr24-group-constellation-matrix.js";
 import type { Pr25GruppenLiveEvidencePlan } from "../gruppe/pr25-group-live-evidence-plan.js";
@@ -22,6 +26,7 @@ export interface Pr21_28ShadowOrchestrationRequest {
   readonly schemaVersion: 1;
   readonly pr20ProductiveComplete: boolean;
   readonly materialAcquisition: ProduktionsMaterialAkquisePlan;
+  readonly materialFoundationChain: Cap022FoundationChainRequest;
   readonly pr21: Pr21MerchantIntegrationReadiness;
   readonly pr22: Pr22CoordinationShadowAdmission;
   readonly pr23: Pr23FarmerShadowAdmission;
@@ -48,6 +53,9 @@ export interface Pr21_28ShadowOrchestrationResult {
   readonly highestPreparedStage: Pr21_28Stage | null;
   readonly allFoundationsConnected: boolean;
   readonly materialAcquisitionFoundationReady: boolean;
+  readonly materialFoundationChainReady: boolean;
+  readonly materialFoundationChainStatus: "CAP022_FULL_CHAIN_BEREIT_NO_WRITE" | "BLOCKIERT";
+  readonly materialFoundationChainBlocker: readonly string[];
   readonly materialAcquisitionProductiveExecutionAllowed: false;
   readonly deferredLiveEvidenceRequired: true;
   readonly gameplayWrites: 0;
@@ -132,6 +140,21 @@ export function orchestrierePr21_28ShadowPipeline(
     && anfrage.materialAcquisition.pr22ProduktivGateErforderlich === true
     && anfrage.materialAcquisition.pr23ProduktivGateErforderlich === true;
 
+  const materialFoundationChain =
+    bewerteCap022FoundationChain(anfrage.materialFoundationChain);
+  const materialFoundationChainReady =
+    materialFoundationChain.status === "CAP022_FULL_CHAIN_BEREIT_NO_WRITE"
+    && materialFoundationChain.allRequiredFoundationsPresent === true
+    && materialFoundationChain.allRequiredFoundationsReady === true
+    && materialFoundationChain.currentPr20_9RatificationCredit === false
+    && materialFoundationChain.candidateAcquisitionOrMutationAllowedNow === false
+    && materialFoundationChain.durableIntentCreated === false
+    && materialFoundationChain.productiveCraftAuthorityOpened === false
+    && materialFoundationChain.productiveExecutionAllowed === false
+    && materialFoundationChain.gameplayAuthority === false
+    && materialFoundationChain.rawWriteAuthority === false
+    && materialFoundationChain.normalRuntimeAllowed === false;
+
   const stageRows = Object.freeze([
     stage("PR21", pr21Ready, anfrage.pr20ProductiveComplete),
     stage("PR22", pr22Ready, false),
@@ -150,6 +173,12 @@ export function orchestrierePr21_28ShadowPipeline(
   if (!materialAcquisitionReady) {
     blocker.push("PR21_28_FOUNDATION_BLOCKIERT:CAP022_MATERIAL_ACQUISITION");
   }
+  if (!materialFoundationChainReady) {
+    blocker.push("PR21_28_FOUNDATION_BLOCKIERT:CAP022_FULL_CHAIN");
+    for (const grund of materialFoundationChain.blocker) {
+      blocker.push("PR21_28_CAP022_CHAIN:" + grund);
+    }
+  }
 
   const readiness = [
     pr21Ready, pr22Ready, pr23Ready, pr24Ready,
@@ -161,7 +190,9 @@ export function orchestrierePr21_28ShadowPipeline(
     highestPreparedStage = stageRows[index]?.stage ?? highestPreparedStage;
   }
 
-  const allFoundationsConnected = readiness.every(Boolean) && materialAcquisitionReady;
+  const allFoundationsConnected = readiness.every(Boolean)
+    && materialAcquisitionReady
+    && materialFoundationChainReady;
 
   return Object.freeze({
     schemaVersion: 1,
@@ -171,6 +202,9 @@ export function orchestrierePr21_28ShadowPipeline(
     highestPreparedStage,
     allFoundationsConnected,
     materialAcquisitionFoundationReady: materialAcquisitionReady,
+    materialFoundationChainReady,
+    materialFoundationChainStatus: materialFoundationChain.status,
+    materialFoundationChainBlocker: Object.freeze([...materialFoundationChain.blocker]),
     materialAcquisitionProductiveExecutionAllowed: false,
     deferredLiveEvidenceRequired: true,
     gameplayWrites: 0,

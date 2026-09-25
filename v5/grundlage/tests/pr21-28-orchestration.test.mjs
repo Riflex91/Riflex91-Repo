@@ -8,6 +8,7 @@ import {
   wertePr25GruppenEvidenceAus,
   planePr26_28AutonomyShadow,
   orchestrierePr21_28ShadowPipeline,
+  bewerteCap022FoundationChain,
 } from "../../erzeugt/index.js";
 
 test("PR22 shadow workflow models ACK and terminal settlement without send authority",()=>{
@@ -242,6 +243,38 @@ test("PR26-28 autonomy shadow binds optimizer, progression and world plan withou
   assert.ok(drift.blocker.includes("PR26_28_WORLD_TASK_BINDING_DRIFT"));
 });
 
+
+function cap022FoundationChain(overrides={}) {
+  const ids=[
+    "MATERIAL_ACQUISITION",
+    "MATERIAL_HANDOFF",
+    "POST_SETTLEMENT_CRAFT_RESCAN",
+    "PERSISTENT_LIFECYCLE",
+    "TEAM_MATERIAL_OBJECTIVE",
+    "TEAM_COLLECTION_HANDOFF",
+    "TEAM_BATCH_SETTLEMENT_RECOVERY",
+    "TEAM_ALL_SETTLED_CRAFT_RESCAN",
+    "TEAM_RESCAN_DURABLE_ADMISSION",
+  ];
+  return {
+    schemaVersion:1,
+    foundations:ids.map(id=>({
+      schemaVersion:1,
+      id,
+      status:"PREPARED_NO_WRITE",
+      productiveExecutionAllowed:false,
+      gameplayAuthority:false,
+      rawWriteAuthority:false,
+      normalRuntimeAllowed:false,
+    })),
+    currentPr20_9RatificationCredit:false,
+    candidateAcquisitionOrMutationAllowedNow:false,
+    durableIntentCreated:false,
+    productiveCraftAuthorityOpened:false,
+    ...overrides,
+  };
+}
+
 function orchestrationRequest(overrides={}) {
   return {
     schemaVersion:1,
@@ -262,6 +295,7 @@ function orchestrationRequest(overrides={}) {
       rawWriteAutoritaet:false,
       normalRuntimeAllowed:false,
     },
+    materialFoundationChain:cap022FoundationChain(),
     pr21:{
       schemaVersion:1,
       status:"BEREIT_FUER_INTEGRATIONSTEST_NO_WRITE",
@@ -345,6 +379,9 @@ test("PR21-28 orchestrator connects every foundation while productive dependency
   assert.equal(result.status,"SHADOW_PIPELINE_BEREIT_NO_WRITE");
   assert.equal(result.allFoundationsConnected,true);
   assert.equal(result.materialAcquisitionFoundationReady,true);
+  assert.equal(result.materialFoundationChainReady,true);
+  assert.equal(result.materialFoundationChainStatus,"CAP022_FULL_CHAIN_BEREIT_NO_WRITE");
+  assert.deepEqual(result.materialFoundationChainBlocker,[]);
   assert.equal(result.materialAcquisitionProductiveExecutionAllowed,false);
   assert.equal(result.highestPreparedStage,"PR28");
   assert.equal(result.stages.length,8);
@@ -375,6 +412,41 @@ test("PR21-28 orchestrator connects every foundation while productive dependency
   assert.equal(materialBlocked.materialAcquisitionProductiveExecutionAllowed,false);
   assert.ok(materialBlocked.blocker.includes(
     "PR21_28_FOUNDATION_BLOCKIERT:CAP022_MATERIAL_ACQUISITION",
+  ));
+
+  const chainMissing=cap022FoundationChain();
+  const fullChainBlocked=orchestrierePr21_28ShadowPipeline(orchestrationRequest({
+    materialFoundationChain:{
+      ...chainMissing,
+      foundations:chainMissing.foundations.filter(
+        x=>x.id!=="TEAM_RESCAN_DURABLE_ADMISSION",
+      ),
+    },
+  }));
+  assert.equal(fullChainBlocked.status,"BLOCKIERT");
+  assert.equal(fullChainBlocked.materialFoundationChainReady,false);
+  assert.equal(fullChainBlocked.materialFoundationChainStatus,"BLOCKIERT");
+  assert.ok(fullChainBlocked.blocker.includes(
+    "PR21_28_FOUNDATION_BLOCKIERT:CAP022_FULL_CHAIN",
+  ));
+  assert.ok(fullChainBlocked.blocker.includes(
+    "PR21_28_CAP022_CHAIN:CAP022_CHAIN_FOUNDATION_FEHLT:TEAM_RESCAN_DURABLE_ADMISSION",
+  ));
+
+  const chainDrift=cap022FoundationChain();
+  const authorityBlocked=orchestrierePr21_28ShadowPipeline(orchestrationRequest({
+    materialFoundationChain:{
+      ...chainDrift,
+      foundations:chainDrift.foundations.map(x=>
+        x.id==="TEAM_BATCH_SETTLEMENT_RECOVERY"
+          ? {...x,status:"BLOCKIERT"}
+          : x),
+    },
+  }));
+  assert.equal(authorityBlocked.status,"BLOCKIERT");
+  assert.equal(authorityBlocked.materialFoundationChainReady,false);
+  assert.ok(authorityBlocked.blocker.includes(
+    "PR21_28_CAP022_CHAIN:CAP022_CHAIN_FOUNDATION_BLOCKIERT:TEAM_BATCH_SETTLEMENT_RECOVERY",
   ));
 });
 
@@ -407,4 +479,89 @@ test("PR21-28 orchestration batch contains no direct gameplay mutation bypass",(
       assert.equal(source.includes(marker),false,path+" -> "+marker);
     }
   }
+});
+
+
+test("CAP-022 Full-Chain-Readiness blockiert Authority- und Ratification-Drift",()=>{
+  const basis=cap022FoundationChain();
+
+  assert.throws(
+    ()=>bewerteCap022FoundationChain({
+      ...basis,
+      currentPr20_9RatificationCredit:true,
+    }),
+    /CAP022_CHAIN_AUTHORITY_ODER_RATIFICATION_DRIFT/,
+  );
+
+  const authority=basis.foundations.map(x=>
+    x.id==="TEAM_COLLECTION_HANDOFF"
+      ? {...x,gameplayAuthority:true}
+      : x);
+  const blocked=bewerteCap022FoundationChain({
+    ...basis,
+    foundations:authority,
+  });
+  assert.equal(blocked.status,"BLOCKIERT");
+  assert.equal(blocked.allRequiredFoundationsPresent,true);
+  assert.equal(blocked.allRequiredFoundationsReady,false);
+  assert.ok(blocked.blocker.includes(
+    "CAP022_CHAIN_AUTHORITY_DRIFT:TEAM_COLLECTION_HANDOFF",
+  ));
+  assert.equal(blocked.currentPr20_9RatificationCredit,false);
+  assert.equal(blocked.durableIntentCreated,false);
+  assert.equal(blocked.productiveCraftAuthorityOpened,false);
+  assert.equal(blocked.gameplayAuthority,false);
+  assert.equal(blocked.rawWriteAuthority,false);
+  assert.equal(blocked.normalRuntimeAllowed,false);
+});
+
+test("PR21-28 Vertrag und Roadmap verlangen die komplette CAP-022 NO-WRITE-Kette",()=>{
+  const contract=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json",
+    "utf8",
+  ));
+  const chain=contract.components.materialAcquisition.fullChainReadiness;
+  assert.equal(chain.requiredFoundations.length,9);
+  assert.deepEqual(chain.requiredFoundations,[
+    "MATERIAL_ACQUISITION",
+    "MATERIAL_HANDOFF",
+    "POST_SETTLEMENT_CRAFT_RESCAN",
+    "PERSISTENT_LIFECYCLE",
+    "TEAM_MATERIAL_OBJECTIVE",
+    "TEAM_COLLECTION_HANDOFF",
+    "TEAM_BATCH_SETTLEMENT_RECOVERY",
+    "TEAM_ALL_SETTLED_CRAFT_RESCAN",
+    "TEAM_RESCAN_DURABLE_ADMISSION",
+  ]);
+  assert.equal(chain.missingFoundationBlocksPipeline,true);
+  assert.equal(chain.blockedFoundationBlocksPipeline,true);
+  assert.equal(chain.authorityDriftBlocksPipeline,true);
+  assert.equal(chain.currentPr20_9RatificationCredit,false);
+  assert.equal(chain.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(chain.durableIntentCreated,false);
+  assert.equal(chain.productiveCraftAuthorityOpened,false);
+  assert.equal(chain.productiveExecutionAllowed,false);
+  assert.equal(chain.gameplayAuthority,false);
+  assert.equal(chain.rawWriteAuthority,false);
+  assert.equal(chain.normalRuntimeAllowed,false);
+
+  const roadmap=JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+  );
+  const roadmapChain=
+    roadmap.pr20_9.deferredAutomaticMaterialRecheck
+      .fullChainOrchestrationReadiness;
+  assert.equal(roadmapChain.status,"PREPARED_NO_WRITE");
+  assert.equal(roadmapChain.requiredFoundationCount,9);
+  assert.equal(roadmapChain.missingFoundationBlocksPipeline,true);
+  assert.equal(roadmapChain.currentPr20_9RatificationCredit,false);
+  assert.equal(roadmapChain.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(roadmapChain.durableIntentCreated,false);
+  assert.equal(roadmapChain.productiveCraftAuthorityOpened,false);
+  assert.equal(roadmapChain.normalRuntimeAllowed,false);
 });

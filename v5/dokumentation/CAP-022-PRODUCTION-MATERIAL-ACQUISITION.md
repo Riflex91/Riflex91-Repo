@@ -100,6 +100,16 @@ Ein bereiter Team-Rescan wird **nicht** direkt persistiert. Die Admission bindet
 
 Nur der bereits bestehende `persistierePr20_9CraftDurableShadow(...)`-Controller darf danach separat einen kritischen terminalen NO-WRITE-Shadow-Intent persistieren. Ein synthetischer Unit-Test dieser Verbindung ist keine Live-Evidence und gibt keinen PR20.9-Ratification-Credit.
 
+
+PR21-28 Full-Chain-Orchestration-Readiness:
+
+- `grundlage/quelle/runtime/cap022-foundation-chain-readiness.ts`
+- `grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts`
+- `grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json`
+- `grundlage/tests/pr21-28-orchestration.test.mjs`
+
+Die gemeinsame Shadow-Pipeline akzeptiert CAP-022 nicht mehr nur anhand der ersten Material-Acquisition-Foundation. Alle neun vorbereiteten NO-WRITE-Fundamente von `MATERIAL_ACQUISITION` bis `TEAM_RESCAN_DURABLE_ADMISSION` muessen vollstaendig vorhanden und `PREPARED_NO_WRITE` sein. Eine fehlende oder blockierte Komponente sowie Authority- oder Ratification-Drift sperrt die gesamte PR21-28-Shadow-Pipeline fail-closed. Reale `ALL_SETTLED`-/Craft-Evidence wird dadurch nicht vorgetaeuscht oder ersetzt.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf

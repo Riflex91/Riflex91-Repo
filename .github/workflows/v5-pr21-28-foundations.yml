@@ -4,6 +4,10 @@ on:
   push:
     paths:
       - 'v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts'
+      - 'v5/grundlage/quelle/runtime/cap022-foundation-chain-readiness.ts'
+      - 'v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts'
+      - 'v5/grundlage/tests/pr21-28-orchestration.test.mjs'
+      - 'v5/grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json'
       - 'v5/grundlage/quelle/koordination/pr22-coordination-shadow-admission.ts'
       - 'v5/grundlage/quelle/koordination/production-material-acquisition.ts'
       - 'v5/grundlage/quelle/koordination/production-material-handoff.ts'
@@ -47,6 +51,10 @@ on:
   pull_request:
     paths:
       - 'v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts'
+      - 'v5/grundlage/quelle/runtime/cap022-foundation-chain-readiness.ts'
+      - 'v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts'
+      - 'v5/grundlage/tests/pr21-28-orchestration.test.mjs'
+      - 'v5/grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json'
       - 'v5/grundlage/quelle/koordination/pr22-coordination-shadow-admission.ts'
       - 'v5/grundlage/quelle/koordination/production-material-acquisition.ts'
       - 'v5/grundlage/quelle/koordination/production-material-handoff.ts'
