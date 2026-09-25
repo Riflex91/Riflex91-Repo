@@ -70,7 +70,7 @@ test("terminal recovery evidence stays immutable while the current manifest adva
   assert.equal(manifest.testId,"pr20-9-craft-service-mount");
   assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.sourceCommit,"739737faca62bca5ffa991a7733a7494f59c479c");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-9-craft-service-mount.js");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-9-craft-service-mount-v1-0-0.js");
   assert.equal(manifest.packageSha256,"e4662c2de20b59552c9dc79674c77de1fb72f79eb01b6b9e684b90f004fa7f41");
   assert.equal(manifest.expectedGlobal,"V5PR209CraftServiceMount");
   assert.equal(manifest.normalRuntimeAllowed, false);
