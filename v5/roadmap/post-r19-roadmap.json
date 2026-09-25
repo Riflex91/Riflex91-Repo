@@ -912,12 +912,17 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
         "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
-        "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs"
+        "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
+        "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
       "milestoneRunnerStatus": "PREPARED_NO_WRITE",
-      "milestoneCheckpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT"
+      "milestoneCheckpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+      "checkpointRunbookStatus": "PREPARED_NO_WRITE"
     },
     {
       "id": "PR22_MULTI_CHARACTER",
@@ -964,12 +969,17 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
         "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
-        "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs"
+        "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
+        "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
       "milestoneRunnerStatus": "PREPARED_NO_WRITE",
-      "milestoneCheckpointId": "POST_PR24_25_GROUP_CHECKPOINT"
+      "milestoneCheckpointId": "POST_PR24_25_GROUP_CHECKPOINT",
+      "checkpointRunbookStatus": "PREPARED_NO_WRITE"
     },
     {
       "id": "PR24_GROUP_MATRIX",
@@ -1016,12 +1026,17 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
         "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
-        "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs"
+        "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
+        "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
       "milestoneRunnerStatus": "PREPARED_NO_WRITE",
-      "milestoneCheckpointId": "POST_PR24_25_GROUP_CHECKPOINT"
+      "milestoneCheckpointId": "POST_PR24_25_GROUP_CHECKPOINT",
+      "checkpointRunbookStatus": "PREPARED_NO_WRITE"
     },
     {
       "id": "PR26_TASK_PARTY_OPTIMIZER",
@@ -1091,12 +1106,17 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
         "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
-        "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs"
+        "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
+        "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
       "milestoneRunnerStatus": "PREPARED_NO_WRITE",
-      "milestoneCheckpointId": "POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN"
+      "milestoneCheckpointId": "POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN",
+      "checkpointRunbookStatus": "PREPARED_NO_WRITE"
     }
   ],
   "safePreparationBoundary": {
@@ -3373,6 +3393,18 @@
       "runnerPublicFunctionCalls": 0,
       "runnerRawWriteCalls": 0,
       "normalRuntimeEnabled": false
+    },
+    "checkpointRunbooksBatch5": {
+      "status": "PREPARED_NO_WRITE",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
+      "runbook": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+      "resultPackage": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
+      "test": "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs",
+      "deterministicFingerprint": true,
+      "manualRatificationRequired": true,
+      "automaticRatification": false,
+      "automaticAuthorityIssue": false,
+      "normalRuntimeEnabled": false
     }
   },
   "pr21": {
@@ -3397,7 +3429,10 @@
     "productiveAuthorityIssued": false,
     "milestoneRunnerStatus": "PREPARED_NO_WRITE",
     "milestoneRunnerSource": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
-    "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts"
+    "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
+    "checkpointRunbookStatus": "PREPARED_NO_WRITE",
+    "checkpointRunbookSource": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+    "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts"
   },
   "pr22": {
     "status": "BLOCKED_BY_PR21",
@@ -3447,7 +3482,10 @@
     "productiveAuthorityIssued": false,
     "milestoneRunnerStatus": "PREPARED_NO_WRITE",
     "milestoneRunnerSource": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
-    "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts"
+    "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
+    "checkpointRunbookStatus": "PREPARED_NO_WRITE",
+    "checkpointRunbookSource": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+    "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts"
   },
   "pr24": {
     "status": "BLOCKED_BY_PR23",
@@ -3495,7 +3533,10 @@
     "productiveAuthorityIssued": false,
     "milestoneRunnerStatus": "PREPARED_NO_WRITE",
     "milestoneRunnerSource": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
-    "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts"
+    "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
+    "checkpointRunbookStatus": "PREPARED_NO_WRITE",
+    "checkpointRunbookSource": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+    "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts"
   },
   "pr26": {
     "status": "BLOCKED_BY_PR25",
@@ -3565,6 +3606,9 @@
     "productiveAuthorityIssued": false,
     "milestoneRunnerStatus": "PREPARED_NO_WRITE",
     "milestoneRunnerSource": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
-    "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts"
+    "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
+    "checkpointRunbookStatus": "PREPARED_NO_WRITE",
+    "checkpointRunbookSource": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+    "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts"
   }
 }
