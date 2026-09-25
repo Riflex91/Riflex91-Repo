@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "EXCHANGE_READONLY_RESCAN_FACADE_RECOVERY_MANIFEST_CUTOVER_PREPARED",
+    "EXCHANGE_CURRENT_INVENTORY_NO_CANDIDATE_RATIFIED_WAIT_FUTURE_READONLY_RESCAN",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+    "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN",
   );
   const exit=prep.pr20_8.exitGateReview;
   assert.equal(exit.status,"BLOCKED_EXCHANGE_NO_CANDIDATE");
@@ -752,7 +752,10 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   assert.equal(exit.roadmapCriteriaRelaxed,false);
   assert.equal(exit.acquisitionOrMutationToCreateCandidateAllowed,false);
   assert.equal(exit.exchangeNoCandidateCloseoutReviewed,true);
-  assert.equal(exit.freshReadOnlyRescanRequired,true);
+  assert.equal(exit.freshReadOnlyRescanRequired,false);
+  assert.equal(exit.freshReadOnlyRescanCompletedNoCandidate,true);
+  assert.equal(exit.freshReadOnlyRescanEvidenceObserved,true);
+  assert.equal(exit.latestFreshReadOnlyRescanEvidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json");
   assert.equal(p.status,"BEREIT_NO_LIVE_WRITE");
   assert.equal(
     p.contract,
@@ -815,7 +818,7 @@ test("PR20.8 updater persistence bootstrap v2 remains confirmed persisted and ze
   assert.equal(b.rawWriteCalls,0);
   assert.equal(b.sameIntentRetry,false);
   assert.equal(b.normalRuntimeAllowed,false);
-  assert.equal(b.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
+  assert.equal(b.nextGate,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
 });
 
 test("PR20.8 bridge handshake and terminal recovery are confirmed zero-write", () => {
@@ -833,7 +836,7 @@ test("PR20.8 bridge handshake and terminal recovery are confirmed zero-write", (
   assert.equal(b.rawWriteCalls,0);
   assert.equal(b.sameIntentRetry,false);
   assert.equal(b.normalRuntimeAllowed,false);
-  assert.equal(b.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
+  assert.equal(b.nextGate,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
 
   const r=b.terminalRecovery;
   assert.equal(r.status,"BESTANDEN_REAL_BROWSER_ZERO_WRITE");
@@ -1428,16 +1431,16 @@ test("PR20.8 Compound 5m evidence is ratified with zero additional mutation", ()
   assert.equal(e.normalRuntimeAllowed,false);
 });
 
-test("PR20.8 Exchange v1.0.4 rescan cutover is blocked only by the observed facade handshake", () => {
+test("PR20.8 Exchange closeout records the fresh v1.0.5 no-candidate evidence", () => {
   const r=prep.pr20_8.exchangeNoCandidateCloseoutReview;
-  assert.equal(r.status,"V1_0_4_HANDSHAKE_BLOCKED_RECOVERY_V1_0_5_MANIFEST_CUTOVER_PREPARED");
+  assert.equal(r.status,"V1_0_5_FRESH_READONLY_RESCAN_NO_CANDIDATE_RATIFIED");
   assert.equal(r.review,"roadmap/pr20-8-exchange-no-candidate-closeout-review.json");
   assert.equal(r.existingEvidence,"roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json");
   assert.equal(r.existingObservedAtMs,1790278399271);
   assert.equal(r.existingExchangeStatus,"KEIN_KANDIDAT");
   assert.equal(r.existingExchangeCandidateCount,0);
   assert.equal(r.compoundMutationCommittedAfterExistingObservation,true);
-  assert.equal(r.freshCurrentInventoryEvidenceRequired,true);
+  assert.equal(r.freshCurrentInventoryEvidenceRequired,false);
   assert.equal(r.acquisitionOrMutationToCreateCandidateAllowed,false);
   assert.equal(r.exchangeWriteAuthority,false);
   assert.equal(r.gameplayAuthority,false);
@@ -1457,8 +1460,21 @@ test("PR20.8 Exchange v1.0.4 rescan cutover is blocked only by the observed faca
   assert.equal(r.manifest,"roadmap/v5-autonomous-test-manifest.json");
   assert.equal(r.manifestCutoverPrepared,true);
   assert.equal(r.bridgeMayDeployPinnedRunner,false);
-  assert.equal(r.deployed,false);
-  assert.equal(r.evidenceObserved,false);
+  assert.equal(r.deployed,true);
+  assert.equal(r.evidenceObserved,true);
+  assert.equal(r.latestEvidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json");
+  assert.equal(r.latestControllerVersion,"1.0.5");
+  assert.equal(r.latestNotificationId,2332);
+  assert.equal(r.latestRunStartedAtMs,1790315652844);
+  assert.equal(r.latestObservedAtMs,1790315653250);
+  assert.equal(r.latestCompoundStatus,"KEIN_KANDIDAT");
+  assert.equal(r.latestCompoundCandidateCount,0);
+  assert.equal(r.latestExchangeStatus,"KEIN_KANDIDAT");
+  assert.equal(r.latestExchangeCandidateCount,0);
+  assert.equal(r.latestGameplayWrites,0);
+  assert.equal(r.latestPublicFunctionCalls,0);
+  assert.equal(r.latestRawWriteCalls,0);
+  assert.equal(r.latestSameIntentRetry,false);
   assert.equal(r.bridgeState,"ERROR");
   assert.equal(r.bridgeError,"InvalidOperationException: V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED");
   assert.equal(r.observedAtMs,1790314474502);
@@ -1469,7 +1485,29 @@ test("PR20.8 Exchange v1.0.4 rescan cutover is blocked only by the observed faca
   assert.equal(r.observedCurrentRawWriteCalls,0);
   assert.equal(r.observedCurrentSameIntentRetry,false);
   assert.equal(r.observedCurrentIntentCount,1);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
+  const fresh=r.freshRescanEvidence;
+  assert.equal(fresh.evidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json");
+  assert.equal(fresh.controllerVersion,"1.0.5");
+  assert.equal(fresh.notificationId,2332);
+  assert.equal(fresh.runStartedAtMs,1790315652844);
+  assert.equal(fresh.observedAtMs,1790315653250);
+  assert.equal(fresh.status,"BLOCKIERT");
+  assert.equal(fresh.phase,"PR20_8_LIVE_CANDIDATE_SELECTION");
+  assert.equal(fresh.terminal,true);
+  assert.equal(fresh.blocker,"PR20_8_CANDIDATE_KEIN_COMPOUND_ODER_EXCHANGE_NORMALKANDIDAT");
+  assert.equal(fresh.compoundStatus,"KEIN_KANDIDAT");
+  assert.equal(fresh.compoundCandidateCount,0);
+  assert.equal(fresh.exchangeStatus,"KEIN_KANDIDAT");
+  assert.equal(fresh.exchangeCandidateCount,0);
+  assert.equal(fresh.gameplayWrites,0);
+  assert.equal(fresh.publicFunctionCalls,0);
+  assert.equal(fresh.rawWriteCalls,0);
+  assert.equal(fresh.sameIntentRetry,false);
+  assert.equal(fresh.exchangeAuthority,false);
+  assert.equal(fresh.durableIntentCreated,false);
+  assert.equal(fresh.normalRuntimeAllowed,false);
+  assert.equal(fresh.outcome,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
+  assert.equal(r.nextGate,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
   const active=prep.pr20_8.activeAutonomousManifest;
   assert.equal(active.testId,"pr20-8-wertmutation-live-candidate-readonly");
   assert.equal(active.controllerVersion,"1.0.5");
@@ -1492,9 +1530,9 @@ test("PR20.8 Exchange v1.0.4 rescan cutover is blocked only by the observed faca
   assert.equal(retired.supersededByControllerVersion,"1.0.4");
 });
 
-test("PR20.8 Exchange read-only scanner v1.0.5 facade recovery manifest cutover is prepared", () => {
+test("PR20.8 Exchange read-only scanner v1.0.5 completed fresh zero-write no-candidate rescan", () => {
   const r=prep.pr20_8.exchangeReadonlyRescanFacadeRecovery;
-  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_FRESH_READONLY_RESCAN");
+  assert.equal(r.status,"REAL_BROWSER_FRESH_RESCAN_COMPLETED_NO_CANDIDATE_ZERO_WRITE");
   assert.equal(r.contract,"grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-facade-recovery-preparation.json");
   assert.equal(r.package,"werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js");
   assert.equal(r.test,"werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs");
@@ -1525,10 +1563,80 @@ test("PR20.8 Exchange read-only scanner v1.0.5 facade recovery manifest cutover 
   assert.equal(r.acquisitionOrMutationToCreateCandidateAllowed,false);
   assert.equal(r.manifest,"roadmap/v5-autonomous-test-manifest.json");
   assert.equal(r.manifestCutoverPrepared,true);
-  assert.equal(r.bridgeMayDeployPinnedRunner,true);
-  assert.equal(r.deployed,false);
-  assert.equal(r.evidenceObserved,false);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
+  assert.equal(r.bridgeMayDeployPinnedRunner,false);
+  assert.equal(r.deployed,true);
+  assert.equal(r.evidenceObserved,true);
+  assert.equal(r.notificationId,2332);
+  assert.equal(r.runStartedAtMs,1790315652844);
+  assert.equal(r.observedAtMs,1790315653250);
+  assert.equal(r.observedStatus,"BLOCKIERT");
+  assert.equal(r.observedPhase,"PR20_8_LIVE_CANDIDATE_SELECTION");
+  assert.equal(r.observedTerminal,true);
+  assert.equal(r.observedBlocker,"PR20_8_CANDIDATE_KEIN_COMPOUND_ODER_EXCHANGE_NORMALKANDIDAT");
+  assert.equal(r.observedUpgradeStatus,"KANDIDAT_GEFUNDEN");
+  assert.equal(r.observedUpgradeCandidateCount,3);
+  assert.equal(r.observedCompoundStatus,"KEIN_KANDIDAT");
+  assert.equal(r.observedCompoundCandidateCount,0);
+  assert.equal(r.observedExchangeStatus,"KEIN_KANDIDAT");
+  assert.equal(r.observedExchangeCandidateCount,0);
+  assert.equal(r.observedGameplayWrites,0);
+  assert.equal(r.observedPublicFunctionCalls,0);
+  assert.equal(r.observedRawWriteCalls,0);
+  assert.equal(r.observedSameIntentRetry,false);
+  assert.equal(r.observedPerformanceTrickVerification,"HOWLER_PLAYING_TRUE");
+  assert.equal(r.evidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json");
+  assert.equal(r.nextGate,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
+});
+
+test("PR20.8 fresh Exchange read-only rescan evidence keeps Exchange and PR20.9 blocked", () => {
+  const e=prep.pr20_8.exchangeFreshReadonlyRescanEvidence;
+  assert.equal(e.status,"RATIFIED_FRESH_NO_CANDIDATE_ZERO_WRITE");
+  assert.equal(e.evidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json");
+  assert.equal(e.controllerVersion,"1.0.5");
+  assert.equal(e.notificationId,2332);
+  assert.equal(e.runStartedAtMs,1790315652844);
+  assert.equal(e.observedAtMs,1790315653250);
+  assert.equal(e.statusObserved,"BLOCKIERT");
+  assert.equal(e.phaseObserved,"PR20_8_LIVE_CANDIDATE_SELECTION");
+  assert.equal(e.terminalObserved,true);
+  assert.equal(e.blocker,"PR20_8_CANDIDATE_KEIN_COMPOUND_ODER_EXCHANGE_NORMALKANDIDAT");
+  assert.equal(e.compoundStatus,"KEIN_KANDIDAT");
+  assert.equal(e.compoundCandidateCount,0);
+  assert.equal(e.exchangeStatus,"KEIN_KANDIDAT");
+  assert.equal(e.exchangeCandidateCount,0);
+  assert.equal(e.gameplayWrites,0);
+  assert.equal(e.publicFunctionCalls,0);
+  assert.equal(e.rawWriteCalls,0);
+  assert.equal(e.sameIntentRetry,false);
+  assert.equal(e.exchangeRatified,false);
+  assert.equal(e.exchangeLive5mTested,false);
+  assert.equal(e.exchangeAutonomyProductiveProven,false);
+  assert.equal(e.acquisitionOrMutationToCreateCandidateAllowed,false);
+  assert.equal(e.normalRuntimeAllowed,false);
+  assert.equal(e.outcome,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
+});
+
+test("PR20.8 current Exchange no-candidate v1.0.5 evidence remains non-substitutive", () => {
+  const e=prep.pr20_8.exchangeReadonlyRescanV1_0_5Evidence;
+  assert.equal(e.status,"RATIFIED_FRESH_NO_CANDIDATE_ZERO_WRITE");
+  assert.equal(e.evidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json");
+  assert.equal(e.notificationId,2332);
+  assert.equal(e.runStartedAtMs,1790315652844);
+  assert.equal(e.observedAtMs,1790315653250);
+  assert.equal(e.exchangeStatus,"KEIN_KANDIDAT");
+  assert.equal(e.exchangeCandidateCount,0);
+  assert.equal(e.compoundStatus,"KEIN_KANDIDAT");
+  assert.equal(e.compoundCandidateCount,0);
+  assert.equal(e.gameplayWrites,0);
+  assert.equal(e.publicFunctionCalls,0);
+  assert.equal(e.rawWriteCalls,0);
+  assert.equal(e.exchangeAuthority,false);
+  assert.equal(e.durableIntentCreated,false);
+  assert.equal(e.normalRuntimeAllowed,false);
+  assert.equal(e.exchangeRatified,false);
+  assert.equal(e.exchangeLive5mTested,false);
+  assert.equal(e.exchangeAutonomyProductiveProven,false);
+  assert.equal(e.outcome,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
