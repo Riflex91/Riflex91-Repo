@@ -23,6 +23,14 @@ Tests:
 
 - `grundlage/tests/pr22-23-production-material-acquisition.test.mjs`
 
+Handoff-Planung:
+
+- `grundlage/quelle/koordination/production-material-handoff.ts`
+- `grundlage/vertraege/runtime/pr22-23-production-material-handoff-foundation.json`
+- `grundlage/tests/pr22-23-production-material-handoff.test.mjs`
+
+Der Handoff wird erst aus `MATERIAL_READY_FOR_HANDOFF` geplant. Er nutzt die bestehende V5-`COLLECTION`-/Rendezvous-Logistik, pinnt einen einzelnen physischen Stack samt Item-Fingerprint und besitzt weiterhin keine Transfer- oder Gameplay-Authority.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf
@@ -68,6 +76,9 @@ Insbesondere gilt:
 - die Foundation zaehlt nicht als Craft-Ratifizierung;
 - Craft-Authority bleibt geschlossen;
 - PR20.9 bleibt `CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE`.
+
+- auch ein vorbereiteter `COLLECTION`-Handoff ist noch kein natuerlicher Merchant-Inventar-Kandidat;
+- erst ein spaeter produktiv **settled** Handoff darf einen frischen Craft-Rescan ausloesen.
 
 Erst wenn spaeter im normalen produktiven Betrieb Material durch ratifizierte Farmer-Funktionen entsteht und dadurch ein echter `NORMAL_CRAFT_ONLY`-Kandidat im Inventar vorhanden ist, darf PR20.9 erneut beobachtet und nach seinen eigenen Craft-Gates fortgesetzt werden.
 
