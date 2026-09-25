@@ -92,11 +92,11 @@ test("roadmap advances only to shadow deployment observation",()=>{
     "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RUNNER_PREPARED_NOT_DEPLOYED");
   assert.equal(roadmap.pr20_8.nextAction,
     "PREPARE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER");
-  assert.equal(a.status,"ANNIVERSARYGIFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED");
-  assert.equal(shadow.status,"MANIFEST_CUTOVER_PREPARED");
+  assert.equal(a.status,"ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RUNNER_PREPARED_NOT_DEPLOYED");
+  assert.equal(shadow.status,"RATIFIED_LIVE_DURABLE_SHADOW_NO_SEND");
   assert.equal(shadow.manifestCutoverPrepared,true);
-  assert.equal(shadow.deployed,false);
-  assert.equal(shadow.liveEvidenceObserved,false);
+  assert.equal(shadow.deployed,true);
+  assert.equal(shadow.liveEvidenceObserved,true);
   assert.equal(shadow.exchangeAuthority,false);
   assert.equal(shadow.gameplayAuthority,false);
   assert.equal(shadow.rawWriteAuthority,false);
