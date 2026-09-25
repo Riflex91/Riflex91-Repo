@@ -128,11 +128,11 @@ test("roadmap ratifies one-write and Exchange 5m, then advances only to autonomy
   const live=a.anniversaryGiftProductiveOneWrite;
   const soak=a.anniversaryGiftExchangeLive5m;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_RATIFIED_AUTONOMY_PREPARED_NO_WRITE");
+    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_PACKAGE_PREPARED_NO_WRITE");
   assert.equal(roadmap.pr20_8.nextAction,
-    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
+    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER");
   assert.equal(a.status,
-    "ANNIVERSARYGIFT_LIVE_5M_RATIFIED_AUTONOMY_PREPARED_NO_WRITE");
+    "ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_PACKAGE_PREPARED_NO_WRITE");
   assert.equal(live.status,"RATIFIED_COMMITTED_EXCHANGE_ONE_WRITE");
   assert.equal(live.deployed,true);
   assert.equal(live.liveEvidenceObserved,true);

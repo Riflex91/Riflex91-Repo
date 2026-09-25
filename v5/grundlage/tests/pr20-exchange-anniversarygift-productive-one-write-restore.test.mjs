@@ -102,11 +102,11 @@ test("roadmap records service mount as ratified and only restores productive dep
   const mount=a.anniversaryGiftServiceMount;
   const live=a.anniversaryGiftProductiveOneWrite;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_RATIFIED_AUTONOMY_PREPARED_NO_WRITE");
+    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_PACKAGE_PREPARED_NO_WRITE");
   assert.equal(roadmap.pr20_8.nextAction,
-    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
+    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER");
   assert.equal(a.status,
-    "ANNIVERSARYGIFT_LIVE_5M_RATIFIED_AUTONOMY_PREPARED_NO_WRITE");
+    "ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_PACKAGE_PREPARED_NO_WRITE");
   assert.equal(mount.status,"RATIFIED_EXCHANGE_SERVICE_REACHED_ONE_MOVEMENT");
   assert.equal(mount.deployed,true);
   assert.equal(mount.liveEvidenceObserved,true);
