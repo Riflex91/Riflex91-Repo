@@ -45,7 +45,7 @@ test("PR20.8 no-candidate evidence cannot silently create authority or substitut
   ]);
   assert.equal(
     review.nextAction,
-    "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+    "PR20_8_EXCHANGE_READONLY_RESCAN_HANDSHAKE_RECOVERY_MANIFEST_CUTOVER",
   );
 });
 
@@ -205,6 +205,9 @@ test("PR20.8 Compound 5m notification identity recovery is persisted and remains
   assert.equal(active.packageSha256,"4d9083bf163d98f15d842d64ecfc49ae4c9b8c3452b0b31a499d4b0b5687c849");
   assert.equal(active.packageBytes,28166);
   assert.equal(active.normalRuntimeAllowed,false);
+  assert.equal(active.deploymentHandshakeFailed,true);
+  assert.equal(active.deployed,false);
+  assert.equal(active.evidenceObserved,false);
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
 });
@@ -234,9 +237,9 @@ test("PR20.8 Compound 5m evidence closes only the Compound live gate", () => {
   assert.equal(review.mayAdvanceToPr20_9,false);
 });
 
-test("PR20.8 Exchange no-candidate closeout manifest cutover authorizes only read-only observation", () => {
+test("PR20.8 Exchange read-only rescan v1.0.4 handshake failure authorizes no write", () => {
   const r=review.exchangeNoCandidateCloseoutReview;
-  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_FRESH_READONLY_RESCAN");
+  assert.equal(r.status,"V1_0_4_DEPLOYMENT_HANDSHAKE_FAILED_ZERO_WRITE");
   assert.equal(r.review,"v5/roadmap/pr20-8-exchange-no-candidate-closeout-review.json");
   assert.equal(r.existingEvidence,"v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json");
   assert.equal(r.existingObservedAtMs,1790278399271);
@@ -265,10 +268,19 @@ test("PR20.8 Exchange no-candidate closeout manifest cutover authorizes only rea
   assert.equal(r.scannerMaximumRawWriteCalls,0);
   assert.equal(r.manifest,"v5/roadmap/v5-autonomous-test-manifest.json");
   assert.equal(r.manifestCutoverPrepared,true);
-  assert.equal(r.bridgeMayDeployPinnedRunner,true);
+  assert.equal(r.bridgeMayDeployPinnedRunner,false);
   assert.equal(r.deployed,false);
   assert.equal(r.evidenceObserved,false);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
+  assert.equal(r.deploymentFailureObserved,true);
+  assert.equal(r.deploymentFailureState,"ERROR");
+  assert.equal(r.deploymentFailureError,"InvalidOperationException: V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED");
+  assert.equal(r.deploymentFailureCurrentTestId,"pr20-8-compound-live-5m");
+  assert.equal(r.deploymentFailureCurrentVersion,"1.0.2");
+  assert.equal(r.deploymentFailureGameplayWrites,0);
+  assert.equal(r.deploymentFailurePublicFunctionCalls,0);
+  assert.equal(r.deploymentFailureRawWriteCalls,0);
+  assert.equal(r.freshScannerCompletionObserved,false);
+  assert.equal(r.nextGate,"PR20_8_EXCHANGE_READONLY_RESCAN_HANDSHAKE_RECOVERY_MANIFEST_CUTOVER");
   const retired=review.activeCompoundLive5mManifest;
   assert.equal(retired.active,false);
   assert.equal(retired.retiredFromActiveManifest,true);
@@ -289,6 +301,42 @@ test("PR20.8 Exchange no-candidate closeout manifest cutover authorizes only rea
   assert.equal(active.gameplayAuthority,false);
   assert.equal(active.rawWriteAuthority,false);
   assert.equal(active.normalRuntimeAllowed,false);
+  assert.equal(review.currentExitGateSatisfied,false);
+  assert.equal(review.mayAdvanceToPr20_9,false);
+});
+
+test("PR20.8 Exchange read-only rescan handshake recovery v1.0.5 remains authority-closed", () => {
+  const r=review.exchangeReadOnlyRescanHandshakeRecovery;
+  assert.equal(r.status,"PACKAGE_READY_NOT_DEPLOYED");
+  assert.equal(r.contract,"v5/grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-handshake-recovery-preparation.json");
+  assert.equal(r.package,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js");
+  assert.equal(r.test,"v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs");
+  assert.equal(r.contractTest,"v5/grundlage/tests/pr20-exchange-readonly-rescan-handshake-recovery-preparation.test.mjs");
+  assert.equal(r.testId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(r.fromControllerVersion,"1.0.4");
+  assert.equal(r.controllerVersion,"1.0.5");
+  assert.equal(r.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
+  assert.equal(r.sourceCommit,"d4269f0e7998e265be4a3d1c1dffdd9b0e138c90");
+  assert.equal(r.packageSha256,"27d16d91fcba345b9e87ce2b8724a0e65bf202c1b74f73ab6187d488e4c55a92");
+  assert.equal(r.packageBytes,21792);
+  assert.equal(r.recoveryScope,"OBSERVABILITY_FACADE_HANDSHAKE_ONLY");
+  assert.equal(r.scannerSemanticsChanged,false);
+  assert.equal(r.inventorySelectionSemanticsChanged,false);
+  assert.equal(r.maximumGameplayWrites,0);
+  assert.equal(r.maximumPublicFunctionCalls,0);
+  assert.equal(r.maximumRawWriteCalls,0);
+  assert.equal(r.exchangeAuthority,false);
+  assert.equal(r.gameplayAuthority,false);
+  assert.equal(r.rawWriteAuthority,false);
+  assert.equal(r.durableIntentCreated,false);
+  assert.equal(r.sameIntentRetry,false);
+  assert.equal(r.normalRuntimeAllowed,false);
+  assert.equal(r.acquisitionOrMutationToCreateCandidateAllowed,false);
+  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.deployed,false);
+  assert.equal(r.bridgeMayDeployPinnedRunner,false);
+  assert.equal(r.evidenceObserved,false);
+  assert.equal(r.nextGate,"PR20_8_EXCHANGE_READONLY_RESCAN_HANDSHAKE_RECOVERY_MANIFEST_CUTOVER");
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
 });
