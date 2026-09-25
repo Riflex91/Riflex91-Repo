@@ -17,6 +17,7 @@ import type {
   RenderEntity,
   RenderMapBounds
 } from "./RenderBridge";
+import { resolveHudVisibility } from "./hudLayout";
 import { projectWorldToScreen } from "./projection";
 
 type EntityVisual = {
@@ -97,6 +98,8 @@ export class Pixi25DRenderer implements RenderBridge {
       visual.container.destroy({ children: true });
       this.visuals.delete(id);
     }
+
+    this.applyHudDeclutter(snapshot.entities);
   }
 
   destroy(): void {
@@ -407,8 +410,14 @@ export class Pixi25DRenderer implements RenderBridge {
       entity.maxHp !== undefined && entity.maxHp > 0
         ? entity.maxHp
         : undefined;
+    const showHp =
+      maxHp !== undefined &&
+      entity.hp !== undefined &&
+      (Boolean(entity.local) ||
+        entity.kind === "player" ||
+        Boolean(entity.targeted));
 
-    if (maxHp !== undefined && entity.hp !== undefined) {
+    if (showHp && maxHp !== undefined && entity.hp !== undefined) {
       const width = 38;
       const ratio = Math.max(0, Math.min(1, entity.hp / maxHp));
       ui
@@ -419,12 +428,13 @@ export class Pixi25DRenderer implements RenderBridge {
         .fill({ color: 0x55c56b, alpha: 1 });
     }
 
-    if (
+    const showMp =
       entity.maxMp !== undefined &&
       entity.maxMp > 0 &&
       entity.mp !== undefined &&
-      (entity.local || entity.kind === "player")
-    ) {
+      (entity.local || entity.kind === "player");
+
+    if (showMp && entity.maxMp !== undefined && entity.mp !== undefined) {
       const width = 38;
       const ratio = Math.max(0, Math.min(1, entity.mp / entity.maxMp));
       ui
@@ -435,9 +445,75 @@ export class Pixi25DRenderer implements RenderBridge {
         .fill({ color: 0x4d8fe8, alpha: 1 });
     }
 
+    const showLabel =
+      Boolean(entity.local) ||
+      Boolean(entity.targeted) ||
+      entity.kind === "player" ||
+      entity.kind === "npc";
+
     visual.label.text = entity.name ?? entity.id;
-    visual.label.y = maxHp !== undefined ? -52 : -45;
-    visual.label.style.fill = entity.targeted ? 0xffe08a : 0xffffff;
+    visual.label.visible = showLabel;
+    visual.label.y = showHp ? -52 : -45;
+    visual.label.style.fill = entity.targeted
+      ? 0xffe08a
+      : entity.local
+        ? 0x9fe7ff
+        : entity.kind === "npc"
+          ? 0xf5deb3
+          : 0xffffff;
+  }
+
+  private applyHudDeclutter(entities: readonly RenderEntity[]): void {
+    const candidates = entities.flatMap((entity) => {
+      const visual = this.visuals.get(entity.id);
+      if (!visual || !visual.label.visible) return [];
+
+      const x = visual.container.position.x;
+      const labelBottom = visual.container.position.y + visual.label.y;
+      const width = Math.max(34, visual.label.width);
+      const height = Math.max(12, visual.label.height);
+
+      return [
+        {
+          id: entity.id,
+          x: x - width / 2,
+          y: labelBottom - height,
+          width,
+          height,
+          priority: entity.targeted
+            ? 100
+            : entity.local
+              ? 90
+              : entity.kind === "player"
+                ? 70
+                : entity.kind === "npc"
+                  ? 50
+                  : 10,
+          always: Boolean(entity.targeted || entity.local)
+        }
+      ];
+    });
+
+    const visible = resolveHudVisibility(candidates, 5);
+
+    for (const entity of entities) {
+      const visual = this.visuals.get(entity.id);
+      if (!visual) continue;
+
+      const baseLabelVisible =
+        Boolean(entity.local) ||
+        Boolean(entity.targeted) ||
+        entity.kind === "player" ||
+        entity.kind === "npc";
+
+      visual.label.visible =
+        baseLabelVisible && visible.has(entity.id);
+
+      visual.ui.visible =
+        Boolean(entity.local) ||
+        entity.kind === "player" ||
+        Boolean(entity.targeted);
+    }
   }
 
   private async loadTexture(

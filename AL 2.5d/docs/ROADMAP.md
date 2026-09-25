@@ -60,6 +60,7 @@ Status: in progress
 - [x] click-to-move continues through the original map_click/on_map_click path
 - [ ] authored character/NPC/monster artwork and animation states
 - [x] baseline nameplates, HP/MP bars and target highlight
+- [x] priority-based HUD decluttering for dense NPC/monster clusters
 - [ ] baseline HUD
 
 Deliverable: walkable Main with original gameplay logic.
