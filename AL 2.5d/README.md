@@ -94,8 +94,36 @@ It then opens:
 http://localhost:5173/?localAdmin=1&legacy=/legacy/
 ```
 
-The browser creates/reuses the deliberately local identity
-`local-admin@al25d.invalid` and the warrior `LocalAdmin`.
+The browser creates/reuses only the deliberately local account
+`local-admin@al25d.invalid`. It does **not** create a character automatically:
+the original Adventure Land character-selection/creation UI is opened so name,
+class, look and creation behavior can be tested manually.
+
+
+
+### Testing four characters like the original game
+
+The local sandbox deliberately keeps the original limits:
+`character_limit: 3` and `ip_limit: 3`. The original server excludes a
+Merchant from the normal-character limit, so the supported test composition is
+**three normal characters plus one Merchant**.
+
+Create all four characters yourself in the original client UI. Start one
+character normally, then use the original Adventure Land CODE mechanism from
+that running character to start the other three, for example:
+
+```js
+start_character("WarriorName");
+start_character("PriestName");
+start_character("MerchantName");
+```
+
+Choose the three names according to whichever character you started manually.
+The local wrapper does not replace or reimplement `start_character`; the
+original client creates the child-character iframes and the local Vite proxy
+forwards their `/character`, `/server` and `/runner` routes to the pinned
+local Adventure Land backend. This keeps the multi-character test on the same
+code path as the original game.
 
 A round graphics switch is fixed in the upper-right game UI at the requested
 toolbar position. It shows `2.5D` or `ORG`; clicking it swaps the visible
