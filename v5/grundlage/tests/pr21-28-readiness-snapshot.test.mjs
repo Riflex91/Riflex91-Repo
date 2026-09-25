@@ -252,3 +252,47 @@ test("hypothetisch produktiver Ledger kann CAP-022 Full-Chain nicht umgehen",()=
   assert.equal(snapshot.liveEvidenceBoundaryReached,false);
   assert.equal(snapshot.authorityIssued,false);
 });
+
+
+test("Readiness-Snapshot-Vertrag und Roadmap binden CAP-022 Full-Chain fail-closed",()=>{
+  const contract=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
+    "utf8",
+  ));
+  const boundary=contract.cap022FullChainBoundary;
+  assert.equal(boundary.required,true);
+  assert.equal(boundary.readyStatus,"CAP022_FULL_CHAIN_BEREIT_NO_WRITE");
+  assert.equal(boundary.requiredFoundationCount,9);
+  assert.equal(boundary.technicallyPreparedRequiresFullChain,true);
+  assert.equal(boundary.productiveChainEligibleRequiresFullChain,true);
+  assert.equal(boundary.missingOrBlockedChainForcesStatus,"PARTIALLY_PREPARED");
+  assert.equal(boundary.currentPr20_9RatificationCredit,false);
+  assert.equal(boundary.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(boundary.durableIntentCreated,false);
+  assert.equal(boundary.productiveCraftAuthorityOpened,false);
+  assert.equal(boundary.productiveExecutionAllowed,false);
+  assert.equal(boundary.gameplayAuthority,false);
+  assert.equal(boundary.rawWriteAuthority,false);
+  assert.equal(boundary.normalRuntimeAllowed,false);
+
+  const roadmap=JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+  );
+  const binding=
+    roadmap.pr20_9.deferredAutomaticMaterialRecheck
+      .fullChainOrchestrationReadiness.readinessSnapshotBinding;
+  assert.equal(binding.status,"PREPARED_REPLAY_ONLY");
+  assert.equal(binding.cap022FullChainRequired,true);
+  assert.equal(binding.technicallyPreparedRequiresFullChain,true);
+  assert.equal(binding.productiveChainEligibleRequiresFullChain,true);
+  assert.equal(binding.missingOrBlockedChainForcesStatus,"PARTIALLY_PREPARED");
+  assert.equal(binding.currentPr20_9RatificationCredit,false);
+  assert.equal(binding.durableIntentCreated,false);
+  assert.equal(binding.productiveCraftAuthorityOpened,false);
+  assert.equal(binding.normalRuntimeAllowed,false);
+});
