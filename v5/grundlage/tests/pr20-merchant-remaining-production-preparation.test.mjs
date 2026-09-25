@@ -1207,8 +1207,8 @@ test("PR20.8 Compound 5m preparation continues the committed transaction with ze
   assert.equal(p.bridgeMayDeployPinnedRunner,false);
   assert.equal(p.retiredFromActiveManifest,true);
   assert.equal(p.supersededByPerformanceRecovery,true);
-  assert.equal(p.activeRecoveryControllerVersion,"1.0.1");
-  assert.equal(p.activeRecoveryPackage,"werkzeuge/pr20-8-compound-live-5m-v1-0-1.js");
+  assert.equal(p.activeRecoveryControllerVersion,"1.0.2");
+  assert.equal(p.activeRecoveryPackage,"werkzeuge/pr20-8-compound-live-5m-v1-0-2.js");
   assert.equal(p.manifestCutoverPrepared,true);
   assert.equal(p.deployed,false);
   assert.equal(p.liveWriteEnabled,false);
