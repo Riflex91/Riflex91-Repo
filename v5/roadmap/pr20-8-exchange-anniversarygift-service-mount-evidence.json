@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "evidenceArt": "V5_PR20_8_EXCHANGE_ANNIVERSARYGIFT_SERVICE_MOUNT_REAL_BROWSER",
+  "status": "RATIFIED_EXCHANGE_SERVICE_REACHED_ONE_MOVEMENT",
+  "sourceMain": "3d4fc0f7014e22913ee8f240fb64f6fd012cc984",
+  "package": {
+    "testId": "pr20-8-exchange-anniversarygift-service-mount",
+    "controllerVersion": "1.0.0",
+    "sourceCommit": "72e01a9dd911e9a21c8e6d2002851c707f130c98",
+    "sha256": "c2a58c21a648ce17693029965380e4c343012d90de528edb43fc1b4a1946b163"
+  },
+  "liveTelemetry": {
+    "notificationId": 2921,
+    "runStartedAtMs": 1790351789884,
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "terminal": true,
+    "target": "exchange",
+    "targetPoint": {
+      "map": "main",
+      "x": -25,
+      "y": -478
+    },
+    "recipient": {
+      "characterName": "My_Merchant",
+      "sessionId": "My_Merchant",
+      "ctype": "merchant",
+      "serverRegion": "EU",
+      "serverIdentifier": "I",
+      "map": "main",
+      "x": 33.60577615751954,
+      "y": -184.83176886635644,
+      "distanceToExchange": 298.9686417419973
+    },
+    "movementIssued": true,
+    "movementCompleted": true,
+    "sendCount": 1,
+    "sendBoundaryState": "SEND_MOEGLICH_ODER_VERSUCHT",
+    "durableIntentReadback": true,
+    "recoveredExistingIntent": false,
+    "movementError": null,
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "nextAction": "RESTORE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST"
+  },
+  "safetyConclusion": {
+    "serviceReachableWithinSafetyDistance": true,
+    "safetyDistance": 300,
+    "observedDistance": 298.9686417419973,
+    "movementCountExactlyOne": true,
+    "exchangeAttempted": false,
+    "anniversarygiftConsumed": false,
+    "exchangeAuthorityIssued": false,
+    "sameIntentRetry": false,
+    "productiveRunnerMayBeRestored": true
+  },
+  "nextAction": "RESTORE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST"
+}
