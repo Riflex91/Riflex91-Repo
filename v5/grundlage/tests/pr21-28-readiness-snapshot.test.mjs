@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import {bauePr21_28StageLedger,bauePr21_28ReadinessSnapshot} from "../../erzeugt/index.js";
+import {bauePr21_28StageLedger,bauePr21_28ReadinessSnapshot,bewerteCap022FoundationChain} from "../../erzeugt/index.js";
 
 const STAGES=["PR21","PR22","PR23","PR24","PR25","PR26","PR27","PR28"];
 
@@ -23,6 +23,38 @@ function states(overrides={}){
   }));
 }
 
+
+function cap022Chain(overrides={}){
+  const ids=[
+    "MATERIAL_ACQUISITION",
+    "MATERIAL_HANDOFF",
+    "POST_SETTLEMENT_CRAFT_RESCAN",
+    "PERSISTENT_LIFECYCLE",
+    "TEAM_MATERIAL_OBJECTIVE",
+    "TEAM_COLLECTION_HANDOFF",
+    "TEAM_BATCH_SETTLEMENT_RECOVERY",
+    "TEAM_ALL_SETTLED_CRAFT_RESCAN",
+    "TEAM_RESCAN_DURABLE_ADMISSION",
+  ];
+  return bewerteCap022FoundationChain({
+    schemaVersion:1,
+    foundations:ids.map(id=>({
+      schemaVersion:1,
+      id,
+      status:"PREPARED_NO_WRITE",
+      productiveExecutionAllowed:false,
+      gameplayAuthority:false,
+      rawWriteAuthority:false,
+      normalRuntimeAllowed:false,
+    })),
+    currentPr20_9RatificationCredit:false,
+    candidateAcquisitionOrMutationAllowedNow:false,
+    durableIntentCreated:false,
+    productiveCraftAuthorityOpened:false,
+    ...overrides,
+  });
+}
+
 function checkpoints(overrides={}){
   return [
     {checkpointId:"PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",state:"NOT_READY"},
@@ -37,12 +69,16 @@ test("snapshot reports technical preparation through PR28 while live evidence is
     schemaVersion:1,
     mainCommit:"6b7828d06b440ddc2fbce5fd0e22bb544674e8fb",
     ledger,
+    cap022FoundationChain:cap022Chain(),
     checkpoints:checkpoints({
       PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT:{state:"READY_TO_RUN"},
     }),
   });
   assert.equal(snapshot.status,"TECHNICALLY_PREPARED_LIVE_EVIDENCE_PENDING");
   assert.equal(snapshot.preparationThroughPr28Complete,true);
+  assert.equal(snapshot.cap022FullChainReady,true);
+  assert.equal(snapshot.cap022FullChainStatus,"CAP022_FULL_CHAIN_BEREIT_NO_WRITE");
+  assert.deepEqual(snapshot.cap022FullChainBlocker,[]);
   assert.equal(snapshot.liveEvidenceBoundaryReached,true);
   assert.equal(snapshot.highestPreparationCompleteStage,"PR28");
   assert.equal(snapshot.highestProductiveEligibleStage,null);
@@ -63,6 +99,7 @@ test("snapshot advances the next checkpoint only after prior checkpoint ratifica
     schemaVersion:1,
     mainCommit:"6b7828d06b440ddc2fbce5fd0e22bb544674e8fb",
     ledger,
+    cap022FoundationChain:cap022Chain(),
     checkpoints:checkpoints({
       PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT:{state:"RATIFIED"},
       POST_PR24_25_GROUP_CHECKPOINT:{state:"READY_TO_RUN"},
@@ -83,6 +120,7 @@ test("fully hypothetical ratified chain reports productive eligibility without c
     schemaVersion:1,
     mainCommit:"6b7828d06b440ddc2fbce5fd0e22bb544674e8fb",
     ledger,
+    cap022FoundationChain:cap022Chain(),
     checkpoints:checkpoints({
       PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT:{state:"RATIFIED"},
       POST_PR24_25_GROUP_CHECKPOINT:{state:"RATIFIED"},
@@ -102,6 +140,7 @@ test("partial preparation remains distinct from live-evidence boundary",()=>{
     schemaVersion:1,
     mainCommit:"6b7828d06b440ddc2fbce5fd0e22bb544674e8fb",
     ledger:bauePr21_28StageLedger(partial),
+    cap022FoundationChain:cap022Chain(),
     checkpoints:checkpoints(),
   });
   assert.equal(snapshot.status,"PARTIALLY_PREPARED");
@@ -116,6 +155,7 @@ test("readiness snapshot rejects incomplete checkpoint set",()=>{
     schemaVersion:1,
     mainCommit:"6b7828d06b440ddc2fbce5fd0e22bb544674e8fb",
     ledger,
+    cap022FoundationChain:cap022Chain(),
     checkpoints:checkpoints().slice(0,2),
   }),/PR21_28_READINESS_SNAPSHOT_CHECKPOINTS_UNVOLLSTAENDIG/);
 });
@@ -125,4 +165,90 @@ test("readiness snapshot source contains no mutation bypass",()=>{
   for(const marker of ["socket.emit(","send_cm(","smart_move(","attack(","use_skill(","loot(","respawn(","change_server(","craft(","exchange(","upgrade(","compound(","V5 GESAMTFREIGABE ERTEILEN"]){
     assert.equal(source.includes(marker),false,marker);
   }
+});
+
+
+test("vollstaendiger Ledger bleibt PARTIALLY_PREPARED wenn CAP-022 Full-Chain fehlt",()=>{
+  const ledger=bauePr21_28StageLedger(states());
+  const basis={
+    schemaVersion:1,
+    foundations:[
+      "MATERIAL_ACQUISITION",
+      "MATERIAL_HANDOFF",
+      "POST_SETTLEMENT_CRAFT_RESCAN",
+      "PERSISTENT_LIFECYCLE",
+      "TEAM_MATERIAL_OBJECTIVE",
+      "TEAM_COLLECTION_HANDOFF",
+      "TEAM_BATCH_SETTLEMENT_RECOVERY",
+      "TEAM_ALL_SETTLED_CRAFT_RESCAN",
+    ].map(id=>({
+      schemaVersion:1,
+      id,
+      status:"PREPARED_NO_WRITE",
+      productiveExecutionAllowed:false,
+      gameplayAuthority:false,
+      rawWriteAuthority:false,
+      normalRuntimeAllowed:false,
+    })),
+    currentPr20_9RatificationCredit:false,
+    candidateAcquisitionOrMutationAllowedNow:false,
+    durableIntentCreated:false,
+    productiveCraftAuthorityOpened:false,
+  };
+  const blockedChain=bewerteCap022FoundationChain(basis);
+  assert.equal(blockedChain.status,"BLOCKIERT");
+
+  const snapshot=bauePr21_28ReadinessSnapshot({
+    schemaVersion:1,
+    mainCommit:"6b7828d06b440ddc2fbce5fd0e22bb544674e8fb",
+    ledger,
+    cap022FoundationChain:blockedChain,
+    checkpoints:checkpoints({
+      PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT:{state:"READY_TO_RUN"},
+    }),
+  });
+
+  assert.equal(snapshot.status,"PARTIALLY_PREPARED");
+  assert.equal(snapshot.preparationThroughPr28Complete,false);
+  assert.equal(snapshot.liveEvidenceBoundaryReached,false);
+  assert.equal(snapshot.cap022FullChainReady,false);
+  assert.equal(snapshot.cap022FullChainStatus,"BLOCKIERT");
+  assert.ok(snapshot.cap022FullChainBlocker.includes(
+    "CAP022_CHAIN_FOUNDATION_FEHLT:TEAM_RESCAN_DURABLE_ADMISSION",
+  ));
+  assert.equal(snapshot.gateMutationPerformed,false);
+  assert.equal(snapshot.authorityIssued,false);
+  assert.equal(snapshot.normalRuntimeAllowed,false);
+});
+
+test("hypothetisch produktiver Ledger kann CAP-022 Full-Chain nicht umgehen",()=>{
+  const all=Object.fromEntries(STAGES.map(stage=>[stage,{
+    liveEvidenceRatified:true,
+    explicitRatificationRecorded:true,
+    gateApplyVerified:true,
+  }]));
+  const ledger=bauePr21_28StageLedger(states(all));
+  const ready=cap022Chain();
+  const blocked={
+    ...ready,
+    status:"BLOCKIERT",
+    blocker:["CAP022_CHAIN_FOUNDATION_BLOCKIERT:TEAM_BATCH_SETTLEMENT_RECOVERY"],
+    allRequiredFoundationsReady:false,
+  };
+  const snapshot=bauePr21_28ReadinessSnapshot({
+    schemaVersion:1,
+    mainCommit:"6b7828d06b440ddc2fbce5fd0e22bb544674e8fb",
+    ledger,
+    cap022FoundationChain:blocked,
+    checkpoints:checkpoints({
+      PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT:{state:"RATIFIED"},
+      POST_PR24_25_GROUP_CHECKPOINT:{state:"RATIFIED"},
+      POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN:{state:"RATIFIED"},
+    }),
+  });
+  assert.equal(snapshot.status,"PARTIALLY_PREPARED");
+  assert.equal(snapshot.cap022FullChainReady,false);
+  assert.equal(snapshot.preparationThroughPr28Complete,false);
+  assert.equal(snapshot.liveEvidenceBoundaryReached,false);
+  assert.equal(snapshot.authorityIssued,false);
 });
