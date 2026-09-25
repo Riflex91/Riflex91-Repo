@@ -173,6 +173,47 @@ function snapshotSurfacePlacements(
   return Object.freeze(surfaces);
 }
 
+function inferStructureElevation(
+  surfaces: readonly RenderMapSurface[]
+): number {
+  if (!surfaces.length) return 0;
+
+  const minX = Math.min(...surfaces.map((surface) => surface.minX));
+  const minY = Math.min(...surfaces.map((surface) => surface.minY));
+  const maxX = Math.max(...surfaces.map((surface) => surface.maxX));
+  const maxY = Math.max(...surfaces.map((surface) => surface.maxY));
+  const width = Math.max(1, maxX - minX);
+  const depth = Math.max(1, maxY - minY);
+  const longSide = Math.max(width, depth);
+  const shortSide = Math.min(width, depth);
+  const footprint = width * depth;
+  const materials = surfaces
+    .map((surface) => surface.material.toLowerCase())
+    .join(" ");
+
+  const decorative =
+    /(tree|bush|grass|flower|plant|fence|rail|light|water|road|path|ground)/.test(
+      materials
+    );
+  const architectural =
+    /(house|roof|building|wall|castle|fort|interior|dungeon|tower|shop)/.test(
+      materials
+    );
+
+  if (decorative && !architectural) return 2;
+  if (shortSide <= 28 && longSide >= 120) return 3;
+  if (surfaces.length <= 2 && longSide <= 112) return 4;
+  if (architectural) {
+    if (footprint >= 90000) return 22;
+    if (footprint >= 40000) return 18;
+    return 14;
+  }
+  if (footprint < 12000) return 4;
+  if (footprint < 36000) return 8;
+  if (footprint < 90000) return 12;
+  return 16;
+}
+
 function snapshotMapSurfaces(
   visualGeometry: Readonly<Record<string, unknown>> | undefined,
   tilesetsValue: unknown
@@ -191,13 +232,21 @@ function snapshotMapSurfaces(
 
   if (Array.isArray(visualGeometry.groups)) {
     visualGeometry.groups.forEach((group, index) => {
+      const groupSurfaces = snapshotSurfacePlacements(
+        tiles,
+        group,
+        tilesetsValue,
+        "structure",
+        index
+      );
+      const elevation = inferStructureElevation(groupSurfaces);
+
       surfaces.push(
-        ...snapshotSurfacePlacements(
-          tiles,
-          group,
-          tilesetsValue,
-          "structure",
-          index
+        ...groupSurfaces.map((surface) =>
+          Object.freeze({
+            ...surface,
+            elevation
+          })
         )
       );
     });

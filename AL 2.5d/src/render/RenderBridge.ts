@@ -48,6 +48,7 @@ export type RenderMapSurface = Readonly<{
   sourceY?: number;
   tileWidth?: number;
   tileHeight?: number;
+  elevation?: number;
 }>;
 
 export type RenderMapGeometrySummary = Readonly<{

@@ -500,9 +500,15 @@ export class Pixi25DRenderer implements RenderBridge {
   }
 
   private surfaceHeight(surface: RenderMapSurface): number {
-    return surface.layer === "structure"
-      ? 14 + ((surface.group ?? 0) % 3) * 4
-      : 0;
+    if (surface.layer !== "structure") return 0;
+
+    return Math.max(
+      0,
+      Math.min(
+        28,
+        surface.elevation ?? 10
+      )
+    );
   }
 
   private async addTexturedMapSurface(
