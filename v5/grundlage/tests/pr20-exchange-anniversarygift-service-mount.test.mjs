@@ -109,11 +109,11 @@ test("roadmap ratifies service mount and restores productive one-write deploymen
   const live=a.anniversaryGiftProductiveOneWrite;
   const mount=a.anniversaryGiftServiceMount;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_MANIFEST_CUTOVER_PREPARED");
+    "EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_RATIFIED_AUTONOMY_PREPARED_NO_WRITE");
   assert.equal(roadmap.pr20_8.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_LIVE_5M");
+    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
   assert.equal(a.status,
-    "ANNIVERSARYGIFT_LIVE_5M_MANIFEST_CUTOVER_PREPARED");
+    "ANNIVERSARYGIFT_LIVE_5M_RATIFIED_AUTONOMY_PREPARED_NO_WRITE");
   assert.equal(live.status,"RATIFIED_COMMITTED_EXCHANGE_ONE_WRITE");
   assert.equal(live.deployed,true);
   assert.equal(live.liveEvidenceObserved,true);
