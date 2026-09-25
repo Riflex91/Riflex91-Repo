@@ -111,15 +111,15 @@ test("roadmap advances only to shadow manifest cutover and leaves productive aut
   const p=roadmap.pr20_8;
   assert.equal(
     p.status,
-    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED",
+    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_RATIFIED_PR20_8_COMPLETE",
   );
   assert.equal(
     p.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_PRODUCTIVE_ONE_WRITE",
+    "ADVANCE_TO_PR20_9_PRODUCTION",
   );
   assert.equal(
     p.remainingGates.normalExchange,
-    "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_RATIFIED_AUTONOMY_PENDING",
+    "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_RATIFIED_AUTONOMY_PRODUCTIVE_RATIFIED",
   );
   const s=p.exchangeCandidateAcquisition.anniversaryGiftExchangeAutonomyRouteShadow;
   assert.equal(s.status,"RATIFIED_BESTANDEN_AUTONOMY_ROUTE_ZERO_WRITE");
@@ -134,7 +134,7 @@ test("roadmap advances only to shadow manifest cutover and leaves productive aut
   assert.equal(s.deployed,true);
   assert.equal(s.liveEvidenceObserved,true);
   assert.equal(s.productiveAutonomyProven,false);
-  assert.equal(p.exitGateReview.exchangeAutonomyProductiveProven,false);
-  assert.equal(p.exitGateReview.currentExitGateSatisfied,false);
-  assert.equal(p.exitGateReview.mayAdvanceToPr20_9,false);
+  assert.equal(p.exitGateReview.exchangeAutonomyProductiveProven,true);
+  assert.equal(p.exitGateReview.currentExitGateSatisfied,true);
+  assert.equal(p.exitGateReview.mayAdvanceToPr20_9,true);
 });
