@@ -144,12 +144,12 @@ test("roadmap ratifies scanner evidence but only prepares the no-write shadow",(
 });
 
 test("active manifest has advanced to the anniversarygift Exchange service mount",()=>{
-  assert.equal(manifest.testId,"pr20-9-craft-service-mount");
+  assert.equal(manifest.testId,"pr20-9-craft-durable-shadow-no-write");
   assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,"739737faca62bca5ffa991a7733a7494f59c479c");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-9-craft-service-mount-v1-0-0.js");
-  assert.equal(manifest.packageSha256,"e4662c2de20b59552c9dc79674c77de1fb72f79eb01b6b9e684b90f004fa7f41");
-  assert.equal(manifest.expectedGlobal,"V5PR209CraftServiceMount");
+  assert.equal(manifest.sourceCommit,"116d762a1e1fad230cbd64a5a44d6762465501f0");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-9-craft-durable-shadow-no-write-v1-0-0.js");
+  assert.equal(manifest.packageSha256,"a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a");
+  assert.equal(manifest.expectedGlobal,"V5PR209CraftDurableShadowNoWrite");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 
