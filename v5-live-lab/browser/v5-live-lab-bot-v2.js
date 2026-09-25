@@ -667,17 +667,13 @@
 
   function assignGroupRoles(active) {
     const roles = {};
-    const used = new Set();
     const pick = function (capability) {
       const candidates = active.filter(function (m) {
-        return !used.has(m.characterId) && m.capabilities.includes(capability);
+        return m.capabilities.includes(capability);
       }).sort(function (a, b) {
         return b.gearScore - a.gearScore || b.level - a.level || a.characterId.localeCompare(b.characterId);
       });
-      if (candidates[0]) {
-        roles[capability] = candidates[0].characterId;
-        used.add(candidates[0].characterId);
-      }
+      if (candidates[0]) roles[capability] = candidates[0].characterId;
     };
     ["TANK", "HEAL", "AOE", "CC", "KITE", "REVIVE"].forEach(pick);
     roles.DPS = Object.freeze(active.filter(function (m) {
