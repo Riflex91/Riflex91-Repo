@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_8_EXCHANGE_SEASHELL_FARM_SHADOW_ADMISSION",
+  "status": "ADMISSION_PREPARED_NO_WRITE",
+  "sourceMain": "28dde36091def9ec89ca3c289ba583837eb9b1c7",
+  "prerequisite": {
+    "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-seashell-farm-preparation.json",
+    "requiredStatus": "PREPARED_NO_WRITE",
+    "targetItem": "seashell",
+    "requiredQuantity": 20,
+    "sourceMonster": "croc",
+    "priorFarmAuthority": false,
+    "priorExchangeAuthority": false,
+    "priorMaximumGameplayWrites": 0
+  },
+  "admission": {
+    "source": "v5/grundlage/quelle/farmer/pr20-8-seashell-farm-shadow-admission.ts",
+    "characterAgnostic": true,
+    "merchantAsFarmWorkerAllowed": false,
+    "requiredServerMatch": true,
+    "requiredFreshSession": true,
+    "requiredFreshRoster": true,
+    "requiredActiveLifecycle": true,
+    "requiredRestartReconciliation": true,
+    "requiredMovementOwnership": true,
+    "requiredArrivalEvidence": true,
+    "requiredTargetOwnership": true,
+    "requiredTargetEvidence": true,
+    "requiredEquipmentEvidence": true,
+    "requiredConditionEvidence": true,
+    "requiredLootEvidence": true,
+    "requiredInventoryCapacityWhenQuantityBelowTarget": true,
+    "minimumHpRatio": 0.8,
+    "targetMonster": "croc",
+    "targetItem": "seashell",
+    "requiredQuantity": 20
+  },
+  "noWriteBoundary": {
+    "movementAuthority": false,
+    "combatAuthority": false,
+    "skillAuthority": false,
+    "lootAuthority": false,
+    "farmAuthority": false,
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "maximumGameplayWrites": 0,
+    "maximumPublicFunctionCalls": 0,
+    "maximumRawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "alreadySatisfiedOutcome": {
+    "whenCurrentSeashellQuantityAtLeast": 20,
+    "action": "RUN_EXISTING_EXCHANGE_SCANNER",
+    "farmStillNotAllowed": true
+  },
+  "futureRunnerBoundary": {
+    "runnerPrepared": false,
+    "manifestCutoverPrepared": false,
+    "movementAllowed": false,
+    "attackAllowed": false,
+    "skillAllowed": false,
+    "lootAllowed": false,
+    "farmAllowed": false,
+    "exchangeAllowed": false,
+    "rawSocketWriteAllowed": false,
+    "purpose": "READ_ONLY_FARM_WORKER_AND_TARGET_OBSERVATION_ONLY"
+  },
+  "evidenceSeparation": {
+    "shadowAdmissionDoesNotCountAsFarmEvidence": true,
+    "shadowAdmissionDoesNotCountAsExchangeRatification": true,
+    "acquisitionDoesNotCountAsExchangeRatification": true,
+    "freshExistingExchangeScannerRequiredAfterAcquisition": true
+  },
+  "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_RUNNER_READ_ONLY"
+}
