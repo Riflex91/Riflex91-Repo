@@ -69,7 +69,26 @@ describe("LegacyMirrorBridge", () => {
     const globals = Object.freeze({
       current_map: "main",
       character,
-      entities: Object.freeze({})
+      entities: Object.freeze({}),
+      G: Object.freeze({
+        maps: Object.freeze({
+          main: Object.freeze({ name: "Main" })
+        }),
+        geometry: Object.freeze({
+          main: Object.freeze({
+            min_x: -100,
+            min_y: -50,
+            max_x: 300,
+            max_y: 250,
+            x_lines: Object.freeze([
+              Object.freeze([10, 20, 40])
+            ]),
+            y_lines: Object.freeze([
+              Object.freeze([50, 60, 90])
+            ])
+          })
+        })
+      })
     });
 
     const before = JSON.stringify(globals);
@@ -85,7 +104,43 @@ describe("LegacyMirrorBridge", () => {
       y: 202,
       kind: "player"
     });
+    expect(snapshot.mapState?.geometry.bounds).toEqual({
+      minX: -100,
+      minY: -50,
+      maxX: 300,
+      maxY: 250
+    });
+    expect(snapshot.mapState?.geometry.collisionXLines).toEqual([[10, 20, 40]]);
+    expect(snapshot.mapState?.geometry.collisionYLines).toEqual([[50, 60, 90]]);
     expect(renderer.frames).toHaveLength(1);
+  });
+
+  it("reports snapshots to a renderer-side camera follower without touching gameplay", () => {
+    const renderer = new FakeRenderer();
+    const snapshots: GameFrameSnapshot[] = [];
+    const globals = {
+      current_map: "main",
+      character: {
+        id: "Hero",
+        ctype: "warrior",
+        real_x: 10,
+        real_y: 20
+      },
+      entities: {}
+    };
+
+    const bridge = new LegacyMirrorBridge(
+      renderer,
+      () => globals,
+      undefined,
+      undefined,
+      (snapshot) => snapshots.push(snapshot)
+    );
+
+    bridge.renderOnce();
+
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0].entities[0].local).toBe(true);
   });
 
   it("starts and stops a renderer-only animation loop", () => {

@@ -2,6 +2,7 @@ import {
   Application,
   Assets,
   Container,
+  Graphics,
   Sprite,
   Texture
 } from "pixi.js";
@@ -9,31 +10,40 @@ import {
 import { AssetRegistry } from "./AssetRegistry";
 import type {
   CameraState,
+  EntityKind,
   GameFrameSnapshot,
   RenderBridge,
-  RenderEntity
+  RenderEntity,
+  RenderMapBounds
 } from "./RenderBridge";
 import { projectWorldToScreen } from "./projection";
 
 type EntityVisual = {
   container: Container;
   sprite: Sprite;
+  fallback: Graphics;
   assetId: string;
+  kind: EntityKind;
 };
 
 const DEFAULT_CAMERA: CameraState = {
   x: 0,
   y: 0,
-  zoom: 1
+  zoom: 1.35
 };
+
+const FALLBACK_BOUNDS_SIZE = 1800;
+const GRID_STEP = 128;
 
 export class Pixi25DRenderer implements RenderBridge {
   private readonly app = new Application();
   private readonly world = new Container();
+  private readonly mapLayer = new Container();
   private readonly visuals = new Map<string, EntityVisual>();
   private readonly textureLoads = new Map<string, Promise<Texture | null>>();
   private camera: CameraState = DEFAULT_CAMERA;
   private mounted = false;
+  private mapVisualKey = "";
 
   constructor(private readonly assets = new AssetRegistry()) {}
 
@@ -43,10 +53,13 @@ export class Pixi25DRenderer implements RenderBridge {
     await this.app.init({
       resizeTo: host,
       antialias: true,
-      backgroundAlpha: 0
+      background: 0x0d1110,
+      backgroundAlpha: 1
     });
 
     this.world.sortableChildren = true;
+    this.mapLayer.zIndex = -1000000;
+    this.world.addChild(this.mapLayer);
     this.app.stage.addChild(this.world);
     host.appendChild(this.app.canvas);
 
@@ -65,6 +78,8 @@ export class Pixi25DRenderer implements RenderBridge {
 
   renderFrame(snapshot: GameFrameSnapshot): void {
     if (!this.mounted) return;
+
+    this.renderMap(snapshot);
 
     const alive = new Set<string>();
 
@@ -86,6 +101,139 @@ export class Pixi25DRenderer implements RenderBridge {
     this.textureLoads.clear();
     this.app.destroy(true, { children: true });
     this.mounted = false;
+    this.mapVisualKey = "";
+  }
+
+  private renderMap(snapshot: GameFrameSnapshot): void {
+    const geometry = snapshot.mapState?.geometry;
+    const bounds = this.resolveBounds(snapshot);
+    const key = [
+      snapshot.map,
+      geometry?.xLines ?? 0,
+      geometry?.yLines ?? 0,
+      bounds.minX,
+      bounds.minY,
+      bounds.maxX,
+      bounds.maxY
+    ].join(":");
+
+    if (key === this.mapVisualKey) return;
+    this.mapVisualKey = key;
+
+    for (const child of this.mapLayer.removeChildren()) {
+      child.destroy({ children: true });
+    }
+
+    const floor = new Graphics();
+    const corners = [
+      projectWorldToScreen({ x: bounds.minX, y: bounds.minY }),
+      projectWorldToScreen({ x: bounds.maxX, y: bounds.minY }),
+      projectWorldToScreen({ x: bounds.maxX, y: bounds.maxY }),
+      projectWorldToScreen({ x: bounds.minX, y: bounds.maxY })
+    ];
+
+    floor
+      .poly(corners.flatMap((point) => [point.x, point.y]))
+      .fill({ color: 0x17231f, alpha: 1 })
+      .stroke({ color: 0x315045, width: 2, alpha: 0.9 });
+
+    this.drawGrid(floor, bounds);
+    this.mapLayer.addChild(floor);
+
+    const walls = new Graphics();
+    for (const [x, y1, y2] of geometry?.collisionXLines ?? []) {
+      this.drawCollisionWall(walls, { x, y: y1 }, { x, y: y2 });
+    }
+    for (const [y, x1, x2] of geometry?.collisionYLines ?? []) {
+      this.drawCollisionWall(walls, { x: x1, y }, { x: x2, y });
+    }
+    this.mapLayer.addChild(walls);
+  }
+
+  private resolveBounds(snapshot: GameFrameSnapshot): RenderMapBounds {
+    const explicit = snapshot.mapState?.geometry.bounds;
+    if (
+      explicit &&
+      explicit.maxX > explicit.minX &&
+      explicit.maxY > explicit.minY
+    ) {
+      return this.padBounds(explicit, 96);
+    }
+
+    const local = snapshot.entities.find((entity) => entity.local);
+    const centerX = local?.x ?? 0;
+    const centerY = local?.y ?? 0;
+    const half = FALLBACK_BOUNDS_SIZE / 2;
+
+    return {
+      minX: centerX - half,
+      minY: centerY - half,
+      maxX: centerX + half,
+      maxY: centerY + half
+    };
+  }
+
+  private padBounds(bounds: RenderMapBounds, padding: number): RenderMapBounds {
+    return {
+      minX: bounds.minX - padding,
+      minY: bounds.minY - padding,
+      maxX: bounds.maxX + padding,
+      maxY: bounds.maxY + padding
+    };
+  }
+
+  private drawGrid(graphics: Graphics, bounds: RenderMapBounds): void {
+    const spanX = bounds.maxX - bounds.minX;
+    const spanY = bounds.maxY - bounds.minY;
+    const xStride =
+      GRID_STEP * Math.max(1, Math.ceil(spanX / GRID_STEP / 72));
+    const yStride =
+      GRID_STEP * Math.max(1, Math.ceil(spanY / GRID_STEP / 72));
+
+    const firstX = Math.ceil(bounds.minX / xStride) * xStride;
+    const firstY = Math.ceil(bounds.minY / yStride) * yStride;
+
+    for (let x = firstX; x <= bounds.maxX; x += xStride) {
+      const a = projectWorldToScreen({ x, y: bounds.minY });
+      const b = projectWorldToScreen({ x, y: bounds.maxY });
+      graphics
+        .moveTo(a.x, a.y)
+        .lineTo(b.x, b.y)
+        .stroke({ color: 0x294038, width: 1, alpha: 0.45 });
+    }
+
+    for (let y = firstY; y <= bounds.maxY; y += yStride) {
+      const a = projectWorldToScreen({ x: bounds.minX, y });
+      const b = projectWorldToScreen({ x: bounds.maxX, y });
+      graphics
+        .moveTo(a.x, a.y)
+        .lineTo(b.x, b.y)
+        .stroke({ color: 0x294038, width: 1, alpha: 0.45 });
+    }
+  }
+
+  private drawCollisionWall(
+    graphics: Graphics,
+    start: { x: number; y: number },
+    end: { x: number; y: number }
+  ): void {
+    const a = projectWorldToScreen(start);
+    const b = projectWorldToScreen(end);
+    const height = 13;
+
+    graphics
+      .poly([
+        a.x,
+        a.y,
+        b.x,
+        b.y,
+        b.x,
+        b.y - height,
+        a.x,
+        a.y - height
+      ])
+      .fill({ color: 0x385248, alpha: 0.6 })
+      .stroke({ color: 0x6f9587, width: 1, alpha: 0.75 });
   }
 
   private upsertEntity(entity: RenderEntity): void {
@@ -94,24 +242,41 @@ export class Pixi25DRenderer implements RenderBridge {
     if (!visual) {
       const container = new Container();
       const sprite = new Sprite(Texture.WHITE);
+      const fallback = new Graphics();
       sprite.anchor.set(0.5, 1);
+      sprite.visible = false;
 
+      container.addChild(fallback);
       container.addChild(sprite);
       this.world.addChild(container);
 
       visual = {
         container,
         sprite,
-        assetId: ""
+        fallback,
+        assetId: "",
+        kind: entity.kind
       };
 
+      this.drawFallback(fallback, entity.kind, Boolean(entity.local));
       this.visuals.set(entity.id, visual);
+    } else if (visual.kind !== entity.kind) {
+      visual.kind = entity.kind;
+      this.drawFallback(visual.fallback, entity.kind, Boolean(entity.local));
     }
 
     if (visual.assetId !== entity.texture) {
       visual.assetId = entity.texture;
-      visual.sprite.texture = Texture.WHITE;
-      void this.loadTexture(visual, entity.texture);
+      const src = this.assets.resolve(entity.texture);
+
+      if (src) {
+        visual.sprite.visible = false;
+        visual.fallback.visible = true;
+        void this.loadTexture(visual, entity.texture);
+      } else {
+        visual.sprite.visible = false;
+        visual.fallback.visible = true;
+      }
     }
 
     const projected = projectWorldToScreen(entity);
@@ -121,12 +286,74 @@ export class Pixi25DRenderer implements RenderBridge {
     visual.container.scale.set(entity.scale ?? 1);
     visual.container.alpha = entity.alpha ?? 1;
 
-    // Facing is a renderer concern. Negative horizontal scale mirrors the art
-    // without changing authoritative movement/direction logic.
     if (entity.facing !== undefined) {
-      const magnitude = Math.abs(visual.sprite.scale.x) || 1;
-      visual.sprite.scale.x = entity.facing < 0 ? -magnitude : magnitude;
+      const magnitude = Math.abs(visual.container.scale.x) || 1;
+      visual.container.scale.x =
+        entity.facing < 0 ? -magnitude : magnitude;
     }
+  }
+
+  private drawFallback(
+    graphics: Graphics,
+    kind: EntityKind,
+    local: boolean
+  ): void {
+    graphics.clear();
+
+    graphics
+      .ellipse(0, 2, 13, 5)
+      .fill({ color: 0x000000, alpha: 0.35 });
+
+    if (kind === "monster") {
+      graphics
+        .ellipse(0, -11, 13, 11)
+        .fill({ color: 0xb75252, alpha: 1 })
+        .stroke({ color: 0xf0997f, width: 2, alpha: 0.95 });
+      graphics
+        .circle(-4, -14, 2)
+        .fill({ color: 0xf5e6cf, alpha: 1 });
+      graphics
+        .circle(4, -14, 2)
+        .fill({ color: 0xf5e6cf, alpha: 1 });
+      return;
+    }
+
+    if (kind === "npc") {
+      graphics
+        .roundRect(-10, -31, 20, 29, 6)
+        .fill({ color: 0xc69b45, alpha: 1 })
+        .stroke({ color: 0xf2d184, width: 2, alpha: 0.95 });
+      graphics
+        .circle(0, -35, 7)
+        .fill({ color: 0xe1b86f, alpha: 1 });
+      return;
+    }
+
+    if (kind === "player") {
+      const bodyColor = local ? 0x4f9fd7 : 0x6e86a8;
+      graphics
+        .roundRect(-10, -32, 20, 30, 7)
+        .fill({ color: bodyColor, alpha: 1 })
+        .stroke({
+          color: local ? 0xa8e6ff : 0xb7c6db,
+          width: local ? 3 : 2,
+          alpha: 1
+        });
+      graphics
+        .circle(0, -37, 7)
+        .fill({ color: 0xd8b08a, alpha: 1 });
+      if (local) {
+        graphics
+          .circle(0, -17, 16)
+          .stroke({ color: 0x7fdcff, width: 1.5, alpha: 0.75 });
+      }
+      return;
+    }
+
+    graphics
+      .poly([0, -24, 13, -10, 0, 0, -13, -10])
+      .fill({ color: 0x7a817d, alpha: 1 })
+      .stroke({ color: 0xb0b8b3, width: 2, alpha: 0.8 });
   }
 
   private async loadTexture(
@@ -148,9 +375,10 @@ export class Pixi25DRenderer implements RenderBridge {
 
     const texture = await load;
 
-    // Ignore a late load if the entity switched assets while waiting.
     if (texture && visual.assetId === assetId) {
       visual.sprite.texture = texture;
+      visual.sprite.visible = true;
+      visual.fallback.visible = false;
     }
   }
 

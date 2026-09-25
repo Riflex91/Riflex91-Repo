@@ -10,12 +10,22 @@ export type RenderEntity = Readonly<{
   facing?: number;
   scale?: number;
   alpha?: number;
+  local?: boolean;
 }>;
 
 export type CameraState = Readonly<{
   x: number;
   y: number;
   zoom: number;
+}>;
+
+export type RenderCollisionLine = readonly [number, number, number];
+
+export type RenderMapBounds = Readonly<{
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
 }>;
 
 export type RenderMapGeometrySummary = Readonly<{
@@ -26,6 +36,9 @@ export type RenderMapGeometrySummary = Readonly<{
   animations: number;
   xLines: number;
   yLines: number;
+  bounds?: RenderMapBounds;
+  collisionXLines: readonly RenderCollisionLine[];
+  collisionYLines: readonly RenderCollisionLine[];
 }>;
 
 export type RenderMapState = Readonly<{

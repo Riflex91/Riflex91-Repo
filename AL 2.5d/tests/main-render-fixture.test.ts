@@ -23,7 +23,8 @@ describe("main render fixture", () => {
           y: 24,
           z: undefined,
           texture: "asset://player/mwarrior",
-          facing: 1
+          facing: 1,
+          local: true
         },
         {
           id: "goo_1",

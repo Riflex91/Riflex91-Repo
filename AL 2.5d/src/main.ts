@@ -22,7 +22,11 @@ import type {
   GameFrameSnapshot,
   RenderBridge
 } from "./render/RenderBridge";
-import type { ScreenPoint, WorldPoint } from "./render/projection";
+import {
+  projectWorldToScreen,
+  type ScreenPoint,
+  type WorldPoint
+} from "./render/projection";
 import { GraphicsModeToggle } from "./ui/GraphicsModeToggle";
 
 declare global {
@@ -77,7 +81,7 @@ async function boot(): Promise<void> {
 
   const assets = new AssetRegistry();
   const renderer = new Pixi25DRenderer(assets);
-  let camera: CameraState = { x: 0, y: 0, zoom: 1 };
+  let camera: CameraState = { x: 0, y: 0, zoom: 1.35 };
   let legacyMirror: LegacyMirrorBridge | null = null;
   let legacyRuntime: LegacyCompatibilityRuntime | null = null;
   let graphicsMode: GraphicsMode =
@@ -98,7 +102,24 @@ async function boot(): Promise<void> {
 
   const startMirror = (readGlobals: () => LegacyGlobalsLike): void => {
     legacyMirror?.stop();
-    legacyMirror = new LegacyMirrorBridge(renderer, readGlobals);
+    legacyMirror = new LegacyMirrorBridge(
+      renderer,
+      readGlobals,
+      undefined,
+      undefined,
+      (snapshot) => {
+        const local = snapshot.entities.find((entity) => entity.local);
+        if (!local) return;
+
+        const projected = projectWorldToScreen(local);
+        camera = {
+          x: projected.x,
+          y: projected.y,
+          zoom: camera.zoom
+        };
+        renderer.setCamera(camera);
+      }
+    );
     legacyMirror.start();
   };
 

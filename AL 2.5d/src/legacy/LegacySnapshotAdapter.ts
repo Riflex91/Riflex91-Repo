@@ -60,7 +60,7 @@ export class LegacySnapshotAdapter {
           (typeof entity.npc === "string" ? entity.npc : undefined) ??
           entity.id;
 
-        return `asset://${kind}/${visualKey}`;
+        return "asset://" + kind + "/" + visualKey;
       });
   }
 
@@ -70,15 +70,15 @@ export class LegacySnapshotAdapter {
     if (source.character) {
       entities.set(
         source.character.id,
-        this.convertEntity(source.character, "player")
+        this.convertEntity(source.character, "player", true)
       );
     }
 
     for (const entity of Object.values(source.entities ?? {})) {
-      if (!entity || !entity.id) continue;
+      if (!entity || !entity.id || entities.has(entity.id)) continue;
 
       const kind = this.detectKind(entity);
-      entities.set(entity.id, this.convertEntity(entity, kind));
+      entities.set(entity.id, this.convertEntity(entity, kind, false));
     }
 
     return Object.freeze({
@@ -113,7 +113,8 @@ export class LegacySnapshotAdapter {
 
   private convertEntity(
     entity: LegacyEntityLike,
-    kind: EntityKind
+    kind: EntityKind,
+    local: boolean
   ): RenderEntity {
     const x = entity.real_x ?? entity.x ?? 0;
     const y = entity.real_y ?? entity.y ?? 0;
@@ -124,7 +125,7 @@ export class LegacySnapshotAdapter {
       facing = entity.going_x < x ? -1 : 1;
     }
 
-    return Object.freeze({
+    const base = {
       id: entity.id,
       kind,
       x,
@@ -132,6 +133,8 @@ export class LegacySnapshotAdapter {
       z: entity.z,
       texture: this.resolveAssetId(entity, kind),
       facing
-    });
+    };
+
+    return Object.freeze(local ? { ...base, local: true } : base);
   }
 }

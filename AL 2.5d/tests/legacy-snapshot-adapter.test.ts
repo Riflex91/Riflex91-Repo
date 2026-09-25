@@ -34,7 +34,8 @@ describe("LegacySnapshotAdapter", () => {
       kind: "player",
       x: 101.5,
       y: 198.25,
-      facing: -1
+      facing: -1,
+      local: true
     });
   });
 
@@ -96,5 +97,6 @@ describe("LegacySnapshotAdapter", () => {
 
     expect(snapshot.entities).toHaveLength(1);
     expect(snapshot.entities[0].kind).toBe("player");
+    expect(snapshot.entities[0].local).toBe(true);
   });
 });

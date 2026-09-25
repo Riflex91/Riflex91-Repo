@@ -50,15 +50,17 @@ Deliverable: original game logic driving the visible new renderer.
 
 ## AL25D-04 — First playable 2.5D map
 
-- new Main/Town visual asset set
-- 2.5D map renderer
-- characters
-- NPCs
-- Goo/first monsters
-- camera
-- click-to-move
-- nameplates and target bars
-- baseline HUD
+Status: in progress
+
+- [ ] new Main/Town visual asset set
+- [x] procedural 2.5D ground/grid from immutable map bounds
+- [x] projected collision-wall visualization from copied G.geometry lines
+- [x] visible procedural fallbacks for characters, NPCs, monsters and props
+- [x] camera follows the local character without changing gameplay coordinates
+- [x] click-to-move continues through the original map_click/on_map_click path
+- [ ] authored character/NPC/monster artwork and animation states
+- [ ] nameplates and target bars
+- [ ] baseline HUD
 
 Deliverable: walkable Main with original gameplay logic.
 
