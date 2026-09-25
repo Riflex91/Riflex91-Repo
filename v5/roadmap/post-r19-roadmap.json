@@ -858,7 +858,7 @@
     },
     {
       "id": "PR20.9_PRODUCTION",
-      "status": "CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE_BEREIT_NO_WRITE",
+      "status": "CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
       "blockedBy": [
         "PR20.2",
         "PR20.3",
@@ -869,7 +869,7 @@
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
       "liveExecutionAllowed": false,
-      "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER",
+      "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_REAL_BROWSER_RUN",
       "artifacts": [
         "v5/grundlage/quelle/produktion/production-graph.ts",
         "v5/grundlage/quelle/produktion/production-planer.ts",
@@ -883,7 +883,9 @@
         "v5/grundlage/tests/pr20-9-craft-durable-shadow.test.mjs",
         "v5/werkzeuge/pr20-9-craft-durable-shadow-no-write.js",
         "v5/werkzeuge/tests/pr20-9-craft-durable-shadow-no-write.test.mjs",
-        "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-runner-preparation.json"
+        "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-runner-preparation.json",
+        "v5/roadmap/v5-autonomous-test-manifest.json",
+        "v5/werkzeuge/tests/v5-autonomous-test-manifest.test.mjs"
       ]
     },
     {
@@ -2994,7 +2996,7 @@
     }
   },
   "pr20_9": {
-    "status": "CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE_BEREIT_NO_WRITE",
+    "status": "CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
     "ziel": "Craft und Production produktiv",
     "blockedBy": [
       "PR20.2",
@@ -3050,7 +3052,7 @@
       "newProductiveStepsHaveFiveMinuteEvidence": false,
       "satisfied": false
     },
-    "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER",
+    "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_REAL_BROWSER_RUN",
     "craftDurableShadow": {
       "status": "FOUNDATION_BEREIT_NO_WRITE",
       "source": "v5/grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
@@ -3100,8 +3102,11 @@
       "broadGraphExecutionAuthority": false,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "manifestCutoverPrepared": false,
-      "active": false
+      "manifestCutoverPrepared": true,
+      "active": true,
+      "packageSha256": "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
+      "packageBytes": 26951,
+      "manifest": "v5/roadmap/v5-autonomous-test-manifest.json"
     }
   }
 }
