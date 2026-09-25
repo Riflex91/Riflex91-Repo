@@ -1,0 +1,11 @@
+{
+  "name": "adventure-land-v5-live-lab",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated V5 Live Lab through PR28 with in-game HUD, task-party optimization, progression, world autonomy, restart safety and clipboard V5 Live-Test Bug reporting.",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check src/authority-profile.mjs && node --check src/stage-authority.mjs && node --check src/adventure-land-ports.mjs && node --check src/live-runtime-controller.mjs && node --check src/group-runtime.mjs && node --check src/autonomy-runtime.mjs && node --check browser/v5-live-lab-bot-v1.js && node --check browser/v5-live-lab-bot-v2.js && node --test tests/*.test.mjs"
+  }
+}
