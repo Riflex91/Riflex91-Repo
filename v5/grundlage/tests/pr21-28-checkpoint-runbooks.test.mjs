@@ -336,6 +336,13 @@ test("Checkpoint-Runbook-Vertrag und Roadmap verlangen CAP-022 vor Group-Runtime
   assert.equal(boundary.candidateAcquisitionOrMutationAllowedNow,false);
   assert.equal(boundary.durableIntentCreated,false);
   assert.equal(boundary.productiveCraftAuthorityOpened,false);
+  assert.equal(boundary.resultPackageBindsFullChain,true);
+  assert.equal(boundary.groupPackageCannotBeReadyWithoutFullChain,true);
+  assert.equal(boundary.ratificationMustPreservePackageBinding,true);
+  assert.equal(contract.resultPackage.cap022FullChainBoundToPackage,true);
+  assert.equal(contract.resultPackage.groupCheckpointRequiresSatisfiedFullChain,true);
+  assert.ok(contract.resultPackage.binds.includes("CAP022_FULL_CHAIN_REQUIRED"));
+  assert.ok(contract.resultPackage.binds.includes("CAP022_FULL_CHAIN_SATISFIED"));
 
   const roadmap=JSON.parse(fs.readFileSync(
     "roadmap/post-r19-roadmap.json",
