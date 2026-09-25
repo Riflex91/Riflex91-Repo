@@ -106,14 +106,10 @@ function selectBest(members, capability, excluded) {
 }
 
 function assignRoles(activeMembers) {
-  const assigned = new Set();
   const roles = {};
   for (const capability of ["TANK", "HEAL", "AOE", "CC", "KITE", "REVIVE"]) {
-    const member = selectBest(activeMembers, capability, assigned);
-    if (member) {
-      roles[capability] = member.characterId;
-      assigned.add(member.characterId);
-    }
+    const member = selectBest(activeMembers, capability, new Set());
+    if (member) roles[capability] = member.characterId;
   }
   const dps = activeMembers
     .filter((m) => m.capabilities.includes("SINGLE_TARGET"))
