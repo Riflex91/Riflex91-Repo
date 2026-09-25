@@ -66,6 +66,20 @@ describe("Windows local sandbox scripts", () => {
     expect(stop).toContain("mongodb.pid");
   });
 
+  it("runs local MongoDB as a single-node replica set for upstream transactions", () => {
+    const setup = read("local-dev/windows/setup.ps1");
+    const start = read("local-dev/windows/start.ps1");
+
+    expect(setup).toContain('$MongoReplicaSet = "al25d-rs"');
+    expect(setup).toContain("--replSet $MongoReplicaSet");
+    expect(setup).toContain("replSetInitiate");
+    expect(setup).toContain("replicaSet=$MongoReplicaSet");
+    expect(start).toContain('$MongoReplicaSet = "al25d-rs"');
+    expect(start).toContain("--replSet $MongoReplicaSet");
+    expect(start).toContain("replSetInitiate");
+    expect(start).toContain("transaction-ready");
+  });
+
   it("pins shared inter-process server keys and verifies the local eval bridge", () => {
     const setup = read("local-dev/windows/setup.ps1");
     const start = read("local-dev/windows/start.ps1");
