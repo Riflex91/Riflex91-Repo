@@ -67,7 +67,7 @@ const allowedPackages = Object.freeze({
     gate: "PR20.8_WERTMUTATIONEN"
   }),
   "pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write": Object.freeze({
-    path: "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-0.js",
+    path: "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-1.js",
     expectedGlobal: "V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
