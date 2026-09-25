@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "CAP022_PRODUCTION_MATERIAL_HANDOFF_FOUNDATION",
+  "status": "PREPARED_NO_WRITE",
+  "capability": "CAP-022",
+  "name": "Production Material Collection / Handoff",
+  "source": "v5/grundlage/quelle/koordination/production-material-handoff.ts",
+  "test": "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs",
+  "dependsOn": [
+    "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+    "v5/grundlage/quelle/merchant/logistik-planer.ts",
+    "v5/grundlage/quelle/merchant/logistik-workflow.ts"
+  ],
+  "inputRequirement": {
+    "materialState": "MATERIAL_READY_FOR_HANDOFF",
+    "remainingFarmQuantity": 0,
+    "farmStopRequired": true,
+    "handoffRequired": true,
+    "freshMaterialEvidenceRequired": true,
+    "exactFarmerBindingRequired": true,
+    "sameAccountAndServerMerchantBindingRequired": true,
+    "singlePhysicalStackRequired": true,
+    "exactItemFingerprintPinned": true
+  },
+  "output": {
+    "logisticsArt": "COLLECTION",
+    "actionContractId": "AL-ACTION-SEND-ITEM",
+    "recoveryContractId": "AL-RECOVERY-SEND-ITEM",
+    "verifierId": "AL-VERIFIER-SEND-ITEM",
+    "planningOnly": true
+  },
+  "safetyBoundary": {
+    "productiveTransferAuthorityRequiredLater": true,
+    "pr22CoordinationRequired": true,
+    "pr23FarmStopEvidenceRequired": true,
+    "executionAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "sendItemAuthority": false,
+    "movementAuthority": false,
+    "combatAuthority": false,
+    "lootAuthority": false,
+    "craftAuthority": false,
+    "normalRuntimeAllowed": false,
+    "broadGraphExecutionAuthority": false
+  },
+  "pr20_9Boundary": {
+    "handoffPlanCountsAsNaturalCurrentInventoryCandidate": false,
+    "foundationCountsAsCraftRatification": false,
+    "candidateAcquisitionOrMutationAllowedNow": false,
+    "settledFutureHandoffRequiresFreshCraftRescan": true,
+    "productiveCraftAuthorityOpened": false,
+    "normalRuntimeAllowed": false
+  },
+  "nextAction": "KEEP_NO_WRITE_UNTIL_PR22_PR23_AND_PRODUCTIVE_COLLECTION_TRANSFER_GATES_ARE_RATIFIED"
+}
