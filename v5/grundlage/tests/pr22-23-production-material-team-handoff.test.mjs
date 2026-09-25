@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 
 import {
   planeProductionMaterialTeam,
@@ -326,4 +327,70 @@ test("CAP-022 Multi-Source-Handoff kann mehrere physische Stacks einer Quelle ex
     [4, 6],
   );
   assert.equal(result.pinnedQuantity, 10);
+});
+
+
+test("CAP-022 Multi-Source-Handoff-Vertrag und Roadmap bleiben fail-closed", () => {
+  const contract = JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr22-23-production-material-team-handoff-foundation.json",
+    "utf8",
+  ));
+  assert.equal(contract.status, "PREPARED_NO_WRITE");
+  assert.equal(contract.prerequisite.teamStatus, "TEAM_MATERIAL_READY_FOR_HANDOFF_NO_WRITE");
+  assert.equal(contract.sourcePinning.exactItemFingerprintsPinned, true);
+  assert.equal(contract.sourcePinning.totalPinnedQuantityMustEqualRequiredQuantity, true);
+  assert.equal(contract.sequenceBoundary.transferSequenceFixed, true);
+  assert.equal(contract.sequenceBoundary.parallelTransferAllowed, false);
+  assert.equal(contract.sequenceBoundary.eachTransferMustSettleBeforeNext, true);
+  assert.equal(contract.sequenceBoundary.freshMerchantBaselineBeforeEachTransferRequired, true);
+  assert.equal(contract.sequenceBoundary.sameTransferRetryAllowed, false);
+  assert.equal(contract.sequenceBoundary.finalCraftRescanOnlyAfterAllSettled, true);
+  assert.equal(contract.safetyBoundary.productiveExecutionAllowed, false);
+  assert.equal(contract.safetyBoundary.transferAuthority, false);
+  assert.equal(contract.safetyBoundary.gameplayAuthority, false);
+  assert.equal(contract.safetyBoundary.rawWriteAuthority, false);
+  assert.equal(contract.safetyBoundary.normalRuntimeAllowed, false);
+  assert.equal(contract.safetyBoundary.currentPr20_9RatificationCredit, false);
+
+  const roadmap = JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+  );
+  const batch =
+    roadmap.pr20_9.deferredAutomaticMaterialRecheck.teamCollectionHandoffFoundation;
+  assert.equal(batch.status, "PREPARED_NO_WRITE");
+  assert.equal(batch.transferSequenceFixed, true);
+  assert.equal(batch.parallelTransferAllowed, false);
+  assert.equal(batch.eachTransferMustSettleBeforeNext, true);
+  assert.equal(batch.batchSettlementRecoveryRequiredBeforeProductiveUse, true);
+  assert.equal(batch.productiveExecutionAllowed, false);
+  assert.equal(batch.transferAuthority, false);
+  assert.equal(batch.normalRuntimeAllowed, false);
+});
+
+test("CAP-022 Multi-Source-Handoff besitzt keinen direkten Gameplay-Write-Bypass", () => {
+  const source = fs.readFileSync(
+    "grundlage/quelle/koordination/production-material-team-handoff.ts",
+    "utf8",
+  );
+  for (const marker of [
+    "socket.emit(",
+    ".socket.emit(",
+    "send_item(",
+    "send_cm(",
+    "smart_move(",
+    "attack(",
+    "use_skill(",
+    "loot(",
+    "craft(",
+    "exchange(",
+    "upgrade(",
+    "compound(",
+  ]) {
+    assert.equal(source.includes(marker), false, marker);
+  }
 });
