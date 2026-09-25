@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "evidenceArt": "V5_PR20_8_EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_SERVICE_BLOCK",
+  "status": "RATIFIED_ZERO_WRITE_SERVICE_UNREACHABLE",
+  "sourceMain": "0c96fdf5ab513c7f1b12a779acc7c27477eb0c61",
+  "testId": "pr20-8-exchange-anniversarygift-productive-one-write-live",
+  "controllerVersion": "1.0.0",
+  "runner": {
+    "sourceCommit": "5c43c182e2cd2b9ef4361ce1699af00748ad0d95",
+    "sha256": "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74"
+  },
+  "observations": [
+    {
+      "notificationId": 2811,
+      "runStartedAtMs": 1790344974036,
+      "terminalStatus": "FEHLER",
+      "phase": "ERROR",
+      "blocker": [
+        "PR20_8_EXCHANGE_ANNIVERSARYGIFT_LIVE_SERVICE_NICHT_ERREICHBAR"
+      ],
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "authorityIssued": false,
+      "authorityConsumed": false,
+      "exchangeAuthority": false,
+      "durableIntentCreated": false
+    },
+    {
+      "notificationId": 2813,
+      "runStartedAtMs": 1790345002340,
+      "terminalStatus": "FEHLER",
+      "phase": "ERROR",
+      "blocker": [
+        "PR20_8_EXCHANGE_ANNIVERSARYGIFT_LIVE_SERVICE_NICHT_ERREICHBAR"
+      ],
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "authorityIssued": false,
+      "authorityConsumed": false,
+      "exchangeAuthority": false,
+      "durableIntentCreated": false
+    }
+  ],
+  "safetyConclusion": {
+    "productiveExchangeAttempted": false,
+    "anniversarygiftConsumed": false,
+    "rewardGenerated": false,
+    "retryAuthorityIssued": false,
+    "sameIntentRetry": false,
+    "servicePositioningRequired": true
+  },
+  "nextAction": "DEPLOY_EXCHANGE_SERVICE_MOUNT_BEFORE_RESTORING_PRODUCTIVE_ONE_WRITE"
+}

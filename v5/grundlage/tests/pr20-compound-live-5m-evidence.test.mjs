@@ -110,12 +110,12 @@ test("Compound 5m ratification closes only Compound and leaves PR20.8 blocked by
   assert.equal(evidence.nextGate,"PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW");
 });
 
-test("Compound 5m evidence stays immutable while the active manifest advances to the anniversarygift productive one-write",()=>{
-  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-productive-one-write-live");
+test("Compound 5m evidence stays immutable while the active manifest advances to the anniversarygift Exchange service mount",()=>{
+  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-service-mount");
   assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,"5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-productive-one-write-live.js");
-  assert.equal(manifest.packageSha256,"eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
-  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
+  assert.equal(manifest.sourceCommit,"72e01a9dd911e9a21c8e6d2002851c707f130c98");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-service-mount-v1-0-0.js");
+  assert.equal(manifest.packageSha256,"c2a58c21a648ce17693029965380e4c343012d90de528edb43fc1b4a1946b163");
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftServiceMount");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });

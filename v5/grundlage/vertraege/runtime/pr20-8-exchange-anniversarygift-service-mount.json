@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_SERVICE_MOUNT",
+  "status": "MANIFEST_CUTOVER_PREPARED",
+  "sourceMain": "0c96fdf5ab513c7f1b12a779acc7c27477eb0c61",
+  "prerequisite": {
+    "evidence": "v5/roadmap/pr20-8-exchange-anniversarygift-productive-one-write-service-block-evidence.json",
+    "requiredEvidenceStatus": "RATIFIED_ZERO_WRITE_SERVICE_UNREACHABLE",
+    "requiredBlocker": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_LIVE_SERVICE_NICHT_ERREICHBAR",
+    "requiredGameplayWrites": 0,
+    "requiredPublicFunctionCalls": 0,
+    "requiredRawWriteCalls": 0,
+    "productiveExchangeAttempted": false
+  },
+  "package": {
+    "testId": "pr20-8-exchange-anniversarygift-service-mount",
+    "controllerVersion": "1.0.0",
+    "path": "v5/werkzeuge/pr20-8-exchange-anniversarygift-service-mount-v1-0-0.js",
+    "test": "v5/werkzeuge/tests/pr20-8-exchange-anniversarygift-service-mount-v1-0-0.test.mjs",
+    "expectedGlobal": "V5PR208ExchangeAnniversarygiftServiceMount",
+    "sourceCommit": "72e01a9dd911e9a21c8e6d2002851c707f130c98",
+    "sha256": "c2a58c21a648ce17693029965380e4c343012d90de528edb43fc1b4a1946b163",
+    "bytes": 16659
+  },
+  "sourcePin": {
+    "repository": "kaansoral/adventureland_mongodb",
+    "commit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+    "mapsBlob": "78350dac1a18c4eb0e7c6f545ebf08bb3d6729e4",
+    "targetNpcId": "exchange",
+    "targetPoint": {
+      "map": "main",
+      "x": -25,
+      "y": -478
+    },
+    "sellDistance": 400,
+    "safetyDistance": 300
+  },
+  "movementBoundary": {
+    "exactPublicFunction": "smart_move",
+    "exactArgument": "exchange",
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "maximumRawWriteCalls": 0,
+    "oneShot": true,
+    "durableSendJournal": true,
+    "sameIntentRetry": false,
+    "alreadyInRangeWrites": 0,
+    "timeoutOutcome": "RECONCILE_MOVEMENT_MANUALLY_NO_RETRY",
+    "promiseFailureOutcome": "RECONCILE_MOVEMENT_MANUALLY_NO_RETRY"
+  },
+  "prohibitedInThisStage": {
+    "exchange": true,
+    "upgrade": true,
+    "compound": true,
+    "buy": true,
+    "tradeBuy": true,
+    "bankRetrieve": true,
+    "bankStore": true,
+    "rawSocketWrite": true
+  },
+  "evidenceSeparation": {
+    "movementDoesNotCountAsExchangeRatification": true,
+    "movementDoesNotCountAsExchange5mEvidence": true,
+    "movementDoesNotCountAsExchangeAutonomyProof": true,
+    "exchangeWriteAuthority": false,
+    "normalRuntimeAllowed": false
+  },
+  "successNextAction": "RESTORE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST",
+  "manifestCutover": {
+    "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "prepared": true,
+    "deployed": false,
+    "evidenceObserved": false
+  }
+}
