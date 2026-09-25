@@ -29,6 +29,7 @@ import {
   type WorldPoint
 } from "./render/projection";
 import { GraphicsModeToggle } from "./ui/GraphicsModeToggle";
+import { HudOverlay } from "./ui/HudOverlay";
 
 declare global {
   interface Window {
@@ -94,11 +95,15 @@ async function boot(): Promise<void> {
 
   await renderer.mount(host);
 
+  const hud = new HudOverlay(document.body);
+  hud.setMode(graphicsMode);
+
   graphicsToggle = new GraphicsModeToggle((nextMode) => {
     graphicsMode = nextMode;
     window.localStorage.setItem("al25d.graphicsMode", nextMode);
     legacyRuntime?.setGraphicsMode(nextMode);
     graphicsToggle.setMode(nextMode);
+    hud.setMode(nextMode);
   });
   graphicsToggle.setMode(graphicsMode);
 
@@ -111,6 +116,7 @@ async function boot(): Promise<void> {
       undefined,
       (snapshot) => {
         latestSnapshot = snapshot;
+        hud.render(snapshot);
         const local = snapshot.entities.find((entity) => entity.local);
         if (!local) return;
 
@@ -144,7 +150,11 @@ async function boot(): Promise<void> {
   const api: Window["AL25D"] = {
     renderer,
     assets,
-    renderFrame: (snapshot) => renderer.renderFrame(snapshot),
+    renderFrame: (snapshot) => {
+      latestSnapshot = snapshot;
+      hud.render(snapshot);
+      renderer.renderFrame(snapshot);
+    },
     setCamera: (nextCamera) => {
       camera = nextCamera;
       renderer.setCamera(nextCamera);
@@ -187,6 +197,7 @@ async function boot(): Promise<void> {
       legacyMirror = null;
       legacyRuntime?.stop();
       legacyRuntime = null;
+      hud.clear();
       graphicsToggle.dockToLegacyUi(null);
       graphicsToggle.setReady(false);
     },
@@ -196,6 +207,7 @@ async function boot(): Promise<void> {
       window.localStorage.setItem("al25d.graphicsMode", mode);
       legacyRuntime?.setGraphicsMode(mode);
       graphicsToggle.setMode(mode);
+      hud.setMode(mode);
     },
     getGraphicsMode: () => graphicsMode
   };
@@ -274,6 +286,7 @@ async function boot(): Promise<void> {
           await ensureLocalAdminSession();
           graphicsMode = "original";
           graphicsToggle.setMode("original");
+          hud.setMode("original");
         }
 
         const runtime = new LegacyCompatibilityRuntime(host);

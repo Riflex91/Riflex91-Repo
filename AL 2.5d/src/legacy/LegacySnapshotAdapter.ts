@@ -25,6 +25,9 @@ export type LegacyEntityLike = Readonly<{
   max_hp?: number;
   mp?: number;
   max_mp?: number;
+  level?: number;
+  xp?: number;
+  max_xp?: number;
 }>;
 
 export type LegacySnapshotSource = Readonly<{
@@ -269,7 +272,10 @@ export class LegacySnapshotAdapter {
       ...(typeof entity.hp === "number" ? { hp: entity.hp } : {}),
       ...(typeof entity.max_hp === "number" ? { maxHp: entity.max_hp } : {}),
       ...(typeof entity.mp === "number" ? { mp: entity.mp } : {}),
-      ...(typeof entity.max_mp === "number" ? { maxMp: entity.max_mp } : {})
+      ...(typeof entity.max_mp === "number" ? { maxMp: entity.max_mp } : {}),
+      ...(typeof entity.level === "number" ? { level: entity.level } : {}),
+      ...(typeof entity.xp === "number" ? { xp: entity.xp } : {}),
+      ...(typeof entity.max_xp === "number" ? { maxXp: entity.max_xp } : {})
     };
 
     return Object.freeze(local ? { ...base, local: true } : base);

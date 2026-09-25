@@ -27,6 +27,9 @@ export type RenderEntity = Readonly<{
   maxHp?: number;
   mp?: number;
   maxMp?: number;
+  level?: number;
+  xp?: number;
+  maxXp?: number;
 }>;
 
 export type CameraState = Readonly<{

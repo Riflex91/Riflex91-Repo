@@ -72,7 +72,7 @@ Status: in progress
 - [x] custom-player-art priority with live legacy sprite fallback for uncovered entities
 - [x] baseline nameplates, HP/MP bars and target highlight
 - [x] priority-based HUD decluttering for dense NPC/monster clusters
-- [ ] baseline HUD
+- [x] baseline HUD: custom player frame + target frame with mirrored HP/MP/XP
 - [x] graphics-mode toggle docked beside the original top-bar X control
 
 Deliverable: walkable Main with original gameplay logic.
@@ -89,9 +89,9 @@ Deliverable: walkable Main with original gameplay logic.
 
 ## AL25D-06 — Full HUD replacement
 
-- character frame
-- party frame
-- target frame
+- [x] character frame baseline
+- [ ] party frame
+- [x] target frame baseline
 - skill bars
 - chat
 - inventory/equipment

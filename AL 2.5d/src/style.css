@@ -80,3 +80,217 @@ canvas {
     right: auto;
   }
 }
+
+
+/* First-party AL 2.5D HUD baseline. It is presentation-only and mirrors the
+   immutable renderer snapshot; the original client remains authoritative. */
+#al25d-hud {
+  --hud-bg: rgba(11, 18, 22, 0.92);
+  --hud-panel: rgba(22, 33, 39, 0.94);
+  --hud-edge: rgba(133, 173, 184, 0.45);
+  --hud-text: #eef7f4;
+  --hud-muted: #9aafb0;
+  --hud-hp: #d44f4f;
+  --hud-mp: #4b86d7;
+  --hud-xp: #d6ae42;
+  position: fixed;
+  inset: 0;
+  z-index: 2147482500;
+  pointer-events: none;
+  color: var(--hud-text);
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  text-shadow: 0 1px 2px #000;
+}
+
+#al25d-hud[hidden] {
+  display: none !important;
+}
+
+.al25d-hud-frame {
+  position: absolute;
+  overflow: hidden;
+  border: 1px solid var(--hud-edge);
+  border-radius: 10px;
+  background:
+    linear-gradient(145deg, rgba(61, 82, 89, 0.18), transparent 45%),
+    var(--hud-bg);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+    0 8px 24px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(5px);
+}
+
+#al25d-player-frame {
+  left: 18px;
+  top: 18px;
+  width: 330px;
+  min-height: 104px;
+  padding: 12px 14px 11px 84px;
+  box-sizing: border-box;
+}
+
+#al25d-target-frame {
+  left: 50%;
+  top: 18px;
+  width: 300px;
+  min-height: 72px;
+  padding: 10px 13px;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+}
+
+#al25d-target-frame[data-empty="true"] {
+  display: none;
+}
+
+.al25d-hud-portrait {
+  position: absolute;
+  left: 13px;
+  top: 13px;
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(183, 218, 220, 0.36);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(131, 191, 199, 0.24), transparent 42%),
+    #18272c;
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.48);
+  color: #dff9f7;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.al25d-hud-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 7px;
+}
+
+.al25d-hud-name {
+  overflow: hidden;
+  color: #f5fbf8;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.al25d-hud-meta {
+  color: var(--hud-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.al25d-hud-bar {
+  position: relative;
+  height: 15px;
+  margin-top: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.52);
+}
+
+.al25d-hud-bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: #777;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.16);
+  transition: width 90ms linear;
+}
+
+.al25d-hud-bar[data-kind="hp"] > i {
+  background: linear-gradient(90deg, #893636, var(--hud-hp));
+}
+
+.al25d-hud-bar[data-kind="mp"] > i {
+  background: linear-gradient(90deg, #315a98, var(--hud-mp));
+}
+
+.al25d-hud-bar[data-kind="xp"] {
+  height: 8px;
+  margin-top: 7px;
+}
+
+.al25d-hud-bar[data-kind="xp"] > i {
+  background: linear-gradient(90deg, #866d2e, var(--hud-xp));
+}
+
+.al25d-hud-bar > span {
+  position: relative;
+  z-index: 1;
+  display: block;
+  padding: 0 6px;
+  color: #f4f8f8;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 15px;
+  text-align: center;
+}
+
+.al25d-hud-bar[data-kind="xp"] > span {
+  position: absolute;
+  top: 10px;
+  right: 0;
+  padding: 0;
+  color: var(--hud-muted);
+  font-size: 9px;
+  line-height: 1;
+}
+
+#al25d-player-frame .al25d-hud-xp-caption {
+  position: absolute;
+  left: 14px;
+  bottom: 9px;
+  color: var(--hud-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+#al25d-target-frame .al25d-hud-heading {
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+#al25d-target-frame .al25d-hud-name {
+  font-size: 13px;
+}
+
+#al25d-target-frame .al25d-hud-bar {
+  height: 13px;
+}
+
+#al25d-target-frame .al25d-hud-bar > span {
+  line-height: 13px;
+}
+
+@media (max-width: 760px) {
+  #al25d-player-frame {
+    left: 10px;
+    top: 10px;
+    width: 278px;
+    padding-left: 68px;
+  }
+
+  .al25d-hud-portrait {
+    width: 46px;
+    height: 46px;
+    font-size: 18px;
+  }
+
+  #al25d-target-frame {
+    top: 118px;
+    width: 260px;
+  }
+}
