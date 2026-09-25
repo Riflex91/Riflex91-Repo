@@ -23,6 +23,7 @@ $MongoLocalRoot = Join-Path $env:LOCALAPPDATA "AL25D-TestServer\MongoDB"
 $MongoDataDir = Join-Path $MongoLocalRoot "data"
 $MongoLogDir = Join-Path $MongoLocalRoot "log"
 $MongoPidFile = Join-Path $RuntimeRoot "mongodb.pid"
+$LocalSecretsPath = Join-Path $RuntimeRoot "local-secrets.json"
 
 function Require-Command([string]$Name) {
   if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
@@ -66,6 +67,73 @@ function Checkout-PinnedRepo(
   if ($Actual -ne $Commit) {
     throw "Pin verification failed for $Destination. Expected $Commit, got $Actual."
   }
+}
+
+function New-HexSecret([int]$ByteCount) {
+  $Bytes = New-Object byte[] $ByteCount
+  $Rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+  try {
+    $Rng.GetBytes($Bytes)
+  } finally {
+    $Rng.Dispose()
+  }
+
+  return ([System.BitConverter]::ToString($Bytes)).Replace("-", "").ToLowerInvariant()
+}
+
+function Get-LocalSharedSecrets {
+  if (Test-Path $LocalSecretsPath) {
+    try {
+      $Existing = Get-Content $LocalSecretsPath -Raw | ConvertFrom-Json
+      foreach ($Name in @("server_keyword", "sdk_password", "ACCESS_MASTER", "BOT_MASTER", "SERVER_MASTER")) {
+        if (-not $Existing.$Name) {
+          throw "Missing local secret $Name."
+        }
+      }
+      return $Existing
+    } catch {
+      throw "Local shared secrets file is invalid: $LocalSecretsPath"
+    }
+  }
+
+  $Secrets = [pscustomobject]@{
+    server_keyword = New-HexSecret 16
+    sdk_password = New-HexSecret 16
+    ACCESS_MASTER = New-HexSecret 20
+    BOT_MASTER = New-HexSecret 20
+    SERVER_MASTER = New-HexSecret 16
+  }
+
+  $Secrets | ConvertTo-Json | Set-Content -Path $LocalSecretsPath -Encoding UTF8
+  return $Secrets
+}
+
+function Write-SharedLocalKeys([string]$KeysPath) {
+  $Secrets = Get-LocalSharedSecrets
+  $Keys = Get-Content $KeysPath -Raw
+
+  $Replacements = @{
+    "server_keyword" = $Secrets.server_keyword
+    "sdk_password" = $Secrets.sdk_password
+    "ACCESS_MASTER" = $Secrets.ACCESS_MASTER
+    "BOT_MASTER" = $Secrets.BOT_MASTER
+    "SERVER_MASTER" = $Secrets.SERVER_MASTER
+  }
+
+  foreach ($Name in $Replacements.Keys) {
+    $Value = [string]$Replacements[$Name]
+    $Pattern = '(?m)^(s*' + [regex]::Escape($Name) + 's*:s*)(?:rk(d+)|"[^"]*")(s*,)'
+    $Replacement = '$1"' + $Value + '"$2'
+    $Updated = [regex]::Replace($Keys, $Pattern, $Replacement, 1)
+
+    if ($Updated -eq $Keys) {
+      throw "Unable to pin shared local key '$Name' in $KeysPath."
+    }
+
+    $Keys = $Updated
+  }
+
+  Set-Content -Path $KeysPath -Value $Keys -Encoding UTF8
 }
 
 function Sync-DirectoryCopy([string]$Path, [string]$Source) {
@@ -284,6 +352,10 @@ if (-not $Options.Contains($MsgpackSetting)) {
 Write-Host "==> Copying pinned common/config trees into the runtime"
 Sync-DirectoryCopy (Join-Path $AdventureDir "common") $CommonDir
 Sync-DirectoryCopy (Join-Path $AdventureDir "secretsandconfig") $ConfigDir
+
+$RuntimeKeysPath = Join-Path $AdventureDir "secretsandconfig\keys.js"
+Write-Host "==> Pinning shared local inter-process server keys"
+Write-SharedLocalKeys $RuntimeKeysPath
 
 $Options = Get-Content $OptionsPath -Raw
 foreach ($Required in @(
