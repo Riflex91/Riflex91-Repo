@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_8_EXCHANGE_SEASHELL_FARM_SHADOW_COORDINATOR_READ_ONLY",
+  "status": "COORDINATOR_PREPARED_READ_ONLY",
+  "sourceMain": "c2e5d2991f97c45d9de56fc9954eaa8a2086b2bf",
+  "prerequisite": {
+    "runnerContract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-seashell-farm-shadow-runner.json",
+    "requiredRunnerStatus": "RUNNER_PREPARED_READ_ONLY",
+    "localRunnerTestId": "pr20-8-seashell-farm-shadow-readonly",
+    "localRunnerVersion": "1.0.0",
+    "satisfiedFarmerOutcome": "PREPARE_SEASHELL_HANDOFF_SHADOW_NO_WRITE"
+  },
+  "coordinator": {
+    "testId": "pr20-8-seashell-farm-shadow-coordinator-readonly",
+    "controllerVersion": "1.0.0",
+    "package": "v5/werkzeuge/pr20-8-seashell-farm-shadow-coordinator-readonly-v1-0-0.js",
+    "expectedGlobal": "V5PR208SeashellFarmShadowCoordinatorReadonly",
+    "coordinatorCharacter": "My_Merchant",
+    "coordinatorClass": "merchant",
+    "allowedWorkers": [
+      "My_Ranger1:ranger",
+      "My_Priest:priest",
+      "My_Mage:mage"
+    ],
+    "expectedServerRegion": "EU",
+    "expectedServerIdentifier": "I",
+    "targetItem": "seashell",
+    "requiredQuantity": 20,
+    "targetMonster": "croc",
+    "minimumHpRatio": 0.8,
+    "rosterSources": [
+      "get_characters",
+      "X.characters"
+    ],
+    "activeCharacterSource": "get_active_characters",
+    "deterministicSelection": "HANDOFF_READY_FIRST_THEN_MAX_SEASHELL_QUANTITY_THEN_STABLE_FARMER_ORDER",
+    "packagePinDeferredUntilManifestCutover": true
+  },
+  "noWriteBoundary": {
+    "movementAuthority": false,
+    "combatAuthority": false,
+    "skillAuthority": false,
+    "lootAuthority": false,
+    "farmAuthority": false,
+    "handoffAuthority": false,
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "maximumGameplayWrites": 0,
+    "maximumPublicFunctionCalls": 0,
+    "maximumRawWriteCalls": 0,
+    "startCharacterAllowed": false,
+    "commandCharacterAllowed": false,
+    "workerInstallAllowed": false,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "runtimeOutcomes": {
+    "safeActiveFarmer": "PREPARE_SEASHELL_FARM_SHADOW_WORKER_DISTRIBUTION_NO_WRITE",
+    "farmerAlreadyHasRequiredQuantity": "PREPARE_SEASHELL_HANDOFF_SHADOW_NO_WRITE",
+    "noSafeActiveFarmer": "REMAIN_BLOCKED"
+  },
+  "deployment": {
+    "autonomousManifestChanged": false,
+    "manifestCutoverPrepared": false,
+    "deployed": false,
+    "liveEvidenceObserved": false
+  },
+  "evidenceSeparation": {
+    "coordinatorPreparationDoesNotCountAsFarmEvidence": true,
+    "coordinatorPreparationDoesNotCountAsExchangeRatification": true,
+    "coordinatorResultCannotGrantWorkerDistributionAuthority": true,
+    "coordinatorResultCannotGrantFarmAuthority": true
+  },
+  "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_MANIFEST_CUTOVER"
+}
