@@ -110,12 +110,12 @@ test("Compound 5m ratification closes only Compound and leaves PR20.8 blocked by
   assert.equal(evidence.nextGate,"PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW");
 });
 
-test("Compound 5m evidence stays immutable while the active manifest advances to the anniversarygift exception rescan",()=>{
-  assert.equal(manifest.testId,"pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(manifest.controllerVersion,"1.0.7");
-  assert.equal(manifest.sourceCommit,"5ae7e2699ca38381df4e90ea385732241cfbcd55");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-7.js");
-  assert.equal(manifest.packageSha256,"00e2f5ed379f27a489af1c1a87f142cd7efe7fb7617d1e814d3033563137dbf9");
-  assert.equal(manifest.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
+test("Compound 5m evidence stays immutable while the active manifest advances to the anniversarygift no-send shadow",()=>{
+  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-durable-shadow-no-write");
+  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(manifest.sourceCommit,"737118b5ab4d043ca996594aa6db1df309a6a177");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-durable-shadow-no-write.js");
+  assert.equal(manifest.packageSha256,"04c765fc9d88b242170ca15d0d28d8dcca84572a745dcaa09ebf0c1caa44135e");
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftDurableShadowNoWrite");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });

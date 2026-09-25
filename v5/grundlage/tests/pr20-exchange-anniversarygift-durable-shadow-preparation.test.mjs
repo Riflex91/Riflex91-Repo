@@ -126,16 +126,16 @@ test("shadow package bytes are exact at the pinned source commit",()=>{
 test("roadmap ratifies scanner evidence but only prepares the no-write shadow",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_DURABLE_SHADOW_PREPARED_NO_WRITE");
+    "EXCHANGE_ANNIVERSARYGIFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED");
   assert.equal(roadmap.pr20_8.nextAction,
-    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW_MANIFEST_CUTOVER");
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW");
   assert.equal(a.anniversaryGiftExceptionRescan.status,
     "RATIFIED_ANNIVERSARYGIFT_EXCHANGE_CANDIDATE_ZERO_WRITE");
   assert.equal(a.anniversaryGiftExceptionRescan.deployed,true);
   assert.equal(a.anniversaryGiftExceptionRescan.evidenceObserved,true);
   assert.equal(a.anniversaryGiftExceptionRescan.notificationId,2726);
-  assert.equal(a.anniversaryGiftExchangeShadow.status,"PREPARED_NO_WRITE");
-  assert.equal(a.anniversaryGiftExchangeShadow.manifestCutoverPrepared,false);
+  assert.equal(a.anniversaryGiftExchangeShadow.status,"MANIFEST_CUTOVER_PREPARED");
+  assert.equal(a.anniversaryGiftExchangeShadow.manifestCutoverPrepared,true);
   assert.equal(a.anniversaryGiftExchangeShadow.deployed,false);
   assert.equal(a.anniversaryGiftExchangeShadow.liveEvidenceObserved,false);
   assert.equal(a.anniversaryGiftExchangeShadow.exchangeAuthority,false);
@@ -143,13 +143,18 @@ test("roadmap ratifies scanner evidence but only prepares the no-write shadow",(
   assert.equal(a.seashellFarmShadow.activePath,false);
 });
 
-test("active manifest remains on the successful v1.0.7 scanner until separate shadow cutover",()=>{
-  assert.equal(manifest.testId,"pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(manifest.controllerVersion,"1.0.7");
+test("active manifest is cut over to the exact anniversarygift no-send shadow",()=>{
+  assert.equal(manifest.testId,
+    "pr20-8-exchange-anniversarygift-durable-shadow-no-write");
+  assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.sourceCommit,
-    "5ae7e2699ca38381df4e90ea385732241cfbcd55");
+    "737118b5ab4d043ca996594aa6db1df309a6a177");
+  assert.equal(manifest.packagePath,
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-durable-shadow-no-write.js");
   assert.equal(manifest.packageSha256,
-    "00e2f5ed379f27a489af1c1a87f142cd7efe7fb7617d1e814d3033563137dbf9");
+    "04c765fc9d88b242170ca15d0d28d8dcca84572a745dcaa09ebf0c1caa44135e");
+  assert.equal(manifest.expectedGlobal,
+    "V5PR208ExchangeAnniversarygiftDurableShadowNoWrite");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 

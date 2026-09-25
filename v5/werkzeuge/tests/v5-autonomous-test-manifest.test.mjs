@@ -51,6 +51,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208ValueMutationLiveCandidateReadonly",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-exchange-anniversarygift-durable-shadow-no-write": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-exchange-anniversarygift-durable-shadow-no-write.js",
+    expectedGlobal: "V5PR208ExchangeAnniversarygiftDurableShadowNoWrite",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-exchange-candidate-acquisition-readonly": Object.freeze({
     path: "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
     expectedGlobal: "V5PR208ExchangeCandidateAcquisitionReadonly",
@@ -734,6 +739,39 @@ test("PR20.8 candidate discovery v1.0.7 manifest is exact anniversarygift-only r
   assert.ok(packageSource.includes("publish();"));
 });
 
+
+test("PR20.8 anniversarygift Exchange durable shadow manifest is exact no-send", () => {
+  if (manifest.testId !== "pr20-8-exchange-anniversarygift-durable-shadow-no-write") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit, "737118b5ab4d043ca996594aa6db1df309a6a177");
+  assert.equal(manifest.packagePath,
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-durable-shadow-no-write.js");
+  assert.equal(manifest.packageSha256,
+    "04c765fc9d88b242170ca15d0d28d8dcca84572a745dcaa09ebf0c1caa44135e");
+  assert.equal(manifest.expectedGlobal,
+    "V5PR208ExchangeAnniversarygiftDurableShadowNoWrite");
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.ok(packageSource.includes(
+    "const TEST_ID = 'pr20-8-exchange-anniversarygift-durable-shadow-no-write'"));
+  assert.ok(packageSource.includes("const VERSION = '1.0.0'"));
+  assert.ok(packageSource.includes(
+    "const API_NAME = 'V5PR208ExchangeAnniversarygiftDurableShadowNoWrite'"));
+  assert.ok(packageSource.includes("LOCAL_STORAGE_SHADOW_ONLY"));
+  assert.ok(packageSource.includes("NICHT_GESENDET"));
+  assert.ok(packageSource.includes("fullRewardDomainProofRequiredBeforeFutureSend:true"));
+  assert.ok(packageSource.includes("freshReresolutionRequiredBeforeFutureSend:true"));
+  assert.ok(packageSource.includes("gameplayWrites: 0"));
+  assert.ok(packageSource.includes("publicFunctionCalls: 0"));
+  assert.ok(packageSource.includes("rawWriteCalls: 0"));
+  assert.ok(packageSource.includes("exchangeAuthority: false"));
+  assert.ok(packageSource.includes("normalRuntimeAllowed: false"));
+  for (const marker of [
+    "exchange(", "upgrade(", "compound(", "buy(", "buy_with_gold(",
+    "send_item(", "send_gold(", "api_call(", "socket.emit(", ".socket.emit("
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
 
 test("PR20.8 upgrade durable shadow manifest is exact no-send and service-bound", () => {
   if (manifest.testId !== "pr20-8-upgrade-durable-shadow-no-write") return;
