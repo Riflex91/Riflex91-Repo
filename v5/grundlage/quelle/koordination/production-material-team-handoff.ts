@@ -328,16 +328,18 @@ export function planeProductionMaterialTeamHandoff(
     const pins: ProduktionsMaterialTeamHandoffPostenPin[] = [];
     for (const item of posten) {
       if (workerRest <= 0) break;
-      if (globalePhysischeKennungen.has(item.physischeKennung)) {
+      const physischerSchluessel =
+        zuteilung.farmer.characterId + "|" + item.physischeKennung;
+      if (globalePhysischeKennungen.has(physischerSchluessel)) {
         blocker.push(
-          "CAP022_TEAM_HANDOFF_PHYSISCHE_KENNUNG_ACCOUNTWEIT_DOPPELT:"
-          + item.physischeKennung,
+          "CAP022_TEAM_HANDOFF_PHYSISCHE_KENNUNG_QUELLENLOKAL_DOPPELT:"
+          + physischerSchluessel,
         );
         break;
       }
       const take = Math.min(workerRest, item.menge);
       if (take <= 0) continue;
-      globalePhysischeKennungen.add(item.physischeKennung);
+      globalePhysischeKennungen.add(physischerSchluessel);
       pins.push(Object.freeze({
         physischeKennung: item.physischeKennung,
         name: item.name,
