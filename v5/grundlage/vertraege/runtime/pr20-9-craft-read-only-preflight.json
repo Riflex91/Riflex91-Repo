@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "gate": "PR20.9_PRODUCTION",
+  "id": "PR20_9_CRAFT_READ_ONLY_PREFLIGHT",
+  "status": "BEREIT_NO_WRITE",
+  "scope": "NORMAL_CRAFT_ONLY",
+  "source": "v5/grundlage/quelle/produktion/pr20-9-craft-read-only-preflight.ts",
+  "actionContractId": "AL-ACTION-CRAFT",
+  "recoveryContractId": "AL-RECOVERY-CRAFT",
+  "verifierId": "AL-VERIFIER-CRAFT",
+  "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+  "checks": [
+    "fresh recipe evidence",
+    "normal craft path only",
+    "no duplicate ingredient names",
+    "exact single-stack physical inputs",
+    "locked/blocked/value-protected inputs denied",
+    "gold sufficient",
+    "workspace evidence present",
+    "service or quest reachability fresh",
+    "required quest/event gate fresh",
+    "server-equivalent outputspace satisfied"
+  ],
+  "conservativeBoundaries": {
+    "splitStackNormalCraftAllowed": false,
+    "anniversaryCraftAllowed": false,
+    "autoCraftAllowed": false,
+    "broadGraphExecutionAuthority": false
+  },
+  "authority": {
+    "craftAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false
+  },
+  "writes": {
+    "maximumGameplayWrites": 0,
+    "maximumPublicFunctionCalls": 0,
+    "maximumRawWriteCalls": 0,
+    "sendBoundaryState": "NICHT_GESENDET",
+    "sameIntentRetry": false
+  },
+  "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION"
+}
