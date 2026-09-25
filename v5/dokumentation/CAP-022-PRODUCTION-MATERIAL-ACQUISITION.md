@@ -138,6 +138,17 @@ Milestone-Runner / Checkpoint-Runbook-Bindung:
 
 Der `POST_PR24_25_GROUP_CHECKPOINT` enthaelt ein PR23-Capability-Segment und ist deshalb ebenfalls CAP-022-pflichtig. Seine Milestone-Auswertung verlangt explizit `cap022FullChainReady=true`; ohne diese Bedingung bleibt die Evidence `BLOCKIERT`. Das Runbook fuehrt fuer diesen Checkpoint zusaetzlich `CAP022_FULL_CHAIN_READY` als verpflichtende Precondition, bevor ein extern autorisierter Runtime-Lauf gestartet werden darf. Runner und Runbook erteilen selbst weiterhin keine Gameplay-Authority und ratifizieren keine Evidence.
 
+
+Result-Package / Ratification / Gate-Apply-Bindung:
+
+- `grundlage/quelle/zertifizierung/pr21-28-result-package.ts`
+- `grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts`
+- `grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts`
+- `grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts`
+- `grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts`
+
+Die CAP-022-Bindung bleibt nach dem Milestone-Lauf im unveraenderlichen Result-Package erhalten und fliesst in dessen Fingerprint ein. Der Group-Checkpoint kann ohne `cap022FullChainSatisfied=true` kein ratifizierbares Package erzeugen. Draft und Ratification-Record bewahren diese Bindung. PR22-/PR23-Gate-Advance-Proposals verlangen zusaetzlich eine stage-konsistente Feature-Gate-Sicht mit erfuellter Full-Chain. Die Default-Off-Gate-Apply-Transaktion nimmt die CAP-022-Felder in ihren Fingerprint auf; Validation und Reconciliation verwerfen fehlende oder inkonsistente Bindungen. Keine dieser Stufen erteilt selbst Gameplay-Authority oder fuehrt Gate-Mutationen aus.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf
