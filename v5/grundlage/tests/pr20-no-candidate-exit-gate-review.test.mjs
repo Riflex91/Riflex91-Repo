@@ -8,7 +8,7 @@ const review=JSON.parse(fs.readFileSync(
 ));
 
 test("PR20.8 no-candidate review keeps the roadmap exit gate blocked", () => {
-  assert.equal(review.status,"BLOCKED_COMPOUND_5M_NOTIFICATION_EXCHANGE_NO_CANDIDATE");
+  assert.equal(review.status,"BLOCKED_EXCHANGE_NO_CANDIDATE");
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
   assert.equal(review.roadmapCriteriaRelaxed,false);
@@ -16,10 +16,11 @@ test("PR20.8 no-candidate review keeps the roadmap exit gate blocked", () => {
   const families=review.exitGateCriteria.eachFamilyIndividuallyRatifiedAnd5mLiveTested;
   assert.equal(families.upgrade.ratified,true);
   assert.equal(families.compound.ratified,true);
-  assert.equal(families.compound.live5mTested,false);
+  assert.equal(families.compound.live5mTested,true);
   assert.equal(families.compound.live5mBehaviorObservedPass,true);
-  assert.equal(families.compound.completionNotificationPersisted,false);
-  assert.equal(families.compound.reason,"REAL_5M_BEHAVIOR_BESTANDEN_NOTIFICATION_IDENTITY_RECOVERY_PENDING");
+  assert.equal(families.compound.completionNotificationPersisted,true);
+  assert.equal(families.compound.evidence,"v5/roadmap/pr20-8-compound-live-5m-evidence.json");
+  assert.equal(families.compound.reason,"RATIFIED_LIVE_5M_PERSISTED");
   assert.equal(families.exchange.ratified,false);
   assert.equal(families.exchange.live5mTested,false);
   assert.equal(families.exchange.reason,"KEIN_NORMALKANDIDAT");
@@ -38,14 +39,13 @@ test("PR20.8 no-candidate evidence cannot silently create authority or substitut
   assert.equal(review.authority.acquisitionOrMutationToCreateCandidateAllowed,false);
   assert.equal(review.authority.normalRuntimeAllowed,false);
   assert.deepEqual(review.blockers,[
-    "PR20_8_COMPOUND_5M_COMPLETION_NOTIFICATION_NOT_PERSISTED",
     "PR20_8_EXCHANGE_NOT_RATIFIED_NO_NORMAL_CANDIDATE",
     "PR20_8_EXCHANGE_5M_LIVE_NOT_RUN",
     "PR20_8_EXCHANGE_AUTONOMY_NOT_PRODUCTIVE_PROVEN",
   ]);
   assert.equal(
     review.nextAction,
-    "PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION",
+    "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
   );
 });
 
@@ -105,7 +105,7 @@ test("PR20.8 Compound 5m runner package remains authority-closed before manifest
   assert.equal(review.mayAdvanceToPr20_9,false);
 });
 
-test("PR20.8 Compound 5m performance recovery records observed pass but awaits persistent completion", () => {
+test("PR20.8 Compound 5m performance recovery is linked to persisted completion ratification", () => {
   const r=review.compoundLive5mPerformanceRecovery;
   assert.equal(r.status,"V1_0_1_REAL_BROWSER_BESTANDEN_NOTIFICATION_PERSISTENCE_GAP");
   assert.equal(r.controllerVersion,"1.0.1");
@@ -140,21 +140,23 @@ test("PR20.8 Compound 5m performance recovery records observed pass but awaits p
   assert.equal(r.observedAdditionalGameplayWrites,0);
   assert.equal(r.observedAdditionalPublicFunctionCalls,0);
   assert.equal(r.observedAdditionalRawWriteCalls,0);
-  assert.equal(r.completionNotificationPersisted,false);
+  assert.equal(r.completionNotificationPersisted,true);
   assert.equal(r.notificationPersistenceBlocker,"RUN_STARTED_AT_MS_IDENTITY_COLLISION");
   assert.equal(r.observedRunStartedAtMs,0);
-  assert.equal(r.ratifiedCompoundLive5m,false);
+  assert.equal(r.ratifiedCompoundLive5m,true);
+  assert.equal(r.notificationId,2272);
+  assert.equal(r.ratificationEvidence,"v5/roadmap/pr20-8-compound-live-5m-evidence.json");
   assert.equal(r.maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass,true);
   assert.equal(r.retiredFromActiveManifest,true);
   assert.equal(r.supersededByNotificationIdentityRecovery,true);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION");
+  assert.equal(r.nextGate,"PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW");
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
 });
 
-test("PR20.8 Compound 5m notification identity recovery is authority-closed at manifest cutover", () => {
+test("PR20.8 Compound 5m notification identity recovery is persisted and remains authority-closed", () => {
   const r=review.compoundLive5mNotificationIdentityRecovery;
-  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_COMPLETION_NOTIFICATION_CONFIRMATION");
+  assert.equal(r.status,"RATIFIED_COMPLETION_PERSISTED");
   assert.equal(r.controllerVersion,"1.0.2");
   assert.equal(r.package,"v5/werkzeuge/pr20-8-compound-live-5m-v1-0-2.js");
   assert.equal(r.sourceCommit,"18568cbc9689bd7e27c5a26a4342901d470b72c0");
@@ -178,12 +180,23 @@ test("PR20.8 Compound 5m notification identity recovery is authority-closed at m
   assert.equal(r.compoundWriteAuthority,false);
   assert.equal(r.normalRuntimeAllowed,false);
   assert.equal(r.manifestCutoverPrepared,true);
-  assert.equal(r.deployed,false);
-  assert.equal(r.bridgeMayDeployPinnedRunner,true);
-  assert.equal(r.deploymentEvidenceObserved,false);
-  assert.equal(r.completionNotificationPersisted,false);
+  assert.equal(r.deployed,true);
+  assert.equal(r.bridgeMayDeployPinnedRunner,false);
+  assert.equal(r.deploymentEvidenceObserved,true);
+  assert.equal(r.completionNotificationPersisted,true);
+  assert.equal(r.notificationId,2272);
+  assert.equal(r.runStartedAtMs,1790310011908);
+  assert.equal(r.observedAtMs,1790311955056);
+  assert.equal(r.samples,60);
+  assert.equal(r.durationMs,300545);
+  assert.equal(r.sourceSendCount,1);
+  assert.equal(r.observedAdditionalGameplayWrites,0);
+  assert.equal(r.observedAdditionalPublicFunctionCalls,0);
+  assert.equal(r.observedAdditionalRawWriteCalls,0);
+  assert.equal(r.ratifiedCompoundLive5m,true);
+  assert.equal(r.evidence,"v5/roadmap/pr20-8-compound-live-5m-evidence.json");
   assert.equal(r.liveWriteEnabled,false);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION");
+  assert.equal(r.nextGate,"PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW");
   const active=review.activeCompoundLive5mManifest;
   assert.equal(active.testId,"pr20-8-compound-live-5m");
   assert.equal(active.controllerVersion,"1.0.2");
@@ -192,6 +205,31 @@ test("PR20.8 Compound 5m notification identity recovery is authority-closed at m
   assert.equal(active.packageSha256,"4d9083bf163d98f15d842d64ecfc49ae4c9b8c3452b0b31a499d4b0b5687c849");
   assert.equal(active.packageBytes,28166);
   assert.equal(active.normalRuntimeAllowed,false);
+  assert.equal(review.currentExitGateSatisfied,false);
+  assert.equal(review.mayAdvanceToPr20_9,false);
+});
+
+test("PR20.8 Compound 5m evidence closes only the Compound live gate", () => {
+  const e=review.compoundLive5mEvidence;
+  assert.equal(e.status,"RATIFIED_BESTANDEN_ZERO_ADDITIONAL_MUTATION");
+  assert.equal(e.evidence,"v5/roadmap/pr20-8-compound-live-5m-evidence.json");
+  assert.equal(e.notificationId,2272);
+  assert.equal(e.runStartedAtMs,1790310011908);
+  assert.equal(e.observedAtMs,1790311955056);
+  assert.equal(e.samples,60);
+  assert.equal(e.durationMs,300545);
+  assert.equal(e.sourceSendCount,1);
+  assert.equal(e.additionalGameplayWrites,0);
+  assert.equal(e.additionalPublicFunctionCalls,0);
+  assert.equal(e.additionalRawWriteCalls,0);
+  assert.equal(e.sameIntentRetry,false);
+  assert.equal(e.completionNotificationPersisted,true);
+  assert.equal(e.noDuplicateValueChangingEffectObserved,true);
+  assert.equal(e.compoundLive5mTested,true);
+  assert.equal(e.exchangeRatified,false);
+  assert.equal(e.exchangeLive5mTested,false);
+  assert.equal(e.exchangeAutonomyProductiveProven,false);
+  assert.equal(e.normalRuntimeAllowed,false);
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
 });
