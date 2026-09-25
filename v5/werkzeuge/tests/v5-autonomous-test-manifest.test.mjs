@@ -61,6 +61,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-exchange-anniversarygift-service-reposition": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-exchange-anniversarygift-service-reposition-v1-0-0.js",
+    expectedGlobal: "V5PR208ExchangeAnniversarygiftServiceReposition",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-exchange-candidate-acquisition-readonly": Object.freeze({
     path: "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
     expectedGlobal: "V5PR208ExchangeCandidateAcquisitionReadonly",
@@ -744,6 +749,36 @@ test("PR20.8 candidate discovery v1.0.7 manifest is exact anniversarygift-only r
   assert.ok(packageSource.includes("publish();"));
 });
 
+
+test("PR20.8 anniversarygift Exchange service reposition manifest is movement-only", () => {
+  if (manifest.testId !== "pr20-8-exchange-anniversarygift-service-reposition") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit, "d7f48070228e1bb620beb39717655287defc4e6f");
+  assert.equal(manifest.packagePath,
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-service-reposition-v1-0-0.js");
+  assert.equal(manifest.packageSha256,
+    "21121e5a8465848732b415dc05451935a7679dd33d23a7c42996c2f4456f54f7");
+  assert.equal(manifest.expectedGlobal,
+    "V5PR208ExchangeAnniversarygiftServiceReposition");
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  assert.ok(packageSource.includes(
+    'const TEST_ID = "pr20-8-exchange-anniversarygift-service-reposition"'));
+  assert.ok(packageSource.includes('const VERSION = "1.0.0"'));
+  assert.ok(packageSource.includes(
+    'const API_NAME = "V5PR208ExchangeAnniversarygiftServiceReposition"'));
+  assert.ok(packageSource.includes('const SMART_MOVE_TARGET = "exchange"'));
+  assert.ok(packageSource.includes(
+    'const SMART_MOVE_RESOLVED_TARGET = Object.freeze({map:"main",x:-26,y:-432})'));
+  assert.ok(packageSource.includes(
+    'const EXCHANGE_NPC = Object.freeze({map:"main",x:-25,y:-478})'));
+  assert.equal((packageSource.match(/smartMove\(SMART_MOVE_TARGET\)/g) || []).length, 1);
+  for (const marker of [
+    "globalThis.exchange(", "parent.exchange(", ".exchange(", "socket.emit(",
+    ".socket.emit(", "api_call(", "upgrade(", "compound(", "buy(",
+    "buy_with_gold(", "trade_buy(", "send_item(", "send_gold(",
+    "bank_retrieve(", "bank_store("
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
 
 test("PR20.8 anniversarygift productive Exchange manifest is exact one-write", () => {
   if (manifest.testId !== "pr20-8-exchange-anniversarygift-productive-one-write-live") return;
