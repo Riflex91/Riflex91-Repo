@@ -3,9 +3,9 @@
 
   const PROFILE_ID = "V5_LIVE_LAB_PR28";
   const VERSION = "0.5.0";
-  const SOURCE_MAIN_SHA = "a81ad3802980a5f9f54d831de6627d3e408609f3";
-  const BUILD_CHANNEL = "chatgpt/v5-live-lab-al25d-r5";
-  const BUILD_ID = "V5_LIVE_LAB_AL25D_R5_1";
+  const SOURCE_MAIN_SHA = "0fa25598787fe373ee0531b90071f3c73431e94e";
+  const BUILD_CHANNEL = "chatgpt/v5-live-lab-al25d-r6";
+  const BUILD_ID = "V5_LIVE_LAB_AL25D_R6_1";
   const AL25D_PINNED_UPSTREAM_COMMIT = "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4";
   const START_ACK = "V5_LIVE_LAB_START";
   const MAX_LOGS = 4000;
@@ -312,9 +312,25 @@
     }
   }
 
+  function sameOriginAncestors() {
+    const out = [];
+    let current = root;
+    for (let depth = 0; depth < 6 && current; depth += 1) {
+      if (!out.includes(current)) out.push(current);
+      const parent = safeParent(current);
+      if (!parent || out.includes(parent)) break;
+      try {
+        void parent.document;
+      } catch (_) {
+        break;
+      }
+      current = parent;
+    }
+    return out;
+  }
+
   function al25dHostRoot() {
-    const candidates = [root, safeParent(root)].filter(Boolean);
-    for (const candidate of candidates) {
+    for (const candidate of sameOriginAncestors()) {
       try {
         if (candidate.AL25D && candidate.document) return candidate;
       } catch (_) {}
@@ -338,10 +354,9 @@
   }
 
   function resolveGameRoot() {
-    if (isGameRuntimeCandidate(root)) return root;
-
-    const parent = safeParent(root);
-    if (isGameRuntimeCandidate(parent)) return parent;
+    for (const candidate of sameOriginAncestors()) {
+      if (isGameRuntimeCandidate(candidate)) return candidate;
+    }
 
     const host = al25dHostRoot();
     const frame = al25dLegacyFrame(host);
@@ -390,11 +405,12 @@
 
       if (host && game === host) {
         mode = "AL25D_ATTACHED";
+      } else if (host && root === host) {
+        mode = "AL25D_HOST_TO_LEGACY_IFRAME";
+      } else if (host && game === root) {
+        mode = "AL25D_LEGACY_FRAME";
       } else if (host) {
-        const parent = safeParent(game);
-        mode = parent === host
-          ? "AL25D_LEGACY_FRAME"
-          : "AL25D_HOST_TO_LEGACY_IFRAME";
+        mode = "AL25D_CODE_RUNNER_TO_LEGACY";
       } else {
         mode = "ADVENTURE_LAND_DIRECT";
       }
@@ -480,10 +496,12 @@
   }
 
   function storagePort() {
-    const candidates = [root];
-    try {
-      if (root.parent && root.parent !== root) candidates.push(root.parent);
-    } catch (_) {}
+    const host = al25dHostRoot();
+    const candidates = [];
+    if (host) candidates.push(host);
+    for (const candidate of sameOriginAncestors()) {
+      if (!candidates.includes(candidate)) candidates.push(candidate);
+    }
     for (const candidate of candidates) {
       try {
         if (
@@ -633,9 +651,8 @@
   function gameRootCandidates() {
     const out = [];
     const game = resolveGameRoot();
-    const parent = safeParent(game);
-    const rootParent = safeParent(root);
-    for (const candidate of [game, parent, root, rootParent]) {
+    if (game) out.push(game);
+    for (const candidate of sameOriginAncestors()) {
       if (candidate && !out.includes(candidate)) out.push(candidate);
     }
     return out;
@@ -2939,25 +2956,27 @@
 
 
   function fileAccessWindow() {
+    const host = al25dHostRoot();
     const candidates = [];
-    try {
-      if (root.parent && root.parent !== root) candidates.push(root.parent);
-    } catch (_) {}
-    candidates.push(root);
-    try {
-      if (typeof window !== "undefined" && !candidates.includes(window)) candidates.push(window);
-    } catch (_) {}
+    if (host) candidates.push(host);
+    for (const candidate of sameOriginAncestors().slice().reverse()) {
+      if (!candidates.includes(candidate)) candidates.push(candidate);
+    }
     for (const candidate of candidates) {
-      if (candidate && typeof candidate.showDirectoryPicker === "function") return candidate;
+      try {
+        if (candidate && typeof candidate.showDirectoryPicker === "function") return candidate;
+      } catch (_) {}
     }
     return null;
   }
 
   function indexedDbPort() {
-    const candidates = [root];
-    try {
-      if (root.parent && root.parent !== root) candidates.push(root.parent);
-    } catch (_) {}
+    const host = al25dHostRoot();
+    const candidates = [];
+    if (host) candidates.push(host);
+    for (const candidate of sameOriginAncestors().slice().reverse()) {
+      if (!candidates.includes(candidate)) candidates.push(candidate);
+    }
     try {
       if (typeof indexedDB !== "undefined") candidates.push({ indexedDB: indexedDB });
     } catch (_) {}
@@ -3336,12 +3355,16 @@
   }
 
   function guiDocument() {
+    const host = al25dHostRoot();
     try {
-      if (root.parent && root.parent.document) return root.parent.document;
+      if (host && host.document) return host.document;
     } catch (_) {}
-    try {
-      if (root.document) return root.document;
-    } catch (_) {}
+    const ancestors = sameOriginAncestors();
+    for (let i = ancestors.length - 1; i >= 0; i -= 1) {
+      try {
+        if (ancestors[i] && ancestors[i].document) return ancestors[i].document;
+      } catch (_) {}
+    }
     try {
       if (typeof document !== "undefined") return document;
     } catch (_) {}
@@ -3349,12 +3372,16 @@
   }
 
   function guiNavigator() {
+    const host = al25dHostRoot();
     try {
-      if (root.navigator) return root.navigator;
+      if (host && host.navigator) return host.navigator;
     } catch (_) {}
-    try {
-      if (root.parent && root.parent.navigator) return root.parent.navigator;
-    } catch (_) {}
+    const ancestors = sameOriginAncestors();
+    for (let i = ancestors.length - 1; i >= 0; i -= 1) {
+      try {
+        if (ancestors[i] && ancestors[i].navigator) return ancestors[i].navigator;
+      } catch (_) {}
+    }
     try {
       if (typeof navigator !== "undefined") return navigator;
     } catch (_) {}
@@ -3362,13 +3389,10 @@
   }
 
   function guiWindow() {
-    try {
-      if (root.parent && root.parent.window) return root.parent.window;
-    } catch (_) {}
-    try {
-      if (root.window) return root.window;
-    } catch (_) {}
-    return root;
+    const host = al25dHostRoot();
+    if (host) return host;
+    const ancestors = sameOriginAncestors();
+    return ancestors[ancestors.length - 1] || root;
   }
 
   function htmlEscape(value) {
