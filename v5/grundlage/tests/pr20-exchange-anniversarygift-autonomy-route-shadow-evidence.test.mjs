@@ -95,19 +95,19 @@ test("autonomy route shadow package pin remains exact",()=>{
   assert.deepEqual(pinned,bytes);
 });
 
-test("active manifest stays on no-write shadow while roadmap advances only to productive one-write preparation",()=>{
-  assert.equal(manifest.testId,evidence.package.testId);
-  assert.equal(manifest.controllerVersion,evidence.package.controllerVersion);
-  assert.equal(manifest.sourceCommit,evidence.package.sourceCommit);
-  assert.equal(manifest.packagePath,evidence.package.path);
-  assert.equal(manifest.packageSha256,evidence.package.sha256);
-  assert.equal(manifest.expectedGlobal,evidence.package.expectedGlobal);
+test("ratified route-shadow evidence stays immutable while active manifest advances to productive autonomy one-write",()=>{
+  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live");
+  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(manifest.sourceCommit,"ec3e0d141af72e962e85ddf48edd0fbe5e0e218e");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live-v1-0-0.js");
+  assert.equal(manifest.packageSha256,"6fca304c62dfeea6fb718da6164b1e6b956d6ccdff12ccde9d80138cfc941532");
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftAutonomyProductiveOneWriteLive");
   assert.equal(manifest.normalRuntimeAllowed,false);
 
   const p=roadmap.pr20_8;
   const s=p.exchangeCandidateAcquisition.anniversaryGiftExchangeAutonomyRouteShadow;
-  assert.equal(p.status,"EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_RATIFIED_NO_WRITE");
-  assert.equal(p.nextAction,"PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_PRODUCTIVE_ONE_WRITE");
+  assert.equal(p.status,"EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
+  assert.equal(p.nextAction,"DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_PRODUCTIVE_ONE_WRITE");
   assert.equal(s.status,"RATIFIED_BESTANDEN_AUTONOMY_ROUTE_ZERO_WRITE");
   assert.equal(s.deployed,true);
   assert.equal(s.liveEvidenceObserved,true);
