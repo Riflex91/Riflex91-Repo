@@ -2,14 +2,19 @@
   "use strict";
 
   const PROFILE_ID = "V5_LIVE_LAB_PR28";
-  const VERSION = "0.3.0";
-  const SOURCE_MAIN_SHA = "a04c0aaf706fff7e535de56c5d0769266c315909";
-  const BUILD_CHANNEL = "chatgpt/v5-live-lab-pr28-r3";
-  const BUILD_ID = "V5_LIVE_LAB_PR28_R3_GUI_1";
+  const VERSION = "0.4.0";
+  const SOURCE_MAIN_SHA = "5be7d85fa3828fde0fa2eb226cbfa2e988ad5985";
+  const BUILD_CHANNEL = "chatgpt/v5-live-lab-pr28-r4";
+  const BUILD_ID = "V5_LIVE_LAB_PR28_R4_LIVE_EVIDENCE_1";
   const START_ACK = "V5_LIVE_LAB_START";
   const MAX_LOGS = 4000;
   const MAX_PERSISTED_INTENTS = 512;
   const PERSISTENCE_PREFIX = "v5-live-lab:v2:";
+  const SITUATION_FILE_NAME = "V5-Live-Situation.md";
+  const SITUATION_WRITE_INTERVAL_MS = 30000;
+  const SITUATION_DB_NAME = "v5-live-lab";
+  const SITUATION_DB_STORE = "handles";
+  const SITUATION_DB_KEY = "situation-directory";
 
   const CAPABILITIES_BY_CLASS = Object.freeze({
     warrior: Object.freeze(["TANK", "SINGLE_TARGET", "AOE", "CC"]),
@@ -240,6 +245,7 @@
   let lastTargetSeenId = null;
 
   const logs = [];
+  const capabilityLedger = new Map();
   const peers = new Map();
   const irreversible = new Map();
   const trainingMs = new Map();
@@ -253,6 +259,11 @@
   let guiPanel = null;
   let guiCollapsed = false;
   let guiNoticeTimer = null;
+  let situationDirectoryHandle = null;
+  let situationWriterTimer = null;
+  let situationLastWriteAtMs = null;
+  let situationLastWriteError = null;
+  let situationPermission = "unconfigured";
   let restartDetected = false;
   let restartReconciled = true;
   let persistenceAvailable = false;
@@ -576,6 +587,127 @@
     log("ACTION_SENT", Object.assign({ kind: kind }, details || {}));
   }
 
+
+  function boundedUniquePush(values, value, limit) {
+    if (value == null || value === "") return values;
+    const out = Array.isArray(values) ? values.slice() : [];
+    const textValue = String(value);
+    if (!out.includes(textValue)) out.push(textValue);
+    while (out.length > limit) out.shift();
+    return out;
+  }
+
+  function capabilityContext() {
+    const c = character();
+    const server = currentServer();
+    return {
+      character: c && c.name || null,
+      ctype: c && (c.ctype || c.type) || null,
+      map: c && c.map || null,
+      server: (server.region || "—") + " " + (server.identifier || "—"),
+      sessionId: runtimeSessionId || "not-started",
+    };
+  }
+
+  function capabilityEvidenceState(row) {
+    if (!row || row.confirmedSuccesses <= 0) return "NOT_OBSERVED";
+    if (row.unknownOutcomes > 0) return "REVALIDATION_REQUIRED";
+    if (row.failures > 0) return "MIXED_RESULTS";
+    if (
+      row.confirmedSuccesses >= 20
+      && row.sessions.length >= 2
+      && row.contexts.length >= 2
+    ) return "STRONG_LIVE_CALL_EVIDENCE";
+    if (row.confirmedSuccesses >= 5) return "REPEATED_LIVE_CALL_SUCCESS";
+    return "OBSERVED_LIVE_SUCCESS";
+  }
+
+  function noteCapabilityAttempt(publicName, kind) {
+    const key = String(publicName || kind || "unknown");
+    const current = capabilityLedger.get(key) || {
+      capability: key,
+      actionKinds: [],
+      attempts: 0,
+      confirmedSuccesses: 0,
+      failures: 0,
+      unknownOutcomes: 0,
+      firstObservedAtMs: null,
+      firstSuccessAtMs: null,
+      lastAttemptAtMs: null,
+      lastSuccessAtMs: null,
+      lastFailureAtMs: null,
+      lastUnknownAtMs: null,
+      lastError: null,
+      sessions: [],
+      characters: [],
+      maps: [],
+      servers: [],
+      contexts: [],
+    };
+    const ctx = capabilityContext();
+    const atMs = now();
+    const next = Object.assign({}, current, {
+      actionKinds: boundedUniquePush(current.actionKinds, kind, 16),
+      attempts: current.attempts + 1,
+      firstObservedAtMs: current.firstObservedAtMs || atMs,
+      lastAttemptAtMs: atMs,
+      sessions: boundedUniquePush(current.sessions, ctx.sessionId, 16),
+      characters: boundedUniquePush(current.characters, ctx.character, 16),
+      maps: boundedUniquePush(current.maps, ctx.map, 24),
+      servers: boundedUniquePush(current.servers, ctx.server, 16),
+      contexts: boundedUniquePush(
+        current.contexts,
+        [ctx.character, ctx.ctype, ctx.map, ctx.server].join("|"),
+        32
+      ),
+    });
+    next.evidenceState = capabilityEvidenceState(next);
+    capabilityLedger.set(key, Object.freeze(next));
+    return next;
+  }
+
+  function noteCapabilityResult(publicName, outcome, error) {
+    const key = String(publicName || "unknown");
+    const current = capabilityLedger.get(key);
+    if (!current) return null;
+    const atMs = now();
+    const next = Object.assign({}, current);
+    if (outcome === "SUCCESS") {
+      next.confirmedSuccesses += 1;
+      next.firstSuccessAtMs = next.firstSuccessAtMs || atMs;
+      next.lastSuccessAtMs = atMs;
+      next.lastError = null;
+    } else if (outcome === "UNKNOWN") {
+      next.unknownOutcomes += 1;
+      next.lastUnknownAtMs = atMs;
+      next.lastError = String(error || "UNKNOWN");
+    } else {
+      next.failures += 1;
+      next.lastFailureAtMs = atMs;
+      next.lastError = String(error || "FAILED");
+    }
+    next.evidenceState = capabilityEvidenceState(next);
+    capabilityLedger.set(key, Object.freeze(next));
+    return next;
+  }
+
+  function noteInternalCapability(name, success, detail) {
+    const key = "internal:" + String(name);
+    noteCapabilityAttempt(key, String(name));
+    noteCapabilityResult(key, success === false ? "FAILED" : "SUCCESS", detail || null);
+  }
+
+  function capabilityLedgerSnapshot() {
+    return Object.freeze(
+      Array.from(capabilityLedger.values())
+        .map(function (row) { return Object.freeze(Object.assign({}, row)); })
+        .sort(function (a, b) {
+          return b.confirmedSuccesses - a.confirmedSuccesses
+            || a.capability.localeCompare(b.capability);
+        })
+    );
+  }
+
   async function executePublic(kind, publicName, args, options) {
     const opts = options || {};
     const safety = liveSafety();
@@ -602,7 +734,8 @@
       persistRuntimeState();
     }
 
-    noteAction(kind, { intentId: intentId });
+    noteCapabilityAttempt(publicName, kind);
+    noteAction(kind, { intentId: intentId, publicName: publicName });
     try {
       const result = await callPublic(publicName, args || []);
       if (irreversibleAction) {
@@ -613,7 +746,8 @@
         });
         persistRuntimeState();
       }
-      log("ACTION_COMMIT", { kind: kind, intentId: intentId });
+      noteCapabilityResult(publicName, "SUCCESS", null);
+      log("ACTION_COMMIT", { kind: kind, publicName: publicName, intentId: intentId });
       return result;
     } catch (error) {
       if (irreversibleAction) {
@@ -626,8 +760,14 @@
         persistRuntimeState();
         evidenceNote("unresolvedRecoveryCount", 1);
       }
+      noteCapabilityResult(
+        publicName,
+        irreversibleAction ? "UNKNOWN" : "FAILED",
+        String(error && error.message || error)
+      );
       log(irreversibleAction ? "ACTION_UNKNOWN" : "ACTION_FAILED", {
         kind: kind,
+        publicName: publicName,
         intentId: intentId,
         error: String(error && error.message || error),
       });
@@ -2065,6 +2205,7 @@
     }
 
     currentTargetId = target.id || null;
+    noteInternalCapability("target_selection", true, target.id || normalizeMonsterName(target));
     if (await roleSupportTick(target)) return;
 
     if (!canAttackTarget(target)) {
@@ -2582,6 +2723,400 @@
   }
 
 
+
+  function fileAccessWindow() {
+    const candidates = [];
+    try {
+      if (root.parent && root.parent !== root) candidates.push(root.parent);
+    } catch (_) {}
+    candidates.push(root);
+    try {
+      if (typeof window !== "undefined" && !candidates.includes(window)) candidates.push(window);
+    } catch (_) {}
+    for (const candidate of candidates) {
+      if (candidate && typeof candidate.showDirectoryPicker === "function") return candidate;
+    }
+    return null;
+  }
+
+  function indexedDbPort() {
+    const candidates = [root];
+    try {
+      if (root.parent && root.parent !== root) candidates.push(root.parent);
+    } catch (_) {}
+    try {
+      if (typeof indexedDB !== "undefined") candidates.push({ indexedDB: indexedDB });
+    } catch (_) {}
+    for (const candidate of candidates) {
+      try {
+        if (candidate && candidate.indexedDB) return candidate.indexedDB;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  function openSituationDb() {
+    return new Promise(function (resolve, reject) {
+      const idb = indexedDbPort();
+      if (!idb || typeof idb.open !== "function") {
+        resolve(null);
+        return;
+      }
+      let request;
+      try {
+        request = idb.open(SITUATION_DB_NAME, 1);
+      } catch (error) {
+        reject(error);
+        return;
+      }
+      request.onupgradeneeded = function () {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(SITUATION_DB_STORE)) {
+          db.createObjectStore(SITUATION_DB_STORE);
+        }
+      };
+      request.onsuccess = function () { resolve(request.result); };
+      request.onerror = function () { reject(request.error || new Error("INDEXED_DB_OPEN_FAILED")); };
+    });
+  }
+
+  async function saveSituationDirectoryHandle(handle) {
+    const db = await openSituationDb();
+    if (!db) return false;
+    return new Promise(function (resolve) {
+      try {
+        const tx = db.transaction(SITUATION_DB_STORE, "readwrite");
+        tx.objectStore(SITUATION_DB_STORE).put(handle, SITUATION_DB_KEY);
+        tx.oncomplete = function () {
+          try { db.close(); } catch (_) {}
+          resolve(true);
+        };
+        tx.onerror = function () {
+          try { db.close(); } catch (_) {}
+          resolve(false);
+        };
+      } catch (_) {
+        try { db.close(); } catch (_) {}
+        resolve(false);
+      }
+    });
+  }
+
+  async function restoreSituationDirectoryHandle() {
+    const db = await openSituationDb();
+    if (!db) return null;
+    return new Promise(function (resolve) {
+      try {
+        const tx = db.transaction(SITUATION_DB_STORE, "readonly");
+        const request = tx.objectStore(SITUATION_DB_STORE).get(SITUATION_DB_KEY);
+        request.onsuccess = function () {
+          const value = request.result || null;
+          try { db.close(); } catch (_) {}
+          resolve(value);
+        };
+        request.onerror = function () {
+          try { db.close(); } catch (_) {}
+          resolve(null);
+        };
+      } catch (_) {
+        try { db.close(); } catch (_) {}
+        resolve(null);
+      }
+    });
+  }
+
+  async function directoryPermission(handle, request) {
+    if (!handle) return "unconfigured";
+    const options = { mode: "readwrite" };
+    try {
+      if (typeof handle.queryPermission === "function") {
+        const current = await handle.queryPermission(options);
+        if (current === "granted") return "granted";
+        if (!request) return current || "prompt";
+      }
+      if (request && typeof handle.requestPermission === "function") {
+        return await handle.requestPermission(options);
+      }
+    } catch (error) {
+      situationLastWriteError = String(error && error.message || error);
+      return "denied";
+    }
+    return "unsupported";
+  }
+
+  function buildSituationFileText() {
+    const status = api.status();
+    const ledger = capabilityLedgerSnapshot();
+    const group = status.group || {};
+    const evidence = status.evidence || {};
+    const world = status.world || {};
+    const strong = ledger.filter(function (row) {
+      return row.evidenceState === "STRONG_LIVE_CALL_EVIDENCE";
+    });
+    const repeated = ledger.filter(function (row) {
+      return row.evidenceState === "REPEATED_LIVE_CALL_SUCCESS";
+    });
+    const attention = ledger.filter(function (row) {
+      return row.failures > 0 || row.unknownOutcomes > 0;
+    });
+    const recentLogs = logs.slice(-200);
+
+    const lines = [
+      "# V5 Live Lab – Current Situation",
+      "",
+      "> Diese Datei wird automatisch alle 30 Sekunden überschrieben.",
+      "> Sie ist eine Live-Evidence-/Diagnosequelle und ersetzt keine offizielle Gate-Ratifikation.",
+      "",
+      "## Snapshot",
+      "- Updated: " + new Date(now()).toISOString(),
+      "- Build ID: " + BUILD_ID,
+      "- Runtime version: " + VERSION,
+      "- Build channel: " + BUILD_CHANNEL,
+      "- Source main SHA: " + SOURCE_MAIN_SHA,
+      "- Runtime session: " + String(status.runtimeSessionId || "—"),
+      "- Uptime ms: " + String(status.runtimeUptimeMs || 0),
+      "- Character: " + String(status.character || "—") + " (" + String(status.ctype || "—") + ")",
+      "- Map: " + String(status.map || "—"),
+      "- Server: " + String(status.server && status.server.region || "—") + " " + String(status.server && status.server.identifier || "—"),
+      "- Runtime: " + (status.running ? "RUNNING" : "STOPPED"),
+      "- Authority: execution=" + String(status.liveExecutionAllowed === true)
+        + ", gameplay=" + String(status.gameplayAuthority === true)
+        + ", normal=" + String(status.normalRuntimeAllowed === true)
+        + ", raw=" + String(status.rawWriteAuthority === true),
+      "",
+      "## Current Situation",
+      "- Task: " + String(status.currentTask && status.currentTask.type || "—")
+        + " / " + String(status.currentTask && status.currentTask.id || "—"),
+      "- Target: " + String(status.currentTask && status.currentTask.targetId || status.currentTargetId || "—"),
+      "- PR26 party: " + String(status.currentTask && status.currentTask.partyId || "—"),
+      "- PR26 members: " + (
+        status.currentTask
+        && Array.isArray(status.currentTask.partyMemberIds)
+        && status.currentTask.partyMemberIds.length
+          ? status.currentTask.partyMemberIds.join(", ")
+          : "—"
+      ),
+      "- PR27 progression character: " + String(status.progression && status.progression.selectedCharacter || "—"),
+      "- Group: " + String(group.status || "—") + " / topology=" + String(group.topologyId || "—"),
+      "- Group roles: " + formatRoles(group.roles),
+      "- Group faults: " + (Array.isArray(group.faults) && group.faults.length ? group.faults.join(", ") : "—"),
+      "- Group blockers: " + (Array.isArray(group.blocker) && group.blocker.length ? group.blocker.join(", ") : "—"),
+      "- PR25 evidence: " + String(evidence.status || "—")
+        + ", capability=" + String(evidence.capabilitySegmente || 0)
+        + ", integration=" + String(evidence.integrationsSegmente || 0)
+        + ", seconds=" + String(evidence.gesamteDauerSekunden || 0),
+      "- World plans/quarantine/hops: "
+        + String(Array.isArray(world.plans) ? world.plans.length : 0) + "/"
+        + String(Array.isArray(world.quarantine) ? world.quarantine.length : 0) + "/"
+        + String(Array.isArray(world.hopHistory) ? world.hopHistory.length : 0),
+      "- Merchant service/free slots: " + String(status.lastService || "idle")
+        + " / " + String(status.freeInventorySlots == null ? "—" : status.freeInventorySlots),
+      "",
+      "## Capability Evidence Summary",
+      "",
+      "| Function | State | Success | Failure | Unknown | Attempts | Sessions | Contexts | Last success |",
+      "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+    ];
+
+    for (const row of ledger) {
+      lines.push(
+        "| " + row.capability
+        + " | " + row.evidenceState
+        + " | " + row.confirmedSuccesses
+        + " | " + row.failures
+        + " | " + row.unknownOutcomes
+        + " | " + row.attempts
+        + " | " + row.sessions.length
+        + " | " + row.contexts.length
+        + " | " + (row.lastSuccessAtMs ? new Date(row.lastSuccessAtMs).toISOString() : "—")
+        + " |"
+      );
+    }
+
+    lines.push(
+      "",
+      "### Strong live call evidence",
+      strong.length
+        ? strong.map(function (row) {
+            return "- " + row.capability + ": " + row.confirmedSuccesses
+              + " successes, " + row.sessions.length + " sessions, "
+              + row.contexts.length + " contexts, 0 failures, 0 unknown.";
+          }).join("\n")
+        : "- none yet",
+      "",
+      "### Repeated live call success",
+      repeated.length
+        ? repeated.map(function (row) {
+            return "- " + row.capability + ": " + row.confirmedSuccesses
+              + " successes, failures=" + row.failures
+              + ", unknown=" + row.unknownOutcomes + ".";
+          }).join("\n")
+        : "- none yet",
+      "",
+      "### Needs attention / revalidation",
+      attention.length
+        ? attention.map(function (row) {
+            return "- " + row.capability + ": failures=" + row.failures
+              + ", unknown=" + row.unknownOutcomes
+              + ", lastError=" + String(row.lastError || "—");
+          }).join("\n")
+        : "- none",
+      "",
+      "## Interpretation for the official V5 test chat",
+      "",
+      "- STRONG_LIVE_CALL_EVIDENCE means the public function repeatedly returned successfully across multiple sessions/contexts with no recorded failure or UNKNOWN.",
+      "- REPEATED_LIVE_CALL_SUCCESS means repeated successful live calls, but not enough diversity for strong evidence.",
+      "- REVALIDATION_REQUIRED means at least one ambiguous irreversible result exists.",
+      "- This is call-level evidence. It does not automatically prove every semantic postcondition and must not silently ratify an official gate.",
+      "- The official test chat may use strong/repeated evidence to reduce redundant repetitions, but should retain a targeted smoke/regression check when the relevant adapter/code has changed.",
+      "",
+      "## Capability Ledger JSON",
+      "\`\`\`json",
+      JSON.stringify(ledger, null, 2),
+      "\`\`\`",
+      "",
+      "## Current Status JSON",
+      "\`\`\`json",
+      JSON.stringify(status, null, 2),
+      "\`\`\`",
+      "",
+      "## Last 200 Runtime Logs",
+      "\`\`\`json",
+      JSON.stringify(recentLogs, null, 2),
+      "\`\`\`",
+    );
+
+    return lines.join("\n");
+  }
+
+  async function writeSituationFileNow() {
+    if (!situationDirectoryHandle) {
+      situationPermission = "unconfigured";
+      return Object.freeze({ ok: false, reason: "NO_DIRECTORY" });
+    }
+
+    situationPermission = await directoryPermission(situationDirectoryHandle, false);
+    if (situationPermission !== "granted") {
+      return Object.freeze({ ok: false, reason: "PERMISSION_" + situationPermission });
+    }
+
+    try {
+      const fileHandle = await situationDirectoryHandle.getFileHandle(
+        SITUATION_FILE_NAME,
+        { create: true }
+      );
+      const writable = await fileHandle.createWritable();
+      const content = buildSituationFileText();
+      await writable.write(content);
+      await writable.close();
+      situationLastWriteAtMs = now();
+      situationLastWriteError = null;
+      log("SITUATION_FILE_UPDATED", {
+        fileName: SITUATION_FILE_NAME,
+        chars: content.length,
+        intervalMs: SITUATION_WRITE_INTERVAL_MS,
+      });
+      return Object.freeze({
+        ok: true,
+        fileName: SITUATION_FILE_NAME,
+        chars: content.length,
+        atMs: situationLastWriteAtMs,
+      });
+    } catch (error) {
+      situationLastWriteError = String(error && error.message || error);
+      log("SITUATION_FILE_WRITE_FAILED", {
+        fileName: SITUATION_FILE_NAME,
+        error: situationLastWriteError,
+      });
+      return Object.freeze({
+        ok: false,
+        reason: "WRITE_FAILED",
+        error: situationLastWriteError,
+      });
+    }
+  }
+
+  function startSituationWriter() {
+    if (situationWriterTimer) {
+      try { clearInterval(situationWriterTimer); } catch (_) {}
+      situationWriterTimer = null;
+    }
+    situationWriterTimer = setInterval(function () {
+      void writeSituationFileNow();
+    }, SITUATION_WRITE_INTERVAL_MS);
+    return true;
+  }
+
+  function stopSituationWriter() {
+    if (situationWriterTimer) {
+      try { clearInterval(situationWriterTimer); } catch (_) {}
+      situationWriterTimer = null;
+    }
+    return true;
+  }
+
+  async function connectSituationDirectory() {
+    const host = fileAccessWindow();
+    if (!host) {
+      situationPermission = "unsupported";
+      throw new Error(
+        "LIVE_LAB_FILE_SYSTEM_ACCESS_UNAVAILABLE: Browser unterstützt keinen direkten Ordnerzugriff."
+      );
+    }
+    const handle = await host.showDirectoryPicker({
+      id: "v5-live-lab-situation-folder",
+      mode: "readwrite",
+      startIn: "documents",
+    });
+    const permission = await directoryPermission(handle, true);
+    if (permission !== "granted") {
+      situationPermission = permission;
+      throw new Error("LIVE_LAB_DIRECTORY_PERMISSION_" + String(permission).toUpperCase());
+    }
+    situationDirectoryHandle = handle;
+    situationPermission = "granted";
+    await saveSituationDirectoryHandle(handle);
+    startSituationWriter();
+    const firstWrite = await writeSituationFileNow();
+    log("SITUATION_DIRECTORY_CONNECTED", {
+      directoryName: handle.name || null,
+      fileName: SITUATION_FILE_NAME,
+      firstWriteOk: firstWrite.ok === true,
+    });
+    return situationWriterStatus();
+  }
+
+  async function restoreSituationWriter() {
+    try {
+      const handle = await restoreSituationDirectoryHandle();
+      if (!handle) return situationWriterStatus();
+      situationDirectoryHandle = handle;
+      situationPermission = await directoryPermission(handle, false);
+      if (situationPermission === "granted") {
+        startSituationWriter();
+        await writeSituationFileNow();
+      }
+      return situationWriterStatus();
+    } catch (error) {
+      situationLastWriteError = String(error && error.message || error);
+      return situationWriterStatus();
+    }
+  }
+
+  function situationWriterStatus() {
+    return Object.freeze({
+      configured: !!situationDirectoryHandle,
+      directoryName: situationDirectoryHandle && situationDirectoryHandle.name || null,
+      permission: situationPermission,
+      fileName: SITUATION_FILE_NAME,
+      intervalMs: SITUATION_WRITE_INTERVAL_MS,
+      active: !!situationWriterTimer && situationPermission === "granted",
+      lastWriteAtMs: situationLastWriteAtMs,
+      lastWriteError: situationLastWriteError,
+      requestedWindowsPath: "D:\\\\v5-Test\\\\" + SITUATION_FILE_NAME,
+    });
+  }
+
   function guiDocument() {
     try {
       if (root.parent && root.parent.document) return root.parent.document;
@@ -3022,6 +3557,35 @@
         + " · Raw " + (status.rawWriteAuthority ? "✓" : "×")
     );
 
+    const situation = situationWriterStatus();
+    guiSetText(
+      "v5ll-situation-file",
+      situation.active
+        ? String(situation.directoryName || "Ordner") + "\\" + situation.fileName
+          + " · zuletzt " + (
+            situation.lastWriteAtMs
+              ? new Date(situation.lastWriteAtMs).toLocaleTimeString()
+              : "noch nicht"
+          )
+        : "nicht aktiv · " + String(situation.permission || "unconfigured")
+    );
+
+    const ledger = capabilityLedgerSnapshot();
+    const strongCount = ledger.filter(function (row) {
+      return row.evidenceState === "STRONG_LIVE_CALL_EVIDENCE";
+    }).length;
+    const repeatedCount = ledger.filter(function (row) {
+      return row.evidenceState === "REPEATED_LIVE_CALL_SUCCESS";
+    }).length;
+    const attentionCount = ledger.filter(function (row) {
+      return row.failures > 0 || row.unknownOutcomes > 0;
+    }).length;
+    guiSetText(
+      "v5ll-capabilities",
+      String(ledger.length) + " beobachtet · strong " + strongCount
+        + " · repeated " + repeatedCount + " · attention " + attentionCount
+    );
+
     const important = latestImportantLog();
     guiSetText(
       "v5ll-last-error",
@@ -3067,7 +3631,7 @@
       "#v5-live-lab-gui .v5ll-badge.stopped{background:#252c35;color:#bac6d4}",
       "#v5-live-lab-gui .v5ll-icon{border:0;background:transparent;color:#d8e6f5;cursor:pointer;",
       "font-weight:700;font-size:17px;line-height:18px;padding:0 3px}",
-      "#v5-live-lab-gui .v5ll-controls{display:grid;grid-template-columns:1fr 1fr 1.15fr 1.7fr;gap:6px;padding:8px 10px;",
+      "#v5-live-lab-gui .v5ll-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px 10px;",
       "border-bottom:1px solid rgba(120,170,220,.18)}",
       "#v5-live-lab-gui button.v5ll-btn{border:1px solid rgba(130,170,210,.32);border-radius:6px;",
       "background:#1c2a3a;color:#ecf5ff;padding:7px 6px;cursor:pointer;font-weight:700;font-size:11px}",
@@ -3131,6 +3695,7 @@
       '<button id="v5ll-stop" class="v5ll-btn v5ll-stop" type="button">STOP</button>',
       '<button id="v5ll-emergency" class="v5ll-btn v5ll-emergency" type="button">NOTHALT</button>',
       '<button id="v5ll-report" class="v5ll-btn v5ll-report" type="button">FEHLER MELDEN</button>',
+      '<button id="v5ll-log-folder" class="v5ll-btn v5ll-report" type="button">LOG-ORDNER</button>',
       '</div>',
       '<div id="v5-live-lab-gui-notice" class="v5ll-notice"></div>',
       '<div id="v5ll-body" class="v5ll-body">',
@@ -3153,6 +3718,10 @@
       '<div><span class="v5ll-label">PR25 Evidence</span><span id="v5ll-evidence" class="v5ll-value">—</span></div>',
       '<div><span class="v5ll-label">Authority</span><span id="v5ll-authority" class="v5ll-value">—</span></div>',
       '</div>',
+      '<div class="v5ll-section"><span class="v5ll-label">Live-Situationsdatei</span>',
+      '<span id="v5ll-situation-file" class="v5ll-value">nicht verbunden</span></div>',
+      '<div class="v5ll-section"><span class="v5ll-label">Capabilities</span>',
+      '<span id="v5ll-capabilities" class="v5ll-value">—</span></div>',
       '<div class="v5ll-section"><span class="v5ll-label">Letztes wichtiges Ereignis</span>',
       '<span id="v5ll-last-error" class="v5ll-value">—</span></div>',
       '</div>',
@@ -3173,6 +3742,16 @@
     wireGuiButton(doc, "v5ll-emergency", async function () {
       api.emergencyStop("GUI_EMERGENCY_STOP");
       guiNotice("NOTHALT ausgelöst.", "danger");
+    });
+    wireGuiButton(doc, "v5ll-log-folder", async function () {
+      const status = await connectSituationDirectory();
+      guiNotice(
+        status.active
+          ? "Log-Datei verbunden: " + status.fileName + " (alle 30 Sekunden)."
+          : "Ordner verbunden, aber Schreibrecht fehlt.",
+        status.active ? "success" : "danger"
+      );
+      refreshGui();
     });
     wireGuiButton(doc, "v5ll-report", async function () {
       const result = await copyBugReportToClipboard();
@@ -3244,6 +3823,13 @@
     refreshGui: refreshGui,
     buildBugReportText: buildBugReportText,
     copyBugReportToClipboard: copyBugReportToClipboard,
+    connectSituationDirectory: connectSituationDirectory,
+    writeSituationFileNow: writeSituationFileNow,
+    startSituationWriter: startSituationWriter,
+    stopSituationWriter: stopSituationWriter,
+    situationWriterStatus: situationWriterStatus,
+    buildSituationFileText: buildSituationFileText,
+    capabilityLedger: capabilityLedgerSnapshot,
 
     startEvidenceSegment: function (options) {
       options = options || {};
@@ -3270,6 +3856,8 @@
         gameplayAuthority: running && safety.admitted,
         normalRuntimeAllowed: running && safety.admitted,
         rawWriteAuthority: false,
+        situationWriter: situationWriterStatus(),
+        capabilityLedger: capabilityLedgerSnapshot(),
         persistenceAvailable: persistenceAvailable,
         restartDetected: restartDetected,
         restartReconciled: restartReconciled,
@@ -3342,6 +3930,8 @@
         ctype: c && (c.ctype || c.type) || null,
         server: currentServer(),
         status: api.status(),
+        capabilityLedger: capabilityLedgerSnapshot(),
+        situationWriter: situationWriterStatus(),
         config: clone(config),
         logs: api.exportLogs(),
       });
@@ -3384,6 +3974,7 @@
   root.V5LiveLab = api;
   persistRuntimeState();
   mountGui();
+  void restoreSituationWriter();
   log("RUNTIME_INSTALLED", {
     liveExecutionAllowed: false,
     gameplayAuthority: false,
