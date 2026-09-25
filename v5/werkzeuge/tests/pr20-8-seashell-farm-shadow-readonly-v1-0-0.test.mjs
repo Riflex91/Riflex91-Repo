@@ -244,8 +244,8 @@ test("runner contract and current roadmap remain read-only and undeployed",()=>{
   assert.equal(runnerContract.deployment.deployed,false);
   assert.equal(runnerContract.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_READ_ONLY");
 
-  assert.equal(roadmap.pr20_8.status,"EXCHANGE_ANNIVERSARYGIFT_DURABLE_SHADOW_PREPARED_NO_WRITE");
-  assert.equal(roadmap.pr20_8.nextAction,"PREPARE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW_MANIFEST_CUTOVER");
+  assert.equal(roadmap.pr20_8.status,"EXCHANGE_ANNIVERSARYGIFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED");
+  assert.equal(roadmap.pr20_8.nextAction,"DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW");
   const shadow=roadmap.pr20_8.exchangeCandidateAcquisition.seashellFarmShadow;
   assert.equal(shadow.runnerPrepared,true);
   assert.equal(shadow.manifestCutoverPrepared,false);
@@ -254,15 +254,18 @@ test("runner contract and current roadmap remain read-only and undeployed",()=>{
   assert.equal(shadow.alreadySatisfiedNextAction,"PREPARE_SEASHELL_HANDOFF_SHADOW_NO_WRITE");
 });
 
-test("autonomous manifest is cut over to the anniversarygift exception rescan",()=>{
-  assert.equal(manifest.testId,"pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(manifest.controllerVersion,"1.0.7");
-  assert.equal(manifest.sourceCommit,"5ae7e2699ca38381df4e90ea385732241cfbcd55");
+test("autonomous manifest is cut over to the anniversarygift no-send shadow",()=>{
+  assert.equal(manifest.testId,
+    "pr20-8-exchange-anniversarygift-durable-shadow-no-write");
+  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(manifest.sourceCommit,"737118b5ab4d043ca996594aa6db1df309a6a177");
   assert.equal(
     manifest.packagePath,
-    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-7.js",
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-durable-shadow-no-write.js",
   );
-  assert.equal(manifest.packageSha256,"00e2f5ed379f27a489af1c1a87f142cd7efe7fb7617d1e814d3033563137dbf9");
-  assert.equal(manifest.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
+  assert.equal(manifest.packageSha256,
+    "04c765fc9d88b242170ca15d0d28d8dcca84572a745dcaa09ebf0c1caa44135e");
+  assert.equal(manifest.expectedGlobal,
+    "V5PR208ExchangeAnniversarygiftDurableShadowNoWrite");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
