@@ -16,6 +16,8 @@ describe("Windows local sandbox scripts", () => {
     expect(setup).toContain('"Dev: true"');
     expect(setup).toContain('"Local: true"');
     expect(setup).toContain('"unsecure_admin: true"');
+    expect(setup).toContain('"ip_limit: 3"');
+    expect(setup).toContain('"character_limit: 3"');
   });
 
   it("scrubs imported player/account collections after seeding map data", () => {
@@ -43,5 +45,13 @@ describe("Windows local sandbox scripts", () => {
     expect(start).toContain("localAdmin=1");
     expect(start).toContain("legacy=/legacy/");
     expect(start).not.toContain("https://adventure.land");
+  });
+
+  it("proxies the original routes needed by start_character child clients", () => {
+    const vite = read("vite.config.ts");
+
+    expect(vite).toContain('"/character": backendProxy');
+    expect(vite).toContain('"/server": backendProxy');
+    expect(vite).toContain('"/runner": backendProxy');
   });
 });
