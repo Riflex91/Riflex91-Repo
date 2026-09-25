@@ -38,8 +38,28 @@
     "zeroUnresolvedTransactionsRequired": true,
     "zeroAuthorityLeaksRequired": true,
     "zeroSameIntentRetriesRequired": true,
-    "normalRuntimeAllowed": false
+    "normalRuntimeAllowed": false,
+    "cap022FullChainRequiredForPr22Pr23": true,
+    "orchestrationPreparedCannotBypassCap022": true
   },
   "test": "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs",
-  "nextMilestone": "PREPARE_MILESTONE_RUNNERS_AND_OBSERVABILITY_WITHOUT_ENABLING_PRODUCTIVE_AUTHORITY"
+  "nextMilestone": "PREPARE_MILESTONE_RUNNERS_WITH_CAP022_FULL_CHAIN_GUARD_NO_AUTHORITY",
+  "cap022FullChainBoundary": {
+    "requiredStages": [
+      "PR22",
+      "PR23"
+    ],
+    "inputField": "cap022FullChainReady",
+    "blockerByStage": {
+      "PR22": "PR22_CAP022_FULL_CHAIN_NICHT_BEREIT",
+      "PR23": "PR23_CAP022_FULL_CHAIN_NICHT_BEREIT"
+    },
+    "predecessorChainClosesAfterFailure": true,
+    "orchestrationPreparedAloneInsufficient": true,
+    "currentPr20_9RatificationCredit": false,
+    "candidateAcquisitionOrMutationAllowedNow": false,
+    "durableIntentCreated": false,
+    "productiveCraftAuthorityOpened": false,
+    "gateEvaluationIssuesAuthority": false
+  }
 }
