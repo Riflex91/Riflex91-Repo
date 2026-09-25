@@ -1202,7 +1202,11 @@ test("PR20.8 Compound 5m preparation continues the committed transaction with ze
   assert.equal(p.runnerPackageSha256,"2c68619ffb7359373a6a817ac939c34278a66f5c69e7d3efba59a5ff5c00e221");
   assert.equal(p.runnerPackageBytes,25081);
   assert.equal(p.publicCompoundCallSites,0);
-  assert.equal(p.bridgeMayDeployPinnedRunner,true);
+  assert.equal(p.bridgeMayDeployPinnedRunner,false);
+  assert.equal(p.retiredFromActiveManifest,true);
+  assert.equal(p.supersededByPerformanceRecovery,true);
+  assert.equal(p.activeRecoveryControllerVersion,"1.0.1");
+  assert.equal(p.activeRecoveryPackage,"werkzeuge/pr20-8-compound-live-5m-v1-0-1.js");
   assert.equal(p.manifestCutoverPrepared,true);
   assert.equal(p.deployed,false);
   assert.equal(p.liveWriteEnabled,false);
