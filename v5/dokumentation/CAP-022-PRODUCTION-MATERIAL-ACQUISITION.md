@@ -58,13 +58,22 @@ Multi-Farmer-Objective / Aggregation:
 
 Die Team-Foundation behaelt den urspruenglich gebundenen Farmer als Anchor, waehlt weitere frische Farmer bounded und deterministisch auf demselben Account/Server und bindet **alle** an exakt dieselbe `objectiveId`. Frische Inventory-Evidence wird accountweit fuer das Material aggregiert. Solange Material fehlt, wird die Restmenge bounded auf die ausgewaehlten Farmer verteilt; sobald die aggregierte Zielmenge erreicht ist, wird fuer alle `farmStopRequired=true` und ein spaeterer Multi-Source-COLLECTION-Handoff verlangt.
 
+
+Multi-Source-COLLECTION-Handoff:
+
+- `grundlage/quelle/koordination/production-material-team-handoff.ts`
+- `grundlage/vertraege/runtime/pr22-23-production-material-team-handoff-foundation.json`
+- `grundlage/tests/pr22-23-production-material-team-handoff.test.mjs`
+
+Nach Aggregate-READY pinnt der Batchplan die tatsaechlichen physischen Materialstacks je Quell-Character und exakt die insgesamt benoetigte Menge. Transfers bleiben strikt sequenziell: vor jedem Transfer muessen Merchant-Rendezvous und Recipient-Baseline frisch erhoben werden, und ein vorheriger Transfer muss settled sein. Paralleltransfer und Same-Transfer-Retry sind ausgeschlossen. Dadurch kann der Inventar-Delta eines frueheren Transfers nicht versehentlich den Settlement-Nachweis eines spaeteren Transfers erfuellen.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf
 
 Der vorbereitete Pfad lautet:
 
-`Production FARM-Node -> gemeinsames MaterialObjective -> Multi-Farmer-Aggregation -> FARM_REQUIRED -> aggregate MATERIAL_READY_FOR_HANDOFF -> PR22-Koordination -> PR23 Movement/Combat/Loot -> Multi-Source Collection/Handoff -> SETTLED -> frischer Merchant-Inventar-Snapshot -> NORMAL_CRAFT_ONLY-Rescan -> spaeterer PR20.9-Durable-Shadow-Pfad`
+`Production FARM-Node -> gemeinsames MaterialObjective -> Multi-Farmer-Aggregation -> FARM_REQUIRED -> aggregate MATERIAL_READY_FOR_HANDOFF -> PR22-Koordination -> PR23 Movement/Combat/Loot -> gepinnter Multi-Source Collection-Batch -> sequenzielle Settlements -> frischer Merchant-Inventar-Snapshot -> NORMAL_CRAFT_ONLY-Rescan -> spaeterer PR20.9-Durable-Shadow-Pfad`
 
 Die Foundation:
 
