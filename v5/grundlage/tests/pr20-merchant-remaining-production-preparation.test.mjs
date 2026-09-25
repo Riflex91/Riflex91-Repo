@@ -1530,7 +1530,7 @@ test("PR20.8 Exchange closeout records the fresh v1.0.6 no-candidate evidence", 
   assert.equal(retired.supersededByControllerVersion,"1.0.4");
 });
 
-test("PR20.8 Exchange read-only scanner v1.0.5 completed fresh zero-write no-candidate rescan", () => {
+test("PR20.8 historical Exchange read-only scanner v1.0.5 completed zero-write no-candidate rescan", () => {
   const r=prep.pr20_8.exchangeReadonlyRescanFacadeRecovery;
   assert.equal(r.status,"REAL_BROWSER_FRESH_RESCAN_COMPLETED_NO_CANDIDATE_ZERO_WRITE");
   assert.equal(r.contract,"grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-facade-recovery-preparation.json");
@@ -1616,7 +1616,7 @@ test("PR20.8 fresh Exchange read-only rescan evidence keeps Exchange and PR20.9 
   assert.equal(e.outcome,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
 });
 
-test("PR20.8 current Exchange no-candidate v1.0.5 evidence remains non-substitutive", () => {
+test("PR20.8 historical Exchange no-candidate v1.0.5 evidence remains non-substitutive", () => {
   const e=prep.pr20_8.exchangeReadonlyRescanV1_0_5Evidence;
   assert.equal(e.status,"RATIFIED_FRESH_NO_CANDIDATE_ZERO_WRITE");
   assert.equal(e.evidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json");
