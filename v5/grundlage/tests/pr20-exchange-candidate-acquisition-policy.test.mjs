@@ -105,6 +105,14 @@ test("acquisition remains strictly separate from Exchange ratification",()=>{
   assert.equal(r.marketDiscovery.tradeBuyAllowed,false);
   assert.equal(r.marketDiscovery.farmAllowed,false);
   assert.equal(r.marketDiscovery.exchangeAllowed,false);
+  assert.equal(r.seashellFarmPreparation.status,"PREPARED_NO_WRITE");
+  assert.equal(r.seashellFarmPreparation.targetItem,"seashell");
+  assert.equal(r.seashellFarmPreparation.requiredQuantity,20);
+  assert.equal(r.seashellFarmPreparation.sourceMonster,"croc");
+  assert.equal(r.seashellFarmPreparation.anniversaryGiftAllowed,false);
+  assert.equal(r.seashellFarmPreparation.farmAuthority,false);
+  assert.equal(r.seashellFarmPreparation.exchangeAuthority,false);
+  assert.equal(r.seashellFarmPreparation.normalRuntimeAllowed,false);
 });
 
 test("read-only discovery package is pinned as zero-write preparation",()=>{
