@@ -771,7 +771,7 @@ test("PR20.8 anniversarygift productive Exchange manifest is exact one-write", (
   assert.ok(packageSource.includes("sameIntentRetry:false"));
   assert.ok(packageSource.includes("state.gameplayWrites += 1"));
   assert.ok(packageSource.includes("state.publicFunctionCalls += 1"));
-  assert.equal((packageSource.match(/globalThis\\.exchange\\(/g) || []).length, 1);
+  assert.equal((packageSource.match(/globalThis\.exchange\(/g) || []).length, 1);
   for (const marker of [
     "parent.exchange(", "socket.emit(", ".socket.emit(", "api_call(",
     "upgrade(", "compound(", "buy(", "buy_with_gold(", "trade_buy(",
