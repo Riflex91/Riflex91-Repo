@@ -41,6 +41,12 @@ const DEFAULT_CAMERA: CameraState = {
 const FALLBACK_BOUNDS_SIZE = 1800;
 const GRID_STEP = 128;
 
+function collisionDebugEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+
+  return new URLSearchParams(window.location.search).get("collisionDebug") === "1";
+}
+
 export class Pixi25DRenderer implements RenderBridge {
   private readonly app = new Application();
   private readonly world = new Container();
@@ -158,14 +164,16 @@ export class Pixi25DRenderer implements RenderBridge {
     this.drawGrid(grid, bounds);
     this.mapLayer.addChild(grid);
 
-    const walls = new Graphics();
-    for (const [x, y1, y2] of geometry?.collisionXLines ?? []) {
-      this.drawCollisionWall(walls, { x, y: y1 }, { x, y: y2 });
+    if (collisionDebugEnabled()) {
+      const walls = new Graphics();
+      for (const [x, y1, y2] of geometry?.collisionXLines ?? []) {
+        this.drawCollisionWall(walls, { x, y: y1 }, { x, y: y2 });
+      }
+      for (const [y, x1, x2] of geometry?.collisionYLines ?? []) {
+        this.drawCollisionWall(walls, { x: x1, y }, { x: x2, y });
+      }
+      this.mapLayer.addChild(walls);
     }
-    for (const [y, x1, x2] of geometry?.collisionYLines ?? []) {
-      this.drawCollisionWall(walls, { x: x1, y }, { x: x2, y });
-    }
-    this.mapLayer.addChild(walls);
   }
 
   private resolveBounds(snapshot: GameFrameSnapshot): RenderMapBounds {
@@ -217,7 +225,7 @@ export class Pixi25DRenderer implements RenderBridge {
       graphics
         .moveTo(a.x, a.y)
         .lineTo(b.x, b.y)
-        .stroke({ color: 0x294038, width: 1, alpha: 0.45 });
+        .stroke({ color: 0x294038, width: 0.75, alpha: 0.16 });
     }
 
     for (let y = firstY; y <= bounds.maxY; y += yStride) {
@@ -242,7 +250,7 @@ export class Pixi25DRenderer implements RenderBridge {
     ];
     const materialColor = this.materialColor(surface.material);
     const structure = surface.layer === "structure";
-    const height = structure ? 9 + ((surface.group ?? 0) % 3) * 3 : 0;
+    const height = structure ? 14 + ((surface.group ?? 0) % 3) * 4 : 0;
 
     if (height > 0) {
       const frontA = corners[3];
@@ -277,17 +285,20 @@ export class Pixi25DRenderer implements RenderBridge {
     }
 
     const top = corners.flatMap((point) => [point.x, point.y - height]);
-    graphics
+    const polygon = graphics
       .poly(top)
       .fill({
         color: materialColor,
-        alpha: structure ? 0.88 : 0.72
-      })
-      .stroke({
-        color: this.shadeColor(materialColor, structure ? 1.18 : 0.92),
-        width: structure ? 1.1 : 0.55,
-        alpha: structure ? 0.62 : 0.3
+        alpha: structure ? 0.92 : 0.82
       });
+
+    if (structure) {
+      polygon.stroke({
+        color: this.shadeColor(materialColor, 1.14),
+        width: 0.9,
+        alpha: 0.48
+      });
+    }
   }
 
   private materialColor(material: string): number {
