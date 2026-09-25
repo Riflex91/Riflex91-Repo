@@ -89,13 +89,24 @@ Die Team-Bruecke akzeptiert ausschliesslich einen terminalen Batchzustand `ALLE_
 
 Auch `TEAM_CRAFT_RESCAN_KANDIDAT_BEREIT_NO_WRITE` ist **keine** Craft-Ratifizierung. Es entstehen weder Craft-Authority noch Gameplay-/Raw-Write-Authority oder Normal-Runtime-Freigabe.
 
+
+PR20.9 Durable-Shadow-Admission aus Team-Rescan:
+
+- `grundlage/quelle/produktion/pr20-9-craft-team-rescan-durable-admission.ts`
+- `grundlage/vertraege/runtime/pr20-9-craft-team-rescan-durable-admission-foundation.json`
+- `grundlage/tests/pr20-9-craft-team-rescan-durable-admission.test.mjs`
+
+Ein bereiter Team-Rescan wird **nicht** direkt persistiert. Die Admission bindet ihn zuerst exakt an die urspruengliche Read-only-Preflight-Anfrage sowie eine frische Current-Fence aus Character, Session, Server, finalem Merchant-Inventar-Fingerprint, Q-Fingerprint und den Resource-Epochen `inventory/q/socketBudget/actionChannel`. Daraus entstehen ausschliesslich der PR20.9-Durable-Shadow-Plan und der Current-Snapshot. Die Admission selbst schreibt nichts und erzeugt keinen Durable Intent.
+
+Nur der bereits bestehende `persistierePr20_9CraftDurableShadow(...)`-Controller darf danach separat einen kritischen terminalen NO-WRITE-Shadow-Intent persistieren. Ein synthetischer Unit-Test dieser Verbindung ist keine Live-Evidence und gibt keinen PR20.9-Ratification-Credit.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf
 
 Der vorbereitete Pfad lautet:
 
-`Production FARM-Node -> gemeinsames MaterialObjective -> Multi-Farmer-Aggregation -> FARM_REQUIRED -> aggregate MATERIAL_READY_FOR_HANDOFF -> PR22-Koordination -> PR23 Movement/Combat/Loot -> gepinnter Multi-Source Collection-Batch -> persistente sequenzielle Settlements/Recovery -> ALLE_SETTLED -> frischer Merchant-Inventar-Snapshot -> TEAM NORMAL_CRAFT_ONLY-Rescan -> separate PR20.9-Craft-Evidence -> spaeterer produktiver Production-Pfad`
+`Production FARM-Node -> gemeinsames MaterialObjective -> Multi-Farmer-Aggregation -> FARM_REQUIRED -> aggregate MATERIAL_READY_FOR_HANDOFF -> PR22-Koordination -> PR23 Movement/Combat/Loot -> gepinnter Multi-Source Collection-Batch -> persistente sequenzielle Settlements/Recovery -> ALLE_SETTLED -> frischer Merchant-Inventar-Snapshot -> TEAM NORMAL_CRAFT_ONLY-Rescan -> frische PR20.9 Durable-Shadow-Admission/Current-Fence -> bestehender Durable-Shadow-Controller -> separate reale PR20.9-Craft-Evidence -> spaeterer produktiver Production-Pfad`
 
 Die Foundation:
 
