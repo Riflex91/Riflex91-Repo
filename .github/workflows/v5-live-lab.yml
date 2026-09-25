@@ -1,0 +1,27 @@
+name: v5-live-lab
+
+on:
+  push:
+    branches:
+      - chatgpt/v5-live-lab-pr28-r3
+    paths:
+      - 'v5-live-lab/**'
+      - '.github/workflows/v5-live-lab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-lab-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v5-live-lab
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test
+      - run: node --check browser/v5-live-lab-bot-v1.js\n      - run: node --check browser/v5-live-lab-bot-v2.js
