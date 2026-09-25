@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 
 import {
   MerchantLogistikLedger,
@@ -401,4 +402,88 @@ test("CAP-022 Rescan lehnt Settlement-Fingerprint-Drift ab", () => {
     }), 700),
     /CAP022_CRAFT_RESCAN_HANDOFF_NICHT_SETTLED/,
   );
+});
+
+
+test("CAP-022 Rescan-Vertrag und Roadmap halten PR20.9 fail-closed", () => {
+  const contract = JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
+    "utf8",
+  ));
+  assert.equal(contract.status, "PREPARED_NO_WRITE");
+  assert.equal(contract.triggerRequirements.logisticsState, "SETTLED");
+  assert.equal(
+    contract.triggerRequirements.postSettlementInventoryObservationRequired,
+    true,
+  );
+  assert.equal(contract.triggerRequirements.handedMaterialMustMatchRecipeInput, true);
+  assert.equal(contract.safetyBoundary.currentPr20_9RatificationCredit, false);
+  assert.equal(contract.safetyBoundary.foundationCountsAsCraftRatification, false);
+  assert.equal(contract.safetyBoundary.productiveCraftAuthorityOpened, false);
+  assert.equal(contract.safetyBoundary.gameplayWrites, 0);
+  assert.equal(contract.safetyBoundary.publicFunctionCalls, 0);
+  assert.equal(contract.safetyBoundary.rawWriteCalls, 0);
+  assert.equal(contract.safetyBoundary.craftAuthority, false);
+  assert.equal(contract.safetyBoundary.normalRuntimeAllowed, false);
+  assert.equal(
+    contract.currentGateBoundary.syntheticOrPlannedSettlementMayNotAdvancePr20_9,
+    true,
+  );
+  assert.equal(
+    contract.currentGateBoundary.onlyFutureRealSettledNormalMaterialHandoffMayTriggerFreshRescan,
+    true,
+  );
+
+  const roadmap = JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+  );
+  assert.equal(
+    roadmap.pr20_9.craftDurableShadowRunner.candidateAcquisitionOrMutationAllowed,
+    false,
+  );
+  const bridge =
+    roadmap.pr20_9.deferredAutomaticMaterialRecheck.settledCraftRescanFoundation;
+  assert.equal(bridge.status, "PREPARED_NO_WRITE");
+  assert.equal(bridge.currentPr20_9RatificationCredit, false);
+  assert.equal(bridge.foundationCountsAsCraftRatification, false);
+  assert.equal(bridge.productiveCraftAuthorityOpened, false);
+  assert.equal(bridge.craftAuthority, false);
+  assert.equal(bridge.normalRuntimeAllowed, false);
+  assert.equal(
+    roadmap.pr20_9.deferredAutomaticMaterialRecheck
+      .syntheticOrPlannedSettlementMayAdvancePr20_9,
+    false,
+  );
+  assert.equal(
+    roadmap.pr20_9.deferredAutomaticMaterialRecheck
+      .onlyRealSettledHandoffMayTriggerFreshRescan,
+    true,
+  );
+});
+
+test("CAP-022 Craft-Rescan-Bridge besitzt keinen direkten Gameplay-Write-Bypass", () => {
+  const source = fs.readFileSync(
+    "grundlage/quelle/koordination/production-material-craft-rescan.ts",
+    "utf8",
+  );
+  for (const marker of [
+    "socket.emit(",
+    ".socket.emit(",
+    "send_item(",
+    "send_cm(",
+    "smart_move(",
+    "attack(",
+    "use_skill(",
+    "loot(",
+    "exchange(",
+    "upgrade(",
+    "compound(",
+  ]) {
+    assert.equal(source.includes(marker), false, marker);
+  }
 });
