@@ -66,6 +66,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208ExchangeAnniversarygiftLive5m",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write.js",
+    expectedGlobal: "V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-exchange-anniversarygift-service-mount": Object.freeze({
     path: "v5/werkzeuge/pr20-8-exchange-anniversarygift-service-mount-v1-0-0.js",
     expectedGlobal: "V5PR208ExchangeAnniversarygiftServiceMount",
@@ -812,6 +817,40 @@ test("PR20.8 anniversarygift Exchange 5m manifest is exact zero-additional-write
     "socket.emit(", ".socket.emit(", "api_call(", "upgrade(", "compound(",
     "buy(", "trade_buy(", "bank_retrieve(", "bank_store(",
     "send_item(", "send_gold(", "smart_move(", "move("
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
+
+test("PR20.8 anniversarygift Exchange autonomy route shadow is exact no-write autonomous selection", () => {
+  if (manifest.testId !== "pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit, "03703cd6ab510cfd5b6a5b873fb853f69ff6ed9e");
+  assert.equal(manifest.packagePath,
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write.js");
+  assert.equal(manifest.packageSha256,
+    "9f0d23453d5811f1da53c581a716948f576112a274fd6488f9035c82b299c1ee");
+  assert.equal(manifest.expectedGlobal,
+    "V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite");
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.ok(packageSource.includes(
+    'const TEST_ID = "pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write"'));
+  assert.ok(packageSource.includes("selectedWithoutManualInventoryIndex:true"));
+  assert.ok(packageSource.includes("freshCandidateReresolution:true"));
+  assert.ok(packageSource.includes("genericExclusivePolicyRelaxed:false"));
+  assert.ok(packageSource.includes("observedIndexCarriesAuthority:false"));
+  assert.ok(packageSource.includes('sendBoundaryState:"NICHT_GESENDET"'));
+  assert.ok(packageSource.includes("sendCount:0"));
+  assert.ok(packageSource.includes("gameplayWrites:0"));
+  assert.ok(packageSource.includes("publicFunctionCalls:0"));
+  assert.ok(packageSource.includes("rawWriteCalls:0"));
+  assert.ok(packageSource.includes("exchangeAuthority:false"));
+  assert.ok(packageSource.includes("sameIntentRetry:false"));
+  for (const marker of [
+    "globalThis.exchange(", "parent.exchange(", ".exchange(",
+    "socket.emit(", ".socket.emit(", "api_call(", "smart_move(", "move(",
+    "upgrade(", "compound(", "buy(", "trade_buy(", "bank_retrieve(",
+    "bank_store(", "send_item(", "send_gold("
   ]) assert.equal(packageSource.includes(marker), false, marker);
 });
 
