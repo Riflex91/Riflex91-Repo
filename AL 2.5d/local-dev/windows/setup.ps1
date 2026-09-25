@@ -124,7 +124,8 @@ function Write-SharedLocalKeys([string]$KeysPath) {
     $Value = [string]$Replacements[$Name]
     $Pattern = '(?m)^(s*' + [regex]::Escape($Name) + 's*:s*)(?:rk(d+)|"[^"]*")(s*,)'
     $Replacement = '$1"' + $Value + '"$2'
-    $Updated = [regex]::Replace($Keys, $Pattern, $Replacement, 1)
+    $Regex = New-Object System.Text.RegularExpressions.Regex $Pattern
+    $Updated = $Regex.Replace($Keys, $Replacement, 1)
 
     if ($Updated -eq $Keys) {
       throw "Unable to pin shared local key '$Name' in $KeysPath."
