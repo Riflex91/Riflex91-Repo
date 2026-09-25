@@ -561,3 +561,17 @@ test("PR20.8 parallel preparation index mirrors the canonical current Exchange w
   assert.equal(roadmap.pr20_8.exitGateReview.currentExitGateSatisfied,false);
   assert.equal(roadmap.pr20_8.exitGateReview.mayAdvanceToPr20_9,false);
 });
+
+test("PR20.8 current parallel preparation artifact index contains only existing files", () => {
+  const parallel=roadmap.parallelPreparations.find(x=>x?.id==="PR20.8_WERTMUTATIONEN");
+  assert.ok(parallel);
+  assert.ok(Array.isArray(parallel.artifacts));
+  assert.ok(parallel.artifacts.length > 0);
+
+  for (const artifact of parallel.artifacts) {
+    assert.equal(typeof artifact,"string");
+    assert.ok(artifact.length > 0);
+    const localPath=artifact.startsWith("v5/") ? artifact.slice(3) : artifact;
+    assert.ok(fs.existsSync(localPath), `missing PR20.8 parallel artifact: ${artifact}`);
+  }
+});
