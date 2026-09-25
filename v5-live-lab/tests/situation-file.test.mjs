@@ -343,5 +343,5 @@ test("30 second writer overwrites the same situation file with newer capability 
 
   assert.equal(env.writeCount(), writesAfterConnect + 1);
   assert.match(env.fileText(), /Diese Datei wird automatisch alle 30 Sekunden überschrieben/);
-  assert.match(env.fileText(), /Build ID: V5_LIVE_LAB_PR28_R4_LIVE_EVIDENCE_1/);
+  assert.match(env.fileText(), /Build ID: V5_LIVE_LAB_AL25D_R6_1/);
 });
