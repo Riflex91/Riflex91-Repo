@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-25",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "id": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_ONE_WRITE_PREPARATION",
+  "status": "RUNNER_PREPARED_NOT_DEPLOYED",
+  "purpose": "PROVE_NEW_AUTONOMOUS_ANNIVERSARYGIFT_SELECTION_TO_EXACTLY_ONE_PRODUCTIVE_PUBLIC_EXCHANGE_WITH_FULL_RECONCILIATION",
+  "prerequisites": {
+    "autonomyRouteShadowEvidence": "v5/roadmap/pr20-8-exchange-anniversarygift-autonomy-route-shadow-evidence.json",
+    "requiredAutonomyRouteShadowStatus": "RATIFIED_BESTANDEN_AUTONOMY_ROUTE_ZERO_WRITE",
+    "autonomyRouteShadowNotificationId": 3020,
+    "priorProductiveEvidence": "v5/roadmap/pr20-8-exchange-anniversarygift-productive-one-write-evidence.json",
+    "priorCommittedTransactionId": "pr20-8-exchange-anniversarygift-productive-one-write-live:0c6a1129be4c9c899f88274fab97108a",
+    "priorCommittedTransactionMayNotGrantAuthority": true,
+    "live5mEvidence": "v5/roadmap/pr20-8-exchange-anniversarygift-live-5m-evidence.json",
+    "requiredLive5mStatus": "RATIFIED_BESTANDEN_ZERO_ADDITIONAL_MUTATION"
+  },
+  "autonomousDecision": {
+    "newDecisionRequired": true,
+    "freshCurrentInventoryObservationRequired": true,
+    "freshCandidateReresolutionRequired": true,
+    "selectionMode": "AUTONOMOUS_FRESH_CURRENT_INVENTORY_SCAN",
+    "manualPinnedInventoryIndexForbidden": true,
+    "historicalObservedIndexCarriesAuthority": false,
+    "exactItem": "anniversarygift",
+    "exchangeQuantity": 1,
+    "exclusiveExceptionOnlyForExactItem": true,
+    "genericExclusivePolicyRelaxationForbidden": true,
+    "durableDecisionRequiredBeforeExchangeIntent": true,
+    "exactDecisionReadbackRequired": true,
+    "priorCommittedTransactionGrantsAuthority": false,
+    "existingDecisionWithoutIntentFailsClosed": true
+  },
+  "preSendAdmission": {
+    "exactCharacter": "My_Merchant",
+    "exactClass": "merchant",
+    "exactServer": "EU:I",
+    "performanceTrickRequired": true,
+    "qMustBeEmpty": true,
+    "movingMustBeFalse": true,
+    "targetMustBeClear": true,
+    "hostileAggroForbidden": true,
+    "massExchangeForbidden": true,
+    "massExchangePpForbidden": true,
+    "minimumEmptyInventorySlots": 1,
+    "serviceReachabilitySafetyDistanceMax": 300,
+    "movementAuthority": false,
+    "stableDoubleObservationRequired": true,
+    "publicExchangeFunctionRequired": true
+  },
+  "durableIntentAndAuthority": {
+    "durableExchangeIntentRequiredBeforeAuthority": true,
+    "exactIntentReadbackRequired": true,
+    "authorityClass": "Pr208AnniversaryGiftExchangeAutonomyOneShotAuthority",
+    "authorityMustBindAutonomyDecisionId": true,
+    "maximumUses": 1,
+    "maximumTtlMs": 1500,
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "maximumRawWriteCalls": 0,
+    "freshObservationAfterAuthorityRequired": true,
+    "sameIntentRetry": false,
+    "unknownOutcomeBlindRetryForbidden": true
+  },
+  "sendBoundary": {
+    "publicFunction": "exchange",
+    "publicFunctionSignature": "exchange(item_num)",
+    "exactFreshCurrentCandidateIndexOnly": true,
+    "exactlyOneCallMaximum": true,
+    "rawSocketEmitForbidden": true,
+    "rawApiCallForbidden": true,
+    "smartMoveForbidden": true,
+    "normalRuntimeAllowed": false
+  },
+  "reconciliation": {
+    "fullPoststateReconciliationRequired": true,
+    "promiseRewardSupportingOnly": true,
+    "rewardDomains": [
+      "gold",
+      "inventory",
+      "empty"
+    ],
+    "allowedGoldDeltas": [
+      5000,
+      20000
+    ],
+    "allowedCxjarData": [
+      "makeawish",
+      "ikissyou"
+    ],
+    "maximumPhysicalOutputs": 1,
+    "inputQuantityMustDecreaseExactlyBy": 1,
+    "committedRequiredForRatification": true,
+    "unknownNeverRetries": true
+  },
+  "runner": {
+    "testId": "pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live",
+    "controllerVersion": "1.0.0",
+    "path": "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live-v1-0-0.js",
+    "test": "v5/werkzeuge/tests/pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live-v1-0-0.test.mjs",
+    "sourceCommit": "3b2c7ad641bda34838f6fe4a1b1a277bebf6b88c",
+    "sha256": "65dcf3892501f5181bf9a2ab02995cad87132738f8fb2d64a1f14d7b9b9d9b2a",
+    "bytes": 60226,
+    "expectedGlobal": "V5PR208ExchangeAnniversarygiftAutonomyProductiveOneWriteLive",
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "maximumRawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "autonomousManifestChanged": false,
+    "deployed": false
+  },
+  "authorityBoundary": {
+    "preparationDoesNotGrantNormalRuntimeAuthority": true,
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "exchangeAutonomyProductiveProven": false,
+    "mayAdvanceToPr20_9": false
+  },
+  "nextAction": "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER"
+}

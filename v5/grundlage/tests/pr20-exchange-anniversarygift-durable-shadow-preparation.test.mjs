@@ -126,9 +126,9 @@ test("shadow package bytes are exact at the pinned source commit",()=>{
 test("roadmap ratifies scanner evidence but only prepares the no-write shadow",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_RATIFIED_NO_WRITE");
+    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
   assert.equal(roadmap.pr20_8.nextAction,
-    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_PRODUCTIVE_ONE_WRITE");
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_PRODUCTIVE_ONE_WRITE");
   assert.equal(a.anniversaryGiftExceptionRescan.status,
     "RATIFIED_ANNIVERSARYGIFT_EXCHANGE_CANDIDATE_ZERO_WRITE");
   assert.equal(a.anniversaryGiftExceptionRescan.deployed,true);
@@ -144,17 +144,12 @@ test("roadmap ratifies scanner evidence but only prepares the no-write shadow",(
 });
 
 test("active manifest has advanced to the anniversarygift Exchange service mount",()=>{
-  assert.equal(manifest.testId,
-    "pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write");
+  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live");
   assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,
-    "578b18dfa96fd7c4809d55aae4664eae5f37eb43");
-  assert.equal(manifest.packagePath,
-    "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-0.js");
-  assert.equal(manifest.packageSha256,
-    "39084a646825c6bca6231b0968e41cebfbbf3548e8a93bba155dcb64b2fbf2be");
-  assert.equal(manifest.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite");
+  assert.equal(manifest.sourceCommit,"3b2c7ad641bda34838f6fe4a1b1a277bebf6b88c");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live-v1-0-0.js");
+  assert.equal(manifest.packageSha256,"65dcf3892501f5181bf9a2ab02995cad87132738f8fb2d64a1f14d7b9b9d9b2a");
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftAutonomyProductiveOneWriteLive");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 

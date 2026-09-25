@@ -71,6 +71,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live-v1-0-0.js",
+    expectedGlobal: "V5PR208ExchangeAnniversarygiftAutonomyProductiveOneWriteLive",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-exchange-anniversarygift-service-mount": Object.freeze({
     path: "v5/werkzeuge/pr20-8-exchange-anniversarygift-service-mount-v1-0-0.js",
     expectedGlobal: "V5PR208ExchangeAnniversarygiftServiceMount",

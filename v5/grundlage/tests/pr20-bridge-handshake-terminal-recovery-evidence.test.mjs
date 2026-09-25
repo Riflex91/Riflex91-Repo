@@ -67,12 +67,12 @@ test("PR20.8 terminal recovery package remains immutable and no-write", () => {
 });
 
 test("terminal recovery evidence stays immutable while the current manifest advances to the anniversarygift Exchange service mount", () => {
-  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write");
+  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live");
   assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,"578b18dfa96fd7c4809d55aae4664eae5f37eb43");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-0.js");
-  assert.equal(manifest.packageSha256,"39084a646825c6bca6231b0968e41cebfbbf3548e8a93bba155dcb64b2fbf2be");
-  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite");
+  assert.equal(manifest.sourceCommit,"3b2c7ad641bda34838f6fe4a1b1a277bebf6b88c");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live-v1-0-0.js");
+  assert.equal(manifest.packageSha256,"65dcf3892501f5181bf9a2ab02995cad87132738f8fb2d64a1f14d7b9b9d9b2a");
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftAutonomyProductiveOneWriteLive");
   assert.equal(manifest.normalRuntimeAllowed, false);
   assert.equal(evidence.nextGate, "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
 });
