@@ -1,0 +1,54 @@
+name: v5-pr20-8-exchange-acquisition-discovery
+
+on:
+  push:
+    paths:
+      - 'v5/grundlage/quelle/merchant/pr20-8-exchange-candidate-acquisition.ts'
+      - 'v5/grundlage/quelle/index.ts'
+      - 'v5/grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs'
+      - 'v5/grundlage/tests/pr20-exchange-candidate-acquisition-policy.test.mjs'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json'
+      - 'v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js'
+      - 'v5/werkzeuge/tests/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.test.mjs'
+      - 'v5/roadmap/post-r19-roadmap.json'
+      - '.github/workflows/v5-pr20-8-exchange-acquisition-discovery.yml'
+  pull_request:
+    paths:
+      - 'v5/grundlage/quelle/merchant/pr20-8-exchange-candidate-acquisition.ts'
+      - 'v5/grundlage/quelle/index.ts'
+      - 'v5/grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs'
+      - 'v5/grundlage/tests/pr20-exchange-candidate-acquisition-policy.test.mjs'
+      - 'v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json'
+      - 'v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js'
+      - 'v5/werkzeuge/tests/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.test.mjs'
+      - 'v5/roadmap/post-r19-roadmap.json'
+      - '.github/workflows/v5-pr20-8-exchange-acquisition-discovery.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  exchange-acquisition-discovery:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v5/package-lock.json
+      - run: npm ci
+      - run: npm run bauen
+      - run: node --test grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs grundlage/tests/pr20-exchange-candidate-acquisition-policy.test.mjs werkzeuge/tests/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.test.mjs
+      - run: node --test grundlage/tests/pr20-exchange-no-candidate-closeout-review.test.mjs grundlage/tests/pr20-no-candidate-exit-gate-review.test.mjs
+      - run: npm run merchant-pr20-8-prep:pruefen
+      - name: Print acquisition package pin
+        run: |
+          sha256sum werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js
+          wc -c werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js
