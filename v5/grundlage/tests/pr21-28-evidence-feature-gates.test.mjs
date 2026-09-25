@@ -233,3 +233,46 @@ test("PR21-28 evidence and feature-gate source contains no authority or gameplay
     }
   }
 });
+
+
+test("Feature-Gate-Vertrag und Roadmap binden PR22/PR23 an CAP-022 Full-Chain",()=>{
+  const contract=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
+    "utf8",
+  ));
+  const boundary=contract.cap022FullChainBoundary;
+  assert.deepEqual(boundary.requiredStages,["PR22","PR23"]);
+  assert.equal(boundary.inputField,"cap022FullChainReady");
+  assert.equal(boundary.orchestrationPreparedAloneInsufficient,true);
+  assert.equal(boundary.predecessorChainClosesAfterFailure,true);
+  assert.equal(boundary.currentPr20_9RatificationCredit,false);
+  assert.equal(boundary.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(boundary.durableIntentCreated,false);
+  assert.equal(boundary.productiveCraftAuthorityOpened,false);
+  assert.equal(boundary.gateEvaluationIssuesAuthority,false);
+  assert.equal(contract.safety.cap022FullChainRequiredForPr22Pr23,true);
+  assert.equal(contract.safety.orchestrationPreparedCannotBypassCap022,true);
+
+  const roadmap=JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+  );
+  const binding=
+    roadmap.pr22.materialAcquisitionFoundation
+      .fullChainOrchestrationReadiness.featureGateBinding;
+  assert.deepEqual(binding.requiredStages,["PR22","PR23"]);
+  assert.equal(binding.orchestrationPreparedAloneInsufficient,true);
+  assert.equal(binding.predecessorChainClosesAfterFailure,true);
+  assert.equal(binding.currentPr20_9RatificationCredit,false);
+  assert.equal(binding.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(binding.durableIntentCreated,false);
+  assert.equal(binding.productiveCraftAuthorityOpened,false);
+  assert.equal(binding.authorityIssued,false);
+  assert.equal(binding.gameplayAuthority,false);
+  assert.equal(binding.rawWriteAuthority,false);
+  assert.equal(binding.normalRuntimeAllowed,false);
+});
