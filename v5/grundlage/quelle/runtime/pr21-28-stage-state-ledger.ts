@@ -1,0 +1,247 @@
+import { evidenceFingerprint } from "../zertifizierung/evidence-kette.js";
+import type { Pr21_28GateStage } from "./pr21-28-feature-gates.js";
+
+export interface Pr21_28StagePreparationState {
+  readonly stage: Pr21_28GateStage;
+  readonly foundationPrepared: boolean;
+  readonly orchestrationPrepared: boolean;
+  readonly featureGatePrepared: boolean;
+  readonly milestoneRunnerPrepared: boolean;
+  readonly checkpointRunbookPrepared: boolean;
+  readonly ratificationRecordPrepared: boolean;
+  readonly gateApplyTransactionPrepared: boolean;
+  readonly gateSettlementPrepared: boolean;
+  readonly liveEvidenceRatified: boolean;
+  readonly explicitRatificationRecorded: boolean;
+  readonly gateApplyVerified: boolean;
+}
+
+export interface Pr21_28StageLedgerEntryBasis {
+  readonly schemaVersion: 1;
+  readonly stage: Pr21_28GateStage;
+  readonly stageIndex: number;
+  readonly state: Pr21_28StagePreparationState;
+  readonly preparationComplete: boolean;
+  readonly productivePrerequisitesComplete: boolean;
+  readonly predecessorProductiveComplete: boolean;
+  readonly productiveChainEligible: boolean;
+  readonly gateMutationPerformedByLedger: false;
+  readonly authorityIssuedByLedger: false;
+  readonly broadRuntimeGrant: false;
+}
+
+export interface Pr21_28StageLedgerEntry extends Pr21_28StageLedgerEntryBasis {
+  readonly entryFingerprint: string;
+}
+
+export interface Pr21_28StageLedger {
+  readonly schemaVersion: 1;
+  readonly entries: readonly Pr21_28StageLedgerEntry[];
+  readonly highestPreparationCompleteStage: Pr21_28GateStage | null;
+  readonly highestProductiveEligibleStage: Pr21_28GateStage | null;
+  readonly allPreparationComplete: boolean;
+  readonly allProductiveEligible: boolean;
+  readonly replayOnly: true;
+  readonly gateMutationPerformed: false;
+  readonly authorityIssued: false;
+  readonly broadRuntimeGrant: false;
+  readonly normalRuntimeAllowed: false;
+  readonly ledgerFingerprint: string;
+}
+
+const ORDER: readonly Pr21_28GateStage[] = Object.freeze([
+  "PR21","PR22","PR23","PR24","PR25","PR26","PR27","PR28",
+]);
+
+function freezeState(state: Pr21_28StagePreparationState): Pr21_28StagePreparationState {
+  return Object.freeze({ ...state });
+}
+
+function basisFingerprint(basis: Pr21_28StageLedgerEntryBasis): string {
+  return evidenceFingerprint(Object.freeze({
+    ...basis,
+    state: freezeState(basis.state),
+  }));
+}
+
+export function bauePr21_28StageLedger(
+  states: readonly Pr21_28StagePreparationState[],
+): Pr21_28StageLedger {
+  if (states.length !== ORDER.length) {
+    throw new Error("PR21_28_STAGE_LEDGER_UNVOLLSTAENDIG");
+  }
+  const byStage = new Map<Pr21_28GateStage, Pr21_28StagePreparationState>();
+  for (const state of states) {
+    if (!ORDER.includes(state.stage)) {
+      throw new Error("PR21_28_STAGE_LEDGER_STAGE_UNBEKANNT");
+    }
+    if (byStage.has(state.stage)) {
+      throw new Error("PR21_28_STAGE_LEDGER_STAGE_DOPPELT");
+    }
+    byStage.set(state.stage, freezeState(state));
+  }
+
+  const entries: Pr21_28StageLedgerEntry[] = [];
+  let predecessorProductiveComplete = true;
+  let highestPreparationCompleteStage: Pr21_28GateStage | null = null;
+  let highestProductiveEligibleStage: Pr21_28GateStage | null = null;
+
+  for (let index = 0; index < ORDER.length; index += 1) {
+    const stage = ORDER[index];
+    const state = byStage.get(stage);
+    if (state === undefined) {
+      throw new Error("PR21_28_STAGE_LEDGER_STAGE_FEHLT:" + stage);
+    }
+
+    const preparationComplete =
+      state.foundationPrepared
+      && state.orchestrationPrepared
+      && state.featureGatePrepared
+      && state.milestoneRunnerPrepared
+      && state.checkpointRunbookPrepared
+      && state.ratificationRecordPrepared
+      && state.gateApplyTransactionPrepared
+      && state.gateSettlementPrepared;
+
+    const productivePrerequisitesComplete =
+      preparationComplete
+      && state.liveEvidenceRatified
+      && state.explicitRatificationRecorded
+      && state.gateApplyVerified;
+
+    const productiveChainEligible =
+      productivePrerequisitesComplete && predecessorProductiveComplete;
+
+    const basis: Pr21_28StageLedgerEntryBasis = Object.freeze({
+      schemaVersion: 1,
+      stage,
+      stageIndex: index,
+      state,
+      preparationComplete,
+      productivePrerequisitesComplete,
+      predecessorProductiveComplete,
+      productiveChainEligible,
+      gateMutationPerformedByLedger: false,
+      authorityIssuedByLedger: false,
+      broadRuntimeGrant: false,
+    });
+
+    const entry = Object.freeze({
+      ...basis,
+      entryFingerprint: basisFingerprint(basis),
+    });
+    entries.push(entry);
+
+    if (preparationComplete) {
+      highestPreparationCompleteStage = stage;
+    }
+    if (productiveChainEligible) {
+      highestProductiveEligibleStage = stage;
+    } else {
+      predecessorProductiveComplete = false;
+    }
+  }
+
+  const frozenEntries = Object.freeze(entries);
+  const ledgerBase = Object.freeze({
+    schemaVersion: 1,
+    entryFingerprints: frozenEntries.map(x => x.entryFingerprint),
+    highestPreparationCompleteStage,
+    highestProductiveEligibleStage,
+  });
+
+  return Object.freeze({
+    schemaVersion: 1,
+    entries: frozenEntries,
+    highestPreparationCompleteStage,
+    highestProductiveEligibleStage,
+    allPreparationComplete: frozenEntries.every(x => x.preparationComplete),
+    allProductiveEligible: frozenEntries.every(x => x.productiveChainEligible),
+    replayOnly: true,
+    gateMutationPerformed: false,
+    authorityIssued: false,
+    broadRuntimeGrant: false,
+    normalRuntimeAllowed: false,
+    ledgerFingerprint: evidenceFingerprint(ledgerBase),
+  });
+}
+
+export interface Pr21_28AdvanceChainReplay {
+  readonly schemaVersion: 1;
+  readonly status:
+    | "PREPARATION_COMPLETE_PRODUCTIVE_CHAIN_CLOSED"
+    | "PRODUCTIVE_CHAIN_REPLAY_ELIGIBLE"
+    | "PREPARATION_INCOMPLETE";
+  readonly blocker: readonly string[];
+  readonly stages: readonly Readonly<{
+    stage: Pr21_28GateStage;
+    preparationComplete: boolean;
+    productiveChainEligible: boolean;
+    requiresLiveEvidence: boolean;
+    requiresExplicitRatification: boolean;
+    requiresVerifiedGateApply: boolean;
+  }>[];
+  readonly highestPreparationCompleteStage: Pr21_28GateStage | null;
+  readonly highestProductiveEligibleStage: Pr21_28GateStage | null;
+  readonly replayMutatedGate: false;
+  readonly replayIssuedAuthority: false;
+  readonly broadRuntimeGrant: false;
+}
+
+export function replayPr21_28AdvanceChain(
+  ledger: Pr21_28StageLedger,
+): Pr21_28AdvanceChainReplay {
+  if (ledger.schemaVersion !== 1
+      || ledger.replayOnly !== true
+      || ledger.gateMutationPerformed !== false
+      || ledger.authorityIssued !== false
+      || ledger.broadRuntimeGrant !== false) {
+    throw new Error("PR21_28_ADVANCE_REPLAY_LEDGER_UNGUELTIG");
+  }
+
+  const blocker: string[] = [];
+  for (const entry of ledger.entries) {
+    if (!entry.preparationComplete) {
+      blocker.push(entry.stage + "_PREPARATION_INCOMPLETE");
+    } else if (!entry.productiveChainEligible) {
+      if (!entry.state.liveEvidenceRatified) {
+        blocker.push(entry.stage + "_LIVE_EVIDENCE_REQUIRED");
+      }
+      if (!entry.state.explicitRatificationRecorded) {
+        blocker.push(entry.stage + "_EXPLICIT_RATIFICATION_REQUIRED");
+      }
+      if (!entry.state.gateApplyVerified) {
+        blocker.push(entry.stage + "_VERIFIED_GATE_APPLY_REQUIRED");
+      }
+      if (!entry.predecessorProductiveComplete) {
+        blocker.push(entry.stage + "_PREDECESSOR_CHAIN_CLOSED");
+      }
+    }
+  }
+
+  const status =
+    !ledger.allPreparationComplete
+      ? "PREPARATION_INCOMPLETE"
+      : ledger.allProductiveEligible
+        ? "PRODUCTIVE_CHAIN_REPLAY_ELIGIBLE"
+        : "PREPARATION_COMPLETE_PRODUCTIVE_CHAIN_CLOSED";
+
+  return Object.freeze({
+    schemaVersion: 1,
+    status,
+    blocker: Object.freeze([...new Set(blocker)]),
+    stages: Object.freeze(ledger.entries.map(entry => Object.freeze({
+      stage: entry.stage,
+      preparationComplete: entry.preparationComplete,
+      productiveChainEligible: entry.productiveChainEligible,
+      requiresLiveEvidence: !entry.state.liveEvidenceRatified,
+      requiresExplicitRatification: !entry.state.explicitRatificationRecorded,
+      requiresVerifiedGateApply: !entry.state.gateApplyVerified,
+    }))),
+    highestPreparationCompleteStage: ledger.highestPreparationCompleteStage,
+    highestProductiveEligibleStage: ledger.highestProductiveEligibleStage,
+    replayMutatedGate: false,
+    replayIssuedAuthority: false,
+    broadRuntimeGrant: false,
+  });
+}
