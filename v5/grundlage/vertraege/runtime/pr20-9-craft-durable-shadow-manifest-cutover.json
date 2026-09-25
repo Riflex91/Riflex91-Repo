@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-25",
+  "gate": "PR20.9_PRODUCTION",
+  "id": "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER",
+  "status": "MANIFEST_CUTOVER_PREPARED",
+  "sourceMain": "5be7d85fa3828fde0fa2eb226cbfa2e988ad5985",
+  "prerequisites": {
+    "pr20_2Status": "VOLL_FREIGEGEBEN_MIT_DOKUMENTIERTEN_EVIDENCE_AUSNAHMEN",
+    "pr20_3Status": "ROADMAP_ABGESCHLOSSEN_MIT_TRADE_EVIDENCE_AUSNAHMEN",
+    "pr20_4Status": "ROADMAP_ABGESCHLOSSEN_REAL_INGAME",
+    "pr20_8Status": "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_RATIFIED_PR20_8_COMPLETE",
+    "pr20_8ExitGateSatisfied": true,
+    "runnerPreparation": "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-runner-preparation.json",
+    "requiredRunnerPreparationStatus": "PACKAGE_BEREIT_NO_WRITE"
+  },
+  "manifest": {
+    "path": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "testId": "pr20-9-craft-durable-shadow-no-write",
+    "controllerVersion": "1.0.0",
+    "sourceCommit": "116d762a1e1fad230cbd64a5a44d6762465501f0",
+    "packagePath": "v5/werkzeuge/pr20-9-craft-durable-shadow-no-write.js",
+    "packageSha256": "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
+    "packageBytes": 26951,
+    "expectedGlobal": "V5PR209CraftDurableShadowNoWrite",
+    "coordinatorClass": "merchant",
+    "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
+    "normalRuntimeAllowed": false
+  },
+  "scope": {
+    "normalCraftOnly": true,
+    "naturalCurrentInventoryOnly": true,
+    "splitStackAllowed": false,
+    "anniversaryCraftAllowed": false,
+    "autoCraftAllowed": false,
+    "stableDoubleObservationRequired": true,
+    "stablePostIntentReobserveRequired": true,
+    "exactPhysicalInputIndexesPinned": true,
+    "exactTerminalRecoveryAllowed": true
+  },
+  "deploymentBoundary": {
+    "bridgeMayDeployPinnedRunner": true,
+    "localStorageShadowWriteAllowed": true,
+    "gameplayWriteAllowed": false,
+    "publicCraftCallAllowed": false,
+    "rawWriteAllowed": false,
+    "authorityIssued": false,
+    "craftAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadGraphExecutionAuthority": false,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false,
+    "deploymentCountsAsCraftRatification": false
+  },
+  "expectedLiveOutcome": {
+    "acceptedStatus": "BESTANDEN",
+    "phase": "COMPLETE",
+    "durableReadback": true,
+    "journalTerminalArt": "ABBRUCH",
+    "sendBoundaryState": "NICHT_GESENDET",
+    "reconciliationClassification": "NOT_APPLIED",
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "authorityIssued": false,
+    "craftAuthority": false,
+    "sameIntentRetry": false
+  },
+  "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW"
+}
