@@ -66,12 +66,12 @@ test("PR20.8 terminal recovery package remains immutable and no-write", () => {
   ]) assert.equal(source.includes(marker),false,marker);
 });
 
-test("terminal recovery evidence stays immutable while the current manifest advances to the Compound 5m recovery observer", () => {
+test("terminal recovery evidence stays immutable while the current manifest advances to the Compound 5m notification identity recovery observer", () => {
   assert.equal(manifest.testId, "pr20-8-compound-live-5m");
-  assert.equal(manifest.controllerVersion, "1.0.1");
-  assert.equal(manifest.sourceCommit, "51b1fc8038740f828cacffe866c6db799a447348");
-  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js");
-  assert.equal(manifest.packageSha256, "23af77b23467e99fddfa437b9dc54873d0e3f25d783c940c819b447e44863a2b");
+  assert.equal(manifest.controllerVersion, "1.0.2");
+  assert.equal(manifest.sourceCommit, "18568cbc9689bd7e27c5a26a4342901d470b72c0");
+  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-2.js");
+  assert.equal(manifest.packageSha256, "4d9083bf163d98f15d842d64ecfc49ae4c9b8c3452b0b31a499d4b0b5687c849");
   assert.equal(manifest.expectedGlobal, "V5PR208CompoundLive5m");
   assert.equal(manifest.normalRuntimeAllowed, false);
   assert.equal(evidence.nextGate, "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
