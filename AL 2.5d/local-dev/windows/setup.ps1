@@ -1,0 +1,472 @@
+param(
+  [switch]$SkipInstall,
+  [switch]$SkipSeed
+)
+
+$ErrorActionPreference = "Stop"
+
+$AdventureCommit = "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+$CommonCommit = "fa74fabf5d3782503712621e037bfb934ecb8439"
+$ConfigCommit = "6b3493be30abe367cfaf879a2d5ad370742e0866"
+$AppServerCommit = "a2beb24b1a8b341ac6781c78aba7f4ae52e54147"
+
+$ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$RuntimeRoot = Join-Path $ProjectRoot ".local-dev\runtime"
+$AdventureDir = Join-Path $RuntimeRoot "adventureland"
+$CommonDir = Join-Path $RuntimeRoot "common"
+$ConfigDir = Join-Path $RuntimeRoot "secretsandconfig"
+$RdbmsPath = Join-Path $RuntimeRoot "db.rdbms"
+$MongoVersion = "8.0.17"
+$MongoArchive = Join-Path $RuntimeRoot "mongodb-windows-x86_64-$MongoVersion.zip"
+$MongoRoot = Join-Path $RuntimeRoot "mongodb-$MongoVersion"
+$MongoLocalRoot = Join-Path $env:LOCALAPPDATA "AL25D-TestServer\MongoDB"
+$MongoDataDir = Join-Path $MongoLocalRoot "data"
+$MongoLogDir = Join-Path $MongoLocalRoot "log"
+$MongoPidFile = Join-Path $RuntimeRoot "mongodb.pid"
+$LocalSecretsPath = Join-Path $RuntimeRoot "local-secrets.json"
+
+function Require-Command([string]$Name) {
+  if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
+    throw "Required command '$Name' was not found."
+  }
+}
+
+function Checkout-PinnedRepo(
+  [string]$Url,
+  [string]$Destination,
+  [string]$Commit
+) {
+  if (-not (Test-Path (Join-Path $Destination ".git"))) {
+    git clone $Url $Destination
+    if ($LASTEXITCODE -ne 0) {
+      throw "Git clone failed for $Url."
+    }
+  }
+
+  # Some removable/exFAT-style Windows volumes do not expose ownership metadata.
+  # Scope Git's trust exception to this exact repository and this command only;
+  # do not weaken the user's global safe.directory configuration.
+  $SafeDirectory = ($Destination -replace "\\", "/")
+
+  & git -c "safe.directory=$SafeDirectory" -C $Destination fetch --all --tags --prune
+  if ($LASTEXITCODE -ne 0) {
+    throw "Git fetch failed for $Destination."
+  }
+
+  & git -c "safe.directory=$SafeDirectory" -C $Destination checkout --detach $Commit
+  if ($LASTEXITCODE -ne 0) {
+    throw "Git checkout failed for $Destination."
+  }
+
+  $ActualOutput = & git -c "safe.directory=$SafeDirectory" -C $Destination rev-parse HEAD
+  if ($LASTEXITCODE -ne 0 -or -not $ActualOutput) {
+    throw "Unable to read Git HEAD for $Destination."
+  }
+
+  $Actual = ($ActualOutput | Select-Object -First 1).Trim()
+  if ($Actual -ne $Commit) {
+    throw "Pin verification failed for $Destination. Expected $Commit, got $Actual."
+  }
+}
+
+function New-HexSecret([int]$ByteCount) {
+  $Bytes = New-Object byte[] $ByteCount
+  $Rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+  try {
+    $Rng.GetBytes($Bytes)
+  } finally {
+    $Rng.Dispose()
+  }
+
+  return ([System.BitConverter]::ToString($Bytes)).Replace("-", "").ToLowerInvariant()
+}
+
+function Get-LocalSharedSecrets {
+  if (Test-Path $LocalSecretsPath) {
+    try {
+      $Existing = Get-Content $LocalSecretsPath -Raw | ConvertFrom-Json
+      foreach ($Name in @("server_keyword", "sdk_password", "ACCESS_MASTER", "BOT_MASTER", "SERVER_MASTER")) {
+        if (-not $Existing.$Name) {
+          throw "Missing local secret $Name."
+        }
+      }
+      return $Existing
+    } catch {
+      throw "Local shared secrets file is invalid: $LocalSecretsPath"
+    }
+  }
+
+  $Secrets = [pscustomobject]@{
+    server_keyword = New-HexSecret 16
+    sdk_password = New-HexSecret 16
+    ACCESS_MASTER = New-HexSecret 20
+    BOT_MASTER = New-HexSecret 20
+    SERVER_MASTER = New-HexSecret 16
+  }
+
+  $Secrets | ConvertTo-Json | Set-Content -Path $LocalSecretsPath -Encoding UTF8
+  return $Secrets
+}
+
+function Write-SharedLocalKeys([string]$KeysPath) {
+  $Secrets = Get-LocalSharedSecrets
+  $Keys = Get-Content $KeysPath -Raw
+
+  $Replacements = @{
+    "server_keyword" = $Secrets.server_keyword
+    "sdk_password" = $Secrets.sdk_password
+    "ACCESS_MASTER" = $Secrets.ACCESS_MASTER
+    "BOT_MASTER" = $Secrets.BOT_MASTER
+    "SERVER_MASTER" = $Secrets.SERVER_MASTER
+  }
+
+  foreach ($Name in $Replacements.Keys) {
+    $Value = [string]$Replacements[$Name]
+    $Pattern = '(?m)^(\s*' + [regex]::Escape($Name) + '\s*:\s*)(?:rk\(\d+\)|"[^"]*")(\s*,)'
+    $Replacement = '$1"' + $Value + '"$2'
+    $Regex = New-Object System.Text.RegularExpressions.Regex $Pattern
+    $Updated = $Regex.Replace($Keys, $Replacement, 1)
+
+    if ($Updated -eq $Keys) {
+      throw "Unable to pin shared local key '$Name' in $KeysPath."
+    }
+
+    $Keys = $Updated
+  }
+
+  Set-Content -Path $KeysPath -Value $Keys -Encoding UTF8
+}
+
+function Sync-DirectoryCopy([string]$Path, [string]$Source) {
+  if (Test-Path $Path) {
+    $Item = Get-Item $Path -Force
+
+    if (($Item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+      & cmd.exe /c rmdir "$Path" | Out-Null
+      if ($LASTEXITCODE -ne 0) {
+        throw "Unable to remove existing link at $Path."
+      }
+    } else {
+      Remove-Item $Path -Recurse -Force
+    }
+  }
+
+  New-Item -ItemType Directory -Force -Path $Path | Out-Null
+
+  foreach ($Entry in Get-ChildItem -LiteralPath $Source -Force) {
+    if ($Entry.Name -eq ".git") {
+      continue
+    }
+
+    Copy-Item -LiteralPath $Entry.FullName -Destination $Path -Recurse -Force
+  }
+}
+
+function Test-TcpPort([string]$HostName, [int]$Port, [int]$TimeoutMs = 500) {
+  $Client = New-Object System.Net.Sockets.TcpClient
+  try {
+    $Async = $Client.BeginConnect($HostName, $Port, $null, $null)
+    if (-not $Async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
+      return $false
+    }
+
+    $Client.EndConnect($Async)
+    return $true
+  } catch {
+    return $false
+  } finally {
+    $Client.Close()
+  }
+}
+
+function Test-Mongo {
+  return Test-TcpPort "127.0.0.1" 27017 500
+}
+
+function Show-MongoLogTail([string]$MongoLogPath) {
+  if (-not (Test-Path $MongoLogPath)) {
+    return
+  }
+
+  Write-Host ""
+  Write-Host "----- MongoDB log tail -----"
+  Get-Content -Path $MongoLogPath -Tail 40 -ErrorAction SilentlyContinue | ForEach-Object {
+    Write-Host $_
+  }
+  Write-Host "----- end MongoDB log -----"
+  Write-Host ""
+}
+
+function Resolve-PythonExe {
+  $PyLauncher = Get-Command "py" -ErrorAction SilentlyContinue
+  if ($PyLauncher) {
+    $Resolved = & $PyLauncher.Source -3.12 -c "import sys; print(sys.executable)" 2>$null
+    if ($LASTEXITCODE -eq 0 -and $Resolved) {
+      return ($Resolved | Select-Object -First 1).Trim()
+    }
+
+    $Resolved = & $PyLauncher.Source -3 -c "import sys; print(sys.executable)" 2>$null
+    if ($LASTEXITCODE -eq 0 -and $Resolved) {
+      return ($Resolved | Select-Object -First 1).Trim()
+    }
+  }
+
+  $Python = Get-Command "python" -ErrorAction SilentlyContinue
+  if ($Python -and $Python.Source -notlike "*WindowsApps*") {
+    return $Python.Source
+  }
+
+  $Winget = Get-Command "winget" -ErrorAction SilentlyContinue
+  if ($Winget) {
+    Write-Host "==> Python was not found; installing Python 3.12 for the current user"
+    & $Winget.Source install -e --id Python.Python.3.12 --scope user --silent --accept-package-agreements --accept-source-agreements
+    if ($LASTEXITCODE -ne 0) {
+      throw "Python 3.12 installation via winget failed."
+    }
+
+    $Candidates = @(
+      (Join-Path $env:LOCALAPPDATA "Programs\Python\Python312\python.exe"),
+      (Join-Path $env:LOCALAPPDATA "Programs\Python\Python313\python.exe")
+    )
+
+    foreach ($Candidate in $Candidates) {
+      if (Test-Path $Candidate) {
+        return $Candidate
+      }
+    }
+  }
+
+  throw "Python 3 is required for the one-time development datastore import and could not be found or installed."
+}
+
+function Get-PortableMongoExe {
+  $Existing = Get-ChildItem -Path $MongoRoot -Filter "mongod.exe" -Recurse -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+
+  if ($Existing) {
+    return $Existing.FullName
+  }
+
+  Write-Host "==> Downloading portable MongoDB $MongoVersion"
+  if (-not (Test-Path $MongoArchive)) {
+    $MongoUrl = "https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-$MongoVersion.zip"
+    Invoke-WebRequest -Uri $MongoUrl -OutFile $MongoArchive
+  }
+
+  if (Test-Path $MongoRoot) {
+    Remove-Item $MongoRoot -Recurse -Force
+  }
+
+  New-Item -ItemType Directory -Force -Path $MongoRoot | Out-Null
+  Expand-Archive -LiteralPath $MongoArchive -DestinationPath $MongoRoot -Force
+
+  $Mongod = Get-ChildItem -Path $MongoRoot -Filter "mongod.exe" -Recurse -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+
+  if (-not $Mongod) {
+    throw "Portable MongoDB archive was extracted but mongod.exe was not found."
+  }
+
+  return $Mongod.FullName
+}
+
+function Start-PortableMongo {
+  if (Test-Mongo) {
+    return
+  }
+
+  if (Test-Path $MongoPidFile) {
+    $PreviousPidRaw = Get-Content $MongoPidFile -Raw -ErrorAction SilentlyContinue
+    $PreviousPid = 0
+    if ([int]::TryParse(($PreviousPidRaw -as [string]), [ref]$PreviousPid)) {
+      $PreviousProcess = Get-Process -Id $PreviousPid -ErrorAction SilentlyContinue
+      if ($PreviousProcess) {
+        Write-Host "==> Stopping stale portable MongoDB process ($PreviousPid)"
+        Stop-Process -Id $PreviousPid -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 500
+      }
+    }
+    Remove-Item $MongoPidFile -Force -ErrorAction SilentlyContinue
+  }
+
+  $MongodExe = Get-PortableMongoExe
+  New-Item -ItemType Directory -Force -Path $MongoDataDir | Out-Null
+  New-Item -ItemType Directory -Force -Path $MongoLogDir | Out-Null
+
+  $MongoLogPath = Join-Path $MongoLogDir "mongod.log"
+  Write-Host "==> MongoDB data path: $MongoDataDir"
+  Write-Host "==> Starting portable MongoDB on 127.0.0.1:27017"
+
+  $MongoArguments = "--dbpath `"$MongoDataDir`" --bind_ip 127.0.0.1 --port 27017 --logpath `"$MongoLogPath`" --logappend"
+  $MongoProcess = Start-Process -FilePath $MongodExe -PassThru -WindowStyle Hidden -ArgumentList $MongoArguments
+
+  Set-Content -Path $MongoPidFile -Value $MongoProcess.Id -Encoding ASCII
+
+  for ($i = 0; $i -lt 90; $i++) {
+    if (Test-Mongo) {
+      Write-Host "==> Portable MongoDB is ready."
+      return
+    }
+
+    $MongoProcess.Refresh()
+    if ($MongoProcess.HasExited) {
+      Show-MongoLogTail $MongoLogPath
+      throw "Portable MongoDB exited during startup with code $($MongoProcess.ExitCode). Log: $MongoLogPath"
+    }
+
+    Start-Sleep -Milliseconds 500
+  }
+
+  Show-MongoLogTail $MongoLogPath
+  throw "Portable MongoDB did not become reachable on port 27017 within 45 seconds. Log: $MongoLogPath"
+}
+
+Require-Command "git"
+Require-Command "node"
+Require-Command "npm"
+
+New-Item -ItemType Directory -Force -Path $RuntimeRoot | Out-Null
+
+Write-Host "==> Fetching pinned Adventure Land runtime"
+Checkout-PinnedRepo "https://github.com/kaansoral/adventureland_mongodb.git" $AdventureDir $AdventureCommit
+Checkout-PinnedRepo "https://github.com/kaansoral/common_engine.git" $CommonDir $CommonCommit
+Checkout-PinnedRepo "https://github.com/kaansoral/adventureland_secretsandconfig.git" $ConfigDir $ConfigCommit
+
+$OptionsPath = Join-Path $ConfigDir "options.js"
+$Options = Get-Content $OptionsPath -Raw
+$MsgpackSetting = 'msgpack_path: "/socket.io-msgpack/"'
+
+if (-not $Options.Contains($MsgpackSetting)) {
+  $SocketPathLine = "`t`tpath: `"/socket.io/`","
+  if (-not $Options.Contains($SocketPathLine)) {
+    throw "Unable to locate the local Socket.IO path in options.js."
+  }
+
+  Write-Host "==> Adding the local MessagePack Socket.IO path required by the pinned game server"
+  $Options = $Options.Replace(
+    $SocketPathLine,
+    $SocketPathLine + "`r`n`t`tmsgpack_path: `"/socket.io-msgpack/`","
+  )
+  Set-Content -Path $OptionsPath -Value $Options -Encoding UTF8
+}
+
+Write-Host "==> Copying pinned common/config trees into the runtime"
+Sync-DirectoryCopy (Join-Path $AdventureDir "common") $CommonDir
+Sync-DirectoryCopy (Join-Path $AdventureDir "secretsandconfig") $ConfigDir
+
+$RuntimeKeysPath = Join-Path $AdventureDir "secretsandconfig\keys.js"
+Write-Host "==> Pinning shared local inter-process server keys"
+Write-SharedLocalKeys $RuntimeKeysPath
+
+$Options = Get-Content $OptionsPath -Raw
+foreach ($Required in @(
+  "Dev: true",
+  "Local: true",
+  "unsecure_admin: true",
+  'msgpack_path: "/socket.io-msgpack/"',
+  "ip_limit: 3",
+  "character_limit: 3"
+)) {
+  if (-not $Options.Contains($Required)) {
+    throw "Local safety requirement missing from options.js: $Required"
+  }
+}
+
+if (-not $SkipInstall) {
+  Write-Host "==> Installing backend dependencies"
+  npm --prefix $AdventureDir install --ignore-scripts
+  npm --prefix (Join-Path $AdventureDir "node") install --ignore-scripts
+
+  Write-Host "==> Installing AL 2.5D dependencies"
+  npm --prefix $ProjectRoot install
+}
+
+if (-not (Test-Mongo)) {
+  Start-PortableMongo
+}
+
+if (-not $SkipSeed) {
+  if (-not (Test-Path $RdbmsPath)) {
+    Write-Host "==> Downloading the upstream development datastore"
+    $SeedUrl = "https://raw.githubusercontent.com/kaansoral/adventureland-appserver/$AppServerCommit/storage/db.rdbms"
+    Invoke-WebRequest -Uri $SeedUrl -OutFile $RdbmsPath
+  }
+
+  Write-Host "==> Importing map/game development data"
+  $PythonExe = Resolve-PythonExe
+  & $PythonExe -m pip install --quiet pymongo
+  if ($LASTEXITCODE -ne 0) {
+    throw "pymongo installation failed."
+  }
+
+  $env:MONGO_URI = "mongodb://127.0.0.1:27017/"
+  $env:MONGO_DB = "adventureland"
+  $env:RDBMS_PATH = $RdbmsPath
+  Push-Location (Join-Path $AdventureDir "agentic")
+  try {
+    & $PythonExe _migrate_rdbms.py
+    if ($LASTEXITCODE -ne 0) {
+      throw "Development datastore import failed."
+    }
+  } finally {
+    Pop-Location
+  }
+
+  Write-Host "==> Removing imported player/account data from the local database"
+  $Scrub = @'
+const { MongoClient } = require("mongodb");
+(async () => {
+  const client = new MongoClient("mongodb://127.0.0.1:27017/");
+  await client.connect();
+  const db = client.db("adventureland");
+  const playerCollections = [
+    "user", "character", "guild", "pet", "message", "mail",
+    "event", "backup", "infoelement", "upload", "ip", "mark", "server"
+  ];
+  for (const name of playerCollections) {
+    await db.collection(name).deleteMany({});
+  }
+  await client.close();
+})().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
+'@
+  Push-Location $AdventureDir
+  try {
+    $Scrub | node -
+  } finally {
+    Pop-Location
+  }
+
+  Write-Host "==> Rebuilding local pathfinding data"
+  Push-Location $AdventureDir
+  try {
+    $PrecomputeBootstrap = @'
+const options = require("./secretsandconfig/options");
+global.Dev = options.Dev;
+global.Local = options.Local;
+global.Prod = options.Prod;
+global.Staging = options.Staging;
+require("./node/precompute_bfs.js");
+'@
+
+    $PrecomputeBootstrap | node -
+    if ($LASTEXITCODE -ne 0) {
+      throw "Local pathfinding precompute failed with exit code $LASTEXITCODE."
+    }
+
+    $PrecomputedPath = Join-Path $AdventureDir "node\precomputed_map_data.js"
+    if (-not (Test-Path $PrecomputedPath) -or (Get-Item $PrecomputedPath).Length -lt 100) {
+      throw "Local pathfinding precompute did not produce node\precomputed_map_data.js."
+    }
+  } finally {
+    Pop-Location
+  }
+}
+
+Write-Host ""
+Write-Host "Local AL 2.5D sandbox is ready."
+Write-Host "Run: .\local-dev\windows\start.ps1"
+Write-Host "Characters are created manually in the original client UI."
+Write-Host "No real Adventure Land account is used."

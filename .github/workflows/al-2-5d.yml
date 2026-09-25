@@ -1,0 +1,38 @@
+name: AL 2.5D
+
+on:
+  pull_request:
+    paths:
+      - "AL 2.5d/**"
+      - ".github/workflows/al-2-5d.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "AL 2.5d/**"
+      - ".github/workflows/al-2-5d.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: "AL 2.5d"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Verify, test and build
+        run: npm run check
