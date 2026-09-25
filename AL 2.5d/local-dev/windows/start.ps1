@@ -7,31 +7,41 @@ $PidFile = Join-Path $RuntimeRoot "pids.json"
 $MongoRoot = Get-ChildItem -Path $RuntimeRoot -Directory -Filter "mongodb-*" -ErrorAction SilentlyContinue |
   Sort-Object Name -Descending |
   Select-Object -First 1
-$MongoDataDir = Join-Path $RuntimeRoot "mongodb-data"
-$MongoLogDir = Join-Path $RuntimeRoot "mongodb-log"
+$MongoLocalRoot = Join-Path $env:LOCALAPPDATA "AL25D-TestServer\MongoDB"
+$MongoDataDir = Join-Path $MongoLocalRoot "data"
+$MongoLogDir = Join-Path $MongoLocalRoot "log"
 $MongoPidFile = Join-Path $RuntimeRoot "mongodb.pid"
 
 if (-not (Test-Path (Join-Path $AdventureDir "main.js"))) {
   throw "Local runtime is missing. Run .\local-dev\windows\setup.ps1 first."
 }
 
-function Test-Port([int]$Port) {
+function Test-Port([int]$Port, [int]$TimeoutMs = 500) {
+  $Client = New-Object System.Net.Sockets.TcpClient
   try {
-    return (Test-NetConnection -ComputerName "127.0.0.1" -Port $Port -WarningAction SilentlyContinue).TcpTestSucceeded
+    $Async = $Client.BeginConnect("127.0.0.1", $Port, $null, $null)
+    if (-not $Async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
+      return $false
+    }
+
+    $Client.EndConnect($Async)
+    return $true
   } catch {
     return $false
+  } finally {
+    $Client.Close()
   }
 }
 
 function Wait-Port([int]$Port, [string]$Name) {
-  for ($i = 0; $i -lt 45; $i++) {
-    if (Test-Port $Port) {
+  for ($i = 0; $i -lt 90; $i++) {
+    if (Test-Port $Port 500) {
       return
     }
-    Start-Sleep -Seconds 1
+    Start-Sleep -Milliseconds 500
   }
 
-  throw "$Name did not become reachable on port $Port."
+  throw "$Name did not become reachable on port $Port within 45 seconds."
 }
 
 function Start-DevWindow(
@@ -61,19 +71,47 @@ if (-not (Test-Port 27017)) {
     throw "Portable MongoDB was found but mongod.exe is missing."
   }
 
+  if (Test-Path $MongoPidFile) {
+    $PreviousPidRaw = Get-Content $MongoPidFile -Raw -ErrorAction SilentlyContinue
+    $PreviousPid = 0
+    if ([int]::TryParse(($PreviousPidRaw -as [string]), [ref]$PreviousPid)) {
+      $PreviousProcess = Get-Process -Id $PreviousPid -ErrorAction SilentlyContinue
+      if ($PreviousProcess) {
+        Stop-Process -Id $PreviousPid -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 500
+      }
+    }
+    Remove-Item $MongoPidFile -Force -ErrorAction SilentlyContinue
+  }
+
   New-Item -ItemType Directory -Force -Path $MongoDataDir | Out-Null
   New-Item -ItemType Directory -Force -Path $MongoLogDir | Out-Null
   $MongoLogPath = Join-Path $MongoLogDir "mongod.log"
 
   Write-Host "==> Starting portable MongoDB"
-  $MongoProcess = Start-Process -FilePath $Mongod.FullName -PassThru -WindowStyle Hidden -ArgumentList @(
-    "--dbpath", $MongoDataDir,
-    "--bind_ip", "127.0.0.1",
-    "--port", "27017",
-    "--logpath", $MongoLogPath,
-    "--logappend"
-  )
+  Write-Host "==> MongoDB data path: $MongoDataDir"
+  $MongoArguments = "--dbpath `"$MongoDataDir`" --bind_ip 127.0.0.1 --port 27017 --logpath `"$MongoLogPath`" --logappend"
+  $MongoProcess = Start-Process -FilePath $Mongod.FullName -PassThru -WindowStyle Hidden -ArgumentList $MongoArguments
   Set-Content -Path $MongoPidFile -Value $MongoProcess.Id -Encoding ASCII
+
+  for ($i = 0; $i -lt 90; $i++) {
+    if (Test-Port 27017 500) {
+      break
+    }
+
+    $MongoProcess.Refresh()
+    if ($MongoProcess.HasExited) {
+      if (Test-Path $MongoLogPath) {
+        Write-Host ""
+        Write-Host "----- MongoDB log tail -----"
+        Get-Content -Path $MongoLogPath -Tail 40 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+        Write-Host "----- end MongoDB log -----"
+      }
+      throw "Portable MongoDB exited during startup with code $($MongoProcess.ExitCode)."
+    }
+
+    Start-Sleep -Milliseconds 500
+  }
 }
 Wait-Port 27017 "MongoDB"
 
