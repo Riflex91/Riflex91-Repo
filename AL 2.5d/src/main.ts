@@ -3,6 +3,7 @@ import "./style.css";
 import {
   isLegacyCompatibilitySource,
   LegacyCompatibilityRuntime,
+  type GraphicsMode,
   type LegacyCompatibilitySource
 } from "./legacy/LegacyCompatibilityRuntime";
 import {
@@ -23,6 +24,7 @@ import type {
   RenderBridge
 } from "./render/RenderBridge";
 import type { ScreenPoint, WorldPoint } from "./render/projection";
+import { GraphicsModeToggle } from "./ui/GraphicsModeToggle";
 
 declare global {
   interface Window {
@@ -40,6 +42,8 @@ declare global {
       embedLegacyRuntime: (url: string) => Promise<void>;
       stopLegacyRuntime: () => void;
       legacyRuntimeReady: () => boolean;
+      setGraphicsMode: (mode: GraphicsMode) => void;
+      getGraphicsMode: () => GraphicsMode;
     };
   }
 }
@@ -77,8 +81,21 @@ async function boot(): Promise<void> {
   let camera: CameraState = { x: 0, y: 0, zoom: 1 };
   let legacyMirror: LegacyMirrorBridge | null = null;
   let legacyRuntime: LegacyCompatibilityRuntime | null = null;
+  let graphicsMode: GraphicsMode =
+    window.localStorage.getItem("al25d.graphicsMode") === "original"
+      ? "original"
+      : "2.5d";
+  let graphicsToggle: GraphicsModeToggle;
 
   await renderer.mount(host);
+
+  graphicsToggle = new GraphicsModeToggle((nextMode) => {
+    graphicsMode = nextMode;
+    window.localStorage.setItem("al25d.graphicsMode", nextMode);
+    legacyRuntime?.setGraphicsMode(nextMode);
+    graphicsToggle.setMode(nextMode);
+  });
+  graphicsToggle.setMode(graphicsMode);
 
   const startMirror = (readGlobals: () => LegacyGlobalsLike): void => {
     legacyMirror?.stop();
@@ -94,6 +111,9 @@ async function boot(): Promise<void> {
     }
 
     legacyRuntime = runtime;
+    runtime.setGraphicsMode(graphicsMode);
+    graphicsToggle.setMode(graphicsMode);
+    graphicsToggle.setReady(true);
     startMirror(runtime.readGlobals);
   };
 
@@ -143,8 +163,16 @@ async function boot(): Promise<void> {
       legacyMirror = null;
       legacyRuntime?.stop();
       legacyRuntime = null;
+      graphicsToggle.setReady(false);
     },
-    legacyRuntimeReady: () => legacyRuntime?.ready ?? false
+    legacyRuntimeReady: () => legacyRuntime?.ready ?? false,
+    setGraphicsMode: (mode) => {
+      graphicsMode = mode;
+      window.localStorage.setItem("al25d.graphicsMode", mode);
+      legacyRuntime?.setGraphicsMode(mode);
+      graphicsToggle.setMode(mode);
+    },
+    getGraphicsMode: () => graphicsMode
   };
 
   window.AL25D = api;
