@@ -1721,7 +1721,11 @@
       "exchangeAuthority": false,
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
-      "normalRuntimeAllowed": false
+      "normalRuntimeAllowed": false,
+      "active": false,
+      "historicalLatestPr20_8Manifest": true,
+      "temporarilySupersededByTestId": "pr20-9-craft-durable-shadow-no-write",
+      "restoreAfterSupersedingTerminalEvidence": true
     },
     "exchangeReadonlyRescanFacadeRecovery": {
       "status": "REAL_BROWSER_FRESH_RESCAN_COMPLETED_NO_CANDIDATE_ZERO_WRITE",
@@ -2003,7 +2007,18 @@
       "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_REAL_BROWSER_RUN",
       "packageSha256": "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
       "packageBytes": 26951,
-      "manifest": "roadmap/v5-autonomous-test-manifest.json"
+      "manifest": "roadmap/v5-autonomous-test-manifest.json",
+      "pr20_8ManifestRestoreRequiredAfterTerminalEvidence": true,
+      "restoreManifest": {
+        "testId": "pr20-8-wertmutation-live-candidate-readonly",
+        "controllerVersion": "1.0.6",
+        "sourceCommit": "a5fd67cc9c587b2a20b163915936717c7b4e8321",
+        "package": "werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js",
+        "packageSha256": "fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387",
+        "packageBytes": 21688,
+        "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
+        "normalRuntimeAllowed": false
+      }
     }
   },
   "pr21": {
