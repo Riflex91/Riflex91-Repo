@@ -10,9 +10,9 @@ Current integrated browser runtime:
 
 Current runtime version/build:
 
-- `0.3.0`
-- `V5_LIVE_LAB_PR28_R3_GUI_1`
-- branch `chatgpt/v5-live-lab-pr28-r3`
+- `0.4.0`
+- `V5_LIVE_LAB_PR28_R4_LIVE_EVIDENCE_1`
+- branch `chatgpt/v5-live-lab-pr28-r4`
 
 Live Lab is intentionally isolated from the official V5 verification track. The official `main:v5/` roadmap, historical evidence, dependency gates and step-by-step automated tests remain authoritative and are not modified by Live Lab operation.
 
@@ -175,7 +175,7 @@ An irreversible public call that throws after dispatch is classified as `UNKNOWN
 
 ## In-game GUI
 
-The v0.3.0 runtime mounts an in-game HUD automatically when the runner is loaded.
+The v0.4.0 runtime mounts an in-game HUD automatically when the runner is loaded.
 
 The HUD provides:
 
@@ -238,6 +238,106 @@ The GUI can be remounted or removed manually:
 ```js
 V5LiveLab.mountGui()
 V5LiveLab.unmountGui()
+```
+
+## 30-second current-situation file
+
+Live Lab v0.4.0 can maintain one continuously updated file for later analysis:
+
+`D:\\v5-Test\\V5-Live-Situation.md`
+
+Because normal browser JavaScript is not allowed to silently write to an arbitrary Windows folder, the directory must be authorized once from a user gesture.
+
+1. Create `D:\\v5-Test` in Windows if it does not already exist.
+2. Load the Live Lab runner.
+3. In the in-game HUD press **LOG-ORDNER**.
+4. In the Windows folder picker select exactly `D:\\v5-Test`.
+5. Grant write access.
+
+The bot immediately creates/updates:
+
+`V5-Live-Situation.md`
+
+and then overwrites that same file every **30 seconds**. No growing sequence of snapshot files is created.
+
+When the browser supports persistent File System Access handles, Live Lab stores the selected directory handle in IndexedDB. On a later reload it attempts to restore the handle and resume the 30-second writer automatically. If the browser asks for permission again, press **LOG-ORDNER** once more.
+
+The HUD shows whether the situation writer is active, its selected directory, and the last successful update.
+
+### Capability evidence inside the situation file
+
+Every public Adventure Land action sent through the Live Lab execution boundary is accumulated in a persistent capability ledger. Examples include:
+
+- `attack`
+- `use_skill`
+- `smart_move`
+- `loot`
+- `respawn`
+- `send_cm`
+- `change_server`
+- `buy` / `sell`
+- `exchange`
+- `upgrade`
+- `compound`
+- `craft`
+- `send_item`
+- `send_gold`
+- `bank_store` / `bank_retrieve` / `bank_swap`
+
+Live Lab also records internal target-selection evidence separately as `internal:target_selection`.
+
+For each observed capability the situation file contains:
+
+- total attempts;
+- confirmed successful calls;
+- ordinary failures;
+- ambiguous/UNKNOWN irreversible outcomes;
+- first/last success timestamps;
+- action kinds;
+- sessions;
+- characters;
+- maps;
+- servers;
+- distinct execution contexts;
+- current evidence state.
+
+Evidence states are:
+
+- `NOT_OBSERVED`
+- `OBSERVED_LIVE_SUCCESS`
+- `REPEATED_LIVE_CALL_SUCCESS`
+- `STRONG_LIVE_CALL_EVIDENCE`
+- `MIXED_RESULTS`
+- `REVALIDATION_REQUIRED`
+
+`STRONG_LIVE_CALL_EVIDENCE` currently requires at least 20 successful calls, at least two runtime sessions, at least two distinct contexts, zero recorded failures and zero UNKNOWN outcomes.
+
+Important: this is deliberately classified as **call-level live evidence**. A resolved Adventure Land function call is strong evidence that the execution adapter works, but it is not automatically treated as proof of every semantic postcondition. Therefore the official V5 test track may use the file to reduce redundant repetition and focus on smoke/regression/integration checks, but the Live Lab does not silently ratify official V5 gates.
+
+The file also contains the current PR24-28 state, selected task/party/progression character, group faults/blockers, PR25 evidence, World/Merchant state, the full capability ledger JSON, current runtime status JSON, and the last 200 runtime log entries.
+
+For analysis, send the current file:
+
+`D:\\v5-Test\\V5-Live-Situation.md`
+
+instead of collecting many separate log snippets.
+
+The same snapshot can be produced manually with:
+
+```js
+V5LiveLab.buildSituationFileText()
+```
+
+Force an immediate overwrite with:
+
+```js
+await V5LiveLab.writeSituationFileNow()
+```
+
+Check the writer with:
+
+```js
+V5LiveLab.situationWriterStatus()
 ```
 
 ## Loading and starting the browser runtime
