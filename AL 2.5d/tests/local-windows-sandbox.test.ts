@@ -48,6 +48,17 @@ describe("Windows local sandbox scripts", () => {
     expect(stop).toContain("mongodb.pid");
   });
 
+  it("bootstraps the upstream pathfinding precompute globals and fails closed", () => {
+    const setup = read("local-dev/windows/setup.ps1");
+
+    expect(setup).toContain('global.Dev = options.Dev');
+    expect(setup).toContain('global.Local = options.Local');
+    expect(setup).toContain('global.Prod = options.Prod');
+    expect(setup).toContain('global.Staging = options.Staging');
+    expect(setup).toContain('Local pathfinding precompute failed with exit code');
+    expect(setup).toContain('precomputed_map_data.js');
+  });
+
   it("scrubs imported player/account collections after seeding map data", () => {
     const setup = read("local-dev/windows/setup.ps1");
 
