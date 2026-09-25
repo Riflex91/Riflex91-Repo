@@ -2893,6 +2893,16 @@
     if (running) return api.status();
     const conflict = alternativeRuntimeActive();
     if (conflict) throw new Error("LIVE_LAB_RUNTIME_CONFLICT:" + conflict);
+    const environment = runtimeEnvironment();
+    if (environment.al25dDetected && !environment.al25dLegacyRuntimeReady) {
+      throw new Error("LIVE_LAB_AL25D_LEGACY_RUNTIME_NOT_READY");
+    }
+    if (environment.al25dDetected && !environment.upstreamCommitCompatible) {
+      throw new Error(
+        "LIVE_LAB_AL25D_UPSTREAM_COMMIT_MISMATCH:"
+        + String(environment.advertisedUpstreamCommit || "unknown")
+      );
+    }
     if (!character()) throw new Error("LIVE_LAB_CHARACTER_UNAVAILABLE");
 
     running = true;
@@ -2914,6 +2924,7 @@
       pr26Optimizer: true,
       pr27Progression: true,
       pr28WorldAutonomy: true,
+      runtimeEnvironment: environment,
     });
 
     timer = setInterval(function () { void tick(); }, config.loopMs);
