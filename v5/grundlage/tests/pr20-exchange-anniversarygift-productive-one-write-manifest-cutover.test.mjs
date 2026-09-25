@@ -51,7 +51,7 @@ test("historical productive cutover package remains exact after service-mount ad
   ],{encoding:null,maxBuffer:256*1024});
   assert.deepEqual(pinned,bytes);
   assert.notEqual(manifest.testId,cutover.manifest.testId);
-  assert.equal(manifest.testId,"pr20-9-craft-service-mount");
+  assert.equal(manifest.testId,"pr20-9-craft-durable-shadow-no-write");
 });
 
 test("productive boundary remains exactly-once and fail-closed",()=>{
