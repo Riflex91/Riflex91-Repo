@@ -144,3 +144,53 @@ test("stage-ledger source contains no mutation or overall-grant bypass",()=>{
     assert.equal(source.includes(marker),false,marker);
   }
 });
+
+
+test("Stage-Ledger-Vertrag und Roadmap binden PR22/PR23 an CAP-022 Full-Chain",()=>{
+  const contract=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+    "utf8",
+  ));
+  const boundary=contract.cap022FullChainBoundary;
+  assert.deepEqual(boundary.requiredStages,["PR22","PR23"]);
+  assert.equal(boundary.stateField,"cap022FullChainReady");
+  assert.equal(boundary.preparationCompleteRequiresFullChain,true);
+  assert.equal(boundary.productiveReplayCannotBypassFullChain,true);
+  assert.equal(
+    boundary.explicitReplayBlockerByStage.PR22,
+    "PR22_CAP022_FULL_CHAIN_REQUIRED",
+  );
+  assert.equal(
+    boundary.explicitReplayBlockerByStage.PR23,
+    "PR23_CAP022_FULL_CHAIN_REQUIRED",
+  );
+  assert.equal(boundary.replayMutatesGate,false);
+  assert.equal(boundary.replayIssuesAuthority,false);
+  assert.equal(boundary.currentPr20_9RatificationCredit,false);
+  assert.equal(boundary.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(boundary.durableIntentCreated,false);
+  assert.equal(boundary.productiveCraftAuthorityOpened,false);
+
+  const roadmap=JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+  );
+  const binding=
+    roadmap.pr22.materialAcquisitionFoundation
+      .fullChainOrchestrationReadiness.stageLedgerBinding;
+  assert.deepEqual(binding.requiredStages,["PR22","PR23"]);
+  assert.equal(binding.stateField,"cap022FullChainReady");
+  assert.equal(binding.preparationCompleteRequiresFullChain,true);
+  assert.equal(binding.productiveReplayCannotBypassFullChain,true);
+  assert.equal(binding.replayMutatesGate,false);
+  assert.equal(binding.replayIssuesAuthority,false);
+  assert.equal(binding.currentPr20_9RatificationCredit,false);
+  assert.equal(binding.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(binding.durableIntentCreated,false);
+  assert.equal(binding.productiveCraftAuthorityOpened,false);
+  assert.equal(binding.normalRuntimeAllowed,false);
+});
