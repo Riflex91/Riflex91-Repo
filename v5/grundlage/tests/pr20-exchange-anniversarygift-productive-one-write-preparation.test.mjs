@@ -154,10 +154,10 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   const live=a.anniversaryGiftProductiveOneWrite;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RUNNER_PREPARED_NOT_DEPLOYED");
+    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
   assert.equal(roadmap.pr20_8.nextAction,
-    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER");
-  assert.equal(a.status,"ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RUNNER_PREPARED_NOT_DEPLOYED");
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE");
+  assert.equal(a.status,"ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
   assert.equal(a.anniversaryGiftExchangeShadow.status,
     "RATIFIED_LIVE_DURABLE_SHADOW_NO_SEND");
   assert.equal(a.anniversaryGiftExchangeShadow.deployed,true);
@@ -165,8 +165,8 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
   assert.equal(a.anniversaryGiftExchangeShadow.latestNotificationId,2752);
   assert.equal(a.anniversaryGiftRewardDomain.status,
     "RATIFIED_SCOPED_CURRENT_SOURCE_REVALIDATION");
-  assert.equal(live.status,"RUNNER_PREPARED_NOT_DEPLOYED");
-  assert.equal(live.manifestCutoverPrepared,false);
+  assert.equal(live.status,"MANIFEST_CUTOVER_PREPARED");
+  assert.equal(live.manifestCutoverPrepared,true);
   assert.equal(live.deployed,false);
   assert.equal(live.liveEvidenceObserved,false);
   assert.equal(live.exchangeAuthority,false);
@@ -175,16 +175,16 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
   assert.equal(live.normalRuntimeAllowed,false);
 });
 
-test("active autonomous manifest deliberately remains on the no-send shadow",()=>{
+test("active autonomous manifest is cut over to the productive one-write runner",()=>{
   assert.equal(manifest.testId,
-    "pr20-8-exchange-anniversarygift-durable-shadow-no-write");
+    "pr20-8-exchange-anniversarygift-productive-one-write-live");
   assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.sourceCommit,
-    "737118b5ab4d043ca996594aa6db1df309a6a177");
+    "5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
   assert.equal(manifest.packageSha256,
-    "04c765fc9d88b242170ca15d0d28d8dcca84572a745dcaa09ebf0c1caa44135e");
+    "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
   assert.equal(manifest.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftDurableShadowNoWrite");
+    "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
   assert.equal(manifest.normalRuntimeAllowed,false);
   assert.equal(shadow.status,"PREPARED_NO_WRITE");
 });
