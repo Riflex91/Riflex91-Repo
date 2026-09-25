@@ -137,7 +137,7 @@ test("runner bytes and source commit are exact",()=>{
   assert.equal(contract.runner.autonomousManifestChanged,false);
   assert.equal(contract.runner.deployed,false);
 
-  const localPath=contract.runner.path.replace(/^v5\\//,"");
+  const localPath=contract.runner.path.replace(/^v5\//,"");
   const bytes=fs.readFileSync(localPath);
   assert.equal(bytes.length,contract.runner.bytes);
   assert.equal(
