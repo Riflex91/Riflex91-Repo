@@ -333,6 +333,50 @@
             "durableIntentCreated": false,
             "productiveCraftAuthorityOpened": false,
             "normalRuntimeAllowed": false
+          },
+          "resultPackageRatificationBinding": {
+            "status": "PREPARED_NO_WRITE",
+            "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
+            "ratificationSource": "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+            "gateProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
+            "groupCheckpointPackageBindsCap022": true,
+            "ratificationRecordPreservesCap022": true,
+            "gateAdvanceRequiredStages": [
+              "PR22",
+              "PR23"
+            ],
+            "missingOrDriftedCap022BlocksProposal": true,
+            "gateMutationPerformed": false,
+            "authorityIssued": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
+          },
+          "defaultOffGateApplyBinding": {
+            "status": "PREPARED_DEFAULT_OFF",
+            "transactionSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+            "reconciliationSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json",
+            "test": "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
+            "requiredStages": [
+              "PR22",
+              "PR23"
+            ],
+            "transactionFingerprintIncludesCap022": true,
+            "validationRequiresStageConsistentBinding": true,
+            "reconciliationRequiresSatisfiedBinding": true,
+            "applyAdapterInstalled": false,
+            "executionEnabled": false,
+            "gateMutationPerformed": false,
+            "authorityIssued": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
           }
         }
       }
@@ -650,6 +694,50 @@
             "missingFullChainMayNotStartExternalRuntime": true,
             "manualRatificationStillRequired": true,
             "runnerOwnsGameplayAuthority": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
+          },
+          "resultPackageRatificationBinding": {
+            "status": "PREPARED_NO_WRITE",
+            "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
+            "ratificationSource": "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+            "gateProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
+            "groupCheckpointPackageBindsCap022": true,
+            "ratificationRecordPreservesCap022": true,
+            "gateAdvanceRequiredStages": [
+              "PR22",
+              "PR23"
+            ],
+            "missingOrDriftedCap022BlocksProposal": true,
+            "gateMutationPerformed": false,
+            "authorityIssued": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
+          },
+          "defaultOffGateApplyBinding": {
+            "status": "PREPARED_DEFAULT_OFF",
+            "transactionSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+            "reconciliationSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json",
+            "test": "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
+            "requiredStages": [
+              "PR22",
+              "PR23"
+            ],
+            "transactionFingerprintIncludesCap022": true,
+            "validationRequiresStageConsistentBinding": true,
+            "reconciliationRequiresSatisfiedBinding": true,
+            "applyAdapterInstalled": false,
+            "executionEnabled": false,
+            "gateMutationPerformed": false,
+            "authorityIssued": false,
             "currentPr20_9RatificationCredit": false,
             "candidateAcquisitionOrMutationAllowedNow": false,
             "durableIntentCreated": false,
@@ -1012,6 +1100,50 @@
         "missingFullChainMayNotStartExternalRuntime": true,
         "manualRatificationStillRequired": true,
         "runnerOwnsGameplayAuthority": false,
+        "currentPr20_9RatificationCredit": false,
+        "candidateAcquisitionOrMutationAllowedNow": false,
+        "durableIntentCreated": false,
+        "productiveCraftAuthorityOpened": false,
+        "normalRuntimeAllowed": false
+      },
+      "resultPackageRatificationBinding": {
+        "status": "PREPARED_NO_WRITE",
+        "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
+        "ratificationSource": "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+        "gateProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
+        "groupCheckpointPackageBindsCap022": true,
+        "ratificationRecordPreservesCap022": true,
+        "gateAdvanceRequiredStages": [
+          "PR22",
+          "PR23"
+        ],
+        "missingOrDriftedCap022BlocksProposal": true,
+        "gateMutationPerformed": false,
+        "authorityIssued": false,
+        "currentPr20_9RatificationCredit": false,
+        "candidateAcquisitionOrMutationAllowedNow": false,
+        "durableIntentCreated": false,
+        "productiveCraftAuthorityOpened": false,
+        "normalRuntimeAllowed": false
+      },
+      "defaultOffGateApplyBinding": {
+        "status": "PREPARED_DEFAULT_OFF",
+        "transactionSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+        "reconciliationSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json",
+        "test": "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
+        "requiredStages": [
+          "PR22",
+          "PR23"
+        ],
+        "transactionFingerprintIncludesCap022": true,
+        "validationRequiresStageConsistentBinding": true,
+        "reconciliationRequiresSatisfiedBinding": true,
+        "applyAdapterInstalled": false,
+        "executionEnabled": false,
+        "gateMutationPerformed": false,
+        "authorityIssued": false,
         "currentPr20_9RatificationCredit": false,
         "candidateAcquisitionOrMutationAllowedNow": false,
         "durableIntentCreated": false,
