@@ -50,7 +50,7 @@ test("historical productive cutover package remains exact after service-mount ad
     "show",cutover.manifest.sourceCommit+":"+cutover.manifest.packagePath,
   ],{encoding:null,maxBuffer:256*1024});
   assert.deepEqual(pinned,bytes);
-  assert.equal(manifest.testId,cutover.manifest.testId);
+  assert.notEqual(manifest.testId,cutover.manifest.testId);\n  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-live-5m");
 });
 
 test("productive boundary remains exactly-once and fail-closed",()=>{
@@ -117,10 +117,10 @@ test("roadmap advances only to productive deployment observation",()=>{
     "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_LIVE_5M");
   assert.equal(a.status,
     "ANNIVERSARYGIFT_LIVE_5M_MANIFEST_CUTOVER_PREPARED");
-  assert.equal(live.status,"MANIFEST_RESTORED_AFTER_SERVICE_MOUNT");
+  assert.equal(live.status,"RATIFIED_COMMITTED_EXCHANGE_ONE_WRITE");
   assert.equal(live.manifestCutoverPrepared,true);
-  assert.equal(live.deployed,false);
-  assert.equal(live.liveEvidenceObserved,false);
+  assert.equal(live.deployed,true);
+  assert.equal(live.liveEvidenceObserved,true);
   assert.equal(live.exchangeAuthority,false);
   assert.equal(live.gameplayAuthority,false);
   assert.equal(live.rawWriteAuthority,false);
