@@ -370,6 +370,7 @@
       irreversible: boundedMapRows(irreversible, MAX_PERSISTED_INTENTS),
       worldHopHistory: boundedMapRows(worldHopHistory, 128),
       trainingMs: boundedMapRows(trainingMs, 128),
+      capabilityLedger: boundedMapRows(capabilityLedger, 128),
     };
     try {
       store.setItem(persistenceKey(), JSON.stringify(payload));
@@ -424,6 +425,15 @@
       if (!Array.isArray(row) || row.length !== 2) continue;
       if (typeof row[0] !== "string" || !Number.isFinite(Number(row[1]))) continue;
       trainingMs.set(row[0], Math.max(0, Number(row[1])));
+    }
+
+    for (const row of Array.isArray(parsed.capabilityLedger) ? parsed.capabilityLedger : []) {
+      if (!Array.isArray(row) || row.length !== 2 || typeof row[0] !== "string") continue;
+      const value = row[1] && typeof row[1] === "object"
+        ? Object.assign({}, row[1])
+        : null;
+      if (!value || typeof value.capability !== "string") continue;
+      capabilityLedger.set(row[0], Object.freeze(value));
     }
 
     if (restartDetected) {
@@ -663,6 +673,7 @@
     });
     next.evidenceState = capabilityEvidenceState(next);
     capabilityLedger.set(key, Object.freeze(next));
+    persistRuntimeState();
     return next;
   }
 
@@ -688,6 +699,7 @@
     }
     next.evidenceState = capabilityEvidenceState(next);
     capabilityLedger.set(key, Object.freeze(next));
+    persistRuntimeState();
     return next;
   }
 
