@@ -233,10 +233,10 @@ test("in-game GUI auto-mounts with start/stop/emergency/report controls", () => 
   assert.ok(env.document.getElementById("v5ll-report"));
   assert.ok(env.document.getElementById("v5ll-log-folder"));
 
-  assert.equal(env.root.V5LiveLab.version, "0.4.0");
+  assert.equal(env.root.V5LiveLab.version, "0.5.0");
   assert.equal(
     env.root.V5LiveLab.buildId,
-    "V5_LIVE_LAB_PR28_R4_LIVE_EVIDENCE_1",
+    "V5_LIVE_LAB_AL25D_R6_1",
   );
 });
 
@@ -285,7 +285,7 @@ test("Fehler melden copies a complete V5 Live-Test Bug report", async () => {
   assert.ok(report.length > 1000);
   assert.match(report, /# V5 Live-Test Bug/);
   assert.match(report, /## Build \/ Version/);
-  assert.match(report, /V5_LIVE_LAB_PR28_R4_LIVE_EVIDENCE_1/);
+  assert.match(report, /V5_LIVE_LAB_AL25D_R6_1/);
   assert.match(report, /chatgpt\/v5-live-lab-pr28-r3/);
   assert.match(report, /## Game context/);
   assert.match(report, /## Current task \/ PR26 party selection/);
