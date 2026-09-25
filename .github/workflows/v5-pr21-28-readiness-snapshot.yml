@@ -3,6 +3,9 @@ on:
   push:
     paths:
       - 'v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts'
+      - 'v5/grundlage/quelle/runtime/cap022-foundation-chain-readiness.ts'
+      - 'v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts'
+      - 'v5/grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json'
       - 'v5/grundlage/quelle/index.ts'
       - 'v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json'
@@ -11,6 +14,9 @@ on:
   pull_request:
     paths:
       - 'v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts'
+      - 'v5/grundlage/quelle/runtime/cap022-foundation-chain-readiness.ts'
+      - 'v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts'
+      - 'v5/grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json'
       - 'v5/grundlage/quelle/index.ts'
       - 'v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json'
