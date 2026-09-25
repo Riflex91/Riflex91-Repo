@@ -264,12 +264,37 @@ export class MerchantLogistikLedger {
     if (evidence.inventoryFingerprint === evidence.baselineInventoryFingerprint) {
       throw new Error("LOGISTIK_SETTLEMENT_KEIN_NEUER_INVENTARSTAND");
     }
+    const gruppen = new Map<string, {
+      name: string;
+      level: number;
+      baseline: number;
+      required: number;
+    }>();
     for (const posten of alt.plan.posten) {
+      const key = posten.name + "\u0000" + String(posten.level);
+      const vorhanden = gruppen.get(key);
+      if (vorhanden === undefined) {
+        gruppen.set(key, {
+          name: posten.name,
+          level: posten.level,
+          baseline: posten.baselineEmpfaengerMenge,
+          required: posten.menge,
+        });
+      } else {
+        if (vorhanden.baseline !== posten.baselineEmpfaengerMenge) {
+          throw new Error(
+            "LOGISTIK_SETTLEMENT_BASELINE_MENGE_DRIFT:" + posten.name,
+          );
+        }
+        vorhanden.required += posten.menge;
+      }
+    }
+    for (const gruppe of gruppen.values()) {
       const beobachtet = evidence.mengen
-        .filter(x => x.name === posten.name && x.level === posten.level)
+        .filter(x => x.name === gruppe.name && x.level === gruppe.level)
         .reduce((summe, x) => summe + x.menge, 0);
-      if (beobachtet - posten.baselineEmpfaengerMenge < posten.menge) {
-        throw new Error("LOGISTIK_SETTLEMENT_MENGE_FEHLT:" + posten.name);
+      if (beobachtet - gruppe.baseline < gruppe.required) {
+        throw new Error("LOGISTIK_SETTLEMENT_MENGE_FEHLT:" + gruppe.name);
       }
     }
     return this.#ersetze(friereSicht({
