@@ -19,8 +19,9 @@ $RdbmsPath = Join-Path $RuntimeRoot "db.rdbms"
 $MongoVersion = "8.0.17"
 $MongoArchive = Join-Path $RuntimeRoot "mongodb-windows-x86_64-$MongoVersion.zip"
 $MongoRoot = Join-Path $RuntimeRoot "mongodb-$MongoVersion"
-$MongoDataDir = Join-Path $RuntimeRoot "mongodb-data"
-$MongoLogDir = Join-Path $RuntimeRoot "mongodb-log"
+$MongoLocalRoot = Join-Path $env:LOCALAPPDATA "AL25D-TestServer\MongoDB"
+$MongoDataDir = Join-Path $MongoLocalRoot "data"
+$MongoLogDir = Join-Path $MongoLocalRoot "log"
 $MongoPidFile = Join-Path $RuntimeRoot "mongodb.pid"
 
 function Require-Command([string]$Name) {
@@ -92,12 +93,39 @@ function Sync-DirectoryCopy([string]$Path, [string]$Source) {
   }
 }
 
-function Test-Mongo {
+function Test-TcpPort([string]$HostName, [int]$Port, [int]$TimeoutMs = 500) {
+  $Client = New-Object System.Net.Sockets.TcpClient
   try {
-    return (Test-NetConnection -ComputerName "127.0.0.1" -Port 27017 -WarningAction SilentlyContinue).TcpTestSucceeded
+    $Async = $Client.BeginConnect($HostName, $Port, $null, $null)
+    if (-not $Async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
+      return $false
+    }
+
+    $Client.EndConnect($Async)
+    return $true
   } catch {
     return $false
+  } finally {
+    $Client.Close()
   }
+}
+
+function Test-Mongo {
+  return Test-TcpPort "127.0.0.1" 27017 500
+}
+
+function Show-MongoLogTail([string]$MongoLogPath) {
+  if (-not (Test-Path $MongoLogPath)) {
+    return
+  }
+
+  Write-Host ""
+  Write-Host "----- MongoDB log tail -----"
+  Get-Content -Path $MongoLogPath -Tail 40 -ErrorAction SilentlyContinue | ForEach-Object {
+    Write-Host $_
+  }
+  Write-Host "----- end MongoDB log -----"
+  Write-Host ""
 }
 
 function Resolve-PythonExe {
@@ -178,30 +206,50 @@ function Start-PortableMongo {
     return
   }
 
+  if (Test-Path $MongoPidFile) {
+    $PreviousPidRaw = Get-Content $MongoPidFile -Raw -ErrorAction SilentlyContinue
+    $PreviousPid = 0
+    if ([int]::TryParse(($PreviousPidRaw -as [string]), [ref]$PreviousPid)) {
+      $PreviousProcess = Get-Process -Id $PreviousPid -ErrorAction SilentlyContinue
+      if ($PreviousProcess) {
+        Write-Host "==> Stopping stale portable MongoDB process ($PreviousPid)"
+        Stop-Process -Id $PreviousPid -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 500
+      }
+    }
+    Remove-Item $MongoPidFile -Force -ErrorAction SilentlyContinue
+  }
+
   $MongodExe = Get-PortableMongoExe
   New-Item -ItemType Directory -Force -Path $MongoDataDir | Out-Null
   New-Item -ItemType Directory -Force -Path $MongoLogDir | Out-Null
 
   $MongoLogPath = Join-Path $MongoLogDir "mongod.log"
+  Write-Host "==> MongoDB data path: $MongoDataDir"
   Write-Host "==> Starting portable MongoDB on 127.0.0.1:27017"
 
-  $MongoProcess = Start-Process -FilePath $MongodExe -PassThru -WindowStyle Hidden -ArgumentList @(
-    "--dbpath", $MongoDataDir,
-    "--bind_ip", "127.0.0.1",
-    "--port", "27017",
-    "--logpath", $MongoLogPath,
-    "--logappend"
-  )
+  $MongoArguments = "--dbpath `"$MongoDataDir`" --bind_ip 127.0.0.1 --port 27017 --logpath `"$MongoLogPath`" --logappend"
+  $MongoProcess = Start-Process -FilePath $MongodExe -PassThru -WindowStyle Hidden -ArgumentList $MongoArguments
 
   Set-Content -Path $MongoPidFile -Value $MongoProcess.Id -Encoding ASCII
 
-  for ($i = 0; $i -lt 45 -and -not (Test-Mongo); $i++) {
-    Start-Sleep -Seconds 1
+  for ($i = 0; $i -lt 90; $i++) {
+    if (Test-Mongo) {
+      Write-Host "==> Portable MongoDB is ready."
+      return
+    }
+
+    $MongoProcess.Refresh()
+    if ($MongoProcess.HasExited) {
+      Show-MongoLogTail $MongoLogPath
+      throw "Portable MongoDB exited during startup with code $($MongoProcess.ExitCode). Log: $MongoLogPath"
+    }
+
+    Start-Sleep -Milliseconds 500
   }
 
-  if (-not (Test-Mongo)) {
-    throw "Portable MongoDB did not become reachable on port 27017. See $MongoLogPath"
-  }
+  Show-MongoLogTail $MongoLogPath
+  throw "Portable MongoDB did not become reachable on port 27017 within 45 seconds. Log: $MongoLogPath"
 }
 
 Require-Command "git"
