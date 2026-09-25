@@ -922,13 +922,13 @@
     },
     {
       "id": "PR20.9_PRODUCTION",
-      "status": "CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+      "status": "CRAFT_SERVICE_MOUNT_MANIFEST_CUTOVER_PREPARED",
       "blockedBy": [],
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
       "liveExecutionAllowed": false,
-      "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
+      "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_SERVICE_MOUNT",
       "artifacts": [
         "v5/grundlage/quelle/produktion/production-graph.ts",
         "v5/grundlage/quelle/produktion/production-planer.ts",
@@ -945,7 +945,11 @@
         "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-runner-preparation.json",
         "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-manifest-cutover.json",
         "v5/roadmap/v5-autonomous-test-manifest.json",
-        "v5/werkzeuge/tests/v5-autonomous-test-manifest.test.mjs"
+        "v5/werkzeuge/tests/v5-autonomous-test-manifest.test.mjs",
+        "v5/roadmap/pr20-9-craft-durable-shadow-service-block-evidence.json",
+        "v5/grundlage/vertraege/runtime/pr20-9-craft-service-mount.json",
+        "v5/werkzeuge/pr20-9-craft-service-mount-v1-0-0.js",
+        "v5/werkzeuge/tests/pr20-9-craft-service-mount-v1-0-0.test.mjs"
       ]
     },
     {
@@ -4077,7 +4081,7 @@
     }
   },
   "pr20_9": {
-    "status": "CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+    "status": "CRAFT_SERVICE_MOUNT_MANIFEST_CUTOVER_PREPARED",
     "ziel": "Craft und Production produktiv",
     "blockedBy": [],
     "preparationAllowedWhileBlocked": false,
@@ -4128,7 +4132,7 @@
       "newProductiveStepsHaveFiveMinuteEvidence": false,
       "satisfied": false
     },
-    "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
+    "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_SERVICE_MOUNT",
     "craftDurableShadow": {
       "status": "FOUNDATION_BEREIT_NO_WRITE",
       "source": "v5/grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
@@ -4179,13 +4183,47 @@
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
       "manifestCutoverPrepared": true,
-      "active": true,
+      "active": false,
       "packageSha256": "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
       "packageBytes": 26951,
       "manifestCutover": "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-manifest-cutover.json",
-      "liveEvidenceObserved": false,
+      "liveEvidenceObserved": true,
       "craftRatified": false,
-      "nextGate": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW"
+      "nextGate": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
+      "latestObservedStatus": "FEHLER",
+      "latestBlocker": "PR20_9_CRAFT_SHADOW_SERVICE_NICHT_ERREICHBAR",
+      "serviceBlockEvidence": "v5/roadmap/pr20-9-craft-durable-shadow-service-block-evidence.json"
+    },
+    "craftServiceMount": {
+      "status": "MANIFEST_CUTOVER_PREPARED",
+      "testId": "pr20-9-craft-service-mount",
+      "controllerVersion": "1.0.0",
+      "expectedGlobal": "V5PR209CraftServiceMount",
+      "package": "v5/werkzeuge/pr20-9-craft-service-mount-v1-0-0.js",
+      "test": "v5/werkzeuge/tests/pr20-9-craft-service-mount-v1-0-0.test.mjs",
+      "contract": "v5/grundlage/vertraege/runtime/pr20-9-craft-service-mount.json",
+      "packageSourceCommit": "739737faca62bca5ffa991a7733a7494f59c479c",
+      "packageSha256": "e4662c2de20b59552c9dc79674c77de1fb72f79eb01b6b9e684b90f004fa7f41",
+      "packageBytes": 16253,
+      "target": "craftsman",
+      "targetPoint": {
+        "map": "main",
+        "x": 92,
+        "y": 670
+      },
+      "maximumGameplayWrites": 1,
+      "maximumPublicFunctionCalls": 1,
+      "maximumRawWriteCalls": 0,
+      "oneShot": true,
+      "sameIntentRetry": false,
+      "craftAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadGraphExecutionAuthority": false,
+      "normalRuntimeAllowed": false,
+      "movementDoesNotCountAsCraftRatification": true,
+      "evidenceObserved": false,
+      "nextAction": "RESTORE_PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST"
     }
   },
   "acceleratedImplementation": {

@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_9_CRAFT_SERVICE_MOUNT",
+  "status": "MANIFEST_CUTOVER_PREPARED",
+  "sourceMain": "a235ec24f7706edd7258f3751e4926df42ab9e49",
+  "prerequisite": {
+    "evidence": "v5/roadmap/pr20-9-craft-durable-shadow-service-block-evidence.json",
+    "requiredEvidenceStatus": "RATIFIED_ZERO_WRITE_SERVICE_UNREACHABLE",
+    "requiredBlocker": "PR20_9_CRAFT_SHADOW_SERVICE_NICHT_ERREICHBAR",
+    "requiredGameplayWrites": 0,
+    "requiredPublicFunctionCalls": 0,
+    "requiredRawWriteCalls": 0,
+    "productiveCraftAttempted": false
+  },
+  "package": {
+    "testId": "pr20-9-craft-service-mount",
+    "controllerVersion": "1.0.0",
+    "path": "v5/werkzeuge/pr20-9-craft-service-mount-v1-0-0.js",
+    "test": "v5/werkzeuge/tests/pr20-9-craft-service-mount-v1-0-0.test.mjs",
+    "expectedGlobal": "V5PR209CraftServiceMount",
+    "sourceCommit": "739737faca62bca5ffa991a7733a7494f59c479c",
+    "sha256": "e4662c2de20b59552c9dc79674c77de1fb72f79eb01b6b9e684b90f004fa7f41",
+    "bytes": 16253
+  },
+  "sourcePin": {
+    "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "targetNpcId": "craftsman",
+    "targetPoint": {
+      "map": "main",
+      "x": 92,
+      "y": 670
+    },
+    "sellDistance": 400,
+    "safetyDistance": 300
+  },
+  "movementBoundary": {
+    "exactPublicFunction": "smart_move",
+    "exactArgument": "craftsman",
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "maximumRawWriteCalls": 0,
+    "oneShot": true,
+    "durableSendJournal": true,
+    "sameIntentRetry": false,
+    "alreadyInRangeWrites": 0,
+    "timeoutOutcome": "RECONCILE_MOVEMENT_MANUALLY_NO_RETRY",
+    "promiseFailureOutcome": "RECONCILE_MOVEMENT_MANUALLY_NO_RETRY"
+  },
+  "prohibitedInThisStage": {
+    "craft": true,
+    "autoCraft": true,
+    "exchange": true,
+    "upgrade": true,
+    "compound": true,
+    "buy": true,
+    "tradeBuy": true,
+    "bankRetrieve": true,
+    "bankStore": true,
+    "rawSocketWrite": true
+  },
+  "evidenceSeparation": {
+    "movementDoesNotCountAsCraftRatification": true,
+    "movementDoesNotCountAsProductiveCraftProof": true,
+    "craftWriteAuthority": false,
+    "normalRuntimeAllowed": false
+  },
+  "successNextAction": "RESTORE_PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST",
+  "manifestCutover": {
+    "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "prepared": true,
+    "deployed": false,
+    "evidenceObserved": false
+  }
+}

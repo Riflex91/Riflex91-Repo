@@ -1916,7 +1916,7 @@
   },
   "pr20_9": {
     "ziel": "Craft und Production produktiv",
-    "status": "CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+    "status": "CRAFT_SERVICE_MOUNT_MANIFEST_CUTOVER_PREPARED",
     "actionContracts": [
       [
         "AL-ACTION-CRAFT",
@@ -1976,7 +1976,7 @@
       "normalRuntimeAllowed": false,
       "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION"
     },
-    "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
+    "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_SERVICE_MOUNT",
     "craftDurableShadow": {
       "status": "FOUNDATION_BEREIT_NO_WRITE",
       "source": "grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
@@ -2028,13 +2028,40 @@
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
       "manifestCutoverPrepared": true,
-      "active": true,
+      "active": false,
       "nextGate": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
       "packageSha256": "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
       "packageBytes": 26951,
       "manifestCutover": "grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-manifest-cutover.json",
-      "liveEvidenceObserved": false,
-      "craftRatified": false
+      "liveEvidenceObserved": true,
+      "craftRatified": false,
+      "latestObservedStatus": "FEHLER",
+      "latestBlocker": "PR20_9_CRAFT_SHADOW_SERVICE_NICHT_ERREICHBAR",
+      "serviceBlockEvidence": "roadmap/pr20-9-craft-durable-shadow-service-block-evidence.json"
+    },
+    "craftServiceMount": {
+      "status": "MANIFEST_CUTOVER_PREPARED",
+      "testId": "pr20-9-craft-service-mount",
+      "controllerVersion": "1.0.0",
+      "expectedGlobal": "V5PR209CraftServiceMount",
+      "package": "werkzeuge/pr20-9-craft-service-mount-v1-0-0.js",
+      "test": "werkzeuge/tests/pr20-9-craft-service-mount-v1-0-0.test.mjs",
+      "contract": "grundlage/vertraege/runtime/pr20-9-craft-service-mount.json",
+      "packageSourceCommit": "739737faca62bca5ffa991a7733a7494f59c479c",
+      "packageSha256": "e4662c2de20b59552c9dc79674c77de1fb72f79eb01b6b9e684b90f004fa7f41",
+      "packageBytes": 16253,
+      "target": "craftsman",
+      "maximumGameplayWrites": 1,
+      "maximumPublicFunctionCalls": 1,
+      "maximumRawWriteCalls": 0,
+      "oneShot": true,
+      "sameIntentRetry": false,
+      "craftAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadGraphExecutionAuthority": false,
+      "normalRuntimeAllowed": false,
+      "movementDoesNotCountAsCraftRatification": true
     }
   },
   "pr21": {
