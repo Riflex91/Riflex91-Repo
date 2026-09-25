@@ -54,5 +54,12 @@
     "farmStopRequiredWhenReady": true,
     "handoffRequiredWhenReady": true
   },
-  "nextAction": "KEEP_NO_WRITE_UNTIL_PR22_AND_PR23_PRODUCTIVE_GATES_ARE_RATIFIED"
+  "nextAction": "KEEP_CONNECTED_NO_WRITE_UNTIL_PR22_AND_PR23_PRODUCTIVE_GATES_ARE_RATIFIED",
+  "orchestration": {
+    "status": "CONNECTED_NO_WRITE",
+    "orchestrator": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
+    "orchestrationContract": "v5/grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json",
+    "blockedMaterialEvidenceBlocksShadowPipeline": true,
+    "productiveExecutionAllowed": false
+  }
 }

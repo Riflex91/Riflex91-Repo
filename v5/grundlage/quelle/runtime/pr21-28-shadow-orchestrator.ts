@@ -1,5 +1,6 @@
 import type { Pr21MerchantIntegrationReadiness } from "../merchant/pr21-merchant-integration-readiness.js";
 import type { Pr22CoordinationShadowAdmission } from "../koordination/pr22-coordination-shadow-admission.js";
+import type { ProduktionsMaterialAkquisePlan } from "../koordination/production-material-acquisition.js";
 import type { Pr23FarmerShadowAdmission } from "../farmer/pr23-farmer-shadow-admission.js";
 import type { Pr24GruppenMatrixErgebnis } from "../gruppe/pr24-group-constellation-matrix.js";
 import type { Pr25GruppenLiveEvidencePlan } from "../gruppe/pr25-group-live-evidence-plan.js";
@@ -20,6 +21,7 @@ export type Pr21_28Stage =
 export interface Pr21_28ShadowOrchestrationRequest {
   readonly schemaVersion: 1;
   readonly pr20ProductiveComplete: boolean;
+  readonly materialAcquisition: ProduktionsMaterialAkquisePlan;
   readonly pr21: Pr21MerchantIntegrationReadiness;
   readonly pr22: Pr22CoordinationShadowAdmission;
   readonly pr23: Pr23FarmerShadowAdmission;
@@ -45,6 +47,8 @@ export interface Pr21_28ShadowOrchestrationResult {
   readonly stages: readonly Pr21_28StageSicht[];
   readonly highestPreparedStage: Pr21_28Stage | null;
   readonly allFoundationsConnected: boolean;
+  readonly materialAcquisitionFoundationReady: boolean;
+  readonly materialAcquisitionProductiveExecutionAllowed: false;
   readonly deferredLiveEvidenceRequired: true;
   readonly gameplayWrites: 0;
   readonly publicFunctionCalls: 0;
@@ -116,6 +120,18 @@ export function orchestrierePr21_28ShadowPipeline(
     && anfrage.pr28.gameplayAuthority === false
     && anfrage.pr28.rawWriteAuthority === false;
 
+  const materialAcquisitionReady =
+    (anfrage.materialAcquisition.status === "BEREIT_NO_WRITE"
+      || anfrage.materialAcquisition.status === "KEIN_FARM_BEDARF")
+    && anfrage.materialAcquisition.planningOnly === true
+    && anfrage.materialAcquisition.ausfuehrungsAutoritaet === false
+    && anfrage.materialAcquisition.gameplayAutoritaet === false
+    && anfrage.materialAcquisition.rawWriteAutoritaet === false
+    && anfrage.materialAcquisition.normalRuntimeAllowed === false
+    && anfrage.materialAcquisition.currentPr20_9CandidateAcquisitionAllowed === false
+    && anfrage.materialAcquisition.pr22ProduktivGateErforderlich === true
+    && anfrage.materialAcquisition.pr23ProduktivGateErforderlich === true;
+
   const stageRows = Object.freeze([
     stage("PR21", pr21Ready, anfrage.pr20ProductiveComplete),
     stage("PR22", pr22Ready, false),
@@ -131,6 +147,9 @@ export function orchestrierePr21_28ShadowPipeline(
   for (const row of stageRows) {
     if (!row.foundationReady) blocker.push("PR21_28_FOUNDATION_BLOCKIERT:" + row.stage);
   }
+  if (!materialAcquisitionReady) {
+    blocker.push("PR21_28_FOUNDATION_BLOCKIERT:CAP022_MATERIAL_ACQUISITION");
+  }
 
   const readiness = [
     pr21Ready, pr22Ready, pr23Ready, pr24Ready,
@@ -142,7 +161,7 @@ export function orchestrierePr21_28ShadowPipeline(
     highestPreparedStage = stageRows[index]?.stage ?? highestPreparedStage;
   }
 
-  const allFoundationsConnected = readiness.every(Boolean);
+  const allFoundationsConnected = readiness.every(Boolean) && materialAcquisitionReady;
 
   return Object.freeze({
     schemaVersion: 1,
@@ -151,6 +170,8 @@ export function orchestrierePr21_28ShadowPipeline(
     stages: stageRows,
     highestPreparedStage,
     allFoundationsConnected,
+    materialAcquisitionFoundationReady: materialAcquisitionReady,
+    materialAcquisitionProductiveExecutionAllowed: false,
     deferredLiveEvidenceRequired: true,
     gameplayWrites: 0,
     publicFunctionCalls: 0,

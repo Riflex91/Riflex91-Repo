@@ -92,7 +92,8 @@
     "PR20.8 Exchange anniversarygift Productive Autonomy ist real-browser COMMITTED ratifiziert (Notification #3080): frische autonome Auswahl, exakt 1 exchange()-Call, 1/1/0 Gameplay/Public/Raw, Authority one-shot konsumiert, anniversarygift 105->104, +5000 Gold, kein Retry. PR20.8 Exit-Gate ist erfuellt; PR20.9 darf als naechstes Gate vorbereitet werden. normalRuntimeAllowed bleibt false.",
     "PR20.9 ist nach abgeschlossenem PR20.8 entsperrt. Craft Durable Shadow Manifest-Cutover ist fuer den exakt gepinnten NORMAL_CRAFT_ONLY NO-WRITE-Runner vorbereitet; naechster Schritt ist reale Browser-Beobachtung. Gameplay/Raw/Produktiv-Craft/NormalRuntime Authority bleiben false.",
     "PR20.9 bleibt ohne natuerlichen NORMAL_CRAFT_ONLY-Kandidaten fail-closed; die CAP-022 Production-Material-Acquisition/Handoff-Foundation wird NO-WRITE fuer den spaeteren automatischen Materialpfad vorbereitet und zaehlt nicht als Craft-Ratifizierung.",
-    "Automatische Materialbeschaffung darf erst nach den produktiven PR22-/PR23-Gates reale Farmer-Aktionen ausloesen; danach darf PR20.9 bei einem natuerlich entstandenen Craft-Kandidaten erneut geprueft werden."
+    "Automatische Materialbeschaffung darf erst nach den produktiven PR22-/PR23-Gates reale Farmer-Aktionen ausloesen; danach darf PR20.9 bei einem natuerlich entstandenen Craft-Kandidaten erneut geprueft werden.",
+    "CAP-022 Production-Material-Acquisition ist in die PR21-28 Shadow-Pipeline eingebunden; BLOCKIERT-Evidence sperrt die Pipeline, produktive Material-Ausfuehrung sowie PR20.9-Candidate-Acquisition bleiben false."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -963,7 +964,10 @@
         "foundationCountsAsCraftRatification": false,
         "recheckTrigger": "NATURAL_NORMAL_CRAFT_CANDIDATE_FROM_NORMAL_PRODUCTIVE_MATERIAL_ACQUISITION",
         "productiveCraftAuthority": false,
-        "normalRuntimeAllowed": false
+        "normalRuntimeAllowed": false,
+        "shadowOrchestratorConnected": true,
+        "shadowOrchestrator": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
+        "productiveExecutionAllowed": false
       }
     },
     {
@@ -1088,7 +1092,10 @@
         "productiveActivationAllowed": false,
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
-        "normalRuntimeAllowed": false
+        "normalRuntimeAllowed": false,
+        "shadowOrchestratorConnected": true,
+        "shadowOrchestrator": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
+        "productiveExecutionAllowed": false
       }
     },
     {
@@ -1161,7 +1168,10 @@
         "productiveActivationAllowed": false,
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
-        "normalRuntimeAllowed": false
+        "normalRuntimeAllowed": false,
+        "shadowOrchestratorConnected": true,
+        "shadowOrchestrator": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
+        "productiveExecutionAllowed": false
       }
     },
     {
@@ -4323,7 +4333,10 @@
       "craftAuthority": false,
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
-      "normalRuntimeAllowed": false
+      "normalRuntimeAllowed": false,
+      "shadowOrchestratorConnected": true,
+      "shadowOrchestrator": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
+      "productiveExecutionAllowed": false
     }
   },
   "acceleratedImplementation": {
@@ -4573,7 +4586,10 @@
       "test": "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs",
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
-      "normalRuntimeAllowed": false
+      "normalRuntimeAllowed": false,
+      "shadowOrchestratorConnected": true,
+      "shadowOrchestrator": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
+      "productiveExecutionAllowed": false
     }
   },
   "pr23": {
@@ -4642,7 +4658,10 @@
       "handoffAfterMaterialReady": true,
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
-      "normalRuntimeAllowed": false
+      "normalRuntimeAllowed": false,
+      "shadowOrchestratorConnected": true,
+      "shadowOrchestrator": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
+      "productiveExecutionAllowed": false
     }
   },
   "pr24": {
