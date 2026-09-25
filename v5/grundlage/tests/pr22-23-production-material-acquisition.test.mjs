@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 
 import {
   bewerteProductionMaterialFortschritt,
@@ -291,4 +292,60 @@ test("CAP-022 bleibt ohne FARM-Node authority-frei und erzeugt kein Ziel", () =>
   assert.deepEqual(akquise.ziele, []);
   assert.equal(akquise.currentPr20_9CandidateAcquisitionAllowed, false);
   assert.equal(akquise.gameplayAutoritaet, false);
+});
+
+
+test("CAP-022 Vertrag und Roadmap halten produktive Authority geschlossen", () => {
+  const contract = JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+    "utf8",
+  ));
+  assert.equal(contract.status, "PREPARED_NO_WRITE");
+  assert.equal(contract.capability, "CAP-022");
+  assert.equal(contract.safetyBoundary.productiveGameplayWritesAllowed, false);
+  assert.equal(contract.safetyBoundary.executionAuthority, false);
+  assert.equal(contract.safetyBoundary.gameplayAuthority, false);
+  assert.equal(contract.safetyBoundary.rawWriteAuthority, false);
+  assert.equal(contract.safetyBoundary.normalRuntimeAllowed, false);
+  assert.equal(contract.gates.pr22ProductiveCoordinationRequired, true);
+  assert.equal(contract.gates.pr23ProductiveFarmerRequired, true);
+  assert.equal(
+    contract.gates.productiveMaterialAcquisitionBeforePr22Pr23EvidenceAllowed,
+    false,
+  );
+  assert.equal(
+    contract.pr20_9Boundary.candidateAcquisitionOrMutationAllowedNow,
+    false,
+  );
+  assert.equal(contract.pr20_9Boundary.foundationCountsAsCraftRatification, false);
+  assert.equal(
+    contract.pr20_9Boundary.plannedFarmMaterialCountsAsNaturalCurrentInventoryCandidate,
+    false,
+  );
+  assert.equal(contract.pr20_9Boundary.craftAuthorityOpened, false);
+
+  const roadmap = JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+  );
+  assert.equal(
+    roadmap.pr20_9.deferredAutomaticMaterialRecheck
+      .currentCandidateAcquisitionOrMutationAllowed,
+    false,
+  );
+  assert.equal(
+    roadmap.pr20_9.deferredAutomaticMaterialRecheck
+      .foundationCountsAsCraftRatification,
+    false,
+  );
+  assert.deepEqual(
+    roadmap.pr20_9.deferredAutomaticMaterialRecheck.requiresProductiveGates,
+    ["PR22", "PR23"],
+  );
+  assert.equal(roadmap.pr22.gameplayAuthority, false);
+  assert.equal(roadmap.pr23.gameplayAuthority, false);
 });
