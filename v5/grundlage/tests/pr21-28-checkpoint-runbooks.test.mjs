@@ -138,6 +138,9 @@ test("clean Merchant checkpoint builds a deterministic package ready only for ma
   assert.equal(first.sampleGaps,0);
   assert.equal(first.alleMinimaErreicht,true);
   assert.equal(first.alleZieleErreicht,true);
+  assert.equal(first.cap022FullChainRequired,false);
+  assert.equal(first.cap022FullChainSatisfied,true);
+  assert.equal(first.cap022FullChainBoundToPackage,true);
   assert.equal(first.manualRatificationRequired,true);
   assert.equal(first.ratifiedByPackageBuilder,false);
   assert.equal(first.authorityIssuedByPackageBuilder,false);
@@ -146,6 +149,47 @@ test("clean Merchant checkpoint builds a deterministic package ready only for ma
   assert.equal(first.normalRuntimeAllowed,false);
   assert.match(first.packageFingerprint,/^[0-9a-f]{16}$/);
   assert.equal(first.packageFingerprint,second.packageFingerprint);
+});
+
+
+
+test("group result package bleibt ohne CAP-022 Full-Chain blockiert und bindet den Zustand",()=>{
+  const plan=planePr21_28MilestoneRunner("POST_PR24_25_GROUP_CHECKPOINT");
+  const first=series("pr23-capability",0,300,5000,1);
+  const second=series(
+    "pr25-group-integration",
+    305000,
+    900,
+    5000,
+    first.length+1,
+  );
+  const runner=wertePr21_28MilestoneSamplesAus(
+    plan,
+    [...first,...second],
+    {schemaVersion:1,cap022FullChainReady:false},
+  );
+  const evidence=runner.evidenceRows.map(row=>bewertePr21_28LiveEvidence(row));
+  const result=bauePr21_28ResultPackage({
+    schemaVersion:1,
+    packageId:"pkg-group-cap022-blocked",
+    sourceMainCommit:"3f916863117c9b59aa6476049bf390ce1cd15d8b",
+    createdAtMs:1000000,
+    checkpointId:"POST_PR24_25_GROUP_CHECKPOINT",
+    runner,
+    observability:readyObservability(),
+    evidence,
+  });
+
+  assert.equal(result.status,"BLOCKIERT");
+  assert.equal(result.cap022FullChainRequired,true);
+  assert.equal(result.cap022FullChainSatisfied,false);
+  assert.equal(result.cap022FullChainBoundToPackage,true);
+  assert.ok(result.blocker.includes("PR21_28_RESULT_RUNNER_BLOCKIERT"));
+  assert.ok(result.blocker.includes(
+    "PR21_28_RESULT_CAP022_FULL_CHAIN_NICHT_BEREIT",
+  ));
+  assert.equal(result.ratifiedByPackageBuilder,false);
+  assert.equal(result.authorityIssuedByPackageBuilder,false);
 });
 
 test("result package fingerprint changes on diagnostic evidence change without turning dashboard failure into a blocker",()=>{
