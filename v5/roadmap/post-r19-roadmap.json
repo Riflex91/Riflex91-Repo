@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "EXCHANGE_CURRENT_INVENTORY_NO_CANDIDATE_RATIFIED_WAIT_FUTURE_READONLY_RESCAN",
+      "status": "EXCHANGE_CONTROLLED_ACQUISITION_DISCOVERY_PREPARED",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN",
+      "nextAction": "DEPLOY_EXCHANGE_ACQUISITION_DISCOVERY_READ_ONLY",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -853,7 +853,12 @@
         "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js",
         "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.test.mjs",
         "v5/roadmap/pr20-8-exchange-readonly-rescan-v1-0-6-evidence.json",
-        "v5/grundlage/tests/pr20-exchange-readonly-rescan-v1-0-6-evidence.test.mjs"
+        "v5/grundlage/tests/pr20-exchange-readonly-rescan-v1-0-6-evidence.test.mjs",
+        "v5/grundlage/quelle/merchant/pr20-8-exchange-candidate-acquisition.ts",
+        "v5/grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs",
+        "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
+        "v5/werkzeuge/tests/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.test.mjs",
+        "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json"
       ]
     },
     {
@@ -2135,7 +2140,7 @@
     }
   },
   "pr20_8": {
-    "status": "EXCHANGE_CURRENT_INVENTORY_NO_CANDIDATE_RATIFIED_WAIT_FUTURE_READONLY_RESCAN",
+    "status": "EXCHANGE_CONTROLLED_ACQUISITION_DISCOVERY_PREPARED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -2185,7 +2190,7 @@
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN",
+    "nextAction": "DEPLOY_EXCHANGE_ACQUISITION_DISCOVERY_READ_ONLY",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -3414,6 +3419,32 @@
       "debugBatchId": 8306,
       "completionNotificationPersisted": true,
       "nextGate": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN"
+    },
+    "exchangeCandidateAcquisition": {
+      "status": "DISCOVERY_PREPARED_BANK_ACQUISITION_CONDITIONALLY_ALLOWED",
+      "policy": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
+      "planner": "v5/grundlage/quelle/merchant/pr20-8-exchange-candidate-acquisition.ts",
+      "plannerTest": "v5/grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs",
+      "discoveryPackage": "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
+      "discoveryTest": "v5/werkzeuge/tests/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.test.mjs",
+      "testId": "pr20-8-exchange-candidate-acquisition-readonly",
+      "controllerVersion": "1.0.1",
+      "expectedGlobal": "V5PR208ExchangeCandidateAcquisitionReadonly",
+      "maximumDiscoveryGameplayWrites": 0,
+      "maximumDiscoveryPublicFunctionCalls": 0,
+      "maximumDiscoveryRawWriteCalls": 0,
+      "inventoryCandidateAction": "RUN_EXISTING_EXCHANGE_SCANNER",
+      "bankCandidateAction": "PREPARE_EXACT_BANK_RETRIEVE_ONE_SHOT",
+      "missingBankSnapshotAction": "ACQUIRE_FRESH_BANK_SNAPSHOT_READ_ONLY",
+      "noInventoryOrBankCandidateAction": "PREPARE_BUY_OR_FARM_ACQUISITION_STAGE",
+      "controlledBankMutationToCreateCandidateAllowed": true,
+      "buyToCreateCandidateAllowed": false,
+      "farmToCreateCandidateAllowed": false,
+      "acquisitionCountsAsExchangeRatification": false,
+      "freshExistingScannerRequiredAfterAcquisition": true,
+      "exchangeWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "historicalNoCandidateEvidencePreserved": true
     }
   },
   "pr20_9": {
