@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER",
+  "status": "MANIFEST_CUTOVER_PREPARED",
+  "sourceMain": "f5e9685ce77bf2922172108ea3f5bbb17440669c",
+  "prerequisite": {
+    "preparationContract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-productive-one-write-preparation.json",
+    "requiredPreparationStatus": "RUNNER_PREPARED_NOT_DEPLOYED",
+    "rewardEvidence": "v5/roadmap/pr20-8-exchange-anniversarygift-reward-domain-evidence.json",
+    "requiredRewardEvidenceStatus": "RATIFIED_SCOPED_CURRENT_SOURCE_REVALIDATION",
+    "shadowNotificationId": 2752,
+    "shadowRequiredStatus": "BESTANDEN",
+    "shadowRequiredSendBoundaryState": "NICHT_GESENDET",
+    "shadowRequiredGameplayWrites": 0,
+    "shadowRequiredPublicFunctionCalls": 0,
+    "shadowRequiredRawWriteCalls": 0
+  },
+  "manifest": {
+    "path": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "testId": "pr20-8-exchange-anniversarygift-productive-one-write-live",
+    "controllerVersion": "1.0.0",
+    "sourceCommit": "5c43c182e2cd2b9ef4361ce1699af00748ad0d95",
+    "packagePath": "v5/werkzeuge/pr20-8-exchange-anniversarygift-productive-one-write-live.js",
+    "packageSha256": "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74",
+    "packageBytes": 50047,
+    "expectedGlobal": "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive",
+    "coordinatorClass": "merchant",
+    "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
+    "normalRuntimeAllowed": false
+  },
+  "productiveBoundary": {
+    "exactItem": "anniversarygift",
+    "exchangeQuantity": 1,
+    "observedHistoricalIndexCarriesAuthority": false,
+    "freshPhysicalIndexReresolutionRequired": true,
+    "minimumEmptyInventorySlots": 1,
+    "massExchangeForbidden": true,
+    "massExchangePpForbidden": true,
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "maximumRawWriteCalls": 0,
+    "publicFunction": "exchange",
+    "rawSocketEmitForbidden": true,
+    "rawApiCallForbidden": true,
+    "sameIntentRetry": false,
+    "oneShotAuthorityMaximumUses": 1,
+    "unknownOutcomeBlindRetryForbidden": true
+  },
+  "rewardBoundary": {
+    "scopedOfficialSourceCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+    "dropGraphSha256": "2fad9b50ac0bb87a8e53a0cff8f6e34ded949b3531f8843f86d3f1fb8e828342",
+    "rewardDomains": [
+      "gold",
+      "inventory",
+      "empty"
+    ],
+    "allowedGoldDeltas": [
+      5000,
+      20000
+    ],
+    "maximumPhysicalOutputs": 1,
+    "allowedCxjarData": [
+      "makeawish",
+      "ikissyou"
+    ],
+    "fullPoststateReconciliationRequired": true,
+    "promiseRewardSupportingOnly": true
+  },
+  "deploymentBoundary": {
+    "bridgeMayDeployPinnedRunner": true,
+    "deploymentCreatesLiveAuthorityOnlyInsideFreshRunnerAdmission": true,
+    "deploymentCountsAsExchangeRatification": false,
+    "committedTerminalEvidenceRequiredForRatification": true,
+    "fiveMinuteObservationStillRequiredAfterProductiveOneWrite": true,
+    "autonomyProofStillRequired": true,
+    "normalRuntimeAllowed": false
+  },
+  "expectedLiveOutcome": {
+    "acceptedOutcome": "COMMITTED",
+    "terminal": true,
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "sendCount": 1,
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "inputQuantityDecrease": 1,
+    "rewardMustBeInsidePinnedDomain": true
+  },
+  "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE"
+}
