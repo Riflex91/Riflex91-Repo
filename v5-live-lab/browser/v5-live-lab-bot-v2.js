@@ -99,6 +99,7 @@
       farmPriority: 1,
       groupAssistPriority: 40,
       progressionPriorityBoost: 8,
+      partyProfiles: Object.freeze([]),
       priorities: Object.freeze({
         RARE_BOSS: 100,
         EVENT: 80,
@@ -626,6 +627,7 @@
       level: Math.max(1, Math.floor(number(c.level, 1))),
       gearScore: gearScoreFor(c),
       targetId: currentTargetId,
+      taskId: currentTask && currentTask.id || null,
       capabilities: capabilitiesFor(c.ctype || c.type),
     };
   }
@@ -653,6 +655,7 @@
         level: Math.max(1, Math.floor(number(peer.level, 1))),
         gearScore: Math.max(0, number(peer.gearScore, 0)),
         targetId: peer.targetId || null,
+        taskId: peer.taskId || null,
         capabilities: Array.isArray(peer.capabilities)
           ? peer.capabilities.slice()
           : capabilitiesFor(peer.ctype),
@@ -892,9 +895,27 @@
     }
     const delta = Math.max(0, Math.min(5000, current - lastTrainingTickAt));
     lastTrainingTickAt = current;
+    const c = character();
+    const merchantWorking = !!(
+      c
+      && String(c.ctype || c.type || "").toLowerCase() === "merchant"
+      && config.merchant.enabled
+    );
     for (const member of allMembers()) {
-      if (member.sessionFresh && member.rosterFresh && member.lifecycleActive) {
-        trainingMs.set(member.characterId, (trainingMs.get(member.characterId) || 0) + delta);
+      const isLocal = !!(c && member.characterId === c.name);
+      const activelyTraining = isLocal
+        ? !!currentTask || merchantWorking
+        : !!member.taskId;
+      if (
+        activelyTraining
+        && member.sessionFresh
+        && member.rosterFresh
+        && member.lifecycleActive
+      ) {
+        trainingMs.set(
+          member.characterId,
+          (trainingMs.get(member.characterId) || 0) + delta,
+        );
       }
     }
   }
@@ -956,6 +977,85 @@
       gameplayAuthority: !!selected,
       normalRuntimeAllowed: !!selected,
       rawWriteAuthority: false,
+    });
+  }
+
+  function localMandatoryRoleProtected() {
+    const c = character();
+    if (!c || !currentGroup || !currentGroup.roles) return false;
+    const mandatoryRoles = new Set(config.progression.mandatoryRoles || []);
+    for (const role of mandatoryRoles) {
+      if (currentGroup.roles[role] === c.name) return true;
+    }
+    return false;
+  }
+
+  function optionalProgressionWorkAllowed() {
+    if (!config.progression.enabled || !currentProgression || !currentProgression.selectedCharacter) {
+      return true;
+    }
+    const c = character();
+    if (!c) return false;
+    return c.name === currentProgression.selectedCharacter || localMandatoryRoleProtected();
+  }
+
+  function optimizerPartyProfiles() {
+    const members = allMembers();
+    const configured = Array.isArray(config.optimizer.partyProfiles)
+      ? config.optimizer.partyProfiles
+      : [];
+    const profiles = configured.length
+      ? configured
+      : [{
+          id: config.group.topologyId || "local",
+          memberIds: currentGroup && currentGroup.activeMemberIds && currentGroup.activeMemberIds.length
+            ? currentGroup.activeMemberIds
+            : [character() && character().name].filter(Boolean),
+          hardAllowed: true,
+        }];
+
+    return profiles.map(function (profile, index) {
+      const id = String(profile.id || "party-" + index);
+      const requested = Array.isArray(profile.memberIds)
+        ? profile.memberIds.map(String)
+        : [];
+      const selected = requested.length
+        ? members.filter(function (m) { return requested.includes(m.characterId); })
+        : members.slice();
+      const memberIds = selected.map(function (m) { return m.characterId; }).sort();
+      const fresh = selected.length > 0 && selected.every(function (m) {
+        return m.sessionFresh && m.rosterFresh && m.lifecycleActive;
+      });
+      const capabilities = unique(selected.flatMap(function (m) { return m.capabilities; }));
+      return Object.freeze({
+        id: id,
+        memberIds: Object.freeze(memberIds),
+        availableCapabilities: Object.freeze(capabilities),
+        hardAllowed: profile.hardAllowed !== false && fresh,
+        successModifier: number(profile.successModifier, 0),
+        performanceModifier: number(profile.performanceModifier, 0),
+        resourceCost: Math.max(0, number(profile.resourceCost, 0)),
+        travelCost: Math.max(0, number(profile.travelCost, 0)),
+      });
+    });
+  }
+
+  function expandCandidateAcrossParties(base) {
+    return optimizerPartyProfiles().map(function (party) {
+      return Object.assign({}, base, {
+        candidateId: base.candidateId + ":party:" + party.id,
+        partyId: party.id,
+        hardAllowed: base.hardAllowed === true && party.hardAllowed === true,
+        availableCapabilities: party.availableCapabilities,
+        successScore: number(base.successScore, 0) + party.successModifier,
+        realPerformanceScore: number(base.realPerformanceScore, 0) + party.performanceModifier,
+        travelCost: Math.max(0, number(base.travelCost, 0) + party.travelCost),
+        resourceCost: Math.max(0, number(base.resourceCost, 0) + party.resourceCost),
+        payload: Object.assign({}, base.payload || {}, {
+          partyId: party.id,
+          partyMemberIds: party.memberIds,
+        }),
+      });
     });
   }
 
@@ -1399,6 +1499,7 @@
       && !hasContinuation
     ) hardAllowed = false;
     if (obs.art === "DISCOVERY") hardAllowed = false;
+    if (obs.art === "QUEST" && !optionalProgressionWorkAllowed()) hardAllowed = false;
     if (obs.art === "SERVER_HOP") {
       if (obs.payload.pvp && !config.world.allowPvp) hardAllowed = false;
       if (obs.payload.hardcore && !config.world.allowHardcore) hardAllowed = false;
@@ -1519,16 +1620,22 @@
       });
     }
 
-    for (const obs of worldObservations()) candidates.push(candidateFromWorld(obs));
+    for (const obs of worldObservations()) {
+      const base = candidateFromWorld(obs);
+      candidates.push.apply(candidates, expandCandidateAcrossParties(base));
+    }
 
     if (config.farm.enabled) {
       const target = nearestMonster(config.farm.monsters);
       if (target) {
-        candidates.push({
+        const farmBase = {
           candidateId: "farm:" + String(target.id || normalizeMonsterName(target)),
           taskId: "farm:" + String(target.id || normalizeMonsterName(target)),
           partyId: config.group.topologyId || "local",
-          hardAllowed: !config.group.enabled || currentGroup && currentGroup.status === "LIVE_GROUP_READY",
+          hardAllowed: (
+            (!config.group.enabled || currentGroup && currentGroup.status === "LIVE_GROUP_READY")
+            && optionalProgressionWorkAllowed()
+          ),
           safetyOk: true,
           worldEvidenceFresh: true,
           requiredCapabilities: ["SINGLE_TARGET"],
@@ -1540,7 +1647,8 @@
           learningScore: 0,
           deterministicPriority: config.optimizer.farmPriority,
           payload: { type: "FARM", target: target },
-        });
+        };
+        candidates.push.apply(candidates, expandCandidateAcrossParties(farmBase));
       }
     }
 
@@ -1574,6 +1682,7 @@
         action: result.selected.payload && result.selected.payload.action || null,
         score: result.selected.score,
         partyId: result.selected.partyId,
+        partyMemberIds: result.selected.payload && result.selected.payload.partyMemberIds || null,
       });
     }
     currentOptimizer = Object.freeze(Object.assign({}, result, { selectedTask: selectedTask }));
@@ -2148,6 +2257,7 @@
     if (!Number.isSafeInteger(next.loopMs) || next.loopMs < 100 || next.loopMs > 5000) throw new Error("LIVE_LAB_CONFIG_LOOP_INVALID");
     if (!Array.isArray(next.farm.monsters) || !Array.isArray(next.farm.skills)) throw new Error("LIVE_LAB_CONFIG_FARM_INVALID");
     if (!Array.isArray(next.coordination.peers)) throw new Error("LIVE_LAB_CONFIG_PEERS_INVALID");
+    if (!Array.isArray(next.optimizer.partyProfiles)) throw new Error("LIVE_LAB_CONFIG_PARTY_PROFILES_INVALID");
     if (!Array.isArray(next.group.knownMemberIds)) throw new Error("LIVE_LAB_CONFIG_GROUP_MEMBERS_INVALID");
     if (!TOPOLOGIES[next.group.topologyId]) throw new Error("LIVE_LAB_CONFIG_GROUP_TOPOLOGY_INVALID");
     if (!Array.isArray(next.merchant.buyRules) || !Array.isArray(next.merchant.exchangeRules) || !Array.isArray(next.merchant.bankRules)) {
@@ -2200,8 +2310,7 @@
 
       prunePeers();
       await coordinationTick();
-      currentGroup = config.group.enabled ? evaluateGroup() : evaluateGroup();
-      updateTraining();
+      currentGroup = evaluateGroup();
       currentProgression = config.progression.enabled ? progressionBalance() : null;
       updateEvidenceLifecycle();
 
@@ -2232,12 +2341,27 @@
         });
       }
       currentTask = task;
+      updateTraining();
 
       const c = character();
       const isMerchant = String(c && (c.ctype || c.type) || "").toLowerCase() === "merchant";
       if (isMerchant) {
         await merchantTick();
       } else {
+        if (
+          task
+          && Array.isArray(task.partyMemberIds)
+          && task.partyMemberIds.length > 0
+          && c
+          && !task.partyMemberIds.includes(c.name)
+        ) {
+          log("PR26_LOCAL_NOT_SELECTED_PARTY", {
+            taskId: task.id,
+            partyId: task.partyId,
+            selectedMembers: task.partyMemberIds,
+          });
+          return;
+        }
         let worldAllowed = true;
         if (task && task.worldObservation) worldAllowed = await worldTick(task);
         if (worldAllowed !== false) {
