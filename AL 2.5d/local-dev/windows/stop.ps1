@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $RuntimeRoot = Join-Path $ProjectRoot ".local-dev\runtime"
 $PidFile = Join-Path $RuntimeRoot "pids.json"
+$MongoPidFile = Join-Path $RuntimeRoot "mongodb.pid"
 
 if (Test-Path $PidFile) {
   $Pids = Get-Content $PidFile -Raw | ConvertFrom-Json
@@ -18,13 +19,14 @@ if (Test-Path $PidFile) {
   Remove-Item $PidFile -Force
 }
 
-$Docker = Get-Command "docker" -ErrorAction SilentlyContinue
-if ($Docker) {
-  $Running = docker ps --filter "name=^/al25d-mongo$" --format "{{.Names}}"
-  if ($Running -eq "al25d-mongo") {
-    Write-Host "Stopping al25d-mongo"
-    docker stop al25d-mongo | Out-Null
+if (Test-Path $MongoPidFile) {
+  $MongoPid = [int](Get-Content $MongoPidFile -Raw)
+  $MongoProcess = Get-Process -Id $MongoPid -ErrorAction SilentlyContinue
+  if ($MongoProcess) {
+    Write-Host "Stopping portable MongoDB ($MongoPid)"
+    Stop-Process -Id $MongoPid -Force
   }
+  Remove-Item $MongoPidFile -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host "Local AL 2.5D sandbox stopped."
