@@ -343,10 +343,10 @@ test("PR20.8 Exchange closeout records the fresh v1.0.5 no-candidate evidence", 
   assert.equal(retired.supersededByControllerVersion,"1.0.4");
   const active=review.activeAutonomousManifest;
   assert.equal(active.testId,"pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(active.controllerVersion,"1.0.5");
-  assert.equal(active.package,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js");
-  assert.equal(active.sourceCommit,"36bece2cc75854e7d02c6c8dc6ddaf75a74579cb");
-  assert.equal(active.packageSha256,"e87996be9ee56b31f7737923b5bf8999a0a8af82393dea9419f5f4fd3d4b494e");
+  assert.equal(active.controllerVersion,"1.0.6");
+  assert.equal(active.package,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js");
+  assert.equal(active.sourceCommit,"a5fd67cc9c587b2a20b163915936717c7b4e8321");
+  assert.equal(active.packageSha256,"fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387");
   assert.equal(active.packageBytes,21688);
   assert.equal(active.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
   assert.equal(active.maximumGameplayWrites,0);
