@@ -22,7 +22,15 @@
     "repository": "kaansoral/adventureland_mongodb",
     "commit": "90052162eb3ebda36c893e1eb4af643913c8f984",
     "dropGraphSha256": "2fad9b50ac0bb87a8e53a0cff8f6e34ded949b3531f8843f86d3f1fb8e828342",
-    "doesNotReplaceHistoricalGlobalSnapshot": true
+    "doesNotReplaceHistoricalGlobalSnapshot": true,
+    "blobs": {
+      "drops": "cb9af901090eed78dd7ff5ae915874a9557409c4",
+      "items": "ca41b524c8bd795db40836525f7efd9626982c70",
+      "server": "40d0aeda16b9a4320441e833020fe1b4db496e2c",
+      "serverFunctions": "650797b87de128e85b2d01d574d5321a7144bef7",
+      "runnerFunctions": "8b40ac9931a48995cd179fa4cb6b3057df677b02",
+      "maps": "78350dac1a18c4eb0e7c6f545ebf08bb3d6729e4"
+    }
   },
   "exactInput": {
     "name": "anniversarygift",
@@ -58,7 +66,15 @@
     "minimumEmptyInventorySlots": 1,
     "currentEsizeMustBeAtLeast": 1,
     "rewardDomainPinMustMatch": true,
-    "prestateFingerprintRequired": true
+    "prestateFingerprintRequired": true,
+    "exchangeServicePoint": {
+      "map": "main",
+      "x": -25,
+      "y": -478
+    },
+    "sellDistanceSourcePinned": 400,
+    "conservativeDistanceLimit": 300,
+    "computerMayBypassDistancePerServerSource": true
   },
   "durableIntentAndAuthority": {
     "intentMustPersistBeforeAuthority": true,
