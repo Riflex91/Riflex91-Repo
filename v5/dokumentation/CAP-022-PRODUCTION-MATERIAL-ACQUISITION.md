@@ -67,13 +67,24 @@ Multi-Source-COLLECTION-Handoff:
 
 Nach Aggregate-READY pinnt der Batchplan die tatsaechlichen physischen Materialstacks je Quell-Character und exakt die insgesamt benoetigte Menge. Transfers bleiben strikt sequenziell: vor jedem Transfer muessen Merchant-Rendezvous und Recipient-Baseline frisch erhoben werden, und ein vorheriger Transfer muss settled sein. Paralleltransfer und Same-Transfer-Retry sind ausgeschlossen. Dadurch kann der Inventar-Delta eines frueheren Transfers nicht versehentlich den Settlement-Nachweis eines spaeteren Transfers erfuellen.
 
+
+Multi-Source-Batch-Settlement / Recovery:
+
+- `grundlage/quelle/koordination/production-material-team-settlement-recovery.ts`
+- `grundlage/vertraege/runtime/pr22-23-production-material-team-settlement-recovery-foundation.json`
+- `grundlage/tests/pr22-23-production-material-team-settlement-recovery.test.mjs`
+
+Der persistente Batch-Controller aktiviert immer nur **ein** Transfer-Leg. Nach jedem verifizierten Recipient-Settlement werden Merchant-Inventar-Fingerprint und Materialmenge als neue Baseline des Folge-Legs uebernommen. Ein Restart setzt `BATCH_BEREIT` oder `TRANSFER_AKTIV` auf `RECOVERY_PENDING`; ein aktiver Transfer darf danach nicht neu geplant oder erneut gesendet werden, sondern kann nur ueber sein bestehendes Settlement reconciled oder fail-closed beendet werden. Erst `ALLE_SETTLED` erlaubt den spaeteren frischen Craft-Rescan.
+
+Zusaetzlich verifiziert der gemeinsame Logistik-Settlement-Pfad mehrere physische Stacks desselben Item/Levels nun **aggregiert** gegen die Recipient-Baseline. Damit kann ein partieller Delta nicht mehr mehrere Einzel-Stack-Anforderungen gleichzeitig erfuellen.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf
 
 Der vorbereitete Pfad lautet:
 
-`Production FARM-Node -> gemeinsames MaterialObjective -> Multi-Farmer-Aggregation -> FARM_REQUIRED -> aggregate MATERIAL_READY_FOR_HANDOFF -> PR22-Koordination -> PR23 Movement/Combat/Loot -> gepinnter Multi-Source Collection-Batch -> sequenzielle Settlements -> frischer Merchant-Inventar-Snapshot -> NORMAL_CRAFT_ONLY-Rescan -> spaeterer PR20.9-Durable-Shadow-Pfad`
+`Production FARM-Node -> gemeinsames MaterialObjective -> Multi-Farmer-Aggregation -> FARM_REQUIRED -> aggregate MATERIAL_READY_FOR_HANDOFF -> PR22-Koordination -> PR23 Movement/Combat/Loot -> gepinnter Multi-Source Collection-Batch -> persistente sequenzielle Settlements/Recovery -> ALLE_SETTLED -> frischer Merchant-Inventar-Snapshot -> NORMAL_CRAFT_ONLY-Rescan -> spaeterer PR20.9-Durable-Shadow-Pfad`
 
 Die Foundation:
 
