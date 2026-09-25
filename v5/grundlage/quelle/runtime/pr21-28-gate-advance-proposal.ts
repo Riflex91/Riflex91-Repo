@@ -1,5 +1,5 @@
 import type { Pr21_28FeatureGateSicht, Pr21_28GateStage } from "../runtime/pr21-28-feature-gates.js";
-import type { Pr21_28RatificationRecord } from "./pr21-28-ratification-record.js";
+import type { Pr21_28RatificationRecord } from "../zertifizierung/pr21-28-ratification-record.js";
 
 export interface Pr21_28GateAdvanceProposalRequest {
   readonly schemaVersion: 1;
