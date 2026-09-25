@@ -43,13 +43,13 @@ test("PR20.8 no-candidate evidence cannot silently create authority or substitut
   ]);
   assert.equal(
     review.nextAction,
-    "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER",
+    "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
   );
 });
 
 test("PR20.8 Compound 5m preparation changes no remaining exit authority", () => {
   const p=review.compoundLive5mPreparation;
-  assert.equal(p.status,"RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED");
+  assert.equal(p.status,"MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M");
   assert.equal(
     p.contract,
     "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json",
@@ -64,8 +64,11 @@ test("PR20.8 Compound 5m preparation changes no remaining exit authority", () =>
     "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json",
   );
   assert.equal(p.publicCompoundCallSites,0);
-  assert.equal(p.manifestCutoverPrepared,false);
+  assert.equal(p.manifestCutoverPrepared,true);
   assert.equal(p.deployed,false);
+  assert.equal(p.bridgeMayDeployPinnedRunner,true);
+  assert.equal(p.deploymentEvidenceObserved,false);
+  assert.equal(p.realFiveMinuteRunCompleted,false);
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
   assert.equal(review.roadmapCriteriaRelaxed,false);
@@ -73,7 +76,7 @@ test("PR20.8 Compound 5m preparation changes no remaining exit authority", () =>
 
 test("PR20.8 Compound 5m runner package remains authority-closed before manifest cutover", () => {
   const r=review.compoundLive5mRunner;
-  assert.equal(r.status,"PACKAGE_BEREIT_NOT_DEPLOYED");
+  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M");
   assert.equal(r.testId,"pr20-8-compound-live-5m");
   assert.equal(r.controllerVersion,"1.0.0");
   assert.equal(r.package,"v5/werkzeuge/pr20-8-compound-live-5m.js");
@@ -85,8 +88,11 @@ test("PR20.8 Compound 5m runner package remains authority-closed before manifest
   assert.equal(r.rawWriteCallsAllowed,0);
   assert.equal(r.publicCompoundCallSites,0);
   assert.equal(r.compoundWriteAuthority,false);
-  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.manifestCutoverPrepared,true);
   assert.equal(r.deployed,false);
+  assert.equal(r.bridgeMayDeployPinnedRunner,true);
+  assert.equal(r.deploymentEvidenceObserved,false);
+  assert.equal(r.realFiveMinuteRunCompleted,false);
   assert.equal(r.maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass,true);
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
