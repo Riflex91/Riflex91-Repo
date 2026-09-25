@@ -68,12 +68,12 @@ test("Compound one-write ratification does not relax PR20.8 remaining gates",()=
   assert.equal(evidence.nextGate,"PR20_8_COMPOUND_LIVE_5M_PREPARATION");
 });
 
-test("after Compound ratification the active manifest advances to the read-only Exchange acquisition discovery",()=>{
-  assert.equal(manifest.testId,"pr20-8-exchange-candidate-acquisition-readonly");
-  assert.equal(manifest.controllerVersion,"1.0.1");
-  assert.equal(manifest.sourceCommit,"3182b137957416b253dde303bbba54dd800f8b14");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js");
-  assert.equal(manifest.packageSha256,"1acc8253cef6b02b33a6a5de289ce5a7095066d36bc727f9cffa77647e8778ec");
-  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeCandidateAcquisitionReadonly");
+test("after Compound ratification the active manifest advances to the one-shot Exchange bank mount",()=>{
+  assert.equal(manifest.testId,"pr20-8-exchange-candidate-bank-mount");
+  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(manifest.sourceCommit,"5c84fc95b7fed97c3591462faba0a1315289fdce");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-candidate-bank-mount-v1-0-0.js");
+  assert.equal(manifest.packageSha256,"94c053183363c0394922df4f6e422bede3260989e668a3b0942f3e876dbbdc54");
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeCandidateBankMount");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
