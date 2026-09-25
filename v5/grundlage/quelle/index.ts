@@ -232,3 +232,5 @@ export * from "./runtime/pr21-28-stage-state-ledger.js";
 export * from "./runtime/pr21-28-readiness-snapshot.js";
 
 export * from "./merchant/pr20-8-exchange-candidate-acquisition.js";
+
+export * from "./merchant/pr20-8-exchange-seashell-farm-preparation.js";
