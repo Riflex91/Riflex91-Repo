@@ -42,7 +42,7 @@ test("PR20.8 anniversarygift autonomy shadow package is exact pinned zero-write"
   assert.equal(b.rawWriteAuthority,false);
   assert.equal(b.movementAuthority,false);
   assert.equal(b.normalRuntimeAllowed,false);
-  assert.equal(b.manifestCutoverPrepared,false);
+  assert.equal(b.manifestCutoverPrepared,true);
   assert.equal(b.deployed,false);
 });
 
@@ -111,11 +111,11 @@ test("roadmap advances only to shadow manifest cutover and leaves productive aut
   const p=roadmap.pr20_8;
   assert.equal(
     p.status,
-    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_PACKAGE_PREPARED_NO_WRITE",
+    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
   );
   assert.equal(
     p.nextAction,
-    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER",
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE",
   );
   assert.equal(
     p.remainingGates.normalExchange,
@@ -130,7 +130,7 @@ test("roadmap advances only to shadow manifest cutover and leaves productive aut
   assert.equal(s.maximumPublicFunctionCalls,0);
   assert.equal(s.maximumRawWriteCalls,0);
   assert.equal(s.exchangeAuthority,false);
-  assert.equal(s.manifestCutoverPrepared,false);
+  assert.equal(s.manifestCutoverPrepared,true);
   assert.equal(s.deployed,false);
   assert.equal(s.liveEvidenceObserved,false);
   assert.equal(s.productiveAutonomyProven,false);
