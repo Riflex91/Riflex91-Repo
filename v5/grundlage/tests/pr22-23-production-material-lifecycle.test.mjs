@@ -353,3 +353,49 @@ test("CAP-022 Lifecycle besitzt keinen direkten Gameplay-Write-Bypass", () => {
     assert.equal(source.includes(marker), false, marker);
   }
 });
+
+
+test("CAP-022 Lifecycle-Vertrag und Roadmap halten PR20.9 trotz Recovery-Foundation geschlossen", () => {
+  const contract = JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
+    "utf8",
+  ));
+  assert.equal(contract.status, "PREPARED_NO_WRITE");
+  assert.equal(contract.restartBoundary.nonterminalBecomesRecoveryPending, true);
+  assert.equal(contract.restartBoundary.blindResumeAllowed, false);
+  assert.equal(contract.restartBoundary.exactPriorPhaseReconciliationRequired, true);
+  assert.equal(contract.restartBoundary.sameFarmObjectiveRetryAllowed, false);
+  assert.equal(contract.restartBoundary.sameHandoffRetryAllowed, false);
+  assert.equal(contract.restartBoundary.sameCraftRescanRetryAllowed, false);
+  assert.equal(contract.safetyBoundary.executionAuthority, false);
+  assert.equal(contract.safetyBoundary.gameplayAuthority, false);
+  assert.equal(contract.safetyBoundary.rawWriteAuthority, false);
+  assert.equal(contract.safetyBoundary.normalRuntimeAllowed, false);
+  assert.equal(contract.currentGateBoundary.candidateAcquisitionOrMutationAllowedNow, false);
+  assert.equal(contract.currentGateBoundary.pr22ProductiveCoordinationRequired, true);
+  assert.equal(contract.currentGateBoundary.pr23ProductiveFarmerRequired, true);
+
+  const roadmap = JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+  );
+  assert.equal(
+    roadmap.pr20_9.craftDurableShadowRunner.candidateAcquisitionOrMutationAllowed,
+    false,
+  );
+  const lifecycle =
+    roadmap.pr20_9.deferredAutomaticMaterialRecheck.persistentLifecycle;
+  assert.equal(lifecycle.status, "PREPARED_NO_WRITE");
+  assert.equal(lifecycle.nonterminalRestartBecomesRecoveryPending, true);
+  assert.equal(lifecycle.blindResumeAllowed, false);
+  assert.equal(lifecycle.sameFarmObjectiveRetryAllowed, false);
+  assert.equal(lifecycle.sameHandoffRetryAllowed, false);
+  assert.equal(lifecycle.sameCraftRescanRetryAllowed, false);
+  assert.equal(lifecycle.productiveExecutionAllowed, false);
+  assert.equal(lifecycle.gameplayAuthority, false);
+  assert.equal(lifecycle.normalRuntimeAllowed, false);
+});
