@@ -90,7 +90,9 @@
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
     "AKTUELL: Der frische read-only Rescan v1.0.6 ist persistent ratifiziert (Notification #2382, Debug-Batch #8306): Compound und Exchange haben weiterhin keinen normalen Kandidaten; 0 Gameplay/Public/Raw-Writes, keine Exchange-/Gameplay-/Raw-Authority, kein Durable Intent. Das eigenstaendige No-Candidate-Closeout ist auf v1.0.6 reconciliert. PR20.8 bleibt an Exchange blockiert und wartet auf einen spaeteren natuerlichen read-only Rescan; keine Candidate-Erzeugung durch Acquisition/Mutation, PR20.9 und normalRuntime bleiben geschlossen.",
     "PR20.8 Exchange anniversarygift Productive Autonomy ist real-browser COMMITTED ratifiziert (Notification #3080): frische autonome Auswahl, exakt 1 exchange()-Call, 1/1/0 Gameplay/Public/Raw, Authority one-shot konsumiert, anniversarygift 105->104, +5000 Gold, kein Retry. PR20.8 Exit-Gate ist erfuellt; PR20.9 darf als naechstes Gate vorbereitet werden. normalRuntimeAllowed bleibt false.",
-    "PR20.9 ist nach abgeschlossenem PR20.8 entsperrt. Craft Durable Shadow Manifest-Cutover ist fuer den exakt gepinnten NORMAL_CRAFT_ONLY NO-WRITE-Runner vorbereitet; naechster Schritt ist reale Browser-Beobachtung. Gameplay/Raw/Produktiv-Craft/NormalRuntime Authority bleiben false."
+    "PR20.9 ist nach abgeschlossenem PR20.8 entsperrt. Craft Durable Shadow Manifest-Cutover ist fuer den exakt gepinnten NORMAL_CRAFT_ONLY NO-WRITE-Runner vorbereitet; naechster Schritt ist reale Browser-Beobachtung. Gameplay/Raw/Produktiv-Craft/NormalRuntime Authority bleiben false.",
+    "PR20.9 bleibt ohne natuerlichen NORMAL_CRAFT_ONLY-Kandidaten fail-closed; die CAP-022 Production-Material-Acquisition/Handoff-Foundation wird NO-WRITE fuer den spaeteren automatischen Materialpfad vorbereitet und zaehlt nicht als Craft-Ratifizierung.",
+    "Automatische Materialbeschaffung darf erst nach den produktiven PR22-/PR23-Gates reale Farmer-Aktionen ausloesen; danach darf PR20.9 bei einem natuerlich entstandenen Craft-Kandidaten erneut geprueft werden."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -953,7 +955,16 @@
         "v5/roadmap/pr20-9-craft-service-mount-evidence.json",
         "v5/roadmap/pr20-9-craft-durable-shadow-no-candidate-evidence.json",
         "v5/grundlage/tests/pr20-9-craft-durable-shadow-no-candidate-evidence.test.mjs"
-      ]
+      ],
+      "deferredAutomaticMaterialRecheck": {
+        "status": "WAITING_FOR_FUTURE_PRODUCTIVE_MATERIAL_ACQUISITION",
+        "cap022Foundation": "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+        "currentCandidateAcquisitionOrMutationAllowed": false,
+        "foundationCountsAsCraftRatification": false,
+        "recheckTrigger": "NATURAL_NORMAL_CRAFT_CANDIDATE_FROM_NORMAL_PRODUCTIVE_MATERIAL_ACQUISITION",
+        "productiveCraftAuthority": false,
+        "normalRuntimeAllowed": false
+      }
     },
     {
       "id": "PR21_MERCHANT_INTEGRATION",
@@ -1053,7 +1064,10 @@
         "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
-        "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs"
+        "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs",
+        "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
+        "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+        "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1064,7 +1078,18 @@
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
       "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
       "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
-      "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY"
+      "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
+      "materialAcquisitionFoundation": {
+        "capability": "CAP-022",
+        "status": "PREPARED_NO_WRITE",
+        "source": "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+        "test": "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs",
+        "productiveActivationAllowed": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
+      }
     },
     {
       "id": "PR23_FARMER",
@@ -1109,7 +1134,10 @@
         "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
-        "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs"
+        "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs",
+        "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
+        "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+        "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1123,7 +1151,18 @@
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
       "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
       "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
-      "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY"
+      "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
+      "materialAcquisitionFoundation": {
+        "capability": "CAP-022",
+        "status": "PREPARED_NO_WRITE",
+        "source": "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+        "test": "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs",
+        "productiveActivationAllowed": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
+      }
     },
     {
       "id": "PR24_GROUP_MATRIX",
@@ -4262,6 +4301,29 @@
       "craftRatified": false,
       "candidateAcquisitionOrMutationAllowed": false,
       "nextGate": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE"
+    },
+    "deferredAutomaticMaterialRecheck": {
+      "status": "PREPARED_DEPENDENCY_NO_WRITE",
+      "capability": "CAP-022",
+      "source": "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+      "test": "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs",
+      "currentCandidateAcquisitionOrMutationAllowed": false,
+      "foundationCountsAsCraftRatification": false,
+      "requiresProductiveGates": [
+        "PR22",
+        "PR23"
+      ],
+      "requiredFarmerCapabilities": [
+        "MOVEMENT",
+        "COMBAT",
+        "LOOT"
+      ],
+      "recheckTrigger": "NATURAL_NORMAL_CRAFT_CANDIDATE_AFTER_PRODUCTIVE_MATERIAL_ACQUISITION",
+      "craftAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false
     }
   },
   "acceleratedImplementation": {
@@ -4502,7 +4564,17 @@
     "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
     "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
     "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
-    "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts"
+    "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+    "materialAcquisitionFoundation": {
+      "capability": "CAP-022",
+      "status": "PREPARED_NO_WRITE_BLOCKED_BY_PR21_AND_PR23_EXECUTION",
+      "source": "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+      "test": "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs",
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false
+    }
   },
   "pr23": {
     "status": "BLOCKED_BY_PR22",
@@ -4554,7 +4626,24 @@
     "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
     "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
     "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
-    "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts"
+    "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+    "materialAcquisitionFoundation": {
+      "capability": "CAP-022",
+      "status": "PREPARED_NO_WRITE_BLOCKED_BY_PR22",
+      "source": "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+      "test": "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs",
+      "requiredActions": [
+        "MOVEMENT",
+        "COMBAT",
+        "LOOT"
+      ],
+      "stopFarmOnMaterialReady": true,
+      "handoffAfterMaterialReady": true,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false
+    }
   },
   "pr24": {
     "status": "BLOCKED_BY_PR23",
