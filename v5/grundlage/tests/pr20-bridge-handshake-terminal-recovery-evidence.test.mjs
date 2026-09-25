@@ -12,6 +12,10 @@ const manifest = JSON.parse(fs.readFileSync(
   "roadmap/v5-autonomous-test-manifest.json",
   "utf8",
 ));
+const roadmap = JSON.parse(fs.readFileSync(
+  "roadmap/post-r19-roadmap.json",
+  "utf8",
+));
 
 test("PR20.8 terminal bridge recovery is real-browser BESTANDEN and zero-write", () => {
   assert.equal(evidence.status, "BESTANDEN_REAL_BROWSER_TERMINAL_ZERO_WRITE");
@@ -66,13 +70,19 @@ test("PR20.8 terminal recovery package remains immutable and no-write", () => {
   ]) assert.equal(source.includes(marker),false,marker);
 });
 
-test("terminal recovery evidence stays immutable while the current manifest advances to the fresh read-only Exchange rescan", () => {
-  assert.equal(manifest.testId, "pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(manifest.controllerVersion, "1.0.6");
-  assert.equal(manifest.sourceCommit, "a5fd67cc9c587b2a20b163915936717c7b4e8321");
-  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js");
-  assert.equal(manifest.packageSha256, "fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387");
-  assert.equal(manifest.expectedGlobal, "V5PR208ValueMutationLiveCandidateReadonly");
+test("terminal recovery evidence stays immutable across the temporary PR20.9 no-write manifest cutover", () => {
   assert.equal(manifest.normalRuntimeAllowed, false);
+  const restore=roadmap.pr20_9.craftDurableShadowRunner.restoreManifest;
+  assert.equal(restore.testId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(restore.controllerVersion,"1.0.6");
+  assert.equal(restore.sourceCommit,"a5fd67cc9c587b2a20b163915936717c7b4e8321");
+  assert.equal(restore.package,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js");
+  assert.equal(restore.packageSha256,"fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387");
+  assert.equal(restore.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
+  assert.equal(restore.normalRuntimeAllowed,false);
+  assert.ok([
+    "pr20-9-craft-durable-shadow-no-write",
+    restore.testId,
+  ].includes(manifest.testId));
   assert.equal(evidence.nextGate, "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
 });
