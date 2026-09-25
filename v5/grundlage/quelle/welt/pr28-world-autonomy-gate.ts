@@ -60,8 +60,8 @@ export function pruefePr28WorldAutonomyGate(
 
   const blocker: string[] = [];
   if (!anfrage.optimizerCandidateAllowed) blocker.push("PR28_OPTIMIZER_KANDIDAT_NICHT_ERLAUBT");
-  if (!anfrage.contentKnown) blocker.push("PR28_CONTENT_UNBEKANNT");
-  if (anfrage.contentQuarantined) blocker.push("PR28_CONTENT_QUARANTAENE");
+  if (anfrage.art !== "DISCOVERY" && !anfrage.contentKnown) blocker.push("PR28_CONTENT_UNBEKANNT");
+  if (anfrage.art !== "DISCOVERY" && anfrage.contentQuarantined) blocker.push("PR28_CONTENT_QUARANTAENE");
   if (!anfrage.liveEvidenceFresh) blocker.push("PR28_LIVE_EVIDENCE_STALE");
   if (!anfrage.definitionEvidenceFresh) blocker.push("PR28_DEFINITION_EVIDENCE_STALE");
   if (!anfrage.restartReconciled) blocker.push("PR28_RESTART_NICHT_RECONCILED");
@@ -81,10 +81,6 @@ export function pruefePr28WorldAutonomyGate(
     if (!anfrage.serverHopAllowed) blocker.push("PR28_SERVER_HOP_POLICY_BLOCKIERT");
     if (!anfrage.targetServerModeKnown) blocker.push("PR28_SERVER_MODUS_UNBEKANNT");
     if (!anfrage.pvpHardcorePolicyAllowsTarget) blocker.push("PR28_SERVER_POLICY_GESPERRT");
-  }
-
-  if (anfrage.art === "DISCOVERY") {
-    blocker.push("PR28_DISCOVERY_NUR_BEOBACHTUNG");
   }
 
   return Object.freeze({
