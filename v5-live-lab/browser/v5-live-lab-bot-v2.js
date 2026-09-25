@@ -548,9 +548,20 @@
     root.on_cm = function (name, data) {
       try {
         if (data && data.type === "V5_LIVE_LAB_HEARTBEAT" && data.profileId === PROFILE_ID) {
-          const existed = peers.has(String(name));
-          peers.set(String(name), Object.freeze(Object.assign({}, data, { receivedAtMs: now() })));
-          if (!existed) log("COORDINATION_PEER_JOINED", { peer: String(name) });
+          const peerName = String(name);
+          const prior = peers.get(peerName);
+          const existed = !!prior;
+          if (prior && now() - prior.receivedAtMs > config.coordination.staleMs) {
+            transientGroupFaults.push("REJOIN");
+          }
+          if (
+            prior
+            && Number.isFinite(Number(prior.gearScore))
+            && Number.isFinite(Number(data.gearScore))
+            && Number(prior.gearScore) !== Number(data.gearScore)
+          ) transientGroupFaults.push("EQUIPMENT_DRIFT");
+          peers.set(peerName, Object.freeze(Object.assign({}, data, { receivedAtMs: now() })));
+          if (!existed) log("COORDINATION_PEER_JOINED", { peer: peerName });
         }
       } catch (error) {
         log("COORDINATION_RECEIVE_FAILED", { error: String(error && error.message || error) });
@@ -693,6 +704,10 @@
     missing.forEach(function (x) { blockers.push("PR24_CAPABILITY_FEHLT:" + x); });
 
     if (members.some(function (m) { return !m.sessionFresh || !m.rosterFresh; })) faults.push("ROSTER_SESSION_DRIFT");
+    for (const peerName of config.coordination.peers || []) {
+      const peer = peers.get(String(peerName));
+      if (!peer || now() - peer.receivedAtMs > config.coordination.staleMs) faults.push("DISCONNECT");
+    }
     if (members.some(function (m) { return m.dead && m.capabilities.includes("TANK"); })) faults.push("TANK_TOT");
     if (members.some(function (m) { return m.dead && m.capabilities.includes("HEAL"); })) faults.push("HEAL_TOT");
     if (members.some(function (m) { return m.dead && m.capabilities.includes("SINGLE_TARGET"); })) faults.push("DPS_TOT");
@@ -714,6 +729,12 @@
     }
 
     if (missing.length) faults.push("CAPABILITY_VERLUST");
+    const leaderId = String(config.group.leader || "");
+    if (leaderId) {
+      const leader = members.find(function (m) { return m.characterId === leaderId; });
+      if (!leader || !leader.sessionFresh || !leader.rosterFresh) faults.push("LEADER_MOVEMENT_DRIFT");
+    }
+    while (transientGroupFaults.length) faults.push(transientGroupFaults.shift());
     if (config.group.failClosedOnFault && faults.some(function (fault) {
       return ["ROSTER_SESSION_DRIFT", "MAP_INSTANZ_DRIFT", "FREMDES_PARTY_MITGLIED", "CAPABILITY_VERLUST"].includes(fault);
     })) blockers.push("PR24_GROUP_FAULT_FAIL_CLOSED");
@@ -1000,6 +1021,7 @@
       travelCost: number(definition.travelCost, 0),
       resourceCost: number(definition.resourceCost, 0),
       learningScore: number(definition.learningScore, 0),
+      priority: number(definition.priority, NaN),
       action: definition.action || null,
     };
     const obs = {
@@ -1055,6 +1077,7 @@
       travelCost: number(definition.travelCost, 0),
       resourceCost: number(definition.resourceCost, 0),
       learningScore: number(definition.learningScore, 0),
+      priority: number(definition.priority, NaN),
       action: definition.action || null,
     };
     const obs = {
@@ -1193,8 +1216,10 @@
       active: serverDef.online !== false,
       known: !!serverDef.region && !!serverDef.identifier && !!serverDef.mode,
       quarantined: false,
-      observedAtMs: now(),
-      validUntilMs: now() + config.world.observationTtlMs,
+      observedAtMs: Number.isFinite(Number(serverDef.observedAtMs)) ? Number(serverDef.observedAtMs) : now(),
+      validUntilMs: Number.isFinite(Number(serverDef.validUntilMs))
+        ? Number(serverDef.validUntilMs)
+        : (Number.isFinite(Number(serverDef.observedAtMs)) ? Number(serverDef.observedAtMs) : now()) + config.world.observationTtlMs,
       payload: {
         targetRegion: serverDef.region,
         targetIdentifier: serverDef.identifier,
@@ -1299,7 +1324,9 @@
   }
 
   function candidateFromWorld(obs) {
-    const priority = number(config.optimizer.priorities && config.optimizer.priorities[obs.art], 0);
+    const priority = Number.isFinite(Number(obs.payload && obs.payload.priority))
+      ? Number(obs.payload.priority)
+      : number(config.optimizer.priorities && config.optimizer.priorities[obs.art], 0);
     const mode = String(obs.payload && obs.payload.mode || "").toUpperCase();
     let hardAllowed = obs.known && !obs.quarantined && observationFresh(obs);
     if (obs.art === "DISCOVERY") hardAllowed = false;
@@ -1324,7 +1351,9 @@
       availableCapabilities: available,
       successScore: number(obs.payload.successScore, 0.5),
       realPerformanceScore: number(obs.payload.realPerformanceScore, 0.5),
-      travelCost: number(obs.payload.travelCost, 0),
+      travelCost: obs.payload.destination
+        ? distance(character(), obs.payload.destination)
+        : number(obs.payload.travelCost, 0),
       resourceCost: number(obs.payload.resourceCost, 0),
       learningScore: number(obs.payload.learningScore, 0),
       deterministicPriority: priority,
