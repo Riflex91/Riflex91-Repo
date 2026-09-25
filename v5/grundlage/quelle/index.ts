@@ -218,3 +218,6 @@ export * from "./operations/pr21-28-milestone-observability.js";
 
 export * from "./zertifizierung/pr21-28-checkpoint-runbook.js";
 export * from "./zertifizierung/pr21-28-result-package.js";
+
+export * from "./zertifizierung/pr21-28-ratification-record.js";
+export * from "./runtime/pr21-28-gate-advance-proposal.js";
