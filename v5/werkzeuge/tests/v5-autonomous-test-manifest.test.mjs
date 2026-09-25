@@ -11,6 +11,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208CompoundProductiveOneWriteLive",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-compound-live-5m": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-compound-live-5m.js",
+    expectedGlobal: "V5PR208CompoundLive5m",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-upgrade-productive-one-write-live": Object.freeze({
     path: "v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-3.js",
     expectedGlobal: "V5PR208UpgradeProductiveOneWriteLive",
@@ -915,4 +920,56 @@ test("PR20.8 productive Compound one-write manifest is exact, one-shot and runti
   assert.equal(packageSource.includes("globalThis.exchange("), false);
   assert.equal(packageSource.includes(".socket.emit("), false);
   assert.equal(packageSource.includes("api_call("), false);
+});
+
+test("PR20.8 Compound 5m manifest is exact, zero-write and postcommit-only", () => {
+  if (manifest.testId !== "pr20-8-compound-live-5m") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(
+    manifest.sourceCommit,
+    "61db398373d1909bc11eb883af5902ac339a123c",
+  );
+  assert.equal(
+    manifest.packagePath,
+    "v5/werkzeuge/pr20-8-compound-live-5m.js",
+  );
+  assert.equal(
+    manifest.packageSha256,
+    "2c68619ffb7359373a6a817ac939c34278a66f5c69e7d3efba59a5ff5c00e221",
+  );
+  assert.equal(manifest.expectedGlobal, "V5PR208CompoundLive5m");
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.equal("workerPackageSha256" in manifest, false);
+  assert.equal("workerExpectedGlobal" in manifest, false);
+  assert.equal("workerTargets" in manifest, false);
+
+  for (const marker of [
+    'const VERSION = "1.0.0"',
+    'const TEST_ID = "pr20-8-compound-live-5m"',
+    'const API_NAME = "V5PR208CompoundLive5m"',
+    'const SOAK_SAMPLES = 60',
+    'const SOAK_INTERVAL_MS = 5000',
+    'const SOAK_MIN_DURATION_MS = 299000',
+    'sourceSendCount: 1',
+    'additionalGameplayWrites: 0',
+    'additionalPublicFunctionCalls: 0',
+    'additionalRawWriteCalls: 0',
+    'noResendPathPresent: true',
+    'compoundLive5mTested: true',
+    'mayAdvanceToPr20_9: false',
+    'normalRuntimeAllowed: false',
+  ]) assert.ok(packageSource.includes(marker), marker);
+
+  for (const forbidden of [
+    "globalThis.compound(",
+    "compound(",
+    "upgrade(",
+    "exchange(",
+    ".socket.emit(",
+    "api_call(",
+    "sameIntentRetry: true",
+    "normalRuntimeAllowed: true",
+  ]) assert.equal(packageSource.includes(forbidden), false, forbidden);
 });
