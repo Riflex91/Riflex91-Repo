@@ -148,6 +148,26 @@ function Get-PortableMongod {
   return $null
 }
 
+function Invoke-LocalRearm {
+  Write-Host "==> Releasing stale local Adventure Land server/character registrations"
+
+  try {
+    $Response = Invoke-WebRequest `
+      -UseBasicParsing `
+      -Uri "http://127.0.0.1:8090/rearm" `
+      -Method Get `
+      -TimeoutSec 5
+
+    if ($Response.StatusCode -ne 200 -or $Response.Content.Trim() -ne "done!") {
+      throw "Unexpected response: HTTP $($Response.StatusCode) '$($Response.Content)'"
+    }
+  } catch {
+    throw "Local Adventure Land rearm failed: $($_.Exception.Message)"
+  }
+
+  Write-Host "==> Local Adventure Land registrations released"
+}
+
 function Verify-GameServerApi {
   if (-not (Test-Path $RuntimeKeysPath)) {
     throw "Runtime keys.js is missing: $RuntimeKeysPath"
@@ -287,6 +307,7 @@ if (-not (Test-Port 8090)) {
 }
 
 if (-not (Test-Port 7192)) {
+  Invoke-LocalRearm
   Write-Host "==> Starting local Adventure Land game server"
   $NodeDir = Join-Path $AdventureDir "node"
   $Process = Start-DevWindow "AL 2.5D - Legacy Game Server" $NodeDir "node server.js local"

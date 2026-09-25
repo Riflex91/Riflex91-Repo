@@ -80,6 +80,19 @@ describe("Windows local sandbox scripts", () => {
     expect(start).toContain("transaction-ready");
   });
 
+  it("releases stale local server registrations before game-server restart", () => {
+    const start = read("local-dev/windows/start.ps1");
+    const stop = read("local-dev/windows/stop.ps1");
+
+    expect(start).toContain("Invoke-LocalRearm");
+    expect(start).toContain("http://127.0.0.1:8090/rearm");
+    expect(stop).toContain("Invoke-LocalRearmIfAvailable");
+    expect(stop).toContain("http://127.0.0.1:8090/rearm");
+
+    expect(start.indexOf("Invoke-LocalRearm\n  Write-Host \"==> Starting local Adventure Land game server\""))
+      .toBeGreaterThan(-1);
+  });
+
   it("pins shared inter-process server keys and verifies the local eval bridge", () => {
     const setup = read("local-dev/windows/setup.ps1");
     const start = read("local-dev/windows/start.ps1");

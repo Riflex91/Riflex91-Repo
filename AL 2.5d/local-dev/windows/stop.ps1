@@ -5,6 +5,27 @@ $RuntimeRoot = Join-Path $ProjectRoot ".local-dev\runtime"
 $PidFile = Join-Path $RuntimeRoot "pids.json"
 $MongoPidFile = Join-Path $RuntimeRoot "mongodb.pid"
 
+function Invoke-LocalRearmIfAvailable {
+  try {
+    $Response = Invoke-WebRequest `
+      -UseBasicParsing `
+      -Uri "http://127.0.0.1:8090/rearm" `
+      -Method Get `
+      -TimeoutSec 3
+
+    if ($Response.StatusCode -eq 200 -and $Response.Content.Trim() -eq "done!") {
+      Write-Host "Released local Adventure Land server/character registrations."
+      return
+    }
+
+    Write-Host "Local Adventure Land rearm returned HTTP $($Response.StatusCode); continuing stop."
+  } catch {
+    Write-Host "Local Adventure Land backend is already unavailable; continuing stop."
+  }
+}
+
+Invoke-LocalRearmIfAvailable
+
 if (Test-Path $PidFile) {
   $Pids = Get-Content $PidFile -Raw | ConvertFrom-Json
 
