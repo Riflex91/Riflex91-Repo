@@ -51,7 +51,10 @@ test("roadmap preserves service-mount ratification while current Craft shadow is
   assert.equal(p.nextAction,"REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE");
   assert.equal(p.craftDurableShadowRunner.active,true);
   assert.equal(p.craftDurableShadowRunner.liveEvidenceObserved,true);
-  assert.equal(p.craftDurableShadowRunner.craftRatified,false);\n  assert.equal(p.craftDurableShadowRunner.latestObservedStatus,"BLOCKIERT");\n  assert.equal(p.craftDurableShadowRunner.latestBlocker,"PR20_9_CRAFT_SHADOW_KEIN_NORMALKANDIDAT");\n  assert.equal(p.craftDurableShadowRunner.latestNotificationId,3175);
+  assert.equal(p.craftDurableShadowRunner.craftRatified,false);
+  assert.equal(p.craftDurableShadowRunner.latestObservedStatus,"BLOCKIERT");
+  assert.equal(p.craftDurableShadowRunner.latestBlocker,"PR20_9_CRAFT_SHADOW_KEIN_NORMALKANDIDAT");
+  assert.equal(p.craftDurableShadowRunner.latestNotificationId,3175);
   assert.equal(p.craftServiceMount.status,"RATIFIED_BESTANDEN_ONE_SHOT_MOVEMENT");
   assert.equal(p.craftServiceMount.evidenceObserved,true);
   assert.equal(p.craftServiceMount.latestNotificationId,3170);
