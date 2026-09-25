@@ -95,7 +95,10 @@ export function pruefePr23FarmerShadowAdmission(
 
   if (anfrage.action === "MOVEMENT") {
     if (!anfrage.movementOwnershipFresh) blocker.push("PR23_MOVEMENT_OWNER_STALE");
-    if (!anfrage.arrivalEvidenceFresh) blocker.push("PR23_ARRIVAL_EVIDENCE_FEHLT");
+  }
+
+  if (anfrage.action === "LOOT" && !anfrage.arrivalEvidenceFresh) {
+    blocker.push("PR23_ARRIVAL_EVIDENCE_FEHLT");
   }
 
   if (anfrage.action === "COMBAT" || anfrage.action === "SKILL" || anfrage.action === "AOE") {
