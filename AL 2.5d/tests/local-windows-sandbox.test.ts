@@ -48,6 +48,19 @@ describe("Windows local sandbox scripts", () => {
     expect(stop).toContain("mongodb.pid");
   });
 
+  it("pins shared inter-process server keys and verifies the local eval bridge", () => {
+    const setup = read("local-dev/windows/setup.ps1");
+    const start = read("local-dev/windows/start.ps1");
+
+    expect(setup).toContain("local-secrets.json");
+    expect(setup).toContain("Write-SharedLocalKeys");
+    expect(setup).toContain("ACCESS_MASTER");
+    expect(setup).toContain("SERVER_MASTER");
+    expect(start).toContain("Verify-GameServerApi");
+    expect(start).toContain("http://127.0.0.1:7192/server.api/eval");
+    expect(start).toContain('output={ok:true};');
+  });
+
   it("adds the MessagePack socket path required by the pinned local game server", () => {
     const setup = read("local-dev/windows/setup.ps1");
 
