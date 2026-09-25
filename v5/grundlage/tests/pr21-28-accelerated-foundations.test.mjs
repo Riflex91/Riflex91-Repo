@@ -129,7 +129,7 @@ function farmer(overrides={}) {
     characterId:"mage",
     sessionFresh:true,
     rosterFresh:true,
-    lifecycleAktiv:true,
+    lifecycleActive:true,
     restartReconciled:true,
     movementOwnershipFresh:true,
     arrivalEvidenceFresh:true,
