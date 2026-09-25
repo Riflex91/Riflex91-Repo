@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "CAP022_PERSISTENT_MATERIAL_LIFECYCLE_FOUNDATION",
+  "status": "PREPARED_NO_WRITE",
+  "capability": "CAP-022",
+  "name": "Persistent Production Material Lifecycle / Restart Recovery",
+  "source": "v5/grundlage/quelle/koordination/production-material-lifecycle.ts",
+  "test": "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs",
+  "dependsOn": [
+    "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
+    "v5/grundlage/quelle/koordination/production-material-handoff.ts",
+    "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts"
+  ],
+  "states": [
+    "FARM_REQUIRED",
+    "MATERIAL_READY_FOR_HANDOFF",
+    "COLLECTION_PLAN_BEREIT",
+    "CRAFT_RESCAN_BEREIT",
+    "CRAFT_RESCAN_BLOCKIERT",
+    "RECOVERY_PENDING",
+    "FAILED_SAFE"
+  ],
+  "terminalStates": [
+    "CRAFT_RESCAN_BEREIT",
+    "CRAFT_RESCAN_BLOCKIERT",
+    "FAILED_SAFE"
+  ],
+  "restartBoundary": {
+    "nonterminalBecomesRecoveryPending": true,
+    "blindResumeAllowed": false,
+    "exactPriorPhaseReconciliationRequired": true,
+    "sameFarmObjectiveRetryAllowed": false,
+    "sameHandoffRetryAllowed": false,
+    "sameCraftRescanRetryAllowed": false,
+    "futureTimestampPersistenceFailsClosed": true,
+    "criticalPersistenceRequired": true
+  },
+  "safetyBoundary": {
+    "executionAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "directGameplayAdapterCalls": false,
+    "currentPr20_9RatificationCredit": false,
+    "productiveMaterialAcquisitionOpened": false,
+    "productiveCraftAuthorityOpened": false
+  },
+  "currentGateBoundary": {
+    "pr20_9StatusRemains": "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+    "candidateAcquisitionOrMutationAllowedNow": false,
+    "pr22ProductiveCoordinationRequired": true,
+    "pr23ProductiveFarmerRequired": true,
+    "realCollectionSettlementRequiredBeforeCraftRescan": true
+  },
+  "nextAction": "KEEP_LIFECYCLE_NO_WRITE_UNTIL_PR22_PR23_AND_COLLECTION_PRODUCTIVE_GATES_ARE_RATIFIED"
+}
