@@ -122,7 +122,7 @@ function Write-SharedLocalKeys([string]$KeysPath) {
 
   foreach ($Name in $Replacements.Keys) {
     $Value = [string]$Replacements[$Name]
-    $Pattern = '(?m)^(s*' + [regex]::Escape($Name) + 's*:s*)(?:rk(d+)|"[^"]*")(s*,)'
+    $Pattern = '(?m)^(\s*' + [regex]::Escape($Name) + '\s*:\s*)(?:rk\(\d+\)|"[^"]*")(\s*,)'
     $Replacement = '$1"' + $Value + '"$2'
     $Regex = New-Object System.Text.RegularExpressions.Regex $Pattern
     $Updated = $Regex.Replace($Keys, $Replacement, 1)
