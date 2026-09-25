@@ -50,7 +50,7 @@
     "PR20_8_EXCHANGE_5M_LIVE_NOT_RUN",
     "PR20_8_EXCHANGE_AUTONOMY_NOT_PRODUCTIVE_PROVEN"
   ],
-  "nextAction": "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER",
+  "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RETRY",
   "mayAdvanceToPr20_9": false,
   "roadmapCriteriaRelaxed": false,
   "compoundLive5mPreparation": {
@@ -99,7 +99,7 @@
     }
   },
   "compoundLive5mPerformanceRecovery": {
-    "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+    "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
     "controllerVersion": "1.0.1",
     "package": "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
     "sourceCommit": "51b1fc8038740f828cacffe866c6db799a447348",
@@ -116,9 +116,21 @@
     "rawWriteCallsAllowed": 0,
     "publicCompoundCallSites": 0,
     "compoundWriteAuthority": false,
-    "manifestCutoverPrepared": false,
+    "manifestCutoverPrepared": true,
     "deployed": false,
     "maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass": true,
-    "nextGate": "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER"
+    "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RETRY",
+    "bridgeMayDeployPinnedRunner": true,
+    "deploymentEvidenceObserved": false,
+    "realFiveMinuteRunCompleted": false
+  },
+  "activeCompoundLive5mManifest": {
+    "testId": "pr20-8-compound-live-5m",
+    "controllerVersion": "1.0.1",
+    "package": "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
+    "sourceCommit": "51b1fc8038740f828cacffe866c6db799a447348",
+    "packageSha256": "23af77b23467e99fddfa437b9dc54873d0e3f25d783c940c819b447e44863a2b",
+    "packageBytes": 26060,
+    "normalRuntimeAllowed": false
   }
 }
