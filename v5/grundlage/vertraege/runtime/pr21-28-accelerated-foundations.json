@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_28_ACCELERATED_FOUNDATIONS_BATCH_1",
+  "status": "PREPARED_NO_WRITE",
+  "strategy": "ACCELERATED_IMPLEMENTATION_DEFERRED_LIVE_EVIDENCE",
+  "sourceMain": "b61028691d26ad039fc3ce0a99a66f544f675398",
+  "safetyBoundary": {
+    "productiveGameplayWritesAllowed": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "featureGatesRequired": true,
+    "liveEvidenceDeferredToIntegrationMilestones": true
+  },
+  "stages": {
+    "pr21": {
+      "status": "FOUNDATION_PREPARED_NO_WRITE_BLOCKED_BY_PR20",
+      "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
+      "purpose": "Merchant Gesamtintegration Readiness und Safety/Thrash/Starvation Gate",
+      "productiveGate": "PR20_COMPLETE_AND_15M_MERCHANT_INTEGRATION_EVIDENCE"
+    },
+    "pr22": {
+      "status": "FOUNDATION_PREPARED_NO_WRITE_BLOCKED_BY_PR21",
+      "source": "v5/grundlage/quelle/koordination/pr22-coordination-shadow-admission.ts",
+      "basis": "R14",
+      "purpose": "CM/Roster/Liveness/TTL/Dedupe/Restart Shadow-Admission ohne send_cm",
+      "productiveGate": "PR21_COMPLETE_AND_PRODUCTIVE_CM_TRANSPORT_EVIDENCE"
+    },
+    "pr23": {
+      "status": "FOUNDATION_PREPARED_NO_WRITE_BLOCKED_BY_PR22",
+      "source": "v5/grundlage/quelle/farmer/pr23-farmer-shadow-admission.ts",
+      "basis": "R16",
+      "purpose": "Movement/Combat/Skill/Loot/Respawn/AoE Admission mit Hard Caps",
+      "productiveGate": "PR22_COMPLETE_AND_PER_CAPABILITY_LIVE_EVIDENCE"
+    },
+    "pr24": {
+      "status": "FOUNDATION_PREPARED_NO_WRITE_BLOCKED_BY_PR23",
+      "source": "v5/grundlage/quelle/gruppe/pr24-group-constellation-matrix.ts",
+      "basis": "R16",
+      "purpose": "Gruppentopologie und Capability/Fault Matrix ohne erfundene Rollen",
+      "productiveGate": "PR23_COMPLETE_AND_REPLAY_FAULT_MATRIX_GREEN"
+    },
+    "pr25": {
+      "status": "FOUNDATION_PREPARED_NO_WRITE_BLOCKED_BY_PR24",
+      "source": "v5/grundlage/quelle/gruppe/pr25-group-live-evidence-plan.ts",
+      "purpose": "Gebündelter 5m Capability- und 15m Integrations-Evidenceplan",
+      "productiveGate": "PR24_COMPLETE_AND_REAL_GROUP_EVIDENCE"
+    },
+    "pr26": {
+      "status": "FOUNDATION_PREPARED_NO_WRITE_BLOCKED_BY_PR25",
+      "source": "v5/grundlage/quelle/optimierung/pr26-task-party-optimizer.ts",
+      "purpose": "Hard-gefilterter Task/Party-Optimizer mit bounded Learning Ranking",
+      "productiveGate": "PR25_COMPLETE_AND_REAL_GROUP_PERFORMANCE_EVIDENCE"
+    },
+    "pr27": {
+      "status": "FOUNDATION_PREPARED_NO_WRITE_BLOCKED_BY_PR26",
+      "source": "v5/grundlage/quelle/optimierung/pr27-account-progression-balancer.ts",
+      "purpose": "Safety-first Account Progression Balancer mit Mandatory-Role-Schutz",
+      "productiveGate": "PR26_COMPLETE_AND_OPTIMIZER_STABLE"
+    },
+    "pr28": {
+      "status": "FOUNDATION_PREPARED_NO_WRITE_BLOCKED_BY_PR27",
+      "source": "v5/grundlage/quelle/welt/pr28-world-autonomy-gate.ts",
+      "basis": "R17",
+      "purpose": "World/Event/Quest/Rare/Server-Hop Gate mit Quarantaene und Drift-Revalidation",
+      "productiveGate": "PR27_COMPLETE_AND_WORLD_ACTION_LIVE_EVIDENCE"
+    }
+  },
+  "regression": {
+    "test": "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs",
+    "includeR14": true,
+    "includeR16": true,
+    "includeR17": true
+  },
+  "nextMilestone": "COMPLETE_FOUNDATION_BATCH_THEN_DEFER_LIVE_TESTS_TO_DEFINED_INTEGRATION_CHECKPOINTS"
+}
