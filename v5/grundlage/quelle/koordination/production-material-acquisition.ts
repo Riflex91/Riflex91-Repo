@@ -99,6 +99,7 @@ export interface ProduktionsMaterialFortschritt {
   readonly restMenge: number;
   readonly beobachtetAmMs: number;
   readonly gueltigBisMs: number;
+  readonly inventoryFingerprint: string;
   readonly farmStopErforderlich: boolean;
   readonly handoffErforderlich: boolean;
   readonly pr22KoordinationErforderlich: true;
@@ -440,6 +441,7 @@ export function bewerteProductionMaterialFortschritt(
     restMenge: Math.max(0, ziel.menge - evidence.menge),
     beobachtetAmMs: evidence.beobachtetAmMs,
     gueltigBisMs: evidence.gueltigBisMs,
+    inventoryFingerprint: evidence.inventoryFingerprint,
     farmStopErforderlich: bereit,
     handoffErforderlich: bereit,
     pr22KoordinationErforderlich: true,
