@@ -54,14 +54,14 @@ test("PR20.8 productive Upgrade one-write evidence ratifies exactly one committe
   assert.equal(evidence.safetyBoundary.exchangeRatification, false);
 });
 
-test("committed Upgrade evidence stays immutable while the active manifest advances to the Exchange player-market discovery", () => {
-  assert.equal(manifest.testId,"pr20-8-exchange-market-discovery");
-  assert.equal(manifest.controllerVersion,"1.0.0");
+test("committed Upgrade evidence stays immutable while the active manifest advances to the anniversarygift exception rescan", () => {
+  assert.equal(manifest.testId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(manifest.controllerVersion,"1.0.7");
   assert.equal(manifest.gate, "PR20.8_WERTMUTATIONEN");
-  assert.equal(manifest.sourceCommit,"d977684f56ebe24f021cd46ae7efc502c406ecc6");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js");
-  assert.equal(manifest.packageSha256,"175adb93980af0e7cefe19835101255473031ac51bcc70369e5a4b7d521609cd");
-  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeMarketDiscovery");
+  assert.equal(manifest.sourceCommit,"682e3e483ff5ed69671f0330545ae1718ccd12c4");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-7.js");
+  assert.equal(manifest.packageSha256,"00e2f5ed379f27a489af1c1a87f142cd7efe7fb7617d1e814d3033563137dbf9");
+  assert.equal(manifest.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
   assert.equal(manifest.normalRuntimeAllowed, false);
   assert.equal(
     evidence.nextGate,
