@@ -9,6 +9,11 @@ import {
   LegacyMirrorBridge,
   type LegacyGlobalsLike
 } from "./legacy/LegacyMirrorBridge";
+import {
+  ensureLocalAdminSession,
+  isLoopbackHostname,
+  LOCAL_ADMIN_CHARACTER
+} from "./local/LocalAdminSandbox";
 import { AssetRegistry, type AssetEntry } from "./render/AssetRegistry";
 import { viewportToWorld } from "./render/camera";
 import { Pixi25DRenderer } from "./render/Pixi25DRenderer";
@@ -181,14 +186,36 @@ async function boot(): Promise<void> {
     return;
   }
 
+  const search = new URLSearchParams(window.location.search);
+  const localAdminRequested = search.get("localAdmin") === "1";
+
+  if (localAdminRequested && !isLoopbackHostname(window.location.hostname)) {
+    throw new Error("Local admin sandbox can only run on localhost");
+  }
+
   const legacyUrl =
     window.AL25D_LEGACY_URL ??
-    new URLSearchParams(window.location.search).get("legacy");
+    search.get("legacy") ??
+    (localAdminRequested ? "/legacy/" : null);
 
   if (legacyUrl) {
-    void api.embedLegacyRuntime(legacyUrl).catch((error) => {
-      console.error("AL 2.5D legacy compatibility runtime failed", error);
-    });
+    void (async () => {
+      try {
+        if (localAdminRequested) {
+          await ensureLocalAdminSession();
+        }
+
+        const runtime = new LegacyCompatibilityRuntime(host);
+        await runtime.embed(legacyUrl);
+        activateLegacyRuntime(runtime);
+
+        if (localAdminRequested) {
+          await runtime.enterCharacter(LOCAL_ADMIN_CHARACTER);
+        }
+      } catch (error) {
+        console.error("AL 2.5D legacy compatibility runtime failed", error);
+      }
+    })();
   }
 }
 
