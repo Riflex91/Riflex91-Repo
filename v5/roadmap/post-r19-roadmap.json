@@ -2190,7 +2190,7 @@
     }
   },
   "pr20_8": {
-    "status": "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+    "status": "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_START_RECOVERY_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -2240,7 +2240,7 @@
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE",
+    "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_START_RECOVERY_V1_0_1",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -3302,20 +3302,18 @@
       }
     },
     "activeAutonomousManifest": {
-      "testId": "pr20-8-exchange-candidate-acquisition-readonly",
+      "testId": "pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write",
       "controllerVersion": "1.0.1",
-      "package": "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
-      "sourceCommit": "3182b137957416b253dde303bbba54dd800f8b14",
-      "packageSha256": "1acc8253cef6b02b33a6a5de289ce5a7095066d36bc727f9cffa77647e8778ec",
-      "packageBytes": 12605,
-      "expectedGlobal": "V5PR208ExchangeCandidateAcquisitionReadonly",
-      "purpose": "EXCHANGE_CONTROLLED_ACQUISITION_DISCOVERY_INVENTORY_THEN_BANK",
+      "package": "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-1.js",
+      "sourceCommit": "9e1066800aaf92cccaaf088c846df1057e4a8eaa",
+      "packageSha256": "9a459d62653f0420c89343196ce2469611e01d110ebab2d2717cb54bb7596604",
+      "packageBytes": 33769,
+      "expectedGlobal": "V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite",
+      "purpose": "RECOVER_AUTONOMY_ROUTE_SHADOW_FROM_OBSERVED_BOOT_STALL_NO_WRITE",
       "maximumGameplayWrites": 0,
       "maximumPublicFunctionCalls": 0,
       "maximumRawWriteCalls": 0,
-      "bankRetrieveAuthority": false,
-      "buyAuthority": false,
-      "farmAuthority": false,
+      "movementAuthority": false,
       "exchangeAuthority": false,
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
@@ -3478,7 +3476,7 @@
       "nextGate": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN"
     },
     "exchangeCandidateAcquisition": {
-      "status": "ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_PACKAGE_PREPARED_NO_WRITE",
+      "status": "ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_START_RECOVERY_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
       "policy": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
       "planner": "v5/grundlage/quelle/merchant/pr20-8-exchange-candidate-acquisition.ts",
       "plannerTest": "v5/grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs",
@@ -3961,16 +3959,16 @@
         "nextAction": "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE"
       },
       "anniversaryGiftExchangeAutonomyRouteShadow": {
-        "status": "MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+        "status": "START_RECOVERY_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
         "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-autonomy-route-shadow-preparation.json",
-        "package": "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-0.js",
-        "test": "v5/werkzeuge/tests/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-0.test.mjs",
+        "package": "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-1.js",
+        "test": "v5/werkzeuge/tests/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-1.test.mjs",
         "testId": "pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write",
-        "controllerVersion": "1.0.0",
+        "controllerVersion": "1.0.1",
         "expectedGlobal": "V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite",
-        "sourceCommit": "578b18dfa96fd7c4809d55aae4664eae5f37eb43",
-        "packageSha256": "39084a646825c6bca6231b0968e41cebfbbf3548e8a93bba155dcb64b2fbf2be",
-        "packageBytes": 32638,
+        "sourceCommit": "9e1066800aaf92cccaaf088c846df1057e4a8eaa",
+        "packageSha256": "9a459d62653f0420c89343196ce2469611e01d110ebab2d2717cb54bb7596604",
+        "packageBytes": 33769,
         "prerequisiteLive5mNotificationId": 2986,
         "exactItem": "anniversarygift",
         "exchangeQuantity": 1,
@@ -3995,7 +3993,31 @@
         "deployed": false,
         "liveEvidenceObserved": false,
         "productiveAutonomyProven": false,
-        "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE"
+        "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_START_RECOVERY_V1_0_1",
+        "recoveryContract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-autonomy-route-shadow-start-recovery.json",
+        "startMode": "DIRECT_ASYNC_ENTRY",
+        "bootStallRecovery": true,
+        "asyncStageTimeoutMs": 2000,
+        "exactLegacyTerminalVersionRecoveryAllowed": [
+          "1.0.0",
+          "1.0.1"
+        ],
+        "priorV100Deployment": {
+          "mainCommit": "3fde62bd75aaed495b60cc71b1cfc4c197af4316",
+          "deployedAt": "2026-09-25T18:34:24.4476761Z",
+          "runStartedAtMs": 1790361264446,
+          "status": "BOOT",
+          "terminal": false,
+          "notificationObserved": false,
+          "debugBatchId": 8348,
+          "noProgressBeyondInitialBootObserved": true,
+          "exactCauseProven": false,
+          "gameplayWrites": 0,
+          "publicFunctionCalls": 0,
+          "rawWriteCalls": 0,
+          "authorityIssued": false,
+          "sameIntentRetry": false
+        }
       }
     }
   },
