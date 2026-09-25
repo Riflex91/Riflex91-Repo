@@ -81,8 +81,8 @@ async function execute(env){
   throw new Error("TEST_DID_NOT_SETTLE:"+JSON.stringify(last));
 }
 
-test("already in safe Exchange range completes with zero movement writes",async()=>{
-  const env=makeBox({x:-25,y:-478});
+test("already in safe Craftsman range completes with zero movement writes",async()=>{
+  const env=makeBox({x:92,y:670});
   const status=await execute(env);
   assert.equal(status.status,"BESTANDEN");
   assert.equal(status.terminal,true);
