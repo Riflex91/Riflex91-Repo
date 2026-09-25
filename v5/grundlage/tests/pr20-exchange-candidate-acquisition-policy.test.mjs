@@ -69,8 +69,21 @@ test("acquisition remains strictly separate from Exchange ratification",()=>{
   assert.equal(r.sourceCommit,"3182b137957416b253dde303bbba54dd800f8b14");
   assert.equal(r.packageSha256,"1acc8253cef6b02b33a6a5de289ce5a7095066d36bc727f9cffa77647e8778ec");
   assert.equal(r.packageBytes,12605);
-  assert.equal(r.deployed,false);
-  assert.equal(r.evidenceObserved,false);
+  assert.equal(r.deployed,true);
+  assert.equal(r.evidenceObserved,true);
+  assert.equal(r.latestNotificationId,2603);
+  assert.equal(r.latestRunStartedAtMs,1790332335441);
+  assert.equal(r.latestStatus,"BLOCKIERT");
+  assert.deepEqual(r.latestBlocker,["PR20_8_ACQUISITION_BANK_SNAPSHOT_REQUIRED"]);
+  assert.equal(r.latestEmptyInventorySlot,22);
+  assert.equal(r.latestGameplayWrites,0);
+  assert.equal(r.latestPublicFunctionCalls,0);
+  assert.equal(r.latestRawWriteCalls,0);
+  assert.equal(r.latestSameIntentRetry,false);
+  assert.equal(r.bankMount.status,"PACKAGE_PREPARED_NOT_DEPLOYED");
+  assert.equal(r.bankMount.maximumGameplayWrites,1);
+  assert.equal(r.bankMount.bankRetrieveAllowed,false);
+  assert.equal(r.bankMount.deployed,false);
 });
 
 test("read-only discovery package is pinned as zero-write preparation",()=>{
