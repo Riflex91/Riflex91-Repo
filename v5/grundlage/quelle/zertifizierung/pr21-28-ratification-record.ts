@@ -11,6 +11,9 @@ export interface Pr21_28RatificationDraft {
   readonly packageId: string;
   readonly packageFingerprint: string;
   readonly sourceMainCommit: string;
+  readonly cap022FullChainRequired: boolean;
+  readonly cap022FullChainSatisfied: true;
+  readonly cap022FullChainBoundToPackage: true;
   readonly requiredConfirmationText: string;
   readonly automaticRatification: false;
   readonly gateAdvanced: false;
@@ -29,6 +32,9 @@ export interface Pr21_28RatificationRecordBasis {
   readonly ratifierId: string;
   readonly ratifiedAtMs: number;
   readonly confirmationText: string;
+  readonly cap022FullChainRequired: boolean;
+  readonly cap022FullChainSatisfied: true;
+  readonly cap022FullChainBoundToPackage: true;
   readonly ratified: true;
   readonly gateAdvanced: false;
   readonly authorityIssued: false;
@@ -78,6 +84,13 @@ export function bereitePr21_28RatificationVor(
       || !/^[0-9a-f]{16}$/.test(resultPackage.packageFingerprint)) {
     throw new Error("PR21_28_RATIFICATION_RESULT_PACKAGE_PIN_UNGUELTIG");
   }
+  const cap022FullChainRequired =
+    resultPackage.checkpointId === "POST_PR24_25_GROUP_CHECKPOINT";
+  if (resultPackage.cap022FullChainBoundToPackage !== true
+      || resultPackage.cap022FullChainRequired !== cap022FullChainRequired
+      || resultPackage.cap022FullChainSatisfied !== true) {
+    throw new Error("PR21_28_RATIFICATION_CAP022_BINDING_UNGUELTIG");
+  }
   text(resultPackage.packageId, "PR21_28_RATIFICATION_PACKAGE_ID_UNGUELTIG");
 
   return Object.freeze({
@@ -87,6 +100,9 @@ export function bereitePr21_28RatificationVor(
     packageId: resultPackage.packageId,
     packageFingerprint: resultPackage.packageFingerprint,
     sourceMainCommit: resultPackage.sourceMainCommit,
+    cap022FullChainRequired: resultPackage.cap022FullChainRequired,
+    cap022FullChainSatisfied: true,
+    cap022FullChainBoundToPackage: true,
     requiredConfirmationText: pr21_28RatificationConfirmationText(
       resultPackage.checkpointId,
       resultPackage.packageFingerprint,
@@ -117,7 +133,9 @@ export function ratifizierePr21_28ResultPackage(
       || draft.gateAdvanced !== false
       || draft.authorityIssued !== false
       || draft.broadRuntimeGrant !== false
-      || draft.gesamtfreigabeRequiredSeparately !== true) {
+      || draft.gesamtfreigabeRequiredSeparately !== true
+      || draft.cap022FullChainSatisfied !== true
+      || draft.cap022FullChainBoundToPackage !== true) {
     throw new Error("PR21_28_RATIFICATION_DRAFT_UNGUELTIG");
   }
   text(ratifierId, "PR21_28_RATIFICATION_RATIFIER_UNGUELTIG");
@@ -138,6 +156,9 @@ export function ratifizierePr21_28ResultPackage(
     ratifierId,
     ratifiedAtMs,
     confirmationText,
+    cap022FullChainRequired: draft.cap022FullChainRequired,
+    cap022FullChainSatisfied: true,
+    cap022FullChainBoundToPackage: true,
     ratified: true,
     gateAdvanced: false,
     authorityIssued: false,
