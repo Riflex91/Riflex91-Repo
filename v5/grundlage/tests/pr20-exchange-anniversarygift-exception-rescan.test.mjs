@@ -64,8 +64,8 @@ test("active manifest has advanced from the ratified scanner to the anniversaryg
 test("Seashell work stays prepared but inactive while anniversarygift path is current",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED");
-  assert.equal(roadmap.pr20_8.nextAction,"DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW");
+    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RUNNER_PREPARED_NOT_DEPLOYED");
+  assert.equal(roadmap.pr20_8.nextAction,"PREPARE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER");
   assert.equal(a.seashellFarmShadow.activePath,false);
   assert.equal(a.seashellFarmShadow.supersededBy,"ANNIVERSARYGIFT_TEST_EXCEPTION_RESCAN");
   assert.equal(a.seashellFarmShadow.farmAuthority,false);
