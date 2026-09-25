@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "COMPOUND_LIVE_5M_PERFORMANCE_RECOVERY_PACKAGE_READY_NOT_DEPLOYED",
+    "status": "COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER",
+    "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RETRY",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1461,7 +1461,7 @@
       }
     },
     "compoundLive5mPerformanceRecovery": {
-      "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
       "contract": "grundlage/vertraege/runtime/pr20-8-compound-live-5m-performance-recovery-preparation.json",
       "package": "werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
       "test": "werkzeuge/tests/pr20-8-compound-live-5m-v1-0-1.test.mjs",
@@ -1492,10 +1492,23 @@
       "rawWriteAuthority": false,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
-      "bridgeMayDeployPinnedRunner": false,
-      "nextGate": "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER"
+      "bridgeMayDeployPinnedRunner": true,
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RETRY",
+      "manifest": "roadmap/v5-autonomous-test-manifest.json",
+      "deploymentEvidenceObserved": false,
+      "realFiveMinuteRunCompleted": false
+    },
+    "activeCompoundLive5mManifest": {
+      "testId": "pr20-8-compound-live-5m",
+      "controllerVersion": "1.0.1",
+      "sourceCommit": "51b1fc8038740f828cacffe866c6db799a447348",
+      "package": "werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
+      "packageSha256": "23af77b23467e99fddfa437b9dc54873d0e3f25d783c940c819b447e44863a2b",
+      "packageBytes": 26060,
+      "expectedGlobal": "V5PR208CompoundLive5m",
+      "normalRuntimeAllowed": false
     }
   },
   "pr20_9": {
