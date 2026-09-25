@@ -888,12 +888,119 @@
     },
     {
       "id": "PR21_MERCHANT_INTEGRATION",
-      "status": "TESTPLAN_VORBEREITET_NO_WRITE",
+      "status": "BLOCKED_BY_PR20",
       "blockedBy": [
         "PR20"
       ],
       "gameplayAuthority": false,
-      "artifact": "v5/dokumentation/PR21-MERCHANT-INTEGRATION-TESTPLAN.md"
+      "artifact": "v5/dokumentation/PR21-MERCHANT-INTEGRATION-TESTPLAN.md",
+      "foundationStatus": "PREPARED_NO_WRITE",
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "liveExecutionAllowed": false,
+      "artifacts": [
+        "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-accelerated-foundations.json",
+        "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs"
+      ]
+    },
+    {
+      "id": "PR22_MULTI_CHARACTER",
+      "status": "BLOCKED_BY_PR21",
+      "foundationStatus": "PREPARED_NO_WRITE",
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "liveExecutionAllowed": false,
+      "artifacts": [
+        "v5/grundlage/quelle/koordination/pr22-coordination-shadow-admission.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-accelerated-foundations.json",
+        "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs"
+      ]
+    },
+    {
+      "id": "PR23_FARMER",
+      "status": "BLOCKED_BY_PR22",
+      "foundationStatus": "PREPARED_NO_WRITE",
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "liveExecutionAllowed": false,
+      "artifacts": [
+        "v5/grundlage/quelle/farmer/pr23-farmer-shadow-admission.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-accelerated-foundations.json",
+        "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs"
+      ]
+    },
+    {
+      "id": "PR24_GROUP_MATRIX",
+      "status": "BLOCKED_BY_PR23",
+      "foundationStatus": "PREPARED_NO_WRITE",
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "liveExecutionAllowed": false,
+      "artifacts": [
+        "v5/grundlage/quelle/gruppe/pr24-group-constellation-matrix.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-accelerated-foundations.json",
+        "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs"
+      ]
+    },
+    {
+      "id": "PR25_GROUP_LIVE_EVIDENCE",
+      "status": "BLOCKED_BY_PR24",
+      "foundationStatus": "PREPARED_NO_WRITE",
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "liveExecutionAllowed": false,
+      "artifacts": [
+        "v5/grundlage/quelle/gruppe/pr25-group-live-evidence-plan.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-accelerated-foundations.json",
+        "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs"
+      ]
+    },
+    {
+      "id": "PR26_TASK_PARTY_OPTIMIZER",
+      "status": "BLOCKED_BY_PR25",
+      "foundationStatus": "PREPARED_NO_WRITE",
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "liveExecutionAllowed": false,
+      "artifacts": [
+        "v5/grundlage/quelle/optimierung/pr26-task-party-optimizer.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-accelerated-foundations.json",
+        "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs"
+      ]
+    },
+    {
+      "id": "PR27_ACCOUNT_PROGRESSION",
+      "status": "BLOCKED_BY_PR26",
+      "foundationStatus": "PREPARED_NO_WRITE",
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "liveExecutionAllowed": false,
+      "artifacts": [
+        "v5/grundlage/quelle/optimierung/pr27-account-progression-balancer.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-accelerated-foundations.json",
+        "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs"
+      ]
+    },
+    {
+      "id": "PR28_WORLD_AUTONOMY",
+      "status": "BLOCKED_BY_PR27",
+      "foundationStatus": "PREPARED_NO_WRITE",
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "liveExecutionAllowed": false,
+      "artifacts": [
+        "v5/grundlage/quelle/welt/pr28-world-autonomy-gate.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-accelerated-foundations.json",
+        "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs"
+      ]
     }
   ],
   "safePreparationBoundary": {
@@ -3103,5 +3210,152 @@
       "manifestCutoverPrepared": false,
       "active": false
     }
+  },
+  "acceleratedImplementation": {
+    "mode": "FOUNDATIONS_FIRST_DEFERRED_LIVE_EVIDENCE",
+    "targetThrough": "PR28",
+    "productiveGatesStillBinding": true,
+    "gameplayWritesEnabledByThisMode": false,
+    "rawWriteAuthorityEnabledByThisMode": false,
+    "normalRuntimeEnabledByThisMode": false,
+    "batchContract": "v5/grundlage/vertraege/runtime/pr21-28-accelerated-foundations.json",
+    "regressionTest": "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs",
+    "liveTestStrategy": [
+      "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+      "POST_PR24_25_GROUP_CHECKPOINT",
+      "POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN"
+    ]
+  },
+  "pr21": {
+    "status": "BLOCKED_BY_PR20",
+    "foundationStatus": "PREPARED_NO_WRITE",
+    "ziel": "Merchant Gesamtintegration",
+    "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
+    "existingPlan": "v5/dokumentation/PR21-MERCHANT-INTEGRATION-TESTPLAN.md",
+    "blockedBy": [
+      "PR20"
+    ],
+    "liveExecutionAllowed": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "nextProductiveGate": "PR20_COMPLETE_AND_15M_MERCHANT_INTEGRATION_EVIDENCE"
+  },
+  "pr22": {
+    "status": "BLOCKED_BY_PR21",
+    "foundationStatus": "PREPARED_NO_WRITE",
+    "ziel": "Produktive Multi-Character-Koordination",
+    "source": "v5/grundlage/quelle/koordination/pr22-coordination-shadow-admission.ts",
+    "basis": "R14",
+    "blockedBy": [
+      "PR21"
+    ],
+    "liveExecutionAllowed": false,
+    "sendCmAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "nextProductiveGate": "PR21_COMPLETE_AND_PRODUCTIVE_CM_TRANSPORT_EVIDENCE"
+  },
+  "pr23": {
+    "status": "BLOCKED_BY_PR22",
+    "foundationStatus": "PREPARED_NO_WRITE",
+    "ziel": "Farmer Movement/Combat/Loot/AoE produktiv",
+    "source": "v5/grundlage/quelle/farmer/pr23-farmer-shadow-admission.ts",
+    "basis": "R16",
+    "blockedBy": [
+      "PR22"
+    ],
+    "liveExecutionAllowed": false,
+    "movementAuthority": false,
+    "combatAuthority": false,
+    "skillAuthority": false,
+    "lootAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "nextProductiveGate": "PR22_COMPLETE_AND_PER_CAPABILITY_LIVE_EVIDENCE"
+  },
+  "pr24": {
+    "status": "BLOCKED_BY_PR23",
+    "foundationStatus": "PREPARED_NO_WRITE",
+    "ziel": "Gruppen-Konstellationsmatrix",
+    "source": "v5/grundlage/quelle/gruppe/pr24-group-constellation-matrix.ts",
+    "basis": "R16",
+    "blockedBy": [
+      "PR23"
+    ],
+    "liveExecutionAllowed": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "nextProductiveGate": "PR23_COMPLETE_AND_REPLAY_FAULT_MATRIX_GREEN"
+  },
+  "pr25": {
+    "status": "BLOCKED_BY_PR24",
+    "foundationStatus": "PREPARED_NO_WRITE",
+    "ziel": "Reale Gruppen-Live-Evidence",
+    "source": "v5/grundlage/quelle/gruppe/pr25-group-live-evidence-plan.ts",
+    "blockedBy": [
+      "PR24"
+    ],
+    "liveExecutionAllowed": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "evidenceDurationsSeconds": {
+      "perCapability": 300,
+      "integration": 900
+    },
+    "nextProductiveGate": "PR24_COMPLETE_AND_REAL_GROUP_EVIDENCE"
+  },
+  "pr26": {
+    "status": "BLOCKED_BY_PR25",
+    "foundationStatus": "PREPARED_NO_WRITE",
+    "ziel": "Allgemeiner Task-/Party-Optimizer",
+    "source": "v5/grundlage/quelle/optimierung/pr26-task-party-optimizer.ts",
+    "blockedBy": [
+      "PR25"
+    ],
+    "liveExecutionAllowed": false,
+    "learningCanRelaxHardFilter": false,
+    "deterministicFallback": true,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "nextProductiveGate": "PR25_COMPLETE_AND_REAL_GROUP_PERFORMANCE_EVIDENCE"
+  },
+  "pr27": {
+    "status": "BLOCKED_BY_PR26",
+    "foundationStatus": "PREPARED_NO_WRITE",
+    "ziel": "Account Progression Balancer",
+    "source": "v5/grundlage/quelle/optimierung/pr27-account-progression-balancer.ts",
+    "blockedBy": [
+      "PR26"
+    ],
+    "liveExecutionAllowed": false,
+    "safetyBeforeBalance": true,
+    "mandatoryRoleProtection": true,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "nextProductiveGate": "PR26_COMPLETE_AND_OPTIMIZER_STABLE"
+  },
+  "pr28": {
+    "status": "BLOCKED_BY_PR27",
+    "foundationStatus": "PREPARED_NO_WRITE",
+    "ziel": "World Autonomy produktiv verbinden",
+    "source": "v5/grundlage/quelle/welt/pr28-world-autonomy-gate.ts",
+    "basis": "R17",
+    "blockedBy": [
+      "PR27"
+    ],
+    "liveExecutionAllowed": false,
+    "unknownContentFailClosed": true,
+    "discoveryObservationOnly": true,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "nextProductiveGate": "PR27_COMPLETE_AND_WORLD_ACTION_LIVE_EVIDENCE"
   }
 }

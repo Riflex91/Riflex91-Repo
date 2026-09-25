@@ -195,3 +195,12 @@ export * from "./equipment/pr20-7-gear-swap-one-shot-authority.js";
 export * from "./equipment/pr20-7-gear-swap-durable-intent-reconcile.js";
 export * from "./equipment/pr20-7-weapon-offhand-acquisition-shadow.js";
 export * from "./equipment/pr20-7-weapon-offhand-acquisition-purchase-preparation.js";
+
+export * from "./merchant/pr21-merchant-integration-readiness.js";
+export * from "./koordination/pr22-coordination-shadow-admission.js";
+export * from "./farmer/pr23-farmer-shadow-admission.js";
+export * from "./gruppe/pr24-group-constellation-matrix.js";
+export * from "./gruppe/pr25-group-live-evidence-plan.js";
+export * from "./optimierung/pr26-task-party-optimizer.js";
+export * from "./optimierung/pr27-account-progression-balancer.js";
+export * from "./welt/pr28-world-autonomy-gate.js";
