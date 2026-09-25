@@ -4,6 +4,8 @@ import type { LegacyGlobalsLike } from "./LegacyMirrorBridge";
 export const PINNED_ADVENTURE_LAND_COMMIT =
   "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4";
 
+export type GraphicsMode = "2.5d" | "original";
+
 export type LegacyMapClickEvent = Readonly<{
   data: Readonly<{
     global: Readonly<{
@@ -171,11 +173,17 @@ export class LegacyCompatibilityRuntime {
   private source: LegacyCompatibilitySource | null = null;
   private iframe: HTMLIFrameElement | null = null;
   private hiddenCanvases: HiddenCanvasState[] = [];
+  private graphicsMode: GraphicsMode = "2.5d";
+  private readonly hostVisibility: string;
+  private readonly hostPointerEvents: string;
 
   constructor(
     private readonly visibleHost?: HTMLElement,
     private readonly expectedUpstreamCommit = PINNED_ADVENTURE_LAND_COMMIT
-  ) {}
+  ) {
+    this.hostVisibility = visibleHost?.style.visibility ?? "";
+    this.hostPointerEvents = visibleHost?.style.pointerEvents ?? "";
+  }
 
   attach(source: LegacyCompatibilitySource): this {
     const advertisedCommit = source.__AL25D_UPSTREAM_COMMIT__;
@@ -192,9 +200,7 @@ export class LegacyCompatibilityRuntime {
     this.restoreHiddenCanvases();
     this.source = source;
 
-    if (!this.iframe) {
-      this.hideAttachedLegacyCanvases();
-    }
+    this.applyGraphicsMode();
 
     return this;
   }
@@ -267,6 +273,15 @@ export class LegacyCompatibilityRuntime {
     return dispatchLegacyWorldClick(target, this.requireSource());
   }
 
+  setGraphicsMode(mode: GraphicsMode): void {
+    this.graphicsMode = mode;
+    this.applyGraphicsMode();
+  }
+
+  getGraphicsMode(): GraphicsMode {
+    return this.graphicsMode;
+  }
+
   async enterCharacter(name: string, timeoutMs = 15000): Promise<void> {
     const source = this.requireSource();
     const deadline = Date.now() + timeoutMs;
@@ -300,6 +315,7 @@ export class LegacyCompatibilityRuntime {
 
   stop(): void {
     this.restoreHiddenCanvases();
+    this.restoreVisibleHost();
 
     if (this.iframe) {
       this.iframe.remove();
@@ -307,6 +323,7 @@ export class LegacyCompatibilityRuntime {
     }
 
     this.source = null;
+    this.graphicsMode = "2.5d";
   }
 
   get ready(): boolean {
@@ -319,6 +336,46 @@ export class LegacyCompatibilityRuntime {
     }
 
     return this.source;
+  }
+
+  private applyGraphicsMode(): void {
+    const original = this.graphicsMode === "original";
+
+    if (this.visibleHost) {
+      this.visibleHost.style.visibility = original
+        ? "hidden"
+        : this.hostVisibility;
+      this.visibleHost.style.pointerEvents = original
+        ? "none"
+        : this.hostPointerEvents;
+    }
+
+    if (this.iframe) {
+      this.iframe.style.opacity = original ? "1" : "0";
+      this.iframe.style.pointerEvents = original ? "auto" : "none";
+      this.iframe.style.zIndex = original ? "2147482000" : "-1";
+      this.iframe.tabIndex = original ? 0 : -1;
+
+      if (original) {
+        this.iframe.removeAttribute("aria-hidden");
+      } else {
+        this.iframe.setAttribute("aria-hidden", "true");
+      }
+
+      return;
+    }
+
+    if (original) {
+      this.restoreHiddenCanvases();
+    } else {
+      this.hideAttachedLegacyCanvases();
+    }
+  }
+
+  private restoreVisibleHost(): void {
+    if (!this.visibleHost) return;
+    this.visibleHost.style.visibility = this.hostVisibility;
+    this.visibleHost.style.pointerEvents = this.hostPointerEvents;
   }
 
   private hideAttachedLegacyCanvases(): void {
