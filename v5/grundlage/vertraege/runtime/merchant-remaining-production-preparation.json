@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RETRY",
+    "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1434,14 +1434,14 @@
       "manifestCutoverPrepared": true,
       "deployed": true,
       "liveWriteEnabled": false,
-      "bridgeMayDeployPinnedRunner": true,
+      "bridgeMayDeployPinnedRunner": false,
       "normalRuntimeAllowed": false,
       "passMaySetCompoundLive5mTested": true,
       "passDoesNotSatisfyPr20_8ExitGateByItself": true,
       "exchangeRatification": false,
       "exchangeAutonomyProductiveProven": false,
       "mayAdvanceToPr20_9": false,
-      "nextGate": "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER",
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
       "deploymentEvidenceObserved": true,
       "realFiveMinuteRunCompleted": false,
       "observedFailure": {
@@ -1458,7 +1458,8 @@
         "additionalRawWriteCalls": 0,
         "sameIntentRetry": false,
         "sourceSendCount": 1
-      }
+      },
+      "retiredFromActiveManifest": true
     },
     "compoundLive5mPerformanceRecovery": {
       "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
@@ -1495,10 +1496,11 @@
       "manifestCutoverPrepared": true,
       "deployed": false,
       "bridgeMayDeployPinnedRunner": true,
-      "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RETRY",
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
       "deploymentEvidenceObserved": false,
-      "realFiveMinuteRunCompleted": false
+      "realFiveMinuteRunCompleted": false,
+      "liveWriteEnabled": false
     },
     "activeCompoundLive5mManifest": {
       "testId": "pr20-8-compound-live-5m",
