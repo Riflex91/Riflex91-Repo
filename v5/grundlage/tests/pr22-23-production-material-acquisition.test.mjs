@@ -199,6 +199,7 @@ test("CAP-022 stoppt Farming logisch sobald Materialmenge fuer Handoff erreicht 
 
   assert.equal(bereit.status, "MATERIAL_READY_FOR_HANDOFF");
   assert.equal(bereit.restMenge, 0);
+  assert.equal(bereit.inventoryFingerprint, "inventory-iron-2");
   assert.equal(bereit.farmStopErforderlich, true);
   assert.equal(bereit.handoffErforderlich, true);
   assert.equal(bereit.pr20_9CraftRatificationCredit, false);
