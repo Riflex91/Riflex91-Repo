@@ -351,7 +351,24 @@ const { MongoClient } = require("mongodb");
   Write-Host "==> Rebuilding local pathfinding data"
   Push-Location $AdventureDir
   try {
-    node node/precompute_bfs.js
+    $PrecomputeBootstrap = @'
+const options = require("./secretsandconfig/options");
+global.Dev = options.Dev;
+global.Local = options.Local;
+global.Prod = options.Prod;
+global.Staging = options.Staging;
+require("./node/precompute_bfs.js");
+'@
+
+    $PrecomputeBootstrap | node -
+    if ($LASTEXITCODE -ne 0) {
+      throw "Local pathfinding precompute failed with exit code $LASTEXITCODE."
+    }
+
+    $PrecomputedPath = Join-Path $AdventureDir "node\precomputed_map_data.js"
+    if (-not (Test-Path $PrecomputedPath) -or (Get-Item $PrecomputedPath).Length -lt 100) {
+      throw "Local pathfinding precompute did not produce node\precomputed_map_data.js."
+    }
   } finally {
     Pop-Location
   }
