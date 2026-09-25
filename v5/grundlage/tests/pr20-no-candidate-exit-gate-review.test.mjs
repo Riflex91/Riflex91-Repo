@@ -543,11 +543,11 @@ test("PR20.8 parallel preparation index mirrors the superseding controlled acqui
   assert.equal(parallel.nextAction,roadmap.pr20_8.nextAction);
   assert.equal(
     parallel.status,
-    "EXCHANGE_MARKET_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
+    "EXCHANGE_SEASHELL_FARM_PREPARATION_READY_NO_WRITE",
   );
   assert.equal(
     parallel.nextAction,
-    "DEPLOY_EXCHANGE_MARKET_DISCOVERY",
+    "PREPARE_SEASHELL_FARM_SHADOW_NO_WRITE",
   );
   for (const artifact of [
     "v5/roadmap/pr20-8-compound-live-5m-evidence.json",

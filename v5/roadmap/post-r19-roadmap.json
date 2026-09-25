@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "EXCHANGE_MARKET_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
+      "status": "EXCHANGE_SEASHELL_FARM_PREPARATION_READY_NO_WRITE",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "DEPLOY_EXCHANGE_MARKET_DISCOVERY",
+      "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_NO_WRITE",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -866,7 +866,11 @@
         "v5/grundlage/tests/pr20-exchange-candidate-bank-mount-evidence.test.mjs",
         "v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js",
         "v5/werkzeuge/tests/pr20-8-exchange-market-discovery-v1-0-0.test.mjs",
-        "v5/grundlage/vertraege/runtime/pr20-8-exchange-market-discovery.json"
+        "v5/grundlage/vertraege/runtime/pr20-8-exchange-market-discovery.json",
+        "v5/roadmap/pr20-8-exchange-market-discovery-evidence.json",
+        "v5/grundlage/vertraege/runtime/pr20-8-exchange-seashell-farm-preparation.json",
+        "v5/grundlage/quelle/merchant/pr20-8-exchange-seashell-farm-preparation.ts",
+        "v5/grundlage/tests/pr20-exchange-seashell-farm-preparation.test.mjs"
       ]
     },
     {
@@ -2148,7 +2152,7 @@
     }
   },
   "pr20_8": {
-    "status": "EXCHANGE_MARKET_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
+    "status": "EXCHANGE_SEASHELL_FARM_PREPARATION_READY_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -2192,13 +2196,13 @@
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
       "normalUpgrade": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS",
       "normalCompound": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_RATIFIED",
-      "normalExchange": "BLOCKIERT_AKTUELLES_INVENTAR_KEIN_NORMALKANDIDAT_ZERO_WRITE_RATIFIED",
+      "normalExchange": "BLOCKIERT_MARKET_KEIN_KANDIDAT_SEASHELL_FARM_PREPARATION_READY_NO_WRITE",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "DEPLOY_EXCHANGE_MARKET_DISCOVERY",
+    "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_NO_WRITE",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -3432,7 +3436,7 @@
       "nextGate": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN"
     },
     "exchangeCandidateAcquisition": {
-      "status": "MARKET_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
+      "status": "SEASHELL_FARM_PREPARATION_READY_NO_WRITE",
       "policy": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
       "planner": "v5/grundlage/quelle/merchant/pr20-8-exchange-candidate-acquisition.ts",
       "plannerTest": "v5/grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs",
@@ -3464,7 +3468,7 @@
       "bridgeMayDeployPinnedRunner": true,
       "deployed": true,
       "evidenceObserved": true,
-      "nextAction": "DEPLOY_EXCHANGE_MARKET_DISCOVERY",
+      "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_NO_WRITE",
       "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
       "package": "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
       "latestNotificationId": 2603,
@@ -3526,7 +3530,7 @@
         "rawWriteCalls": 0
       },
       "marketDiscovery": {
-        "status": "MANIFEST_CUTOVER_PREPARED",
+        "status": "RATIFIED_NO_ELIGIBLE_MARKET_CANDIDATE_ONE_MOVEMENT",
         "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-market-discovery.json",
         "package": "v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js",
         "test": "v5/werkzeuge/tests/pr20-8-exchange-market-discovery-v1-0-0.test.mjs",
@@ -3546,10 +3550,54 @@
         "farmAllowed": false,
         "exchangeAllowed": false,
         "normalRuntimeAllowed": false,
-        "nextAction": "DEPLOY_EXCHANGE_MARKET_DISCOVERY",
+        "nextAction": "PREPARE_SEASHELL_FARM_STAGE",
         "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
         "manifestCutoverPrepared": true,
-        "deployed": false
+        "deployed": true,
+        "evidenceObserved": true,
+        "evidence": "v5/roadmap/pr20-8-exchange-market-discovery-evidence.json",
+        "notificationId": 2673,
+        "runStartedAtMs": 1790336636167,
+        "observedAtMs": 1790336641774,
+        "visibleSellerCount": 13,
+        "eligibleListingCount": 0,
+        "selected": null,
+        "movementTarget": "main",
+        "movementCompleted": true,
+        "gameplayWrites": 1,
+        "publicFunctionCalls": 1,
+        "rawWriteCalls": 0
+      },
+      "seashellFarmPreparation": {
+        "status": "PREPARED_NO_WRITE",
+        "evidence": "v5/roadmap/pr20-8-exchange-market-discovery-evidence.json",
+        "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-seashell-farm-preparation.json",
+        "planner": "v5/grundlage/quelle/merchant/pr20-8-exchange-seashell-farm-preparation.ts",
+        "test": "v5/grundlage/tests/pr20-exchange-seashell-farm-preparation.test.mjs",
+        "prerequisiteNotificationId": 2673,
+        "targetItem": "seashell",
+        "requiredQuantity": 20,
+        "targetBaseGold": 800,
+        "sourceMonster": "croc",
+        "scannerQuestBlockCondition": "BOOLEAN_TRUE_ONLY",
+        "anniversaryGiftAllowed": false,
+        "playerMarketBuyAllowed": false,
+        "npcBuyAllowed": false,
+        "movementAuthority": false,
+        "combatAuthority": false,
+        "skillAuthority": false,
+        "lootAuthority": false,
+        "farmAuthority": false,
+        "exchangeAuthority": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "maximumGameplayWrites": 0,
+        "maximumPublicFunctionCalls": 0,
+        "maximumRawWriteCalls": 0,
+        "sameIntentRetry": false,
+        "normalRuntimeAllowed": false,
+        "freshExistingExchangeScannerRequiredAfterAcquisition": true,
+        "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_NO_WRITE"
       }
     }
   },

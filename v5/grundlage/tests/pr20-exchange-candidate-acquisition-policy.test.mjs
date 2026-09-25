@@ -24,11 +24,11 @@ test("controlled acquisition supersedes waiting policy without rewriting histori
 
   assert.equal(
     roadmap.pr20_8.status,
-    "EXCHANGE_MARKET_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
+    "EXCHANGE_SEASHELL_FARM_PREPARATION_READY_NO_WRITE",
   );
   assert.equal(
     roadmap.pr20_8.nextAction,
-    "DEPLOY_EXCHANGE_MARKET_DISCOVERY",
+    "PREPARE_SEASHELL_FARM_SHADOW_NO_WRITE",
   );
 });
 
@@ -98,13 +98,24 @@ test("acquisition remains strictly separate from Exchange ratification",()=>{
   assert.equal(r.bankMount.publicFunctionCalls,1);
   assert.equal(r.bankMount.rawWriteCalls,0);
   assert.equal(r.bankMount.sameIntentRetry,false);
-  assert.equal(r.marketDiscovery.status,"MANIFEST_CUTOVER_PREPARED");
+  assert.equal(r.marketDiscovery.status,"RATIFIED_NO_ELIGIBLE_MARKET_CANDIDATE_ONE_MOVEMENT");
   assert.equal(r.marketDiscovery.testId,"pr20-8-exchange-market-discovery");
   assert.equal(r.marketDiscovery.manifestCutoverPrepared,true);
-  assert.equal(r.marketDiscovery.deployed,false);
+  assert.equal(r.marketDiscovery.deployed,true);
+  assert.equal(r.marketDiscovery.evidenceObserved,true);
+  assert.equal(r.marketDiscovery.notificationId,2673);
+  assert.equal(r.marketDiscovery.eligibleListingCount,0);
   assert.equal(r.marketDiscovery.tradeBuyAllowed,false);
   assert.equal(r.marketDiscovery.farmAllowed,false);
   assert.equal(r.marketDiscovery.exchangeAllowed,false);
+  assert.equal(r.seashellFarmPreparation.status,"PREPARED_NO_WRITE");
+  assert.equal(r.seashellFarmPreparation.targetItem,"seashell");
+  assert.equal(r.seashellFarmPreparation.requiredQuantity,20);
+  assert.equal(r.seashellFarmPreparation.sourceMonster,"croc");
+  assert.equal(r.seashellFarmPreparation.anniversaryGiftAllowed,false);
+  assert.equal(r.seashellFarmPreparation.farmAuthority,false);
+  assert.equal(r.seashellFarmPreparation.exchangeAuthority,false);
+  assert.equal(r.seashellFarmPreparation.normalRuntimeAllowed,false);
 });
 
 test("read-only discovery package is pinned as zero-write preparation",()=>{
@@ -124,8 +135,8 @@ test("read-only discovery package is pinned as zero-write preparation",()=>{
 test("parallel roadmap row points at controlled discovery but carries no Exchange authority",()=>{
   const row=roadmap.parallelPreparations.find(x=>x.id==="PR20.8_WERTMUTATIONEN");
   assert.ok(row);
-  assert.equal(row.status,"EXCHANGE_MARKET_DISCOVERY_MANIFEST_CUTOVER_PREPARED");
-  assert.equal(row.nextAction,"DEPLOY_EXCHANGE_MARKET_DISCOVERY");
+  assert.equal(row.status,"EXCHANGE_SEASHELL_FARM_PREPARATION_READY_NO_WRITE");
+  assert.equal(row.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_NO_WRITE");
   assert.equal(row.gameplayAuthority,false);
   assert.equal(row.rawWriteAuthority,false);
   assert.equal(row.normalRuntimeAllowed,false);
