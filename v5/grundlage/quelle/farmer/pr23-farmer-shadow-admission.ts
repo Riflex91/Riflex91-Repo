@@ -89,7 +89,7 @@ export function pruefePr23FarmerShadowAdmission(
   if (!anfrage.restartReconciled) blocker.push("PR23_RESTART_NICHT_RECONCILED");
   if (anfrage.safetyPreempted) blocker.push("PR23_SAFETY_PREEMPTED");
 
-  if (anfrage.action !== "RESPAWN" && !anfrage.lifecycleAktiv) {
+  if (anfrage.action !== "RESPAWN" && !anfrage.lifecycleActive) {
     blocker.push("PR23_LIFECYCLE_NICHT_AKTIV");
   }
 
