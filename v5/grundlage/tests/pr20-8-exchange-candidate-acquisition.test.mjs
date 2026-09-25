@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import {
   planePr208ExchangeCandidateAcquisition,
   PR20_8_EXCHANGE_ACQUISITION_MAX_BASE_GOLD,
@@ -208,4 +209,52 @@ test("planner never grants buy, farm, retrieve, exchange or runtime authority",(
   assert.equal(result.gameplayAuthority,false);
   assert.equal(result.rawWriteAuthority,false);
   assert.equal(result.normalRuntimeAllowed,false);
+});
+
+
+test("discovery runner stays read-only and the contract allows only existing-bank retrieval",()=>{
+  const source=fs.readFileSync(
+    "werkzeuge/pr20-8-exchange-candidate-acquisition-discovery.mjs",
+    "utf8",
+  );
+  for(const marker of [
+    "bank_retrieve(",
+    "bank_store(",
+    "buy(",
+    "sell(",
+    "exchange(",
+    "send_item(",
+    "send_gold(",
+    "socket.emit(",
+    ".socket.emit(",
+  ]){
+    assert.equal(source.includes(marker),false,marker);
+  }
+
+  const contract=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
+    "utf8",
+  ));
+  assert.equal(contract.status,"PREPARED_READ_ONLY_DISCOVERY");
+  assert.equal(
+    contract.acquisitionPolicy.broadAcquisitionOrMutationToCreateCandidateAllowed,
+    false,
+  );
+  assert.equal(
+    contract.acquisitionPolicy.controlledExistingBankCandidateRetrieveAllowed,
+    true,
+  );
+  assert.equal(contract.acquisitionPolicy.retrieveMovesExistingCandidateOnly,true);
+  assert.equal(contract.acquisitionPolicy.buyToCreateCandidateAllowed,false);
+  assert.equal(contract.acquisitionPolicy.farmToCreateCandidateAllowed,false);
+  assert.equal(contract.acquisitionPolicy.exchangeWriteAuthority,false);
+  assert.equal(contract.acquisitionPolicy.bankRetrieveAuthority,false);
+  assert.equal(contract.acquisitionPolicy.gameplayAuthority,false);
+  assert.equal(contract.acquisitionPolicy.rawWriteAuthority,false);
+  assert.equal(contract.acquisitionPolicy.normalRuntimeAllowed,false);
+  assert.equal(contract.scannerParity.singlePhysicalStackRequired,true);
+  assert.equal(contract.scannerParity.maximumBaseGold,50000);
+  assert.deepEqual(contract.scannerParity.specialNamesExcluded,["sixcake"]);
+  assert.equal(contract.scannerParity.scannerMustReverifyAfterAnyAcquisition,true);
+  assert.equal(contract.currentNextAction,"RUN_EXCHANGE_CANDIDATE_ACQUISITION_DISCOVERY");
 });
