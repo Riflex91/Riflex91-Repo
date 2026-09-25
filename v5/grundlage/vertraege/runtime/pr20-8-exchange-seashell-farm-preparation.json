@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_8_EXCHANGE_SEASHELL_FARM_PREPARATION",
+  "status": "PREPARED_NO_WRITE",
+  "sourceMain": "e8744d77789ab9141dba04d5be561d11567f745a",
+  "prerequisite": {
+    "evidence": "v5/roadmap/pr20-8-exchange-market-discovery-evidence.json",
+    "requiredStatus": "RATIFIED_NO_ELIGIBLE_MARKET_CANDIDATE_ONE_MOVEMENT",
+    "requiredNotificationId": 2673,
+    "requiredBlocker": "PR20_8_ACQUISITION_KEIN_MARKET_KANDIDAT",
+    "requiredEligibleListingCount": 0,
+    "requiredTradeBuyAuthority": false,
+    "requiredFarmAuthority": false,
+    "requiredRawWriteCalls": 0,
+    "requiredSameIntentRetry": false
+  },
+  "target": {
+    "itemName": "seashell",
+    "exchangeQuantity": 20,
+    "baseGold": 800,
+    "maximumExchangeBaseGold": 50000,
+    "sourceMonster": "croc",
+    "sourceSnapshot": "v5/wissensbasis/datenbank/aktuell/AL-SRC-SERVER-FUNCTIONS.txt",
+    "itemSnapshot": "v5/wissensbasis/datenbank/aktuell/AL-DATA-ITEMS.txt",
+    "questMarker": "seashell",
+    "scannerQuestBlockCondition": "BOOLEAN_TRUE_ONLY",
+    "cash": false,
+    "event": false,
+    "exclusive": false,
+    "specialExchangeName": false,
+    "scannerCompatible": true
+  },
+  "sourceEvidence": {
+    "crocDropContainsSeashell": true,
+    "broadCandidateManufacturingAllowed": false,
+    "anniversaryGiftAllowed": false,
+    "playerMarketBuyAllowed": false,
+    "npcBuyAllowed": false
+  },
+  "noWriteBoundary": {
+    "movementAuthority": false,
+    "combatAuthority": false,
+    "skillAuthority": false,
+    "lootAuthority": false,
+    "farmAuthority": false,
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "maximumGameplayWrites": 0,
+    "maximumPublicFunctionCalls": 0,
+    "maximumRawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "futureFarmRequirements": {
+    "separateShadowRequired": true,
+    "separateBoundedFarmAuthorityRequired": true,
+    "freshSessionServerLifecycleEvidenceRequired": true,
+    "freshTargetOwnershipRequired": true,
+    "freshTargetEvidenceRequired": true,
+    "conservativeHpMpSafetyRequired": true,
+    "inventoryCapacityPreflightRequired": true,
+    "boundedTargetAndWriteBudgetRequired": true,
+    "acquisitionDoesNotCountAsExchangeRatification": true,
+    "freshExistingExchangeScannerRequiredAfterAcquisition": true,
+    "exactExchangeCandidateMustBeReresolvedBeforeAnyExchangeSend": true
+  },
+  "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_NO_WRITE"
+}
