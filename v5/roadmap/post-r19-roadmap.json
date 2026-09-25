@@ -920,7 +920,11 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
         "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
-        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json",
+        "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -928,7 +932,9 @@
       "milestoneCheckpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
       "checkpointRunbookStatus": "PREPARED_NO_WRITE",
       "ratificationRecordStatus": "PREPARED_NOT_USED",
-      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+      "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+      "gateApplyAdapterInstalled": false
     },
     {
       "id": "PR22_MULTI_CHARACTER",
@@ -952,12 +958,18 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
         "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
-        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json",
+        "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
       "ratificationRecordStatus": "PREPARED_NOT_USED",
-      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+      "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+      "gateApplyAdapterInstalled": false
     },
     {
       "id": "PR23_FARMER",
@@ -989,7 +1001,11 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
         "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
-        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json",
+        "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -997,7 +1013,9 @@
       "milestoneCheckpointId": "POST_PR24_25_GROUP_CHECKPOINT",
       "checkpointRunbookStatus": "PREPARED_NO_WRITE",
       "ratificationRecordStatus": "PREPARED_NOT_USED",
-      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+      "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+      "gateApplyAdapterInstalled": false
     },
     {
       "id": "PR24_GROUP_MATRIX",
@@ -1021,12 +1039,18 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
         "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
-        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json",
+        "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
       "ratificationRecordStatus": "PREPARED_NOT_USED",
-      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+      "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+      "gateApplyAdapterInstalled": false
     },
     {
       "id": "PR25_GROUP_LIVE_EVIDENCE",
@@ -1058,7 +1082,11 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
         "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
-        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json",
+        "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1066,7 +1094,9 @@
       "milestoneCheckpointId": "POST_PR24_25_GROUP_CHECKPOINT",
       "checkpointRunbookStatus": "PREPARED_NO_WRITE",
       "ratificationRecordStatus": "PREPARED_NOT_USED",
-      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+      "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+      "gateApplyAdapterInstalled": false
     },
     {
       "id": "PR26_TASK_PARTY_OPTIMIZER",
@@ -1090,12 +1120,18 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
         "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
-        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json",
+        "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
       "ratificationRecordStatus": "PREPARED_NOT_USED",
-      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+      "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+      "gateApplyAdapterInstalled": false
     },
     {
       "id": "PR27_ACCOUNT_PROGRESSION",
@@ -1119,12 +1155,18 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
         "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
-        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json",
+        "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
       "ratificationRecordStatus": "PREPARED_NOT_USED",
-      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+      "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+      "gateApplyAdapterInstalled": false
     },
     {
       "id": "PR28_WORLD_AUTONOMY",
@@ -1156,7 +1198,11 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
         "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
-        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json",
+        "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1164,7 +1210,9 @@
       "milestoneCheckpointId": "POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN",
       "checkpointRunbookStatus": "PREPARED_NO_WRITE",
       "ratificationRecordStatus": "PREPARED_NOT_USED",
-      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+      "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+      "gateApplyAdapterInstalled": false
     }
   ],
   "safePreparationBoundary": {
@@ -3465,6 +3513,19 @@
       "authorityIssued": false,
       "broadRuntimeGrant": false,
       "gesamtfreigabeRequiredSeparately": true
+    },
+    "defaultOffGateApplyBatch7": {
+      "status": "PREPARED_DEFAULT_OFF",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json",
+      "transaction": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+      "reconciliation": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+      "test": "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
+      "applyAdapterInstalled": false,
+      "executionEnabled": false,
+      "gateMutationPerformed": false,
+      "sameIntentRetryAllowed": false,
+      "broadRuntimeGrant": false,
+      "gesamtfreigabeRequiredSeparately": true
     }
   },
   "pr21": {
@@ -3499,7 +3560,12 @@
     "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
     "automaticRatification": false,
     "gateMutationPerformed": false,
-    "broadRuntimeGrant": false
+    "broadRuntimeGrant": false,
+    "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+    "gateApplyTransactionSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+    "gateApplyReconciliationSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+    "gateApplyAdapterInstalled": false,
+    "gateApplyExecutionEnabled": false
   },
   "pr22": {
     "status": "BLOCKED_BY_PR21",
@@ -3528,7 +3594,12 @@
     "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
     "automaticRatification": false,
     "gateMutationPerformed": false,
-    "broadRuntimeGrant": false
+    "broadRuntimeGrant": false,
+    "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+    "gateApplyTransactionSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+    "gateApplyReconciliationSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+    "gateApplyAdapterInstalled": false,
+    "gateApplyExecutionEnabled": false
   },
   "pr23": {
     "status": "BLOCKED_BY_PR22",
@@ -3566,7 +3637,12 @@
     "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
     "automaticRatification": false,
     "gateMutationPerformed": false,
-    "broadRuntimeGrant": false
+    "broadRuntimeGrant": false,
+    "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+    "gateApplyTransactionSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+    "gateApplyReconciliationSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+    "gateApplyAdapterInstalled": false,
+    "gateApplyExecutionEnabled": false
   },
   "pr24": {
     "status": "BLOCKED_BY_PR23",
@@ -3594,7 +3670,12 @@
     "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
     "automaticRatification": false,
     "gateMutationPerformed": false,
-    "broadRuntimeGrant": false
+    "broadRuntimeGrant": false,
+    "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+    "gateApplyTransactionSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+    "gateApplyReconciliationSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+    "gateApplyAdapterInstalled": false,
+    "gateApplyExecutionEnabled": false
   },
   "pr25": {
     "status": "BLOCKED_BY_PR24",
@@ -3631,7 +3712,12 @@
     "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
     "automaticRatification": false,
     "gateMutationPerformed": false,
-    "broadRuntimeGrant": false
+    "broadRuntimeGrant": false,
+    "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+    "gateApplyTransactionSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+    "gateApplyReconciliationSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+    "gateApplyAdapterInstalled": false,
+    "gateApplyExecutionEnabled": false
   },
   "pr26": {
     "status": "BLOCKED_BY_PR25",
@@ -3660,7 +3746,12 @@
     "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
     "automaticRatification": false,
     "gateMutationPerformed": false,
-    "broadRuntimeGrant": false
+    "broadRuntimeGrant": false,
+    "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+    "gateApplyTransactionSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+    "gateApplyReconciliationSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+    "gateApplyAdapterInstalled": false,
+    "gateApplyExecutionEnabled": false
   },
   "pr27": {
     "status": "BLOCKED_BY_PR26",
@@ -3689,7 +3780,12 @@
     "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
     "automaticRatification": false,
     "gateMutationPerformed": false,
-    "broadRuntimeGrant": false
+    "broadRuntimeGrant": false,
+    "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+    "gateApplyTransactionSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+    "gateApplyReconciliationSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+    "gateApplyAdapterInstalled": false,
+    "gateApplyExecutionEnabled": false
   },
   "pr28": {
     "status": "BLOCKED_BY_PR27",
@@ -3725,6 +3821,11 @@
     "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
     "automaticRatification": false,
     "gateMutationPerformed": false,
-    "broadRuntimeGrant": false
+    "broadRuntimeGrant": false,
+    "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
+    "gateApplyTransactionSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts",
+    "gateApplyReconciliationSource": "v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts",
+    "gateApplyAdapterInstalled": false,
+    "gateApplyExecutionEnabled": false
   }
 }
