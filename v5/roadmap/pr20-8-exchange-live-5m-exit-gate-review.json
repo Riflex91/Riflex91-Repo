@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "V5_PR20_8_EXCHANGE_LIVE_5M_EXIT_GATE_REVIEW",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "status": "BLOCKED_EXCHANGE_AUTONOMY_ONLY",
+  "reviewedAtMainCommit": "7d2b625e02a5f481cb3800f6607355c1615ac8a5",
+  "currentExitGateSatisfied": false,
+  "exitGateCriteria": {
+    "eachFamilyIndividuallyRatifiedAnd5mLiveTested": {
+      "upgrade": {
+        "ratified": true,
+        "live5mEquivalentEvidenceAvailable": true,
+        "evidence": "v5/roadmap/pr20-8-upgrade-productive-one-write-evidence.json"
+      },
+      "compound": {
+        "ratified": true,
+        "live5mTested": true,
+        "evidence": "v5/roadmap/pr20-8-compound-live-5m-evidence.json"
+      },
+      "exchange": {
+        "ratified": true,
+        "oneWriteEvidence": "v5/roadmap/pr20-8-exchange-anniversarygift-productive-one-write-evidence.json",
+        "live5mTested": true,
+        "live5mEvidence": "v5/roadmap/pr20-8-exchange-anniversarygift-live-5m-evidence.json",
+        "live5mNotificationId": 2986
+      }
+    },
+    "noDuplicateValueMutationObserved": true,
+    "exchangeAutonomyProductiveProven": false
+  },
+  "exchangeEvidence": {
+    "candidateSource": "anniversarygift",
+    "oneWriteNotificationId": 2949,
+    "live5mNotificationId": 2986,
+    "sourceTransactionId": "pr20-8-exchange-anniversarygift-productive-one-write-live:0c6a1129be4c9c899f88274fab97108a",
+    "oneWriteSendCount": 1,
+    "live5mSamples": 60,
+    "live5mDurationMs": 299012,
+    "live5mAdditionalGameplayWrites": 0,
+    "live5mAdditionalPublicFunctionCalls": 0,
+    "live5mAdditionalRawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "noDuplicateValueChangingEffectObserved": true
+  },
+  "remainingBlockers": [
+    "PR20_8_EXCHANGE_AUTONOMY_NOT_PRODUCTIVE_PROVEN"
+  ],
+  "authority": {
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false
+  },
+  "autonomyPreparation": "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-autonomy-preparation.json",
+  "nextAction": "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE",
+  "mayAdvanceToPr20_9": false,
+  "roadmapCriteriaRelaxed": false
+}
