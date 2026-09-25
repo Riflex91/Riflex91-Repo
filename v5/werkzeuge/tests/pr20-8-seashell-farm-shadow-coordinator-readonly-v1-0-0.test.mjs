@@ -268,11 +268,11 @@ test("coordinator contract and current roadmap remain undeployed and zero-author
 
   assert.equal(
     roadmap.pr20_8.status,
-    "EXCHANGE_SEASHELL_FARM_SHADOW_COORDINATOR_PREPARED_READ_ONLY",
+    "EXCHANGE_ANNIVERSARYGIFT_EXCEPTION_RESCAN_MANIFEST_CUTOVER_PREPARED",
   );
   assert.equal(
     roadmap.pr20_8.nextAction,
-    "PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_MANIFEST_CUTOVER",
+    "DEPLOY_ANNIVERSARYGIFT_EXCEPTION_RESCAN",
   );
   const shadow=roadmap.pr20_8.exchangeCandidateAcquisition.seashellFarmShadow;
   assert.equal(shadow.coordinatorPrepared,true);
