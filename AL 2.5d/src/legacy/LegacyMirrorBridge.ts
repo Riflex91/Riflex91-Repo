@@ -200,9 +200,9 @@ function inferStructureElevation(
       materials
     );
 
-  if (decorative && !architectural) return 2;
-  if (shortSide <= 28 && longSide >= 120) return 3;
-  if (surfaces.length <= 2 && longSide <= 112) return 4;
+  if (decorative && !architectural) return 0;
+  if (shortSide <= 28 && longSide >= 120) return 0;
+  if (surfaces.length <= 2 && longSide <= 112) return 2;
   if (architectural) {
     if (footprint >= 90000) return 22;
     if (footprint >= 40000) return 18;

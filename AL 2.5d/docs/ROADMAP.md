@@ -56,6 +56,8 @@ Status: in progress
 - [x] original Main/Town ground tileset crops projected into read-only 2.5D surfaces
 - [x] original structure/group tile crops projected onto raised 2.5D tops
 - [x] group-aware structure elevation to keep vegetation/props shallow and architecture deeper
+- [x] depth-aware structure/entity occlusion in projected world order
+- [x] decorative vegetation/fence groups flattened to remove residual dark plinths
 - [x] mirrored immutable tile placements/groups from G.geometry
 - [x] materialized 2.5D Main/Town surface massing from original placement footprints
 - [x] presentation cleanup: seamless ground surfaces, quieter grid, stronger structure massing

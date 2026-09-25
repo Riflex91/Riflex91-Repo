@@ -53,6 +53,7 @@ export class Pixi25DRenderer implements RenderBridge {
   private readonly app = new Application();
   private readonly world = new Container();
   private readonly mapLayer = new Container();
+  private readonly structureVisuals: Container[] = [];
   private readonly visuals = new Map<string, EntityVisual>();
   private readonly textureLoads = new Map<string, Promise<Texture | null>>();
   private readonly imageLoads = new Map<
@@ -123,6 +124,7 @@ export class Pixi25DRenderer implements RenderBridge {
   destroy(): void {
     if (!this.mounted) return;
     this.visuals.clear();
+    this.clearStructureVisuals();
     this.textureLoads.clear();
     this.imageLoads.clear();
     for (const cached of this.groundTextureCache.values()) {
@@ -158,6 +160,7 @@ export class Pixi25DRenderer implements RenderBridge {
     for (const child of this.mapLayer.removeChildren()) {
       child.destroy({ children: true });
     }
+    this.clearStructureVisuals();
 
     const floor = new Graphics();
     const corners = [
@@ -175,9 +178,7 @@ export class Pixi25DRenderer implements RenderBridge {
     this.mapLayer.addChild(floor);
 
     const groundSurfaces = new Graphics();
-    const structures = new Graphics();
     const groundTextureLayer = new Container();
-    const structureTextureLayer = new Container();
 
     for (const surface of geometry?.surfaces ?? []) {
       if (surface.layer === "ground") {
@@ -188,22 +189,29 @@ export class Pixi25DRenderer implements RenderBridge {
           key,
           0
         );
-      } else {
-        const height = this.surfaceHeight(surface);
-        this.drawMapSurface(structures, surface);
-        void this.addTexturedMapSurface(
-          surface,
-          structureTextureLayer,
-          key,
-          height
-        );
+        continue;
       }
+
+      const height = this.surfaceHeight(surface);
+      const structureVisual = new Container();
+      const structureGeometry = new Graphics();
+
+      this.drawMapSurface(structureGeometry, surface);
+      structureVisual.addChild(structureGeometry);
+      structureVisual.zIndex = this.structureDepth(surface);
+      this.world.addChild(structureVisual);
+      this.structureVisuals.push(structureVisual);
+
+      void this.addTexturedMapSurface(
+        surface,
+        structureVisual,
+        key,
+        height
+      );
     }
 
     this.mapLayer.addChild(groundSurfaces);
     this.mapLayer.addChild(groundTextureLayer);
-    this.mapLayer.addChild(structures);
-    this.mapLayer.addChild(structureTextureLayer);
 
     const grid = new Graphics();
     this.drawGrid(grid, bounds);
@@ -518,6 +526,20 @@ export class Pixi25DRenderer implements RenderBridge {
     );
   }
 
+  private structureDepth(surface: RenderMapSurface): number {
+    return projectWorldToScreen({
+      x: surface.maxX,
+      y: surface.maxY
+    }).y;
+  }
+
+  private clearStructureVisuals(): void {
+    for (const visual of this.structureVisuals.splice(0)) {
+      visual.removeFromParent();
+      visual.destroy({ children: true });
+    }
+  }
+
   private async addTexturedMapSurface(
     surface: RenderMapSurface,
     layer: Container,
@@ -535,7 +557,7 @@ export class Pixi25DRenderer implements RenderBridge {
     }
 
     const image = await this.loadMapImage(surface.textureUrl);
-    if (!image || this.mapVisualKey !== mapKey || layer.parent !== this.mapLayer) {
+    if (!image || this.mapVisualKey !== mapKey || !layer.parent) {
       return;
     }
 
