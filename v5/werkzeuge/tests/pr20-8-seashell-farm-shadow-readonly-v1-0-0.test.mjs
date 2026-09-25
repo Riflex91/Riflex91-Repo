@@ -244,8 +244,8 @@ test("runner contract and current roadmap remain read-only and undeployed",()=>{
   assert.equal(runnerContract.deployment.deployed,false);
   assert.equal(runnerContract.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_READ_ONLY");
 
-  assert.equal(roadmap.pr20_8.status,"EXCHANGE_SEASHELL_FARM_SHADOW_COORDINATOR_PREPARED_READ_ONLY");
-  assert.equal(roadmap.pr20_8.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_MANIFEST_CUTOVER");
+  assert.equal(roadmap.pr20_8.status,"EXCHANGE_ANNIVERSARYGIFT_EXCEPTION_RESCAN_MANIFEST_CUTOVER_PREPARED");
+  assert.equal(roadmap.pr20_8.nextAction,"DEPLOY_ANNIVERSARYGIFT_EXCEPTION_RESCAN");
   const shadow=roadmap.pr20_8.exchangeCandidateAcquisition.seashellFarmShadow;
   assert.equal(shadow.runnerPrepared,true);
   assert.equal(shadow.manifestCutoverPrepared,false);
