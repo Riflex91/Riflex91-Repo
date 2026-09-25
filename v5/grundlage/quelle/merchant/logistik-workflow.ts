@@ -264,12 +264,34 @@ export class MerchantLogistikLedger {
     if (evidence.inventoryFingerprint === evidence.baselineInventoryFingerprint) {
       throw new Error("LOGISTIK_SETTLEMENT_KEIN_NEUER_INVENTARSTAND");
     }
-    for (const posten of alt.plan.posten) {
+    const itemKeys = alt.plan.posten
+      .map(posten => posten.name + "|" + String(posten.level))
+      .filter((key, index, alle) => alle.indexOf(key) === index);
+    for (const key of itemKeys) {
+      const geplant = alt.plan.posten.filter(
+        posten => posten.name + "|" + String(posten.level) === key,
+      );
+      const erster = geplant[0];
+      if (erster === undefined) {
+        throw new Error("LOGISTIK_SETTLEMENT_PLAN_POSTEN_FEHLT");
+      }
+      if (geplant.some(
+        posten => posten.baselineEmpfaengerMenge
+          !== erster.baselineEmpfaengerMenge,
+      )) {
+        throw new Error(
+          "LOGISTIK_SETTLEMENT_PLAN_BASELINE_DRIFT:" + erster.name,
+        );
+      }
+      const benoetigt = geplant.reduce(
+        (summe, posten) => summe + posten.menge,
+        0,
+      );
       const beobachtet = evidence.mengen
-        .filter(x => x.name === posten.name && x.level === posten.level)
+        .filter(x => x.name === erster.name && x.level === erster.level)
         .reduce((summe, x) => summe + x.menge, 0);
-      if (beobachtet - posten.baselineEmpfaengerMenge < posten.menge) {
-        throw new Error("LOGISTIK_SETTLEMENT_MENGE_FEHLT:" + posten.name);
+      if (beobachtet - erster.baselineEmpfaengerMenge < benoetigt) {
+        throw new Error("LOGISTIK_SETTLEMENT_MENGE_FEHLT:" + erster.name);
       }
     }
     return this.#ersetze(friereSicht({
