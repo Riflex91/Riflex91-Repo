@@ -91,16 +91,16 @@ test("service mount bytes and pinned source commit are exact",()=>{
 test("historical service mount remains exact while active manifest returns to productive one-write",()=>{
   assert.notEqual(manifest.testId,contract.package.testId);
   assert.equal(manifest.testId,
-    "pr20-8-exchange-anniversarygift-live-5m");
+    "pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write");
   assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.sourceCommit,
-    "859c5be1067fbd5360c17ccfe0d912a98537bfc9");
+    "578b18dfa96fd7c4809d55aae4664eae5f37eb43");
   assert.equal(manifest.packagePath,
-    "v5/werkzeuge/pr20-8-exchange-anniversarygift-live-5m-v1-0-0.js");
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-0.js");
   assert.equal(manifest.packageSha256,
-    "455593d7691dc5436af27a5b89afb5fc208f2ebca4253aa87d0726821abcda94");
+    "39084a646825c6bca6231b0968e41cebfbbf3548e8a93bba155dcb64b2fbf2be");
   assert.equal(manifest.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftLive5m");
+    "V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 
@@ -109,11 +109,11 @@ test("roadmap ratifies service mount and restores productive one-write deploymen
   const live=a.anniversaryGiftProductiveOneWrite;
   const mount=a.anniversaryGiftServiceMount;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_RATIFIED_AUTONOMY_PREPARED_NO_WRITE");
+    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE");
   assert.equal(roadmap.pr20_8.nextAction,
-    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
   assert.equal(a.status,
-    "ANNIVERSARYGIFT_LIVE_5M_RATIFIED_AUTONOMY_PREPARED_NO_WRITE");
+    "ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_PACKAGE_PREPARED_NO_WRITE");
   assert.equal(live.status,"RATIFIED_COMMITTED_EXCHANGE_ONE_WRITE");
   assert.equal(live.deployed,true);
   assert.equal(live.liveEvidenceObserved,true);

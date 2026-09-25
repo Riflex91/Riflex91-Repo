@@ -75,5 +75,5 @@ test("roadmap advances only to autonomy route shadow preparation",()=>{
   assert.equal(p.rawWriteAuthority,false);
   assert.equal(p.normalRuntimeAllowed,false);
   assert.equal(roadmap.pr20_8.nextAction,
-    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
 });

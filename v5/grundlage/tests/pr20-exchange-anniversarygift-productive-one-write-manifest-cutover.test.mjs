@@ -51,7 +51,7 @@ test("historical productive cutover package remains exact after service-mount ad
   ],{encoding:null,maxBuffer:256*1024});
   assert.deepEqual(pinned,bytes);
   assert.notEqual(manifest.testId,cutover.manifest.testId);
-  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-live-5m");
+  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write");
 });
 
 test("productive boundary remains exactly-once and fail-closed",()=>{
@@ -113,11 +113,11 @@ test("roadmap advances only to productive deployment observation",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   const live=a.anniversaryGiftProductiveOneWrite;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_RATIFIED_AUTONOMY_PREPARED_NO_WRITE");
+    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE");
   assert.equal(roadmap.pr20_8.nextAction,
-    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
   assert.equal(a.status,
-    "ANNIVERSARYGIFT_LIVE_5M_RATIFIED_AUTONOMY_PREPARED_NO_WRITE");
+    "ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_PACKAGE_PREPARED_NO_WRITE");
   assert.equal(live.status,"RATIFIED_COMMITTED_EXCHANGE_ONE_WRITE");
   assert.equal(live.manifestCutoverPrepared,true);
   assert.equal(live.deployed,true);

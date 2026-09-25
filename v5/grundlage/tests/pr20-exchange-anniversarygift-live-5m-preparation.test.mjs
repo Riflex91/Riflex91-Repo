@@ -113,13 +113,14 @@ test("5m cutover pins exact observer bytes and source commit",()=>{
   assert.deepEqual(pinned,bytes);
 });
 
-test("active manifest is the exact zero-additional-write 5m observer",()=>{
-  assert.equal(manifest.testId,cutover.manifest.testId);
-  assert.equal(manifest.controllerVersion,cutover.manifest.controllerVersion);
-  assert.equal(manifest.sourceCommit,cutover.manifest.sourceCommit);
-  assert.equal(manifest.packagePath,cutover.manifest.packagePath);
-  assert.equal(manifest.packageSha256,cutover.manifest.packageSha256);
-  assert.equal(manifest.expectedGlobal,cutover.manifest.expectedGlobal);
+test("active manifest has advanced from the ratified 5m observer to the autonomy route shadow",()=>{
+  assert.notEqual(manifest.testId,cutover.manifest.testId);
+  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write");
+  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(manifest.sourceCommit,"578b18dfa96fd7c4809d55aae4664eae5f37eb43");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-0.js");
+  assert.equal(manifest.packageSha256,"39084a646825c6bca6231b0968e41cebfbbf3548e8a93bba155dcb64b2fbf2be");
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 
@@ -128,11 +129,11 @@ test("roadmap ratifies one-write and Exchange 5m, then advances only to autonomy
   const live=a.anniversaryGiftProductiveOneWrite;
   const soak=a.anniversaryGiftExchangeLive5m;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_RATIFIED_AUTONOMY_PREPARED_NO_WRITE");
+    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE");
   assert.equal(roadmap.pr20_8.nextAction,
-    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
   assert.equal(a.status,
-    "ANNIVERSARYGIFT_LIVE_5M_RATIFIED_AUTONOMY_PREPARED_NO_WRITE");
+    "ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_PACKAGE_PREPARED_NO_WRITE");
   assert.equal(live.status,"RATIFIED_COMMITTED_EXCHANGE_ONE_WRITE");
   assert.equal(live.deployed,true);
   assert.equal(live.liveEvidenceObserved,true);
