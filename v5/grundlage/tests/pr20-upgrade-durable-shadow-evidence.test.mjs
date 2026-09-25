@@ -92,10 +92,12 @@ test("current recovery hardening evidence stays immutable while the manifest adv
   assert.equal(evidence.safetyBoundary.currentRecoveryPackageMayOnlyRecoverExactTerminalNoWriteIntent,true);
   assert.equal(evidence.safetyBoundary.recoveryMayNotRewriteIntent,true);
   assert.equal(evidence.safetyBoundary.recoveryMayNotCreateGameplayWrite,true);
-  assert.equal(manifest.testId,"pr20-8-compound-live-5m");
-  assert.equal(manifest.controllerVersion,"1.0.2");
-  assert.equal(manifest.sourceCommit,"18568cbc9689bd7e27c5a26a4342901d470b72c0");
-  assert.equal(manifest.packageSha256,"4d9083bf163d98f15d842d64ecfc49ae4c9b8c3452b0b31a499d4b0b5687c849");
+  assert.equal(manifest.testId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(manifest.controllerVersion,"1.0.4");
+  assert.equal(manifest.sourceCommit,"27e25e69dc0e26d8ae05328335718c36a6a0c659");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js");
+  assert.equal(manifest.packageSha256,"0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b");
+  assert.equal(manifest.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
   assert.notEqual(manifest.testId,evidence.testId);
   assert.equal(manifest.normalRuntimeAllowed,false);
 });

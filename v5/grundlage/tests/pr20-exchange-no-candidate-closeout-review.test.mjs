@@ -8,7 +8,7 @@ const review=JSON.parse(fs.readFileSync(
 ));
 
 test("PR20.8 Exchange no-candidate closeout keeps the roadmap exit gate blocked",()=>{
-  assert.equal(review.status,"REVIEWED_FRESH_READONLY_RESCAN_REQUIRED");
+  assert.equal(review.status,"MANIFEST_CUTOVER_PREPARED_FOR_FRESH_READONLY_RESCAN");
   assert.equal(review.reviewedAtMainCommit,"f5072e112c2a25fa872627e3269d1d26e63e5f66");
   assert.equal(review.roadmapExitGate.upgradeRatified,true);
   assert.equal(review.roadmapExitGate.compoundRatified,true);
@@ -79,7 +79,9 @@ test("fresh Exchange closeout rescan reuses the already ratified zero-write v1.0
   assert.equal(r.compoundAuthority,false);
   assert.equal(r.exchangeAuthority,false);
   assert.equal(r.normalRuntimeAllowed,false);
-  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.manifest,"v5/roadmap/v5-autonomous-test-manifest.json");
+  assert.equal(r.manifestCutoverPrepared,true);
+  assert.equal(r.bridgeMayDeployPinnedRunner,true);
   assert.equal(r.deployed,false);
   assert.equal(r.evidenceObserved,false);
 });
