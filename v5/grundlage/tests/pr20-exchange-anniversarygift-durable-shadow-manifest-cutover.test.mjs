@@ -49,7 +49,7 @@ test("historical shadow cutover package bytes remain exact after later manifest 
   assert.deepEqual(pinned,bytes);
   assert.notEqual(manifest.testId,cutover.manifest.testId);
   assert.equal(manifest.testId,
-    "pr20-8-exchange-anniversarygift-service-mount");
+    "pr20-8-exchange-anniversarygift-productive-one-write-live");
 });
 
 test("cutover remains no-send, no-authority and non-ratifying",()=>{
@@ -84,10 +84,10 @@ test("roadmap advances only to shadow deployment observation",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   const shadow=a.anniversaryGiftExchangeShadow;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_SERVICE_MOUNT_MANIFEST_CUTOVER_PREPARED");
+    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RESTORED_AFTER_SERVICE_MOUNT");
   assert.equal(roadmap.pr20_8.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_SERVICE_MOUNT");
-  assert.equal(a.status,"ANNIVERSARYGIFT_SERVICE_MOUNT_MANIFEST_CUTOVER_PREPARED");
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_AFTER_SERVICE_MOUNT");
+  assert.equal(a.status,"ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RESTORED_AFTER_SERVICE_MOUNT");
   assert.equal(shadow.status,"RATIFIED_LIVE_DURABLE_SHADOW_NO_SEND");
   assert.equal(shadow.manifestCutoverPrepared,true);
   assert.equal(shadow.deployed,true);
