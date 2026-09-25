@@ -858,14 +858,27 @@
     },
     {
       "id": "PR20.9_PRODUCTION",
-      "status": "PLANER_GRAPH_CONTROLLER_BEREIT_NO_WRITE",
+      "status": "CRAFT_READONLY_PREFLIGHT_BEREIT_NO_WRITE",
       "blockedBy": [
         "PR20.2",
         "PR20.3",
         "PR20.4",
         "PR20.8"
       ],
-      "gameplayAuthority": false
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "liveExecutionAllowed": false,
+      "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION",
+      "artifacts": [
+        "v5/grundlage/quelle/produktion/production-graph.ts",
+        "v5/grundlage/quelle/produktion/production-planer.ts",
+        "v5/grundlage/quelle/produktion/production-controller.ts",
+        "v5/grundlage/quelle/produktion/pr20-9-craft-read-only-preflight.ts",
+        "v5/grundlage/vertraege/runtime/pr20-9-craft-read-only-preflight.json",
+        "v5/grundlage/tests/r15-production-capabilities.test.mjs",
+        "v5/grundlage/tests/pr20-9-craft-read-only-preflight.test.mjs"
+      ]
     },
     {
       "id": "PR21_MERCHANT_INTEGRATION",
@@ -2973,5 +2986,64 @@
       "completionNotificationPersisted": true,
       "nextGate": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN"
     }
+  },
+  "pr20_9": {
+    "status": "CRAFT_READONLY_PREFLIGHT_BEREIT_NO_WRITE",
+    "ziel": "Craft und Production produktiv",
+    "blockedBy": [
+      "PR20.2",
+      "PR20.3",
+      "PR20.4",
+      "PR20.8"
+    ],
+    "preparationAllowedWhileBlocked": true,
+    "liveExecutionAllowed": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "productiveCraftAuthority": false,
+    "broadGraphExecutionAuthority": false,
+    "foundations": {
+      "productionGraph": "v5/grundlage/quelle/produktion/production-graph.ts",
+      "productionPlanner": "v5/grundlage/quelle/produktion/production-planer.ts",
+      "productionController": "v5/grundlage/quelle/produktion/production-controller.ts",
+      "foundationTest": "v5/grundlage/tests/r15-production-capabilities.test.mjs",
+      "controllerGameplayAuthority": false,
+      "controllerRawWriteAuthority": false,
+      "restartNonterminalBecomesRecovery": true,
+      "finalCommitRequiresRecipientSettlement": true
+    },
+    "craftReadOnlyPreflight": {
+      "status": "BEREIT_NO_WRITE",
+      "scope": "NORMAL_CRAFT_ONLY",
+      "source": "v5/grundlage/quelle/produktion/pr20-9-craft-read-only-preflight.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr20-9-craft-read-only-preflight.json",
+      "test": "v5/grundlage/tests/pr20-9-craft-read-only-preflight.test.mjs",
+      "actionContractId": "AL-ACTION-CRAFT",
+      "recoveryContractId": "AL-RECOVERY-CRAFT",
+      "verifierId": "AL-VERIFIER-CRAFT",
+      "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+      "normalCraftOnly": true,
+      "splitStackNormalCraftAllowed": false,
+      "anniversaryCraftAllowed": false,
+      "autoCraftAllowed": false,
+      "maximumGameplayWrites": 0,
+      "maximumPublicFunctionCalls": 0,
+      "maximumRawWriteCalls": 0,
+      "craftAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "sameIntentRetry": false,
+      "sendBoundaryState": "NICHT_GESENDET",
+      "normalRuntimeAllowed": false
+    },
+    "exitGate": {
+      "noOrphanProductionStep": false,
+      "restartEveryNonterminalPhaseReconciled": false,
+      "finalProductionCommitAfterRecipientSettlement": false,
+      "newProductiveStepsHaveFiveMinuteEvidence": false,
+      "satisfied": false
+    },
+    "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION"
   }
 }

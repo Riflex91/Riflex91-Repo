@@ -1882,7 +1882,7 @@
   },
   "pr20_9": {
     "ziel": "Craft und Production produktiv",
-    "status": "PLANER_GRAPH_CONTROLLER_BEREIT_NO_WRITE",
+    "status": "CRAFT_READONLY_PREFLIGHT_BEREIT_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-CRAFT",
@@ -1916,7 +1916,38 @@
       "CRAFT_COMMITTED ist nicht PRODUCTION_COMMITTED",
       "finaler Commit erst nach Recipient Settlement",
       "Restart setzt nichtterminale Produktion in Recovery"
-    ]
+    ],
+    "normalRuntimeAllowed": false,
+    "craftAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "mayExecuteLive": false,
+    "craftReadOnlyPreflight": {
+      "status": "BEREIT_NO_WRITE",
+      "scope": "NORMAL_CRAFT_ONLY",
+      "source": "grundlage/quelle/produktion/pr20-9-craft-read-only-preflight.ts",
+      "contract": "grundlage/vertraege/runtime/pr20-9-craft-read-only-preflight.json",
+      "test": "grundlage/tests/pr20-9-craft-read-only-preflight.test.mjs",
+      "actionContractId": "AL-ACTION-CRAFT",
+      "recoveryContractId": "AL-RECOVERY-CRAFT",
+      "verifierId": "AL-VERIFIER-CRAFT",
+      "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+      "normalCraftOnly": true,
+      "splitStackNormalCraftAllowed": false,
+      "anniversaryCraftAllowed": false,
+      "autoCraftAllowed": false,
+      "maximumGameplayWrites": 0,
+      "maximumPublicFunctionCalls": 0,
+      "maximumRawWriteCalls": 0,
+      "craftAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "sameIntentRetry": false,
+      "sendBoundaryState": "NICHT_GESENDET",
+      "normalRuntimeAllowed": false,
+      "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION"
+    },
+    "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION"
   },
   "pr21": {
     "ziel": "Merchant Gesamtintegration",
