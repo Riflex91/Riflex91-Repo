@@ -94,7 +94,8 @@
     "PR20.9 bleibt ohne natuerlichen NORMAL_CRAFT_ONLY-Kandidaten fail-closed; die CAP-022 Production-Material-Acquisition/Handoff-Foundation wird NO-WRITE fuer den spaeteren automatischen Materialpfad vorbereitet und zaehlt nicht als Craft-Ratifizierung.",
     "Automatische Materialbeschaffung darf erst nach den produktiven PR22-/PR23-Gates reale Farmer-Aktionen ausloesen; danach darf PR20.9 bei einem natuerlich entstandenen Craft-Kandidaten erneut geprueft werden.",
     "CAP-022 Production-Material-Acquisition ist in die PR21-28 Shadow-Pipeline eingebunden; BLOCKIERT-Evidence sperrt die Pipeline, produktive Material-Ausfuehrung sowie PR20.9-Candidate-Acquisition bleiben false.",
-    "CAP-022 Material-Handoff ist NO-WRITE bis zur bestehenden COLLECTION/Rendezvous-Logistik geplant: MATERIAL_READY_FOR_HANDOFF stoppt Farming, pinnt einen physischen Stack und verlangt nach spaeterem Settlement einen frischen PR20.9-Craft-Rescan; die Planung selbst zaehlt nicht als Craft-Kandidat oder Ratifizierung."
+    "CAP-022 Material-Handoff ist NO-WRITE bis zur bestehenden COLLECTION/Rendezvous-Logistik geplant: MATERIAL_READY_FOR_HANDOFF stoppt Farming, pinnt einen physischen Stack und verlangt nach spaeterem Settlement einen frischen PR20.9-Craft-Rescan; die Planung selbst zaehlt nicht als Craft-Kandidat oder Ratifizierung.",
+    "CAP-022 besitzt jetzt auch die NO-WRITE-Bruecke vom spaeter real verifizierten COLLECTION-Settlement zu einem frischen NORMAL_CRAFT_ONLY-Rescan. Geplante oder synthetische Settlements duerfen PR20.9 nicht fortschreiben; nur reale Settlement-Evidence plus frischer Post-Settlement-Inventarstand darf einen neuen Craft-Preflight triggern."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -956,7 +957,10 @@
         "v5/werkzeuge/tests/pr20-9-craft-service-mount-v1-0-0.test.mjs",
         "v5/roadmap/pr20-9-craft-service-mount-evidence.json",
         "v5/roadmap/pr20-9-craft-durable-shadow-no-candidate-evidence.json",
-        "v5/grundlage/tests/pr20-9-craft-durable-shadow-no-candidate-evidence.test.mjs"
+        "v5/grundlage/tests/pr20-9-craft-durable-shadow-no-candidate-evidence.test.mjs",
+        "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
+        "v5/grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
+        "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs"
       ],
       "deferredAutomaticMaterialRecheck": {
         "status": "WAITING_FOR_FUTURE_PRODUCTIVE_MATERIAL_ACQUISITION",
@@ -984,9 +988,49 @@
           "productiveExecutionAllowed": false,
           "gameplayAuthority": false,
           "rawWriteAuthority": false,
-          "normalRuntimeAllowed": false
+          "normalRuntimeAllowed": false,
+          "settledCraftRescanFoundation": {
+            "status": "PREPARED_NO_WRITE",
+            "source": "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
+            "test": "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
+            "trigger": "REAL_SETTLED_COLLECTION_HANDOFF_PLUS_FRESH_POST_SETTLEMENT_INVENTORY",
+            "normalCraftOnly": true,
+            "handedMaterialMustMatchRecipeInput": true,
+            "currentPr20_9RatificationCredit": false,
+            "foundationCountsAsCraftRatification": false,
+            "productiveCraftAuthorityOpened": false,
+            "broadGraphExecutionAuthority": false,
+            "gameplayWrites": 0,
+            "publicFunctionCalls": 0,
+            "rawWriteCalls": 0,
+            "craftAuthority": false,
+            "gameplayAuthority": false,
+            "rawWriteAuthority": false,
+            "normalRuntimeAllowed": false
+          }
         },
-        "freshCraftRescanAfterSettledHandoffRequired": true
+        "freshCraftRescanAfterSettledHandoffRequired": true,
+        "settledCraftRescanFoundation": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
+          "test": "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
+          "trigger": "REAL_SETTLED_COLLECTION_HANDOFF_PLUS_FRESH_POST_SETTLEMENT_INVENTORY",
+          "normalCraftOnly": true,
+          "handedMaterialMustMatchRecipeInput": true,
+          "currentPr20_9RatificationCredit": false,
+          "foundationCountsAsCraftRatification": false,
+          "productiveCraftAuthorityOpened": false,
+          "broadGraphExecutionAuthority": false,
+          "gameplayWrites": 0,
+          "publicFunctionCalls": 0,
+          "rawWriteCalls": 0,
+          "craftAuthority": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
+        }
       }
     },
     {
@@ -1093,7 +1137,10 @@
         "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs",
         "v5/grundlage/quelle/koordination/production-material-handoff.ts",
         "v5/grundlage/vertraege/runtime/pr22-23-production-material-handoff-foundation.json",
-        "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs"
+        "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs",
+        "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
+        "v5/grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
+        "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1133,7 +1180,27 @@
           "productiveExecutionAllowed": false,
           "gameplayAuthority": false,
           "rawWriteAuthority": false,
-          "normalRuntimeAllowed": false
+          "normalRuntimeAllowed": false,
+          "settledCraftRescanFoundation": {
+            "status": "PREPARED_NO_WRITE",
+            "source": "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
+            "test": "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
+            "trigger": "REAL_SETTLED_COLLECTION_HANDOFF_PLUS_FRESH_POST_SETTLEMENT_INVENTORY",
+            "normalCraftOnly": true,
+            "handedMaterialMustMatchRecipeInput": true,
+            "currentPr20_9RatificationCredit": false,
+            "foundationCountsAsCraftRatification": false,
+            "productiveCraftAuthorityOpened": false,
+            "broadGraphExecutionAuthority": false,
+            "gameplayWrites": 0,
+            "publicFunctionCalls": 0,
+            "rawWriteCalls": 0,
+            "craftAuthority": false,
+            "gameplayAuthority": false,
+            "rawWriteAuthority": false,
+            "normalRuntimeAllowed": false
+          }
         }
       }
     },
@@ -1186,7 +1253,10 @@
         "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs",
         "v5/grundlage/quelle/koordination/production-material-handoff.ts",
         "v5/grundlage/vertraege/runtime/pr22-23-production-material-handoff-foundation.json",
-        "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs"
+        "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs",
+        "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
+        "v5/grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
+        "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1229,7 +1299,27 @@
           "productiveExecutionAllowed": false,
           "gameplayAuthority": false,
           "rawWriteAuthority": false,
-          "normalRuntimeAllowed": false
+          "normalRuntimeAllowed": false,
+          "settledCraftRescanFoundation": {
+            "status": "PREPARED_NO_WRITE",
+            "source": "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
+            "test": "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
+            "trigger": "REAL_SETTLED_COLLECTION_HANDOFF_PLUS_FRESH_POST_SETTLEMENT_INVENTORY",
+            "normalCraftOnly": true,
+            "handedMaterialMustMatchRecipeInput": true,
+            "currentPr20_9RatificationCredit": false,
+            "foundationCountsAsCraftRatification": false,
+            "productiveCraftAuthorityOpened": false,
+            "broadGraphExecutionAuthority": false,
+            "gameplayWrites": 0,
+            "publicFunctionCalls": 0,
+            "rawWriteCalls": 0,
+            "craftAuthority": false,
+            "gameplayAuthority": false,
+            "rawWriteAuthority": false,
+            "normalRuntimeAllowed": false
+          }
         }
       }
     },
@@ -4411,10 +4501,52 @@
         "productiveExecutionAllowed": false,
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
-        "normalRuntimeAllowed": false
+        "normalRuntimeAllowed": false,
+        "settledCraftRescanFoundation": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
+          "test": "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
+          "trigger": "REAL_SETTLED_COLLECTION_HANDOFF_PLUS_FRESH_POST_SETTLEMENT_INVENTORY",
+          "normalCraftOnly": true,
+          "handedMaterialMustMatchRecipeInput": true,
+          "currentPr20_9RatificationCredit": false,
+          "foundationCountsAsCraftRatification": false,
+          "productiveCraftAuthorityOpened": false,
+          "broadGraphExecutionAuthority": false,
+          "gameplayWrites": 0,
+          "publicFunctionCalls": 0,
+          "rawWriteCalls": 0,
+          "craftAuthority": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
+        }
       },
       "freshCraftRescanAfterSettledHandoffRequired": true,
-      "automaticMaterialPathPreparedThroughCollectionPlanning": true
+      "automaticMaterialPathPreparedThroughCollectionPlanning": true,
+      "settledCraftRescanFoundation": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
+        "test": "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
+        "trigger": "REAL_SETTLED_COLLECTION_HANDOFF_PLUS_FRESH_POST_SETTLEMENT_INVENTORY",
+        "normalCraftOnly": true,
+        "handedMaterialMustMatchRecipeInput": true,
+        "currentPr20_9RatificationCredit": false,
+        "foundationCountsAsCraftRatification": false,
+        "productiveCraftAuthorityOpened": false,
+        "broadGraphExecutionAuthority": false,
+        "gameplayWrites": 0,
+        "publicFunctionCalls": 0,
+        "rawWriteCalls": 0,
+        "craftAuthority": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
+      },
+      "syntheticOrPlannedSettlementMayAdvancePr20_9": false,
+      "onlyRealSettledHandoffMayTriggerFreshRescan": true
     }
   },
   "acceleratedImplementation": {
@@ -4683,7 +4815,27 @@
         "productiveExecutionAllowed": false,
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
-        "normalRuntimeAllowed": false
+        "normalRuntimeAllowed": false,
+        "settledCraftRescanFoundation": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
+          "test": "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
+          "trigger": "REAL_SETTLED_COLLECTION_HANDOFF_PLUS_FRESH_POST_SETTLEMENT_INVENTORY",
+          "normalCraftOnly": true,
+          "handedMaterialMustMatchRecipeInput": true,
+          "currentPr20_9RatificationCredit": false,
+          "foundationCountsAsCraftRatification": false,
+          "productiveCraftAuthorityOpened": false,
+          "broadGraphExecutionAuthority": false,
+          "gameplayWrites": 0,
+          "publicFunctionCalls": 0,
+          "rawWriteCalls": 0,
+          "craftAuthority": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
+        }
       }
     }
   },
@@ -4772,7 +4924,27 @@
         "productiveExecutionAllowed": false,
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
-        "normalRuntimeAllowed": false
+        "normalRuntimeAllowed": false,
+        "settledCraftRescanFoundation": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
+          "test": "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
+          "trigger": "REAL_SETTLED_COLLECTION_HANDOFF_PLUS_FRESH_POST_SETTLEMENT_INVENTORY",
+          "normalCraftOnly": true,
+          "handedMaterialMustMatchRecipeInput": true,
+          "currentPr20_9RatificationCredit": false,
+          "foundationCountsAsCraftRatification": false,
+          "productiveCraftAuthorityOpened": false,
+          "broadGraphExecutionAuthority": false,
+          "gameplayWrites": 0,
+          "publicFunctionCalls": 0,
+          "rawWriteCalls": 0,
+          "craftAuthority": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
+        }
       }
     }
   },
