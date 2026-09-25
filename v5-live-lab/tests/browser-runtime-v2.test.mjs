@@ -382,13 +382,111 @@ test("PR26 hard filter rejects unsafe high-priority learning candidate", async (
   env.box.V5LiveLab.stop();
 });
 
-test("PR27 selects weaker undertrained character without mandatory-role override", async () => {
+test("PR26 ranks concrete task-party combinations and binds the local execution party", async () => {
   const env = makeEnv({
-    partyMembers: ["Ranger", "WeakMage"],
+    partyMembers: ["Ranger", "Priest"],
+    entities: {
+      goo1: {
+        id: "goo1",
+        type: "monster",
+        mtype: "goo",
+        map: "main",
+        x: 10,
+        y: 0,
+        real_x: 10,
+        real_y: 0,
+        dead: false,
+        rip: false,
+      },
+    },
   });
 
   env.box.V5LiveLab.configure({
-    farm: { enabled: false },
+    farm: {
+      enabled: true,
+      monsters: ["goo"],
+      loot: false,
+    },
+    coordination: {
+      peers: ["Priest"],
+      heartbeatMs: 999999,
+    },
+    progression: {
+      enabled: false,
+    },
+    optimizer: {
+      replanMs: 1000,
+      partyProfiles: [
+        {
+          id: "solo-ranger",
+          memberIds: ["Ranger"],
+          successModifier: 0,
+        },
+        {
+          id: "duo",
+          memberIds: ["Ranger", "Priest"],
+          successModifier: 0.3,
+        },
+      ],
+    },
+  });
+  await startAndSettle(env);
+
+  env.box.on_cm("Priest", {
+    type: "V5_LIVE_LAB_HEARTBEAT",
+    profileId: "V5_LIVE_LAB_PR28",
+    character: "Priest",
+    ctype: "priest",
+    map: "main",
+    hp: 900,
+    maxHp: 1000,
+    mp: 900,
+    maxMp: 1000,
+    level: 75,
+    gearScore: 700,
+    dead: false,
+    capabilities: ["HEAL", "SINGLE_TARGET", "REVIVE"],
+  });
+
+  env.advance(1500);
+  await tickAndSettle(env);
+
+  const status = env.box.V5LiveLab.status();
+  assert.equal(status.currentTask.partyId, "duo");
+  assert.deepEqual(
+    [...status.currentTask.partyMemberIds].sort(),
+    ["Priest", "Ranger"],
+  );
+  assert.equal(status.optimizer.ranking[0].partyId, "duo");
+
+  env.box.V5LiveLab.stop();
+});
+
+test("PR27 selects weaker undertrained character and gates optional work on stronger local character", async () => {
+  const env = makeEnv({
+    partyMembers: ["Ranger", "WeakMage"],
+    entities: {
+      goo1: {
+        id: "goo1",
+        type: "monster",
+        mtype: "goo",
+        map: "main",
+        x: 10,
+        y: 0,
+        real_x: 10,
+        real_y: 0,
+        dead: false,
+        rip: false,
+      },
+    },
+  });
+
+  env.box.V5LiveLab.configure({
+    farm: {
+      enabled: true,
+      monsters: ["goo"],
+      loot: false,
+    },
     coordination: {
       peers: ["WeakMage"],
       heartbeatMs: 999999,
@@ -426,6 +524,11 @@ test("PR27 selects weaker undertrained character without mandatory-role override
   assert.equal(progression.status, "LIVE_SELECTION_READY");
   assert.equal(progression.selectedCharacter, "WeakMage");
   assert.equal(progression.progressionStarvationGuard, true);
+  assert.equal(env.box.V5LiveLab.status().currentTask, null);
+  assert.equal(
+    env.calls.filter((row) => row[0] === "attack").length,
+    0,
+  );
 
   env.box.V5LiveLab.stop();
 });
