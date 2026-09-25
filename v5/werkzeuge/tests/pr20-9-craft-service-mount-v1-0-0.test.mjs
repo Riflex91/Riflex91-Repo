@@ -97,7 +97,7 @@ test("already in safe Exchange range completes with zero movement writes",async(
     "RESTORE_PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST");
 });
 
-test("out-of-range Merchant issues exactly one smart_move exchange and arrives",async()=>{
+test("out-of-range Merchant issues exactly one smart_move craftsman and arrives",async()=>{
   const env=makeBox();
   const status=await execute(env);
   assert.equal(status.status,"BESTANDEN");
@@ -144,7 +144,7 @@ test("existing sent intent outside service range never sends a second movement",
     schemaVersion:1,
     testId:"pr20-9-craft-service-mount",
     version:"1.0.0",
-    target:"exchange",
+    target:"craftsman",
     sourceCommit:"ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
     sendCount:1,
     sendBoundaryState:"SEND_MOEGLICH_ODER_VERSUCHT",
@@ -179,7 +179,7 @@ test("missing smart_move blocks before any gameplay write",async()=>{
 
 test("q, server, motion and target drift fail closed before movement",async()=>{
   for(const opts of [
-    {q:{exchange:{ms:100}}},
+    {q:{craft:{ms:100}}},
     {region:"US"},
     {identifier:"II"},
     {moving:true},
