@@ -58,7 +58,7 @@ test("autonomy route requires fresh current selection and no manual pinned index
   assert.equal(a.exactSingleEligibleCandidateRequired,true);
   assert.equal(a.stableDoubleObservationRequired,true);
   assert.equal(a.minimumEmptyInventorySlots,1);
-  assert.equal(a.serviceReachabilitySafetyDistanceMax,300);
+  assert.equal(a.conservativeServiceDistanceMax,300);
   assert.equal(a.massExchangeForbidden,true);
   assert.equal(a.massExchangePpForbidden,true);
   assert.equal(contract.prerequisites.live5mNotificationId,2986);
