@@ -235,7 +235,22 @@
           "productiveExecutionAllowed": false,
           "gameplayAuthority": false,
           "rawWriteAuthority": false,
-          "normalRuntimeAllowed": false
+          "normalRuntimeAllowed": false,
+          "readinessSnapshotBinding": {
+            "status": "PREPARED_REPLAY_ONLY",
+            "source": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
+            "test": "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs",
+            "cap022FullChainRequired": true,
+            "readyStatus": "CAP022_FULL_CHAIN_BEREIT_NO_WRITE",
+            "technicallyPreparedRequiresFullChain": true,
+            "productiveChainEligibleRequiresFullChain": true,
+            "missingOrBlockedChainForcesStatus": "PARTIALLY_PREPARED",
+            "currentPr20_9RatificationCredit": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
+          }
         }
       }
     },
@@ -459,7 +474,22 @@
           "productiveExecutionAllowed": false,
           "gameplayAuthority": false,
           "rawWriteAuthority": false,
-          "normalRuntimeAllowed": false
+          "normalRuntimeAllowed": false,
+          "readinessSnapshotBinding": {
+            "status": "PREPARED_REPLAY_ONLY",
+            "source": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
+            "test": "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs",
+            "cap022FullChainRequired": true,
+            "readyStatus": "CAP022_FULL_CHAIN_BEREIT_NO_WRITE",
+            "technicallyPreparedRequiresFullChain": true,
+            "productiveChainEligibleRequiresFullChain": true,
+            "missingOrBlockedChainForcesStatus": "PARTIALLY_PREPARED",
+            "currentPr20_9RatificationCredit": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
+          }
         }
       }
     },
@@ -723,7 +753,22 @@
       "productiveExecutionAllowed": false,
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
-      "normalRuntimeAllowed": false
+      "normalRuntimeAllowed": false,
+      "readinessSnapshotBinding": {
+        "status": "PREPARED_REPLAY_ONLY",
+        "source": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
+        "test": "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs",
+        "cap022FullChainRequired": true,
+        "readyStatus": "CAP022_FULL_CHAIN_BEREIT_NO_WRITE",
+        "technicallyPreparedRequiresFullChain": true,
+        "productiveChainEligibleRequiresFullChain": true,
+        "missingOrBlockedChainForcesStatus": "PARTIALLY_PREPARED",
+        "currentPr20_9RatificationCredit": false,
+        "durableIntentCreated": false,
+        "productiveCraftAuthorityOpened": false,
+        "normalRuntimeAllowed": false
+      }
     }
   }
 }
