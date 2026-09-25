@@ -46,21 +46,26 @@ test("v1.0.7 exception rescan remains fully zero-write and authority closed",()=
   assert.equal(contract.safety.normalRuntimeAllowed,false);
 });
 
-test("active manifest is exactly the v1.0.7 anniversarygift exception rescan",()=>{
-  assert.equal(manifest.testId,"pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(manifest.controllerVersion,"1.0.7");
-  assert.equal(manifest.sourceCommit,contract.package.sourceCommit);
-  assert.equal(manifest.packagePath,contract.package.path);
-  assert.equal(manifest.packageSha256,contract.package.sha256);
-  assert.equal(manifest.expectedGlobal,contract.package.expectedGlobal);
+test("active manifest has advanced from the ratified scanner to the anniversarygift no-send shadow",()=>{
+  assert.equal(manifest.testId,
+    "pr20-8-exchange-anniversarygift-durable-shadow-no-write");
+  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(manifest.sourceCommit,
+    "737118b5ab4d043ca996594aa6db1df309a6a177");
+  assert.equal(manifest.packagePath,
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-durable-shadow-no-write.js");
+  assert.equal(manifest.packageSha256,
+    "04c765fc9d88b242170ca15d0d28d8dcca84572a745dcaa09ebf0c1caa44135e");
+  assert.equal(manifest.expectedGlobal,
+    "V5PR208ExchangeAnniversarygiftDurableShadowNoWrite");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 
 test("Seashell work stays prepared but inactive while anniversarygift path is current",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_DURABLE_SHADOW_PREPARED_NO_WRITE");
-  assert.equal(roadmap.pr20_8.nextAction,"PREPARE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW_MANIFEST_CUTOVER");
+    "EXCHANGE_ANNIVERSARYGIFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED");
+  assert.equal(roadmap.pr20_8.nextAction,"DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW");
   assert.equal(a.seashellFarmShadow.activePath,false);
   assert.equal(a.seashellFarmShadow.supersededBy,"ANNIVERSARYGIFT_TEST_EXCEPTION_RESCAN");
   assert.equal(a.seashellFarmShadow.farmAuthority,false);
