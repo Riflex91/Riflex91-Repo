@@ -908,10 +908,16 @@
         "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
         "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
-        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+        "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
+        "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
-      "featureGateStatus": "PREPARED_NOT_RATIFIED"
+      "featureGateStatus": "PREPARED_NOT_RATIFIED",
+      "milestoneRunnerStatus": "PREPARED_NO_WRITE",
+      "milestoneCheckpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT"
     },
     {
       "id": "PR22_MULTI_CHARACTER",
@@ -954,10 +960,16 @@
         "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
         "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
-        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+        "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
+        "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
-      "featureGateStatus": "PREPARED_NOT_RATIFIED"
+      "featureGateStatus": "PREPARED_NOT_RATIFIED",
+      "milestoneRunnerStatus": "PREPARED_NO_WRITE",
+      "milestoneCheckpointId": "POST_PR24_25_GROUP_CHECKPOINT"
     },
     {
       "id": "PR24_GROUP_MATRIX",
@@ -1000,10 +1012,16 @@
         "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
         "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
-        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+        "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
+        "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
-      "featureGateStatus": "PREPARED_NOT_RATIFIED"
+      "featureGateStatus": "PREPARED_NOT_RATIFIED",
+      "milestoneRunnerStatus": "PREPARED_NO_WRITE",
+      "milestoneCheckpointId": "POST_PR24_25_GROUP_CHECKPOINT"
     },
     {
       "id": "PR26_TASK_PARTY_OPTIMIZER",
@@ -1069,10 +1087,16 @@
         "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
         "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
-        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+        "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
+        "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
-      "featureGateStatus": "PREPARED_NOT_RATIFIED"
+      "featureGateStatus": "PREPARED_NOT_RATIFIED",
+      "milestoneRunnerStatus": "PREPARED_NO_WRITE",
+      "milestoneCheckpointId": "POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN"
     }
   ],
   "safePreparationBoundary": {
@@ -3335,7 +3359,21 @@
         "minimumSeconds": 7200,
         "targetSeconds": 10800
       }
-    ]
+    ],
+    "milestoneRunnersBatch4": {
+      "status": "PREPARED_NO_WRITE",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
+      "runner": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+      "observability": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
+      "test": "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
+      "reusesR11Observability": true,
+      "runnerIssuesAuthority": false,
+      "runnerRatifiesEvidence": false,
+      "runnerGameplayWrites": 0,
+      "runnerPublicFunctionCalls": 0,
+      "runnerRawWriteCalls": 0,
+      "normalRuntimeEnabled": false
+    }
   },
   "pr21": {
     "status": "BLOCKED_BY_PR20",
@@ -3356,7 +3394,10 @@
     "featureGateStatus": "PREPARED_NOT_RATIFIED",
     "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
     "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
-    "productiveAuthorityIssued": false
+    "productiveAuthorityIssued": false,
+    "milestoneRunnerStatus": "PREPARED_NO_WRITE",
+    "milestoneRunnerSource": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+    "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts"
   },
   "pr22": {
     "status": "BLOCKED_BY_PR21",
@@ -3403,7 +3444,10 @@
     "featureGateStatus": "PREPARED_NOT_RATIFIED",
     "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
     "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
-    "productiveAuthorityIssued": false
+    "productiveAuthorityIssued": false,
+    "milestoneRunnerStatus": "PREPARED_NO_WRITE",
+    "milestoneRunnerSource": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+    "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts"
   },
   "pr24": {
     "status": "BLOCKED_BY_PR23",
@@ -3448,7 +3492,10 @@
     "featureGateStatus": "PREPARED_NOT_RATIFIED",
     "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
     "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
-    "productiveAuthorityIssued": false
+    "productiveAuthorityIssued": false,
+    "milestoneRunnerStatus": "PREPARED_NO_WRITE",
+    "milestoneRunnerSource": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+    "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts"
   },
   "pr26": {
     "status": "BLOCKED_BY_PR25",
@@ -3515,6 +3562,9 @@
     "featureGateStatus": "PREPARED_NOT_RATIFIED",
     "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
     "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
-    "productiveAuthorityIssued": false
+    "productiveAuthorityIssued": false,
+    "milestoneRunnerStatus": "PREPARED_NO_WRITE",
+    "milestoneRunnerSource": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+    "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts"
   }
 }
