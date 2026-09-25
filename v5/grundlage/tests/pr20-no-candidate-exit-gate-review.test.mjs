@@ -543,7 +543,7 @@ test("PR20.8 parallel preparation index mirrors the superseding controlled acqui
   assert.equal(parallel.nextAction,roadmap.pr20_8.nextAction);
   assert.equal(
     parallel.status,
-    "EXCHANGE_CONTROLLED_ACQUISITION_DISCOVERY_PREPARED",
+    "EXCHANGE_ACQUISITION_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
   );
   assert.equal(
     parallel.nextAction,

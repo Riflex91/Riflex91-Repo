@@ -114,12 +114,12 @@ test("fresh no-candidate evidence does not satisfy Exchange or PR20.8 exit crite
   assert.equal(evidence.nextAction,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
 });
 
-test("active manifest remains the exact v1.0.6 zero-write scanner",()=>{
-  assert.equal(manifest.testId,"pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(manifest.controllerVersion,"1.0.6");
-  assert.equal(manifest.sourceCommit,"a5fd67cc9c587b2a20b163915936717c7b4e8321");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js");
-  assert.equal(manifest.packageSha256,"fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387");
-  assert.equal(manifest.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
+test("active manifest is the exact zero-write Exchange acquisition discovery",()=>{
+  assert.equal(manifest.testId,"pr20-8-exchange-candidate-acquisition-readonly");
+  assert.equal(manifest.controllerVersion,"1.0.1");
+  assert.equal(manifest.sourceCommit,"3182b137957416b253dde303bbba54dd800f8b14");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js");
+  assert.equal(manifest.packageSha256,"1acc8253cef6b02b33a6a5de289ce5a7095066d36bc727f9cffa77647e8778ec");
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeCandidateAcquisitionReadonly");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
