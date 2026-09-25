@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "EXCHANGE_FRESH_READONLY_RESCAN_V1_0_5_NO_CANDIDATE_RATIFIED",
+    "status": "EXCHANGE_CURRENT_INVENTORY_NO_CANDIDATE_RATIFIED_WAIT_FUTURE_READONLY_RESCAN",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+    "nextAction": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1144,9 +1144,10 @@
       "compoundLive5mBehaviorObservedPass": true,
       "compoundLive5mCompletionNotificationPersisted": true,
       "exchangeNoCandidateCloseoutReviewed": true,
-      "freshReadOnlyRescanRequired": true,
+      "freshReadOnlyRescanRequired": false,
       "freshReadOnlyRescanEvidenceObserved": true,
-      "latestFreshReadOnlyRescanEvidence": "roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json"
+      "latestFreshReadOnlyRescanEvidence": "roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json",
+      "freshReadOnlyRescanCompletedNoCandidate": true
     },
     "compoundDurableShadow": {
       "status": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
@@ -1628,14 +1629,14 @@
       "normalRuntimeAllowed": false
     },
     "exchangeNoCandidateCloseoutReview": {
-      "status": "FRESH_V1_0_5_RESCAN_CONFIRMED_NO_CANDIDATE_ZERO_WRITE",
+      "status": "V1_0_5_FRESH_READONLY_RESCAN_NO_CANDIDATE_RATIFIED",
       "review": "roadmap/pr20-8-exchange-no-candidate-closeout-review.json",
       "existingEvidence": "roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json",
       "existingObservedAtMs": 1790278399271,
       "existingExchangeStatus": "KEIN_KANDIDAT",
       "existingExchangeCandidateCount": 0,
       "compoundMutationCommittedAfterExistingObservation": true,
-      "freshCurrentInventoryEvidenceRequired": true,
+      "freshCurrentInventoryEvidenceRequired": false,
       "acquisitionOrMutationToCreateCandidateAllowed": false,
       "exchangeWriteAuthority": false,
       "gameplayAuthority": false,
@@ -1655,7 +1656,7 @@
       "manifestCutoverPrepared": true,
       "deployed": true,
       "evidenceObserved": true,
-      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+      "nextGate": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN",
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
       "bridgeMayDeployPinnedRunner": false,
       "bridgeState": "ERROR",
@@ -1680,7 +1681,30 @@
       "latestGameplayWrites": 0,
       "latestPublicFunctionCalls": 0,
       "latestRawWriteCalls": 0,
-      "latestSameIntentRetry": false
+      "latestSameIntentRetry": false,
+      "freshRescanEvidence": {
+        "evidence": "roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json",
+        "controllerVersion": "1.0.5",
+        "notificationId": 2332,
+        "runStartedAtMs": 1790315652844,
+        "observedAtMs": 1790315653250,
+        "status": "BLOCKIERT",
+        "phase": "PR20_8_LIVE_CANDIDATE_SELECTION",
+        "terminal": true,
+        "blocker": "PR20_8_CANDIDATE_KEIN_COMPOUND_ODER_EXCHANGE_NORMALKANDIDAT",
+        "compoundStatus": "KEIN_KANDIDAT",
+        "compoundCandidateCount": 0,
+        "exchangeStatus": "KEIN_KANDIDAT",
+        "exchangeCandidateCount": 0,
+        "gameplayWrites": 0,
+        "publicFunctionCalls": 0,
+        "rawWriteCalls": 0,
+        "sameIntentRetry": false,
+        "exchangeAuthority": false,
+        "durableIntentCreated": false,
+        "normalRuntimeAllowed": false,
+        "outcome": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN"
+      }
     },
     "activeAutonomousManifest": {
       "testId": "pr20-8-wertmutation-live-candidate-readonly",
@@ -1700,7 +1724,7 @@
       "normalRuntimeAllowed": false
     },
     "exchangeReadonlyRescanFacadeRecovery": {
-      "status": "REAL_BROWSER_BLOCKIERT_NO_COMPOUND_OR_EXCHANGE_CANDIDATE_ZERO_WRITE",
+      "status": "REAL_BROWSER_FRESH_RESCAN_COMPLETED_NO_CANDIDATE_ZERO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-facade-recovery-preparation.json",
       "package": "werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js",
       "test": "werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs",
@@ -1732,7 +1756,7 @@
       "manifestCutoverPrepared": true,
       "deployed": true,
       "evidenceObserved": true,
-      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+      "nextGate": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN",
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
       "bridgeMayDeployPinnedRunner": false,
       "notificationId": 2332,
@@ -1753,7 +1777,8 @@
       "observedRawWriteCalls": 0,
       "observedSameIntentRetry": false,
       "observedPerformanceTrickVerification": "HOWLER_PLAYING_TRUE",
-      "evidence": "roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json"
+      "evidence": "roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json",
+      "completionNotificationPersisted": true
     },
     "exchangeFreshReadonlyRescanEvidence": {
       "status": "RATIFIED_FRESH_NO_CANDIDATE_ZERO_WRITE",
@@ -1779,6 +1804,27 @@
       "exchangeAutonomyProductiveProven": false,
       "acquisitionOrMutationToCreateCandidateAllowed": false,
       "normalRuntimeAllowed": false,
+      "outcome": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN"
+    },
+    "exchangeReadonlyRescanV1_0_5Evidence": {
+      "status": "RATIFIED_FRESH_NO_CANDIDATE_ZERO_WRITE",
+      "evidence": "roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json",
+      "notificationId": 2332,
+      "runStartedAtMs": 1790315652844,
+      "observedAtMs": 1790315653250,
+      "exchangeStatus": "KEIN_KANDIDAT",
+      "exchangeCandidateCount": 0,
+      "compoundStatus": "KEIN_KANDIDAT",
+      "compoundCandidateCount": 0,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "exchangeAuthority": false,
+      "durableIntentCreated": false,
+      "normalRuntimeAllowed": false,
+      "exchangeRatified": false,
+      "exchangeLive5mTested": false,
+      "exchangeAutonomyProductiveProven": false,
       "outcome": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN"
     }
   },
