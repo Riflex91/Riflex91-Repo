@@ -543,11 +543,11 @@ test("PR20.8 parallel preparation index mirrors the superseding controlled acqui
   assert.equal(parallel.nextAction,roadmap.pr20_8.nextAction);
   assert.equal(
     parallel.status,
-    "EXCHANGE_ACQUISITION_BANK_MOUNT_MANIFEST_CUTOVER_PREPARED",
+    "EXCHANGE_BANK_SNAPSHOT_NO_CANDIDATE_RATIFIED_MARKET_DISCOVERY_PREPARED",
   );
   assert.equal(
     parallel.nextAction,
-    "DEPLOY_EXCHANGE_ACQUISITION_BANK_MOUNT",
+    "MERGE_MARKET_DISCOVERY_PACKAGE_THEN_CUTOVER",
   );
   for (const artifact of [
     "v5/roadmap/pr20-8-compound-live-5m-evidence.json",
@@ -560,6 +560,11 @@ test("PR20.8 parallel preparation index mirrors the superseding controlled acqui
     "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-bank-mount.json",
     "v5/werkzeuge/pr20-8-exchange-candidate-bank-mount-v1-0-0.js",
     "v5/werkzeuge/tests/pr20-8-exchange-candidate-bank-mount-v1-0-0.test.mjs",
+    "v5/roadmap/pr20-8-exchange-candidate-bank-mount-evidence.json",
+    "v5/grundlage/tests/pr20-exchange-candidate-bank-mount-evidence.test.mjs",
+    "v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js",
+    "v5/werkzeuge/tests/pr20-8-exchange-market-discovery-v1-0-0.test.mjs",
+    "v5/grundlage/vertraege/runtime/pr20-8-exchange-market-discovery.json",
   ]) {
     assert.ok(parallel.artifacts.includes(artifact), `missing parallel PR20.8 artifact: ${artifact}`);
   }
