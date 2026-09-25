@@ -121,15 +121,15 @@ test("one-write authority is bounded to one public exchange call and no raw writ
 
 test("runner bytes and source commit are exact",()=>{
   assert.equal(contract.runner.testId,
-    "pr20-8-exchange-anniversarygift-productive-one-write-live");
+    "pr20-8-exchange-anniversarygift-service-reposition");
   assert.equal(contract.runner.controllerVersion,"1.0.0");
   assert.equal(contract.runner.sourceCommit,
-    "5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
+    "d7f48070228e1bb620beb39717655287defc4e6f");
   assert.equal(contract.runner.sha256,
-    "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
+    "21121e5a8465848732b415dc05451935a7679dd33d23a7c42996c2f4456f54f7");
   assert.equal(contract.runner.bytes,50047);
   assert.equal(contract.runner.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
+    "V5PR208ExchangeAnniversarygiftServiceReposition");
   assert.equal(contract.runner.maximumGameplayWrites,1);
   assert.equal(contract.runner.maximumPublicFunctionCalls,1);
   assert.equal(contract.runner.maximumRawWriteCalls,0);
@@ -154,10 +154,10 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   const live=a.anniversaryGiftProductiveOneWrite;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
+    "EXCHANGE_ANNIVERSARYGIFT_SERVICE_REPOSITION_MANIFEST_CUTOVER_PREPARED");
   assert.equal(roadmap.pr20_8.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE");
-  assert.equal(a.status,"ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
+    "DEPLOY_AND_OBSERVE_EXCHANGE_SERVICE_REPOSITION");
+  assert.equal(a.status,"ANNIVERSARYGIFT_SERVICE_REPOSITION_MANIFEST_CUTOVER_PREPARED");
   assert.equal(a.anniversaryGiftExchangeShadow.status,
     "RATIFIED_LIVE_DURABLE_SHADOW_NO_SEND");
   assert.equal(a.anniversaryGiftExchangeShadow.deployed,true);
@@ -165,17 +165,17 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
   assert.equal(a.anniversaryGiftExchangeShadow.latestNotificationId,2752);
   assert.equal(a.anniversaryGiftRewardDomain.status,
     "RATIFIED_SCOPED_CURRENT_SOURCE_REVALIDATION");
-  assert.equal(live.status,"MANIFEST_CUTOVER_PREPARED");
+  assert.equal(live.status,"BLOCKED_SERVICE_UNREACHABLE_ZERO_WRITE");
   assert.equal(live.manifestCutoverPrepared,true);
-  assert.equal(live.deployed,false);
-  assert.equal(live.liveEvidenceObserved,false);
+  assert.equal(live.deployed,true);
+  assert.equal(live.liveEvidenceObserved,true);
   assert.equal(live.exchangeAuthority,false);
   assert.equal(live.gameplayAuthority,false);
   assert.equal(live.rawWriteAuthority,false);
   assert.equal(live.normalRuntimeAllowed,false);
 });
 
-test("active autonomous manifest is cut over to the productive one-write runner",()=>{
+test("active autonomous manifest is temporarily cut over to service reposition",()=>{
   assert.equal(manifest.testId,
     "pr20-8-exchange-anniversarygift-productive-one-write-live");
   assert.equal(manifest.controllerVersion,"1.0.0");
