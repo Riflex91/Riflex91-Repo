@@ -90,6 +90,6 @@ Write-Host "Opening local AL 2.5D admin sandbox:"
 Write-Host $Url
 Write-Host ""
 Write-Host "Account: local-admin@al25d.invalid"
-Write-Host "Character: LocalAdmin"
+Write-Host "Characters: create them manually; supported online composition is 3 normal + 1 Merchant."
 Write-Host "This session uses only the local MongoDB/server."
 Start-Process $Url
