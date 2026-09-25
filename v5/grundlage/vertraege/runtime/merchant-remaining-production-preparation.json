@@ -2142,10 +2142,56 @@
         "settledFutureHandoffRequiresFreshCraftRescan": true,
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
-        "normalRuntimeAllowed": false
+        "normalRuntimeAllowed": false,
+        "settledCraftRescanFoundation": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "grundlage/quelle/koordination/production-material-craft-rescan.ts",
+          "contract": "grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
+          "test": "grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
+          "trigger": "REAL_SETTLED_COLLECTION_HANDOFF_PLUS_FRESH_POST_SETTLEMENT_INVENTORY",
+          "normalCraftOnly": true,
+          "settlementFingerprintCorrelationRequired": true,
+          "postSettlementInventoryFingerprintRequired": true,
+          "handedMaterialMustMatchRecipeInput": true,
+          "currentPr20_9RatificationCredit": false,
+          "foundationCountsAsCraftRatification": false,
+          "productiveCraftAuthorityOpened": false,
+          "gameplayWrites": 0,
+          "publicFunctionCalls": 0,
+          "rawWriteCalls": 0,
+          "craftAuthority": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "broadGraphExecutionAuthority": false,
+          "normalRuntimeAllowed": false
+        }
       },
       "automaticMaterialPathPreparedThroughCollectionPlanning": true,
-      "freshCraftRescanAfterSettledHandoffRequired": true
+      "freshCraftRescanAfterSettledHandoffRequired": true,
+      "settledCraftRescanFoundation": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "grundlage/quelle/koordination/production-material-craft-rescan.ts",
+        "contract": "grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json",
+        "test": "grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
+        "trigger": "REAL_SETTLED_COLLECTION_HANDOFF_PLUS_FRESH_POST_SETTLEMENT_INVENTORY",
+        "normalCraftOnly": true,
+        "settlementFingerprintCorrelationRequired": true,
+        "postSettlementInventoryFingerprintRequired": true,
+        "handedMaterialMustMatchRecipeInput": true,
+        "currentPr20_9RatificationCredit": false,
+        "foundationCountsAsCraftRatification": false,
+        "productiveCraftAuthorityOpened": false,
+        "gameplayWrites": 0,
+        "publicFunctionCalls": 0,
+        "rawWriteCalls": 0,
+        "craftAuthority": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "broadGraphExecutionAuthority": false,
+        "normalRuntimeAllowed": false
+      },
+      "syntheticOrPlannedSettlementMayAdvancePr20_9": false,
+      "onlyRealSettledHandoffMayTriggerFreshRescan": true
     }
   },
   "pr21": {

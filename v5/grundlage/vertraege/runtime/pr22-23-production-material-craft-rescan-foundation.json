@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "CAP022_SETTLED_HANDOFF_CRAFT_RESCAN_FOUNDATION",
+  "status": "PREPARED_NO_WRITE",
+  "capability": "CAP-022",
+  "name": "Settled Production Material Handoff -> Craft Rescan",
+  "source": "v5/grundlage/quelle/koordination/production-material-craft-rescan.ts",
+  "test": "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
+  "dependsOn": [
+    "v5/grundlage/vertraege/runtime/pr22-23-production-material-handoff-foundation.json",
+    "v5/grundlage/quelle/merchant/logistik-workflow.ts",
+    "v5/grundlage/quelle/produktion/pr20-9-craft-read-only-preflight.ts"
+  ],
+  "triggerRequirements": {
+    "logisticsArt": "COLLECTION",
+    "logisticsState": "SETTLED",
+    "samePlanBindingRequired": true,
+    "settlementFingerprintCorrelationRequired": true,
+    "positiveRecipientQuantityDeltaRequired": true,
+    "postSettlementInventoryFingerprintRequired": true,
+    "postSettlementInventoryObservationRequired": true,
+    "handedMaterialMustMatchRecipeInput": true,
+    "freshNormalCraftPreflightRequired": true
+  },
+  "output": {
+    "readyStatus": "CRAFT_RESCAN_KANDIDAT_BEREIT_NO_WRITE",
+    "blockedStatus": "CRAFT_RESCAN_BLOCKIERT",
+    "preflightScope": "NORMAL_CRAFT_ONLY",
+    "actionContractId": "AL-ACTION-CRAFT",
+    "recoveryContractId": "AL-RECOVERY-CRAFT",
+    "verifierId": "AL-VERIFIER-CRAFT",
+    "planningAndObservationOnly": true
+  },
+  "safetyBoundary": {
+    "currentPr20_9RatificationCredit": false,
+    "foundationCountsAsCraftRatification": false,
+    "productiveCraftAuthorityOpened": false,
+    "broadGraphExecutionAuthority": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "craftAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "sameIntentRetry": false
+  },
+  "currentGateBoundary": {
+    "currentPr20_9StatusRemains": "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+    "candidateAcquisitionOrMutationAllowedNow": false,
+    "syntheticOrPlannedSettlementMayNotAdvancePr20_9": true,
+    "onlyFutureRealSettledNormalMaterialHandoffMayTriggerFreshRescan": true,
+    "freshRescanStillRequiresSeparateCraftEvidenceBeforeProductiveAuthority": true
+  },
+  "nextAction": "KEEP_NO_WRITE_UNTIL_REAL_PRODUCTIVE_HANDOFF_SETTLEMENT_EXISTS"
+}

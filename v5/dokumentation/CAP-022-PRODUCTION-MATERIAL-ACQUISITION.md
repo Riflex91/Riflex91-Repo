@@ -31,13 +31,22 @@ Handoff-Planung:
 
 Der Handoff wird erst aus `MATERIAL_READY_FOR_HANDOFF` geplant. Er nutzt die bestehende V5-`COLLECTION`-/Rendezvous-Logistik, pinnt einen einzelnen physischen Stack samt Item-Fingerprint und besitzt weiterhin keine Transfer- oder Gameplay-Authority.
 
+
+Post-Settlement-Craft-Rescan:
+
+- `grundlage/quelle/koordination/production-material-craft-rescan.ts`
+- `grundlage/vertraege/runtime/pr22-23-production-material-craft-rescan-foundation.json`
+- `grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs`
+
+Die Rescan-Bruecke akzeptiert nur ein korreliertes `COLLECTION`-`SETTLED` mit positivem Recipient-Mengen-Delta und einen **nach** diesem Settlement frisch beobachteten Merchant-Inventarstand. Das uebergebene Material muss Bestandteil des erneut geprueften NORMAL-Craft-Rezepts sein. Danach wird ausschliesslich der bestehende PR20.9 Read-only-Preflight erneut ausgefuehrt.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf
 
 Der vorbereitete Pfad lautet:
 
-`Production FARM-Node -> MaterialObjective -> FARM_REQUIRED -> MATERIAL_READY_FOR_HANDOFF -> PR22-Koordination -> PR23 Movement/Combat/Loot -> Collection/Handoff -> spaeterer PR20.9-Recheck`
+`Production FARM-Node -> MaterialObjective -> FARM_REQUIRED -> MATERIAL_READY_FOR_HANDOFF -> PR22-Koordination -> PR23 Movement/Combat/Loot -> Collection/Handoff -> SETTLED -> frischer Merchant-Inventar-Snapshot -> NORMAL_CRAFT_ONLY-Rescan -> spaeterer PR20.9-Durable-Shadow-Pfad`
 
 Die Foundation:
 
@@ -79,6 +88,9 @@ Insbesondere gilt:
 
 - auch ein vorbereiteter `COLLECTION`-Handoff ist noch kein natuerlicher Merchant-Inventar-Kandidat;
 - erst ein spaeter produktiv **settled** Handoff darf einen frischen Craft-Rescan ausloesen.
+
+- ein synthetisches, geplantes oder nur im Unit-Test erzeugtes Settlement darf PR20.9 nicht fortschreiben;
+- selbst ein erfolgreiches frisches Rescan-Ergebnis gibt noch keine Craft-Authority und zaehlt nicht als Craft-Ratifizierung.
 
 Erst wenn spaeter im normalen produktiven Betrieb Material durch ratifizierte Farmer-Funktionen entsteht und dadurch ein echter `NORMAL_CRAFT_ONLY`-Kandidat im Inventar vorhanden ist, darf PR20.9 erneut beobachtet und nach seinen eigenen Craft-Gates fortgesetzt werden.
 
