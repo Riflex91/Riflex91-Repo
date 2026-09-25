@@ -11,6 +11,7 @@ $MongoLocalRoot = Join-Path $env:LOCALAPPDATA "AL25D-TestServer\MongoDB"
 $MongoDataDir = Join-Path $MongoLocalRoot "data"
 $MongoLogDir = Join-Path $MongoLocalRoot "log"
 $MongoPidFile = Join-Path $RuntimeRoot "mongodb.pid"
+$RuntimeKeysPath = Join-Path $AdventureDir "secretsandconfig\keys.js"
 
 if (-not (Test-Path (Join-Path $AdventureDir "main.js"))) {
   throw "Local runtime is missing. Run .\local-dev\windows\setup.ps1 first."
@@ -42,6 +43,42 @@ function Wait-Port([int]$Port, [string]$Name) {
   }
 
   throw "$Name did not become reachable on port $Port within 45 seconds."
+}
+
+function Verify-GameServerApi {
+  if (-not (Test-Path $RuntimeKeysPath)) {
+    throw "Runtime keys.js is missing: $RuntimeKeysPath"
+  }
+
+  $KeysText = Get-Content $RuntimeKeysPath -Raw
+  $Match = [regex]::Match($KeysText, 'ACCESS_MASTER\s*:\s*"([0-9a-f]+)"')
+  if (-not $Match.Success) {
+    throw "Runtime ACCESS_MASTER is not pinned to a static local value."
+  }
+
+  $AccessMaster = $Match.Groups[1].Value
+
+  try {
+    $Response = Invoke-WebRequest `
+      -UseBasicParsing `
+      -Uri "http://127.0.0.1:7192/server.api/eval" `
+      -Method Post `
+      -ContentType "application/x-www-form-urlencoded" `
+      -Body @{
+        spass = $AccessMaster
+        code = "output={ok:true};"
+        data = "{}"
+      } `
+      -TimeoutSec 5
+
+    if ($Response.StatusCode -ne 200 -or $Response.Content -ne '{"ok":true}') {
+      throw "Unexpected response: HTTP $($Response.StatusCode) '$($Response.Content)'"
+    }
+  } catch {
+    throw "Local backend/game-server shared-key preflight failed: $($_.Exception.Message)"
+  }
+
+  Write-Host "==> Game-server API shared-key preflight passed"
 }
 
 function Start-DevWindow(
@@ -135,6 +172,8 @@ if (-not (Test-Port 7192)) {
 } else {
   Write-Host "==> Game server already running on 7192"
 }
+
+Verify-GameServerApi
 
 if (-not (Test-Port 5173)) {
   Write-Host "==> Starting AL 2.5D renderer"
