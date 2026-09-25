@@ -105,12 +105,20 @@ async function run(options={}){
   vm.runInContext(source,ctx.box,{
     filename:"pr20-8-exchange-anniversarygift-durable-shadow-no-write.js",
   });
-  for(let i=0;i<30;i+=1){
-    await new Promise(resolve=>setImmediate(resolve));
+  const deadline=Date.now()+5000;
+  let lastStatus=null;
+  while(Date.now()<deadline){
+    await new Promise(resolve=>setTimeout(resolve,1));
     const status=ctx.box.V5PR208ExchangeAnniversarygiftDurableShadowNoWrite?.status?.();
+    if(status) lastStatus=status;
     if(status?.terminal) return {...ctx,status};
   }
-  throw new Error("TEST_DID_NOT_TERMINATE");
+  throw new Error("TEST_DID_NOT_TERMINATE:"+JSON.stringify({
+    status:lastStatus?.status??null,
+    phase:lastStatus?.phase??null,
+    terminal:lastStatus?.terminal??null,
+    blocker:lastStatus?.blocker??null,
+  }));
 }
 
 test("exact anniversarygift candidate creates one durable no-send shadow and zero gameplay writes",async()=>{
