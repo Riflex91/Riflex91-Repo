@@ -8,6 +8,12 @@ Current integrated browser runtime:
 
 `v5-live-lab/browser/v5-live-lab-bot-v2.js`
 
+Current runtime version/build:
+
+- `0.3.0`
+- `V5_LIVE_LAB_PR28_R3_GUI_1`
+- branch `chatgpt/v5-live-lab-pr28-r3`
+
 Live Lab is intentionally isolated from the official V5 verification track. The official `main:v5/` roadmap, historical evidence, dependency gates and step-by-step automated tests remain authoritative and are not modified by Live Lab operation.
 
 ## Purpose
@@ -166,6 +172,73 @@ Live Lab intentionally keeps the following safety boundaries active:
 - bounded logs and world plans.
 
 An irreversible public call that throws after dispatch is classified as `UNKNOWN`. The same intent ID is not blindly resent.
+
+## In-game GUI
+
+The v0.3.0 runtime mounts an in-game HUD automatically when the runner is loaded.
+
+The HUD provides:
+
+- **START** — starts Live Lab with the required acknowledgement automatically;
+- **STOP** — stops the runtime normally;
+- **NOTHALT** — immediately stops live execution and marks the runtime emergency-stopped;
+- **FEHLER MELDEN** — builds a structured V5 Live-Test Bug report and copies it to the clipboard;
+- current runtime/authority state;
+- current task and target;
+- selected PR26 party and party members;
+- selected PR27 progression character;
+- PR24 group status, roles, faults and blockers;
+- PR28 world plan/quarantine/hop counters;
+- Merchant service/free inventory state;
+- PR25 evidence status;
+- latest important runtime event;
+- build/version/tick/log metadata.
+
+The HUD can be collapsed with the minus/plus button.
+
+### Fehler melden
+
+Pressing **FEHLER MELDEN** copies a Markdown report designed for the agreed **V5 Live-Test Bug** schema.
+
+The copied report includes:
+
+- suggested issue title;
+- placeholders for the short human symptom description;
+- profile, runtime version, build ID, branch and source-main SHA;
+- runtime session ID, start time and uptime;
+- character, class, map and server;
+- live authority state;
+- current task, target and PR26 party;
+- PR24 group topology, roles, faults and blockers;
+- PR25 evidence summary;
+- PR27 progression choice;
+- PR28 world autonomy counters;
+- Merchant/inventory state;
+- unclassified severity plus suggested area labels for triage;
+- the last 250 log records;
+- the full bounded `V5LiveLab.exportBugBundle()` JSON;
+- initial occurrence-history metadata.
+
+After pressing the button, paste the clipboard contents into the ChatGPT bug-inbox chat and add one short sentence describing what you observed. The technical context is already included.
+
+The same report can be generated manually with:
+
+```js
+V5LiveLab.buildBugReportText()
+```
+
+or copied programmatically with:
+
+```js
+await V5LiveLab.copyBugReportToClipboard()
+```
+
+The GUI can be remounted or removed manually:
+
+```js
+V5LiveLab.mountGui()
+V5LiveLab.unmountGui()
+```
 
 ## Loading and starting the browser runtime
 
