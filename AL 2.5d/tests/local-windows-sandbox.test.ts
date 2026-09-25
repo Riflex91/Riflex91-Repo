@@ -35,10 +35,16 @@ describe("Windows local sandbox scripts", () => {
 
     expect(setup).toContain("mongodb-windows-x86_64-$MongoVersion.zip");
     expect(setup).toContain("fastdl.mongodb.org");
-    expect(setup).toContain('"--bind_ip", "127.0.0.1"');
+    expect(setup).toContain("--bind_ip 127.0.0.1");
+    expect(setup).toContain("AL25D-TestServer\\MongoDB");
+    expect(setup).toContain("System.Net.Sockets.TcpClient");
+    expect(setup).not.toContain("Test-NetConnection");
     expect(setup).not.toContain("Docker Desktop");
     expect(start).toContain("mongod.exe");
-    expect(start).toContain('"--bind_ip", "127.0.0.1"');
+    expect(start).toContain("--bind_ip 127.0.0.1");
+    expect(start).toContain("AL25D-TestServer\\MongoDB");
+    expect(start).toContain("System.Net.Sockets.TcpClient");
+    expect(start).not.toContain("Test-NetConnection");
     expect(stop).toContain("mongodb.pid");
   });
 
