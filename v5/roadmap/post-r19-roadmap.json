@@ -2190,7 +2190,7 @@
     }
   },
   "pr20_8": {
-    "status": "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+    "status": "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_RATIFIED_NO_WRITE",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -2240,7 +2240,7 @@
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE",
+    "nextAction": "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_PRODUCTIVE_ONE_WRITE",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -3958,10 +3958,10 @@
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
         "normalRuntimeAllowed": false,
-        "nextAction": "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE"
+        "nextAction": "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_PRODUCTIVE_ONE_WRITE"
       },
       "anniversaryGiftExchangeAutonomyRouteShadow": {
-        "status": "MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+        "status": "RATIFIED_BESTANDEN_AUTONOMY_ROUTE_ZERO_WRITE",
         "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-autonomy-route-shadow-preparation.json",
         "package": "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-0.js",
         "test": "v5/werkzeuge/tests/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-0.test.mjs",
@@ -3992,10 +3992,28 @@
         "movementAuthority": false,
         "normalRuntimeAllowed": false,
         "manifestCutoverPrepared": true,
-        "deployed": false,
-        "liveEvidenceObserved": false,
+        "deployed": true,
+        "liveEvidenceObserved": true,
         "productiveAutonomyProven": false,
-        "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE"
+        "nextAction": "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_PRODUCTIVE_ONE_WRITE",
+        "evidence": "v5/roadmap/pr20-8-exchange-anniversarygift-autonomy-route-shadow-evidence.json",
+        "latestNotificationId": 3020,
+        "latestRunStartedAtMs": 1790361264446,
+        "latestObservedAtMs": 1790361265162,
+        "latestStatus": "BESTANDEN",
+        "latestPhase": "COMPLETE",
+        "latestTerminal": true,
+        "latestObservedCandidateIndex": 4,
+        "latestObservedQuantity": 105,
+        "latestGameplayWrites": 0,
+        "latestPublicFunctionCalls": 0,
+        "latestRawWriteCalls": 0,
+        "latestDurableStorageWrites": 1,
+        "latestSameIntentRetry": false,
+        "latestAuthorityIssued": false,
+        "latestServiceReachable": true,
+        "latestPerformanceTrickActive": true,
+        "latestRestartCount": 0
       }
     }
   },
