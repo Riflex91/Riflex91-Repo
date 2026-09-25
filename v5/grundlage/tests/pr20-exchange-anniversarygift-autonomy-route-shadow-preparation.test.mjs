@@ -13,7 +13,7 @@ const packageBytes=fs.readFileSync(packagePath);
 const packageSource=packageBytes.toString("utf8");
 
 test("PR20.8 anniversarygift autonomy shadow package is exact pinned zero-write",()=>{
-  assert.equal(contract.status,"PACKAGE_PREPARED_NO_WRITE");
+  assert.equal(contract.status,"MANIFEST_CUTOVER_PREPARED_NO_WRITE");
   assert.equal(
     contract.purpose,
     "PROVE_FRESH_AUTONOMOUS_ANNIVERSARYGIFT_EXCHANGE_ROUTE_ADMISSION_WITHOUT_AUTHORITY_OR_SEND",
@@ -122,7 +122,7 @@ test("roadmap advances only to shadow manifest cutover and leaves productive aut
     "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_RATIFIED_AUTONOMY_PENDING",
   );
   const s=p.exchangeCandidateAcquisition.anniversaryGiftExchangeAutonomyRouteShadow;
-  assert.equal(s.status,"PACKAGE_PREPARED_NO_WRITE");
+  assert.equal(s.status,"MANIFEST_CUTOVER_PREPARED_NO_WRITE");
   assert.equal(s.testId,"pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write");
   assert.equal(s.selectionMode,"AUTONOMOUS_FRESH_CURRENT_INVENTORY_SCAN");
   assert.equal(s.manualPinnedInventoryIndex,false);
