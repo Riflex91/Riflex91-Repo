@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "COMPOUND_LIVE_5M_RATIFIED_EXCHANGE_NO_CANDIDATE",
+    "status": "EXCHANGE_NO_CANDIDATE_CLOSEOUT_REVIEWED_FRESH_READONLY_RESCAN_REQUIRED",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
+    "nextAction": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1142,7 +1142,9 @@
       "roadmapCriteriaRelaxed": false,
       "acquisitionOrMutationToCreateCandidateAllowed": false,
       "compoundLive5mBehaviorObservedPass": true,
-      "compoundLive5mCompletionNotificationPersisted": true
+      "compoundLive5mCompletionNotificationPersisted": true,
+      "exchangeNoCandidateCloseoutReviewed": true,
+      "freshReadOnlyRescanRequired": true
     },
     "compoundDurableShadow": {
       "status": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
@@ -1618,6 +1620,36 @@
       "exchangeLive5mTested": false,
       "exchangeAutonomyProductiveProven": false,
       "normalRuntimeAllowed": false
+    },
+    "exchangeNoCandidateCloseoutReview": {
+      "status": "REVIEWED_FRESH_READONLY_RESCAN_REQUIRED",
+      "review": "roadmap/pr20-8-exchange-no-candidate-closeout-review.json",
+      "existingEvidence": "roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json",
+      "existingObservedAtMs": 1790278399271,
+      "existingExchangeStatus": "KEIN_KANDIDAT",
+      "existingExchangeCandidateCount": 0,
+      "compoundMutationCommittedAfterExistingObservation": true,
+      "freshCurrentInventoryEvidenceRequired": true,
+      "acquisitionOrMutationToCreateCandidateAllowed": false,
+      "exchangeWriteAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "durableIntentCreationAllowed": false,
+      "normalRuntimeAllowed": false,
+      "scannerTestId": "pr20-8-wertmutation-live-candidate-readonly",
+      "scannerControllerVersion": "1.0.4",
+      "scannerPackage": "werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js",
+      "scannerSourceCommit": "27e25e69dc0e26d8ae05328335718c36a6a0c659",
+      "scannerPackageSha256": "0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b",
+      "scannerPackageBytes": 21343,
+      "scannerExpectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
+      "scannerMaximumGameplayWrites": 0,
+      "scannerMaximumPublicFunctionCalls": 0,
+      "scannerMaximumRawWriteCalls": 0,
+      "manifestCutoverPrepared": false,
+      "deployed": false,
+      "evidenceObserved": false,
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN"
     }
   },
   "pr20_9": {
