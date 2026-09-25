@@ -20,6 +20,14 @@ describe("Windows local sandbox scripts", () => {
     expect(setup).toContain('"character_limit: 3"');
   });
 
+  it("avoids NTFS junctions so the sandbox also works on ownership-less Windows volumes", () => {
+    const setup = read("local-dev/windows/setup.ps1");
+
+    expect(setup).toContain("Sync-DirectoryCopy");
+    expect(setup).toContain("Copy-Item");
+    expect(setup).not.toContain("New-Item -ItemType Junction");
+  });
+
   it("scrubs imported player/account collections after seeding map data", () => {
     const setup = read("local-dev/windows/setup.ps1");
 
