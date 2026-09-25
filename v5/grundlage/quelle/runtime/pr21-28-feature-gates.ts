@@ -106,7 +106,7 @@ export function bewertePr21_28FeatureGates(
     stages:Object.freeze(stages),
     highestProductiveEligibleStage:highest,
     allThroughPr28Eligible:stages.every(x=>x.productiveEligible),
-    cap022FullChainRequiredStages:Object.freeze(["PR22","PR23"]),
+    cap022FullChainRequiredStages:Object.freeze(["PR22","PR23"] as const),
     authorityIssuedByGateEvaluation:false,
   });
 }
