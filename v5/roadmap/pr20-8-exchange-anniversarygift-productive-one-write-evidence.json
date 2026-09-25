@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-25",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "evidenceArt": "V5_PR20_8_EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RATIFICATION",
+  "status": "RATIFIED_COMMITTED_EXCHANGE_ONE_WRITE",
+  "manifestMainCommit": "59ca9d83653b3c95239cc7185c6ffe4619a30aa6",
+  "package": {
+    "testId": "pr20-8-exchange-anniversarygift-productive-one-write-live",
+    "controllerVersion": "1.0.0",
+    "sourceCommit": "5c43c182e2cd2b9ef4361ce1699af00748ad0d95",
+    "path": "v5/werkzeuge/pr20-8-exchange-anniversarygift-productive-one-write-live.js",
+    "sha256": "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74",
+    "bytes": 50047,
+    "expectedGlobal": "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive"
+  },
+  "liveTelemetry": {
+    "statusTable": "public.aio_v5_test_status",
+    "notificationTable": "public.aio_v5_test_notifications",
+    "botId": "pi-main",
+    "notificationId": 2949,
+    "runStartedAtMs": 1790353554072,
+    "notificationCreatedAt": "2026-09-25T16:26:07.420203+00:00",
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "terminal": true
+  },
+  "sourceTransaction": {
+    "transactionId": "pr20-8-exchange-anniversarygift-productive-one-write-live:0c6a1129be4c9c899f88274fab97108a",
+    "status": "COMMITTED",
+    "sendCount": 1,
+    "sendBoundaryState": "SEND_MOEGLICH_ODER_VERSUCHT",
+    "sameIntentRetry": false,
+    "authorityIssued": true,
+    "authorityConsumed": true,
+    "authorityMaximumUses": 1,
+    "durableIntentCreated": true,
+    "normalExchangeWriteRatification": false
+  },
+  "exactInput": {
+    "name": "anniversarygift",
+    "inventoryIndex": 4,
+    "quantityBefore": 106,
+    "quantityAfter": 105,
+    "exchangeQuantity": 1,
+    "inputDelta": -1,
+    "baseGold": 100,
+    "exclusive": true
+  },
+  "exactReward": {
+    "kind": "gold",
+    "goldDelta": 5000,
+    "allowedGoldDeltas": [
+      5000,
+      20000
+    ],
+    "physicalRewardCount": 0,
+    "negativeNonInputDeltas": 0,
+    "insidePinnedRewardDomain": true
+  },
+  "reconciliation": {
+    "classification": "COMMITTED",
+    "attempts": 13,
+    "promiseTimedOut": true,
+    "promiseError": "PUBLIC_FUNCTION_PROMISE_TIMEOUT",
+    "promiseResultObserved": false,
+    "promiseRewardSupportingEvidenceOnly": true,
+    "qActive": false,
+    "placeholderCount": 0,
+    "candidateQuantityBefore": 106,
+    "candidateQuantityNow": 105,
+    "expectedQuantity": 105,
+    "inputProgressObserved": true,
+    "acceptedEvidenceObserved": true,
+    "noOtherNegative": true,
+    "inputConsumedExactly": true
+  },
+  "serviceReachability": {
+    "map": "main",
+    "servicePoint": {
+      "x": -25,
+      "y": -478
+    },
+    "distance": 46.01086828130937,
+    "safetyLimit": 300,
+    "serverLimit": 400,
+    "reachable": true,
+    "viaComputer": false
+  },
+  "rewardDomain": {
+    "sourceRepository": "kaansoral/adventureland_mongodb",
+    "sourceCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+    "dropGraphSha256": "2fad9b50ac0bb87a8e53a0cff8f6e34ded949b3531f8843f86d3f1fb8e828342",
+    "rewardDomains": [
+      "gold",
+      "inventory",
+      "empty"
+    ],
+    "maximumPhysicalOutputs": 1,
+    "recursiveBranchesBounded": true,
+    "recursiveCycle": false,
+    "specialSixcakeMultiOutputApplies": false
+  },
+  "mutationCounters": {
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "exactPublicFunction": "exchange"
+  },
+  "safetyBoundary": {
+    "exchangeOneWriteRatified": true,
+    "exchangeLive5mTested": false,
+    "exchangeAutonomyProductiveProven": false,
+    "pr20_8ExitGateSatisfied": false,
+    "mayAdvanceToPr20_9": false,
+    "normalRuntimeAllowed": false,
+    "additionalWriteAuthorityAfterCommit": false
+  },
+  "nextGate": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_NO_ADDITIONAL_WRITE"
+}
