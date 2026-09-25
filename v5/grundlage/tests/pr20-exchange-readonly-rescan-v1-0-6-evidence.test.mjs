@@ -17,9 +17,9 @@ test("PR20.8 fresh v1.0.6 rescan evidence is exact and persisted",()=>{
   assert.equal(evidence.manifestMainCommit,"c83a83c25cc23ed9ff27b6ddf49217e7d30d372b");
   assert.equal(evidence.package.testId,"pr20-8-wertmutation-live-candidate-readonly");
   assert.equal(evidence.package.controllerVersion,"1.0.6");
-  assert.equal(evidence.package.sourceCommit,"3182b137957416b253dde303bbba54dd800f8b14");
-  assert.equal(evidence.package.path,"v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js");
-  assert.equal(evidence.package.sha256,"1acc8253cef6b02b33a6a5de289ce5a7095066d36bc727f9cffa77647e8778ec");
+  assert.equal(evidence.package.sourceCommit,"a5fd67cc9c587b2a20b163915936717c7b4e8321");
+  assert.equal(evidence.package.path,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js");
+  assert.equal(evidence.package.sha256,"fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387");
   assert.equal(evidence.package.bytes,21688);
   assert.equal(evidence.liveTelemetry.notificationId,2382);
   assert.equal(evidence.liveTelemetry.runStartedAtMs,1790318741735);
