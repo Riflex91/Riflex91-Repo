@@ -11,3 +11,60 @@ body,
 canvas {
   display: block;
 }
+
+#al25d-graphics-toggle {
+  position: fixed;
+  top: 18px;
+  right: 190px;
+  width: 46px;
+  height: 46px;
+  z-index: 2147483647;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 3px solid #6e6e6e;
+  border-radius: 50%;
+  outline: 2px solid #151515;
+  background:
+    radial-gradient(circle at 38% 32%, #4a4a4a 0 20%, #292929 48%, #111 100%);
+  box-shadow:
+    inset 0 0 0 2px #252525,
+    0 2px 0 #050505;
+  color: #f4f4f4;
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.35px;
+  text-shadow: 0 1px 1px #000;
+  cursor: pointer;
+  user-select: none;
+}
+
+#al25d-graphics-toggle:hover:not(:disabled) {
+  filter: brightness(1.18);
+}
+
+#al25d-graphics-toggle:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 0 0 2px #151515,
+    0 1px 0 #050505;
+}
+
+#al25d-graphics-toggle[data-mode="original"] {
+  border-color: #c8a64c;
+  color: #ffe29a;
+}
+
+#al25d-graphics-toggle:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
+@media (max-width: 1100px) {
+  #al25d-graphics-toggle {
+    right: 158px;
+  }
+}
+
