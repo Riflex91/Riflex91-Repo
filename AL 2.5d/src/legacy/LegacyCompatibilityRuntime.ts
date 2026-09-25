@@ -16,6 +16,15 @@ export type LegacyMapClickEvent = Readonly<{
 
 export type LegacyCompatibilitySource = LegacyGlobalsLike & {
   map_click?: (event: LegacyMapClickEvent) => unknown;
+  enter_selected_character?: (name: string, id: string) => unknown;
+  socket?: Readonly<{ connected?: boolean }>;
+  socket_welcomed?: boolean;
+  X?: Readonly<{
+    characters?: readonly Readonly<{
+      id?: string;
+      name?: string;
+    }>[];
+  }>;
   width?: number;
   height?: number;
   scale?: number;
@@ -256,6 +265,37 @@ export class LegacyCompatibilityRuntime {
 
   dispatchWorldClick(target: WorldPoint): unknown {
     return dispatchLegacyWorldClick(target, this.requireSource());
+  }
+
+  async enterCharacter(name: string, timeoutMs = 15000): Promise<void> {
+    const source = this.requireSource();
+    const deadline = Date.now() + timeoutMs;
+
+    while (Date.now() < deadline) {
+      const entry = source.X?.characters?.find(
+        (character) => character.name === name
+      );
+
+      if (
+        entry?.id &&
+        source.socket?.connected &&
+        source.socket_welcomed &&
+        typeof source.enter_selected_character === "function"
+      ) {
+        source.enter_selected_character(name, entry.id);
+
+        while (Date.now() < deadline) {
+          if (source.character) return;
+          await new Promise((resolve) => window.setTimeout(resolve, 25));
+        }
+
+        break;
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 25));
+    }
+
+    throw new Error(`Legacy character ${name} did not become playable`);
   }
 
   stop(): void {
